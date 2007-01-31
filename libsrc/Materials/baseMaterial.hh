@@ -181,18 +181,18 @@ namespace CoupledField {
       Error("GetTensor not implemented",__FILE__,__LINE__); };
 
     //! rotate a material tensor by rotation angles given in degree
-    virtual void RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
-					       const MaterialType& matType,
+    virtual void RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
+                                               const MaterialType& matType,
                                                bool persistent = false );
 
     //! Rotate all tensor material parameters by given rotation angle
-    virtual void RotateAllTensorsByRotationAngles(  Vector<Double>& rotAngle,
+    virtual void RotateAllTensorsByRotationAngles(  const Vector<Double>& rotAngle,
                                                     bool persistent = false );
 
     //! Rotates the tensor in a way that is represents the attached
     //! coordinate system behaviour (cartesian, cylindri, spherical)
     //! in this point
-    virtual void RotateTensorByPointCoord( Vector<Double> coord,
+    virtual void RotateTensorByPointCoord( const Vector<Double> &coord,
                                            const MaterialType& matType );
 
     //! Pass coordinate system to material

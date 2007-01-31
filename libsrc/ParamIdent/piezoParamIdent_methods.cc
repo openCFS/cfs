@@ -42,13 +42,17 @@ namespace CoupledField
         y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
       
       else if(whichNormCriteria_==2)
-        y_hat_[i]=std::log(std::abs(Z));      // or log abs |imedance ...|
+        y_hat_[i]=std::log(std::abs(Z));      // or log abs |impedance ...|
 
       else if(whichNormCriteria_==3)
         y_hat_[i]=Z;      // or  imedance ...
 
       else if(whichNormCriteria_==4)
-        y_hat_[i]=std::log(Z);      // or log imedance ...
+        y_hat_[i]=std::log(Z);      // or log impedance ...
+
+     // consider just the phase
+      else if(whichNormCriteria_==5)
+        y_hat_[i]=phase;      
 
     }
 
@@ -129,9 +133,10 @@ namespace CoupledField
     std::cout<<"++ Results are written in file imped.dat " <<std::endl;
 
      
-    updateMaterialData(parameter_);
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
       updateComplexMaterialData(parameterC_);
+
+    updateMaterialData(parameter_);
 
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
@@ -147,6 +152,7 @@ namespace CoupledField
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", freqs_[fstep] );
+
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -307,8 +313,8 @@ namespace CoupledField
       
     ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       
-    updateMaterialData(parameter_);
     updateComplexMaterialData(parameterC_);
+    updateMaterialData(parameter_);
       
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
         
@@ -420,9 +426,11 @@ namespace CoupledField
           charge+=chargeVec[i];
         }
 
-        Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
-        Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
-        Complex Z=Complex(x,y);
+//         Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
+//         Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
+//         Complex Z=Complex(x,y);
+
+        Complex Z=voltage_/(2*PI*charge*freqs_[fstep]*im);
 
         //F_hat_[fstep]=charge;
 
@@ -440,6 +448,10 @@ namespace CoupledField
 
         else if (whichNormCriteria_==4)
           F_hat_[fstep]=std::log(voltage_/(2*PI*charge*freqs_[fstep]*im));
+
+        // consider just the phase
+        else if (whichNormCriteria_==5)
+          F_hat_[fstep] = 180.0/PI * std::atan2(Z.imag(),Z.real());
           
 
     } // end of loop over all frequencies
@@ -574,6 +586,7 @@ namespace CoupledField
     Vector<Double> parameter_incr(parameter_.GetSize());
     parameter_incr=parameter_;
 
+    updateComplexMaterialData(parameterC_);
     updateMaterialData(parameter_);
 
     if(directCoupling_==true){
@@ -683,8 +696,8 @@ namespace CoupledField
     parameter_incr2=parameter_;
     UInt parInd=0;
 
-    updateMaterialData(parameter_);
     updateComplexMaterialData(parameterC_);
+    updateMaterialData(parameter_);
 
     createF(F_hat_, false);
 
@@ -693,11 +706,13 @@ namespace CoupledField
 
         parameter_incr[ind_param]=1.001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
+        updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr);
         createF(F_hat__incr,false);
 
         parameter_incr2[ind_param]=0.999*parameter_[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
+        updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr2);
         createF(F_hat__incr2,false);
 
@@ -1000,7 +1015,7 @@ namespace CoupledField
                                          Double & thickness_, Double & radius_,
                                          Double & delta_){
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
-    char mDataRow[1024], helpChar[64];
+    char mDataRow[1024], helpChar[128];
     UInt i=0, j=0, k=0;
     nrMeasuredDataElec_=0;
     //Initialize helpChar
@@ -1018,7 +1033,7 @@ namespace CoupledField
               k++; i++;
             }
             else{
-              freqs_[j]=atof(helpChar);
+              freqs_[j]=std::atof(helpChar);
               for(UInt l=0;l<=k;l++)
                 helpChar[l]=0;
               j++; i++; k=0;
@@ -1036,7 +1051,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            freqsMech_[j]=atof(helpChar);
+            freqsMech_[j]=std::atof(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1054,7 +1069,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            imag_[j]=atof(helpChar);
+            imag_[j]=std::atof(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1071,7 +1086,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            parameter_[j]=atof(helpChar);
+            parameter_[j]=std::atof(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1088,7 +1103,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            parameterC_[j]=atof(helpChar);
+            parameterC_[j]=std::atof(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1105,7 +1120,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            whichParameterToUpdate_[j]=atoi(helpChar);
+            whichParameterToUpdate_[j]=std::atoi(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1122,7 +1137,7 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            whichParameterToUpdateC_[j]=atoi(helpChar);
+            whichParameterToUpdateC_[j]=std::atoi(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
@@ -1149,7 +1164,7 @@ namespace CoupledField
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
-        whichNormCriteria_=atoi(helpChar);
+        whichNormCriteria_=std::atoi(helpChar);
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
@@ -1161,7 +1176,7 @@ namespace CoupledField
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
-        CalcImpedanceCurve_=atoi(helpChar);
+        CalcImpedanceCurve_=std::atoi(helpChar);
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
@@ -1174,7 +1189,7 @@ namespace CoupledField
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
-        whichNewtonCG_=atoi(helpChar); 
+        whichNewtonCG_=std::atoi(helpChar); 
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
@@ -1198,7 +1213,7 @@ namespace CoupledField
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
-        relaxParameter=atof(helpChar); 
+        relaxParameter=std::atof(helpChar); 
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
@@ -1229,7 +1244,7 @@ namespace CoupledField
     }
 
     if (whichNormCriteria_!=1 && whichNormCriteria_!=2 
-        && whichNormCriteria_ != 3  && whichNormCriteria_ != 4 ){
+        && whichNormCriteria_ != 3  && whichNormCriteria_ != 4 && whichNormCriteria_ != 5  ){
       std::cout<<" Check your norm criteria selected in measuredData.dat!!" <<std::endl;
       std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(|Z|)" <<std::endl;
       std::cout<< "3 for Z and 4 for log(Z)" <<std::endl;

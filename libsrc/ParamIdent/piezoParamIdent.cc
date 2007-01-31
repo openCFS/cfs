@@ -111,6 +111,12 @@ namespace CoupledField
       std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
     }
 
+    std::string filenameAllTensors = "allTensors.dat";
+    allTensors = new std::ofstream(filenameAllTensors.c_str(),std::basic_ios<char>::out);
+    if (!allTensors){
+      std::cerr << "\n allTensors.dat could not be initialized" << std::endl;
+    }
+
     std::string filenameOptimalFreqs= "optimalFreqs.dat";
     optimalFreqs = new std::ofstream(filenameOptimalFreqs.c_str(),std::basic_ios<char>::out);
     if (!optimalFreqs){
@@ -287,31 +293,30 @@ namespace CoupledField
     //will be overwritten in readMeasuredData ...
     nrMeasuredDataElec_=0;
     nrMeasuredDataMech_=0;
+
+    std::cout<<"before readMeasuredData " <<std::endl; 
    
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs_, real_, imag_, parameter_, voltage_, 
                      nrMeasuredData, thickness_, radius_, delta_);
 
-   
+    std::cout<<"after readMeasuredData " <<std::endl; 
+
     Vector<Double> freqsTemp;
     freqsTemp = freqs_;
     freqs_.Resize(nrMeasuredDataElec_);
     freqs_.Init();
 
-
     for(UInt i=0;i<nrMeasuredDataElec_;i++)
       freqs_[i]=freqsTemp[i];
-
 
     Vector<Double> freqsTempMech = freqsMech_;
     freqsMech_.Resize(nrMeasuredDataMech_);
     freqsMech_.Init();
 
-
     for(UInt i=0;i<nrMeasuredDataMech_;i++)
       freqsMech_[i]=freqsTempMech[i];
-
 
     nrMeasuredData = nrMeasuredDataElec_ + nrMeasuredDataMech_;
     
@@ -319,6 +324,7 @@ namespace CoupledField
      std::cout<<freqs_<<std::endl;
      std::cout<<"Frequencies from which mechanical measurements are taken:" <<std::endl;
      std::cout<<freqsMech_<<std::endl;
+
 
     y_hat_.Resize(nrMeasuredData);
     //    bas.Resize(nrParameter_);
@@ -419,16 +425,26 @@ namespace CoupledField
     Matrix<Complex> piezoMatC, stiffMatC, permMatC;
     
   
-//     if (subdomsMech_.GetSize()==1){
-//       ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-//       ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-//       ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-//     }
+     if (subdomsMech_.GetSize()==1){
+       ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+       ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+       ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+
+       std::cout<<"piezoMat"<<std::endl;
+       std::cout<<piezoMat<<std::endl;
+
+       getchar();
+     }
 
 
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
       updateComplexMaterialData(parameterC_);
     }
+
+    std::cout<<"parameter"<<std::endl;
+    std::cout<<parameter_<<std::endl;
+    std::cout<<"parameterC"<<std::endl;
+    std::cout<<parameterC_<<std::endl;
 
     updateMaterialData(parameter_);
 
@@ -671,7 +687,15 @@ namespace CoupledField
       stiffTensor[3][3] = parameter_[4]; //c_44
       stiffTensor[4][4] = parameter_[4]; //c_44
       stiffTensor[5][5] = 0.5*(parameter_[0]-parameter_[2]); //c_66
-      
+ 
+
+//       piezoTensor[2][3]=parameter_[5];  //e_15
+//       piezoTensor[0][5]=parameter_[5];  //e_15
+//       piezoTensor[1][0]=parameter_[6]; //e_31
+//       piezoTensor[1][2]=parameter_[6]; //e_31
+//       piezoTensor[1][1]=parameter_[7]; // e_33
+
+      // how it was in the case of non rotated material
       piezoTensor[1][3]=parameter_[5];  //e_15
       piezoTensor[0][4]=parameter_[5];  //e_15
       piezoTensor[2][0]=parameter_[6]; //e_31
@@ -685,37 +709,83 @@ namespace CoupledField
       Double a1, a2, a3;
       a1=a2=a3=0.0;
       
-      if( params->HasValue( "x", "1", "piezoDirect", "polingDirection" ) ){
-        a1=90;
-        //        std::cout<<" Poling rotated around x axis ! " <<std::endl;
-      }
+//       if( params->HasValue( "x", "1", "piezoDirect", "polingDirection" ) ){
+//         a1=90;
+//         //        std::cout<<" Poling rotated around x axis ! " <<std::endl;
+//       }
       
-      if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
-        a2=90;
+//       if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
+//         a2=90;
       
-      if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
-        a3=90;
-      
+//       if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
+//         a3=90;
+
+      a1=90.0;      
+
+//       std::cout << "Tensors before rotation:\n";
 
       ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
       ptMaterialMech_[0]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
       ptMaterialElec_[0]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+//       std::cout<<piezoTensor<<std::endl;
+//       std::cout<<stiffTensor<<std::endl;
+//       std::cout<<permTensor<<std::endl;
 
-      StdVector<Double> rotAngle;
+      Vector<Double> rotAngle;
       rotAngle.Resize(3);
-      rotAngle[0]=a1;
-      rotAngle[1]=a2;
-      rotAngle[2]=a3;
+      rotAngle[0]=-90.0;
+      rotAngle[1]=0.0;
+      rotAngle[2]=-90.0;
       
-      Matrix<Complex> rotatedMatrix;
+    //   ptMaterialPiezo_[0]->GetTensor(piezoTensor,PIEZO_TENSOR,REAL,FULL);
+//       ptMaterialMech_[0]->GetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialElec_[0]->GetTensor(permTensor,ELEC_PERMITTIVITY,REAL,FULL);
+//       //    std::cout << "Tensors before rotation:\n";
+
+//       std::cout<<piezoTensor<<std::endl;
+//       std::cout<<stiffTensor<<std::endl;
+//       std::cout<<permTensor<<std::endl;
     
+      ptMaterialElec_[0]->RotateTensorByRotationAngles( rotAngle,ELEC_PERMITTIVITY, true);      
+      ptMaterialMech_[0]->RotateTensorByRotationAngles( rotAngle,MECH_STIFFNESS_TENSOR, true);      
+      ptMaterialPiezo_[0]->RotateTensorByRotationAngles( rotAngle,PIEZO_TENSOR, true); 
 
-//       ptMaterialPiezo_[0]->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, rotatedMatrix);      
-//       for(UInt i=0; i<rotatedMatrix.GetSizeRow();i++)
-//         for(UInt j=0; j<rotatedMatrix.GetSizeCol();j++)
-//           piezoTensor[i][j] = rotatedMatrix[i][j].real();
 
-//        ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+      // TEST HOW DOES IT LOOK LIKE FOR THE COMPLEX STUFF
+   //    ptMaterialPiezo_[0]->GetTensor(piezoTensor,PIEZO_TENSOR,IMAG,FULL);
+//       ptMaterialMech_[0]->GetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, IMAG,FULL);
+//       ptMaterialElec_[0]->GetTensor(permTensor,ELEC_PERMITTIVITY,IMAG,FULL);
+      //    std::cout << "Tensors before rotation:\n";
+
+//       std::cout<<piezoTensor<<std::endl;
+//       std::cout<<stiffTensor<<std::endl;
+//       std::cout<<permTensor<<std::endl;
+
+//       getchar();
+
+     
+//        for(UInt i=0; i<rotatedMatrix.GetSizeRow();i++)
+//          for(UInt j=0; j<rotatedMatrix.GetSizeCol();j++)
+//            piezoTensor[i][j] = rotatedMatrix[i][j].real();
+
+//      std::cout << "Tensors after rotation:\n";
+//       ptMaterialPiezo_[0]->GetTensor(piezoTensor,PIEZO_TENSOR,REAL,FULL);
+//       ptMaterialMech_[0]->GetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialElec_[0]->GetTensor(permTensor,ELEC_PERMITTIVITY,REAL,FULL);
+
+//       std::cout<<piezoTensor<<std::endl;
+//       std::cout<<stiffTensor<<std::endl;
+//       std::cout<<permTensor<<std::endl;
+
+//       ptMaterialPiezo_[0]->GetTensor(piezoTensor,PIEZO_TENSOR,REAL,AXI);
+//       ptMaterialMech_[0]->GetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL,AXI);
+//       ptMaterialElec_[0]->GetTensor(permTensor,ELEC_PERMITTIVITY,REAL,AXI);
+
+//       std::cout<<piezoTensor<<std::endl;
+//       std::cout<<stiffTensor<<std::endl;
+//       std::cout<<permTensor<<std::endl;
+
+//       getchar();
 
     }
 
@@ -1197,6 +1267,79 @@ namespace CoupledField
     }
 
  }//end compute scaling
+
+
+  void piezoParamIdent::writeTensorsInFile(){
+    ENTER_FCN("piezoParamIdent::writeTensorsInFile");
+
+    Matrix<Complex> piezoMatC, stiffMatC, permMatC;
+
+    ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,COMPLEX,FULL);
+    ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR, COMPLEX,FULL);
+    ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,COMPLEX,FULL);
+    
+    Matrix<Complex> sE(6,6);
+    sE.Init();
+    for(UInt i=0;i<6;i++)
+      sE[i][i]=Complex(1.0,0.0);
+        
+#ifdef USE_LAPACK
+    
+    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+    stiffMatC.solveWithLapack(sE,LAPACK_SYS_MAT_TYPE);
+
+#endif
+
+    *allTensors<<"Mechanical Modulus Tensor cE = " <<std::endl;
+    *allTensors<<stiffMatC<<std::endl;
+
+    *allTensors<<"Mechanical Elasticity Tensor sE = " <<std::endl;
+    *allTensors<<sE<<std::endl;
+
+
+    *allTensors<<"Piezoelectric Coupling Tensor e = " <<std::endl;
+    *allTensors<<piezoMatC<<std::endl;
+
+
+    Matrix<Complex> d(piezoMatC.GetSizeRow(),piezoMatC.GetSizeCol());
+    d.Init();
+    d=piezoMatC*sE;  
+    *allTensors<<"Piezoelectric Coupling Tensor d = " <<std::endl;
+    *allTensors<<d<<std::endl;
+
+
+    *allTensors<<"Permittivity Tensor epsS = " <<std::endl;
+    *allTensors<<permMatC<<std::endl;
+
+    Matrix<Complex> epsT (3,3);
+    Matrix<Complex> epsTrans;
+    piezoMatC.Transpose(epsTrans);
+
+    epsT.Init();
+   
+    epsT = permMatC + d*epsTrans;
+
+    *allTensors<<"Permittivity Tensor epsT = " <<std::endl;
+    *allTensors<<epsT<<std::endl;
+
+    Complex influenceConstant = Complex(1.0/8.8542e-12,0.0);
+    permMatC = influenceConstant*permMatC;
+    epsT = influenceConstant*epsT;
+
+
+    *allTensors<<"Relative Permittivity Tensor epsS = " <<std::endl;
+    *allTensors<<permMatC<<std::endl;
+
+    *allTensors<<"Relative Permittivity Tensor epsT = " <<std::endl;
+    *allTensors<<epsT<<std::endl;
+
+
+    std::cout<<"++ All Material Tesnors are written into File 'allTensors.dat' " <<std::endl;
+   
+
+  
+  }
+
 
 } // end namespace CoupledField
 
