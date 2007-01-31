@@ -86,6 +86,8 @@ namespace CoupledField
     std::ofstream * synMess;
     //! output file, writes synthetically created impedance curve
     std::ofstream * nrOfFreqs;
+    // output file, contains all Tensors
+    std::ofstream * allTensors;
 
     //! Initialization method
     void Init();
@@ -101,6 +103,9 @@ namespace CoupledField
     //! like create F but the frequencies are specified with Vector frequencies
     void createFVec(Complex & F_hat, bool typeOut,
                     Double frequency);
+
+    //! Write all Tensors(cE, sE, ...) in File
+    void writeTensorsInFile();
 
     //! inverts a Matrix
     void invert(Matrix<Complex> & data);

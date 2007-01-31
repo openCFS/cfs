@@ -240,11 +240,12 @@ namespace CoupledField
   }  
 
 
-  void BaseMaterial::RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
-						   const MaterialType& matType,
+  void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
+                                                   const MaterialType& matType,
                                                    bool persistent ) {
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
+
 
     using namespace std;
 
@@ -268,10 +269,10 @@ namespace CoupledField
       matTensor = pos->second;
       Matrix<Complex> const matTensorOrig = posOrig->second;
 
-      
       // transfer to radiant
+      Vector<Double> rotRadiant = rotAngle;
       for ( UInt i=0; i<rotAngle.GetSize(); i++ ) {
-	rotAngle[i] *= PI / 180.0;
+        rotRadiant[i] *= PI / 180.0;
       }
       // limit for angles used in special cases
       Double eps = 1e-6;
@@ -289,9 +290,9 @@ namespace CoupledField
       // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
       // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
 
-      Double alpha = rotAngle[0];
-      Double beta  = rotAngle[1];
-      Double gamma = rotAngle[2];
+      Double alpha = rotRadiant[0];
+      Double beta  = rotRadiant[1];
+      Double gamma = rotRadiant[2];
       
       R[0][0] =  cos(beta) * cos(gamma);
       R[0][1] = -cos(beta) * sin(gamma);
@@ -364,7 +365,7 @@ namespace CoupledField
     
   }
 
-  void BaseMaterial::RotateAllTensorsByRotationAngles( Vector<Double>& rotAngle, 
+  void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
                                                        bool persistent ) {
     ENTER_FCN( "BaseMaterial::RotateAllTensorsByRotationAngles" );
 
@@ -375,7 +376,7 @@ namespace CoupledField
   }
     
 
-  void BaseMaterial::RotateTensorByPointCoord( Vector<Double> coord,
+  void BaseMaterial::RotateTensorByPointCoord( const Vector<Double>&  coord,
                                                const MaterialType& matType ) {
 
     ENTER_FCN( "BaseMaterial:: RotateTensorByPointCoord" );

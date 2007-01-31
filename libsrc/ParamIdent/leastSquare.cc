@@ -67,7 +67,7 @@ namespace CoupledField
       std::cout<<"F_hat"<<std::endl;
       std::cout<<F_hat_<<std::endl;
 
-      if ((iterIndex+1)%10==0){
+      if ((iterIndex+1)%5==0){
         Integer nrfreqTemp=200;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
