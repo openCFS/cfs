@@ -426,6 +426,170 @@
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
+  <!-- ==                           ILUPACK Solver                      == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+  
+  
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for ILUPACK Solver                            -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="ilupack" type="DT_Ilupack"
+               substitutionGroup="SolverBasic"/>
+  
+  <!-- <ilupack>
+         <permutation type="inital"  matrix="sym" ordering="mmd" matchin="mwm" />
+         <permutation type="regular" matrix="sym" ordering="mmd" matching="mwm" />
+         <permutation type="final"   matrix="pd"  ordering="pp"  matching="none"/>
+         <engine type="sqmr"/>
+         <flag name="aggressiveDropping" state="on"/>
+       </ilupack> -->
+  
+       <!-- Definition of the ILUPACK matrix attribute -->
+       <xsd:simpleType name="DT_Ilupack_Matrix">  
+         <xsd:restriction base="xsd:token">
+           <xsd:enumeration value="sym"/>
+           <xsd:enumeration value="pd"/>
+           <xsd:enumeration value="gnl"/>
+           <xsd:enumeration value="her"/>
+         </xsd:restriction>
+       </xsd:simpleType>
+  
+       
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for ILUPACK Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_Ilupack">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          
+          <xsd:element name="permutation" minOccurs="0" maxOccurs="3">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="required">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="initial"/>
+                    <xsd:enumeration value="regular"/>
+                    <xsd:enumeration value="final"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              
+              <xsd:attribute name="matrix" use="required" type="DT_Ilupack_Matrix" />
+
+              <xsd:attribute name="ordering" use="required">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="null"/>
+                    <xsd:enumeration value="nd"/>
+                    <xsd:enumeration value="rcm"/>
+                    <xsd:enumeration value="amf"/>
+                    <xsd:enumeration value="amd"/>
+                    <xsd:enumeration value="mmd"/>
+                    <xsd:enumeration value="metisE"/>
+                    <xsd:enumeration value="metisN"/>
+                    <xsd:enumeration value="indset"/>
+                    <xsd:enumeration value="pp"/>
+                    <xsd:enumeration value="pq"/>
+                    <xsd:enumeration value="fc"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              
+              <xsd:attribute name="matching" use="optional" default="none">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="none"/>
+                    <xsd:enumeration value="mwm"/>
+                    <xsd:enumeration value="mc64"/>                    
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              
+            </xsd:complexType> 
+          </xsd:element>  <!-- end of permutation -->          
+          
+          
+          <xsd:element name="engine" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="type" use="required">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="pcg"/>
+                    <xsd:enumeration value="sbcg"/>
+                    <xsd:enumeration value="bcg"/>
+                    <xsd:enumeration value="sqmr"/>
+                    <xsd:enumeration value="bcgstab"/>
+                    <xsd:enumeration value="tfqmr"/>
+                    <xsd:enumeration value="fom"/>
+                    <xsd:enumeration value="gmres"/>
+                    <xsd:enumeration value="fgmres"/>
+                    <xsd:enumeration value="dqmres"/>                    
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+            </xsd:complexType> 
+          </xsd:element>  <!-- end of engine -->
+        
+          <xsd:element name="dropTol" type="xsd:float" minOccurs="0"/>
+          <xsd:element name="residualTol" type="xsd:float" minOccurs="0"/>
+          <xsd:element name="elbowSpace" type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="condest" type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0"/>
+          
+          <!-- quite a lot of flags  <flag name="aggressiveDropping" state="on"/> -->
+          <xsd:element name="flag" minOccurs="0" maxOccurs="20">
+            <xsd:complexType>
+              <xsd:attribute name="name" use="required">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="DropInverse"/>
+                    <xsd:enumeration value="NoShift"/>
+                    <xsd:enumeration value="TismenetskySC"/>
+                    <xsd:enumeration value="RepeatFact"/>
+                    <xsd:enumeration value="ImprovedEstimate"/>
+                    <xsd:enumeration value="DiagonalCompensation"/>
+                    <xsd:enumeration value="CoarseReduce"/>
+                    <xsd:enumeration value="FinalPivoting"/>
+                    <xsd:enumeration value="EnsureSPD"/>
+                    <xsd:enumeration value="SimpleSC"/>
+                    <xsd:enumeration value="PreprocessInitialSystem"/>
+                    <xsd:enumeration value="PreprocessSubsystem"/>
+                    <xsd:enumeration value="MultiPiluc"/>
+                    <xsd:enumeration value="ReFactor"/>
+                    <xsd:enumeration value="AggressiveDropping"/>
+                    <xsd:enumeration value="DiscardMatrix"/>
+                    <xsd:enumeration value="SymmetricStructure"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+            
+              <xsd:attribute name="state" use="required">
+                <xsd:simpleType>  
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="on"/>
+                    <xsd:enumeration value="off"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+            
+            </xsd:complexType> 
+          </xsd:element>  <!-- end of flag -->
+        
+        
+        </xsd:sequence>
+        
+        <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> <!-- end of DT_Ilupack -->
+  
+  
+  
+  
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
   <!-- ==                        OLAS_MINRES Solver                     == -->
   <!-- ==                                                               == -->
   <!-- =================================================================== -->

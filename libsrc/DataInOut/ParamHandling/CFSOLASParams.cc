@@ -217,6 +217,17 @@ namespace CoupledField {
     if ( doExport.GetSize() == 1 ) {
       olas->SetValue( "exportLinSys", true );
       olas->SetValue( "exportLinSysBaseName", doExport[0] );
+      
+      // additional parameters -> should be all a new settings structure
+      keyVec  = "linearSystems", "system", "exportLinSys", "format";
+      std::string string;
+      cfs->Get( keyVec, attrVec, valVec, string);
+      olas->SetValue( "exportLinSysFormat", string);
+
+      // optinal also the solution      
+      keyVec  = "linearSystems", "system", "exportLinSys", "solution";
+      cfs->Get( keyVec, attrVec, valVec, string);      
+      olas->SetValue( "exportLinSysSolution", string);
     }
     else {
       olas->SetValue( "exportLinSys", false );
@@ -573,6 +584,148 @@ namespace CoupledField {
       cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_stats", (list[0] == "yes") );
+      }
+      break;
+
+    case OLAS::ILUPACK_SOLVER:
+      {
+          std::string value;      
+        
+          // it is complete nonsense to "cast" from the  hirarchical xml structure
+          // to the flat label-value format!! :(
+          
+          //  <linearSystems>
+          //    <system name="mechanic">
+          //      <exportLinSys baseName="mech2d" solution="true" format="harwell-boeing"/>
+          //      <solver type="ilupack" matrix="pd">
+          //         <ilupack>
+          //           <permutation type="initial" matrix="sym" ordering="mmd" matching="mwm" />
+          //           <permutation type="regular" matrix="sym" ordering="mmd" matching="mwm" />
+          //           <permutation type="final"   matrix="pd"  ordering="pp"  matching="pure"/> 
+          //           <engine type="sqmr"/>
+          //         </ilupack> 
+          //      </solver>
+          //   </system>
+          // </linearSystems>
+
+          // optionally we define a matrix type
+          keyVec[2] = "ilupack";
+          keyVec[3] = "matrix";
+          cfs->GetList( keyVec, attrVec, valVec, list);
+          if(list.GetSize() > 0) {
+              olas->SetValue("ilupack_matrix", list[0]);
+          }
+
+              
+          //             0             1         2              3              4            5         
+          keyVec  = "linearSystems", "system", "solver", "ilupack", "permutation", "matrix";
+          attrVec = ""             , "name"  , ""      , ""       , "type";
+          valVec  = ""             , pdename , ""      , ""       , "initial";
+          
+          // note: using smart Enums this could be done smarter!
+          keyVec[5] = "matrix";
+          cfs->GetList(keyVec, attrVec, valVec, list);
+          if(list.GetSize() > 0) { 
+            olas->SetValue( "ilupack_initial_matrix", list[0]);
+      
+            keyVec[5] = "ordering"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_initial_ordering", value);
+            
+            keyVec[5] = "matching"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_initial_matching", value);
+          }
+          
+          // ugly copy & paste -> to be depreciated when olas merges with cfs
+          valVec[4] = "regular";
+          keyVec[5] = "matrix";
+          cfs->GetList(keyVec, attrVec, valVec, list);
+          if(list.GetSize() > 0) { 
+            olas->SetValue( "ilupack_regular_matrix", list[0]);
+      
+            keyVec[5] = "ordering"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_regular_ordering", value);
+            
+            keyVec[5] = "matching"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_regular_matching", value);
+          }
+
+          valVec[4] = "final";
+          keyVec[5] = "matrix";
+          cfs->GetList(keyVec, attrVec, valVec, list);
+          if(list.GetSize() > 0) { 
+            olas->SetValue( "ilupack_final_matrix", list[0]);
+      
+            keyVec[5] = "ordering"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_final_ordering", value);
+            
+            keyVec[5] = "matching"; 
+            cfs->Get(keyVec, attrVec, valVec, value);
+            olas->SetValue( "ilupack_final_matching", value);
+          }
+          
+          // the engine chooses from the solver set of ilupack 
+          //             0             1         2              3              4        5         
+          keyVec  = "linearSystems", "system", "solver", "ilupack", "engine", "type";
+          attrVec = ""             , "name"  , ""      , ""       , "";
+          valVec  = ""             , pdename , ""      , ""       , "";
+          
+          cfs->GetList( keyVec, attrVec, valVec, list);
+          if(list.GetSize() > 0) {
+             olas->SetValue( "ilupack_engine", list[0]);
+          }  
+
+          // read the parameter stuff
+          keyVec  = "linearSystems", "system", "ilupack", "";
+          attrVec = ""             , "name"  , "";
+          valVec  = ""             , pdename , "";
+          
+          keyVec[3] = "dropTol";
+          cfs->GetList( keyVec, attrVec, valVec, list );
+          if( list.GetSize() == 1 ) olas->SetValue( "ilupack_dropTol", atof(list[0].c_str()));
+
+          keyVec[3] = "residualTol";
+          cfs->GetList( keyVec, attrVec, valVec, list );
+          if( list.GetSize() == 1 ) olas->SetValue( "ilupack_residualTol", atof(list[0].c_str()));
+
+          keyVec[3] = "elbowSpace";
+          cfs->GetList( keyVec, attrVec, valVec, list );
+          if( list.GetSize() == 1 ) olas->SetValue( "ilupack_elbowSpace", atoi(list[0].c_str()));
+
+          keyVec[3] = "condest";
+          cfs->GetList( keyVec, attrVec, valVec, list );
+          if( list.GetSize() == 1 ) olas->SetValue( "ilupack_condest", atoi(list[0].c_str()));
+
+          keyVec[3] = "maxIter";
+          cfs->GetList( keyVec, attrVec, valVec, list );
+          if( list.GetSize() == 1 ) olas->SetValue( "ilupack_maxIter", atoi(list[0].c_str()));
+
+          // read the set flags          
+          keyVec  = "linearSystems", "system", "solver", "ilupack", "flag", "name";
+          attrVec = ""             , "name"  , ""      , ""       , "state";
+          valVec  = ""             , pdename , ""      , ""       , "on";
+          
+          std::ostringstream os;
+          cfs->GetList( keyVec, attrVec, valVec, list);
+          for(UInt i = 0; i < list.GetSize(); i++) {
+             os.str("");
+             os << "ilupack_flag_on_" << i; 
+             olas->SetValue(os.str(), list[i]);
+          }   
+
+          // read the off flags
+          valVec[4] = "off";
+          cfs->GetList( keyVec, attrVec, valVec, list);
+          for(UInt i = 0; i < list.GetSize(); i++) {
+             os.str("");
+             os << "ilupack_flag_off_" << i; 
+             olas->SetValue(os.str(), list[i]);
+          }   
+
       }
       break;
 
