@@ -441,13 +441,12 @@ namespace CoupledField
       updateComplexMaterialData(parameterC_);
     }
 
+    updateMaterialData(parameter_);
+
     std::cout<<"parameter"<<std::endl;
     std::cout<<parameter_<<std::endl;
     std::cout<<"parameterC"<<std::endl;
     std::cout<<parameterC_<<std::endl;
-
-    updateMaterialData(parameter_);
-
 
     parameterIncrement_=parameter_;
 
@@ -1323,8 +1322,8 @@ namespace CoupledField
     *allTensors<<epsT<<std::endl;
 
     Complex influenceConstant = Complex(1.0/8.8542e-12,0.0);
-    permMatC = influenceConstant*permMatC;
-    epsT = influenceConstant*epsT;
+    permMatC *= influenceConstant;
+    epsT *= influenceConstant;
 
 
     *allTensors<<"Relative Permittivity Tensor epsS = " <<std::endl;

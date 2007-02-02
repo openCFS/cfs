@@ -54,10 +54,9 @@ namespace CoupledField
 
     for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_;iterIndex++){
 
-      updateMaterialData(parameter_);
-
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
       updateComplexMaterialData(parameterC_);
+      updateMaterialData(parameter_);
 
       createF(F_hat_, false);
 
@@ -149,10 +148,10 @@ namespace CoupledField
           
           parameterC_[par]=1.000001*parameterC_[par];
           
-          updateMaterialData(parameter_);
-          
+         
           if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
             updateComplexMaterialData(parameterC_);
+          updateMaterialData(parameter_);
           
           createF(F_hat_, false);
           
@@ -228,9 +227,9 @@ namespace CoupledField
           negFlag=true;
         }  
 
-      updateMaterialData(parameter_);
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
         updateComplexMaterialData(parameterC_);
+      updateMaterialData(parameter_);
       createF(F_hat_, false);
       for (UInt i=0;i<nrMeasuredData;i++)
         F_y[i]=F_hat_[i]-y_hat_[i];
@@ -293,9 +292,9 @@ namespace CoupledField
             indParC++;
           }      
 
-        updateMaterialData(parameter_);
         if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
           updateComplexMaterialData(parameterC_);
+        updateMaterialData(parameter_);
         createF(F_hat_, false);
         for (UInt i=0;i<nrMeasuredData;i++)
           F_y[i]=F_hat_[i]-y_hat_[i];

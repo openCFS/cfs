@@ -740,11 +740,13 @@ namespace CoupledField
         //      std::cout<<parameter_incr<<std::endl
 
         updateComplexMaterialData(parameter_incr);
+        updateMaterialData(parameter_);
         createF(F_hat__incr,false);
 
         parameter_incr2[ind_param]=0.999*parameterC_[ind_param]; 
         //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameter_incr2);
+        updateMaterialData(parameter_);
         createF(F_hat__incr2,false);
 
         // second order FD approximation
