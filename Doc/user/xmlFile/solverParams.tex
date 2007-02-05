@@ -137,10 +137,6 @@ storage & sparseSym      & System matrix is stored in compressed row storage
         & sparseNonSym	 & System matrix is stored in CRS format.\\
         & skylineSym	 & \emph{not fully supported yet}\\
         & skylineNonSym	 & \emph{not fully supported yet}\\
-        & hypreMatrix	 & System matrix is stored as a hypre matrix. This is
-	                   the correct choice, if a hypre solver is to be used.
-                           Note that a hypre matrix can only store scalar
-                           double entries.\\
         & lapackGBMatrix & System matrix is stored as a general banded matrix.
                            This is the suitable choice for the lapackLU solver.
                            \\
@@ -188,11 +184,12 @@ solver              & re-ordering                             \\
 directLDL, directLU & Metis (if available), Sloan (otherwise) \\
 lapackLU, lapackLL  & Sloan                                   \\
 pardiso             & noReordering                            \\
+ilupack             & noReordering                            \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 preconditioner      & re-ordering                             \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-ILU0, Jacobi, hypreJacobi & noReordering                      \\
-ILUK, ILDLK, hypreILU    & Sloan                              \\
+ILU0, Jacobi  & noReordering                      \\
+ILUK, ILDLK,    & Sloan                              \\
 \noalign{\smallskip}\hline
 \end{longtable}
 \end{center}
@@ -205,20 +202,39 @@ ILUK, ILDLK, hypreILU    & Sloan                              \\
 %
 In some situations one is interested in obtaining the system matrix of the
 linear system for post-processing. We may e.g.~want to plot the sparsity
-pattern or compute some eigenvalues using matlab. Thus, OLAS offers the
-possibility to export the system matrix to an ascii file in a format conforming
-to the MatrixMarket specifications. For details see
-\url{math.nist.gov/MatrixMarket}. The right-hand side vector is exported
-together with the matrix, but in a separate ascii file. The first line of this
+pattern or compute some eigenvalues using matlab. Two ascii output formats are
+handled (see \url{math.nist.gov/MatrixMarket} for both formats). The MatrixMarket format saves for each non-zero entry the row and column index and the Harwell-Boeing format stores the non-zero entries in a compressed column storage format, in the symmetric case the lower triangular part is stored. Note that OLAS uses internally a compressed row
+storage format and stores the upper part of symmetric matrices. The
+Harwell-Boeing format contains the RHS (dense) in the same file, for the
+MatrixMarket format a separate text file is created. The first line of this
 file contains the dimension of the vector. This is followed by the vector
 entries.
 
 In order to trigger the export one must specify an \xml{exportLinSys} element.
 This is a child of the \xml{solver} element. It expects as \xml{baseName}
-attribute the basename for the two output files. For the MatrixMarket file a
-trailing '.mtx' will be appended to this basename, while for the right-hand
-side a '.vec' postfix is used. See Sec.~\ref{sec:SP_Examples} for an example.
+attribute the basename for the two output files. The format is specified by
+the \xml{format} attribute. The default is \xml{"matrix-market"} and files
+with the extensions '.mtx' and '.vec' are created. The attribute value
+\xml{"harwell-boeing"} creates a file with '.hb' added to the base name.
+
+Additionally it is possible to write the solution vector via the attribute
+\xml{solution}. The possible values are \xml{"no"} (default), \xml{"yes"} and
+\xml{"exclusive"}. The later does not write the system matrix (and hence the
+\xml{format} attribute is ignored) but only the solution vector. This might be
+useful to compare the solutions for different solvers or solver settings. The
+solution is written with a trailing '.sol.vec'. See Sec.~\ref{sec:SP_Examples} for an example and the following table for a summary of the attributes.
 %
+\begin{center}
+\begin{tabular}{lcp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+attribute & range of values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+baseName & a filename & base name of the system, solution and RHS. \\
+solution & yes, no, exclusive & optional (default "no") setting if (only) the solution shall be exported.\\
+format & matrix-market, harwell-boeing & optional (default "matrix-market") setting of system export format. \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
 %
 %
 % =============================================================================
@@ -249,10 +265,7 @@ Richardson    & richardson iteration\\
 cg	      & (preconditioned) conjugate gradient algorithm\\
 gmres	      & generalised minimal residual method\\
 QMR	      & quasi-minimal residual method\\
-hyprePCG      & hypre's version of the classical conjugate gradient algorithm\\
-hypreGMRES    & hypre's version of the generalised minimal residual method\\
-hypreBICGSTAB & hypre's version of the stabilised bi-conjuigate gradient
-                method\\
+ilupack       & package of preconditioners and integrated iterative solvers\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 directLU      & direct solution via $LU$ decomposition\\
 directLDL     & direct solution via $LDL^T$ decomposition (planned)\\
@@ -288,10 +301,6 @@ ILUK        & incomplete $LU$ decomposition using fill-level based dropping,
 	      i.e. ILU(k)\\
 ILDLK       & incomplete $LDL^T$ decomposition using fill-level based
               dropping, i.e. ILDL(k)\\
-hypreJacobi & plain Jacobi in hypre\\
-hypreAMG    & hypre's algebraic multigrid method\\
-hypreILU    & hypre's ILU preconditioner Euclid, ILU(k) currently\\
-hypreSPAI   & hypre's SPAI preconditioner ParaSails \\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
@@ -375,7 +384,7 @@ are then given as children of this sub-element. The order of these child
 elements is reflected by the ordering of the parameters in the respective
 tables. See Sec.~\ref{sec:SP_Examples} for an example.
 
-All the solver parameters are optional as is the \xml{xyz} element. If one are
+All the solver parameters are optional as is the \xml{xyz} element. If one or
 all parameters are omitted the respective default value defined within OLAS
 will be used, cf.~Sec.~\ref{sec:SP_Interface}.
 %
@@ -620,144 +629,6 @@ logging & yes, no & If logging is set to yes, then the solution process will
 \end{center}
 %
 %
-\subsection{hypreGMRES}
-%
-%
-Setting \xml{type} to \xml{hypreGMRES} selects the Generalised Minimal Residual
-solver from the hypre library. Its behaviour can be steered using the following
-parameters
-%
-%
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-tol & $> 0$ & The value of this parameter is used for the convergence criterion
-              in the stopping test of GMRES. The stopping rule is as follows
-	\begin{displaymath}
-        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
-	\end{displaymath}
-        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
-        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
-                         GMRES method.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-maxKrylovDim & $\mathbb{N}$ & This gives the upper limit on the size of the
-                              Krylov subspace generated by the GMRES method
-                              before it is re-started. At least that's what
-                              Marcus assumes from reading hypre's minimal
-                              doc.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-logging & 0, 1, 2 & This parameter is used to control the verbosity of the
-                    method. Its values have the following meaning:
-\begin{center}
-\begin{tabular}{lcl}
-0 &=& no printout, no storing of norms\\
-1 &=& no printout, norms are stored\\
-2 &=& norms are stored and reported to\\
-  & & stdout in every iteration step\\
-\end{tabular}
-\end{center}
-It appears that this concept is new and not quite working yet.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
-                       See description of logging above.\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
-%
-\subsection{hypreBICGSTAB}
-%
-%
-Setting \xml{type} to \xml{hypreBICGSTAB} selects the stabilised bi-conjugate
-gradient solver from the hypre library. Its behaviour can be steered using the
-following parameters
-%
-%
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-tol & $> 0$ & The value of this parameter is used for the convergence criterion
-              in the stopping test of GMRES. The stopping rule is as follows
-	\begin{displaymath}
-        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
-	\end{displaymath}
-        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
-        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
-                         GMRES method.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-logging & 0, 1, 2 & This parameter is used to control the verbosity of the
-                    method. Its values have the following meaning:
-\begin{center}
-\begin{tabular}{lcl}
-0 &=& no printout, no storing of norms\\
-1 &=& no printout, norms are stored\\
-2 &=& norms are stored and reported to\\
-  & & stdout in every iteration step\\
-\end{tabular}
-\end{center}
-It appears that this concept is new and not quite working yet.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
-                       See description of logging above.\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
-%
-\subsection{hyprePCG}
-%
-%
-Setting \xml{type} to \xml{hyprePCG} selects the preconditioned conjugate
-gradient solver from the hypre library. Its behaviour can be steered using the
-following parameters
-%
-%
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-tol & $> 0$ & The value of this parameter is used for the convergence criterion
-              in the stopping test of GMRES. The stopping rule is as follows
-	\begin{displaymath}
-        \|r^{(k)}\|  \leq \varepsilon \cdot \|b\|
-	\end{displaymath}
-        where $r^{(k)}$ is the residual of the k-th step and $b$ is the right
-        hand side. If $\|b\|=0$, then it is replaced by $\|r^{(0)}\|$.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-maxIter & $\mathbb{N}$ & Maximal number of iteration steps allowed for the
-                         GMRES method.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-logging & 0, 1, 2 & This parameter is used to control the verbosity of the
-                    method. Its values have the following meaning:
-\begin{center}
-\begin{tabular}{lcl}
-0 &=& no printout, no storing of norms\\
-1 &=& no printout, norms are stored\\
-2 &=& norms are stored and reported to\\
-  & & stdout in every iteration step\\
-\end{tabular}
-\end{center}
-It appears that this concept is new and not quite working yet.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-printLevel & 0, 1, 2 & This seems to be the old way of setting the verbosity.
-                       See description of logging above.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-twoNorm & yes, no & If this is set to yes, then the Euclidean norm is used
-	            in the stopping test of CG instead of the energy norm
-	            induced by the system matrix.\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
 %
 \subsection{lapackLU}
 %
@@ -781,7 +652,332 @@ logging    & yes, no & if set to yes, LAPACK will be verbose about its solution
 \end{tabular}
 \end{center}
 %
-%
+\subsection{ilupack}
+ILUPACK is a package containting preconditioners and a set of iterative solvers. It is academic software, written by Matthias Bollh\"ofer with contribution by the co-autors Yousef Saad and Olaf Schenk. It is freely available for scientific (non-commercial) use as precompiled libraries. We cite the web-page
+(\url{http://www.math.tu-berlin.de/ilupack}):
+\begin{quote}
+LUPACK provides several multilevel ILU preconditioners for general real and complex matrices as well as real and complex symmetric (Hermitian) positive definite systems.
+The basic idea of ILUPACK is based on inverse-based ILUs, that are incomplete LU decompositions that control the growth of the inverse triangular factors. 
+\end{quote}
+The license requires, that all scientific publications, for which ILUPACK has been used, shall mention usage of ILUPACK, and shall refer to the following publication:
+
+\begin{quote}
+\textbf{Matthias Bollh\"ofer and Yousef Saad. Multilevel preconditioners constructed from inverse-based ILUs. SIAM J. Sci. Comput., Special Issue on the 8-th Copper Mountain Conference, 27(5):1627-1650, 2006.}
+\end{quote}
+
+ILUPACK can clearly beat Pardiso for large systems with several thousand unknowns. Unfortunately for some problems, especially coupled PDEs, this is 
+not always the case. In the lucky case ILUPACK stops with an error or even crashes with a segmentation fault in the library. Worse is, when the result is completely wrong and ilupack gives no hint.
+
+\textbf{When using ILUPACK (especially on coupled problems) countercheck your result with a reliable solver like Pardiso!}
+
+ILUPACK shows best performance when it can make use of the direct solver
+Pardiso, so make sure it is installed. As no source is available not all
+machines can be used - in case check the webpage.
+
+\subsubsection*{Quick Guide}
+This section gives the most relevant options for using ILUPACK.
+\begin{itemize}
+\item
+The two golden rules about ILUPACK are:
+\begin{itemize}
+\item \textbf{For coupled system countercheck with Pardiso!}
+\item \textbf{Check the .las file for information}
+\end{itemize}
+
+\item The simplest way is to use the defaults:
+\begin{verbatim}
+<cfsSimulation xmlns="http://www.cfs++.org">
+  ...
+  <pdeList>
+    <mechanic ...>
+        ...
+    </mechanic>
+  </pdeList>
+  
+  <linearSystems>
+    <system name="mechanic">
+       <solver type="ilupack"/>
+    </system>
+  </linearSystems>
+</cfsSimulation>
+\end{verbatim}
+
+\item If you have a positive definit system (real symmetric or Hermitian), you have to give this information explicitly, otherwise a indefinite symmetric system is assumed and some performance might be lost. The shortes version of \xml{linearSystems} is then like the following:
+\begin{verbatim}
+<linearSystems>
+  <system name="mechanic">
+     <solver type="ilupack">
+        <ilupack matrix="pd"/>
+     </solver>
+  </system>
+</linearSystems>
+\end{verbatim}
+\item If the iterative solver from the ILUPACK package exits to early, give a stricter \xml{residualTol} 
+\begin{verbatim}
+<solver type="ilupack">
+   <ilupack>
+      <residualTol>1e-10</residualTol>
+   </ilupack>
+</solver>
+\end{verbatim}
+Check the .las file especially for the following lines.
+\begin{verbatim}
+...
+residual tolerance      : 1.49012e-08 -> 1e-10
+...
+Ilupack solver status:
+ Number of Iterations    : 2
+ initial residual norm   : 3.8147e-06
+ target residual norm    : 5.13559e-14
+ current residual norm   : 8.47033e-21
+\end{verbatim}
+\item The memory consumption of ILUPACK, the fill-in factor, is set via \xml{elbowSpace}.
+\begin{verbatim}
+<solver type="ilupack">
+   <ilupack matrix="pd">
+      <elbowSpace>10</elbowSpace>
+   </ilupack>
+</solver>
+\end{verbatim}
+\end{itemize}
+
+\subsubsection*{Matrix}
+The complete options set of ILUPACK is manifold but can be divided into three categories
+\begin{center}
+\begin{tabular}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+category & mode & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+matrix & semi-automatic & only symmetric and unsymmetric is determined\\
+reordering & default & hard-coded default values are set\\
+parametrization & automatic & ILUPACK sets this values automatically\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+ILUPACK knows the following matrix types where the notations are taken from the library
+\begin{center}
+\begin{tabular}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+code & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+sym & symmetric (indefinite) for real and complex \\
+pd & symmetric/hermitian positive definite \\
+gnl & generell unsymmetric real and complex matrix \\
+her & hermitial complex \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+The library provides functions (init, factorize, solve, ...) for every matrix type individual. Note, that when not exlicit given, only the symmetric and unsymmetric (gnl) types are choosen. This also means, that it is not necessary, to explicit define a unsymmetric (gnl) or symmetric indefinite system (sym).
+\begin{verbatim}
+<solver type="ilupack">
+  <!-- this is a (symmetric) positive definit system -->
+  <ilupack matrix="pd"/>
+</solver>
+\end{verbatim}
+
+\subsubsection*{Reordering}
+Three orderings have to be prescribed
+\begin{center}
+\begin{tabular}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+ordering & description (copied from documentation) \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+initial preprocessing & ordering and scaling \textbf{only} applied to the initial system \\
+regular reordering & used for any subsequent level, as long as possible \\
+final pivoting & if the regular reordering fails, switch to the final pivoting strategy \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+The theorie behind is complex and we are still trying to understand it properly. Up to now we apply an heuristic approach and simply permutate
+to find optimal settings. 
+
+The parts to describe one of the \textbf{inital}, \textbf{regular} or \textbf{final} ordering are \textbf{matrix}, \textbf{ordering} and \textbf{matching}.
+
+The \textbf{matrix} types are given above, note that this does not directly match the system matrix! E.g. might "gnl" (unsymmetric) be a good reordering matrix type for "pd" (symmetric positive definite) algebraic systems as defined as matrix attribute for the solver element.
+
+The \textbf{ordering} values are in total the following, note that not all combinations really exist.
+\begin{center}
+\begin{tabular}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+ordering & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+null & no ordering\\
+nd & nested dissection ordering\\
+amd & approximate minimum degree ordering\\
+mmd & minimum degree ordering\\
+metisE & MeTiS edge ND ordering\\
+metisN & MeTiS Node ND ordering\\
+indset & independent set ordering\\
+pp & symmetrized version of PQ\\
+pq & ddPQ\\
+fc & fine grid/coarse grid partitioning\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+The final part, the \textbf{matching} makes a maximum weight matching to improve the diagonal dominance using an external package.
+\begin{center}
+\begin{tabular}{lp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+matching & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+none & no use of an external package\\
+mwm & (maximum weight matching) is the Pardiso package\\
+mc64 & MC64 (maximum weight matching by Duff and Koster, HSL),
+   currently not available.\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+The .las file will always give the available permutations depending on the
+actual linked libraries. A full set might look like the following one.
+\begin{center}
+\begin{tabular}{llllllllp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+matrix & order & matching & & matrix & order & matching \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+gnl & null  & none& & sym & fc    & none\\
+gnl & nd    & none& & sym & rcm   & mwm \\
+gnl & rcm   & none& & sym & mmd   & mwm \\
+gnl & mmd   & none& & sym & amf   & mwm \\
+gnl & amf   & none& & sym & amd   & mwm \\
+gnl & amd   & none& & sym & metisE& mwm \\
+gnl & pq    & none& & sym & metisN& mwm \\
+gnl & fc    & none& & pd  & pp    & none\\
+gnl & indset& none& & her & rcm   & mwm \\
+gnl & metisE& none& & her & mmd   & mwm \\
+gnl & metisN& none& & her & amf   & mwm \\
+gnl & rcm   & mwm & & her & amd   & mwm \\
+gnl & mmd   & mwm & & her & metisE& mwm \\
+gnl & amf   & mwm & & her & metisN& mwm \\
+gnl & amd   & mwm & &\\ 
+gnl & metisE& mwm & &\\ 
+gnl & metisN& mwm & &\\ 
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+In practice, the inital and regular permutations are often the same. The final permutation is only a fallback. The following examples are taken from the ILUACK samples code:
+
+\begin{itemize}
+\item Symmetric positive system using approximate minimum degree ordering. Note that the matrix type is gnl (unsymmetric) and that there is no other positive definit ordering than that used in final .
+\begin{verbatim}
+<solver type="ilupack">
+  <ilupack matrix="pd">
+     <permutation type="initial" matrix="gnl" ordering="amd" matching="none"/>
+     <permutation type="regular" matrix="gnl" ordering="amd" />
+     <permutation type="final"   matrix="pd"  ordering="pp" /> 
+  </ilupack> 
+</solver>
+\end{verbatim}
+The initial and regular permutations are the same, as none is the default value when no matching is given. 
+
+\item Here we do not give the matrix type of the \xml{ilupack} element. Assuming the same
+(symmetric) simulation as above, the default is \xml{sym} for symmetric indefinite systems. 
+\begin{verbatim}
+<solver type="ilupack">
+  <ilupack>
+     <permutation type="regular" matrix="gnl" ordering="amd" />
+  </ilupack> 
+</solver>
+\end{verbatim}
+In the .las file we will find, that default inital permutation will equivalent to
+\begin{verbatim}
+<permutation type="initial" matrix="sym" ordering="amd" matching="mwm"/>
+\end{verbatim}
+as this is standard for a symmetric indefinite system and the maximum weight matching from Pardiso is used if available. The default final permutation is the same as explicit given in the first example.
+\end{itemize}
+
+
+\subsubsection*{Parametrization}
+ILUPACK sets values for this parameters automatically. They are printed in the .las file. Note, that in some cases it might well be worth tuning them as they seem to be more oriented for speed than stability. Again the parameters are not yet all understood due to the limited documentation of the library. Parameters for the preconditoner and solvers (here called engine) are not clearly seperated.
+
+\begin{center}
+\begin{tabular}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+parameter & example & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+engine & sqmr & the ILUPACK built-in iterative solver to use (see below)\\
+dropTol & e1-3 & drop tolerance\\
+residualTol & 1e-8 & residual tolerance of the solver, default is often too high\\
+elbowSpace & 10 & defines the fill-in of the preconditioner as $nnz(LU)/nnz(A)$\\
+condest & 100 & bound for $||L^{-1}||$ \\
+maxIter & 100 & maximum iterations of the solver\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+ILUPACK offers the following built-in solvers, here called engine. Note that this list mixes solvers for unsymmetric, symmetric and positive definite matrices.
+\begin{center}
+\begin{tabular}{lp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+engine & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+pcg & preconditioned conjugate gradient method for symmetric positive definite matrices\\
+bcg & biconjugate gradient method, here the matrix does not need to be self-adjoint\\ 
+sqmr & simplified quasi minimal residual algorithm, solves complex symmetric/ Hermitian matrices\\
+bcgstab & biconjugate gradient stabilized method\\
+tfqmr & transpose-free quasi-minimum residual method\\
+fom & full order model (?)\\
+gmres & generalized minimal residual method, for unsymmetric matrices, known to be stable\\
+fgmres & flexible gmres allows more preconditioners\\
+dqmres & direct quasi minimal residual algorithm\\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+Furthermode there is a set of flags which can optionally be set, again the .las file prints the default setting. This is done by adding one ore more \xml{flag} elements to the \xml{ilupack} element. Each element needs a \xml{name} and a \xml{state} attribute. The flag states are \xml{on} and \xml{off}. Every user is invited to add knowlede about the flags (and all other parameters) to this document!
+\begin{center}
+\begin{tabular}{lp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+flag & description \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+DropInverse & \\
+NoShift & \\
+TismenetskySC & \\
+RepeatFact & \\
+ImprovedEstimate & \\
+DiagonalCompensation & \\
+CoarseReduce & \\
+FinalPivoting & \\
+EnsureSPD & \\
+SimpleSC & simple Schur-complement, more sensitive w.r.t. drop tolerances, but often faster if it works\\
+PreprocessInitialSystem & \\
+PreprocessSubsystem & \\
+MultiPiluc & \\
+ReFactor & \\
+AggressiveDropping & \\
+DiscardMatrix & \\
+SymmetricStructure & \\
+\noalign{\smallskip}\hline
+\end{tabular}
+\end{center}
+
+The following gives an example parametrization. 
+\begin{verbatim}
+<solver type="ilupack">
+  <ilupack matrix="pd">
+    <engine type="pcg"/>
+    <dropTol>1e-5</dropTol>
+    <residualTol>1e-10</residualTol>
+    <elbowSpace>2</elbowSpace>
+    <maxIter>2000</maxIter>
+    <flag name="SimpleSC" state="off"/>
+  </ilupack> 
+</solver>
+\end{verbatim}
+\begin{itemize}
+\item We explicit give the information, that the system is positive definite.
+\item The permuations are not given, so default permutations are used. 
+\item The iterative solver is set to a conjugate gradient method.
+\item A quite small drop tolerance shall increase stability
+\item A rather accurate solution is required via the residual tolerance.
+\item We limit the fill-in to only double of the non-zeros of the original matrix, this won't increase stability.
+\item The solver is given many iterations to converge.
+\item When not doing simple Schur-complement, we are more robust.
+\end{itemize}
+
+
 \section{Parameters for special preconditioners}
 %
 %
@@ -905,80 +1101,6 @@ logging      & yes, no & if set to \xml{yes}, the preconditioner will be
 \end{center}
 %
 %
-\subsection{hypreAMG}
-%
-%
-Setting \xml{precond} to \xml{hypreAMG} selects the BoomerAMG preconditioner
-from the hypre library. BoomerAMG is an algebraic multigrid method. The
-following table lists the parameters currently supported by the OLAS--hypre
-interface. For a detailed description of BoomerAMG see the hypre documentation.
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-maxLevels & $\mathbb{N}$     & maximal number of levels in multigrid
-                               hierarchy\\
-alpha     & [0,1]            & central threshold parameter for judging strength
-                               of node couplings\\
-numSweeps & $\mathbb{N}$     & number of multigrid cycles to perform in each
-                               preconditioning step\\
-cycleType & V-cycle, W-cycle & specifies the cycling strategy\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
-%
-\subsection{hypreILU}
-Setting \xml{precond} to \xml{hypreILU} selects the Euclid preconditioner
-from the hypre library. Euclid is an incomplete LU decomposition
-preconditioner. Currently it only officially supports ILU(k) preconditioning.
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-level  & $\mathbb{N}_0$ & generation level of allowed fill-in for ILU(k)
-                          approach\\
-stats  & yes, no        & print some statistics to standard output\\
-memory & yes, no        & print memory some statistics to standard output\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
-%
-\subsection{hypreSPAI}
-%
-%
-Setting \xml{precond} to \xml{hypreSPAI} selects the ParaSails preconditioner
-from the hypre library. ParaSails can be used as a SPAI or in the symmetric
-positive definite case also as FSAI preconditioner. It uses a pre-selected
-sparsity pattern for the approximate inverse, which it derives by a powers of
-sparsified matrix (PSM) approach.
-%
-%
-\begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-element & range of values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-thresh      & $[-1,1]$     & threshold for determining strong connections in
-                             the PSM approach\\
-levels      & $\mathbb{N}$ & number of levels for the PSM approach\\
-symmetry    & 0, 1, 2      & chooses between SPAI and FSAI\\
-loadBalance & yes, no      & only important in parallel context\\
-reuse       & yes, no      & do we want to re-use a sparsity pattern\\
-\noalign{\smallskip}\hline
-\end{tabular}
-\end{center}
-%
-%
-\subsection{hypreJacobi}
-%
-%
-This is a simple Jacobi preconditioner. Thus, it does not require or allow the
-specification of any parameters.
-%
 %
 \subsection{Incomplete LDL preconditioners}
 %
@@ -1048,38 +1170,39 @@ level     & $\mathbb{N}$ & \\
 \label{sec:SP_Examples}
 %
 %
-In this example we tell CFS++ to use the Bi-CGStab solver from the hypre
-library together with an SPAI preconditioner:
-%
-%
+When Pardiso is available, the accuracy of the solution will be high, as Pardiso is a direct solver. The example is for a unsymmetric example. See the corresponding section for more parameters. Countercheck in the .las file, if your system name is correct and the given solver is really used. The solution vector is written to ''piezo.sol.vec''
 \begin{verbatim}
-<matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
-<solver type="hypreBICGSTAB" precond="hypreSPAI">
-  <hypreBICGSTAB>
-    <tol>     1e-8 </tol>
-    <maxIter> 1000 </maxIter>
-    <logging>    2 </logging>
-    <printLevel> 2 </printLevel>
-  </hypreBICGSTAB>
-  <hypreSPAI>
-    <thresh> -0.4 </thresh>
-    <levels>    6 </levels>
-    <filter> -0.8 </filter>
-    <symmetry>  0 </symmetry>
-    <reuse>   yes </reuse>
-  </hypreSPAI>
-</solver>
+<linearSystems>
+  <system name="direct">
+    <exportLinSys baseName="piezo" solution="exclusive"/>
+    <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
+    <solver type="pardiso"/>
+  </system>
+</linearSystems>
 \end{verbatim}
-%
-%
-The following example specifies the native CG solver implemented in OLAS in
-conjunction with a block numbering of the equations/unknowns. The system matrix
-will be exported to the file ``piezo5.mtx'' and the right-hand side vector to 
-he file ``piezo5.vec'':
+
+When the problems are large, the ILUPACK package provides a set of preconditioners and iterative solvers. For coupled problems countercheck the result with Pardiso if possible. The system matrix and righ-hand side are written together to ''mech.hb'', the solution to ''mech.sol.vec''.
+
 \begin{verbatim}
-<system name="piezo">
+<linearSystems>
+  <system name="mechanic">
+    <exportLinSys baseName="mech" solution="yes" format="harwell-boeing"/>
+    <solver type="ilupack"/>
+      <ilupack matrix="pd"/>
+    </solver>
+  </system>
+</linearSystems>
+\end{verbatim}
+
+%
+The following example specifies the GMRES solver implemented in OLAS in
+conjunction with a block numbering of the equations/unknowns. The system matrix
+will be exported to the file ``mech.mtx'' and the right-hand side vector to 
+he file ``mech.vec''. The default is to write no solution vector.
+\begin{verbatim}
+<system name="mechanic">
   <matrix eqnNumbering="block"/>
-  <exportLinSys baseName="piezo5"/>
+  <exportLinSys baseName="mech" />
   <solver type="gmres">
     <gmres>
       <tol>1e-10</tol>
