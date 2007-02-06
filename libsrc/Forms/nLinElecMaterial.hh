@@ -48,10 +48,10 @@ namespace CoupledField
                           Matrix<Double> & ptCoord );
     
     /// returns dimension of D matrix
-    virtual UInt getDimD(){return 6;};
+    virtual UInt getDimD(){return dim_;};
     
     /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs(){return 3;};
+    virtual UInt getNrDofs(){return 1;};
     
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
