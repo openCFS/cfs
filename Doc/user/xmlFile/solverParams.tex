@@ -213,17 +213,16 @@ entries.
 In order to trigger the export one must specify an \xml{exportLinSys} element.
 This is a child of the \xml{solver} element. It expects as \xml{baseName}
 attribute the basename for the two output files. The format is specified by
-the \xml{format} attribute. The default is \xml{"matrix-market"} and files
+the \xml{format} attribute. The default is \xml{matrix-market} and files
 with the extensions '.mtx' and '.vec' are created. The attribute value
-\xml{"harwell-boeing"} creates a file with '.hb' added to the base name.
+\xml{harwell-boeing} creates a file with '.hb' added to the base name.
 
 Additionally it is possible to write the solution vector via the attribute
-\xml{solution}. The possible values are \xml{"no"} (default), \xml{"yes"} and
-\xml{"exclusive"}. The later does not write the system matrix (and hence the
+\xml{solution}. The possible values are \xml{no} (default), \xml{yes} and
+\xml{exclusive}. The later does not write the system matrix (and hence the
 \xml{format} attribute is ignored) but only the solution vector. This might be
 useful to compare the solutions for different solvers or solver settings. The
-solution is written with a trailing '.sol.vec'. See Sec.~\ref{sec:SP_Examples} for an example and the following table for a summary of the attributes.
-%
+solution is written with a trailing '.sol.vec'. 
 \begin{center}
 \begin{tabular}{lcp{0.5\textwidth}}
 \hline\noalign{\smallskip}
@@ -231,14 +230,39 @@ attribute & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 baseName & a filename & base name of the system, solution and RHS. \\
 solution & yes, no, exclusive & optional (default "no") setting if (only) the solution shall be exported.\\
-format & matrix-market, harwell-boeing & optional (default "matrix-market") setting of system export format. \\
+format & matrix-market, harwell-boeing & optional (default 'matrix-market') setting of system export format. \\
 \noalign{\smallskip}\hline
 \end{tabular}
 \end{center}
-%
+Finally some examples:%
+\begin{itemize}
+\item A simple but complete description of what to do with the system of a direct coupled PDE. The format is by default \xml{matrix-market}, hence the files 'piezo.mm' and 'piezo.vec' with the RHS are written. 
+\begin{verbatim}
+<linearSystems>
+   <system name="direct">
+      <exportLinSys baseName="piezo"/>
+      <solver type="pardiso"/>
+   </system>
+</linearSystems>
+\end{verbatim}
+\item In this example the file 'piezo.hb' is created which contains the RHS
+\begin{verbatim}
+<exportLinSys baseName="piezo" format="harwell-boeing"/>
+\end{verbatim}
+\item Compared to the example above, the solution vector is written to 'piezo.sol.vec'
+\begin{verbatim}
+<exportLinSys baseName="piezo" solution="yes" format="harwell-boeing"/>
+\end{verbatim}
+\item In this example only 'piezo.sol.vec' is created. This might be usefull if one wants to compare
+the solutions of different solvers (or solver settings). The \xml{format} attribute applies only for the system and is therefore ignored. The value 'matrix-market' would be default anyway.
+\begin{verbatim}
+<exportLinSys baseName="piezo" solution="exclusive" format="matrix-market"/>
+\end{verbatim}
+\end{itemize}
 %
 % =============================================================================
 \section{Specifying Solver Parameters}
+\label{sec:Specifying_Solver_Parameters}
 % =============================================================================
 %
 %
@@ -390,6 +414,7 @@ will be used, cf.~Sec.~\ref{sec:SP_Interface}.
 %
 %
 \subsection{Pardiso}
+\label{sec:Pardiso}
 %
 %
 Pardiso is a (parallel) sparse direct solver developed mainly at the University
@@ -588,6 +613,7 @@ logging & yes, no & If logging is set to yes, then the solution process will
 %
 %
 \subsection{GMRES}
+\label{sec:gmres}
 %
 %
 Setting \xml{type} to \xml{gmres} selects the OLAS implementation of the
@@ -653,6 +679,7 @@ logging    & yes, no & if set to yes, LAPACK will be verbose about its solution
 \end{center}
 %
 \subsection{ilupack}
+\label{sec:ilupack}
 ILUPACK is a package containting preconditioners and a set of iterative solvers. It is academic software, written by Matthias Bollh\"ofer with contribution by the co-autors Yousef Saad and Olaf Schenk. It is freely available for scientific (non-commercial) use as precompiled libraries. We cite the web-page
 (\url{http://www.math.tu-berlin.de/ilupack}):
 \begin{quote}
@@ -1168,25 +1195,34 @@ level     & $\mathbb{N}$ & \\
 
 \section{Examples}
 \label{sec:SP_Examples}
-%
-%
-When Pardiso is available, the accuracy of the solution will be high, as Pardiso is a direct solver. The example is for a unsymmetric example. See the corresponding section for more parameters. Countercheck in the .las file, if your system name is correct and the given solver is really used. The solution vector is written to ''piezo.sol.vec''
+When Pardiso is available and you have a (free) license for your user and host (see \ref{sec:Pardiso}), Pardiso is often a good choice as it is quite fast and as a direct solver very stable and gains a high accuray. Countercheck in the .las file, if your system name is correct and the given solver is really used. The solution vector is written to 'piezo.sol.vec'. 
 \begin{verbatim}
 <linearSystems>
   <system name="direct">
     <exportLinSys baseName="piezo" solution="exclusive"/>
-    <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
     <solver type="pardiso"/>
   </system>
 </linearSystems>
 \end{verbatim}
-
-When the problems are large, the ILUPACK package provides a set of preconditioners and iterative solvers. For coupled problems countercheck the result with Pardiso if possible. The system matrix and righ-hand side are written together to ''mech.hb'', the solution to ''mech.sol.vec''.
-
+Giving more parameters one can try to increase performance. Like in the following example, where we explicitly express that the system is positive definit and we want logging to find hints for further tuning. Note that the pizeo example from above would not be positive definite.
 \begin{verbatim}
 <linearSystems>
   <system name="mechanic">
-    <exportLinSys baseName="mech" solution="yes" format="harwell-boeing"/>
+    <solver type="pardiso">
+      <pardiso>
+        <posDef>yes</posDef>
+        <logging>yes</logging>
+      </pardiso>
+     </solver>
+  </system>
+</linearSystems>
+\end{verbatim}
+
+
+When the problems are large, the ILUPACK package (see \ref{sec:ilupack}) provides a set of preconditioners and iterative solvers which can give a far better performance than Pardiso. Note that the results for coupled problems should be checked very carefully and best performance is gained if features of the Pardiso library can be used. So in this example we again do not solve the coupled piezo problem.
+\begin{verbatim}
+<linearSystems>
+  <system name="mechanic">
     <solver type="ilupack"/>
       <ilupack matrix="pd"/>
     </solver>
@@ -1194,22 +1230,21 @@ When the problems are large, the ILUPACK package provides a set of preconditione
 </linearSystems>
 \end{verbatim}
 
-%
-The following example specifies the GMRES solver implemented in OLAS in
-conjunction with a block numbering of the equations/unknowns. The system matrix
-will be exported to the file ``mech.mtx'' and the right-hand side vector to 
-he file ``mech.vec''. The default is to write no solution vector.
+
+Finally we give an example where no external libraries are required and we entirely use self implemented code. The preconditioner is an incomplete $LU$ decomposition with no fill-in (see \ref{sec:Specifying_Solver_Parameters}), the solver is GMRES (a stable solver for indefinite problems).
 \begin{verbatim}
-<system name="mechanic">
-  <matrix eqnNumbering="block"/>
-  <exportLinSys baseName="mech" />
-  <solver type="gmres">
-    <gmres>
-      <tol>1e-10</tol>
-      <maxIter>2</maxIter>
-      <logging>yes</logging>
-    </gmres>
-  </solver>
-</system>
+<linearSystems>
+  <system name="fluidMech">
+    <setup idbcHandling="penalty"/>
+    <matrix storage="sparseNonSym"/>
+    <solver type="gmres" precond="ILU0">
+      <gmres>
+        <tol>1e-3</tol>
+        <maxIter>1000</maxIter>
+        <logging>yes</logging>
+      </gmres>
+    </solver>
+  </system>
+</linearSystems>
 \end{verbatim}
 
