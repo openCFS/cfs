@@ -729,7 +729,7 @@ The two golden rules about ILUPACK are:
 </cfsSimulation>
 \end{verbatim}
 
-\item If you have a positive definit system (real symmetric or Hermitian), you have to give this information explicitly, otherwise a indefinite symmetric system is assumed and some performance might be lost. The shortes version of \xml{linearSystems} is then like the following:
+\item If you have a positive definite system (real symmetric or Hermitian), you have to give this information explicitly, otherwise an indefinite symmetric system is assumed and some performance might be lost. The shortest version of \xml{linearSystems} is then like the following:
 \begin{verbatim}
 <linearSystems>
   <system name="mechanic">
@@ -739,7 +739,7 @@ The two golden rules about ILUPACK are:
   </system>
 </linearSystems>
 \end{verbatim}
-\item If the iterative solver from the ILUPACK package exits to early, give a stricter \xml{residualTol} 
+\item If the iterative solver from the ILUPACK package exits too early, give a stricter \xml{residualTol}. 
 \begin{verbatim}
 <solver type="ilupack">
    <ilupack>
@@ -747,7 +747,7 @@ The two golden rules about ILUPACK are:
    </ilupack>
 </solver>
 \end{verbatim}
-Check the .las file especially for the following lines.
+Check the .las file especially for the following lines. If the current residual norm is not as good as the target residual norm the solution is likely wrong.
 \begin{verbatim}
 ...
 residual tolerance      : 1.49012e-08 -> 1e-10
