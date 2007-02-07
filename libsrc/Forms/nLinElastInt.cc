@@ -246,7 +246,7 @@ namespace CoupledField
           dMat[5][5] = 0.5 * (c11 - dMat[0][1]);
         }
         else if(nonLinCoeff==13){
-          c13 == dMat[0][2]+0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[0][2];
+          c13 = dMat[0][2]+0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[0][2];
           dMat[0][2] = c13;
           dMat[1][2] = c13;
           dMat[2][0] = c13;
