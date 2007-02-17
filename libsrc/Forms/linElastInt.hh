@@ -30,6 +30,11 @@ namespace CoupledField {
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
+    //! Function for calculation bdb matrix of shear terms using BK idea 
+    void CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
+				    EntityIterator& ent1, 
+				    EntityIterator& ent2 );
+
     //! just for computation of B - matrix
     void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
 		       BaseFE* elem, Matrix<Double> &ptCoord );
