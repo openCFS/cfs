@@ -18,12 +18,15 @@ namespace CoupledField
 
     if (softeningModel_=="BK1") {
       softeningPart_ = "bendingBK1";
+      //std::cout << "Bending:" <<  std::endl;
       BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
       Matrix<Double> helpMat = elemMat;
       // std::cout << "Bending Mat:\n" << helpMat << std::endl;
 
       softeningPart_ = "shearBK1";
-      BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
+      //std::cout << "Shear:" <<  std::endl;
+      CalcElementMatrixShearBK1( elemMat, ent1, ent2 );
+      //std::cout << "Shear Mat:\n" << elemMat << std::endl;
       elemMat += helpMat;
       //     std::cout << "Total Mat:\n" << elemMat << std::endl;
     }
@@ -231,7 +234,8 @@ namespace CoupledField
 	
 	Double f1, factor;
 	f1 = (minEdgeLength_* minEdgeLength_);
-	factor =  2*f1 / ( 2*f1 + maxEdgeLength_ * maxEdgeLength_);
+	factor =  2.0*f1 / ( 2.0*f1 + maxEdgeLength_ * maxEdgeLength_);
+	//	factor = 1.0;
 	
 	dMat[3][3] *= factor;   
 	dMat[4][4] *= factor;   
@@ -255,10 +259,12 @@ namespace CoupledField
 	
 	Double f1, factor;
 	f1 = maxEdgeLength_ * maxEdgeLength_;
-	factor = f1 / ( f1 + 2* minEdgeLength_* minEdgeLength_ ); 
+	factor = f1 / ( f1 + 2.0*minEdgeLength_* minEdgeLength_ ); 
+	//factor = 1.0;
 	dMat[3][3] *= factor;   
 	dMat[4][4] *= factor;   
 	dMat[5][5]  = 0.0;
+
 	//	dMat[5][5] *= factor; 
       }
       
@@ -559,6 +565,232 @@ namespace CoupledField
     //    std::cout << "softedMat:\n" << elemMat << std::endl;
 
 
+  }
+
+
+  void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
+					       EntityIterator& ent1, 
+					       EntityIterator& ent2 ) {
+
+    ENTER_FCN( "BDBInt::CalcElementMatrixShearBK1" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+
+    // First of all, set ansatz function to element
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    UInt nrFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrDofs   = getNrDofs();  
+
+    double jacDet, jacDetP, jacDetN;
+
+    Matrix<Double> bMatP, bMatN, partElemMat; 
+    Matrix<Double> dMat; 
+    Matrix<Double> dbMat; 
+    Double aux, fac, *ptr1, *ptr2;
+
+    elemMat.Resize( nrFncs * nrDofs);
+    elemMat.Init();
+    partElemMat.Resize( nrFncs * nrDofs);
+    partElemMat.Init();
+
+    dbMat.Resize( getDimD(), nrFncs * nrDofs);
+
+    ptelem->GetMaxMinEdgeLength(ptCoord_,maxEdgeLength_,minEdgeLength_);
+    
+    // first compute the odd part: standard integration
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // // Check if material has to be rotated
+    if( ptMaterial->GetCoordSys() == NULL ) {
+      calcDMat( dMat );
+    }
+
+    //    std::cout << "dMat:\n" << dMat << std::endl;
+
+    if ( nrIntPts != 14 ) {
+      Error("For BK1 formulation we need ECONOMICAL, 4, 14 int. points",
+	    __FILE__, __LINE__);
+    }
+
+    UInt intPtStart  = 5;
+    UInt intPtEnd    = 9;
+    UInt intPtOffset = 5;
+
+    // Loop over just the intergration points located at z not equal zero:
+    for ( UInt actIntPt = intPtStart; actIntPt <= intPtEnd; actIntPt++ ) {
+
+      //Vector<Double> * intPoints1 = ptelem->GetIntPoints();
+      //      std::cout << "IntPoint:\n" << intPoints1[actIntPt-1] << std::endl;
+
+      // Check if material has to be rotated for each integration point
+      if( ptMaterial->GetCoordSys() != NULL ) {
+	// Get global coordinates
+	Vector<Double> * intPoints = ptelem->GetIntPoints();
+	Vector<Double> globIntPoint;
+        
+	ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
+				  ptCoord_, ent1.GetElem() );
+	ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
+	calcDMat( dMat );
+      }
+      
+      
+      // Setup the B matrix for negative z position
+      calcBMat( bMatN, actIntPt, ptCoord_ );
+      calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+ 
+
+      // Compute Jacobian for integration point
+      jacDetN = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+      jacDetP = ptelem->CalcJacobianDetAtIp( actIntPt+intPtOffset, ptCoord_, 
+					     ent1.GetElem() );
+      //     jacDet = 0.5 * (jacDetP + jacDetN);
+     
+      bMatP *=  sqrt(jacDetP * intWeights[actIntPt+intPtOffset-1]);
+      bMatN *=  sqrt(jacDetN * intWeights[actIntPt-1]);
+
+      //take the difference!!
+      bMatP -= bMatN;
+
+      // Perform a safety check
+      if ( jacDetP < 0.0 ) {
+	(*error) << "BDBInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+      
+      // Special things must be done in the axi-symmetric case
+      if ( isaxi_ ) {
+	Vector<Double> ShpFncAtIp;
+	Vector<Double> CoordAtIP;
+	ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
+	
+	CoordAtIP = ptCoord_ * ShpFncAtIp;
+	jacDet *= 2 * PI * CoordAtIP[0];
+      }
+      
+      // Compute the matrix product D * B and store as intermediate matrix
+      dMat.Mult( bMatP, dbMat );
+      
+      // We now compute B^T * D * B and scale it by the determinant
+      // of the Jacobian and the weight of the current integration
+      // point. The result is added to the element matrix.
+      fac = 1.0; //jacDet * intWeights[actIntPt-1];
+      for ( UInt k = 0; k < bMatP.GetSizeRow(); k++ ) {
+	ptr1 =  bMatP[k];
+	ptr2 = dbMat[k];
+	for ( UInt i = 0; i < bMatP.GetSizeCol(); i++ ) {
+	  aux = fac * ptr1[i];
+	  for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+	    partElemMat[i][j] += aux * ptr2[j];
+	  }
+	}
+      }
+    }
+    
+    elemMat += 0.5*partElemMat;
+
+    // do the reduced integration with the even part
+    ptelem->SetReducedIntegration();
+
+    partElemMat.Init();
+
+    //reduced integration: just 3 points
+    intPtEnd    = 2;
+    intPtOffset = 1;
+
+//     intPtEnd    = 9;
+//     intPtOffset = 5;
+
+    // Loop over the intergration points located at z equal zero and not equal zero:
+    for ( UInt actIntPt = 1; actIntPt <= intPtEnd; actIntPt++ ) {
+    //    for ( UInt actIntPt = 1; actIntPt <= 9; actIntPt++ ) {
+
+      //      Vector<Double> * intPoints1 = ptelem->GetIntPoints();
+      //std::cout << "IntPoint:\n" << intPoints1[actIntPt-1] << std::endl;
+
+      // Check if material has to be rotated for each integration point
+      if( ptMaterial->GetCoordSys() != NULL ) {
+	// Get global coordinates
+	Vector<Double> * intPoints = ptelem->GetIntPoints();
+	Vector<Double> globIntPoint;
+        
+	ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
+				  ptCoord_, ent1.GetElem() );
+	ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
+	calcDMat( dMat );
+      }
+      
+      if (  actIntPt < 2 ) {
+	//      if (  actIntPt < 5 ) {
+	//	std::cout << "Do mult 4, z=0" << std::endl;
+	// Setup the B matrix for z=0 position
+	calcBMat( bMatP, actIntPt, ptCoord_ );
+	jacDet = 2.0*ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+      }
+      else {
+	//	std::cout << "Do sum" << std::endl;
+	// Setup the B matrix for negative z position
+	calcBMat( bMatN, actIntPt, ptCoord_ );
+	// Setup the B matrix for positive z position
+	calcBMat( bMatP, actIntPt+intPtOffset, ptCoord_ );
+      
+	//take the sum!!
+	bMatP += bMatN;
+
+	// Compute Jacobian for integration point
+	jacDetN = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+	jacDetP = ptelem->CalcJacobianDetAtIp( actIntPt+intPtOffset, ptCoord_, 
+					       ent1.GetElem() );
+	jacDet = 0.5 * (jacDetP + jacDetN);
+      }
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+	(*error) << "BDBInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+      
+      // Special things must be done in the axi-symmetric case
+      if ( isaxi_ ) {
+	Vector<Double> ShpFncAtIp;
+	Vector<Double> CoordAtIP;
+	ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
+	
+	CoordAtIP = ptCoord_ * ShpFncAtIp;
+	jacDet *= 2 * PI * CoordAtIP[0];
+      }
+      
+      // Compute the matrix product D * B and store as intermediate matrix
+      dMat.Mult( bMatP, dbMat );
+      
+      // We now compute B^T * D * B and scale it by the determinant
+      // of the Jacobian and the weight of the current integration
+      // point. The result is added to the element matrix.
+      fac = jacDet * intWeights[actIntPt-1];
+      for ( UInt k = 0; k < bMatP.GetSizeRow(); k++ ) {
+	ptr1 =  bMatP[k];
+	ptr2 = dbMat[k];
+	for ( UInt i = 0; i < bMatP.GetSizeCol(); i++ ) {
+	  aux = fac * ptr1[i];
+	  for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+	    partElemMat[i][j] += aux * ptr2[j];
+	  }
+	}
+      }
+    }
+    
+    elemMat += 0.5*partElemMat;
+
+    //set back to standard integration
+    ptelem->SetStandardIntegration();
+        
   }
 
 
