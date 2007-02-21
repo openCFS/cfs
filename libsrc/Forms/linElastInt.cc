@@ -602,7 +602,7 @@ namespace CoupledField
     
     // first compute the odd part: standard integration
 
-    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    UInt nrIntPts = ptelem->GetNumIntPoints(); 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     // // Check if material has to be rotated
@@ -698,14 +698,17 @@ namespace CoupledField
     // do the reduced integration with the even part
     ptelem->SetReducedIntegration();
 
+    nrIntPts = ptelem->GetNumIntPoints(); 
+    if ( nrIntPts != 3 ) {
+      Error("For BK1 formulation we need for reduced integration SPECIAL,1",
+	    __FILE__, __LINE__);
+    }
+
     partElemMat.Init();
 
     //reduced integration: just 3 points
     intPtEnd    = 2;
     intPtOffset = 1;
-
-//     intPtEnd    = 9;
-//     intPtOffset = 5;
 
     // Loop over the intergration points located at z equal zero and not equal zero:
     for ( UInt actIntPt = 1; actIntPt <= intPtEnd; actIntPt++ ) {
@@ -734,7 +737,6 @@ namespace CoupledField
 	jacDet = 2.0*ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
       }
       else {
-	//	std::cout << "Do sum" << std::endl;
 	// Setup the B matrix for negative z position
 	calcBMat( bMatN, actIntPt, ptCoord_ );
 	// Setup the B matrix for positive z position
