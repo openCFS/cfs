@@ -137,6 +137,8 @@
         <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
