@@ -342,8 +342,10 @@ namespace CoupledField
             Vector<Double> ShpFncAtIp;
             Vector<Double> CoordAtIP;
 
-	    //todo
-	    ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
+            if (isSetIntPoint_) 
+              ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
+            else
+              ptelem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
 
             CoordAtIP = ptCoord * ShpFncAtIp;
 
