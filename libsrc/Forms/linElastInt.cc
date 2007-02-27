@@ -695,7 +695,7 @@ namespace CoupledField
       }
     }
     
-    elemMat += 0.5*partElemMat;
+    elemMat += partElemMat*0.5;
 
     // do the reduced integration with the even part
     ptelem->SetReducedIntegration();
@@ -790,7 +790,7 @@ namespace CoupledField
       }
     }
     
-    elemMat += 0.5*partElemMat;
+    elemMat += partElemMat*0.5;
 
     //set back to standard integration
     ptelem->SetStandardIntegration();
