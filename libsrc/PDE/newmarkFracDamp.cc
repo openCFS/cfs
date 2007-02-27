@@ -76,6 +76,8 @@ beta and gamma!\n" );
   NewmarkFracDamp::~NewmarkFracDamp() {
 
     ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
+
+    delete [] solMemory_;
   }
 
   void NewmarkFracDamp::Init( Double dt, UInt rhsSize ) {
