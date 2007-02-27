@@ -356,7 +356,7 @@ namespace CoupledField {
             Integer eqnNr = eqns[iNode*numDofs+iDof];
 
             if( eqnNr != 0 ) {
-              temp[(globNode-1)*numDofs + iDof] = data_[std::abs(eqnNr-1)];
+              temp[(globNode-1)*numDofs + iDof] = data_[std::abs(eqnNr)-1];
             } else if ( eqnNr == 0 ) {
               temp[(globNode-1)*numDofs + iDof] = TYPE();
             }
@@ -578,7 +578,7 @@ namespace CoupledField {
     eqnNr = eqnMap_->GetNodeEqn( nodeNr+1, offset+dof+1 );
 
     if (eqnNr != 0)
-      data_[abs(eqnNr-1)] = val;
+      data_[abs(eqnNr)-1] = val;
   }
 
   template<class TYPE>
@@ -782,7 +782,7 @@ namespace CoupledField {
         {
           eqnNr = eqnMap_->GetNodeEqn( nodeNumbers[iNode], iDof+1 );
           if (eqnNr != 0)
-            temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr)-1)];
+            temp.data_[iNode*totalDofs_ + iDof] = data_[abs(eqnNr)-1];
           else
             temp.data_[iNode*totalDofs_ + iDof] = TYPE();
         }
