@@ -243,7 +243,7 @@ namespace CoupledField {
     
     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
       if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[(abs(eqns[i]-1))];
+        elemSol[i] = sol[abs(eqns[i])-1];
       } else {
         elemSol[i] = 0.0;
       }
@@ -270,7 +270,7 @@ namespace CoupledField {
     
     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
       if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[(abs(eqns[i]-1))];
+        elemSol[i] = sol[abs(eqns[i])-1];
       } else {
         elemSol[i] = Complex(0.0, 0.0);
       }
@@ -293,7 +293,7 @@ namespace CoupledField {
         
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
-          sol[i] = sol_der1[(abs(eqns[i]-1))];
+          sol[i] = sol_der1[abs(eqns[i])-1];
         } else {
           sol[i] = 0.0;
         }
@@ -326,7 +326,7 @@ namespace CoupledField {
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
-          sol[i] = jomega * solAtNode[(abs(eqns[i]-1))];
+          sol[i] = jomega * solAtNode[abs(eqns[i])-1];
         } else {
           sol[i] = Complex(0.0, 0.0);
         }
@@ -352,7 +352,7 @@ namespace CoupledField {
       const Vector<Double> & sol_der2 = getS2();
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
-          sol[i] = sol_der2[(abs(eqns[i]-1))];
+          sol[i] = sol_der2[abs(eqns[i])-1];
         } else {
           sol[i] = 0.0;
         }
@@ -383,7 +383,7 @@ namespace CoupledField {
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
-          sol[i] = - omega * omega *solAtNode[(abs(eqns[i]-1))];
+          sol[i] = - omega * omega *solAtNode[abs(eqns[i])-1];
         } else {
           sol[i] = Complex(0.0, 0.0);
         }
