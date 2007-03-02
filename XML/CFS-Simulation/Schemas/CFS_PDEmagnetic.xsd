@@ -33,13 +33,26 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on -->
-          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="nonLinear" type="DT_MagneticNonLin"
-                use="optional" default="no"/>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinId" type="xsd:token" 
+                      use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="permeability" type="DT_MagneticNonLinPerm"/>
+                </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -54,8 +67,6 @@
                 <xsd:element name="dirichletInhom" type="DT_MagneticID"/>
                 <xsd:element name="neumannInhom"   type="DT_MagneticIN"/>
               </xsd:choice>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -102,13 +113,36 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of permeability nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of permeability nonlinearity type -->
+  <xsd:complexType name="DT_MagneticNonLinPerm">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the magnetic unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_MagneticUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magPotential"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of enumeration type describing the degrees of freedom  -->
   <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_MagneticDOF">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="mp"/>
+      <xsd:enumeration value="u"/>
+      <xsd:enumeration value=""/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -122,9 +156,11 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="DT_MagneticDOF" use="optional" default="mp"/>
+        <xsd:attribute name="dof" type="DT_MagneticDOF" use="optional" default=""/>
         <xsd:attribute name="entityType" type="DT_EntityType"
           use="optional" default="nodeList"/>
+        <xsd:attribute name="quantity" default="magPotential"
+          type="DT_MagneticUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -135,10 +171,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_MagneticHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -187,16 +219,16 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
-  <!-- What data can a single node have in an magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticNodeData">
+  <!-- Definition of nodal result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- What data can a single element have in an magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticElementData">
+  <!-- Definition of elem result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magEnergy"/>
@@ -204,51 +236,57 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Data type for describing final node values to be stored -->
-  <xsd:complexType name="DT_MagneticNodeResults">
-    <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-    <xsd:attribute name="nodes" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
+ <!-- Definition of region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
-  <!-- Data type for describing history of node values to be stored -->
-  <xsd:complexType name="DT_MagneticNodeHistory">
-    <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
-      default=""/>
-  </xsd:complexType>
-
-  <!-- Data type for describing final element values to be stored -->
-  <xsd:complexType name="DT_MagneticElementResults">
-    <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing history of element values to be stored -->
-  <xsd:complexType name="DT_MagneticElementHistory">
-    <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
-      default=""/>
-  </xsd:complexType>
-
-  <!-- Data type for specifying the desired mechanical output quantities -->
+  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_MagneticStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_MagneticNodeResults"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_MagneticNodeHistory"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_MagneticElementResults"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_MagneticElementHistory"
-        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_MagneticNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_MagneticElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_MagneticRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      
+
+      </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -263,8 +301,6 @@
       <xsd:element name="windingCrossSection" type="DT_PosFloat"/>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="tag" type="xsd:token" use="optional"
-      default="anyTag"/>
   </xsd:complexType>
 
   <!-- Data type for 3D measurement coils -->
@@ -297,10 +333,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
-          <xsd:element name="value"      type="DT_PosFloat"/>
-          <xsd:element name="dynamics"   type="xsd:token" minOccurs="0"
-            default="none"/>
-          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
+          <xsd:element name="value"      type="xsd:token"/>
+          <xsd:element name="phase"      type="xsd:token" minOccurs="0"
             default="0"/>
           <xsd:element name="resistance" type="DT_PosFloat"/>
         </xsd:sequence>
@@ -324,10 +358,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
-          <xsd:element name="value"      type="xsd:float"/>
-          <xsd:element name="dynamics"   type="xsd:token" minOccurs="0"
-            default="none"/>
-          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
+          <xsd:element name="value"      type="xsd:token"/>
+          <xsd:element name="phase"      type="xsd:token" minOccurs="0"
             default="0"/>
           <xsd:element name="id"         type="xsd:positiveInteger"/>
           <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
@@ -343,8 +375,6 @@
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
           <xsd:element name="value"      type="xsd:float"/>
-          <xsd:element name="dynamics"   type="xsd:token" minOccurs="0"
-            default="none"/>
           <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
             default="0"/>
           <xsd:element ref="FlowDirection"/>
@@ -413,8 +443,6 @@
     <xsd:attribute name="orientX" type="xsd:float"/>
     <xsd:attribute name="orientY" type="xsd:float"/>
     <xsd:attribute name="orientZ" type="xsd:float"/>
-    <xsd:attribute name="tag" type="xsd:token" use="optional"
-      default="anyTag"/>
   </xsd:complexType>
 
 </xsd:schema>

@@ -1,0 +1,2355 @@
+#include "PDE/SinglePDE.hh"
+
+// for coordinate handling
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
+
+// header for Paramhandling
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+
+
+// header for scripting
+#ifdef USE_SCRIPTING
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#endif
+
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
+
+// header for Materialhandling
+#include "DataInOut/MaterialHandler.hh"
+
+// header for Solvestep and assemble
+#include "Driver/stdSolveStep.hh"
+#include "Driver/assemble.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/transientdriver.hh"
+#include "Driver/harmonicDriver.hh"
+
+// header for iterative coupling
+#include "CoupledPDE/pdecoupling.hh"
+
+// header for memento/restart handling
+#include "Utils/boost-serialization.hh"
+
+// header for resultHandling
+#include "DataInOut/resultHandler.hh"
+
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
+
+#include "DataInOut/postProc.hh"
+
+namespace CoupledField {
+
+  // declare logging stream
+  DECLARE_LOG(pde)
+  DEFINE_LOG(pde, "pde")
+
+    SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode )
+      :  StdPDE( aptgrid, paramNode ) {
+  
+    ENTER_FCN( "BasePDE::BasePDE" );
+  
+    nonLin_ = false;
+    
+    // =====================================================================
+    // set file pointers
+    // =====================================================================
+    assemble_   = NULL;
+    algsys_     = NULL;
+
+    // =====================================================================
+    // set analysis parameters
+    // =====================================================================
+    couplingBCsCounter_ = 0;
+    updateCouplingBCs_ = false;
+    dim_ = ptgrid_->GetDim();
+    iterCoupledCounter_ = 0;
+    effectiveMass_ = false;
+
+
+    // =====================================================================
+    // set miscellaneous parameters
+    // =====================================================================
+    pdeId_ = NO_PDE_ID;
+    isDirectCoupled_  = false;
+    isInitialized_ = false;
+    usePenalty_ = true;
+    numCouplingBcs_ = 0;
+    maxTimeDerivOrder_ = 0;
+
+    // Obtain mathParser handler
+    mHandle_ = domain->GetMathParser()->GetNewHandle();
+
+    // Register functions for scripting
+    RegisterFunctions();
+  }
+
+
+  // **************
+  //   Destructor
+  // **************
+  SinglePDE::~SinglePDE() {
+
+    ENTER_FCN( "SinglePDE::~SinglePDE" );
+
+    // Delete algebraic system only if
+    // PDE is not direct coupled
+    if ( isDirectCoupled_ == false ) {
+      if( needsAlgsys_ ) {
+        delete algsys_;
+      }
+      delete solveStep_;
+      delete TS_alg_;
+      delete assemble_;
+    }
+
+
+    delete sol_;
+    if( !isDirectCoupled_ )
+      delete solVec_;
+
+
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      delete it->second;
+    }
+    materials_.clear();
+
+  }
+
+
+  // ********
+  //   Init
+  // ********
+  void SinglePDE::Init( UInt sequenceStep ) {
+    ENTER_FCN( "SinglePDE::Init()" );
+
+    sequenceStep_ = sequenceStep;
+
+    StdVector<RegionIdType> allIDs;
+    LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
+
+    
+    // =====================================================================
+    // Get type of analysis
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Obtaining analysistye";
+    analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
+
+    // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
+    //       and must be re-designed
+    if ( isAlwaysStatic_ == true &&
+         analysistype_ == TRANSIENT ) {
+      analysistype_ = STATIC;
+    }
+
+    switch( analysistype_ ) {
+    case STATIC:
+      isComplex_ = false;
+      break;
+
+    case TRANSIENT:
+      isComplex_ = false;
+      break;
+      
+    case HARMONIC:
+      isComplex_ = true;
+      break;
+      
+    case EIGENFREQUENCY:
+      isComplex_ = false;
+      break;
+
+    case TRANSIENTHARMONIC:
+      EXCEPTION( "To be implemented...." );
+      break;
+      
+    default:
+      
+      EXCEPTION( "SinglePDE::Init: AnalysisType '" << analysistype_
+                 << "' is not supported" );
+    }
+
+    // =====================================================================
+    // trigger definition of available results
+    // =====================================================================
+    DefineAvailResults();
+
+    // =====================================================================
+    // get regions/subdomains for PDE
+    // =====================================================================
+
+    LOG_TRACE(pde) << pdename_ << ": Obtaining regions";
+
+
+    // Obtain regions the pde is defined on
+    StdVector<ParamNode*> regionNodes = 
+      myParam_->Get("regionList")->GetList("region");
+    
+    // output to info-file
+    Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
+                  pdename_.c_str());
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+      std::string actRegionName = regionNodes[i]->Get("name")->AsString();
+      RegionIdType actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      subdoms_.Push_back( actRegionId );
+      Info->PrintF( pdename_, "%s, ID = %i\n", actRegionName.c_str(), 
+                    actRegionId );
+    }
+    Info->PrintF( "", "\n" );
+
+    // Generate a fitting algebraic system only if PDE is NOT
+    // direct coupled
+    if( needsAlgsys_ == true ) {
+      if ( isDirectCoupled_ == false) {
+        algsys_ = new StandardSystem();
+      }
+      
+      // Get parameter and report object of OLAS
+      olasParams_ = algsys_->GetOLASParams();
+      olasReport_ = algsys_->GetOLASReport();
+      
+      // Obtain unique pde identifier
+      pdeId_ = algsys_->ObtainPDEId( pdename_ );
+    
+      
+      // Determine, if this is a parallel run
+      // and pass this information to OLAS
+      bool parallel = false;
+      
+#ifdef PARALLEL
+      
+      // If more than one process is running,
+      // then we consider this a parallel run
+      int commsize;
+      MPI_Comm_size( MPI_COMM_WORLD, &commsize );
+      parallel = ( commsize > 1 );
+      
+#endif
+      
+      olasParams_->SetValue( "Parallel", parallel );
+    }
+    
+    // =====================================================================
+    // create assemble class
+    // =====================================================================
+    
+    // Create new assemble class with according analysistype
+    if( isDirectCoupled_ == false && needsAlgsys_ == true) {
+      assemble_ = new Assemble( algsys_, analysistype_, maxTimeDerivOrder_ );
+    }
+        
+    // Determine if solution is of complex type or not
+    if ( analysistype_ == HARMONIC ) {
+      sol_ = new NodeStoreSol<Complex>;
+      if(!isDirectCoupled_ )
+        solVec_ = new Vector<Complex>;
+    }
+    else {
+      sol_ = new NodeStoreSol<Double>;
+
+      if(!isDirectCoupled_ )
+        solVec_ = new Vector<Double>;
+    }
+
+    // =====================================================================
+    // read in damping information
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading damping information";
+    ReadDampingInformation( );
+      
+
+    // =====================================================================
+    // read in NonLinearities
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
+    InitNonLin();
+
+    // =====================================================================
+    // read in material data
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading material information";
+    ReadMaterialData();
+
+    // =====================================================================
+    // initialize EQN-object and Storeresults class
+    // =====================================================================
+
+    // Name of linear system depends of coupling type
+    std::string systemName = pdename_;
+    if ( isDirectCoupled_ )
+      systemName  = "direct";
+    
+    // How do we want to treat inhomogeneous Dirichlet boundary conditions?
+    {
+      std::string aux = "penalty";
+      ParamNode * systemsNode = 
+        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+        ->Get("linearSystems",false);
+      if( systemsNode ) {
+        ParamNode * mySystemNode = systemsNode->
+          Get("system", "name", systemName, false);
+        if( mySystemNode) {
+          ParamNode * setupNode = mySystemNode->Get("setup", false);
+          if( setupNode ) {
+            setupNode->Get("idbcHandling", aux, false );
+          }
+        }
+      }
+      usePenalty_ = aux == "penalty" ? true : false;
+      Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
+                    aux.c_str() );
+    }
+    
+    // Create a new equation map
+    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, !usePenalty_ ));
+
+
+    // =====================================================================
+    // read in boundary conditions
+    // =====================================================================
+    
+    // Incorporate values of memento here, if the values are used
+    // as "dirichlet"-values from a previous simulation run
+    // (e.g. obtained from a previous static run)
+    if( memento_ != NULL
+        && mementoUsage_ == PDEMemento::DIRICHLET_VALUE ) {
+      IncorporateMemento();
+    }
+    
+    LOG_TRACE(pde) << pdename_ << ": Reading boundary conditions";
+    ReadBCs();
+    ReadSpecialBCs();
+    //
+#ifdef USE_SCRIPTING
+    // Trigger event for scripting 
+    StdVector<std::string> args;
+    args.Push_back( pdename_ );
+    messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
+#endif   
+
+    // =====================================================================
+    // Create time stepping algorithm
+    // =====================================================================
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == false) {
+      SETPROFILE("Before Definition of Timestepping");
+      InitTimeStepping();
+      if ( TS_alg_ != NULL ) {
+        Double dt;
+        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+          ->GetDeltaT();
+      }
+      
+      SETPROFILE("After Definition of TimeStepping");
+    }
+
+ 
+
+    // =====================================================================
+    // define the integrators for PDE and initialize eqn object
+    // =====================================================================
+
+    // Call initialization of (bi)linear integrators
+    LOG_TRACE(pde) << pdename_ << ": Defining integrators";
+    DefineIntegrators();
+
+    // Print information about defined integrators
+#ifdef DEBUG
+    if( !isDirectCoupled_ && needsAlgsys_ == true ) {
+      assemble_->PrintInfo( *debug );
+    }
+#endif
+
+    // Finish equation mapping
+    LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
+    eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
+    eqnMap_->SetInhomDirichletBCs( idBcs_ );
+    eqnMap_->SetConstraints( constraints_ );
+    eqnMap_->Finalize();
+    
+     // Report results to logfile
+    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
+                  eqnMap_->GetNumEqns() );
+
+    // Check if eqnmap should be printed onto screen
+    if ( commandLine->GetShowEqnMap() == true ) {
+      eqnMap_->Print( (*cla) );
+    }
+
+#ifdef DEBUG
+    eqnMap_->Print(*debug);
+#endif
+    numPDENodes_ = eqnMap_->GetNumLocalNodes();
+    numElems_ = eqnMap_->GetNumLocalElems();
+
+    // Initialize Storesolution class
+    sol_->SetNumSolutions(results_.GetSize());
+    sol_->SetNumNodes(numPDENodes_);
+    for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
+      sol_->SetSolutionType(results_[iSol]->resultType,iSol);
+      sol_->SetNumDofs( results_[iSol]->dofNames.GetSize(), 
+                        results_[iSol]->resultType );
+    }
+
+    // Note: this is only a temporary solution
+    sol_->SetPtrEQNData(eqnMap_.get(), ptgrid_);
+    sol_->SetRegions( subdoms_ );
+    sol_->Init(); 
+    
+
+    SETPROFILE("Before Resizing StoreSol");
+    if(!isDirectCoupled_ ) {
+      solVec_->Resize( eqnMap_->GetNumEqns() );
+      if( isComplex_ ) {
+        solVec_->Init( Complex(0.0,0.0) );
+      } else {
+        solVec_->Init( 0.0 );
+      }
+      SETPROFILE("After Resizing StoreSol");
+      if ( analysistype_ == HARMONIC ) {
+        sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                   dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
+      } else {
+        sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                   dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
+        
+      }
+    }
+    
+
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == false) {
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        ->GetDeltaT();
+      TS_alg_->Init( dt, eqnMap_->GetNumEqns() );
+    }
+
+
+    // =====================================================================
+    // define which solution types have to be saved
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading store results";
+    ReadStoreResults();
+    ReadSpecialResults();
+
+    // Set information at sol_ object
+    sol_->SetResult( results_[0] );
+
+    PreparePDE4Computation();
+
+    //! Define step solution driver
+    if ( isDirectCoupled_ == false ) {
+      LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
+      DefineSolveStep();
+    }
+
+    // Finally set the initialization flag to true
+    isInitialized_ = true;
+    LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
+  }
+
+  
+  void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
+
+    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+
+    solHelp.Resize(size);
+
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+
+    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+            
+  }
+
+  void SinglePDE::SaveSolution( const Complex * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
+
+    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
+
+    solHelp.Resize(size);
+
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+
+    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+            
+  }
+
+  
+  void SinglePDE::WriteGeneralPDEdefines() {
+    
+    ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
+    
+    // 1.) Homogeneous boundary condition
+    Info-> WriteHomDirBC( pdename_, hdBcs_ );
+    
+    // 2.) Inhomogeneous boundary conditions
+    Info->WriteInhomDirBC( pdename_, idBcs_ );
+
+    // 3.) Inhom. Neumann boundary conditions
+    Info->WriteInhomNeuBC( pdename_, inBcs_ );
+    
+    // 4.) Constraints
+    Info->WriteConstraints( pdename_, constraints_ );
+
+    // 5.) Loads
+    Info->WriteLoad( pdename_, loads_ );
+      }
+
+  void SinglePDE::ReadStoreResults() {
+    ENTER_FCN( "SinglePDE::ReadStoreResults" );
+
+    StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
+    StdVector<std::string> postProcNames, outDestNames, neighborRegions;
+    UInt saveBegin, saveEnd, saveInc;
+    std::string quantity, complexFormatString, listElemName, entityName;
+    ComplexFormat complexFormat;
+    shared_ptr<EntityList> actList;
+
+    ResultSet::iterator it;
+    EntityList::ListType entityType;
+    EntityList::DefineType defineType;
+    ResultHandler * resHandler = domain->GetResultHandler();
+    
+    // initialize map for relating EntityUnknownType and name of xml-element
+    std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
+    elemNames[ResultInfo::NODE] = "nodeResult";
+    elemNames[ResultInfo::ELEMENT] = "elemResult";
+    elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
+    elemNames[ResultInfo::REGION] = "regionResult";
+    elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
+
+    // fetch result node and leave, if none is present
+    ParamNode * resultNode = myParam_->Get("storeResults", false);
+    if( !resultNode )
+      return;
+
+    // Iterate over all availabe results
+    for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
+      
+     
+      // Convert enum
+      Enum2String( (*it)->resultType, quantity );
+      LOG_DBG(pde) << "Searching for storeResults of quantity '" 
+                   << quantity << "'";
+      
+      // Get type of result
+      std::string xmlElemName = elemNames[(*it)->definedOn];
+      if( xmlElemName == "" ){
+        break;
+      }
+      
+      // Remeber current result node
+      ParamNode* actResultNode = 
+        resultNode->Get(xmlElemName, "type", quantity, false );
+      
+      // Check on which entity type the result is defined on 
+      if( (*it)->definedOn == ResultInfo::NODE ) {
+        entityType = EntityList::NODE_LIST;
+      } else if( (*it)->definedOn == ResultInfo::REGION ) {
+        entityType = EntityList::REGION_LIST;
+      } else if( (*it)->definedOn == ResultInfo::SURF_REGION ) {
+        entityType = EntityList::REGION_LIST;
+      } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
+        entityType = EntityList::SURF_ELEM_LIST;
+      } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
+        entityType = EntityList::ELEM_LIST;
+      }
+      
+      // intialize variables
+      neighborRegions.Clear();
+      regionNames.Clear();
+      //outDestNames.Clear();
+
+      // ========== Look for defineType 'REGION' ==========
+      // 1a) Look if result is defined on 'allRegions'
+      defineType = EntityList::REGION;
+      
+      
+
+      // if no node was found, continue with next result
+      if( !actResultNode) {
+        continue;
+      }
+
+      // determine complexFormat
+      complexFormatString = actResultNode->Get("complexFormat")->AsString();
+      String2Enum( complexFormatString, complexFormat );
+      
+      // otherwise check, if result is to be saved on "allRegions"
+      if( actResultNode->Has("allRegions" ) ) {
+        ptgrid_->RegionIdToName( regionNames, subdoms_ );
+        
+        ParamNode * allRegionsNode = actResultNode->Get("allRegions");
+        
+        std::string allPostProcName, allOutDestName;
+        
+        // fetch postProcNames
+        allRegionsNode->Get("postProcId", allPostProcName );
+        postProcNames.Resize( regionNames.GetSize() );
+        postProcNames.Init( allPostProcName );
+        
+        //fetch outDestName
+        allRegionsNode->Get("outputIds", allOutDestName );
+        outDestNames.Resize( regionNames.GetSize() );
+        outDestNames.Init( allOutDestName );
+
+        // fetch saveBegin, saveEnd and saveInc
+        allRegionsNode->Get("saveBegin", saveBegin );
+        allRegionsNode->Get("saveEnd", saveEnd );
+        allRegionsNode->Get("saveInc", saveInc );
+        
+        // fetch writeResult flag
+        std::string writeResult;
+        allRegionsNode->Get("writeResult", writeResult );
+        writeResults.Resize( regionNames.GetSize() );
+        writeResults.Init( writeResult );
+
+      } else {
+
+        StdVector<ParamNode*> regionNodes;
+        ParamNode * listNode = NULL;
+        // 1b) Look for regions the result is defined on
+        if( (*it)->definedOn == ResultInfo::NODE ||
+            (*it)->definedOn == ResultInfo::ELEMENT ||
+            (*it)->definedOn == ResultInfo::REGION ) {
+          listNode = actResultNode->Get("regionList", false);
+          if( listNode )
+            regionNodes = listNode->GetList("region");
+        } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ||
+                   (*it)->definedOn == ResultInfo::SURF_REGION ) {
+          listNode = actResultNode->Get("surfRegionList", false);
+          if( listNode )
+            regionNodes = listNode->GetList("surfRegion");
+
+          // fetch entry with neighboring regions
+          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+            neighborRegions.Push_back( regionNodes[i]->
+                                       Get("neighborRegion")->AsString() );
+          }
+        } 
+        
+        // only enter, at least one region is present
+        if( listNode ) {
+          // fetch saveBegin, saveEnd and saveInc
+          listNode->Get( "saveBegin", saveBegin );
+          listNode->Get( "saveEnd", saveEnd );
+          listNode->Get( "saveInc", saveInc );
+          
+          // iterate over all regions 
+          regionNames.Clear();
+          postProcNames.Clear();
+          outDestNames.Clear();
+          writeResults.Clear();
+          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+            regionNames.Push_back( regionNodes[i]->Get("name")->AsString() );
+            postProcNames.Push_back( regionNodes[i]->Get("postProcId")->AsString() );
+            outDestNames.Push_back( regionNodes[i]->Get("outputIds")->AsString() );
+            writeResults.Push_back( regionNodes[i]->Get("writeResult")->AsString() );
+          }
+        }
+      }
+        
+        // Check, if any region was found for this result type
+        if( regionNames.GetSize() != 0 ) {
+          (*it)->complexFormat = complexFormat;
+          
+        Info->PrintF( pdename_, " Computing '%s' for regions:\n", 
+                      quantity.c_str() );
+        // iterate over all regions
+        for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ ) {
+          Info->PrintF( pdename_, " %s\n", regionNames[iRegion].c_str() );
+          actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion], 
+                                            defineType );
+          shared_ptr<BaseResult> actSol;
+          if( isComplex_ ) {
+            actSol = shared_ptr<BaseResult>(new Result<Complex>());
+          } else {
+            actSol = shared_ptr<BaseResult>(new Result<Double>());
+          }
+
+          // intialize result object
+          actSol->SetResultInfo( *it );
+          actSol->SetEntityList( actList );
+          resultLists_[*it].Push_back( actSol );
+
+          // extract all output destinations and determine bool flag for writeResult
+          SplitStringList( outDestNames[iRegion], actOutDest, ',' );
+          bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
+
+          // pass result to resulthandler
+          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+                                      actOutDest, 
+                                      postProcNames[iRegion], writeResult );
+          
+          // if neighboring region is present, store related volume 
+          // neighbor region
+          if( neighborRegions.GetSize() > 0 ) {
+            if( neighborRegions[iRegion] != "" ) {
+              surfNeighborRegions_[actSol] = 
+                ptgrid_->RegionNameToId( neighborRegions[iRegion] );
+            }
+          }
+
+        }
+        Info->PrintF( pdename_, "\n");
+      }
+      
+      
+      // ========== Look for defineType  node/elemList (history)  ==========
+
+      std::string entityTypeName;
+      StdVector<std::string> histNames;
+      neighborRegions.Clear();
+      
+      ParamNode * histNode = NULL;
+      StdVector<ParamNode*> histEntities;
+
+      if( (*it)->definedOn == ResultInfo::NODE ) {
+        defineType = EntityList::NAMED_NODES;  
+        histNode = actResultNode->Get("nodeList",false);
+        if( histNode )
+          histEntities = histNode->GetList("nodes");
+        entityTypeName = "nodes";
+
+      } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
+        defineType = EntityList::NAMED_ELEMS; 
+        histNode = actResultNode->Get("elemList",false); 
+        if( histNode )
+          histEntities = histNode->GetList("elems");
+        entityTypeName = "elements";
+      
+      } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
+        defineType = EntityList::NAMED_ELEMS;  
+        histNode = actResultNode->Get("surfEelemList",false); 
+        if( histNode) 
+          histEntities = histNode->GetList("surfElems");
+        entityTypeName = "surfElems";
+
+        // fetch entry with neighboring regions
+        // fetch entry with neighboring regions
+        for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
+          neighborRegions.Push_back( histEntities[i]->
+                                     Get("neighborRegion")->AsString() );
+        }
+      }
+
+      // only proceed, if any history result is defined+
+      if( histNode ) {
+        
+        // fetch saveBegin, saveEnd and saveInc
+        histNode->Get("saveBegin", saveBegin );
+        histNode->Get("saveEnd", saveEnd );
+        histNode->Get("saveInc", saveInc );
+        
+        // iterate over all regions
+        histNames.Clear();
+        postProcNames.Clear();
+        outDestNames.Clear();
+        writeResults.Clear();
+        for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
+          histNames.Push_back( histEntities[i]->Get("name")->AsString() );
+          postProcNames.Push_back( histEntities[i]->Get("postProcId")->AsString() );
+          outDestNames.Push_back( histEntities[i]->Get("outputIds")->AsString() );
+          writeResults.Push_back( histEntities[i]->Get("writeResult")->AsString() );
+        }
+      }
+      
+      if( histNames.GetSize() > 0 ) {
+        
+        (*it)->complexFormat = complexFormat;
+        
+        Info->PrintF( pdename_, " Computing '%s' for history %s(s):\n", 
+                      quantity.c_str(), entityTypeName.c_str() );
+        // iterate over all entityNames
+        for( UInt i = 0; i < histNames.GetSize(); i++ ) {
+          Info->PrintF( pdename_, " %s\n", histNames[i].c_str() );
+          actList = ptgrid_->GetEntityList( entityType, 
+                                            histNames[i], defineType );
+          shared_ptr<BaseResult> actSol;
+          if( isComplex_ ) {
+            actSol = shared_ptr<BaseResult>(new Result<Complex>());
+          } else {
+            actSol = shared_ptr<BaseResult>(new Result<Double>());
+          }
+            
+          // Set result info and entitylist at the result object
+          actSol->SetResultInfo( *it );
+          actSol->SetEntityList( actList );
+          resultLists_[*it].Push_back( actSol );
+            
+          // extract all output destinations and determine bool flag for writeResult
+          SplitStringList( outDestNames[i], actOutDest, ',' );
+          bool writeResult = (writeResults[i] == "yes"  ? true : false );
+            
+          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+                                      actOutDest, 
+                                      postProcNames[i], writeResult );
+            
+          // if neighboring region is present, store related volume 
+          // neighbor region
+          if( neighborRegions.GetSize() > 0 ) {
+            if( neighborRegions[i] != "" ) {
+              surfNeighborRegions_[actSol] = 
+                ptgrid_->RegionNameToId( neighborRegions[i] );
+            }
+          }
+            
+        }
+        Info->PrintF( pdename_, "\n");
+      }
+    }
+    Info->PrintF( pdename_, "\n");
+  }
+
+  void SinglePDE::WriteResultsInFile( const UInt kstep, 
+                                      const Double actTimeFreq, 
+                                      UInt stepOffset, Double timeOffset ) {
+    ENTER_FCN( "SinglePDE::WriteResultsInFile" );
+    
+    ResultMap::iterator it = resultLists_.begin();
+    ResultHandler * resHandler = domain->GetResultHandler();
+    
+    // iterate over all results
+    for( ; it != resultLists_.end(); it++ ) {
+      ResultList & actList = it->second;
+      
+      // iterate over all solutions for each result type
+      for( UInt i = 0; i < actList.GetSize(); i++ ) {
+
+        // Only calculate result, if needed
+        if( resHandler->IsResultNeeded( actList[i] ) ) {
+          CalcResults( actList[i] );
+          resHandler->UpdateResult( actList[i] );
+        }
+       }
+    }
+
+  }
+
+
+
+  void SinglePDE::Finalize() {
+    ENTER_FCN( "SinglePDE::Finalize" );
+
+    if( !isDirectCoupled_ ) {
+      domain->GetResultHandler()->Finalize();
+    }
+  }
+  
+
+  // **********
+  //   SetBCs
+  // **********
+  void SinglePDE::SetBCs( const Double time ) {
+    
+     ENTER_FCN( "SinglePDE::SetBCs" );
+  
+     // Trigger setting of BC from script file
+ #ifdef USE_SCRIPTING
+     StdVector<std::string> context;
+     context.Push_back( pdename_ );
+     context.Push_back( GenStr(solveStep_->GetActStep() ) );
+
+     if ( analysistype_ == TRANSIENT ||
+          analysistype_ == STATIC ) {
+       context.Push_back( GenStr(solveStep_->GetActTime() ) );
+     } else {
+       context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+     }
+     messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
+ #endif
+  
+     UInt dof;
+     Double val;
+     StdVector<UInt> nodes;
+     UInt bcNum = 0;
+     Integer eqnNr; 
+     Vector<Double> globCoord;
+   
+     // get global coordinate system and math parser
+     CoordSystem * coosy = domain->GetCoordSystem();
+     MathParser * parser = domain->GetMathParser();
+  
+     // set offset due to IDBC comming from input coupling
+     if ( isIterCoupled_ ) {
+       bcNum = couplingBCsCounter_;
+     }
+     else {
+       bcNum = 0;
+     }
+     
+     // ---------------------------
+     // INHOMOGENEOUS DIRICHLET BC
+     // ---------------------------
+  
+     Double phase = 0.0;
+     StdVector<Double>  val_tfunc_vec, dirVal_vec;
+     
+     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
+       
+       // Get grip of actual idBC
+       InhomDirichletBc const & actBc = *(idBcs_[i]);
+
+       dof = actBc.dof;
+       
+       // Get EntityIterator
+       EntityIterator it = actBc.entities->GetIterator();
+
+       for ( it.Begin(); !it.IsEnd(); it++ ) {
+         
+         try {
+           eqnNr = eqnMap_->GetEqn( *actBc.result, it, dof );
+           
+           // If iterator points to a node, pass the current coordinate
+           // to the parser
+           if( it.GetType() == EntityList::NODE_LIST ) {
+             
+             // Get node coordinate
+             ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
+             parser->SetCoordinates( mHandle_, *coosy, globCoord );
+           }
+           
+           // Now evaluate value of IDBC
+           parser->SetExpr( mHandle_, actBc.value );
+           val = parser->Eval( mHandle_ );
+           
+           // Sanity check. This should not happen, but might appear
+           // in the case that the same node/dof belongs to a region
+           // with hom. and a region with inhom. Dirichlet BCs. This
+           // problem was already encountered!
+           if (eqnNr == 0) {
+             
+             EXCEPTION( "Got eqn number 0 for inhom Dirichlet BC! "
+                        << "Probably you have a node/dof that belongs to both "
+                        << "a region with hom. and one with inhom. Dirichlet BCs."
+                        << " Go check your .mesh file!" );
+           }
+           
+           // Transform Dirichlet boundary conditions for effmass-formulation
+           if (effectiveMass_) {
+             val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+           }
+           
+           // Case of complex-valued entries
+           if (analysistype_ == HARMONIC ) {
+             
+             parser->SetExpr( mHandle_, actBc.phase );
+             phase = parser->Eval( mHandle_ );
+             //Complex complexValue( val * std::cos( phase / 180 * PI ),
+             //                      val * std::sin( phase / 180 * PI ) );
+             Complex complexValue( val * cos( phase / 180 * PI ),
+                                   val * sin( phase / 180 * PI ) );
+             algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, complexValue,
+                                    1 );
+           }
+           else {
+             //	  std::cout << "IHDBC val=" << val << std::endl;
+             algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, 1 );
+           }
+           bcNum++;
+         } catch (Exception& ex ) {
+           RETHROW_EXCEPTION(ex, pdename_ << ": Could not apply Inhom. Dirichlet boundary condition "
+                             << " for nodes '" <<  actBc.entities->GetName() 
+                             << "' with value '" << actBc.value << "'" );
+         }
+       }
+     }
+  }
+
+ 
+
+  void SinglePDE::ReadBCs() {
+
+    ENTER_FCN( "SinglePDE::ReadBCs" );
+
+    // vectors for parameter handling
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    // fetch "bcdAndLoads" parameter node, if present.
+    // otherwise leave
+    ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
+    if( !bcsNode )
+      return;
+    
+    std::string name, resultName, dof, entType, value, phase;
+    EntityList::DefineType defineType;
+    SolutionType solType;
+    shared_ptr<ResultInfo> actResultInfo;
+    
+
+    // =====================================================================
+    // homogeneous Dirichlet BC
+    // =====================================================================
+  
+    // fetch paramnodes for hdbc
+    StdVector<ParamNode*> hdbcNodes = bcsNode->GetList("dirichletHom");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < hdbcNodes.GetSize(); i++ ) {
+
+      try {
+        // read parameters
+        dof = "";
+        hdbcNodes[i]->Get( "name", name );
+        hdbcNodes[i]->Get( "quantity", resultName );
+        hdbcNodes[i]->Get( "dof", dof, false );
+        hdbcNodes[i]->Get( "entityType", entType );
+        
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+        
+        // Create homogeneous boundary condition
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+        
+        shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+                                  name, defineType );
+        actBc->entities = actList;
+        actBc->result = actResultInfo;
+        actBc->eqnMap = eqnMap_;
+        if( dof == "" ) {
+          actBc->dof = 1; 
+        } else {
+          actBc->dof = actResultInfo->GetDofIndex( dof );
+        }
+        
+        // add definition
+        hdBcs_.Push_back( actBc );
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create homogeneous boundary conditions on '"
+                           << name << "'" );
+      }
+    }
+    
+    //=====================================================================
+    // inhomogeneous Dirichlet BC
+    // =====================================================================
+
+    // fetch paramnodes for hdbc
+    StdVector<ParamNode*> idbcNodes = bcsNode->GetList("dirichletInhom");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < idbcNodes.GetSize(); i++ ) {
+      
+      try {
+        // read parameters
+        dof = "";
+        idbcNodes[i]->Get( "name", name );
+        idbcNodes[i]->Get( "quantity", resultName );
+        idbcNodes[i]->Get( "dof", dof, false );
+        idbcNodes[i]->Get( "value", value );
+        idbcNodes[i]->Get( "phase", phase );
+        idbcNodes[i]->Get( "entityType", entType );
+        
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+        
+        // Create inhomogeneous boundary condition
+        shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+                                  name, defineType );
+        actBc->entities = actList;
+        actBc->result = actResultInfo;
+        actBc->eqnMap = eqnMap_;
+        if( dof == "" ) {
+          actBc->dof = 1;
+        } else {
+          actBc->dof = actResultInfo->GetDofIndex( dof );
+        }
+        actBc->value = value;
+        actBc->phase = phase;;
+        
+        // add definition
+        idBcs_.Push_back( actBc );
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
+                           << name << "'" );
+      }
+     }
+
+
+    // =====================================================================
+    // inhomogeneous Neumann BC
+    // =====================================================================
+
+    // fetch paramnodes for inbc
+    StdVector<ParamNode*> inbcNodes = bcsNode->GetList("neumannInhom");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < inbcNodes.GetSize(); i++ ) {
+      try {
+        dof = "";
+        inbcNodes[i]->Get( "name", name );
+        inbcNodes[i]->Get( "quantity", resultName );
+        inbcNodes[i]->Get( "dof", dof, false );
+        inbcNodes[i]->Get( "value", value );
+        inbcNodes[i]->Get( "phase", phase );
+        inbcNodes[i]->Get( "entityType", entType );
+        
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+        
+        // Create inhomogeneous Neumann boundary condition
+        shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+                                  name, defineType );
+        actBc->entities = actList;
+        actBc->result = actResultInfo;
+        actBc->eqnMap = eqnMap_;
+        if( dof == "" ) {
+          actBc->dof = 1;
+        } else {
+          actBc->dof = actResultInfo->GetDofIndex( dof );
+        }
+        actBc->value = value;
+        actBc->phase = phase;
+       
+        // add definition
+        inBcs_.Push_back( actBc );
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous Neumann conditions on '"
+                           << name << "'" );
+      }
+    }
+
+    // =====================================================================
+    // Constraint Conditions
+    // =====================================================================
+
+    // fetch paramnodes for constraint
+    StdVector<ParamNode*> csNodes = bcsNode->GetList("constraint");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < csNodes.GetSize(); i++ ) {
+      try {
+        csNodes[i]->Get( "name", name );
+        csNodes[i]->Get( "quantity", resultName );
+        csNodes[i]->Get( "entityType", entType );
+        
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+        
+        // Create constraint condition
+        shared_ptr<Constraint> actBc ( new Constraint );
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+                                  name, defineType );
+        actBc->masterEntities = actList;
+        actBc->slaveEntities = actList;
+        actBc->masterDof = 1;
+        actBc->slaveDof = 1;
+        actBc->result = actResultInfo;
+        actBc->eqnMap = eqnMap_;
+        
+        // add definition
+        constraints_.Push_back( actBc );
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create constraints on '"
+                           << name << "'" );
+      }
+    }
+    
+    // =====================================================================
+    // Load definitions
+    // =====================================================================
+    
+    // fetch paramnodes for loads
+    StdVector<ParamNode*> loadNodes = bcsNode->GetList("load");
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
+      try {
+        dof = "";
+        loadNodes[i]->Get( "name", name );
+        loadNodes[i]->Get( "quantity", resultName );
+        loadNodes[i]->Get( "dof", dof, false );
+        loadNodes[i]->Get( "value", value );
+        loadNodes[i]->Get( "phase", phase );
+        loadNodes[i]->Get( "entityType", entType );
+
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+        
+        // Create load condition
+        shared_ptr<LoadBc> actLoad( new LoadBc );
+        if( entType == "nodeList" ) {
+          defineType = EntityList::NAMED_NODES;
+        } else {
+          defineType = EntityList::REGION;
+        }
+        shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::StringToType(entType),
+                                  name, defineType );
+        
+        actLoad->entities = actList;
+        actLoad->result = actResultInfo;
+        actLoad->eqnMap = eqnMap_;
+        if ( dof == "" ) {
+          actLoad->dof = 1; 
+        } else {
+          actLoad->dof = actResultInfo->GetDofIndex(dof);
+        }
+        actLoad->value = value;
+        actLoad->phase = phase;
+        loads_.Push_back( actLoad);
+      }  catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create load condition on '"
+                           << name << "'" );
+      }
+    }
+    assemble_->AddLoads( loads_ ); 
+    
+  }
+  
+  
+  void SinglePDE::ReadMaterialData() {
+    ENTER_FCN( "SinglePDE::ReadMaterialData" );
+
+    // get list of parameter nodes for region definitions
+    StdVector<ParamNode*> regionNodes;
+    
+    ParamNode * regionListNode = param->
+      Get("domain")->Get("regionList", false );
+    if( regionListNode)
+      regionNodes = regionListNode->GetList("region");
+
+    // obtain pointer to materialHandler
+    MaterialHandler * matLoader = NULL;
+    matLoader = domain->GetMaterialHandler();
+
+    
+    // -------------------
+    // NORMAL MATERIALS
+    // -------------------
+    std::string region, material, composite, refCoordSys;
+
+    // iterate over all regions
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+
+      try{ 
+        // get data from node
+        regionNodes[i]->Get( "name", region );
+        regionNodes[i]->Get( "material", material );
+        regionNodes[i]->Get( "refCoordSys", refCoordSys );
+        
+        // get regionId
+        RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+        
+        // if no material is set, continue with next loop run
+        if( material == "" )
+          continue;
+
+        // if region is not contained for current pde, simply continue
+        // with next loop
+        if( subdoms_.Find( actRegionId) < 0 ) 
+          continue;
+        
+        // print logging information
+        Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
+                      "follows\n", material.c_str(), region.c_str(),
+                      actRegionId );
+        // Read data
+        materials_[actRegionId] = matLoader->
+          LoadMaterial( material, pdematerialclass_ );
+        
+        // Check for local coordinate system
+        if( refCoordSys != "" ) {
+          CoordSystem * actCoosy = 
+            domain->GetCoordSystem( refCoordSys);
+          materials_[actRegionId]->SetCoordSys( actCoosy );
+        }
+        
+        // Check for material rotation parameters
+        ParamNode * rotNode = regionNodes[i]->Get("matRotation", false);
+        
+        Vector<Double> rotVec (3);
+        rotVec.Init();
+        
+        // NOTE: If no rotation is specified and the dimension is
+        // 2D, -> material is rotated by
+        // alpha = -90 and gamma = -90 degree, 
+        // so that we pick by default the yz-plane      
+        if( !rotNode ) {
+          if( dim_ == 2) {
+            rotVec[0] = -90.0;
+            rotVec[2] = -90.0;
+            materials_[actRegionId]->
+              RotateAllTensorsByRotationAngles( rotVec, true );
+          }
+          continue;
+        } else {
+          rotNode->Get( "alpha", rotVec[0] );
+          rotNode->Get( "beta", rotVec[1] );
+          rotNode->Get( "gamma", rotVec[2] );
+          
+          materials_[actRegionId]->
+            RotateAllTensorsByRotationAngles( rotVec, true );
+          std::cerr << "rotation angles are " << rotVec.Serialize()
+                    << std::endl;
+        }
+        
+      } catch (Exception& ex ) {
+        RETHROW_EXCEPTION(ex, "Could not assign material '"
+                          << material << "' of materialClass '"
+                          << pdematerialclass_ << "'to region '" 
+                          << region << "'");
+      }
+    }
+      
+      
+    
+    // -------------------
+    // COMPOSITE MATERIALS
+    // -------------------
+
+    // iterate over all regions
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+
+      try{ 
+        // get data from node
+        regionNodes[i]->Get( "name", region );
+        regionNodes[i]->Get( "composite", composite );
+
+        // get regionId
+        RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+        
+        // if no composite is set, continue with next loop run
+        if( composite == "" )
+          continue;
+
+        // print logging information
+        std::ostringstream out;
+        out << "Composite material '" << composite << "' for "
+            << "region '" << region << "' (ID = " << actRegionId
+            << ") follows:\n";
+        Info->PrintF( pdename_, out.str().c_str());
+        out.str("");
+
+        // get composite node
+        ParamNode * compNode = NULL;
+        try {
+          compNode = param->Get("domain")
+            ->Get("composite", "name", composite );
+        } catch( Exception& ex ) {
+          RETHROW_EXCEPTION( ex, "No composite material defined with name '"
+                             << composite << "'" );
+        }
+
+        Double startHeight = compNode->Get("startHeight")->AsDouble();
+        
+        // get laminaNodes
+        StdVector<ParamNode*> laminaNodes = compNode->GetList("lamina");
+        
+        // Create new lamina and fill ine materials and thicknesses
+        Composite & myMat = compositeMaterials_[actRegionId];
+        myMat.name = composite;
+        myMat.zStart = startHeight;
+
+        // iterate over all single laminas
+        for( UInt j = 0; j < laminaNodes.GetSize(); j++ ) {
+
+          // fetch data for lamina
+          std::string lamMaterial;
+          Double lamThickness, lamOrientation;
+          
+          laminaNodes[j]->Get( "material", lamMaterial);
+          laminaNodes[j]->Get( "thickness", lamThickness);
+          laminaNodes[j]->Get( "orientation", lamOrientation);
+
+          // Print information
+          out << " --- Lamina " << j+1 << ": thickness = " 
+              << lamThickness
+              << " m, orientation = " << lamOrientation << "° ---\n";
+          Info->PrintF( pdename_, out.str().c_str());
+          out.str("");
+
+          myMat.thickness.Push_back( lamThickness );
+          myMat.orientation.Push_back( lamOrientation );
+          myMat.materials.Push_back( matLoader->
+                                     LoadMaterial( lamMaterial,
+                                                   pdematerialclass_ ) );
+          
+        } // over single laminae
+      } catch (Exception& ex ) {
+        RETHROW_EXCEPTION( ex, "Could not create composite material '"
+                           << composite << "'");
+      }
+    } // over composite 
+  }
+
+
+  
+  // ======================================================
+  // GET /SET  METHODS
+  // ======================================================
+
+  //! Activate the direct coupling
+  void SinglePDE::SetDirectCoupling () {
+                           
+    ENTER_FCN( "SinglePDE::SetDirectCoupling" );
+    
+    isDirectCoupled_ = true;          
+  }
+
+
+
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...) 
+  // ======================================================
+  void SinglePDE::DefineAlgSys() {
+
+    ENTER_FCN( "StdPDE::DefineAlgSys" );
+
+
+    // First check if the PDE needs an algebraic system at all
+    if( needsAlgsys_ == false ) {
+      return;
+    }
+
+
+    // If PDE is not direct coupled then the PDE has to register
+    // at the algebraic system and obtain an Id. 
+    // Afterwards the matrix-graph has to be set up
+    SETPROFILE("Before GraphSetupInit()");
+    if ( isDirectCoupled_ == false ) {
+
+      // Set linear system parameters for OLAS
+      ReadOlasParams( pdename_ );
+
+      // Initialize the matrix graph object
+      algsys_->GraphSetupInit(1);
+
+      algsys_->RegisterPDE( pdeId_, eqnMap_->GetNumEqns(),
+                            eqnMap_->GetNumLastFreeDof() );
+
+      //assemble_->SetPDEId( pdeId_ );
+      solveStep_->SetPDEId( pdeId_ );
+      
+      
+      // trigger the creation and assembly of the matrix graph
+      algsys_->AssembleInit( pdeId_, pdeId_, false );
+      assemble_->SetupMatrixGraph(pdeId_, pdeId_);
+      algsys_->AssembleDone( pdeId_, pdeId_, false );      
+    
+      // finish the assembly of the matrix graph
+      algsys_->GraphSetupDone();
+      
+      // obtain reordering of the matrix graph and pass it to the EQN-object.
+      Integer *newOrder = algsys_->GetReordering( pdeId_ );
+      eqnMap_->ReorderMapping( &newOrder );
+    }
+
+    // pass information about dofs, number of dirichlet equations
+    // and constraints to the algebraic system
+    algsys_->SetBlockSize( pdeId_, 1 );
+
+    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() + numCouplingBcs_;
+    algsys_->SetNumDirichletBCs(pdeId_, numDir );
+
+    // create matrices and solver object, if PDE is not direct coupled
+    if ( isDirectCoupled_ == false ) {
+      CreateMatrices_Solver();
+      
+      // Incorporate values of memento here, if the values are used
+      // as "start"-values from a previous simulation run
+      // (e.g. obtained from a previous static run)
+      if( memento_ != NULL
+          && mementoUsage_ == PDEMemento::START_VALUE ) {
+        IncorporateMemento();
+      }
+    }
+
+  }
+
+
+  
+  // ======================================================
+  // Adaptivity SECTION 
+  // ======================================================
+
+#ifdef ADAPTGRID
+  void SinglePDE::RefineMesh( const Integer level) {
+
+    ENTER_FCN( "SinglePDE::RefineMesh" );
+  
+    Integer          numChilds;
+    Integer          numElems;
+    StdVector<Elem*> elemssd;
+    Double           theta_s;
+    Double           coarseFactor;
+    Double           tol4Elm;
+    Integer          numRefLoops=0;
+    Integer          numRefinements;
+    Integer          iem;
+
+    // get max num elements for the domain,on which we have the equation
+    numElems=ptgrid_->GetMaxnumElem(level,subdoms_);
+
+    // get pointer to array with elements
+    ptgrid_->GetElemSD(elemssd,subdoms_[0],level);
+
+    // if element is marked, then value of the array's element is equal 1,
+    // else 0.
+    markingElems_.Resize(numElems);
+    marlingElems_.Init();
+
+    if (!conf->ifget("safety_factor_for_space_adaptivity",theta_s)) {
+      theta_s=1.0;
+    }
+
+    coarseFactor = 0.7;
+    tol4Elm = theta_s*tolSpaceErr_;
+
+    std::cout << " tolerance space error: " << tolSpaceErr_ << std::endl;
+ 
+    // loop over elements
+    for (iem=0; iem<numElems; iem++) {
+      elemssd[iem]->refinementFlag = 0;
+      if (errorMap_[iem]>tol4Elm) {
+        elemssd[iem]->refinementFlag = 1; 
+
+        numChilds=elemssd[iem]->ptElem->getNumChilds();
+
+        numRefinements = defineRefinements(errorMap_[iem],tol4Elm,numChilds);
+
+        if (numRefinements>numRefLoops)
+          numRefLoops = numRefinements;
+
+        markingElems_[iem]=numRefinements;
+        elemssd[iem]->refinementNumber = numRefinements;
+      }
+      else {
+        if (errorMap_[iem] < coarseFactor*tol4Elm) {
+          elemssd[iem]->refinementFlag = 0;
+        }
+        else {
+          elemssd[iem]->refinementFlag = 0;
+        }
+      }
+    }
+    
+    // Fuehren die Verfeinerung durch
+    std::cout << " number of refinement loops \n" << numRefLoops << std::endl;
+
+    ptgrid_->Refine(numRefLoops);
+
+  }
+
+
+  bool SinglePDE::TestError(const Integer level) {
+
+    ENTER_FCN( "SinglePDE::TestError" );
+
+    if (!ptError_) ConstructorError();
+  
+    // Berechnung der Fehlerkarte
+    Double            totalErr;
+    Vector<Double>    solVec;
+  
+    solVec.Resize(sol_.size());
+    int i;
+    for (i=0; i<sol_.size(); i++)
+      solVec[i]=sol_[0][i];
+    //      sol_.toVector(solVec,1);
+  
+    ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
+  
+    std::cout << " space error: " << totalErr <<
+      " tolerance: " << tolSpaceErr_ << std::endl;
+
+    if (totalErr > tolSpaceErr_) return true;
+    else return false;
+  }
+
+
+  //In this fnc we delete old pointer to Error-object & create new
+  void SinglePDE::ConstructorError() {
+
+    ENTER_FCN( "SinglePDE::ConstructorError" );
+
+    if (ptError_) delete ptError_;
+  
+    ptError_=new SpaceErrorEstimator();
+    ptError_->Init(this);
+  }
+
+
+  void SinglePDE::WriteErrorInfo(WriteResults * ptmeshes) {
+    ptmeshes->WriteElemSolution(errorMap_,0,0,"ERR-errorMap");
+    ptmeshes->WriteElemSolution(markingElems_,0,0,"ERR-markedElems");
+  }
+
+#endif // AdaptGrid
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+
+  void SinglePDE::CalcInputCoupling() {
+
+    ENTER_FCN( "SinglePDE::CalcInputCoupling" );
+
+    std::string errMsg;
+    StdVector<UInt> * nodes;
+    CFSVector * val;
+    Integer eqnNr;
+    UInt couplingDof;
+
+    // Determine maximal allowed equation number for algebraic system
+    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
+
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == false)
+      return;
+
+    // Reset counter for boundary conditions
+    couplingBCsCounter_ = 0;
+ 
+
+    // Outer loop over all INPUT coupling terms
+    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
+
+      //    ptCoupling_ = &ptCoupling_[i];
+      ptCoupling_->GetInputValues(i, val);
+      couplingDof = ptCoupling_->GetInputDof(i);
+    
+      // Up to now, Coupling is only possible with
+      // Real valued solutions
+      Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
+
+
+      switch(ptCoupling_->GetInputType(i)) {
+        
+        // -------------------
+        // COORDINATE COUPLING
+        // -------------------
+      case COORD: 
+
+        ptCoupling_->GetInputNodes(i, nodes);
+        ptgrid_->SetNodeOffset( *nodes , help );
+
+        break;
+
+        // -------------------
+        // RHS COUPLING
+        // -------------------
+      case RHS:
+        ptCoupling_->GetInputNodes(i, nodes);
+          
+        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
+            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
+              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
+                                   eqnNr, 1 );
+            }
+
+#ifdef DEBUG
+            else if ( eqnNr > maxAllowedEqn ) {
+              (*debug) << "SinglePDE::CalcInputCoupling: "
+                       << "(" << pdename_ << ") "
+                       << "Refused to pass "
+                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
+                       << std::endl;
+            }
+            else if ( eqnNr == 0 ) {
+              (*debug) << "SinglePDE::CalcInputCoupling: "
+                       << "(" << pdename_ << ") "
+                       << "Refused to pass "
+                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+                       << "it is fixed by hom. Dirichlet BC" << std::endl;
+            }
+#endif
+
+          }
+        }
+        break;
+
+        // -----------------------
+        // InhomDirichlet COUPLING
+        // -----------------------
+      case ID_BC:
+
+        // How do we want to treat inhomogeneous Dirichlet boundary
+        // conditions?
+        {
+          if ( usePenalty_ == false ) {
+            EXCEPTION( "Cannot use inhom. Dirichlet coupling together with "
+                       << "IDBC elimination, since the equation numbering "
+                       << "object does currently not have the information "
+                       << "required to put those values at the end of the "
+                       << "equation number interval! Please set idbcHandling="
+                       << '"' << "penalty" << '"' << " in your xml-file" );
+          }
+        }
+
+        // Set flag that the boundary conditions have to be incorporated
+        updateCouplingBCs_ = true;
+
+        ptCoupling_->GetInputNodes(i, nodes);
+
+        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize();
+                j++, couplingBCsCounter_++) {
+
+            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
+
+            if (eqnNr==0) {
+              EXCEPTION( "The specified coupling node has no equation number" );
+	      //	      std::cerr << "node=" << *nodes)[j]
+            }
+
+            algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,
+                                   help[dof+j*couplingDof], 1 );
+          }
+        }
+        break;
+          
+      case MAT:
+        //EXCEPTION( "Not implemented yet" );
+        break;
+
+      }
+    }
+  }
+  
+  void SinglePDE::ResetCoupling() {
+    ENTER_FCN( "SinglePDE::ResetCoupling" );
+    
+    iterCoupledCounter_ = 0;
+    
+    
+  }
+
+  void SinglePDE::SetIDBC( const std::string &name,
+                           const std::string &dofString, 
+                           const std::string &value, 
+                           const std::string &phase ) {
+    ENTER_FCN("SinglePDE::SetIDBC");
+
+    // Try ro find existing entry in IDBC vector
+    Integer index = -1;
+
+    for( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
+      if( idBcs_[i]->entities->GetName() == name ) {
+        index = i;
+        break;
+      } 
+    }
+
+    if( index == -1 ) {
+      EXCEPTION( "Entities '" << name << "' not found for "
+                 << "Dirichlet values!" );
+    } else {
+      idBcs_[index]->value = value;
+      idBcs_[index]->phase = phase;
+    }
+  }
+
+
+ void SinglePDE::WriteRestart( ) {
+   ENTER_FCN( "SinglePDE::WriteRestart" );
+   
+   if (pdename_=="mechanic" || pdename_=="acoustic") {
+     std::string simName = commandLine->GetSimName();
+     
+     // create name of output file
+     std::string restartFileName = simName+"_"+pdename_+".restart";
+     
+     std::ofstream writeTo(restartFileName.c_str(), std::ios::binary);
+     if( !writeTo.good() ) {
+       EXCEPTION( "Could not write to restart file '" << restartFileName 
+                  << "'!" );
+     }
+     
+     boost::archive::binary_oarchive outArchive(writeTo);
+     GetMemento(memento_);
+     PDEMemento const & temp = *memento_;
+     outArchive << temp;
+     writeTo.close();
+   } else {
+     EXCEPTION( "Restart functionality only for "
+                << "mechanic and acoustic tested" );
+   }
+   
+     
+ }
+
+  void SinglePDE::ReadRestart(UInt &startStep ) {
+    ENTER_FCN( "SinglePDE::ReadRestart" );
+    
+    if (pdename_=="mechanic" || pdename_=="acoustic") {
+      std::string simName = commandLine->GetSimName();
+      std::string restartFileName = simName+"_"+pdename_+".restart";
+      
+      std::ifstream readRestart(restartFileName.c_str(), std::ios_base::in );
+      if( !readRestart.good() ) {
+        EXCEPTION( "Could not open restart file '" << restartFileName << "'!" );
+      }
+
+      boost::archive::binary_iarchive inArchive( readRestart );
+      shared_ptr<PDEMemento> myMemento (new PDEMemento );
+      inArchive >> *myMemento;
+      readRestart.close();
+      SetMemento( myMemento, PDEMemento::START_VALUE );
+
+      startStep = myMemento->GetRestartStep();
+    } else  {
+      EXCEPTION( "Restart functionality only for "
+                 << "mechanic and acoustic tested" );
+    }
+    
+  }
+  
+  
+  void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
+    ENTER_FCN( "SinglePDE::GetMemento" );
+
+    // create new memento
+    shared_ptr<PDEMemento> myMemento (new PDEMemento() );
+
+    // first get memento of coupling object
+    if (isIterCoupled_) {
+      ptCoupling_->GetMemento(myMemento->couplingMemento_);
+      myMemento->isIterCoupled_ = true;
+    }
+
+    // then write own data to PDEMemento
+    myMemento->analysisType_ = analysistype_;
+    myMemento->gridFileName_ = commandLine->GetMeshFile();
+    myMemento->stepNum_ = domain->GetSingleDriver()->GetActStep(pdename_);
+
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+
+      // --- Real values --
+      Vector<Double> & solReal = 
+        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+      UInt numDofs = results_[0]->dofNames.GetSize();
+      StdVector<Integer> eqns;
+      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+
+        // create new entity list
+        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
+        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+
+        // create new vector
+        Vector<Double> * values = new Vector<Double>;
+        Vector<Double> deriv1, deriv2;
+
+        values->Resize( actSDList->GetSize() * numDofs );
+        values->Init();
+        if (analysistype_ == TRANSIENT ) {
+          deriv1.Resize( actSDList->GetSize() * numDofs );
+          deriv2.Resize( actSDList->GetSize() * numDofs );
+        }
+        
+        EntityIterator it = actSDList->GetIterator();
+        UInt pos = 0;
+        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+          eqnMap_->GetEqns( eqns, *results_[0], it );
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if ( eqns[iDof] != 0 ) {
+              (*values)[numDofs*pos+iDof] = solReal[(abs(eqns[iDof]-1))];
+              if( analysistype_ == TRANSIENT ) {
+                deriv1[numDofs*pos+iDof] = 
+                  TS_alg_->GetDeriv1()[(abs(eqns[iDof]-1))];
+                deriv2[numDofs*pos+iDof] = 
+                  TS_alg_->GetDeriv2()[(abs(eqns[iDof]-1))];
+              }
+            } else {
+              (*values)[numDofs*pos+iDof] = 0.0;
+              if ( analysistype_ == TRANSIENT ) {
+                deriv1[numDofs*pos+iDof] = 0.0;
+                deriv2[numDofs*pos+iDof] = 0.0;
+              }
+            }
+          }
+        }
+
+        // pass vector to memento object
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        myMemento->solution_[regionName] = values;
+        if ( analysistype_ == TRANSIENT ) {
+          myMemento->solDeriv1_[regionName] = deriv1;
+          myMemento->solDeriv2_[regionName] = deriv2;
+        }
+      }
+    } else {
+      
+      // --- Complex values --    
+
+      // store current frequency
+      myMemento->freq_ = dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver())
+        ->GetActFreq();
+      
+      Vector<Complex> & solComp = 
+        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
+      UInt numDofs = results_[0]->dofNames.GetSize();
+      StdVector<Integer> eqns;
+      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+
+        // create new entity list
+        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
+        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+
+        // create new vector
+        Vector<Complex> * values = new Vector<Complex>;
+        values->Resize( actSDList->GetSize() * numDofs );
+        values->Init();
+        EntityIterator it = actSDList->GetIterator();
+        UInt pos = 0;
+        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+          eqnMap_->GetEqns( eqns, *results_[0], it );
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if ( eqns[iDof] != 0 ) {
+              (*values)[numDofs*pos+iDof] = solComp[(abs(eqns[iDof]-1))];
+            } else {
+              (*values)[numDofs*pos+iDof] = 0.0;
+            }
+          }
+        }
+
+        // pass vector to memento object
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        myMemento->solution_[regionName] = values;
+      }
+    } 
+    
+    // now memento is initialized
+    myMemento->isSet_ = true;
+
+    // pass back memento
+    memento = myMemento;
+  }
+  
+
+  void SinglePDE::SetMemento( shared_ptr<PDEMemento>& memento, 
+                              PDEMemento::ValueUsageType usage) {
+    ENTER_FCN( "SinglePDE::SetMemento" );
+    
+    if( isInitialized_ == true ) {
+      EXCEPTION( "SetMemento may only be called, if the method "
+                 << "SinglePDE::Init() was not called yet!" );
+    }
+
+    memento_ = memento;
+    mementoUsage_ = usage;
+  }
+
+  void SinglePDE::IncorporateMemento( ) {
+    ENTER_FCN( "SinglePDE::IncorporateMemento" );
+    
+    // if there is no memento present -> leave
+    if( !memento_ ) {
+      return;
+    }
+    
+   // if there is no information in the memento just leave
+    if ( memento_->isSet_ == false ) {
+      return;
+    }
+  
+    // check that memento is bases on the same grid file
+    if( memento_->gridFileName_ != commandLine->GetMeshFile() ) {
+      EXCEPTION( "Error in reading in memento: Memento is based on grid '"
+                 << memento_->gridFileName_ 
+                 << ", whereas the current simulation is based on grid '"
+                 << commandLine->GetMeshFile() );
+    }
+
+    UInt numDofs = results_[0]->dofNames.GetSize();
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+      
+      // convert solution to transient StoreSolution type
+      Vector<Double> & solVec = 
+        (dynamic_cast<NodeStoreSol<Double> &>(*sol_)).GetAlgSysVector();
+      
+
+      Vector<Double> solDeriv1, solDeriv2;
+      if( TS_alg_->GetDeriv1().GetSize() != 0 ) {
+        solDeriv1 = TS_alg_->GetDeriv1();
+      } else {
+        solDeriv1.Resize( solVec.GetSize() );
+        solDeriv1.Init();
+      }
+
+      if( TS_alg_->GetDeriv2().GetSize() != 0 ) {
+        solDeriv2 = TS_alg_->GetDeriv2();
+      } else {
+        solDeriv2.Resize( solVec.GetSize() );
+        solDeriv2.Init();
+      }
+      
+      if ( memento_->analysisType_ == HARMONIC ) {
+        
+        // -> perform complex-to-real adjustment
+        
+        // frequency of memento
+        Double freq = memento_->freq_;
+
+        // Iterate over all regions
+        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+          // Check for related region in memento object
+          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+            
+            // get grip of vector and derivatives of memento
+            Vector<Complex> const & sol = 
+              dynamic_cast<const Vector<Complex>& >(*(memento_->solution_[name]) );
+
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            StdVector<Integer> eqns;
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              eqnMap_->GetEqns( eqns, *results_[0], it );
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                UInt actPos = numDofs*pos+iDof;
+                if ( eqns[iDof] != 0 
+                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                  solVec[eqns[iDof]-1] = sol[actPos].real();
+                  if ( analysistype_ == TRANSIENT ) {
+                    solDeriv1[eqns[iDof]-1] = -2*PI*freq* sol[actPos].imag();
+                    solDeriv2[eqns[iDof]-1] = 
+                      -4*PI*PI*freq*freq*sol[actPos].real();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // pass derivatives to timestepping algorithm
+        if( analysistype_ == TRANSIENT ) {
+          TS_alg_->SetDeriv1( solDeriv1 );
+          TS_alg_->SetDeriv2( solDeriv2 );
+        }
+        
+      } else {
+        
+        // check if derivatives are also needed
+        bool needDeriv = ( analysistype_ == TRANSIENT ) &&
+          (memento_->analysisType_ == TRANSIENT);
+        
+        // Iterate over all regions
+        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+          // Check for related region in memento object
+          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+            
+            // get grip of vector and derivatives of memento
+            Vector<Double> const & sol = 
+              dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
+            Vector<Double> const & deriv1 = memento_->solDeriv1_[name];
+            Vector<Double> const & deriv2 = memento_->solDeriv2_[name];
+
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            StdVector<Integer> eqns;
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              eqnMap_->GetEqns( eqns, *results_[0], it );
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                if ( eqns[iDof] != 0 
+                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                  solVec[eqns[iDof]-1] = sol[numDofs*pos+iDof];
+                  if ( needDeriv ) {
+                    solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];
+                    solDeriv2[eqns[iDof]-1] = deriv2[numDofs*pos+iDof];
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // pass derivatives to timestepping algorithm
+        if( needDeriv ) {
+          TS_alg_->SetDeriv1( solDeriv1 );
+          TS_alg_->SetDeriv2( solDeriv2 );
+        }
+      }
+    } else if ( analysistype_ == HARMONIC ) {
+
+      // check value-usage type
+      if( mementoUsage_ != PDEMemento::DIRICHLET_VALUE ) {
+        EXCEPTION( "For an harmonic simulation only the usage "
+                   << "of a memento as Drichlet values makes sense!" );
+      }
+
+          // iterate over all regions of pde
+      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[i] );
+
+        // try to find related region in memento object
+        if( memento_->solution_.find( regionName ) !=
+            memento_->solution_.end() ) {
+
+          Vector<Complex> const & regionSol = 
+            dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
+
+          // create entitylist
+          shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+          nodes->SetNodesOfRegion( subdoms_[i] );
+
+          // iterate over all entries
+          EntityIterator it = nodes->GetIterator();
+          UInt pos = 0;
+          for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+            
+            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+              Complex val = regionSol[pos * numDofs + iDof];          
+              
+              // create idbc-condition and append to class container
+              shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+              shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
+              StdVector<UInt> nodeList(1);
+              nodeList[0] = it.GetNode();
+              actList->SetNodes(nodeList);
+
+              actBc->entities = actList;
+              actBc->result = results_[0];
+              actBc->eqnMap = eqnMap_;
+              actBc->dof = iDof+1;
+              actBc->value = GenStr(std::abs( val ) );
+              actBc->phase = GenStr(std::atan2( val.imag(), val.real()) 
+                                    *180/PI );
+              
+              // append idbc at end of list
+              idBcs_.Push_back( actBc );
+            }
+          }
+        }
+      }
+    }
+    
+
+  }
+
+  template<class TYPE>
+  void SinglePDE::ExtractResult( shared_ptr<BaseResult> res,
+                                 BaseNodeStoreSol * ptStoreSol ) {
+    ENTER_FCN( "SinglePDE::ExtractResult" );
+
+    StdVector<Integer> eqnNums;
+    ResultInfo & actDof = *(res->GetResultInfo() );
+    UInt numDofs = actDof.dofNames.GetSize();
+    
+    Vector<TYPE> & solHelp = 
+      dynamic_cast<NodeStoreSol<TYPE>&> ( *ptStoreSol ).GetAlgSysVector();
+    
+    EntityIterator it = res->GetEntityList()->GetIterator();
+    Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
+      (*(res)).GetVector();
+    actSol.Resize( res->GetEntityList()->GetSize() *
+                   actDof.dofNames.GetSize() );
+    
+    for( it.Begin(); !it.IsEnd(); it++ ) {
+      
+      // get equation numbes
+      eqnMap_->GetEqns( eqnNums, actDof, it );
+      for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+        if( eqnNums[iDof] != 0 ) {
+          actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+        } else {
+          actSol[it.GetPos()*numDofs+iDof] = 0.0;
+        }
+      }
+    }
+  }
+
+  void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv ) {
+    ENTER_FCN( "SinglePDE::ExtractDerivResult" );
+
+    StdVector<Integer> eqnNums;
+    
+    
+    ResultInfo & actDof = *(res->GetResultInfo() );
+    UInt numDofs = actDof.dofNames.GetSize();
+    EntityIterator it = res->GetEntityList()->GetIterator();
+    
+    if( res->GetEntryType() == EntryType::DOUBLE ) {
+      
+      // === TRANSIENT CASE ===
+      const Vector<Double>& (TimeStepping::*fct) () const;
+      switch ( deriv ) {
+      case 1:
+        fct = &TimeStepping::GetDeriv1;
+        break;
+      case 2:
+        fct = &TimeStepping::GetDeriv2;
+        break;
+      default :
+        EXCEPTION( "Only derivatives up to order 2 possible" );
+      }
+      
+      const Vector<Double> & solHelp = (TS_alg_->*fct)();
+      Vector<Double> & actSol = (dynamic_cast<Result<Double>&>
+                                 (*(res))).GetVector();
+      actSol.Resize( res->GetEntityList()->GetSize() *
+                     actDof.dofNames.GetSize() );
+      
+      // iterate over all elements
+      for( it.Begin(); !it.IsEnd(); it++ ) {
+        eqnMap_->GetEqns( eqnNums, *results_[0], it );
+        
+        // iterate over all dofs
+        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+          if( eqnNums[iDof] != 0 ) {
+            actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+          } else {
+            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+          }
+        }
+      }
+    } else {
+      // === HARMONIC CASE ===
+      Double omega = solveStep_->GetActFreq() * 2 * PI;
+      
+      // determine correct factor
+      Complex factor = Complex(0.0, 0.0);
+      switch( deriv ) {
+      case 1:
+        factor = Complex( 0.0, omega );
+        break;
+      case 2:
+        factor = Complex( -omega*omega, 0.0 );
+        break;
+      default :
+        EXCEPTION( "Only derivatives up to order 2 possible" );
+      }
+
+      Vector<Complex> & solHelp = 
+        dynamic_cast<Vector<Complex>& > (*solVec_);
+      Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
+         (*(res)).GetVector();
+      actSol.Resize( res->GetEntityList()->GetSize() *
+                     actDof.dofNames.GetSize() );    
+
+      // iterate over all elements
+      for( it.Begin(); !it.IsEnd(); it++ ) {
+        eqnMap_->GetEqns( eqnNums, *results_[0], it );
+
+        // iterate over all dofs
+        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+          if( eqnNums[iDof] != 0 ) {
+            actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+          } else {
+            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+          }
+        }
+      }
+      
+    }
+  }
+  
+  // Instantiate functions
+  template void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> res, 
+                                                  BaseNodeStoreSol * ptStoreSol );
+  template void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> res, 
+                                                   BaseNodeStoreSol * ptStoreSol );
+  
+  // ======================================================
+  // SCRIPTING SECTION
+  // ======================================================
+
+  void SinglePDE::RegisterFunctions() {
+    typedef FctPointer<SinglePDE> FCPT;
+    StdVector<ArgList> a;
+    StdVector<FCPT*> pt;
+    StdVector<std::string> name;
+
+    // --- IDBC ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING );
+    a.Last().RegisterParam("dof", ArgList::STRING );
+    a.Last().RegisterParam("value", ArgList::STRING );
+    a.Last().RegisterParam("phase", ArgList::STRING );
+    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_IDBC) );
+    name.Push_back( "setIdbc" );
+                  
+
+    // --- GetValue ---
+    a.Push_back();
+    a.Last().RegisterParam( "name", ArgList::STRING );
+    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_GetValue) );
+    name.Push_back( "getValue" );
+    
+    // Now register all functions with scripting 
+    for (UInt i = 0; i < pt.GetSize(); i++ ) {
+      Script_RegisterFct(name[i], pt[i], a[i] );
+    }
+  }
+  
+  void SinglePDE::Wrap_IDBC() {
+    SCRIPT_GET( std::string, name );
+    SCRIPT_GET( std::string, dof );    
+    SCRIPT_GET( std::string, value );
+    SCRIPT_GET( std::string, phase );
+    SetIDBC(name, dof, value, phase );
+  }
+  
+  void SinglePDE::Wrap_GetValue() {
+    SCRIPT_GET( std::string, name );
+    StdVector<UInt> nodeNrs;
+    ptgrid_->GetNodesByName( nodeNrs, name );
+    for (UInt i=0; i<nodeNrs.GetSize(); i++) {
+      Double val;
+      sol_->Get(nodeNrs[i]-1,0,val);
+      SCRIPT_RETVAL.Push_back(GenStr(val));
+    }
+  }
+  
+} // end of namespace

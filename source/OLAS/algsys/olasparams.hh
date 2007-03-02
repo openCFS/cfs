@@ -1,0 +1,37 @@
+/* $Id$ */
+
+#ifndef OLAS_OLASPARAMS_HH
+#define OLAS_OLASPARAMS_HH
+
+/**********************************************************/
+
+#include "algsys/olascomm.hh"
+
+namespace OLAS {
+
+  /**********************************************************/
+
+  //! Class for objects that feed steering parameters to OLAS
+
+  //! This class implements a communication object that can be used to feed
+  //! steering parameters to the OLAS solution process.
+  class OLAS_Params : public OLAS_BaseComm {
+
+  public:
+
+    //! default constructor (calls SetDefaultParams())
+    OLAS_Params();
+    //! Set mandatory default values
+    void SetDefaultParams();
+
+  private:
+
+    //! Let the compiler instantiate interfaces for enumeration Pool
+    void EnumInterfaces();
+
+  };
+
+  /**********************************************************/
+} // namespace OLAS
+
+#endif // OLAS_OLASPARAMS_HH

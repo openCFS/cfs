@@ -1,0 +1,36 @@
+#ifndef OLAS_GENERATE_EIGEN_SOLVER_HH
+#define OLAS_GENERATE_EIGEN_SOLVER_HH
+
+#include "utils/environment.hh"
+#include "utils/defs.hh"
+
+//! \file generateEigenSolver.hh
+//! This module handles generation of Eigen solver objects. It is also
+//! responsible for the instantiation of the templated Eigen solvers.
+
+namespace OLAS {
+
+  // forward class declarations
+  class BaseEigenSolver;
+  class BaseMatrix;
+  class OLAS_Params;
+  class OLAS_Report;
+
+  //! Generate a basic solver object
+
+  //! This method will generate a BaseEigenSolver solver object that fits
+  //! to the input matrix and return a pointer to that object.
+  //! \param mat    %Matrix that is preconditioned
+  //! \param solver Type of desired solver
+  //! \param params Pointer to a parameter object with steering parameters
+  //!               for the solver that is to be generated
+  //! \param report Pointer to report object into which the generated solver
+  //!               should write its solutiopn report.
+  BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
+                                               EigenSolverType solver,
+                                               OLAS_Params *params, 
+                                               OLAS_Report *report );
+
+}
+
+#endif

@@ -43,4 +43,338 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of standard type for nonlinearity -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying boundary conditions -->
+  <xsd:complexType name="DT_NonLinBasic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of standard type for damping -->
+  <!-- ******************************************************************** -->
+
+  <!-- Base element type for specifying boundary conditions -->
+  <xsd:complexType name="DT_DampingBasic">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic result data type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_BasicResult" abstract="true">
+    <xsd:attribute name="complexFormat" type="DT_ComplexFormat"
+      use="optional" default="amplPhase"/>
+  </xsd:complexType>
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic result storing data type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_ResultSavingType" abstract="true">
+    <xsd:attribute name="saveBegin" type="xsd:positiveInteger" default="1"/>
+    <xsd:attribute name="saveEnd" type="xsd:integer" default="-1"/>
+    <xsd:attribute name="saveInc" type="xsd:positiveInteger" default="1"/>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of nodal result type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_NodeResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+        <xsd:sequence minOccurs="1">
+
+          <!-- 1.) Definition by 'regionList' -->
+          <xsd:choice minOccurs="0" maxOccurs="1">
+
+            <!-- choice for a) several results regions-->
+            <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:complexContent>
+                  <xsd:extension base="DT_ResultSavingType">
+                    <xsd:sequence>
+                      <xsd:element name="region"
+                        type="DT_SingleRegionResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                  </xsd:extension>
+                </xsd:complexContent>
+              </xsd:complexType>
+            </xsd:element>
+
+            <!-- choice for b) all regions-->
+            <xsd:element name="allRegions"
+              type="DT_AllRegionResultDescr" minOccurs="1" maxOccurs="1"/>
+          </xsd:choice>
+          
+          <!-- 2.) Definition by named nodes -->
+          <xsd:element name="nodeList" minOccurs="0">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence minOccurs="1" maxOccurs="1">
+                    <xsd:element name="nodes" type="DT_HistResultDescr"
+                      minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element result type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_ElemResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+        <xsd:sequence minOccurs="1">
+
+          <!-- 1.) Definition by 'regionList' -->
+          <xsd:choice minOccurs="0" maxOccurs="1">
+
+            <!-- choice for a) several results regions-->
+             <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:complexContent>
+                  <xsd:extension base="DT_ResultSavingType">
+                    <xsd:sequence>
+                      <xsd:element name="region"
+                        type="DT_SingleRegionResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                  </xsd:extension>
+                </xsd:complexContent>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!-- choice for b) all regions-->
+            <xsd:element name="allRegions"
+              type="DT_AllRegionResultDescr" minOccurs="1" maxOccurs="1"/>
+          </xsd:choice>
+
+          <!-- 2.) Definition by named elements -->
+          <xsd:element name="elemList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence minOccurs="0" maxOccurs="1">
+                    <xsd:element name="elems" type="DT_HistResultDescr"
+                      minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of surface element result type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_SurfElemResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+        <xsd:sequence minOccurs="1">
+
+          <!-- 1.) Definition by 'regionList' -->
+          <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence>
+                    <xsd:element name="surfRegion"
+                      type="DT_SingleSurfRegionResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- 2.) Definition by named elements -->
+          <xsd:element name="surfElemList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence minOccurs="0" maxOccurs="1">
+                    <xsd:element name="surfElems" type="DT_SurfElemHistResultDescr"
+                      minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+            
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of region result type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_RegionResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+
+        <!-- 1.) Definition by 'regionList' -->
+        <xsd:choice minOccurs="1" maxOccurs="1">
+          
+          <!-- choice for a) several results regions-->
+          <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence>
+                    <xsd:element name="region"
+                      type="DT_SingleRegionResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- choice for b) all regions-->
+          <xsd:element name="allRegions"
+            type="DT_AllRegionResultDescr" minOccurs="1" maxOccurs="1"/>
+        </xsd:choice>
+        
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of surface region result type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_SurfRegionResult">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BasicResult">
+        <xsd:sequence minOccurs="1">
+
+          <!-- 1.) Definition by 'regionList' -->
+          <xsd:element name="surfRegionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:extension base="DT_ResultSavingType">
+                  <xsd:sequence>
+                    <xsd:element name="surfRegion"
+                      type="DT_SingleSurfRegionResultDescr" minOccurs="1" maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:extension>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of single region result description type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_SingleRegionResultDescr">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+    <xsd:attribute name="outputIds" type="xsd:token" default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of all region result description type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_AllRegionResultDescr">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ResultSavingType">
+        <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+        <xsd:attribute name="outputIds" type="xsd:token"
+          default=""/>
+        <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of single surface region result description type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_SingleSurfRegionResultDescr">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="neighborRegion" type="xsd:token"
+    use="optional" default=""/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+    <xsd:attribute name="outputIds" type="xsd:token" default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of history result description type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_HistResultDescr">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+    <xsd:attribute name="outputIds" type="xsd:token"
+      default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of surface element history result description type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Please but documentation here -->
+  <xsd:complexType name="DT_SurfElemHistResultDescr">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="neighborRegion" type="xsd:token"
+    use="optional" default=""/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+    <xsd:attribute name="outputIds" type="xsd:token"
+      default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+  </xsd:complexType>
+  
+
 </xsd:schema>

@@ -1,0 +1,124 @@
+#ifndef FILE_CFSOLASPARAMS
+#define FILE_CFSOLASPARAMS
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace CoupledField
+{
+
+  // Forward declaration of classes
+  class BaseParamHandler;
+  class OLAS_Params;
+  class Assemble;
+
+  //! Class for passing steering parameters from CFS++ to OLAS
+
+  //! This class constitutes the interface between CFS++ and OLAS with respect
+  //! to setting parameters for the solution of the linear system. For clarity
+  //! it offers a single public method which will handle the setting of
+  //! parameters in the OLAS parameter object depending on the parameters
+  //! obtained from CFS++.
+  class CFSOLASParams {
+
+  public:
+
+    //! Central method for passing steering parameters to OLAS
+
+    //! This method can be used to pass steering parameters from CFS++ to OLAS.
+    //! The method queries the parameter handler for the parameters related to
+    //! the matrix, solver and preconditioner types, converts them to the
+    //! respective OLAS settings and inserts them into the OLAS parameter
+    //! object. By default the Expert() module is called to check the
+    //! consisteny and sensibility of the parameters and adapt them, if
+    //! necessary. This behaviour can be disabled by setting overrideExpert
+    //! to no.
+    //! \param pdename        symbolic name of PDE; the value is matched
+    //!                       against the 'name' attribute of the 'system'
+    //!                       element in the 'linearSystems' section of the
+    //!                       XML file
+    //! \param cfs            pointer to %CFS parameter object
+    //! \param olas           pointer to %OLAS parameter object
+    //! \param analysistype   specifies the type of analysis (required e.g.
+    //!                       for correcting the matrix entry type)
+    //! \param overrideExpert if set to 'false' the method will call the
+    //!                       Expert() module in order to validate or
+    //!                       improve the solution parameters or set those
+    //!                       no specified by the user
+    static void SetParams( std::string pdename, ParamNode *cfs,
+                           OLAS_Params *olas, AnalysisType analysistype,
+                           Assemble * assemble,
+                           bool overrideExpert = false );
+
+  private:
+
+    //! Set parameters for solver for linear system
+
+    //! This routine queries the BaseParamHandler object for the parameters
+    //! belonging to the solver for the linear system associated to the
+    //! PDE specified via the pdename input parameter and inserts them into
+    //! The olasParams object.
+    //! \note The solver parameters in the XML file are optional. This routine
+    //!       relies on GetList() to determine, whether a parameter is set.
+    //!       If there is exactly one occurence, i.e. GetList() returns a
+    //!       vector of length 1, then the parameter is set to the value found
+    //!       in the XML file. If there is no match or a multiple match, then
+    //!       the parameter is not set. The case of multiple matches can only
+    //!       occur, if a non-validating parser is used, since the Schema
+    //!       definitions require the parameters to be unique.
+    static void SetSolverParams( std::string pdename, ParamNode *cfs,
+                                 OLAS_Params *olas, OLAS::SolverType sType );
+
+    //! Set parameters for eigenvalue solver for linear system
+
+    //! This routine queries the BaseParamHandler object for the parameters
+    //! belonging to the eigenvalue solver for the linear system associated to
+    //! the PDE specified via the pdename input parameter and inserts them 
+    //! into rhe olasParams object.
+    //! \note The solver parameters in the XML file are optional. This routine
+    //!       relies on GetList() to determine, whether a parameter is set.
+    //!       If there is exactly one occurence, i.e. GetList() returns a
+    //!       vector of length 1, then the parameter is set to the value found
+    //!       in the XML file. If there is no match or a multiple match, then
+    //!       the parameter is not set. The case of multiple matches can only
+    //!       occur, if a non-validating parser is used, since the Schema
+    //!       definitions require the parameters to be unique.
+    static void SetEigenSolverParams( std::string pdename, 
+                                      ParamNode *cfs,
+                                      OLAS_Params *olas, 
+                                      OLAS::EigenSolverType sType );    
+
+    //! Set parameters for preconditioner for linear system
+
+    //! This routine queries the BaseParamHandler object for the parameters
+    //! belonging to the preconditionerr for the linear system associated to
+    //! the PDE specified via the pdename input parameter and inserts them into
+    //! The olasParams object.
+    //! \note The solver parameters in the XML file are optional. This routine
+    //!       relies on GetList() to determine, whether a parameter is set.
+    //!       If there is exactly one occurence, i.e. GetList() returns a
+    //!       vector of length 1, then the parameter is set to the value found
+    //!       in the XML file. If there is no match or a multiple match, then
+    //!       the parameter is not set. The case of multiple matches can only
+    //!       occur, if a non-validating parser is used, since the Schema
+    //!       definitions require the parameters to be unique.
+    static void SetPrecondParams( std::string pdename, ParamNode *cfs,
+                                  OLAS_Params *olas, 
+                                  OLAS::PrecondType pType );
+
+    //! Expert routine for correcting parameter inconsistencies
+    static void Expert( ParamNode *cfs,
+                        std::string pdename, 
+                        OLAS::EigenSolverType &esType,
+                        OLAS::SolverType &sType,
+                        OLAS::PrecondType &pType, 
+                        OLAS::MatrixStorageType &mType,
+                        OLAS::MatrixEntryType &eType, 
+                        OLAS::ReorderingType &rType,
+                        AnalysisType analysisType,
+                        bool allowChangeOfReordering );
+
+  };
+
+}
+
+#endif

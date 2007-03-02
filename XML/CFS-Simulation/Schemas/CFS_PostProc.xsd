@@ -1,0 +1,140 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for postprocessing procedures for PDE
+      and coupling results
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic postprocessing data type -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcBasic" abstract="true">
+    <xsd:attribute name="outputIds" type="xsd:token" default=""/>
+    <xsd:attribute name="writeResult" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="postProcId" type="xsd:token" default=""/>
+  </xsd:complexType>
+    
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic postprocessing element -->
+  <!-- ******************************************************************** -->
+  
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDE elements -->
+  <xsd:element name="PostProcBasic" type="DT_PostProcBasic"
+  abstract="true"/>
+
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of postprocessing list data type -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcList">
+    <xsd:sequence>
+      <xsd:element name="postProc" minOccurs="0" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="PostProcBasic" minOccurs="0"
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+          <xsd:attribute name="id" type="xsd:token"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of postprocessing operation 'sum' -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="sum" type="DT_PostProcSum"
+       substitutionGroup="PostProcBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for postprocessing operation 'sum'  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcSum">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PostProcBasic">
+        <xsd:attribute name="reduction" use="optional"
+          default="space">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="time"/>
+              <xsd:enumeration value="space"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+       
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of postprocessing operation 'max' -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="max" type="DT_PostProcMax"
+       substitutionGroup="PostProcBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for postprocessing operation 'max'  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcMax">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PostProcBasic">
+        <xsd:attribute name="reduction" use="optional"
+          default="space">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="time"/>
+              <xsd:enumeration value="space"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of postprocessing operation 'func' -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="function" type="DT_PostProcFunc"
+    substitutionGroup="PostProcBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for postprocessing operation 'func'  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PostProcFunc">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PostProcBasic">
+        <xsd:choice>
+          <xsd:sequence>
+            <xsd:element name="dof" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="realFunc" type="xsd:token" default=""/>
+                <xsd:attribute name="imagFunc" type="xsd:token" default=""/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:choice>
+        <xsd:attribute name="resultName" type="xsd:token" use="required"/>
+        <xsd:attribute name="unit" type="xsd:token"
+        use="optional" default=""/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>

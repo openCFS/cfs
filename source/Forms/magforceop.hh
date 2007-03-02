@@ -1,0 +1,112 @@
+#ifndef FILE_MAGFORCEOP_2003
+#define FILE_MAGFORCEOP_2003
+
+#include "Forms/baseoperator.hh"
+#include "Forms/curlfieldop.hh"
+#include "Forms/baseForceOp.hh"
+
+
+namespace CoupledField
+{
+
+  // Forward declaration of classes
+  class Grid;
+  class Elem;
+  template<class TYPE> class Vector;
+  template<class TYPE> class Matrix;
+
+  //! Operator for calculating the magnetic Lorentz force 
+  //! J x B
+  template<class TYPE>
+  class MagLorentzForceOp : public BaseOperator
+  {
+
+  public:
+
+    //! Constructor
+
+    //! \param ptGrid     (input) Pointer to grid
+    //! \param magPotential (input) Pointer to vector containing the magnetic
+    //!                           potential for all nodes of domain
+    MagLorentzForceOp(Grid * ptGrid, 
+                      StdPDE * ptPDE,
+                      shared_ptr<EqnMap> eqnMap,
+                      NodeStoreSol<TYPE> & magPotential,
+                      bool isaxi, bool coordUpdate = false);
+
+    //! Destructor
+    virtual ~MagLorentzForceOp();
+  
+    //! Calculate element Lorentz force
+    //! \param F              (output) force
+    //! \param Jeddy          (input) eddy current density at finite element nodes
+    //! \param ptElem         (input)  Pointer to element
+    virtual void CalcElemMagLorentzForce(Matrix<TYPE>& F,
+                                         Vector<TYPE>& Jeddy,
+                                         const EntityIterator& ent);
+
+
+  protected:
+  
+    //! I'm a class attribute (please add documentation for me)
+    CurlNodeOp<TYPE> * curlFieldOp_;
+
+  };
+
+
+
+  //! Operator for calculating the magnetic force 
+  //! This operator class calculates the electric force in an element
+  //! \f$ F_{p,r} = \frac{1}{\mu_0} B \cdot J^{-1} \frac{\delta J}{\delta r}
+  //! B \left| J \right| - \frac{ B \cdot B}{2 \mu_0} \cdot \frac{\delta
+  //! \left| J \right|}{\delta r} \f$
+  class MagForceOp : public BaseForceOp
+  {
+
+  public:
+
+    //! This is a static const Double
+
+    //! Warning: This violates the ISO C++ standard. Only integral types
+    //!          can be static and const!
+    //! \todo eps0 violates the ISO C++ standard. Only integral types
+    //!       can be static and const!
+    //static const Double  eps0 = 8.854187817e-12;
+    
+    //! Constructor
+
+    //! \param ptGrid     (input) Pointer to grid
+    //! \param sol        (input) Pointer to vector containing the magnetic
+    //!                           vector potential for all nodes of domain
+    MagForceOp(Grid * ptGrid, 
+               StdPDE * ptPDE,
+               shared_ptr<EqnMap> eqnMap,
+               NodeStoreSol<Double> & sol,
+               UInt dim,
+               std::map<RegionIdType, BaseMaterial*>& materials,
+               bool isaxi,
+               bool coordUpdate = false );
+
+    //! Destructor
+    virtual ~MagForceOp();
+
+
+  protected:
+  
+    //! returns the scalar material value, used for force computation
+    virtual Double GetMatVal(RegionIdType actRegion);
+
+    //! computes the field quantity
+    virtual void ComputeField(Vector<Double> & Field,
+                              const EntityIterator& ent,
+                              const Vector<Double> & lCoord);
+
+    //! I'm a class attribute (please add documentation for me)
+    CurlNodeOp<Double> * curlFieldOp_;
+
+
+  };
+
+} // end of namespace
+
+#endif

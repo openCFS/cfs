@@ -24,9 +24,7 @@
               <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="transientHarmonic"/>
               <xsd:enumeration value="paramIdent"/>
-              <xsd:enumeration value="multiSequence"/>
               <xsd:enumeration value="bubbleDynamic"/>
-              <xsd:enumeration value="transient4Slice"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -52,6 +50,21 @@
 
   <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of element Analysis Static -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="static" type="DT_AnalysisStatic"
+    substitutionGroup="AnalysisBasic"> 
+  </xsd:element>
+
+  <!-- Data type for static analysis -->
+  <xsd:complexType name="DT_AnalysisStatic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisTransient -->
@@ -67,10 +80,7 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:element name="numSteps" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="firstDt" type="DT_PosFloat"/>
-          <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="deltaT" type="DT_PosFloat"/>
           <xsd:element name="timeDataFile" minOccurs="0"
             maxOccurs="unbounded">
             <xsd:complexType>
@@ -85,8 +95,6 @@
           <xsd:element name="writeRestartInc"
           type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
-        <xsd:attribute name="tag" type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -132,8 +140,6 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
@@ -154,8 +160,6 @@
           <xsd:element name="freqShift" type="DT_NonNegFloat"/>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
@@ -203,60 +207,10 @@
             type="xsd:nonNegativeInteger"/>
           <xsd:element name="artDataNoise" type="DT_NonNegFloat"/>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of element AnalysisMultiSequence -->
-  <!-- ******************************************************************* -->
-  <xsd:element name="multiSequence" type="DT_AnalysisMultiSequence"
-    substitutionGroup="AnalysisBasic"/> 
-
-  <xsd:complexType name="DT_AnalysisMultiSequence">
-    <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
-          <xsd:element name="step" maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="pde" maxOccurs="unbounded">
-                  <xsd:complexType>
-                    <xsd:attribute name="refTag" type="xsd:token"
-                      use="required"/>
-                    <xsd:attribute name="type" type="DT_PDEType"
-                      use="required"/>
-                    <xsd:attribute name="analysis" use="required">
-                      <xsd:simpleType>
-                        <xsd:restriction base="xsd:token">
-                          <xsd:enumeration value="static"/>
-                          <xsd:enumeration value="harmonic"/>
-                          <xsd:enumeration value="transient"/>
-                        </xsd:restriction>
-                      </xsd:simpleType>
-                    </xsd:attribute>
-                    <xsd:attribute name="usage" use="optional" default="startValue">
-                      <xsd:simpleType>
-                        <xsd:restriction base="xsd:token">
-                          <xsd:enumeration value="startValue"/>
-                          <xsd:enumeration value="dirichletValue"/>
-                        </xsd:restriction>
-                      </xsd:simpleType>
-                    </xsd:attribute>
-                  </xsd:complexType>
-                </xsd:element>
-              </xsd:sequence>
-              <xsd:attribute name="index" type="xsd:positiveInteger"
-              use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
   <!-- Data type for inverse Problem of parameter identification in
        piezoelectric systems, i.e. parameters required for  performing a
@@ -326,42 +280,6 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************* -->
-  <!--   Definition of element AnalysisTransient for slice Technique       -->
-  <!-- ******************************************************************* -->
-  <xsd:element name="transient4Slice" type="DT_AnalysisTransientSlice"
-    substitutionGroup="AnalysisBasic"> 
-  </xsd:element>
-
-  <!-- Data type for transient section, i.e. parameters required for
-       performing a transient analysis with slicing technique -->
-  <xsd:complexType name="DT_AnalysisTransientSlice">
-    <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
-          <xsd:element name="numSteps" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="firstDt" type="DT_PosFloat"/>
-          <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="timeDataFile" minOccurs="0"
-            maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:complexContent>
-                <xsd:restriction base="xsd:anyType">
-                  <xsd:attribute name="name" type="xsd:string" use="optional"
-                    default="none"/>
-                </xsd:restriction>
-              </xsd:complexContent>
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-  
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisTransientHarmonic -->
   <!-- ******************************************************************* -->

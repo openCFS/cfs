@@ -1,0 +1,262 @@
+#include "multiSequenceDriver.hh"
+
+#include <set>
+
+// include all kinds of single drivers
+#include "staticdriver.hh"
+#include "transientdriver.hh"
+#include "harmonicDriver.hh"
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/pdememento.hh"
+#include "Domain/domain.hh"
+#include "DataInOut/resultHandler.hh"
+
+namespace CoupledField {
+
+  // ***************
+  //   Constructor
+  // ***************
+  MultiSequenceDriver::MultiSequenceDriver( ) 
+    : BaseDriver() {
+    ENTER_FCN( "MultiSequenceDriver::MultiSequenceDriver" );
+
+    analysis_ = MULTI_SEQUENCE;
+    
+    numSteps_ = 0;
+    actStep_ = 0;
+    actTime_ = 0;
+    actDriver_ = 0;
+  }
+
+
+  // **********************
+  //   Default destructor
+  // **********************
+  MultiSequenceDriver::~MultiSequenceDriver() {
+    ENTER_FCN( "MultiSequenceDriver::~MultiSequenceDriver" );
+  }
+
+
+  // *****************
+  //   Solve problem
+  // *****************
+  void MultiSequenceDriver::SolveProblem() {
+    ENTER_FCN( "MultiSequenceDriver::SolveProblem" );
+
+    // vector containing pointer to current set of PDEs
+    StdVector<SinglePDE *> ptPDEs;
+  
+    // Vector of memento objects, which save the internal state
+    // of a PDE
+    StdVector<shared_ptr<PDEMemento> > memento;
+    UInt nextStep = 0;
+    Double nextTime = 0.0;
+
+    Info->StartProgress("Starting to solve problem",false);
+
+    // get resultHandler
+    ResultHandler * resHandler = domain->GetResultHandler();
+
+    // outer loop over all single sequences
+    for (UInt iStep = 0; iStep < numSteps_; iStep++ ) {
+    
+      // remeber current sequence step
+      curSequenceStep_ = iStep;
+
+      // log info about new step to info-class
+      Info->WriteMultiSequenceStep(iStep+1, 
+                                   analysisPerStep_[iStep]);
+
+      // notify resultHandler about new step
+      resHandler->BeginMultiSequenceStep( iStep+1, 
+                                          analysisPerStep_[iStep] );
+      
+      // Since per time step only one type of 
+      // analysis is allowed, we simple access
+      // the first entry fo analysisPerStep_
+      if (analysisPerStep_[iStep] == STATIC) {
+        actDriver_ = new StaticDriver( actStep_, actTime_,
+                                       iStep+1, true );
+        nextStep = actStep_ + 1;
+      }
+      else if (analysisPerStep_[iStep] == TRANSIENT) {      
+        actDriver_ = new TransientDriver( actStep_, actTime_, 
+                                          iStep+1,true );
+
+        // cast current driver to query transient-specific information
+        TransientDriver * transDriver = 
+          dynamic_cast<TransientDriver*>(actDriver_);
+
+        // the time step and the current time have to adapted 
+        // after solving the first multiSequence step
+        UInt actNumSteps = transDriver->GetNumSteps();
+        Double actDt = transDriver->GetDeltaT();
+        nextStep = actStep_ + actNumSteps;
+        nextTime = actTime_ + actNumSteps * actDt;
+      }
+      else if (analysisPerStep_[iStep] == HARMONIC) {
+        actDriver_ = new HarmonicDriver( actStep_, actTime_,
+                                         iStep+1, true );
+
+        nextStep = actStep_ + 1;
+      }
+    
+
+      // Initialize all PDEs
+      domain->CreatePDEs( iStep+1 );
+    
+      domain->SetDriver( actDriver_ );
+      actDriver_->SetPDE(domain->GetBasePDE());
+
+      // Give the according pdes to the driver
+      ptPDEs.Clear();
+      ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
+      for (UInt iPde=0; iPde < pdesPerStep_[iStep].GetSize(); iPde++)
+        ptPDEs[iPde]=domain->GetSinglePDE( pdesPerStep_[iStep][iPde] );
+
+      // Initialize driver objects
+      actDriver_->Init();
+
+      // After the first run, initialize this PDE
+      // with the solution of the previous run
+      if (iStep > 0) {
+        for (UInt iPde = 0; iPde < pdesPerStep_[iStep].GetSize(); iPde++ ) {
+          if( memento[iPde] != NULL) {
+            if (memento[iPde]->IsSet()) {
+              ptPDEs[iPde]->SetMemento( memento[iPde], 
+                                        valueUsagePerStep_[iStep] );
+            }
+          }
+        }
+      }
+
+      //! Initialize Pdes, after having set the memento object
+      domain->InitPDEs( iStep+1 );
+    
+      // Solve Problem
+      actDriver_->SolveProblem();
+
+      // Get solution for next step and delete
+      // all PDEs
+      if (iStep < numSteps_-1) {
+        memento.Resize(pdesPerStep_[iStep+1].GetSize());
+
+        // Iterate over all PDEs in the next step
+        for (UInt iPde = 0; iPde < pdesPerStep_[iStep+1].GetSize(); iPde++) {
+          // Iterate over all PDEs in the current step
+          for(UInt kPde = 0; kPde < pdesPerStep_[iStep].GetSize(); kPde++) {
+            // If both match, then save the result of this step
+            // for the next step
+            if (pdesPerStep_[iStep+1][iPde] == pdesPerStep_[iStep][kPde])
+              //dynamic_cast<const NodeStoreSol<Double>& >
+              ptPDEs[kPde]->GetMemento(memento[iPde]);
+          }
+        }
+      
+        // delete PDEs
+        domain->ResetPDEs();
+      }
+
+
+      // finish sequence step with resulthandler
+      resHandler->FinishMultiSequenceStep();
+
+      // delete analysistypes
+      delete actDriver_;
+    
+      // increase stepNumber and time
+      actStep_ = nextStep;
+      actTime_ = nextTime;
+
+    } // iStep
+  }
+
+
+  UInt MultiSequenceDriver::GetActStep( const std::string& pdename ) {
+    ENTER_FCN( "MultiSequenceDriver::GetActStep" );
+    assert( actDriver_);
+    return actDriver_->GetActStep( pdename );
+  }
+
+  // *****************
+  //   Initializer
+  // *****************
+  void MultiSequenceDriver::Init() 
+  {
+    ENTER_FCN( "MultiSequenceDriver::Init" );
+    
+
+    // get nodes for all sequencesteps
+    StdVector<ParamNode*> seqNodes = param->GetList("sequenceStep");
+
+
+    // 1.) Fill vector with step indices and ensure that all occur
+    std::set<UInt> stepIndices;
+    for( UInt i = 0; i < seqNodes.GetSize(); i++ ) {
+      UInt actStepIndex = seqNodes[i]->Get("index")->AsUInt();
+      if( stepIndices.find( actStepIndex ) != stepIndices.end() ) {
+        EXCEPTION( "Multisequence step with index " << actStepIndex
+                   << " occurs more than one time!") ;
+      } else {
+        stepIndices.insert( actStepIndex );
+      }
+    }
+    for( UInt i = 1; i <= seqNodes.GetSize(); i++ ) {
+      if( stepIndices.find( i ) == stepIndices.end() ) {
+        EXCEPTION( "Multisequence step  with index "
+                   << i << " is not defined!" );
+      }
+    }
+
+    numSteps_ = stepIndices.size();
+    
+    // 2.) Resize 'outer' vectors
+    pdesPerStep_.Resize(numSteps_);
+    analysisPerStep_.Resize(numSteps_);
+    valueUsagePerStep_.Resize(numSteps_);
+    
+
+    // 3.) Read in all pdes and analysis types
+
+    // iterate over all sequence Steps
+    for( UInt iStep = 0; iStep < numSteps_; iStep++) {
+      
+      // get current step node
+      ParamNode * actStepNode = 
+        param->Get("sequenceStep", "index", GenStr(iStep+1) );
+
+      // get current usage type 
+      std::string usageString;
+      actStepNode->Get( "usage", usageString );
+      valueUsagePerStep_[iStep] = PDEMemento::String2Enum( usageString );
+      
+      // get current analysistype
+      std::string analysisString;
+      analysisString = 
+        actStepNode->Get("analysis")->GetChild()->GetName();
+      String2Enum( analysisString, analysisPerStep_[iStep] );
+      
+      // get all pde-nodes in current sequence step
+      StdVector<ParamNode*> pdeNodes;
+      pdeNodes = actStepNode->Get("pdeList")->GetChildren();
+      
+      // iterate over all pdes
+      pdesPerStep_[iStep].Resize( pdeNodes.GetSize() );
+      for( UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++ ) {
+        
+        // get pdeName
+        std::string pdeName = pdeNodes[iPde]->GetName();
+        pdesPerStep_[iStep][iPde] = pdeName;
+        
+      } // loop over pdes
+    } // loop over sequence steps
+    
+
+    // 4.) Perform final consistency checks
+    // Not much to do here yet ...
+
+  } 
+  
+} // end of namespace

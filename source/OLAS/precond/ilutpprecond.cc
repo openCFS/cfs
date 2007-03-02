@@ -1,0 +1,287 @@
+#include <algorithm>
+
+#include "precond/ilutpprecond.hh"
+
+// Include source code of CroutLU class for template instantiation
+// Note: Might lead to double instantiation, since CroutLU is also
+// used in LUSolver. Going to implement better concept as soon as
+// time permits.
+#include "utils/math/croutlu.cc"
+
+namespace OLAS {
+
+  // =====================================================
+  //   Constructor (for use in GenerateStdPrecondObject)
+  // =====================================================
+  template <typename T>
+  ILUTP_Precond<T>::ILUTP_Precond( const StdMatrix& stdMat, 
+                                   OLAS_Params *myParams,
+				   OLAS_Report *myReport ) {
+
+    ENTER_FCN( "ILUTP_Precond::ILUTP_Precond" );
+
+    // Set pointers to communication objects
+    this->myParams_ = myParams;
+    this->myReport_ = myReport;
+
+    // No factorisation was performed yet
+    this->readyToUse_ = false;
+
+    // We will set this in the Setup() method
+    // right before the factorisation
+    this->memGrowthEstimate_ = 1;
+
+    // Initialise attributes
+    maxFill_ = 0;
+    tau_ = 0.0;
+
+  }
+
+
+  // ==============
+  //   Destructor
+  // ==============
+  template <typename T>
+  ILUTP_Precond<T>::~ILUTP_Precond() {
+
+    ENTER_FCN( "ILUTP_Precond::~ILUTP_Precond" );
+
+  }
+
+
+  // =================================
+  //   Application of Preconditioner
+  // =================================
+  template <typename T>
+  void ILUTP_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,
+				const Vector<T> &res, Vector<T> &sol ) const {
+
+    ENTER_FCN( "ILUTP_Precond::Apply" );
+
+    // Test that a factorisation is available, if not issue an error.
+    if ( amFactorised_ == false ) {
+      (*error) << "ILUTP_Precond::Apply: No factorisation available. "
+	       << "Call Setup() first!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Solve the problem
+    CroutLU<T>::Solve( res, sol );
+  }
+
+
+  // ===========================
+  //   Setup of Preconditioner
+  // ===========================
+  template <typename T>
+  void ILUTP_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
+
+    ENTER_FCN( "ILUTP_Precond::Setup" );
+
+    // Query parameter object for factorisation parameters
+    tau_ = this->myParams_->GetDoubleValue( "ILUTP_tau" );
+    Integer aux = this->myParams_->GetIntValue( "ILUTP_fillVal" );
+    if ( aux >= 0 ) {
+      maxFill_ = (UInt)aux;
+    }
+    else {
+      maxFill_ = (-aux) * ( sysMat.GetNnz() / sysMat.GetNcols() - 1 );
+    }
+
+    // Report parameters to standard log stream
+    (*cla) << "ILUTP_Precond: Performing an ILU( " << tau_ << " , " << maxFill_
+      	   << " ) factorisation" << std::endl;
+
+    // Perform the factorisation
+    Factorise( sysMat );
+    amFactorised_ = true;
+
+    // If the user wishes, we can export the LU factorisation to a file
+    if ( this->myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
+      std::string filename;
+      filename = this->myParams_->GetStringValue( "CROUT_facFileName" );
+      this->ExportILUFactorisation( filename.c_str() );
+    }
+
+  }
+
+
+  // ===============
+  //   DropEntries
+  // ===============
+  template <typename T>
+  void ILUTP_Precond<T>::DropEntries( UInt k, std::vector<T> &vecZ,
+				      std::vector<UInt> &vecZFill,
+				      std::vector<T> &vecW,
+				      std::vector<UInt> &vecWFill ) {
+
+    ENTER_IFCN( "ILUTP_Precond::DropEntries" );
+
+    Error( "ILUTP_Precond currently not operational", __FILE__, __LINE__ );
+    UInt i, j;
+    Double curTau;
+    Double norm = 0.0;
+
+    // ****************************
+    //   Drop entries in row of U
+    // ****************************
+
+    // Remove index of diagonal entry from the set, since this one is always
+    // kept and does not enter norm computation
+    // vecZFill.clear( k );
+
+    // PrintContainer( vecZFill, "vecZFill" );
+
+    // Compute 1-norm of row
+    // norm = 0.0;
+    //     if ( !vecZFill.empty() ) {
+    //       for ( std::vector<UInt>::iterator it = vecZFill.begin();
+    // 	    it != vecZFill.end(); it++ ) {
+    // 	norm += abs( vecZ[ *it ] );
+    //       }
+    // }
+
+    // Determine current threshold
+    //     curTau = tau_ * norm;
+
+    //     UInt numUDropTau = 0;
+
+    // Drop all entries smaller than threshold
+    //     for ( std::vector<UInt>::iterator it = vecZFill.begin();
+    // 	  it != vecZFill.end(); it++ ) {
+    //       if ( abs(vecZ[ *it ]) < curTau ) {
+
+    // 	// Order is important, since erasing *it
+    // 	// invalidates the iterator it!
+    // 	vecZ[ *it ] = 0.0;
+    // 	vecZFill.erase( it );
+    // 	numUDropTau++;
+    //       }
+    //     }
+
+    //     std::cerr << " Row " << k << ": Dropped " << numUDropTau << " entries < "
+    // 	      << curTau << std::endl;
+
+    // If there are more than maxFill_ entries left,
+    // we must find the maxFill_ largest ones (plus
+    // the diagonal entry)
+    //     if ( vecZFill.size() > maxFill_ + 1 ) {
+    
+    //       std::cerr << " --> Searching " << maxFill_ << "largest entries left"
+    // 		<< std::endl;
+
+    // Step 1: Remove index of diagonal entry from the set,
+    //         since this one is always keep
+    // vecZFill.erase( k );
+
+    // Step 2: Copy all indices in auxilliary vector (omit diagonal)
+    //       indexVec_.clear();
+    //       for ( std::set<UInt>::iterator it = vecZFill.begin();
+    // 	    it != vecZFill.end(); it++ ) {
+    // 	indexVec_.push_back( *it );
+    //       }
+    
+    // Step 3: Sort the index vector, so that the maxFill_ largest
+    //         entries are up front
+    //       nth_element( indexVec_.begin(),
+    // 		   indexVec_.begin() + maxFill_,
+    // 		   indexVec_.end(),
+    // 		   ILUTP_Precond< T >::FindMaxEntries( vecZ ) );
+    
+    // Step 4: Eliminate all drop entries from the index set and nullify
+    //         them in the dense vector
+    //       for ( std::vector<UInt>::iterator it = indexVec_.begin() + maxFill_;
+    // 	    it != indexVec_.end(); it++ ) {
+    // 	vecZ[ *it ] = 0.0;
+    // 	vecZFill.erase( *it );
+    //       }
+
+    // Step 5: Re-add index of diagonal entry to set
+    // vecZFill.insert( k );
+    // }
+
+    // Re-add index of diagonal entry to set
+    //     vecZFill.insert( k );
+
+
+    // ****************************
+    //   Drop entries in col of L
+    // ****************************
+
+    //     PrintContainer( vecWFill, "vecWFill" );
+
+    // Compute 1-norm of column
+    //     norm = 0.0;
+    //     for ( i = 1; i <= sysMatDim_; i++ ) {
+    //       norm += abs( vecW[i] );
+    //     }
+    //     norm /= (Double)sysMatDim_;
+
+    // Determine current threshold
+    //     curTau = tau_ * norm;
+
+    //     UInt numLDropTau = 0;
+
+    // Drop all entries smaller than threshold
+    //     for ( std::set<UInt>::iterator it = vecWFill.begin();
+    // 	  it != vecWFill.end(); it++ ) {
+    //       if ( abs(vecW[ *it ]) < curTau ) {
+
+    // 	// Order is important, since erasing *it
+    // 	// invalidates the iterator it!
+    // 	vecW[ *it ] = 0.0;
+    // 	vecWFill.erase( it );
+    // 	numLDropTau++;
+    //       }
+    //     }
+
+    //     std::cerr << " Col " << k << ": Dropped " << numLDropTau << " entries < "
+    // 	      << curTau << std::endl;
+
+    // If there are more than maxFill_ entries left,
+    // we must find the maxFill_ largest ones (plus
+    // the diagonal entry)
+    //     if ( vecWFill.size() > maxFill_ + 1 ) {
+
+    // Step 1: Remove index of diagonal entry from the set,
+    //         since this one is always keep
+    // vecWFill.erase( k );
+
+    // Step 2: Copy all indices in auxilliary vector (omit diagonal)
+    //       indexVec_.clear();
+    //       for ( std::set<UInt>::iterator it = vecWFill.begin();
+    // 	    it != vecWFill.end(); it++ ) {
+    // 	indexVec_.push_back( *it );
+    //       }
+
+    // Step 3: Sort the index vector, so that the maxFill_ largest
+    //         entries are up front
+    //       nth_element( indexVec_.begin(),
+    // 		   indexVec_.begin() + maxFill_,
+    // 		   indexVec_.end(),
+    // 		   ILUTP_Precond< T >::FindMaxEntries( vecW ) );
+
+    // Step 4: Eliminate all drop entries from the index set and nullify
+    //         them in the dense vector
+    //       for ( std::vector<UInt>::iterator it = indexVec_.begin() + maxFill_;
+    // 	    it != indexVec_.end(); it++ ) {
+    // 	vecW[ *it ] = 0.0;
+    // 	vecWFill.erase( *it );
+    //       }
+
+    // Step 5: Re-add index of diagonal entry to set
+    // vecWFill.insert( k );
+
+  }
+
+  // ************************
+  //   Forced Instantiation
+  // ************************
+  template<typename T>
+  void ILUTP_Precond<T>::
+  InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
+    ENTER_FCN( "ILUTP_Precond::InstantiateAdditionalPublicMethods" );
+    this->ExportILUFactorisation( "dummy.mtx" );
+  }
+
+}

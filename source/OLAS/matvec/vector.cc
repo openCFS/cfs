@@ -1,0 +1,447 @@
+// The following headers are required for Export()
+#include <cstdio>
+
+// OLAS headers
+#include "matvec/vector.hh"
+
+namespace OLAS {
+
+  // **********************************************
+  //   Constructor for vector of specified length
+  // **********************************************
+  template<typename T>
+  Vector<T>::Vector( Integer size ) {
+
+    ENTER_FCN( "Vector::Vector" );
+    size_ = size;
+
+    // Allocate memory and initialise entries to zero
+    dataSize_ = size;
+    NewArray( data_, T_Vtype, size_ );
+    for ( UInt i = 1; i <= dataSize_; i++ ) {
+      data_[i] = 0.0;
+    }
+    memBelongsToMe_ = true;
+
+    // Set number of unknowns per entry
+    dof_ = BlockSize<T>::size;
+  }
+
+
+  // *******************
+  //   Deep destructor
+  // *******************
+  template<typename T>
+  Vector<T>::~Vector() {
+    ENTER_FCN( "Vector::~Vector" );
+    if ( memBelongsToMe_ == true ) {
+      DeleteArray( data_ );
+    }
+  }
+
+
+  // **********************
+  //   Replace data array
+  // **********************
+  template<typename T>
+  void Vector<T>::Replace( UInt length, T_Vtype* entries, bool transferMem ) {
+
+    ENTER_FCN( "Vector::Replace" );
+
+    // De-allocate old array, if required
+    if ( memBelongsToMe_ == true ) {
+      DeleteArray( data_ );
+    }
+
+    // Re-set internal attributes
+    data_           = entries;
+    size_           = length;
+    dataSize_       = length;
+    memBelongsToMe_ = transferMem;
+
+  }
+
+
+  // *********************************
+  //   Change the size of the vector
+  // *********************************
+  template<typename T>
+  void Vector<T>::Resize( UInt newSize, bool init ) {
+
+    ENTER_FCN( "Vector::Resize" );
+
+    if ( memBelongsToMe_ == false ) {
+      (*error) << "I'm cowardly refusing to re-size the data_ array, since "
+	       << "the memory does not belong to me!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // If new vector is shorter, only adapt size_
+    // but do not re-allocate memory
+    if ( newSize <= size_ ) {
+      size_ = newSize;
+    }
+
+    // If new vector is longer, but not longer
+    // than the currently allocated maximum
+    // only adapt size_
+    else if ( newSize <= dataSize_ ) {
+      size_ = newSize;
+    }
+
+    // New vector is longer than the currently
+    // allocated data array, so we re-allocate
+    else {
+      DeleteArray( data_ );
+      NewArray( data_, T_Vtype, newSize );
+      size_ = newSize;
+      dataSize_ = newSize;
+    }
+
+    // Zero vector entries if desired
+    if ( init == true ) {
+      Init();
+    }
+
+  }
+
+
+  // *********************************
+  //   Add vec to this vector object
+  // *********************************
+  template <typename T>
+  void Vector<T>::Add(const StdVector &vec) {
+
+    PROFILE("Vector::Add (1)",size_*BlockSize<T>::size);
+    ENTER_FCN("Vector::Add");
+    TRY_CAST
+    ConstRefCast(vec,Vector<T>,idvec);
+
+#pragma omp parallel for 
+
+    for ( Integer i = 1; i <= size_; i++ ) {
+      data_[i] += idvec[i];
+    }
+    CATCH_CAST
+  }
+
+
+  // ***************************************************************
+  //   Replace this vector object by the sum of two scaled vectors
+  // ***************************************************************
+  template <typename T>
+  void Vector<T>::Add(T_Stype a, const StdVector &vec1, 
+		      T_Stype b, const StdVector &vec2) {
+
+    PROFILE("Vector::Add (2)",3*size_*BlockSize<T>::size);
+    ENTER_FCN("Vector::Add");
+    TRY_CAST
+    ConstRefCast(vec1,Vector<T>,idvec1);
+    ConstRefCast(vec2,Vector<T>,idvec2);
+
+#pragma omp parallel for 
+
+    for ( Integer i = 1; i <= size_; i++ ) {
+      data_[i] = a * idvec1[i] + b * idvec2[i];	
+    }
+    CATCH_CAST	
+  }
+
+
+  // **********************************************************
+  //   Add a scaled version of a vector to this vector object
+  // **********************************************************
+  template <typename T>
+  void Vector<T>::Add(T_Stype a, const StdVector &vec) {
+    ENTER_FCN("Vector::Add");
+    PROFILE("Vector::Add (3)",2*size_*BlockSize<T>::size);
+
+    TRY_CAST
+      ConstRefCast(vec,Vector<T>,idvec);
+
+#pragma omp parallel for 
+
+    for ( Integer i = 1; i <= size_; i++ ) {
+      data_[i] += a * idvec[i];
+    }
+    CATCH_CAST
+  }
+
+
+  // *********
+  //   Inner
+  // *********
+  template <typename T>
+  void Vector<T>::Inner( const StdVector &vec, T_Stype &sum ) const {
+
+    ENTER_FCN( "Vector::Inner" );
+    PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
+
+    TRY_CAST {
+      ConstRefCast( vec, Vector<T>, secVec );
+      sum = 0;
+
+      for ( UInt i = 1; i <= size_; i++ ) {	
+        sum += opType<T_Vtype>::dotProduct( data_[i], secVec[i] );
+      }
+    } CATCH_CAST;
+  }
+
+
+  // **********************************
+  //   Set all vector entries to zero
+  // **********************************
+  template<typename T>
+  void Vector<T>::Init() {
+    ENTER_FCN("Vector::Init");
+
+#pragma omp parallel for 
+
+    for ( Integer i = 1; i <= size_; i++ ) {
+      // data_[i] = T_Vtype();
+      data_[i] = 0.0;
+    }
+  }
+
+
+  // **************************
+  //   Compute Euclidean Norm
+  // **************************
+  template <typename T>
+  Double Vector<T>::NormEuclid() const {				
+    ENTER_FCN( "Vector::NormEuclid" );
+    PROFILE("Vector::NormEuclid",size_*2*BlockSize<T>::size);
+    Double sum = 0.0;
+
+#pragma omp parallel for reduction(+:sum)
+
+    for ( Integer i = 1; i <= size_; i++ ){
+      sum += opType<T_Vtype>::zConjz(data_[i]);
+    }
+    return sqrt(sum);
+  }
+
+
+  // *******************************************
+  //   Same as the BLAS functions of that name
+  // *******************************************
+  template <typename T>
+  void Vector<T>::Axpy( const T_Stype alpha, const StdVector &y ) {
+    ENTER_FCN( "Vector::Axpy" );
+    PROFILE("Vector::Axpy",size_*2*BlockSize<T>::size);
+    TRY_CAST
+    ConstRefCast( y, Vector<T>, vec );
+
+#pragma omp parallel for 
+
+    for ( Integer i = 1; i <= size_; i++ ) {
+      data_[i] = alpha * data_[i] + vec[i];
+    }
+    CATCH_CAST
+  }
+
+
+  // ******************
+  //   SetVectorEntry
+  // ******************
+  template<typename T>
+  void Vector<T>::SetVectorEntry( const Integer i, const T_Vtype &val ) {
+    ENTER_IFCN( "Vector::SetVectorEntry" );
+#ifdef DEBUG_VECTOR
+    if ( i <= 0 || i > size_ ) {
+      (*error) << "Vector<" << assocType<T>::tagV << ">::SetVectorEntry: "
+               << "Detected index error:"
+               << "\n index = " << i
+               << "\n size  = " << size_;
+      Error( __FILE__, __LINE__ );
+    }
+#endif
+    data_[i] = val;
+  }
+
+
+  // ********************
+  //   AddToVectorEntry
+  // ********************
+  template<typename T>
+  void Vector<T>::AddToVectorEntry( const Integer i, const T_Vtype &val ) {
+    ENTER_IFCN( "Vector::AddToVectorEntry" );
+    data_[i] += val;
+  }
+
+
+  // ********************
+  //   Get vector entry
+  // ********************
+  template<typename T>
+  void Vector<T>::GetVectorEntry( const Integer i, T_Vtype &val ) const {
+    ENTER_IFCN( "Vector::GetVectorEntry" );
+    val = data_[i];
+  }
+
+
+  // ****************
+  //   Print vector
+  // ****************
+  template<typename T>
+  void Vector<T>::Print(std::ostream& os) const {
+    ENTER_FCN( "Vector::Print" );
+    for ( UInt i = 1; i <= size_; i++ ) {
+      (os) << data_[i] << " ";
+    }
+    (os) << std::endl;
+  }
+
+
+  // *****************
+  //   Export vector
+  // *****************
+  template<typename T>
+  void Vector<T>::Export( const Char *fname ) const {
+    ENTER_FCN( "Vector::Export" );
+
+    // open output file and check for errors
+    FILE *fp = fopen( fname, "w" );
+    if ( fp == NULL ) {
+      (*error) << "Cannot open file '" << fname << "' for writing!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Print dimension and entries
+    fprintf( fp, "%d\n", size_ * dof_ );
+    for ( UInt k = 1; k <= size_; k++ ) {
+      for ( UInt j = 0; j < dof_; j++ ) {
+	opType<T_Vtype>::ExportEntry( data_[k], j, fp );
+	fprintf( fp, "\n" );
+      }
+    }
+
+    // close output file
+    if ( fclose( fp ) == EOF ) {
+      (*warning) << "Could not close file '" << fname << "' after writing!";
+      Warning( __FILE__, __LINE__ );
+    }
+  }
+
+
+  // ********************
+  //   ScalarDiv (real)
+  // ********************
+  template<typename T>
+  void Vector<T>::ScalarDiv( const Double factor ) {
+
+    ENTER_IFCN( "Vector::ScalarDiv" );
+
+#ifdef DEBUG_VECTOR
+    if ( factor == 0 ) {
+      (*error) << "Vector::ScalarDiv: Division by Zero!";
+      Error( __FILE__, __LINE__ );
+    }
+#endif
+
+    for ( UInt i = 1; i <= size_; i++ ) {
+      data_[i] /= factor;
+    }
+  }
+
+
+  // *********************
+  //   ScalarMult (real)
+  // *********************
+  template<typename T>
+  void Vector<T>::ScalarMult( const Double factor ) {
+
+    ENTER_IFCN( "Vector::ScalarMult" );
+
+    for ( UInt i = 1; i <= size_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+
+  // ***********************
+  //   ScalarDiv (complex)
+  // ***********************
+  template<typename T>
+  void Vector<T>::ScalarDiv( const Complex factor ) {
+
+    ENTER_IFCN( "Vector::ScalarDiv" );
+
+    for ( UInt i = 1; i <= size_; i++ ) {
+      opType<T_Vtype>::DivByComplex( data_[i], factor );
+    }
+  }
+
+
+  // ************************
+  //   ScalarMult (complex)
+  // ************************
+  template<typename T>
+  void Vector<T>::ScalarMult( const Complex factor ) {
+
+    ENTER_IFCN( "Vector::ScalarMult" );
+
+    for ( UInt i = 1; i <= size_; i++ ) {
+      opType<T_Vtype>::MultWithComplex( data_[i], factor );
+    }
+  }
+
+
+  // ********************************
+  //   Overload Assignment Operator
+  // ********************************
+  template<typename T>
+  StdVector& Vector<T>::operator=( const StdVector &stdvec ) {
+    ENTER_IFCN( "Vector::operator=" );
+
+    // Down-cast base vector
+#ifdef DEBUG_VECTOR
+    try {
+#endif
+
+      ConstRefCast( stdvec, Vector<T>, vec );
+
+      if ( size_ != vec.size_ ) {
+	Resize(vec.size_);
+      }
+
+      // Assign vector entries avoiding self-assignments
+      if ( this != &vec ) {
+	for ( UInt i = 1; i <= size_; i++ ) {
+	  data_[i] = vec.data_[i];
+	}
+      }
+
+#ifdef DEBUG_VECTOR
+    } catch( std::bad_cast e ) {
+      (*error) << "Vector::operator=\n"
+	       << " could not down-cast right hand side vector to Vector<T> "
+	       << "with\n"
+	       << " tagM = " << this->GetTagM()
+	       << ", tagV = " << this->GetTagV()
+	       << ", tagS = " << this->GetTagS();
+      Error( __FILE__, __LINE__ );
+    }
+#endif
+
+    return *this;
+  }
+
+
+  // ***********************
+  //  Forced Instantiation
+  // ***********************
+  template <typename T>
+  void Vector<T>::InstantiatePublicMethods() {
+
+    ENTER_FCN( "Vector::InstantiatePublicMethods" );
+
+    Error( "This function should never be called", __FILE__, __LINE__ );
+
+    T_Vtype aux;
+
+    Resize( 0, true );
+    SetVectorEntry( 0, aux );
+  }
+
+}

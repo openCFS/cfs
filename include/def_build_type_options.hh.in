@@ -1,0 +1,21 @@
+// Define used to check if build type is DEBUG
+#cmakedefine DEBUG
+#cmakedefine _DEBUG
+
+// Defines related to tracing of functions and memory usage
+#cmakedefine TRACE
+#cmakedefine TRACE_ALL
+#cmakedefine MEMTRACE
+
+// Use profiling or not
+#cmakedefine PROFILING
+
+// Check for certain error conditions (in DEBUG mode)
+#cmakedefine CHECK_INDEX
+#cmakedefine CHECK_INITIALIZED
+#cmakedefine CHECK_MEM_ALLOC
+#cmakedefine CHECK_MEMORY
+#cmakedefine CHECK_TYPE_CASTS
+
+// Activate expression templates (in RELEASE mode)
+#cmakedefine EXPR_TEMPLATES

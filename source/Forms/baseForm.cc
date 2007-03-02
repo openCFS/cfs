@@ -1,0 +1,175 @@
+#include <iostream>
+#include <fstream>
+
+#include "baseForm.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
+
+namespace CoupledField
+{
+
+ 
+
+
+  BaseForm::BaseForm( BaseMaterial* matData, SubTensorType type, 
+                      bool coordUpdate )
+    : coordUpdate_( coordUpdate),
+      isaxi_(false), 
+      subTensorType_(type)
+  {
+    ENTER_FCN( "BaseForm::BaseForm" );
+    isSetIntPoint_ = false;
+    isSymmetric_ = true;
+    ptMaterial = matData;
+    ptelem = NULL;
+    sol_ = NULL;
+    solDeriv1_ = NULL;
+    solDeriv2_ = NULL;
+
+    // We generate the object, so we will delete it
+    matDataType_ = REAL;
+    delMatDataAtEnd_ = false;
+
+    baseType_ = NOTYPE;
+    isSolDependent_ = false;
+    softeningModel_ = "no";   
+
+    // Initialize form with standard Lagrange ansatz fct object
+    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
+    ansatzFct1_ = fct;
+    ansatzFct2_ = fct;
+
+#ifndef INTEGLIB
+
+    // Get grip of a new math parser object.
+    // This object has per default the variable
+    // f (harmonic) or t (transient) registered with the
+    // current value
+    mHandle_ =  domain->GetMathParser()->GetNewHandle();
+    mParser_ = domain->GetMathParser();
+    mParser_->SetExpr( mHandle_, "1.0" );
+#endif
+  }
+
+ 
+ 
+
+
+  // **************
+  //   Destructor
+  // **************
+  BaseForm::~BaseForm() {
+    ENTER_FCN( "BaseForm::~BaseForm" );
+
+#ifndef INTEGLIB
+    // Release math parser object
+    mParser_->ReleaseHandle( mHandle_ );
+#endif
+
+//     if ( delMatDataAtEnd_ == true ) {
+//       delete ptMaterial;
+//     }
+  }
+
+
+  // ***************
+  //   SetMaterial
+  // ***************
+  void BaseForm::SetMaterial( BaseMaterial *matPtr ) {
+
+    ENTER_FCN( "BaseForm::SetMaterial" );
+
+    // Avoid leaks
+    if ( ptMaterial != NULL && delMatDataAtEnd_ == true ) {
+      delete ptMaterial;
+    }
+
+    // Set new material pointer and avoid deleting it
+    ptMaterial = matPtr;
+    delMatDataAtEnd_ = false;
+  }
+
+ 
+
+  void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
+                               shared_ptr<AnsatzFct> actFct2 ) {
+    ENTER_FCN( "BaseForm::SetAnsatzFct" );
+
+    assert( actFct1 != NULL );
+    ansatzFct1_ = actFct1;
+
+    if( actFct2 != NULL ) {
+      ansatzFct2_ = actFct2;
+    } else {
+      ansatzFct2_ = ansatzFct1_;
+    } 
+
+  }
+  
+#ifndef INTEGLIB
+  void BaseForm::ExtractElemInfo( EntityIterator& it ) {
+    ptelem = it.GetElem()->ptElem;
+    it1_ = it;
+
+    domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
+                                          it.GetElem()->connect,
+                                          coordUpdate_ );
+  }
+#endif
+
+
+
+
+  // ------------- SURFACE BILINEAR FORMS -------------
+
+  SurfForm::SurfForm() 
+    : BaseForm( NULL ){
+    ENTER_FCN( "SurfForm::SurfForm" );
+
+  }
+
+
+  SurfForm::~SurfForm() {
+    ENTER_FCN( "SurfForm::~SurfForm" );
+  }
+  
+  void SurfForm::SetSurfElem( SurfElem * ptSurfElem) {
+    actElem_ = ptSurfElem;
+  }
+  
+  void SurfForm::SetFirstVoluNormal( Vector<Double> & n ) {
+    normal_ = n;
+  }
+
+  void SurfForm::SetFirstVoluInfo( const std::string & name,
+                                   const std::map<RegionIdType, BaseMaterial*>& materials ) {
+    
+    firstPDEName_ = name;
+    firstMaterials_ = materials;
+  }
+
+  void SurfForm::SetSecondVoluInfo( const std::string & name,
+                                    const std::map<RegionIdType, BaseMaterial*>& materials ) {                         
+    
+    secondPDEName_ = name;
+    secondMaterials_ = materials;
+  }
+
+  
+#ifndef INTEGLIB
+  void SurfForm::ExtractElemInfo( EntityIterator& it ) {
+    ptelem = it.GetElem()->ptElem;
+    
+    if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
+      actElem_ = it.GetSurfElem();
+      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
+      normal_ *= (Double) actElem_->normalSign;
+    }
+
+    domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
+                                          it.GetElem()->connect,
+                                          coordUpdate_ );
+  }
+#endif
+
+}

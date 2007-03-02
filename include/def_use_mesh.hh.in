@@ -1,0 +1,4 @@
+// Define used to check if mesh input from
+// ANSYS/GiD should be used
+
+#cmakedefine USE_MESH

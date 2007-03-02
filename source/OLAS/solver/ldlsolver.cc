@@ -1,0 +1,1326 @@
+#include <iterator>
+#include <list>
+
+#include "solver/ldlsolver.hh"
+
+#ifdef DEBUG_LDLSOLVER
+#define DEBUG_LDLSOLVER_ANALYSE
+#define DEBUG_LDLSOLVER_FACTORISE
+#endif
+
+// temporary (to be deleted once class is finished)
+// #define DEBUG_LDLSOLVER_ANALYSE
+// #define DEBUG_LDLSOLVER_FACTORISE
+
+
+namespace OLAS {
+
+
+  // ***************
+  //   Constructor
+  // ***************
+  template<typename T>
+  LDLSolver<T>::LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
+
+    ENTER_FCN( "LDLSolver::LDLSolver" );
+
+    // Set pointers to communication objects
+    myParams_ = myParams;
+    myReport_ = myReport;
+
+    // No factorisation was performed yet
+    amFactorised_ = false;
+
+    // Initialise all pointers to zero
+    denseVec_   = NULL;
+    firstU_     = NULL;
+    scanList_   = NULL;
+    activeList_ = NULL;
+    dataD_      = NULL;
+    dataU_      = NULL;
+    cidxU_      = NULL;
+    rptrU_      = NULL;
+
+    // No problem size known yet
+    sysMatDim_  = 0;
+    auxVecSize_ = 0;
+
+    // NOTE: The class currently gives wrong results, if used with
+    //       block entries instead of scalar entries. Thus, we do
+    //       a check here to avoid problems with production runs.
+    if ( BlockSize<T>::size != 1 ) {
+      (*error) << "LDLSolver class currently gives wrong results for "
+               << "matrices with non-scalar entries! Refusing to "
+               << "generate a solver for matrix with block size = "
+               << BlockSize<T>::size << ".";
+      Error( __FILE__, __LINE__ );
+    }
+
+  }
+
+
+  // **************
+  //   Destructor
+  // **************
+  template<typename T>
+  LDLSolver<T>::~LDLSolver() {
+
+    ENTER_FCN( "LDLSolver::~LDLSolver" );
+
+    // Free dynamically allocated memory
+    DeleteArray( denseVec_ );
+    DeleteArray( firstU_ );
+    delete[] scanList_;
+    delete[] activeList_;
+    DeleteArray( dataD_ );
+    DeleteArray( dataU_ );
+    DeleteArray( cidxU_ );
+    DeleteArray( rptrU_ );
+
+  }
+
+
+  // ************************
+  //   Forced Instantiation
+  // ************************
+  template<typename T>
+  void LDLSolver<T>::
+  InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
+    ENTER_FCN( "LDLSolver::InstantiateAdditionalPublicMethods" );
+  }
+
+
+  // *********
+  //   Setup
+  // *********
+  template<typename T>
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat ) {
+
+    ENTER_FCN( "LDLSolver::Setup" );
+
+    // Check that we have a StdMatrix
+    if ( sysMat.GetStructureType() != STDMATRIX ) {
+      (*error) << "LDLSolver cannot deal with matrices other than "
+               << "SCRS_Matrix/sparseSym";
+      Error( __FILE__, __LINE__ );
+    }
+
+    TRY_CAST {
+
+      // Down-cast to StdMatrix
+      RefCast( sysMat, StdMatrix, stdMat );
+
+      // Now test the storage layout
+      MatrixStorageType sType = stdMat.GetStorageType();
+      if ( sType != SPARSE_SYM ) {
+        (*error) << "LDLSolver::Setup: The LDLSolver requires the system "
+                 << "matrix to be an SCRS_Matrix, i.e. sparseSym. The system "
+                 << "matrix you supplied is a matrix in '"
+                 << Enum2String( sType )
+                 << "' format.";
+        Error( __FILE__, __LINE__ );
+      }
+
+      // Down-cast to SCRS_Matrix
+      RefCast( sysMat, SCRS_Matrix<T>, scrsMat );
+
+      // Get new problem size and perform consistency check
+      if ( amFactorised_ == false ) {
+        sysMatDim_ = scrsMat.GetNcols();
+      }
+      else {
+        if ( myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
+             sysMatDim_ != scrsMat.GetNcols() ) {
+          (*error) << "LDLSolver::Setup: newMatrixPattern = false, but "
+                   << "matrix dimension changed from " << sysMatDim_ << " to "
+                   << scrsMat.GetNcols();
+          Error( __FILE__, __LINE__ );
+        }
+        else {
+          sysMatDim_ = scrsMat.GetNcols();
+        }
+      }
+
+      // Check dimension of problem
+      if ( sysMatDim_ <= 2 ) {
+        (*error) << "Sorry but your problem is too small for the LDLSolver! "
+                 << "We only solve problems with n > 2!";
+          Error( __FILE__, __LINE__ );
+      }
+
+      // Logging
+      bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+      if ( logging ) {
+        (*cla) << " -------------------------------------------------------"
+               << "-----------------------\n"
+               << " LDLSOLVER::SETUP\n Factorisation of a "
+               << scrsMat.GetNrows() << " x " << scrsMat.GetNcols()
+               << " matrix (nnz = " << scrsMat.GetNnz() << ")"
+               << std::endl;
+      }
+
+      // If this is the first time we are asked for a factorisation, or
+      // if there is a new matrix pattern, we start an analyse phase
+      if ( amFactorised_ == false ||
+           myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+
+        // Clear "old" vectors
+        DeleteArray( dataD_ );
+        DeleteArray( dataU_ );
+        DeleteArray( cidxU_ );
+        DeleteArray( rptrU_ );
+
+        // Pretty-printing
+        if ( logging ) {
+          (*cla) << '\n';
+        }
+
+        // Perform analysis
+        Analyse( scrsMat );
+
+        // If problem size has increased free old dense auxilliary vectors
+        if ( auxVecSize_ < scrsMat.GetNcols() ) {
+          DeleteArray( denseVec_ );
+          DeleteArray( firstU_ );
+	  delete[] scanList_;
+	  delete[] activeList_;
+          denseVec_   = NULL;
+          firstU_     = NULL;
+	  scanList_   = NULL;
+	  activeList_ = NULL;
+	  auxVecSize_ = 0;
+        }
+
+        // Allocate memory for dense auxilliary vectors and lists
+        // (and initialise with zeros)
+        if ( denseVec_ == NULL ) {
+          auxVecSize_ = scrsMat.GetNcols();
+          NewArray( denseVec_, T, auxVecSize_ );
+          NewArray( firstU_, UInt, auxVecSize_ );
+	  scanList_   = New UInt[auxVecSize_ + 1];
+	  activeList_ = New UInt[auxVecSize_ + 1];
+          for ( UInt j = 1; j <= auxVecSize_; j++ ) {
+            denseVec_[j]   = 0.0;
+            scanList_[j]   = 0;
+            activeList_[j] = 0;
+          }
+	  scanList_[0]   = auxVecSize_ + 1;
+	  activeList_[0] = auxVecSize_ + 1;
+        }
+      }
+
+      // Now trigger factorisation
+      if ( logging ) {
+        (*cla) << '\n';
+      }
+      Factorise( scrsMat );
+      amFactorised_ = true;
+
+      // Convert D to D^{-1}
+      for ( UInt i = 1; i <= sysMatDim_; i++ ) {
+        dataD_[i] = opType<T>::invert( dataD_[i] );
+      }
+
+      // ===============
+      //  Export Factor
+      // ===============
+
+      // if the user desires it, we will export the matrix factor
+      // to a file in Matrix Market format
+      if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
+          myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == false ) {
+        std::string filename;
+        filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
+        ExportFactorisation( filename.c_str(), false );
+      }
+
+      // finish log report
+      if ( logging ) {
+        (*cla) << " -------------------------------------------------------"
+               << "-----------------------\n" << std::endl;
+      }
+
+    } CATCH_CAST;
+
+  }
+
+
+  // *********
+  //   Solve
+  // *********
+  template<typename T>
+  void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
+                            const BasePrecond &precond,
+                            const BaseVector  &rhs,
+                            BaseVector &sol ) {
+
+    ENTER_FCN( "LDLSolver::Solve" );
+
+    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+
+    // Test that a factorisation is available, if not issue an error
+    if ( amFactorised_ == false ) {
+      (*error) << "LDLSolver::Solve: No factorisation available. "
+	       << "Call Setup() first!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Solve the problem
+    TRY_CAST {
+      ConstRefCast( rhs, Vector<T>, myRHS );
+      RefCast( sol, Vector<T>, mySol );
+
+      // Logging
+      if ( logging ) {
+        (*cla) << " -------------------------------------------------------"
+               << "-----------------------\n"
+               << " LDLSOLVER::SOLVE: Solving a problem with "
+               << sysMat.GetNcols() << " unknowns" << std::endl;
+      }
+
+      SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
+                      &(dataD_[0]), mySol, myRHS, sysMatDim_ );
+
+
+      // If desired perform iterative refinement
+      UInt numSteps = (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefSteps" );
+      UInt logLevel =
+        (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefVerbosity" );
+
+      if ( numSteps > 0 ) {
+
+        // Avoid recursion, we do not want to do refinement on the
+        // solution in the refinement step
+        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)0 );
+        myParams_->SetValue( "LDLSOLVER_logging", false );
+
+        // Refine
+        iterativeRefiner_.Refine( (*this), sysMat, sol, rhs, numSteps,
+                                  logLevel );
+
+        // Re-set parameter object
+        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)numSteps );
+        myParams_->SetValue( "LDLSOLVER_logging", logging );
+
+      }
+
+      // Logging
+      if ( logging ) {
+        (*cla) << " -------------------------------------------------------"
+               << "-----------------------\n"
+               << std::endl;
+      }
+
+    } CATCH_CAST;
+
+
+    // Generate Report
+
+    // Now this currently is of dubious value, since the two things queried
+    // from olasReport are actually meaningless in the context of a direct
+    // solver. Nevertheless we supply some values for consistency
+    if ( myReport_ != NULL ) {
+      myReport_->SetValue( "numIter", -1 );
+      myReport_->SetValue( "finalNorm", -1.0 );
+    }
+
+  }
+
+
+  // ***********
+  //   Analyse
+  // ***********
+  template<typename T>
+  void LDLSolver<T>::Analyse( const SCRS_Matrix<T> &sysMat ) {
+
+    ENTER_FCN( "LDLSolver::Analyse" );
+
+    UInt i, j, k, nnzInRowOfU, nnzInRowOfA, colInd, succ, pred, lastNZ, tmp;
+
+    // Get hold of column index array
+    const Integer *cidxA = sysMat.GetColPointer();
+
+    // Get hold of row pointer index array
+    const Integer *rptrA = sysMat.GetRowPointer();
+
+    // Query number of matrix rows and columns
+    UInt nRows = sysMat.GetNrows();
+    UInt nCols = sysMat.GetNcols();
+
+    // Allocate auxilliary index array
+    UInt *auxVec = New UInt[nCols+1];
+    AssertMem( auxVec, sizeof( UInt ) * nCols );
+    UInt auxVecNumEntries = 0;
+
+    // =================
+    //  Report start-up
+    // =================
+    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    if ( logging ) {
+      (*cla) << " Phase: ANALYSE" << std::endl;
+    }
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " LDLSOLVER:\n Phase: ANALYSE\n" << std::endl;
+#endif
+
+
+    // ========================
+    //  Determine the profile
+    // ========================
+
+    // We use a bottom up approach in order to determine for each matrix
+    // column the smallest row index of a non-zero entry in that column.
+    for ( i = nRows; i > 0; i-- ) {
+      for ( j = (UInt)rptrA[i]; j < (UInt)rptrA[i+1]; j++ ) {
+        auxVec[ cidxA[j] ] = i;
+      }
+    }
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " column | smallest row index" << std::endl;
+    for ( i = 1; i <= nCols; i++ ) {
+      (*debug) << " " << i << " | " << auxVec[i] << std::endl;
+    }
+#endif
+
+    // Maximal fill-in will generate a column with all non-zero entries
+    // between the diagonal and the row determined above. Summing these
+    // differences up gives the profile
+    UInt profile = 1;
+    for ( i = 2; i <= nCols; i++ ) {
+      profile += i - auxVec[i] + 1;
+    }
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " column | max number of entries in factor L" << std::endl;
+    for ( i = 1; i <= nCols; i++ ) {
+      (*debug) << " " << i << " | " << i - auxVec[i] + 1 << std::endl;
+    }
+    (*debug) << " Factor (L + D) will contain " << profile << " entries"
+             << " (at most)" << std::endl;
+#endif
+
+    // Report
+    if ( logging ) {
+      (*cla) << " Factor (L + D) can at most contain " << profile
+             << " entries" << std::endl;
+    }
+
+    // ============================================
+    //  Memory Allocation (Phase 1):
+    // ============================================
+
+    // We allocate memory for those vectors of the
+    // factorisation whose length is already fixed
+    NewArray( dataD_, T   , nCols     );
+    NewArray( rptrU_, UInt, nRows + 1 );
+
+    // We allocate memory for the auxilliary 2D data structure that we use
+    // to dynamically build the column index information.
+    //
+    // cIndex[j] is an array with admissible indices
+    // 1 ... number of non-zeros in j-th row of D
+    // containing the column indices of these non-zero entries
+    UInt **cIndex = NULL;
+    UInt *auxPtr = NULL;
+    NewArray( cIndex, UInt*, nRows );
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " Allocated memory (phase 1)"
+             << std::endl;
+#endif
+
+    // =========================================
+    //  Determine fill-pattern of factor U=L^T
+    // =========================================
+
+    // We need one auxilliary dense index vector to store a linked list which
+    // contains the column indices of the fill-pattern of row k. We can re-use
+    // auxVec for this purpose, but must zero it now. We store the header of
+    // the linked list, i.e. the index of the first element in auxVec[0] and
+    // use the value nCols + 1 as terminator
+    for ( i = 0; i <= nCols; i++ ) {
+      auxVec[i] = 0;
+    }
+    auxVecNumEntries = 0;
+
+    // Initialise row pointer array
+    rptrU_[1] = 1;
+
+    // We keep in an STL list the indices of all rows that have not yet
+    // contributed their fill-patterns to rows with larger index and must
+    // thus be checked for non-zero entry in column k, when determining
+    // the fill-pattern of row k. The list entry encodes the index of the row
+    std::list<UInt> rowList;
+    std::list<UInt>::iterator listIt;
+
+    // If the first row has not only a diagonal entry (unlikely of course in
+    // FEM) Initially only the first row is in the row list.
+    if ( rptrA[2] - rptrA[1] > 1 ) {
+      rowList.push_back( 1 );
+    }
+
+    // Pattern of first row is identical to that of first row of U = L^T
+    // minus the diagonal entry
+    NewArray( cIndex[1], UInt, (rptrA[2]-2) );
+    auxPtr = cIndex[1];
+    for ( i = 2; i < (UInt)rptrA[2]; i++ ) {
+      auxPtr[i-1] = cidxA[i];
+    }
+    rptrU_[2] = (UInt)rptrA[2] - 1;
+
+    // Needed for writing progress report of factorisation
+    UInt percentDone = 0;
+    Double actDone = 0.0;
+    (*cla) << " Fill-pattern analysis done:\n" << " 0%" << std::flush;
+
+    // ----------------------------------------
+    //  main loop for determining fill-pattern
+    // ----------------------------------------
+
+    // The last row of L does not contain off-diagonal entries and the first
+    // row was already treated, so we only go from 2 <-> n - 1
+    for ( k = 2; k < nRows; k++ ) {
+
+      // Keep user informed on progress
+      actDone = (double)(k*100) / (double)nRows;
+      actDone = (UInt)(actDone/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone;
+        (*cla) << " .. " << percentDone << "%" << std::flush;
+      }
+
+      // Determine number of non-zero entries in this row
+      nnzInRowOfA = rptrA[k+1] - rptrA[k];
+
+      // Insert non-zero pattern of row k of A into dense auxilliary vector
+      // (omitting the diagonal entry) as linked list
+      if ( nnzInRowOfA > 1 ) {
+        auxVec[ 0 ] = cidxA[ rptrA[k]+1 ];
+        for ( i = (UInt)rptrA[k] + 2; i < (UInt)rptrA[k+1]; i++ ) {
+          auxVec[ cidxA[i-1] ] = cidxA[i];
+        }
+        auxVec[ cidxA[i-1] ] = nCols+1;
+      }
+      auxVecNumEntries = nnzInRowOfA - 1;
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+      (*debug) << " Pattern of row " << k << " of A:";
+      if ( auxVec[0] != 0 ) {
+        succ = auxVec[0];
+        while( succ != nCols + 1 ) {
+          (*debug) << " " << succ;
+          succ = auxVec[succ];
+        }
+      }
+      (*debug) << std::endl;
+      listIt = rowList.begin();
+      (*debug) << " --> Row list contains row(s):";
+      while ( listIt != rowList.end() ) {
+        (*debug) << " " << (*listIt);
+        listIt++;
+      }
+      (*debug) << std::endl;
+#endif
+
+      // For all rows in the current row list, check whether the first
+      // off-diagonal entry has index k, so that it contributes to the
+      // fill-pattern for this row
+      listIt = rowList.begin();
+      while ( listIt != rowList.end() ) {
+
+        // Check that row has non-zero entry in position k
+        // (if row has not yet contributed to pattern, then
+        // maybe its first off-diagonal entry is in column k)
+        if ( rptrU_[(*listIt)+1] - rptrU_[(*listIt)] > 1 &&
+             cIndex[(*listIt)][1] == k ) {
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+          (*debug) << " --> Adding pattern of row " << (*listIt)
+                   << " to pattern of row " << k << std::endl;
+#endif
+
+          // Initialise variable storing index of last non-zero entry
+          // in pattern / linked list
+          lastNZ = 0;
+
+          // Loop over pattern of this row adding new entries
+          // at correct positions in linked list (omitting diagonal entry)
+          auxPtr = cIndex[(*listIt)];
+          for ( j = 2; j <= rptrU_[(*listIt)+1] - rptrU_[(*listIt)]; j++ ) {
+
+            // Get corresponding column index
+            colInd = auxPtr[j];
+            // (*debug) << (*listIt) << ": colInd = " << colInd << std::endl;
+
+            // If in pattern update lastNZ index
+            if ( auxVec[ colInd ] != 0 ) {
+              lastNZ = colInd;
+            }
+
+            // Not yet in pattern, so insert it into list
+            else {
+
+              // First we have to find the correct lastNZ
+              // by walking through the linked list
+              while( auxVec[ lastNZ ] < colInd ) {
+                lastNZ = auxVec[ lastNZ ];
+              }
+
+              // Now insert fill-in into the list
+              tmp = auxVec[ lastNZ ];
+              auxVec[ lastNZ ] = colInd;
+              auxVec[ colInd ] = tmp;
+
+              // And update list length
+              auxVecNumEntries++;
+
+            }
+          }
+
+          // Now we can delete this row from the row list
+          // (increments iterator at the same time)
+          listIt = rowList.erase( listIt );
+
+        }
+
+        // Nothing to do for this row, so proceed to next row
+        else {
+          listIt++;
+        }
+      }
+
+      // The current row must now be added to the list
+      if ( auxVec[0] < nCols + 1 ) {
+        rowList.push_back( k );
+      }
+
+
+      // Report fill-pattern of row in factor L^T = U
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+      (*debug) << " Pattern of row " << k << " of L^T = U:";
+      if ( auxVec[0] != 0 ) {
+        succ = auxVec[0];
+        while( succ != nCols + 1 ) {
+          (*debug) << " " << succ;
+          succ = auxVec[succ];
+        }
+      }
+      (*debug) << '\n' << std::endl;
+#endif
+
+      // Allocate space for column indices for this row
+      if ( auxVec[0] != 0 ) {
+        NewArray( cIndex[k], UInt, auxVecNumEntries );
+      }
+      else {
+        cIndex[k] = NULL;
+      }
+
+      // Now we must insert the column index information into the
+      // auxilliary data structure
+      if ( auxVec[0] != 0 ) {
+        auxPtr = cIndex[k];
+        succ = auxVec[0];
+        auxVec[0] = nCols + 1;
+        i = 1;
+        while( succ != nCols + 1 ) {
+          auxPtr[i] = succ;
+          pred = succ;
+          succ = auxVec[succ];
+          auxVec[pred] = 0;
+          i++;
+        }
+        rptrU_[k+1] = rptrU_[k] + auxVecNumEntries;
+        //(*debug) << "rptrU_[" << k << "] = " << rptrU_[k] << std::endl;
+        //(*debug) << "rptrU_[" << k+1 << "] = " << rptrU_[k+1] << std::endl;
+      }
+      else {
+        rptrU_[k+1] = rptrU_[k];
+      }
+    }
+
+    // The upper loop only went to n - 1, so we finalise the row pointer
+    // array explicitely
+    rptrU_[sysMatDim_+1] = rptrU_[sysMatDim_];
+
+    // Finish logging progress
+    if ( percentDone < 100 ) {
+      (*cla) << " .. 100%\n";
+      
+    }
+
+    // ============================================
+    //  Memory Allocation (Phase 2):
+    // ============================================
+
+    // Report
+    if ( logging ) {
+      (*cla) << " Factor (L + D) contains "
+             << rptrU_[sysMatDim_+1] + sysMatDim_
+             << " entries" << std::endl;
+
+      // Compute required memory in GByte
+      Double memReq = 0;
+      memReq  = rptrU_[sysMatDim_+1] + sysMatDim_;
+      memReq *= sizeof(T) + sizeof(UInt);
+      memReq += (sysMatDim_ + 1) * sizeof(UInt);
+      memReq /= 1024 * 1024 * 1024;
+      (*cla) << " Storage will require "
+             << std::fixed << memReq << " GByte" << std::endl;
+
+      cla->unsetf( std::ios_base::fixed );
+      cla->flush();
+    }
+ 
+    // Now we know how many entries the pattern will have, so we can
+    // do the final allocation
+    NewArray( cidxU_, UInt, rptrU_[sysMatDim_+1] );
+    NewArray( dataU_, T   , rptrU_[sysMatDim_+1] );
+
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " Allocated memory (phase 2)"
+             << std::endl;
+#endif
+
+    // ============================================
+    //  Insert column indices into final structur
+    // ============================================
+    for ( i = 1; i < sysMatDim_; i++ ) {
+      auxPtr = cIndex[i];
+      k = rptrU_[i] - 1;
+      for ( j = 1; j <= rptrU_[i+1] - rptrU_[i]; j++ ) {
+        cidxU_[k+j] = auxPtr[j];
+      }
+    }
+
+    // Finish logging
+    (*cla) << std::endl;
+
+
+    // ================
+    //  Export pattern
+    // ================
+
+    // if the user desires it, we will export the pattern of the matrix
+    // factor to a file in Matrix Market format
+    if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
+        myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == true ) {
+      std::string filename;
+      filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
+      ExportFactorisation( filename.c_str(), false );
+    }
+
+
+    // ==========
+    //  Clean up
+    // ==========
+
+    // Free auxilliary index array
+    delete[] auxVec;
+    for ( k = 1; k < nRows; k++ )  DeleteArray( cIndex[k] );
+    DeleteArray( cIndex );
+
+
+#ifdef DEBUG_LDLSOLVER_ANALYSE
+    (*debug) << " Row pointer array:";
+    for ( i = 1; i <= nCols + 1; i++ ) {
+      (*debug) << " " << rptrU_[i];
+    }
+    (*debug) << "\n Column index array:";
+    for ( i = 1; i < rptrU_[nCols+1]; i++ ) {
+      (*debug) << " " << cidxU_[i];
+    }
+    (*debug) << '\n' << std::endl;
+#endif
+
+  }
+
+
+  // *************
+  //   Factorise
+  // *************
+  template<typename T>
+  void LDLSolver<T>::Factorise( const SCRS_Matrix<T> &sysMat ) {
+
+    ENTER_FCN( "LDLSolver::Factorise" );
+
+    UInt k, i, j, numOffD;
+    T elim;
+
+    // =================
+    //  Report start-up
+    // =================
+    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    if ( logging ) {
+      (*cla) << " Phase: FACTORISE" << std::endl;
+    }
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+    (*debug) << " LDLSOLVER:\n Phase: FACTORISE\n" << std::endl;
+#endif
+
+    // Needed for writing progress report of factorisation
+    UInt percentDone = 0;
+    Double actDone = 0.0;
+    (*cla) << " Numerical factorisation done:\n" << " 0%" << std::flush;
+
+    // ==================
+    //  Get Matrix Info
+    // ==================
+
+    // Query number of matrix rows and columns
+    UInt nRows = sysMat.GetNrows();
+    UInt nCols = sysMat.GetNcols();
+
+    // Get hold of column index array
+    const Integer *cidxA = sysMat.GetColPointer();
+
+    // Get hold of row pointer index array
+    const Integer *rptrA = sysMat.GetRowPointer();
+
+    // Get hold of data array
+    const T *dataA = sysMat.GetDataPointer();
+
+    // =======================
+    //  Init diagonal factor
+    // =======================
+    for ( i = 1; i <= nCols; i++ ) {
+      dataD_[i] = dataA[ rptrA[i] ];
+    }
+
+    // ==================
+    //  Treat first row
+    // ==================
+
+    // Copy and scale first row
+    for ( i = 1; i < rptrU_[2]; i++ ) {
+      dataU_[i] = opType<T>::invert( dataD_[1] ) * dataA[i+1];
+    }
+
+    // Perform update of diagonal factor for row one
+    for ( i = 1; i < rptrU_[2]; i++ ) {
+      dataD_[ cidxU_[i] ] -= dataU_[i] * dataD_[1] * dataU_[i];
+    }
+
+
+    // =================================
+    //  Init auxilliary data structures
+    // =================================
+
+    // Generate markers for linked lists
+    UInt scanListElem, scanListPrevElem;
+    UInt activeListElem, activeListPrevElem;
+    UInt listEnd = nCols + 1;
+    UInt listNoElem = 0;
+
+    // Check that linked lists are empty
+    if ( scanList_[0] != listEnd ) {
+      (*error) << "LDLSolver::Factorise: Internal error: scanList_[0] = "
+	       << scanList_[0] << " and not " << listEnd;
+      Error( __FILE__, __LINE__ );
+    }
+    if ( activeList_[0] != listEnd ) {
+      (*error) << "LDLSolver::Factorise: Internal error: activeList_[0] = "
+	       << activeList_[0] << " and not " << listEnd;
+      Error( __FILE__, __LINE__ );
+    }
+
+    // list iterator
+    std::list<UInt>::iterator listIt;
+
+    // Check, if the first row has an off-diagonal entry
+    // (everything else would be very suspicious in the FEM setting)
+    if ( rptrU_[2] > 1 ) {
+
+      // add first row to scan list
+      scanList_[0] = 1;
+      scanList_[1] = listEnd;
+
+      // Determine index of first off-diagonal entry in first row
+      // in data array
+      firstU_[1] = rptrU_[1];
+
+      // If the corresponding column index is equal to two, we must add
+      // the first row to the active list
+      if ( cidxU_[ firstU_[1] ] == 2 ) {
+        activeList_[0] = 1;
+        activeList_[1] = listEnd;
+      }
+    }
+    else {
+      (*warning) << "First row has no off-diagonal entry! I'm frightened! "
+                 << "Can this be correct my master?";
+      Warning( __FILE__, __LINE__ );
+    }
+
+    // ============
+    //  Main Loop
+    // ============
+    for ( k = 2; k < nRows; k++ ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+      (*debug) << " ==================\n  Treating row " << k
+               << "\n ==================\n";
+      (*debug) << " + scan list contains row(s):";
+      scanListElem = scanList_[0];
+      while ( scanListElem != listEnd ) {
+        (*debug) << " " << scanListElem;
+        scanListElem = scanList_[scanListElem];
+      }
+      (*debug) << std::endl;
+      (*debug) << " + active list contains row(s):";
+      activeListElem = activeList_[0];
+      while ( activeListElem != listEnd ) {
+        (*debug) << " " << activeListElem;
+        activeListElem = activeList_[activeListElem];
+      }
+      (*debug) << std::endl;
+#endif
+
+      // Keep user informed on progress
+      actDone = (double)(k*100) / (double)nRows;
+      actDone = (UInt)(actDone/10.0)*10;
+      if ( actDone > percentDone ) {
+        percentDone = (UInt)actDone;
+        (*cla) << " .. " << percentDone << "%" << std::flush;
+      }
+
+      // Copy k-th row of A into dense vector (omitting diagonal)
+      for ( i = rptrA[k]+1; i < rptrA[k+1]; i++ ) {
+        denseVec_[ cidxA[i] ] = dataA[i];
+      }
+
+      // All rows in active list contribute to current row
+      activeListElem = activeList_[0];
+      while ( activeListElem != listEnd ) {
+
+	// Get data array index of row entry for column k
+	i = firstU_[ activeListElem ];
+
+	// Get value of row entry for column k
+	elim = dataU_[i];
+
+	// Scale value with corresponding entry in diagonal factor
+	elim = elim * dataD_[ activeListElem ];
+
+	// Add multiple of active row to current row
+	for ( j = i + 1; j < rptrU_[activeListElem+1]; j++ ) {
+	  denseVec_[ cidxU_[j] ] -= elim * dataU_[j];
+	}
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+        (*debug) << " + updated row by row " << activeListElem
+                 << std::endl;
+#endif
+
+	// Proceed to next row
+	activeListElem = activeList_[activeListElem];
+      }
+
+      // Insert dense vector entries into sparse structure
+      // (scaling them at the same time with d_kk)
+      // for ( i = rptrU_[k]; i < rptrU_[k+1]; i++ ) {
+      //  dataU_[i] = denseVec_[ cidxU_[i] ] / dataD_[k];
+      //  denseVec_[ cidxU_[i] ] = 0.0;
+      // }
+
+      // Treat all entries in diagonal factor with index larger k
+      // (if the U_ki entry is not zero)
+      // for ( i = rptrU_[k]; i < rptrU_[k+1]; i++ ) {
+      // dataD_[ cidxU_[i] ] -= dataU_[i] * dataD_[k] * dataU_[i];
+      // }
+
+      // Fusion of two loops:
+      //
+      // - Insert dense vector entries into sparse structure
+      //   (scaling them at the same time with d_kk)
+      // - Update all entries in diagonal factor with index larger k
+      //   (if the U_ki entry is not zero)
+      for ( i = rptrU_[k]; i < rptrU_[k+1]; i++ ) {
+        dataU_[i] = opType<T>::invert( dataD_[k] ) * denseVec_[ cidxU_[i] ];
+        denseVec_[ cidxU_[i] ] = 0.0;
+        dataD_[ cidxU_[i] ] -= dataU_[i] * dataD_[k] * dataU_[i];
+      }
+
+      // -----------------------------------
+      //  Update auxilliary data structures
+      // -----------------------------------
+
+      // Prepare list element pointers (both lists are in ascending
+      // order, activeList_ is a subset of scanList_ and we keep
+      // activeListElem >= scanListElem)
+      scanListPrevElem = 0;
+      scanListElem = scanList_[0];
+      activeListPrevElem = 0;
+      activeListElem = activeList_[0];
+
+      // Loop over scan list
+      while ( scanListElem < listEnd ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+        (*debug) << " + scanListElem = " << scanListElem;
+#endif
+
+	// Check if column index of first entry is equal to k
+	// (in this case the row must also be in the active list
+        // and activeListElem = scanListElem)
+	if ( cidxU_[ firstU_[scanListElem] ] == k ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+        (*debug) << ": incr. firstU_ from " << firstU_[scanListElem]
+                 << " / " << cidxU_[firstU_[scanListElem]]
+                 << " --> ";
+#endif
+
+	  // If this was the last row entry, delete row from scan list
+	  // and also from active list
+	  if ( firstU_[scanListElem] + 1 == rptrU_[scanListElem+1] ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            (*debug) << "nil (del from both lists)" << std::endl;
+#endif
+
+	    // Deletion from scan list
+	    scanList_[scanListPrevElem] = scanList_[scanListElem];
+	    scanList_[scanListElem] = listNoElem;
+	    scanListElem = scanList_[scanListPrevElem];
+
+	    // Deletion from active list
+	    activeList_[activeListPrevElem] = activeList_[activeListElem];
+	    activeList_[activeListElem] = listNoElem;
+	    activeListElem = activeList_[activeListPrevElem];
+
+            // Incrementing was done implicitely in deletion and
+            // activeListElem >= scanListElem must still hold,
+            // so procceed with loop
+            continue;
+	  }
+
+	  // This was not the last entry in the row
+	  else {
+
+            // Increment the column index pointer
+	    firstU_[scanListElem]++;
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            (*debug) << firstU_[scanListElem]
+                     << " / " << cidxU_[firstU_[scanListElem]];
+#endif
+
+	    // Check whether we must delete row from active list now
+	    if ( cidxU_[ firstU_[scanListElem] ] > k + 1 ) {
+	      activeList_[activeListPrevElem] = activeList_[activeListElem];
+	      activeList_[activeListElem] = listNoElem;
+	      activeListElem = activeList_[activeListPrevElem];
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+              (*debug) << " (active list del)";
+#endif
+	    }
+
+
+	    // If there is no other off-diagonal entry, then we can delete
+	    // the row from both lists
+	    else if ( firstU_[scanListElem] + 1 == rptrU_[scanListElem+1] ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+	      (*debug) << " (del from both lists)" << std::endl;
+#endif
+
+	      // Deletion from scan list
+	      scanList_[scanListPrevElem] = scanList_[scanListElem];
+	      scanList_[scanListElem] = listNoElem;
+	      scanListElem = scanList_[scanListPrevElem];
+
+	      // Deletion from active list
+	      activeList_[activeListPrevElem] = activeList_[activeListElem];
+	      activeList_[activeListElem] = listNoElem;
+	      activeListElem = activeList_[activeListPrevElem];
+
+	      // Incrementing was done implicitely in deletion and
+	      // activeListElem >= scanListElem must still hold,
+	      // so procceed with loop
+	      continue;
+	    }
+
+            // We did not delete the row, so we must advance the element
+            // in the activeList_ (we know that here activeListElem < listEnd)
+            else {
+              activeListPrevElem = activeListElem;
+              activeListElem = activeList_[activeListElem];
+            }
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            (*debug) << std::endl;
+#endif
+
+            // Proceed to next row in scan list
+            scanListPrevElem = scanListElem;
+            scanListElem = scanList_[scanListElem];
+            continue;
+	  }
+	}
+
+	// So the column index of first entry was > k (the row was not in
+	// the active list, i.e. scanListElem < activeListElem).
+        // Check, whether it is (k+1)
+	else if ( cidxU_[ firstU_[scanListElem] ] == k + 1 ) {
+
+          // If there is still another off-diagonal entry with larger column
+          // index available add row to active list
+          if ( firstU_[scanListElem] + 1 < rptrU_[scanListElem+1] ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            if ( activeListPrevElem > scanListElem ) {
+              (*error) << "Error in active list add: (activeListPrevElem = "
+                       << activeListPrevElem << ") < (scanListElem = "
+                       << scanListElem << ")";
+              Error( __FILE__, __LINE__ );
+            }
+#endif
+
+            activeList_[ scanListElem       ] = activeListElem;
+            activeList_[ activeListPrevElem ] = scanListElem;
+            activeListPrevElem = scanListElem;
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            (*debug) << ": (active list add)";
+#endif
+          }
+
+          // There is no other off-diagonal entry, so we do not
+          // add the row to the activeList_ and can remove it
+          // from the scanList_
+          else {
+            scanList_[scanListPrevElem] = scanList_[scanListElem];
+            scanList_[scanListElem] = listNoElem;
+            scanListElem = scanList_[scanListPrevElem];
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+            (*debug) << ": (scan list del)" << std::endl;
+#endif
+
+            // Incrementing was done implicitely in deletion and
+            // activeListElem >= scanListElem must still hold,
+            // so procceed with loop
+            continue;
+          }
+        }
+
+        // Proceed to next row in scan list
+        scanListPrevElem = scanListElem;
+        scanListElem = scanList_[scanListElem];
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+	(*debug) << std::endl;
+#endif
+
+      }
+
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+      // We claim that activeListElem >= scanListElem always holds, so
+      // now we should have activeListElem = listEnd
+      if ( activeListElem != listEnd ) {
+        (*error) << "LDLSolver::Factorise: activeListElem = "
+                 << activeListElem << ", but should be " << listEnd;
+        Error( __FILE__, __LINE__ );
+      }
+#endif
+      
+
+
+      // --------------------------------------------
+      //  Add k-th row to auxilliary data structures
+      // --------------------------------------------
+
+      // Determine number off off-diagonal entries in row
+      numOffD = rptrU_[k+1] - rptrU_[k];
+
+      // Make sure that row has any off-diagonal elements at all
+      if ( numOffD > 0 ) {
+
+        // Set pointer to first off-diagonal entry
+        firstU_[k] = rptrU_[k];
+
+	// If there are two off-diagonal entries, at least one must
+	// have a column index > (k+1), so we must add row to scan list
+	if ( numOffD > 1 ) {
+
+	  // Addition is performed at the end (so the list will
+	  // always be ordered with increasing row index)
+	  // scanList_[k] = scanList_[0];
+	  // scanList_[0] = k;
+	  scanList_[scanListPrevElem] = k;
+	  scanList_[k] = listEnd;
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+	  (*debug) << " + added row " << k << " to scan list" << std::endl;
+#endif
+
+	  // If the column index of the first off-diagonal entry is (k+1)
+	  // we must add it to the active list
+	  if ( cidxU_[ firstU_[k] ] == (k+1) ) {
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+	    (*debug) << " + added row " << k << " to active list" << std::endl;
+#endif
+	    // Addition is performed at the end
+	    // activeList_[k] = activeList_[0];
+	    // activeList_[0] = k;
+	    activeList_[activeListPrevElem] = k;
+	    activeList_[k] = listEnd;
+	  }
+        }
+      }
+
+#ifdef DEBUG_LDLSOLVER_FACTORISE
+      (*debug) << " --> scanList_:";
+      for ( UInt ii = 0; ii <= sysMatDim_; ii++ ) {
+        (*debug) << " " << scanList_[ii];
+      }
+      (*debug) << std::endl;
+      (*debug) << " --> activeList_:";
+      for ( UInt ii = 0; ii <= sysMatDim_; ii++ ) {
+        (*debug) << " " << activeList_[ii];
+      }
+      (*debug) << std::endl;
+#endif
+    }
+
+    // ============
+    //   Clean-up
+    // ============
+
+    // Finish logging to las-file
+    if ( percentDone < 100 ) {
+      (*cla) << " .. 100%";
+    }
+    (*cla) << std::endl;
+
+  }
+
+
+  // =======================
+  //   ExportFactorisation
+  // =======================
+  template <typename T>
+  void LDLSolver<T>::ExportFactorisation( const char *fname,
+                                          bool patternOnly ) {
+
+    ENTER_FCN( "LDLSolver::ExportFactorisation" );
+
+    UInt i, j, k;
+    T aux;
+
+    // ====================
+    //   Open output file
+    // ====================
+    FILE *fp = fopen( fname, "w" );
+    if ( fp == NULL ) {
+      (*error) << "LDLSolver::ExportFactorisation: Cannot open file "
+               << fname << " for writing!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // =====================
+    //   Write file header
+    // =====================
+
+    // Matrix Market Format Specification
+    std::string myFormat;
+    if ( patternOnly == true ) {
+      myFormat = "pattern";
+    }
+    else {
+      if ( EntryType<T>::M_EntryType == DOUBLE ) {
+        myFormat = "real";
+      }
+      else if ( EntryType<T>::M_EntryType == COMPLEX ) {
+        myFormat = "complex";
+      }
+      else {
+        (*error) << "LDLSolver::ExportFactorisation: Cannot identify "
+                 << "template parameter";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+    fprintf( fp, "%%%%MatrixMarket matrix coordinate %s general\n",
+             myFormat.c_str() );
+
+    // Comment
+    if ( patternOnly == true ) {
+      fprintf( fp, "%%\n%% Sparsity pattern of LDL^T factorisation matrix " );
+      fprintf( fp, "F = D + L^T\n" );
+      fprintf( fp, "%% computed by LDLSolver\n%%\n" );
+    }
+    else {
+      fprintf( fp, "%%\n%% LDL^T factorisation matrix F = D + L^T " );
+      fprintf( fp, " computed by LDLSolver\n%%\n" );
+    }
+
+    // Information on number of rows, columns and entries
+    Integer dof = BlockSize<T>::size;
+    fprintf( fp, "%d\t%d\t%d\n", sysMatDim_ * dof, sysMatDim_ * dof,
+             (rptrU_[sysMatDim_+1] - 1 + sysMatDim_) * dof * dof );
+
+    // ======================
+    //   Write entries of D
+    // ======================
+    for ( i = 1; i <= sysMatDim_; i++ ) {
+      for ( j = 1; j <= dof; j++ ) {
+        for ( k = 1; k <= dof; k++ ) {
+          fprintf( fp, "%6d\t%6d\t", (i-1) * dof + j, (i-1) * dof + k );
+          if ( patternOnly == false ) {
+            aux = opType<T>::invert( dataD_[i] );
+            opType<T>::ExportEntry( aux, j-1, k-1, fp );
+          }
+          fprintf( fp, "\n" );
+        }
+      }
+    }
+
+    // ======================
+    //   Write entries of U
+    // ======================
+    Integer ib, jb, nblocks;
+
+    // loop over all block rows
+    for ( i = 1; i <= sysMatDim_; i++ ) {
+
+      // get number of blocks in i-th row
+      nblocks = rptrU_[i+1] - rptrU_[i];
+
+      // loop over all blocks in this row
+      for ( j = 1; j <= nblocks; j++ ) {
+
+        // loop over block entries
+        for ( ib = 0; ib < dof; ib++ ) {
+          for ( jb = 0; jb < dof; jb++ ) {
+
+            // store row and column index
+            fprintf( fp, "%6d\t%6d\t", (i-1) * dof + ib + 1,
+                     ( cidxU_[rptrU_[i]+j-1] - 1 ) * dof + jb + 1);
+
+            // store non-zero entry
+            opType<T>::ExportEntry( dataU_[rptrU_[i]+j-1], ib, jb, fp );
+            fprintf( fp, "\n" );
+          }
+        }
+      }
+    }
+
+    // =====================
+    //   Close output file
+    // =====================
+    if ( fclose( fp ) == EOF ) {
+      (*warning) << "LDLSolver::ExportFactorisation: Could not close file "
+                 << fname << " after writing!";
+      Warning( __FILE__, __LINE__ );
+    }
+  }
+
+}

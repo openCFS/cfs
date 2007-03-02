@@ -1,0 +1,145 @@
+/* $Id$ */
+
+#define  INCLUDE_MULTIGRID_CC_FILES
+#include "multigrid/multigrid.hh"
+#include "precond/mgprecond.hh"
+
+namespace OLAS {
+/**********************************************************/
+
+template <typename T>
+MGPrecond<T>::MGPrecond( OLAS_Params *params )
+    : params_( params ),
+      report_( NULL ),
+      AMG_( NULL )
+{
+    ENTER_FCN("MGPrecond::MGPrecond(OLAS_Params*)");
+}    
+
+/**********************************************************/
+
+template <typename T>
+MGPrecond<T>::MGPrecond( const StdMatrix   &matrix,
+                         OLAS_Params *params,
+                         OLAS_Report *report )
+    : params_( params ),
+      report_( report ),
+      AMG_( NULL )
+{
+    ENTER_FCN("MGPrecond::MGPrecond(StdMatrix&,...)");
+}
+
+/**********************************************************/
+
+template <typename T>
+MGPrecond<T>::~MGPrecond()
+{
+    ENTER_FCN("MGPrecond::~MGPrecond:");
+
+    delete AMG_;
+}
+
+/**********************************************************/
+
+template <typename T>
+void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
+{
+    ENTER_FCN("MGPrecond::Setup(const BaseMatrix&)");
+
+    if( ! AMG_ ) {
+      if( NULL == (AMG_ = New AMGSolver<T>(params_)) ) {
+	Error( "MGPrecond::Setup: could not create serial "
+	       "AMG object", __FILE__, __LINE__ );
+      } else {
+	AMG_->Reset();
+      }
+    }
+    // cast the matrix to a serial CRS matrix and call Setup
+    TRY_CAST
+      RefCast( sysmatrix, CRS_Matrix<T>, crsSysMatrix )
+      // eventually change the layout of the matrix
+      if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
+	(*cla)
+	  << " --------------------------------------\n"
+	  << " MGPrecond::Setup( StdMatrix& ):\n"
+	  "   changing layout of  passed serial system matrix:"
+	  << std::endl;
+	crsSysMatrix.ChangeLayout( CRS_Matrix<T>::LEX_DIAG_FIRST );
+	(*cla) << " --------------------------------------"<<std::endl;
+      }
+    // setup the serial AMG object
+    if( ! AMG_->Setup(&crsSysMatrix) ) {
+      Error( "MGPrecond::Setup: could not set up the AMG "
+	     "preconditioner\n", __FILE__, __LINE__ );
+    }
+    this->readyToUse_ = true;
+    CATCH_CAST
+      
+}
+
+/**********************************************************/
+
+template <typename T>
+void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
+                          const StdMatrix& auxmatrix )
+{
+    ENTER_FCN("MGPrecond::Setup(StdMatrix,StdMatrix)");
+
+    ///////////////////////////////////////////////////////////
+    Error( "MGPrecond::Setup(StdMatrix,StdMatrix) not yet "
+           "implemented\n", __FILE__, __LINE__ );
+    ///////////////////////////////////////////////////////////
+
+    // cast the standart matrix objects (AMG works with
+    // CRS matrices only)
+    CRS_Matrix<T>* const pSysMatrix = dynamic_cast<CRS_Matrix<T>*>(&sysmatrix);
+    CRS_Matrix<T>* const pAuxMatrix = dynamic_cast<CRS_Matrix<T>*>(&auxmatrix);
+
+    if( ! pSysMatrix && ! pAuxMatrix ) {
+        Error( "MGPrecond::Setup: AMG works with CRS matrices "
+               "only\n", __FILE__, __LINE__ );
+    }
+
+    // setup the serial matrix object
+    if( !AMG_.Setup(&sysmatrix, &auxmatrix) ) {
+        Error( "could not set up the AMG preconditioner\n",
+               __FILE__, __LINE__ );
+    }
+}
+
+/**********************************************************/
+
+template <typename T>
+void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
+                          const StdVector& rhs,
+			  StdVector& sol ) const
+{
+    ENTER_FCN("MGPrecond::Apply");
+
+    if( this->readyToUse_ ) {
+        sol.Init();
+        // We have set up a serial AMG. This might also have
+        // been the decition due to a single process run of
+        // a parallel program. Also in this case the casts to
+        // (const) Vector<T> are OK, because Vector<T> is a
+        // base class of ParVector<T>
+        if( AMG_ ) {
+            TRY_CAST
+            ConstRefCast( rhs, Vector<T>, vectorRhs )
+            RefCast( sol, Vector<T>, vectorSol )
+            // AMG cycle
+            AMG_->Cycle( vectorRhs, vectorSol );
+            CATCH_CAST
+        } else {
+            Error( "AMG preconditioner used in undefined "
+                   "state. It is a bug that you could reach "
+                   "this line.", __FILE__, __LINE__ );
+        }
+    } else {
+        Error( "AMG preconditioner used before setup",
+               __FILE__, __LINE__ );
+    }
+}
+
+/**********************************************************/
+} // namespace OLAS

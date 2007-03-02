@@ -1,0 +1,60 @@
+
+# Check if we are using the GNU compiler suite
+IF(CMAKE_COMPILER_IS_GNUCXX)
+#  MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
+
+  # Set the compiler name and compiler version
+  SET(CFS_CXX_COMPILER_NAME "GCC")
+  EXEC_PROGRAM("${CMAKE_CXX_COMPILER} --version | head -1 | cut -d' ' -f 3"
+    ARGS
+    OUTPUT_VARIABLE CFS_CXX_COMPILER_VER
+    RETURN_VALUE RETVAL)
+
+#  MESSAGE("GNU C++ name: ${CFS_CXX_COMPILER_NAME}")
+#  MESSAGE("GNU C++ version: ${CFS_CXX_COMPILER_VER}")
+#  MESSAGE("CMAKE BUILD TYPE: ${CMAKE_BUILD_TYPE}")
+#  MESSAGE("CFS_ARCH_STR: ${CFS_ARCH_STR}")
+
+  # Determine compiler/linker flags according to build type
+  IF(DEBUG)
+
+    SET(CFS_CXX_FLAGS "-ansi -Wall -pedantic -ftemplate-depth-55")
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+    SET(CHECK_MEM_ALLOC 1)
+    SET(CHECK_TYPE_CASTS 1)
+
+    IF(CFS_PROFILING)
+      SET(CFS_PROF_FLAGS "-pg")
+    ENDIF(CFS_PROFILING)
+
+  ELSE(DEBUG)
+
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused -Wno-sign-compare")
+    SET(CFS_CXX_FLAGS "-ansi -Wall -pedantic -ftemplate-depth-55")
+
+    IF(CFS_ARCH STREQUAL "I386")
+      SET(CFS_OPT_FLAGS "-m32 -march=pentium4")
+    ENDIF(CFS_ARCH STREQUAL "I386")
+
+    IF(CFS_ARCH STREQUAL "X86_64")
+      SET(CFS_OPT_FLAGS "-m64 -march=k8")
+    ENDIF(CFS_ARCH STREQUAL "X86_64")
+
+    IF(CFS_ARCH STREQUAL "IA64")
+      SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2")
+    ENDIF(CFS_ARCH STREQUAL "IA64")
+
+  ENDIF(DEBUG)
+
+#  MESSAGE("CFS_CXX_FLAGS: ${CFS_CXX_FLAGS}")
+#  MESSAGE("CFS_PROF_FLAGS: ${CFS_PROF_FLAGS}")
+#  MESSAGE("CFS_SUPPRESSIONS: ${CFS_SUPPRESSIONS}")
+
+ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+
+# Set compiler/linker flags for all build types
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
+SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
