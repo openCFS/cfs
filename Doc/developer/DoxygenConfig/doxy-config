@@ -63,38 +63,68 @@ WARN_LOGFILE           =
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = ../../Doc/developer/DoxygenConfig/mainpage.txt \
+                         ../../libsrc/CoupledPDE \
                          ../../libsrc/DataInOut \
-                         ../../libsrc/DataInOut/AnsysFile \
                          ../../libsrc/DataInOut/AnsysOut \
-                         ../../libsrc/DataInOut/Database \
-                         ../../libsrc/DataInOut/DefineFiles \
-                         ../../libsrc/DataInOut/GMV \
-                         ../../libsrc/DataInOut/GSI \
-                         ../../libsrc/DataInOut/GiD \
-                         ../../libsrc/DataInOut/Scripting \
-                         ../../libsrc/DataInOut/ParamHandling \
                          ../../libsrc/DataInOut/CommandLine \
-                         ../../libsrc/DataInOut/Unverg \
-                         ../../libsrc/Domain/ \
-                         ../../libsrc/Domain/GridCFS \
+                         ../../libsrc/DataInOut/DefineFiles \
+                         ../../libsrc/DataInOut/Logging \
+                         ../../libsrc/DataInOut/Logging/detail \
+                         ../../libsrc/DataInOut/Logging/extra \
+                         ../../libsrc/DataInOut/ParamHandling \
+                         ../../libsrc/DataInOut/Scripting \
+                         ../../libsrc/DataInOut/Scripting/python \
+                         ../../libsrc/DataInOut/Scripting/tcl \
+                         ../../libsrc/DataInOut/SimInput \
+                         ../../libsrc/DataInOut/SimInput/AnsysFile \
+                         ../../libsrc/DataInOut/SimInput/gmv \
+                         ../../libsrc/DataInOut/SimInput/xmdf \
+                         ../../libsrc/DataInOut/SimOutput \
+                         ../../libsrc/DataInOut/SimOutput/GiD \
+                         ../../libsrc/DataInOut/SimOutput/TextOutput \
+                         ../../libsrc/DataInOut/SimOutput/Unverg \
+                         ../../libsrc/DataInOut/SimOutput/gmv \
+                         ../../libsrc/Domain \
                          ../../libsrc/Domain/AdaptGrid \
+                         ../../libsrc/Domain/GridAdaption \
+                         ../../libsrc/Domain/GridCFS \
+                         ../../libsrc/Domain/GridStruct \
+                         ../../libsrc/Domain/Gridlib \
                          ../../libsrc/Driver \
-                         ../../libsrc/ParamIdent \
                          ../../libsrc/Elements \
                          ../../libsrc/Elements/1D \
                          ../../libsrc/Elements/2D \
                          ../../libsrc/Elements/3D \
-                         ../../libsrc/Forms \
-                         ../../libsrc/PDE \
-                         ../../libsrc/Matrix \
                          ../../libsrc/Estimator \
-                         ../../libsrc/Utils \
+                         ../../libsrc/Forms \
                          ../../libsrc/General \
-                         ../../libsrc/CoupledPDE \
+                         ../../libsrc/Materials \
+                         ../../libsrc/Matrix \
                          ../../libsrc/MpCCIcpl \
                          ../../libsrc/ODEDescr \
                          ../../libsrc/ODESolve \
-                         ../../libsrc/Materials
+                         ../../libsrc/OLAS \
+                         ../../libsrc/OLAS/algsys \
+                         ../../libsrc/OLAS/external \
+                         ../../libsrc/OLAS/external/arpack \
+                         ../../libsrc/OLAS/external/ilupack \
+                         ../../libsrc/OLAS/external/lapack \
+                         ../../libsrc/OLAS/external/pardiso \
+                         ../../libsrc/OLAS/graph \
+                         ../../libsrc/OLAS/makefilemach \
+                         ../../libsrc/OLAS/matvec \
+                         ../../libsrc/OLAS/multigrid \
+                         ../../libsrc/OLAS/precond \
+                         ../../libsrc/OLAS/precond/ILDLPrecond \
+                         ../../libsrc/OLAS/solver \
+                         ../../libsrc/OLAS/utils \
+                         ../../libsrc/OLAS/utils/math \
+                         ../../libsrc/PDE \
+                         ../../libsrc/ParamIdent \
+                         ../../libsrc/Utils \
+                         ../../libsrc/Utils/exprt \
+                         ../../libsrc/Utils/mathParser
+
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 

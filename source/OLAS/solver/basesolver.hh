@@ -1,0 +1,199 @@
+#ifndef OLAS_BASESOLVER_HH
+#define OLAS_BASESOLVER_HH
+
+#include "matvec/matvec.hh"
+#include "precond/precond.hh"
+
+namespace OLAS {
+
+
+  // =========================================================================
+  // BASE SOLVER
+  // =========================================================================
+
+
+  //! Base class for algebraic system solver
+  class BaseSolver {
+
+  public:
+
+    //! Default Constructor
+    BaseSolver() {
+      ENTER_FCN( "BaseSolver::BaseSolver" );
+    }
+
+    //! Default Destructor
+    virtual ~BaseSolver() {
+      ENTER_FCN( "BaseSolver::~BaseSolver" );
+    }
+
+    //! General setup routine
+  
+    //! For direct solvers this might involve a factorization, for Krylov
+    //! solvers just construction of some vectors etc.
+    virtual void Setup( BaseMatrix &sysmat ) = 0;
+
+    //! Solve the linear system sysmat*sol=rhs for sol
+    virtual void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
+			const BaseVector &rhs, BaseVector &sol) = 0;
+
+    //! Query type of the solver
+
+    //! This method can be used to query the type of this solver. The answer
+    //! is encoded as a value of the enumeration data type SolverType.
+    //! \return type of the solver
+    virtual SolverType GetSolverType() = 0;
+
+    //! Method to force instantiation of all public member functions
+
+    //! This auxillary method is used in our factory concept for solver
+    //! generation. The factory function GenerateSolverObject() will
+    //! make a pseudo call to this method in order to force the compiler
+    //! to instantiate all public methods of a templated solver class.
+    //! \note
+    //! - The method must never be actually called, since it does not perform
+    //!   any sensible operations.
+    //! - If a templated solver offers additional public methods besides
+    //!   the ones defined in the BaseSolver class, then it should over-write
+    //!   the InstantiateAdditionalPublicMethods() member function which is
+    //!   called by this method.
+    void InstantiatePublicMethods( BaseMatrix &sysMat );
+
+
+  protected:
+    
+    //! Pointer to parameter object
+
+    //! This is a pointer to a parameter object containing the steering
+    //! parameters for this solver.
+    OLAS_Params *myParams_;
+
+    //! Pointer to report object
+
+    //! This is a pointer to a report object in which the solver will store
+    //! general information about the solution of a linear system.
+    OLAS_Report *myReport_;
+
+    //! Method to force instantiation of all public member functions
+
+    //! This auxillary method is used in our factory concept for solver
+    //! generation. The factory function GenerateSolverObject() will
+    //! make a pseudo call to InstantiatePublicMethods() in order to force the
+    //! compiler to instantiate all public methods of a templated solver
+    //! class. The former method in turn calls this method. It is virtual in
+    //! order to allow over-writing by derived classes which offer additional
+    //! public methods besides the one defined in the BaseSolver class.
+    virtual void InstantiateAdditionalPublicMethods( BaseMatrix &sysMat );
+
+  };
+
+
+  // =========================================================================
+  // BASE ITERATIVE SOLVER
+  // =========================================================================
+
+
+  //! Base class for iterative linear system solvers in OLAS
+  class BaseIterativeSolver : public BaseSolver {
+
+  public:
+
+    //! Default Constructor
+    BaseIterativeSolver() {
+      ENTER_FCN( "BaseIterativeSolver::BaseIterativeSolver" );
+      scalFac_ = -1.0;
+    }
+
+    //! Default Destructor
+    ~BaseIterativeSolver() {
+      ENTER_FCN( "BaseIterativeSolver::~BaseIterativeSolver" );
+    }
+
+  protected:
+
+    //! Auxilliary routine for logging convergence info
+
+    //! This routine will log the Euclidean norm of the residual of the
+    //! current approximation and the relative residual to the standard
+    //! %OLAS report stream (*cla). Relative residual here means
+    //! \f$\|r\|_2/\|b\|_2\f$, where \f$b\f$ is the right hand side of
+    //! the linear system or the residual of the initial guess, if the right
+    //! hand side is zero. If the solver allows for left-preconditioning,
+    //! then the residual might be the preconditioned residual.
+    //! \param rk        norm of residual of the current approximate,
+    //!                  i.e. \f$\|r^{(k)}\|_2\f$
+    //! \param step      number \f$k\f$ of current iteration step1
+    //! \param firstCall on first call we also write a header
+    void LogConvergence( Double rk, UInt step, bool firstCall = false );
+
+    //! Compute threshold for stopping criterion
+
+    //! This method will compute the threshold for the stopping criterion.
+    //! We use the following test to terminate the iteration. An approximate
+    //! solution \f$x^{(k)}\f$ is accepted as good enough, if
+    //! \f[
+    //! \| r^{(k)} \|_2 \leq \mbox{tol} := \varepsilon \cdot \tau
+    //! \f]
+    //! where the parameter \f$\tau\f$ depends on the chosen stopping rule.
+    //! The latter is determined from the <b>StoppingCriterion</b> setting
+    //! in the myParams_ object. We use
+    //! \f[
+    //! \tau = \left\{ \begin{array}{cl}
+    //! 1 & \mbox{ for ABSNORM}\\[2ex]
+    //! \|b\|_2 & \mbox{ for RELNORM\_RHS (and $b\neq 0$)}\\[2ex]
+    //! \|r^{(0)}\|_2 & \mbox{ for RELNORM\_RES0 or for RELNORM\_RHS if $b=0$
+    //!  or penalty formulation is used}
+    //! \end{array}\right.
+    //! \f]
+    //! Here \f$\varepsilon\f$ is the user supplied value for the stopping
+    //! test. The method queries the <b>RHSwithPenalty</b> steering
+    //! parameter to determine whether the penalty formulation is active.
+    //! \param eps       the user supplied stopping value
+    //! \param rhs       right-hand side \f$b\f$ of linear system
+    //! \param res       residual \f$r^{(0)}\f$ of initial guess
+    //! \param resNorm   the method returns in this parameter the norm of
+    //!                  the initial residual
+    //! \param beVerbose this flag controls the verbosity of the method
+    //! \return The threshold tol to be used in the stopping test
+    virtual Double ComputeThreshold( Double eps, const BaseVector &rhs,
+				     const BaseVector &res, Double &resNorm,
+				     bool beVerbose );
+
+    //! Scaling factor used to compute the threshold
+
+    //! This attribute stores the scaling factor \f$\| v \|_2\f$ computed
+    //! by ComputeThreshold in order to obtain the threshold for the stopping
+    //! criterion. We store this, so that we can use it e.g. in the
+    //! LogConvergence method.
+    Double scalFac_;
+  };
+
+
+  // =========================================================================
+  // BASE DIRECT SOLVER
+  // =========================================================================
+
+
+  //! Base class for direct linear system solvers in OLAS
+  class BaseDirectSolver : public BaseSolver {
+
+  public:
+
+    //! Default Constructor
+    BaseDirectSolver() {
+      ENTER_FCN( "BaseDirectSolver::~BaseDirectSolver" );
+    }
+
+    //! Default Destructor
+    ~BaseDirectSolver() {
+      ENTER_FCN( "BaseDirectSolver::~BaseDirectSolver" );
+    }
+
+  };
+
+
+} // namespace
+
+
+
+#endif // OLAS_BASESOLVER_HH

@@ -13,6 +13,25 @@
 
 
   <!-- ******************************************************************** -->
+  <!-- Data type for general geometry specification -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_Geometry">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="optional" default="3d">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="plane"/>
+              <xsd:enumeration value="axi"/>
+              <xsd:enumeration value="3d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
   <!-- Data type for specification of a region in the mesh file -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainRegion">
@@ -156,15 +175,51 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_Domain">
     <xsd:sequence>
-      <xsd:element name="region" type="DT_DomainRegion" minOccurs="1" 
-        maxOccurs="unbounded"/>
-      <xsd:element name="surface" type="DT_DomainSurface" minOccurs="0"/>
-      <xsd:element name="nodes" type="DT_DomainNodes" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elements" type="DT_DomainElems" minOccurs="0"
-        maxOccurs="unbounded"/>
+      <!-- Region list -->
+      <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="region" type="DT_DomainRegion" minOccurs="1" 
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Surface region list -->
+      <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="surfRegion" type="DT_DomainSurface"
+            minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Named elems list -->
+      <xsd:element name="elemList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="elems" type="DT_DomainElems" minOccurs="0"
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Named nodes list -->
+      <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="nodes" type="DT_DomainNodes" minOccurs="0"
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Composite material list -->
       <xsd:element name="composite" type="DT_DomainComposite" minOccurs="0"
         maxOccurs="unbounded"/>
+
+      <!-- Coordinate system list -->
       <xsd:element name="coordSys" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:sequence>
@@ -173,9 +228,22 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
+
+      <!-- Directivity nodes list -->
       <xsd:element name="directivityNodes" type="DT_DirectiNodes" minOccurs="0"
         maxOccurs="1"/>
     </xsd:sequence>
+
+    <!-- Type of geometry used for the domain -->
+    <xsd:attribute name="geometryType" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="plane"/>
+          <xsd:enumeration value="axi"/>
+          <xsd:enumeration value="3d"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

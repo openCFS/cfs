@@ -1,0 +1,42 @@
+/*! \file generateidbchandler.hh
+
+    This file provides functions that act as factories for the generation
+    of instances of the templated IDBC_Handler class.
+    \remark Note that the documentation of the functions in this file
+    is not be found here, but in the description of the namespace
+    OLAS to which they belong.
+*/
+
+
+#ifndef OLAS_GENERATE_IDBC_HANLDER_HH
+#define OLAS_GENERATE_IDBC_HANLDER_HH
+
+#include <set>
+#include "utils/utils.hh"
+
+namespace OLAS {
+
+  // forward declaration
+  class BaseIDBC_Handler;
+  class BaseGraphManager;
+
+  //! Function for generating an IDBC_Handler object for elimination approach
+  BaseIDBC_Handler*
+  GenerateIDBC_HandlerObject( const std::set<FEMatrixType> usedFEMatrices,
+                              BaseGraphManager *graphManager, UInt numPDEs,
+                              UInt numIDBCs, const MatrixEntryType eType,
+                              bool sbmCase );
+
+  //! Function for generating an IDBC_HandlerPenalty object for StdMatrices
+  BaseIDBC_Handler*
+  GenerateIDBC_HandlerObject( UInt numIDBC, UInt blockSize,
+                              const MatrixEntryType eType );
+
+  //! Function for generating an IDBC_HandlerPenalty object for SBM_Matrices
+  BaseIDBC_Handler*
+  GenerateIDBC_HandlerObject( UInt numIDBC, UInt numPDEs, UInt *bcOffsets,
+                              const MatrixEntryType eType );
+}
+
+#endif
+

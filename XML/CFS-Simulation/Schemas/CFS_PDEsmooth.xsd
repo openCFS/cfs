@@ -34,14 +34,18 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on -->
-          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -52,8 +56,6 @@
                 <xsd:element name="load"           type="DT_SmoothLoad"    />
                 <xsd:element name="pressure"       type="DT_SmoothPressure"/>
               </xsd:choice>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -72,15 +74,29 @@
   </xsd:complexType>
 
 
+ <!-- ******************************************************************* -->
+  <!--   Definition of the smoothPDE unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_SmoothUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothDisplacement"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of enumeration type describing the degrees of freedom  -->
   <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_SmoothDOF">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="ux"/>
-      <xsd:enumeration value="uy"/>
-      <xsd:enumeration value="uz"/>
+     <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="tx"/>
+      <xsd:enumeration value="ty"/>
+      <xsd:enumeration value="tz"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value="phi"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -98,6 +114,8 @@
         <xsd:attribute name="entityType" type="DT_EntityType"
           use="optional" default="nodeList"/>
         <xsd:attribute name="dof" type="DT_SmoothDOF" use="required"/>
+        <xsd:attribute name="quantity" default="smoothDisplacement"
+          type="DT_SmoothUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -108,8 +126,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SmoothHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -137,8 +153,6 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="value" type="xsd:double" use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -148,58 +162,52 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
-  <!-- What data can a single node have in a mechanic PDE -->
-  <xsd:simpleType name="DT_NodeDataSmooth">
+  <!-- Definition of nodal result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDisplacement"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="DT_ElemDataSmooth">
+  <!-- Definition of nodal result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="strain"/>
-      <xsd:enumeration value="stress"/>
+      <xsd:enumeration value=""/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Data type for describing final node values to be stored -->
-  <xsd:complexType name="DT_NodeResultsSmooth">
-    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing history of node values to be stored -->
-  <xsd:complexType name="DT_NodeHistorySmooth">
-    <xsd:attribute name="type" type="DT_NodeDataSmooth" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing final element values to be stored -->
-  <xsd:complexType name="DT_ElemResultsSmooth">
-    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing history of element values to be stored -->
-  <xsd:complexType name="DT_ElemHistorySmooth">
-    <xsd:attribute name="type" type="DT_ElemDataSmooth" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
-  </xsd:complexType>
-
-  <!-- Global type for specifying the desired mechanical output quantities -->
+ <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_SmoothStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsSmooth"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistorySmooth"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_ElemResultsSmooth"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_ElemHistorySmooth"
-        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_SmoothNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_SmoothElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
+
 
 </xsd:schema>

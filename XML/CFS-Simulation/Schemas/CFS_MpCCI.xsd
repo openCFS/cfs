@@ -84,8 +84,6 @@
           <xsd:element name="quantityDim2" type="xsd:nonNegativeInteger"/>
           <xsd:element name="maxnEmptyNodes" type="xsd:nonNegativeInteger"/>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -108,8 +106,6 @@
           <xsd:element name="quantityDim2" type="xsd:nonNegativeInteger"/>
           <xsd:element name="maxnEmptyNodes" type="xsd:nonNegativeInteger"/>
         </xsd:sequence>
-        <xsd:attribute name="tag"  type="xsd:string" use="optional"
-          default="anyTag"/> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

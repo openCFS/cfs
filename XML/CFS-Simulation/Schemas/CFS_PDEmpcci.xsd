@@ -31,20 +31,24 @@
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
+
           <!-- Regions the PDE lives on -->
-          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="type"  type="DT_MpcciType" use="required"/>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="type"  type="DT_MpcciType" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
+          
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:attribute name="tag" type="xsd:token"
-                use="optional" default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>

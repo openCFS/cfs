@@ -1,0 +1,4 @@
+// Define used to check if Python scripting is used
+
+#cmakedefine USE_SCRIPTING_PYTHON
+

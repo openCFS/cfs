@@ -22,7 +22,6 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDEnrbc.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEstokesFluid.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEbubble.xsd"/>
@@ -37,12 +36,14 @@
   <!-- ******************************************************************* -->
   <!--   Include further definitions -->
   <!-- ******************************************************************* -->
+  <xsd:include schemaLocation="Schemas/CFS_PostProc.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_LinearSystem.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Solvers.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Preconds.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Analysis.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Domain.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Misc.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MpCCI.xsd"/>
 
@@ -53,24 +54,9 @@
   <xsd:element name="cfsSimulation">
     <xsd:complexType>
       <xsd:sequence>
-
-        <!-- Type of analysis (required) -->
-        <xsd:element name="analysis" type="DT_Analysis"/>
         
-        <!-- Type of geometry (required) -->
-        <xsd:element name="geometry" type="DT_Geometry"/>
-
-        <!-- Format of mesh file (optional) -->
-        <xsd:element name="input" type="DT_Input" minOccurs="0"/>
-        
-        <!-- Format of results' file (optional) -->
-        <xsd:element name="output" type="DT_Output" minOccurs="0"/>
-
-        <!-- Extra information for output format (optional) -->
-        <xsd:element ref="OutputBasic" minOccurs="0" maxOccurs="unbounded"/>
-
-        <!-- Name of file containing material data (optional) -->
-        <xsd:element name="materialData" type="DT_MatFile" minOccurs="0"/>
+        <!-- File format list for io-specifications (required)-->
+        <xsd:element name="fileFormats" type="DT_FileFormats" minOccurs="1"/>
 
         <!-- Description of problem domain (required) -->
         <xsd:element name="domain" type="DT_Domain">
@@ -101,48 +87,75 @@
             <xsd:selector xpath="cfs:elements"/>
             <xsd:field xpath="@name"/>
           </xsd:key>
-
         </xsd:element>
-        
-        <!-- List of PDEs (required) -->
-        <xsd:element name="pdeList">
+        <!-- Definition of multiSequence steps -->
+        <xsd:element name="sequenceStep" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:sequence>
-              <xsd:element ref="PDEBasic" minOccurs="1"
-                maxOccurs="unbounded"/>
-            </xsd:sequence>
-          </xsd:complexType>
-        </xsd:element>
 
-        <!-- List of PDE Couplings (optional) -->
-        <xsd:element name="couplingList" minOccurs="0" maxOccurs="unbounded">
-          <xsd:complexType>
-            <xsd:sequence>
-              <xsd:element ref="PDEBasicCoupling" minOccurs="0"
-                maxOccurs="unbounded"/>
+              <!-- Type of analysis (required) -->
+              <xsd:element name="analysis">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <!-- Parameters for transient/harmonic analysis (semi-optional) -->
+                    <xsd:element ref="AnalysisBasic" minOccurs="1"
+                      maxOccurs="1"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+              
+              <!-- List of PDEs (required) -->
+              <xsd:element name="pdeList">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element ref="PDEBasic" minOccurs="1"
+                      maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+              
+              <!-- List of PDE Couplings (optional) -->
+              <xsd:element name="couplingList" minOccurs="0" maxOccurs="unbounded">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element ref="PDEBasicCoupling" minOccurs="0"
+                      maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                  <xsd:attribute name="tag" type="xsd:token" use="optional" 
+                    default="anyTag"/>
+                </xsd:complexType>
+              </xsd:element>
+              
+              <!-- Data postprocessing section (optional) -->
+              <xsd:element name="postProcList" type="DT_PostProcList"
+                minOccurs="0" maxOccurs="1"/>
+              
+              <!-- Paremeters for setting up and solving linear systems -->
+              <xsd:element name="linearSystems" minOccurs="0">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="system" type="DT_SystemSpec" minOccurs="1"
+                      maxOccurs="unbounded"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
             </xsd:sequence>
-            <xsd:attribute name="tag" type="xsd:token" use="optional" 
-              default="anyTag"/>
+            <xsd:attribute name="index" type="xsd:positiveInteger"
+              default="1"/>
+            <xsd:attribute name="usage" use="optional" default="startValue">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="startValue"/>
+                  <xsd:enumeration value="dirichletValue"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
           </xsd:complexType>
         </xsd:element>
         
-        <!-- Parameters for transient/harmonic analysis (semi-optional) -->
-        <xsd:element ref="AnalysisBasic" minOccurs="0"
-          maxOccurs="unbounded"/>
-
         <!-- Parameters for MpCCI computation (semi-optional) -->
         <xsd:element ref="MpCCI" minOccurs="0"
           maxOccurs="unbounded"/>
-
-        <!-- Paremeters for setting up and solving linear systems -->
-        <xsd:element name="linearSystems" minOccurs="0">
-          <xsd:complexType>
-            <xsd:sequence>
-              <xsd:element name="system" type="DT_SystemSpec" minOccurs="1"
-                maxOccurs="unbounded"/>
-            </xsd:sequence>
-          </xsd:complexType>
-        </xsd:element>
 
         <!-- Parameters for specifying integration rules (optional) -->
         <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>

@@ -1,0 +1,62 @@
+#ifndef DEFINEFILES_2001
+#define DEFINEFILES_2001
+
+#include "DataInOut/simInput.hh"
+#include "DataInOut/simOutput.hh"
+#include "DataInOut/MaterialHandler.hh"
+
+namespace CoupledField
+{ 
+
+    class MeshIOModule;
+
+  //! Define trace, debug, info files
+
+  //! In this class we define auxiliary files, such as the <em>trace</em>-file
+  //! (file,where we list all methods and classes, that are used during
+  //! running of program; this file should help developer to trace a mistake),
+  //! <em>debug</em>-file (file, where intermediate results are stored),
+  //! <em>info</em>- file (in this file we print specific information about
+  //! methods and types of data, which were used in code)
+  class DefineInOutFiles
+  {
+
+  public:
+
+    //! constructor
+    //! \param name This is the basename for all auxilliary file.
+    DefineInOutFiles(const Char * name);
+
+    //! destructor
+    ~DefineInOutFiles();
+
+    //! Open an auxilliary file
+    void OpenFile( AuxFileType fileType );
+
+    //! create a pointer to a class for reading input-results, a derived class
+    //! of the FileType according to the specification of the conf-file.
+    SimInput* CreateMeshFileHandler();
+
+    //! create pointer to output class and their related ids
+    void CreateSimOutputFiles( std::map<std::string, 
+                               shared_ptr<SimOutput> >&  out );
+
+    //! create pointer to Materialfile Handler
+    MaterialHandler* CreateMaterialHandler();
+
+    //! create instance of script handling class
+    CFSMessenger* CreateScriptMessenger( const std::string& fileName = "" );
+
+  private:
+
+    //! pointer to a class for reading input data
+    SimInput* simInput_;
+
+    //! pointer to MaterialHandler
+    MaterialHandler * ptMaterialHandler_;
+
+  };
+
+} // end of namespace
+#endif
+

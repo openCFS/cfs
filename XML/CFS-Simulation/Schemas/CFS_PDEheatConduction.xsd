@@ -34,11 +34,15 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on -->
-          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>         
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 
@@ -58,8 +62,6 @@
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
                 <xsd:element name="load"           type="DT_HeatLoad" />
               </xsd:choice>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -77,6 +79,16 @@
 
 
   <!-- ******************************************************************* -->
+  <!--   Definition of the headConduction unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_HeatUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatTemperature"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for heatConduction -->
   <!-- ******************************************************************* -->
 
@@ -88,6 +100,8 @@
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="entityType" type="DT_EntityType"
           use="optional" default="nodeList"/>
+        <xsd:attribute name="quantity" default="heatTemperature"
+          type="DT_HeatUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -98,8 +112,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_HeatHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
       </xsd:extension>
@@ -112,13 +124,12 @@
       <xsd:extension base="DT_HeatHD">
         <xsd:attribute name="value" type="xsd:double" use="optional"
           default="0.0"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
-        <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional"
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:token"
+          use="optional"
           default="0.0"/>
-        <xsd:attribute name="tempSolid" type="xsd:double" use="optional"
+        <xsd:attribute name="tempSolid" type="xsd:token" use="optional"
           default="0.0"/>
-        <xsd:attribute name="tempFluid" type="xsd:double" use="optional"
+        <xsd:attribute name="tempFluid" type="xsd:token" use="optional"
           default="0.0"/>
       </xsd:extension>    
     </xsd:complexContent>
@@ -137,63 +148,31 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
-  <!-- What data can a single node have in an heatConduction PDE -->
-  <xsd:simpleType name="DT_NodeDataHeat">
+  <!-- Definition of nodal result types of heatConduction PDE -->
+  <xsd:simpleType name="DT_HeatNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatTemperature"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-  <!-- What data can a single element have in a heatConduction PDE -->
-  <xsd:simpleType name="DT_ElemDataHeat">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value=""/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <!-- Data type for describing final node values to be stored -->
-  <xsd:complexType name="DT_NodeResultsHeat">
-    <xsd:attribute name="type" type="DT_NodeDataHeat" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing history of node values to be stored -->
-  <xsd:complexType name="DT_NodeHistoryHeat">
-    <xsd:attribute name="type" type="DT_NodeDataHeat" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
-      default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
-      default=""/>
-  </xsd:complexType>
-
-  <!-- Data type for describing final element values to be stored -->
-  <xsd:complexType name="DT_ElemResultsHeat">
-    <xsd:attribute name="type" type="DT_ElemDataHeat" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-
-  <!-- Data type for describing history of element values to be stored -->
-  <xsd:complexType name="DT_ElemHistoryHeat">
-    <xsd:attribute name="type" type="DT_ElemDataHeat" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
-      default=""/>
-  </xsd:complexType>
-
-  <!-- Global type for specifying desired heatConduction output quantities -->
+  
+  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_HeatStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsHeat" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistoryHeat" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_ElemResultsHeat" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_ElemHistoryHeat" minOccurs="0"
-        maxOccurs="unbounded"/>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_HeatNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
 

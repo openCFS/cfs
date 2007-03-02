@@ -1,0 +1,7 @@
+// Define used to check if MpCCI is used
+
+#cmakedefine MpCCI
+
+#ifdef MpCCI
+#define MpCCI_RELEASE @MPCCI_RELEASE@
+#endif

@@ -33,16 +33,20 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on (including optional damping model) -->
-          <xsd:element name="region" minOccurs="0"
-          maxOccurs="unbounded">
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
-                <xsd:attribute name="name" type="xsd:token"
-                  use="required"/>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
-              </xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="0"
+                  maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token"
+                      use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
           </xsd:element>
-
+          
           <!-- Information for simulation including bubbles (optional) -->
           <xsd:element name="bubbles" minOccurs="0">
             <xsd:complexType>
@@ -57,8 +61,6 @@
                 </xsd:element>
                 <xsd:element name="bubbleNumDensity" type="DT_NonNegFloat"/>
               </xsd:sequence>
-              <xsd:attribute name="tag" type="xsd:token" use="optional"
-                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
           
@@ -92,23 +94,21 @@
   <!-- *******************************************************************  -->
   
   <!-- Data type for bubbleDynamic section, i.e. parameters required
-    for performing a bubbleDynamic analysis -->
+  for performing a bubbleDynamic analysis -->
   <xsd:complexType name="DT_AnalysisBubbleDynamic">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-      <xsd:sequence>
-        <xsd:element name="initRadius"            type="DT_NonNegFloat" />
-        <xsd:element name="initVel"               type="xsd:float"      />
-        <xsd:element name="density"               type="DT_NonNegFloat" />
-        <xsd:element name="sonicVel"              type="DT_NonNegFloat" />
-        <xsd:element name="pStatic"               type="DT_NonNegFloat" />
-        <xsd:element name="pVapour"               type="DT_NonNegFloat" />
-        <xsd:element name="surfaceTension"        type="DT_NonNegFloat" />
-        <xsd:element name="polytrop"              type="DT_NonNegFloat" />
-        <xsd:element name="viscosity"             type="DT_NonNegFloat" />
-      </xsd:sequence>
-      <xsd:attribute name="tag" type="xsd:string" use="optional"
-        default="anyTag"/>
+        <xsd:sequence>
+          <xsd:element name="initRadius"            type="DT_NonNegFloat" />
+          <xsd:element name="initVel"               type="xsd:float"      />
+          <xsd:element name="density"               type="DT_NonNegFloat" />
+          <xsd:element name="sonicVel"              type="DT_NonNegFloat" />
+          <xsd:element name="pStatic"               type="DT_NonNegFloat" />
+          <xsd:element name="pVapour"               type="DT_NonNegFloat" />
+          <xsd:element name="surfaceTension"        type="DT_NonNegFloat" />
+          <xsd:element name="polytrop"              type="DT_NonNegFloat" />
+          <xsd:element name="viscosity"             type="DT_NonNegFloat" />
+        </xsd:sequence>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType> 
@@ -119,40 +119,34 @@
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
 
-  <!-- What data can a single element have in a bubble PDE -->  
-  <xsd:simpleType name="DT_BubbleElemData">
+  <!-- Definition of element result types of bubble PDE -->  
+  <xsd:simpleType name="DT_BubbleElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="bubbleValues"/>
       <xsd:enumeration value="bubbleRHS"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- Data type for describing final element values to be stored -->
-  <xsd:complexType name="DT_BubbleElemResults">
-    <xsd:attribute name="type" type="DT_BubbleElemData" use="required"/>
-    <xsd:attribute name="region" type="xsd:token" use="optional"
-      default="all"/>
-  </xsd:complexType>
-  
-  <!-- Data type for describing history of element values to be stored -->
-  <xsd:complexType name="DT_BubbleElemHistory">
-    <xsd:attribute name="type" type="DT_BubbleElemData" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
-      default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
-      default=""/>
-  </xsd:complexType>  
-
-  <!-- Global type for specifying the desired acoustic output quantities -->
+  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_BubbleStoreResults">
     <xsd:sequence>
-      <xsd:element name="elemResults" type="DT_BubbleElemResults"
-        minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_BubbleElemHistory"
-        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_BubbleElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+      </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
-
 
   
 </xsd:schema>

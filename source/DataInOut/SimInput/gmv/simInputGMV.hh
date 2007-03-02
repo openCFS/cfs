@@ -1,0 +1,136 @@
+#ifndef FILE_GMVREADER_2006
+#define FILE_GMVREADER_2006
+
+// This code is also based on the gmvread library from the official GMV
+// website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
+
+#include <map>
+
+#include <DataInOut/simInput.hh>
+
+namespace CoupledField {
+
+  /**
+   **/
+  class SimInputGMV : public SimInput
+  {
+  private:
+
+    struct GridLabelInfo
+    {
+    public:
+
+      GridLabelInfo() : min_(0), max_(0), dim_(0), elemAttrib_(false) 
+      {
+      }
+
+      Double min_;
+      Double max_;
+      UInt dim_;
+      bool   elemAttrib_;
+    };
+
+    Grid *mi_;
+    std::vector< UInt > mElementMaterials;
+    std::vector< UInt > mElementIds;
+    std::vector< UInt > mVertexIds;
+    std::vector< std::string > mMatNames;
+    std::vector< RegionIdType > mMatNums;
+    std::map< std::string, GridLabelInfo > mGridLabels;
+    std::vector< UInt > mCycleNos;
+    std::vector< Double > mProbTimes;
+    static std::vector< std::string > mPossibleAttribs;
+
+  public:
+    SimInputGMV(std::string fileName);
+    virtual ~SimInputGMV();
+
+    virtual void InitModule(Grid *mi);
+
+    virtual void ReadMesh();
+    
+    // =======================================================================
+    // GENERAL MESH INFORMATION
+    // =======================================================================
+    //@{ \name General Mesh Information
+
+    //! Return dimension of the mesh
+    virtual UInt GetDim();
+    
+    //! Get total number of nodes in mesh
+    virtual UInt GetNumNodes();
+    
+    //! Get total number of elements in mesh
+    virtual UInt GetNumElems( const Integer );
+    
+    //! Get total number of regions
+    virtual UInt GetNumRegions();
+
+    //! Get total number of named nodes
+    virtual UInt GetNumNamedNodes();
+
+    //! Get total number of named elements
+    virtual UInt GetNumNamedElems();
+
+    //@}
+  
+    // =======================================================================
+    // ENTITY NAME ACCESS
+    // =======================================================================
+    //@{ \name Entity Name Access
+  
+    //! Get vector with all region names in mesh
+    
+    //! Returns a vector with the names of regions in the mesh of all
+    //! dimensions.
+    //! \param regionNames (output) vector containing names of regions
+    //! \note Since the regionIdType is guaranteed to be defined by
+    //! a number type (UInt, uint32), the regionId of an element can
+    //! be directly used as index to the regions-vector
+    virtual void GetAllRegionNames( std::vector<std::string> & regionNames );
+
+    //! Get vector with region names of given dimension
+
+    //! Returns a vector with the names of regions of a given dimension.
+    //! This makes it possible to get for example all names of 
+    //! 3D, 2D or 1D elements.
+    //! \param regionNames (output) vector containing names of regions
+    //! \param dim (input) dimension of the region (1,2, or 3)
+    virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
+                                      const UInt dim );
+
+    //! Get vector with all names of named nodes
+
+    //! Returns a vector which contains all names of named nodes.
+    //! \param nodeNames (output) vector with names of named nodes
+    virtual void GetNodeNames( StdVector<std::string> & nodeNames );
+  
+    //! Get vector with all names of named elements
+
+    //! Returns a vector which contains all names of named elements.
+    //! \param elemNames (output) vector with names of named elements
+    virtual void GetElemNames( StdVector<std::string> & elemNames );
+
+  private:
+
+    bool ProcessMesh();
+    bool ProcessMaterials();
+    bool ProcessGroups();
+    bool ProcessVariables();
+    bool ProcessVelocities();
+    bool ProcessVectors();
+    bool ProcessProbtime();
+    bool ProcessCycleNo();
+    bool SetupGridAndRegions();
+
+    void Cleanup();
+  }; 
+
+} 
+
+#endif 
+
+/// Local Variables:
+/// mode: C++
+/// c-basic-offset: 2
+/// End:
