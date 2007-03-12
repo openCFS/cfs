@@ -10,6 +10,7 @@
 
 
 // header for scripting
+#include <def_use_scripting.hh>
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
@@ -835,6 +836,20 @@ namespace CoupledField {
        }
     }
 
+#ifdef USE_SCRIPTING
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( GenStr(solveStep_->GetActStep() ) );
+    
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_CalcResults, 
+                             context );
+#endif   
   }
 
 
