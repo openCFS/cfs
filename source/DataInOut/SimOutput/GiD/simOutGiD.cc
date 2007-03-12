@@ -540,7 +540,9 @@ namespace CoupledField {
     UInt numDofs = dofNames.GetSize();
     
     // write Result header
-    if ( entryType == ResultInfo::SCALAR ) {
+    if ( entryType == ResultInfo::SCALAR
+         || (entryType == ResultInfo::VECTOR 
+             && dofNames.GetSize() == 1 ) ) {
       GiD_BeginResultHeader( name.c_str(), "transient", time,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
@@ -652,7 +654,9 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     UInt numDofs = dofNames.GetSize();
     
     // === Scalar entries ===
-    if ( entryType == ResultInfo::SCALAR ) {
+    if ( entryType == ResultInfo::SCALAR
+         || ( entryType == ResultInfo::VECTOR
+              && dofNames.GetSize() == 1 ) ) {
       
       // --- First component ---
       GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
