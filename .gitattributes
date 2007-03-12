@@ -170,7 +170,6 @@ XML/CFS-Material/Schemas/CFS_MATmechanical.xsd -text
 XML/CFS-Material/Schemas/CFS_MATpiezo.xsd -text
 XML/CFS-Material/Schemas/CFS_Misc.xsd -text
 XML/CFS-Simulation/CFS.xsd svneol=native#text/plain
-XML/CFS-Simulation/Defaults/CFS++Defaults.xml svneol=native#text/plain
 XML/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/plain
 XML/CFS-Simulation/Examples/bubble.xml svneol=native#text/plain
 XML/CFS-Simulation/Examples/coordSys.xml svneol=native#text/plain
