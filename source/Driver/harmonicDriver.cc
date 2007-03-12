@@ -56,7 +56,7 @@ namespace CoupledField {
 
     // read sampling type (optional)
     std::string sampling = "linear";
-    myNode->Get( "samplingType", sampling, false );
+    myNode->Get( "sampling", sampling, false );
     String2Enum( sampling, samplingType_ );
 
     // read matDataFreq (optional)
