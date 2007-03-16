@@ -2122,7 +2122,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> res1(new ResultInfo);
     if ( formulation_ ==  ACOU_PRESSURE) {
       res1->resultType = ACOU_PRESSURE;
-      res1->dofNames = "u";
+      res1->dofNames = "";
       res1->unit = "Pa";
     } else {
       res1->resultType = ACOU_POTENTIAL;
@@ -2152,11 +2152,11 @@ namespace CoupledField {
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
-      deriv1->dofNames = "u";
+      deriv1->dofNames = "";
       deriv1->unit = "m^2/s^2";
     } else {
       deriv1->resultType = ACOU_PRESSURE_DERIV_1;
-      deriv1->dofNames = "u";
+      deriv1->dofNames = "";
       deriv1->unit = "Pa/s";
     }
     deriv1->entryType = res1->entryType;
@@ -2168,11 +2168,11 @@ namespace CoupledField {
     shared_ptr<ResultInfo> deriv2(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv2->resultType = ACOU_POTENTIAL_DERIV_2;
-      deriv2->dofNames = "u";
+      deriv2->dofNames = "";
       deriv2->unit = "m^2/s^3";
     } else {
       deriv2->resultType = ACOU_PRESSURE_DERIV_2;
-      deriv2->dofNames = "u";
+      deriv2->dofNames = "";
       deriv2->unit = "Pa/s^2";
     }
     deriv2->entryType = res1->entryType;
@@ -2184,7 +2184,7 @@ namespace CoupledField {
     if( formulation_ == ACOU_POTENTIAL ) {
       shared_ptr<ResultInfo> pres(new ResultInfo);
       pres->resultType = ACOU_PRESSURE;
-      pres->dofNames = "u";
+      pres->dofNames = "";
       pres->unit = "Pa";
       pres->entryType = ResultInfo::SCALAR;
       pres->definedOn = ResultInfo::ELEMENT;
@@ -2195,7 +2195,7 @@ namespace CoupledField {
     // === RHS VALUE ===
     shared_ptr<ResultInfo> rhs(new ResultInfo);
     rhs->resultType = ACOU_RHSVAL;
-    rhs->dofNames = "u";
+    rhs->dofNames = "";
     rhs->unit = "";
     rhs->entryType = res1->entryType;
     rhs->definedOn = res1->definedOn;
@@ -2224,7 +2224,7 @@ namespace CoupledField {
     // === ACOU_POWER ===
     shared_ptr<ResultInfo> power(new ResultInfo);
     power->resultType = ACOU_POWER;
-    power->dofNames = "u";
+    power->dofNames = "";
     power->unit = "W";
     power->entryType = ResultInfo::SCALAR;
     power->definedOn = ResultInfo::SURF_REGION;
@@ -2234,7 +2234,7 @@ namespace CoupledField {
     // === ACOU_FORCE ===
     shared_ptr<ResultInfo> force(new ResultInfo);
     force->resultType = ACOU_FORCE;
-    force->dofNames = "u";
+    force->dofNames = "";
     force->unit = "N";
     force->entryType = ResultInfo::SCALAR;
     force->definedOn = ResultInfo::SURF_ELEM;

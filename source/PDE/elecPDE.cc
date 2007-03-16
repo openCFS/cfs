@@ -950,7 +950,7 @@ namespace CoupledField {
 
       res1->resultType = ELEC_POTENTIAL;
       res1->entryType = ResultInfo::SCALAR;
-      res1->dofNames = "u";
+      res1->dofNames = "";
       res1->unit = "V";
       res1->definedOn = ResultInfo::PFEM;
       res1->fctType = fct;
@@ -973,7 +973,7 @@ namespace CoupledField {
     charge->resultType = ELEC_CHARGE;
     charge->definedOn = ResultInfo::SURF_ELEM;
     charge->entryType = ResultInfo::SCALAR;
-    charge->dofNames = "u";
+    charge->dofNames = "";
     charge->unit = "C";
     availResults_.insert( charge );
 
@@ -982,7 +982,7 @@ namespace CoupledField {
     energy->resultType = ELEC_ENERGY;
     energy->definedOn = ResultInfo::REGION;
     energy->entryType = ResultInfo::SCALAR;
-    energy->dofNames = "u";
+    energy->dofNames = "";
     energy->unit = "Ws";
     availResults_.insert ( energy );
 

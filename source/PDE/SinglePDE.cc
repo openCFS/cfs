@@ -525,6 +525,7 @@ namespace CoupledField {
     // initialize map for relating EntityUnknownType and name of xml-element
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
     elemNames[ResultInfo::NODE] = "nodeResult";
+    elemNames[ResultInfo::PFEM] = "nodeResult";
     elemNames[ResultInfo::ELEMENT] = "elemResult";
     elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
     elemNames[ResultInfo::REGION] = "regionResult";
@@ -557,6 +558,8 @@ namespace CoupledField {
       // Check on which entity type the result is defined on 
       if( (*it)->definedOn == ResultInfo::NODE ) {
         entityType = EntityList::NODE_LIST;
+      } else if( (*it)->definedOn == ResultInfo::PFEM ) {
+        entityType = EntityList::NODE_LIST;
       } else if( (*it)->definedOn == ResultInfo::REGION ) {
         entityType = EntityList::REGION_LIST;
       } else if( (*it)->definedOn == ResultInfo::SURF_REGION ) {
@@ -565,6 +568,8 @@ namespace CoupledField {
         entityType = EntityList::SURF_ELEM_LIST;
       } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
         entityType = EntityList::ELEM_LIST;
+      } else {
+        EXCEPTION("Type of 'definedOn' was not found");
       }
       
       // intialize variables
@@ -622,6 +627,7 @@ namespace CoupledField {
         ParamNode * listNode = NULL;
         // 1b) Look for regions the result is defined on
         if( (*it)->definedOn == ResultInfo::NODE ||
+            (*it)->definedOn == ResultInfo::PFEM ||
             (*it)->definedOn == ResultInfo::ELEMENT ||
             (*it)->definedOn == ResultInfo::REGION ) {
           listNode = actResultNode->Get("regionList", false);
@@ -716,7 +722,8 @@ namespace CoupledField {
       ParamNode * histNode = NULL;
       StdVector<ParamNode*> histEntities;
 
-      if( (*it)->definedOn == ResultInfo::NODE ) {
+      if( (*it)->definedOn == ResultInfo::NODE
+          || (*it)->definedOn == ResultInfo::PFEM ) {
         defineType = EntityList::NAMED_NODES;  
         histNode = actResultNode->Get("nodeList",false);
         if( histNode )

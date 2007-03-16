@@ -15,8 +15,8 @@ namespace CoupledField {
 
   public:
     
-    //! Type for associating a result info objects with BaseResult objects
-    typedef std::map<shared_ptr<ResultInfo>, 
+    //! Type for associating a result name the related BaseResult objects
+    typedef std::map<std::string, 
                      StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
     //! Define capabilities of writing out certain information

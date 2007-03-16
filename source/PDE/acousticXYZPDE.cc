@@ -333,7 +333,7 @@ namespace CoupledField {
     // === STANDARD PRESSURE ===
     shared_ptr<ResultInfo> pres (new ResultInfo );
     pres->resultType = ACOU_PRESSURE;
-    pres->dofNames = "u";
+    pres->dofNames = "";
     pres->unit = "Pa";
     pres->definedOn = ResultInfo::NODE;
     pres->entryType = ResultInfo::SCALAR;
