@@ -1,0 +1,63 @@
+# - Find BLAS library.
+# This module finds if BLAS is installed and determines where the
+# library is. It also determines what the name of the library is.
+# This code sets the following variables:
+#  BLAS_LIBRARY        = path to BLAS library (blas)
+#  BLAS_FOUND          = bool which says if BLAS has been found
+
+SET (FORTRAN_POSSIBLE_LIB_PATHS
+  /usr/lib64
+  /usr/lib
+  /usr/local/lib64
+  /usr/local/lib
+  /usr/lib64/atlas
+  /usr/lib/atlas
+)
+
+FIND_LIBRARY(BLAS_LIBRARY
+  NAMES blas
+  PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
+)
+
+IF(BLAS_LIBRARY)
+  SET(BLAS_FOUND 1)
+ENDIF(BLAS_LIBRARY)
+
+
+FIND_LIBRARY(LAPACK_LIBRARY
+  NAMES lapack
+  PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
+)
+
+IF(LAPACK_LIBRARY)
+  SET(LAPACK_FOUND 1)
+ENDIF(LAPACK_LIBRARY)
+
+FIND_LIBRARY(G2C_LIBRARY
+  NAMES g2c
+  PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
+)
+
+IF(G2C_LIBRARY)
+  SET(G2C_FOUND 1)
+ENDIF(G2C_LIBRARY)
+
+FIND_LIBRARY(GFORTRAN_LIBRARY
+  NAMES gfortran
+  PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
+)
+
+IF(GFORTRAN_LIBRARY)
+  SET(GFORTRAN_FOUND 1)
+ENDIF(GFORTRAN_LIBRARY)
+
+MARK_AS_ADVANCED(
+  BLAS_LIBRARY
+  BLAS_FOUND
+  LAPACK_LIBRARY
+  LAPACK_FOUND
+  G2C_LIBRARY
+  G2C_FOUND
+  GFORTRAN_LIBRARY
+  GFORTRAN_FOUND
+  )

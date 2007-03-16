@@ -1,9 +1,18 @@
-# Make sure the compiler can find include files from our CFSMESHIO library.
-#INCLUDE_DIRECTORIES(${CFSMESHIO_SOURCE_DIR}/include ${HDF5_INCLUDE_DIR})
+SET(SIMINXMDF_SRCS
+  simInputXMDF.cc
+  Xmdf.c
+  xmdf_private.c
+  xmdf_timestep.c
+)
 
-# Make sure the linker can find the CFSMESHIO library once it is built.
-#LINK_DIRECTORIES()
-
-SET(SIMINXMDF_SRCS simInputXMDF.cc)
+ADD_DEFINITIONS(-DNO_XMDF_API)
 
 ADD_LIBRARY(siminxmdf STATIC ${SIMINXMDF_SRCS})
+
+IF(DEBUG)
+  SET(CMAKE_C_FLAGS "-g")
+ELSE(DEBUG)
+  SET(CMAKE_C_FLAGS "")
+ENDIF(DEBUG)
+
+TARGET_LINK_LIBRARIES(siminxmdf hdf5_cpp hdf5)

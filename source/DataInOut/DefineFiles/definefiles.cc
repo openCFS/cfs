@@ -31,7 +31,9 @@
 #endif
 
 #ifdef USE_HDF5
-#include "DataInOut/SimInput/xmdf/mod_xmdf.hh"
+#define NO_XMDF_API
+#include "DataInOut/SimInput/xmdf/simInputXMDF.hh"
+#undef NO_XMDF_API
 #endif
 
 #ifdef USE_GIDPOST
@@ -150,29 +152,31 @@ namespace CoupledField
     ENTER_FCN( "DefineInOutFiles::CreateMeshFileHandler" );
 
     std::string informat = "mesh";
+    ParamNode * inputOptionNode;
     ParamNode * inputNode = param->Get("fileFormats")
       ->Get("input", false);
     if( inputNode ) {
-      inputNode->GetChild()->GetName();
+        inputOptionNode = inputNode->GetChild();
+        informat = inputOptionNode->GetName();
     }
-    
+
     std::string meshFile = commandLine->GetMeshFile();
     std::string simName = commandLine->GetSimName();
     if ( informat == "mesh" ) {
 #ifdef USE_MESH
       if(meshFile == "")
           meshFile = simName + ".mesh";
-      simInput_ = new SimInputMESH(meshFile);
+      simInput_ = new SimInputMESH(meshFile, inputOptionNode);
 #else
       Error( "No support for MESH input file format.",
              __FILE__, __LINE__ );
 #endif // USE_MESH
     }
-    else if ( informat == "xmdf" ) {
+    else if ( informat == "hdf5" ) {
 #ifdef USE_HDF5
       if(meshFile == "")
           meshFile = simName + ".h5";
-      simInput_ = new XMDF(meshFile);
+      simInput_ = new SimInputXMDF(meshFile, inputOptionNode);
 #else
       Error( "No support for HDF5 input file format.",
              __FILE__, __LINE__ );
@@ -182,7 +186,7 @@ namespace CoupledField
 #ifdef USE_GMV_INPUT
       if(meshFile == "")
           meshFile = simName + ".gmv";
-      simInput_ = new SimInputGMV(meshFile);
+      simInput_ = new SimInputGMV(meshFile, inputOptionNode);
 #else
       Error( "No support for GMV input file format.",
              __FILE__, __LINE__ );

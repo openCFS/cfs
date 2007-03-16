@@ -207,6 +207,9 @@ namespace CoupledField {
     // variable speed of sound
     bool variableSpeedOfSoundCN_;
 
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
+
   private:
 
     //! Obtain information on desired output quantities from parameter file

@@ -51,6 +51,8 @@ namespace CoupledField
 
  
 
+  //! Forward class declaration
+  class ParamNode;
 
   //! Abstract base class for hanling exceptions and errors
   class ErrorHandler {
@@ -91,7 +93,10 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-    SimInput(std::string fileName) : fileName_(fileName) {};
+      SimInput(std::string fileName, ParamNode * inputNode ) :
+          fileName_(fileName),
+          myParam_(inputNode)
+      {};
 
     //! Destructor
     virtual ~SimInput() {};
@@ -174,6 +179,9 @@ namespace CoupledField
     std::string baseDir_;
     std::string baseName_;
     Grid *mi_;
+
+    //! Parameter node for current output class
+    ParamNode * myParam_;
 
     UInt dim_;
     std::vector<UInt> numElemsOfDim_;

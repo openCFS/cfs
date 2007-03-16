@@ -49,6 +49,11 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   OPTION(DEBUG "Build debug version of the code." ON)
   OPTION(ENABLE_PROFILING "Turn on profiling (DEBUG only)." OFF)
 
+  # Set a sane default value for the CFS++ schema path
+  SET(XMLSCHEMA "${CFS_SOURCE_DIR}/XML" CACHE STRING
+    "Path where the XML schema for the input files is located.")
+
+
   #-----------------------------------------------------------------------------
   # Mark some of the options as advanced to clear up the standard selection
   #-----------------------------------------------------------------------------
@@ -106,10 +111,19 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(DEBUG)
 
   #-----------------------------------------------------------------------------
+  # Determine if some Fortran system libs are installed (blas, lapack, g2c...)
+  #-----------------------------------------------------------------------------
+  INCLUDE("cmake_modules/FindFortranLibs.cmake")
+
+  #-----------------------------------------------------------------------------
   # Determine on what UNIX/Linux/Windows distribution we are building on
   #-----------------------------------------------------------------------------
   INCLUDE("cmake_modules/distro.cmake")
 
+  #-----------------------------------------------------------------------------
+  # Find executables of a few required programs
+  #-----------------------------------------------------------------------------
+  INCLUDE("cmake_modules/FindPrograms.cmake")
 
 
   #-----------------------------------------------------------------------------
@@ -147,6 +161,101 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(NOT CFSDEPS_FOUND)
 
   #-----------------------------------------------------------------------------
+  # Find Boost
+  #-----------------------------------------------------------------------------
+  FIND_PACKAGE(Boost)
+  MARK_AS_ADVANCED(Boost_INCLUDE_DIR)
+  IF(NOT Boost_FOUND)
+    MESSAGE(SEND_ERROR "Boost could not be found!")
+    SUGGEST_INSTALL_PCKG()
+  ENDIF(NOT Boost_FOUND)
+
+  #-----------------------------------------------------------------------------
+  # If USE_PYTHON option is defined find Python library
+  #-----------------------------------------------------------------------------
+  IF(USE_PYTHON)
+    FIND_PACKAGE(PythonLibs)
+    IF(NOT PYTHON_LIBRARY)
+      MESSAGE(SEND_ERROR "Python library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT PYTHON_LIBRARY)
+
+    SET(USE_SCRIPTING 1)
+    SET(USE_SCRIPTING_PYTHON 1)
+
+  ENDIF(USE_PYTHON)
+  
+  #-----------------------------------------------------------------------------
+  # If USE_TCL option is defined find TCL library
+  #-----------------------------------------------------------------------------
+  IF(USE_TCL)
+    FIND_PACKAGE(TCL)
+    IF(NOT TCL_LIBRARY)
+      MESSAGE(SEND_ERROR "TCL library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT TCL_LIBRARY)
+
+    SET(USE_SCRIPTING 1)
+    SET(USE_SCRIPTING_TCL 1)
+
+    MARK_AS_ADVANCED(
+      TCL_INCLUDE_PATH
+      TCL_LIBRARY
+      TCL_LIBRARY_DEBUG
+      TCL_TCLSH
+      TK_INCLUDE_PATH
+      TK_LIBRARY
+      TK_LIBRARY_DEBUG
+      TK_WISH
+      )
+  ENDIF(USE_TCL)
+
+  #-----------------------------------------------------------------------------
+  # If USE_BLAS option is defined find BLAS library
+  #-----------------------------------------------------------------------------
+  IF(USE_BLAS)
+    IF(NOT BLAS_FOUND)
+      MESSAGE(SEND_ERROR "BLAS library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT BLAS_FOUND)
+  ENDIF(USE_BLAS)
+
+  #-----------------------------------------------------------------------------
+  # If USE_LAPACK option is defined find LAPACK library
+  #-----------------------------------------------------------------------------
+  IF(USE_LAPACK)
+    IF(NOT BLAS_FOUND)
+      MESSAGE(SEND_ERROR "BLAS library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT BLAS_FOUND)
+    IF(NOT LAPACK_FOUND)
+      MESSAGE(SEND_ERROR "LAPACK library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT LAPACK_FOUND)
+  ENDIF(USE_LAPACK)
+
+  #-----------------------------------------------------------------------------
+  # If USE_XERCES option is defined find Xerces library
+  #-----------------------------------------------------------------------------
+  IF(USE_XERCES)
+    INCLUDE("cmake_modules/FindXerces.cmake")
+    IF(NOT XERCES_FOUND)
+      MESSAGE(SEND_ERROR "Xerces library could not be found!")
+      SUGGEST_INSTALL_PCKG()
+    ENDIF(NOT XERCES_FOUND)
+  ENDIF(USE_XERCES)
+
+  #-----------------------------------------------------------------------------
+  # Set path of XML schema. If env variable XMLSCHEMA is set, use it!
+  #-----------------------------------------------------------------------------
+  SET(MYXMLSCHEMA $ENV{XMLSCHEMA})
+  IF(NOT ${MYXMLSCHEMA} STREQUAL "")
+    SET(XMLSCHEMA ${MYXMLSCHEMA} CACHE STRING
+      "Path where the XML schema for the input files is located."
+      FORCE)
+  ENDIF(NOT ${MYXMLSCHEMA} STREQUAL "")
+
+  #-----------------------------------------------------------------------------
   # Find MpCCI / MPICH
   #-----------------------------------------------------------------------------
   IF(USE_MPCCI)
@@ -156,44 +265,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
     ENDIF(NOT MPCCI_FOUND)
   ENDIF(USE_MPCCI)
 
-  #-----------------------------------------------------------------------------
-  # Find Boost
-  #-----------------------------------------------------------------------------
-  FIND_PACKAGE(Boost)
-  IF(NOT Boost_FOUND)
-    MESSAGE(FATAL_ERROR "Boost could not be found!")
-  ENDIF(NOT Boost_FOUND)
 
-  #-----------------------------------------------------------------------------
-  # If USE_PYTHON option is defined find Python library
-  #-----------------------------------------------------------------------------
-  IF(USE_PYTHON)
-    FIND_PACKAGE(PythonLibs)
-    IF(NOT PYTHON_LIBRARY)
-      MESSAGE(FATAL_ERROR "Python library could not be found!")
-    ENDIF(NOT PYTHON_LIBRARY)
-    SET(USE_SCRIPTING 1)
-    SET(USE_SCRIPTING_PYTHON 1)
-  ENDIF(USE_PYTHON)
-  
-  #-----------------------------------------------------------------------------
-  # If USE_TCL option is defined find TCL library
-  #-----------------------------------------------------------------------------
-  IF(USE_TCL)
-    FIND_PACKAGE(TCL)
-    IF(NOT TCL_LIBRARY)
-      MESSAGE(FATAL_ERROR "TCL library could not be found!")
-    ENDIF(NOT TCL_LIBRARY)
-    SET(USE_SCRIPTING 1)
-    SET(USE_SCRIPTING_TCL 1)
-  ENDIF(USE_TCL)
-
-
-
-  #-----------------------------------------------------------------------------
-  # Set path of XML schema
-  #-----------------------------------------------------------------------------
-  SET(XMLSCHEMA "${CFS_SOURCE_DIR}/XML")
 
   #-----------------------------------------------------------------------------
   # Set date of configure run. TODO: make platform independent!!!
@@ -214,7 +286,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   #-----------------------------------------------------------------------------
   # Determine URL of subversion repository
   #-----------------------------------------------------------------------------
-  EXEC_PROGRAM("svn info ${CFS_SOURCE_DIR} | head -2 | tail -1 | cut -d' ' -f2"
+  EXEC_PROGRAM("${SVN} info ${CFS_SOURCE_DIR} | head -2 | tail -1 | cut -d' ' -f2"
     ARGS
     OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
     RETURN_VALUE RETVAL)
@@ -222,7 +294,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   #-----------------------------------------------------------------------------
   # Determine global revision of working copy
   #-----------------------------------------------------------------------------
-  EXEC_PROGRAM("svnversion"
+  EXEC_PROGRAM(${SVNVERSION}
     ARGS ${CFS_SOURCE_DIR}
     OUTPUT_VARIABLE CFS_SUBVERSION_REV
     RETURN_VALUE RETVAL)
@@ -254,11 +326,11 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   SUBDIRS(source/OLAS/algsys)
   SUBDIRS(source/OLAS/graph)
   SUBDIRS(source/OLAS/matvec)
-#  SUBDIRS(source/multigrid)
+  #  SUBDIRS(source/multigrid)
   SUBDIRS(source/OLAS/precond)
   SUBDIRS(source/OLAS/solver)
   SUBDIRS(source/OLAS/utils)
-#  SUBDIRS(source/main)
+  #  SUBDIRS(source/main)
 
   IF(USE_ARPACK)
     SUBDIRS(source/OLAS/external/arpack)
@@ -322,7 +394,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   SUBDIRS(source/Domain/GridCFS)
   SUBDIRS(source/Driver)
   SUBDIRS(source/Elements)
-#  SUBDIRS(source/Estimator)
+  #  SUBDIRS(source/Estimator)
   SUBDIRS(source/Forms)
   SUBDIRS(source/General)
   SUBDIRS(source/Materials)

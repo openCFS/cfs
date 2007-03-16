@@ -167,6 +167,9 @@ namespace CoupledField
 
     //! force operator (for coupling as well as postprocessing)
     ElecForceOp* ForceOp_;
+
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

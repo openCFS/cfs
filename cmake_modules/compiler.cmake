@@ -18,7 +18,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   # Determine compiler/linker flags according to build type
   IF(DEBUG)
 
-    SET(CFS_CXX_FLAGS "-ansi -Wall -pedantic -ftemplate-depth-55")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic")
+    SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
     SET(CHECK_TYPE_CASTS 1)
@@ -30,7 +31,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused -Wno-sign-compare")
-    SET(CFS_CXX_FLAGS "-ansi -Wall -pedantic -ftemplate-depth-55")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic")
+    SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")
       SET(CFS_OPT_FLAGS "-m32 -march=pentium4")
@@ -53,8 +55,8 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 # Set compiler/linker flags for all build types
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFS_C_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_C_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
 SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS}")

@@ -110,50 +110,33 @@ namespace CoupledField {
     
     Info->StartProgress("Reading in the mesh");
 
-    // @Simon: Bitte folgende Zeilen aufrÃ¤umen, so dass nur Ã¼ber die Variable
-    // "libmesh" das Gittermodul angelegt wird
-    // =======================================================================
-
 //     try 
 //     {
 //         EXCEPTION("Test WARNING in Domain! " << 2);
 //     }
 //     catch (Exception& ex)
 //     {
-//         REC_EXCEPTION(ex, "Ich habe eine Exception gefangen. " << 3);
+//         RETHROW_EXCEPTION(ex, "Ich habe eine Exception gefangen. " << 3);
 //     }
-    
-    //     std::auto_ptr<MeshIOModule> gmvmod(new GMVIO());
-    //     std::auto_ptr<MeshIOModule> hdfmod(new XMDF());
-    
-    //     gmvmod->InitModule("/home/lse24/lse/strieben/datasets/gmv/ventil.gmv",
-    //                        "",
-    //                        "",
-    //                        ptgrid_);
     
     simInput_->InitModule(ptgrid_);
     simInput_->ReadMesh();
     ptgrid_->FinishInit();
     
-    //     //    hdfmod->InitModule("",
-    //     //                       "./",
-    //     //                       "test",
-    //     //                       ptgrid_);
-    
-    
-    //     gmvmod->WriteMesh();
-    //     hdfmod->WriteMesh();
-    // =======================================================================
-    
     SETPROFILE("After Grid Creation");
 
+    // Read in coordinate systems
+    CreateCoordinateSystems();
+
+    Info->FinishProgress();
+
+    Info->StartProgress("Initializing non-matching interfaces");
+    // Call the nonmatching grid intersection calculation
+
+    ptgrid_->InitNonmatchingInterfaces();
 
     // Initialize resultHandler
     resultHandler_->Init( ptgrid_ );
-    
-    
-    // Read in coordinate systems
-    CreateCoordinateSystems();
 
     Info->PrintF("","\n=========================\n");
     Info->PrintF("","   END OF DOMAIN SETUP   \n");

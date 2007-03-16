@@ -386,7 +386,11 @@ namespace CoupledField {
 
     for (UInt i=0; i<size_; i++)
       if (data_[i] == x)
+      {
         pos = i;
+        break;
+      }
+    
     return pos;
   }
 

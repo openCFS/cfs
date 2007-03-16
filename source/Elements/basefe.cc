@@ -9,6 +9,7 @@
 #ifndef INTEGLIB
 #include "olas.hh"
 #endif
+#include <Domain/elem.hh> 
 #include <Utils/tools.hh> 
 #include <Matrix/matrix.hh>
 #include <DataInOut/WriteInfo.hh> 
@@ -85,9 +86,8 @@ namespace CoupledField
     CalcShapeFnc(shFnc, locCoord, elem, 1, AnsatzFct::NODE);
 
     // step2: multiply shape fncs for each dimension with according matrix entries
-    globCoord.Resize(Dim_);
-    coordMat.Mult(shFnc,globCoord);
-    
+    globCoord.Resize(coordMat.GetSizeRow());
+    coordMat.Mult(shFnc,globCoord);    
   }
 
 
@@ -155,11 +155,10 @@ namespace CoupledField
 
 
     if ( jacDet < 0.0 ){
-      errMsg = "BaseFE:GetGlobDerivShFncAtIp: ";
-      errMsg += "Negative Jacobian Determinant!\n";
-      errMsg += "The coordinates of the element are:\n";
-      errMsg += CoordMatrix2String(CornerCoords);
-      Error(errMsg.c_str(), __FILE__, __LINE__ );     
+        EXCEPTION("BaseFE:GetGlobDerivShFncAtIp: " <<
+                  "Negative Jacobian Determinant!\n" <<
+                  "The coordinates of the element are:\n" <<
+                  CoordMatrix2String(CornerCoords));
     }
 
  
@@ -243,13 +242,26 @@ namespace CoupledField
     Double jacDet;
 
     CalcJacobian( J, LCoord, CornerCoords, elem  );
-    J.Determinant(jacDet);
+    //    J.Determinant(jacDet);
+
+    if (CornerCoords.GetSizeRow()==3 && Dim_==2)
+    {
+        Vector<Double> normal;
+        normal.Resize(CornerCoords.GetSizeRow());  
+        normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
+        normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
+        normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
+
+        jacDet = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+    }
+    else  {
+        J.Determinant(jacDet);
+    }
 
     if ( jacDet < 0.0 ){
-      errMsg = "BaseFE:CalcJacobianDet: Negative Jacobian Determinant!\n";
-      errMsg += "The coordinates of the element are:\n";
-      errMsg += CoordMatrix2String(CornerCoords);
-      Error(errMsg.c_str(), __FILE__, __LINE__ );     
+        EXCEPTION("BaseFE:CalcJacobianDet: Negative Jacobian Determinant "
+                  << "at element " << elem->elemNum 
+                  << " with connectivity " << elem->connect.Serialize());
     }
 
     return jacDet;
@@ -278,10 +290,9 @@ namespace CoupledField
         Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
 
         if ( detJ < 0.0 ){
-          errMsg = "BaseFE:CalcJacobianDet: Negative Jacobian Determinant!\n";
-          errMsg += "The coordinates of the element are:\n";
-          errMsg += CoordMatrix2String(CornerCoords);
-          Error(errMsg.c_str(), __FILE__, __LINE__ );     
+            EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
+                      << "at element " << elem->elemNum 
+                      << " with connectivity " << elem->connect.Serialize());
         }
         return detJ;
       }
@@ -290,12 +301,10 @@ namespace CoupledField
       Double jacDet ;
       J.Determinant(jacDet);
       if ( jacDet < 0.0 ){
-        errMsg = "BaseFE:CalcJacobianDetAtIp: Negative Jacobian Determinant!\n";
-        errMsg += "The coordinates of the element are:\n";
-        errMsg += CoordMatrix2String(CornerCoords);
-        Error(errMsg.c_str(), __FILE__, __LINE__ );     
+          EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
+                    << "at element " << elem->elemNum 
+                    << " with connectivity " << elem->connect.Serialize());
       }
-
       return jacDet;
     }  
   }
@@ -449,7 +458,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
 
-    Error( "Edge functions are currently not supported!", __FILE__, __LINE__ );
+    EXCEPTION( "Edge functions are currently not supported!");
 
     // define the global edge number
     //for(UInt actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
@@ -661,7 +670,7 @@ namespace CoupledField
   int BaseFE::EncodeCartesianOrder(int order1, int order2, int order3)
   {
     if(order1 > 99 || order2 > 99 || order3 > 99) 
-      Error("Cartesian product numerical integration only with orders < 99", __FILE__, __LINE__ );
+      EXCEPTION("Cartesian product numerical integration only with orders < 99");
         
     return order1 + 100 * order2 + (order3 > 0 && Dim_ == 3 ? 10000 : 0) * order3;
   }
@@ -670,7 +679,7 @@ namespace CoupledField
   void BaseFE::DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3)
   {
     if(encoded_order <= 11 || encoded_order > 999999) 
-      Error("Invalid encoded cartesian integration order", __FILE__, __LINE__ );
+      EXCEPTION("Invalid encoded cartesian integration order");
            
            
     *order3 = (encoded_order >= 10000) ? encoded_order/10000 : 0;   
@@ -710,8 +719,7 @@ namespace CoupledField
     if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
       {
         key.append(" is already in BaseFE::IntegrationPointsMap_");
-        Error(key.c_str(), __FILE__, __LINE__ ); 
-        exit(-1);         
+        EXCEPTION(key.c_str()); 
       }
 
     // create the payload
@@ -755,7 +763,8 @@ namespace CoupledField
         // nothing found
         if(search_upwards) order++;
         if(search_downwards) order--;   
-        if(search_upwards && search_downwards) Error("searching up- and downward concurrently!! Stupid!",  __FILE__, __LINE__ );
+        if(search_upwards && search_downwards)
+            EXCEPTION("searching up- and downward concurrently!! Stupid!");
       }    	
     while(order > 0 && order < 42 && (search_upwards || search_downwards));
     
@@ -805,7 +814,7 @@ namespace CoupledField
         return data;
       }
           
-    Error("No default integration found", __FILE__, __LINE__ );  
+    EXCEPTION("No default integration found");  
     exit(-1);
   } 
 
@@ -925,7 +934,7 @@ namespace CoupledField
     if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
       {
         key.append(" is already in BaseFE::IntegrationPointsMap_");
-        Error(key.c_str(), __FILE__, __LINE__ ); 
+        EXCEPTION(key.c_str()); 
       }
      
     StdVector<Double*>* data = new StdVector<Double*>(rows);
@@ -1056,8 +1065,7 @@ namespace CoupledField
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
     } else {
-      *error << "In base class only implemented for Lagrange functions!";
-      Error( __FILE__, __LINE__ );
+        EXCEPTION("In base class only implemented for Lagrange functions!");
     }
   }
   
@@ -1068,8 +1076,7 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       return GetNumNodes();
     } else {
-      *error << "In base class only implemented for Lagrange functions!";
-      Error( __FILE__, __LINE__ );
+        EXCEPTION("In base class only implemented for Lagrange functions!");
     }
 
     return 0;

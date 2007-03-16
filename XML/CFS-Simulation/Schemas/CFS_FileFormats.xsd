@@ -97,7 +97,7 @@
   <xsd:element name="hdf5" type="DT_InputHDF5"
     substitutionGroup="InputBasic"/> 
 
- <!-- ******************************************************************** -->
+  <!-- ******************************************************************** -->
   <!--   Definition of HDF5 data input type -->
   <!-- ******************************************************************** -->
 
@@ -105,6 +105,9 @@
   <xsd:complexType name="DT_InputHDF5">
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="generateRegionNodes"
+		       type="DT_CFSBool"
+		       default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -176,25 +179,6 @@
     </xsd:complexContent>
   </xsd:complexType>
   
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of element GSI output -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="gsi" type="DT_OutputGSI"
-    substitutionGroup="OutputBasic"/>
-
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for GSI output -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_OutputGSI">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="yes"/>
-        <xsd:attribute name="id" type="xsd:token" default="default"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of element GiD output -->

@@ -19,7 +19,7 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-    GridCFS::GridCFS() : Grid() {
+  GridCFS::GridCFS() : Grid() {
 
     ENTER_FCN( "GridCFS::GridCFS" );
 
@@ -723,6 +723,8 @@ namespace CoupledField {
                         volRegionNodes[el->regionId].insert(el->connect[n]);
                     }
                 }
+            default:
+                break;
             }
         }
 
@@ -731,6 +733,7 @@ namespace CoupledField {
         std::map<RegionIdType, std::set<UInt> >::iterator regionNodeIt;
         std::set<UInt>::iterator setIt, setEnd;
         UInt region = 0;
+        UInt regionId;
 
         numVolRegions = volRegionElems.size();
         numSurfRegions = surfRegionElems.size();
@@ -1262,6 +1265,8 @@ namespace CoupledField {
             d=3;
             el->ptElem = ptWedge2;
             isQuadratic_ = true;
+            break;
+        default:
             break;
         }
 
@@ -2566,6 +2571,219 @@ namespace CoupledField {
   }
 
 #endif // end of ADAPTGRID
+
+  void GridCFS::AddNode( const Point & coord, UInt & inode)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add node to uninitialized grid!");
+
+    coords_.Push_back(coord);
+    inode = ++numNodes_;
+  }
+  
+  void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add node to uninitialized grid!");
+    
+    if(coord.GetSize() != 3)
+        EXCEPTION("Node to be added has wrong dimension!");
+    
+    Point p;
+        
+    for(UInt i=0; i<3; i++)
+        p[i] = coord[i];
+        
+    coords_.Push_back(p);
+    inode = ++numNodes_;
+  }
+  
+  void GridCFS::AddNodes( const StdVector< Point > & coords,
+                          StdVector< UInt > & inodes)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add nodes to uninitialized grid!");
+
+    Point p;
+    UInt i, n;
+
+    n=coords.GetSize();
+    inodes.Resize(n);
+
+    for(i=0; i<n; i++)
+    {
+        coords_.Push_back(coords[i]);
+        numNodes_++;
+        inodes[i] = numNodes_;
+    }
+  }
+
+  void GridCFS::AddSurfaceElems( const RegionIdType regionid,
+                                 const StdVector< SurfElem* > & surfelems,
+                                 StdVector< UInt > & elemids)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add surface elements to uninitialized grid!");
+
+    UInt regionIdx = surfRegionIds_.Find(regionid);
+      
+    if(regionIdx == -1)
+        EXCEPTION("Surface regionid not found!");
+
+    UInt i, n;    
+    n=surfelems.GetSize();
+    elemids.Resize(n);
+
+    //        for(i=0; i<surfRegionIds_.GetSize(); i++)
+    //        {
+    //          std::cout << "surfRegionIds_[" << i << "]: " << surfRegionIds_[i] << " " << regionNames_[surfRegionIds_[i]] << std::endl;
+    //        }
+        
+    for(i=0; i<n; i++)
+    {
+        // a check should be added to avoid insertions
+        // of already existing elements
+        surfelems[i]->regionId = regionid;
+        numElems_++;
+        surfelems[i]->elemNum = numElems_;
+        
+        orderedElems_.Push_back(surfelems[i]);
+        surfElems_[regionIdx].Push_back(surfelems[i]);
+        elemids[i] = numElems_;
+    }
+  }
+
+  void GridCFS::AddVolumeElems( const RegionIdType regionid,
+                                const StdVector< Elem* > & volelems,
+                                StdVector< UInt > & elemids)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add volume elements to uninitialized grid!");
+
+    UInt regionIdx = volRegionIds_.Find(regionid);
+      
+    if(regionIdx == -1)
+        EXCEPTION("Volume regionid not found!");
+
+    UInt i, n;
+
+    n=volelems.GetSize();
+    elemids.Resize(n);
+    
+    for(i=0; i<n; i++)
+    {
+        // a check should be added to avoid insertions
+        // of already existing elements
+        volelems[i]->regionId = regionid;
+        numElems_++;
+        volelems[i]->elemNum = numElems_;
+
+        orderedElems_.Push_back(volelems[i]);
+        volElems_[regionIdx].Push_back(volelems[i]);
+        elemids[i] = numElems_;
+    }
+  }
+
+  void GridCFS::AddSurfaceRegion( const std::string name,
+                                  RegionIdType& regionid)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add a surface region to an uninitialized grid!");
+
+    if(regionNames_.Find(name) != -1)
+    {
+        EXCEPTION("A surface region with the same name already exists!");
+        regionid = -1;
+    }
+
+    regionNames_.Push_back(name);
+    regionid = regionNames_.GetSize()-1;
+    surfRegionIds_.Push_back(regionid);
+    
+    StdVector<Elem*> dummy_elems;
+    surfElems_.Push_back(dummy_elems);
+    
+    StdVector<UInt> dummy_nodes;
+    surfElemNodes_.Push_back(dummy_nodes);                                      
+  }
+  
+  void GridCFS::AddVolumeRegion( const std::string name,
+                                      RegionIdType& regionid)
+  {
+    if(!isInitialized_)
+        EXCEPTION("Cannot add a volume region to an uninitialized grid!");
+
+    if(regionNames_.Find(name) != -1)
+    {
+        EXCEPTION("A volume region with the same name already exists!");
+        regionid = -1;
+    }
+
+    regionNames_.Push_back(name);
+    regionid = regionNames_.GetSize()-1;
+    volRegionIds_.Push_back(regionid);
+    
+    StdVector<Elem*> dummy_elems;
+    volElems_.Push_back(dummy_elems);
+    
+    StdVector<UInt> dummy_nodes;
+    volElemNodes_.Push_back(dummy_nodes);                                      
+  }
+
+  void GridCFS::ClearRegion( const RegionIdType regionid )
+  {
+    StdVector<Elem*> newOrderedElems;
+    StdVector<Elem*> elems;
+    UInt numElems;
+    UInt i, n;
+    
+    // look in volume regions
+    UInt index = volRegionIds_.Find(regionid);
+    if ( index != -1 ) {
+      n = volElems_[index].GetSize();
+
+      for(i=0; i<n; i++)
+      {
+        orderedElems_[volElems_[index][i]->elemNum-1] = NULL;
+        delete volElems_[index][i];
+      }
+
+      volElems_[index].Clear();
+    } else {    
+      // look in surface regions
+      index = surfRegionIds_.Find(regionid);
+      if ( index != -1 ) {
+        n = surfElems_[index].GetSize();
+
+        for(i=0; i<n; i++)
+        {
+          orderedElems_[surfElems_[index][i]->elemNum-1] = NULL;
+          delete surfElems_[index][i];
+        }
+
+        surfElems_[index].Clear();
+      } else {
+          EXCEPTION("GridCFS: The region with id '" << regionid
+                    << "' was not found in the grid!");
+      }
+    }
+
+
+    numElems = 0;
+    for(i=0; i<numElems_; i++)
+    {
+      if(orderedElems_[i] != NULL)
+      {
+        newOrderedElems.Push_back(orderedElems_[i]);
+        //        std::cout << "Clear Region: " << orderedElems_[i]->elemNum << " -> " << numElems << std::endl;
+        orderedElems_[i]->elemNum = ++numElems;
+      }
+    }
+    
+    orderedElems_ = newOrderedElems;
+    numElems_ = numElems;
+  }
+
 
 } // end namespace
 

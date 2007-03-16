@@ -2,22 +2,18 @@ SET(ILUPACK_SRCS Ilupack.cc)
 
 ADD_LIBRARY(ilupack-olas STATIC ${ILUPACK_SRCS})
 
+# CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
+# LAPACK_LIBRARY and BLAS_LIBRARY are defined in
+# cmake_modules/FindFortranLibs.cmake
 SET(TARGET_LL
   Dilupack
   Zilupack
   blaslike
   sparspak
   amd
-  lapack
-  blas)
-
-IF(CFS_DISTRO STREQUAL "SUSE" OR CFS_DISTRO STREQUAL "OPENSUSE")
-  IF(CFS_DISTRO_VER GREATER 9.3)
-    SET(TARGET_LL ${TARGET_LL} gfortran)
-  ENDIF(CFS_DISTRO_VER GREATER 9.3)
-ENDIF(CFS_DISTRO STREQUAL "SUSE" OR CFS_DISTRO STREQUAL "OPENSUSE")
-
-SET(TARGET_LL ${TARGET_LL} g2c)
+  ${LAPACK_LIBRARY}
+  ${BLAS_LIBRARY}
+  ${CFS_FORTRAN_LIBS})
 
 TARGET_LINK_LIBRARIES(ilupack-olas ${TARGET_LL})
 

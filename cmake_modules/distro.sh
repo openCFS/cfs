@@ -38,6 +38,12 @@ elif [ "${OS}" = "AIX" ] ; then
 elif [ "${OS}" = "Linux" ] ; then
 	KERNEL=`uname -r`
 	if [ -f /etc/redhat-release ] ; then
+                # On Mandrake/Mandriva/Fedora there exist also
+                # /etc/redhat-release, /etc/mandrake-release,
+                # /etc/mandriva-release, /etc/fedora-release files.
+                # They all contain the same infos. I.e.
+                # Mandriva Linux release 2007.0 (Official) for i586
+                # Fedora Core release 6 (Zod)
 		DIST='RedHat'
 		PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
@@ -49,12 +55,29 @@ elif [ "${OS}" = "Linux" ] ; then
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//`
 	elif [ -f /etc/debian_version ] ; then
-		DIST="Debian `cat /etc/debian_version`"
-		REV=""
-		. /etc/lsb-release
-		DIST=$DISTRIB_ID
-		REV=$DISTRIB_RELEASE
-		PSEUDONAME=$DISTRIB_CODENAME
+		DIST="Debian"
+                BASE_VERSION=`dpkg -p base-files | grep Version | cut -d' ' -f2`
+		REV=`echo $BASE_VERSION | sed -e 's/.[^.]*$//'`
+		case "$REV" in
+		    "1.2") PSEUDONAME="rex";;
+		    "1.3") PSEUDONAME="bo";;
+		    "2.0") PSEUDONAME="hamm";;
+		    "2.1") PSEUDONAME="slink";;
+		    "2.2") PSEUDONAME="potato";;
+		    "3.0") PSEUDONAME="woody";;
+		    "3.1") PSEUDONAME="sid";;
+                esac
+                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
+
+                SPINOFF=`echo $BASE_VERSION | cut -d'.' -f3 | sed -e 's/[0-9]*//g'`
+		case "$SPINOFF" in
+		    "ubuntu")
+			. /etc/lsb-release;
+			DIST=$DISTRIB_ID;
+			REV=$DISTRIB_RELEASE;
+			PSEUDONAME=$DISTRIB_CODENAME;;
+                esac
+
 	fi
 	if [ -f /etc/UnitedLinux-release ] ; then
 		DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"

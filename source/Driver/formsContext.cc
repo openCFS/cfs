@@ -20,6 +20,7 @@ namespace CoupledField {
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
     secMatFac_ = 0.0;
+    setCounterPart_ = false;
     entryType_ = REAL;
 
     // Note: By default, we do not set the transposed
@@ -185,6 +186,53 @@ namespace CoupledField {
     }
   }
 
+  // -------------------------------------------------------------------------
+
+  NcBiLinFormContext::NcBiLinFormContext( BaseForm* biLinForm, 
+                                          FEMatrixType destMat ) 
+    : BiLinFormContext( biLinForm, destMat ) {
+    ENTER_FCN( "NcBiLinFormContext::BiLinFormContext" );
+
+  }
+  
+  NcBiLinFormContext::~NcBiLinFormContext() {
+    ENTER_FCN( "NcBiLinFormContext::~NcBiLinFormContext" );
+    
+    // delete bilinearform
+    if( integrator_ != NULL ) {
+      delete integrator_;
+      integrator_ = NULL;
+    }
+  }
+
+  void NcBiLinFormContext::MapEqns( EntityIterator& it1, 
+                                    EntityIterator& it2,
+                                    StdVector<Integer>& eqnVec1, 
+                                    StdVector<Integer>& eqnVec2,
+                                    PdeIdType& id1, PdeIdType& id2 ) {
+    ENTER_FCN( "NcBiLinFormContext::MapEqns" );
+
+    const NCElem *elem = dynamic_cast< const NCElem* >(it1.GetElem()); 
+
+    ElemList masterSide(domain->GetGrid() );
+    ElemList slaveSide(domain->GetGrid() );
+   
+    masterSide.SetElement( elem->ptSurfParent );
+    slaveSide.SetElement( elem->ptLagrangeParent );
+
+    EntityIterator masterIt, slaveIt;
+    masterIt = masterSide.GetIterator();
+    slaveIt = slaveSide.GetIterator();
+
+    map1_->GetEqns( eqnVec1, *result1_, masterIt );
+    map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+    
+    // Get PDE IDs
+    id1 = ptPde1_->GetPDEId();
+    id2 = ptPde2_->GetPDEId();
+
+  }
+  
 
  
 }

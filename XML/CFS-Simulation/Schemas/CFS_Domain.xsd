@@ -61,6 +61,18 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specification of a non-conforming interface -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DomainNCIface">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="masterSide" type="xsd:token" use="required"/>
+    <xsd:attribute name="slaveSide" type="xsd:token" use="required"/>
+    <xsd:attribute name="lagrangeMultType" type="xsd:token" use="optional"/>
+    <xsd:attribute name="isecCalculation" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!-- Data type for specifying of a set of special nodes in the mesh file -->
   <!-- ******************************************************************** -->
@@ -190,11 +202,23 @@
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="surfRegion" type="DT_DomainSurface"
-            minOccurs="0"/>
+            minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
       
+      <!-- Non-conforming interface region list -->
+      <!-- A non-conforming interface is defined by references to two
+	   neighboring surface regions -->
+      <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ncInterface" type="DT_DomainNCIface"
+            minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
       <!-- Named elems list -->
       <xsd:element name="elemList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>

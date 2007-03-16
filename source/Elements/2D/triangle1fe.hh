@@ -74,6 +74,9 @@ namespace CoupledField
         IntegOrder  = 1;
     }
 
+    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+                                    const Matrix<Double> & globalCoords,
+                                    const Matrix<Double> & coordMat);
 
   private:
   };

@@ -1346,8 +1346,6 @@ namespace CoupledField {
           
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
-          std::cerr << "rotation angles are " << rotVec.Serialize()
-                    << std::endl;
         }
         
       } catch (Exception& ex ) {
@@ -2230,6 +2228,7 @@ namespace CoupledField {
         }
       }
     }
+    
   }
 
   void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv ) {

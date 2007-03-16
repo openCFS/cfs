@@ -457,6 +457,63 @@ namespace CoupledField
 
 #endif
 
+      //! NC_SIMON: add node to the grid
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      virtual void AddNode( const Point & coord, UInt & inode);
+
+      //! NC_SIMON: add node to the grid
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      virtual void AddNode( const Vector<Double> & coord, UInt & inode );
+    
+      //! NC_SIMON: add multiple nodes to the grid
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      //! \param coords (in) coordinates of points
+      //! \param inode (out) node numbers
+      virtual void AddNodes( const StdVector< Point > & coords,
+                             StdVector< UInt > & inodes);
+
+      //! NC_SIMON: Add surface elements
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      //! \param regionId (in) elements will be added to region with this id
+      //! \param surfelems (in) surface elements to be added
+      //! \param elemids (out) element id numbers returned
+      virtual void AddSurfaceElems( const RegionIdType regionid,
+                                    const StdVector< SurfElem* > & surfelems,
+                                    StdVector< UInt > & elemids);
+
+      //! NC_SIMON: Add volume elements 
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      //! \param regionId (in) elements will be added to region with this id
+      //! \param volelems (in) volume elements to be added
+      //! \param elemids (out) element id numbers returned
+      virtual void AddVolumeElems(  const RegionIdType regionid,
+                                    const StdVector< Elem* > & volelems,
+                                    StdVector< UInt > & elemids);
+
+      //! NC_SIMON: Add a new Surface region to the grid
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      //! \param name (in) name of the new region
+      //! \param regionid (out) id of the new region
+      virtual void AddSurfaceRegion( const std::string name,
+                                     RegionIdType& regionid);
+
+      //! NC_SIMON: Add a new volume region to the grid
+      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+      //! \param name (in) name of the new region
+      //! \param regionid (out) id of the new region
+      virtual void AddVolumeRegion( const std::string name,
+                                    RegionIdType& regionid);
+
+      //! NC_SIMON: Remove all elements from the given region
+      //! \param regionid (in) id of the region
+      virtual void ClearRegion( const RegionIdType regionid );
 
   private:
 

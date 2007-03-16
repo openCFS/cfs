@@ -10,7 +10,8 @@
 namespace CoupledField {
 
 
-  SimInputMESH::SimInputMESH(std::string fileName) : SimInput(fileName)
+    SimInputMESH::SimInputMESH(std::string fileName, ParamNode * inputNode) :
+        SimInput(fileName, inputNode)
   {
     ENTER_FCN( "SimInputMESH::SimInputMESH" );
     mi_ = NULL;

@@ -1,25 +1,60 @@
-# Make sure the compiler can find include files from our CFSMESHIO library.
-#INCLUDE_DIRECTORIES(${CFSMESHIO_SOURCE_DIR}/include ${HDF5_INCLUDE_DIR})
-
-# Make sure the linker can find the CFSMESHIO library once it is built.
-#LINK_DIRECTORIES()
-
-SET(FORMS_SRCS baseForm.cc laplaceInt.cc bdbInt.cc bdInt.cc massInt.cc
-  baseoperator.cc linViscoElastInt.cc linElastInt.cc nLinElastInt.cc 
-  gradfieldop.cc elecforceop.cc curlCurlEdgeInt.cc massEdgeInt.cc
-  linearForm.cc curlfieldop.cc smoothInt.cc curlCurlNodeInt.cc 
-  nLincurlCurlNodeInt.cc mechStressStrain.cc linStrainOp.cc elecchargeop.cc
-  magforceop.cc adbInt.cc linPiezoCoupling.cc nLinPiezoCoupling.cc
-  linPressureInt.cc baseForceOp.cc acouMechInt.cc abcInt.cc linSurfForm.cc
-  linNeumannInt.cc PMLInt.cc laplaceXYZInt.cc 
-  PMLTransXYZInt.cc acouPowerDensityOp.cc FlatShellInt.cc stokesFluidInt.cc
-  stokesFluid3DInt.cc stokesFluidPlaneInt.cc stokesFluidAxiInt.cc
-  nLinStokesFluidInt.cc linElecInt.cc FlatShellStiffInt.cc
-  FlatShellMassInt.cc FlatShellPiezoInt.cc FlatShellElecInt.cc 
-  singleEntryInt.cc nLinElecHystInt.cc bubbleDampInt.cc bubbleStiffInt.cc
-  pierceInt.cc nLinElecMaterial.cc linSurfStressInt.cc nlinLaplaceInt.cc
-  nLinMassInt.cc)
-
-# nrbcInt.cc
+SET(FORMS_SRCS
+  abcInt.cc
+  acouMechInt.cc
+  acouPowerDensityOp.cc
+  adbInt.cc
+  baseForceOp.cc
+  baseForm.cc
+  baseoperator.cc
+  bdbInt.cc
+  bdInt.cc
+  bubbleDampInt.cc
+  bubbleStiffInt.cc
+  curlCurlEdgeInt.cc
+  curlCurlNodeInt.cc
+  curlfieldop.cc
+  elecchargeop.cc
+  elecforceop.cc
+  FlatShellElecInt.cc
+  FlatShellInt.cc
+  FlatShellMassInt.cc
+  FlatShellPiezoInt.cc
+  FlatShellStiffInt.cc
+  gradfieldop.cc
+  laplaceInt.cc
+  laplaceXYZInt.cc
+  linearForm.cc
+  linElastInt.cc
+  linElecInt.cc
+  linNeumannInt.cc
+  linPiezoCoupling.cc
+  linPressureInt.cc
+  linStrainOp.cc
+  linSurfForm.cc
+  linSurfStressInt.cc
+  linViscoElastInt.cc
+  magforceop.cc
+  massEdgeInt.cc
+  massInt.cc
+  mechStressStrain.cc
+  nLincurlCurlNodeInt.cc
+  nLinElastInt.cc
+  nLinElecHystInt.cc
+  nLinElecMaterial.cc
+  nlinLaplaceInt.cc
+  nLinMassInt.cc
+  nLinPiezoCoupling.cc
+  nLinStokesFluidInt.cc
+  nonConformingInt.cc
+  pierceInt.cc
+  PMLInt.cc
+  PMLTransXYZInt.cc
+  singleEntryInt.cc
+  smoothInt.cc
+  stokesFluid3DInt.cc
+  stokesFluidAxiInt.cc
+  stokesFluidInt.cc
+  stokesFluidPlaneInt.cc
+  )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

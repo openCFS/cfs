@@ -2,15 +2,10 @@ SET(LAPACK_SRCS  olasf77mapping.cc lapackbasematrix.cc lapacklu.cc lapackll.cc)
 
 ADD_LIBRARY(lapack-olas STATIC ${LAPACK_SRCS})
 
-SET(TARGET_LL lapack blas)
-
-IF(CFS_DISTRO STREQUAL "SUSE" OR CFS_DISTRO STREQUAL "OPENSUSE")
-  IF(CFS_DISTRO_VER GREATER 9.3)
-    SET(TARGET_LL ${TARGET_LL} gfortran)
-  ENDIF(CFS_DISTRO_VER GREATER 9.3)
-ENDIF(CFS_DISTRO STREQUAL "SUSE" OR CFS_DISTRO STREQUAL "OPENSUSE")
-
-SET(TARGET_LL ${TARGET_LL} g2c)
+# CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
+# LAPACK_LIBRARY and BLAS_LIBRARY are defined in
+# cmake_modules/FindFortranLibs.cmake
+SET(TARGET_LL ${LAPACK_LIBRARY} ${BLAS_LIBRARY} ${CFS_FORTRAN_LIBS})
 
 TARGET_LINK_LIBRARIES(lapack-olas ${TARGET_LL})
 

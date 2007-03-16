@@ -60,6 +60,10 @@ IF(USE_UNV)
   SET(TARGET_LL ${TARGET_LL} simoutunv)
 ENDIF(USE_UNV)
 
+IF(USE_HDF5)
+  SET(TARGET_LL ${TARGET_LL} siminxmdf)
+ENDIF(USE_HDF5)
+
 SET(TARGET_LL ${TARGET_LL} 
   datainout
   materials
