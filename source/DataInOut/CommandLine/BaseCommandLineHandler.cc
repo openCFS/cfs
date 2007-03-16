@@ -486,6 +486,7 @@ namespace CoupledField {
 
 #ifdef USE_XERCES
       std::cout << "USE_XERCES:            YES" << std::endl;
+      std::cout << "XERCES_VERSION:        " << XERCES_VERSION << std::endl;
       std::cout << "XMLSCHEMA:             " << XMLSCHEMA << std::endl;
 #else
       std::cout << "USE_XERCES:            NO" << std::endl;

@@ -12,9 +12,12 @@
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/FlatShellElecInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "Forms/massInt.hh"
 #include "Forms/gradfieldop.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/solveStepElec.hh"
 #include "CoupledPDE/pdecoupling.hh"
@@ -35,6 +38,8 @@
 
 namespace CoupledField {
 
+  DECLARE_LOG(elecpde)
+  DEFINE_LOG(elecpde, "pde.electrostatic")
 
   // ***************
   //   Constructor
@@ -58,9 +63,6 @@ namespace CoupledField {
 
     // Check the subtype of the problem
     paramNode->Get("subType", subType_);
-
-  
-
   }
   
 
@@ -315,6 +317,73 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContext );
       eqnMap_->AddResult( *results_[0], actSDList );
       
+    }
+
+    // =======================================================================
+    // Integrators for NonConforming Interfaces
+    // =======================================================================
+    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
+      
+      // get regionId of Lagrangian surface
+      StdVector<std::string> keyVec, attrVec, valVec;
+      std::string slaveSide;
+      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+
+      ParamNode* ncIfaceListNode;
+      ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
+
+      slaveSide = ncIfaceListNode->Get("ncInterface",
+                                       "name",
+                                       ncIfaceName)->Get("slaveSide")->AsString();
+
+      // Part 1: Define integrator M(Psi, Lambda) on
+      //         non-conforming interface
+      LOG_DBG2(elecpde) << "NonMatching: Defining nonconforming integrator"
+                        << " for M on interface '"
+                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
+      actNcList->SetRegion( ncIFaces_[i] );
+      
+      NonConformingInt * ncInt = 
+        new NonConformingInt( 1, isaxi_ );
+
+      NcBiLinFormContext * stiffIntDescr = 
+	new NcBiLinFormContext( ncInt , STIFFNESS );
+
+      // Force assembling of M(Psi, Lambda)^T
+      stiffIntDescr->SetCounterPart( true );
+
+      stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetResults( results_[0], results_[1],
+                                 actNcList, actNcList );
+      
+      assemble_->AddBiLinearForm( stiffIntDescr );
+
+
+      // Part 2: Define integrator D(Psi, Lambda) on
+      //         Lagrangian surface
+      LOG_DBG2(elecpde) << "NonMatching: Defining mass integrator"
+                        << " for D on interface '"
+                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );      
+      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+
+      // D(Psi, Lambda) has the form of a standard mass
+      // integrator with factor 1.0
+      MassInt * dMatInt = new MassInt( 1.0, 1, isaxi_ );
+      BiLinFormContext * dMatContext = 
+        new BiLinFormContext( dMatInt, STIFFNESS );
+
+      // Force assembling of D(Psi, Lambda)^T
+      dMatContext->SetCounterPart( true );
+      dMatContext->SetPtPdes( this, this );
+      dMatContext->SetResults( results_[0], results_[1],
+                               actSDList, actSDList );
+      
+      assemble_->AddBiLinearForm( dMatContext );
+
+      // Give result LAGRANGE_MULT to equation numbering class
+      eqnMap_->AddResult( *results_[1], actSDList );
     }
   }
 
@@ -994,6 +1063,63 @@ namespace CoupledField {
     pol->dofNames = vecDofNames;
     pol->unit = "C/m^2";
     availResults_.insert( pol );
+   
+    // ===================================
+    // Check for non-conforming interfaces
+    // ===================================
+    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    StdVector<RegionIdType> ncIfaceIds;
     
+    LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
+                      << "interfaces of PDE exist in domain.";
+
+    ParamNode* domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+
+    if(domainNCIfaceListNode)
+    {
+
+        StdVector<ParamNode*> pdeNCIfaceNodes = 
+            param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+            ->Get("pdeList")->Get("electrostatic")->Get("ncInterfaceList")
+            ->GetList("ncInterface");
+    
+        for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+            std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+        
+            ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+                                                                    "name",
+                                                                    pdeIfaceName,
+                                                                    false);
+            if(!domainIfaceNode)
+            {
+                LOG_DBG2(elecpde) << "NonMatching: Nonconforming "
+                                  << "interface '" << ncIfaceNames[i]
+                                  << "' does not exist in domain.";
+            
+                EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+            }
+
+            ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+        }
+        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+    
+        for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+            ncIFaces_.Push_back(ncIfaceIds[i]);
+        }
+    
+        // In the case of the presence of non-conforming interfaces,
+        // a second resultdof object has to be created, which describes the 
+        // Lagrange multiplier
+        if( ncIFaces_.GetSize() > 0 ) {
+            LOG_DBG2(elecpde) << "NonMatching: Defining new ResultDof Lagrange.";
+            shared_ptr<ResultInfo> lagr ( new ResultInfo );
+            lagr->resultType = LAGRANGE_MULT;
+            lagr->dofNames = "l";
+            lagr->fctType = results_[0]->fctType;
+            lagr->definedOn = results_[0]->definedOn;
+            results_.Push_back( lagr );
+        } 
+    }
   }
 }

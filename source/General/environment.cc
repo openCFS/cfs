@@ -560,7 +560,11 @@ namespace CoupledField {
       out = BUBBLE_RADIUS_DERIV_1;
     else if (in == "bubbleValues")
       out = MAG_FLUX_DENSITY;
-	           
+	     
+    // independent
+    else if (in == "LagrangeMultiplier")
+      out = LAGRANGE_MULT;
+      
     else {
       EXCEPTION( "'" << in << "' cannot be converted into item of "
                << "'SolutionType'!" );
@@ -744,6 +748,11 @@ namespace CoupledField {
         out = "bubbleVolumeFrac";
         break;
       
+        // independent
+      case LAGRANGE_MULT:
+        out = "LagrangeMultiplier";
+	break;
+
       default:
         EXCEPTION( "Wrong type of solution or 'SolutionType2String' not "
                    << "implemented for this type of solution" );

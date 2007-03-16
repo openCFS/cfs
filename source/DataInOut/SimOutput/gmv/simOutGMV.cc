@@ -6,15 +6,15 @@
 #include <complex>
 #include <ctime>
 
-#include <def_cfs_stats.hh>
-
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
 namespace fs = boost::filesystem;
 
-// include this because of the Exception class
+#include <def_cfs_stats.hh>
+
 #include <DataInOut/simInput.hh>
 #include <DataInOut/Logging/cfslog.hh>
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include "simOutGMV.hh"
 
@@ -69,6 +69,20 @@ namespace CoupledField {
     ascii_ = false;
     charOutSize_ = 32;
 
+
+    // Change defaults according to XML file
+    if(myParam_->Get("binaryFormat", false)->AsString() == "no")
+    {
+        ascii_ = true;
+    }
+
+    if(myParam_->Get("fixedGrid", false)->AsString() == "no")
+    {
+        fixedgrid_ = false;
+    }
+    
+    charOutSize_ = 32;
+
   }
 
 
@@ -83,8 +97,7 @@ namespace CoupledField {
 
   void SimOutputGMV::BeginMultiSequenceStep( UInt step, AnalysisType type )
   {
-    Warning("SimOutputGMV::BeginMultiSequenceStep: Method not implemented!",
-            __FILE__, __LINE__);
+
   }
   
   void SimOutputGMV::RegisterResult( shared_ptr<BaseResult> sol,
@@ -110,7 +123,7 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGMV::BeginStep" );
     // std::cout << "BeginStep: stepNum: " << stepNum  << " stepVal: " << stepVal << std::endl;
     resultMap_.clear();
-
+    
     currStep_ = stepNum;
     currTime_ = stepVal;
   }
@@ -197,8 +210,6 @@ namespace CoupledField {
   void SimOutputGMV::FinishMultiSequenceStep( )
   {
     ENTER_FCN( "SimOutputGMV::FinishMultiSequenceStep" );
-    Warning("SimOutputGMV::FinishMultiSequenceStep: Method not implemented!",
-            __FILE__, __LINE__);
   }
 
 
@@ -852,11 +863,10 @@ namespace CoupledField {
         (*output) << "codename " << CODE_NAME << std::endl;
         (*output) << "codever " << CODE_VER << std::endl;
         (*output) << "simdate " << buffer << std::endl;
-        (*output) << "\nendgmv";
+        (*output) << "endgmv" << std::endl;
       }
       else 
       {
-        (*output) << "endgmv  ";
         (*output) << "codename";
         dummy = CODE_NAME;
         TruncateString(dummy, 8);
@@ -869,6 +879,7 @@ namespace CoupledField {
         dummy = buffer;
         TruncateString(dummy, 8);
         output->write(dummy.c_str(), 8 );
+        (*output) << "endgmv  ";
       }
       return;
     }
@@ -890,7 +901,7 @@ namespace CoupledField {
         (*output) << "codename " << CODE_NAME << std::endl;
         (*output) << "codever " << CODE_VER << std::endl;
         (*output) << "simdate " << buffer << std::endl;
-        (*output) << "\nendgmv";
+        (*output) << "endgmv" << std::endl;
       }
       else 
       {

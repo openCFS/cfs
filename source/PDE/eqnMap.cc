@@ -1157,7 +1157,7 @@ namespace CoupledField {
 	 listIt != nodeMappedList_.end(); 
 	 listIt++ ) {
 
-      UInt eqnCounter = numRealEqns_;
+      UInt eqnCounter = numEqns_;
       
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
@@ -1181,21 +1181,22 @@ namespace CoupledField {
       // Idea of the algorithm:
       //
       // -- PHASE 1 --
-      // Step 1:  Initialize actMap with 1
+      // Step 1:  Initialize actMap with -1
       // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
       // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
       // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
-      // Step 4:  Loop over all entries in pde2Meshnode
+      // Step 4:  Loop over all nodes of given entity lists
       //          and assign each non-zero entry an equation number
+      // Step 5:  Loop over the whole map and set all entries with -1 to 0
 
       // -- PHASE 2 --
-      // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
+      // Step 6:  Afterwards loop again over all nodes in constraintSlaveNodes_
       //          and set the corresponding entry in pdeNode2EQN_ to the
       //          negative of the value of constraintMasterNode
-      // Step 5b: Loop over all entries in inhomoDirichletNodes_ and assign that
+      // Step 6b: Loop over all entries in inhomoDirichletNodes_ and assign that
       //          dof an equation number after the hightest equation number of
       //          the free dofs
       //
@@ -1209,7 +1210,7 @@ namespace CoupledField {
 	//UInt multipleBCs = 0;
 	
 	actMap.Resize( numLocNodes_, dofsPerNode );
-	actMap.Init( 1 );
+	actMap.Init( -1 );
 	
 	
 	// ------
@@ -1353,9 +1354,22 @@ namespace CoupledField {
 	    }
 	  }
 	}
+
+        // ------
+	// STEP 5
+	// ------
+        // Re-iterate over the whole equation map and set all entries 
+        // with eqn-number of -1 to 0
+        for( UInt i = 0; i < actMap.GetSizeRow(); i++ ) {
+          for( UInt j = 0; j < actMap.GetSizeCol(); j++ ) {
+            if( actMap[i][j] == -1 )
+              actMap[i][j] = 0;
+          }
+        }
 	
 	// now we know the number of 'real' dofs
 	numRealEqns_ = eqnCounter;
+        numEqns_ = eqnCounter;
 
         LOG_DBG2(eqnMap) << "Final equation map looks like: \n" 
                          << actMap << std::endl;
@@ -1363,7 +1377,7 @@ namespace CoupledField {
       } else if( phase == 2 ) {
 	
 	// ------
-	// STEP 5
+	// STEP 6
 	// ------
 	// Check if any inhom. constraint is defined for the current
 	// result
@@ -1389,7 +1403,7 @@ namespace CoupledField {
 	}
 	
 	// -------
-	// STEP 5b
+	// STEP 6b
 	// -------
 	if( idBcIt != idBcs_.end() ) {
 	  IdBcList const & actIdBcList = idBcIt->second;

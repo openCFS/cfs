@@ -223,7 +223,10 @@ auxiliary/mysql/getnodalresult.sql svneol=native#text/plain
 auxiliary/mysql/getresultidx.sql svneol=native#text/plain
 auxiliary/scripts/log.tcl svneol=native#text/plain
 cmake_modules/FindCFSDEPS.cmake -text
+cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindMpCCI.cmake -text
+cmake_modules/FindPrograms.cmake -text
+cmake_modules/FindXerces.cmake -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
@@ -346,8 +349,8 @@ source/DataInOut/SimInput/xmdf/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/ErrorDefinitions.h svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/Xmdf.c svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/Xmdf.h svneol=native#text/plain
-source/DataInOut/SimInput/xmdf/mod_xmdf.cc svneol=native#text/plain
-source/DataInOut/SimInput/xmdf/mod_xmdf.hh svneol=native#text/plain
+source/DataInOut/SimInput/xmdf/simInputXMDF.cc svneol=native#text/plain
+source/DataInOut/SimInput/xmdf/simInputXMDF.hh svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/xmdf_par.h svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/xmdf_private.c svneol=native#text/plain
 source/DataInOut/SimInput/xmdf/xmdf_private.h svneol=native#text/plain
@@ -437,6 +440,8 @@ source/Domain/entityList.cc svneol=native#text/plain
 source/Domain/entityList.hh svneol=native#text/plain
 source/Domain/grid.cc svneol=native#text/plain
 source/Domain/grid.hh svneol=native#text/plain
+source/Domain/ncElem.hh svneol=native#text/plain
+source/Domain/polygonIterator.hh svneol=native#text/plain
 source/Domain/resultInfo.cc svneol=native#text/plain
 source/Domain/resultInfo.hh svneol=native#text/plain
 source/Domain/surfElem.hh svneol=native#text/plain
@@ -640,6 +645,8 @@ source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/plain
 source/Forms/nLincurlCurlNodeInt.hh svneol=native#text/plain
 source/Forms/nlinLaplaceInt.cc svneol=native#text/plain
 source/Forms/nlinLaplaceInt.hh svneol=native#text/plain
+source/Forms/nonConformingInt.cc svneol=native#text/plain
+source/Forms/nonConformingInt.hh svneol=native#text/plain
 source/Forms/pierceInt.cc svneol=native#text/plain
 source/Forms/pierceInt.hh svneol=native#text/plain
 source/Forms/singleEntryInt.cc svneol=native#text/plain

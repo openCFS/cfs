@@ -307,7 +307,8 @@ namespace CoupledField {
                STOKESFLUID_VEL_PRES_VORT, STOKESFLUID_VELOCITY,
                STOKESFLUID_PRESSURE, STOKESFLUID_VORTICITY,
                STOKESFLUID_FORCE,
-               BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC } SolutionType;
+               BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
+               LAGRANGE_MULT } SolutionType;
 
   //! describes the possible material types
   typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY, 

@@ -63,6 +63,17 @@ namespace CoupledField
                                    const Elem* elem );
 
   
+    //! Get the local coordinates for given global ones
+    //! \param localCoords (output) local coordinates
+    //! \param globalCoords (input) global coordinates
+    //! \param coordMat (input) global corner coordinates of element
+    //!                         (spaceDim \f$\times\f$ nrNodes)
+      virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+                                      const Matrix<Double> & globalCoords,
+                                      const Matrix<Double> & coordMat)
+    { Error( "Not implemented. Should use Newton-Raphson method", __FILE__, __LINE__); }
+
+
     //! Get value of all shape fnc at integration point ip
     /*! 
       \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$

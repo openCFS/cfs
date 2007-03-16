@@ -328,12 +328,29 @@ namespace CoupledField
                                   const Elem* elem )
   {
     ENTER_FCN( "LineFE::CalcJacobianDet" );
-
+    
+    /*
     Matrix<Double> J;
   
-    CalcJacobian( J, LCoord, CornerCoords, elem );
+    CalcJacobian( J, LCoord, CornerCoords );
     return J[0][0];
-  
+    */
+
+    Double length;
+    if (CornerCoords.GetSizeRow()==2) 
+      {
+        //see kaltenbacher, p.23, eq.(2.122)
+        Matrix<Double> J;
+        CalcJacobian( J, LCoord, CornerCoords, elem );
+        length = sqrt(J[0][0]*J[0][0] + J[1][0]*J[1][0]);
+      }
+    else 
+      {
+        // Length/2 is simply the jacDet for a line
+        length=dist_Mat(CornerCoords)/2;
+      }
+
+    return length;
   }
 
 

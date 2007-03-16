@@ -458,6 +458,162 @@ namespace CoupledField
     }
   }
 
+  void Quad1FE :: Global2LocalCoords(Matrix<Double> & localCoords,
+                                     const Matrix<Double> & globalCoords,
+                                     const Matrix<Double> & coordMat)
+  {
+      Vector<Double> c0, c1, c2, c3; // endpoint-coordinates
+      Vector<Double> diff0, diff1, diff2, diff3;
+    Vector<Double> dummy;
+    Double s;
+    Double dist, dist1, fac1, fac2;
+    UInt globDim = globalCoords.GetSizeRow();
+    Matrix<Double> transformMat, invMat;
+    Matrix<Double> intermediateMat;
+    Vector<Double> xvec, yvec;
+    Vector<Double> alpha, beta;
+   
+    // Get coordinates of the endpoints
+    c0.Resize(globDim);
+    c1.Resize(globDim);
+    c2.Resize(globDim);
+    c3.Resize(globDim);
+
+    diff0.Resize(globDim);
+    diff1.Resize(globDim);
+    diff2.Resize(globDim);
+    diff3.Resize(globDim);
+
+    //    std::cout << "SIMON> Line1FE->Global2Local(): coordMat " << coordMat << std::endl;
+    //    std::cout << "SIMON> Line1FE->Global2Local(): globalCoords " << globalCoords << std::endl;
+
+    for(UInt i = 0; i < globDim; i++)
+    {
+        c0[i] = coordMat[i][0];
+        c1[i] = coordMat[i][1];
+        c2[i] = coordMat[i][2];
+        c3[i] = coordMat[i][3];
+        //        c1[i] = coordMat[i][1];
+        diff1[i] = c1[i] - c0[i];
+        diff2[i] = c2[i] - c0[i];
+        diff3[i] = c3[i] - c0[i];
+    }
+
+    //    diff1 = c1 - c0;
+    dist = diff1.NormL2();
+    fac1 = 1.0 / dist;
+    diff1 *= fac1;
+    
+    dist = diff3.NormL2();
+    fac2 = 1.0 / dist;
+    diff3 *= fac2;
+
+    transformMat.Resize(4, 4);
+    xvec.Resize(4);
+    yvec.Resize(4);
+    alpha.Resize(4);
+    beta.Resize(4);
+    intermediateMat.Resize(2, globalCoords.GetSizeCol());
+
+    if(globDim == 2)
+    {
+        for(UInt i=0; i < 4; i++)
+        {
+            transformMat[i][0] = 1;
+            transformMat[i][1] = coordMat[0][i];
+            transformMat[i][2] = coordMat[1][i];
+            transformMat[i][3] = coordMat[0][i] * coordMat[1][i];        
+        }
+
+        for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
+        {
+            intermediateMat[0][i] = globalCoords[0][i];
+            intermediateMat[1][i] = globalCoords[1][i];
+        }
+    }
+    else
+    {
+        transformMat[0][0] = 1;
+        transformMat[0][1] = 0;
+        transformMat[0][2] = 0;
+        transformMat[0][3] = 0;
+
+        transformMat[1][0] = 1;
+        transformMat[1][1] = 1;
+        transformMat[1][2] = 0;
+        transformMat[1][3] = 0;
+
+        transformMat[2][0] = 1;
+        diff2.Inner(diff1, transformMat[2][1]);
+        transformMat[2][1] *= fac1;
+        diff2.Inner(diff3, transformMat[2][2]);
+        transformMat[2][2] *= fac2;
+        transformMat[2][3] = transformMat[2][1] * transformMat[2][2];
+
+        transformMat[3][0] = 1;
+        transformMat[3][1] = 0;
+        transformMat[3][2] = 1;
+        transformMat[3][3] = 0;
+
+        for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
+        {
+            for(UInt j = 0; j < globDim; j++)
+            {
+                diff0[j] = globalCoords[j][i] - c0[j];
+            }
+            //        diff0 = globalCoords[i] - c0;
+            diff0.Inner(diff1, intermediateMat[0][i]);
+            intermediateMat[0][i] *= fac1;
+            diff0.Inner(diff3, intermediateMat[1][i]);
+            intermediateMat[1][i] *= fac2;
+        }        
+    }
+    
+    transformMat.Invert(invMat);
+    xvec[0] = -1;
+    xvec[1] = 1;
+    xvec[2] = 1;
+    xvec[3] = -1;
+    invMat.Mult(xvec, alpha);
+    // transformMat.DirectSolve(alpha, xvec);
+    
+    
+    yvec[0] = -1;
+    yvec[1] = -1;
+    yvec[2] = 1;
+    yvec[3] = 1;
+    invMat.Mult(yvec, beta);
+    // transformMat.DirectSolve(beta, yvec);
+
+    localCoords.Resize(Dim_, globalCoords.GetSizeCol());
+    
+    for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
+    {
+        localCoords[0][i] = alpha[0] +
+                            alpha[1]*intermediateMat[0][i] +
+                            alpha[2]*intermediateMat[1][i] +
+                            alpha[3]*intermediateMat[0][i] * intermediateMat[1][i];
+        
+                            
+        localCoords[1][i] = beta[0] +
+                            beta[1]*intermediateMat[0][i] +
+                            beta[2]*intermediateMat[1][i] +
+                            beta[3]*intermediateMat[0][i] * intermediateMat[1][i];
+
+        //        std::cout << "SIMON> Quad1FE->Global2Local(): localCoord[" << i << "]: (" <<localCoords[0][i]<< ", " << localCoords[1][i] << ")" << std::endl;
+        /*        
+        std::cout << "SIMON> Line1FE->Global2Local(): s " << s << std::endl;
+
+        for(UInt j = 0; j < Dim_; j++)
+        {
+            localCoords[j][i] = LCornerCoords_[j][0] * s + LCornerCoords_[j][1] * (1-s);
+            std::cout << "SIMON> Line1FE->Global2Local(): localcoord " <<localCoords[j][i]<< std::endl;
+        }
+        */
+    }
+    
+  }
+
 
 } // end of namespace
 

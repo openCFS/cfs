@@ -28,6 +28,9 @@
 // Hardware architecture for which CFS++ has been built
 #define CFS_ARCH "@CFS_ARCH@"
 
+// Version of Xerces-C CFS++ has been compiled with
+#define XERCES_VERSION "@XERCES_VERSION@"
+
 // Variables from the CMAKE build system
 #define CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
 

@@ -93,11 +93,11 @@ namespace CoupledField
     // ======================================================
 
     //! Map equations for bilinear form for combination of two given entities
-    void MapEqns( EntityIterator& it1, 
-                  EntityIterator& it2,
-                  StdVector<Integer>& eqnVec1, 
-                  StdVector<Integer>& eqnVec2,
-                  PdeIdType& id1, PdeIdType& id2 );
+    virtual void MapEqns( EntityIterator& it1, 
+                          EntityIterator& it2,
+                          StdVector<Integer>& eqnVec1, 
+                          StdVector<Integer>& eqnVec2,
+                          PdeIdType& id1, PdeIdType& id2 );
     
     // ======================================================
     // ENTITIES / RESULTS
@@ -263,24 +263,33 @@ namespace CoupledField
 
 
   
+  //! Specialized context for non-conforming interfaces
+  class NcBiLinFormContext : public BiLinFormContext  {
+
+  public:
+    
+    //! Constructor
+    //! \param biLinForm pointer to the bilinearform to be wrapped
+    //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
+    //!                bilinearform
+    NcBiLinFormContext( BaseForm* biLinForm, 
+                        FEMatrixType destMat );
+
+    //! Destructor
+    virtual ~NcBiLinFormContext();
+
+    // ======================================================
+    //  MAPPING METHODS
+    // ======================================================
+
+    //! Map equations for bilinear form for combination of two given entities
+    void MapEqns( EntityIterator& it1, 
+                  EntityIterator& it2,
+                  StdVector<Integer>& eqnVec1, 
+                  StdVector<Integer>& eqnVec2,
+                  PdeIdType& id1, PdeIdType& id2 );
+  };
   
- //  //! Class for performing the assembly of the system matrices
-//   class Assemble {
-
-
-//   public:
-
-//   protected:
-
-//   private:
-
-//   };
-
-
-
- 
-
-
 } // end of namespace
 
 #endif
