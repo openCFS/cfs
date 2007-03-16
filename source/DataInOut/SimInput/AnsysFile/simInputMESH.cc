@@ -145,7 +145,7 @@ namespace CoupledField {
       for(UInt i=0; i<elemTypes[j].size(); i++)
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         regionId[j], &elems[j][n]);
+                         ids[regionId[j]], &elems[j][n]);
         n += NUM_ELEM_NODES[elemTypes[j][i]];
       }
     }
@@ -162,7 +162,7 @@ namespace CoupledField {
       for(UInt i=0; i<elemTypes[j].size(); i++)
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         regionId[j], &elems[j][n]);
+                         ids[regionId[j]], &elems[j][n]);
         n += NUM_ELEM_NODES[elemTypes[j][i]];
       }
     }
@@ -554,7 +554,7 @@ namespace CoupledField {
         end = regionIds.end();
 
         it = std::find(regionIds.begin(), end, regionId);
-                
+        
         if ( it == end ) {
           regionIds.push_back(regionId);
           elems.push_back( std::vector<UInt>() );
@@ -562,6 +562,8 @@ namespace CoupledField {
           elemTypes.push_back( std::vector<FEType>() );
           regionNodes_.push_back(std::set<UInt>());
           regionIndex = regionIds.size() - 1;
+        } else {
+          regionIndex = std::distance(regionIds.begin(), it );
         }
       }
 
