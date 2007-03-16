@@ -478,7 +478,7 @@ namespace CoupledField {
 
   void SimOutputUnv::AddResult( shared_ptr<BaseResult>  sol ) {
     ENTER_FCN( "SimOutputUnv::SetResult" );
-    resultMap_[sol->GetResultInfo()].Push_back( sol );
+    resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
   }
   
   void SimOutputUnv::FinishStep( ) {
@@ -489,30 +489,30 @@ namespace CoupledField {
     for( ; it != resultMap_.end(); it++ ) {
       
       // check if result is defined on nodes or elements
-      ResultInfo & actDof = *(it->first);
+      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
       
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
 
       
-      if(  actDof.definedOn != ResultInfo::NODE &&
-           actDof.definedOn != ResultInfo::PFEM &&
-           actDof.definedOn != ResultInfo::ELEMENT &&
-           actDof.definedOn != ResultInfo::SURF_ELEM ) {
+      if(  actInfo.definedOn != ResultInfo::NODE &&
+           actInfo.definedOn != ResultInfo::PFEM &&
+           actInfo.definedOn != ResultInfo::ELEMENT &&
+           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
         Warning( "Unv can only write results on element and nodes",
                  __FILE__, __LINE__ );
         continue;
       }
       
-      ResultInfo::EntityUnknownType entityType = actDof.definedOn;
-      std::string title =  SolutionTypeToString( actDof.resultType );
-      StdVector<std::string> & dofNames = actDof.dofNames;
+      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
+      std::string title =  SolutionTypeToString( actInfo.resultType );
+      StdVector<std::string> & dofNames = actInfo.dofNames;
       UInt numDofs = dofNames.GetSize();
       
       // Determine type of entity the result is defined on
       UInt mapTo = 0;
       UInt numEntities = 0;
-      if( actDof.definedOn == ResultInfo::NODE ) {
+      if( actInfo.definedOn == ResultInfo::NODE ) {
         mapTo = 55;
         numEntities = ptGrid_->GetNumNodes();;
       } else {
@@ -526,7 +526,7 @@ namespace CoupledField {
         
         // Special case: If result is mechStress, restort entries 
         // according to capa notation
-        if( actDof.resultType == MECH_STRESS ) { 
+        if( actInfo.resultType == MECH_STRESS ) { 
           SortStresses( gSol, dofNames);
           numDofs = 6;
         }
@@ -540,13 +540,13 @@ namespace CoupledField {
 
         // Special case: If result is mechStress, restort entries 
         // according to capa notation
-        if( actDof.resultType == MECH_STRESS ) { 
+        if( actInfo.resultType == MECH_STRESS ) { 
           SortStresses( gSol, dofNames);
           numDofs = 6;
         }
         
         NodeElemDataHarmonic( mapTo, title, gSol, actStep_, 
-                              actStepVal_, actDof.complexFormat,
+                              actStepVal_, actInfo.complexFormat,
                               numEntities, numDofs );
       }
     } // over all result types

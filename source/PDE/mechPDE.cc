@@ -1403,7 +1403,7 @@ namespace CoupledField {
       
       shared_ptr<ResultInfo> vol(new ResultInfo);
       vol->resultType = MECH_DEF_VOLUME;
-      vol->dofNames = "u";
+      vol->dofNames = "";
       vol->unit = "m^3";
       vol->definedOn = ResultInfo::REGION;
       vol->entryType = ResultInfo::SCALAR;

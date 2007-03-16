@@ -54,7 +54,7 @@ namespace CoupledField {
   void SimOutputText::AddResult( shared_ptr<BaseResult> sol ) {
     ENTER_FCN( "SimOutputText::AddResult" );
 
-    resultMap_[sol->GetResultInfo()].Push_back( sol );
+    resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
   }
   
   void SimOutputText::FinishStep( ) {
@@ -65,7 +65,7 @@ namespace CoupledField {
     for( ; it != resultMap_.end(); it++ ) {
 
       // get result info object and results for current result type
-      ResultInfo & actDof = *(it->first);
+      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
       
@@ -83,9 +83,9 @@ namespace CoupledField {
         shared_ptr<EntityList> actList  = actResults[iSol]->GetEntityList();
         
         // Iterate over all 'entities' of particular result
-        ResultInfo::EntryType entryType =  actDof.entryType;
+        ResultInfo::EntryType entryType =  actInfo.entryType;
         EntityIterator it = actList->GetIterator();
-        UInt numDofs = actDof.dofNames.GetSize();
+        UInt numDofs = actInfo.dofNames.GetSize();
         
         // *** Transient part ***
         if( actResults[iSol]->GetEntryType() == EntryType::DOUBLE ) {
@@ -108,7 +108,7 @@ namespace CoupledField {
           Result<Complex> & actRes = 
             dynamic_cast<Result<Complex>& >( *(actResults[iSol]) );
           Vector<Complex> & vec = actRes.GetVector();
-          if( actDof.complexFormat == REAL_IMAG ) {
+          if( actInfo.complexFormat == REAL_IMAG ) {
             for( it.Begin(); !it.IsEnd(); it++ ) {
               std::ofstream& actOut = *ptFiles[it.GetPos()];
               actOut << actStepVal_;;

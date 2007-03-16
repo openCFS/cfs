@@ -472,9 +472,16 @@ namespace CoupledField {
     input_ =  res;
 
     // intialize rVals and mathParser handles
+    // a) double
     rVals_.Resize( dofNames_.GetSize() );
     rVals_.Init();
     rHandles_.Resize( dofNames_.GetSize() );
+    // b) complex
+    if( input_->GetEntryType() == EntryType::COMPLEX ) {
+      iVals_.Resize( dofNames_.GetSize() );
+      iVals_.Init();
+      iHandles_.Resize( dofNames_.GetSize() );
+    }
     
     // register all new functions with mathParser and new result info  object
     StdVector<std::string> & inDofNames = input_->GetResultInfo()->dofNames;
@@ -482,14 +489,34 @@ namespace CoupledField {
       
       // obtain new handle
       rHandles_[outDof] = mParser_->GetNewHandle();
-      
-      // register all input dofs
-      for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
-        mParser_->SetValue( rHandles_[outDof], inDofNames[inDof], 0 );      
+      if( input_->GetEntryType() == EntryType::COMPLEX ) {
+        iHandles_[outDof] = mParser_->GetNewHandle();
       }
-
-      // register dofNames with dummy variable and set expression
-      mParser_->SetExpr( rHandles_[outDof], rFuncs_[outDof] );
+      
+      // register all input dofs 
+      // a) real case
+      if( input_->GetEntryType() == EntryType::DOUBLE ) {
+        for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
+          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof], 0 );      
+        }
+        // register dofNames with dummy variable and set expression
+        mParser_->SetExpr( rHandles_[outDof], rFuncs_[outDof] );
+      } else {
+        // b) complex case
+        for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
+          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof]+"_real", 0 );      
+          mParser_->SetValue( iHandles_[outDof], "u"+inDofNames[inDof]+"_real", 0 );  
+          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof]+"_imag", 0 );      
+          mParser_->SetValue( iHandles_[outDof], "u"+inDofNames[inDof]+"_imag", 0 );  
+        }
+        // register dofNames with dummy variable and set expression
+        if(  rFuncs_[outDof] == "" ) 
+          rFuncs_[outDof] = "0"; 
+        if(  iFuncs_[outDof] == "" ) 
+          iFuncs_[outDof] = "0"; 
+        mParser_->SetExpr( rHandles_[outDof], rFuncs_[outDof] );
+        mParser_->SetExpr( iHandles_[outDof], iFuncs_[outDof] );
+      }
     }
 
     // Create new result object
@@ -563,6 +590,7 @@ namespace CoupledField {
     UInt numOutDofs = out.GetResultInfo()->dofNames.GetSize();
     UInt numInDofs = in.GetResultInfo()->dofNames.GetSize();
     UInt numEnts = out.GetEntityList()->GetSize();
+    EntityIterator outIt = out.GetEntityList()->GetIterator();
     StdVector<std::string> & inDofNames = input_->GetResultInfo()->dofNames;
     
 
@@ -570,19 +598,29 @@ namespace CoupledField {
     outVec.Resize( numEnts * numOutDofs );
     
     // Iterate over all output entites
-    for( UInt iEnt = 0; iEnt < numEnts; iEnt++ ) {
+    for( ; !outIt.IsEnd(); outIt++ ) {
 
       // Iterate over all output dofs
       for( UInt outDof = 0; outDof < numOutDofs; outDof++ ) {
-
+        
+        // If output entity is a node 
+        // -> register coordinate as px/py/pz
+        if( outIt.GetType() == EntityList::NODE_LIST) {
+          Vector<Double> coords;
+          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode() );
+          mParser_->SetCoordinates(  rHandles_[outDof],
+                                     *(domain->GetCoordSystem()),
+                                     coords );
+        }
+        
         // Register current input values for dofNames
         for( UInt inDof = 0; inDof < numInDofs; inDof++ ) {
-          Double actVal = inVec[iEnt*numInDofs + inDof];
+          Double actVal = inVec[outIt.GetPos()*numInDofs + inDof];
           mParser_->SetValue( rHandles_[outDof], 
-                              inDofNames[inDof], actVal );
+                              "u"+inDofNames[inDof], actVal );
         }
         // Apply function
-        outVec[iEnt*numOutDofs+outDof] = 
+        outVec[outIt.GetPos()*numOutDofs+outDof] = 
           mParser_->Eval( rHandles_[outDof]  );
         
       } // loop ober output dofs
@@ -591,6 +629,61 @@ namespace CoupledField {
   
   void PostProcFunc::ApplyComplex( ) {
     ENTER_FCN( "PostProcFunc::ApplyComplex" );
+
+    // Cast output into correct type
+    Result<Complex> & out = dynamic_cast<Result<Complex>&>(*output_);
+    Result<Complex> & in =  dynamic_cast<Result<Complex>&>(*input_ );
+    Vector<Complex> & outVec = out.GetVector();
+    Vector<Complex> & inVec = in.GetVector();
+    UInt numOutDofs = out.GetResultInfo()->dofNames.GetSize();
+    UInt numInDofs = in.GetResultInfo()->dofNames.GetSize();
+    UInt numEnts = out.GetEntityList()->GetSize();
+    EntityIterator outIt = out.GetEntityList()->GetIterator();
+    StdVector<std::string> & inDofNames = input_->GetResultInfo()->dofNames;
+    
+    // intialize output vector
+    outVec.Resize( numEnts * numOutDofs );
+    
+    // Iterate over all output entites
+    for( ; !outIt.IsEnd(); outIt++ ) {
+
+      // Iterate over all output dofs
+      for( UInt outDof = 0; outDof < numOutDofs; outDof++ ) {
+        
+        // If output entity is a node 
+        // -> register coordinate as px/py/pz
+        if( outIt.GetType() == EntityList::NODE_LIST) {
+          Vector<Double> coords;
+          ptGrid_->GetNodeCoordinate( coords, outIt.GetNode() );
+          mParser_->SetCoordinates( rHandles_[outDof],
+                                    *(domain->GetCoordSystem()),
+                                    coords );
+          mParser_->SetCoordinates( iHandles_[outDof],
+                                    *(domain->GetCoordSystem()),
+                                    coords );
+        }
+        
+        // Register current input values for dofNames
+        for( UInt inDof = 0; inDof < numInDofs; inDof++ ) {
+          Complex actVal = inVec[outIt.GetPos()*numInDofs + inDof];
+          mParser_->SetValue( rHandles_[outDof], 
+                              "u"+inDofNames[inDof]+"_real", actVal.real() );
+          mParser_->SetValue( rHandles_[outDof], 
+                              "u"+inDofNames[inDof]+"_imag", actVal.imag() );
+          mParser_->SetValue( iHandles_[outDof], 
+                              "u"+inDofNames[inDof]+"_real", actVal.real() );
+          mParser_->SetValue( iHandles_[outDof], 
+                              "u"+inDofNames[inDof]+"_imag", actVal.imag() );
+        }
+        // Apply function
+        Double real, imag;
+        real = mParser_->Eval( rHandles_[outDof] );
+        imag = mParser_->Eval( iHandles_[outDof] );
+        outVec[outIt.GetPos()*numOutDofs+outDof] = Complex(real, imag);
+        
+      } // loop ober output dofs
+    } // loop over entities    
+
   }
 
   void PostProcFunc::Finalize( ) {

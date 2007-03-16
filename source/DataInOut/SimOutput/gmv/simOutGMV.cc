@@ -126,7 +126,7 @@ namespace CoupledField {
 
     LOG_DBG(simOutputGMV) << "Adding result '" << type  << "'";
       
-    resultMap_[sol->GetResultInfo()] = sol;
+    resultMap_[sol->GetResultInfo()->resultName].Push_back(sol);
   }
 
 
@@ -146,21 +146,22 @@ namespace CoupledField {
     for( ; it != resultMap_.end(); it++ ) {
       
       // get result info object and results for current result type
-      ResultInfo & actDof = *(it->first);
+      //ResultInfo & actDof = *(it->first);
+      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
 
-      title = actDof.resultName;
+      title = actInfo.resultName;
 
-      ResultInfo::EntryType entryType =  actDof.entryType;
-      ResultInfo::EntityUnknownType entityType = actDof.definedOn;
+      ResultInfo::EntryType entryType =  actInfo.entryType;
+      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
 
       // check if result is defined on nodes or elements
-      StdVector<std::string> & dofNames = actDof.dofNames;  
-      if(  actDof.definedOn != ResultInfo::NODE &&
-           actDof.definedOn != ResultInfo::PFEM &&
-           actDof.definedOn != ResultInfo::ELEMENT &&
-           actDof.definedOn != ResultInfo::SURF_ELEM ) {
+      StdVector<std::string> & dofNames = actInfo.dofNames;  
+      if(  actInfo.definedOn != ResultInfo::NODE &&
+           actInfo.definedOn != ResultInfo::PFEM &&
+           actInfo.definedOn != ResultInfo::ELEMENT &&
+           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
         Warning( "GMV can only write results on element and nodes",
                  __FILE__, __LINE__ );
         continue;
@@ -173,7 +174,7 @@ namespace CoupledField {
       {
         myDofNames[i] = dofNames[i];
         if(printUnit_)
-          myDofNames[i] += "_(" + actDof.unit + ")";
+          myDofNames[i] += "_(" + actInfo.unit + ")";
       }
 
       LOG_DBG(simOutputGMV) << "Writing result '" << title << "'";
@@ -187,7 +188,7 @@ namespace CoupledField {
         Vector<Complex> gSol;
         FillGlobalVec<Complex>(gSol, actResults, entityType );
         WriteNodeElemDataHarm( gSol, myDofNames, title, entryType, entityType,
-                               actStepVal_, actDof.complexFormat );
+                               actStepVal_, actInfo.complexFormat );
       }
     }
   }
