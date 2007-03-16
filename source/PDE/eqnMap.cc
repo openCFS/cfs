@@ -1157,8 +1157,6 @@ namespace CoupledField {
 	 listIt != nodeMappedList_.end(); 
 	 listIt++ ) {
 
-      UInt eqnCounter = numEqns_;
-      
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
@@ -1345,10 +1343,10 @@ namespace CoupledField {
 	    for ( UInt iDof = 0; iDof < dofsPerNode; iDof++ ) {
 	      if ( actMap[locNode-1][iDof] != 0 &&
 		   countNodes[locNode-1][iDof] == 0) {
-		eqnCounter++;
-                LOG_DBG3(eqnMap) << "Adding equation " << eqnCounter 
+		numEqns_++;
+                LOG_DBG3(eqnMap) << "Adding equation " << numEqns_ 
                                  << " to local node " << locNode << std::endl;
-		actMap[locNode-1][iDof] = eqnCounter;
+		actMap[locNode-1][iDof] = numEqns_;
 		countNodes[locNode-1][iDof] = 1;
 	      }
 	    }
@@ -1367,10 +1365,6 @@ namespace CoupledField {
           }
         }
 	
-	// now we know the number of 'real' dofs
-	numRealEqns_ = eqnCounter;
-        numEqns_ = eqnCounter;
-
         LOG_DBG2(eqnMap) << "Final equation map looks like: \n" 
                          << actMap << std::endl;
         
@@ -1393,7 +1387,7 @@ namespace CoupledField {
 
             // assign the master node/dof a equation number
             actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
-              [slaveDof-1] = ++eqnCounter;
+              [slaveDof-1] = ++numEqns_;
 
 	    for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
 	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
@@ -1413,14 +1407,12 @@ namespace CoupledField {
 	    UInt actDof = actIdBcList[i]->dof;
 	    
 	    for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-	      eqnCounter++;
-	      actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = eqnCounter;
+	      numEqns_++;
+	      actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = numEqns_;
 	    }
 	  }
 	}
 	
-	
-	numEqns_ = eqnCounter;        
 	
 	//numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
  
@@ -1516,7 +1508,7 @@ namespace CoupledField {
                   }
                 }
                 if(  !allZero && iFcn < numFcns[iDof][0] ) {
-                  actMap[locElem-1][pos++] = ++numRealEqns_;
+                  actMap[locElem-1][pos++] = ++numEqns_;
                 } else {
                   actMap[locElem-1][pos++] = 0;
                 } // check for number of functions
@@ -1539,8 +1531,6 @@ namespace CoupledField {
 	 listIt != elemConstMappedList_.end(); 
 	 listIt++ ) {
 
-      UInt eqnCounter = numRealEqns_;
-      
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
@@ -1674,24 +1664,19 @@ namespace CoupledField {
 	    for ( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
 	      if ( actMap[locElem-1][iDof] != 0 &&
 		   countElems[locElem-1][iDof] == 0) {
-		eqnCounter++;
-		actMap[locElem-1][iDof] = eqnCounter;
+		numEqns_++;
+		actMap[locElem-1][iDof] = numEqns_;
 		countElems[locElem-1][iDof] = 1;
 	      }
 	    }
 	  }
 	}
 	
-	// now we know the number of 'real' dofs
-	numRealEqns_ = eqnCounter;
-
       } else if( phase == 2 ) {
 	
 	// ------
 	
 	
-	
-	numEqns_ = eqnCounter;        
 	
 	//numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
 	
@@ -1794,7 +1779,7 @@ namespace CoupledField {
                   if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] != 0
                         || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] != 0)
                        && (iFcn < numFcns[iDof][iEdge]) ) {
-                    actMap[locEdge-1][pos++] = ++numRealEqns_;
+                    actMap[locEdge-1][pos++] = ++numEqns_;
                   } else {
                     actMap[locEdge-1][pos++] = 0;
                   }// check if edge has one non-zero node
@@ -1911,9 +1896,9 @@ namespace CoupledField {
                     }
                   }
                   if( !allZero && (iFcn < numFcns[iDof][iFace]) ) {
-                    actMap[locFace-1][pos++] = ++numRealEqns_;
+                    actMap[locFace-1][pos++] = ++numEqns_;
                     LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
-                                     << " got equation number " << numRealEqns_-1;
+                                     << " got equation number " << numEqns_-1;
                   } else {
                     actMap[locFace-1][pos++] = 0;
                     LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
