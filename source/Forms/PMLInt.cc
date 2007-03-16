@@ -83,6 +83,7 @@ namespace CoupledField
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Double jacDet;  
 
     // derivation of shape functions after global coordinates 
@@ -108,8 +109,8 @@ namespace CoupledField
         xiDx.Transpose(xiDxTransp);
 
 	// compute PML factor 
-	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, it1_.GetElem() );
-	CoordAtIP = ptCoord * ShpFncAtIp;
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord, it1_.GetElem() );
 	ComputeFactorPML( factorsPML, CoordAtIP);        
 
 	//multiply the derivatives with the x-,y- and z-factors
@@ -142,6 +143,7 @@ namespace CoupledField
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Double jacDet;
 
     Vector<Double> shapeFncAtIp;
@@ -165,7 +167,8 @@ namespace CoupledField
       partElemMat.DyadicMult(shapeFncAtIp);
         
       // compute PML factor 
-      CoordAtIP = ptCoord * shapeFncAtIp;
+      ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                 ptCoord, it1_.GetElem() );
       ComputeFactorPML( factorsPML, CoordAtIP);
       factorPML = factorsPML[0] * formsFactor_;
 
