@@ -978,8 +978,8 @@ namespace CoupledField
       
     // if we are not a valid element for CARTESIAN (assuming reading from XML) the fallback will work
     if(IntegMethod == CARTESIAN 
-       && (strcmp(GetShapeName(), "rectangle") == 0  
-           || strcmp(GetShapeName(), "hexa") == 0))
+       && (strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_HEXA8].c_str()) == 0  
+           || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_QUAD4].c_str()) == 0))
       {        
         // create the map entry on the fly
         int order1, order2, order3;
