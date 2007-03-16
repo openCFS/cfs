@@ -34,6 +34,9 @@ namespace CoupledField
     //! Set local edge indices
     void SetEdgeIndices();
 
+    //! Set local face indices
+    void SetFaceIndices();
+
     //! calculates the shape functions at an arbitrary local point
     /*!
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$

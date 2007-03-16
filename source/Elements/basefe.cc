@@ -213,7 +213,7 @@ namespace CoupledField
 
     Matrix<Double> LDeriv;
 
-    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, AnsatzFct::NODE );
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE );
     J = CornerCoords * LDeriv;
   }
 
@@ -323,7 +323,7 @@ namespace CoupledField
 
     //  J.Resize(Dim_,Dim_);
 
-    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, AnsatzFct::NODE);
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE);
 
     J = CornerCoords * LDeriv;
 

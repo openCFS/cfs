@@ -28,6 +28,7 @@ namespace CoupledField
     
     CommonInit();
     SetEdgeIndices();
+    SetFaceIndices();
   }
 
   void Quad1FE :: SetCornerCoords()
@@ -46,6 +47,21 @@ namespace CoupledField
     LCornerCoords_[1][3] = 1;
 
 
+  }
+
+  void Quad1FE :: SetFaceIndices() {
+    ENTER_IFCN( "Hexa1FE::SetFaceIndices");
+
+    faceIndices_ = new StdVector<UInt>[NumFaces_];
+    for (UInt i = 0; i < NumFaces_; i++) {
+      faceIndices_[i].Resize(4);
+    }
+   
+    // face 1
+    faceIndices_[0][0] = 1;
+    faceIndices_[0][1] = 2;
+    faceIndices_[0][2] = 3;
+    faceIndices_[0][3] = 4;
   }
 
   void Quad1FE :: SetEdgeIndices() {
@@ -432,10 +448,11 @@ namespace CoupledField
         // Prevent integration of first order, as this may
         // cause non-reasonable results
         //if( legFct->GetIsoOrder() > 1 ) {
-          IntegMethod = CARTESIAN;
-          IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() *2,
-                                              legFct->GetIsoOrder() *2,
-                                              legFct->GetIsoOrder() *2);
+        IntegMethod = CARTESIAN;
+        //IntegOrder = legFct->GetIsoOrder() *2;
+        IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() *2,
+                                            legFct->GetIsoOrder() *2,
+                                            legFct->GetIsoOrder() *2);
           // } else {
           //IntegOrder = 2;
           //} 

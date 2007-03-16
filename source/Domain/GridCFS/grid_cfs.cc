@@ -443,7 +443,7 @@ namespace CoupledField {
 
      // if element is of wrong dimension (surface element )
      // ->leave
-     if ( actElem.ptElem->GetDim() < dim_ ) { continue; }
+     //if ( actElem.ptElem->GetDim() < dim_ ) { continue; }
 
      // get number of element faces
      UInt numFaces = actElem.ptElem->GetNumFaces();
