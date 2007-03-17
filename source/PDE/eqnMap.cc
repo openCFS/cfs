@@ -247,9 +247,10 @@ namespace CoupledField {
   void EqnMap::ReorderMapping( Integer **order ) {
     ENTER_FCN( "EqnMap::ReorderMapping" );
 
+    
     // Check if any reordering array was given
     if( (*order) == NULL ) {
-      //std::cerr << "Performing no reordering";
+      std::cerr << "Performing no reordering";
       return;
     }
 
@@ -1288,6 +1289,7 @@ namespace CoupledField {
 		           << "this node is defined in more than one level of "
 		           << "boundary nodes!";
 		Warning( __FILE__, __LINE__ );
+                numIdBcs_++;
 	      }
 	      else {
 		actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = 0;
@@ -1396,6 +1398,7 @@ namespace CoupledField {
 	  }
 	}
 	
+
 	// -------
 	// STEP 6b
 	// -------
@@ -1407,12 +1410,16 @@ namespace CoupledField {
 	    UInt actDof = actIdBcList[i]->dof;
 	    
 	    for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-	      numEqns_++;
-	      actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = numEqns_;
+              // only assign an equation number, if the map contains
+              // a 0. Otherwise, we have already labeled this node
+              if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] 
+                   == 0 ) {
+                numEqns_++;
+                actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = numEqns_;
+              }
 	    }
 	  }
 	}
-	
 	
 	//numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
  
