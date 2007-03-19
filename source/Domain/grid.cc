@@ -1243,6 +1243,8 @@ namespace CoupledField
 		  e = a;
 		  if (l_ac < TOL)
 		      return INTERSECT_A_EQ_C;
+		  if (l_ad < TOL)
+		      return INTERSECT_IN_D;
 		  return INTERSECT_IN_A;
 	      }
 	      if (fabs(l_bc + l_bd - l2) < TOL) {
@@ -1310,13 +1312,13 @@ namespace CoupledField
 		  // treat special cases
 		  if (fabs(h - 1.0) < TOL) // h=1 means intersection in b
 		      return INTERSECT_IN_B;
+		  if (fabs(k - 1.0) < TOL) // k=1 means intersection in d
+		      return INTERSECT_IN_D;
 		  if (fabs(k) < TOL) { // k=0 means intersection in c
 		      if (fabs(h) < TOL) // h=0 means intersection in a
 			  return INTERSECT_A_EQ_C;
 		      return INTERSECT_IN_C;
 		  }
-		  if (fabs(k - 1.0) < TOL) // k=1 means intersection in d
-		      return INTERSECT_IN_D;
 		  if (fabs(h) < TOL) // h=0 means intersection in a
 		      return INTERSECT_IN_A;
 		  return INTERSECT_CROSS; // X intersection
@@ -1335,7 +1337,7 @@ namespace CoupledField
   {
       Double r1, r2;
       UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
-      Vector<Double> c1, c2, e, last_cut;
+      Vector<Double> c1, c2, e/*, last_cut*/;
       struct Intersection {
 	  UInt index;
 	  UInt type;
@@ -1352,7 +1354,7 @@ namespace CoupledField
       }
 #endif
       
-      last_cut.Resize(3);
+      //last_cut.Resize(3);
 
       // compute surrounding circles of both polygons
       r1 = PolyCentroid(p1, c1);
@@ -1445,7 +1447,7 @@ namespace CoupledField
 			  cut.swap = true; // continue with p2
 			  break; // add cut
 		      }
-		      if ((*pi2 - *pi1).NormL2() > TOL) { // not for a=c
+		      if (cuttype != INTERSECT_A_EQ_C) { // not for a=c
 			  if (CutLines(*pi2, pi2.Next(), *pi1, pi1.Next(2), e)
 				  >= INTERSECT_ON_LINE2) {
 			      cut.swap = true; // continue with p2
@@ -1495,7 +1497,8 @@ namespace CoupledField
 	      if ((cuts[0].loc - *pi1).NormL2() < (cuts[1].loc - *pi1).NormL2())
 	      {
 		  r.Push_back(cuts[0].loc);
-		  last_cut = cuts[1].loc;
+		  //last_cut = cuts[1].loc;
+		  r.Push_back(cuts[1].loc);
 		  
 		  pi2.Seek(cuts[0].index);
 		  if ((cuts[0].type != INTERSECT_IN_C) &&
@@ -1505,7 +1508,8 @@ namespace CoupledField
 		  pi2.Seek(cuts[1].index);
 	      } else {
 		  r.Push_back(cuts[1].loc);
-		  last_cut = cuts[0].loc;
+		  //last_cut = cuts[0].loc;
+		  r.Push_back(cuts[0].loc);
 		  
 		  pi2.Seek(cuts[1].index);
 		  if ((cuts[1].type != INTERSECT_IN_C) &&
@@ -1527,7 +1531,8 @@ namespace CoupledField
 	  pi2.SetBegin();
 
 	  // store first point of intersection polygon
-	  last_cut = cuts[0].loc;
+	  //last_cut = cuts[0].loc;
+	  r.Push_back(cuts[0].loc);
 
 	  // avoid finding the same cut twice
 	  ++pi1;
@@ -1535,8 +1540,9 @@ namespace CoupledField
 	  if (cuts[0].swap) {
 	      pi1.Swap(pi2);
 	  } else {// [a,b] cuts into p2, so add b
-	      r.Push_back(last_cut);
-	      last_cut = *pi1;
+	      /*r.Push_back(last_cut);
+	      last_cut = *pi1;*/
+	      r.Push_back(*pi1);
 	  }
       }
 
@@ -1551,8 +1557,9 @@ namespace CoupledField
 		  switch (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e)) {
 		      case INTERSECT_CROSS:
 		      case INTERSECT_IN_C:
-			  r.Push_back(last_cut);
-			  last_cut = e;
+			  /*r.Push_back(last_cut);
+			  last_cut = e;*/
+			  r.Push_back(e);
 			  swap = true;
 			  break;
 		      case INTERSECT_IN_A:
@@ -1579,8 +1586,9 @@ namespace CoupledField
 	      start_pas = pi2.GetPos();
 	      swapped = true;
 	  } else {
-	      r.Push_back(last_cut);
-	      last_cut = *pi1;
+	      /*r.Push_back(last_cut);
+	      last_cut = *pi1;*/
+	      r.Push_back(*pi1);
 	      // Return to the point directly after the last cut (we can do
 	      // this due to the polygons being convex and having the same
 	      // orientation).
@@ -1588,6 +1596,7 @@ namespace CoupledField
 	  }
       } while ( !pi1.AtEnd() );
 
+      r.Erase(r.GetSize() - 1);
       return (r.GetSize() > 2);
   }
   
