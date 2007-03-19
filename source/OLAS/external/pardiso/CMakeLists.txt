@@ -6,7 +6,7 @@ ADD_LIBRARY(pardiso-olas STATIC ${PARDISO_SRCS})
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
 SET(TARGET_LL
-  pardiso
+  ${PARDISO_LIBRARY}
   ${LAPACK_LIBRARY}
   ${BLAS_LIBRARY}
   ${CFS_FORTRAN_LIBS})
