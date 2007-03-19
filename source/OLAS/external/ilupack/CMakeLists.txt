@@ -11,6 +11,7 @@ SET(TARGET_LL
   blaslike
   sparspak
   amd
+  ${PARDISO_LIBRARY}
   ${LAPACK_LIBRARY}
   ${BLAS_LIBRARY}
   ${CFS_FORTRAN_LIBS})
