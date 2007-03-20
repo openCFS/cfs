@@ -37,29 +37,18 @@
   <xsd:complexType name="DT_InputBasic" abstract="true"/>
 
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of basic data input element -->
-  <!-- ******************************************************************** -->
-
-  <!-- This element is abstract in order to force substitution -->
-  <!-- by the derived specialised Input elements -->
-  <xsd:element name="InputBasic" type="DT_InputBasic" abstract="true"/>
-
-
  <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_InputList">
-    <xsd:sequence>
-      <xsd:element ref="InputBasic" minOccurs="0"
-        maxOccurs="unbounded"/>
-    </xsd:sequence>
+    <xsd:choice>
+      <xsd:element name="gmv" type="DT_InputGMV"
+		   minOccurs="0" maxOccurs="1"/> 
+      <xsd:element name="mesh" type="DT_InputMesh"
+		   minOccurs="0" maxOccurs="1"/> 
+      <xsd:element name="hdf5" type="DT_InputHDF5"
+		   minOccurs="0" maxOccurs="1"/>
+    </xsd:choice>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of element MESH input -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="mesh" type="DT_InputMesh"
-    substitutionGroup="InputBasic"/> 
-  
   <!-- ******************************************************************** -->
   <!--   Definition of MESH data input type -->
   <!-- ******************************************************************** -->
@@ -72,13 +61,6 @@
     </xsd:complexContent>
   </xsd:complexType>
   
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of element gmv input -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="gmvIn" type="DT_InputGMV"
-    substitutionGroup="InputBasic"/> 
-
  <!-- ******************************************************************** -->
   <!--   Definition of GMV  data input type -->
   <!-- ******************************************************************** -->
@@ -90,12 +72,6 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of element HDF5 input -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="hdf5" type="DT_InputHDF5"
-    substitutionGroup="InputBasic"/> 
 
   <!-- ******************************************************************** -->
   <!--   Definition of HDF5 data input type -->
@@ -119,34 +95,33 @@
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_OutputBasic" abstract="true"/>
+  <xsd:complexType name="DT_OutputBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+  </xsd:complexType>
 
+  <xsd:group name="OutputGroup">
+    <xsd:choice>
+      <xsd:element name="gmv" type="DT_OutputGMV"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="unv" type="DT_OutputUNV"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gid" type="DT_OutputGiD"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="hdf5" type="DT_OutputHDF5"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="text" type="DT_OutputText"
+		   minOccurs="0" maxOccurs="1"/>
+    </xsd:choice>
+  </xsd:group>
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of basic data output element -->
-  <!-- ******************************************************************** -->
-
-  <!-- This element is abstract in order to force substitution -->
-  <!-- by the derived specialised PDE elements -->
-  <xsd:element name="OutputBasic" type="DT_OutputBasic" abstract="true"/>
-
-
- <!-- Data type for specification of output file format -->
+  <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_OutputList">
     <xsd:sequence>
-      <xsd:element ref="OutputBasic" minOccurs="0"
-        maxOccurs="unbounded"/>
+      <xsd:group ref="OutputGroup" minOccurs="1" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
   
-  <!-- ******************************************************************** -->
-  <!--   Definition of element GMV output -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="gmv" type="DT_OutputGMV"
-    substitutionGroup="OutputBasic"/> 
-
-
   <!-- ******************************************************************** -->
   <!--   Definition of data type for GMV output -->
   <!-- ******************************************************************** -->
@@ -155,38 +130,19 @@
       <xsd:extension base="DT_OutputBasic">
         <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
         <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="id" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
-  <!-- ******************************************************************** -->
-  <!--   Definition of element UNV output -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="unv" type="DT_OutputUNV"
-    substitutionGroup="OutputBasic"/>
-  
-  
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for UNV output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputUNV">
     <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="id" type="xsd:token" default="default"/>
-      </xsd:extension>
+      <xsd:extension base="DT_OutputBasic"/>
     </xsd:complexContent>
   </xsd:complexType>
   
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of element GiD output -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="gid" type="DT_OutputGiD"
-    substitutionGroup="OutputBasic"/>
-
-
   <!-- ******************************************************************** -->
   <!--   Definition of data type for GiD output -->
   <!-- ******************************************************************** -->
@@ -194,26 +150,25 @@
     <xsd:complexContent>
       <xsd:extension base="DT_OutputBasic">
         <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="id" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!--   Definition of element text output -->
+  <!--   Definition of data type for HDF5 output -->
   <!-- ******************************************************************** -->
-  <xsd:element name="text" type="DT_OutputText"
-    substitutionGroup="OutputBasic"/>
-
+  <xsd:complexType name="DT_OutputHDF5">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic"/>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for GiD output -->
+  <!--   Definition of data type for text output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputText">
     <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="id" type="xsd:token" default="histDefault"/>
-      </xsd:extension>
+      <xsd:extension base="DT_OutputBasic"/>
     </xsd:complexContent>
   </xsd:complexType>
   

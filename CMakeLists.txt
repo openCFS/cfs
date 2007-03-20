@@ -379,6 +379,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
 
   IF(USE_HDF5)
     SUBDIRS(source/DataInOut/SimInput/xmdf)
+    SUBDIRS(source/DataInOut/SimOutput/xmdf)
   ENDIF(USE_HDF5)
 
   IF(USE_GIDPOST)

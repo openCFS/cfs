@@ -29,7 +29,7 @@ namespace CoupledField {
     virtual ~SimOutput();
 
     //! Get name of output file format(unv, gid, hdf5)
-    const std::string& GetName() { return name_; };
+    const std::string& GetName() { return formatName_; };
 
     //! Initialize
     virtual void Init( Grid* ptGrid) { ptGrid_ = ptGrid; }
@@ -73,10 +73,13 @@ namespace CoupledField {
                         ResultInfo::EntityUnknownType entityType );
 
     //! Name of output format
-    std::string name_;
+    std::string formatName_;
 
     //! FileName
     std::string fileName_;
+
+    //! Name of output directory
+    std::string dirName_;
 
     //! Capabilities of output class
     std::set<Capability> capabilities_;

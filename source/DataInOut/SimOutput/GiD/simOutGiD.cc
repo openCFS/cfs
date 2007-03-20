@@ -27,7 +27,10 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGiD::SimOutputGiD" );
 
     // Initialize variables
-    name_ = "gid";
+    formatName_ = "gid";
+    fileName_ = fileName;
+    dirName_ = ".";
+    
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 

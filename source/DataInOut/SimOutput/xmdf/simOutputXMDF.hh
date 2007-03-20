@@ -1,9 +1,11 @@
-#ifndef FILE_SIMINPUTXMDF_2006
-#define FILE_SIMINPUTXMDF_2006
+#ifndef FILE_SIMOUTPUTXMDF_2006
+#define FILE_SIMOUTPUTXMDF_2006
 
 #include <set>
 
-#include <DataInOut/simInput.hh>
+#include <Domain/grid.hh>
+#include <Domain/resultInfo.hh>
+#include <DataInOut/simOutput.hh>
 
 #include "H5Cpp.h"
 #include "Xmdf.h"
@@ -14,7 +16,7 @@ namespace CoupledField {
 
   //! Class, that is derived from class FileType for reading mesh-input data,
   //! which is produced by Ansys mkmesh-interface. 
-  class SimInputXMDF: virtual public SimInput {
+  class SimOutputXMDF: virtual public SimOutput {
 
   public:
 
@@ -24,80 +26,46 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimInputXMDF(std::string fileName, ParamNode * inputNode);
+    SimOutputXMDF(std::string fileName, ParamNode * inputNode);
     
     //! Destructor
-    virtual ~SimInputXMDF();
+    virtual ~SimOutputXMDF();
 
     //@}
 
-    virtual void InitModule(Grid *mi);
 
-    virtual void ReadMesh();
+    //! Begin multisequence step
+    virtual void BeginMultiSequenceStep( UInt step, AnalysisType type );
+    
+    //! Register result (within one multisequence step)
+    virtual void RegisterResult( shared_ptr<BaseResult> sol,
+                                 UInt saveBegin, UInt saveInc,
+                                 UInt saveEnd );
+
+    //! Begin single analysis step
+    virtual void BeginStep( UInt stepNum, Double stepVal );
+
+    //! Add result to current step
+    virtual void AddResult( shared_ptr<BaseResult> sol );
+
+    //! End single analysis step
+    virtual void FinishStep( );
+
+    //! End multisequence step
+    virtual void FinishMultiSequenceStep( );
+
+    //! Finalize the output
+    virtual void Finalize();
+
+
+    virtual void InitModule();
+
+    virtual void WriteGrid();
+      virtual void WriteData() 
+      {
+      }
+      
   
-    // =======================================================================
-    // GENERAL MESH INFORMATION
-    // =======================================================================
-    //@{ \name General Mesh Information
-
-    //! Return dimension of the mesh
-    UInt GetDim();
-    
-    //! Get total number of nodes in mesh
-    UInt GetNumNodes();
-    
-    //! Get total number of elements in mesh
-    UInt GetNumElems( const Integer );
-    
-    //! Get total number of regions
-    UInt GetNumRegions();
-
-    //! Get total number of named nodes
-    UInt GetNumNamedNodes();
-
-    //! Get total number of named elements
-    UInt GetNumNamedElems();
-
-    //@}
-  
-    // =======================================================================
-    // ENTITY NAME ACCESS
-    // =======================================================================
-    //@{ \name Entity Name Access
-  
-    //! Get vector with all region names in mesh
-    
-    //! Returns a vector with the names of regions in the mesh of all
-    //! dimensions.
-    //! \param regionNames (output) vector containing names of regions
-    //! \note Since the regionIdType is guaranteed to be defined by
-    //! a number type (UInt, uint32), the regionId of an element can
-    //! be directly used as index to the regions-vector
-    void GetAllRegionNames( std::vector<std::string> & regionNames );
-    
-    //! Get vector with region names of given dimension
-
-    //! Returns a vector with the names of regions of a given dimension.
-    //! This makes it possible to get for example all names of 
-    //! 3D, 2D or 1D elements.
-    //! \param regionNames (output) vector containing names of regions
-    //! \param dim (input) dimension of the region (1,2, or 3)
-    virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                      const UInt dim );
-
-    //! Get vector with all names of named nodes
-
-    //! Returns a vector which contains all names of named nodes.
-    //! \param nodeNames (output) vector with names of named nodes
-    virtual void GetNodeNames( StdVector<std::string> & nodeNames );
-  
-    //! Get vector with all names of named elements
-
-    //! Returns a vector which contains all names of named elements.
-    //! \param elemNames (output) vector with names of named elements
-    virtual void GetElemNames( StdVector<std::string> & elemNames );
-
-
   protected:
     
     //! Transform type of elem in pointer to base class BaseFE
@@ -114,14 +82,15 @@ namespace CoupledField {
                               const UInt* in,
                               UInt* out);
 
-    hid_t CreateGroup(const hid_t parentGroup, const std::string name);
+    typedef std::vector< std::vector<UInt> > RegionElemType;
+    typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > RegionNodeType;
 
-    typedef std::vector< std::vector<UInt> > regionElemType;
-    typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > regionNodeType;
+    void WriteRegions(const H5::Group& meshGroup,
+                      const RegionElemType& regionElems,
+                      const RegionNodeType& regionNodes);
 
-    void ReadRegions(const H5::Group& meshGroup);
-    void ReadNamedNodes(const H5::Group& meshGroup);
-    void ReadNamedElems(const H5::Group& meshGroup);
+    void WriteNamedNodes(const H5::Group& meshGroup);
+    void WriteNamedElems(const H5::Group& meshGroup);
 
     //@}
 
@@ -138,16 +107,13 @@ namespace CoupledField {
     std::vector< std::string > regionNames_;
     std::vector< std::string > nodeNames_;
     std::vector< std::string > elemNames_;
-    bool statsRead_;
-    bool genRegionNodes_;
+    bool gridWritten_;
     UInt numRegions_;
     H5::Group mainRoot_;
     xid fileId_;
     UInt multiStep_, step_;
     bool msChange_;
 
-    void ReadMeshStats(const H5::Group& meshGroup);
-    
     typedef struct region_desc_type { 
       char name[32]; 
       UInt dim; 
@@ -157,12 +123,6 @@ namespace CoupledField {
       char name[32]; 
     };
     
-    Integer fg_nElems;
-    Integer fg_nNodes;
-    Integer fg_nNodesPerElem;
-    std::vector<Integer> fg_ElemTypes;
-    std::vector<double> fg_XNodeLocs, fg_YNodeLocs, fg_ZNodeLocs;
-    std::vector<Integer> fg_NodesInElem;
   };
 
 }

@@ -1,3 +1,7 @@
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+namespace fs = boost::filesystem;
+
 #include "textSimOutput.hh"
 
 
@@ -10,13 +14,21 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputText::SimOutputText" );
 
     // initialize variables
-    name_ = "text";
+    formatName_ = "text";
+    dirName_ = "history";
+    fileName_ = fileName;
+
     capabilities_.insert( HISTORY );
 
     // Create subdirectory 'history'
-    std::string S="mkdir -p history";
-    system(S.c_str());
-    
+    try 
+    {
+      fs::create_directory( dirName_ );
+    } catch (std::exception &ex)
+    {
+      EXCEPTION(ex.what());
+    }
+
     // Get comment char 
     cmChar_ = '#';
 

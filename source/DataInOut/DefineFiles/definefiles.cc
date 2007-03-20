@@ -31,9 +31,8 @@
 #endif
 
 #ifdef USE_HDF5
-#define NO_XMDF_API
 #include "DataInOut/SimInput/xmdf/simInputXMDF.hh"
-#undef NO_XMDF_API
+#include "DataInOut/SimOutput/xmdf/simOutputXMDF.hh"
 #endif
 
 #ifdef USE_GIDPOST
@@ -264,6 +263,16 @@ namespace CoupledField
         EXCEPTION( "No support for UNV output file format." );
 #endif
       }
+
+      if ( actFormat == "outHDF5" ) {
+#ifdef USE_HDF5
+        out[actId] = 
+          shared_ptr<SimOutput>( new SimOutputXMDF( simName, actNode ) );
+#else
+        EXCEPTION( "No support for HDF5 output file format." );
+#endif
+      }
+
       if ( actFormat == "text" ) {
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputText( simName, actNode ) );

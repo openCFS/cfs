@@ -1,11 +1,6 @@
 SET(SIMINXMDF_SRCS
   simInputXMDF.cc
-  Xmdf.c
-  xmdf_private.c
-  xmdf_timestep.c
 )
-
-ADD_DEFINITIONS(-DNO_XMDF_API)
 
 ADD_LIBRARY(siminxmdf STATIC ${SIMINXMDF_SRCS})
 

@@ -36,6 +36,8 @@ DISCLAIMER:This work was prepared as an account of work sponsored by an agency o
 --------------------------------------------------------------------------
 */
 
+#include <def_use_hdf5.hh>
+
 /* The following ifdef block is the standard way of creating macros which make
    exporting from a DLL simpler. All files within this DLL are compiled with
    the XMDF_EXPORTS symbol defined on the command line. this symbol should
