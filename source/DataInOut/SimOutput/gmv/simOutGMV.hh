@@ -109,11 +109,6 @@ namespace CoupledField
     //! pointer to ofstream with history information
     std::ofstream * output;
 
-    //! name of dir for output results
-    std::string namedir_;
-
-    std::string namefile_;
-
     // number of step
     UInt currStep_;
 

@@ -21,7 +21,10 @@ namespace CoupledField {
     : SimOutput ( filename, outputNode ) {
     ENTER_FCN( "SimOutputUnv::SimOutputUnv" );
     
-    name_ = "unv";
+    formatName_ = "unv";
+    fileName_ = filename;
+    dirName_ = ".";
+    
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
    

@@ -38,21 +38,21 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGMV::SimOutputGMV" );
 
     // Initialize variables
-    name_ = "gmv";
+    formatName_ = "gmv";
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 
     std::ostringstream strBuffer;
 
-    namedir_ = "simoutput_gmv";
-    namefile_ = fileName;
+    dirName_ = "simoutput_gmv";
+    fileName_ = fileName;
 
     try 
     {
-      fs::create_directory( namedir_ );
+      fs::create_directory( dirName_ );
     } catch (std::exception &ex)
     {
-      EXCEPTION(ex.what() );
+      EXCEPTION(ex.what());
     }
     
     currStep_ = 0;
@@ -977,16 +977,16 @@ namespace CoupledField {
     std::ostringstream strBuffer;
 
     // Generate basename for output file
-    filename.append( namedir_ );
+    filename.append( dirName_ );
     std::string pathsep = fs::path("/").native_directory_string();
     filename.append( pathsep );
-    filename.append( namefile_ );
+    filename.append( fileName_ );
 
     // In the case of a fixed grid we write the grid description to a
     // separate file
     if ( num == -1 ) {
       filename.append( "_GRID.gmv" );
-      nameGridFile_ = namefile_ + "_GRID.gmv";
+      nameGridFile_ = fileName_ + "_GRID.gmv";
     }
 
     // Normal output file
