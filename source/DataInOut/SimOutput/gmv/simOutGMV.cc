@@ -52,7 +52,7 @@ namespace CoupledField {
       fs::create_directory( namedir_ );
     } catch (std::exception &ex)
     {
-      Error(ex.what(), __FILE__, __LINE__);
+      EXCEPTION(ex.what() );
     }
     
     currStep_ = 0;

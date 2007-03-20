@@ -165,7 +165,7 @@ namespace CoupledField {
     } else if( actDof.definedOn == ResultInfo::SURF_REGION ) {
       entityName = "surfRegion";
     } else {
-      Error( "Not implemented!", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented!" );
     }
 
     
@@ -206,7 +206,7 @@ namespace CoupledField {
         entTypeString = "surface region(s)";
         break;
       default:
-        Error( "Not implemented!", __FILE__, __LINE__ );
+        EXCEPTION( "Not implemented!" );
       }
       totalName += entityString + ".hist";
       

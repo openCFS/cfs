@@ -69,7 +69,7 @@ namespace CoupledField {
                                             EntityList::REGION );
         } else {
           // case c)
-          Error( "Not yet implemented", __FILE__, __LINE__ );
+          EXCEPTION( "Not yet implemented" );
         } 
       } else if( inList->GetType() == EntityList::ELEM_LIST ||
                  inList->GetType() == EntityList::SURF_ELEM_LIST ) {
@@ -81,13 +81,13 @@ namespace CoupledField {
                                             EntityList::REGION );
         } else {
           // case d)
-          Error( "Not yet implemented", __FILE__, __LINE__ );
+          EXCEPTION( "Not yet implemented" );
         } 
       } else {
         // case e)
         // case f)
         // case g)
-        Error( "Not yet implemented", __FILE__, __LINE__ );
+        EXCEPTION( "Not yet implemented" );
       }
     }
   }

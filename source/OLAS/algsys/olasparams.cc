@@ -77,60 +77,6 @@ namespace OLAS {
     SetValue( "CG_logging", true );
     SetValue( "CG_resDirectly", 50 );
 
-    // HYPRE_SPAI (NOTE: Changes here must be documented in HypreBaseSolver!)
-    SetValue( "PARASAILS_thresh"     , 0.1   );
-    SetValue( "PARASAILS_levels"     , 1     );
-    SetValue( "PARASAILS_filter"     , 0.1   );
-    SetValue( "PARASAILS_symmetry"   , 0     );
-    SetValue( "PARASAILS_loadBalance", false );
-    SetValue( "PARASAILS_reuse"      , false );
-    SetValue( "PARASAILS_logging"    , false );
-
-    // HYPRE_EUCLID (NOTE: Changes here must be documented in HypreBaseSolver!)
-    SetValue( "EUCLID_level"        ,  1    );
-    SetValue( "EUCLID_stats"        , true  );
-    SetValue( "EUCLID_memory"       , false );
-    SetValue( "EUCLID_saveFacToFile", false );
-
-    // HYPRE_AMG (NOTE: Changes here must be documented in HypreBaseSolver!)
-    // This is for using BoomerAMG as preconditioner for another hypre solver
-    SetValue( "BOOMERAMG_maxLevels", 20    );
-    SetValue( "BOOMERAMG_numSweeps",  1    );
-    SetValue( "BOOMERAMG_cycleType",  1    );
-    SetValue( "BOOMERAMG_alpha"    ,  0.25 );
-
-    // HYPRE_AMG (NOTE: Changes here must be documented in HypreAMGSolver!)
-    // We still have to find a clever way to distinguish between different
-    // applications of the same solver/preconditioner
-    SetValue( "HYPREAMG_maxIter"  , 20    );
-    SetValue( "HYPREAMG_epsilon"  ,  1e-6 );
-    SetValue( "HYPREAMG_maxLevels", 20    );
-    SetValue( "HYPREAMG_numSweeps",  1    );
-    SetValue( "HYPREAMG_cycleType",  1    );
-    SetValue( "HYPREAMG_alpha"    ,  0.25 );
-    SetValue( "HYPREAMG_printLevel",    0 );
-
-    // HYPRE_PCG (NOTE: Changes here must be documented in HyprePCGSolver!)
-    SetValue( "HYPREPCG_maxIter",    50   );
-    SetValue( "HYPREPCG_logging",     0   );
-    SetValue( "HYPREPCG_printLevel",  0   );
-    SetValue( "HYPREPCG_epsilon",    1e-6 );
-    SetValue( "HYPREPCG_twoNorm",    true );
-                  
-    // HYPRE_GMRES (NOTE: Changes here must be documented in HypreGMRESSolver!)
-    SetValue( "HYPREGMRES_maxKrylovDim", 50 );
-    SetValue( "HYPREGMRES_maxIter",      50 );
-    SetValue( "HYPREGMRES_epsilon",    1e-6 );
-    SetValue( "HYPREGMRES_logging",       0 );
-    SetValue( "HYPREGMRES_printLevel",    0 );
-
-    // HYPRE_BICGSTAB (NOTE: Changes here must be documented in
-    // HyprebiCGStabSolver!)
-    SetValue( "HYPREBICGSTAB_maxIter",      50 );
-    SetValue( "HYPREBICGSTAB_epsilon",    1e-6 );
-    SetValue( "HYPREBICGSTAB_logging",       0 );
-    SetValue( "HYPREBICGSTAB_printLevel",    0 );
-
     // GMRES (NOTE: Changes here must be documented in GMRESSolver!)
     SetValue( "GMRES_maxKrylovDim",  50 );
     SetValue( "GMRES_maxIter",        1 );

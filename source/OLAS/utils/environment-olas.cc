@@ -50,18 +50,6 @@ namespace OLAS {
     case SYMMLQ:
       out = "symmlq";
       break;
-    case HYPRE_PCG:
-      out = "hyprePCG";
-      break;
-    case HYPRE_AMGSOLVER:
-      out = "hypreAMG";
-      break;
-    case HYPRE_GMRES:
-      out = "hypreGMRES";
-      break;
-    case HYPRE_BICGSTAB:
-      out = "hypreBICGSTAB";
-      break;
     case LAPACK_LU:
       out = "lapackLU";
       break;
@@ -151,18 +139,6 @@ namespace OLAS {
     case ILU0:
       out = "ILU0";
       break;
-    case HYPRE_JACOBI:
-      out = "hypreJacobi";
-      break;
-    case HYPRE_AMG:
-      out = "hypreAMG";
-      break;
-    case HYPRE_ILU:
-      out = "hypreILU";
-      break;
-    case HYPRE_SPAI:
-      out = "hypreSPAI";
-      break;
     case ILUTP:
       out = "ILUTP";
       break;
@@ -221,9 +197,6 @@ namespace OLAS {
       break;
     case DIAG:
       out = "diag";
-      break;
-    case HYPRE_MATRIX:
-      out = "hypreMatrix";
       break;
     case LAPACK_GBMATRIX:
       out = "lapackGBMatrix";
@@ -512,9 +485,6 @@ namespace OLAS {
     else if ( in == "diag" ) {
       out = DIAG;
     }
-    else if ( in == "hypreMatrix" ) {
-      out = HYPRE_MATRIX;
-    }
     else if ( in == "lapackGBMatrix" ) {
       out = LAPACK_GBMATRIX;
     }
@@ -549,21 +519,6 @@ namespace OLAS {
     }
     else if ( in == "symmlq" ) {
       out = SYMMLQ;
-    }
-    else if ( in == "hyprePCG" ) {
-      out = HYPRE_PCG;
-    }
-    else if ( in == "hypreAMG" ) {
-      out = HYPRE_AMGSOLVER;
-    }
-    else if ( in == "hypreGMRES" ) {
-      out = HYPRE_GMRES;
-    }
-    else if ( in == "hypreBICGSTAB" ) {
-      out = HYPRE_BICGSTAB;
-    }
-    else if ( in == "lapackLU" ) {
-      out = LAPACK_LU;
     }
     else if ( in == "lapackLL" ) {
       out = LAPACK_LL;
@@ -630,18 +585,6 @@ namespace OLAS {
     }
     else if ( in == "ILU0" ) {
       out = ILU0;
-    }
-    else if ( in == "hypreJacobi" ) {
-      out = HYPRE_JACOBI;
-    }
-    else if ( in == "hypreAMG" ) {
-      out = HYPRE_AMG;
-    }
-    else if ( in == "hypreILU" ) {
-      out = HYPRE_ILU;
-    }
-    else if ( in == "hypreSPAI" ) {
-      out = HYPRE_SPAI;
     }
     else if ( in == "ILUTP" ) {
       out = ILUTP;

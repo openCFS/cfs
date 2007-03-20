@@ -174,20 +174,17 @@ namespace CoupledField
   public:                                                               \
         void SetParam( const std::string key, TYPE & param ) {          \
           if ( paramMap_.find(key) == paramMap_.end() ) {               \
-            (*error) << "Parameter '" << key << "' is not registered!"; \
-            Error( __FILE__, __LINE__ );                                \
+            EXCEPTION( "Parameter '" << key << "' is not registered!" );\
           }                                                             \
           TYPE_ENUM ## pool_[key] = param; }                            \
         void GetParam( const std::string key, TYPE & out ) const {      \
           if ( paramMap_.find(key) == paramMap_.end() ) {               \
-            (*error) << "Parameter '" << key << "' is not registered!"; \
-            Error( __FILE__, __LINE__ );                                \
+            EXCEPTION("Parameter '" << key << "' is not registered!");  \
           }                                                             \
           std::map<std::string, TYPE >::const_iterator it;              \
           it = TYPE_ENUM ## pool_.find(key);                            \
           if ( it ==  TYPE_ENUM ## pool_.end() ) {                      \
-            (*error) << "Parameter '" << key << "' is not set!";        \
-            Error( __FILE__, __LINE__ );                                \
+            EXCEPTION("Parameter '" << key << "' is not set!" );        \
           }                                                             \
           out = (*it).second;                                           \
         }                                                                   

@@ -561,7 +561,6 @@ namespace CoupledField {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
-    //    Error("Not implemented here", __FILE__,__LINE__);
 
     UInt offset = (*solOffset_.find(type)).second;
 
@@ -595,7 +594,7 @@ namespace CoupledField {
 //       {
 //         std::cerr << "Vector has Size" << lengthVector_ << std::endl;
 //         std::cerr << "Your vector has size " << val.GetSize() << std::endl;
-//         Error("NodeStoreSol::SetAlgSysVector(): Vector has wrong size!",__FILE__,__LINE__);
+//         EXCEPTION("NodeStoreSol::SetAlgSysVector(): Vector has wrong size!" );
 //       }
 #endif
 

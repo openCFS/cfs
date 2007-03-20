@@ -25,25 +25,11 @@ namespace CoupledField {
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
    
-    std::string namedir = "";
-    /*
-      std::string namedir = "simoutput_unv";
-      std::string pathsep = fs::path("/").native_directory_string();
-      
-      try 
-      {
-      fs::create_directory( namedir );
-      } catch (std::exception &ex)
-      {
-      Error(ex.what(), __FILE__, __LINE__);
-      }
-
-      std::string name = namedir + pathsep + fileName_ + ".unv"; */
     std::string name = fileName_ + ".unv";
     output = NULL;
     output = new std::ofstream(name.c_str());
     if(!output)
-        Error("Unv file could not be openend!", __FILE__, __LINE__);
+      EXCEPTION("Unv file ' " << name << "' could not be openend!" );
   }
 
 
@@ -64,8 +50,7 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputUnv::WriteGrid" );
 
     if ( !output ) {
-      Error( "File for output results is not initialized", __FILE__,
-             __LINE__ );
+      EXCEPTION( "File for output results is not initialized" );
     }
 
     Dataset666();
@@ -77,7 +62,7 @@ namespace CoupledField {
   void  SimOutputUnv::Dataset666() {
 
     if (!ptGrid_) {
-      Error("ptGrid_ is not initialized",  __FILE__, __LINE__ );
+      EXCEPTION("ptGrid_ is not initialized" );
     }
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
@@ -97,7 +82,7 @@ namespace CoupledField {
   void  SimOutputUnv::Dataset781() {
     //
     if (!ptGrid_)
-      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
+      EXCEPTION("ptGrid_ is not initialized" );
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781
               << std::endl;
@@ -135,7 +120,7 @@ namespace CoupledField {
   {
     //
     if (!ptGrid_)
-      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
+      EXCEPTION("ptGrid_ is not initialized");
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
               << 780 << std::endl;
@@ -167,10 +152,9 @@ namespace CoupledField {
           case 6: (*output) << 92; break;
           case 8: (*output) << 95; break;
           default:
-            (*error) << "Please, put element type according to "
-                     << "unverg-format for this number of nodes "
-                     << "per element";
-            Error( __FILE__, __LINE__ );
+            EXCEPTION( "Please, put element type according to "
+                       << "unverg-format for this number of nodes "
+                       << "per element" );
           }
 
           (*output) << std::setw(10) << 2 << std::setw(10) << 2
@@ -186,10 +170,9 @@ namespace CoupledField {
           case 15: (*output) << 113; break;  // prism     2.ord
           case 20: (*output) << 116; break;  // hexaeder  2.ord
           default:
-            (*error) << "Please, put element type according to "
-                     << "unverg-format for " << connect.GetSize()
-                     << " nodes per Element in 3D!";
-            Error( __FILE__,__LINE__);
+            EXCEPTION( "Please, put element type according to "
+                       << "unverg-format for " << connect.GetSize()
+                       << " nodes per Element in 3D!" );
           }
 
           (*output) << std::setw(10) << 11 << std::setw(10) << 1
@@ -232,7 +215,7 @@ namespace CoupledField {
   {
     //
     if (!ptGrid_)
-      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
+      EXCEPTION("ptGrid_ is not initialized" );
 
     (*output) << std::setw(6) << -1 << std::endl 
               << std::setw(6) << dataSetNr << std::endl;
@@ -315,7 +298,7 @@ namespace CoupledField {
   
     UInt dataCharact = 1;
     if (!ptGrid_)
-      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
+      EXCEPTION("ptGrid_ is not initialized" );
   
     (*output) << std::setw(6) << -1 << std::endl 
               << std::setw(6) << dataSetNr << std::endl;
@@ -625,8 +608,7 @@ namespace CoupledField {
       } 
 
     } else {
-      *error << "Can not resort a stress vector with " << numDofs << " entries";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Can not resort a stress vector with " << numDofs << " entries" );
     }
    
     // store sorted vector back to original one
@@ -656,7 +638,7 @@ namespace CoupledField {
         return "stress";
         break;
       case MECH_STRAIN:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented" );
         break;
       case ELEC_POTENTIAL:
         return "electric potential";
@@ -665,19 +647,19 @@ namespace CoupledField {
         return "electric field";
         break;
       case ELEC_FORCE_VWP: 
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented" );
         break;
       case ELEC_INTERFACE_FORCE:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented" );
         break; 
       case ELEC_CHARGE:
         return "electric charge";
         break;
       case ELEC_FLUX_DENSITY:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented");
         break; 
       case ELEC_ENERGY:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented");
       case SMOOTH_DISPLACEMENT:
         return "displacement";
         break;
@@ -698,7 +680,7 @@ namespace CoupledField {
         return "fluid potential";
         break;
       case ACOU_FORCE:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented" );
         break;
       case ACOU_POTENTIAL_DERIV_1:
         return "fluid potential, 1st deriv.";
@@ -716,21 +698,21 @@ namespace CoupledField {
         return "eddy current";
         break;
       case MAG_FORCE_VWP:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented");
         break;
       case MAG_FORCE_LORENTZ:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented");
         break;
       case MAG_ENERGY:
-        Error("Not implemented", __FILE__, __LINE__);
+        EXCEPTION("Not implemented");
         break;
       case HEAT_TEMPERATURE:
         return "temperature";
         break;
 
       default:
-        Error( "Wrong type of solution or 'SolutionType2String' not implemented for \
-this type of solution", __FILE__, __LINE__);
+        EXCEPTION( "Wrong type of solution or 'SolutionType2String'"
+                   << " not implemented for this type of solution" )
       }
     return std::string();
   }

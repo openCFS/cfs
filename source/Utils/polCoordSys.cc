@@ -44,9 +44,8 @@ namespace CoupledField{
     Vector<Double> temp(2);
 
     if ( loc.GetSize() != 2 ) {
-      (*error) << "PolarCoordSystem::Local2GlobalCoord: Coordinate system only "
-               << "defined for 2-dimensional coordinates!";
-             Error( __FILE__, __LINE__ );
+      EXCEPTION( "PolarCoordSystem::Local2GlobalCoord: Coordinate system only "
+                 << "defined for 2-dimensional coordinates!" );
     }
     
     // transform cylindrical coords into local cartesian ones
@@ -68,9 +67,8 @@ namespace CoupledField{
 
     Vector<Double> temp(2);
     if ( glob.GetSize() != 2 ) {
-      (*error) << "PolarCoordSystem::Local2GlobalCoord: Coordinate system only "
-               << "defined for 2-dimensional coordinates!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "PolarCoordSystem::Local2GlobalCoord: Coordinate system only "
+                 << "defined for 2-dimensional coordinates!" );
     }
     
     // calculate differential vector   
@@ -177,9 +175,8 @@ namespace CoupledField{
     // Vector<Double> temp;
 //     temp = rAxis_- origin_;
 //     if( temp.NormL2() < EPS ) {
-//       *error << "The pointing vector for the r_axis and the origin coincide "
-//              << "in the polar coordinate system '" << name_ << "'!";
-//       Error( __FILE__, __LINE__ );
+//       EXCEPTION( "The pointing vector for the r_axis and the origin coincide "
+//                   << "in the polar coordinate system '" << name_ << "'!" );
 //     }
 
     x = rAxis_;
@@ -192,10 +189,9 @@ namespace CoupledField{
     // Check if there were coincident points for defining the different axes
     if (x.NormL2() < EPS ||
         y.NormL2() < EPS ) {
-      (*error) << "At least two of your points for origin and  r-Axis "
-               << "coincide in the coordinate system '" << name_
-               << "'.\nPlease correct your parameter file!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "At least two of your points for origin and  r-Axis "
+                 << "coincide in the coordinate system '" << name_
+                 << "'.\nPlease correct your parameter file!" );
     }
 
 
@@ -241,11 +237,10 @@ namespace CoupledField{
       component = 2;
     
     if ( component == 0 ) {
-      (*error) << "PolarSystem:GetVecComponent:\n"
-               << "The component with name '" << dof 
-               << "' is not known in the global cylinder coordinate system '"
-               << name_ << "'!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "PolarSystem:GetVecComponent:\n"
+                 << "The component with name '" << dof 
+                 << "' is not known in the global cylinder coordinate system '"
+                 << name_ << "'!" );
     }
 
     return component;
@@ -264,10 +259,9 @@ namespace CoupledField{
       ret = "phi";
       break;
     default:
-      (*error) << "PolarCoordSystem::GetDofName:\n"
-               << "The component number " << dof << " does not exist in a "
-               << "global cartesian coordinate system!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "PolarCoordSystem::GetDofName:\n"
+                 << "The component number " << dof << " does not exist in a "
+                 << "global cartesian coordinate system!" );
     }
 
     return ret;

@@ -168,8 +168,7 @@ namespace CoupledField
           meshFile = simName + ".mesh";
       simInput_ = new SimInputMESH(meshFile, inputOptionNode);
 #else
-      Error( "No support for MESH input file format.",
-             __FILE__, __LINE__ );
+      EXCEPTION( "No support for MESH input file format." );
 #endif // USE_MESH
     }
     else if ( informat == "hdf5" ) {
@@ -178,8 +177,7 @@ namespace CoupledField
           meshFile = simName + ".h5";
       simInput_ = new SimInputXMDF(meshFile, inputOptionNode);
 #else
-      Error( "No support for HDF5 input file format.",
-             __FILE__, __LINE__ );
+      EXCEPTION( "No support for HDF5 input file format." );
 #endif // USE_HDF5
     }
     else if ( informat == "gmv" ) {
@@ -188,8 +186,7 @@ namespace CoupledField
           meshFile = simName + ".gmv";
       simInput_ = new SimInputGMV(meshFile, inputOptionNode);
 #else
-      Error( "No support for GMV input file format.",
-             __FILE__, __LINE__ );
+      EXCEPTION( "No support for GMV input file format." );
 #endif // USE_GMV_INPUT
     }
     else {

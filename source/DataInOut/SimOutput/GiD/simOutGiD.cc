@@ -38,19 +38,6 @@ namespace CoupledField {
     // Determine, if binary result file should be written
     isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
 
-    /* std::string namedir = "simoutput_gid";
-    std::string pathsep = fs::path("/").native_directory_string();
-
-    try 
-    {
-      fs::create_directory( namedir );
-    } catch (std::exception &ex)
-    {
-      Error(ex.what(), __FILE__, __LINE__);
-    }
-
-
-    fileName_ = namedir + pathsep + fileName_; */
     // Open result file
     std::string postFileName = fileName_;
     if ( isAscii_ == true) {
@@ -535,14 +522,12 @@ namespace CoupledField {
         dummy = "mid-3D";
       }
     }
-      
-
+    
+    
     UInt numDofs = dofNames.GetSize();
     
     // write Result header
-    if ( entryType == ResultInfo::SCALAR
-         || (entryType == ResultInfo::VECTOR 
-             && dofNames.GetSize() == 1 ) ) {
+    if ( entryType == ResultInfo::SCALAR )  {
       GiD_BeginResultHeader( name.c_str(), "transient", time,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
@@ -557,23 +542,33 @@ namespace CoupledField {
         names[i] = dofNames[i].c_str();
       }
       GiD_ResultComponents( 3, names );
-
+      
       // write results
       GiD_ResultValues();
       UInt offset = 0;
       
       for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
         offset = (iEnt-1) * numDofs;
-        if ( numDofs == 3 ) {
-          GiD_WriteVector( iEnt, var[offset], var[offset+1], var[offset+2] );
-        } else { 
+        
+        switch( numDofs ) {
+        case 1:
+          GiD_WriteVector( iEnt, var[offset], 0.0, 0.0);
+          break;
+        case 2:
           GiD_WriteVector( iEnt, var[offset], var[offset+1], 0.0);
+          break;
+        case 3:
+          GiD_WriteVector( iEnt, var[offset], var[offset+1], var[offset+2] );
+          break;
+        default:
+          EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
+                     << numDofs << " components!");
         }
       }
       
-    } else if( entryType == ResultInfo::TENSOR ) {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
-                             GiD_Matrix, loc, dummy );
+  } else if( entryType == ResultInfo::TENSOR ) {
+    GiD_BeginResultHeader( name.c_str(), "transient", time,
+                           GiD_Matrix, loc, dummy );
       const char *names[6] = {"______", "_____", "____", 
                               "___", "__", "_" };
       for( UInt i = 0; i < numDofs; i++ ) {
@@ -654,9 +649,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     UInt numDofs = dofNames.GetSize();
     
     // === Scalar entries ===
-    if ( entryType == ResultInfo::SCALAR
-         || ( entryType == ResultInfo::VECTOR
-              && dofNames.GetSize() == 1 ) ) {
+    if ( entryType == ResultInfo::SCALAR ) {
       
       // --- First component ---
       GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
@@ -713,13 +706,23 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
+          switch( numDofs ) {
+          case 1:
+            GiD_WriteVector( iEnt, var[offset].real(), 
+                             0.0, 0.0);
+            break;
+          case 2:
+            GiD_WriteVector( iEnt, var[offset].real(), 
+                             var[offset+1].real(), 0.0);
+            break;
+          case 3:
             GiD_WriteVector( iEnt, var[offset].real(), 
                              var[offset+1].real(), 
                              var[offset+2].real() );
-          } else { 
-            GiD_WriteVector( iEnt, var[offset].real(), 
-                             var[offset+1].real(), 0.0);
+            break;
+          default:
+            EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
+                       << numDofs << " components!");
           }
         }
         GiD_EndResult(); 
@@ -727,15 +730,27 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       } else {
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, std::abs(var[offset]),
-                             std::abs(var[offset+1]), 
-                             std::abs(var[offset+2]) );
-          } else { 
+          switch( numDofs ) {
+          case 1:
+            GiD_WriteVector( iEnt, 
+                             std::abs(var[offset]), 
+                             0.0, 0.0 );
+            break;
+          case 2:
             GiD_WriteVector( iEnt, 
                              std::abs(var[offset]), 
                              std::abs(var[offset+1]), 
                              0.0 );
+            break;
+          case 3:
+            GiD_WriteVector( iEnt, std::abs(var[offset]),
+                             std::abs(var[offset+1]), 
+                             std::abs(var[offset+2]) );
+            break;
+          default:
+            EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
+                       << numDofs << " components!");
+
           }
         }
         GiD_EndResult(); 
@@ -906,9 +921,8 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     } else if ( dim == 3 ) {
       dim_ = GiD_3D;
     } else {
-      (*error) << "SimOutputGiD: Grid dimension " << dim
-               << " is not supported by GiD mesh format.";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "SimOutputGiD: Grid dimension " << dim
+               << " is not supported by GiD mesh format." );
     }
 
     // check, if only tetrahedra are present

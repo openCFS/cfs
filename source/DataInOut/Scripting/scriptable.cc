@@ -46,8 +46,7 @@ namespace CoupledField
     // Check if function with this name was already registered
     if ( fctPointers_.find(name) != fctPointers_.end()
          && argLists_.find(name) != argLists_.end() ) {
-      (*error) << "Function '" << name << "' was already registered!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Function '" << name << "' was already registered!" );
     }
     
     // Insert pointer and argList
@@ -171,8 +170,7 @@ namespace CoupledField
     
     // Check if parameter with this name already exists
     if ( orderedParams_.Find(name) != -1 ) {
-      *error << "Parameter with name '" << name << "' already exists!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Parameter with name '" << name << "' already exists!" );
     }
 
     // Add paramter
@@ -298,8 +296,7 @@ namespace CoupledField
       out = "vectr<double>";
       break;
     default:
-      Error( "No conversion found for given ParamType",
-             __FILE__, __LINE__ );
+      EXCEPTION( "No conversion found for given ParamType" );
     }
     return out;
   }

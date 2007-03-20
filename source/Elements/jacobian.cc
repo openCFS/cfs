@@ -42,9 +42,9 @@ namespace CoupledField
   template<UInt dim>
   void Jacobian<dim>::GetJinvZ(Vector<Double> & JinvZ)
   {
-    if (dim==2)
-      Error("Function GetJinvZ is implemented only for 3D",__FILE__,__LINE__);
-    else {
+    if (dim==2) {
+      EXCEPTION("Function GetJinvZ is implemented only for 3D" );
+    } else {
       JinvZ.Resize(3);
 
       JinvZ[0]=Jinv[0][2];
