@@ -1,12 +1,11 @@
 #include "resultHandler.hh"
 
-#include "DataInOut/SimOutput/GiD/simOutGiD.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/postProc.hh"
-#include "DataInOut/SimOutput/TextOutput/textSimOutput.hh"
+#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 
 namespace CoupledField {
 
