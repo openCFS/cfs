@@ -12,6 +12,9 @@ namespace CoupledField {
     dofs_ = dofsPerNode;
     formulation_ = NO_SOLUTION_TYPE; 
     
+    // this bilinearform is never symmetric
+    isSymmetric_ = false;
+    
   }
 
   AcouMechInt::~AcouMechInt() {
@@ -22,14 +25,6 @@ namespace CoupledField {
     ENTER_FCN( "AcouMechInt::SetFormulation" );
     
     formulation_ = aformulation;
-    if( formulation_ == ACOU_POTENTIAL ) {
-      isSymmetric_ = true;
-    } else if ( formulation_ == ACOU_PRESSURE ) {
-      isSymmetric_ = false;
-    } else {
-      EXCEPTION( "Formulation must either be ACOU_PRESSURE or "
-                 << "ACOU_POTENTIAL" );
-    }
   }
     
   void AcouMechInt::CalcElementMatrix( Matrix<Double>& elemMat,
