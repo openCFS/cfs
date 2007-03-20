@@ -40,11 +40,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
 
-IF(USE_GMV)
-#  SET(USE_GMV_INPUT 1)
-  SET(USE_GMV_OUTPUT 1)
-ENDIF(USE_GMV)
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmv.hh")
 

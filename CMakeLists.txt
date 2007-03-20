@@ -369,28 +369,35 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
 
 
   IF(USE_MESH)
-    SUBDIRS(source/DataInOut/SimInput/AnsysFile)
+    SUBDIRS(source/DataInOut/SimInOut/AnsysFile)
   ENDIF(USE_MESH)
 
   IF(USE_GMV)
-    SUBDIRS(source/DataInOut/SimInput/gmv)
-    SUBDIRS(source/DataInOut/SimOutput/gmv)
+    OPTION(USE_GMV_INPUT
+      "Use GMV files as input for simulation. Attention! Debugging may not work!"
+      OFF)
+
+    OPTION(USE_GMV_OUTPUT
+      "Use GMV files as output for simulation."
+      ON)
+
+    MARK_AS_ADVANCED(USE_GMV_INPUT USE_GMV_OUTPUT)
+    SUBDIRS(source/DataInOut/SimInOut/gmv)
   ENDIF(USE_GMV)
 
   IF(USE_HDF5)
-    SUBDIRS(source/DataInOut/SimInput/xmdf)
-    SUBDIRS(source/DataInOut/SimOutput/xmdf)
+    SUBDIRS(source/DataInOut/SimInOut/xmdf)
   ENDIF(USE_HDF5)
 
   IF(USE_GIDPOST)
-    SUBDIRS(source/DataInOut/SimOutput/GiD)
+    SUBDIRS(source/DataInOut/SimInOut/GiD)
   ENDIF(USE_GIDPOST)
 
   IF(USE_UNV)
-    SUBDIRS(source/DataInOut/SimOutput/Unverg)
+    SUBDIRS(source/DataInOut/SimInOut/Unverg)
   ENDIF(USE_UNV)
 
-  SUBDIRS(source/DataInOut/SimOutput/TextOutput)
+  SUBDIRS(source/DataInOut/SimInOut/TextOutput)
   SUBDIRS(source/Domain)
   SUBDIRS(source/Domain/GridCFS)
   SUBDIRS(source/Driver)

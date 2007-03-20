@@ -19,31 +19,31 @@
 #include "DataInOut/WriteInfo.hh"
 
 #ifdef USE_MESH
-#include "DataInOut/SimInput/AnsysFile/simInputMESH.hh"
+#include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
-#include "DataInOut/SimInput/gmv/simInputGMV.hh"
+#include "DataInOut/SimInOut/gmv/simInputGMV.hh"
 #endif
 
 #ifdef USE_GMV_OUTPUT
-#include "DataInOut/SimOutput/gmv/simOutGMV.hh"
+#include "DataInOut/SimInOut/gmv/simOutGMV.hh"
 #endif
 
 #ifdef USE_HDF5
-#include "DataInOut/SimInput/xmdf/simInputXMDF.hh"
-#include "DataInOut/SimOutput/xmdf/simOutputXMDF.hh"
+#include "DataInOut/SimInOut/xmdf/simInputXMDF.hh"
+#include "DataInOut/SimInOut/xmdf/simOutputXMDF.hh"
 #endif
 
 #ifdef USE_GIDPOST
-#include "DataInOut/SimOutput/GiD/simOutGiD.hh"
+#include "DataInOut/SimInOut/GiD/simOutGiD.hh"
 #endif
 
 #ifdef USE_UNV
-#include "DataInOut/SimOutput/Unverg/simOutUnv.hh"
+#include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
 #endif
 
-#include "DataInOut/SimOutput/TextOutput/textSimOutput.hh"
+#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 
 #include "DataInOut/PlainMaterialHandler.hh"
 #include "DataInOut/XMLMaterialHandler.hh"
@@ -260,7 +260,7 @@ namespace CoupledField
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputGMV( simName, actNode ) );
 #else
-        EXCEPTION( "No support for UNV output file format." );
+        EXCEPTION( "No support for GMV output file format." );
 #endif
       }
 
