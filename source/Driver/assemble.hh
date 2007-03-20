@@ -57,7 +57,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Query if resulting matrix will be symmetric
-    bool IsSymmetric( FEMatrixType matType );
+    bool IsFEMatSymmetric( FEMatrixType matType = OLAS::SYSTEM );
 
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices
@@ -68,7 +68,7 @@ namespace CoupledField {
 
   protected:
 
-    //! Assemble linearForms of right hand side
+    //! Assemb2le linearForms of right hand side
     void AssembleRHSLinForms( Double actTimeFreq, bool nonLin );
 
     //! Assemble noda load values of right hand side

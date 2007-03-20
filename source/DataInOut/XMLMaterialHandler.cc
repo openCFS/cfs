@@ -53,9 +53,8 @@ namespace CoupledField {
     valVec =  matName,"";
 
     if (!parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      (*error) << "Error: " << strMatClass << " material " << matName 
-               <<" does not exist.";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( strMatClass << " material " << matName 
+                 <<" does not exist." );
     }
 
     if ( matClass == PIEZO ) {
@@ -87,8 +86,7 @@ namespace CoupledField {
       ReadFlow( material, matName );
     }
     else {
-      (*error) << "Error: material type:" << matClass << " not defined ";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "material type:" << matClass << " not defined " );
     }
     // Finalize setup of material
     material->Finalize();
@@ -299,7 +297,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented" );
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
       flagEModulReal=true;
@@ -311,7 +309,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented" );
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
       flagEModulImag=true;
@@ -323,7 +321,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
       flagEModulReal=true;
@@ -335,7 +333,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS_Z, IMAG ); 
       flagEModulImag=true;
@@ -347,7 +345,7 @@ namespace CoupledField {
     attrVec= "name"     ,""         ,""          ,""         ,"";
     valVec =  matName   ,""         ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, REAL ); 
       flagPoissonReal=true;
@@ -359,7 +357,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
       flagPoissonImag=true;
@@ -372,7 +370,7 @@ namespace CoupledField {
     valVec =  matName   ,""         ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       //material->SetScalar( doubValue, MECH_POISSON_ZX, REAL ); 
       flagPoissonReal=true;
       // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
@@ -384,7 +382,7 @@ namespace CoupledField {
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       //material->SetScalar( doubValue, MECH_POISSON_ZX, IMAG ); 
       flagPoissonImag=true;
       // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
@@ -394,7 +392,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_GMODULUS, REAL ); 
       flagShearModulYZReal=true;
@@ -406,7 +404,7 @@ namespace CoupledField {
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_GMODULUS, IMAG ); 
       flagShearModulYZReal=true;
@@ -419,7 +417,7 @@ namespace CoupledField {
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       //material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
       flagShearModulYZReal=true;
       //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
@@ -431,7 +429,7 @@ namespace CoupledField {
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      Error("needs to be implemented",__FILE__,__LINE__);
+      EXCEPTION("needs to be implemented");
       material->SetScalar( doubValue, MECH_GMODULUS_ZX, IMAG ); 
       flagShearModulYZReal=true;
       //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
@@ -558,19 +556,17 @@ namespace CoupledField {
     else if (flagEModulReal==true && 
         flagPoissonReal==true && 
         flagElastTensorReal==true) {
-      (*error) << "Error: mechanical stiffness tensor is over determined."
-               << " You specified the tensor as well as E-Modul and Poisson number";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "mechanical stiffness tensor is over determined.\n"
+                 << " You specified the tensor as well as E-Modul "
+                 << "and Poisson number" );
     }
     else if (flagEModulReal==false && 
              flagEModulXReal==false && 
              flagElastTensorReal==false) {
-      (*error) << "Error: mechanical stiffness must be specified somehow.";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION ("mechanical stiffness must be specified somehow." );
     }
     else {
-      (*error) << "Error: mechanical stiffness tensor can not be computed.";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "mechanical stiffness tensor can not be computed." );
     }
 
 
@@ -1059,7 +1055,7 @@ namespace CoupledField {
         material->SetScalar( striValue, P_DIRECTION ); 
       }
       else
-        Error("Non existing coordinate direction",__FILE__,__LINE__);
+        EXCEPTION("Non existing coordinate direction" );
     }
 
     //read weight dimension of Preisach hysterese model

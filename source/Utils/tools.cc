@@ -312,9 +312,8 @@ namespace CoupledField {
                                                                         \
     for ( UInt i = 0; i < val.GetSize(); i++ ) {                        \
       if ( std::sscanf ( val[i].c_str(), "%lf", &retVal[i]) != 1 ) {    \
-        (*error) << "Could not convert '" << val                        \
-                 << "' into a double!";                                 \
-        Error( __FILE__, __LINE__ );                                    \
+        EXCEPTION("Could not convert '" << val                          \
+                  << "' into a double!" );                              \
       }                                                                 \
                                                                         \
     }                                                                   \
@@ -338,9 +337,8 @@ namespace CoupledField {
                                                                         \
       for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
         if ( std::sscanf ( val[i].c_str(), "%d", &retVal[i]) != 1 ) {   \
-          (*error) << "Could not convert '" << val                      \
-                   << "' into an integer!";                             \
-          Error( __FILE__, __LINE__ );                                  \
+          EXCEPTION( "Could not convert '" << val                       \
+                     << "' into an integer!" );                         \
         }                                                               \
       }                                                                 \
     }                                                                   \
@@ -364,9 +362,8 @@ namespace CoupledField {
                                                                         \
       for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
         if ( std::sscanf ( val[i].c_str(), "%u", &retVal[i]) != 1 ) {   \
-          (*error) << "Could not convert '" << val                      \
-                   << "' into an unsigned integer!";                    \
-          Error( __FILE__, __LINE__ );                                  \
+          EXCEPTION( "Could not convert '" << val                       \
+                     << "' into an unsigned integer!" );                \
         }                                                               \
       }                                                                 \
     }                                                                   \

@@ -58,10 +58,9 @@ namespace CoupledField{
       component = 3;
 
     if ( component == 0 ) {
-      (*error) << "DefaultCoordSystem:GetVecComponent:\n"
-               << "The component with name '" << dof 
-               << "' is not known in the global cartesian coordinate system";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "DefaultCoordSystem:GetVecComponent:\n"
+                 << "The component with name '" << dof 
+                 << "' is not known in the global cartesian coordinate system" );
     }
     
     return component;
@@ -84,10 +83,9 @@ namespace CoupledField{
       ret = "z";
       break;
     default:
-      (*error) << "DefaultCoordSystem::GetDofName:\n"
-               << "The component number " << dof << " does not exist in a "
-               << "global cartesian coordinate system!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "DefaultCoordSystem::GetDofName:\n"
+                 << "The component number " << dof << " does not exist in a "
+                 << "global cartesian coordinate system!" );
     }
 
     return ret;

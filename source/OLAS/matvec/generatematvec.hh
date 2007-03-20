@@ -44,8 +44,7 @@ namespace OLAS {
   //! - Since there is no VectorType enumeration data type in %OLAS
   //!   we use a combination of MatrixStorageType, MatrixEntryType and
   //!   an integer specifying the blockSize of the vector entries to
-  //!   fix the type of the vector. If, e.g. MatrixStorageType = HYPRE_MATRIX,
-  //!   then a HypreVector object will be generated.
+  //!   fix the type of the vector. 
   //! - As the name implies SBM_Vectors, but also parallel vector objects,
   //!   cannot be generated via this method.
   //! - The vector is initialised so that the entries on the scalar level are

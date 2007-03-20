@@ -115,6 +115,7 @@ namespace CoupledField
                         OLAS::MatrixEntryType &eType, 
                         OLAS::ReorderingType &rType,
                         AnalysisType analysisType,
+                        Assemble * assemble,
                         bool allowChangeOfReordering );
 
   };

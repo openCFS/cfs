@@ -8,9 +8,15 @@
 #include "Domain/grid.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/harmonicDriver.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 
 namespace CoupledField {
+
+
+  // declare logging stream
+  DECLARE_LOG(assemble)
+  DEFINE_LOG(assemble, "assemble")
 
   Assemble::Assemble( BaseSystem* algsys,
                       AnalysisType analysis,
@@ -67,6 +73,12 @@ namespace CoupledField {
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
     ENTER_FCN( "Assemble::AddBiLinearForm" );
     
+    LOG_DBG(assemble) << "Adding BiLinearForm '" 
+                      << biLinContext->GetIntegrator()->GetName()
+                      << "' on '" 
+                      << biLinContext->GetFirstEntities()->GetName()
+                      << "'";
+    
     // assert that Integrator is set
     assert( biLinContext->GetIntegrator() != NULL );
 
@@ -78,7 +90,17 @@ namespace CoupledField {
     assert( biLinContext->GetFirstPde() != NULL );
     assert( biLinContext->GetSecondPde() != NULL );
 
-    // 
+    // If the datatype of the bilinearformcontext is "COMPLEX"
+    // we have to ensure that we are in an harmonic case.
+    // Otherwise we issue an error
+    if( (biLinContext->GetEntryType() == IMAG ||
+         biLinContext->GetEntryType() == COMPLEX )
+        && analysisType_ != HARMONIC ) {
+      EXCEPTION( "Can not add integrator '" 
+                 << biLinContext->GetIntegrator()->GetName() 
+                 << "' with complex/imaginary entries for a "
+                 << "non-harmonic analysis." );
+    }
     
     FEMatrixType mappedFEType = matrixMap_[biLinContext->GetDestMat()];
     FEMatrixType mappedSecFEType = 
@@ -144,30 +166,38 @@ namespace CoupledField {
       if( actContext.GetFirstPde()->GetPDEId() == pdeId1 &&
           actContext.GetSecondPde()->GetPDEId() == pdeId2 ) {
 
-        // get entity iterators
-        EntityIterator it1 = actContext.GetFirstEntities()->GetIterator();
-        EntityIterator it2 = actContext.GetSecondEntities()->GetIterator();
-        UInt size = actContext.GetFirstEntities()->GetSize();
-        it1.Begin();
-        it2.Begin();
-        
-        // iterate over all entities
-        for ( UInt i = 0; i < size; i++ ) {
-          
-          // Get equation numbers
-          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
-          
-          // Pass entity eqn-connectivity to algebraic system
-          algsys_->
-            SetElementPos( id1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
-                           id2, eqnVec2.GetPointer(), eqnVec2.GetSize(), 
-                           actContext.IsSetCounterPart());
-          
-          // increment iterators
-          it1++;
-          it2++;
-        } // loop (entities)
+        try {
 
+          // get entity iterators
+          EntityIterator it1 = actContext.GetFirstEntities()->GetIterator();
+          EntityIterator it2 = actContext.GetSecondEntities()->GetIterator();
+          UInt size = actContext.GetFirstEntities()->GetSize();
+          it1.Begin();
+          it2.Begin();
+          
+          // iterate over all entities
+          for ( UInt i = 0; i < size; i++ ) {
+            
+            // Get equation numbers
+            actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
+            
+            // Pass entity eqn-connectivity to algebraic system
+            algsys_->
+              SetElementPos( id1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
+                             id2, eqnVec2.GetPointer(), eqnVec2.GetSize(), 
+                             actContext.IsSetCounterPart());
+            
+            // increment iterators
+            it1++;
+            it2++;
+          } // loop (entities)
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, "Could not setup matrix graph for "
+                            << "BiLinearForm '"
+                            << actContext.GetIntegrator()->GetName() << "' on '"
+                            << actContext.GetFirstEntities()->GetName()<< "'" );
+        }
+        
       } // if
     } // loop (integrators)
   }
@@ -753,12 +783,50 @@ namespace CoupledField {
     }
   }
 
-  bool Assemble::IsSymmetric( FEMatrixType feType ) {
-    ENTER_FCN( " Assemble::IsSymmetric" );
+  bool Assemble::IsFEMatSymmetric( FEMatrixType feType ) {
+    ENTER_FCN( " Assemble::IsFEMatSymmetric" );
     
-    EXCEPTION( "Please implement" );
+    // Run over all bilinearform contexts
+    std::map<FEMatrixType, bool> isSymmetric;
+    std::set<BiLinFormContext*>::iterator it;
+    
+   
+    for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
+
+      BiLinFormContext & actCt = (**it);
+      
+      // Check, where bilinearform gets assembled to
+      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
+          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
+          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
+
+        // Bilinearform gets assembled to main diagonal.
+        // If bilinearform is non-symmetric, so is the related FE-matrix
+        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
+          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+          isSymmetric[mappedDest] = false;
+          isSymmetric[SYSTEM] = false;
+        }
+      } else {
+
+        // BiLinearform gets assembled to off-diagonal block.
+        
+        // If the bilinearorm is also assembled to the transposed block
+        // we assume that the matrix still remains symmetric.
+        // Otherwise we assume, that we need a non-symmetric matrix.
+        if( !actCt.IsSetCounterPart() ) {
+          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+          isSymmetric[mappedDest] = false;
+          isSymmetric[SYSTEM] = false;
+        } 
+      } 
+    }
+
+    // return flag for matrix of interest
+    return isSymmetric[feType];
   }
-  
+
+   
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                                Matrix<Double>& elemMat, 
                                StdVector<Integer>& eqnVec1,

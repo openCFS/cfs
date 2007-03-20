@@ -124,6 +124,12 @@ namespace CoupledField
     //! Returns pointer to second pde
     SinglePDE * GetSecondPde () { return ptPde2_; }
 
+    //! Returns information about first result info
+    shared_ptr<ResultInfo> GetFirstResultInfo() { return result1_; }
+
+    //! Returns information about second result info
+    shared_ptr<ResultInfo> GetSecondResultInfo() { return result2_; }
+
     //! Set function for SetCounterPart
     void SetCounterPart( bool setCounterPart ) 
     { setCounterPart_ = setCounterPart; }

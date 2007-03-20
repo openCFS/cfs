@@ -127,17 +127,12 @@ namespace OLAS {
   //! - JACOBI
   //! - SSOR
   //! - ILU0
-  //! - HYPRE_JACOBI
-  //! - HYPRE_AMG
-  //! - HYPRE_ILU
-  //! - HYPRE_SPAI
   //! - ILUTP
   //! - ILUK
   //! - ILDLK
   //! - ILDLTP
   //! - ILDLCN
-  typedef enum {NOPRECOND, ID, MG, JACOBI, SSOR, ILU0, HYPRE_JACOBI,
-                HYPRE_AMG, HYPRE_ILU, HYPRE_SPAI, ILUTP, ILUK, ILDL0, ILDLK, ILDLTP,
+  typedef enum {NOPRECOND, ID, MG, JACOBI, SSOR, ILU0,ILUTP, ILUK, ILDL0, ILDLK, ILDLTP,
                 ILDLCN, IC0} PrecondType;
 
   //! Type of solver
@@ -153,10 +148,6 @@ namespace OLAS {
   //! - QMR
   //! - GMRES
   //! - MINRES
-  //! - HYPRE_PCG
-  //! - HYPRE_GMRES
-  //! - HYPRE_BICGSTAB
-  //! - HYPRE_AMGSOLVER
   //! - LAPACK_LU
   //! - LAPACK_LL
   //! - PARDISO
@@ -165,8 +156,7 @@ namespace OLAS {
   //! - LDL_SOLVER
   //! - LDL_SOLVER2
   typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-                MINRES, SYMMLQ, HYPRE_PCG, HYPRE_GMRES, HYPRE_BICGSTAB,
-		HYPRE_AMGSOLVER, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK_SOLVER, LU_SOLVER,
+                MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK_SOLVER, LU_SOLVER,
 		LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;
 
   //! Type of EigenSolver
@@ -225,10 +215,9 @@ namespace OLAS {
   //! - SPARSE_NONSYM
   //! - SKYLINE_SYM
   //! - SKYLINE_NONSYM
-  //! - HYPRE_MATRIX
   //! - LAPACK_GBMATRIX
   typedef enum { NOSTORAGETYPE, SPARSE_SYM, SPARSE_NONSYM,
-		 SKYLINE_SYM, SKYLINE_NONSYM, HYPRE_MATRIX,
+		 SKYLINE_SYM, SKYLINE_NONSYM, 
 		 LAPACK_GBMATRIX, DIAG } MatrixStorageType;
 
 
@@ -260,11 +249,9 @@ namespace OLAS {
   //! submatrices used for storing the internal and coupling parts can be
   //! obtained from MatrixStorageType.</td></tr>
   //! <tr><td>PARCRSMATRIX</td><td>This is a ParCRS_Matrix object.</td></tr>
-  //! <tr><td>PARHYPREMATRIX</td><td>This is a parallel HypreMatrix.</td></tr>
   //! </table>
   //! </center>
-  typedef enum { NOPARMATRIXTYPE, SEQMATRIX, PARMATRIX, PARCRSMATRIX,
-                 PARHYPREMATRIX
+  typedef enum { NOPARMATRIXTYPE, SEQMATRIX, PARMATRIX, PARCRSMATRIX
                } ParMatrixType;
 
   //! \name enumeration types for (parallel) AMG

@@ -189,10 +189,9 @@ namespace CoupledField{
     //Vector<Double> temp;
     //temp = rAxis_- origin_;
     // if( temp.NormL2() < EPS ) {
-//       *error << "The pointing vector for the r_axis and the origin coincide "
-//              << "in the cylindrical coordinate system '"
-//              << name_ << "'!";
-//       Error( __FILE__, __LINE__ );
+//       EXCEPTION( "The pointing vector for the r_axis and the origin coincide "
+//                  << "in the cylindrical coordinate system '"
+//                  << name_ << "'!" );
 //     }
     
     x = rAxis_;

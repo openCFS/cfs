@@ -74,8 +74,7 @@ namespace CoupledField {
         }
       }
     } else {
-      *error << "Can only map nodal / element results to grid";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Can only map nodal / element results to grid" );
     }
       
   }

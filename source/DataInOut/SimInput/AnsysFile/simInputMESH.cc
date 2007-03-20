@@ -245,7 +245,6 @@ namespace CoupledField {
 
       GetAllRegionNames(names);
     }
-    //    Error( "Not implemented", __FILE__, __LINE__ );
     return regionNames_.size();
   }
 

@@ -590,10 +590,6 @@ namespace OLAS {
     // Currently we can only do this with the Vector<T> class,
     // i.e. with OLAS/LAPACK matrices
     // MatrixStorageType matType = sysmat_[matrix_id]->GetStorageType();
-    // if ( matType == HYPRE_MATRIX ) {
-    //  (*error) << "Cannot handle matrix of type " << Enum2String(matType);
-    //   Error( __FILE__, __LINE__ );
-    // }
 
     // Generate an empty vector object to use as container
     Vector<Double> UpdVec;
