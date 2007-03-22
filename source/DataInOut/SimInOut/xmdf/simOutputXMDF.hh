@@ -1,7 +1,12 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_SIMOUTPUTXMDF_2006
 #define FILE_SIMOUTPUTXMDF_2006
 
 #include <set>
+#include <map>
 
 #include <Domain/grid.hh>
 #include <Domain/resultInfo.hh>
@@ -61,10 +66,7 @@ namespace CoupledField {
     virtual void InitModule();
 
     virtual void WriteGrid();
-      virtual void WriteData() 
-      {
-      }
-      
+    virtual void WriteData() {}
   
   protected:
     
@@ -85,10 +87,7 @@ namespace CoupledField {
     typedef std::vector< std::vector<UInt> > RegionElemType;
     typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > RegionNodeType;
 
-    void WriteRegions(const H5::Group& meshGroup,
-                      const RegionElemType& regionElems,
-                      const RegionNodeType& regionNodes);
-
+    void WriteRegions(const H5::Group& meshGroup);
     void WriteNamedNodes(const H5::Group& meshGroup);
     void WriteNamedElems(const H5::Group& meshGroup);
 
@@ -103,13 +102,36 @@ namespace CoupledField {
     //@}
 
   private:
-    std::vector< UInt > regionDims_;
-    std::vector< std::string > regionNames_;
-    std::vector< std::string > nodeNames_;
-    std::vector< std::string > elemNames_;
+    void WriteAttribDescriptions();
+    void WriteAttributes(const std::vector<std::string>& resultNames,
+                         std::vector< Vector<Double>* >& results,
+                         const std::string& regionStr,
+                         const UInt numDOFs);
+    void CreateExternalFile();
+
     bool gridWritten_;
-    UInt numRegions_;
+
+    bool externalFiles_;
+
     H5::Group mainRoot_;
+    H5::Group dataGroup_;
+    H5::Group volDataGroup_;
+    H5::Group currMSGroup_;
+    H5::Group currAttrDescGroup_;
+    H5::Group currStepGroup_;
+    H5::H5File currStepFile_;
+
+    UInt currMS_;
+    UInt currStep_;
+
+    AnalysisType currAnalysisType_;
+
+    typedef std::map< std::string, std::vector< 
+                                     boost::shared_ptr<BaseResult>
+                                     >
+                    > ResDescType;
+    ResDescType registeredResults_;
+
     xid fileId_;
     UInt multiStep_, step_;
     bool msChange_;
@@ -128,8 +150,3 @@ namespace CoupledField {
 }
 
 #endif // FILE_MOD_XMDF_2006
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:

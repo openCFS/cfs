@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 // Introduced by Simon Triebenbacher on 28.11.05
 // This file contains a modified version of Mike Dinolfo's
 // matrix class. It is used to invert 4x4 matrices needed

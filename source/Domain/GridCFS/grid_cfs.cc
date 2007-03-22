@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,7 +19,7 @@
 
 namespace CoupledField {
 
-// declare class specific logging stream
+  // declare class specific logging stream
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
@@ -31,11 +35,11 @@ namespace CoupledField {
     param->Get("domain")->Get( "geometryType", probGeo );
     
     if ( probGeo == "3d")
-        dim_ = 3;
+      dim_ = 3;
     else if (probGeo == "axi")
-        dim_ = 2;
+      dim_ = 2;
     else if (probGeo == "plane")
-        dim_ = 2;
+      dim_ = 2;
 
     numNodes_ = 0;
     numElems_ = 0;
@@ -57,14 +61,14 @@ namespace CoupledField {
     ENTER_FCN( "GridCFS::GridCFS" );
 
     for ( UInt i = 0; i < numElems_; i++ ) {
-        delete orderedElems_[i];
+      delete orderedElems_[i];
     }
     orderedElems_.Clear();
   } 
 
-    /*
-  void GridCFS::Read()
-  {
+  /*
+    void GridCFS::Read()
+    {
     ENTER_FCN( "GridCFS::Read" );
  
     StdVector<StdVector<Elem*> >temp;
@@ -95,45 +99,45 @@ namespace CoupledField {
     orderedElems_.Init(NULL);
     for ( UInt iRegion = 0; iRegion < volElems_.GetSize(); iRegion++ ) {
       
-      for ( UInt iElem = 0; iElem < volElems_[iRegion].GetSize();
-            iElem++ ) {
-        ptVolElem =  volElems_[iRegion][iElem];
-        BaseFE * ptFE = ptVolElem->ptElem;
+    for ( UInt iElem = 0; iElem < volElems_[iRegion].GetSize();
+    iElem++ ) {
+    ptVolElem =  volElems_[iRegion][iElem];
+    BaseFE * ptFE = ptVolElem->ptElem;
 
-        // Check, if quadratic elements are in the grid
-        if  ( ptFE->GetNumCorners() < ptFE->GetNumNodes() ) {
-          isQuadratic_ = true;
-        }
+    // Check, if quadratic elements are in the grid
+    if  ( ptFE->GetNumCorners() < ptFE->GetNumNodes() ) {
+    isQuadratic_ = true;
+    }
         
-        // Add type of FE to map
-        numElemTypes_[ptFE->feType()]++;
+    // Add type of FE to map
+    numElemTypes_[ptFE->feType()]++;
         
-        // Check, if element with same number is already contained
-        // in the grid
-        if ( orderedElems_[ptVolElem->elemNum-1]  != NULL) {
-        EXCEPTION( "Element Nr. " << ptVolElem->elemNum 
-                   << " exists at least two times!\n"
-                   << "The first occurence is in region '"
-                   << regionNames_[orderedElems_[ptVolElem->elemNum-1]
-                                     ->regionId] 
-                   << "', the second in region '"
-                   << regionNames_[volElems_[iRegion][iElem]->regionId]
-                   << "'.\nPlease check your mesh file!" );
-        }
-        orderedElems_[ptVolElem->elemNum-1] = ptVolElem;
-      } // loop over elements
+    // Check, if element with same number is already contained
+    // in the grid
+    if ( orderedElems_[ptVolElem->elemNum-1]  != NULL) {
+    EXCEPTION( "Element Nr. " << ptVolElem->elemNum 
+    << " exists at least two times!\n"
+    << "The first occurence is in region '"
+    << regionNames_[orderedElems_[ptVolElem->elemNum-1]
+    ->regionId] 
+    << "', the second in region '"
+    << regionNames_[volElems_[iRegion][iElem]->regionId]
+    << "'.\nPlease check your mesh file!" );
+    }
+    orderedElems_[ptVolElem->elemNum-1] = ptVolElem;
+    } // loop over elements
     } // loop over region
     
     if ( temp.GetSize() > 0 )
-      CreateSurfaceElements(temp);
+    CreateSurfaceElements(temp);
 
     // Perform final consistency check
     for( UInt i = 0; i<orderedElems_.GetSize(); i++ ) {
-      if ( orderedElems_[i] == NULL ) {
-        (*warning) << "Gap in numbering: No Element Nr. " << i+1 
-                   << " contained in the mesh! Errors can occur!";
-        Warning( __FILE__, __LINE__ );
-      }
+    if ( orderedElems_[i] == NULL ) {
+    (*warning) << "Gap in numbering: No Element Nr. " << i+1 
+    << " contained in the mesh! Errors can occur!";
+    Warning( __FILE__, __LINE__ );
+    }
     }
 
     
@@ -154,23 +158,23 @@ namespace CoupledField {
     // Print information about region mapping into
     PrintGridInfo();
     
-#ifdef ADAPTGRID
+    #ifdef ADAPTGRID
     FormNeighborsLists();
-#endif
+    #endif
 
-//     UInt inode = numNodes_+1;
-//     AddNodes(10);
+    //     UInt inode = numNodes_+1;
+    //     AddNodes(10);
 
-//     for(UInt i=0; i<10; i++)
-//     {
-//         Point p;
-//         p[0] = p[1] = p[2] = i;
-//         SetNodeCoordinate(inode++, p);
-//     }
+    //     for(UInt i=0; i<10; i++)
+    //     {
+    //         Point p;
+    //         p[0] = p[1] = p[2] = i;
+    //         SetNodeCoordinate(inode++, p);
+    //     }
 
     FinishInit();
-  }
-    */
+    }
+  */
 
   void  GridCFS::GetNodesForDirectivity() {
     ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
@@ -209,13 +213,13 @@ namespace CoupledField {
     //Read planes for saving nodes
     StdVector<UInt> nodePlanes;
     if ( dim_ == 3 )
-      {
-        nodePlanes.Resize(dim_);
-      }
+    {
+      nodePlanes.Resize(dim_);
+    }
     else
-      {
-        nodePlanes.Resize(1);
-      }
+    {
+      nodePlanes.Resize(1);
+    }
 
 
     // get parameter nodes defining planes
@@ -258,42 +262,42 @@ namespace CoupledField {
 
     nodePlanes[0]=1;
     if (((End[0]-Begin[0])/angleStep)<1.0)
-      {
-        (*warning) << "Not saving directivity nodes on plane: " << planeNames[0]
-                   << " since sweep angle (End-Begin) "<<(End[0]-Begin[0])
-                   <<" is smaller than step angle " << angleStep << "";
-        Warning( __FILE__, __LINE__ );
-        End[0]=0;
-        Begin[0]=0;
-      }
+    {
+      (*warning) << "Not saving directivity nodes on plane: " << planeNames[0]
+                 << " since sweep angle (End-Begin) "<<(End[0]-Begin[0])
+                 <<" is smaller than step angle " << angleStep << "";
+      Warning( __FILE__, __LINE__ );
+      End[0]=0;
+      Begin[0]=0;
+    }
     numDiv[0]=Integer(floor((End[0]-Begin[0])/angleStep));
     if (angleStep <= (360.0-(End[0]-Begin[0])) && (End[0]-Begin[0])>0.0)
-      {
-        numDiv[0]++;
-      }
+    {
+      numDiv[0]++;
+    }
     
             
     if(dim_==3)
+    {
+      for (UInt actPlane=1; actPlane<=2; actPlane++)
       {
-        for (UInt actPlane=1; actPlane<=2; actPlane++)
-          {
-            nodePlanes[actPlane]=1;
-            if (((End[actPlane]-Begin[actPlane])/angleStep)<1.0)
-              {
-                (*warning) << "Not saving directivity nodes on plane: " << planeNames[actPlane]
-                           << " plane since sweep angle (End-Begin) "<<(End[actPlane]-Begin[actPlane])
-                           <<" is smaller than step angle " << angleStep << "";
-                Warning( __FILE__, __LINE__ );
-                End[actPlane]=0;
-                Begin[actPlane]=0;
-              }
-            numDiv[actPlane]=Integer(floor((End[actPlane]-Begin[actPlane])/angleStep));
-            if (angleStep <= (360.0-(End[actPlane]-Begin[actPlane])) && (End[actPlane]-Begin[actPlane])>0.0)
-              {
-                numDiv[actPlane]++;
-              }
-          }
+        nodePlanes[actPlane]=1;
+        if (((End[actPlane]-Begin[actPlane])/angleStep)<1.0)
+        {
+          (*warning) << "Not saving directivity nodes on plane: " << planeNames[actPlane]
+                     << " plane since sweep angle (End-Begin) "<<(End[actPlane]-Begin[actPlane])
+                     <<" is smaller than step angle " << angleStep << "";
+          Warning( __FILE__, __LINE__ );
+          End[actPlane]=0;
+          Begin[actPlane]=0;
+        }
+        numDiv[actPlane]=Integer(floor((End[actPlane]-Begin[actPlane])/angleStep));
+        if (angleStep <= (360.0-(End[actPlane]-Begin[actPlane])) && (End[actPlane]-Begin[actPlane])>0.0)
+        {
+          numDiv[actPlane]++;
+        }
       }
+    }
     
     //Here finally we start the process for searching nodes for directivity
     //Create vector with angles to save solutions
@@ -305,12 +309,12 @@ namespace CoupledField {
     angleList.Init();
     
     for (UInt actPlane=0; actPlane<numDiv.GetSize() ; actPlane++)
+    {
+      for (int i=0; i<numDiv[actPlane] ; i++)
       {
-        for (int i=0; i<numDiv[actPlane] ; i++)
-          {
-            angleList[actPlane][i] = (Begin[actPlane] + i*angleStep);
-          }
+        angleList[actPlane][i] = (Begin[actPlane] + i*angleStep);
       }
+    }
   
     StdVector<UInt> directNodes;
 
@@ -321,292 +325,292 @@ namespace CoupledField {
     
     UInt ctr=0;
     for (UInt actPlane=0; actPlane<nodePlanes.GetSize(); actPlane++)
+    {
+      if (nodePlanes[actPlane]==1 && numDiv[actPlane]>0)
       {
-        if (nodePlanes[actPlane]==1 && numDiv[actPlane]>0)
-          {
-            namedNodeNames_.Push_back( planeNames[actPlane]);
-            namedNodes_.Push_back( StdVector<UInt>() );
-            Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
-            Info->PrintF("", "Angle list: \nangles = [");  
-            for (int i=0; i<numDiv[actPlane] ; i++)
-              {
-                Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
-              }
-            Info->PrintF( "", "]\n" );
+        namedNodeNames_.Push_back( planeNames[actPlane]);
+        namedNodes_.Push_back( StdVector<UInt>() );
+        Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
+        Info->PrintF("", "Angle list: \nangles = [");  
+        for (int i=0; i<numDiv[actPlane] ; i++)
+        {
+          Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
+        }
+        Info->PrintF( "", "]\n" );
             
-            if (actPlane==0)//XY
-              {
-                j=0;
-                k=1;
-                l=2;
-              }
+        if (actPlane==0)//XY
+        {
+          j=0;
+          k=1;
+          l=2;
+        }
+        if (dim_==3)
+        {
+          if (actPlane==1)//XZ
+          {
+            j=0;
+            k=2;
+            l=1;
+          }             
+          if (actPlane==2)//YZ
+          {
+            j=1;
+            k=2;
+            l=0;
+          }             
+        }  
+        for (UInt actRadIndex=0; actRadIndex<radiiVec.GetSize(); actRadIndex++)
+        {
+          std::vector<Double>::iterator it;
+          Matrix<Double> save_point;
+          save_point.Resize(numDiv[actPlane],dim_);
+          std::string nodename; 
+          Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
+
+          for (int i=0; i<numDiv[actPlane] ; i++)
+          {
+            save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
+            save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  
             if (dim_==3)
-              {
-                if (actPlane==1)//XZ
-                  {
-                    j=0;
-                    k=2;
-                    l=1;
-                  }             
-                if (actPlane==2)//YZ
-                  {
-                    j=1;
-                    k=2;
-                    l=0;
-                  }             
-              }  
-            for (UInt actRadIndex=0; actRadIndex<radiiVec.GetSize(); actRadIndex++)
-              {
-                std::vector<Double>::iterator it;
-                Matrix<Double> save_point;
-                save_point.Resize(numDiv[actPlane],dim_);
-                std::string nodename; 
-                Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
-
-                for (int i=0; i<numDiv[actPlane] ; i++)
-                  {
-                    save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
-                    save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  
-                    if (dim_==3)
-                      {
-                        save_point[i][l] = center[l] + 0.0; 
-                      }
+            {
+              save_point[i][l] = center[l] + 0.0; 
+            }
                     
-                    //Computing distance between the savedpoint and the mesh nodes
-                    std::vector<Double> dist2;
-                    dist2.resize(numNodes_);
-                    for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
-                      {
-                          Point p= coords_[nodeIndex];
+            //Computing distance between the savedpoint and the mesh nodes
+            std::vector<Double> dist2;
+            dist2.resize(numNodes_);
+            for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+            {
+              Point p= coords_[nodeIndex];
                           
-                          dist2[nodeIndex] = pow((p[j] - save_point[i][j]),2) +
-                          pow((p[k] -  save_point[i][k]),2);
-                        if (dim_==3)
-                          dist2[nodeIndex] +=  pow((p[l] -  save_point[i][l]),2);
-                      }
-                    it=min_element(dist2.begin(), dist2.end());
-                    Integer numNodeMin = -1;
-                    for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
-                      {
-                        if (*it==dist2[nodeIndex])
-                          {
-                            numNodeMin=nodeIndex+1;
-                          }
-                      } 
-                    directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] = numNodeMin;
-                   
-//                     nodename = "plane";
-//                     nodename.append( planeNames[actPlane] );
-//                     nodename.append( "_r" );
-//                     nodename.append( GenStr(actRadIndex+1) );
-//                     nodename.append( "_a" );
-//                     nodename.append( GenStr(angleList[actPlane][i]) );
-                    //namedNodeNames_.Push_back(nodename);
-
-                    UInt lastIndex = namedNodes_.GetSize()-1; 
-                    namedNodes_[lastIndex].Push_back(directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i]);
-                    Info->PrintF( "", " %i;", directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] ); 
-                  }
-                Info->PrintF( "", "]\n" );
+              dist2[nodeIndex] = pow((p[j] - save_point[i][j]),2) +
+                                 pow((p[k] -  save_point[i][k]),2);
+              if (dim_==3)
+                dist2[nodeIndex] +=  pow((p[l] -  save_point[i][l]),2);
+            }
+            it=min_element(dist2.begin(), dist2.end());
+            Integer numNodeMin = -1;
+            for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+            {
+              if (*it==dist2[nodeIndex])
+              {
+                numNodeMin=nodeIndex+1;
               }
-                Info->PrintF( "", "\n" );
-            ctr+=numDiv[actPlane];
+            } 
+            directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] = numNodeMin;
+                   
+            //                     nodename = "plane";
+            //                     nodename.append( planeNames[actPlane] );
+            //                     nodename.append( "_r" );
+            //                     nodename.append( GenStr(actRadIndex+1) );
+            //                     nodename.append( "_a" );
+            //                     nodename.append( GenStr(angleList[actPlane][i]) );
+            //namedNodeNames_.Push_back(nodename);
+
+            UInt lastIndex = namedNodes_.GetSize()-1; 
+            namedNodes_[lastIndex].Push_back(directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i]);
+            Info->PrintF( "", " %i;", directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] ); 
           }
+          Info->PrintF( "", "]\n" );
+        }
+        Info->PrintF( "", "\n" );
+        ctr+=numDiv[actPlane];
       }
+    }
   }
 
   void GridCFS::MapFaces() {
-   ENTER_FCN( "GridCFS::MapFaces" );
+    ENTER_FCN( "GridCFS::MapFaces" );
 
-   LOG_TRACE(gridcfs) << "Starting to map faces ";
+    LOG_TRACE(gridcfs) << "Starting to map faces ";
 
    
-   // assert that any mesh was already read in
-   assert( isInitialized_ == true );
+    // assert that any mesh was already read in
+    assert( isInitialized_ == true );
    
-   // If faces are already mapped ->leave
-   if( facesMapped_ == true ) {
-     return;
-   }
+    // If faces are already mapped ->leave
+    if( facesMapped_ == true ) {
+      return;
+    }
 
-   // create counter for number of faces
-   UInt actFaceNum = 1;
+    // create counter for number of faces
+    UInt actFaceNum = 1;
 
-   // vectors for local / global nodes
-   StdVector<UInt> faceIndices, faceNodes;
+    // vectors for local / global nodes
+    StdVector<UInt> faceIndices, faceNodes;
    
-   // iterate over all elements
-   for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
+    // iterate over all elements
+    for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
 
-     // remember current element
-     Elem & actElem = *orderedElems_[iElem];
+      // remember current element
+      Elem & actElem = *orderedElems_[iElem];
 
-     // if element is of wrong dimension (surface element )
-     // ->leave
-     //if ( actElem.ptElem->GetDim() < dim_ ) { continue; }
+      // if element is of wrong dimension (surface element )
+      // ->leave
+      //if ( actElem.ptElem->GetDim() < dim_ ) { continue; }
 
-     // get number of element faces
-     UInt numFaces = actElem.ptElem->GetNumFaces();
+      // get number of element faces
+      UInt numFaces = actElem.ptElem->GetNumFaces();
 
-     // adapt size of faces and orientation array of element
-     actElem.faces.Resize( numFaces );
-     actElem.faceFlags.Resize( numFaces );
+      // adapt size of faces and orientation array of element
+      actElem.faces.Resize( numFaces );
+      actElem.faceFlags.Resize( numFaces );
 
-     // offset for face index
-     UInt offset=0;
+      // offset for face index
+      UInt offset=0;
 
-     // iterate over all faces of this element
-     for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
+      // iterate over all faces of this element
+      for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
        
-       // get local nodal indices of current face
-       actElem.ptElem->GetFaceIndices( faceIndices, iFace );
+        // get local nodal indices of current face
+        actElem.ptElem->GetFaceIndices( faceIndices, iFace );
 
-       // create new Face object
-       Face actFace;
-       actFace.nodes.Resize( faceIndices.GetSize() );
+        // create new Face object
+        Face actFace;
+        actFace.nodes.Resize( faceIndices.GetSize() );
 
-       // insert node numbers into current face definition
-       for( UInt iNode = 0; iNode < faceIndices.GetSize(); iNode++ ) {
-         actFace.nodes[iNode] = actElem.connect[faceIndices[iNode]-1];
-       }
+        // insert node numbers into current face definition
+        for( UInt iNode = 0; iNode < faceIndices.GetSize(); iNode++ ) {
+          actFace.nodes[iNode] = actElem.connect[faceIndices[iNode]-1];
+        }
        
-       LOG_DBG3(gridcfs) << "Cecking face with nodes : " 
-                         << actFace.nodes.Serialize();
+        LOG_DBG3(gridcfs) << "Cecking face with nodes : " 
+                          << actFace.nodes.Serialize();
        
-       // Re-orientate face to match global orientation and
-       // obtain the orientation flags
-       std::bitset<3> orientation;
-       actFace.Normalize( orientation );
+        // Re-orientate face to match global orientation and
+        // obtain the orientation flags
+        std::bitset<3> orientation;
+        actFace.Normalize( orientation );
        
-       LOG_DBG3(gridcfs) << "Normalized : " 
-                         << actFace.nodes.Serialize();
-       LOG_DBG3(gridcfs) << "Orientation: " << orientation;
+        LOG_DBG3(gridcfs) << "Normalized : " 
+                          << actFace.nodes.Serialize();
+        LOG_DBG3(gridcfs) << "Orientation: " << orientation;
        
 
-       // check if face was already numbered
-       if( faceNums_.find( actFace ) == faceNums_.end() ) {
-         LOG_DBG2(gridcfs) << "Adding face number " 
-                           << actFaceNum << std::endl;
-         faceNums_[actFace] = actFaceNum;
-         faces_.Push_back( actFace );
-         actElem.faces[iFace] = actFaceNum;
-         actFaceNum++;
-       } else {
-         actElem.faces[iFace] = faceNums_[actFace];
-         LOG_DBG2(gridcfs) << "--> already defined\n";
-       }
+        // check if face was already numbered
+        if( faceNums_.find( actFace ) == faceNums_.end() ) {
+          LOG_DBG2(gridcfs) << "Adding face number " 
+                            << actFaceNum << std::endl;
+          faceNums_[actFace] = actFaceNum;
+          faces_.Push_back( actFace );
+          actElem.faces[iFace] = actFaceNum;
+          actFaceNum++;
+        } else {
+          actElem.faces[iFace] = faceNums_[actFace];
+          LOG_DBG2(gridcfs) << "--> already defined\n";
+        }
 
-       // Set also orientation flags for face
-       actElem.faceFlags[iFace] = orientation;
-     } // loop over faces
+        // Set also orientation flags for face
+        actElem.faceFlags[iFace] = orientation;
+      } // loop over faces
      
-     // Print information about connectivity and faces
-     LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
-     LOG_DBG2(gridcfs) << "===================";
-     LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-     LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
+      // Print information about connectivity and faces
+      LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
+      LOG_DBG2(gridcfs) << "===================";
+      LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
+      LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
 
-     LOG_TRACE(gridcfs) << "Finished to map faces\n";
+      LOG_TRACE(gridcfs) << "Finished to map faces\n";
 
-   } // loop over elements
+    } // loop over elements
 
-   // Set flag for mapping of sub-entities
-   numFaces_ = actFaceNum-1;
-   LOG_DBG2(gridcfs) << "Total number of faces: " << numFaces_;
+    // Set flag for mapping of sub-entities
+    numFaces_ = actFaceNum-1;
+    LOG_DBG2(gridcfs) << "Total number of faces: " << numFaces_;
 
-   // Set flag
-   facesMapped_ = true;
+    // Set flag
+    facesMapped_ = true;
 
-   LOG_TRACE(gridcfs) << "Finished mapping faces\n";
+    LOG_TRACE(gridcfs) << "Finished mapping faces\n";
 
- }
+  }
   
 
 
   void GridCFS::MapEdges() {
-   ENTER_FCN( "GridCFS::MapEdges" );
+    ENTER_FCN( "GridCFS::MapEdges" );
 
-   LOG_TRACE(gridcfs) << "Starting to map edges";
+    LOG_TRACE(gridcfs) << "Starting to map edges";
 
-   // assert that any mesh was already read in
-   assert( isInitialized_ == true );
+    // assert that any mesh was already read in
+    assert( isInitialized_ == true );
 
-   // If edges/surfaces were already mapped ->leave
-   if( edgesMapped_ == true ) {
-     return;
-   }
+    // If edges/surfaces were already mapped ->leave
+    if( edgesMapped_ == true ) {
+      return;
+    }
 
-   // create counter for number of edges
-   UInt actEdgeNum = 1;
-   StdVector<UInt> locEdge(2), globEdge(2);
+    // create counter for number of edges
+    UInt actEdgeNum = 1;
+    StdVector<UInt> locEdge(2), globEdge(2);
 
-   // iterate over all elements
-   for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
+    // iterate over all elements
+    for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
 
-     // remember current element
-     Elem & actElem = *orderedElems_[iElem];
+      // remember current element
+      Elem & actElem = *orderedElems_[iElem];
 
-     // get number of edges
-     UInt numEdges= actElem.ptElem->GetNumEdges();
+      // get number of edges
+      UInt numEdges= actElem.ptElem->GetNumEdges();
 
-     // adapt size of edge number array of element
-     actElem.edges.Resize( numEdges );
+      // adapt size of edge number array of element
+      actElem.edges.Resize( numEdges );
 
-     // iterate over all edges of this element
-     for( UInt iEdge = 0; iEdge < numEdges; iEdge++ ) {
+      // iterate over all edges of this element
+      for( UInt iEdge = 0; iEdge < numEdges; iEdge++ ) {
        
-       // get local edge indices 
-       actElem.ptElem->GetEdgeIndices( locEdge, iEdge );
+        // get local edge indices 
+        actElem.ptElem->GetEdgeIndices( locEdge, iEdge );
 
-       //std::cerr << "EdgeIndices = \n" << locEdge << std::endl;
-       // create new edge
-       Edge actEdge;
-       actEdge.nodes[0] = actElem.connect[locEdge[0]-1];
-       actEdge.nodes[1] = actElem.connect[locEdge[1]-1];
+        //std::cerr << "EdgeIndices = \n" << locEdge << std::endl;
+        // create new edge
+        Edge actEdge;
+        actEdge.nodes[0] = actElem.connect[locEdge[0]-1];
+        actEdge.nodes[1] = actElem.connect[locEdge[1]-1];
 
-       // check if ordering is correct
-       Integer orientation = 1;
+        // check if ordering is correct
+        Integer orientation = 1;
        
-       if( actEdge.nodes[1] < actEdge.nodes[0] ) {
-         UInt secNode = actEdge.nodes[1];
-         actEdge.nodes[1] = actEdge.nodes[0];
-         actEdge.nodes[0] = secNode;
+        if( actEdge.nodes[1] < actEdge.nodes[0] ) {
+          UInt secNode = actEdge.nodes[1];
+          actEdge.nodes[1] = actEdge.nodes[0];
+          actEdge.nodes[0] = secNode;
 
-         // swap factor for orientation
-         orientation = -1;
-       }
+          // swap factor for orientation
+          orientation = -1;
+        }
 
-       // check if edge was already numbered
-       if( edgeNums_.find( actEdge ) == edgeNums_.end() ) {
-         LOG_DBG2(gridcfs) << "Adding edge number " << actEdgeNum;
-         LOG_DBG3(gridcfs) << "with nodes: " << actEdge.nodes[0] << ","
-                           << actEdge.nodes[1] << std::endl;
-         edgeNums_[actEdge] = actEdgeNum;
-         edges_.Push_back( actEdge );
-         actElem.edges[iEdge] = actEdgeNum*orientation;
-         actEdgeNum++;
-       } else {
-         actElem.edges[iEdge] = edgeNums_[actEdge]*orientation;       
-       }
+        // check if edge was already numbered
+        if( edgeNums_.find( actEdge ) == edgeNums_.end() ) {
+          LOG_DBG2(gridcfs) << "Adding edge number " << actEdgeNum;
+          LOG_DBG3(gridcfs) << "with nodes: " << actEdge.nodes[0] << ","
+                            << actEdge.nodes[1] << std::endl;
+          edgeNums_[actEdge] = actEdgeNum;
+          edges_.Push_back( actEdge );
+          actElem.edges[iEdge] = actEdgeNum*orientation;
+          actEdgeNum++;
+        } else {
+          actElem.edges[iEdge] = edgeNums_[actEdge]*orientation;       
+        }
 
-     }
+      }
      
-     // Print information about connectivity and edges
-     LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
-     LOG_DBG2(gridcfs) << "===================";
-     LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-     LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
+      // Print information about connectivity and edges
+      LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
+      LOG_DBG2(gridcfs) << "===================";
+      LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
+      LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
 
-     LOG_TRACE(gridcfs) << "Finished to map edges\n";
-   }
+      LOG_TRACE(gridcfs) << "Finished to map edges\n";
+    }
 
-   // Set flag for mapping of sub-entities
-   numEdges_ = actEdgeNum-1;
-   LOG_DBG2(gridcfs) << "Total number of edges: " << numEdges_ << std::endl;
+    // Set flag for mapping of sub-entities
+    numEdges_ = actEdgeNum-1;
+    LOG_DBG2(gridcfs) << "Total number of edges: " << numEdges_ << std::endl;
 
-   // Set flag
-   edgesMapped_ = true;
- }
+    // Set flag
+    edgesMapped_ = true;
+  }
 
   UInt GridCFS::GetNumEdges() {
     return numEdges_;
@@ -639,156 +643,148 @@ namespace CoupledField {
     return ret;
   }
 
-    void GridCFS::FinishInit()
+  void GridCFS::FinishInit()
+  {
+
+    volElemNodes_.Resize(0);
+    volRegionIds_.Resize(0);
+    surfElemNodes_.Resize(0);
+    surfRegionIds_.Resize(0);
+    volElems_.Resize(0);
+    surfElems_.Resize(0);
+    maxNumElemNodes_ = 0;
+        
+        
+    UInt e;
+    UInt numElems = orderedElems_.GetSize();
+    UInt numNodes;
+    UInt numVolRegions, numSurfRegions;
+
+    std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
+    std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
+
+    for(e=0; e<numElems; e++)
     {
+      Elem* el = orderedElems_[e];
+      FEType type = el->ptElem->feType();
+      numNodes = NUM_ELEM_NODES[type];
 
-        volElemNodes_.Resize(0);
-        volRegionIds_.Resize(0);
-        surfElemNodes_.Resize(0);
-        surfRegionIds_.Resize(0);
-        volElems_.Resize(0);
-        surfElems_.Resize(0);
-        maxNumElemNodes_ = 0;
-        
-        
-        UInt e;
-        UInt numElems = orderedElems_.GetSize();
-        UInt numNodes;
-        UInt numVolRegions, numSurfRegions;
-
-        std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
-        std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
-
-        for(e=0; e<numElems; e++)
+      maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
+                         numNodes : maxNumElemNodes_;
+            
+      switch(type)
+      {
+      case ET_LINE2:
+      case ET_LINE3:
+        if(dim_ == 2)
         {
-            Elem* el = orderedElems_[e];
-            FEType type = el->ptElem->feType();
-            numNodes = NUM_ELEM_NODES[type];
+          surfRegionElems[el->regionId].Push_back(el);
 
-            maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
-                               numNodes : maxNumElemNodes_;
-            
-            switch(type)
-            {
-            case ET_LINE2:
-            case ET_LINE3:
-                if(dim_ == 2)
-                {
-                    surfRegionElems[el->regionId].Push_back(el);
-
-                    for(UInt n=0; n<numNodes; n++)
-                    {
-                        surfRegionNodes[el->regionId].insert(el->connect[n]);
-                    }
-                }
-                break;
-            case ET_TRIA3:
-            case ET_TRIA6:
-            case ET_QUAD4:
-            case ET_QUAD8:
-            case ET_QUAD9:
-                if(dim_ == 2)
-                {
-                    volRegionElems[el->regionId].Push_back(el);
-
-                    for(UInt n=0; n<numNodes; n++)
-                    {
-                        volRegionNodes[el->regionId].insert(el->connect[n]);
-                    }
-                }
-                else
-                {
-                    surfRegionElems[el->regionId].Push_back(el);
-
-                    for(UInt n=0; n<numNodes; n++)
-                    {
-                        surfRegionNodes[el->regionId].insert(el->connect[n]);
-                    }
-                }
-                break;
-            case ET_TET4:
-            case ET_TET10:
-            case ET_HEXA8:
-            case ET_HEXA20:
-            case ET_HEXA27:
-            case ET_PYRA5:
-            case ET_PYRA13:
-            case ET_WEDGE6:
-            case ET_WEDGE15:
-                {
-                    volRegionElems[el->regionId].Push_back(el);
-
-                    for(UInt n=0; n<numNodes; n++)
-                    {
-                        volRegionNodes[el->regionId].insert(el->connect[n]);
-                    }
-                }
-            default:
-                break;
-            }
+          surfRegionNodes[el->regionId].insert(&el->connect[0],
+                                               (&el->connect[0])+numNodes);
         }
-
-
-        std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
-        std::map<RegionIdType, std::set<UInt> >::iterator regionNodeIt;
-        std::set<UInt>::iterator setIt, setEnd;
-        UInt region = 0;
-        UInt regionId;
-
-        numVolRegions = volRegionElems.size();
-        numSurfRegions = surfRegionElems.size();
-        volElemNodes_.Resize(numVolRegions);
-        surfElemNodes_.Resize(numSurfRegions);
-        
-        regionElemIt = volRegionElems.begin();
-        regionElemEnd = volRegionElems.end();
-        regionNodeIt = volRegionNodes.begin();
-
-        for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
+        break;
+      case ET_TRIA3:
+      case ET_TRIA6:
+      case ET_QUAD4:
+      case ET_QUAD8:
+      case ET_QUAD9:
+        if(dim_ == 2)
         {
-            volElems_.Push_back(regionElemIt->second);
-            volRegionIds_.Push_back(regionElemIt->first);
-            
-            setIt = regionNodeIt->second.begin();
-            setEnd = regionNodeIt->second.end();
-            
-            for( ; setIt != setEnd; setIt++)
-            {
-                volElemNodes_[region].Push_back(*setIt);
-            }
-            
+          volRegionElems[el->regionId].Push_back(el);
+
+          volRegionNodes[el->regionId].insert(&el->connect[0],
+                                              (&el->connect[0])+numNodes);
         }
-
-        regionElemIt = surfRegionElems.begin();
-        regionElemEnd = surfRegionElems.end();
-        regionNodeIt = surfRegionNodes.begin();
-        region = 0;
-
-        for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
+        else
         {
-            surfElems_.Push_back(regionElemIt->second);
-            surfRegionIds_.Push_back(regionElemIt->first);
-            
-            setIt = regionNodeIt->second.begin();
-            setEnd = regionNodeIt->second.end();
-            
-            for( ; setIt != setEnd; setIt++)
-            {
-                surfElemNodes_[region].Push_back(*setIt);
-            }
-            
+          surfRegionElems[el->regionId].Push_back(el);
+
+          surfRegionNodes[el->regionId].insert(&el->connect[0],
+                                               (&el->connect[0])+numNodes);
         }
-        
-        CreateSurfaceElements(surfElems_);
+        break;
+      case ET_TET4:
+      case ET_TET10:
+      case ET_HEXA8:
+      case ET_HEXA20:
+      case ET_HEXA27:
+      case ET_PYRA5:
+      case ET_PYRA13:
+      case ET_WEDGE6:
+      case ET_WEDGE15:
+        {
+          volRegionElems[el->regionId].Push_back(el);
 
-        isInitialized_ = true;
-
-        // Read in directivity node from parameter file
-        GetNodesForDirectivity();
-
-        // print information to file
-        PrintGridInfo();
+          volRegionNodes[el->regionId].insert(&el->connect[0],
+                                              (&el->connect[0])+numNodes);
+        }
+      default:
+        break;
+      }
     }
+
+
+    std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
+    std::map<RegionIdType, std::set<UInt> >::iterator regionNodeIt;
+    std::set<UInt>::iterator setIt, setEnd;
+    UInt region = 0;
+    UInt regionId;
+
+    numVolRegions = volRegionElems.size();
+    numSurfRegions = surfRegionElems.size();
+    volElemNodes_.Resize(numVolRegions);
+    surfElemNodes_.Resize(numSurfRegions);
+        
+    regionElemIt = volRegionElems.begin();
+    regionElemEnd = volRegionElems.end();
+    regionNodeIt = volRegionNodes.begin();
+
+    for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
+    {
+      volElems_.Push_back(regionElemIt->second);
+      volRegionIds_.Push_back(regionElemIt->first);
+            
+      setIt = regionNodeIt->second.begin();
+      setEnd = regionNodeIt->second.end();
+            
+      for( ; setIt != setEnd; setIt++)
+      {
+        volElemNodes_[region].insert(*setIt);
+      }
+            
+    }
+
+    regionElemIt = surfRegionElems.begin();
+    regionElemEnd = surfRegionElems.end();
+    regionNodeIt = surfRegionNodes.begin();
+    region = 0;
+
+    for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
+    {
+      surfElems_.Push_back(regionElemIt->second);
+      surfRegionIds_.Push_back(regionElemIt->first);
+            
+      setIt = regionNodeIt->second.begin();
+      setEnd = regionNodeIt->second.end();
+            
+      for( ; setIt != setEnd; setIt++)
+      {
+        surfElemNodes_[region].insert(*setIt);
+      }
+            
+    }
+        
+    CreateSurfaceElements(surfElems_);
+
+    isInitialized_ = true;
+
+    // Read in directivity node from parameter file
+    GetNodesForDirectivity();
+
+    // print information to file
+    PrintGridInfo();
+  }
     
 
   // ======================================================
@@ -801,49 +797,49 @@ namespace CoupledField {
     return numElemTypes_[type];
   }
 
-    void GridCFS::AddNodes(const UInt numNodes)
-    { 
-        coords_.Resize(this->numNodes_ + numNodes);
-        numNodes_ += numNodes;
-    }
+  void GridCFS::AddNodes(const UInt numNodes)
+  { 
+    coords_.Resize(this->numNodes_ + numNodes);
+    numNodes_ += numNodes;
+  }
     
 
-    void GridCFS::SetNodeCoordinate(const UInt inode, const Point & rfPoint)
-    {
-        if ( inode > numNodes_ || inode < 0 ) {
-          EXCEPTION( "GridCFS: There are only " << numNodes_
-                     << " nodes in the grid. You wanted to set coordinates for "
-                     << "node number " << inode );
-        }
+  void GridCFS::SetNodeCoordinate(const UInt inode, const Point & rfPoint)
+  {
+    if ( inode > numNodes_ || inode < 0 ) {
+      EXCEPTION( "GridCFS: There are only " << numNodes_
+                 << " nodes in the grid. You wanted to set coordinates for "
+                 << "node number " << inode );
+    }
         
-        if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
-          EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
-                      << "But you wanted to set a 3D coordinate for"
-                      << "node number " << inode );
-        }
+    if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
+      EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
+                  << "But you wanted to set a 3D coordinate for"
+                  << "node number " << inode );
+    }
 
-        coords_[inode-1] = rfPoint;
-    }  
+    coords_[inode-1] = rfPoint;
+  }  
 
-    void GridCFS::SetNodeCoordinate(const UInt inode, const Vector<Double> & rfPoint)
-    {
-        if ( inode > numNodes_ || inode < 0 ) {
-          EXCEPTION( "GridCFS: There are only " << numNodes_
-                     << " nodes in the grid. You wanted to set coordinates for "
-                     << "node number " << inode );
-        }
+  void GridCFS::SetNodeCoordinate(const UInt inode, const Vector<Double> & rfPoint)
+  {
+    if ( inode > numNodes_ || inode < 0 ) {
+      EXCEPTION( "GridCFS: There are only " << numNodes_
+                 << " nodes in the grid. You wanted to set coordinates for "
+                 << "node number " << inode );
+    }
         
-        if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
-          EXCEPTION( "GridCFS: Dimension of grid is 2D. "
-                     << "But you wanted to set a 3D coordinate for"
-                     << "node number " << inode );
-        }
+    if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
+      EXCEPTION( "GridCFS: Dimension of grid is 2D. "
+                 << "But you wanted to set a 3D coordinate for"
+                 << "node number " << inode );
+    }
         
-        UInt idx = inode-1;
-        coords_[idx][0] = rfPoint[0];
-        coords_[idx][1] = rfPoint[1];
-        coords_[idx][2] = rfPoint[2];
-    }  
+    UInt idx = inode-1;
+    coords_[idx][0] = rfPoint[0];
+    coords_[idx][1] = rfPoint[1];
+    coords_[idx][2] = rfPoint[2];
+  }  
 
   
   UInt GridCFS::GetDim() {
@@ -869,13 +865,13 @@ namespace CoupledField {
       // look in volume regions
       index = volRegionIds_.Find(regions[i]);
       if ( index != -1 ) {
-        numNodes += volElemNodes_[index].GetSize();
+        numNodes += volElemNodes_[index].size();
       } else {
         
         // look in surface regions
         index = surfRegionIds_.Find(regions[i]);
         if ( index != -1 ) {
-          numNodes += surfElemNodes_[index].GetSize();
+          numNodes += surfElemNodes_[index].size();
         } else {
           EXCEPTION("GridCFS: The region with id '" << regions[i]
                     << "' was not found in the grid!" );
@@ -972,7 +968,7 @@ namespace CoupledField {
           // look in surface regions
           index = surfRegionIds_.Find(regions[i]);
           if ( index != -1 ) {
-          numElems += surfElems_[index].GetSize();
+            numElems += surfElems_[index].GetSize();
           } else {
             EXCEPTION( "GridCFS: The region with id '" << regions[i]
                        << "' was not found in the grid!" );
@@ -985,48 +981,48 @@ namespace CoupledField {
   }
   
   
-    void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
+  void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
+  {
+    namedNodeNames_.Push_back(name);
+    namedNodes_.Push_back(nodeNums);
+  }
+
+  void GridCFS::AddNamedNodes( std::string name, std::vector<UInt> & nodeNums)
+  {
+    UInt numNodes = nodeNums.size();
+    StdVector<UInt> nn;
+
+    namedNodeNames_.Push_back(name);
+    nn.Resize(numNodes);
+    for(UInt i=0; i<numNodes; i++)
     {
-        namedNodeNames_.Push_back(name);
-        namedNodes_.Push_back(nodeNums);
+      nn[i] = nodeNums[i];
     }
-
-    void GridCFS::AddNamedNodes( std::string name, std::vector<UInt> & nodeNums)
-    {
-        UInt numNodes = nodeNums.size();
-        StdVector<UInt> nn;
-
-        namedNodeNames_.Push_back(name);
-        nn.Resize(numNodes);
-        for(UInt i=0; i<numNodes; i++)
-        {
-            nn[i] = nodeNums[i];
-        }
         
-        namedNodes_.Push_back(nn);
-    }
+    namedNodes_.Push_back(nn);
+  }
     
 
-    void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
+  void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
+  {
+    namedElemNames_.Push_back(name);
+    namedElems_.Push_back(elemNums);
+  }
+
+  void GridCFS::AddNamedElems( std::string name, std::vector<UInt> & elemNums)
+  {
+    UInt numElems = elemNums.size();
+    StdVector<UInt> en;
+
+    namedElemNames_.Push_back(name);
+    en.Resize(numElems);
+    for(UInt i=0; i<numElems; i++)
     {
-        namedElemNames_.Push_back(name);
-        namedElems_.Push_back(elemNums);
+      en[i] = elemNums[i];
     }
-
-    void GridCFS::AddNamedElems( std::string name, std::vector<UInt> & elemNums)
-    {
-        UInt numElems = elemNums.size();
-        StdVector<UInt> en;
-
-        namedElemNames_.Push_back(name);
-        en.Resize(numElems);
-        for(UInt i=0; i<numElems; i++)
-        {
-            en[i] = elemNums[i];
-        }
         
-        namedElems_.Push_back(en);
-    }
+    namedElems_.Push_back(en);
+  }
     
   
   void GridCFS::GetListNodeNames( StdVector<std::string> & nodeNames) {
@@ -1040,27 +1036,27 @@ namespace CoupledField {
     elemNames = namedElemNames_;
   }
   
-    void GridCFS::GetListNodeNames( std::vector<std::string> & nodeNames)
-    {
-        UInt numNamedNodes = namedNodeNames_.GetSize();
-        nodeNames.resize(numNamedNodes);
+  void GridCFS::GetListNodeNames( std::vector<std::string> & nodeNames)
+  {
+    UInt numNamedNodes = namedNodeNames_.GetSize();
+    nodeNames.resize(numNamedNodes);
         
-        for(UInt i=0; i<numNamedNodes; i++)
-        {
-            nodeNames[i] = namedNodeNames_[i];
-        }
+    for(UInt i=0; i<numNamedNodes; i++)
+    {
+      nodeNames[i] = namedNodeNames_[i];
     }
+  }
     
-    void GridCFS::GetListElemNames( std::vector<std::string> & elemNames)
-    {
-        UInt numNamedElems = namedElemNames_.GetSize();
-        elemNames.resize(numNamedElems);
+  void GridCFS::GetListElemNames( std::vector<std::string> & elemNames)
+  {
+    UInt numNamedElems = namedElemNames_.GetSize();
+    elemNames.resize(numNamedElems);
         
-        for(UInt i=0; i<numNamedElems; i++)
-        {
-            elemNames[i] = namedElemNames_[i];
-        }
+    for(UInt i=0; i<numNamedElems; i++)
+    {
+      elemNames[i] = namedElemNames_[i];
     }
+  }
 
   
   // ======================================================
@@ -1068,7 +1064,7 @@ namespace CoupledField {
   // ======================================================
   
   void GridCFS::GetNodesByName( StdVector<UInt> & nodeList,
-                                     const std::string & name ) {
+                                const std::string & name ) {
     ENTER_FCN( "GridCFS::GetNodesByName" );
 
     Integer index = namedNodeNames_.Find(name);
@@ -1081,17 +1077,17 @@ namespace CoupledField {
     
   }
 
-    void GridCFS::GetNodesByName( std::vector<UInt> & nodeList,
-                                  const std::string & name ) {
+  void GridCFS::GetNodesByName( std::vector<UInt> & nodeList,
+                                const std::string & name ) {
     ENTER_FCN( "GridCFS::GetNodesByName" );
 
     Integer index = namedNodeNames_.Find(name);
     if ( index != -1 ) {
-        UInt numNodes = namedNodes_[index].GetSize();
-        nodeList.resize(numNodes);
+      UInt numNodes = namedNodes_[index].GetSize();
+      nodeList.resize(numNodes);
         
-        for(UInt i=0; i<numNodes; i++)
-            nodeList[i] = namedNodes_[index][i];
+      for(UInt i=0; i<numNodes; i++)
+        nodeList[i] = namedNodes_[index][i];
     } else {
       EXCEPTION( "GridCFS: There are no nodes with name '" << name
                  << "' in the grid!" );
@@ -1101,7 +1097,7 @@ namespace CoupledField {
   
   
   void GridCFS::GetNodesByRegion( StdVector<UInt> & nodeList,
-                                       const RegionIdType regionId ) {
+                                  const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetNodesByRegion" );
 
     Integer index = 0;
@@ -1109,13 +1105,19 @@ namespace CoupledField {
     // look in volume regions
     index = volRegionIds_.Find(regionId);
     if ( index != -1 ) {
-      nodeList = volElemNodes_[index];
+      nodeList.Resize(volElemNodes_[index].size());
+      std::copy(volElemNodes_[index].begin(),
+                volElemNodes_[index].end(),
+                &nodeList[0]);
     } else {
       
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
       if ( index != -1 ) {
-        nodeList  = surfElemNodes_[index];
+        nodeList.Resize(surfElemNodes_[index].size());
+        std::copy(surfElemNodes_[index].begin(),
+                  surfElemNodes_[index].end(),
+                  &nodeList[0]);
       } else {
         EXCEPTION( "GridCFS: The region with id '" << regionId
                    << "' was not found in the grid!" );
@@ -1126,8 +1128,8 @@ namespace CoupledField {
   
   
   void GridCFS::GetNodeCoordinate( Point & rfPoint,
-                                        const UInt inode, 
-                                        bool updated ) {
+                                   const UInt inode, 
+                                   bool updated ) {
     ENTER_FCN( "GridCFS::GetNodeCoordinate" );
     
     if ( inode > numNodes_ || inode < 0 ) {
@@ -1147,8 +1149,8 @@ namespace CoupledField {
   
   
   void GridCFS::GetNodeCoordinate( Vector<Double> & rfPoint,
-                                        const UInt inode, 
-                                        bool updated ) {
+                                   const UInt inode, 
+                                   bool updated ) {
     ENTER_FCN( "GridCFS::GetNodeCoordinate" );
 
     if ( inode > numNodes_ || inode < 0 ) {
@@ -1171,123 +1173,123 @@ namespace CoupledField {
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
   
-    void GridCFS::AddElems(UInt nElems)
+  void GridCFS::AddElems(UInt nElems)
+  {
+    orderedElems_.Resize(numElems_ + nElems);
+
+    UInt i=0;
+    UInt idx=numElems_;
+
+    for(; i<nElems; i++, idx++)
     {
-        orderedElems_.Resize(numElems_ + nElems);
-
-        UInt i=0;
-        UInt idx=numElems_;
-
-        for(; i<nElems; i++, idx++)
-        {
-            orderedElems_[idx] = new Elem();
-            orderedElems_[idx]->elemNum = idx+1;
-        }
-
-        numElems_ = idx;
+      orderedElems_[idx] = new Elem();
+      orderedElems_[idx]->elemNum = idx+1;
     }
+
+    numElems_ = idx;
+  }
     
       
-    void GridCFS::SetElemData(UInt ielem,
-                              FEType type,
-                              RegionIdType region,
-                              const UInt* connect)
-    {
-        UInt idx=ielem-1;
-        Elem* el = orderedElems_[idx];
-        UInt d = 2;
-        UInt numNodes = NUM_ELEM_NODES[type];
+  void GridCFS::SetElemData(UInt ielem,
+                            FEType type,
+                            RegionIdType region,
+                            const UInt* connect)
+  {
+    UInt idx=ielem-1;
+    Elem* el = orderedElems_[idx];
+    UInt d = 2;
+    UInt numNodes = NUM_ELEM_NODES[type];
 
-        numElemTypes_[type]++;
+    numElemTypes_[type]++;
         
-        switch(type)
-        {
-        case ET_LINE2:
-            el->ptElem = ptL1;
-            break;
-        case ET_LINE3:
-            el->ptElem = ptL2;
-            isQuadratic_ = true;
-            break;
-        case ET_TRIA3:
-            el->ptElem = ptTr1;
-            break;
-        case ET_TRIA6:
-            el->ptElem = ptTr2;
-            isQuadratic_ = true;
-            break;
-        case ET_QUAD4:
-            el->ptElem = ptQ1;
-            break;            
-        case ET_QUAD8:
-            el->ptElem = ptQ2;
-            isQuadratic_ = true;
-            break;
-        case ET_QUAD9:
-            el->ptElem = NULL;
-            break;
-        case ET_TET4:
-            d=3;
-            el->ptElem = ptTet1;
-            break;
-        case ET_TET10:
-            d=3;
-            el->ptElem = ptTet2;
-            isQuadratic_ = true;
-            break;
-        case ET_HEXA8:
-            d=3;
-            el->ptElem = ptHexa1;
-            break;
-        case ET_HEXA20:
-            d=3;
-            el->ptElem = ptHexa2;
-            isQuadratic_ = true;
-            break;
-        case ET_HEXA27:
-            d=3;
-            el->ptElem = NULL;
-            break;
-        case ET_PYRA5:
-            d=3;
-            el->ptElem = ptPyra1;
-            break;
-        case ET_PYRA13:
-            d=3;
-            el->ptElem = ptPyra2;
-            isQuadratic_ = true;
-            break;
-        case ET_WEDGE6:
-            d=3;
-            el->ptElem = ptWedge1;
-            break;
-        case ET_WEDGE15:
-            d=3;
-            el->ptElem = ptWedge2;
-            isQuadratic_ = true;
-            break;
-        default:
-            break;
-        }
-
-        if((dim_ == 2) && (d == 3))
-        {
-          EXCEPTION( "GridCFS: Cannot add 3D element type "
-                     << ELEM_TYPE_NAMES[type]
-                     << " to 2D grid." );
-        }
-
-        el->regionId = region;
-        el->connect.Resize(numNodes);
-        memcpy(&el->connect[0], connect, numNodes*sizeof(UInt));
-    }
-    
-    void GridCFS::GetElemData(const UInt ielem,
-                              FEType & type,
-                              RegionIdType & region,
-                              UInt* connect) const
+    switch(type)
     {
-#ifdef DEBUG
+    case ET_LINE2:
+      el->ptElem = ptL1;
+      break;
+    case ET_LINE3:
+      el->ptElem = ptL2;
+      isQuadratic_ = true;
+      break;
+    case ET_TRIA3:
+      el->ptElem = ptTr1;
+      break;
+    case ET_TRIA6:
+      el->ptElem = ptTr2;
+      isQuadratic_ = true;
+      break;
+    case ET_QUAD4:
+      el->ptElem = ptQ1;
+      break;            
+    case ET_QUAD8:
+      el->ptElem = ptQ2;
+      isQuadratic_ = true;
+      break;
+    case ET_QUAD9:
+      el->ptElem = NULL;
+      break;
+    case ET_TET4:
+      d=3;
+      el->ptElem = ptTet1;
+      break;
+    case ET_TET10:
+      d=3;
+      el->ptElem = ptTet2;
+      isQuadratic_ = true;
+      break;
+    case ET_HEXA8:
+      d=3;
+      el->ptElem = ptHexa1;
+      break;
+    case ET_HEXA20:
+      d=3;
+      el->ptElem = ptHexa2;
+      isQuadratic_ = true;
+      break;
+    case ET_HEXA27:
+      d=3;
+      el->ptElem = NULL;
+      break;
+    case ET_PYRA5:
+      d=3;
+      el->ptElem = ptPyra1;
+      break;
+    case ET_PYRA13:
+      d=3;
+      el->ptElem = ptPyra2;
+      isQuadratic_ = true;
+      break;
+    case ET_WEDGE6:
+      d=3;
+      el->ptElem = ptWedge1;
+      break;
+    case ET_WEDGE15:
+      d=3;
+      el->ptElem = ptWedge2;
+      isQuadratic_ = true;
+      break;
+    default:
+      break;
+    }
+
+    if((dim_ == 2) && (d == 3))
+    {
+      EXCEPTION( "GridCFS: Cannot add 3D element type "
+                 << ELEM_TYPE_NAMES[type]
+                 << " to 2D grid." );
+    }
+
+    el->regionId = region;
+    el->connect.Resize(numNodes);
+    memcpy(&el->connect[0], connect, numNodes*sizeof(UInt));
+  }
+    
+  void GridCFS::GetElemData(const UInt ielem,
+                            FEType & type,
+                            RegionIdType & region,
+                            UInt* connect) const
+  {
+ #ifdef DEBUG
     if ( ielem > numElems_ || ielem < 0) {  
       EXCEPTION( "GridCFS: There are only " << numElems_ 
                  << " elements in the grid! You requested element number " 
@@ -1296,7 +1298,7 @@ namespace CoupledField {
     if ( orderedElems_[ielem-1] == NULL ) {
       EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
     }
-#endif
+ #endif
 
     UInt numNodes;
 
@@ -1305,31 +1307,31 @@ namespace CoupledField {
     numNodes = NUM_ELEM_NODES[type];
     memcpy(connect, &orderedElems_[ielem-1]->connect[0], numNodes*sizeof(UInt));
     
-    }
+  }
     
-    void GridCFS::SetElemRegion(UInt ielem, RegionIdType region)
-    {
-#ifdef DEBUG
-        if ( ielem > numElems_ || ielem < 0) {  
-          EXCEPTION( "GridCFS: There are only " << numElems_ 
-                     << " elements in the grid! You requested element number " 
-                     << ielem << ". Go check your mesh file!" );
-        }
-        if ( orderedElems_[ielem-1] == NULL ) {
-          EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
-          
-        }
-#endif
-
-        orderedElems_[ielem-1]->regionId = region;
+  void GridCFS::SetElemRegion(UInt ielem, RegionIdType region)
+  {
+ #ifdef DEBUG
+    if ( ielem > numElems_ || ielem < 0) {  
+      EXCEPTION( "GridCFS: There are only " << numElems_ 
+                 << " elements in the grid! You requested element number " 
+                 << ielem << ". Go check your mesh file!" );
     }
+    if ( orderedElems_[ielem-1] == NULL ) {
+      EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
+          
+    }
+ #endif
+
+    orderedElems_[ielem-1]->regionId = region;
+  }
     
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
     ENTER_FCN( "GridCFS::GetElem" );
     
-#ifdef DEBUG
+ #ifdef DEBUG
     if ( elemNr > numElems_ || elemNr < 0) {  
       EXCEPTION( "GridCFS: There are only " << numElems_ 
                  << " elements in the grid! You requested element number " 
@@ -1338,7 +1340,7 @@ namespace CoupledField {
     if ( orderedElems_[elemNr-1] == NULL ) {
       EXCEPTION( "Element with Nr. " << elemNr << " is not contained in mesh!" );
     }
-#endif
+ #endif
    
     return orderedElems_[elemNr-1];
 
@@ -1357,7 +1359,7 @@ namespace CoupledField {
 
       // iterate over all elements
       for ( UInt i = 0; i < numElems_; i++) {
-          elems.Push_back(orderedElems_[i]);
+        elems.Push_back(orderedElems_[i]);
       }
     } else {
       // look in volume regions
@@ -1415,9 +1417,9 @@ namespace CoupledField {
       UInt numElems = surfElems_[index].GetSize();
       
       for(UInt i=0; i<numElems; i++) 
-        {    
-          elems.Push_back(dynamic_cast<SurfElem*>(surfElems_[index][i]));
-        }
+      {    
+        elems.Push_back(dynamic_cast<SurfElem*>(surfElems_[index][i]));
+      }
       
     } else {
       EXCEPTION( "GridCFS: The surface region with id '" << regionId
@@ -1427,7 +1429,7 @@ namespace CoupledField {
 
   
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
-                                     const std::string & elemsName ) {
+                                const std::string & elemsName ) {
     ENTER_FCN( "GridCFS::GetElemsByName" );
 
     StdVector<UInt> elemNumbers;
@@ -1447,19 +1449,19 @@ namespace CoupledField {
     
   }
 
-    void GridCFS::GetElemsByName( std::vector<Elem*> & elems,
-                                  const std::string & elemsName ) {
+  void GridCFS::GetElemsByName( std::vector<Elem*> & elems,
+                                const std::string & elemsName ) {
     ENTER_FCN( "GridCFS::GetElemsByName" );
 
     Integer index = namedElemNames_.Find(elemsName);
     
 
     if ( index != -1 ) {
-        UInt numElems = namedElems_[index].GetSize();
-        elems.resize(numElems);
+      UInt numElems = namedElems_[index].GetSize();
+      elems.resize(numElems);
         
-        for(UInt i=0; i<numElems; i++)
-            elems[i] = orderedElems_[namedElems_[index][i]-1];
+      for(UInt i=0; i<numElems; i++)
+        elems[i] = orderedElems_[namedElems_[index][i]-1];
     } else {
       EXCEPTION( "GridCFS: There are no named elements with name '" 
                  << elemsName << "' in the grid!" );
@@ -1468,20 +1470,20 @@ namespace CoupledField {
   }
 
 
-    void GridCFS::GetElemNumsByName( std::vector<UInt> & elemNums,
-                            const std::string & elemsName )
-    {
+  void GridCFS::GetElemNumsByName( std::vector<UInt> & elemNums,
+                                   const std::string & elemsName )
+  {
     ENTER_FCN( "GridCFS::GetElemNumsByName" );
 
     Integer index = namedElemNames_.Find(elemsName);
     
 
     if ( index != -1 ) {
-        UInt numElems = namedElems_[index].GetSize();
-        elemNums.resize(numElems);
+      UInt numElems = namedElems_[index].GetSize();
+      elemNums.resize(numElems);
         
-        for(UInt i=0; i<numElems; i++)
-            elemNums[i] = namedElems_[index][i];
+      for(UInt i=0; i<numElems; i++)
+        elemNums[i] = namedElems_[index][i];
     } else {
       EXCEPTION( "GridCFS: There are no named elements with name '" 
                  << elemsName << "' in the grid!" );
@@ -1490,7 +1492,7 @@ namespace CoupledField {
   }
   
   void GridCFS::GetElemNodes( StdVector<UInt> & connect, 
-                                   const UInt iElem ) {
+                              const UInt iElem ) {
     ENTER_FCN( "GridCFS::GetElemNodes" );
     
     if ( iElem > numElems_ || iElem < 0) {  
@@ -1499,11 +1501,11 @@ namespace CoupledField {
                  << iElem << ". Go check your mesh file!" );
     }
     
-#ifdef DEBUG
+ #ifdef DEBUG
     if ( orderedElems_[iElem-1] == NULL ) {
       EXCEPTION( "Element with Nr. " << iElem << " is not contained in mesh!" );
     }
-#endif
+ #endif
     
     connect = orderedElems_[iElem-1]->connect;
     
@@ -1511,8 +1513,8 @@ namespace CoupledField {
 
   
   void GridCFS::GetElemNodesCoord( Matrix<Double> & coordMat,  
-                                        const StdVector<UInt> & connect,
-                                        bool updated ) {
+                                   const StdVector<UInt> & connect,
+                                   bool updated ) {
     ENTER_FCN( "GridCFS::GetElemNodesCoord" );
 
     coordMat.Resize(dim_, connect.GetSize());
@@ -1528,10 +1530,10 @@ namespace CoupledField {
       }
     } else {
       for (UInt k=0; k < connect.GetSize(); k++)
-        {
-          for (UInt actDim=0; actDim < dim_; actDim++)
-            coordMat[actDim][k] = coords_[connect[k]-1][actDim];
-        }
+      {
+        for (UInt actDim=0; actDim < dim_; actDim++)
+          coordMat[actDim][k] = coords_[connect[k]-1][actDim];
+      }
         
     }
 
@@ -1540,9 +1542,9 @@ namespace CoupledField {
   
   
   void GridCFS::GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-                                          const StdVector<UInt> & nodeList,
-                                          const StdVector<RegionIdType> 
-                                          & regionIds ) {
+                                     const StdVector<UInt> & nodeList,
+                                     const StdVector<RegionIdType> 
+                                     & regionIds ) {
     ENTER_FCN( "GridCFS::GetElemsNextToNodes" );
     bool belongs2Interface;
 
@@ -1551,49 +1553,49 @@ namespace CoupledField {
     
     // loop over all regionIDs
     for (UInt isd=0; isd<regionIds.GetSize(); isd++)
-      {
+    {
 
-        // get index for id in regionlist
-        index = volRegionIds_.Find(regionIds[isd]);
-        if ( index == -1 ) {
-          EXCEPTION( "GetElemsNextToNodes: A region with id '" 
-                     << regionIds[isd] << "' was not found in the list of "
-                     << "of volume regions." );
-        }
-        // Get element of given region
-        StdVector<Elem*> const & elems = volElems_[index];
-        
-        // loop over all elements in subdomain
-        for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
-          {
-            Elem *aux = elems[iNS];
-            StdVector<UInt>  const & aux_connect = aux->connect;
-        
-            belongs2Interface = false;
-        
-            // check if any node is common in Interface
-            for (UInt inode=0; inode<aux_connect.GetSize(); inode++) {
-
-              for (UInt nnode=0; nnode<nodeList.GetSize(); nnode++) {
-
-                if (nodeList[nnode] == aux_connect[inode]) {
-                  belongs2Interface = true;
-                  break;
-                }
-              }
-            }
-        
-            if (belongs2Interface)
-              elemList.Push_back(elems[iNS]);
-          }
+      // get index for id in regionlist
+      index = volRegionIds_.Find(regionIds[isd]);
+      if ( index == -1 ) {
+        EXCEPTION( "GetElemsNextToNodes: A region with id '" 
+                   << regionIds[isd] << "' was not found in the list of "
+                   << "of volume regions." );
       }
+      // Get element of given region
+      StdVector<Elem*> const & elems = volElems_[index];
+        
+      // loop over all elements in subdomain
+      for (UInt iNS=0; iNS < elems.GetSize(); iNS++)
+      {
+        Elem *aux = elems[iNS];
+        StdVector<UInt>  const & aux_connect = aux->connect;
+        
+        belongs2Interface = false;
+        
+        // check if any node is common in Interface
+        for (UInt inode=0; inode<aux_connect.GetSize(); inode++) {
+
+          for (UInt nnode=0; nnode<nodeList.GetSize(); nnode++) {
+
+            if (nodeList[nnode] == aux_connect[inode]) {
+              belongs2Interface = true;
+              break;
+            }
+          }
+        }
+        
+        if (belongs2Interface)
+          elemList.Push_back(elems[iNS]);
+      }
+    }
   }
   
   
   void GridCFS::GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
-                                            const StdVector<Elem*> & surfElems,
-                                            const StdVector<RegionIdType> 
-                                            &neighRegions ) {
+                                       const StdVector<Elem*> & surfElems,
+                                       const StdVector<RegionIdType> 
+                                       &neighRegions ) {
     ENTER_FCN( "GridCFS::GetElemsNextToSurface" );
     EXCEPTION( "Not implemented" );
   }
@@ -1606,8 +1608,8 @@ namespace CoupledField {
   // ======================================================
   
   void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                         const StdVector<Elem*> & elemList,
-					 bool onlyLinNodes) {
+                                    const StdVector<Elem*> & elemList,
+                                    bool onlyLinNodes) {
     ENTER_FCN( "GridCFS::GetNodesOfElemList" );
 
     std::set<UInt> elemNodes;
@@ -1619,9 +1621,9 @@ namespace CoupledField {
       StdVector<UInt> const & connecth = elemList[iElem]->connect;
       
       if (onlyLinNodes == true)
-	numElemCorners = elemList[iElem]->ptElem->GetNumCorners();
+        numElemCorners = elemList[iElem]->ptElem->GetNumCorners();
       else
-	numElemCorners = connecth.GetSize();
+        numElemCorners = connecth.GetSize();
       
       for ( iNode = 0; iNode < numElemCorners; iNode++ ) {
         elemNodes.insert(connecth[iNode]);
@@ -1638,32 +1640,32 @@ namespace CoupledField {
   
   
   
-    void GridCFS::GetRegionNames( StdVector<std::string> & regionNames ) {
-        ENTER_FCN( "GridCFS::GetAllRegionNames");
+  void GridCFS::GetRegionNames( StdVector<std::string> & regionNames ) {
+    ENTER_FCN( "GridCFS::GetAllRegionNames");
         
-        regionNames = regionNames_;
+    regionNames = regionNames_;
         
-    }
+  }
 
-    void GridCFS::GetRegionNames( std::vector<std::string> 
-                                  & regionNames )
+  void GridCFS::GetRegionNames( std::vector<std::string> 
+                                & regionNames )
+  {
+    UInt numRegions = regionNames_.GetSize();
+
+    regionNames.resize(numRegions);
+        
+
+    for(UInt i=0; i< numRegions; i++)
     {
-        UInt numRegions = regionNames_.GetSize();
-
-        regionNames.resize(numRegions);
-        
-
-        for(UInt i=0; i< numRegions; i++)
-        {
-            regionNames[i] = regionNames_[i];
-        }
+      regionNames[i] = regionNames_[i];
     }
+  }
     
 
 
   
   void GridCFS::SetNodeOffset( const StdVector<UInt>& nodes, 
-                                    const Vector<Double>& offsets ) {
+                               const Vector<Double>& offsets ) {
     ENTER_FCN( "GridCFS::SetNodeOffset" );
 
     // Check if node offsets were already set
@@ -1742,7 +1744,7 @@ namespace CoupledField {
       for (UInt iSurfElem = 0; iSurfElem < elems[iRegion].GetSize();
            iSurfElem++ ) {
 
-          oldElem = elems[iRegion][iSurfElem];
+        oldElem = elems[iRegion][iSurfElem];
           
 
         // create new surface element
@@ -1851,11 +1853,11 @@ namespace CoupledField {
 
         // check, if each surface element has at least one volume neighbour
         if ( myElem->ptVolElem1 == NULL ) {
-         //  EXCEPTION( "Pointer to first volume element is NULL for surface"
-//                    << " element no. "  
-//                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
-//                    << "Please check your mesh-file!" );
-//         }
+          //  EXCEPTION( "Pointer to first volume element is NULL for surface"
+          //                    << " element no. "  
+          //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+          //                    << "Please check your mesh-file!" );
+          //         }
           myElem->normalSign = 0;
         } else {
           
@@ -1904,8 +1906,8 @@ namespace CoupledField {
   
   
   void GridCFS::CalcSurfNormal( Vector<Double> & n, 
-                                     const Elem & surfElem,
-                                     bool updated ) {
+                                const Elem & surfElem,
+                                bool updated ) {
     ENTER_FCN( "GridCFS::CalcSurfNormal" );
     
     //compute normal vector
@@ -1953,9 +1955,9 @@ namespace CoupledField {
 
   
   void GridCFS::CalcSurfNormalOutOfVol(Vector<Double> & n,
-                                            const Elem & surfElem,
-                                            const Elem & volElem,
-                                            bool updated )
+                                       const Elem & surfElem,
+                                       const Elem & volElem,
+                                       bool updated )
   {
     ENTER_IFCN( "GridCFS::CalcSurfNormalOutOfVol" );
 
@@ -1982,12 +1984,12 @@ namespace CoupledField {
       Integer indexNode2=-1;
       
       for(UInt actNode=0; actNode < volCorners; actNode++)
-        {
-          if (volElem.connect[actNode] == surfElem.connect[0])
-            indexNode1 = actNode;
-          if (volElem.connect[actNode] == surfElem.connect[1])
-            indexNode2 = actNode;
-        }
+      {
+        if (volElem.connect[actNode] == surfElem.connect[0])
+          indexNode1 = actNode;
+        if (volElem.connect[actNode] == surfElem.connect[1])
+          indexNode2 = actNode;
+      }
       // if not clockwise orientation of nodes (difference of node indizes is -1)    
       if (indexNode1==-1 || indexNode2==-1)
         EXCEPTION("Nodes of neighbouring element not found!" );
@@ -1995,7 +1997,7 @@ namespace CoupledField {
     
       // counterclockwise orientation of nodes (difference of node indizes is +1)
       if ( ( indexNode2-indexNode1  == -1 || 
-            (indexNode2-indexNode1)- (Integer) volCorners == -1 ) ) {
+             (indexNode2-indexNode1)- (Integer) volCorners == -1 ) ) {
         n *= -1;
       }
     
@@ -2046,8 +2048,8 @@ namespace CoupledField {
   }
   
   Double GridCFS::CalcVolumeOfRegion( const RegionIdType regionId,
-                                           bool isaxi,
-                                           bool updated ) {
+                                      bool isaxi,
+                                      bool updated ) {
     ENTER_FCN( "GridCFS::GetVolumeOfRegion" );
 
     StdVector<Elem*> elems;
@@ -2068,7 +2070,7 @@ namespace CoupledField {
 #ifdef ADAPTGRID
   
   void GridCFS::putNodesFromGrid_RG(grd::MultilevelGrid * grid,
-                                         const UInt level)
+                                    const UInt level)
   {
     ENTER_FCN( "GridCFS::putNodesFromGrid_RG" );
 
@@ -2130,118 +2132,118 @@ namespace CoupledField {
  
     Integer noOfLevels=grid->getNoOfLevels();
     for (j=0; j< noOfLevels; j++)
-      {
-        lt=grid->getGridLevel(j)->getElementList();
-        type=0;
+    {
+      lt=grid->getGridLevel(j)->getElementList();
+      type=0;
 
-        while(lt[type]) {
-          for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+      while(lt[type]) {
+        for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+        {
+          if ((*p)->isRegular())
+          {
+            Elem * el=new Elem();
+            // Element maping
+            ElementMap* tmpMap = new ElementMap;
+             
+            Integer nnodes=(*p)->getNoOfVertices();
+            Integer etype = (*p)->type();
+             
+            switch(etype)
             {
-              if ((*p)->isRegular())
-                {
-                  Elem * el=new Elem();
-                  // Element maping
-                  ElementMap* tmpMap = new ElementMap;
+            case GRD_TRIANGLE:
+              el->ptElem=ptTr1;
+              break;
+            case GRD_QUADRANGLE:
+              el->ptElem=ptQ;
+              break;
+            default:
+              EXCEPTION("Unknown type of element in GridRG" );
+              break;
+            }
              
-                  Integer nnodes=(*p)->getNoOfVertices();
-                  Integer etype = (*p)->type();
+            (*el).connect.Resize(nnodes);
              
-                  switch(etype)
-                    {
-                    case GRD_TRIANGLE:
-                      el->ptElem=ptTr1;
-                      break;
-                    case GRD_QUADRANGLE:
-                      el->ptElem=ptQ;
-                      break;
-                    default:
-                      EXCEPTION("Unknown type of element in GridRG" );
-                      break;
-                    }
+            for (i=0; i<nnodes; i++)
+            {   
+              (*el).connect[i]=((*p)->getVertex(i))->getId();    
+            }
              
-                  (*el).connect.Resize(nnodes);
-             
-                  for (i=0; i<nnodes; i++)
-                    {   
-                      (*el).connect[i]=((*p)->getVertex(i))->getId();    
-                    }
-             
-                  Integer sd=(*p)->getValue();
-                  if (sd >= sd_.GetSize()) {
-                    EXCEPTION(" Value in element from Grid_RG is incorrect" );
-                  }
-                  (*el).namesd=sd_[sd];
+            Integer sd=(*p)->getValue();
+            if (sd >= sd_.GetSize()) {
+              EXCEPTION(" Value in element from Grid_RG is incorrect" );
+            }
+            (*el).namesd=sd_[sd];
 
-                  elems_[sd].Push_back(el);
+            elems_[sd].Push_back(el);
              
-                  // put info in elemMap
-                  Integer position = elems_[sd].GetSize()-1;
-                  tmpMap->map.Resize(1);
-                  tmpMap->map[0] = position;
-                  tmpMap->sd = sd;
-                  elemMap_.Push_back(tmpMap);
+            // put info in elemMap
+            Integer position = elems_[sd].GetSize()-1;
+            tmpMap->map.Resize(1);
+            tmpMap->map[0] = position;
+            tmpMap->sd = sd;
+            elemMap_.Push_back(tmpMap);
              
-                } // if isRegular
-              else if ((*p)->isIrregular()) {
-                ElementMap* tmpMap = new ElementMap;
-                tmpMap->sd = (*p)->getValue();
-                grd::ConformingClosure closure;
-                typedef grd::ConformingClosure::triangleIterator TriI;
-                typedef grd::ConformingClosure::quadrangleIterator QuadI;
-                (*p)->close(closure);
+          } // if isRegular
+          else if ((*p)->isIrregular()) {
+            ElementMap* tmpMap = new ElementMap;
+            tmpMap->sd = (*p)->getValue();
+            grd::ConformingClosure closure;
+            typedef grd::ConformingClosure::triangleIterator TriI;
+            typedef grd::ConformingClosure::quadrangleIterator QuadI;
+            (*p)->close(closure);
            
-                // Process closing triangles
-                for (TriI tri = closure.beginTriangle();
-                     tri != closure.endTriangle(); ++tri) {
-                  Elem * el=new Elem();
-                  Integer nnodes=(*tri)->getNoOfVertices();
-                  el->ptElem=ptTr1;
-                  (*el).connect.Resize(nnodes);
-                  for (i=0; i<nnodes; i++)
-                    {
-                      (*el).connect[i]=((*tri)->getVertex(i))->getId();
-                    }
-                  Integer sd=(*tri)->getValue();
-                  if (sd >= sd_.GetSize()) {
-                    EXCEPTION(" Value in element from Grid_RG is incorrect" );
-                  }
-                  (*el).namesd=sd_[sd];
-                  elems_[sd].Push_back(el);
+            // Process closing triangles
+            for (TriI tri = closure.beginTriangle();
+                 tri != closure.endTriangle(); ++tri) {
+              Elem * el=new Elem();
+              Integer nnodes=(*tri)->getNoOfVertices();
+              el->ptElem=ptTr1;
+              (*el).connect.Resize(nnodes);
+              for (i=0; i<nnodes; i++)
+              {
+                (*el).connect[i]=((*tri)->getVertex(i))->getId();
+              }
+              Integer sd=(*tri)->getValue();
+              if (sd >= sd_.GetSize()) {
+                EXCEPTION(" Value in element from Grid_RG is incorrect" );
+              }
+              (*el).namesd=sd_[sd];
+              elems_[sd].Push_back(el);
              
-                  // maping
-                  Integer position = elems_[sd].GetSize()-1;
-                  tmpMap->map.Push_back(position);
-                } // for tri
+              // maping
+              Integer position = elems_[sd].GetSize()-1;
+              tmpMap->map.Push_back(position);
+            } // for tri
            
-                // Process now the quads
-                for (QuadI quad = closure.beginQuadrangle();
-                     quad != closure.endQuadrangle(); ++quad) {
-                  Elem * el=new Elem();
-                  Integer nnodes=(*quad)->getNoOfVertices();
-                  el->ptElem=ptQ;
-                  (*el).connect.Resize(nnodes);
-                  for (i=0; i<nnodes; i++)
-                    {
-                      (*el).connect[i]=((*quad)->getVertex(i))->getId();
-                    }
-                  Integer sd=(*quad)->getValue();
-                  if (sd >= sd_.GetSize()) {
-                    EXCEPTION(" Value in element from Grid_RG is incorrect" );
-                  }
-                  (*el).namesd=sd_[sd];
-                  elems_[sd].Push_back(el);
+            // Process now the quads
+            for (QuadI quad = closure.beginQuadrangle();
+                 quad != closure.endQuadrangle(); ++quad) {
+              Elem * el=new Elem();
+              Integer nnodes=(*quad)->getNoOfVertices();
+              el->ptElem=ptQ;
+              (*el).connect.Resize(nnodes);
+              for (i=0; i<nnodes; i++)
+              {
+                (*el).connect[i]=((*quad)->getVertex(i))->getId();
+              }
+              Integer sd=(*quad)->getValue();
+              if (sd >= sd_.GetSize()) {
+                EXCEPTION(" Value in element from Grid_RG is incorrect" );
+              }
+              (*el).namesd=sd_[sd];
+              elems_[sd].Push_back(el);
 
-                  // maping
-                  Integer position = elems_[sd].GetSize() - 1;
-                  tmpMap->map.Push_back(position);
-                } // for quad
-                // update element map list
-                elemMap_.Push_back(tmpMap);
-              } // else if isIrregular
-            } // for element
-          type++;
-        } // end while(); list of elements types
-      } // for level
+              // maping
+              Integer position = elems_[sd].GetSize() - 1;
+              tmpMap->map.Push_back(position);
+            } // for quad
+            // update element map list
+            elemMap_.Push_back(tmpMap);
+          } // else if isIrregular
+        } // for element
+        type++;
+      } // end while(); list of elements types
+    } // for level
  
     // Info->PrintF("Total number of elements (only for first subdomain): %i", elems_[0].GetSize());
     
@@ -2269,9 +2271,9 @@ namespace CoupledField {
     // Init Tets buffer
     tets.Resize(4);
     for (i = 0; i < 4; i++)
-      {
-        tets[i] = new grd::Tetrahedron;
-      }
+    {
+      tets[i] = new grd::Tetrahedron;
+    }
 
     // Element Map
     if (!elemMap_.empty()) {
@@ -2285,144 +2287,144 @@ namespace CoupledField {
     Integer i1,i2,lev;
     Integer noOfLevels=grid->getNoOfLevels();
     for (j=0; j< noOfLevels; j++)
+    {
+      lt=grid->getGridLevel(j)->getElementList();
+      type=2; // take only volume elementes
+
+      while(lt[type])
       {
-        lt=grid->getGridLevel(j)->getElementList();
-        type=2; // take only volume elementes
-
-        while(lt[type])
+        for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+        {
+          if ((*p)->isRegular())
           {
-            for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+            Elem * el=new Elem();
+            // Element maping
+            ElementMap* tmpMap = new ElementMap;
+
+            Integer nnodes=(*p)->getNoOfVertices();
+            Integer etype = (*p)->type();
+
+            Integer sd,position,nnds;
+
+            switch(etype)
+            {
+            case GRD_TRIANGLE:
+              break;
+            case GRD_QUADRANGLE:
+              break;
+            case GRD_TETRAHEDRON:
+              el->ptElem=ptTet;
+              (*el).connect.Resize(nnodes);
+
+              for (i=0; i<nnodes; i++) {
+                (*el).connect[i]=((*p)->getVertex(i))->getId();
+              }
+
+              sd=(*p)->getValue();
+
+              if (sd >= sd_.GetSize())
+                EXCEPTION("Value in element from Grid_RG is incorrect");
+
+              (*el).namesd=sd_[sd];
+
+              elems_[sd].Push_back(el);
+
+              // put info in elemMap
+              position = elems_[sd].GetSize()-1;
+              tmpMap->map.Resize(1);
+              tmpMap->map[0] = position;
+              tmpMap->sd = sd;
+
+              elemMap_.Push_back(tmpMap);
+              break;
+            case GRD_OCTAHEDRON:
+              (*p)->getTetras(tets);
+              Elem * elT[4];
+
+              Integer it;
+              nnds=4;
+
+              // loop over tetrahedrals of octahedron
+              for (it=0; it<4; it++)
               {
-                if ((*p)->isRegular())
-                  {
-                    Elem * el=new Elem();
-                    // Element maping
-                    ElementMap* tmpMap = new ElementMap;
+                elT[it]=new Elem();
+                elT[it]->ptElem=ptTet;
+                elT[it]->connect.Resize(nnds);
+                // copy of connection array
+                for (i=0; i<nnds; i++)
+                {
+                  elT[it]->connect[i]=(tets[it]->getVertex(i))->getId();
+                }
 
-                    Integer nnodes=(*p)->getNoOfVertices();
-                    Integer etype = (*p)->type();
+                sd=(*p)->getValue();
 
-                    Integer sd,position,nnds;
+                if (sd >= sd_.GetSize()) 
+                  EXCEPTION(" Value in element from Grid_RG is incorrect" );
+                elT[it]->namesd=sd_[sd];
 
-                    switch(etype)
-                      {
-                      case GRD_TRIANGLE:
-                        break;
-                      case GRD_QUADRANGLE:
-                        break;
-                      case GRD_TETRAHEDRON:
-                        el->ptElem=ptTet;
-                        (*el).connect.Resize(nnodes);
+                elems_[sd].Push_back(elT[it]);
+                // mapping
+                Integer position = elems_[sd].GetSize()-1;
+                tmpMap->map.Push_back(position);
+                tmpMap->sd=sd;
+              } // end: loop over tetrahedrals of octahedron
 
-                        for (i=0; i<nnodes; i++) {
-                          (*el).connect[i]=((*p)->getVertex(i))->getId();
-                        }
-
-                        sd=(*p)->getValue();
-
-                        if (sd >= sd_.GetSize())
-                          EXCEPTION("Value in element from Grid_RG is incorrect");
-
-                        (*el).namesd=sd_[sd];
-
-                        elems_[sd].Push_back(el);
-
-                        // put info in elemMap
-                        position = elems_[sd].GetSize()-1;
-                        tmpMap->map.Resize(1);
-                        tmpMap->map[0] = position;
-                        tmpMap->sd = sd;
-
-                        elemMap_.Push_back(tmpMap);
-                        break;
-                      case GRD_OCTAHEDRON:
-                        (*p)->getTetras(tets);
-                        Elem * elT[4];
-
-                        Integer it;
-                        nnds=4;
-
-                        // loop over tetrahedrals of octahedron
-                        for (it=0; it<4; it++)
-                          {
-                            elT[it]=new Elem();
-                            elT[it]->ptElem=ptTet;
-                            elT[it]->connect.Resize(nnds);
-                            // copy of connection array
-                            for (i=0; i<nnds; i++)
-                              {
-                                elT[it]->connect[i]=(tets[it]->getVertex(i))->getId();
-                              }
-
-                            sd=(*p)->getValue();
-
-                            if (sd >= sd_.GetSize()) 
-                              EXCEPTION(" Value in element from Grid_RG is incorrect" );
-                            elT[it]->namesd=sd_[sd];
-
-                            elems_[sd].Push_back(elT[it]);
-                            // mapping
-                            Integer position = elems_[sd].GetSize()-1;
-                            tmpMap->map.Push_back(position);
-                            tmpMap->sd=sd;
-                          } // end: loop over tetrahedrals of octahedron
-
-                        // update element map list
-                        elemMap_.Push_back(tmpMap);
-                        break;
-                      case GRD_HEXAHEDRON:
-                        el->ptElem=ptHexa;
-                        break;
-                      default:
-                        EXCEPTION("Unknown type of element in GridRG" );
-                        break;
-                      } // end of switch
-                  }
-                else if ((*p)->isIrregular()) {
-                  ElementMap* tmpMap = new ElementMap;
-                  tmpMap->sd = (*p)->getValue();
-                  grd::ConformingClosure closure;
-                  typedef grd::ConformingClosure::tetrahedronIterator TetI;
-                  (*p)->close(closure);
+              // update element map list
+              elemMap_.Push_back(tmpMap);
+              break;
+            case GRD_HEXAHEDRON:
+              el->ptElem=ptHexa;
+              break;
+            default:
+              EXCEPTION("Unknown type of element in GridRG" );
+              break;
+            } // end of switch
+          }
+          else if ((*p)->isIrregular()) {
+            ElementMap* tmpMap = new ElementMap;
+            tmpMap->sd = (*p)->getValue();
+            grd::ConformingClosure closure;
+            typedef grd::ConformingClosure::tetrahedronIterator TetI;
+            (*p)->close(closure);
        
-                  // Process closing tetrahedrons
-                  for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet)
-                    {
-                      Elem * el=new Elem();
-                      Integer nnodes=(*tet)->getNoOfVertices();
-                      el->ptElem=ptTet;
-                      (*el).connect.Resize(nnodes);
-                      for (i=0; i<nnodes; i++)
-                        {
-                          (*el).connect[i]=((*tet)->getVertex(i))->getId();
-                        }
-                      Integer sd=(*tet)->getValue();
-                      if (sd >= sd_.GetSize()) 
-                        EXCEPTION(" Value in element from Grid_RG is incorrect" );
-                      (*el).namesd=sd_[sd];
-                      elems_[sd].Push_back(el);
+            // Process closing tetrahedrons
+            for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet)
+            {
+              Elem * el=new Elem();
+              Integer nnodes=(*tet)->getNoOfVertices();
+              el->ptElem=ptTet;
+              (*el).connect.Resize(nnodes);
+              for (i=0; i<nnodes; i++)
+              {
+                (*el).connect[i]=((*tet)->getVertex(i))->getId();
+              }
+              Integer sd=(*tet)->getValue();
+              if (sd >= sd_.GetSize()) 
+                EXCEPTION(" Value in element from Grid_RG is incorrect" );
+              (*el).namesd=sd_[sd];
+              elems_[sd].Push_back(el);
 
-                      // maping
-                      Integer position = elems_[sd].GetSize()-1;
-                      tmpMap->map.Push_back(position);
-                    } // for tet
-                  // update element map list
-                  elemMap_.Push_back(tmpMap);
-                } // else if isIrregular
-              } // for element
-            type++;
-          } // end while(); list of elements types
-      } // for level
+              // maping
+              Integer position = elems_[sd].GetSize()-1;
+              tmpMap->map.Push_back(position);
+            } // for tet
+            // update element map list
+            elemMap_.Push_back(tmpMap);
+          } // else if isIrregular
+        } // for element
+        type++;
+      } // end while(); list of elements types
+    } // for level
 
     // clean buffer of tets
     if (!tets.empty()) 
+    {
+      for (i = 0; i < 4; i++)
       {
-        for (i = 0; i < 4; i++)
-          {
-            delete tets[i];
-          }
-        tets.Clear();
+        delete tets[i];
       }
+      tets.Clear();
+    }
 
 
     //     Info-PrintF("", "Total number of elements: %i", elems_[0].GetSize());
@@ -2443,55 +2445,55 @@ namespace CoupledField {
 
     Integer k;
     for (Integer j = 0; j < noOfLevels; j++)
+    {
+      grd::GridLevel* gridlv = grid.getGridLevel(j);
+      list<grd::Element*>** lt = gridlv->getElementList();
+      Integer type;
+      if (dim==3) type=2;
+      else type=0;
+      while (lt[type])
       {
-        grd::GridLevel* gridlv = grid.getGridLevel(j);
-        list<grd::Element*>** lt = gridlv->getElementList();
-        Integer type;
-        if (dim==3) type=2;
-        else type=0;
-        while (lt[type])
+        for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+        {
+          if (!(*p)->isRefined())
           {
-            for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+            Integer  sde = (*p)->getValue();
+            Integer flag = 0;
+            ElementMap* map = elemMap_[counter];
+                     
+            Integer sdm = map->sd;
+            if (sde != sdm) 
+              EXCEPTION("Wrong number of subdomain");
+                     
+            for (i = 0; i < map->map.GetSize(); i++)
+            {
+              Integer elmId = map->map[i];
+              flag = elems_[sdm][elmId]->refinementFlag;
+              Integer numRefs=elems_[sdm][elmId]->refinementNumber;
+              if (flag == 1) 
               {
-                if (!(*p)->isRefined())
-                  {
-                    Integer  sde = (*p)->getValue();
-                    Integer flag = 0;
-                    ElementMap* map = elemMap_[counter];
-                     
-                    Integer sdm = map->sd;
-                    if (sde != sdm) 
-                      EXCEPTION("Wrong number of subdomain");
-                     
-                    for (i = 0; i < map->map.GetSize(); i++)
-                      {
-                        Integer elmId = map->map[i];
-                        flag = elems_[sdm][elmId]->refinementFlag;
-                        Integer numRefs=elems_[sdm][elmId]->refinementNumber;
-                        if (flag == 1) 
-                          {
                             
-                            (*p)->markForRefinement(numRefs-1);
+                (*p)->markForRefinement(numRefs-1);
                     
-                            break;
-                          }
+                break;
+              }
 
-                        if (flag == -1)
-                          {
-                            (*p)->markForCoarsening();
-                            break;
-                          }
+              if (flag == -1)
+              {
+                (*p)->markForCoarsening();
+                break;
+              }
                          
-                      }
+            }
                      
-                    // update counter
-                    counter++;
-                  }
-              } // for loop elems
-            // next element type
-            type++;
-          } // type loop
-      } // level loop
+            // update counter
+            counter++;
+          }
+        } // for loop elems
+        // next element type
+        type++;
+      } // type loop
+    } // level loop
 
     grid.refine();      
   }
@@ -2514,22 +2516,22 @@ namespace CoupledField {
     if (dim==3) type=2;
     else type=0;
     while (lt[type])
+    {
+      for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
       {
-        for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
-          {
-            if (!(*p)->isRefined())
-              {
-                Integer  sde = (*p)->getValue();
-                grd::Element *parent = (*p)->getParent();
+        if (!(*p)->isRefined())
+        {
+          Integer  sde = (*p)->getValue();
+          grd::Element *parent = (*p)->getParent();
                  
-                Integer numRefs = parent->getNumOfRefinements(); 
-                if (numRefs)
-                  (*p)->markForRefinement(numRefs-1);
-              } 
-          } // for loop elems
-        // next element type
-        type++;
-      } // type loop
+          Integer numRefs = parent->getNumOfRefinements(); 
+          if (numRefs)
+            (*p)->markForRefinement(numRefs-1);
+        } 
+      } // for loop elems
+      // next element type
+      type++;
+    } // type loop
     grid.refine();     
   }
 
@@ -2575,7 +2577,7 @@ namespace CoupledField {
   void GridCFS::AddNode( const Point & coord, UInt & inode)
   {
     if(!isInitialized_)
-        EXCEPTION("Cannot add node to uninitialized grid!");
+      EXCEPTION("Cannot add node to uninitialized grid!");
 
     coords_.Push_back(coord);
     inode = ++numNodes_;
@@ -2584,15 +2586,15 @@ namespace CoupledField {
   void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
   {
     if(!isInitialized_)
-        EXCEPTION("Cannot add node to uninitialized grid!");
+      EXCEPTION("Cannot add node to uninitialized grid!");
     
     if(coord.GetSize() != 3)
-        EXCEPTION("Node to be added has wrong dimension!");
+      EXCEPTION("Node to be added has wrong dimension!");
     
     Point p;
         
     for(UInt i=0; i<3; i++)
-        p[i] = coord[i];
+      p[i] = coord[i];
         
     coords_.Push_back(p);
     inode = ++numNodes_;
@@ -2602,7 +2604,7 @@ namespace CoupledField {
                           StdVector< UInt > & inodes)
   {
     if(!isInitialized_)
-        EXCEPTION("Cannot add nodes to uninitialized grid!");
+      EXCEPTION("Cannot add nodes to uninitialized grid!");
 
     Point p;
     UInt i, n;
@@ -2612,9 +2614,9 @@ namespace CoupledField {
 
     for(i=0; i<n; i++)
     {
-        coords_.Push_back(coords[i]);
-        numNodes_++;
-        inodes[i] = numNodes_;
+      coords_.Push_back(coords[i]);
+      numNodes_++;
+      inodes[i] = numNodes_;
     }
   }
 
@@ -2622,34 +2624,38 @@ namespace CoupledField {
                                  const StdVector< SurfElem* > & surfelems,
                                  StdVector< UInt > & elemids)
   {
+    UInt i, n;    
+    Integer index = 0;
+    UInt *ptConn;
+    UInt numNodes;
+    
     if(!isInitialized_)
-        EXCEPTION("Cannot add surface elements to uninitialized grid!");
+      EXCEPTION("Cannot add surface elements to uninitialized grid!");
 
     UInt regionIdx = surfRegionIds_.Find(regionid);
       
     if(regionIdx == -1)
-        EXCEPTION("Surface regionid not found!");
+      EXCEPTION("Surface regionid not found!");
 
-    UInt i, n;    
     n=surfelems.GetSize();
     elemids.Resize(n);
 
-    //        for(i=0; i<surfRegionIds_.GetSize(); i++)
-    //        {
-    //          std::cout << "surfRegionIds_[" << i << "]: " << surfRegionIds_[i] << " " << regionNames_[surfRegionIds_[i]] << std::endl;
-    //        }
-        
     for(i=0; i<n; i++)
     {
-        // a check should be added to avoid insertions
-        // of already existing elements
-        surfelems[i]->regionId = regionid;
-        numElems_++;
-        surfelems[i]->elemNum = numElems_;
+      // a check should be added to avoid insertions
+      // of already existing elements
+      surfelems[i]->regionId = regionid;
+      numElems_++;
+      surfelems[i]->elemNum = numElems_;
         
-        orderedElems_.Push_back(surfelems[i]);
-        surfElems_[regionIdx].Push_back(surfelems[i]);
-        elemids[i] = numElems_;
+      orderedElems_.Push_back(surfelems[i]);
+      surfElems_[regionIdx].Push_back(surfelems[i]);
+      elemids[i] = numElems_;
+
+      ptConn = &surfelems[i]->connect[0];
+      numNodes = surfelems[i]->connect.GetSize();
+      surfElemNodes_[regionIdx].insert(ptConn,
+                                       ptConn+numNodes);
     }
   }
 
@@ -2657,30 +2663,38 @@ namespace CoupledField {
                                 const StdVector< Elem* > & volelems,
                                 StdVector< UInt > & elemids)
   {
+    UInt i, n;
+    UInt *ptConn;
+    UInt numNodes;
+
     if(!isInitialized_)
-        EXCEPTION("Cannot add volume elements to uninitialized grid!");
+      EXCEPTION("Cannot add volume elements to uninitialized grid!");
 
     UInt regionIdx = volRegionIds_.Find(regionid);
       
     if(regionIdx == -1)
-        EXCEPTION("Volume regionid not found!");
+      EXCEPTION("Volume regionid not found!");
 
-    UInt i, n;
 
     n=volelems.GetSize();
     elemids.Resize(n);
-    
+
     for(i=0; i<n; i++)
     {
-        // a check should be added to avoid insertions
-        // of already existing elements
-        volelems[i]->regionId = regionid;
-        numElems_++;
-        volelems[i]->elemNum = numElems_;
+      // a check should be added to avoid insertions
+      // of already existing elements
+      volelems[i]->regionId = regionid;
+      numElems_++;
+      volelems[i]->elemNum = numElems_;
 
-        orderedElems_.Push_back(volelems[i]);
-        volElems_[regionIdx].Push_back(volelems[i]);
-        elemids[i] = numElems_;
+      orderedElems_.Push_back(volelems[i]);
+      volElems_[regionIdx].Push_back(volelems[i]);
+      elemids[i] = numElems_;
+
+      ptConn = &volelems[i]->connect[0];
+      numNodes = volelems[i]->connect.GetSize();
+      volElemNodes_[regionIdx].insert(ptConn,
+                                      ptConn+numNodes);
     }
   }
 
@@ -2688,12 +2702,12 @@ namespace CoupledField {
                                   RegionIdType& regionid)
   {
     if(!isInitialized_)
-        EXCEPTION("Cannot add a surface region to an uninitialized grid!");
+      EXCEPTION("Cannot add a surface region to an uninitialized grid!");
 
     if(regionNames_.Find(name) != -1)
     {
-        EXCEPTION("A surface region with the same name already exists!");
-        regionid = -1;
+      EXCEPTION("A surface region with the same name already exists!");
+      regionid = -1;
     }
 
     regionNames_.Push_back(name);
@@ -2703,20 +2717,20 @@ namespace CoupledField {
     StdVector<Elem*> dummy_elems;
     surfElems_.Push_back(dummy_elems);
     
-    StdVector<UInt> dummy_nodes;
+    std::set<UInt> dummy_nodes;
     surfElemNodes_.Push_back(dummy_nodes);                                      
   }
   
   void GridCFS::AddVolumeRegion( const std::string name,
-                                      RegionIdType& regionid)
+                                 RegionIdType& regionid)
   {
     if(!isInitialized_)
-        EXCEPTION("Cannot add a volume region to an uninitialized grid!");
+      EXCEPTION("Cannot add a volume region to an uninitialized grid!");
 
     if(regionNames_.Find(name) != -1)
     {
-        EXCEPTION("A volume region with the same name already exists!");
-        regionid = -1;
+      EXCEPTION("A volume region with the same name already exists!");
+      regionid = -1;
     }
 
     regionNames_.Push_back(name);
@@ -2726,7 +2740,7 @@ namespace CoupledField {
     StdVector<Elem*> dummy_elems;
     volElems_.Push_back(dummy_elems);
     
-    StdVector<UInt> dummy_nodes;
+    std::set<UInt> dummy_nodes;
     volElemNodes_.Push_back(dummy_nodes);                                      
   }
 
@@ -2763,8 +2777,8 @@ namespace CoupledField {
 
         surfElems_[index].Clear();
       } else {
-          EXCEPTION("GridCFS: The region with id '" << regionid
-                    << "' was not found in the grid!");
+        EXCEPTION("GridCFS: The region with id '" << regionid
+                  << "' was not found in the grid!");
       }
     }
 
@@ -2786,5 +2800,3 @@ namespace CoupledField {
 
 
 } // end namespace
-
-

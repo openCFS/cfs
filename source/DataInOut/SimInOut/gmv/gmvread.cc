@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 // This code is also based on the gmvread library from the official GMV
 // website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 
@@ -7207,10 +7211,3 @@ int chk_rayend(FILE *fin)
 
   return chkend;
 }
-
-}
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:

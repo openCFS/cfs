@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include "matvec/scrs_matrix.hh"
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class

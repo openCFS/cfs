@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <string>
 #include <fstream>
 
@@ -22,25 +26,25 @@ namespace CoupledField
   {
     ENTER_FCN( "Grid::Grid" );
 
-  ptQ1     = new Quad1FE();
-  ptQ2     = new Quad2FE();
-  ptTet1   = new Tetra1FE();
-  ptTet2   = new Tetra2FE();
-  ptL1     = new Line1FE();
-  ptL2     = new Line2FE();
-  ptTr1    = new Triangle1FE();
-  ptTr2    = new Triangle2FE();
-  ptHexa1  = new Hexa1FE();
-  ptHexa2  = new Hexa2FE();
-  ptPyra1  = new Pyra1FE();
-  ptPyra2  = new Pyra2FE();
-  ptWedge1 = new Wedge1FE();
-  ptWedge2 = new Wedge2FE();
+    ptQ1     = new Quad1FE();
+    ptQ2     = new Quad2FE();
+    ptTet1   = new Tetra1FE();
+    ptTet2   = new Tetra2FE();
+    ptL1     = new Line1FE();
+    ptL2     = new Line2FE();
+    ptTr1    = new Triangle1FE();
+    ptTr2    = new Triangle2FE();
+    ptHexa1  = new Hexa1FE();
+    ptHexa2  = new Hexa2FE();
+    ptPyra1  = new Pyra1FE();
+    ptPyra2  = new Pyra2FE();
+    ptWedge1 = new Wedge1FE();
+    ptWedge2 = new Wedge2FE();
 
-#ifdef USE_SCRIPTING
-  // Register functions
-  RegisterFunctions();
-#endif
+ #ifdef USE_SCRIPTING
+    // Register functions
+    RegisterFunctions();
+ #endif
 
   }
 
@@ -67,54 +71,54 @@ namespace CoupledField
   }
 
 
-    void Grid::AddRegion(const std::string regionName, RegionIdType & rId)
-    {
-        rId = regionNames_.GetSize();
-        regionNames_.Push_back(regionName);
-    }
+  void Grid::AddRegion(const std::string regionName, RegionIdType & rId)
+  {
+    rId = regionNames_.GetSize();
+    regionNames_.Push_back(regionName);
+  }
     
-    void Grid::AddRegions(const StdVector<std::string> & regionNames,
-                          StdVector<RegionIdType> & rIds)
-    {
-        UInt numRegions = regionNames.GetSize();
-        UInt newId = regionNames_.GetSize();
+  void Grid::AddRegions(const StdVector<std::string> & regionNames,
+                        StdVector<RegionIdType> & rIds)
+  {
+    UInt numRegions = regionNames.GetSize();
+    UInt newId = regionNames_.GetSize();
 
-        rIds.Resize(numRegions);
-        for(UInt i=0; i<numRegions; i++, newId++)
-        {
-            rIds[i] = newId;
-            regionNames_.Push_back(regionNames[i]);
-        }
-    }
-    
-    void Grid::AddRegions(const std::vector<std::string> & regionNames,
-                          std::vector<RegionIdType> & rIds)
+    rIds.Resize(numRegions);
+    for(UInt i=0; i<numRegions; i++, newId++)
     {
-        UInt numRegions = regionNames.size();
-        UInt newId = regionNames_.GetSize();
+      rIds[i] = newId;
+      regionNames_.Push_back(regionNames[i]);
+    }
+  }
+    
+  void Grid::AddRegions(const std::vector<std::string> & regionNames,
+                        std::vector<RegionIdType> & rIds)
+  {
+    UInt numRegions = regionNames.size();
+    UInt newId = regionNames_.GetSize();
 
-        rIds.resize(numRegions);
-        for(UInt i=0; i<numRegions; i++, newId++)
-        {
-            rIds[i] = newId;
-            regionNames_.Push_back(regionNames[i]);
-        }
+    rIds.resize(numRegions);
+    for(UInt i=0; i<numRegions; i++, newId++)
+    {
+      rIds[i] = newId;
+      regionNames_.Push_back(regionNames[i]);
     }
+  }
 
-    UInt Grid::GetNumRegions()
-    {
-        return regionNames_.GetSize();
-    }
+  UInt Grid::GetNumRegions()
+  {
+    return regionNames_.GetSize();
+  }
     
-    UInt Grid::GetNumVolRegions()
-    {
-        return volRegionIds_.GetSize();
-    }
+  UInt Grid::GetNumVolRegions()
+  {
+    return volRegionIds_.GetSize();
+  }
     
-    UInt Grid::GetNumSurfRegions()
-    {
-        return surfRegionIds_.GetSize();
-    }
+  UInt Grid::GetNumSurfRegions()
+  {
+    return surfRegionIds_.GetSize();
+  }
     
   void Grid::GetRegionIds( StdVector<RegionIdType> & regions ) {
     ENTER_FCN( "Grid::GetRegionIds" );
@@ -124,19 +128,19 @@ namespace CoupledField
     regions.Clear();
 
     for(UInt i=0; i<numRegions; i++)
-        regions.Push_back(i);
+      regions.Push_back(i);
   }
   
-    void Grid::GetRegionIds( std::vector<RegionIdType> & regions ) {
-        ENTER_FCN( "Grid::GetRegionIds" );
+  void Grid::GetRegionIds( std::vector<RegionIdType> & regions ) {
+    ENTER_FCN( "Grid::GetRegionIds" );
         
-        UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
+    UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
         
-        regions.clear();
+    regions.clear();
         
-        for(UInt i=0; i<numRegions; i++)
-            regions.push_back(i);
-    }
+    for(UInt i=0; i<numRegions; i++)
+      regions.push_back(i);
+  }
 
   
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
@@ -145,16 +149,16 @@ namespace CoupledField
     volRegions = volRegionIds_;
   }
   
-    void Grid::GetVolRegionIds( std::vector<RegionIdType> & volRegions ) {
-        ENTER_FCN( "Grid::GetVolRegionIds" );
+  void Grid::GetVolRegionIds( std::vector<RegionIdType> & volRegions ) {
+    ENTER_FCN( "Grid::GetVolRegionIds" );
         
-        UInt numRegions = volRegionIds_.GetSize();
+    UInt numRegions = volRegionIds_.GetSize();
         
-        volRegions.resize(numRegions);
+    volRegions.resize(numRegions);
         
-        for(UInt i=0; i<numRegions; i++)
-            volRegions[i] = volRegionIds_[i];
-    }
+    for(UInt i=0; i<numRegions; i++)
+      volRegions[i] = volRegionIds_[i];
+  }
 
   
   void Grid::GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
@@ -163,16 +167,16 @@ namespace CoupledField
     surfRegions = surfRegionIds_;
   }
 
-    void Grid::GetSurfRegionIds( std::vector<RegionIdType> & surfRegions ) {
-        ENTER_FCN( "Grid::GetSurfRegionIds" );
+  void Grid::GetSurfRegionIds( std::vector<RegionIdType> & surfRegions ) {
+    ENTER_FCN( "Grid::GetSurfRegionIds" );
         
-        UInt numRegions = surfRegionIds_.GetSize();
+    UInt numRegions = surfRegionIds_.GetSize();
         
-        surfRegions.resize(numRegions);
+    surfRegions.resize(numRegions);
         
-        for(UInt i=0; i<numRegions; i++)
-            surfRegions[i] = surfRegionIds_[i];
-    }
+    for(UInt i=0; i<numRegions; i++)
+      surfRegions[i] = surfRegionIds_[i];
+  }
 
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
     ENTER_FCN( "Grid::RegionNameToId" );
@@ -330,14 +334,14 @@ namespace CoupledField
     ncIfaceNodes = pNode->GetList("ncInterface");
 
     for( UInt i = 0; i < ncIfaceNodes.GetSize(); i++ ) {
-        ParamNode* ncIfaceNode = ncIfaceNodes[i];
+      ParamNode* ncIfaceNode = ncIfaceNodes[i];
         
-        pNode = ncIfaceNode->Get("name");
-        ncRegionNames.Push_back( pNode->AsString() );
-        pNode = ncIfaceNode->Get("slaveSide");
-        ncSlaveIfaceRegionNames.Push_back( pNode->AsString() );
-        pNode = ncIfaceNode->Get("masterSide");
-        ncMasterIfaceRegionNames.Push_back( pNode->AsString() );
+      pNode = ncIfaceNode->Get("name");
+      ncRegionNames.Push_back( pNode->AsString() );
+      pNode = ncIfaceNode->Get("slaveSide");
+      ncSlaveIfaceRegionNames.Push_back( pNode->AsString() );
+      pNode = ncIfaceNode->Get("masterSide");
+      ncMasterIfaceRegionNames.Push_back( pNode->AsString() );
     }
 
     n = ncRegionNames.GetSize();
@@ -353,7 +357,7 @@ namespace CoupledField
       if((slaveId == -1) ||
          (masterId == -1))
       {
-          EXCEPTION( "Could not find region id(s) for master/slave interface!");
+        EXCEPTION( "Could not find region id(s) for master/slave interface!");
       }
       
       LOG_DBG2(grid) << "Trying to get SLAVE Elems: " << slaveName << std::endl;
@@ -365,7 +369,7 @@ namespace CoupledField
       if((slaveElems.GetSize() == 0) ||
          (masterElems.GetSize() == 0))
       {
-          EXCEPTION( "Could not find elements on master/slave interface!");
+        EXCEPTION( "Could not find elements on master/slave interface!");
       }
 
       
@@ -429,7 +433,7 @@ namespace CoupledField
     {
       if (!coPlanarIface)
       {
-          EXCEPTION( "Only collinear interfaces are supported at the moment!");
+        EXCEPTION( "Only collinear interfaces are supported at the moment!");
       }
       for(UInt i=0; i<masterElems.GetSize(); i++)
       {
@@ -448,7 +452,7 @@ namespace CoupledField
         {
           if((isecCalc == "dirty") || (isecCalc == ""))
           {
-              EXCEPTION("ISNMG: Dirty Intersection not implemented anymore!");
+            EXCEPTION("ISNMG: Dirty Intersection not implemented anymore!");
           }
 
           if((isecCalc == "coaxi"))
@@ -459,7 +463,7 @@ namespace CoupledField
             if((masterElems[i]->ptElem != ptQ1) ||
                (slaveElems[j]->ptElem != ptQ1))
             {
-                EXCEPTION("Only linear Quads can be intersected with coaxi algorithm!");
+              EXCEPTION("Only linear Quads can be intersected with coaxi algorithm!");
             }
             
             if(RectangleOnRectangle(masterElems[i], slaveElems[j], coPlanarIface, ncElems))
@@ -467,19 +471,19 @@ namespace CoupledField
           }
 	  else if (isecCalc == "polygon")
 	  {
-	      if (((masterElems[i]->ptElem != ptTr1) &&
-			  (masterElems[i]->ptElem != ptQ1)) ||
-		      ((slaveElems[j]->ptElem != ptTr1) &&
-		       (slaveElems[j]->ptElem != ptQ1)))
-	      {
-		  EXCEPTION("Only linear triangles and quads can be intersected with polygon algorithm.");
-	      }
+            if (((masterElems[i]->ptElem != ptTr1) &&
+                 (masterElems[i]->ptElem != ptQ1)) ||
+                ((slaveElems[j]->ptElem != ptTr1) &&
+                 (slaveElems[j]->ptElem != ptQ1)))
+            {
+              EXCEPTION("Only linear triangles and quads can be intersected with polygon algorithm.");
+            }
 
-	      if (PolygonOnPolygon(masterElems[i], slaveElems[j],
-			  coPlanarIface, ncElems))
-		  LOG_DBG3(grid) << "Intersection between " <<
-		      masterElems[i]->elemNum << " and " <<
-		      slaveElems[j]->elemNum << std::endl;
+            if (PolygonOnPolygon(masterElems[i], slaveElems[j],
+                                 coPlanarIface, ncElems))
+              LOG_DBG3(grid) << "Intersection between " <<
+                masterElems[i]->elemNum << " and " <<
+                slaveElems[j]->elemNum << std::endl;
 	  }
         }
       }
@@ -1172,613 +1176,613 @@ namespace CoupledField
   const double TOL = 1e-8;
 
   bool Grid::PolygonOnPolygon(SurfElem *ifElem1, SurfElem *ifElem2,
-	  const bool coPlanarIface, StdVector<NCElem*> &elemList)
+                              const bool coPlanarIface, StdVector<NCElem*> &elemList)
   {
-      UInt i;
-      StdVector< Vector<Double> > p1, p2, r;
+    UInt i;
+    StdVector< Vector<Double> > p1, p2, r;
       
-      p1.Resize(ifElem1->connect.GetSize());
-      for (i = 0; i < p1.GetSize(); ++i)
-	  GetNodeCoordinate(p1[i], ifElem1->connect[i]);
+    p1.Resize(ifElem1->connect.GetSize());
+    for (i = 0; i < p1.GetSize(); ++i)
+      GetNodeCoordinate(p1[i], ifElem1->connect[i]);
       
-      p2.Resize(ifElem2->connect.GetSize());
-      for (i = 0; i < p2.GetSize(); ++i)
-	  GetNodeCoordinate(p2[i], ifElem2->connect[i]);
+    p2.Resize(ifElem2->connect.GetSize());
+    for (i = 0; i < p2.GetSize(); ++i)
+      GetNodeCoordinate(p2[i], ifElem2->connect[i]);
 
-      if (CutPolys(p1, p2, coPlanarIface, r))
+    if (CutPolys(p1, p2, coPlanarIface, r))
+    {
+      UInt start = TriangulatePoly(r, elemList);
+
+      for (UInt i = start; i < elemList.GetSize(); ++i)
       {
-	  UInt start = TriangulatePoly(r, elemList);
-
-	  for (UInt i = start; i < elemList.GetSize(); ++i)
-	  {
-	      elemList[i]->ptElem = ifElem1->ptElem;
-	      elemList[i]->ptLagrangeParent = ifElem2;
-	      elemList[i]->ptSurfParent = ifElem1;
-              elemList[i]->ptElem = ptTr1;
-	  }
-	  
-	  return true;
+        elemList[i]->ptElem = ifElem1->ptElem;
+        elemList[i]->ptLagrangeParent = ifElem2;
+        elemList[i]->ptSurfParent = ifElem1;
+        elemList[i]->ptElem = ptTr1;
       }
-      return false;
+	  
+      return true;
+    }
+    return false;
   }
 
   Grid::IntersectType Grid::CutLines(const Vector<Double> &a,
-	  const Vector<Double> &b, const Vector<Double> &c,
-	  const Vector<Double> &d, Vector<Double> &e) const
+                                     const Vector<Double> &b, const Vector<Double> &c,
+                                     const Vector<Double> &d, Vector<Double> &e) const
   {
-      Double l1, l2;
-      Vector<Double> v1, v2;
+    Double l1, l2;
+    Vector<Double> v1, v2;
 
-#ifdef CHECK_INDEX
-      if ((a.GetSize() != 3) || (b.GetSize() != 3) || (c.GetSize() != 3) ||
-	      (d.GetSize() != 3)) {
-	  EXCEPTION("Points must be given as 3D coordinates");
-	  return INTERSECT_NONE;
+ #ifdef CHECK_INDEX
+    if ((a.GetSize() != 3) || (b.GetSize() != 3) || (c.GetSize() != 3) ||
+        (d.GetSize() != 3)) {
+      EXCEPTION("Points must be given as 3D coordinates");
+      return INTERSECT_NONE;
+    }
+ #endif
+
+    v1.Resize(3);
+    v2.Resize(3);
+    e.Resize(3);
+
+    // calculate vectors of both lines
+    v1 = b - a;
+    v2 = d - c;
+    // calculate lengths of both lines
+    l1 = v1.NormL2();
+    l2 = v2.NormL2();
+
+    if (CoLinear(v1, v2)) { // lines are parallel
+      // if line from a to d is also parallel then lines may intersect
+      e = d - a;
+      if (CoLinear(v1, e)) {
+        Double l_ac, l_ad, l_bc, l_bd;
+        // calculate distances between points
+        l_ac = (c - a).NormL2();
+        l_ad = (d - a).NormL2();
+        l_bc = (c - b).NormL2();
+        l_bd = (d - b).NormL2();
+
+        if (fabs(l_ac + l_ad - l2) < TOL) {
+          e = a;
+          if (l_ac < TOL)
+            return INTERSECT_A_EQ_C;
+          if (l_ad < TOL)
+            return INTERSECT_IN_D;
+          return INTERSECT_IN_A;
+        }
+        if (fabs(l_bc + l_bd - l2) < TOL) {
+          e = b;
+          return INTERSECT_IN_B;
+        }
+        if (fabs(l_ac + l_bc - l1) < TOL) {
+          e = c;
+          return INTERSECT_IN_C;
+        }
+        if (fabs(l_ad + l_bd - l1) < TOL) {
+          e = d;
+          return INTERSECT_IN_D;
+        }
+
+        // both lines lie on one infinite virtual line
+        if (l_bc < l_ac) { // we only consider [a,inf) for type 0
+          // return point closest to a
+          if (l_ad < l_ac)
+            e = d;
+          else
+            e = c;
+          return INTERSECT_OUTSIDE;
+        }
+        return INTERSECT_NONE; // line a->b does not point to line [c,d]
       }
-#endif
+      return INTERSECT_NONE; // lines are parallel but do not intersect
+    }
 
-      v1.Resize(3);
-      v2.Resize(3);
-      e.Resize(3);
+    // lines are not parallel, so compute intersection
+    Double h, k, k1, k2, denom1, denom2;
 
-      // calculate vectors of both lines
-      v1 = b - a;
-      v2 = d - c;
-      // calculate lengths of both lines
-      l1 = v1.NormL2();
-      l2 = v2.NormL2();
+    /* a + h * v1 = c + k * v2
+     * This is a system with 2 unknowns and 3 equations. Compute k1 from
+     * equations 1 and 2, k2 from equations 1 and 3.
+     */
+    denom1 = v1[1] * v2[0] - v1[0] * v2[1];
+    if (fabs(denom1) > TOL)
+      k1 = (v1[0] * (c[1] - a[1]) + v1[1] * (a[0] - c[0])) / denom1;
+    denom2 = v1[2] * v2[0] - v1[0] * v2[2];
+    if (fabs(denom2) > TOL)
+      k2 = (v1[0] * (c[2] - a[2]) + v1[2] * (a[0] - c[0])) / denom2;
+    // If this system has no solution, lines do not intersect.
+    if ((fabs(denom1) <= TOL) && (fabs(denom2) <= TOL))
+      return INTERSECT_NONE;
+    if ((fabs(denom1) > TOL) && (fabs(denom2) > TOL)) {
+      if (fabs(k1 - k2) > TOL)
+        return INTERSECT_NONE;
+    }
 
-      if (CoLinear(v1, v2)) { // lines are parallel
-	  // if line from a to d is also parallel then lines may intersect
-	  e = d - a;
-	  if (CoLinear(v1, e)) {
-	      Double l_ac, l_ad, l_bc, l_bd;
-	      // calculate distances between points
-	      l_ac = (c - a).NormL2();
-	      l_ad = (d - a).NormL2();
-	      l_bc = (c - b).NormL2();
-	      l_bd = (d - b).NormL2();
+    // compute second unknown
+    if (fabs(denom1) > TOL) k = k1; else k = k2;
+    if (fabs(v1[0]) > TOL)
+      h = (c[0] - a[0] + v2[0] * k) / v1[0];
+    else if (fabs(v1[1]) > TOL)
+      h = (c[1] - a[1] + v2[1] * k) / v1[1];
+    else
+      h = (c[2] - a[2] + v2[2] * k) / v1[2];
 
-	      if (fabs(l_ac + l_ad - l2) < TOL) {
-		  e = a;
-		  if (l_ac < TOL)
-		      return INTERSECT_A_EQ_C;
-		  if (l_ad < TOL)
-		      return INTERSECT_IN_D;
-		  return INTERSECT_IN_A;
-	      }
-	      if (fabs(l_bc + l_bd - l2) < TOL) {
-		  e = b;
-		  return INTERSECT_IN_B;
-	      }
-	      if (fabs(l_ac + l_bc - l1) < TOL) {
-		  e = c;
-		  return INTERSECT_IN_C;
-	      }
-	      if (fabs(l_ad + l_bd - l1) < TOL) {
-		  e = d;
-		  return INTERSECT_IN_D;
-	      }
+    e = a + v1 * h; // compute point of intersection
 
-	      // both lines lie on one infinite virtual line
-	      if (l_bc < l_ac) { // we only consider [a,inf) for type 0
-		  // return point closest to a
-		  if (l_ad < l_ac)
-		      e = d;
-		  else
-		      e = c;
-		  return INTERSECT_OUTSIDE;
-	      }
-	      return INTERSECT_NONE; // line a->b does not point to line [c,d]
-	  }
-	  return INTERSECT_NONE; // lines are parallel but do not intersect
+    if (h > -TOL) { // we consider only [a,inf)
+      if ((k > -TOL) && (k < 1.0 + TOL)) { // intersection on [c,d]?
+        if (h < 1.0 + TOL) { // intersection on [a,b]?
+          // treat special cases
+          if (fabs(h - 1.0) < TOL) // h=1 means intersection in b
+            return INTERSECT_IN_B;
+          if (fabs(k - 1.0) < TOL) // k=1 means intersection in d
+            return INTERSECT_IN_D;
+          if (fabs(k) < TOL) { // k=0 means intersection in c
+            if (fabs(h) < TOL) // h=0 means intersection in a
+              return INTERSECT_A_EQ_C;
+            return INTERSECT_IN_C;
+          }
+          if (fabs(h) < TOL) // h=0 means intersection in a
+            return INTERSECT_IN_A;
+          return INTERSECT_CROSS; // X intersection
+        }
+        return INTERSECT_ON_LINE2; // [a,inf) with [c,d]
       }
+      return INTERSECT_OUTSIDE; // intersection not on any line
+    }
 
-      // lines are not parallel, so compute intersection
-      Double h, k, k1, k2, denom1, denom2;
-
-      /* a + h * v1 = c + k * v2
-       * This is a system with 2 unknowns and 3 equations. Compute k1 from
-       * equations 1 and 2, k2 from equations 1 and 3.
-       */
-      denom1 = v1[1] * v2[0] - v1[0] * v2[1];
-      if (fabs(denom1) > TOL)
-	  k1 = (v1[0] * (c[1] - a[1]) + v1[1] * (a[0] - c[0])) / denom1;
-      denom2 = v1[2] * v2[0] - v1[0] * v2[2];
-      if (fabs(denom2) > TOL)
-	  k2 = (v1[0] * (c[2] - a[2]) + v1[2] * (a[0] - c[0])) / denom2;
-      // If this system has no solution, lines do not intersect.
-      if ((fabs(denom1) <= TOL) && (fabs(denom2) <= TOL))
-	  return INTERSECT_NONE;
-      if ((fabs(denom1) > TOL) && (fabs(denom2) > TOL)) {
-	  if (fabs(k1 - k2) > TOL)
-	      return INTERSECT_NONE;
-      }
-
-      // compute second unknown
-      if (fabs(denom1) > TOL) k = k1; else k = k2;
-      if (fabs(v1[0]) > TOL)
-	  h = (c[0] - a[0] + v2[0] * k) / v1[0];
-      else if (fabs(v1[1]) > TOL)
-	  h = (c[1] - a[1] + v2[1] * k) / v1[1];
-      else
-	  h = (c[2] - a[2] + v2[2] * k) / v1[2];
-
-      e = a + v1 * h; // compute point of intersection
-
-      if (h > -TOL) { // we consider only [a,inf)
-	  if ((k > -TOL) && (k < 1.0 + TOL)) { // intersection on [c,d]?
-	      if (h < 1.0 + TOL) { // intersection on [a,b]?
-		  // treat special cases
-		  if (fabs(h - 1.0) < TOL) // h=1 means intersection in b
-		      return INTERSECT_IN_B;
-		  if (fabs(k - 1.0) < TOL) // k=1 means intersection in d
-		      return INTERSECT_IN_D;
-		  if (fabs(k) < TOL) { // k=0 means intersection in c
-		      if (fabs(h) < TOL) // h=0 means intersection in a
-			  return INTERSECT_A_EQ_C;
-		      return INTERSECT_IN_C;
-		  }
-		  if (fabs(h) < TOL) // h=0 means intersection in a
-		      return INTERSECT_IN_A;
-		  return INTERSECT_CROSS; // X intersection
-	      }
-	      return INTERSECT_ON_LINE2; // [a,inf) with [c,d]
-	  }
-	  return INTERSECT_OUTSIDE; // intersection not on any line
-      }
-
-      return INTERSECT_NONE; // no intersection (with [a,inf))
+    return INTERSECT_NONE; // no intersection (with [a,inf))
   }
 
   bool Grid::CutPolys(StdVector< Vector<Double> > &p1,
-	  StdVector< Vector<Double> > &p2, const bool coPlanarIface,
-	  StdVector< Vector<Double> > &r) const
+                      StdVector< Vector<Double> > &p2, const bool coPlanarIface,
+                      StdVector< Vector<Double> > &r) const
   {
-      Double r1, r2;
-      UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
-      Vector<Double> c1, c2, e/*, last_cut*/;
-      struct Intersection {
-	  UInt index;
-	  UInt type;
-	  bool swap;
-	  Vector<Double> loc;
-      } cuts[2];
+    Double r1, r2;
+    UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
+    Vector<Double> c1, c2, e/*, last_cut*/;
+    struct Intersection {
+      UInt index;
+      UInt type;
+      bool swap;
+      Vector<Double> loc;
+    } cuts[2];
 
-#ifdef CHECK_INDEX
-      // check that we have actually polygons
-      if ((p1.GetSize() < 3) || (p2.GetSize() < 3))
-      {
-	  EXCEPTION("A polygon must consist of 3 points at least");
-	  return false;
-      }
-#endif
+ #ifdef CHECK_INDEX
+    // check that we have actually polygons
+    if ((p1.GetSize() < 3) || (p2.GetSize() < 3))
+    {
+      EXCEPTION("A polygon must consist of 3 points at least");
+      return false;
+    }
+ #endif
       
-      //last_cut.Resize(3);
+    //last_cut.Resize(3);
 
-      // compute surrounding circles of both polygons
-      r1 = PolyCentroid(p1, c1);
-      r2 = PolyCentroid(p2, c2);
+    // compute surrounding circles of both polygons
+    r1 = PolyCentroid(p1, c1);
+    r2 = PolyCentroid(p2, c2);
 
-      // quit, if surrounding circles do not intersect
-      if (r1 + r2 < (c1 - c2).NormL2())
-	  return false;
+    // quit, if surrounding circles do not intersect
+    if (r1 + r2 < (c1 - c2).NormL2())
+      return false;
 
-      // if interface is not coplanar then project p1 onto p2
-      if (!coPlanarIface) {
-	  Double scale;
-	  Vector<Double> n;
-	  // compute surface normal of p2
-	  CrossProd(p2[1]- p2[0], p2[2] - p2[0], n);
-	  Normalize(n);
-	  // project each point of p1
-	  for (i = 0; i < p1.GetSize(); ++i) {
-	      n.Inner(p1[i] - p2[0], scale);
-	      p1[i] -= n * scale;
-	  }
-      }
-      
-      // Count those points of p1 that are contained in p2. Choose a point
-      // that lies outside of p2 as starting point.
+    // if interface is not coplanar then project p1 onto p2
+    if (!coPlanarIface) {
+      Double scale;
+      Vector<Double> n;
+      // compute surface normal of p2
+      CrossProd(p2[1]- p2[0], p2[2] - p2[0], n);
+      Normalize(n);
+      // project each point of p1
       for (i = 0; i < p1.GetSize(); ++i) {
-	  if (PointInsidePoly(p1[i], p2, &c2))
-	      ++inside;
-	  else if ((inside == 0) || (start_cur == p1.GetSize()))
-	      start_cur = i;
-
+        n.Inner(p1[i] - p2[0], scale);
+        p1[i] -= n * scale;
       }
-      // Is p1 contained completely in p2?
-      if (inside == p1.GetSize()) {
-	  r = p1; // intersection is p1 itself (for convex polygons)
-	  return true;
-      }
-      if (inside == 0) { // no points of p1 inside p2?
-	  for (i = 0; i < p2.GetSize(); ++i) {
-	      if (PointInsidePoly(p2[i], p1, &c1))
-		  ++inside;
-	  }
-	  // Is p2 contained completely in p1?
-	  if (inside == p2.GetSize()) {
-	      r = p2; // intersection is p2 itself (for convex polygons)
-	      return true;
-	  }
-      }
-      // WARNING: One can not conclude that two polygons do not intersect from
-      // the fact that no point lies inside the other polygon.
+    }
+      
+    // Count those points of p1 that are contained in p2. Choose a point
+    // that lies outside of p2 as starting point.
+    for (i = 0; i < p1.GetSize(); ++i) {
+      if (PointInsidePoly(p1[i], p2, &c2))
+        ++inside;
+      else if ((inside == 0) || (start_cur == p1.GetSize()))
+        start_cur = i;
 
-      // make sure that both polygons have the same orientation
-      PolygonIterator pi1(p1, start_cur), pi2(p2);
-      CrossProd(p1[1] - p1[0], p1[2] - p1[0], c1);
-      CrossProd(p2[1] - p2[0], p2[2] - p2[0], c2);
-      if (c1 * c2 < 0.0)
-	  pi2.Reverse();
+    }
+    // Is p1 contained completely in p2?
+    if (inside == p1.GetSize()) {
+      r = p1; // intersection is p1 itself (for convex polygons)
+      return true;
+    }
+    if (inside == 0) { // no points of p1 inside p2?
+      for (i = 0; i < p2.GetSize(); ++i) {
+        if (PointInsidePoly(p2[i], p1, &c1))
+          ++inside;
+      }
+      // Is p2 contained completely in p1?
+      if (inside == p2.GetSize()) {
+        r = p2; // intersection is p2 itself (for convex polygons)
+        return true;
+      }
+    }
+    // WARNING: One can not conclude that two polygons do not intersect from
+    // the fact that no point lies inside the other polygon.
 
-      // find the first cut of two edges of the polygons
+    // make sure that both polygons have the same orientation
+    PolygonIterator pi1(p1, start_cur), pi2(p2);
+    CrossProd(p1[1] - p1[0], p1[2] - p1[0], c1);
+    CrossProd(p2[1] - p2[0], p2[2] - p2[0], c2);
+    if (c1 * c2 < 0.0)
+      pi2.Reverse();
+
+    // find the first cut of two edges of the polygons
+    do {
       do {
-	  do {
-	      IntersectType cuttype
-		  = CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e);
-	      Intersection cut = {pi2.GetPos(), cuttype, false, e};
-	      // See what kind of cut we have found.
-	      // This section is different from the main loop, because we do
-	      // not know if we cut from outside into p2 or vice versa. This
-	      // can happen despite the starting point lying outside, because
-	      // an edge of p1 might cut p2 into halves.
-	      switch (cuttype) {
-		  case INTERSECT_CROSS: // lines cross each other
-		      break; // always store the cut
-		  case INTERSECT_IN_A:
-		      // see if [a,b] lies inside of p2 or not
-		      if ((CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
-				  >= INTERSECT_ON_LINE2) ||
-			      (CutLines(*pi1, pi1.Next(), pi2.Prev(),
-					pi2.Next(), e) >= INTERSECT_ON_LINE2))
-			  break;
-		      continue; // [a,b] lies outside of p2 => no cut 
-		  case INTERSECT_IN_C:
-		  case INTERSECT_A_EQ_C:
-		      // does [a,b] cut into p2?
-		      if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
-				e) >= INTERSECT_ON_LINE2)
-			  break; // yes, store cut
-		      // does [c,d] lie inside of p1?
-		      if (CutLines(*pi2, pi2.Next(), pi1.Prev(), pi1.Next(),
-				e) >= INTERSECT_ON_LINE2) {
-			  cut.swap = true; // continue with p2
-			  break; // add cut
-		      }
-		      if (cuttype != INTERSECT_A_EQ_C) { // not for a=c
-			  if (CutLines(*pi2, pi2.Next(), *pi1, pi1.Next(2), e)
-				  >= INTERSECT_ON_LINE2) {
-			      cut.swap = true; // continue with p2
-			      break; // add cut
-			  }
-		      }
-		      continue; // polygons touch in c only
-		  default:
-		      // cases for cuts in b and d are not stored, because
-		      // they would give duplicate cuts (polygons are closed!)
-		      continue;
-	      }
+        IntersectType cuttype
+          = CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e);
+        Intersection cut = {pi2.GetPos(), cuttype, false, e};
+        // See what kind of cut we have found.
+        // This section is different from the main loop, because we do
+        // not know if we cut from outside into p2 or vice versa. This
+        // can happen despite the starting point lying outside, because
+        // an edge of p1 might cut p2 into halves.
+        switch (cuttype) {
+        case INTERSECT_CROSS: // lines cross each other
+          break; // always store the cut
+        case INTERSECT_IN_A:
+          // see if [a,b] lies inside of p2 or not
+          if ((CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
+               >= INTERSECT_ON_LINE2) ||
+              (CutLines(*pi1, pi1.Next(), pi2.Prev(),
+                        pi2.Next(), e) >= INTERSECT_ON_LINE2))
+            break;
+          continue; // [a,b] lies outside of p2 => no cut 
+        case INTERSECT_IN_C:
+        case INTERSECT_A_EQ_C:
+          // does [a,b] cut into p2?
+          if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
+                       e) >= INTERSECT_ON_LINE2)
+            break; // yes, store cut
+          // does [c,d] lie inside of p1?
+          if (CutLines(*pi2, pi2.Next(), pi1.Prev(), pi1.Next(),
+                       e) >= INTERSECT_ON_LINE2) {
+            cut.swap = true; // continue with p2
+            break; // add cut
+          }
+          if (cuttype != INTERSECT_A_EQ_C) { // not for a=c
+            if (CutLines(*pi2, pi2.Next(), *pi1, pi1.Next(2), e)
+                >= INTERSECT_ON_LINE2) {
+              cut.swap = true; // continue with p2
+              break; // add cut
+            }
+          }
+          continue; // polygons touch in c only
+        default:
+          // cases for cuts in b and d are not stored, because
+          // they would give duplicate cuts (polygons are closed!)
+          continue;
+        }
 
-	      if (nCuts < 2)
-		  cuts[nCuts] = cut; // store the cut
-	      ++nCuts;
+        if (nCuts < 2)
+          cuts[nCuts] = cut; // store the cut
+        ++nCuts;
 
-	      // test next line of passive polygon
-	  } while ( ! (++pi2).AtBegin() );
+        // test next line of passive polygon
+      } while ( ! (++pi2).AtBegin() );
 
-	  // exit loop if first active line with cut is found
-	  if (nCuts > 0)
-	      break;
+      // exit loop if first active line with cut is found
+      if (nCuts > 0)
+        break;
 
-	  // next line of active polygon
-      } while ( ! (++pi1).AtBegin() );
+      // next line of active polygon
+    } while ( ! (++pi1).AtBegin() );
 
-      // do not proceed if there is no cut to start with
-      if (nCuts == 0)
-	  return false;
-      // make sure there are not more cuts than possible
-      if (nCuts > 2) {
-	  EXCEPTION("A line can not cut more than two edges of a convex polygon");
-      }
+    // do not proceed if there is no cut to start with
+    if (nCuts == 0)
+      return false;
+    // make sure there are not more cuts than possible
+    if (nCuts > 2) {
+      EXCEPTION("A line can not cut more than two edges of a convex polygon");
+    }
 
-      // save the position of the first cut in the active polygon
-      pi1.SetBegin(pi1.GetPos());
+    // save the position of the first cut in the active polygon
+    pi1.SetBegin(pi1.GetPos());
 
-      if (nCuts == 2) { // two cuts
-	  // make sure we do not treat a duplicate cut
-	  if ((cuts[1].loc - cuts[0].loc).NormL2() < TOL) {
-	      nCuts = 1;
-	  } else {
-	      // Here we can assume that we have found two "real" cuts. In
-	      // this case [a,b] runs completely through p2.
-	      // => sort cuts by distance to a
-	      if ((cuts[0].loc - *pi1).NormL2() < (cuts[1].loc - *pi1).NormL2())
-	      {
-		  r.Push_back(cuts[0].loc);
-		  //last_cut = cuts[1].loc;
-		  r.Push_back(cuts[1].loc);
+    if (nCuts == 2) { // two cuts
+      // make sure we do not treat a duplicate cut
+      if ((cuts[1].loc - cuts[0].loc).NormL2() < TOL) {
+        nCuts = 1;
+      } else {
+        // Here we can assume that we have found two "real" cuts. In
+        // this case [a,b] runs completely through p2.
+        // => sort cuts by distance to a
+        if ((cuts[0].loc - *pi1).NormL2() < (cuts[1].loc - *pi1).NormL2())
+        {
+          r.Push_back(cuts[0].loc);
+          //last_cut = cuts[1].loc;
+          r.Push_back(cuts[1].loc);
 		  
-		  pi2.Seek(cuts[0].index);
-		  if ((cuts[0].type != INTERSECT_IN_C) &&
-			  (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
-		  pi2.SetBegin();
+          pi2.Seek(cuts[0].index);
+          if ((cuts[0].type != INTERSECT_IN_C) &&
+              (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
+          pi2.SetBegin();
 
-		  pi2.Seek(cuts[1].index);
-	      } else {
-		  r.Push_back(cuts[1].loc);
-		  //last_cut = cuts[0].loc;
-		  r.Push_back(cuts[0].loc);
+          pi2.Seek(cuts[1].index);
+        } else {
+          r.Push_back(cuts[1].loc);
+          //last_cut = cuts[0].loc;
+          r.Push_back(cuts[0].loc);
 		  
-		  pi2.Seek(cuts[1].index);
-		  if ((cuts[1].type != INTERSECT_IN_C) &&
-			  (cuts[1].type != INTERSECT_A_EQ_C)) ++pi2;
-		  pi2.SetBegin();
+          pi2.Seek(cuts[1].index);
+          if ((cuts[1].type != INTERSECT_IN_C) &&
+              (cuts[1].type != INTERSECT_A_EQ_C)) ++pi2;
+          pi2.SetBegin();
 
-		  pi2.Seek(cuts[0].index);
-	      }
-	      ++pi1; // avoid finding the same cut twice
-	      pi1.Swap(pi2); // continue with p2
-	  }
-      } // NO else clause here in order to catch duplicate cuts
-      if (nCuts == 1) { // one cut with line [a,b]
-	  // save the position of the first cut with the passive polygon
-
-	  pi2.Seek(cuts[0].index);
-	  if ((cuts[0].type != INTERSECT_IN_C) &&
-		  (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
-	  pi2.SetBegin();
-
-	  // store first point of intersection polygon
-	  //last_cut = cuts[0].loc;
-	  r.Push_back(cuts[0].loc);
-
-	  // avoid finding the same cut twice
-	  ++pi1;
-	  // continue with p2, if indicated
-	  if (cuts[0].swap) {
-	      pi1.Swap(pi2);
-	  } else {// [a,b] cuts into p2, so add b
-	      /*r.Push_back(last_cut);
-	      last_cut = *pi1;*/
-	      r.Push_back(*pi1);
-	  }
+          pi2.Seek(cuts[0].index);
+        }
+        ++pi1; // avoid finding the same cut twice
+        pi1.Swap(pi2); // continue with p2
       }
+    } // NO else clause here in order to catch duplicate cuts
+    if (nCuts == 1) { // one cut with line [a,b]
+      // save the position of the first cut with the passive polygon
 
-      bool swap, swapped = false;
-      UInt start_act = pi1.GetPos(), start_pas = pi2.GetPos();
+      pi2.Seek(cuts[0].index);
+      if ((cuts[0].type != INTERSECT_IN_C) &&
+          (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
+      pi2.SetBegin();
 
-      // main loop
-      do {
-	  swap = false;
-	  if ( ! pi2.AtBegin() || !swapped ) {
-	      do {
-		  switch (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e)) {
-		      case INTERSECT_CROSS:
-		      case INTERSECT_IN_C:
-			  /*r.Push_back(last_cut);
-			  last_cut = e;*/
-			  r.Push_back(e);
-			  swap = true;
-			  break;
-		      case INTERSECT_IN_A:
-			  if (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
-				  >= INTERSECT_ON_LINE2)
-			      continue;
-		      case INTERSECT_A_EQ_C:
-			  if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
-				      e) >= INTERSECT_ON_LINE2)
-			      continue;
-			  swap = true;
-			  break;
-		      default:
-			  break;
-		  }
-		  if (swap) break;
-	      } while ( ! (++pi2).AtBegin() );
-	  }
-	  ++pi1;
-	  if (swap) {
-	      pi1.Swap(pi2);
-	      start_act = pi1.GetPos();
-	      pi1.Seek(start_act);
-	      start_pas = pi2.GetPos();
-	      swapped = true;
-	  } else {
-	      /*r.Push_back(last_cut);
-	      last_cut = *pi1;*/
-	      r.Push_back(*pi1);
-	      // Return to the point directly after the last cut (we can do
-	      // this due to the polygons being convex and having the same
-	      // orientation).
-	      pi2.Seek(start_pas);
-	  }
-      } while ( !pi1.AtEnd() );
+      // store first point of intersection polygon
+      //last_cut = cuts[0].loc;
+      r.Push_back(cuts[0].loc);
 
-      r.Erase(r.GetSize() - 1);
-      return (r.GetSize() > 2);
+      // avoid finding the same cut twice
+      ++pi1;
+      // continue with p2, if indicated
+      if (cuts[0].swap) {
+        pi1.Swap(pi2);
+      } else {// [a,b] cuts into p2, so add b
+        /*r.Push_back(last_cut);
+          last_cut = *pi1;*/
+        r.Push_back(*pi1);
+      }
+    }
+
+    bool swap, swapped = false;
+    UInt start_act = pi1.GetPos(), start_pas = pi2.GetPos();
+
+    // main loop
+    do {
+      swap = false;
+      if ( ! pi2.AtBegin() || !swapped ) {
+        do {
+          switch (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e)) {
+          case INTERSECT_CROSS:
+          case INTERSECT_IN_C:
+            /*r.Push_back(last_cut);
+              last_cut = e;*/
+            r.Push_back(e);
+            swap = true;
+            break;
+          case INTERSECT_IN_A:
+            if (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
+                >= INTERSECT_ON_LINE2)
+              continue;
+          case INTERSECT_A_EQ_C:
+            if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
+                         e) >= INTERSECT_ON_LINE2)
+              continue;
+            swap = true;
+            break;
+          default:
+            break;
+          }
+          if (swap) break;
+        } while ( ! (++pi2).AtBegin() );
+      }
+      ++pi1;
+      if (swap) {
+        pi1.Swap(pi2);
+        start_act = pi1.GetPos();
+        pi1.Seek(start_act);
+        start_pas = pi2.GetPos();
+        swapped = true;
+      } else {
+        /*r.Push_back(last_cut);
+          last_cut = *pi1;*/
+        r.Push_back(*pi1);
+        // Return to the point directly after the last cut (we can do
+        // this due to the polygons being convex and having the same
+        // orientation).
+        pi2.Seek(start_pas);
+      }
+    } while ( !pi1.AtEnd() );
+
+    r.Erase(r.GetSize() - 1);
+    return (r.GetSize() > 2);
   }
   
   bool Grid::PointInsidePoly(const Vector<Double> &p,
-	  const StdVector< Vector<Double> > &poly,
-	  const Vector<Double> *const c) const
+                             const StdVector< Vector<Double> > &poly,
+                             const Vector<Double> *const c) const
   {
-      bool result = false;
-      IntersectType s;
-      Vector<Double> center, e;
-      ConstPolygonIterator pi(poly);
+    bool result = false;
+    IntersectType s;
+    Vector<Double> center, e;
+    ConstPolygonIterator pi(poly);
 
-      // compute centroid of polygon, if not given
-      if (c == NULL)
-	  PolyCentroid(poly, center);
-      else
-	  center = *c;
+    // compute centroid of polygon, if not given
+    if (c == NULL)
+      PolyCentroid(poly, center);
+    else
+      center = *c;
 
-      // Test if p is the centroid of the polygon (should always lie inside of a
-      // convex polygon). In this case the algorithm below will not work.
-      if ((p - center).NormL2() < TOL)
-	  return TRUE;
+    // Test if p is the centroid of the polygon (should always lie inside of a
+    // convex polygon). In this case the algorithm below will not work.
+    if ((p - center).NormL2() < TOL)
+      return TRUE;
 
-      // try intersecting [c,p] with each edge of the polygon
-      do {
-	  s = CutLines(center, p, *pi, pi.Next(), e);
-	  if (s <= INTERSECT_OUTSIDE)
-	      continue;
-	  if ((s == INTERSECT_ON_LINE2) || (s == INTERSECT_IN_B)) {
-	      result = TRUE;
-	      break;
-	  }
-	  if ((s == INTERSECT_CROSS) || (s >= INTERSECT_IN_C)) {
-	      result = FALSE;
-	      break;
-	  }
-      } while ( ! (++pi).AtBegin() );
+    // try intersecting [c,p] with each edge of the polygon
+    do {
+      s = CutLines(center, p, *pi, pi.Next(), e);
+      if (s <= INTERSECT_OUTSIDE)
+        continue;
+      if ((s == INTERSECT_ON_LINE2) || (s == INTERSECT_IN_B)) {
+        result = TRUE;
+        break;
+      }
+      if ((s == INTERSECT_CROSS) || (s >= INTERSECT_IN_C)) {
+        result = FALSE;
+        break;
+      }
+    } while ( ! (++pi).AtBegin() );
 
-      return result;
+    return result;
   }
 
   Double Grid::PolyCentroid(const StdVector< Vector<Double> > &p,
-	  Vector<Double> &c) const
+                            Vector<Double> &c) const
   {
-      UInt i, n = p.GetSize();
-      Double r, r_max = 0.0;
+    UInt i, n = p.GetSize();
+    Double r, r_max = 0.0;
 
-      // set c to 0
-      c.Resize(3);
-      c.Init(0.0);
+    // set c to 0
+    c.Resize(3);
+    c.Init(0.0);
 
-      // compute center of gravity
-      for (i = 0; i < n; ++i)
-	  c += p[i];
-      c /= (Double) n;
+    // compute center of gravity
+    for (i = 0; i < n; ++i)
+      c += p[i];
+    c /= (Double) n;
 
-      // find point with maximum distance from centroid
-      for (i = 0; i < n; ++i) {
-	  r = (p[i] - c).NormL2();
-	  if (r > r_max)
-	      r_max = r;
-      }
+    // find point with maximum distance from centroid
+    for (i = 0; i < n; ++i) {
+      r = (p[i] - c).NormL2();
+      if (r > r_max)
+        r_max = r;
+    }
 
-      return r_max;
+    return r_max;
   }
 
   UInt Grid::TriangulatePoly(const StdVector< Vector<Double> > &p,
-	  StdVector<NCElem*> &tri)
+                             StdVector<NCElem*> &tri)
   {
-      UInt nodeNo, firstNo = tri.GetSize();
-      NCElem *ncElem, *ncElem2;
-      UInt numPoints = p.GetSize();
+    UInt nodeNo, firstNo = tri.GetSize();
+    NCElem *ncElem, *ncElem2;
+    UInt numPoints = p.GetSize();
 
-      /*      
-      Vector<Double> point, midPoint;
-      Double dist, maxDist = 0.0;
+    /*      
+            Vector<Double> point, midPoint;
+            Double dist, maxDist = 0.0;
 
-      midPoint.Resize(3);
-      midPoint[0] = midPoint[1] = midPoint[2] = 0;
+            midPoint.Resize(3);
+            midPoint[0] = midPoint[1] = midPoint[2] = 0;
 
-      for(UInt i=0; i<numPoints; i++)
-      {
-          midPoint += p[i];
-      }
+            for(UInt i=0; i<numPoints; i++)
+            {
+            midPoint += p[i];
+            }
 
-      midPoint *= 1.0/numPoints;
+            midPoint *= 1.0/numPoints;
 
-      for(UInt i=0; i<numPoints; i++)
-      {
-          dist = p[i][0] - midPoint[0] +
-                 p[i][1] - midPoint[1] +
-                 p[i][2] - midPoint[2];
-          maxDist = maxDist > dist ? maxDist : dist;
-      }
+            for(UInt i=0; i<numPoints; i++)
+            {
+            dist = p[i][0] - midPoint[0] +
+            p[i][1] - midPoint[1] +
+            p[i][2] - midPoint[2];
+            maxDist = maxDist > dist ? maxDist : dist;
+            }
 
-      if(maxDist < 0.001)
-      {
-          std::cerr << "maxDist = " << maxDist <<std::endl;
-          return firstNo;
-      }
-      */
+            if(maxDist < 0.001)
+            {
+            std::cerr << "maxDist = " << maxDist <<std::endl;
+            return firstNo;
+            }
+    */
       
-      switch (numPoints) {
-	  case 3:
-	      ncElem = new NCElem;
-	      ncElem->connect.Resize(3);
+    switch (numPoints) {
+    case 3:
+      ncElem = new NCElem;
+      ncElem->connect.Resize(3);
 	      
-	      AddNode(p[0], nodeNo);
-	      ncElem->connect[0] = nodeNo;
-	      AddNode(p[1], nodeNo);
-	      ncElem->connect[1] = nodeNo;
-	      AddNode(p[2], nodeNo);
-	      ncElem->connect[2] = nodeNo;
+      AddNode(p[0], nodeNo);
+      ncElem->connect[0] = nodeNo;
+      AddNode(p[1], nodeNo);
+      ncElem->connect[1] = nodeNo;
+      AddNode(p[2], nodeNo);
+      ncElem->connect[2] = nodeNo;
 
-	      tri.Push_back(ncElem);
-	      break;
-	  case 4:
-	      ncElem = new NCElem;
-	      ncElem2 = new NCElem;
-	      ncElem->connect.Resize(3);
-	      ncElem2->connect.Resize(3);
+      tri.Push_back(ncElem);
+      break;
+    case 4:
+      ncElem = new NCElem;
+      ncElem2 = new NCElem;
+      ncElem->connect.Resize(3);
+      ncElem2->connect.Resize(3);
 	      
-	      if ((p[0] - p[2]).NormL2() < (p[1] - p[3]).NormL2())
-	      {
-		  AddNode(p[0], nodeNo);
-		  ncElem->connect[0] = nodeNo;
-		  ncElem2->connect[0] = nodeNo;
-		  AddNode(p[1], nodeNo);
-		  ncElem->connect[1] = nodeNo;
-		  AddNode(p[2], nodeNo);
-		  ncElem->connect[2] = nodeNo;
-		  ncElem2->connect[1] = nodeNo;
-		  AddNode(p[3], nodeNo);
-		  ncElem2->connect[2] = nodeNo;
-	      } else {
-		  AddNode(p[0], nodeNo);
-		  ncElem->connect[0] = nodeNo;
-		  AddNode(p[1], nodeNo);
-		  ncElem->connect[1] = nodeNo;
-		  ncElem2->connect[0] = nodeNo;
-		  AddNode(p[2], nodeNo);
-		  ncElem2->connect[1] = nodeNo;
-		  AddNode(p[3], nodeNo);
-		  ncElem->connect[2] = nodeNo;
-		  ncElem2->connect[2] = nodeNo;
-	      }
-
-	      tri.Push_back(ncElem);
-	      tri.Push_back(ncElem2);
-	      break;
-	  default:
-	      UInt i, centerNode, firstNode;
-	      Vector<Double> c;
-	      
-	      PolyCentroid(p, c);
-	      AddNode(c, centerNode);
-	      AddNode(p[0], nodeNo);
-	      firstNode = nodeNo;
-	      
-	      for (i = 1; i < p.GetSize(); ++i)
-	      {
-		  ncElem = new NCElem;
-		  ncElem->connect.Resize(3);
-		  
-		  ncElem->connect[0] = nodeNo;
-		  AddNode(p[i], nodeNo);
-		  ncElem->connect[1] = nodeNo;
-		  ncElem->connect[2] = centerNode;
-		  
-		  tri.Push_back(ncElem);
-	      }
-	      
-	      ncElem = new NCElem;
-	      ncElem->connect.Resize(3);
-
-	      ncElem->connect[0] = nodeNo;
-	      ncElem->connect[1] = firstNode;
-	      ncElem->connect[2] = centerNode;
-
-	      tri.Push_back(ncElem);
+      if ((p[0] - p[2]).NormL2() < (p[1] - p[3]).NormL2())
+      {
+        AddNode(p[0], nodeNo);
+        ncElem->connect[0] = nodeNo;
+        ncElem2->connect[0] = nodeNo;
+        AddNode(p[1], nodeNo);
+        ncElem->connect[1] = nodeNo;
+        AddNode(p[2], nodeNo);
+        ncElem->connect[2] = nodeNo;
+        ncElem2->connect[1] = nodeNo;
+        AddNode(p[3], nodeNo);
+        ncElem2->connect[2] = nodeNo;
+      } else {
+        AddNode(p[0], nodeNo);
+        ncElem->connect[0] = nodeNo;
+        AddNode(p[1], nodeNo);
+        ncElem->connect[1] = nodeNo;
+        ncElem2->connect[0] = nodeNo;
+        AddNode(p[2], nodeNo);
+        ncElem2->connect[1] = nodeNo;
+        AddNode(p[3], nodeNo);
+        ncElem->connect[2] = nodeNo;
+        ncElem2->connect[2] = nodeNo;
       }
-      return firstNo;
+
+      tri.Push_back(ncElem);
+      tri.Push_back(ncElem2);
+      break;
+    default:
+      UInt i, centerNode, firstNode;
+      Vector<Double> c;
+	      
+      PolyCentroid(p, c);
+      AddNode(c, centerNode);
+      AddNode(p[0], nodeNo);
+      firstNode = nodeNo;
+	      
+      for (i = 1; i < p.GetSize(); ++i)
+      {
+        ncElem = new NCElem;
+        ncElem->connect.Resize(3);
+		  
+        ncElem->connect[0] = nodeNo;
+        AddNode(p[i], nodeNo);
+        ncElem->connect[1] = nodeNo;
+        ncElem->connect[2] = centerNode;
+		  
+        tri.Push_back(ncElem);
+      }
+	      
+      ncElem = new NCElem;
+      ncElem->connect.Resize(3);
+
+      ncElem->connect[0] = nodeNo;
+      ncElem->connect[1] = firstNode;
+      ncElem->connect[2] = centerNode;
+
+      tri.Push_back(ncElem);
+    }
+    return firstNo;
   }
 
 
