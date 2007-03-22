@@ -42,7 +42,7 @@ namespace CoupledField{
   }
 
   void PolarCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
-                                          const Vector<Double> & loc ) const {
+                                            const Vector<Double> & loc ) const {
     ENTER_FCN("PolarCoordSystem::Local2GlobalCoord");
     
     Vector<Double> temp(2);
@@ -133,13 +133,12 @@ namespace CoupledField{
     Vector<Double> locModelPoint(2), d(2);
     Vector<TYPE> temp(2);
 
+    // Calculate the distance and angle to the point
+    d =  globModelPoint - origin_;
+
     // Transform global cartesian model point into local
     // cartesian one
-    rotationMat_.Mult(globModelPoint, locModelPoint);
-
-    // Calculate the distance and angle to the point
-    d =  locModelPoint;
-    d -= origin_;
+    rotationMat_.Mult(d, locModelPoint);
 
     r = std::sqrt(d[0] * d[0] + d[1] *d[1]);
     phi = std::atan2(d[1],d[0]);
@@ -183,7 +182,7 @@ namespace CoupledField{
 //                   << "in the polar coordinate system '" << name_ << "'!" );
 //     }
 
-    x = rAxis_;
+    x = rAxis_ - origin_;
     x /= x.NormL2();
     
     y[0] = -x[1];

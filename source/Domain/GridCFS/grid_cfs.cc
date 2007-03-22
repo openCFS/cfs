@@ -16,6 +16,8 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
+#include "Utils/coordSystem.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -178,246 +180,334 @@ namespace CoupledField {
 
   void  GridCFS::GetNodesForDirectivity() {
     ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
-
-
-    StdVector<std::string> keyVec, attrVec, valVec;
-    StdVector<Double> radiiVec;
-    attrVec = "","","";
-    valVec = "","","";
-    UInt j,k,l;
+    
+    LOG_TRACE(gridcfs) << "Reading nodes for directivity pattern";
     
     // get parameter node of directivity definition
     ParamNode * dirNode = param->Get("domain")->Get("directivityNodes", false);
     if( !dirNode) return;
 
+    // get reference coordinate system
+    std::string coordName = dirNode->Get("coordSys")->Get("name")->AsString();
+    CoordSystem * coordSys = domain->GetCoordSystem( coordName );
 
-    // get "distance nodes" and "radius"
-    StdVector<ParamNode*> distNodes = dirNode->GetList("distance");
-    for( UInt i = 0; i < distNodes.GetSize(); i++ ) {
-      radiiVec.Push_back( distNodes[i]->Get("radius")->AsDouble() );
-    }
+    // get new nodes parameter nodes
+    StdVector<ParamNode*> nodesList = dirNode->GetList("nodes");
 
-    StdVector<Double> val;
+    // iterate over all nodeLists
+    Double dist, startAng, stopAng, incAng;
+    std::string name;
+    UInt numAngles;
+    StdVector<Double> angleList;
+    for( UInt iList = 0; iList < nodesList.GetSize(); iList++ ) {
 
-    //Read the coordinates of center of circle
-    StdVector<Double> center;
-    center.Resize(3);
-    center.Init();
-    ParamNode * centerNode = dirNode->Get("center");
-    centerNode->Get("x", center[0] );
-    centerNode->Get("y", center[1] );
-    if( dim_ == 3 ) {
-      centerNode->Get("z", center[2] );
-    }
-     
-    //Read planes for saving nodes
-    StdVector<UInt> nodePlanes;
-    if ( dim_ == 3 )
-    {
-      nodePlanes.Resize(dim_);
-    }
-    else
-    {
-      nodePlanes.Resize(1);
-    }
+      // get name, distance, start/stop/incAngle
+      ParamNode * actNode = nodesList[iList];
+      actNode->Get( "name", name );
+      actNode->Get( "distance", dist );
+      actNode->Get( "startAngle", startAng );
+      actNode->Get( "stopAngle", stopAng );
+      actNode->Get( "incAngle", incAng );
 
+      LOG_DBG(gridcfs) << "Creating nodes '" << name 
+                       << "' with distance " << dist;
 
-    // get parameter nodes defining planes
-    ParamNode* planeNode = dirNode->Get("planes");
-
-
-    nodePlanes.Init();
-    StdVector<Double> Begin, End;
-    Begin.Resize(3);
-    End.Resize(3);
-    Begin.Init();
-    End.Init();
-
-    StdVector<std::string> planeNames;
-    planeNames.Resize(3);
-    planeNames.Init();
-    
-    planeNode->Get( "xyName", planeNames[0] );
-    planeNode->Get( "xyBegin", Begin[0] ); // flag for XY plane
-    planeNode->Get( "xyEnd", End[0] );
-   
-    if ( dim_ == 3 ) {
-      
-      planeNode->Get( "xzName", planeNames[1] );
-      planeNode->Get( "yzName", planeNames[2] );
-      
-      planeNode->Get( "xzBegin", Begin[1] );
-      planeNode->Get( "xzEnd", End[1] );
-      planeNode->Get( "yzBegin", Begin[2] );
-      planeNode->Get( "yzEnd", End[2] );
-    }
-
-    //Read angle interval size for saving nodes
-    Double angleStep = 1.0;
-    dirNode->Get("saveIncr", angleStep, false );
-   
-    StdVector<Integer> numDiv;
-    numDiv.Resize(3);
-    numDiv.Init();
-
-    nodePlanes[0]=1;
-    if (((End[0]-Begin[0])/angleStep)<1.0)
-    {
-      (*warning) << "Not saving directivity nodes on plane: " << planeNames[0]
-                 << " since sweep angle (End-Begin) "<<(End[0]-Begin[0])
-                 <<" is smaller than step angle " << angleStep << "";
-      Warning( __FILE__, __LINE__ );
-      End[0]=0;
-      Begin[0]=0;
-    }
-    numDiv[0]=Integer(floor((End[0]-Begin[0])/angleStep));
-    if (angleStep <= (360.0-(End[0]-Begin[0])) && (End[0]-Begin[0])>0.0)
-    {
-      numDiv[0]++;
-    }
-    
-            
-    if(dim_==3)
-    {
-      for (UInt actPlane=1; actPlane<=2; actPlane++)
-      {
-        nodePlanes[actPlane]=1;
-        if (((End[actPlane]-Begin[actPlane])/angleStep)<1.0)
-        {
-          (*warning) << "Not saving directivity nodes on plane: " << planeNames[actPlane]
-                     << " plane since sweep angle (End-Begin) "<<(End[actPlane]-Begin[actPlane])
-                     <<" is smaller than step angle " << angleStep << "";
-          Warning( __FILE__, __LINE__ );
-          End[actPlane]=0;
-          Begin[actPlane]=0;
-        }
-        numDiv[actPlane]=Integer(floor((End[actPlane]-Begin[actPlane])/angleStep));
-        if (angleStep <= (360.0-(End[actPlane]-Begin[actPlane])) && (End[actPlane]-Begin[actPlane])>0.0)
-        {
-          numDiv[actPlane]++;
-        }
+      // fill angleList
+      numAngles = UInt( floor ( (stopAng-startAng) / incAng ) );
+      if ( incAng <= (360.0-(stopAng-startAng)) 
+           && (stopAng-startAng)>0.0) {
+        numAngles++ ;
       }
-    }
-    
-    //Here finally we start the process for searching nodes for directivity
-    //Create vector with angles to save solutions
-    Matrix<Double> angleList;
-    UInt totalNumDiv=numDiv[0]+numDiv[1]+numDiv[2];
-    UInt plane=3;
-
-    angleList.Resize(plane,totalNumDiv);
-    angleList.Init();
-    
-    for (UInt actPlane=0; actPlane<numDiv.GetSize() ; actPlane++)
-    {
-      for (int i=0; i<numDiv[actPlane] ; i++)
-      {
-        angleList[actPlane][i] = (Begin[actPlane] + i*angleStep);
+      angleList.Resize( numAngles );
+      for( UInt iAng = 0; iAng < numAngles; iAng++ ) {
+        angleList[iAng] = startAng + iAng * incAng;
       }
-    }
-  
-    StdVector<UInt> directNodes;
 
-    if (dim_==3)
-      directNodes.Resize(radiiVec.GetSize()*(numDiv[0]*nodePlanes[0]+numDiv[1]*nodePlanes[1]+numDiv[2]*nodePlanes[2]));
-    else
-      directNodes.Resize(radiiVec.GetSize()*numDiv[0]);
-    
-    UInt ctr=0;
-    for (UInt actPlane=0; actPlane<nodePlanes.GetSize(); actPlane++)
-    {
-      if (nodePlanes[actPlane]==1 && numDiv[actPlane]>0)
-      {
-        namedNodeNames_.Push_back( planeNames[actPlane]);
-        namedNodes_.Push_back( StdVector<UInt>() );
-        Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
-        Info->PrintF("", "Angle list: \nangles = [");  
-        for (int i=0; i<numDiv[actPlane] ; i++)
-        {
-          Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
-        }
-        Info->PrintF( "", "]\n" );
-            
-        if (actPlane==0)//XY
-        {
-          j=0;
-          k=1;
-          l=2;
-        }
-        if (dim_==3)
-        {
-          if (actPlane==1)//XZ
-          {
-            j=0;
-            k=2;
-            l=1;
-          }             
-          if (actPlane==2)//YZ
-          {
-            j=1;
-            k=2;
-            l=0;
-          }             
-        }  
-        for (UInt actRadIndex=0; actRadIndex<radiiVec.GetSize(); actRadIndex++)
-        {
-          std::vector<Double>::iterator it;
-          Matrix<Double> save_point;
-          save_point.Resize(numDiv[actPlane],dim_);
-          std::string nodename; 
-          Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
+      // create new node vector
+      StdVector<UInt> nodes (numAngles);
 
-          for (int i=0; i<numDiv[actPlane] ; i++)
-          {
-            save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
-            save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  
-            if (dim_==3)
-            {
-              save_point[i][l] = center[l] + 0.0; 
-            }
-                    
-            //Computing distance between the savedpoint and the mesh nodes
-            std::vector<Double> dist2;
-            dist2.resize(numNodes_);
-            for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
-            {
-              Point p= coords_[nodeIndex];
-                          
-              dist2[nodeIndex] = pow((p[j] - save_point[i][j]),2) +
-                                 pow((p[k] -  save_point[i][k]),2);
-              if (dim_==3)
-                dist2[nodeIndex] +=  pow((p[l] -  save_point[i][l]),2);
-            }
-            it=min_element(dist2.begin(), dist2.end());
-            Integer numNodeMin = -1;
-            for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
-            {
-              if (*it==dist2[nodeIndex])
-              {
-                numNodeMin=nodeIndex+1;
-              }
-            } 
-            directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] = numNodeMin;
-                   
-            //                     nodename = "plane";
-            //                     nodename.append( planeNames[actPlane] );
-            //                     nodename.append( "_r" );
-            //                     nodename.append( GenStr(actRadIndex+1) );
-            //                     nodename.append( "_a" );
-            //                     nodename.append( GenStr(angleList[actPlane][i]) );
-            //namedNodeNames_.Push_back(nodename);
+      // iterate over all angles
+      Vector<Double> locCoord(dim_), globCoord(dim_);
+      Vector<Double> actNodeCoord(dim_);
+      for( UInt iDeg = 0; iDeg < numAngles; iDeg++ ) {
+        
+        // map next local coordinate to global one
+        locCoord[0] = dist;
+        locCoord[1] = angleList[iDeg];
+        coordSys->Local2GlobalCoord( globCoord, locCoord );
+        LOG_DBG2(gridcfs) << iDeg+1 
+                          << ". node with " << angleList[iDeg] 
+                          << "° has coordinates " << globCoord.Serialize();
 
-            UInt lastIndex = namedNodes_.GetSize()-1; 
-            namedNodes_[lastIndex].Push_back(directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i]);
-            Info->PrintF( "", " %i;", directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] ); 
-          }
-          Info->PrintF( "", "]\n" );
-        }
-        Info->PrintF( "", "\n" );
-        ctr+=numDiv[actPlane];
-      }
-    }
+        // vectors with node indices and distance
+        std::vector<Double> nodeDist( numNodes_ );
+
+        // iterate over all nodes
+        for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+        
+          // calculate distance and store it in vector
+          GetNodeCoordinate( actNodeCoord, iNode+1, false );          
+          nodeDist[iNode] = (actNodeCoord-globCoord).NormL2();
+        } // nodes
+        
+        // find minimum entry in the vector
+        std::vector<Double>::iterator it ;
+        it = min_element(nodeDist.begin(), nodeDist.end());
+        LOG_DBG2(gridcfs) << "Found node " 
+                          << std::distance(nodeDist.begin(), it) + 1;
+        nodes[iDeg] = std::distance(nodeDist.begin(), it) + 1;
+        
+      } // angles
+      AddNamedNodes( name, nodes );
+      LOG_DBG2(gridcfs) << "Adding nodelist '" << name 
+                        << "' with nodes " << nodes.Serialize();
+    } // nodeLists
+
+    LOG_TRACE(gridcfs) << "Finished reading nodes for directivity pattern";
   }
+
+//   void  GridCFS::GetNodesForDirectivity() {
+//     ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
+
+
+//     StdVector<std::string> keyVec, attrVec, valVec;
+//     StdVector<Double> radiiVec;
+//     attrVec = "","","";
+//     valVec = "","","";
+//     UInt j,k,l;
+    
+//     // get parameter node of directivity definition
+//     ParamNode * dirNode = param->Get("domain")->Get("directivityNodes", false);
+//     if( !dirNode) return;
+
+
+//     // get "distance nodes" and "radius"
+//     StdVector<ParamNode*> distNodes = dirNode->GetList("distance");
+//     for( UInt i = 0; i < distNodes.GetSize(); i++ ) {
+//       radiiVec.Push_back( distNodes[i]->Get("radius")->AsDouble() );
+//     }
+
+//     StdVector<Double> val;
+
+//     //Read the coordinates of center of circle
+//     StdVector<Double> center;
+//     center.Resize(3);
+//     center.Init();
+//     ParamNode * centerNode = dirNode->Get("center");
+//     centerNode->Get("x", center[0] );
+//     centerNode->Get("y", center[1] );
+//     if( dim_ == 3 ) {
+//       centerNode->Get("z", center[2] );
+//     }
+     
+//     //Read planes for saving nodes
+//     StdVector<UInt> nodePlanes;
+//     if ( dim_ == 3 )
+//     {
+//       nodePlanes.Resize(dim_);
+//     }
+//     else
+//     {
+//       nodePlanes.Resize(1);
+//     }
+
+
+//     // get parameter nodes defining planes
+//     ParamNode* planeNode = dirNode->Get("planes");
+
+
+//     nodePlanes.Init();
+//     StdVector<Double> Begin, End;
+//     Begin.Resize(3);
+//     End.Resize(3);
+//     Begin.Init();
+//     End.Init();
+
+//     StdVector<std::string> planeNames;
+//     planeNames.Resize(3);
+//     planeNames.Init();
+    
+//     planeNode->Get( "xyName", planeNames[0] );
+//     planeNode->Get( "xyBegin", Begin[0] ); // flag for XY plane
+//     planeNode->Get( "xyEnd", End[0] );
+   
+//     if ( dim_ == 3 ) {
+      
+//       planeNode->Get( "xzName", planeNames[1] );
+//       planeNode->Get( "yzName", planeNames[2] );
+      
+//       planeNode->Get( "xzBegin", Begin[1] );
+//       planeNode->Get( "xzEnd", End[1] );
+//       planeNode->Get( "yzBegin", Begin[2] );
+//       planeNode->Get( "yzEnd", End[2] );
+//     }
+
+//     //Read angle interval size for saving nodes
+//     Double angleStep = 1.0;
+//     dirNode->Get("saveIncr", angleStep, false );
+   
+//     StdVector<Integer> numDiv;
+//     numDiv.Resize(3);
+//     numDiv.Init();
+
+//     nodePlanes[0]=1;
+//     if (((End[0]-Begin[0])/angleStep)<1.0)
+//     {
+//       (*warning) << "Not saving directivity nodes on plane: " << planeNames[0]
+//                  << " since sweep angle (End-Begin) "<<(End[0]-Begin[0])
+//                  <<" is smaller than step angle " << angleStep << "";
+//       Warning( __FILE__, __LINE__ );
+//       End[0]=0;
+//       Begin[0]=0;
+//     }
+//     numDiv[0]=Integer(floor((End[0]-Begin[0])/angleStep));
+//     if (angleStep <= (360.0-(End[0]-Begin[0])) && (End[0]-Begin[0])>0.0)
+//     {
+//       numDiv[0]++;
+//     }
+    
+            
+//     if(dim_==3)
+//     {
+//       for (UInt actPlane=1; actPlane<=2; actPlane++)
+//       {
+//         nodePlanes[actPlane]=1;
+//         if (((End[actPlane]-Begin[actPlane])/angleStep)<1.0)
+//         {
+//           (*warning) << "Not saving directivity nodes on plane: " << planeNames[actPlane]
+//                      << " plane since sweep angle (End-Begin) "<<(End[actPlane]-Begin[actPlane])
+//                      <<" is smaller than step angle " << angleStep << "";
+//           Warning( __FILE__, __LINE__ );
+//           End[actPlane]=0;
+//           Begin[actPlane]=0;
+//         }
+//         numDiv[actPlane]=Integer(floor((End[actPlane]-Begin[actPlane])/angleStep));
+//         if (angleStep <= (360.0-(End[actPlane]-Begin[actPlane])) && (End[actPlane]-Begin[actPlane])>0.0)
+//         {
+//           numDiv[actPlane]++;
+//         }
+//       }
+//     }
+    
+//     //Here finally we start the process for searching nodes for directivity
+//     //Create vector with angles to save solutions
+//     Matrix<Double> angleList;
+//     UInt totalNumDiv=numDiv[0]+numDiv[1]+numDiv[2];
+//     UInt plane=3;
+
+//     angleList.Resize(plane,totalNumDiv);
+//     angleList.Init();
+    
+//     for (UInt actPlane=0; actPlane<numDiv.GetSize() ; actPlane++)
+//     {
+//       for (int i=0; i<numDiv[actPlane] ; i++)
+//       {
+//         angleList[actPlane][i] = (Begin[actPlane] + i*angleStep);
+//       }
+//     }
+  
+//     StdVector<UInt> directNodes;
+
+//     if (dim_==3)
+//       directNodes.Resize(radiiVec.GetSize()*(numDiv[0]*nodePlanes[0]+numDiv[1]*nodePlanes[1]+numDiv[2]*nodePlanes[2]));
+//     else
+//       directNodes.Resize(radiiVec.GetSize()*numDiv[0]);
+    
+//     UInt ctr=0;
+//     for (UInt actPlane=0; actPlane<nodePlanes.GetSize(); actPlane++)
+//     {
+//       if (nodePlanes[actPlane]==1 && numDiv[actPlane]>0)
+//       {
+//         namedNodeNames_.Push_back( planeNames[actPlane]);
+//         namedNodes_.Push_back( StdVector<UInt>() );
+//         Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
+//         Info->PrintF("", "Angle list: \nangles = [");  
+//         for (int i=0; i<numDiv[actPlane] ; i++)
+//         {
+//           Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
+//         }
+//         Info->PrintF( "", "]\n" );
+            
+//         if (actPlane==0)//XY
+//         {
+//           j=0;
+//           k=1;
+//           l=2;
+//         }
+//         if (dim_==3)
+//         {
+//           if (actPlane==1)//XZ
+//           {
+//             j=0;
+//             k=2;
+//             l=1;
+//           }             
+//           if (actPlane==2)//YZ
+//           {
+//             j=1;
+//             k=2;
+//             l=0;
+//           }             
+//         }  
+//         for (UInt actRadIndex=0; actRadIndex<radiiVec.GetSize(); actRadIndex++)
+//         {
+//           std::vector<Double>::iterator it;
+//           Matrix<Double> save_point;
+//           save_point.Resize(numDiv[actPlane],dim_);
+//           std::string nodename; 
+//           Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
+
+//           for (int i=0; i<numDiv[actPlane] ; i++)
+//           {
+//             save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
+//             save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  
+//             if (dim_==3)
+//             {
+//               save_point[i][l] = center[l] + 0.0; 
+//             }
+                    
+//             //Computing distance between the savedpoint and the mesh nodes
+//             std::vector<Double> dist2;
+//             dist2.resize(numNodes_);
+//             for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+//             {
+//               Point p= coords_[nodeIndex];
+                          
+//               dist2[nodeIndex] = pow((p[j] - save_point[i][j]),2) +
+//                                  pow((p[k] -  save_point[i][k]),2);
+//               if (dim_==3)
+//                 dist2[nodeIndex] +=  pow((p[l] -  save_point[i][l]),2);
+//             }
+//             it=min_element(dist2.begin(), dist2.end());
+//             Integer numNodeMin = -1;
+//             for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+//             {
+//               if (*it==dist2[nodeIndex])
+//               {
+//                 numNodeMin=nodeIndex+1;
+//               }
+//             } 
+//             directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] = numNodeMin;
+                   
+//             //                     nodename = "plane";
+//             //                     nodename.append( planeNames[actPlane] );
+//             //                     nodename.append( "_r" );
+//             //                     nodename.append( GenStr(actRadIndex+1) );
+//             //                     nodename.append( "_a" );
+//             //                     nodename.append( GenStr(angleList[actPlane][i]) );
+//             //namedNodeNames_.Push_back(nodename);
+
+//             UInt lastIndex = namedNodes_.GetSize()-1; 
+//             namedNodes_[lastIndex].Push_back(directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i]);
+//             Info->PrintF( "", " %i;", directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] ); 
+//           }
+//           Info->PrintF( "", "]\n" );
+//         }
+//         Info->PrintF( "", "\n" );
+//         ctr+=numDiv[actPlane];
+//       }
+//     }
+//   }
 
   void GridCFS::MapFaces() {
     ENTER_FCN( "GridCFS::MapFaces" );

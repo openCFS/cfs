@@ -293,7 +293,8 @@ namespace CoupledField {
         RETHROW_EXCEPTION(ex, "Could not assign material '"
                           << material << "' of materialClass '"
                           << materialClass_ << "'to region '" 
-                          << region << "'");
+                          << region << "' within coupling '"
+                          << couplingName_ << "'");
       }
     }
       
@@ -413,6 +414,9 @@ namespace CoupledField {
       // Convert enum
       Enum2String( (*it)->resultType, quantity );
       
+      // try to catch possible errors 
+      try {
+        
       // Get type of result
       std::string xmlElemName = elemNames[(*it)->definedOn];
       if( xmlElemName == "" ){
@@ -678,6 +682,11 @@ namespace CoupledField {
         }
         Info->PrintF( couplingName_, "\n");
       }
+      } catch( Exception &ex ) {
+        RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
+                          << quantity << "' within coupling '" 
+                          << couplingName_ << "'" );
+      }
     }
     Info->PrintF( couplingName_, "\n");
   }
@@ -698,14 +707,33 @@ namespace CoupledField {
       // iterate over all solutions for each result type
       for( UInt i = 0; i < actList.GetSize(); i++ ) {
 
+        // get string representation of quantity and entity list
+        std::string quantity, listName;
+        Enum2String( actList[i]->GetResultInfo()->resultType,
+                     quantity);
+        listName = actList[i]->GetEntityList()->GetName();
+
         // Only calculate result, if needed
         if( resHandler->IsResultNeeded( actList[i] ) ) {
-          CalcResults( actList[i] );
-          resHandler->UpdateResult( actList[i] );
+          try {
+            CalcResults( actList[i] );
+          } catch (Exception &ex ) {
+            RETHROW_EXCEPTION( ex, "Could not calculate result '" << quantity
+                               << "' on '" << listName << "' in pde '" 
+                               << couplingName_ << "'");
+          }
+          try {
+            resHandler->UpdateResult( actList[i] );
+          } catch (Exception &ex ) {
+            RETHROW_EXCEPTION( ex, "Could not write result '" << quantity
+                               << "' on '" << listName 
+                               << "' to output file(s) in coupling '" 
+                               << couplingName_ << "'");
+          }  
         }
-       }
+      }
     }
-
+    
   }
 
 

@@ -15,6 +15,13 @@
   <!--  Definitions of various custom simple data types --> 
   <!-- ******************************************************************** -->
 
+  <!-- Data type for strings with one element (character) -->
+  <xsd:simpleType name="DT_Character">
+    <xsd:restriction base="xsd:token">
+      <xsd:length value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- Data type for positive floating point numbers -->
   <xsd:simpleType name="DT_PosFloat">
     <xsd:restriction base="xsd:float">

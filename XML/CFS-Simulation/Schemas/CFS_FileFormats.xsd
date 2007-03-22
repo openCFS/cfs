@@ -170,7 +170,20 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputText">
     <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic"/>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:attribute name="commentChar" type="DT_Character"
+          default="#"/>
+        <xsd:attribute name="refCoordSys" type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="fileCollect" default="entity">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="entity"/>
+              <xsd:enumeration value="timeFreq"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
   

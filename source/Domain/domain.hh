@@ -62,6 +62,9 @@ namespace CoupledField
     //@{
     //! \name Methods for initialization and update
 
+    //! Create Grid and grid related objects (coordinate systems etc.)
+    void CreateGrid();
+
     //! Create PDE objects
     //! \param sequenceStep step index in MultiSequenceSimulation
     void CreatePDEs( UInt sequenceStep );

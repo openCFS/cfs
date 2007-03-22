@@ -126,6 +126,8 @@ private:
     MUP_DEFINE_FUNC(strfun_type1)
     MUP_DEFINE_FUNC(strfun_type2)
     MUP_DEFINE_FUNC(strfun_type3)
+    MUP_DEFINE_FUNC(strfun_type4)
+    MUP_DEFINE_FUNC(strfun_type5)
 #undef MUP_DEFINE_FUNC
 
     void DefineOprt(const string_type &a_strName, fun_type2 a_pFun, unsigned a_iPri=0, bool a_bAllowOpt = false);

@@ -7,13 +7,20 @@
 
 #include "Domain/grid.hh"
 #include "DataInOut/simOutput.hh"
+#include "Domain/entityList.hh"
 
 namespace CoupledField {
 
 
+  // forward class declaration
+  class CoordSystem;
+
   class SimOutputText : public SimOutput {
 
   public:
+
+    //! Enum defining type of collection
+    typedef enum { ENTITY, TIMEFREQ} CollectionType;
 
     //! Constructor
     SimOutputText( const std::string& fileName, ParamNode * outputNode );
@@ -48,16 +55,58 @@ namespace CoupledField {
                       UInt step,
                       Double stepVal );
     
+    //! Write step for collectionType ENTITY
+    void WriteStepCollectEntity();
+    
+    //! Write step for collecitonType TIMEFREQ
+    void WriteStepCollectTimeFreq();
+
+    //! Create header information depending on result
+    std::string ResultDofString( shared_ptr<BaseResult> res );
+
+    // =======================================================================
+    //  Helper functions to iterate over a list of entities
+    // =======================================================================    
+
+    //! Return for an entityiterator the node number and coordinates
+    std::string GetNodeInfo( EntityIterator & it ) const;
+    
+    //! Return for an entityiterator the node number and coordinates
+    std::string GetElemInfo( EntityIterator & it ) const;
+    
+    //! Return for an entityiterator the node number
+    std::string GetRegionInfo( EntityIterator & it ) const;
+
+    // =======================================================================
+    //  Helper function to extract complex values in correct format
+    // =======================================================================
+
+    //! Extract complex value as Amplitude-Phase
+    std::string ComplexAsAmplPhase( const Complex& val ) const;
+
+    //! Extract complex value as Real-Imag
+    std::string ComplexAsRealImag( const Complex& val ) const;
+
+    //! type of collection
+    CollectionType collecType_;
+
     //! Map with result objects for each result type
     ResultMapType resultMap_;
     
-    //! map of result and vector of ofstreams
+    //! Map of result and vector of ofstreams
     std::map<shared_ptr<BaseResult>,
              StdVector<std::ofstream*> > outFiles_;
-    
-    
-    //! comment char
+
+    //! Comment char
     char cmChar_;
+
+    //! Delimiter string
+    static std::string delim_;
+
+    //! Coordinate system
+    CoordSystem * coordSys_;
+
+    //! 
   };
 }
 

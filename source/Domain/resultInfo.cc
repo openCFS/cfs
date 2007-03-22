@@ -51,6 +51,7 @@ namespace CoupledField {
     ENTER_FCN( "ResultInfo::operator=");
 
     resultType = data.resultType;
+    resultName = data.resultName;
     dofNames = data.dofNames;
     unit = data.unit;
     complexFormat = data.complexFormat;
@@ -63,6 +64,81 @@ namespace CoupledField {
 
   }
 
+
+  void ResultInfo::Enum2String(EntityUnknownType in, 
+                               std::string& out ) {
+    
+    switch( in ) {
+      
+    case NODE: 
+      out = "node";
+      break;
+    case EDGE:
+      out = "edge";
+      break;
+    case FACE:  
+      out = "face";
+      break;
+    case ELEMENT:  
+      out = "element";
+      break;
+    case SURF_ELEM:
+      out = "surfElement";
+      break;
+    case PFEM:
+      out = "pfem";
+      break;
+    case REGION:
+      out = "region";
+      break;
+    case SURF_REGION:  
+      out = "surfRegion";
+      break;
+    case NODELIST:
+      out = "nodeList";
+      break;
+    case COIL:
+      out = "coil";
+      break;
+    case FREE:
+      out = "free";
+      break;
+    default:
+      EXCEPTION( "Conversion of " << in
+                 << " to EntityUnkwownType not possible" );
+    }
+    
+  }
+  
+  void  ResultInfo::String2Enum( const std::string& in,
+                                  EntityUnknownType& out ) {
+
+    if( in == "node")
+      out =  NODE;
+      else if( in == "edge")
+        out = EDGE;
+      else if( in == "face")
+        out = FACE;
+      else if( in == "element")
+        out = ELEMENT; 
+      else if( in == "surfElement")
+        out = SURF_ELEM;
+      else if( in == "pfem")
+        out = PFEM;
+      else if( in == "region")
+        out = REGION;
+      else if( in == "surfRegion")
+        out = SURF_REGION;
+      else if( in == "nodeList")
+        out = NODELIST;
+      else if( in == "coil")
+        out = COIL;
+      else if( in == "free")
+        out = FREE;
+      else {
+        EXCEPTION( "Can not convert '" << in << "' to EntityUnknownType");
+      }
+  }
 
   bool operator==( const ResultInfo& a, const ResultInfo& b ) {
     
@@ -86,4 +162,6 @@ namespace CoupledField {
     //return !(a==b);
     return ( a.resultType  < b.resultType );
   }
+
+
 }

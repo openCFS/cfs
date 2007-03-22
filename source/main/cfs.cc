@@ -355,6 +355,9 @@ int main( int argc, const char **argv ) {
   domain = new  Domain( ptInputfile, ptHandler, ptMatHandler );
   SETPROFILE("After Creation of Domain");
 
+  // Create grid
+  domain->CreateGrid();
+
 
   // =========================================================================
   // Only output of grid

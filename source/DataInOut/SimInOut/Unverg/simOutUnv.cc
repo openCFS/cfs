@@ -431,7 +431,7 @@ namespace CoupledField {
           for (j=0; j<nrDofs; j++)
             {
               if (abs(x[i*nrDofs +j].imag()) > 1e-16)
-                (*output) << std::setw(14) << std::atan2(x[i*nrDofs +j].imag(),x[i*nrDofs +j].real() )*180/PI;
+                (*output) << std::setw(14) << CPhase(x[i*nrDofs +j]);
               else 
                 (*output) << std::setw(14) << 0.0;
             }

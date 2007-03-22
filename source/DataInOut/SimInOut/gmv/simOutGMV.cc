@@ -294,10 +294,6 @@ namespace CoupledField {
   {
     ENTER_FCN ( "SimOutputGMV::WriteNodeElemDataHarm" );
 
-#define GMV_PHASE( x )                               \
-    (std::abs(x.imag()) > 1e-16) ?                   \
-      std::atan2(x.imag(),x.real() )*180/PI : 0.0
-
     // get number of entities
     UInt numEnt = 0;
     UInt loc;
@@ -338,7 +334,7 @@ namespace CoupledField {
         for(UInt i=0; i<numEnt; i++)
         {
           var1[i] = std::abs(var[i]);
-          var2[i] = GMV_PHASE(var[i]);
+          var2[i] = CPhase(var[i]);
         }
         name1 = name + "_ampl";
         name2 = name + "_phase";
@@ -378,7 +374,7 @@ namespace CoupledField {
           for(UInt i=0; i<numEnt; i++)
           {
             vars1[i*numDofs+j] = std::abs(var[i*numDofs*2+j]);
-            vars2[i*numDofs+j] = GMV_PHASE(var[i*numDofs*2+j]);
+            vars2[i*numDofs+j] = CPhase(var[i*numDofs*2+j]);
           }
           names1[j] = dofNames[j] + "_ampl";
           names2[j] = dofNames[j] + "_phase";

@@ -53,59 +53,62 @@ namespace CoupledField {
   //   Construtor
   // **************
 
-    Domain::Domain(SimInput * const aptSimInput, ResultHandler * handler,
-                   MaterialHandler * ptMat )
-    {
-
-
+  Domain::Domain(SimInput * const aptSimInput, ResultHandler * handler,
+                 MaterialHandler * ptMat ) {
+    
+    
     ENTER_FCN( "Domain::Domain" );
-
+    
     Info->PrintF("","==================\n");
     Info->PrintF("","   DOMAIN SETUP   \n");
     Info->PrintF("","==================\n\n");
-
+    
     // initialize data
     numSinglePde_ = 0;
     numDirectCoupledPde_ = 0;
     numIterCoupledStdPde_ = 0;
-
+    
     // assign pointers
     simInput_ = aptSimInput; 
     ptMatHandler_ = ptMat;
     resultHandler_  = handler;
     ptIterCoupledPde_ = NULL;
     ptSingleDriver_ = NULL;
-
+  }
+  
+  void Domain::CreateGrid() {
+    ENTER_FCN( "Domain::CreateGrid" );
+    
     // read type of mesh library
     std::string libmesh = "cfsGrid";
     ParamNode * inputNode = param->Get("input", false );
     if( inputNode )
       inputNode->Get("meshLibrary", libmesh );
-
+    
     std::string probGeo;
     param->Get("domain")->Get( "geometryType", probGeo );
     if ( probGeo == "3d") {
-        dim_ = 3;
-      } 
-      else if ( probGeo == "axi" || probGeo == "plane" ) {
-        dim_ = 2;
-      }
-      else {
-        EXCEPTION( "Wrong Dimension parameter in xml-File" );
-      }
-
-    SETPROFILE("Before Grid-Creation");
-
-    // initialize pointer to grid 
-    if (libmesh =="cfsGrid") {
-        ptgrid_=new GridCFS();
+      dim_ = 3;
+    } 
+    else if ( probGeo == "axi" || probGeo == "plane" ) {
+      dim_ = 2;
+    }
+    else {
+      EXCEPTION( "Wrong Dimension parameter in xml-File" );
     }
     
- #ifdef ADAPTGRID
-    else if (libmesh== "adaptGrid") {
-        ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
+    SETPROFILE("Before Grid-Creation");
+    
+    // initialize pointer to grid 
+    if (libmesh =="cfsGrid") {
+      ptgrid_=new GridCFS();
     }
- #endif
+    
+#ifdef ADAPTGRID
+    else if (libmesh== "adaptGrid") {
+      ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
+    }
+#endif
     
     else {
       EXCEPTION( "Type of mesh_library should be one of "
@@ -113,30 +116,33 @@ namespace CoupledField {
     }
     
     Info->StartProgress("Reading in the mesh");
-
-//     try 
-//     {
-//         EXCEPTION("Test WARNING in Domain! " << 2);
-//     }
-//     catch (Exception& ex)
-//     {
-//         RETHROW_EXCEPTION(ex, "Ich habe eine Exception gefangen. " << 3);
-//     }
+    
+    //     try 
+    //     {
+    //         EXCEPTION("Test WARNING in Domain! " << 2);
+    //     }
+    //     catch (Exception& ex)
+    //     {
+    //         RETHROW_EXCEPTION(ex, "Ich habe eine Exception gefangen. " << 3);
+    //     }
     
     simInput_->InitModule(ptgrid_);
     simInput_->ReadMesh();
+    
+    // Read in coordinate systems
+    // Note: It is important that is 
+    CreateCoordinateSystems();
     ptgrid_->FinishInit();
     
     SETPROFILE("After Grid Creation");
 
-    // Read in coordinate systems
-    CreateCoordinateSystems();
+    
 
     Info->FinishProgress();
 
     Info->StartProgress("Initializing non-matching interfaces");
-    // Call the nonmatching grid intersection calculation
 
+    // Call the nonmatching grid intersection calculation
     ptgrid_->InitNonmatchingInterfaces();
 
     // Initialize resultHandler

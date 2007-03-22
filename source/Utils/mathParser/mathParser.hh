@@ -132,6 +132,21 @@ namespace CoupledField {
     static Double Op_le( Double a, Double b ) { return a <= b; }
     static Double Op_lt( Double a, Double b ) { return a < b; }
     //@}
+
+    // =======================================================================
+    //  CFS SPECIFIC ADDITIONAL FUNCTIONS
+    // =======================================================================
+    
+    //! Get local coordinate component of coordinate system with given id (3d)
+    static Double LocCoord3D( const char * coordSysId, 
+                              Double dof,
+                              Double x, Double y, Double z );
+    
+    //! Get local coordinate component of coordinate system with given id (2d)
+    static Double LocCoord2D( const char * coordSysId, 
+                              Double dof,
+                              Double x, Double y);
+
         
     //! Pool of math parsers
     ParserMap parsers_;

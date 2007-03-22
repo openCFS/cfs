@@ -76,6 +76,12 @@ namespace CoupledField {
                         const StdVector<shared_ptr<BaseResult> > & solList,
                         ResultInfo::EntityUnknownType entityType );
 
+    //! Get from complex number the angle in degree with lower limit
+    inline Double CPhase( const Complex& c ) const {
+      return (std::abs(c.imag()) > 1e-16) ?                   
+        std::atan2(c.imag(),c.real() )*180/PI : 0.0;
+    }
+
     //! Name of output format
     std::string formatName_;
 

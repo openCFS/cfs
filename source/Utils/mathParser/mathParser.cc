@@ -9,6 +9,8 @@
 #include "Utils/vector.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/interpolate.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 
 namespace CoupledField {
@@ -219,6 +221,9 @@ namespace CoupledField {
 
     // Register functions from within CFS
     parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
+    parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
+    parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
+
 
     // Register factory for dynamic variable registering
     //parser.SetVarFactory( AddVariable );
@@ -257,4 +262,32 @@ namespace CoupledField {
     return (*it).second;
   }
 
+  Double MathParser::LocCoord3D( const char * coordSysId, 
+                                 Double dof,
+                                 Double x, Double y, Double z ) {
+    CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
+    Vector<Double> loc(3), glob(3);
+    loc[0] = x;
+    loc[1] = y;
+    loc[2] = z;
+    cosy->Global2LocalCoord(loc, glob);
+    
+    return loc[(UInt)dof];
+  }
+
+  
+  Double MathParser::LocCoord2D( const char * coordSysId, 
+                                 Double dof,
+                                 Double x, Double y) {
+
+    CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
+    Vector<Double> loc(2), glob(2);
+    loc[0] = x;
+    loc[1] = y;
+    cosy->Global2LocalCoord(loc, glob);
+    
+    return loc[(UInt)dof];
+  }
+  
+  
 }

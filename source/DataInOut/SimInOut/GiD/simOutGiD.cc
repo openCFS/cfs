@@ -236,6 +236,9 @@ namespace CoupledField {
     if( nodeNames.GetSize() == 0 ) {
       return;
     }
+
+    // get number of 'normal' regions within the grid
+    UInt numRegions = regionIds.GetSize();
     
     // remember number of 'normal' elements
     UInt numelem = ptGrid_->GetNumElems() + 1;
@@ -254,8 +257,8 @@ namespace CoupledField {
       GiD_BeginElements();
       
       for ( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode ++ ) {
-        UInt nodeNumber = nodeNumbers[iNode];
-        GiD_WriteElement( numelem++, (int*)(&nodeNumber) ); 
+        UInt nodeNumber[2] = {nodeNumbers[iNode],i+numRegions+1};
+        GiD_WriteElementMat( numelem++, (int*)(&nodeNumber) ); 
       }
       GiD_EndElements();
       GiD_EndMesh();
@@ -413,7 +416,8 @@ namespace CoupledField {
         connectM = connect;
       }
     }
-    GiD_WriteElement( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
+    connectM.Push_back(ptEl->regionId+1);
+    GiD_WriteElementMat( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
   }
 
  
@@ -620,10 +624,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                          const ComplexFormat outputFormat ) {
     ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataHarm" );
     
-#define GID_PHASE( x )                               \
-    (std::abs(x.imag()) > 1e-16) ?                   \
-      std::atan2(x.imag(),x.real() )*180/PI : 0.0
-    
    // get number of entities
     UInt numEnt = 0;
     char * dummy;
@@ -687,7 +687,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       } else {
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           if ( std::abs(var[iEnt-1].imag()) > 1e-16 ) {
-            GiD_WriteScalar( iEnt, GID_PHASE( var[iEnt-1] ) );
+            GiD_WriteScalar( iEnt, CPhase( var[iEnt-1] ) );
           } else {
             GiD_WriteScalar( iEnt, 0.0); 
           }
@@ -789,13 +789,13 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           offset = (iEnt-1) * numDofs;
           if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, GID_PHASE( var[offset] ), 
-                             GID_PHASE( var[offset+1] ), 
-                             GID_PHASE( var[offset+2] ) );
+            GiD_WriteVector( iEnt, CPhase( var[offset] ), 
+                             CPhase( var[offset+1] ), 
+                             CPhase( var[offset+2] ) );
             
           } else { 
-            GiD_WriteVector( iEnt, GID_PHASE( var[offset] ),
-                             GID_PHASE( var[offset+1]),
+            GiD_WriteVector( iEnt, CPhase( var[offset] ),
+                             CPhase( var[offset+1]),
                              0.0 );
           }
         }
@@ -889,20 +889,20 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         }
       } else {
         if( numDofs == 3 ) {
-          LOOP( GID_PHASE(var[offset]), GID_PHASE(var[offset+1]),
-                GID_PHASE(var[offset+2]), 0.0, 0.0, 0.0 );
+          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
+                CPhase(var[offset+2]), 0.0, 0.0, 0.0 );
         } else if( numDofs == 4 ) {
-          LOOP( GID_PHASE(var[offset]), GID_PHASE(var[offset+1]),
-                GID_PHASE(var[offset+2]), GID_PHASE(var[offset+3]),
+          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
+                CPhase(var[offset+2]), CPhase(var[offset+3]),
                 0.0, 0.0 );
         } else if( numDofs == 5 ) {
-          LOOP( GID_PHASE(var[offset]), GID_PHASE(var[offset+1]),
-                GID_PHASE(var[offset+2]), GID_PHASE(var[offset+3]),
-                GID_PHASE(var[offset+4]), 0.0);
+          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
+                CPhase(var[offset+2]), CPhase(var[offset+3]),
+                CPhase(var[offset+4]), 0.0);
         } else if( numDofs == 6 ) {
-          LOOP( GID_PHASE(var[offset]), GID_PHASE(var[offset+1]),
-                GID_PHASE(var[offset+2]), GID_PHASE(var[offset+3]),
-                GID_PHASE(var[offset+4]), GID_PHASE(var[offset+5]) );
+          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
+                CPhase(var[offset+2]), CPhase(var[offset+3]),
+                CPhase(var[offset+4]), CPhase(var[offset+5]) );
         }
       }
       GiD_EndResult(); 
