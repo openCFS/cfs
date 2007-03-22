@@ -83,6 +83,9 @@ namespace CoupledField {
                          const UInt numDOFs);
     void CreateExternalFile();
 
+    void WriteStringToUserData(const std::string& dSetName, 
+                               const std::string& str);
+
   private:
 
     bool gridWritten_;

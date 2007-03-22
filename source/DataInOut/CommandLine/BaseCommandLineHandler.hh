@@ -512,6 +512,8 @@ namespace CoupledField {
     //! about the executable to the standard output.
     void DumpStats();
 
+    //! This method assembles the string that will be dumped to stdout.
+    void GetDumpString(std::string& dumpStr);
     //@}
   };
 
