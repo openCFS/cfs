@@ -1948,8 +1948,6 @@ namespace CoupledField {
     for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
       
       const SurfElem * actSurfElem = it.GetSurfElem();
-      std::cerr << "This surface element has edges: " << actSurfElem->edges.Serialize() << std::endl;
-      std::cerr << "This surface element has faces: " << actSurfElem->faces.Serialize() << std::endl;
       // Determine, which volume element is the right neighbour for the 
       // calculation;
       // our normal should point out of the correct neighbor volume element!
@@ -2100,7 +2098,6 @@ namespace CoupledField {
    
         const SurfElem * actSurfElem = it.GetSurfElem();
 
-        std::cerr << "=== Surface Element #" << actSurfElem->elemNum << "===\n";
 	// Determine, which volume element is the right neighbour for the 
 	// calculation;
 	// our normal should point out of the correct neighbor volume element!
@@ -2132,7 +2129,6 @@ namespace CoupledField {
         
         // Get weights and points of surface element
         UInt nrIntPts= ptSurfElemFE->GetNumIntPoints();
-        std::cerr << "Nr IntPoints: " << nrIntPts << std::endl;
         const Vector<Double> & intWeights = ptSurfElemFE->GetIntWeights(); 
         const Vector<Double> * intPoints = ptSurfElemFE->GetIntPoints(); 
         
@@ -2145,13 +2141,11 @@ namespace CoupledField {
         TYPE helpVal = 0.0;
         for( UInt iPt = 0; iPt < nrIntPts; iPt++ ) {
           
-          std::cerr << "SurfIntPt: " << intPoints[iPt].Serialize() << std::endl;
           // calculate volume integration coordinates from
           // surface integration coordinat for evalauting the 
           // gradient on the surface of the volume element
           ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
                                                  intPoints[iPt], lCoordVol);
-          std::cerr << "VolIntPt: " << lCoordVol.Serialize() << std::endl;
 
           // Calculate jacobian gradient of surface element
           Double jacDet = ptSurfElemFE->CalcJacobianDetAtIp(iPt+1, 
@@ -2176,7 +2170,6 @@ namespace CoupledField {
           GetSolVecOfElement( elemSol, it2);
           ptVolElemFE->GetShFnc( shapeFnc, lCoordVol, ptVolElem );
           TYPE intPointSol = shapeFnc * elemSol;
-          std::cerr << "element solution in integration point:" << intPointSol << std::endl;
 
           // get the conjugate complex value
           intPointSol = std::conj(intPointSol);
