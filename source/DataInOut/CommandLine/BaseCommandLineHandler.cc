@@ -359,143 +359,156 @@ namespace CoupledField {
 
   }
 
+  void BaseCommandLineHandler::GetDumpString(std::string& dumpStr)
+  {
+    std::stringstream outstr;
+    
+    std::string build_type = CMAKE_BUILD_TYPE;
+
+    outstr << "CFS_VERSION:           " << CFS_VERSION << std::endl
+           << "CFS_BUILD_HOST:        " << CFS_BUILD_HOST << std::endl
+           << "CFS_CONF_DATE:         " << CFS_CONF_DATE << std::endl << std::endl
+           << "CFS_SUBVERSION_REV:    " << CFS_SUBVERSION_REV << std::endl
+           << "CFS_SUBVERSION_REPOS:  " << CFS_SUBVERSION_REPOS << std::endl << std::endl
+           << "CFS_CXX_COMPILER_NAME: " << CFS_CXX_COMPILER_NAME << std::endl
+           << "CFS_CXX_COMPILER_VER:  " << CFS_CXX_COMPILER_VER << std::endl << std::endl
+           << "CFS_DISTRO:            " << CFS_DISTRO << std::endl
+           << "CFS_DISTRO_VER:        " << CFS_DISTRO_VER << std::endl
+           << "CFS_ARCH:              " << CFS_ARCH << std::endl << std::endl
+           << "CMAKE_BUILD_TYPE:      " << build_type << std::endl;
+    if(build_type == "DEBUG") 
+    {
+      outstr << "COMPILE_FLAGS:       " << CMAKE_CXX_FLAGS
+             << " " << CMAKE_CXX_FLAGS_DEBUG << std::endl;
+      outstr << "LINK_FLAGS:          " << CMAKE_EXE_LINKER_FLAGS
+             << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
+             << std::endl << std::endl;
+    }
+    else
+    {
+      outstr << "COMPILE_FLAGS:       " << CMAKE_CXX_FLAGS
+             << " " << CMAKE_CXX_FLAGS_RELEASE << std::endl;
+      outstr << "LINK_FLAGS:          " << CMAKE_EXE_LINKER_FLAGS
+             << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
+             << std::endl << std::endl;
+    }
+
+ #ifdef USE_ARPACK
+    outstr << "USE_ARPACK:            YES" << std::endl;
+ #else
+    outstr << "USE_ARPACK:            NO" << std::endl;
+ #endif
+
+ #ifdef USE_BLAS
+    outstr << "USE_BLAS:              YES" << std::endl;
+ #else
+    outstr << "USE_BLAS:              NO" << std::endl;
+ #endif
+
+ #ifdef USE_LAPACK
+    outstr << "USE_LAPACK:            YES" << std::endl;
+ #else
+    outstr << "USE_LAPACK:            NO" << std::endl;
+ #endif
+
+ #ifdef USE_ILUPACK
+    outstr << "USE_ILUPACK:           YES" << std::endl;
+ #else
+    outstr << "USE_ILUPACK:           NO" << std::endl;
+ #endif
+
+ #ifdef USE_PARDISO
+    outstr << "USE_PARDISO:           YES" << std::endl;
+ #else
+    outstr << "USE_PARDISO:           NO" << std::endl;
+ #endif
+
+ #ifdef USE_METIS
+    outstr << "USE_METIS:             YES" << std::endl;
+ #else
+    outstr << "USE_METIS:             NO" << std::endl;
+ #endif
+
+ #ifdef MpCCI
+    outstr << "MpCCI:                 YES" << std::endl;
+    outstr << "MpCCI_RELEASE:         " << MpCCI_RELEASE
+           << std::endl;
+ #else
+    outstr << "MpCCI:                 NO" << std::endl;
+ #endif
+
+    outstr << std::endl;
+
+ #ifdef USE_SCRIPTING_TCL
+    outstr << "USE_SCRIPTING_TCL:     YES" << std::endl;
+ #else
+    outstr << "USE_SCRIPTING_TCL:     NO" << std::endl;
+ #endif
+
+ #ifdef USE_SCRIPTING_PYTHON
+    outstr << "USE_SCRIPTING_PYTHON:  YES" << std::endl;
+ #else
+    outstr << "USE_SCRIPTING_PYTHON:  NO" << std::endl;
+ #endif
+
+    outstr << std::endl;
+
+ #ifdef USE_GIDPOST
+    outstr << "USE_GIDPOST:           YES" << std::endl;
+ #else
+    outstr << "USE_GIDPOST:           NO" << std::endl;
+ #endif
+
+ #ifdef USE_GMV_INPUT
+    outstr << "USE_GMV_INPUT:         YES" << std::endl;
+ #else
+    outstr << "USE_GMV_INPUT:         NO" << std::endl;
+ #endif
+
+ #ifdef USE_GMV_OUTPUT
+    outstr << "USE_GMV_OUTPUT:        YES" << std::endl;
+ #else
+    outstr << "USE_GMV_OUTPUT:        NO" << std::endl;
+ #endif
+
+ #ifdef USE_HDF5
+    outstr << "USE_HDF5:              YES" << std::endl;
+ #else
+    outstr << "USE_HDF5:              NO" << std::endl;
+ #endif
+
+ #ifdef USE_MESH
+    outstr << "USE_MESH:              YES" << std::endl;
+ #else
+    outstr << "USE_MESH:              NO" << std::endl;
+ #endif
+
+ #ifdef USE_UNV
+    outstr << "USE_UNV:               YES" << std::endl;
+ #else
+    outstr << "USE_UNV:               NO" << std::endl;
+ #endif
+
+    outstr << std::endl;
+
+ #ifdef USE_XERCES
+    outstr << "USE_XERCES:            YES" << std::endl;
+    outstr << "XERCES_VERSION:        " << XERCES_VERSION << std::endl;
+    outstr << "XMLSCHEMA:             " << XMLSCHEMA << std::endl;
+ #else
+    outstr << "USE_XERCES:            NO" << std::endl;
+ #endif
+    
+    dumpStr = outstr.str();
+  }
+  
+
   void BaseCommandLineHandler::DumpStats() {
-      std::string build_type = CMAKE_BUILD_TYPE;
-
-      std::cout << "CFS_VERSION:           " << CFS_VERSION << std::endl
-                << "CFS_BUILD_HOST:        " << CFS_BUILD_HOST << std::endl
-                << "CFS_CONF_DATE:         " << CFS_CONF_DATE << std::endl << std::endl
-                << "CFS_SUBVERSION_REV:    " << CFS_SUBVERSION_REV << std::endl
-                << "CFS_SUBVERSION_REPOS:  " << CFS_SUBVERSION_REPOS << std::endl << std::endl
-                << "CFS_CXX_COMPILER_NAME: " << CFS_CXX_COMPILER_NAME << std::endl
-                << "CFS_CXX_COMPILER_VER:  " << CFS_CXX_COMPILER_VER << std::endl << std::endl
-                << "CFS_DISTRO:            " << CFS_DISTRO << std::endl
-                << "CFS_DISTRO_VER:        " << CFS_DISTRO_VER << std::endl
-                << "CFS_ARCH:              " << CFS_ARCH << std::endl << std::endl
-                << "CMAKE_BUILD_TYPE:      " << build_type << std::endl;
-      if(build_type == "DEBUG") 
-      {
-          std::cout << "COMPILE_FLAGS:       " << CMAKE_CXX_FLAGS
-                    << " " << CMAKE_CXX_FLAGS_DEBUG << std::endl;
-          std::cout << "LINK_FLAGS:          " << CMAKE_EXE_LINKER_FLAGS
-                    << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
-                    << std::endl << std::endl;
-      }
-      else
-      {
-          std::cout << "COMPILE_FLAGS:       " << CMAKE_CXX_FLAGS
-                    << " " << CMAKE_CXX_FLAGS_RELEASE << std::endl;
-          std::cout << "LINK_FLAGS:          " << CMAKE_EXE_LINKER_FLAGS
-                    << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
-                    << std::endl << std::endl;
-      }
-
-#ifdef USE_ARPACK
-      std::cout << "USE_ARPACK:            YES" << std::endl;
-#else
-      std::cout << "USE_ARPACK:            NO" << std::endl;
-#endif
-
-#ifdef USE_BLAS
-      std::cout << "USE_BLAS:              YES" << std::endl;
-#else
-      std::cout << "USE_BLAS:              NO" << std::endl;
-#endif
-
-#ifdef USE_LAPACK
-      std::cout << "USE_LAPACK:            YES" << std::endl;
-#else
-      std::cout << "USE_LAPACK:            NO" << std::endl;
-#endif
-
-#ifdef USE_ILUPACK
-      std::cout << "USE_ILUPACK:           YES" << std::endl;
-#else
-      std::cout << "USE_ILUPACK:           NO" << std::endl;
-#endif
-
-#ifdef USE_PARDISO
-      std::cout << "USE_PARDISO:           YES" << std::endl;
-#else
-      std::cout << "USE_PARDISO:           NO" << std::endl;
-#endif
-
-#ifdef USE_METIS
-      std::cout << "USE_METIS:             YES" << std::endl;
-#else
-      std::cout << "USE_METIS:             NO" << std::endl;
-#endif
-
-#ifdef MpCCI
-      std::cout << "MpCCI:                 YES" << std::endl;
-      std::cout << "MpCCI_RELEASE:         " << MpCCI_RELEASE
-                << std::endl;
-#else
-      std::cout << "MpCCI:                 NO" << std::endl;
-#endif
-
-      std::cout << std::endl;
-
-#ifdef USE_SCRIPTING_TCL
-      std::cout << "USE_SCRIPTING_TCL:     YES" << std::endl;
-#else
-      std::cout << "USE_SCRIPTING_TCL:     NO" << std::endl;
-#endif
-
-#ifdef USE_SCRIPTING_PYTHON
-      std::cout << "USE_SCRIPTING_PYTHON:  YES" << std::endl;
-#else
-      std::cout << "USE_SCRIPTING_PYTHON:  NO" << std::endl;
-#endif
-
-      std::cout << std::endl;
-
-#ifdef USE_GIDPOST
-      std::cout << "USE_GIDPOST:           YES" << std::endl;
-#else
-      std::cout << "USE_GIDPOST:           NO" << std::endl;
-#endif
-
-#ifdef USE_GMV_INPUT
-      std::cout << "USE_GMV_INPUT:         YES" << std::endl;
-#else
-      std::cout << "USE_GMV_INPUT:         NO" << std::endl;
-#endif
-
-#ifdef USE_GMV_OUTPUT
-      std::cout << "USE_GMV_OUTPUT:        YES" << std::endl;
-#else
-      std::cout << "USE_GMV_OUTPUT:        NO" << std::endl;
-#endif
-
-#ifdef USE_HDF5
-      std::cout << "USE_HDF5:              YES" << std::endl;
-#else
-      std::cout << "USE_HDF5:              NO" << std::endl;
-#endif
-
-#ifdef USE_MESH
-      std::cout << "USE_MESH:              YES" << std::endl;
-#else
-      std::cout << "USE_MESH:              NO" << std::endl;
-#endif
-
-#ifdef USE_UNV
-      std::cout << "USE_UNV:               YES" << std::endl;
-#else
-      std::cout << "USE_UNV:               NO" << std::endl;
-#endif
-
-      std::cout << std::endl;
-
-#ifdef USE_XERCES
-      std::cout << "USE_XERCES:            YES" << std::endl;
-      std::cout << "XERCES_VERSION:        " << XERCES_VERSION << std::endl;
-      std::cout << "XMLSCHEMA:             " << XMLSCHEMA << std::endl;
-#else
-      std::cout << "USE_XERCES:            NO" << std::endl;
-#endif
-
+    std::string dumpStr;
+    
+    GetDumpString(dumpStr);
+    
+    std::cout << dumpStr;
   }
     
 }

@@ -14,6 +14,7 @@
 #include <boost/filesystem/exception.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "simOutputXMDF.hh"
@@ -274,6 +275,41 @@ namespace CoupledField {
 
   void SimOutputXMDF::Finalize() 
   {
+    std::vector<std::string> fileNames;
+    std::vector<std::string> dataSetNames;
+    std::ifstream fin;
+    std::string dumpStr;
+
+    fileNames.push_back(commandLine->GetParamFile());
+    fileNames.push_back(param->Get("fileFormats")
+                        ->Get("materialData")
+                        ->Get("file")->AsString());
+
+    dataSetNames.push_back("Parameter File");
+    dataSetNames.push_back("Material File");
+    
+    for(UInt i=0; i<fileNames.size(); i++)
+    {
+      fin.open( fileNames[i].c_str(), std::ios::binary );
+    
+      if(fin.fail())
+        EXCEPTION("Cannot open file '" << fileNames[i]
+                  <<"' to dump into HDF5!");
+
+      // seek to the end of the file
+      fin.seekg (0, std::ios::end);
+      UInt numBytes = fin.tellg();
+      fin.seekg (0, std::ios::beg);
+
+      std::string str;
+      str.resize(numBytes);
+      fin.read(&str[0], numBytes);
+      WriteStringToUserData(dataSetNames[i], str);
+      fin.close();
+    }
+
+    commandLine->GetDumpString(dumpStr);
+    WriteStringToUserData("Program Stats", dumpStr);
   }
 
   void SimOutputXMDF::InitModule()
@@ -1266,5 +1302,39 @@ namespace CoupledField {
     }
   }
 
+  void SimOutputXMDF::WriteStringToUserData(const std::string& dSetName, 
+                                            const std::string& str)
+  {
+    H5::Group userDataGroup;
+    
+    // If it does not exist, create Group for Data.
+    try 
+    {
+      userDataGroup = dataGroup_.openGroup("User Data");
+    }
+    catch (H5::Exception& h5ex)
+    {
+      try 
+      {
+        userDataGroup = dataGroup_.createGroup("User Data");
+      }
+      catch (H5::Exception& h5ex)
+      {
+        EXCEPTION(h5ex.getCDetailMsg());
+      }
+    }
+
+    H5::DataSpace space;
+
+    H5::DataSet dataset;
+    dataset = userDataGroup.createDataSet(dSetName,
+                                          H5::StrType(H5::PredType::C_S1,
+                                                      str.length()),
+                                          space);
+    
+    dataset.write(str.c_str(), H5::StrType(H5::PredType::C_S1, str.length()));
+    
+    userDataGroup.close();
+  }
 }
 
