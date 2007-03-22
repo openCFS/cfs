@@ -668,11 +668,3 @@ typedef uint_least32_t uint_fast32_t;
 #endif
 
 /*
- *  Assumes sig_atomic_t is signed and we have a 2s complement machine.
- */
-
-#ifndef SIG_ATOMIC_MAX
-# define SIG_ATOMIC_MAX ((((sig_atomic_t) 1) << (sizeof (sig_atomic_t)*CHAR_BIT-1)) - 1)
-#endif
-
-#endif

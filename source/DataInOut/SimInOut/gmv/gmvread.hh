@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef _GMVREADH_
 #define _GMVREADH_
 
@@ -245,10 +249,3 @@ void gmvrayread_data(void);
   void fillcellinfo(long nc, long *facecell1, long *facecell2);
   int chk_rayend(FILE *fin);
 }
-
-#endif
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:

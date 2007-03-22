@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef File_NON_CONFORMING_INT
 #define File_NON_CONFORMING_INT
 
@@ -65,8 +69,3 @@ namespace CoupledField {
 } // end of namespace
 
 #endif
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:

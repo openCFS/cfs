@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_MOD_ANSYSFILE_2002
 #define FILE_MOD_ANSYSFILE_2002
 
@@ -297,9 +301,4 @@ namespace CoupledField {
 
 }
 
-#endif // FILE_ANSYSFILE
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:
+#endif

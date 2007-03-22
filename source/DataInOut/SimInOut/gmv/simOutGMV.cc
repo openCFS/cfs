@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -1099,10 +1103,5 @@ namespace CoupledField {
     else
       str.resize(maxLen);
   }
-
-} // end of namespace
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:
+  
+}

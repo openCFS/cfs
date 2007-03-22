@@ -159,7 +159,9 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputHDF5">
     <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic"/>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 

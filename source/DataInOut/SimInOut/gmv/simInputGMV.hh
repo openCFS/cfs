@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_GMVREADER_2006
 #define FILE_GMVREADER_2006
 
@@ -127,10 +131,3 @@ namespace CoupledField {
   }; 
 
 } 
-
-#endif 
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:

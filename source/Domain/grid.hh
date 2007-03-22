@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_SCFE_GRID_2001
 #define FILE_SCFE_GRID_2001
 
@@ -378,8 +382,7 @@ namespace CoupledField
   
     //! Returns for a list of region names  the associated identifiers
     virtual void RegionNameToId( StdVector<RegionIdType> & regionIds,
-                                 const StdVector<std::string> 
-                                 & regionName );
+                                 const StdVector<std::string> & regionName );
 
 
 
@@ -740,7 +743,7 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > volElems_;  
 
     //! Vector with node numbers for each volume region
-    StdVector<StdVector<UInt> > volElemNodes_;
+    StdVector< std::set<UInt> > volElemNodes_;
 
     //! Vector with region ids for each volume region
     StdVector<RegionIdType> volRegionIds_;
@@ -749,7 +752,7 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > surfElems_;  
 
     //! Vector with node numbers for each surface region
-    StdVector<StdVector<UInt> > surfElemNodes_;
+      StdVector< std::set<UInt> > surfElemNodes_;
 
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;

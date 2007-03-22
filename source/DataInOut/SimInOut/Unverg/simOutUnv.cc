@@ -1,5 +1,7 @@
-#include <iostream>
-#include <fstream>
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <string>
 #include <iomanip>
 
@@ -735,4 +737,4 @@ namespace CoupledField {
   //     //Warning("This cell-data is not printed, since this type is not supported by Capapost",__FILE__,__LINE__);
   // }
 
-} // end of namespace
+}

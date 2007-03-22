@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include "PDE/SinglePDE.hh"
 
 // for coordinate handling
@@ -49,8 +53,8 @@ namespace CoupledField {
   DECLARE_LOG(pde)
   DEFINE_LOG(pde, "pde")
 
-    SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode )
-      :  StdPDE( aptgrid, paramNode ) {
+  SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode )
+    :  StdPDE( aptgrid, paramNode ) {
   
     ENTER_FCN( "BasePDE::BasePDE" );
   
