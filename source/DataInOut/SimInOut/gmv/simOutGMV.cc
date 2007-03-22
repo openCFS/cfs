@@ -19,6 +19,7 @@ namespace fs = boost::filesystem;
 #include <DataInOut/simInput.hh>
 #include <DataInOut/Logging/cfslog.hh>
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 #include "simOutGMV.hh"
 
@@ -66,7 +67,7 @@ namespace CoupledField {
 
     // Does the grid change over time, or can we use a fixed grid
     fixedgrid_ = true;
-    printGridOnly_ = false;
+    printGridOnly_ = commandLine->GetPrintGrid();
     firstGridWritten_ = false;
     output = NULL;
     printUnit_ = false;
@@ -237,6 +238,7 @@ namespace CoupledField {
           (*output) << "codever " << CODE_VER << std::endl;
           (*output) << "simdate " << buffer << std::endl;
           (*output) << "endgmv ";
+          (*output).flush();
         }
         else {
           (*output) << "probtime";
@@ -244,6 +246,7 @@ namespace CoupledField {
           (*output) << "cycleno ";
           output->write( (char*)&lastStep_, sizeof(UInt) );
           (*output) << "endgmv  ";
+          (*output).flush();
         }
       }
       delete output;
@@ -864,6 +867,7 @@ namespace CoupledField {
         (*output) << "codever " << CODE_VER << std::endl;
         (*output) << "simdate " << buffer << std::endl;
         (*output) << "endgmv" << std::endl;
+        (*output).flush();
       }
       else 
       {
@@ -880,6 +884,7 @@ namespace CoupledField {
         TruncateString(dummy, 8);
         output->write(dummy.c_str(), 8 );
         (*output) << "endgmv  ";
+        (*output).flush();
       }
       return;
     }
@@ -902,6 +907,7 @@ namespace CoupledField {
         (*output) << "codever " << CODE_VER << std::endl;
         (*output) << "simdate " << buffer << std::endl;
         (*output) << "endgmv" << std::endl;
+        (*output).flush();
       }
       else 
       {
@@ -918,6 +924,7 @@ namespace CoupledField {
         TruncateString(dummy, 8);
         output->write(dummy.c_str(), 8 );
         (*output) << "endgmv  ";
+        (*output).flush();
       }
         
       firstGridWritten_ = true;
@@ -1022,6 +1029,7 @@ namespace CoupledField {
         (*output) << "codever " << CODE_VER << std::endl;
         (*output) << "simdate " << buffer << std::endl;
         (*output) << "endgmv ";
+        (*output).flush();
       }
       else {
         (*output) << "probtime";
@@ -1041,6 +1049,7 @@ namespace CoupledField {
         TruncateString(dummy, 8);
         output->write(dummy.c_str(), 8 );
         (*output) << "endgmv  ";
+        (*output).flush();
       }
     }
     delete output;
