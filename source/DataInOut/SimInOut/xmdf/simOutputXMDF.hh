@@ -17,10 +17,6 @@
 
 namespace CoupledField {
 
-  //! Class for reading in a mesh created by the ANSYS mkmesh-extension.
-
-  //! Class, that is derived from class FileType for reading mesh-input data,
-  //! which is produced by Ansys mkmesh-interface. 
   class SimOutputXMDF: virtual public SimOutput {
 
   public:
@@ -66,16 +62,8 @@ namespace CoupledField {
     virtual void InitModule();
 
     virtual void WriteGrid();
-    virtual void WriteData() {}
   
-  protected:
-    
-    //! Transform type of elem in pointer to base class BaseFE
-
-    //! This method maps the type number of an element - as given in the 
-    //! mesh file - to a pointer to a reference finite element.
-    //! \param itype (input) element type number as read in from the mesh
-
+  private:
     FEType XMDFElemType2ElemType( const Integer type );
     Integer ElemType2XMDFElemType( const FEType type );
 
@@ -84,30 +72,18 @@ namespace CoupledField {
                               const UInt* in,
                               UInt* out);
 
-    typedef std::vector< std::vector<UInt> > RegionElemType;
-    typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > RegionNodeType;
-
     void WriteRegions(const H5::Group& meshGroup);
     void WriteNamedNodes(const H5::Group& meshGroup);
     void WriteNamedElems(const H5::Group& meshGroup);
 
-    //@}
-
-    // =======================================================================
-    // CLASS ATTRIBUTES
-    // =======================================================================
-    //@{
-    //! \name Attributes
-
-    //@}
-
-  private:
     void WriteAttribDescriptions();
     void WriteAttributes(const std::vector<std::string>& resultNames,
                          std::vector< Vector<Double>* >& results,
                          const std::string& regionStr,
                          const UInt numDOFs);
     void CreateExternalFile();
+
+  private:
 
     bool gridWritten_;
 

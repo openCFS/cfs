@@ -21,13 +21,12 @@
 namespace fs = boost::filesystem;
 
 namespace CoupledField {
-  
+
 #define CHECK_HDF5_ERROR(HID_T, STR) { if(HID_T < 0) {                  \
       std::ostringstream ostr;                                          \
       ostr << STR;                                                      \
       Exception ex(NULL, __FILE__, __LINE__, ostr.str().c_str()); } }
-        
-    
+
   SimOutputXMDF::SimOutputXMDF(std::string fileName, ParamNode * inputNode) :
     SimOutput(fileName, inputNode) 
   {
@@ -42,7 +41,7 @@ namespace CoupledField {
 
     gridWritten_ = false;
     externalFiles_ = false;
-    
+
     // Change defaults according to XML file
     myParam_->Get("externalFiles", externalFiles_, false);
 
@@ -85,7 +84,7 @@ namespace CoupledField {
 
     // Assemble name of multistep
     msName << "Multistep " << step;
-    
+
     try
     {
       // Create new multistep group.
@@ -106,251 +105,15 @@ namespace CoupledField {
       currAttrDescGroup_ = currMSGroup_.createGroup("Attribute Description");
 
       WriteAttribDescriptions();
-      
+
     }
     catch (H5::Exception& h5ex)
     {
       EXCEPTION(h5ex.getCDetailMsg());
     }
-    
+
     currMS_ = step;
   }
-    
-  void SimOutputXMDF::WriteAttribDescriptions()
-  {
-    std::string resultName;
-    UInt definedOn;
-    UInt numDOFs;
-    UInt entryType;
-    hsize_t numRegions;
-    std::string unit;
-    std::string dofNames;
-    std::vector<UInt> regions;
-    RegionIdType regionId;
-    ResDescType::const_iterator it, end;
-    std::vector< boost::shared_ptr<BaseResult> >::const_iterator solIt, solEnd;
-    boost::shared_ptr<ResultInfo> resInfo, actResInfo;
-
-    it = registeredResults_.begin();
-    end = registeredResults_.end();
-    
-    for( ; it != end; it++ )
-    {
-      resultName = it->first;
-
-      solIt = it->second.begin();
-      solEnd = it->second.end();
-
-      resInfo = (*solIt)->GetResultInfo();
-      numDOFs = resInfo->dofNames.GetSize();
-      unit = resInfo->unit;
-
-      switch(resInfo->definedOn)
-      {
-      case ResultInfo::NODE:
-        definedOn = 1;
-        break;
-      case ResultInfo::EDGE:
-        definedOn = 2;
-        break;
-      case ResultInfo::FACE:
-        definedOn = 3;
-        break;
-      case ResultInfo::ELEMENT:
-        definedOn = 4;
-        break;
-      case ResultInfo::SURF_ELEM:
-        definedOn = 5;
-        break;
-      case ResultInfo::PFEM:
-        definedOn = 6;
-        break;
-      case ResultInfo::REGION:
-        definedOn = 7;
-        break;
-      case ResultInfo::SURF_REGION:
-        definedOn = 8;
-        break;
-      case ResultInfo::NODELIST:
-        definedOn = 9;
-        break;
-      case ResultInfo::COIL:
-        definedOn = 10;
-        break;
-      case ResultInfo::FREE:
-        definedOn = 11;
-        break;
-      }
-    
-      switch(resInfo->entryType)
-      {
-      case ResultInfo::UNKNOWN:
-        entryType = 0;
-        break;
-      case ResultInfo::SCALAR:
-        entryType = 1;
-        break;
-      case ResultInfo::VECTOR:
-        entryType = 3;
-        break;
-      case ResultInfo::TENSOR:
-        entryType = 6;
-        break;
-      case ResultInfo::STRING:
-        entryType = 32;
-        break;
-      }
-
-      UInt i;
-      for(i = 0; i<numDOFs-1; i++)
-      {
-        dofNames.append(resInfo->dofNames[i]);
-        dofNames.append(" ");
-      }
-      dofNames.append(resInfo->dofNames[i]);
-
-      dofNames.resize(32);
-      unit.resize(32);
-
-      // Generate list of regions for the current result.
-      for( ; solIt != solEnd; solIt++ )
-      {
-        actResInfo = (*solIt)->GetResultInfo();
-        
-        regionId = ptGrid_->RegionNameToId(
-          (*solIt)->GetEntityList()->GetName());
-        regions.push_back(++regionId);
-      }
-
-      // Reset solIt to beginning of result vector
-      solIt = it->second.begin();
-      
-      try
-      {
-        hsize_t dims;
-        dims=1;
-        H5::DataSpace space( 1, &dims );
-        numRegions = regions.size();
-        
-        UInt dtSize = sizeof(definedOn) + numRegions*sizeof(UInt) +
-                      sizeof(numDOFs) + dofNames.size() + sizeof(entryType) +
-                      unit.size();
-        UInt offset = 0;
-        
-        // Create a file datatype for the attribute description
-        H5::CompType compTypeFile( (size_t) dtSize );
-    
-        compTypeFile.insertMember( "DefinedOn",
-                                    offset,
-                                    H5::PredType::STD_U32LE);
-        offset += sizeof(definedOn);
-        
-        compTypeFile.insertMember( "Regions",
-                                    offset,
-                                    H5::ArrayType(H5::PredType::STD_U32LE,
-                                                  1, &numRegions) );
-        offset += numRegions*sizeof(UInt);
-      
-        compTypeFile.insertMember( "NumDOFs",
-                                    offset,
-                                    H5::PredType::STD_U32LE);
-        offset += sizeof(numDOFs);
-
-        compTypeFile.insertMember( "DOFNames",
-                                    offset,
-                                    H5::StrType(H5::PredType::C_S1,
-                                                dofNames.size()));
-        offset += dofNames.size();
-
-        compTypeFile.insertMember( "EntryType",
-                                    offset,
-                                    H5::PredType::STD_U32LE);
-        offset += sizeof(entryType);
-
-        compTypeFile.insertMember( "Unit", offset,
-                                    H5::StrType(H5::PredType::C_S1,
-                                                unit.size()));
-
-        // Create memory datatypes for attribute description
-        H5::CompType compTypeMem1( (size_t) sizeof(definedOn) );
-        compTypeMem1.insertMember( "DefinedOn",
-                                    0,
-                                    H5::PredType::NATIVE_UINT32);
-        
-        H5::CompType compTypeMem2( (size_t) numRegions*sizeof(UInt) );
-        compTypeMem2.insertMember( "Regions",
-                                    0, 
-                                    H5::ArrayType(H5::PredType::NATIVE_UINT32,
-                                                  1, &numRegions) );
-
-        H5::CompType compTypeMem3( (size_t) sizeof(numDOFs) );
-        compTypeMem3.insertMember( "NumDOFs",
-                                    0,
-                                    H5::PredType::NATIVE_UINT32);
-
-        H5::CompType compTypeMem4( (size_t) dofNames.size() );
-        compTypeMem4.insertMember( "DOFNames",
-                                    0,
-                                    H5::StrType(H5::PredType::C_S1,
-                                                dofNames.size()));
-
-        H5::CompType compTypeMem5( (size_t) sizeof(entryType) );
-        compTypeMem5.insertMember( "EntryType",
-                                    0,
-                                    H5::PredType::NATIVE_UINT32);
-
-        H5::CompType compTypeMem6( (size_t) unit.size() );
-        compTypeMem6.insertMember( "Unit",
-                                    0,
-                                    H5::StrType(H5::PredType::C_S1,
-                                                unit.size()));
-
-        std::vector< std::string > resNames;
-        
-        if( (*solIt)->GetEntryType() == EntryType::DOUBLE ) {
-          resNames.push_back(resultName);
-        }
-        else
-        {
-          std::string resName;
-          
-          if(resInfo->complexFormat == REAL_IMAG)
-          {
-            resName = resultName; resName.append("_real");
-            resNames.push_back(resName);
-            resName = resultName; resName.append("_imag");
-            resNames.push_back(resName);
-          }
-          else
-          {
-            resName = resultName; resName.append("_ampl");
-            resNames.push_back(resName);
-            resName = resultName; resName.append("_phase");
-            resNames.push_back(resName);
-          }
-        }
-        
-        for(i=0; i<resNames.size(); i++)
-        {
-          H5::DataSet dataset = currAttrDescGroup_.createDataSet(resNames[i],
-                                                                 compTypeFile,
-                                                                 space);
-          
-          dataset.write(&definedOn, compTypeMem1);
-          dataset.write(&regions[0], compTypeMem2);
-          dataset.write(&numDOFs, compTypeMem3);
-          dataset.write(dofNames.c_str(), compTypeMem4);
-          dataset.write(&entryType, compTypeMem5);
-          dataset.write(unit.c_str(), compTypeMem6);
-        }
-        
-      } catch (H5::Exception& h5ex2)
-      {
-        EXCEPTION(h5ex2.getCDetailMsg());
-      }
-    }
-  }
-  
 
   void SimOutputXMDF::RegisterResult( shared_ptr<BaseResult> sol,
                                       UInt saveBegin, UInt saveInc,
@@ -366,7 +129,7 @@ namespace CoupledField {
     H5::DataSpace space;
     Double timeValue;
     Double freqValue;
-    
+
     switch(currAnalysisType_)
     {
     case STATIC:
@@ -386,17 +149,17 @@ namespace CoupledField {
     case TRANSIENTHARMONIC:
       EXCEPTION("Don't know how to treat TRANSIENTHARMONIC in SimOutputXMDF.");
       break;
-      
+
     case MULTI_SEQUENCE:
       EXCEPTION("Don't know how to treat MULTI_SEQUENCE in SimOutputXMDF.");
       break;
     }
-    
+
 
     // Assemble name of multistep
     stepName << "Step " << stepNum;
     currStep_ = stepNum;
-    
+
     try
     {
       // Create new step group.
@@ -427,77 +190,6 @@ namespace CoupledField {
     }
   }
 
-  void SimOutputXMDF::CreateExternalFile()
-  {
-    H5::Attribute attrib;
-    H5::DataSpace space;
-    std::stringstream fName;
-    std::string pathsep;
-    std::string fn;
-    std::stringstream masterGroup;
-    std::string mg;
-
-    try 
-    {
-        
-      pathsep = fs::path("/").native_directory_string();
-        
-      fName << fileName_ << "_ms" << currMS_ << "_step"
-            << currStep_ << ".h5";
-      fn = fName.str();
-      fName.str("");
-      fName << dirName_ << pathsep << fn;
-        
-      currStepFile_ = H5::H5File(fName.str(), H5F_ACC_TRUNC);
-
-      // Add the attribute StepFrequency to step.
-      attrib = currStepGroup_.createAttribute("ExtHDF5FileName",
-                                              H5::StrType(H5::PredType::C_S1,
-                                                          fn.size()),
-                                              space);
-      attrib.write(H5::StrType(H5::PredType::C_S1,
-                               fn.size()),
-                   fn.c_str());
-      attrib.close();
-      currStepGroup_.close();
-      
-      currStepGroup_ = currStepFile_.openGroup("/");
-
-      fName.str("");
-      fName << fileName_ << ".h5";
-      fn = fName.str();
-
-      // Add the attribute StepFrequency to step.
-      attrib = currStepGroup_.createAttribute("MasterHDF5FileName",
-                                              H5::StrType(H5::PredType::C_S1,
-                                                          fn.size()),
-                                              space);
-      attrib.write(H5::StrType(H5::PredType::C_S1,
-                               fn.size()),
-                   fn.c_str());
-      attrib.close();
-
-      masterGroup << "/Data/Volume/Multistep " << currMS_
-                  << "/Step " << currStep_;
-      mg = masterGroup.str();
-
-      // Add the attribute StepFrequency to step.
-      attrib = currStepGroup_.createAttribute("MasterGroup",
-                                              H5::StrType(H5::PredType::C_S1,
-                                                          mg.size()),
-                                              space);
-      attrib.write(H5::StrType(H5::PredType::C_S1,
-                               mg.size()),
-                   mg.c_str());
-      attrib.close();
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-  }
-  
-
   void SimOutputXMDF::AddResult( shared_ptr<BaseResult> sol ) 
   {
     std::string regionName = sol->GetEntityList()->GetName();
@@ -509,8 +201,8 @@ namespace CoupledField {
     Vector<Double> complexVec1;
     Vector<Double> complexVec2;
     std::vector<std::string> resultNames;
-    
-    
+
+
     if( sol->GetEntryType() == EntryType::DOUBLE ) {
 
       Vector<Double> & resultVec = dynamic_cast<Result<Double>&>
@@ -535,7 +227,7 @@ namespace CoupledField {
         complexVec1[i] = resultVec[i].real();
         complexVec2[i] = resultVec[i].imag();        
       }
-      
+
       results.push_back(&complexVec1);
       results.push_back(&complexVec2);
 
@@ -564,60 +256,6 @@ namespace CoupledField {
 
     WriteAttributes(resultNames, results, regionStr.str(), numDOFs);
   }
-  
-  void SimOutputXMDF::WriteAttributes(const std::vector<std::string>& resultNames,
-                                      std::vector< Vector<Double>* >& results,
-                                      const std::string& regionStr,
-                                      const UInt numDOFs)
-  {
-    H5::Group resultGroup;
-    UInt numResults = resultNames.size();
-
-    for(UInt i=0; i<numResults; i++)
-    {
-      UInt numEntities = results[i]->GetSize() / numDOFs;
-      
-      try
-      {
-        // Try to open result group.
-        resultGroup = currStepGroup_.openGroup(resultNames[i]);
-      }
-      catch (H5::Exception& h5ex)
-      {
-        try
-        {
-          resultGroup = currStepGroup_.createGroup(resultNames[i]);
-        }
-        catch (H5::Exception& h5ex)
-        {
-          EXCEPTION(h5ex.getCDetailMsg());
-        }
-      }    
-
-      try
-      {
-        // dim sizes of ds (on disk)
-        hsize_t fdim[] = {numEntities, numDOFs}; 
-        H5::DataSpace fspace( 2, fdim );
-
-        // Create dataset and write it into the file.
-        H5::DataSet dataset;
-        dataset = resultGroup.createDataSet( regionStr,
-                                             H5::PredType::NATIVE_DOUBLE,
-                                             fspace );
-        dataset.write( &(*results[i])[0], H5::PredType::IEEE_F64LE);
-
-        dataset.close();
-        fspace.close();
-      }
-      catch (H5::Exception& h5ex)
-      {
-        EXCEPTION(h5ex.getCDetailMsg());
-      }
-    }
-
-    resultGroup.close();
-  }
 
   void SimOutputXMDF::FinishStep( ) 
   {
@@ -638,13 +276,12 @@ namespace CoupledField {
   {
   }
 
-
   void SimOutputXMDF::InitModule()
   {
     std::string pathsep;
     std::string filename;
     std::ostringstream strBuffer;
-        
+
     try 
     {
       fs::create_directory( dirName_ );
@@ -657,7 +294,7 @@ namespace CoupledField {
 
     strBuffer << dirName_ << pathsep << fileName_ << ".h5";
     filename = strBuffer.str();
-    
+
     xid  xGroupId = -1;
     Integer    status;
     std::string pathToMesh = "Mesh";
@@ -667,7 +304,7 @@ namespace CoupledField {
     status = xfCreateFile(filename.c_str(), &fileId_, true);
     strBuf << "Could not create XMDF file " << fileName_;
     CHECK_HDF5_ERROR(status, strBuf.str());
-    
+
     status = xfCreateGroupForMesh(fileId_, pathToMesh.c_str(), &xGroupId);
     strBuf << "Could not create mesh group '" << pathToMesh << "'";
     CHECK_HDF5_ERROR(status, strBuf.str());
@@ -700,12 +337,12 @@ namespace CoupledField {
     H5::Attribute attrib;
     UInt dim;
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
-    
+
     if(!gridWritten_)
       InitModule();
     else
       return;
-    
+
     try
     {
       mGroup = mainRoot_.openGroup("Mesh");
@@ -752,9 +389,9 @@ namespace CoupledField {
 
     for (UInt i = 0; i < fg_nNodes; i++) {
       Point p;
-      
+
       ptGrid_->GetNodeCoordinate(p, i+1);
-        
+
       fg_XNodeLocs[i] = p[0];
       fg_YNodeLocs[i] = p[1];
       fg_ZNodeLocs[i] = p[2];
@@ -819,7 +456,7 @@ namespace CoupledField {
         quadraticElems = 1;
         ReorderConnectivity(eType, true, &connect[0], &connect[0]);
         break;
-        
+
       case ET_TET10:
       case ET_HEXA20:
       case ET_HEXA27:
@@ -866,7 +503,7 @@ namespace CoupledField {
                                          space);
       attrib.write(H5::PredType::NATIVE_UINT32, &quadraticElems);
       attrib.close();
-      
+
       for(UInt i=0; i<3; i++)
       {
         std::stringstream attrName;
@@ -907,19 +544,9 @@ namespace CoupledField {
     }
 
     gridWritten_ = true;
-    
   }
 
 
-
-  // =========================================================================
-  // MISCELLANEOUS METHODS
-  // =========================================================================
-
-
-  // ***************
-  //   Type2ptElem
-  // ***************
 
   FEType SimOutputXMDF::XMDFElemType2ElemType( const Integer type ) {
 
@@ -930,14 +557,14 @@ namespace CoupledField {
     case 201:   return ET_TRIA6;   // 2D quadratic triangle
     case 210:   return ET_QUAD4;   // 2D linear quadrilateral
     case 211:   return ET_QUAD8;   // 2D quadratic quadrilateral
-    case 212:   return ET_QUAD9;   // 2D quadratic quadrilateral with center n.
+    case 212:   return ET_QUAD9;   // 2D quadr. quad. with center node
     case 300:   return ET_TET4;    // 3D linear tetrahedron
     case 30010: return ET_TET10;   // 3D quadratic tetrahedron
     case 310:   return ET_WEDGE6;  // 3D linear prism
     case 31010: return ET_WEDGE15; // 3D quadratic prism
     case 320:   return ET_HEXA8;   // 3D linear hexahedron
     case 32010: return ET_HEXA20;  // 3D quadratic hexahedron
-    case 32011: return ET_HEXA27;  // 3D quadratic hexahedron with center nodes
+    case 32011: return ET_HEXA27;  // 3D quadr. hexa. with center nodes
     case 330:   return ET_PYRA5;   // 3D linear pyramid
     case 33010: return ET_PYRA13;  // 3D quadratic pyramid
     }
@@ -955,23 +582,22 @@ namespace CoupledField {
     case ET_TRIA6:   return 201;   // 2D quadratic triangle
     case ET_QUAD4:   return 210;   // 2D linear quadrilateral
     case ET_QUAD8:   return 211;   // 2D quadratic quadrilateral
-    case ET_QUAD9:   return 212;   // 2D quadratic quadrilateral with center n.
+    case ET_QUAD9:   return 212;   // 2D quadr. quad. with center node
     case ET_TET4:    return 300;   // 3D linear tetrahedron
-    case ET_TET10:   return 30010; // 3D linear tetrahedron
+    case ET_TET10:   return 30010; // 3D quadratic tetrahedron
     case ET_WEDGE6:  return 310;   // 3D linear prism
-    case ET_WEDGE15: return 31010; // 3D linear prism
+    case ET_WEDGE15: return 31010; // 3D quadratic prism
     case ET_HEXA8:   return 320;   // 3D linear hexahedron
-    case ET_HEXA20:  return 32010; // 3D linear hexahedron
-    case ET_HEXA27:  return 32011; // 3D linear hexahedron
+    case ET_HEXA20:  return 32010; // 3D quadratic hexahedron
+    case ET_HEXA27:  return 32011; // 3D quadr. hexa. with center nodes
     case ET_PYRA5:   return 330;   // 3D linear pyramid
-    case ET_PYRA13:  return 33010; // 3D linear pyramid
+    case ET_PYRA13:  return 33010; // 3D quadratic pyramid
     default: return ET_UNDEF;
     }
 
     // This place should never be reached!
     return -1;
   }
-
 
   void SimOutputXMDF::ReorderConnectivity( const Integer eType,
                                            const bool toXMDF,
@@ -1034,7 +660,6 @@ namespace CoupledField {
     UInt dim;
     UInt idx;
     hsize_t numRegions;
-    
 
     try
     {
@@ -1057,12 +682,12 @@ namespace CoupledField {
     regionDims.resize(numRegions);
     regionElems.resize(numRegions);
     regionNodes.resize(numRegions);
-    
+
     for(UInt i=0; i<surfRegionIds.size(); i++)
     {
       idx = surfRegionIds[i];
       regionDims[idx] = dim-1;
-        
+
       ptGrid_->GetElems(elems, idx);
       regionElems[idx].resize(elems.GetSize());
       for(UInt j=0; j<elems.GetSize(); j++)
@@ -1073,12 +698,12 @@ namespace CoupledField {
       ptGrid_->GetNodesByRegion(regionNodes[idx], idx);
 
     }
-    
+
     for(UInt i=0; i<volRegionIds.size(); i++)
     {
       idx = volRegionIds[i];
       regionDims[idx] = dim;
-        
+
       ptGrid_->GetElems(elems, idx);
       regionElems[idx].resize(elems.GetSize());
       for(UInt j=0; j<elems.GetSize(); j++)
@@ -1088,9 +713,9 @@ namespace CoupledField {
 
       ptGrid_->GetNodesByRegion(regionNodes[idx], idx);
     }
-    
+
     regionDescs.resize(numRegions);
-    
+
     for(UInt i=0; i<numRegions; i++)
     {
       strncpy(regionDescs[i].name,
@@ -1119,7 +744,7 @@ namespace CoupledField {
 
       // Create a memory datatype for region_desc_type
       H5::CompType compTypeMem( sizeof(region_desc_type) );
-    
+
       compTypeMem.insertMember( "Name", HOFFSET(region_desc_type, name),
                                  H5::StrType(H5::PredType::C_S1,
                                              sizeof(regionDescs[0].name)));
@@ -1151,7 +776,7 @@ namespace CoupledField {
     std::vector< named_entity_desc_type > namedNodeDescs;
     std::vector< UInt > nodes;
     std::vector<std::string> nodeNames;
-    
+
     hid_t status;
     int fg_Compression = 1;
     hsize_t numNamedNodes;
@@ -1195,7 +820,7 @@ namespace CoupledField {
 
       // Create a memory datatype for region_desc_type
       H5::CompType comptype( sizeof(named_entity_desc_type) );
-    
+
       comptype.insertMember( "Name", HOFFSET(region_desc_type, name),
                              H5::StrType(H5::PredType::C_S1,
                                          sizeof(namedNodeDescs[0].name)));
@@ -1218,7 +843,7 @@ namespace CoupledField {
     std::vector< UInt > elems;
     StdVector< Elem* > elemPtrs;
     std::vector<std::string> elemNames;
-    
+
     hid_t status;
     int fg_Compression = 1;
     hsize_t numNamedElems;
@@ -1252,7 +877,7 @@ namespace CoupledField {
       {
         elems[j] = elemPtrs[j]->elemNum;
       }
-      
+
       status = xfWritePropertyInt(nElemGroup.getLocId(),
                                   elemNames[i].c_str(),
                                   elems.size(),
@@ -1266,7 +891,7 @@ namespace CoupledField {
 
       // Create a memory datatype for region_desc_type
       H5::CompType comptype( sizeof(named_entity_desc_type) );
-    
+
       comptype.insertMember( "Name", HOFFSET(region_desc_type, name),
                              H5::StrType(H5::PredType::C_S1,
                                          sizeof(namedElemDescs[0].name)));
@@ -1280,5 +905,366 @@ namespace CoupledField {
       EXCEPTION(h5ex.getCDetailMsg());
     }
   }
+
+  void SimOutputXMDF::WriteAttribDescriptions()
+  {
+    std::string resultName;
+    UInt definedOn;
+    UInt numDOFs;
+    UInt entryType;
+    hsize_t numRegions;
+    std::string unit;
+    std::string dofNames;
+    std::vector<UInt> regions;
+    RegionIdType regionId;
+    ResDescType::const_iterator it, end;
+    std::vector< boost::shared_ptr<BaseResult> >::const_iterator solIt, solEnd;
+    boost::shared_ptr<ResultInfo> resInfo, actResInfo;
+
+    it = registeredResults_.begin();
+    end = registeredResults_.end();
+
+    for( ; it != end; it++ )
+    {
+      resultName = it->first;
+
+      solIt = it->second.begin();
+      solEnd = it->second.end();
+
+      resInfo = (*solIt)->GetResultInfo();
+      numDOFs = resInfo->dofNames.GetSize();
+      unit = resInfo->unit;
+
+      switch(resInfo->definedOn)
+      {
+        case ResultInfo::NODE:
+          definedOn = 1;
+          break;
+        case ResultInfo::EDGE:
+          definedOn = 2;
+          break;
+        case ResultInfo::FACE:
+          definedOn = 3;
+          break;
+        case ResultInfo::ELEMENT:
+          definedOn = 4;
+          break;
+        case ResultInfo::SURF_ELEM:
+          definedOn = 5;
+          break;
+        case ResultInfo::PFEM:
+          definedOn = 6;
+          break;
+        case ResultInfo::REGION:
+          definedOn = 7;
+          break;
+        case ResultInfo::SURF_REGION:
+          definedOn = 8;
+          break;
+        case ResultInfo::NODELIST:
+          definedOn = 9;
+          break;
+        case ResultInfo::COIL:
+          definedOn = 10;
+          break;
+        case ResultInfo::FREE:
+          definedOn = 11;
+          break;
+      }
+
+      switch(resInfo->entryType)
+      {
+        case ResultInfo::UNKNOWN:
+          entryType = 0;
+          break;
+        case ResultInfo::SCALAR:
+          entryType = 1;
+          break;
+        case ResultInfo::VECTOR:
+          entryType = 3;
+          break;
+        case ResultInfo::TENSOR:
+          entryType = 6;
+          break;
+        case ResultInfo::STRING:
+          entryType = 32;
+          break;
+      }
+
+      UInt i;
+      for(i = 0; i<numDOFs-1; i++)
+      {
+        dofNames.append(resInfo->dofNames[i]);
+        dofNames.append(" ");
+      }
+      dofNames.append(resInfo->dofNames[i]);
+
+      dofNames.resize(32);
+      unit.resize(32);
+
+      // Generate list of regions for the current result.
+      regions.clear();
+      for( ; solIt != solEnd; solIt++ )
+      {
+        actResInfo = (*solIt)->GetResultInfo();
+
+        regionId = ptGrid_->RegionNameToId(
+            (*solIt)->GetEntityList()->GetName());
+        regions.push_back(++regionId);
+      }
+
+      // Reset solIt to beginning of result vector
+      solIt = it->second.begin();
+
+      try
+      {
+        hsize_t dims;
+        dims=1;
+        H5::DataSpace space( 1, &dims );
+        numRegions = regions.size();
+
+        UInt dtSize = sizeof(definedOn) + numRegions*sizeof(UInt) +
+            sizeof(numDOFs) + dofNames.size() + sizeof(entryType) +
+            unit.size();
+        UInt offset = 0;
+
+        // Create a file datatype for the attribute description
+        H5::CompType compTypeFile( (size_t) dtSize );
+
+        compTypeFile.insertMember( "DefinedOn",
+                                   offset,
+                                   H5::PredType::STD_U32LE);
+        offset += sizeof(definedOn);
+
+        compTypeFile.insertMember( "Regions",
+                                   offset,
+                                   H5::ArrayType(H5::PredType::STD_U32LE,
+                                       1, &numRegions) );
+        offset += numRegions*sizeof(UInt);
+
+        compTypeFile.insertMember( "NumDOFs",
+                                   offset,
+                                   H5::PredType::STD_U32LE);
+        offset += sizeof(numDOFs);
+
+        compTypeFile.insertMember( "DOFNames",
+                                   offset,
+                                   H5::StrType(H5::PredType::C_S1,
+                                               dofNames.size()));
+        offset += dofNames.size();
+
+        compTypeFile.insertMember( "EntryType",
+                                   offset,
+                                   H5::PredType::STD_U32LE);
+        offset += sizeof(entryType);
+
+        compTypeFile.insertMember( "Unit", offset,
+                                   H5::StrType(H5::PredType::C_S1,
+                                               unit.size()));
+
+        // Create memory datatypes for attribute description
+        H5::CompType compTypeMem1( (size_t) sizeof(definedOn) );
+        compTypeMem1.insertMember( "DefinedOn",
+                                   0,
+                                   H5::PredType::NATIVE_UINT32);
+
+        H5::CompType compTypeMem2( (size_t) numRegions*sizeof(UInt) );
+        compTypeMem2.insertMember( "Regions",
+                                   0, 
+                                   H5::ArrayType(H5::PredType::NATIVE_UINT32,
+                                       1, &numRegions) );
+
+        H5::CompType compTypeMem3( (size_t) sizeof(numDOFs) );
+        compTypeMem3.insertMember( "NumDOFs",
+                                   0,
+                                   H5::PredType::NATIVE_UINT32);
+
+        H5::CompType compTypeMem4( (size_t) dofNames.size() );
+        compTypeMem4.insertMember( "DOFNames",
+                                   0,
+                                   H5::StrType(H5::PredType::C_S1,
+                                               dofNames.size()));
+
+        H5::CompType compTypeMem5( (size_t) sizeof(entryType) );
+        compTypeMem5.insertMember( "EntryType",
+                                   0,
+                                   H5::PredType::NATIVE_UINT32);
+
+        H5::CompType compTypeMem6( (size_t) unit.size() );
+        compTypeMem6.insertMember( "Unit",
+                                   0,
+                                   H5::StrType(H5::PredType::C_S1,
+                                               unit.size()));
+
+        std::vector< std::string > resNames;
+
+        if( (*solIt)->GetEntryType() == EntryType::DOUBLE ) {
+          resNames.push_back(resultName);
+        }
+        else
+        {
+          std::string resName;
+
+          if(resInfo->complexFormat == REAL_IMAG)
+          {
+            resName = resultName; resName.append("_real");
+            resNames.push_back(resName);
+            resName = resultName; resName.append("_imag");
+            resNames.push_back(resName);
+          }
+          else
+          {
+            resName = resultName; resName.append("_ampl");
+            resNames.push_back(resName);
+            resName = resultName; resName.append("_phase");
+            resNames.push_back(resName);
+          }
+        }
+
+        for(i=0; i<resNames.size(); i++)
+        {
+          H5::DataSet dataset = currAttrDescGroup_.createDataSet(resNames[i],
+              compTypeFile,
+              space);
+
+          dataset.write(&definedOn, compTypeMem1);
+          dataset.write(&regions[0], compTypeMem2);
+          dataset.write(&numDOFs, compTypeMem3);
+          dataset.write(dofNames.c_str(), compTypeMem4);
+          dataset.write(&entryType, compTypeMem5);
+          dataset.write(unit.c_str(), compTypeMem6);
+        }
+
+      } catch (H5::Exception& h5ex2)
+      {
+        EXCEPTION(h5ex2.getCDetailMsg());
+      }
+    }
+  }
+
+  void SimOutputXMDF::WriteAttributes(const std::vector<std::string>& resultNames,
+                                      std::vector< Vector<Double>* >& results,
+                                      const std::string& regionStr,
+                                      const UInt numDOFs)
+  {
+    H5::Group resultGroup;
+    UInt numResults = resultNames.size();
+
+    for(UInt i=0; i<numResults; i++)
+    {
+      UInt numEntities = results[i]->GetSize() / numDOFs;
+
+      try
+      {
+        // Try to open result group.
+        resultGroup = currStepGroup_.openGroup(resultNames[i]);
+      }
+      catch (H5::Exception& h5ex)
+      {
+        try
+        {
+          resultGroup = currStepGroup_.createGroup(resultNames[i]);
+        }
+        catch (H5::Exception& h5ex)
+        {
+          EXCEPTION(h5ex.getCDetailMsg());
+        }
+      }
+
+      try
+      {
+        // dim sizes of ds (on disk)
+        hsize_t fdim[] = {numEntities, numDOFs}; 
+        H5::DataSpace fspace( 2, fdim );
+
+        // Create dataset and write it into the file.
+        H5::DataSet dataset;
+        dataset = resultGroup.createDataSet( regionStr,
+                                             H5::PredType::NATIVE_DOUBLE,
+                                             fspace );
+        dataset.write( &(*results[i])[0], H5::PredType::IEEE_F64LE);
+
+        dataset.close();
+        fspace.close();
+      }
+      catch (H5::Exception& h5ex)
+      {
+        EXCEPTION(h5ex.getCDetailMsg());
+      }
+    }
+
+    resultGroup.close();
+  }
+
+  void SimOutputXMDF::CreateExternalFile()
+  {
+    H5::Attribute attrib;
+    H5::DataSpace space;
+    std::stringstream fName;
+    std::string pathsep;
+    std::string fn;
+    std::stringstream masterGroup;
+    std::string mg;
+
+    try 
+    {
+
+      pathsep = fs::path("/").native_directory_string();
+
+      fName << fileName_ << "_ms" << currMS_ << "_step"
+          << currStep_ << ".h5";
+      fn = fName.str();
+      fName.str("");
+      fName << dirName_ << pathsep << fn;
+
+      currStepFile_ = H5::H5File(fName.str(), H5F_ACC_TRUNC);
+
+      // Add the attribute StepFrequency to step.
+      attrib = currStepGroup_.createAttribute("ExtHDF5FileName",
+                                              H5::StrType(H5::PredType::C_S1,
+                                                  fn.size()),
+                                              space);
+      attrib.write(H5::StrType(H5::PredType::C_S1,
+                   fn.size()),
+      fn.c_str());
+      attrib.close();
+      currStepGroup_.close();
+
+      currStepGroup_ = currStepFile_.openGroup("/");
+
+      fName.str("");
+      fName << fileName_ << ".h5";
+      fn = fName.str();
+
+      // Add the attribute StepFrequency to step.
+      attrib = currStepGroup_.createAttribute("MasterHDF5FileName",
+                                              H5::StrType(H5::PredType::C_S1,
+                                                  fn.size()),
+                                              space);
+      attrib.write(H5::StrType(H5::PredType::C_S1,
+                   fn.size()),
+      fn.c_str());
+      attrib.close();
+
+      masterGroup << "/Data/Volume/Multistep " << currMS_
+          << "/Step " << currStep_;
+      mg = masterGroup.str();
+
+      // Add the attribute StepFrequency to step.
+      attrib = currStepGroup_.createAttribute("MasterGroup",
+                                              H5::StrType(H5::PredType::C_S1,
+                                                  mg.size()),
+                                              space);
+      attrib.write(H5::StrType(H5::PredType::C_S1,
+                   mg.size()),
+      mg.c_str());
+      attrib.close();
+    }
+    catch (H5::Exception& h5ex)
+    {
+      EXCEPTION(h5ex.getCDetailMsg());
+    }
+  }
+
 }
 
