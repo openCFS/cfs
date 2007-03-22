@@ -58,9 +58,21 @@ namespace CoupledField {
     //! Get iterator
     virtual EntityIterator GetIterator() const = 0;
 
-    static std::string TypeToString( ListType type );
+    // =======================================================================
+    //  CONVERSION METHODS
+    // =======================================================================
+    
+    //! Conversion from ListType to string
+    static void Enum2String( ListType in, std::string& out );
 
-    static ListType StringToType( const std::string& type );
+    //! Conversion from string to ListType
+    static void String2Enum( const std::string& in, ListType& out );
+
+    //! Conversion from DefineType to string
+    static void Enum2String( DefineType in, std::string& out );
+
+    //! Conversion from string to DefineType 
+    static void String2Enum( const std::string& in, DefineType& out );
 
   protected:
     

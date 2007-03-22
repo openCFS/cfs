@@ -181,6 +181,9 @@ namespace CoupledField {
     //! Current time / frequency
     Double actStepVal_;
     
+    //! Indicates if one result is to be written in final step
+    bool finalResultExists_;
+
     //! Current analysistype
     AnalysisType analysisType_;
 

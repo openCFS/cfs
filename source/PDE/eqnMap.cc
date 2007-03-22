@@ -1959,7 +1959,9 @@ namespace CoupledField {
       break;
       
     default :
-      EXCEPTION( "'" << EntityList::TypeToString(type)
+      std::string listString;
+      EntityList::Enum2String( type, listString );
+      EXCEPTION( "'" << listString
                  << "' is no EntityList with nodal information." );
       
     }

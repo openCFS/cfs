@@ -24,8 +24,9 @@ namespace CoupledField {
     opMode_ = opMode;
     sequenceStep_ = 1;
     actStep_ = 0;
+    finalResultExists_ = false;
     actStepVal_ = 0.0;
-    }
+  }
 
 
   ResultHandler::~ResultHandler() {
@@ -70,7 +71,7 @@ namespace CoupledField {
     shared_ptr<ResultContext> actContext;
   
     if( resultContexts_.find( sol) != resultContexts_.end() ) {
-      Error( "Context was already found", __FILE__, __LINE__ );
+      EXCEPTION( "Context was already found" );
     }
 
     // create new ResultContext
@@ -103,9 +104,8 @@ namespace CoupledField {
         
         // check, if output is registered
         if( outFiles_.find( newDest[i] ) == outFiles_.end() ) {
-          *error << "Output writer '" << newDest[i] 
-                 << "' was not registered yet!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Output writer '" << newDest[i] 
+                     << "' was not registered yet!" );
         }
         LOG_DBG(resHandler) << "Registering output '" << newDest[i]
                             << "' with result '" << name;
@@ -341,6 +341,7 @@ namespace CoupledField {
       if( postProcs[i]->GetReductionType() == PostProc::TIME_FREQ ||
           actContext.isFinal ) {
         nextContext->isFinal = true;
+        finalResultExists_ = true;
       } else {
         nextContext->isFinal = false;
       }
@@ -382,9 +383,8 @@ namespace CoupledField {
 
       for( UInt iOut = 0; iOut < outDest.GetSize(); iOut++ ) {
         if( outFiles_.find( outDest[iOut] ) == outFiles_.end() ) {
-          *error << "Output writer '" << outDest[i] 
-                 << "' was not registered yet!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Output writer '" << outDest[i] 
+                     << "' was not registered yet!" );
         }
         
         nextContext->outputs.Push_back( outFiles_[outDest[iOut]] );
@@ -429,26 +429,30 @@ namespace CoupledField {
                           << "' for writing out";
 
       // Check, if next result is only to be computed in final stage
-      if( next.isFinal || (next.writeResult == false ) ) {
-        continue;
-      }
-      
-      // iterate over all outputs
-      for( UInt iOut = 0; iOut < next.outputs.GetSize(); iOut++ ) {
+      if( next.writeResult != false  && next.isFinal != true) {
         
-        // Add current result to given output file
-        next.outputs[iOut]->AddResult( next.result );
-        BaseResult & nextResult  = *(next.result);
-        LOG_DBG(resHandler) << "Adding result '" 
-                            << nextResult.GetResultInfo()->resultName
-                            << "' on '"
-                            << nextResult.GetEntityList()->GetName()
-                            << "' to '" << next.outputs[iOut]->GetName()
-                            << "'";
+        // iterate over all outputs
+        for( UInt iOut = 0; iOut < next.outputs.GetSize(); iOut++ ) {
+          
+          // Add current result to given output file
+          next.outputs[iOut]->AddResult( next.result );
+          BaseResult & nextResult  = *(next.result);
+          LOG_DBG(resHandler) << "Adding result '" 
+                              << nextResult.GetResultInfo()->resultName
+                              << "' on '"
+                              << nextResult.GetEntityList()->GetName()
+                              << "' to '" << next.outputs[iOut]->GetName()
+                              << "'";
+        }
       }
 
       // Call method recursively to write all outputs of next context
-      FinishStepRec( next );
+      // Note: We only may write the result, if it is not a "final" result,
+      // i.e. it is written only once at the end. In this case, the result
+      // is written via the method FinalizeRec()
+      if( !next.isFinal ) {
+        FinishStepRec( next );
+      }
     }
   }
   
@@ -521,48 +525,54 @@ namespace CoupledField {
     LOG_TRACE(resHandler) << "Starting to Finalize";
     actStep_++;
     actStepVal_ = 0.0;
+
+    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
     
     // Note: At the moment, the 'finalization' is done by
     // writing an aditional last step to the file (with stepVal = 0 );
-
-    std::string type;
-    // Trigger new step at all output writers
-    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-    for( fileIt = outFiles_.begin(); 
-         fileIt != outFiles_.end(); fileIt++ ) {
-      fileIt->second->BeginStep( actStep_, actStepVal_);
-    }    
-    
-    // === Primary results ===
-    // iterate over all results, which are needed
-    std::set<shared_ptr<ResultContext> >::iterator it = contexts_.begin();
-    for( ; it != contexts_.end(); it++ ) {
+    // However, this is only done, if an additional result is present
+    // for the final step.
+    if( finalResultExists_ ) {
       
-      // store context
-      ResultContext & actContext = **it;
-      BaseResult & actResult  = *(actContext.result);
-      Enum2String( actResult.GetResultInfo()->resultType, type );
+      std::string type;
+      // Trigger new step at all output writers
+     
+      for( fileIt = outFiles_.begin(); 
+           fileIt != outFiles_.end(); fileIt++ ) {
+        fileIt->second->BeginStep( actStep_, actStepVal_);
+      }    
       
-      LOG_DBG(resHandler) << "Testing result '" << type << "' on '"
-                          << actResult.GetEntityList()->GetName()
-                          << "'";
-      // check, if result is to be written 
-      if( actContext.writeResult &&  actContext.isFinal )  {
+      // === Primary results ===
+      // iterate over all results, which are needed
+      std::set<shared_ptr<ResultContext> >::iterator it = contexts_.begin();
+      for( ; it != contexts_.end(); it++ ) {
         
-        // iterate over all outputs
-        for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
+        // store context
+        ResultContext & actContext = **it;
+        BaseResult & actResult  = *(actContext.result);
+        Enum2String( actResult.GetResultInfo()->resultType, type );
+        
+        LOG_DBG(resHandler) << "Testing result '" << type << "' on '"
+                            << actResult.GetEntityList()->GetName()
+                            << "'";
+        // check, if result is to be written 
+        if( actContext.writeResult &&  actContext.isFinal )  {
           
-          // Add current result to given output file
-          actContext.outputs[iOut]->AddResult( actContext.result );
-          LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
-                              << actResult.GetEntityList()->GetName()
-                              << "' to '" << actContext.outputs[iOut]->GetName()
-                              << "'";
+          // iterate over all outputs
+          for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
+            
+            // Add current result to given output file
+            actContext.outputs[iOut]->AddResult( actContext.result );
+            LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
+                                << actResult.GetEntityList()->GetName()
+                                << "' to '" << actContext.outputs[iOut]->GetName()
+                                << "'";
+          }
         }
+        
+        // In any case: Process also related secondary (postprocessing) results
+        FinalizeRec( actContext );
       }
-      
-      // In any case: Process also related secondary (postprocessing) results
-      FinalizeRec( actContext );
     }
     
     // Trigger writing and finalizing of all output writers
@@ -570,7 +580,9 @@ namespace CoupledField {
          fileIt != outFiles_.end(); fileIt++ ) {
       LOG_DBG(resHandler) << "Finalizing result for output '"
                           << fileIt->second->GetName() << "'";
-      fileIt->second->FinishStep( );
+      if( finalResultExists_) {
+        fileIt->second->FinishStep( );
+      }
       fileIt->second->Finalize( );
     }    
 
@@ -681,10 +693,9 @@ namespace CoupledField {
 
       // If no writer with capability MESH_RESULTS is found: error
       if( neededCap == SimOutput::MESH_RESULTS ) {
-        *error << "No output class was specified, which is capable of "
-               << "writing mesh results. Please specify one within the "
-               << "<output> section!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "No output class was specified, which is capable of "
+                   << "writing mesh results. Please specify one within the "
+                   << "<output> section!" );
       }
 
       // If no writer with capability HISTORY_RESULT is found: 

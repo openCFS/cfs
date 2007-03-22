@@ -145,7 +145,7 @@ namespace CoupledField {
           type = TIME_FREQ;
         }
         actProc = shared_ptr<PostProcMax>(new PostProcMax( ptGrid, type,NULL ) );
-        } 
+      } 
       
       
       // === FUNCTION ===
@@ -175,6 +175,24 @@ namespace CoupledField {
         funcProc->Initialize( resultName, unit, dofNames, rFunctions, iFunctions );
         actProc = funcProc;
       }
+
+      // === LIMIT ===
+      if( procName == "limit" ) {
+        found = true;
+
+        shared_ptr<PostProcLimit> limitProc;
+        limitProc = shared_ptr<PostProcLimit>(new PostProcLimit( ptGrid, NULL ) );
+
+        // set upper and lower value, if present
+        if( procNodes[i]->Has("lowerLimit") ){
+          limitProc->SetLowerLimit( procNodes[i]->Get("lowerLimit")->AsDouble() );
+        }
+        if( procNodes[i]->Has("upperLimit") ){
+          limitProc->SetUpperLimit( procNodes[i]->Get("upperLimit")->AsDouble() );
+        }
+        actProc = limitProc;
+
+      } 
 
       // Check, if postProc method was found
       if (!found) {
@@ -314,7 +332,7 @@ namespace CoupledField {
 
   }
 
-// =================== MAXIMUM-POSTPROCEDURE ===================
+  // =================== MAXIMUM-POSTPROCEDURE ===================
 
   PostProcMax::PostProcMax( Grid * ptGrid, ReductionType type,
                             ParamNode * postProcNode )
@@ -330,10 +348,6 @@ namespace CoupledField {
     
   }
 
-
- 
-
-  
   void PostProcMax::SetResult( shared_ptr<BaseResult> res ) {
     ENTER_FCN( "PostProcMax::SetResult" );
     
@@ -529,8 +543,8 @@ namespace CoupledField {
       shared_ptr<ResultInfo>( new ResultInfo( *input_->GetResultInfo() ) );
     actInfo->resultType = NO_SOLUTION_TYPE;
     actInfo->resultName = resultName_;
-    actInfo->unit = unit_;
     actInfo->dofNames = dofNames_;
+    actInfo->unit = unit_;
     if( dofNames_.GetSize() > 1 ) {
       actInfo->entryType = ResultInfo::VECTOR;
     } else {
@@ -695,5 +709,134 @@ namespace CoupledField {
     
   }
   
+ // =================== LIMIT-POSTPROCEDURE ===================
+
+  PostProcLimit::PostProcLimit( Grid * ptGrid, 
+                              ParamNode * postProcNode )
+    : PostProc( ptGrid, postProcNode ) {
+    ENTER_FCN( "PostProcLimit::PostProcLimit" );
+    
+    name_ = "limit";
+    reducType_ = NONE;
+
+    loLimSet_ = false;
+    upLimSet_ = false;    
+    loLim_ = 0;
+    upLim_ = 0;
+
+  }
+
+  PostProcLimit::~PostProcLimit() {
+    ENTER_FCN( "PostProcLimit::~PostProcLimit" );
+    
+  }
+
+  void PostProcLimit::SetResult( shared_ptr<BaseResult> res ) {
+    ENTER_FCN( "PostProcLimit::SetResult" );
+    
+    // Append result to list of results
+    input_ =  res;
+    
+    // Create correct output result
+    // a) Fetch related (reduced) entity list and EntityUnknownType
+    shared_ptr<EntityList> newList;
+    ResultInfo::EntityUnknownType newDefinedOn;
+    ResultInfo & inResult  = *(res->GetResultInfo());
+    
+    GetReducedList( newList, newDefinedOn, res->GetEntityList(), 
+                    inResult.definedOn, reducType_ );
+    
+    // b) Adjust new ResultInfo
+    shared_ptr<ResultInfo> newInfo = 
+      shared_ptr<ResultInfo>( new ResultInfo( inResult ) );
+    newInfo->definedOn = newDefinedOn;
+    newInfo->resultName += "-limit";
+    
+    // c) Create new Result and set is as output
+    shared_ptr<BaseResult> newResult;
+    if( res->GetEntryType() == EntryType::DOUBLE ) {
+      newResult = shared_ptr<BaseResult>(new Result<Double>() );
+    } else {
+      newResult = shared_ptr<BaseResult>( new Result<Complex>() );
+    }
+    newResult->SetEntityList( newList );
+    newResult->SetResultInfo( newInfo );
+    output_ = newResult;
+
+  }
+
+  void PostProcLimit::SetLowerLimit( Double loLimit ) {
+
+    loLim_ = loLimit;
+    loLimSet_ = true;
+  }
+
+  void PostProcLimit::SetUpperLimit( Double upLimit ) {
+
+    upLim_ = upLimit;
+    upLimSet_ = true;
+  }
+
+  void PostProcLimit::Apply() {
+    ENTER_FCN( "PostProcLimit::Apply" );
+    
+    if( output_->GetEntryType() == EntryType::DOUBLE ) {
+      CalcLimit<Double>();
+    } else {
+      CalcLimit<Complex>();
+    }
+  }
+
+
+  template<class TYPE> 
+  void PostProcLimit::CalcLimit() {
+    ENTER_FCN( "PostProcLimit::CalcLimit" );
+    
+    // Cast output into correct type
+    Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
+    Result<TYPE> & in =  dynamic_cast<Result<TYPE>&>(*input_ );
+    Vector<TYPE> & outVec = out.GetVector();
+    Vector<TYPE> & inVec = in.GetVector();
+
+    // Copy input vector to output vector
+    outVec = inVec;
+    
+    // check for lower limit
+    if( loLimSet_ ) {
+      for( UInt i = 0 ; i< outVec.GetSize(); i++ ) {
+        if( opLtSingleDof(outVec[i], loLim_) )
+          outVec[i] = loLim_;
+      }
+    }
+    
+    // check for upper limit
+    if( upLimSet_ ) {
+      for( UInt i = 0 ; i< outVec.GetSize(); i++ ) {
+        if( opGtSingleDof(outVec[i], upLim_) )
+          outVec[i] = upLim_;
+      }
+    }
+
+
+  }
   
+  template<class TYPE1, class TYPE2>
+  bool PostProcLimit::opLtSingleDof( TYPE1 a, TYPE2 b ) {
+    return a < b;
+  }
+
+  template<>
+  bool PostProcLimit::opLtSingleDof( Complex a, Double b ) {
+    return std::abs(a) < b;
+  }  
+
+  template<class TYPE1, class TYPE2>
+  bool PostProcLimit::opGtSingleDof( TYPE1 a, TYPE2 b ) {
+    return a > b;
+  }
+
+  template<>
+  bool PostProcLimit::opGtSingleDof( Complex a, Double b ) {
+    return std::abs(a) > b;
+  }  
 }

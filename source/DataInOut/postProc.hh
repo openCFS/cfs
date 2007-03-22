@@ -105,6 +105,7 @@ namespace CoupledField {
     std::string next_;
   };
 
+  // -------------------------------------------------------------------------
 
   //! Calculates the sum (sptatial/time) for one result type
   class PostProcSum : public PostProc {
@@ -137,6 +138,7 @@ namespace CoupledField {
     
   };
 
+  // -------------------------------------------------------------------------
 
   //! Calculates the maximum (spatial/time) of a result
   class PostProcMax : public PostProc {
@@ -172,6 +174,9 @@ namespace CoupledField {
     template<class TYPE> 
     static bool opLtSingleDof(TYPE a, TYPE b);
   };
+
+
+  // -------------------------------------------------------------------------
 
   //! Creates a new result by applying an arbitrary function to each result
   class PostProcFunc : public PostProc {
@@ -237,6 +242,62 @@ namespace CoupledField {
 
     //! Pointer to MathParser object
     MathParser * mParser_;
+  };
+
+  // -------------------------------------------------------------------------
+
+  //! Cut off values beneath or above a given limit
+  class PostProcLimit : public PostProc {
+
+  public:
+  
+    //! Constructor
+    PostProcLimit( Grid * ptGrid, 
+                   ParamNode * postProcNode );
+    
+    //! Destructor
+    virtual ~PostProcLimit();
+    
+    //! Initialize postprocessing operator
+    void SetResult( shared_ptr<BaseResult> res );
+    
+    //! Set lower limit
+    void SetLowerLimit( Double loLim );
+    
+    //! Set upper limit
+    void SetUpperLimit( Double upLim );
+    
+    //! Apply procedure (calculate maximum)
+    void Apply( );
+
+  protected:
+    
+    //! Templatized sub-routine
+    template<class TYPE>
+    void CalcLimit();
+
+    //! Calculates the operation '<' for a single number.
+    //! For complex numbers, the absolute value is compared
+    template<class TYPE1, class TYPE2> 
+    static bool opLtSingleDof(TYPE1 a, TYPE2 b);
+
+    //! Calculates the operation '>' for a single number.
+    //! For complex numbers, the absolute value is compared
+    template<class TYPE1, class TYPE2> 
+    static bool opGtSingleDof(TYPE1 a, TYPE2 b);
+    
+    //! flag indicating if lower limit is set
+    bool loLimSet_;
+
+    //! flag indicating if upper limit is set
+    bool upLimSet_;
+
+    //! lower limit value
+    Double loLim_;
+
+    //! upper limit value
+    Double upLim_;
+
   };
 
 }

@@ -568,6 +568,15 @@ ParserBase::token_type ParserBase::ApplyStrFunc(const token_type &a_FunTok,
       case 2: valTok.SetVal( ((strfun_type3)pFunc)(a_vArg[2].GetAsString().c_str(), 
                                                    a_vArg[1].GetVal(), 
                                                    a_vArg[0].GetVal()) );  break;
+      case 3: valTok.SetVal( ((strfun_type4)pFunc)(a_vArg[3].GetAsString().c_str(), 
+                                                   a_vArg[2].GetVal(), 
+                                                   a_vArg[1].GetVal(),
+                                                   a_vArg[0].GetVal()) );  break;
+      case 4: valTok.SetVal( ((strfun_type5)pFunc)(a_vArg[4].GetAsString().c_str(), 
+                                                   a_vArg[3].GetVal(), 
+                                                   a_vArg[2].GetVal(), 
+                                                   a_vArg[1].GetVal(), 
+                                                   a_vArg[0].GetVal()) );  break;
       default: Error(ecINTERNAL_ERROR);
     }
   }
@@ -851,9 +860,14 @@ value_type ParserBase::ParseCmdCode() const
 
               switch(iArgCount)  // switch according to argument count
 		          {
-                case 0: Stack[idx] = (*(strfun_type1*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str()); break;
-			          case 1: Stack[idx] = (*(strfun_type2*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx]); break;
-			          case 2: Stack[idx] = (*(strfun_type3*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx], Stack[idx+1]); break;
+                          case 0: Stack[idx] = (*(strfun_type1*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str()); break;
+                          case 1: Stack[idx] = (*(strfun_type2*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx]); break;
+                          case 2: Stack[idx] = (*(strfun_type3*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx], 
+                                                                                  Stack[idx+1]); break;
+                          case 3: Stack[idx] = (*(strfun_type4*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx], 
+                                                                                  Stack[idx+1], Stack[idx+2]); break;
+                          case 4: Stack[idx] = (*(strfun_type5*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx], 
+                                                                                  Stack[idx+1],Stack[idx+2],Stack[idx+3]); break;
               }
 		          i += m_vByteCode.GetPtrSize();
             }
@@ -866,11 +880,13 @@ value_type ParserBase::ParseCmdCode() const
 
               switch(iArgCount)  // switch according to argument count
 		          {
-                case 1: Stack[idx] = (*(fun_type1*)(&m_pCmdCode[i]))(Stack[idx]); break;
-			          case 2: Stack[idx] = (*(fun_type2*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1]); break;
-			          case 3: Stack[idx] = (*(fun_type3*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2]); break;
-			          case 4: Stack[idx] = (*(fun_type4*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2], Stack[idx+3]); break;
-  		          case 5: Stack[idx] = (*(fun_type5*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2], Stack[idx+3], Stack[idx+4]); break;
+                          case 1: Stack[idx] = (*(fun_type1*)(&m_pCmdCode[i]))(Stack[idx]); break;
+                          case 2: Stack[idx] = (*(fun_type2*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1]); break;
+                          case 3: Stack[idx] = (*(fun_type3*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2]); break;
+                          case 4: Stack[idx] = (*(fun_type4*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2], 
+                                                                               Stack[idx+3]); break;
+  		          case 5: Stack[idx] = (*(fun_type5*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2], 
+                                                                               Stack[idx+3], Stack[idx+4]); break;
                 default:
 				          if (iArgCount>0) // function with variable arguments store the number as a negative value
                     Error(ecINTERNAL_ERROR, 1);

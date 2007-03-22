@@ -825,7 +825,7 @@ namespace CoupledField {
         }
       } catch( Exception &ex ) {
         RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
-                          << quantity << "'" );
+                          << quantity << "' within pde '" << pdename_ << "'" );
       }
     }
     Info->PrintF( pdename_, "\n");
@@ -858,13 +858,16 @@ namespace CoupledField {
             CalcResults( actList[i] );
           } catch (Exception &ex ) {
             RETHROW_EXCEPTION( ex, "Could not calculate result '" << quantity
-                               << "' on '" << listName << "'");
+                               << "' on '" << listName << "' in pde '" 
+                               << pdename_ << "'");
           }
           try {
           resHandler->UpdateResult( actList[i] );
           } catch (Exception &ex ) {
             RETHROW_EXCEPTION( ex, "Could not write result '" << quantity
-                               << "' on '" << listName << "' to output file");
+                               << "' on '" << listName 
+                               << "' to output file(s) in pde '" 
+                               << pdename_ << "'");
           }
         }
       }
@@ -1069,8 +1072,10 @@ namespace CoupledField {
         }
         
         shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
+        EntityList::ListType listType;
+        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+          ptgrid_->GetEntityList( listType,
                                   name, defineType );
         actBc->entities = actList;
         actBc->result = actResultInfo;
@@ -1120,8 +1125,10 @@ namespace CoupledField {
         } else {
           defineType = EntityList::REGION;
         }
+        EntityList::ListType listType;
+        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+          ptgrid_->GetEntityList( listType,
                                   name, defineType );
         actBc->entities = actList;
         actBc->result = actResultInfo;
@@ -1172,9 +1179,13 @@ namespace CoupledField {
         } else {
           defineType = EntityList::REGION;
         }
+
+        EntityList::ListType listType;
+        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+          ptgrid_->GetEntityList( listType,
                                   name, defineType );
+
         actBc->entities = actList;
         actBc->result = actResultInfo;
         actBc->eqnMap = eqnMap_;
@@ -1219,9 +1230,13 @@ namespace CoupledField {
         } else {
           defineType = EntityList::REGION;
         }
+
+        EntityList::ListType listType;
+        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(entType), 
+          ptgrid_->GetEntityList( listType,
                                   name, defineType );
+
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
         actBc->masterDof = 1;
@@ -1266,10 +1281,13 @@ namespace CoupledField {
         } else {
           defineType = EntityList::REGION;
         }
+
+        EntityList::ListType listType;
+        EntityList::String2Enum( entType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(entType),
+          ptgrid_->GetEntityList( listType,
                                   name, defineType );
-        
+
         actLoad->entities = actList;
         actLoad->result = actResultInfo;
         actLoad->eqnMap = eqnMap_;
@@ -1379,7 +1397,8 @@ namespace CoupledField {
         RETHROW_EXCEPTION(ex, "Could not assign material '"
                           << material << "' of materialClass '"
                           << pdematerialclass_ << "'to region '" 
-                          << region << "'");
+                          << region << "' within pde '" 
+                          << pdename_ << "'");
       }
     }
       

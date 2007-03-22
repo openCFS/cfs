@@ -142,13 +142,12 @@ namespace CoupledField{
     Vector<Double> locModelPoint(3), d(3);
     Vector<TYPE> temp(3);
 
+    // Calculate the distance and angle to the point
+    d =  globModelPoint - origin_;
+    
     // Transform global cartesian model point into local
     // cartesian one
-    rotationMat_.Mult(globModelPoint, locModelPoint);
-
-    // Calculate the distance and angle to the point
-    d =  locModelPoint;
-    d -= origin_;
+    rotationMat_.Mult(d, locModelPoint);
 
     r = std::sqrt(d[0] * d[0] + d[1] *d[1]);
     phi = std::atan2(d[1],d[0]);
@@ -186,7 +185,7 @@ namespace CoupledField{
     //        z'-Axis
     //    y': implicitly given by cross product of z' and  x' (right hand rule)
     //z = hAxis_ - origin_;
-    z = zAxis_;
+    z = zAxis_ - origin_;
     z /= z.NormL2();
 
 
@@ -198,7 +197,7 @@ namespace CoupledField{
 //                  << name_ << "'!" );
 //     }
     
-    x = rAxis_;
+    x = rAxis_ - origin_;
     x /= x.NormL2();
 
     y[0] = z[1]*x[2] - z[2]*x[1];
@@ -283,7 +282,7 @@ namespace CoupledField{
       ret = "phi";
       break;
     case 3:
-      ret = "x";
+      ret = "z";
       break;
     default:
       EXCEPTION( "CylCoordSystem::GetDofName:\n"

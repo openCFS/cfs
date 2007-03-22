@@ -312,15 +312,25 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DirectiNodes">
     <xsd:sequence>
-      <xsd:element name="distance" type="DT_DirectiDistance" minOccurs="1" 
-        maxOccurs="unbounded"/>
-      <xsd:element name="center" type="DT_DirectiCenter" minOccurs="0"
-        maxOccurs="1"/>
-      <xsd:element name="planes" type="DT_DirectiPlanes" minOccurs="0"
-        maxOccurs="1"/>
-      <xsd:element name="saveIncr" type="DT_PosFloat" minOccurs="0"
-        maxOccurs="1"/>
+      <xsd:element name="coordSys" minOccurs="1" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="nodes" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token"
+            use="required"/>
+          <xsd:attribute name="distance" type="xsd:float"
+            use="required"/>
+          <xsd:attribute name="startAngle" type="xsd:float"
+            use="optional" default="0"/>
+          <xsd:attribute name="stopAngle" type="xsd:float"
+            use="optional"   default="360"/>
+          <xsd:attribute name="incAngle" type="xsd:float"
+            use="optional" default="1"/>
+        </xsd:complexType>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
-
 </xsd:schema>

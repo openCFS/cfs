@@ -70,8 +70,10 @@ namespace CoupledField {
         
         // Create inhomogeneous heat Neumann boundary condition
         shared_ptr<InhomHeatNeumannBc> actBc ( new InhomHeatNeumannBc );
+        EntityList::ListType listType;
+        EntityList::String2Enum( inType, listType );
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::StringToType(inType), 
+          ptgrid_->GetEntityList( listType,
                                   inName, EntityList::NAMED_NODES );
         actBc->entities = actList;
         actBc->result = results_[0];

@@ -873,7 +873,6 @@ namespace CoupledField {
     // ===========================
     bool symmetricMat = assemble->IsFEMatSymmetric();
 
-
     // ==============
     //  EigenSolver stuff
     // ==============

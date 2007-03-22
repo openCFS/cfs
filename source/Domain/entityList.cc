@@ -19,7 +19,7 @@ namespace CoupledField {
   EntityList::~EntityList() {
   }
 
-  std::string EntityList::TypeToString( ListType type ) {
+  void EntityList::Enum2String( ListType type, std::string& out ) {
     
     std::string ret;
     
@@ -49,35 +49,40 @@ namespace CoupledField {
       break;
       
     default:
-      *error << "Type '" << type << "' describes no entityList!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Type '" << type << "' describes no entityList!" );
     }
 
-    return ret;
+    out = ret;
   }
 
-  EntityList::ListType EntityList::StringToType( const std::string& type ) {
+  void EntityList::String2Enum( const std::string& type,
+                                EntityList::ListType & out ) {
 
     ListType ret;
-    
     if( type == "elemList" ) {
-      ret = ELEM_LIST;
+      out = ELEM_LIST;
     } else if( type == "surfElemList" ) {
-      ret = SURF_ELEM_LIST;
+      out = SURF_ELEM_LIST;
     } else if( type == "ncElemList" ) {
-      ret = NC_ELEM_LIST;
+      out = NC_ELEM_LIST;
     } else if( type == "nodeList" ) {
-      ret =  NODE_LIST;
+      out =  NODE_LIST;
     } else if( type == "regionList" ) {
-      ret = REGION_LIST;
+      out = REGION_LIST;
     } else if( type == "numberList" ) {
-      ret = NUMBER_LIST;
+      out = NUMBER_LIST;
     } else {
-      *error << "Type '" << type << "' describes no EntityList.";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Type '" << type << "' describes no EntityList." );
     }
+  }
+  
+  void EntityList::Enum2String( DefineType type, std::string& out ) {
+  }
+  
 
-    return ret;
+  void EntityList::String2Enum( const std::string& type,
+                                EntityList::DefineType & out ) {
+    
   }
 
   // --- Elem List ---
@@ -177,10 +182,9 @@ namespace CoupledField {
     for ( UInt i = 0; i<elems.GetSize(); i++ ) {
       actElem = dynamic_cast<SurfElem*>(elems[i]);
       if( actElem == NULL ) {
-        *error << "Element #" << elems[i]->elemNum 
-               << " in element list '" << name 
-               << "' is no surface element!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Element #" << elems[i]->elemNum 
+                   << " in element list '" << name 
+                   << "' is no surface element!" );
       }
       list_.Push_back( actElem );
     }
@@ -325,7 +329,7 @@ namespace CoupledField {
 
   EntityIterator NumberList::GetIterator() const {
     EntityIterator it;
-    Error( "Not implemented yet", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented yet");
     return it;
   }
 
@@ -380,7 +384,7 @@ namespace CoupledField {
   
   UInt EntityIterator::GetUnknown() const {
     ENTER_FCN( "EntityIterator::GetUnknown" );
-    Error( "Not Implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not Implemented" );
     return 0;
   }
 

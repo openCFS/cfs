@@ -793,8 +793,15 @@ namespace CoupledField {
     // Run over all bilinearform contexts
     std::map<FEMatrixType, bool> isSymmetric;
     std::set<BiLinFormContext*>::iterator it;
+
+    // Assume at the beginning that all matrices are symmetric
+    isSymmetric[SYSTEM] = true;
+    isSymmetric[MASS] = true;
+    isSymmetric[STIFFNESS] = true;
+    isSymmetric[DAMPING] = true;
     
    
+    // iterate over all bilinear forms
     for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
 
       BiLinFormContext & actCt = (**it);

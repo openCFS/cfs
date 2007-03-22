@@ -175,6 +175,8 @@ typedef value_type (*multfun_type)(const value_type*, int);
 typedef value_type (*strfun_type1)(const char *);
 typedef value_type (*strfun_type2)(const char *, value_type);
 typedef value_type (*strfun_type3)(const char *, value_type, value_type);
+typedef value_type (*strfun_type4)(const char *, value_type, value_type, value_type);
+typedef value_type (*strfun_type5)(const char *, value_type, value_type, value_type, value_type);
 
 // Parser utility callback functions (unrelated to the math callbacks)
 typedef bool (*identfun_type)(const char_type*, int&, value_type&);

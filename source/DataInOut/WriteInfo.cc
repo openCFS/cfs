@@ -702,8 +702,10 @@ namespace CoupledField {
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         HomDirichletBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
+        std::string listType;
+        EntityList::Enum2String( actList.GetType(), listType );
         *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
-                 <<  EntityList::TypeToString( actList.GetType() )
+                 <<  listType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.dof)
                  << std::endl;
@@ -730,8 +732,10 @@ namespace CoupledField {
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         InhomDirichletBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
+        std::string listType;
+        EntityList::Enum2String( actList.GetType(), listType );
         *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
-                 <<  EntityList::TypeToString( actList.GetType() )
+                 << listType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
@@ -758,8 +762,10 @@ namespace CoupledField {
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         InhomNeumannBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
+        std::string listType;
+        EntityList::Enum2String( actList.GetType(), listType );
         *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
-                 <<  EntityList::TypeToString( actList.GetType() )
+                 << listType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
@@ -787,14 +793,17 @@ namespace CoupledField {
         Constraint const & actBc = *list[i];
         EntityList const & masterList = *actBc.masterEntities;
         EntityList const & slaveList = *actBc.masterEntities;
+        std::string masterListType, slaveListType;
+        EntityList::Enum2String( masterList.GetType(), masterListType );
+        EntityList::Enum2String( slaveList.GetType(), slaveListType );
         *cfsInfo << prefix << "\tMaster: '" << masterList.GetName() 
                  << "' (" 
-                 <<  EntityList::TypeToString( masterList.GetType() )
+                 <<  masterListType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.masterDof)
                  << "\tSlave: '"<< slaveList.GetName() 
                  << "' (" 
-                 <<  EntityList::TypeToString( slaveList.GetType() )
+                 <<  slaveListType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.slaveDof)
           
@@ -818,8 +827,10 @@ namespace CoupledField {
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         LoadBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
+        std::string listType;
+        EntityList::Enum2String( actList.GetType(), listType );
         *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
-                 <<  EntityList::TypeToString( actList.GetType() )
+                 << listType
                  << "), dof = " 
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
