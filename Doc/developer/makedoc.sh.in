@@ -8,7 +8,7 @@ function clean {
     echo " @CMAKE_CURRENT_SOURCE_DIR@/html"
     echo " "
 
-    rm -rf @CMAKE_CURRENT_SOURCE_DIR@/html
+    rm -rfv @CMAKE_CURRENT_SOURCE_DIR@/html
     RETCODE=$?
 
     if [ "$RETCODE" != "0" ]; then
