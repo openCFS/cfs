@@ -87,58 +87,56 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ../../source/CoupledPDE \
-                         ../../source/DataInOut \
-                         ../../source/DataInOut/CommandLine \
-                         ../../source/DataInOut/DefineFiles \
-                         ../../source/DataInOut/Logging \
-                         ../../source/DataInOut/ParamHandling \
-                         ../../source/DataInOut/Scripting \
-                         ../../source/DataInOut/Scripting/python \
-                         ../../source/DataInOut/Scripting/tcl \
-                         ../../source/DataInOut/SimInput \
-                         ../../source/DataInOut/SimInput/AnsysFile \
-                         ../../source/DataInOut/SimInput/gmv \
-                         ../../source/DataInOut/SimInput/xmdf \
-                         ../../source/DataInOut/SimOutput \
-                         ../../source/DataInOut/SimOutput/GiD \
-                         ../../source/DataInOut/SimOutput/TextOutput \
-                         ../../source/DataInOut/SimOutput/Unverg \
-                         ../../source/DataInOut/SimOutput/gmv \
-                         ../../source/Domain \
-                         ../../source/Domain/GridCFS \
-                         ../../source/Driver \
-                         ../../source/Elements \
-                         ../../source/Elements/1D \
-                         ../../source/Elements/2D \
-                         ../../source/Elements/3D \
-                         ../../source/Estimator \
-                         ../../source/Forms \
-                         ../../source/General \
-                         ../../source/Materials \
-                         ../../source/Matrix \
-                         ../../source/MpCCIcpl \
-                         ../../source/ODEDescr \
-                         ../../source/ODESolve \
-                         ../../source/OLAS \
-                         ../../source/OLAS/algsys \
-                         ../../source/OLAS/external \
-                         ../../source/OLAS/external/arpack \
-                         ../../source/OLAS/external/ilupack \
-                         ../../source/OLAS/external/lapack \
-                         ../../source/OLAS/external/pardiso \
-                         ../../source/OLAS/graph \
-                         ../../source/OLAS/matvec \
-                         ../../source/OLAS/multigrid \
-                         ../../source/OLAS/precond \
-                         ../../source/OLAS/precond/ILDLPrecond \
-                         ../../source/OLAS/solver \
-                         ../../source/OLAS/utils \
-                         ../../source/OLAS/utils/math \
-                         ../../source/PDE \
-                         ../../source/ParamIdent \
-                         ../../source/Utils \
-                         ../../source/main
+INPUT                  = @CMAKE_SOURCE_DIR@/source/CoupledPDE \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/CommandLine \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/DefineFiles \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/Logging \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/ParamHandling \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/Scripting \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/Scripting/python \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/Scripting/tcl \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysFile \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/gmv \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/xmdf \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/GiD \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/TextOutput \
+                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/Unverg \
+                         @CMAKE_SOURCE_DIR@/source/Domain \
+                         @CMAKE_SOURCE_DIR@/source/Domain/GridCFS \
+                         @CMAKE_SOURCE_DIR@/source/Driver \
+                         @CMAKE_SOURCE_DIR@/source/Elements \
+                         @CMAKE_SOURCE_DIR@/source/Elements/1D \
+                         @CMAKE_SOURCE_DIR@/source/Elements/2D \
+                         @CMAKE_SOURCE_DIR@/source/Elements/3D \
+                         @CMAKE_SOURCE_DIR@/source/Estimator \
+                         @CMAKE_SOURCE_DIR@/source/Forms \
+                         @CMAKE_SOURCE_DIR@/source/General \
+                         @CMAKE_SOURCE_DIR@/source/Materials \
+                         @CMAKE_SOURCE_DIR@/source/Matrix \
+                         @CMAKE_SOURCE_DIR@/source/MpCCIcpl \
+                         @CMAKE_SOURCE_DIR@/source/ODEDescr \
+                         @CMAKE_SOURCE_DIR@/source/ODESolve \
+                         @CMAKE_SOURCE_DIR@/source/OLAS \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/algsys \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/external \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/external/arpack \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/external/ilupack \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/external/lapack \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/external/pardiso \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/graph \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/matvec \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/multigrid \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/precond \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/precond/ILDLPrecond \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/solver \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/utils \
+                         @CMAKE_SOURCE_DIR@/source/OLAS/utils/math \
+                         @CMAKE_SOURCE_DIR@/source/PDE \
+                         @CMAKE_SOURCE_DIR@/source/ParamIdent \
+                         @CMAKE_SOURCE_DIR@/source/Utils \
+                         @CMAKE_SOURCE_DIR@/source/main
 FILE_PATTERNS          = *.hh \
                          *.h \
                          *.hpp
@@ -146,7 +144,7 @@ RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = AddDoc/coding-rules/
+EXAMPLE_PATH           = @CMAKE_CURRENT_SOURCE_DIR@/AddDoc/coding-rules/
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = 
@@ -174,10 +172,10 @@ IGNORE_PREFIX          =
 # configuration options related to the HTML output
 #---------------------------------------------------------------------------
 GENERATE_HTML          = YES
-HTML_OUTPUT            = ./html
+HTML_OUTPUT            = @CMAKE_CURRENT_SOURCE_DIR@/html
 HTML_FILE_EXTENSION    = .html
-HTML_HEADER            = DoxygenConfig/header.html
-HTML_FOOTER            = DoxygenConfig/footer.html
+HTML_HEADER            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/header.html
+HTML_FOOTER            = @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footer.html
 HTML_STYLESHEET        = 
 HTML_ALIGN_MEMBERS     = YES
 GENERATE_HTMLHELP      = NO
@@ -249,12 +247,12 @@ EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
-PREDEFINED             = OLAS \
-                         TRACE \
-                         USE_XERCES \
-                         XMLPARAMS \
-                         DOXYGEN_SKIP_THIS \
-                         DOXYGEN_DETAILED_DOC
+#PREDEFINED             = OLAS \
+#                         TRACE   \
+#                       USE_XERCES            \
+#                       XMLPARAMS             \
+#                       DOXYGEN_SKIP_THIS     \
+#                       DOXYGEN_DETAILED_DOC
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------

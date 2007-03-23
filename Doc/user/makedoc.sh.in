@@ -1,0 +1,101 @@
+#!/bin/sh
+
+MODE=$1
+
+function clean {
+    echo "==================================="
+    echo " Cleaning up user doc directory..."
+    echo "==================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    rm */*.aux
+    rm */*.toc
+    rm */*.pdf
+    rm */*.log
+    rm */*.blg
+    rm */*.out
+    rm */*.tpt
+
+    echo "==================================="
+    echo " Done cleaning up!"
+    echo "==================================="
+}
+
+function build {
+
+    echo "==================================="
+    echo " Generating XML-REFERENCE document"
+    echo "==================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
+    DOCUMENT=xmlReference
+
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @BIBTEX_COMPILER@   $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo "==================================="
+    echo " Generating XML-Material document"
+    echo "==================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@/matFile
+    DOCUMENT=matRef
+
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo "==================================="
+    echo " Generating Scripting docu."
+    echo "==================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@/scripting
+    DOCUMENT=scripting
+
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo ""
+    echo "==================================="
+    echo " User documentation generated!"
+    echo "==================================="
+    echo ""
+    echo " Documentation has been generated in:"
+    echo ""
+    echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " |-- matFile"
+    echo " |   \`-- matRef.pdf"
+    echo " |-- scripting"
+    echo " |   \`-- scripting.pdf"
+    echo " \`-- xmlFile"
+    echo "     \`-- xmlReference.pdf"
+    echo ""
+
+}
+
+case "$MODE" in
+    build)
+	build
+        ;;
+    rebuild)
+	clean
+	build
+        ;;
+    clean)
+	clean
+        ;;
+    *)
+        echo "No proper mode specified"
+	exit 1
+        ;;
+esac

@@ -1,0 +1,59 @@
+#!/bin/sh
+
+MODE=$1
+
+function clean {
+    echo " "
+    echo " Deleting Doxygen Documentation for CFS++ in"
+    echo " @CMAKE_CURRENT_SOURCE_DIR@/html"
+    echo " "
+
+    rm -rf @CMAKE_CURRENT_SOURCE_DIR@/html
+    RETCODE=$?
+
+    if [ "$RETCODE" != "0" ]; then
+	echo " Error while deleting Doxygen Doc.!"
+	exit 1;
+    fi
+}
+
+function build {
+    #
+    # Generate CFS++ documentation using doxygen
+    #
+    echo " "
+    echo " Generating Doxygen Documentation for CFS++"
+    echo " "
+
+    @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/changeDate.sh \
+    @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footerTemplate.html \
+    @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footer.html
+    @DOXYGEN_EXECUTABLE@ @DOXY_CONFIG@
+    RETCODE=$?
+
+    if [ "$RETCODE" != "0" ]; then
+	echo " Could not make help!"
+	exit 1;
+    else
+	echo " "
+	echo " See @CMAKE_CURRENT_SOURCE_DIR@/html/index.html for doc"
+	echo " "
+    fi
+}
+
+case "$MODE" in
+    build)
+	build
+        ;;
+    rebuild)
+	clean
+	build
+        ;;
+    clean)
+	clean
+        ;;
+    *)
+        echo "No proper mode specified"
+	exit 1
+        ;;
+esac

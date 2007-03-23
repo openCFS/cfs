@@ -47,7 +47,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
     OFF)
 
   OPTION(DEBUG "Build debug version of the code." ON)
-  OPTION(ENABLE_PROFILING "Turn on profiling (DEBUG only)." OFF)
+  OPTION(PROFILING "Turn on profiling (DEBUG/RELEASE)." OFF)
 
   # Set a sane default value for the CFS++ schema path
   SET(XMLSCHEMA "${CFS_SOURCE_DIR}/XML" CACHE STRING
@@ -82,13 +82,6 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
     SET(TRACE_ALL 1)
     SET(MEMTRACE 1)
 
-    #---------------------------------------------------------------------------
-    # Use profiling or not
-    #---------------------------------------------------------------------------
-    IF(ENABLE_PROFILING)
-      SET(PROFILING 1)
-    ENDIF(ENABLE_PROFILING)
-    
     #---------------------------------------------------------------------------
     # Check for certain error conditions (in DEBUG mode)
     #---------------------------------------------------------------------------
@@ -424,6 +417,12 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   # Build the actual headers with defines from templates.
   #-----------------------------------------------------------------------------
   INCLUDE("cmake_modules/configure_def_headers.cmake")
+
+  #-----------------------------------------------------------------------------
+  # Add targets for building documentation (see 'make help')
+  #-----------------------------------------------------------------------------
+  SUBDIRS(Doc/developer)
+  SUBDIRS(Doc/user)
 
   #-----------------------------------------------------------------------------
   # If the version of CMake was too old, complain and build nothing.
