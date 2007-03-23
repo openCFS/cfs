@@ -9,13 +9,13 @@ function clean {
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
-    rm */*.aux
-    rm */*.toc
-    rm */*.pdf
-    rm */*.log
-    rm */*.blg
-    rm */*.out
-    rm */*.tpt
+    rm -fv */*.aux
+    rm -fv */*.toc
+    rm -fv */*.pdf
+    rm -fv */*.log
+    rm -fv */*.blg
+    rm -fv */*.out
+    rm -fv */*.tpt
 
     echo "==================================="
     echo " Done cleaning up!"
