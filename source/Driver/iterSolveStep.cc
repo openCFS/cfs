@@ -2,6 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <def_use_mpcci.hh>
+
 #include "iterSolveStep.hh"
 
 #include "PDE/StdPDE.hh"

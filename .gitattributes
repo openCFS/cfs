@@ -25,6 +25,7 @@ Doc/developer/AddDoc/element_types/tria3.dia -text
 Doc/developer/AddDoc/element_types/tria6.dia -text
 Doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
+Doc/developer/CMakeLists.txt svneol=native#text/plain
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
 Doc/developer/Concepts/Dof-Mapping/dofmapping.pdf -text svneol=unset#application/pdf
@@ -113,7 +114,7 @@ Doc/developer/Concepts/cfs/stereotypes -text
 Doc/developer/Concepts/cfs/tools -text
 Doc/developer/Concepts/resultHandling/resultHandling.dia -text
 Doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
-Doc/developer/DoxygenConfig/doxy-config svneol=native#text/plain
+Doc/developer/DoxygenConfig/doxy-config.in -text
 Doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 Doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
 Doc/developer/DoxygenConfig/header.html svneol=native#text/html
@@ -124,7 +125,9 @@ Doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/p
 Doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
 Doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
 Doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
-Doc/developer/makedoc.sh svneol=native#text/plain
+Doc/developer/makedoc.sh.in -text
+Doc/user/CMakeLists.txt svneol=native#text/plain
+Doc/user/makedoc.sh.in -text
 Doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 Doc/user/matFile/matRef.tex svneol=native#text/plain
 Doc/user/matFile/matintro.tex svneol=native#text/plain
@@ -154,7 +157,6 @@ Doc/user/xmlFile/pics/rot2.png -text svneol=unset#image/png
 Doc/user/xmlFile/singlefields.tex svneol=native#text/plain
 Doc/user/xmlFile/solverParams.tex svneol=native#text/plain
 Doc/user/xmlFile/special.tex svneol=native#text/plain
-Doc/user/xmlFile/texit.sh svneol=native#text/plain
 Doc/user/xmlFile/xmlReference.tex svneol=native#text/plain
 Doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
 Doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
