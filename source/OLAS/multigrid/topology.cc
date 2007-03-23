@@ -15,6 +15,7 @@
 #endif // DEBUG_TO_CERR
 
 #ifdef PROFILING
+#define  AMG_GET_REAL_TIME  Profiler::GetRealTime();
 #ifdef PROFILE_TOPOLOGY
 #include "utils/utils.hh"
 #endif
