@@ -35,7 +35,7 @@
 # author Jan Woetzel 2004-2006
 # www.mip.informatik.uni-kiel.de/~jw
 
-IF (DOXYGEN_FOUND)
+IF (DOXYGEN)
 
   # click+jump in Emacs and Visual Studio (for doxy.config) (jw)
   IF    (CMAKE_BUILD_TOOL MATCHES "(msdev|devenv)")
@@ -150,6 +150,6 @@ IF (DOXYGEN_FOUND)
     ENDIF(HTML_HELP_COMPILER)
     # MESSAGE(SEND_ERROR "HTML_HELP_COMPILER=${HTML_HELP_COMPILER}")
   ENDIF (WIN32) 
-ELSE (DOXYGEN_FOUND)
-  MESSAGE(SEND_ERROR "Doxygen not found")
-ENDIF(DOXYGEN_FOUND)
+ELSE (DOXYGEN)
+  MESSAGE(STATUS "Doxygen not found")
+ENDIF(DOXYGEN)
