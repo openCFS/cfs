@@ -163,8 +163,9 @@ namespace CoupledField {
           ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
                                      0, 0.0);
           resHandler->FinishStep( );
-          ptPDE_->Finalize();
+          
         }
+        ptPDE_->Finalize();
       }
     }
 

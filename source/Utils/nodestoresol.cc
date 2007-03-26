@@ -458,7 +458,7 @@ namespace CoupledField {
       eqnNr = eqnMap_->GetNodeEqn( globNode, dof+1+offset ); 
  
       if (eqnNr != 0) 
-        temp[globNode-1] = data_[(eqnNr-1)];
+        temp[globNode-1] = data_[std::abs(eqnNr)-1];
       else if (eqnNr == 0)
         temp[globNode-1] = TYPE();
       else
@@ -722,7 +722,7 @@ namespace CoupledField {
 
      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
        if ( eqns[i] != 0 ) {
-         temp[i] = data_[(abs(eqns[i])-1)];
+         temp[i] = data_[abs(eqns[i])-1];
        } else {
          temp[i] = TYPE();
        }
@@ -750,7 +750,7 @@ namespace CoupledField {
       for ( UInt iFcn=0; iFcn < numFcns; iFcn++ ) {
         Integer actEqn = eqns[iFcn * totalDofs_ + iDof];
         if ( actEqn != 0){
-          temp[iDof][iFcn] = data_[(abs(actEqn)-1)];
+          temp[iDof][iFcn] = data_[abs(actEqn)-1];
         } else {
           temp[iDof][iFcn] = TYPE();
         }

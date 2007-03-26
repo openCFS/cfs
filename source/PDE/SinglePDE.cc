@@ -1956,12 +1956,12 @@ namespace CoupledField {
           eqnMap_->GetEqns( eqns, *results_[0], it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
-              (*values)[numDofs*pos+iDof] = solReal[(abs(eqns[iDof]-1))];
+              (*values)[numDofs*pos+iDof] = solReal[abs(eqns[iDof])-1];
               if( analysistype_ == TRANSIENT ) {
                 deriv1[numDofs*pos+iDof] = 
-                  TS_alg_->GetDeriv1()[(abs(eqns[iDof]-1))];
+                  TS_alg_->GetDeriv1()[(abs(eqns[iDof])-1)];
                 deriv2[numDofs*pos+iDof] = 
-                  TS_alg_->GetDeriv2()[(abs(eqns[iDof]-1))];
+                  TS_alg_->GetDeriv2()[(abs(eqns[iDof])-1)];
               }
             } else {
               (*values)[numDofs*pos+iDof] = 0.0;
@@ -2009,7 +2009,7 @@ namespace CoupledField {
           eqnMap_->GetEqns( eqns, *results_[0], it );
           for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
             if ( eqns[iDof] != 0 ) {
-              (*values)[numDofs*pos+iDof] = solComp[(abs(eqns[iDof]-1))];
+              (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
             } else {
               (*values)[numDofs*pos+iDof] = 0.0;
             }
@@ -2118,7 +2118,7 @@ namespace CoupledField {
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 UInt actPos = numDofs*pos+iDof;
                 if ( eqns[iDof] != 0 
-                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                     && (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
                   solVec[eqns[iDof]-1] = sol[actPos].real();
                   if ( analysistype_ == TRANSIENT ) {
                     solDeriv1[eqns[iDof]-1] = -2*PI*freq* sol[actPos].imag();
@@ -2168,7 +2168,7 @@ namespace CoupledField {
               eqnMap_->GetEqns( eqns, *results_[0], it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 if ( eqns[iDof] != 0 
-                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                     && (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
                   solVec[eqns[iDof]-1] = sol[numDofs*pos+iDof];
                   if ( needDeriv ) {
                     solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];
@@ -2268,7 +2268,7 @@ namespace CoupledField {
       eqnMap_->GetEqns( eqnNums, actDof, it );
       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
         if( eqnNums[iDof] != 0 ) {
-          actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+          actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
         } else {
           actSol[it.GetPos()*numDofs+iDof] = 0.0;
         }
@@ -2315,7 +2315,7 @@ namespace CoupledField {
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
           if( eqnNums[iDof] != 0 ) {
-            actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
           } else {
             actSol[it.GetPos()*numDofs+iDof] = 0.0;
           }
@@ -2352,7 +2352,7 @@ namespace CoupledField {
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
           if( eqnNums[iDof] != 0 ) {
-            actSol[it.GetPos()*numDofs+iDof] = solHelp[(abs(eqnNums[iDof]-1))];
+            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
           } else {
             actSol[it.GetPos()*numDofs+iDof] = 0.0;
           }
