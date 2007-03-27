@@ -85,4 +85,144 @@ namespace CoupledField
   
   }
 
+
+  //============================Curcl-Curl-3D ====================================
+
+  CurlCurlNode3DInt::CurlCurlNode3DInt(Double aVal, bool coordUpdate )
+    : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
+  {
+    ENTER_FCN( "CurlCurlNode3DInt::CurlCurlNode3DInt" );
+
+    name_   = "CurlCurlNode3DInt";
+    isaxi_  = false;
+    nrDofs_ = 3;
+  }
+
+
+ 
+  CurlCurlNode3DInt::~CurlCurlNode3DInt()
+  {
+    ENTER_FCN( "CurlCurlNode3DInt::~CurlCurlNode3DInt" );
+  }
+
+
+
+  void CurlCurlNode3DInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1, 
+                                             EntityIterator& ent2  ) {
+    ENTER_FCN( "CurlCurlNode3DInt::CalcElementMatrix" );
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
+    Double jacDet;  
+
+    Matrix<Double> bMatCurl, bMatDiv; 
+    Double aux1, aux2, fac, *ptr1, *ptr2, *ptr3, *ptr4;
+
+    elemMat.Resize( numFncs * nrDofs_ );
+    elemMat.Init();
+
+    //get integration points
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // Loop over all integration points
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+      // Setup the B matrix for current integration point
+      calcBMat( bMatCurl, bMatDiv, actIntPt, ptCoord_ );
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+
+      // We now compute B^T * D * B and scale it by the determinant
+      // of the Jacobian and the weight of the current integration
+      // point. The result is added to the element matrix.
+      fac = jacDet * intWeights[actIntPt-1] * matVal_;
+      for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
+	ptr1 = bMatCurl[k];
+	ptr2 = bMatCurl[k];
+	ptr3 = bMatDiv[k];
+	ptr4 = bMatDiv[k];
+	for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
+	  aux1 = fac * ptr1[i];
+	  aux2 = fac * ptr3[i];
+	  for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
+	    elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
+	  }
+	}
+      }
+    }
+  }
+
+
+
+  // returns curl and div - matrix
+  void CurlCurlNode3DInt::calcBMat( Matrix<Double> &bMatCurl, Matrix<Double> &bMatDiv,
+				    UInt ip, Matrix<Double> &ptCoord ) {
+
+    ENTER_FCN( "CurlCurlNode3DInt::calcBMat" );
+
+    const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt spaceDim = ptelem->GetDim();  
+
+    UInt actDim, actNode, j, k;
+    
+    
+    bMatCurl.Resize( nrDofs_, numFncs * nrDofs_);
+    bMatCurl.Init();
+
+    bMatDiv.Resize( nrDofs_, numFncs * nrDofs_);
+    bMatDiv.Init();
+
+    // local shape functions derived after global coords
+    // (format: numFncs x spaceDim)
+    Matrix<Double> xiDx;
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+      
+    if (isSetIntPoint_) 
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
+    else
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+
+    for(actNode=0; actNode < numFncs; actNode++) {
+      //se M. Kaltenbacher 1.st edition, pp. 92
+      //first row
+      bMatCurl[0][actNode * nrDofs_ + 1] = -xiDx[actNode][2];
+      bMatCurl[0][actNode * nrDofs_ + 2] =  xiDx[actNode][1];
+
+      //second row
+      bMatCurl[1][actNode * nrDofs_]     =  xiDx[actNode][2];
+      bMatCurl[1][actNode * nrDofs_ + 2] = -xiDx[actNode][0];
+
+      //third row
+      bMatCurl[2][actNode * nrDofs_]     = -xiDx[actNode][1];
+      bMatCurl[2][actNode * nrDofs_ + 1] =  xiDx[actNode][0];
+
+      //first row
+      bMatDiv[0][actNode * nrDofs_]      = xiDx[actNode][0];
+
+      //second row
+      bMatDiv[1][actNode * nrDofs_ + 1]  = xiDx[actNode][1];
+
+      //third row
+      bMatDiv[2][actNode * nrDofs_ + 2]  = xiDx[actNode][2];
+
+    }
+
+    isSetIntPoint_ = false;
+  }
+
+
 } // end namespace CoupledField

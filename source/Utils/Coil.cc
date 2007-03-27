@@ -6,6 +6,8 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Domain/grid.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 #include <fstream>
 
 
@@ -58,11 +60,11 @@ namespace CoupledField {
     resistance_          = 0;
     id_                  = 0;
     isRotational_        = false;
-    flowDir_             = NODIR;
     saveFileL_           = "none";
     saveFileU_           = "none";
     fileL_               = NULL;
     fileU_               = NULL;
+    flowCoordSys_        = NULL;
 
     // Construct vectors for restricted parameter search
     StdVector<std::string> keyVec;
@@ -168,6 +170,26 @@ namespace CoupledField {
       coilNode->Get( "windingCrossSection", windingCrossSection_ );
       coilNode->Get( "value", value_ );
       coilNode->Get( "phase", phase_, false );
+
+      // Try to lead flow direction
+      StdVector<ParamNode *> dirNodes= 
+        coilNode->Get("flowDirection")->GetList("direction");
+      
+      std::string refCoordSysName = 
+        coilNode->Get("flowDirection")->Get("refCoordSys")->AsString();
+      flowCoordSys_ = domain->GetCoordSystem( refCoordSysName );
+
+      locFlowDir_.Resize( flowCoordSys_->GetDim());
+      locFlowDir_.Init();
+      for( UInt i = 0; i < dirNodes.GetSize(); i++ ) {
+        std::string dir = dirNodes[i]->Get("dof")->AsString();
+        Double val = dirNodes[i]->Get("value")->AsDouble();
+        // Get local vector component index
+        UInt index = flowCoordSys_->GetVecComponent(dir);
+        locFlowDir_[index-1] = val;
+      }
+      
+      
     }
 
     // *******************************************

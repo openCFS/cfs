@@ -15,6 +15,7 @@
 #include "WriteInfo.hh"
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
+#include "Utils/coordSystem.hh"
 #include "Materials/baseMaterial.hh"
 #ifndef INTEGLIB
 #include "PDE/pdes_header.hh"
@@ -415,15 +416,9 @@ namespace CoupledField {
       }
       else {
         *cfsInfo << "Direction of current flow: ";
-        if ( coil.flowDir_ == Coil::XDIR ) {
-          *cfsInfo << "xDir" << std::endl;
-        }
-        if ( coil.flowDir_ == Coil::YDIR ) {
-          *cfsInfo << "yDir" << std::endl;
-        }
-        if ( coil.flowDir_ == Coil::ZDIR ) {
-          *cfsInfo << "zDir" << std::endl;
-        }
+        *cfsInfo << coil.locFlowDir_.Serialize() << std::endl;
+        *cfsInfo << " in coordinate system " 
+                 << coil.flowCoordSys_->GetName();
       }
     }
 

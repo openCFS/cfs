@@ -34,6 +34,36 @@ private:
 };
 
 
+
+  /// Class for calculation  element stiffness matrix of curl-curl operator
+class CurlCurlNode3DInt : public BaseForm
+{
+public:
+
+  /// Constructor
+  CurlCurlNode3DInt(Double laplVal, bool coordUpdate = false );
+
+  /// 
+  virtual ~ CurlCurlNode3DInt();
+
+  /// Calculation of stiffmess matrix
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+  
+  // returns curl and div - matrix
+  void calcBMat( Matrix<Double> &bMatCurl, Matrix<Double> &bMatDiv,
+		 UInt ip, Matrix<Double> &ptCoord );
+
+protected: 
+private:
+
+  /// multiplicative value for curlc-curl operator 
+  Double matVal_;
+
+  UInt nrDofs_;
+};
+
 }
 
 #endif // FILE_CURLCURLNODEINT

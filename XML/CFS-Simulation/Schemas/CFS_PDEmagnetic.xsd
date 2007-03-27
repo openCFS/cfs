@@ -56,9 +56,6 @@
             </xsd:complexType>
           </xsd:element>
 
-          <!-- Type of damping model (optional) -->
-          <xsd:element name="damping" type="DT_MagneticDamp" minOccurs="0"/>
-
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -141,7 +138,11 @@
 
   <xsd:simpleType name="DT_MagneticDOF">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="u"/>
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="phi"/>
+      <xsd:enumeration value="r"/>
       <xsd:enumeration value=""/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -196,24 +197,6 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************* -->
-  <xsd:simpleType name="DT_MagneticDampType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="fractional"   />
-      <xsd:enumeration value="rayleigh"     />
-      <xsd:enumeration value="absorbingBC"  />
-      <xsd:enumeration value="thermoViscous"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:complexType name="DT_MagneticDamp">
-    <xsd:attribute name="type" type="DT_MagneticDampType" use="required"/>
-    <xsd:attribute name="fracMemory" type="xsd:positiveInteger"
-      use="optional" default="1"/>
-  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
@@ -377,44 +360,25 @@
           <xsd:element name="value"      type="xsd:float"/>
           <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
             default="0"/>
-          <xsd:element ref="FlowDirection"/>
+          <xsd:element name="flowDirection" type="DT_FlowDirection"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- This element is abstract in order to force substitution -->
-  <!-- by the derived specialised elements -->
-  <xsd:element name="FlowDirection" type="xsd:anyType" abstract="true"/>
-
   <!-- Element for specifying flow direction (directly) -->
-  <xsd:element name="currentFlow" substitutionGroup="FlowDirection"
-    type="DT_CurrentFlow"/>
-
-  <!-- Element for specifying flow direction (rotational) -->
-  <xsd:element name="rotational" substitutionGroup="FlowDirection"
-    type="DT_Rotational"/>
-
-  <!-- Data type for specifying flow direction (directly) -->
-  <xsd:simpleType name="DT_CurrentFlow">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="xDir"/>
-      <xsd:enumeration value="yDir"/>
-      <xsd:enumeration value="zDir"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <!-- Element for specifying flow direction (rotational) -->
-  <xsd:complexType name="DT_Rotational">
-    <xsd:sequence>
-      <xsd:element name="midPointX" type="xsd:float"/>
-      <xsd:element name="midPointY" type="xsd:float"/>
-      <xsd:element name="midPointZ" type="xsd:float"/>
-      <xsd:element name="rotAxisX"  type="xsd:float"/>
-      <xsd:element name="rotAxisY"  type="xsd:float"/>
-      <xsd:element name="rotAxisZ"  type="xsd:float"/>
-    </xsd:sequence>
-  </xsd:complexType>
+  <xsd:complexType name="DT_FlowDirection">
+      <xsd:sequence>
+        <xsd:element name="direction" minOccurs="1" maxOccurs="3">
+          <xsd:complexType> 
+            <xsd:attribute name="dof" type="DT_MagneticDOF" use="required"/>
+            <xsd:attribute name="value" type="xsd:float" use="required"/>
+          </xsd:complexType>
+        </xsd:element>
+       </xsd:sequence>
+       <xsd:attribute name="refCoordSys" type="xsd:token"
+          use="optional" default="default"/>
+   </xsd:complexType>
 
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised elements in the coils list -->

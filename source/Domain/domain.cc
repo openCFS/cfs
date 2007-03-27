@@ -418,12 +418,12 @@ namespace CoupledField {
         ptSinglePde_[i]=new SmoothPDE(ptgrid_, actPdeNode );
 
       else if (actPdeName == "magnetic") {
-        if (dim_ == 2)
+        //        if (dim_ == 2)
           ptSinglePde_[i]=new MagPDE(ptgrid_, actPdeNode );
         // else if (dim_ == 3)
         // ptSinglePde_[i]=new MagEdgePDE(ptgrid, actPdeNode); 
-        else
-          EXCEPTION( "Magnetic field calculation currently only possible in 2D!" );
+          //        else
+          //          EXCEPTION( "Magnetic field calculation currently only possible in 2D!" );
       }
       
       else if (actPdeName == "mpcci")
