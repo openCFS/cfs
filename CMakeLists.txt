@@ -4,9 +4,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
-# as ${CFS_BINARY_DIR}. 
+# as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
 #-------------------------------------------------------------------------------
-PROJECT(CFS)
+PROJECT(CFS C CXX Fortran)
 
 #-------------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
