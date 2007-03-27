@@ -56,11 +56,14 @@ namespace CoupledField {
   
     Exception::Exception( const Exception& exc ) throw ()
     {
-        fileName_ = exc.fileName_;
-        lineNum_  = exc.lineNum_;
-        msg_ = exc.msg_;
-        reason_= exc.reason_;
-        what_ = exc.what_;
+      reason_ = NULL;
+      fileName_ = exc.fileName_;
+      lineNum_  = exc.lineNum_;
+      msg_ = exc.msg_;
+      if( exc.reason_ ) {
+        reason_= new Exception( *(exc.reason_) );
+      }
+      what_ = exc.what_;
     }
     
     Exception::~Exception() throw (){

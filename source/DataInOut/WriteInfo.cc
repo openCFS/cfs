@@ -677,10 +677,12 @@ namespace CoupledField {
       *cfsInfo << std::endl;  
     }
 #endif // INTEGLIB
+
     // exit program
-    //exit(-1);
-    char* a = NULL;
-    std::cerr << a[0] << a[1] << a[2] << a[3];
+    exit(-1);
+
+    //     char* a = NULL;
+    //     std::cerr << a[0] << a[1] << a[2] << a[3];
   }
 
 
