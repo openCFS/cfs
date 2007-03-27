@@ -303,6 +303,88 @@ namespace CoupledField {
     }
   }
 
+  // ===================================================================
+  // permanent magnet in 3D
+  // ===================================================================
+
+  MagPerm3DInt::MagPerm3DInt(Vector<Double> vecVal, Double rel, 
+                             bool isaxi, bool coordUpdate )
+    : LinearForm(), 
+      perm_(vecVal), 
+      reluctivity_(rel)
+  {
+    ENTER_FCN( "MagPerm3DInt::MagPerm3DInt" );
+    name_ = "MagPerm3DInt";
+    isaxi_ = false;
+    coordUpdate_ = coordUpdate;
+    nrDofs_ = 3;
+
+    curlOp_ = new CurlCurlNode3DInt( rel, coordUpdate );
+  }
+
+
+  MagPerm3DInt::~MagPerm3DInt()
+  {
+    ENTER_FCN( "MagPerm3DInt::~MagPerm3DInt" );
+  }
+
+
+  void MagPerm3DInt::CalcElemVector( Vector<Double>& elemVec,
+                                     EntityIterator& ent )
+  {
+    ENTER_FCN( "MagPerm3DInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
+    // Extract pointer to reference element for curl-bilinear form
+    curlOp_->ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    Vector<Double> CoordAtIP;
+    Matrix<Double> bMatCurl, bMatDiv, bMatCurlTrans; 
+    Vector<Double> helpVec;
+    Double jacDet, factor;
+
+    elemVec.Resize( numFncs * nrDofs_ );
+    helpVec.Resize( numFncs * nrDofs_ );
+    elemVec.Init(0);  
+    helpVec.Init(0);
+  
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // Setup the B matrix for current integration point
+      curlOp_->calcBMat( bMatCurl, bMatDiv, actIntPt, ptCoord_ );
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent.GetElem() );
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+
+      factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
+      bMatCurl.Transpose(bMatCurlTrans);  
+
+      //      std::cout << "bMatT:\n" << bMatCurlTrans << std::endl;
+      helpVec  = bMatCurlTrans * perm_;
+      helpVec *= intWeights[actIntPt-1] * jacDet * reluctivity_;
+      elemVec += helpVec;
+    }
+//      std::cout << "Mvec:\n" << elemVec << std::endl;
+//      std::cout << "M:\n" << perm_ << std::endl;
+//      std::cout << "rel:\n" << reluctivity_ << std::endl;
+
+  }
+
 
   // ==================================================================
   // nLinMagnetics

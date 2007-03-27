@@ -8,6 +8,7 @@
 #include "PDE/StdPDE.hh"
 
 #include <list>
+#include <map>
 
 #include "DataInOut/Scripting/scriptable.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -24,7 +25,8 @@ namespace CoupledField
   class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
-  
+  class BaseForm;
+
   //! Base class for all kinds of single field problems.
 
   class SinglePDE : public StdPDE, public Scriptable
@@ -347,6 +349,9 @@ namespace CoupledField
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
+
+    //! map for storing bilinear forms needed for postprocessing
+    std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
 
     //@}
   };

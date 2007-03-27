@@ -1,4 +1,4 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+#// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -6,6 +6,7 @@
 #define COIL_FILE_HH
 
 #include "General/environment.hh"
+#include "Utils/vector.hh"
 
 
 namespace CoupledField {
@@ -13,6 +14,8 @@ namespace CoupledField {
   // Forward class definition
   class Grid;
   class ParamNode;
+  class CoordSystem;
+
 
   //! Class for describing coils
 
@@ -100,7 +103,10 @@ namespace CoupledField {
     Integer id_;
 
     //! For current coils the direction of the current flow
-    Coil::FlowDir flowDir_;
+    Vector<Double> locFlowDir_;
+
+    //! Reference coordinate system for flow direction
+    CoordSystem * flowCoordSys_;
 
     //! For a current coil in 3D this describes, whether we have a rotational
     //! symmetry alng one axis for the coil.

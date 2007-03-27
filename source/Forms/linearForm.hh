@@ -6,10 +6,11 @@
 #define FILE_LINEARFORM_2
 
 #include "baseForm.hh"
-#include "Forms/nLinElastInt.hh"
+#include "nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
-#include <Forms/gradfieldop.hh>
+#include "gradfieldop.hh"
 #include "linPiezoCoupling.hh"
+#include "curlCurlNodeInt.hh"
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
@@ -132,6 +133,40 @@ namespace CoupledField
 
     //!reluctivity
     Double reluctivity_;
+  };
+
+
+  // =============================================================================
+  // permanent magnets in 3D
+  // =============================================================================
+
+
+  /// class for calculation of right hand side of a permanent magnet
+  class MagPerm3DInt : public LinearForm
+  {
+  public:
+    ///
+    MagPerm3DInt(Vector<Double> val, Double rel, bool isaxi,
+                 bool coordUpdate = false );
+
+    ///
+    virtual ~MagPerm3DInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+  private:
+    //! number of dofs
+    UInt nrDofs_;
+
+    //! magnetization
+    Vector<Double> perm_;
+
+    //!reluctivity
+    Double reluctivity_;
+
+    CurlCurlNode3DInt *curlOp_;
   };
 
 

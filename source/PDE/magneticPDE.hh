@@ -182,6 +182,9 @@ namespace CoupledField
     std::string nonLinMethod_;
     
     
+  private:
+    //!true, if 3d computation
+    bool is3d_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

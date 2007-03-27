@@ -39,6 +39,9 @@ namespace CoupledField {
     pdematerialclass_ = ELECTROMAGNETIC;
     maxTimeDerivOrder_ = 1;
 
+    // check if we have a 3d setup
+    is3d_ = false;
+    is3d_ = param->Get("domain")->Get("geometryType")->AsString() == "3d";
   }
 
 
@@ -206,13 +209,24 @@ namespace CoupledField {
         assemble_->AddLinearForm( rhsContext );
       }
       else {
-        BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_, upLagrangeForm);
-	BiLinFormContext * stiffContext = 
-	  new BiLinFormContext(curlcurl2D, STIFFNESS );
+        BaseForm *curlcurl;
+        if (is3d_ ) {
+          curlcurl = new CurlCurlNode3DInt(reluctivity, upLagrangeForm);
+        }
+        else {
+          curlcurl = new CurlCurlNode2DInt(reluctivity, isaxi_, upLagrangeForm);
+        }
+
+        BiLinFormContext * stiffContext = 
+          new BiLinFormContext(curlcurl, STIFFNESS );
 	stiffContext->SetPtPdes(this, this);  
         stiffContext->SetResults( results_[0], results_[0],
                                   actSDList, actSDList );      
 	assemble_->AddBiLinearForm( stiffContext );
+
+        //save bilinearForm
+        pdeBilinearForms_[actRegionId][curlcurl->GetName()] = curlcurl;
+
 
         if (nonLin_==true) {
           // for nonlinear RHS linearform we need linear and nonlinear
@@ -231,8 +245,14 @@ namespace CoupledField {
       // Mass matrix
       Double conductivity;
       materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-      BaseForm *bilinear_mass = 
-        new MassInt(conductivity, 1,isaxi_,  upLagrangeForm );
+
+      BaseForm *bilinear_mass;
+      if ( is3d_ ) {
+        bilinear_mass = new MassInt(conductivity, dim_, isaxi_, upLagrangeForm );
+      }
+      else {
+        bilinear_mass = new MassInt(conductivity, 1, isaxi_,  upLagrangeForm );
+      }
 
       BiLinFormContext * massContext = 
 	new BiLinFormContext(bilinear_mass, MASS );
@@ -246,14 +266,35 @@ namespace CoupledField {
         if ( actRegionId == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
             GenStr(coilDef_[coil]->windingCrossSection_);
-          LinearForm *coilSource = new 
-            VolumeSrcInt( factor, isaxi_,  upLagrangeForm  );  
 
-          LinearFormContext * coilContext = 
-            new LinearFormContext( coilSource );
-          coilContext->SetPtPde( this );
-          coilContext->SetResult( results_[0], actSDList );
-          assemble_->AddLinearForm( coilContext );
+          if ( is3d_ ) {
+            MechVolForceInt *coilSource3d = 
+              new MechVolForceInt( dim_, coilDef_[coil]->phase_,
+                                   isaxi_ );
+
+            StdVector<std::string> currDensity(3);
+            currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
+            currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
+            currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+
+            coilSource3d->SetVolForceVector( currDensity,
+                                             coilDef_[coil]->flowCoordSys_,
+                                             true, 1.0 );
+            LinearFormContext * coilContext = 
+              new LinearFormContext( coilSource3d );
+            coilContext->SetPtPde( this );
+            coilContext->SetResult( results_[0], actSDList );
+            assemble_->AddLinearForm( coilContext );
+          }
+          else {
+            LinearForm *coilSource = 
+              new VolumeSrcInt( factor, isaxi_, upLagrangeForm  );  
+            LinearFormContext * coilContext = 
+              new LinearFormContext( coilSource );
+            coilContext->SetPtPde( this );
+            coilContext->SetResult( results_[0], actSDList );
+            assemble_->AddLinearForm( coilContext );
+          }
         }
       }
 
@@ -261,14 +302,15 @@ namespace CoupledField {
       for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
         if ( actRegionId == magnetsDomain_[perm] ) {
 
-          if ( dim_  == 3 ) {
-            EXCEPTION( "Permanent magnets not implemented for 3D computation" );
-          }
-
-          //change direction of magnetization, so that we can use the
+          //change direction of magnetization for 2D, so that we can use the
           //standard GlobalDerivatives and obtain: (curl w) . M
           Vector<Double> magnetization(dim_);
-          if (isaxi_) {
+          if ( is3d_ ) {
+            magnetization[0] = magnetsOriX_[perm];
+            magnetization[1] = magnetsOriY_[perm];
+            magnetization[2] = magnetsOriZ_[perm];
+          }
+          else if (isaxi_) {
             magnetization[0] = magnetsOriY_[perm];
             magnetization[1] = -magnetsOriX_[perm];
           }
@@ -278,9 +320,15 @@ namespace CoupledField {
           }
           
           std::string fncname = "none";
-          LinearForm *permSource = 
-            new MagPerm2DInt(magnetization, reluctivity, 
-                             isaxi_, upLagrangeForm );
+          LinearForm *permSource;
+          if ( is3d_ ) {
+            permSource = new MagPerm3DInt(magnetization, reluctivity, 
+                                          isaxi_, upLagrangeForm );
+          }
+          else {
+            permSource = new MagPerm2DInt(magnetization, reluctivity, 
+                                          isaxi_, upLagrangeForm );
+          }
 
           LinearFormContext * permContext = 
             new LinearFormContext( permSource );
@@ -440,32 +488,87 @@ namespace CoupledField {
     
     NodeStoreSol<TYPE> * solhelp = 
       dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-    CurlNodeOp<TYPE> * FieldOp = 
-      new CurlNodeOp<TYPE>(ptgrid_, this, eqnMap_,
-                           *solhelp, true );
-    FieldOp->Set2DType(isaxi_);
-    
-    Vector<Double> lCoord;
-    Vector<TYPE> tempB;
-    
-    // fetch result object and convert data
-    Result<TYPE> &  actSol = 
-      dynamic_cast<Result<TYPE>&>(*result);
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-    
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
-      FieldOp->CalcElemCurlNode( tempB, it, lCoord); 
 
-      // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        actVal[it.GetPos()*dim_ + iDim] = tempB[iDim];
+    if (is3d_ ) {
+      // flag for updatedLagrange formulation
+      bool upLagrangeForm = true;
+      std::string bilinearName = "CurlCurlNode3DInt";
+
+      Vector<Double> intPoint;
+      Vector<TYPE> elemFlux(3);
+      Matrix<Double> bMatCurl, bMatDiv;
+
+      elemFlux.Resize(dim_);
+      elemFlux.Init(0);
+    
+      // fetch result object and convert data
+      Result<TYPE> &  actSol = 
+        dynamic_cast<Result<TYPE>&>(*result);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+
+      Vector<TYPE> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+    
+      it.Begin();
+
+      // loop over elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+      
+        //set element solution        
+        Vector<TYPE> elSol;
+        sol_->GetElemSolution(elSol, it);
+
+        RegionIdType actRegionId = it.GetElem()->regionId;
+        CurlCurlNode3DInt* curlOp = 
+          dynamic_cast<CurlCurlNode3DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+
+        //set element info
+        curlOp->ExtractElemInfo( it );
+
+        //calculates the stress
+        curlOp->SetIntPoint(intPoint);
+
+        Matrix<Double> CornerCoords; 
+        ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+                                    upLagrangeForm );
+
+        curlOp->calcBMat(bMatCurl, bMatDiv, 1, CornerCoords);
+
+        elemFlux = bMatCurl * elSol;
+        for( UInt iDof = 0; iDof < dim_; iDof++ ) {
+          actVal[it.GetPos()*dim_ + iDof] = elemFlux[iDof];
+        }
       }
     }
-    delete FieldOp;
+    else {
+      CurlNodeOp<TYPE> * FieldOp = 
+        new CurlNodeOp<TYPE>(ptgrid_, this, eqnMap_,
+                             *solhelp, true );
+      FieldOp->Set2DType(isaxi_);
+      
+      Vector<Double> lCoord;
+      Vector<TYPE> tempB;
+      
+      // fetch result object and convert data
+      Result<TYPE> &  actSol = 
+        dynamic_cast<Result<TYPE>&>(*result);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+      
+      Vector<TYPE> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+      
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
+        FieldOp->CalcElemCurlNode( tempB, it, lCoord); 
+        
+        // loop over dofs
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          actVal[it.GetPos()*dim_ + iDim] = tempB[iDim];
+        }
+      }
+      delete FieldOp;
+    }
   }
   
   template<class TYPE>
@@ -781,9 +884,13 @@ namespace CoupledField {
     ENTER_FCN( "MagPDE::DefineAvailResults" );
     
     StdVector<std::string> vecComponents;
-    if( isaxi_ ) {
+    if( is3d_ ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
       vecComponents = "r", "z";
-    } else {
+    } 
+    else {
       vecComponents = "x", "y";
     }
     
@@ -791,10 +898,20 @@ namespace CoupledField {
     shared_ptr<ResultInfo> res1(new ResultInfo);
     shared_ptr<AnsatzFct> fct(new LagrangeFct);
     res1->resultType = MAG_POTENTIAL;
-    res1->dofNames = "";
+    if ( is3d_ ) {
+      res1->dofNames = vecComponents;
+    }
+    else {
+      res1->dofNames = "";
+    }
     res1->unit = "Vs/m";
     res1->definedOn = ResultInfo::NODE;
-    res1->entryType = ResultInfo::SCALAR;
+    if ( is3d_ ) {
+      res1->entryType = ResultInfo::VECTOR;
+    }
+    else {
+      res1->entryType = ResultInfo::SCALAR;
+    }
     res1->fctType = fct;
     
     results_.Push_back( res1 );
@@ -813,7 +930,12 @@ namespace CoupledField {
     // === EDDY CURRENT DENSITY ===
     shared_ptr<ResultInfo> eddy(new ResultInfo);
     eddy->resultType = MAG_EDDY_CURRENT;
-    eddy->dofNames = "";
+    if ( is3d_ ) {
+      eddy->dofNames = vecComponents;
+    }
+    else {
+      eddy->dofNames = "";
+    }
     eddy->unit = "A/m^2";
     eddy->definedOn = ResultInfo::ELEMENT;
     eddy->entryType = ResultInfo::VECTOR;
