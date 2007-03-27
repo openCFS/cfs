@@ -57,7 +57,7 @@ IF(CFS_DISTRO STREQUAL "DEBIAN")
   SET(CFS_PCKG_HINT
    "blas-dev, refblas3-dev"
    "libg2c0-dev"
-   "libboost-dev"
+   "libboost-*-dev"
    "lapack-dev, lapack99-dev, lapack3-dev"
    "python2.4-dev"
    "tcl8.4-dev"
