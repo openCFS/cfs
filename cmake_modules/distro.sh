@@ -48,8 +48,17 @@ elif [ "${OS}" = "Linux" ] ; then
 		PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
 	elif [ -f /etc/SuSE-release ] ; then
-		DIST=`cat /etc/SuSE-release | tr "\n" ' '| sed s/VERSION.*// | awk '{print $1}'`
-		REV=`cat /etc/SuSE-release | tr "\n" ' ' | sed s/.*=\ // | awk '{print $1}'`
+            SUSEREL="/etc/SuSE-release"
+            FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
+            ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
+            if [ "$ENTERPRISE" == "ENTERPRISE" ]; then
+                DIST="SLES"
+                REV=`echo $FIRSTLINE | cut -f5 -d' '`
+                PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
+            else
+                DIST=`cat $SUSEREL | tr "\n" ' '| sed s/VERSION.*// | awk '{print $1}'`
+                REV=`cat $SUSEREL | tr "\n" ' ' | sed s/.*=\ // | awk '{print $1}'`
+            fi
 	elif [ -f /etc/mandrake-release ] ; then
 		DIST='Mandrake'
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
