@@ -19,6 +19,12 @@
 // Version of the C++ compiler used to compile CFS++
 #define CFS_CXX_COMPILER_VER "@CFS_CXX_COMPILER_VER@"
 
+// Fortran compiler used to compile CFS++
+#define CFS_FORTRAN_COMPILER_NAME "@CFS_FORTRAN_COMPILER_NAME@"
+
+// Version of the Fortran compiler used to compile CFS++
+#define CFS_FORTRAN_COMPILER_VER "@CFS_FORTRAN_COMPILER_VER@"
+
 // Linux/UNIX/Windows distribution for which CFS++ has been built
 #define CFS_DISTRO "@CFS_DISTRO@"
 

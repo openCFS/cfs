@@ -36,14 +36,6 @@ SET(TARGET_LL ${TARGET_LL}
   simouttext
 )
 
-IF(USE_TCL)
-  SET(TARGET_LL ${TARGET_LL} tclmess scripting)
-ENDIF(USE_TCL)
-
-IF(USE_PYTHON)
-  SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
-ENDIF(USE_PYTHON)
-
 IF(USE_GMV)
   IF(USE_GMV_INPUT)
     SET(TARGET_LL ${TARGET_LL} simingmv)
@@ -69,6 +61,19 @@ ENDIF(USE_UNV)
 IF(USE_HDF5)
   SET(TARGET_LL ${TARGET_LL} siminoutxmdf)
 ENDIF(USE_HDF5)
+
+IF(USE_ANSYSRST)
+  LINK_DIRECTORIES("/home/data/programs/ansys/v100/ansys/customize/misc/linop64")
+  SET(TARGET_LL ${TARGET_LL} simoutansysrst)
+ENDIF(USE_ANSYSRST)
+
+IF(USE_TCL)
+  SET(TARGET_LL ${TARGET_LL} tclmess scripting)
+ENDIF(USE_TCL)
+
+IF(USE_PYTHON)
+  SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
+ENDIF(USE_PYTHON)
 
 SET(TARGET_LL ${TARGET_LL} 
   datainout

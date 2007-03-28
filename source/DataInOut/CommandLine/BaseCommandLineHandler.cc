@@ -372,6 +372,8 @@ namespace CoupledField {
            << "CFS_SUBVERSION_REPOS:  " << CFS_SUBVERSION_REPOS << std::endl << std::endl
            << "CFS_CXX_COMPILER_NAME: " << CFS_CXX_COMPILER_NAME << std::endl
            << "CFS_CXX_COMPILER_VER:  " << CFS_CXX_COMPILER_VER << std::endl << std::endl
+           << "CFS_FORTRAN_COMPILER_NAME: " << CFS_FORTRAN_COMPILER_NAME << std::endl
+           << "CFS_FORTRAN_COMPILER_VER:  " << CFS_FORTRAN_COMPILER_VER << std::endl << std::endl
            << "CFS_DISTRO:            " << CFS_DISTRO << std::endl
            << "CFS_DISTRO_VER:        " << CFS_DISTRO_VER << std::endl
            << "CFS_ARCH:              " << CFS_ARCH << std::endl << std::endl

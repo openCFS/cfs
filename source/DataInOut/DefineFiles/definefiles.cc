@@ -15,6 +15,7 @@
 #include <def_use_hdf5.hh>
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
+#include <def_use_ansysrst.hh>
 #include <def_use_scripting.hh>
 #include <def_use_tcl.hh>
 #include <def_use_python.hh>
@@ -45,6 +46,10 @@
 
 #ifdef USE_UNV
 #include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
+#endif
+
+#ifdef USE_ANSYSRST
+#include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
@@ -276,6 +281,16 @@ namespace CoupledField
         EXCEPTION( "No support for HDF5 output file format." );
 #endif
       }
+
+      if ( actFormat == "rst" ) {
+#ifdef USE_ANSYSRST
+        out[actId] = 
+          shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
+#else
+        EXCEPTION( "No support for ANSYS RST output file format." );
+#endif
+      }
+
 
       if ( actFormat == "text" ) {
         out[actId] = 

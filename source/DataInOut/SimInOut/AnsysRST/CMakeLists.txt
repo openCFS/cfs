@@ -1,11 +1,11 @@
-# Make sure the compiler can find include files from our CFSMESHIO library.
-#INCLUDE_DIRECTORIES(${CFSMESHIO_SOURCE_DIR}/include ${HDF5_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(/home/data/programs/ansys/v100/ansys/customize/include)
 
-# Make sure the linker can find the CFSMESHIO library once it is built.
-#LINK_DIRECTORIES()
+SET(CMAKE_Fortran_FLAGS "-fcray-pointer -DLINUXOP64_SYS")
 
-SET(SIMOUTGID_SRCS simOutGiD.cc)
+SET(SIMOUTANSYSRST_SRCS simOutputRST.cc ResWr.F)
 
-ADD_LIBRARY(simoutgid STATIC ${SIMOUTGID_SRCS})
+ADD_LIBRARY(simoutansysrst STATIC ${SIMOUTANSYSRST_SRCS})
 
-TARGET_LINK_LIBRARIES(simoutgid gidpost)
+TARGET_LINK_LIBRARIES(simoutansysrst bin pgf90 ${GFORTRAN_LIBRARY})
+
+SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
