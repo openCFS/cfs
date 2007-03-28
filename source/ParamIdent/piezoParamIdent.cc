@@ -764,9 +764,14 @@ namespace CoupledField
 //       std::cout<<stiffTensor<<std::endl;
 //       std::cout<<permTensor<<std::endl;
     
-      ptMaterialElec_[actId]->RotateTensorByRotationAngles( rotAngle,ELEC_PERMITTIVITY, true);      
-      ptMaterialMech_[actId]->RotateTensorByRotationAngles( rotAngle,MECH_STIFFNESS_TENSOR, true);      
-      ptMaterialPiezo_[actId]->RotateTensorByRotationAngles( rotAngle,PIEZO_TENSOR, true); 
+
+      UInt dim=ptPDE1_->getPDE_spaceDim();
+
+      if (dim==2){
+        ptMaterialElec_[actId]->RotateTensorByRotationAngles( rotAngle,ELEC_PERMITTIVITY, true);      
+        ptMaterialMech_[actId]->RotateTensorByRotationAngles( rotAngle,MECH_STIFFNESS_TENSOR, true);      
+        ptMaterialPiezo_[actId]->RotateTensorByRotationAngles( rotAngle,PIEZO_TENSOR, true); 
+      }
 
 
       // TEST HOW DOES IT LOOK LIKE FOR THE COMPLEX STUFF
