@@ -63,7 +63,6 @@ IF(USE_HDF5)
 ENDIF(USE_HDF5)
 
 IF(USE_ANSYSRST)
-  LINK_DIRECTORIES("/home/data/programs/ansys/v100/ansys/customize/misc/linop64")
   SET(TARGET_LL ${TARGET_LL} simoutansysrst)
 ENDIF(USE_ANSYSRST)
 

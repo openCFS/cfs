@@ -52,19 +52,19 @@ namespace CoupledField {
     char Title[80*2];
     char JobName[8];
     Integer Units = 4;
-    Integer NumDOF;
-    Integer DOF;
+    Integer NumDOF = 2;
+    Integer DOF[] = {1, 2};
     Integer UserCode = 10;
-    Integer MaxNode;
-    Integer NumNode;
-    Integer MaxElem;
-    Integer NumElem;
+    Integer MaxNode = 13;
+    Integer NumNode = 6;
+    Integer MaxElem = 3;
+    Integer NumElem = 2;
     Integer MaxResultSet = 10;
     Integer lenTitle;
     Integer lenJobName;
 
     std::fill(Fname, Fname+sizeof(Fname), 0);
-    sprintf(Fname, "test.rst");
+    sprintf(Fname, "%s.rst", fileName.c_str());
     ncFname = strlen(Fname);
     std::fill(Title, Title+sizeof(Title), 0);
     sprintf(Title, "Ein prima Testbeispiel!");
@@ -81,7 +81,7 @@ namespace CoupledField {
                       JobName,
                       &Units,
                       &NumDOF,
-                      &DOF,
+                      DOF,
                       &UserCode,
                       &MaxNode,
                       &NumNode,

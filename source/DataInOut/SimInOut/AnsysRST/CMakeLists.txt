@@ -1,16 +1,27 @@
-INCLUDE_DIRECTORIES(/home/data/programs/ansys/v100/ansys/customize/include)
+INCLUDE_DIRECTORIES(${ANSYS_ROOT_DIR}/customize/include)
 
 SET(CMAKE_Fortran_FLAGS "-fcray-pointer -DLINUXOP64_SYS")
 
 IF(DEBUG)
   SET(CMAKE_Fortran_FLAGS "-g ${CMAKE_Fortran_FLAGS}")
-IF(DEBUG)
+ENDIF(DEBUG)
 
 SET(SIMOUTANSYSRST_SRCS simOutputRST.cc ResWr.F)
 
 ADD_LIBRARY(simoutansysrst STATIC ${SIMOUTANSYSRST_SRCS})
 
-TARGET_LINK_LIBRARIES(simoutansysrst bin pgf90 ${GFORTRAN_LIBRARY})
+IF(CFS_ARCH STREQUAL "I386")
+TARGET_LINK_LIBRARIES(simoutansysrst
+  ${ANSYS_ROOT_DIR}/customize/misc/linia32/binlib.a
+  ${GFORTRAN_LIBRARY})
+ENDIF(CFS_ARCH STREQUAL "I386")
+
+IF(CFS_ARCH STREQUAL "X86_64")
+TARGET_LINK_LIBRARIES(simoutansysrst
+  ${ANSYS_ROOT_DIR}/customize/misc/linop64/libbin.so
+  ${ANSYS_ROOT_DIR}/syslib/linop64/libpgf90.so
+  ${GFORTRAN_LIBRARY})
+ENDIF(CFS_ARCH STREQUAL "X86_64")
 
 SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
 

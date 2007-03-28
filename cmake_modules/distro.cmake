@@ -40,6 +40,8 @@ IF(CFS_DISTRO STREQUAL "SUSE" OR
    "subversion"
    "tcl(-devel)"
    "Xerces-C(-devel)"
+   "doxygen"
+   "graphviz"
    )
 
  IF(CFS_DISTRO_VER GREATER 9.3)
