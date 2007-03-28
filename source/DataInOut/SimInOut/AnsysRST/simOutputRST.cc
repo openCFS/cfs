@@ -49,7 +49,7 @@ namespace CoupledField {
     Integer Lunit = 6;
     char Fname[1024];
     Integer ncFname;
-    char Title[80];
+    char Title[80*2];
     char JobName[8];
     Integer Units = 4;
     Integer NumDOF;
@@ -60,14 +60,16 @@ namespace CoupledField {
     Integer MaxElem;
     Integer NumElem;
     Integer MaxResultSet = 10;
-    Integer lenFname;
     Integer lenTitle;
     Integer lenJobName;
 
+    std::fill(Fname, Fname+sizeof(Fname), 0);
     sprintf(Fname, "test.rst");
     ncFname = strlen(Fname);
+    std::fill(Title, Title+sizeof(Title), 0);
     sprintf(Title, "Ein prima Testbeispiel!");
     lenTitle = strlen(Title);
+    std::fill(JobName, JobName+sizeof(JobName), 0);
     sprintf(JobName, "mytest");
     lenJobName = strlen(JobName);
     
@@ -86,7 +88,7 @@ namespace CoupledField {
                       &MaxElem,
                       &NumElem,
                       &MaxResultSet,
-                      lenFname,
+                      ncFname,
                       lenTitle,
                       lenJobName);
 
