@@ -12,7 +12,7 @@ ADD_LIBRARY(simoutansysrst STATIC ${SIMOUTANSYSRST_SRCS})
 
 IF(CFS_ARCH STREQUAL "I386")
 TARGET_LINK_LIBRARIES(simoutansysrst
-  ${ANSYS_ROOT_DIR}/customize/misc/linia32/binlib.a
+  ${ANSYS_ROOT_DIR}/customize/misc/linia32/libbin.so
   ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "I386")
 
