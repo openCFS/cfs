@@ -446,7 +446,7 @@ namespace CoupledField
        std::cout<<"piezoMat"<<std::endl;
        std::cout<<piezoMat<<std::endl;
 
-       getchar();
+       //       getchar();
      }
 
 
