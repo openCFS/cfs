@@ -138,6 +138,7 @@ namespace CoupledField
     std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
     std::cout<<"++ Results are written in file imped.dat " <<std::endl;
 
+    ResultHandler * resHandler = domain->GetResultHandler();
      
     if( imagMaterialParam_ ) {
       updateComplexMaterialData(parameterC_);
@@ -165,6 +166,10 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+      resHandler->BeginStep( freqs_[fstep], fstep );
+      ptPDE_->WriteResultsInFile( freqs_[fstep], fstep );
+      resHandler->FinishStep( );
       
       Vector<Complex> chargeVec;
       chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
@@ -391,6 +396,7 @@ namespace CoupledField
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", freqsElec_[fstep]);
+
       ptPDE_->GetSolveStep()->SetActFreq(freqsElec_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
