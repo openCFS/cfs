@@ -390,6 +390,10 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(USE_UNV)
 
   IF(USE_ANSYSRST)
+    # Set a sane default value for the ANSYS 10.0 path
+    SET(ANSYS_ROOT_DIR "/home/data/programs/ansys/v100/ansys/" CACHE STRING
+      "Path to ANSYS 10.0 installation.")
+    
     IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
       IF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
 	MESSAGE(SEND_ERROR

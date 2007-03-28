@@ -124,7 +124,7 @@ c   /exit,nosave
       character*4   DofLab(NUMDOF)
       character*80  Title(5)
 
-      data  Title / ' 2 element cantilever beam using plane42',
+      data  Title / 'CFS++ GFortran standalone ANSYS RST test.',
      x              'Test case for writing binary files',
      x              3*'       '/
 
