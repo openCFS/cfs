@@ -2,8 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_CFS_SIM_OUTGID_HH
-#define FILE_CFS_SIM_OUTGID_HH
+#ifndef FILE_CFS_SIM_OUTRST_HH
+#define FILE_CFS_SIM_OUTRST_HH
 
 #include <Domain/grid.hh>
 #include <DataInOut/simOutput.hh>
@@ -16,15 +16,15 @@ namespace CoupledField
 {
 
   //! Class for writing results in the GiD postprocessing format
-  class SimOutputGiD: virtual public SimOutput {
+  class SimOutputRST: virtual public SimOutput {
     
   public:
 
     //! Constructor
-    SimOutputGiD( const std::string& fileName, ParamNode * outputNode );
+    SimOutputRST( const std::string& fileName, ParamNode * outputNode );
   
     //! Destructor
-    virtual ~SimOutputGiD();
+    virtual ~SimOutputRST();
   
     //! Initialize class
     void Init( Grid* grid );
@@ -100,7 +100,7 @@ namespace CoupledField
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class SimOutputGiD
+  //! \class SimOutputRST
   //! 
   //! \purpose 
   //! This class provides the interface for writing meshes and elements to the

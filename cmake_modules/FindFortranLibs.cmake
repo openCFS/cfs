@@ -6,13 +6,16 @@
 #  BLAS_FOUND          = bool which says if BLAS has been found
 
 SET (FORTRAN_POSSIBLE_LIB_PATHS
+  "$ENV{CFSDEPS_ROOT}/lib64"
+  "$ENV{CFSDEPS_ROOT}/lib"
+  /opt/lse/lib64
+  /opt/lse/lib
   /usr/lib64
   /usr/lib
   /usr/local/lib64
   /usr/local/lib
   /usr/lib64/atlas
   /usr/lib/atlas
-  $GFORTRAN_SEARCH_DIRS
 )
 
 FIND_LIBRARY(BLAS_LIBRARY
@@ -43,7 +46,7 @@ IF(G2C_LIBRARY)
   SET(G2C_FOUND 1)
 ENDIF(G2C_LIBRARY)
 
-EXEC_PROGRAM("gfortran -print-search-dirs | grep libraries | cut -d'=' -f 2 | sed -e 's/:/;/g'"
+EXEC_PROGRAM("${CMAKE_Fortran_COMPILER} -print-search-dirs | grep libraries | cut -d'=' -f 2 | sed -e 's/:/;/g'"
   ARGS
   OUTPUT_VARIABLE GFORTRAN_SEARCH_DIRS
   RETURN_VALUE RETVAL)
@@ -55,6 +58,11 @@ ENDIF(NOT RETVAL EQUAL 0)
 FIND_LIBRARY(GFORTRAN_LIBRARY
   NAMES gfortran
   PATHS ${GFORTRAN_SEARCH_DIRS} ${FORTRAN_POSSIBLE_LIB_PATHS}
+  NO_DEFAULT_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH 
 )
 
 IF(GFORTRAN_LIBRARY)

@@ -43,6 +43,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   OPTION(USE_HDF5 "Use HDF5 for simulation in/output." OFF)
   OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output." ON)
   OPTION(USE_UNV "Use Universal File for simulation output." ON)
+  OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." OFF)
   OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
     OFF)
 
@@ -104,6 +105,12 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(DEBUG)
 
   #-----------------------------------------------------------------------------
+  # Set compiler flags according to output target and debug setting
+  # ( if necessesary )
+  #-----------------------------------------------------------------------------
+  INCLUDE("cmake_modules/compiler.cmake")
+
+  #-----------------------------------------------------------------------------
   # Determine if some Fortran system libs are installed (blas, lapack, g2c...)
   #-----------------------------------------------------------------------------
   INCLUDE("cmake_modules/FindFortranLibs.cmake")
@@ -135,14 +142,6 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   #-----------------------------------------------------------------------------
   SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL
     "Single output directory for building all executables.")
-
-
-  #-----------------------------------------------------------------------------
-  # Set compiler flags according to output target and debug setting
-  # ( if necessesary )
-  #-----------------------------------------------------------------------------
-  INCLUDE("cmake_modules/compiler.cmake")
-
 
 
   #-----------------------------------------------------------------------------
@@ -389,6 +388,18 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   IF(USE_UNV)
     SUBDIRS(source/DataInOut/SimInOut/Unverg)
   ENDIF(USE_UNV)
+
+  IF(USE_ANSYSRST)
+    IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+      IF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
+	MESSAGE(SEND_ERROR
+	  "The ANSYS RST writer requires a Fortran 95 compiler!")
+      ENDIF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
+    ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+
+    SUBDIRS(source/DataInOut/SimInOut/AnsysRST)
+
+  ENDIF(USE_ANSYSRST)
 
   SUBDIRS(source/DataInOut/SimInOut/TextOutput)
   SUBDIRS(source/Domain)

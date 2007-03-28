@@ -15,23 +15,24 @@ namespace fs = boost::filesystem;
 #include "Domain/elem.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
-#include "simOutGiD.hh"
+#include "simOutputRST.hh"
+#include "ResWrProtos.hh"
 
 
 namespace CoupledField {
   
   // declare logging stream
-  DECLARE_LOG(simOutputGiD)
-  DEFINE_LOG(simOutputGiD, "SimOutputGiD")
+  DECLARE_LOG(simOutputRST)
+  DEFINE_LOG(simOutputRST, "SimOutputRST")
  
-    SimOutputGiD::SimOutputGiD( const std::string& fileName,
+    SimOutputRST::SimOutputRST( const std::string& fileName,
                                 ParamNode * outputNode )
       : SimOutput( fileName, outputNode ) {
 
-    ENTER_FCN( "SimOutputGiD::SimOutputGiD" );
+    ENTER_FCN( "SimOutputRST::SimOutputRST" );
 
     // Initialize variables
-    formatName_ = "gid";
+    formatName_ = "rst";
     fileName_ = fileName;
     dirName_ = ".";
     
@@ -42,34 +43,72 @@ namespace CoupledField {
     isAscii_ = true;
     degen3DElems_ = true;
 
-    // Determine, if binary result file should be written
-    isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
 
-    // Open result file
-    std::string postFileName = fileName_;
-    if ( isAscii_ == true) {
-      postFileName += ".post.res";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostAscii );
-    } else {
-      postFileName += ".post.bin";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
-    }
+    Integer ret;
+    Integer Nunit = 12;
+    Integer Lunit = 6;
+    char Fname[1024];
+    Integer ncFname;
+    char Title[80];
+    char JobName[8];
+    Integer Units = 4;
+    Integer NumDOF;
+    Integer DOF;
+    Integer UserCode = 10;
+    Integer MaxNode;
+    Integer NumNode;
+    Integer MaxElem;
+    Integer NumElem;
+    Integer MaxResultSet = 10;
+    Integer lenFname;
+    Integer lenTitle;
+    Integer lenJobName;
+
+    sprintf(Fname, "test.rst");
+    ncFname = strlen(Fname);
+    sprintf(Title, "Ein prima Testbeispiel!");
+    lenTitle = strlen(Title);
+    sprintf(JobName, "mytest");
+    lenJobName = strlen(JobName);
+    
+    ret = reswrbegin_(&Nunit,
+                      &Lunit,
+                      Fname,
+                      &ncFname,
+                      Title,
+                      JobName,
+                      &Units,
+                      &NumDOF,
+                      &DOF,
+                      &UserCode,
+                      &MaxNode,
+                      &NumNode,
+                      &MaxElem,
+                      &NumElem,
+                      &MaxResultSet,
+                      lenFname,
+                      lenTitle,
+                      lenJobName);
+
+    reswrend_();
+
+    std::cout << "reswrbegin_ returned " << ret << std::endl;
   }
 
 
-  SimOutputGiD::~SimOutputGiD() {
+  SimOutputRST::~SimOutputRST() {
 
-    ENTER_FCN( "SimOutputGiD::~SimOutputGiD" );
+    ENTER_FCN( "SimOutputRST::~SimOutputRST" );
 
     // Close result file
     GiD_ClosePostResultFile();
   }
 
 
-  void SimOutputGiD::WriteGrid() {
-    ENTER_FCN( "SimOutputGiD::WriteGrid" );
+  void SimOutputRST::WriteGrid() {
+    ENTER_FCN( "SimOutputRST::WriteGrid" );
     
-    LOG_TRACE(simOutputGiD) << "Writing mesh";
+    LOG_TRACE(simOutputRST) << "Writing mesh";
     
     // open mesh file (only needed in ASCII case
     if ( isAscii_ == true) {
@@ -108,14 +147,14 @@ namespace CoupledField {
     if ( isAscii_ == true ) {
       GiD_ClosePostMeshFile();
     }
-    LOG_TRACE(simOutputGiD)<< "Finished writing of mesh" << std::endl;
+    LOG_TRACE(simOutputRST)<< "Finished writing of mesh" << std::endl;
 
   }
 
-  void SimOutputGiD::WriteNodes() {
-    ENTER_FCN( "SimOutputGiD::WriteNodes" );
+  void SimOutputRST::WriteNodes() {
+    ENTER_FCN( "SimOutputRST::WriteNodes" );
 
-    LOG_TRACE(simOutputGiD) << "Writing nodes";
+    LOG_TRACE(simOutputRST) << "Writing nodes";
     
     // get number of nodes
     UInt numNodes = ptGrid_->GetNumNodes();
@@ -146,14 +185,14 @@ namespace CoupledField {
     
     GiD_EndMesh();
 
-    LOG_TRACE(simOutputGiD) << "Finished writing nodes" << std::endl;
+    LOG_TRACE(simOutputRST) << "Finished writing nodes" << std::endl;
 
   }
 
-  void SimOutputGiD::WriteElements() {
-    ENTER_FCN( "SimOutputGiD::WriteElements" );
+  void SimOutputRST::WriteElements() {
+    ENTER_FCN( "SimOutputRST::WriteElements" );
    
-    LOG_TRACE(simOutputGiD) << "Writing elements";
+    LOG_TRACE(simOutputRST) << "Writing elements";
     
     // iterate over all regions
     StdVector<RegionIdType> regionIds;
@@ -222,7 +261,7 @@ namespace CoupledField {
     
     }
 
-    LOG_TRACE(simOutputGiD) << "Writing named elements/nodes";
+    LOG_TRACE(simOutputRST) << "Writing named elements/nodes";
     
     // write named nodes to mesh file
     // Note:  Named nodes are written as 'point' elements, so we need
@@ -264,10 +303,10 @@ namespace CoupledField {
       GiD_EndMesh();
     }
 
-    LOG_TRACE(simOutputGiD) << "Finished writing elements" << std::endl;
+    LOG_TRACE(simOutputRST) << "Finished writing elements" << std::endl;
   }
   
-  void SimOutputGiD::
+  void SimOutputRST::
   WriteElement( Elem * ptEl ) {
     
     // determine element dimension
@@ -421,41 +460,41 @@ namespace CoupledField {
   }
 
  
-  void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
+  void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd ) {
-    ENTER_FCN( "SimOutputGiD::RegisterResult" );
+    ENTER_FCN( "SimOutputRST::RegisterResult" );
     
     ResultInfo & actDof = *(sol->GetResultInfo());
-    LOG_DBG(simOutputGiD) << "Registering output '" << actDof.resultName
+    LOG_DBG(simOutputRST) << "Registering output '" << actDof.resultName
                           << "' with saveBegin " << saveBegin
                           << ", saveInc " << saveInc 
                           << ", saveEnd " << saveEnd;
 
   }
 
-  void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "SimOutputGiD::BeginStep" );
+  void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
+    ENTER_FCN( "SimOutputRST::BeginStep" );
 
     actStep_ = stepNum;
     actStepVal_ = stepVal;
     resultMap_.clear();
   }
  
-  void SimOutputGiD::AddResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( " SimOutputGiD::AddResult" );
+  void SimOutputRST::AddResult( shared_ptr<BaseResult> sol ) {
+    ENTER_FCN( " SimOutputRST::AddResult" );
     ResultInfo & actDof = *(sol->GetResultInfo());
 
-    LOG_DBG(simOutputGiD) << "Adding result '" 
+    LOG_DBG(simOutputRST) << "Adding result '" 
                           << actDof.resultName  << "'";
       
     resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
   }
   
-  void SimOutputGiD::FinishStep( ) {
-    ENTER_FCN( "SimOutputGiD::FinishStep" );
+  void SimOutputRST::FinishStep( ) {
+    ENTER_FCN( "SimOutputRST::FinishStep" );
 
-    LOG_TRACE(simOutputGiD) << "Starting to finish Step";
+    LOG_TRACE(simOutputRST) << "Starting to finish Step";
     
     std::string title;
     
@@ -488,7 +527,7 @@ namespace CoupledField {
         continue;
       }
 
-      LOG_DBG(simOutputGiD) << "Writing result '" << title << "'";
+      LOG_DBG(simOutputRST) << "Writing result '" << title << "'";
       
       if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
         Vector<Double> gSol;
@@ -506,14 +545,14 @@ namespace CoupledField {
   }
   
 
-  void SimOutputGiD::
+  void SimOutputRST::
   WriteNodeElemDataTrans( const Vector<Double> & var, 
                           const StdVector<std::string> & dofNames,
                           const std::string& name, 
                           ResultInfo::EntryType entryType,
                           ResultInfo::EntityUnknownType entityType,
                           Double time ) {
-    ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataTrans" );
+    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataTrans" );
     
     // get number of entities
     UInt numEnt = 0;
@@ -614,7 +653,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     GiD_EndResult();
   }     
   
-  void SimOutputGiD::
+  void SimOutputRST::
   WriteNodeElemDataHarm( const Vector<Complex> & var, 
                          const StdVector<std::string> & dofNames,
                          const std::string name, 
@@ -622,7 +661,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                          ResultInfo::EntityUnknownType entityType,
                          const Double freq, 
                          const ComplexFormat outputFormat ) {
-    ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataHarm" );
+    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataHarm" );
     
    // get number of entities
     UInt numEnt = 0;
@@ -913,9 +952,9 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
   // ********
   //   Init
   // ********
-  void SimOutputGiD::Init( Grid* ptGrid) {
+  void SimOutputRST::Init( Grid* ptGrid) {
     
-    ENTER_FCN( "SimOutputGiD::OpenFile" );
+    ENTER_FCN( "SimOutputRST::OpenFile" );
 
     ptGrid_ = ptGrid;
     // initialize history files
@@ -928,7 +967,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     } else if ( dim == 3 ) {
       dim_ = GiD_3D;
     } else {
-      EXCEPTION( "SimOutputGiD: Grid dimension " << dim
+      EXCEPTION( "SimOutputRST: Grid dimension " << dim
                << " is not supported by GiD mesh format." );
     }
 
