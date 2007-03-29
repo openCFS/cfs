@@ -193,7 +193,7 @@ namespace OLAS {
 //! implementation of the template functions in the header
 #ifndef DOXYGEN
 #if(!__GNUC_PREREQ(3,3))
-#include "algsys/olascomm_impl.hh"
+//#include "algsys/olascomm_impl.hh"
 #endif
 #endif
 #endif

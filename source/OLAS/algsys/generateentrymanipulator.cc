@@ -6,12 +6,15 @@
 #include "algsys/entrymanipulatordouble.cc"
 #include "algsys/entrymanipulatorcomplex.cc"
 
+#if 0
+
 #ifdef __INTEL_COMPILER
 #include "matvec/vector.cc"
 #include "matvec/parvector.cc"
 #include "matvec/communicator.cc"
 #endif
 
+#endif
 
 namespace OLAS {
 

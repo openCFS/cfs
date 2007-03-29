@@ -34,10 +34,13 @@
 #include "solver/ldlsolver.cc"
 #include "solver/diagsolver.cc"
 
+#if 0
 
 #if defined(__INTEL_COMPILER)
 #include "algsys/olascomm_impl.hh"
 #include "matvec/vector.cc"
+#endif
+
 #endif
 
 namespace OLAS {
