@@ -64,6 +64,33 @@ private:
   UInt nrDofs_;
 };
 
+
+  /// Class for calculation  of coupling matrix between vector and scalar potential
+class MagCoupVectorScalarPotentialInt : public BaseForm
+{
+public:
+
+  /// Constructor
+ MagCoupVectorScalarPotentialInt(Double elecCond, bool coordUpdate = false );
+
+  /// 
+  virtual ~ MagCoupVectorScalarPotentialInt();
+
+  /// Calculation of stiffmess matrix
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+  
+protected: 
+private:
+
+  /// multiplicative value for curlc-curl operator 
+  Double matVal_;
+
+  UInt nrDofsVec_;
+};
+
+
 }
 
 #endif // FILE_CURLCURLNODEINT
