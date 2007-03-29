@@ -397,8 +397,12 @@ int main( int argc, const char **argv ) {
     UInt stepOffset = 0;
     Double timeFreqOffset = 0;
     UInt seqStep = 1;
+    std::string name = "sequenceStep";
+    std::string idx = "index";
+    std::string one = "1";
+
     analysisString = 
-        param->Get("sequenceStep", "index", "1")->Get("analysis")->GetChild()->GetName();
+        param->Get(name, idx, one)->Get("analysis")->GetChild()->GetName();
       String2Enum( analysisString, type );
 
     // Generate driver

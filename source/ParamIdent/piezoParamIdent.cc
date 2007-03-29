@@ -45,16 +45,18 @@ namespace CoupledField
     nrMeasuredDataMech_=0;
 
     // get parameter node
-    myParam_ = 
-      param->Get("sequenceStep", "index", "1" )
-      ->Get("analysis")->Get("paramIdent");
+    std::string name = "sequenceStep";
+    std::string idx = "index";
+    std::string one = "1";
+    
+    myParam_ = param->Get(name, idx, one )
+               ->Get("analysis")->Get("paramIdent");
 
     // check, if "imagMaterialData" is used
     imagMaterialParam_ = false;
-    ParamNode * matNode =
-      param->Get( "sequenceStep", "index", "1" )
-      ->Get("couplingList")->Get("direct")->Get("piezoDirect")
-      ->Get("materialDataType", false );
+    ParamNode * matNode = myParam_->Get("couplingList")->Get("direct")
+                          ->Get("piezoDirect")
+                          ->Get("materialDataType", false );
     if( matNode ) {
       imagMaterialParam_ = 
         matNode->Get("type")->AsString() == "imagMaterialParameter";
