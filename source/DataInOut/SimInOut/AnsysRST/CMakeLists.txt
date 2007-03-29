@@ -1,6 +1,12 @@
 INCLUDE_DIRECTORIES(${ANSYS_ROOT_DIR}/customize/include)
 
-SET(CMAKE_Fortran_FLAGS "-fcray-pointer -DLINUXOP64_SYS")
+IF(CFS_ARCH STREQUAL "I386")
+  SET(CMAKE_Fortran_FLAGS "-safe-cray-ptr -fcray-pointer -DLINUXIA32_SYS")
+ENDIF(CFS_ARCH STREQUAL "I386")
+
+IF(CFS_ARCH STREQUAL "X86_64")
+  SET(CMAKE_Fortran_FLAGS "-safe-cray-ptr -fcray-pointer -DLINUXOP64_SYS")
+ENDIF(CFS_ARCH STREQUAL "X86_64")
 
 IF(DEBUG)
   SET(CMAKE_Fortran_FLAGS "-g ${CMAKE_Fortran_FLAGS}")
@@ -10,20 +16,20 @@ SET(SIMOUTANSYSRST_SRCS simOutputRST.cc ResWr.F)
 
 ADD_LIBRARY(simoutansysrst STATIC ${SIMOUTANSYSRST_SRCS})
 
+SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
+
 IF(CFS_ARCH STREQUAL "I386")
-TARGET_LINK_LIBRARIES(simoutansysrst
-  ${ANSYS_ROOT_DIR}/customize/misc/linia32/libbin.so
-  ${GFORTRAN_LIBRARY})
+  TARGET_LINK_LIBRARIES(simoutansysrst
+    ${ANSYS_ROOT_DIR}/customize/misc/linia32/libbin.so
+    ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "I386")
 
 IF(CFS_ARCH STREQUAL "X86_64")
-TARGET_LINK_LIBRARIES(simoutansysrst
-  ${ANSYS_ROOT_DIR}/customize/misc/linop64/libbin.so
-  ${ANSYS_ROOT_DIR}/syslib/linop64/libpgf90.so
-  ${GFORTRAN_LIBRARY})
+  TARGET_LINK_LIBRARIES(simoutansysrst
+    ${ANSYS_ROOT_DIR}/customize/misc/linop64/libbin.so
+    ${ANSYS_ROOT_DIR}/syslib/linop64/libpgf90.so
+    ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "X86_64")
-
-SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
 
 # Add the ANSYS ResWrDemo program for test purposes
 ADD_EXECUTABLE(ResWrDemo ResWrDemo.F)
