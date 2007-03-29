@@ -175,7 +175,6 @@ namespace CoupledField
     ENTER_FCN( "CurlCurlNode3DInt::calcBMat" );
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
-    const UInt spaceDim = ptelem->GetDim();  
 
     UInt actDim, actNode, j, k;
     
@@ -222,6 +221,80 @@ namespace CoupledField
     }
 
     isSetIntPoint_ = false;
+  }
+
+
+  //============================coupling of vector and scalar potential ====================================
+
+  MagCoupVectorScalarPotentialInt::MagCoupVectorScalarPotentialInt(Double aVal, bool coordUpdate )
+    : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
+  {
+    ENTER_FCN( "MagCoupVectorScalarPotentialInt::MagCoupVectorScalarPotentialInt" );
+
+    name_   = "MagCoupVectorScalarPotentialInt";
+    isaxi_  = false;
+    nrDofsVec_ = 3;
+
+    // this bilinearform is never symmetric
+    isSymmetric_ = false;
+  }
+
+
+ 
+  MagCoupVectorScalarPotentialInt::~MagCoupVectorScalarPotentialInt()
+  {
+    ENTER_FCN( "MagCoupVectorScalarPotentialInt::~MagCoupVectorScalarPotentialInt" );
+  }
+
+
+
+  void MagCoupVectorScalarPotentialInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1, 
+                                             EntityIterator& ent2  ) {
+    ENTER_FCN( "MagCoupVectorScalarPotentialInt::CalcElementMatrix" );
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    elemMat.Resize( numFncs * nrDofsVec_, numFncs );
+    elemMat.Init();
+
+    Matrix<Double> xiDx;
+    Vector<Double> ShpFncAtIp;
+    Double jacDet, factor, shpFnc;  
+
+    //get integration points
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // Loop over all integration points
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+      jacDet = 0;
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent1.GetElem());
+      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt,ent1.GetElem());
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+	(*error) << "MagCoupVectorScalarPotentialInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+
+      factor = jacDet * intWeights[actIntPt-1] * matVal_;
+      for ( UInt k=0; k<numFncs; k++ ) {
+        shpFnc = ShpFncAtIp[k] * factor;
+        for ( UInt  i= 0; i < nrDofsVec_; i++ ) {
+          for ( UInt j = 0; j < numFncs; j++ ) {
+            elemMat[i+k*nrDofsVec_][j] += shpFnc * xiDx[j][i];
+          }
+        }
+      }
+    }
+
   }
 
 

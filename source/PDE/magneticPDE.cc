@@ -261,6 +261,35 @@ namespace CoupledField {
                                actSDList, actSDList );        
       assemble_->AddBiLinearForm( massContext );
 
+      //add scalar potential bilinear-forms and coupling to vector potential in 3d 
+      //case, if region is conductive
+      if ( conductivity > EPS && is3d_ ) {
+        //define bilinear form for scalar potential
+        LaplaceInt* bilinear_Scalar = new LaplaceInt(conductivity, isaxi_, 
+                                                     upLagrangeForm ); 
+        BiLinFormContext * scalarContext = 
+          new BiLinFormContext(bilinear_Scalar, MASS );
+        scalarContext->SetPtPdes(this, this);
+        scalarContext->SetResults( results_[1], results_[1],
+                                   actSDList, actSDList );        
+        assemble_->AddBiLinearForm( scalarContext );
+        
+        //define coupling bilinearform
+        MagCoupVectorScalarPotentialInt* coupBilinear = 
+          new MagCoupVectorScalarPotentialInt(conductivity, upLagrangeForm );
+        BiLinFormContext * coupContext = 
+          new BiLinFormContext(coupBilinear, MASS );
+        coupContext->SetPtPdes(this, this);
+        coupContext->SetResults( results_[0], results_[1],
+                                 actSDList, actSDList ); 
+        coupContext->SetCounterPart( true );       
+        assemble_->AddBiLinearForm( coupContext );
+        
+        // Give result to equation numbering class
+        eqnMap_->AddResult( *results_[1], actSDList );
+      }
+
+
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegionId == coilRegionId_[coil] ) {
@@ -271,6 +300,7 @@ namespace CoupledField {
             MechVolForceInt *coilSource3d = 
               new MechVolForceInt( dim_, coilDef_[coil]->phase_,
                                    isaxi_ );
+
 
             StdVector<std::string> currDensity(3);
             currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
@@ -340,6 +370,7 @@ namespace CoupledField {
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
+
     }
   }
 
@@ -894,7 +925,7 @@ namespace CoupledField {
       vecComponents = "x", "y";
     }
     
-    // === MAGNETIC POTENTIAL ===
+    // === MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> res1(new ResultInfo);
     shared_ptr<AnsatzFct> fct(new LagrangeFct);
     res1->resultType = MAG_POTENTIAL;
@@ -916,6 +947,18 @@ namespace CoupledField {
     
     results_.Push_back( res1 );
     availResults_.insert( res1 );
+
+    if (is3d_ ) {
+      // === MAGNETIC SCALAR POTENTIAL ===
+      shared_ptr<ResultInfo> res2(new ResultInfo);
+      res2->resultType = ELEC_POTENTIAL;
+      res2->dofNames = "";
+      res2->unit = "V";
+      res2->definedOn = ResultInfo::NODE;
+      res2->entryType = ResultInfo::SCALAR;
+      res2->fctType = res1->fctType;
+      results_.Push_back( res2 );
+    }
 
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux(new ResultInfo);

@@ -129,6 +129,7 @@
   <xsd:simpleType name="DT_MagneticUnknownType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="elecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -357,8 +358,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BasicCoil">
         <xsd:sequence>
-          <xsd:element name="value"      type="xsd:float"/>
-          <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
+          <xsd:element name="value"      type="xsd:token"/>
+          <xsd:element name="phase"      type="xsd:token" minOccurs="0"
             default="0"/>
           <xsd:element name="flowDirection" type="DT_FlowDirection"/>
         </xsd:sequence>
