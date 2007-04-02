@@ -6,6 +6,7 @@
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
 #include <def_use_mesh.hh>
+#include <def_use_ansysrst.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_unv.hh>
 #include <def_cfs_stats.hh>
@@ -489,6 +490,12 @@ namespace CoupledField {
     outstr << "USE_UNV:               YES" << std::endl;
  #else
     outstr << "USE_UNV:               NO" << std::endl;
+ #endif
+
+ #ifdef USE_ANSYSRST
+    outstr << "USE_ANSYSRST:          YES" << std::endl;
+ #else
+    outstr << "USE_ANSYSRST:          NO" << std::endl;
  #endif
 
     outstr << std::endl;

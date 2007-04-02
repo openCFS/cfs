@@ -46,6 +46,8 @@ namespace CoupledField
     //! End single analysis step
     void FinishStep( );
 
+    void Finalize();
+
   private:
 
     //! Write nodal coordinates
