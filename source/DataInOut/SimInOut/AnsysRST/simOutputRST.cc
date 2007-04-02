@@ -34,7 +34,7 @@ namespace CoupledField {
     // Initialize variables
     formatName_ = "rst";
     fileName_ = fileName;
-    dirName_ = ".";
+    dirName_ = "simoutput_rst";
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -43,58 +43,14 @@ namespace CoupledField {
     isAscii_ = true;
     degen3DElems_ = true;
 
+    try 
+    {
+      fs::create_directory( dirName_ );
+    } catch (std::exception &ex)
+    {
+      EXCEPTION(ex.what());
+    }
 
-    Integer ret;
-    Integer Nunit = 12;
-    Integer Lunit = 6;
-    char Fname[1024];
-    Integer ncFname;
-    char Title[80*2];
-    char JobName[8];
-    Integer Units = 4;
-    Integer NumDOF = 2;
-    Integer DOF[] = {1, 2};
-    Integer UserCode = 10;
-    Integer MaxNode = 13;
-    Integer NumNode = 6;
-    Integer MaxElem = 3;
-    Integer NumElem = 2;
-    Integer MaxResultSet = 10;
-    Integer lenTitle;
-    Integer lenJobName;
-
-    std::fill(Fname, Fname+sizeof(Fname), 0);
-    sprintf(Fname, "%s.rst", fileName.c_str());
-    ncFname = strlen(Fname);
-    std::fill(Title, Title+sizeof(Title), 0);
-    sprintf(Title, "Ein prima Testbeispiel!");
-    lenTitle = strlen(Title);
-    std::fill(JobName, JobName+sizeof(JobName), 0);
-    sprintf(JobName, "mytest");
-    lenJobName = strlen(JobName);
-    
-    ret = reswrbegin_(&Nunit,
-                      &Lunit,
-                      Fname,
-                      &ncFname,
-                      Title,
-                      JobName,
-                      &Units,
-                      &NumDOF,
-                      DOF,
-                      &UserCode,
-                      &MaxNode,
-                      &NumNode,
-                      &MaxElem,
-                      &NumElem,
-                      &MaxResultSet,
-                      ncFname,
-                      lenTitle,
-                      lenJobName);
-
-    reswrend_();
-
-    std::cout << "reswrbegin_ returned " << ret << std::endl;
   }
 
 
@@ -111,6 +67,7 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputRST::WriteGrid" );
     
     LOG_TRACE(simOutputRST) << "Writing mesh";
+
     
     // open mesh file (only needed in ASCII case
     if ( isAscii_ == true) {
@@ -547,6 +504,12 @@ namespace CoupledField {
   }
   
 
+  void SimOutputRST::Finalize() 
+  {
+    reswrend_();
+  }
+
+
   void SimOutputRST::
   WriteNodeElemDataTrans( const Vector<Double> & var, 
                           const StdVector<std::string> & dofNames,
@@ -972,6 +935,85 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       EXCEPTION( "SimOutputRST: Grid dimension " << dim
                << " is not supported by GiD mesh format." );
     }
+
+
+    std::string filename;
+    std::ostringstream strBuffer;
+
+    try 
+    {
+
+      // Generate basename for output file
+      filename.append( dirName_ );
+      std::string pathsep = fs::path("/").native_directory_string();
+      filename.append( pathsep );
+      filename.append( fileName_ );
+      filename.append( ".rst" );
+
+      if(fs::exists(filename))
+      {
+        fs::remove( filename );
+      }
+    
+    } catch (std::exception &ex)
+    {
+      EXCEPTION(ex.what());
+    }
+
+
+    Integer ret;
+    Integer Nunit = 12;
+    Integer Lunit = 6;
+    char Fname[1024];
+    Integer ncFname;
+    char Title[80*2];
+    char JobName[8];
+    Integer Units = 4;
+    Integer NumDOF = 2;
+    Integer DOF[] = {1, 2};
+    Integer UserCode = 10;
+    Integer MaxNode = 13;
+    Integer NumNode = 6;
+    Integer MaxElem = 3;
+    Integer NumElem = 2;
+    Integer MaxResultSet = 10;
+    Integer lenTitle;
+    Integer lenJobName;
+
+    std::fill(Fname, Fname+sizeof(Fname), 0);
+    sprintf(Fname, "%s", filename.c_str());
+    ncFname = filename.length();
+    std::fill(Title, Title+sizeof(Title), 0);
+    sprintf(Title, "Ein prima Testbeispiel!");
+    lenTitle = strlen(Title);
+    std::fill(JobName, JobName+sizeof(JobName), 0);
+    sprintf(JobName, "mytest");
+    lenJobName = strlen(JobName);
+    
+    ret = reswrbegin_(&Nunit,
+                      &Lunit,
+                      Fname,
+                      &ncFname,
+                      Title,
+                      JobName,
+                      &Units,
+                      &NumDOF,
+                      DOF,
+                      &UserCode,
+                      &MaxNode,
+                      &NumNode,
+                      &MaxElem,
+                      &NumElem,
+                      &MaxResultSet,
+                      ncFname,
+                      lenTitle,
+                      lenJobName);
+
+    if(ret != 0)
+    {
+      EXCEPTION("Could not open ANSYS RST file.");
+    }
+
 
     // check, if only tetrahedra are present
     // -> only in this case we can treat tetrahedras as elements with 4 nodes.

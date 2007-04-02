@@ -421,7 +421,13 @@ namespace CoupledField
     GetSurfElems(masterElems, masterId);
     GetSurfElems(slaveElems, slaveId);
 
-    AddSurfaceRegion(ncRegionBaseName, ncRegionId);
+    if(regionNames_.Find(ncRegionBaseName) != -1)
+    {
+      ncRegionId = RegionNameToId(ncRegionBaseName);
+      ClearRegion(ncRegionId);
+    }
+    else
+      AddSurfaceRegion(ncRegionBaseName, ncRegionId);
 
     ParamNode* ncIfaceNode;
     ncIfaceNode = param->Get("domain")->Get("ncInterfaceList");
