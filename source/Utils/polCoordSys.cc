@@ -82,7 +82,7 @@ namespace CoupledField{
     // rotate global cartesian coordinate system to local one
     rotationMat_.Mult(d,temp);
 
-    // transform local cartesian nodes to cylindrical ones
+    // transform local cartesian nodes to polar ones
     loc.Resize(2);
     loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
     loc[1] = std::atan2(temp[1],temp[0])/PI*180;
@@ -130,7 +130,7 @@ namespace CoupledField{
     ENTER_FCN("PolarCoordSystem::Local2GlobalVectorInt");
 
     Double phi, r;
-    Vector<Double> locModelPoint(2), d(2);
+    Vector<Double> localPoint(2), d(2);
     Vector<TYPE> temp(2);
 
     // Calculate the distance and angle to the point
@@ -138,10 +138,11 @@ namespace CoupledField{
 
     // Transform global cartesian model point into local
     // cartesian one
-    rotationMat_.Mult(d, locModelPoint);
+    rotationMat_.Mult(d, localPoint);
 
-    r = std::sqrt(d[0] * d[0] + d[1] *d[1]);
-    phi = std::atan2(d[1],d[0]);
+    r = std::sqrt(localPoint[0] * localPoint[0] 
+                  + localPoint[1] * localPoint[1]);
+    phi = std::atan2(localPoint[1], localPoint[0]);
 
     // calculate global coordinate of locVec, by applying the
     // standard conversion routines
