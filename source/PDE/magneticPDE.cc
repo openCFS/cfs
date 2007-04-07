@@ -263,7 +263,7 @@ namespace CoupledField {
 
       //add scalar potential bilinear-forms and coupling to vector potential in 3d 
       //case, if region is conductive
-      if ( conductivity > EPS && is3d_ ) {
+      if ( conductivity > EPS && is3d_ && analysistype_ != STATIC) {
         //define bilinear form for scalar potential
         LaplaceInt* bilinear_Scalar = new LaplaceInt(conductivity, isaxi_, 
                                                      upLagrangeForm ); 
