@@ -285,7 +285,6 @@ namespace CoupledField {
           rotNode->Get( "gamma", rotVec[2] );
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
-          std::cerr << "rotation angles are " << rotVec.Serialize();
         }
 
         
