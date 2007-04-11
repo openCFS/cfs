@@ -1071,6 +1071,6 @@ source/Utils/tracing.hh svneol=native#text/plain
 source/Utils/vector.cc svneol=native#text/plain
 source/Utils/vector.hh svneol=native#text/plain
 source/main/CMakeLists.txt svneol=native#text/plain
-source/main/cfs.cc svneol=native#text/plain
+source/main/cfs.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/cfshyst.cc svneol=native#text/plain
 source/main/toDoList.txt svneol=native#text/plain
