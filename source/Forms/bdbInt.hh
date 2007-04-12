@@ -32,11 +32,15 @@ namespace CoupledField {
                                    EntityIterator& ent2,
                                    Double & beta, Double & omega );
 
-    virtual void GetDMat(Matrix<Double> & dMat);
+  
 
-    virtual void GetBMat(Matrix<Double> & bMat, Matrix<Double> & ptCoord);
+    //! Get B-Matrix of element midpoint
+    virtual void calcBMat(EntityIterator it, Matrix<Double> & bMat);
+    
+    //! Get DB-Matrix of element midpoint
+    virtual void calcDBMat( EntityIterator it,
+                    Matrix<Double> & bMat );
 
-  protected:
 
     //! returns B - matrix for BDB
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
@@ -82,6 +86,8 @@ namespace CoupledField {
     //! Query material type for \f$D\f$ tensor
     virtual MaterialType getDMaterialType() = 0;
 
+  protected:
+    
     //! bool for signaling that D matrix is non-constant
 
     //! In some cases, e.g. in non-linear computations, it may be

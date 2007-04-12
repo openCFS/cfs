@@ -305,6 +305,7 @@ namespace CoupledField {
                ACOU_BUBBLE_RHS_VAL, ACOU_SOUND_SPEEED, 
                MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
                MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
+               MAG_EDDY_POWER,
                HEAT_TEMPERATURE,
                MPCCI, FLUID_FORCE,
                ACOU_PRESSUREXYZ,

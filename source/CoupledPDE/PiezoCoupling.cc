@@ -236,7 +236,7 @@ namespace CoupledField {
       mechStressOp->SetActElemSol(elemDisp);
       mechStressOp->SetIntPoint(LCoord);
       mechStressOp->CalcStressVec(TempMechStress,1,it);
-      
+      mechStressOp->UnsetIntPoint();
       elemStress.Init(0);
       
       // get correct coupling tensor and transpose it

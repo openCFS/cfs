@@ -30,7 +30,11 @@ namespace CoupledField {
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     ptelem->SetAnsatzFct( ansatzFct1_ );
-    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord, it1_.GetElem() );
+    if (isSetIntPoint_) {
+      ptelem->GetGlobDerivShFnc( xiDx, intPoint_, ptCoord, it1_.GetElem() );
+    } else {
+      ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord, it1_.GetElem() );
+    }
 
     if ( subTensorType_ == FULL ) {
       // The matrix bMat can be seen as a 3 x numFncs block-vector.

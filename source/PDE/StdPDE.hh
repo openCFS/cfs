@@ -160,18 +160,24 @@ namespace CoupledField {
     CFSVector * GetSolutionVector();
     
     /// returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
-    void GetSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
+    void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
+                             shared_ptr<ResultInfo> res );
+    void GetSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
+                             shared_ptr<ResultInfo> res );
     
     /// returns the vector of time derivative of the solution belonging 
     /// to all nodes of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
-    void GetDerivSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
+    void GetDerivSolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
+                                  shared_ptr<ResultInfo> res );
+    void GetDerivSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
+                                  shared_ptr<ResultInfo> res );
     
     /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
     /// of the actual element
-    void GetDeriv2SolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
-    void GetDeriv2SolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
+    void GetDeriv2SolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res );
+    void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
+                                   shared_ptr<ResultInfo> res);
 
     //! Init the time stepping
     virtual void InitTimeStepping()

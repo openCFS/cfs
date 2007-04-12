@@ -142,7 +142,10 @@ namespace CoupledField
 
     //! set the integration point
     void SetIntPoint(Vector<Double> point)
-    { intPoint_ = point; isSetIntPoint_ = true;};
+    { intPoint_ = point; isSetIntPoint_ = true;}
+
+    //! unset integration point
+    void UnsetIntPoint() { isSetIntPoint_ = false;}
 
     //!
     void SetMatDataType(DataType & pMatType)

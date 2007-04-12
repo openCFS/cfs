@@ -102,6 +102,10 @@ namespace CoupledField
     template<class TYPE>
     void CalcEddyCurrent( shared_ptr<BaseResult> result );
 
+    //! computes the eddy current power
+    template<class TYPE>
+    void CalcEddyPower( shared_ptr<BaseResult> result );
+
     //! Calculate the total flux/flux derivative
     template<class TYPE>
     void CalcFlux( shared_ptr<BaseResult> result, 

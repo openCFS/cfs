@@ -536,6 +536,8 @@ namespace CoupledField {
       out = MAG_FORCE_LORENTZ;
     else if (in == "magEnergy")
       out = MAG_ENERGY;
+    else if (in == "magEddyPower")
+      out = MAG_EDDY_POWER;
 
     //heat conduction
     else if (in == "heatTemperature")
@@ -713,7 +715,10 @@ namespace CoupledField {
       case MAG_ENERGY:
         out = "magEnergy";
         break;
-
+      case MAG_EDDY_POWER:
+        out = "magEddyPower";
+        break;
+        
         //heat conduction
       case HEAT_TEMPERATURE:
         out = "heatTemperature";

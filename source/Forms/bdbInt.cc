@@ -282,18 +282,35 @@ namespace CoupledField {
   }
 
 
-  void BDBInt::GetDMat(Matrix<Double> &dMat) {
-    ENTER_FCN( "BDBInt::GetDMat" );
-    calcDMat(dMat);
+  void BDBInt::calcBMat(EntityIterator it, Matrix<Double>& bMat ) {
+    ENTER_FCN( "BDBInt::GetBMat" );
+    
+    // get midpoint
+    ExtractElemInfo( it );
+    Vector<Double> midPoint;
+    it.GetElem()->ptElem->GetCoordMidPoint(midPoint);
+    
+    // Set integration point to midpont
+    SetIntPoint( midPoint);
+    calcBMat( bMat, 1, ptCoord_ );
+    UnsetIntPoint();
   }
 
-  void BDBInt::GetBMat(Matrix<Double> &bMat, Matrix<Double> & ptCoord_) {
+  void BDBInt::calcDBMat(EntityIterator it, Matrix<Double>& dbMat ) {
     ENTER_FCN( "BDBInt::GetBMat" );
-    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-   
-    for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++) {
-      calcBMat(bMat, actIntPt, ptCoord_);     
-    }
+    
+    // get midpoint
+    ExtractElemInfo( it );
+    Vector<Double> midPoint;
+    it.GetElem()->ptElem->GetCoordMidPoint(midPoint);
+    
+    // Set integration point to midpont
+    SetIntPoint( midPoint);
+    Matrix<Double> temp1 , temp2;
+    calcBMat( temp1, 1, ptCoord_ );
+    calcDMat( temp2, 1, ptCoord_ );
+    dbMat = temp1*temp2;
+    UnsetIntPoint();
   }
 
 

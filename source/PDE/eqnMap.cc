@@ -1242,13 +1242,13 @@ namespace CoupledField {
 	      }
 	      else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
 		        [actDof-1] != 0 ) {
-		(*warning) << "EqnMap::CalcNodalEquations: HomDirichletNode # "
-		           << nodes[i]
-		           << "\nappeared already at least once in the list of "
-		           << "boundary nodes for this PDE!\n Please check, if this "
-		           << "node is defined in more than one level of boundary "
-		           << "nodes!";
-		Warning( __FILE__, __LINE__ );
+// 		(*warning) << "EqnMap::CalcNodalEquations: HomDirichletNode # "
+// 		           << nodes[i]
+// 		           << "\nappeared already at least once in the list of "
+// 		           << "boundary nodes for this PDE!\n Please check, if this "
+// 		           << "node is defined in more than one level of boundary "
+// 		           << "nodes!";
+// 		Warning( __FILE__, __LINE__ );
 	      }
 	      else {
 		actMap[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1] = 0;
@@ -1416,10 +1416,13 @@ namespace CoupledField {
 	    for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
               // only assign an equation number, if the map contains
               // a 0. Otherwise, we have already labeled this node
-              if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] 
-                   == 0 ) {
-                numEqns_++;
-                actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = numEqns_;
+              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
+              if( locNode > 0 ) { 
+                if(  actMap[locNode-1] [actDof-1] 
+                     == 0 ) {
+                  numEqns_++;
+                  actMap[locNode-1] [actDof-1] = numEqns_;
+                }
               }
 	    }
 	  }
@@ -1938,6 +1941,9 @@ namespace CoupledField {
     shared_ptr<ElemList> elemList;
     shared_ptr<SurfElemList> sElemList;
     shared_ptr<NodeList> nodeList;
+    shared_ptr<RegionList> regionList;
+    StdVector<UInt> helpNodes;
+    EntityIterator it;
     switch( type ) {
       
     case EntityList::ELEM_LIST:
@@ -1950,6 +1956,19 @@ namespace CoupledField {
       sElemList = 
 	dynamic_pointer_cast<SurfElemList, EntityList>(ent);
       ptGrid_->GetNodesByRegion( nodes, sElemList->GetRegion() );
+      break;
+
+    case EntityList::REGION_LIST:
+      regionList= 
+	dynamic_pointer_cast<RegionList, EntityList>(ent);
+      it = regionList->GetIterator();
+      for( ; !it.IsEnd(); it++ ) {
+        helpNodes.Clear();
+        ptGrid_->GetNodesByRegion( helpNodes, it.GetRegion() );
+        for( UInt i = 0; i < helpNodes.GetSize(); i++ ) {
+          nodes.Push_back( helpNodes[i] );
+        }
+      }
       break;
 
     case EntityList::NODE_LIST:
