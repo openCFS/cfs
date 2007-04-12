@@ -1636,7 +1636,7 @@ namespace CoupledField {
       //calculates the stress
       stress->SetIntPoint(intPoint);
       stress->CalcStressVec(elemStress,1,it);
-
+      stress->UnsetIntPoint();
       for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
         actVal[it.GetPos()*stressDim_ + iDof] = elemStress[iDof];
       }
@@ -1692,7 +1692,7 @@ namespace CoupledField {
         Matrix<Double> ptSurfCoord;
         ptgrid_->GetElemNodesCoord( ptSurfCoord, connecth, false );
         
-        GetSolVecOfElement( elemDisp, elemIt );
+        GetSolVecOfElement( elemDisp, elemIt, results_[0] );
         elemDispDof.Resize(connecth.GetSize() );
         UInt actEntry = dof;
         for( UInt i = 0; i < connecth.GetSize(); i++ ) {

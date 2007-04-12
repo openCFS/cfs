@@ -173,6 +173,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_MagneticHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" 
+          use="optional" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -215,7 +217,6 @@
   <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
-      <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyCurrent"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -224,6 +225,7 @@
   <xsd:simpleType name="DT_MagneticRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
+      <xsd:enumeration value="magEddyPower"/>
     </xsd:restriction>
   </xsd:simpleType>
 

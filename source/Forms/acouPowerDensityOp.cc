@@ -64,8 +64,9 @@ namespace CoupledField {
     Vector<Double> CoordAtIp;
 
     Vector<TYPE> elemSol, elemSolDeriv1;
-    ptPDE_->GetSolVecOfElement(elemSol,it);
-    ptPDE_->GetDerivSolVecOfElement(elemSolDeriv1,it);
+    shared_ptr<ResultInfo> res = (ptPDE_->GetResultInfos())[0];
+    ptPDE_->GetSolVecOfElement(elemSol,it,res);
+    ptPDE_->GetDerivSolVecOfElement(elemSolDeriv1,it,res);
 
 //     std::cout << "Number Nodes:\n" << nrNodes << std::endl;
 //     std::cout << "Number IntPoints:\n" << nrIntPts << std::endl;

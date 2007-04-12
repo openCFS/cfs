@@ -1600,7 +1600,7 @@ namespace CoupledField {
         ElemList elemList(ptgrid_);
         elemList.SetElement( elems[iElem] );
         EntityIterator it = elemList.GetIterator();
-        GetDerivSolVecOfElement( elPressureDeriv, it );
+        GetDerivSolVecOfElement( elPressureDeriv, it, results_[0] );
         Double pressureDeriv = 0.0;
 
         for( UInt iNode = 0; iNode < elPressureDeriv.GetSize(); iNode++ ) {
@@ -1795,7 +1795,7 @@ namespace CoupledField {
         //ElemList elemList(ptgrid_);
         //elemList.SetElement( actSaveElem );
         //EntityIterator it = elemList.GetIterator();
-        GetDerivSolVecOfElement(valueElem,  it);
+        GetDerivSolVecOfElement(valueElem,  it, results_[0]);
 
         valueElem *= density;
       }
@@ -1805,7 +1805,7 @@ namespace CoupledField {
         //ElemList elemList(ptgrid_);
         //elemList.SetElement( actSaveElem );
         //EntityIterator it = elemList.GetIterator();
-        GetSolVecOfElement(valueElem,it);
+        GetSolVecOfElement(valueElem,it,results_[0]);
       }
 
       const UInt nrIntPts= ptElem->GetNumIntPoints();
@@ -1877,7 +1877,7 @@ namespace CoupledField {
       // retrieve 1st derivative and multiply with density, 
       //  since p = rho * dpsi/dt
       Vector<TYPE> valueElem;
-      GetDerivSolVecOfElement(valueElem, it);
+      GetDerivSolVecOfElement(valueElem, it, results_[0]);
       
       elemPressure = valueElem * shapeFnc * density;
       actVal[it.GetPos()] = elemPressure;
@@ -2167,7 +2167,7 @@ namespace CoupledField {
           // get solution of element and interpolate into integration point
           Vector<TYPE> elemSol;
           Vector<Double> shapeFnc;
-          GetSolVecOfElement( elemSol, it2);
+          GetSolVecOfElement( elemSol, it2, results_[0]);
           ptVolElemFE->GetShFnc( shapeFnc, lCoordVol, ptVolElem );
           TYPE intPointSol = shapeFnc * elemSol;
 

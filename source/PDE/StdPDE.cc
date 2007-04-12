@@ -233,12 +233,13 @@ namespace CoupledField {
 
   // real valued method (for TRANSIENT and STATIC)
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
-                                   const EntityIterator& it ) {
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -259,12 +260,13 @@ namespace CoupledField {
 
   // complex valued method (for HARMONIC)
   void StdPDE::GetSolVecOfElement( Vector<Complex>& elemSol,
-                                   const EntityIterator& it ) {
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
 
 
     elemSol.Resize( eqns.GetSize() );
@@ -285,11 +287,12 @@ namespace CoupledField {
   
   // real valued method (for TRANSIENT)
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
-                                       const EntityIterator& it) {
+                                       const EntityIterator& it,
+                                       shared_ptr<ResultInfo> res) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 ); 
     
@@ -310,12 +313,13 @@ namespace CoupledField {
 
   // complex valued method (for HARMONIC)
   void StdPDE::GetDerivSolVecOfElement(Vector<Complex>& sol,
-                                        const EntityIterator& it) {
+                                       const EntityIterator& it,
+                                       shared_ptr<ResultInfo> res) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -343,12 +347,13 @@ namespace CoupledField {
 
   // real valued method (for TRANSIENT)
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Double>& sol,
-                                         const EntityIterator& it) {
+                                         const EntityIterator& it,
+                                         shared_ptr<ResultInfo> res) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );
@@ -368,12 +373,13 @@ namespace CoupledField {
 
   // real valued method (for HARMONIC)
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Complex>& sol,
-                                         const EntityIterator& it) {
+                                         const EntityIterator& it,
+                                         shared_ptr<ResultInfo> res) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *results_[0], it );
+    eqnMap_->GetEqns( eqns, *res, it );
     
     sol.Resize( eqns.GetSize() );
     sol.Init( 0.0 );

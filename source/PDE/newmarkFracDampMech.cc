@@ -617,7 +617,7 @@ void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E,
     String2Enum(subType_,tensorType);
 
     BDBInt * matMat = new linElastInt(matData, tensorType);
-    matMat->GetDMat(betaMat);
+    matMat->calcDMat(betaMat);
 
     val = (dampBeta_/(E)) * timeStepPowerFracDeriv_;
     betaMat  = (betaMat *  val);

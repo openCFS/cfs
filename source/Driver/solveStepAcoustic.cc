@@ -213,9 +213,9 @@ namespace CoupledField {
         ptElem  = it.GetElem()->ptElem;
         connect = it.GetElem()->connect;
 
-        PDE_.GetSolVecOfElement(sol, it);
-        PDE_.GetDerivSolVecOfElement(solderiv1, it);
-        PDE_.GetDeriv2SolVecOfElement(solderiv2, it);
+        PDE_.GetSolVecOfElement(sol, it, results_[0]);
+        PDE_.GetDerivSolVecOfElement(solderiv1, it, results_[0]);
+        PDE_.GetDeriv2SolVecOfElement(solderiv2, it, results_[0]);
         
         rhsInt->SetActElemSol(sol);
         rhsInt->SetActElemSolDeriv1(solderiv1);
