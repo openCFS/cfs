@@ -943,17 +943,30 @@ namespace CoupledField
         break;
 
       case 3:
-        // see Stöcker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
         inv.Resize(3,3);
-        for(UInt i=0; i<3; i++)
-          for(UInt j=0; j<3; j++)
-            inv[j][i] = Adjunct(i,j);      
+
+        // === Old, recursive version ===
+        // see Str: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
+        //for(UInt i=0; i<3; i++)
+        //  for(UInt j=0; j<3; j++)
+        //    inv[j][i] = Adjunct(i,j);      
+
+        // === New, explicit version (from Wikipedia) ===
+        inv[0][0] = data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1];
+        inv[0][1] = data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2];
+        inv[0][2] = data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1];
+        inv[1][0] = data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2];
+        inv[1][1] = data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0];
+        inv[1][2] = data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2];
+        inv[2][0] = data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0];
+        inv[2][1] = data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1];
+        inv[2][2] = data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0];
+
         this->Determinant(det);
         inv *= 1/det;      
         break;
       
       default: 
-	//        EXCEPTION("Inversion not implemented fo dimension larger than 2!" );
 	Double eps = 1e-20;
 	TYPE pivot;
 	TYPE pinv;
@@ -990,7 +1003,7 @@ namespace CoupledField
 	    EXCEPTION("Get divison by zero in matrix inversion" );
 	  }
 	}
-      }
+      }  
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
