@@ -14,6 +14,7 @@ namespace fs = boost::filesystem;
 #include "Utils/StdVector.hh"
 #include "Domain/elem.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 #include "simOutputRST.hh"
 #include "ResWrProtos.hh"
@@ -39,10 +40,6 @@ namespace CoupledField {
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 
-    dim_ = GiD_2D;
-    isAscii_ = true;
-    degen3DElems_ = true;
-
     try 
     {
       fs::create_directory( dirName_ );
@@ -51,869 +48,37 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
 
+    elemData_[0] = 1;  // material number
+    elemData_[1] = 1;  // type number
+    elemData_[2] = 1;  // real set number
+    elemData_[3] = 1;  // section number
+    elemData_[4] = 0;  // element coordinate system
+    elemData_[5] = 0;  // birth-death flag  0, alive  1, dead
+    elemData_[6] = 0;  // solid model reference
+    elemData_[7] = 0;  // coded shape key
+    elemData_[8] = 0;  // p-method exclude key
+    elemData_[9] = 0;  // not used
+
+    // linear element types
+    ansysType2TypeId_[42] = 1;
+    ansysType2TypeId_[45] = 2;
+
+    // quadratic element types
+    ansysType2TypeId_[82] = 1;
+    ansysType2TypeId_[95] = 2;
+
+    ansysType2NumNodes_[42] = 4;
+    ansysType2NumNodes_[45] = 8;
+    ansysType2NumNodes_[82] = 8;
+    ansysType2NumNodes_[95] = 20;
+
   }
 
 
   SimOutputRST::~SimOutputRST() {
-
     ENTER_FCN( "SimOutputRST::~SimOutputRST" );
-
-    // Close result file
-    GiD_ClosePostResultFile();
   }
 
-
-  void SimOutputRST::WriteGrid() {
-    ENTER_FCN( "SimOutputRST::WriteGrid" );
-    
-    LOG_TRACE(simOutputRST) << "Writing mesh";
-
-    
-    // open mesh file (only needed in ASCII case
-    if ( isAscii_ == true) {
-      std::string meshFileName = fileName_ + ".post.msh";
-      GiD_OpenPostMeshFile( meshFileName.c_str(), GiD_PostAscii );
-    }
-
-    // write nodes
-    WriteNodes();
-    
-    // write elements
-    WriteElements();
-
-    // write definition for Gauss points
-    if ( dim_ == GiD_2D ) {
-      GiD_BeginGaussPoint( "mid-2D", GiD_Quadrilateral, NULL, 1, 1, 1);
-      GiD_EndGaussPoint();
-      if ( ptGrid_->GetNumSurfElems() > 0 ) {
-        GiD_BeginGaussPoint( "mid-2D", GiD_Linear, NULL, 1, 0, 1);
-        GiD_EndGaussPoint();
-      }
-    } else {
-      if ( degen3DElems_ == true ) {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
-      } else {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Tetrahedra, NULL, 1, 1, 1);
-      }
-      GiD_EndGaussPoint();
-      if ( ptGrid_->GetNumSurfElems() > 0 ) {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
-        GiD_EndGaussPoint();
-      }
-    }
-      
-    // close mesh file (only needed in ASCII case)
-    if ( isAscii_ == true ) {
-      GiD_ClosePostMeshFile();
-    }
-    LOG_TRACE(simOutputRST)<< "Finished writing of mesh" << std::endl;
-
-  }
-
-  void SimOutputRST::WriteNodes() {
-    ENTER_FCN( "SimOutputRST::WriteNodes" );
-
-    LOG_TRACE(simOutputRST) << "Writing nodes";
-    
-    // get number of nodes
-    UInt numNodes = ptGrid_->GetNumNodes();
-
-    // write nodal coordinates
-    GiD_BeginMesh( "Nodes", dim_, GiD_Point, 1 );
-
-    GiD_BeginCoordinates();    
-    if ( dim_ == GiD_2D ) {
-
-      Point point;
-      for ( UInt i = 1; i <= numNodes; i++ ) {
-        ptGrid_->GetNodeCoordinate(point,i);
-        GiD_WriteCoordinates2D(i, point[0], point[1]);
-      }
-    } else {
-      Point point;
-      for ( UInt i = 1; i <= numNodes; i++ ) {
-        ptGrid_->GetNodeCoordinate(point,i);
-        GiD_WriteCoordinates(i, point[0], point[1], point[2]);
-      } 
-    }
-    GiD_EndCoordinates();
-    
-    // dummy call for writing elements
-    GiD_BeginElements();    
-    GiD_EndElements();
-    
-    GiD_EndMesh();
-
-    LOG_TRACE(simOutputRST) << "Finished writing nodes" << std::endl;
-
-  }
-
-  void SimOutputRST::WriteElements() {
-    ENTER_FCN( "SimOutputRST::WriteElements" );
-   
-    LOG_TRACE(simOutputRST) << "Writing elements";
-    
-    // iterate over all regions
-    StdVector<RegionIdType> regionIds;
-    StdVector<Elem*> elemVec;
-    ptGrid_->GetRegionIds( regionIds );
-
-    for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
-
-      // get region name and elements
-      std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
-      ptGrid_->GetElems(elemVec,regionIds[iReg]);
-
-    
-      GiD_ElementType eType = GiD_NoElement;
-      UInt numElemNodes = 0;
-
-      // determine element type and number of nodes
-      if ( elemVec[0]->ptElem->GetDim() == 1 ) {
-        eType = GiD_Linear;
-        if ( ptGrid_->IsQuadratic() == true ) {
-          numElemNodes = 3;
-        } else {
-          numElemNodes = 2;
-        }
-      } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
-        eType = GiD_Quadrilateral;
-        if ( ptGrid_->IsQuadratic() == true ) {
-          numElemNodes = 8;
-        } else {
-          numElemNodes = 4;
-        }
-      } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
-        if ( degen3DElems_ == true ) {
-          eType = GiD_Hexahedra;
-          if ( ptGrid_->IsQuadratic() == true ) {
-            numElemNodes = 20;
-          } else {
-            numElemNodes = 8;
-          }
-        } else {
-          eType = GiD_Tetrahedra;
-          if ( ptGrid_->IsQuadratic() == true ) {
-            numElemNodes = 10;
-          } else {
-            numElemNodes = 4;
-          }
-        }
-      }
-      
-      GiD_BeginMesh( regionName.c_str(), dim_, eType, numElemNodes );
-    
-      // write dummy coordinate section
-      GiD_BeginCoordinates();
-      GiD_EndCoordinates();
-      
-      // write alle element declarations
-      GiD_BeginElements();
-      for ( UInt iElem = 0; iElem < elemVec.GetSize(); iElem++ ) {
-        Elem * ptEl = elemVec[iElem];
-    
-        WriteElement( ptEl );
-      }
-      GiD_EndElements();
-
-      GiD_EndMesh();
-    
-    }
-
-    LOG_TRACE(simOutputRST) << "Writing named elements/nodes";
-    
-    // write named nodes to mesh file
-    // Note:  Named nodes are written as 'point' elements, so we need
-    // for each set of named nodes a separate MESH section
-    StdVector<std::string> nodeNames, elemNames;
-    StdVector<UInt> nodeNumbers, elemNumbers;
-
-    ptGrid_->GetListNodeNames(nodeNames);
-    
-    // check if there are any named nodes / elems in the grid
-    if( nodeNames.GetSize() == 0 ) {
-      return;
-    }
-
-    // get number of 'normal' regions within the grid
-    UInt numRegions = regionIds.GetSize();
-    
-    // remember number of 'normal' elements
-    UInt numelem = ptGrid_->GetNumElems() + 1;
-    
-    for( UInt i = 0; i < nodeNames.GetSize(); i++ ) {
-
-      // get named nodes
-      ptGrid_->GetNodesByName(nodeNumbers, nodeNames[i]);
-      GiD_BeginMesh( nodeNames[i].c_str(), dim_, GiD_Point, 1 );
-
-      // write empty coordinate section
-      GiD_BeginCoordinates();
-      GiD_EndCoordinates();
-
-      // write 'nodal' elements
-      GiD_BeginElements();
-      
-      for ( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode ++ ) {
-        UInt nodeNumber[2] = {nodeNumbers[iNode],i+numRegions+1};
-        GiD_WriteElementMat( numelem++, (int*)(&nodeNumber) ); 
-      }
-      GiD_EndElements();
-      GiD_EndMesh();
-    }
-
-    LOG_TRACE(simOutputRST) << "Finished writing elements" << std::endl;
-  }
-  
-  void SimOutputRST::
-  WriteElement( Elem * ptEl ) {
-    
-    // determine element dimension
-    BaseFE * ptFE = ptEl->ptElem;
-    StdVector<UInt> const & connect = ptEl->connect;
-    StdVector<UInt> connectM;
-    
-    // --- LINEAR ELEMENTS ---
-    if ( ptGrid_->IsQuadratic() == false ) {
-      if ( ptFE == ptTr1 ) {
-        connectM = connect;
-        connectM.Push_back(connectM[2]);
-      } else  if ( ptFE == ptTet1 ) {
-        if ( degen3DElems_ == true ) {
-          connectM.Resize(8);
-          connectM[0]= connect[0];
-          connectM[1]= connect[1];
-          connectM[2]= connect[2];
-          connectM[3]= connect[2];
-          connectM[4]= connect[3];
-          connectM[5]= connect[3];
-          connectM[6]= connect[3];
-          connectM[7]= connect[3];
-        } else {
-          connectM = connect;
-        }
-      } else  if ( ptFE == ptPyra1 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[3];
-        connectM[4]= connect[4];
-        connectM[5]= connect[4];
-        connectM[6]= connect[4];
-        connectM[7]= connect[4];
-      } else  if ( ptFE == ptWedge1 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[5];
-        connectM[7]= connect[5];
-        
-      } else {
-        connectM = connect;
-      }
-    } else {
-      // --- QUADRATIC ELEMENTS ---
-      if ( ptFE == ptTr2 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[2];
-        connectM[7]= connect[5];
-      } else  if ( ptFE == ptTet2 ) {
-        if ( degen3DElems_ == true ) {
-          connectM.Resize(20);
-          connectM[0]= connect[0];
-          connectM[1]= connect[1];
-          connectM[2]= connect[2];
-          connectM[3]= connect[2];
-          connectM[4]= connect[3];
-          connectM[5]= connect[3];
-          connectM[6]= connect[3];
-          connectM[7]= connect[3];
-          connectM[8]= connect[4];
-          connectM[9]= connect[5];
-          connectM[10]= connect[6];
-          connectM[11]= connect[2];
-          connectM[12]= connect[7];
-          connectM[13]= connect[8];
-          connectM[14]= connect[9];
-          connectM[15]= connect[2];
-          connectM[16]= connect[3];
-          connectM[17]= connect[3];
-          connectM[18]= connect[3];
-          connectM[19]= connect[3];
-        } else {
-          connectM = connect;
-        }
-        // NOTE: The numberings of hexehadras in gid differs for
-        // the quadratic case!
-      } else  if ( ptFE == ptHexa2 ) {
-        connectM=connect;
-        connectM[12] = connect[16];
-        connectM[13] = connect[17];
-        connectM[14] = connect[18];
-        connectM[15] = connect[19];
-        connectM[16] = connect[12];
-        connectM[17] = connect[13];
-        connectM[18] = connect[14];
-        connectM[19] = connect[15];
-      } else  if ( ptFE == ptPyra2 ) {
-        connectM.Resize(20);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[3];
-        connectM[4]= connect[4];
-        connectM[5]= connect[4];
-        connectM[6]= connect[4];
-        connectM[7]= connect[4];
-        connectM[8]= connect[5];
-        connectM[9]= connect[6];
-        connectM[10]= connect[7];
-        connectM[11]= connect[8];
-        connectM[12]= connect[9];
-        connectM[13]= connect[10];
-        connectM[14]= connect[11];
-        connectM[15]= connect[12];
-        connectM[16]= connect[4];
-        connectM[17]= connect[4];
-        connectM[18]= connect[4];
-        connectM[19]= connect[4];
-      } else  if ( ptFE == ptWedge2 ) {
-        connectM.Resize(20);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[5];
-        connectM[7]= connect[5];
-        connectM[8]= connect[6];
-        connectM[9]= connect[7];
-        connectM[10]= connect[8];
-        connectM[11]= connect[2];
-        connectM[12]= connect[12];
-        connectM[13]= connect[13];
-        connectM[14]= connect[14];
-        connectM[15]= connect[14];
-        connectM[16]= connect[9];
-        connectM[17]= connect[10];
-        connectM[18]= connect[11];
-        connectM[19]= connect[5];
-      } else {
-        connectM = connect;
-      }
-    }
-    connectM.Push_back(ptEl->regionId+1);
-    GiD_WriteElementMat( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
-  }
-
- 
-  void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
-                                     UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd ) {
-    ENTER_FCN( "SimOutputRST::RegisterResult" );
-    
-    ResultInfo & actDof = *(sol->GetResultInfo());
-    LOG_DBG(simOutputRST) << "Registering output '" << actDof.resultName
-                          << "' with saveBegin " << saveBegin
-                          << ", saveInc " << saveInc 
-                          << ", saveEnd " << saveEnd;
-
-  }
-
-  void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "SimOutputRST::BeginStep" );
-
-    actStep_ = stepNum;
-    actStepVal_ = stepVal;
-    resultMap_.clear();
-  }
- 
-  void SimOutputRST::AddResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( " SimOutputRST::AddResult" );
-    ResultInfo & actDof = *(sol->GetResultInfo());
-
-    LOG_DBG(simOutputRST) << "Adding result '" 
-                          << actDof.resultName  << "'";
-      
-    resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
-  }
-  
-  void SimOutputRST::FinishStep( ) {
-    ENTER_FCN( "SimOutputRST::FinishStep" );
-
-    LOG_TRACE(simOutputRST) << "Starting to finish Step";
-    
-    std::string title;
-    
-    // iterate over all result types
-    ResultMapType::iterator it = resultMap_.begin();
-    for( ; it != resultMap_.end(); it++ ) {
-      
-      // get result info object and results for current result type
-      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
-      const StdVector<shared_ptr<BaseResult> > actResults =
-        it->second;
-
-      title = actInfo.resultName;
-      if( actInfo.unit.size() != 0 ) {
-        title += " (";
-        title += actInfo.unit;
-        title += ")";
-      }
-      ResultInfo::EntryType entryType =  actInfo.entryType;
-      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
-
-      // check if result is defined on nodes or elements
-      StdVector<std::string> & dofNames = actInfo.dofNames;  
-      if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::PFEM &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        Warning( "GiD can only write results on element and nodes",
-                 __FILE__, __LINE__ );
-        continue;
-      }
-
-      LOG_DBG(simOutputRST) << "Writing result '" << title << "'";
-      
-      if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
-        Vector<Double> gSol;
-        FillGlobalVec<Double>(gSol, actResults, entityType );
-        WriteNodeElemDataTrans( gSol, dofNames, title, entryType,
-                                entityType, actStepVal_ );        
-      } else {
-        Vector<Complex> gSol;
-        FillGlobalVec<Complex>(gSol, actResults, entityType );
-        WriteNodeElemDataHarm( gSol, dofNames, title, entryType, entityType,
-                               actStepVal_, actInfo.complexFormat );        
-      }
-      
-    }
-  }
-  
-
-  void SimOutputRST::Finalize() 
-  {
-    reswrend_();
-  }
-
-
-  void SimOutputRST::
-  WriteNodeElemDataTrans( const Vector<Double> & var, 
-                          const StdVector<std::string> & dofNames,
-                          const std::string& name, 
-                          ResultInfo::EntryType entryType,
-                          ResultInfo::EntityUnknownType entityType,
-                          Double time ) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataTrans" );
-    
-    // get number of entities
-    UInt numEnt = 0;
-    char * dummy;
-    GiD_ResultLocation loc;
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
-      loc = GiD_OnNodes;
-      numEnt = ptGrid_->GetNumNodes();
-      dummy = NULL;
-    } else {
-      loc = GiD_OnGaussPoints;
-      numEnt = ptGrid_->GetNumElems();
-      if ( dim_ == GiD_2D) {
-        dummy = "mid-2D"; 
-      } else {
-        dummy = "mid-3D";
-      }
-    }
-    
-    
-    UInt numDofs = dofNames.GetSize();
-    
-    // write Result header
-    if ( entryType == ResultInfo::SCALAR )  {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
-                             GiD_Scalar, loc, dummy );
-      GiD_ResultValues();
-      for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-        GiD_WriteScalar( iEnt, var[iEnt-1]); 
-      }
-    } else if( entryType == ResultInfo::VECTOR ) {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
-                             GiD_Vector, loc, dummy );
-      const char *names[3] = {"___", "__", "_"};
-      for( UInt i = 0; i < numDofs; i++ ) {
-        names[i] = dofNames[i].c_str();
-      }
-      GiD_ResultComponents( 3, names );
-      
-      // write results
-      GiD_ResultValues();
-      UInt offset = 0;
-      
-      for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-        offset = (iEnt-1) * numDofs;
-        
-        switch( numDofs ) {
-        case 1:
-          GiD_WriteVector( iEnt, var[offset], 0.0, 0.0);
-          break;
-        case 2:
-          GiD_WriteVector( iEnt, var[offset], var[offset+1], 0.0);
-          break;
-        case 3:
-          GiD_WriteVector( iEnt, var[offset], var[offset+1], var[offset+2] );
-          break;
-        default:
-          EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
-                     << numDofs << " components!");
-        }
-      }
-      
-  } else if( entryType == ResultInfo::TENSOR ) {
-    GiD_BeginResultHeader( name.c_str(), "transient", time,
-                           GiD_Matrix, loc, dummy );
-      const char *names[6] = {"______", "_____", "____", 
-                              "___", "__", "_" };
-      for( UInt i = 0; i < numDofs; i++ ) {
-        names[i] = dofNames[i].c_str();
-      }
-      GiD_ResultComponents( 6, names );
-      GiD_ResultValues();
-      
-      // write results
-      UInt offset = 0;
-#define LOOP(e1, e2, e3, e4, e5, e6 )                   \
-for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
-  offset = (iEnt-1) * numDofs;                          \
-  GiD_Write3DMatrix( iEnt, e1, e2, e3, e4 ,e5, e6 );    \
-}
-      if ( numDofs == 3 ) {
-        LOOP( var[offset], var[offset+1], var[offset+2], 
-              0.0, 0.0, 0.0 );
-      } else if( numDofs == 4 ) {
-        LOOP( var[offset], var[offset+1], var[offset+2], 
-              var[offset+3], 0.0, 0.0 );
-      } else if( numDofs == 5 ) {
-        LOOP( var[offset], var[offset+1], var[offset+2], 
-              var[offset+3], var[offset+4], 0.0 );
-      } else if( numDofs == 6 ) {
-        LOOP( var[offset], var[offset+1], var[offset+2], 
-              var[offset+3], var[offset+4],  var[offset+5] );
-      }
-#undef LOOP
-    }
-    
-    GiD_EndResult();
-  }     
-  
-  void SimOutputRST::
-  WriteNodeElemDataHarm( const Vector<Complex> & var, 
-                         const StdVector<std::string> & dofNames,
-                         const std::string name, 
-                         const ResultInfo::EntryType entryType,
-                         ResultInfo::EntityUnknownType entityType,
-                         const Double freq, 
-                         const ComplexFormat outputFormat ) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataHarm" );
-    
-   // get number of entities
-    UInt numEnt = 0;
-    char * dummy;
-    GiD_ResultLocation loc;
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
-      loc = GiD_OnNodes;
-      numEnt = ptGrid_->GetNumNodes();
-      dummy = NULL;
-    } else {
-      loc = GiD_OnGaussPoints;
-      numEnt = ptGrid_->GetNumElems();
-      if ( dim_ == GiD_2D) {
-        dummy = "mid-2D"; 
-      } else {
-        dummy = "mid-3D";
-      }
-    }
-    
-    // determine complete name of output quantities
-    std::string outName1, outName2;
-    if (outputFormat == REAL_IMAG) {
-      outName1 = name + "-real";
-      outName2 = name + "-imag";
-    } else {      
-      outName1 = name + "-amp";
-      outName2 = name + "-phase";
-    }
-    
-    UInt numDofs = dofNames.GetSize();
-    
-    // === Scalar entries ===
-    if ( entryType == ResultInfo::SCALAR ) {
-      
-      // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
-                             GiD_Scalar, loc, dummy );
-      GiD_ResultValues();
-      
-      if (outputFormat == REAL_IMAG) {
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          GiD_WriteScalar( iEnt, var[iEnt-1].real()); 
-        }
-      } else {
-        
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          GiD_WriteScalar( iEnt, std::abs(var[iEnt-1])); 
-        }
-      }
-      GiD_EndResult();
-
-      // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
-                             GiD_Scalar, loc, dummy );
-      GiD_ResultValues();
-      
-      if (outputFormat == REAL_IMAG) {
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          GiD_WriteScalar( iEnt, var[iEnt-1].imag()); 
-        }
-      } else {
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          if ( std::abs(var[iEnt-1].imag()) > 1e-16 ) {
-            GiD_WriteScalar( iEnt, CPhase( var[iEnt-1] ) );
-          } else {
-            GiD_WriteScalar( iEnt, 0.0); 
-          }
-        }
-      }
-      GiD_EndResult();
-      
-    } else if ( entryType == ResultInfo::VECTOR ) {
-      // === Vectorial entries ===
-      
-      // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
-                             GiD_Vector, loc, dummy );
-      const char *names[] = {"___", "__", "_"};
-      for( UInt i = 0; i < numDofs; i++ ) {
-        names[i] = dofNames[i].c_str();
-      }
-      GiD_ResultComponents( 3, names );
-      GiD_ResultValues();
-      
-      UInt offset = 0;
-      if (outputFormat == REAL_IMAG) {
-        
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          offset = (iEnt-1) * numDofs;
-          switch( numDofs ) {
-          case 1:
-            GiD_WriteVector( iEnt, var[offset].real(), 
-                             0.0, 0.0);
-            break;
-          case 2:
-            GiD_WriteVector( iEnt, var[offset].real(), 
-                             var[offset+1].real(), 0.0);
-            break;
-          case 3:
-            GiD_WriteVector( iEnt, var[offset].real(), 
-                             var[offset+1].real(), 
-                             var[offset+2].real() );
-            break;
-          default:
-            EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
-                       << numDofs << " components!");
-          }
-        }
-        GiD_EndResult(); 
-        
-      } else {
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          offset = (iEnt-1) * numDofs;
-          switch( numDofs ) {
-          case 1:
-            GiD_WriteVector( iEnt, 
-                             std::abs(var[offset]), 
-                             0.0, 0.0 );
-            break;
-          case 2:
-            GiD_WriteVector( iEnt, 
-                             std::abs(var[offset]), 
-                             std::abs(var[offset+1]), 
-                             0.0 );
-            break;
-          case 3:
-            GiD_WriteVector( iEnt, std::abs(var[offset]),
-                             std::abs(var[offset+1]), 
-                             std::abs(var[offset+2]) );
-            break;
-          default:
-            EXCEPTION( "GiD can only write vectors with 3 entries. Your result has "
-                       << numDofs << " components!");
-
-          }
-        }
-        GiD_EndResult(); 
-      }
-      
-      // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
-                             GiD_Vector, loc, dummy );
-      GiD_ResultComponents( 3, names );
-      GiD_ResultValues();
-      
-      offset = 0;
-      if (outputFormat == REAL_IMAG) {
-        
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, var[offset].imag(), 
-                             var[offset+1].imag(), 
-                             var[offset+2].imag() );
-          } else { 
-            GiD_WriteVector( iEnt, var[offset].imag(), 
-                             var[offset+1].imag(), 
-                             0.0 );
-          }
-        }
-        GiD_EndResult(); 
-      } else {
-        for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
-          offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, CPhase( var[offset] ), 
-                             CPhase( var[offset+1] ), 
-                             CPhase( var[offset+2] ) );
-            
-          } else { 
-            GiD_WriteVector( iEnt, CPhase( var[offset] ),
-                             CPhase( var[offset+1]),
-                             0.0 );
-          }
-        }
-        GiD_EndResult(); 
-      }
-    } else if ( entryType == ResultInfo::TENSOR ) {
-      // === Vectorial entries ===
-      
-      // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
-                             GiD_Matrix, loc, dummy );
-      const char *names[6] = {"______", "_____", "____", 
-                              "___", "__", "_" };
-      for( UInt i = 0; i < numDofs; i++ ) {
-        names[i] = dofNames[i].c_str();
-      }
-      GiD_ResultComponents( 6, names );
-      GiD_ResultValues();
-      
-     
-#define LOOP(e1, e2, e3, e4, e5, e6 )                   \
-for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
-  offset = (iEnt-1) * numDofs;                          \
-  GiD_Write3DMatrix( iEnt, e1, e2, e3, e4 ,e5, e6 );    \
- }
-      
-      UInt offset = 0;
-      if (outputFormat == REAL_IMAG) {
-        if( numDofs == 3 ) {
-          LOOP( var[offset].real(), var[offset+1].real(), 
-                var[offset+2].real(), 0.0 , 0.0, 0.0 );
-        } else if( numDofs == 4 ) {
-          LOOP( var[offset].real(), var[offset+1].real(), 
-                var[offset+2].real(), var[offset+3].real(),
-                0.0 , 0.0 );
-        } else if( numDofs == 5 ) {
-          LOOP( var[offset].real(), var[offset+1].real(), 
-                var[offset+2].real(), var[offset+3].real(),
-                var[offset+4].real(), 0.0 );
-        } else if( numDofs == 6 ) {
-          LOOP( var[offset].real(), var[offset+1].real(), 
-                var[offset+2].real(), var[offset+3].real(),
-                var[offset+4].real(), var[offset+5].real() );
-        }
-        GiD_EndResult(); 
-        
-      } else {
-        if( numDofs == 3 ) {
-          LOOP( std::abs(var[offset]), std::abs(var[offset+1]),
-                std::abs(var[offset+2]), 0.0, 0.0, 0.0 );
-        } else if( numDofs == 4 ) {
-          LOOP( std::abs(var[offset]), std::abs(var[offset+1]),
-                std::abs(var[offset+2]), std::abs(var[offset+3]),
-                0.0, 0.0 );
-        } else if( numDofs == 5 ) {
-          LOOP( std::abs(var[offset]), std::abs(var[offset+1]),
-                std::abs(var[offset+2]), std::abs(var[offset+3]),
-                std::abs(var[offset+4]), 0.0);
-        } else if( numDofs == 6 ) {
-          LOOP( std::abs(var[offset]), std::abs(var[offset+1]),
-                std::abs(var[offset+2]), std::abs(var[offset+3]),
-                std::abs(var[offset+4]), std::abs(var[offset+5]) );
-        }
-        GiD_EndResult(); 
-        
-      }
-      
-      // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
-                             GiD_Vector, loc, dummy );
-      GiD_ResultComponents( 6, names );
-      GiD_ResultValues();
-      
-      offset = 0;
-      if (outputFormat == REAL_IMAG) {
-        if( numDofs == 3 ) {
-          LOOP( var[offset].imag(), var[offset+1].imag(), 
-                var[offset+2].imag(), 0.0 , 0.0, 0.0 );
-        } else if( numDofs == 4 ) {
-          LOOP( var[offset].imag(), var[offset+1].imag(), 
-                var[offset+2].imag(), var[offset+3].imag(),
-                0.0 , 0.0 );
-        } else if( numDofs == 5 ) {
-          LOOP( var[offset].imag(), var[offset+1].imag(), 
-                var[offset+2].imag(), var[offset+3].imag(),
-                var[offset+4].imag(), 0.0 );
-        } else if( numDofs == 6 ) {
-          LOOP( var[offset].imag(), var[offset+1].imag(), 
-                var[offset+2].imag(), var[offset+3].imag(),
-                var[offset+4].imag(), var[offset+5].imag() );
-        }
-      } else {
-        if( numDofs == 3 ) {
-          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
-                CPhase(var[offset+2]), 0.0, 0.0, 0.0 );
-        } else if( numDofs == 4 ) {
-          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
-                CPhase(var[offset+2]), CPhase(var[offset+3]),
-                0.0, 0.0 );
-        } else if( numDofs == 5 ) {
-          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
-                CPhase(var[offset+2]), CPhase(var[offset+3]),
-                CPhase(var[offset+4]), 0.0);
-        } else if( numDofs == 6 ) {
-          LOOP( CPhase(var[offset]), CPhase(var[offset+1]),
-                CPhase(var[offset+2]), CPhase(var[offset+3]),
-                CPhase(var[offset+4]), CPhase(var[offset+5]) );
-        }
-      }
-      GiD_EndResult(); 
-    }
-    
-  }
-  
   // ********
   //   Init
   // ********
@@ -922,20 +87,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     ENTER_FCN( "SimOutputRST::OpenFile" );
 
     ptGrid_ = ptGrid;
-    // initialize history files
-    //InitHistoryFiles();
-
-    // determine dimension of grid
-    UInt dim = ptGrid_->GetDim();
-    if ( dim == 2 ) {
-      dim_ = GiD_2D;
-    } else if ( dim == 3 ) {
-      dim_ = GiD_3D;
-    } else {
-      EXCEPTION( "SimOutputRST: Grid dimension " << dim
-               << " is not supported by GiD mesh format." );
-    }
-
 
     std::string filename;
     std::ostringstream strBuffer;
@@ -960,7 +111,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       EXCEPTION(ex.what());
     }
 
-
     Integer ret;
     Integer Nunit = 12;
     Integer Lunit = 6;
@@ -968,27 +118,28 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     Integer ncFname;
     char Title[80*2];
     char JobName[8];
-    Integer Units = 4;
+    Integer Units = 1; // use SI units
     Integer NumDOF = 2;
     Integer DOF[] = {1, 2};
     Integer UserCode = 10;
-    Integer MaxNode = 13;
-    Integer NumNode = 6;
-    Integer MaxElem = 3;
-    Integer NumElem = 2;
-    Integer MaxResultSet = 10;
+    Integer MaxNode = ptGrid_->GetNumNodes();
+    Integer NumNode = ptGrid_->GetNumNodes();
+    Integer MaxElem = ptGrid_->GetNumElems();
+    Integer NumElem = ptGrid_->GetNumElems();
+    Integer MaxResultSet = 1;
     Integer lenTitle;
     Integer lenJobName;
+    std::string tit = "Ein prima Testbeispiel!";
 
     std::fill(Fname, Fname+sizeof(Fname), 0);
     sprintf(Fname, "%s", filename.c_str());
     ncFname = filename.length();
-    std::fill(Title, Title+sizeof(Title), 0);
-    sprintf(Title, "Ein prima Testbeispiel!");
-    lenTitle = strlen(Title);
-    std::fill(JobName, JobName+sizeof(JobName), 0);
-    sprintf(JobName, "mytest");
-    lenJobName = strlen(JobName);
+    std::fill(Title, Title+sizeof(Title), ' ');
+    std::copy(tit.begin(), tit.end(), Title);
+    lenTitle = sizeof(Title);
+    std::fill(JobName, JobName+sizeof(JobName), ' ');
+    std::copy(filename.begin(), filename.begin()+sizeof(JobName), JobName);
+    lenJobName = sizeof(JobName);
     
     ret = reswrbegin_(&Nunit,
                       &Lunit,
@@ -1014,19 +165,613 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       EXCEPTION("Could not open ANSYS RST file.");
     }
 
-
-    // check, if only tetrahedra are present
-    // -> only in this case we can treat tetrahedras as elements with 4 nodes.
-    // In all other cases (hexa and tets mixed) tetrahedras are treated as
-    // degenerated hexahedras.
-    if ( dim_ == GiD_3D ) {
-      if ( ptGrid_->GetNumElemOfType( ET_TET4 ) > 0  &&
-           ptGrid_->GetNumElemOfType( ET_HEXA8 ) ==  0  &&
-           ptGrid_->GetNumElemOfType( ET_PYRA5 ) ==  0  &&
-           ptGrid_->GetNumElemOfType( ET_WEDGE6 ) ==  0  ) {
-        degen3DElems_ = false;
-      }
-    }
-    
   }
+
+  void SimOutputRST::WriteGrid() {
+    ENTER_FCN( "SimOutputRST::WriteGrid" );
+    
+    LOG_TRACE(simOutputRST) << "Writing mesh";
+
+    AnsysElementType ansysElementType[2];
+    Integer num = 1;
+    Integer MAXTYPE = 2;
+    Integer NumType = 2;
+    Integer MAXREAL = 0;
+    Integer NumReal = 0;
+    Integer MAXCSYS = 0;
+    Integer NumCsys = 0;
+    Double cSys[24];
+    Double rCon;
+    
+
+    if(!ptGrid_->IsQuadratic())
+    {
+      //      ansysElementType[0] = 153; // SURF153
+      SetElementType42(ansysElementType[0], 1); // PLANE42
+      SetElementType45(ansysElementType[1], 2); // PLANE45
+    }
+    else
+    {
+      //      ansysElementType[0] = 153; // SURF153
+      SetElementType82(ansysElementType[1], 1); // SOLID82
+      SetElementType95(ansysElementType[1], 2); // SOLID95
+    }
+
+    reswrgeombegin_(&MAXTYPE, &NumType,
+                    &MAXREAL, &NumReal,
+                    &MAXCSYS, &NumCsys);
+
+    // *****  element types  *****
+    reswrtypebegin_();
+    for(UInt i=0; i<NumType; i++)
+    {
+      reswrtype_(&ansysElementType[i].elementtypid,
+                 ansysElementType[i].ielc);
+    }
+    reswrtypeend_();
+
+    // *****  real constants  *****
+    //    reswrrealbegin_();
+    //    num = 1; reswrreal_(&num, &num, &rCon);
+    //    reswrrealend_();
+
+    // *****  Coordinate systems  *****
+    //    reswrcsysbegin_();
+    //    num = 1; reswrcsys_(&num, cSys);
+    //    reswrcsysend_();
+
+    // write nodes
+    WriteNodes();
+    
+    // write elements
+    WriteElements();
+
+    reswrgeomend_();
+
+    if ( commandLine->GetPrintGrid() == true ) {
+      // Close result file
+      reswrend_();
+    }
+  }
+
+  void SimOutputRST::WriteNodes() {
+    ENTER_FCN( "SimOutputRST::WriteNodes" );
+
+    LOG_TRACE(simOutputRST) << "Writing nodes";
+    
+    // get number of nodes
+    UInt numNodes = ptGrid_->GetNumNodes();
+    Integer i;
+    
+    reswrnodebegin_();
+
+    ansysNode_[3] = 0;
+    ansysNode_[4] = 0;
+    ansysNode_[5] = 0;
+
+    Point point;
+    for ( i = 1; i <= numNodes; i++ ) {
+      ptGrid_->GetNodeCoordinate(point,i);
+      ansysNode_[0] = point[0];
+      ansysNode_[1] = point[1];
+      ansysNode_[2] = point[2];
+
+      reswrnode_(&i, ansysNode_);
+    } 
+    
+    reswrnodeend_();
+
+    LOG_TRACE(simOutputRST) << "Finished writing nodes" << std::endl;
+  }
+
+  void SimOutputRST::WriteElements() {
+    ENTER_FCN( "SimOutputRST::WriteElements" );
+   
+    LOG_TRACE(simOutputRST) << "Writing elements";
+    
+    // iterate over all regions
+    StdVector<RegionIdType> regionIds;
+    StdVector<Elem*> elemVec;
+    Elem * ptEl;
+    Integer ansysElemMaterial;
+    Integer ansysElemType;
+    Integer elemNum;
+    Integer numElemNodes;
+    UInt iElem;
+    FEType eType;
+
+    ptGrid_->GetRegionIds( regionIds );
+    
+    reswrelembegin_();
+    elemNum = 1;
+    
+    for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
+
+      // get region id which serves as ANSYS element material
+      ansysElemMaterial = regionIds[iReg]+1;
+
+      ptGrid_->GetElems(elemVec,regionIds[iReg]);
+
+      // write all element declarations
+      for ( iElem = 0; iElem < elemVec.GetSize(); iElem++) {
+
+        ptEl = elemVec[iElem];
+        eType = ptEl->ptElem->feType();
+
+
+        ansysElemType = ReorderConnect4Ansys(eType,
+                                             ptEl->connect,
+                                             connectANSYS_);
+        numElemNodes = ansysType2NumNodes_[ansysElemType];
+
+        elemData_[0] = ansysElemMaterial;
+        elemData_[1] = ansysType2TypeId_[ansysElemType];
+        
+        reswrelem_(&elemNum, &numElemNodes,
+                   connectANSYS_,
+                   elemData_);
+
+        elemNum++;
+      }
+
+    }
+
+    reswrelemend_();
+  }
+
+
+  void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
+                                     UInt saveBegin, UInt saveInc,
+                                     UInt saveEnd ) {
+    ENTER_FCN( "SimOutputRST::RegisterResult" );
+  }
+
+  void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
+    ENTER_FCN( "SimOutputRST::BeginStep" );
+  }
+ 
+  void SimOutputRST::AddResult( shared_ptr<BaseResult> sol ) {
+    ENTER_FCN( " SimOutputRST::AddResult" );
+  }
+  
+  void SimOutputRST::FinishStep( ) {
+    ENTER_FCN( "SimOutputRST::FinishStep" );
+  }
+  
+
+  void SimOutputRST::Finalize() 
+  {
+    // Close result file
+    reswrend_();
+  }
+
+
+  void SimOutputRST::
+  WriteNodeElemDataTrans( const Vector<Double> & var, 
+                          const StdVector<std::string> & dofNames,
+                          const std::string& name, 
+                          ResultInfo::EntryType entryType,
+                          ResultInfo::EntityUnknownType entityType,
+                          Double time ) {
+    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataTrans" );
+  }     
+  
+  void SimOutputRST::
+  WriteNodeElemDataHarm( const Vector<Complex> & var, 
+                         const StdVector<std::string> & dofNames,
+                         const std::string name, 
+                         const ResultInfo::EntryType entryType,
+                         ResultInfo::EntityUnknownType entityType,
+                         const Double freq, 
+                         const ComplexFormat outputFormat ) {
+    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataHarm" );
+  }
+  
+
+  // change node order for right access in ANSYS
+  Integer SimOutputRST::ReorderConnect4Ansys(FEType eType,
+                                             StdVector<UInt>& connect,
+                                             Integer* connectANSYS)
+  {
+    UInt numElemNodes = NUM_ELEM_NODES[eType];
+    Integer ansysElemType;
+    const Integer PLANE42 = 42; // linear quad
+    const Integer PLANE82 = 82; // quadratic quad
+    const Integer SOLID45 = 45; // linear hexa
+    const Integer SOLID95 = 95; // quadratic hexa
+   
+    switch(eType)
+    {
+    case ET_TRIA3:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      connectANSYS[3] = connect[2];
+      ansysElemType = PLANE42;
+      break;
+
+    case ET_TRIA6:
+      connectANSYS[0] = connect[0];
+      connectANSYS[1] = connect[1];
+      connectANSYS[2] = connect[2];
+      connectANSYS[3] = connect[2];
+      connectANSYS[4] = connect[3];
+      connectANSYS[5] = connect[4];
+      connectANSYS[6] = connect[2];
+      connectANSYS[7] = connect[5];
+      ansysElemType = PLANE82;
+      break;
+
+    case ET_QUAD4:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = PLANE42;
+      break;
+
+    case ET_QUAD8:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = PLANE82;
+      break;
+
+    case ET_QUAD9:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = PLANE82;
+      break;
+
+    case ET_TET4:
+      connectANSYS[0] = connect[0]; // I
+      connectANSYS[1] = connect[1]; // J
+      connectANSYS[2] = connect[2]; // K
+      connectANSYS[3] = connect[2]; // L
+      connectANSYS[4] = connect[3]; // M
+      connectANSYS[5] = connect[3]; // N
+      connectANSYS[6] = connect[3]; // O
+      connectANSYS[7] = connect[3]; // P
+      ansysElemType = SOLID45;      
+      break;                        
+                                    
+    case ET_TET10:                  
+      connectANSYS[0] = connect[0];  // I
+      connectANSYS[1] = connect[1];  // J
+      connectANSYS[2] = connect[2];  // K
+      connectANSYS[3] = connect[2];  // L
+      connectANSYS[4] = connect[3];  // M
+      connectANSYS[5] = connect[3];  // N
+      connectANSYS[6] = connect[3];  // O
+      connectANSYS[7] = connect[3];  // P
+      connectANSYS[8] = connect[4];  // Q
+      connectANSYS[9] = connect[5];  // R
+      connectANSYS[10] = connect[2]; // S
+      connectANSYS[11] = connect[6]; // T
+      connectANSYS[12] = connect[3]; // U
+      connectANSYS[13] = connect[3]; // V
+      connectANSYS[14] = connect[3]; // W
+      connectANSYS[15] = connect[3]; // X
+      connectANSYS[16] = connect[7]; // Y
+      connectANSYS[17] = connect[8]; // Z
+      connectANSYS[18] = connect[9]; // A
+      connectANSYS[19] = connect[9]; // B
+      ansysElemType = SOLID95;
+      break;
+
+    case ET_WEDGE6:
+      connectANSYS[0] = connect[0];  // I
+      connectANSYS[1] = connect[1];  // J
+      connectANSYS[2] = connect[2];  // K
+      connectANSYS[3] = connect[2];  // L
+      connectANSYS[4] = connect[3];  // M
+      connectANSYS[5] = connect[4];  // N
+      connectANSYS[6] = connect[5];  // O
+      connectANSYS[7] = connect[5];  // P
+      ansysElemType = SOLID45;
+      break;
+
+    case ET_WEDGE15:
+      connectANSYS[0] = connect[0];    // I
+      connectANSYS[1] = connect[1];    // J
+      connectANSYS[2] = connect[2];    // K
+      connectANSYS[3] = connect[2];    // L
+      connectANSYS[4] = connect[3];    // M
+      connectANSYS[5] = connect[4];    // N
+      connectANSYS[6] = connect[5];    // O
+      connectANSYS[7] = connect[5];    // P
+      connectANSYS[8] = connect[6];    // Q
+      connectANSYS[9] = connect[7];    // R
+      connectANSYS[10] = connect[2];   // S
+      connectANSYS[11] = connect[8];   // T
+      connectANSYS[12] = connect[9];   // U
+      connectANSYS[13] = connect[10];  // V
+      connectANSYS[14] = connect[5];   // W
+      connectANSYS[15] = connect[11];  // X
+      connectANSYS[16] = connect[12];  // Y
+      connectANSYS[17] = connect[13];  // Z
+      connectANSYS[18] = connect[14];  // A
+      connectANSYS[19] = connect[14];  // B
+      ansysElemType = SOLID95;
+      break;
+
+    case ET_PYRA5:
+      connectANSYS[0] = connect[0];  // I
+      connectANSYS[1] = connect[1];  // J
+      connectANSYS[2] = connect[2];  // K
+      connectANSYS[3] = connect[3];  // L
+      connectANSYS[4] = connect[4];  // M
+      connectANSYS[5] = connect[4];  // N
+      connectANSYS[6] = connect[4];  // O
+      connectANSYS[7] = connect[4];  // P
+      ansysElemType = SOLID45;           
+      break;
+
+    case ET_PYRA13:
+      connectANSYS[0] = connect[0];    // I 
+      connectANSYS[1] = connect[1];    // J 
+      connectANSYS[2] = connect[2];    // K 
+      connectANSYS[3] = connect[3];    // L 
+      connectANSYS[4] = connect[4];    // M 
+      connectANSYS[5] = connect[4];    // N 
+      connectANSYS[6] = connect[4];    // O 
+      connectANSYS[7] = connect[4];    // P 
+      connectANSYS[8] = connect[5];    // Q 
+      connectANSYS[9] = connect[6];    // R 
+      connectANSYS[10] = connect[7];   // S 
+      connectANSYS[11] = connect[8];   // T 
+      connectANSYS[12] = connect[4];   // U 
+      connectANSYS[13] = connect[4];   // V 
+      connectANSYS[14] = connect[4];   // W 
+      connectANSYS[15] = connect[4];   // X 
+      connectANSYS[16] = connect[9];   // Y 
+      connectANSYS[17] = connect[10];  // Z 
+      connectANSYS[18] = connect[11];  // A 
+      connectANSYS[19] = connect[12];  // B 
+      ansysElemType = SOLID95;
+      break;
+
+    case ET_HEXA8:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = SOLID45;
+      break;
+
+    case ET_HEXA20:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = SOLID95;
+      break;
+
+    case ET_HEXA27:
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      ansysElemType = SOLID95;
+      break;
+
+    default:
+      ansysElemType = -1;
+      break;
+    }
+
+    return ansysElemType;
+  }
+
+
+  void SimOutputRST::SetElementType42(AnsysElementType& eltype,
+                                      Integer TypeNumber)
+  {
+    int i;
+
+    eltype.elementtypid = TypeNumber;
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = 42;
+    eltype.ielc[21] = 4;
+    eltype.ielc[25] = 1;
+    eltype.ielc[27] = 1;
+    eltype.ielc[33] = 3;
+    eltype.ielc[34] = 1;
+    eltype.ielc[46] = 1;
+    eltype.ielc[49] = 1;
+    eltype.ielc[51] = 4;
+    eltype.ielc[55] = 2 ;
+    eltype.ielc[60] = 4;
+    eltype.ielc[61] = 4;
+    eltype.ielc[60] = 	4;
+    eltype.ielc[61] = 	4;
+    eltype.ielc[62] = 	4;
+    eltype.ielc[63] = 	2;
+    eltype.ielc[64] = 	4;
+    eltype.ielc[65] = 	22;
+    eltype.ielc[66] = 	4;
+    eltype.ielc[73] = 	2;
+    eltype.ielc[74] = 	4;
+    eltype.ielc[82] = 	4;
+    eltype.ielc[83] = 	4;
+    eltype.ielc[93] = 	4;
+    eltype.ielc[94] = 	1;
+    eltype.ielc[105] = 	1;
+    eltype.ielc[108] = 	8;
+    eltype.ielc[109] = 	25;
+    eltype.ielc[110] = 	12;
+    eltype.ielc[111] = 	139;
+    eltype.ielc[112] = 	147;
+    eltype.ielc[116] = 	1;
+    eltype.ielc[121] = 	122;
+    eltype.ielc[125] = 	152;
+    eltype.ielc[126] = 	24;
+    eltype.ielc[127] = 	108;
+    eltype.ielc[133] = 	1347174734;
+    eltype.ielc[134] = 	1161048608;
+    eltype.ielc[136] = 	1;
+    eltype.ielc[138] = 	1;
+    eltype.ielc[140] = 	55;
+    eltype.ielc[144] = 	1;
+
+
+  }
+
+  void SimOutputRST::SetElementType45(AnsysElementType& eltype,
+                                      Integer TypeNumber)
+  {
+    int i;
+    eltype.elementtypid = TypeNumber;
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = 45;
+    eltype.ielc[20] = 3;
+    eltype.ielc[21] = 6;
+    eltype.ielc[22] = 3;
+    eltype.ielc[25] = 1;
+    eltype.ielc[27] = 1;
+    eltype.ielc[33] = 7;
+    eltype.ielc[34] = 1;
+    eltype.ielc[40] = 1;
+    eltype.ielc[46] = 1;
+    eltype.ielc[51] = 6;
+    eltype.ielc[55] = 2 ;
+    eltype.ielc[60] = 8;
+    eltype.ielc[61] = 8;
+    eltype.ielc[62] = 8;
+    eltype.ielc[63] = 3;
+    eltype.ielc[64] = 8;
+
+	
+    eltype.ielc[65] = 	22;
+    eltype.ielc[66] = 	8;
+    eltype.ielc[73] = 	4;
+    eltype.ielc[74] = 	6;
+    eltype.ielc[82] = 	8;
+    eltype.ielc[83] = 	8;
+    eltype.ielc[93] = 	8;
+    eltype.ielc[94] = 	1;
+
+    eltype.ielc[105] = 1;
+    eltype.ielc[108] = 24;
+    eltype.ielc[109] = 48;
+    eltype.ielc[110] = 24;
+    eltype.ielc[111] = 600;
+    eltype.ielc[112] = 356;
+    eltype.ielc[116] = 1;
+    eltype.ielc[121] = 415;
+
+    eltype.ielc[125] = 234;
+    eltype.ielc[126] = 64;
+    eltype.ielc[127] = 312;
+    eltype.ielc[131] = 1;
+    eltype.ielc[133] = 1397705801;
+    eltype.ielc[134] = 1144272160;
+    eltype.ielc[136] = 1;
+    eltype.ielc[139] = 1;
+    eltype.ielc[140] = 70;
+    eltype.ielc[144] = 1;
+
+
+  }
+
+  void SimOutputRST::SetElementType82(AnsysElementType& eltype,
+                                      Integer TypeNumber)
+  {
+    eltype.elementtypid = TypeNumber;
+
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = 82;
+    eltype.ielc[ISHAP -1] = 4;
+    eltype.ielc[MNODE -1] = 2;
+    eltype.ielc[KELSTO-1] = 1;
+    eltype.ielc[KDOFS -1] = 3;
+    eltype.ielc[NMVCTF-1]= 1;
+    eltype.ielc[MATRQD-1] = 1;
+    eltype.ielc[NCOMPN-1] = 4;
+    eltype.ielc[MTSYM -1] = 2;
+    eltype.ielc[NMNDMX-1] = 8;
+    eltype.ielc[NMNDMN-1] = 4;
+    eltype.ielc[NMNDST-1] = 8;
+    eltype.ielc[NMDFPN-1]=2;
+    eltype.ielc[NMNDAC-1]=8;
+    eltype.ielc[MATRXS-1] = 22;
+    eltype.ielc[NMNDNE-1] = 8;
+    eltype.ielc[NMPTSF-1] = 2;
+    eltype.ielc[NMPRES-1] = 4;
+    eltype.ielc[NMTEMP-1] = 8;
+    eltype.ielc[NMFLNC-1] = 8;
+    eltype.ielc[NMNDNO-1] = 4;
+    eltype.ielc[KCONIT-1] = 1;
+    eltype.ielc[KNORM -1] = 1;
+    eltype.ielc[NMSMIS-1] = 8;
+    eltype.ielc[NMNMIS-1] = 29;
+    eltype.ielc[NMNMUP-1] = 24;
+    eltype.ielc[NCPTM1-1] = 156;
+    eltype.ielc[NCPTM2-1] = 173;
+    eltype.ielc[JSTPR -1] = 1;
+    eltype.ielc[NMSSVR-1] =  54;
+    eltype.ielc[NMNSVR-1] = 136;
+    eltype.ielc[NMPSVR-1] = 24;
+    eltype.ielc[NMCSVR-1] = 164;
+    eltype.ielc[NAMRF1-1] = 1347174734;
+    eltype.ielc[NAMRF2-1] = 1161310752;
+    eltype.ielc[ADADES-1] = 1;
+    eltype.ielc[NLSSAD-1] = 1;
+    eltype.ielc[KSWTTS-1] = 77;
+
+  }
+
+  void SimOutputRST::SetElementType95(AnsysElementType& eltype,
+                                      Integer TypeNumber)
+  {
+    eltype.elementtypid = TypeNumber;
+
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = 95;
+
+    eltype.ielc[20] = 3;
+    eltype.ielc[21] = 6;
+    eltype.ielc[22] = 3;
+    eltype.ielc[24] = 2;
+    eltype.ielc[27] = 1;
+    eltype.ielc[33] = 7;
+    eltype.ielc[34] = 1;
+    eltype.ielc[40] = 0;
+    eltype.ielc[46] = 1;
+    eltype.ielc[51] = 6;
+    eltype.ielc[55] = 2 ;
+    eltype.ielc[60] = 20;
+    eltype.ielc[61] = 8;
+    eltype.ielc[62] = 20;
+    eltype.ielc[63] = 3;
+    eltype.ielc[64] = 20;
+
+	
+    eltype.ielc[65] = 	22;
+    eltype.ielc[66] = 	20;
+    eltype.ielc[73] = 	4;
+    eltype.ielc[74] = 	6;
+    eltype.ielc[82] = 	20;
+    eltype.ielc[83] = 	20;
+    eltype.ielc[93] = 	8;
+    eltype.ielc[94] = 	1;
+
+    eltype.ielc[105] = 1;
+    eltype.ielc[108] = 24;
+    eltype.ielc[109] = 60;
+    eltype.ielc[110] = 60;
+    eltype.ielc[111] = 2364;
+    eltype.ielc[112] = 972;
+    eltype.ielc[116] = 1;
+    eltype.ielc[121] = 0;
+
+    eltype.ielc[125] = 402;
+    eltype.ielc[126] = 112;
+    eltype.ielc[127] = 602;
+    eltype.ielc[131] = 1;
+    eltype.ielc[133] = 1397705801;
+    eltype.ielc[134] = 1144599840;
+    eltype.ielc[136] = 1;
+    eltype.ielc[138] = 1;
+    eltype.ielc[140] = 90;
+    eltype.ielc[144] = 1;
+
+
+  }
+
 } // end of namespace
