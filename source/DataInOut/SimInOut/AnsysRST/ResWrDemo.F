@@ -152,7 +152,7 @@ c      This was optained with an /aux02 file dump of the test input data
      x            55,0,0,0,1, 0,0,0,0,0/
 
       data  DOF    / 1, 2 /
-      data  DofLab / 'UX  ', 'UY  ' /
+      data  DofLab / 'UX  ', 'SP01' /
   
       data  Rcon   / 1.0d0 /
 
@@ -275,10 +275,12 @@ c======================== End Example Data =====================================
  3005 format (' MaxNode=',i6,'  NumNode=',i6,'  MaxElem=',i6,
      x        '  NumElem=',i6)
 
+
       kerr = ResWrBegin (Nunit,Lunit,Fname,ncFname,Title(1),JobName,
      x                   Units,NUMDOF,DOF(1),UserCode,
      x                   MAXNODE,NUMNODE,MAXELEM,NUMELEM,
      x                   MaxResultSet)
+
       if (kerr .ne. 0) go to 999
 
 
@@ -289,6 +291,9 @@ c          **********  Geometry  **********
      x        ' MaxType=',i4,'  MaxReal=',i4,'  MaxCsys=',i4)
       write (*,3012) NumType,NumReal,NumCsys
  3012 format (' NumType=',i4,'  NumReal=',i4,'  NumCsys=',i4/)
+
+      NumReal = 0
+      NumCsys = 0
 
       call ResWrGeomBegin (MAXTYPE,NumType,MAXREAL,NumReal,
      x                     MAXCSYS,NumCsys)
@@ -307,27 +312,27 @@ c          *****  element types  *****
 
 
 c          *****  real constants  *****
-      call ResWrRealBegin
+c      call ResWrRealBegin
 
-      do  i = 1,NumReal
-         write (*,3023) i,NRCON,(Rcon(j),j=1,NRCON)
- 3023    format (' iReal=',i4,'  n=',i4/' Rcon=',6g12.5)
-         call ResWrReal (i,NRCON,Rcon(1))
-      enddo
+c      do  i = 1,NumReal
+c         write (*,3023) i,NRCON,(Rcon(j),j=1,NRCON)
+c 3023    format (' iReal=',i4,'  n=',i4/' Rcon=',6g12.5)
+c         call ResWrReal (i,NRCON,Rcon(1))
+c      enddo
 
-      call ResWrRealEnd
+c      call ResWrRealEnd
 
 
 c          *****  Coordinate systems  *****
-      call ResWrCsysBegin
-
-      do  i = 1,NumCsys
-         write (*,3033) i,(Csys(j),j=1,24)
- 3033    format (' iCsys=',i4/(' Data=',6g12.5))
-         call ResWrCsys (i,Csys)
-      enddo
-
-      call ResWrCsysEnd
+c      call ResWrCsysBegin
+c
+c      do  i = 1,NumCsys
+c         write (*,3033) i,(Csys(j),j=1,24)
+c 3033    format (' iCsys=',i4/(' Data=',6g12.5))
+c         call ResWrCsys (i,Csys)
+c      enddo
+c
+c      call ResWrCsysEnd
 
 
 c          *****  nodal coordinates  *****
@@ -365,111 +370,6 @@ c          **********  Elements  **********
       call ResWrGeomEnd
 
 
-c          **********  Load Sets  **********
-      do  iSet = 1,NumResultSet
-
-         kcmplx = 0
-         write (*,3061) iSet,LSET(iSet),SUBST(iSet),NCUM(iSet),
-     x    kcmplx,Time(iSet)
- 3061    format (/'  **********  Load Set =',i3,'  **********'/
-     x            ' lstep=',i3,'  substep=',i3,'  ncumit=',i3,
-     x            '  kcmplx=',i2,'  time=',g12.5)
-         write (*,3062) Title(1),Title(2)
- 3062    format (' Title=',a/' Stitle1=',a)
-         write (*,3063) (DofLab(i),i=1,NUMDOF)
- 3063    format (' DofLab=',6a6)
-
-         call ResWrSolBegin (LSET(iSet),SUBST(iSet),NCUM(iSet),
-     x     Time(iSet),Title(1),DofLab(1))
-
-c          *****  displacements  *****
-         call ResWrDispBegin
-         write (*,3071)
- 3071    format (/'  *****  Displacements  *****')
-
-         do  i = 1,NUMNODE
-            iNode = Norder(i)
-            write (*,3072) iNode,(Disp(j,i),j=1,NUMDOF)
- 3072       format (' Node=',i4,'  Disp=',6g12.5)
-            call ResWrDisp(iNode,Disp(1,i))
-         enddo
-         Call ResWrDispEnd
-
-c          *****  Reactions  *****
-         call ResWrRforBegin(NFIXED)
-         write (*,3073)
- 3073    format (/'  *****  Reactions  *****')
-
-         do  i = 1,NFIXED
-            write (*,3074) nodeRF(i),dofRF(i),Rforce(i)
- 3074       format (' Node=',i4,'  DOF=',i2,'  Value=',f10.6)
-            call ResWrRfor(nodeRF(i),dofRF(i),Rforce(i))
-         enddo
-         call ResWrRforEnd
-
-c          *****  Boundary Conditions  *****
-         call ResWrBCBegin (NFIXED,NFORCE)
-
-         write (*,3075)
- 3075    format (/'  *****  Constraints  *****')
-         call ResWrFixBegin (NFIXED)
-         value(2) = 0
-         value(3) = 0
-         value(4) = 0
-         do  i = 1,NFIXED
-            write (*,3076) nodeRF(i),dofRF(i),Dvalue(i)
- 3076       format (' Node=',i4,'  DOF=',i2,'  Value=',f10.6)
-            value(1) = Dvalue(i)
-            call ResWrFix (nodeRF(i),dofRF(i),value(1))
-         enddo
-         call ResWrFixEnd
-
-         write (*,3077)
- 3077    format (/'  *****  Applied Forces  *****')
-         call ResWrForcBegin (NFORCE)
-         do  i = 1,NFORCE
-            value(1) = Fvalue(i)
-            write (*,3078) nodeF(i),dofF(i),Fvalue(i)
- 3078       format (' Node=',i4,'  DOF=',i2,'  Value=',f10.6)
-            call ResWrForc (nodeF(i),dofF(i),value(1))
-         enddo
-         call ResWrForcEnd
-
-         call ResWrBCEnd
-
-c          *****  element Stresses  *****
-         call ResWrEresBegin
-
-         write (*,3081)
- 3081    format (/'     *****  Element Records  *****')
-         do  i = 1,NUMELEM
-            iElem = Eorder(i)
-            write (*,3082) iElem
- 3082       format (/' Element=',i4)
-            call ResWrEstrBegin(iElem)
-            write (*,3083) EstrLab(17),(Etemps(j),j=1,4)
- 3083       format ('  ',a,'=',6g12.5/(6x,6g12.5))
-            call ResWrEstr (17,NPEREL,Etemps(1))
-            do ii = 1,NPEREL
-               write (*,3083) EstrLab(3),(Estress(1,ii,i),j=1,11)
-            enddo
-            call ResWrEstr (3,11*NPEREL,Estress(1,1,i))
-            do ii = 1,NPEREL
-               write (*,3083) EstrLab(2),(Eforce(j,ii,i),j=1,NUMDOF)
-            enddo
-            call ResWrEstr (2,NPEREL*NUMDOF,Eforce(1,1,i))
-            Evalue(1) = Area(i)
-            Evalue(2) = Energy(i)
-            write (*,3083) EstrLab(4),(Evalue(j),j=1,11)
-            call ResWrEstr (4,11,Evalue(1))
-            call ResWrEstrEnd
-         enddo
-
-         call ResWrEresEnd
-
-         call ResWrSolEnd
-
-      enddo
 
       call ResWrEnd
 

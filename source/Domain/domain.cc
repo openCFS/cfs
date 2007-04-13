@@ -145,13 +145,15 @@ namespace CoupledField {
     // Call the nonmatching grid intersection calculation
     ptgrid_->InitNonmatchingInterfaces();
 
-    // Initialize resultHandler
-    resultHandler_->Init( ptgrid_ );
-
     Info->PrintF("","\n=========================\n");
     Info->PrintF("","   END OF DOMAIN SETUP   \n");
     Info->PrintF("","=========================\n\n");
     Info->FinishProgress();
+
+    if ( !commandLine->GetPrintGrid() == true ) {
+      // Initialize resultHandler
+      resultHandler_->Init( ptgrid_ );
+    }    
   }
 
 
@@ -760,8 +762,9 @@ namespace CoupledField {
   void Domain::PrintGrid() {
     
     ENTER_FCN( "Domain::PrintGrid" );
-    
-    resultHandler_->WriteGrid();
+
+    resultHandler_->Init( ptgrid_ );
+    //    resultHandler_->WriteGrid();
   }
   
 }

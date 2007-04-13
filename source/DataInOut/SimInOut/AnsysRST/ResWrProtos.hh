@@ -58,7 +58,6 @@ namespace CoupledField
                                Integer lenTitle,
                                Integer lenJobName);
 
-
     // primary function:    Write Geometry Header Record
 
     //  input arguments:
@@ -87,7 +86,7 @@ namespace CoupledField
     //     itype    (int,sc,in)         - Element type number
     //     iel//     (int,ar(IELCSZ),in) - Element characteristics
     extern void reswrtype_(Integer* itype,
-                           Integer* ielc);
+                           Integer ielc[150]);
 
     extern void reswrtypeend_();
 
@@ -132,7 +131,7 @@ namespace CoupledField
     //     xyzang   (dp,ar(6),in)     - x,y,z,thxy,thyz,thzx for node
 
     extern void reswrnode_(Integer* iNode,
-                           Double xyzang);
+                           Double xyzang[6]);
 
     // primary function:    Finish Node Storage
     extern void reswrnodeend_();
@@ -161,7 +160,7 @@ namespace CoupledField
     extern void reswrelem_(Integer* iElem,
                            Integer* n,
                            Integer* nodes,
-                           Integer* ElemData);
+                           Integer ElemData[10]);
     
     // primary function:   Finish element writing
     extern void reswrelemend_();
