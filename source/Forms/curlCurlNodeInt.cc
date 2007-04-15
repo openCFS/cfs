@@ -85,8 +85,38 @@ namespace CoupledField
   
   }
 
+  
+  void CurlCurlNode2DInt::calcBMat( Matrix<Double> &bMat,
+                                    UInt ip, Matrix<Double> &ptCoord ) {
+    ENTER_FCN( "CurlCurlNode2DInt::calcBMat" );
+    Matrix<Double> xiDx;
+    if (isSetIntPoint_) {
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, 
+                                it1_.GetElem() );
+    } else { 
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, 
+                                    it1_.GetElem() );
+    }
+    if (isaxi_) {
+      Vector<Double> ShpFncAtIp;
+      Vector<Double> CoordAtIP;
+      if( isSetIntPoint_ ) {
+        ptelem->GetShFnc(ShpFncAtIp,intPoint_,it1_.GetElem());
+      } else {
+        ptelem->GetShFncAtIp(ShpFncAtIp,ip,it1_.GetElem());
+      }
+      CoordAtIP = ptCoord * ShpFncAtIp;
+      for (UInt i=0; i<ShpFncAtIp.GetSize(); i++)
+        xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+    }
 
-  //============================Curcl-Curl-3D ====================================
+    xiDx.Transpose(bMat);
+
+
+
+  }
+
+  //============================Curl-Curl-3D ====================================
 
   CurlCurlNode3DInt::CurlCurlNode3DInt(Double aVal, bool coordUpdate )
     : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
@@ -150,6 +180,7 @@ namespace CoupledField
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * matVal_;
+
       for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
 	ptr1 = bMatCurl[k];
 	ptr2 = bMatCurl[k];
@@ -176,9 +207,8 @@ namespace CoupledField
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
 
-    UInt actDim, actNode, j, k;
-    
-    
+    UInt actNode;
+        
     bMatCurl.Resize( nrDofs_, numFncs * nrDofs_);
     bMatCurl.Init();
 
@@ -264,7 +294,7 @@ namespace CoupledField
     Matrix<Double> xiDx;
     Vector<Double> ShpFncAtIp;
     Double jacDet, factor, shpFnc;  
-
+    
     //get integration points
     const UInt nrIntPts = ptelem->GetNumIntPoints(); 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  

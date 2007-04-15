@@ -26,6 +26,10 @@ public:
   void CalcElementMatrix( Matrix<Double>& elemMat,
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
+
+  // returns the B operator matrix
+  void calcBMat( Matrix<Double> &rotMat,
+                 UInt ip, Matrix<Double> &ptCoord );
   
 protected: 
 private:

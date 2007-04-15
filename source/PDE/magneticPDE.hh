@@ -132,6 +132,29 @@ namespace CoupledField
     MagForceOp* ForceOpVWP_;
 
     // =======================================================================
+    //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
+    // =======================================================================
+    
+    //! Calc FluxDensity in integration point
+
+    //! Calculates the flux density B = rot(A) at the given integration point.
+    //! If ip is 0, the midpoint of the element is evaluated.
+    template<class TYPE>
+    void CalcFluxDensityAtIP( EntityIterator it,
+                              UInt ip,
+                              Vector<TYPE>& field );
+
+    //! Calc EddyCurrent in integration point
+
+    //! Calculates the eddy current (density) at the given integration point.
+    //! If ip is 0, the midpoint of the element is evaluated.
+    template<class TYPE>
+    void CalcEddyCurrentAtIP( EntityIterator it,
+                              UInt ip,
+                              Vector<TYPE>& field );
+    
+
+    // =======================================================================
     //   COILS
     // =======================================================================
     

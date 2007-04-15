@@ -63,6 +63,7 @@
                 <xsd:element name="dirichletHom"   type="DT_MagneticHD"/>
                 <xsd:element name="dirichletInhom" type="DT_MagneticID"/>
                 <xsd:element name="neumannInhom"   type="DT_MagneticIN"/>
+                <xsd:element name="constraint"     type="DT_MagneticCS"   />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -188,6 +189,21 @@
   </xsd:complexType>
 
 
+  <!-- Element type for constraint condition -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MagneticCS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
+        <xsd:attribute name="quantity" default="magPotential"
+          type="DT_MagneticUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
   <!-- ******************************************************************* -->
@@ -209,6 +225,7 @@
   <xsd:simpleType name="DT_MagneticNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
