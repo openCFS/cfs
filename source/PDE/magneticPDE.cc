@@ -289,6 +289,14 @@ namespace CoupledField {
         
         // Give result to equation numbering class
         eqnMap_->AddResult( *results_[1], actSDList );
+
+        // Define additional bilinearform for calculating the gradient of 
+        // the scalar potential
+        // Note: this integrator is not passed to the assemble class.
+        // It is only needed later for calculating the eddy current density
+        linElecInt * elecBiLin = new linElecInt( materials_[actRegionId],
+                                                 FULL, true );
+        pdeBilinearForms_[actRegionId][elecBiLin->GetName()] = elecBiLin;
       }
 
 
@@ -412,6 +420,14 @@ namespace CoupledField {
       }
       break;
 
+    case ELEC_POTENTIAL:
+      if( isComplex_ ) {
+        ExtractResult<Complex>( res, sol_ );
+      } else {
+        ExtractResult<Double>( res, sol_ );
+      }
+      break;
+
     case MAG_FLUX_DENSITY:
       if( isComplex_ ) {
         CalcFluxDensity<Complex>( res );
@@ -526,173 +542,42 @@ namespace CoupledField {
   void MagPDE::CalcFluxDensity( shared_ptr<BaseResult> result ) {
     ENTER_FCN( "MagPDE::CalcFluxDensity" );
     
-    NodeStoreSol<TYPE> * solhelp = 
-      dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-
-    if (is3d_ ) {
-      // flag for updatedLagrange formulation
-      bool upLagrangeForm = true;
-      std::string bilinearName = "CurlCurlNode3DInt";
-
-      Vector<Double> intPoint;
-      Vector<TYPE> elemFlux(3);
-      Matrix<Double> bMatCurl, bMatDiv;
-
-      elemFlux.Resize(dim_);
-      elemFlux.Init(0);
+    Vector<TYPE> elemFlux(dim_);
     
-      // fetch result object and convert data
-      Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*result);
-      EntityIterator it = actSol.GetEntityList()->GetIterator();
+    // fetch result object and convert data
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*result);
+    Vector<TYPE> & actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
 
-      Vector<TYPE> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-    
-      it.Begin();
-
-      // loop over elements
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-      
-        //set element solution        
-        Vector<TYPE> elSol;
-        sol_->GetElemSolution(elSol, it);
-
-        RegionIdType actRegionId = it.GetElem()->regionId;
-        CurlCurlNode3DInt* curlOp = 
-          dynamic_cast<CurlCurlNode3DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
-
-        //set element info
-        curlOp->ExtractElemInfo( it );
-
-        //calculates the stress
-        curlOp->SetIntPoint(intPoint);
-        
-        Matrix<Double> CornerCoords; 
-        ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
-                                    upLagrangeForm );
-        
-        curlOp->calcBMat(bMatCurl, bMatDiv, 1, CornerCoords);
-        curlOp->UnsetIntPoint();
-        elemFlux = bMatCurl * elSol;
-        for( UInt iDof = 0; iDof < dim_; iDof++ ) {
-          actVal[it.GetPos()*dim_ + iDof] = elemFlux[iDof];
-        }
+    // loop over elements
+    EntityIterator it = actSol.GetEntityList()->GetIterator();
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      CalcFluxDensityAtIP( it, 0, elemFlux );
+      for( UInt iDof = 0; iDof < dim_; iDof++ ) {
+        actVal[it.GetPos()*dim_ + iDof] = elemFlux[iDof];
       }
-    }
-    else {
-      CurlNodeOp<TYPE> * FieldOp = 
-        new CurlNodeOp<TYPE>(ptgrid_, this, eqnMap_,
-                             *solhelp, true );
-      FieldOp->Set2DType(isaxi_);
-      
-      Vector<Double> lCoord;
-      Vector<TYPE> tempB;
-      
-      // fetch result object and convert data
-      Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*result);
-      EntityIterator it = actSol.GetEntityList()->GetIterator();
-      
-      Vector<TYPE> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-      
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
-        FieldOp->CalcElemCurlNode( tempB, it, lCoord); 
-        
-        // loop over dofs
-        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-          actVal[it.GetPos()*dim_ + iDim] = tempB[iDim];
-        }
-      }
-      delete FieldOp;
     }
   }
   
   template<class TYPE>
   void MagPDE::CalcEddyCurrent( shared_ptr<BaseResult> result ) {
     ENTER_FCN( "MagPDE::CalcEddyCurrent" );
-    Vector<Double> lCoord, shpFnc;
-    Vector<TYPE> magVecDeriv1Elem, elecPotElem;
-    Double conductivity = 0.0;
-
-    if (is3d_ ) {
-
-      Vector<TYPE> jEddy;
-      jEddy.Resize(3);
     
-      // fetch result object and convert data
-      Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*result);
-      EntityIterator it = actSol.GetEntityList()->GetIterator();
-      Vector<TYPE> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-      
-      // Create electric bilinear form for regions with non-zero
-      // conductivity
-      std::auto_ptr<linElecInt> elecBiLin (new linElecInt( materials_[0],
-                                                           FULL, true ) );
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        
-        // Get the right material parameter for current element
-        materials_[it.GetElem()->regionId]
-          ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-        BaseFE * ptEl = it.GetElem()->ptElem;
-        
-         it.GetElem()->ptElem->GetCoordMidPoint( lCoord );
-         ptEl->GetShFnc(shpFnc,lCoord,it.GetElem());
-         
-         // 1) get part coming from vector potential
-         GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
-         jEddy.Init();
-         for( UInt iDof = 0; iDof < 3; iDof++ ) {
-           for( UInt i = 0; i < shpFnc.GetSize(); i++ ) {
-             jEddy[iDof] += shpFnc[i] * magVecDeriv1Elem[i*3+iDof];
-           }
-         }
-         
-         // 2) get part from scalar vector potential (only if region is conductive)
-         if ( conductivity > EPS ) {
-           GetDerivSolVecOfElement(elecPotElem,it,results_[1]);
-           Matrix<Double> bMat;
-           elecBiLin->BDBInt::calcBMat( it, bMat);
-           jEddy += bMat*elecPotElem;
-         }
-         jEddy *= -conductivity;
-         for( UInt iDof = 0; iDof < dim_; iDof++ ) {
-           actVal[it.GetPos()*dim_ + iDof] = jEddy[iDof];
-         }
-
-       }
-
-    } else {
-      // **** 2D case ****
-      
-      TYPE jEddy = 0.0;
-      
-      // fetch result object and convert data
-      Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*result);
-      EntityIterator it = actSol.GetEntityList()->GetIterator();
-      Vector<TYPE> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() );
-      
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        
-        // Get the right material parameter for current element
-        materials_[it.GetElem()->regionId]
-          ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-        BaseFE * ptEl = it.GetElem()->ptElem;
-        
-        it.GetElem()->ptElem->GetCoordMidPoint( lCoord );
-        ptEl->GetShFnc(shpFnc,lCoord,it.GetElem());
-        GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
-        
-        jEddy = magVecDeriv1Elem * shpFnc;
-        jEddy *= -conductivity;
-        actVal[it.GetPos()] = jEddy;
+    
+    // fetch result object and convert data
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*result);
+    EntityIterator it = actSol.GetEntityList()->GetIterator();
+    Vector<TYPE> & actVal = actSol.GetVector();
+    UInt jEddyDofs = is3d_ ? 3 : 1;
+    actVal.Resize( actSol.GetEntityList()->GetSize() * jEddyDofs );
+  
+    Vector<TYPE> jEddyElem;
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      CalcEddyCurrentAtIP( it, 0, jEddyElem );
+      for( UInt iDof = 0; iDof < jEddyDofs; iDof++ ) {
+        actVal[it.GetPos()*jEddyDofs + iDof] = jEddyElem[iDof];
       }
     }
   }
@@ -700,70 +585,74 @@ namespace CoupledField {
   template<class TYPE>
   void MagPDE::CalcEddyPower( shared_ptr<BaseResult> result ) {
     ENTER_FCN( "MagPDE::CalcEddyPower" );
+
+    // fetch result object and convert data
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*result);
+    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+    Vector<TYPE> & actVal = actSol.GetVector();
     
-//     Matrix<Double> elemmat, ptCoord;
+    UInt jEddyDofs = is3d_ ? 3 : 1;
+    actVal.Resize( actSol.GetEntityList()->GetSize() * jEddyDofs );
     
-//     StdVector<UInt> connecth;
-//     StdVector<Integer> Eqns;  
-//     Vector<TYPE> help;
-//     BaseForm *bilinear_stiff = NULL; 
-    
-//     // get result
-//     Result<TYPE> &  actSol = 
-//       dynamic_cast<Result<TYPE>&>(*result);      
-//     EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-    
-//     // resize vector
-//     Vector<TYPE> & actVal = actSol.GetVector();
-//     actVal.Resize( actSol.GetEntityList()->GetSize() );
-    
-//     // Loop over regions
-//     for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-   
+    Vector<TYPE> jEddyElem;
+    TYPE regionEddyPower, elemEddyPower;
+
+    // iterate over the regions
+    for ( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( regionIt.GetRegion() );
+      EntityIterator elemIt = actSDList.GetIterator();
+      regionEddyPower = 0.0;
       
-//       Double reluctivity;
-//       materials_[regionIt.GetRegion()]
-//         ->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+      // get conductivity of region
+      Double conductivity;
+      materials_[regionIt.GetRegion()]
+        ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
       
-//       // Create stiffness integrator
-//       if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
+      // iterate over elements
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        BaseFE * ptElem = elemIt.GetElem()->ptElem;
+        ptElem->SetAnsatzFct( results_[0]->fctType );
+        const UInt nrIntPts = ptElem->GetNumIntPoints();
+        const Vector<Double> & intWeights = ptElem->GetIntWeights();  
+        Vector<Double> shapeFnc;
         
-//         //read in the BH-curve data and compute the approximation
-//         std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName();
-//         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-//         nlinFnc->CalcBestParameter();
-//         nlinFnc->CalcApproximation();
-//         bilinear_stiff = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
-//                                                    isaxi_);
+        // iterate over all integration points
+        TYPE temp;
+        elemEddyPower = 0.0;
+        Matrix<Double> ptCoord;
+        ptgrid_->GetElemNodesCoord( ptCoord, 
+                                    elemIt.GetElem()->connect,
+                                    true );
         
-//         bilinear_stiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        
-//         // VERY IMPORTANT: Set nonlinear-method "fixpoint", as otherwise also
-//         // the Frechet part of the stiffness is calculated!
-//         bilinear_stiff->SetNonLinMethod( "fixPoint" );
-//       } else {
-//         bilinear_stiff = new CurlCurlNode2DInt(reluctivity, isaxi_);
-//       }
-      
-//       ElemList actSDList(ptgrid_ );
-//       actSDList.SetRegion( regionIt.GetRegion() );
-//       EntityIterator elemIt = actSDList.GetIterator();
-      
-//       TYPE energy = 0.0;
-//       Vector<TYPE> magvecpot;         
-//       for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-//         sol_->GetElemSolution(magvecpot, elemIt);
-//         bilinear_stiff->CalcElementMatrix(elemmat, elemIt, elemIt);
-        
-//         help = elemmat * magvecpot;
-//         energy += 0.5 * (help * magvecpot);
-        
-//       }  
-//       actVal[regionIt.GetPos()] = energy;
-//       delete bilinear_stiff;    
-//     }
+        for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
+          
+          CalcEddyCurrentAtIP( elemIt, actIntPt, jEddyElem );
+          temp = jEddyElem * jEddyElem;
+          temp /= conductivity;
+          ptElem->GetShFncAtIp(shapeFnc,actIntPt, elemIt.GetElem() );
+          Double jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord, 
+                                                      elemIt.GetElem() );
+          if (isaxi_) {
+            Vector<Double> CoordAtIP;
+            CoordAtIP = ptCoord * shapeFnc;
+            jacDet *=  2 * PI * CoordAtIP[0];
+          }
+          temp *= jacDet * intWeights[actIntPt-1];
+          elemEddyPower += temp;
+        }
+        regionEddyPower += elemEddyPower;
+      }
+      // store value in vector
+      actVal[regionIt.GetPos()] = regionEddyPower;
+    }
 
   }
+  
+  
 
   // **************
   //   CalcEnergy
@@ -1089,6 +978,7 @@ namespace CoupledField {
       res2->entryType = ResultInfo::SCALAR;
       res2->fctType = res1->fctType;
       results_.Push_back( res2 );
+      availResults_.insert( res2 );
     }
 
     // === MAGNETIC FLUX DENSITY ===
@@ -1243,6 +1133,164 @@ namespace CoupledField {
   }
     
     
+  // =======================================================================
+  //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
+  // =======================================================================
+  
+  template<class TYPE>
+  void MagPDE::CalcFluxDensityAtIP( EntityIterator it,
+                                    UInt ip,
+                                    Vector<TYPE>& field ) {
+    ENTER_FCN( "MagPDE::CalcFluxDensityAtIP" );
+
+    // get element solution
+    Vector<TYPE> elSol;
+    sol_->GetElemSolution(elSol, it);
+    
+    if( is3d_ ) {
+      field.Resize(3);
+      RegionIdType actRegionId = it.GetElem()->regionId;
+      CurlCurlNode3DInt* curlOp = 
+        dynamic_cast<CurlCurlNode3DInt*>
+        (pdeBilinearForms_[actRegionId]["CurlCurlNode3DInt"]);
+
+      //set element info
+      curlOp->ExtractElemInfo( it );
+      Matrix<Double> CornerCoords, bMatCurl, bMatDiv;
+      ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+                                  true );
+      // case 1: element midpoint
+      if( ip == 0 ) {
+        Vector<Double> intPoint;
+        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+        curlOp->SetIntPoint(intPoint);
+          curlOp->calcBMat(bMatCurl, bMatDiv, 0, CornerCoords);
+          curlOp->UnsetIntPoint();     
+      } else {
+        // case2: real integration point
+        curlOp->calcBMat(bMatCurl, bMatDiv, ip, CornerCoords);
+      }
+      field = bMatCurl * elSol;
+      
+      
+    } else {
+      field.Resize(2);
+      RegionIdType actRegionId = it.GetElem()->regionId;
+      
+      CurlCurlNode2DInt* curlOp = 
+        dynamic_cast<CurlCurlNode2DInt*>
+        (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
+      
+      //set element info
+      curlOp->ExtractElemInfo( it );
+      Matrix<Double> CornerCoords, bMat;
+      ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+                                  true );
+      // case 1: element midpoint
+      if( ip == 0 ) {
+        Vector<Double> intPoint;
+        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+        curlOp->SetIntPoint(intPoint);
+        curlOp->calcBMat(bMat, 0, CornerCoords);
+        curlOp->UnsetIntPoint();     
+      } else {
+        // case2: real integration point
+        curlOp->calcBMat(bMat, ip, CornerCoords);
+      }      
+      field = bMat * elSol;
+
+      // Account for curl 
+      TYPE temp = field[0];
+      if (isaxi_) {
+        field[0] = -field[1];
+        field[1] = temp;
+      } else {
+        field[0] = field[1];
+        field[1] = -temp;
+      }
+    }
+  }
+  
+  template<class TYPE>
+  void MagPDE::CalcEddyCurrentAtIP( EntityIterator it,
+                                    UInt ip,
+                                    Vector<TYPE>& jEddy ) {
+    ENTER_FCN( "MagPDE::CalcEddyCurrentAtIP" );
+
+
+    Vector<Double> lCoord, shpFnc;
+    Vector<TYPE> magVecDeriv1Elem, elecPotElem;
+    Double conductivity = 0.0;
+    
+     // Get the right material parameter for current element
+    RegionIdType actRegionId = it.GetElem()->regionId;
+    materials_[actRegionId]
+      ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+    BaseFE * ptEl = it.GetElem()->ptElem;
+    
+    
+    if (is3d_ ) {
+      jEddy.Resize(3);
+    
+      // Get electric bilinear form for regions with non-zero
+      // conductivity
+      linElecInt* elecBiLin = 
+        dynamic_cast<linElecInt*>
+        (pdeBilinearForms_[actRegionId]["linElecInt"]);
+      
+         // case 1: dummy integration point
+      if( ip == 0 ) {
+        it.GetElem()->ptElem->GetCoordMidPoint( lCoord );
+        ptEl->GetShFnc(shpFnc,lCoord,it.GetElem());
+      } else {
+        ptEl->GetShFncAtIp(shpFnc,ip,it.GetElem());
+      }
+         
+      // 1) get part coming from vector potential
+      GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
+      jEddy.Init();
+      for( UInt iDof = 0; iDof < 3; iDof++ ) {
+        for( UInt i = 0; i < shpFnc.GetSize(); i++ ) {
+          jEddy[iDof] += shpFnc[i] * magVecDeriv1Elem[i*3+iDof];
+        }
+      }
+      
+      // 2) get part from scalar vector potential (only if region is conductive)
+      if ( conductivity > EPS ) {
+        GetDerivSolVecOfElement(elecPotElem,it,results_[1]);
+        Matrix<Double> bMat;
+        if( ip == 0 ) {
+          elecBiLin->BDBInt::calcBMat( it, bMat);
+        } else {
+          Matrix<Double> ptCoord;
+          ptgrid_->GetElemNodesCoord( ptCoord, it.GetElem()->connect, true );
+          elecBiLin->ExtractElemInfo( it );
+          elecBiLin->calcBMat( bMat, ip, ptCoord );
+        }
+        jEddy += bMat*elecPotElem;
+      }
+      jEddy *= -conductivity;
+      
+    } else {
+      // **** 2D case ****
+      jEddy.Resize(1);
+      TYPE jEddyTemp;
+      if( ip == 0 ) {
+        it.GetElem()->ptElem->GetCoordMidPoint( lCoord );
+        ptEl->GetShFnc(shpFnc,lCoord,it.GetElem());
+      } else { 
+        ptEl->GetShFncAtIp(shpFnc,ip,it.GetElem());
+      }
+      GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
+      
+      jEddyTemp = magVecDeriv1Elem * shpFnc;
+      jEddyTemp *= -conductivity;
+      jEddy[0] = jEddyTemp;
+    }
+  }
+    
+
+  
 
 
   // ======================================================
