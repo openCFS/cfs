@@ -297,18 +297,15 @@ namespace CoupledField {
           } else {
             ptComplexOutput = &SimOutputText::ComplexAsRealImag;
           }
-
-          if( actInfo.complexFormat == REAL_IMAG ) {
-            for( it.Begin(); !it.IsEnd(); it++ ) {
-              std::ofstream& actOut = *ptFiles[it.GetPos()];
-              actOut << actStepVal_;;
-              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-                actOut << (this->*ptComplexOutput)( vec[it.GetPos()*numDofs + iDof] ); 
-              }
-              actOut << std::endl;
-            } // entities 
-          } // if REAL_IMAG          
-        
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            std::ofstream& actOut = *ptFiles[it.GetPos()];
+            actOut << actStepVal_;;
+            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+              actOut << delim_  << (this->*ptComplexOutput)
+                ( vec[it.GetPos()*numDofs + iDof] ); 
+            }
+            actOut << std::endl;
+          } // entities         
         } // harmonic part
       } // loop over results
     } // loop over result types
