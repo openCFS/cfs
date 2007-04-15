@@ -359,7 +359,14 @@ namespace CoupledField {
 
 #endif // EXPR_TEMPLATES
 
+
+    // =======================================================================
+    // SPECIAL OPERATIONS FOR THE 3-DIMENSIONAL CASE
+    // =======================================================================
   
+    //! Calc cross product of two vectors v = this x b
+    template <class TYPE2>
+    void CrossProduct( const Vector<TYPE>& b, Vector<PROMOTE(TYPE,TYPE2)>& v );
     
     // =======================================================================
     // BOOLEAN OPERATORS
@@ -568,9 +575,9 @@ namespace CoupledField {
   }
 
 
-  // ******************************************************
-  //  INLINE MEMBER DEFINITIONS FOR TEMPLAE EXPRESSION CASE
-  // ******************************************************
+  // ************************************************************
+  //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
+  // ************************************************************
   template<class TYPE> template<class TYPE2>
   PROMOTE(TYPE,TYPE2) Vector<TYPE>::
   operator* (const Vector<TYPE2> &x) const
@@ -678,6 +685,20 @@ namespace CoupledField {
     return ret;
   }
 #endif // EXPR_TEMPLATE
+
+
+  
+  template <class TYPE> template <class TYPE2>
+  void Vector<TYPE>::CrossProduct( const Vector<TYPE>& b, 
+                                   Vector<PROMOTE(TYPE,TYPE2)>& v ) {
+    if( size_ != 3 || b.size_ != 3 )
+      EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
+
+    v.Resize(3);
+    v[0] = data_[1] * b.data_[2] - data_[2] * b.data_[1];
+    v[1] = data_[2] * b.data_[0] - data_[0] * b.data_[2];
+    v[2] = data_[0] * b.data_[1] - data_[1] * b.data_[0];
+  }
 
   template<class TYPE> template< class Archive>
   void Vector<TYPE>::save(Archive & ar, const unsigned int version) const {
