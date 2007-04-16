@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <string>
 
+#include <Utils/SmoothSpline.hh>
 #include "electroMagneticMaterial.hh"
 
 
@@ -24,9 +25,13 @@ namespace CoupledField
 
     ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Electromagnetics";
+    nlinFncBH_ = NULL;
 
     //set the allowed material parameters
     isAllowed_.insert( MAG_PERMEABILITY );
+    isAllowed_.insert( MAG_PERMEABILITY_1 );
+    isAllowed_.insert( MAG_PERMEABILITY_2 );
+    isAllowed_.insert( MAG_PERMEABILITY_3 );
     isAllowed_.insert( MAG_RELUCTIVITY );
     isAllowed_.insert( MAG_CONDUCTIVITY );
     isAllowed_.insert( ELEC_PERMITTIVITY );
@@ -38,6 +43,8 @@ namespace CoupledField
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( HYST_MODEL );
+    isAllowed_.insert( DATA_ACCURACY );
+    isAllowed_.insert( MAX_APPROX_VAL );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
@@ -357,6 +364,31 @@ namespace CoupledField
     matMatrix.Resize(2,2);
     matMatrix.Init();
     pos->second.GetSubMatrix(matMatrix, 1, 1);
+  }
+
+
+  void ElectroMagneticMaterial::InitApproxCurves() {
+    ENTER_FCN( "ElectroMagneticMaterial::InitApproxCurves" );
+
+    // check, if we need to approx BH curve
+    if (  needApproxMatCurves_.find( magBH ) != needApproxMatCurves_.end() ) {
+      std::string nlfnc = GetNonlinFileName();
+      nlinFncBH_ = new SmoothSpline(nlfnc, BH);
+
+      //get accuracy of approximation
+      Double dataAccuracy;
+      GetScalar( dataAccuracy, DATA_ACCURACY, REAL );
+
+      //get maximal approximation value
+      Double maxApproxVal;
+      GetScalar( maxApproxVal, MAX_APPROX_VAL, REAL );
+
+      nlinFncBH_->SetAccuracy( dataAccuracy );
+      nlinFncBH_->SetMaxY( maxApproxVal );   //maximal value of magnetic induction B
+      nlinFncBH_->CalcBestParameter();
+      nlinFncBH_->CalcApproximation();
+      nlinFncBH_->Print(); 
+    }
   }
 
 }

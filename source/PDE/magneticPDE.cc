@@ -151,7 +151,6 @@ namespace CoupledField {
       nonLinNode->Get(  "method", nonLinMethod_, false );
     }
     
-    Info->PrintF( pdename_, "\n" );
   }
 
 
@@ -174,34 +173,52 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegionId );
 
-      // Get reluctivity for this domain and perform consistency check
-      Double reluctivity;
-      materials_[subdoms_[actSD]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
- 
+      BaseMaterial* actMat = materials_[subdoms_[actSD]];
+
       if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
 
         //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materials_[actRegionId]->GetNonlinFileName();
-        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-        //ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-        nlinFnc->CalcBestParameter();
-        nlinFnc->CalcApproximation();
+//         std::string nlfnc = materials_[actRegionId]->GetNonlinFileName();
+//         ApproxData *nlinFnc = new SmoothSpline(nlfnc, BH);
+//         //ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+//         nlinFnc->SetAccuracy( 0.05 );
+//         nlinFnc->SetMaxY( 3.0 );   //maximal value of magnetic induction B
+//         nlinFnc->CalcBestParameter();
+//         nlinFnc->CalcApproximation();
+//         nlinFnc->Print();
 
-        BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
-                                                         isaxi_, upLagrangeForm );
-        curlcurl2D->SetNonLinMethod(nonLinMethod_);      
-        curlcurl2D->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-	BiLinFormContext * stiffContext = 
-	  new BiLinFormContext( curlcurl2D, STIFFNESS );
-	stiffContext->SetPtPdes(this, this);   
+        BaseForm *curlcurlNL; 
+        if (is3d_ ) {
+          curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
+        }
+        else {
+          curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
+        }
+
+        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+      
+        BiLinFormContext * stiffContext = 
+          new BiLinFormContext( curlcurlNL, STIFFNESS );
+        stiffContext->SetPtPdes(this, this);   
         stiffContext->SetResults( results_[0], results_[0],
                                   actSDList, actSDList );     
-	assemble_->AddBiLinearForm( stiffContext);
+        assemble_->AddBiLinearForm( stiffContext);
+        
+
+        //save bilinearForm
+        pdeBilinearForms_[actRegionId][curlcurlNL->GetName()] = curlcurlNL;
 
         // nonlinear RHS linearform!!
-        LinearForm * rhsSource = 
-          new nLinMagNode2D_linFormInt(nlinFnc, reluctivity,
-                                       isaxi_, upLagrangeForm);
+        LinearForm * rhsSource;
+        if ( is3d_ ) {
+          rhsSource = new nLinMagNode3D_linFormInt( actMat, upLagrangeForm);
+        }
+        else {
+          rhsSource = new nLinMagNode2D_linFormInt( actMat, isaxi_, 
+                                                    upLagrangeForm);
+        }
+
         rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         LinearFormContext * rhsContext = 
           new LinearFormContext( rhsSource );
@@ -212,10 +229,10 @@ namespace CoupledField {
       else {
         BaseForm *curlcurl;
         if (is3d_ ) {
-          curlcurl = new CurlCurlNode3DInt(reluctivity, upLagrangeForm);
+          curlcurl = new CurlCurlNode3DInt( actMat, upLagrangeForm);
         }
         else {
-          curlcurl = new CurlCurlNode2DInt(reluctivity, isaxi_, upLagrangeForm);
+          curlcurl = new CurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm);
         }
 
         BiLinFormContext * stiffContext = 
@@ -229,11 +246,18 @@ namespace CoupledField {
         pdeBilinearForms_[actRegionId][curlcurl->GetName()] = curlcurl;
 
 
-        if (nonLin_==true) {
+        if ( nonLin_ == true ) {
           // for nonlinear RHS linearform we need linear and nonlinear
           // subdomains
-          LinearForm * rhsSource = 
-            new nLinMagNode2D_linFormInt(NULL,reluctivity, isaxi_, upLagrangeForm );
+          LinearForm * rhsSource;
+
+          if ( is3d_ ) {
+            rhsSource = new nLinMagNode3D_linFormInt( actMat, upLagrangeForm );
+          }
+          else { 
+            rhsSource = new nLinMagNode2D_linFormInt( actMat, isaxi_, upLagrangeForm );
+          }
+
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           LinearFormContext * rhsContext = 
             new LinearFormContext( rhsSource );
@@ -264,6 +288,7 @@ namespace CoupledField {
 
       //add scalar potential bilinear-forms and coupling to vector potential in 3d 
       //case, if region is conductive
+
       if ( conductivity > EPS && is3d_ &&
            analysistype_ != STATIC ) {
         //define bilinear form for scalar potential
@@ -288,7 +313,8 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( coupContext );
         
         // Give result to equation numbering class
-        eqnMap_->AddResult( *results_[1], actSDList );
+        if ( analysistype_ != STATIC ) 
+          eqnMap_->AddResult( *results_[1], actSDList );
 
         // Define additional bilinearform for calculating the gradient of 
         // the scalar potential
@@ -358,6 +384,10 @@ namespace CoupledField {
             magnetization[1] = magnetsOriX_[perm];
           }
           
+          // Get reluctivity for this domain and perform consistency check
+          Double reluctivity;
+          materials_[subdoms_[actSD]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+
           std::string fncname = "none";
           LinearForm *permSource;
           if ( is3d_ ) {
@@ -541,8 +571,8 @@ namespace CoupledField {
   template<class TYPE>
   void MagPDE::CalcFluxDensity( shared_ptr<BaseResult> result ) {
     ENTER_FCN( "MagPDE::CalcFluxDensity" );
-    
-    Vector<TYPE> elemFlux(dim_);
+
+     Vector<TYPE> elemFlux(dim_);
     
     // fetch result object and convert data
     Result<TYPE> &  actSol = 
@@ -694,8 +724,8 @@ namespace CoupledField {
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
-        bilinear_stiff = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
-                                                   isaxi_);
+        bilinear_stiff = new nLinCurlCurlNode2DInt( materials_[regionIt.GetRegion()],
+                                                    isaxi_);
         
         bilinear_stiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         
@@ -703,7 +733,7 @@ namespace CoupledField {
         // the Frechet part of the stiffness is calculated!
         bilinear_stiff->SetNonLinMethod( "fixPoint" );
       } else {
-        bilinear_stiff = new CurlCurlNode2DInt(reluctivity, isaxi_);
+        bilinear_stiff = new CurlCurlNode2DInt( materials_[regionIt.GetRegion()], isaxi_);
       }
       
       ElemList actSDList(ptgrid_ );
@@ -968,7 +998,7 @@ namespace CoupledField {
     results_.Push_back( res1 );
     availResults_.insert( res1 );
 
-    if (is3d_ ) {
+    if (is3d_ & analysistype_ != STATIC ) {
       // === MAGNETIC SCALAR POTENTIAL ===
       shared_ptr<ResultInfo> res2(new ResultInfo);
       res2->resultType = ELEC_POTENTIAL;
@@ -1150,10 +1180,17 @@ namespace CoupledField {
     if( is3d_ ) {
       field.Resize(3);
       RegionIdType actRegionId = it.GetElem()->regionId;
-      CurlCurlNode3DInt* curlOp = 
-        dynamic_cast<CurlCurlNode3DInt*>
-        (pdeBilinearForms_[actRegionId]["CurlCurlNode3DInt"]);
 
+      CurlCurlNode3DInt* curlOp = NULL;
+      if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
+        std::string bilinearName = "nLinCurlCurlNode3DInt";
+        curlOp = dynamic_cast<nLinCurlCurlNode3DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+      }
+      else {
+        std::string bilinearName = "CurlCurlNode3DInt";
+        curlOp = dynamic_cast<CurlCurlNode3DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+      }
+      
       //set element info
       curlOp->ExtractElemInfo( it );
       Matrix<Double> CornerCoords, bMatCurl, bMatDiv;
@@ -1164,8 +1201,8 @@ namespace CoupledField {
         Vector<Double> intPoint;
         it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
         curlOp->SetIntPoint(intPoint);
-          curlOp->calcBMat(bMatCurl, bMatDiv, 0, CornerCoords);
-          curlOp->UnsetIntPoint();     
+        curlOp->calcBMat(bMatCurl, bMatDiv, 0, CornerCoords);
+        curlOp->UnsetIntPoint();     
       } else {
         // case2: real integration point
         curlOp->calcBMat(bMatCurl, bMatDiv, ip, CornerCoords);
@@ -1177,9 +1214,15 @@ namespace CoupledField {
       field.Resize(2);
       RegionIdType actRegionId = it.GetElem()->regionId;
       
-      CurlCurlNode2DInt* curlOp = 
-        dynamic_cast<CurlCurlNode2DInt*>
-        (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
+      CurlCurlNode2DInt* curlOp = NULL;
+      
+      if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
+        std::string bilinearName = "nLinCurlCurlNode2DInt";
+        curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+      } else {
+        curlOp = dynamic_cast<CurlCurlNode2DInt*>
+          (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
+      }
       
       //set element info
       curlOp->ExtractElemInfo( it );

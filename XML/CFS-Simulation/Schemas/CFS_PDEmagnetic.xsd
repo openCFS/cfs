@@ -97,16 +97,6 @@
           
         </xsd:sequence>
 
-        <!-- Type of magnetic formulation -->
-        <xsd:attribute name="formulation">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="pressure"/>
-              <xsd:enumeration value="vPot"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

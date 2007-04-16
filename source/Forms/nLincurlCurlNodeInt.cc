@@ -14,21 +14,20 @@ namespace CoupledField
 
 
   nLinCurlCurlNode2DInt::
-  nLinCurlCurlNode2DInt(ApproxData *nlinFnc, Double aVal, 
-                        bool axi, bool coordUpdate )
-    : BaseForm( NULL ),
-      startmatVal_ (aVal)
+  nLinCurlCurlNode2DInt( BaseMaterial* matData, 
+                         bool axi, bool coordUpdate )
+    : CurlCurlNode2DInt( matData, axi, coordUpdate )
   {
     ENTER_FCN( "nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt");
 
     name_ = "nLinCurlCurlNode2DInt";
-    isaxi_      = axi;
-    coordUpdate_ = coordUpdate;
     isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
-    //set pointer to nonlinear function
-    nlinFnc_ = nlinFnc;
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+
+    // get pointer to nonlinear BH curve approximation
+    ptMaterial->NeedApproxMatCurve( magBH );
   }
 
  
@@ -69,10 +68,13 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
     Vector<Double> drAtIp;
 
-    Double reluctivity, derivReluctivity, Hfield, dHfield;
+    Double reluctivity, derivReluctivity;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(numFncs); elemMat.Init(0);
+
+    // get pointer to nonlinear BH curve approximation
+    nlinFnc_ = ptMaterial->GetNonlinFncBH();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
@@ -106,10 +108,10 @@ namespace CoupledField
         if (Babs ==0) 
           reluctivity = startmatVal_;
         else {
-          Hfield      = nlinFnc_->EvaluateFuncInv(Babs);
-          reluctivity = Hfield / Babs;
+          reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
         }
 
+        //        std::cout << "b=" << Babs << "  nu=" << reluctivity << std::endl;
         partElemMat *= reluctivity;
         
         if (nonLinType_ == NEWTON) {
@@ -118,8 +120,9 @@ namespace CoupledField
           else {          
             //Newton method
             Vector<Double> eB(2); eB = B * (1/Babs);
-            dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
-            derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
+            derivReluctivity =  nlinFnc_->EvaluatePrimeNu(Babs);
+
+            //            std::cout << "Newton, B=" << Babs << "   nuprime=" << derivReluctivity << std::endl;
             for (UInt p=0;  p<numFncs; p++)
               for (UInt q=0; q<numFncs; q++) {               
                 partElemMat[p][q] +=  derivReluctivity * 
@@ -130,8 +133,7 @@ namespace CoupledField
               }
           }
         }
-        
-    
+
         partElemMat *= intWeights[actIntPt-1] * jacDet;
         elemMat += partElemMat;
       }
@@ -144,8 +146,149 @@ namespace CoupledField
     
     if (atype == "fixPoint")
       nonLinType_ = FIXEDPOINT;
+  }
+
+
+  //============================Curl-Curl-3D ====================================
+
+  nLinCurlCurlNode3DInt::
+  nLinCurlCurlNode3DInt( BaseMaterial* matData, bool coordUpdate )
+    : CurlCurlNode3DInt( matData, coordUpdate )
+  {
+    ENTER_FCN( "nLinCurlCurlNode3DInt::nLinCurlCurlNode3DInt");
+
+    name_ = "nLinCurlCurlNode3DInt";
+    isaxi_      = false;
+    coordUpdate_ = coordUpdate;
+    isSolDependent_ = true;
+    nonLinType_ = NEWTON;
+
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+
+    // get pointer to nonlinear BH curve approximation
+    ptMaterial->NeedApproxMatCurve( magBH );
+  }
+
+ 
+  nLinCurlCurlNode3DInt::~nLinCurlCurlNode3DInt()
+  {
+    ENTER_FCN( "nLinCurlCurlNode3DInt::~nLinCurlCurlNode3DInt");
+  }
+
+
+  void nLinCurlCurlNode3DInt:: CalcElementMatrix( Matrix<Double>& elemMat,
+                                                  EntityIterator& ent1, 
+                                                  EntityIterator& ent2 )
+  {
+    ENTER_FCN( "nLinCurlCurlNode3DInt::CalcElementMatrix");
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
+    Double jacDet, reluctivity, derivReluctivity;  
+
+    Matrix<Double> bMatCurl, bMatDiv; 
+    Double aux1, aux2, fac, *ptr1, *ptr2, *ptr3, *ptr4;
+
+    elemMat.Resize( numFncs * nrDofs_ );
+    elemMat.Init();
+
+    Vector<Double> elemFlux(3);
+    Vector<Double> help( numFncs * nrDofs_ );
+
+//     Matrix<Double> temp;
+//     sol_->GetElemSolutionAsMatrix( temp, ent1 );
+//     temp.ConvertToVec_AppendRows( magPot_ );
+
+    // get solution of current element
+    sol_->GetElemSolution( magPot_, ent1 );
+
+    //get integration points
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // get pointer to nonlinear BH curve approximation
+    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
+    // Loop over all integration points
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+      // Setup the B matrix for current integration point
+      calcBMat( bMatCurl, bMatDiv, actIntPt, ptCoord_ );
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+
+      // Perform a safety check
+      if ( jacDet < 0.0 ) {
+	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+		 << "negative Jacobian determinant!";
+	Error( __FILE__, __LINE__ );
+      }
+
+      //compute magnetic flux density
+      elemFlux = bMatCurl * magPot_;
+      Double Babs = elemFlux.NormL2();
+
+      if ( Babs == 0 ) 
+        reluctivity = startmatVal_;
+      else {
+        reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
+      }
+           
+      // We now compute B^T * D * B and scale it by the determinant
+      // of the Jacobian and the weight of the current integration
+      // point. The result is added to the element matrix.
+      fac = jacDet * intWeights[actIntPt-1] * reluctivity;
+      for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
+	ptr1 = bMatCurl[k];
+	ptr2 = bMatCurl[k];
+	ptr3 = bMatDiv[k];
+	ptr4 = bMatDiv[k];
+	for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
+	  aux1 = fac * ptr1[i];
+	  aux2 = fac * ptr3[i];
+	  for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
+	    elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
+	  }
+	}
+      }
+
+      if ( nonLinType_ == NEWTON ) {
+        if ( Babs == 0.0 ) 
+          derivReluctivity = 0;
+        else {          
+          //Newton method
+          Vector<Double> eB(3); eB = elemFlux * (1/Babs);
+          derivReluctivity =  nlinFnc_->EvaluatePrimeNu(Babs);
+          fac = jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs;
+
+          for ( UInt k = 0; k < bMatCurl.GetSizeCol(); k++ ) 
+            for ( UInt i = 0; i < bMatCurl.GetSizeRow(); i++ ) 
+              help[k] =  bMatCurl[i][k] * eB[i];
+
+          for ( UInt i = 0; i< bMatCurl.GetSizeCol(); i++ ) 
+            for ( UInt j = 0; j< bMatCurl.GetSizeCol(); j++ ) 
+              elemMat[i][j] += fac * help[i] * help[j];
+        }
+      }
+    }
     
   }
+
+
+  void nLinCurlCurlNode3DInt::SetNonLinMethod(std::string atype)
+  {
+    ENTER_FCN( "nLinCurlCurlNode3DInt::SetNonLinMethod");
+    
+    if (atype == "fixPoint")
+      nonLinType_ = FIXEDPOINT;
+    
+  }
+
 
 
 } // end namespace CoupledField

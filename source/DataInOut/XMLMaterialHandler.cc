@@ -1104,6 +1104,8 @@ namespace CoupledField {
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
 
+    bool permOrtho_1=false, permOrtho_2=false, permOrtho_3=false;
+
     //read electric conductivity
     keyVec = "material","magnetic","electricConductivity";
     attrVec= "name"    ,"";
@@ -1115,13 +1117,49 @@ namespace CoupledField {
     }
 
     //read magnetic permeability
+    Double eps = 1e-10;
     keyVec = "material","magnetic","magneticPermeability","linear","isotropic";
     attrVec= "name"    ,""        ,""                    ,"";
     valVec =  matName  ,""        ,""                    ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
+      if ( doubValue < eps )
+        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
       material->SetScalar( doubValue, MAG_PERMEABILITY, REAL ); 
       //std::cerr << matName << "magneticPermeability=" << doubValue << std::endl;
+    }
+
+    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_1";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      if ( doubValue < eps )
+        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
+      material->SetScalar( doubValue, MAG_PERMEABILITY_1, REAL ); 
+      permOrtho_1 = true;
+    }
+
+    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_2";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      if ( doubValue < eps )
+        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
+      material->SetScalar( doubValue, MAG_PERMEABILITY_2, REAL ); 
+      permOrtho_2 = true;
+    }
+
+    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      if ( doubValue < eps )
+        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
+      material->SetScalar( doubValue, MAG_PERMEABILITY_3, REAL ); 
+      permOrtho_3 = true;
     }
 
     //read nonlinear dependency of magnetic permeability
@@ -1144,6 +1182,24 @@ namespace CoupledField {
       // std::cerr << "nonlinear approxType of magneticPermeability=" << striValue << std::endl;
     }
 
+    //read nonlinear approxType of magnetic permeability
+    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","measAccuracy";
+    attrVec= "name"    ,""        ,""                    ,""         ,"";
+    valVec =  matName  ,""        ,""                    ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, DATA_ACCURACY, REAL ); 
+    }
+
+    //read nonlinear approxType of magnetic permeability
+    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","maxApproxVal";
+    attrVec= "name"    ,""        ,""                    ,""         ,"";
+    valVec =  matName  ,""        ,""                    ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MAX_APPROX_VAL, REAL ); 
+    }
+
     //read nonlinear dataName of magnetic permeability
     keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","dataName";
     attrVec= "name"    ,""        ,""                    ,""         ,"";
@@ -1154,6 +1210,10 @@ namespace CoupledField {
       material->SetNonlinFileName( striValue.c_str() );
       // std::cerr << "nonlinear dataName of magneticPermeability=" << striValue << std::endl;
     }
+
+    //check, if there si an orthotropic permeability!!
+    if ( permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true )
+      material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
 
     // Print information to info file
     Info->PrintMaterial( material ); 

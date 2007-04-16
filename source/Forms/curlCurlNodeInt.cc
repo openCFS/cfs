@@ -10,14 +10,16 @@
 namespace CoupledField
 {
 
-  CurlCurlNode2DInt::CurlCurlNode2DInt(Double aVal, bool axi,
-                                       bool coordUpdate )
-    : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
+  CurlCurlNode2DInt::CurlCurlNode2DInt( BaseMaterial* matData, bool axi,
+                                        bool coordUpdate )
+    : BaseForm( matData, FULL, coordUpdate )
   {
     ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
 
     name_ = "CurlCurlNode2DInt";
     isaxi_ = axi;
+    if ( matData != NULL )
+      ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
   }
 
 
@@ -60,28 +62,26 @@ namespace CoupledField
     elemMat.Resize(numFncs); 
     elemMat.Init();
     
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {
-        jacDet = 0;
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      jacDet = 0;
+      
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent1.GetElem() );
+      
+      if (isaxi_) {
+        ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent1.GetElem() );
+        CoordAtIP = ptCoord_ * ShpFncAtIp;
+        for (UInt i=0; i<numFncs; i++)
+          xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
-                                      jacDet, ent1.GetElem() );
-
-        if (isaxi_)
-          {
-            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent1.GetElem() );
-            CoordAtIP = ptCoord_ * ShpFncAtIp;
-            for (UInt i=0; i<numFncs; i++)
-              xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
-            
-            jacDet *= 2 * PI * CoordAtIP[0];
-          }
-  
-        xiDx.Transpose(xiDxTransp);
-        partElemMat = xiDx * xiDxTransp;
-        partElemMat *= intWeights[actIntPt-1] * jacDet * matVal_;
-        elemMat += partElemMat;
+        jacDet *= 2 * PI * CoordAtIP[0];
       }
+      
+      xiDx.Transpose(xiDxTransp);
+      partElemMat = xiDx * xiDxTransp;
+      partElemMat *= intWeights[actIntPt-1] * jacDet * matVal_;
+      elemMat += partElemMat;
+    }
   
   }
 
@@ -109,23 +109,37 @@ namespace CoupledField
       for (UInt i=0; i<ShpFncAtIp.GetSize(); i++)
         xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
     }
-
     xiDx.Transpose(bMat);
 
-
-
   }
-
+  
   //============================Curl-Curl-3D ====================================
+           
+  CurlCurlNode3DInt::CurlCurlNode3DInt( BaseMaterial* matData, bool coordUpdate )
+    : BaseForm( matData, FULL, coordUpdate )
 
-  CurlCurlNode3DInt::CurlCurlNode3DInt(Double aVal, bool coordUpdate )
-    : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
   {
     ENTER_FCN( "CurlCurlNode3DInt::CurlCurlNode3DInt" );
 
     name_   = "CurlCurlNode3DInt";
     isaxi_  = false;
     nrDofs_ = 3;
+
+    isOrthotropic_ = false;
+    if ( matData != NULL ) {
+      if ( matData->GetSymmetryType() == BaseMaterial::ORTHOTROPIC ) {
+        isOrthotropic_ = true;
+        reluctivityVec_.Resize(3);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, REAL);
+        reluctivityVec_[0] = 1.0 / matVal_;
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, REAL);
+        reluctivityVec_[1] = 1.0 / matVal_;
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, REAL);
+        reluctivityVec_[2] = 1.0 / matVal_;
+      }
+      else 
+        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+    }
   }
 
 
@@ -182,21 +196,22 @@ namespace CoupledField
       fac = jacDet * intWeights[actIntPt-1] * matVal_;
 
       for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
-	ptr1 = bMatCurl[k];
-	ptr2 = bMatCurl[k];
-	ptr3 = bMatDiv[k];
-	ptr4 = bMatDiv[k];
-	for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
-	  aux1 = fac * ptr1[i];
-	  aux2 = fac * ptr3[i];
-	  for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
-	    elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
-	  }
-	}
+        if ( isOrthotropic_ ) 
+          fac =  jacDet * intWeights[actIntPt-1] * reluctivityVec_[k];
+        ptr1 = bMatCurl[k];
+        ptr2 = bMatCurl[k];
+        ptr3 = bMatDiv[k];
+        ptr4 = bMatDiv[k];
+        for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
+          aux1 = fac * ptr1[i];
+          aux2 = fac * ptr3[i];
+          for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
+            elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
+          }
+        }
       }
     }
   }
-
 
 
   // returns curl and div - matrix

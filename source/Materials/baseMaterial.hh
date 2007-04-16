@@ -11,6 +11,7 @@
 #include <General/environment.hh>
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>
+#include <Utils/ApproxData.hh>
 
 namespace CoupledField {
 
@@ -93,6 +94,14 @@ namespace CoupledField {
     std::string& GetNonlinFileName() {
       return nonlinFileName_;
     }
+
+    //! set, which nonlinear curves are needed by forms
+    void NeedApproxMatCurve( ApproxMaterialCurves type );
+
+    virtual ApproxData* GetNonlinFncBH() {
+      EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
+      return NULL;
+    };
 
     //! Query if a given parameter is set
     virtual bool IsSet( MaterialType matType ) const;
@@ -205,6 +214,9 @@ namespace CoupledField {
     //! Get coordinate system from material
     CoordSystem* GetCoordSys() { return coosy_; }
 
+    //Initialize approximations of nonlinear curves
+    virtual void InitApproxCurves() {;};
+
     //Initialize hysteresis
     void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList );
 
@@ -265,6 +277,9 @@ namespace CoupledField {
 
     //! name of file containing the nonlinear data
     std::string nonlinFileName_;
+
+    //! set, which knows, which material parameters have been set
+    std::set<ApproxMaterialCurves> needApproxMatCurves_;
 
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;

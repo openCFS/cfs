@@ -28,7 +28,7 @@ namespace CoupledField
   public:
 
     ///
-    LinearForm();
+    LinearForm( BaseMaterial* matData = NULL );
 
     ///
     virtual ~LinearForm();
@@ -40,6 +40,9 @@ namespace CoupledField
     /// Calculation of RHS vector for double entries, i.e. harmonic 
     virtual void CalcElemVector( Vector<Complex> & result,
                                  EntityIterator& ent );
+
+  protected:
+
   };
 
 
@@ -180,8 +183,8 @@ namespace CoupledField
   public:
 
     /// constructor
-    nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, 
-                             bool axi=false, bool coordUpdate = false );
+    nLinMagNode2D_linFormInt( BaseMaterial* matData, bool axi=false, 
+                              bool coordUpdate = false );
 
     /// destructor
     virtual ~ nLinMagNode2D_linFormInt();
@@ -191,11 +194,31 @@ namespace CoupledField
                          EntityIterator& ent );
   
   protected:
-    /// material data
-    BaseMaterial* matData_;
 
     Double startmatVal_;
     ApproxData *nlinFnc_;
+  };
+
+
+  /// class for calculation of right-hand-side of nonlinear magnetics
+  class nLinMagNode3D_linFormInt : public LinearForm
+  {
+  public:
+
+    /// constructor
+    nLinMagNode3D_linFormInt( BaseMaterial* matData, 
+                             bool coordUpdate = false );
+
+    /// destructor
+    virtual ~ nLinMagNode3D_linFormInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+  
+  protected:
+    Double startmatVal_;    //!< star value for reluctivity
+    ApproxData *nlinFnc_;   //!< pointer to approximation object for BH curve
   };
 
 

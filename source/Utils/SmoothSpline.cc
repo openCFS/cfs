@@ -11,175 +11,166 @@
 
 namespace CoupledField
 { 
-  SmoothSpline :: SmoothSpline(std::string nlFileName)
-    : ApproxData(nlFileName)
+  SmoothSpline :: SmoothSpline( std::string nlFileName,  ApproxCurveType curveType )
+    : ApproxData( nlFileName, curveType )
   {
 
-    delta = 0.05;
-    mu    = 1e-14;;
-    node  = nummeas-2;       // n = number of measurements
-    size  = node*2;    // size of the spline system
-    ind  = 200;
+    delta_ = 0.01;
+    mu_    = 1e-14;;
+    node_  = numMeas_-2;       // nummeas = number of measurements
+    size_  = node_*2;          // size of the spline system
+    ind_   = 200;
 
-    mat  = new double[size*size];
-    coef = new double[size+4];
-    rhs  = new double[size];
-    h    = new double[node+1];
-    g    = new double[ind+1];
+    mat_.Resize(size_*size_);
+    coef_.Resize(size_+4);
+    rhs_.Resize(size_);
+    h_.Resize(node_+1);
+    g_.Resize(ind_+1);
 
-
+    nuMax_     = 1.0;
+    if ( curveType_ == BH ) {
+      //define maximal reluctivity
+      nuMax_ = 7.9577e5;
+    }
   }
 
   SmoothSpline :: ~SmoothSpline()
   {
-    delete [] mat;
-    delete [] coef;
-    delete [] rhs;
-    delete [] h;
-    delete [] g;
-
   }
 
 
-  void SmoothSpline :: CalcApproximation(int start)
+  void SmoothSpline::CalcApproximation( bool start )
   {
+    ENTER_FCN( "SmoothSpline::CalcApproximation" );
 
-    int i;
+    Integer i;
 
-    alpha = x[0];
-    beta  = x[node+1];
+    xStart_ = x_[0];
+    xEnd_  = x_[node_+1];
+    yEnd_ = y_[node_+1];
 
-    theta = (y[node+1]-y[0])/ind;
+    theta_ = ( y_[node_+1] - y_[0] ) / ind_; // y-interval
 
-    for (i=0; i<=node; i++)
-      {
-        h[i] = x[i+1]-x[i]; // interval
-      }
+    for ( i=0; i<=node_; i++ ) {
+      h_[i] = x_[i+1]-x_[i]; // -interval
+    }
 
     // initial conditions
-
-    coef[0]      = y[0];
-    coef[1]      = (y[1]-y[0])/h[0];
-    coef[size+2] = y[node+1];
-    coef[size+3] = (y[node+1]-y[node])/h[node];
+    coef_[0]       = y_[0];
+    coef_[1]       = ( y_[1] - y_[0] ) / h_[0];
+    coef_[size_+2] = y_[node_+1];
+    coef_[size_+3] = ( y_[node_+1] - y_[node_] ) / h_[node_];
 
     // calculation of the coefficients
-
     ConstructMatrix();
-    ConstructRHS(y);
+    ConstructRHS(y_);
 
     CalcCoef();
 
     // calculation of start values
+    if ( start )
+      CalcStart();
 
-    if (start == 1)
-      {
-        CalcStart();
-      }
+    // compute extrapolation parameter
+    Double xEndPrime;
+    xEndPrime      = (xEnd_ - x_[numMeas_-2]) / (yEnd_ - y_[numMeas_-2]);
+    extrapolAlpha_ = (xEnd_ - xEndPrime * yEnd_) / (xEnd_*yEnd_ - nuMax_*yEnd_*yEnd_);
+    extrapolBeta_  = ( (xEnd_/yEnd_) - nuMax_ ) * std::exp(extrapolAlpha_*yEnd_);   
   }
 
 
-  void SmoothSpline :: CalcBestParameter()
+  void SmoothSpline::CalcBestParameter()
   {
-    int i,j,iter = 0,monotone = 1;
+    ENTER_FCN( "SmoothSpline::CalcBestParameter" );
 
-    double error = delta;
-    double res = 1e14;
-    double z,fac;
-    double mu_old;
+    Integer i, j;
+    bool monotone = true;
 
-    while (monotone == 1)
-      {
-        CalcApproximation(0);
+    Double z,fac;
+    Double mu_old;
 
-        if (MonotoneBH() == -1)
-          {
-            mu *= 2;
-          }
-        else
-          {
-            mu_old   = 0.5*mu; 
-            monotone = 0;
-          }
+    //coarse tuning of discrepancy parameter mu, so that the computed
+    //approximation is monoton 
+    while ( monotone ) {
+      CalcApproximation(0);
+
+      if ( MonotoneBH() == false ) {
+        mu_ *= 2;
       }
-
-    monotone = 1;
-    fac      = (mu-mu_old)/10.;
-    mu       = mu_old;
-
-    while (monotone == 1)
-      {
-        CalcApproximation(0);
-
-        if (MonotoneBH() == -1)
-          {
-            mu += fac;
-          }
-        else 
-          {
-            monotone = 0;
-          }
+      else {
+        mu_old   = 0.5*mu_; 
+        monotone = false;
       }
+    }
 
-    //  std::cout << "first monotone mu BH " << mu << std::endl;
+    //fine tuning of discrepancy parameter mu, so that the computed
+    //approximation is monoton  
+    monotone = true;
+    fac      = (mu_-mu_old)/10.;
+    mu_       = mu_old;
 
-    monotone = 1;
+    while ( monotone ) {
+      CalcApproximation(0);
 
-    while (monotone == 1 && iter <= 1000)
-      {
-        iter++;
+      if ( MonotoneBH() == false ) {
+        mu_ += fac;
+      }
+      else {
+        monotone = false;
+      }
+    }
 
-        CalcApproximation(0);
+    // this is the main loop to get the discrepancy parameter mu;
+    Integer  iter = 0;
+    Double res = 1e14;
 
-        res = 0;
-        j   = 0;
+    monotone = true;
+    while ( monotone == true && iter <= 1000) {
+      iter++;
+
+      CalcApproximation(0);
       
-        for (i=0; i<=node+1; i++)
-          {
-            z = fabs(y[i]-coef[j]);
+      res = 0;
+      j   = 0;
+      for ( i=0; i<=node_+1; i++)  {
+        z = fabs(y_[i]-coef_[j]);
 
-            j += 2;
+        j += 2;
 
-            if (z > res)
-              {
-                res = z;
-              }
-          }
-
-        if ((MonotoneBH() == 1) && (res > 2*error))
-          {
-            mu_old = mu;
-            mu *= 2; 
-          }
-        else if ((MonotoneBH() == -1) && (res > 2*error))
-          {
-            mu = mu_old +(mu - mu_old)*0.5;
-          }
-        else if ((MonotoneBH() == 1) && (res <= 2*error))
-          {
-            monotone = 0;
-          }
-        else if ((MonotoneBH() == -1) && (res <= 2*error))
-          {
-            mu = mu_old +(mu - mu_old)*0.5;
-          }
-
+        if (z > res) 
+          res = z;
       }
 
-    //  std::cout << "monotone BH " << MonotoneBH() << std::endl;
-    //  std::cout << "monotone nu " << MonotoneNu() << std::endl;
+      if ( ( MonotoneBH() == true ) && ( res > 2*delta_ ) ) {
+        mu_old = mu_;
+        mu_ *= 2; 
+      }
+      else if ( ( MonotoneBH() == false ) && ( res > 2*delta_ ) ) {
+        mu_ = mu_old + ( mu_ - mu_old )*0.5;
+      }
+      else if ( ( MonotoneBH() == true ) && ( res <= 2*delta_ ) ) {
+        monotone = false;
+      }
+      else if ( ( MonotoneBH() == false ) && ( res <= 2*delta_ ) ) {
+        mu_ = mu_old + ( mu_ - mu_old ) * 0.5;
+      }
+
+    }
+    //    std::cout << "muEnd = " << mu_ << std::endl;
   }
 
 
 
-  void SmoothSpline :: ConstructMatrix()
+  void SmoothSpline::ConstructMatrix()
   {
-    int i,j,k;
-    double x1,x2,x3,x4,x5,x6,x7,x8;
+    ENTER_FCN( "SmoothSpline::ConstructMatrix" );
 
-    for (i=0; i<size*size; i++)
+    Integer i,j,k;
+    Double x1,x2,x3,x4,x5,x6,x7,x8;
+
+    for (i=0; i<size_*size_; i++)
       {
-        mat[i] = 0;
+        mat_[i] = 0;
       }
 
     // construct the matrix
@@ -192,387 +183,238 @@ namespace CoupledField
 
     k = 0;
   
-    for (i=0; i<size; i += 2)
-      {
-        j  = i+1;
-        x1 = 1/(h[k]*h[k]*h[k]);
-        x2 = 1/(h[k]*h[k]);
-        x3 = 1/h[k];
-        x4 = h[k];
-
-        x5 = 1/(h[k+1]*h[k+1]*h[k+1]);
-        x6 = 1/(h[k+1]*h[k+1]);
-        x7 = 1/h[k+1];
-        x8 = h[k+1];
-
-        mat[i*size+i]   = 72*x5-144*x6+96*x7 + 72*x1-144*x2+96*x3+2*mu;
-        mat[i*size+i+1] = 48*x6-84*x7+48 - 24*x2+60*x3-48;
-        mat[j*size+j-1] = 48*x6-84*x7+48 - 24*x2+60*x3-48;
-        mat[j*size+j]   = 32*x7-48+24*x8 + 8*x3-24+24*x4;
-
-        k++;
-      }
+    for (i=0; i<size_; i += 2) {
+      j  = i+1;
+      x1 = 1/(h_[k]*h_[k]*h_[k]);
+      x2 = 1/(h_[k]*h_[k]);
+      x3 = 1/h_[k];
+      x4 = h_[k];
+      
+      x5 = 1/(h_[k+1]*h_[k+1]*h_[k+1]);
+      x6 = 1/(h_[k+1]*h_[k+1]);
+      x7 = 1/h_[k+1];
+      x8 = h_[k+1];
+      
+      mat_[i*size_+i]   = 72*x5-144*x6+96*x7 + 72*x1-144*x2+96*x3+2*mu_;
+      mat_[i*size_+i+1] = 48*x6-84*x7+48 - 24*x2+60*x3-48;
+      mat_[j*size_+j-1] = 48*x6-84*x7+48 - 24*x2+60*x3-48;
+      mat_[j*size_+j]   = 32*x7-48+24*x8 + 8*x3-24+24*x4;
+      
+      k++;
+    }
 
     // super off diagonal B
 
     k = 1;
 
-    for (i=0; i<size-2; i += 2)
-      {
-        j  = i+1;
-        x1 = 1/(h[k]*h[k]*h[k]);
-        x2 = 1/(h[k]*h[k]);
-        x3 = 1/h[k];
-        x4 = h[k];
-
-        mat[i*size+i+2] = -72*x1+144*x2-96*x3;
-        mat[i*size+i+3] = 24*x2-60*x3+48;
-        mat[j*size+j+1] = -48*x2+84*x3-48;
-        mat[j*size+j+2] = 16*x3-36+24*x4;
-
-        k++;
-      }
-
+    for (i=0; i<size_-2; i += 2) {
+      j  = i+1;
+      x1 = 1/(h_[k]*h_[k]*h_[k]);
+      x2 = 1/(h_[k]*h_[k]);
+      x3 = 1/h_[k];
+      x4 = h_[k];
+      
+      mat_[i*size_+i+2] = -72*x1+144*x2-96*x3;
+      mat_[i*size_+i+3] = 24*x2-60*x3+48;
+      mat_[j*size_+j+1] = -48*x2+84*x3-48;
+      mat_[j*size_+j+2] = 16*x3-36+24*x4;
+      
+      k++;
+    }
+    
     // sub off diagonal A
-
     k = 1;
-
-    for (i=2; i<size; i += 2)
-      {
-        j  = i+1;
-        x1 = 1/(h[k]*h[k]*h[k]);
-        x2 = 1/(h[k]*h[k]);
-        x3 = 1/h[k];
-        x4 = h[k];
-
-        mat[i*size+i-2] = -72*x1+144*x2-96*x3;
-        mat[i*size+i-1] = -48*x2+84*x3-48;
-        mat[j*size+j-3] = 24*x2-60*x3+48;
-        mat[j*size+j-2] = 16*x3-36+24*x4;
-
-        k++;
-      }
+    for (i=2; i<size_; i += 2) {
+      j  = i+1;
+      x1 = 1/(h_[k]*h_[k]*h_[k]);
+      x2 = 1/(h_[k]*h_[k]);
+      x3 = 1/h_[k];
+      x4 = h_[k];
+      
+      mat_[i*size_+i-2] = -72*x1+144*x2-96*x3;
+      mat_[i*size_+i-1] = -48*x2+84*x3-48;
+      mat_[j*size_+j-3] = 24*x2-60*x3+48;
+      mat_[j*size_+j-2] = 16*x3-36+24*x4;
+      
+      k++;
+    }
   }
 
-  void SmoothSpline :: ConstructRHS(double *y)
+  void SmoothSpline::ConstructRHS(Vector<Double>& y)
   {
-    int i,j;
+    ENTER_FCN( "SmoothSpline::ConstructRHS" );
 
-    for (i=1; i<size; i += 2)
-      {
-        rhs[i] = 0;
-      }
+    Integer i,j;
+
+    for (i=1; i<size_; i += 2) {
+      rhs_[i] = 0;
+    }
 
     j = 1;
-
-    for (i=0; i<size; i += 2)
-      {
-        rhs[i] = 2*mu*y[j];
-        j++;
-      }
+    for (i=0; i<size_; i += 2) {
+      rhs_[i] = 2*mu_*y[j];
+      j++;
+    }
 
     // incorporate initial conditions
-
-    double x1,x2,x3,x4;
+    Double x1,x2,x3,x4;
   
-    x1 = 1/(h[0]*h[0]*h[0]);
-    x2 = 1/(h[0]*h[0]);
-    x3 = 1/h[0];
-    x4 = h[0];
+    x1 = 1/(h_[0]*h_[0]*h_[0]);
+    x2 = 1/(h_[0]*h_[0]);
+    x3 = 1/h_[0];
+    x4 = h_[0];
 
-    rhs[0] -= (((-72*x1+144*x2-96*x3)*coef[0]+(-48*x2+84*x3-48)*coef[1]));
-    rhs[1] -= (((24*x2-60*x3+48)*coef[0]+(16*x3-36+24*x4)*coef[1]));
+    rhs_[0] -= (((-72*x1+144*x2-96*x3)*coef_[0]+(-48*x2+84*x3-48)*coef_[1]));
+    rhs_[1] -= (((24*x2-60*x3+48)*coef_[0]+(16*x3-36+24*x4)*coef_[1]));
 
-    x1 = 1/(h[node]*h[node]*h[node]);
-    x2 = 1/(h[node]*h[node]);
-    x3 = 1/h[node];
-    x4 = h[node];
+    x1 = 1/(h_[node_]*h_[node_]*h_[node_]);
+    x2 = 1/(h_[node_]*h_[node_]);
+    x3 = 1/h_[node_];
+    x4 = h_[node_];
 
-    rhs[size-2] -= (((-72*x1+144*x2-96*x3)*coef[size+2]+(24*x2-60*x3+48)*coef[size+3]));
-    rhs[size-1] -= (((-48*x2+84*x3-48)*coef[size+2]+(16*x3-36+24*x4)*coef[size+3]));
+    rhs_[size_-2] -= (((-72*x1+144*x2-96*x3)*coef_[size_+2]+(24*x2-60*x3+48)*coef_[size_+3]));
+    rhs_[size_-1] -= (((-48*x2+84*x3-48)*coef_[size_+2]+(16*x3-36+24*x4)*coef_[size_+3]));
 
   }
 
-  void SmoothSpline :: CalcCoef()
+
+  void SmoothSpline::CalcCoef()
   {
-    double * y = new double[size+1];
-    double * c = new double[size*size+1];
+    ENTER_FCN( "SmoothSpline::CalcCoef" );
+
+    Vector<Double> y(size_+1);
+    Vector<Double> c(size_*size_+1);
       
-    int i,j,k;
-    double h;
+    Integer i,j,k;
+    Double h;
 
     // Solve the system by LU-factorization
       
     // factor
 
-    for (i=1; i<= size; i++)
-      {
-        for (j=i; j<=size; j++)
-          {
-            h = 0;
+    for ( i=1; i<= size_; i++ ) {
+      for ( j=i; j<=size_; j++ ) {
+        h = 0;
+        
+        for ( k=1; k<=i-1; k++ ) {
+          h += c[(i-1)*size_+k]*c[(k-1)*size_+j];
+        }
           
-            for (k=1; k<=i-1; k++)
-              {
-                h += c[(i-1)*size+k]*c[(k-1)*size+j];
-              }
-          
-            c[(i-1)*size+j] = mat[(i-1)*size+j-1]-h;
-          }
-      
-        for (j=i+1; j<=size; j++)
-          {
-            h = 0;
-          
-            for (k=1; k<=i-1; k++)
-              {
-                h += c[(j-1)*size+k]*c[(k-1)*size+i];
-              }
-          
-            c[(j-1)*size+i] = (mat[(j-1)*size+i-1]-h)/c[(i-1)*size+i];
-          }
+        c[(i-1)*size_+j] = mat_[(i-1)*size_+j-1]-h;
       }
+      
+      for ( j=i+1; j<=size_; j++ ) {
+        h = 0;
+          
+        for (k=1; k<=i-1; k++) {
+          h += c[(j-1)*size_+k]*c[(k-1)*size_+i];
+        }
+          
+        c[(j-1)*size_+i] = (mat_[(j-1)*size_+i-1]-h)/c[(i-1)*size_+i];
+      }
+    }
 
     // solver rs = v, ui = u
+    y[1] = rhs_[0];
+    for ( i=2; i<=size_; i++ ) {
+      h = 0;
+      
+      for ( j=1; j<=i-1; j++ ) {
+        h += c[(i-1)*size_+j]*y[j];
+      }
+      
+      y[i]= rhs_[i-1] - h;
+    }
   
-    y[1] = rhs[0];
-  
-    for (i=2; i<=size; i++)
-      {
+    coef_[size_+1] = y[size_]/c[size_*size_];
+
+    for ( i=size_-1; i>=1; i-- ) {
         h = 0;
       
-        for (j=1; j<=i-1; j++)
-          {
-            h += c[(i-1)*size+j]*y[j];
-          }
-      
-        y[i]=(rhs[i-1]-h);
-      }
-  
-    coef[size+1] = y[size]/c[size*size];
+        for (j=i+1; j<=size_; j++) {
+          h += c[(i-1)*size_+j]*coef_[j+1];
+        }
 
-    for (i=size-1; i>=1; i--)
-      {
-        h = 0;
-      
-        for (j=i+1; j<=size; j++)
-          {
-            h += c[(i-1)*size+j]*coef[j+1];
-          }
-
-        coef[i+1]=(y[i]-h)/c[(i-1)*size+i];
-      }
-
-    // calc the error vector
-
-    //   for (i=1; i<=size; i++)
-    //     {
-    //       h = 0;
-
-    //       for (j=1; j<=size; j++)
-    //      {
-    //        h += mat[(i-1)*size+j-1]*coef[j+1];
-    //      }
-
-    //       y[i] = h;
-    //     }
-
-    //   h = 0;
-
-    //   for (i=1; i<=size; i++)
-    //     {
-    //       h += (rhs[i-1]-y[i])*(rhs[i-1]-y[i]);
-    //     }
-  
-    //   std::cout  << "res norm " << sqrt(h) << std::endl;
-
-    delete [] y;
-    delete [] c;
+        coef_[i+1]=(y[i]-h)/c[(i-1)*size_+i];
+    }
   }
 
 
-  void SmoothSpline :: CalcMonotoneParameter()
+  Double SmoothSpline::EvaluateFunc(Double t)
   {
-    int i,j,iter = 0,monotone = 1;
+   ENTER_FCN( "SmoothSpline::EvaluateFunc" );
 
-    double error = delta;
-    double res = 1e14;
-    double z,fac;
-    double mu_old;
-
-    while (monotone == 1)
-      {
-        CalcApproximation(0);
-
-        if (MonotoneBH() == -1)
-          {
-            mu *= 2;
-          }
-        else
-          {
-            mu_old   = 0.5*mu; 
-            monotone = 0;
-          }
-      }
-
-    monotone = 1;
-    fac      = (mu-mu_old)/10.;
-    mu       = mu_old;
-
-    while (monotone == 1)
-      {
-        CalcApproximation(0);
-
-        if (MonotoneBH() == -1)
-          {
-            mu += fac;
-          }
-        else 
-          {
-            monotone = 0;
-          }
-      }
-
-    //  std::cout << "first monotone mu BH " << mu << std::endl;
-
-    monotone = 1;
-
-    if (MonotoneNu() == -1)
-      {
-        std::cout << "+++ ERROR: no approximation can be found" << std::endl;
-        return;
-      }
-
-    while (monotone == 1 && iter <= 1000)
-      {
-        iter++;
-
-        CalcApproximation(0);
-
-        res = 0;
-        j   = 0;
-      
-        for (i=0; i<=node+1; i++)
-          {
-            z = fabs(y[i]-coef[j]);
-
-            j += 2;
-
-            if (z > res)
-              {
-                res = z;
-              }
-          }
-
-        if ((MonotoneBH() == 1) && (res > 2*error) && (MonotoneNu() == 1))
-          {
-            mu_old = mu;
-            mu *= 2; 
-          }
-        else if ((MonotoneBH() == -1) && (res > 2*error) && (MonotoneNu() == 1))
-          {
-            mu = mu_old +(mu - mu_old)*0.5;
-          }
-        else if ((MonotoneBH() == 1) && (res <= 2*error) && (MonotoneNu() == 1))
-          {
-            monotone = 0;
-          }
-        else if ((MonotoneBH() == -1) && (res <= 2*error) && (MonotoneNu() == 1))
-          {
-            mu = mu_old +(mu - mu_old)*0.5;
-          }
-
-        if (MonotoneNu() == -1)
-          {
-            mu /= 2;
-            CalcApproximation(0);
-            monotone = 0;
-          }
-
-        //std::cout << res << " " << mu << std::endl;
-      }
-
-    //    std::cout << "res and mu  " << res << " " << mu << std::endl;
-    //    std::cout << "monotone BH " << MonotoneBH() << std::endl;
-    //    std::cout << "monotone nu " << MonotoneNu() << std::endl;
-  }
-
-
-  double SmoothSpline :: EvaluateFunc(double t)
-  {
-    int i,j,k;
-    double f0,f1,f2,f3,p0,p1,p2,p3;
-    double z, val, p;
+    Integer i,j,k;
+    Double f0,f1,f2,f3,p0,p1,p2,p3;
+    Double z, val, p;
 
     i = GetInterval(t);
 
-    if (i == -1)
-      {
-        std::cout << "no function evaluation possible" << std::endl;
-        return 1e+32;
-      }
+    if (i == -1) {
+      std::string str = "In BH-approximation: can not find correct intervall";
+      EXCEPTION( str ); 
+    }
 
     j = 2*i;
 
-    f0 = coef[j];
-    f1 = coef[j+2];
-    f2 = coef[j+1];
-    f3 = coef[j+3];
+    f0 = coef_[j];
+    f1 = coef_[j+2];
+    f2 = coef_[j+1];
+    f3 = coef_[j+3];
 
-    p = alpha;
+    p = xStart_;
+    for (k=0; k<i; k++) {
+      p += h_[k];
+    }
 
-    for (k=0; k<i; k++)
-      {
-        p += h[k];
-      }
-
-    z = (t-p)/h[i];
+    z = ( t - p ) / h_[i];
               
     // function value
   
     p0 = HermiteFunc(z,0);
     p1 = HermiteFunc(z,1);
-    p2 = HermiteFunc(z,2)*h[i];
-    p3 = HermiteFunc(z,3)*h[i];
+    p2 = HermiteFunc(z,2)*h_[i];
+    p3 = HermiteFunc(z,3)*h_[i];
   
     val= f0*p0+f1*p1+f2*p2+f3*p3;
               
     return val;
   }
 
-  double SmoothSpline :: EvaluatePrime(double t)
+
+  Double SmoothSpline::EvaluatePrime(Double t)
   {
-    int i,j,k;
-    double f0,f1,f2,f3,p0,p1,p2,p3;
-    double z, val, p;
+    ENTER_FCN( "SmoothSpline::EvaluatePrime" );
+
+    Integer i,j,k;
+    Double f0,f1,f2,f3,p0,p1,p2,p3;
+    Double z, val, p;
 
     i = GetInterval(t);
 
-    if (i == -1)
-      {
-        std::cout << "no prime evaluation possible" << std::endl;
-        return 1e+32;
-      }
+    if ( i == -1 ) {
+      std::string str = "In BH-approximation: can not find correct intervall";
+      EXCEPTION( str ); 
+    }
 
     j  = 2*i;
 
-    f0 = coef[j];
-    f1 = coef[j+2];
-    f2 = coef[j+1];
-    f3 = coef[j+3];
+    f0 = coef_[j];
+    f1 = coef_[j+2];
+    f2 = coef_[j+1];
+    f3 = coef_[j+3];
 
-    p = alpha;
+    p = xStart_;
 
-    for (k=0; k<i; k++)
-      {
-        p += h[k];
-      }
+    for (k=0; k<i; k++) {
+      p += h_[k];
+    }
 
-    z = (t-p)/h[i];
+    z = ( t - p ) / h_[i];
 
-    // prime value
-              
-    p0 = HermitePrime(z,0)/h[i];
-    p1 = HermitePrime(z,1)/h[i];
+    // prime value         
+    p0 = HermitePrime(z,0)/h_[i];
+    p1 = HermitePrime(z,1)/h_[i];
     p2 = HermitePrime(z,2);
     p3 = HermitePrime(z,3);
   
@@ -581,257 +423,258 @@ namespace CoupledField
     return val;
   }
 
-  double SmoothSpline :: EvaluateFuncInv(double f)
-  {
-    double z,k,d;
-    int i;
 
-    if (f <= y[nummeas-1])
-      {
-        i = int(f/theta);
-        z = Newton(f,g[i]);
-      }
-    else
-      {
-        k = (y[nummeas-1] - y[nummeas-2])/(x[nummeas-1] - x[nummeas-2]);
-        d = y[nummeas-1] - k*x[nummeas-1];
-        z = (f - d)/k;
-      }
+  Double SmoothSpline::EvaluateFuncInv( Double f )
+  {
+    ENTER_FCN( "SmoothSpline::EvaluateFuncInv" );
+
+    Double z,k,d;
+    Integer i;
+
+    if ( f <= y_[numMeas_-1] ) {
+      i = Integer( f / theta_ );
+      z = Newton(f,g_[i]);
+    }
+    else {
+      k = (y_[numMeas_-1] - y_[numMeas_-2])/(x_[numMeas_-1] - x_[numMeas_-2]);
+      d = y_[numMeas_-1] - k*x_[numMeas_-1];
+      z = (f - d)/k;
+    }
 
     return z;
   }
 
-  double SmoothSpline :: EvaluatePrimeInv(double f)
-  {
-    double z,p;
-    int i;
 
-    i = int(f/theta);
-    z = Newton(f,g[i]);
-    p = 1./EvaluatePrime(z);
+  Double SmoothSpline::EvaluatePrimeInv( Double f )
+  {
+    ENTER_FCN( "SmoothSpline::EvaluatePrimeInv" );
+
+    Double z,p;
+    Integer i;
+
+    i = Integer ( f / theta_);
+    z = Newton( f,g_[i] );
+    p = 1.0 / EvaluatePrime( z );
 
     return p;
   }
 
-  void SmoothSpline :: EvaluateInv(double v, double *f, double *p)
+
+  void SmoothSpline::EvaluateInv( Double v, Double& f, Double& p )
   {
-    int i;
+    ENTER_FCN( "SmoothSpline::EvaluateInv" );
+
+    Integer i;
   
-    i  = int(v/theta);
-    *f = Newton(v,g[i]);
-    *p = 1./EvaluatePrime(*f); 
+    i = Integer ( v / theta_ );
+    f = Newton( v, g_[i] );
+    p = 1.0 / EvaluatePrime( f ); 
   }
 
 
-
-
-  double SmoothSpline :: HermiteFunc(double t, int i)
+  Double SmoothSpline::HermiteFunc( Double t, Integer i )
   {
-    double x;
+    ENTER_FCN( "SmoothSpline::HermiteFunc" );
 
-    if (i == 0)
-      {
-        x = (1-t)*(1-t)*(2*t+1);
-      }
-    else if (i == 1)
-      {
-        x = t*t*(3-2*t);
-      }
-    else if (i == 2)
-      {
-        x = t*(1-t)*(1-t);
-      }
-    else if (i == 3)
-      {
-        x = -(1-t)*t*t;
-      }
+    Double x;
+
+    if ( i == 0 ) {
+      x = (1-t)*(1-t)*(2*t+1);
+    }
+    else if ( i == 1 ) {
+      x = t*t*(3-2*t);
+    }
+    else if ( i == 2 ) {
+      x = t*(1-t)*(1-t);
+    }
+    else if ( i == 3 ) {
+      x = -(1-t)*t*t;
+    }
 
     return x;
   }
 
-  double SmoothSpline :: HermitePrime(double t, int i)
-  {
-    double x;
 
-    if (i == 0)
-      {
-        x = -6*t+6*t*t;
-      }
-    else if (i == 1)
-      {
-        x = 6*t-6*t*t;
-      }
-    else if (i == 2)
-      {
-        x = 1-4*t+3*t*t;
-      }
-    else if (i == 3)
-      {
-        x = -2*t+3*t*t;
-      }
+  Double SmoothSpline::HermitePrime( Double t, Integer i )
+  {
+    ENTER_FCN( "SmoothSpline::HermitePrime" );
+
+    Double x;
+
+    if ( i == 0 ) {
+      x = -6*t+6*t*t;
+    }
+    else if ( i == 1 ) {
+      x = 6*t-6*t*t;
+    }
+    else if ( i == 2 ) {
+      x = 1-4*t+3*t*t;
+    }
+    else if ( i == 3 ) {
+      x = -2*t+3*t*t;
+    }
   
     return x;
   }
 
 
-  int SmoothSpline :: GetInterval(double t)
+  Integer SmoothSpline::GetInterval( Double t )
   {
-    int i;
-    double theta;
+    ENTER_FCN( "SmoothSpline::GetInterval" );
 
-    if (t < alpha && t > beta)
-      {
-        return -1;
-      }
+    Integer i;
+    Double theta;
 
-    theta = alpha;
+    if (t < xStart_ && t > xEnd_) {
+      return -1;
+    }
+
+    theta = xStart_;
     i     = 0;
 
-    while (i <= node)
-      {
-        if (t >= theta && t <= theta+h[i])
-          {
-            return i;
-          }
-      
-        theta += h[i];
-        i++;
+    while ( i <= node_ ) {
+      if ( t >= theta && t <= theta + h_[i] ) {
+        return i;
       }
+      
+      theta += h_[i];
+      i++;
+    }
 
     return i;
   }
 
-  double SmoothSpline :: Newton(double f,double start)
+
+  Double SmoothSpline::Newton( Double f, Double start )
   {
-    double za,zn,rel,eps;
-    int k;
+    ENTER_FCN( "SmoothSpline::Newton" );
+
+    Double za,zn,rel,eps;
+    Integer k;
 
     za  = start; // start value
-    zn  = beta;
+    zn  = xEnd_;
     eps = 1e-1;
     k   = 1;
 
-    if (za == 0)
-      {
-        rel = 1;
-      }
-    else
-      {
-        rel = za;
-      }
+    if (za == 0) {
+      rel = 1;
+    }
+    else {
+      rel = za;
+    }
 
-    while (fabs((za-zn)/rel) > eps)
-      {
-        zn  = za;
-        za -= (EvaluateFunc(za)-f)/EvaluatePrime(za);
-
-        k++;
-      }
+    while ( fabs((za-zn)/rel) > eps ) {
+      zn  = za;
+      za -= (EvaluateFunc(za)-f)/EvaluatePrime(za);
+      
+      k++;
+    }
 
     return za;
   }
 
-  void SmoothSpline :: CalcStart()
+
+  void SmoothSpline::CalcStart()
   {
-    int i;
-    double start = 0;
+    ENTER_FCN( "SmoothSpline::CalcStart" );
 
-    for (i=0; i<ind; i++)
-      {
-        g[i] = Newton(i*theta,start);
-        start = g[i];
-      }
+    Integer i;
+    Double start = 0;
 
-    g[ind] = beta;
+    for (i=0; i<ind_; i++) {
+      g_[i] = Newton( i*theta_, start );
+      start = g_[i];
+    }
+
+    g_[ind_] = xEnd_;
   }
 
-  int SmoothSpline :: MonotoneBH()
+
+  bool SmoothSpline::MonotoneBH()
   {
-    int i,j,monotone;
-    double f0,f1,f2,f3;
-    double c1,c2,c3;
-    double x1,x2,x3;
+    ENTER_FCN( "SmoothSpline::MonotoneBH" );
 
-    for (i=0; i<=node; i++)
-      {
-        j  = 2*i;
+    Integer i,j;
+    bool monotone;
+    Double f0,f1,f2,f3;
+    Double c1,c2,c3;
+    Double x1,x2,x3;
 
-        f0 = coef[j]/h[i];
-        f1 = coef[j+2]/h[i];
-        f2 = coef[j+1];
-        f3 = coef[j+3];
-
-        c1 = 6*f0-6*f1+3*f2+3*f3;
-        c2 = -6*f0+6*f1-4*f2-2*f3;
-        c3 = f2;
+    for ( i=0; i<=node_; i++) {
+      j  = 2*i;
       
-        if (c2*c2 < 4*c1*c3) // no zero of the quadratic polynomial
-          {
-            monotone = 1;
-          }
-        else if (c2*c2 == 4*c1*c3) // one zero of the quadratic polynomial
-          {
-            x1 = -c2/(2*c1);
-            x2 = -c2/(2*c1);
-
-            if ((2*c1 > 0) && (x1 < 0 || x1 > 1))
-              {
-                monotone = 1;
-              }
-            else
-              {
-                return -1;
-              }
-          }
-        else // two zeros of the quadratic polynomial
-          {
-            x1 = (-c2+sqrt(c2*c2-4*c1*c3))/(2*c1);
-            x2 = (-c2-sqrt(c2*c2-4*c1*c3))/(2*c1);
-
-            if (x1 > x2)
-              {
-                x3 = x1;
-                x1 = x2;
-                x2 = x3;
-              }
-
-            if (x1 >= 1 && x2 >= 1 && 2*c1 > 0)
-              {
-                monotone = 1;
-              }
-            else if (x1 <= 0 && x2 <= 0 && 2*c1 > 0)
-              {
-                monotone = 1;
-              }
-            else if (x1 <= 0 && x2 >= 1 && 2*c1 < 0)
-              {
-                monotone = 1;
-              }
-            else
-              {
-                return -1;
-              }
-          }
+      f0 = coef_[j] / h_[i];
+      f1 = coef_[j+2] / h_[i];
+      f2 = coef_[j+1];
+      f3 = coef_[j+3];
+      
+      c1 = 6*f0-6*f1+3*f2+3*f3;
+      c2 = -6*f0+6*f1-4*f2-2*f3;
+      c3 = f2;
+      
+      if (c2*c2 < 4*c1*c3 ) {
+        // no zero of the quadratic polynomial
+        monotone = true;
       }
+      else if (c2*c2 == 4*c1*c3) {
+        // one zero of the quadratic polynomial
+        x1 = -c2/(2*c1);
+        x2 = -c2/(2*c1);
+
+        if ((2*c1 > 0) && (x1 < 0 || x1 > 1)) {
+          monotone = true;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        // two zeros of the quadratic polynomial
+        x1 = (-c2+sqrt(c2*c2-4*c1*c3))/(2*c1);
+        x2 = (-c2-sqrt(c2*c2-4*c1*c3))/(2*c1);
+
+        if (x1 > x2) {
+          x3 = x1;
+          x1 = x2;
+          x2 = x3;
+        }
+
+        if (x1 >= 1 && x2 >= 1 && 2*c1 > 0) {
+          monotone = true;
+        }
+        else if (x1 <= 0 && x2 <= 0 && 2*c1 > 0) {
+          monotone = true;
+        }
+        else if (x1 <= 0 && x2 >= 1 && 2*c1 < 0) {
+          monotone = true;
+        }
+        else {
+          return false;
+        }
+      }
+    }
 
     return monotone; // BH curve is monotone
   }
 
-  int SmoothSpline :: MonotoneNu()
+
+  bool SmoothSpline::MonotoneNu()
   {
-    int i,j;
+    ENTER_FCN( "SmoothSpline::MonotoneNu" );
 
-    for (i=0; i<=node; i++)
-      {
-        j  = 2*i;
+    Integer i,j;
+    Double eps = 1e-6;
 
-        if ((coef[j+1] - coef[j+3])/h[i] < -1e-6)
-          {
-            return -1; // no monotone nu
-          }
+    for (i=0; i<=node_; i++) {
+      j  = 2*i;
+
+      if ( ( coef_[j+1] - coef_[j+3]) / h_[i] < eps ) {
+        return false; // no monotone nu
       }
+    }
 
-    return 1; // nu curve is monotone
+    return true; // nu curve is monotone
   }
 
 
@@ -839,183 +682,151 @@ namespace CoupledField
   //================================================ just for testing =================================
   //
 
-  void SmoothSpline :: Read()
+  void SmoothSpline::Read()
   {
-    int i;
+    ENTER_FCN( "SmoothSpline::Read" );
 
-    delta = 0.01;
+    UInt i;
+
+    delta_ = 0.01;
 
     std:: ifstream infile;
   
-    //infile.open("Vm165_2.fnc");
-    //infile.open("nlhfo.fnc");
     infile.open("bhorig.fnc");
   
-    if (infile.good() != 1)
-      {
-        std::cout << "input file not available" << std::endl;
-      }
+    if (infile.good() != 1){
+      std::string str = "Input file for BH-curve with name 'bhorig.dat' not available";
+      EXCEPTION( str );
+    }
   
-    infile >> nummeas;
+    infile >> numMeas_;
   
-    x = new double[nummeas];
-    y = new double[nummeas];
+    x_.Resize(numMeas_);
+    y_.Resize(numMeas_);
   
-    for (i=0; i<nummeas; i++)
-      {
-        infile >> x[i];
-        infile >> y[i];
-      }
+    for (i=0; i<numMeas_; i++) {
+      infile >> x_[i];
+      infile >> y_[i];
+    }
 
     infile.close();
   }
 
 
-  void SmoothSpline :: Print(double * x, double * y, double lower, double upper)
+  void SmoothSpline::Print( )
   {
-    MakeOutput(x, y, 0, 10000);
-    MakeOutputInv(x, y, 0, 2);
+    ENTER_FCN( "SmoothSpline::Print" );
+
+    MakeOutput( x_, y_ );
+    MakeOutputInv( x_, y_ );
+    MakeOutputNu();
   }
 
   /////////////////////// private functions /////////////////////////////////////////
 
-  void SmoothSpline :: MakeOutput(double * x, double * y, double left, double right)
+  void SmoothSpline::MakeOutput( Vector<Double>& x, Vector<Double>& y )
   {
-    int i,j;
-    double t,z,delta,val;
-    double f0,f1,f2,f3,p0,p1,p2,p3;
+    ENTER_FCN( "SmoothSpline::MakeOutput" );
+
+    Integer i,j;
+    Double t,z,delta,val;
+    Double f0,f1,f2,f3,p0,p1,p2,p3;
 
     std::ofstream out_orig;
     std::ofstream out_func;
     std::ofstream out_prime;
-
-    if (left >= right)
-      {
-        std::cout << "error" << std::endl;
-        return;
-      }
 
     out_orig.open("orig.dat");
     out_func.open("func.dat");
     out_prime.open("prime.dat");
 
     // output of the data
-
-    for (i=0; i<node+2; i++)
-      {
-        if (x[i] >= left && x[i] <= right)
-          {
-            out_orig << x[i] << " " << y[i] << std::endl;
-          }
-      }
+    for (i=0; i<node_+2; i++) {
+      out_orig << x[i] << " " << y[i] << std::endl;
+    }
+    
 
     // output function 
-
     j = 0;
-
-    for (i=0; i<node+1; i++)
-      {
-        f0 = coef[j];
-        f1 = coef[j+2];
-        f2 = coef[j+1];
-        f3 = coef[j+3];
-
-        delta = h[i]/100.;
-        t     = x[i];
-
-        while (t <= x[i+1]-delta)
-          {
-            if ( t >= left && t <= right)
-              {
-                z = (t-x[i])/h[i];
-              
-                // function value
-              
-                p0 = HermiteFunc(z,0);
-                p1 = HermiteFunc(z,1);
-                p2 = HermiteFunc(z,2)*h[i];
-                p3 = HermiteFunc(z,3)*h[i];
-              
-                val= f0*p0+f1*p1+f2*p2+f3*p3;
-              
-                out_func << t << " " << val << std::endl;
-              
-                // prime value
-              
-                p0 = HermitePrime(z,0)/h[i];
-                p1 = HermitePrime(z,1)/h[i];
-                p2 = HermitePrime(z,2);
-                p3 = HermitePrime(z,3);
-              
-                val= f0*p0+f1*p1+f2*p2+f3*p3;
-              
-                out_prime << t << " " << val << std::endl;
-              }
-
-            t += delta;
-          }
+    for (i=0; i<node_+1; i++) {
+      f0 = coef_[j];
+      f1 = coef_[j+2];
+      f2 = coef_[j+1];
+      f3 = coef_[j+3];
       
-        j += 2;
-      }
+      delta = h_[i]/100.;
+      t      = x_[i];
 
-    j -= 2;
-    t  = x[node+1];
-
-    if (t >= left && t <= right)
-      {
-        z  = 1;
-      
-        f0 = coef[j];
-        f1 = coef[j+2];
-        f2 = coef[j+1];
-        f3 = coef[j+3];
-      
-        val= y[node+1];
-      
+      while (t <= x_[i+1]-delta) {
+        z = (t-x_[i])/h_[i];
+          
+        // function value
+        p0 = HermiteFunc(z,0);
+        p1 = HermiteFunc(z,1);
+        p2 = HermiteFunc(z,2)*h_[i];
+        p3 = HermiteFunc(z,3)*h_[i];
+          
+        val= f0*p0+f1*p1+f2*p2+f3*p3;
+        
         out_func << t << " " << val << std::endl;
-      
-        p0 = HermitePrime(z,0)/h[node];
-        p1 = HermitePrime(z,1)/h[node];
+        
+        // prime value
+        p0 = HermitePrime(z,0)/h_[i];
+        p1 = HermitePrime(z,1)/h_[i];
         p2 = HermitePrime(z,2);
         p3 = HermitePrime(z,3);
-      
-        val = f0*p0+f1*p1+f2*p2+f3*p3;
-      
+        
+        val= f0*p0+f1*p1+f2*p2+f3*p3;
+        
         out_prime << t << " " << val << std::endl;
+        
+        t += delta;
       }
+      
+      j += 2;
+    }
+    
+    j -= 2;
+    t  = xEnd_;
 
+    z  = 1;
+    
+    f0 = coef_[j];
+    f1 = coef_[j+2];
+    f2 = coef_[j+1];
+    f3 = coef_[j+3];
+    
+    val= yEnd_;
+    
+    out_func << t << " " << val << std::endl;
+    
+    p0 = HermitePrime(z,0)/h_[node_];
+    p1 = HermitePrime(z,1)/h_[node_];
+    p2 = HermitePrime(z,2);
+    p3 = HermitePrime(z,3);
+    
+    val = f0*p0+f1*p1+f2*p2+f3*p3;
+    out_prime << t << " " << val << std::endl;
+    
     out_orig.close();
     out_func.close();
     out_prime.close();
   }
 
-  void SmoothSpline :: MakeOutputInv(double *x, double *y, double left, double right)
+
+  void SmoothSpline::MakeOutputInv( Vector<Double>& x, Vector<Double>& y)
   {
-    int i;
-    double t,delta;
+    ENTER_FCN( "SmoothSpline::MakeOutputInv" );
 
-    if (left < y[0])
-      {
-        left = y[0];
-      }
-
-    if (right > y[node+1])
-      {
-        right = y[node+1];
-      }
-
-    delta = (right-left)/100.;
-    t     = left;
-
+    Integer i;
+    Double t,delta;
+    
+    delta = ( yEnd_ - y_[0] ) / 100.;
+    t     = y_[0];
+    
     std::ofstream out_orig;
     std::ofstream out_func;
     std::ofstream out_prime;
-
-    if (left >= right)
-      {
-        std::cout << "error" << std::endl;
-        return;
-      }
 
     out_orig.open("originv.dat");
     out_func.open("funcinv.dat");
@@ -1023,29 +834,46 @@ namespace CoupledField
 
     // output of the data
 
-    for (i=0; i<node+2; i++)
-      {
-        if (y[i] >= left && y[i] <= right)
-          {
-            out_orig << y[i] << " " << x[i] << std::endl;
-          }
-      }
-
-    double f,p;
-
-    while (t <= right+delta)
-      {
-        EvaluateInv(t,&f,&p);
-
-        out_func << t << " " << f << std::endl;
-        out_prime << t << " " << p << std::endl;
-
-        t += delta;
-      }
-
+    for (i=0; i<node_+2; i++) {
+      out_orig << y_[i] << " " << x_[i] << std::endl;
+    }
+        
+    Double f,p;
+    while (t <= yEnd_ + delta) {
+      EvaluateInv(t,f,p);
+      
+      out_func << t << " " << f << std::endl;
+      out_prime << t << " " << p << std::endl;
+      
+      t += delta;
+    }
+    
     out_orig.close();
     out_func.close();
     out_prime.close();
   }
 
+
+
+  void SmoothSpline::MakeOutputNu()
+  {
+    ENTER_FCN( "SmoothSpline::MakeOutputNu" );
+
+    std::ofstream out_nu;
+    out_nu.open("nu_B.dat");
+
+    UInt numPoints = 100;
+    Double maxB = yEnd_ * 1.5;
+    Double dB = maxB / ( (Double)numPoints );
+
+    Double actB = 0;
+    // output of the data
+    for ( UInt i=0; i<numPoints; i++) {
+      out_nu << actB << "  " << EvaluateFuncNu(actB) << "  " << EvaluatePrimeNu(actB) << std::endl;
+      actB += dB;
+    }
+
+    out_nu.close();
+  
+  }
 }

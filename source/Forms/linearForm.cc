@@ -9,11 +9,12 @@
 #include "forms_header.hh"
 #include "Utils/coordSystem.hh"
 #include "Domain/domain.hh"
+#include "Utils/SmoothSpline.hh"
 
 namespace CoupledField {
 
 
-  LinearForm::LinearForm() : BaseForm( NULL )
+  LinearForm::LinearForm( BaseMaterial* matData) : BaseForm( matData )
   {
     ENTER_FCN( "LinearForm::LinearForm" );
   }
@@ -319,7 +320,7 @@ namespace CoupledField {
     coordUpdate_ = coordUpdate;
     nrDofs_ = 3;
 
-    curlOp_ = new CurlCurlNode3DInt( rel, coordUpdate );
+    curlOp_ = new CurlCurlNode3DInt( NULL, coordUpdate );
   }
 
 
@@ -390,19 +391,23 @@ namespace CoupledField {
   // nLinMagnetics
   // ==================================================================
 
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, 
-                                                     Double startVal, 
-                                                     bool axi,
-                                                     bool coordUpdate)
-    : LinearForm()
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt( BaseMaterial* matData, 
+                                                      bool axi,
+                                                      bool coordUpdate)
+    : LinearForm( matData )
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
+
     name_ = "nLinMagNode2D_linFormInt";
+    isSolDependent_ = true;
+
     isaxi_       = axi;
     coordUpdate_ = coordUpdate;
-    startmatVal_ = startVal;
-    nlinFnc_     = nlinFnc;
-    isSolDependent_ = true;
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+
+    // need nonlinear BH curve approximation
+    if (  ptMaterial->GetNonlinFileName() != "" )  
+      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
@@ -421,13 +426,16 @@ namespace CoupledField {
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
+    // get pointer to nonlinear BH curve approximation
+    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
       //define the linear element matrix
-      curlcurl2D = new CurlCurlNode2DInt(startmatVal_, isaxi_);
+      curlcurl2D = new CurlCurlNode2DInt( ptMaterial, isaxi_, coordUpdate_ );
     else {
       //define the nonlinear element matrix
-      curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc_, startmatVal_, isaxi_);
+      curlcurl2D = new nLinCurlCurlNode2DInt( ptMaterial, isaxi_, coordUpdate_ );
       //important to set method to FixPoint, since we compute the RHS!!
       curlcurl2D->SetNonLinMethod("fixPoint");
         
@@ -449,6 +457,68 @@ namespace CoupledField {
   }
 
 
+  nLinMagNode3D_linFormInt::nLinMagNode3D_linFormInt( BaseMaterial*matData, 
+                                                      bool coordUpdate)
+    : LinearForm( matData )
+  {
+    ENTER_FCN( "nLinMagNode3D_linFormInt::nLinMagNode3D_linFormInt" );
+    name_ = "nLinMagNode3D_linFormInt";
+    isSolDependent_ = true;
+
+    isaxi_       = false;
+    coordUpdate_ = coordUpdate;
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+
+    // need nonlinear BH curve approximation
+    // need nonlinear BH curve approximation
+    if (  ptMaterial->GetNonlinFileName() != "" )  
+      ptMaterial->NeedApproxMatCurve( magBH );
+  }
+  
+  nLinMagNode3D_linFormInt::~nLinMagNode3D_linFormInt()
+  {
+    ENTER_FCN( "nLinMagNode3D_linFormInt ::~nLinMagNode3D_linFormInt" );  
+  }
+
+  void nLinMagNode3D_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                                 EntityIterator& ent )
+  {
+    ENTER_FCN("nLinMagNode3D_linFormInt :: ~CalcElemVector" );
+  
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    // get pointer to nonlinear BH curve approximation
+    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+
+    BaseForm * curlcurl3D;
+    if (nlinFnc_== NULL) 
+      //define the linear element matrix
+      curlcurl3D = new CurlCurlNode3DInt( ptMaterial, coordUpdate_);
+    else {
+      //define the nonlinear element matrix
+      curlcurl3D = new nLinCurlCurlNode3DInt( ptMaterial, coordUpdate_ );
+      //important to set method to FixPoint, since we compute the RHS!!
+      curlcurl3D->SetNonLinMethod("fixPoint");
+        
+      //set the solution class to the operator
+      curlcurl3D->SetSolution( *sol_ );
+    }
+
+    // Get element solution
+    Vector<Double> magPot;
+    sol_->GetElemSolution( magPot, ent  );
+
+    Matrix<Double> elemmat;
+    curlcurl3D->CalcElementMatrix(elemmat, ent, ent);
+
+    elemVec = -(elemmat * magPot);
+
+    delete curlcurl3D;
+  }
 
 
   // ==================================================================

@@ -59,7 +59,7 @@ namespace CoupledField {
     ENTER_FCN( "BasePDE::BasePDE" );
   
     nonLin_ = false;
-    
+   
     // =====================================================================
     // set file pointers
     // =====================================================================
@@ -369,6 +369,15 @@ namespace CoupledField {
       assemble_->PrintInfo( *debug );
     }
 #endif
+
+    // now we know about nonlinearities and we can trigger the
+    // material objects to perform the approximations of the nonlinear
+    // sampled data
+    std::map<RegionIdType, BaseMaterial*>::iterator itMat;
+    for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {       
+      itMat->second->InitApproxCurves();
+    }
+
 
     // Finish equation mapping
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
