@@ -7,52 +7,72 @@
 
 #include <string>
 #include "General/environment.hh"
-
+#include "vector.hh"
 namespace CoupledField {
 
+  //! Base class for approximation of sampled data
   class ApproxData
   {
   public:
-    ApproxData(std::string nlFncName);
 
-    ///
-    virtual ~ApproxData();
+    //! constructor
+    ApproxData( std::string nlFncName, ApproxCurveType curveType );
 
-    ///
-    void ReadNlinFunc(std::string fncName);
+    //! destructor: nothing to do
+    virtual ~ApproxData() {;};
 
-    ///
-    virtual void CalcApproximation(int start=1) = 0;
+    //! reads in the sampled data form file with name fncName
+    void ReadNlinFunc( std::string fncName );
 
-    ///
-    virtual double EvaluateFunc(double t) = 0;
+    //! performs the approximation
+    virtual void CalcApproximation( bool start=true ) = 0;
 
-    ///
-    virtual double EvaluatePrime(double t) = 0;
+    //! set accuracy of measured data
+    virtual void SetAccuracy( Double val ) {
+      EXCEPTION(" ApproxData: SetAccuracy not implemented");
+    };
 
-    ///
-    virtual double EvaluateFuncInv(double t) = 0;
+    //! set maximal y-value
+    virtual void SetMaxY( Double val ) {
+      EXCEPTION(" ApproxData: SetMaxY not implemented");
+    };
 
-    ///
-    virtual double EvaluatePrimeInv(double t) = 0;
+    //! evaluates the functions
+    virtual Double EvaluateFunc( Double t ) = 0;
 
-    ///
+    //! evalutates the derivazive of the function
+    virtual Double EvaluatePrime( Double t ) = 0;
+
+    //! evalutates the invers of the function
+    virtual Double EvaluateFuncInv( Double t ) = 0;
+
+    //! valuates the inverse of the derivative of the function
+    virtual Double EvaluatePrimeInv( Double t ) = 0;
+
+    //! computes the best approximation
     virtual void CalcBestParameter() = 0;
 
-    ///
-    virtual void CalcMonotoneParameter() = 0;
+    //! computes the magnetic reluctivity
+    virtual Double EvaluateFuncNu(Double t) {     
+      EXCEPTION(" ApproxData: EvaluateFuncNu not implemented");
+      return -1.0; 
+    }
 
-    double EvaluateFuncNu(double t)
-    {return (EvaluateFuncInv(t)/t);};
+    //! computes the derivative of magnetic reluctivity
+    virtual Double EvaluatePrimeNu(Double t) {
+      EXCEPTION(" ApproxData: EvaluatePrimeNu not implemented");
+      return -1.0; 
+    }
 
-    double EvaluatePrimeNu(double t)
-    {return (EvaluatePrimeInv(t)*t - EvaluateFuncInv(t))/(t*t);};
+    //! prints out original and approximated function
+    virtual void Print() {;};
 
   protected:
 
-    double * x;
-    double * y;
-    UInt nummeas;
+    Vector<Double> x_;  //!< independent value
+    Vector<Double> y_;  //!< function value
+    UInt numMeas_;      //!< number of sampled points
+    ApproxCurveType curveType_; //!< type of measured curve to be approximated
 
   };
 

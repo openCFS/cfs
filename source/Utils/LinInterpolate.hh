@@ -19,7 +19,7 @@ namespace CoupledField {
   {
   public:
     //! constructor getting x, y(x)
-    LinInterpolate(std::string nlFncName);
+    LinInterpolate(std::string nlFncName, ApproxCurveType curveType = GENERAL);
 
     //! destructor
     virtual ~ LinInterpolate();
@@ -29,10 +29,6 @@ namespace CoupledField {
 
     //! computes the regularization parameter
     virtual void CalcBestParameter() {;};
-
-    ///
-    virtual void CalcMonotoneParameter() {;};
-
 
     //! returns y(x)
     virtual double EvaluateFunc(double x) {
@@ -54,16 +50,14 @@ namespace CoupledField {
     //  { Error(" LinInterpolate:  EvaluatePrimeInv not implemented");};
 
     ///
-    int GetSize() {return nummeas;};
+    int GetSize() {return numMeas_;};
 
     ///
-    double EvaluateOrigB(int i) {return y[i];};
+    double EvaluateOrigB(int i) {return y_[i];};
 
     ///
-    double EvaluateOrigNu(int i) {return x[i]/y[i];};
+    double EvaluateOrigNu(int i) {return x_[i]/y_[i];};
 
-    ///
-    void Print(double *x, double *y, double lower, double upper);
 
   private:
 

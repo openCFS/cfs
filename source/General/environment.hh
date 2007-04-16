@@ -317,6 +317,7 @@ namespace CoupledField {
 
   //! describes the possible material types
   typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY, 
+               MAG_PERMEABILITY_1, MAG_PERMEABILITY_2, MAG_PERMEABILITY_3,
                ELEC_PERMITTIVITY, MECH_STIFFNESS_TENSOR, MECH_EMODULUS,
                MECH_POISSON, MECH_KMODULUS, MECH_GMODULUS,
                MECH_LAME_MU, MECH_LAME_LAMBDA, COEFF_STRAIN_IRREVERSIBLE,
@@ -332,12 +333,20 @@ namespace CoupledField {
                E_SATURATION, P_SATURATION, PREISACH_WEIGHTS, A_JILES, ALPHA_JILES, K_JILES,
                C_JILES, P_DIRECTION, HYST_MODEL, 
                NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,
-               NONLIN_DATA_NAME, DYNAMIC_VISCOSITY} MaterialType;
+               NONLIN_DATA_NAME, DYNAMIC_VISCOSITY,
+               DATA_ACCURACY, MAX_APPROX_VAL} MaterialType;
 
   typedef enum{FULL, PLANE_STRAIN, PLANE_STRESS, AXI} SubTensorType;
 
   typedef enum{ NO_CLASS, ELECTROMAGNETIC, ELECTROSTATIC, FLUID, FLOW,
                 MECHANIC, PIEZO, THERMIC } MaterialClass;
+
+  typedef enum{ noCurve, magBH } ApproxMaterialCurves;
+
+  //! type of measured curve to be approximated
+  //! GENERAL   = any curve
+  //! BH        = magnetic BH curve
+  typedef enum{ GENERAL, BH } ApproxCurveType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all

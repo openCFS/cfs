@@ -61,12 +61,21 @@ namespace CoupledField {
 		    const DataType& dataType,
 		    const SubTensorType = FULL ) const;	
 
+    //Initialize approximations of nonlinear curves
+    void InitApproxCurves();
+
+    ApproxData* GetNonlinFncBH() {
+      return nlinFncBH_;
+    }
+
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  const MaterialType& matType, 
 			  const SubTensorType& subTensor) const;
+
+    ApproxData* nlinFncBH_;
 
   };
 

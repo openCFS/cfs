@@ -37,11 +37,23 @@
   <!--   Definition of linear magnetic permeability-->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_LinMagnPermeability">
-    <xsd:sequence>
+    <xsd:choice>
       <xsd:element name="isotropic" type="DT_NonNegFloat"/>
-    </xsd:sequence>
+      <xsd:element name="orthotropic" type="DT_MagOrthotropic"/>
+    </xsd:choice>
   </xsd:complexType>
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="permeability_1" type="DT_NonNegFloat"/>
+      <xsd:element name="permeability_2" type="DT_NonNegFloat"/>
+      <xsd:element name="permeability_3" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of non linear magnetic permeability-->
   <!-- ******************************************************************* -->
@@ -58,6 +70,8 @@
     <xsd:sequence>
       <xsd:element name="dependency" type="xsd:string"/>
       <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
       <xsd:element name="dataName" type="xsd:string"/>
     </xsd:sequence>
   </xsd:complexType>

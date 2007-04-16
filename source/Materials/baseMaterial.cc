@@ -38,11 +38,18 @@ namespace CoupledField
     symmetryType_ = GENERAL;
   }
 
-
    BaseMaterial::~BaseMaterial() {
 
     ENTER_FCN("BaseMaterial::~BaseMaterial");
 
+  }
+
+
+  void BaseMaterial::NeedApproxMatCurve( ApproxMaterialCurves type ) {
+
+    ENTER_FCN( "Basematerial::NeedApproxMatCurve" );
+
+    needApproxMatCurves_.insert( type );
   }
 
 

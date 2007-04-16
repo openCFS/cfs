@@ -16,8 +16,8 @@ class CurlCurlNode2DInt : public BaseForm
 public:
 
   /// Constructor
-  CurlCurlNode2DInt(Double laplVal, bool axi=false, 
-                    bool coordUpdate = false );
+  CurlCurlNode2DInt( BaseMaterial* matData, bool axi=false, 
+                     bool coordUpdate = false );
 
   /// 
   virtual ~ CurlCurlNode2DInt();
@@ -44,28 +44,35 @@ class CurlCurlNode3DInt : public BaseForm
 {
 public:
 
-  /// Constructor
-  CurlCurlNode3DInt(Double laplVal, bool coordUpdate = false );
+  //! Constructor 
+  CurlCurlNode3DInt( BaseMaterial* matData, bool coordUpdate = false );
 
-  /// 
-  virtual ~ CurlCurlNode3DInt();
+  //! Destructor 
+  virtual ~CurlCurlNode3DInt();
 
-  /// Calculation of stiffmess matrix
+  //! Calculation of stiffmess matrix
   void CalcElementMatrix( Matrix<Double>& elemMat,
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
   
-  // returns curl and div - matrix
+  //! returns curl and div - matrix
   void calcBMat( Matrix<Double> &bMatCurl, Matrix<Double> &bMatDiv,
 		 UInt ip, Matrix<Double> &ptCoord );
 
 protected: 
+  UInt nrDofs_;
+
 private:
 
-  /// multiplicative value for curlc-curl operator 
+  //! multiplicative value for curl-curl operator 
   Double matVal_;
 
-  UInt nrDofs_;
+  //! true, if we have an orthotropic material
+  bool isOrthotropic_;
+
+  //! contains the orthotropic reluctivities
+  Vector<Double> reluctivityVec_;
+
 };
 
 

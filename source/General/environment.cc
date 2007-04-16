@@ -905,6 +905,15 @@ namespace CoupledField {
     case MAG_PERMEABILITY:
       out = "Magnetic_permability";
       break;
+    case MAG_PERMEABILITY_1:
+      out = "Magnetic_permability_1";
+      break;
+    case MAG_PERMEABILITY_2:
+      out = "Magnetic_permability_2";
+      break;
+    case MAG_PERMEABILITY_3:
+      out = "Magnetic_permability_3";
+      break;
     case MAG_RELUCTIVITY:
       out = "Magnetic_reluctivity";
       break;
@@ -1058,6 +1067,13 @@ namespace CoupledField {
     case NONLIN_DATA_NAME:
       out = "nonLinDataName";
       break;
+    case DATA_ACCURACY:
+      out = "dataAccuracy";
+      break;
+    case MAX_APPROX_VAL:
+      out = "maxApproxVal";
+      break;
+
     default:  
       EXCEPTION("No conversion found for your 'DataType'");
     }
@@ -1071,8 +1087,14 @@ namespace CoupledField {
     else if ( in == "Magnetic_permability" ) {
       out = MAG_PERMEABILITY;
     }
-    else if ( in == "Magnetic_permability" ) {
-      out = MAG_PERMEABILITY;
+    else if ( in == "Magnetic_permability_1" ) {
+      out = MAG_PERMEABILITY_1;
+    }
+    else if ( in == "Magnetic_permability_2" ) {
+      out = MAG_PERMEABILITY_2;
+    }
+    else if ( in == "Magnetic_permability_3" ) {
+      out = MAG_PERMEABILITY_3;
     }
     else if ( in == "Magnetic_reluctivity" ) {
       out = MAG_RELUCTIVITY;
@@ -1226,6 +1248,12 @@ namespace CoupledField {
     }
     else if ( in == "nonLinDataName" ) {
       out = NONLIN_DATA_NAME;
+    }
+    else if ( in == "dataAccuracy" ) {
+      out = DATA_ACCURACY;
+    }
+    else if ( in == "maxApproxVal" ) {
+      out = MAX_APPROX_VAL;
     }
     else {
       EXCEPTION("No conversion from string to 'MaterialType' found");

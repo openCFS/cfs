@@ -11,8 +11,8 @@
 
 namespace CoupledField
 { 
-  LinInterpolate :: LinInterpolate(std::string nlFileName)
-    : ApproxData(nlFileName)
+  LinInterpolate :: LinInterpolate(std::string nlFileName, ApproxCurveType curveType )
+    : ApproxData(nlFileName,curveType)
   {
 
 
@@ -28,25 +28,25 @@ namespace CoupledField
   {
     ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
    
-    if ( inVal < y[0] )
+    if ( inVal < y_[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
 
     //if inVal is larger as defined, return the last value
-    if ( inVal > y[nummeas-1] ) 
-      return x[nummeas-1];
+    if ( inVal > y_[numMeas_-1] ) 
+      return x_[numMeas_-1];
 
     //loop over array 
     Double yPrev, yAfter, xPrev, xAfter;
 
-    yAfter = y[0];
-    for ( UInt k=1; k<nummeas; k++ ) {
+    yAfter = y_[0];
+    for ( UInt k=1; k<numMeas_; k++ ) {
       yPrev = yAfter;
-      yAfter = y[k];
+      yAfter = y_[k];
 
-      xPrev   = x[k-1];
-      xAfter  = x[k];
+      xPrev   = x_[k-1];
+      xAfter  = x_[k];
 
-      if (inVal == yAfter) return x[k];
+      if (inVal == yAfter) return x_[k];
 
       if ( inVal < yAfter) break;
      
@@ -73,25 +73,25 @@ namespace CoupledField
   {
     ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
   
-    if ( inVal < y[0] )
+    if ( inVal < y_[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
 
     //if inVal is larger as defined, return the last value
-    if ( inVal > y[nummeas-1] ) 
-      return x[nummeas-1];
+    if ( inVal > y_[numMeas_-1] ) 
+      return x_[numMeas_-1];
 
     //loop over array 
     Double yPrev, yAfter, xPrev, xAfter;
 
-    yAfter = y[0];
-    for ( UInt k=1; k<nummeas; k++ ) {
+    yAfter = y_[0];
+    for ( UInt k=1; k<numMeas_; k++ ) {
       yPrev = yAfter;
-      yAfter = y[k];
+      yAfter = y_[k];
 
-      xPrev   = x[k-1];
-      xAfter  = x[k];
+      xPrev   = x_[k-1];
+      xAfter  = x_[k];
 
-      if (inVal == yAfter) return x[k];
+      if (inVal == yAfter) return x_[k];
 
       if ( inVal < yAfter) break;
      
