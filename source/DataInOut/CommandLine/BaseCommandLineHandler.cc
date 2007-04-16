@@ -494,6 +494,7 @@ namespace CoupledField {
 
  #ifdef USE_ANSYSRST
     outstr << "USE_ANSYSRST:          YES" << std::endl;
+    outstr << "ANSYS_VERSION:         " << ANSYS_VERSION << std::endl;
  #else
     outstr << "USE_ANSYSRST:          NO" << std::endl;
  #endif

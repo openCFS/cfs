@@ -390,19 +390,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(USE_UNV)
 
   IF(USE_ANSYSRST)
-    # Set a sane default value for the ANSYS 10.0 path
-    SET(ANSYS_ROOT_DIR "/home/data/programs/ansys/v100/ansys/" CACHE STRING
-      "Path to ANSYS 10.0 installation.")
-    
-    IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-      IF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
-	MESSAGE(SEND_ERROR
-	  "The ANSYS RST writer requires a Fortran 95 compiler!")
-      ENDIF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
-    ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-
     SUBDIRS(source/DataInOut/SimInOut/AnsysRST)
-
   ENDIF(USE_ANSYSRST)
 
   SUBDIRS(source/DataInOut/SimInOut/TextOutput)

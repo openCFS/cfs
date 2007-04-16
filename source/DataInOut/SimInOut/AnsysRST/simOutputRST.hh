@@ -17,69 +17,15 @@ namespace CoupledField
     
   public:
 
-    //! Constructor
-    SimOutputRST( const std::string& fileName, ParamNode * outputNode );
-  
-    //! Destructor
-    virtual ~SimOutputRST();
-  
-    //! Initialize class
-    void Init( Grid* grid );
-
-    //! Write grid definition in file
-    void WriteGrid();
-
-    //! Register result (within one multisequence step)
-    void RegisterResult( shared_ptr<BaseResult> sol,
-                         UInt saveBegin, UInt saveInc,
-                         UInt saveEnd );
-    
-    //! Begin single analysis step
-    void BeginStep( UInt stepNum, Double stepVal );
-
-    //! Add result to current step
-    void AddResult( shared_ptr<BaseResult> sol );
-
-    //! End single analysis step
-    void FinishStep( );
-
-    void Finalize();
-
-  private:
-
-    //! Write nodal coordinates
-    void WriteNodes();
-    
-    //! Write element declarations
-    void WriteElements();
-    
-    //! Write transient results on nodes or elements
-    void WriteNodeElemDataTrans( const Vector<Double> & var, 
-                                 const StdVector<std::string> & dofNames,
-                                 const std::string& name, 
-                                 ResultInfo::EntryType entryType,
-                                 ResultInfo::EntityUnknownType entityType,
-                                 Double time );
-
-    //! Write harmonic results on nodes or elements
-    void WriteNodeElemDataHarm( const Vector<Complex>  & var, 
-                                const StdVector<std::string> & dofNames,
-                                std::string name, 
-                                ResultInfo::EntryType entryType,
-                                ResultInfo::EntityUnknownType entityType,
-                                Double freq, 
-                                ComplexFormat outputFormat );
-    
-    //! Reorder respectively degenerate element connectivity
-
-    //! This method takes the connectivity of an element, and replaces it
-    //! with the degenerated connectivity of the element if necessary.
-    //! The method returns the ANSYS element type.
-    Integer ReorderConnect4Ansys(FEType eType,
-                                 StdVector<UInt>& connect,
-                                 Integer* connectANSYS);
-
-    enum ansys_elementtype
+    enum used_ansys_elementtypes
+    {
+      PLANE42 = 42,
+      SOLID45 = 45,
+      PLANE82 = 82,
+      SOLID95 = 95
+    };
+      
+    enum ansys_elementtype_descr
     {
       IELCSZ = 150,
       IETYP=1,
@@ -256,14 +202,92 @@ namespace CoupledField
       SP03 = 29,
       SP04 = 30,
       SP05 = 31,
-      SP06 = 32
+      SP06 = 32,
+      UNKN = -1
     };
+
+    enum ansys_elem_dof
+    {
+      EMS= 1, ENF= 2, ENS= 3, ENG= 4, EGR= 5,
+      EEL= 6, EPL= 7, ECR= 8, ETH= 9, EUL=10,
+      EFX=11, ELF=12, EMN=13, ECD=14, ENL=15,
+      EHC=16, EPT=17, ESF=18, UNK1=19, ETB=20,
+      ECT=21, EXY=22, EBA=23, ESV=24, UNK2=25,
+      UNKE=-1
+    };
+    
 
     typedef struct{
       Integer elementtypid;
-      Integer pos;
       Integer ielc[IELCSZ];
     } AnsysElementType;
+
+  public:
+
+    //! Constructor
+    SimOutputRST( const std::string& fileName, ParamNode * outputNode );
+  
+    //! Destructor
+    virtual ~SimOutputRST();
+  
+    //! Initialize class
+    void Init( Grid* grid );
+
+    //! Write grid definition in file
+    void WriteGrid();
+
+    //! Register result (within one multisequence step)
+    void RegisterResult( shared_ptr<BaseResult> sol,
+                         UInt saveBegin, UInt saveInc,
+                         UInt saveEnd );
+    
+    //! Begin single analysis step
+    void BeginStep( UInt stepNum, Double stepVal );
+
+    //! Add result to current step
+    void AddResult( shared_ptr<BaseResult> sol );
+
+    //! End single analysis step
+    void FinishStep( );
+
+    void Finalize();
+
+  private:
+
+    //! Write nodal coordinates
+    void WriteNodes();
+    
+    //! Write element declarations
+    void WriteElements();
+    
+    //! Write transient results on nodes
+    void WriteNodeData( const Vector<Double> & var,
+                        std::vector<Double> & nodeValues,
+                        SolutionType solType,
+                        UInt numDOFs,
+                        const ResultInfo::EntryType entryType);
+
+    //! Write results on elements
+    void WriteElemData( const Vector<Double>  & var, 
+                        SolutionType solType,
+                        UInt numDOFs,
+                        ResultInfo::EntryType entryType);
+    
+    //! Reorder respectively degenerate element connectivity
+
+    //! This method takes the connectivity of an element, and replaces it
+    //! with the degenerated connectivity of the element if necessary.
+    //! The method returns the ANSYS element type.
+    Integer ReorderConnect4Ansys(FEType eType,
+                                 StdVector<UInt>& connect,
+                                 Integer* connectANSYS);
+
+    void MapInternal2ANSYSNodeDof(SolutionType solType);
+    std::map <SolutionType, ansys_nodal_dof> internal2AnsysNodeDofMap_;
+
+    void MapInternal2ANSYSElemDof(SolutionType solType);
+    std::map <SolutionType, ansys_elem_dof> internal2AnsysElemDofMap_;
+
 
     void SetElementType42(AnsysElementType& eltype,
                           Integer TypeNumber);
@@ -286,8 +310,10 @@ namespace CoupledField
     Integer elemData_[10];
     std::map<Integer, Integer> ansysType2TypeId_;
     std::map<Integer, Integer> ansysType2NumNodes_;
+    std::map<FEType, Integer> elemType2AnsysType_;
+    std::map<Integer, Integer> numAnsysElemDOFs_;
 
-
+    std::map<ansys_elem_dof, std::vector<Double> > tmpElemResultVecs_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -299,16 +325,28 @@ namespace CoupledField
   //! \class SimOutputRST
   //! 
   //! \purpose 
-  //! This class provides the interface for writing meshes and elements to the
-  //! GiD own postprocessing files .post.msh and .post.res.
-  //! This format is capable of visualizing volume elements, surface elements
-  //! and named nodes. 
-  //! /Note GiD has some restrictions regarding the visualization of element
-  //! resuls on different element types. Therefore, if different types of 
-  //! elements are contained in the grid (e.g. Quad/Tria, Tet/Hex/Pyra), all
-  //! elements are treated as degenerated quadrilaterals or hexahedras. 
-  //! This might cause some distortions in the resulting visualization, 
-  //! especially if quadratic elements are used.
+  //! This class provides the interface for writing meshes and elements to
+  //! ANSYS postprocessing files .rst. All element types are mapped to four
+  //! different ANSYS structural analysis element types PLANE42, SOLID45,
+  //! PLANE82 and SOLID95. These are linear/quadratic quads/hexas.
+  //! All other element types become degenerated versions of the above types.
+  //! At the moment this format is capable of visualizing volume elements, and
+  //! surface elements. 
+  //! The node solutions get mapped to ANSYS Dofs. There are 32 such Dofs
+  //! available (see ansys_nodal_dof) and each of them gets written for every
+  //! node in the grid in each time step.
+  //! This is a tremendous waste of memory and should be redone.
+  //! Element results get mapped to one of the 25 ANSYS element result types
+  //! (see. ansys_elem_dof)
+  //! /Note In the moment only transient results will be written. Trying
+  //! to write harmonic results will cause an EXCEPTION!
+  //! For details about ANSYS binary files see Chapter 1: Format of Binary data
+  //! files in the Guide to Interfacing with ANSYS (Programmer's Manual for ANSYS)
+  //! The routines used to actually write the files are described in Chapter 2:
+  //! Accessing Binary data files. The contents of the files can either be dumped
+  //! with the bintst utility compiled with CFS/NACS or in ANSYS with
+  //! File->List->Binary Files...
+  //! The source code of the unv2rst utility was a good source of info, too.
   //! 
   //! \collab 
   //! 
