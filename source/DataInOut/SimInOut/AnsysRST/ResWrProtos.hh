@@ -180,9 +180,9 @@ namespace CoupledField
                                 Integer* substep,
                                 Integer* ncumit,
                                 Integer* time,
-                                char* Title,
+                                char Title[400],
                                 char* DofLab,
-                                Integer lenTitle,
+                                //                                Integer lenTitle,
                                 Integer lenDofLab);
 
     // primary function:     Begin output of displacement vector
@@ -285,9 +285,6 @@ namespace CoupledField
 
     // primary function:    Close result file
     extern void reswrend_();
-
-    extern void reswrend_();
-
   
 #if defined (__cplusplus)
 }

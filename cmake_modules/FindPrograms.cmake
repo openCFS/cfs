@@ -33,3 +33,31 @@ MARK_AS_ADVANCED(
   SVN
   SVNVERSION
   )
+
+IF(USE_ANSYSRST)
+  # Set a sane default value for the ANSYS 10.0 path
+  SET(ANSYS_ROOT_DIR "/home/data/programs/ansys/v100/ansys" CACHE STRING
+    "Path to ANSYS installation.")
+  
+  IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+    IF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
+      MESSAGE(SEND_ERROR
+	"The ANSYS RST writer requires a Fortran 95 compiler!")
+    ENDIF(CFS_FORTRAN_COMPILER_VER LESS 4.1.0)
+  ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
+
+  # Determine version of ANSYS.
+  EXEC_PROGRAM("ls ${ANSYS_ROOT_DIR}/bin/ansys[0-9]*"
+    ARGS
+    OUTPUT_VARIABLE ANSYS_VERSION
+    RETURN_VALUE RETVAL)
+  
+  STRING(REGEX REPLACE ".*ansys"
+    "" ANSYS_VERSION
+    ${ANSYS_VERSION})
+
+  STRING(REGEX REPLACE "([0-9]$)"
+    ".\\1" ANSYS_VERSION
+    ${ANSYS_VERSION})
+
+ENDIF(USE_ANSYSRST)

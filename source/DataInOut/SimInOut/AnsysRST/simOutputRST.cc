@@ -48,6 +48,7 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
 
+    // Initialize element data array.
     elemData_[0] = 1;  // material number
     elemData_[1] = 1;  // type number
     elemData_[2] = 1;  // real set number
@@ -59,19 +60,43 @@ namespace CoupledField {
     elemData_[8] = 0;  // p-method exclude key
     elemData_[9] = 0;  // not used
 
+    // Map RST elem type id to Ansys element types.
     // linear element types
-    ansysType2TypeId_[42] = 1;
-    ansysType2TypeId_[45] = 2;
+    ansysType2TypeId_[PLANE42] = 1;
+    ansysType2TypeId_[SOLID45] = 2;
 
     // quadratic element types
-    ansysType2TypeId_[82] = 1;
-    ansysType2TypeId_[95] = 2;
+    ansysType2TypeId_[PLANE82] = 1;
+    ansysType2TypeId_[SOLID95] = 2;
 
-    ansysType2NumNodes_[42] = 4;
-    ansysType2NumNodes_[45] = 8;
-    ansysType2NumNodes_[82] = 8;
-    ansysType2NumNodes_[95] = 20;
+    // Store the number of nodes of the used elem types in a map.
+    ansysType2NumNodes_[PLANE42] = 4;
+    ansysType2NumNodes_[SOLID45] = 8;
+    ansysType2NumNodes_[PLANE82] = 8;
+    ansysType2NumNodes_[SOLID95] = 20;
 
+    // Map internal element types to ANSYS element types.
+    elemType2AnsysType_[ET_TRIA3]   = PLANE42;
+    elemType2AnsysType_[ET_TRIA6]   = PLANE82;
+    elemType2AnsysType_[ET_QUAD4]   = PLANE42;
+    elemType2AnsysType_[ET_QUAD8]   = PLANE82;
+    elemType2AnsysType_[ET_QUAD9]   = PLANE82;
+    elemType2AnsysType_[ET_TET4]    = SOLID45;
+    elemType2AnsysType_[ET_TET10]   = SOLID95;                  
+    elemType2AnsysType_[ET_WEDGE6]  = SOLID45;
+    elemType2AnsysType_[ET_WEDGE15] = SOLID95;
+    elemType2AnsysType_[ET_PYRA5]   = SOLID45;
+    elemType2AnsysType_[ET_PYRA13]  = SOLID95;
+    elemType2AnsysType_[ET_HEXA8]   = SOLID45;
+    elemType2AnsysType_[ET_HEXA20]  = SOLID95;
+    elemType2AnsysType_[ET_HEXA27]  = SOLID95;
+
+    // Number of DOFs for Ansys element results
+    numAnsysElemDOFs_[ENS] = 11;
+    numAnsysElemDOFs_[EEL] = 7;
+    numAnsysElemDOFs_[EPL] = 7;
+    numAnsysElemDOFs_[ECR] = 7;
+    numAnsysElemDOFs_[ETH] = 7;    
   }
 
 
@@ -119,14 +144,22 @@ namespace CoupledField {
     char Title[80*2];
     char JobName[8];
     Integer Units = 1; // use SI units
-    Integer NumDOF = 2;
-    Integer DOF[] = {1, 2};
+    Integer NumDOF = 32;
+    Integer DOF[] = { UX, UY, UZ,
+                      ROTX, ROTY, ROTZ,
+                      AX, AY, AZ,
+                      VX, VY, VZ,
+                      13, 14, 15, 16, 17, 18,
+                      PRES, TEMP, VOLT, MAG,
+                      ENKE, ENDS, EMF, CURR,
+                      SP01, SP02, SP03,
+                      SP04, SP05, SP06 };
     Integer UserCode = 10;
     Integer MaxNode = ptGrid_->GetNumNodes();
     Integer NumNode = ptGrid_->GetNumNodes();
     Integer MaxElem = ptGrid_->GetNumElems();
     Integer NumElem = ptGrid_->GetNumElems();
-    Integer MaxResultSet = 1;
+    Integer MaxResultSet = 1; // Should be num timesteps
     Integer lenTitle;
     Integer lenJobName;
     std::string tit = "Ein prima Testbeispiel!";
@@ -165,6 +198,11 @@ namespace CoupledField {
       EXCEPTION("Could not open ANSYS RST file.");
     }
 
+    tmpElemResultVecs_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
+    tmpElemResultVecs_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
+    tmpElemResultVecs_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
+    tmpElemResultVecs_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
+    tmpElemResultVecs_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
   }
 
   void SimOutputRST::WriteGrid() {
@@ -324,18 +362,178 @@ namespace CoupledField {
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd ) {
     ENTER_FCN( "SimOutputRST::RegisterResult" );
+    
+    ResultInfo & resInfo = *sol->GetResultInfo();
+
+    MapInternal2ANSYSNodeDof(resInfo.resultType);
+    MapInternal2ANSYSElemDof(resInfo.resultType);
   }
 
   void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
     ENTER_FCN( "SimOutputRST::BeginStep" );
+    char dofLabels[] = "UX  UY  UZ  "
+                       "ROTXROTYROTZ"
+                       "AX  AY  AZ  "
+                       "VX  VY  VZ  "
+                       "RS13RS14RS15"
+                       "RS16RS17RS18"
+                       "PRESTEMPVOLT"
+                       "MAG ENKEENDS"
+                       "EMF CURRSP01"
+                       "SP02SP03SP04"
+                       "SP05SP06";
+    char* title = "This is my first ANSYS RST test!        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        "
+                  "                                        ";
+
+    //    ResWrSolBegin (LSET(iSet),SUBST(iSet),NCUM(iSet),
+    //                   Time(iSet),Title(1),DofLab(1));
+    reswrsolbegin_((Integer*) &stepNum,
+                   (Integer*) &stepNum,
+                   (Integer*) &stepNum,
+                   (Integer*) &stepNum,
+                   title, dofLabels, 32*4);
   }
  
   void SimOutputRST::AddResult( shared_ptr<BaseResult> sol ) {
     ENTER_FCN( " SimOutputRST::AddResult" );
+
+    ResultInfo & actDof = *(sol->GetResultInfo());
+
+    LOG_DBG(simOutputRST) << "Adding result '" 
+                          << actDof.resultName  << "'";
+      
+    resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
+
   }
   
   void SimOutputRST::FinishStep( ) {
     ENTER_FCN( "SimOutputRST::FinishStep" );
+
+    LOG_TRACE(simOutputRST) << "Starting to finish Step";
+    
+    std::string title;
+    UInt numDOFs;
+    std::vector<Double> nodeValues;
+    std::vector<Double> elemValues;
+    UInt numNodes = ptGrid_->GetNumNodes();
+    UInt numElems = ptGrid_->GetNumElems();
+    nodeValues.resize(numNodes*32);
+    elemValues.resize(numElems*256);
+    Integer node;
+    Integer elem;
+    
+
+    // iterate over all result types
+    ResultMapType::iterator it = resultMap_.begin();
+    for( ; it != resultMap_.end(); it++ ) {
+      
+      // get result info object and results for current result type
+      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
+      const StdVector<shared_ptr<BaseResult> > actResults =
+        it->second;
+
+      title = actInfo.resultName;
+      if( actInfo.unit.size() != 0 ) {
+        title += " (";
+        title += actInfo.unit;
+        title += ")";
+      }
+      ResultInfo::EntryType entryType =  actInfo.entryType;
+      ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
+
+      // check if result is defined on nodes or elements
+      StdVector<std::string> & dofNames = actInfo.dofNames;  
+      if(  actInfo.definedOn != ResultInfo::NODE &&
+           actInfo.definedOn != ResultInfo::PFEM &&
+           actInfo.definedOn != ResultInfo::ELEMENT &&
+           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
+        Warning( "GiD can only write results on element and nodes",
+                 __FILE__, __LINE__ );
+        continue;
+      }
+
+      LOG_DBG(simOutputRST) << "Writing result '" << title << "'";
+      
+      if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
+        Vector<Double> gSol;
+        FillGlobalVec<Double>(gSol, actResults, entityType );
+        numDOFs = dofNames.GetSize();
+        
+        if(actInfo.definedOn == ResultInfo::NODE)
+          WriteNodeData( gSol, nodeValues, actInfo.resultType,
+                         numDOFs, entryType);
+
+        if(actInfo.definedOn == ResultInfo::ELEMENT)
+          WriteElemData( gSol, actInfo.resultType,
+                         numDOFs, entryType);
+      } else {
+        reswrsolend_();
+        reswrend_();
+        EXCEPTION("Writing harmonic results to RST not supported at the moment.");
+        
+        // Vector<Complex> gSol;
+        // FillGlobalVec<Complex>(gSol, actResults, entityType );
+        // WriteNodeElemDataHarm( gSol, dofNames, title, entryType, entityType,
+        //                       actStepVal_, actInfo.complexFormat );        
+      }
+    }
+
+
+    // Write the vector of nodal values to the RST file.
+    // The functions are called *disp* for displacement but
+    // that does mean nothing since we previously specified
+    // that we have all 32 ANSYS dofs.
+    Integer ndof = 32;
+    reswrdispbegin_();
+    for (node = 1; node <= numNodes; node++ ) {
+      reswrdisp_(&node, &nodeValues[(node-1)*ndof]);
+    }
+    reswrdispend_();
+
+    reswreresbegin_();
+
+    std::map <SolutionType, ansys_elem_dof>::const_iterator eResIt, eResEnd;
+    eResEnd = internal2AnsysElemDofMap_.end();
+    StdVector<Elem*> elemVec;
+    ptGrid_->GetElems(elemVec, ALL_REGIONS);
+
+    for ( elem = 1; elem <= numElems; elem++ ) {
+
+      eResIt = internal2AnsysElemDofMap_.begin();
+      FEType eType = elemVec[elem-1]->ptElem->feType();
+      numNodes = ansysType2NumNodes_[elemType2AnsysType_[eType]];
+
+      for ( ; eResIt != eResEnd; eResIt++ ) {
+        ansys_elem_dof ansysDOF = eResIt->second;
+        std::vector<Double>& resVec = tmpElemResultVecs_[ansysDOF];
+        UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
+        UInt idx = (elem-1)*numAnsysElemDofs;
+
+        for ( UInt i = 0; i <numNodes; i++ ) {
+          std::copy(&resVec[idx],
+                    &resVec[idx+numAnsysElemDofs],
+                    &elemValues[i*numAnsysElemDofs]);
+        }
+
+        numAnsysElemDofs *=numNodes;
+        reswrestrbegin_(&elem);
+        Integer tmp = ansysDOF;
+        reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValues[0]);
+        reswrestrend_();
+      }
+    }
+
+    reswreresend_();
+
+    reswrsolend_();
   }
   
 
@@ -346,26 +544,58 @@ namespace CoupledField {
   }
 
 
-  void SimOutputRST::
-  WriteNodeElemDataTrans( const Vector<Double> & var, 
-                          const StdVector<std::string> & dofNames,
-                          const std::string& name, 
-                          ResultInfo::EntryType entryType,
-                          ResultInfo::EntityUnknownType entityType,
-                          Double time ) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataTrans" );
+  void SimOutputRST::WriteNodeData( const Vector<Double> & var,
+                                    std::vector<Double> & nodeValues,
+                                    SolutionType solType,
+                                    UInt numDOFs,
+                                    const ResultInfo::EntryType entryType) {
+    ENTER_FCN ( "SimOutputRST::WriteNodeData" );
+
+    Integer idx = internal2AnsysNodeDofMap_[solType] - 1;
+    UInt numNodes = ptGrid_->GetNumNodes();
+
+    // Solution type has not been previously mapped.
+    if( idx < 0 )
+      return;
+    
+    for ( UInt node = 0; node < numNodes; node++ ) {
+      for(UInt dof = 0; dof < numDOFs; dof++)
+      {
+        nodeValues[node*32+idx+dof] = var[node*numDOFs+dof];
+      }      
+    }
   }     
   
-  void SimOutputRST::
-  WriteNodeElemDataHarm( const Vector<Complex> & var, 
-                         const StdVector<std::string> & dofNames,
-                         const std::string name, 
-                         const ResultInfo::EntryType entryType,
-                         ResultInfo::EntityUnknownType entityType,
-                         const Double freq, 
-                         const ComplexFormat outputFormat ) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeElemDataHarm" );
+  void SimOutputRST::WriteElemData( const Vector<Double> & var, 
+                                    SolutionType solType,
+                                    UInt numDOFs,
+                                    ResultInfo::EntryType entryType)
+  {
+    ENTER_FCN ( "SimOutputRST::WriteElemData" );
+
+    UInt numElems = ptGrid_->GetNumElems();
+    Integer ansIdx, intIdx;
+    ansys_elem_dof ansysDof = internal2AnsysElemDofMap_[solType];
+    Integer elem;
+    UInt numAnsysElemDofs;
+    
+    // Solution type has not been previously mapped.
+    if( ansysDof < 0 )
+      return;
+
+    std::vector<Double>& resVec = tmpElemResultVecs_[ansysDof];
+    numAnsysElemDofs = numAnsysElemDOFs_[ansysDof];
+
+    for ( elem = 1; elem <= numElems; elem++ ) {
+      intIdx = (elem-1)*numDOFs;
+      ansIdx = (elem-1)*numAnsysElemDofs;
+
+      for(UInt i=0; i<numDOFs; i++)
+        resVec[ansIdx+i] = var[intIdx+i];
+    }
+
   }
+  
   
 
   // change node order for right access in ANSYS
@@ -374,18 +604,13 @@ namespace CoupledField {
                                              Integer* connectANSYS)
   {
     UInt numElemNodes = NUM_ELEM_NODES[eType];
-    Integer ansysElemType;
-    const Integer PLANE42 = 42; // linear quad
-    const Integer PLANE82 = 82; // quadratic quad
-    const Integer SOLID45 = 45; // linear hexa
-    const Integer SOLID95 = 95; // quadratic hexa
+    Integer ansysElemType = elemType2AnsysType_[eType];
    
     switch(eType)
     {
     case ET_TRIA3:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       connectANSYS[3] = connect[2];
-      ansysElemType = PLANE42;
       break;
 
     case ET_TRIA6:
@@ -397,22 +622,18 @@ namespace CoupledField {
       connectANSYS[5] = connect[4];
       connectANSYS[6] = connect[2];
       connectANSYS[7] = connect[5];
-      ansysElemType = PLANE82;
       break;
 
     case ET_QUAD4:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = PLANE42;
       break;
 
     case ET_QUAD8:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = PLANE82;
       break;
 
     case ET_QUAD9:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = PLANE82;
       break;
 
     case ET_TET4:
@@ -424,7 +645,6 @@ namespace CoupledField {
       connectANSYS[5] = connect[3]; // N
       connectANSYS[6] = connect[3]; // O
       connectANSYS[7] = connect[3]; // P
-      ansysElemType = SOLID45;      
       break;                        
                                     
     case ET_TET10:                  
@@ -448,7 +668,6 @@ namespace CoupledField {
       connectANSYS[17] = connect[8]; // Z
       connectANSYS[18] = connect[9]; // A
       connectANSYS[19] = connect[9]; // B
-      ansysElemType = SOLID95;
       break;
 
     case ET_WEDGE6:
@@ -460,7 +679,6 @@ namespace CoupledField {
       connectANSYS[5] = connect[4];  // N
       connectANSYS[6] = connect[5];  // O
       connectANSYS[7] = connect[5];  // P
-      ansysElemType = SOLID45;
       break;
 
     case ET_WEDGE15:
@@ -484,7 +702,6 @@ namespace CoupledField {
       connectANSYS[17] = connect[13];  // Z
       connectANSYS[18] = connect[14];  // A
       connectANSYS[19] = connect[14];  // B
-      ansysElemType = SOLID95;
       break;
 
     case ET_PYRA5:
@@ -496,7 +713,6 @@ namespace CoupledField {
       connectANSYS[5] = connect[4];  // N
       connectANSYS[6] = connect[4];  // O
       connectANSYS[7] = connect[4];  // P
-      ansysElemType = SOLID45;           
       break;
 
     case ET_PYRA13:
@@ -520,22 +736,18 @@ namespace CoupledField {
       connectANSYS[17] = connect[10];  // Z 
       connectANSYS[18] = connect[11];  // A 
       connectANSYS[19] = connect[12];  // B 
-      ansysElemType = SOLID95;
       break;
 
     case ET_HEXA8:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = SOLID45;
       break;
 
     case ET_HEXA20:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = SOLID95;
       break;
 
     case ET_HEXA27:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
-      ansysElemType = SOLID95;
       break;
 
     default:
@@ -550,14 +762,12 @@ namespace CoupledField {
   void SimOutputRST::SetElementType42(AnsysElementType& eltype,
                                       Integer TypeNumber)
   {
-    int i;
-
     eltype.elementtypid = TypeNumber;
     std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
-    eltype.ielc[JETYP-1] = 42;
+    eltype.ielc[JETYP-1] = PLANE42;
     eltype.ielc[21] = 4;
     eltype.ielc[25] = 1;
     eltype.ielc[27] = 1;
@@ -606,13 +816,12 @@ namespace CoupledField {
   void SimOutputRST::SetElementType45(AnsysElementType& eltype,
                                       Integer TypeNumber)
   {
-    int i;
     eltype.elementtypid = TypeNumber;
     std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
-    eltype.ielc[JETYP-1] = 45;
+    eltype.ielc[JETYP-1] = SOLID45;
     eltype.ielc[20] = 3;
     eltype.ielc[21] = 6;
     eltype.ielc[22] = 3;
@@ -672,7 +881,7 @@ namespace CoupledField {
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
-    eltype.ielc[JETYP-1] = 82;
+    eltype.ielc[JETYP-1] = PLANE82;
     eltype.ielc[ISHAP -1] = 4;
     eltype.ielc[MNODE -1] = 2;
     eltype.ielc[KELSTO-1] = 1;
@@ -722,7 +931,7 @@ namespace CoupledField {
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
-    eltype.ielc[JETYP-1] = 95;
+    eltype.ielc[JETYP-1] = SOLID95;
 
     eltype.ielc[20] = 3;
     eltype.ielc[21] = 6;
@@ -770,8 +979,128 @@ namespace CoupledField {
     eltype.ielc[138] = 1;
     eltype.ielc[140] = 90;
     eltype.ielc[144] = 1;
-
-
   }
 
+  void SimOutputRST::MapInternal2ANSYSNodeDof(SolutionType solType)
+  {
+    std::string solName;
+    Enum2String(solType, solName);
+
+    switch(solType)
+    {
+    case MECH_DISPLACEMENT:
+      internal2AnsysNodeDofMap_[MECH_DISPLACEMENT] = UX;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to UX UY UZ";
+      break;
+    case MECH_ACCELERATION:
+      internal2AnsysNodeDofMap_[MECH_ACCELERATION] = AX;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to AX AY AZ";
+      break;
+    case MECH_VELOCITY:
+      internal2AnsysNodeDofMap_[MECH_VELOCITY] = VX;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to VX VY VZ";
+      break;
+    case ELEC_POTENTIAL:
+      internal2AnsysNodeDofMap_[ELEC_POTENTIAL] = VOLT;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to VOLT";
+      break;
+    case ELEC_CHARGE:
+      internal2AnsysNodeDofMap_[ELEC_CHARGE] = EMF;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to EMF";
+      break;
+    case ACOU_POTENTIAL:
+      internal2AnsysNodeDofMap_[ACOU_POTENTIAL] = PRES;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to PRES";
+      break;
+    case ACOU_PRESSURE:
+      internal2AnsysNodeDofMap_[ACOU_PRESSURE] = PRES;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to PRES";
+      break;
+    case ACOU_PRESSURE_DERIV_1:
+      internal2AnsysNodeDofMap_[ACOU_PRESSURE_DERIV_1] = SP01;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP01";
+      break;
+    case ACOU_POTENTIAL_DERIV_1:
+      internal2AnsysNodeDofMap_[ACOU_POTENTIAL_DERIV_1] = SP01;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP01";
+      break;
+    case MAG_POTENTIAL:
+      internal2AnsysNodeDofMap_[MAG_POTENTIAL] = SP04;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP04 - 06";
+      break;
+    case HEAT_TEMPERATURE:
+      internal2AnsysNodeDofMap_[HEAT_TEMPERATURE] = TEMP;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to TEMP";
+      break;
+    case STOKESFLUID_VELOCITY:
+      internal2AnsysNodeDofMap_[STOKESFLUID_VELOCITY] = VX;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to VX VY VZ";
+      break;
+    case STOKESFLUID_PRESSURE:
+      internal2AnsysNodeDofMap_[STOKESFLUID_PRESSURE] = PRES;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << "to PRES";
+      break;
+    default:
+      LOG_TRACE(simOutputRST) << "Nodal result " << solName
+                              << " not mapped to ANSYS any result type.";
+
+      internal2AnsysNodeDofMap_[solType] = UNKN;
+      break;
+    }
+  }
+  
+  void SimOutputRST::MapInternal2ANSYSElemDof(SolutionType solType)
+  {
+    std::string solName;
+    Enum2String(solType, solName);
+
+    switch(solType)
+    {
+    case MECH_STRESS:
+      internal2AnsysElemDofMap_[MECH_STRESS] = ENS;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to stresses (ENS).";
+      break;
+    case MECH_STRAIN:
+      internal2AnsysElemDofMap_[MECH_STRAIN] = EEL;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to elastic strains (EEL).";
+      break;
+    case ELEC_FIELD_INTENSITY:
+      internal2AnsysElemDofMap_[ELEC_FIELD_INTENSITY] = EPL;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to plastic strains (EPL).";
+      break;
+    case MAG_FLUX_DENSITY:
+      internal2AnsysElemDofMap_[MAG_FLUX_DENSITY] = ECR;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to creep strains (ECR).";
+      break;
+    case MAG_EDDY_CURRENT:
+      internal2AnsysElemDofMap_[MAG_EDDY_CURRENT] = ETH;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to thermal strains (ETH).";
+      break;
+    default:
+      LOG_TRACE(simOutputRST) << "Element result " << solName
+                              << " not mapped to ANSYS any result type.";
+
+      internal2AnsysElemDofMap_[solType] = UNKE;
+      break;
+    }
+  }
+  
 } // end of namespace

@@ -33,5 +33,7 @@ ENDIF(CFS_ARCH STREQUAL "X86_64")
 
 # Add the ANSYS ResWrDemo program for test purposes
 ADD_EXECUTABLE(ResWrDemo ResWrDemo.F)
-
 TARGET_LINK_LIBRARIES(ResWrDemo simoutansysrst)
+
+ADD_EXECUTABLE(bintst bintst.F bintrd.F bintwr.F)
+TARGET_LINK_LIBRARIES(bintst simoutansysrst)
