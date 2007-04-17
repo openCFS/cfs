@@ -54,6 +54,7 @@ namespace CoupledField
                                Integer* MaxElem,
                                Integer* NumElem,
                                Integer* MaxResultSet,
+                               Integer* cpxrst,
                                Integer lenFname,
                                Integer lenTitle,
                                Integer lenJobName);
@@ -173,13 +174,14 @@ namespace CoupledField
     //     lstep    (int,sc,in)       - Load step number
     //     substep  (int,sc,in)       - Substep of this load step
     //     ncumit   (int,sc,in)       - Cumulative iteration number
-    //     time     (int,sc,in)       - Current solution time
+    //     time     (dp,sc,in)       - Current solution time
     //     Title    (ch*80,ar(5),in)  - Title and 4 subtitles
     //     DofLab   (ch*4,ar(nDOF),in)- Labels for DOFs
     extern void reswrsolbegin_ (Integer* lstep,
                                 Integer* substep,
                                 Integer* ncumit,
-                                Integer* time,
+                                Double* time,
+                                Integer* kcmplx,
                                 char Title[400],
                                 char* DofLab,
                                 //                                Integer lenTitle,
@@ -197,6 +199,9 @@ namespace CoupledField
 
     // primary function:    Put displacement vector on result file
     extern void reswrdispend_();
+
+    // nData     (dp,ar(numNodes*nDOF),in)  - Displacements
+    extern void reswrnodaldata_(Double* nData);
 
     // primary function:   Start reaction force output
     //  input arguments:
