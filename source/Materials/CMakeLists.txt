@@ -6,6 +6,6 @@
 
 SET(MATERIALS_SRCS acousticMaterial.cc baseMaterial.cc
   electroMagneticMaterial.cc electrostaticMaterial.cc flowMaterial.cc
-  heatMaterial.cc MaterialData.cc mechanicMaterial.cc piezoMaterial.cc)
+  heatMaterial.cc mechanicMaterial.cc piezoMaterial.cc)
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
