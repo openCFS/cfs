@@ -11,7 +11,7 @@ c    result file which can be processed by the ANSYS program.
       function ResWrBegin (Nunit, Lunit, Fname, ncFname, Title, JobName,
      x                     Units, NumDOF, DOF, UserCode,
      x                     MaxNode, NumNode, MaxElem, NumElem,
-     x                     MaxResultSet)
+     x                     MaxResultSet, cpxrst)
 c primary function:    Open result file
 
 c object/library: ResWr
@@ -36,7 +36,7 @@ c     NumNode  (int,sc,in)       - Number of nodes used
 c     MaxElem  (int,sc,in)       - Maximum element number used
 c     NumElem  (int,sc,in)       - Number of elements used
 c     MaxResultSet (int,sc,in)   - Maximum number of result sets (usually 1000)
-
+c     cpxrst   (int,sc,in)       - complex results
 c  output arguments:
 c     ResWrBegin (int,sc,out)    - 0, successful  other, error in file open
 
@@ -53,7 +53,8 @@ c     ResWrBegin (int,sc,out)    - 0, successful  other, error in file open
       LONGINT     LongZeroL
       integer     ResWrBegin, Nunit, Lunit, ncFname, Units,
      x            NumDOF, DOF(NumDOF), UserCode,
-     x            MaxNode, NumNode, MaxElem, NumElem, MaxResultSet, i
+     x            MaxNode, NumNode, MaxElem, NumElem, MaxResultSet, i,
+     x            cpxrst
       character*8 JobName
       character*(*)  Fname
       character*80  Title(2)
@@ -112,6 +113,7 @@ c          *****  set up results file header  *****
       Header(7) = nElem
       Header(20)= Units
       Header(21)= 1
+      Header(33)= 1
       LocHeaderL = iLocL
       call binwrt8 (NBLK,iLocL,40,Header(1),40,iobuf(1))
 
@@ -771,7 +773,8 @@ c object/library: ResWr
 
 
 *deck,ResWrSolBegin
-      subroutine ResWrSolBegin (lstep,substep,ncumit,time,Title,DofLab)
+      subroutine ResWrSolBegin (lstep,substep,ncumit,time,
+     x     kcmplx,Title,DofLab)
 c primary function:    Write the solution header records
 
 c object/library: ResWr
@@ -780,7 +783,8 @@ c  input arguments:
 c     lstep    (int,sc,in)       - Load step number
 c     substep  (int,sc,in)       - Substep of this load step
 c     ncumit   (int,sc,in)       - Cumulative iteration number
-c     time     (int,sc,in)       - Current solution time
+c     time     (dp,sc,in)       - Current solution time
+c     kcmplx   (int,ec,in)      - is solution complex
 c     Title    (ch*80,ar(5),in)  - Title and 4 subtitles
 c     DofLab   (ch*4,ar(nDOF),in)- Labels for DOFs
 
@@ -793,7 +797,7 @@ c  output arguments:  none
       LONGINT   binBaseGet
 
       LONGINT  LongLocL, LongZeroL
-      integer  lstep, substep, ncumit, i, ivect(200)
+      integer  lstep, substep, ncumit, kcmplx, i, ivect(200)
       double precision  time, dvect(100)
       character*80  Title(5)
       character*4   DofLab(*)
@@ -821,6 +825,7 @@ c  output arguments:  none
       SolHeader(7) = ncumit
       SolHeader(16)= 1
       SolHeader(18)= 1
+      SolHeader(19)= kcmplx
       SolHeader(20)= nDOF
       do  i = 1,nDOF
          SolHeader(i+20) = curdof(i)
@@ -939,6 +944,36 @@ c  output arguments:  none
 
       return
       end
+
+*deck,ResWrDisp
+      subroutine ResWrNodalData (nData)
+c primary function:    Store nodal displacements
+
+c object/library: ResWr
+
+c  input arguments:
+c     nData     (dp,ar(numNodes*nDOF),in)  - Displacements
+
+c  output arguments:  none
+
+#include "impcom.inc"
+#include "ResWr.inc"
+
+      external  largeIntPut, fFree
+
+      integer  n
+      double precision  nData(*)
+
+      Mask = ibset(Mask,10)
+
+      n = nNode*nDOF
+      SolHeader(11) = iLocL
+      call largeIntPut (iLocL,SolHeader(105),SolHeader(106))
+      call binwrt8 (NBLK,iLocL,n*intpdp,nData(1),0,iobuf(1))
+
+      return
+      end
+
 
 *deck,ResWrDispEnd
       subroutine ResWrDispEnd

@@ -284,6 +284,7 @@ namespace CoupledField
 
     void MapInternal2ANSYSNodeDof(SolutionType solType);
     std::map <SolutionType, ansys_nodal_dof> internal2AnsysNodeDofMap_;
+    std::map <ansys_nodal_dof, UInt> ansysNodeDof2Idx_;
 
     void MapInternal2ANSYSElemDof(SolutionType solType);
     std::map <SolutionType, ansys_elem_dof> internal2AnsysElemDofMap_;
@@ -302,8 +303,13 @@ namespace CoupledField
     //! Map with result objects for each result type
     ResultMapType resultMap_;
 
-    //! Check if class is initialized
-    bool isInitialized_;
+    //! Check if the grid is to be printed.
+    bool printGrid_;
+
+    //! Due to the fact, that we get to know the number of Dofs
+    //! only after all results are registered we set this flag to
+    //! tell the WriteGrid method to print the grid now.
+    bool printNow_;
 
     Double ansysNode_[6];
     Integer connectANSYS_[27];
@@ -312,6 +318,10 @@ namespace CoupledField
     std::map<Integer, Integer> ansysType2NumNodes_;
     std::map<FEType, Integer> elemType2AnsysType_;
     std::map<Integer, Integer> numAnsysElemDOFs_;
+    std::vector<std::string> dofLabels_;
+    Integer numNodeDOFs_;
+    Integer stepNum_;
+    Double stepVal_;
 
     std::map<ansys_elem_dof, std::vector<Double> > tmpElemResultVecs_;
   };
