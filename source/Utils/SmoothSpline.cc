@@ -26,6 +26,12 @@ namespace CoupledField
     rhs_.Resize(size_);
     h_.Resize(node_+1);
     g_.Resize(ind_+1);
+ 
+    g_.Init(0);
+    h_.Init(0);
+    rhs_.Init(0);
+    coef_.Init(0);
+    mat_.Init(0);
 
     nuMax_     = 1.0;
     if ( curveType_ == BH ) {
@@ -49,7 +55,7 @@ namespace CoupledField
     xEnd_  = x_[node_+1];
     yEnd_ = y_[node_+1];
 
-    theta_ = ( y_[node_+1] - y_[0] ) / ind_; // y-interval
+    theta_ = ( yEnd_ - y_[0] ) / ind_; // y-interval
 
     for ( i=0; i<=node_; i++ ) {
       h_[i] = x_[i+1]-x_[i]; // -interval
@@ -68,8 +74,9 @@ namespace CoupledField
     CalcCoef();
 
     // calculation of start values
-    if ( start )
+    if ( start  && curveType_ == BH ) {
       CalcStart();
+    }
 
     // compute extrapolation parameter
     Double xEndPrime;
@@ -525,7 +532,7 @@ namespace CoupledField
     Integer i;
     Double theta;
 
-    if (t < xStart_ && t > xEnd_) {
+    if (t < xStart_ || t > xEnd_) {
       return -1;
     }
 
