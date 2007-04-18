@@ -110,11 +110,11 @@ namespace CoupledField
 					 std::string dim ) const {
     ENTER_FCN("BaseMaterial::matTypeNotAllowed");
 
-    std::string msg, help;
+    std::string help;
     Enum2String(matType, help);
-    msg = "Material type (" + dim + ") " + help + 
-          " is not available for " + materialDatabaseName_ + " Database";
-    Error(msg.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Material type (" <<  dim <<  ") " << help << 
+               " is not available for " << materialDatabaseName_ 
+               << " Database" );
   }
   
 
@@ -122,11 +122,10 @@ namespace CoupledField
 						 const std::string msg ) const {
     ENTER_FCN("BaseMaterial::dataTypeNotAllowed4Set");
 
-    std::string msgAll, help;
+    std::string help;
     Enum2String( dataType, help );
-    msgAll = "Datatype " + help + " is not allowed in function " 
-           + msg;
-    Error(msgAll.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Datatype " << help << " is not allowed in function " 
+               << msg );
   }
 
 
@@ -134,22 +133,21 @@ namespace CoupledField
 					  const MaterialType& matType ) const {
     ENTER_FCN("BaseMaterial::dataTypeNotAllowed");
 
-    std::string msg, help1, help2;
+    std::string help1, help2;
     Enum2String( dataType, help1 );
     Enum2String( matType, help2 );
-    msg = "Datatype " + help1 + " is not allowed for material type " 
-           + help2 + " in material data base " + materialDatabaseName_;
-    Error(msg.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
+               << help2 << " in material data base " << materialDatabaseName_ );
   }
 
   void BaseMaterial::matTypeNotInDataBase( const MaterialType& matType,
 					   std::string dim ) const {
     ENTER_FCN("BaseMaterial::matTypeNotInFile");
 
-    std::string msg, help;
+    std::string help;
     Enum2String(matType, help);
-    msg = "Material type (" + dim + ") " + help + " was not read form/defined in material file";
-    Error(msg.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Material type (" << dim << ") " << help 
+               << " was not read form/defined in material file" );
   }
 
 
@@ -159,8 +157,8 @@ namespace CoupledField
 
     std::string msgAll, help;
     Enum2String( dataType, help );
-    msgAll = "Set of " + msg + " makes no sense with datatype " + help;
-    Error(msgAll.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Set of " << msg << " makes no sense with datatype "
+               << help );
   }
 
 
@@ -171,8 +169,8 @@ namespace CoupledField
     std::string msg, help1, help2;
     Enum2String(matType, help1);
     Enum2String(subTensor, help2);
-    msg = "Subtensor " + help2 + " not available for material type " + help1;
-    Error(msg.c_str(), __FILE__, __LINE__);
+    EXCEPTION( "Subtensor " << help2 <<" not available for material type " 
+               << help1 );
   }
 
   std::ostream & operator << ( std::ostream & out, const BaseMaterial& matData)
@@ -497,7 +495,7 @@ namespace CoupledField
 	  matTensor = Q * helpMat;
 	}
 	else {
-	  Error("Cannot rotate tensor due to dimensions!",__FILE__,__LINE__);
+	  EXCEPTION("Cannot rotate tensor due to dimensions!");
 	}
       }
   }
@@ -508,8 +506,7 @@ namespace CoupledField
 
     std::string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
-      Error("Currently we just support Preisach Hysteresis Model",
-	    __FILE__,__LINE__);
+      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
       Double Esat, Psat;

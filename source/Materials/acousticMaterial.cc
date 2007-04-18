@@ -48,7 +48,7 @@ namespace CoupledField
   void AcousticMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
-    Error("SetScalar for 'String' not implemented",__FILE__,__LINE__);
+    EXCEPTION("SetScalar for 'String' not implemented");
   }
 
 
