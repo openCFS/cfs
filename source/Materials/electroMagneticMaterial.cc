@@ -100,8 +100,7 @@ namespace CoupledField
     //check for permeability
     if ( matType == MAG_PERMEABILITY ) {
       if ( param < 1.255e-6 ) {
-	Error("Mag. permeability cannot be smaller then the one of vacuum",
-		__FILE__,__LINE__);
+	EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
       }
       else {
 	scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
@@ -143,8 +142,7 @@ namespace CoupledField
     //check for permeability
     if ( matType == MAG_PERMEABILITY ) {
       if ( param.real() < 1.255e-6 ) {
-	Error("Mag. permeability cannot be smaller then the one of vacuum",
-		__FILE__,__LINE__);
+	EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
       }
       else {
 	scalarParams_[MAG_RELUCTIVITY] = 1.0/param;

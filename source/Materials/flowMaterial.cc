@@ -39,7 +39,7 @@ namespace CoupledField
   void FlowMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "FlowMaterial::SetScalar" );
-    Error("SetScalar for 'String' not implemented",__FILE__,__LINE__);
+    EXCEPTION("SetScalar for 'String' not implemented" );
   }
 
 

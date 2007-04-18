@@ -470,8 +470,7 @@ namespace CoupledField
       matMatrix.Init();
 
       if ( abs(mat[0][0]) < 1.09E-15 ) {
-	Error("Singular material tensor when computing plane stress case",
-	      __FILE__,__LINE__);
+	EXCEPTION("Singular material tensor when computing plane stress case" );
       }
 
       // calculate plane stress matrix for xy-plane
@@ -591,9 +590,8 @@ namespace CoupledField
       elasticityTensor[5][5]=GXY;
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, COMPLEX );
     } else {
-      *error << "Calculation of full stiffness matrix for symmetryType '"
-             << symmetryType_ << "' not implemented!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
+                 << symmetryType_ << "' not implemented!" );
     }
     
   }
