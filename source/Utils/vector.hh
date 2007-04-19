@@ -365,8 +365,7 @@ namespace CoupledField {
     // =======================================================================
   
     //! Calc cross product of two vectors v = this x b
-    template <class TYPE2>
-    void CrossProduct( const Vector<TYPE>& b, Vector<PROMOTE(TYPE,TYPE2)>& v );
+    void CrossProduct( const Vector<TYPE>& b, Vector<TYPE>& v );
     
     // =======================================================================
     // BOOLEAN OPERATORS
@@ -688,9 +687,9 @@ namespace CoupledField {
 
 
   
-  template <class TYPE> template <class TYPE2>
+  template <class TYPE> 
   void Vector<TYPE>::CrossProduct( const Vector<TYPE>& b, 
-                                   Vector<PROMOTE(TYPE,TYPE2)>& v ) {
+                                   Vector<TYPE>& v ) {
     if( size_ != 3 || b.size_ != 3 )
       EXCEPTION("CrossProduct can only be calculated for vector of size 3!");
 
