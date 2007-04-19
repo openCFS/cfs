@@ -458,6 +458,11 @@ namespace CoupledField {
       }
       break;
 
+      // * HACK ALARM *
+    case HEAT_TEMPERATURE:
+      ExtractDerivResult( res, 1 );
+      break;
+
     case MAG_FLUX_DENSITY:
       if( isComplex_ ) {
         CalcFluxDensity<Complex>( res );
@@ -1351,10 +1356,8 @@ namespace CoupledField {
     // Enable update of geometry
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();  
 
-    StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
-    elemNodeToCouplingNode_.Resize(numCouplings);
-    elemNodeToCouplingNode_.Init();
 
+    cplNodeNumPos_.Resize( numCouplings );
 
     for ( UInt actCoupling = 0; actCoupling < numCouplings; actCoupling++ ){
 
@@ -1368,60 +1371,28 @@ namespace CoupledField {
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
         ptgrid_->RegionNameToId( regionIds, couplRegions );
-
-        //Get total number of coupling elements
-        UInt totalCouplingElems = ptgrid_->GetNumElems( regionIds );
         
-        elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
-        elemNodeToCouplingNode_tmp.Init();
-
-        UInt offset = 0;
-        for ( UInt reg = 0; reg < couplRegions.GetSize(); reg++ ) {
-
-          // find subdomain index
-          Integer SDidx=-1; for (UInt sd=0; sd<subdoms_.GetSize(); sd++) {
-            if (regionIds[reg] == subdoms_[sd]) {
-              SDidx = sd;
-              break;
-            }
+        // Check, that every coupling region is part of
+        // the magnetic pde itself
+        for( UInt iReg = 0; iReg < couplRegions.GetSize(); iReg++ ) {
+          if( subdoms_.Find(regionIds[iReg]) == -1 ) {
+            EXCEPTION( "Coupling region '" << couplRegions[iReg]
+                       << "' is not contained in regions for"
+                       << " magnetic PDE" );
           }
-              
-          if (SDidx==-1) {
-            EXCEPTION( "magneticPDE: Coupling Region is not within the "
-                       << "subdomains of the PDE" );
-          }
-
-          StdVector<Elem*> elemssd;
-          ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
-
-          StdVector<UInt> * couplingnodes = NULL;
-          ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-          if ( couplingnodes == NULL ) {
-            EXCEPTION( "Pointer couplingnodes = NULL!" );
-          }
-
-          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            StdVector<UInt> & connecth = elemssd[actEl]->connect;
-            elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
-            elemNodeToCouplingNode_tmp[offset+actEl].Init();
-
-            for ( UInt ielemnode = 0; ielemnode < connecth.GetSize();
-                  ielemnode++ ) {
-              for ( UInt cnode = 0; cnode < (*couplingnodes).GetSize();
-                    cnode++ ) {
-                if (connecth[ielemnode] == (*couplingnodes)[cnode] ) {
-                  elemNodeToCouplingNode_tmp[offset+actEl][ielemnode] = cnode;
-                  break;
-                }
-              }
-            }
-          }
-
-          //in the case, that we have more than one coupling region!
-          offset = elemssd.GetSize();
         }
-
-        elemNodeToCouplingNode_[actCoupling]  = elemNodeToCouplingNode_tmp;
+        
+        StdVector<UInt> * couplingnodes = NULL;
+        ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+        
+        if ( couplingnodes == NULL ) {
+          EXCEPTION( "Pointer couplingnodes = NULL!" );
+        }
+        
+        for( UInt iNode = 0; iNode < couplingnodes->GetSize(); iNode++ ) {
+          UInt actNode = (*couplingnodes)[iNode];
+          cplNodeNumPos_[actCoupling][actNode] = iNode;
+        }
       }
     }
   }
@@ -1455,8 +1426,8 @@ namespace CoupledField {
         ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
           
         if (quantity == MAG_FORCE_LORENTZ) {
-          CalcNodeForceLorentz(*temp, elemNodeToCouplingNode_[forcesCount],
-                               actCoupling, couplingNodes->GetSize());
+          CalcNodeForceLorentz( *temp, cplNodeNumPos_[forcesCount],
+                                actCoupling, couplingNodes->GetSize());
           forcesCount++;
         }
 
@@ -1469,69 +1440,142 @@ namespace CoupledField {
   }
 
   void MagPDE::
-  CalcNodeForceLorentz(Vector<Double> & force, 
-                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
-                       UInt actCoupling, UInt numCouplingNodes) {
-
+  CalcNodeForceLorentz( Vector<Double> & force, 
+                        std::map<UInt, UInt> & cplNodeNumPos,
+                        UInt actCoupling, UInt numCouplingNodes) {
+    
     ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
-
-    NodeStoreSol<Double> *solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
-
+    
     //get the coupling regions
     StdVector<std::string> couplRegions;
     StdVector<RegionIdType> regionIds;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
     ptgrid_->RegionNameToId( regionIds, couplRegions );
-    MagLorentzForceOp<Double> *ForceOp; 
 
-    ForceOp  = new MagLorentzForceOp<Double>( ptgrid_, this,
-                                              eqnMap_, *solhelp, isaxi_, true  );
-
+   
     force.Init(0.0);
+    Vector<Double>  fluxAtIp(dim_), elemForce, fAtIp, jAtIp;
+    Matrix<Double> ptCoord;
 
-    Vector<Double> Jeddy;
+     for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
 
-    UInt offset = 0;
-    for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
 
-      //find subdomain index
-      Integer SDidx=-1; for (UInt sd=0; sd<subdoms_.GetSize(); sd++) {
-        if (regionIds[reg] == subdoms_[sd]) {
-          SDidx = sd;
-          break;
-        }
-      }
+       //find subdomain index
+       Integer sdIndex = subdoms_.Find( regionIds[reg] );
+       if( sdIndex == -1 ) {
+         EXCEPTION( "The region coupling region '" <<
+                    ptgrid_->RegionIdToName( regionIds[reg] )
+                    << "' was not found in magneticPDE" );
+       }
 
-      Double conductivity;
-      materials_[subdoms_[SDidx]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);      
+       RegionIdType actRegionId = subdoms_[sdIndex] ;
+       Double conductivity;
+       materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+
+       // Check if this region is a coil
+       Integer coilIndex = coilRegionId_.Find(actRegionId);
+
+       ElemList actSDList(ptgrid_ );
+       actSDList.SetRegion(actRegionId );
+       
+       EntityIterator it = actSDList.GetIterator();
+       UInt actEl = 0;
+       // iterate over all elements of regions
+       for ( it.Begin(); !it.IsEnd(); it++, actEl++ ) {
+         
+         BaseFE * ptElem = it.GetElem()->ptElem;
+         ptElem->SetAnsatzFct( results_[0]->fctType );
+         UInt numFncs = ptElem->GetNumFncs(results_[0]->fctType);
+         const UInt nrIntPts = ptElem->GetNumIntPoints();
+         const Vector<Double> & intWeights = ptElem->GetIntWeights();  
+         
+         Vector<Double> shpFncAtIp;         
+         ptgrid_->GetElemNodesCoord( ptCoord, 
+                                     it.GetElem()->connect,
+                                     true );
+         
+         // iterate over all integration points
+         fAtIp.Resize( dim_ * numFncs );
+         elemForce.Resize( dim_ * numFncs );
+         elemForce.Init();
+         for( UInt ip = 1; ip <= nrIntPts; ip++ ) {
+           ptElem->GetShFncAtIp(shpFncAtIp, ip, it.GetElem() );
+
+           // CHECK: If this region is a current coil, we simply take the
+           // prescribed current density value
+           if( coilIndex != -1 ) {
+             MathParser * mParser =  domain->GetMathParser();
+             std::string factor = coilDef_[coilIndex]->value_ + "/" 
+               + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+             mParser->SetExpr( mHandle_, factor );
+             Double currDens = mParser->Eval(mHandle_);
+             if( is3d_ ) {
+               // take flow direction into account
+             } else {
+               jAtIp.Resize(1);
+               jAtIp[0] = currDens;
+             }
+           } else {
+             // calculate jEddy at integraton point
+             CalcEddyCurrentAtIP( it, ip, jAtIp );
+           }
+           
+           // calculate flux density at ip
+           CalcFluxDensityAtIP( it, ip, fluxAtIp );
+           
+           // calculate cross product 
+           fAtIp.Init();
+           if( is3d_ ) {
+             Vector<Double> tempCross;
+             jAtIp.CrossProduct( fluxAtIp, tempCross );
+             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
+               fAtIp[iFnc*3+0] = -tempCross[0] * shpFncAtIp[iFnc];
+               fAtIp[iFnc*3+1] = -tempCross[1] * shpFncAtIp[iFnc];
+               fAtIp[iFnc*3+2] = -tempCross[2] * shpFncAtIp[iFnc];
+             }
+           } else if (isaxi_ ) {
       
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion(subdoms_[SDidx] );
-      
-      EntityIterator it = actSDList.GetIterator();
-      UInt actEl = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, actEl++ ) {
-        
-        StdVector<UInt> const & connecth = it.GetElem()->connect;
-        Matrix<Double> elemForce;
-        GetDerivSolVecOfElement(Jeddy,it,results_[0]);
-        Jeddy *= -conductivity;
+             // calculate pseudo cross product for axi-symmetric case
+             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
+               fAtIp[iFnc*2] -= jAtIp[0] * fluxAtIp[1] 
+                 * shpFncAtIp[iFnc];
+               fAtIp[iFnc*2+1] += jAtIp[0] * fluxAtIp[0]   
+                 * shpFncAtIp[iFnc];
+             } 
+           } else{
+             // calculate pseudo cross product
+             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
+               fAtIp[iFnc*2] += jAtIp[0] * fluxAtIp[1] 
+                 * shpFncAtIp[iFnc];
+               fAtIp[iFnc*2+1] -= jAtIp[0] * fluxAtIp[0]   
+                 * shpFncAtIp[iFnc];
+             } 
+           }
+           Double jacDet = ptElem->CalcJacobianDetAtIp(ip, ptCoord, 
+                                                       it.GetElem() );
+           if( isaxi_ ) {
+             Vector<Double> CoordAtIP;
+             CoordAtIP = ptCoord * shpFncAtIp;
+             jacDet *=  2 * PI * CoordAtIP[0];
+           }
+           elemForce += -fAtIp * (jacDet * intWeights[ip-1] );
 
-        ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, it);
+         }
+         StdVector<UInt> const & connecth = it.GetElem()->connect;
 
-        // Add the element force to the according coupling node
-        for (UInt ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
-          for( UInt idim=0; idim<dim_; idim++) {
-            force[elemNodeToCouplingNode[actEl+offset][ielemnode]*dim_+idim]
-              += elemForce[ielemnode][idim];
-          }
-        }
-      }
-
-      //in the case, that we have more than one coupling region!
-      offset = actSDList.GetSize();
-    }
+         // Add the element force to the according coupling node
+         for (UInt ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
+           UInt pos = cplNodeNumPos[connecth[ielemnode]];
+           for( UInt idim=0; idim<dim_; idim++) {
+             force[pos*dim_+idim] += elemForce[ielemnode*dim_+idim];
+           }
+         }
+       }
+       
+ 
+     }
   }
+
 
   bool MagPDE::HasOutput( SolutionType output ) {
     ENTER_FCN( "MagPDE::HasOutput" );
