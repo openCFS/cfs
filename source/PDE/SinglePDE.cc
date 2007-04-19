@@ -2361,7 +2361,7 @@ namespace CoupledField {
         // iterate over all dofs
         for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
           if( eqnNums[iDof] != 0 ) {
-            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
+            actSol[it.GetPos()*numDofs+iDof] = factor * solHelp[abs(eqnNums[iDof])-1];
           } else {
             actSol[it.GetPos()*numDofs+iDof] = 0.0;
           }
