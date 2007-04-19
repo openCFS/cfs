@@ -435,7 +435,8 @@ namespace CoupledField
             {
               ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
               for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
-                myInterface->nodes.Push_back(nodes[iNode]);
+                if( myInterface->nodes.Find(nodes[iNode]) == -1 )
+                  myInterface->nodes.Push_back(nodes[iNode]);
               }
             }
           
