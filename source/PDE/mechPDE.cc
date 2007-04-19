@@ -538,7 +538,6 @@ namespace CoupledField {
 
         //check  for softening!
         if ( regionSoftening_.count(actRegion) ) {
-          std::cerr << "Applying softening for region " << actRegionName << std::endl;
           bilinearStiff->SetSofteningModel( regionSoftening_[actRegion] );
         }
         
