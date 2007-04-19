@@ -5,8 +5,10 @@
 #ifndef FILE_MAGNETICPDE
 #define FILE_MAGNETICPDE
 
+#include <map>
 #include "SinglePDE.hh" 
 #include "Forms/magforceop.hh"
+
 
 namespace CoupledField
 {
@@ -115,17 +117,18 @@ namespace CoupledField
     void CalcForceVWP( shared_ptr<BaseResult> result );
 
     //! computation of Lorentz force
-    void CalcNodeForceLorentz(Vector<Double> & force, 
-                              StdVector<StdVector<UInt> > & 
-                              elemNodeToCouplingNode,
-                              UInt actCoupling, 
-                              UInt numCouplingNodes);
- 
- 
+    void CalcNodeForceLorentz( Vector<Double> & force, 
+                               std::map<UInt, UInt>& cplNodeNumPos,
+                               UInt actCoupling, 
+                               UInt numCouplingNodes );
+    
     // ---- Magnetic Force variables ---
  
+    //! map coupling node number to its position
+    StdVector<std::map<UInt, UInt> > cplNodeNumPos_;
 
     //! assigns each coupling element node the according Coupling Node number
+    
     StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
 
     //! force operator (for coupling as well as postprocessing)
