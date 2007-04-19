@@ -206,6 +206,10 @@
           use="optional" default="nodeList"/>
         <xsd:attribute name="quantity" default="elecPotential"
           type="DT_ElecUnknownType"/>
+        <xsd:attribute name="masterDof" type="xsd:token" use="optional"
+          default=""/>
+        <xsd:attribute name="slaveDof" type="xsd:token" use="optional"
+          default=""/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

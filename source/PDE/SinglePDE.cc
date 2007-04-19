@@ -1220,13 +1220,16 @@ namespace CoupledField {
 
     // fetch paramnodes for constraint
     StdVector<ParamNode*> csNodes = bcsNode->GetList("constraint");
-
+    std::string masterDof, slaveDof;
+    
     // iterate over all parameter nodes
     for( UInt i = 0; i < csNodes.GetSize(); i++ ) {
       try {
         csNodes[i]->Get( "name", name );
         csNodes[i]->Get( "quantity", resultName );
         csNodes[i]->Get( "entityType", entType );
+        csNodes[i]->Get( "masterDof", masterDof );
+        csNodes[i]->Get( "slaveDof", slaveDof );
         
         // fetch related resultInfo object
         String2Enum( resultName, solType );
@@ -1248,8 +1251,17 @@ namespace CoupledField {
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
-        actBc->masterDof = 1;
-        actBc->slaveDof = 1;
+        if( masterDof == "" ) {
+          actBc->masterDof = 1;
+        } else {
+          actBc->masterDof = actResultInfo->GetDofIndex( masterDof );
+        }
+        if( slaveDof == "" ) {
+          actBc->slaveDof = 1;
+        } else {
+          actBc->slaveDof = actResultInfo->GetDofIndex( masterDof );
+        }
+
         actBc->result = actResultInfo;
         actBc->eqnMap = eqnMap_;
         
@@ -1771,8 +1783,7 @@ namespace CoupledField {
             else if ( eqnNr == 0 ) {
               (*debug) << "SinglePDE::CalcInputCoupling: "
                        << "(" << pdename_ << ") "
-                       << "Refused to pass "
-                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+                       << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
                        << "it is fixed by hom. Dirichlet BC" << std::endl;
             }
 #endif
