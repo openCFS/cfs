@@ -105,9 +105,13 @@ namespace CoupledField {
       param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
       ->Get("linearSystems", false );
     if( linSysNode ) {
-      ParamNode * matrixNode = linSysNode->GetChild()->Get("matrix", false );
-      if( matrixNode ) {
-        genSBMSys = matrixNode->Has("sbmMatrix");
+      ParamNode * specSysNode = linSysNode
+        ->Get("system","name","direct", false);
+      if( specSysNode ) {
+        ParamNode * matrixNode = specSysNode->Get("matrix", false );
+        if( matrixNode ) {
+          genSBMSys = matrixNode->Has("sbmMatrix");
+        }
       }
     }
 

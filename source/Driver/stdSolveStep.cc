@@ -1287,14 +1287,19 @@ namespace CoupledField {
       // get current multiSequenceStep
       UInt actMsStep = 
         domain->GetSingleDriver()->GetActSequenceStep();
-      StdVector<ParamNode *> pairCouplings = 
+      StdVector<ParamNode *> pairCouplings;
+        ParamNode * cplList = 
         param->Get("sequenceStep","index", GenStr(actMsStep ) )
-        ->Get("couplingList")->Get("direct")->GetChildren();
-      // look for each direct coupling, if it has a "nonLin"-node
-      for( UInt iCpl = 0; iCpl < pairCouplings.GetSize(); iCpl++ ) {
-        nonLinNode = pairCouplings[iCpl]->Get("nonLinear", false );
-        if( nonLinNode ) {
-          break;
+        ->Get("couplingList", false);
+      if( cplList ) {
+        StdVector<ParamNode *> pairCouplings = 
+          cplList->Get("direct")->GetChildren();
+        // look for each direct coupling, if it has a "nonLin"-node
+        for( UInt iCpl = 0; iCpl < pairCouplings.GetSize(); iCpl++ ) {
+          nonLinNode = pairCouplings[iCpl]->Get("nonLinear", false );
+          if( nonLinNode ) {
+            break;
+          }
         }
       }
       
