@@ -99,10 +99,8 @@ namespace OLAS {
     // Test for the unlikely event, that the inital
     // guess already satisfies the linear system
     if ( resNorm == 0 ) {
-      (*error) << "Your lucky, the initial guess is alread equal to the "
-	       << "solution! But not too lucky after all, since this means I "
-	       << "must say good bye now!";
-      Error( __FILE__, __LINE__ );
+      (*warning) << "I like zeros! You too?";
+      Warning( __FILE__, __LINE__ );
     }
 
     // Query user's wish for the stopping criterion
