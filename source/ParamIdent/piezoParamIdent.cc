@@ -54,9 +54,10 @@ namespace CoupledField
 
     // check, if "imagMaterialData" is used
     imagMaterialParam_ = false;
-    ParamNode * matNode = myParam_->Get("couplingList")->Get("direct")
-                          ->Get("piezoDirect")
-                          ->Get("materialDataType", false );
+    ParamNode * matNode = 
+      param->Get("sequenceStep")->Get("couplingList")->Get("direct")
+      ->Get("piezoDirect")->Get("materialDataType", false );
+
     if( matNode ) {
       imagMaterialParam_ = 
         matNode->Get("type")->AsString() == "imagMaterialParameter";
