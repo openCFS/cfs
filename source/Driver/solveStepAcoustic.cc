@@ -171,32 +171,32 @@ namespace CoupledField {
     Double coeff1, coeff2;
     Double density, compressibility, c0, BoverA;
 
-    nLinKuznetsovRHSInt * rhsKuz = NULL;
-    nLinWesterveltRHSInt * rhsWest = NULL;
-    LinearForm * rhsInt = NULL;
-
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+
+      std::auto_ptr<LinearForm> rhsInt;
+      std::auto_ptr<nLinWesterveltRHSInt> rhsWest;
+      std::auto_ptr<nLinKuznetsovRHSInt> rhsKuz;
       
       ElemList actSDList(ptgrid_ );
       actSDList.SetRegion( subdoms_[actSD] );
       RegionIdType actRegionId = subdoms_[actSD];
 
       // get material data
-      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
-      materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+      materialData_[actRegionId]->GetScalar(density,DENSITY,REAL);
+      materialData_[actRegionId]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
       c0 = sqrt(compressibility/density);
-      materialData_[actSD]->GetScalar(BoverA,BOVERA,REAL);
+      materialData_[actRegionId]->GetScalar(BoverA,BOVERA,REAL);
 
       if ( regionNonLinType_[actRegionId] == WESTERVELT ) {
-        rhsWest = new nLinWesterveltRHSInt("1.0", isaxi_);
+        rhsWest = std::auto_ptr<nLinWesterveltRHSInt>(new nLinWesterveltRHSInt("1.0", isaxi_));
 
         // set correct factors for bilinear forms
         coeff1 = (1+0.5*BoverA) / pow(c0,4);
-        rhsWest->SetFactor(GenStr(coeff1));      
+        rhsWest->SetFactor(GenStr(coeff1));
         rhsInt = rhsWest;
       }
       if ( regionNonLinType_[actRegionId] == KUZNETSOV ) {
-        rhsKuz = new nLinKuznetsovRHSInt("1.0", isaxi_);
+        rhsKuz = std::auto_ptr<nLinKuznetsovRHSInt>(new nLinKuznetsovRHSInt("1.0", isaxi_));
 
         // set correct factors for bilinear forms
         coeff1 = density * BoverA / pow(c0,4);
@@ -204,34 +204,39 @@ namespace CoupledField {
         coeff2 = density * 2.0 / (c0*c0);
         rhsKuz->SetSecondFactor(GenStr(coeff2));
         rhsInt = rhsKuz;
+
       }
-        
-      // Get iterator
-      EntityIterator it = actSDList.GetIterator();
-      for ( it.Begin(); !it.IsEnd(); it++) {
-        
-        ptElem  = it.GetElem()->ptElem;
-        connect = it.GetElem()->connect;
 
-        PDE_.GetSolVecOfElement(sol, it, results_[0]);
-        PDE_.GetDerivSolVecOfElement(solderiv1, it, results_[0]);
-        PDE_.GetDeriv2SolVecOfElement(solderiv2, it, results_[0]);
-        
-        rhsInt->SetActElemSol(sol);
-        rhsInt->SetActElemSolDeriv1(solderiv1);
-        rhsInt->SetActElemSolDeriv2(solderiv2);
-        rhsInt->CalcElemVector(rhs, it);
-        
-        //get equation numbers 
-        
-        eqnMap_->GetNodeEqn( connect, connect_PDE );
+      // In case there is something nonlinear go on
+      if ( (regionNonLinType_[actRegionId] == WESTERVELT)
+           || (regionNonLinType_[actRegionId] == KUZNETSOV) ) {
 
-        //assemble
-        algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), 
-                               connect_PDE.GetSize());
+        // Get iterator
+        EntityIterator it = actSDList.GetIterator();
+        for ( it.Begin(); !it.IsEnd(); it++) {
+          
+          ptElem  = it.GetElem()->ptElem;
+          connect = it.GetElem()->connect;
+          
+          PDE_.GetSolVecOfElement(sol, it, results_[0]);
+          PDE_.GetDerivSolVecOfElement(solderiv1, it, results_[0]);
+          PDE_.GetDeriv2SolVecOfElement(solderiv2, it, results_[0]);
+          
+          rhsInt->SetActElemSol(sol);
+          rhsInt->SetActElemSolDeriv1(solderiv1);
+          rhsInt->SetActElemSolDeriv2(solderiv2);
+          rhsInt->CalcElemVector(rhs, it);
+          
+          //get equation numbers 
+          
+          eqnMap_->GetNodeEqn( connect, connect_PDE );
+          
+          //assemble
+          algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), 
+                                 connect_PDE.GetSize());
+        }
       }
     }
-    delete rhsInt;
   }
 
 
