@@ -106,6 +106,7 @@
                 <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
                 <xsd:element name="surfStress"     type="DT_MechSurfStress"/>
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>
+                <xsd:element name="constraint"     type="DT_MechCS"   />
               </xsd:choice>
 
             </xsd:complexType>
@@ -433,6 +434,23 @@
       type="DT_MechUnknownType"/>
   </xsd:complexType>
   
+
+  <!-- Element type for constraint condition -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MechCS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
+        <xsd:attribute name="quantity" default="mechDisplacement"
+          type="DT_MechUnknownType"/>
+        <xsd:attribute name="masterDof" type="DT_MechDOF" use="required"/>
+        <xsd:attribute name="slaveDof" type="DT_MechDOF" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
 
   <!-- ******************************************************************* -->
