@@ -254,7 +254,7 @@ namespace CoupledField {
     
     // Check if any reordering array was given
     if( (*order) == NULL ) {
-      std::cerr << "Performing no reordering";
+      //std::cerr << "Performing no reordering";
       return;
     }
 
