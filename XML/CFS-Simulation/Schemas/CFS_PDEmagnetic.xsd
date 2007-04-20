@@ -189,6 +189,10 @@
           use="optional" default="nodeList"/>
         <xsd:attribute name="quantity" default="magPotential"
           type="DT_MagneticUnknownType"/>
+        <xsd:attribute name="masterDof" type="xsd:token" use="optional"
+          default=""/>
+        <xsd:attribute name="slaveDof" type="xsd:token" use="optional"
+          default=""/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
