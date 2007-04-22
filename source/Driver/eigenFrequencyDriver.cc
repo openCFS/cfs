@@ -66,10 +66,6 @@ namespace CoupledField {
 
     ResultHandler * resHandler = domain->GetResultHandler();
 
-    // notify resultHandler about beginning of new sequence step
-    if( !isPartOfSequence_ )
-      resHandler->BeginMultiSequenceStep( 1, analysis_ );
-
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
     // ------------------------------
@@ -88,6 +84,11 @@ namespace CoupledField {
         CalcEigenFrequencies( eigenFreqs, errBounds, 
                               numFreq_, freqShift_ );
       
+      // notify resultHandler about beginning of new sequence step
+      resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                          analysis_,
+                                          numConverged );
+
       // Print out eigenfrequencies
       std::cout << std::endl << std::endl;
       
@@ -133,6 +134,11 @@ namespace CoupledField {
       numConverged = ptPDE_->GetSolveStep()->
         CalcEigenFrequencies( eigenFreqs, errBounds, 
                               numFreq_, freqShift_);
+      
+      // notify resultHandler about beginning of new sequence step
+      resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                          analysis_,
+                                          numConverged );
       
       // Print out eigenfrequencies
       std::cout << std::endl << std::endl;

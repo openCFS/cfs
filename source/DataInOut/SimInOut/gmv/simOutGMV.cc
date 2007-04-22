@@ -100,7 +100,9 @@ namespace CoupledField {
 
   }
 
-  void SimOutputGMV::BeginMultiSequenceStep( UInt step, AnalysisType type )
+  void SimOutputGMV::BeginMultiSequenceStep( UInt step,
+                                             AnalysisType type,
+                                             UInt numSteps )
   {
 
   }
@@ -224,7 +226,9 @@ namespace CoupledField {
     struct tm* time;
     time_t time_t;
     char buffer[64];
-    
+
+    memset(&time_t, sizeof(time_t), 0);
+    memset(buffer, sizeof(buffer), 0);
     time = localtime(&time_t);
     strftime(buffer, sizeof(buffer), "%m/%d/%y", time);
 

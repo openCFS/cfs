@@ -61,10 +61,7 @@ namespace CoupledField {
     Double  steptime = 0.0;
 
     // notify resultHandler about beginning of new sequence step 
-    if( !isPartOfSequence_ )
-      resHandler->BeginMultiSequenceStep( 1, analysis_ );
-    
-    
+    resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, 1 );
 
     ptPDE_->GetSolveStep()->SetActTime(steptime);
     ptPDE_->GetSolveStep()->SetActStep(nstep);

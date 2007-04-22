@@ -250,7 +250,7 @@ namespace CoupledField
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
-    resHandler->BeginMultiSequenceStep( 1, analysis_ );
+    resHandler->BeginMultiSequenceStep( 1, analysis_, 1 );
 
     InitializePDEs();
     //domain->PrintGrid();

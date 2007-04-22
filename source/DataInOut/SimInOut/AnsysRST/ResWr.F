@@ -11,7 +11,7 @@ c    result file which can be processed by the ANSYS program.
       function ResWrBegin (Nunit, Lunit, Fname, ncFname, Title, JobName,
      x                     Units, NumDOF, DOF, UserCode,
      x                     MaxNode, NumNode, MaxElem, NumElem,
-     x                     MaxResultSet, cpxrst)
+     x                     MaxResultSet, kan)
 c primary function:    Open result file
 
 c object/library: ResWr
@@ -36,7 +36,7 @@ c     NumNode  (int,sc,in)       - Number of nodes used
 c     MaxElem  (int,sc,in)       - Maximum element number used
 c     NumElem  (int,sc,in)       - Number of elements used
 c     MaxResultSet (int,sc,in)   - Maximum number of result sets (usually 1000)
-c     cpxrst   (int,sc,in)       - complex results
+c     kan   (int,sc,in)          - analysis type
 c  output arguments:
 c     ResWrBegin (int,sc,out)    - 0, successful  other, error in file open
 
@@ -54,7 +54,7 @@ c     ResWrBegin (int,sc,out)    - 0, successful  other, error in file open
       integer     ResWrBegin, Nunit, Lunit, ncFname, Units,
      x            NumDOF, DOF(NumDOF), UserCode,
      x            MaxNode, NumNode, MaxElem, NumElem, MaxResultSet, i,
-     x            cpxrst
+     x            kan
       character*8 JobName
       character*(*)  Fname
       character*80  Title(2)
@@ -111,6 +111,7 @@ c          *****  set up results file header  *****
       Header(5) = nDOF
       Header(6) = MaxElem
       Header(7) = nElem
+      Header(8) = kan
       Header(20)= Units
       Header(21)= 1
       Header(33)= 1
@@ -801,6 +802,7 @@ c  output arguments:  none
       double precision  time, dvect(100)
       character*80  Title(5)
       character*4   DofLab(*)
+      LONGINT LocResIndexWorkL
 
       equivalence (ivect(1),dvect(1))
 
@@ -869,12 +871,13 @@ c  output arguments:  none
 c          *****  update the index  *****
       LongLocL = binBaseGet(NBLK)
       LongZeroL = 0
+      LocResIndexWorkL = LocResIndexL
       call binBasePut (NBLK,LongZeroL)
-      call binwrt8 (NBLK,LocResIndexL,
+      call binwrt8 (NBLK,LocResIndexWorkL,
      x               2*MaxResult,iResIndex(1),2*MaxResult,iobuf(1))
-      call binwrt8 (NBLK,LocResIndexL,
+      call binwrt8 (NBLK,LocResIndexWorkL,
      x               MaxResult*intpdp,dResTime(1),0,iobuf(1))
-      call binwrt8 (NBLK,LocResIndexL,
+      call binwrt8 (NBLK,LocResIndexWorkL,
      x               3*MaxResult,iResLstep(1,1),3*MaxResult,iobuf(1))
       call binBasePut (NBLK,LongLocL)
 

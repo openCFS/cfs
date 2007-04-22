@@ -102,8 +102,6 @@ namespace CoupledField {
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
-    if( !isPartOfSequence_ )
-      resHandler->BeginMultiSequenceStep( 1, analysis_ );
 
     UInt startStep = restartStep_ + 1;
     Double  steptime  = startStep * firstdt_;
@@ -114,6 +112,9 @@ namespace CoupledField {
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
+    resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                        analysis_,
+                                        numstep_+restartStep_-startStep+1 );
   
     ptPDE_->WriteGeneralPDEdefines();
 

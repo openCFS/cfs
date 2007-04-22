@@ -74,8 +74,8 @@ namespace CoupledField {
                                    analysisPerStep_[iStep]);
 
       // notify resultHandler about new step
-      resHandler->BeginMultiSequenceStep( iStep+1, 
-                                          analysisPerStep_[iStep] );
+      //      resHandler->BeginMultiSequenceStep( iStep+1, 
+      //                                          analysisPerStep_[iStep], 1 );
       
       // Since per time step only one type of 
       // analysis is allowed, we simple access

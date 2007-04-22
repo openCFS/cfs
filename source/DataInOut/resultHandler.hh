@@ -72,7 +72,7 @@ namespace CoupledField {
 
 
     //! Begin new multisequence step
-    void BeginMultiSequenceStep( UInt step, AnalysisType type );
+    void BeginMultiSequenceStep( UInt step, AnalysisType type, UInt numSteps );
 
     //! Begin new step in analyisis
     void BeginStep( UInt stepNum, Double stepVal );

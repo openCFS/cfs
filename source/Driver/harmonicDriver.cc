@@ -159,8 +159,9 @@ namespace CoupledField {
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
-    if( !isPartOfSequence_ )
-      resHandler->BeginMultiSequenceStep( 1, analysis_ );
+    resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                        analysis_,
+                                        numFreq_ );
 
     ptPDE_->WriteGeneralPDEdefines();
 

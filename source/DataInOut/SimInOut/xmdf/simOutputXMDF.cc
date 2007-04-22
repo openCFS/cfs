@@ -57,7 +57,9 @@ namespace CoupledField {
       xfCloseFile(fileId_);
   }
 
-  void SimOutputXMDF::BeginMultiSequenceStep( UInt step, AnalysisType type ) 
+  void SimOutputXMDF::BeginMultiSequenceStep( UInt step,
+                                              AnalysisType type,
+                                              UInt numSteps  ) 
   {
     std::stringstream msName;
     H5::Attribute attrib;
