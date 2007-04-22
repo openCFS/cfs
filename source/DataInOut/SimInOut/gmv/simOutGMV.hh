@@ -29,7 +29,9 @@ namespace CoupledField
     virtual void WriteGrid();
 
     //! Begin multisequence step
-    virtual void BeginMultiSequenceStep( UInt step, AnalysisType type );
+    virtual void BeginMultiSequenceStep( UInt step,
+                                         AnalysisType type,
+                                         UInt numSteps );
     
     //! Register result (within one multisequence step)
     virtual void RegisterResult( shared_ptr<BaseResult> sol,

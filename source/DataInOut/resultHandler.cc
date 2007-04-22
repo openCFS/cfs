@@ -128,7 +128,9 @@ namespace CoupledField {
     LOG_TRACE(resHandler) << "Finished registering result" << std::endl;
   }
   
-  void ResultHandler::BeginMultiSequenceStep( UInt step, AnalysisType type ) {
+  void ResultHandler::BeginMultiSequenceStep( UInt step,
+                                              AnalysisType type,
+                                              UInt numSteps ) {
     ENTER_FCN( "ResultHandler::BeginMultiSequenceStep" );
         
     // store current sequencestep
@@ -140,7 +142,7 @@ namespace CoupledField {
     it = outFiles_.begin();
 
     for( ; it != outFiles_.end(); it++ ) {
-      it->second->BeginMultiSequenceStep( step, type );
+      it->second->BeginMultiSequenceStep( step, type, numSteps );
     }
   }
 

@@ -26,9 +26,9 @@ namespace CoupledField {
   DECLARE_LOG(simOutputRST)
   DEFINE_LOG(simOutputRST, "SimOutputRST")
  
-    SimOutputRST::SimOutputRST( const std::string& fileName,
-                                ParamNode * outputNode )
-      : SimOutput( fileName, outputNode ) {
+  SimOutputRST::SimOutputRST( const std::string& fileName,
+                              ParamNode * outputNode )
+    : SimOutput( fileName, outputNode ) {
 
     ENTER_FCN( "SimOutputRST::SimOutputRST" );
 
@@ -36,6 +36,9 @@ namespace CoupledField {
     formatName_ = "rst";
     fileName_ = fileName;
     dirName_ = "simoutput_rst";
+
+    numSteps_ = 0;
+    msStep_ = 0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -141,9 +144,6 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputRST::~SimOutputRST" );
   }
 
-  // ********
-  //   Init
-  // ********
   void SimOutputRST::Init( Grid* ptGrid) {
     
     ENTER_FCN( "SimOutputRST::OpenFile" );
@@ -157,8 +157,9 @@ namespace CoupledField {
     
     LOG_TRACE(simOutputRST) << "Writing mesh";
 
+    // variables for global ANSYS file header
     Integer ret;
-    Integer Nunit = 12;
+    Integer Nunit = 12; // has to be set for .rst files
     Integer Lunit = 6;
     char Fname[1024];
     Integer ncFname;
@@ -166,27 +167,17 @@ namespace CoupledField {
     char JobName[8];
     Integer Units = 1; // use SI units
     std::vector<Integer> DOF;
-    /*
-    Integer DOF[] = { UX, UY, UZ,
-                      ROTX, ROTY, ROTZ,
-                      AX, AY, AZ,
-                      VX, VY, VZ,
-                      13, 14, 15, 16, 17, 18,
-                      PRES, TEMP, VOLT, MAG,
-                      ENKE, ENDS, EMF, CURR,
-                      SP01, SP02, SP03,
-                      SP04, SP05, SP06 };
-    */
-
     Integer UserCode = 10;
     Integer MaxNode = ptGrid_->GetNumNodes();
     Integer NumNode = ptGrid_->GetNumNodes();
     Integer MaxElem = ptGrid_->GetNumElems();
     Integer NumElem = ptGrid_->GetNumElems();
-    Integer MaxResultSet = 1; // Should be num timesteps
-    Integer cpxrst = 0; // 0 for transient, 1 for harmonic
+    Integer MaxResultSet; // Should be num timesteps
+    Integer kan;
     Integer lenTitle;
     Integer lenJobName;
+
+    // variables for element information header
     AnsysElementType ansysElementType[2];
     Integer num = 1;
     Integer MAXTYPE = 2;
@@ -195,13 +186,12 @@ namespace CoupledField {
     Integer NumReal = 0;
     Integer MAXCSYS = 0;
     Integer NumCsys = 0;
-    Double cSys[24];
-    Double rCon;
-    
+
+    // Only write grid if corresponding flags are set.    
     if(printGrid_ || printNow_)
     {
       // Get number of DOFs
-      std::map <ansys_nodal_dof, UInt>::const_iterator dofIdxIt, dofIdxEnd;
+      std::map <AnsysNodalDof, UInt>::const_iterator dofIdxIt, dofIdxEnd;
       dofIdxIt = ansysNodeDof2Idx_.begin();
       dofIdxEnd = ansysNodeDof2Idx_.end();
       
@@ -212,45 +202,109 @@ namespace CoupledField {
           DOF.push_back(dofIdxIt->first);
         }
 
+      // For some reason writing the grid needs one DOF.
       if(printGrid_)
       {
         numNodeDOFs_ = 1;
         DOF.push_back(SP01);
       }
       
+      // Variables for construction of file name
       std::string filename;
       std::ostringstream strBuffer;
+      std::stringstream fnstream;
+      std::string pathsep;
+
+      // Generate basename for output file
+      // If just the grid is written the file will end with
+      // "_grid.rst". If we are in multistep N the file will end
+      // with "_msN.rst".
+      try 
+      {
+        pathsep = fs::path("/").native_directory_string();
+      } catch (std::exception &ex)
+      {
+        EXCEPTION(ex.what());
+      }
+      fnstream << dirName_ << pathsep << fileName_;
+      if(msStep_ != 0)
+        fnstream << "_ms" << msStep_;
+      else
+        fnstream << "_grid";
+      fnstream << ".rst";
+
+      filename = fnstream.str();
 
       try 
       {
-
-        // Generate basename for output file
-        filename.append( dirName_ );
-        std::string pathsep = fs::path("/").native_directory_string();
-        filename.append( pathsep );
-        filename.append( fileName_ );
-        filename.append( ".rst" );
-
+        // If file already exists, delete it.
+        // ANSYS API can not handle this case.
         if(fs::exists(filename))
         {
           fs::remove( filename );
         }
-    
       } catch (std::exception &ex)
       {
         EXCEPTION(ex.what());
       }
 
+      // Copy file name and job name to buffers.
       std::fill(Fname, Fname+sizeof(Fname), 0);
       sprintf(Fname, "%s", filename.c_str());
       ncFname = filename.length();
       std::fill(Title, Title+sizeof(Title), ' ');
-      std::copy(filename.begin(), filename.end(), Title);
+      std::copy(fileName_.begin(), fileName_.end(), Title);
       lenTitle = sizeof(Title);
       std::fill(JobName, JobName+sizeof(JobName), ' ');
       std::copy(filename.begin(), filename.begin()+sizeof(JobName), JobName);
       lenJobName = sizeof(JobName);
     
+      // Determine maximum number of result sets, if results are real/complex,
+      // and set ANSYS analysis type according to internal analysis type. 
+      switch(analysisType_)
+      {
+      case STATIC:
+        MaxResultSet = ((numSteps_/100)+1)*100;
+        complexResults_ = false;
+        timeFreq_ = "time";
+        kan = 0;
+        break;
+      case TRANSIENT:
+        MaxResultSet = ((numSteps_/100)+1)*100;
+        complexResults_ = false;
+        timeFreq_ = "time";
+        kan = 4;
+        break;
+      case HARMONIC:
+        MaxResultSet = ((2*numSteps_/100)+1)*100;
+        complexResults_ = true;
+        timeFreq_ = "frequency";
+        kan = 3;
+        break;
+      case EIGENFREQUENCY:
+        MaxResultSet = ((numSteps_/100)+1)*100;
+        complexResults_ = false;
+        timeFreq_ = "frequency";
+        kan = 2;
+        break;
+
+      default:
+        // We only care about the analysis type if we don't just
+        // want to output the grid. 
+        if(!printGrid_)
+        {
+          EXCEPTION("ANSYS RST writer does not support current analyis type.");
+        }
+        else
+        {
+          kan = 0;
+          MaxResultSet = 0;
+        }
+        
+        break;
+      }
+
+      // Open ANSYS result file.
       ret = reswrbegin_(&Nunit,
                         &Lunit,
                         Fname,
@@ -266,7 +320,7 @@ namespace CoupledField {
                         &MaxElem,
                         &NumElem,
                         &MaxResultSet,
-                        &cpxrst,
+                        &kan,
                         ncFname,
                         lenTitle,
                         lenJobName);
@@ -276,12 +330,7 @@ namespace CoupledField {
         EXCEPTION("Could not open ANSYS RST file.");
       }
 
-      tmpElemResultVecs_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
-      tmpElemResultVecs_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
-      tmpElemResultVecs_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
-      tmpElemResultVecs_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
-      tmpElemResultVecs_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
-
+      // Initialize element headers.
       if(!ptGrid_->IsQuadratic())
       {
         //      ansysElementType[0] = 153; // SURF153
@@ -295,6 +344,7 @@ namespace CoupledField {
         SetElementType95(ansysElementType[1], 2); // SOLID95
       }
 
+      // Write geometry to result file.
       reswrgeombegin_(&MAXTYPE, &NumType,
                       &MAXREAL, &NumReal,
                       &MAXCSYS, &NumCsys);
@@ -308,27 +358,33 @@ namespace CoupledField {
       }
       reswrtypeend_();
 
-      // *****  real constants  *****
-      //    reswrrealbegin_();
-      //    num = 1; reswrreal_(&num, &num, &rCon);
-      //    reswrrealend_();
-
-      // *****  Coordinate systems  *****
-      //    reswrcsysbegin_();
-      //    num = 1; reswrcsys_(&num, cSys);
-      //    reswrcsysend_();
-
       // write nodes
       WriteNodes();
     
       // write elements
       WriteElements();
 
+      // Finish writing geometry
       reswrgeomend_();
     
       if ( printGrid_ ) {
         // Close result file
         reswrend_();
+      }
+      else
+      {
+        // Initialize temporary element result arrays.
+        tmpElemResultVecsReal_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
+        tmpElemResultVecsReal_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
+        tmpElemResultVecsReal_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
+        tmpElemResultVecsReal_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
+        tmpElemResultVecsReal_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
+
+        tmpElemResultVecsImag_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
+        tmpElemResultVecsImag_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
+        tmpElemResultVecsImag_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
+        tmpElemResultVecsImag_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
+        tmpElemResultVecsImag_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
       }
     }
   }
@@ -344,12 +400,14 @@ namespace CoupledField {
     
     reswrnodebegin_();
 
+    // Set node rotations to zero.
     ansysNode_[3] = 0;
     ansysNode_[4] = 0;
     ansysNode_[5] = 0;
 
     Point point;
     for ( i = 1; i <= numNodes; i++ ) {
+      // Set coordinates for node i
       ptGrid_->GetNodeCoordinate(point,i);
       ansysNode_[0] = point[0];
       ansysNode_[1] = point[1];
@@ -394,15 +452,17 @@ namespace CoupledField {
       // write all element declarations
       for ( iElem = 0; iElem < elemVec.GetSize(); iElem++) {
 
+        // Get element from grid and determine element type.
         ptEl = elemVec[iElem];
         eType = ptEl->ptElem->feType();
 
-
+        // Degenerate ANSYS mechanical elements and get ANSYS element type.
         ansysElemType = ReorderConnect4Ansys(eType,
                                              ptEl->connect,
                                              connectANSYS_);
         numElemNodes = ansysType2NumNodes_[ansysElemType];
 
+        // Set element data (region -> material number & type id)
         elemData_[0] = ansysElemMaterial;
         elemData_[1] = ansysType2TypeId_[ansysElemType];
         
@@ -418,6 +478,17 @@ namespace CoupledField {
     reswrelemend_();
   }
 
+  void SimOutputRST::BeginMultiSequenceStep( UInt step,
+                                             AnalysisType type,
+                                             UInt numSteps)
+  {
+
+    printNow_ = false;
+
+    numSteps_ = numSteps;
+    analysisType_ = type;
+    msStep_ = step;
+  }
 
   void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
@@ -436,6 +507,8 @@ namespace CoupledField {
     stepNum_ = stepNum;
     stepVal_ = stepVal;
 
+    // At this stage we exactly know the number of nodal DOFs
+    // and can therefore write the grid.
     numNodeDOFs_ = ansysNodeDof2Idx_.size();
 
     if(!printNow_)
@@ -465,12 +538,16 @@ namespace CoupledField {
     
     std::string title;
     UInt numDOFs;
-    std::vector<Double> nodeValues;
-    std::vector<Double> elemValues;
+    std::vector<Double> nodeValuesReal;
+    std::vector<Double> nodeValuesImag;
+    std::vector<Double> elemValuesReal;
+    std::vector<Double> elemValuesImag;
     UInt numNodes = ptGrid_->GetNumNodes();
     UInt numElems = ptGrid_->GetNumElems();
-    nodeValues.resize(numNodes*numNodeDOFs_);
-    elemValues.resize(numElems*256);
+    nodeValuesReal.resize(numNodes*numNodeDOFs_);
+    nodeValuesImag.resize(numNodes*numNodeDOFs_);
+    elemValuesReal.resize(numElems*256);
+    elemValuesImag.resize(numElems*256);
     Integer node;
     Integer elem;
     
@@ -495,46 +572,54 @@ namespace CoupledField {
       // check if result is defined on nodes or elements
       StdVector<std::string> & dofNames = actInfo.dofNames;  
       if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::PFEM &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        Warning( "GiD can only write results on element and nodes",
+           actInfo.definedOn != ResultInfo::ELEMENT ) 
+      {
+        Warning( "RST can only write results on elements and nodes",
                  __FILE__, __LINE__ );
         continue;
       }
 
       LOG_DBG(simOutputRST) << "Writing result '" << title << "'";
+
+      numDOFs = dofNames.GetSize();
       
       if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
         Vector<Double> gSol;
         FillGlobalVec<Double>(gSol, actResults, entityType );
-        numDOFs = dofNames.GetSize();
         
         if(actInfo.definedOn == ResultInfo::NODE)
-          WriteNodeData( gSol, nodeValues, actInfo.resultType,
-                         numDOFs, entryType);
+          PrepareNodeData( gSol, nodeValuesReal,
+                           actInfo.resultType,
+                           numDOFs, entryType);
 
         if(actInfo.definedOn == ResultInfo::ELEMENT)
-          WriteElemData( gSol, actInfo.resultType,
-                         numDOFs, entryType);
+          PrepareElemData( gSol, actInfo.resultType,
+                           numDOFs, entryType);
       } else {
-        reswrsolend_();
-        reswrend_();
-        EXCEPTION("Writing harmonic results to RST not supported at the moment.");
+        Vector<Complex> gSol;
+        FillGlobalVec<Complex>(gSol, actResults, entityType );
+
+        if(actInfo.definedOn == ResultInfo::NODE)
+          PrepareNodeData( gSol, nodeValuesReal, nodeValuesImag,
+                           actInfo.resultType,
+                           numDOFs, entryType);
         
-        // Vector<Complex> gSol;
-        // FillGlobalVec<Complex>(gSol, actResults, entityType );
-        // WriteNodeElemDataHarm( gSol, dofNames, title, entryType, entityType,
-        //                       actStepVal_, actInfo.complexFormat );        
+        if(actInfo.definedOn == ResultInfo::ELEMENT)
+          PrepareElemData( gSol, actInfo.resultType,
+                           numDOFs, entryType);        
       }
     }
 
-
+    // Generate title for current result set.
     char steptitle[400];
     std::string dummy;
     std::stringstream titstr;
     std::fill(steptitle, steptitle+sizeof(steptitle), ' ');
-    titstr << fileName_ << " step: " << stepNum_ << ", time/freq: " << stepVal_;
+    titstr << fileName_ << " step: " << stepNum_ << ", "
+           << timeFreq_ << ": " << stepVal_;
+    if(complexResults_)
+      titstr << ", real";
+    
     dummy = titstr.str();
     std::copy(dummy.begin(),
               dummy.end(),
@@ -543,7 +628,7 @@ namespace CoupledField {
     std::string dofLab;
     dofLab.resize(numNodeDOFs_*4);
 
-    std::map <ansys_nodal_dof, UInt>::const_iterator dofIdxIt, dofIdxEnd;
+    std::map <AnsysNodalDof, UInt>::const_iterator dofIdxIt, dofIdxEnd;
     dofIdxIt = ansysNodeDof2Idx_.begin();
     dofIdxEnd = ansysNodeDof2Idx_.end();
     UInt idx = 0;
@@ -577,11 +662,11 @@ namespace CoupledField {
     //      reswrdisp_(&node, &nodeValues[(node-1)*numNodeDOFs_]);
     //    }
     //    reswrdispend_();
-    reswrnodaldata_(&nodeValues[0]);
+    reswrnodaldata_(&nodeValuesReal[0]);
 
     reswreresbegin_();
 
-    std::map <SolutionType, ansys_elem_dof>::const_iterator eResIt, eResEnd;
+    std::map <SolutionType, AnsysElemDof>::const_iterator eResIt, eResEnd;
     eResEnd = internal2AnsysElemDofMap_.end();
     StdVector<Elem*> elemVec;
     ptGrid_->GetElems(elemVec, ALL_REGIONS);
@@ -593,46 +678,112 @@ namespace CoupledField {
       numNodes = ansysType2NumNodes_[elemType2AnsysType_[eType]];
 
       for ( ; eResIt != eResEnd; eResIt++ ) {
-        ansys_elem_dof ansysDOF = eResIt->second;
-        std::vector<Double>& resVec = tmpElemResultVecs_[ansysDOF];
+        AnsysElemDof ansysDOF = eResIt->second;
+        std::vector<Double>& resVec = tmpElemResultVecsReal_[ansysDOF];
         UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
         UInt idx = (elem-1)*numAnsysElemDofs;
 
         for ( UInt i = 0; i <numNodes; i++ ) {
           std::copy(&resVec[idx],
                     &resVec[idx+numAnsysElemDofs],
-                    &elemValues[i*numAnsysElemDofs]);
+                    &elemValuesReal[i*numAnsysElemDofs]);
         }
 
         numAnsysElemDofs *=numNodes;
         reswrestrbegin_(&elem);
         Integer tmp = ansysDOF;
-        reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValues[0]);
+        reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValuesReal[0]);
         reswrestrend_();
       }
     }
 
     reswreresend_();
-
     reswrsolend_();
+
+    // Write imaginary part of result if one is present.
+    if(complexResults_)
+    {
+      std::fill(steptitle, steptitle+sizeof(steptitle), ' ');
+      titstr.str("");
+      titstr << fileName_ << " step: " << stepNum_ << ", "
+             << timeFreq_ << ": " << stepVal_ << ", imag";
+      
+      dummy = titstr.str();
+      std::copy(dummy.begin(),
+                dummy.end(),
+                steptitle);
+
+      kcmplx = 1;
+      reswrsolbegin_((Integer*) &stepNum_,
+                     &subStep,
+                     (Integer*) &stepNum_,
+                     &stepVal_,
+                     &kcmplx,
+                     &steptitle[0], &dofLab[0], dofLab.length());
+
+      reswrnodaldata_(&nodeValuesImag[0]);
+      
+      reswreresbegin_();
+      eResIt, eResEnd;
+      eResEnd = internal2AnsysElemDofMap_.end();
+      elemVec;
+      ptGrid_->GetElems(elemVec, ALL_REGIONS);
+
+      for ( elem = 1; elem <= numElems; elem++ ) {
+
+        eResIt = internal2AnsysElemDofMap_.begin();
+        FEType eType = elemVec[elem-1]->ptElem->feType();
+        numNodes = ansysType2NumNodes_[elemType2AnsysType_[eType]];
+
+        for ( ; eResIt != eResEnd; eResIt++ ) {
+          AnsysElemDof ansysDOF = eResIt->second;
+          std::vector<Double>& resVec = tmpElemResultVecsImag_[ansysDOF];
+          UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
+          UInt idx = (elem-1)*numAnsysElemDofs;
+
+          for ( UInt i = 0; i <numNodes; i++ ) {
+            std::copy(&resVec[idx],
+                      &resVec[idx+numAnsysElemDofs],
+                      &elemValuesImag[i*numAnsysElemDofs]);
+          }
+
+          numAnsysElemDofs *=numNodes;
+          reswrestrbegin_(&elem);
+          Integer tmp = ansysDOF;
+          reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValuesReal[0]);
+          reswrestrend_();
+        }
+      }
+      reswreresend_();
+
+      reswrsolend_();      
+    }
+  }
+  
+  void SimOutputRST::FinishMultiSequenceStep( )
+  {
+    // Close result file
+    reswrend_();
+
+    internal2AnsysNodeDofMap_.clear();
+    ansysNodeDof2Idx_.clear();
+    internal2AnsysElemDofMap_.clear();
   }
   
 
   void SimOutputRST::Finalize() 
   {
-    // Close result file
-    reswrend_();
   }
 
 
-  void SimOutputRST::WriteNodeData( const Vector<Double> & var,
-                                    std::vector<Double> & nodeValues,
+  void SimOutputRST::PrepareNodeData( const Vector<Double> & var,
+                                    std::vector<Double> & nodeValuesReal,
                                     SolutionType solType,
                                     UInt numDOFs,
                                     const ResultInfo::EntryType entryType) {
     ENTER_FCN ( "SimOutputRST::WriteNodeData" );
 
-    ansys_nodal_dof ansysDOF = internal2AnsysNodeDofMap_[solType];
+    AnsysNodalDof ansysDOF = internal2AnsysNodeDofMap_[solType];
     UInt numNodes = ptGrid_->GetNumNodes();
     Integer idx;
 
@@ -643,14 +794,14 @@ namespace CoupledField {
     for ( UInt node = 0; node < numNodes; node++ ) {
       for(UInt dof = 0; dof < numDOFs; dof++)
       {
-        idx = ansysNodeDof2Idx_[(ansys_nodal_dof)(ansysDOF+dof)];
+        idx = ansysNodeDof2Idx_[(AnsysNodalDof)(ansysDOF+dof)];
 
-        nodeValues[node*numNodeDOFs_+idx] = var[node*numDOFs+dof];
+        nodeValuesReal[node*numNodeDOFs_+idx] = var[node*numDOFs+dof];
       }      
     }
   }     
   
-  void SimOutputRST::WriteElemData( const Vector<Double> & var, 
+  void SimOutputRST::PrepareElemData( const Vector<Double> & var, 
                                     SolutionType solType,
                                     UInt numDOFs,
                                     ResultInfo::EntryType entryType)
@@ -659,7 +810,7 @@ namespace CoupledField {
 
     UInt numElems = ptGrid_->GetNumElems();
     Integer ansIdx, intIdx;
-    ansys_elem_dof ansysDof = internal2AnsysElemDofMap_[solType];
+    AnsysElemDof ansysDof = internal2AnsysElemDofMap_[solType];
     Integer elem;
     UInt numAnsysElemDofs;
     
@@ -667,7 +818,7 @@ namespace CoupledField {
     if( ansysDof < 0 )
       return;
 
-    std::vector<Double>& resVec = tmpElemResultVecs_[ansysDof];
+    std::vector<Double>& resVec = tmpElemResultVecsReal_[ansysDof];
     numAnsysElemDofs = numAnsysElemDOFs_[ansysDof];
 
     for ( elem = 1; elem <= numElems; elem++ ) {
@@ -680,6 +831,66 @@ namespace CoupledField {
 
   }
   
+  void SimOutputRST::PrepareNodeData( const Vector<Complex> & var,
+                                    std::vector<Double> & nodeValuesReal,
+                                    std::vector<Double> & nodeValuesImag,
+                                    SolutionType solType,
+                                    UInt numDOFs,
+                                    const ResultInfo::EntryType entryType) {
+    ENTER_FCN ( "SimOutputRST::WriteNodeData" );
+
+    AnsysNodalDof ansysDOF = internal2AnsysNodeDofMap_[solType];
+    UInt numNodes = ptGrid_->GetNumNodes();
+    Integer idx;
+
+    // Solution type has not been previously mapped.
+    if(ansysNodeDof2Idx_.find(ansysDOF) == ansysNodeDof2Idx_.end())
+      return;
+    
+    for ( UInt node = 0; node < numNodes; node++ ) {
+      for(UInt dof = 0; dof < numDOFs; dof++)
+      {
+        idx = ansysNodeDof2Idx_[(AnsysNodalDof)(ansysDOF+dof)];
+
+        nodeValuesReal[node*numNodeDOFs_+idx] = var[node*numDOFs+dof].real();
+        nodeValuesImag[node*numNodeDOFs_+idx] = var[node*numDOFs+dof].imag();
+      }      
+    }
+  }     
+  
+  void SimOutputRST::PrepareElemData( const Vector<Complex> & var, 
+                                    SolutionType solType,
+                                    UInt numDOFs,
+                                    ResultInfo::EntryType entryType)
+  {
+    ENTER_FCN ( "SimOutputRST::WriteElemData" );
+
+    UInt numElems = ptGrid_->GetNumElems();
+    Integer ansIdx, intIdx;
+    AnsysElemDof ansysDof = internal2AnsysElemDofMap_[solType];
+    Integer elem;
+    UInt numAnsysElemDofs;
+    
+    // Solution type has not been previously mapped.
+    if( ansysDof < 0 )
+      return;
+
+    std::vector<Double>& resVecReal = tmpElemResultVecsReal_[ansysDof];
+    std::vector<Double>& resVecImag = tmpElemResultVecsImag_[ansysDof];
+    numAnsysElemDofs = numAnsysElemDOFs_[ansysDof];
+
+    for ( elem = 1; elem <= numElems; elem++ ) {
+      intIdx = (elem-1)*numDOFs;
+      ansIdx = (elem-1)*numAnsysElemDofs;
+
+      for(UInt i=0; i<numDOFs; i++)
+      {
+        resVecReal[ansIdx+i] = var[intIdx+i].real();
+        resVecImag[ansIdx+i] = var[intIdx+i].imag();
+      }
+    }
+
+  }
   
 
   // change node order for right access in ANSYS

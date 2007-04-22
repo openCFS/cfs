@@ -54,7 +54,7 @@ namespace CoupledField
                                Integer* MaxElem,
                                Integer* NumElem,
                                Integer* MaxResultSet,
-                               Integer* cpxrst,
+                               Integer* kan,
                                Integer lenFname,
                                Integer lenTitle,
                                Integer lenJobName);
