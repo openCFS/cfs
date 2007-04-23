@@ -1217,7 +1217,7 @@ namespace CoupledField
                                      const Vector<Double> &d, Vector<Double> &e) const
   {
     Double l1, l2;
-    Vector<Double> v1, v2;
+    Vector<Double> v1, v2, temp;
 
  #ifdef CHECK_INDEX
     if ((a.GetSize() != 3) || (b.GetSize() != 3) || (c.GetSize() != 3) ||
@@ -1244,10 +1244,17 @@ namespace CoupledField
       if (CoLinear(v1, e)) {
         Double l_ac, l_ad, l_bc, l_bd;
         // calculate distances between points
-        l_ac = (c - a).NormL2();
-        l_ad = (d - a).NormL2();
-        l_bc = (c - b).NormL2();
-        l_bd = (d - b).NormL2();
+        temp = (c - a);
+        l_ac = temp.NormL2();
+
+        temp = (d - a);
+        l_ad = temp.NormL2();
+
+        temp = (c - b);
+        l_bc = temp.NormL2();
+
+        temp = (d - b);
+        l_bd = temp.NormL2();
 
         if (fabs(l_ac + l_ad - l2) < TOL) {
           e = a;
@@ -1348,6 +1355,7 @@ namespace CoupledField
     Double r1, r2;
     UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
     Vector<Double> c1, c2, e/*, last_cut*/;
+    Vector<Double> temp1, temp2;
     struct Intersection {
       UInt index;
       UInt type;
@@ -1371,7 +1379,8 @@ namespace CoupledField
     r2 = PolyCentroid(p2, c2);
 
     // quit, if surrounding circles do not intersect
-    if (r1 + r2 < (c1 - c2).NormL2())
+    temp1 = (c1 - c2);
+    if (r1 + r2 < temp1.NormL2())
       return false;
 
     // if interface is not coplanar then project p1 onto p2
@@ -1379,11 +1388,14 @@ namespace CoupledField
       Double scale;
       Vector<Double> n;
       // compute surface normal of p2
-      CrossProd(p2[1]- p2[0], p2[2] - p2[0], n);
+      temp1 = p2[1]- p2[0];
+      temp2 = p2[2] - p2[0];
+      CrossProd(temp1,temp2, n);
       Normalize(n);
       // project each point of p1
       for (i = 0; i < p1.GetSize(); ++i) {
-        n.Inner(p1[i] - p2[0], scale);
+        temp1 = p1[i] - p2[0];
+        n.Inner( temp1, scale);
         p1[i] -= n * scale;
       }
     }
@@ -1418,8 +1430,13 @@ namespace CoupledField
 
     // make sure that both polygons have the same orientation
     PolygonIterator pi1(p1, start_cur), pi2(p2);
-    CrossProd(p1[1] - p1[0], p1[2] - p1[0], c1);
-    CrossProd(p2[1] - p2[0], p2[2] - p2[0], c2);
+    temp1 = p1[1] - p1[0];
+    temp2 = p1[2] - p1[0];
+    CrossProd(temp1, temp2, c1);
+
+    temp1 = p2[1] - p2[0];
+    temp2 = p2[2] - p2[0];
+    CrossProd(temp1, temp2, c2);
     if (c1 * c2 < 0.0)
       pi2.Reverse();
 
@@ -1498,13 +1515,16 @@ namespace CoupledField
 
     if (nCuts == 2) { // two cuts
       // make sure we do not treat a duplicate cut
-      if ((cuts[1].loc - cuts[0].loc).NormL2() < TOL) {
+      temp1 = (cuts[1].loc - cuts[0].loc);
+      if (temp1.NormL2() < TOL) {
         nCuts = 1;
       } else {
         // Here we can assume that we have found two "real" cuts. In
         // this case [a,b] runs completely through p2.
         // => sort cuts by distance to a
-        if ((cuts[0].loc - *pi1).NormL2() < (cuts[1].loc - *pi1).NormL2())
+        temp1 = (cuts[0].loc - *pi1);
+        temp2 = (cuts[1].loc - *pi1);
+        if (temp1.NormL2() < temp2.NormL2())
         {
           r.Push_back(cuts[0].loc);
           //last_cut = cuts[1].loc;
@@ -1616,7 +1636,7 @@ namespace CoupledField
   {
     bool result = false;
     IntersectType s;
-    Vector<Double> center, e;
+    Vector<Double> center, e, temp;
     ConstPolygonIterator pi(poly);
 
     // compute centroid of polygon, if not given
@@ -1627,7 +1647,8 @@ namespace CoupledField
 
     // Test if p is the centroid of the polygon (should always lie inside of a
     // convex polygon). In this case the algorithm below will not work.
-    if ((p - center).NormL2() < TOL)
+    temp = (p - center);
+    if ( temp.NormL2() < TOL)
       return TRUE;
 
     // try intersecting [c,p] with each edge of the polygon
@@ -1653,6 +1674,7 @@ namespace CoupledField
   {
     UInt i, n = p.GetSize();
     Double r, r_max = 0.0;
+    Vector<Double> temp;
 
     // set c to 0
     c.Resize(3);
@@ -1665,7 +1687,8 @@ namespace CoupledField
 
     // find point with maximum distance from centroid
     for (i = 0; i < n; ++i) {
-      r = (p[i] - c).NormL2();
+      temp = (p[i] - c);
+      r = temp.NormL2();
       if (r > r_max)
         r_max = r;
     }
@@ -1679,6 +1702,7 @@ namespace CoupledField
     UInt nodeNo, firstNo = tri.GetSize();
     NCElem *ncElem, *ncElem2;
     UInt numPoints = p.GetSize();
+    Vector<Double> temp1, temp2;
 
     /*      
             Vector<Double> point, midPoint;
@@ -1729,7 +1753,9 @@ namespace CoupledField
       ncElem->connect.Resize(3);
       ncElem2->connect.Resize(3);
 	      
-      if ((p[0] - p[2]).NormL2() < (p[1] - p[3]).NormL2())
+      temp1 = (p[0] - p[2]);
+      temp2 = (p[1] - p[3]);
+      if (temp1.NormL2() < temp2.NormL2())
       {
         AddNode(p[0], nodeNo);
         ncElem->connect[0] = nodeNo;

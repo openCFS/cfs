@@ -182,7 +182,8 @@ namespace CoupledField {
     ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
     
     LOG_TRACE(gridcfs) << "Reading nodes for directivity pattern";
-    
+    Vector<Double> temp;
+
     // get parameter node of directivity definition
     ParamNode * dirNode = param->Get("domain")->Get("directivityNodes", false);
     if( !dirNode) return;
@@ -247,7 +248,8 @@ namespace CoupledField {
         
           // calculate distance and store it in vector
           GetNodeCoordinate( actNodeCoord, iNode+1, false );          
-          nodeDist[iNode] = (actNodeCoord-globCoord).NormL2();
+          temp = (actNodeCoord-globCoord);
+          nodeDist[iNode] = temp.NormL2();
         } // nodes
         
         // find minimum entry in the vector
