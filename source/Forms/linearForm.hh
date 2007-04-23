@@ -406,6 +406,12 @@ namespace CoupledField
     Vector<Double> solderiv1_;  //!< first time derivative of solution
     Vector<Double> solderiv2_;  //!< second time derivative of solution
 
+    Matrix<Double> xiDx_; //!< derivative of shape fncts after global coordinates
+    Vector<Double> ShpFncAtIp_; //!< shape fnct at int point
+    Vector<Double> CoordAtIp_;
+    Vector<Double> solGradAtIp_, solDeriv1GradAtIp_; //!< gradient of sol at int point
+    Double solDeriv1AtIp_, solDeriv2AtIp_; //!< 1st + 2nd deriv at int point
+
     Double factorN1_;      //!< multiplicative value for integrator
     Double factorN2_;     //!< multiplicative value for integrator
 
@@ -446,6 +452,10 @@ namespace CoupledField
     Vector<Double> sol_;        //!< solution
     Vector<Double> solderiv1_;  //!< first time derivative of solution
     Vector<Double> solderiv2_;  //!< second time derivative of solution
+
+    Vector<Double> ShpFncAtIp_; //!< shape fnct at int point
+    Vector<Double> CoordAtIp_;
+    Double solAtIp_, solDeriv1AtIp_, solDeriv2AtIp_; //<! sol at integration point
 
     Double factor_;      //!< multiplicative value for integrator
 

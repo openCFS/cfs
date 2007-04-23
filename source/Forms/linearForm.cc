@@ -1214,20 +1214,11 @@ namespace CoupledField {
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
 
-    // derivative of shape functions after global coordinates 
-    Matrix<Double> xiDx, xiDxTransp;
-
-    Vector<Double> ShpFncAtIp;
-    Vector<Double> CoordAtIp;
-    Vector<Double> solGradAtIp, solDeriv1GradAtIp;
-    Double solDeriv1AtIp, solDeriv2AtIp;
-
-    Double jacDet;
-  
     elemVec.Resize(numFncs);
     elemVec.Init(0.0);
-    solGradAtIp.Resize(numFncs);
-    solDeriv1GradAtIp.Resize(numFncs);
+
+    solGradAtIp_.Resize(numFncs);
+    solDeriv1GradAtIp_.Resize(numFncs);
 
 //     // calculate real factors
 //     Double fac1,fac2;
@@ -1237,50 +1228,51 @@ namespace CoupledField {
 //     fac2 = mParser_->Eval( mHandle_ );
 
 
-    Double totalfactor;
+    Double jacDet, totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
       jacDet = 0;
-      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+      ptelem->GetShFncAtIp(ShpFncAtIp_,actIntPt, ent.GetElem() );
+      ptelem->GetGlobDerivShFncAtIp(xiDx_, actIntPt, ptCoord_, 
                                     jacDet, ent.GetElem() );
         
       if (isaxi_) {
-        CoordAtIp = ptCoord_ * ShpFncAtIp;
+        CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
         for (UInt i=0; i<numFncs; i++)
-          xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
+          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
           
-        jacDet *= 2 * PI * CoordAtIp[0];
+        jacDet *= 2 * PI * CoordAtIp_[0];
       }
         
+
+      //compute gradient of solution + 1st derivative at integration point
+      solGradAtIp_.Init();
+      solDeriv1GradAtIp_.Init();
+      for ( UInt i=0; i<spaceDim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp_[i] += xiDx_[j][i] * sol_[j];
+          solDeriv1GradAtIp_[i] += xiDx_[j][i] * solderiv1_[j];
+        }
+      }
 //       xiDx.Transpose(xiDxTransp);
 //       solGradAtIp       = xiDxTransp * sol_;
 //       solDeriv1GradAtIp = xiDxTransp * solderiv1_;
 
-      //compute gradient of solution + 1st derivative at integration point
-      solGradAtIp.Init();
-      solDeriv1GradAtIp.Init();
-      for ( UInt i=0; i<spaceDim; i++ ) {
-        for ( UInt j=0; j<numFncs; j++ ) {
-          solGradAtIp[i] += xiDx[j][i] * sol_[j];
-          solDeriv1GradAtIp[i] += xiDx[j][i] * solderiv1_[j];
-        }
-      }
 
       //get 1st and 2nd derivative of solution at integration point
-      solDeriv1AtIp = solderiv1_*ShpFncAtIp;
-      solDeriv2AtIp = solderiv2_*ShpFncAtIp;
+      solDeriv1AtIp_ = solderiv1_ * ShpFncAtIp_;
+      solDeriv2AtIp_ = solderiv2_ * ShpFncAtIp_;
         
       totalfactor=0;
-      for (UInt j=0; j<xiDx.GetSizeCol(); j++)
-        totalfactor += solGradAtIp[j]*solDeriv1GradAtIp[j];
+      for (UInt j=0; j<xiDx_.GetSizeCol(); j++)
+        totalfactor += solGradAtIp_[j] * solDeriv1GradAtIp_[j];
       totalfactor *= factorN2_;
         
-      totalfactor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
+      totalfactor += factorN1_ * solDeriv1AtIp_ * solDeriv2AtIp_;
         
       totalfactor *= jacDet;
       for (UInt i=0; i< numFncs; i++)
-        elemVec[i] += ShpFncAtIp[i] * totalfactor;
+        elemVec[i] += ShpFncAtIp_[i] * totalfactor;
         
     }
     //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
@@ -1313,37 +1305,30 @@ namespace CoupledField {
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
    
-    
-    Vector<Double> ShpFncAtIp;
-    Vector<Double> CoordAtIp;
-    Double solAtIp, solDeriv1AtIp, solDeriv2AtIp;
-
-    Double jacDet;
-  
     elemVec.Resize(numFncs);
     elemVec.Init(0.0);
 
-    Double totalfactor;
+    Double jacDet, totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem() );
-      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
+      ptelem->GetShFncAtIp(ShpFncAtIp_,actIntPt, ent.GetElem() );
         
       if (isaxi_) {
-        CoordAtIp = ptCoord_ * ShpFncAtIp;
-        jacDet *= 2 * PI * CoordAtIp[0];
+        CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
+        jacDet *= 2 * PI * CoordAtIp_[0];
       }
         
       //get solution and derivatives at integration point
-      solAtIp = sol_*ShpFncAtIp;
-      solDeriv1AtIp = solderiv1_*ShpFncAtIp;
-      solDeriv2AtIp = solderiv2_*ShpFncAtIp;
+      solAtIp_ = sol_ * ShpFncAtIp_;
+      solDeriv1AtIp_ = solderiv1_ * ShpFncAtIp_;
+      solDeriv2AtIp_ = solderiv2_ * ShpFncAtIp_;
         
-      totalfactor = jacDet * 2.0 * factor_ * (solDeriv1AtIp * solDeriv1AtIp +
-                                              solAtIp*solDeriv2AtIp);
+      totalfactor = jacDet * 2.0 * factor_ * (solDeriv1AtIp_ * solDeriv1AtIp_ +
+                                              solAtIp_ * solDeriv2AtIp_);
         
       for (UInt i=0; i< numFncs; i++)
-        elemVec[i] += ShpFncAtIp[i] * totalfactor;
+        elemVec[i] += ShpFncAtIp_[i] * totalfactor;
     }
   }
 
