@@ -118,5 +118,9 @@ TARGET_LINK_LIBRARIES(cfs ${TARGET_LL}
   boost_serialization
   boost_filesystem)
 
+IF(USE_ANSYSRST)
+  SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
+ENDIF(USE_ANSYSRST)
+
 # Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
 INSTALL_TARGETS(/bin cfs)
