@@ -662,6 +662,8 @@ source/Forms/nonConformingInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nonConformingInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/pierceInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/pierceInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/pmlBasics.cc -text
+source/Forms/pmlBasics.hh -text
 source/Forms/singleEntryInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/singleEntryInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/smoothInt.cc svneol=native#text/x-c%2B%2Bsrc

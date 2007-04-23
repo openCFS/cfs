@@ -229,14 +229,6 @@ namespace CoupledField {
     //! \todo Specification of ReadStoreResults for AcousticPDE!!!
     void ReadStoreResults();
 
-    // reads in the PML data
-    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
-		     Double& dampPML, ParamNode * actNode);
-
-    //! computes the PML layer dimensions
-    void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
-			 RegionIdType regionId );
-
     //! read flow data
     void ReadFlowData();
 

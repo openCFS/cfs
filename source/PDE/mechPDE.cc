@@ -483,6 +483,7 @@ namespace CoupledField {
   void MechPDE::DefineIntegrators() {
     ENTER_FCN( "MechPDE::DefineIntegerators" );
 
+    bool isRegionPML;
 
     // =======================================
     //  Get information about softening types
@@ -517,6 +518,8 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
+      isRegionPML = false;
+
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
@@ -531,57 +534,138 @@ namespace CoupledField {
       ParamNode * actRegionNode = 
         myParam_->Get( "region", "name", actRegionName );
       
-      // ==============  add "standard" linear stiffness ===========================     
 
-      if ( regionNonLinType_[actRegion] != MATERIAL ) { 
-        BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
-
-        //check  for softening!
-        if ( regionSoftening_.count(actRegion) ) {
-          bilinearStiff->SetSofteningModel( regionSoftening_[actRegion] );
+      //================= Check for Perfectly matchec layers ====================//
+      if ( dampingList_[actRegion] == PML ) {
+        if ( analysistype_ != HARMONIC ) {
+          EXCEPTION( "PML just supported for Harmonic-Analysis" );
         }
         
-        BiLinFormContext * actIntDescrStiff =
-          new BiLinFormContext(bilinearStiff, STIFFNESS );
+        isRegionPML = true;
+
+        //read data for PML layer
         
-        actIntDescrStiff->SetPtPdes(this, this);
-        actIntDescrStiff->SetResults( results_[0], results_[0],
+        //type of PML damping
+        std::string dampingTypePML;
+        
+        // inner / outer region
+        Matrix<Double> inner;
+        Matrix<Double> outer;
+        
+        //damping factor
+        Double dampPML;
+
+        ParamNode * actRegionNode = 
+          myParam_->Get("regionList")->Get( "region", "name", actRegionName );
+
+        std::string id = actRegionNode->Get("dampingId")->AsString();
+        ParamNode * pmlNode = myParam_->Get("dampingList")->Get("pml", "id", id);
+        ReadDataPML(dampingTypePML, inner, dampPML, pmlNode );
+        
+        GetPMLLayerData(inner, outer, actRegion);
+        
+        //====================================================================
+        //	 stiffness integrator for PML
+        //====================================================================
+
+        std::string formsType = "laplaceInt";
+        SubTensorType tensorType;
+        String2Enum(subType_,tensorType);
+       
+        BaseForm * bilinearStiffPML = 
+          new MechPMLInt(formsType, actSDMat, dampingTypePML, dampPML, tensorType);
+
+        bilinearStiffPML->SetPosPML(inner,outer);
+
+        BiLinFormContext * stiffContextPML = 
+          new BiLinFormContext( bilinearStiffPML, STIFFNESS );
+
+        stiffContextPML->SetPtPdes(this, this);
+        stiffContextPML->SetResults( results_[0], results_[0],
                                       actSDList, actSDList );
+        // stiffContextReal->SetEntryType(matType);
+        assemble_->AddBiLinearForm( stiffContextPML);
+
+
+        //====================================================================
+        //	 mass integrator for PML
+        //====================================================================
+        formsType = "massInt";
+
+	double density;
+	actSDMat->GetScalar(density,DENSITY,REAL);
+
+        //set real part
+        PMLInt * bilinearMassPML = 
+          new PMLInt( formsType, density, dampingTypePML, dampPML, isaxi_ );
+
+        bilinearMassPML->SetNrDofs( dim_ );
+        bilinearMassPML->SetPosPML(inner,outer);
+
+        BiLinFormContext * massContextPML = 
+          new BiLinFormContext( bilinearMassPML, MASS);
+
+        massContextPML->SetPtPdes(this, this);
+        massContextPML->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
+        // massContextReal->SetEntryType( matType );
+        assemble_->AddBiLinearForm( massContextPML );
+
+      } // end of pml part
+
+      else {
         
-        //check for damping
-        if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
-          Double beta;
-          actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-          actIntDescrStiff->SetSecDestMat(DAMPING, beta );
-        }
-        
-        assemble_->AddBiLinearForm( actIntDescrStiff );
-        
-        // check for complex valued material parameter
-        if( complexMaterial ) {
-          BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
-                                                            actRegion);
-          
-          DataType matType = IMAG; 
-          bilinearStiffImag->SetMatDataType(matType);
+        // ==============  add "standard" linear stiffness ===========================     
+
+        if ( regionNonLinType_[actRegion] != MATERIAL ) { 
+          BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
           
           //check  for softening!
           if ( regionSoftening_.count(actRegion) ) {
-          std::cerr << "Applying softening for region " << actRegionName << std::endl;
-            bilinearStiffImag->SetSofteningModel( regionSoftening_[actRegion] );
+            bilinearStiff->SetSofteningModel( regionSoftening_[actRegion] );
           }
           
-          BiLinFormContext * actIntDescrStiffImag =
-            new BiLinFormContext(bilinearStiffImag, STIFFNESS );
+          BiLinFormContext * actIntDescrStiff =
+            new BiLinFormContext(bilinearStiff, STIFFNESS );
           
-          actIntDescrStiffImag->SetPtPdes(this, this);
-          actIntDescrStiffImag->SetResults( results_[0], results_[0],
-                                            actSDList, actSDList );
-          actIntDescrStiffImag->SetEntryType(matType);
-          
-          assemble_->AddBiLinearForm(actIntDescrStiffImag  );
-        }
+          actIntDescrStiff->SetPtPdes(this, this);
+          actIntDescrStiff->SetResults( results_[0], results_[0],
+                                        actSDList, actSDList );
         
+          //check for damping
+          if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
+            Double beta;
+            actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+            actIntDescrStiff->SetSecDestMat(DAMPING, beta );
+          }
+          
+          assemble_->AddBiLinearForm( actIntDescrStiff );
+          
+          // check for complex valued material parameter
+          if( complexMaterial ) {
+            BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
+                                                              actRegion);
+            
+            DataType matType = IMAG; 
+            bilinearStiffImag->SetMatDataType(matType);
+            
+            //check  for softening!
+            if ( regionSoftening_.count(actRegion) ) {
+              std::cerr << "Applying softening for region " << actRegionName << std::endl;
+              bilinearStiffImag->SetSofteningModel( regionSoftening_[actRegion] );
+            }
+            
+            BiLinFormContext * actIntDescrStiffImag =
+              new BiLinFormContext(bilinearStiffImag, STIFFNESS );
+            
+            actIntDescrStiffImag->SetPtPdes(this, this);
+            actIntDescrStiffImag->SetResults( results_[0], results_[0],
+                                              actSDList, actSDList );
+            actIntDescrStiffImag->SetEntryType(matType);
+            
+            assemble_->AddBiLinearForm(actIntDescrStiffImag  );
+          }
+        }
       } // end linear stiffness
       //check for prestressing
       //    if ( isPreStresss[ 
@@ -697,49 +781,49 @@ namespace CoupledField {
       
       // ==============  add mass ===========================================
     
-
-      BiLinFormContext * actIntDescr = NULL;
-      if ( subType_ != "flatShell" ) {
-
-	double density;
-	actSDMat->GetScalar(density,DENSITY,REAL);
-	MassInt * bilinearMass  = new MassInt(density, dim_, isaxi_);
-	if ( diagMass_ ) {
-	  // diagonal mass matrix
-	  bilinearMass->SetDiagMass();
-	}
-
-	actIntDescr =  new BiLinFormContext(bilinearMass, MASS );
-
-
-      } else {
+      if ( !isRegionPML ) {
+        BiLinFormContext * actIntDescr = NULL;
+        if ( subType_ != "flatShell" ) {
+          
+          double density;
+          actSDMat->GetScalar(density,DENSITY,REAL);
+          MassInt * bilinearMass  = new MassInt(density, dim_, isaxi_);
+          if ( diagMass_ ) {
+            // diagonal mass matrix
+            bilinearMass->SetDiagMass();
+          }
+          
+          actIntDescr =  new BiLinFormContext(bilinearMass, MASS );
+          
+          
+        } else {
+          
+          FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat);
+          
+          // Obtain thickness and penalty dof
+          Double thickness = actRegionNode->Get("thickenss")->AsDouble();
+          bilinearMass->SetThickness( thickness );
+          
+          // Get penalty value for drilling dof of region
+          Double penaltyDof = actRegionNode->Get("penaltyDof")->AsDouble();
+          bilinearMass->SetPenaltyDof( penaltyDof );
+          
+          actIntDescr = new BiLinFormContext(bilinearMass, MASS);
+        }        
         
-        FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat);
-                	
-        // Obtain thickness and penalty dof
-        Double thickness = actRegionNode->Get("thickenss")->AsDouble();
-        bilinearMass->SetThickness( thickness );
-       
-        // Get penalty value for drilling dof of region
-        Double penaltyDof = actRegionNode->Get("penaltyDof")->AsDouble();
-        bilinearMass->SetPenaltyDof( penaltyDof );
-
-        actIntDescr = new BiLinFormContext(bilinearMass, MASS);
-      }        
-
-      actIntDescr->SetPtPdes(this, this);
-      actIntDescr->SetResults( results_[0], results_[0],
-                               actSDList, actSDList );
-
-      // Check for damping (mass part)
-      if ( dampingList_[actRegion] == RAYLEIGH ) {
-        Double alpha;
-        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-        actIntDescr->SetSecDestMat( DAMPING, alpha );
-      }
+        actIntDescr->SetPtPdes(this, this);
+        actIntDescr->SetResults( results_[0], results_[0],
+                                 actSDList, actSDList );
+        
+        // Check for damping (mass part)
+        if ( dampingList_[actRegion] == RAYLEIGH ) {
+          Double alpha;
+          actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+          actIntDescr->SetSecDestMat( DAMPING, alpha );
+        }
       
-      assemble_->AddBiLinearForm(actIntDescr);
-
+        assemble_->AddBiLinearForm(actIntDescr);
+      }
 
       
 	
