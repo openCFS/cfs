@@ -1185,8 +1185,7 @@ namespace CoupledField {
   // nonlinear RHS for nonlinear acoustics
   // ===================================================================
 
-  nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(const std::string & aVal, 
-                                           bool isaxi)
+  nLinKuznetsovRHSInt::nLinKuznetsovRHSInt( bool isaxi )
     : LinearForm()
   {
     ENTER_FCN( "nLinKuznetsovRHSInt::nLinKuznetsovRHSInt" );
@@ -1213,7 +1212,7 @@ namespace CoupledField {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-   
+    const UInt spaceDim = ptelem->GetDim();  
 
     // derivative of shape functions after global coordinates 
     Matrix<Double> xiDx, xiDxTransp;
@@ -1227,13 +1226,15 @@ namespace CoupledField {
   
     elemVec.Resize(numFncs);
     elemVec.Init(0.0);
+    solGradAtIp.Resize(numFncs);
+    solDeriv1GradAtIp.Resize(numFncs);
 
-    // calculate real factors
-    Double fac1,fac2;
-    mParser_->SetExpr( mHandle_, factorN1_);
-    fac1 = mParser_->Eval( mHandle_ );
-    mParser_->SetExpr( mHandle_, factorN2_);
-    fac2 = mParser_->Eval( mHandle_ );
+//     // calculate real factors
+//     Double fac1,fac2;
+//     mParser_->SetExpr( mHandle_, factorN1_);
+//     fac1 = mParser_->Eval( mHandle_ );
+//     mParser_->SetExpr( mHandle_, factorN2_);
+//     fac2 = mParser_->Eval( mHandle_ );
 
 
     Double totalfactor;
@@ -1252,11 +1253,19 @@ namespace CoupledField {
         jacDet *= 2 * PI * CoordAtIp[0];
       }
         
-      xiDx.Transpose(xiDxTransp);
+//       xiDx.Transpose(xiDxTransp);
+//       solGradAtIp       = xiDxTransp * sol_;
+//       solDeriv1GradAtIp = xiDxTransp * solderiv1_;
 
       //compute gradient of solution + 1st derivative at integration point
-      solGradAtIp       = xiDxTransp * sol_;
-      solDeriv1GradAtIp = xiDxTransp * solderiv1_;
+      solGradAtIp.Init();
+      solDeriv1GradAtIp.Init();
+      for ( UInt i=0; i<spaceDim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp[i] += xiDx[j][i] * sol_[j];
+          solDeriv1GradAtIp[i] += xiDx[j][i] * solderiv1_[j];
+        }
+      }
 
       //get 1st and 2nd derivative of solution at integration point
       solDeriv1AtIp = solderiv1_*ShpFncAtIp;
@@ -1265,9 +1274,9 @@ namespace CoupledField {
       totalfactor=0;
       for (UInt j=0; j<xiDx.GetSizeCol(); j++)
         totalfactor += solGradAtIp[j]*solDeriv1GradAtIp[j];
-      totalfactor *= fac2;
+      totalfactor *= factorN2_;
         
-      totalfactor += fac1 * solDeriv1AtIp * solDeriv2AtIp;
+      totalfactor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
         
       totalfactor *= jacDet;
       for (UInt i=0; i< numFncs; i++)
@@ -1277,8 +1286,7 @@ namespace CoupledField {
     //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
   }
 
-  nLinWesterveltRHSInt::nLinWesterveltRHSInt( const std::string& aVal
-                                              , bool isaxi)
+  nLinWesterveltRHSInt::nLinWesterveltRHSInt( bool isaxi )
     : LinearForm()
   {
     ENTER_FCN( "nLinWesterveltRHSInt::nLinWesterveltRHSInt" );
@@ -1292,10 +1300,6 @@ namespace CoupledField {
     ENTER_FCN( "nLinWesterveltRHSInt::~nLinWesterveltRHSInt" );
   }
 
-  void nLinWesterveltRHSInt::SetFactor( const std::string & factor ) {
-    ENTER_FCN( "nLinWesterveltRHSInt::SetFactor" );
-    mParser_->SetExpr( mHandle_, factor );
-  }
 
   void nLinWesterveltRHSInt::CalcElemVector( Vector<Double> & elemVec,
                                              EntityIterator& ent )
@@ -1335,9 +1339,8 @@ namespace CoupledField {
       solDeriv1AtIp = solderiv1_*ShpFncAtIp;
       solDeriv2AtIp = solderiv2_*ShpFncAtIp;
         
-      totalfactor = mParser_->Eval( mHandle_ );
-      totalfactor *= jacDet*2.0*(solDeriv1AtIp * solDeriv1AtIp +
-                                 solAtIp*solDeriv2AtIp);
+      totalfactor = jacDet * 2.0 * factor_ * (solDeriv1AtIp * solDeriv1AtIp +
+                                              solAtIp*solDeriv2AtIp);
         
       for (UInt i=0; i< numFncs; i++)
         elemVec[i] += ShpFncAtIp[i] * totalfactor;

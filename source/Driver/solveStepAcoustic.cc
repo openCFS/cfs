@@ -188,21 +188,21 @@ namespace CoupledField {
       materialData_[actRegionId]->GetScalar(BoverA,BOVERA,REAL);
 
       if ( regionNonLinType_[actRegionId] == WESTERVELT ) {
-        rhsWest = std::auto_ptr<nLinWesterveltRHSInt>(new nLinWesterveltRHSInt("1.0", isaxi_));
+        rhsWest = std::auto_ptr<nLinWesterveltRHSInt>(new nLinWesterveltRHSInt( isaxi_));
 
         // set correct factors for bilinear forms
         coeff1 = (1+0.5*BoverA) / pow(c0,4);
-        rhsWest->SetFactor(GenStr(coeff1));
+        rhsWest->SetFactor( coeff1 );
         rhsInt = rhsWest;
       }
       if ( regionNonLinType_[actRegionId] == KUZNETSOV ) {
-        rhsKuz = std::auto_ptr<nLinKuznetsovRHSInt>(new nLinKuznetsovRHSInt("1.0", isaxi_));
+        rhsKuz = std::auto_ptr<nLinKuznetsovRHSInt>(new nLinKuznetsovRHSInt( isaxi_ ));
 
         // set correct factors for bilinear forms
         coeff1 = density * BoverA / pow(c0,4);
-        rhsKuz->SetFactor(GenStr(coeff1));
+        rhsKuz->SetFactor( coeff1 );
         coeff2 = density * 2.0 / (c0*c0);
-        rhsKuz->SetSecondFactor(GenStr(coeff2));
+        rhsKuz->SetSecondFactor( coeff2 );
         rhsInt = rhsKuz;
 
       }

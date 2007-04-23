@@ -372,7 +372,7 @@ namespace CoupledField
   {
   public:
     ///
-    nLinKuznetsovRHSInt( const std::string &  val, bool isaxi);
+    nLinKuznetsovRHSInt( bool isaxi);
 
     ///
     virtual ~nLinKuznetsovRHSInt();
@@ -394,11 +394,11 @@ namespace CoupledField
     { solderiv2_ = solderiv2;};
 
     //! set multiplicative factor for matrix
-    virtual void SetFactor( const std::string& factor ) 
+    virtual void SetFactor( const Double& factor ) 
     { factorN1_ = factor;};
 
     //! set multiplicative factor for matrix
-    virtual void SetSecondFactor( const std::string& factor ) 
+    virtual void SetSecondFactor( const Double& factor ) 
     { factorN2_ = factor;};
 
   private:
@@ -406,11 +406,10 @@ namespace CoupledField
     Vector<Double> solderiv1_;  //!< first time derivative of solution
     Vector<Double> solderiv2_;  //!< second time derivative of solution
 
-    std::string factorN1_;      //!< multiplicative value for integrator
-    std::string  factorN2_;     //!< multiplicative value for integrator
+    Double factorN1_;      //!< multiplicative value for integrator
+    Double factorN2_;     //!< multiplicative value for integrator
 
-    /// source factor
-    std::string val_;
+    //    std::string val_;       //!< source factor
   };
 
   /// calculation of RHS in nonlinear acoustics using Westervelt's equation
@@ -418,7 +417,7 @@ namespace CoupledField
   {
   public:
     ///
-    nLinWesterveltRHSInt( const std::string &  val, bool isaxi);
+    nLinWesterveltRHSInt( bool isaxi );
 
     ///
     virtual ~nLinWesterveltRHSInt();
@@ -439,7 +438,8 @@ namespace CoupledField
     virtual void SetActElemSolDeriv2(Vector<Double>& solderiv2) 
     { solderiv2_ = solderiv2;};
     
-    virtual void SetFactor( const std::string& factor);
+    virtual void SetFactor( const Double& factor)
+    { factor_ = factor;};
 
   private:
 
@@ -447,7 +447,9 @@ namespace CoupledField
     Vector<Double> solderiv1_;  //!< first time derivative of solution
     Vector<Double> solderiv2_;  //!< second time derivative of solution
 
-    std::string  val_;          //!< source factor
+    Double factor_;      //!< multiplicative value for integrator
+
+//     std::string  val_;          //!< source factor
   };
 
 
