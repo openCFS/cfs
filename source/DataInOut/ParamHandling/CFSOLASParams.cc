@@ -581,10 +581,11 @@ namespace CoupledField {
 
     
     // Now set the stopping rule
+    std::string stopCrit = "relNormRes0";
     ParamNode * stopRuleNode = bsNode->Get("stoppingRule", false );
-    if( !stopRuleNode ) return;
-
-    std::string stopCrit = stopRuleNode->Get("type")->AsString();
+    if( stopRuleNode ) {
+      stopCrit = stopRuleNode->Get("type")->AsString();
+    }
     OLAS::StopCritType stopRule;
     OLAS::String2Enum( stopCrit, stopRule );
     olas->SetValue( "StoppingCriterion", stopRule );
