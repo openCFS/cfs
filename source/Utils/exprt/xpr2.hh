@@ -309,10 +309,10 @@ XXX(exp, Exp)
 //Binary operations between Two Dim2s (type promotion)
 #define XXX(op,ap) \
 template <class P,class A,class B, class P2>                                   \
-Xpr2<PROMOTE(P,P2), Xpr2BinOp<P, ConstRef2<P, Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> >, ap<P,P2> > > \
+Xpr2<PROMOTE(P,P2), Xpr2BinOp<PROMOTE(P,P2), ConstRef2<P, Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> >, ap<P,P2> > > \
 static inline op (const Dim2<P,A>& a, const Dim2<P2,B>& b) {\
 typedef \
-Xpr2BinOp<P, ConstRef2<P,Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> >, ap<P,P2> > \
+  Xpr2BinOp<PROMOTE(P,P2), ConstRef2<P,Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> >, ap<P,P2> > \
 ExprT;\
 return Xpr2<PROMOTE(P,P2),ExprT>(ExprT(ConstRef2<P,Dim2<P,A> >(a),    \
                                          ConstRef2<P2,Dim2<P2,B> >(b))); \
@@ -324,10 +324,10 @@ XXX(operator-, OpSub)
 // Multiplication with Two Dim2s (type promotion)
 #define XXX(op) \
   template <class P,class A,class B,class P2>                                   \
-Xpr2<PROMOTE(P,P2), Xpr2Reduct<P, ConstRef2<P, Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> > > > \
+  Xpr2<PROMOTE(P,P2), Xpr2Reduct<PROMOTE(P,P2), ConstRef2<P, Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> > > > \
 static inline op (const Dim2<P,A>& a, const Dim2<P2,B>& b) {\
   typedef \
-    Xpr2Reduct<P, ConstRef2<P,Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> > > \
+    Xpr2Reduct<PROMOTE(P,P2), ConstRef2<P,Dim2<P,A> >, ConstRef2<P2,Dim2<P2,B> > > \
       ExprT;\
   return Xpr2<PROMOTE(P,P2),ExprT>(ExprT(ConstRef2<P,Dim2<P,A> >(a),    \
 			      ConstRef2<P2,Dim2<P2,B> >(b)));\
