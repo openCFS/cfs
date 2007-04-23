@@ -166,7 +166,7 @@ namespace OLAS {
     // "contaminated" with penalty terms
     if ( numDirichletValues_ > 0 &&
          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
-      myParams_.SetValue( "RHSwithPenalty", false );
+      myParams_.SetValue( "RHSwithPenalty", true );
     }
 
 #ifdef DEBUG_STANDARDSYSTEM
