@@ -246,7 +246,7 @@ namespace CoupledField {
     elemSol.Init(0);
     NodeStoreSol<Double> * solhelp = 
       dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    Vector<Double> sol = solhelp->GetAlgSysVector();
+    Vector<Double> & sol = solhelp->GetAlgSysVector();
     
     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
       if ( eqns[i] != 0 ) {
@@ -273,7 +273,7 @@ namespace CoupledField {
     elemSol.Init( Complex(0.0, 0.0) );
     NodeStoreSol<Complex> * solhelp = 
       dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-    Vector<Complex> sol = solhelp->GetAlgSysVector();
+    Vector<Complex> & sol = solhelp->GetAlgSysVector();
     
     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
       if ( eqns[i] != 0 ) {
@@ -331,7 +331,7 @@ namespace CoupledField {
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
  	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-      Vector<Complex> solAtNode = solhelp->GetAlgSysVector();
+      const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
@@ -390,7 +390,7 @@ namespace CoupledField {
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
  	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-      Vector<Complex> solAtNode = solhelp->GetAlgSysVector();
+      Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
