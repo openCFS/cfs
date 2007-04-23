@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES(${ANSYS_ROOT_DIR}/customize/include)
+INCLUDE_DIRECTORIES(${ANSYS_ROOT_DIR}/ansys/customize/include)
 
 IF(CFS_ARCH STREQUAL "I386")
   SET(CMAKE_Fortran_FLAGS "-safe-cray-ptr -fcray-pointer -DLINUXIA32_SYS")
@@ -20,14 +20,14 @@ SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
 
 IF(CFS_ARCH STREQUAL "I386")
   TARGET_LINK_LIBRARIES(simoutansysrst
-    ${ANSYS_ROOT_DIR}/customize/misc/linia32/libbin.so
+    ${ANSYS_ROOT_DIR}/ansys/customize/misc/linia32/libbin.so
     ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "I386")
 
 IF(CFS_ARCH STREQUAL "X86_64")
   TARGET_LINK_LIBRARIES(simoutansysrst
-    ${ANSYS_ROOT_DIR}/customize/misc/linop64/libbin.so
-    ${ANSYS_ROOT_DIR}/syslib/linop64/libpgf90.so
+    ${ANSYS_ROOT_DIR}/ansys/customize/misc/linop64/libbin.so
+    ${ANSYS_ROOT_DIR}/ansys/syslib/linop64/libpgf90.so
     ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "X86_64")
 

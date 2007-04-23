@@ -118,6 +118,7 @@ TARGET_LINK_LIBRARIES(cfs ${TARGET_LL}
   boost_serialization
   boost_filesystem)
 
+# Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(USE_ANSYSRST)
   SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
 ENDIF(USE_ANSYSRST)

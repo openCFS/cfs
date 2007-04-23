@@ -36,7 +36,7 @@ MARK_AS_ADVANCED(
 
 IF(USE_ANSYSRST)
   # Set a sane default value for the ANSYS 10.0 path
-  SET(ANSYS_ROOT_DIR "/home/data/programs/ansys/v100/ansys" CACHE STRING
+  SET(ANSYS_ROOT_DIR "/home/data/programs/ansys/v100" CACHE STRING
     "Path to ANSYS installation.")
   
   IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
@@ -47,7 +47,7 @@ IF(USE_ANSYSRST)
   ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
   # Determine version of ANSYS.
-  EXEC_PROGRAM("ls ${ANSYS_ROOT_DIR}/bin/ansys[0-9]*"
+  EXEC_PROGRAM("ls ${ANSYS_ROOT_DIR}/ansys/bin/ansys[0-9]*"
     ARGS
     OUTPUT_VARIABLE ANSYS_VERSION
     RETURN_VALUE RETVAL)
