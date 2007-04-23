@@ -358,7 +358,7 @@ namespace CoupledField {
     eqns.Clear();
     
     // temporary
-    StdVector<Integer> nodeEq, edgeEq, faceEq, inEq;
+    
 
     // ============
     //  NODAL PART 
@@ -385,10 +385,8 @@ namespace CoupledField {
 	    
 	    if (localNode < 1 ) {
 	      eqns[iNode*numDofs + iDof] = 0;
-              nodeEq.Push_back(0);
 	    } else {
 	      eqns[iNode*numDofs + iDof] = map[localNode-1][iDof];
-              nodeEq.Push_back( map[localNode-1][iDof] );
 	    }
 	    
 	  }
@@ -405,10 +403,8 @@ namespace CoupledField {
 	  
 	  if (localNode < 1 ) {
 	    eqns[iDof] = 0;
-            nodeEq.Push_back(0);
 	  } else {
 	    eqns[iDof] = map[localNode-1][iDof];
-            nodeEq.Push_back(map[localNode-1][iDof]);
 	  }
 	    
 	}
@@ -416,7 +412,6 @@ namespace CoupledField {
 	EXCEPTION( "This type of entity list is not defined for " 
                    << "equation mapping!" );
       }
-      LOG_DBG3(eqnMap) << "Nodal equations: " << nodeEq.Serialize();
     }
 
     // ===============
@@ -449,10 +444,8 @@ namespace CoupledField {
 	// iterate over all dofs of this edge
 	for( UInt iDof = 0; iDof < map[locEdge-1].GetSize(); iDof++ ) {
 	  eqns.Push_back( map[locEdge-1][iDof] );
-          edgeEq.Push_back( map[locEdge-1][iDof] );
 	}
       }
-      LOG_DBG3(eqnMap) << "Edge equations: " << edgeEq.Serialize();
     }
 
     // ===============
@@ -485,10 +478,8 @@ namespace CoupledField {
 	// iterate over all dofs of this face
 	for( UInt iDof = 0; iDof < map[locFace-1].GetSize(); iDof++ ) {
 	  eqns.Push_back( map[locFace-1][iDof] );
-          faceEq.Push_back( map[locFace-1][iDof] );
 	}
       }
-      LOG_DBG3(eqnMap) << "Face equations: " << faceEq.Serialize();
     }
       
 
