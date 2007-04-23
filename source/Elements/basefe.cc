@@ -109,7 +109,7 @@ namespace CoupledField
     }
   }
 
-  void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv, 
+  void BaseFE :: GetGlobDerivShFnc(Matrix<Double>  &Deriv, 
                                    const Vector<Double> & LCoord,
                                    const Matrix<Double> & CornerCoords,
                                    const Elem * elem, 
@@ -118,8 +118,7 @@ namespace CoupledField
     ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
 
     Deriv.Resize(NumNodes_,Dim_);
-    Matrix<Double> LDeriv, JInv;
-
+   
     CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, dof);
 
     CalcInvJacobian(JInv, LCoord, CornerCoords, elem );
@@ -139,7 +138,6 @@ namespace CoupledField
     std::string errMsg;
 
     //  Deriv.Resize(NumNodes_,Dim_);
-    Matrix<Double> JInv;
     Double JInvDet;
   
     CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
@@ -147,10 +145,9 @@ namespace CoupledField
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
       Deriv = ShFncDerivAtIp_[ip-1] * JInv;
     } else {
-      Matrix<Double> lDeriv;
-      CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
+      CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
                               elem, dof, AnsatzFct::ALL );
-      Deriv = lDeriv * JInv;
+      Deriv = LDeriv * JInv;
     }
         
     // det(A) = 1 / det(A^(-1))
@@ -178,7 +175,6 @@ namespace CoupledField
     ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
   
     //  Deriv.Resize(NumNodes_,Dim_);
-    Matrix<Double> JInv;
   
     if ( CalcICModes_ && ICModes_ ) {
       //incompatible modes
@@ -194,10 +190,9 @@ namespace CoupledField
 	Deriv = ShFncDerivAtIp_[ip-1] * JInv;
       } 
       else {
-	Matrix<Double> lDeriv;
-	CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
+	CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
 				elem, dof, AnsatzFct::ALL );
-	Deriv = lDeriv * JInv;
+	Deriv = LDeriv * JInv;
       }
       //std::cerr << "Deriv = \n" << Deriv << std::endl;
     }
@@ -214,8 +209,6 @@ namespace CoupledField
     ENTER_FCN( "BaseFE::CalcJacobian" );
 
     //  J.Resize(Dim_,Dim_);
-
-    Matrix<Double> LDeriv;
 
     CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE );
     J = CornerCoords * LDeriv;
@@ -242,7 +235,6 @@ namespace CoupledField
     ENTER_FCN( "BaseFE::CalcJacobianDet" );
 
     std::string errMsg;
-    Matrix<Double> J;
     Double jacDet;
 
     CalcJacobian( J, LCoord, CornerCoords, elem  );
@@ -278,7 +270,6 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
 
-    Matrix<Double> J;
     std::string errMsg;
 
     CalcJacobianAtIp( J, ip, CornerCoords, elem);
@@ -323,8 +314,6 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::CalcInvJacobian" );
   
-    Matrix<Double> J, LDeriv;
-
     //  J.Resize(Dim_,Dim_);
 
     CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE);
@@ -345,8 +334,6 @@ namespace CoupledField
     ENTER_FCN( "BaseFE::CalcInvJacobianAtIp" );
 
     JInv.Resize(Dim_,Dim_);
-
-    Matrix<Double> J;
 
     //  J.Resize(Dim_,Dim_);
 
