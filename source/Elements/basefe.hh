@@ -705,7 +705,9 @@ namespace CoupledField
      * @param order3 0 is written here if Dim_ != 3 */
     void DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3);
 
-    
+
+    // === Some helper variables to improve performance ===
+    Matrix<Double> LDeriv, JInv, J;
   };
  
 }
