@@ -210,6 +210,7 @@ namespace CoupledField {
     ENTER_FCN( "Assemble::AssembleMatrices" );
 
     Matrix<Double> elemMatrix;
+    Matrix<Complex> elemMatrixC;
     StdVector<Integer> eqnVec1, eqnVec2;
     PdeIdType pdeId1, pdeId2;
 
@@ -266,14 +267,23 @@ namespace CoupledField {
         for ( UInt i=0; i<size; i++ ) {
           
           // Calc element matrix
-          form->CalcElementMatrix( elemMatrix, it1, it2 );
+          if ( form->IsComplex() ) 
+            form->CalcElementMatrix( elemMatrixC, it1, it2 );
+          else
+            form->CalcElementMatrix( elemMatrix, it1, it2 );
+
           
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
 
           // Pass element matrix to algebraic system (primary matrix)
-          InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
-                        pdeId1, pdeId2);
+          if ( form->IsComplex() ) 
+            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
+                          pdeId1, pdeId2);
+          else 
+            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
+                          pdeId1, pdeId2);
+
 
           // Check for secondary matrix type
           if (secDestMat != NOTYPE ) {
@@ -284,12 +294,23 @@ namespace CoupledField {
               // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
             }
 
-            // Rayleigh damping
-            elemMatrix *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
+            if ( form->IsComplex() ) {
+              // Rayleigh damping
+              elemMatrixC *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
+              
+              // Pass secondary matrix part to algebraic system
+              InsertMatrix( secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
+                            pdeId1, pdeId2);
+            }
+            else {
+              // Rayleigh damping
+              elemMatrix *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
+              
+              // Pass secondary matrix part to algebraic system
+              InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,
+                            pdeId1, pdeId2);
+            }
 
-            // Pass secondary matrix part to algebraic system
-            InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,
-                          pdeId1, pdeId2); 
           }
 
           // increment iterators
@@ -703,6 +724,64 @@ namespace CoupledField {
   }
     
 
+  void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
+                                 Matrix<Complex>& origMat,
+                                 FEMatrixType matrixType,
+                                 DataType entryType,
+                                 Double omega ) {
+    ENTER_FCN( "Assemble::Matrix2Harmonic" );
+    
+    Integer numRow = origMat.GetSizeRow();
+    Integer numCol = origMat.GetSizeCol();
+    harmMat.Resize(2*numRow*numCol);
+    harmMat.Init();
+    Integer k=0;
+
+    UInt offset = numRow*numCol;
+    if (matrixType == STIFFNESS) {
+      for (Integer row=0; row<numRow; row++)
+        for (Integer col=0; col<numCol; col++) {
+          harmMat[k] = origMat[row][col].real();
+          harmMat[k+offset] = origMat[row][col].imag();
+          k++;
+        }
+    }
+    
+    else if (matrixType == MASS) {
+      // NOTE: here we have to distinguish, if the
+      //  mass matrix is associated with first
+      // or second order time derivative
+      if( maxTimeDerivOrder_ == 2 ) {
+        Double factor = -omega*omega;
+        for (Integer row=0; row<numRow; row++)
+          for (Integer col=0; col<numCol; col++) {
+            harmMat[k] = factor*origMat[row][col].real();
+            harmMat[k+offset] = factor*origMat[row][col].imag();
+            k++;
+          }
+      } else {
+        Double factor = omega;
+        for (Integer row=0; row<numRow; row++)
+          for (Integer col=0; col<numCol; col++) {
+            harmMat[k] = -factor*origMat[row][col].imag();
+            harmMat[k+offset] = factor*origMat[row][col].real();
+            k++;
+          }
+      }
+    }
+      
+    else if (matrixType == DAMPING) {       
+      Double factor = omega;
+      for (Integer row=0; row<numRow; row++)
+        for (Integer col=0; col<numCol; col++) {
+          harmMat[k] = -factor*origMat[row][col].imag();
+          harmMat[k+offset] = factor*origMat[row][col].real();
+          k++;
+        }
+    }
+  } 
+
+
   void Assemble::CreateMatrixMap() {
     ENTER_FCN( "Assemble::CreateMatrixMap()" );
 
@@ -872,6 +951,37 @@ namespace CoupledField {
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                           pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
                           context.IsSetCounterPart() );
+    }
+  }
+
+  void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
+                               Matrix<Complex>& elemMat, 
+                               StdVector<Integer>& eqnVec1,
+                               StdVector<Integer>& eqnVec2,
+                               PdeIdType pdeId1, PdeIdType pdeId2) {
+    ENTER_FCN( "Assemble::InsertMatrix" );
+    Vector<Double> harmMat;
+
+    // map original matrix destination to analysis-dependent one
+    FEMatrixType mappedDest = matrixMap_[dest]; 
+    
+    if( mappedDest == NOTYPE ) {
+      return;
+    }
+    
+    if( analysisType_ == HARMONIC ) {
+      Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
+      Double omega = freq * 2 * PI;
+      Matrix2Harmonic( harmMat, elemMat, dest,
+                       context.GetEntryType(), omega );
+      algsys_->
+        SetElementMatrix( mappedDest, harmMat.GetPointer(), 
+                          pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
+                          pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
+                          context.IsSetCounterPart() );
+    }
+    else {
+      EXCEPTION("Currently complex element matrices are just allowed for harmonic analysis");
     }
   }
 }

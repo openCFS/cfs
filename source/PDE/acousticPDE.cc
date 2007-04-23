@@ -402,8 +402,6 @@ namespace CoupledField {
           new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
         bilinearStiffReal->SetPosPML(inner,outer);
-        DataType matType = REAL;
-        bilinearStiffReal->SetMatDataType(matType);
 
         BiLinFormContext * stiffContextReal = 
           new BiLinFormContext( bilinearStiffReal, STIFFNESS );
@@ -411,34 +409,15 @@ namespace CoupledField {
         stiffContextReal->SetPtPdes(this, this);
         stiffContextReal->SetResults( results_[0], results_[0],
                                       actSDList, actSDList );
-        stiffContextReal->SetEntryType(matType);
+        // stiffContextReal->SetEntryType(matType);
         assemble_->AddBiLinearForm( stiffContextReal);
-
-        //set imaginary part
-        BaseForm * bilinearStiffImag = 
-          new PMLInt( formsType, density, dampingTypePML, dampPML, isaxi_ );
-
-        bilinearStiffImag->SetPosPML(inner,outer);
-        matType = IMAG;
-        bilinearStiffImag->SetMatDataType( matType );
-
-        BiLinFormContext * stiffContextImag = 
-          new BiLinFormContext( bilinearStiffImag, STIFFNESS );
-
-
-        stiffContextImag->SetPtPdes(this, this);
-        stiffContextImag->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
-        stiffContextImag->SetEntryType(matType);
-        assemble_->AddBiLinearForm( stiffContextImag );
 
 
         //====================================================================
         //	 mass integrator for PML
         //====================================================================
-        formsType = "massInt";
 
-        //	Double dampMass = (2.0/3.0)*density/c0;
+        formsType = "massInt";
         Double massFactor = density/(c0*c0);
 
         //set real part
@@ -446,8 +425,6 @@ namespace CoupledField {
           new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
 
         bilinearMassReal->SetPosPML(inner,outer);
-        matType = REAL;
-        bilinearMassReal->SetMatDataType(matType);
 
         BiLinFormContext * massContextReal = 
           new BiLinFormContext( bilinearMassReal, MASS);
@@ -455,31 +432,9 @@ namespace CoupledField {
         massContextReal->SetPtPdes(this, this);
         massContextReal->SetResults( results_[0], results_[0],
                                      actSDList, actSDList );
-        massContextReal->SetEntryType( matType );
+        // massContextReal->SetEntryType( matType );
         assemble_->AddBiLinearForm( massContextReal );
 
-        //set imaginary part
-        BaseForm * bilinearMassImag = 
-          new PMLInt( formsType, massFactor, dampingTypePML, dampPML, isaxi_ );
-
-        bilinearMassImag->SetPosPML( inner, outer );
-        matType = IMAG;
-        bilinearMassImag->SetMatDataType(matType);
-
-        BiLinFormContext * massContextImag = 
-          new BiLinFormContext( bilinearMassImag, MASS );
-
-        massContextImag->SetPtPdes( this, this );
-        massContextImag->SetResults( results_[0], results_[0],
-                                     actSDList, actSDList );
-        massContextImag->SetEntryType( matType );
-        assemble_->AddBiLinearForm( massContextImag );
-
-        // Finally add the stiffness/mass integrators
-        assemble_->AddBiLinearForm( stiffContextReal );
-        assemble_->AddBiLinearForm( stiffContextImag );
-        assemble_->AddBiLinearForm( massContextReal );
-        assemble_->AddBiLinearForm( massContextImag );
       } // end of pml part
 
       else {
@@ -2564,190 +2519,6 @@ namespace CoupledField {
       
       // store information about flow
       regionFlowNodes_[regionId] = flowNodes[i];
-    }
-    
-  }
-
-
-
-
-  //   Obtain information on desired output quantities from parameter file
-  // ***********************************************************************
-  void AcousticPDE::ReadDataPML(std::string& dampingTypePML, 
-                                Matrix<Double>& inner, 
-                                Double& dampPML, 
-                                ParamNode * actNode ) {
-  
-    ENTER_FCN( "AcousticPDE::ReadDataPML" );
-
-    // help variables for parameter checking
-    StdVector<std::string> propGeo;
-    StdVector<std::string> stringVal;
-    StdVector<Double> val;
-
-    // Check, if pml node has a child "prepRegion"
-    ParamNode * propRegionNode = actNode->Get( "propRegion", false );
-
-    // If no propagation region is defined explicitly, we 
-    // let the method GetPMLLayerData() extract the geometric information
-    // for the propagation region
-    if( propRegionNode ) {
-      
-      //resize data for ptopagation region
-      inner.Resize(2,dim_);
-      inner.Init();
-      
-      //xMin
-      propRegionNode->Get( "xMin", inner[0][0] );
-      
-      //xMax
-      propRegionNode->Get( "xMax", inner[1][0] );
-      
-      //yMin
-      propRegionNode->Get( "yMin", inner[0][1] );
-      
-      //yMax
-      propRegionNode->Get( "yMax", inner[1][1] );
-      
-      if ( dim_ == 3 ) {
-        //zMin
-        propRegionNode->Get( "zMin", inner[0][2] );
-        
-        //zMax     
-        propRegionNode->Get( "zMax", inner[1][2] );
-      }
-    }
-    
-    //get type of damping function
-    actNode ->Get( "type", dampingTypePML );
-
-    //get factor for damping function
-    actNode->Get( "dampFactor", dampPML );
-
-  }
-
-
-  // ***********************************************************************
-  //   Obtain information on desired output quantities from parameter file
-  // ***********************************************************************
-  void AcousticPDE::GetPMLLayerData(Matrix<Double>& inner, 
-                                    Matrix<Double>& outer,
-                                    RegionIdType actRegion )  {  
-
-    ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
-
-    // inner/outer:   xmin  ymin  zmin
-    //                xmax  ymax  zmax
-
-    if ( inner.GetSizeCol() != dim_ ) {
-      //we have to compute it, since the user has not specified it
-
-      inner.Resize(2,dim_);
-      inner.Init();
-      
-      for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
-        if ( subdoms_[isd] != actRegion ) {
-          StdVector<Elem*> elemssd;
-          ptgrid_->GetElems(elemssd, subdoms_[isd] );
-          
-          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            StdVector<UInt> & connecth = elemssd[actEl]->connect;
-            
-            Matrix<Double> ptCoord;
-            ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-            for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
-              //minInnerX
-              if ( ptCoord[0][i] < inner[0][0] )
-                inner[0][0] = ptCoord[0][i];
-              
-              //minInnerY
-              if ( ptCoord[1][i] < inner[0][1] )
-                inner[0][1] = ptCoord[1][i];
-              
-              if ( dim_ > 2 ) {
-                //minInnerZ
-                if ( ptCoord[2][i] < inner[0][2] )
-                  inner[0][2] = ptCoord[2][i];
-              }
-              
-              //maxInnerX
-              if ( ptCoord[0][i] > inner[1][0] )
-                inner[1][0] = ptCoord[0][i];
-              
-              //maxInnerY
-              if ( ptCoord[1][i] > inner[1][1] )
-                inner[1][1] = ptCoord[1][i];
-              
-              if ( dim_ > 2 ) {
-                //maxInnerZ
-                if ( ptCoord[2][i] > inner[1][2] )
-                  inner[1][2] = ptCoord[2][i];
-              }
-            }
-          }
-        }
-      }
-      std::ostringstream out;
-      out.clear();
-      out << "Acoustic propagation region:\n" 
-          << "   xmin = " << inner[0][0] << std::endl
-          << "   xmax = " << inner[1][0] << std::endl
-          << "   ymin = " << inner[0][1] << std::endl
-          << "   ymax = " << inner[1][1] << std::endl;
-      if ( dim_ == 3) {
-        out << "   zmin = " << inner[0][2] << std::endl
-            << "   zmax = " << inner[1][2] << std::endl;
-      }
-      out << std::endl;
-      Info->PrintF( pdename_, out.str().c_str() );
-    }
-    
-    outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
-    
-    outer[0][0] = outer[1][0] = inner[1][0];
-    outer[0][1] = outer[1][1] = inner[1][1];
-    if (inner.GetSizeCol() > 2 ) {
-      outer[0][2] = outer[1][2] = inner[1][2];
-    }
-    
-    StdVector<Elem*> elemssd;
-    ptgrid_->GetElems(elemssd, actRegion );
-    
-    for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-      StdVector<UInt> & connecth = elemssd[actEl]->connect;
-      
-      Matrix<Double> ptCoord;
-      ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-      for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
-        //minXPML
-        if ( ptCoord[0][i] < outer[0][0] )
-          outer[0][0] = ptCoord[0][i];
-
-        //minYPML
-        if ( ptCoord[1][i] < outer[0][1] )
-          outer[0][1] = ptCoord[1][i];
-        
-        if (inner.GetSizeCol() > 2 ) {
-          //minZPML
-          if ( ptCoord[2][i] < outer[0][2] )
-            outer[0][2] = ptCoord[2][i];
-        }
-        
-        //maxXPML
-        if ( ptCoord[0][i] > outer[1][0] )
-          outer[1][0] = ptCoord[0][i];
-        
-        //maxYPML
-        if ( ptCoord[1][i] > outer[1][1] )
-          outer[1][1] = ptCoord[1][i];
-
-        if (inner.GetSizeCol() > 2 ) {
-          //maxZPML
-          if ( ptCoord[2][i] > outer[1][2] )
-            outer[1][2] = ptCoord[2][i];
-        }
-      }
-      
     }
     
   }

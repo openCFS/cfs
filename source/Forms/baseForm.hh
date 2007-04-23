@@ -41,9 +41,19 @@ namespace CoupledField
     //! or its derivatives
     bool IsSolDependent() { return isSolDependent_; }
 
+    //! Return true if element vector/matrix is complex
+    bool IsComplex() { return isComplex_; }
+
 #ifndef INTEGLIB
     //! Virtual function
     virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
+                                    EntityIterator& ent1, 
+                                    EntityIterator& ent2 ){
+      
+      Error( "Not implemented here", __FILE__, __LINE__ );}
+
+    //! Virtual function
+    virtual void CalcElementMatrix( Matrix<Complex>& stiffMat,
                                     EntityIterator& ent1, 
                                     EntityIterator& ent2 ){
       
@@ -189,6 +199,9 @@ namespace CoupledField
     //! flag indicating of value of element matrix/vector depends on
     //! its solution or its derivatives
     bool isSolDependent_;
+
+    //! true, if element matrix is complex
+    bool isComplex_;
 
     //! matrix with coordinates of current element
     Matrix<Double> ptCoord_;

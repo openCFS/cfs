@@ -274,6 +274,13 @@ namespace CoupledField
     // DATA SECTION
     // ======================================================
 
+    // reads in the PML data
+    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
+		     Double& dampPML, ParamNode * actNode);
+
+    //! computes the PML layer dimensions
+    void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
+			 RegionIdType regionId );
   
     // -----------------------------------------------------------------------
     // Storing information

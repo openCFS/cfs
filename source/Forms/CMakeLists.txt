@@ -47,6 +47,7 @@ SET(FORMS_SRCS
   nLinStokesFluidInt.cc
   nonConformingInt.cc
   pierceInt.cc
+  pmlBasics.cc
   PMLInt.cc
   PMLTransXYZInt.cc
   singleEntryInt.cc

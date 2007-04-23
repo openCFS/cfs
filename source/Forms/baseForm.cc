@@ -36,6 +36,7 @@ namespace CoupledField
 
     baseType_ = NOTYPE;
     isSolDependent_ = false;
+    isComplex_ = false;
     softeningModel_ = "no";   
 
     // Initialize form with standard Lagrange ansatz fct object

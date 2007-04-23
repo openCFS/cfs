@@ -84,6 +84,13 @@ namespace CoupledField {
                           FEMatrixType matrixType,
                           DataType matDataType,
                           Double omega );
+
+    //! Transform complex-valued element matrix to harmonic representation
+    void Matrix2Harmonic( Vector<Double>& harmMat,
+                          Matrix<Complex>& origMat,
+                          FEMatrixType matrixType,
+                          DataType matDataType,
+                          Double omega );
       
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
@@ -94,6 +101,12 @@ namespace CoupledField {
     //! Insert matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
+                       StdVector<Integer>& eqnVec2,
+                       PdeIdType pdeId1, PdeIdType pdeId2 );
+
+    //! Insert complex matrix into algebraic system and adapt harmonic matrices
+    void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
+                       Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        PdeIdType pdeId1, PdeIdType pdeId2 );
 
