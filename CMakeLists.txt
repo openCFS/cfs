@@ -101,7 +101,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
     #---------------------------------------------------------------------------
     # Activate expression templates (in RELEASE mode)
     #---------------------------------------------------------------------------
-    SET(EXPR_TEMLATES 1)
+    SET(EXPR_TEMPLATES 1)
   ENDIF(DEBUG)
 
   #-----------------------------------------------------------------------------
