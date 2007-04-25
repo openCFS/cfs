@@ -19,6 +19,9 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 
+#define WL( MSG ) \
+(*out_) << MSG << std::endl;
+
 namespace CoupledField {
 
 
@@ -30,6 +33,8 @@ namespace CoupledField {
   {
 
     ENTER_FCN( "SkeletonConf::SkeletonConf" );
+    
+    level_ = 0;
 
     std::string xmlFile = commandLine->GetParamFile();
 
@@ -48,8 +53,8 @@ namespace CoupledField {
     }
 
     // open the conf-file
-    skelfile_ = new std::ofstream( xmlFile.c_str() );
-    if ( skelfile_ == NULL ) {
+    out_ = new std::ofstream( xmlFile.c_str() );
+    if ( out_ == NULL ) {
       (*error) << "Could not open XML-file '" << xmlFile
                << "' for writing!\n";
       Error( __FILE__, __LINE__ );
@@ -65,7 +70,7 @@ namespace CoupledField {
 
     ENTER_FCN( "SkeletonConf::~SkeletonConf" );
 
-    skelfile_->close();
+    out_->close();
 
     std::cerr << std::endl;
     std::cerr << "\t Please complete the file before starting the simulation"
@@ -78,20 +83,31 @@ namespace CoupledField {
 
     Info->StartProgress("Writing skeleton file to disc", false);
 
+    WL("<?xml version=\"1.0\"?>");
+    WL( "<cfsSimulation xmlns=\"http://www.cfs++.org\">");
+    WL( "" );
     WriteGeneral();
     WriteSubdomains(); 
-    //  WriteLists(); --> has to be done in WriteSubdomains!!
 
-    (*skelfile_) <<myendl<< "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl
-		 << "   <pdeList>" << myendl << myendl;
+    // Start Writing of sequence step
+    WL( "" );
+    WL( "" );
+    WL( Quote("Definition of one analysis/sequence step (static/transient/...)") );
+    WL( Indent() << "<sequenceStep>" );
+    WL( "" );
+    WriteAnalysisTypes();
+        
+    WL( "" )
+    WL( Quote( "PDE specific parameters" ) );
+    WL( Indent() << "<pdeList>" );
+    WL( "" )
     WritePDE();
-    (*skelfile_)  << "   </pdeList>" << std::endl << myendl;
-
+    WL( Indent(-1) << "</pdeList>" );
+    WL( Indent() << "" );
     WriteCouplingList();
 
-    WriteAnalysisTypes();
-
-    (*skelfile_)  << "</cfsSimulation>" << myendl;
+    WL( Indent(-1) << "</sequenceStep>" );
+    WL( Indent(-1)<< "</cfsSimulation>" );
 
   }
 
@@ -110,30 +126,21 @@ namespace CoupledField {
       geomType = "3d";
     }
     
-    (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
-                  << "<cfsSimulation xmlns=\"http://www.cfs++.org\">"
-                  << myendl << myendl;    
+  
+    std::string headerLine
+      = "=============================================================";
 
-    (*skelfile_)  << "   <!-- ==============================================="
-                  << "============== -->" << std::endl 
-                  << "   <!--   SKELETON-XML-FILE: PLEASE REPLACE ALL \"XXX\""
-                  << " AND FILL OUT!   -->" << std::endl
-                  << "   <!-- ==============================================="
-                  << "============== -->" << std::endl
-                  << myendl;
-
-    (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic, "
-                  << "multiSequence) -->" << std::endl
-                  << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
-
-    (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->"
-                  << std::endl
-                  << "   <geometry type=\""
-                  << geomType << "\"/>" << std::endl << std::endl;
-
-    (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
-                  << "   <materialData file=\"mat.dat\"/>" << std::endl
-                  << std::endl;
+    WL( Quote(headerLine,1));
+    WL( Quote("  SKELETON-XML-FILE: PLEASE REPLACE ALL \"XXX\" AND FILL OUT! ") );
+    WL( Quote(headerLine) << std::endl );
+    WL( Quote(" Define I/O file and format definitions ") );
+    WL( Indent()   << "<fileFormats>" );
+    WL( Indent(1)  << "<output>");
+    WL( Indent(1)  << "<gid/>" );
+    WL( Indent(-1) << "</output>" );
+    WL( Indent()   << "<materialData file=\"mat.xml\" format=\"xml\"/>" );
+    WL( Indent(-1) << "</fileFormats>" << std::endl );
+    
   }
 
 
@@ -147,7 +154,7 @@ namespace CoupledField {
     ENTER_FCN( "SkeletonConf::WriteSubdomains" );
 
     // Close the skeleton-config-file
-    skelfile_->close();
+    out_->close();
 
     // Generate parser and parse XML defaults file
     std::string cfsSchema = commandLine->GetSchemaPath();
@@ -182,8 +189,8 @@ namespace CoupledField {
 
     // Reopen skeleton-conf file
     std::string xmlFile = commandLine->GetSimName() + ".xml";
-    skelfile_->clear();
-    skelfile_->open( xmlFile.c_str(), std::ios_base::app );
+    out_->clear();
+    out_->open( xmlFile.c_str(), std::ios_base::app );
 
     StdVector<std::string> regionNames;
     
@@ -211,18 +218,21 @@ namespace CoupledField {
       Error("Dimension of Problem not supported",__FILE__,__LINE__);
 
 
-    (*skelfile_) << "   <domain>" << myEndl;
-    (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
-
-    for (UInt i=0; i<regionNames.GetSize(); i++)
-      (*skelfile_) << "      <region name=\"" << regionNames[i]
-                   << "\" material=\"XXX\"/>" << std::endl;
-
-    (*skelfile_) << std::endl;
+    WL( Quote("Specify geometry and material information") );
+    WL( Quote("'geometryType' must be one of plane/axi/3d" ) );
+    WL( Indent() << "<domain geometryType=\"XXX\">" );
+    WL( "" );
+    WL( Quote("List of regions",1 ) );
+    WL( Indent() << "<regionList>" );
+    level_++;
+    for (UInt i=0; i<regionNames.GetSize(); i++) {
+      WL( Indent() << "<region name=\"" 
+          << regionNames[i] << "\" material=\"XXX\"/>" );
+    }
+    WL( Indent(-1) << "</regionList>");
 
     WriteLists();
-    
-    (*skelfile_) << "   </domain>" << myEndl;
+    WL( Indent(-1) << "</domain>");
   }
 
 
@@ -250,155 +260,201 @@ namespace CoupledField {
       if (simInput_->GetNumElems(1) != 0)
         simInput_->GetRegionNamesOfDim(surfRegionNames, 1);
     }
+
+    // === print surface regions ===
     if (surfRegionNames.GetSize()) {
-      (*skelfile_) << "      <!--  LIST OF SURFACE ELEMENTS -->" << std::endl;
-      
-      for (UInt i=0; i<surfRegionNames.GetSize(); i++)
-        (*skelfile_) << "      <surface name=\"" << surfRegionNames[i] 
-                     << "\"/>" << myendl;
-      (*skelfile_) << myendl;
+      WL( "" );
+      WL( Quote("List of surface / boundary regions" ) );
+      WL( Indent() << "<surfRegionList>" );
+      level_++;
+      for (UInt i=0; i<surfRegionNames.GetSize(); i++) {
+        WL( Indent() 
+            << "<surface name=\"" << surfRegionNames[i] 
+            << "\"/>" );
+      }
+      WL( Indent(-1) << "</surfRegionList>" );
     }
     
-    //check for save elements
-    if (simInput_->GetNumNamedElems() != 0)
-      {
-        simInput_->GetElemNames(elemNames);
-        
-        if (elemNames.GetSize())
-          (*skelfile_) << "      <!-- LIST OF NAMED ELEMENTS --> " << myendl;
-        
-        for (UInt i=0; i<elemNames.GetSize(); i++)
-          (*skelfile_) << "      <elements name=\"" << elemNames[i] 
-                       << "\"/>" << myendl;
-        (*skelfile_) << myendl;
-      }
-    
-    //check for node-list
-    if (simInput_->GetNumNamedNodes() != 0)
-      {
-        simInput_->GetNodeNames(nodeNames);
 
-        if (nodeNames.GetSize())
-          (*skelfile_) << "      <!-- LIST OF NAMED NODES --> " << myendl;
-        
-        for (UInt i=0; i<nodeNames.GetSize(); i++)
-          (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
-                       << "\"/>" << myendl;
-        (*skelfile_) << myendl;
+    // === print named nodes ===
+    if (simInput_->GetNumNamedNodes() != 0) {
+      simInput_->GetNodeNames(nodeNames);
+      WL( "" );
+      WL( Quote("List of named nodes" ) );
+      WL( Indent() << "<namedNodeList>" );
+      level_++;
+      for (UInt i=0; i<nodeNames.GetSize(); i++) {
+        WL( Indent() << "<nodes name=\"" << nodeNames[i] 
+            << "\"/>" );
       }
+      WL( Indent(-1) << "</namedNodeList>" );
+    }
+
+    // === print named elements ===
+    if (simInput_->GetNumNamedElems() != 0) {
+      simInput_->GetElemNames(elemNames);
+      WL( "" );
+      WL( Quote("List of named elements" ) );
+      WL( Indent() << "<namedElemList>" );
+      level_++;
+      for (UInt i=0; i<elemNames.GetSize(); i++) {
+        WL( Indent() << "<elems name=\"" << elemNames[i] 
+            << "\"/>" );
+      }
+      WL( Indent(-1) << "</namedElemsList>" );
+    }
   }
 
   
-  void SkeletonConf::WritePDE ()
-  {
+  void SkeletonConf::WritePDE () {
     ENTER_FCN("SkeletonConf::WritePDE");
+    
+    WL( Quote( "Type of PDE (mechanic/electrostatic/...)",1) );
+    WL( Indent(0) << "<XXX>" );
+    WL( "" );
 
-    (*skelfile_) << "      <!-- name of pde -->" << std::endl
-                 << "      <XXX>" << std::endl 
-                 << std::endl
-                 << "         <region name=\"XXX\"/>" << std::endl 
-                 << std::endl
-                 << "         <!-- boundary conditions -->" << std::endl
-                 << "         <bcsAndLoads>" << std::endl
-                 << "            <dirichletHom   name=\"XXX\"/>" << std::endl
-                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
-                 << std::endl
-                 << "            <load           name=\"XXX\" value=\"1\" />"
-                 << std::endl 
-                 << "         </bcsAndLoads>" << std::endl 
-                 << myendl
-                 << "         <!-- storing of results -->" << std::endl
-                 << "         <storeResults>" << std::endl
-                 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
-                 << std::endl
-                 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->"
-                 << std::endl
-                 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
-                 << std::endl
-                 << "         </storeResults>" << std::endl
-                 << "      </XXX>" << std::endl << std::endl;
+    WL( Quote( "List of regions the PDE is defined on",1 ) );
+    WL( Indent(0) << "<regionList>" );
+    WL( Quote( "Normal region definition",1 ) );
+    WL( Indent(0) << "<region name=\"XXX\"/>" );
+    WL( Quote( "Region with damping and nonlinearity" ) );
+    WL( Indent(0) << "<region name=\"XXX\" dampingId=\"XXX\" nonLinId=\"XXX\"/>" );
+    WL( Indent(-1) << "</regionList>" );
+    WL( "" );
+
+
+    WL( Quote( "In case of nonlinearities uncomment, the following list" ) );
+    WL( Indent() << "<!-- <nonLinList>" );
+    WL( Indent(1) << "<geometric id=\"XXX\"/>" );
+    WL( Indent(-1) << "</nonLinList> -->" );
+    WL( "" );
+
+    WL( Quote( "In case of damping unqote uncomment, the following list" ) );
+    WL( Indent() << "<!-- <dampingList>" );
+    WL( Indent(1) << "<rayleigh id=\"XXX\"/>" );
+    WL( Indent(-1) << "</dampingList> -->" );
+    WL( "" );
+    
+    WL( Quote( "Definition of boundary conditions and loads" ) );
+    WL( Indent() << "<bcsAndLoads>" );
+    WL( Indent(1) << "<dirichletHom   name=\"XXX\" dof=\"XXX\"/>" );
+    WL( Indent(0) << "<dirichletInhom name=\"XXX\" dof=\"XXX\""
+        << " value=\"XXX\" phase=\"XXX\"/>" );
+    WL( Indent(0) << "<load           name=\"XXX\" dof=\"XXX\""
+        << " value=\"XXX\" phase=\"XXX\"/>" ); 
+    WL( Indent(-1) <<  "</bcsAndLoads>" );
+    WL( "" );
+
+    WL( Quote( "Storing of results" ) );
+    WL( Indent() << "<storeResults>" );
+
+    WL( "" );
+    WL( Indent(1) << "<nodeResult type=\"XXX\">" );
+    WL( Indent(1) << "<allRegions/>" );
+    WL( Indent(0) << "<nodeList>");
+    WL( Indent(1) << "<nodes name=\"XXX\"/>");
+    WL( Indent(-1) << "</nodeList>");
+    WL( Indent(-1) << "</nodeResult>" );
+
+    WL( "" );
+    WL( Indent(0) << "<elemResult type=\"XXX\">" );
+    WL( Indent(1) << "<allRegions/>" );
+    WL( Indent(-1) << "</elemResult>" );
+    
+    WL( "" );
+    WL( Indent(0) << "<regionResult type=\"XXX\">" );
+    WL( Indent(1) << "<allRegions/>" );
+    WL( Indent(0) << "<regionList>");
+    WL( Indent(1) << "<region name=\"XXX\"/>");
+    WL( Indent(-1) << "</regionList>");
+    WL( Indent(-1) << "</regionResult>" );
+
+    WL( Indent(-1) << "</storeResults>" );
+    WL( Indent(-1) << "</XXX>" );
+
   }
 
-  void SkeletonConf::WriteCouplingList ()
-  {
-
+  void SkeletonConf::WriteCouplingList () {
     ENTER_FCN("SekeltonConf::WriteCoupling" );
-    (*skelfile_) 
-      << "   <!-- For coupled simulation, uncomment the following lines -->";
-    (*skelfile_) 
-      << myendl  
-      << "   <!--<couplingList>                                 \n" 
-      << "     <direct>                                         \n"
-      << "       <XXXDirect>                                    \n"
-      << "         <coupling type=\"XXX\" name=\"XXX\"/>        \n"
-      << "         <storeResults/>                              \n"
-      << "       </XXXDirect>                                   \n"
-      << "     </direct>                                        \n"
-      << "\n"
-      << "     <iterative>                                      \n" 
-      << "       <XXX1XXX2 method=\"RHS\">                      \n" 
-      << "         <XXX1>                                       \n" 
-      << "           <coupling type=\"XXX\" quantity=\"XXX\"    \n" 
-      << "                     name=\"XXX\"/>                   \n" 
-      << "         </XXX1>                                      \n" 
-      << "         <XXX2>                                       \n" 
-      << "           <coupling type=\"XXX\" quantity=\"XXX\"    \n" 
-      << "                     name=\"XXX\"/>                   \n" 
-      << "         </XXX2>                                      \n" 
-      << "       </XXX1XXX2>                                    \n" 
-      << "       <nonLinear logging=\"yes\">                    \n" 
-      << "         <stopCrit value=\"1e-3\" quantity=\"XXX\"    \n" 
-      << "                   l2Norm=\"rel\"/                    \n" 
-      << "         <maxNumIters> 10 </maxNumIters>              \n" 
-      << "       </nonLinear>                                   \n" 
-      << "     </iterative>                                     \n" 
-      << "   </couplingList>                                 -->" 
-      << myendl << myendl << myendl;
+
+    WL( Quote( "For coupled simulation, uncomment the following lines" ) );
+    WL( Indent() << "<!--<couplingList>" );
+    WL( Indent(1) << "<direct>" );
+    WL( Indent(1) << "<XXXDirect>" );
+    WL( Indent(1) << "<regionList>" );
+    WL( Indent(1) << "<region name=\"XXX\"/>" );
+    WL( Indent(-1) << "</regionList>" );
+    WL( Indent(0) << "<storeResults/>" );
+    WL( Indent(-1) << "</XXXDirect>" );
+    WL( Indent(-1) << "</direct>" );
+    WL( "" );
+    WL( Indent(0) << "<iterative>" );
+    WL( Indent(1) << "<XXX1XXX2 method=\"RHS\">" );
+    WL( Indent(1) << "<XXX1>" );
+    WL( Indent(1) << "<coupling type=\"XXX\" quantity=\"XXX\" name=\"XXX\"/>" );
+    WL( Indent(-1) << "</XXX1>" );
+    WL( Indent(0) << "<XXX2>" );
+    WL( Indent(1) << "<coupling type=\"XXX\" quantity=\"XXX\" name=\"XXX\"/>" );
+    WL( Indent(-1) << "</XXX2>" );
+    WL( Indent(-1) << "</XXX1XXX2>");
+    WL( "");
+    WL( Indent(0) << "<nonLinear logging=\"yes\">" );
+    WL( Indent(1) << "<stopCrit value=\"1e-3\" quantity=\"XXX\" l2Norm=\"rel\"/>" );
+    WL( Indent(0) << "<maxNumIters> 10 </maxNumIters> " );
+    WL( Indent(-1) << "</nonLinear>" );
+    WL( Indent(-1) << "</iterative>" );
+    WL( "" );
+    WL( Indent(-1) << "</couplingList> -->" );
+    WL( "" );
+
+    WL( Quote( "For special solver definitions, uncomment the following section" ) );
+    WL( Indent(0) << "<!--<linearSystems>" );
+    WL( Indent(1) << "<system name=\"XXX\">" );
+    WL( Indent(1) << "<solver type=\"XXX\" precond=\"XXX\"/>" );
+    WL( Indent(-1) << "</system>");
+    WL( Indent(-1) << "</linearSystems> -->" );
+    WL( "" );
   }
 
   void SkeletonConf::WriteAnalysisTypes(){
     ENTER_FCN( "SkeletonConf::WriteAnalysisTypes" );
 
-
+    WL( Quote( "Define type of analysis", 1 ) );
+    WL( Quote( "Please uncomment the analysis of choice ") );
+    WL( Indent(0) << "<analysis>" );
+    
+    // Static Analysis
+    WL( Quote("static analysis",1 ) );
+    WL( Indent(0) << "<!-- <static/> -->" );
+    WL( Indent(-1) << "" );
 
     // Transient Analysis
-    (*skelfile_)  << "   <!--In case of transient analysis, uncomment "
-                  << "following lines -->" << std::endl
-                  << "   <!--<transient>    " << std::endl
-                  << "     <numSteps>    1    </numSteps>       " << std::endl
-                  << "     <firstDt>     1e-6 </firstDt>        " << std::endl
-                  << "     <stepSaveBeg> 1    </stepSaveBeg>    " << std::endl
-                  << "     <stepSaveEnd> 1    </stepSaveEnd>    " << std::endl
-                  << "     <stepSaveInc> 1    </stepSaveInc>    " << std::endl
-                  << "     <timeDataFile name=\"XXX.dat\"/>     " << std::endl
-                  << "   </transient>                        -->" << std::endl 
-                  << myEndl;
+    WL( Quote("transient analysis",1 ) );
+    WL( Indent()   << "<!-- <transient>" );
+    WL( Indent(1)  << "<numSteps> 1 </numSteps>" );
+    WL( Indent()   << "<deltaT> 1 </deltaT>" );
+    WL( Indent(-1) << "</transient> -->" );
+    WL( Indent(-1) << "" );
 
-    // Harmonic Analysis
-    (*skelfile_)  << "   <!--In case of harmonic analysis, uncomment "
-                  << "following lines -->" << std::endl
-                  << "   <!--<harmonic>    " << std::endl
-                  << "      <numFreq>    1   </numFreq>       " << std::endl
-                  << "      <startFreq>  1e3 </startFreq>     " << std::endl
-                  << "      <stopFreq>   1   </stopFreq>    " << std::endl
-                  << "   </harmonic>                         -->" << std::endl 
-                  << myEndl;
+    // Harmonic analysis
+    WL( Quote("harmonic analysis",1 ) );
+    WL( Indent()   << "<!-- <harmonic>" );
+    WL( Indent(1)  << "<numFreq>   1 </numFreq>" );
+    WL( Indent()   << "<startFreq> 1 </startFreq>" );
+    WL( Indent()   << "<stopFreq>  1 </stopFreq>" );
+    WL( Indent()   << "<sampling>  1 </sampling>" );
+    WL( Indent(-1) << "</harmonic> -->" );
+    WL( Indent(-1) << "" );
 
-    // MultiSequence Analysis
-    (*skelfile_)  << "   <!--In case of multiSequence analysis, uncomment "
-                  << "following lines -->" << std::endl
-                  << "   <!--<multiSequence>       " << std::endl
-                  << "     <step index=\"1\"> " << std::endl
-                  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
-                  << "analysis=\"XXX\"/>" << std::endl
-                  << "     </step>               " << std::endl
-                  << "     <step index=\"2\"> " << std::endl
-                  << "       <pde refTag=\"XXX\" type=\"XXX\" " 
-                  << "analysis=\"XXX\"/>" << std::endl
-                  << "     </step>               " << std::endl
-                  << "   </multiSequence>                            -->" << std::endl 
-                  << myEndl;
-
+    // Eigenfrequency analysis
+    WL( Quote("eigenFrequency analysis",1 ) );
+    WL( Indent() << "<!-- <eigenFrequency>" );
+    WL( Indent(1) << "<isQuadratic> no </isQuadratic>" );
+    WL( Indent() << "<numModes>    10 </numModes>" );
+    WL( Indent() << "<freqShift>   1  </freqShift>" );
+    WL( Indent() << "<writeModes> yes </writeModes>" );
+    WL( Indent(-1) << "</eigenFrequency> -->") ;
+    WL( Indent(-1) << "</analysis>" );
 
   }
 
