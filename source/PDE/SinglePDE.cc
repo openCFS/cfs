@@ -201,6 +201,7 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
       std::string actRegionName = regionNodes[i]->Get("name")->AsString();
       RegionIdType actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      
       subdoms_.Push_back( actRegionId );
       Info->PrintF( pdename_, "%s, ID = %i\n", actRegionName.c_str(), 
                     actRegionId );

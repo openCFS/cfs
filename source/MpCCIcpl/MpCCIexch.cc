@@ -64,9 +64,9 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
   if( acouNode ) {
     acouNode->Get( "writeCoupledGrid",  writeGridFile_, false );
     acouNode->Get( "writeSrcFileperTS", writeSrcFileperTS_, false );
-    acouNode->Get( "writeSrcFileperNode", writeSrcFileperTS_, false );
+    acouNode->Get( "writeSrcFileperNode", writeSrcFileperNode_, false );
   }
-   
+ 
   if( writeGridFile_ ) {
     Info->PrintF("acoustic","Writing grid def. file of coupled domain from MpCCIexch class\n");
   }
@@ -123,11 +123,12 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
 MpCCIexch::~MpCCIexch()
 {
   if (nodeIds_)  delete [] nodeIds_;
- if (outelemfile_)
-   delete outelemfile_;
- if (outnodefile_)
-   delete outnodefile_;
- if (outsrcfile_) 
+  if (writeGridFile_)
+    {
+      delete outelemfile_;
+      delete outnodefile_;
+    }
+  if (writeSrcFileperTS_) 
       delete outsrcfile_;
 }
 
@@ -677,7 +678,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
             
             // Getting first column as INT(dTdxdw) with node identifier
             flowdata[0][nodeIds_[inode]-1] = value_Press[inode];
-            flowdata[1][nodeIds_[inode]-1] = value_VxVy[inode*3];
+            //flowdata[1][nodeIds_[inode]-1] = value_VxVy[inode*3];
 
             if (writeSrcFileperTS_)
               {
