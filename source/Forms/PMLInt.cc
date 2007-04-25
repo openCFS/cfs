@@ -262,7 +262,7 @@ namespace CoupledField
 
     // get material tensor
     calcDMat( dMat );
-    dMatC = Complex(1.0,0) * dMat;
+    dMatC =  dMat * Complex(1.0,0);
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
