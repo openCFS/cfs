@@ -157,6 +157,13 @@ namespace CoupledField {
 
     LOG_TRACE(simOutputGMV) << "Starting to finish Step";
 
+    // Check, if any result at all is registered. 
+    // If not leave!
+    if( resultMap_.size() == 0 )
+      return;
+
+    
+
     WriteGrid();
     
     std::string title;
