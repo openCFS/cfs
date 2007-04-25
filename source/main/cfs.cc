@@ -233,7 +233,6 @@ int main( int argc, const char **argv ) {
     delete ptskel;
     delete ptInputfile;
     delete Info;
-    if(param != NULL) { delete param; param = NULL; }
     
     return 0;
   }
