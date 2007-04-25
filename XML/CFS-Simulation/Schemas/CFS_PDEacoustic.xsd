@@ -638,7 +638,7 @@
       <xsd:enumeration value="acouPotential"/>
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
-      <xsd:enumeration value="acouRHSval"/>
+      <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="acouSoundSpeed"/>
     </xsd:restriction>
   </xsd:simpleType>

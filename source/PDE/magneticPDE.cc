@@ -457,10 +457,13 @@ namespace CoupledField {
         ExtractResult<Double>( res, sol_ );
       }
       break;
-
-      // * HACK ALARM *
-    case HEAT_TEMPERATURE:
-      ExtractDerivResult( res, 1 );
+    
+    case MAG_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( res, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( res, results_[0] );
+      }
       break;
 
     case MAG_FLUX_DENSITY:
@@ -1015,6 +1018,16 @@ namespace CoupledField {
       results_.Push_back( res2 );
       availResults_.insert( res2 );
     }
+
+    // === MAGNETIC RHS LOAD ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = MAG_RHS_LOAD;
+    rhs->dofNames = vecComponents;
+    rhs->unit = "Am";
+    rhs->definedOn = ResultInfo::ELEMENT;
+    rhs->entryType = ResultInfo::VECTOR;
+    rhs->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( rhs ); 
 
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux(new ResultInfo);

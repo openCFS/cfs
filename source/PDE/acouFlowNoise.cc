@@ -619,7 +619,7 @@ namespace CoupledField
       // For plotting the RHS as solution for analysing it
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
-      rhs_.SetSolutionType(ACOU_RHSVAL);
+      rhs_.SetSolutionType(ACOU_RHS_LOAD);
       rhs_.SetResult( results_[0] );
       rhs_.SetNumDofs(1);
       rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
@@ -764,7 +764,7 @@ namespace CoupledField
                rhs_.SetNumSolutions(1);
                rhs_.SetNumNodes(numPDENodes_);
                //             rhs_.SetNumNodes(elemssd.GetSize());
-               rhs_.SetSolutionType(ACOU_RHSVAL);
+               rhs_.SetSolutionType(ACOU_RHS_LOAD);
                rhs_.SetResult( results_[0] );
                rhs_.SetNumDofs(1);
                rhs_.SetResult( results_[0] );

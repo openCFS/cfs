@@ -152,6 +152,7 @@
   <xsd:simpleType name="DT_HeatNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatTemperature"/>
+      <xsd:enumeration value="heatRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
   

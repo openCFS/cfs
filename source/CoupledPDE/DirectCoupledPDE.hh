@@ -73,6 +73,12 @@ namespace CoupledField {
     void SaveSolution( const Complex * ptSol, UInt size );
     //@}
 
+    //@{
+    //! Save load part of RHS to private variable
+    void SaveRHS( const Double * ptSol, UInt size );
+    void SaveRHS( const Complex * ptSol, UInt size );
+    //@}
+
     //!
     virtual void InitTimeStepping();
 

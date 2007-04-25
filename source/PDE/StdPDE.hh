@@ -156,6 +156,12 @@ namespace CoupledField {
     virtual void SaveSolution( const Complex * ptSol, UInt size ) = 0;
     //@}
 
+    //@{
+    //! Save load part of RHS to private variable
+    virtual void SaveRHS( const Double * ptSol, UInt size ) = 0;
+    virtual void SaveRHS( const Complex * ptSol, UInt size ) = 0;
+    //@}
+
     //! get the data vector of the current solution of a PDE.
     CFSVector * GetSolutionVector();
     
@@ -469,6 +475,7 @@ namespace CoupledField {
 
     BaseNodeStoreSol * sol_;    //!< solution
     CFSVector * solVec_;        //! needed in iterative coupled computation 
+    CFSVector * rhsVec_;        //! needed when writing the RHS to file
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;

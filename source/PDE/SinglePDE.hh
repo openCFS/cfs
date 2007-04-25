@@ -251,6 +251,11 @@ namespace CoupledField
     void SaveSolution( const Complex * ptSol, UInt size );
     //@}
 
+    //@{
+    //! Save load part of RHS to private variable
+    void SaveRHS( const Double * ptSol, UInt size );
+    void SaveRHS( const Complex * ptSol, UInt size );
+    //@}
 
     // ======================================================
     // SCRIPTING SECTION
@@ -298,6 +303,11 @@ namespace CoupledField
 
     //! This method fills the given result objects
     void ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv );
+
+    //! Copy the linear rhs from the internal vector to a solution object
+    template<class TYPE>
+    void ExtractRhsResult( shared_ptr<BaseResult> res, 
+                           shared_ptr<ResultInfo> eqnResultInfo );
 
     //! Set containing the types of possible results
     ResultSet availResults_;

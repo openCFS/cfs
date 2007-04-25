@@ -464,8 +464,8 @@ namespace CoupledField {
       out = MECH_ENERGY;
     else if (in == "mechDeformedVolume" ) 
       out = MECH_DEF_VOLUME;
-    else if (in == "mechRHS" ) 
-      out = MECH_RHS;
+    else if (in == "mechRhsLoad" ) 
+      out = MECH_RHS_LOAD;
         
     //electrostatics
     else if (in == "elecPotential")
@@ -484,6 +484,8 @@ namespace CoupledField {
       out = ELEC_FLUX_DENSITY;
     else if (in == "elecEnergy")
       out = ELEC_ENERGY;
+    else if (in == "elecRhsLoad")
+      out = ELEC_RHS_LOAD;
 
     //smoothing PDE
     else if (in == "smoothDisplacement")
@@ -504,8 +506,8 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_1;
     else if (in == "acouPotentialD2")
       out = ACOU_POTENTIAL_DERIV_2;
-    else if (in == "acouRHSval")
-      out = ACOU_RHSVAL;
+    else if (in == "acouRhsLoad")
+      out = ACOU_RHS_LOAD;
     else if (in == "acouSoundSpeed")
       out = ACOU_SOUND_SPEEED;
     else if (in == "acouBubbleRhsVal")
@@ -538,10 +540,14 @@ namespace CoupledField {
       out = MAG_ENERGY;
     else if (in == "magEddyPower")
       out = MAG_EDDY_POWER;
+    else if (in == "magRhsLoad")
+      out = MAG_RHS_LOAD;
 
     //heat conduction
     else if (in == "heatTemperature")
       out = HEAT_TEMPERATURE;
+    else if (in == "heatRhsLoad")
+      out = HEAT_RHS_LOAD;
 
     //mpcci
     else if (in == "fluidForce")
@@ -611,8 +617,8 @@ namespace CoupledField {
         out = "mechDeformedVolume";
         break;
 
-      case MECH_RHS:
-        out = "mechRHS";
+      case MECH_RHS_LOAD:
+        out = "mechRhsLoad";
         break;
         
         //electrostatics
@@ -639,6 +645,9 @@ namespace CoupledField {
         break; 
       case ELEC_ENERGY:
         out = "elecEnergy";
+        break;
+      case ELEC_RHS_LOAD:
+        out = "elecRhsLoad";
         break;
       
         //smoothing PDE  
@@ -668,8 +677,8 @@ namespace CoupledField {
       case ACOU_POTENTIAL_DERIV_2:
         out = "acouPotentialD2";
         break;
-      case ACOU_RHSVAL:
-        out = "acouRHSval";
+      case ACOU_RHS_LOAD:
+        out = "acouRhsLoad";
         break;
       case ACOU_SOUND_SPEEED:
         out = "acouSoundSpeed";
@@ -718,10 +727,17 @@ namespace CoupledField {
       case MAG_EDDY_POWER:
         out = "magEddyPower";
         break;
+      case MAG_RHS_LOAD:
+        out = "magRhsLoad";
+        break;
         
         //heat conduction
       case HEAT_TEMPERATURE:
         out = "heatTemperature";
+        break;
+
+      case HEAT_RHS_LOAD:
+        out = "heatRhsLoad";
         break;
 
         //mpcci PDE  

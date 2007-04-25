@@ -1603,6 +1603,16 @@ namespace CoupledField {
     acc->fctType = disp->fctType;
     availResults_.insert( acc );
 
+    // === MECHANIC RHS ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = MECH_RHS_LOAD;
+    rhs->dofNames = dispDofNames;
+    rhs->unit = "N";
+    rhs->entryType = disp->entryType;
+    rhs->definedOn = disp->definedOn;
+    rhs->fctType = disp->fctType;
+    availResults_.insert( rhs );
+
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);    
     stress->resultType = MECH_STRESS;
@@ -1645,6 +1655,14 @@ namespace CoupledField {
       ExtractDerivResult( result, 2 );
       break;
       
+    case MECH_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( result, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( result, results_[0] );
+      }
+      break;
+
     case MECH_STRESS:
       if( isComplex_ ) {
         CalcStresses<Complex>( result );

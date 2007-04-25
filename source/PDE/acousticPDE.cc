@@ -1662,8 +1662,12 @@ namespace CoupledField {
       ExtractDerivResult( result, 2 );
       break;
 
-    case ACOU_RHSVAL:
-      Warning( "Not yet implemented!");
+    case ACOU_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( result, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( result, results_[0] );
+        }
       break;
 
     case ACOU_INTENSITY:
@@ -2400,7 +2404,7 @@ namespace CoupledField {
 
     // === RHS VALUE ===
     shared_ptr<ResultInfo> rhs(new ResultInfo);
-    rhs->resultType = ACOU_RHSVAL;
+    rhs->resultType = ACOU_RHS_LOAD;
     rhs->dofNames = "";
     rhs->unit = "";
     rhs->entryType = res1->entryType;
