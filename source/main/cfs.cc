@@ -24,6 +24,8 @@
 #include "Utils/tracing.hh"
 #include "Utils/profiler.hh"
 
+#include <def_use_mesh.hh>
+
 #ifdef PARALLEL
 #include <mpi.h>
 #endif
@@ -42,6 +44,9 @@
 #include "Domain/Gridlib/interface_gridlib.hh"
 #endif
 
+#ifdef USE_MESH
+#include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
+#endif
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -83,7 +88,6 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   MyClock oClockTotal;
   oClockTotal.Start();
-
 
   // =========================================================================
   // CREATE INFORMATION OBJECT
@@ -131,8 +135,6 @@ int main( int argc, const char **argv ) {
     Info->StartProgress( msg.str() );
 
     // Create new central messenger object (up to now only tcl available)
-    //messenger = new TCL_CFSMessenger();
-    //messenger = new PY_CFSMessenger();
     messenger->ReadScriptFile(scriptFileName );
     Info->FinishProgress();    
   }
@@ -199,6 +201,43 @@ int main( int argc, const char **argv ) {
   Info->FinishProgress();
 #endif
 
+ // =========================================================================
+  // WRITE SKELETON XML-FILE
+  // =========================================================================
+
+  // This block is used for writing a skeleton XML-File to make life easier
+  // for the user. This also will import some information from the mesh-file.
+  // Since normally all opening of files is handled in definefiles
+  // the debug and trace file are opened separately here. Definefiles cannot
+  // be used, since it would try to open other files also, that need not be
+  // present????
+  if ( commandLine->GetWriteSkeleton() == true ) {
+#ifdef TRACE
+    FileHandler.OpenFile( TRACE_FILE );
+#endif
+ 
+#ifdef DEBUG
+    FileHandler.OpenFile( DEBUG_FILE );
+#endif
+
+    // Hardcoded: Read mesh file
+    std::string meshFile = commandLine->GetMeshFile();
+    std::string simName = commandLine->GetSimName();
+    if(meshFile == "")
+      meshFile = simName + ".mesh";
+    SimInput * ptInputfile = new SimInputMESH(meshFile, NULL);
+    ptInputfile->InitModule(NULL);
+    // class writing log-information
+    SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
+    ptskel->WriteConf();
+    delete ptskel;
+    delete ptInputfile;
+    delete Info;
+    if(param != NULL) { delete param; param = NULL; }
+    
+    return 0;
+  }
+
 
   // =========================================================================
   // HANDLE XML-FILE
@@ -224,36 +263,13 @@ int main( int argc, const char **argv ) {
 
   // Initialize our xerces dom parser to handle the cfs xml file
   Xerces* xerces = new Xerces(xmlFile, Xerces::GetCFSSchemaGuess());
+
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
+
   // release the xerces ressources, param is not affected
   delete xerces;
   
-  /* killme - delete this test methods if not needed any more
-  param->Dump();
-
-  ParamNode* system = param->Get("linearSystems")->Get("system");
-  ParamNode* gmres = system->Get("solver")->Get("gmres");
-  
-  std::cout << "tol: " << gmres->Get("tol")->AsDouble() << std::endl;
-  std::cout << "maxIter: " << gmres->Get("maxIter")->AsInt() << std::endl;                          
-  std::cout << "logging: " << gmres->Get("logging")->AsBool() << std::endl;
-  
-  ParamNode* dom = param->Get("domain");
-  std::cout << "dom has ffkdsjh ? " << dom->Has("ffkdsjh") << std::endl;
-  std::cout << "dom has region ? " << dom->Has("region") << std::endl;
-  StdVector<ParamNode*> list = dom->GetList("nodes");
-  std::cout << "GetList(nodes)" << std::endl;
-  for(unsigned int i = 0; i < list.GetSize(); i++)
-     std::cout << i << " : " << list[i]->ToString() << " first child: " << list[i]->GetChildren()[0]->ToString() << std::endl; 
-
-  std::cout << "GetList(nodes, name, ux-dof)" << std::endl;  
-  StdVector<ParamNode*> list2 = dom->GetList("nodes", "name", "ux-dof");
-  for(unsigned int i = 0; i < list2.GetSize(); i++)  
-     std::cout << i << " : " << list2[i]->ToString() << " first child: " << list2[i]->GetChildren()[0]->ToString() << std::endl; 
-  */
-
- 
 #else
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
@@ -283,36 +299,7 @@ int main( int argc, const char **argv ) {
     Info->FinishProgress();
   }
 
-  // =========================================================================
-  // WRITE SKELETON XML-FILE
-  // =========================================================================
-
-  // This block is used for writing a skeleton XML-File to make life easier
-  // for the user. This also will import some information from the mesh-file.
-  // Since normally all opening of files is handled in definefiles
-  // the debug and trace file are opened separately here. Definefiles cannot
-  // be used, since it would try to open other files also, that need not be
-  // present????
-  if ( commandLine->GetWriteSkeleton() == true ) {
-#ifdef TRACE
-    FileHandler.OpenFile( TRACE_FILE );
-#endif
  
-#ifdef DEBUG
-    FileHandler.OpenFile( DEBUG_FILE );
-#endif
-
-    // class writing log-information
-    Info = new WriteInfo();
-    Info->PrintHeader();
-    SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
-    ptskel->WriteConf();
-    delete ptskel;
-    delete ptInputfile;
-    if(param != NULL) { delete param; param = NULL; }
-    
-    return 0;
-  }
 
   // generate material handler
   MaterialHandler * ptMatHandler;

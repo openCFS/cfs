@@ -52,8 +52,33 @@ namespace CoupledField
 
   private:
 
-    std::ofstream * skelfile_; //!< file pointer fo conf-file
-    SimInput* simInput_;      //!< file pointer of mesh-file
+    //! Helper methods
+
+    std::string Indent( Integer indentChange = 0) {
+      level_ = level_ + indentChange;
+      std::string help;
+      if( level_ < 0 ) 
+        EXCEPTION( "Level must not be < 0 ");
+      
+      for(UInt i=0; i<level_; i++) help+= "  ";
+      return help;
+    }
+
+    std::string Quote( const std::string& in, Integer indentChange = 0) {
+      std::string ret = Indent(indentChange);
+      ret += "<!-- " + in + " -->";
+      return ret;
+    }
+
+    //! Current indentation level
+    Integer level_;
+
+    //! file pointer fo xml-file
+    std::ofstream * out_; 
+
+    //! file pointer of mesh-file
+    SimInput* simInput_;   
+
   };
 } // end namespace CoupledField
  
