@@ -633,14 +633,14 @@ namespace CoupledField {
     dofIdxEnd = ansysNodeDof2Idx_.end();
     UInt idx = 0;
     
-    // Build up array with dofs.
+    // Build up array with dof labels.
     for( ; dofIdxIt != dofIdxEnd; dofIdxIt++ )
     {
       char* pt = &dofLabels_[dofIdxIt->first-1][0];
       
-      std::copy(pt, pt+4, &dofLab[idx]);
+      idx = dofIdxIt->second*4;
 
-      idx+=4;
+      std::copy(pt, pt+4, &dofLab[idx]);
     }
 
     Integer kcmplx = 0;
