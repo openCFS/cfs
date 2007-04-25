@@ -687,13 +687,12 @@ namespace OLAS {
 
     // only update the rhs buffer if it is invalid
     if ( rhsBufferIsValid_ == false ) {
-        
-      RefCast( *rhs, Vector<Complex>, myRHS );
 
 #ifdef DEBUG_ASSEMBLE
       (*debug) << "GetRHSVal: case sequential OLAS" << std::endl;
 #endif
-      rhsBuffer_ = myRHS;
+      // copy vector into buffer
+      rhsBuffer_ = *rhs;
       
       // Set invalidation flag
       rhsBufferIsValid_ = true;

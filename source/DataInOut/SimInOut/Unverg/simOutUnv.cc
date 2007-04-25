@@ -645,6 +645,9 @@ namespace CoupledField {
       case MECH_STRAIN:
         EXCEPTION("Not implemented" );
         break;
+      case MECH_RHS_LOAD:
+        return "mechRhsLoad";
+         break;
       case ELEC_POTENTIAL:
         return "electric potential";
         break;
@@ -665,6 +668,10 @@ namespace CoupledField {
         break; 
       case ELEC_ENERGY:
         EXCEPTION("Not implemented");
+        break;
+      case ELEC_RHS_LOAD:
+        return "elecRhsLoad";
+        break;
       case SMOOTH_DISPLACEMENT:
         return "displacement";
         break;
@@ -675,7 +682,7 @@ namespace CoupledField {
         return "displacement";
         break;
 
-      case ACOU_RHSVAL:
+      case ACOU_RHS_LOAD:
         return "fluid potential";
         break;
       case ACOU_PRESSURE:
@@ -711,8 +718,15 @@ namespace CoupledField {
       case MAG_ENERGY:
         EXCEPTION("Not implemented");
         break;
+      case MAG_RHS_LOAD:
+        return "magRhsLoad";
+        break;
+
       case HEAT_TEMPERATURE:
         return "temperature";
+        break;
+      case HEAT_RHS_LOAD:
+        return "temperatureRhsLoad";
         break;
 
       default:

@@ -273,13 +273,22 @@ namespace CoupledField {
     ENTER_FCN( "HeatCondPDE::CalcResults" );
     
     switch (result->GetResultInfo()->resultType ) {
-     case HEAT_TEMPERATURE:
-       if( isComplex_ ) {
-         ExtractResult<Complex>( result, sol_ );
-       } else {
-         ExtractResult<Double>( result, sol_ );
-       }
-       break;
+    case HEAT_TEMPERATURE:
+      if( isComplex_ ) {
+        ExtractResult<Complex>( result, sol_ );
+      } else {
+        ExtractResult<Double>( result, sol_ );
+      }
+      break;
+      
+    case HEAT_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( result, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( result, results_[0] );
+      }
+      break;
+      
     default:   
       Warning( "Resulttype not computable by thermic PDE",
                __FILE__, __LINE__ );
@@ -300,9 +309,19 @@ namespace CoupledField {
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::SCALAR;
     res1->fctType = fct;
-    
     results_.Push_back( res1 );
     availResults_.insert( res1 );
+      
+    // === TEMPERATURE RHS ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = HEAT_RHS_LOAD;
+    rhs->dofNames = "";
+    rhs->unit = "?";
+    rhs->definedOn = ResultInfo::NODE;
+    rhs->entryType = ResultInfo::SCALAR;
+    rhs->fctType = fct;
+    
+    availResults_.insert( rhs );
 
   }
 

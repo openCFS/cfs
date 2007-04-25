@@ -467,6 +467,14 @@ namespace CoupledField {
          ExtractResult<Double>( res, sol_ );
        }
        break;
+
+     case ELEC_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( res, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( res, results_[0] );
+      }
+      break;
        
      case ELEC_FIELD_INTENSITY:
        if( isComplex_ ) {
@@ -1030,6 +1038,16 @@ namespace CoupledField {
       results_.Push_back( res1 );
       availResults_.insert( res1 );
     }
+    
+    // Electric RHS Load
+    // create new resultDof object
+    shared_ptr<ResultInfo> rhs ( new ResultInfo );
+    rhs->resultType = ELEC_RHS_LOAD;
+    rhs->dofNames = "";
+    rhs->unit = "C";
+    rhs->definedOn = results_[0]->definedOn;
+    rhs->entryType = ResultInfo::SCALAR;
+    availResults_.insert( rhs );
 
     // Electric Field Intensity
     // create new resultDof object

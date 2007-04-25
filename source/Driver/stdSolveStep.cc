@@ -118,6 +118,13 @@ namespace CoupledField {
     // have to be reassembled each time
     assemble_->AssembleLinRHS( actTime_ );
     PDE_.SetBCs( actTime_ );
+
+    UInt length = 0;
+    
+    // store rhs vector back to PDE
+    Double * rhsPt;
+    length = algsys_->GetRHSVal(rhsPt);
+    PDE_.SaveRHS( rhsPt, length );
     
     // Only if the matrices have changed (e.g. due to updated lagrangian
     // formulation) the system matrix has to be rebuild
@@ -314,6 +321,13 @@ namespace CoupledField {
     assemble_->AssembleLinRHS( actTime_ );
     PDE_.ComputeRHS( actTime_ );
 
+    UInt length = 0;
+    
+    // store rhs vector back to PDE
+    Double * rhsPt;
+    length = algsys_->GetRHSVal(rhsPt);
+    PDE_.SaveRHS( rhsPt, length );
+
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
   
@@ -353,7 +367,7 @@ namespace CoupledField {
     SETPROFILE("After Solve");
 
     Double* ptsol;
-    UInt length = algsys_->GetSolutionVal(ptsol);
+    length = algsys_->GetSolutionVal(ptsol);
     PDE_.SaveSolution(ptsol,length);
    
     Vector<Double> & solHelp = 
@@ -963,6 +977,11 @@ namespace CoupledField {
     
     PDE_.SetBCs( actFreq_ );
 
+    // store rhs vector back to PDE
+    Complex * rhsPt;
+    UInt length = algsys_->GetRHSVal(rhsPt);
+    PDE_.SaveRHS( rhsPt, length );
+    
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->ConstructEffectiveMatrix( matrix_factor_ );
     }
@@ -977,7 +996,7 @@ namespace CoupledField {
     algsys_->Solve();
 
     Complex* ptSol = NULL;
-    UInt length    =  algsys_->GetSolutionVal(ptSol);
+    length    =  algsys_->GetSolutionVal(ptSol);
     PDE_.SaveSolution(ptSol,length);
   }
 

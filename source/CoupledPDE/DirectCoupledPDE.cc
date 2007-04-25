@@ -58,6 +58,7 @@ namespace CoupledField {
     couplings_.Clear();
 
     delete solVec_;
+    delete rhsVec_;
   }
 
 
@@ -180,9 +181,11 @@ namespace CoupledField {
     // Set correct size of direct solution value
     if ( analysistype_ == HARMONIC  ) {
       solVec_ = new Vector<Complex>;
+      rhsVec_ = new Vector<Complex>;
     }
     else {
       solVec_ = new Vector<Double>;
+      rhsVec_ = new Vector<Double>;
     }
     
     solVec_->Resize(totalUnknowns_);
@@ -471,6 +474,39 @@ namespace CoupledField {
       // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+      
+    }
+  }
+
+   void DirectCoupledPDE::SaveRHS( const Double * ptSol, UInt size) {
+    ENTER_FCN( "DirectCoupledPDE::SaveRhs" );
+
+    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
+    solHelp.Resize(size);
+    
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+    
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      // set pointer to solution object of the PDE
+      singlePDEs_[i]->rhsVec_  = rhsVec_;
+      
+    }
+  }
+  void DirectCoupledPDE::SaveRHS( const Complex * ptSol, UInt size) {
+    ENTER_FCN( "DirectCoupledPDE::SaveRhs" );
+
+    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
+    solHelp.Resize(size);
+    
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+    
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      // set pointer to solution object of the PDE
+      singlePDEs_[i]->rhsVec_  = rhsVec_;
       
     }
   }

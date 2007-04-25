@@ -114,8 +114,10 @@ namespace CoupledField {
 
 
     delete sol_;
-    if( !isDirectCoupled_ )
+    if( !isDirectCoupled_ ) {
       delete solVec_;
+      delete rhsVec_;
+    }
 
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -252,14 +254,19 @@ namespace CoupledField {
     // Determine if solution is of complex type or not
     if ( analysistype_ == HARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
-      if(!isDirectCoupled_ )
-        solVec_ = new Vector<Complex>;
+      if(!isDirectCoupled_ ) {
+        solVec_ = new Vector<Complex>;        
+        rhsVec_ = new Vector<Complex>;
+      }
     }
     else {
       sol_ = new NodeStoreSol<Double>;
 
-      if(!isDirectCoupled_ )
+      if(!isDirectCoupled_ ) {
         solVec_ = new Vector<Double>;
+        rhsVec_ = new Vector<Double>;
+        
+      }
     }
 
     // =====================================================================
@@ -420,10 +427,13 @@ namespace CoupledField {
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
       solVec_->Resize( eqnMap_->GetNumEqns() );
+      rhsVec_->Resize( eqnMap_->GetNumEqns() );
       if( isComplex_ ) {
         solVec_->Init( Complex(0.0,0.0) );
+        rhsVec_->Init( Complex(0.0,0.0) );
       } else {
         solVec_->Init( 0.0 );
+        rhsVec_->Init( 0.0 );
       }
       SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {
@@ -468,9 +478,8 @@ namespace CoupledField {
     isInitialized_ = true;
     LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
   }
-
   
-  void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
+    void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
     ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
@@ -498,6 +507,26 @@ namespace CoupledField {
 
     sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
             
+  }
+
+ void SinglePDE::SaveRHS( const Double * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveRHS" );
+
+    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
+    solHelp.Resize(size);
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+  }
+
+  void SinglePDE::SaveRHS( const Complex * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveRHS" );
+
+    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
+    solHelp.Resize(size);
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
   }
 
   
@@ -2388,7 +2417,46 @@ namespace CoupledField {
                                                   BaseNodeStoreSol * ptStoreSol );
   template void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> res, 
                                                    BaseNodeStoreSol * ptStoreSol );
-  
+  template<class TYPE>
+  void SinglePDE::ExtractRhsResult( shared_ptr<BaseResult> res,
+                                    shared_ptr<ResultInfo> eqnResultInfo ) {
+    ENTER_FCN( "SinglePDE::ExtractRhsResult" );
+    
+    StdVector<Integer> eqnNums;
+    ResultInfo & actDof = *(res->GetResultInfo() );
+    UInt numDofs = actDof.dofNames.GetSize();
+    
+    Vector<TYPE> & solHelp = 
+      dynamic_cast<Vector<TYPE>&> (*rhsVec_ );
+    
+    EntityIterator it = res->GetEntityList()->GetIterator();
+    Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
+      (*(res)).GetVector();
+    actSol.Resize( res->GetEntityList()->GetSize() *
+                   actDof.dofNames.GetSize() );
+    
+    for( it.Begin(); !it.IsEnd(); it++ ) {
+      
+      // get equation numbes
+      eqnMap_->GetEqns( eqnNums, *eqnResultInfo, it );
+      for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+        if( eqnNums[iDof] != 0 ) {
+          actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
+        } else {
+          actSol[it.GetPos()*numDofs+iDof] = 0.0;
+        }
+      }
+    }
+    
+  }
+  // Instantiate functions
+  template void 
+  SinglePDE::ExtractRhsResult<Double>( shared_ptr<BaseResult> res,
+                                       shared_ptr<ResultInfo> eqnResultInfo );
+  template void 
+  SinglePDE::ExtractRhsResult<Complex>( shared_ptr<BaseResult> res,
+                                        shared_ptr<ResultInfo> eqnResultInfo );
+
   // ======================================================
   // SCRIPTING SECTION
   // ======================================================
