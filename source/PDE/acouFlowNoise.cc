@@ -93,7 +93,12 @@ namespace CoupledField
 
 #ifdef MpCCI
     //check type of flow data
-    myParam_->Get( "nodalSrc", nodalSrc_, false );
+    ParamNode * flowNode = myParam_->Get("flowData", false );
+    if (flowNode) 
+      {
+        nodalSrc_ = myParam_->Has("flowData", "type", "nodalSrc" );
+      }
+    
     if( nodalSrc_ ) {
       Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
     }
@@ -107,19 +112,22 @@ namespace CoupledField
 
     StdVector<ParamNode*> cplRegionNodes = 
       param->Get( "MpCCI-flownoise" )->GetList( "coupledregion" );
+    std::cerr << "cplRegions = " << cplRegionNodes.Serialize() << std::endl;
     for( UInt i = 0; i < cplRegionNodes.GetSize(); i++ ) {
       coupledRegionNames.Push_back( cplRegionNodes[i]->Get("name")->AsString() );
     }
-    ptgrid_->RegionNameToId( subdoms_, regionNames );
-    ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
+    StdVector<RegionIdType> regionIds;
+    ptgrid_->RegionNameToId( regionIds, regionNames );
+    ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
+    
     bool OnlyLinNodes=true;
     bool Find=false;
     //    std::cerr << "\nName of all regions:\n" << regionNames << std::endl;
     //    std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
 
-    for (UInt i=0; i<subdoms_.GetSize(); i++)
+    for (UInt i=0; i<regionIds.GetSize(); i++)
       {
         for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
           {
@@ -127,7 +135,7 @@ namespace CoupledField
               {
                 std::cout<<"\ncoupledRegionNames[j]: "<<coupledRegionNames[j]<<std::endl;
                 std::cout<<"\nregionNames[i]: "<<regionNames[i]<<std::endl;
-                ptgrid_->GetVolElems(elemssd,subdoms_[i]); //couplSubDomId_[j]);
+                ptgrid_->GetVolElems(elemssd,regionIds[i]); //couplSubDomId_[j]);
 		
                 if (dim_ == 3)
                   { //TO SEND ONLY LINEAR 3D ELEMS TO MPCCI SINCE NO QUADRATIC 
@@ -164,7 +172,7 @@ namespace CoupledField
     ParamNode * flowDataNode = myParam_->Get( "flowData" );
     if( flowDataNode ) 
       vortexSrc_ = flowDataNode->Get("type")->AsString() == "vortexSrc";
-    
+    StdVector<RegionIdType> regionIds;
     if( vortexSrc_  ) {
       StdVector<ParamNode*> regionNodes = 
         myParam_->Get("regionList")->GetList( "region" );
@@ -176,7 +184,7 @@ namespace CoupledField
       for( UInt i = 0; i < cplRegionNodes.GetSize(); i++ ) {
         coupledRegionNames.Push_back( cplRegionNodes[i]->Get("name")->AsString() );
       }
-      ptgrid_->RegionNameToId( subdoms_, regionNames );
+      ptgrid_->RegionNameToId( regionIds, regionNames );
       ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
       std::cerr << "\nSubdoms:\n" << regionNames << std::endl;
       std::cerr << "CoupledSubdoms:\n" << coupledRegionNames << std::endl;
@@ -209,7 +217,7 @@ namespace CoupledField
               for( UInt i = 0; i < cplRegionNodes.GetSize(); i++ ) {
                 coupledRegionNames.Push_back( cplRegionNodes[i]->Get("name")->AsString() );
               }
-              ptgrid_->RegionNameToId( subdoms_, regionNames );
+              ptgrid_->RegionNameToId( regionIds, regionNames );
               ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
               bool Find=false;
@@ -217,7 +225,7 @@ namespace CoupledField
               //              std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
 
-              for (UInt i=0; i<subdoms_.GetSize(); i++)
+              for (UInt i=0; i<regionIds.GetSize(); i++)
                 {
                   for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
                     {
@@ -302,7 +310,7 @@ namespace CoupledField
       {
       //we get already the integrated acoustic source term
 //      if ( variableSpeedOfSoundCN_ )  {
-         flowdata_.Resize(2, MpCCInodes_);
+         flowdata_.Resize(1, MpCCInodes_);
 //      }
  //     else 
  //        flowdata_.Resize(1, MpCCInodes_);
@@ -473,19 +481,11 @@ namespace CoupledField
         valmult = -1.0;    
         dof     = 1;
 
-        Vector<Double> sos(1);
-        if ( variableSpeedOfSoundCN_ ) {
-          // we will store here the variable speed of sound
-          // so that it is available in the bilinearform
-          speedOfSound_.Init();
-        }
-
         if (!isHarmonic_)
           {
             for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++)
               {
                 srcVal = flowdata_[0][idx];
-                sos[0] = flowdata_[1][idx];  //variable speed of sound
                 node = idx + 1;
               
                 // Ramping before adding to RHS vector
@@ -534,14 +534,11 @@ namespace CoupledField
 		//add to RHS
 		eqnNr = eqnMap_->GetNodeEqn(node,dof );
 		algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr, 1);   
-		if ( variableSpeedOfSoundCN_ ) {
-		  speedOfSound_.SetNodalResult(eqnNr, sos);
-		}
 		
-		if ( saveNodalSourcesRHS_ ) {
-		  valVec[0] = srcVal;
-		  rhsNodalSrc_.SetNodalResult(node, valVec);
-		}
+// 		if ( saveNodalSourcesRHS_ ) {
+// 		  valVec[0] = srcVal;
+// 		  rhsNodalSrc_.SetNodalResult(node, valVec);
+// 		}
               }
           } 
         else
@@ -856,15 +853,9 @@ namespace CoupledField
                    r_sqr=((ptCoordNodes[0][ii])*(ptCoordNodes[0][ii])+
                                  (ptCoordNodes[1][ii])*(ptCoordNodes[1][ii]));
 
-                   //For square 100times100 domain                      
-                   //                       if (r_sqr<=((1000./81.)*(1000./81.)))
-                   //                         {
-                   //                           nodalval[ii]=0;
-                   //                         }
-                      
-                   //Original core (about 2.5m)  //Give also shifted results (above zero)
+                   //Original core (about 2.5m)  
                    if (r_sqr<=(200./81.)*(200./81.) && (vortexFlag_==2))
-                     //Smaller core source (about 1.5m core)  // Give better results
+                     //Smaller core source (about 1.5m core)  
                    //  if (r_sqr<=((140./81.)*(140./81.))) 
                    //Bigger core (about 12m)
                    //if (r_sqr<=((1000./81.)*(1000./81.))) //Give shifted results (above zero)
@@ -885,28 +876,7 @@ namespace CoupledField
                        VortexAnalytical(srcVal, vectorVal, ptCoordNodes[0][ii],
                                         ptCoordNodes[1][ii], atime, vortexFlag_);
 
-                       //std::cout << "In else after calling VortexAnalytical, srcVal= "<<srcVal<<std::endl;
-                       //                           //For debugging the quadratic middle nodes
-                       //                           if ((j+1)==467)
-                       //                           if (connecth[ii]==1708)
-                       //                             {
-                       //                               std::cerr <<"  "<< srcVal;
-                       //                             }
-                       //                           if ((j+1)==464)
-                       //                           if (connecth[ii]==1356)
-                       //                             {
-                       //                               std::cerr <<"  "<< srcVal;
-                       //                             }                          
-                       //                           if ((j+1)==434)
-                       //                           if (connecth[ii]==1354)
-                       //                             {
-                       //                               std::cerr <<"  "<< srcVal;
-                       //                             }    
-                       //                           if ((j+1)==437)
-                       //                           if (connecth[ii]==1706)
-                       //                             {
-                       //                               std::cerr <<"  "<< srcVal;
-                       //                             }    
+
 
                        if (vortexFlag_==3 || vortexFlag_==4)
                          {
@@ -1082,24 +1052,7 @@ namespace CoupledField
 
     flowdatafile.close();
 
-    // With this we can printout the pressure data in 
-    // a file with the format of a unverg file.
-    /*  testflowf.open("test.flowf", std::ios::out);
-        flowdatafile.seekg(pos, std::ios::beg);
-        //testflowf << buffer;
-        //testflowf << buffer2 <<  std::endl;
-        //testflowf << "MAXNODES is: " << maxnumnodes << std::endl;
 
-        for (i=0; i < maxnumnodes; i++)
-        {
-        testflowf << std::setw(10) << i+1;
-        testflowf << std::endl;
-        //for (j=0; j < maxnumqtts; j++)
-        testflowf<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
-        << " " << flowdata_[0][i];
-        testflowf << std::endl;
-        }
-        testflowf.close();*/
   }
 
   void AcouFlowNoise::VortexAnalytical(Double &srcVal, Vector<Double>& dTij_di, const Double x,
@@ -1162,11 +1115,7 @@ namespace CoupledField
     GammaZirkPhys = 1.00531;                         // Zirkulation       [m^2/s]
     Equationgamma = 1.4;                             // Need to be defined here as well
 
-//     params->Get("p0Phys", p0Phys, "vortexSrc");
-//     params->Get("rho0Phys", rho0Phys, "vortexSrc");
-//     params->Get("r_0Phys", r_0Phys, "vortexSrc");
-//     params->Get("GammaZirkPhys", GammaZirkPhys, "vortexSrc");
-//     params->Get("Equationgamma", Equationgamma, "vortexSrc");
+
                                                                              //  Value
     c0Phys        = sqrt(Equationgamma*p0Phys/rho0Phys);// Schallgeschw.[ m/s ]    1.0 
     MaRot         = GammaZirkPhys/4./PI /r_0Phys/c0Phys;// Rotations-Mach-Zahl     0.08
@@ -1190,7 +1139,7 @@ namespace CoupledField
     YPhys = y;
 
     //--------------------------------------------------------------------------
-    // Schritt  :   Berechne den Wirbel (dimensionsbehaftet)
+    // Vortex computation with dimensions
     //--------------------------------------------------------------------------
     //
     r     = sqrt(XPhys*XPhys + YPhys*YPhys);             // Komplexe Koordinate
@@ -1200,20 +1149,17 @@ namespace CoupledField
     std::complex<Double> b( r_0Phys * cos(arg) ,           
               r_0Phys * sin(arg)  );        // Komplexe Bahn des Wirbelpaars
 
-    std::complex<double> zq_bq(pow(z, 2) - pow(b, 2));
+    std::complex<double> zq_bq(pow(z, 2) - pow(b, 2));    // z**2-b**2
     
-    // Komplexe Potentialfunktion
+    // Complex potential function
                                   
     std::complex<double> w(GammaZirkPhys/(2.*PI*Im) * log(zq_bq));
     
     // Ableitungen nach z, 1. Ordnung
     //std::complex<double> w_z;
     Double r_c=0.10;
-
-    // Original:                            
+                         
     std::complex<double> w_z(GammaZirkPhys*z/(PI*Im*zq_bq));
-    //Following Scully vortex core model:                            
-    //    std::complex<double> w_z(GammaZirkPhys*z/(PI*Im*(pow(z, 2) + pow(b, 2))));
 
     Double r_limit;
     r_limit=0.15;
@@ -1243,11 +1189,9 @@ namespace CoupledField
       }
     
         
-    // Ableitungen nach z, 2. Ordnung
-    // Original:                                 
+    // Ableitungen nach z, 2. Ordnung                              
     std::complex<double> w_zz(-GammaZirkPhys*(pow(z,2) + pow(b,2)) / (PI*Im*pow(zq_bq,2)));
-    //Following Scully vortex core model:  
-    //std::complex<double> w_zz(GammaZirkPhys*(pow(b,2) - pow(z,2)) / (PI*Im*pow((pow(b,2) + pow(z,2)),2)));
+
     U_x   =   real(w_zz);
     V_x   = -imag(w_zz);
     U_y   =  V_x;
@@ -1338,18 +1282,10 @@ namespace CoupledField
                   else
                     {
                       theta = atan(y/x);   // Polarkoordinaten r, theta
-                      //This has been done to rotate PI/4 core of analytical solution!
-                      if(r<12.68)
-                      {
-                          //std::cout<<"Oldtheta= "<<theta*180./PI<<std::endl;
-                          theta = atan(y/x) - 0.25*PI;
-                          //std::cout<<"theta= "<<theta*180./PI<<std::endl;
-                      }
-                      
                     }
             
-                  // Hankel Funktion 2.Ordg. und 2. Art H2_2
-                  // mit Bessel Funkt. 2.Ordg., 1.Art JJ2 und 2.Art YY2
+                  // Hankel Funktion 2nd order and 2 kind H2_2
+                  // with Bessel function 2nd order, 1st kind JJ2 and 2nd kind YY2
             
                   std::complex<Double> H2_2( JJ2(akkPhys*r), -YY2(akkPhys*r) ) ;
             
@@ -1369,9 +1305,6 @@ namespace CoupledField
       case 2:
         {
           P_ak = 0.;
-          //srcVal=-P_t;
-          //srcVal = 0.;
-          //or the second time derivative of P_inc
           srcVal = -P_tt;
           break;
         }
@@ -1385,7 +1318,7 @@ namespace CoupledField
           dTij_di.Resize(2);
           dTij_di[0] = 2.0 * U_inc * U_x + V_inc * U_y + U_inc * V_y; 
           dTij_di[1] = 2.0 * V_inc * V_y + U_inc * V_x + V_inc * U_x; 
-          Double density=1.204;
+          Double density=1.0;
           dTij_di*= density;
           break;
         }
@@ -1445,7 +1378,7 @@ namespace CoupledField
   
   //___________________________________
   //
-  // Besselfunktion 2. Ordg. und 1. Art
+  // Bessel function 2nd order and 1st kind
   //___________________________________
   
   Double AcouFlowNoise::JJ2(const Double x)
@@ -1477,7 +1410,7 @@ namespace CoupledField
   
   //___________________________________
   //
-  // Besselfunktion 2. Ordg. und 2. Art 
+  // Bessel function 2nd order and 2nd kind 
   //___________________________________
 
   Double AcouFlowNoise::YY2(const Double x)
