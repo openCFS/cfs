@@ -205,9 +205,9 @@ namespace CoupledField {
           // in correct format
           std::string (SimOutputText::*ptComplexOutput)(const Complex&) const;
           if( actInfo.complexFormat == REAL_IMAG ) {
-            ptComplexOutput = &SimOutputText::ComplexAsAmplPhase;
-          } else {
             ptComplexOutput = &SimOutputText::ComplexAsRealImag;
+          } else {
+            ptComplexOutput = &SimOutputText::ComplexAsAmplPhase;
           }
           
           // Iterate over all 'entities' of particular result
@@ -293,9 +293,9 @@ namespace CoupledField {
           // in correct format
           std::string (SimOutputText::*ptComplexOutput)(const Complex&) const;
           if( actInfo.complexFormat == REAL_IMAG ) {
-            ptComplexOutput = &SimOutputText::ComplexAsAmplPhase;
-          } else {
             ptComplexOutput = &SimOutputText::ComplexAsRealImag;
+          } else {
+            ptComplexOutput = &SimOutputText::ComplexAsAmplPhase;
           }
           for( it.Begin(); !it.IsEnd(); it++ ) {
             std::ofstream& actOut = *ptFiles[it.GetPos()];
