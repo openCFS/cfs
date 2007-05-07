@@ -346,9 +346,6 @@ namespace CoupledField {
       RegionIdType actRegion = subdoms_[actSD];
       std::string actRegionName;
       actRegionName = ptgrid_->RegionIdToName( actRegion );
-      std::cerr << "setting integrators for region '" << actRegionName << "'\n";
-      std::cerr << "size of subdoms_ = " << subdoms_.GetSize() << std::endl;
-      
         
       ParamNode * actRegionNode = 
         myParam_->Get("regionList")->Get( "region", "name", actRegionName );

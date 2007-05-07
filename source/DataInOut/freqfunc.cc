@@ -9,6 +9,7 @@
 
 #include "freqfunc.hh"
 #include "WriteInfo.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -18,6 +19,13 @@ namespace CoupledField {
 
     maxnumFF_  = 0;
 
+    // query parameter file
+    std::string nameFreqFile;
+    param->Get("sequenceStep") 
+      ->Get("analysis")->Get("harmonic")->Get("freqDataFile")
+      ->Get("name", nameFreqFile );
+    fnc_names_.Push_back( nameFreqFile );
+    
   }
 
   void FreqFunc :: ReadFreqFuncs(UInt nodeNumber)

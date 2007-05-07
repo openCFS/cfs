@@ -27,8 +27,11 @@ namespace CoupledField
     //!
     virtual ~AcouFlowNoise();
 
+    //! Initialize PDE
+    void Init( UInt sequenceStep );
+    
     //! define the SoltionStep-Driver
-    virtual void DefineSolveStep();
+    void DefineSolveStep();
 
     //!
     void ComputeRHS(const Double atime);
