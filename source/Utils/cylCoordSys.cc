@@ -240,8 +240,8 @@ namespace CoupledField{
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
-    // Now calculate the related kardan angles for forward and 
-    // backward transformation
+    //Now calculate the related kardan angles for forward and 
+    //backward transformation
     CalcKardanAngles( rotationAng_, rotationMat_ );
     CalcKardanAngles( invRotationAng_, invRotationMat_ );
 

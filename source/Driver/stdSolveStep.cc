@@ -970,6 +970,7 @@ namespace CoupledField {
 
     if ( PDE_.IsComputeRHS4HarmSet() ) {
       // Evaluating RHS with nodal srcs for harmonic flownoise problems
+      std::cout<<"Calling ComputeRHS from StepHarmonicLin()"<<std::endl;
       PDE_.ComputeRHS(actFreq_);
     }
 

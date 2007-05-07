@@ -47,6 +47,15 @@ namespace CoupledField
     isHarmonic_=false;
     vortexFlag_=0;
     pressFormul_=false;
+    
+  }
+  
+  void AcouFlowNoise::Init( UInt sequenceStep ) 
+  {
+    ENTER_FCN( "AcouFlowNoise::Init()" );
+    
+    // First, call init of base class
+    SinglePDE::Init( sequenceStep );
 
     myParam_->Get( "pressFormul", pressFormul_, false );
     if( pressFormul_ ) {
@@ -112,7 +121,6 @@ namespace CoupledField
 
     StdVector<ParamNode*> cplRegionNodes = 
       param->Get( "MpCCI-flownoise" )->GetList( "coupledregion" );
-    std::cerr << "cplRegions = " << cplRegionNodes.Serialize() << std::endl;
     for( UInt i = 0; i < cplRegionNodes.GetSize(); i++ ) {
       coupledRegionNames.Push_back( cplRegionNodes[i]->Get("name")->AsString() );
     }
@@ -133,8 +141,6 @@ namespace CoupledField
           {
             if (coupledRegionNames[j] == regionNames[i])
               {
-                std::cout<<"\ncoupledRegionNames[j]: "<<coupledRegionNames[j]<<std::endl;
-                std::cout<<"\nregionNames[i]: "<<regionNames[i]<<std::endl;
                 ptgrid_->GetVolElems(elemssd,regionIds[i]); //couplSubDomId_[j]);
 		
                 if (dim_ == 3)
@@ -149,7 +155,6 @@ namespace CoupledField
                     ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
                     //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
                     ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_allNodes_);
-                    std::cout<<"\nmapSD_allNodes_.GetSize(): "<<mapSD_allNodes_.GetSize()<<std::endl;
                   }
 		
                 Find=true;
@@ -168,10 +173,11 @@ namespace CoupledField
     ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomId_);
 
 #else
-    
-    ParamNode * flowDataNode = myParam_->Get( "flowData" );
+
+    ParamNode * flowDataNode = myParam_->Get( "flowData", false );
     if( flowDataNode ) 
-      vortexSrc_ = flowDataNode->Get("type")->AsString() == "vortexSrc";
+      vortexSrc_ = myParam_->Has("flowData", "type", "vortexSrc" );
+
     StdVector<RegionIdType> regionIds;
     if( vortexSrc_  ) {
       StdVector<ParamNode*> regionNodes = 
@@ -192,7 +198,10 @@ namespace CoupledField
     }
     else 
       {
-        nodalSrc_ = flowDataNode->Get("type")->AsString() == "nodalSrc";
+        if( flowDataNode ) 
+          nodalSrc_ = myParam_->Has("flowData", "type", "nodalSrc" );
+
+        //nodalSrc_ = flowDataNode->Get("type")->AsString() == "nodalSrc";
         if( nodalSrc_ ) {
           // Now verify that the type of analysis is HARMONIC
           // Determine type of analysis
@@ -553,7 +562,8 @@ namespace CoupledField
             //Getting freq. file name without node number extension from xml file
             std::string nameFreqFile;
             param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-              ->Get("analysis")->Get("harmonic")->Get("freqDataFile", nameFreqFile );
+              ->Get("analysis")->Get("harmonic")->Get("freqDataFile")
+              ->Get("name", nameFreqFile );
             for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
               if (dim_==3)
                 node = mapSD_onlyLinNodes_[idx];
