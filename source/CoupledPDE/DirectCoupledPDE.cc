@@ -264,6 +264,13 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->solveStep_ = solveStep_;
     }
+    // Initialize all Coupling Objects 
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->SetAlgSys( algsys_ );
+      couplings_[i]->SetAssemble( assemble_ );
+      couplings_[i]->Init( sequenceStep_ );
+    }
+
   }
 
 
@@ -394,11 +401,8 @@ namespace CoupledField {
       IncorporateReordering();
     }
 
-    // Initialize all Coupling Objects and setup their matrix graph
+    // Setup matrix graph of coupling objects
     for (UInt i=0; i<couplings_.GetSize(); i++) {
-      couplings_[i]->SetAlgSys( algsys_ );
-      couplings_[i]->SetAssemble( assemble_ );
-      couplings_[i]->Init( sequenceStep_ );
       PdeIdType id1 = couplings_[i]->GetPdeId1();     
       PdeIdType id2 = couplings_[i]->GetPdeId2();
 
