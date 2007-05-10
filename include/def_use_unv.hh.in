@@ -1,3 +1,5 @@
 // Define used to check if UNV output is used
 
 #cmakedefine USE_UNV
+
+#define NO_CAPAPOST
