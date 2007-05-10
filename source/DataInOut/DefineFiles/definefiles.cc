@@ -45,6 +45,7 @@
 #endif
 
 #ifdef USE_UNV
+#include "DataInOut/SimInOut/Unverg/simInputUnv.hh"
 #include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
 #endif
 
@@ -196,6 +197,15 @@ namespace CoupledField
 #else
       EXCEPTION( "No support for GMV input file format." );
 #endif // USE_GMV_INPUT
+    }
+    else if ( informat == "unv" ) {
+#ifdef USE_UNV
+      if(meshFile == "")
+          meshFile = simName + ".unv";
+      simInput_ = new SimInputUnv(meshFile, inputOptionNode);
+#else
+      EXCEPTION( "No support for UNV input file format." );
+#endif // USE_UNV_INPUT
     }
     else {
       EXCEPTION( "Wrong format for input file. Please, check your data!" );

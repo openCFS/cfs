@@ -101,7 +101,15 @@ namespace CoupledField {
     //! \param elemNames (output) vector with names of named elements
     virtual void GetElemNames( StdVector<std::string> & elemNames );
 
-
+    //! This method returns the root Group of the main HDF5 file.
+    H5::Group& GetMainRoot() 
+    {
+      return mainRoot_;
+    }
+    
+    void GetNumberedRegionName(std::string regionName,
+                               std::string& numberedRegName);
+    
   protected:
     
     //! Transform type of elem in pointer to base class BaseFE
@@ -142,6 +150,7 @@ namespace CoupledField {
     std::vector< std::string > regionNames_;
     std::vector< std::string > nodeNames_;
     std::vector< std::string > elemNames_;
+    std::vector< std::string > readRegions_;
     bool statsRead_;
     bool genRegionNodes_;
     UInt numRegions_;
@@ -167,6 +176,26 @@ namespace CoupledField {
     std::vector<Integer> fg_ElemTypes;
     std::vector<double> fg_XNodeLocs, fg_YNodeLocs, fg_ZNodeLocs;
     std::vector<Integer> fg_NodesInElem;
+
+    typedef std::set<UInt,
+                     std::less<UInt>,
+                     std::allocator<UInt> > EntitySet;
+
+    //! Set to store all nodes in readRegions_
+    EntitySet readNodeSet_;
+
+    //! Set to store all elements in readRegions_
+    EntitySet readElemSet_;
+
+    //! readNodeMap_ maps the node numbers from the file
+    //! to actual node numbers in the grid.
+    std::map<UInt, UInt> readNodeMap_;
+
+    //! readElemMap_ maps the elem numbers from the file
+    //! to actual element numbers in the grid.
+    //! Needed for named elements.
+    std::map<UInt, UInt> readElemMap_;
+    
   };
 
 }

@@ -4,6 +4,13 @@
 # Make sure the linker can find the CFSMESHIO library once it is built.
 #LINK_DIRECTORIES()
 
-SET(SIMOUTUNV_SRCS simOutUnv.cc)
+SET(SIMOUTUNV_SRCS
+  simOutUnv.cc
+  unv.cc
+  unv_dat.cc
+  unv_if.cc
+  unv_reader.cc
+  simInputUnv.cc
+)
 
 ADD_LIBRARY(simoutunv STATIC ${SIMOUTUNV_SRCS})

@@ -2,55 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_SIMINPUT_2006
-#define FILE_SIMINPUT_2006
+#ifndef FILE_SIMINPUTUNV_2006
+#define FILE_SIMINPUTUNV_2006
 
-#include <string>
-#include <vector>
+#include <DataInOut/Logging/cfslog.hh>
+#include <DataInOut/simInput.hh>
 
-#include "General/environment.hh"
-#include "Utils/tools.hh"
-#include "Domain/grid.hh"
-#include "General/exception.hh"
 
 namespace CoupledField
 {
 
-  //! Forward class declaration
-  class ParamNode;
+  class MeshInterface;
 
-  //! Abstract base class for hanling exceptions and errors
-  class ErrorHandler {
+  // declare logging stream
+  DECLARE_LOG(simInputUNV)
 
-  public:
-    //! Constructor
-    ErrorHandler() {};
-
-    //! Destructor
-    virtual ~ErrorHandler() {};
-
-    //! Error (non-recoverable)
-    virtual void Error( const Exception &exc ) = 0;
-
-    //! Warning (recoverable)
-    virtual void Warning( const Exception &exc ) = 0;
-  };
-
-  extern std::auto_ptr<ErrorHandler> errHandler;  
-
-  //! Abstract class for reading in mesh data
-
-  //! This class defines an abstract interface for accessing 
-  //! files containing geometric mesh information. 
-  //!
-  //! \note All mesh and geometric entities are counted one-based,
-  //! whereas the acces to the C++ built in datatypes is zero-based!
-  
-  class SimInput
+  /**
+   **/
+  class SimInputUnv : public SimInput
   {
-
   public:
-
     // ========================================================================
     // CONSTRUCTION AND INTIIALIZATION
     // ========================================================================
@@ -58,19 +29,20 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-      SimInput(std::string fileName, ParamNode * inputNode ) :
-          fileName_(fileName),
-          myParam_(inputNode)
+      SimInputUnv(std::string fileName, ParamNode * inputNode ) :
+          SimInput(fileName, inputNode)
       {};
 
     //! Destructor
-    virtual ~SimInput() {};
+    virtual ~SimInputUnv() {};
 
     //@}
 
-    virtual void InitModule(Grid *mi) = 0;
+    virtual void InitModule(Grid *mi);
       
-    virtual void ReadMesh() = 0;
+    virtual void ReadMesh();
+
+    virtual bool ReadData();
 
     // ========================================================================
     // GENERAL MESH INFORMATION
@@ -78,22 +50,22 @@ namespace CoupledField
     //@{ \name General Mesh Information
 
     //! Get dimension of the mesh
-    virtual UInt GetDim() = 0;
+    virtual UInt GetDim();
 
     //! Get total number of nodes in mesh
-    virtual UInt GetNumNodes() = 0;
+    virtual UInt GetNumNodes();
  
     //! Get total number of elements in mesh
-    virtual UInt GetNumElems( const int32_t dim = -1 ) = 0;
+    virtual UInt GetNumElems( const Integer dim = -1 );
 
     //! Get total number of regions
-    virtual UInt GetNumRegions() = 0;
+    virtual UInt GetNumRegions();
 
     //! Get total number of named nodes
-    virtual UInt GetNumNamedNodes() = 0;
+    virtual UInt GetNumNamedNodes();
 
     //! Get total number of named elements
-    virtual UInt GetNumNamedElems() = 0;
+    virtual UInt GetNumNamedElems();
 
     //@}
   
@@ -110,7 +82,7 @@ namespace CoupledField
     //! \note Since the RegionIdType is guaranteed to be defined by
     //! a number type (UInt, uint32), the regionId of an element can
     //! be directly used as index to the regionNames-vector
-    virtual void GetAllRegionNames( std::vector<std::string> & regionNames ) = 0;
+    virtual void GetAllRegionNames( std::vector<std::string> & regionNames );
 
     //! Get vector with region names of given dimension
 
@@ -120,47 +92,27 @@ namespace CoupledField
     //! \param regionNames (output) vector containing names of regions
     //! \param dim (input) dimension of the region (1,2, or 3)
     virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                      const UInt dim ) = 0;
+                                      const UInt dim );
 
     //! Get vector with all names of named nodes
 
     //! Returns a vector which contains all names of named nodes.
     //! \param nodeNames (output) vector with names of named nodes
-    virtual void GetNodeNames( StdVector<std::string> & nodeNames ) = 0;
+    virtual void GetNodeNames( StdVector<std::string> & nodeNames );
   
     //! Get vector with all names of named elements
 
     //! Returns a vector which contains all names of named elements.
     //! \param elemNames (output) vector with names of named elements
-    virtual void GetElemNames( StdVector<std::string> & elemNames ) = 0;
+    virtual void GetElemNames( StdVector<std::string> & elemNames );
 
     //@}
 
-  protected:
+  private:
+    FEType UnvType2ElemType( const uint32_t elemType );
 
-    //! Name of input file
-    std::string fileName_;
+  }; 
 
-    std::string baseDir_;
-    std::string baseName_;
-    Grid *mi_;
+} 
 
-    //! Parameter node for current output class
-    ParamNode * myParam_;
-
-    UInt dim_;
-    std::vector<UInt> numElemsOfDim_;
-    std::map<UInt, StdVector<std::string> > regionNamesOfDim_;
-    StdVector<std::string> namedElems_;
-    StdVector<std::string> namedNodes_;
-    
-  };
-
-}
-
-#endif // FILE_FILETYPE
-
-/// Local Variables:
-/// mode: C++
-/// c-basic-offset: 2
-/// End:
+#endif 
