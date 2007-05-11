@@ -49,6 +49,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
 
   OPTION(DEBUG "Build debug version of the code." ON)
   OPTION(PROFILING "Turn on profiling (DEBUG/RELEASE)." OFF)
+  OPTION(CONVERTER "Build CFS++ converter tool (cfstool)." OFF)
 
   # Set a sane default value for the CFS++ schema path
   SET(XMLSCHEMA "${CFS_SOURCE_DIR}/XML" CACHE STRING
@@ -415,6 +416,10 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   SUBDIRS(source/Utils)
   SUBDIRS(source/Utils/mathParser)
   SUBDIRS(source/main)
+
+  IF(CONVERTER)
+    SUBDIRS(source/cfstool)
+  ENDIF(CONVERTER)
 
   #-----------------------------------------------------------------------------
   # Build the actual headers with defines from templates.
