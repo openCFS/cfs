@@ -328,6 +328,16 @@ namespace OLAS {
     // Setting pivoting strategy for indefinit problems
     iparm_[21] = myParams_->GetIntValue( "PARDISO_pivoting" );
 
+    // In case we have no positive definite system (especially piezo)
+    // we perform additional scaling to enhance the condition for very
+    // small off-diagonal entries (iparm_[11]). In addition we enable
+    // the method of 'symmetric weighted matchings' (iparam_[13]).
+    // For further information, refer to the pardiso user manual.
+    if( !defPard ) {
+      iparm_[11] = 1;
+      iparm_[13] = 1;
+    }
+
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)
     maxfct = 1;
