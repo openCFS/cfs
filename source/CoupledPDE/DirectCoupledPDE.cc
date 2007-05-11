@@ -668,9 +668,9 @@ namespace CoupledField {
       pdeId    = singlePDEs_[i]->GetPDEId();
       eqn      = singlePDEs_[i]->GetEqnMap();
       newOrder = algsys_->GetReordering( pdeId );
-      if( newOrder == NULL ) {
-        std::cerr << "performing no reordering!";
-      }
+//       if( newOrder == NULL ) {
+//         std::cerr << "performing no reordering!";
+//       }
       
       eqn->ReorderMapping( &newOrder );
     }
