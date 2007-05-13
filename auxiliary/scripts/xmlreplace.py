@@ -5,8 +5,8 @@
 # This program reads in a xml-file, searches for an attribute/element (specified by
 # a xpath-expression), replaces its value and saves the file.
 #
-# author: Andreas Hauck
-# last modified: $date$
+# author: $Author$
+# last modified: $Date$
 
 import libxml2
 import sys
