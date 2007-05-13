@@ -13,11 +13,11 @@
 
 class unv {
   friend class dataset;
-  enum {
+  enum UnvFlagType {
     UNVEOF=-1,
     UNVFalse=0,
     UNVTrue=1
-  };
+  } ;
   std::ifstream* in_stream;
   std::ofstream* out_stream;
   std::streampos start;
@@ -59,7 +59,7 @@ protected:
   int set_end(int* is_end) const { return u->is_set_end(is_end); }
 public:
   dataset() { u=NULL, set_num=0; }
-  enum {
+  enum SetFlagType {
     SETEOF=-1,
     SETEmpty=0,
     SETTrue=1,
