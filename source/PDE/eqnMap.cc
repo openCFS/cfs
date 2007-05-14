@@ -30,6 +30,7 @@ namespace CoupledField {
     numEqns_ = 0;
     numRealEqns_ = 0;
     numIdBcs_ = 0;
+    numCs_ = 0;
     
     numLocNodes_ = 0;
     numLocElems_ = 0;
@@ -242,6 +243,14 @@ namespace CoupledField {
     
     CalcElemConstEquations( 2 );
 
+    // Calc number of 'real equations'
+    numRealEqns_ = numEqns_ - numIdBcs_ - numCs_;
+    LOG_DBG(eqnMap) << "#equations: " << numEqns_;
+    LOG_DBG(eqnMap) << "#dirichletBcs: " << numIdBcs_;
+    LOG_DBG(eqnMap) << "#constraints: " << numCs_;
+    LOG_DBG(eqnMap) << "#realEquations: " << numRealEqns_;
+
+    
     // Now class is finalized
     isFinalized_ = true;
 
@@ -1242,8 +1251,8 @@ namespace CoupledField {
 // 		Warning( __FILE__, __LINE__ );
 	      }
 	      else {
-		actMap[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1] = 0;
-		countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+                actMap[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1] = 0;
+                countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
 	      }
 	    }
 	  }
@@ -1277,18 +1286,22 @@ namespace CoupledField {
 	      }
 	      else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
 		        [actDof-1] != 0 ) {
-		(*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-		           << "node #" << nodes[iNode]
-		           << "\nappeared already at least once in the list of "
-		           << "boundary nodes for this Pde!\n Please check, if "
-		           << "this node is defined in more than one level of "
-		           << "boundary nodes!";
-		Warning( __FILE__, __LINE__ );
-                numIdBcs_++;
+	// 	(*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+// 		           << "node #" << nodes[iNode]
+// 		           << "\nappeared already at least once in the list of "
+// 		           << "boundary nodes for this Pde!\n Please check, if "
+// 		           << "this node is defined in more than one level of "
+// 		           << "boundary nodes!";
+// 		Warning( __FILE__, __LINE__ );
 	      }
 	      else {
-		actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = 0;
-		countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+                // Only set equation number to zero, if we sort equations
+
+                if( sortEqns_ ) {
+                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = 0;
+                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+                }
 		// In any case we have to increment the number of idBC-conditions
 		numIdBcs_++;
 	      }
@@ -1389,6 +1402,7 @@ namespace CoupledField {
 	    for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
 	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
 		-actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
+              numCs_++;
 	    }
 	  }
 	}
@@ -1419,8 +1433,6 @@ namespace CoupledField {
 	  }
 	}
 	
-	//numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
- 
       } else {
 	EXCEPTION( "Phase '" << phase << "' does not exist!" );
       }
@@ -1679,11 +1691,7 @@ namespace CoupledField {
 	
       } else if( phase == 2 ) {
 	
-	// ------
 	
-	
-	
-	//numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
 	
       } else {
 	EXCEPTION( "Phase '" << phase << "' does not exist!" );

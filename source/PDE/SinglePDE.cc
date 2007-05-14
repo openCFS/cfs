@@ -1599,8 +1599,9 @@ namespace CoupledField {
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     algsys_->SetBlockSize( pdeId_, 1 );
-
-    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() + numCouplingBcs_;
+    
+    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() +
+      eqnMap_->GetNumConstraintSlaveEqns() + numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled

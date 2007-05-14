@@ -118,6 +118,13 @@ namespace CoupledField {
     inline UInt GetNumInHomDirichletEqns() const {
       return numIdBcs_;
     }
+    //! Return number of constraint slave equations.
+
+    //! This method returns the number of equations, which are fixed
+    //! by a slave constraint condition.
+    inline UInt GetNumConstraintSlaveEqns() const {
+      return numCs_;
+    }
                               
     //! Return id of associated PDE
     PdeIdType GetPdeId() const {
@@ -301,7 +308,10 @@ namespace CoupledField {
 
     //! Number equations with inhomogeneous Dirichelt boundary condition
     UInt numIdBcs_;
-    
+
+    //! Number equations with slave constraint condition
+    UInt numCs_;
+        
     //! Store all results (before mapping )
     ResultEntityMap resEntMap_;
 
@@ -335,9 +345,6 @@ namespace CoupledField {
     //! Map of results and their element equations (local element -> eqn)
     VecEqnMapType elemEqns_;
 
-    //! Map of results and their free equations
-    EqnMapType freeEqns_;
-    
     // ======================================================================
     // GLOBAL/LOCAL MAPPING
     // ======================================================================
