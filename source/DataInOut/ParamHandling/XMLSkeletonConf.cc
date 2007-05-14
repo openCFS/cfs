@@ -281,13 +281,13 @@ namespace CoupledField {
       simInput_->GetNodeNames(nodeNames);
       WL( "" );
       WL( Quote("List of named nodes" ) );
-      WL( Indent() << "<namedNodeList>" );
+      WL( Indent() << "<nodeList>" );
       level_++;
       for (UInt i=0; i<nodeNames.GetSize(); i++) {
         WL( Indent() << "<nodes name=\"" << nodeNames[i] 
             << "\"/>" );
       }
-      WL( Indent(-1) << "</namedNodeList>" );
+      WL( Indent(-1) << "</nodeList>" );
     }
 
     // === print named elements ===
@@ -295,13 +295,13 @@ namespace CoupledField {
       simInput_->GetElemNames(elemNames);
       WL( "" );
       WL( Quote("List of named elements" ) );
-      WL( Indent() << "<namedElemList>" );
+      WL( Indent() << "<elemList>" );
       level_++;
       for (UInt i=0; i<elemNames.GetSize(); i++) {
         WL( Indent() << "<elems name=\"" << elemNames[i] 
             << "\"/>" );
       }
-      WL( Indent(-1) << "</namedElemsList>" );
+      WL( Indent(-1) << "</elemList>" );
     }
   }
 

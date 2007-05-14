@@ -3,10 +3,16 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
+#include "General/environment.hh"
 
-int main(int argc, char** argv)
-{
+using namespace CoupledField;
+
+int main(int argc, char** argv) {
   std::cout << "CFS TOOL 1.0" << std::endl;
   
+  // create mesh reader
+  
+  
+
   return 0;
 }
