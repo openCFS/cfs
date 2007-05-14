@@ -1115,11 +1115,11 @@ namespace OLAS {
   Integer StandardSystem::GetRHSVal( Double* &ptRhs,
                                      const PdeIdType identifierPDE ) {
     ENTER_FCN( "StandardSystem::GetRHSVal" );
-    if ( numDirichletValues_ > 0 &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-      (*error) << "GetRHSVal does not work for idbcHandling=elimination";
-      Error( __FILE__, __LINE__ );
-    }
+   //  if ( numDirichletValues_ > 0 &&
+//          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+//       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
+//       Error( __FILE__, __LINE__ );
+//     }
     assemble_->GetRHSVal( rhs_, ptRhs, identifierPDE );
     return size_ * blockSize_;
   }
@@ -1131,11 +1131,11 @@ namespace OLAS {
   Integer StandardSystem::GetRHSVal( Complex* &ptRhs,
                                      const PdeIdType identifierPDE ) {
     ENTER_FCN("StandardSystem::GetRHSVal");
-    if ( numDirichletValues_ > 0 &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-      (*error) << "GetRHSVal does not work for idbcHandling=elimination";
-      Error( __FILE__, __LINE__ );
-    }
+//     if ( numDirichletValues_ > 0 &&
+//          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+//       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
+//       Error( __FILE__, __LINE__ );
+//     }
     assemble_->GetRHSVal( rhs_, ptRhs, identifierPDE );
     return size_ * blockSize_;
   }
