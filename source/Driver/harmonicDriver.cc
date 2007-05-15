@@ -42,7 +42,6 @@ namespace CoupledField {
     stopFreq_ = 0.0;
     numFreq_ = 0;
     actFreqStep_ = 0;
-    matDataFreq_ = 0;
   }
 
   void HarmonicDriver::Init() {
@@ -63,10 +62,6 @@ namespace CoupledField {
     myNode->Get( "sampling", sampling, false );
     String2Enum( sampling, samplingType_ );
 
-    // read matDataFreq (optional)
-    matDataFreq_ = startFreq_;
-    myNode->Get( "matDataFreq", matDataFreq_, false );
-    
     // Be verbose
     Info->PrintF( "", "\n HarmonicDriver\n" ); 
     Info->PrintF( "", " -> Sampling strategy ....... '%s'\n",

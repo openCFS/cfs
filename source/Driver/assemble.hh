@@ -95,9 +95,6 @@ namespace CoupledField {
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
 
-    //! Modify damping factor in harmonic case
-    void AdjustDamping( BiLinFormContext& context );
-
     //! Insert matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
@@ -145,13 +142,6 @@ namespace CoupledField {
     
     //! List of right hand side nodal values
     LoadList loads_;
-    
-    // ======================================================
-    //  DAMPING SPECIFIC DATA
-    // ======================================================
-
-    //! Current (adjusted) Rayleigh damping factor
-    Double raylDampFactor_;
     
     // ======================================================
     //  MISCELLANEOUS DATA

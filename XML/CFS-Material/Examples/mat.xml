@@ -41,8 +41,7 @@
           <alpha>            1E+04 </alpha>
           <beta>             1E-08 </beta>
 <!--          <lossTangensDelta> 1E-08 </lossTangensDelta> -->
-          <freq>             1E6   </freq>
-          <deltaFreq>        10    </deltaFreq>
+          <measuredFreq>         1E6   </measuredFreq>
         </rayleigh>
 <!--        <fractional>
           <alg>             blank </alg>

@@ -41,9 +41,6 @@ namespace CoupledField
     //! Return stop frequency
     Double GetStopFreq() { return stopFreq_; }
 
-    //! Return frequency, where material data is to be chosen
-    Double GetMatDataFreq() { return matDataFreq_;}
-
     //! Initialization method
     void Init();
     
@@ -75,9 +72,6 @@ namespace CoupledField
 
     //! Current frequency step
     UInt actFreqStep_;
-
-    //! Frequency at which the material is specified
-    Double matDataFreq_;
 
     //! A attribute storing the type of algorithm used for frequency sampling
     FreqSamplingType samplingType_;

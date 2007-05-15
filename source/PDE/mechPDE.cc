@@ -136,6 +136,8 @@ namespace CoupledField {
     // get specific damping nodes
     StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
     std::map<std::string, DampingType> idDampType;
+    std::map<std::string, Double>      idDampFreq;
+    std::map<std::string, Double>      idDampRatioDeltaF;
     for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
       
       std::string dampString = dampNodes[i]->GetName();
@@ -178,6 +180,19 @@ namespace CoupledField {
           fracMemory_ = fracMem;
       }
 
+      else if( actType == RAYLEIGH ) {
+        Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
+
+        if( dampNodes[i]->Has("freq") ) {
+          dampNodes[i]->Get( "freq", rayleighDampingFreq);
+          idDampFreq[actId] = rayleighDampingFreq;
+        }
+        if( dampNodes[i]->Has("RatioDeltaF") ) {
+          dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
+          idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
+        }
+      }
+
       // store damping type string
       idDampType[actId] = actType;
       
@@ -209,6 +224,22 @@ namespace CoupledField {
       }
       
       dampingList_[actRegionId] = idDampType[actDampingId];
+      if ( dampingList_[actRegionId] == RAYLEIGH ){
+        Double dampFreq, ratioDeltaF;
+        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,REAL);
+        ratioDeltaF = 0.01;
+
+        // check, if deltaF and dampingFreq can be found in map
+        if( idDampFreq.find(actDampingId) != idDampFreq.end() ){
+          dampFreq = idDampFreq[actDampingId];
+        }
+
+        if( idDampRatioDeltaF.find(actDampingId) != idDampRatioDeltaF.end() ){
+          ratioDeltaF = idDampRatioDeltaF[actDampingId];
+        }
+
+        materials_[actRegionId]->ComputeRayleighDamping(dampFreq,ratioDeltaF);
+      }
       
       // Log to info file
       std::string dampString;
@@ -634,9 +665,17 @@ namespace CoupledField {
         
           //check for damping
           if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
-            Double beta;
+            Double beta, measFreq;
+            std::string fac;
             actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-            actIntDescrStiff->SetSecDestMat(DAMPING, beta );
+            actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+            if( isComplex_ ) {
+              // assemble string describing adjusted Rayleigh damping
+              fac = GenStr( beta * measFreq) + "/ f";
+            } else {
+              fac = GenStr( beta );
+            }
+            actIntDescrStiff->SetSecDestMat(DAMPING, fac );
           }
           
           assemble_->AddBiLinearForm( actIntDescrStiff );
@@ -817,9 +856,17 @@ namespace CoupledField {
         
         // Check for damping (mass part)
         if ( dampingList_[actRegion] == RAYLEIGH ) {
-          Double alpha;
+          Double alpha, measFreq;
+          std::string fac;
           actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-          actIntDescr->SetSecDestMat( DAMPING, alpha );
+          actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+          if( isComplex_ ) {
+            // assemble string describing adjusted Rayleigh damping
+            fac = GenStr<Double>( alpha / measFreq ) + "* f";
+          } else {
+            fac = GenStr( alpha );
+          }
+          actIntDescr->SetSecDestMat( DAMPING, fac );
         }
       
         assemble_->AddBiLinearForm(actIntDescr);
@@ -895,9 +942,17 @@ namespace CoupledField {
       
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
-        Double beta;
+        Double beta, measFreq;
+        std::string fac;
         actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-        actIntDescrStiff->SetSecDestMat( DAMPING, beta );
+        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+        if( isComplex_ ) {
+          // assemble string describing adjusted Rayleigh damping
+          fac = GenStr( beta * measFreq) + "/ f";
+        } else {
+          fac = GenStr( beta );
+        }
+        actIntDescrStiff->SetSecDestMat(DAMPING, fac );
       }
 
       actIntDescrStiff->SetPtPdes(this, this);
@@ -914,11 +969,19 @@ namespace CoupledField {
             
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
-        Double alpha;
+        Double alpha, measFreq;
+        std::string fac;
         actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-        actIntDescrMass->SetSecDestMat( DAMPING, alpha );
+        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+        if( isComplex_ ) {
+          // assemble string describing adjusted Rayleigh damping
+          fac = GenStr( alpha / measFreq ) + "* f";
+        } else {
+          fac = GenStr( alpha );
+        }
+        actIntDescrMass->SetSecDestMat( DAMPING, fac );
       }
-
+      
       actIntDescrMass->SetPtPdes(this, this);
       actIntDescrMass->SetResults( results_[0], results_[0],
                                    actSDList, actSDList );
@@ -1800,8 +1863,6 @@ namespace CoupledField {
           elemDispDof[i] = elemDisp[actEntry];
           actEntry += dim_;
         }
-        std::cerr << "disp of elem " << elemIt.GetSurfElem()->elemNum
-                  << " is " << elemDispDof.Serialize() << std::endl;
         actVolume += ComputeVolElem<TYPE>( ptSurfEl, 
                                            ptSurfCoord, elemDispDof );
         
@@ -1809,8 +1870,6 @@ namespace CoupledField {
       actVal[regionIt.GetPos()] = actVolume;
     }
     
-    std::cerr << "Deformed value = " << actVal.Serialize() << std::endl;
-
   }
 
   template<class TYPE>

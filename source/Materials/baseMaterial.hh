@@ -239,6 +239,8 @@ namespace CoupledField {
     //! computes the scalar hystereis value
     Double GetScalarHystVal( UInt nrElem );
 
+    //! Compute and set damping parameters alpha and beta 
+    void ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF);
 
   protected:
 
