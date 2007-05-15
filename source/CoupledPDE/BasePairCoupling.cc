@@ -8,7 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
-#include "DataInOut/PlainMaterialHandler.hh"
+#include "DataInOut/MaterialHandler.hh"
 #include "Materials/piezoMaterial.hh"
 #include "Driver/assemble.hh"
 #include "DataInOut/resultHandler.hh"
