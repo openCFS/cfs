@@ -270,23 +270,22 @@ namespace CoupledField {
     }
 
     // =====================================================================
+    // read in material data
+    // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading material information";
+    ReadMaterialData();
+
+    // =====================================================================
     // read in damping information
     // =====================================================================
     LOG_TRACE(pde) << pdename_ << ": Reading damping information";
     ReadDampingInformation( );
-      
 
     // =====================================================================
     // read in NonLinearities
     // =====================================================================
     LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
-
-    // =====================================================================
-    // read in material data
-    // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Reading material information";
-    ReadMaterialData();
 
     // =====================================================================
     // initialize EQN-object and Storeresults class

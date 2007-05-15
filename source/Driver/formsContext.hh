@@ -64,7 +64,7 @@ namespace CoupledField
     
     //! Defines a secondary destination for the element matrix
     void SetSecDestMat( FEMatrixType aSecMat, 
-                          Double aSecMatFac ) {
+                        std::string aSecMatFac ) {
       secDestMat_ = aSecMat;
       secMatFac_ = aSecMatFac; }
 
@@ -80,7 +80,7 @@ namespace CoupledField
     FEMatrixType GetSecDestMat() const { return secDestMat_; } 
 
     //! Returns the factor the secondary matrix gets multiplied with
-    Double GetSecMatFac() const {return secMatFac_;} 
+    std::string GetSecMatFac() const {return secMatFac_;} 
 
     //! Returns the integrator
     BaseForm * GetIntegrator() {return integrator_; };
@@ -158,7 +158,7 @@ namespace CoupledField
     FEMatrixType secDestMat_;
 
     //! Secondary matrix factor
-    Double secMatFac_;
+    std::string secMatFac_;
 
     //! Flag indicating assembling of counterpart
     bool setCounterPart_;

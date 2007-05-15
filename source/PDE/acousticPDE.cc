@@ -112,6 +112,9 @@ namespace CoupledField {
     // get specific damping nodes
     StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
     std::map<std::string, DampingType> idDampType;
+    std::map<std::string, Double>      idDampFreq;
+    std::map<std::string, Double>      idDampRatioDeltaF;
+
     for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
 
       std::string dampString = dampNodes[i]->GetName();
@@ -158,6 +161,20 @@ namespace CoupledField {
         if ( fracMem > fracMemory_ )
           fracMemory_ = fracMem;
       }
+
+      else if( actType == RAYLEIGH ) {
+        Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
+
+        if( dampNodes[i]->Has("freq") ) {
+          dampNodes[i]->Get( "freq", rayleighDampingFreq);
+          idDampFreq[actId] = rayleighDampingFreq;
+        }
+        if( dampNodes[i]->Has("RatioDeltaF") ) {
+          dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
+          idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
+        }
+      }
+
       // store damping type string
       idDampType[actId] = actType;
       
@@ -193,7 +210,23 @@ namespace CoupledField {
       }
       
       dampingList_[actRegionId] = idDampType[actDampingId];
-      
+      if ( dampingList_[actRegionId] == RAYLEIGH ){
+        Double dampFreq, ratioDeltaF;
+        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,REAL);
+        ratioDeltaF = 0.01;
+
+        // check, if deltaF and dampingFreq can be found in map
+        if( idDampFreq.find(actDampingId) != idDampFreq.end() ){
+          dampFreq = idDampFreq[actDampingId];
+        }
+
+        if( idDampRatioDeltaF.find(actDampingId) != idDampRatioDeltaF.end() ){
+          ratioDeltaF = idDampRatioDeltaF[actDampingId];
+        }
+
+        materials_[actRegionId]->ComputeRayleighDamping(dampFreq,ratioDeltaF);
+      }
+
       // Log to info file
       std::string dampString;
       Enum2String( dampingList_[actRegionId], dampString );
@@ -518,17 +551,30 @@ namespace CoupledField {
                              startRadius, stopRadius, dampLayerNode );
 
           //get the Rayleigh material parameters
-          Double alpha, beta;
+          Double alpha, beta, measFreq;
+          std::string fac;
           materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
           materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,REAL);
-    
+          materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+                        
           // stiffness part
-          stiffContext->SetSecDestMat( DAMPING, beta );
+          if( isComplex_ ) {
+            fac = GenStr( beta * measFreq) + "/ f";
+          } else {
+            fac = GenStr( beta );
+          }
+
+          stiffContext->SetSecDestMat( DAMPING, fac );
           stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
                                      dampFactorMax, startRadius, 
                                      stopRadius);	    
           // mass part
-          massContext->SetSecDestMat( DAMPING, alpha );
+          if( isComplex_ ) {
+            fac = GenStr( alpha / measFreq) + "* f";
+          } else {
+            fac = GenStr( alpha );
+          }
+          massContext->SetSecDestMat( DAMPING, fac );
           massContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
                                     dampFactorMax, startRadius, 
                                     stopRadius);
@@ -547,15 +593,27 @@ namespace CoupledField {
           if (dampingList_[actRegion] == RAYLEIGH) {
             // This works even after assemble_->AddIntegrator() is executed
             //   because of the pointers...
-            Double alpha, beta;
+            Double alpha, beta, measFreq;
+            std::string fac;
             materials_[actRegion]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
             materials_[actRegion]->GetScalar(beta,RAYLEIGH_BETA,REAL);
-    
+            materials_[actRegion]->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+
             // stiffness part
-            stiffContext->SetSecDestMat( DAMPING, beta );
+            if( isComplex_ ) {
+              fac = GenStr( beta * measFreq) + "/ f";
+            } else {
+              fac = GenStr( beta );
+            }
+            stiffContext->SetSecDestMat( DAMPING, fac );
 	    
             // mass part
-            massContext->SetSecDestMat( DAMPING, alpha );
+            if( isComplex_ ) {
+              fac = GenStr( alpha / measFreq) + "* f";
+            } else {
+              fac = GenStr( alpha );
+            }
+            massContext->SetSecDestMat( DAMPING, fac );
           }
 	  
 	  

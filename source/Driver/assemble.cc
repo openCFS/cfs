@@ -34,9 +34,6 @@ namespace CoupledField {
     matrixUpdated_ = false;
     maxTimeDerivOrder_ = maxTimeDerivOrder;
 
-    // init damping specific data
-    raylDampFactor_ = 1.0;
-    
     // Calculate matrix map from general matrix types to analysis
     // specific ones
     CreateMatrixMap();
@@ -228,6 +225,9 @@ namespace CoupledField {
       }
     }
     
+    // Fetch math  parser object
+    MathParser * parser = domain->GetMathParser();
+
     // iterate over all descriptors
     std::set<BiLinFormContext*>::iterator formsIt;
     for ( formsIt = biLinForms_.begin(); 
@@ -239,6 +239,11 @@ namespace CoupledField {
       // get matrix destinations
       FEMatrixType destMat = actContext.GetDestMat(); 
       FEMatrixType secDestMat = actContext.GetSecDestMat();
+
+      // get secondary matrix factor string and set it
+      // at the math parser
+      parser->SetExpr( mHandle_, actContext.GetSecMatFac() );
+      Double secMatFac = parser->Eval(mHandle_ );
       
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
@@ -250,7 +255,7 @@ namespace CoupledField {
       matrixUpdated_ = true;
 
       BaseForm * form = actContext.GetIntegrator();
-
+      
       try {
 
         // get entity iterators
@@ -259,9 +264,6 @@ namespace CoupledField {
         UInt size = actContext.GetFirstEntities()->GetSize();
         it1.Begin();
         it2.Begin();
-
-        // adjust damping factor 
-        AdjustDamping( actContext );
 
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
@@ -296,7 +298,7 @@ namespace CoupledField {
 
             if ( form->IsComplex() ) {
               // Rayleigh damping
-              elemMatrixC *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
+              elemMatrixC *= secMatFac * dampFactor;
               
               // Pass secondary matrix part to algebraic system
               InsertMatrix( secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
@@ -304,7 +306,7 @@ namespace CoupledField {
             }
             else {
               // Rayleigh damping
-              elemMatrix *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
+              elemMatrix *= secMatFac * dampFactor;
               
               // Pass secondary matrix part to algebraic system
               InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,
@@ -823,48 +825,48 @@ namespace CoupledField {
      
   }
 
-  void Assemble::AdjustDamping( BiLinFormContext& context ) {
-    ENTER_FCN( "Assemble::CheckDamping" );
+ //  void Assemble::AdjustDamping( BiLinFormContext& context ) {
+//     ENTER_FCN( "Assemble::CheckDamping" );
     
-    // Check, if damping matrix is present
-    if( matReassemble_.find( DAMPING) == matReassemble_.end() )
-      return;
+//     // Check, if damping matrix is present
+//     if( matReassemble_.find( DAMPING) == matReassemble_.end() )
+//       return;
 
-    if( analysisType_ == HARMONIC ) {
+//     if( analysisType_ == HARMONIC ) {
       
-      // obtain current frequency
-      MathParser * parser = domain->GetMathParser();
-      parser->SetExpr( mHandle_, "f" );
-      Double actFreq = parser->Eval( mHandle_ );
-      Double actOmega = actFreq * 2.0 * PI;
+//       // obtain current frequency
+//       MathParser * parser = domain->GetMathParser();
+//       parser->SetExpr( mHandle_, "f" );
+//       Double actFreq = parser->Eval( mHandle_ );
+//       Double actOmega = actFreq * 2.0 * PI;
       
-      // obtain matData-freq
-      // NOTE: This mechanism should be changed in a way, that the damping
-      // is part of the xml-material file, where tanDelta and the
-      // related frequecy are specified
+//       // obtain matData-freq
+//       // NOTE: This mechanism should be changed in a way, that the damping
+//       // is part of the xml-material file, where tanDelta and the
+//       // related frequecy are specified
       
-      HarmonicDriver * harmDriver = 
-        dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver() );
+//       HarmonicDriver * harmDriver = 
+//         dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver() );
 
-      Double matDataOmega = harmDriver->GetMatDataFreq() * 2.0 * PI;
+//       Double matDataOmega = harmDriver->GetMatDataFreq() * 2.0 * PI;
 
-      // get multiplicative pre factor depending on frequency
-      if ( matDataOmega > 0 && actOmega > 0 ) {
+//       // get multiplicative pre factor depending on frequency
+//       if ( matDataOmega > 0 && actOmega > 0 ) {
         
-        if ( context.GetDestMat() == STIFFNESS ) {
-          raylDampFactor_ = matDataOmega / actOmega;
-          Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
-                        raylDampFactor_ );
-        }
-        else if ( context.GetDestMat() == MASS ) {
-          raylDampFactor_ = actOmega / matDataOmega;
-          Info->PrintF( "", " dampTransform for MASS ........ %e\n",
-                        raylDampFactor_ );
-        }
-      }
+//         if ( context.GetDestMat() == STIFFNESS ) {
+//           raylDampFactor_ = matDataOmega / actOmega;
+//           Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
+//                         raylDampFactor_ );
+//         }
+//         else if ( context.GetDestMat() == MASS ) {
+//           raylDampFactor_ = actOmega / matDataOmega;
+//           Info->PrintF( "", " dampTransform for MASS ........ %e\n",
+//                         raylDampFactor_ );
+//         }
+//       }
       
-    }
-  }
+//     }
+//   }
 
   bool Assemble::IsFEMatSymmetric( FEMatrixType feType ) {
     ENTER_FCN( " Assemble::IsFEMatSymmetric" );

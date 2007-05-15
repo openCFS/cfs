@@ -23,7 +23,7 @@ namespace CoupledField {
     
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
-    secMatFac_ = 0.0;
+    secMatFac_ = "0.0";
     setCounterPart_ = false;
     entryType_ = REAL;
 

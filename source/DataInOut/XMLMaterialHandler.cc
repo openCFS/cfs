@@ -676,22 +676,12 @@ namespace CoupledField {
     }
 
     //read frequency of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","freq";
+    keyVec = "material","mechanical","mechanicalDamping","rayleigh","measuredFreq";
     attrVec= "name"    ,""          ,""                 ,"";
     valVec =  matName  ,""          ,""                 ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
-    }
-
-    //read delta frequency of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","deltaFreq";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, RAYLEIGH_DELTA_FREQ, REAL ); 
       // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 
@@ -849,23 +839,13 @@ namespace CoupledField {
       // std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
     }
 
-    //read frequency of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","freq";
+    //read measured frequency of Rayleigh damping
+    keyVec = "material","acoustic","acousticDamping","rayleigh","measuredFreq";
     attrVec= "name"    ,""          ,""                 ,"";
     valVec =  matName  ,""          ,""                 ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
-    }
-
-    //read delta frequency of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","deltaFreq";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, RAYLEIGH_DELTA_FREQ, REAL ); 
       // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 

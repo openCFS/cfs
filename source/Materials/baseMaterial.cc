@@ -589,4 +589,49 @@ namespace CoupledField
 
     return Yval;
   }
+
+
+  void BaseMaterial::ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF) {
+    ENTER_FCN( "BaseMaterial::ComputeRayleighDamping" );
+
+    if ( IsSet( RAYLEIGH_ALPHA ) 
+         && IsSet( RAYLEIGH_BETA ) 
+         && IsSet(RAYLEIGH_FREQUENCY) ) {
+      Double alpha, beta, freq;
+
+      GetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
+      GetScalar( beta, RAYLEIGH_BETA, REAL ); 
+      GetScalar( freq, RAYLEIGH_FREQUENCY, REAL ); 
+
+      if( abs(freq-dampFreq) > 0.001*freq ){
+        alpha*=(dampFreq/freq);
+        beta*=(freq/dampFreq);
+        SetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
+        SetScalar( beta, RAYLEIGH_BETA, REAL ); 
+      }
+    }
+    else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
+
+      Double alpha, beta, tanDelta, deltaFreq, omega1, omega2;
+
+      GetScalar( tanDelta, LOSS_TANGENS_DELTA, REAL ); 
+
+      deltaFreq=RatioDeltaF*dampFreq;
+
+      omega1= (dampFreq-deltaFreq)*2.0*PI;
+      omega2= (dampFreq+deltaFreq)*2.0*PI;
+
+      //Computation of alpha and beta according to Habil.Kaltenbacher p. 50 ff
+      // alpha + beta*omega_i*omega_i = omega_i*tanDelta_i
+      beta=2.0*tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
+      alpha=(2.0*omega1*tanDelta)-(beta*omega1*omega1);
+
+      SetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
+      SetScalar( beta, RAYLEIGH_BETA, REAL ); 
+    }
+    else
+      Error("Error in specification of Rayleigh damping!!!",__FILE__,__LINE__);
+
+    //Info->PrintF()
+  }
 }
