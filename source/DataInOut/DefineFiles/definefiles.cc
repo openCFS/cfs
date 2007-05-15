@@ -55,7 +55,6 @@
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 
-#include "DataInOut/PlainMaterialHandler.hh"
 #include "DataInOut/XMLMaterialHandler.hh"
 
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
@@ -329,7 +328,9 @@ namespace CoupledField
     }
     
     if ( format == "dat" ) {
-      ptMaterialHandler_ = new PlainMaterialHandler( fileName );
+      //ptMaterialHandler_ = new PlainMaterialHandler( fileName );
+      EXCEPTION("I am really sorry to tell you, but we have just "
+                << "abandoned the dat-format ... FOREVER!");
     } else if ( format == "xml" ) {
       ptMaterialHandler_ = new XMLMaterialHandler( fileName );
     } else {

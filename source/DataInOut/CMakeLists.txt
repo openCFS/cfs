@@ -1,7 +1,6 @@
 SET(DATAINOUT_SRCS 
   freqfunc.cc
   XMLMaterialHandler.cc
-  PlainMaterialHandler.cc
   WriteInfo.cc
   resultHandler.cc
   simOutput.cc
