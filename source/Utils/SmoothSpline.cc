@@ -16,7 +16,7 @@ namespace CoupledField
   {
 
     delta_ = 0.01;
-    mu_    = 1e-14;;
+    mu_    = 1e-8;;
     node_  = numMeas_-2;       // nummeas = number of measurements
     size_  = node_*2;          // size of the spline system
     ind_   = 200;
@@ -54,7 +54,6 @@ namespace CoupledField
     xStart_ = x_[0];
     xEnd_  = x_[node_+1];
     yEnd_ = y_[node_+1];
-
     theta_ = ( yEnd_ - y_[0] ) / ind_; // y-interval
 
     for ( i=0; i<=node_; i++ ) {
@@ -358,8 +357,7 @@ namespace CoupledField
     i = GetInterval(t);
 
     if (i == -1) {
-      std::string str = "In BH-approximation: can not find correct intervall";
-      EXCEPTION( str ); 
+      i = ind_;
     }
 
     j = 2*i;
@@ -400,8 +398,7 @@ namespace CoupledField
     i = GetInterval(t);
 
     if ( i == -1 ) {
-      std::string str = "In BH-approximation: can not find correct intervall";
-      EXCEPTION( str ); 
+      i = ind_; 
     }
 
     j  = 2*i;
