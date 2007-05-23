@@ -50,7 +50,7 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="refCoordSys" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
 
@@ -121,7 +121,7 @@
   <xsd:complexType name="DT_CoordSysBasic" abstract="true">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="id" type="xsd:token" use="required"/>
         </xsd:restriction>
       </xsd:complexContent>
   </xsd:complexType>
@@ -244,7 +244,7 @@
         maxOccurs="unbounded"/>
 
       <!-- Coordinate system list -->
-      <xsd:element name="coordSys" minOccurs="0" maxOccurs="unbounded">
+      <xsd:element name="coordSysList" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element ref="CoordSysBasic" minOccurs="1"
@@ -312,7 +312,7 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DirectiNodes">
     <xsd:sequence>
-      <xsd:element name="coordSys" minOccurs="1" maxOccurs="1">
+      <xsd:element name="coordSysId" minOccurs="1" maxOccurs="1">
         <xsd:complexType>
           <xsd:attribute name="name" type="xsd:token" use="required"/>
         </xsd:complexType>

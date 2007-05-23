@@ -1175,7 +1175,7 @@ namespace CoupledField {
         tempLoadVec.Push_back( actNode->Get("value")->AsString() );
         tempPhase.Push_back( actNode->Get("phase")->AsString() );
         tempDofs.Push_back( actNode->Get("dof")->AsString() );
-        tempRefCoord.Push_back( actNode->Get("refCoordSys")->AsString() );
+        tempRefCoord.Push_back( actNode->Get("coordSysId")->AsString() );
         tempType.Push_back( actNode->Get("type")->AsString() );
       }
 
@@ -2102,7 +2102,7 @@ namespace CoupledField {
     a.Last().RegisterParam( "name", ArgList::STRING );
     a.Last().RegisterParam( "value", ArgList::STRING );
     a.Last().RegisterParam( "dof", ArgList::STRING );
-    a.Last().RegisterParam( "refCoordSys", ArgList::STRING );
+    a.Last().RegisterParam( "coordSysId", ArgList::STRING );
     a.Last().RegisterParam( "type", ArgList::STRING );
     pt.Push_back( new FCPT ( this, &MechPDE::ReadRegionLoads ) );
     name.Push_back( "setRegionLoad" );
@@ -2155,7 +2155,7 @@ namespace CoupledField {
       Info->PrintF(pdeName, "The following regions have a region load:\n\n");
       out.clear();
       out << std::setw(15) << "name" << " | " 
-          << std::setw(15) << "refCoordSys" << " | "
+          << std::setw(15) << "coordSysId" << " | "
           << std::setw(11) << "volume" << " | "
           << std::setw(6) << "type" << " | "
           << std::setw(11) << "load" <<std::endl;

@@ -76,7 +76,7 @@ namespace CoupledField {
     // Get reference coordinate system
     if( myParam_ ) {
       std::string coordSysName;
-      myParam_->Get("refCoordSys", coordSysName);
+      myParam_->Get("coordSysId", coordSysName);
       coordSys_ = domain->GetCoordSystem( coordSysName );
     }
   }

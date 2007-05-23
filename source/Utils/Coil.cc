@@ -176,7 +176,7 @@ namespace CoupledField {
         coilNode->Get("flowDirection")->GetList("direction");
       
       std::string refCoordSysName = 
-        coilNode->Get("flowDirection")->Get("refCoordSys")->AsString();
+        coilNode->Get("flowDirection")->Get("coordSysId")->AsString();
       flowCoordSys_ = domain->GetCoordSystem( refCoordSysName );
 
       locFlowDir_.Resize( flowCoordSys_->GetDim());

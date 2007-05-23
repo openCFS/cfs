@@ -440,7 +440,7 @@
   <xsd:complexType name="DT_MechRegionLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_MechLoad">
-        <xsd:attribute name="refCoordSys" type="xsd:token"
+        <xsd:attribute name="coordSysId" type="xsd:token"
           use="optional" default="default"/>
         <xsd:attribute name="type" use="optional" default="total">
           <xsd:simpleType>

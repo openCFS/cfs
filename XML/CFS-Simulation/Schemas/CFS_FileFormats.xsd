@@ -199,7 +199,7 @@
       <xsd:extension base="DT_OutputBasic">
         <xsd:attribute name="commentChar" type="DT_Character"
           default="#"/>
-        <xsd:attribute name="refCoordSys" type="xsd:token"
+        <xsd:attribute name="coordSysId" type="xsd:token"
           default="default"/>
         <xsd:attribute name="fileCollect" default="entity">
           <xsd:simpleType>
