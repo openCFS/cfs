@@ -86,6 +86,17 @@
       <xsd:enumeration value="bubble"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- Data type for describing a coordinate direction -->
+  <xsd:simpleType name="DT_CosyCompType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value="phi"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
 
   <!-- Data type for describing a point either by a node name or a -->

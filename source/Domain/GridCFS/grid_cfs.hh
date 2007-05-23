@@ -75,10 +75,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name General Grid Information
 
-    //! Search and add directivity nodes, if defined in input file,
-    //! to list of saved nodes     
-    void GetNodesForDirectivity();
-
     //! Return if grid uses quadratic elements
     bool IsQuadratic() {return isQuadratic_; }
 
@@ -540,6 +536,30 @@ namespace CoupledField
 
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
+
+    //! Search and add directivity nodes, if defined in input file,
+    //! to list of saved nodes     
+    void GetNodesForDirectivity();
+
+    //! Create new nodes / elements, which are defined either by point coordinate
+    //! or parametric description
+    void CreateUserDefinedNodesElems();
+
+    //! Add new node / element given by poin coordinate
+    void AddEntityByCoord( const std::string& name, bool isNode, 
+                           const Vector<Double>& coord );
+
+    //! add new node / element given by parametric description
+    void AddEntityByParam( const std::string& name, bool isNode, 
+                           const std::string& coordSysId,
+                           const std::string& freeComp,
+                           Double freeStart, Double freeStop, Double freeInc,
+                           const std::string& fixedComp1,
+                           const std::string& fixedVal1,
+                           const std::string& fixedComp2,
+                           const std::string& fixedVal2 );
+
+    
     //@}
 
     // =======================================================================

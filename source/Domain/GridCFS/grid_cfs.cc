@@ -17,6 +17,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 
 namespace CoupledField {
@@ -178,6 +179,263 @@ namespace CoupledField {
     }
   */
 
+  void GridCFS::CreateUserDefinedNodesElems() {
+    ENTER_FCN( "GridCFS::CreateUserDefinedNodesElems" );
+    
+    Vector<Double> coord(3);
+    std::string coordSys;
+    std::string name;
+
+    for( UInt iType = 0; iType < 2; iType++ ) {
+      ParamNode * listNode = NULL;      
+      StdVector<ParamNode*> nodes;
+      bool isNode = true;
+  
+      if( iType == 0 ) {
+        // iterate over nodes
+        listNode = param->Get("domain")->Get("nodeList", false);
+        isNode = true;
+      } else {
+        // iterate over nodes
+        listNode = param->Get("domain")->Get("elemList", false);
+        isNode = false;
+      }
+
+      if (listNode) {
+        nodes = listNode->GetChildren();
+        
+        for( UInt i=0; i < nodes.GetSize(); i++ ) {
+          
+          // fetch name of nodes to be selected
+          nodes[i]->Get("name", name );
+          
+          // check if node is defined by point coord
+          ParamNode * coordNode = nodes[i]->Get("coord", false );
+          if( coordNode ) {
+            
+            // ToDo: insert defintion for axisymmetric geometry
+            coord.Init();
+            coordNode->Get( "x", coord[0] );
+            coordNode->Get( "y", coord[1] );
+            coordNode->Get( "z", coord[2] );
+            
+            AddEntityByCoord(name, isNode, coord );
+            
+          }
+          
+          // check if node is defined by parametric description
+          ParamNode * listNode = nodes[i]->Get("list", false );
+          if( listNode ) {
+            
+            std::string freeComp, fixedComp1, fixedComp2, coordSysId;
+            std::string fixedVal1, fixedVal2;
+            Double freeStart, freeStop, freeInc;
+            
+            // get coordinate system
+            listNode->Get( "coordSysId", coordSysId );
+            
+            // get free component
+            ParamNode * freeNode = listNode->Get("freeCoord");
+            freeNode->Get( "comp", freeComp );
+            freeNode->Get( "start", freeStart );
+            freeNode->Get( "stop", freeStop );
+            freeNode->Get( "inc", freeInc );
+            
+            // get fixed component(s)
+            StdVector<ParamNode*> fixedNodes = 
+              listNode->GetList("fixedCoord");
+            fixedNodes[0]->Get( "comp", fixedComp1 );
+            fixedNodes[0]->Get( "value", fixedVal1 );
+            if( fixedNodes.GetSize() == 2 ) {
+              fixedNodes[1]->Get( "comp", fixedComp2 );
+              fixedNodes[1]->Get( "value", fixedVal2 );
+            } else {
+              fixedComp2 = "";
+              fixedVal2 = "0.0";
+            }
+            
+            AddEntityByParam( name, isNode, coordSysId,
+                              freeComp, freeStart, freeStop,
+                              freeInc, fixedComp1, fixedVal1,
+                              fixedComp2, fixedVal2 );
+          }
+          
+        }
+      }
+    }
+  }
+  
+  void GridCFS::AddEntityByCoord( const std::string& name, bool isNode, 
+                                  const Vector<Double>& coord ) {
+    ENTER_FCN( "GridCFS::AddEntityByCoord" );
+    
+    StdVector<UInt> entityNum(1);
+    Vector<Double> actEntCoord, temp;
+    std::vector<Double> entityDist;
+    
+    if( isNode) {
+      // === loop over nodes ===
+      entityDist.resize(numNodes_);
+      
+      // iterate over all nodes
+      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+        
+        // calculate distance and store it in vector
+        GetNodeCoordinate( actEntCoord, iNode+1, false );          
+        temp = (actEntCoord-coord    );
+        entityDist[iNode] = temp.NormL2();
+      } // nodes
+    } else {
+     
+    }
+    
+    // find minimum entry in the vector
+    std::vector<Double>::iterator it ;
+    it = min_element(entityDist.begin(), entityDist.end());
+    LOG_DBG2(gridcfs) << "Found node " 
+                      << std::distance(entityDist.begin(), it) + 1;
+    entityNum[0]=  std::distance(entityDist.begin(), it) + 1;
+    
+    // add node / element 
+    if( isNode ) {
+      AddNamedNodes( name, entityNum );
+    } else {
+      AddNamedElems( name, entityNum );
+    }
+  }
+
+  void GridCFS::AddEntityByParam( const std::string& name, bool isNode, 
+                                  const std::string& coordSysId,
+                                  const std::string& freeComp,
+                                  Double freeStart, Double freeStop, 
+                                  Double freeInc,
+                                  const std::string& fixedComp1,
+                                  const std::string& fixedVal1,
+                                  const std::string& fixedComp2,
+                                  const std::string& fixedVal2 ) {
+
+    ENTER_FCN( "GridCFS::AddEntityByParam" );
+
+    // get coordinate system
+    CoordSystem * cosy = NULL;
+    try {
+      cosy = domain->GetCoordSystem(coordSysId);
+    } catch( Exception &e ) {
+      RETHROW_EXCEPTION(e, "Could select nodes within the"
+                        << "coordinate system '"
+                        << coordSysId << "'");
+    }
+    
+    // map coordinate components to indices
+    UInt freeDof, fixedDof1, fixedDof2;
+    freeDof = cosy->GetVecComponent( freeComp );
+    fixedDof1 = cosy->GetVecComponent( fixedComp1 );
+    if( dim_ == 3 ) {
+      fixedDof2= cosy->GetVecComponent (fixedComp2 );
+    }
+    
+    // fetch math parser and register free coordinate name
+    Double actFreeCoord = 0;
+    MathParser * parser = domain->GetMathParser();
+    MathParser::HandleType h1, h2;
+    h1 = parser->GetNewHandle();
+    h2 = parser->GetNewHandle();
+    parser->SetValue( h1, freeComp, 0.0 );
+    parser->SetValue( h2, freeComp, 0.0 );
+    parser->SetExpr( h1, fixedVal1 );
+    if( dim_ == 3 ) {
+      parser->SetExpr( h2, fixedVal2 );
+    }
+    
+    // fill vector with entries of free componenet
+    Vector<Double> sampleVals;
+    UInt numSamples;
+    numSamples  = UInt( floor ( (freeStop-freeStart) / freeInc ) );
+    sampleVals.Resize( numSamples );
+    for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
+      sampleVals[iSample] = freeStart + iSample * freeInc;
+    }
+
+    StdVector<UInt> entityNums (numSamples);
+    Vector<Double> locCoord( dim_), globCoord( dim_ );
+    Vector<Double> actEntCoord(dim_), temp;
+
+    // loop over all entries in the free component vector
+    for( UInt iSample = 0; iSample < sampleVals.GetSize(); iSample++ ) {
+
+      // set current values of local vector entries (using mathParser)
+       parser->SetValue( h1, freeComp, sampleVals[iSample] );
+       parser->SetValue( h2, freeComp, sampleVals[iSample] );
+      locCoord[freeDof-1] = sampleVals[iSample];
+      locCoord[fixedDof1-1] = parser->Eval(h1);
+      if( dim_ == 3 ) {
+        locCoord[fixedDof2-1] = parser->Eval(h2);
+      }
+      
+      // calculate current values of the fixed components in 
+      // global coordinates
+      cosy->Local2GlobalCoord( globCoord, locCoord );
+      
+      // iterate over all nodes in the grid
+      // vectors with node indices and distance
+      std::vector<Double> entityDist;
+      
+      if( isNode ) {
+        // === loop over nodes ===
+        entityDist.resize( numNodes_ );
+        for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+          
+          // calculate distance and store it in vector
+          GetNodeCoordinate( actEntCoord, iNode+1, false );          
+          temp = (actEntCoord-globCoord);
+          entityDist[iNode] = temp.NormL2();
+        } // nodes
+      } else {
+
+        // === loop over elements ===
+        entityDist.resize(numElems_);
+        
+        Vector<Double> locMidPoint;
+        Matrix<Double> connectCoord;
+
+        // iterate over all elements
+        for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
+          
+        Elem * actElem = orderedElems_[iElem];
+        BaseFE * ptFE = actElem->ptElem;
+        
+        GetElemNodesCoord( connectCoord, actElem->connect, false );
+        ptFE->GetCoordMidPoint(locMidPoint);
+        ptFE->Local2GlobalCoord( actEntCoord, locMidPoint, 
+                                 connectCoord, actElem );
+        
+        temp = (actEntCoord-globCoord );
+        entityDist[iElem] = temp.NormL2();
+        } // elements
+        
+      }
+        
+      // find minimum entry in the vector
+      std::vector<Double>::iterator it ;
+      it = min_element(entityDist.begin(), entityDist.end());
+      entityNums[iSample] = std::distance(entityDist.begin(), it) + 1;
+    }
+    
+    if( isNode) {
+      
+      // add named nodes to grid
+      AddNamedNodes( name, entityNums );
+    } else {
+      AddNamedElems( name, entityNums );
+    }
+    
+    // release math handles
+    parser->ReleaseHandle( h1 );
+    parser->ReleaseHandle( h2 );
+  }
+
+
+  
   void  GridCFS::GetNodesForDirectivity() {
     ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
     
@@ -189,7 +447,7 @@ namespace CoupledField {
     if( !dirNode) return;
 
     // get reference coordinate system
-    std::string coordName = dirNode->Get("coordSys")->Get("name")->AsString();
+    std::string coordName = dirNode->Get("coordSysId")->Get("name")->AsString();
     CoordSystem * coordSys = domain->GetCoordSystem( coordName );
 
     // get new nodes parameter nodes
@@ -654,7 +912,6 @@ namespace CoupledField {
         // get local edge indices 
         actElem.ptElem->GetEdgeIndices( locEdge, iEdge );
 
-        //std::cerr << "EdgeIndices = \n" << locEdge << std::endl;
         // create new edge
         Edge actEdge;
         actEdge.nodes[0] = actElem.connect[locEdge[0]-1];
@@ -871,8 +1128,9 @@ namespace CoupledField {
 
     isInitialized_ = true;
 
-    // Read in directivity node from parameter file
-    GetNodesForDirectivity();
+    // Select nodes / elements according to the users specification in the
+    // parameter file
+    CreateUserDefinedNodesElems();
 
     // print information to file
     PrintGridInfo();
