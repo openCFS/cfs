@@ -676,7 +676,7 @@ namespace CoupledField {
 
     // get nodes with coordinate systems
     ParamNode * coosyNode =
-      param->Get("domain")->Get("coordSys", false);
+      param->Get("domain")->Get("coordSysList", false);
     if (!coosyNode) return;
     
     StdVector<ParamNode*> coordNodes = coosyNode->GetChildren();
@@ -686,7 +686,7 @@ namespace CoupledField {
       
       // fetch coosy name and type
       std::string type = coordNodes[i]->GetName();
-      std::string name = coordNodes[i]->Get( "name" )->AsString();
+      std::string name = coordNodes[i]->Get( "id" )->AsString();
       
       CoordSystem * actCoord = NULL;
       if( type == "polar") {

@@ -1024,7 +1024,7 @@ namespace CoupledField {
     rhs->resultType = MAG_RHS_LOAD;
     rhs->dofNames = vecComponents;
     rhs->unit = "Am";
-    rhs->definedOn = ResultInfo::ELEMENT;
+    rhs->definedOn = ResultInfo::NODE;
     rhs->entryType = ResultInfo::VECTOR;
     rhs->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( rhs ); 

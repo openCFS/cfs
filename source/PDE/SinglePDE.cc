@@ -1387,7 +1387,7 @@ namespace CoupledField {
         // get data from node
         regionNodes[i]->Get( "name", region );
         regionNodes[i]->Get( "material", material );
-        regionNodes[i]->Get( "refCoordSys", refCoordSys );
+        regionNodes[i]->Get( "coordSysId", refCoordSys );
         
         // get regionId
         RegionIdType actRegionId = ptgrid_->RegionNameToId( region );

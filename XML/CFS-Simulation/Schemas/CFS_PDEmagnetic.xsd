@@ -391,7 +391,7 @@
           </xsd:complexType>
         </xsd:element>
        </xsd:sequence>
-       <xsd:attribute name="refCoordSys" type="xsd:token"
+       <xsd:attribute name="coordSysId" type="xsd:token"
           use="optional" default="default"/>
    </xsd:complexType>
 
