@@ -91,7 +91,7 @@ namespace CoupledField {
     //! For a cylindrical coordinate system for example, afterwards the
     //! following expression is possible:
     //! \verbatim
-    //!  uax * 10 + sin( uphi )
+    //!  z * 10 + sin( phi )
     //! \endverbatim
     //! \param handler MathParser handler for identifying specific parser
     //! \param coosy Local coordinate system, for which the coordinate components

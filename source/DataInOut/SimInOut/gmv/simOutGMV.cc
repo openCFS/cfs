@@ -115,9 +115,8 @@ namespace CoupledField {
 
     std::string type;
     ResultInfo & actDof = *(sol->GetResultInfo());
-    Enum2String( actDof.resultType, type);
 
-    LOG_DBG(simOutputGMV) << "Registering output '" << type 
+    LOG_DBG(simOutputGMV) << "Registering output '" << actDof.resultName
                           << "' with saveBegin " << saveBegin
                           << ", saveInc " << saveInc 
                           << ", saveEnd " << saveEnd;
@@ -142,9 +141,9 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGMV::AddResult" );
     std::string type;
     ResultInfo & actDof = *(sol->GetResultInfo());
-    Enum2String( actDof.resultType, type);
 
-    LOG_DBG(simOutputGMV) << "Adding result '" << type  << "'";
+    LOG_DBG(simOutputGMV) << "Adding result '" 
+                          << actDof.resultName  << "'";
       
     resultMap_[sol->GetResultInfo()->resultName].Push_back(sol);
   }
