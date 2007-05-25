@@ -98,16 +98,8 @@ namespace OLAS {
     //!              the value must be stored
     //! \param eqnNo equation number for the degree of freedom whose value
     //!              should be set
-    //! \param comp  identifies the block component of the fixed degree of
-    //!              freedom in the case of dof blocking
-    //! \param bcNum specifies the number of this Dirichlet value in the
-    //!              range [1,..., no. inhom. Dirchlet BCs]. Note: In the
-    //!              case of complex values the range is actually doubled,
-    //!              since CFS++ treats the complex values as tuples of
-    //!              doubles when passing them to %OLAS.
     //! \param val   inhomogeneous Dirichlet value
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                  const T &val );
+    void SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val );
 
     //! Set fixed dofs to specified Dirichlet boundary values
 
@@ -279,14 +271,11 @@ namespace OLAS {
     //! dofs the dof belongs to (block case).
     UInt *dirichletEQN_;
 
-    //! Array for storing component indices for fixed dofs
+    //! Next index for dirichlet condition set
+    UInt nextIndex_;
 
-    //! This array is used to store for each degree of freedom that is
-    //! fixed by an inhomogeneous Dirichlet boundary condition the component
-    //! number identifying the dof in the block of dofs it belongs to.
-    //! In the scalar case all blocks have a size of one, and this will be
-    //! the value stored for each fixed dof.
-    UInt *dirichletComponent_;
+    //! Map for mapping eqn number to position in dirichletValue_ vector
+    std::map<PdeIdType, std::map<Integer, UInt> > bcIndices_;
 
     //! Array for storing inhomogeneous Dirichlet values
     BaseVector *dirichletValue_;

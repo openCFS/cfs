@@ -176,17 +176,11 @@ namespace OLAS {
     //!              the value must be stored
     //! \param eqnNo equation number for the degree of freedom whose value
     //!              should be set
-    //! \param comp  identifies the block component of the fixed degree of
-    //!              freedom in the case of dof blocking (ignored by this
-    //!              class)
-    //! \param bcNum specifies the number of this Dirichlet value in the
-    //!              range [1,..., no. inhom. Dirchlet BCs]
     //! \param val   inhomogeneous Dirichlet value
     //! \note The bcNum parameter is only supported for compatibility with
     //!       the %SetIDBC() method of the IDBC_HandlerPenalty class. It is
     //!       ignored by the current implementation.
-    void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                  const T &val );
+    void SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val );
 
     //! Add weight of coupling between a fixed and a free dof into matrix
 

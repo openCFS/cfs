@@ -454,6 +454,12 @@ namespace CoupledField {
       LoadBc & actLoad = *loads_[iLoad];
       EqnMap & eqnMap = *(actLoad.eqnMap);
 
+      // create temporary set, in which we store the equation
+      // numbers which are already set, to that we avoid setting multiple
+      // times the RHS of a node, if the entity list is defined on 
+      // surface elements
+      std::set<Integer> usedEqns;
+
       try {
         // Obtain iterator
         EntityIterator it = actLoad.entities->GetIterator();
@@ -473,20 +479,29 @@ namespace CoupledField {
           parser->SetExpr( mHandle_, actLoad.value );
           val = parser->Eval(mHandle_ );
           
-          // Obtain equation number
-          eqnNr = eqnMap.GetEqn( *(actLoad.result), it, actLoad.dof );
+          // Obtain equation number(s)
+          StdVector<Integer> eqns;
+          eqnMap.GetEqns( eqns, *(actLoad.result), it, actLoad.dof );
           
-          if (analysisType_ == HARMONIC) {
-            parser->SetExpr( mHandle_, actLoad.phase  );
-            phase = parser->Eval( mHandle_ );
-            Complex complexValue( val * cos( phase / 180 * PI ),
-                                  val * sin( phase / 180 * PI ) );
+          for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++ ) {
             
-            algsys_->SetNodeRHS(complexValue, eqnMap.GetPdeId(), eqnNr, 1);    
-          } else {
-            algsys_->SetNodeRHS(val, eqnMap.GetPdeId(), eqnNr, 1);    
-          }
-          
+            // check, if RHS of current eqn was already set
+            if( usedEqns.find( eqns[iEqn] ) == usedEqns.end() ) {
+              usedEqns.insert( eqns[iEqn] );
+              if (analysisType_ == HARMONIC) {
+                parser->SetExpr( mHandle_, actLoad.phase  );
+                phase = parser->Eval( mHandle_ );
+                Complex complexValue( val * cos( phase / 180 * PI ),
+                                      val * sin( phase / 180 * PI ) );
+                
+                algsys_->SetNodeRHS(complexValue, eqnMap.GetPdeId(), 
+                                    eqns[iEqn] );    
+              } else {
+                algsys_->SetNodeRHS(val, eqnMap.GetPdeId(), 
+                                    eqns[iEqn] );    
+              } // analysis
+            } // usedEqn
+          } // for loop
           
         } // nodes
       } catch (Exception& e) {

@@ -123,8 +123,8 @@ namespace OLAS {
                                  StdMatrix *stdMat,
                                  BaseIDBC_Handler *idbcHandler,
                                  Double & entry,
-                                 Integer eqnNr1, Integer eqnDof1,
-                                 Integer eqnNr2, Integer eqnDof2,
+                                 Integer eqnNr1, 
+                                 Integer eqnNr2, 
                                  UInt limit1, UInt limit2 ) = 0;
     
     //! Get an entry of a matrix (complex)
@@ -134,8 +134,8 @@ namespace OLAS {
                                  StdMatrix *stdMat,
                                  BaseIDBC_Handler *idbcHandler,
                                  Complex & entry,
-                                 Integer eqnNr1, Integer eqnDof1,
-                                 Integer eqnNr2, Integer eqnDof2,
+                                 Integer eqnNr1, 
+                                 Integer eqnNr2, 
                                  UInt limit1, UInt limit2 ) = 0;
 
     //! Set directly an entry of a  matrix (real)
@@ -145,8 +145,8 @@ namespace OLAS {
                                  StdMatrix *stdMat,
                                  BaseIDBC_Handler *idbcHandler,
                                  Double entry,
-                                 Integer eqnNr1, Integer eqnDof1,
-                                 Integer eqnNr2, Integer eqnDof2,
+                                 Integer eqnNr1, 
+                                 Integer eqnNr2, 
                                  UInt limit1, UInt limit2,
                                  bool setCounterPart ) = 0;
     
@@ -157,8 +157,8 @@ namespace OLAS {
                                  StdMatrix *stdMat,
                                  BaseIDBC_Handler *idbcHandler,
                                  Complex entry,
-                                 Integer eqnNr1, Integer eqnDof1,
-                                 Integer eqnNr2, Integer eqnDof2,
+                                 Integer eqnNr1, 
+                                 Integer eqnNr2,
                                  UInt limit1, UInt limit2,
                                  bool setCounterPart ) = 0;
     //@}
@@ -243,10 +243,10 @@ namespace OLAS {
     //@{
     //! Set single entry of right-hand side vector
     virtual void SetNodeRHS( StdVector *rhs, Double val, 
-                             Integer node, Integer dof ) = 0;
+                             Integer node ) = 0;
 
     virtual void SetNodeRHS( StdVector *rhs, Complex val, 
-                             Integer node, Integer dof ) = 0;
+                             Integer node ) = 0;
     //@}
 
     //! Initialise right-hand side with given vector
@@ -267,11 +267,11 @@ namespace OLAS {
     //@{
 
     //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    virtual void SetVectorEntry( StdVector *vec, UInt index,
                                  Double &newVal ) = 0;
 
     //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    virtual void SetVectorEntry( StdVector *vec, UInt index,
                                  Complex &newVal ) = 0;
 
     //! Add a value to a diagonal matrix entry
@@ -284,17 +284,13 @@ namespace OLAS {
     //!                 coupled to the row/column of the entry; e.g. for
     //!                 \f$\mbox{eqnNum}=k\f$ it is \f$a_{kk}\f$ that will be
     //!                 altered
-    //! \param dof      gives the degree of freedom in the diagonal entry
-    //!                 that is to be changed; in the case of scalar entries
-    //!                 this should be 1, only in the case of block entries
-    //!                 may this be larger than 1
     //! \param val      zero-based array containing the numerical value that
     //!                 is to be added to the matrix entry; in the case of
     //!                 real entries, the first array value is used, in the
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
     virtual void AddToDiagMatrixEntry( StdMatrix *stdMat, Integer eqnNum,
-                                       Integer dof, Double *val ) = 0;
+                                       Double *val ) = 0;
     //@}
 
 
@@ -310,14 +306,12 @@ namespace OLAS {
     //@{
     //! Modify system matrix for penalty approach
     virtual void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
-                                    UInt *dirichletComponent,
                                     UInt numIDBC,
                                     Double &penaltyTerm ) = 0;
 
     //! Modify right-hand side vector following penalty approach
     virtual void AdaptRHSForIDBC( StdVector &rhs,
                                   UInt *dirichletEQN,
-                                  UInt *dirichletComponent,
                                   StdVector &dirichletValue,
                                   Double &penaltyTerm,
                                   UInt numIDBC ) = 0;

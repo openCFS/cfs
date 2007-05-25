@@ -306,12 +306,11 @@ namespace OLAS {
     //! \param val value to be added
     //! \param identifierPDE identifier of the PDE related to sub-graph
     //! \param eqnNr equation number of the node to be set
-    //! \param eqnDof degree of freedom (for multi-dof numbering)
     void SetNodeRHS(Double val, PdeIdType identifierPDE,
-                    Integer eqnNr, Integer eqnDof);
+                    Integer eqnNr);
     
     void SetNodeRHS(Complex val, PdeIdType identifierPDE,
-                    Integer eqnNr, Integer eqnDof);
+                    Integer eqnNr);
     //@}
 
     //! Performs a matrix-vector multiplication and ads the vector to the rhs
@@ -337,17 +336,13 @@ namespace OLAS {
     //!                 coupled to the row/column of the entry; e.g. for
     //!                 \f$\mbox{eqnNum}=k\f$ it is \f$a_{kk}\f$ that will be
     //!                 altered
-    //! \param dof      gives the degree of freedom in the diagonal entry
-    //!                 that is to be changed; in the case of scalar entries
-    //!                 this should be 1, only in the case of block entries
-    //!                 may this be larger than 1
     //! \param val      zero-based array containing the numerical value that
     //!                 is to be added to the matrix entry; in the case of
     //!                 real entries, the first array value is used, in the
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
     void AddToDiagMatrixEntry( FEMatrixType matrixID, const PdeIdType pdeID,
-                               Integer eqnNum, UInt dof, Double *val );
+                               Integer eqnNum, Double *val );
 
 
     //@{
@@ -359,30 +354,24 @@ namespace OLAS {
     //! \param matrixID  specifies which matrix is to be queried
     //! \param rowPdeID identifier for PDE related to row sub-graph
     //! \param rowEqnNum equation number of the row index to get
-    //! \param rowDof    degree of freedom of the row to get; in the case 
-    //!                  of scalar entries this should be 1, only in the case
-    //!                  of block entries may this be larger than 1
     //! \param colPdeID  identifier for PDE related to column sub-graph
     //! \param colEqnNum equation number of the column index to get
-    //! \param colDof    degree of freedom of the column to get; in the 
-    //!                  case of scalar entries this should be 1, only in the 
-    //!                  case of block entries may this be larger than 1
     //! \param val       return value
     //! \note For sparse matrices this method may be very costly and slow,
     //!       as the given index pair has to be searched for and may not
     //!       be accessible directly!
     void GetMatrixEntry( FEMatrixType matrixID,
                          const PdeIdType rowPdeID,
-                         Integer eqnNum1, UInt rowDof,
+                         Integer eqnNum1, 
                          const PdeIdType colPdeID,
-                         Integer eqnNum2, UInt colDof,
+                         Integer eqnNum2, 
                          Double & val );
 
     void GetMatrixEntry( FEMatrixType matrixID,
                          const PdeIdType rowPdeID,
-                         Integer rowEqnNum, UInt rowDof,
+                         Integer rowEqnNum, 
                          const PdeIdType colPdeID,
-                         Integer colEqnNum2, UInt colDof,
+                         Integer colEqnNum2,
                          Complex & val );
     //@}
 
@@ -395,14 +384,8 @@ namespace OLAS {
     //! \param matrixID  specifies which matrix is to be manipulated
     //! \param rowPdeID  identifier for PDE related to row sub-graph
     //! \param rowEqnNum equation number of the row index to be set
-    //! \param rowDof    degree of freedom of the row to be set; in the case 
-    //!                  of scalar entries this should be 1, only in the case
-    //!                  of block entries may this be larger than 1
     //! \param colPdeID  identifier for PDE related to column sub-graph
     //! \param colEqnNum equation number of the column index to be set
-    //! \param colDof    degree of freedom of the column to be set; in the 
-    //!                  case of scalar entries this should be 1, only in the 
-    //!                  case of block entries may this be larger than 1
     //! \param val       value to be set
     //! \param setCounterPart if this flag is true, then the method will
     //!                not only set the value on position (eqnNum1, eqnNum2)
@@ -415,16 +398,16 @@ namespace OLAS {
     //!       be accessible directly!
     void SetMatrixEntry( FEMatrixType matrixID,
                          const PdeIdType rowPdeID,
-                         Integer rowEqnNum, UInt rowDof,
+                         Integer rowEqnNum, 
                          const PdeIdType colPdeID,
-                         Integer colEqnNum, UInt colDof,
+                         Integer colEqnNum, 
                          Double val, bool setCounterPart );
     
     void SetMatrixEntry( FEMatrixType matrixID,
                          const PdeIdType rowPdeID,
-                         Integer rowEqnNum, UInt rowDof,
+                         Integer rowEqnNum,
                          const PdeIdType colPdeID,
-                         Integer colEqnNum, UInt colDof,
+                         Integer colEqnNum,
                          Complex val, bool setCounterPart );
     //@}
 
@@ -446,21 +429,18 @@ namespace OLAS {
 
     //! This method passes the value of a given inhomogeneous Dirichlet
     //! equation number to %OLAS. 
-    //! \param bcNum  consecutive (1-based) number associated to the given 
-    //!               Dirichlet restraint
     //! \param pdeID  identifier for PDE related to sub-graph
     //! \param eqnNr  equation number of the dirichlet restraint
     //! \param val    value of the dirichlet restraint
-    //! \param comp   degree of freedom to which the restraint belongs
     //!
     //! \note This method is only used to give the information of the current
     //! values to %OLAS. This method does NOT assemble them into the matrix. 
     //! This is done by the method BuildInDirichlet.
-    void SetDirichlet( UInt bcNum, const PdeIdType pdeID, Integer eqnNr,
-                       const Double &val, UInt comp );
+    void SetDirichlet( const PdeIdType pdeID, Integer eqnNr,
+                       const Double &val );
 
-    void SetDirichlet( UInt bcNum, const PdeIdType pdeID, Integer eqnNr,
-                       const Complex &val, UInt comp );
+    void SetDirichlet( const PdeIdType pdeID, Integer eqnNr,
+                       const Complex &val );
     //@}
 
     //! Assemble the previously defined Dirichlet values into the algsys

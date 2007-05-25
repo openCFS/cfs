@@ -386,8 +386,8 @@ namespace OLAS {
   GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Double & entry, Integer eqnNr1, Integer eqnDof1,
-                  Integer eqnNr2, Integer eqnDof2,
+                  Double & entry, Integer eqnNr1,
+                  Integer eqnNr2, 
                   UInt limit1, UInt limit2 ) {
     ENTER_IFCN( "EntryManipulatorComplex::GetMatrixEntry" );
     (*error) << "EntryManipulatorComplex::GetMatrixEntry: "
@@ -403,8 +403,8 @@ namespace OLAS {
   GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Complex & entry, Integer eqnNr1, Integer eqnDof1,
-                  Integer eqnNr2, Integer eqnDof2,
+                  Complex & entry, Integer eqnNr1,
+                  Integer eqnNr2, 
                   UInt limit1, UInt limit2 ) {
     ENTER_IFCN( "EntryManipulatorComplex::GetMatrixEntry" );
 
@@ -439,8 +439,8 @@ namespace OLAS {
   SetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Double  entry, Integer eqnNr1, Integer eqnDof1,
-                  Integer eqnNr2, Integer eqnDof2,
+                  Double  entry, Integer eqnNr1,
+                  Integer eqnNr2, 
                   UInt limit1, UInt limit2, bool setCounterPart ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetMatrixEntry" );
     (*error) << "EntryManipulatorComplex::SetMatrixEntry: "
@@ -456,8 +456,8 @@ namespace OLAS {
   SetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Complex entry, Integer eqnNr1, Integer eqnDof1,
-                  Integer eqnNr2, Integer eqnDof2,
+                  Complex entry, Integer eqnNr1, 
+                  Integer eqnNr2, 
                   UInt limit1, UInt limit2, bool setCounterPart ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetMatrixEntry" );
 
@@ -489,7 +489,7 @@ namespace OLAS {
   //   SetNodeRHS (Double)
   // ***********************
   void EntryManipulatorComplex::SetNodeRHS( StdVector *rhs, Double val,
-                                           Integer node, Integer dof ) {
+                                           Integer node  ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetNodeRHS" );
     
     if ( node != 0 ) {
@@ -505,7 +505,7 @@ namespace OLAS {
   //   SetNodeRHS
   // **************
   void EntryManipulatorComplex::SetNodeRHS( StdVector *rhs, Complex val,
-                                            Integer node, Integer dof ) {
+                                            Integer node ) {
 
     ENTER_IFCN( "EntryManipulatorComplex::SetNodeRHS" );
 
@@ -522,7 +522,6 @@ namespace OLAS {
   //   SetVectorEntry
   // ******************
   void EntryManipulatorComplex::SetVectorEntry( StdVector *vec, UInt index,
-                                                UInt component,
                                                 Double &newVal ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetVectorEntry" );
     (*error) << "EntryManipulatorComplex::SetVectorEntry: "
@@ -532,7 +531,6 @@ namespace OLAS {
 
 
   void EntryManipulatorComplex::SetVectorEntry( StdVector *vec, UInt index,
-                                                UInt component,
                                                 Complex &newVal ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetVectorEntry" );
     vec->SetVectorEntry( index, newVal );
@@ -600,7 +598,6 @@ namespace OLAS {
   // *********************
   void EntryManipulatorComplex::AdaptSystemMatrix( StdMatrix &stdMat,
                                                    UInt *dirichletEQN,
-                                                   UInt *dirichletComponent,
                                                    UInt numIDBC,
                                                    Double &penaltyTerm ) {
 
@@ -621,7 +618,6 @@ namespace OLAS {
   // *******************
   void EntryManipulatorComplex::AdaptRHSForIDBC( StdVector &rhs,
                                                  UInt *dirichletEQN,
-                                                 UInt *dirichletComponent,
                                                  StdVector &dirichletValue,
                                                  Double &penaltyTerm,
                                                  UInt numIDBC ) {
@@ -710,7 +706,6 @@ namespace OLAS {
   // ************************
   void EntryManipulatorComplex::AddToDiagMatrixEntry( StdMatrix *stdMat, 
                                                       Integer eqnNum,
-                                                      Integer dof,
                                                       Double *val ) {
 
     ENTER_IFCN( "EntryManipulatorComplex::AddToDiagMatrixEntry" );

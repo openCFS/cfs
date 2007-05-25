@@ -28,19 +28,20 @@ namespace OLAS {
     sbmCase_ = false;
     offset_  = NULL;
 
+    // Initialise next index for boundary condition array
+    nextIndex_ = 1;
+
     // Initialise penalty term
     penaltyTerm_ = 0.0;
 
     // Allocate memory for internal arrays
     numIDBC_ = numIDBC;
     NewArray( dirichletEQN_      , UInt, numIDBC_ );
-    NewArray( dirichletComponent_, UInt, numIDBC_ );
 
 #ifdef DEBUG_IDBCHANDLERPENALTY
     // Initialise arrays
     for ( UInt i = 1; i <= numIDBC_; i++ ) {
       dirichletEQN_[i] = 0;
-      dirichletComponent_[i] = 0;
     }
 #endif
 
@@ -90,7 +91,6 @@ namespace OLAS {
     // Allocate memory for internal arrays
     numIDBC_ = numIDBC;
     NewArray( dirichletEQN_      , UInt, numIDBC_    );
-    NewArray( dirichletComponent_, UInt, numIDBC_    );
     NewArray( offset_            , UInt, numPDEs + 1 );
 
     // Generate array containing index pointers
@@ -140,7 +140,6 @@ namespace OLAS {
     // Initialise arrays
     for ( UInt i = 1; i <= numIDBC_; i++ ) {
       dirichletEQN_[i] = 0;
-      dirichletComponent_[i] = 0;
     }
     dirichletValue_->Init();
 #endif
@@ -160,7 +159,6 @@ namespace OLAS {
 
     // Free memory for internal arrays
     DeleteArray( dirichletEQN_       );
-    DeleteArray( dirichletComponent_ );
     DeleteArray( offset_             );
 
     // Delete vector of Dirichlet values
@@ -200,11 +198,6 @@ namespace OLAS {
         (*error) << "Found unset IDBC (eqnNo = 0): # = " << i;
         Error( __FILE__, __LINE__ );
       }
-      if ( dirichletComponent_[i] == 0 ) {
-        PrintInternalState( std::cerr );
-        (*error) << "Found unset IDBC (comp = 0): # = " << i;
-        Error( __FILE__, __LINE__ );
-      }
     }
     PrintInternalState( *debug );
 #endif
@@ -215,7 +208,7 @@ namespace OLAS {
       TRY_CAST {
         RefCast( sysMat, StdMatrix, stdMat );
         assembler_->AdaptSystemMatrix( stdMat, dirichletEQN_,
-                                       dirichletComponent_, numIDBC_,
+                                       numIDBC_,
                                        penaltyTerm_ );
       } CATCH_CAST;
     }
@@ -233,7 +226,6 @@ namespace OLAS {
           if ( aux > 0 && stdMat != NULL ) {
             assembler_->AdaptSystemMatrix( *stdMat,
                                            dirichletEQN_ + offset_[i],
-                                           dirichletComponent_ + offset_[i],
                                            aux,
                                            penaltyTerm_ );
           }
@@ -269,7 +261,6 @@ namespace OLAS {
         PtrCast( dirichletValue_, StdVector, stdVal );
         assembler_->AdaptRHSForIDBC( *stdVec,
                                      dirichletEQN_,
-                                     dirichletComponent_,
                                      *stdVal,
                                      penaltyTerm_,
                                      numIDBC_ );
@@ -307,7 +298,6 @@ namespace OLAS {
           if ( aux > 0 && stdVec != NULL && stdVal != NULL ) {
             assembler_->AdaptRHSForIDBC( *stdVec,
                                          dirichletEQN_ + offset_[i],
-                                         dirichletComponent_ + offset_[i],
                                          *stdVal,
                                          penaltyTerm_,
                                          aux );
@@ -323,25 +313,31 @@ namespace OLAS {
   // ***********
   template <typename T>
   void IDBC_HandlerPenalty<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo,
-                                        UInt comp, UInt numBC,
                                         const T &val ) {
 
     ENTER_FCN( "IDBC_HandlerPenalty::SetIDBC" );
 
     // StdMatrix case
+    UInt index = 0;
     if ( sbmCase_ == false ) {
-      dirichletValue_->SetVectorEntry( numBC, val );
-      dirichletComponent_[numBC] = comp;
-      dirichletEQN_      [numBC] = eqnNo;
+      if( bcIndices_[pdeID].find( eqnNo ) ==
+          bcIndices_[pdeID].end() ) {
+        index = nextIndex_;
+        bcIndices_[pdeID][eqnNo] = nextIndex_++;
+      } else {
+        index = bcIndices_[pdeID][eqnNo];
+      }
+
+      dirichletValue_->SetVectorEntry( index, val );
+      dirichletEQN_      [index] = eqnNo;
     }
 
     // SBM_Matrix case
     else {
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( dirichletValue_ );
       StdVector *stdVec = sbmVec->GetPointer( pdeID );
-      stdVec->SetVectorEntry( numBC, val );
-      dirichletComponent_[ numBC + offset_[pdeID] ] = comp;
-      dirichletEQN_      [ numBC + offset_[pdeID] ] = eqnNo;
+      stdVec->SetVectorEntry( index, val );
+      dirichletEQN_      [ index ] = eqnNo;
     }
   }
 
@@ -370,7 +366,7 @@ namespace OLAS {
       for ( UInt i = 1; i <= numIDBC_; i++ ) {
         dirichletValue_->GetVectorEntry( i, aux );
         assembler_->SetVectorEntry( stdVec, dirichletEQN_[i],
-                                    dirichletComponent_[i], aux );
+                                    aux );
       }
     }
 
@@ -408,7 +404,7 @@ namespace OLAS {
           stdVal->GetVectorEntry( j, aux );
           idx = offset_[i] + j;
           assembler_->SetVectorEntry( stdVec, dirichletEQN_[idx],
-                                      dirichletComponent_[idx], aux );
+                                       aux );
         }
       }
     }
@@ -439,7 +435,7 @@ namespace OLAS {
     InitMatrix( SYSTEM );
     RemoveIDBCFromRHS( dummyVec );
     SetDofsToIDBC( dummyVec );
-    SetIDBC( NO_PDE_ID, 1, 0, 0, aux );
+    SetIDBC( NO_PDE_ID, 0, aux );
   }
 
 
@@ -468,7 +464,6 @@ namespace OLAS {
         stdVal->GetVectorEntry( i, val );
         os << i << " | "
            << dirichletEQN_[i] << " | "
-           << dirichletComponent_[i] << " | "
            << val << std::endl;
       }
     }
@@ -515,7 +510,6 @@ namespace OLAS {
             os << std::setfill( ' ' )
                << std::setw(cw1) << idx << " | "
                << std::setw(cw2) << dirichletEQN_[idx] << " | "
-               << std::setw(cw3) << dirichletComponent_[idx] << " | "
                << val << std::endl;
           }
         }

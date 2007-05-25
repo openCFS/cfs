@@ -268,8 +268,7 @@ namespace OLAS {
   //   SetIDBC
   // ***********
   template <typename T>
-  void IDBC_Handler<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp,
-                                 UInt bcNum, const T &val ) {
+  void IDBC_Handler<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val ) {
 
     ENTER_FCN( "IDBC_Handler::SetIDBC" );
 
@@ -576,7 +575,7 @@ namespace OLAS {
     InitMatrix( SYSTEM );
     RemoveIDBCFromRHS( dummyVec );
     SetDofsToIDBC( dummyVec );
-    SetIDBC( NO_PDE_ID, 1, 0, 0, 0.0 );
+    SetIDBC( NO_PDE_ID,  0, 0.0 );
     SetWeightFixedToFree( SYSTEM, 1, 2, 3, 4, 1.0, 2.0 );
   }
 

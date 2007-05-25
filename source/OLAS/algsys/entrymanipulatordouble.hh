@@ -91,16 +91,16 @@ namespace OLAS {
     void GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
-                         Double & entry, Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Double & entry, Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2 );
     
     //! Get an entry of a matrix (complex)
     void GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
-                         Complex & entry, Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Complex & entry, Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2 );
 
     //! Set directly an entry of a  matrix (real)
@@ -108,8 +108,8 @@ namespace OLAS {
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
                          Double entry,
-                         Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2, bool setCounterPart );
     
     //! Set directly an entry of a matrix (complex)
@@ -117,25 +117,25 @@ namespace OLAS {
                          const PdeIdType pdeID1,const PdeIdType pdeID2,
                          StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler,
                          Complex entry,
-                         Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2, bool setCounterPart );
 
     void SetNodeRHS( StdVector *rhs, Double val, 
-                     Integer node, Integer dof );
+                     Integer node );
 
     void SetNodeRHS( StdVector *rhs, Complex val, 
-                     Integer node, Integer dof );
+                     Integer node);
                           
     void InitRHS( StdVector *rhs, const Double *newRHS);
                           
     void UpdateRHS( StdVector *rhs, StdMatrix *stdMat,
                     Double *fup );
 
-    void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    void SetVectorEntry( StdVector *vec, UInt index,
                          Double &newVal );
 
-    void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    void SetVectorEntry( StdVector *vec, UInt index,
                          Complex &newVal );
 
     void GetSolutionVal( StdVector *sol, Double* &ptSol, 
@@ -159,16 +159,14 @@ namespace OLAS {
     }
 
     void AddToDiagMatrixEntry( StdMatrix *stdMat, Integer eqnNum,
-                               Integer dof, Double *val );
+                               Double *val );
 
     void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
-                            UInt *dirichletComponent,
                             UInt numIDBC,
                             Double &penaltyTerm );
 
     void AdaptRHSForIDBC( StdVector &rhs,
                           UInt *dirichletEQN,
-                          UInt *dirichletComponent,
                           StdVector &dirichletValue,
                           Double &penaltyTerm,
                           UInt numIDBC );
