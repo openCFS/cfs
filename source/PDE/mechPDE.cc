@@ -38,6 +38,7 @@ namespace CoupledField {
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
+    maxTimeDerivOrder_ = 2;
 
     fracDamping_   = false;
     effectiveMass_ = false;
