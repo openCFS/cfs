@@ -142,6 +142,11 @@ namespace CoupledField {
     //! Map result and entities to equation numbers
     void GetEqns( StdVector<Integer>& eqns,
                   const ResultInfo& result, const EntityIterator& it ) const;
+
+    //! Map result, entities and dof numbers to equation numbers
+    void GetEqns( StdVector<Integer>& eqns,
+                  const ResultInfo& result, const EntityIterator& it,
+                  UInt dof ) const;
     
     //! Mpa combination of result, entity and dof to single equation number
     Integer GetEqn( const ResultInfo& result, 

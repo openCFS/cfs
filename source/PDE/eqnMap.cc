@@ -351,7 +351,150 @@ namespace CoupledField {
     delete [] (*order);
     (*order) = NULL;
   }
+
+
   
+  void EqnMap::GetEqns( StdVector<Integer>& eqns,
+                        const ResultInfo& result, const EntityIterator& it,
+                        UInt dof ) const {
+
+    // Note: this is currently hard-coded
+
+    UInt numDofs = result.dofNames.GetSize();          
+
+    // first of all, delete eqns-array
+    eqns.Clear();
+    
+    // ============
+    //  NODAL PART 
+    // ============
+
+    if ( result.definedOn == ResultInfo::NODE ||
+	 result.definedOn == ResultInfo::PFEM ) {
+      
+      // get related nodal equaiton map
+      Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
+
+      // Distinguish the type the of the list
+      if ( it.GetType() == EntityList::ELEM_LIST
+	   || it.GetType() == EntityList::SURF_ELEM_LIST ) {
+	StdVector<UInt> const & nodes = it.GetElem()->connect;
+	
+	eqns.Resize( nodes.GetSize());
+	eqns.Init();
+	
+	for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+	  Integer localNode = mesh2PdeNode_[ nodes[iNode]-1 ];
+	  
+          if (localNode < 1 ) {
+            eqns[iNode] = 0;
+          } else {
+            eqns[iNode] = map[localNode-1][dof-1];
+	    
+	  }
+	}
+      } else if ( it.GetType() == EntityList::NODE_LIST ) {
+	UInt node = it.GetNode();
+	UInt numDofs = result.dofNames.GetSize();
+	eqns.Resize( 1);
+	eqns.Init();
+	
+	Integer localNode = mesh2PdeNode_[ node-1 ];
+	
+        if (localNode < 1 ) {
+          eqns[0] = 0;
+        } else {
+          eqns[0] = map[localNode-1][dof-1];
+        }
+      } else {
+	EXCEPTION( "This type of entity list is not defined for " 
+                   << "equation mapping!" );
+      }
+    }
+    // ===============
+    //   EDGE PART 
+    // ===============
+    
+    if ( result.definedOn == ResultInfo::EDGE ||
+	 result.definedOn == ResultInfo::PFEM ) {
+      
+      // Check if entity is of type NODE:
+      // In this case, we have to leave, as currently only nodal
+      // boundary conditions can be assigned.
+      if( it.GetType() == EntityList::NODE_LIST ) {
+	return;
+      }
+      
+      // get edge map of current result
+      StdVector<Vector<Integer> > const & map = 
+	(edgeEqns_.find( result ) )->second;
+      
+      // get edges
+      StdVector<Integer> const & edges = it.GetElem()->edges;
+      
+      // iterate over all edges
+      for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
+	
+	// get local edge number
+	Integer locEdge = mesh2PdeEdge_[ std::abs(edges[iEdge]) -1 ];
+	
+        eqns.Push_back( map[locEdge-1][dof-1] );
+      }
+    }
+
+    // ===============
+    //   FACE PART 
+    // ===============
+
+    if ( result.definedOn == ResultInfo::FACE ||
+	 result.definedOn == ResultInfo::PFEM ) {
+      
+      // Check if entity is of type NODE:
+      // In this case, we have to leave, as currently only nodal
+      // boundary conditions can be assigned.
+      if( it.GetType() == EntityList::NODE_LIST ) {
+	return;
+      }
+      
+      // get face map of current result
+      StdVector<Vector<Integer> > const & map = 
+	(faceEqns_.find( result ) )->second;
+      
+      // get faces
+      StdVector<Integer> const & faces = it.GetElem()->faces;
+      
+      // iterate over all faces
+      for( UInt iFace = 0; iFace < faces.GetSize(); iFace++ ) {
+	
+	// get local face number
+	Integer locFace = mesh2PdeFace_[ faces[iFace] -1 ];
+	
+        eqns.Push_back( map[locFace-1][dof-1] );
+      }
+    }
+      
+
+
+    // =============
+    //  ELEM PART
+    // =============
+    if( result.definedOn == ResultInfo::ELEMENT  ||
+        result.definedOn == ResultInfo::PFEM ) {
+      StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
+      UInt localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
+      if (localElem < 1 ) {
+        eqns.Push_back(0);
+      } else {
+        eqns.Push_back( elemMap[localElem-1][dof-1] );
+        LOG_DBG3(eqnMap) << "Pushin back eqn " <<  elemMap[localElem-1][dof-1]
+                         << " for interior of element #" 
+                         << it.GetElem()->elemNum << std::endl;
+      }
+    }
+
+    LOG_DBG3(eqnMap) << "Equations are: " << eqns.Serialize();
+    LOG_DBG3(eqnMap) << "Number of equations: " << eqns.GetSize() << std::endl;
+  }
   
   //! ======================================================================
   //! EQUATION MAPPING

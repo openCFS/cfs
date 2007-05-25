@@ -542,7 +542,7 @@ namespace CoupledField
 		
 		//add to RHS
 		eqnNr = eqnMap_->GetNodeEqn(node,dof );
-		algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr, 1);   
+		algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr);   
 		
 // 		if ( saveNodalSourcesRHS_ ) {
 // 		  valVec[0] = srcVal;
@@ -616,7 +616,7 @@ namespace CoupledField
               else
                 eqnNr = eqnMap_->GetNodeEqn(mapSD_allNodes_[idx],dof );
             
-              algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, 1);
+              algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr);
             }
           }//end else for frequency analysis
       }//end else in case nodalSrc is true
@@ -819,7 +819,7 @@ namespace CoupledField
                
                //add to RHS
                eqnNr = eqnMap_->GetNodeEqn(node,dof );
-               algsys_->SetNodeRHS(val, pdeId_, eqnNr, 1 ); 
+               algsys_->SetNodeRHS(val, pdeId_, eqnNr); 
                              
                if (vortexFlag_==6 || vortexFlag_==7)
                  {

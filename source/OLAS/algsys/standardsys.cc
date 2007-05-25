@@ -777,7 +777,7 @@ namespace OLAS {
   //   SetNodeRHS (Double)
   // ***********************
   void StandardSystem::SetNodeRHS( Double val, const PdeIdType identifierPDE,
-                                   Integer eqnNum, Integer comp ) {
+                                   Integer eqnNum ) {
 
     ENTER_IFCN( "StandardSystem::SetNodeRHS" );
 
@@ -788,7 +788,6 @@ namespace OLAS {
                << "\n size      = " << size_
                << "\n totalSize = " << totalSize_
                << "\n eqnNum    = " << eqnNum
-               << "\n comp      = " << comp
                << "\n val       = " << val
                << "\n SystemName is '"
                << myParams_.GetStringValue( "SystemName" ) << "'";
@@ -797,11 +796,11 @@ namespace OLAS {
 #endif
 
     // Delegate work to entry manipulation object
-    assemble_->SetNodeRHS( rhs_, val, eqnNum, comp );
+    assemble_->SetNodeRHS( rhs_, val, eqnNum  );
   }
 
   void StandardSystem::SetNodeRHS( Complex val, const PdeIdType identifierPDE,
-                                   Integer eqnNum, Integer comp ) {
+                                   Integer eqnNum  ) {
 
     ENTER_IFCN( "StandardSystem::SetNodeRHS" );
     
@@ -812,7 +811,6 @@ namespace OLAS {
                << "\n size      = " << size_
                << "\n totalSize = " << totalSize_
                << "\n eqnNum    = " << eqnNum
-               << "\n comp      = " << comp
                << "\n val       = " << val
                << "\n SystemName is '"
                << myParams_.GetStringValue( "SystemName" ) << "'";
@@ -821,7 +819,7 @@ namespace OLAS {
 #endif
     
     // Delegate work to entry manipulation object
-    assemble_->SetNodeRHS( rhs_, val, eqnNum, comp );
+    assemble_->SetNodeRHS( rhs_, val, eqnNum );
   }
 
 
@@ -864,14 +862,10 @@ namespace OLAS {
   // *************************
   //   SetDirichlet (Double)
   // *************************
-  void StandardSystem::SetDirichlet( UInt bcNum, const PdeIdType pdeID,
-                                     Integer eqnNum, const Double &val,
-                                     UInt comp ) {
+  void StandardSystem::SetDirichlet(const PdeIdType pdeID,
+                                     Integer eqnNum, const Double &val  ) {
 
     ENTER_IFCN( "StandardSystem::SetDirichlet" );
-
-    // add offset to the boundary value number
-    bcNum += bcOffsets_[ pdeID ];
 
     // Perform some consistency checks
 #ifdef DEBUG_STANDARDSYSTEM
@@ -881,14 +875,11 @@ namespace OLAS {
     UInt maxVal = usingPenalty == true ? size_ : size_ + numDirichletValues_;
     UInt minVal = usingPenalty == true ? 1 : size_ + 1;
 
-    if ( eqnNum > maxVal || eqnNum < minVal || comp < 1 || comp > 4 ||
-         bcNum > numDirichletValues_ ) {
+    if ( eqnNum > maxVal || eqnNum < minVal ) {
       (*error) << "StandardSystem::SetDirichlet: Inconsistency detected:"
-               << "\n bcNum  = " << bcNum
                << "\n pdeID  = " << pdeID
                << "\n eqnNum = " << eqnNum
                << "\n val    = " << val
-               << "\n comp   = " << comp
                << "\n numBC  = " << numDirichletValues_
                << "\n size   = " << size_
                << "\n minVal = " << minVal
@@ -900,21 +891,17 @@ namespace OLAS {
 #endif
 
     // Delegate work to IDBC handler
-    idbcHandler_->SetIDBC( pdeID, eqnNum, comp, bcNum, val );
+    idbcHandler_->SetIDBC( pdeID, eqnNum, val );
   }
 
 
   // **************************
   //   SetDirichlet (Complex)
   // **************************
-  void StandardSystem::SetDirichlet( UInt bcNum, const PdeIdType pdeID,
-                                     Integer eqnNum, const Complex &val,
-                                     UInt comp ) {
+  void StandardSystem::SetDirichlet( const PdeIdType pdeID,
+                                     Integer eqnNum, const Complex &val ) {
 
     ENTER_IFCN( "StandardSystem::SetDirichlet" );
-
-    // add offset to the boundary value number
-    bcNum += bcOffsets_[ pdeID ];
 
     // Perform some consistency checks
 #ifdef DEBUG_STANDARDSYSTEM
@@ -924,14 +911,11 @@ namespace OLAS {
     UInt maxVal = usingPenalty == true ? size_ : size_ + numDirichletValues_;
     UInt minVal = usingPenalty == true ? 1 : size_ + 1;
 
-    if ( eqnNum > maxVal || eqnNum < minVal || comp < 1 || comp > 4 ||
-         bcNum > numDirichletValues_ ) {
+    if ( eqnNum > maxVal || eqnNum < minVal || ) {
       (*error) << "StandardSystem::SetDirichlet: Inconsistency detected:"
-               << "\n bcNum  = " << bcNum
                << "\n pdeID  = " << pdeID
                << "\n eqnNum = " << eqnNum
                << "\n val    = " << val
-               << "\n comp   = " << comp
                << "\n numBC  = " << numDirichletValues_
                << "\n size   = " << size_
                << "\n minVal = " << minVal
@@ -941,7 +925,7 @@ namespace OLAS {
 #endif
 
     // Delegate work to IDBC handler
-    idbcHandler_->SetIDBC( pdeID, eqnNum, comp, bcNum, val );
+    idbcHandler_->SetIDBC( pdeID, eqnNum, val );
   }
 
 
@@ -1178,23 +1162,13 @@ namespace OLAS {
   // ************************
   void StandardSystem::AddToDiagMatrixEntry( FEMatrixType matrixID,
                                              const PdeIdType pdeID,
-                                             Integer eqnNum, UInt dof,
+                                             Integer eqnNum,
                                              Double *val ) {
 
     ENTER_IFCN( "StandardSystem::AddToDiagMatrixEntry" );
 
-    // Perform consistency checks
-#ifdef DEBUG_STANDARDSYSTEM
-    if ( dof > (UInt)blockSize_ || dof < 1 ) {
-      (*error) << "StandardSystem::AddToDiagMatrixEntry: Parameter dof = "
-               << dof << ", but must be in [1,blockSize_] with "
-               << "blockSize_ = " << blockSize_;
-      Error( __FILE__, __LINE__ );
-    }
-#endif
-
     // Delegate work to implementation in assemble class
-    assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, dof, val );
+    assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, val );
   }
   
   // ******************
@@ -1202,58 +1176,36 @@ namespace OLAS {
   // ******************
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum, 
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, UInt colDof,
+                                       Integer colEqnNum, 
                                        Double & val ) {
 
     ENTER_IFCN( "StandardSystem::GetMatrixEntry");
 
-    // Perform consistency checks
-#ifdef DEBUG_STANDARDSYSTEM
-    if ( dof > (UInt)blockSize_ || rowDof < 1 || colDof < 1) {
-      (*error) << "StandardSystem::GetMatrixEntry: Parameter rowDof = "
-               << rowDof << " and colDof = " << colDof 
-               << ", but must be in [1,blockSize_] with "
-               << "blockSize_ = " << blockSize_;
-      Error( __FILE__, __LINE__ );
-    }
-#endif
-    
     // Delegate work to implementation in assemble class
     assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID, 
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, rowDof,
-                               colEqnNum, colDof,  numLastFreeDof_[1],
+                               val, rowEqnNum, 
+                               colEqnNum, numLastFreeDof_[1],
                                numLastFreeDof_[1] );
     
   }
   
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum, 
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, UInt colDof,
+                                       Integer colEqnNum, 
                                        Complex & val ) {
     ENTER_IFCN( "StandardSystem::GetMatrixEntry");
     
 
-    // Perform consistency checks
-#ifdef DEBUG_STANDARDSYSTEM
-    if ( dof > (UInt)blockSize_ || rowDof < 1 || colDof < 1) {
-      (*error) << "StandardSystem::GetMatrixEntry: Parameter rowDof = "
-               << rowDof << " and colDof = " << colDof 
-               << ", but must be in [1,blockSize_] with "
-               << "blockSize_ = " << blockSize_;
-      Error( __FILE__, __LINE__ );
-    }
-#endif
-    
     // Delegate work to implementation in assemble class
     assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID, 
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, rowDof,
-                               colEqnNum, colDof,  numLastFreeDof_[1],
+                               val, rowEqnNum, 
+                               colEqnNum,  numLastFreeDof_[1],
                                numLastFreeDof_[1] );
   }
 
@@ -1263,54 +1215,33 @@ namespace OLAS {
 
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum, 
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, UInt colDof,
+                                       Integer colEqnNum, 
                                        Double val, bool setCounterPart ) {
     ENTER_IFCN( "StandardSystem::SetMatrixEntry");
 
-    // Perform consistency checks
-#ifdef DEBUG_STANDARDSYSTEM
-    if ( dof > (UInt)blockSize_ || rowDof < 1 || colDof < 1) {
-      (*error) << "StandardSystem::SetMatrixEntry: Parameter rowDof = "
-               << rowDof << " and colDof = " << colDof 
-               << ", but must be in [1,blockSize_] with "
-               << "blockSize_ = " << blockSize_;
-      Error( __FILE__, __LINE__ );
-    }
-#endif
-    
+     
     // Delegate work to implementation in assemble class
     assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID, 
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, rowDof,
-                               colEqnNum, colDof,  numLastFreeDof_[1],
+                               val, rowEqnNum,
+                               colEqnNum,  numLastFreeDof_[1],
                                numLastFreeDof_[1], setCounterPart );
   }
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum, 
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, UInt colDof,
+                                       Integer colEqnNum,
                                        Complex val, bool setCounterPart ) {
     ENTER_IFCN( "StandardSystem::SetMatrixEntry");
 
-        // Perform consistency checks
-#ifdef DEBUG_STANDARDSYSTEM
-    if ( dof > (UInt)blockSize_ || rowDof < 1 || colDof < 1) {
-      (*error) << "StandardSystem::SetMatrixEntry: Parameter rowDof = "
-               << rowDof << " and colDof = " << colDof 
-               << ", but must be in [1,blockSize_] with "
-               << "blockSize_ = " << blockSize_;
-      Error( __FILE__, __LINE__ );
-    }
-#endif
-    
-    // Delegate work to implementation in assemble class
+     // Delegate work to implementation in assemble class
     assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID, 
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, rowDof,
-                               colEqnNum, colDof,  numLastFreeDof_[1],
+                               val, rowEqnNum, 
+                               colEqnNum, numLastFreeDof_[1],
                                numLastFreeDof_[1], setCounterPart );
   }
 

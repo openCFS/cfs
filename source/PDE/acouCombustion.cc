@@ -332,7 +332,7 @@ namespace CoupledField
 	  //add to RHS
 	  eqnNr = eqnMap_->GetNodeEqn(nodeNr,dof );
 	  //	  std::cout << "node: " << srcVal << std::endl;
-	  algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr, 1);   
+	  algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr);   
 
 	  if ( variableSpeedOfSoundCN_ ) {
             //	    speedOfSound_.SetNodalResult(eqnNr, sos);

@@ -83,21 +83,15 @@ namespace OLAS {
     //!              the value must be stored
     //! \param eqnNo equation number for the degree of freedom whose value
     //!              should be set
-    //! \param comp  identifies the block component of the fixed degree of
-    //!              freedom in the case of dof blocking
-    //! \param bcNum specifies the number of this Dirichlet value in the
-    //!              range [1,..., no. inhom. Dirchlet BCs]
     //! \param val   inhomogeneous Dirichlet value
-    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                          const Double &val ) {
+    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Double &val ) {
       (*error) << "BaseIDBC_Handler::SetIDBC: The derived class does "
                << "obviously not support the Double version of this "
                << "interface! So it is probably a Complex instance!";
       Error( __FILE__, __LINE__ );
     }
 
-    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                          const Complex &val )  {
+    virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Complex &val )  {
       (*error) << "BaseIDBC_Handler::SetIDBC: The derived class does "
                << "obviously not support the Complex version of this "
                << "interface! So it is probably a Double instance!";

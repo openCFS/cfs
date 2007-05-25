@@ -97,16 +97,16 @@ namespace OLAS {
     void GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
-                         Double & entry, Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Double & entry, Integer eqnNr1,
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2 );
     
     //! Get an entry of a matrix (complex)
     void GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
-                         Complex & entry, Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Complex & entry, Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2 );
 
     //! Set directly an entry of a  matrix (real)
@@ -114,8 +114,8 @@ namespace OLAS {
                          const PdeIdType pdeID2, StdMatrix *stdMat,
                          BaseIDBC_Handler *idbcHandler,
                          Double entry,
-                         Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2, bool setCounterPart );
     
     //! Set directly an entry of a matrix (complex)
@@ -123,8 +123,8 @@ namespace OLAS {
                          const PdeIdType pdeID1,const PdeIdType pdeID2,
                          StdMatrix *stdMat, BaseIDBC_Handler *idbcHandler,
                          Complex entry,
-                         Integer eqnNr1, Integer eqnDof1,
-                         Integer eqnNr2, Integer eqnDof2,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
                          UInt limit1, UInt limit2, bool setCounterPart );
     //@}
 
@@ -135,10 +135,10 @@ namespace OLAS {
 
     //!
     void SetNodeRHS( StdVector *rhs, Double val, 
-                     Integer node, Integer dof );
+                     Integer node );
     //!
     void SetNodeRHS( StdVector *rhs, Complex val, 
-                     Integer node, Integer dof );
+                     Integer node );
                           
     //!
     void InitRHS( StdVector *rhs, const Double *newRHS);
@@ -149,9 +149,9 @@ namespace OLAS {
 
     //@{
     //! Set entry in a vector to specified value
-    void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    void SetVectorEntry( StdVector *vec, UInt index,
                          Double &newVal );
-    void SetVectorEntry( StdVector *vec, UInt index, UInt component,
+    void SetVectorEntry( StdVector *vec, UInt index,
                          Complex &newVal );
     //@}
 
@@ -226,17 +226,13 @@ namespace OLAS {
     //!                 coupled to the row/column of the entry; e.g. for
     //!                 \f$\mbox{eqnNum}=k\f$ it is \f$a_{kk}\f$ that will be
     //!                 altered
-    //! \param dof      gives the degree of freedom in the diagonal entry
-    //!                 that is to be changed; in the case of scalar entries
-    //!                 this should be 1, only in the case of block entries
-    //!                 may this be larger than 1
     //! \param val      zero-based array containing the numerical value that
     //!                 is to be added to the matrix entry; in the case of
     //!                 real entries, the first array value is used, in the
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
     void AddToDiagMatrixEntry( StdMatrix *stdMat, Integer eqnNum,
-                               Integer dof, Double *val );
+                               Double *val );
 
 
     // ======================================================================
@@ -251,14 +247,12 @@ namespace OLAS {
     //@{
     //! Modify system matrix for penalty approach
     void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
-                            UInt *dirichletComponent,
                             UInt numIDBC,
                             Double &penaltyTerm );
 
     //! Modify right-hand side vector following penalty approach
     void AdaptRHSForIDBC( StdVector &rhs,
                           UInt *dirichletEQN,
-                          UInt *dirichletComponent,
                           StdVector &dirichletValue,
                           Double &penaltyTerm,
                           UInt numIDBC );

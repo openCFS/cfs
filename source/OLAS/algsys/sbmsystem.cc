@@ -655,9 +655,8 @@ namespace OLAS {
   // *************************
   //   SetDirichlet (Double)
   // *************************
-  void SBM_System::SetDirichlet( UInt bcNum, const PdeIdType pdeID,
-                                 Integer eqnNum, const Double &val,
-                                 UInt comp ) {
+  void SBM_System::SetDirichlet(const PdeIdType pdeID,
+                                Integer eqnNum, const Double &val ) {
 
     ENTER_IFCN( "SBM_System::SetDirichlet" );
 
@@ -670,14 +669,11 @@ namespace OLAS {
       numLastFreeDof_[pdeID];
     UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
 
-    if ( eqnNum > maxVal || eqnNum < minVal || comp < 1 || comp > 4 ||
-         bcNum > numDirichletValues_ ) {
+    if ( eqnNum > maxVal || eqnNum < minVal  ) {
       (*error) << "SBMSystem::SetDirichlet: Inconsistency detected:"
-               << "\n bcNum           = " << bcNum
                << "\n pdeID           = " << pdeID
                << "\n eqnNum          = " << eqnNum
                << "\n val             = " << val
-               << "\n comp            = " << comp
                << "\n numBC           = " << numDirichletValues_
                << "\n size            = " << sizePerPDE_[pdeID]
                << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
@@ -690,16 +686,15 @@ namespace OLAS {
 #endif
 
     // Delegate work to IDBC handler
-    idbcHandler_->SetIDBC( pdeID, eqnNum, comp, bcNum, val );
+    idbcHandler_->SetIDBC( pdeID, eqnNum,  val );
   }
 
 
   // **************************
   //   SetDirichlet (Complex)
   // **************************
-  void SBM_System::SetDirichlet( UInt bcNum, const PdeIdType pdeID,
-                                 Integer eqnNum, const Complex &val,
-                                 UInt comp ) {
+  void SBM_System::SetDirichlet( const PdeIdType pdeID,
+                                 Integer eqnNum, const Complex &val ) {
 
     ENTER_IFCN( "SBM_System::SetDirichlet" );
 
@@ -711,14 +706,11 @@ namespace OLAS {
     UInt maxVal = sizePerPDE_[pdeID];
     UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
 
-    if ( eqnNum > maxVal || eqnNum < minVal || comp < 1 || comp > 4 ||
-         bcNum > numDirichletValues_ ) {
+    if ( eqnNum > maxVal || eqnNum < minVal ) {
       (*error) << "SBMSystem::SetDirichlet: Inconsistency detected:"
-               << "\n bcNum           = " << bcNum
                << "\n pdeID           = " << pdeID
                << "\n eqnNum          = " << eqnNum
                << "\n val             = " << val
-               << "\n comp            = " << comp
                << "\n numBC           = " << numDirichletValues_
                << "\n sizePerPDE      = " << sizePerPDE_[pdeID]
                << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
@@ -731,7 +723,7 @@ namespace OLAS {
 #endif
 
     // Delegate work to IDBC handler
-    idbcHandler_->SetIDBC( pdeID, eqnNum, comp, bcNum, val );
+    idbcHandler_->SetIDBC( pdeID, eqnNum, val );
   }
 
 
@@ -834,14 +826,14 @@ namespace OLAS {
   // ************************
   void SBM_System::AddToDiagMatrixEntry( FEMatrixType matrixID,
                                          const PdeIdType pdeID,
-                                         Integer eqnNum, UInt dof,
+                                         Integer eqnNum,
                                          Double *val ) {
 
     // Determine sub-matrix
     StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
 
     // Delegate work to implementation in assemble class
-    assemble_->AddToDiagMatrixEntry( stdMat, eqnNum, dof, val );
+    assemble_->AddToDiagMatrixEntry( stdMat, eqnNum,  val );
   }
 
  // ******************
@@ -849,9 +841,9 @@ namespace OLAS {
   // ******************
   void SBM_System::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, UInt colDof,
+                                       Integer colEqnNum,
                                        Double & val ) {
 
     ENTER_IFCN( "SBM_System::GetMatrixEntry");
@@ -862,9 +854,9 @@ namespace OLAS {
   
   void SBM_System::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, UInt rowDof,
+                                       Integer rowEqnNum, 
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum2, UInt colDof,
+                                       Integer colEqnNum2,
                                        Complex & val ) {
     ENTER_IFCN( "SBM_System::GetMatrixEntry");
     
@@ -877,9 +869,9 @@ namespace OLAS {
 
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
                                    const PdeIdType rowPdeID,
-                                   Integer rowEqnNum, UInt rowDof,
+                                   Integer rowEqnNum, 
                                    const PdeIdType colPdeID,
-                                   Integer colEqnNum, UInt colDof,
+                                   Integer colEqnNum, 
                                    Double val, bool setCounterPart ) {
     ENTER_IFCN( "SBM_System::SetMatrixEntry");
     Error( "Not implemented", __FILE__, __LINE__ );
@@ -887,9 +879,9 @@ namespace OLAS {
   
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
                                    const PdeIdType rowPdeID,
-                                   Integer rowEqnNum, UInt rowDof,
+                                   Integer rowEqnNum, 
                                    const PdeIdType colPdeID,
-                                   Integer colEqnNum, UInt colDof,
+                                   Integer colEqnNum,
                                    Complex val, bool setCounterPart ) {
     ENTER_IFCN( "SBM_System::SetMatrixEntry");
     Error( "Not implemented", __FILE__, __LINE__ );

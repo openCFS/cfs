@@ -61,13 +61,15 @@ namespace CoupledField {
     ListType ret;
     if( type == "elemList" ) {
       out = ELEM_LIST;
-    } else if( type == "surfElemList" ) {
+    } else if( type == "surfElemList" ||
+               type == "surfRegion") {
       out = SURF_ELEM_LIST;
     } else if( type == "ncElemList" ) {
       out = NC_ELEM_LIST;
     } else if( type == "nodeList" ) {
       out =  NODE_LIST;
-    } else if( type == "regionList" ) {
+    } else if( type == "regionList" ||
+               type == "region") {
       out = REGION_LIST;
     } else if( type == "numberList" ) {
       out = NUMBER_LIST;

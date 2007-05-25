@@ -945,6 +945,7 @@ namespace CoupledField {
     
      ENTER_FCN( "SinglePDE::SetBCs" );
   
+
      // Trigger setting of BC from script file
  #ifdef USE_SCRIPTING
      StdVector<std::string> context;
@@ -963,7 +964,6 @@ namespace CoupledField {
      UInt dof;
      Double val;
      StdVector<UInt> nodes;
-     UInt bcNum = 0;
      Integer eqnNr; 
      Vector<Double> globCoord;
    
@@ -971,13 +971,6 @@ namespace CoupledField {
      CoordSystem * coosy = domain->GetCoordSystem();
      MathParser * parser = domain->GetMathParser();
   
-     // set offset due to IDBC comming from input coupling
-     if ( isIterCoupled_ ) {
-       bcNum = couplingBCsCounter_;
-     }
-     else {
-       bcNum = 0;
-     }
      
      // ---------------------------
      // INHOMOGENEOUS DIRICHLET BC
@@ -999,55 +992,59 @@ namespace CoupledField {
        for ( it.Begin(); !it.IsEnd(); it++ ) {
          
          try {
-           eqnNr = eqnMap_->GetEqn( *actBc.result, it, dof );
+           StdVector<Integer> eqns;
+           eqnMap_->GetEqns( eqns, *actBc.result, it, dof  );
            
-           // If iterator points to a node, pass the current coordinate
-           // to the parser
-           if( it.GetType() == EntityList::NODE_LIST ) {
+           // loop over all equations for the dirichlet conditions
+           for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++){
+             eqnNr = eqns[iEqn];
              
-             // Get node coordinate
-             ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
-             parser->SetCoordinates( mHandle_, *coosy, globCoord );
-           }
-           
-           // Now evaluate value of IDBC
-           parser->SetExpr( mHandle_, actBc.value );
-           val = parser->Eval( mHandle_ );
-           
-           // Sanity check. This should not happen, but might appear
-           // in the case that the same node/dof belongs to a region
-           // with hom. and a region with inhom. Dirichlet BCs. This
-           // problem was already encountered!
-           if (eqnNr == 0) {
+             // If iterator points to a node, pass the current coordinate
+             // to the parser
+             if( it.GetType() == EntityList::NODE_LIST ) {
+               // Get node coordinate
+               ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
+               parser->SetCoordinates( mHandle_, *coosy, globCoord );
+             } else {
+               
+               // this case needs to be implemented ...
+             }
              
-             EXCEPTION( "Got eqn number 0 for inhom Dirichlet BC! "
-                        << "Probably you have a node/dof that belongs to both "
-                        << "a region with hom. and one with inhom. Dirichlet BCs."
-                        << " Go check your .mesh file!" );
-           }
-           
-           // Transform Dirichlet boundary conditions for effmass-formulation
-           if (effectiveMass_) {
-             val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-           }
-           
-           // Case of complex-valued entries
-           if (analysistype_ == HARMONIC ) {
+             // Now evaluate value of IDBC
+             parser->SetExpr( mHandle_, actBc.value );
+             val = parser->Eval( mHandle_ );
              
-             parser->SetExpr( mHandle_, actBc.phase );
-             phase = parser->Eval( mHandle_ );
-             //Complex complexValue( val * std::cos( phase / 180 * PI ),
-             //                      val * std::sin( phase / 180 * PI ) );
-             Complex complexValue( val * cos( phase / 180 * PI ),
-                                   val * sin( phase / 180 * PI ) );
-             algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, complexValue,
-                                    1 );
+             // Sanity check. This should not happen, but might appear
+             // in the case that the same node/dof belongs to a region
+             // with hom. and a region with inhom. Dirichlet BCs. This
+             // problem was already encountered!
+             if (eqnNr == 0) {
+               
+               EXCEPTION( "Got eqn number 0 for inhom Dirichlet BC! "
+                          << "Probably you have a node/dof that belongs to both "
+                          << "a region with hom. and one with inhom. Dirichlet BCs."
+                          << " Go check your .mesh file!" );
+             }
+             
+             // Transform Dirichlet boundary conditions for effmass-formulation
+             if (effectiveMass_) {
+               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+             }
+             
+             // Case of complex-valued entries
+             if (analysistype_ == HARMONIC ) {
+               
+               parser->SetExpr( mHandle_, actBc.phase );
+               phase = parser->Eval( mHandle_ );
+               Complex complexValue( val * cos( phase / 180 * PI ),
+                                     val * sin( phase / 180 * PI ) );
+               algsys_->SetDirichlet(  pdeId_, eqnNr, complexValue);
+             }
+             else {
+               //	  std::cout << "IHDBC val=" << val << std::endl;
+               algsys_->SetDirichlet( pdeId_, eqnNr, val );
+             }
            }
-           else {
-             //	  std::cout << "IHDBC val=" << val << std::endl;
-             algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, 1 );
-           }
-           bcNum++;
          } catch (Exception& ex ) {
            RETHROW_EXCEPTION(ex, pdename_ << ": Could not apply Inhom. Dirichlet boundary condition "
                              << " for nodes '" <<  actBc.entities->GetName() 
@@ -1600,7 +1597,7 @@ namespace CoupledField {
     algsys_->SetBlockSize( pdeId_, 1 );
     
     UInt numDir = eqnMap_->GetNumInHomDirichletEqns() +
-      eqnMap_->GetNumConstraintSlaveEqns() + numCouplingBcs_;
+      numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
@@ -1798,7 +1795,7 @@ namespace CoupledField {
             eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
             if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-                                   eqnNr, 1 );
+                                   eqnNr );
             }
 
 #ifdef DEBUG
@@ -1856,8 +1853,8 @@ namespace CoupledField {
 	      //	      std::cerr << "node=" << *nodes)[j]
             }
 
-            algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,
-                                   help[dof+j*couplingDof], 1 );
+            algsys_->SetDirichlet( pdeId_, eqnNr,
+                                   help[dof+j*couplingDof] );
           }
         }
         break;

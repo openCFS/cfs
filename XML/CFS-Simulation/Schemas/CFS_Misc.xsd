@@ -127,8 +127,8 @@
   <!-- Data type for describing type of entities -->
   <xsd:simpleType name="DT_EntityType">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="regionList"/>
-      <xsd:enumeration value="surfRegionList"/>
+      <xsd:enumeration value="region"/>
+      <xsd:enumeration value="surfRegion"/>
       <xsd:enumeration value="nodeList"/>
       <xsd:enumeration value="elemList"/>
       <xsd:enumeration value="surfElemList"/>
