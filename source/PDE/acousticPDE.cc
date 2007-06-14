@@ -295,24 +295,6 @@ namespace CoupledField {
 
       NonLinType actType;
       String2Enum( actTypeString, actType );
-      
-      // check for specific types
-      if( actType == WESTERVELT ) {
-        nonLin_ = true;
-        if ( formulation_ == ACOU_POTENTIAL ) 
-          EXCEPTION( "Acoustic potential formulation not supported for "
-                     << "Westervelt equation" );
-      } else if( actType == KUZNETSOV ) {
-        nonLin_ = true;
-        if ( formulation_ == ACOU_PRESSURE ) {
-          EXCEPTION( "Acoustic pressure formulation not supported for"
-                     << "Kuznetsov equation!" );
-        }
-      } else if( actType == VARIABLE_SOS_CN1 ||
-                 actType == VARIABLE_SOS_CN2 ||
-                 actType == VARIABLE_SOS_CN2Mean ) {
-        variableSpeedOfSoundCN_ = true;
-      }
       nonLinIdType_[actId] = actType;
     }
     
@@ -343,7 +325,29 @@ namespace CoupledField {
       }
       
       regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
+
+      // get related type of nonlinearity
+      NonLinType actType = nonLinIdType_[actNonLinId];
+      regionNonLinType_[actRegionId] = actType;
+
+
+      // check for specific types
+      if( actType == WESTERVELT ) {
+        nonLin_ = true;
+        if ( formulation_ == ACOU_POTENTIAL ) 
+          EXCEPTION( "Acoustic potential formulation not supported for "
+                     << "Westervelt equation" );
+      } else if( actType == KUZNETSOV ) {
+        nonLin_ = true;
+        if ( formulation_ == ACOU_PRESSURE ) {
+          EXCEPTION( "Acoustic pressure formulation not supported for"
+                     << "Kuznetsov equation!" );
+        }
+      } else if( actType == VARIABLE_SOS_CN1 ||
+                 actType == VARIABLE_SOS_CN2 ||
+                 actType == VARIABLE_SOS_CN2Mean ) {
+        variableSpeedOfSoundCN_ = true;
+      }
       
       // Log to info file
       std::string nonLinString;

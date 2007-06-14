@@ -170,6 +170,7 @@ namespace CoupledField {
       coilNode->Get( "windingCrossSection", windingCrossSection_ );
       coilNode->Get( "value", value_ );
       coilNode->Get( "phase", phase_, false );
+      coilNode->Get( "saveFileL",  saveFileL_, false );
 
       // Try to lead flow direction
       StdVector<ParamNode *> dirNodes= 

@@ -238,6 +238,10 @@ namespace CoupledField
                                      const StdVector<Elem*> & elemList,
 				     bool onlyLinNodes = false ) = 0;
 
+    //! Returns the global midpoint of an element
+
+    //! This method return the global midpoint of an element
+    virtual void GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) = 0;
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
