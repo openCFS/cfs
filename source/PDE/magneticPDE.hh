@@ -110,7 +110,8 @@ namespace CoupledField
 
     //! Calculate the total flux/flux derivative
     template<class TYPE>
-    void CalcFlux( shared_ptr<BaseResult> result, 
+    void CalcFlux( shared_ptr<Coil>, 
+                   TYPE& flux, 
                    bool timeDeriv );
 
     //! computation of force (virtual work principle)
@@ -170,13 +171,8 @@ namespace CoupledField
     StdVector<shared_ptr<Coil> > coilDef_;
     
     //! Write the induced voltage to file
-    void WriteUI2File(Vector<Double>& uiSD);
-
-    //! file for informational output of coils
-    std::ofstream * UIfile_; 
-    
-    //! name of file for saving current/voltage values
-    std::string UIfilename_;
+    template<class TYPE>
+    void WriteUI2File( );
     
     //@}
 

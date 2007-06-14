@@ -436,18 +436,9 @@ namespace CoupledField {
       String2Enum( actTypeString, actType );
       nonLinIdType_[actId] = actType;
 
-      // check type
-      if( actType == GEOMETRIC ) {
-        nonLin_ = TRUE;
-      }
-
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
     }
     
-    // Run over all region and set entry in "regionNonLinId"
+    // Run over all regions and get entry in "regionNonLinId"
     StdVector<ParamNode*> regionNodes = 
       myParam_->Get("regionList")->GetChildren();
     
@@ -475,7 +466,20 @@ namespace CoupledField {
       }
       
       regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
+
+      // ger related type of nonlinearity
+      NonLinType actType = nonLinIdType_[actNonLinId];
+      regionNonLinType_[actRegionId] = actType;
+
+      // check type
+      if( actType == GEOMETRIC ) {
+        nonLin_ = TRUE;
+      }
+
+      if( actType == MATERIAL ) {
+        nonLin_ = true;
+        nonLinMaterial_ = true;
+      }
       
       // Log to info file
       std::string nonLinString;

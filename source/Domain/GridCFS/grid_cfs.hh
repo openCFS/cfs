@@ -400,6 +400,13 @@ namespace CoupledField
     Double CalcVolumeOfRegion( const RegionIdType regionId ,
                                bool isaxi = false,
                                bool updated = false);
+
+    
+    //! Returns the global midpoint of an element
+    
+    //! This method return the global midpoint of an element
+    void GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord );
+
     //@}
 
 

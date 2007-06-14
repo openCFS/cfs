@@ -286,7 +286,15 @@ namespace CoupledField {
         entityDist[iNode] = temp.NormL2();
       } // nodes
     } else {
-     
+      // === loop over elements ===
+      entityDist.resize(numElems_);
+      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
+        
+        // calculate distance and store it in vector
+        GetGlobalElemMidPoint( iElem+1, actEntCoord );
+        temp = (actEntCoord-coord    );
+        entityDist[iElem] = temp.NormL2();
+      } // elems
     }
     
     // find minimum entry in the vector
@@ -401,20 +409,13 @@ namespace CoupledField {
         // iterate over all elements
         for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
           
-        Elem * actElem = orderedElems_[iElem];
-        BaseFE * ptFE = actElem->ptElem;
-        
-        GetElemNodesCoord( connectCoord, actElem->connect, false );
-        ptFE->GetCoordMidPoint(locMidPoint);
-        ptFE->Local2GlobalCoord( actEntCoord, locMidPoint, 
-                                 connectCoord, actElem );
-        
-        temp = (actEntCoord-globCoord );
-        entityDist[iElem] = temp.NormL2();
+          GetGlobalElemMidPoint( iElem+1, actEntCoord );
+           temp = (actEntCoord-globCoord );
+          entityDist[iElem] = temp.NormL2();
         } // elements
         
       }
-        
+      
       // find minimum entry in the vector
       std::vector<Double>::iterator it ;
       it = min_element(entityDist.begin(), entityDist.end());
@@ -2416,6 +2417,26 @@ namespace CoupledField {
     return volume;
   }
   
+  void GridCFS::GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) {
+    ENTER_FCN( "GridCFS::GetGlobalElemMidPoint" );
+
+    if( elemNum > numElems_ ) {
+      EXCEPTION("Eleement number " << elemNum << " is bigger than total "
+                << "number of elements within the grid" );
+    }
+    Vector<Double> locMidPoint;
+    Matrix<Double> connectCoord;
+    
+    Elem * actElem = orderedElems_[elemNum-1];
+    BaseFE * ptFE = actElem->ptElem;
+    
+    GetElemNodesCoord( connectCoord, actElem->connect, false );
+    ptFE->GetCoordMidPoint(locMidPoint);
+    ptFE->Local2GlobalCoord( coord, locMidPoint, 
+                             connectCoord, actElem );
+    
+  }
+
 
 #ifdef ADAPTGRID
   

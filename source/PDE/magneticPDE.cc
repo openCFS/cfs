@@ -18,6 +18,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
+#include "Utils/coordSystem.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -97,11 +98,6 @@ namespace CoupledField {
       NonLinType actType;
       String2Enum( actTypeString, actType );
       
-      // check type
-      if( actType == PERMEABILITY ) {
-        nonLin_ = TRUE;
-      }
-
       nonLinIdType_[actId] = actType;
     }
 
@@ -143,6 +139,12 @@ namespace CoupledField {
       
     }
 
+    // set nonlinearity flag only, if any region references
+    // a nonlinearity at all
+    if( regionNonLinId_.size() > 0 ) {
+      nonLin_ = TRUE;
+    }
+    
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
     ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
@@ -508,56 +510,17 @@ namespace CoupledField {
       Warning( "Resulttype not computable by magnetic PDE",
                __FILE__, __LINE__ );
     }
+
+    // In any case, we should trigger calculation of magnetic
+    // quantities
+    if( isComplex_ ) {
+      WriteUI2File<Complex>();
+    } else {
+      WriteUI2File<Double>();
+    }
   }
 
   
-
-  //  void MagPDE::PostProcess() {
-
-  //     ENTER_FCN( "MagPDE::PostProcess" );
-
-  //     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-  
-  //     if (calcEnergy_.GetSize() !=0 )
-  //       CalcEnergy();
-
-  //     if (calcBfield_.GetSize() !=0 ) {
-
-
-
-
-
-
-  //     if (UIfilename_.size() > 0 && analysistype_ == TRANSIENT) {
-  //       Vector<Double> uiSD;
-  //       ComputeUI(uiSD);
-  //       WriteUI2File(uiSD);
-  //     }
-
-  //     //check for force computation
-  //     if ( calcForceVWP_.GetSize() > 0 ) {
-  //       Vector<Double> totalForce;
-  //       Vector<Double> ForceValues(dim_*ForceNodes_.GetSize());
-
-  //       ForceOpVWP_->CalcNodeForce(ForceValues, totalForce);
-
-  //       // put information into storesol
-
-  //       UInt actPos =  0;
-  //       for (UInt iNode = 0; iNode < ForceNodes_.GetSize(); iNode++) {
-  //         for (UInt iDof = 0; iDof < dim_; iDof++) {
-  //           Force_(ForceNodes_[iNode]-1,iDof) = ForceValues[actPos++];
-  //         }
-  //       }
-
-
-  //       // write information in .info-file
-  //       Info->PrintF(pdename_, "Sum of magnetic force (VWM):\n");
-  //       Info->PrintVec(totalForce);
-  //     }
-
-  //     // Last but no least trigger postprocessing fromt within script-file
-  //   }
 
   void MagPDE::CalcForceVWP( shared_ptr<BaseResult> result ) {
     ENTER_FCN( "MagPDE::CalcForceVWP" );
@@ -769,120 +732,168 @@ namespace CoupledField {
   //   ComputeUI
   // *************
   template<class TYPE>
-  void MagPDE::CalcFlux( shared_ptr<BaseResult> result,
+  void MagPDE::CalcFlux( shared_ptr<Coil> coil, 
+                         TYPE& flux,
                          bool timeDeriv ) {
 
     ENTER_FCN( "MagPDE::ComputeUI" );
 
-    Warning( "Do implementation! -> Also for the coils and UI!",
-             __FILE__, __LINE__ );
+    Vector<Double> elemMidPoint, flowDir(3);
 
-//     uiSD.Resize(coilDef_.GetSize());
-//     uiSD.Init();
-  
-//     // loop over all subdomains
-//     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    // get math parser
+    MathParser * parser = domain->GetMathParser();
+    MathParser::HandleType h1, h2, h3;
+    h1 = parser->GetNewHandle();
+    h2 = parser->GetNewHandle();
+    h3 = parser->GetNewHandle();
 
-//       for (UInt dom=0; dom<coilDef_.GetSize(); dom++) {
-//         if (subdoms_[actSD] == coilRegionId_[dom]) {
-           
-//           ElemList actSDList(ptgrid_ );
-//           actSDList.SetRegion( subdoms_[actSD] );
+    // get current coil
+    shared_ptr<Coil> actCoil = coil;
+    flux = 0.0;
+    
+    // get related region
+    ElemList actSDList(ptgrid_ );
+    actSDList.SetRegion( actCoil->coilRegionId_ );
+    
+    // get coordinate system of coil
+    CoordSystem * coilCosy;
+    if( actCoil->flowCoordSys_ ) {
+      coilCosy = actCoil->flowCoordSys_;
+    } else {
+      coilCosy = domain->GetCoordSystem("default");
+    }
+    
+    // if we are in 3d, set flow coordinate directions at parser
+    if( is3d_ ) {
+      parser->SetValue( h1, coilCosy->GetDofName(1), actCoil->locFlowDir_[0] );
+      parser->SetValue( h2, coilCosy->GetDofName(2), actCoil->locFlowDir_[1] );
+      parser->SetValue( h3, coilCosy->GetDofName(3), actCoil->locFlowDir_[2] );
+      parser->SetExpr(h1, coilCosy->GetDofName(1) );
+      parser->SetExpr(h2, coilCosy->GetDofName(2) );
+      parser->SetExpr(h3, coilCosy->GetDofName(3) );
+    }
+    
+    // loop over elements of region
+    EntityIterator it = actSDList.GetIterator();
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      BaseFE * ptEl = it.GetElem()->ptElem;
+        
+      const UInt nrIntPts= ptEl->GetNumIntPoints();
+      const Vector<Double> & intWeights = ptEl->GetIntWeights();  
+      Double jacDet;
+      
+      StdVector<UInt> connect;
+      connect = it.GetElem()->connect;
+      
+      Matrix<Double> ptCoord;
+      ptgrid_->GetElemNodesCoord( ptCoord, connect, true );
+      
+      Vector<TYPE> magVecDeriv1Elem, temp;
+      if( timeDeriv ) {
+        GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
+      } else {
+        GetSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
+      }
+      
+      TYPE uiElem=0;
+      
+      if( is3d_ ) {
+        
+        // calculate global midpoint and register coordinates with
+        // mathParser
+        ptgrid_->GetGlobalElemMidPoint( it.GetElem()->elemNum, 
+                                        elemMidPoint );
+        parser->SetCoordinates( h1, *coilCosy, elemMidPoint );
+        parser->SetCoordinates( h2, *coilCosy, elemMidPoint );
+        parser->SetCoordinates( h3, *coilCosy, elemMidPoint );
+        
+        // evaluate flux direction
+        flowDir[0] = parser->Eval( h1 );
+        flowDir[1] = parser->Eval( h2 );
+        flowDir[2] = parser->Eval( h3 );
+        // normalize flux
+        flowDir = flowDir/flowDir.NormL2();
+        
+        // calculate scalar product of potential and unit 
+        // vector in current direction A * e_j
+        temp = magVecDeriv1Elem;
+        magVecDeriv1Elem.Resize((UInt)magVecDeriv1Elem.GetSize()/3);
+        magVecDeriv1Elem.Init();
+        UInt j = 0;
+        for( UInt i = 0; i < magVecDeriv1Elem.GetSize(); i=i+3, j++ ) {
+          magVecDeriv1Elem[j] += temp[i] * flowDir[0];
+          magVecDeriv1Elem[j] += temp[i] * flowDir[1];
+          magVecDeriv1Elem[j] += temp[i] * flowDir[2];
+        }
           
-//           EntityIterator it = actSDList.GetIterator();
-//           for ( it.Begin(); !it.IsEnd(); it++ ) {
-//             BaseFE * ptEl = it.GetElem()->ptElem;
-                
-//             const UInt nrIntPts= ptEl->GetNumIntPoints();
-//             const Vector<Double> & intWeights = ptEl->GetIntWeights();  
-//             Double jacDet;
-                
-//             StdVector<UInt> connect;
-//             connect = it.GetElem()->connect;
-
-//             Matrix<Double> ptCoord;
-//             ptgrid_->GetElemNodesCoord( ptCoord, connect, true );
-
-//             Vector<Double> magVecDeriv1Elem;
-//             if( timeDeriv ) {
-//               GetDerivSolVecOfElement(magVecDeriv1Elem,it);
-//             } else {
-//               GetSolVecOfElement(magVecDeriv1Elem,it);              
-//             }
-//             Double uiElem=0;
-                
-//             for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-//               Vector<Double> shapeFnc;
-//               jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord, 
-//                                                  it.GetElem());    
-//               ptEl -> GetShFncAtIp(shapeFnc, actIntPt, it.GetElem() );
-
-//               uiElem += shapeFnc * magVecDeriv1Elem;
-                    
-//               if (isaxi_) {
-//                 Vector<Double> coordAtIP;
-//                 coordAtIP = ptCoord * shapeFnc;
-//                 uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
-//                   * intWeights[actIntPt-1] * jacDet;
-//               }
-//               else {
-//                 uiElem += shapeFnc * magVecDeriv1Elem 
-//                   * intWeights[actIntPt-1] * jacDet;
-//               }
-//             }
-            
-//             uiSD[dom] += uiElem;
-//           }    
-//         }
-//       }
-//     }
+      } 
+      
+      for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+        Vector<Double> shapeFnc;
+        jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord, 
+                                           it.GetElem());    
+        ptEl -> GetShFncAtIp(shapeFnc, actIntPt, it.GetElem() );
+        
+        uiElem += shapeFnc * magVecDeriv1Elem;
+        
+        if (isaxi_) {
+          Vector<Double> coordAtIP;
+          coordAtIP = ptCoord * shapeFnc;
+          uiElem += magVecDeriv1Elem * 
+            shapeFnc  * (2.0 * PI * coordAtIP[0]
+                         * intWeights[actIntPt-1] * jacDet);
+        }
+        else {
+          uiElem += magVecDeriv1Elem * shapeFnc 
+            * intWeights[actIntPt-1] * jacDet;
+        }
+      }
+      
+      flux += uiElem;
+    } 
+    parser->ReleaseHandle(h1);
+    parser->ReleaseHandle(h2);
+    parser->ReleaseHandle(h3);
   }
 
 
   // ***************************************************
   //   Store currents/voltages and inductivity in file
   // ***************************************************
-  void MagPDE::WriteUI2File(Vector<Double>& uiSD) {
+  template<class TYPE>
+  void MagPDE::WriteUI2File( ) {
 
     ENTER_FCN( "MagPDE::WriteUI2File" );
 
-    Vector<UInt> coilIDs;   // just positive ids
-    coilIDs.Push_back(abs(coilDef_[0]->id_));
-
-    Integer maxID = coilDef_[0]->id_;
-
-    for (UInt dom=1; dom < coilDef_.GetSize(); dom++) {
-
-      bool isInVec = false;
+    // Check analysis type
+    if( analysistype_ == TRANSIENT ||
+        analysistype_ == HARMONIC ) {
       
-      for (UInt dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
-        if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
-          isInVec = true;
-      
-      if (!isInVec)
-        coilIDs.Push_back(abs(coilDef_[dom]->id_));
-      
-      if (abs(coilDef_[dom]->id_) > maxID)
-        maxID = coilDef_[dom]->id_;
+      // iterate over all coils
+      for( UInt iCoil = 0; iCoil < coilDef_.GetSize(); iCoil++ ) {
+        
+        shared_ptr<Coil> actCoil = coilDef_[iCoil];
+
+        // if coil needs to compuet U, trigger calculation
+        TYPE voltage = 0.0;
+        if( actCoil->fileU_ ) {
+          CalcFlux<TYPE>( actCoil, voltage, true );
+          std::ofstream * uOut = actCoil->fileU_;
+          *uOut << solveStep_->GetActStep() << " \t";
+          *uOut << voltage * actCoil->windingCrossSection_ << " \n";
+        }
+
+        // if coil needs to comput L, trigger calculation
+        TYPE induct = 0.0;
+        if( actCoil->fileL_ ) {
+          CalcFlux<TYPE>( actCoil, induct, false );
+          std::ofstream * lOut = actCoil->fileL_;
+          *lOut << solveStep_->GetActStep() << " \t";
+          *lOut << induct * actCoil->windingCrossSection_ << " \n";
+        }
+      }
     }
 
-    Vector<Double> uiID(maxID);
-    uiID.Init();
-
-    for (UInt dom=0; dom < coilDef_.GetSize(); dom++) {
-      Integer actCoilID = coilDef_[dom]->id_;
-      uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
-    }
-
-    *UIfile_ << solveStep_->GetActTime() << " \t";
-    for (UInt actID=0; actID < coilIDs.GetSize(); actID++) {
-      if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
-        *UIfile_ << uiID[coilIDs[actID]-1] *
-          coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
-    }
-  
-    *UIfile_ << myEndl;
-  
   }
 
 
@@ -1087,7 +1098,7 @@ namespace CoupledField {
     // a) Either we calculate the force-density or
     // b) We calculate only the sum of the nodes. However
     //    since we have no possibility to associate a 
-    //    result on "nameNodesName", we should consider
+    //    result on "namedNodesName", we should consider
     //    using a surface mesh for the determination of the
     //    virtual work principle
     

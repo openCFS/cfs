@@ -376,6 +376,8 @@
           <xsd:element name="phase"      type="xsd:token" minOccurs="0"
             default="0"/>
           <xsd:element name="flowDirection" type="DT_FlowDirection"/>
+          <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
+            default="none"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

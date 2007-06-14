@@ -88,16 +88,6 @@ namespace CoupledField {
       NonLinType actType;
       String2Enum( actTypeString, actType );
       nonLinIdType_[actId] = actType;
-
-      // check type
-      if( actType == HYSTERESIS ) {
-        isHysteresis_ = true;
-      }
-
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
     }
     
     // Run over all region and set entry in "regionNonLinId"
@@ -127,7 +117,20 @@ namespace CoupledField {
       }
       
       regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
+
+      // get related type of nonlinearity
+      NonLinType actType = nonLinIdType_[actNonLinId];
+      regionNonLinType_[actRegionId] = actType;
+
+      // check type
+      if( actType == HYSTERESIS ) {
+        isHysteresis_ = true;
+      }
+
+      if( actType == MATERIAL ) {
+        nonLin_ = true;
+        nonLinMaterial_ = true;
+      }
 
       // Log to info file
       std::string nonLinString;
