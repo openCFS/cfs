@@ -182,7 +182,7 @@ namespace CoupledField {
           for( it.Begin(); !it.IsEnd(); it++ ) {
 
             // write node/elem/region number
-            actFile << (this->*pt2Func)(it) << delim_;
+            actFile << (this->*pt2Func)(it);
             
             // print value(s)
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
@@ -217,11 +217,12 @@ namespace CoupledField {
               
           for( it.Begin(); !it.IsEnd(); it++ ) {
             // write node/elem/region info (number + evtl. coordinates )
-            actFile << (this->*pt2Func)(it) << delim_;           
+            actFile << (this->*pt2Func)(it);
             
             // print value(s)
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-              actFile << (this->*ptComplexOutput)( vec[it.GetPos()*numDofs + iDof] );
+              actFile << delim_ << 
+                (this->*ptComplexOutput)( vec[it.GetPos()*numDofs + iDof] );
             }
             actFile << std::endl;
           }
