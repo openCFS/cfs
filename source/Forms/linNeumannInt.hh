@@ -30,6 +30,8 @@ namespace CoupledField
     void CalcElemVector( Vector<Complex> & elemVec,
                          EntityIterator& ent );
     
+    void SetAmplitude(const std::string& value) { amplitude_ = value; }
+    
   protected:
 
     /// comprises part of CalcElemVector, which is equal for double and complex

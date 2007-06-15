@@ -8,6 +8,9 @@ IF(USE_MPCCI)
   INCLUDE_DIRECTORIES(${MPCCI_INCLUDE_DIR})
 ENDIF(USE_MPCCI)
 
+IF(USE_IPOPT)
+  INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
+ENDIF(USE_IPOPT)
 
 SET(PDE_SRCS basePDE.cc StdPDE.cc SinglePDE.cc elecPDE.cc mechPDE.cc
   acousticPDE.cc newmark.cc timestepping.cc smoothPDE.cc magneticPDE.cc

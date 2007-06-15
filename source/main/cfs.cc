@@ -14,7 +14,6 @@
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
-#include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
@@ -25,10 +24,6 @@
 #include "Utils/profiler.hh"
 
 #include <def_use_mesh.hh>
-
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
 
 #ifdef MpCCI
 
@@ -69,20 +64,6 @@ int main( int argc, const char **argv ) {
   try 
     {
         
-  
-  // =========================================================================
-  // INITIALISATION OF MPI
-  // =========================================================================
-
-#ifdef PARALLEL //initialize MPI
-  int commrank,commsize;
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Init(&argc,(char***)(&argv));
-  MPI_Comm_size(comm, &commsize);
-  MPI_Comm_rank(comm, &commrank);
-#endif //parallel
-
-  
   // =========================================================================
   // TIMING
   // =========================================================================
@@ -333,7 +314,6 @@ int main( int argc, const char **argv ) {
 
   Info->FinishProgress();
 
-
   // =========================================================================
   // GENERATION OF DOMAIN OBJECT
   // =========================================================================
@@ -358,91 +338,14 @@ int main( int argc, const char **argv ) {
     return 0;
   }
 
-
-  // =========================================================================
-  // SELECTION OF DRIVER
-  // =========================================================================
-
-#ifdef ADAPTGRID
-  flags = new Flags();
-#endif
-
-  // Generate log message
-  Info->StartProgress( "Generating driver" );
-
-  BaseDriver   *ptdriver = NULL;
-  StdVector<std::string>  analysisTypes;
-
-  // Get number of occurences of step-variable
-  AnalysisType type;
-  UInt numSteps = param->Count( "sequenceStep" );
-
-  // a) if count is bigger than one -> create multiSequence
-  if( numSteps == 1 ) {
-    std::string analysisString;
-    UInt stepOffset = 0;
-    Double timeFreqOffset = 0;
-    UInt seqStep = 1;
-    std::string name = "sequenceStep";
-    std::string idx = "index";
-    std::string one = "1";
-
-    analysisString = 
-        param->Get(name, idx, one)->Get("analysis")->GetChild()->GetName();
-      String2Enum( analysisString, type );
-
-    // Generate driver
-    switch( type ) {
-    case STATIC:
-      
-      ptdriver = new StaticDriver( stepOffset, timeFreqOffset, seqStep );
-      break;
-      
-    case TRANSIENT:
-      ptdriver = new TransientDriver( stepOffset, timeFreqOffset, seqStep );
-      break;
-      
-    case HARMONIC:
-      // calls Driver for parameter identification, using harmonic analysis
-      if ( analysisString == "paramIdent" ) {
-        ptdriver = new piezoParamIdent(0, 0.0 );
-      }
-      else
-        ptdriver = new HarmonicDriver( stepOffset, timeFreqOffset, seqStep );
-      break;
-      
-    case TRANSIENTHARMONIC:
-      ptdriver = new TransientHarmonicDriver( stepOffset, timeFreqOffset, seqStep);
-      break;
-      
-    case EIGENFREQUENCY:
-      ptdriver = new EigenFrequencyDriver( seqStep);
-      break;
-      
-    default:
-      EXCEPTION( "Could not create driver" );
-    }
+   // Set up Problem
+  domain->PostInit();
     
-    // b) create multiSequence driver    
-  } else if( numSteps > 1 ) {
-    ptdriver = new MultiSequenceDriver( );
-  } else {
-    EXCEPTION( "At least one sequenceStep has to be provided" );
-  }
-  
-
-  // Initialize driver object and pass it to domain
-  domain->SetDriver( ptdriver );
   Info->FinishProgress();
-  ptdriver->Init();
-
-  
-
-  // =========================================================================
-  // SOLUTION PHASE
-  // =========================================================================
-
-  ptdriver->SolveProblem();
+    
+  // Solves the driver or optimization problem
+  domain->SolveProblem();
+    
   std::cout << std::endl;
   Info->StartProgress( "Finished solving the problem" );
   Info->FinishProgress();
@@ -476,7 +379,6 @@ int main( int argc, const char **argv ) {
 #endif
 
   // Delete objects
-  delete ptdriver;
   delete domain;
   delete Info;
   delete commandLine;
@@ -496,11 +398,6 @@ int main( int argc, const char **argv ) {
 #ifdef TRACE
   delete trace;
   trace = NULL;
-#endif
-
-  // Cleanup parallel stuff if it exists
-#ifdef PARALLEL
-  MPI_Finalize();
 #endif
   
   }  

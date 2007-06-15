@@ -650,6 +650,21 @@ namespace CoupledField {
     return false;
   }
 
+  void ResultHandler::Dump()
+  {
+    std::cout << "ResultHandler[sequenceStep=" << sequenceStep_ 
+              << "; actStep=" << actStep_ << " actStepVal=" << actStepVal_ 
+              << "; needed=" << isNeeded_.size() << "; updated=" << isUpdated_.size()
+              << std::endl;
+    
+    std::set<shared_ptr<BaseResult> >::iterator iter;
+    
+    for(iter = isNeeded_.begin(); iter !=  isNeeded_.end(); iter++)
+      std::cout << " needed: " << (*iter)->ToString() << std::endl;       
+
+    for(iter = isUpdated_.begin(); iter !=  isUpdated_.end(); iter++)
+      std::cout << " updated: " << (*iter)->ToString() << std::endl;       
+  }
 
   void ResultHandler::GetDefaultOutputs( shared_ptr<BaseResult> res,
                                          StdVector<std::string>& out ) {

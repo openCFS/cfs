@@ -95,7 +95,6 @@ namespace CoupledField
   }
 
  
-
   void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
                                shared_ptr<AnsatzFct> actFct2 ) {
     ENTER_FCN( "BaseForm::SetAnsatzFct" );
@@ -109,6 +108,13 @@ namespace CoupledField
       ansatzFct2_ = ansatzFct1_;
     } 
 
+  }
+
+   /** for ersatz material w and w/o SIMP. */
+  Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
+  {
+      Double factor = domain->GetErsatzMaterial(elem, this);
+      return factor > 0 ? factor : 1.0;
   }
   
 #ifndef INTEGLIB
@@ -175,6 +181,8 @@ namespace CoupledField
                                           it.GetElem()->connect,
                                           coordUpdate_ );
   }
+  
+  
 #endif
 
 }

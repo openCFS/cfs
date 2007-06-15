@@ -29,6 +29,8 @@ namespace CoupledField {
     //! Calculation of vector of right hand side 
     void CalcElemVector( Vector<Complex> & elemVec,
                          EntityIterator& ent );
+
+    void SetValue(const std::string& value) { value_ = value; }
     
   protected:
     

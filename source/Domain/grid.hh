@@ -377,9 +377,6 @@ namespace CoupledField
     //! Returns for a given region identifier the associated name
     virtual std::string RegionIdToName( const RegionIdType regionId );
 
-    //! Returns for a given region name the associated identifier
-    virtual RegionIdType RegionNameToId( const std::string & regionName );
-
     //! Returns for a list of region identifiers the associated names
     virtual void RegionIdToName( StdVector<std::string> & regionNames,
                                  const StdVector<RegionIdType> & regionId );
@@ -387,6 +384,9 @@ namespace CoupledField
     //! Returns for a list of region names  the associated identifiers
     virtual void RegionNameToId( StdVector<RegionIdType> & regionIds,
                                  const StdVector<std::string> & regionName );
+
+    //! Returns for a given region name the associated identifier
+    virtual RegionIdType RegionNameToId( const std::string & regionName );
 
 
 
@@ -610,9 +610,16 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Miscellaneous  
  
+    /** Convenience method for developers, dumps summary information to stdout */
+    void Dump();
 
 
-
+    /** Probes for the existence of a region name
+     * @param name the name to check - case sensitive */
+    bool HasRegion(const std::string & regionName)
+    {
+        return regionNames_.Find(regionName) != -1; 
+    }  
     //@}
   
 

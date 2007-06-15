@@ -141,6 +141,7 @@ namespace CoupledField {
     
       // Solve Problem
       actDriver_->SolveProblem();
+      actDriver_->StoreResults();
 
       // Get solution for next step and delete
       // all PDEs

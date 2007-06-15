@@ -250,7 +250,7 @@ namespace CoupledField {
     
     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
       if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[(abs(eqns[i]-1))];
+        elemSol[i] = sol[abs(eqns[i])-1];
       } else {
         elemSol[i] = 0.0;
       }

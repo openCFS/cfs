@@ -28,10 +28,20 @@ namespace CoupledField {
     
     //! set the pdes, which gets to be solved
     void SetPDE(BasePDE * pde);
-    
+
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    virtual void SolveProblem() = 0;
-  
+    //! There is an internal state consecutiveRun/isPartOfSequence which is controlled in the
+    //! optimization case via SetConsecutiveRun(). No internal state switch!
+    virtual void SolveProblem();
+
+    /** allows the manipulation of the driver "state" */
+    void SetConsecutiveRun(bool value) {
+        consecutiveRun_ = value;
+    };
+
+    /** implement abstract identification class */ 
+    DriverClass GetDriverClass() { return SINGLE_DRIVER; };
+
   protected:
   
     //! Trigger reading of restart
@@ -43,8 +53,11 @@ namespace CoupledField {
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 
-    //! true, if driver is part of a multiSequence
+    //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
+    
+    //! Also used for tagging runs after the first run in optimization case. See SolveStep() 
+    bool consecutiveRun_;
 
     //! current sequences step in multiSequence simulation
     UInt sequenceStep_;

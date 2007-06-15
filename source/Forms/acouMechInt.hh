@@ -59,7 +59,7 @@ namespace CoupledField {
     //! element matrix \f$C\f$ is of dimension \f$ (n*dim) \times n\f$.
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+                            EntityIterator& ent2);
 
   private:
     

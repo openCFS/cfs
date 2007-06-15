@@ -180,11 +180,13 @@ XML/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
+XML/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 XML/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 XML/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
+XML/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
 XML/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEacousticXYZ.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
@@ -229,6 +231,7 @@ auxiliary/scripts/log.tcl svneol=native#text/x-tcl
 auxiliary/scripts/xmlreplace.py -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
+cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindMpCCI.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindXerces.cmake -text
@@ -245,16 +248,19 @@ include/def_use_gidpost.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
 include/def_use_ilupack.hh.in -text
+include/def_use_ipopt.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_mpcci.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_python.hh.in -text
+include/def_use_scpip.hh.in -text
 include/def_use_scripting.hh.in -text
 include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
+include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 source/CoupledPDE/AcouMechCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/AcouMechCoupling.hh svneol=native#text/x-c%2B%2Bhdr
@@ -687,6 +693,8 @@ source/Forms/stokesFluidInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/stokesFluidPlaneInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/stokesFluidPlaneInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/CMakeLists.txt svneol=native#text/plain
+source/General/Enum.cc -text
+source/General/Enum.hh -text
 source/General/defs.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/environment.cc svneol=native#text/x-c%2B%2Bsrc
 source/General/environment.hh svneol=native#text/x-c%2B%2Bhdr
@@ -929,6 +937,7 @@ source/OLAS/utils/Enum.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/utils/Enum.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/OLAS/utils/Exception.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/utils/Exception.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/OLAS/utils/TEnum.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/defs.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/environment-olas.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/environment.hh svneol=native#text/x-c%2B%2Bhdr
@@ -948,6 +957,32 @@ source/OLAS/utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/tools-olas.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/utils.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/CMakeLists.txt -text
+source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/DesignElement.cc -text
+source/Optimization/DesignElement.hh -text
+source/Optimization/DesignSpace.cc -text
+source/Optimization/DesignSpace.hh -text
+source/Optimization/IPOPT.cc -text
+source/Optimization/IPOPT.hh -text
+source/Optimization/Makefile svneol=native#text/plain
+source/Optimization/Optimization.cc svneol=native#text/plain
+source/Optimization/Optimization.hh svneol=native#text/plain
+source/Optimization/PiezoSIMP.cc -text
+source/Optimization/PiezoSIMP.hh -text
+source/Optimization/SCPIP.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/SCPIP.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/SCPIP_HS071.cc -text
+source/Optimization/SCPIP_HS071.hh -text
+source/Optimization/SIMP.cc svneol=native#text/plain
+source/Optimization/SIMP.hh svneol=native#text/plain
+source/Optimization/TransferFunction.cc -text
+source/Optimization/TransferFunction.hh -text
+source/Optimization/scpip30.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/scpip_test.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1017,6 +1052,8 @@ source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/VecStat.cc svneol=native#text/x-c%2B%2Bsrc
+source/Utils/VecStat.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr

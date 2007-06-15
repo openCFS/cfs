@@ -25,6 +25,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Utils/SmoothSpline.hh"
+#include "Optimization/DesignSpace.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -1700,6 +1701,19 @@ namespace CoupledField {
     energy->definedOn = ResultInfo::REGION;
     energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( energy );
+    
+    // === PSEUDO DENSITY for simp ===
+    shared_ptr<ResultInfo> pseudoDensity(new ResultInfo);    
+    pseudoDensity->resultType = MECH_PSEUDO_DENSITY;
+    pseudoDensity->dofNames = "";
+    pseudoDensity->unit = "";
+    pseudoDensity->entryType = ResultInfo::SCALAR;
+    pseudoDensity->definedOn = ResultInfo::ELEMENT;
+    pseudoDensity->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( pseudoDensity );
+    
+    // === OPT_RESULT_1/2/3 ===
+    // this is added via the optimization stuff in DesignSpace.
   }
 
   void MechPDE::CalcResults( shared_ptr<BaseResult> result ) {
@@ -1754,6 +1768,22 @@ namespace CoupledField {
         ComputeVolDefSurf<Double>( result );
       }
       break;
+
+    case MECH_PSEUDO_DENSITY:
+      if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+        EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
+                  << " or appropriate optimiziation");
+      domain->GetErsatzMaterial()->ExtractResults(result);
+      break;
+
+    // the actual case is given in the result info in result
+    case OPT_RESULT_1:
+    case OPT_RESULT_2:
+    case OPT_RESULT_3:
+      // design should work, this is checked in AvailabeResults()
+      domain->GetErsatzMaterial()->ExtractResults(result);
+      break;
+
 
     default:
       Warning( "Resulttype not computable by mechanic PDE",

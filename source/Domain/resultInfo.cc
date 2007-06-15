@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "resultInfo.hh"
+#include <iostream>
 
 
 namespace CoupledField {
@@ -45,6 +46,14 @@ namespace CoupledField {
     
     return dofNames[dof-1];
   }
+
+  std::string ResultInfo::ToString() const 
+  {
+    std::ostringstream os;
+    os << "name = " << resultName << " dofs " << dofNames.GetSize();
+    return os.str();
+  }
+
 
 
   ResultInfo& ResultInfo::operator=( const ResultInfo& data ) {

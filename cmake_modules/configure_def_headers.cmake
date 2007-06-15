@@ -19,6 +19,13 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_pardiso.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_metis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_metis.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ipopt.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ipopt.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_scpip.hh")
+
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
 

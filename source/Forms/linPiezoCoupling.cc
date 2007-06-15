@@ -7,6 +7,7 @@
 
 #include "General/environment.hh"
 #include "linPiezoCoupling.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -219,9 +220,4 @@ namespace CoupledField {
       isaxi_     = true;
     }
   }
-
-
-
-
-
 }

@@ -8,6 +8,7 @@
 #include <map>
 
 #include "Utils/StdVector.hh"
+#include "Driver/basedriver.hh"
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
 #endif
@@ -17,6 +18,7 @@ namespace CoupledField
 
   //! Forward class declarations
   class BasePDE;
+  class BaseForm;
   class StdPDE;
   class SinglePDE;
   class IterCoupledPDE;
@@ -26,10 +28,15 @@ namespace CoupledField
   class FileType;
   class CoordSystem;
   class MaterialHandler;
-  class BaseDriver;
+  class Optimization;
+  class DesignSpace;
   class SingleDriver;
+  class MultiSequenceDriver;
   class SimInput;
   class ResultHandler;
+  class ParamNode;
+
+
 
   //! This class defines the computational domain.
 
@@ -41,7 +48,7 @@ namespace CoupledField
   {
   public:
     
-    //! Constructor
+    //! Constructor. call PostInit() afterwards!
     /*!
       \param aptFileType (input) input file (mesh-data)
     */
@@ -54,6 +61,8 @@ namespace CoupledField
     //! Trigger output of the grid
     void PrintGrid( );
     
+    /** dumps intersting information for the developer */
+    void Dump();
     
     // ======================================================
     // INIT AND UPDATE ROUTINES
@@ -99,10 +108,15 @@ namespace CoupledField
     //! Get pointer to SinglePDE by name
     SinglePDE * GetSinglePDE(const std::string pdename);
 
-    //! Set driver object
+    //! Get driver object
+    BaseDriver* GetDriver();
+
+    /** This extracts the SingleDriver, which is NULL for not initialized 
+     * MultiSequenceDrivers(). */ 
     void SetDriver( BaseDriver * driver );
 
-    //! Get driver object
+    /** Get driver object. Note, that this might be NULL for not initialized 
+     * MultiSequenceDriver()! */
     SingleDriver * GetSingleDriver() { return ptSingleDriver_; }
 
     //! Get pointer to CoupledPDE
@@ -125,10 +139,48 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
+    /** For some optimization (SIMP) or normal simulation with external
+     * ersatz material file the forms get the density value by this
+     * function. Any penaltisation (SIMP) is applied!
+     * @param from eleme elemNum and regionId are used
+     * @param form the actual bilinearform, this is used to find the power for SIMP
+     * @return -1.0 if nothing available for the elment, otherwise density^power */
+    Double GetErsatzMaterial(const Elem* elem, const BaseForm* form);
+
+    /** This is set by optimization which holds the data (in a derved form). It
+     * is also reset here by the optimization destructor.
+     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
+     * @param regionId the region for the ersatMaterial */
+     void SetErsatzMaterial(DesignSpace* data)
+     {
+         ersatzMaterial = data;
+     }
+     
+     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
+      * @return  NULL but an exception if not set and not silent*/
+     DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
+      
+
+    /** Returns the optimization
+     *  @return null if there is none */
+    Optimization* GetOptimization() { return optimization_; };
+    
+    /** Sets the optimization from outside, like the driver */
+    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
+
 #ifndef INTEGLIB
     //! Return Math Parser object for evaluating math expressions
     MathParser * GetMathParser() { return &mathParser_; }
 #endif
+
+    /** The post init does more advancec stuff like reading the ersatz material.
+     * For this purpose the constructor needs to be finished. 
+     * @excpetion checks for error, thefore this is a void method */
+    void PostInit();
+
+    /** solves the problem, either the "driver" or the optimization problem.
+     * Suerly you have to call PostInit() first!*/
+    void SolveProblem(); 
 
     //@}
 
@@ -165,11 +217,13 @@ namespace CoupledField
     void CreateIterCoupledPDE( UInt sequenceStep );
 
 
-    //! Initialize local coordinate systems
-
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();
     //@}
+  
+    /** Reads the 'loadErsatzMaterial' node. Check before that it exists and does 
+     * not occur concurrently with an optimization */
+    void ReadErsatzMaterial(ParamNode* pn); 
   
     // ======================================================
     // DATA SECTION
@@ -218,8 +272,12 @@ namespace CoupledField
     //! Pointer to grid object
     Grid * ptgrid_;
 
-    //! Pointer to SingleDriver
+    /** Pointer to SingleDriver. Note, that this might be NULL in 
+     * the case of MultiSequenceDriver - at least before Init() */
     SingleDriver * ptSingleDriver_;
+
+    /** Only set if we really have a MultiSequcenceDriver */
+    MultiSequenceDriver* multiSequenceDriver_;
 
     //! Pointer to object handling input file (mesh data)
     SimInput *simInput_;
@@ -233,6 +291,13 @@ namespace CoupledField
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
+    /** an optinal optimizer */
+    Optimization* optimization_;
+
+    /** The ersatz material pointer is set be the domain or it points 
+     * to optimization data */    
+    DesignSpace* ersatzMaterial;
+
 #ifndef INTEGLIB
     //! Mathematic parser object
     MathParser mathParser_;
@@ -240,7 +305,6 @@ namespace CoupledField
 
     //! dimension of the problem
     UInt dim_;
-
   };
 
 }

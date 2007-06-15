@@ -251,12 +251,18 @@ namespace CoupledField{
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-    Error("Not implemented here", __FILE__,__LINE__);
+    
+   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+   for (UInt i=0; i < totalDofs_; i++){
+      temp[i] = data_[elemNr*totalDofs_ + i];
+      // std::cout<<"data_"<< data_[elemNr*totalDofs_ + i] << std::endl;
+    }
   }
 
   template<class TYPE>
   void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, CFSVector & val) const
   {
+    // killme ! the solType is not queried
     ENTER_FCN("ElemStoreSol::GetGlobalSolVector");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Warning("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);

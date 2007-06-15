@@ -146,6 +146,15 @@ namespace CoupledField {
     //! Return vector as separated string
     std::string Serialize( Char separator = ',') const;
 
+     /** Lists the content comma seperated */ 
+     std::string ToString() const;
+
+     /** Lists the content comma seperated */
+     void ToString(std::string& out) const;     
+
+     /** Dumps the content for debugging purpose */
+     void Dump() const;
+
   protected:
 
     //! Length of the vector

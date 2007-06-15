@@ -157,6 +157,33 @@ namespace CoupledField
     //! Compute Euclidean L2 norm of this vector object
     virtual Double NormL2() const  = 0;
 
+    /** tool for developers, dump the content to stdout */
+    void Dump()
+    {
+        std::cout << "CFSVecotor of entry type " << GetEntryType() << " with size " << GetSize() << std::endl;        
+        for(UInt i = 0; i < GetSize(); i++)
+        {
+            std::cout << i << ": ";
+            
+            switch(GetEntryType())
+            {
+                case EntryType::DOUBLE:
+                     Double doub_val;
+                     GetEntry(i, doub_val);
+                     std::cout << doub_val;
+                     break;
+
+
+                default:
+                    std::cout << "CFSVector::Dump() not implemented for this type";
+                          
+            }
+            
+            std::cout << std::endl;
+        }
+    }
+
+
     //! Return vector as separated string
     virtual std::string Serialize( Char separator = ',') const = 0;
 

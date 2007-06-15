@@ -3,6 +3,8 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "result.hh"
+#include "Domain/resultInfo.hh"
+#include <sstream>
 
 namespace CoupledField {
 
@@ -14,6 +16,21 @@ namespace CoupledField {
 
   BaseResult::~BaseResult() {
 
+  }
+
+  std::string BaseResult::ToString() const
+  {
+    std::ostringstream os;
+    os << "entity list: " << entities_->GetName()
+       //<< " values: " << (const_cast<const CFSVector*>(GetCFSVector())->GetSize()
+       << " result info: " << resultDof_->ToString();
+    return os.str();
+  }
+
+  void BaseResult::Dump(StdVector<shared_ptr<BaseResult> >& resultList)
+  {
+    for(unsigned int i = 0; i < resultList.GetSize(); i++)
+      std::cout << resultList[i]->ToString() << std::endl;
   }
 
   template<class TYPE>

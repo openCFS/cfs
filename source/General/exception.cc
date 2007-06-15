@@ -10,14 +10,32 @@ namespace CoupledField {
 
     bool Exception::segfault_ = false;
 
+    /** this is the constructor for the EXCEPTION macro */
     Exception::Exception( const Exception* reason,
                const char* const fileName, 
                const unsigned int lineNum,
-               const char* const message) throw () :
-        fileName_(fileName),
-        lineNum_(lineNum),
-        msg_(message)
+               const char* const message) throw ()
     {
+        init(reason, fileName, lineNum, message);
+    }
+
+    /** this is the constructor to be called manually */
+    Exception::Exception( const std::string& message,
+               const char* const fileName, 
+               const unsigned int lineNum) throw ()
+    {
+        init(NULL, fileName, lineNum, message.c_str());
+    }
+
+    void Exception::init(const Exception* reason,
+               const char* const fileName, 
+               const unsigned int lineNum,
+               const char* const message) throw () 
+    {
+        this->fileName_ = fileName;
+        this->lineNum_  = lineNum;
+        this->msg_      = message;
+         
         if(reason)
             reason_ = new Exception(*reason);
         else

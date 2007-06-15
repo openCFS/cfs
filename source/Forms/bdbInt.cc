@@ -63,6 +63,9 @@ namespace CoupledField {
       // // Check if material has to be rotated
       if( ptMaterial->GetCoordSys() == NULL ) {
         calcDMat( dMat );
+        
+        double density = GetErsatzMaterialFactor(ent1.GetElem());
+        if(density != 1.0) dMat *= density;
       }
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
@@ -77,6 +80,8 @@ namespace CoupledField {
                                     ptCoord_, ent1.GetElem() );
           ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
           calcDMat( dMat );
+          double density = GetErsatzMaterialFactor(ent1.GetElem());
+          if(density != 1.0) dMat *= density;
         }
         
 
@@ -135,6 +140,8 @@ namespace CoupledField {
 
         // Setup material matrix for current integration point
         calcDMat( dMat, actIntPt, ptCoord_ );
+        double density = GetErsatzMaterialFactor(ent1.GetElem());
+        if(density != 1.0) dMat *= density;
 
         // Setup the B matrix for current integration point
         calcBMat( bMat, actIntPt, ptCoord_ );

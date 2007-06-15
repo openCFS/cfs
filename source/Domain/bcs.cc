@@ -14,6 +14,13 @@ namespace CoupledField {
     dof = 1;
   }
 
+  HomDirichletBc::~HomDirichletBc() 
+  {
+     // we don't do anything in this (virtual) destructor, it's just there because
+     // of the virtual Dump()
+  }
+
+
   InhomDirichletBc::InhomDirichletBc() {
     ENTER_IFCN( "InhomDirichletBc::InhomDirichletBc");
   }

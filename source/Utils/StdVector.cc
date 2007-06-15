@@ -439,6 +439,37 @@ namespace CoupledField {
   }
         
   
+  template<class TYPE>
+  void StdVector<TYPE>::ToString(std::string& out) const
+  {
+     std::stringstream ss;
+     for(UInt i = 0; i < GetSize(); i++) {
+        ss << (*this)[i];
+        if(i < GetSize() -1) ss << ", ";
+     } 
+     
+     out.assign(ss.str());
+  }
+
+  template<class TYPE>
+  std::string StdVector<TYPE>::ToString() const
+  {
+      std::string result;
+      ToString(result);
+      return result; // that's kind of magic :)
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Dump() const
+  {
+     std::cout << "StdVector<TYPE> with " << GetSize() << " elements" << std::endl;
+     
+     // for(UInt i = 0; i < GetSize(); i++) 
+     //   std::cout << i << ": " (*this)[i] << std::endl;
+  }
+
+
+  
   template <class S> 
   void Sort(S* v, UInt n)
   {

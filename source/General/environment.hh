@@ -290,13 +290,14 @@ namespace CoupledField {
                  VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
                  MATERIAL, GEOMETRIC, HYSTERESIS, PERMEABILITY  } NonLinType;
 
+
   //! Describes all possible solution types in a CFS simulation
   typedef enum{NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
                MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
-               MECH_ENERGY, MECH_DEF_VOLUME, MECH_RHS_LOAD,
+               MECH_ENERGY, MECH_DEF_VOLUME, MECH_RHS_LOAD, MECH_PSEUDO_DENSITY,
                ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
                ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
-               ELEC_ENERGY,ELEC_POLARIZATION,ELEC_RHS_LOAD,
+               ELEC_ENERGY, ELEC_POLARIZATION,ELEC_RHS_LOAD,ELEC_PSEUDO_POLARIZATION,
                SMOOTH_DISPLACEMENT, 
                ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_PRESSURE_DERIV_1,
                ACOU_PRESSURE_DERIV_2,ACOU_FORCE, ACOU_POT_NRBC, 
@@ -313,7 +314,7 @@ namespace CoupledField {
                STOKESFLUID_PRESSURE, STOKESFLUID_VORTICITY,
                STOKESFLUID_FORCE,
                BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
-               LAGRANGE_MULT } SolutionType;
+               OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3, LAGRANGE_MULT} SolutionType;
 
   //! describes the possible material types
   typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY, 
@@ -397,7 +398,6 @@ namespace CoupledField {
 
   //! type of data
   typedef enum {INTEGER, REAL, IMAG, COMPLEX} DataType;
-
 
   //! Data type for specification of frequency sampling approach
 

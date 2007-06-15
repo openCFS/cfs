@@ -96,7 +96,7 @@ namespace OLAS {
     // PARDISO (NOTE: Changes here must be documented in PardisoSolver!)
     SetValue( "PARDISO_posDef"      , false );
     SetValue( "PARDISO_hermitian"   , false );
-    SetValue( "PARDISO_symStructure", false );
+    SetValue( "PARDISO_symStructure", false ); 
     SetValue( "PARDISO_ordering"    , NESTED_DISSECTION );
     SetValue( "PARDISO_logging"     , false );
     SetValue( "PARDISO_stats"       , false );

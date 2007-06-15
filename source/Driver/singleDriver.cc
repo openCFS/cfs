@@ -24,12 +24,17 @@ namespace CoupledField{
 
   }
   
-
   SingleDriver::~SingleDriver()
   {
     ENTER_FCN( "SingleDriver::~SingleDriver" );
   
   }
+
+  void SingleDriver::SolveProblem()
+  {
+    BaseDriver::SolveProblem();
+  }
+   
 
   void SingleDriver::InitializePDEs() {
     ENTER_FCN( "void InitializePDEs()" );

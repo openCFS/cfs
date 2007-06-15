@@ -40,7 +40,7 @@ namespace CoupledField
     if(!fs::exists(filePath)) 
         EXCEPTION("xml file " << file << " doesn't exist"); 
 
-    if(!fs::exists(schemaPath)) 
+    if(schema != "" && !fs::exists(schemaPath)) 
         EXCEPTION("schema file " << file << " doesn't exist");
     
     this->file_   = file;
@@ -198,7 +198,7 @@ namespace CoupledField
       if(node != root_) 
       {
          // create a new param node and set it as a new child at the father
-         parent->GetChildren().Push_back(new ParamNode());
+         parent->GetChildren().Push_back(new ParamNode(node->getNodeType() == DOMNode::ATTRIBUTE_NODE));
          // we work with the this just added element - here we avoid any
          // potential copy constructor issues
          pn = parent->GetChildren().Last();

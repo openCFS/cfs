@@ -29,11 +29,13 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   #-----------------------------------------------------------------------------
   # Switch on/off external libraries and other options for compile
   #-----------------------------------------------------------------------------
+  OPTION(USE_IPOPT "Use the external IPOPT optimizer." ON)
+  OPTION(USE_SCPIP "Use the external SCPIP optimizer." ON)
   OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ON)
   OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ON)
   OPTION(USE_PARDISO "Use Pardiso" ON)
   OPTION(USE_METIS "Use Metis Graph partitioning." ON)
-  OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ON)
+  OPTION(USE_ILUPACK "Use Preconditioners/Solvers from ILUPACK." ON)
   OPTION(USE_BLAS "Use the basic linear algebra systems library." ON)
   OPTION(USE_XERCES "Use the Xerces-C XML parser library." ON)
   OPTION(USE_TCL "Use Tool Command Language (TCL) for scripting." ON)
@@ -204,6 +206,16 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(USE_TCL)
 
   #-----------------------------------------------------------------------------
+  # If USE_IPOPT option is defined find ipopt library
+  #-----------------------------------------------------------------------------
+  IF(USE_IPOPT)
+    INCLUDE("cmake_modules/FindIPOPT.cmake")
+    IF(NOT IPOPT_FOUND)
+      MESSAGE(FATAL_ERROR "IPOPT library could not be found!")
+    ENDIF(NOT IPOPT_FOUND)
+  ENDIF(USE_IPOPT)
+
+  #-----------------------------------------------------------------------------
   # If USE_BLAS option is defined find BLAS library
   #-----------------------------------------------------------------------------
   IF(USE_BLAS)
@@ -226,6 +238,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
       SUGGEST_INSTALL_PCKG()
     ENDIF(NOT LAPACK_FOUND)
   ENDIF(USE_LAPACK)
+
 
   #-----------------------------------------------------------------------------
   # If USE_XERCES option is defined find Xerces library
@@ -415,6 +428,7 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   SUBDIRS(source/PDE)
   SUBDIRS(source/Utils)
   SUBDIRS(source/Utils/mathParser)
+  SUBDIRS(source/Optimization)
   SUBDIRS(source/main)
 
   IF(CONVERTER)

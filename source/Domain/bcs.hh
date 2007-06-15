@@ -21,6 +21,9 @@ namespace CoupledField {
 
     //! Constructor
     HomDirichletBc();
+    
+    /** Add this virtual destructor because we hava a virtul Dump now */
+    virtual ~HomDirichletBc();
 
     //! EntityList where the condition is defined on
     shared_ptr<EntityList> entities;
@@ -33,6 +36,12 @@ namespace CoupledField {
 
     //! Degree of freedom index
     UInt dof;
+
+    /** Just a simple Dump() for developers */
+    virtual void Dump()
+    {
+      std::cout << "HomDirichletBc[dof=" << dof << "]" << std::endl;
+    }
 
   };
 
@@ -51,6 +60,13 @@ namespace CoupledField {
     //! Phase value of entities
     std::string phase;
 
+    
+    void Dump()
+    {
+      HomDirichletBc::Dump();
+      std::cout << "InhomDirichletBc[value=" << value << ";phase=" << phase << "]" << std::endl;
+    }
+    
   };
 
   // -------------------------------------------------------------------------
@@ -84,6 +100,12 @@ namespace CoupledField {
     //! Phase value of entities
     std::string phase;
 
+    
+    void Dump()
+    {
+      HomDirichletBc::Dump();
+      std::cout << "LoadBc[value=" << value << ";phase=" << phase << "]" << std::endl;
+    }
   };
     
 

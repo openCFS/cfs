@@ -73,14 +73,26 @@ namespace CoupledField
     }
 
     Double factor;
-    if (materialParam_ == DENSITY) {
-      it->second->GetScalar(factor,DENSITY,REAL);
-    }
-    else if (materialParam_ == HEAT_CONDUCTIVITY) {
-      Double k;
-      it->second->GetScalar(k,HEAT_CONDUCTIVITY,REAL);
-      factor = 1.0 / k;
-    }
+    switch(materialParam_)
+    {
+       case DENSITY: 
+           it->second->GetScalar(factor,DENSITY,REAL);
+           break;
+           
+       case HEAT_CONDUCTIVITY:
+            {
+              Double k;
+              it->second->GetScalar(k,HEAT_CONDUCTIVITY,REAL);
+              factor = 1.0 / k;
+            }
+            break;
+            
+       case NO_MATERIAL:
+            factor = 1.0;
+            break;
+            
+       default: EXCEPTION("material parameter " << materialParam_ << " not implemented");     
+    }            
 
     // Calculate element vector  
     elemVec.Resize(numFncs);
@@ -119,6 +131,12 @@ namespace CoupledField
     // evaluate value for current element
     mParser_->SetExpr( mHandle_, amplitude_ );
     Double factor = mParser_->Eval( mHandle_ );
+
+    // When we do SIMP of an Piezo we might have pressure and charge density
+    // on surface elements. Then scale our element contribution by the corresponding
+    // volume element which has the scaling factor.
+    double density = GetErsatzMaterialFactor(ptVolElem);
+    factor *= density;
 
     // we assume the surface normal points out of domain,
     //  but we want to take deflections into the domain positive
