@@ -29,8 +29,8 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   #-----------------------------------------------------------------------------
   # Switch on/off external libraries and other options for compile
   #-----------------------------------------------------------------------------
-  OPTION(USE_IPOPT "Use the external IPOPT optimizer." ON)
-  OPTION(USE_SCPIP "Use the external SCPIP optimizer." ON)
+  OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
+  OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
   OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ON)
   OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ON)
   OPTION(USE_PARDISO "Use Pardiso" ON)
