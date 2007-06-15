@@ -2,32 +2,25 @@ SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.
                       TransferFunction.cc Condition.cc)
 
 IF(USE_IPOPT)
-  INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
-  LINK_DIRECTORIES(${IPOPT_LINK_DIR})
-
    SET(TARGET_LL
     ipopt 
     gfortranbegin 
     gcc_s)
-   
+
    SET( OPTIMIZATION_SRCS
     ${OPTIMIZATION_SRCS}
     IPOPT.cc)
 ENDIF(USE_IPOPT)
 
 IF(USE_SCPIP)
-  INCLUDE_DIRECTORIES(${SCPIP_INCLUDE_DIR})
-  LINK_DIRECTORIES(${SCIP_LINK_DIR})
-
-   SET(TARGET_LL 
+   SET(TARGET_LL
     ${TARGET_LL}
     scpip)
-    
+
    SET( OPTIMIZATION_SRCS
     ${OPTIMIZATION_SRCS}
     SCPIP.cc SCPIPBase.cc)
 ENDIF(USE_SCPIP)
-
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 

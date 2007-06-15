@@ -10,14 +10,8 @@ ENDIF(USE_IPOPT)
 # List of source codes for current target.
 SET(CFS_SRCS cfs.cc)
 
-IF(DEBUG)
-  SET(CFS_EXE cfs)
-ELSE(DEBUG)
-  SET(CFS_EXE cfs_rel)
-ENDIF(DEBUG)
-
 # Main CFS++ executable target.
-ADD_EXECUTABLE(${CFS_EXE} ${CFS_SRCS})
+ADD_EXECUTABLE(cfs ${CFS_SRCS})
 
 # Define a list of libraries CFS++ depends upon. At the moment there
 # are some nasty circular dependencies which should be resolved in
@@ -127,7 +121,7 @@ IF(USE_PARDISO)
 ENDIF(USE_PARDISO)
 
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(${CFS_EXE} ${TARGET_LL}
+TARGET_LINK_LIBRARIES(cfs ${TARGET_LL}
   boost_serialization
   boost_filesystem)
 
@@ -137,4 +131,4 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 # Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
-INSTALL_TARGETS(/bin ${CFS_EXE})
+INSTALL_TARGETS(/bin cfs)

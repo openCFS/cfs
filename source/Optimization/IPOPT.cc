@@ -8,7 +8,7 @@
 #include "Utils/VecStat.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "IpSolveStatistics.hpp"
+#include "ipopt/IpSolveStatistics.hpp"
 
 #include "boost/lexical_cast.hpp"
 
