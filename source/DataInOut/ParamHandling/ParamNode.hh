@@ -32,7 +32,7 @@ namespace CoupledField
   {
   public:
     /** The default constructor, name and value are to be set via the setter methods */
-    ParamNode() {};
+    ParamNode(bool attribute = false); 
 
     /** Recursively delete the child nodes */
     ~ParamNode();
@@ -206,6 +206,10 @@ namespace CoupledField
     /** returns name and value, ans child summary information */
     std::string ToString() const;
          
+    /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
+     * called for an attribute */
+    void ToXML(std::ostream& os) const;      
+         
     /** This is a recursive Dump of the tree to std::cout
      * @param level start with 0, is used for ident */
     void Dump(int level = 0) const;
@@ -221,7 +225,10 @@ namespace CoupledField
     /** This are the children of this element, either simple types (simple element
      * or attributes) or complex elements. If this element is a simple type the 
      * vector is empty. */
-    StdVector<ParamNode*> children_;  
+    StdVector<ParamNode*> children_;
+    
+    /** Was this originally an attribute or no ? */
+    bool attribute_;  
   }; 
 
 } // end of namespace

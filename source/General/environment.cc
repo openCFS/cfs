@@ -290,7 +290,6 @@ namespace CoupledField {
     }
   }
 
-
   // CouplingOutputType
   template<>
   void String2Enum<CouplingOutputType>(const std::string &in, 
@@ -466,7 +465,8 @@ namespace CoupledField {
       out = MECH_DEF_VOLUME;
     else if (in == "mechRhsLoad" ) 
       out = MECH_RHS_LOAD;
-        
+    else if (in == "mechPseudoDensity")
+      out = MECH_PSEUDO_DENSITY;
     //electrostatics
     else if (in == "elecPotential")
       out = ELEC_POTENTIAL;
@@ -474,6 +474,8 @@ namespace CoupledField {
       out = ELEC_FIELD_INTENSITY;
     else if (in == "elecPolarization")
       out = ELEC_POLARIZATION;
+    else if (in == "elecPseudoPolarization")
+      out = ELEC_PSEUDO_POLARIZATION;
     else if (in == "elecForceVWP")
       out = ELEC_FORCE_VWP;
     else if (in == "elecInterfaceForce")
@@ -572,7 +574,16 @@ namespace CoupledField {
       out = BUBBLE_RADIUS_DERIV_1;
     else if (in == "bubbleValues")
       out = MAG_FLUX_DENSITY;
-	     
+
+    // the actual result type is given in result descriptions 
+    // in the xml file in the optimization element.
+    else if (in == "optResult_1")
+      out = OPT_RESULT_1;
+    else if (in == "optResult_2")
+      out = OPT_RESULT_2;
+    else if (in == "optResult_3")
+      out = OPT_RESULT_3;
+
     // independent
     else if (in == "LagrangeMultiplier")
       out = LAGRANGE_MULT;
@@ -608,9 +619,11 @@ namespace CoupledField {
       case MECH_STRAIN:
         out = "mechStrain";
         break;
-
       case MECH_ENERGY:
         out = "mechEnergy";
+        break;
+      case MECH_PSEUDO_DENSITY:
+        out = "mechPseudoDensity";
         break;
 
       case MECH_DEF_VOLUME:
@@ -630,6 +643,9 @@ namespace CoupledField {
         break;
       case ELEC_POLARIZATION:
         out = "elecPolarization";
+        break;
+      case ELEC_PSEUDO_POLARIZATION:
+        out = "elecPseudoPolarization";
         break;
       case ELEC_FORCE_VWP: 
         out = "elecForceVWP";
@@ -771,6 +787,17 @@ namespace CoupledField {
         break;
       case BUBBLE_VOLUME_FRAC:
         out = "bubbleVolumeFrac";
+        break;
+      
+      // write design element data from optimization
+      case OPT_RESULT_1:
+        out = "optResult_1";
+        break;
+      case OPT_RESULT_2:
+        out = "optResult_2";
+        break;
+      case OPT_RESULT_3:
+        out = "optResult_3";
         break;
       
         // independent
@@ -1315,6 +1342,9 @@ namespace CoupledField {
       EXCEPTION("No conversion from string to 'SubTensorType' found" );
     }
   }
+  
+  
+  
   
   template<> 
   void Enum2String<MaterialClass>(const MaterialClass &in, 

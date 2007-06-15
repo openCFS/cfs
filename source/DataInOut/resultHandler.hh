@@ -99,6 +99,9 @@ namespace CoupledField {
 
     // ... to be implemented ...
 
+    /** This dumps the content of the result handler for debugging */
+    void Dump(); 
+
   private:
     
     //! Structure containing additional information about result objects

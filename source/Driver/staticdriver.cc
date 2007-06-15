@@ -51,36 +51,47 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem() {
+  void StaticDriver::SolveProblem(int optimizationIteration) {
     ENTER_FCN( "StaticDriver::SolveProblem" );
+ 
+    lastOptimizationIteration_ = optimizationIteration;
+    if(consecutiveRun_ == false)
+      Info->StartProgress("Starting to solve problem", false); 
 
     ResultHandler * resHandler = domain->GetResultHandler();
 
-    // Initialize 'TimeStepping'
-    const UInt nstep = 1;
-    Double  steptime = 0.0;
-
     // notify resultHandler about beginning of new sequence step 
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, 1 );
-
-    ptPDE_->GetSolveStep()->SetActTime(steptime);
-    ptPDE_->GetSolveStep()->SetActStep(nstep);
+    
+    // 'TimeStepping' is here the optimization iteration
+    ptPDE_->GetSolveStep()->SetActTime(optimizationIteration);
+    ptPDE_->GetSolveStep()->SetActStep(optimizationIteration);
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->PreStepStatic();
     ptPDE_->GetSolveStep()->SolveStepStatic();
     ptPDE_->GetSolveStep()->PostStepStatic();
-
-    resHandler->BeginStep( nstep+stepOffset_, timeOffset_ + steptime );
-    ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
-    resHandler->FinishStep();
-    
-    ptPDE_->Finalize();
-
-    // notify resultHandler about finishing of current sequence step
-    if( !isPartOfSequence_ )
-      resHandler->FinishMultiSequenceStep();
-    SETPROFILE("After Static Step");
   }
 
+  void StaticDriver::StoreResults(double step_val)
+  {
+    // post process ??
+    int loi = lastOptimizationIteration_;
+
+    ResultHandler * resHandler = domain->GetResultHandler();
+
+    // resHandler->BeginStep( nstep+stepOffset_, timeOffset_ + steptime );
+    resHandler->BeginStep( loi + stepOffset_, step_val > 0 ? step_val : timeOffset_ + (loi-1) );
+    // actually the parameters seem to be not used :(
+    ptPDE_->WriteResultsInFile(loi , loi-1, stepOffset_, timeOffset_);
+    resHandler->FinishStep();
+
+    ptPDE_->Finalize();
+    
+    // notify resultHandler about finishing of current sequence step
+    if(!optimization_ && !isPartOfSequence_ )
+      resHandler->FinishMultiSequenceStep();
+    SETPROFILE("After Static Step");
+    
+  }
 
 } // end of namespace

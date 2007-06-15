@@ -48,6 +48,9 @@ namespace CoupledField
     //! Return current singleDriver 
     SingleDriver* GetSingleDriver() { return actDriver_; }
 
+    /** implement abstract identification class */ 
+    DriverClass GetDriverClass() { return MULTI_SEQUENCE_DRIVER; };
+
   private:
 
     //! number of sequence steps

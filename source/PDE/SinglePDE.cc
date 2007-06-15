@@ -548,8 +548,28 @@ namespace CoupledField {
     // 5.) Loads
     Info->WriteLoad( pdename_, loads_ );
       }
-
+      
   void SinglePDE::ReadStoreResults() {
+    ENTER_FCN( "SinglePDE::ReadStoreResults" );
+
+    ResultSet::iterator it;
+
+    // fetch result node and leave, if none is present
+    ParamNode * resultNode = myParam_->Get("storeResults", false);
+    if( !resultNode )
+      return;
+
+    // Iterate over all availabe results
+    for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
+       CheckStoreResult(*it);
+    }
+    Info->PrintF( pdename_, "\n");
+        
+  }
+      
+
+  bool SinglePDE::CheckStoreResult(shared_ptr<ResultInfo> candidate)
+  {
     ENTER_FCN( "SinglePDE::ReadStoreResults" );
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
@@ -559,7 +579,6 @@ namespace CoupledField {
     ComplexFormat complexFormat;
     shared_ptr<EntityList> actList;
 
-    ResultSet::iterator it;
     EntityList::ListType entityType;
     EntityList::DefineType defineType;
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -576,14 +595,10 @@ namespace CoupledField {
     // fetch result node and leave, if none is present
     ParamNode * resultNode = myParam_->Get("storeResults", false);
     if( !resultNode )
-      return;
+      return false;
 
-    // Iterate over all availabe results
-    for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
-      
-     
       // Convert enum
-      Enum2String( (*it)->resultType, quantity );
+      Enum2String( candidate->resultType, quantity );
       LOG_DBG(pde) << "Searching for storeResults of quantity '" 
                    << quantity << "'";
 
@@ -591,27 +606,27 @@ namespace CoupledField {
       try {
         
         // Get type of result
-        std::string xmlElemName = elemNames[(*it)->definedOn];
+        std::string xmlElemName = elemNames[candidate->definedOn];
         if( xmlElemName == "" ){
-          break;
+          return false;
         }
         
-        // Remeber current result node
+        // Remember current result node
         ParamNode* actResultNode = 
           resultNode->Get(xmlElemName, "type", quantity, false );
       
         // Check on which entity type the result is defined on 
-        if( (*it)->definedOn == ResultInfo::NODE ) {
+        if(candidate->definedOn == ResultInfo::NODE ) {
           entityType = EntityList::NODE_LIST;
-        } else if( (*it)->definedOn == ResultInfo::PFEM ) {
+        } else if(candidate->definedOn == ResultInfo::PFEM ) {
           entityType = EntityList::NODE_LIST;
-        } else if( (*it)->definedOn == ResultInfo::REGION ) {
+        } else if(candidate->definedOn == ResultInfo::REGION ) {
           entityType = EntityList::REGION_LIST;
-        } else if( (*it)->definedOn == ResultInfo::SURF_REGION ) {
+        } else if(candidate->definedOn == ResultInfo::SURF_REGION ) {
           entityType = EntityList::REGION_LIST;
-        } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
+        } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
           entityType = EntityList::SURF_ELEM_LIST;
-        } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
+        } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
           entityType = EntityList::ELEM_LIST;
         } else {
           EXCEPTION("Type of 'definedOn' was not found");
@@ -630,7 +645,7 @@ namespace CoupledField {
 
         // if no node was found, continue with next result
         if( !actResultNode) {
-          continue;
+          return false;
         }
 
         // determine complexFormat
@@ -671,15 +686,15 @@ namespace CoupledField {
           StdVector<ParamNode*> regionNodes;
           ParamNode * listNode = NULL;
           // 1b) Look for regions the result is defined on
-          if( (*it)->definedOn == ResultInfo::NODE ||
-              (*it)->definedOn == ResultInfo::PFEM ||
-              (*it)->definedOn == ResultInfo::ELEMENT ||
-              (*it)->definedOn == ResultInfo::REGION ) {
+          if(candidate->definedOn == ResultInfo::NODE ||
+             candidate->definedOn == ResultInfo::PFEM ||
+             candidate->definedOn == ResultInfo::ELEMENT ||
+             candidate->definedOn == ResultInfo::REGION ) {
             listNode = actResultNode->Get("regionList", false);
             if( listNode )
               regionNodes = listNode->GetList("region");
-          } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ||
-                     (*it)->definedOn == ResultInfo::SURF_REGION ) {
+          } else if(candidate->definedOn == ResultInfo::SURF_ELEM ||
+                    candidate->definedOn == ResultInfo::SURF_REGION ) {
             listNode = actResultNode->Get("surfRegionList", false);
             if( listNode )
               regionNodes = listNode->GetList("surfRegion");
@@ -714,7 +729,7 @@ namespace CoupledField {
         
         // Check, if any region was found for this result type
         if( regionNames.GetSize() != 0 ) {
-          (*it)->complexFormat = complexFormat;
+          candidate->complexFormat = complexFormat;
           
           Info->PrintF( pdename_, " Computing '%s' for regions:\n", 
                         quantity.c_str() );
@@ -731,9 +746,9 @@ namespace CoupledField {
             }
 
             // intialize result object
-            actSol->SetResultInfo( *it );
+            actSol->SetResultInfo(candidate);
             actSol->SetEntityList( actList );
-            resultLists_[*it].Push_back( actSol );
+            resultLists_[candidate].Push_back( actSol );
 
             // extract all output destinations and determine bool flag for writeResult
             SplitStringList( outDestNames[iRegion], actOutDest, ',' );
@@ -767,22 +782,22 @@ namespace CoupledField {
         ParamNode * histNode = NULL;
         StdVector<ParamNode*> histEntities;
 
-        if( (*it)->definedOn == ResultInfo::NODE
-            || (*it)->definedOn == ResultInfo::PFEM ) {
+        if(candidate->definedOn == ResultInfo::NODE
+            || candidate->definedOn == ResultInfo::PFEM ) {
           defineType = EntityList::NAMED_NODES;  
           histNode = actResultNode->Get("nodeList",false);
           if( histNode )
             histEntities = histNode->GetList("nodes");
           entityTypeName = "nodes";
 
-        } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
+        } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
           defineType = EntityList::NAMED_ELEMS; 
           histNode = actResultNode->Get("elemList",false); 
           if( histNode )
             histEntities = histNode->GetList("elems");
           entityTypeName = "elements";
       
-        } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
+        } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
           defineType = EntityList::NAMED_ELEMS;  
           histNode = actResultNode->Get("surfEelemList",false); 
           if( histNode) 
@@ -820,7 +835,7 @@ namespace CoupledField {
       
         if( histNames.GetSize() > 0 ) {
         
-          (*it)->complexFormat = complexFormat;
+          candidate->complexFormat = complexFormat;
         
           Info->PrintF( pdename_, " Computing '%s' for history %s(s):\n", 
                         quantity.c_str(), entityTypeName.c_str() );
@@ -837,9 +852,9 @@ namespace CoupledField {
             }
             
             // Set result info and entitylist at the result object
-            actSol->SetResultInfo( *it );
+            actSol->SetResultInfo(candidate);
             actSol->SetEntityList( actList );
-            resultLists_[*it].Push_back( actSol );
+            resultLists_[candidate].Push_back( actSol );
             
             // extract all output destinations and determine bool flag for writeResult
             SplitStringList( outDestNames[i], actOutDest, ',' );
@@ -865,15 +880,15 @@ namespace CoupledField {
         RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
                           << quantity << "' within pde '" << pdename_ << "'" );
       }
-    }
-    Info->PrintF( pdename_, "\n");
+    return true;
   }
 
   void SinglePDE::WriteResultsInFile( const UInt kstep, 
                                       const Double actTimeFreq, 
                                       UInt stepOffset, Double timeOffset ) {
     ENTER_FCN( "SinglePDE::WriteResultsInFile" );
-    
+    LOG_DBG(pde) << "WriteResultsInFile() kstep: " <<  kstep << " actTimeFreq: " 
+            << actTimeFreq << " stepOffset: " <<  stepOffset << " timeOffset: " << timeOffset;
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();
     
@@ -1041,7 +1056,7 @@ namespace CoupledField {
                algsys_->SetDirichlet(  pdeId_, eqnNr, complexValue);
              }
              else {
-               //	  std::cout << "IHDBC val=" << val << std::endl;
+               //   std::cout << "IHDBC val=" << val << std::endl;
                algsys_->SetDirichlet( pdeId_, eqnNr, val );
              }
            }
@@ -1850,7 +1865,7 @@ namespace CoupledField {
 
             if (eqnNr==0) {
               EXCEPTION( "The specified coupling node has no equation number" );
-	      //	      std::cerr << "node=" << *nodes)[j]
+        //        std::cerr << "node=" << *nodes)[j]
             }
 
             algsys_->SetDirichlet( pdeId_, eqnNr,
@@ -2165,7 +2180,7 @@ namespace CoupledField {
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 UInt actPos = numDofs*pos+iDof;
                 if ( eqns[iDof] != 0 
-                     && (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
+                     && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
                   solVec[eqns[iDof]-1] = sol[actPos].real();
                   if ( analysistype_ == TRANSIENT ) {
                     solDeriv1[eqns[iDof]-1] = -2*PI*freq* sol[actPos].imag();
@@ -2215,7 +2230,7 @@ namespace CoupledField {
               eqnMap_->GetEqns( eqns, *results_[0], it );
               for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
                 if ( eqns[iDof] != 0 
-                     && (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
+                     && (unsigned int) (std::abs(eqns[iDof])-1) < solVec.GetSize() ) {
                   solVec[eqns[iDof]-1] = sol[numDofs*pos+iDof];
                   if ( needDeriv ) {
                     solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];

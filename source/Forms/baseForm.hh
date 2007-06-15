@@ -41,6 +41,9 @@ namespace CoupledField
     //! or its derivatives
     bool IsSolDependent() { return isSolDependent_; }
 
+    /** allow maniputlation fo the flag, used for optimization loops */
+    void SetSolDependent(bool value) { isSolDependent_ = value;  } 
+
     //! Return true if element vector/matrix is complex
     bool IsComplex() { return isComplex_; }
 
@@ -176,6 +179,16 @@ namespace CoupledField
 #endif
 
   protected:
+
+    /** Gets the factor for dMat to perform the ersatz material ansatz.
+     * This is a pseudo density only, see SIMP optimization. 
+     * It includes any potential exponent, hence it doesn't need to be the density 
+     * This is done e.g. by SIMP or level set. Implemented for mechanic and piezo.
+     * The region why the childs have to reimplement this method is, that
+     * Domain::GetErsatzMaterial() identifies the proper penaltization via RTTI (typid)
+     * @param elem the element
+     * @return 1.0 if nothing is to be done or a factor */ 
+    virtual Double GetErsatzMaterialFactor(const Elem* elem); 
 
     //! pointer to reference element
     BaseFE  * ptelem;   

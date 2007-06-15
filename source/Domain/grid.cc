@@ -303,6 +303,24 @@ namespace CoupledField
 
   }
 
+   void Grid::Dump()
+   {
+     StdVector<Elem*>   elems;;
+    
+     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;             
+
+     for(UInt i = 0; i < regionNames_.GetSize(); i++) 
+     {
+       std::string  region_name = regionNames_[i];
+       RegionIdType region_id   = RegionNameToId(region_name);
+           
+       GetElems(elems, region_id);
+                   
+       std::cout << "region: " << region_name << " id=" << region_id << " elements=" << elems.GetSize() <<  std::endl;            
+     }
+   }
+
+
   bool Grid::InitNonmatchingInterfaces() {
     StdVector<SurfElem*> slaveElems;
     StdVector<SurfElem*> masterElems;
@@ -1816,7 +1834,6 @@ namespace CoupledField
     }
     return firstNo;
   }
-
 
   // =======================================================================
   // Method wrappers for scripting

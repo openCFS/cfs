@@ -501,6 +501,32 @@ namespace CoupledField
     return elemVol;
   }
 
+   void BaseFE::CalcBarycenter(const Matrix<Double>& coords, Point& barycenter) 
+   {
+       UInt n_dims  = coords.GetSizeRow();
+       UInt n_elems = coords.GetSizeCol();
+       
+       // init barycenter for safty reason
+       barycenter.SetZero();
+       
+       // std::cout << "calc a new barycenter" << std::endl;
+       // a barycenter is simply the average of all coordinates
+       for (UInt dim=0; dim < n_dims; dim++)
+       {
+          // std::cout << "dim = " << dim << "  ";    
+          for (UInt k=0; k < n_elems; k++)
+          {
+             // the constructor of Point initializes
+             barycenter[dim] += coords[dim][k];
+             // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
+          }
+            
+          barycenter[dim] /= (double) n_elems;
+          // std::cout << " average: " << (barycenter[dim]) << std::endl; 
+       }       
+   }
+
+
   /////////////////////////////////////////////////////////////////////
   /////// For geometrical transformation using direction cosines //////
 

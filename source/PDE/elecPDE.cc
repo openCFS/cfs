@@ -11,6 +11,7 @@
 #include "elecPDE.hh"
 
 #include "Forms/linElecInt.hh"
+#include "Forms/linNeumannInt.hh"
 #include "Forms/nLinElecHystInt.hh"
 #include "Forms/nLinElecMaterial.hh"
 #include "Forms/elecchargeop.hh"
@@ -31,6 +32,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/hysteresis.hh"
 #include "Utils/preisach.hh"
+#include "Optimization/DesignSpace.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -326,6 +328,26 @@ namespace CoupledField {
       
     }
 
+    // **********************************************************************
+    //   inhom. Neumann boundary condition
+    // **********************************************************************
+    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) 
+    {
+      InhomNeumannBc const & actBc = *inBcs_[iBc];
+
+      
+      LinearSurfForm *neumannBC = new LinNeumannInt(actBc.value, actBc.phase, 
+                                                     NO_MATERIAL, isaxi_);
+      neumannBC->SetVoluInfo(materials_);
+      LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
+      neumannContext->SetPtPde(this);
+      neumannContext->SetResult(actBc.result, actBc.entities);
+      assemble_->AddLinearForm(neumannContext);
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult(*actBc.result, actBc.entities);
+    }
+    
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
@@ -355,7 +377,7 @@ namespace CoupledField {
         new NonConformingInt( 1, isaxi_ );
 
       NcBiLinFormContext * stiffIntDescr = 
-	new NcBiLinFormContext( ncInt , STIFFNESS );
+     	  new NcBiLinFormContext( ncInt , STIFFNESS );
 
       // Force assembling of M(Psi, Lambda)^T
       stiffIntDescr->SetCounterPart( true );
@@ -399,8 +421,15 @@ namespace CoupledField {
     solveStep_ = new SolveStepElec(*this);
   }
 
-  void ElecPDE::ReadSpecialBCs( ) {
-    ENTER_FCN( "ElecPDE::ReadSpecialBCs" );
+  void ElecPDE::ReadSpecialBCs( ) 
+  {
+     ReadImpedance();
+  }
+  
+  
+
+  void ElecPDE::ReadImpedance( ) 
+  {
   
     // Get values from parameter file
     StdVector<ParamNode*> impedNodes = 
@@ -505,6 +534,13 @@ namespace CoupledField {
 
      case ELEC_POLARIZATION:
        CalcPolarizationField( res );
+       break;
+       
+     case ELEC_PSEUDO_POLARIZATION:
+       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+         EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
+                   << " or appropriate optimiziation");
+       domain->GetErsatzMaterial()->ExtractResults(res);
        break;
        
      default:
@@ -1088,6 +1124,15 @@ namespace CoupledField {
     pol->dofNames = vecDofNames;
     pol->unit = "C/m^2";
     availResults_.insert( pol );
+
+    // pesudo electric polarization for piezo simp
+    shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
+    pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
+    pseudoPol->definedOn = ResultInfo::ELEMENT;
+    pseudoPol->entryType = ResultInfo::SCALAR;
+    pseudoPol->dofNames = "";
+    pseudoPol->unit = "";
+    availResults_.insert( pseudoPol );
    
     // ===================================
     // Check for non-conforming interfaces

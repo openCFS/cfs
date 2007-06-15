@@ -108,6 +108,9 @@ namespace CoupledField {
     //! Return size of space memory of this vector
     UInt Memory() const;
 
+    /** Dumps the vector to a string - is slow, use only for debugging! */
+    std::string ToString();
+
     //@}
     
 

@@ -7,18 +7,17 @@
 
 #include <map>
 
+#include "assemble.hh"
 #include "baseSolveStep.hh"
 #include "Utils/vector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/domain.hh"
 
-
 namespace CoupledField
 {
   // forward class declarations
   class StdPDE;
-  class Assemble;
   class BaseNodeStoreSol;
   class TimeStepping;
   class WriteResults;
@@ -124,6 +123,12 @@ namespace CoupledField
     
     
     //----------------------- helpfull methods--------------------------------------
+
+    /** The Assemle opject contains the bilinear forms */
+    Assemble* GetAssemble() { return assemble_; } 
+
+    //! Set the current time step
+    void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
     Double SetLinRHS(Double loadFactor);

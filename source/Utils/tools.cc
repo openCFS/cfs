@@ -144,6 +144,13 @@ namespace CoupledField {
     return *this;
   }
 
+  std::string Point::ToString() const
+  {
+     std::ostringstream os;
+     os << "(" << p[0] << ";" << p[1] << ";" << p[2] << ")";
+     return os.str();
+  }
+
   Double Sin(const Double x) {
     return sin(x);
   }
@@ -384,15 +391,41 @@ namespace CoupledField {
       }                                                                 \
     }
   
+  double NormL2(const double* data, unsigned int size)
+  {
+    double result = 0.0;
+    for(unsigned int i = 0; i < size; i++)
+      result += *(data + i) * *(data + i);
+      
+    return result;  
+  }
+  
+  double Average(const double* data, unsigned int size)
+  {
+    double sum = 0.0;
+    for(unsigned int i = 0; i < size; i++)
+      sum += *(data + i);
+    
+    return sum / size;
+  }  
+  
+  double StandardDeviation(const double* data, unsigned int size)
+  {
+    // expected value
+    double e = Average(data, size);
+    
+    // variance
+    double v = 0.0;
+    for(unsigned int i = 0; i < size; i++)
+      v += (*(data + i) - e) * (*(data + i) - e);
+    
+    return v / size;
+    
+    return sqrt(v);
+  }  
+  
   DEF_VEC_CONVERSION(Vector)
   DEF_VEC_CONVERSION(StdVector)
-   
 
-  // explicit template instantiation for SGI compiler
-#ifdef __sgi
-#pragma instantiate Point<2>
-#pragma instantiate Point<3>
-#pragma instantiate void PrintPoint(Point<2>, std::ostream *)
-#pragma instantiate void PrintPoint(Point<3>, std::ostream *)
-#endif
+
 }// namespace CoupledField

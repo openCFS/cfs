@@ -165,6 +165,9 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void InitStoreResults();
+ 
+    /** Read the impedance */
+    void ReadImpedance();
 
     //! flag for piezo-coupling
     bool isPiezoCoupled_;

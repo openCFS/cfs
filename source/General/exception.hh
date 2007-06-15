@@ -41,6 +41,11 @@ namespace CoupledField {
                const unsigned int lineNum = 0,
                const char* const message = "NO_MESSAGE") throw ();
 
+    /** This is the only constructor to call an Exception by hand */
+    Exception(const std::string& message,
+              const char* const fileName = "NO_FILENAME", 
+              const unsigned int lineNum = 0) throw ();  
+
     //! Copy constructor
     Exception( const Exception& exc ) throw ();
 
@@ -63,6 +68,11 @@ namespace CoupledField {
     static bool segfault_;
 
   private:
+    /** common init method */
+    void init( const Exception* reason,
+               const char* const fileName, 
+               const unsigned int lineNum,
+               const char* const message) throw ();
 
     //! Accumulated error message
     std::string what_;

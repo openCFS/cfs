@@ -71,6 +71,36 @@ namespace CoupledField {
     }
   }
  
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2)
+  {
+     // the EntityList has the region name as name but not the id
+     std::string region = domain->GetGrid()->RegionIdToName(regionId);
+     
+     BiLinFormContext* result = NULL;
+     
+     // iterate over all descriptors
+     std::set<BiLinFormContext*>::iterator iter;
+     for (iter = biLinForms_.begin(); iter != biLinForms_.end(); iter++)
+     {
+       // we are wrong if the region does not match
+       if((*iter)->GetFirstEntities()->GetName() != region) continue;
+       // when pde1 is given we compare it by name and continue if the names are different
+       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
+       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+
+       // we come here because we had no contradiction - check for uniqueness       
+       if(result != NULL) throw Exception("parameters not unique!");
+       // absolutley no contradiction, save result and continue to
+       // check that there is no further match
+       result = *iter;
+     }
+     
+     if(result == NULL) throw Exception("specified BiLinFormContext not found");
+     return result;
+  }
+
+ 
+ 
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
     ENTER_FCN( "Assemble::AddBiLinearForm" );
     
@@ -969,6 +999,15 @@ namespace CoupledField {
                           pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
                           context.IsSetCounterPart() );
     }
+  }
+  
+  void Assemble::Dump()
+  {
+      // iterate over all descriptors
+      std::set<BiLinFormContext*>::iterator formsIt;
+      for ( formsIt = biLinForms_.begin(); formsIt != biLinForms_.end(); formsIt++ ) {
+         (*formsIt)->Dump();  
+      }
   }
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,

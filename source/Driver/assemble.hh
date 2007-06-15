@@ -15,6 +15,10 @@
 namespace CoupledField {
 
 
+  // Forward class declarations
+  class TimeFunc;
+  class StdPDE;
+
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble {
 
@@ -69,6 +73,26 @@ namespace CoupledField {
     
     //! Print information about registered (bi)linearforms and general data
     void PrintInfo( std::ostream& out );
+
+    /** <p>The PDEs don't know their own Integrators (the Element matrices K_{uu},
+     *  ...) but when one wants to use it, we have to get it back from the 
+     * assemble class.</p>
+     * <p>The query needs to define a unique form.</p>
+     * @param regionId guess what!
+     * @param pde1 this is the first pde - might be NULL
+     * @param pde2 the second pde, note the order -> see debug file. Might be NULL
+     * @return the defined context, never NULL
+     * @exception error when nothing found or not unique specification */
+    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1 = NULL, StdPDE* pde2 = NULL);
+ 
+    /** Returns the load list for external modification */
+    LoadList& GetLoads() { return loads_; }
+
+    /** Returns the linear forms list for external modification */
+    std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }
+
+    /** a short dump */
+    void Dump();
 
   protected:
 

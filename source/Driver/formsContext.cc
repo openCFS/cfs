@@ -126,6 +126,15 @@ namespace CoupledField {
 				    endRadius);
 
   }
+  
+  void BiLinFormContext::Dump()
+  {
+      std::cout << "BiLinFormContext nonLin=" << (IsNonLin() ? "true" : "false") 
+                << " pde1=" << ptPde1_->GetName() << " pde2=" << (ptPde2_ == NULL ? "NULL" : ptPde2_->GetName()) 
+                << " integrator=" << integrator_->GetName() << " entityList1=" << ent1_->GetName() 
+                 << std::endl;
+  }  
+  
 
 // -------------------------------------------------------------------------
 
@@ -191,7 +200,6 @@ namespace CoupledField {
   }
 
   // -------------------------------------------------------------------------
-
   NcBiLinFormContext::NcBiLinFormContext( BaseForm* biLinForm, 
                                           FEMatrixType destMat ) 
     : BiLinFormContext( biLinForm, destMat ) {

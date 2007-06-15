@@ -24,10 +24,13 @@
 #include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 
 namespace CoupledField {
 
+  DECLARE_LOG(trans_driver)
+  DEFINE_LOG(trans_driver, "transient_driver")
 
   // ===============
   //   Constructor
@@ -39,6 +42,9 @@ namespace CoupledField {
     : SingleDriver( sequenceStep, isPartOfSequence ) {
     ENTER_FCN( "TransientDriver::TransientDriver" );
     
+    LOG_TRACE(trans_driver) << "TransientDriver():  stepOffset: " << stepOffset
+             << " timeOffset: " << timeOffset << " sequenceStep: " << sequenceStep
+             << " isPartOfSequence: " << isPartOfSequence;
     // Set analysistype
     analysis_ = TRANSIENT;
 
@@ -127,7 +133,7 @@ namespace CoupledField {
 
     // Outer loop over all timesteps
     for (actTimeStep_ = startStep; actTimeStep_ <= numstep_+restartStep_; actTimeStep_++) {
-
+      LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
       // check for a HALTCFS File
       // if there exist a file with name HALTCFS in the executing directory
       // than CFS++ will end after the current time step

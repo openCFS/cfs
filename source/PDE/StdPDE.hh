@@ -358,7 +358,7 @@ namespace CoupledField {
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
     
-    //! List of inhomogeneous Nuemann boundary conditions
+    //! List of inhomogeneous Neumann boundary conditions
     InBcList inBcs_;
 
     //! List of constraints

@@ -8,12 +8,14 @@
 #include <memory>
 
 #include "General/environment.hh"
+#include "General/exception.hh"
 #include "Domain/grid.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "DataInOut/simInput.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/simInput.hh"
 #include "General/exception.hh"
@@ -23,7 +25,8 @@
 #include "Utils/defaultCoordSys.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "DataInOut/resultHandler.hh"
-
+#include "Optimization/Optimization.hh"
+#include "Optimization/DesignSpace.hh"
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
 
@@ -39,7 +42,6 @@
 #include "Driver/basedriver.hh"
 #include "Driver/singleDriver.hh"
 #include "Driver/multiSequenceDriver.hh"
-
 #ifdef ADAPTGRID
 #include "domain/AdaptGrid/interface_adgrid.hh"
 #endif
@@ -48,7 +50,7 @@
 
 namespace CoupledField {
 
-   
+  
   // **************
   //   Construtor
   // **************
@@ -74,11 +76,14 @@ namespace CoupledField {
     resultHandler_  = handler;
     ptIterCoupledPde_ = NULL;
     ptSingleDriver_ = NULL;
+    multiSequenceDriver_ = NULL;
+    optimization_ = NULL;
+    ersatzMaterial = NULL;
   }
   
   void Domain::CreateGrid() {
     ENTER_FCN( "Domain::CreateGrid" );
-    
+   
     // read type of mesh library
     std::string libmesh = "cfsGrid";
     ParamNode * inputNode = param->Get("input", false );
@@ -156,6 +161,38 @@ namespace CoupledField {
     }    
   }
 
+  void Domain::PostInit() 
+  {
+      // set up the driver first
+      // SetDriver extracts the SingleDriver which is what CreateInstance returns
+      // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
+      
+      // we do not have to delete driver as it is due to SetDriver() deleted
+      // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
+      BaseDriver* driver = BaseDriver::CreateInstance();  
+      SetDriver(driver); // see above!
+      Info->FinishProgress();
+
+      // initialize the driver
+      driver->Init();
+
+      // check if we simulate with ersatz material - after driver!! 
+      //- not when we do optimization and vice versa
+      bool esm = false;
+      if(param->Has("loadErsatzMaterial"))
+      {
+        ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
+        esm = true;
+      }
+      // check if we have to do optimization
+      if(param->Has("optimization"))
+      {
+        if(esm) throw Exception("you cannot load ErsatzMaterial and to optimization");
+        SetOptimization(Optimization::CreateInstance());
+      }
+      else SetOptimization(NULL);
+  }
+
 
   // **************
   //   Destructor
@@ -190,7 +227,34 @@ namespace CoupledField {
     ptDirectCoupledPde_.Clear();
 
     // Destructor of IterCoupledPDE deletes couplings!
+    
+    // stuff set up by PostInit at the end
+    
+    // If our driver is a MultiSequenceDriver we don't delete ptSingleDriver_!
+    if(multiSequenceDriver_ != NULL) { delete multiSequenceDriver_; multiSequenceDriver_ = NULL; }
+    else if(ptSingleDriver_ != NULL) { delete ptSingleDriver_; ptSingleDriver_ = NULL; }
+    
+    // the optimization is optional. Important, before ersatzMaterial!
+    if(optimization_ != NULL) { delete optimization_; optimization_ = NULL; }
+    
+    // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization 
+    if(ersatzMaterial != NULL) { delete ersatzMaterial; ersatzMaterial = NULL; }    
+  }
 
+
+  void Domain::SolveProblem() 
+  {
+    BaseDriver* driver = multiSequenceDriver_;
+    if(driver == NULL) driver = ptSingleDriver_;
+    
+    // PostInit needs to be called in advance!
+    if(GetOptimization() != NULL) 
+       GetOptimization()->SolveProblem(); // would crash for MultiSequcenceDriver!
+    else
+    {
+       driver->SolveProblem();
+       driver->StoreResults();
+    }
   }
 
 
@@ -707,14 +771,19 @@ namespace CoupledField {
   // *************
   //   SetDriver
   // *************
-  void Domain::SetDriver( BaseDriver * driver ) {
-
+  void Domain::SetDriver( BaseDriver * driver ) 
+  {
     if( driver->GetAnalysisType() == MULTI_SEQUENCE ) {
-      ptSingleDriver_ = dynamic_cast<MultiSequenceDriver*>(driver)
-        ->GetSingleDriver();
+      multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*>(driver);
+      ptSingleDriver_ = multiSequenceDriver_->GetSingleDriver(); // NULL before Init()!!
     } else {
       ptSingleDriver_ = dynamic_cast<SingleDriver*>(driver);
     }
+  }
+  
+  BaseDriver* Domain::GetDriver()
+  {
+  	return ptSingleDriver_;
   }
   
   // *************
@@ -755,6 +824,99 @@ namespace CoupledField {
     numIterCoupledStdPde_ = 0;
   }
 
+  void Domain::ReadErsatzMaterial(ParamNode* pn)
+  {
+    DesignElement::SetEnums();
+    Optimization::SetEnums();
+        
+    // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
+    // Initialize our xerces dom parser to handle the external xml file
+    Xerces* xerces = new Xerces(pn->Get("file")->AsString());
+    // set the global ParamNode tree pointer
+    ParamNode* xml = xerces->CreateParamNodeInstance();
+    // release the xerces ressources, param is not affected
+    delete xerces;
+    // check this file
+    if(xml->Count("set") == 0) 
+      throw Exception("There are no design sets in the ersatz material file");
+
+    // create a own structure for the ersatzMaterial
+    std::string reg = pn->Get("region")->AsString();        
+    if(!GetGrid()->HasRegion(reg)) 
+       throw Exception("region given in loadErsatzMaterial is invalid");      
+    RegionIdType regionId = GetGrid()->RegionNameToId(reg);
+    
+    // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
+    ParamNode* set = NULL;
+    std::string key = pn->Get("set")->AsString();
+    if(key == "first") set = xml->GetList("set")[0];
+    if(key == "last")  set = xml->GetList("set").Last(); 
+    if(set == NULL)    set = xml->Get("set", "id", key);
+
+    // the header is like
+    // <header>
+    //   <design name="density" initial="1.0"/>
+    //   ...
+    //   <transferFunction type="simp" application="mech" design="density" param="1.0"/>
+    //   ..      
+    // </header>
+ 
+    // the design set consists of entries like
+    // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/>
+    // only the combination nr and type is unique. E.g. in piezo we have types density and polarization
+    StdVector<ParamNode*> des = xml->Get("header")->GetList("design");
+    StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction");      
+    StdVector<ParamNode*> res(0); // empty
+
+    // create the design space -> data has initial values!    
+    ersatzMaterial = new DesignSpace(regionId, des, tfs, res);
+
+    // read the set and replace the initial values
+    StdVector<ParamNode*> elems = set->GetList("element");
+
+    // check the the dimensions! the number of design variables comes from the regions and desings
+    if(ersatzMaterial->data.GetSize() != elems.GetSize())
+      EXCEPTION("ErsatzMaterialFile has " << elems.GetSize() << " entries, the model has "
+                << ersatzMaterial->data.GetSize() << " entries");
+
+    for(unsigned int e = 0; e < elems.GetSize(); e++)
+    {
+      unsigned int nr = elems[e]->Get("nr")->AsInt();
+      DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->AsString());
+      double val = elems[e]->Get("design")->AsDouble();
+      
+      // replace the value of the DesignElement
+      DesignElement* de = ersatzMaterial->Find(nr, dt);
+      de->SetDesign(val);
+    }
+  }
+
+  double Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form)
+  {
+    // is the stuff active at all? 
+    if(ersatzMaterial == NULL) return -1.0;
+    
+    // are we in the relevant region at all?
+    if(elem->regionId != ersatzMaterial->GetRegionId()) return -1.0;
+
+    // The desing space does the magic stuff. 
+    // In the SIMP case we get density of element power param
+    // all identified by the form and in piezo coupling case it
+    // might even be the product of the transfer funcitons of
+    // density and polarization
+    double val = ersatzMaterial->GetErsatzMaterialFactor(elem, form);
+    return val;
+  }
+
+  DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
+  {
+    if(ersatzMaterial == NULL && throw_excpetion) 
+      EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
+                << " or an appropriate optimization");
+
+    return ersatzMaterial;
+  }
+
 
   // *************
   //   PrintGrid
@@ -767,4 +929,20 @@ namespace CoupledField {
     //    resultHandler_->WriteGrid();
   }
   
+  void Domain::Dump()
+  {
+      for(UInt i = 0; i < ptSinglePde_.GetSize(); i++) {
+         std::cout << "  single pde: " << ptSinglePde_[i]->GetName() << std::endl;
+      }      
+
+      for(UInt i = 0; i < couplings_.GetSize(); i++) {
+         std::cout << "  coupled pde: " << couplings_[i]->GetPDE()->GetName() << std::endl;
+      }
+      
+      for(UInt i = 0; i < ptDirectCoupledPde_.GetSize(); i++) {
+         std::cout << "  direct coupled pde: " << ptDirectCoupledPde_[i]->GetName() << std::endl;
+      }
+      
+  }
+
 }

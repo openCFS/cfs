@@ -238,6 +238,12 @@ namespace CoupledField
       \param isaxi (true: axisymmetric formulation)
     */
     virtual Double CalcVolume(const Matrix<Double> & CornerCoords, const bool isaxi);
+    
+    /** Calculates the barycenter of the element. For 3D and 2D (z=0 then) 
+     * This is the average of every coordinate. 
+     * @param coords might be 2D and 3D. See Grid::GetElemNodesCoord()
+     * @param barycenter the output. In 2D z=0. If you want 2D then overload */
+    static void CalcBarycenter(const Matrix<Double>& coords, Point& barycenter);
 
 
     //! Calculates a measure for the geometric distortion of an element

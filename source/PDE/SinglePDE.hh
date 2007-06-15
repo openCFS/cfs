@@ -171,6 +171,18 @@ namespace CoupledField
 
     //! perform cleanup and do last computations
     void Finalize();
+
+    //! Map containing the result types and the results
+    ResultMap& GetResults() { return resultLists_; }
+    
+    /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
+     * it is added to resultLists_.</p>
+     * <p>This method is to be called by ReadStoreResults() for every element in
+     * availResults_. Additionally an Otimization instance calls when there a
+     * result element defines one of the solution types optResult_1/2/3 in more detail  
+     * @param candidate normally an element of the (mathematical) set availResults_
+     * @return true if in xml and added */
+    bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
     
     // ======================================================
     // METHODS & MEMBERS FOR POST PROCESSING

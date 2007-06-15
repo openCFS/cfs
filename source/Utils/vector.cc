@@ -842,7 +842,19 @@ namespace CoupledField
     b.data_ = tmp_data;
   }
 
-
+  template<class TYPE> 
+  std::string Vector<TYPE>::ToString()
+  {
+     std::ostringstream os;
+     os << "[";
+     for(unsigned int i=0; i<size_; i++) {
+        os << data_[i];
+        if(i < size_-1) os << ", ";
+     }
+     os << "]";
+     return os.str();
+  }
+     
 
   template<class TYPE> 
   void Vector<TYPE>::Sort()
@@ -863,6 +875,8 @@ namespace CoupledField
             data_[j+gap] = temp;
           }
   }
+
+
 
   template<> 
   void Vector<Complex>::Sort(){

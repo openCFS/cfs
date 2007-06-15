@@ -146,6 +146,9 @@ namespace CoupledField
     DampLayer* getPtDamplayer() {
       return dampingLayer_;};
 
+    /** Dump what we have */
+    void Dump();
+
   protected:
 
     //! Pointer to bilinearform

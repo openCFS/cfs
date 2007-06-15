@@ -363,7 +363,7 @@ namespace CoupledField {
       SETPROFILE("After SetupSolver / Before Solve");  
     }
 
-    algsys_->Solve();
+    algsys_->Solve(actStep_);
     SETPROFILE("After Solve");
 
     Double* ptsol;

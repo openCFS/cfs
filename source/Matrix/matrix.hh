@@ -526,6 +526,10 @@ namespace CoupledField
 
     //! Converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols( CFSVector& vec ) const;
+ 
+    /** Dumps for developers */
+    void Dump();
+
 
     //@}
 

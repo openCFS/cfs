@@ -88,6 +88,9 @@ namespace CoupledField {
     //! Type of approximation used for the result
     shared_ptr<AnsatzFct> fctType;
 
+    /** Gives back a debug summery of the result info */
+    std::string ToString() const; 
+ 
     //! Conversion from EntityUnknownType to string
     static void Enum2String( EntityUnknownType in, 
                              std::string& out );

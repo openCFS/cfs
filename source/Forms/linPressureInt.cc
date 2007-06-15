@@ -48,6 +48,12 @@ namespace CoupledField {
     // evaluate value for current element
     mParser_->SetExpr( mHandle_, value_ );
     Double factor = mParser_->Eval( mHandle_ );
+
+    // When we do SIMP of an Piezo we might have pressure and charge density
+    // on surface elements. Then scale our element contribution by the corresponding
+    // volume element which has the scaling factor.
+    double density = GetErsatzMaterialFactor(ptVolElem);
+    factor *= density;
     
     // multiply element vector with factor
     elemVec *= factor;

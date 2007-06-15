@@ -47,6 +47,12 @@ namespace CoupledField {
     //! Return vector containing data
     virtual CFSVector* GetCFSVector() = 0 ;
     
+    /** Gives back some information for debug output */
+    std::string ToString() const;
+    
+    /** Dumps a result list */
+    static void Dump(StdVector<shared_ptr<BaseResult> >& resultList);
+    
   protected:
     
     //! Object describing the type of result

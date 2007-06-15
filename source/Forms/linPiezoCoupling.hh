@@ -176,7 +176,6 @@ namespace CoupledField {
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return PIEZO_TENSOR; }
 
-
   private:
 
     UInt numDofsA_;

@@ -26,6 +26,7 @@ namespace CoupledField {
   //     ERROR / WARNING HANDLING
   // =========================================================================
   
+    
   //@{
   //! \name Error / Warning Handling 
   
@@ -242,6 +243,12 @@ namespace CoupledField {
     //!destructor
     ~Point(){;}
 
+    /** resets the values */
+    void SetZero() {
+      for(UInt i=0; i<3; i++)
+        p[i]=0.0;
+    } 
+
     //!
     Point & operator=(const Point & t);
     //!
@@ -256,6 +263,10 @@ namespace CoupledField {
 
     //! return coordinate number i
     Double operator[](UInt i) const {return p[i];} 
+
+    /** Lists the content 
+     * @return the form "(0.3;4.3;0.0)" but no digit control */ 
+    std::string ToString() const;
 
   private:
     Double p[3];
@@ -315,6 +326,16 @@ namespace CoupledField {
 
   Double Sin(const Double x);
   Double Cos(const Double x);
+
+  /** Calculates the L2 norm of a array. This is for cases where we
+   * don't use one of our vectors. E.g. with IPOPT */ 
+  double NormL2(const double* data, unsigned int size);
+  
+  /** Calculate the average of an array */
+  double Average(const double* data, unsigned int size);
+  
+  /** Calculate the Standard Deviation of an array */
+  double StandardDeviation(const double* data, unsigned int size);
 
 
   /// prints formatted header including name, version, date

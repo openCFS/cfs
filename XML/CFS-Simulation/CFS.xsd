@@ -46,7 +46,8 @@
   <xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MpCCI.xsd"/>
-
+  <xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Optimization.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Definition of enclosing main element -->
@@ -156,6 +157,12 @@
         <!-- Parameters for MpCCI computation (semi-optional) -->
         <xsd:element ref="MpCCI" minOccurs="0"
           maxOccurs="unbounded"/>
+
+        <!-- Optional paramteter for ersatz Material -->
+        <xsd:element name="loadErsatzMaterial" type="DT_ErsatzMaterial" minOccurs="0"/>
+        
+      	<!-- Parameters for specifying an optimization (optional) -->
+        <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
 
         <!-- Parameters for specifying integration rules (optional) -->
         <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>

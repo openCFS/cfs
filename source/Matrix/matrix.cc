@@ -119,6 +119,21 @@ namespace CoupledField
       }
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::Dump()
+  {
+     std::cout << "Matrix: rows=" << size_row_ << " cols=" << size_col_ << std::endl;
+     for(UInt j = 0; j < size_row_; j++) 
+     {
+        for(UInt i = 0; i < size_col_; i++)
+        {
+            std::cout << j << ":" << i << "=" << data_[j][i];
+            if(i < size_col_-1) std::cout << "\t";
+        }
+        std::cout << std::endl;
+     } 
+  }
+
 
   template<class TYPE>
   void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols )
@@ -943,6 +958,7 @@ namespace CoupledField
         break;
 
       case 3:
+        // see St�cker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
         inv.Resize(3,3);
 
         // === Old, recursive version ===

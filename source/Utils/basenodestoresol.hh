@@ -391,6 +391,22 @@ namespace CoupledField{
     //! Output function
     virtual void Print(std::ostream& str) = 0;
 
+    /** debug output for developers */
+    void Dump()
+    {
+  	  std::cout << "BaseNodeStoreSol: solutions=" << GetNumSolutions() << " size=" << GetSize() << " nodes=" << GetNumNodes() << " total DOFs=" << GetTotalNumDofs() << std::endl;
+
+      StdVector<SolutionType> solTypes;
+      GetSolutionTypes(solTypes);
+      
+      for(UInt i = 0; i < solTypes.GetSize(); i++) {
+          SolutionType type = solTypes[i];
+          std::cout << i << ": type=" << type << " dof=" << GetDof(type) << std::endl;
+      }  
+    };
+    
+
+
     /////////////////////////////////////////
     // Transformation routines for mapping //
     // pde to mesh solution and vice versa //
@@ -562,7 +578,19 @@ namespace CoupledField{
     ENTER_IFCN( "BaseNodeStoreSol::GetNumSolutions()" );
     return numSolutions_;
   }
+/*
+  void BaseNodeStoreSol::Dump()
+  {
+  	  std::cout << "BaseNodeStoreSol: solutions=" << GetNumSolutions() << " size=" << GetSize() << " nodes=" << GetNumNodes() << " total DOFs=" << GetTotalNumDofs() << std::endl;
 
+      StdVector<SolutionType> solTypes;
+      GetSolutionTypes(solTypes);
+      
+      for(UInt i = 0; i < solTypes.GetSize(); i++) {
+          SolutionType type = solTypes[i];
+          std::cout << i << ": type=" << type << " dof=" << GetDof(type) << std::endl;
+      }  
+  }*/
 
 } //end of namespace
 

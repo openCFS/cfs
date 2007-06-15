@@ -16,9 +16,9 @@ namespace CoupledField {
   // =====================
   void ADBInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                   EntityIterator& ent1, 
-                                  EntityIterator& ent2 ) {
+                                  EntityIterator& ent2) {
     ENTER_FCN( "ADBInt::CalcElementMatrix" );
-
+  
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
@@ -46,6 +46,11 @@ namespace CoupledField {
 
     // Setup material matrix once and for all
     calcDMat( dMat );
+    
+    Double val = GetErsatzMaterialFactor(ent1.GetElem());
+    if(val != 1.0) {
+       dMat *= val;
+    }   
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
