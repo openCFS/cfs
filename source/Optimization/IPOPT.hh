@@ -5,8 +5,8 @@
 #include "Utils/VecStat.hh"
 
 // references to the lib
-#include "IpTNLP.hpp"
-#include "IpIpoptApplication.hpp"
+#include "ipopt/IpTNLP.hpp"
+#include "ipopt/IpIpoptApplication.hpp"
 
 namespace CoupledField
 {

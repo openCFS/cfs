@@ -206,16 +206,6 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
   ENDIF(USE_TCL)
 
   #-----------------------------------------------------------------------------
-  # If USE_IPOPT option is defined find ipopt library
-  #-----------------------------------------------------------------------------
-  IF(USE_IPOPT)
-    INCLUDE("cmake_modules/FindIPOPT.cmake")
-    IF(NOT IPOPT_FOUND)
-      MESSAGE(FATAL_ERROR "IPOPT library could not be found!")
-    ENDIF(NOT IPOPT_FOUND)
-  ENDIF(USE_IPOPT)
-
-  #-----------------------------------------------------------------------------
   # If USE_BLAS option is defined find BLAS library
   #-----------------------------------------------------------------------------
   IF(USE_BLAS)
