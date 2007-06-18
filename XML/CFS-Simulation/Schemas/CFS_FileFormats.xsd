@@ -34,21 +34,26 @@
 
   <!-- This is an abstract basic input type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_InputBasic" abstract="true"/>
+  <xsd:complexType name="DT_InputBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+  </xsd:complexType>
 
+  <!-- Definition of input element group -->
+  <xsd:group name="InputGroup">
+    <xsd:choice>
+      <xsd:element name="gmv" type="DT_InputGMV"/>
+      <xsd:element name="mesh" type="DT_InputMesh"/>
+      <xsd:element name="hdf5" type="DT_InputHDF5"/>
+      <xsd:element name="unv" type="DT_InputUNV"/>
+    </xsd:choice>
+  </xsd:group>
 
  <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_InputList">
-    <xsd:choice>
-      <xsd:element name="gmv" type="DT_InputGMV"
-		   minOccurs="0" maxOccurs="1"/> 
-      <xsd:element name="mesh" type="DT_InputMesh"
-		   minOccurs="0" maxOccurs="1"/> 
-      <xsd:element name="hdf5" type="DT_InputHDF5"
-		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="unv" type="DT_InputUNV"
-		   minOccurs="0" maxOccurs="1"/>
-    </xsd:choice>
+    <xsd:sequence>
+      <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -86,6 +91,12 @@
         <xsd:attribute name="generateRegionNodes"
 		       type="DT_CFSBool"
 		       default="no"/>
+        <xsd:attribute name="readRegions"
+		       type="xsd:token"
+		       default="all"/>
+        <xsd:attribute name="fileName"
+		       type="xsd:token"
+		       default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

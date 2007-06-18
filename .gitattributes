@@ -218,16 +218,6 @@ auxiliary/matlab/Time2FreqHDF5.m -text
 auxiliary/matlab/mminfo.m svneol=native#text/plain
 auxiliary/matlab/mmread.m svneol=native#text/plain
 auxiliary/matlab/sbmread.m svneol=native#text/plain
-auxiliary/mysql/dump_data.csh svneol=native#text/plain
-auxiliary/mysql/dump_db.csh svneol=native#text/plain
-auxiliary/mysql/empty_tables.csh svneol=native#text/plain
-auxiliary/mysql/empty_tables.sql svneol=native#text/plain
-auxiliary/mysql/getcoordinates.sql svneol=native#text/plain
-auxiliary/mysql/getdata.csh svneol=native#text/plain
-auxiliary/mysql/getelementresult.sql svneol=native#text/plain
-auxiliary/mysql/getelements.sql svneol=native#text/plain
-auxiliary/mysql/getnodalresult.sql svneol=native#text/plain
-auxiliary/mysql/getresultidx.sql svneol=native#text/plain
 auxiliary/scripts/log.tcl svneol=native#text/x-tcl
 auxiliary/scripts/xmlreplace.py -text
 cmake_modules/FindCFSDEPS.cmake -text
