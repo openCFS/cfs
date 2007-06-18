@@ -52,8 +52,9 @@ namespace CoupledField
     /*!
       \param aptFileType (input) input file (mesh-data)
     */
-    Domain(SimInput * const aptMeshIOModule, ResultHandler * handler,
-           MaterialHandler * ptMat );
+    Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
+            ResultHandler * handler,
+            MaterialHandler * ptMat );
     
     //! Destructor
     virtual ~Domain();
@@ -133,7 +134,7 @@ namespace CoupledField
     MaterialHandler * GetMaterialHandler() {return ptMatHandler_; }
 
     //! Get pointer to grid object
-    Grid * GetGrid(){ return ptgrid_;}
+    Grid * GetGrid( const std::string& id = "default" );
 
     //! Return local coordinate system by name
     CoordSystem * GetCoordSystem( const std::string & name 
@@ -269,9 +270,6 @@ namespace CoupledField
 
     //@}
 
-    //! Pointer to grid object
-    Grid * ptgrid_;
-
     /** Pointer to SingleDriver. Note, that this might be NULL in 
      * the case of MultiSequenceDriver - at least before Init() */
     SingleDriver * ptSingleDriver_;
@@ -279,9 +277,12 @@ namespace CoupledField
     /** Only set if we really have a MultiSequcenceDriver */
     MultiSequenceDriver* multiSequenceDriver_;
 
-    //! Pointer to object handling input file (mesh data)
-    SimInput *simInput_;
+    //! Map with grid ids and related grid objects
+    std::map<std::string, Grid* > gridMap_;
 
+    //! Map with grid ids an related input sources
+    std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs_;
+    
     //! Pointer to object managing results
     ResultHandler * resultHandler_;
 

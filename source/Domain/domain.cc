@@ -55,8 +55,9 @@ namespace CoupledField {
   //   Construtor
   // **************
 
-  Domain::Domain(SimInput * const aptSimInput, ResultHandler * handler,
-                 MaterialHandler * ptMat ) {
+  Domain::Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
+                  ResultHandler * handler,
+                  MaterialHandler * ptMat ) {
     
     
     ENTER_FCN( "Domain::Domain" );
@@ -71,7 +72,7 @@ namespace CoupledField {
     numIterCoupledStdPde_ = 0;
     
     // assign pointers
-    simInput_ = aptSimInput; 
+    gridInputs_ = gridInputs;
     ptMatHandler_ = ptMat;
     resultHandler_  = handler;
     ptIterCoupledPde_ = NULL;
@@ -102,53 +103,55 @@ namespace CoupledField {
       EXCEPTION( "Wrong Dimension parameter in xml-File" );
     }
     
-    SETPROFILE("Before Grid-Creation");
-    
-    // initialize pointer to grid 
-    if (libmesh =="cfsGrid") {
-      ptgrid_=new GridCFS();
-    }
-    
-#ifdef ADAPTGRID
-    else if (libmesh== "adaptGrid") {
-      ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
-    }
-#endif
-    
-    else {
-      EXCEPTION( "Type of mesh_library should be one of "
-                 << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
-    }
-    
     Info->StartProgress("Reading in the mesh");
     
-    //     try 
-    //     {
-    //         EXCEPTION("Test WARNING in Domain! " << 2);
-    //     }
-    //     catch (Exception& ex)
-    //     {
-    //         RETHROW_EXCEPTION(ex, "Ich habe eine Exception gefangen. " << 3);
-    //     }
-    
-    simInput_->InitModule(ptgrid_);
-    simInput_->ReadMesh();
-    
-    // Read in coordinate systems
-    // Note: It is important that is 
-    CreateCoordinateSystems();
-    ptgrid_->FinishInit();
-    
-    SETPROFILE("After Grid Creation");
+    std::map<std::string, StdVector<shared_ptr<SimInput> > >
+      ::const_iterator gridIt;
 
-    
+    // iterate over all grid ids
+    for( gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); gridIt++ ) {
+      
+      // create new grid
+      Grid * actGrid = NULL;
+      if (libmesh =="cfsGrid") {
+        actGrid = new GridCFS();
+      } else {
+        EXCEPTION( "Type of mesh_library should be one of "
+                   << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
+      }
+      
+      // iterate over all inputs for the current grid
+      StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
+      
+      for( UInt iFile = 0; iFile < inputs.GetSize(); iFile++ ) {
+        
+        shared_ptr<SimInput> actInFile = inputs[iFile];
+        
+        actInFile->InitModule(actGrid);
+        actInFile->ReadMesh();
+      }
+
+      // add grid to internal map
+      gridMap_[gridIt->first] = actGrid;
+      
+      // Read in coordinate systems
+      // This has to be done, before the grid gets finalized,
+      // as some methods in the grid rely on the existence of coordinate
+      // systems
+      CreateCoordinateSystems();
+      
+      actGrid->FinishInit();
+
+    }
+      
+    SETPROFILE("After Grid Creation");
 
     Info->FinishProgress();
 
     Info->StartProgress("Initializing non-matching interfaces");
 
     // Call the nonmatching grid intersection calculation
-    ptgrid_->InitNonmatchingInterfaces();
+    gridMap_["default"]->InitNonmatchingInterfaces();
 
     Info->PrintF("","\n=========================\n");
     Info->PrintF("","   END OF DOMAIN SETUP   \n");
@@ -157,7 +160,7 @@ namespace CoupledField {
 
     if ( !commandLine->GetPrintGrid() == true ) {
       // Initialize resultHandler
-      resultHandler_->Init( ptgrid_ );
+      resultHandler_->Init( gridMap_["default"] );
     }    
   }
 
@@ -201,8 +204,13 @@ namespace CoupledField {
 
     ENTER_FCN( "Domain::~Domain" );
 
-    delete ptgrid_;
-    ptgrid_ = NULL;
+    // delete all grid
+    std::map<std::string, Grid* >::iterator gridIt;
+    for( gridIt = gridMap_.begin(); gridIt != gridMap_.end(); gridIt++ ) {
+      delete gridIt->second;
+      gridIt->second = NULL;
+    }
+
     delete ptIterCoupledPde_;
     ptIterCoupledPde_ = NULL;
 
@@ -348,6 +356,14 @@ namespace CoupledField {
     
   }
 
+  Grid * Domain::GetGrid( const std::string& id ) {
+    if( gridMap_.find( id ) == gridMap_.end() ) {
+      EXCEPTION( "Grid with id '" << id 
+                 << "' is not defined" );
+    }
+    return gridMap_[id];    
+  }
+
   CoordSystem * Domain::GetCoordSystem( const std::string & name ) {
     ENTER_FCN( "Domain::GetCoordSystem" );
     
@@ -404,8 +420,6 @@ namespace CoupledField {
     for (UInt i=0; i<numSinglePde_; i++) {
       it = isDirectCoupled_.find( ptSinglePde_[i] );
       if ( (*it).second == false) {
-        //std::cerr << "Domain: Init() of " 
-        //<< ptSinglePde_[i]->GetName() << std::endl;
         ptSinglePde_[i]->Init( sequenceStep );
       }
     }
@@ -446,6 +460,9 @@ namespace CoupledField {
 
     ENTER_FCN( "Domain::CreatePDEs" );
 
+    // default grid
+    Grid * defaultGrid = gridMap_["default"];
+
     StdVector<ParamNode*> pdeNodes;
     pdeNodes =  param->Get("sequenceStep", "index", GenStr(sequenceStep) )
       ->Get("pdeList")->GetChildren();
@@ -461,31 +478,31 @@ namespace CoupledField {
       Info->StartProgress("Creating PDE '" + actPdeName + "'");
       
       if (actPdeName == "electrostatic") 
-        ptSinglePde_[i]=new ElecPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new ElecPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "mechanic")
-        ptSinglePde_[i]=new MechPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new MechPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "acoustic") {
         
         std::string acouSubType = actPdeNode->Get("subType")->AsString();
         if (acouSubType == "flowNoise")
-          ptSinglePde_[i]=new AcouFlowNoise(ptgrid_, actPdeNode);
+          ptSinglePde_[i]=new AcouFlowNoise(defaultGrid, actPdeNode);
         else if  (acouSubType == "combustionNoise")
-          ptSinglePde_[i]=new AcouCombustionNoise(ptgrid_, actPdeNode);
+          ptSinglePde_[i]=new AcouCombustionNoise(defaultGrid, actPdeNode);
 	else
-          ptSinglePde_[i]=new AcousticPDE(ptgrid_, actPdeNode );
+          ptSinglePde_[i]=new AcousticPDE(defaultGrid, actPdeNode );
       }
       
       else if (actPdeName == "acousticXYZ")
-        ptSinglePde_[i]=new AcousticXYZPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new AcousticXYZPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "smooth")
-        ptSinglePde_[i]=new SmoothPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new SmoothPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "magnetic") {
         //        if (dim_ == 2)
-          ptSinglePde_[i]=new MagPDE(ptgrid_, actPdeNode );
+          ptSinglePde_[i]=new MagPDE(defaultGrid, actPdeNode );
         // else if (dim_ == 3)
         // ptSinglePde_[i]=new MagEdgePDE(ptgrid, actPdeNode); 
           //        else
@@ -493,16 +510,16 @@ namespace CoupledField {
       }
       
       else if (actPdeName == "mpcci")
-        ptSinglePde_[i]=new MpcciPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "heatConduction")
-        ptSinglePde_[i]=new HeatCondPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new HeatCondPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "stokesFluid")
-        ptSinglePde_[i]=new StokesFluidPDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new StokesFluidPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "bubble")
-        ptSinglePde_[i]=new BubblePDE(ptgrid_, actPdeNode );
+        ptSinglePde_[i]=new BubblePDE(defaultGrid, actPdeNode );
 
       else {
         EXCEPTION( actPdeName << " - this type of pdes is unknown" );
@@ -574,7 +591,7 @@ namespace CoupledField {
       } // pde
     } // couplings
     
-    CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_);
+    CoupledPDEDef * CouplingDef = new CoupledPDEDef(gridMap_["default"]);
     
     // create coupling objects 
     StdVector<StdPDE*> orderedPdes;
@@ -708,7 +725,7 @@ namespace CoupledField {
       singlePdes.Push_back( GetSinglePDE(*itSet) );
     }
     
-    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, NULL) );
+    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], NULL) );
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
     ptDirectCoupledPde_[0]->SetCouplings( DirectCouplingPairs );
 
@@ -736,7 +753,7 @@ namespace CoupledField {
     // first create the "global" standard cartesian
     // coordinate system
     std::string defaultname = "default";
-    coordSys_[defaultname] = new DefaultCoordSystem(ptgrid_);
+    coordSys_[defaultname] = new DefaultCoordSystem(gridMap_["default"]);
 
     // get nodes with coordinate systems
     ParamNode * coosyNode =
@@ -754,10 +771,12 @@ namespace CoupledField {
       
       CoordSystem * actCoord = NULL;
       if( type == "polar") {
-        actCoord =  new PolarCoordSystem( name, ptgrid_, coordNodes[i] );
+        actCoord =  new PolarCoordSystem( name, gridMap_["default"], 
+                                          coordNodes[i] );
       } 
       else if ( type == "cylindric" ) {
-        actCoord = new CylCoordSystem( name, ptgrid_, coordNodes[i] );
+        actCoord = new CylCoordSystem( name, gridMap_["default"], 
+                                       coordNodes[i] );
       } else {
         EXCEPTION( "Coordinate system with type '" << type 
                    << "' not known!" );
@@ -925,7 +944,7 @@ namespace CoupledField {
     
     ENTER_FCN( "Domain::PrintGrid" );
 
-    resultHandler_->Init( ptgrid_ );
+    resultHandler_->Init( gridMap_["default"] );
     //    resultHandler_->WriteGrid();
   }
   

@@ -155,62 +155,104 @@ namespace CoupledField
   // ==============================
   //   Generate mesh file pointer
   // ==============================
-  SimInput* DefineInOutFiles::CreateMeshFileHandler() {
+  void DefineInOutFiles::
+  CreateSimInputFiles( std::map<std::string, shared_ptr<SimInput> >& inFiles,
+                       std::map<std::string, 
+                      StdVector<shared_ptr<SimInput> > >& gridInputs ) {
 
-    ENTER_FCN( "DefineInOutFiles::CreateMeshFileHandler" );
-
-    std::string informat = "mesh";
-    ParamNode * inputOptionNode;
-    ParamNode * inputNode = param->Get("fileFormats")
-      ->Get("input", false);
-    if( inputNode ) {
-        inputOptionNode = inputNode->GetChild();
-        informat = inputOptionNode->GetName();
-    }
+    ENTER_FCN( "DefineInOutFiles::CreateSimInputFiles" );
 
     std::string meshFile = commandLine->GetMeshFile();
     std::string simName = commandLine->GetSimName();
-    if ( informat == "mesh" ) {
-#ifdef USE_MESH
+    std::string fileName = "default";
+    std::string actId, actGridId;
+    
+    // resest map
+    inFiles.clear();
+    gridInputs.clear();
+
+    std::string informat = "mesh";
+    StdVector<ParamNode *> inputOptionNodes;
+    ParamNode * inputNode = param->Get("fileFormats")
+      ->Get("input", false);
+
+    // if no reader is defined explictly, create implicit one
+    if( !inputNode ) {
+      actId = "default";
+      actGridId = "default";
       if(meshFile == "")
-          meshFile = simName + ".mesh";
-      simInput_ = new SimInputMESH(meshFile, inputOptionNode);
-#else
-      EXCEPTION( "No support for MESH input file format." );
-#endif // USE_MESH
-    }
-    else if ( informat == "hdf5" ) {
-#ifdef USE_HDF5
-      if(meshFile == "")
-          meshFile = simName + ".h5";
-      simInput_ = new SimInputXMDF(meshFile, inputOptionNode);
-#else
-      EXCEPTION( "No support for HDF5 input file format." );
-#endif // USE_HDF5
-    }
-    else if ( informat == "gmv" ) {
-#ifdef USE_GMV_INPUT
-      if(meshFile == "")
-          meshFile = simName + ".gmv";
-      simInput_ = new SimInputGMV(meshFile, inputOptionNode);
-#else
-      EXCEPTION( "No support for GMV input file format." );
-#endif // USE_GMV_INPUT
-    }
-    else if ( informat == "unv" ) {
-#ifdef USE_UNV
-      if(meshFile == "")
-          meshFile = simName + ".unv";
-      simInput_ = new SimInputUnv(meshFile, inputOptionNode);
-#else
-      EXCEPTION( "No support for UNV input file format." );
-#endif // USE_UNV_INPUT
-    }
-    else {
-      EXCEPTION( "Wrong format for input file. Please, check your data!" );
+        meshFile = simName + ".mesh";
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile,
+                                                             NULL ));
+      gridInputs[actGridId].Push_back(inFiles[actId]);          
+      return;
     }
 
-    return simInput_;
+    inputOptionNodes = inputNode->GetChildren();
+  
+    for( UInt i = 0; i < inputOptionNodes.GetSize(); i++ ) {
+      
+      // fetch format and id of output class
+      ParamNode * actNode = inputOptionNodes[i];
+      informat = actNode->GetName();
+      actId = actNode->Get("id")->AsString();
+      actNode->Get("fileName", fileName, false);
+      actNode->Get("gridId", actGridId, true );
+      
+      if(i == 0)
+        {
+          if((meshFile == "") && (fileName != "default"))
+            meshFile = fileName;
+        }
+      else
+        meshFile = fileName;
+      
+      // ensure, that id is unique
+      if( inFiles.find(actId) != inFiles.end() ) {
+        EXCEPTION( "Id '" << actId
+                   << "' for input format '"<< informat
+                   << "' was already found!\n"
+                   << "Please ensure, that the ids for the "
+                   << "input entries are unique!" );
+      }
+
+      if ( informat == "mesh" ) {
+       #ifdef USE_MESH
+          if(meshFile == "")
+              meshFile = simName + ".mesh";
+          inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile,
+                                                            actNode));
+       #else
+          EXCEPTION( "No support for MESH input file format." );
+       #endif // USE_MESH
+      }
+      else if ( informat == "hdf5" ) {
+       #ifdef USE_HDF5
+          if(meshFile == "")
+              meshFile = simName + ".h5";
+          inFiles[actId] = shared_ptr<SimInput>(new SimInputXMDF(meshFile,
+                                                            actNode));
+       #else
+          EXCEPTION( "No support for HDF5 input file format." );
+       #endif // USE_HDF5
+      }
+      else if ( informat == "gmv" ) {
+       #ifdef USE_GMV_INPUT
+          if(meshFile == "")
+              meshFile = simName + ".gmv";
+          inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
+                                                           actNode));
+       #else
+          EXCEPTION( "No support for GMV input file format." );
+       #endif // USE_GMV_INPUT
+      }
+      else {
+          EXCEPTION( "Wrong format for input file. Please, check your data!" );
+      }
+
+      // relate gridId with input reader id
+      gridInputs[actGridId].Push_back(inFiles[actId]);
+    }
   }
 
 

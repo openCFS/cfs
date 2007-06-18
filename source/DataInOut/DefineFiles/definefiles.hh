@@ -37,9 +37,10 @@ namespace CoupledField
     //! Open an auxilliary file
     void OpenFile( AuxFileType fileType );
 
-    //! create a pointer to a class for reading input-results, a derived class
-    //! of the FileType according to the specification of the conf-file.
-    SimInput* CreateMeshFileHandler();
+    //! create input readers 
+    void CreateSimInputFiles( std::map<std::string, shared_ptr<SimInput> >& inFiles,
+                              std::map<std::string, 
+                              StdVector<shared_ptr<SimInput> > >& gridInputs );
 
     //! create pointer to output class and their related ids
     void CreateSimOutputFiles( std::map<std::string, 

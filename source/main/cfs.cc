@@ -263,19 +263,16 @@ int main( int argc, const char **argv ) {
 
   // read type of mesh-libraray
   std::string libmesh = "mesh";
+  std::map<std::string, shared_ptr<SimInput> > inFiles;
+  std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
   ParamNode * meshNode = param->Get("input", false );
   if( meshNode )
     meshNode->Get("meshLibrary")->AsString();
 
-  SimInput *ptInputfile;
-  if ( libmesh == "structGrid" ) {
-    //for struct grid we do not need a mesh-input-file
-    ptInputfile = NULL;
-  }
-  else {
+  if ( libmesh != "structGrid" ) {
     // Generate mesh reader
     Info->StartProgress( "Generating mesh reader" );
-    ptInputfile = FileHandler.CreateMeshFileHandler();
+    FileHandler.CreateSimInputFiles( inFiles, gridInputs );
     Info->FinishProgress();
   }
 
@@ -318,7 +315,7 @@ int main( int argc, const char **argv ) {
   // GENERATION OF DOMAIN OBJECT
   // =========================================================================
   SETPROFILE("Before Creation of Domain");
-  domain = new  Domain( ptInputfile, ptHandler, ptMatHandler );
+  domain = new  Domain( gridInputs, ptHandler, ptMatHandler );
   SETPROFILE("After Creation of Domain");
 
   // Create grid
