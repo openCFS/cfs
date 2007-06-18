@@ -210,6 +210,7 @@ XML/TestParser/SPHandler.hh svneol=native#text/x-c%2B%2Bhdr
 XML/TestParser/TestParser.cc svneol=native#text/x-c%2B%2Bsrc
 XML/TestParser/tryStuff.cc svneol=native#text/x-c%2B%2Bsrc
 XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
+auxiliary/MaterialFile/mat.xml svneol=native#text/xml
 auxiliary/matlab/FindPathHDF5.m -text
 auxiliary/matlab/PCOLOR.m svneol=native#text/plain
 auxiliary/matlab/README -text
