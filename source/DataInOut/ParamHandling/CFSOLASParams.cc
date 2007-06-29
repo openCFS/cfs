@@ -136,7 +136,7 @@ namespace CoupledField {
     // Following stuff only for required for standard systems
     OLAS::MatrixStorageType mType  = OLAS::NOSTORAGETYPE;
     OLAS::ReorderingType orderType = OLAS::NOREORDERING;
-    bool allowChangeOfReordering = true;
+    bool allowChangeOfReordering = false;
     
     
     if ( stdSystem == true ) {
