@@ -7,20 +7,43 @@
 #include <string>
 
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "newmark.hh"
 
 namespace CoupledField
 {
 
-  Newmark::Newmark(BaseSystem * algebraicsystem )
+  Newmark::Newmark(BaseSystem * algebraicsystem, const std::string& sysName )
     :TimeStepping(algebraicsystem )
   {
     ENTER_FCN( "Newmark::Newmark" );
 
-    alpha_ = 0.0;
-    //    alpha_ = -1/3;
+    // Default values for beta and gamma are:
+    //   beta  = 0.25
+    //   gamma = 0.5
+    alpha_ = 0.0; //  alpha_ = -1/3;
     beta_ = (1-alpha_)*(1-alpha_) / 4.0;
     gamma_ = (1 - 2*alpha_) / 2.0;
+    nu_ = 0.0;
+
+    ParamNode* myParam = NULL;
+    myParam = param->Get("linearSystems", false);
+    if( myParam != NULL ) {
+      myParam = myParam->Get("system", "name", sysName, false);
+      if( myParam != NULL ) {
+        if ( param->Has("timeSteppingParameters") ) {
+          myParam =  myParam->Get("timeSteppingParameters");
+          myParam->Get("beta", beta_, false);
+          myParam->Get("gamma", gamma_, false);
+          myParam->Get("nu", nu_, false);
+        }
+      }
+    }
+
+    gamma_ = gamma_ + nu_;
+
+    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
+                 beta_, gamma_);
 
   }
 
@@ -165,7 +188,8 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, bool intExplicit)
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, const std::string& sysName,
+                                 bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 
     ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
@@ -176,6 +200,27 @@ namespace CoupledField
     beta_  = 0.25;
     gamma_ = 0.5;
 
+    nu_ = 0.0;
+
+
+    ParamNode* myParam = NULL;
+    myParam = param->Get("linearSystems", false);
+    if( myParam != NULL ) {
+      myParam = myParam->Get("system", "name", sysName, false);
+      if( myParam != NULL ) {
+        if ( param->Has("timeSteppingParameters") ) {
+          myParam =  myParam->Get("timeSteppingParameters");
+          myParam->Get("beta", beta_, false);
+          myParam->Get("gamma", gamma_, false);
+          myParam->Get("nu", nu_, false);
+        }
+      }
+    }
+
+    gamma_ = gamma_ + nu_;
+
+    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
+                 beta_, gamma_);
   }
 
   NewmarkEffMass::~NewmarkEffMass()
@@ -207,10 +252,6 @@ namespace CoupledField
       
       matrix_factors_[DAMPING] = 1.0*a3_; 
     }
-
-//     std::cout << "STIFF: " <<  matrix_factors_[STIFFNESS] << std::endl;
-//     std::cout << "MASS: " <<  matrix_factors_[MASS] << std::endl;
-//     std::cout << "DAMP: " <<  matrix_factors_[DAMPING] << std::endl;
 
     //get the memory
     sol_.Resize(rhsSize_);

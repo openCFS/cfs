@@ -524,7 +524,7 @@ namespace CoupledField {
     ENTER_FCN( "DirecCoupledPDE::InitTimeStepping" );
 
     // Hard Coded
-    TS_alg_ = new Newmark( algsys_ );
+    TS_alg_ = new Newmark( algsys_, "direct" );
 
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {

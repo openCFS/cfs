@@ -131,6 +131,10 @@ namespace CoupledField {
     //! Return pointer to paramNode of current pde
     ParamNode * GetParamNode() { return myParam_; }
 
+    /** Finds the xml node of the linear system
+     * @return might be NULL */
+    ParamNode* FindLinearSystem(const std::string& sysName);
+
     //!
     //! \for computing and adding RHS to PDE in case of special sources 
     virtual void ComputeRHS(const Double atime) {;};
