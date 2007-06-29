@@ -193,6 +193,18 @@ namespace CoupledField {
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
+  ParamNode* StdPDE::FindLinearSystem(const std::string& sysName) {
+
+    ENTER_FCN( "StdPDE::FindLinearSystem" );
+
+    ParamNode* pn = NULL;
+    pn = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
+    if(pn != NULL) pn = pn->Get("linearSystems", false);
+    if(pn != NULL) pn = pn->Get("system", "name", sysName, false);
+    
+    return pn;
+  }
+
   Double StdPDE::GetFracDampMatrixCoeff(RegionIdType regionId) {
     
     ENTER_FCN( "StdPDE::GetFracDampMatrixCoeff" );

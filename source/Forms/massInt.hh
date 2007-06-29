@@ -28,7 +28,8 @@ namespace CoupledField
                             EntityIterator& ent2 );
       
     //! Sets a multiplicative factor for element matrix
-    void SetFactor( const std::string& factor );
+    void SetSecondFactor( const std::string& factor )
+    {mParser_->SetExpr( mHandle_, factor );};
 
     //! define diagonal mass matrix
     void SetDiagMass() {

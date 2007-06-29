@@ -29,17 +29,10 @@ namespace CoupledField {
   }
 
  
-  MassInt::~MassInt()
-  {
+  MassInt::~MassInt() {
     ENTER_FCN( "MassInt::~MassInt" );
   }
 
-  void MassInt::SetFactor( const std::string& factor ) {
-    ENTER_FCN( "MassInt::SetFactor" );
-    mParser_->SetExpr( mHandle_, factor );
-  }
-
- 
 
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 

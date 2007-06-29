@@ -7,18 +7,17 @@
 
 #include "timestepping.hh"
 
-
 namespace CoupledField
 {
+  class ParamNode;
 
   //! class for time stepping of hyperbolic PDE: method is Newmark
-
   class Newmark: public TimeStepping
   {
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    Newmark( BaseSystem * algebraicsystem );
+    Newmark( BaseSystem * algebraicsystem,const std::string& sysName );
 
     //! destructor
     virtual ~Newmark();
@@ -50,7 +49,7 @@ namespace CoupledField
 
     //@{
     //! integration parameters
-    Double alpha_, gamma_, beta_;  
+    Double alpha_, gamma_, beta_, nu_;  
     //@}
 
     //@{
@@ -63,6 +62,7 @@ namespace CoupledField
 
     //! predictor for derivative of solution
     Vector<Double> solderiv1pred_;
+
   };
 
 
@@ -74,7 +74,8 @@ namespace CoupledField
     //! constructor
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    NewmarkEffMass( BaseSystem * algebraicsystem, bool intExplicit = false );
+    NewmarkEffMass( BaseSystem * algebraicsystem, const std::string& sysName,
+                    bool intExplicit = false );
 
     //! destructor
     virtual ~NewmarkEffMass();
@@ -110,7 +111,7 @@ namespace CoupledField
 
     //@{
     //! integration parameters
-    Double alpha_, gamma_, beta_;
+    Double alpha_, gamma_, beta_, nu_;
     //@}
     
     //@{
@@ -130,7 +131,7 @@ namespace CoupledField
     // if true, we perform explicit time stepping
     bool intExplicit_;
 
-};
+  };
 
 #ifdef DOXYGEN_DETAILED_DOC
 

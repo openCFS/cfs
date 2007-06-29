@@ -82,33 +82,12 @@ namespace CoupledField {
       stressDim_ = 3;
       Info->PrintF("", "=== FLAT SHELL PROBLEM\n");
     }
-    else
-      {
-        EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
-                   <<  pdename_ <<  "' does not fit to problem  geometry '"
-                   << probGeo << "'"; );
-      }
-
-     // timestepping formulation
-    std::string str = "";
-    myParam_->Get( "timeSteppingFormulation", str,  false );
-    if ( str == "effMassMatrix" ) {
-      effectiveMass_ = true;
-      Info->PrintF( pdename_, 
-                    "      * effective mass matrix timestepping\n");
-    } 
-    else if ( str == "diagMassMatrix" ) {
-      diagMass_      = true;
-      effectiveMass_ = true;
-      Info->PrintF( pdename_, 
-                    "      * diagonal mass matrix in explicit timestepping\n");
-    } 
     else {
-      effectiveMass_ = false;
-      Info->PrintF( pdename_, 
-                    "      * effective stiffness matrix timestepping\n");
+      EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
+                 <<  pdename_ <<  "' does not fit to problem  geometry '"
+                 << probGeo << "'"; );
     }
-
+    
     //check for prestressing
     //    ReadPreStressing();
 
@@ -1508,19 +1487,44 @@ namespace CoupledField {
   {
     ENTER_FCN( "MechPDE::InitTimeStepping" );
 
-
+    // timestepping formulation
+    ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
+    
+    // <system name="acoustic"/> exists
+    if( myLinSysNode ) {
+      
+      std::string str = "";
+      myLinSysNode->Get( "timeSteppingFormulation", str,  false );
+      if ( str == "effMassMatrix" ) {
+        effectiveMass_ = true;
+        Info->PrintF( pdename_, 
+                      "      * effective mass matrix timestepping\n");
+      }
+      else if ( str == "diagMassMatrix" ) {
+        diagMass_      = true;
+        effectiveMass_ = true;
+        Info->PrintF( pdename_, 
+                      "      * diagonal mass matrix in explicit timestepping\n");
+      } 
+      else {
+        effectiveMass_ = false;
+        Info->PrintF( pdename_, 
+                      "      * effective stiffness matrix timestepping\n");
+      }
+    }
+    
     if ( fracDamping_ == false ) {
       if ( effectiveMass_ == true ) {
         if ( diagMass_ == true ) {
-	  //explicit time stepping
-	  TS_alg_ = new NewmarkEffMass( algsys_, true );
-	}
-	else {
-	  TS_alg_ = new NewmarkEffMass( algsys_ );
-	}
+          //explicit time stepping
+          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, true );
+        }
+        else {
+          TS_alg_ = new NewmarkEffMass( algsys_, pdename_, false );
+        }
       }
       else if ( effectiveMass_ == false ) {
-        TS_alg_ = new Newmark( algsys_ );
+        TS_alg_ = new Newmark( algsys_, pdename_ );
       }
     }
     else {
@@ -1531,8 +1535,6 @@ namespace CoupledField {
       else
         EXCEPTION( "This needs to be implemented!" );
     }
-
-
   }
 
 

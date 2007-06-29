@@ -50,20 +50,6 @@ namespace CoupledField {
     pdename_          = "acousticXYZ";
     pdematerialclass_ = FLUID;
 
-    // timestepping formulation
-    std::string str = "";
-    myParam_->Get( "timeSteppingFormulation", str,  false );
-    if ( str == "effMassMatrix" ) {
-      effectiveMass_ = true;
-      Info->PrintF( pdename_, 
-                    "      * effective mass matrix timestepping\n");
-    } 
-    else {
-      effectiveMass_ = false;
-      Info->PrintF( pdename_, 
-                    "      * effective stiffness matrix timestepping\n");
-    }
-
   }
 
 
@@ -277,12 +263,32 @@ namespace CoupledField {
 
   void AcousticXYZPDE::InitTimeStepping() {
     ENTER_FCN( "AcousticXYZPDE::InitTimeStepping" );
+    
+    // timestepping formulation
+    ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
+    
+    // <system name="acoustic"/> exists
+    if( myLinSysNode ) {
+
+      std::string str = "";
+      myLinSysNode->Get( "timeSteppingFormulation", str,  false );
+      if ( str == "effMassMatrix" ) {
+        effectiveMass_ = true;
+        Info->PrintF( pdename_, 
+                      "      * effective mass matrix timestepping\n");
+      } 
+      else {
+        effectiveMass_ = false;
+        Info->PrintF( pdename_, 
+                      "      * effective stiffness matrix timestepping\n");
+      }
+    }
 
     if ( effectiveMass_ == false ) {
-      TS_alg_ = new Newmark( algsys_ );
+      TS_alg_ = new Newmark( algsys_, pdename_ );
     }
     else {
-      TS_alg_ = new NewmarkEffMass( algsys_ );
+      TS_alg_ = new NewmarkEffMass( algsys_ , pdename_, false );
     }
 
   }
