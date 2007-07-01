@@ -117,12 +117,9 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
 
-    Deriv.Resize(NumNodes_,Dim_);
-   
-    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, dof);
-
+    
     CalcInvJacobian(JInv, LCoord, CornerCoords, elem );
- 
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, dof, AnsatzFct::ALL);
     Deriv = LDeriv * JInv;
   }
 

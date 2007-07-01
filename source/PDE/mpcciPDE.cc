@@ -100,7 +100,7 @@ namespace CoupledField {
       myParam_->Get("regionList")->GetList("region");
     
     bool usePenalty = false;
-    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, !usePenalty ));
+    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty ));
 
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( UInt k = 0; k < regionNodes.GetSize(); k++ ) {

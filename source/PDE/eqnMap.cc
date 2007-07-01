@@ -17,18 +17,17 @@ namespace CoupledField {
   DEFINE_LOG(eqnMap, "eqnMap")
 
 
-    EqnMap::EqnMap(Grid* grid, PdeIdType pdeId, bool sortEqns ) {
+    EqnMap::EqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty ) {
     ENTER_FCN( "EqnMap::EqnMap" );
 
     ptGrid_ = grid;
 
-    sortEqns_ = sortEqns;
+    usePenalty_ = usePenalty;
     pdeId_ = pdeId;
     isFinalized_ = false;
 
 
     numEqns_ = 0;
-    numRealEqns_ = 0;
     numIdBcs_ = 0;
     numCs_ = 0;
     
@@ -244,11 +243,9 @@ namespace CoupledField {
     CalcElemConstEquations( 2 );
 
     // Calc number of 'real equations'
-    numRealEqns_ = numEqns_ - numIdBcs_ - numCs_;
     LOG_DBG(eqnMap) << "#equations: " << numEqns_;
     LOG_DBG(eqnMap) << "#dirichletBcs: " << numIdBcs_;
     LOG_DBG(eqnMap) << "#constraints: " << numCs_;
-    LOG_DBG(eqnMap) << "#realEquations: " << numRealEqns_;
 
     
     // Now class is finalized
@@ -1298,6 +1295,10 @@ namespace CoupledField {
     ENTER_FCN( "EqnMap::CalcNodalEquations" );
 
 
+    // MAGIC number, which gets assignetd to all nodes,
+    // which have not yet an equation number
+    const Integer NO_EQN = -333;
+
     // Big outer loop over all nodal mapped element lists
     ResultEntityMap::iterator listIt;
 
@@ -1327,16 +1328,16 @@ namespace CoupledField {
       // Idea of the algorithm:
       //
       // -- PHASE 1 --
-      // Step 1:  Initialize actMap with -1
+      // Step 1:  Initialize actMap with NO_EQN
       // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
       // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
-      //          entry in pdeNode2eqn_ to 0
+      //          entry in pdeNode2eqn_ to -1
       // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
       // Step 4:  Loop over all nodes of given entity lists
       //          and assign each non-zero entry an equation number
-      // Step 5:  Loop over the whole map and set all entries with -1 to 0
+      // Step 5:  Loop over the whole map and set all entries with NO_EQN to 0
 
       // -- PHASE 2 --
       // Step 6:  Afterwards loop again over all nodes in constraintSlaveNodes_
@@ -1346,7 +1347,6 @@ namespace CoupledField {
       //          dof an equation number after the hightest equation number of
       //          the free dofs
       //
-      // Note:    Steps 2b and 5b are only performed, if sortEQNs = true
       
       if( phase == 1 ) {
 	
@@ -1356,15 +1356,13 @@ namespace CoupledField {
 	//UInt multipleBCs = 0;
 	
 	actMap.Resize( numLocNodes_, dofsPerNode );
-	actMap.Init( -1 );
+	actMap.Init( NO_EQN );
 	
 	
 	// ------
 	// STEP 2
 	// ------
-	
-	
-	Matrix<UInt> countNodes;
+        Matrix<UInt> countNodes;
 	countNodes.Resize( numLocNodes_, dofsPerNode );
 	countNodes.Init( 0 );
 	
@@ -1438,13 +1436,11 @@ namespace CoupledField {
 // 		Warning( __FILE__, __LINE__ );
 	      }
 	      else {
-
+                
                 // Only set equation number to zero, if we sort equations
-
-                if( sortEqns_ ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = 0;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-                }
+                
+                actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+                countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
 		// In any case we have to increment the number of idBC-conditions
 		numIdBcs_++;
 	      }
@@ -1494,7 +1490,7 @@ namespace CoupledField {
 	  for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 	    locNode = mesh2PdeNode_[nodes[iNode]-1];
 	    for ( UInt iDof = 0; iDof < dofsPerNode; iDof++ ) {
-	      if ( actMap[locNode-1][iDof] != 0 &&
+	      if ( actMap[locNode-1][iDof] == NO_EQN &&
 		   countNodes[locNode-1][iDof] == 0) {
 		numEqns_++;
                 LOG_DBG3(eqnMap) << "Adding equation " << numEqns_ 
@@ -1510,10 +1506,10 @@ namespace CoupledField {
 	// STEP 5
 	// ------
         // Re-iterate over the whole equation map and set all entries 
-        // with eqn-number of -1 to 0
+        // with eqn-number of NO_EQN to 0
         for( UInt i = 0; i < actMap.GetSizeRow(); i++ ) {
           for( UInt j = 0; j < actMap.GetSizeCol(); j++ ) {
-            if( actMap[i][j] == -1 )
+            if( actMap[i][j] == NO_EQN )
               actMap[i][j] = 0;
           }
         }
@@ -1567,7 +1563,7 @@ namespace CoupledField {
               Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
               if( locNode > 0 ) { 
                 if(  actMap[locNode-1] [actDof-1] 
-                     == 0 ) {
+                     == -1 ) {
                   numEqns_++;
                   actMap[locNode-1] [actDof-1] = numEqns_;
                 }
@@ -1786,10 +1782,8 @@ namespace CoupledField {
 		Warning( __FILE__, __LINE__ );
 	      }
 	      else {
-		if ( sortEqns_ == true ) {
-		  actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = 0;
-		  countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
-		}
+                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = 0;
+                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
 		// In any case we have to increment the number of idBC-conditions
 		numIdBcs_++;
 	      }
@@ -1932,8 +1926,8 @@ namespace CoupledField {
                   // (= are (in-)hom. Dirichlet nodes)
                   // of if the edge with this dof has a smaller order
                   // than the maximum for this edge -> assign 0 equation number
-                  if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] != 0
-                        || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] != 0)
+                  if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] > 0
+                        || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] > 0)
                        && (iFcn < numFcns[iDof][iEdge]) ) {
                     actMap[locEdge-1][pos++] = ++numEqns_;
                   } else {
@@ -2042,16 +2036,16 @@ namespace CoupledField {
                 // iterate over all dofs
                 for( UInt iDof = 0; iDof < dofsPerFace; iDof++ ) {
                   
-                  // Check if the related nodes have a 0 equations number
+                  // Check if the related nodes have an equation number =< 0
                   // (= are (in-)hom. Dirichlet nodes)
-                  bool allZero = true;
+                  bool allFixed = true;
                   for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
-                    if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] != 0) {
-                      allZero = false;
+                    if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
+                      allFixed = false;
                       break;
                     }
                   }
-                  if( !allZero && (iFcn < numFcns[iDof][iFace]) ) {
+                  if( !allFixed && (iFcn < numFcns[iDof][iFace]) ) {
                     actMap[locFace-1][pos++] = ++numEqns_;
                     LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
                                      << " got equation number " << numEqns_-1;
@@ -2125,6 +2119,16 @@ namespace CoupledField {
       EXCEPTION( "'" << listString
                  << "' is no EntityList with nodal information." );
       
+    }
+  }
+
+  UInt EqnMap::GetNumLastFreeDof() const {
+    ENTER_FCN( "EqnMap::GetNumLastFreeDof" );
+
+    if( usePenalty_ ) {
+      return numEqns_;
+    } else {
+      return numEqns_ - numIdBcs_;
     }
   }
 

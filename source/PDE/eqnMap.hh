@@ -33,7 +33,7 @@ namespace CoupledField {
     typedef std::map<ResultInfo, ConstraintList> ResultConstraintMap;
     
     //! Constructor
-    EqnMap( Grid* ptGrid, PdeIdType, bool sortEqns);
+    EqnMap( Grid* ptGrid, PdeIdType, bool usePenalty);
     
     //! Destructor
     ~EqnMap();
@@ -101,14 +101,13 @@ namespace CoupledField {
     //! - inhomogeneous Dirichlet boundary conditions
     //! - constraints (master - slave dof relations)
     //!
-    //! The return value actually depends on the status of the sortEqns_ flag.
-    //! If the latter is true, then we return numRealEqns_. If it is false,
+    //! The return value actually depends on the status of the usePenalty_ flag.
+    //! If it is true,
     //! then inhomogeneous Dirichlet boundary conditions are treated by the
     //! penalty method and must be considered free dofs as well. Thus, in this
-    //! case we return numEqns_.
-    inline UInt GetNumLastFreeDof() const {
-      return ( ( sortEqns_ == true ) ? numRealEqns_ : numEqns_ );
-    }
+    //! case we return the total number of equations. Otherwise we return only
+    //! the number of equations withou a dirichlet boundary condition
+    UInt GetNumLastFreeDof() const;
                               
     //! Return number of real inhomogeneous Dirichlet boundary conditions
 
@@ -289,7 +288,7 @@ namespace CoupledField {
     //! If this flag is true, the equation numbers are ordered such that
     //! the set of highest equation numbers belongs to "unknowns" whose
     //! values are fixed by inhomogeneous Dirichlet boundary conditions.
-    bool sortEqns_;
+    bool usePenalty_;
     
     // ======================================================================
     // EQUATION DATA
@@ -300,16 +299,6 @@ namespace CoupledField {
 
     //! Number of equations
     UInt numEqns_;
-
-    //! Number of "real" equations in Pde
-
-    //! This attribute stores the number of 'real' equation numbers. By the
-    //! latter we understand equation numbers for degrees of freedom that
-    //! are not fixed by either
-    //! - homogeneous Dirichlet boundary conditions
-    //! - inhomogeneous Dirichlet boundary conditions
-    //! - constraints (master - slave dof relations)
-    UInt numRealEqns_;
 
     //! Number equations with inhomogeneous Dirichelt boundary condition
     UInt numIdBcs_;
