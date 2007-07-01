@@ -51,10 +51,6 @@ namespace CoupledField
     //! Destructor
     virtual ~Grid();
 
-    //! Search and add directivity nodes, if defined in input file,
-    //! to list of saved nodes     
-    void GetNodesForDirectivity();
-
     //! Trigger mapping of elements' faces
 
     //! This method calculates global surface numbers and 

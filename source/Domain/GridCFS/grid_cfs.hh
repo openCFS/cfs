@@ -544,10 +544,6 @@ namespace CoupledField
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
 
-    //! Search and add directivity nodes, if defined in input file,
-    //! to list of saved nodes     
-    void GetNodesForDirectivity();
-
     //! Create new nodes / elements, which are defined either by point coordinate
     //! or parametric description
     void CreateUserDefinedNodesElems();
