@@ -382,58 +382,8 @@ namespace CoupledField
 
     //@{
     //! \name Specialised query methods
-
-    //! Obtain list of PDEs defined in parameter file
-
-    //! This method queries the parameter object for a list of all PDEs defined
-    //! in the parameter file. The list is returned as a vector of standard
-    //! strings. The method will return an empty vector, if there are no
-    //! matches.
-    virtual void GetPDEList( StdVector<std::string> &list ) = 0;
-
     
-    //! Obtain list of iterative coupled PDEs defined in parameter file
-
-    //! This methode queries the parameter object for a list of all PDEs
-    //! which are iterative coupled. 
-    //! \param list        List with name of all iterative coupling pdes
-    //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
-    virtual void GetIterCoupledPDEList( StdVector<std::string> &list,
-                                        const std::string sequenceTag = "")= 0;
-
-    //! Obtain list with names of pairwise direct couplings
-
-    //! This methode queries the parameter object for a list of all names of 
-    //! pairwise direct couplings (e.g. piezo, acouMech)
-    //! \param list        List with names of all pairwise direct couplings
-    //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
-    virtual void GetDirectCouplingList( StdVector<std::string> &list,
-                                        const std::string sequenceTag = "")= 0;
-    
-    //! Obtain list of coils defined in parameter file
-
-    //! This method queries the parameter object for a list of all coils
-    //! defined in the parameter file. The list is returned as a vector of
-    //! standard strings. The method will return an empty vector, if there are
-    //! no matches. By specifying the optional pde input parameter the search
-    //! can be restricted to a certain PDE entry in the pdeList section and
-    //! with the additional sequenceTag it can be restricted to a certain step
-    //! in a multiSequence.
-    virtual void GetCoilList( StdVector<std::string> &list,
-                              const std::string pde ="",
-                              const std::string sequenceTag = "") = 0;
-
-    //! Obtain the type of a certain coils
-
-    //! This method queries the parameter object for the type of a coils.
-    //! The desired coil is specified via the coilName input argument.
-    //! By specifying the optional pde input parameter the search can be
-    //! restricted to a certain PDE entry in the pdeList section.
-    virtual void GetCoilType( std::string &coilType,
-                              const std::string coilName,
-                              const std::string pde ="" ) = 0;
-
-    //! Query the on/off status of a flag/switch
+     //! Query the on/off status of a flag/switch
 
     //! The method will search the parameter tree for the parameter matching
     //! the keyword. If the keyword is found, it will be compared to the token
