@@ -318,7 +318,7 @@ namespace CoupledField {
     }
     
     // Create a new equation map
-    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, !usePenalty_ ));
+    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
 
 
     // =====================================================================
