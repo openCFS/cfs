@@ -11,6 +11,7 @@
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -174,14 +175,17 @@ namespace CoupledField
       // determine if this is a valid node
       // std::cout << "node " << XMLString::transcode(node->getNodeName()) << " has type " << node->getNodeType();
       // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl; 
-              
+
+    std::string temp = "";
       switch(node->getNodeType())
       {
               
          case DOMNode::TEXT_NODE:
-              // if we are a text node, we "are" the value of our parent.
-              parent->SetValue(XMLString::transcode(node->getNodeValue()));
-              return; // nothing else to do, we don not create a new ParamNode
+           // if we are a text node, we "are" the value of our parent.
+           temp = XMLString::transcode(node->getNodeValue());
+           boost::trim( temp );
+           parent->SetValue( temp );
+           return; // nothing else to do, we don not create a new ParamNode
               
          case DOMNode::ELEMENT_NODE:
          case DOMNode::ATTRIBUTE_NODE:

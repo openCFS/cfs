@@ -23,6 +23,9 @@ using namespace xercesc;
 // we want to use new with nothrow
 #include <new>
 
+// include string algorihm, used for trimming strings
+#include <boost/algorithm/string.hpp>
+
 // we need some character conversion routines
 #include <string>
 
@@ -753,439 +756,6 @@ namespace CoupledField {
   }
 
 
-  // *************************************************************************
-  //   Public Methods: Specialised Query Functions
-  // *************************************************************************
-
-
-  // =====================================
-
-  //   Return a list of the defined PDEs
-  // =====================================
-  void XMLParamHandler::GetPDEList( StdVector<std::string> &list ) {
-
-    ENTER_FCN( "XMLParamHandler::GetPDEList" );
-
-    // string for assembling error messages
-    std::string errmsg;
-
-    // Check if vector is empty. If not issue a warning
-    // and erase its entries, if this is desired
-    ClearVector( list );
-
-    // Find PDE section
-    XMLCh *tmpString = C2X( "pdeList" );
-    DOMNodeList *pdesec = rootElem_->getElementsByTagName( tmpString );
-    FreeX( &tmpString );
-
-    // Check that there is only one such section
-    if ( pdesec->getLength() != 1 ) {
-      (*error) << "Got " << pdesec->getLength() << " pdeList elements "
-               << "in parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // The names of the PDEs are the tags of the child elements of the
-    // PDE_list element, so get hold of them and make sure, there is
-    // at least one child/PDE
-    DOMNodeList *pdelist = pdesec->item(0)->getChildNodes();
-    if ( pdelist->getLength() == 0 ) {
-      (*error) << "Cannot find a single PDE in parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Now get hold of tags, convert them to strings and assemble vector
-    std::string pdename;
-    char *auxString = NULL;
-    for ( unsigned int i = 0; i < pdelist->getLength(); i++ ) {
-
-      // Only treat element children and not comments!
-      if ( pdelist->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
-        auxString = X2C( Node2Elem( pdelist->item(i) )->getNodeName() );
-        pdename.assign( auxString );
-        FreeC( &auxString );
-        list.Push_back( pdename );
-      }
-    }
-  }
-
-
-  // ===========================================
-  //   Return a list of iterative coupled PDEs
-  // ===========================================
-  void XMLParamHandler::GetIterCoupledPDEList( StdVector<std::string> &list,
-                                               const std::string sequenceTag){
-
-    ENTER_FCN( "XMLParamHandler::GetIterCoupledPDEList" );
-
-    // Check if vector is empty. If not issue a warning
-    // and erase its entries, if this is desired
-    ClearVector( list );
-
-    // Get all coupling sections in the param file
-    XMLCh *tmpString = C2X( "couplingList" );
-    DOMNodeList *coupledSections = rootElem_->getElementsByTagName(tmpString);
-    FreeX( &tmpString );
-
-    // Pick that coupling section, which matches
-    // the specfifed sequenceTag
-    DOMElement *auxElem = NULL;
-    DOMElement *currentCouplingSec = NULL;
-    bool sectionFound = false;
-
-    for (unsigned int i=0; i<coupledSections->getLength(); i++) {      
-      auxElem = Node2Elem( coupledSections->item(i) );
-      if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
-        // Ensure that only one section matches
-        if ( sectionFound == false ) {
-          sectionFound = true;
-          currentCouplingSec = auxElem;
-        }
-        else {
-          (*error) << "Got more than one matching coupling section for "
-                   << "tag '" << sequenceTag
-                   << "'.\n Please correct parameter file!";
-          Error( __FILE__, __LINE__ );
-        }
-      }
-    }
-
-    // Print error if specified coupling section was not found
-    if ( sectionFound == false ) {
-      (*error) << "The coupling section with tag '" << sequenceTag
-               << "' was not found in the parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Get the iterative coupling section in the current
-    // section of couplings
-    tmpString = C2X( "iterative" );
-    DOMNodeList *coupledPDEsec =
-      currentCouplingSec->getElementsByTagName( tmpString );
-    FreeX( &tmpString );
-
-    // If no such section exists, simply return an empty vector
-    if ( coupledPDEsec->getLength() == 0 ) {
-      return;
-    }
-
-    // Check that there is only one such section
-    if ( coupledPDEsec->getLength() > 1 ) {
-      (*error) << "Got " << coupledPDEsec->getLength()
-               << " couplingList elements in parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Find iterative Coupled section
-    DOMNodeList * iterCoupledPDEsec = coupledPDEsec->item(0)->getChildNodes();
-    if ( iterCoupledPDEsec->getLength() == 0 ) {
-      (*error) << "Cannot find an iterative coupling section in parameter "
-               << "file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // iterate over all pairwise couplings
-    std::string *pdename = NULL;
-    for ( unsigned int i = 0; i < iterCoupledPDEsec->getLength(); i++ ) {
-
-      // Only treat element children and not comments!
-      if ( iterCoupledPDEsec->item(i)->getNodeType() ==
-           DOMNode::ELEMENT_NODE ) {
-    
-        // The names of the PDEs are the tags of the child elements of the
-        // PDE_list element, except perhaps the last one, which specifies
-        // the nonlinear coupling
-        DOMNodeList *iterPDElist =
-          iterCoupledPDEsec->item(i)->getChildNodes();
-        if ( iterPDElist->getLength() == 0 ) {
-          (*error) << "Cannot find a single PDE in iterative couplingList "
-                   << " of parameter file!";
-          Error( __FILE__, __LINE__ );
-        }
-
-        // Now get hold of tags, convert them to strings and assemble vector
-        bool found = false;
-        for ( unsigned int k = 0; k < iterPDElist->getLength(); k++ ) {
- 
-          // Only treat element children and not comments!
-          if ( iterPDElist->item(k)->getNodeType() == DOMNode::ELEMENT_NODE ){
-
-            pdename = X2S( Node2Elem( iterPDElist->item(k) )->getNodeName() );
-
-            // only get elements which describe a PDE element
-            if ( *pdename != "nonLinear" ) {
-
-              // Now ensure, that each PDEname occurs only one time
-              found = false;
-              for ( unsigned int j = 0; j < list.GetSize(); j++ ) {
-                if ( *pdename == list[j] ) {
-                  found = true;
-                  break;
-                }
-              }
-              if ( !found ) {
-                list.Push_back( *pdename );
-              }
-            }
-
-            // Clean up
-            FreeS( &pdename );
-          }
-        }
-      }
-    }
-  }
-  
-
-  // =========================
-  //   GetDirectCouplingList
-  // =========================
-  void
-  XMLParamHandler::GetDirectCouplingList( StdVector<std::string> &list,
-                                          const std::string sequenceTag ) {
-
-    ENTER_FCN( "XMLParamHandler::GetDirectCouplingList" );
-
-    // Check if vector is empty. If not issue a warning
-    // and erase its entries, if this is desired
-    ClearVector( list );
-
-    // Get all coupling sections in the param file
-    XMLCh *tmpString = C2X( "couplingList" );
-    DOMNodeList *coupledSections = rootElem_->getElementsByTagName(tmpString);
-    FreeX( &tmpString );
-
-    // Pick that coupling section, which matches
-    // the specfifed sequenceTag
-    DOMElement *auxElem = NULL;
-    DOMElement *currentCouplingSec = NULL;
-    bool sectionFound = false;
-    
-    for ( unsigned int i = 0; i < coupledSections->getLength(); i++) {
-      auxElem = Node2Elem( coupledSections->item(i) );
-      if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
-        // Ensure that only one section matches
-        if ( sectionFound == false ) {
-          sectionFound = true;
-          currentCouplingSec = auxElem;
-        }
-        else {
-          (*error) << "Got more than one matching coupling section for tag '"
-                   << sequenceTag << "'.\n Please correct parameter file!";
-          Error( __FILE__, __LINE__ );
-        }
-      }
-    }
-     
-    // Print error if specified coupling section was not found
-    if ( sectionFound == false ) {
-      (*error) << "The coupling section with tag '" << sequenceTag
-               << "' was not found in the parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Get the iterative coupling section in the current
-    // section of couplings
-    tmpString = C2X( "direct" );
-    DOMNodeList *coupledPDEsec =
-      currentCouplingSec->getElementsByTagName( tmpString );
-    FreeX( &tmpString );
-
-    // If no direct coupled section is found, return simply an 
-    // empty vector
-
-    if ( coupledPDEsec->getLength() == 0 ) {
-      return;
-    }
-
-    // Check that there is at most one such section
-    if ( coupledPDEsec->getLength() > 1 ) {
-      (*error) << "Got " << coupledPDEsec->getLength()
-               << " 'direct' elements in parameter file!\n"
-               << "One at maximum is allowed in the 'coupledList' section!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Find direct Coupled section
-    DOMNodeList *directCoupledPDEsec =
-      coupledPDEsec->item(0)->getChildNodes();
-
-    if ( directCoupledPDEsec->getLength() == 0 ) {
-      (*error) << "Cannot find a direct coupling section in parameter file!";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // iterate over all pairwise couplings
-    std::string pdename;
-    char *auxString = NULL;
-    for ( unsigned int i = 0; i < directCoupledPDEsec->getLength(); i++ ) {
-
-      // Only treat element children and not comments!
-      if ( directCoupledPDEsec->item(i)->getNodeType() ==
-           DOMNode::ELEMENT_NODE){
-
-        // The names of the PDEs are the tags of the child elements of the
-        // PDE_list element, except perhaps the last one, which specifies
-        // the nonlinear coupling
-        DOMNodeList *directCouplinglist = 
-          directCoupledPDEsec->item(i)->getChildNodes();
-
-        if ( directCouplinglist->getLength() == 0 ) {
-          (*error) << "Cannot find a single direct coupling definition in "
-                   << "the direct coupling section of the parameter file!";
-          Error( __FILE__, __LINE__ );
-        }
-  
-        // Now get hold of name, convert it and push it back in the name list
-        auxString =
-          X2C( Node2Elem( directCoupledPDEsec->item(i) )->getNodeName() );
-        pdename.assign( auxString );
-        list.Push_back( pdename );
-        FreeC( &auxString );
-      }
-    }
-  }
-
-    
-  // ======================================
-  //   Return a list of the defined coils
-  // ======================================
-  void XMLParamHandler::GetCoilList( StdVector<std::string> &list,
-                                     const std::string pde,
-                                     const std::string sequenceTag ) {
-
-    ENTER_FCN( "XMLParamHandler::GetCoilList" );
-
-    // Check if vector is empty. If not issue a warning
-    // and erase its entries, if this is desired
-    ClearVector( list );
-
-    // Assemble keywords for attribute search
-    // and empty vectors for side constraints
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-    keyVec.Push_back( "pdeList" );
-    attrVec.Push_back( "" );
-    valVec.Push_back( "" );
-    if ( pde != "" ) {
-      keyVec.Push_back( pde );
-      attrVec.Push_back( "" );
-      valVec.Push_back( "" );
-    }
-
-    keyVec.Push_back( "coils" );
-    attrVec.Push_back( "" );
-    valVec.Push_back( "" );
-
-    keyVec.Push_back( "*" );
-    attrVec.Push_back( "tag" );
-    valVec.Push_back( sequenceTag );
-    
-    // Find coil names
-    StdVector<DOMAttr*> *attrs =
-      FindMatchingAttributes( "name", keyVec, attrVec, valVec, rootElem_ );
-
-    char *value = NULL;
-    for ( unsigned int i = 0; i < attrs->GetSize(); i++ ) {
-      value = X2C( (*attrs)[i]->getValue() );
-      list.Push_back( value );
-      FreeC( &value );
-    }
-
-    // Cleanup
-    if ( attrs != NULL ) {
-      attrs->Clear();
-      delete attrs;
-    }
-  }
-
-
-  // =====================================
-  //   Return the type of a certain coil
-  // =====================================
-  void XMLParamHandler::GetCoilType( std::string &coilType,
-                                     const std::string coilName,
-                                     const std::string pde ) {
-
-    ENTER_FCN( "XMLParamHandler::GetCoilType" );
-
-    // Be verbose if desired
-    if ( beVerbose_ == true ) {
-      std::cerr << "\n Trying to get description of coil named '"
-                << coilName << "'\n\n";
-    }
-
-    // First generate a vector of all coils
-    StdVector<DOMElement*> *coilSec = NULL;
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-    keyVec.Push_back( "pdeList" );
-    attrVec.Push_back( "" );
-    valVec.Push_back( "" );
-    if ( pde != "" ) {
-      keyVec.Push_back( pde );
-      attrVec.Push_back( "" );
-      valVec.Push_back( "" );
-    }
-    keyVec.Push_back( "coils" );
-    attrVec.Push_back( "" );
-    valVec.Push_back( "" );
-    coilSec = FindMatchingElements( keyVec, attrVec, valVec, rootElem_, 1 );
-    if ( coilSec->GetSize() == 0 ) {
-      Info->Error( "Cannot find a 'coils' section", __FILE__, __LINE__ );
-    }
-    else if ( coilSec->GetSize() > 1 ) {
-      Info->Error( "Cannot deal with multiple 'coils' sections", __FILE__,
-                   __LINE__);
-    }
-    DOMNodeList *coils = (*coilSec)[0]->getChildNodes();
-
-    // Now search for coil with matching name attribute
-    // and determine the element's tag, which encodes the
-    // type of coil
-    unsigned int foundCoils = 0;
-    DOMElement *elem = NULL;
-    char *auxString = NULL;
-
-    for ( unsigned int k = 0; k < coils->getLength(); k++ ) {
-
-      if ( coils->item(k)->getNodeType() == DOMNode::ELEMENT_NODE ) {
-
-        elem = Node2Elem( coils->item(k) );
-
-        if ( beVerbose_ == true ) {
-          std::cerr << " coilType = " << elem->getTagName() << std::endl;
-        }
-
-        if ( AttribHasValue( elem, "name", coilName ) ) {
-          auxString = X2C( elem->getTagName() );
-          coilType.assign( auxString );
-          FreeC( &auxString );
-          foundCoils++;
-        }
-      }
-    }
-
-    // Check for errors
-    if ( foundCoils == 0 ) {
-      (*error) << "Found no coil with name '" << coilName << "'";
-      Error( __FILE__, __LINE__ );
-    }
-    else if ( foundCoils > 1 ) {
-      (*error) << "Found " << foundCoils + " coils with name '"
-               << coilName << "'";
-      Error( __FILE__, __LINE__ );
-    }
-
-    // Cleanup
-    coilSec->Clear();
-    delete coilSec;
-
-  }
-
-
   // ========================================
   //   Query on/off status of a flag/switch
   // ========================================
@@ -1392,6 +962,7 @@ namespace CoupledField {
     else {
       char *auxString = X2C( textnode->getNodeValue() );
       value.assign( auxString );
+      boost::trim(value);
       FreeC( &auxString );
     }
   }
@@ -1757,6 +1328,7 @@ namespace CoupledField {
       for ( unsigned int i = 0; i < attr_matches->GetSize(); i++ ) {
         auxString = X2C( (*attr_matches)[i]->getValue() );
         value.assign( auxString );
+        boost::trim(value);
         list.Push_back( value );
         FreeC( &auxString );
       }
@@ -2024,8 +1596,14 @@ namespace CoupledField {
       else {
         for ( UInt i = 0; i < children->getLength(); i++ ) {
           DOMNode *child = children->item(i);
+          char * value = NULL;
+          std::string temp;
           if ( child->getNodeType() == DOMNode::ELEMENT_NODE ) {
-            values.Push_back( std::string( X2C( child->getNodeName() ) ) );
+            value =  X2C( child->getNodeName() );
+            temp = value;
+            boost::trim(temp);
+            values.Push_back( temp );
+            FreeC( &value );
           }
         }
       }
@@ -2033,10 +1611,19 @@ namespace CoupledField {
       
       // Make sure that child is a text node or an element node
       DOMNode *child = children->item(0);
+      std::string temp;
+      char * value = NULL;
       if ( child->getNodeType() == DOMNode::TEXT_NODE ) {
-        values.Push_back( std::string (X2C (child->getNodeValue() ) ) );
+        value = X2C (child->getNodeValue() );
+        temp = value;
+        boost::trim(temp);
+        values.Push_back( temp);
+        FreeC( &value );
       } else if ( child->getNodeType() == DOMNode::ELEMENT_NODE ) {
-        values.Push_back( std::string( X2C( child->getNodeName() ) ) );
+        value = X2C( child->getNodeName() );
+        boost::trim(temp);
+        values.Push_back(temp );
+        FreeC( &value );
       } else {
         (*error) << "GetElementValue: Child of element is neither a TEXT_NODE "
                  << "nor an ELEMENT_NODE!";
@@ -2082,6 +1669,7 @@ namespace CoupledField {
       aux_attr = Node2Attr( aux_node );
       auxString = X2C( aux_attr->getValue() );
       attrVal.assign( auxString );
+      boost::trim(attrVal);
       FreeC( &auxString );
     }
     else {
@@ -2233,7 +1821,10 @@ namespace CoupledField {
 
       // Convert attribute's value to string representation
       std::string *foundValue = X2S( Node2Attr(attrib)->getValue() );
-
+      
+      // "trim" attribute value
+      boost::trim(*foundValue);
+      
       // Treat case of 'tag' attribute in special way
       if ( attribute == "tag" ) {
         retVal = MatchesTag( *foundValue, value );
