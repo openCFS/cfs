@@ -395,7 +395,11 @@
   <xsd:complexType name="DT_AcousticDampingRayl">
     <xsd:complexContent>
       <xsd:extension base="DT_DampingBasic">
-     </xsd:extension>
+        <xsd:sequence>
+          <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="ratioDeltaF" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
