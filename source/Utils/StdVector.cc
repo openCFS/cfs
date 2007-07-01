@@ -346,7 +346,7 @@ namespace CoupledField {
     delete [] data_; 
     data_=help;
     size_--; 
-    capacity_--;
+    capacity_ = size_;
   }
 
 
@@ -379,6 +379,7 @@ namespace CoupledField {
     data_=help;
    
     size_ = size_ - l; 
+    capacity_ = size_;
   }
 
   template<class TYPE>
