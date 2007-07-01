@@ -630,7 +630,7 @@ namespace CoupledField
       SetScalar( beta, RAYLEIGH_BETA, REAL ); 
     }
     else
-      Error("Error in specification of Rayleigh damping!!!",__FILE__,__LINE__);
+      EXCEPTION("Error in specification of Rayleigh damping!!!" );
 
     //Info->PrintF()
   }
