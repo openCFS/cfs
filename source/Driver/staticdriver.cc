@@ -88,8 +88,10 @@ namespace CoupledField {
     ptPDE_->Finalize();
     
     // notify resultHandler about finishing of current sequence step
-    if(!optimization_ && !isPartOfSequence_ )
+    if(!optimization_ && !isPartOfSequence_ ) {
       resHandler->FinishMultiSequenceStep();
+      resHandler->Finalize();
+    }
     SETPROFILE("After Static Step");
     
   }

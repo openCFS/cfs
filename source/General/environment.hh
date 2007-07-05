@@ -134,9 +134,6 @@ namespace CoupledField {
   typedef enum {ZSYSV, ZGESV, ZHESV} lapackSysMatType;
   
 
-  //! print grid only and then exit
-  extern bool PrintGridOnly;
-
   //! logging configurator
   
   extern LogConfigurator * logConf;
@@ -467,40 +464,6 @@ namespace CoupledField {
   //! Element.
   extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTet2, *ptTr1, 
 	*ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, *ptPyra2, *ptWedge1, *ptWedge2;
-
-  //! class for flags of programm
-  class Flags
-  {
-  public:
-    Flags()
-    { CalcErrorMap_=false;
-    adaptSpace_ = false;
-    }
- 
-    bool CalcErrorMap_;
-    bool adaptSpace_;
-  };
-  
-  extern Flags * flags;
-
-  //! parameters necessary to describe coils
-
-  enum COILTYPE {MEASUREMENT,CURRENT,VOLTAGE};
-  
-  struct coilDefStruct
-  {
-    int ID;
-    double  current;
-    double  voltage;
-    double  coilArea;
-    double  resistance;
-    double  phase;
-    std::string timefnc;
-    COILTYPE type;
-    std::string Lfile;
-    std::string UIfile;
-  };
-
 
   //! conversion from strings to enum types
   template <class TYPE>

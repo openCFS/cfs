@@ -121,7 +121,7 @@ namespace CoupledField
     virtual ~SimOutputRST();
   
     //! Initialize class
-    void Init( Grid* grid );
+    void Init( Grid* grid, bool printGridOnly );
 
     //! Write grid definition in file
     void WriteGrid();

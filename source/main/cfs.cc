@@ -327,7 +327,6 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   if ( commandLine->GetPrintGrid() == true ) {
     STDOUT << "Printing grid to file " << myEndl << myEndl;
-    PrintGridOnly = true;
     domain->PrintGrid();
     delete domain;
     delete Info;

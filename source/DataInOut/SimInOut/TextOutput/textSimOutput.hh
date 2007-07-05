@@ -29,11 +29,8 @@ namespace CoupledField {
     ~SimOutputText();
 
     //! Initialize class
-    void Init( Grid * ptGrid );
+    void Init( Grid * ptGrid, bool printGridOnly );
 
-    //! Write grid (in this case nothing)
-    void WriteGrid() {};
-    
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
                          UInt saveBegin, UInt saveInc,

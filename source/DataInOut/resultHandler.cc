@@ -500,26 +500,16 @@ namespace CoupledField {
 
   }
 
-  void ResultHandler::Init( Grid* ptGrid ) {
+  void ResultHandler::Init( Grid* ptGrid, bool printGridOnly ) {
     ENTER_FCN( "ResultHandler::Init" );
     
     // Trigger function with all output files
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
     for( it = outFiles_.begin(); it != outFiles_.end(); it++ ) {
-      it->second->Init( ptGrid );
-      it->second->WriteGrid( );
+      it->second->Init( ptGrid, printGridOnly );
     }
   }
   
-  void ResultHandler::WriteGrid() {
-    ENTER_FCN( "ResultHandler::Init" );
-
-    // Trigger function with all output files
-    std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-    for( it = outFiles_.begin(); it != outFiles_.end(); it++ ) {
-      it->second->WriteGrid( );
-    }
-  }
 
   void ResultHandler::Finalize() {
     ENTER_FCN( "ResultHandler::Finalize" );
@@ -722,8 +712,7 @@ namespace CoupledField {
         std::string simName = commandLine->GetSimName();
         shared_ptr<SimOutput> textOut 
           = shared_ptr<SimOutput>(new SimOutputText( simName, NULL ) );
-        textOut->Init(  domain->GetGrid() );
-        textOut->WriteGrid();
+        textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         out.Push_back( "histDefault" );
       }

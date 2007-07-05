@@ -25,7 +25,7 @@ namespace CoupledField
     virtual ~SimOutputUnv();
   
     //! Initialize class
-    void Init( Grid* grid );
+    void Init( Grid* grid, bool printGridOnly );
 
     //! Write grid definition in file
     void WriteGrid();

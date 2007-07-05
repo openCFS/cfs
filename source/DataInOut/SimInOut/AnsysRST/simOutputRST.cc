@@ -144,12 +144,12 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputRST::~SimOutputRST" );
   }
 
-  void SimOutputRST::Init( Grid* ptGrid) {
+  void SimOutputRST::Init( Grid* ptGrid, bool printGridOnly ) {
     
     ENTER_FCN( "SimOutputRST::OpenFile" );
 
     ptGrid_ = ptGrid;
-
+    WriteGrid();
   }
 
   void SimOutputRST::WriteGrid() {
@@ -340,7 +340,7 @@ namespace CoupledField {
       else
       {
         //      ansysElementType[0] = 153; // SURF153
-        SetElementType82(ansysElementType[1], 1); // SOLID82
+        SetElementType82(ansysElementType[0], 1); // SOLID82
         SetElementType95(ansysElementType[1], 2); // SOLID95
       }
 

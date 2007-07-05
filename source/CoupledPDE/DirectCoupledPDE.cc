@@ -602,8 +602,6 @@ namespace CoupledField {
       couplings_[i]->Finalize();
     }
     
-
-    domain->GetResultHandler()->Finalize();
   }
   
   // ======================================================

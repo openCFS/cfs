@@ -947,9 +947,7 @@ namespace CoupledField {
   void SinglePDE::Finalize() {
     ENTER_FCN( "SinglePDE::Finalize" );
 
-    if( !isDirectCoupled_ ) {
-      domain->GetResultHandler()->Finalize();
-    }
+    // nothing to be done anymore here
   }
   
 

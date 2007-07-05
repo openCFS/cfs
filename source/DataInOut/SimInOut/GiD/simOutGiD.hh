@@ -27,10 +27,15 @@ namespace CoupledField
     virtual ~SimOutputGiD();
   
     //! Initialize class
-    void Init( Grid* grid );
+    void Init( Grid* grid, bool printGridOnly );
 
     //! Write grid definition in file
     void WriteGrid();
+
+    //! Begin multisequence step
+    void BeginMultiSequenceStep( UInt step,
+                                 AnalysisType type,
+                                 UInt numSteps);
 
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
@@ -84,6 +89,9 @@ namespace CoupledField
     //! Dimension of grid
     GiD_Dimension dim_;
 
+    //! Current multisequence step
+    UInt actMsStep_;
+
     //! Flag for binary file format
     bool isAscii_;
 
@@ -92,6 +100,10 @@ namespace CoupledField
 
     //! Check if class is initialized
     bool isInitialized_;
+
+    //! Flag indicating if only grid is printed
+    bool printGridOnly_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
