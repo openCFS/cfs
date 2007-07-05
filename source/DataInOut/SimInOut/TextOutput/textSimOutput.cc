@@ -69,7 +69,7 @@ namespace CoupledField {
     }
   }
   
-  void SimOutputText::Init( Grid * ptGrid ) {
+  void SimOutputText::Init( Grid * ptGrid, bool printGridOnly ) {
     ENTER_FCN( "SimOutputText::Init" );
     ptGrid_ = ptGrid;
 

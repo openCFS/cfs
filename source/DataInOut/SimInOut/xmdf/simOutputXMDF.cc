@@ -42,7 +42,8 @@ namespace CoupledField {
 
     gridWritten_ = false;
     externalFiles_ = false;
-
+    printGridOnly_ = false;
+    
     // Change defaults according to XML file
     myParam_->Get("externalFiles", externalFiles_, false);
 
@@ -55,6 +56,13 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputXMDF::~XMDF" );
     if(fileId_ > 0)
       xfCloseFile(fileId_);
+  }
+
+  
+  void SimOutputXMDF::Init( Grid* ptGrid, bool printGridOnly ) {
+    ptGrid_ = ptGrid;
+    printGridOnly_ = printGridOnly;
+    WriteGrid();
   }
 
   void SimOutputXMDF::BeginMultiSequenceStep( UInt step,
@@ -277,6 +285,11 @@ namespace CoupledField {
 
   void SimOutputXMDF::Finalize() 
   {
+
+    // return, if only the grid is to be printed
+    if( printGridOnly_ )
+      return;
+
     std::vector<std::string> fileNames;
     std::vector<std::string> dataSetNames;
     std::ifstream fin;

@@ -35,9 +35,6 @@ namespace CoupledField {
     // GENERAL METHODS
     // =======================================================================
 
-    //! Trigger only writing of the grid
-    void WriteGrid();
-
     //! Add output writer
     void AddOutputDest( shared_ptr<SimOutput> out, const std::string& id);
     
@@ -45,7 +42,7 @@ namespace CoupledField {
 
     //! This triggers the creation of files and
     //! the writing of the grid information
-    void Init( Grid* ptGrid );
+    void Init( Grid* ptGrid, bool printGridOnly );
 
     //! Set number of multisequence steps
     void SetNumMultiSequenceSteps( UInt numSteps );

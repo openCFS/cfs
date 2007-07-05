@@ -32,7 +32,7 @@ namespace CoupledField {
   #define CODE_NAME "CFS++"
   #define CODE_VER CFS_VERSION
 
-  //*****************
+   //*****************
   //   Constructor
   //*****************
   SimOutputGMV::SimOutputGMV( const std::string fileName,
@@ -60,14 +60,8 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
     
-    currStep_ = 0;
-    lastStep_ = 0;
-    lastTime_ = 0.0;
-    currTime_ = 0.0;
-
     // Does the grid change over time, or can we use a fixed grid
     fixedgrid_ = true;
-    printGridOnly_ = commandLine->GetPrintGrid();
     firstGridWritten_ = false;
     output = NULL;
     printUnit_ = false;
@@ -88,6 +82,7 @@ namespace CoupledField {
     
     charOutSize_ = 32;
 
+
   }
 
 
@@ -99,11 +94,25 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGMV::~SimOutputGMV" );
 
   }
+  
+  void SimOutputGMV::Init( Grid* ptGrid, bool printGridOnly ) {
+    ENTER_FCN( "SimOutputGMV::Init" );
+    
+    ptGrid_ = ptGrid;
+
+    if( printGridOnly ) 
+      WriteGrid( true );
+
+  }
+
 
   void SimOutputGMV::BeginMultiSequenceStep( UInt step,
                                              AnalysisType type,
                                              UInt numSteps )
   {
+
+    Enum2String( type, currAnalysis_ );
+    currMsStep_ = step;
 
   }
   
@@ -113,10 +122,9 @@ namespace CoupledField {
   {
     ENTER_FCN( "SimOutputGMV::RegisterResult" );
 
-    std::string type;
     ResultInfo & actDof = *(sol->GetResultInfo());
 
-    LOG_DBG(simOutputGMV) << "Registering output '" << actDof.resultName
+    LOG_DBG(simOutputGMV) << "Registering output '" << actDof.resultName 
                           << "' with saveBegin " << saveBegin
                           << ", saveInc " << saveInc 
                           << ", saveEnd " << saveEnd;
@@ -127,11 +135,28 @@ namespace CoupledField {
   void SimOutputGMV::BeginStep( UInt stepNum, Double stepVal )
   {
     ENTER_FCN( "SimOutputGMV::BeginStep" );
-    // std::cout << "BeginStep: stepNum: " << stepNum  << " stepVal: " << stepVal << std::endl;
+
     resultMap_.clear();
     
-    currStep_ = stepNum;
-    currTime_ = stepVal;
+    actStep_ = stepNum;
+    actStepVal_ = stepVal;
+
+    // Open new file
+    std::ostringstream strBuffer;
+    strBuffer <<  fileName_ << "-" << currAnalysis_
+              << "-" << currMsStep_ << ".gmv";
+    if ( stepVal < 10 ) strBuffer << "000";
+    else if ( stepVal < 100 ) strBuffer << "00";
+    else if ( stepVal < 1000 ) strBuffer << "0";
+    else if ( stepVal > 10000 ) {
+      EXCEPTION("Number of gmv files exceeds 9999!");
+    }
+    
+    strBuffer << stepVal;
+    output = OpenFile( strBuffer.str() );
+
+    // Print Grid
+    WriteGrid( false );
   }
 
 
@@ -139,11 +164,10 @@ namespace CoupledField {
   void SimOutputGMV::AddResult( shared_ptr<BaseResult> sol )
   {
     ENTER_FCN( "SimOutputGMV::AddResult" );
-    std::string type;
     ResultInfo & actDof = *(sol->GetResultInfo());
 
     LOG_DBG(simOutputGMV) << "Adding result '" 
-                          << actDof.resultName  << "'";
+                          << actDof.resultName << "'";
       
     resultMap_[sol->GetResultInfo()->resultName].Push_back(sol);
   }
@@ -155,15 +179,11 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputGMV::FinishStep" );
 
     LOG_TRACE(simOutputGMV) << "Starting to finish Step";
-
+    
     // Check, if any result at all is registered. 
     // If not leave!
     if( resultMap_.size() == 0 )
       return;
-
-    
-
-    WriteGrid();
     
     std::string title;
     
@@ -217,6 +237,12 @@ namespace CoupledField {
                                actStepVal_, actInfo.complexFormat );
       }
     }
+
+  
+    // print end of file and close file
+    PrintFileEpilog( output, true );
+    output->close();
+    delete output;
   }
 
   //! End multisequence step
@@ -227,42 +253,11 @@ namespace CoupledField {
 
 
   //! Finalize the output
-  void SimOutputGMV::Finalize()
-  {
-    struct tm* time;
-    time_t time_t;
-    char buffer[64];
+  void SimOutputGMV::Finalize() {
+    ENTER_FCN( "SimOutputGMV::Finalize" );
 
-    memset(&time_t, sizeof(time_t), 0);
-    memset(buffer, sizeof(buffer), 0);
-    time = localtime(&time_t);
-    strftime(buffer, sizeof(buffer), "%m/%d/%y", time);
-
-    // The last gmv-file is closed by the destructor
-    if ( output != NULL ) {
-      if ( printGridOnly_ == false ) {
-        if (ascii_) {
-          (*output) << "probtime " << lastTime_ << std::endl;
-          (*output) << "cycleno " << lastStep_ << std::endl;
-          (*output) << "codename " << CODE_NAME << std::endl;
-          (*output) << "codever " << CODE_VER << std::endl;
-          (*output) << "simdate " << buffer << std::endl;
-          (*output) << "endgmv ";
-          (*output).flush();
-        }
-        else {
-          (*output) << "probtime";
-          output->write( (char*)&lastTime_, sizeof(Double) );
-          (*output) << "cycleno ";
-          output->write( (char*)&lastStep_, sizeof(UInt) );
-          (*output) << "endgmv  ";
-          (*output).flush();
-        }
-      }
-      delete output;
-    }
+    // nothing to do here
   }
-
 
   void SimOutputGMV::
   WriteNodeElemDataTrans( const Vector<Double> & var, 
@@ -373,8 +368,8 @@ namespace CoupledField {
         {
           for(UInt i=0; i<numEnt; i++)
           {
-            vars1[i*numDofs+j] = var[i*numDofs*2+j].real();
-            vars2[i*numDofs+j] = var[i*numDofs*2+j].imag();
+            vars1[i*numDofs+j] = var[i*numDofs+j].real();
+            vars2[i*numDofs+j] = var[i*numDofs+j].imag();
           }
           names1[j] = dofNames[j] + "_real";
           names2[j] = dofNames[j] + "_imag";
@@ -386,8 +381,8 @@ namespace CoupledField {
         {
           for(UInt i=0; i<numEnt; i++)
           {
-            vars1[i*numDofs+j] = std::abs(var[i*numDofs*2+j]);
-            vars2[i*numDofs+j] = CPhase(var[i*numDofs*2+j]);
+            vars1[i*numDofs+j] = std::abs(var[i*numDofs+j]);
+            vars2[i*numDofs+j] = CPhase(var[i*numDofs+j]);
           }
           names1[j] = dofNames[j] + "_ampl";
           names2[j] = dofNames[j] + "_phase";
@@ -526,19 +521,19 @@ namespace CoupledField {
   // **************
   //   WriteNodes
   // **************
-  void SimOutputGMV::WriteNodes() {
+  void SimOutputGMV::WriteNodes( std::ofstream * gridFile ) {
 
     ENTER_FCN( "SimOutputGMV::WriteNodes" );
 
     // write keyword
-    (*output) << "nodev   ";
+    (*gridFile) << "nodev   ";
 
     //get and write number of nodes on the level
     UInt numnodes = ptGrid_->GetNumNodes();
     if (ascii_)
-      (*output) << numnodes << std::endl;
+      (*gridFile) << numnodes << std::endl;
     else
-      output->write((char*)&numnodes,sizeof(UInt));
+      gridFile->write((char*)&numnodes,sizeof(UInt));
 
     //get and write coodinates of nodes
     UInt i;
@@ -550,13 +545,13 @@ namespace CoupledField {
       ptGrid_->GetNodeCoordinate(p, i);  
         
       if (ascii_) {
-        (*output) << " " << p[0] << " " << p[1] << " "
+        (*gridFile) << " " << p[0] << " " << p[1] << " "
                   << p[2] << std::endl;
       }
       else {
-        output->write((char*)&p[0],sizeof(Double));
-        output->write((char*)&p[1],sizeof(Double));
-        output->write((char*)&p[2],sizeof(Double));
+        gridFile->write((char*)&p[0],sizeof(Double));
+        gridFile->write((char*)&p[1],sizeof(Double));
+        gridFile->write((char*)&p[2],sizeof(Double));
       }
     }
 
@@ -566,20 +561,20 @@ namespace CoupledField {
   // **************
   //   WriteCells
   // **************
-  void SimOutputGMV::WriteCells() {
+  void SimOutputGMV::WriteCells( std::ofstream * gridFile ) {
 
     ENTER_FCN( "SimOutputGMV::WriteCells" );
 
     // write keyword
-    (*output) << "cells   ";
+    (*gridFile) << "cells   ";
 
     // read information about number of elements 
     UInt numelem = ptGrid_->GetNumElems();
 
     if (ascii_)
-      (*output) << numelem << std::endl;
+      (*gridFile) << numelem << std::endl;
     else
-      output->write((char*)&numelem,sizeof(UInt));
+      gridFile->write((char*)&numelem,sizeof(UInt));
 
     UInt i;
     StdVector<RegionIdType> regionIds;
@@ -622,27 +617,27 @@ namespace CoupledField {
     
       if (ascii_)
       {
-        (*output) << gmvElemName << " " << numNodes << std::endl;
+        (*gridFile) << gmvElemName << " " << numNodes << std::endl;
         UInt j;
         for (j=0; j < numNodes; j++)
-          (*output) << " " << connect[j];
-        (*output) << std::endl;
+          (*gridFile) << " " << connect[j];
+        (*gridFile) << std::endl;
       }
       else {
-        (*output) << gmvElemName;
-        output->write((char*)&numNodes,sizeof(UInt));
-        output->write((char*)&connect[0],numNodes * sizeof(UInt));
+        (*gridFile) << gmvElemName;
+        gridFile->write((char*)&numNodes,sizeof(UInt));
+        gridFile->write((char*)&connect[0],numNodes * sizeof(UInt));
       }
     }
 
     // Write Regions -> Materials
     UInt aux = 0;
     if (ascii_)
-      (*output) << "material " << numRegions << " 0" << std::endl;
+      (*gridFile) << "material " << numRegions << " 0" << std::endl;
     else {
-      (*output) << "material";
-      output->write((char*)&numRegions,sizeof(UInt));
-      output->write((char*)&aux,sizeof(UInt));
+      (*gridFile) << "material";
+      gridFile->write((char*)&numRegions,sizeof(UInt));
+      gridFile->write((char*)&aux,sizeof(UInt));
     }
 
     for(i=0; i<numRegions; i++)
@@ -650,9 +645,9 @@ namespace CoupledField {
       TruncateString(regionNames[i], charOutSize_);
 
       if (ascii_) {
-        (*output) << regionNames[i] << std::endl;
+        (*gridFile) << regionNames[i] << std::endl;
       } else {
-        output->write(&regionNames[i][0],charOutSize_*sizeof(char));
+        gridFile->write(&regionNames[i][0],charOutSize_*sizeof(char));
       }
 
     }
@@ -661,14 +656,14 @@ namespace CoupledField {
     for (i=0; i<numelem; i++) {
 
       if (ascii_)
-        (*output) << elemRegions[i] << " ";
+        (*gridFile) << elemRegions[i] << " ";
       else {
-        output->write((char*)&elemRegions[i],sizeof(UInt));
+        gridFile->write((char*)&elemRegions[i],sizeof(UInt));
       }
     }
 
     if (ascii_)
-      (*output) << std::endl;
+      (*gridFile) << std::endl;
   }
 
   void SimOutputGMV::ElemType2GMVElemId(FEType et, std::string & id)
@@ -730,7 +725,7 @@ namespace CoupledField {
   // **************************************
   //   Write named entities (nodes, names)
   // **************************************
-  void SimOutputGMV::WriteNamedEntities() {
+  void SimOutputGMV::WriteNamedEntities( std::ofstream * gridFile ) {
 
     ENTER_FCN( "SimOutputGMV::WriteNamedEntities" );
 
@@ -753,9 +748,9 @@ namespace CoupledField {
 
     // Begin group section
     if (ascii_) {
-      (*output) << "groups" << std::endl;
+      (*gridFile) << "groups" << std::endl;
     } else {
-      (*output) << "groups  ";
+      (*gridFile) << "groups  ";
     }
     
     // write named nodes
@@ -771,27 +766,27 @@ namespace CoupledField {
       TruncateString(nodeNames[i], charOutSize_);
 
       if (ascii_) {
-        (*output) << nodeNames[i] <<  " " << entType << " " 
+        (*gridFile) << nodeNames[i] <<  " " << entType << " " 
                   << numNodes;
       } else {
-        output->write(&nodeNames[i][0],charOutSize_*sizeof(char));
-        output->write((char*)&entType,sizeof(UInt));
-        output->write((char*)&numNodes,sizeof(UInt));
+        gridFile->write(&nodeNames[i][0],charOutSize_*sizeof(char));
+        gridFile->write((char*)&entType,sizeof(UInt));
+        gridFile->write((char*)&numNodes,sizeof(UInt));
       }
 
       // write node numbers itself
       if (ascii_) {
         for( UInt iNode = 0; iNode < numNodes; iNode++) {
-          (*output) << " " << nodeNumbers[iNode];
+          (*gridFile) << " " << nodeNumbers[iNode];
         }
       } else {
         for( UInt iNode = 0; iNode < numNodes; iNode++) {
-          output->write((char*)&nodeNumbers[iNode],sizeof(UInt));
+          gridFile->write((char*)&nodeNumbers[iNode],sizeof(UInt));
         }
       }
       
       if (ascii_) {
-        (*output) << std::endl;
+        (*gridFile) << std::endl;
       }
     }
 
@@ -808,218 +803,153 @@ namespace CoupledField {
       TruncateString(elemNames[i], charOutSize_);
 
       if (ascii_) {
-        (*output) << elemNames[i] <<  " " << entType << " " 
+        (*gridFile) << elemNames[i] <<  " " << entType << " " 
                   << numElems;
       } else {
-        output->write(&elemNames[i][0],charOutSize_*sizeof(char));
-        output->write((char*)&entType,sizeof(UInt));
-        output->write((char*)&numElems,sizeof(UInt));
+        gridFile->write(&elemNames[i][0],charOutSize_*sizeof(char));
+        gridFile->write((char*)&entType,sizeof(UInt));
+        gridFile->write((char*)&numElems,sizeof(UInt));
       }
 
       // write elem numbers itself
 
       if (ascii_) {
         for( UInt iElem = 0; iElem < numElems; iElem++) {
-          (*output) << " " << elems[iElem]->elemNum;
+          (*gridFile) << " " << elems[iElem]->elemNum;
         }
       } else {
         for( UInt iElem = 0; iElem < numElems; iElem++) {
-          output->write((char*)&elems[iElem]->elemNum,sizeof(UInt));
+          gridFile->write((char*)&elems[iElem]->elemNum,sizeof(UInt));
         }
       }
       
       if (ascii_) {
-        (*output) << std::endl;
+        (*gridFile) << std::endl;
       }
     }
 
     if (ascii_) {
-      (*output) << "endgrp" << std::endl;
+      (*gridFile) << "endgrp" << std::endl;
     } else {
-      (*output) << "endgrp  ";
+      (*gridFile) << "endgrp  ";
     }
       
     
   }
   
 
-  void SimOutputGMV::WriteGrid() {
+  void SimOutputGMV::WriteGrid( bool printGridOnly ) {
 
     ENTER_FCN( "SimOutputGMV::WriteGrid" );
-    
-    struct tm* time_tm;
-    time_t time_t;
-    char buffer[64];
-    std::string dummy;
 
-    time(&time_t);
-    time_tm = localtime(&time_t);
-    strftime(buffer, sizeof(buffer), "%m/%d/%y", time_tm);
+    // fileName for external grid file
+    std::string extGridFileName = fileName_+ "_GRID.gmv";
 
-    // ---------------------------
-    // Section for PrintGridOnly
-    // ----------------------------
-    if (printGridOnly_ == true) {
-      if(fixedgrid_ == true) {
-        OpenFile(-1);
-      }
-      else {
-        OpenFile(0);
-      }
-
-      WriteNodes();
-      WriteCells();
-      WriteNamedEntities();
+    // -------------------------------------------------------------
+    // Section for PrintGridOnly and for writing of first fixed grid
+    // -------------------------------------------------------------
       
-      if (ascii_)
-      {
-        (*output) << "codename " << CODE_NAME << std::endl;
-        (*output) << "codever " << CODE_VER << std::endl;
-        (*output) << "simdate " << buffer << std::endl;
-        (*output) << "endgmv" << std::endl;
-        (*output).flush();
-      }
-      else 
-      {
-        (*output) << "codename";
-        dummy = CODE_NAME;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "codever ";
-        dummy = CODE_VER;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "simdate ";
-        dummy = buffer;
-        TruncateString(dummy, 8);
-        output->write(dummy.c_str(), 8 );
-        (*output) << "endgmv  ";
-        (*output).flush();
-      }
-      return;
-    }
+    if ( printGridOnly ||  
+         ( fixedgrid_ == true &&
+           firstGridWritten_ == false ) ){
+           
+      std::ofstream * gridFile  = OpenFile( extGridFileName );
 
+      WriteNodes( gridFile );
+      WriteCells( gridFile );
+      WriteNamedEntities( gridFile );
 
-    // ---------------------------
-    // Section for first 
-    // fixedGrid step
-    // ----------------------------
-    if (fixedgrid_ == true &&
-        firstGridWritten_ == false) {
-      OpenFile(-1);
-      WriteNodes();
-      WriteCells();
-      WriteNamedEntities();
-      
-      if (ascii_)
-      {
-        (*output) << "codename " << CODE_NAME << std::endl;
-        (*output) << "codever " << CODE_VER << std::endl;
-        (*output) << "simdate " << buffer << std::endl;
-        (*output) << "endgmv" << std::endl;
-        (*output).flush();
-      }
-      else 
-      {
-        (*output) << "codename";
-        dummy = CODE_NAME;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "codever ";
-        dummy = CODE_VER;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "simdate ";
-        dummy = buffer;
-        TruncateString(dummy, 8);
-        output->write(dummy.c_str(), 8 );
-        (*output) << "endgmv  ";
-        (*output).flush();
-      }
-        
+      PrintFileEpilog( gridFile, false );
+      gridFile->close();
+      delete gridFile;
+
       firstGridWritten_ = true;
-        
-      return;
+
     }
-  
+
+
+    // if only grid is to be written ->leave
+    if( printGridOnly )
+      return;
+      
     // ---------------------------
-    // Section for new time step
+    // Section for new time / frequency step
     // ----------------------------
     
-    // Write Only if time step has changed
-    // since last write of grid
-    if (currStep_ != lastStep_) { 
-
-      OpenFile(currStep_);
-
-      if (fixedgrid_){
-        if (ascii_)
-          (*output) << "nodev fromfile \"" << nameGridFile_ 
-                    <<"\""<< std::endl;
-        else 
-          (*output) << "nodev   fromfile\"" << nameGridFile_ <<"\"";
-            
-        if (ascii_)
-          (*output) << "cells fromfile \"" << nameGridFile_ 
-                    <<"\""<< std::endl;
-        else 
-          (*output) << "cells   fromfile\"" << nameGridFile_ <<"\"";
+    
+    if (fixedgrid_){
+      if (ascii_)
+        (*output) << "nodev fromfile \"" << extGridFileName
+                  <<"\""<< std::endl;
+      else 
+          (*output) << "nodev   fromfile\"" << extGridFileName <<"\"";
       
-        if (ascii_)
-          (*output) << "material fromfile \"" << nameGridFile_
-                    <<"\""<< std::endl;
-        else 
-          (*output) << "materialfromfile\"" << nameGridFile_ <<"\"";
-        
-        // Since there exist no 'fromfile'-construct for groups, we have
-        // to write it out all the time
-        //        WriteNamedEntities();
-      } else {
-        WriteNodes();
-        WriteCells();
-        WriteNamedEntities();
-      }
+      if (ascii_)
+        (*output) << "cells fromfile \"" << extGridFileName 
+                  <<"\""<< std::endl;
+      else 
+        (*output) << "cells   fromfile\"" << extGridFileName <<"\"";
+      
+      if (ascii_)
+        (*output) << "material fromfile \"" << extGridFileName
+                  <<"\""<< std::endl;
+      else 
+        (*output) << "materialfromfile\"" << extGridFileName <<"\"";
+      
+      // Since there exist no 'fromfile'-construct for groups, we have
+      // to write it out all the time
+      //        WriteNamedEntities();
+    } else {
+      WriteNodes( output );
+      WriteCells( output );
+      WriteNamedEntities( output );
     }
+    
   }
 
 
   // ***********
   //  OpenFile
   // ***********
-  void SimOutputGMV::OpenFile( const Integer num ) {
+  std::ofstream * SimOutputGMV::OpenFile( const std::string& name ) {
 
     ENTER_FCN( "SimOutputGMV::OpenFile") ;
 
-    std::string filename;
-    std::ostringstream strBuffer;
+    std::string totalName;
+    std::ofstream * outFile = NULL;
 
     // Generate basename for output file
-    filename.append( dirName_ );
+    totalName.append( dirName_ );
     std::string pathsep = fs::path("/").native_directory_string();
-    filename.append( pathsep );
-    filename.append( fileName_ );
-
-    // In the case of a fixed grid we write the grid description to a
-    // separate file
-    if ( num == -1 ) {
-      filename.append( "_GRID.gmv" );
-      nameGridFile_ = fileName_ + "_GRID.gmv";
+    totalName.append( pathsep );
+    totalName.append( name );
+    
+    if (ascii_) {
+      outFile = new std::ofstream(totalName.c_str());
     }
-
-    // Normal output file
     else {
-      strBuffer.clear();
-      strBuffer << filename << ".gmv";
-      if ( num < 10 ) strBuffer << "000";
-      else if ( num < 100 ) strBuffer << "00";
-      else if ( num < 1000 ) strBuffer << "0";
-      else if ( num > 10000 ) {
-        EXCEPTION("Number of gmv files exceeds 9999!");
-      }
-      strBuffer << num;
-      filename = strBuffer.str();
+      outFile = new std::ofstream(totalName.c_str(), std::ofstream::binary);
+    }
+    if ( !outFile ) {
+      EXCEPTION("Could not open file " << totalName
+                << " for writing GMV output");
     }
 
+    // Write header, problem time and step number
+    if (ascii_) {
+      (*outFile) << "gmvinput ascii" << std::endl;
+    }
+    else {
+      (*outFile) << "gmvinput" << "iecxi4r8";
+    }
+
+    return outFile;
+  }
+
+  void SimOutputGMV::PrintFileEpilog( std::ofstream * outFile,
+                                      bool printStepInfo ) {
+    
+    // In the end, add comment 
     struct tm* time_tm;
     time_t time_t;
     char buffer[64];
@@ -1028,69 +958,43 @@ namespace CoupledField {
     time(&time_t);
     time_tm = localtime(&time_t);
     strftime(buffer, sizeof(buffer), "%m/%d/%y", time_tm);
-
+    
     // If file was already open, write end of variables
     // and the time and step number
-    if (output && num > 1) {
-      if (ascii_) {
-        (*output) << "probtime " << lastTime_ << std::endl;
-        (*output) << "cycleno " << lastStep_ << std::endl;
-        (*output) << "codename " << CODE_NAME << std::endl;
-        (*output) << "codever " << CODE_VER << std::endl;
-        (*output) << "simdate " << buffer << std::endl;
-        (*output) << "endgmv ";
-        (*output).flush();
-      }
-      else {
-        (*output) << "probtime";
-        output->write( (char*)&lastTime_, sizeof(Double) );
-        (*output) << "cycleno ";
-        output->write( (char*)&lastStep_, sizeof(UInt) );
-        (*output) << "codename";
-        dummy = CODE_NAME;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "codever ";
-        dummy = CODE_VER;
-        TruncateString(dummy, 8);
-        output->write( dummy.c_str(), 8 );
-        (*output) << "simdate ";
-        dummy = buffer;
-        TruncateString(dummy, 8);
-        output->write(dummy.c_str(), 8 );
-        (*output) << "endgmv  ";
-        (*output).flush();
-      }
-    }
-    delete output;
-
-    // Update time stepping information
-    lastTime_ = currTime_;
-    lastStep_ = currStep_;
-
-    // check what kind of data for input
-    std::string typedata;
-  
     if (ascii_) {
-      output = new std::ofstream(filename.c_str());
+      if( printStepInfo ) {
+        (*outFile) << "probtime " << actStepVal_ << std::endl;
+        (*outFile) << "cycleno " << actStep_ << std::endl;
+      }
+      (*outFile) << "codename " << CODE_NAME << std::endl;
+      (*outFile) << "codever " << CODE_VER << std::endl;
+      (*outFile) << "simdate " << buffer << std::endl;
+      (*outFile) << "endgmv ";
+      (*outFile).flush();
     }
     else {
-      output = new std::ofstream(filename.c_str(), std::ofstream::binary);
-    }
-    if ( !output ) {
-      EXCEPTION("Could not open file " << filename
-                << " for writing GMV output");
-    }
-
-    // Write header, problem time and step number
-    if (ascii_) {
-      (*output) << "gmvinput ascii" << std::endl;
-    }
-    else {
-      (*output) << "gmvinput" << "iecxi4r8";
+      if( printStepInfo ) {
+        (*outFile) << "probtime";
+        outFile->write( (char*)&actStepVal_, sizeof(Double) );
+        (*outFile) << "cycleno ";
+        outFile->write( (char*)&actStep_, sizeof(UInt) );
+      }
+      (*outFile) << "codename";
+      dummy = CODE_NAME;
+      TruncateString(dummy, 8);
+      outFile->write( dummy.c_str(), 8 );
+      (*outFile) << "codever ";
+      dummy = CODE_VER;
+      TruncateString(dummy, 8);
+      outFile->write( dummy.c_str(), 8 );
+      (*outFile) << "simdate ";
+      dummy = buffer;
+      TruncateString(dummy, 8);
+      outFile->write(dummy.c_str(), 8 );
+      (*outFile) << "endgmv  ";
+      (*outFile).flush();
     }
   }
-
 
   void SimOutputGMV::TruncateString(std::string & str,
                                     UInt maxLen)
@@ -1118,5 +1022,6 @@ namespace CoupledField {
     else
       str.resize(maxLen);
   }
+
   
 }

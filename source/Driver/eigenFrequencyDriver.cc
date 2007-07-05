@@ -176,8 +176,10 @@ namespace CoupledField {
     }
 
     // notify resultHandler about finishing of current sequence step
-    if( !isPartOfSequence_ )
+    if( !isPartOfSequence_ ) {
       resHandler->FinishMultiSequenceStep();
+      resHandler->Finalize();
+    }
   }
 
 

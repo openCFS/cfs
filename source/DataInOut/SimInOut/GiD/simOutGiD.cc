@@ -39,8 +39,10 @@ namespace CoupledField {
     capabilities_.insert( MESH_RESULTS );
 
     dim_ = GiD_2D;
+    actMsStep_ = 0;
     isAscii_ = true;
     degen3DElems_ = true;
+    printGridOnly_ = false;
 
     // Determine, if binary result file should be written
     isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
@@ -110,7 +112,7 @@ namespace CoupledField {
     } 
     
     // close result file, if binary format and only print grid
-    if( isAscii_ == false && PrintGridOnly == true ) {
+    if( isAscii_ == false && printGridOnly_ == true ) {
       GiD_ClosePostResultFile();
     }
       
@@ -427,6 +429,14 @@ namespace CoupledField {
     GiD_WriteElementMat( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
   }
 
+
+  void SimOutputGiD::BeginMultiSequenceStep( UInt step, 
+                                             AnalysisType type,
+                                             UInt numSteps ) {
+    ENTER_FCN( "SimOutputGiD::BeginMultiSequenceStep" );
+    
+    actMsStep_ = step;
+  }
  
   void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
@@ -522,6 +532,13 @@ namespace CoupledField {
                           Double time ) {
     ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataTrans" );
     
+    // assemble name for analysis step
+    std::string analysisName = "transient";
+
+    if( actMsStep_ > 1 ) {
+      analysisName += "_" + GenStr( actMsStep_ );
+    }
+
     // get number of entities
     UInt numEnt = 0;
     char * dummy;
@@ -546,14 +563,14 @@ namespace CoupledField {
     
     // write Result header
     if ( entryType == ResultInfo::SCALAR )  {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
+      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
       for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
         GiD_WriteScalar( iEnt, var[iEnt-1]); 
       }
     } else if( entryType == ResultInfo::VECTOR ) {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
+      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
                              GiD_Vector, loc, dummy );
       const char *names[3] = {"___", "__", "_"};
       for( UInt i = 0; i < numDofs; i++ ) {
@@ -585,7 +602,7 @@ namespace CoupledField {
       }
       
   } else if( entryType == ResultInfo::TENSOR ) {
-    GiD_BeginResultHeader( name.c_str(), "transient", time,
+    GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
                            GiD_Matrix, loc, dummy );
       const char *names[6] = {"______", "_____", "____", 
                               "___", "__", "_" };
@@ -630,6 +647,13 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                          const Double freq, 
                          const ComplexFormat outputFormat ) {
     ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataHarm" );
+
+    // assemble name for analysis step
+    std::string analysisName = "harmonic";
+
+    if( actMsStep_ > 1 ) {
+      analysisName += "_" + GenStr( actMsStep_ );
+    }
     
    // get number of entities
     UInt numEnt = 0;
@@ -666,7 +690,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     if ( entryType == ResultInfo::SCALAR ) {
       
       // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName1.c_str(), analysisName.c_str(), freq,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
       
@@ -683,7 +707,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       GiD_EndResult();
 
       // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName2.c_str(), analysisName.c_str(), freq,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
       
@@ -771,7 +795,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       }
       
       // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName2.c_str(), analysisName.c_str(), freq,
                              GiD_Vector, loc, dummy );
       GiD_ResultComponents( 3, names );
       GiD_ResultValues();
@@ -812,7 +836,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       // === Vectorial entries ===
       
       // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName1.c_str(), analysisName.c_str(), freq,
                              GiD_Matrix, loc, dummy );
       const char *names[6] = {"______", "_____", "____", 
                               "___", "__", "_" };
@@ -871,7 +895,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       }
       
       // --- Second component ---
-      GiD_BeginResultHeader( outName2.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName2.c_str(), analysisName.c_str(), freq,
                              GiD_Vector, loc, dummy );
       GiD_ResultComponents( 6, names );
       GiD_ResultValues();
@@ -920,13 +944,12 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
   // ********
   //   Init
   // ********
-  void SimOutputGiD::Init( Grid* ptGrid) {
+  void SimOutputGiD::Init( Grid* ptGrid, bool printGridOnly) {
     
     ENTER_FCN( "SimOutputGiD::OpenFile" );
 
     ptGrid_ = ptGrid;
-    // initialize history files
-    //InitHistoryFiles();
+    printGridOnly_ = printGridOnly;
 
     // determine dimension of grid
     UInt dim = ptGrid_->GetDim();
@@ -951,6 +974,8 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         degen3DElems_ = false;
       }
     }
-    
+
+    // print grid
+    WriteGrid(); 
   }
 } // end of namespace

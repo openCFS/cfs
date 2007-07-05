@@ -36,8 +36,6 @@ namespace OutInfo{
 namespace CoupledField {
 
 
-  bool PrintGridOnly = false;
-
   LogConfigurator * logConf = new LogConfigurator();
 
 #ifdef PROFILING
@@ -50,9 +48,6 @@ namespace CoupledField {
 
   Domain * domain = NULL;
 
-  Flags * flags=NULL;
-
-  
 
   BaseFE * ptQ1     = NULL;
   BaseFE * ptQ2     = NULL;

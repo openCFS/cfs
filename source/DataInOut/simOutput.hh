@@ -36,14 +36,12 @@ namespace CoupledField {
     const std::string& GetName() { return formatName_; };
 
     //! Initialize
-    virtual void Init( Grid* ptGrid) { ptGrid_ = ptGrid; }
+    virtual void Init( Grid* ptGrid,
+                       bool printGridOnly ) = 0;
 
     //! Get capabilites of interface
     const std::set<Capability>& GetCapabilities() const 
     { return capabilities_; }
-
-    //! Write grid
-    virtual void WriteGrid() = 0;
 
     //! Begin multisequence step
     virtual void BeginMultiSequenceStep( UInt step,

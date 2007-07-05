@@ -176,6 +176,9 @@ namespace CoupledField {
       actTime_ = nextTime;
 
     } // iStep
+
+    // trigger finalization
+    domain->GetResultHandler()->Finalize();
   }
 
 

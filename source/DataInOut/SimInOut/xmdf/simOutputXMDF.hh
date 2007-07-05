@@ -32,6 +32,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~SimOutputXMDF();
 
+    //! Initialize class 
+    virtual void Init( Grid* ptGrid,
+                       bool printGridOnly );
     //@}
 
 
@@ -93,7 +96,8 @@ namespace CoupledField {
     bool gridWritten_;
 
     bool externalFiles_;
-
+    bool printGridOnly_;
+    
     H5::Group mainRoot_;
     H5::Group dataGroup_;
     H5::Group volDataGroup_;

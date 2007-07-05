@@ -160,7 +160,7 @@ namespace CoupledField {
 
     if ( !commandLine->GetPrintGrid() == true ) {
       // Initialize resultHandler
-      resultHandler_->Init( gridMap_["default"] );
+      resultHandler_->Init( gridMap_["default"], false );
     }    
   }
 
@@ -944,8 +944,8 @@ namespace CoupledField {
     
     ENTER_FCN( "Domain::PrintGrid" );
 
-    resultHandler_->Init( gridMap_["default"] );
-    //    resultHandler_->WriteGrid();
+    resultHandler_->Init( gridMap_["default"], true  );
+    resultHandler_->Finalize();
   }
   
   void Domain::Dump()

@@ -443,9 +443,10 @@ namespace CoupledField {
   
   }
 
-  void SimOutputUnv::Init(Grid * aptgrid)
+  void SimOutputUnv::Init(Grid * aptgrid, bool printGridOnly )
   {
     ptGrid_=aptgrid;
+    WriteGrid();
 
   }
 
