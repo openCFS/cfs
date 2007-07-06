@@ -524,6 +524,14 @@ namespace CoupledField
 
   private:
 
+    //! helper struct for passing information about nodes
+    struct PointSelection{
+      bool isFree;
+      std::string comp;
+      Double start, stop, inc; // only for free components
+      std::string value; // only for fixed components
+    };
+
     // =======================================================================
     // Helper Methods
     // =======================================================================
@@ -538,9 +546,6 @@ namespace CoupledField
     //!                      yet converted to \a SurfElem*
     void CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems);
 
-    
-    
-
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
 
@@ -548,19 +553,13 @@ namespace CoupledField
     //! or parametric description
     void CreateUserDefinedNodesElems();
 
-    //! Add new node / element given by poin coordinate
-    void AddEntityByCoord( const std::string& name, bool isNode, 
-                           const Vector<Double>& coord );
-
     //! add new node / element given by parametric description
     void AddEntityByParam( const std::string& name, bool isNode, 
                            const std::string& coordSysId,
-                           const std::string& freeComp,
-                           Double freeStart, Double freeStop, Double freeInc,
-                           const std::string& fixedComp1,
-                           const std::string& fixedVal1,
-                           const std::string& fixedComp2,
-                           const std::string& fixedVal2 );
+                           StdVector<PointSelection>& coords );
+
+    //! find entity with minimum distance
+    UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
 
     
     //@}
@@ -649,6 +648,8 @@ namespace CoupledField
     StdVector<std::string> namedElemNames_;
 
     //@}
+
+  
  
     
 #ifdef ADAPTGRID

@@ -119,7 +119,7 @@
       <xsd:element name="list">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="freeCoord">
+            <xsd:element name="freeCoord" minOccurs="0" maxOccurs="2">
               <xsd:complexType>
                 <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
                 <xsd:attribute name="start" type="xsd:double" use="required"/>
@@ -128,7 +128,7 @@
               </xsd:complexType>
             </xsd:element>
             <xsd:sequence>
-              <xsd:element name="fixedCoord" minOccurs="1"
+              <xsd:element name="fixedCoord" minOccurs="0"
                 maxOccurs="2">
                 <xsd:complexType>
                   <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
