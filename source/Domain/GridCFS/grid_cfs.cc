@@ -218,8 +218,15 @@ namespace CoupledField {
             coordNode->Get( "x", coord[0] );
             coordNode->Get( "y", coord[1] );
             coordNode->Get( "z", coord[2] );
+            StdVector<UInt> entityNum(1);
+            entityNum[0] = FindEntityMinDistance( isNode, coord );
             
-            AddEntityByCoord(name, isNode, coord );
+            // add node / element 
+            if( isNode ) {
+              AddNamedNodes( name, entityNum );
+            } else {
+              AddNamedElems( name, entityNum );
+            }
             
           }
           
@@ -227,37 +234,47 @@ namespace CoupledField {
           ParamNode * listNode = nodes[i]->Get("list", false );
           if( listNode ) {
             
-            std::string freeComp, fixedComp1, fixedComp2, coordSysId;
-            std::string fixedVal1, fixedVal2;
-            Double freeStart, freeStop, freeInc;
-            
+            std::string coordSysId;
+
             // get coordinate system
             listNode->Get( "coordSysId", coordSysId );
-            
+
+            StdVector<PointSelection> selections;
+
             // get free component
-            ParamNode * freeNode = listNode->Get("freeCoord");
-            freeNode->Get( "comp", freeComp );
-            freeNode->Get( "start", freeStart );
-            freeNode->Get( "stop", freeStop );
-            freeNode->Get( "inc", freeInc );
+            StdVector<ParamNode*>  freeNodes = 
+              listNode->GetList("freeCoord");
+            for( UInt i = 0; i < freeNodes.GetSize(); i++ ) {
+              ParamNode * actNode = freeNodes[i];
+              PointSelection actSel;
+              actSel.isFree = true;
+              actNode->Get( "comp", actSel.comp );
+              actNode->Get( "start", actSel.start );
+              actNode->Get( "stop", actSel.stop );
+              actNode->Get( "inc", actSel.inc );
+              selections.Push_back( actSel);
+            }
             
             // get fixed component(s)
             StdVector<ParamNode*> fixedNodes = 
               listNode->GetList("fixedCoord");
-            fixedNodes[0]->Get( "comp", fixedComp1 );
-            fixedNodes[0]->Get( "value", fixedVal1 );
-            if( fixedNodes.GetSize() == 2 ) {
-              fixedNodes[1]->Get( "comp", fixedComp2 );
-              fixedNodes[1]->Get( "value", fixedVal2 );
-            } else {
-              fixedComp2 = "";
-              fixedVal2 = "0.0";
+            for( UInt i = 0; i < fixedNodes.GetSize(); i++ ) {
+              ParamNode * actNode = fixedNodes[i];
+              PointSelection actSel;
+              actSel.isFree = false;
+              actNode->Get( "comp", actSel.comp );
+              actNode->Get( "value", actSel.value );
+              selections.Push_back( actSel);
             }
             
+            // Ensure, that we have as many entries in the 
+            // vector as dimension
+            if( dim_ != selections.GetSize() ) {
+              EXCEPTION("There have been more coordinate components "
+                        << "than there are space dimensions" );
+            }
             AddEntityByParam( name, isNode, coordSysId,
-                              freeComp, freeStart, freeStop,
-                              freeInc, fixedComp1, fixedVal1,
-                              fixedComp2, fixedVal2 );
+                              selections );
           }
           
         }
@@ -265,63 +282,11 @@ namespace CoupledField {
     }
   }
   
-  void GridCFS::AddEntityByCoord( const std::string& name, bool isNode, 
-                                  const Vector<Double>& coord ) {
-    ENTER_FCN( "GridCFS::AddEntityByCoord" );
-    
-    StdVector<UInt> entityNum(1);
-    Vector<Double> actEntCoord, temp;
-    std::vector<Double> entityDist;
-    
-    if( isNode) {
-      // === loop over nodes ===
-      entityDist.resize(numNodes_);
-      
-      // iterate over all nodes
-      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
-        
-        // calculate distance and store it in vector
-        GetNodeCoordinate( actEntCoord, iNode+1, false );          
-        temp = (actEntCoord-coord    );
-        entityDist[iNode] = temp.NormL2();
-      } // nodes
-    } else {
-      // === loop over elements ===
-      entityDist.resize(numElems_);
-      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
-        
-        // calculate distance and store it in vector
-        GetGlobalElemMidPoint( iElem+1, actEntCoord );
-        temp = (actEntCoord-coord    );
-        entityDist[iElem] = temp.NormL2();
-      } // elems
-    }
-    
-    // find minimum entry in the vector
-    std::vector<Double>::iterator it ;
-    it = min_element(entityDist.begin(), entityDist.end());
-    LOG_DBG2(gridcfs) << "Found node " 
-                      << std::distance(entityDist.begin(), it) + 1;
-    entityNum[0]=  std::distance(entityDist.begin(), it) + 1;
-    
-    // add node / element 
-    if( isNode ) {
-      AddNamedNodes( name, entityNum );
-    } else {
-      AddNamedElems( name, entityNum );
-    }
-  }
+ 
 
   void GridCFS::AddEntityByParam( const std::string& name, bool isNode, 
                                   const std::string& coordSysId,
-                                  const std::string& freeComp,
-                                  Double freeStart, Double freeStop, 
-                                  Double freeInc,
-                                  const std::string& fixedComp1,
-                                  const std::string& fixedVal1,
-                                  const std::string& fixedComp2,
-                                  const std::string& fixedVal2 ) {
-
+                                  StdVector<PointSelection>& coords ) {
     ENTER_FCN( "GridCFS::AddEntityByParam" );
 
     // get coordinate system
@@ -329,97 +294,92 @@ namespace CoupledField {
     try {
       cosy = domain->GetCoordSystem(coordSysId);
     } catch( Exception &e ) {
-      RETHROW_EXCEPTION(e, "Could select nodes within the"
+      RETHROW_EXCEPTION(e, "Could not select nodes within the"
                         << "coordinate system '"
                         << coordSysId << "'");
     }
     
     // map coordinate components to indices
-    UInt freeDof, fixedDof1, fixedDof2;
-    freeDof = cosy->GetVecComponent( freeComp );
-    fixedDof1 = cosy->GetVecComponent( fixedComp1 );
-    if( dim_ == 3 ) {
-      fixedDof2= cosy->GetVecComponent (fixedComp2 );
+    StdVector<UInt> dofs(dim_);
+
+    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
+      dofs[iDim] = cosy->GetVecComponent( coords[iDim].comp )-1;
     }
     
-    // fetch math parser and register free coordinate name
-    Double actFreeCoord = 0;
-    MathParser * parser = domain->GetMathParser();
-    MathParser::HandleType h1, h2;
-    h1 = parser->GetNewHandle();
-    h2 = parser->GetNewHandle();
-    parser->SetValue( h1, freeComp, 0.0 );
-    parser->SetValue( h2, freeComp, 0.0 );
-    parser->SetExpr( h1, fixedVal1 );
-    if( dim_ == 3 ) {
-      parser->SetExpr( h2, fixedVal2 );
-    }
-    
-    // fill vector with entries of free componenet
-    Vector<Double> sampleVals;
-    UInt numSamples;
-    numSamples  = UInt( floor ( (freeStop-freeStart) / freeInc ) );
-    sampleVals.Resize( numSamples );
-    for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
-      sampleVals[iSample] = freeStart + iSample * freeInc;
+    // require that the first entry is a free one 
+    if( !coords[0].isFree ) {
+      EXCEPTION( "First coordinate component must be free" );
     }
 
-    StdVector<UInt> entityNums (numSamples);
+    // fetch math parser and register coordinate names
+    MathParser * parser = domain->GetMathParser();
+    StdVector<MathParser::HandleType> handles(dim_);
+    StdVector<Vector<Double> > sampleVals(dim_);
+    UInt totalNum = 1;
+    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
+      if( !coords[iDim].isFree ) {
+        handles[iDim] = parser->GetNewHandle();
+        for( UInt iDim2 = 0; iDim2 < dim_; iDim2++ ) {
+          if( !coords[iDim2].isFree )
+            parser->SetValue( handles[iDim], coords[iDim2].comp, 0.0 );
+        }
+        parser->SetExpr( handles[iDim], coords[iDim].value );   
+        sampleVals[iDim].Resize(1);
+        sampleVals[iDim].Init(0.0);
+      } else {
+        UInt numSamples  = 
+          UInt( floor ( (coords[iDim].stop-coords[iDim].start) 
+                        / coords[iDim].inc ) )+1;
+        sampleVals[iDim].Resize( numSamples );
+        for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
+          sampleVals[iDim][iSample] = coords[iDim].start 
+            + iSample * coords[iDim].inc;
+        }
+      }
+      totalNum *= sampleVals[iDim].GetSize();
+    }
+    
+    
+    StdVector<UInt> entityNums(totalNum);
     Vector<Double> locCoord( dim_), globCoord( dim_ );
     Vector<Double> actEntCoord(dim_), temp;
+    UInt pos = 0;
+    
+    // loop over all entries in the (first)free component vector
+    // update first component, if it is free
+    if( !coords[0].isFree ) {
+      sampleVals[0][0] = parser->Eval(handles[0] );
+    } 
+    for( UInt iSample1 = 0; iSample1 < sampleVals[0].GetSize(); iSample1++ ) {
+      locCoord[dofs[0]] = sampleVals[0][iSample1];      
 
-    // loop over all entries in the free component vector
-    for( UInt iSample = 0; iSample < sampleVals.GetSize(); iSample++ ) {
+      // update second component, if it is free
+      if( !coords[1].isFree ) {
+        parser->SetValue( handles[1], coords[0].comp, sampleVals[0][iSample1] );
+        sampleVals[1][0] = parser->Eval(handles[1] );
+      } 
+      for( UInt iSample2 = 0; iSample2 < sampleVals[1].GetSize(); iSample2++ ) {
 
-      // set current values of local vector entries (using mathParser)
-       parser->SetValue( h1, freeComp, sampleVals[iSample] );
-       parser->SetValue( h2, freeComp, sampleVals[iSample] );
-      locCoord[freeDof-1] = sampleVals[iSample];
-      locCoord[fixedDof1-1] = parser->Eval(h1);
-      if( dim_ == 3 ) {
-        locCoord[fixedDof2-1] = parser->Eval(h2);
-      }
-      
-      // calculate current values of the fixed components in 
-      // global coordinates
-      cosy->Local2GlobalCoord( globCoord, locCoord );
-      
-      // iterate over all nodes in the grid
-      // vectors with node indices and distance
-      std::vector<Double> entityDist;
-      
-      if( isNode ) {
-        // === loop over nodes ===
-        entityDist.resize( numNodes_ );
-        for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+        locCoord[dofs[1]] = sampleVals[1][iSample2];        
+        // update second component, if it is free
+        if( dim_ == 3 ) {
+          if( !coords[2].isFree ) {
+            parser->SetValue( handles[2], coords[0].comp, sampleVals[0][iSample1] );
+            parser->SetValue( handles[2], coords[1].comp, sampleVals[1][iSample1] );
+            sampleVals[2][0] = parser->Eval(handles[2] );
+          }
+          for( UInt iSample3 = 0; iSample3 < sampleVals[2].GetSize(); iSample3++ ) {
+            locCoord[dofs[2]] = sampleVals[2][iSample3];
+            cosy->Local2GlobalCoord( globCoord, locCoord );
+            entityNums[pos++] = FindEntityMinDistance( isNode, globCoord );
+          }
           
-          // calculate distance and store it in vector
-          GetNodeCoordinate( actEntCoord, iNode+1, false );          
-          temp = (actEntCoord-globCoord);
-          entityDist[iNode] = temp.NormL2();
-        } // nodes
-      } else {
-
-        // === loop over elements ===
-        entityDist.resize(numElems_);
-        
-        Vector<Double> locMidPoint;
-        Matrix<Double> connectCoord;
-
-        // iterate over all elements
-        for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
-          
-          GetGlobalElemMidPoint( iElem+1, actEntCoord );
-           temp = (actEntCoord-globCoord );
-          entityDist[iElem] = temp.NormL2();
-        } // elements
-        
+        } // dim == 3 
+        else {
+          cosy->Local2GlobalCoord( globCoord, locCoord );
+          entityNums[pos++] = FindEntityMinDistance( isNode, globCoord );
+        }
       }
-      
-      // find minimum entry in the vector
-      std::vector<Double>::iterator it ;
-      it = min_element(entityDist.begin(), entityDist.end());
-      entityNums[iSample] = std::distance(entityDist.begin(), it) + 1;
     }
     
     if( isNode) {
@@ -430,10 +390,58 @@ namespace CoupledField {
       AddNamedElems( name, entityNums );
     }
     
-    // release math handles
-    parser->ReleaseHandle( h1 );
-    parser->ReleaseHandle( h2 );
+    // release handles of math parser
+    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
+      if( !coords[iDim].isFree )
+        parser->ReleaseHandle( handles[iDim] );
+    }
   }
+
+  UInt GridCFS::FindEntityMinDistance( bool isNode, Vector<Double>& coord ) {
+
+    UInt entityNum;
+
+    // iterate over all nodes/elements in the grid
+    // vectors with node indices and distance
+    std::vector<Double> entityDist;
+    Vector<Double> actEntCoord, temp;
+    
+    if( isNode ) {
+      // === loop over nodes ===
+      entityDist.resize( numNodes_ );
+      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+        
+        // calculate distance and store it in vector
+        GetNodeCoordinate( actEntCoord, iNode+1, false );          
+        temp = (actEntCoord-coord);
+        entityDist[iNode] = temp.NormL2();
+      } // nodes
+    } else {
+      
+      // === loop over elements ===
+      entityDist.resize(numElems_);
+      
+      Vector<Double> locMidPoint;
+      Matrix<Double> connectCoord;
+      
+      // iterate over all elements
+      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
+        
+        GetGlobalElemMidPoint( iElem+1, actEntCoord );
+        temp = (actEntCoord-coord );
+        entityDist[iElem] = temp.NormL2();
+      } // elements
+      
+    }
+    
+    // find minimum entry in the vector
+    std::vector<Double>::iterator it ;
+    it = min_element(entityDist.begin(), entityDist.end());
+    entityNum = std::distance(entityDist.begin(), it) + 1;
+    return entityNum;
+
+
+}
 
   void GridCFS::MapFaces() {
     ENTER_FCN( "GridCFS::MapFaces" );
@@ -471,9 +479,6 @@ namespace CoupledField {
       // adapt size of faces and orientation array of element
       actElem.faces.Resize( numFaces );
       actElem.faceFlags.Resize( numFaces );
-
-      // offset for face index
-      UInt offset=0;
 
       // iterate over all faces of this element
       for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
