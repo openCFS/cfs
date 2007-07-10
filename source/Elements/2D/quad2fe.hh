@@ -80,7 +80,6 @@ namespace CoupledField
         IntegOrder  = 3; 
     }
 
-
   private:
   };
 

@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
- #include <iostream>
+#include <iostream>
 #include <fstream>
 #include <string>
 
@@ -94,6 +94,261 @@ namespace CoupledField
     coordMat.Mult(shFnc,globCoord);    
   }
 
+  void BaseFE :: Global2LocalCoords(Matrix<Double> & localCoords,
+                                    const Matrix<Double> & globalCoords,
+                                    const Matrix<Double> & coordMat ) {
+    
+    ENTER_FCN( "BaseFE::Global2LocalCoords");
+    
+    Vector<Double> globalPoint; // global point coordinates
+    UInt globDim = globalCoords.GetSizeRow(); // determine global dimension
+    UInt numPoints = globalCoords.GetSizeCol(); // number of global points
+    UInt locDim = LCornerCoords_.GetSizeRow(); // dimension of current element
+    UInt numCorners = LCornerCoords_.GetSizeCol(); // number of element corners
+
+    Vector<Double> xi_start; // local start point for Newton-Raphson method
+    Vector<Double> xi_k; // local point at iteration k
+    Vector<Double> delta_xi; // local search direction
+    Vector<Double> f; // global (negative) search direction
+    Vector<Double> f_start; // start value for global search direction 
+    Matrix<Double> J; // Jacobian at local point xi_k
+    Double f_min; // minimal distance between global corners and global point
+    Double distance; // global distance!
+    Double distance_l; // global distance at iteration l
+    Double distMeasure; // global distance or local distance
+                        // depending on sqrt(|jacDet|)
+    Double TOL = 0.0000001; // tolerance for global distance
+    Double jacDet; // denominator for Cramer's rule.
+    Double distNormalizer; // denominator for Cramer's rule.
+    Double coeff; // damping coefficient
+    bool divergence; // does the Newton-Raphson algorithm diverge?
+    bool converged; // have we found the local point?
+    UInt k = 0;
+   
+    // Initialize variables
+    globalPoint.Resize(globDim);
+    xi_start.Resize(3); xi_start.Init();
+    xi_k.Resize(3); xi_k.Init();
+    delta_xi.Resize(3); ; delta_xi.Init();
+    localCoords.Resize(locDim, numPoints);
+    J.Resize(3, 3); J.Init();
+
+    // Perform Newton-Raphson method on the list of global points
+    // to find local coordinates within this element.
+    for(UInt i = 0; i < numPoints; i++)
+    {
+      // Copy global point coordinates into a Vector for algebraic ops.
+      for(UInt j = 0; j < globDim; j++)
+      {
+        globalPoint[j] = globalCoords[j][i];
+      }
+
+      // Find good startpoint xi_k among local corner coordinates
+      f_min = 999e5; // really big value!
+      for(UInt k = 0; k < numCorners; k++)
+      {
+        for(UInt l = 0; l < locDim; l++)
+        {
+          xi_k[l] = LCornerCoords_[l][k];
+        }
+        
+        Local2GlobalCoord(f, xi_k, coordMat, NULL);
+        f = f - globalPoint;
+        distance = f.NormL2();
+        if( distance < f_min )
+        {
+          f_min = distance;
+          xi_start = xi_k;
+          f_start = f;
+        }
+      }
+
+      /*
+      std::cout << "Beginning to find local coords..." << std::endl;
+      std::cout << "Global coords..." << globalPoint << std::endl;
+      */
+      xi_k = xi_start;
+      f = f_start;
+      distance = f_min;
+      divergence = false;
+      converged = false;
+      
+      do
+      {
+        // Calculate Jacobian at iteration point xi_k
+        CalcJacobian(J, xi_k, coordMat, NULL );
+
+        /*
+        std::cout << std::endl << "++++++ xi_k (" << xi_k[0] << ", "
+                  << xi_k[1] << ", " << xi_k[2] << ") ++++++" << std::endl;
+        std::cout << "f (" << f[0] << ", " << f[1]
+                  << ", " << f[2] << ")" << std::endl;
+        std::cout << "distance " << distance << std::endl;
+        */
+
+        // locDim should never be 1 since line elements will
+        // be handled differently
+        if(locDim == 1)
+          return;
+
+        if(globDim == 2)
+        {
+          // Find new local search direction for 2D -> 2D mapping using
+          // Cramer's rule.
+          jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
+
+          delta_xi[0] = + J[0][1]*f[1] - J[0][2]*f[1]
+                        - J[1][1]*f[0] + J[2][1]*f[0];
+        
+          delta_xi[1] = - J[0][0]*f[1] + J[2][0]*f[1]
+                        - J[1][2]*f[0] + J[1][0]*f[0];
+
+          distNormalizer = sqrt(fabs(jacDet));
+        }
+        else        
+        {
+          if(locDim == 2)
+          {
+            // Find new local search direction for 2D -> 3D mapping.
+            // Project 3D difference vector onto 2D basis given by
+            // the Jacobian to find the new 2D search direction.
+            //            Vector<Double> normal;
+
+            jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1]
+                    - J[0][0] * J[2][1] + J[2][0] * J[0][1]
+                    + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+
+            delta_xi[0] = (f[0] * J[0][0] +
+                           f[1] * J[1][0] +
+                           f[2] * J[2][0]);            
+
+            delta_xi[1] = (f[0] * J[0][1] +
+                           f[1] * J[1][1] +
+                           f[2] * J[2][1]);            
+
+            distNormalizer = sqrt(fabs(jacDet));
+
+            /*
+            std::cout << "J1 (" << J[0][0] << ", "
+                      << J[1][0] << ", " << J[2][0] << ")" << std::endl;
+            std::cout << "J2 (" << J[0][1] << ", "
+                      << J[1][1] << ", " << J[2][1] << ")" << std::endl;
+            std::cout << "jacDet " << jacDet << std::endl;
+            */
+          }
+          else
+          {
+            // Find new local search direction for 3D -> 3D mapping using
+            // Cramer's rule.
+            
+            jacDet = + J[0][0]*J[1][1]*J[2][2] - J[0][0]*J[2][1]*J[1][2]
+                    - J[1][0]*J[0][1]*J[2][2] + J[2][1]*J[1][0]*J[0][2]
+                    - J[1][1]*J[2][0]*J[0][2] + J[2][0]*J[0][1]*J[1][2];
+
+            delta_xi[0] += + J[0][1]*J[2][2]*f[1] - J[0][2]*J[2][1]*f[1]
+                           - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
+                           - J[0][1]*J[1][2]*f[2] + J[0][2]*J[1][1]*f[2];
+          
+            delta_xi[1] += - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
+                           - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
+                           + J[0][0]*J[1][2]*f[2] - J[1][0]*J[0][2]*f[2];
+          
+            delta_xi[2] = - J[2][1]*J[1][0]*f[0] + J[0][0]*J[2][1]*f[1]
+                          - J[0][0]*J[1][1]*f[2] + J[1][1]*J[2][0]*f[0]
+                          + J[1][0]*J[0][1]*f[2] - J[2][0]*J[0][1]*f[1];
+
+            distNormalizer = std::pow(fabs(jacDet), 0.3333333);
+          }
+        }
+
+        // Here is the new local search direction.
+        delta_xi[0] /= jacDet;
+        delta_xi[1] /= jacDet;
+        delta_xi[2] /= jacDet;
+
+        // If global element is smaller use local distance as a measure.
+        // If global element is bigger use global distance as a measure.
+        distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
+        if(distMeasure < TOL)
+        {
+          converged = true;
+          break;
+        }
+
+        /*        
+        std::cout << "delta_xi (" << delta_xi[0] << ", "
+                  << delta_xi[1] << ")" << std::endl;
+        */
+
+        // Perform damping iterations to find good damping coefficient
+        xi_start = xi_k;
+        coeff = 1;
+        for(UInt l = 0; l < 8; l++)
+        {
+          xi_k = xi_start + delta_xi * coeff;
+          Local2GlobalCoord(f, xi_k, coordMat, NULL);
+
+          f = f - globalPoint;
+          distance_l = f.NormL2();
+
+          std::cout << "coeff " << coeff << " distance_l "
+                    << distance_l << std::endl;
+
+          if(distance_l < distance)
+          {
+            distance = distance_l;
+
+            /*
+            std::cout << "coeff " << coeff << " distance "
+                      << distance << std::endl;
+            */
+
+            // If global element is smaller use local distance as a measure.
+            // If global element is bigger use global distance as a measure.
+            distMeasure = distNormalizer < 1 ? distance/distNormalizer : distance;
+            if(distMeasure < TOL)
+            {
+              converged = true;
+              break;
+            }
+
+            coeff /= 2;
+          }
+          else
+          {
+            divergence = true;
+            break;
+          }
+        }
+
+        if(divergence)
+          break;
+
+        if(converged)
+          break;
+
+        k++;
+      }
+      while(k < 10);
+
+      // Put local coordinate of point into matrix.
+      for(UInt l = 0; l < locDim; l++)
+      {
+        localCoords[l][i] = xi_k[l];
+      }
+
+      /*
+      std::cout << std::endl << "++++++ xi_k final (" << xi_k[0]
+                << ", " << xi_k[1] << ", " << xi_k[2] << ") ++++++"
+                << std::endl;
+      std::cout << "f (" << f[0] << ", " << f[1] << ", " << f[2] << ")" << std::endl;
+      //      std::cout << "distance " << distance << std::endl;
+      std::cout << "divergence " << divergence << std::endl;
+      std::cout << "distance " << distance << std::endl;
+      std::cout << "dist_measure " << distMeasure << std::endl;
+      */
+    }
+  }
 
 
   void BaseFE :: GetShFncAtIp(Vector<Double> & S, const UInt ip,
@@ -153,10 +408,10 @@ namespace CoupledField
 
 
     if ( jacDet < 0.0 ){
-        EXCEPTION("BaseFE:GetGlobDerivShFncAtIp: " <<
-                  "Negative Jacobian Determinant!\n" <<
-                  "The coordinates of the element are:\n" <<
-                  CoordMatrix2String(CornerCoords));
+      EXCEPTION("BaseFE:GetGlobDerivShFncAtIp: " <<
+                "Negative Jacobian Determinant!\n" <<
+                "The coordinates of the element are:\n" <<
+                CoordMatrix2String(CornerCoords));
     }
 
  
@@ -239,22 +494,22 @@ namespace CoupledField
 
     if (CornerCoords.GetSizeRow()==3 && Dim_==2)
     {
-        Vector<Double> normal;
-        normal.Resize(CornerCoords.GetSizeRow());  
-        normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
-        normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
-        normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
+      Vector<Double> normal;
+      normal.Resize(CornerCoords.GetSizeRow());  
+      normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
+      normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
+      normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
-        jacDet = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      jacDet = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
     }
     else  {
-        J.Determinant(jacDet);
+      J.Determinant(jacDet);
     }
 
     if ( jacDet < 0.0 ){
-        EXCEPTION("BaseFE:CalcJacobianDet: Negative Jacobian Determinant "
-                  << "at element " << elem->elemNum 
-                  << " with connectivity " << elem->connect.Serialize());
+      EXCEPTION("BaseFE:CalcJacobianDet: Negative Jacobian Determinant "
+                << "at element " << elem->elemNum 
+                << " with connectivity " << elem->connect.Serialize());
     }
 
     return jacDet;
@@ -272,30 +527,30 @@ namespace CoupledField
     CalcJacobianAtIp( J, ip, CornerCoords, elem);
 
     if (CornerCoords.GetSizeRow()==3 && Dim_==2)
-      {
-        Vector<Double> normal;
-        normal.Resize(CornerCoords.GetSizeRow());  
-        normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
-        normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
-        normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
+    {
+      Vector<Double> normal;
+      normal.Resize(CornerCoords.GetSizeRow());  
+      normal[0]= J[1][0]* J[2][1]- J[2][0]* J[1][1];
+      normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
+      normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
-        Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
 
-        if ( detJ < 0.0 ){
-            EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
-                      << "at element " << elem->elemNum 
-                      << " with connectivity " << elem->connect.Serialize());
-        }
-        return detJ;
+      if ( detJ < 0.0 ){
+        EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
+                  << "at element " << elem->elemNum 
+                  << " with connectivity " << elem->connect.Serialize());
       }
+      return detJ;
+    }
 
     else  {
       Double jacDet ;
       J.Determinant(jacDet);
       if ( jacDet < 0.0 ){
-          EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
-                    << "at element " << elem->elemNum 
-                    << " with connectivity " << elem->connect.Serialize());
+        EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
+                  << "at element " << elem->elemNum 
+                  << " with connectivity " << elem->connect.Serialize());
       }
       return jacDet;
     }  
@@ -353,10 +608,10 @@ namespace CoupledField
 
 
     for( UInt i=0; i<NumIntPoints_; i++ )
-      {
-        CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], 
-                      NULL, 1, AnsatzFct::NODE );
-      }
+    {
+      CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], 
+                    NULL, 1, AnsatzFct::NODE );
+    }
   }
   
   void BaseFE :: SetShapeFncDerivAtIp()
@@ -378,11 +633,11 @@ namespace CoupledField
     // check, if incompatible modes are used
     if ( ICModes_ ) {
       if( !ShFncICModesDerivAtIp_ ) {
-	 ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+        ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
       } 
       else{ 
 	delete[]  ShFncICModesDerivAtIp_ ;
-	 ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+        ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
       }
       for( UInt i=0; i<NumIntPoints_; i++ ) {
 	CalcLocalICModesDerivShapeFnc(  ShFncICModesDerivAtIp_[i], IntPoints_[i], 
@@ -498,30 +753,30 @@ namespace CoupledField
     return elemVol;
   }
 
-   void BaseFE::CalcBarycenter(const Matrix<Double>& coords, Point& barycenter) 
-   {
-       UInt n_dims  = coords.GetSizeRow();
-       UInt n_elems = coords.GetSizeCol();
+  void BaseFE::CalcBarycenter(const Matrix<Double>& coords, Point& barycenter) 
+  {
+    UInt n_dims  = coords.GetSizeRow();
+    UInt n_elems = coords.GetSizeCol();
        
-       // init barycenter for safty reason
-       barycenter.SetZero();
+    // init barycenter for safty reason
+    barycenter.SetZero();
        
-       // std::cout << "calc a new barycenter" << std::endl;
-       // a barycenter is simply the average of all coordinates
-       for (UInt dim=0; dim < n_dims; dim++)
-       {
-          // std::cout << "dim = " << dim << "  ";    
-          for (UInt k=0; k < n_elems; k++)
-          {
-             // the constructor of Point initializes
-             barycenter[dim] += coords[dim][k];
-             // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
-          }
+    // std::cout << "calc a new barycenter" << std::endl;
+    // a barycenter is simply the average of all coordinates
+    for (UInt dim=0; dim < n_dims; dim++)
+    {
+      // std::cout << "dim = " << dim << "  ";    
+      for (UInt k=0; k < n_elems; k++)
+      {
+        // the constructor of Point initializes
+        barycenter[dim] += coords[dim][k];
+        // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
+      }
             
-          barycenter[dim] /= (double) n_elems;
-          // std::cout << " average: " << (barycenter[dim]) << std::endl; 
-       }       
-   }
+      barycenter[dim] /= (double) n_elems;
+      // std::cout << " average: " << (barycenter[dim]) << std::endl; 
+    }       
+  }
 
 
   /////////////////////////////////////////////////////////////////////
@@ -579,11 +834,11 @@ namespace CoupledField
     TransMat[2][2] = Vz[2] * length;
 
     TransMat[1][0] = TransMat[0][2] * TransMat[2][1] - TransMat[0][1] 
-      * TransMat[2][2];
+                     * TransMat[2][2];
     TransMat[1][1] = TransMat[0][0] * TransMat[2][2] - TransMat[0][2] 
-      * TransMat[2][0];
+                     * TransMat[2][0];
     TransMat[1][2] = TransMat[0][1] * TransMat[2][0] - TransMat[0][0] 
-      * TransMat[2][1];
+                     * TransMat[2][1];
 
     // transform geometry from real(global) coordinate to standard(local) 
     // coordinate
@@ -731,10 +986,10 @@ namespace CoupledField
         
     // check the key for uniqueness
     if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
-      {
-        key.append(" is already in BaseFE::IntegrationPointsMap_");
-        EXCEPTION(key.c_str()); 
-      }
+    {
+      key.append(" is already in BaseFE::IntegrationPointsMap_");
+      EXCEPTION(key.c_str()); 
+    }
 
     // create the payload
     StdVector<Double*>*  value = new StdVector<Double*>(numberOfRows);
@@ -757,29 +1012,29 @@ namespace CoupledField
     int org_order = order;
 
     do
-      {
-        MakeKey(type, order, key);
+    {
+      MakeKey(type, order, key);
           
-        // store current value so the state is set to what we have
-        IntegMethod = type;
-        IntegOrder  = order;
+      // store current value so the state is set to what we have
+      IntegMethod = type;
+      IntegOrder  = order;
    	      
-        if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
-          {
-            if(order != org_order)
-              {
-                *warning << "Use Integration " << key << " instead of the wanted order " << org_order << std::endl;
-                Warning(__FILE__, __LINE__);
-              }    
-            return IntegrationPointsMap_[key];
-          }   
+      if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
+      {
+        if(order != org_order)
+        {
+          *warning << "Use Integration " << key << " instead of the wanted order " << org_order << std::endl;
+          Warning(__FILE__, __LINE__);
+        }    
+        return IntegrationPointsMap_[key];
+      }   
    	      
-        // nothing found
-        if(search_upwards) order++;
-        if(search_downwards) order--;   
-        if(search_upwards && search_downwards)
-            EXCEPTION("searching up- and downward concurrently!! Stupid!");
-      }    	
+      // nothing found
+      if(search_upwards) order++;
+      if(search_downwards) order--;   
+      if(search_upwards && search_downwards)
+        EXCEPTION("searching up- and downward concurrently!! Stupid!");
+    }    	
     while(order > 0 && order < 42 && (search_upwards || search_downwards));
     
     // this is a call from the fallback-part
@@ -805,28 +1060,28 @@ namespace CoupledField
       
     // more tries
     if(data == NULL)
-      {
-        // try again with flipped method
-        alt_m = alt_m == ECONOMICAL ? CLASSICAL : ECONOMICAL;          
-        data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
-      }
+    {
+      // try again with flipped method
+      alt_m = alt_m == ECONOMICAL ? CLASSICAL : ECONOMICAL;          
+      data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
+    }
 
     // special pyramid handling :(
     if(data == NULL && alt_o == 1)
-      {
-        alt_o = 2;
-        alt_m = CLASSICAL;
-        data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
-      } 
+    {
+      alt_o = 2;
+      alt_m = CLASSICAL;
+      data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
+    } 
 
     // no more tries   
     if(data != NULL)
-      {
-        MakeKey(alt_m, alt_o, key);
-        *warning << "Use fallback " << key << " for integration\n";
-        Warning(__FILE__, __LINE__);
-        return data;
-      }
+    {
+      MakeKey(alt_m, alt_o, key);
+      *warning << "Use fallback " << key << " for integration\n";
+      Warning(__FILE__, __LINE__);
+      return data;
+    }
           
     EXCEPTION("No default integration found");  
     exit(-1);
@@ -836,40 +1091,40 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::CommonInit()" );             
     
-#ifndef INTEGLIB
+ #ifndef INTEGLIB
     // if undefined we have an empty constructor and search :)
     if(method == UNDEFINED)
-      {  
-        // when we habe a XML setting use it
-        // check defaults in case of legacy XML files
+    {  
+      // when we habe a XML setting use it
+      // check defaults in case of legacy XML files
 
-        // Check, if element "integRules" was defined
-        ParamNode * integNode = param->Get( "integRules", false );
-        if(integNode)    
-          { 
-            std::string type = integNode->Get("type")->AsString();
-            // we have values in the XML file
-            String2Enum(type,IntegMethod );    
+      // Check, if element "integRules" was defined
+      ParamNode * integNode = param->Get( "integRules", false );
+      if(integNode)    
+      { 
+        std::string type = integNode->Get("type")->AsString();
+        // we have values in the XML file
+        String2Enum(type,IntegMethod );    
     
-            std::string str;
-            integNode->Get( "order", str );
-            IntegOrder = String2Int(str);    
-          }    
-        else
-          {
-            // The default Integration rules
-            SetDefaultIntegration();
-          }
-      }
-    else
+        std::string str;
+        integNode->Get( "order", str );
+        IntegOrder = String2Int(str);    
+      }    
+      else
       {
-        IntegMethod = method;
-        IntegOrder  = order;
+        // The default Integration rules
+        SetDefaultIntegration();
       }
-#else
+    }
+    else
+    {
+      IntegMethod = method;
+      IntegOrder  = order;
+    }
+ #else
     // The default Integration rules
     SetDefaultIntegration();
-#endif        
+ #endif        
 
     // first set integration points and corner coords ...
     // load all into the map
@@ -891,14 +1146,14 @@ namespace CoupledField
     std::cout << "Current integration points for " << GetShapeName() << " method=" << str << " order=" << IntegOrder << std::endl;
 
     for(UInt ip=0; ip<NumIntPoints_; ip++)
-      {         
-        for(UInt dim = 0; dim < Dim_; dim++)
-          {
-            std::cout << ip << ":" << dim << "=" << IntPoints_[ip][dim] << "  ";
-          }
-          
-        std::cout << "weight=" << IntWeights_[ip] << std::endl;
+    {         
+      for(UInt dim = 0; dim < Dim_; dim++)
+      {
+        std::cout << ip << ":" << dim << "=" << IntPoints_[ip][dim] << "  ";
       }
+          
+      std::cout << "weight=" << IntWeights_[ip] << std::endl;
+    }
   }
 
   void BaseFE::SetCartesianInteg(int order1, int order2, int order3, bool create_only)
@@ -908,20 +1163,20 @@ namespace CoupledField
     MakeKey(order1, order2, order3, key);
 
     if(IntegrationPointsMap_.find(key) == IntegrationPointsMap_.end())
-      {
-        // doesn't exist -> create
-        Line1FE* line1 = new Line1FE(ECONOMICAL, order1);
-        Line1FE* line2 = new Line1FE(ECONOMICAL, order2);
-        Line1FE* line3 = Dim_ == 3 ? new Line1FE(ECONOMICAL, order3) : NULL;
+    {
+      // doesn't exist -> create
+      Line1FE* line1 = new Line1FE(ECONOMICAL, order1);
+      Line1FE* line2 = new Line1FE(ECONOMICAL, order2);
+      Line1FE* line3 = Dim_ == 3 ? new Line1FE(ECONOMICAL, order3) : NULL;
           
-        // store in map 
-        CreateCartesianIntegration(line1, line2, line3);
+      // store in map 
+      CreateCartesianIntegration(line1, line2, line3);
           
-        // destroy temp objects
-        if(line3) delete line3;
-        delete line2;
-        delete line1;
-      }   
+      // destroy temp objects
+      if(line3) delete line3;
+      delete line2;
+      delete line1;
+    }   
       
     // set the state variables so SetIntPoints can load the data from the map
     IntegMethod = CARTESIAN;
@@ -946,35 +1201,35 @@ namespace CoupledField
         
     // check the key for uniqueness
     if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
-      {
-        key.append(" is already in BaseFE::IntegrationPointsMap_");
-        EXCEPTION(key.c_str()); 
-      }
+    {
+      key.append(" is already in BaseFE::IntegrationPointsMap_");
+      EXCEPTION(key.c_str()); 
+    }
      
     StdVector<Double*>* data = new StdVector<Double*>(rows);
     Double* row = NULL;
      
     int counter = 0;
     for(UInt i = 0; i < line1->NumIntPoints_; i++)
+    {
+      for(UInt j = 0; j < line2->NumIntPoints_; j++)
       {
-        for(UInt j = 0; j < line2->NumIntPoints_; j++)
-          {
-            // in 2D run the k loop one time for every i,j iteration
-            for(UInt k = 0; k < (Dim_ == 3 ? line3->NumIntPoints_ : 1); k++)
-              {
-                // create and store our data
-                row = new Double[Dim_ + 1];
-                (*data)[counter] = row;
-                counter++;
+        // in 2D run the k loop one time for every i,j iteration
+        for(UInt k = 0; k < (Dim_ == 3 ? line3->NumIntPoints_ : 1); k++)
+        {
+          // create and store our data
+          row = new Double[Dim_ + 1];
+          (*data)[counter] = row;
+          counter++;
                 
-                // store the coordinates and the weight
-                *(row + 0)= line1->IntPoints_[i][0];
-                *(row + 1)= line2->IntPoints_[j][0];                
-                if(Dim_ == 3) *(row + 2)= line3->IntPoints_[k][0];                
-                *(row + Dim_)= line1->IntWeights_[i] * line2->IntWeights_[j] * (Dim_  == 3 ? line3->IntWeights_[k] : 1.);
-              }
-          }
+          // store the coordinates and the weight
+          *(row + 0)= line1->IntPoints_[i][0];
+          *(row + 1)= line2->IntPoints_[j][0];                
+          if(Dim_ == 3) *(row + 2)= line3->IntPoints_[k][0];                
+          *(row + Dim_)= line1->IntWeights_[i] * line2->IntWeights_[j] * (Dim_  == 3 ? line3->IntWeights_[k] : 1.);
+        }
       }
+    }
 
     IntegrationPointsMap_[key] = data;  
   }
@@ -1003,14 +1258,14 @@ namespace CoupledField
     if(IntegMethod == CARTESIAN 
        && (strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_HEXA8].c_str()) == 0  
            || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_QUAD4].c_str()) == 0))
-      {        
-        // create the map entry on the fly
-        int order1, order2, order3;
-        DecodeCartesianOrder(IntegOrder, &order1, &order2, &order3);
+    {        
+      // create the map entry on the fly
+      int order1, order2, order3;
+      DecodeCartesianOrder(IntegOrder, &order1, &order2, &order3);
          
-        // this is the cached version, true to omit calling this method recursively!
-        SetCartesianInteg(order1, order2, order3, true);
-      }
+      // this is the cached version, true to omit calling this method recursively!
+      SetCartesianInteg(order1, order2, order3, true);
+    }
       
     // searched upwards, e.g. a quadrilateral for order 2,3 should be stored with higher order 3, so we find for 2
     StdVector<Double*>* data = GetIntegrationPoints(IntegMethod, IntegOrder, true, false, true);
@@ -1027,16 +1282,16 @@ namespace CoupledField
     IntWeights_.Resize(NumIntPoints_);
       
     for(UInt ip=0; ip<NumIntPoints_; ip++)
-      {         
-        IntPoints_[ip].Resize(Dim_);      	
+    {         
+      IntPoints_[ip].Resize(Dim_);      	
           
-        for(UInt dim = 0; dim < Dim_; dim++)
-          {
-            IntPoints_[ip][dim] = *((*data)[ip]+dim);
-          }
-          
-        IntWeights_[ip]= *((*data)[ip]+Dim_);
+      for(UInt dim = 0; dim < Dim_; dim++)
+      {
+        IntPoints_[ip][dim] = *((*data)[ip]+dim);
       }
+          
+      IntWeights_[ip]= *((*data)[ip]+Dim_);
+    }
       
     // DumpIntegrationPoints();
   }
@@ -1079,7 +1334,7 @@ namespace CoupledField
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
     } else {
-        EXCEPTION("In base class only implemented for Lagrange functions!");
+      EXCEPTION("In base class only implemented for Lagrange functions!");
     }
   }
   
@@ -1090,7 +1345,7 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       return GetNumNodes();
     } else {
-        EXCEPTION("In base class only implemented for Lagrange functions!");
+      EXCEPTION("In base class only implemented for Lagrange functions!");
     }
 
     return 0;

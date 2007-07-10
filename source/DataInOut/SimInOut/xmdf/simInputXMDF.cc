@@ -42,6 +42,7 @@ namespace CoupledField {
     statsRead_ = false;
     fileName_ = fileName;
     genRegionNodes_ = false;
+    ParamNode *readRegionNode = NULL;
     
     // Change defaults according to XML file
     if(myParam_->Get("generateRegionNodes", false)->AsBool())
@@ -49,18 +50,25 @@ namespace CoupledField {
         genRegionNodes_ = true;
     }
 
-    std::string readRegions = myParam_->Get("readRegions", false)->AsString();
-    std::cout << std::endl << "readRegions " << readRegions << std::endl;
-    typedef boost::tokenizer<char_separator<char> > Tok;
-    boost::char_separator<char> sep(";| ");
-    Tok t(readRegions, sep);
-    Tok::iterator it, end;
-    it = t.begin();
-    end = t.end();
+    readRegionNode = myParam_->Get("readRegions", false);
+    if(readRegionNode)
+    {
+       std::string readRegions = myParam_->Get("readRegions", false)->AsString();
+       std::cout << std::endl << "readRegions " << readRegions << std::endl;
+       typedef boost::tokenizer<char_separator<char> > Tok;
+       boost::char_separator<char> sep(";| ");
+       Tok t(readRegions, sep);
+       Tok::iterator it, end;
+       it = t.begin();
+       end = t.end();
     
-    for( ; it != end; it++)
-      readRegions_.push_back(*it);
-
+       for( ; it != end; it++)
+         readRegions_.push_back(*it);
+    }
+    else
+    {
+         readRegions_.push_back("all");
+    }
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
 

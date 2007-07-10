@@ -14,6 +14,7 @@
 #include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
 
+#include <def_use_interpolation.hh>
 
 namespace CoupledField
 {
@@ -837,6 +838,11 @@ namespace CoupledField
     //@}
 
   private:
+
+#ifdef USE_INTERPOLATION
+    void intersection();
+#endif
+
     ///
   };
 

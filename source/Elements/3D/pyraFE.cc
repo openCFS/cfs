@@ -56,5 +56,33 @@ namespace CoupledField
       AddIntegrationPoints(CLASSICAL, 2, 8, (Double*) c2);
       
   }
+
+  void PyraFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+                                  const Double tolerance,
+                                  StdVector<bool> & coordsInside) const
+  {
+    UInt numPoints = localCoords.GetSizeCol();
+    double xi, eta, zeta;
+    double threshold;
+
+    coordsInside.Resize(numPoints);
+    
+    for(UInt i=0; i<numPoints; i++)
+    {
+      xi = localCoords[0][i];
+      eta = localCoords[1][i];
+      zeta = localCoords[2][i];
+      threshold = 1 - zeta;
+      
+
+      coordsInside[i] = (zeta >= (0 - tolerance)) &&
+                        (zeta <= (1.0 + tolerance)) &&
+                        (  xi >= (-threshold - tolerance)) &&
+                        ( eta >= (-threshold - tolerance)) &&
+                        (  xi <= (threshold + tolerance)) &&
+                        ( eta <= (threshold + tolerance));  
+    }
+  }
+
      
 } // end of namespace
