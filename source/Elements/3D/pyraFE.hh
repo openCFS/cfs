@@ -30,6 +30,14 @@ namespace CoupledField
       return ET_UNDEF;
     }
 
+    //! Returns wether a given local coordinate is
+    //! within this element
+    //! \param localCoords (input) local coordinates
+    //! \param coordsInside (output) which local coordinates are inside
+    virtual void CoordsInsideElem(const Matrix<Double> & localCoords,
+                                  const Double tolerance,
+                                  StdVector<bool> & coordsInside) const;
+
   protected:
 
     virtual void FillIntegrationPoints();

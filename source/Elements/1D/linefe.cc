@@ -459,4 +459,24 @@ namespace CoupledField
     JInv[0][0] = 1 / J[0][0];
   }
 
+  void LineFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+                                   const Double tolerance,
+                                   StdVector<bool> & coordsInside) const
+  {
+    UInt numPoints = localCoords.GetSizeCol();
+    double xi;
+
+    coordsInside.Resize(numPoints);
+    
+    for(UInt i=0; i<numPoints; i++)
+    {
+      xi = localCoords[0][i];
+
+      coordsInside[i] = (xi >= (-1.0 - tolerance)) &&
+                        (xi <= (1.0 + tolerance));  
+    }
+    
+  }
+
+
 } // end of namespace

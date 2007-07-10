@@ -91,8 +91,6 @@ namespace CoupledField {
     CapaInterfaceC capaInterface;
     GDataInfo      datainfo;
     
-    fileName_ = "cube2d.unvref";
-
     if(capaInterface.ReadUniversalfile(fileName_.c_str()) < 0)
     {
       EXCEPTION("Could not read universal file " << fileName_);

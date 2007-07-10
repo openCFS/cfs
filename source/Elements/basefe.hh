@@ -72,10 +72,18 @@ namespace CoupledField
     //! \param globalCoords (input) global coordinates
     //! \param coordMat (input) global corner coordinates of element
     //!                         (spaceDim \f$\times\f$ nrNodes)
-      virtual void Global2LocalCoords(Matrix<Double> & localCoords,
-                                      const Matrix<Double> & globalCoords,
-                                      const Matrix<Double> & coordMat)
-    { Error( "Not implemented. Should use Newton-Raphson method", __FILE__, __LINE__); }
+    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+                                    const Matrix<Double> & globalCoords,
+                                    const Matrix<Double> & coordMat);
+
+    //! Returns wether a given local coordinate is
+    //! within this element
+    //! \param localCoords (input) local coordinates
+    //! \param coordsInside (output) which local coordinates are inside
+    virtual void CoordsInsideElem(const Matrix<Double> & localCoords,
+                                  const Double tolerance,
+                                  StdVector<bool> & coordsInside) const
+    { Error( "Not implemented", __FILE__, __LINE__); }
 
 
     //! Get value of all shape fnc at integration point ip

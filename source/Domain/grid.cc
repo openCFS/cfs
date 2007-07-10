@@ -14,13 +14,20 @@
 #include "Utils/mathfunctions.hh"
 #include "polygonIterator.hh"
 
+#ifdef USE_INTERPOLATION
+#include <CGAL/box_intersection_d.h>
+#include <CGAL/Bbox_2.h>
+#include <CGAL/Bbox_3.h>
+#include <CGAL/Cartesian.h>
+#include <CGAL/Polygon_2_algorithms.h>
+#endif
+
 namespace CoupledField
 {
 
   // declare class specific logging stream
   DECLARE_LOG(grid)
   DEFINE_LOG(grid, "grid")
-    
 
   Grid::Grid()
   {
@@ -337,6 +344,10 @@ namespace CoupledField
 
     StdVector<SurfElem*> ifaceElems;
 
+#ifdef USE_INTERPOLATION
+    intersection();
+#endif
+    
     ParamNode* pNode;
     StdVector<ParamNode*> ncIfaceNodes;
     pNode = param->Get("domain");
@@ -1986,6 +1997,190 @@ namespace CoupledField
     }
         
   }
+
+#ifdef USE_INTERPOLATION
+  typedef CGAL::Box_intersection_d::Box_d<int,2> Box;
+
+  //  typedef CGAL::Box_intersection_d::Box_d<double,2> Box2D;
+  //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
+  //  typedef CGAL::Bbox_2                              BBox2D;
+  typedef CGAL::Bbox_3                              BBox3D;
+  typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,UInt*> HandleBox;
+
+  typedef CGAL::Cartesian<double> K;
+  typedef K::Point_2 Point2D;
   
+  // coordinates for 9 boxes of a grid
+  int p[9*4]   = { 0,0,1,1,  1,0,2,1,  2,0,3,1, // lower
+                   0,1,1,2,  1,1,2,2,  2,1,3,2, // middle
+                   0,2,1,3,  1,2,2,3,  2,2,3,3};// upper
+  // 9 boxes
+  Box boxes[9] = { Box( p,    p+ 2),  Box( p+ 4, p+ 6),  Box( p+ 8, p+10),
+                   Box( p+12, p+14),  Box( p+16, p+18),  Box( p+20, p+22),
+                   Box( p+24, p+26),  Box( p+28, p+30),  Box( p+32, p+34)};
+  // 2 selected boxes as query; center and upper right
+  Box query[2] = { Box( p+16, p+18),  Box( p+32, p+34)};
+
+  // callback function object writing results to an output iterator
+  template <class OutputIterator>
+  struct Report {
+    OutputIterator it;
+    Report( OutputIterator i) : it(i) {} // store iterator in object
+    // We write the id-number of box a to the output iterator assuming
+    // that box b (the query box) is not interesting in the result.
+    void operator()( const Box& a, const Box&) { *it++ = a.id(); }
+  };
+  template <class Iter> // helper function to create the function object
+  Report<Iter> report( Iter it) { return Report<Iter>(it); }
+
+
+  // callback function object writing results to an output iterator
+  template <class OutputIterator, class Grid>
+  struct Report2 {
+    OutputIterator it;
+    Grid& grid;
+    Report2(OutputIterator i, Grid& g) : it(i), grid(g) {} // store iterator in object
+    // We write the id-number of box a to the output iterator assuming
+    // that box b (the query box) is not interesting in the result.
+    void operator()( const HandleBox& a, const HandleBox& b) {
+      UInt elemNum = *a.handle();
+      UInt dim = grid.GetDim();
+      UInt numElemNodes;
+      FEType type;
+      RegionIdType region;
+      std::vector<UInt> connect;
+      Matrix<Double> coordMat;
+      Matrix<Double> globCoordMat;
+      Matrix<Double> localCoords;
+      Vector<Double> point;
+
+      *it++ = elemNum;
+      connect.resize(64);
+      
+      std::cout << "Elem Number " << elemNum << std::endl;
+
+      grid.GetElemData(elemNum, type, region, &connect[0]);
+      numElemNodes = NUM_ELEM_NODES[type];
+      coordMat.Resize(dim, numElemNodes);
+      globCoordMat.Resize(dim, 1);
+
+      for(UInt i=0; i<numElemNodes; i++)
+      {
+        grid.GetNodeCoordinate(point, connect[i], true);
+        // coordMat auffüllen!
+        for(UInt j=0; j<dim; j++)
+        {
+          coordMat[j][i] = point[j];
+
+          //          std::cout << "Corner " << (i+1) << " Coord "
+          //                    << (j+1) << " " << point[j] << std::endl;
+        }
+      }
+
+      for(UInt j=0; j<dim; j++)
+      {
+        globCoordMat[j][0] = b.min_coord(j);
+
+        //        std::cout << "Glob Coord " << (j+1)
+        //                  << " Coord " << b.min_coord(j) << std::endl;
+
+      }
+
+      grid.GetElem(elemNum)->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
+
+    }
+  };
+  template <class Iter, class Grid> // helper function to create the function object
+  Report2<Iter, Grid> report2(Iter it, Grid& g) { return Report2<Iter, Grid>(it, g); }
+
   
+  // callback function that reports all truly intersecting triangles
+  void report_inters( const HandleBox& a, const HandleBox& b) {
+    std::cout << "Box " << *a.handle() << " and "
+              << *b.handle() << " intersect";
+    std::cout << '.' << std::endl;
+  }
+  
+  // callback function that reports all truly intersecting triangles
+  void report_inters2( const Box& a, const Box& b) {
+    std::cout << "Box " << a.id() << " and "
+              << b.id() << " intersect";
+    std::cout << '.' << std::endl;
+  }
+  
+
+  void Grid::intersection() {
+    double xmin, ymin, xmax, ymax, zmin, zmax;
+    StdVector<Elem*> elems;
+    Point p;
+    UInt dim = GetDim();
+    std::vector<HandleBox> elemBoxes;
+    std::vector<HandleBox> elemBoxes2;
+    
+    std::cout << std::endl;
+    std::cout << std::endl;
+    
+    GetVolElems(elems, ALL_REGIONS);
+    elemBoxes.resize(elems.GetSize());
+
+    for(UInt i = 0, m=elems.GetSize(); i < m; i++)
+    {
+      GetNodeCoordinate(p, elems[i]->connect[0]);
+
+      xmin = xmax = p[0];
+      ymin = ymax = p[1];
+      zmin = zmax = p[2];
+    
+      for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
+      {
+        GetNodeCoordinate(p, elems[i]->connect[j]);
+        xmin = p[0] < xmin ? p[0] : xmin;
+        xmax = p[0] > xmax ? p[0] : xmax;
+        ymin = p[1] < ymin ? p[1] : ymin;
+        ymax = p[1] > ymax ? p[1] : ymax;
+        zmin = p[2] < zmin ? p[2] : zmin;
+        zmax = p[2] > zmax ? p[2] : zmax;
+      }
+
+      elemBoxes[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                               &elems[i]->elemNum);
+      
+      std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
+      
+    }
+
+    UInt test = 2333;
+    elemBoxes2.push_back(HandleBox(BBox3D(0.001, 0.0, 0.001, 0.001, 0.0, 0.001),
+                                   &test));
+    
+    // run the intersection algorithm and store results in a vector
+    std::vector<std::size_t> result;
+    //    CGAL::box_self_intersection_d( boxes, boxes+9, report_inters2 );
+    //    CGAL::box_self_intersection_d( boxes, boxes+9, report( std::back_inserter( result)) );
+    
+    //    CGAL::box_intersection_d( boxes, boxes+9,
+    //                              query, query+2,
+    //                              report( std::back_inserter( result)));
+    
+    //    CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
+    //                              elemBoxes2.begin(), elemBoxes2.end(),
+    //                              report_inters);
+    
+    CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
+                              elemBoxes2.begin(), elemBoxes2.end(),
+                              report2( std::back_inserter( result), *this));
+
+    // sort, check, and show result
+    std::sort( result.begin(), result.end());
+    //    std::size_t check1[13] = {0,1,2,3,4,4,5,5,6,7,7,8,8};
+    //    assert(result.size() == 13 && std::equal(check1,check1+13,result.begin()));
+    
+    std::copy( result.begin(), result.end(),
+               std::ostream_iterator<std::size_t>( std::cout, " "));
+    std::cout << std::endl;
+    std::cout << std::endl;
+  }
+  
+#endif // USE_INTERPOLATION
+
 } // end of namespace

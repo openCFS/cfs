@@ -113,10 +113,6 @@ namespace CoupledField
 
     UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
-    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
-                                    const Matrix<Double> & globalCoords,
-                                    const Matrix<Double> & coordMat);
-
   private:
 
     //! 1D Legendre functions at IPs

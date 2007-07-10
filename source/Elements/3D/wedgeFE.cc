@@ -397,5 +397,28 @@ namespace CoupledField
       } // if
   }
 
+  void WedgeFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+                                   const Double tolerance,
+                                   StdVector<bool> & coordsInside) const
+  {
+    UInt numPoints = localCoords.GetSizeCol();
+    double xi, eta, zeta;
+
+    coordsInside.Resize(numPoints);
+    
+    for(UInt i=0; i<numPoints; i++)
+    {
+      xi = localCoords[0][i];
+      eta = localCoords[1][i];
+      zeta = localCoords[2][i];
+
+      coordsInside[i] = (        xi >= (0 - tolerance)) &&
+                        (       eta >= (0 - tolerance)) &&
+                        ((xi + eta) <= (1 + tolerance)) &&
+                        (      zeta >= (-1 - tolerance)) &&
+                        (      zeta <= (1 + tolerance));
+    }
+    
+  }
 
 } // end of namespace

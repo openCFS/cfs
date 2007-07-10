@@ -1635,5 +1635,30 @@ namespace CoupledField
     }
   }
 
+  void HexaFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+                                  const Double tolerance,
+                                  StdVector<bool> & coordsInside) const
+  {
+    UInt numPoints = localCoords.GetSizeCol();
+    double xi, eta, zeta;
+
+    coordsInside.Resize(numPoints);
+    
+    for(UInt i=0; i<numPoints; i++)
+    {
+      xi = localCoords[0][i];
+      eta = localCoords[1][i];
+      zeta = localCoords[2][i];
+
+      coordsInside[i] = (  xi >= (-1.0 - tolerance)) &&
+                        ( eta >= (-1.0 - tolerance)) &&
+                        (zeta >= (-1.0 - tolerance)) &&
+                        (  xi <= (1.0 + tolerance)) &&
+                        ( eta <= (1.0 + tolerance)) &&
+                        (zeta <= (1.0 + tolerance));  
+    }
+  }
+
+
 } // end of namespace
 
