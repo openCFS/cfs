@@ -166,10 +166,11 @@ namespace CoupledField {
     bool performOneMoreStep;
  
     Vector<Double> solInc( numEqns_ );
-    Vector<Double> actSol( numEqns_ );
 
-    // get solution from algsys
-    sol_->GetAlgSysVector(actSol);
+    //get actual solution  
+    Vector<Double>  actSol = 
+      dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector())); 
+    
 
     // set the boundary conditions
     PDE_.SetBCs(0);
@@ -224,7 +225,7 @@ namespace CoupledField {
           }
 
           // store the new solution
-          sol_->SetAlgSysVector(actSol);
+          PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
 
           if ( lineSearch_ == "none" ) {
             // recalculate RHS with new values to get new residual (f^(k+1))========
@@ -391,23 +392,11 @@ namespace CoupledField {
     Double *solPtr;
 
     bool performOneMoreStep;
-
     Vector<Double> solInc( numEqns_ );
-    Vector<Double> actSol( numEqns_ );
-    actSol.Init();
-
-    UInt numNodes;
-    numNodes = sol_->GetNumNodes();
-  
-    // Cast BaseStoreSol into StoreSol<Double>,
-    // since this function is only called
-    // in the transient case
-
-
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     //get actual solution  
-    actSol = solhelp->GetAlgSysVector();
+    Vector<Double>  actSol = 
+      dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
@@ -438,7 +427,7 @@ namespace CoupledField {
       assemble_->AssembleNonLinRHS( actTime_ );  
 
       //Update RHS (mass matrix on right hand side)
-      TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
+      TS_alg_->UpdateRHS(actSol);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -472,7 +461,7 @@ namespace CoupledField {
         }
       
         //store A_(n+1) in the solution-object sol_
-        sol_->SetAlgSysVector(actSol);
+        PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
 
         if ( lineSearch_ == "none" ) {
           // calculation of error norms
@@ -1145,13 +1134,13 @@ namespace CoupledField {
     const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
     Double etaOpt;
     Double residualL2NormOpt = 1e15;
-
+    
     for( UInt i=0; i<nrEtas; i++) {
       actSol = solIncrement * eta[i];
       actSol += solOld;
 
       //store new solution
-      sol_->SetAlgSysVector(actSol);
+      PDE_.SaveSolution(actSol.GetPointer(),actSol.GetSize());
 
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS(RhsLinVal_.GetPointer());

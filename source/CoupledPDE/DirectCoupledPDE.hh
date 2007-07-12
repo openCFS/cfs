@@ -65,6 +65,9 @@ namespace CoupledField {
     //! define algebraic system 
     void DefineAlgSys();
 
+    //! return the solution
+    CFSVector * GetSolutionVector();
+
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
