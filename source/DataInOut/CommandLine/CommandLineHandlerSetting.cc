@@ -5,7 +5,7 @@
 #include <string>
 
 #include "CommandLineHandlerSetting.hh"
-
+#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField {
 

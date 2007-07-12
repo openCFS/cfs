@@ -168,8 +168,8 @@ namespace OLAS {
   //   Apply
   // *********
   template<typename T>
-  void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const StdVector &r,
-                              StdVector &z ) const {
+  void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const SparseVector &r,
+                              SparseVector &z ) const {
 
     ENTER_FCN( "ILDLPrecond::Solve" );
 

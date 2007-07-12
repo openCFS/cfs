@@ -11,7 +11,7 @@
 #include "matvec/typedefs.hh"
 #include "utils/utils.hh"
 #include "matvec/basematrix.hh"
-#include "matvec/stdvector.hh"
+#include "matvec/SparseVector.hh"
 #include "graph/basegraph.hh"
 
 
@@ -155,7 +155,7 @@ namespace OLAS {
 
     //! \name Methods for arithmetic operations
     //! These methods try to down-cast the input vector / matrix to the
-    //! StdVector / StdMatrix class and, if this succeeds, call the respective
+    //! SparseVector / StdMatrix class and, if this succeeds, call the respective
     //! method of the derived class, the latter is forced to implement it,
     //! since we specify a purely virtual interface in this class.
 
@@ -163,16 +163,16 @@ namespace OLAS {
 
     //! The method computes the residual \f$r=b-Ax\f$ where \f$A\f$ is the
     //! matrix represented by this matrix object. This method in fact only
-    //! downcasts the BaseVectors to StdVectors and delegates the work to
+    //! downcasts the BaseVectors to SparseVectors and delegates the work to
     //! the method with the appropriate interface. It implements the method
     //! defined in the BaseMatrix class.
     void CompRes( BaseVector &r, const BaseVector &x,
                           const BaseVector& b ) const {
       ENTER_FCN( "StdMatrix::CompRes (BaseVector)" );
       TRY_CAST
-      ConstRefCast( x, StdVector, std_x );
-      ConstRefCast( b, StdVector, std_b );
-      RefCast( r, StdVector, std_r );
+      ConstRefCast( x, SparseVector, std_x );
+      ConstRefCast( b, SparseVector, std_b );
+      RefCast( r, SparseVector, std_r );
       CompRes( std_r, std_x, std_b );
       CATCH_CAST
     }
@@ -181,9 +181,9 @@ namespace OLAS {
 
     //! The method computes the residual \f$r=b-Ax\f$ where \f$A\f$ is the
     //! matrix represented by this matrix object. This is the variant of the
-    //! method with the appropriate interface for StdVectors.
-    virtual void CompRes( StdVector &r, const StdVector &x,
-                          const StdVector& b ) const = 0;
+    //! method with the appropriate interface for SparseVectors.
+    virtual void CompRes( SparseVector &r, const SparseVector &x,
+                          const SparseVector& b ) const = 0;
 
     //! Add the multiple of a matrix to this matrix.
 
@@ -212,14 +212,14 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec = this*mvec
 
     //! This method performs a matrix-vector multiplication rvec = this*mvec.
-    //! However, all it does is downcast the BaseVectors to StdVectors and
+    //! However, all it does is downcast the BaseVectors to SparseVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void Mult(const BaseVector& mvec, BaseVector& rvec) const {
       ENTER_FCN("StdMatrix::Mult");
       TRY_CAST
-      ConstRefCast(mvec,StdVector,stdmvec);
-      RefCast(rvec,StdVector,stdrvec);
+      ConstRefCast(mvec,SparseVector,stdmvec);
+      RefCast(rvec,SparseVector,stdrvec);
       Mult(stdmvec,stdrvec);
       CATCH_CAST
     };
@@ -227,21 +227,21 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec = this*mvec
 
     //! This method performs a matrix-vector multiplication rvec = this*mvec.
-    //! It offers an appropriate interface for StdVectors.
-    virtual void Mult(const StdVector& mvec, StdVector& rvec) const = 0;
+    //! It offers an appropriate interface for SparseVectors.
+    virtual void Mult(const SparseVector& mvec, SparseVector& rvec) const = 0;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
 
     //! This method performs a matrix-vector multiplication with the transpose
     //! of the matrix object rvec = transpose(this)*mvec.
-    //! However, all it does is downcast the BaseVectors to StdVectors and
+    //! However, all it does is downcast the BaseVectors to SparseVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultT(const BaseVector& mvec, BaseVector& rvec) const {
       ENTER_FCN("StdMatrix::MultT");
       TRY_CAST
-      ConstRefCast(mvec,StdVector,stdmvec);
-      RefCast(rvec,StdVector,stdrvec);
+      ConstRefCast(mvec,SparseVector,stdmvec);
+      RefCast(rvec,SparseVector,stdrvec);
       MultT(stdmvec,stdrvec);
       CATCH_CAST
     };
@@ -250,8 +250,8 @@ namespace OLAS {
 
     //! This method performs a matrix-vector multiplication with the transpose
     //! of the matrix object rvec = transpose(this)*mvec.
-    //! It offers an appropriate interface for StdVectors.
-    virtual void MultT(const StdVector& mvec, StdVector& rvec) const {
+    //! It offers an appropriate interface for SparseVectors.
+    virtual void MultT(const SparseVector& mvec, SparseVector& rvec) const {
       Error( "Function not re-implemented in derived class!", __FILE__,
              __LINE__);
     }
@@ -259,14 +259,14 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec += this*mvec
 
     //! This method performs a matrix-vector multiplication rvec += this*mvec.
-    //! However, all it does is downcast the BaseVectors to StdVectors and
+    //! However, all it does is downcast the BaseVectors to SparseVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     virtual void MultAdd(const BaseVector& mvec, BaseVector& rvec) const {
       ENTER_FCN("StdMatrix::MultAdd");
       TRY_CAST
-        ConstRefCast(mvec,StdVector,stdmvec);
-      RefCast(rvec,StdVector,stdrvec);
+        ConstRefCast(mvec,SparseVector,stdmvec);
+      RefCast(rvec,SparseVector,stdrvec);
       MultAdd(stdmvec,stdrvec);
       CATCH_CAST
     };
@@ -274,27 +274,27 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec += this*mvec
 
     //! This method performs a matrix-vector multiplication rvec += this*mvec.
-    //! It offers an appropriate interface for StdVectors.
-    virtual void MultAdd( const StdVector& mvec, StdVector& rvec ) const = 0;
+    //! It offers an appropriate interface for SparseVectors.
+    virtual void MultAdd( const SparseVector& mvec, SparseVector& rvec ) const = 0;
 
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
 
     //! This method performs a matrix-vector multiplication with the transpose
     //! of the matrix object followed by an addition:
     //! rvec += transpose(this)*mvec.
-    //! However, all it does is downcast the BaseVectors to StdVectors and
+    //! However, all it does is downcast the BaseVectors to SparseVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultTAdd(const BaseVector& mvec, BaseVector& rvec) const {
       ENTER_FCN("StdMatrix::MultTAdd");
       TRY_CAST
-      ConstRefCast(mvec,StdVector,stdmvec);
-      RefCast(rvec,StdVector,stdrvec);
+      ConstRefCast(mvec,SparseVector,stdmvec);
+      RefCast(rvec,SparseVector,stdrvec);
       MultTAdd(stdmvec,stdrvec);
       CATCH_CAST
     };
 
-    virtual void MultTAdd(const StdVector& mvec, StdVector& rvec) const {
+    virtual void MultTAdd(const SparseVector& mvec, SparseVector& rvec) const {
       Error( "Function MultTAdd not re-implemented in derived class!",
 	     __FILE__, __LINE__);
     }
@@ -302,14 +302,14 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec -= this*mvec
 
     //! This method performs a matrix-vector multiplication rvec -= this*mvec.
-    //! However, all it does is downcast the BaseVectors to StdVectors and
+    //! However, all it does is downcast the BaseVectors to SparseVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultSub( const BaseVector& mvec, BaseVector& rvec ) const {
       ENTER_FCN( "StdMatrix::MultSub" );
       TRY_CAST
-        ConstRefCast(mvec,StdVector,stdmvec);
-      RefCast(rvec,StdVector,stdrvec);
+        ConstRefCast(mvec,SparseVector,stdmvec);
+      RefCast(rvec,SparseVector,stdrvec);
       MultSub(stdmvec,stdrvec);
       CATCH_CAST
     };
@@ -317,8 +317,8 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec -= this*mvec
 
     //! This method performs a matrix-vector multiplication rvec -= this*mvec.
-    //! It offers an appropriate interface for StdVectors.
-    virtual void MultSub( const StdVector& mvec, StdVector& rvec ) const = 0;
+    //! It offers an appropriate interface for SparseVectors.
+    virtual void MultSub( const SparseVector& mvec, SparseVector& rvec ) const = 0;
 
     //@}
 

@@ -9,7 +9,7 @@
 #include "matvec/matvec.hh"
 #include "solver/solver.hh"
 #include "solver/generatesolver.hh"
-#include "utils/Exception.hh"
+#include "General/exception.hh"
 
 #ifdef USE_LAPACK
 #include "external/lapack/lapacklu.hh"
@@ -43,6 +43,8 @@
 
 #endif
 
+using CoupledField::Exception;
+
 namespace OLAS {
 
 
@@ -66,13 +68,16 @@ if ( entryType == eType && blockSize == bSize ) { \
   //   Generate a solver object
   // ****************************
   BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
-				    OLAS_Params *params, OLAS_Report *report ){
-
+				    ParamNode* xml, OLAS_Params *params, OLAS_Report *report ){
     ENTER_FCN( "GenerateSolverObject" );
 
     BaseSolver *retSolver = NULL;
     MatrixEntryType eType = mat.GetEntryType();
     bool eTypeUnknown = false;
+
+    // extract a solver node if there is one 
+    ParamNode* solver_xml = NULL;
+    if(xml != NULL && xml->Has("solver")) solver_xml = xml->Get("solver");
 
     // Branch depending on desired solver
     switch( solver ) {
@@ -114,18 +119,13 @@ if ( entryType == eType && blockSize == bSize ) { \
       break;
 
     case CG:
-      if ( eType == DOUBLE ) {
-	retSolver = New CGSolver<Double>( params, report );
-	AssertMem( retSolver, sizeof(CGSolver<Double>) );
-	(*cla) << " GenerateSolver: Generated real CG solver" << std::endl;
+      if(eType == DOUBLE) {
+	      retSolver = new CGSolver<Double>(solver_xml, params, report );
+        (*cla) << " GenerateSolver: Generated real CG solver" << std::endl;
       }
-      else if ( eType == COMPLEX ) {
-	retSolver = New CGSolver<Complex>( params, report );
-	AssertMem( retSolver, sizeof(CGSolver<Complex>) );
-	(*cla) << " GenerateSolver: Generated complex CG solver" << std::endl;
-      }
-      else {
-	eTypeUnknown = true;
+      if(eType == COMPLEX) {
+	      retSolver = new CGSolver<Complex>(solver_xml, params, report );
+	      (*cla) << " GenerateSolver: Generated complex CG solver" << std::endl;
       }
       break;
 
@@ -293,33 +293,33 @@ if ( entryType == eType && blockSize == bSize ) { \
     {  
       // Check suitability of matrix
       if (mat.GetStructureType() != STDMATRIX)
-         throw Exception("Ilupack only works with (S)CRS_Matrix class!", __LINE__, __PRETTY_FUNCTION__, Exception::NO_SEGFAULT);
+         throw Exception("Ilupack only works with (S)CRS_Matrix class!");
 
       const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
       if(stdmat.GetStorageType() != SPARSE_NONSYM && stdmat.GetStorageType() != SPARSE_SYM  )
-         throw Exception("Ilupack only works with (S)CRS_Matrix class!", __LINE__, __PRETTY_FUNCTION__, Exception::NO_SEGFAULT); 
+         throw Exception("Ilupack only works with (S)CRS_Matrix class!"); 
 
       if(eType == DOUBLE) {
-         retSolver = new Ilupack<Double>(params, report, eType);
+         retSolver = new Ilupack<Double>(solver_xml, report, eType);
          (*cla) << " GenerateSolver: Generated real ilupack solver" << std::endl;
       }
       if(eType == COMPLEX) {
-         retSolver = new Ilupack<Complex>(params, report, eType);
+         retSolver = new Ilupack<Complex>(solver_xml, report, eType);
          (*cla) << " GenerateSolver: Generated complex ilupack solver" << std::endl;
       }   
       
     }   
 #else
-    throw Exception("Compile with USE_ILUPACK to enable interface to ilupack", __LINE__, __PRETTY_FUNCTION__, Exception::NO_SEGFAULT);
+    throw Exception("Compile with USE_ILUPACK to enable interface to ilupack");
 #endif
       break;
 
     default:
-      throw Exception("GenerateSolver: Request for unknown solver type!", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+      throw Exception("GenerateSolver: Request for unknown solver type!");
     }
 
     // Check for unsupported matrix entry type
-    if (retSolver == NULL ) throw Exception("unhandled type", eType, __LINE__, __PRETTY_FUNCTION__);
+    if (retSolver == NULL ) EXCEPTION("unhandled type " << eType);
 
     // Force instantiation of member functions of templated matrix classes
     // Note that the InstantiatePublicMethods() method itself should never

@@ -6,6 +6,7 @@
 
 #include "PDE/basePDE.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 

@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "Optimization/SCPIP_HS071.hh"
+#include <assert.h>
 
 using namespace CoupledField;
 

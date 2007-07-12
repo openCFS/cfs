@@ -30,7 +30,7 @@ namespace CoupledField {
 
     stepOffset_ = stepOffset;
     timeOffset_ = timeOffset;
-    
+    consecutiveRun_ = false; 
   }
 
   void StaticDriver::Init() {

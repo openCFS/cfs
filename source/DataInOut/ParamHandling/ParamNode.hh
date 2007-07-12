@@ -12,6 +12,7 @@ namespace CoupledField
 {
   /** The global pointer of the ParamNode (tree) holding the XML file */
   class ParamNode;
+  template <class TYPE> class Matrix;  
   extern ParamNode* param;
 
   /** This class realizes the following concept of param handling, mainly the representation
@@ -51,19 +52,19 @@ namespace CoupledField
 
     /** @return the integer if this is convertable
      * @throws an exception if the value is not set or not converible */
-    Integer               AsInt() const;
+    int  AsInt() const;
 
     /** @return the UInteger if this is convertable
      * @throws an exception if the value is not set or not convertible or negative */
-    UInt       AsUInt() const;
+    unsigned int AsUInt() const;
 
     /** @return the Double if this is convertable
      * @throws an exception if the value is not set or not converible */
-    Double             AsDouble() const;
+    double AsDouble() const;
        
     /** @return checks the value for "yes", "true", "on" respectively "no", "false", "off".
      * @throws exception if no value or none of the above */
-    bool               AsBool() const;
+    bool AsBool() const;
      
     /** returns the only direct child which has the name.<br>
      * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1.<br>
@@ -85,37 +86,14 @@ namespace CoupledField
      * one of such elements (e.g. simple xml elements). */     
     void Get(const std::string& name, std::string& ret, const bool throwException = true);
 
-    void Get(const std::string& name, Integer& ret, const bool throwException = true);
+    void Get(const std::string& name, int& ret, const bool throwException = true);
 
-    void Get(const std::string& name, UInt& ret, const bool throwException = true);
+    void Get(const std::string& name, unsigned int& ret, const bool throwException = true);
 
-    void Get(const std::string& name, Double& ret, const bool throwException = true);
+    void Get(const std::string& name, double& ret, const bool throwException = true);
 
     void Get(const std::string& name, bool& ret, const bool throwException = true);
-    //@}
-    
-    //@{
-    /** gets the only direct child which has the name and stores its value in ret as Matrix<br>
-     * Is only valid, if the corresponding GetList() would return one value. Exception if 0 or greater 1
-     * ,if the found value can not be converted into type of return value or if the dimensions
-     * of of the matrix provided do not match.<br>
-     * If no matching element is found an exception will be thrown if throwException is set to true. 
-     * Otherwise the function will return silently and the original value in ret will be kept.
-     * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization") 
-     * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
-     * one of such elements (e.g. simple xml elements). */     
-    void GetDim1xDim2Tensor( const std::string& name, const unsigned int &dim1,
-                             const unsigned int &dim2, Matrix<Integer>& ret,
-                             const bool throwException = true );
 
-    void GetDim1xDim2Tensor( const std::string& name, const unsigned int &dim1,
-                             const unsigned int &dim2, Matrix<UInt>& ret,
-                             const bool throwException = true );
-
-    void GetDim1xDim2Tensor( const std::string& name, const unsigned int &dim1,
-                             const unsigned int &dim2, Matrix<Double>& ret,
-                             const bool throwException = true );
-    //@}
     
     /** Checks if there is at least one direct child with the given name.<br>
      * Note, that even when not specified in the XML file, the value might come from the default value in the
@@ -143,7 +121,7 @@ namespace CoupledField
 
     /** Returns the number of entries, the corresponding GetList() would return.
      * @See GetList(const std::string&) */
-    UInt Count(const std::string&  name) const; 
+    unsigned int Count(const std::string&  name) const; 
        
     /** Get all direct childs which have an attribute with a given value or in other words:
      *  Get all direct childs where the grandchildren are es specified.<br>
@@ -170,15 +148,15 @@ namespace CoupledField
               const bool throwException = false );
 
     void Get( const std::string& parent, const std::string& child, const std::string& value,
-              Integer& ret,
+              int& ret,
               const bool throwException = false );
 
     void Get( const std::string& parent, const std::string& child, const std::string& value,
-              UInt& ret,
+              unsigned int& ret,
               const bool throwException = false );
 
     void Get( const std::string& parent, const std::string& child, const std::string& value,
-              Double& ret,
+              double& ret,
               const bool throwException = false );
 
     void Get( const std::string& parent, const std::string& child, const std::string& value,
@@ -189,7 +167,7 @@ namespace CoupledField
     
     /** Returns the number of entries, the corresponding GetList() would return.
      * @See GetList(const std::string&, const std::string&, const std::string&) */
-    UInt Count( const std::string& name, const std::string& child, const std::string& value ); 
+    unsigned int Count( const std::string& name, const std::string& child, const std::string& value ); 
 
     /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
      * other words leaf nodes - and without any sorting complex ParamNodes which habe children by themself. 
@@ -216,6 +194,7 @@ namespace CoupledField
 
 
   private:
+
     /** The real content (attribute or simple type content */
     std::string value_;
     

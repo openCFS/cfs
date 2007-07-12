@@ -106,37 +106,6 @@ namespace CoupledField {
     //! Query if a given parameter is set
     virtual bool IsSet( MaterialType matType ) const;
 
-   //! set a scalar string material parameter
-    virtual void SetScalar( std::string& param, const MaterialType& matType) {
-      Error("SetScalar not implemented",__FILE__,__LINE__); };
-
-    //! set a scalar integer material parameter
-    virtual void SetScalar( Integer& param, const MaterialType& matType);
-
-    //! set a scalar real material parameter
-    virtual void SetScalar( Double& param, const MaterialType& matType,
-			    const DataType& dataType ) {
-      Error("SetScalar not implemented",__FILE__,__LINE__); };
-
-
-    //! set a scalar complex material parameter
-    virtual void SetScalar( Complex& param, const MaterialType& matType, 
-			    const DataType& dataType ) {
-      Error("SetScalar not implemented",__FILE__,__LINE__); };
-
-
-    //! set a real vector
-    virtual void SetVector( Vector<Double>& param, const MaterialType& matType,
-			    const DataType& dataType ){
-      Error("SetVector not implemented",__FILE__,__LINE__); };
-
-
-    //! set a real material tensor
-    virtual void SetTensor( Matrix<Double>& param, const MaterialType& matType,
-			    const DataType& dataType ){
-      Error("SetTensor not implemented",__FILE__,__LINE__); };
-
-
     //! set the symmetry type
     void SetSymmetryType(SymmetryType symType) {
       symmetryType_=symType; 
@@ -147,66 +116,100 @@ namespace CoupledField {
       return symmetryType_; 
     };
 
+   //! set a scalar string material parameter
+    virtual void SetScalar(const std::string& param, MaterialType matType)
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+
+    //! set a scalar integer material parameter
+    virtual void SetScalar(int param, MaterialType matType);
+
+    //! set a scalar real material parameter
+    virtual void SetScalar(double param, MaterialType matType, DataType dataType ) = 0;
+
+
+    //! set a scalar complex material parameter
+    virtual void SetScalar(Complex param, MaterialType matType, DataType dataType )
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+
+
+    //! set a real vector
+    virtual void SetVector(const Vector<Double>& param, MaterialType matType, DataType dataType)
+    {
+      EXCEPTION("not implemented");
+    }
+
+    //! set a real material tensor
+    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType, DataType dataType)
+    {
+      EXCEPTION("not implemented");
+    }
+
+
     //! set a complex material tensor
-    virtual void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
-			    const DataType& dataType ) {
-      Error("SetTensor not implemented",__FILE__,__LINE__); };
+    virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType, DataType dataType ) 
+    {
+      EXCEPTION("not implemented");
+    }
+
 
     //! get a string material parameter
 
-    virtual void GetScalar( std::string& param, const MaterialType& matType) const {
-      Error("GetScalar not implemented",__FILE__,__LINE__); };
+    virtual void GetScalar( std::string& param, MaterialType matType) const
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+    
     
     //! get a integer material parameter
-    virtual void GetScalar( Integer& param, const MaterialType& matType) const {
-      Error("GetScalar not implemented",__FILE__,__LINE__); };   
+    virtual void GetScalar( Integer& param, MaterialType matType) const
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
     
-    void GetScalar( Integer& param, const MaterialType& matType, 
-                    const DataType& dataType) const;
+    void GetScalar( Integer& param, MaterialType matType, DataType dataType) const;
 
     //! get a scalar real material parameter
-    virtual void GetScalar( Double& param, const MaterialType& matType, 
-			    const DataType& dataType ) const {
-      Error("GetScalar not implemented",__FILE__,__LINE__); };
+    virtual void GetScalar( Double& param, MaterialType matType, DataType dataType ) const = 0;
 
     //! get a scalar complex material parameter
-    virtual void GetScalar( Complex& param, const MaterialType& matType, 
-			    const DataType& dataType ) const {
-      Error("GetScalar not implemented",__FILE__,__LINE__); };
-
+    virtual void GetScalar( Complex& param, MaterialType matType, DataType dataType ) const
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
 
     //! get a real vector
-    virtual void GetVector( Vector<Double>& param, const MaterialType& matType,
-			    const DataType& dataType ) const {
-      Error("GetVector not implemented",__FILE__,__LINE__); };
-
+    virtual void GetVector( Vector<Double>& param, MaterialType matType, DataType dataType ) const
+    {
+      EXCEPTION("not implemented");      
+    }
 
     //! get a real material tensor
-    virtual void GetTensor( Matrix<Double>& param, const MaterialType& matType,
-			    const DataType& dataType, 
-			    const SubTensorType = FULL ) const {
-      Error("GetTensor not implemented",__FILE__,__LINE__); };
-
+    virtual void GetTensor( Matrix<Double>& param, MaterialType matType, DataType dataType, SubTensorType = FULL ) const
+    {
+      EXCEPTION("not implemented");      
+    }
+     
     //! get a complex material tensor
-    virtual void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
-			    const DataType& dataType,
-			    const SubTensorType = FULL ) const {
-      Error("GetTensor not implemented",__FILE__,__LINE__); };
+    virtual void GetTensor( Matrix<Complex>& param, MaterialType matType, DataType dataType, SubTensorType = FULL ) const
+    {
+      EXCEPTION("not implemented");      
+    }
+    
 
     //! rotate a material tensor by rotation angles given in degree
-    virtual void RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
-                                               const MaterialType& matType,
-                                               bool persistent = false );
+    virtual void RotateTensorByRotationAngles( const Vector<Double>& rotAngle, MaterialType matType, bool persistent = false );
 
     //! Rotate all tensor material parameters by given rotation angle
-    virtual void RotateAllTensorsByRotationAngles(  const Vector<Double>& rotAngle,
-                                                    bool persistent = false );
+    virtual void RotateAllTensorsByRotationAngles(  const Vector<Double>& rotAngle, bool persistent = false );
 
     //! Rotates the tensor in a way that is represents the attached
     //! coordinate system behaviour (cartesian, cylindri, spherical)
     //! in this point
-    virtual void RotateTensorByPointCoord( const Vector<Double> &coord,
-                                           const MaterialType& matType );
+    virtual void RotateTensorByPointCoord( const Vector<Double> &coord, MaterialType matType );
 
     //! Pass coordinate system to material
     void SetCoordSys( CoordSystem* system ) {coosy_ = system;}
@@ -225,16 +228,14 @@ namespace CoupledField {
       return hyst_;
     };
 
-
-
     //set values for differential material approach
-    void SetPreviousHystVal( UInt nrElem, Double& Xval );
+    void SetPreviousHystVal( UInt nrElem, Double Xval );
 
     //! compute scalar differential parameter
-    Double ComputeScalarDiffVal( UInt nrElem, Double& Xval );
+    Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
 
     //! computes the scalar hystereis value
-    Double ComputeScalarHystVal( UInt nrElem, Double& Xval );
+    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
 
     //! computes the scalar hystereis value
     Double GetScalarHystVal( UInt nrElem );
@@ -245,27 +246,22 @@ namespace CoupledField {
   protected:
 
     //! Error for material type not defined
-    void matTypeNotAllowed( const MaterialType& matType, 
-			    std::string dim ) const;
+    void matTypeNotAllowed(MaterialType matType, const std::string& dim ) const;
 
     //! data type not allowed in set/get-function
-    void dataTypeNotAllowed4SetGet( const DataType& datType, 
-				    const std::string msg ) const;
+    void dataTypeNotAllowed4SetGet(DataType datType, const std::string& msg ) const;
 
     //! Error for data type not allowed
-    void dataTypeNotAllowed( const DataType& datType, 
-			     const MaterialType& matType ) const;
+    void dataTypeNotAllowed(DataType datType, MaterialType matType ) const;
 
     //! Error for material type not in file
-    void matTypeNotInDataBase( const MaterialType& matType, std::string dim ) const;
+    void matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const;
 
     //! data type not allowed in set-function
-
-    void setMakesNoSense( const DataType& datType, std::string msg ) const;
+    void setMakesNoSense(DataType datType, const std::string& msg ) const;
 
     //! Error for not available subtype of tensor
-    void subTensorNotAvailable( const MaterialType& matType, 
-			      const SubTensorType subTensor ) const;
+    void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor) const;
 
     //! rotate a tensor
     virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,

@@ -2,8 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef OLAS_STDVECTOR_HH
-#define OLAS_STDVECTOR_HH
+#ifndef OLAS_SparseVector_HH
+#define OLAS_SparseVector_HH
 
 #include "utils/utils.hh"
 #include "matvec/basevector.hh"
@@ -11,15 +11,15 @@
 namespace OLAS {
 
   //! Base class for algebraic vector
-  class StdVector : public BaseVector {
+  class SparseVector : public BaseVector {
 
   public:
 
     //! Default constructor
-    StdVector();
+    SparseVector();
 
     //! Default destructor
-    virtual ~StdVector();
+    virtual ~SparseVector();
 
     //! Return the length of the vector
     UInt GetSize() const {
@@ -59,11 +59,11 @@ namespace OLAS {
 
     //! This method adds vec to this vector object. However, it does not
     //! perform this task itself, but only performs a downcast and calls
-    //! the method with an StdVector interface.
+    //! the method with an SparseVector interface.
     void Add(const BaseVector& vec){
-      ENTER_FCN("StdVector::Add");
+      ENTER_FCN("SparseVector::Add");
       TRY_CAST
-      ConstRefCast(vec,StdVector,stdvec);
+      ConstRefCast(vec,SparseVector,stdvec);
       Add(stdvec);
       CATCH_CAST
     }
@@ -71,8 +71,8 @@ namespace OLAS {
     //! Add vec to this vector object
 
     //! This method adds vec to this vector object. It offers an interface
-    //! for StdVectors.
-    virtual void Add(const StdVector &vec) = 0;
+    //! for SparseVectors.
+    virtual void Add(const SparseVector &vec) = 0;
 
     //@{
     //! Same as the BLAS functions of the same name
@@ -82,18 +82,18 @@ namespace OLAS {
     //! alpha and adds the vector y to it. The result will over-write the
     //! vector x. \n
     //! This implementation only performs a downcast and calls the method
-    //! with an interface for StdVectors.
+    //! with an interface for SparseVectors.
     virtual void Axpy( const Double alpha, const BaseVector &y ) {
-      ENTER_FCN("StdVector::Axpy");
+      ENTER_FCN("SparseVector::Axpy");
       TRY_CAST
-      ConstRefCast(y,StdVector,std_y);
+      ConstRefCast(y,SparseVector,std_y);
       Axpy( alpha, std_y );
       CATCH_CAST
     }
     virtual void Axpy( const Complex alpha, const BaseVector &y ) {
-      ENTER_FCN("StdVector::Axpy");
+      ENTER_FCN("SparseVector::Axpy");
       TRY_CAST
-      ConstRefCast(y,StdVector,std_y);
+      ConstRefCast(y,SparseVector,std_y);
       Axpy( alpha, std_y );
       CATCH_CAST
     }
@@ -105,11 +105,11 @@ namespace OLAS {
     //! The method assumes that this vector is x and performs the
     //! classical BLAS function AXPY, i.e. it scales the vector x by the factor
     //! alpha and adds the vector y to it. The result will over-write the
-    //! vector x. This method offers an interface for StdVectors.
-    virtual void Axpy( const Double alpha, const StdVector &y ) {
+    //! vector x. This method offers an interface for SparseVectors.
+    virtual void Axpy( const Double alpha, const SparseVector &y ) {
       Error( "Axpy not over-written by derived class", __FILE__, __LINE__ );
     }
-    virtual void Axpy( const Complex alpha, const StdVector &y ) {
+    virtual void Axpy( const Complex alpha, const SparseVector &y ) {
       Error( "Axpy not over-written by derived class", __FILE__, __LINE__ );
     }
     //@}
@@ -126,9 +126,9 @@ namespace OLAS {
     //! assignment operator does simply down-cast the base vector and call
     //! the implementation for standard vectors.
     virtual BaseVector &operator= ( const BaseVector &bvec ) {
-      ENTER_IFCN( "StdVector::operator=" );
+      ENTER_IFCN( "SparseVector::operator=" );
       TRY_CAST {
-	ConstRefCast( bvec, StdVector, svec );
+	ConstRefCast( bvec, SparseVector, svec );
 	*this = svec;
       } CATCH_CAST;
       return *this;
@@ -138,51 +138,51 @@ namespace OLAS {
 
     //! This is the implementation of the overloaded assignment operator with
     //! an interface for standard vectors.
-    virtual StdVector &operator= ( const StdVector &stdvec ) {
-      Error( "StdVector::operator= not over-written by derived class!",
+    virtual SparseVector &operator= ( const SparseVector &stdvec ) {
+      Error( "SparseVector::operator= not over-written by derived class!",
 	     __FILE__, __LINE__ );
       return *this;
     }
 
-#define DECL_STDVECTOR_FCN(TYPE)\
+#define DECL_SparseVector_FCN(TYPE)\
 	void Add(TYPE a, const BaseVector& vec){\
-	ENTER_FCN("StdVector::Add");\
+	ENTER_FCN("SparseVector::Add");\
 	TRY_CAST\
-	ConstRefCast(vec,StdVector,stdvec);\
+	ConstRefCast(vec,SparseVector,stdvec);\
 	Add(a,stdvec);\
 	CATCH_CAST\
 	}\
 \
-        virtual void Add(TYPE a,const StdVector &vec)\
-        {Error("StdVector::Add(): Not implemented here",__FILE__,__LINE__);};\
+        virtual void Add(TYPE a,const SparseVector &vec)\
+        {Error("SparseVector::Add(): Not implemented here",__FILE__,__LINE__);};\
 \
 	void Add(TYPE a, const BaseVector& vec1,\
 		TYPE b,const BaseVector& vec2){\
-	ENTER_FCN("StdVector::Add");\
+	ENTER_FCN("SparseVector::Add");\
 	TRY_CAST\
-	ConstRefCast(vec1,StdVector,stdvec1);\
-	ConstRefCast(vec2,StdVector,stdvec2);\
+	ConstRefCast(vec1,SparseVector,stdvec1);\
+	ConstRefCast(vec2,SparseVector,stdvec2);\
 	Add(a,stdvec1,b,stdvec2);\
 	CATCH_CAST\
 	}\
 \
-	virtual void Add(TYPE a, const StdVector& vec,\
-                         TYPE b, const StdVector& vec2)\
-	 {Error("StdVector::Add(): Not implemented here",__FILE__,__LINE__);};\
+	virtual void Add(TYPE a, const SparseVector& vec,\
+                         TYPE b, const SparseVector& vec2)\
+	 {Error("SparseVector::Add(): Not implemented here",__FILE__,__LINE__);};\
 \
 	void Inner(const BaseVector& vec,TYPE& s) const {\
-	ENTER_FCN("StdVector::Inner");\
+	ENTER_FCN("SparseVector::Inner");\
 	TRY_CAST\
-	ConstRefCast(vec,StdVector,stdvec);\
+	ConstRefCast(vec,SparseVector,stdvec);\
 	Inner(stdvec,s);\
 	CATCH_CAST\
 	}\
 \
-	virtual void Inner(const StdVector& vec,TYPE& s) const\
-	 {Error("StdVector::Inner(): Not implemented here",__FILE__,__LINE__);}
+	virtual void Inner(const SparseVector& vec,TYPE& s) const\
+	 {Error("SparseVector::Inner(): Not implemented here",__FILE__,__LINE__);}
 
-    DECL_STDVECTOR_FCN(Double);
-    DECL_STDVECTOR_FCN(Complex);
+    DECL_SparseVector_FCN(Double);
+    DECL_SparseVector_FCN(Complex);
 
   protected:
 

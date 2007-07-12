@@ -1,5 +1,4 @@
 SET(PARAMH_SRCS
-  PlainXMLParamHandler.cc
   XMLSkeletonConf.cc
   CFSOLASParams.cc
   ParamNode.cc)
@@ -10,8 +9,6 @@ IF(USE_XERCES)
 
   SET(PARAMH_SRCS
     ${PARAMH_SRCS}
-    XMLParamHandler.cc
-    XMLParserErrorHandler.cc
     Xerces.cc)
 
 ENDIF(USE_XERCES)

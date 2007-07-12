@@ -23,6 +23,7 @@ namespace CoupledField {
   class StdSolveStep;
   class PDECoupling;
   class EqnMap;
+  class ParamNode;
   
   //! Base class for all single-field and direct-coupled problems
 
@@ -49,7 +50,11 @@ namespace CoupledField {
 
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
-
+    
+    /** Finds the xml node of the linear system
+     * @return might be NULL */
+    ParamNode* FindLinearSystem(const std::string& sysName);
+    
     //! Transfer parameters from CFS++ to OLAS parameter object
 
     //! This method reads the parameters specified for the linear system
@@ -130,10 +135,6 @@ namespace CoupledField {
 
     //! Return pointer to paramNode of current pde
     ParamNode * GetParamNode() { return myParam_; }
-
-    /** Finds the xml node of the linear system
-     * @return might be NULL */
-    ParamNode* FindLinearSystem(const std::string& sysName);
 
     //!
     //! \for computing and adding RHS to PDE in case of special sources 

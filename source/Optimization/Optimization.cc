@@ -26,7 +26,6 @@ Optimization::Objective::Objective(ParamNode* pn)
 {
   // the current value -> check <Get/Set>Value() when altering the presets!
   this->value_ = -1.0;
-  
   type = static_cast<ObjectiveType>(objectiveType.Parse(pn->Get("type")->AsString()));
 
   if(pn->Get("stoppingRule")->AsString() != "relative")
@@ -311,7 +310,7 @@ void Optimization::EvaluateInitialDesign()
 
   for(unsigned int i = 0; i < outputs.GetSize(); i++)
   { 
-     std::cout << "output_only " << outputs[i].ToString() << ": "
+     std::cout << "observation " << outputs[i].ToString() << ": "
                << CalcConstraint(&outputs[i]) << std::endl;
   }
   CommitIteration();

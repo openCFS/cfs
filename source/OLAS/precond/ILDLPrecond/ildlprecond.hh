@@ -136,8 +136,8 @@ namespace OLAS {
     //! Note that the method will neglect the precond input parameter, since
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Apply( const StdMatrix &stdMat, const StdVector &,
-                StdVector &z ) const;
+    void Apply( const StdMatrix &stdMat, const SparseVector &,
+                SparseVector &z ) const;
 
     //! Query type of this preconditioner.
 

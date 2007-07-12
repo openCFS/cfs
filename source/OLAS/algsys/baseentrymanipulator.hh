@@ -17,7 +17,7 @@ namespace OLAS {
   // Forward declaration of classes
   class StandardSystem;
   class StdMatrix;
-  class StdVector;
+  class SparseVector;
   class BaseIDBC_Handler;
 
 
@@ -112,7 +112,7 @@ namespace OLAS {
     //! \note For using the penalty approach of handling inhomogeneous
     //!       Dirichlet boundary conditions simply set limit = size of
     //!       the linear system
-    virtual void SetElementRHS( StdVector *rhs, Double *elemRHS,
+    virtual void SetElementRHS( SparseVector *rhs, Double *elemRHS,
                                 Integer *connect, UInt elemSize,
                                 UInt limit ) = 0;
     
@@ -186,11 +186,11 @@ namespace OLAS {
     //! 
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    virtual void GetSolutionVal( StdVector *sol, Double* &ptSol, 
+    virtual void GetSolutionVal( SparseVector *sol, Double* &ptSol, 
                                  const PdeIdType identifierPDE
                                  = NO_PDE_ID ) = 0;
 
-    virtual void GetSolutionVal( StdVector *sol, Complex* &ptSol, 
+    virtual void GetSolutionVal( SparseVector *sol, Complex* &ptSol, 
                                  const PdeIdType identifierPDE 
                                  = NO_PDE_ID ) = 0;
     //@}
@@ -215,10 +215,10 @@ namespace OLAS {
     //! \return number of array entries
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
-    virtual void GetRHSVal( StdVector *rhs, Double* &ptRhs, 
+    virtual void GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
                             const PdeIdType identifierPDE = NO_PDE_ID) = 0;
 
-    virtual void GetRHSVal( StdVector *rhs, Complex* &ptRhs, 
+    virtual void GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
                             const PdeIdType identifierPDE = NO_PDE_ID) = 0;
     //@}
 
@@ -242,18 +242,18 @@ namespace OLAS {
 
     //@{
     //! Set single entry of right-hand side vector
-    virtual void SetNodeRHS( StdVector *rhs, Double val, 
+    virtual void SetNodeRHS( SparseVector *rhs, Double val, 
                              Integer node ) = 0;
 
-    virtual void SetNodeRHS( StdVector *rhs, Complex val, 
+    virtual void SetNodeRHS( SparseVector *rhs, Complex val, 
                              Integer node ) = 0;
     //@}
 
     //! Initialise right-hand side with given vector
-    virtual void InitRHS( StdVector *rhs, const Double *newRHS) = 0;
+    virtual void InitRHS( SparseVector *rhs, const Double *newRHS) = 0;
                           
     //! ...
-    virtual void UpdateRHS( StdVector *rhs, StdMatrix *stdMat,
+    virtual void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                             Double *fup ) = 0;
 
     //@}
@@ -267,11 +267,11 @@ namespace OLAS {
     //@{
 
     //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( StdVector *vec, UInt index,
+    virtual void SetVectorEntry( SparseVector *vec, UInt index,
                                  Double &newVal ) = 0;
 
     //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( StdVector *vec, UInt index,
+    virtual void SetVectorEntry( SparseVector *vec, UInt index,
                                  Complex &newVal ) = 0;
 
     //! Add a value to a diagonal matrix entry
@@ -310,9 +310,9 @@ namespace OLAS {
                                     Double &penaltyTerm ) = 0;
 
     //! Modify right-hand side vector following penalty approach
-    virtual void AdaptRHSForIDBC( StdVector &rhs,
+    virtual void AdaptRHSForIDBC( SparseVector &rhs,
                                   UInt *dirichletEQN,
-                                  StdVector &dirichletValue,
+                                  SparseVector &dirichletValue,
                                   Double &penaltyTerm,
                                   UInt numIDBC ) = 0;
     //@}

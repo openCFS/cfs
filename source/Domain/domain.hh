@@ -35,7 +35,7 @@ namespace CoupledField
   class SimInput;
   class ResultHandler;
   class ParamNode;
-
+  class Elem;
 
 
   //! This class defines the computational domain.

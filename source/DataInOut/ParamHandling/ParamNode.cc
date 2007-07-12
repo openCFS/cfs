@@ -4,7 +4,7 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
-#include "Utils/tools.hh"
+#include "boost/lexical_cast.hpp"
 
 namespace CoupledField
 {
@@ -23,7 +23,7 @@ namespace CoupledField
   ParamNode::~ParamNode()
   {
     // values are no problem, but we have to delete our childs recursively
-    for(UInt i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
       {
         if(children_[i] != NULL) 
           { 
@@ -33,19 +33,43 @@ namespace CoupledField
       }
   }
   
-  Integer ParamNode::AsInt() const
+  int ParamNode::AsInt() const
   {
-    return String2Int(value_);
+    try
+    {
+      return boost::lexical_cast<int>(value_);
+    }
+    catch(boost::bad_lexical_cast &)
+    {
+      EXCEPTION("cannot cast value '" << value_ << "' in XML node " << name_
+                << " to an integer.");
+    }
   }
   
-  UInt ParamNode::AsUInt() const
+  unsigned int ParamNode::AsUInt() const
   {
-    return String2UInt(value_);    
+    try
+    {
+      return boost::lexical_cast<unsigned int>(value_);
+    }
+    catch(boost::bad_lexical_cast &)
+    {
+      EXCEPTION("cannot cast value '" << value_ << "' in XML node " << name_
+                << " to an unsigned integer.");
+    }
   }
 
-  Double ParamNode::AsDouble() const
+  double ParamNode::AsDouble() const
   {
-    return String2Double(value_);    
+    try
+    {
+      return boost::lexical_cast<double>(value_);
+    }
+    catch(boost::bad_lexical_cast &)
+    {
+      EXCEPTION("cannot cast value '" << value_ << "' in XML node " << name_
+                << " to a double.");
+    }
   }
        
   bool ParamNode::AsBool() const
@@ -58,7 +82,7 @@ namespace CoupledField
      
   ParamNode* ParamNode::Get(const std::string& name, const bool throwException)
   {
-    for(UInt i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
       {
         if(children_[i]->name_ == name) return children_[i];
       }
@@ -81,7 +105,7 @@ namespace CoupledField
   }
    
 
-  void ParamNode::Get(const std::string&  name, Integer& ret, const bool throwException)
+  void ParamNode::Get(const std::string&  name, int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -90,7 +114,7 @@ namespace CoupledField
     
   }
 
-  void ParamNode::Get(const std::string&  name, UInt& ret, const bool throwException)
+  void ParamNode::Get(const std::string&  name, unsigned int& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -99,7 +123,7 @@ namespace CoupledField
 
   }
 
-  void ParamNode::Get(const std::string&  name, Double& ret, const bool throwException)
+  void ParamNode::Get(const std::string&  name, double& ret, const bool throwException)
   {
     ParamNode * actNode = Get(name, throwException);
     if( actNode ) {
@@ -115,62 +139,10 @@ namespace CoupledField
       ret = actNode->AsBool();
     }
   }
- 
-  void ParamNode::GetDim1xDim2Tensor( const std::string& name, 
-                                      const unsigned int &dim1,
-                                      const unsigned int &dim2, 
-                                      Matrix<Integer>& ret,
-                                      const bool throwException )
-  {
-    // Fetch entry as string
-    ParamNode * actNode = Get(name, throwException);
-
-    if( actNode ) {
-      StdVector<std::string> strVec;
-      SplitStringList( actNode->AsString(), strVec, ' ' );
-      
-      Matrix<Integer> helpMat;
-      helpMat.Resize( dim1, dim2 );
-      helpMat.Init();
-      
-      if (strVec.GetSize() == dim1*dim2) {
-        for ( UInt i = 0; i < dim1; i++ ) {
-          for ( UInt j = 0; j < dim2; j++ ) {
-            helpMat[i][j]=( String2Int( strVec[i*dim2+j] ) );
-          }
-        }
-        ret = helpMat;
-      } else{
-        if( throwException)
-          EXCEPTION("Wrong size of matrix '" << name 
-                    << "'!. It contains of " << strVec.GetSize() 
-                    << " entries which cannot be converted into matrix of size") ;
-      }
-    }
-  }
-  
-  void ParamNode::GetDim1xDim2Tensor( const std::string& name, 
-                                      const unsigned int &dim1,
-                                      const unsigned int &dim2, 
-                                      Matrix<UInt>& ret,
-                                      const bool throwException )
-  {
-    EXCEPTION(" Not imeplemented" );
-  }
-  
-  void ParamNode::GetDim1xDim2Tensor( const std::string& name, 
-                                      const unsigned int &dim1,
-                                      const unsigned int &dim2, 
-                                      Matrix<Double>& ret,
-                                      const bool throwException ) 
-  {
-    EXCEPTION(" Not imeplemented" );
-  }
-  
 
   bool ParamNode::Has(const std::string& name) const
   {
-    for(UInt i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
       if(children_[i]->name_ == name) return true;
 
     return false;
@@ -181,17 +153,17 @@ namespace CoupledField
   {
     StdVector<ParamNode*> result;
 
-    for(UInt i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
       if(children_[i]->name_ == name) result.Push_back(children_[i]);
    
     return result; // copy-constructor magic stuff!
   }
 
-  UInt ParamNode::Count(const std::string& name) const
+  unsigned int ParamNode::Count(const std::string& name) const
   {
-    UInt count = 0;
+    unsigned int count = 0;
 
-    for(UInt i = 0; i < children_.GetSize(); i++)
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
       if(children_[i]->name_ == name) count++;
    
     return count;
@@ -214,14 +186,14 @@ namespace CoupledField
   {
     StdVector<ParamNode*> result;
 
-    for(UInt p = 0; p < children_.GetSize(); p++)
+    for(unsigned int p = 0; p < children_.GetSize(); p++)
       {
         // do we have parent name? 
         if(children_[p]->name_ == parent) 
           {
             // children_[i] has zero, one or more child matching child elements, 
             // we loop by hand to handle the "more" case
-            for(UInt c = 0; c < children_[p]->children_.GetSize(); c++)
+            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
               {
                 if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
                   { 
@@ -241,14 +213,14 @@ namespace CoupledField
   {
     ParamNode * result = NULL;
     
-    for(UInt p = 0; p < children_.GetSize(); p++)
+    for(unsigned int p = 0; p < children_.GetSize(); p++)
       {
         // do we have parent name? 
         if(children_[p]->name_ == parent) 
           {
             // children_[i] has zero, one or more child matching child elements, 
             // we loop by hand to handle the "more" case
-            for(UInt c = 0; c < children_[p]->children_.GetSize(); c++)
+            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
               {
                 if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
                   { 
@@ -273,14 +245,14 @@ namespace CoupledField
   bool ParamNode::Has(const std::string& parent, const std::string& child, 
                       const std::string& value ) const
   {
-    for(UInt p = 0; p < children_.GetSize(); p++)
+    for(unsigned int p = 0; p < children_.GetSize(); p++)
       {
         // do we have parent name? 
         if(children_[p]->name_ == parent) 
           {
             // children_[i] has zero, one or more child matching child elements, 
             // we loop by hand to handle the "more" case
-            for(UInt c = 0; c < children_[p]->children_.GetSize(); c++)
+            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
               {
                 if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
                   { 
@@ -294,7 +266,7 @@ namespace CoupledField
   }
   
 
-  UInt ParamNode::Count(const std::string& parent, const std::string& child, const std::string& value)  
+  unsigned int ParamNode::Count(const std::string& parent, const std::string& child, const std::string& value)  
   {
     // better slow than copy-paste
     StdVector<ParamNode*> result = GetList(parent, child, value);
@@ -356,7 +328,7 @@ namespace CoupledField
     for(int i = 0; i < level; i++) std::cout << "   ";
     std::cout << ToString() << std::endl;
     
-    for(UInt i = 0; i < children_.GetSize(); i++) 
+    for(unsigned int i = 0; i < children_.GetSize(); i++) 
       children_[i]->Dump(level + 1);
   }
 

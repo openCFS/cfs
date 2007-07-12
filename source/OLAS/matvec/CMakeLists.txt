@@ -4,7 +4,7 @@
 # Make sure the linker can find the CFSMESHIO library once it is built.
 #LINK_DIRECTORIES()
 
-SET(MATVEC_SRCS stdmatrix.cc stdvector.cc sbmvector.cc sbmmatrix.cc
+SET(MATVEC_SRCS stdmatrix.cc SparseVector.cc sbmvector.cc sbmmatrix.cc
 	        generatematvec.cc)
 
 ADD_DEFINITIONS()

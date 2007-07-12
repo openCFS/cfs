@@ -19,6 +19,7 @@
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/ParamTools.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
@@ -1644,7 +1645,7 @@ namespace CoupledField {
          fct->SetIsoOrder( order );
        } else {
          Matrix<UInt> orderMat;
-         myParam_->GetDim1xDim2Tensor("anisotropic", dim_, 1, orderMat);
+         ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, 1, orderMat);
          fct->SetAnisoOrder( orderMat );
        }
        disp->fctType = fct;
@@ -2039,8 +2040,8 @@ namespace CoupledField {
       stressNodes[i]->Get( "name", surf );
       stressNodes[i]->Get( "region", volume );
       stressNodes[i]->Get( "phase", phase );
-      stressNodes[i]->GetDim1xDim2Tensor( "value", stressDim_, 
-                                          1, valMat );
+      ParamTools::AsTensor<double>(stressNodes[i]->Get("value"), 
+                                         stressDim_, 1, valMat );
         
       // create new surface stress definition
       SurfStress actStress;

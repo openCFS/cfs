@@ -8,6 +8,10 @@
 #include "matvec/matvec.hh"
 #include "precond/precond.hh"
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+using CoupledField::ParamNode;
+
 namespace OLAS {
 
 
@@ -77,6 +81,10 @@ namespace OLAS {
     //! This is a pointer to a report object in which the solver will store
     //! general information about the solution of a linear system.
     OLAS_Report *myReport_;
+
+    /** This is the description of the solver part in XML - if given!! 
+     * Might easily be NULL!! */
+    ParamNode* xml_; 
 
     //! Method to force instantiation of all public member functions
 

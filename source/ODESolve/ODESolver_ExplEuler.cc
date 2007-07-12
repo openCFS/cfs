@@ -10,7 +10,7 @@
 
 
 #include "ODESolver_ExplEuler.hh"
-
+#include "General/exception.hh"
 
 
 namespace CoupledField
@@ -55,7 +55,7 @@ namespace CoupledField
         }
 
         if (std::abs(h) <= hMin){
-          Error("Step size too small",__FILE__,__LINE__);
+          EXCEPTION("Step size too small");
           successLastSolve_ = false;
         }
 
@@ -73,7 +73,7 @@ namespace CoupledField
 
     }
  
-    Error( "t>tStop", __FILE__, __LINE__ );
+    EXCEPTION("t>tStop");
     successLastSolve_ = false;
   }
             

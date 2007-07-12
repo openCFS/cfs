@@ -53,7 +53,7 @@ namespace CoupledField
 
   }
 
-  void ElectroMagneticMaterial::SetScalar( std::string& param, const MaterialType& matType) {
+  void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
     ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
@@ -68,8 +68,8 @@ namespace CoupledField
   }
 
 
-  void ElectroMagneticMaterial::SetScalar( Double& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void ElectroMagneticMaterial::SetScalar( Double param, MaterialType matType, 
+					   DataType dataType ) {
 
     ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
@@ -100,18 +100,18 @@ namespace CoupledField
     //check for permeability
     if ( matType == MAG_PERMEABILITY ) {
       if ( param < 1.255e-6 ) {
-	EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
+	      EXCEPTION("Mag. permeability cannot be smaller then the one of vacuum" );
       }
       else {
-	scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
+	     scalarParams_[MAG_RELUCTIVITY] = Complex( 1.0/param, 0.0 );
       }
     }
 
   }
 
 
-  void ElectroMagneticMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void ElectroMagneticMaterial::SetScalar( Complex param, MaterialType matType, 
+					   DataType dataType ) {
 
     ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
@@ -152,8 +152,8 @@ namespace CoupledField
   }
 
 
-  void ElectroMagneticMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
+					   DataType dataType ) {
     
     ENTER_FCN( "ElectroMagneticMaterial::SetTensor" );
 
@@ -193,8 +193,8 @@ namespace CoupledField
     }
   }
 
-  void ElectroMagneticMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
+					   DataType dataType ) {
     
     ENTER_FCN( "ElectroMagneticMaterial::SetTensor" );
 
@@ -224,8 +224,8 @@ namespace CoupledField
   }
 
 
-  void ElectroMagneticMaterial::GetScalar( Double& param, const MaterialType& matType, 
-					   const DataType& dataType ) const {
+  void ElectroMagneticMaterial::GetScalar( Double& param, MaterialType matType, 
+					   DataType dataType ) const {
 
     ENTER_FCN( "ElectroMagneticMaterial::GetScalar" );
 
@@ -251,8 +251,8 @@ namespace CoupledField
     }
   }
 
-  void ElectroMagneticMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) const {
+  void ElectroMagneticMaterial::GetScalar( Complex& param, MaterialType matType, 
+					   DataType dataType ) const {
 
     ENTER_FCN( "ElectroMagneticMaterial::GetScalar" );
 
@@ -280,9 +280,9 @@ namespace CoupledField
   }
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
-					   const MaterialType& matType, 
-					   const DataType& dataType,
-					   const SubTensorType subTensor) const {
+					   MaterialType matType, 
+					   DataType dataType,
+					   SubTensorType subTensor) const {
     
     ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
 
@@ -314,9 +314,9 @@ namespace CoupledField
   }
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
-					   const MaterialType& matType, 
-					   const DataType& dataType,
-					   const SubTensorType subTensor) const {
+					   MaterialType matType, 
+					   DataType dataType,
+					   SubTensorType subTensor) const {
     
     ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
 
@@ -350,8 +350,8 @@ namespace CoupledField
   
   
   void ElectroMagneticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-						 const MaterialType& matType, 
-						 const SubTensorType& subTensor) const {
+						 MaterialType matType, 
+						 SubTensorType subTensor) const {
 
     ENTER_FCN( "ElectroMagnetic::ComputeSubTensor" );
 

@@ -44,7 +44,7 @@ namespace OLAS {
     //! cast the Matrix and Vectors into their full types and
     //! apply the preconditioner if Setup has been called in advance
     virtual void Apply( const StdMatrix &A, 
-			const StdVector &r, StdVector &z) const {
+			const SparseVector &r, SparseVector &z) const {
     	
       ENTER_FCN( "BNPrecond::Apply" );
       TRY_CAST {

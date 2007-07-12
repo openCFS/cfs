@@ -12,7 +12,7 @@
 #include "matvec/stdmatrix.hh"
 #include "matvec/sbmmatrix.hh"
 #include "matvec/basevector.hh"
-#include "matvec/stdvector.hh"
+#include "matvec/SparseVector.hh"
 #include "matvec/sbmvector.hh"
 #include "matvec/vector.hh"
 #include "matvec/generatematvec.hh"

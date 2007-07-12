@@ -58,11 +58,19 @@ namespace OLAS {
     Double resNorm  = 0;
     Double tol      = 0;
 
-    // Query parameter object for values
-    Integer maxiter = myParams_->GetIntValue   ( "CG_maxIter"     );
-    Double eps      = myParams_->GetDoubleValue( "CG_epsilon"     );
-    bool logging    = myParams_->GetBoolValue  ( "CG_logging"     );
-    Integer tmp     = myParams_->GetIntValue   ( "CG_resDirectly" );
+    // set defaults:
+    int    maxiter = 50;
+    double eps     = 1e-6;
+    bool   logging = true;
+    int    tmp     = 50; // resDirectly
+
+    // overwrite if set in xml
+    if(xml_ != NULL)
+    {
+      xml_->Get("maxIter", maxiter, false);
+      xml_->Get("tol", maxiter, false);
+      xml_->Get("resDirectly", tmp, false);
+    } 
     if ( tmp <= 0 ) {
       (*error) << "CGSolver::CGSolver: The current value of "
                << "CG_resDirectly = " << aux

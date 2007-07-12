@@ -22,7 +22,7 @@ namespace CoupledField
       /** @param pn The pointer to a transfer function */
       TransferFunction(ParamNode* pn);
      
-      typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY } Type;
+      typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP } Type;
     
       /** applies the transformation */
       double Transform(DesignElement* de); 

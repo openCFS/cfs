@@ -115,8 +115,8 @@ void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
 
 template <typename T>
 void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
-                          const StdVector& rhs,
-			  StdVector& sol ) const
+                          const SparseVector& rhs,
+			  SparseVector& sol ) const
 {
     ENTER_FCN("MGPrecond::Apply");
 

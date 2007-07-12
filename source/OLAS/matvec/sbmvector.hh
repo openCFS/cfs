@@ -8,7 +8,7 @@
 #include <iostream>
 #include "utils/utils.hh"
 #include "matvec/basevector.hh"
-#include "matvec/stdvector.hh"
+#include "matvec/SparseVector.hh"
 
 namespace OLAS {
 
@@ -51,8 +51,8 @@ namespace OLAS {
     //! Insert a sub-vector
 
     //! A call to this method will set the i-th entry of the SBM_Vector to
-    //! be the given StdVector subvec.
-    void SetSubVector( StdVector *subvec, Integer i ) {
+    //! be the given SparseVector subvec.
+    void SetSubVector( SparseVector *subvec, Integer i ) {
       ENTER_FCN( "SBM_Vector::SetSubVector" );
       delete subVec_[i];
       subVec_[i] = subvec;
@@ -62,7 +62,7 @@ namespace OLAS {
 
     //! A call to this method will add the given standard vector to the i-th
     //! entry of the SBM_Vector.
-    void AddToSubVector( const StdVector &vec, const Integer i );
+    void AddToSubVector( const SparseVector &vec, const Integer i );
 
     //! Initialise entries to zero
 
@@ -171,7 +171,7 @@ namespace OLAS {
     //! The () operator is overloaded to allow to retrieve individual
     //! sub-vectors. The access follows the one-based indexing convention
     //! of OLAS.
-    StdVector& operator()( UInt i ) const {
+    SparseVector& operator()( UInt i ) const {
       if ( subVec_[i] == NULL ) {
         (*error) << "Cannot return reference to non-existing sub-vector "
                  << "with index " << i;
@@ -184,7 +184,7 @@ namespace OLAS {
 
     //! The method returns a pointer to a sub-vector. The access follows the
     //! one-based indexing convention of OLAS.
-    StdVector* GetPointer( UInt i ) {
+    SparseVector* GetPointer( UInt i ) {
       return subVec_[i];
     };
 
@@ -192,7 +192,7 @@ namespace OLAS {
 
     //! The method returns a pointer to a sub-vector. The access follows the
     //! one-based indexing convention of OLAS.
-    const StdVector* GetPointer( UInt i ) const {
+    const SparseVector* GetPointer( UInt i ) const {
       return subVec_[i];
     };
 
@@ -204,7 +204,7 @@ namespace OLAS {
 
     //! Array containing pointers to the sub-vectors fitting to the
     //! sub-matrices in the associated SBM_Matrix
-    StdVector **subVec_;
+    SparseVector **subVec_;
 
     //! Number of sub-vectors
     UInt size_;

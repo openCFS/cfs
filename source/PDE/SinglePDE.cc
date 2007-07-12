@@ -214,7 +214,7 @@ namespace CoupledField {
     // direct coupled
     if( needsAlgsys_ == true ) {
       if ( isDirectCoupled_ == false) {
-        algsys_ = new StandardSystem();
+        algsys_ = new StandardSystem(FindLinearSystem(pdename_));
       }
       
       // Get parameter and report object of OLAS
@@ -228,16 +228,6 @@ namespace CoupledField {
       // Determine, if this is a parallel run
       // and pass this information to OLAS
       bool parallel = false;
-      
-#ifdef PARALLEL
-      
-      // If more than one process is running,
-      // then we consider this a parallel run
-      int commsize;
-      MPI_Comm_size( MPI_COMM_WORLD, &commsize );
-      parallel = ( commsize > 1 );
-      
-#endif
       
       olasParams_->SetValue( "Parallel", parallel );
     }
@@ -1578,6 +1568,10 @@ namespace CoupledField {
     // Afterwards the matrix-graph has to be set up
     SETPROFILE("Before GraphSetupInit()");
     if ( isDirectCoupled_ == false ) {
+
+      // forward the complete xml description of the linear system
+      // might be NULL!
+      // algsys_->SetXML(FindLinearSystem(pdename_));
 
       // Set linear system parameters for OLAS
       ReadOlasParams( pdename_ );

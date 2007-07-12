@@ -4,10 +4,12 @@
 
 #include "matvec/stdmatrix.hh"
 #include "utils/utils.hh"
-#include "utils/Exception.hh"
+#include "General/exception.hh"
 #include "matvec/matvec.hh"
 
 #include <vector> // no CFS StdVector :(
+
+using CoupledField::Exception;
 
 namespace OLAS 
 {
@@ -17,7 +19,7 @@ StdMatrix::HarwellBoeing<T>::HarwellBoeing(const StdMatrix* matrix)
 {
     this->matrix_ = matrix;
     if(matrix_->GetEntryType() != DOUBLE && matrix_->GetEntryType() != COMPLEX)
-        throw Exception("unimplemented entry type", __LINE__, __PRETTY_FUNCTION__);
+        throw Exception("unimplemented entry type");
         
     is_complex_ = matrix->GetEntryType() == COMPLEX;        
 }

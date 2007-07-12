@@ -23,10 +23,11 @@
 using namespace xercesc;
 namespace fs = boost::filesystem;
 
-extern BaseCommandLineHandler* commandLine;
-
 namespace CoupledField 
 {
+  class BaseCommandLineHandler;
+  extern BaseCommandLineHandler* commandLine;
+
 
   Xerces::Xerces(const std::string& file, const std::string& schema)
   {
@@ -47,13 +48,6 @@ namespace CoupledField
     this->file_   = file;
     this->schema_ = schema;
   } 
-
-  std::string Xerces::GetCFSSchemaGuess()
-  {
-     std::string schema = commandLine->GetSchemaPath();
-     schema += "/CFS-Simulation/CFS.xsd";
-     return schema;
-  }
 
   /** this cannot be done in the constructor as the error handler takes "this" */
   void Xerces::Parse()

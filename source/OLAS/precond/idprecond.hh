@@ -38,8 +38,8 @@ namespace OLAS {
     //! This method applies the identity preconditioner to solve Id * sol = rhs
     //! for sol. As a consequence it simply copies the rhs entries into the sol
     //! vector.
-    void Apply( const StdMatrix &sysmat, const StdVector &rhs,
-		StdVector &sol ) const {
+    void Apply( const StdMatrix &sysmat, const SparseVector &rhs,
+		SparseVector &sol ) const {
       ENTER_FCN( "IdPrecond::Apply" );
       sol = rhs;
     }

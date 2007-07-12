@@ -46,7 +46,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX AND
   # Determine compiler/linker flags according to build type
   IF(DEBUG)
 
-    SET(CFS_C_FLAGS "-ansi -Wall -pedantic")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
@@ -59,7 +59,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX AND
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused -Wno-sign-compare")
-    SET(CFS_C_FLAGS "-ansi -Wall -pedantic")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0 ")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")

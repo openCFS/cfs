@@ -25,56 +25,45 @@ namespace CoupledField {
     ~PiezoMaterial();
 
    //! set a scalar string material parameter
-    void SetScalar( std::string& param, const MaterialType& matType);
+    void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar real material parameter
-    void SetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar(double param, MaterialType matType, DataType dataType );
 
     //! set a scalar complex material parameter
-    void SetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar( Complex param, MaterialType matType, DataType dataType );
 
     //! set a real material tensor
-    void SetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor( const Matrix<Double>& param, MaterialType matType, DataType dataType );
 
     //! set a complex material tensor
-    void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor( const Matrix<Complex>& param, MaterialType matType, DataType dataType );
 
     //! get a scalar string material parameter
-    void GetScalar( std::string& param, 
-                    const MaterialType& matType ) const;
+    void GetScalar( std::string& param, MaterialType matType ) const;
 
      //! get a scalar integer material parameter
-    void GetScalar( Integer& param, 
-                    const MaterialType& matType) const;
+    void GetScalar( Integer& param, MaterialType matType) const;
 
     //! get a scalar real material parameter
-    void GetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Double& param, MaterialType matType, DataType dataType ) const;
 
     //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Complex& param, MaterialType matType, DataType dataType ) const;
 
     //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Double>& param, MaterialType matType, DataType dataType,
+		               SubTensorType = FULL ) const;	
 
     //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Complex>& param, MaterialType matType, DataType dataType,
+		               SubTensorType = FULL ) const;	
 
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
-    void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  const MaterialType& matType, 
-			  const SubTensorType& subTensor) const;
+    void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, 
+			                    SubTensorType subTensor) const;
 
   };
 

@@ -7,7 +7,10 @@
 
 #include "utils/environment.hh"
 #include "solver/basesolver.hh"
-#include "utils/Enum.hh"
+
+#include "General/Enum.hh"
+
+using CoupledField::Enum;
 
 // include the original ilupack header
 extern "C"
@@ -20,14 +23,12 @@ namespace OLAS
   class BaseMatrix;  
   class BaseVector;
   class BasePrecond;
-  class Exception;
-  class Enum;
 
   template<typename T>
   class Ilupack : public BaseIterativeSolver 
   {
   public:
-    Ilupack (OLAS_Params *myParams, OLAS_Report *myReport, MatrixEntryType type);
+    Ilupack(ParamNode* param, OLAS_Report *myReport, MatrixEntryType type);
 
     ~Ilupack();
 
@@ -74,8 +75,6 @@ namespace OLAS
 
         
   private:
-    Ilupack() { throw Exception("Default constructor of Ilupack is not allowed", __FILE__, __LINE__, __PRETTY_FUNCTION__); }
-
     /** Relases the memory allocated for ilupack by calling its delete method. 
      * Does nothing if mat_.a is NULL. */ 
     void ReleaseIlupackMemory();

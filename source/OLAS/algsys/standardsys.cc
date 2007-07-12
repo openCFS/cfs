@@ -21,7 +21,7 @@
 #include "algsys/generateidbchandler.hh"
 #include "algsys/baseidbchandler.hh"
 
-#include "utils/Exception.hh"
+#include "General/exception.hh"
 
 namespace OLAS {
  
@@ -29,7 +29,7 @@ namespace OLAS {
   // ***********************
   //   Default Constructor
   // ***********************
-  StandardSystem::StandardSystem() : BaseSystem() {
+  StandardSystem::StandardSystem(ParamNode* pn) : BaseSystem(pn) {
 
     ENTER_FCN( "StandardSystem::StandardSystem" );
 
@@ -147,10 +147,10 @@ namespace OLAS {
     UInt totalSize = totalSize_;
     totalSize *= blockSize_;
 
-    BaseVector *bVec = GenerateStdVectorObject( sType, eType, 1, totalSize );
-    BaseVector *errVec = GenerateStdVectorObject( sType, eType, 1, totalSize );
-    eigenValues_ = dynamic_cast<StdVector*>( bVec );
-    eigenValError_ = dynamic_cast<StdVector*>( errVec );
+    BaseVector *bVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
+    BaseVector *errVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
+    eigenValues_ = dynamic_cast<SparseVector*>( bVec );
+    eigenValError_ = dynamic_cast<SparseVector*>( errVec );
     
   }
 
@@ -201,7 +201,7 @@ namespace OLAS {
 
     // Now modifiy the right-hand side vector
     idbcHandler_->AddIDBCToRHS( rhs_ );
-
+    
     // Export linear system
     bool doExport = myParams_.GetBoolValue( "exportLinSys" );
     std::string file;
@@ -238,16 +238,7 @@ namespace OLAS {
 
 
     // Trigger solution
-    // as long as olas is not merges with cfs and I'm not able to let cfs know the olas
-    // exception catch it manually and transfer
-    try
-    {
-       solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
-    }
-    catch(Exception& e)
-    {
-        throw e.ToString(); // cfs knows this type
-    }   
+    solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
     
 
     if (doExport && myParams_.GetStringValue("exportLinSysSolution") != "no") {
@@ -509,9 +500,9 @@ namespace OLAS {
     // ---------------------------------
 
     // Generate vectors
-    rhs_ = dynamic_cast<StdVector *>
+    rhs_ = dynamic_cast<SparseVector *>
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
-    sol_ = dynamic_cast<StdVector *>
+    sol_ = dynamic_cast<SparseVector *>
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
 
     // Generate communication buffers
@@ -557,21 +548,9 @@ namespace OLAS {
   // ************************
   void StandardSystem::CreateSolver()
   {
-     // remove this when merging olas with cfs!!
-     try
-     {
-        ENTER_FCN("StandardSystem::CreateSolver");
-        
-        SolverType solver;
-        myParams_.GetEnumValue( "Solver", solver );
-        solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, &myParams_,
-                                        &myReport_ );
-     }
-     catch(Exception& e)
-     {
-        // cfs doesn't know our olas exception
-        throw e.ToString();
-     }
+    SolverType solver;
+    myParams_.GetEnumValue( "Solver", solver );
+    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, &myParams_, &myReport_ );
   }
 
 
@@ -1264,8 +1243,8 @@ namespace OLAS {
     MatrixEntryType eType = sysmat_[SYSTEM]->GetEntryType();
 
     // Generate vector for passing solution back to CFS++
-    bVec = GenerateStdVectorObject( sType, eType, 1, totalSize );
-    solComm_ = dynamic_cast<StdVector*>( bVec );
+    bVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
+    solComm_ = dynamic_cast<SparseVector*>( bVec );
 
   }
 

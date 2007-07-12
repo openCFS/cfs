@@ -47,8 +47,7 @@ namespace CoupledField
     ENTER_FCN("BaseMaterial::~BaseMaterial");
   }
 
-
-  void PiezoMaterial::SetScalar( std::string& param, const MaterialType& matType) {
+  void PiezoMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
     if ( matType == HYST_MODEL ) {
@@ -68,8 +67,7 @@ namespace CoupledField
   }
 
 
-  void PiezoMaterial::SetScalar( Double& param, const MaterialType& matType, 
-				 const DataType& dataType ) {
+  void PiezoMaterial::SetScalar( Double param, MaterialType matType, DataType dataType ) {
 
     ENTER_FCN( "PiezoMaterial::SetScalar" );
 
@@ -99,8 +97,7 @@ namespace CoupledField
   }
 
 
-  void PiezoMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void PiezoMaterial::SetScalar( Complex param, MaterialType matType, DataType dataType ) {
 
     ENTER_FCN( "PiezoMaterial::SetScalar" );
 
@@ -130,8 +127,8 @@ namespace CoupledField
   }
 
 
-  void PiezoMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-				 const DataType& dataType ) {
+  void PiezoMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
+                                DataType dataType ) {
     
     ENTER_FCN( "PiezoMaterial::SetTensor" );
 
@@ -165,8 +162,8 @@ namespace CoupledField
     }
   }
 
-  void PiezoMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-				 const DataType& dataType ) {
+  void PiezoMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
+				                         DataType dataType ) {
     
     ENTER_FCN( "PiezoMaterial::SetTensor" );
 
@@ -189,7 +186,7 @@ namespace CoupledField
     }
   }
 
-  void PiezoMaterial::GetScalar( std::string& param, const MaterialType& matType)  const {
+  void PiezoMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
     ENTER_FCN( "PiezoMaterial::GetScalar" );
 
@@ -206,7 +203,7 @@ namespace CoupledField
     }
   }    
  
-   void PiezoMaterial::GetScalar( Integer& param, const MaterialType& matType)  const {
+   void PiezoMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
      ENTER_FCN( "PiezoMaterial::GetScalar" );
     
@@ -223,9 +220,8 @@ namespace CoupledField
      }
    }  
 
-
-  void PiezoMaterial::GetScalar( Double& param, const MaterialType& matType, 
-					   const DataType& dataType )  const {
+                      
+  void PiezoMaterial::GetScalar( Double& param, MaterialType matType, DataType dataType )  const {
 
     ENTER_FCN( "PiezoMaterial::GetScalar" );
 
@@ -251,8 +247,7 @@ namespace CoupledField
     }    
   }
 
-  void PiezoMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-				 const DataType& dataType )  const {
+  void PiezoMaterial::GetScalar( Complex& param, MaterialType matType, DataType dataType )  const {
 
     ENTER_FCN( "PiezoMaterial::GetScalar" );
 
@@ -279,10 +274,8 @@ namespace CoupledField
     }    
   }
 
-  void PiezoMaterial::GetTensor( Matrix<Double>& param, 
-				 const MaterialType& matType, 
-				 const DataType& dataType,
-				 const SubTensorType subTensor) const {
+  void PiezoMaterial::GetTensor( Matrix<Double>& param, MaterialType matType, 
+				                         DataType dataType, SubTensorType subTensor) const {
 
     ENTER_FCN( "PiezoMaterial::GetTensor" );
 
@@ -312,10 +305,8 @@ namespace CoupledField
     }
   }
 
-  void PiezoMaterial::GetTensor( Matrix<Complex>& param, 
-				 const MaterialType& matType, 
-				 const DataType& dataType,
-				 const SubTensorType subTensor) const {
+  void PiezoMaterial::GetTensor( Matrix<Complex>& param, MaterialType matType, 
+				                         DataType dataType, SubTensorType subTensor) const {
     
     ENTER_FCN( "PiezoMaterial::GetTensor" );
 
@@ -350,8 +341,7 @@ namespace CoupledField
 
 
   void PiezoMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-				       const MaterialType& matType, 
-				       const SubTensorType& subTensor) const {
+				                               MaterialType matType, SubTensorType subTensor) const {
 
     ENTER_FCN( "PiezoMaterial::ComputeSubTensors" );
 

@@ -28,65 +28,65 @@ namespace CoupledField {
     void Finalize();
 
    //! set a scalar string material parameter
-    void SetScalar( std::string& param, const MaterialType& matType);
+    void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar real material parameter
-    void SetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar( Double param, MaterialType matType, 
+		    DataType dataType );
 
     //! set a scalar complex material parameter
-    void SetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar( Complex param, MaterialType matType, 
+		    DataType dataType );
 
     //! set a real vector
-    virtual void SetVector( Vector<Double>& param, const MaterialType& matType,
-			    const DataType& dataType );
+    virtual void SetVector(const Vector<Double>& param, MaterialType matType,
+			    DataType dataType );
 
     //! set a real material tensor
-    void SetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor(const Matrix<Double>& param, MaterialType matType,
+		    DataType dataType );
 
     //! set a complex material tensor
-    void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor(const Matrix<Complex>& param, MaterialType matType,
+		    DataType dataType );
 
     //! get a scalar string material parameter
     void GetScalar( std::string& param, 
-                    const MaterialType& matType ) const;
+                    MaterialType matType ) const;
 
      //! get a scalar integer material parameter
     void GetScalar( Integer& param, 
-                    const MaterialType& matType) const;
+                    MaterialType matType) const;
 
     //! get a scalar real material parameter
-    void GetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Double& param, MaterialType matType, 
+		    DataType dataType ) const;
 
     //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Complex& param, MaterialType matType, 
+		    DataType dataType ) const;
 
     //! get a real vector
-    virtual void GetVector( Vector<Double>& param, const MaterialType& matType,
-			    const DataType& dataType ) const;
+    void GetVector( Vector<Double>& param, MaterialType matType,
+			    DataType dataType ) const;
 
     //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Double>& param, MaterialType matType,
+		    DataType dataType,
+		    SubTensorType = FULL ) const;	
 
     //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Complex>& param, MaterialType matType,
+		    DataType dataType,
+		    SubTensorType = FULL ) const;	
 
   private:
 
 
     //! compute the2 correct subTensor (3D, AXI, ..)
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
-			  const MaterialType& matType, 
-			  const SubTensorType& subTensor) const;
+			  MaterialType matType, 
+			  SubTensorType subTensor) const;
 
     //! Compute elasticity tensor from giben parameters
     void ComputeFullStiffTensor();

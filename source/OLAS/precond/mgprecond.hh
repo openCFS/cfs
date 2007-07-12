@@ -72,8 +72,8 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
          *  \param sol solution (\b output only, will be initialized first)
          */
         void Apply( const StdMatrix& sysmatrix,
-                    const StdVector& rhs,
-                          StdVector& sol ) const;
+                    const SparseVector& rhs,
+                          SparseVector& sol ) const;
 
         //! print method for the AMG preconditioner
 		std::ostream& Print( std::ostream& out ) const {

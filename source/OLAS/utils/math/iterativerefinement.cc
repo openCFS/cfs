@@ -36,12 +36,12 @@ namespace OLAS {
         delete residual_;
         delete update_;
 
-        residual_ = GenerateStdVectorObject( stdMat.GetStorageType(),
+        residual_ = GenerateSparseVectorObject( stdMat.GetStorageType(),
                                              stdMat.GetEntryType(),
                                              stdMat.GetBlockSize(),
                                              stdMat.GetNcols() );
 
-        update_   = GenerateStdVectorObject( stdMat.GetStorageType(),
+        update_   = GenerateSparseVectorObject( stdMat.GetStorageType(),
                                              stdMat.GetEntryType(),
                                              stdMat.GetBlockSize(),
                                              stdMat.GetNcols() );

@@ -74,13 +74,6 @@ namespace OLAS {
     SetValue( "LAPACKLL_logging"         , true  );
     SetValue( "LAPACKLL_newMatrixPattern", false );
 
-    // CG (NOTE: Changes here must be documented in CGSolver!)
-    SetValue( "CG_epsilon", 1e-6 );
-    SetValue( "CG_epsmach", std::numeric_limits<double>::epsilon() );
-    SetValue( "CG_maxIter",  50  );
-    SetValue( "CG_logging", true );
-    SetValue( "CG_resDirectly", 50 );
-
     // GMRES (NOTE: Changes here must be documented in GMRESSolver!)
     SetValue( "GMRES_maxKrylovDim",  50 );
     SetValue( "GMRES_maxIter",        1 );

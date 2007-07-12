@@ -18,7 +18,7 @@ namespace OLAS {
   // Forward Declarations of classes
   class BaseSBMPrecond;
   class StdMatrix;
-  class StdVector;
+  class SparseVector;
   class SBM_Matrix;
   class SBM_Vector;
   class BaseEntryManipulator;
@@ -60,7 +60,7 @@ namespace OLAS {
     //! This is the default constructor. It will perform some initial memory
     //! allocation (e.g. for the array of matrices) and set some default
     //! values.
-    SBM_System();
+    SBM_System(ParamNode* xml = NULL);
 
     //! Destructor
 
@@ -245,7 +245,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! right-hand side vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a StdVector
+    //!       We currently do not support setting only the part of a SparseVector
     //!       related to a single PDE to zero in this case.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
@@ -270,7 +270,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! solution vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a StdVector
+    //!       We currently do not support setting only the part of a SparseVector
     //!       related to a single PDE to zero.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
