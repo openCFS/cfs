@@ -68,7 +68,7 @@ namespace CoupledField
 
   }
 
-  void MechanicMaterial::SetScalar( std::string& param, const MaterialType& matType) {
+  void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
 
@@ -87,8 +87,8 @@ namespace CoupledField
   }
   
 
-  void MechanicMaterial::SetScalar( Double& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
+				    DataType dataType ) {
 
     ENTER_FCN( "MechanicMaterial::SetScalar" );
 
@@ -118,8 +118,8 @@ namespace CoupledField
   }
 
 
-  void MechanicMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void MechanicMaterial::SetScalar( Complex param, MaterialType matType, 
+				    DataType dataType ) {
 
 
     ENTER_FCN( "MechanicMaterial::SetScalar" );
@@ -150,8 +150,8 @@ namespace CoupledField
   }
 
 
-  void MechanicMaterial::SetVector( Vector<Double>& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void MechanicMaterial::SetVector(const Vector<Double>& param, MaterialType matType, 
+				    DataType dataType ) {
     
     ENTER_FCN( "MechanicMaterial::SetTensor" );
 
@@ -182,8 +182,8 @@ namespace CoupledField
   }
 
 
-  void MechanicMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void MechanicMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
+				    DataType dataType ) {
     
     ENTER_FCN( "MechanicMaterial::SetTensor" );
 
@@ -218,8 +218,8 @@ namespace CoupledField
     }
   }
 
-  void MechanicMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void MechanicMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
+				    DataType dataType ) {
     
     ENTER_FCN( "MechanicMaterial::SetTensor" );
 
@@ -242,7 +242,7 @@ namespace CoupledField
     }
   }
 
-  void MechanicMaterial::GetScalar( std::string& param, const MaterialType& matType)  const {
+  void MechanicMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
     ENTER_FCN( "MechanicMaterial::GetScalar" );
 
@@ -259,7 +259,7 @@ namespace CoupledField
     }
   }    
  
-   void MechanicMaterial::GetScalar( Integer& param, const MaterialType& matType)  const {
+   void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
      ENTER_FCN( "MechanicMaterial::GetScalar" );
     
@@ -278,8 +278,8 @@ namespace CoupledField
   
 
 
-  void MechanicMaterial::GetScalar( Double& param, const MaterialType& matType, 
-				    const DataType& dataType )  const {
+  void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
+				    DataType dataType )  const {
 
     ENTER_FCN( "MechanicMaterial::GetScalar" );
 
@@ -305,8 +305,8 @@ namespace CoupledField
     }    
   }
 
-  void MechanicMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-				    const DataType& dataType )  const {
+  void MechanicMaterial::GetScalar( Complex& param, MaterialType matType, 
+				    DataType dataType )  const {
 
     ENTER_FCN( "MechanicMaterial::GetScalar" );
     scalarMap::const_iterator pos;
@@ -334,8 +334,8 @@ namespace CoupledField
 
 
   void MechanicMaterial::GetVector( Vector<Double>& param, 
-				    const MaterialType& matType, 
-				    const DataType& dataType ) const {
+				    MaterialType matType, 
+				    DataType dataType ) const {
     
     ENTER_FCN( "MechanicMaterial::GetVector" );
 
@@ -362,9 +362,9 @@ namespace CoupledField
 
 
   void MechanicMaterial::GetTensor( Matrix<Double>& param, 
-				    const MaterialType& matType, 
-				    const DataType& dataType,
-				    const SubTensorType subTensor ) const {
+				    MaterialType matType, 
+				    DataType dataType,
+				    SubTensorType subTensor ) const {
     
     ENTER_FCN( "MechanicMaterial::GetTensor" );
 
@@ -395,9 +395,9 @@ namespace CoupledField
   }
 
   void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
-				    const MaterialType& matType, 
-				    const DataType& dataType,
-				    const SubTensorType subTensor ) const {	
+				    MaterialType matType, 
+				    DataType dataType,
+				    SubTensorType subTensor ) const {	
     
     ENTER_FCN( "MechanicMaterial::GetTensor" );
 
@@ -432,8 +432,8 @@ namespace CoupledField
   
 
   void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-					  const MaterialType& matType, 
-					  const SubTensorType& subTensor) const {
+					  MaterialType matType, 
+					  SubTensorType subTensor) const {
 
     ENTER_FCN( "MechanicMaterial::ComputeSubTensor" );
 

@@ -9,26 +9,28 @@
 #include <def_use_pardiso.hh>
 #include <def_use_metis.hh>
 
-#include "utils/Exception.hh"
+#include "General/exception.hh"
 #include "external/ilupack/Ilupack.hh"
 #include "matvec/matvec.hh"
 #include "utils/utils.hh"
-#include "utils/Enum.hh"
 #include "solver/solver.hh"
 #include "precond/precond.hh"
 
+using CoupledField::StdVector;
+using CoupledField::Exception;
 
 namespace OLAS 
 {
 
 template<typename T>
-Ilupack<T>::Ilupack(OLAS_Params *myParams, OLAS_Report *myReport, MatrixEntryType type) 
+Ilupack<T>::Ilupack(ParamNode* xml, OLAS_Report *myReport, MatrixEntryType type) 
 {
-    // Set pointers to communication objects
-    myParams_  = myParams;
+    // we work with out 
+    xml_       = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
+    
     myReport_  = myReport;
     
-    if(type != COMPLEX && type != DOUBLE) throw Exception("unhandled type", type, __LINE__, __PRETTY_FUNCTION__);
+    if(type != COMPLEX && type != DOUBLE) EXCEPTION("unhandled type " << type);
     isComplex_ = type == COMPLEX;
     
     // set this to zero to signal the destructor if Setup() was called
@@ -88,10 +90,12 @@ void Ilupack<T>::ReleaseIlupackMemory()
         case HER: if(isComplex_) ZHERAMGdelete(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_);
                   break;
                   
-        default: Exception("invalid matrix type", matrix_, __LINE__, __PRETTY_FUNCTION__);          
+        default: EXCEPTION("invalid matrix type " << matrix_);          
     }   
     
-    mat_.a = NULL;           
+    if(mat_.a != NULL)  { delete[] mat_.a; mat_.a = NULL; }
+    if(mat_.ia != NULL) { delete[] mat_.ia; mat_.ia = NULL; }
+    if(mat_.ja != NULL) { delete[] mat_.ja; mat_.ja = NULL; }
 }    
 
 template<typename T>
@@ -100,13 +104,10 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
     const SparseOLASMatrix<T>& som = dynamic_cast<const SparseOLASMatrix<T>&>(base_mat);              
 
     // delete the old values before we allocate the new space - if could be faster! 
-    if(mat_.a != NULL)
-    {
-        delete mat_.a;
-        delete mat_.ia;
-        delete mat_.ja;
-    }
-
+    if(mat_.a != NULL)  { delete[] mat_.a; mat_.a = NULL; }
+    if(mat_.ia != NULL) { delete[] mat_.ia; mat_.ia = NULL; }
+    if(mat_.ja != NULL) { delete[] mat_.ja; mat_.ja = NULL; }
+    
     UInt elements = 0;
 
     // pointers will point to the first actual element    
@@ -199,7 +200,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
     
     if(r != 0){ 
         (*cla) << " error factorizing the ilupack preconditioner " << PrecondError(r, param_, nlev_) << std::endl;
-        throw Exception("ilupack preconditioner failed", PrecondError(r, param_, nlev_), nlev_, __LINE__, __PRETTY_FUNCTION__);    
+        EXCEPTION("ilupack preconditioner failed " << PrecondError(r, param_, nlev_) << " level: " << nlev_);    
     }
     (*cla) << "factorizing got " << r << " " << (r != 0 ? PrecondError(r, param_, nlev_) : " ok ") 
            << " with " << nlev_ << " levels." << std::endl;
@@ -216,7 +217,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
                              const BaseVector &base_rhs, BaseVector &base_sol, bool recursive_call )
 {
     // the preconditioner sets the ilupack matrix
-    if(mat_.a == NULL) throw Exception("Setup() not called before Solve()",__LINE__, __PRETTY_FUNCTION__);
+    if(mat_.a == NULL) throw Exception("Setup() not called before Solve()");
 
     // we gain the solution pointer and compensate the first element of the OLAS one based stuff
     // Note, that we do this with the template form, such for complex, the 0 complex element is skipped.
@@ -261,7 +262,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
 
       // try again if this is the first try but the setup() is some solvings ago
       if(recursive_call || precondAge_ == 0)
-        throw Exception("error from ilupack solver", SolverError(r), __LINE__, __PRETTY_FUNCTION__, Exception::NO_SEGFAULT); 
+        throw Exception("error from ilupack solver " + SolverError(r)); 
 
       // try once more 
       std::cout << " -> call preconditioner and try once more" << std::endl;  
@@ -316,10 +317,10 @@ void Ilupack<T>::InitParameters()
                   break;
 
         case HER: if(isComplex_) ZHERAMGinit(*zmat_ptr_, zparam_ptr_);
-                            else throw Exception("ilupack matrix is set to hermitian but not complex", __LINE__, __PRETTY_FUNCTION__);
+                            else throw Exception("ilupack matrix is set to hermitian but not complex");
                   break;
         
-        default: throw Exception("matrix type not implemented",  __LINE__, __PRETTY_FUNCTION__);          
+        default: throw Exception("matrix type not implemented");          
     }              
         
     // read the default settings. I guess this simply extracts the values from magic indices in [i/f]parm
@@ -348,37 +349,37 @@ void Ilupack<T>::InitParameters()
                      << "======================================== " << std::endl;
     // it is magic stuff taken from the ilupack samples that we need index 1 ??:(
     out << " drop tolerance          : " << droptols[1];
-    if(myParams_->HasKey("ilupack_dropTol")) {
-        new_real = myParams_->GetDoubleValue("ilupack_dropTol");
+    if(xml_ != NULL && xml_->Has("dropTol")) {
+        new_real = xml_->Get("dropTol")->AsDouble();
         out << (new_real == droptols[1] ? " == " : " -> ") << new_real; 
         droptols[1] = new_real;
     }
 
     out << std::endl << " residual tolerance      : " << restol;
-    if(myParams_->HasKey("ilupack_residualTol")) {
-        new_real = myParams_->GetDoubleValue("ilupack_residualTol");
+    if(xml_ != NULL && xml_->Has("residualTol")) {
+        new_real = xml_->Get("residualTol")->AsDouble();
         out << (new_real == restol ? " == " : " -> ") << new_real; 
         restol = new_real;
 
     }
 
     out << std::endl << " elbow space             : " << elbow;
-    if(myParams_->HasKey("ilupack_elbowSpace")) {
-        new_int = myParams_->GetIntValue("ilupack_elbowSpace");
+    if(xml_!= NULL && xml_->Has("elbowSpace")) {
+        new_int = xml_->Get("elbowSpace")->AsInt();
         out << " " << (new_int ==  elbow ? " == " : " -> ") << new_int;
         elbow = new_int;
     }
 
     out << std::endl << " condest (bound [L/U]^-1): " << condest;
-    if(myParams_->HasKey("ilupack_condest")) {
-        new_int = myParams_->GetIntValue("ilupack_condest");
+    if(xml_ != NULL && xml_->Has("condest")) {
+        new_int = xml_->Get("condest")->AsInt();
         out << " " << (new_int == condest ? " ==" : "-> ") << new_int;
         condest = new_int;
     }
 
     out << std::endl << " max iterations          : " << max_it;
-    if(myParams_->HasKey("ilupack_maxIter")) {
-        new_int = myParams_->GetIntValue("ilupack_maxIter");
+    if(xml_ != NULL && xml_->Has("maxIter")) {
+        new_int = xml_->Get("maxIter")->AsInt();
         out << " " << (new_int == max_it ? " == " : " -> ") << new_int;
         max_it = new_int;
     }
@@ -389,9 +390,9 @@ void Ilupack<T>::InitParameters()
     // the solver is conditionally set!
     int org_solver = param_.ipar[SOLVER_TYPE];
     out << std::endl << " solver                  : " << solver.ToString(org_solver);
-    if(myParams_->HasKey("ilupack_engine"))
+    if(xml_ != NULL && xml_->Has("ilupack_engine"))
     {
-        new_int = solver.Parse(myParams_->GetStringValue("ilupack_engine"));
+        new_int = solver.Parse(xml_->Get("engine"));
         out << " " << (org_solver == new_int ? " == " : " -> ") << solver.ToString(new_int);
         param_.ipar[SOLVER_TYPE] = new_int;
     }    
@@ -415,7 +416,7 @@ void Ilupack<T>::InitParameters()
         out << ": " << (was ? "on" : "off");
         
         // do we overwrite this setting?
-        if(myParams_->HasContent(iter->second))
+        if(xml_ != NULL && xml_->Has("flag", "name", iter->second))
            out << (now == was ? " == " : " -> ") << (now ? "on" : "off");
     }
    
@@ -513,17 +514,17 @@ template<typename T>
 void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat)
 { 
     // first determine it manually for some checking
-    if(sysMat.GetStructureType() != STDMATRIX) throw Exception("Sorry, excpect StdMatrix", sysMat.GetStructureType(), __LINE__, __PRETTY_FUNCTION__); 
+    if(sysMat.GetStructureType() != STDMATRIX) EXCEPTION("Sorry, excpect StdMatrix " << sysMat.GetStructureType()); 
 
     const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
     MatrixStorageType mst = stdMat.GetStorageType(); 
-    if(mst != SPARSE_SYM && mst != SPARSE_NONSYM) throw Exception("Sorry, expect sparse matrix", mst, __LINE__, __PRETTY_FUNCTION__);   
+    if(mst != SPARSE_SYM && mst != SPARSE_NONSYM) EXCEPTION("Sorry, expect sparse matrix " << mst);   
     
-    if(myParams_->HasKey("ilupack_matrix")) {
-        matrix_ = static_cast<Matrix>(matrix.Parse(myParams_->GetStringValue("ilupack_matrix")));
+    if(xml_ != NULL && xml_->Has("matrix")) {
+        matrix_ = static_cast<Matrix>(matrix.Parse(xml_->Get("matrix")));
         // plausibility check -- killme: what is with hermitian?
         if(mst != SPARSE_SYM && matrix_ != GNL) 
-            throw Exception("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid", matrix.ToString(matrix_));
+            throw Exception("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid " + matrix.ToString(matrix_));
     } else {
         // ignore PD and HER
         matrix_ = mst == SPARSE_SYM ? SYM : GNL;
@@ -779,40 +780,23 @@ void Ilupack<T>::DumpFlags(int flag, std::ostream& out)
 template<typename T>
 void Ilupack<T>::ApplyFlagSettings(int& flag)
 {
-    // the values from xml are stored in ilupack_flag_[on/off]_* strings
-    // with the name of the flag as value and * is 0 or greater compact ordered
-    std::ostringstream os;
-    std::string on_key;
-    std::string off_key;
+  if(xml_ == NULL) return;
+    
+  // in xml we have elements like this: <flag name="AggressiveDropping" state="off"/>
+  // we loop throug all flag names and check of on and off
+  StdVector<ParamNode*> all_flags = xml_->GetList("flag");
 
-    bool cont = true;
+  for(unsigned int i = 0; i < all_flags.GetSize(); i++ ) 
+  {
+    ParamNode* pn = all_flags[i];
 
-    for(int i = 0; cont; i++)
-    {
-        os.str("");
-        os << "ilupack_flag_on_" << i;
-        on_key = os.str();
+    int value = flags.Parse(pn->Get("name"));
 
-        os.str("");
-        os << "ilupack_flag_off_" << i;
-        off_key = os.str();
-
-        cont = false;
-        
-        if(myParams_->HasKey(on_key))
-        {
-            cont = true;
-            int value = flags.Parse(myParams_->GetStringValue(on_key));
-            flag |= value; // or this value in
-        }
-
-        if(myParams_->HasKey(off_key))
-        {
-            cont = true;
-            int value = flags.Parse(myParams_->GetStringValue(off_key));
-            flag &= ~value; // AND 111110111 
-        }
-    }
+    if(pn->Get("state")->AsString() == "on")
+       flag |= value; // or this value in
+     else   
+       flag &= ~value; // AND 111110111
+  }
 }
 
 template<typename T>
@@ -840,7 +824,7 @@ void Ilupack<T>::GetDefaultPermutation(PermutationRole role, Permutation& out)
                    else { GetPermutation(PD, PP, PURE, out); return; }
            break;
                    
-      default: throw Exception("PermutationRole case not impemented. Check las-file for available set.", role, __LINE__, __PRETTY_FUNCTION__);
+      default: EXCEPTION("PermutationRole case not impemented. Check las-file for available set. Role= " << role);
     }
 }
 
@@ -859,34 +843,34 @@ void Ilupack<T>::GetPermutation(Matrix my_matrix, Ordering my_ordering, Matching
         return; // found!
     }
   
-    throw Exception("Permutation (matrix, ordering, matching) not found.", matrix.ToString(my_matrix), ordering.ToString(my_ordering), matching.ToString(my_matching)); 
+    EXCEPTION("Permutation matrix: " << matrix.ToString(my_matrix) 
+              << " ordering: " << ordering.ToString(my_ordering) 
+              << " matching: " << matching.ToString(my_matching) << " not found"); 
 }
 
 template<typename T>
 void Ilupack<T>::GetPermutation(PermutationRole role, Permutation& out)
 {
     // to check if we have the value in XML -> therefore use dummy defaults for my_*
-    bool in_xml = true; 
+    bool in_xml = false; 
     std::ostringstream os;
     std::string type = permutationRole.ToString(role);
     
-    os << "ilupack_" << type << "_matrix";
+    // set default values
     Matrix my_matrix = GNL;
-    if(!myParams_->HasKey(os.str())) in_xml = false;
-    else my_matrix = static_cast<Matrix>(matrix.Parse(myParams_->GetStringValue(os.str())));
-    
-    os.str("");
-    os << "ilupack_" << type << "_ordering";
     Ordering my_ordering = NONE;
-    if(!myParams_->HasKey(os.str())) in_xml = false;
-    else my_ordering = static_cast<Ordering>(ordering.Parse(myParams_->GetStringValue(os.str())));
-    
-    os.str("");
-    os << "ilupack_" << type << "_matching";
     Matching my_matching = PURE;
-    if(!myParams_->HasKey(os.str())) in_xml = false;
-    else my_matching = static_cast<Matching>(matching.Parse(myParams_->GetStringValue(os.str())));
-
+    
+    if(xml_->Has("permutation", "type", type))
+    {
+      in_xml = true; // when the type is given there shall be more!!
+      ParamNode* pn = xml_->Get("permutation", "type", type);
+      
+      if(pn->Has("matrix"))   my_matrix   = (Matrix)   matrix.Parse(pn->Get("matrix"));
+      if(pn->Has("ordering")) my_ordering = (Ordering) ordering.Parse(pn->Get("ordering"));
+      if(pn->Has("matching")) my_matching = (Matching) matching.Parse(pn->Get("matching"));
+    }
+    
     // is there stuff in XML? only then the my_* is valid
     if(in_xml) GetPermutation(my_matrix, my_ordering, my_matching, out); 
           else GetDefaultPermutation(role, out);

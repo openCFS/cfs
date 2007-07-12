@@ -50,26 +50,26 @@ namespace OLAS {
     //! Since these types of matrices are intended to be used in conjunction
     //! with the direct methods LAPACK offers it is unclear, whether this
     //! functionality will be needed in OLAS.
-    void Mult(const StdVector& mvec, StdVector& rvec) const {
+    void Mult(const SparseVector& mvec, SparseVector& rvec) const {
       Error( "Mult not implemented by any LAPACK Matrix", __FILE__, __LINE__ );
     }
-    void MultT(const StdVector& mvec, StdVector& rvec) const {
+    void MultT(const SparseVector& mvec, SparseVector& rvec) const {
       Error( "MultT not implemented by any LAPACK Matrix", __FILE__,
 	     __LINE__ );
     }
-    void MultAdd( const StdVector& mvec, StdVector& rvec ) const {
+    void MultAdd( const SparseVector& mvec, SparseVector& rvec ) const {
       Error( "MultAdd not implemented by any LAPACK Matrix", __FILE__,
 	     __LINE__ );
     }
-    void MultTAdd( const StdVector& mvec, StdVector& rvec ) const {
+    void MultTAdd( const SparseVector& mvec, SparseVector& rvec ) const {
       Error( "MultTAdd not implemented by any LAPACK Matrix", __FILE__,
 	     __LINE__ );
     }
-    void MultSub( const StdVector& mvec, StdVector& rvec ) const {
+    void MultSub( const SparseVector& mvec, SparseVector& rvec ) const {
       Error( "MultSub not implemented by any LAPACK Matrix", __FILE__,
 	     __LINE__ );
     }
-    void CompRes( StdVector &r, const StdVector &x, const StdVector& b ) const{
+    void CompRes( SparseVector &r, const SparseVector &x, const SparseVector& b ) const{
       Error( "CompRes not implemented by any LAPACK Matrix", __FILE__,
 	     __LINE__ );
     }

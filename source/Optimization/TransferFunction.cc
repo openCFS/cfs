@@ -18,13 +18,11 @@ TransferFunction::TransferFunction(ParamNode* pn)
 {
   // initialize the static Enum the first time
   if(type.map.size() == 0) SetEnums();
-  
   this->type_ = (Type) type.Parse(pn->Get("type")->AsString());
   this->orgType_ = NO_TYPE;
   this->application_ = (Optimization::Application) Optimization::application.Parse(pn->Get("application")->AsString());
   this->design_ = (DesignElement::Type) DesignElement::type.Parse(pn->Get("design")->AsString());
   this->param_ = pn->Has("param") ? pn->Get("param")->AsDouble() : 1.0;
-  
   if(type_ == IDENTITY && pn->Has("param"))
     throw Exception("it makes no sense to give a parameter for an identity transfer function");  
   if(type_ != IDENTITY && !pn->Has("param"))  
@@ -81,4 +79,5 @@ void TransferFunction::SetEnums()
   type.SetName("TransferFunction::Type");
   type.Add(SIMP_TYPE, "simp");
   type.Add(IDENTITY, "identity");
+  type.Add(RAMP, "ramp");
 }     

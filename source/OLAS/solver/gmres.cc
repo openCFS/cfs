@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "utils/utils.hh"
-#include "utils/Exception.hh"
+#include "General/exception.hh"
 #include "matvec/matvec.hh"
 #include "algsys/algsys.hh"
 
@@ -98,7 +98,7 @@ namespace OLAS {
 
     // Check that matrix is square
     if ( nCols != nRows ) 
-      throw Exception("system matrix is not square", nRows, nCols, __LINE__, __PRETTY_FUNCTION__);
+      EXCEPTION("system matrix is not square but " << nRows << " x " << nCols);
 
     // Check that the maximal dimension of the Krylov subspace is not
     // larger than the dimension of the problem

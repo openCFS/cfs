@@ -35,7 +35,7 @@ namespace OLAS {
   //! Creates the associated vector to a given matrix, e.g.
   //! an RVector if an RMatrix is given. The result
   //! is returned as a BaseVector* and might have to be
-  //! casted in to StdVector or SBMVector afterwards.
+  //! casted in to SparseVector or SBMVector afterwards.
   //! The vector is initialised to contain zeros on the scalar level.
   BaseVector* GenerateVectorObject(const BaseMatrix &m);
 
@@ -53,7 +53,7 @@ namespace OLAS {
   //!   cannot be generated via this method.
   //! - The vector is initialised so that the entries on the scalar level are
   //!   all identical to zero.
-  BaseVector* GenerateStdVectorObject( const MatrixStorageType sType,
+  BaseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
 				       const MatrixEntryType eType,
 				       const Integer blockSize,
 				       const Integer length );

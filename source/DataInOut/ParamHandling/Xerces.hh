@@ -30,7 +30,7 @@ namespace CoupledField {
 
     public:
       /** This sets the internal variables but dos not parse the file yet.
-       * @param schema if given a validation is done. You might use GetCFSSchemaGuess() :)  */
+       * @param schema if given a validation is done. */
       Xerces(const std::string& file, const std::string& schema = "");
 
       /** Shuts down all xerces stuff */ 
@@ -40,10 +40,6 @@ namespace CoupledField {
        * Easy to modify for using an arbitrary DOMNode* data source
        * @return the caller has to delete the tree by itself, there is no reference within the Xerces class.  */ 
       ParamNode* CreateParamNodeInstance();
-
-      /** Returns a guess of the CFS++ XML schema file to be used for the constructor */
-      static std::string GetCFSSchemaGuess();
-       
 
     private:
       /** This actually parses the file and sets root_ and the other variables */

@@ -15,7 +15,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
-#include "boost/lexical_cast.hpp"
 #include <string>
 
 using namespace CoupledField;

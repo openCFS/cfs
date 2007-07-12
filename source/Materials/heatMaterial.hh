@@ -24,33 +24,33 @@ namespace CoupledField {
     //! Destructor
     ~HeatMaterial();
 
-   //! set a scalar string material parameter
-    void SetScalar( std::string& param, const MaterialType& matType);
-
     //! set a scalar real material parameter
-    void SetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar( Double param, MaterialType matType, 
+		    DataType dataType );
 
     //! set a scalar complex material parameter
-    void SetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType );
+    void SetScalar( Complex param, MaterialType matType, 
+		    DataType dataType );
 
     //! set a real material tensor
-    void SetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor(const Matrix<Double>& param, MaterialType matType, DataType dataType )
+    {
+      matTypeNotAllowed( matType, "tensor");
+    }
 
     //! set a complex material tensor
-    void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType );
-
+    void SetTensor(const Matrix<Complex>& param, MaterialType matType,  DataType dataType )
+    {
+      matTypeNotAllowed( matType, "tensor");
+    }
 
     //! get a scalar real material parameter
-    void GetScalar( Double& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Double& param, MaterialType matType, 
+		    DataType dataType ) const;
 
     //! get a scalar complex real material parameter
-    void GetScalar( Complex& param, const MaterialType& matType, 
-		    const DataType& dataType ) const;
+    void GetScalar( Complex& param, MaterialType matType, 
+		    DataType dataType ) const;
 
   private:
 

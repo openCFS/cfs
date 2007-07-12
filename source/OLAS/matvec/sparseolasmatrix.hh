@@ -34,7 +34,7 @@ namespace OLAS {
 
     //@{
     //! Compute the residual \f$r=b-Ax\f$
-    void CompRes( StdVector &r, const StdVector &x, const StdVector& b ) const{
+    void CompRes( SparseVector &r, const SparseVector &x, const SparseVector& b ) const{
       ENTER_FCN( "SparseOLASMatrix::CompRes" );
       TRY_CAST {
 	RefCast     ( r, Vector<T>, tr );
@@ -50,7 +50,7 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec = this*mvec
-    void Mult( const StdVector& mvec, StdVector& rvec ) const {
+    void Mult( const SparseVector& mvec, SparseVector& rvec ) const {
       ENTER_FCN( "SparseOLASMatrix::Mult" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
@@ -64,7 +64,7 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
-    void MultT( const StdVector& mvec, StdVector& rvec ) const {
+    void MultT( const SparseVector& mvec, SparseVector& rvec ) const {
       ENTER_FCN( "SparseOLASMatrix::MultT" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
@@ -78,7 +78,7 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec += this*mvec
-    void MultAdd( const StdVector& mvec, StdVector& rvec ) const {
+    void MultAdd( const SparseVector& mvec, SparseVector& rvec ) const {
       ENTER_FCN( "SparseOLASMatrix::MultAdd" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
@@ -92,7 +92,7 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
-    void MultTAdd( const StdVector& mvec, StdVector& rvec ) const {
+    void MultTAdd( const SparseVector& mvec, SparseVector& rvec ) const {
       ENTER_FCN( "SparseOLASMatrix::MultTAdd" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
@@ -106,7 +106,7 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec -= this*mvec
-    void MultSub( const StdVector& mvec, StdVector& rvec ) const {
+    void MultSub( const SparseVector& mvec, SparseVector& rvec ) const {
       ENTER_FCN( "SparseOLASMatrix::MultSub" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );

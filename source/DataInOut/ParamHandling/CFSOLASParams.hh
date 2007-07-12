@@ -11,7 +11,6 @@ namespace CoupledField
 {
 
   // Forward declaration of classes
-  class BaseParamHandler;
   class OLAS_Params;
   class Assemble;
 
@@ -57,7 +56,7 @@ namespace CoupledField
 
     //! Set parameters for solver for linear system
 
-    //! This routine queries the BaseParamHandler object for the parameters
+    //! This routine queries the ParamNode object for the parameters
     //! belonging to the solver for the linear system associated to the
     //! PDE specified via the pdename input parameter and inserts them into
     //! The olasParams object.
@@ -74,7 +73,7 @@ namespace CoupledField
 
     //! Set parameters for eigenvalue solver for linear system
 
-    //! This routine queries the BaseParamHandler object for the parameters
+    //! This routine queries the ParamNode object for the parameters
     //! belonging to the eigenvalue solver for the linear system associated to
     //! the PDE specified via the pdename input parameter and inserts them 
     //! into rhe olasParams object.
@@ -93,7 +92,7 @@ namespace CoupledField
 
     //! Set parameters for preconditioner for linear system
 
-    //! This routine queries the BaseParamHandler object for the parameters
+    //! This routine queries the ParamNode object for the parameters
     //! belonging to the preconditionerr for the linear system associated to
     //! the PDE specified via the pdename input parameter and inserts them into
     //! The olasParams object.

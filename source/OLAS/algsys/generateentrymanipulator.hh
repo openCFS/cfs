@@ -23,7 +23,7 @@
 namespace OLAS {
 
 
-  class StdVector;
+  class SparseVector;
   class BaseEntryManipulator;
 
   //! Generates an object of a child of the BaseEntryManipulator class

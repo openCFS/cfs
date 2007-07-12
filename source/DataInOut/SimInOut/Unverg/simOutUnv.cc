@@ -646,6 +646,9 @@ namespace CoupledField {
       case MECH_STRAIN:
         EXCEPTION("Not implemented" );
         break;
+      case MECH_PSEUDO_DENSITY:
+        return "pseudo density";
+        break;
       case MECH_RHS_LOAD:
         return "mechRhsLoad";
          break;

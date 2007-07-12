@@ -7,6 +7,7 @@
 
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 {

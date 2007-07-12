@@ -343,7 +343,7 @@ namespace CoupledField {
         pressure_ = pressure_ / pStatic_ ;
         pressureDeriv_ = pressureDeriv_ * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
         
-        //Druckübergabe
+        //Druckï¿½bergabe
         ptBubble_[iElem]->SetP(pressure_);
         ptBubble_[iElem]->SetDpdt(pressureDeriv_);
         
@@ -462,8 +462,8 @@ namespace CoupledField {
 // 	  result[2] = (4.0/3.0) * PI * bubbleDensity_ * radius_[el]
 // 	    * radius_[el] * radius_[el];
 
-// 	//Achtung hier müsste ich noch das Maximum über die Zeit nehmen
-// 	//dann habe ich allerdings nur einen Wert, es könnte ja nur 
+// 	//Achtung hier mï¿½sste ich noch das Maximum ï¿½ber die Zeit nehmen
+// 	//dann habe ich allerdings nur einen Wert, es kï¿½nnte ja nur 
 // 	//einmal erreicht werden, was eigentlich zum Reinigen  nicht
 // 	//ausreicht
 // // 	//Determination of collaps -> cleaning

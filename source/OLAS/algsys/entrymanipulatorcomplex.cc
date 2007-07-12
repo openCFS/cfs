@@ -352,7 +352,7 @@ namespace OLAS {
   // *****************
   //   SetElementRHS
   // *****************
-  void EntryManipulatorComplex::SetElementRHS( StdVector *rhs,
+  void EntryManipulatorComplex::SetElementRHS( SparseVector *rhs,
                                                Double *elemRHS,
                                                Integer *connect, 
                                                UInt elemSize,
@@ -488,7 +488,7 @@ namespace OLAS {
   // ***********************
   //   SetNodeRHS (Double)
   // ***********************
-  void EntryManipulatorComplex::SetNodeRHS( StdVector *rhs, Double val,
+  void EntryManipulatorComplex::SetNodeRHS( SparseVector *rhs, Double val,
                                            Integer node  ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetNodeRHS" );
     
@@ -504,7 +504,7 @@ namespace OLAS {
   // **************
   //   SetNodeRHS
   // **************
-  void EntryManipulatorComplex::SetNodeRHS( StdVector *rhs, Complex val,
+  void EntryManipulatorComplex::SetNodeRHS( SparseVector *rhs, Complex val,
                                             Integer node ) {
 
     ENTER_IFCN( "EntryManipulatorComplex::SetNodeRHS" );
@@ -521,7 +521,7 @@ namespace OLAS {
   // ******************
   //   SetVectorEntry
   // ******************
-  void EntryManipulatorComplex::SetVectorEntry( StdVector *vec, UInt index,
+  void EntryManipulatorComplex::SetVectorEntry( SparseVector *vec, UInt index,
                                                 Double &newVal ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetVectorEntry" );
     (*error) << "EntryManipulatorComplex::SetVectorEntry: "
@@ -530,7 +530,7 @@ namespace OLAS {
   }
 
 
-  void EntryManipulatorComplex::SetVectorEntry( StdVector *vec, UInt index,
+  void EntryManipulatorComplex::SetVectorEntry( SparseVector *vec, UInt index,
                                                 Complex &newVal ) {
     ENTER_IFCN( "EntryManipulatorComplex::SetVectorEntry" );
     vec->SetVectorEntry( index, newVal );
@@ -540,7 +540,7 @@ namespace OLAS {
   // ***********
   //   InitRHS
   // ***********
-  void EntryManipulatorComplex::InitRHS( StdVector *rhs,
+  void EntryManipulatorComplex::InitRHS( SparseVector *rhs,
                                          const Double *newRHS ) {
 
     ENTER_IFCN( "EntryManipulatorComplex::InitRHS" );
@@ -580,7 +580,7 @@ namespace OLAS {
   // *******************************
   //   UpdateRHS (f = f + A * fup)
   // *******************************
-  void EntryManipulatorComplex::UpdateRHS( StdVector *rhs,
+  void EntryManipulatorComplex::UpdateRHS( SparseVector *rhs,
                                            StdMatrix *stdMat, Double *fup ) { 
     ENTER_IFCN( "EntryManipulatorComplex::UpdateRHS" );
     (*error) << "EntryManipulatorComplex::UpdateRHS not implemented yet!";
@@ -616,9 +616,9 @@ namespace OLAS {
   // *******************
   //   AdaptRHSForIDBC
   // *******************
-  void EntryManipulatorComplex::AdaptRHSForIDBC( StdVector &rhs,
+  void EntryManipulatorComplex::AdaptRHSForIDBC( SparseVector &rhs,
                                                  UInt *dirichletEQN,
-                                                 StdVector &dirichletValue,
+                                                 SparseVector &dirichletValue,
                                                  Double &penaltyTerm,
                                                  UInt numIDBC ) {
 
@@ -637,7 +637,7 @@ namespace OLAS {
   // ******************
   //   GetSolutionVal
   // ******************
-  void EntryManipulatorComplex::GetSolutionVal( StdVector *sol,
+  void EntryManipulatorComplex::GetSolutionVal( SparseVector *sol,
                                                 Double* &ptSol, 
                                                 const PdeIdType pdeID ) {
     (*error) << "GetSolutionVal(Double) not defined for complex entries";
@@ -645,7 +645,7 @@ namespace OLAS {
   }
 
 
-  void EntryManipulatorComplex::GetSolutionVal( StdVector *sol,
+  void EntryManipulatorComplex::GetSolutionVal( SparseVector *sol,
                                                 Complex* &ptSol, 
                                                 const PdeIdType pdeID ) {
 
@@ -670,13 +670,13 @@ namespace OLAS {
   // *************
   //   GetRHSVal
   // *************
-  void EntryManipulatorComplex::GetRHSVal( StdVector *rhs, Double* &ptRhs, 
+  void EntryManipulatorComplex::GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
                                            const PdeIdType identifierPDE ) {
     (*error) << "GetRHSVal(Double) not defined for complex entries";
     Error( __FILE__, __LINE__ );
   }
 
-  void EntryManipulatorComplex::GetRHSVal( StdVector *rhs, Complex* &ptRhs, 
+  void EntryManipulatorComplex::GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
                                            const PdeIdType identifierPDE ) {
 
     ENTER_FCN( "EntryManipulatorComplex::GetRHSVal" );

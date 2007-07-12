@@ -118,10 +118,10 @@ namespace CoupledField {
 
     // Create algebraic system and pass it to SinglePDEs
     if ( genSBMSys == true ) {
-      algsys_ = new SBM_System();
+      algsys_ = new SBM_System(FindLinearSystem("direct"));
     }
     else {
-      algsys_ = new StandardSystem();
+      algsys_ = new StandardSystem(FindLinearSystem("direct"));
     }
 
     // Get parameter and report object of OLAS

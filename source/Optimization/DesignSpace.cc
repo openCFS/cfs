@@ -96,10 +96,17 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
   // set the result descriptions which identify the solution types
   for(unsigned int i = 0; i < resultDescriptions_.GetSize(); i++)
   {
-    ResultInfo* ri = GetResultInfo(resultDescriptions_[i]);
+	ResultDescription& rd = resultDescriptions_[i];
+    ResultInfo* ri = GetResultInfo(rd);
     shared_ptr<ResultInfo> opt_res(ri);    
     bool added = pde->CheckStoreResult(opt_res);
-    if(!added) Warning("Warning: optimization result not as pde result declared"); 
+    if(!added) 
+    {
+      std::ostringstream os;
+      os << "Warning: optimization result '" << rd.ToString() << "' not as pde result declared";
+      Warning(os.str().c_str());
+    
+    }		     
   }
 }
 

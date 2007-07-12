@@ -153,6 +153,9 @@ namespace CoupledField {
         algsys_->SetFEMatrixType( mappedSecFEType, id1, id2 );
       }
     }
+    else {
+      delete biLinContext;
+    }
   }
 
   void Assemble::AddLinearForm( LinearFormContext* linContext ) {

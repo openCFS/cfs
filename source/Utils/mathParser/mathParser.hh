@@ -9,8 +9,10 @@
 #include <list>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
+#include "Utils/vector.hh"
 #include "General/environment.hh"
 
+template <class TYPE> class Vector;
 
 namespace CoupledField {
 

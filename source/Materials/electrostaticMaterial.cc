@@ -49,7 +49,7 @@ namespace CoupledField
 
   }
 
-  void ElectroStaticMaterial::SetScalar( std::string& param, const MaterialType& matType) {
+  void ElectroStaticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
@@ -71,8 +71,8 @@ namespace CoupledField
   }
 
 
-  void ElectroStaticMaterial::SetScalar( Double& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void ElectroStaticMaterial::SetScalar( Double param, MaterialType matType, 
+					 DataType dataType ) {
 
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
@@ -102,8 +102,8 @@ namespace CoupledField
   }
 
 
-  void ElectroStaticMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void ElectroStaticMaterial::SetScalar( Complex param, MaterialType matType, 
+					 DataType dataType ) {
 
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
@@ -133,8 +133,8 @@ namespace CoupledField
   }
 
 
-  void ElectroStaticMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void ElectroStaticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
+					 DataType dataType ) {
     
     ENTER_FCN( "ElectroStaticMaterial::SetTensor" );
 
@@ -174,8 +174,8 @@ namespace CoupledField
     }
   }
 
-  void ElectroStaticMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void ElectroStaticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
+					 DataType dataType ) {
     
     ENTER_FCN( "ElectroStaticMaterial::SetTensor" );
 
@@ -203,7 +203,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::GetScalar( std::string& param, 
-					 const MaterialType& matType) const {
+					 MaterialType matType) const {
 
     ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
@@ -220,8 +220,8 @@ namespace CoupledField
   }
 
 
-  void ElectroStaticMaterial::GetScalar( Double& param, const MaterialType& matType, 
-					   const DataType& dataType ) const {
+  void ElectroStaticMaterial::GetScalar( Double& param, MaterialType matType, 
+					   DataType dataType ) const {
 
     ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
@@ -248,8 +248,8 @@ namespace CoupledField
   }
 
 
-  void ElectroStaticMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-					 const DataType& dataType ) const {
+  void ElectroStaticMaterial::GetScalar( Complex& param, MaterialType matType, 
+					 DataType dataType ) const {
 
     ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
@@ -279,7 +279,7 @@ namespace CoupledField
 
  
 
-  void ElectroStaticMaterial::GetScalar( Integer& param, const MaterialType& matType)  const {
+  void ElectroStaticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
     ENTER_FCN( "ElectrostaticMaterial::GetScalar" );
     
@@ -297,9 +297,9 @@ namespace CoupledField
    } 
 
   void ElectroStaticMaterial::GetTensor( Matrix<Double>& param, 
-					 const MaterialType& matType, 
-					 const DataType& dataType,
-					 const SubTensorType subTensor) const {
+					 MaterialType matType, 
+					 DataType dataType,
+					 SubTensorType subTensor) const {
 
     ENTER_FCN( "ElectroStaticMaterial::GetTensor" );
 
@@ -330,9 +330,9 @@ namespace CoupledField
   }
 
   void ElectroStaticMaterial::GetTensor( Matrix<Complex>& param, 
-					 const MaterialType& matType, 
-					 const DataType& dataType,
-					 const SubTensorType subTensor) const {
+					 MaterialType matType, 
+					 DataType dataType,
+					 SubTensorType subTensor) const {
     
     ENTER_FCN( "ElectroStaticMaterial::GetTensor" );
 
@@ -367,8 +367,8 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
-					       const MaterialType& matType, 
-					       const SubTensorType& subTensor) const {
+					       MaterialType matType, 
+					       SubTensorType subTensor) const {
 
     ENTER_FCN( "ElectroStaticMaterial::ComputeSubTensor" );
 

@@ -47,7 +47,7 @@ namespace OLAS {
 if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
    retVector = New VECTORCLASS( length );\
    AssertMem( retVector, sizeof( VECTORCLASS ) );\
-   (*cla) << " GenerateStdVectorObject: Generated "\
+   (*cla) << " GenerateSparseVectorObject: Generated "\
           << MACRO2STRING(VECTORCLASS) << " of dimension " << length\
    << std::endl;\
 }
@@ -85,7 +85,7 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
       // Create and insert subvectors
       for ( Integer i = 1; i <= m_Ncols; i++ ) {
         if ( sbmmat->GetPointer(i,i) != NULL ) {
-          sbmvec->SetSubVector( dynamic_cast<StdVector*>
+          sbmvec->SetSubVector( dynamic_cast<SparseVector*>
                                 (GenerateVectorObject((*sbmmat)(i,i))), i );
         }
       }
@@ -106,8 +106,8 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
       m_blocksize = m_StdMatrix->GetBlockSize();
       m_storagetype = m_StdMatrix->GetStorageType();
 
-      // Delegate work to factory for sequential StdVectors
-      retVector = GenerateStdVectorObject( m_storagetype, m_entrytype,
+      // Delegate work to factory for sequential SparseVectors
+      retVector = GenerateSparseVectorObject( m_storagetype, m_entrytype,
                                            m_blocksize, m_Ncols );
       break;
 
@@ -124,12 +124,12 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
   // **************************************************
   //   Dynamic generation of vector of specified type
   // **************************************************
-  BaseVector* GenerateStdVectorObject( const MatrixStorageType sType,
+  BaseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
                                        const MatrixEntryType eType,
                                        const Integer blockSize,
                                        const Integer length ) {
 
-    ENTER_FCN( "GenerateStdVectorObject" );
+    ENTER_FCN( "GenerateSparseVectorObject" );
 
     BaseVector *retVector = NULL;
 
@@ -159,7 +159,7 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
     if ( neverTrue ) {
       Error( "GenerateVectorObject: Wrong input! sType = NOSTORAGETYPE",
              __FILE__, __LINE__ );
-      StdVector *stdVec = dynamic_cast<StdVector*>(retVector);
+      SparseVector *stdVec = dynamic_cast<SparseVector*>(retVector);
       if ( stdVec != NULL ) {
         stdVec->InstantiatePublicMethods();
       }

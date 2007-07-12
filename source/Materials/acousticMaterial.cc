@@ -45,15 +45,9 @@ namespace CoupledField
   }
 
 
-  void AcousticMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    EXCEPTION("SetScalar for 'String' not implemented");
-  }
-
-
-  void AcousticMaterial::SetScalar( Double& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
+  void AcousticMaterial::SetScalar( Double param, MaterialType matType, 
+				    DataType dataType ) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
 
@@ -84,31 +78,9 @@ namespace CoupledField
   }
 
 
-  void AcousticMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
 
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    dataTypeNotAllowed( dataType, matType );
-  }
-
-
-  void AcousticMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
-    
-    ENTER_FCN( "AcousticMaterial::SetTensor" );
-    dataTypeNotAllowed( dataType, matType );
-  }
-
-  void AcousticMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-				    const DataType& dataType ) {
-    
-    ENTER_FCN( "AcousticMaterial::SetTensor" );
-    dataTypeNotAllowed( dataType, matType );    
-  }
-
-
-  void AcousticMaterial::GetScalar( Double& param, const MaterialType& matType, 
-				    const DataType& dataType ) const {
+  void AcousticMaterial::GetScalar( Double& param, MaterialType matType, 
+				    DataType dataType ) const {
 
     ENTER_FCN( "AcousticMaterial::GetScalar" );
 
@@ -133,12 +105,4 @@ namespace CoupledField
       }
     }
   }
-
-  void AcousticMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-				    const DataType& dataType ) const {
-
-    ENTER_FCN( "AcousticMaterial::GetScalar" );
-    dataTypeNotAllowed( dataType, matType );    
-  }
-
 }

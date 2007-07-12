@@ -199,6 +199,9 @@ namespace CoupledField
        
        /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
        DesignElement::Detail detail;
+       
+       /** As long as solutionType is an int this gives the string representation */
+       std::string ToString();
    };
 
 } // end of namespace

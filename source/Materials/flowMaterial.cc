@@ -36,15 +36,9 @@ namespace CoupledField
 
   }
 
-  void FlowMaterial::SetScalar( std::string& param, const MaterialType& matType) {
-
-    ENTER_FCN( "FlowMaterial::SetScalar" );
-    EXCEPTION("SetScalar for 'String' not implemented" );
-  }
-
-
-  void FlowMaterial::SetScalar( Double& param, const MaterialType& matType, 
-				const DataType& dataType ) {
+  
+  void FlowMaterial::SetScalar( Double param, MaterialType matType, 
+				DataType dataType ) {
 
     ENTER_FCN( "FlowMaterial::SetScalar" );
 
@@ -74,32 +68,8 @@ namespace CoupledField
   }
 
 
-  void FlowMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-				const DataType& dataType ) {
-
-    ENTER_FCN( "FlowMaterial::SetScalar" );
-
-    dataTypeNotAllowed( dataType, matType );
-  }
-
-
-  void FlowMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
-    
-    ENTER_FCN( "FlowMaterial::SetTensor" );
-    dataTypeNotAllowed( dataType, matType );
-  }
-
-  void FlowMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
-    
-    ENTER_FCN( "FlowMaterial::SetTensor" );
-    dataTypeNotAllowed( dataType, matType );    
-  }
-
-
-  void FlowMaterial::GetScalar( Double& param, const MaterialType& matType, 
-				const DataType& dataType ) const {
+  void FlowMaterial::GetScalar( Double& param, MaterialType matType, 
+				DataType dataType ) const {
 
     ENTER_FCN( "FlowMaterial::GetScalar" );
 
@@ -123,13 +93,6 @@ namespace CoupledField
 	dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
-  }
-
-  void FlowMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) const {
-
-    ENTER_FCN( "FlowMaterial::GetScalar" );
-    dataTypeNotAllowed( dataType, matType );    
   }
 
 }

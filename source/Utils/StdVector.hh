@@ -6,11 +6,8 @@
 #define FILE_STDVECTOR_2004
 
 #include <boost/serialization/split_member.hpp>
-
-#include "General/environment.hh"
+#include <vector>
 #include "General/exception.hh"
-#include "Utils/tools.hh"
-#include "DataInOut/WriteInfo.hh"
 
 
 namespace CoupledField {
@@ -33,7 +30,7 @@ namespace CoupledField {
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    explicit StdVector(UInt size);
+    explicit StdVector(unsigned int size);
 
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);
@@ -59,20 +56,20 @@ namespace CoupledField {
     inline bool IsEmpty() const {return (size_? false : true);}
   
     //! Returns capacity of the vector
-    inline UInt Capacity() const {return capacity_;}
+    inline unsigned int Capacity() const {return capacity_;}
 
     //! 
-    void Reserve(UInt size);
+    void Reserve(unsigned int size);
 
     //! Get the length of the vector
-    inline UInt GetSize() const {return size_;}
+    inline unsigned int GetSize() const {return size_;}
 
     //! Set the lenght of the vector
     /*!
       \param size (input) Lengh of vector
     */
     //! \note the entries are set to zero afterwards!
-    void Resize(const UInt size);
+    void Resize(const unsigned int size);
  
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
@@ -95,36 +92,36 @@ namespace CoupledField {
  
 
     //! General access operator
-    inline TYPE &operator[] (const UInt i);
+    inline TYPE &operator[] (const unsigned int i);
 
     //! Read-Only access operator
-    inline TYPE operator[] (const UInt i) const;
+    inline TYPE operator[] (const unsigned int i) const;
 
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
     //! Add element of the same type at position pos
-    void Insert(const TYPE & y, UInt pos);
+    void Insert(const TYPE & y, unsigned int pos);
 
     //! Add element of the same type at position pos
     //! numCopies times
-    void Insert(const TYPE & y, UInt pos, UInt numCopies);
+    void Insert(const TYPE & y, unsigned int pos, unsigned int numCopies);
 
     //! Add element of the same type at the end of the vector
     void Push_back(const TYPE & y = TYPE() );
 
     //! Delete element from vector on position pos
-    void Erase (const UInt pos);
+    void Erase (const unsigned int pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void Erase (const UInt pos1, const UInt pos2);
+    void Erase (const unsigned int pos1, const unsigned int pos2);
 
 
     //! Return the position number of element x in the vector
 
     //! Finds the element x in the vector and returns the 
     //! position. If no element was found, it returns -1.
-    Integer Find(const TYPE &x) const;
+    int Find(const TYPE &x) const;
 
     //! Overloading of operation equal for Vector
     bool operator== (const StdVector &) const;
@@ -138,13 +135,13 @@ namespace CoupledField {
     // ******************************************************
   
     //! Sort of vector: v - vec.p, n - vec.size
-    template <class S> void Sort(S* v, UInt n);
+    template <class S> void Sort(S* v, unsigned int n);
   
     //! Swap 2 elements in vector Ex Swap(v[i],v[j])
     template<class T2> void Swap(T2& a, T2 & b);
 
     //! Return vector as separated string
-    std::string Serialize( Char separator = ',') const;
+    std::string Serialize( char separator = ',') const;
 
      /** Lists the content comma seperated */ 
      std::string ToString() const;
@@ -158,13 +155,13 @@ namespace CoupledField {
   protected:
 
     //! Length of the vector
-    UInt size_;
+    unsigned int size_;
     
     //! Data of the vector
     TYPE* data_;
   
     //! Capacity of the vector
-    UInt capacity_;
+    unsigned int capacity_;
 
     // ******************************************************
     // SERIALIZATION FUNCTIONS
@@ -221,7 +218,7 @@ namespace CoupledField {
   
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE & StdVector<TYPE>::operator[] (const UInt i)
+  TYPE & StdVector<TYPE>::operator[] (const unsigned int i)
   {     
     #ifdef CHECK_INDEX
     if (i >= size_){
@@ -235,7 +232,7 @@ namespace CoupledField {
 
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE StdVector<TYPE>::operator[] (const UInt i) const
+  TYPE StdVector<TYPE>::operator[] (const unsigned int i) const
   {     
 #ifdef CHECK_INDEX
      if (i >= size_){

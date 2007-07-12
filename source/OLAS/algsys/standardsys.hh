@@ -17,7 +17,7 @@ namespace OLAS {
   // Forward Declarations of classes
   class BaseStdPrecond;
   class StdMatrix;
-  class StdVector;
+  class SparseVector;
   class PatternPool;
 
 
@@ -41,7 +41,7 @@ namespace OLAS {
     //! This is the default constructor. It will perform some initial memory
     //! allocation (e.g. for the array of matrices) and set some default
     //! values.
-    StandardSystem();
+    StandardSystem(ParamNode* xml = NULL);
 
     //! Destructor
 
@@ -568,8 +568,8 @@ namespace OLAS {
     void RemoveIDBCInfoFromMatrix() const; 
 
     StdMatrix *GetSysMat()const {return sysmat_[1];}
-    StdVector *GetSolVec(){return sol_;}
-    StdVector *GetRhsVec(){return rhs_;}
+    SparseVector *GetSolVec(){return sol_;}
+    SparseVector *GetRhsVec(){return rhs_;}
 
     //@}
   
@@ -584,10 +584,10 @@ namespace OLAS {
     StdMatrix **sysmat_;
 
     //! Pointer to solution vector
-    StdVector *sol_;
+    SparseVector *sol_;
 
     //! Pointer to right-hand side vector
-    StdVector *rhs_;
+    SparseVector *rhs_;
 
     //! Auxilliary vector for passing solution back to CFS++
 
@@ -597,13 +597,13 @@ namespace OLAS {
     //!       IDBC handling
     //! \todo Adapt handling of solution vector in StoreSolutions classes
     //!       of CFS++ to administer IDBCs itself
-    StdVector *solComm_;
+    SparseVector *solComm_;
 
     //! Buffer for storing the eigenvalues of the system
-    StdVector *eigenValues_;
+    SparseVector *eigenValues_;
 
     //! Buffer for storing the error bounds of the eigenvalues
-    StdVector *eigenValError_;
+    SparseVector *eigenValError_;
 
     //! Pointer to the preconditioner object
     BaseStdPrecond *precond_; 

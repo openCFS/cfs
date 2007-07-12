@@ -131,20 +131,21 @@ namespace OLAS {
     //scalar of the same primitive data type as matrix
     typedef typename assocType<T>::T_Stype T_Stype;	
 
-    //! Constructor
 
-    //! This constructor does nothing but initialise the internal array
-    //! pointers to NULL and set the pointers to the communication objects.
-    //! \param myParams pointer to parameter object with steering parameters
-    //!                 for this solver
-    //! \param myReport pointer to report object for storing general
-    //!                 information on solution process
-    CGSolver( OLAS_Params *myParams, OLAS_Report *myReport )
+    /** The CG constructor initialized the variables but does not
+     * start any calculation or allocate huge memory.
+     * The dafaults are handlended in the impementation itself.
+     * @param xml the ParamNode which might contain the cg element - can be NULL
+
+     * @param myParams the legacy paramer for the base class
+     * @param myReport report object for storing general information on solution process */ 
+    CGSolver(ParamNode* xml, OLAS_Params *myParams, OLAS_Report *myReport )
         : r_(NULL),
           s_(NULL),
           d_(NULL),
           q_(NULL) {
       ENTER_FCN( "CGSolver::CGSolver" );
+      xml_       = xml != NULL ? xml->Get("cg", false) : NULL;
       myParams_ = myParams;
       myReport_ = myReport;
       resDirectly_ = 0;

@@ -53,7 +53,7 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::SetScalar( Integer& param, const MaterialType& matType) {
+  void BaseMaterial::SetScalar(int param, MaterialType matType) {
 
     ENTER_FCN( "Basematerial::SetScalar" );
 
@@ -67,9 +67,9 @@ namespace CoupledField
       integerParams_[matType] = param;
     }
   }
-
-  void BaseMaterial::GetScalar( Integer& param, const MaterialType& matType, 
-				const DataType& dataType ) const {
+                 
+  void BaseMaterial::GetScalar(Integer& param, MaterialType matType, DataType dataType ) const 
+  {
 
     ENTER_FCN( "BaseMaterial::GetScalar" );
 
@@ -106,8 +106,7 @@ namespace CoupledField
     return found;
   }
 
-  void  BaseMaterial::matTypeNotAllowed( const MaterialType& matType, 
-					 std::string dim ) const {
+  void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const std::string& dim ) const {
     ENTER_FCN("BaseMaterial::matTypeNotAllowed");
 
     std::string help;
@@ -118,8 +117,8 @@ namespace CoupledField
   }
   
 
-  void  BaseMaterial::dataTypeNotAllowed4SetGet( const DataType& dataType, 
-						 const std::string msg ) const {
+  void  BaseMaterial::dataTypeNotAllowed4SetGet(DataType dataType, 
+						 const std::string& msg ) const {
     ENTER_FCN("BaseMaterial::dataTypeNotAllowed4Set");
 
     std::string help;
@@ -129,8 +128,7 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::dataTypeNotAllowed( const DataType& dataType, 
-					  const MaterialType& matType ) const {
+  void BaseMaterial::dataTypeNotAllowed(DataType dataType, MaterialType matType ) const {
     ENTER_FCN("BaseMaterial::dataTypeNotAllowed");
 
     std::string help1, help2;
@@ -140,8 +138,7 @@ namespace CoupledField
                << help2 << " in material data base " << materialDatabaseName_ );
   }
 
-  void BaseMaterial::matTypeNotInDataBase( const MaterialType& matType,
-					   std::string dim ) const {
+  void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const {
     ENTER_FCN("BaseMaterial::matTypeNotInFile");
 
     std::string help;
@@ -151,8 +148,7 @@ namespace CoupledField
   }
 
 
-  void  BaseMaterial::setMakesNoSense( const DataType& dataType, 
-				       std::string msg ) const {
+  void  BaseMaterial::setMakesNoSense(DataType dataType, const std::string& msg ) const {
     ENTER_FCN("BaseMaterial::setMakesNoSense");
 
     std::string msgAll, help;
@@ -162,8 +158,7 @@ namespace CoupledField
   }
 
 
-  void  BaseMaterial::subTensorNotAvailable( const MaterialType& matType, 
-					     const SubTensorType subTensor ) const {
+  void  BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor ) const {
     ENTER_FCN("BaseMaterial::subTensorNotAvailable") 
 
     std::string msg, help1, help2;
@@ -250,7 +245,7 @@ namespace CoupledField
 
 
   void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
-                                                   const MaterialType& matType,
+                                                   MaterialType matType,
                                                    bool persistent ) {
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
@@ -386,7 +381,7 @@ namespace CoupledField
     
 
   void BaseMaterial::RotateTensorByPointCoord( const Vector<Double>&  coord,
-                                               const MaterialType& matType ) {
+                                               MaterialType matType ) {
 
     ENTER_FCN( "BaseMaterial:: RotateTensorByPointCoord" );
 
@@ -537,7 +532,7 @@ namespace CoupledField
     Yprevious_.Init(0.0);
   }
 
-  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Double& Xval) {
+  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Double Xval) {
     ENTER_FCN( "BaseMaterial::SetPreviousHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
@@ -546,7 +541,7 @@ namespace CoupledField
     Yprevious_[idx] = hyst_->computeValue( Xval, nrElem );
   }
 
-  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Double& Xval) {
+  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval) {
     ENTER_FCN( "BaseMaterial::ComputeScalarDiffVal" );
 
     Double matDiff, eps;
@@ -570,7 +565,7 @@ namespace CoupledField
 
   }
 
-  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Double& Xval) {
+  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval) {
     ENTER_FCN( "BaseMaterial::ComputeScalarHystVal" );
 
     Double matDiff, eps;

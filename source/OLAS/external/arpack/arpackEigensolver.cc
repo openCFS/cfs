@@ -109,7 +109,8 @@ namespace OLAS {
     // Create solver
     SolverType solver;
     myParams_->GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *matrixB_, solver, myParams_,
+    // killme! check the ParamNode parameter
+    solver_ = GenerateSolverObject( *matrixB_, solver, NULL, myParams_,
                                     myReport_ );
 
     // Create preconditioner

@@ -393,12 +393,12 @@ void PiezoSIMP::SolveTransductionSubProblem(Application subProblem)
     {
       // ELEC is by definition the first case 
       mech->GetSolVecOfElement(mech_sol_1[i], it, mech->GetResultInfo(MECH_DISPLACEMENT));
-      elec->GetSolVecOfElement(elec_sol_1[i], it, mech->GetResultInfo(ELEC_POTENTIAL));
+      elec->GetSolVecOfElement(elec_sol_1[i], it, elec->GetResultInfo(ELEC_POTENTIAL));
     }
     else
     {
       mech->GetSolVecOfElement(mech_sol_2[i], it, mech->GetResultInfo(MECH_DISPLACEMENT));
-      elec->GetSolVecOfElement(elec_sol_2[i], it, mech->GetResultInfo(ELEC_POTENTIAL));
+      elec->GetSolVecOfElement(elec_sol_2[i], it, elec->GetResultInfo(ELEC_POTENTIAL));
     }
   }
 

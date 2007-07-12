@@ -352,3 +352,10 @@ ResultDescription::ResultDescription(ParamNode* pn)
    detail = (DesignElement::Detail) DesignElement::detail.Parse(pn->Get("detail")); 
 }
 
+std::string ResultDescription::ToString()
+{
+   // killme: do this nice when there is no more environment.hh
+   std::string string;
+   Enum2String((SolutionType) solutionType, string);
+   return string;
+}

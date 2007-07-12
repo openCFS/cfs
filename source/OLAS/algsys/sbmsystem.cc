@@ -28,7 +28,7 @@ namespace OLAS {
   // ***********************
   //   Default Constructor
   // ***********************
-  SBM_System::SBM_System() : BaseSystem() {
+  SBM_System::SBM_System(ParamNode* pn) : BaseSystem(pn) {
 
     ENTER_FCN( "SBM_System::SBM_System" );
 
@@ -273,7 +273,7 @@ namespace OLAS {
     // are really needed, however?
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
-    StdVector *sVec = NULL;
+    SparseVector *sVec = NULL;
     for ( UInt k = 1; k <= numPDEs_; k++ ) {
 
       // Get diag matrix for vector generation
@@ -281,12 +281,12 @@ namespace OLAS {
 
       // Insert sub-vector into solution
       bVec = GenerateVectorObject( *stdMat );
-      sVec = dynamic_cast<StdVector*>( bVec );
+      sVec = dynamic_cast<SparseVector*>( bVec );
       sol_->SetSubVector( sVec, k );
 
       // Insert sub-vector into right-hand side
       bVec = GenerateVectorObject( *stdMat );
-      sVec = dynamic_cast<StdVector*>( bVec );
+      sVec = dynamic_cast<SparseVector*>( bVec );
       rhs_->SetSubVector( sVec, k );
     }
 
@@ -942,8 +942,8 @@ namespace OLAS {
 
     ENTER_FCN("SBM_System::CreateSolver");
     
-    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), GMRES, &myParams_,
-                                    &myReport_ );
+    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), GMRES, xml,
+                                    &myParams_, &myReport_ );
   }
 
 

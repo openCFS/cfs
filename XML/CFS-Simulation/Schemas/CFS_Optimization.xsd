@@ -98,7 +98,7 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="constraint"/>
-                <xsd:enumeration value="output_only"/>
+                <xsd:enumeration value="observation"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -210,7 +210,7 @@
 	            <xsd:simpleType>
 	              <xsd:restriction base="xsd:token">
 	                <xsd:enumeration value="none"/>
-	                <xsd:enumeration value="uKU"/>				                    
+	                <xsd:enumeration value="uKu"/>				                    
 	                <xsd:enumeration value="uKp"/>				  
 	                <xsd:enumeration value="pKu"/>				                                      
 	                <xsd:enumeration value="pKp"/>				        

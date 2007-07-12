@@ -38,16 +38,8 @@ namespace CoupledField
 
   }
 
-
-  void  HeatMaterial::SetScalar( std::string& param, const MaterialType& matType) {
-
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    EXCEPTION("SetScalar for 'String' not implemented" );
-  }
-
-
-  void HeatMaterial::SetScalar( Double& param, const MaterialType& matType, 
-				const DataType& dataType ) {
+  void HeatMaterial::SetScalar( Double param, MaterialType matType, 
+				DataType dataType ) {
 
     ENTER_FCN( "HeatMaterial::SetScalar" );
 
@@ -77,8 +69,8 @@ namespace CoupledField
 
   }
 
-  void HeatMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-				const DataType& dataType ) {
+  void HeatMaterial::SetScalar( Complex param, MaterialType matType, 
+				DataType dataType ) {
 
     ENTER_FCN( "HeatMaterial::SetScalar" );
 
@@ -108,26 +100,9 @@ namespace CoupledField
   }
 
 
-  void HeatMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
-    
-    ENTER_FCN( "HeatMaterial::SetTensor" );
-    std::string dim = "tensor";
-    matTypeNotAllowed( matType, dim );
-  }
 
-  void HeatMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
-    
-    ENTER_FCN( "HeatMaterial::SetTensor" );
-    std::string dim = "tensir";
-    matTypeNotAllowed( matType, dim );
-    
-  }
-
-
-  void HeatMaterial::GetScalar( Double& param, const MaterialType& matType, 
-				const DataType& dataType ) const {
+  void HeatMaterial::GetScalar( Double& param, MaterialType matType, 
+				DataType dataType ) const {
 
     ENTER_FCN( "HeatMaterial::GetScalar" );
 
@@ -154,8 +129,8 @@ namespace CoupledField
   }
 
 
-  void HeatMaterial::GetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) const {
+  void HeatMaterial::GetScalar( Complex& param, MaterialType matType, 
+					   DataType dataType ) const {
 
     ENTER_FCN( "HeatMaterial::GetScalar" );
 

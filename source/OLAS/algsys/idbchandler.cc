@@ -272,7 +272,7 @@ namespace OLAS {
 
     ENTER_FCN( "IDBC_Handler::SetIDBC" );
 
-    // CASE 1: StdVector
+    // CASE 1: SparseVector
     if ( sbmCase_ == false ) {
       vecIDBC_->SetVectorEntry( eqnNo - numFreeDofs_[1], val );
     }
@@ -515,8 +515,8 @@ namespace OLAS {
       }
 
       // Loop over all sub-vectors
-      StdVector *stdVec = NULL;
-      StdVector *stdVal = NULL;
+      SparseVector *stdVec = NULL;
+      SparseVector *stdVal = NULL;
       for ( UInt i = 1; i <= sbmVec->GetSize(); i++ ) {
 
         stdVec = sbmVec->GetPointer( i );
@@ -532,12 +532,12 @@ namespace OLAS {
     }
 
     // -----------------
-    // CASE 2: StdVector
+    // CASE 2: SparseVector
     // -----------------
     else {
 
       // Down-cast vector
-      StdVector *stdVec = dynamic_cast<StdVector*>( vec );
+      SparseVector *stdVec = dynamic_cast<SparseVector*>( vec );
       if ( stdVec == NULL ) {
         Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
       }

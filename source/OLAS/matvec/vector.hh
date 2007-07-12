@@ -13,7 +13,7 @@
 #include "utils/utils.hh"
 #include "matvec/typedefs.hh"
 #include "matvec/opdefs.hh"
-#include "matvec/stdvector.hh"
+#include "matvec/SparseVector.hh"
 
 namespace OLAS {
 
@@ -21,7 +21,7 @@ namespace OLAS {
   //! dof can be specified by using T = tvmet::Vector<T, dof>
 
   template <typename T>
-  class Vector : public StdVector {
+  class Vector : public SparseVector {
 
   public:
 
@@ -48,7 +48,7 @@ namespace OLAS {
     //@{
 
     //! Default Constructor
-    Vector() : StdVector(), data_(NULL) {
+    Vector() : SparseVector(), data_(NULL) {
       ENTER_FCN( "Vector::Vector" );
       dof_ = BlockSize<T>::size;
       size_ = 0;
@@ -190,26 +190,26 @@ namespace OLAS {
 
     //@{
     //! Add vec to this vector object
-    void Add(const StdVector &vec);
+    void Add(const SparseVector &vec);
 
     //! Add a scaled version of a vector to this vector object
 
     //! The method takes this vector object \f$x\f$ and replaces it with
     //! the result of \f$x + \alpha v\f$.
-    void Add(T_Stype a, const StdVector &vec);   
+    void Add(T_Stype a, const SparseVector &vec);   
 
     //! Replace this vector object by the sum of two scaled vectors
 
     //! This method replaces this vector object by the sum
     //! \f$\alpha x +\beta y\f$.
-    void Add(T_Stype a, const StdVector &vec1,  
-             T_Stype b, const StdVector &vec2);         
+    void Add(T_Stype a, const SparseVector &vec1,  
+             T_Stype b, const SparseVector &vec2);         
                                                 
     //! Compute inner product
 
     //! The method computes the value of the inner product between this vector
     //! and the input vector vec. The value is returned in sum.
-    void Inner(const StdVector& vec, T_Stype& sum) const;
+    void Inner(const SparseVector& vec, T_Stype& sum) const;
 
     //! Compute Euclidean norm of this vector object
     Double NormEuclid() const;
@@ -220,10 +220,10 @@ namespace OLAS {
     //! classical BLAS function AXPY, i.e. it scales the vector x by the
     //! factor alpha and adds the vector y to it. The result will over-write
     //! the vector x.
-    void Axpy( const T_Stype alpha, const StdVector &y );
+    void Axpy( const T_Stype alpha, const SparseVector &y );
 
     //! Overload assignment operator
-    StdVector &operator= ( const StdVector &stdvec );
+    SparseVector &operator= ( const SparseVector &stdvec );
 
     //! Divide each vector entry by specified real-valued scalar
     void ScalarDiv( const Double factor );

@@ -107,6 +107,7 @@ namespace OLAS {
     StopCritType stopCrit = NOSTOPCRITTYPE;
     myParams_->GetEnumValue( "StoppingCriterion", stopCrit );
 
+    
     // Report this to log file, if required
     if ( beVerbose == true ) {
       (*cla) << "\n Checking stopping rule:\n"

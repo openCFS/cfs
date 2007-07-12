@@ -5,8 +5,9 @@
 #include <def_use_xerces.hh>
 #include "XMLMaterialHandler.hh"
 
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/ParamHandling/XMLParamHandler.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 // header for materials
@@ -18,22 +19,34 @@
 #include "Materials/piezoMaterial.hh"
 #include "Materials/flowMaterial.hh"
 
+// Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
+// in revision 7562 and are not in the code -> check the repository!
+
 namespace CoupledField {
 
   XMLMaterialHandler::XMLMaterialHandler( const std::string & fileName )
     : MaterialHandler( fileName) {
     ENTER_FCN( "XMLMaterialHandler::XMLMaterialHandler" );
 
-    // Create new XMLParamHandler and parse material file
+    parser_ = NULL;
+
+    // Create a ParamNode and parse the material file
     std::string schema = commandLine->GetSchemaPath();
     schema += "/CFS-Material/CFS_Material.xsd";
-    parser_ = new XMLParamHandler( fileName.c_str(), schema.c_str() );
+  
+    // Initialize our xerces dom parser to handle the  xml file
+    Xerces* xerces = new Xerces(fileName, schema);
+
+    parser_ = xerces->CreateParamNodeInstance();
+
+    // release the xerces ressources, the parser_ is not affected
+    delete xerces;
   }
   
   XMLMaterialHandler::~XMLMaterialHandler() {
     ENTER_FCN( "XMLMaterialHandler::~XMLMaterialHandler" ) 
       
-      delete parser_;
+    delete parser_;
   }
   
   BaseMaterial * XMLMaterialHandler::
@@ -43,51 +56,42 @@ namespace CoupledField {
     
     BaseMaterial * material = NULL;
     
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-    
     std::string strMatClass;
 
     Enum2String(matClass,strMatClass);
     
-    //keyVec = "material", "electrostatic";
-    keyVec = "material", strMatClass;
-    attrVec= "name","";
-    valVec =  matName,"";
-
-    if (!parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION( strMatClass << " material " << matName 
-                 <<" does not exist." );
-    }
-
+    // first get the material element:  <material name="iron">
+    ParamNode* pn = parser_->Get("material", "name", matName);
+    // the the requested material class: <mechanical>
+    pn = pn->Get(strMatClass);  
+   
     if ( matClass == PIEZO ) {
       material = new PiezoMaterial();
-      ReadPiezo( material, matName);
+      ReadPiezo( material, pn);
     }
     else if ( matClass == MECHANIC ) {
       material = new MechanicMaterial();
-      ReadMechanic( material, matName );
+      ReadMechanic( material, pn );
     }    
     else if ( matClass == FLUID ) {
       material = new AcousticMaterial();
-      ReadAcoustic( material, matName );
+      ReadAcoustic( material, pn );
     }
     else if ( matClass == ELECTROMAGNETIC ) {
       material = new ElectroMagneticMaterial();
-      ReadMagnetic( material, matName );
+      ReadMagnetic( material, pn );
     }
     else if ( matClass == ELECTROSTATIC ) {
       material = new ElectroStaticMaterial();
-      ReadElectrostatic( material, matName );
+      ReadElectrostatic( material, pn );
     }
     else if ( matClass == THERMIC ) {
       material = new HeatMaterial();
-      ReadThermic( material, matName );
+      ReadThermic( material, pn );
     }
     else if ( matClass == FLOW ) {
       material = new FlowMaterial();
-      ReadFlow( material, matName );
+      ReadFlow( material, pn );
     }
     else {
       EXCEPTION( "material type:" << matClass << " not defined " );
@@ -100,81 +104,43 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ PIEZO ********************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadPiezo(BaseMaterial *material,
-                                     const std::string matName) {
+  void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, ParamNode* pn) 
+  {
     ENTER_FCN( "XMLMaterialHandler::ReadPiezo" );
 
-    Integer     inteValue;
-    std::string striValue;
-
-    Matrix<Double> couplingTensor(3,6);
-
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
     //read real piezo coupling tensor
-    const unsigned int dim1=3, dim2=6;
-    keyVec = "material" ,"piezo" , "piezoCouplingTensor", "real";
-    attrVec= "name"     , ""     , "dim1";
-    valVec =  matName   , ""     , "3";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, couplingTensor );
-      material->SetTensor( couplingTensor, PIEZO_TENSOR, REAL ); 
-      //std::cerr << "real couplingTensor=" << std::endl << couplingTensor << std::endl;
-    }
+    if(pn->Has("piezoCouplingTensor"))
+    {
+      Matrix<Double> couplingTensor(3,6);
 
-    //read imaginary piezo coupling tensor
-    keyVec = "material" ,"piezo" , "piezoCouplingTensor", "imag";
-    attrVec= "name"     , ""     , "dim1";
-    valVec =  matName   , ""     , "3";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, couplingTensor );
-      material->SetTensor( couplingTensor, PIEZO_TENSOR, IMAG ); 
-      //std::cerr << "imaginary couplingTensor=" << std::endl << couplingTensor << std::endl;
-    }
+      ParamNode* pct = pn->Get("piezoCouplingTensor");
+      if(pct->Has("real"))
+      {
+        ParamTools::AsTensor<double>(pct->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, PIEZO_TENSOR, REAL );
+      }
+      if(pct->Has("imag"))
+      {
+        ParamTools::AsTensor<double>(pct->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, PIEZO_TENSOR, IMAG );
+      }
+    } 
 
     //read nonlinearity of a coupling coefficient
-    keyVec = "material" ,"piezo" , "piezoCouplingCoefficient", "entry";
-    attrVec= "name"     , ""     , "nonlinear";
-    valVec =  matName   , ""     , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      // std::cerr << "entry=" << inteValue << std::endl;
-    }
+    if(pn->Has("piezoCouplingCoefficient", "nonlinear", "function"))
+    {
+      ParamNode* pcc = pn->Get("piezoCouplingCoefficient", "nonlinear", "function");
+      if(pcc->Has("entry"))
+        material->SetScalar(pcc->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
+      
+      if(pcc->Has("dependency"))
+        material->SetScalar(pcc->Get("dependency")->AsString(), NONLIN_DEPENDENCY);
+      
+      if(pcc->Has("approxType"))
+        material->SetScalar(pcc->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE);
 
-    //read non linear dependency of a coupling coefficient
-    keyVec = "material" ,"piezo" , "piezoCouplingCoefficient", "dependency";
-    attrVec= "name"     , ""     , "nonlinear";
-    valVec =  matName   , ""     , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      // std::cerr << "dependency=" << striValue << std::endl;
-    }
-
-    //read non linear approxType of a coupling coefficient
-    keyVec = "material" ,"piezo" , "piezoCouplingCoefficient", "approxType";
-    attrVec= "name"     , ""     , "nonlinear";
-    valVec =  matName   , ""     , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      //   std::cerr << "approxType=" << striValue << std::endl;
-    }
-
-    //read non linear data name of a coupling coefficient
-    keyVec = "material" ,"piezo" , "piezoCouplingCoefficient", "dataName";
-    attrVec= "name"     , ""     , "nonlinear";
-    valVec =  matName   , ""     , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      //      std::cerr << "dataName=" << striValue << std::endl;
+      if(pcc->Has("dataName"))
+        material->SetScalar(pcc->Get("dataName")->AsString(), NONLIN_DATA_NAME);
     }
 
     // Print material information to .info-file
@@ -184,14 +150,8 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ MECHANICS ****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material,
-                                        const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadMechanic" );
-    
-    Double      doubValue;
-    Integer     inteValue;
-    std::string striValue;
-
+  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, ParamNode* mech) 
+  {
     bool     flagEModulReal=false;
     bool     flagPoissonReal=false;
     bool     flagEModulImag=false;
@@ -210,341 +170,162 @@ namespace CoupledField {
     bool     flagElastTensorReal=false;
     bool     flagElastTensorImag=false;
 
-    Matrix<Double> elasticityTensor(6,6);
-
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
+    
 
     //read material density
-    keyVec = "material","mechanical","density";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, DENSITY, REAL ); 
-      //std::cerr << "density=" << doubValue << std::endl;
-    }
+    if(mech->Has("density"))
+      material->SetScalar(mech->Get("density")->AsDouble(), DENSITY, REAL);
 
-    //read real elasticity tensor
-    const unsigned int dim1=6, dim2=6;
-    keyVec = "material","mechanical","elasticity","tensor","real";
-    attrVec= "name"    ,""          ,""          ,"dim1";
-    valVec =  matName  ,""          ,""          ,"6";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, elasticityTensor );
-      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
-      flagElastTensorReal=true;
-      //std::cerr << "real elasticityTensor=" << std::endl << elasticityTensor << std::endl;
-    }
+    // quite a lot is elasitcity
+    if(mech->Has("elasticity"))
+    {
+      ParamNode* elast = mech->Get("elasticity");
 
-    //read imaginary elasticity tensor
-    keyVec = "material","mechanical","elasticity","tensor","imag";
-    attrVec= "name"    ,""          ,""          ,"dim1";
-    valVec =  matName  ,""          ,""          ,"6";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, elasticityTensor );
-      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, IMAG ); 
-      flagElastTensorImag=true;
-      // std::cerr << "imaginary elasticityTensor=" << std::endl << elasticityTensor << std::endl;
-    }
+      if(elast->Has("tensor", "dim1", "6"))
+      {
+        ParamNode* tens = elast->Get("tensor", "dim1", "6");
+        Matrix<Double> elasticityTensor(6,6);
 
-    //read elasticity modulus
-    keyVec = "material","mechanical","elasticity","isotropic","real","elasticityModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
-      flagEModulReal=true;
-      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
-    }
+        //read real elasticity tensor   
+        if(tens->Has("real"))
+        {
+          ParamTools::AsTensor<double>(tens->Get("real"),6,6,elasticityTensor); 
+          material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL); 
+          flagElastTensorReal = true;
+        }
+        if(tens->Has("imag"))
+        {
+          ParamTools::AsTensor<double>(tens->Get("imag"),6,6,elasticityTensor); 
+          material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, IMAG ); 
+          flagElastTensorImag = true;
+        }
+      } // end tensor  
+ 
+      // check values for isotropic      
+      if(elast->Has("isotropic"))
+      {
+        // read the real part
+        if(elast->Get("isotropic")->Has("real"))
+        {
+          ParamNode* real = elast->Get("isotropic")->Get("real");
 
-    //read imaginary elasticity modulus
-    keyVec = "material","mechanical","elasticity","isotropic","imag","elasticityModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
-      flagEModulImag=true;
-      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
-    }
+          // read real elasticity modulus
+          if(real->Has("elasticityModulus"))
+          {
+            material->SetScalar(real->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, REAL ); 
+            flagEModulReal = true;
+          }
+          
+          // read real Poisson number
+          if(real->Has("poissonNumber"))
+          {
+            material->SetScalar(real->Get("poissonNumber")->AsDouble(), MECH_POISSON, REAL ); 
+            flagPoissonReal = true;
+          }
+        }
+        // read the imaginary part
+        if(elast->Get("isotropic")->Has("imag"))
+        {
+          ParamNode* imag = elast->Get("isotropic")->Get("imag");
+          
+          //read imaginary elasticity modulus
+          if(imag->Has("elasticityModulus"))
+          {
+            material->SetScalar(imag->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, IMAG ); 
+            flagEModulImag = true;
+          }
 
-    //read Poisson number
-    keyVec = "material","mechanical","elasticity","isotropic","real","poissonNumber";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON, REAL ); 
-      flagPoissonReal=true;
-      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
-    }
+          // read imaginary Poisson number
+          if(imag->Has("poissonNumber"))
+          {
+            material->SetScalar(imag->Get("poissonNumber")->AsDouble(), MECH_POISSON, IMAG ); 
+            flagPoissonImag = true;
+          }
+        }
+      } // end of isotropic
 
-    //read imaginary Poisson number
-    keyVec = "material","mechanical","elasticity","isotropic","imag","poissonNumber";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
-      flagPoissonImag=true;
-      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
-    }
-    //*******************************************************************************
-    //read transversal isotropic elasticity modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","elasticityModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented" );
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
-      flagEModulReal=true;
-      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
-    }
+      // Note, in revision 7565 there were some details in the code now deleted 
+      if(elast->Has("transversalIsotropic"))
+        throw Exception("transversalIsotropic for elasticity in mechanical is not implemented!");
 
-    //read imaginary elasticity modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","elasticityModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented" );
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
-      flagEModulImag=true;
-      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
-    }
+      // check orthotropic stuff
+      if(elast->Has("orthotropic"))
+      {
+        // onyl real is implemented
+        if(elast->Get("orthotropic")->Has("imag"))
+          throw Exception("imaginary orthotropic elasitcity parameters for mechanical not implemented");
+          
+        ParamNode* real = elast->Get("orthotropic")->Get("real");
+        
+        //read orthotropic elasticity modulus
+        if(real->Has("elasticityModulus_1"))
+        {
+          material->SetScalar(real->Get("elasticityModulus_1")->AsDouble(), MECH_EMODULUS_X, REAL ); 
+          flagEModulXReal = true;
+        }
 
-    //read transversal isotropic elasticity modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","elasticityModulus_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
-      flagEModulReal=true;
-      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
-    }
+        if(real->Has("elasticityModulus_2"))
+        {
+          material->SetScalar(real->Get("elasticityModulus_2")->AsDouble(), MECH_EMODULUS_Y, REAL ); 
+          flagEModulYReal = true;
+        }
 
-    //read imaginary elasticity modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","elasticityModulus_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS_Z, IMAG ); 
-      flagEModulImag=true;
-      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
-    }
+        if(real->Has("elasticityModulus_3"))
+        {
+          material->SetScalar(real->Get("elasticityModulus_3")->AsDouble(), MECH_EMODULUS_Z, REAL ); 
+          flagEModulZReal = true;
+        }
 
-    //read Poisson number
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","poissonNumber";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON, REAL ); 
-      flagPoissonReal=true;
-      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
-    }
+        // read orthotropic Poisson numbers
+        if(real->Has("poissonNumber_12"))
+        {
+          material->SetScalar(real->Get("poissonNumber_12")->AsDouble(), MECH_POISSON_XY, REAL ); 
+          flagPoissonXYReal = true;
+        }
 
-    //read imaginary Poisson number
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","poissonNumber";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
-      flagPoissonImag=true;
-      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
-    }
+        if(real->Has("poissonNumber_23"))
+        {
+          material->SetScalar(real->Get("poissonNumber_23")->AsDouble(), MECH_POISSON_YZ, REAL ); 
+          flagPoissonYZReal = true;
+        }
 
-    //read Poisson number
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","poissonNumber_3";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      EXCEPTION("needs to be implemented");
-      //material->SetScalar( doubValue, MECH_POISSON_ZX, REAL ); 
-      flagPoissonReal=true;
-      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
-    }
+        if(real->Has("poissonNumber_13"))
+        {
+          material->SetScalar(real->Get("poissonNumber_13")->AsDouble(), MECH_POISSON_XZ, REAL ); 
+          flagPoissonXZReal = true;
+        }
+    
+        // read orthotropic shear modulus
+        if(real->Has("shearModulus_23"))
+        {
+          material->SetScalar(real->Get("shearModulus_23")->AsDouble(), MECH_GMODULUS_YZ, REAL ); 
+          flagShearModulYZReal = true;
+        }
 
-    //read imaginary Poisson number
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","poissonNumber_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      EXCEPTION("needs to be implemented");
-      //material->SetScalar( doubValue, MECH_POISSON_ZX, IMAG ); 
-      flagPoissonImag=true;
-      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
-    }
-    //read transversal isotropic shear modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS, REAL ); 
-      flagShearModulYZReal=true;
-      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
-    }
+        if(real->Has("shearModulus_31"))
+        {
+          material->SetScalar(real->Get("shearModulus_31")->AsDouble(), MECH_GMODULUS_ZX, REAL ); 
+          flagShearModulZXReal = true;
+        }
 
-    //read transversal isotropic shear modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      EXCEPTION("needs to be implemented");
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS, IMAG ); 
-      flagShearModulYZReal=true;
-      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
-    }
-
-    //read transversal isotropic shear modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      EXCEPTION("needs to be implemented");
-      //material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
-      flagShearModulYZReal=true;
-      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
-    }
-
-    //read transversal isotropic shear modulus
-    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      EXCEPTION("needs to be implemented");
-      material->SetScalar( doubValue, MECH_GMODULUS_ZX, IMAG ); 
-      flagShearModulYZReal=true;
-      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
-    }
-
-
-    //*******************************************************************************
-    //read orthotropic elasticity modulus
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_1";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS_X, REAL ); 
-      flagEModulXReal=true;
-      //std::cerr << "elasticityModulus_X=" << doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_2";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS_Y, REAL ); 
-      flagEModulYReal=true;
-      //   std::cerr << "elasticityModulus_Y=" << doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
-      flagEModulZReal=true;
-      //std::cerr << "elasticityModulus_Z=" << doubValue << std::endl;
-    }
-
-    //read orthotropic Poisson numbers
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_12";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON_XY, REAL ); 
-      flagPoissonXYReal=true;
-      //std::cerr << "poissonNumber_XY=" <<  doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_23";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON_YZ, REAL ); 
-      flagPoissonYZReal=true;
-      //std::cerr << "poissonNumber_YZ=" <<  doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_13";
-    attrVec= "name"     ,""         ,""          ,""         ,"";
-    valVec =  matName   ,""         ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_POISSON_XZ, REAL ); 
-      flagPoissonXZReal=true;
-      //std::cerr << "poissonNumber_XZ=" <<  doubValue << std::endl;
-    }
-
-    //read orthotropic shear modulus
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_23";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS_YZ, REAL ); 
-      flagShearModulYZReal=true;
-      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_31";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
-      flagShearModulZXReal=true;
-      //std::cerr << "shearModulus_ZX=" << doubValue << std::endl;
-    }
-
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_12";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS_XY, REAL ); 
-      flagShearModulXYReal=true;
-      //std::cerr << "shearModulus_XY=" << doubValue << std::endl;
-    }
+        if(real->Has("shearModulus_12"))
+        {
+          material->SetScalar(real->Get("shearModulus_12")->AsDouble(), MECH_GMODULUS_XY, REAL ); 
+          flagShearModulXYReal = true;
+        }
+      }  // orthotropic      
+    } // end of elasticity
 
 
     if (flagEModulReal==true && 
         flagPoissonReal==true && 
         flagElastTensorReal==false) {
-      Double EModul, PoissonNumber;
-      material->SetSymmetryType(BaseMaterial::ISOTROPIC);
+         material->SetSymmetryType(BaseMaterial::ISOTROPIC);
     }
     else if (flagEModulReal==false && 
-        flagPoissonReal==false && 
-        flagElastTensorReal==true) {
-      //stiffness tensor is already set
+             flagPoissonReal==false && 
+             flagElastTensorReal==true) {
+               //stiffness tensor is already set
     }
     else if (flagEModulXReal==true && 
              flagEModulYReal==true && 
@@ -555,11 +336,11 @@ namespace CoupledField {
              flagShearModulYZReal==true &&
              flagShearModulZXReal==true &&
              flagShearModulXYReal==true) {
-      material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+               material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
     }
     else if (flagEModulReal==true && 
-        flagPoissonReal==true && 
-        flagElastTensorReal==true) {
+             flagPoissonReal==true && 
+             flagElastTensorReal==true) {
       EXCEPTION( "mechanical stiffness tensor is over determined.\n"
                  << " You specified the tensor as well as E-Modul "
                  << "and Poisson number" );
@@ -573,321 +354,150 @@ namespace CoupledField {
       EXCEPTION( "mechanical stiffness tensor can not be computed." );
     }
 
+    // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
+    if(mech->Has("elasticityCoefficient", "nonlinear", "function"))
+    {
+      ParamNode* ec = mech->Get("elasticityCoefficient", "nonlinear", "function");
+      if(ec->Has("entry")) 
+        material->SetScalar(ec->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
 
-    //*********************************************************************
-    //******* end of stiffness tensor definition **************************
-    //*********************************************************************
+     if(ec->Has("dependency"))
+       material->SetScalar(ec->Get("dependency")->AsString(), NONLIN_DEPENDENCY );
 
-    //read nonlinearity of a elasticity coefficient
-    keyVec = "material" ,"mechanical" , "elasticityCoefficient", "entry";
-    attrVec= "name"     , ""          , "nonlinear";
-    valVec =  matName   , ""          , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      //      std::cerr << "entry=" << inteValue << std::endl;
-    }
+     if(ec->Has("approxType"))
+       material->SetScalar(ec->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE );
 
-    //read non linear dependency of a elasticity coefficient
-    keyVec = "material" ,"mechanical" , "elasticityCoefficient", "dependency";
-    attrVec= "name"     , ""          , "nonlinear";
-    valVec =  matName   , ""          , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      //      std::cerr << "dependency=" << striValue << std::endl;
-    }
+     if(ec->Has("dataName"))
+       material->SetScalar(ec->Get("dataName")->AsString(), NONLIN_DATA_NAME );
+    }; // end of <elasticityCoefficient nonlinear="function">
 
-    //read non linear approxType of a elasticity coefficient
-    keyVec = "material" ,"mechanical" , "elasticityCoefficient", "approxType";
-    attrVec= "name"     , ""          , "nonlinear";
-    valVec =  matName   , ""          , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      //      std::cerr << "approxType=" << striValue << std::endl;
-    }
-
-    //read non linear data name of a elasticity coefficient
-    keyVec = "material" ,"mechanical" , "elasticityCoefficient", "dataName";
-    attrVec= "name"     , ""          , "nonlinear";
-    valVec =  matName   , ""          , "function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      //      std::cerr << "dataName=" << striValue << std::endl;
-    }
 
     //read coefficients for irreversible mechanical strain
-    UInt coeffDim;
-    keyVec = "material","mechanical","irreversibleStrainCoefficient";
-    attrVec= "name"    ,"dim";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue  );
-      coeffDim = inteValue;
-      std::cout << "dim=" << coeffDim << std::endl;
-    }
+    if(mech->Has("irreversibleStrainCoefficient"))
+    {
+      ParamNode* isc = mech->Get("irreversibleStrainCoefficient");
+      // the dimension is only printed in the old param handler version 7562
+      if(isc->Has("dim")) std::cout << "dim=" << isc->Get("dim")->AsInt() << std::endl;
+      
+      if(isc->Has("coeffs"))
+      {
+        // read matrix
+        Matrix<Double> matrixCoeffs(5,1);
+        ParamTools::AsTensor<double>(isc->Get("coeffs"),1,5,matrixCoeffs); 
 
-    Matrix<Double> matrixCoeffs(5,1);
-    Vector<Double> coeffs;
-    const unsigned int dimM1=1, dimM2=5;
-    keyVec = "material","mechanical","irreversibleStrainCoefficient","coeffs";
-    attrVec= "name"    ,""          ,"";
-    valVec =  matName  ,""          ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dimM1, dimM2, matrixCoeffs );
-      coeffs.Resize( matrixCoeffs.GetSizeCol());
-      for ( UInt i=0; i<matrixCoeffs.GetSizeCol(); i++)
-	coeffs[i] = matrixCoeffs[0][i];
-      material->SetVector( coeffs, COEFF_STRAIN_IRREVERSIBLE, REAL ); 
-    }
+        // transform to vector
+        Vector<Double> coeffs;
+        coeffs.Resize( matrixCoeffs.GetSizeCol());
+        for( UInt i=0; i<matrixCoeffs.GetSizeCol(); i++)
+          coeffs[i] = matrixCoeffs[0][i];
+          
+        material->SetVector( coeffs, COEFF_STRAIN_IRREVERSIBLE, REAL ); 
+      }
+    } // end of irreversibleStrainCoefficient
 
+    // read mechanical damping
+    if(mech->Has("mechanicalDamping"))
+    {
+      // first rayleigh damping
+      if(mech->Get("mechanicalDamping")->Has("rayleigh"))
+      {
+        ParamNode* r = mech->Get("mechanicalDamping")->Get("rayleigh");
 
-    //read alpha of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","alpha";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_ALPHA, REAL ); 
-      // std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
-    }
+        if(r->Has("alpha"))
+         material->SetScalar(r->Get("alpha")->AsDouble(), RAYLEIGH_ALPHA, REAL);
+         
+        if(r->Has("beta"))
+         material->SetScalar(r->Get("beta")->AsDouble(), RAYLEIGH_BETA, REAL);
 
-    //read beta of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","beta";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_BETA, REAL ); 
-      // std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
-    }
+        if(r->Has("lossTangensDelta"))
+         material->SetScalar(r->Get("lossTangensDelta")->AsDouble(), LOSS_TANGENS_DELTA, REAL);
 
-    //read loss tangens delta of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","lossTangensDelta";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, LOSS_TANGENS_DELTA, REAL ); 
-      // std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
-    }
-
-    //read frequency of Rayleigh damping
-    keyVec = "material","mechanical","mechanicalDamping","rayleigh","measuredFreq";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
-    }
-
-    //read algorithm of fractional damping
-    keyVec = "material","mechanical","mechanicalDamping","fractional","alg";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, FRACTIONAL_ALG ); 
-      // std::cerr << "Fractional damping algorithm=" << striValue << std::endl;
-    }
-
-    //read memory of fractional damping
-    keyVec = "material","mechanical","mechanicalDamping","fractional","memory";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      material->SetScalar( inteValue, FRACTIONAL_MEMORY ); 
-      // std::cerr << "Fractional damping memory=" << inteValue << std::endl;
-    }
-
-    //read interpolation of fractional damping
-    keyVec = "material","mechanical","mechanicalDamping","fractional","interpolation";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, FRACTIONAL_INTERPOL ); 
-      // std::cerr << "Fractional damping interpolation=" << striValue << std::endl;
+        if(r->Has("measuredFreq"))
+         material->SetScalar(r->Get("measuredFreq")->AsDouble(), RAYLEIGH_FREQUENCY, REAL);
+      }
+      if(mech->Get("mechanicalDamping")->Has("fractional"))
+      {
+        ParamNode* f = mech->Get("mechanicalDamping")->Get("fractional");
+        
+        if(f->Has("alg"))        
+          material->SetScalar(f->Get("alg")->AsString(), FRACTIONAL_ALG );
+          
+        if(f->Has("memory"))        
+          material->SetScalar(f->Get("memory")->AsInt(), FRACTIONAL_MEMORY );
+          
+        if(f->Has("interpolation"))        
+          material->SetScalar(f->Get("interpolation")->AsString(), FRACTIONAL_INTERPOL );
+      }
     }
 
     // Print information to info file
     Info->PrintMaterial( material);
   }
 
-//   void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
-//                                                         Double PoissonNumber,
-//                                                         Matrix<Double>& elasticityTensor){
-//     Double LameLambda, LameMu;
-//     elasticityTensor.Resize(6,6);
-//     elasticityTensor.Init();
-//     LameLambda = (PoissonNumber*EModul)/((1.0 + PoissonNumber)*(1.0 - 2.0*PoissonNumber));
-//     LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
-//     // std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
-
-//     elasticityTensor[0][0]=LameLambda+2.0*LameMu;
-//     elasticityTensor[1][1]=LameLambda+2.0*LameMu;
-//     elasticityTensor[2][2]=LameLambda+2.0*LameMu;
-
-//     elasticityTensor[0][1]=LameLambda;
-//     elasticityTensor[0][2]=LameLambda;
-//     elasticityTensor[1][0]=LameLambda;
-//     elasticityTensor[1][2]=LameLambda;
-//     elasticityTensor[2][0]=LameLambda;
-//     elasticityTensor[2][1]=LameLambda;
-
-//     elasticityTensor[3][3]=LameMu;
-//     elasticityTensor[4][4]=LameMu;
-//     elasticityTensor[5][5]=LameMu;
-//   }
-
-//   void XMLMaterialHandler::ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
-//                                                           Double nuXY, Double nuYZ, Double nuXZ,
-//                                                           Double GYZ, Double GZX, Double GXY,
-//                                                           Matrix<Double>& elasticityTensor){
-//     Double nuYX, nuZY, nuZX, aux;
-//     nuYX=(EY/EX)*nuXY;
-//     nuZY=(EZ/EY)*nuYZ;
-//     nuZX=(EZ/EX)*nuXZ;
-
-//     aux=(1-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-2.0*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
-
-//     elasticityTensor.Resize(6,6);
-//     elasticityTensor.Init();
-
-//     elasticityTensor[0][0]=(1-nuYZ*nuZY)/(EY*EZ*aux);
-//     elasticityTensor[1][1]=(1-nuXZ*nuZX)/(EX*EZ*aux);
-//     elasticityTensor[2][2]=(1-nuXY*nuYX)/(EX*EY*aux);
-
-//     elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-//     elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-//     elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-//     elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
-//     elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-//     elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
-
-//     elasticityTensor[3][3]=GYZ;
-//     elasticityTensor[4][4]=GZX;
-//     elasticityTensor[5][5]=GXY;
-//   }
 
 //**********************************************************************
 //*************  READ ACOUSTICS ****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material,
-                                        const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadAcoustic" );
-
-    Double      doubValue;
-
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
+  void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, ParamNode* acou)
+  {
     //read density
-    keyVec = "material","acoustic","density";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, DENSITY, REAL ); 
-      // std::cerr << "density=" << doubValue << std::endl;
-    }
-
+    if(acou->Has("density"))
+      material->SetScalar(acou->Get("density")->AsDouble(), DENSITY, REAL ); 
+      
     //read compression modulus
-    keyVec = "material","acoustic","compressionModulus";
-    attrVec= "name"    , "";
-    valVec =  matName  , "";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, ACOU_BULK_MODULUS, REAL );
-      // std::cerr << "compressionModulus=" << doubValue << std::endl;
-    }
+    if(acou->Has("compressionModulus"))
+      material->SetScalar(acou->Get("compressionModulus")->AsDouble(), ACOU_BULK_MODULUS, REAL );
 
-    //read alpha of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","alpha";
-    attrVec= "name"    ,""        ,""               ,"";
-    valVec =  matName  ,""        ,""               ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_ALPHA, REAL ); 
-      // std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
-    }
+    // check for acousticDamping
+    if(acou->Has("acousticDamping"))
+    {
+      ParamNode* ad = acou->Get("acousticDamping");
+      
+      // check rayleigh
+      if(ad->Has("rayleigh"))
+      {
+        ParamNode* r = ad->Get("rayleigh");
+        
+        if(r->Has("alpha"))
+          material->SetScalar(r->Get("alpha")->AsDouble(), RAYLEIGH_ALPHA, REAL );
+          
+        if(r->Has("beta"))
+          material->SetScalar(r->Get("beta")->AsDouble(), RAYLEIGH_BETA, REAL );
 
-    //read bata of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","beta";
-    attrVec= "name"    ,""        ,""               ,"";
-    valVec =  matName  ,""        ,""               ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_BETA, REAL ); 
-      // std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
-    }
+        if(r->Has("lossTangensDelta"))
+          material->SetScalar(r->Get("lossTangensDelta")->AsDouble(), LOSS_TANGENS_DELTA, REAL );
+       
+        if(r->Has("measuredFreq"))
+          material->SetScalar(r->Get("measuredFreq")->AsDouble(), RAYLEIGH_FREQUENCY, REAL );
+      } // end of acousticDamping:rayleigh
+      
+      // read alpha0 of thermo viscous damping
+      if(ad->Has("thermoViscous"))
+      {
+        if(ad->Get("thermoViscous")->Has("alpha0"))
+          material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->AsDouble(), ACOU_ALPHA, REAL );
+      }
 
-    //read loss tangens delta of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","lossTangensDelta";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, LOSS_TANGENS_DELTA, REAL ); 
-      // std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
-    }
+      // read fractional damping
+      if(ad->Has("fractional"))
+      {
+        ParamNode* f = ad->Get("fractional");
+        
+        if(f->Has("alpha0")) 
+          material->SetScalar(f->Get("alpha0")->AsDouble(), ACOU_ALPHA, REAL );
 
-    //read measured frequency of Rayleigh damping
-    keyVec = "material","acoustic","acousticDamping","rayleigh","measuredFreq";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
-    }
-
-    //read alpha0 of thermo viscous damping
-    keyVec = "material","acoustic","acousticDamping","thermoViscous","alpha0";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, ACOU_ALPHA, REAL ); 
-      // std::cerr << "thermo viscous alpha0=" << doubValue << std::endl;
-    }
-
-    //read alpha0 of fractional damping
-    keyVec = "material","acoustic","acousticDamping","fractional","alpha0";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, ACOU_ALPHA, REAL ); 
-      // std::cerr << "fractional alpha0=" << doubValue << std::endl;
-    }
-
-    //read exponent of fractional damping
-    keyVec = "material","acoustic","acousticDamping","fractional","y";
-    attrVec= "name"    ,""          ,""                 ,"";
-    valVec =  matName  ,""          ,""                 ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, FRACTIONAL_EXPONENT, REAL ); 
-      // std::cerr << "fractional exponent=" << doubValue << std::endl;
-    }
+        // read exponent of fractional damping      
+        if(f->Has("y")) 
+          material->SetScalar(f->Get("y")->AsDouble(), FRACTIONAL_EXPONENT, REAL );
+      }
+    } // end of acousticDamping
 
     //read acoustic non linearity
-    keyVec = "material","acoustic","acousticNonlinear","bOverA";
-    attrVec= "name"    ,""          ,"";
-    valVec =  matName  ,""          ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, BOVERA, REAL ); 
-      // std::cerr << "bOverA=" << doubValue << std::endl;
-    }
+    if(acou->Has("acousticNonlinear"))
+    {
+      if(acou->Get("acousticNonlinear")->Has("bOverA"))
+        material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->AsDouble(), BOVERA, REAL );
+    }  
 
     // Print material information to info-file
     Info->PrintMaterial( material );
@@ -896,172 +506,105 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ ELECTROSTATICS ************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadElectrostatic(BaseMaterial *material,
-                                             const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadElectrostatic" );
+  void XMLMaterialHandler::ReadElectrostatic(BaseMaterial *material, ParamNode* elec)
+  {
+    // check for permittivity
+    if(elec->Has("permittivity"))
+    {
+      ParamNode* p = elec->Get("permittivity");
+      
+      // check for tensor with dim1 = 3 <tensor dim1="3">
+      if(p->Has("tensor", "dim1", "3"))
+      {
+        Matrix<Double> permittivityTensor(3,3);
 
-    Double      doubValue;
-    Integer     inteValue, dim;
-    std::string striValue;
-    Matrix<Double> permittivityTensor(3,3);
+        // read real permittivity tensor 
+        if(p->Get("tensor", "dim1", "3")->Has("real"))
+        {
+          ParamNode* tensor =  p->Get("tensor", "dim1", "3")->Get("real");        
+          ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
+          material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, REAL);
+        }
 
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
+        // read imaginary permittivity tensor
+        if(p->Get("tensor", "dim1", "3")->Has("imag"))
+        {
+          ParamNode* tensor =  p->Get("tensor", "dim1", "3")->Get("imag");        
+          ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
+          material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, IMAG);
+        }
+      } // end of <tensor dim1="3">
+      
+      // check for isotropic permittivity
+      // KILLME isotropic permittivity is NOT set in r7562!!
+    } // end of permittivity
+    
+    // check for <permittivityCoefficient nonlinear="function">
+    if(elec->Has("permittivityCoefficient", "nonlinear", "function"))
+    {
+      ParamNode* pc = elec->Get("permittivityCoefficient", "nonlinear", "function");
+      
+      // read nonlinearity of a permittivity coefficient
+      if(pc->Has("entry"))
+        material->SetScalar(pc->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
+        
+      // read non linear dependency of a permittivity coefficient
+      if(pc->Has("dependency"))
+        material->SetScalar(pc->Get("dependency")->AsString(), NONLIN_DEPENDENCY);
 
-    //read real permittivity tensor
-    const unsigned int dim1=3, dim2=3;
-    keyVec = "material","electric","permittivity","tensor","real";
-    attrVec= "name"    ,""        ,""            ,"dim1";
-    valVec =  matName  ,""        ,""            ,"3";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, permittivityTensor );
-      material->SetTensor( permittivityTensor, ELEC_PERMITTIVITY, REAL ); 
-      //      std::cerr << "real permittivityTensor=" << std::endl << permittivityTensor << std::endl;
-    }
+      // read non linear approxType of a permittivity coefficient
+      if(pc->Has("approxType"))
+        material->SetScalar(pc->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE);
 
-    //read imaginary permittivity tensor
-    keyVec = "material","electric","permittivity","tensor","imag";
-    attrVec= "name"    ,""        ,""            ,"dim1";
-    valVec =  matName  ,""        ,""            ,"3";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim1, dim2, permittivityTensor );
-      material->SetTensor( permittivityTensor, ELEC_PERMITTIVITY, IMAG ); 
-      // std::cerr << "imaginary permittivityTensor=" << std::endl << permittivityTensor << std::endl;
-    }
-
-    //read isotropic permittivity
-    keyVec = "material","electric","permittivity","isotropic","real";
-    attrVec= "name"    ,""        ,""            ,"";
-    valVec =  matName  ,""        ,""            ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, ELEC_PERMITTIVITY, REAL ); 
-      // std::cerr << "isotropic electric permittivity=" << doubValue << std::endl;
-    }
-
-    //read imaginary isotropic permittivity
-    keyVec = "material","electric","permittivity","isotropic","imag";
-    attrVec= "name"    ,""        ,""            ,"";
-    valVec =  matName  ,""        ,""            ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, ELEC_PERMITTIVITY, IMAG ); 
-      // std::cerr << "imaginary isotropic electric permittivity=" << doubValue << std::endl;
-    }
-
-    //read nonlinearity of a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient", "entry";
-    attrVec= "name"     , ""      ,"nonlinear";
-    valVec =  matName   , ""      ,"function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      //      std::cerr << "entry=" << inteValue << std::endl;
-    }
-
-    //read non linear dependency of a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","dependency";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      //      std::cerr << "dependency=" << striValue << std::endl;
-    }
-
-    //read non linear approxType of a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","approxType";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      //      std::cerr << "approxType=" << striValue << std::endl;
-    }
-
-    //read non linear data name of a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","dataName";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"function";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      //      std::cerr << "dataName=" << striValue << std::endl;
-    }
+      // read non linear data name of a permittivity coefficient        
+      if(pc->Has("dataName"))
+        material->SetScalar(pc->Get("dataName")->AsString(), NONLIN_DATA_NAME);
+    } // end of permittivityCoefficient
 
     //read Preisach hysterese model
-    keyVec = "material","electric","hystModel","preisach";
-    attrVec= "name"    ,""        ,"";
-    valVec =  matName  ,""        ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      striValue="preisach";
-      material->SetScalar(striValue, HYST_MODEL ); 
-    }
+    if(elec->Has("hystModel"))
+    {
+      if(elec->Get("hystModel")->Has("preisach"))
+      {
+        ParamNode* p = elec->Get("hystModel")->Get("preisach");
+        
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
 
-    //read E saturation of Preisach hysterese model
-    keyVec = "material","electric","hystModel","preisach","eSat";
-    attrVec= "name"    ,""        ,""         ,"";
-    valVec =  matName  ,""        ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, E_SATURATION, REAL ); 
-    }
+        // read E saturation of Preisach hysterese model
+        if(p->Has("eSat"))
+          material->SetScalar(p->Get("eSat")->AsDouble(), E_SATURATION, REAL ); 
+ 
+        // read P saturation of Preisach hysterese model
+        if(p->Has("pSat"))
+          material->SetScalar(p->Get("pSat")->AsDouble(), P_SATURATION, REAL ); 
 
-    //read P saturation of Preisach hysterese model
-    keyVec = "material","electric","hystModel","preisach","pSat";
-    attrVec= "name"    ,""        ,""         ,"";
-    valVec =  matName  ,""        ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, P_SATURATION, REAL ); 
-    }
-
-    //read direction of polarization
-    keyVec = "material","electric","hystModel","preisach","dirP";
-    attrVec= "name"    ,""        ,""         ,"";
-    valVec =  matName  ,""        ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      if (inteValue==1){
-        striValue="X";
-        material->SetScalar( striValue, P_DIRECTION ); 
-      }
-      else if (inteValue==2){
-        striValue="Y";
-        material->SetScalar( striValue, P_DIRECTION ); 
-      }
-      else if (inteValue==3){
-        striValue="Z";
-        material->SetScalar( striValue, P_DIRECTION ); 
-      }
-      else
-        EXCEPTION("Non existing coordinate direction" );
-    }
-
-    //read weight dimension of Preisach hysterese model
-    keyVec = "material","electric","hystModel","preisach","dim";
-    attrVec= "name"    ,""        ,""         ,"";
-    valVec =  matName  ,""        ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, inteValue );
-      dim=inteValue;
-    }
-
+        // read direction of polarization
+        if(p->Has("dirP"))
+        {
+          int dir = p->Get("dirP")->AsInt();
+          
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+          
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+                      << " hysteresis model polarization");
+        }
+        
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim")) dim = p->Get("dim")->AsInt();
     
-
-    //read real permittivity tensor
-    keyVec = "material","electric","hystModel","preisach","weights";
-    attrVec= "name"    ,""        ,""            ,"";
-    valVec =  matName  ,""        ,""            ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      Matrix<Double> preisachWeightTensor(dim,dim);
-      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-                                   dim, dim, preisachWeightTensor );
-      material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, REAL); 
+        // read real permittivity tensor    
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, REAL);
+        }
+      }
     }
 
     // Print information to info file
@@ -1072,177 +615,103 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ MAGNETIC *****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material,
-                                        const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadMagnetic" );
+  void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material, ParamNode* mag)
+  {
+    // read electric conductivity
+    if(mag->Has("electricConductivity"))
+      material->SetScalar(mag->Get("electricConductivity")->AsDouble(), MAG_CONDUCTIVITY, REAL);
+    
+    // read magnetic permeability
+    if(mag->Has("magneticPermeability"))
+    {
+      if(mag->Get("magneticPermeability")->Has("linear"))
+      {
+        ParamNode* lin = mag->Get("magneticPermeability")->Get("linear");
+        double eps = 1e-10;
+        
+        if(lin->Has("isotropic"))
+        {
+          if(lin->Get("isotropic")->AsDouble() < eps)
+            EXCEPTION("Magnetic permeability is near zero. Check material database");
+          material->SetScalar(lin->Get("isotropic")->AsDouble(), MAG_PERMEABILITY, REAL );
+        }
+  
+        if(lin->Has("orthotropic"))
+        {
+          ParamNode* ortho = lin->Get("orthotropic");
+          bool permOrtho_1=false, permOrtho_2=false, permOrtho_3=false;
+          
+          if(ortho->Has("permeability_1"))
+          {
+            if(ortho->Get("permeability_1")->AsDouble() < eps)
+              EXCEPTION("Magnetic permeability is near zero; Check material database");
+            material->SetScalar(ortho->Get("permeability_1")->AsDouble(), MAG_PERMEABILITY_1, REAL); 
+            permOrtho_1 = true;  
+          }
+          
+          if(ortho->Has("permeability_2"))
+          {
+            if(ortho->Get("permeability_2")->AsDouble() < eps)
+              EXCEPTION("Magnetic permeability is near zero; Check material database");
+            material->SetScalar(ortho->Get("permeability_2")->AsDouble(), MAG_PERMEABILITY_2, REAL); 
+            permOrtho_2 = true;  
+          }
+  
+          if(ortho->Has("permeability_3"))
+          {
+            if(ortho->Get("permeability_3")->AsDouble() < eps)
+              EXCEPTION("Magnetic permeability is near zero; Check material database");
+            material->SetScalar(ortho->Get("permeability_3")->AsDouble(), MAG_PERMEABILITY_3, REAL); 
+            permOrtho_3 = true;  
+          }
+        
+          // check, if there is an orthotropic permeability!!
+          if (permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true)
+            material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+        } // end of linear orthotropic
+      } // end of linear
 
-    Double      doubValue;
-    std::string striValue;
+      // we know only nonlinear isotropic material
+      if(mag->Get("magneticPermeability")->Has("nonlinear") && 
+         mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic"))
+      {
+        ParamNode* iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
+        // In r7562  dependency and  approxType are not set in Material
+        
+        // read nonlinear approxType of magnetic permeability
+        if(iso->Has("measAccuracy"))
+          material->SetScalar(iso->Get("measAccuracy")->AsDouble(), DATA_ACCURACY, REAL );
+                  
+        // read nonlinear approxType of magnetic permeability
+        if(iso->Has("maxApproxVal"))
+          material->SetScalar(iso->Get("maxApproxVal")->AsDouble(), MAX_APPROX_VAL, REAL );
 
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
-    bool permOrtho_1=false, permOrtho_2=false, permOrtho_3=false;
-
-    //read electric conductivity
-    keyVec = "material","magnetic","electricConductivity";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MAG_CONDUCTIVITY, REAL );
-      //std::cerr << matName << "electricConductivity=" << doubValue << std::endl;
-    }
-
-    //read magnetic permeability
-    Double eps = 1e-10;
-    keyVec = "material","magnetic","magneticPermeability","linear","isotropic";
-    attrVec= "name"    ,""        ,""                    ,"";
-    valVec =  matName  ,""        ,""                    ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      if ( doubValue < eps )
-        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
-      material->SetScalar( doubValue, MAG_PERMEABILITY, REAL ); 
-      //std::cerr << matName << "magneticPermeability=" << doubValue << std::endl;
-    }
-
-    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_1";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      if ( doubValue < eps )
-        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
-      material->SetScalar( doubValue, MAG_PERMEABILITY_1, REAL ); 
-      permOrtho_1 = true;
-    }
-
-    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_2";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      if ( doubValue < eps )
-        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
-      material->SetScalar( doubValue, MAG_PERMEABILITY_2, REAL ); 
-      permOrtho_2 = true;
-    }
-
-    keyVec =  "material","magnetic","magneticPermeability","linear","orthotropic","permeability_3";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      if ( doubValue < eps )
-        EXCEPTION("Magnetic permeability is near uero; this is not allowed; check material database");
-      material->SetScalar( doubValue, MAG_PERMEABILITY_3, REAL ); 
-      permOrtho_3 = true;
-    }
-
-    //read nonlinear dependency of magnetic permeability
-    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","dependency";
-    attrVec= "name"    ,""        ,""                    ,""         ,"";
-    valVec =  matName  ,""        ,""                    ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      //material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      // std::cerr << "nonlinear dependency of magneticPermeability=" << striValue << std::endl;
-    }
-
-    //read nonlinear approxType of magnetic permeability
-    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","approxType";
-    attrVec= "name"    ,""        ,""                    ,""         ,"";
-    valVec =  matName  ,""        ,""                    ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      //material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      // std::cerr << "nonlinear approxType of magneticPermeability=" << striValue << std::endl;
-    }
-
-    //read nonlinear approxType of magnetic permeability
-    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","measAccuracy";
-    attrVec= "name"    ,""        ,""                    ,""         ,"";
-    valVec =  matName  ,""        ,""                    ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, DATA_ACCURACY, REAL ); 
-    }
-
-    //read nonlinear approxType of magnetic permeability
-    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","maxApproxVal";
-    attrVec= "name"    ,""        ,""                    ,""         ,"";
-    valVec =  matName  ,""        ,""                    ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MAX_APPROX_VAL, REAL ); 
-    }
-
-    //read nonlinear dataName of magnetic permeability
-    keyVec = "material","magnetic","magneticPermeability","nonlinear","isotropic","dataName";
-    attrVec= "name"    ,""        ,""                    ,""         ,"";
-    valVec =  matName  ,""        ,""                    ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      //material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      material->SetNonlinFileName( striValue.c_str() );
-      // std::cerr << "nonlinear dataName of magneticPermeability=" << striValue << std::endl;
-    }
-
-    //check, if there si an orthotropic permeability!!
-    if ( permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true )
-      material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+        // read nonlinear dataName of magnetic permeability
+        if(iso->Has("dataName"))
+          material->SetNonlinFileName(iso->Get("dataName")->AsString().c_str());
+      } // nonlinear isotropic material   
+    } // end of magneticPermeability  
 
     // Print information to info file
     Info->PrintMaterial( material ); 
-    
   }
 
 //**********************************************************************
 //*************  READ THERMIC ******************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadThermic(BaseMaterial *material,
-                                       const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadThermic" );
+  void XMLMaterialHandler::ReadThermic(BaseMaterial *material, ParamNode* therm)
+  {
+    // read density
+    if(therm->Has("density"))
+      material->SetScalar(therm->Get("density")->AsDouble(), DENSITY, REAL);
 
-    Double      doubValue;
+    // read heat capacity
+    if(therm->Has("heatCapacity"))
+      material->SetScalar(therm->Get("heatCapacity")->AsDouble(), HEAT_CAPACITY, REAL);
 
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
-    //read density
-    keyVec = "material","heatConduction","density";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, DENSITY, REAL );
-      // std::cerr << "density=" << doubValue << std::endl;
-    }
-
-    //read heat capacity
-    keyVec = "material","heatConduction","heatCapacity";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, HEAT_CAPACITY, REAL );
-      // std::cerr << "heatCapacity=" << doubValue << std::endl;
-    }
-
-    //read thermal conductivity
-    keyVec = "material","heatConduction","thermalConductivity";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, HEAT_CONDUCTIVITY, REAL );
-      // std::cerr << "thermalConductivity=" << doubValue << std::endl;
-    }
+    // read thermal conductivity
+    if(therm->Has("thermalConductivity"))
+      material->SetScalar(therm->Get("thermalConductivity")->AsDouble(), HEAT_CONDUCTIVITY, REAL);
 
     // Print information to info file
     Info->PrintMaterial( material );
@@ -1251,39 +720,15 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ FLOW *********************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadFlow(BaseMaterial *material,
-                                    const std::string matName) {
-    ENTER_FCN( "XMLMaterialHandler::ReadFlow" );
-
-    Double      doubValue;
-
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
-    //read density
-    keyVec = "material","flow","density";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, DENSITY, REAL );
-      // std::cerr << "density=" << doubValue << std::endl;
-    }
-
-    //read density
-    keyVec = "material","flow","dynamicViscosity";
-    attrVec= "name"    ,"";
-    valVec =  matName  ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, DYNAMIC_VISCOSITY, REAL );
-      // std::cerr << "dynamicViscosity=" << doubValue << std::endl;
-    }
+  void XMLMaterialHandler::ReadFlow(BaseMaterial *material, ParamNode* flow)
+  {    
+    // read density
+    if(flow->Has("density"))
+      material->SetScalar(flow->Get("density")->AsDouble(), DENSITY, REAL);
+      
+    // dynamicViscosity is NOT set in r7562 
 
     // Print information to info file
     Info->PrintMaterial( material );
   }
-
 }

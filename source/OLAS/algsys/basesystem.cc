@@ -25,7 +25,7 @@ namespace OLAS {
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseSystem::BaseSystem() {
+  BaseSystem::BaseSystem(ParamNode* pn) {
 
     ENTER_FCN( "BaseSystem::BaseSystem" );
 
@@ -39,6 +39,8 @@ namespace OLAS {
     bcOffsets_      = NULL;
     sizePerPDE_     = NULL;
     numLastFreeDof_ = NULL;
+
+    xml             = pn; 
 
     numPDEs_            = 0;
     numRegPDEs_         = 0;

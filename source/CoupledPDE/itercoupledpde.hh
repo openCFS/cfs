@@ -6,6 +6,7 @@
 #define FILE_ITERCOUPLEDPDE_2003
 
 #include "PDE/basePDE.hh"
+#include "General/exception.hh"
 
 namespace CoupledField
 {
@@ -42,9 +43,7 @@ namespace CoupledField
     void WriteGeneralPDEdefines();
 
     Assemble * getPDE_assemble() {
-      Error( "Get Assemble-Object makes no sense for itercoupledPDE",
-             __FILE__, __LINE__ );
-      return NULL;
+      EXCEPTION( "Get Assemble-Object makes no sense for itercoupledPDE");
     };
 
     //! Return pointer to the SolveStep object

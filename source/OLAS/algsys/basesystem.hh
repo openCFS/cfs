@@ -8,10 +8,14 @@
 #include <map>
 #include <set>
 
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
 #include "olasparams.hh"
 #include "utils/defs.hh"
 #include "utils/environment.hh"
 
+using CoupledField::ParamNode;
 
 namespace OLAS {
 
@@ -45,7 +49,7 @@ namespace OLAS {
   public:
 
     //! Default Constructor
-    BaseSystem();
+    BaseSystem(ParamNode* pn = NULL);
     
     //! Default Destructor
     virtual ~BaseSystem();
@@ -382,7 +386,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! right-hand side vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a StdVector
+    //!       We currently do not support setting only the part of a SparseVector
     //!       related to a single PDE to zero in this case.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
@@ -403,7 +407,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! solution vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a StdVector
+    //!       We currently do not support setting only the part of a SparseVector
     //!       related to a single PDE to zero.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
@@ -879,6 +883,9 @@ namespace OLAS {
     //! Attribute identifying type of algebraic system
     AlgSysType algSysType_;
 
+    /** Here we store the complete ParamNode descripton of our liner system
+     * - As given in the XML - hence it might be NULL! */
+    ParamNode* xml;   
   };
 
 } // namespace

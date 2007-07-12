@@ -5,7 +5,7 @@
 #LINK_DIRECTORIES()
 
 SET(UTILS_SRCS environment-olas.cc output.cc tools-olas.cc profiler-olas.cc
-  Exception.cc Enum.cc math/givensrotation.cc math/iterativerefinement.cc)
+    math/givensrotation.cc math/iterativerefinement.cc)
 
 ADD_LIBRARY(utils-olas STATIC ${UTILS_SRCS})
 

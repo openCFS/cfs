@@ -9,6 +9,7 @@
 
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
 
 namespace CoupledField
 {
@@ -87,7 +88,7 @@ namespace CoupledField
     
     //! define the SolutionStep-Driver
     virtual void DefineSolveStep() {
-      Error( "DefineSolveStep not implemented", __FILE__, __LINE__ );
+      EXCEPTION("DefineSolveStep not implemented");
     }
 
     

@@ -62,7 +62,7 @@ int main( int argc, const char **argv ) {
   // Set segfault to false
   Exception::segfault_ = false;
   try 
-    {
+  {
         
   // =========================================================================
   // TIMING
@@ -232,17 +232,14 @@ int main( int argc, const char **argv ) {
   Info->StartProgress( msg.str() );
   
 #ifdef USE_XERCES
-  std::string cfsSchema = commandLine->GetSchemaPath();
-  cfsSchema += "/CFS-Simulation/CFS.xsd";
-  
-  std::string defaults = commandLine->GetSchemaPath();
-  defaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
-             
   // this is the new param staff which replaces the old params - delete this comment finally
   param = NULL;           
 
+  std::string schema = commandLine->GetSchemaPath();
+  schema += "/CFS-Simulation/CFS.xsd";
+
   // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(xmlFile, Xerces::GetCFSSchemaGuess());
+  Xerces* xerces = new Xerces(xmlFile, schema);
 
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
@@ -399,7 +396,7 @@ int main( int argc, const char **argv ) {
   }  
   catch(std::exception& ex) 
   {
-      Error(ex.what(), __FILE__, __LINE__);
+    Error(ex.what(), __FILE__, __LINE__);
   }
 
 

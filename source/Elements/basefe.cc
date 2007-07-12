@@ -38,6 +38,8 @@ namespace CoupledField
 
     ICModes_     = false;
     CalcICModes_ = false;
+    edgeIndices_ = NULL; 
+    faceIndices_ = NULL; 
   }
  
   BaseFE :: ~BaseFE()
@@ -47,6 +49,10 @@ namespace CoupledField
     if( ShFncAtIp_ ) delete[] ShFncAtIp_;
     if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
     if( IntPoints_ ) delete[] IntPoints_;
+
+    if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; } 
+    if(faceIndices_ != NULL) { delete[] faceIndices_; faceIndices_ = NULL; } 
+    if(ShFncICModesDerivAtIp_) { delete[]  ShFncICModesDerivAtIp_ ; ShFncICModesDerivAtIp_ = NULL; }    
     
     // delete our map. The content of normal integration rules are static array
     // the cartesian rules are complete dynamic
@@ -123,7 +129,7 @@ namespace CoupledField
     Double coeff; // damping coefficient
     bool divergence; // does the Newton-Raphson algorithm diverge?
     bool converged; // have we found the local point?
-    UInt k = 0;
+    UInt iter = 0;
    
     // Initialize variables
     globalPoint.Resize(globDim);
@@ -327,9 +333,9 @@ namespace CoupledField
         if(converged)
           break;
 
-        k++;
+        iter++;
       }
-      while(k < 10);
+      while(iter < 10);
 
       // Put local coordinate of point into matrix.
       for(UInt l = 0; l < locDim; l++)
@@ -636,7 +642,7 @@ namespace CoupledField
         ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
       } 
       else{ 
-	delete[]  ShFncICModesDerivAtIp_ ;
+        delete[]  ShFncICModesDerivAtIp_ ;
         ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
       }
       for( UInt i=0; i<NumIntPoints_; i++ ) {

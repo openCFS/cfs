@@ -15,7 +15,7 @@ namespace OLAS {
   SBM_Vector::SBM_Vector( UInt size ) {
     ENTER_FCN( "SBM_Vector::SBM_Vector" );
     size_ = size;
-    NewArray( subVec_, StdVector*, size );
+    NewArray( subVec_, SparseVector*, size );
     for ( UInt i = 1; i <= size_; i++ ) {
       subVec_[i] = NULL;
     }
@@ -48,7 +48,7 @@ namespace OLAS {
       DeleteArray( subVec_ );
     }
     size_ = (UInt)size;
-    NewArray( subVec_, StdVector*, size );
+    NewArray( subVec_, SparseVector*, size );
     for ( UInt i = 1; i <= size_; i++ ) {
       subVec_[i] = NULL;
     }
@@ -147,9 +147,9 @@ namespace OLAS {
 
 
   // ******************************
-  //   Add StdVector to ith entry
+  //   Add SparseVector to ith entry
   // ******************************
-  void SBM_Vector::AddToSubVector( const StdVector &vec, const Integer i ) {
+  void SBM_Vector::AddToSubVector( const SparseVector &vec, const Integer i ) {
 
     ENTER_FCN( "SBM_Vector::AddToSubVector" );
 

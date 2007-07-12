@@ -61,7 +61,7 @@ namespace OLAS {
     // Generate vector for storing Dirchlet values
     // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
     //       obtain a Vector<T> object
-    dirichletValue_ = GenerateStdVectorObject( SPARSE_NONSYM, eType_,
+    dirichletValue_ = GenerateSparseVectorObject( SPARSE_NONSYM, eType_,
                                                blockSize, numIDBC_ );
 
     // Generate our personal assemble object
@@ -115,7 +115,7 @@ namespace OLAS {
     }
 
     // Generate vector for storing Dirchlet values
-    StdVector *stdVec = NULL;
+    SparseVector *stdVec = NULL;
     BaseVector *bVec = NULL;
     SBM_Vector *sbmVec = New SBM_Vector( numPDEs );
     UInt aux = 0;
@@ -129,8 +129,8 @@ namespace OLAS {
       // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
       //       obtain a Vector<T> object
       if ( aux > 0 ) {
-        bVec = GenerateStdVectorObject( SPARSE_NONSYM, eType_, 1, aux );
-        stdVec = dynamic_cast<StdVector*>(bVec);
+        bVec = GenerateSparseVectorObject( SPARSE_NONSYM, eType_, 1, aux );
+        stdVec = dynamic_cast<SparseVector*>(bVec);
         sbmVec->SetSubVector( stdVec, i );
       }
     }
@@ -257,8 +257,8 @@ namespace OLAS {
     if ( sbmCase_ == false ) {
 
       TRY_CAST {
-        PtrCast( rhs, StdVector, stdVec );
-        PtrCast( dirichletValue_, StdVector, stdVal );
+        PtrCast( rhs, SparseVector, stdVec );
+        PtrCast( dirichletValue_, SparseVector, stdVal );
         assembler_->AdaptRHSForIDBC( *stdVec,
                                      dirichletEQN_,
                                      *stdVal,
@@ -279,8 +279,8 @@ namespace OLAS {
         PtrCast( dirichletValue_, SBM_Vector, sbmVal );
 
         // We need pointers to sub-vectors
-        StdVector *stdVec = NULL;
-        StdVector *stdVal = NULL;
+        SparseVector *stdVec = NULL;
+        SparseVector *stdVal = NULL;
 
         // Now loop over all PDEs / sub-vectors and
         // set the Dirichlet values
@@ -335,7 +335,7 @@ namespace OLAS {
     // SBM_Matrix case
     else {
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( dirichletValue_ );
-      StdVector *stdVec = sbmVec->GetPointer( pdeID );
+      SparseVector *stdVec = sbmVec->GetPointer( pdeID );
       stdVec->SetVectorEntry( index, val );
       dirichletEQN_      [ index ] = eqnNo;
     }
@@ -356,7 +356,7 @@ namespace OLAS {
     if ( sbmCase_ == false ) {
 
       // Down-cast vector
-      StdVector *stdVec = dynamic_cast<StdVector*>( vec );
+      SparseVector *stdVec = dynamic_cast<SparseVector*>( vec );
       if ( stdVec == NULL ) {
         Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
       }
@@ -383,8 +383,8 @@ namespace OLAS {
       }
 
       // Loop over all sub-vectors
-      StdVector *stdVec = NULL;
-      StdVector *stdVal = NULL;
+      SparseVector *stdVec = NULL;
+      SparseVector *stdVal = NULL;
       T aux;
       UInt idx;
 
@@ -458,7 +458,7 @@ namespace OLAS {
          << " # | eqnNo | comp | value\n";
 
       T val;
-      PtrCast( dirichletValue_, StdVector, stdVal );
+      PtrCast( dirichletValue_, SparseVector, stdVal );
 
       for ( UInt i = 1; i <= numIDBC_; i++ ) {
         stdVal->GetVectorEntry( i, val );
@@ -478,7 +478,7 @@ namespace OLAS {
          << " --------------------------------------\n"
          << " numIDBC_ = " << numIDBC_ << '\n' << std::endl;
 
-      StdVector *stdVal = NULL;
+      SparseVector *stdVal = NULL;
       PtrCast( dirichletValue_, SBM_Vector, sbmVec );
       UInt aux = 0;
       UInt idx = 0;

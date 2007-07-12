@@ -19,7 +19,7 @@ namespace OLAS {
   // Forward declaration of classes
   class StandardSystem;
   class StdMatrix;
-  class StdVector;
+  class SparseVector;
   class BaseIDBC_Handler;
 
 
@@ -89,7 +89,7 @@ namespace OLAS {
                              UInt limit1, UInt limit2 );
 
     //!
-    void SetElementRHS( StdVector *rhs, Double *elemRHS,
+    void SetElementRHS( SparseVector *rhs, Double *elemRHS,
                         Integer *connect, UInt elemSize, UInt limit );
 
 
@@ -134,24 +134,24 @@ namespace OLAS {
     // ======================================================================
 
     //!
-    void SetNodeRHS( StdVector *rhs, Double val, 
+    void SetNodeRHS( SparseVector *rhs, Double val, 
                      Integer node );
     //!
-    void SetNodeRHS( StdVector *rhs, Complex val, 
+    void SetNodeRHS( SparseVector *rhs, Complex val, 
                      Integer node );
                           
     //!
-    void InitRHS( StdVector *rhs, const Double *newRHS);
+    void InitRHS( SparseVector *rhs, const Double *newRHS);
                           
     //!
-    void UpdateRHS( StdVector *rhs, StdMatrix *stdMat,
+    void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                     Double *fup );
 
     //@{
     //! Set entry in a vector to specified value
-    void SetVectorEntry( StdVector *vec, UInt index,
+    void SetVectorEntry( SparseVector *vec, UInt index,
                          Double &newVal );
-    void SetVectorEntry( StdVector *vec, UInt index,
+    void SetVectorEntry( SparseVector *vec, UInt index,
                          Complex &newVal );
     //@}
 
@@ -170,10 +170,10 @@ namespace OLAS {
     //! 
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    void GetSolutionVal( StdVector *sol, Double* &ptSol, 
+    void GetSolutionVal( SparseVector *sol, Double* &ptSol, 
                          const PdeIdType identifierPDE = NO_PDE_ID );
 
-    void GetSolutionVal( StdVector *sol, Complex* &ptSol, 
+    void GetSolutionVal( SparseVector *sol, Complex* &ptSol, 
                          const PdeIdType identifierPDE = NO_PDE_ID );
     //@}
 
@@ -200,10 +200,10 @@ namespace OLAS {
     //!
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
-    void GetRHSVal( StdVector *rhs, Double* &ptRhs, 
+    void GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
                     const PdeIdType identifierPDE = NO_PDE_ID);
 
-    void GetRHSVal( StdVector *rhs, Complex* &ptRhs, 
+    void GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
                     const PdeIdType identifierPDE = NO_PDE_ID);
     //@}
 
@@ -251,9 +251,9 @@ namespace OLAS {
                             Double &penaltyTerm );
 
     //! Modify right-hand side vector following penalty approach
-    void AdaptRHSForIDBC( StdVector &rhs,
+    void AdaptRHSForIDBC( SparseVector &rhs,
                           UInt *dirichletEQN,
-                          StdVector &dirichletValue,
+                          SparseVector &dirichletValue,
                           Double &penaltyTerm,
                           UInt numIDBC );
     //@}

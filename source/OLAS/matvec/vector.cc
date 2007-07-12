@@ -114,7 +114,7 @@ namespace OLAS {
   //   Add vec to this vector object
   // *********************************
   template <typename T>
-  void Vector<T>::Add(const StdVector &vec) {
+  void Vector<T>::Add(const SparseVector &vec) {
 
     PROFILE("Vector::Add (1)",size_*BlockSize<T>::size);
     ENTER_FCN("Vector::Add");
@@ -134,8 +134,8 @@ namespace OLAS {
   //   Replace this vector object by the sum of two scaled vectors
   // ***************************************************************
   template <typename T>
-  void Vector<T>::Add(T_Stype a, const StdVector &vec1, 
-		      T_Stype b, const StdVector &vec2) {
+  void Vector<T>::Add(T_Stype a, const SparseVector &vec1, 
+		      T_Stype b, const SparseVector &vec2) {
 
     PROFILE("Vector::Add (2)",3*size_*BlockSize<T>::size);
     ENTER_FCN("Vector::Add");
@@ -156,7 +156,7 @@ namespace OLAS {
   //   Add a scaled version of a vector to this vector object
   // **********************************************************
   template <typename T>
-  void Vector<T>::Add(T_Stype a, const StdVector &vec) {
+  void Vector<T>::Add(T_Stype a, const SparseVector &vec) {
     ENTER_FCN("Vector::Add");
     PROFILE("Vector::Add (3)",2*size_*BlockSize<T>::size);
 
@@ -176,7 +176,7 @@ namespace OLAS {
   //   Inner
   // *********
   template <typename T>
-  void Vector<T>::Inner( const StdVector &vec, T_Stype &sum ) const {
+  void Vector<T>::Inner( const SparseVector &vec, T_Stype &sum ) const {
 
     ENTER_FCN( "Vector::Inner" );
     PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
@@ -230,7 +230,7 @@ namespace OLAS {
   //   Same as the BLAS functions of that name
   // *******************************************
   template <typename T>
-  void Vector<T>::Axpy( const T_Stype alpha, const StdVector &y ) {
+  void Vector<T>::Axpy( const T_Stype alpha, const SparseVector &y ) {
     ENTER_FCN( "Vector::Axpy" );
     PROFILE("Vector::Axpy",size_*2*BlockSize<T>::size);
     TRY_CAST
@@ -395,7 +395,7 @@ namespace OLAS {
   //   Overload Assignment Operator
   // ********************************
   template<typename T>
-  StdVector& Vector<T>::operator=( const StdVector &stdvec ) {
+  SparseVector& Vector<T>::operator=( const SparseVector &stdvec ) {
     ENTER_IFCN( "Vector::operator=" );
 
     // Down-cast base vector
