@@ -443,6 +443,10 @@ namespace CoupledField {
         
   }
 
+  CFSVector* DirectCoupledPDE::GetSolutionVector() {
+    return singlePDEs_[0]->GetSolutionVector();
+  }
+
   void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
     ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
 

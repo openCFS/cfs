@@ -168,7 +168,7 @@ namespace CoupledField {
     //@}
 
     //! get the data vector of the current solution of a PDE.
-    CFSVector * GetSolutionVector();
+    virtual CFSVector * GetSolutionVector();
     
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
