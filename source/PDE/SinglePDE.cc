@@ -1001,6 +1001,10 @@ namespace CoupledField {
            // loop over all equations for the dirichlet conditions
            for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++){
              eqnNr = eqns[iEqn];
+
+             // omit all equations, which are homogeneous dirichlet
+             // boundary condition (0) or constraint slave eqn (<0)
+             if( eqnNr <= 0 ) continue;
              
              // If iterator points to a node, pass the current coordinate
              // to the parser

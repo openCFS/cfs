@@ -25,12 +25,12 @@ namespace CoupledField
 
       //! Constructor
       Impedance() : 
-        node1(0), node2(0), resistance(0.0),
+        resistance(0.0),
         inductance(0.0), capacitance(0.0) {};
       
       //@{
       //! Node numbers the impedance is connected with
-      UInt node1, node2;
+      shared_ptr<NodeList> node1, node2;
       //@}
 
       //@{
@@ -166,8 +166,11 @@ namespace CoupledField
     //! </table>
     void InitStoreResults();
  
-    /** Read the impedance */
-    void ReadImpedance();
+    //! Read definitions for electric impedances
+    void ReadImpedances();
+
+    //! Define integrators for electric impedances
+    void DefineImpedanceIntegrators();
 
     //! flag for piezo-coupling
     bool isPiezoCoupled_;

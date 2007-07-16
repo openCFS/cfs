@@ -1329,23 +1329,24 @@ namespace CoupledField {
       //
       // -- PHASE 1 --
       // Step 1:  Initialize actMap with NO_EQN
-      // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
+      // Step 2:  For each entry in constraintSlaveNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
-      // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
+      // Step 3:  For each entry in homoDirichletNodes_ set the corresponding
+      //          entry in pdeNode2eqn_ to 0
+      // Step 3b: For each entry in inhomoDirichletNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to -1
-      // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
-      //          entry in pdeNode2eqn_ to 0
+      
       // Step 4:  Loop over all nodes of given entity lists
       //          and assign each non-zero entry an equation number
       // Step 5:  Loop over the whole map and set all entries with NO_EQN to 0
 
       // -- PHASE 2 --
-      // Step 6:  Afterwards loop again over all nodes in constraintSlaveNodes_
-      //          and set the corresponding entry in pdeNode2EQN_ to the
-      //          negative of the value of constraintMasterNode
-      // Step 6b: Loop over all entries in inhomoDirichletNodes_ and assign that
+      // Step 6: Loop over all entries in inhomoDirichletNodes_ and assign that
       //          dof an equation number after the hightest equation number of
       //          the free dofs
+      // Step 6b:  Afterwards loop again over all nodes in constraintSlaveNodes_
+      //          and set the corresponding entry in pdeNode2EQN_ to the
+      //          negative of the value of constraintMasterNode
       //
       
       if( phase == 1 ) {
@@ -1361,6 +1362,30 @@ namespace CoupledField {
 	
 	// ------
 	// STEP 2
+	// ------
+        
+	// Check if any inhom. constraint is defined for the current
+	// result
+	if( csIt != constraints_.end() ) {
+	  ConstraintList const & actCsList = csIt->second;
+	  
+	  for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
+	    StdVector<UInt> slaveNodes;
+	    GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+	    UInt slaveDof = actCsList[i]->slaveDof;
+
+            // NOTE: at the moment we assume that slave and master nodes
+            // are the same, therefore we start with the second node
+            // within the master / slave node array
+	    for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
+	    }
+	  }
+	}
+
+
+	// ------
+	// STEP 3
 	// ------
         Matrix<UInt> countNodes;
 	countNodes.Resize( numLocNodes_, dofsPerNode );
@@ -1399,9 +1424,11 @@ namespace CoupledField {
 	  }
 	}
 	
+
+
 	
 	// -------
-	// STEP 2b
+	// STEP 3b
 	// -------
 
 	countNodes.Init(0);
@@ -1437,38 +1464,22 @@ namespace CoupledField {
 	      }
 	      else {
                 
-                // Only set equation number to zero, if we sort equations
-                
-                actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-		// In any case we have to increment the number of idBC-conditions
-		numIdBcs_++;
+                // only set entry to -1, if entry is not yet an constraint
+                // slave entry or homogeneous dirichlet entry
+                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
+                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+                  // In any case we have to increment the number of idBC-conditions
+                  numIdBcs_++;
+                } 
 	      }
 	    }
 	  }
 	}
 	
 	
-	// ------
-	// STEP 3
-	// ------
-        
-	// Check if any inhom. constraint is defined for the current
-	// result
-	if( csIt != constraints_.end() ) {
-	  ConstraintList const & actCsList = csIt->second;
-	  
-	  for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
-	    StdVector<UInt> slaveNodes;
-	    GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
-	    UInt slaveDof = actCsList[i]->slaveDof;
-	    
-	    //for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-            for ( UInt iNode = 0; iNode < slaveNodes.GetSize(); iNode++ ) {
-	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
-	    }
-	  }
-	}
+
 	
 	 
         // ------
@@ -1518,37 +1529,9 @@ namespace CoupledField {
                          << actMap << std::endl;
         
       } else if( phase == 2 ) {
-	
-	// ------
-	// STEP 6
-	// ------
-	// Check if any inhom. constraint is defined for the current
-	// result
-	if( csIt != constraints_.end() ) {
-	  ConstraintList const & actCsList = csIt->second;
-	  
-	  for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
-	    StdVector<UInt> slaveNodes;
-	    GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
-	    UInt slaveDof = actCsList[i]->slaveDof;
-	    UInt masterDof = actCsList[i]->masterDof;
-	    UInt masterNode = slaveNodes[0];
-
-            // assign the master node/dof a equation number
-            actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
-              [slaveDof-1] = ++numEqns_;
-
-	    for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
-		-actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
-              numCs_++;
-	    }
-	  }
-	}
-	
-
+        
 	// -------
-	// STEP 6b
+	// STEP 6
 	// -------
 	if( idBcIt != idBcs_.end() ) {
 	  IdBcList const & actIdBcList = idBcIt->second;
@@ -1563,11 +1546,38 @@ namespace CoupledField {
               Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
               if( locNode > 0 ) { 
                 if(  actMap[locNode-1] [actDof-1] 
-                     == -1 ) {
+                     == -1  ) {
                   numEqns_++;
                   actMap[locNode-1] [actDof-1] = numEqns_;
                 }
               }
+	    }
+	  }
+	}
+        
+	// ------
+	// STEP 6b
+	// ------
+	// Check if any inhom. constraint is defined for the current
+	// result
+	if( csIt != constraints_.end() ) {
+	  ConstraintList const & actCsList = csIt->second;
+	  
+	  for ( UInt i = 0; i < actCsList.GetSize(); i++ ) {
+	    StdVector<UInt> slaveNodes;
+	    GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
+	    UInt slaveDof = actCsList[i]->slaveDof;
+	    UInt masterDof = actCsList[i]->masterDof;
+	    UInt masterNode = slaveNodes[0];
+
+            // assign the master node/dof a equation number
+            //actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
+            //  [slaveDof-1] = ++numEqns_;
+
+	    for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+	      actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
+		-actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
+              numCs_++;
 	    }
 	  }
 	}

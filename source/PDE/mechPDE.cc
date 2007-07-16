@@ -305,7 +305,7 @@ namespace CoupledField {
       // stiffness value
       if( stiffVal > EPS ) {
         SingleEntryInt * stiffInt = 
-          new SingleEntryInt( stiffVal, dof, dim_ );
+          new SingleEntryInt( GenStr(stiffVal),  dof, dim_ );
         BiLinFormContext * stiffIntContext = 
           new BiLinFormContext( stiffInt, STIFFNESS );
         stiffIntContext->SetPtPdes(this, this);
@@ -317,7 +317,7 @@ namespace CoupledField {
       // mass Value
       if ( massVal > EPS ) {
         SingleEntryInt * massInt = 
-          new SingleEntryInt( massVal, dof, dim_ );
+          new SingleEntryInt( GenStr(massVal), dof, dim_ );
         BiLinFormContext * massIntContext = 
           new BiLinFormContext( massInt, MASS );
         massIntContext->SetPtPdes(this, this);
@@ -329,7 +329,7 @@ namespace CoupledField {
       // damping value
       if( dampVal > EPS ) {
         SingleEntryInt * dampInt = 
-          new SingleEntryInt( dampVal, dof, dim_ );
+          new SingleEntryInt( GenStr(dampVal), dof, dim_ );
         BiLinFormContext * dampIntContext = 
           new BiLinFormContext( dampInt, DAMPING );
         dampIntContext->SetPtPdes(this, this);

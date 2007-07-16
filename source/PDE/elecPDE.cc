@@ -18,6 +18,7 @@
 #include "Forms/laplaceInt.hh"
 #include "Forms/FlatShellElecInt.hh"
 #include "Forms/nonConformingInt.hh"
+#include "Forms/singleEntryInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/gradfieldop.hh"
 #include "General/defs.hh"
@@ -415,6 +416,86 @@ namespace CoupledField {
       // Give result LAGRANGE_MULT to equation numbering class
       eqnMap_->AddResult( *results_[1], actSDList );
     }
+
+
+    // define integrators for electric impedances
+    DefineImpedanceIntegrators();
+  }
+  
+  void ElecPDE::DefineImpedanceIntegrators() {
+    
+    // The definition of the impedances is taken from:
+
+    // Jian S. Wang and Dale F. Ostergaard:
+    // A Finite Element-Electric Circuit Coupled Simulation Method for
+    // Piezoelectric Transducer
+    // IEEE Ultrasoncics Symposium, 1999
+
+    // =======================================================================
+    // Integrators for electric impedances
+    // =======================================================================
+    
+    for( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+      
+      std::string real, imag, temp;
+      real = "";
+      imag = "";
+      
+      // *** Resistance ***
+      if ( impedances_[i].resistance > EPS ) {
+        imag = "( 1.0 / ((2*pi*f) * ";
+        imag += GenStr(impedances_[i].resistance)+ " ))";
+      }
+      
+      // *** Inductance ***
+      if ( impedances_[i].inductance > EPS ) {
+        real = "(1.0 / ((2*pi*f) * (2*pi*f) * ";
+        real += GenStr(impedances_[i].inductance) + " ))";
+      }
+      
+      // *** Capcitance *** 
+      if ( impedances_[i].capacitance > EPS ) {
+        real += "-" + GenStr( impedances_[i].capacitance );
+      } 
+      
+      // perform consistency check
+      if( real == "" ) real = "0.0";
+      if( imag == "" ) imag = "0.0";
+
+      // generate integrators
+      // a) diagonal entries
+      SingleEntryInt * stiffInt1 = 
+        new SingleEntryInt( real, imag,  1, 1 );
+      BiLinFormContext * stiffIntContext1 = 
+        new BiLinFormContext( stiffInt1, STIFFNESS );
+      stiffIntContext1->SetPtPdes(this, this);
+      stiffIntContext1->SetResults( results_[0], results_[0],
+                                   impedances_[i].node1,
+                                   impedances_[i].node1 );
+      assemble_->AddBiLinearForm( stiffIntContext1 );
+
+      SingleEntryInt * stiffInt2 = 
+        new SingleEntryInt( real, imag,  1, 1 );
+      BiLinFormContext * stiffIntContext2 = 
+        new BiLinFormContext( stiffInt2, STIFFNESS );
+      stiffIntContext2->SetPtPdes(this, this);
+      stiffIntContext2->SetResults( results_[0], results_[0],
+                                    impedances_[i].node2,
+                                    impedances_[i].node2 );
+      assemble_->AddBiLinearForm( stiffIntContext2 );
+      
+      // b) off-diagonal entries
+      SingleEntryInt * stiffInt3 = 
+        new SingleEntryInt( "-"+real, "-"+imag,  1, 1 );
+      BiLinFormContext * stiffIntContext3 = 
+        new BiLinFormContext( stiffInt3, STIFFNESS );
+      stiffIntContext3->SetPtPdes(this, this);
+      stiffIntContext3->SetResults( results_[0], results_[0],
+                                    impedances_[i].node1,
+                                    impedances_[i].node2 );
+      stiffIntContext3->SetCounterPart( true );
+      assemble_->AddBiLinearForm( stiffIntContext3 );
+    }
   }
 
   void ElecPDE::DefineSolveStep() {
@@ -424,12 +505,12 @@ namespace CoupledField {
 
   void ElecPDE::ReadSpecialBCs( ) 
   {
-     ReadImpedance();
+     ReadImpedances();
   }
   
   
 
-  void ElecPDE::ReadImpedance( ) 
+  void ElecPDE::ReadImpedances( ) 
   {
   
     // Get values from parameter file
@@ -444,7 +525,7 @@ namespace CoupledField {
 
     std::string node1, node2;
     Double resistance, capacitance, inductance;
-    StdVector<UInt> nodes;
+    StdVector<UInt> nodeVec, oneNodeVec(1);
     
     // resize impedances and fill in data
     std::ostringstream out;
@@ -459,24 +540,29 @@ namespace CoupledField {
       capacitance = impedNodes[i]->Get("capacitance")->AsDouble();
       
       // fill data for impedance node
-      ptgrid_->GetNodesByName( nodes, node1 );
-      impedances_[i].node1 = nodes[0];
-       ptgrid_->GetNodesByName( nodes, node2 );
-      impedances_[i].node2 = nodes[0];
+      impedances_[i].node1 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      ptgrid_->GetNodesByName( nodeVec, node1);
+      oneNodeVec[0] = nodeVec[0];
+      impedances_[i].node1->SetNodes( oneNodeVec );
+      impedances_[i].node2 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      ptgrid_->GetNodesByName( nodeVec, node2);
+      oneNodeVec[0] = nodeVec[0];
+      impedances_[i].node2->SetNodes( oneNodeVec );
       impedances_[i].resistance = resistance;
       impedances_[i].capacitance = capacitance;
       impedances_[i].inductance = inductance;
 
       out.clear();
       out.str("");
-      out << "Impedance defined between node " << impedances_[i]. node1
-          << " and node " << impedances_[i].node2  << " with:\n";
+      out << "Impedance defined between node " << node1
+          << " and node " << node2  << " with:\n";
       Info->PrintF( pdename_, out.str().c_str() );
       out.clear();
       out.str("");
       out << "\tR = " << impedances_[i].resistance 
-          << "\tL = " << impedances_[i].inductance         
-          << "\tC = " << impedances_[i].capacitance << std::endl;
+          << " Ohm \tL = " << impedances_[i].inductance         
+          << " H \tC = " << impedances_[i].capacitance 
+          << " F" << std::endl;
       Info->PrintF( pdename_, out.str().c_str() );
       Info->PrintF( pdename_, "\n" );
     }
