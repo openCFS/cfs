@@ -61,7 +61,9 @@ namespace CoupledField {
     startStep_ = 1;
 
     // In the end, read nonlinear data from xml-file
-    ReadNonLinData();
+    if( nonLin_ || nonLinMaterial_ ) {
+      ReadNonLinData();
+    }
   }
 
   
@@ -694,8 +696,8 @@ namespace CoupledField {
         
       }
       Double incrementL2Norm = u_uOld.NormL2();
-      std::cout<<"-- residual2Norm = " << residualL2Norm <<", incrementL2Norm = "<<incrementL2Norm<< std::endl;    
-      
+      std::cout<<"-- residual2Norm = " << residualL2Norm 
+               <<", incrementL2Norm = "<<incrementL2Norm<< std::endl;
        
       Double residualErr;
       if ( RhsLinL2Norm > 1.0 )
@@ -1311,9 +1313,28 @@ namespace CoupledField {
           }
         }
       }
-      
+      if( !nonLinNode ) {
+        // in this case we iterate over all single PDEs and try to
+        // find the related entry
+        StdVector<ParamNode*> pdes =  
+          param->Get("sequenceStep","index", GenStr(actMsStep ) )
+          ->Get("pdeList")->GetChildren();
+        for (UInt iPde = 0; iPde < pdes.GetSize(); iPde++ ) {
+          if( boost::find_first(pdeName, pdes[iPde]->GetName() ) ) {
+            nonLinNode = pdes[iPde]->Get("nonLinear", false );
+            if( nonLinNode ) {
+              break;
+            }
+          }
+        }
+      }
     } else {
       nonLinNode = PDE_.GetParamNode()->Get("nonLinear", false );
+    }
+
+    // Check, if any nonlinear node was found
+    if( !nonLinNode ) {
+      Warning("Taking default parameters for nonlinear data" );
     }
 
     // Read data, if "nonLinear" element was found
