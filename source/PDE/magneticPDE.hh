@@ -100,6 +100,9 @@ namespace CoupledField
     template<class TYPE>
     void CalcFluxDensity( shared_ptr<BaseResult> result );
 
+    //! computes the H field according to a hysteresis operator
+    void CalcHfield( shared_ptr<BaseResult> result );
+
     //! computes the eddy current denstiy
     template<class TYPE>
     void CalcEddyCurrent( shared_ptr<BaseResult> result );
@@ -147,6 +150,11 @@ namespace CoupledField
     void CalcFluxDensityAtIP( EntityIterator it,
                               UInt ip,
                               Vector<TYPE>& field );
+
+    //! Calculates the magnetic field H at the given integration point.
+    //! If ip is 0, the midpoint of the element is evaluated.
+    void CalcHfieldAtIP( EntityIterator it, UInt ip,
+                         Vector<Double>& field );
 
     //! Calc EddyCurrent in integration point
 

@@ -302,7 +302,7 @@ namespace CoupledField {
     if ( nonLin_ && nonLinMaterial_ ) {
       StepTransNonLinMaterial();
     }
-    else if ( nonLin_ && isHyst_ ) {
+    else if ( isHyst_ ) {
        StepTransNonLinHysteresis();
     }
     // do a nonlinear time step
@@ -402,7 +402,7 @@ namespace CoupledField {
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
-      Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
+      Error( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin",
              __FILE__, __LINE__ );
     }
     else {

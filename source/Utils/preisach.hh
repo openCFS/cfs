@@ -23,17 +23,38 @@ namespace CoupledField {
     virtual ~Preisach();
 
     //!
-    Double computeValue(Double xVal, Integer idxElem);
+    Double computeValue(Double xVal, Integer idxElem, bool overwrite = true);
+
+    //!
+    Double computeInverseValue(Double xVal, Integer idxElem);
+
+    //!
+    Double computeValueAndUpdate(Double xVal, Integer idxElem, 
+                                 bool overwrite = true);
 
     //! 
     Double getValue(  Integer idxElem);
 
+    //! 
+    UInt getStringLength( Integer idxElem ) {
+      return  StringLenght_[ idxElem];
+    };
+
     //!
-    void updateMinMaxList(Double newX, Integer idxElem);
+    virtual Double GetIncX() {
+      return dH_;
+    };
+
+    //!
+    Double updateMinMaxList(Double newX, Integer idxElem, 
+                          bool overwrite);
 
     //!
     void SetTimeStepVal(Double dt) 
     {;};
+
+    //!
+    Double EvalEverett(Double x1, Double x2, Integer idx);
 
     //!
     Double everett(Double x1, Double x2);
@@ -43,6 +64,10 @@ namespace CoupledField {
 
     //!
     Double normalizeInput(Double xInput);
+
+    //!
+    Double normalizeOutput(Double xInput);
+
 
     //! compute preisach weights;
     void computePreisachWeights();
@@ -68,6 +93,9 @@ namespace CoupledField {
     UInt maxStringLength_;
 
     Matrix<Double> preisachWeights_;
+
+    Double dH_; 
+    Double eps_;
   };
 
 

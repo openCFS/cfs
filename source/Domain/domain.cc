@@ -496,6 +496,9 @@ namespace CoupledField {
       
       else if (actPdeName == "acousticXYZ")
         ptSinglePde_[i]=new AcousticXYZPDE(defaultGrid, actPdeNode );
+      
+      else if (actPdeName == "acousticMixed")
+        ptSinglePde_[i]=new AcousticMixedPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "smooth")
         ptSinglePde_[i]=new SmoothPDE(defaultGrid, actPdeNode );

@@ -92,7 +92,7 @@ namespace CoupledField
     
     //! Calculation of stiffmess matrix
     void calcBMatPML( Matrix<Double>& bMat, Vector<Double>& CoordAtIP,
-                      Matrix<Complex> & bMatComplex, Complex jacDetC);
+                      Matrix<Complex> & bMatComplex, Complex& jacDetC);
     
     //! object containing standard PML methods
     PMLBasics *pmlFnc_;

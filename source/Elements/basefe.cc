@@ -572,13 +572,21 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::CalcInvJacobian" );
   
-    //  J.Resize(Dim_,Dim_);
+    Matrix<Double> J, LDeriv;
+    Double det;
 
     CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE);
 
     J = CornerCoords * LDeriv;
 
-    J.Invert(JInv);
+    if ( CalcICModes_ && ICModes_ ) {
+      // modified inverse: do not divide by the determinant!!
+      J.Determinant( det );
+      J.Invert(JInv);
+      JInv *= det;
+    }
+    else 
+      J.Invert(JInv);
   }
 
 

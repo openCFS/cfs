@@ -1447,9 +1447,9 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,   0.57735026919,  1.000000000000000 },
     };
       
-    if (NumNodes_ ==8 )
-      AddIntegrationPoints(CLASSICAL, 1, 1, (Double*) c1_1FE);
-    else
+//     if (NumNodes_ ==8 )
+//       AddIntegrationPoints(CLASSICAL, 1, 1, (Double*) c1_1FE);
+//     else
       AddIntegrationPoints(CLASSICAL, 1, 8, (Double*) c1_2FE);         
       
     static Double c2[][4] = { 
@@ -1500,7 +1500,7 @@ namespace CoupledField
     //                     ^ eta 
     //    8 +-------+ 7    |/
     //     /|      /|      0--> xi 
-    //    / |     / |
+   //    / |     / |
     // 5 +--+----+6 |   
     //   |  +-- -|- + 3    
     //   | / 4   | /    REFERENCE VOLUME ELEMENT

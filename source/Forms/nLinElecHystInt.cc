@@ -98,10 +98,10 @@ namespace CoupledField {
     ptelem->GetCoordMidPoint(LCoord);
     EfieldOp_->CalcElemGradField( Efield,  ent1, LCoord, 1 );
 
-    Double Ecomp = Efield[dirP_]; //.NormL2(); // Efield[1]; //Efield.NormL2();
+    //    Double Ecomp = Efield[dirP_]; //.NormL2(); 
  
     UInt nrEl = ent1.GetElem()->elemNum;
-    diffEpsVal_ = ptMaterial->ComputeScalarDiffVal( nrEl, Ecomp );
+    diffEpsVal_ = ptMaterial->ComputeScalarDiffVal( nrEl, Efield); //, Ecomp );
 
     if (  diffEpsVal_ < 0.0 ) 
       Error("Negative effective permittivity", __FILE__, __LINE__);

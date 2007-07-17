@@ -26,8 +26,14 @@ namespace CoupledField
 
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
 
-    // get pointer to nonlinear BH curve approximation
-    ptMaterial->NeedApproxMatCurve( magBH );
+    isHysteresis_ = false;
+    if ( ptMaterial->IsSetHysteresis() ) {
+      isHysteresis_ = true;
+    }
+    else {
+      // get pointer to nonlinear BH curve approximation
+      ptMaterial->NeedApproxMatCurve( magBH );
+    }
   }
 
  
@@ -103,18 +109,38 @@ namespace CoupledField
           for( UInt j=0; j<numFncs; j++ )
             B[i] += xiDx[j][i] * magPot_[j];
 
+
         Double Babs = B.NormL2();
 
-        if (Babs ==0) 
-          reluctivity = startmatVal_;
+        if ( isHysteresis_ ) {
+          //hysteresis modeling
+
+          // Account for curl 
+          Double temp = B[0];
+          if ( isaxi_ ) {
+            B[0] = -B[1];
+            B[1] = temp;
+          } else {
+            B[0] = B[1];
+            B[1] = -temp;
+          }
+          UInt nrEl = ent1.GetElem()->elemNum;
+          reluctivity = ComputeDiffReluctivity( nrEl, B );
+          //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
+        }
         else {
-          reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
+          //nonlinear BH curve
+          if (Babs ==0) 
+            reluctivity = startmatVal_;
+          else {
+            reluctivity = nlinFnc_->EvaluateFuncNu(Babs);
+          }
         }
 
         //        std::cout << "b=" << Babs << "  nu=" << reluctivity << std::endl;
         partElemMat *= reluctivity;
         
-        if (nonLinType_ == NEWTON) {
+        if ( !isHysteresis_ && nonLinType_ == NEWTON) {
           if (Babs ==0) 
             derivReluctivity = 0;
           else {          
@@ -146,6 +172,23 @@ namespace CoupledField
     
     if (atype == "fixPoint")
       nonLinType_ = FIXEDPOINT;
+  }
+
+
+  Double nLinCurlCurlNode2DInt::ComputeDiffReluctivity( UInt nrEl, Vector<Double>& Bvec )
+  {
+    ENTER_FCN( "nLinCurlCurlNode2DInt::ComputeDiffReluctivity");
+
+    Double diffRelucVal;
+
+    diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
+
+    if (  diffRelucVal <= 0.0 ) 
+      Error("Negative effective permeability", __FILE__, __LINE__);
+
+
+    return diffRelucVal;
+
   }
 
 

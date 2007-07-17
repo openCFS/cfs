@@ -73,8 +73,8 @@ namespace CoupledField {
           std::string hystType;
           materialData_[iSD]->GetScalar(hystType, HYST_MODEL);
           if ( hystType == "preisach" ) {
-            materialData_[iSD]->GetScalar(Esat,E_SATURATION,REAL);
-            materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
+            materialData_[iSD]->GetScalar(Esat,X_SATURATION,REAL);
+            materialData_[iSD]->GetScalar(Psat,Y_SATURATION,REAL);
             materialData_[iSD]->GetScalar((Integer&)dir,P_DIRECTION,INTEGER);
             isVirgin = true; 
 
@@ -86,7 +86,7 @@ namespace CoupledField {
 	    materialData_[iSD]->GetScalar(alpha,ALPHA_JILES,REAL);
 	    materialData_[iSD]->GetScalar(k,K_JILES,REAL);
 	    materialData_[iSD]->GetScalar(c,C_JILES,REAL);
-	    materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
+	    materialData_[iSD]->GetScalar(Psat,Y_SATURATION,REAL);
 
             hyst_[iSD] = new Jiles(numSDElems, Psat, a, alpha, k, c);
             hyst_[iSD]->SetTimeStepVal(TS_alg_->GetTimeStep());
@@ -340,7 +340,7 @@ namespace CoupledField {
         //and invoke the update MinMaxList method
         Ecomp = Efield[comp]; 
         //      pdeElem = 0;
-        hyst_[isd]->updateMinMaxList(Ecomp, pdeElem);
+        hyst_[isd]->updateMinMaxList(Ecomp, pdeElem, true);
 
         Pval = hyst_[isd]->computeValue(Ecomp,pdeElem);
 

@@ -84,7 +84,7 @@ namespace CoupledField {
     oldSol.Init(0);
     newSol.Init(0);
   
-    //save solution opf previous time step  
+    //save solution of previous time step  
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     solhelp->GetAlgSysVector(solPrev);
 
@@ -250,12 +250,12 @@ namespace CoupledField {
 	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 	  
 	  //get correct component of electric field for scalar Preisach model
-	  Ecomp = Efield[dirP]; //Efield.NormL2(); //[comp]; 
+	  //Ecomp = Efield[dirP]; //Efield.NormL2(); //[comp]; 
 	  
 	  pdeElem = it.GetElem()->elemNum;
 	  
 	  //set the values
-	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, Ecomp );
+	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, Efield );
 	}  
       }
     }

@@ -42,4 +42,6 @@
 #include "nLinPiezoCoupling.hh" 
 #include "nLinMassInt.hh"
 #include "nlinLaplaceInt.hh"
+#include "nLinMagHystInt2D.hh"
+#include "mixedInt.hh"
 #endif

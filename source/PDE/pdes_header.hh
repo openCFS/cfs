@@ -18,6 +18,7 @@
 #include "stokesFluidPDE.hh"
 #include "bubblePDE.hh"
 #include "acouCombustion.hh"
+#include "acousticMixedPDE.hh"
 
 
 #endif

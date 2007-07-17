@@ -9,6 +9,6 @@ SET(DRIVER_SRCS solveStepAcoustic.cc stdSolveStep.cc baseSolveStep.cc
   harmonicDriver.cc multiSequenceDriver.cc assemble.cc singleDriver.cc
   transientHarmonicDriver.cc iterSolveStep.cc solveStepPiezo.cc
   solveStepStokesFluid.cc eigenFrequencyDriver.cc formsContext.cc
-  solveStepODE.cc solveStepMpCCI.cc)
+  solveStepODE.cc solveStepMpCCI.cc solveStepMagHyst.cc)
 
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})

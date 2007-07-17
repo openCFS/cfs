@@ -573,11 +573,11 @@ namespace CoupledField {
 
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->AsDouble(), E_SATURATION, REAL ); 
+          material->SetScalar(p->Get("eSat")->AsDouble(), X_SATURATION, REAL ); 
  
         // read P saturation of Preisach hysterese model
         if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->AsDouble(), P_SATURATION, REAL ); 
+          material->SetScalar(p->Get("pSat")->AsDouble(), Y_SATURATION, REAL ); 
 
         // read direction of polarization
         if(p->Has("dirP"))
@@ -691,6 +691,54 @@ namespace CoupledField {
           material->SetNonlinFileName(iso->Get("dataName")->AsString().c_str());
       } // nonlinear isotropic material   
     } // end of magneticPermeability  
+
+
+    //read Preisach hysterese model
+    if(mag->Has("hystModel"))
+    {
+      if(mag->Get("hystModel")->Has("preisach"))
+      {
+        ParamNode* p = mag->Get("hystModel")->Get("preisach");
+        
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
+
+        // read E saturation of Preisach hysterese model
+        if(p->Has("eSat"))
+          material->SetScalar(p->Get("eSat")->AsDouble(), X_SATURATION, REAL ); 
+ 
+        // read P saturation of Preisach hysterese model
+        if(p->Has("pSat"))
+          material->SetScalar(p->Get("pSat")->AsDouble(), Y_SATURATION, REAL ); 
+
+        // read direction of polarization
+        if(p->Has("dirP"))
+        {
+          int dir = p->Get("dirP")->AsInt();
+          
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+          
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
+                      << " hysteresis model polarization");
+        }
+        
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim")) dim = p->Get("dim")->AsInt();
+    
+        // read real permittivity tensor    
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, REAL);
+        }
+      }
+    }
+
 
     // Print information to info file
     Info->PrintMaterial( material ); 

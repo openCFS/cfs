@@ -82,8 +82,10 @@ namespace CoupledField
     /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
     void SetDefaultIntegration()
     {
-        IntegMethod = ECONOMICAL;
-        IntegOrder  = 5; // 4+5 is same -> avoid warning
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 1; // 4+5 is same -> avoid warning
+        //        IntegMethod = ECONOMICAL;
+        //        IntegOrder  = 5; // 4+5 is same -> avoid warning
     }
 
     /** Sets the default reduced integration */ 

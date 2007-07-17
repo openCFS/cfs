@@ -988,6 +988,7 @@ namespace CoupledField {
        InhomDirichletBc const & actBc = *(idBcs_[i]);
 
        dof = actBc.dof;
+       // std::cout << "dof=" << dof << std::endl;
        
        // Get EntityIterator
        EntityIterator it = actBc.entities->GetIterator();

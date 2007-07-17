@@ -56,6 +56,8 @@ SET(FORMS_SRCS
   stokesFluidAxiInt.cc
   stokesFluidInt.cc
   stokesFluidPlaneInt.cc
+  nLinMagHystInt2D.cc
+  mixedInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

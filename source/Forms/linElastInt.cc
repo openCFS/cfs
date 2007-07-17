@@ -491,6 +491,11 @@ namespace CoupledField
 	jacDet *= 2 * PI * CoordAtIP[0];
       }
       
+      // now we devide by the actuall determinant, so that by the later multiplication
+      // the determinant cancles out; with this trick, the element passes the patch test
+      // see paper Taylor
+      gMat /=  sqrt(jacDet);
+
       // Compute the matrix product D * B and store as intermediate matrix
       dMat.Mult( bMat, dbMat );
       //    std::cout << "dMat:\n" << dMat << std::endl;

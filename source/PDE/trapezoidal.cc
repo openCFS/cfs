@@ -109,4 +109,115 @@ namespace CoupledField
   }
 
 
+
+  //====================================================================
+  //---------------------------- Effective Mass ------------------
+  //====================================================================
+
+  TrapezoidalEffMass :: TrapezoidalEffMass( BaseSystem * algebraicsystem)
+    :TimeStepping( algebraicsystem )
+  {
+    ENTER_FCN( "TrapezoidalEffMass::TrapezoidalEffMass" );
+
+    gamma_ = 0.51;
+
+  }
+
+  TrapezoidalEffMass :: ~TrapezoidalEffMass()
+  {
+    ENTER_FCN( "TrapezoidalEffMass::~TrapezoidalEffMass" );
+
+  }
+
+  void TrapezoidalEffMass::Init( Double dt, UInt rhsSize ) {
+    ENTER_FCN( "TrapezoidalEffMass::Init" );
+    
+    dt_ = dt;
+    rhsSize_ = rhsSize;
+    
+    CalcParameters(dt_);
+
+    matrix_factors_[STIFFNESS] = a1_;
+    matrix_factors_[MASS] = 1.0;
+
+    //not used matrices
+    matrix_factors_[CONVECTION] = 0.0;
+    matrix_factors_[DAMPING] = 0.0;
+
+    //get the memory
+    sol_.Resize(rhsSize_);
+    sol_.Init();
+
+    solderiv1_.Resize(rhsSize_);
+    solderiv1_.Init();
+
+    solpred_.Resize(rhsSize_); 
+    solpred_.Init();
+
+  }
+
+
+  void TrapezoidalEffMass::Predictor(Vector<Double>& solold)
+  {
+    ENTER_FCN( "TrapezoidalEffMass::Predictor" );
+    solpred_ = solold + solderiv1_*a0_;
+  }
+
+
+  void TrapezoidalEffMass::UpdateRHS()
+  {
+    ENTER_FCN( "TrapezoidalEffMass::UpdateRHS" );
+
+    Vector<Double> coeffStiff;
+
+    // mass part
+    coeffStiff = -solpred_;
+    algsys_->UpdateRHS(STIFFNESS,coeffStiff.GetPointer());
+  }
+
+
+  void TrapezoidalEffMass::UpdateRHS(Vector<Double>& actSol)
+  {
+    ENTER_FCN( "TrapezoidalEffMass::UpdateRHS" );
+    UpdateRHS();
+  }
+
+
+  void TrapezoidalEffMass::Corrector(Vector<Double>& vNew)
+  {
+    ENTER_FCN( "TrapezoidalEffMass::Corrector" );
+    // after solving the algebraic system of equation, we obtain as solution
+    // the 1st time derivative: vNew .. 1st time derivative
+    sol_ = solpred_ + vNew * a1_;
+    solderiv1_ = vNew;
+
+    //now overwrite the solution with the physical quantity itself
+    vNew = sol_;
+  }
+
+  void TrapezoidalEffMass :: CalcParameters(Double dt)
+  {
+    ENTER_FCN( "TrapezoidalEffMass::CalcParameters" );
+
+    //for predictors
+    a0_ = (1-gamma_)*dt;
+
+    //for correctors, matrices
+    a1_ = (gamma_*dt);
+  }
+
+
+  Double TrapezoidalEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
+  {
+    ENTER_FCN( "TrapezoidalEffMass::DirichletBC4EffMassMatrix" );
+
+    Double velVal;
+
+    velVal = (val- solpred_[eq-1]) / a1_;
+    return velVal;
+  }
+
+
+
+
 } // end of namespace
