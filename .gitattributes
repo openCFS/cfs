@@ -487,6 +487,8 @@ source/Driver/solveStepAcoustic.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepAcoustic.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepElec.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepElec.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/solveStepMagHyst.cc -text
+source/Driver/solveStepMagHyst.hh -text
 source/Driver/solveStepMpCCI.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMpCCI.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepODE.cc svneol=native#text/x-c%2B%2Bsrc
