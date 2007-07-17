@@ -188,6 +188,7 @@ XML/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
 XML/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
+XML/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 XML/CFS-Simulation/Schemas/CFS_PDEacousticXYZ.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEbubble.xsd -text svneol=unset#text/xml
@@ -644,6 +645,8 @@ source/Forms/massInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/massInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/mechStressStrain.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/mechStressStrain.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/mixedInt.cc -text
+source/Forms/mixedInt.hh -text
 source/Forms/nLinElastInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLinElastInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLinElecHystInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
@@ -973,6 +976,8 @@ source/PDE/acouCombustion.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/acouCombustion.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/acouFlowNoise.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/acouFlowNoise.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/acousticMixedPDE.cc -text
+source/PDE/acousticMixedPDE.hh -text
 source/PDE/acousticPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/acousticPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/acousticXYZPDE.cc svneol=native#text/x-c%2B%2Bsrc
