@@ -35,7 +35,9 @@ namespace CoupledField
 
     coosy_ = NULL;
     hyst_  = NULL;
-    symmetryType_ = GENERAL;
+    symmetryType_  = GENERAL;
+    isHysteresis_  = false;
+    isHystInverse_ = false;
   }
 
    BaseMaterial::~BaseMaterial() {
@@ -489,28 +491,34 @@ namespace CoupledField
 	  helpMat   = matTensorOrig * QT;
 	  matTensor = Q * helpMat;
 	}
-	else {
-	  EXCEPTION("Cannot rotate tensor due to dimensions!");
-	}
+// 	else {
+// 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
+// 	}
       }
   }
 
 
-  void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList ) {
+  void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                               bool isInverse, bool computeHystInverse ) {
     ENTER_FCN( "BaseMaterial::InitHyst" );
+
+    isHystInverse_      = isInverse;
+    computeHystInverse_ = computeHystInverse_;
 
     std::string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
-      Double Esat, Psat;
-      GetScalar(Esat, E_SATURATION, REAL);
-      GetScalar(Psat, P_SATURATION, REAL);
+      isHysteresis_ = true;
+
+      Double Xsat, Ysat;
+      GetScalar(Xsat, X_SATURATION, REAL);
+      GetScalar(Ysat, Y_SATURATION, REAL);
       Matrix<Double> weights;
       GetTensor(weights,  PREISACH_WEIGHTS, REAL);
       bool isVirgin = true;   
-      hyst_ = new Preisach(numElemSD, Esat, Psat, weights, isVirgin);
+      hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
 
       // set map: global to local element number
       EntityIterator it = actSDList->GetIterator();
@@ -520,7 +528,6 @@ namespace CoupledField
 
 	globalElNr = it.GetElem()->elemNum;
 	globalElem2Local_[globalElNr] = iel;
-
       }
     }
 
@@ -532,47 +539,86 @@ namespace CoupledField
     Yprevious_.Init(0.0);
   }
 
-  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Double Xval) {
+
+  Double BaseMaterial::ConvertVec2ScalarWithSign( Vector<Double> & vecVal ) {
+    ENTER_FCN( "BaseMaterial::ConvertVec2ScalarWithSign" );
+
+    Double absVal, maxVal;
+    UInt idx;
+
+    absVal = vecVal.NormL2();
+    idx = 0;
+    maxVal = abs( vecVal[0] );
+
+    for ( UInt i=1; i<vecVal.GetSize(); i++ ) {
+      if ( abs(vecVal[i]) > maxVal ) {
+        maxVal = vecVal[i];
+        idx++;
+      }
+    }
+//     if ( vecVal[idx] < 0  )
+//       absVal *= -1.0;
+
+    return absVal;
+  }
+
+
+  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& Xvec) {
     ENTER_FCN( "BaseMaterial::SetPreviousHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
+    Double Xval = ConvertVec2ScalarWithSign(Xvec);
+    // first compute the differential material value
     Xprevious_[idx] = Xval;
-    Yprevious_[idx] = hyst_->computeValue( Xval, nrElem );
+    Yprevious_[idx] = hyst_->computeValue( Xval, idx );
   }
 
-  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval) {
+  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xvec) {
     ENTER_FCN( "BaseMaterial::ComputeScalarDiffVal" );
 
     Double matDiff, eps;
 
     UInt idx = globalElem2Local_[nrElem];
-    Double Ycurrent = hyst_->computeValue(Xval, nrElem);
 
+    Double Xval     = ConvertVec2ScalarWithSign(Xvec);
+    Double Ycurrent = hyst_->computeValue(Xval, idx);
+
+    std::cout << "B=" << Xval << "  H=" << Ycurrent << std::endl;
     //compute differential material parameter
     Double dX = Xval - Xprevious_[idx];
     Double dY = Ycurrent -Yprevious_[idx];
 
     if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
-      GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+      //std::cout << "Use start eps" << std::endl;
+      if ( materialDatabaseName_ == "Electrostatic" )
+        GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+      else if ( materialDatabaseName_ == "Electromagnetics" )
+        GetScalar(eps,MAG_RELUCTIVITY,REAL);
+
       matDiff = eps;
     }
     else {
       matDiff = dY / dX;
     }
 
-    return matDiff;
+    
+    std::cout << "dB=" << dX << "  dH=" << dY <<  "  dnu=" << matDiff << std::endl << std::endl;
 
+//     GetScalar(eps,MAG_RELUCTIVITY,REAL);
+//     matDiff = eps;
+
+    return matDiff;
   }
 
-  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval) {
+  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xvec) {
     ENTER_FCN( "BaseMaterial::ComputeScalarHystVal" );
 
-    Double matDiff, eps;
-
     UInt idx = globalElem2Local_[nrElem];
-    Double Yval = hyst_->computeValue( Xval, nrElem );
 
+    Double Xval = ConvertVec2ScalarWithSign(Xvec);
+    Double Yval = hyst_->computeValue( Xval, idx );
+    
     return Yval;
   }
 
@@ -580,7 +626,8 @@ namespace CoupledField
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
     ENTER_FCN( "BaseMaterial::GetScalarHystVal" );
 
-    Double Yval = hyst_->getValue( nrElem );
+    UInt idx = globalElem2Local_[nrElem];
+    Double Yval = hyst_->getValue( idx );
 
     return Yval;
   }

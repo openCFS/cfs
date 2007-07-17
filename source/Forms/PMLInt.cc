@@ -318,16 +318,18 @@ namespace CoupledField
   
 
   void MechPMLInt::calcBMatPML( Matrix<Double>& bMat, Vector<Double>& CoordAtIP, 
-                                Matrix<Complex>& bMatC, Complex jacDetC)
+                                Matrix<Complex>& bMatC, Complex& jacDetC)
   {
     ENTER_FCN( "MechPMLInt::calcBMatPML"); 
 
     bMatC.Resize( bMat.GetSizeRow(),  bMat.GetSizeCol() );
+    bMatC.Init();
 
     Double omega = 2 * PI * mParser_->Eval( mHandle_ );
     Vector<Complex> factorsPML;
 
     pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);
+    //    std::cout << "FactorsPML:\n" << factorsPML << std::endl;
 
     UInt idx;
     const UInt spaceDim = ptelem->GetDim();  
@@ -356,6 +358,8 @@ namespace CoupledField
         bMatC[5][idx+1] = bMat[5][idx+1] * factorsPML[0]; // d/dx
       }
     }
+//     std::cout << "Bop:\n" << bMat << std::endl;
+//     std::cout << "BopC:\n" << bMatC << std::endl;
   }
 
 

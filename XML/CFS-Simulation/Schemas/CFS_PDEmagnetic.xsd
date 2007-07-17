@@ -52,6 +52,7 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="permeability" type="DT_MagneticNonLinPerm"/>
+                <xsd:element name="hysteresis" type="DT_MagNonLinHyst"/>
                 </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -113,6 +114,19 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysteresis nonlinearity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of hysteresis nonlinearity type -->
+  <xsd:complexType name="DT_MagNonLinHyst">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of the magnetic unknown types -->
@@ -229,6 +243,7 @@
   <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magHfield"/>
       <xsd:enumeration value="magEddyCurrent"/>
     </xsd:restriction>
   </xsd:simpleType>

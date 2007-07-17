@@ -35,12 +35,14 @@ namespace CoupledField
 
   protected: 
 
+    Double ComputeDiffReluctivity( UInt nrEl, Vector<Double>& val );
+
   private:
     Double startmatVal_;       //!<  start value for reluctivity
     ApproxData *nlinFnc_;      //!< pointer to BH approximation object
     Vector<Double> magPot_;    //!< magnetic vector potential at nodes
     NonLinMethod nonLinType_;  //!< type of nonlinear algorithm
-
+    bool isHysteresis_ ;       //!< magnetic hystersis is considered
   };
 
 

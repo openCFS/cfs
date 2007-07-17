@@ -19,11 +19,21 @@ namespace CoupledField {
     virtual ~Hysteresis();
 
     //!
-    virtual Double computeValue(Double xVal, Integer idxElem) {
+    virtual Double computeValue(Double xVal, Integer idxElem, bool overwrite = true) {
       Error( "computeValue not implemented in base-Class",
              __FILE__, __LINE__ );
       return 0.0;
     };
+
+
+    //!
+    virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
+                                         bool overwrite = true ) {
+      Error( "computeValueAndUpdate not implemented in base-Class",
+             __FILE__, __LINE__ );
+      return 0.0;
+    };
+
 
     //! 
     virtual Double getValue(  Integer idxElem) {
@@ -32,18 +42,40 @@ namespace CoupledField {
       return 0.0;
     }
 
+    //! 
+    virtual UInt getStringLength( Integer idxElem ) {
+      Error( "getStringLength not implemented in base-Class",
+             __FILE__, __LINE__ );
+      return 0;
+    }
+
     //!
-    virtual void updateMinMaxList(Double newX, Integer idxElem) {
+    virtual Double GetIncX() {
+      Error( "GetIncX not implemented in base-Class",
+             __FILE__, __LINE__ );
+      return 1.0;
+    };
+
+    //!
+    virtual Double updateMinMaxList(Double newX, Integer idxElem, 
+                                  bool overwrite) {
       Error( "updateMinMaxList not implemented in base-Class",
              __FILE__, __LINE__ );
+      return 0;
     };
 
     //! 
     virtual void SetTimeStepVal(Double dt) {
-      Error( "SetTimeStepVal not implemented in base-Class"
+      Error( "SetTimeStepVal not implemented in base-Class",
              __FILE__, __LINE__ );
     };
 
+    //!
+    virtual Double EvalEverett(Double x1, Double x2, Integer idx ) {
+      Error( " EvalEverett not implemented in base-Class",
+             __FILE__, __LINE__ );
+      return 0.0;
+    };
 
   protected:
 

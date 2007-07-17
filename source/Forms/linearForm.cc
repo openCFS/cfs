@@ -1544,7 +1544,7 @@ namespace CoupledField {
 
     EfieldOp_->CalcElemGradField( Efield, ent, LCoord, 1);
     UInt nrEl = ent.GetElem()->elemNum;
-    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
+    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield ) ; //Efield[dirP_] );
     Vector<Double> elecP( Efield.GetSize() );
     elecP.Init();
     elecP[ dirP_ ] = actP; 
@@ -1671,7 +1671,7 @@ namespace CoupledField {
 
     EfieldOp_->CalcElemGradField( Efield, ent, LCoord, 1);
     UInt nrEl = ent.GetElem()->elemNum;
-    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
+    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield ) ; //[dirP_] );
 
     // get coupling tensor
     Matrix<Double> cmatMatrix;

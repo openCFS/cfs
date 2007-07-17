@@ -26,8 +26,8 @@ namespace CoupledField
 
     //set the allowed material parameters
     isAllowed_.insert( PIEZO_TENSOR );
-    isAllowed_.insert( E_SATURATION );
-    isAllowed_.insert( P_SATURATION );
+    isAllowed_.insert( X_SATURATION );
+    isAllowed_.insert( Y_SATURATION );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );

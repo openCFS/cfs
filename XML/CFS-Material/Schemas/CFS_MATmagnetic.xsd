@@ -20,6 +20,7 @@
     <xsd:sequence>
       <xsd:element name="electricConductivity" type="DT_NonNegFloat"/>
       <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
+      <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -76,5 +77,28 @@
     </xsd:sequence>
   </xsd:complexType>
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysterese model                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagHystModel">
+    <xsd:choice>
+      <xsd:element name="preisach" type="DT_MagPreisachHystModel"/>
+    </xsd:choice>
+  </xsd:complexType>
   
+  <xsd:complexType name="DT_MagPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="hSat" type="xsd:double"/>
+      <xsd:element name="bSat" type="xsd:double"/>
+      <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="2000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+  </xsd:complexType>
+
 </xsd:schema>

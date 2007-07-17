@@ -136,9 +136,12 @@ namespace CoupledField
         reluctivityVec_[1] = 1.0 / matVal_;
         ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, REAL);
         reluctivityVec_[2] = 1.0 / matVal_;
+        //        std::cout << "Orthotropic: \n" << reluctivityVec_ << std::endl;
       }
-      else 
+      else {
         ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+        std::cout << "Isotropic: mu=" << matVal_ << std::endl;
+      }
     }
   }
 
@@ -164,7 +167,7 @@ namespace CoupledField
     
     Double jacDet;  
 
-    Matrix<Double> bMatCurl, bMatDiv; 
+    Matrix<Double> bMatCurl, bMatDiv;
     Double aux1, aux2, fac, *ptr1, *ptr2, *ptr3, *ptr4;
 
     elemMat.Resize( numFncs * nrDofs_ );
@@ -195,22 +198,36 @@ namespace CoupledField
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * matVal_;
 
+//       bMatCurl.Transpose(bMatCurlT);
+//       partElemMat1 = bMatCurlT * bMatCurl;
+
+//       bMatDiv.Transpose(bMatDivT);
+//       partElemMat2 = bMatDivT * bMatDiv;
+
+//       partMat += partElemMat1;
+//       //      partMat += partElemMat2;
+//       partMat *= fac;
+ 
+//       elemMat += partMat;
+
       for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
         if ( isOrthotropic_ ) 
           fac =  jacDet * intWeights[actIntPt-1] * reluctivityVec_[k];
+
         ptr1 = bMatCurl[k];
         ptr2 = bMatCurl[k];
         ptr3 = bMatDiv[k];
         ptr4 = bMatDiv[k];
         for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
-          aux1 = fac * ptr1[i];
-          aux2 = fac * ptr3[i];
+          aux1 = ptr1[i];
+          aux2 = ptr3[i];
           for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
-            elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
+            elemMat[i][j] += ( aux1 * ptr2[j] + aux2 * ptr4[j] ) * fac;
           }
         }
       }
     }
+    //std::cout << "StiffMat:\n" << elemMat << std::endl;
   }
 
 
@@ -237,11 +254,13 @@ namespace CoupledField
       
     if (isSetIntPoint_) 
       ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
-    else
+    else {
+      //std::cout << "ip : " << ip << std::endl;
       ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+    }
 
     for(actNode=0; actNode < numFncs; actNode++) {
-      //se M. Kaltenbacher 1.st edition, pp. 92
+      //see M. Kaltenbacher 1.st edition, pp. 92
       //first row
       bMatCurl[0][actNode * nrDofs_ + 1] = -xiDx[actNode][2];
       bMatCurl[0][actNode * nrDofs_ + 2] =  xiDx[actNode][1];
@@ -254,6 +273,10 @@ namespace CoupledField
       bMatCurl[2][actNode * nrDofs_]     = -xiDx[actNode][1];
       bMatCurl[2][actNode * nrDofs_ + 1] =  xiDx[actNode][0];
 
+//       bMatCurl[0][actNode * nrDofs_]       +=  xiDx[actNode][0];
+//       bMatCurl[1][actNode * nrDofs_ + 1]   +=  xiDx[actNode][1];
+//       bMatCurl[2][actNode * nrDofs_ + 2]   +=  xiDx[actNode][2];
+
       //first row
       bMatDiv[0][actNode * nrDofs_]      = xiDx[actNode][0];
 
@@ -264,6 +287,10 @@ namespace CoupledField
       bMatDiv[2][actNode * nrDofs_ + 2]  = xiDx[actNode][2];
 
     }
+    //bMatDiv.Init();
+//     std::cout << "bCurl:\n" << bMatCurl << std::endl;
+//     std::cout << "bDiv:\n" << bMatDiv << std::endl;
+
 
     isSetIntPoint_ = false;
   }

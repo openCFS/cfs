@@ -221,24 +221,53 @@ namespace CoupledField {
     virtual void InitApproxCurves() {;};
 
     //Initialize hysteresis
-    void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList );
+    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                           bool isInverse = false, bool computeInverse = false );
 
     //! get hysteresis operator
     Hysteresis* getHysteresis() {
       return hyst_;
     };
 
+    //! get hysteresis operator
+    Hysteresis** getVecHysteresis() {
+      return vecHyst_;
+    };
+
+    bool IsSetHysteresis () {
+      return isHysteresis_;
+    };
+
+    virtual Double ConvertVec2ScalarWithSign( Vector<Double>& vecVal );
+
     //set values for differential material approach
-    void SetPreviousHystVal( UInt nrElem, Double Xval );
+    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
 
     //! compute scalar differential parameter
-    Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
+    virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
+
+    //! compute scalar differential parameters
+    virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
+                                            Vector<Double>& scalarValues ) {
+      Error( "ComputeScalarDiffValues not implemented", __FILE__, __LINE__ );
+    };
 
     //! computes the scalar hystereis value
-    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
+    virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval );
+
+    //! compute the vector hysteresis values
+    virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin, 
+                                       Vector<Double>& Yout ) {
+      Error( "ComputeVectorHystVal not implemented", __FILE__, __LINE__ );
+    };
 
     //! computes the scalar hystereis value
-    Double GetScalarHystVal( UInt nrElem );
+    virtual Double GetScalarHystVal( UInt nrElem );
+
+    //! get vector of hysteresis model
+    virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
+      Error( "GetVectorHystVal not implemented", __FILE__, __LINE__ );
+    };
 
     //! Compute and set damping parameters alpha and beta 
     void ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF);
@@ -313,6 +342,18 @@ namespace CoupledField {
 
     //! hysteresis object
     Hysteresis * hyst_;
+
+    //! hysteresis object
+    Hysteresis** vecHyst_;
+
+    //!
+    bool isHystInverse_;
+
+    //!
+    bool computeHystInverse_;
+
+    //! hysteresis set 
+    bool isHysteresis_;
 
     Vector<Double> Xprevious_; //! previous Xval in hysteresis
     Vector<Double> Yprevious_; //! previous Yval in hysteresis

@@ -95,6 +95,7 @@ namespace CoupledField {
     //! individually. This attribute is used to signal when the latter is
     //! required.
     bool updateDMatInEveryIP_;
+
   };
 
 }

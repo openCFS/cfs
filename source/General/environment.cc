@@ -493,6 +493,8 @@ namespace CoupledField {
       out = ACOU_PRESSURE;
     else if (in == "acouPotential")
       out = ACOU_POTENTIAL;
+    else if (in == "acouVelocity")
+      out = ACOU_VELOCITY;
     else if (in == "acouPressureD1")
       out = ACOU_PRESSURE_DERIV_1;
     else if (in == "acouPressureD2")
@@ -527,6 +529,8 @@ namespace CoupledField {
       out = MAG_POTENTIAL;
     else if (in == "magFluxDensity")
       out = MAG_FLUX_DENSITY;
+    else if (in == "magHfield")
+      out = MAG_HFIELD;
     else if (in == "magEddyCurrent")
       out = MAG_EDDY_CURRENT;
     else if (in == "magForceVWP")
@@ -673,6 +677,9 @@ namespace CoupledField {
       case ACOU_PRESSURE:
         out = "acouPressure";
         break;
+      case ACOU_VELOCITY:
+        out = "acouVelocity";
+        break;
       case ACOU_PRESSURE_DERIV_1:
         out = "acouPressureD1";
         break;
@@ -722,6 +729,9 @@ namespace CoupledField {
         break;
       case MAG_FLUX_DENSITY:
         out = "magFluxDensity";
+        break;
+      case MAG_HFIELD:
+        out = "magHfield";
         break;
       case MAG_EDDY_CURRENT:
         out = "magEddyCurrent";
@@ -1066,11 +1076,11 @@ namespace CoupledField {
     case PIEZO_TENSOR:
       out = "PiezoTensor";
       break;
-    case E_SATURATION:
-      out = "Esaturation";
+    case X_SATURATION:
+      out = "Xsaturation";
       break;
-    case P_SATURATION:
-      out = "Psaturation";
+    case Y_SATURATION:
+      out = "Ysaturation";
       break;
     case PREISACH_WEIGHTS:
       out = "preisachWeights";
@@ -1248,11 +1258,11 @@ namespace CoupledField {
     else if ( in == "PiezoTensor" ) {
       out = PIEZO_TENSOR;
     }
-    else if ( in == "Esaturation" ) {
-      out = E_SATURATION;
+    else if ( in == "Xsaturation" ) {
+      out = X_SATURATION;
     }
-    else if ( in == "Psaturation" ) {
-      out = P_SATURATION;
+    else if ( in == "Ysaturation" ) {
+      out = Y_SATURATION;
     }
     else if ( in == "preisachWeights" ) {
       out = PREISACH_WEIGHTS;
