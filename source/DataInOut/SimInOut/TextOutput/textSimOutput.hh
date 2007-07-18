@@ -20,7 +20,7 @@ namespace CoupledField {
   public:
 
     //! Enum defining type of collection
-    typedef enum { ENTITY, TIMEFREQ} CollectionType;
+    typedef enum { ENTITY, TIMEFREQ, ALTOGETHER} CollectionType;
 
     //! Constructor
     SimOutputText( const std::string& fileName, ParamNode * outputNode );
@@ -57,6 +57,9 @@ namespace CoupledField {
     
     //! Write step for collecitonType TIMEFREQ
     void WriteStepCollectTimeFreq();
+    
+    //! Write step for collectionType ALTOGETHER
+    void WriteStepCollectAltogether();
 
     //! Create header information depending on result
     std::string ResultDofString( shared_ptr<BaseResult> res );
@@ -66,13 +69,13 @@ namespace CoupledField {
     // =======================================================================    
 
     //! Return for an entityiterator the node number and coordinates
-    std::string GetNodeInfo( EntityIterator & it ) const;
+    StdVector<std::string> GetNodeInfo( EntityIterator & it ) const;
     
     //! Return for an entityiterator the node number and coordinates
-    std::string GetElemInfo( EntityIterator & it ) const;
+    StdVector<std::string> GetElemInfo( EntityIterator & it ) const;
     
     //! Return for an entityiterator the node number
-    std::string GetRegionInfo( EntityIterator & it ) const;
+    StdVector<std::string> GetRegionInfo( EntityIterator & it ) const;
 
     // =======================================================================
     //  Helper function to extract complex values in correct format

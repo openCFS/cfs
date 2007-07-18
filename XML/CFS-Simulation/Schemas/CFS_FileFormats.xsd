@@ -217,6 +217,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="entity"/>
               <xsd:enumeration value="timeFreq"/>
+              <xsd:enumeration value="altogether"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
