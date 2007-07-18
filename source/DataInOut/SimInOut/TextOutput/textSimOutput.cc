@@ -50,6 +50,8 @@ namespace CoupledField {
     if ( outputNode ) {
       if( outputNode->Get("fileCollect")->AsString() == "timeFreq" )
         collecType_ = TIMEFREQ;
+      if( outputNode->Get("fileCollect")->AsString() == "altogether" )
+        collecType_ = ALTOGETHER;
     }
   }
 
@@ -110,6 +112,8 @@ namespace CoupledField {
     // call correct function accordint fileCollectionType
     if( collecType_ == TIMEFREQ ) {
       WriteStepCollectTimeFreq();
+    } else if ( collecType_ == ALTOGETHER ) {
+      WriteStepCollectAltogether();
     } else {
       WriteStepCollectEntity();
     }
@@ -118,7 +122,7 @@ namespace CoupledField {
 
   void SimOutputText::WriteStepCollectTimeFreq() {
     ENTER_FCN( "SimInputText::WriteStepCollectTimeFreq" );
-    
+
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
     for( ; it != resultMap_.end(); it++ ) {
@@ -142,7 +146,7 @@ namespace CoupledField {
         // a number (node: nodenumber, element: element number,
         // region: region number...) and eventually the coordinates
         // w.r.t. to a local coordinate system
-        std::string (SimOutputText::*pt2Func)(EntityIterator&) const;
+        StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
         switch (actInfo.definedOn) {
         case ResultInfo::NODE:
           pt2Func = &SimOutputText::GetNodeInfo;
@@ -174,7 +178,6 @@ namespace CoupledField {
           shared_ptr<EntityList> actList  = actResults[iSol]->GetEntityList();
           
           // Iterate over all 'entities' of particular result
-          ResultInfo::EntryType entryType =  actInfo.entryType;
           EntityIterator it = actList->GetIterator();
           UInt numDofs = actInfo.dofNames.GetSize();
           
@@ -182,7 +185,11 @@ namespace CoupledField {
           for( it.Begin(); !it.IsEnd(); it++ ) {
 
             // write node/elem/region number
-            actFile << (this->*pt2Func)(it);
+            StdVector<std::string> loc = (this->*pt2Func)(it);
+            actFile << loc[0];
+            for( UInt i=1; i < loc.GetSize(); i++) {
+              actFile << delim_ << loc[i];
+            }
             
             // print value(s)
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
@@ -211,13 +218,16 @@ namespace CoupledField {
           }
           
           // Iterate over all 'entities' of particular result
-          ResultInfo::EntryType entryType =  actInfo.entryType;
           EntityIterator it = actList->GetIterator();
           UInt numDofs = actInfo.dofNames.GetSize();
               
           for( it.Begin(); !it.IsEnd(); it++ ) {
             // write node/elem/region info (number + evtl. coordinates )
-            actFile << (this->*pt2Func)(it);
+            StdVector<std::string> loc = (this->*pt2Func)(it);
+            actFile << loc[0];
+            for( UInt i=1; i < loc.GetSize(); i++) {
+              actFile << delim_ << loc[i];
+            }
             
             // print value(s)
             for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
@@ -264,7 +274,6 @@ namespace CoupledField {
         shared_ptr<EntityList> actList  = actResults[iSol]->GetEntityList();
         
         // Iterate over all 'entities' of particular result
-        ResultInfo::EntryType entryType =  actInfo.entryType;
         EntityIterator it = actList->GetIterator();
         UInt numDofs = actInfo.dofNames.GetSize();
         
@@ -312,6 +321,78 @@ namespace CoupledField {
     } // loop over result types
   }
   
+  void SimOutputText::WriteStepCollectAltogether() {
+    ENTER_FCN( "SimInputText::WriteStepCollectAltogether");
+
+    // iterate over all result types
+    ResultMapType::iterator it = resultMap_.begin();
+    for( ; it != resultMap_.end(); it++ ) {
+
+      // get result info object and results for current result type
+      ResultInfo & actInfo = *(it->second[0]->GetResultInfo());
+      const StdVector<shared_ptr<BaseResult> > actResults =
+        it->second;
+      
+      // Iterate over all 'BaseResults'
+      for( UInt iSol = 0; iSol < actResults.GetSize(); iSol++ ) {
+        
+        // Check, if output stream for entity is already existant
+        if( outFiles_.find( actResults[iSol]) == outFiles_.end() ) {
+          CreateFiles( actResults[iSol], actStep_, actStepVal_ );
+        } 
+        
+        std::ofstream  & actFile  = *outFiles_[actResults[iSol]][0];
+        
+        // get entity list of current result object
+        shared_ptr<EntityList> actList  = actResults[iSol]->GetEntityList();
+        
+        // Iterate over all 'entities' of particular result
+        EntityIterator it = actList->GetIterator();
+        UInt numDofs = actInfo.dofNames.GetSize();
+        
+        // *** Transient part ***
+        if( actResults[iSol]->GetEntryType() == EntryType::DOUBLE ) {
+          Result<Double> & actRes = 
+            dynamic_cast<Result<Double>& >( *(actResults[iSol]) );
+          Vector<Double> & vec = actRes.GetVector();
+        
+          actFile << actStepVal_;
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+              actFile << delim_ << vec[it.GetPos()*numDofs + iDof];
+            }
+          }
+          actFile << std::endl;
+        
+        // *** Harmonic part ***
+        } else {
+          Result<Complex> & actRes = 
+            dynamic_cast<Result<Complex>& >( *(actResults[iSol]) );
+          Vector<Complex> & vec = actRes.GetVector();
+          
+          // create function pointer to function, which extract complex value
+          // in correct format
+          std::string (SimOutputText::*ptComplexOutput)(const Complex&) const;
+          if( actInfo.complexFormat == REAL_IMAG ) {
+            ptComplexOutput = &SimOutputText::ComplexAsRealImag;
+          } else {
+            ptComplexOutput = &SimOutputText::ComplexAsAmplPhase;
+          }
+          
+          actFile << actStepVal_;
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+              actFile << delim_  << (this->*ptComplexOutput)
+                ( vec[it.GetPos()*numDofs + iDof] ); 
+            }
+          }
+          actFile << std::endl;
+        } // harmonic part
+      } // loop over results
+    } // loop over result types
+  }
+
+
   
   void SimOutputText::CreateFiles( shared_ptr<BaseResult> res,
                                    UInt step,
@@ -390,7 +471,7 @@ namespace CoupledField {
       // CHECK, if creation of file succeeded
       outFiles_[res] = outFiles;
 
-    } else {
+    } else if( collecType_ == TIMEFREQ ) {
 
       // =========================
       //  TIMEFREQ - CollectionType
@@ -399,16 +480,16 @@ namespace CoupledField {
       // create output stream;
       std::ofstream* outFile;
       
-      // Compose name as 'simName-result-LISTNAME-STEPVAL_Hz/s.hist'
+      // Compose name as 'simName-result-LISTNAME-STEP.hist'
       shared_ptr<EntityList> list = res->GetEntityList();
       totalName = namePrefix + "-";
       totalName += list->GetName();
-      totalName += "-" + GenStr(stepVal);
-      if( res->GetEntryType() == EntryType::DOUBLE ) {
-        totalName += "s";
-      } else {
-        totalName += "Hz";
-      }
+      totalName += "-" + GenStr(step);
+//      if( res->GetEntryType() == EntryType::DOUBLE ) {
+//        totalName += "s";
+//      } else {
+//        totalName += "Hz";
+//      }
       totalName +=+ ".hist";
 
       // open stream
@@ -442,6 +523,79 @@ namespace CoupledField {
               << " ---------------------------------------------------------------------------\n";
 
        // Push back file to outFiles_
+      outFiles_[res].Resize(1);
+      outFiles_[res][0] = outFile;
+    } else {
+      
+      // ============================
+      //  ALTOGETHER - CollectionType
+      // ============================
+
+      // create output stream;
+      std::ofstream* outFile;
+      
+      // Compose name as 'simName-result-LISTNAME.hist'
+      shared_ptr<EntityList> list = res->GetEntityList();
+      totalName = namePrefix + "-";
+      totalName += list->GetName();
+      totalName +=+ ".hist";
+
+      // open stream
+      outFile = new std::ofstream( totalName.c_str() );
+      
+      // write header to file
+      *outFile << cmChar_ << " Result: '" << actInfo.resultName 
+               << "' on " << entTypeString << "(s) '" 
+               << list->GetName() << "' with\n"
+               << cmChar_ << "   line 1: " << entTypeString 
+               << " number, line 2-3/2-4: " << entTypeString
+               << " coordinates\n" << cmChar_ 
+               << "   1st column is placeholder for equal no. of columns in all rows!\n";
+      
+      // write node/element number and coordinates
+      StdVector<StdVector<std::string> > entityMatrix;
+      StdVector<std::string> entityVector;
+      
+      EntityIterator it = list->GetIterator();
+      for( it.Begin(); !it.IsEnd(); it++ ) {
+
+        // pointer to function, which retrieves node/element number and coordinates
+        StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
+        switch (actInfo.definedOn) {
+        case ResultInfo::NODE:
+          pt2Func = &SimOutputText::GetNodeInfo;
+          break;
+        case ResultInfo::ELEMENT:
+          pt2Func = &SimOutputText::GetElemInfo;
+          break;
+        case ResultInfo::SURF_ELEM:
+          pt2Func = &SimOutputText::GetElemInfo;
+          break;
+        default:
+          EXCEPTION( "Case not implemented" );
+        }
+        // node/element number and coordinates 
+        entityVector = (this->*pt2Func)(it);
+        entityMatrix.Push_back(entityVector);
+      }
+      for( UInt iDim=0; iDim<entityVector.GetSize(); iDim++) {
+        *outFile << " 0 ";
+        for( UInt numEnt=0; numEnt<entityMatrix.GetSize(); numEnt++) {
+          *outFile << delim_ << entityMatrix[numEnt][iDim];
+        }
+        *outFile << "\n";
+      }
+      
+      // write dof result string
+      if( res->GetEntryType() == EntryType::DOUBLE ) {
+        *outFile << cmChar_ << " t (s)  ";        
+      } else {
+        *outFile << cmChar_ << " f (Hz)  ";
+      }
+      *outFile << ResultDofString( res) << "\n" << cmChar_ 
+              << " ---------------------------------------------------------------------------\n";
+
+      // Push back file to outFiles_
       outFiles_[res].Resize(1);
       outFiles_[res][0] = outFile;
     }
@@ -494,32 +648,31 @@ namespace CoupledField {
     return ret.str();
   }
 
-  std::string SimOutputText::GetNodeInfo( EntityIterator & it ) const {
+  StdVector<std::string> SimOutputText::GetNodeInfo( EntityIterator & it ) const {
     
-    std::stringstream ret;
+    StdVector<std::string> ret;
 
-    ret << it.GetNode()  << delim_;
+    ret.Push_back( GenStr( it.GetNode() ) );
 
     Vector<Double> locCoord, globCoord;
     ptGrid_->GetNodeCoordinate( globCoord, it.GetNode() );
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
-      for( UInt iDim = 0; iDim < locCoord.GetSize()-1; iDim++ ) {
-        ret <<  locCoord[iDim] << delim_;
+      for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
+        ret.Push_back( GenStr( locCoord[iDim] ) );
       }
-      ret << locCoord[locCoord.GetSize()-1];
     }
-  return ret.str();
+  return ret;
 
   }
 
-  std::string SimOutputText::GetElemInfo( EntityIterator & it ) const {
+  StdVector<std::string> SimOutputText::GetElemInfo( EntityIterator & it ) const {
 
-    std::stringstream ret;
-    ret << it.GetElem()->elemNum  << delim_;
+    StdVector<std::string> ret;
+    
+    ret.Push_back( GenStr( it.GetElem()->elemNum ) );
     
     Vector<Double> elemLocCoord, locCoord, globCoord;
-    
     Matrix<Double> cornerCoords;
     ptGrid_->GetElemNodesCoord( cornerCoords, it.GetElem()->connect, false);
     BaseFE * ptelem = it.GetElem()->ptElem;
@@ -529,19 +682,19 @@ namespace CoupledField {
                               cornerCoords, it.GetElem() );
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
-      for( UInt iDim = 0; iDim < locCoord.GetSize()-1; iDim++ ) {
-        ret << locCoord[iDim] << delim_;
+      for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
+        ret.Push_back( GenStr( locCoord[iDim] ));
       }
-      
-      ret << locCoord[locCoord.GetSize()-1];
     }
-    return ret.str();
+    return ret;
   }
 
-  std::string SimOutputText::GetRegionInfo( EntityIterator & it ) const {
+  StdVector<std::string> SimOutputText::GetRegionInfo( EntityIterator & it ) const {
     
-    std::string ret;
-    ret += GenStr( it.GetRegion() );
+    StdVector<std::string> ret;
+    ret.Resize(1);
+    
+    ret[0] = GenStr( it.GetRegion() );
     return ret;
   }
   

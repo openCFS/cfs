@@ -145,14 +145,14 @@ namespace CoupledField {
     std::ostringstream strBuffer;
     strBuffer <<  fileName_ << "-" << currAnalysis_
               << "-" << currMsStep_ << ".gmv";
-    if ( stepVal < 10 ) strBuffer << "000";
-    else if ( stepVal < 100 ) strBuffer << "00";
-    else if ( stepVal < 1000 ) strBuffer << "0";
-    else if ( stepVal > 10000 ) {
+    if ( stepNum < 10 ) strBuffer << "000";
+    else if ( stepNum < 100 ) strBuffer << "00";
+    else if ( stepNum < 1000 ) strBuffer << "0";
+    else if ( stepNum > 10000 ) {
       EXCEPTION("Number of gmv files exceeds 9999!");
     }
     
-    strBuffer << stepVal;
+    strBuffer << stepNum;
     output = OpenFile( strBuffer.str() );
 
     // Print Grid
