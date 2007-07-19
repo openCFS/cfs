@@ -833,7 +833,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         GiD_EndResult(); 
       }
     } else if ( entryType == ResultInfo::TENSOR ) {
-      // === Vectorial entries ===
+      // === Tensor entries ===
       
       // --- First component ---
       GiD_BeginResultHeader( outName1.c_str(), analysisName.c_str(), freq,
@@ -896,7 +896,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       
       // --- Second component ---
       GiD_BeginResultHeader( outName2.c_str(), analysisName.c_str(), freq,
-                             GiD_Vector, loc, dummy );
+                             GiD_Matrix, loc, dummy );
       GiD_ResultComponents( 6, names );
       GiD_ResultValues();
       
