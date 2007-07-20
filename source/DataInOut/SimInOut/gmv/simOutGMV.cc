@@ -891,14 +891,17 @@ namespace CoupledField {
         (*output) << "cells   fromfile\"" << extGridFileName <<"\"";
       
       if (ascii_)
+        (*output) << "groups fromfile \"" << extGridFileName
+                  <<"\""<< std::endl;
+      else 
+        (*output) << "groups  fromfile\"" << extGridFileName <<"\"";
+
+      if (ascii_)
         (*output) << "material fromfile \"" << extGridFileName
                   <<"\""<< std::endl;
       else 
         (*output) << "materialfromfile\"" << extGridFileName <<"\"";
       
-      // Since there exist no 'fromfile'-construct for groups, we have
-      // to write it out all the time
-      //        WriteNamedEntities();
     } else {
       WriteNodes( output );
       WriteCells( output );
