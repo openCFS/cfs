@@ -141,22 +141,6 @@ namespace CoupledField {
     actStep_ = stepNum;
     actStepVal_ = stepVal;
 
-    // Open new file
-    std::ostringstream strBuffer;
-    strBuffer <<  fileName_ << "-" << currAnalysis_
-              << "-" << currMsStep_ << ".gmv";
-    if ( stepNum < 10 ) strBuffer << "000";
-    else if ( stepNum < 100 ) strBuffer << "00";
-    else if ( stepNum < 1000 ) strBuffer << "0";
-    else if ( stepNum > 10000 ) {
-      EXCEPTION("Number of gmv files exceeds 9999!");
-    }
-    
-    strBuffer << stepNum;
-    output = OpenFile( strBuffer.str() );
-
-    // Print Grid
-    WriteGrid( false );
   }
 
 
@@ -184,7 +168,30 @@ namespace CoupledField {
     // If not leave!
     if( resultMap_.size() == 0 )
       return;
+
+    // ----------------------
+    // Open new file
+    // ----------------------
+    std::ostringstream strBuffer;
+    strBuffer <<  fileName_ << "-" << currAnalysis_
+              << "-" << currMsStep_ << ".gmv";
+    if ( actStep_ < 10 ) strBuffer << "000";
+    else if ( actStep_ < 100 ) strBuffer << "00";
+    else if ( actStep_ < 1000 ) strBuffer << "0";
+    else if ( actStep_ > 10000 ) {
+      EXCEPTION("Number of gmv files exceeds 9999!");
+    }
     
+    strBuffer << actStep_;
+    output = OpenFile( strBuffer.str() );
+
+    // Print Grid
+    WriteGrid( false );
+
+
+    // -------------------------
+    // Iterate over all results
+    // -------------------------
     std::string title;
     
     // iterate over all result types
