@@ -150,7 +150,10 @@ namespace CoupledField {
         switch (actInfo.definedOn) {
         case ResultInfo::NODE:
           pt2Func = &SimOutputText::GetNodeInfo;
-          break;
+          break; 
+        case ResultInfo::PFEM:
+          pt2Func = &SimOutputText::GetNodeInfo;
+          break; 
         case ResultInfo::ELEMENT:
           pt2Func = &SimOutputText::GetElemInfo;
           break;
@@ -429,6 +432,10 @@ namespace CoupledField {
         case ResultInfo::NODE:
           entityString = GenStr(it.GetNode() );
           break;
+        case ResultInfo::PFEM:
+          entityString = GenStr(it.GetNode() );
+          entTypeString="node";
+          break;
         case ResultInfo::ELEMENT:
           entityString = GenStr(it.GetElem()->elemNum );
           break;
@@ -511,6 +518,7 @@ namespace CoupledField {
       
       // write coordinate system entries(only for node/elem/surfElem results)
       if( actInfo.definedOn == ResultInfo::NODE 
+          || actInfo.definedOn == ResultInfo::PFEM
           || actInfo.definedOn == ResultInfo::ELEMENT
           || actInfo.definedOn == ResultInfo::SURF_ELEM ) {
         for (UInt iDim = 0; iDim < ptGrid_->GetDim(); iDim++ ) {
@@ -563,6 +571,9 @@ namespace CoupledField {
         StdVector<std::string> (SimOutputText::*pt2Func)(EntityIterator&) const;
         switch (actInfo.definedOn) {
         case ResultInfo::NODE:
+          pt2Func = &SimOutputText::GetNodeInfo;
+          break;
+        case ResultInfo::PFEM:
           pt2Func = &SimOutputText::GetNodeInfo;
           break;
         case ResultInfo::ELEMENT:
