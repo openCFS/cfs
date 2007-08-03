@@ -137,6 +137,7 @@ namespace CoupledField
   
   Xerces::~Xerces()
   {
+
      if(parser_ != NULL && parser_->getErrorHandler() != NULL)
      {
         delete parser_->getErrorHandler();
@@ -147,6 +148,8 @@ namespace CoupledField
         delete parser_; 
         parser_ = NULL; 
      }
+
+
      
     // Shutdown platform dependend utilities
     XMLPlatformUtils::Terminate();
@@ -171,14 +174,17 @@ namespace CoupledField
       // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl; 
 
     std::string temp = "";
+    char * auxString = NULL;
       switch(node->getNodeType())
       {
               
          case DOMNode::TEXT_NODE:
            // if we are a text node, we "are" the value of our parent.
-           temp = XMLString::transcode(node->getNodeValue());
+           auxString = XMLString::transcode( node->getNodeValue() );
+           temp.assign( auxString );
            boost::trim( temp );
            parent->SetValue( temp );
+           XMLString::release( &auxString );
            return; // nothing else to do, we don not create a new ParamNode
               
          case DOMNode::ELEMENT_NODE:
@@ -206,8 +212,9 @@ namespace CoupledField
          // no new child created but we modify the parent directly
          pn = parent;
       }
-
-      pn->SetName(XMLString::transcode(node->getNodeName()));
+      auxString = XMLString::transcode( node->getNodeName() );
+      pn->SetName( auxString );
+      XMLString::release( &auxString );
       // The value of an attribute or simple element is set by the text node children
 
       // first process attributes - map is NULL this is not DOMElement
