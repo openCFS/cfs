@@ -2,12 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+
 #include "utils/utils.hh"
-#include "General/exception.hh"
 #include "matvec/matvec.hh"
 #include "algsys/algsys.hh"
 
 #include "solver/gmres.hh"
+#include "General/exception.hh"
+using CoupledField::Exception;
 
 namespace OLAS {
 
