@@ -718,5 +718,12 @@ namespace CoupledField {
       }
     }
   }
+
+  void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, const std::string& readerId ) {
+    ENTER_FCN( "ResultHandler::AddInputReader" );
+
+    LOG_DBG(resHandler) << "Adding input reader with id ";
+    inFiles_[readerId] = inClass;
+  }
   
 }

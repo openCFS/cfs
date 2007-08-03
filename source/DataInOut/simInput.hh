@@ -18,6 +18,7 @@ namespace CoupledField
 
   //! Forward class declaration
   class ParamNode;
+  class BaseResult;
 
   //! Abstract base class for hanling exceptions and errors
   class ErrorHandler {
@@ -133,7 +134,37 @@ namespace CoupledField
     //! Returns a vector which contains all names of named elements.
     //! \param elemNames (output) vector with names of named elements
     virtual void GetElemNames( StdVector<std::string> & elemNames ) = 0;
+    //@}
 
+    // =========================================================================
+    // GENERAL SOLUTION INFORMATION
+    // =========================================================================
+    //@{ \name General Solution Information
+
+    void GetNumMultiSequenceSteps( std::vector<AnalysisType>& analysis ) {
+      EXCEPTION( "Not implemented in base class" );
+    }
+
+    void GetStepValues( UInt sequenceStep, std::vector<Double>& stepVals ) {
+      EXCEPTION( "Not implemented in base class" );
+    }
+
+    void GetResultTypes( UInt sequenceStep, 
+                         std::vector<shared_ptr<ResultInfo> >& infos ) {
+      EXCEPTION( "Not implemented in base class" );
+    }
+
+    void GetResultEntities( UInt sequenceStep,
+                            shared_ptr<ResultInfo> info,
+                            std::vector<shared_ptr<EntityList> >& list ) {
+      EXCEPTION( "Not implemented in base class" );
+    }
+
+    void GetResult( UInt sequenceStep,
+                    UInt stepValue,
+                    shared_ptr<BaseResult> result ) {
+      EXCEPTION( "Not implemented in base class" );
+    } 
     //@}
 
   protected:

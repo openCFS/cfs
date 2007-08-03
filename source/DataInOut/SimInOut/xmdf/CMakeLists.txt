@@ -1,4 +1,5 @@
 SET(SIMINOUTXMDF_SRCS
+  hdf5io.cc
   simInputXMDF.cc
   simOutputXMDF.cc
   Xmdf.c
