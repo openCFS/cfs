@@ -8,6 +8,8 @@
 #include <set>
 #include <map>
 
+#include <boost/any.hpp>
+
 #include <Domain/grid.hh>
 #include <Domain/resultInfo.hh>
 #include <DataInOut/simOutput.hh>
@@ -69,13 +71,6 @@ namespace CoupledField {
     virtual void WriteGrid();
   
   private:
-    FEType XMDFElemType2ElemType( const Integer type );
-    Integer ElemType2XMDFElemType( const FEType type );
-
-    void ReorderConnectivity( const Integer eType,
-                              const bool toXMDF,
-                              const UInt* in,
-                              UInt* out);
 
     void WriteRegions(const H5::Group& meshGroup);
     void WriteNamedNodes(const H5::Group& meshGroup);
@@ -93,18 +88,45 @@ namespace CoupledField {
 
   private:
 
-    bool gridWritten_;
-
-    bool externalFiles_;
-    bool printGridOnly_;
+    // =======================================================================
+    //  HDF5 DATA MEMBERS
+    // =======================================================================
     
-    H5::Group mainRoot_;
+    //@{ \name H5 Data MEMBERS
+
+    //! Main file containing grid and meta information
+    H5::H5File mainFile_;
+
+    //! In case we use
+    H5::H5File currStepFile_;
+
+    //! Main / Root Group
+    H5::Group mainGroup_;
+
+    //! Mesh Group
+    H5::Group meshGroup_;
+
     H5::Group dataGroup_;
     H5::Group volDataGroup_;
     H5::Group currMSGroup_;
     H5::Group currAttrDescGroup_;
     H5::Group currStepGroup_;
-    H5::H5File currStepFile_;
+
+
+    //@}
+
+    // =======================================================================
+    //  GENERIC DATA MEMBERS
+    // =======================================================================
+    
+    //@{ \name Generic Data Members
+    
+    bool gridWritten_;
+
+    bool externalFiles_;
+    bool printGridOnly_;
+    
+  
 
     UInt currMS_;
     UInt currStep_;

@@ -293,11 +293,17 @@ int main( int argc, const char **argv ) {
   // Create resulthandler and pass the output files
   ResultHandler * ptHandler = 
     new ResultHandler( ResultHandler::EMBEDDED );
-  std::map<std::string, shared_ptr<SimOutput> >::iterator it;
-  it = outFiles.begin();
-  for( ; it != outFiles.end(); it++ ) {
-    ptHandler->AddOutputDest( it->second, it->first );
+  std::map<std::string, shared_ptr<SimOutput> >::iterator outputIt;
+  std::map<std::string, shared_ptr<SimInput> >::iterator inputIt;
+  outputIt = outFiles.begin();
+  inputIt = inFiles.begin();
+  for( ; outputIt != outFiles.end(); outputIt++ ) {
+    ptHandler->AddOutputDest( outputIt->second, outputIt->first );
   }
+  for( ; inputIt != inFiles.end(); inputIt++ ) {
+    ptHandler->AddInputReader( inputIt->second, inputIt->first );
+  }
+  
   
   // Log command line parameters
   std::ostream *myInfo = Info->GetInfoStreamPointer();

@@ -11,6 +11,7 @@ namespace CoupledField {
 
   //! Forward class declarations
   class SimOutput;
+  class SimInput;
   class PostProc;
 
   //! Class for managing several result objects and output classes
@@ -48,7 +49,7 @@ namespace CoupledField {
     void SetNumMultiSequenceSteps( UInt numSteps );
     
     // =======================================================================
-    // METHODS FOR EMBEDDED FUNCTIONALITY
+    // METHODS FOR OUTPUT FUNCTIONALITY
     // =======================================================================
 
     //! Register new result
@@ -91,8 +92,33 @@ namespace CoupledField {
     { return (isNeeded_.find( res ) != isNeeded_.end()) ; }
 
     // =======================================================================
-    // METHODS FOR STANDALONE FUNCTIONALITY
+    // METHODS FOR INPUT FUNCTIONALITY
     // =======================================================================
+
+    //! Add input writer
+    void AddInputReader( shared_ptr<SimInput> inClass, const std::string& readerId );
+
+    //! Return number of multisequence steps for a givne inpute read
+    void GetNumMultiSequenceSteps( const std::string& readerId,
+                                   std::vector<AnalysisType>& analysis );
+
+    //! Return result types present in a given input reader
+    void GetResultTypes( const std::string& readerId,
+                         UInt sequenceStep,
+                         std::vector<shared_ptr<ResultInfo> >& infos );
+    
+    //! Return the entities for a given result
+    void GetResultEntities( const std::string& readerId,
+                            UInt sequenceStep,
+                            shared_ptr<ResultInfo> info,
+                            std::vector<shared_ptr<EntityList> >& list );
+    
+    //! Return 
+    void GetResult( const std::string& readerId,
+                    UInt sequenceStep,
+                    UInt stepValue,
+                    shared_ptr<BaseResult> result );
+    
 
     // ... to be implemented ...
 
@@ -101,6 +127,10 @@ namespace CoupledField {
 
   private:
     
+    // =======================================================================
+    // METHODS FOR OUTPUT FUNCTIONALITY
+    // =======================================================================
+
     //! Structure containing additional information about result objects
     struct ResultContext {
 
@@ -186,6 +216,13 @@ namespace CoupledField {
 
     //! Current analysistype
     AnalysisType analysisType_;
+    
+    // =======================================================================
+    // METHODS FOR INPUT FUNCTIONALITY
+    // =======================================================================
+
+    //! Map relating inputIds with the simInput classes
+    std::map<std::string, shared_ptr<SimInput> > inFiles_;
 
   };
     

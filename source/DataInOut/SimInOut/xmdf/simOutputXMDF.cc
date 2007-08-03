@@ -18,16 +18,26 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "simOutputXMDF.hh"
+#include "hdf5io.hh"
 
 namespace fs = boost::filesystem;
 
 namespace CoupledField {
-
+  
 #define CHECK_HDF5_ERROR(HID_T, STR) { if(HID_T < 0) {                  \
       std::ostringstream ostr;                                          \
       ostr << STR;                                                      \
       Exception ex(NULL, __FILE__, __LINE__, ostr.str().c_str()); } }
 
+#define H5_EXCEPTION(STR, EX)                                           \
+  EXCEPTION( STR, EX.getCDetailMsg() );
+
+#define H5_CATCH( STR )                                                 \
+  catch (H5::Exception& h5Ex ) {                                        \
+    EXCEPTION( STR << h5Ex.getCDetailMsg() );                           \
+  }
+
+  
   SimOutputXMDF::SimOutputXMDF(std::string fileName, ParamNode * inputNode) :
     SimOutput(fileName, inputNode) 
   {
@@ -54,8 +64,8 @@ namespace CoupledField {
 
   SimOutputXMDF::~SimOutputXMDF() {
     ENTER_FCN( "SimOutputXMDF::~XMDF" );
-    if(fileId_ > 0)
-      xfCloseFile(fileId_);
+
+    mainFile_.close();
   }
 
   
@@ -77,14 +87,14 @@ namespace CoupledField {
     // If it does not exist, create Group for Data.
     try 
     {
-      dataGroup_ = mainRoot_.openGroup("Data");
+      dataGroup_ = mainGroup_.openGroup("Data");
       volDataGroup_ = dataGroup_.openGroup("Volume");
     }
     catch (H5::Exception& h5ex)
     {
       try 
       {
-        dataGroup_ = mainRoot_.createGroup("Data");
+        dataGroup_ = mainGroup_.createGroup("Data");
         volDataGroup_ = dataGroup_.createGroup("Volume");
       }
       catch (H5::Exception& h5ex)
@@ -102,19 +112,14 @@ namespace CoupledField {
       currMSGroup_ = volDataGroup_.createGroup(msName.str());
 
       // Add the attribute AnalysisType to multisequence step.
-      attrib = currMSGroup_.createAttribute("AnalysisType",
-                                            H5::StrType(H5::PredType::C_S1,
-                                                        32),
-                                            space);
       Enum2String(type, analysisType);
       currAnalysisType_ = type;
-      analysisType.resize(32);
-      attrib.write(H5::StrType(H5::PredType::C_S1, analysisType.size()),
-                   analysisType);
+      H5IO::WriteAttribute( currMSGroup_, "AnalysisType", analysisType );
 
       // Add a group for the attribute description datasets.
-      currAttrDescGroup_ = currMSGroup_.createGroup("Attribute Description");
+      currAttrDescGroup_ = currMSGroup_.createGroup("ResultDescription");
 
+      std::cerr << "before wriring AttributeDescriptions\n";
       WriteAttribDescriptions();
 
     }
@@ -175,22 +180,11 @@ namespace CoupledField {
     {
       // Create new step group.
       currStepGroup_ = currMSGroup_.createGroup(stepName.str());
+      H5IO::WriteAttribute( currStepGroup_, "StepFrequency",
+                            freqValue );
 
-      // Add the attribute StepFrequency to step.
-      attrib = currStepGroup_.createAttribute("StepFrequency",
-                                            H5::PredType::NATIVE_DOUBLE,
-                                            space);
-      attrib.write(H5::PredType::IEEE_F64LE,
-                   &freqValue);
-      attrib.close();
-
-      // Add the attribute StepTime to step.
-      attrib = currStepGroup_.createAttribute("StepTime",
-                                            H5::PredType::NATIVE_DOUBLE,
-                                            space);
-      attrib.write(H5::PredType::IEEE_F64LE,
-                   &timeValue);
-      attrib.close();
+      H5IO::WriteAttribute( currStepGroup_, "StepTime",
+                            timeValue );
 
       if(externalFiles_)
         CreateExternalFile();
@@ -319,408 +313,170 @@ namespace CoupledField {
       std::string str;
       str.resize(numBytes);
       fin.read(&str[0], numBytes);
-      WriteStringToUserData(dataSetNames[i], str);
+      //WriteStringToUserData(dataSetNames[i], str);
       fin.close();
     }
 
     commandLine->GetDumpString(dumpStr);
-    WriteStringToUserData("Program Stats", dumpStr);
+    //WriteStringToUserData("Program Stats", dumpStr);
   }
 
   void SimOutputXMDF::InitModule()
   {
     std::string pathsep;
-    std::string filename;
+    std::string fileName;
     std::ostringstream strBuffer;
 
-    try 
-    {
+    // concatenate output file name
+    try {
       fs::create_directory( dirName_ );
       pathsep = fs::path("/").native_directory_string();
-
-    } catch (std::exception &ex)
-    {
+    } catch (std::exception &ex) {
       EXCEPTION(ex.what());
-    }
+    }    
 
     strBuffer << dirName_ << pathsep << fileName_ << ".h5";
-    filename = strBuffer.str();
+    fileName = strBuffer.str();
+    
+    // create main file and obtain main group
+    try {
+      mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
+    } H5_CATCH( "Could not create hdf5 file '" << fileName << "' : " );
 
-    xid  xGroupId = -1;
-    Integer    status;
-    std::string pathToMesh = "Mesh";
-    std::stringstream strBuf;
+    mainGroup_ = mainFile_.openGroup( "/" );
+    meshGroup_ = mainGroup_.createGroup( "Mesh" );
 
-    // Create the file and the mesh group
-    status = xfCreateFile(filename.c_str(), &fileId_, true);
-    strBuf << "Could not create XMDF file " << fileName_;
-    CHECK_HDF5_ERROR(status, strBuf.str());
-
-    status = xfCreateGroupForMesh(fileId_, pathToMesh.c_str(), &xGroupId);
-    strBuf << "Could not create mesh group '" << pathToMesh << "'";
-    CHECK_HDF5_ERROR(status, strBuf.str());
-
-    try
-    {
-      H5::Group group(xGroupId);
-      mainRoot_ = group.openGroup("/");
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
   }
 
-  void SimOutputXMDF::WriteGrid()
-  {
-    Integer fg_nElems;
-    Integer fg_nNodes;
-    std::vector<Integer> fg_ElemTypes;
-    std::vector<Double> fg_XNodeLocs, fg_YNodeLocs, fg_ZNodeLocs;
-    std::vector<Integer> fg_NodesInElem;
-    Integer    status;
-    Integer    fg_Compression = 1;
-    std::stringstream strBuf;
-    H5::Group mGroup;
-    H5::Group elemGroup;
-    xid meshGroupId;
-    H5::DataSpace space;
-    H5::Attribute attrib;
-    UInt dim;
-    UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
-
+  void SimOutputXMDF::WriteGrid() {
+  
+    // ensure that grid gets only written once
     if(!gridWritten_)
       InitModule();
     else
       return;
-
-    try
-    {
-      mGroup = mainRoot_.openGroup("Mesh");
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
-    // Write the dimension of the grid.
-    try
-    {
-      attrib = mGroup.createAttribute("Dimension",
-                                      H5::PredType::STD_U32LE,
-                                      space);
-      dim = ptGrid_->GetDim();
-      attrib.write(H5::PredType::NATIVE_UINT32, &dim);
-      attrib.close();
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
-    // Get number of elements and nodes from grid.
-    fg_nElems = ptGrid_->GetNumElems();
-    fg_nNodes = ptGrid_->GetNumNodes();
-
-    // Set the number of elements and nodes
-    meshGroupId = mGroup.getLocId();
-    status = xfSetNumberOfElements(meshGroupId, fg_nElems);
-    if (status >= 0) {
-      status = xfSetNumberOfNodes(meshGroupId, fg_nNodes);
-    }
-
-    if (status < 0) {
-      EXCEPTION("Unable to write number of elements and nodes.");
-    }
-
-    // NodeLocations
-    fg_XNodeLocs.resize(fg_nNodes);
-    fg_YNodeLocs.resize(fg_nNodes);
-    fg_ZNodeLocs.resize(fg_nNodes);
-
-    for (UInt i = 0; i < fg_nNodes; i++) {
+    
+    // write the dimension of the grid.
+    H5IO::WriteAttribute( meshGroup_, "Dimension", ptGrid_->GetDim() );
+    
+    // ================
+    //  Node Locations
+    // ================
+      UInt nNodes = ptGrid_->GetNumNodes();
+    H5::Group nodeGroup;
+    try {
+      nodeGroup = meshGroup_.createGroup( "Nodes" );
+    } H5_CATCH( "Could not create node group" );
+    
+    H5IO::WriteAttribute( nodeGroup, "NumNodes", nNodes );
+    
+    // collect all nodal coordinates
+    std::vector<Double> locs( nNodes * 3 );
+    for (UInt i = 0; i < nNodes; i+= 3) {
       Point p;
-
       ptGrid_->GetNodeCoordinate(p, i+1);
-
-      fg_XNodeLocs[i] = p[0];
-      fg_YNodeLocs[i] = p[1];
-      fg_ZNodeLocs[i] = p[2];
+      locs[i+0] = p[0];
+      locs[i+1] = p[1];
+      locs[i+2] = p[2];
     }
 
-    // Write node locations
-    status = xfWriteXNodeLocations(meshGroupId,
-                                   fg_nNodes,
-                                   &fg_XNodeLocs[0],
-                                   fg_Compression);
-    if (status >= 0) {
-      status = xfWriteYNodeLocations(meshGroupId,
-                                     fg_nNodes,
-                                     &fg_YNodeLocs[0]);
-      if (status >= 0) {
-        status = xfWriteZNodeLocations(meshGroupId,
-                                       fg_nNodes,
-                                       &fg_ZNodeLocs[0]);
-      }
-    }
+    // write nodal coordinates to file
+    H5IO::Write2DArray( nodeGroup, "Coordinates", 
+                        nNodes, 3, &locs[0] );
+    
+    // =====================
+    //  Element definitions
+    // =====================
+    UInt nElems = ptGrid_->GetNumElems();
+    H5::Group elemGroup;
+    try{
+      elemGroup = meshGroup_.createGroup("Elements");
+    } H5_CATCH( "Could not create element group" );
+    
+    UInt maxNumNodes = ptGrid_->GetMaxNumNodesPerElem();
+    std::vector<UInt> connect (nElems * maxNumNodes);
+    std::vector<UInt> elConnect;
+    std::vector<Integer> feTypes (nElems);
+    std::vector< UInt > numElemsOfDim (ptGrid_->GetDim());
 
-    if (status < 0) {
-      EXCEPTION("Unable to write nodes.");
-    }
-
-    fg_ElemTypes.resize(fg_nElems);
-
-    std::vector<UInt> connect;
-    UInt elemNum, maxNumNodes,numNodes;
-    UInt numRegions;
+    // Fill connectivity array
+    std::fill( connect.begin(), connect.end(), 0 );
+    UInt offset;
     FEType eType;
     RegionIdType region;
-    std::vector< UInt > numElemsOfType;
-    std::vector< UInt > numElemsOfDim;
-    UInt quadraticElems = 0;
 
-    maxNumNodes = ptGrid_->GetMaxNumNodesPerElem();
-    connect.resize(maxNumNodes);
-    numRegions = ptGrid_->GetNumRegions();
-    numElemsOfType.resize(numElemTypes);
-    numElemsOfDim.resize(3);
-
-    // Build arrays for writing data
-    for( UInt i=0; i < fg_nElems; i++ )
-    {
-      elemNum = i+1;
-      std::fill(connect.begin(), connect.end(), 0);
-      ptGrid_->GetElemData(elemNum, eType, region, &connect[0]);
-
-      numElemsOfType[eType]++;
+    // iterate over all elements
+    for( UInt i = 0; i < nElems; i++ ) {
+      elConnect.resize( maxNumNodes );
+      std::fill(elConnect.begin(), elConnect.end(),
+                0 );
+      ptGrid_->GetElemData( i+1, eType, region, &elConnect[0] );
       numElemsOfDim[ELEM_DIM[eType]-1]++;
+      feTypes[i] = eType;
 
-      numNodes = NUM_ELEM_NODES[eType];
-      fg_ElemTypes[i] = ElemType2XMDFElemType(eType);
-
-      switch(eType)
-      {
-      case ET_LINE3:
-      case ET_TRIA6:
-      case ET_QUAD8:
-      case ET_QUAD9:
-        quadraticElems = 1;
-        ReorderConnectivity(eType, true, &connect[0], &connect[0]);
-        break;
-
-      case ET_TET10:
-      case ET_HEXA20:
-      case ET_HEXA27:
-      case ET_PYRA13:
-      case ET_WEDGE15:
-        quadraticElems = 1;
-        break;
-
-      default:
-        break;
+      // insert connectivity into global array
+      offset = i * maxNumNodes;
+      for( UInt j = 0; j < elConnect.size(); j++ ) {
+        connect[offset + j] = elConnect[j];
       }
-
-      fg_NodesInElem.insert(fg_NodesInElem.end(),
-                            connect.begin(),
-                            connect.end());
     }
 
-    // Write element types
-    status = xfWriteElemTypes(meshGroupId,
-                              fg_nElems,
-                              (int*) &fg_ElemTypes[0],
-                              fg_Compression);
-    if (status < 0) {
-      EXCEPTION("Unable to write element types.");
+    // write connectivity
+    H5IO::Write2DArray( elemGroup, "Connectivity", nElems, 
+                        maxNumNodes, &connect[0] );
+
+    // write element types
+    H5IO::Write1DArray( elemGroup, "Types", nElems,
+                        &feTypes[0] );
+
+    // ==========================
+    //  Grid Meta Information
+    // ==========================
+    H5IO::WriteAttribute( elemGroup, "QuadraticElems", 
+                          ptGrid_->IsQuadratic() );
+
+    // number of elements per dimension
+    for(UInt i=0; i<3; i++) {
+      std::stringstream attrName;
+      attrName << "Num" << (i+1) << "DElems";
+      H5IO::WriteAttribute( elemGroup, attrName.str(), numElemsOfDim[i] );
     }
-
-    // Write element connectivity
-    status = xfWriteElemNodeIds(meshGroupId,
-                                fg_nElems,
-                                maxNumNodes,
-                                (int*) &fg_NodesInElem[0],
-                                fg_Compression);
-    if (status < 0) {
-      EXCEPTION("Unable to write element connectivity.");
+    
+    // number of elements per type
+    UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
+    for(UInt i=0; i<numElemTypes; i++) {
+      std::stringstream attrName;
+      attrName << "NUM_" << ELEM_TYPE_NAMES[i].substr(3);
+      H5IO::WriteAttribute( elemGroup, attrName.str(),
+                            ptGrid_->GetNumElemOfType((FEType)i) );
     }
-
-    // Write statistics about grid.
-    try
-    {
-      elemGroup = mGroup.openGroup("Elements");
-
-      attrib = elemGroup.createAttribute("QuadraticElems",
-                                         H5::PredType::STD_U32LE,
-                                         space);
-      attrib.write(H5::PredType::NATIVE_UINT32, &quadraticElems);
-      attrib.close();
-
-      for(UInt i=0; i<3; i++)
-      {
-        std::stringstream attrName;
-        attrName << "Num" << (i+1) << "DElems";
-        attrib = elemGroup.createAttribute(attrName.str(),
-                                           H5::PredType::STD_U32LE,
-                                           space);
-        attrib.write(H5::PredType::NATIVE_UINT32, &numElemsOfDim[i]);
-        attrib.close();
-      }
-
-      for(UInt i=0; i<numElemTypes; i++)
-      {
-        std::stringstream attrName;
-        attrName << "NUM_" << ELEM_TYPE_NAMES[i].substr(3);
-        attrib = elemGroup.createAttribute(attrName.str(),
-                                           H5::PredType::STD_U32LE,
-                                           space);
-        attrib.write(H5::PredType::NATIVE_UINT32, &numElemsOfType[i]);
-        attrib.close();
-      }
-
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
-    try 
-    {
-      WriteRegions(mGroup);
-      WriteNamedNodes(mGroup);
-      WriteNamedElems(mGroup);
-    }
-    catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
+    
+    // ============================================
+    //  Write Regions, Named Elements, Named Nodes
+    // ============================================
+    WriteRegions( meshGroup_ );
+    WriteNamedNodes( meshGroup_ );
+    WriteNamedElems( meshGroup_ );
+    
     gridWritten_ = true;
   }
 
 
-
-  FEType SimOutputXMDF::XMDFElemType2ElemType( const Integer type ) {
-
-    switch (type) {
-    case 100:   return ET_LINE2;   // 1D linear
-    case 101:   return ET_LINE3;   // 1D quadratic
-    case 200:   return ET_TRIA3;   // 2D linear triangle
-    case 201:   return ET_TRIA6;   // 2D quadratic triangle
-    case 210:   return ET_QUAD4;   // 2D linear quadrilateral
-    case 211:   return ET_QUAD8;   // 2D quadratic quadrilateral
-    case 212:   return ET_QUAD9;   // 2D quadr. quad. with center node
-    case 300:   return ET_TET4;    // 3D linear tetrahedron
-    case 30010: return ET_TET10;   // 3D quadratic tetrahedron
-    case 310:   return ET_WEDGE6;  // 3D linear prism
-    case 31010: return ET_WEDGE15; // 3D quadratic prism
-    case 320:   return ET_HEXA8;   // 3D linear hexahedron
-    case 32010: return ET_HEXA20;  // 3D quadratic hexahedron
-    case 32011: return ET_HEXA27;  // 3D quadr. hexa. with center nodes
-    case 330:   return ET_PYRA5;   // 3D linear pyramid
-    case 33010: return ET_PYRA13;  // 3D quadratic pyramid
-    }
-
-    return ET_UNDEF;
-    // This place should never be reached!
-  }
-
-  Integer SimOutputXMDF::ElemType2XMDFElemType( const FEType type )
-  {
-    switch (type) {
-    case ET_LINE2:   return 100;   // 1D linear
-    case ET_LINE3:   return 101;   // 1D quadratic
-    case ET_TRIA3:   return 200;   // 2D linear triangle
-    case ET_TRIA6:   return 201;   // 2D quadratic triangle
-    case ET_QUAD4:   return 210;   // 2D linear quadrilateral
-    case ET_QUAD8:   return 211;   // 2D quadratic quadrilateral
-    case ET_QUAD9:   return 212;   // 2D quadr. quad. with center node
-    case ET_TET4:    return 300;   // 3D linear tetrahedron
-    case ET_TET10:   return 30010; // 3D quadratic tetrahedron
-    case ET_WEDGE6:  return 310;   // 3D linear prism
-    case ET_WEDGE15: return 31010; // 3D quadratic prism
-    case ET_HEXA8:   return 320;   // 3D linear hexahedron
-    case ET_HEXA20:  return 32010; // 3D quadratic hexahedron
-    case ET_HEXA27:  return 32011; // 3D quadr. hexa. with center nodes
-    case ET_PYRA5:   return 330;   // 3D linear pyramid
-    case ET_PYRA13:  return 33010; // 3D quadratic pyramid
-    default: return ET_UNDEF;
-    }
-
-    // This place should never be reached!
-    return -1;
-  }
-
-  void SimOutputXMDF::ReorderConnectivity( const Integer eType,
-                                           const bool toXMDF,
-                                           const UInt* in,
-                                           UInt* out) {
-    static Integer toXMDFIdxsLine[] = {0, 2, 1};
-    static Integer fromXMDFIdxsLine[] = {0, 2, 1};
-    static Integer toXMDFIdxsTria[] = {0, 3, 1, 4, 2, 5};
-    static Integer fromXMDFIdxsTria[] = {0, 2, 4, 1, 3, 5};
-    static Integer toXMDFIdxsQuad[] = {0, 4, 1, 5, 2, 6, 3, 7, 8};
-    static Integer fromXMDFIdxsQuad[] = {0, 2, 4, 6, 1, 3, 5, 7, 8};
-
-    std::vector<UInt> tmp;
-    Integer* it;
-
-    UInt numNodes = NUM_ELEM_NODES[eType];
-    tmp.resize(numNodes);
-    memcpy(&tmp[0], in, numNodes*sizeof(UInt));
-
-    switch (eType) {
-    case ET_LINE3: // 1D quadratic line
-      if(toXMDF)
-        it = toXMDFIdxsLine;
-      else
-        it = fromXMDFIdxsLine;
-      break;
-    case ET_TRIA6: // 2D quadratic triangle
-      if(toXMDF)
-        it = toXMDFIdxsTria;
-      else
-        it = fromXMDFIdxsTria;
-      break;
-    case ET_QUAD8: // 2D quadratic quadrilateral
-    case ET_QUAD9: // 2D quadratic quadrilateral with center node
-      if(toXMDF)
-        it = toXMDFIdxsQuad;
-      else
-        it = fromXMDFIdxsQuad;
-      break;
-    }
-
-    for(UInt i=0; i<numNodes; i++, it++)
-    {
-      out[i] = tmp[*it];
-    }
-  }
-
   void SimOutputXMDF::WriteRegions(const H5::Group& meshGroup)
   {
-    hid_t status;
-    H5::Group regionGroup, regionElemGroup, regionNodeGroup;
+    H5::Group regionListGroup, actRegionGroup;
     std::vector< std::string > regionNames;
     std::vector< UInt > regionDims;
     std::vector< std::vector<UInt> > regionElems;
     std::vector< StdVector<UInt> > regionNodes;
     StdVector<Elem*> elems;
-    std::vector< region_desc_type > regionDescs;
     std::vector<RegionIdType> surfRegionIds, volRegionIds;
-    int fg_Compression = 1;
-    UInt dim;
-    UInt idx;
-    hsize_t numRegions;
+    UInt dim, idx, numRegions;
 
-    try
-    {
-      regionGroup = meshGroup.createGroup("Regions");
-      regionElemGroup = regionGroup.createGroup("Elements");
-      regionNodeGroup = regionGroup.createGroup("Nodes");
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
+    // create region group
+    try{
+      regionListGroup = meshGroup.createGroup("Regions");
+    } H5_CATCH( "Could not create region group" );
 
     numRegions = ptGrid_->GetNumRegions();
     if(!numRegions)
@@ -734,226 +490,116 @@ namespace CoupledField {
     regionElems.resize(numRegions);
     regionNodes.resize(numRegions);
 
-    for(UInt i=0; i<surfRegionIds.size(); i++)
-    {
+    // obtain nodes and elements per surface region
+    for(UInt i=0; i<surfRegionIds.size(); i++) {
       idx = surfRegionIds[i];
       regionDims[idx] = dim-1;
-
+      
       ptGrid_->GetElems(elems, idx);
       regionElems[idx].resize(elems.GetSize());
-      for(UInt j=0; j<elems.GetSize(); j++)
-      {
+      for(UInt j=0; j<elems.GetSize(); j++) {
         regionElems[idx][j] = elems[j]->elemNum;
       }
-
+      
       ptGrid_->GetNodesByRegion(regionNodes[idx], idx);
-
     }
 
-    for(UInt i=0; i<volRegionIds.size(); i++)
-    {
+    // obtain nodes and elements per volume region
+    for(UInt i=0; i<volRegionIds.size(); i++) {
       idx = volRegionIds[i];
       regionDims[idx] = dim;
 
       ptGrid_->GetElems(elems, idx);
       regionElems[idx].resize(elems.GetSize());
-      for(UInt j=0; j<elems.GetSize(); j++)
-      {
+      for(UInt j=0; j<elems.GetSize(); j++) {
         regionElems[idx][j] = elems[j]->elemNum;
       }
-
+      
       ptGrid_->GetNodesByRegion(regionNodes[idx], idx);
     }
 
-    regionDescs.resize(numRegions);
 
+    // loop over regions and write out nodes and elements
     for(UInt i=0; i<numRegions; i++)
     {
-      strncpy(regionDescs[i].name,
-              regionNames[i].c_str(),
-              sizeof(regionDescs[i].name));
-      regionDescs[i].dim = regionDims[i];
+      // create new region group 
+      try {
+        actRegionGroup = regionListGroup.createGroup(regionNames[i] );
+      } H5_CATCH( "Could not create region group for region '" 
+                  << regionNames[i] << "'" );
+      H5IO::WriteAttribute( actRegionGroup, "Dimension", 
+                            ptGrid_->GetDim() );
+      
+      // create new node group 
+      H5IO::Write1DArray<UInt>( actRegionGroup, "Nodes",
+                          regionNodes[i].GetSize(),
+                          (const UInt*)&regionNodes[i][0] );
+      
+      // create new element group
+      H5IO::Write1DArray( actRegionGroup,
+                          "Elements",
+                          regionElems[i].size(),
+                          (const Integer*)&regionElems[i][0] );
 
-      status = xfWritePropertyInt(regionElemGroup.getLocId(),
-                                  regionNames[i].c_str(),
-                                  regionElems[i].size(),
-                                  (Integer*)&regionElems[i][0],
-                                  fg_Compression);
-      CHECK_HDF5_ERROR(status, "Unable to write region elements.");
-      status = xfWritePropertyInt(regionNodeGroup.getLocId(),
-                                  regionNames[i].c_str(),
-                                  regionNodes[i].GetSize(),
-                                  (Integer*)&regionNodes[i][0],
-                                  fg_Compression);
-      CHECK_HDF5_ERROR(status, "Unable to write region nodes.");
+      // create new face group
+      // .. to be implemented ..
+      
+      // create new edge group
+      // .. to be implemented ..
+
     }
+      
 
-
-    try
-    {
-      H5::DataSpace space( 1, &numRegions );
-
-      // Create a memory datatype for region_desc_type
-      H5::CompType compTypeMem( sizeof(region_desc_type) );
-
-      compTypeMem.insertMember( "Name", HOFFSET(region_desc_type, name),
-                                 H5::StrType(H5::PredType::C_S1,
-                                             sizeof(regionDescs[0].name)));
-
-      compTypeMem.insertMember( "Dimension", HOFFSET(region_desc_type, dim),
-                                 H5::PredType::NATIVE_UINT32);
-
-      H5::CompType compTypeFile( sizeof(region_desc_type) );
-      compTypeFile.insertMember( "Name", HOFFSET(region_desc_type, name),
-                                  H5::StrType(H5::PredType::C_S1,
-                                              sizeof(regionDescs[0].name)));
-      compTypeFile.insertMember( "Dimension", HOFFSET(region_desc_type, dim),
-                                  H5::PredType::STD_U32LE);
-
-      H5::DataSet dataset = regionGroup.createDataSet("Description",
-                                                      compTypeFile,
-                                                      space);
-
-      dataset.write(&regionDescs[0], compTypeMem);
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
   }
 
   void SimOutputXMDF::WriteNamedNodes(const H5::Group& meshGroup)
   {
-    H5::Group nNodeGroup, namedNodeGroup;
-    std::vector< named_entity_desc_type > namedNodeDescs;
+    H5::Group namedNodeGroup;
     std::vector< UInt > nodes;
     std::vector<std::string> nodeNames;
+    UInt numNamedNodes = 0;
 
-    hid_t status;
-    int fg_Compression = 1;
-    hsize_t numNamedNodes;
-
+    // create group for named nodes
+    try {
+      namedNodeGroup = meshGroup.createGroup( "NamedNodes" );
+    } H5_CATCH( "Could not create group for named nodes" );
+    
+    // obtain list with names of nodes
     ptGrid_->GetListNodeNames(nodeNames);
     numNamedNodes = nodeNames.size();
-
-    if(!numNamedNodes)
-      return;
-
-    try
-    {
-      namedNodeGroup = meshGroup.createGroup("Named Nodes");
-      nNodeGroup = namedNodeGroup.createGroup("Nodes");
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
-    namedNodeDescs.resize(numNamedNodes);
-
-    for(UInt i=0; i<numNamedNodes; i++)
-    {
-      strncpy(namedNodeDescs[i].name,
-              nodeNames[i].c_str(),
-              sizeof(namedNodeDescs[i].name));
-
-      ptGrid_->GetNodesByName(nodes, nodeNames[i]);
-
-      status = xfWritePropertyInt(nNodeGroup.getLocId(),
-                                  nodeNames[i].c_str(),
-                                  nodes.size(),
-                                  (int*) &nodes[0],
-                                  fg_Compression);
-      CHECK_HDF5_ERROR(status, "Unable to write named nodes.");
-    }
-
-    try
-    {
-      H5::DataSpace space( 1, &numNamedNodes );
-
-      // Create a memory datatype for region_desc_type
-      H5::CompType comptype( sizeof(named_entity_desc_type) );
-
-      comptype.insertMember( "Name", HOFFSET(region_desc_type, name),
-                             H5::StrType(H5::PredType::C_S1,
-                                         sizeof(namedNodeDescs[0].name)));
-
-      H5::DataSet dataset = namedNodeGroup.createDataSet("Description",
-                                                         comptype,
-                                                         space);
-
-      dataset.write(&namedNodeDescs[0], comptype);
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
+    
+    for(UInt i = 0; i < numNamedNodes; i++ ) {
+      ptGrid_->GetNodesByName(nodes, nodeNames[i]);      
+      H5IO::Write1DArray( namedNodeGroup, nodeNames[i],
+                          nodes.size(), &nodes[0] );
     }
   }
 
   void SimOutputXMDF::WriteNamedElems(const H5::Group& meshGroup)
   {
-    H5::Group nElemGroup, namedElemGroup;
-    std::vector< named_entity_desc_type > namedElemDescs;
-    std::vector< UInt > elems;
-    StdVector< Elem* > elemPtrs;
+    H5::Group namedElemGroup;
+    std::vector< UInt > elemNums;
+    StdVector<Elem*> elems;
     std::vector<std::string> elemNames;
 
-    hid_t status;
-    int fg_Compression = 1;
-    hsize_t numNamedElems;
-
-    ptGrid_->GetListElemNames(elemNames);
-    numNamedElems = elemNames.size();
-
-    if(!numNamedElems)
-      return;
-
-    try
-    {
-      namedElemGroup = meshGroup.createGroup("Named Elements");
-      nElemGroup = namedElemGroup.createGroup("Elements");
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
-
-    namedElemDescs.resize(numNamedElems);
-
-    for(UInt i=0; i<numNamedElems; i++) {
-      strncpy(namedElemDescs[i].name,
-              elemNames[i].c_str(),
-              sizeof(namedElemDescs[i].name));
-
-      ptGrid_->GetElemsByName(elemPtrs, elemNames[i]);
-
-      elems.resize(elemPtrs.GetSize());
-      for(UInt j=0; j<elemPtrs.GetSize(); j++)
-      {
-        elems[j] = elemPtrs[j]->elemNum;
-      }
-
-      status = xfWritePropertyInt(nElemGroup.getLocId(),
-                                  elemNames[i].c_str(),
-                                  elems.size(),
-                                  (int*) &elems[0],
-                                  fg_Compression);
-      CHECK_HDF5_ERROR(status, "Unable to write named elems.");
-    }
-
+    // create group for named elements
     try {
-      H5::DataSpace space( 1, &numNamedElems );
+      namedElemGroup = meshGroup.createGroup( "NamedElems" );
+    } H5_CATCH( "Could not create group for named elems" );
+    
+    // obtain list with names of elements
+    ptGrid_->GetListElemNames(elemNames);
+    UInt numNamedElems = elemNames.size();
 
-      // Create a memory datatype for region_desc_type
-      H5::CompType comptype( sizeof(named_entity_desc_type) );
-
-      comptype.insertMember( "Name", HOFFSET(region_desc_type, name),
-                             H5::StrType(H5::PredType::C_S1,
-                                         sizeof(namedElemDescs[0].name)));
-
-      H5::DataSet dataset = namedElemGroup.createDataSet("Description",
-                                                         comptype,
-                                                         space);
-
-      dataset.write(&namedElemDescs[0], comptype);
-    } catch (H5::Exception& h5ex) {
-      EXCEPTION(h5ex.getCDetailMsg());
+    for(UInt i = 0; i < numNamedElems; i++ ) {
+      ptGrid_->GetElemsByName(elems, elemNames[i]);
+      elemNums.resize( elems.GetSize() );
+      for( UInt j = 0; j < elems.GetSize(); j++ ) {
+        elemNums[j] = elems[j]->elemNum;
+      }
+      
+      H5IO::Write1DArray( namedElemGroup, elemNames[i],
+                          elemNums.size(), &elemNums[0] );
     }
   }
 
@@ -965,7 +611,7 @@ namespace CoupledField {
     UInt entryType;
     hsize_t numRegions;
     std::string unit;
-    std::string dofNames;
+    std::vector<std::string> dofNames;
     std::vector<UInt> regions;
     RegionIdType regionId;
     ResDescType::const_iterator it, end;
@@ -1042,16 +688,10 @@ namespace CoupledField {
           break;
       }
 
-      UInt i;
-      for(i = 0; i<numDOFs-1; i++)
-      {
-        dofNames.append(resInfo->dofNames[i]);
-        dofNames.append(" ");
+      dofNames.resize( resInfo->dofNames.GetSize() );
+      for(UInt i = 0; i<numDOFs; i++) {
+        dofNames[i] = resInfo->dofNames[i];
       }
-      dofNames.append(resInfo->dofNames[i]);
-
-      dofNames.resize(32);
-      unit.resize(32);
 
       // Generate list of regions for the current result.
       regions.clear();
@@ -1069,83 +709,9 @@ namespace CoupledField {
 
       try
       {
-        hsize_t dims;
-        dims=1;
-        H5::DataSpace space( 1, &dims );
         numRegions = regions.size();
 
-        UInt dtSize = sizeof(definedOn) + numRegions*sizeof(UInt) +
-            sizeof(numDOFs) + dofNames.size() + sizeof(entryType) +
-            unit.size();
-        UInt offset = 0;
-
-        // Create a file datatype for the attribute description
-        H5::CompType compTypeFile( (size_t) dtSize );
-
-        compTypeFile.insertMember( "DefinedOn",
-                                   offset,
-                                   H5::PredType::STD_U32LE);
-        offset += sizeof(definedOn);
-
-        compTypeFile.insertMember( "Regions",
-                                   offset,
-                                   H5::ArrayType(H5::PredType::STD_U32LE,
-                                       1, &numRegions) );
-        offset += numRegions*sizeof(UInt);
-
-        compTypeFile.insertMember( "NumDOFs",
-                                   offset,
-                                   H5::PredType::STD_U32LE);
-        offset += sizeof(numDOFs);
-
-        compTypeFile.insertMember( "DOFNames",
-                                   offset,
-                                   H5::StrType(H5::PredType::C_S1,
-                                               dofNames.size()));
-        offset += dofNames.size();
-
-        compTypeFile.insertMember( "EntryType",
-                                   offset,
-                                   H5::PredType::STD_U32LE);
-        offset += sizeof(entryType);
-
-        compTypeFile.insertMember( "Unit", offset,
-                                   H5::StrType(H5::PredType::C_S1,
-                                               unit.size()));
-
-        // Create memory datatypes for attribute description
-        H5::CompType compTypeMem1( (size_t) sizeof(definedOn) );
-        compTypeMem1.insertMember( "DefinedOn",
-                                   0,
-                                   H5::PredType::NATIVE_UINT32);
-
-        H5::CompType compTypeMem2( (size_t) numRegions*sizeof(UInt) );
-        compTypeMem2.insertMember( "Regions",
-                                   0, 
-                                   H5::ArrayType(H5::PredType::NATIVE_UINT32,
-                                       1, &numRegions) );
-
-        H5::CompType compTypeMem3( (size_t) sizeof(numDOFs) );
-        compTypeMem3.insertMember( "NumDOFs",
-                                   0,
-                                   H5::PredType::NATIVE_UINT32);
-
-        H5::CompType compTypeMem4( (size_t) dofNames.size() );
-        compTypeMem4.insertMember( "DOFNames",
-                                   0,
-                                   H5::StrType(H5::PredType::C_S1,
-                                               dofNames.size()));
-
-        H5::CompType compTypeMem5( (size_t) sizeof(entryType) );
-        compTypeMem5.insertMember( "EntryType",
-                                   0,
-                                   H5::PredType::NATIVE_UINT32);
-
-        H5::CompType compTypeMem6( (size_t) unit.size() );
-        compTypeMem6.insertMember( "Unit",
-                                   0,
-                                   H5::StrType(H5::PredType::C_S1,
-                                               unit.size()));
+     
 
         std::vector< std::string > resNames;
 
@@ -1172,19 +738,19 @@ namespace CoupledField {
           }
         }
 
-        for(i=0; i<resNames.size(); i++)
-        {
-          H5::DataSet dataset = currAttrDescGroup_.createDataSet(resNames[i],
-              compTypeFile,
-              space);
+        // Generate compound datatype
+        H5IO::CompoundType resInfo;
+        typedef std::pair<std::string, boost::any> CEntryType;
+        resInfo.push_back( CEntryType( "DefinedOn", definedOn ) );
+        resInfo.push_back( CEntryType( "Regions", regions ) );
+        resInfo.push_back( CEntryType( "NumDOFs", numDOFs ) );
+        resInfo.push_back( CEntryType( "DOFNames", dofNames ) );
+        resInfo.push_back( CEntryType( "EntryType", entryType ) );
+        resInfo.push_back( CEntryType( "Unit", unit ) );
 
-          dataset.write(&definedOn, compTypeMem1);
-          dataset.write(&regions[0], compTypeMem2);
-          dataset.write(&numDOFs, compTypeMem3);
-          dataset.write(dofNames.c_str(), compTypeMem4);
-          dataset.write(&entryType, compTypeMem5);
-          dataset.write(unit.c_str(), compTypeMem6);
-        }
+        H5IO::WriteCompound( currAttrDescGroup_, resNames[0], resInfo );
+        
+
 
       } catch (H5::Exception& h5ex2)
       {
@@ -1339,6 +905,7 @@ namespace CoupledField {
       }
     }
 
+    H5IO::WriteAttribute( userDataGroup, dSetName, str );
     H5::DataSpace space;
 
     H5::DataSet dataset;
@@ -1351,5 +918,6 @@ namespace CoupledField {
     
     userDataGroup.close();
   }
-}
+
+} // end of namespace
 
