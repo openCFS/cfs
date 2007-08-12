@@ -340,8 +340,6 @@ int main( int argc, const char **argv ) {
    // Set up Problem
   domain->PostInit();
     
-  Info->FinishProgress();
-    
   // Solves the driver or optimization problem
   domain->SolveProblem();
     

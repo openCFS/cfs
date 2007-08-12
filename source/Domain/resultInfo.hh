@@ -5,10 +5,8 @@
 #ifndef FILE_CFS_RESULTINFO_HH
 #define FILE_CFS_RESULTINFO_HH
 
-#include "General/environment.hh"
-#include "Domain/entityList.hh"
 #include "Utils/StdVector.hh"
-#include "Domain/ansatzFct.hh"
+#include "General/environment.hh"
 
 namespace CoupledField {
 

@@ -9,11 +9,14 @@
 #include "Utils/StdVector.hh"
 #include "Domain/resultInfo.hh"
 #include "Domain/bcs.hh"
+#include "Utils/vector.hh"
 
 namespace CoupledField {
 
   // Forward class declarations
   class EntityList;
+  class NodeList;
+  class ElemList;
   class EntityIterator;
   class ResultInfo;
   

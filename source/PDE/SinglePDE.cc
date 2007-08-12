@@ -171,8 +171,6 @@ namespace CoupledField {
       isComplex_ = false;
       break;
 
-    case TRANSIENTHARMONIC:
-      EXCEPTION( "To be implemented...." );
       break;
       
     default:

@@ -102,8 +102,6 @@ namespace CoupledField {
     else if (in == "paramIdent")
       // since the parameter identification process lives in frequency domain
       out = HARMONIC;
-    else if (in=="transientHarmonic")
-      out = TRANSIENTHARMONIC;
     else {
       EXCEPTION( "'" << in << "' cannot be converted into item of "
                  << "'AnalysisType'!" );
@@ -127,9 +125,6 @@ namespace CoupledField {
       break;
     case MULTI_SEQUENCE:
       out = "multiSequence";
-      break;
-    case TRANSIENTHARMONIC:
-      out = "transientHarmonic";
       break;
     default:  
       EXCEPTION("No conversion found for your 'AnalysisType'");

@@ -10,6 +10,7 @@
 
 #include "Utils/StdVector.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"

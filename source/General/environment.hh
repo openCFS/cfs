@@ -123,7 +123,7 @@ namespace CoupledField {
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, 
-                TRANSIENTHARMONIC, MULTI_SEQUENCE } AnalysisType;
+                MULTI_SEQUENCE } AnalysisType;
 
   //! specifications of Lapack routines for different types of system matrices in 
   //! matrix.solveWithLapack

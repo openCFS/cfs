@@ -15,6 +15,7 @@ namespace CoupledField {
 
   class Grid;
   class Elem;
+  class SurfElemList;
   template<class TYPE> class ElemStoreSol;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
