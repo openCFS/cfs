@@ -17,7 +17,7 @@ namespace CoupledField {
 
   //! Class, that is derived from class FileType for reading mesh-input data,
   //! which is produced by Ansys mkmesh-interface. 
-  class SimInputXMDF: virtual public SimInput {
+  class SimInputHDF5: virtual public SimInput {
 
   public:
 
@@ -27,10 +27,10 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimInputXMDF(std::string fileName, ParamNode * inputNode);
+    SimInputHDF5(std::string fileName, ParamNode * inputNode);
     
     //! Destructor
-    virtual ~SimInputXMDF();
+    virtual ~SimInputHDF5();
 
     //@}
 

@@ -1,6 +1,6 @@
 SET(SIMINOUTHDF5_SRCS
   hdf5io.cc
-  simInputXMDF.cc
+  simInputHDF5.cc
   simOutputHDF5.cc
 )
 

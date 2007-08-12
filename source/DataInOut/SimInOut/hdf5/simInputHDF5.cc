@@ -18,7 +18,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
-#include "simInputXMDF.hh"
+#include "simInputHDF5.hh"
 
 namespace fs = boost::filesystem;
 
@@ -26,7 +26,7 @@ namespace CoupledField {
 
   // declare logging stream
   DECLARE_LOG(simInputXMDF)
-  DEFINE_LOG(simInputXMDF, "SimInputXMDF")
+  DEFINE_LOG(simInputXMDF, "SimInputHDF5")
 
  #define CHECK_HDF5_ERROR(HID_T, STR) { if(HID_T < 0) {                 \
         std::ostringstream ostr;                                        \
@@ -38,10 +38,10 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
-  SimInputXMDF::SimInputXMDF(std::string fileName, ParamNode * inputNode) :
+  SimInputHDF5::SimInputHDF5(std::string fileName, ParamNode * inputNode) :
       SimInput(fileName, inputNode)
   {
-    ENTER_FCN( "SimInputXMDF::XMDF" );
+    ENTER_FCN( "SimInputHDF5::XMDF" );
     mi_ = NULL;
     statsRead_ = false;
     fileName_ = fileName;
@@ -79,14 +79,14 @@ namespace CoupledField {
   }
 
 
-  SimInputXMDF::~SimInputXMDF() {
-    ENTER_FCN( "SimInputXMDF::~XMDF" );
+  SimInputHDF5::~SimInputHDF5() {
+    ENTER_FCN( "SimInputHDF5::~XMDF" );
     
     mainRoot_.close();
     mainFile_.close();
   }
 
-  void SimInputXMDF::InitModule(Grid *mi)
+  void SimInputHDF5::InitModule(Grid *mi)
   {
     try 
     {
@@ -129,7 +129,7 @@ namespace CoupledField {
     } H5_CATCH( "Could not open main root" );
   }
 
-  void SimInputXMDF::ReadMesh()
+  void SimInputHDF5::ReadMesh()
   {
     Integer status;
     std::stringstream strBuf;
@@ -270,33 +270,33 @@ namespace CoupledField {
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================
-  UInt SimInputXMDF::GetDim() {
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetDim() {
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
-  UInt SimInputXMDF::GetNumNodes(){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetNumNodes(){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
     
-  UInt SimInputXMDF::GetNumElems(const Integer dim){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetNumElems(const Integer dim){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
-  UInt SimInputXMDF::GetNumRegions(){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetNumRegions(){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
 
-  UInt SimInputXMDF::GetNumNamedNodes(){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetNumNamedNodes(){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
 
-  UInt SimInputXMDF::GetNumNamedElems(){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  UInt SimInputHDF5::GetNumNamedElems(){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
@@ -304,24 +304,24 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputXMDF::GetAllRegionNames( std::vector<std::string> & regionNames ){
-    LOG_TRACE(simInputXMDF) << "SimInputXMDF::ReadMesh() not implemented";
+  void SimInputHDF5::GetAllRegionNames( std::vector<std::string> & regionNames ){
+    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
   }
 
-  void SimInputXMDF::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
+  void SimInputHDF5::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
                                    const UInt dim )
   {
-    EXCEPTION("SimInputXMDF::GetRegionNamesOfDim() not implemented");
+    EXCEPTION("SimInputHDF5::GetRegionNamesOfDim() not implemented");
   }
     
-  void SimInputXMDF::GetNodeNames( StdVector<std::string> & nodeNames )
+  void SimInputHDF5::GetNodeNames( StdVector<std::string> & nodeNames )
   {
-    EXCEPTION("SimInputXMDF::GetNodeNames() not implemented");
+    EXCEPTION("SimInputHDF5::GetNodeNames() not implemented");
   }
   
-  void SimInputXMDF::GetElemNames( StdVector<std::string> & elemNames )
+  void SimInputHDF5::GetElemNames( StdVector<std::string> & elemNames )
   {
-    EXCEPTION("SimInputXMDF::GetElemNames() not implemented");
+    EXCEPTION("SimInputHDF5::GetElemNames() not implemented");
   }
 
   // =========================================================================
@@ -330,7 +330,7 @@ namespace CoupledField {
 
 
 
-  void SimInputXMDF::ReadRegions(const H5::Group& meshGroup)
+  void SimInputHDF5::ReadRegions(const H5::Group& meshGroup)
   {
     hid_t status;
     H5::Group regionGroup;
@@ -523,7 +523,7 @@ namespace CoupledField {
 //     regionGroup.close();
   }
 
-  void SimInputXMDF::ReadNamedNodes(const H5::Group& meshGroup)
+  void SimInputHDF5::ReadNamedNodes(const H5::Group& meshGroup)
   {
 //     H5::Group namedNodesGroup, nNodesGroup;
 //     hid_t status;
@@ -618,7 +618,7 @@ namespace CoupledField {
 //     namedNodesGroup.close();
   }
 
-  void SimInputXMDF::ReadNamedElems(const H5::Group& meshGroup)
+  void SimInputHDF5::ReadNamedElems(const H5::Group& meshGroup)
   {
 //     H5::Group namedElemsGroup, nElemsGroup;
 //     hid_t status;
@@ -713,7 +713,7 @@ namespace CoupledField {
 //     namedElemsGroup.close();
   }
 
-  void SimInputXMDF::ReadMeshStats(const H5::Group& meshGroup)
+  void SimInputHDF5::ReadMeshStats(const H5::Group& meshGroup)
   {
 //     hsize_t number;
 //     bool regionGroupExists = true;
