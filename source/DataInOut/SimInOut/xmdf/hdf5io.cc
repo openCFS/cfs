@@ -7,7 +7,6 @@ namespace CoupledField {
   // ====================================
   //    Initialize Atom Data Typemaps
   // ====================================
-  
 #define DECL_HDF_ATOM_TYPE(TYPE, NATIVE_TYPE, STD_TYPE )        \
   template<>                                                    \
   H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =      \
@@ -18,24 +17,23 @@ namespace CoupledField {
   
   
   // Define mapping
-  DECL_HDF_ATOM_TYPE( bool, 
-                      H5::PredType::NATIVE_INT32,
-                      H5::PredType::STD_I32LE );
-
-  DECL_HDF_ATOM_TYPE( Integer, 
+  DECL_HDF_ATOM_TYPE( bool,
                       H5::PredType::NATIVE_INT32,
                       H5::PredType::STD_I32LE );
   
-  DECL_HDF_ATOM_TYPE( UInt, 
+  DECL_HDF_ATOM_TYPE( Integer,
+                      H5::PredType::NATIVE_INT32,
+                      H5::PredType::STD_I32LE );
+  
+  DECL_HDF_ATOM_TYPE( UInt,
                       H5::PredType::NATIVE_UINT32,
                       H5::PredType::STD_U32LE );
   
-  DECL_HDF_ATOM_TYPE( Double, 
+  DECL_HDF_ATOM_TYPE( Double,
                       H5::PredType::NATIVE_DOUBLE,
                       H5::PredType::IEEE_F64LE );
   
 #undef DECL_HDF_ATOM_TYPE
-  
   
   // ========================================
   //    Initialize General Datatype mapping
@@ -51,46 +49,76 @@ namespace CoupledField {
     public H5IO::BaseHdfTypeConversion {                        \
                                                                 \
   private:                                                      \
-    std::vector<TYPE> buffer_;                                  \
+                                                                \
+    TYPE* buffer_;                                              \
                                                                 \
   public:                                                       \
-    HdfTypeConversion() {                                       \
-      nativeType_ =  HdfAtomTypeMap<TYPE>::HdfNativeType;       \
-      stdType_ =  HdfAtomTypeMap<TYPE>::HdfStdType;             \
+    HdfTypeConversion()                                         \
+      : buffer_( NULL ) {                                        \
+      nativeType_ =                                              \
+        HdfAtomTypeMap<TYPE>::HdfNativeType;                     \
+      stdType_ =                                                 \
+        HdfAtomTypeMap<TYPE>::HdfStdType;                        \
     }                                                           \
                                                                 \
-    ~HdfTypeConversion() {};                                    \
-                                                                \
-    const void * GetVoidPtr() {                                 \
+    const void * GetOutBufferPtr() {                            \
       if( !isSet_ ) {                                           \
         EXCEPTION( "Data buffer is empty" );                    \
       }                                                         \
-      return (const void*) &(buffer_[0]);                       \
+      return (const void*) buffer_;                             \
     }                                                           \
                                                                 \
-    void SetData( const TYPE& t ) {                             \
-      buffer_.resize(1);                                        \
+    void* GetInBufferPtr( UInt numData ) {                      \
+      CleanUp();                                                \
+      numElems_ = numData;                                      \
+      buffer_ = new TYPE[numData];                              \
+      return (void*) buffer_;                                   \
+    }                                                           \
+                                                                \
+    void GetNativeData( TYPE * data) {                          \
+      for( UInt i = 0; i < numElems_; i++ ) {                   \
+        data[i] = buffer_[i];                                   \
+      }                                                         \
+    }                                                           \
+                                                                \
+    void SetNativeData( const TYPE& t ) {                       \
+      CleanUp();                                                \
+      buffer_ = new TYPE[1];                                    \
       buffer_[0] = t;                                           \
       size_ = sizeof( TYPE );                                   \
+      numElems_ = 1;                                            \
       isSet_ = true;                                            \
     }                                                           \
                                                                 \
-    void SetData( const TYPE* t, UInt size  ) {                 \
-      buffer_.resize( size );                                   \
+    void SetNativeData( const TYPE* t, UInt size  ) {           \
+      CleanUp();                                                \
+      buffer_ = new TYPE[size];                                 \
       for( UInt i = 0; i < size; i ++ ) {                       \
         buffer_[i] = t[i];                                      \
       }                                                         \
       size_ = sizeof( TYPE* );                                  \
+      numElems_ = size;                                         \
       isSet_ = true;                                            \
     }                                                           \
+                                                                \
+    void CleanUp() {                                            \
+      if( buffer_ ) {                                           \
+        delete[] buffer_;                                       \
+      }                                                         \
+      buffer_ = NULL;                                           \
+      size_ = 0;                                                \
+      numElems_ = 0;                                            \
+      isSet_ = false;                                           \
+    }                                                           \
   }
+
   DECL_HDF_ATOM_TYPE_CONV(Integer);
   DECL_HDF_ATOM_TYPE_CONV(UInt);
   DECL_HDF_ATOM_TYPE_CONV(Double);
   
 #undef DECL_HDF_ATOM_TYPE_CONV
   
- // ---------------
+  // ---------------
   //  bool
   // ---------------
   template<>
@@ -98,36 +126,67 @@ namespace CoupledField {
     public H5IO::BaseHdfTypeConversion  {
     
   private:
-    std::vector<Integer> buffer_;
+
+    Integer* buffer_;
     
   public:
-    HdfTypeConversion()  {
+    
+    HdfTypeConversion() 
+      : buffer_ ( NULL ) {
       nativeType_ =  HdfAtomTypeMap<bool>::HdfNativeType;
       stdType_ = HdfAtomTypeMap<bool>::HdfStdType;
     }
-    
-    const void * GetVoidPtr() {
+
+    const void * GetOutBufferPtr() {
       if( !isSet_ ) {
         EXCEPTION( "Data buffer is empty" );
       }
-      return &buffer_[0];
+      return buffer_;
     }
     
-    void SetData( const bool& t ) {
-      buffer_.resize(1);
+    void* GetInBufferPtr( UInt numData ) {
+      CleanUp();
+      numElems_ = numData;
+      buffer_ = new Integer[numElems_];
+      return buffer_;
+    }
+
+    void GetNativeData( bool * data) {
+      for( UInt i = 0; i < numElems_; i++ ) {
+        data[i] = (buffer_[i] == 1) ? true : false;
+      }
+    }
+    
+    void SetNativeData( const bool& t ) {
+      CleanUp();
+      buffer_ = new Integer[1];
       buffer_[0] = t ? 1 : 0;
       size_ = sizeof( Integer );
+      numElems_ = 1;
       isSet_ = true;
     }
     
-    void SetData( const bool* t, UInt size  ) {
-      buffer_.resize( size );
+    void SetNativeData( const bool* t, UInt size  ) {
+      CleanUp();
+      buffer_ = new Integer[size];
       for( UInt i = 0; i < size; i ++ ) {
         buffer_[i] = t[i] ? 1 : 0;
       }
       size_ = sizeof( Integer* );
+      numElems_ = size;
       isSet_ = true;
     }
+
+    void CleanUp() {
+      if( buffer_ ) {
+        delete[] buffer_;
+      }
+      buffer_ = NULL;
+      size_ = 0;
+      numElems_ = 0;
+      isSet_ = false;
+    }
+    
   };
 
   // ---------------
@@ -138,35 +197,64 @@ namespace CoupledField {
     public H5IO::BaseHdfTypeConversion  {
     
   private:
-    std::vector<const char*> buffer_;
+
+    const char** buffer_;
     
   public:
-    HdfTypeConversion()  {
+    HdfTypeConversion() 
+      : buffer_( NULL ) {
       nativeType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
       stdType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
     }
     
-    const void * GetVoidPtr() {
+    const void * GetOutBufferPtr() {
       if( !isSet_ ) {
         EXCEPTION( "Data buffer is empty" );
       }
-      return &buffer_[0];
+      return buffer_;
+    }
+
+    void * GetInBufferPtr( UInt numData ) {
+      CleanUp();
+      numElems_ = numData;
+      buffer_ = new const char*[numElems_];
+      return buffer_;
+    }
+
+    void GetNativeData( std::string * data) {
+      for( UInt i = 0; i < numElems_; i++ ) {
+        data[i].assign( buffer_[i]);
+      }
     }
     
-    void SetData( const std::string& t ) {
-      buffer_.resize(1);
+    void SetNativeData( const std::string& t ) {
+      CleanUp();
+      buffer_ = new const char*[1];
       buffer_[0] = t.c_str();
       size_ = sizeof( char* );
+      numElems_ = 1;
       isSet_ = true;
     }
     
-    void SetData( const std::string* t, UInt size  ) {
-      buffer_.resize( size );
+    void SetNativeData( const std::string* t, UInt size  ) {
+      CleanUp();
+      buffer_ = new const char*[size];
       for( UInt i = 0; i < size; i ++ ) {
         buffer_[i] = t[i].c_str();
       }
       size_ = sizeof( char* );
+      numElems_ = size;
       isSet_ = true;
+    }
+    
+    void CleanUp() {
+      if( buffer_ ) {
+        delete[] buffer_;
+      }
+      buffer_ = NULL;
+      size_ = 0;
+      numElems_ = 0;
+      isSet_ = false;
     }
   };
   
@@ -179,64 +267,88 @@ namespace CoupledField {
     public H5IO::BaseHdfTypeConversion {
 
   private:
-    std::vector<hvl_t> buffer_;
+    hvl_t * buffer_;
 
   public:
-    HdfTypeConversion() { 
+    HdfTypeConversion() 
+      : buffer_( NULL ) { 
       H5::StrType sType( H5::PredType::C_S1, H5T_VARIABLE);
       H5::VarLenType vType( &sType );
       nativeType_ = vType;
       stdType_ = vType;
     }
     
-    const void * GetVoidPtr() {
+    const void * GetOutBufferPtr() {
       if( !isSet_ ) {
         EXCEPTION( "Data buffer is empty" );
       }
-      return &(buffer_[0]);
+      return buffer_;
+    }
+
+    void* GetInBufferPtr( UInt numData ) {
+      CleanUp();
+      numElems_ = numData;
+      buffer_ = new hvl_t[numData];
+      return buffer_;
     }
     
-    void SetData( const std::vector<std::string>& t ) {
+    void GetNativeData( std::vector<std::string> * data) {
+      for( UInt i = 0; i < numElems_; i++ ) {
+        data[i].resize( buffer_[i].len );
+        for( UInt j = 0; j < buffer_[i].len; j++ ) {
+          data[i][j].assign( ((const char**)buffer_[i].p)[j] );
+        }
+      }
+    }
+
+    void SetNativeData( const std::vector<std::string>& t ) {
       CleanUp();
-      buffer_.resize( 1 );
+      buffer_ = new hvl_t[1];
       buffer_[0].p = (void*) new const char*[t.size()];
       buffer_[0].len = t.size();
       for( UInt j = 0; j < t.size(); j++ ) {
         ((const char **)buffer_[0].p)[j] = t[j].c_str();
       }
       size_ = sizeof( hvl_t );
+      numElems_ = 1;
       isSet_ = true;
     }
 
     
-    void SetData( const std::vector<std::string>* t, UInt size ) {
+    void SetNativeData( const std::vector<std::string>* t, UInt size ) {
       CleanUp();
-      buffer_.resize( size );
+      buffer_ = new hvl_t[size];
       for( UInt i = 0; i < size; i++ ) {
         buffer_[i].p = (void*) new const char*[t[i].size()];
         buffer_[i].len = t[i].size();
         for( UInt j = 0; j < t[i].size(); j++ ) {
           ((const char **)buffer_[i].p)[j] = ((t[i])[j]).c_str();
-          size_ += t[i][j].size() * sizeof( char );
         }
       }
+      size_ = sizeof( hvl_t );
+      numElems_ = size;
       isSet_ = true;
     }
  
     void CleanUp() {
       
-      // delete buffer for arrays of vectors
-      for( UInt i = 0; i < buffer_.size(); i++ ) {
-        delete[] (const char*) buffer_[i].p;
+      if( buffer_ ) {
+
+        // delete pointers to characters
+        for( UInt i = 0; i < numElems_; i++ ) {
+          delete[] (const char*) buffer_[i].p;
+          buffer_[i].p = NULL;
+        }
+        
+        // delete buffer itself
+        delete[] buffer_;
       }
-      buffer_.clear();
-      
+      buffer_ = NULL;
+      size_ = 0;
+      numElems_ = 0;
       isSet_ = false;
     }
     
-    ~HdfTypeConversion() {
-      CleanUp();
-    }
   }; // end of class definition
   
   
@@ -249,54 +361,81 @@ namespace CoupledField {
   class H5IO::HdfTypeConversion<std::vector<TYPE> > :                   \
     public H5IO::BaseHdfTypeConversion {                                \
   private:                                                              \
-    std::vector<hvl_t> ptBuffer_;                                       \
+    hvl_t * buffer_;                                                    \
                                                                         \
   public:                                                               \
-    HdfTypeConversion() {                                               \
+    HdfTypeConversion()                                                 \
+      : buffer_( NULL ) {                                               \
       nativeType_ =                                                     \
         H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfNativeType );        \
       stdType_ =                                                        \
         H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfStdType );           \
     }                                                                   \
                                                                         \
-    const void * GetVoidPtr( ) {                                        \
+    const void * GetOutBufferPtr( ) {                                   \
       if( !isSet_ ) {                                                   \
         EXCEPTION( "Data buffer is empty" );                            \
       }                                                                 \
-      return (const void*) &ptBuffer_[0];                               \
+      return (const void*) buffer_;                                     \
     }                                                                   \
                                                                         \
-    void SetData( const std::vector<TYPE>& t ) {                        \
+    void* GetInBufferPtr( UInt numData ) {                              \
       CleanUp();                                                        \
-      ptBuffer_.resize( 1 );                                            \
-      ptBuffer_[0].p =  (void*) new TYPE[t.size()];                     \
-      ptBuffer_[0].len = t.size();                                      \
-      for( UInt j = 0; j < t.size(); j++ ) {                            \
-        ((TYPE*)ptBuffer_[0].p)[j] = t[j];                              \
-      }                                                                 \
-      size_ = sizeof( hvl_t );                                          \
-      isSet_ = true;                                                    \
+      numElems_ = numData;                                              \
+      buffer_ = new hvl_t[numData];                                     \
+      return buffer_;                                                   \
     }                                                                   \
                                                                         \
-    void SetData( const std::vector<TYPE>* t, UInt size ) {             \
-      CleanUp();                                                        \
-      ptBuffer_.resize( size );                                         \
-      for( UInt i = 0; i < size; i++ ) {                                \
-        ptBuffer_[i].p =  new TYPE[t[i].size()];                        \
-        ptBuffer_[i].len = t[i].size();                                 \
-        for( UInt j = 0; j < t[i].size(); j++ ) {                       \
-          ((TYPE*)ptBuffer_[i].p)[j] = t[i][j];                         \
+    void GetNativeData( std::vector<TYPE> * data) {                     \
+      for( UInt i = 0; i < numElems_; i++ ) {                           \
+        data[i].resize( buffer_[i].len );                               \
+        for( UInt j = 0; j < buffer_[i].len; j++ ) {                    \
+          data[i][j] = ((TYPE*)buffer_[i].p)[j];                        \
         }                                                               \
       }                                                                 \
+    }                                                                   \
+                                                                        \
+    void SetNativeData( const std::vector<TYPE>& t ) {                  \
+      CleanUp();                                                        \
+      buffer_ = new hvl_t[1];                                           \
+      buffer_[0].p =  (void*) new TYPE[t.size()];                       \
+      buffer_[0].len = t.size();                                        \
+      for( UInt j = 0; j < t.size(); j++ ) {                            \
+        ((TYPE*)buffer_[0].p)[j] = t[j];                                \
+      }                                                                 \
+      numElems_ = 1;                                                    \
       size_ = sizeof( hvl_t );                                          \
       isSet_ = true;                                                    \
     }                                                                   \
                                                                         \
-    void CleanUp() {                                                    \
-      for( UInt i = 0; i < ptBuffer_.size(); i++ ) {                    \
-        delete[] (TYPE*) ptBuffer_[i].p;                                \
+    void SetNativeData( const std::vector<TYPE>* t, UInt size ) {       \
+      CleanUp();                                                        \
+      buffer_ = new hvl_t[size];                                        \
+      for( UInt i = 0; i < size; i++ ) {                                \
+        buffer_[i].p =  new TYPE[t[i].size()];                          \
+        buffer_[i].len = t[i].size();                                   \
+        for( UInt j = 0; j < t[i].size(); j++ ) {                       \
+          ((TYPE*)buffer_[i].p)[j] = t[i][j];                           \
+        }                                                               \
       }                                                                 \
-      ptBuffer_.clear();                                                \
+      numElems_ = size;                                                 \
+      size_ = sizeof( hvl_t );                                          \
+      isSet_ = true;                                                    \
+    }                                                                   \
+                                                                        \
+  void CleanUp() {                                                      \
+    if( buffer_ ) {                                                     \
+      for( UInt i = 0; i < numElems_; i++ ) {                           \
+        delete[] (TYPE*) buffer_[i].p;                                  \
+        }                                                               \
+        delete[] buffer_;                                               \
+      }                                                                 \
+                                                                        \
+      buffer_ = 0;                                                      \
+      size_ = 0;                                                        \
+      numElems_ = 0;                                                    \
+      isSet_ = false;                                                   \
+                                                                        \
     }                                                                   \
                                                                         \
     ~HdfTypeConversion() {                                              \
@@ -328,7 +467,7 @@ namespace CoupledField {
       H5::DataSpace space;
       
       // generate attribute
-      conv.SetData( data );
+      conv.SetNativeData( data );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for attribute '"
                    << name << "' of type " << typeid(TYPE).name() );
@@ -337,18 +476,19 @@ namespace CoupledField {
                                                 space, create_plist );
       
       // write attribute
-      attr.write( nativeType, conv.GetVoidPtr() );
+      attr.write( nativeType, conv.GetOutBufferPtr() );
       
       // reset conversion object
       conv.CleanUp();
       
-      // close attribute and dataspace
-      attr.close();
+      // close attribute, dataspace- and types
       space.close();
+      attr.close();
+      
 
     }  catch (H5::Exception& h5ex) {
       EXCEPTION("Could not write attribute '" 
-                << name << "': " << h5ex.getCDetailMsg());
+                << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write attribute '" << name << "'" );
     } 
@@ -378,25 +518,26 @@ namespace CoupledField {
       H5::DataSpace space( 1, &dims );
 
       // generate dataset and fill it
-      conv.SetData( buffer, size );
+      conv.SetNativeData( buffer, size );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for 1D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
       H5::DataSet dataset = loc.createDataSet( name, stdType, 
                                                space, create_plist );
-      dataset.write( conv.GetVoidPtr(), nativeType  );
+      dataset.write( conv.GetOutBufferPtr(), nativeType  );
 
       // reset conversion object
       conv.CleanUp();
 
-      // close dataset and space
-      dataset.close();
+      // close dataset, dataspace- and types
       space.close();
+      dataset.close();
+      
       
     } catch (H5::Exception& h5ex) {
       EXCEPTION("Could not write 1D-Array '" 
-                << name << "': " << h5ex.getCDetailMsg());
+                << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write 1D-Array '" << name << "'" );
     }
@@ -432,18 +573,25 @@ namespace CoupledField {
       H5::DataSpace space( rank, dims );
       
       // generate dataset and fill it
-      conv.SetData( buffer, rowSize * colSize );
+      conv.SetNativeData( buffer, rowSize * colSize );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for 2D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
       H5::DataSet dataset = loc.createDataSet( name, stdType, 
                                                space, create_plist );
-      dataset.write( conv.GetVoidPtr(), nativeType  );
-      
-    }  catch (H5::Exception& h5ex) {
+      dataset.write( conv.GetOutBufferPtr(), nativeType  );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      space.close();
+      dataset.close();
+
+    } catch (H5::Exception& h5ex) {
       EXCEPTION("Could not write 2D-Array '" << name 
-                << "': " << h5ex.getCDetailMsg());
+                << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
     }
@@ -472,10 +620,10 @@ namespace CoupledField {
           EXCEPTION( "Could not map datatype for member '" << memName
                      << "' of compound '" << name << "'" );
         }
-        totalSize += conv[i]->GetSize();
+        totalSize += conv[i]->GetRawSize();
       
         // create new compound for memory datatype
-        memCompTypes[i] = H5::CompType( (size_t)conv[i]->GetSize() );
+        memCompTypes[i] = H5::CompType( (size_t)conv[i]->GetRawSize() );
         memCompTypes[i].insertMember( memName, 0, conv[i]->GetNativeType() );
       }
 
@@ -486,7 +634,7 @@ namespace CoupledField {
         fileCompType.insertMember( comp[i].first,
                                    actOffset,
                                    conv[i]->GetStdType() );
-        actOffset += conv[i]->GetSize();
+        actOffset += conv[i]->GetRawSize();
       }
 
       // create  data space
@@ -499,7 +647,7 @@ namespace CoupledField {
 
       // iterate again over all entries and fill in values
       for( UInt i = 0; i < comp.size(); i++ ) {
-        dataset.write( conv[i]->GetVoidPtr(), memCompTypes[i] );
+        dataset.write( conv[i]->GetOutBufferPtr(), memCompTypes[i] );
         conv[i]->CleanUp();
       }
 
@@ -509,12 +657,123 @@ namespace CoupledField {
 
     }  catch (H5::Exception& h5ex) {
       EXCEPTION("Could not write compound '" << name 
-                << "': " << h5ex.getCDetailMsg());
+                << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write compound '" << name << "'" );
     }
   }
+
+  template<typename TYPE>
+  void H5IO::ReadAttribute( H5::H5Object& obj,
+                            const std::string& name,
+                            TYPE& data ) {
+    try {
+      
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType stdType = conv.GetStdType();
+      H5::DataType nativeType = conv.GetNativeType();
+      
+      // open attribute
+      H5::Attribute attribute = obj.openAttribute( name );
+      
+      // read data in buffer of conversion object
+      attribute.read( nativeType, conv.GetInBufferPtr(1) );
+      
+      // obtain data pointer from conversion object and
+      // copy it to return buffer
+      conv.GetNativeData( &data );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close attribute
+      attribute.close();
+      
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not read Attribute '" 
+                << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not read Attribute '" << name << "'" );
+    }
+    
+  }
+
+
+  UInt GetArrayDims( H5::CommonFG &loc,
+                     const std::string& name,
+                     std::vector<UInt>& dims ) {
+    
+    H5::DataSet dataset = loc.openDataSet( name );
+    H5::DataSpace dataspace = dataset.getSpace();
+    int rank = dataspace.getSimpleExtentNdims();
+    
+    hsize_t * myDims = new hsize_t[rank];
+    rank = dataspace.getSimpleExtentDims( myDims, NULL);
+
+    dims.resize( rank );
+    UInt numEntries = 1;
+    for( UInt i = 0; i < (UInt) rank; i++ ) {
+      dims[i] = myDims[i];
+      numEntries *= dims[i];
+    }
+    delete[] myDims;
+    return numEntries;
+  }
+
+
+  template<typename TYPE>
+  void H5IO::ReadArray( H5::CommonFG &loc,
+                        const std::string& name,
+                        TYPE* data ) {
+    
+    // check, that data buffer is not empty
+    if( data == NULL ) {
+      EXCEPTION( "Data buffer for reading array '" << name 
+                 << "' is NULL" );
+    }
+    try {
+
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType stdType = conv.GetStdType();
+      H5::DataType nativeType = conv.GetNativeType();
   
+      // open dataset
+      H5::DataSet dataset = loc.openDataSet( name );
+
+      // get number of elements in the dataset
+      H5::DataSpace dataspace = dataset.getSpace();
+
+      // calculate absolute number of entries
+      UInt size = dataspace.getSelectNpoints();
+      
+      // check, that standard hdf5 datatype is the same as the datatype
+      // of the stored dataset
+      // .. not sure if this can be implemented properly ...
+
+      // read data in buffer of conversion object
+      dataset.read( conv.GetInBufferPtr(size), nativeType );
+      
+      // obtain data pointer from conversion object and
+      // copy it to return buffer
+      conv.GetNativeData( data );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset and space
+      dataset.close();
+      dataspace.close();
+      
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not read Array '" 
+                << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not read Array '" << name << "'" );
+    }
+    
+  }
   
   void H5IO::GetAnyConversion( const boost::any& anyType,
                                shared_ptr<BaseHdfTypeConversion>& conv ) {
@@ -524,7 +783,7 @@ namespace CoupledField {
     if( anyType.type() == typeid(TYPE) ){               \
       shared_ptr<HdfTypeConversion<TYPE> >              \
         myConv ( new HdfTypeConversion<TYPE>() );       \
-      myConv->SetData( any_cast<TYPE>(anyType) );       \
+      myConv->SetNativeData( any_cast<TYPE>(anyType) );       \
       conv = myConv;                                    \
       return;                                           \
     }
@@ -570,7 +829,16 @@ namespace CoupledField {
                                    UInt colSize,                \
                                    const TYPE * buffer,         \
                                    const H5::DSetCreatPropList  \
-                                   &create_plist )
+                                   &create_plist );             \
+    template                                                    \
+    void H5IO::ReadAttribute( H5::H5Object& obj,                \
+                              const std::string& name,          \
+                              TYPE& data );                     \
+                                                                \
+    template                                                    \
+    void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
+                                const std::string& name,        \
+                              TYPE* data )
   
   DECL_IO_METHODS( bool );
   DECL_IO_METHODS( Integer );
@@ -584,102 +852,80 @@ namespace CoupledField {
 
 #undef DECL_IO_METHODS
 
-
-  FEType H5IO::XMDFElemType2ElemType( const Integer type ) {
-    switch (type) {
-    case 100:   return ET_LINE2;   // 1D linear
-    case 101:   return ET_LINE3;   // 1D quadratic
-    case 200:   return ET_TRIA3;   // 2D linear triangle
-    case 201:   return ET_TRIA6;   // 2D quadratic triangle
-    case 210:   return ET_QUAD4;   // 2D linear quadrilateral
-    case 211:   return ET_QUAD8;   // 2D quadratic quadrilateral
-    case 212:   return ET_QUAD9;   // 2D quadr. quad. with center node
-    case 300:   return ET_TET4;    // 3D linear tetrahedron
-    case 30010: return ET_TET10;   // 3D quadratic tetrahedron
-    case 310:   return ET_WEDGE6;  // 3D linear prism
-    case 31010: return ET_WEDGE15; // 3D quadratic prism
-    case 320:   return ET_HEXA8;   // 3D linear hexahedron
-    case 32010: return ET_HEXA20;  // 3D quadratic hexahedron
-    case 32011: return ET_HEXA27;  // 3D quadr. hexa. with center nodes
-    case 330:   return ET_PYRA5;   // 3D linear pyramid
-    case 33010: return ET_PYRA13;  // 3D quadratic pyramid
+  Integer H5IO::MapUnknownType( ResultInfo::EntityUnknownType t ) {
+    Integer definedOn = 0;
+    switch(t) {
+    case ResultInfo::NODE:
+      definedOn = 1;
+      break;
+    case ResultInfo::EDGE:
+      definedOn = 2;
+      break;
+    case ResultInfo::FACE:
+      definedOn = 3;
+      break;
+    case ResultInfo::ELEMENT:
+      definedOn = 4;
+      break;
+    case ResultInfo::SURF_ELEM:
+      definedOn = 5;
+      break;
+    case ResultInfo::PFEM:
+      definedOn = 6;
+      break;
+    case ResultInfo::REGION:
+      definedOn = 7;
+      break;
+    case ResultInfo::SURF_REGION:
+      definedOn = 8;
+      break;
+    case ResultInfo::NODELIST:
+      definedOn = 9;
+      break;
+    case ResultInfo::COIL:
+      definedOn = 10;
+      break;
+    case ResultInfo::FREE:
+      definedOn = 11;
+      break;
     }
 
-    return ET_UNDEF;
-    // This place should never be reached!
+    return definedOn;
+
   }
-
-  Integer H5IO::ElemType2XMDFElemType( const FEType type ) {
-    switch (type) {
-    case ET_LINE2:   return 100;   // 1D linear
-    case ET_LINE3:   return 101;   // 1D quadratic
-    case ET_TRIA3:   return 200;   // 2D linear triangle
-    case ET_TRIA6:   return 201;   // 2D quadratic triangle
-    case ET_QUAD4:   return 210;   // 2D linear quadrilateral
-    case ET_QUAD8:   return 211;   // 2D quadratic quadrilateral
-    case ET_QUAD9:   return 212;   // 2D quadr. quad. with center node
-    case ET_TET4:    return 300;   // 3D linear tetrahedron
-    case ET_TET10:   return 30010; // 3D quadratic tetrahedron
-    case ET_WEDGE6:  return 310;   // 3D linear prism
-    case ET_WEDGE15: return 31010; // 3D quadratic prism
-    case ET_HEXA8:   return 320;   // 3D linear hexahedron
-    case ET_HEXA20:  return 32010; // 3D quadratic hexahedron
-    case ET_HEXA27:  return 32011; // 3D quadr. hexa. with center nodes
-    case ET_PYRA5:   return 330;   // 3D linear pyramid
-    case ET_PYRA13:  return 33010; // 3D quadratic pyramid
-    default: return ET_UNDEF;
-    }
-
-    // This place should never be reached!
-    return -1;
+  
+  ResultInfo::EntityUnknownType H5IO::MapUnknownType( Integer t ) {
+    return ResultInfo::NODE;
   }
-
-  void H5IO::ReorderConnectivity( const Integer eType,
-                                  const bool toXMDF,
-                                  const UInt* in,
-                                  UInt* out) {
-    static Integer toXMDFIdxsLine[] = {0, 2, 1};
-    static Integer fromXMDFIdxsLine[] = {0, 2, 1};
-    static Integer toXMDFIdxsTria[] = {0, 3, 1, 4, 2, 5};
-    static Integer fromXMDFIdxsTria[] = {0, 2, 4, 1, 3, 5};
-    static Integer toXMDFIdxsQuad[] = {0, 4, 1, 5, 2, 6, 3, 7, 8};
-    static Integer fromXMDFIdxsQuad[] = {0, 2, 4, 6, 1, 3, 5, 7, 8};
+  
+  
+  Integer H5IO::MapEntryType( ResultInfo::EntryType t ) {
+    Integer entryType = 0;
     
-    std::vector<UInt> tmp;
-    Integer* it;
-
-    UInt numNodes = NUM_ELEM_NODES[eType];
-    tmp.resize(numNodes);
-    memcpy(&tmp[0], in, numNodes*sizeof(UInt));
-
-    switch (eType) {
-    case ET_LINE3: // 1D quadratic line
-      if(toXMDF)
-        it = toXMDFIdxsLine;
-      else
-        it = fromXMDFIdxsLine;
+    switch(t) {
+    case ResultInfo::UNKNOWN:
+      entryType = 0;
       break;
-    case ET_TRIA6: // 2D quadratic triangle
-      if(toXMDF)
-        it = toXMDFIdxsTria;
-      else
-        it = fromXMDFIdxsTria;
+    case ResultInfo::SCALAR:
+      entryType = 1;
       break;
-    case ET_QUAD8: // 2D quadratic quadrilateral
-    case ET_QUAD9: // 2D quadratic quadrilateral with center node
-      if(toXMDF)
-        it = toXMDFIdxsQuad;
-      else
-        it = fromXMDFIdxsQuad;
+    case ResultInfo::VECTOR:
+      entryType = 3;
+      break;
+    case ResultInfo::TENSOR:
+      entryType = 6;
+      break;
+    case ResultInfo::STRING:
+      entryType = 32;
       break;
     }
-
-    for(UInt i=0; i<numNodes; i++, it++)
-    {
-      out[i] = tmp[*it];
-    }
+    return entryType;
   }
 
+  
+  ResultInfo::EntryType H5IO::MapEntryType( Integer t ) {
+    return ResultInfo::UNKNOWN;
+  }
 
 
 

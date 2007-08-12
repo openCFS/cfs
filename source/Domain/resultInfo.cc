@@ -5,6 +5,8 @@
 #include "resultInfo.hh"
 #include <iostream>
 
+#include "Domain/entityList.hh"
+#include "General/environment.hh"
 
 namespace CoupledField {
 
@@ -17,9 +19,6 @@ namespace CoupledField {
     complexFormat = AMPLITUDE_PHASE;
     entryType = UNKNOWN;
     definedOn = FREE;
-    
-    
-
   }
 
 
@@ -28,8 +27,7 @@ namespace CoupledField {
 
     Integer pos = dofNames.Find( dof );
     if( pos < 0  ) {
-      (*error) << "Dof with name '" << dof << "' not found!";
-      Error(  __FILE__, __LINE__ );
+      EXCEPTION( "Dof with name '" << dof << "' not found!" );
     }
     return (UInt) pos+1;
     
@@ -39,9 +37,8 @@ namespace CoupledField {
   std::string ResultInfo::GetDofName( const UInt dof ) const {
     ENTER_FCN( "ResultInfo::GetDofName");
     if( dof <= 0 || dof > dofNames.GetSize()+1 ) {
-      *error << "'dof' must be in the range of [1.." 
-             << dofNames.GetSize()+1 << "]!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "'dof' must be in the range of [1.." 
+                 << dofNames.GetSize()+1 << "]!" );
     }
     
     return dofNames[dof-1];
@@ -68,9 +65,7 @@ namespace CoupledField {
     definedOn = data.definedOn;
     fctType = data.fctType;
     
-    *warning << "In operator ResultInfo::operator=\n";
-    Warning( __FILE__, __LINE__ );
-
+    EXCEPTION( "In operator ResultInfo::operator=\n" );
   }
 
 

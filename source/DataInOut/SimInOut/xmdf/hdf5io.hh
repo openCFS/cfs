@@ -7,10 +7,11 @@
 
 #include <set>
 #include <map>
-
-
-#include <General/environment.hh>
 #include <boost/any.hpp>
+
+#include "General/environment.hh"
+#include "Domain/resultInfo.hh"
+
 
 #include "H5Cpp.h"
 
@@ -29,7 +30,6 @@ namespace CoupledField {
 
     typedef std::vector<std::pair<std::string, std::vector<boost::any> >  >
     CompoundArrayType;
-
 
     // =======================================================================
     //  WRITE METHODS
@@ -73,23 +73,61 @@ namespace CoupledField {
     //  READ METHODS
     // =======================================================================
 
-    // ... to be implemented ...
+    //! Read data from an attribute
+    template<typename TYPE>
+    static void ReadAttribute( H5::H5Object& obj,
+                               const std::string& name,
+                               TYPE& data );
+    
+    //! Retrieve rank and dimensionality of a dataset and return
+    //! total number of entries in the dataset
+    static UInt GetArrayDims( H5::CommonFG &loc,
+                              const std::string& name,
+                              std::vector<UInt>& dims );
+    
+    //! Retrieve data from a dataset
+
+    //! Read data from a an dataset of arbitrary dimension into a linear buffer
+    //! Note, that the memory has to be allocated from outside
+    template<typename TYPE>
+    static void ReadArray( H5::CommonFG &loc,
+                           const std::string& name,
+                           TYPE* data );
+    
+//     //! Read data from a dataset into a stl vector
+//     template<typename TYPE>
+//     static void ReadArray( H5::CommonFG &loc,
+//                            const std::string& name,
+//                            std::vector<TYPE>& data );
+
+//     //! Read data from a dataset into a vector
+//     template<typename TYPE>
+//     static void ReadArray( H5::CommonFG &loc,
+//                            const std::string& name,
+//                            Vector<TYPE>& data );
+
+//     //! Read data from a dataset into a matrix
+//     template<typename TYPE>
+//     static void ReadArray( H5::CommonFG& loc,
+//                            const std::string& name,
+//                            Matrix<TYPE>& buffer );
+    
 
     // =======================================================================
     //  CONVERSION METHODS
     // =======================================================================
-    
-    //! Map XMDF element type to CFS one
-    static FEType XMDFElemType2ElemType( const Integer type );
 
-    //! Map CFS element type to XMD one
-    static Integer ElemType2XMDFElemType( const FEType type );
+    //! Map EntityUnknownType enum to hdf5 type
+    static Integer MapUnknownType( ResultInfo::EntityUnknownType t );
 
-    //! Map connectivity CFS <-> XMDF
-    static void ReorderConnectivity( const Integer eType,
-                                     const bool toXMDF,
-                                     const UInt* in,
-                                     UInt* out);
+    //! Map EntityUnknown hdf5 type to enum
+    static ResultInfo::EntityUnknownType MapUnknownType( Integer t );
+
+    //! Map entryType from enum to hdf5 type
+    static Integer MapEntryType( ResultInfo::EntryType t );
+
+    //! Map entryType from hdf5 type to enum
+    static ResultInfo::EntryType MapEntryType( Integer t );
 
   private:
 
@@ -115,26 +153,36 @@ namespace CoupledField {
       //! Constructor
       BaseHdfTypeConversion() : 
         isSet_(false),
-        size_( 0 )
+        size_( 0 ),
+        numElems_( 0 )
       {}
       
       //! Destructor
-      virtual ~BaseHdfTypeConversion() {};
+      virtual ~BaseHdfTypeConversion() {
+        CleanUp();
+      };
       
       //! Query, if data is set
       bool IsSet() { return isSet_; }
       
-      //! Get platform ependent HDF5 datatype
+      //! Get platform dependent HDF5 datatype
       H5::DataType GetNativeType() { return nativeType_; }
       
       //! Get platform independent HDF5 datatype
       H5::DataType GetStdType() { return stdType_; }
 
-      //! Get raw pointer to given object
-      virtual const void * GetVoidPtr() = 0;
+      //! Get raw pointer to data to be written to hdf5 file
+      virtual const void * GetOutBufferPtr() = 0;
 
-      //! Return size of raw data in bytes 
-      UInt GetSize() { return size_; }
+      //! Obtain data pointer to internal buffer for
+      //! converting standard hdf5 data into native one
+      virtual void* GetInBufferPtr( UInt numData ) = 0;
+
+      //! Return size of raw data in bytes (used for compounds)
+      UInt GetRawSize() { return size_; }
+
+      //! Return number of data elements in the buffer
+      UInt GetNumElems() { return numElems_; }
 
       //! Clean up conversion method
       virtual void CleanUp() {}
@@ -152,6 +200,9 @@ namespace CoupledField {
 
       //! Size of the array
       UInt size_;
+
+      //! Numer of elements in the array
+      UInt numElems_;
 
     };
 

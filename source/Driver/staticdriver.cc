@@ -55,9 +55,6 @@ namespace CoupledField {
     ENTER_FCN( "StaticDriver::SolveProblem" );
  
     lastOptimizationIteration_ = optimizationIteration;
-    if(consecutiveRun_ == false)
-      Info->StartProgress("Starting to solve problem", false); 
-
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // notify resultHandler about beginning of new sequence step 

@@ -16,7 +16,6 @@
 #include <Driver/multiSequenceDriver.hh>
 #include <Driver/baseSolveStep.hh>
 #include <ParamIdent/piezoParamIdent.hh>
-#include <Driver/transientHarmonicDriver.hh>
 
 //#include <Driver/transientAdaptSpaceDriver.hh>
 

@@ -118,10 +118,6 @@ namespace CoupledField
           ptdriver = new HarmonicDriver( stepOffset, timeFreqOffset, seqStep );
         break;
         
-      case TRANSIENTHARMONIC:
-        ptdriver = new TransientHarmonicDriver( stepOffset, timeFreqOffset, seqStep);
-        break;
-        
       case EIGENFREQUENCY:
         ptdriver = new EigenFrequencyDriver( seqStep);
         break;
