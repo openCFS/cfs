@@ -140,7 +140,7 @@ namespace CoupledField
       }
       else {
         ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
-        std::cout << "Isotropic: mu=" << matVal_ << std::endl;
+        //std::cout << "Isotropic: mu=" << matVal_ << std::endl;
       }
     }
   }

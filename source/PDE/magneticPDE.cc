@@ -197,6 +197,11 @@ namespace CoupledField {
       if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
 
         if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
+
+          if (is3d_ ) {
+            Error("Magnetics with hysteresis in 3D not supported", __FILE__, __LINE__ );
+          }
+          
           // hysteresis modeling in this region
           StdVector<Elem*> elemssd;
           ptgrid_->GetElems(elemssd, actRegion);
@@ -206,31 +211,30 @@ namespace CoupledField {
           bool computeHystInverse = true;
           bool isHystInverse = false;
           actMat->InitHyst(numElSD, actSDList, isHystInverse, computeHystInverse);
+
         }
 
         BaseForm *curlcurlNL; 
-        if (is3d_ ) {
-          Error("Magnetics with hysteresisi in 3D not supported", __FILE__, __LINE__ );
-        }
-        else {
+        if( is3d_ ) {
+          curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
+        } else {
           curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
-          //curlcurlNL = new nLinMagHystInt2D( actMat, isaxi_, upLagrangeForm );
-          
-          curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-          curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          
-          BiLinFormContext * stiffContext = 
-            new BiLinFormContext( curlcurlNL, STIFFNESS );
-          stiffContext->SetPtPdes(this, this);   
-          stiffContext->SetResults( results_[0], results_[0],
-                                    actSDList, actSDList );     
-          assemble_->AddBiLinearForm( stiffContext);
-        
-
-          //save bilinearForm
-          pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
         }
-
+        
+        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+        BiLinFormContext * stiffContext = 
+          new BiLinFormContext( curlcurlNL, STIFFNESS );
+        stiffContext->SetPtPdes(this, this);   
+        stiffContext->SetResults( results_[0], results_[0],
+                                  actSDList, actSDList );     
+        assemble_->AddBiLinearForm( stiffContext);
+        
+        
+        //save bilinearForm
+        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
+        
         if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
           // nonlinear RHS linearform!!
           LinearForm * rhsSource;
