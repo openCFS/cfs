@@ -10,7 +10,6 @@
 #include <DataInOut/simInput.hh>
 
 #include "H5Cpp.h"
-#include "Xmdf.h"
 
 namespace CoupledField {
 
@@ -112,22 +111,6 @@ namespace CoupledField {
     
   protected:
     
-    //! Transform type of elem in pointer to base class BaseFE
-
-    //! This method maps the type number of an element - as given in the 
-    //! mesh file - to a pointer to a reference finite element.
-    //! \param itype (input) element type number as read in from the mesh
-
-    FEType XMDFElemType2ElemType( const Integer type );
-    Integer ElemType2XMDFElemType( const FEType type );
-
-    void ReorderConnectivity( const Integer eType,
-                              const bool toXMDF,
-                              const UInt* in,
-                              UInt* out);
-
-    hid_t CreateGroup(const hid_t parentGroup, const std::string name);
-
     typedef std::vector< std::vector<UInt> > regionElemType;
     typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > regionNodeType;
 
@@ -155,7 +138,7 @@ namespace CoupledField {
     bool genRegionNodes_;
     UInt numRegions_;
     H5::Group mainRoot_;
-    xid fileId_;
+    H5::H5File mainFile_;
     UInt multiStep_, step_;
     bool msChange_;
 

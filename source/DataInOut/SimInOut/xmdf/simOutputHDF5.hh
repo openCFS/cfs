@@ -19,7 +19,7 @@
 namespace CoupledField {
 
   //! HDF5 output writer class
-  class SimOutputXMDF: virtual public SimOutput {
+  class SimOutputHDF5: virtual public SimOutput {
 
   public:
 
@@ -29,10 +29,10 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimOutputXMDF(std::string fileName, ParamNode * inputNode);
+    SimOutputHDF5(std::string fileName, ParamNode * inputNode);
     
     //! Destructor
-    virtual ~SimOutputXMDF();
+    virtual ~SimOutputHDF5();
 
     //! Initialize class 
     virtual void Init( Grid* ptGrid,
