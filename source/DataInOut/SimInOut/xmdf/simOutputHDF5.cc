@@ -17,7 +17,7 @@
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
-#include "simOutputXMDF.hh"
+#include "simOutputHDF5.hh"
 #include "hdf5io.hh"
 
 namespace fs = boost::filesystem;
@@ -33,10 +33,10 @@ namespace CoupledField {
   }
 
   
-  SimOutputXMDF::SimOutputXMDF(std::string fileName, ParamNode * inputNode) :
+  SimOutputHDF5::SimOutputHDF5(std::string fileName, ParamNode * inputNode) :
     SimOutput(fileName, inputNode) 
   {
-    ENTER_FCN( "SimOutputXMDF::XMDF" );
+    ENTER_FCN( "SimOutputHDF5::XMDF" );
     fileName_ = fileName;
     formatName_ = "hdf5";
     dirName_ = "simoutput_hdf5";
@@ -59,9 +59,9 @@ namespace CoupledField {
   }
 
 
-  SimOutputXMDF::~SimOutputXMDF() 
+  SimOutputHDF5::~SimOutputHDF5() 
   {
-    ENTER_FCN( "SimOutputXMDF::~XMDF" );
+    ENTER_FCN( "SimOutputHDF5::~XMDF" );
     
     // close groups
     dataGroup_.close();
@@ -80,7 +80,7 @@ namespace CoupledField {
   }
 
 
-  void SimOutputXMDF::CheckOpenObjects() {
+  void SimOutputHDF5::CheckOpenObjects() {
     // check for open groups, datasets etc.
     std::cerr << "Number of open objects:\n"
               << "--------------------------";
@@ -92,14 +92,14 @@ namespace CoupledField {
 
   }
   
-  void SimOutputXMDF::Init( Grid* ptGrid, bool printGridOnly ) 
+  void SimOutputHDF5::Init( Grid* ptGrid, bool printGridOnly ) 
   {
     ptGrid_ = ptGrid;
     printGridOnly_ = printGridOnly;
     WriteGrid();
   }
 
-  void SimOutputXMDF::BeginMultiSequenceStep( UInt step,
+  void SimOutputHDF5::BeginMultiSequenceStep( UInt step,
                                               AnalysisType type,
                                               UInt numSteps  ) 
   {
@@ -139,13 +139,13 @@ namespace CoupledField {
     currMS_ = step;
   }
 
-  void SimOutputXMDF::RegisterResult( shared_ptr<BaseResult> sol,
+  void SimOutputHDF5::RegisterResult( shared_ptr<BaseResult> sol,
                                       UInt saveBegin, UInt saveInc,
                                       UInt saveEnd ) {
     registeredResults_[sol->GetResultInfo()->resultName].push_back(sol);
   }
   
-  void SimOutputXMDF::BeginStep( UInt stepNum, Double stepVal ) 
+  void SimOutputHDF5::BeginStep( UInt stepNum, Double stepVal ) 
   {
     std::stringstream stepName;
     
@@ -164,7 +164,7 @@ namespace CoupledField {
     
   }
 
-  void SimOutputXMDF::AddResult( shared_ptr<BaseResult> sol ) 
+  void SimOutputHDF5::AddResult( shared_ptr<BaseResult> sol ) 
   {
     H5::Group resultGroup, subGroup, regionGroup;
     UInt numDOFs;
@@ -240,7 +240,7 @@ namespace CoupledField {
     resultGroup.close();
   }
 
-  void SimOutputXMDF::FinishStep( ) 
+  void SimOutputHDF5::FinishStep( ) 
   {
     if(externalFiles_)
       currStepFile_.close();
@@ -248,13 +248,13 @@ namespace CoupledField {
     currStepGroup_.close();
   }
 
-  void SimOutputXMDF::FinishMultiSequenceStep( ) 
+  void SimOutputHDF5::FinishMultiSequenceStep( ) 
   {
     registeredResults_.clear();
     currMSGroup_.close();
   }
 
-  void SimOutputXMDF::Finalize() 
+  void SimOutputHDF5::Finalize() 
   {
 
     // return, if only the grid is to be printed
@@ -298,7 +298,7 @@ namespace CoupledField {
     WriteStringToUserData("ProgramStats", dumpStr);
   }
 
-  void SimOutputXMDF::InitModule()
+  void SimOutputHDF5::InitModule()
   {
     std::string pathsep;
     std::string fileName;
@@ -335,7 +335,7 @@ namespace CoupledField {
 
   }
 
-  void SimOutputXMDF::WriteGrid() {
+  void SimOutputHDF5::WriteGrid() {
   
     // ensure that grid gets only written once
     if(!gridWritten_)
@@ -456,7 +456,7 @@ namespace CoupledField {
   }
 
 
-  void SimOutputXMDF::WriteRegions(const H5::Group& meshGroup)
+  void SimOutputHDF5::WriteRegions(const H5::Group& meshGroup)
   {
     H5::Group regionListGroup;
     std::vector< std::string > regionNames;
@@ -564,7 +564,7 @@ namespace CoupledField {
 
   }
 
-  void SimOutputXMDF::WriteNamedNodes(const H5::Group& meshGroup)
+  void SimOutputHDF5::WriteNamedNodes(const H5::Group& meshGroup)
   {
     H5::Group namedNodeGroup;
     std::vector< UInt > nodes;
@@ -590,7 +590,7 @@ namespace CoupledField {
     namedNodeGroup.close();
   }
 
-  void SimOutputXMDF::WriteNamedElems(const H5::Group& meshGroup)
+  void SimOutputHDF5::WriteNamedElems(const H5::Group& meshGroup)
   {
     H5::Group namedElemGroup;
     std::vector< UInt > elemNums;
@@ -621,7 +621,7 @@ namespace CoupledField {
     namedElemGroup.close();
   }
 
-  void SimOutputXMDF::WriteResultDescriptions( const H5::Group& resGroup )
+  void SimOutputHDF5::WriteResultDescriptions( const H5::Group& resGroup )
   {
     std::string resultName;
     UInt definedOn;
@@ -696,7 +696,7 @@ namespace CoupledField {
     }
   }
 
-  void SimOutputXMDF::WriteResults( H5::Group& resultGroup,
+  void SimOutputHDF5::WriteResults( H5::Group& resultGroup,
                                     Vector<Double>& resultVals,
                                     const UInt numDOFs,
                                     const bool isImag ) 
@@ -715,7 +715,7 @@ namespace CoupledField {
                         numEntities, numDOFs, &resultVals[0] );
   }
 
-  void SimOutputXMDF::CreateExternalFile()
+  void SimOutputHDF5::CreateExternalFile()
   {
     std::stringstream fName, masterGroup;
     std::string pathsep, fn;
@@ -752,7 +752,7 @@ namespace CoupledField {
     } H5_CATCH( "Could not create external file" );
   }
   
-  void SimOutputXMDF::WriteStringToUserData(const std::string& dSetName, 
+  void SimOutputHDF5::WriteStringToUserData(const std::string& dSetName, 
                                             const std::string& str) {
     H5::Group userDataGroup;
     

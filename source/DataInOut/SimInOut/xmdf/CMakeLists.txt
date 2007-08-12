@@ -1,10 +1,7 @@
 SET(SIMINOUTXMDF_SRCS
   hdf5io.cc
   simInputXMDF.cc
-  simOutputXMDF.cc
-  Xmdf.c
-  xmdf_private.c
-  xmdf_timestep.c
+  simOutputHDF5.cc
 )
 
 ADD_LIBRARY(siminoutxmdf STATIC ${SIMINOUTXMDF_SRCS})
