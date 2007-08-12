@@ -1,12 +1,12 @@
-SET(SIMINOUTXMDF_SRCS
+SET(SIMINOUTHDF5_SRCS
   hdf5io.cc
   simInputXMDF.cc
   simOutputHDF5.cc
 )
 
-ADD_LIBRARY(siminoutxmdf STATIC ${SIMINOUTXMDF_SRCS})
+ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
-TARGET_LINK_LIBRARIES(siminoutxmdf hdf5_cpp hdf5)
+TARGET_LINK_LIBRARIES(siminouthdf5 hdf5_cpp hdf5)
 
 IF(DEBUG)
   SET(CMAKE_C_FLAGS "-g")
