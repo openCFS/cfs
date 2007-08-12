@@ -36,7 +36,7 @@
 #endif
 
 #ifdef USE_HDF5
-#include "DataInOut/SimInOut/hdf5/simInputXMDF.hh"
+#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
 #endif
 
@@ -230,7 +230,7 @@ namespace CoupledField
        #ifdef USE_HDF5
           if(meshFile == "")
               meshFile = simName + ".h5";
-          inFiles[actId] = shared_ptr<SimInput>(new SimInputXMDF(meshFile,
+          inFiles[actId] = shared_ptr<SimInput>(new SimInputHDF5(meshFile,
                                                             actNode));
        #else
           EXCEPTION( "No support for HDF5 input file format." );
