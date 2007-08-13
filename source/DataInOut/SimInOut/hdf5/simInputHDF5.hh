@@ -2,21 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_SIMINPUTXMDF_2006
-#define FILE_SIMINPUTXMDF_2006
-
-#include <set>
+#ifndef FILE_CFS_SIMINPUT_HDF5_HH
+#define FILE_CFS_SIMINPUT_HDF5_HH
 
 #include <DataInOut/simInput.hh>
-
 #include "H5Cpp.h"
 
 namespace CoupledField {
 
-  //! Class for reading in a mesh created by the ANSYS mkmesh-extension.
+  //! Class for reading in mesh and simulation data from hdf5 file
 
-  //! Class, that is derived from class FileType for reading mesh-input data,
-  //! which is produced by Ansys mkmesh-interface. 
+  //! Class for handling the reading of mesh and simulation data from 
+  //! HDF5 files.
   class SimInputHDF5: virtual public SimInput {
 
   public:
@@ -32,11 +29,12 @@ namespace CoupledField {
     //! Destructor
     virtual ~SimInputHDF5();
 
-    //@}
-
+    //! Initialize module with pointer to grid
     virtual void InitModule(Grid *mi);
 
+    //! Trigger reading of the mesh
     virtual void ReadMesh();
+    //@}
   
     // =======================================================================
     // GENERAL MESH INFORMATION
@@ -60,7 +58,6 @@ namespace CoupledField {
 
     //! Get total number of named elements
     UInt GetNumNamedElems();
-
     //@}
   
     // =======================================================================
@@ -99,88 +96,67 @@ namespace CoupledField {
     //! Returns a vector which contains all names of named elements.
     //! \param elemNames (output) vector with names of named elements
     virtual void GetElemNames( StdVector<std::string> & elemNames );
+    
 
-    //! This method returns the root Group of the main HDF5 file.
-    H5::Group& GetMainRoot() 
-    {
-      return mainRoot_;
-    }
-    
-    void GetNumberedRegionName(std::string regionName,
-                               std::string& numberedRegName);
-    
   protected:
-    
-    typedef std::vector< std::vector<UInt> > regionElemType;
-    typedef std::vector< std::set<UInt, std::less<UInt>, std::allocator<UInt> > > regionNodeType;
 
+    // =======================================================================
+    //  HELPER METHODS
+    // =======================================================================
+    //@{ \name Helper methods
+
+    //! Read elements of regions
     void ReadRegions(const H5::Group& meshGroup);
+
+    //! Read named nodes
     void ReadNamedNodes(const H5::Group& meshGroup);
+
+    //! Read named elements
     void ReadNamedElems(const H5::Group& meshGroup);
-
-    //@}
-
-    // =======================================================================
-    // CLASS ATTRIBUTES
-    // =======================================================================
-    //@{
-    //! \name Attributes
-
-    //@}
-
-  private:
-    std::vector< UInt > regionDims_;
-    std::vector< std::string > regionNames_;
-    std::vector< std::string > nodeNames_;
-    std::vector< std::string > elemNames_;
-    std::vector< std::string > readRegions_;
-    bool statsRead_;
-    bool genRegionNodes_;
-    UInt numRegions_;
-    H5::Group mainRoot_;
-    H5::H5File mainFile_;
-    UInt multiStep_, step_;
-    bool msChange_;
-
+  
+    //! Read mate information about grid
     void ReadMeshStats(const H5::Group& meshGroup);
-    
-    typedef struct region_desc_type { 
-      char name[32]; 
-      UInt dim; 
-    };
+    //@}
 
-    typedef struct named_entity_desc_type { 
-      char name[32]; 
-    };
-    
-    Integer fg_nElems;
-    Integer fg_nNodes;
-    Integer fg_nNodesPerElem;
-    std::vector<Integer> fg_ElemTypes;
-    std::vector<double> fg_XNodeLocs, fg_YNodeLocs, fg_ZNodeLocs;
-    std::vector<Integer> fg_NodesInElem;
+    // =======================================================================
+    //  HDF5 DATA MEMBERS
+    // =======================================================================
+    //@{ \name HDF5 Data Members 
 
-    typedef std::set<UInt,
-                     std::less<UInt>,
-                     std::allocator<UInt> > EntitySet;
+    //! Main hdf5 file
+    H5::H5File mainFile_;
 
-    //! Set to store all nodes in readRegions_
-    EntitySet readNodeSet_;
+    //! Root group of main file
+    H5::Group mainRoot_;
+    //@}
 
-    //! Set to store all elements in readRegions_
-    EntitySet readElemSet_;
+    // =======================================================================
+    //  CLASS ATTRIBUTES
+    // =======================================================================
+    //@{ \name Attributes
 
-    //! readNodeMap_ maps the node numbers from the file
-    //! to actual node numbers in the grid.
-    std::map<UInt, UInt> readNodeMap_;
+    //! Flag inicating if mesh meta data is already read in
+    bool statsRead_;
 
-    //! readElemMap_ maps the elem numbers from the file
-    //! to actual element numbers in the grid.
-    //! Needed for named elements.
-    std::map<UInt, UInt> readElemMap_;
-    
+    //! Flag for creating named nodes for each region
+    bool genRegionNodes_;
+
+    //! List of regions to be read in from the file
+    std::vector< std::string > readRegions_;
+
+    //! List with names of regions
+    std::vector< std::string > regionNames_;
+
+    //! Map with number of dimensions for each region
+    std::map<std::string, UInt> regionDims_;
+
+    //! List with names of nodes
+    std::vector< std::string > nodeNames_;
+
+    //! List with named of elements
+    std::vector< std::string > elemNames_;
   };
 
-}
+} // end of namespace
 
 #endif

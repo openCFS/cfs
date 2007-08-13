@@ -327,12 +327,6 @@ namespace CoupledField {
     mainGroup_.createGroup( "UserData" ).close();
     mainGroup_.createGroup( "Results" ).close();
     
-    std::string newNames [3];
-    H5IO::ReadArray( mainGroup_, "Names", newNames );
-    for( UInt i = 0; i < 3; i++ ) {
-      std::cerr << newNames[i] << std::endl;
-    }
-
   }
 
   void SimOutputHDF5::WriteGrid() {
@@ -367,6 +361,9 @@ namespace CoupledField {
       locs[i*3+2] = p[2];
     }
     
+    H5IO::Write2DArray( nodeGroup, "Coordinates", nNodes, 
+                        3, &locs[0] );
+
     nodeGroup.close();
         
     
@@ -448,6 +445,7 @@ namespace CoupledField {
     //  Write Regions, Named Elements, Named Nodes
     // ============================================
     WriteRegions( meshGroup_ );
+    WriteNamedNodes( meshGroup_ );
     WriteNamedElems( meshGroup_ );
     gridWritten_ = true;
 
