@@ -2,12 +2,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <algorithm>
-
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -19,19 +13,15 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "simInputHDF5.hh"
+#include "hdf5io.hh"
 
 namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(simInputXMDF)
-  DEFINE_LOG(simInputXMDF, "SimInputHDF5")
-
- #define CHECK_HDF5_ERROR(HID_T, STR) { if(HID_T < 0) {                 \
-        std::ostringstream ostr;                                        \
-        ostr << STR;                                                    \
-        Exception ex(NULL, __FILE__, __LINE__, ostr.str().c_str()); } }
+  DECLARE_LOG(simInputHdf5)
+  DEFINE_LOG(simInputHdf5, "simInput.hdf5")
 
 #define H5_CATCH( STR )                                                 \
   catch (H5::Exception& h5Ex ) {                                        \
@@ -49,35 +39,32 @@ namespace CoupledField {
     ParamNode *readRegionNode = NULL;
     
     // Change defaults according to XML file
-    if(myParam_->Get("generateRegionNodes", false)->AsBool())
-    {
-        genRegionNodes_ = true;
+    if(myParam_->Get("generateRegionNodes", false)->AsBool()) {
+      genRegionNodes_ = true;
+    }
+    
+    readRegionNode = myParam_->Get("readRegions", false);
+    if(readRegionNode) {
+      std::string readRegions = 
+        myParam_->Get("readRegions", false)->AsString();
+
+      typedef boost::tokenizer<char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+      Tok t(readRegions, sep);
+      Tok::iterator it, end;
+      it = t.begin();
+      end = t.end();
+      
+      for( ; it != end; it++)
+        readRegions_.push_back(*it);
+    } else {
+      readRegions_.push_back("all");
     }
 
-    readRegionNode = myParam_->Get("readRegions", false);
-    if(readRegionNode)
-    {
-       std::string readRegions = myParam_->Get("readRegions", false)->AsString();
-       std::cout << std::endl << "readRegions " << readRegions << std::endl;
-       typedef boost::tokenizer<char_separator<char> > Tok;
-       boost::char_separator<char> sep(";| ");
-       Tok t(readRegions, sep);
-       Tok::iterator it, end;
-       it = t.begin();
-       end = t.end();
-    
-       for( ; it != end; it++)
-         readRegions_.push_back(*it);
-    }
-    else
-    {
-         readRegions_.push_back("all");
-    }
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
 
   }
-
 
   SimInputHDF5::~SimInputHDF5() {
     ENTER_FCN( "SimInputHDF5::~XMDF" );
@@ -105,20 +92,13 @@ namespace CoupledField {
       return;
     }
     
-    LOG_TRACE(simInputXMDF) << "fileName_: " << fileName_;
-    LOG_TRACE(simInputXMDF) << "baseDir_: " << baseDir_;
-    LOG_TRACE(simInputXMDF) << "baseName_: " << baseName_;
+    LOG_TRACE(simInputHdf5) << "fileName_: " << fileName_;
+    LOG_TRACE(simInputHdf5) << "baseDir_: " << baseDir_;
+    LOG_TRACE(simInputHdf5) << "baseName_: " << baseName_;
 
     statsRead_ = false;
     
     mi_ = mi;
-    multiStep_ = 0;
-    step_ = 0;
-    msChange_ = true;
-
-    Integer    status;
-    std::string pathToMesh = "Mesh";
-    std::stringstream strBuf;
 
     try {
       mainFile_ = H5::H5File( fileName_, H5F_ACC_RDONLY );
@@ -131,139 +111,63 @@ namespace CoupledField {
 
   void SimInputHDF5::ReadMesh()
   {
-    Integer status;
-    std::stringstream strBuf;
-    H5::Group mGroup;
+    H5::Group mGroup, nodeGroup;
 
     // Open mesh group
-    try
-    {
+    try{
       mGroup = mainRoot_.openGroup("Mesh");
-    }
-    catch (H5::Exception& h5ex)
-    {
-        EXCEPTION(h5ex.getCDetailMsg());
-    }
-
+    } H5_CATCH( "Could not open mesh group" );
 
     // Read infos about mesh
     if(!statsRead_)
       ReadMeshStats(mGroup);
 
     // If all regions are to be read set list of readRegions accordingly.
-    if(readRegions_[0] == "all")
+    if(readRegions_[0] == "all") {
       readRegions_ = regionNames_;
-    
-//     // Check if all readRegions_ can be found in file.
-//     for(UInt i=0; i<readRegions_.size(); i++)
-//     {
-//       if(std::find(regionNames_.begin(),
-//                    regionNames_.end(),
-//                    readRegions_[i]) == regionNames_.end())
-//           EXCEPTION("Region " << readRegions_[i] << " specified for"
-//                     " reading does not exist." );
-//     }
-    
-//     // Get the number of elements, nodes, and Maximum number of nodes per element
-//     status = xfGetNumberOfElements(meshGroupId, (int*) &fg_nElems);
-//     if (status >= 0) {
-//       status = xfGetNumberOfNodes(meshGroupId, (int*) &fg_nNodes);
-//       if (status >= 0) {
-//         status = xfGetMaxNodesInElem(meshGroupId, (int*) &fg_nNodesPerElem);
-//       }
-//     }
-//     CHECK_HDF5_ERROR(status, "Unable to read number of elements, nodes or max elemnodes.");
-
-//     fg_ElemTypes.resize(fg_nElems);
-//     LOG_TRACE(simInputXMDF) << "fg_nElems: " << fg_nElems;
-
-//     status = xfReadElemTypes(meshGroupId, fg_nElems, (int*) &fg_ElemTypes[0]);
-//     CHECK_HDF5_ERROR(status, "Unable to read element types.");
-
-//     // Nodes in each element
-//     fg_NodesInElem.resize(fg_nElems*fg_nNodesPerElem);
-//     status = xfReadElemNodeIds(meshGroupId,
-//                                fg_nElems,
-//                                fg_nNodesPerElem,
-//                                (int*) &fg_NodesInElem[0]);
-//     CHECK_HDF5_ERROR(status, "Unable to read maximum number of nodes per elem.");
-
-//     // NodeLocations
-//     fg_XNodeLocs.resize(fg_nNodes);
-//     fg_YNodeLocs.resize(fg_nNodes);
-//     fg_ZNodeLocs.resize(fg_nNodes);
-
-//     LOG_TRACE(simInputXMDF) << "fg_nNodes: " << fg_nNodes << " " << fg_XNodeLocs.size();
-
-//     status = xfReadXNodeLocations(meshGroupId, fg_nNodes, &fg_XNodeLocs[0]);
-//     if (status >= 0) {
-//       status = xfReadYNodeLocations(meshGroupId, fg_nNodes, &fg_YNodeLocs[0]);
-//       if (status >= 0) {
-//         status = xfReadZNodeLocations(meshGroupId, fg_nNodes, &fg_ZNodeLocs[0]);
-//       }
-//     }
-//     CHECK_HDF5_ERROR(status, "Unable to read nodes.");
-
-//     /*
-//     mi_->AddNodes(fg_nNodes);
-//     Integer node;
-
-//     for (node=0; node < fg_nNodes; node++) {
-//         Point p;
-
-//         p[0] = fg_XNodeLocs[node];
-//         p[1] = fg_YNodeLocs[node];
-//         p[2] = fg_ZNodeLocs[node];
-    
-//         mi_->SetNodeCoordinate(node+1, p);
-//     }
-
-//     // Release temp memory of nodes
-//     fg_XNodeLocs.clear();
-//     fg_YNodeLocs.clear();
-//     fg_ZNodeLocs.clear();
-
-//     FEType eType;
-//     UInt connectIdx = 0;
-//     Integer elem;
-
-//     mi_->AddElems(fg_nElems);
-    
-//     connectIdx = 0;
-//     for (elem=0; elem < fg_nElems; elem++) {
-//       eType = XMDFElemType2ElemType(fg_ElemTypes[elem]);
-//       if((eType == ET_LINE3) ||
-//          (eType == ET_TRIA6) ||
-//          (eType == ET_QUAD8) ||
-//          (eType == ET_QUAD9))
-//         this->ReorderConnectivity(eType,
-//                                   false,
-//                                   (UInt*)&fg_NodesInElem[connectIdx],
-//                                   (UInt*)&fg_NodesInElem[connectIdx]);
-
-//       mi_->SetElemData(elem+1, eType, 0, (UInt*)&fg_NodesInElem[connectIdx]);
-//       connectIdx += fg_nNodesPerElem;
-//     }
-//     */
-
-    try 
-    {
-      ReadRegions(mGroup);
-      ReadNamedNodes(mGroup);
-      ReadNamedElems(mGroup);
     }
-    catch (H5::Exception& h5ex)
-    {
-        EXCEPTION(h5ex.getCDetailMsg());
-    }
-    catch (Exception& ex)
-    {
-        EXCEPTION(ex.GetMsg());
-    }
+    
+    // Check if all readRegions_ can be found in file.
+     for(UInt i=0; i<readRegions_.size(); i++) {
+       if(std::find(regionNames_.begin(),
+                    regionNames_.end(),
+                    readRegions_[i]) == regionNames_.end())
+         EXCEPTION("Region " << readRegions_[i] << " specified for"
+                   " reading does not exist." );
+     }
+    
+     // ========================
+     //  READ NODAL INFORMATION
+     // ========================
 
-    // Release temp memory of elems
-    fg_ElemTypes.clear();
-    fg_NodesInElem.clear();
+     // get the number of nodes
+     UInt numNodes;
+     try{ 
+       nodeGroup = mGroup.openGroup( "Nodes") ;
+     } H5_CATCH( "Could not open Elements / Nodes group" );
+
+     H5IO::ReadAttribute( nodeGroup, "NumNodes", numNodes );
+
+     // read node coordinates
+     std::vector<Double> nodeCoords;
+     H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords );
+
+     // add nodes to grid
+     mi_->AddNodes( numNodes );
+
+     UInt pos = 0;
+     for( UInt i = 0; i < numNodes; i++ ) {
+       Vector<Double> p(3);
+       p[0] = nodeCoords[pos++];
+       p[1] = nodeCoords[pos++];
+       p[2] = nodeCoords[pos++];
+       mi_->SetNodeCoordinate( i+1, p );
+     }
+     
+     // read region, element and named entity informaion
+     ReadRegions(mGroup);
+     ReadNamedNodes(mGroup);
+     ReadNamedElems(mGroup);
   }
 
 
@@ -271,32 +175,32 @@ namespace CoupledField {
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputHDF5::GetDim() {
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
   UInt SimInputHDF5::GetNumNodes(){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
     
   UInt SimInputHDF5::GetNumElems(const Integer dim){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
   UInt SimInputHDF5::GetNumRegions(){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
 
   UInt SimInputHDF5::GetNumNamedNodes(){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
 
   UInt SimInputHDF5::GetNumNamedElems(){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
     return 0;
   }
   
@@ -305,7 +209,7 @@ namespace CoupledField {
   // ======================================================
 
   void SimInputHDF5::GetAllRegionNames( std::vector<std::string> & regionNames ){
-    LOG_TRACE(simInputXMDF) << "SimInputHDF5::ReadMesh() not implemented";
+    LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
   }
 
   void SimInputHDF5::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
@@ -327,554 +231,224 @@ namespace CoupledField {
   // =========================================================================
   // MISCELLANEOUS METHODS
   // =========================================================================
-
-
-
   void SimInputHDF5::ReadRegions(const H5::Group& meshGroup)
   {
-    hid_t status;
-    H5::Group regionGroup;
-    H5::Group regionElemGroup;
-    H5::Group regionNodeGroup;
-    std::vector< UInt > regionElems;
-    std::vector< UInt > regionNodes;
-    std::vector< RegionIdType > regionIds;
-    std::set<UInt,
-          std::less<UInt>,
-          std::allocator<UInt> > regionNodeSet;
-    Integer fg_nElems, numInt, numElemNodes, elemIdx;
-    StdVector<Elem*> elems;
-    std::stringstream nodeNamesStr;
 
-    /*
-    status = xfGetNumberOfElements(meshGroup.getLocId(), (int*) &fg_nElems);
-    CHECK_HDF5_ERROR(status, "Could not read number of elements.");
+    // ==================================
+    //  Read General Element Information
+    // ==================================
+    H5::Group elemGroup;
+    try {
+      elemGroup = meshGroup.openGroup( "Elements" );
+    } H5_CATCH( "Could not open 'Elements' group" );
 
-    if(mi_->GetNumElems() != fg_nElems)
-    {
-        EXCEPTION ("Number of elements in mesh does not "    \
-                   "match numelems in file.");
+    
+    // read number of elements
+    UInt numElems = 0;
+    H5IO::ReadAttribute( elemGroup, "NumElems", numElems );
+
+    // read maximum number of nodes per elements
+    UInt numNodesPerElem = 
+      H5IO::GetArrayDims( elemGroup, "Connectivity")[1];
+    
+    // read element types
+    std::vector<Integer> elemTypes;
+    H5IO::ReadArray( elemGroup, "Types", elemTypes );
+    
+    // read nodes per element
+    std::vector<UInt> globConnect;
+    H5IO::ReadArray( elemGroup, "Connectivity", globConnect );
+    
+    elemGroup.close();
+
+    // =========================
+    //  Add Elements Per Reigon
+    // =========================
+    
+    // ensure, that region names are already read in
+    if( !statsRead_ )
+      ReadMeshStats( meshGroup );
+
+    H5::Group regionGroup, actRegion;
+    try {
+      regionGroup = meshGroup.openGroup( "Regions" );
+          } H5_CATCH( "Could not open 'Regions' group" );
+
+    // pass region names to grid and obtain RegionIds
+    std::vector<RegionIdType> regionIds;
+    mi_->AddRegions(readRegions_, regionIds);
+
+    mi_->AddElems( numElems );
+
+    // iterate over all regions
+    for( UInt i = 0; i < readRegions_.size(); i++ ) {
+
+      try {
+        actRegion = regionGroup.openGroup( readRegions_[i] );
+      } H5_CATCH( "Could not open group for region '" <<
+                  regionNames_[i] << "'" );
+
+      // read element numbers for this region
+      std::vector<UInt> regionElems;
+      H5IO::ReadArray( actRegion, "Elements", regionElems );
+
+      // pass for each element the definition to the grid      
+      RegionIdType actRegionId = regionIds[i];
+      for( UInt iElem = 0; iElem < regionElems.size(); iElem ++ ) {
+
+        UInt elemNum = regionElems[iElem];
+        FEType type = (FEType) elemTypes[elemNum-1];
+        UInt * connect = &globConnect[numNodesPerElem*(elemNum-1)];
+        mi_->SetElemData( elemNum, type, actRegionId, connect );
+      }
+
+       // check, if nodes nodes of region should be additionally added
+      // to list of named nodes
+      if( genRegionNodes_) {
+        
+        // read nodes of region
+        std::vector<UInt> regionNodes;
+        H5IO::ReadArray( actRegion, "Nodes", regionNodes );
+
+        // add nodes as named nodes
+        mi_->AddNamedNodes( readRegions_[i]+"_Nodes", regionNodes );
+      }
     }
-    */
-
-    if(!statsRead_)
-      ReadMeshStats(meshGroup);
-
-    /*
-    if(numRegions_ == 0)
-    {
-      mi_->AddRegions(regionNames_, regionIds);
-      numRegions_ = 1;
-      return;
-    }
-    */
-
-    try 
-    {
-      regionGroup = meshGroup.openGroup("Regions");
-      regionElemGroup = regionGroup.openGroup("Elements");
-      regionNodeGroup = regionGroup.openGroup("Nodes");
-    } catch (H5::Exception& h5ex)
-    {
-      EXCEPTION(h5ex.getCDetailMsg());
-    }
     
-//     // Create the regions
-//     mi_->AddRegions(readRegions_, regionIds);
-//     UInt numReadRegions = readRegions_.size();
-//     FEType eType;
-//     UInt connectIdx = 0;
-
-//     for(Integer i=0; i<numReadRegions; i++)
-//     {
-//       // Get number of elements in region
-//       status = xfGetPropertyNumber(regionElemGroup.getLocId(),
-//                                    readRegions_[i].c_str(),
-//                                    (int*) &numInt);
-//       CHECK_HDF5_ERROR(status, "Could not read number of elements in region.");
-      
-//       // Read elements in region
-//       regionElems.resize(numInt);
-//       status = xfReadPropertyInt(regionElemGroup.getLocId(),
-//                                  readRegions_[i].c_str(),
-//                                  numInt,
-//                                  (int*) &regionElems[0]);
-//       CHECK_HDF5_ERROR(status, "Could not read elements in region.");
-      
-//       readElemSet_.insert(regionElems.begin(), regionElems.end());
-      
-//       for(int j=0; j<numInt; j++)
-//       {
-//         elemIdx = regionElems[j]-1;
-//         connectIdx = elemIdx*fg_nNodesPerElem;
-
-//         numElemNodes = NUM_ELEM_NODES[XMDFElemType2ElemType(fg_ElemTypes[elemIdx])];
-//         UInt* ptElemNodes = (UInt*)&fg_NodesInElem[connectIdx];
-//         readNodeSet_.insert( ptElemNodes,
-//                              ptElemNodes + numElemNodes);
-//       }
-//     }
-
-//     UInt nodeOffset = mi_->GetNumNodes();
-//     UInt numReadNodes = readNodeSet_.size();
-//     std::set<UInt>::const_iterator nodeIt, nodeEnd;
-//     UInt node = nodeOffset + 1;
-    
-//     mi_->AddNodes(numReadNodes);
-
-//     for(nodeIt = readNodeSet_.begin(),
-//        nodeEnd = readNodeSet_.end();
-//         nodeIt != nodeEnd; nodeIt++)
-//     {
-//         Point p;
-//         readNodeMap_[*nodeIt] = node;
-
-//         p[0] = fg_XNodeLocs[(*nodeIt) - 1];
-//         p[1] = fg_YNodeLocs[(*nodeIt) - 1];
-//         p[2] = fg_ZNodeLocs[(*nodeIt) - 1];
-    
-//         mi_->SetNodeCoordinate(node, p);
-//         node++;
-//     }
-
-//     // Release temp memory of nodes
-//     fg_XNodeLocs.clear();
-//     fg_YNodeLocs.clear();
-//     fg_ZNodeLocs.clear();
-
-//     for(Integer i=0; i<numReadRegions; i++)
-//     {
-//       UInt elem = mi_->GetNumElems() + 1;
-
-//       // Get number of elements in region
-//       status = xfGetPropertyNumber(regionElemGroup.getLocId(),
-//                                    readRegions_[i].c_str(),
-//                                    (int*) &numInt);
-//       CHECK_HDF5_ERROR(status, "Could not read number of elements in region.");
-      
-//       // Read elements in region
-//       regionElems.resize(numInt);
-//       status = xfReadPropertyInt(regionElemGroup.getLocId(),
-//                                  readRegions_[i].c_str(),
-//                                  numInt,
-//                                  (int*) &regionElems[0]);
-//       CHECK_HDF5_ERROR(status, "Could not read elements in region.");
-
-//       mi_->AddElems(numInt);
-    
-//       if(genRegionNodes_)
-//           regionNodeSet.clear();
-
-//       readElemSet_.insert(regionElems.begin(), regionElems.end());
-      
-//       for(int j=0; j<numInt; j++)
-//       {
-//         readElemMap_[regionElems[j]] = elem;
-//         elemIdx = regionElems[j]-1;
-//         connectIdx = elemIdx*fg_nNodesPerElem;
-
-//         eType = XMDFElemType2ElemType(fg_ElemTypes[elemIdx]);
-//         if((eType == ET_LINE3) ||
-//            (eType == ET_TRIA6) ||
-//            (eType == ET_QUAD8) ||
-//            (eType == ET_QUAD9))
-//           this->ReorderConnectivity(eType,
-//                                     false,
-//                                     (UInt*)&fg_NodesInElem[connectIdx],
-//                                     (UInt*)&fg_NodesInElem[connectIdx]);
-
-//         numElemNodes = NUM_ELEM_NODES[XMDFElemType2ElemType(fg_ElemTypes[elemIdx])];
-
-//         for(int j=0; j<numElemNodes; j++)
-//           fg_NodesInElem[connectIdx+j] = readNodeMap_[fg_NodesInElem[connectIdx+j]];
-
-//         mi_->SetElemData(elem, eType, regionIds[i],
-//                          (UInt*)&fg_NodesInElem[connectIdx]);
-//         elem++;
-          
-//         if(genRegionNodes_)
-//         {
-//           UInt* ptElemNodes = (UInt*)&fg_NodesInElem[connectIdx];
-              
-//           regionNodeSet.insert( ptElemNodes,
-//                                 ptElemNodes + numElemNodes);
-//         }          
-//       }
-
-//       if(genRegionNodes_)
-//       {
-//           regionNodes.resize(regionNodeSet.size());
-      
-//           std::copy(regionNodeSet.begin(),
-//                     regionNodeSet.end(),
-//                     regionNodes.begin());
-          
-//           nodeNamesStr.str("");
-//           nodeNamesStr << regionNames_[i] << "_nodes";
-          
-//           mi_->AddNamedNodes(nodeNamesStr.str(), regionNodes);
-//       }
-//     }
-
-//     fg_ElemTypes.clear();
-//     fg_NodesInElem.clear();
-    
-//     regionElemGroup.close();
-//     regionGroup.close();
+    regionGroup.close();
   }
 
   void SimInputHDF5::ReadNamedNodes(const H5::Group& meshGroup)
   {
-//     H5::Group namedNodesGroup, nNodesGroup;
-//     hid_t status;
-//     std::vector< UInt > namedNodes;
-//     EntitySet namedNodeSet;
-//     EntitySet result;
-//     Integer numInt;
 
-//     if(!statsRead_)
-//       ReadMeshStats(meshGroup);
-
-//     // Check if named nodes exist.
-//     if(!nodeNames_.size())
-//       return;
+    H5::Group namedNodesGroup;
     
-//     // Try to open named nodes group.
-//     try 
-//     {
-//       namedNodesGroup = meshGroup.openGroup("Named Nodes");
-//       nNodesGroup = namedNodesGroup.openGroup("Nodes");
-//     } catch (H5::Exception& h5ex)
-//     {
-//       EXCEPTION(h5ex.getCDetailMsg ());
-//     }
-    
-//     // Iterate over all named node datasets.
-//     for(UInt i=0; i<nodeNames_.size(); i++)
-//     {
-//       // Get number of named nodes.
-//       status = xfGetPropertyNumber(nNodesGroup.getLocId(),
-//                                    nodeNames_[i].c_str(),
-//                                    (int*) &numInt);
-//       if(status < 0)
-//       {
-//         nNodesGroup.close();
-//         namedNodesGroup.close();
-//       }
-//       CHECK_HDF5_ERROR(status, "Could not read number of named nodes.");
+    try{
+      namedNodesGroup = meshGroup.openGroup( "NamedNodes" );
+    } H5_CATCH( "Could not open group for 'NamedNodes'" );
 
-//       // Resize array.
-//       namedNodes.resize(numInt);
+    for( UInt i = 0; i < nodeNames_.size(); i++ ) {
 
-//       // Read named nodes into array.
-//    //    status = xfReadPropertyInt(nNodesGroup.getLocId(),
-// //                                  nodeNames_[i].c_str(),
-// //                                  numInt,
-// //                                  (int*) &namedNodes[0]);
-//       if(status < 0)
-//       {
-//         nNodesGroup.close();
-//         namedNodesGroup.close();
-//       }
-//       CHECK_HDF5_ERROR(status, "Could not read named nodes.");
+      // read nodes from grid
+      std::vector<UInt> nodes;
+      H5IO::ReadArray( namedNodesGroup, nodeNames_[i], nodes );
 
-//       // We need to check if the named nodes make sense in the grid.
-//       // We do this by calculating the intersection of the named node
-//       // set and the read nodes set.
-//       namedNodeSet.clear();
-//       result.clear();
+      // add nodes to grid
+      mi_->AddNamedNodes( nodeNames_[i], nodes );
+    }
 
-//       // Fill named node set.
-//       namedNodeSet.insert(namedNodes.begin(), namedNodes.end());
-
-//       std::insert_iterator<EntitySet> res_ins (result, result.begin());
-
-//       // Calculate intersection.
-//       std::set_intersection (readNodeSet_.begin(), readNodeSet_.end(), 
-//                              namedNodeSet.begin(), namedNodeSet.end(), res_ins);
-
-//       // If there is an intersection add its members as named nodes.
-//       if(result.size())
-//       {
-//         std::copy(result.begin(), result.end(), namedNodes.begin());
-//         namedNodes.resize(result.size());
-        
-//         for(UInt j=0,
-//                  n=namedNodes.size();
-//             j<n; j++)
-//         {
-//           namedNodes[j] = readNodeMap_[namedNodes[j]];
-//         }
-        
-//         mi_->AddNamedNodes(nodeNames_[i], namedNodes);
-//       }
-//     }
-
-//     // Clear temporary storage.
-//     readNodeSet_.clear();
-//     readNodeMap_.clear();
-    
-//     nNodesGroup.close();
-//     namedNodesGroup.close();
+    namedNodesGroup.close();
   }
 
   void SimInputHDF5::ReadNamedElems(const H5::Group& meshGroup)
   {
-//     H5::Group namedElemsGroup, nElemsGroup;
-//     hid_t status;
-//     std::vector< UInt > namedElems;
-//     EntitySet namedElemSet;
-//     EntitySet result;
-//     Integer numInt;
 
-//     if(!statsRead_)
-//       ReadMeshStats(meshGroup);
-
-//     // Check if named elems exist.
-//     if(!elemNames_.size())
-//       return;
+    H5::Group namedElemGroup;
     
-//     // Try to open named elements group.
-//     try 
-//     {
-//       namedElemsGroup = meshGroup.openGroup("Named Elements");
-//       nElemsGroup = namedElemsGroup.openGroup("Elements");
-//     } catch (H5::Exception& h5ex)
-//     {
-//       EXCEPTION(h5ex.getCDetailMsg ());
-//     }
-    
-//     // Iterate over all named elem datasets.
-//     for(UInt i=0; i<elemNames_.size(); i++)
-//     {
-//       // Get number of named elems.
-//       status = xfGetPropertyNumber(nElemsGroup.getLocId(),
-//                                    elemNames_[i].c_str(),
-//                                    (int*) &numInt);
-//       if(status < 0)
-//       {
-//         nElemsGroup.close();
-//         namedElemsGroup.close();
-//       }
-//       CHECK_HDF5_ERROR(status, "Could not read number of named elems.");
+    try{
+      namedElemGroup = meshGroup.openGroup( "NamedElems" );
+    } H5_CATCH( "Could not open group for 'NamedElems'" );
 
-//       // Resize array.
-//       namedElems.resize(numInt);
+    for( UInt i = 0; i < elemNames_.size(); i++ ) {
 
-//       // Read named elems into array.
-//       status = xfReadPropertyInt(nElemsGroup.getLocId(),
-//                                  elemNames_[i].c_str(),
-//                                  numInt,
-//                                  (int*) &namedElems[0]);
-//       if(status < 0)
-//       {
-//         nElemsGroup.close();
-//         namedElemsGroup.close();
-//       }
-//       CHECK_HDF5_ERROR(status, "Could not read named elems.");
+      // read elems from grid
+      std::vector<UInt> elems;
+      H5IO::ReadArray( namedElemGroup, elemNames_[i], elems );
 
-//       // We need to check if the named elems make sense in the grid.
-//       // We do this by calculating the intersection of the named elem
-//       // set and the read elems set.
-//       namedElemSet.clear();
-//       result.clear();
+      // add elems to grid
+      mi_->AddNamedElems( elemNames_[i], elems );
+    }
 
-//       // Fill named elem set.
-//       namedElemSet.insert(namedElems.begin(), namedElems.end());
-
-//       std::insert_iterator<EntitySet> res_ins (result, result.begin());
-
-//       // Calculate intersection.
-//       std::set_intersection (readElemSet_.begin(), readElemSet_.end(), 
-//                              namedElemSet.begin(), namedElemSet.end(), res_ins);
-
-//       // If there is an intersection add its members as named elems.
-//       if(result.size())
-//       {
-//         std::copy(result.begin(), result.end(), namedElems.begin());
-//         namedElems.resize(result.size());
-        
-//         for(UInt j=0,
-//                  n=namedElems.size();
-//             j<n; j++)
-//         {
-//           namedElems[j] = readElemMap_[namedElems[j]];
-//         }
-        
-//         mi_->AddNamedElems(elemNames_[i], namedElems);
-//       }
-//     }
-
-//     // Clear temporary storage.
-//     readElemSet_.clear();
-//     readElemMap_.clear();
-    
-//     nElemsGroup.close();
-//     namedElemsGroup.close();
+    namedElemGroup.close();
   }
 
-  void SimInputHDF5::ReadMeshStats(const H5::Group& meshGroup)
-  {
-//     hsize_t number;
-//     bool regionGroupExists = true;
-//     H5::Group regionGroup;
-//     std::vector<region_desc_type> region_desc;
+  void SimInputHDF5::ReadMeshStats(const H5::Group& meshGroup) {
+
+    // ==================================
+    //  Read Region Names and Dimensions
+    // ==================================
+    H5::Group regionGroup;    
+    try {
+      regionGroup = meshGroup.openGroup("Regions");
+    } H5_CATCH( "Could not open 'Regions' subgroup" );
+
+    regionNames_.clear();
     
-//     regionNames_.clear();
-//     regionDims_.clear();
+    // iterate over all region names
+    hsize_t numRegions = regionGroup.getNumObjs();
+    for( hsize_t i = 0; i < numRegions; i++ ) {
 
-//     try 
-//     {
-//       regionGroup = meshGroup.openGroup("Regions");
-//     } catch (H5::Exception& h5ex)
-//     {
-//       LOG_TRACE(simInputXMDF) << "Could not open region group.";
-//       regionNames_.push_back("XMDF_Region");
-//       regionDims_.push_back(3);
-//       numRegions_ = 0;
-//       regionGroupExists = false;
-//     }
+      // get name
+      std::string actName = H5IO::GetObjNameByIdx( regionGroup, i );
+      regionNames_.push_back(  actName );
 
-//     if(regionGroupExists)
-//     {
-//       try 
-//       {
-//         H5::DataSet dataset = regionGroup.openDataSet("Description");
+      // get dimension
+      UInt dim = 0;
+      H5::Group actRegion = regionGroup.openGroup( actName );
+      H5IO::ReadAttribute( actRegion, "Dimension", dim );
+      regionDims_[actName] = dim;
+      actRegion.close();
+    }
+
+    regionGroup.close();
+
+    // ==============================
+    //  Read Named Nodes Description
+    // ==============================
+    H5::Group namedNodeGroup;    
+
+    nodeNames_.clear();
+    bool namedNodesExist = true;
+    try {
+      namedNodeGroup = meshGroup.openGroup("NamedNodes");
+    } catch (H5::Exception& h5ex) {
+      namedNodesExist = false;
+      LOG_TRACE(simInputHdf5) << "No named nodes present";
+    }
     
-//         // Create a memory datatype for region_desc_type
-//         H5::CompType comptype( sizeof(region_desc_type) );
-
-//         region_desc.resize(1);
+    if( namedNodesExist ) {
       
-//         comptype.insertMember( "Name", HOFFSET(region_desc_type, name),
-//                                H5::StrType(H5::PredType::C_S1,
-//                                            sizeof(region_desc[0].name)));
-//         //                             dataset.getCompType().getMemberStrType(0));
-//         comptype.insertMember( "Dimension", HOFFSET(region_desc_type, dim),
-//                                H5::PredType::NATIVE_UINT32);
-
-//         number = dataset.getStorageSize() / sizeof(region_desc_type);
-    
-//         region_desc.resize(number);
-//         dataset.read(&region_desc[0], comptype);
-
-//       } catch (H5::Exception& h5ex)
-//       {
-//         EXCEPTION(h5ex.getCDetailMsg());
-//       }
-
-//       // Push the region names into a vector
-//       numRegions_ = number;
-//       regionNames_.resize(numRegions_);
-//       regionDims_.resize(numRegions_);
-//       for(int32_t i=0; i<numRegions_; i++)
-//       {
-//         region_desc[i].name[31] = 0;
-//         regionNames_[i] = region_desc[i].name;
-//         boost::algorithm::trim(regionNames_[i]);
-//         regionDims_[i] = region_desc[i].dim;
+      // iterate over all named nodes' names
+      hsize_t numNamedNodeNames = namedNodeGroup.getNumObjs();
+      for( hsize_t i = 0; i < numNamedNodeNames; i++ ) {
+        
+        // get name
+        std::string actName = H5IO::GetObjNameByIdx( namedNodeGroup, i );
+        nodeNames_.push_back(  actName );
+      }
       
-//         LOG_TRACE(simInputXMDF) << regionNames_[i] << " " << regionDims_[i];
-//       }
-//     }
-    
-//     // Read Named Nodes Description
-//     std::vector< named_entity_desc_type > namedNodesDesc;
-//     bool namedNodesExist = true;
-//     nodeNames_.clear();
-    
-//     H5::Group namedNodesGroup;
-//     try 
-//     {
-//       namedNodesGroup = meshGroup.openGroup("Named Nodes");
-//     } catch (H5::Exception& h5ex)
-//     {
-//       namedNodesExist = false;
-//       LOG_TRACE(simInputXMDF) << "Could not open named nodes group.";
-//     }
+      namedNodeGroup.close();
+    }
 
-//     if(namedNodesExist)
-//     {
-//       try 
-//       {
-//         H5::DataSet dataset = namedNodesGroup.openDataSet("Description");
-    
-//         // Create a memory datatype for region_desc_type
-//         H5::CompType comptype( sizeof(named_entity_desc_type) );
+    // ==============================
+    //  Read Named Elems Description
+    // ==============================
+    H5::Group namedElemGroup;    
 
-//         comptype.insertMember( "Name", HOFFSET(named_entity_desc_type, name),
-//                                dataset.getCompType().getMemberStrType(0));
+    elemNames_.clear();
+    bool namedElemsExist = true;
+    try {
+      namedElemGroup = meshGroup.openGroup("NamedElems");
+    } catch (H5::Exception& h5ex) {
+      namedElemsExist = false;
+      LOG_TRACE(simInputHdf5) << "No named elems present";
+    }
 
-//         number = dataset.getStorageSize() / sizeof(named_entity_desc_type);
-
-//         namedNodesDesc.resize(number);
-//         dataset.read(&namedNodesDesc[0], comptype);
-//       } catch (H5::Exception& h5ex)
-//       {
-//         EXCEPTION(h5ex.getCDetailMsg());
-//       }
-
-//       // Push the node names into a vector
-//       nodeNames_.resize(number);
-//       for(int32_t i=0; i<number; i++)
-//       {
-//         namedNodesDesc[i].name[31] = 0;
-//         nodeNames_[i] = namedNodesDesc[i].name;
-//         boost::algorithm::trim(nodeNames_[i]);
+    if( namedElemsExist ) {
       
-//         LOG_TRACE(simInputXMDF) << "Named Nodes: " << nodeNames_[i];
-//       }
-//     }
-    
-//     // Read Named Elems Description
-//     std::vector< named_entity_desc_type > namedElemsDesc;
-//     bool namedElemsExist = true;
-//     elemNames_.clear();
-
-//     H5::Group namedElemsGroup;
-//     try 
-//     {
-//       namedElemsGroup = meshGroup.openGroup("Named Elements");
-//     } catch (H5::Exception& h5ex)
-//     {
-//       namedElemsExist = false;
-//       LOG_TRACE(simInputXMDF) << "Could not open named elems group.";
-//     }
-
-//     if(namedElemsExist)
-//     {
-//       try 
-//       {
-//         H5::DataSet dataset = namedElemsGroup.openDataSet("Description");
-    
-//         // Create a memory datatype for region_desc_type
-//         H5::CompType comptype( sizeof(named_entity_desc_type) );
-
-//         comptype.insertMember( "Name", HOFFSET(named_entity_desc_type, name),
-//                                dataset.getCompType().getMemberStrType(0));
-
-//         number = dataset.getStorageSize() / sizeof(named_entity_desc_type);
-
-//         namedElemsDesc.resize(number);
-//         dataset.read(&namedElemsDesc[0], comptype);
-//       } catch (H5::Exception& h5ex)
-//       {
-//         EXCEPTION(h5ex.getCDetailMsg());
-//       }
-
-//       // Push the elem names into a vector
-//       elemNames_.resize(number);
-//       for(int32_t i=0; i<number; i++)
-//       {
-//         namedElemsDesc[i].name[31] = 0;
-//         elemNames_[i] = namedElemsDesc[i].name;
-//         boost::algorithm::trim(elemNames_[i]);
+      // iterate over all named nodes' names
+      hsize_t numNamedElemNames = namedElemGroup.getNumObjs();
+      for( hsize_t i = 0; i < numNamedElemNames; i++ ) {
+        
+        // get name
+        std::string actName = H5IO::GetObjNameByIdx( namedElemGroup, i );
+        elemNames_.push_back(  actName );
+      }
       
-//         LOG_TRACE(simInputXMDF) << "Named Elems: " << elemNames_[i];
-//       }
-//     }
+      namedElemGroup.close();
+    }
     
-//     statsRead_ = true;
+    statsRead_ = true;
   }
 
 }

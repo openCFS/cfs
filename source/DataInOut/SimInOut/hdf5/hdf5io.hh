@@ -72,6 +72,15 @@ namespace CoupledField {
     // =======================================================================
     //  READ METHODS
     // =======================================================================
+    
+    //! Get name of an object in a group with given index
+
+    //! This method retrieves the name of an object ob a group with given 
+    //! index.
+    //! \note This methods replaces the buggy method 
+    //! H5::CommonFG::getObjnameByIdx(), which skips by default the last 
+    //! character of the groupname
+    static std::string GetObjNameByIdx( const H5::CommonFG& loc, hsize_t idx );
 
     //! Read data from an attribute
     template<typename TYPE>
@@ -81,9 +90,12 @@ namespace CoupledField {
     
     //! Retrieve rank and dimensionality of a dataset and return
     //! total number of entries in the dataset
-    static UInt GetArrayDims( H5::CommonFG &loc,
-                              const std::string& name,
-                              std::vector<UInt>& dims );
+    static std::vector<UInt> GetArrayDims( const H5::CommonFG &loc,
+                                           const std::string& name );
+
+    //! Return number of entries of a dataset / rray
+    static UInt GetNumEntries( const H5::CommonFG &loc,
+                               const std::string& name );
     
     //! Retrieve data from a dataset
 
@@ -94,11 +106,11 @@ namespace CoupledField {
                            const std::string& name,
                            TYPE* data );
     
-//     //! Read data from a dataset into a stl vector
-//     template<typename TYPE>
-//     static void ReadArray( H5::CommonFG &loc,
-//                            const std::string& name,
-//                            std::vector<TYPE>& data );
+    //! Read data from a dataset into a stl vector
+    template<typename TYPE>
+    static void ReadArray( H5::CommonFG &loc,
+                           const std::string& name,
+                           std::vector<TYPE>& data );
 
 //     //! Read data from a dataset into a vector
 //     template<typename TYPE>

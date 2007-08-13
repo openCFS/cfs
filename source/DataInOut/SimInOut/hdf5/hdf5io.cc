@@ -663,6 +663,28 @@ namespace CoupledField {
     }
   }
 
+  std::string H5IO::GetObjNameByIdx( const H5::CommonFG& loc, hsize_t idx ) {
+    ssize_t name_len = H5Gget_objname_by_idx(loc.getLocId(), idx, NULL, 0);
+    if(name_len < 0) {
+      EXCEPTION( "Was not able to determine name" );
+    }
+
+    // now, allocate C buffer to get the name
+    // note: obvisously we have read one more byte, as the C API seems not
+    // to account for the trailing '\0' for strings, when determining the
+    // length of the blank c-array
+    char* name_C = new char[name_len+1];
+    
+    name_len = H5Gget_objname_by_idx(loc.getLocId(), idx, name_C, name_len+1);
+    
+    // clean up and return the string
+    std::string name = std::string(name_C);
+    delete []name_C;
+
+    return name;
+  }
+    
+
   template<typename TYPE>
   void H5IO::ReadAttribute( H5::H5Object& obj,
                             const std::string& name,
@@ -700,9 +722,8 @@ namespace CoupledField {
   }
 
 
-  UInt GetArrayDims( H5::CommonFG &loc,
-                     const std::string& name,
-                     std::vector<UInt>& dims ) {
+  std::vector<UInt> H5IO::GetArrayDims( const H5::CommonFG &loc,
+                                        const std::string& name ) {
     
     H5::DataSet dataset = loc.openDataSet( name );
     H5::DataSpace dataspace = dataset.getSpace();
@@ -711,12 +732,30 @@ namespace CoupledField {
     hsize_t * myDims = new hsize_t[rank];
     rank = dataspace.getSimpleExtentDims( myDims, NULL);
 
-    dims.resize( rank );
-    UInt numEntries = 1;
+    std::vector<UInt> dims( rank );
     for( UInt i = 0; i < (UInt) rank; i++ ) {
       dims[i] = myDims[i];
-      numEntries *= dims[i];
     }
+
+    delete[] myDims;
+    return dims;
+  }
+
+  UInt H5IO::GetNumEntries( const H5::CommonFG &loc,
+                            const std::string& name ) {
+
+    H5::DataSet dataset = loc.openDataSet( name );
+    H5::DataSpace dataspace = dataset.getSpace();
+    int rank = dataspace.getSimpleExtentNdims();
+    
+    hsize_t * myDims = new hsize_t[rank];
+    rank = dataspace.getSimpleExtentDims( myDims, NULL);
+
+    UInt numEntries = 1;
+    for( UInt i = 0; i < (UInt) rank; i++ ) {
+      numEntries *= myDims[i];
+    }
+
     delete[] myDims;
     return numEntries;
   }
@@ -774,6 +813,34 @@ namespace CoupledField {
     }
     
   }
+  
+  template<typename TYPE>
+  void H5IO::ReadArray( H5::CommonFG &loc,
+                        const std::string& name,
+                        std::vector<TYPE>& data ) {
+
+    // clear data
+    data.clear();
+
+    // obtain information about dimension of dataset
+    UInt numEntries = GetNumEntries( loc, name );
+
+    // create temporary buffer
+    TYPE * buffer = new TYPE[numEntries];
+
+    // read data into buffer
+    ReadArray( loc, name, buffer );
+
+    // copy buffer data to vector
+    data.resize( numEntries );
+    for( UInt i = 0; i < numEntries; i++ ) {
+      data[i] = buffer[i];
+    }
+
+    // delete buffer
+    delete[] buffer;
+  }
+  
   
   void H5IO::GetAnyConversion( const boost::any& anyType,
                                shared_ptr<BaseHdfTypeConversion>& conv ) {
@@ -838,7 +905,12 @@ namespace CoupledField {
     template                                                    \
     void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
                                 const std::string& name,        \
-                              TYPE* data )
+                                std::vector<TYPE>& data );      \
+                                                                \
+    template                                                    \
+    void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
+                                const std::string& name,        \
+                                TYPE* data )
   
   DECL_IO_METHODS( bool );
   DECL_IO_METHODS( Integer );
