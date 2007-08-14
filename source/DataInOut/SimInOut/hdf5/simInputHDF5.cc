@@ -8,10 +8,12 @@
 #include <boost/filesystem/exception.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
+#include "Utils/result.hh"
 #include "simInputHDF5.hh"
 #include "hdf5io.hh"
 
@@ -63,7 +65,6 @@ namespace CoupledField {
 
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
-
   }
 
   SimInputHDF5::~SimInputHDF5() {
@@ -172,7 +173,7 @@ namespace CoupledField {
 
 
   // ======================================================
-  // GENERAL MESH INFORMATION
+  //  GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputHDF5::GetDim() {
     LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
@@ -208,7 +209,7 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputHDF5::GetAllRegionNames( std::vector<std::string> & regionNames ){
+  void SimInputHDF5::GetAllRegionNames( StdVector<std::string> & regionNames ){
     LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
   }
 
@@ -228,8 +229,247 @@ namespace CoupledField {
     EXCEPTION("SimInputHDF5::GetElemNames() not implemented");
   }
 
+
   // =========================================================================
-  // MISCELLANEOUS METHODS
+  //  GENERAL SOLUTION INFORMATION
+  // =========================================================================
+
+  void SimInputHDF5::
+  GetNumMultiSequenceSteps( StdVector<AnalysisType>& analysis ) {
+
+    H5::Group gridResultGroup, actMsGroup;
+    std::string actAnalysisString;
+    AnalysisType actAnalysis;
+      
+    try{
+      gridResultGroup = mainRoot_.openGroup("Results").openGroup("Grid");
+    } H5_CATCH( "Could not open grid result group'" );
+
+    UInt numMsSteps = gridResultGroup.getNumObjs();
+    analysis.Clear();
+    analysis.Resize( numMsSteps );
+
+    // try to find all single multisequence steps and related analysis string
+    for( UInt i = 0; i < numMsSteps; i++ ) {
+      actMsGroup = H5IO::GetMultiStepGroup( mainFile_, i+1 );
+
+      // get analyisstring
+      H5IO::ReadAttribute( actMsGroup, "AnalysisType", actAnalysisString );
+      String2Enum( actAnalysisString, actAnalysis );
+      analysis[i] = actAnalysis;
+      
+      actMsGroup.close();
+    }
+    gridResultGroup.close();
+  }
+
+  
+  void SimInputHDF5::
+  GetStepValues( UInt sequenceStep, 
+                 StdVector<Double>& stepVals ) {
+
+    // open corresponding multistep group
+    H5::Group actMsGroup = H5IO::GetMultiStepGroup( mainFile_, sequenceStep );
+
+    // iterate over all entries
+    // NOTE: Since we have a group called "ResultDescription" within the 
+    // multisequence group with all the "Step_?" groups, we have to omit this
+    // group, if we want to gather all step values
+    UInt numSteps = actMsGroup.getNumObjs()-1;
+    
+    std::set<UInt> indices;
+    std::map<UInt, Double> values;
+    
+    UInt actStep = 0;
+    Double actStepVal = 0.0;
+    H5::Group actStepGroup;
+    for( UInt i = 0; i < numSteps; i++ ) {
+      std::string actGroupName = 
+        H5IO::GetObjNameByIdx( actMsGroup, i+1 );
+      
+      // extract index value by cutting away the "Step_" part
+      actStep = boost::lexical_cast<UInt>( std::string( actGroupName, 5 ) );
+      
+      // open step group and query step value
+      actStepGroup = actMsGroup.openGroup( actGroupName );
+      H5IO::ReadAttribute( actStepGroup, "StepVal", actStepVal );
+
+      // store values
+      indices.insert( actStep );
+      values[actStep] = actStepVal;
+      
+    }
+    
+    // in the end, copy values to vectors
+    stepVals.Clear();
+    std::set<UInt>::iterator it = indices.begin();
+    for( ; it != indices.end(); it++ ) {
+      stepVals.Push_back( values[*it] );
+    }
+
+    actMsGroup.close();
+  }
+
+  
+  void SimInputHDF5::
+  GetResultTypes( UInt sequenceStep, 
+                  StdVector<shared_ptr<ResultInfo> >& infos ) {
+    
+    // open ms group and 'Result Description' subgroup
+    H5::Group actMsGroup = H5IO::GetMultiStepGroup( mainFile_, sequenceStep );
+    H5::Group resInfoGroup;
+    try {
+      resInfoGroup = actMsGroup.openGroup( "ResultDescription" );
+    } H5_CATCH( "Could not open group 'ResultDescription'" );
+
+    UInt numResults = resInfoGroup.getNumObjs();
+    
+    // iterate over all entries and assemble the resultinfo object
+    H5::Group actResInfoGroup;
+    std::string actResultName;
+
+    infos.Clear();
+    for( UInt i = 0; i < numResults; i++ ) {
+      actResultName = H5IO::GetObjNameByIdx( resInfoGroup, i );
+      try{
+        actResInfoGroup = resInfoGroup.openGroup( actResultName );
+      } H5_CATCH( "Could not open description group for result '"
+                  << actResultName << "'" );
+
+      // Read resultinfo data
+      UInt definedOn, numDOFs, entryType;
+      std::string unit;
+      std::vector<std::string> dofNames;
+
+      H5IO::ReadArray( actResInfoGroup, "DefinedOn", &definedOn );
+      H5IO::ReadArray( actResInfoGroup, "NumDOFs", &numDOFs );
+      H5IO::ReadArray( actResInfoGroup, "DOFNames", dofNames );
+      H5IO::ReadArray( actResInfoGroup, "EntryType", &entryType );
+      H5IO::ReadArray( actResInfoGroup, "Unit", &unit );
+
+      // create new ResultInfo objects
+      shared_ptr<ResultInfo> ptInfo( new ResultInfo() );
+      SolutionType actResultType;
+      
+      try{ 
+        String2Enum( actResultName, actResultType );
+      } H5_CATCH( "Could not convert result '" << 
+                  actResultName << "' to a SolutionType ");
+      ptInfo->resultType = actResultType;
+      ptInfo->resultName = actResultName;
+      ptInfo->dofNames = StdVector<std::string>(dofNames);
+      ptInfo->unit = unit;
+      ptInfo->complexFormat = REAL_IMAG;
+      ptInfo->entryType = H5IO::MapEntryType( entryType );
+      ptInfo->definedOn = H5IO::MapUnknownType( definedOn );
+
+      infos.Push_back( ptInfo );
+    }
+    
+    resInfoGroup.close();
+    actMsGroup.close();
+  }
+
+  void SimInputHDF5::
+  GetResultEntities( UInt sequenceStep,
+                     shared_ptr<ResultInfo> info,
+                     StdVector<shared_ptr<EntityList> >& list ) {
+
+    // get resultname from resultinfo object
+    std::string resultName;
+    Enum2String( info->resultType, resultName );
+    
+    // open ms group and specific entry in 'ResultDescription'
+    H5::Group actMsGroup = H5IO::GetMultiStepGroup( mainFile_, sequenceStep );
+    H5::Group resInfoGroup;
+    try {
+      resInfoGroup = actMsGroup.openGroup( "ResultDescription/" + resultName );
+    } H5_CATCH( "Could not open group result description for result "
+                << resultName );
+    
+    // get regions
+    std::vector<std::string> regions;
+    H5IO::ReadArray( resInfoGroup, "Regions", regions );
+
+    // determine type of list for this result
+    EntityList::ListType listType;
+    switch( info->definedOn ) {
+    case ResultInfo::NODE:
+      listType = EntityList::NODE_LIST;
+      break;
+    case ResultInfo::ELEMENT:
+      listType = EntityList::ELEM_LIST;
+      break;
+    default:
+      EXCEPTION( "Only results defined on nodes and elements "
+                 << "can be read in from HDF5 file up to now" );
+    }
+
+    // iterate over all regions
+    list.Clear();
+    for( UInt i = 0; i < regions.size(); i++ ) {
+      list.Push_back( mi_->GetEntityList( listType, regions[i], 
+                                          EntityList::REGION ) );
+    }
+    resInfoGroup.close();
+    actMsGroup.close();
+  }
+  
+  void SimInputHDF5::GetResult( UInt sequenceStep,
+                                UInt stepValue,
+                                shared_ptr<BaseResult> result ) {
+
+    // open stepgroup, open specific result subgroup
+    H5::Group stepGroup = H5IO::GetStepGroup( mainFile_, sequenceStep, 
+                                              stepValue );
+
+
+    // determine region for this results
+    std::string regionName =  result->GetEntityList()->GetName();
+
+    // determine entity type string
+    std::string entString;
+    switch( result->GetResultInfo()->definedOn ) {
+    case ResultInfo::NODE:
+      entString = "Nodes";
+      break;
+    case ResultInfo::ELEMENT:
+      entString = "Elements";
+      break;
+    default:
+      EXCEPTION( "Currently only results on nodes and elements "
+                 << "can be read in from a hdf5 file ");
+    }
+
+    std::string groupName = result->GetResultInfo()->resultName;
+    groupName += "/" + regionName + "/" + entString;
+    
+    std::cerr << "groupName = " << groupName << std::endl;
+
+    H5::Group resGroup;
+    try {
+      resGroup = stepGroup.openGroup( groupName );
+    } H5_CATCH( "Unable to open group for result '" 
+                << result->GetResultInfo()->resultName
+                << "' on '" << regionName << "' in step " << stepValue );
+
+    // read data array
+    std::vector<Double> realVals;
+    H5IO::ReadArray( resGroup, "Real", realVals );
+
+    // copy data array to result object
+    Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
+    resVec.Resize( realVals.size() );
+    for( UInt i = 0; i < realVals.size(); i++ ) {
+      resVec[i] = realVals[i];
+    }
+  
+    resGroup.close();
+    stepGroup.close();
+  }
+
+  // =========================================================================
+  //  MISCELLANEOUS METHODS
   // =========================================================================
   void SimInputHDF5::ReadRegions(const H5::Group& meshGroup)
   {

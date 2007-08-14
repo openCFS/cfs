@@ -10,6 +10,7 @@
 #include "Domain/domain.hh"
 #include "DataInOut/postProc.hh"
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
+#include "DataInOut/simInput.hh"
 
 namespace CoupledField {
 
@@ -719,11 +720,77 @@ namespace CoupledField {
     }
   }
 
-  void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, const std::string& readerId ) {
+  void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, 
+                                      const std::string& readerId ) {
     ENTER_FCN( "ResultHandler::AddInputReader" );
 
     LOG_DBG(resHandler) << "Adding input reader with id ";
     inFiles_[readerId] = inClass;
+
   }
+
+
+  void ResultHandler::
+  GetNumMultiSequenceSteps( const std::string& readerId,
+                            StdVector<AnalysisType>& analysis ) {
+    
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not regsitered yet" );
+    }
+    
+    inFiles_[readerId]->GetNumMultiSequenceSteps( analysis );
+  }
+
+  
+  void ResultHandler::
+  GetResultTypes( const std::string& readerId,
+                  UInt sequenceStep,
+                  StdVector<shared_ptr<ResultInfo> >& infos ) {
+
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not regsitered yet" );
+    }
+
+    inFiles_[readerId]->GetResultTypes( sequenceStep,
+                                        infos );
+    
+  }
+    
+  
+  void ResultHandler::
+  GetResultEntities( const std::string& readerId,
+                     UInt sequenceStep,
+                     shared_ptr<ResultInfo> info,
+                     StdVector<shared_ptr<EntityList> >& list ) {
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not regsitered yet" );
+    }
+
+    inFiles_[readerId]
+      ->GetResultEntities( sequenceStep, info, list );
+  }
+
+  void ResultHandler::
+  GetResult( const std::string& readerId,
+             UInt sequenceStep,
+             UInt stepValue,
+             shared_ptr<BaseResult> result ) {
+
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not regsitered yet" );
+    }
+    
+    inFiles_[readerId]->GetResult( sequenceStep, stepValue, result );
+  }
+  
+
   
 }

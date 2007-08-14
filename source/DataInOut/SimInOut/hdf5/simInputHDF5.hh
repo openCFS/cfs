@@ -19,7 +19,7 @@ namespace CoupledField {
   public:
 
     // =======================================================================
-    // CONSTRUCTION AND INTIIALIZATION
+    //  CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
     //@{ \name Constructor / Initialization
     
@@ -37,7 +37,7 @@ namespace CoupledField {
     //@}
   
     // =======================================================================
-    // GENERAL MESH INFORMATION
+    //  GENERAL MESH INFORMATION
     // =======================================================================
     //@{ \name General Mesh Information
 
@@ -61,7 +61,7 @@ namespace CoupledField {
     //@}
   
     // =======================================================================
-    // ENTITY NAME ACCESS
+    //  ENTITY NAME ACCESS
     // =======================================================================
     //@{ \name Entity Name Access
   
@@ -73,7 +73,7 @@ namespace CoupledField {
     //! \note Since the regionIdType is guaranteed to be defined by
     //! a number type (UInt, uint32), the regionId of an element can
     //! be directly used as index to the regions-vector
-    void GetAllRegionNames( std::vector<std::string> & regionNames );
+    void GetAllRegionNames( StdVector<std::string> & regionNames );
     
     //! Get vector with region names of given dimension
 
@@ -97,6 +97,32 @@ namespace CoupledField {
     //! \param elemNames (output) vector with names of named elements
     virtual void GetElemNames( StdVector<std::string> & elemNames );
     
+    // =========================================================================
+    //  GENERAL SOLUTION INFORMATION
+    // =========================================================================
+    //@{ \name General Solution Information
+
+    //! Return multisequence steps and their analysistypes
+    void GetNumMultiSequenceSteps( StdVector<AnalysisType>& analysis );
+
+    //! Return list with time / frequency values in given multisequence step
+    void GetStepValues( UInt sequenceStep, 
+                        StdVector<Double>& stepVals );
+
+    //! Obtain list with result types in each sequence step
+    void GetResultTypes( UInt sequenceStep, 
+                         StdVector<shared_ptr<ResultInfo> >& infos );
+
+    //! Return entitylist the result is defined on
+    void GetResultEntities( UInt sequenceStep,
+                            shared_ptr<ResultInfo> info,
+                            StdVector<shared_ptr<EntityList> >& list );
+
+    //! Fill pre-initialized results object with values of specified step
+    void GetResult( UInt sequenceStep,
+                    UInt stepValue,
+                    shared_ptr<BaseResult> result );
+    //@}
 
   protected:
 

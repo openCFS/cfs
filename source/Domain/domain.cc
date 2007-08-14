@@ -29,6 +29,7 @@
 #include "Optimization/DesignSpace.hh"
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
+#include "Utils/result.hh"
 
 // Coupling of single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -161,7 +162,45 @@ namespace CoupledField {
     if ( !commandLine->GetPrintGrid() == true ) {
       // Initialize resultHandler
       resultHandler_->Init( gridMap_["default"], false );
-    }    
+    }   
+
+    // TEMPORARY
+    // @Simon: Im folgenden Block werden einige Dinge am 
+    // SimInput abgefragt und danach der zweite Ergebnistyp
+    // des ersten schritts im ersten multistep abgefragt.
+    // Zum Aschluss wird dieses Ergebnis "hardcodiert" wieder zum
+    // ResultHandler gegeben, der das wieder im ersten Schritt in das
+    // neue Format schreibt, d.h. es wird letztendlich eine Konvertierung
+    // des Ergebnisses vorgenommen.
+    /* 
+       StdVector<AnalysisType> types;
+       (gridInputs_.begin()->second)[0]->GetNumMultiSequenceSteps( types );
+       std::cerr << "types are " << types.Serialize() << std::endl;
+    
+       StdVector<Double> stepVals;
+       (gridInputs_.begin()->second)[0]->GetStepValues( 1, stepVals );
+    
+       StdVector<shared_ptr<ResultInfo> >infos;
+       (gridInputs_.begin()->second)[0]->GetResultTypes( 1, infos );
+    
+       StdVector<shared_ptr<EntityList> > lists;
+       (gridInputs_.begin()->second)[0]->GetResultEntities( 1, infos[0], lists ); 
+
+       // generate new result object
+       shared_ptr<Result<Double> > result( new Result<Double>() );
+       result->SetEntityList( lists[0] );
+       result->SetResultInfo( infos[1] );
+       (gridInputs_.begin()->second)[0]->GetResult( 1, 1, result ); 
+    
+       // add result "hardcoded" to resultHandler, so that it gets
+       // written out again
+       StdVector<std::string> outDest;
+       outDest = "default";
+       resultHandler_->RegisterResult( result, 1, 1, 1, outDest );
+       resultHandler_->BeginStep( 1, 1e-4 );
+       resultHandler_->UpdateResult( result );
+       resultHandler_->FinishStep();
+    */
   }
 
   void Domain::PostInit() 

@@ -245,7 +245,7 @@ namespace CoupledField {
     ENTER_FCN( "AndsysFile::GetNumRegions ");
     if(regionNames_.size() == 0)
     {
-      std::vector<std::string> names;
+      StdVector<std::string> names;
 
       GetAllRegionNames(names);
     }
@@ -271,20 +271,20 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputMESH::GetAllRegionNames( std::vector<std::string> & regionNames ){
+  void SimInputMESH::GetAllRegionNames( StdVector<std::string> & regionNames ){
     ENTER_FCN( "SimInputMESH::GetAllRegionNames" );
     
     if(regionNames_.size() == 0)
     {
       StdVector<std::string>  names;
 
-      regionNames.clear();
+      regionNames.Clear();
 
       for ( UInt iDim=dim_; iDim>0; iDim-- ) {
         names.Resize(0);
         GetRegionNamesOfDim(names,iDim);
         for ( UInt iName=0; iName<names.GetSize(); iName++ )
-          regionNames.push_back(names[iName]);
+          regionNames.Push_back(names[iName]);
 
       }
     }
