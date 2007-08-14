@@ -100,27 +100,26 @@ namespace CoupledField {
 
     //! Return number of multisequence steps for a givne inpute read
     void GetNumMultiSequenceSteps( const std::string& readerId,
-                                   std::vector<AnalysisType>& analysis );
+                                   StdVector<AnalysisType>& analysis );
 
     //! Return result types present in a given input reader
     void GetResultTypes( const std::string& readerId,
                          UInt sequenceStep,
-                         std::vector<shared_ptr<ResultInfo> >& infos );
+                         StdVector<shared_ptr<ResultInfo> >& infos );
     
     //! Return the entities for a given result
     void GetResultEntities( const std::string& readerId,
                             UInt sequenceStep,
                             shared_ptr<ResultInfo> info,
-                            std::vector<shared_ptr<EntityList> >& list );
+                            StdVector<shared_ptr<EntityList> >& list );
     
-    //! Return 
+    //! Fill previously initialized result object
     void GetResult( const std::string& readerId,
                     UInt sequenceStep,
                     UInt stepValue,
                     shared_ptr<BaseResult> result );
     
 
-    // ... to be implemented ...
 
     /** This dumps the content of the result handler for debugging */
     void Dump(); 

@@ -1,8 +1,15 @@
 #include "hdf5io.hh"
+#include <boost/lexical_cast.hpp>
 
 
 namespace CoupledField {
 
+  // define commodity method for converting a hdf5 exception
+  // to a CFS one
+#define H5_CATCH( STR )                                                 \
+  catch (H5::Exception& h5Ex ) {                                        \
+    EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
+  }
 
   // ====================================
   //    Initialize Atom Data Typemaps
@@ -924,6 +931,58 @@ namespace CoupledField {
 
 #undef DECL_IO_METHODS
 
+
+  // =======================================================================
+  //  GENERAL ACCESS METHODS
+  // =======================================================================
+  
+  H5::Group H5IO::GetMultiStepGroup( H5::H5File& file, UInt msStep ) {
+    
+    // open group with multisteps
+    H5::Group gridResultGroup;
+    try {
+      gridResultGroup = file.openGroup("/Results/Grid");
+    } H5_CATCH( "Could not open grid result group" );
+    
+    UInt numMsSteps = gridResultGroup.getNumObjs();
+    
+    // check, if msStep is bigger than current number of steps
+    if( msStep > numMsSteps ) {
+      EXCEPTION( "Requesting multistep " << msStep 
+                 << " although only " << numMsSteps 
+                 << " multisteps are present" );
+    }
+
+    // open specified msgroup
+    H5::Group actMsGroup;
+    std::string actMsName = "MultiStep_" 
+      + boost::lexical_cast<std::string>( msStep );
+    try {
+      actMsGroup = gridResultGroup.openGroup( actMsName );
+    } H5_CATCH( "Could not open group for multistep " << msStep );
+
+    gridResultGroup.close();
+    return actMsGroup;
+  }
+
+  H5::Group H5IO::GetStepGroup( H5::H5File& file, 
+                                UInt msStep, 
+                                UInt stepNum ) {
+    // get multistep group
+    H5::Group actMsGroup = GetMultiStepGroup( file, msStep );
+
+    std::string groupName = "Step_" + 
+      boost::lexical_cast<std::string> (stepNum );
+
+    H5::Group stepGroup;
+    try {
+      stepGroup = actMsGroup.openGroup( groupName );
+    } H5_CATCH( "Could not open group for results of step " << stepNum
+                << " in multiStep " << msStep );
+    actMsGroup.close();
+    return stepGroup;
+  }
+
   Integer H5IO::MapUnknownType( ResultInfo::EntityUnknownType t ) {
     Integer definedOn = 0;
     switch(t) {
@@ -967,7 +1026,45 @@ namespace CoupledField {
   }
   
   ResultInfo::EntityUnknownType H5IO::MapUnknownType( Integer t ) {
-    return ResultInfo::NODE;
+
+    ResultInfo::EntityUnknownType definedOn;
+    switch(t) {
+    case 1:
+      definedOn = ResultInfo::NODE;
+      break;
+    case 2:
+      definedOn = ResultInfo::EDGE;
+      break;
+    case 3: 
+      definedOn = ResultInfo::FACE;
+      break;
+    case 4:
+      definedOn = ResultInfo::ELEMENT;
+      break;
+    case 5:
+      definedOn = ResultInfo::SURF_ELEM;
+      break;
+    case 6:
+      definedOn = ResultInfo::PFEM;
+      break;
+    case 7:
+      definedOn = ResultInfo::REGION;
+      break;
+    case 8:
+      definedOn = ResultInfo::SURF_REGION;
+      break;
+    case 9:
+      definedOn = ResultInfo::NODELIST;
+      break;
+    case 10:
+      definedOn = ResultInfo::COIL;
+      break;
+    case 11:
+      definedOn = ResultInfo::FREE;
+      break;
+    }
+
+    return definedOn;
   }
   
   
@@ -996,7 +1093,27 @@ namespace CoupledField {
 
   
   ResultInfo::EntryType H5IO::MapEntryType( Integer t ) {
-    return ResultInfo::UNKNOWN;
+
+    ResultInfo::EntryType entryType;
+    
+    switch(t) {
+    case 0:
+      entryType =ResultInfo::UNKNOWN;
+      break;
+    case 1:
+      entryType = ResultInfo::SCALAR;
+      break;
+    case 3:
+      entryType = ResultInfo::VECTOR;
+      break;
+    case 6:
+      entryType = ResultInfo::TENSOR;
+      break;
+    case 32: 
+      entryType = ResultInfo::STRING;
+      break;
+    }
+    return entryType;
   }
 
 

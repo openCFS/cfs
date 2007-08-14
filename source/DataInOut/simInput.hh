@@ -111,7 +111,7 @@ namespace CoupledField
     //! \note Since the RegionIdType is guaranteed to be defined by
     //! a number type (UInt, uint32), the regionId of an element can
     //! be directly used as index to the regionNames-vector
-    virtual void GetAllRegionNames( std::vector<std::string> & regionNames ) = 0;
+    virtual void GetAllRegionNames( StdVector<std::string> & regionNames ) = 0;
 
     //! Get vector with region names of given dimension
 
@@ -141,26 +141,32 @@ namespace CoupledField
     // =========================================================================
     //@{ \name General Solution Information
 
-    void GetNumMultiSequenceSteps( std::vector<AnalysisType>& analysis ) {
+    //! Return multisequence steps and their analysistypes
+    virtual void GetNumMultiSequenceSteps( StdVector<AnalysisType>& analysis ) {
       EXCEPTION( "Not implemented in base class" );
     }
 
-    void GetStepValues( UInt sequenceStep, std::vector<Double>& stepVals ) {
+    //! Return list with time / frequency values in given multisequence step
+    virtual void GetStepValues( UInt sequenceStep, 
+                        StdVector<Double>& stepVals ) {
       EXCEPTION( "Not implemented in base class" );
     }
 
-    void GetResultTypes( UInt sequenceStep, 
-                         std::vector<shared_ptr<ResultInfo> >& infos ) {
+    //! Obtain list with result types in each sequence step
+    virtual void GetResultTypes( UInt sequenceStep, 
+                         StdVector<shared_ptr<ResultInfo> >& infos ) {
       EXCEPTION( "Not implemented in base class" );
     }
 
-    void GetResultEntities( UInt sequenceStep,
+    //! Return entitylist the result is defined on
+    virtual void GetResultEntities( UInt sequenceStep,
                             shared_ptr<ResultInfo> info,
-                            std::vector<shared_ptr<EntityList> >& list ) {
+                            StdVector<shared_ptr<EntityList> >& list ) {
       EXCEPTION( "Not implemented in base class" );
     }
-
-    void GetResult( UInt sequenceStep,
+    
+    //! Fill pre-initialized results object with values of specified step
+    virtual void GetResult( UInt sequenceStep,
                     UInt stepValue,
                     shared_ptr<BaseResult> result ) {
       EXCEPTION( "Not implemented in base class" );

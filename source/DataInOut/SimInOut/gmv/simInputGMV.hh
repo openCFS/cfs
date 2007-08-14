@@ -91,7 +91,7 @@ namespace CoupledField {
     //! \note Since the regionIdType is guaranteed to be defined by
     //! a number type (UInt, uint32), the regionId of an element can
     //! be directly used as index to the regions-vector
-    virtual void GetAllRegionNames( std::vector<std::string> & regionNames );
+    virtual void GetAllRegionNames( StdVector<std::string> & regionNames );
 
     //! Get vector with region names of given dimension
 

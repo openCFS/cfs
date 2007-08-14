@@ -97,7 +97,7 @@ namespace CoupledField {
     static UInt GetNumEntries( const H5::CommonFG &loc,
                                const std::string& name );
     
-    //! Retrieve data from a dataset
+    //! Retrieve array data from a dataset
 
     //! Read data from a an dataset of arbitrary dimension into a linear buffer
     //! Note, that the memory has to be allocated from outside
@@ -125,6 +125,19 @@ namespace CoupledField {
 //                            Matrix<TYPE>& buffer );
     
 
+    // =======================================================================
+    //  GENERAL ACCESS METHODS
+    // =======================================================================
+
+    //! Obtain grid result group for specified multisequence step
+    static H5::Group GetMultiStepGroup( H5::H5File& file, 
+                                        UInt msStep );
+
+    //! Obtain grid result group for specified step in a given multistep
+    static H5::Group GetStepGroup( H5::H5File& file, 
+                                   UInt msStep, UInt 
+                                   stepNum );
+    
     // =======================================================================
     //  CONVERSION METHODS
     // =======================================================================
