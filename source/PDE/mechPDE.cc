@@ -1695,6 +1695,16 @@ namespace CoupledField {
     stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( stress );
 
+    // === MECHANIC STRAIN ===
+    shared_ptr<ResultInfo> strain(new ResultInfo);    
+    strain->resultType = MECH_STRAIN;
+    strain->dofNames = stressDofNames;
+    strain->unit =  "";
+    strain->entryType = ResultInfo::TENSOR;
+    strain->definedOn = ResultInfo::ELEMENT;
+    strain->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( strain );
+
     // === MECHANIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);    
     energy->resultType = MECH_ENERGY;
@@ -1756,6 +1766,14 @@ namespace CoupledField {
       }
       break;
 
+    case MECH_STRAIN:
+      if( isComplex_ ) {
+        CalcStrains<Complex>( result );
+      } else {
+        CalcStrains<Double>( result );
+      }
+      break;
+
     case MECH_ENERGY:
       if( isComplex_ ) {
         CalcEnergy<Complex>( result );
@@ -1795,8 +1813,6 @@ namespace CoupledField {
   }
 
 
-
-
   template <class TYPE>
   void MechPDE::CalcStresses( shared_ptr<BaseResult> res ) {
     ENTER_FCN( "MechPDE::CalcStresses" );
@@ -1808,7 +1824,7 @@ namespace CoupledField {
     SubTensorType type;
     String2Enum(subType_,type);
 
-    Vector<TYPE> elemStress, sortedStress;
+    Vector<TYPE> elemStress;
     elemStress.Resize(stressDim_);
     elemStress.Init(0);
     
@@ -1845,6 +1861,53 @@ namespace CoupledField {
     }
     
     delete stress;
+  }
+
+  template <class TYPE>
+  void MechPDE::CalcStrains( shared_ptr<BaseResult> res ) {
+    ENTER_FCN( "MechPDE::CalcStrains" );
+    //transform the subType of the pde
+    SubTensorType type;
+    String2Enum(subType_,type);
+
+    Vector<Double> intPoint;
+    Vector<TYPE> elemStrain;
+    elemStrain.Resize(stressDim_);
+    elemStrain.Init(0);
+    
+    Result<TYPE> &  actRes = 
+      dynamic_cast<Result<TYPE>&>(*res);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+    
+    Vector<TYPE> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim_ );
+    
+    // Fetch material: As we assume, that all elements belong to
+    // one and the same region, we simply take the subdomain of the first 
+    // element
+    it.Begin();
+    BaseMaterial* actSDMat = materials_[it.GetElem()->regionId];
+    MechStressStrain<TYPE> *strain = new MechStressStrain<TYPE>(actSDMat,type);
+
+    // loop over elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+      
+      //set element solution        
+      Matrix<TYPE> elSol;
+      sol_->GetElemSolutionAsMatrix(elSol, it);
+      strain->SetActElemSol(elSol);
+
+      //calculates the element strain
+      strain->SetIntPoint(intPoint);
+      strain->CalcStrainVec(elemStrain,1,it);
+      strain->UnsetIntPoint();
+      for( UInt iDof = 0; iDof < stressDim_; iDof++ ) {
+        actVal[it.GetPos()*stressDim_ + iDof] = elemStrain[iDof];
+      }
+    }
+    
+    delete strain;
   }
 
 
