@@ -92,6 +92,10 @@ namespace CoupledField
     template <class TYPE>
     void CalcStresses(  shared_ptr<BaseResult> vals );
 
+    //computes mechanical strains
+    template <class TYPE>
+    void CalcStrains(  shared_ptr<BaseResult> vals );
+
     //! compute volume above a deformed surface
     template <class TYPE>
     void ComputeVolDefSurf( shared_ptr<BaseResult> vals );
