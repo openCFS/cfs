@@ -2145,9 +2145,6 @@ namespace CoupledField
     UInt dim = GetDim();
     std::vector<HandleBox> elemBoxes2;
     
-    std::cout << std::endl;
-    std::cout << std::endl;
-
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty())
     {
