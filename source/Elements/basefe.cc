@@ -203,11 +203,9 @@ namespace CoupledField
           // Cramer's rule.
           jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
 
-          delta_xi[0] = + J[0][1]*f[1] - J[0][2]*f[1]
-                        - J[1][1]*f[0] + J[2][1]*f[0];
+          delta_xi[0] = - J[1][1]*f[0] + J[0][1]*f[1];
         
-          delta_xi[1] = - J[0][0]*f[1] + J[2][0]*f[1]
-                        - J[1][2]*f[0] + J[1][0]*f[0];
+          delta_xi[1] = - J[0][0]*f[1] + J[1][0]*f[0];
 
           distNormalizer = sqrt(fabs(jacDet));
         }
@@ -297,8 +295,8 @@ namespace CoupledField
           f = f - globalPoint;
           distance_l = f.NormL2();
 
-          std::cout << "coeff " << coeff << " distance_l "
-                    << distance_l << std::endl;
+          //          std::cout << "coeff " << coeff << " distance_l "
+          //                    << distance_l << std::endl;
 
           if(distance_l < distance)
           {
