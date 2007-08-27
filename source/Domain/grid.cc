@@ -14,14 +14,6 @@
 #include "Utils/mathfunctions.hh"
 #include "polygonIterator.hh"
 
-#ifdef USE_INTERPOLATION
-#include <CGAL/box_intersection_d.h>
-#include <CGAL/Bbox_2.h>
-#include <CGAL/Bbox_3.h>
-#include <CGAL/Cartesian.h>
-#include <CGAL/Polygon_2_algorithms.h>
-#endif
-
 namespace CoupledField
 {
 
@@ -345,7 +337,39 @@ namespace CoupledField
     StdVector<SurfElem*> ifaceElems;
 
 #ifdef USE_INTERPOLATION
-    intersection();
+    Vector<double> coord;
+    Vector<double> localCoords;
+    
+    coord.Resize(3);
+    coord[0] = 0.0011;
+    coord[1] = 0.0011;
+    coord[2] = 0.0;
+    
+    const Elem* elemAtCoord = GetElemAtGlobalCoord(coord, localCoords);
+
+    if (elemAtCoord)
+    {
+      std::cout << "++++++ Yipeaiäh! Element nummer " << elemAtCoord->elemNum << std::endl;
+      std::cout << "++++++ Local coordinates "
+                << localCoords[0] << ", "
+                << localCoords[1] << std::endl;
+    }
+    
+    
+    coord[0] = 0.00125;
+    coord[1] = 0.00175;
+    coord[2] = 0.0;
+
+    elemAtCoord = GetElemAtGlobalCoord(coord, localCoords);
+
+    if (elemAtCoord)
+    {
+      std::cout << "++++++ Yipeaiäh! Element nummer " << elemAtCoord->elemNum << std::endl;
+      std::cout << "++++++ Local coordinates "
+                << localCoords[0] << ", "
+                << localCoords[1] << std::endl;
+    }
+
 #endif
     
     ParamNode* pNode;
@@ -1999,27 +2023,18 @@ namespace CoupledField
   }
 
 #ifdef USE_INTERPOLATION
-  typedef CGAL::Box_intersection_d::Box_d<int,2> Box;
-
-  //  typedef CGAL::Box_intersection_d::Box_d<double,2> Box2D;
-  //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
-  //  typedef CGAL::Bbox_2                              BBox2D;
-  typedef CGAL::Bbox_3                              BBox3D;
-  typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,UInt*> HandleBox;
-
-  typedef CGAL::Cartesian<double> K;
-  typedef K::Point_2 Point2D;
   
+  /*
   // coordinates for 9 boxes of a grid
   int p[9*4]   = { 0,0,1,1,  1,0,2,1,  2,0,3,1, // lower
                    0,1,1,2,  1,1,2,2,  2,1,3,2, // middle
                    0,2,1,3,  1,2,2,3,  2,2,3,3};// upper
   // 9 boxes
-  Box boxes[9] = { Box( p,    p+ 2),  Box( p+ 4, p+ 6),  Box( p+ 8, p+10),
+  Grid::Box boxes[9] = { Box( p,    p+ 2),  Box( p+ 4, p+ 6),  Box( p+ 8, p+10),
                    Box( p+12, p+14),  Box( p+16, p+18),  Box( p+20, p+22),
                    Box( p+24, p+26),  Box( p+28, p+30),  Box( p+32, p+34)};
   // 2 selected boxes as query; center and upper right
-  Box query[2] = { Box( p+16, p+18),  Box( p+32, p+34)};
+  Grid::Box query[2] = { Box( p+16, p+18),  Box( p+32, p+34)};
 
   // callback function object writing results to an output iterator
   template <class OutputIterator>
@@ -2028,70 +2043,12 @@ namespace CoupledField
     Report( OutputIterator i) : it(i) {} // store iterator in object
     // We write the id-number of box a to the output iterator assuming
     // that box b (the query box) is not interesting in the result.
-    void operator()( const Box& a, const Box&) { *it++ = a.id(); }
+    void operator()( const Grid::Box& a, const Grid::Box&) { *it++ = a.id(); }
   };
   template <class Iter> // helper function to create the function object
   Report<Iter> report( Iter it) { return Report<Iter>(it); }
 
 
-  // callback function object writing results to an output iterator
-  template <class OutputIterator, class Grid>
-  struct Report2 {
-    OutputIterator it;
-    Grid& grid;
-    Report2(OutputIterator i, Grid& g) : it(i), grid(g) {} // store iterator in object
-    // We write the id-number of box a to the output iterator assuming
-    // that box b (the query box) is not interesting in the result.
-    void operator()( const HandleBox& a, const HandleBox& b) {
-      UInt elemNum = *a.handle();
-      UInt dim = grid.GetDim();
-      UInt numElemNodes;
-      FEType type;
-      RegionIdType region;
-      std::vector<UInt> connect;
-      Matrix<Double> coordMat;
-      Matrix<Double> globCoordMat;
-      Matrix<Double> localCoords;
-      Vector<Double> point;
-
-      *it++ = elemNum;
-      connect.resize(64);
-      
-      std::cout << "Elem Number " << elemNum << std::endl;
-
-      grid.GetElemData(elemNum, type, region, &connect[0]);
-      numElemNodes = NUM_ELEM_NODES[type];
-      coordMat.Resize(dim, numElemNodes);
-      globCoordMat.Resize(dim, 1);
-
-      for(UInt i=0; i<numElemNodes; i++)
-      {
-        grid.GetNodeCoordinate(point, connect[i], true);
-        // coordMat auffüllen!
-        for(UInt j=0; j<dim; j++)
-        {
-          coordMat[j][i] = point[j];
-
-          //          std::cout << "Corner " << (i+1) << " Coord "
-          //                    << (j+1) << " " << point[j] << std::endl;
-        }
-      }
-
-      for(UInt j=0; j<dim; j++)
-      {
-        globCoordMat[j][0] = b.min_coord(j);
-
-        //        std::cout << "Glob Coord " << (j+1)
-        //                  << " Coord " << b.min_coord(j) << std::endl;
-
-      }
-
-      grid.GetElem(elemNum)->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
-
-    }
-  };
-  template <class Iter, class Grid> // helper function to create the function object
-  Report2<Iter, Grid> report2(Iter it, Grid& g) { return Report2<Iter, Grid>(it, g); }
 
   
   // callback function that reports all truly intersecting triangles
@@ -2108,7 +2065,6 @@ namespace CoupledField
     std::cout << '.' << std::endl;
   }
   
-
   void Grid::intersection() {
     double xmin, ymin, xmax, ymax, zmin, zmax;
     StdVector<Elem*> elems;
@@ -2179,6 +2135,75 @@ namespace CoupledField
                std::ostream_iterator<std::size_t>( std::cout, " "));
     std::cout << std::endl;
     std::cout << std::endl;
+  }
+  */
+
+  const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
+                                         Vector<double>& localCoords)
+  {
+    double xmin, ymin, xmax, ymax, zmin, zmax;
+    UInt dim = GetDim();
+    std::vector<HandleBox> elemBoxes2;
+    
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    // If we haven't initialized the grid bounding boxes yet, do so now!
+    if(elemBoxes_.empty())
+    {
+      StdVector<Elem*> elems;
+      Point p;
+
+      GetVolElems(elems, ALL_REGIONS);
+      elemBoxes_.resize(elems.GetSize());
+
+      for(UInt i = 0, m=elems.GetSize(); i < m; i++)
+      {
+        GetNodeCoordinate(p, elems[i]->connect[0]);
+
+        xmin = xmax = p[0];
+        ymin = ymax = p[1];
+        zmin = zmax = p[2];
+    
+        for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
+        {
+          GetNodeCoordinate(p, elems[i]->connect[j]);
+          xmin = p[0] < xmin ? p[0] : xmin;
+          xmax = p[0] > xmax ? p[0] : xmax;
+          ymin = p[1] < ymin ? p[1] : ymin;
+          ymax = p[1] > ymax ? p[1] : ymax;
+          zmin = p[2] < zmin ? p[2] : zmin;
+          zmax = p[2] > zmax ? p[2] : zmax;
+        }
+
+        elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                                 &elems[i]->elemNum);
+      
+        //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
+      
+      }
+    }
+    
+    UInt test = 9696969696;
+    elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], globCoord[2],
+                                          globCoord[0], globCoord[1], globCoord[2]),
+                                   &test));
+    
+    // run the intersection algorithm and store results in a vector
+    std::vector< std::pair<const Elem*, Vector<double> > > result;
+    
+    CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
+                              elemBoxes2.begin(), elemBoxes2.end(),
+                              report2( std::back_inserter( result ), *this));
+
+    if(!result.empty())
+    {
+      localCoords = result.begin()->second;
+      return result.begin()->first;
+    }
+    else
+      return NULL;
+    
   }
   
 #endif // USE_INTERPOLATION

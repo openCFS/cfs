@@ -7,6 +7,16 @@
 
 #include <list>
 
+#include <def_use_interpolation.hh>
+
+#ifdef USE_INTERPOLATION
+#include <CGAL/box_intersection_d.h>
+#include <CGAL/Bbox_2.h>
+#include <CGAL/Bbox_3.h>
+#include <CGAL/Cartesian.h>
+#include <CGAL/Polygon_2_algorithms.h>
+#endif
+
 #include "Domain/elem.hh"
 #include "Domain/surfElem.hh"
 #include "Domain/ncElem.hh"
@@ -14,7 +24,6 @@
 #include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
 
-#include <def_use_interpolation.hh>
 
 namespace CoupledField
 {
@@ -840,7 +849,108 @@ namespace CoupledField
   private:
 
 #ifdef USE_INTERPOLATION
+    typedef CGAL::Box_intersection_d::Box_d<int,2> Box;
+    
+    //  typedef CGAL::Box_intersection_d::Box_d<double,2> Box2D;
+    //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
+    //  typedef CGAL::Bbox_2                              BBox2D;
+    typedef CGAL::Bbox_3                              BBox3D;
+    typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,UInt*> HandleBox;
+    
+    typedef CGAL::Cartesian<double> K;
+    typedef K::Point_2 Point2D;
+
+
+    std::vector<HandleBox> elemBoxes_;
+
+  // callback function object writing results to an output iterator
+  template <class OutputIterator, class Grid>
+  struct Report2 {
+    OutputIterator it;
+    Grid& grid;
+    Report2(OutputIterator i, Grid& g) : it(i), grid(g) {} // store iterator in object
+    // We write the id-number of box a to the output iterator assuming
+    // that box b (the query box) is not interesting in the result.
+    void operator()( const HandleBox& a, const HandleBox& b) {
+      UInt elemNum = *a.handle();
+      UInt dim = grid.GetDim();
+      UInt localDim;
+      UInt numElemNodes;
+      FEType type;
+      RegionIdType region;
+      std::vector<UInt> connect;
+      Matrix<Double> coordMat;
+      Matrix<Double> globCoordMat;
+      Matrix<Double> localCoords;
+      Vector<Double> point;
+      StdVector<bool> coordsInside;
+      Vector<Double> locCoords;
+
+      connect.resize(64);
+      
+      //      std::cout << "Elem Number " << elemNum << std::endl;
+
+      grid.GetElemData(elemNum, type, region, &connect[0]);
+      numElemNodes = NUM_ELEM_NODES[type];
+      coordMat.Resize(dim, numElemNodes);
+      globCoordMat.Resize(dim, 1);
+
+      for(UInt i=0; i<numElemNodes; i++)
+      {
+        grid.GetNodeCoordinate(point, connect[i], true);
+        // coordMat auffüllen!
+        for(UInt j=0; j<dim; j++)
+        {
+          coordMat[j][i] = point[j];
+
+          //          std::cout << "Corner " << (i+1) << " Coord "
+          //                    << (j+1) << " " << point[j] << std::endl;
+        }
+      }
+
+      for(UInt j=0; j<dim; j++)
+      {
+        globCoordMat[j][0] = b.min_coord(j);
+
+        //        std::cout << "Glob Coord " << (j+1)
+        //                  << " Coord " << b.min_coord(j) << std::endl;
+
+      }
+
+      grid.GetElem(elemNum)->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
+
+      grid.GetElem(elemNum)->ptElem->CoordsInsideElem(localCoords, 0, coordsInside);
+
+      localDim = localCoords.GetSizeRow();
+      locCoords.Resize(localDim);
+      
+      for(UInt j=0; j<localDim; j++)
+      {
+        //        std::cout << "Local Coord " << (j+1)
+        //                  << " Coord " << localCoords[j][0] << std::endl;
+
+        locCoords[j] = localCoords[j][0];
+      }
+      
+      if(coordsInside[0])
+      {  
+        std::pair<const Elem*, Vector<Double> > pair;
+        pair.first = grid.GetElem(elemNum);
+        pair.second = locCoords;
+        *it++ = pair;
+      }
+      
+    }
+  };
+  template <class Iter, class Grid> // helper function to create the function object
+  Report2<Iter, Grid> report2(Iter it, Grid& g) { return Report2<Iter, Grid>(it, g); }
+
+
     void intersection();
+
+  public:
+    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
+                                     Vector<double>& localCoords);
 #endif
 
     ///
