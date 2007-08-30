@@ -746,13 +746,6 @@ namespace CoupledField {
 
     ptGrid_->GetListElemNames(elemNames);
 
-    // check if there are any named nodes / elems in the grid
-    if( ( nodeNames.GetSize() == 0 ) && 
-        ( elemNames.GetSize() == 0 ) )
-    {
-      return;
-    }
-
     // Begin group section
     if (ascii_) {
       (*gridFile) << "groups" << std::endl;
