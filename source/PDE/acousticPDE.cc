@@ -1843,7 +1843,7 @@ namespace CoupledField {
       StdVector<UInt> connect = actSaveElem->connect;
       ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
               
-      Vector<Double> valueElem;
+      Vector<TYPE> valueElem;
       if ( formulation_ == ACOU_POTENTIAL ) {
 
         Integer matIndex = -1;
@@ -1877,7 +1877,6 @@ namespace CoupledField {
         //elemList.SetElement( actSaveElem );
         //EntityIterator it = elemList.GetIterator();
         GetDerivSolVecOfElement(valueElem,  it, results_[0]);
-
         valueElem *= density;
       }
       else if ( formulation_ == ACOU_PRESSURE ) {
@@ -1892,7 +1891,7 @@ namespace CoupledField {
       const UInt nrIntPts= ptElem->GetNumIntPoints();
       const Vector<Double> & intWeights = ptElem->GetIntWeights();
 
-      Double forceElem = 0.0;
+      TYPE forceElem = 0.0;
       Double jacDet;
       for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
 

@@ -787,7 +787,7 @@ namespace CoupledField {
       
         } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
           defineType = EntityList::NAMED_ELEMS;  
-          histNode = actResultNode->Get("surfEelemList",false); 
+          histNode = actResultNode->Get("surfElemList",false); 
           if( histNode) 
             histEntities = histNode->GetList("surfElems");
           entityTypeName = "surfElems";
