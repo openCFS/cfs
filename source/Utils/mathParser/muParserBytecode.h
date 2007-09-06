@@ -130,6 +130,14 @@ public:
     {
       return mc_iSizePtr;
     }
+    
+    /** \brief Return size of buffer.
+       
+    */
+    std::size_t GetBufSize() const
+      {
+        return m_vBase.size();
+      }
 
     void RemoveValEntries(unsigned a_iNumber);
     void AsciiDump();
