@@ -1105,7 +1105,9 @@ value_type ParserBase::ParseString() const
 
   if (m_bUseByteCode)
   {
-    m_pParseFormula = (m_pCmdCode[1]==cmVAL && m_pCmdCode[6]==cmEND) ? 
+    std::size_t checkEnd = 2 + m_vByteCode.GetValSize();
+    m_pParseFormula = (m_pCmdCode[1]==cmVAL && 
+                       m_pCmdCode[checkEnd]==cmEND) ? 
                             &ParserBase::ParseValue :
                             &ParserBase::ParseCmdCode;
   }
