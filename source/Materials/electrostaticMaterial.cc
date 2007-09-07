@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <string>
 
+#include "Utils/preisach.hh"
 #include "electrostaticMaterial.hh"
 
 
@@ -381,5 +382,53 @@ namespace CoupledField
     pos->second.GetSubMatrix(matMatrix, 0, 0);
   }
 
+
+  //============================== Hysteresis =====================================
+
+  Double ElectroStaticMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+    ENTER_FCN( "ElectroStaticMaterial::ComputeScalarDiffVal" );
+
+    Double matDiff, eps;
+
+    UInt idx = globalElem2Local_[nrElem];
+    Double Ycurrent = hyst_->computeValueAndUpdate(Xval, idx);
+
+    //    std::cout << "epsDiff: " << " Xval=" << Xval << "  Yval=" << Ycurrent << std::endl;
+ 
+    //compute differential material parameter
+    Double dX = Xval - Xprevious_[idx];
+    Double dY = Ycurrent -Yprevious_[idx];
+
+    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+      GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+      matDiff = eps;
+    }
+    else {
+      matDiff = dY / dX;
+    }
+
+    return matDiff;
+  }
   
+
+  void ElectroStaticMaterial::SetPreviousHystVal( UInt nrElem, Double Xval ) {
+    ENTER_FCN( "ElectroStaticMaterial::SetPreviousHystVal" );
+
+    UInt idx = globalElem2Local_[nrElem];
+
+    Xprevious_[idx] = Xval;
+    Yprevious_[idx] = hyst_->computeValueAndUpdate( Xval, idx );
+  }
+
+
+  Double ElectroStaticMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval ) {
+    ENTER_FCN( "ElectroStaticMaterial::ComputeScalarHystVal" );
+
+    UInt idx    = globalElem2Local_[nrElem];
+    Double Yval = hyst_->computeValueAndUpdate( Xval, idx );
+    
+    return Yval;
+  }
+
+
 }

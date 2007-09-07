@@ -85,8 +85,8 @@ namespace CoupledField
     newX = normalizeInput(Xin);
 
     Yval = 0.0;
-    if ( actLength < 2 ) {
-//     if ( abs(abs(newX)+eps_) > abs(stringEl[0]) || actLength == 0 ) {
+    //    if ( actLength < 2 ) {
+    if ( abs(abs(newX)+eps_) > abs(stringEl[0]) || actLength == 0 ) {
       Yval =  everett( -newX, newX );
     }
     else {
@@ -126,7 +126,7 @@ namespace CoupledField
   Double Preisach :: computeValueAndUpdate( Double Xin, Integer idx,
                                             bool overwrite )  
   {
-    ENTER_FCN( "Preisach::computeValue" );
+    ENTER_FCN( "Preisach::computeValueAndUpdate" );
 
     //do the deletion
     Double newY = updateMinMaxList(Xin, idx, overwrite);
@@ -264,7 +264,7 @@ namespace CoupledField
     Double X2 = normalizeInput( xVal2 );
 
 
-    std::cout << "StrLength: " <<  StringLenght_[idx] << std::endl;
+    //    std::cout << "StrLength: " <<  StringLenght_[idx] << std::endl;
     Double pPixel;
     if (  StringLenght_[idx] < 2 ) {
       //    Double pPixel =  everettPixel(X1, X2);
@@ -274,7 +274,7 @@ namespace CoupledField
       pPixel =  everett(X1, X2);
     }
 
-    std::cout << "X1=" << X1 << " X2=" << X2 << " pPixel=" << pPixel << std::endl;
+    //    std::cout << "X1=" << X1 << " X2=" << X2 << " pPixel=" << pPixel << std::endl;
     pPixel *= YSaturated_;
 
     return pPixel;

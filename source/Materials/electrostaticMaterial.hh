@@ -9,10 +9,13 @@
 
 namespace CoupledField {
 
+
   //! Class for Material Data
   /*! 
      Class for handling electrostatic material data
   */
+
+  class Hysteresis;
 
   class ElectroStaticMaterial : public BaseMaterial {
 
@@ -69,6 +72,17 @@ namespace CoupledField {
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
 		    DataType dataType,
 		    SubTensorType = FULL ) const;	
+
+
+    //======================== for hysteresis =======================================
+    //! compute scalar differential parameter
+    Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
+
+
+    //set values for differential material approach
+    void SetPreviousHystVal( UInt nrElem, Double Xval );
+
+    Double ComputeScalarHystVal( UInt nrElem, Double Xval );
 
   private:
 

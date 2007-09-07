@@ -250,12 +250,11 @@ namespace CoupledField {
 	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 	  
 	  //get correct component of electric field for scalar Preisach model
-	  //Ecomp = Efield[dirP]; //Efield.NormL2(); //[comp]; 
-	  
+	  Ecomp   = Efield[dirP]; 	  
 	  pdeElem = it.GetElem()->elemNum;
 	  
 	  //set the values
-	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, Efield );
+	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, Ecomp );
 	}  
       }
     }

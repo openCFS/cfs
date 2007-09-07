@@ -721,7 +721,7 @@ namespace CoupledField {
         //materials_[ subdoms_[isd] ]->
         Ecomp = Efield[dirP]; //.NormL2(); //[comp]; 
         ielGlob = it.GetElem()->elemNum ;
-        Pval = actMat->ComputeScalarHystVal( ielGlob, Efield );
+        Pval = actMat->ComputeScalarHystVal( ielGlob, Ecomp );
         vecP.Init();
 //          for ( UInt i=0; i<vecE.GetSize(); i++)
 //            vecE[i] = abs( vecE[i] );
