@@ -241,7 +241,18 @@ namespace CoupledField {
     virtual Double ConvertVec2ScalarWithSign( Vector<Double>& vecVal );
 
     //set values for differential material approach
-    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
+    virtual void SetPreviousHystVal( UInt nrElem, Double Xval ) {
+      Error( "SetPreviousHystVal not implemented", __FILE__, __LINE__ );
+    };
+
+    //set values for differential material approach
+  virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
+
+    //! compute scalar differential parameter
+    virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+      Error( "ComputeScalarDiffValue not implemented", __FILE__, __LINE__ );
+      return 1.0;
+    };
 
     //! compute scalar differential parameter
     virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
@@ -250,6 +261,12 @@ namespace CoupledField {
     virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
                                             Vector<Double>& scalarValues ) {
       Error( "ComputeScalarDiffValues not implemented", __FILE__, __LINE__ );
+    };
+
+    //! computes the scalar hystereis value
+    virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
+      Error( "ComputeScalarHystVal not implemented", __FILE__, __LINE__ );
+      return 1.0;
     };
 
     //! computes the scalar hystereis value
