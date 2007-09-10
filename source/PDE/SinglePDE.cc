@@ -2519,18 +2519,13 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void SinglePDE::ReadDataPML(std::string& dampingTypePML, 
-                                Matrix<Double>& inner, 
-                                Double& dampPML, 
-                                ParamNode * actNode ) {
+                              Matrix<Double>& inner, 
+                              Double& dampPML, 
+                              ParamNode * actNode ) {
   
     ENTER_FCN( "SinglePDE::ReadDataPML" );
 
-    // help variables for parameter checking
-    StdVector<std::string> propGeo;
-    StdVector<std::string> stringVal;
-    StdVector<Double> val;
-
-    // Check, if pml node has a child "prepRegion"
+    // Check, if pml node has a child "propRegion"
     ParamNode * propRegionNode = actNode->Get( "propRegion", false );
 
     // If no propagation region is defined explicitly, we 
@@ -2576,17 +2571,19 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void SinglePDE::GetPMLLayerData(Matrix<Double>& inner, 
-                                    Matrix<Double>& outer,
-                                    RegionIdType actRegion )  {  
+                                  Matrix<Double>& outer,
+                                  RegionIdType actRegion )  {  
 
     ENTER_FCN( "SinglePDE::GetPMLLayerData" );
-
-    // inner/outer:   xmin  ymin  zmin
-    //                xmax  ymax  zmax
-
+    
+    // outstream for info-File
+    std::ostringstream out;
+    out.clear();
+    out << "PML for region '" << ptgrid_->RegionIdToName(actRegion) << "':" << std::endl;
+    
     if ( inner.GetSizeCol() != dim_ ) {
+      
       //we have to compute it, since the user has not specified it
-
       inner.Resize(2,dim_);
       inner.Init();
       
@@ -2632,23 +2629,21 @@ namespace CoupledField {
           }
         }
       }
-      std::ostringstream out;
-      out.clear();
-      out << "Acoustic propagation region:\n" 
-          << "   xmin = " << inner[0][0] << std::endl
-          << "   xmax = " << inner[1][0] << std::endl
-          << "   ymin = " << inner[0][1] << std::endl
-          << "   ymax = " << inner[1][1] << std::endl;
-      if ( dim_ == 3) {
-        out << "   zmin = " << inner[0][2] << std::endl
-            << "   zmax = " << inner[1][2] << std::endl;
-      }
-      out << std::endl;
-      Info->PrintF( pdename_, out.str().c_str() );
     }
     
-    outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
+    out << "Acoustic propagation coordinates:\n" 
+        << "   xmin = " << inner[0][0] << std::endl
+        << "   xmax = " << inner[1][0] << std::endl
+        << "   ymin = " << inner[0][1] << std::endl
+        << "   ymax = " << inner[1][1] << std::endl;
+    if ( dim_ == 3) {
+      out << "   zmin = " << inner[0][2] << std::endl
+          << "   zmax = " << inner[1][2] << std::endl;
+    }
     
+    
+    outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
+    // set outer boundary values to max-value of acoustic propagation region
     outer[0][0] = outer[1][0] = inner[1][0];
     outer[0][1] = outer[1][1] = inner[1][1];
     if (inner.GetSizeCol() > 2 ) {
@@ -2692,8 +2687,20 @@ namespace CoupledField {
             outer[1][2] = ptCoord[2][i];
         }
       }
-      
     }
+    
+    out << "PML layer coordinates:\n" 
+        << "   xmin = " << outer[0][0] << std::endl
+        << "   xmax = " << outer[1][0] << std::endl
+        << "   ymin = " << outer[0][1] << std::endl
+        << "   ymax = " << outer[1][1] << std::endl;
+    if ( dim_ == 3) {
+      out << "   zmin = " << outer[0][2] << std::endl
+          << "   zmax = " << outer[1][2] << std::endl;
+    }
+    
+    out << std::endl;
+    Info->PrintF( pdename_, out.str().c_str() );
     
   }
 
