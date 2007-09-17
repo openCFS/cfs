@@ -42,7 +42,7 @@ workData work;
 //
 void wprint(workData w, char* s)
 {
-  CoupledField::Warning(s);
+  std::cerr << s << std::endl;
 }
 int XtParent(int i) {return i; }
 void ErrorDialog(workData w, char* s) { CoupledField::Error(s,

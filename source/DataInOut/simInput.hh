@@ -52,6 +52,9 @@ namespace CoupledField
 
   public:
 
+    //! Define capabilities of specific input format
+    typedef enum {NONE, MESH, MESH_RESULTS, HISTORY} Capability;
+
     // ========================================================================
     // CONSTRUCTION AND INTIIALIZATION
     // ========================================================================
@@ -67,11 +70,14 @@ namespace CoupledField
     //! Destructor
     virtual ~SimInput() {};
 
+    //! Get capabilites of interface
+    const std::set<Capability>& GetCapabilities() const 
+    { return capabilities_; }
     //@}
 
-    virtual void InitModule(Grid *mi) = 0;
+    virtual void InitModule() = 0;
       
-    virtual void ReadMesh() = 0;
+    virtual void ReadMesh( Grid *mi ) = 0;
 
     // ========================================================================
     // GENERAL MESH INFORMATION
@@ -181,7 +187,9 @@ namespace CoupledField
     std::string baseDir_;
     std::string baseName_;
     Grid *mi_;
-
+    //! Capabilities of output class
+    std::set<Capability> capabilities_;
+    
     //! Parameter node for current output class
     ParamNode * myParam_;
 

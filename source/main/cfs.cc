@@ -207,7 +207,7 @@ int main( int argc, const char **argv ) {
     if(meshFile == "")
       meshFile = simName + ".mesh";
     SimInput * ptInputfile = new SimInputMESH(meshFile, NULL);
-    ptInputfile->InitModule(NULL);
+    ptInputfile->InitModule();
     // class writing log-information
     SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
     ptskel->WriteConf();

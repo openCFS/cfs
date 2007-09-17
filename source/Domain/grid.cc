@@ -52,20 +52,20 @@ namespace CoupledField
   Grid::~Grid()
   {
     ENTER_FCN( "Grid::~Grid" );
-    if (ptQ1)     delete ptQ1;
-    if (ptQ2)     delete ptQ2;
-    if (ptTet1)   delete ptTet1;
-    if (ptTet2)   delete ptTet2;
-    if (ptL1)     delete ptL1;
-    if (ptL2)     delete ptL2;
-    if (ptTr1)    delete ptTr1;
-    if (ptTr2)    delete ptTr2;
-    if (ptHexa1)  delete ptHexa1;
-    if (ptHexa2)  delete ptHexa2;
-    if (ptPyra1)  delete ptPyra1;
-    if (ptPyra2)  delete ptPyra2;
-    if (ptWedge1) delete ptWedge1;
-    if (ptWedge2) delete ptWedge2;
+    delete ptQ1;      ptQ1 = NULL;    
+    delete ptQ2;      ptQ2 = NULL;    
+    delete ptTet1;    ptTet1 = NULL;  
+    delete ptTet2;    ptTet2 = NULL;  
+    delete ptL1;      ptL1 = NULL;    
+    delete ptL2;      ptL2 = NULL;    
+    delete ptTr1;     ptTr1 = NULL;   
+    delete ptTr2;     ptTr2 = NULL;   
+    delete ptHexa1;   ptHexa1 = NULL; 
+    delete ptHexa2;   ptHexa2 = NULL; 
+    delete ptPyra1;   ptPyra1 = NULL; 
+    delete ptPyra2;   ptPyra2 = NULL; 
+    delete ptWedge1;  ptWedge1 = NULL;
+    delete ptWedge2;  ptWedge2 = NULL;
   
   }
 

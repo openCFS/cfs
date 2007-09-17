@@ -115,7 +115,7 @@ namespace CoupledField {
       // create new grid
       Grid * actGrid = NULL;
       if (libmesh =="cfsGrid") {
-        actGrid = new GridCFS();
+        actGrid = new GridCFS( dim_);
       } else {
         EXCEPTION( "Type of mesh_library should be one of "
                    << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
@@ -128,8 +128,8 @@ namespace CoupledField {
         
         shared_ptr<SimInput> actInFile = inputs[iFile];
         
-        actInFile->InitModule(actGrid);
-        actInFile->ReadMesh();
+        actInFile->InitModule();
+        actInFile->ReadMesh(actGrid);
       }
 
       // add grid to internal map

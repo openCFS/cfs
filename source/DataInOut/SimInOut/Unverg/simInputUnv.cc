@@ -18,17 +18,23 @@ namespace CoupledField {
   // declare logging stream
   DEFINE_LOG(simInputUNV, "SimInputUNV")
 
-  void SimInputUnv::InitModule(Grid *mi)
+  SimInputUnv::SimInputUnv( std::string fileName, ParamNode * inputNode ) 
+    : SimInput(fileName, inputNode) {
+    capabilities_.insert( SimInput::MESH);
+    capabilities_.insert( SimInput::MESH_RESULTS);
+  }
+  
+  void SimInputUnv::InitModule()
   {
-    mi_ = mi;
+    // read in mesh data, in order to provide information for
+    // dim, number nodes, number of elements, number of regions etc.
   }
 
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputUnv::GetDim() {
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
-    return 0;
+   return 2;
   }
   
   UInt SimInputUnv::GetNumNodes(){
@@ -60,8 +66,8 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputUnv::GetAllRegionNames( std::vector<std::string> & regionNames ){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+  void SimInputUnv::GetAllRegionNames( StdVector<std::string> & regionNames ){
+    std::cerr << "SimInputUnv::ReadMesh() not implemented\n";
   }
 
   void SimInputUnv::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
@@ -81,10 +87,11 @@ namespace CoupledField {
   }
 
   void
-  SimInputUnv::ReadMesh()
+  SimInputUnv::ReadMesh( Grid* mi )
   {
     //!! TODO also extract surface meshes
-
+    mi_ = mi;
+    
     LOG_TRACE(simInputUNV) << "reading base mesh from file " << fileName_ << ":";
     
     long n,set;

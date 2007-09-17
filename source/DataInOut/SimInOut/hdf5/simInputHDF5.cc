@@ -34,6 +34,9 @@ namespace CoupledField {
       SimInput(fileName, inputNode)
   {
     ENTER_FCN( "SimInputHDF5::XMDF" );
+    capabilities_.insert( SimInput::MESH);
+    capabilities_.insert( SimInput::MESH_RESULTS);
+    
     mi_ = NULL;
     statsRead_ = false;
     fileName_ = fileName;
@@ -41,8 +44,9 @@ namespace CoupledField {
     ParamNode *readRegionNode = NULL;
     
     // Change defaults according to XML file
-    if(myParam_->Get("generateRegionNodes", false)->AsBool()) {
-      genRegionNodes_ = true;
+    readRegionNode = myParam_->Get("generateRegionNodes", false);
+    if( readRegionNode ) {
+      genRegionNodes_ = readRegionNode->AsBool();
     }
     
     readRegionNode = myParam_->Get("readRegions", false);
@@ -74,7 +78,7 @@ namespace CoupledField {
     mainFile_.close();
   }
 
-  void SimInputHDF5::InitModule(Grid *mi)
+  void SimInputHDF5::InitModule()
   {
     try 
     {
@@ -99,7 +103,7 @@ namespace CoupledField {
 
     statsRead_ = false;
     
-    mi_ = mi;
+    
 
     try {
       mainFile_ = H5::H5File( fileName_, H5F_ACC_RDONLY );
@@ -110,8 +114,10 @@ namespace CoupledField {
     } H5_CATCH( "Could not open main root" );
   }
 
-  void SimInputHDF5::ReadMesh()
+  void SimInputHDF5::ReadMesh( Grid *mi )
   {
+    mi_ = mi;
+    
     H5::Group mGroup, nodeGroup;
 
     // Open mesh group
@@ -177,7 +183,18 @@ namespace CoupledField {
   // ======================================================
   UInt SimInputHDF5::GetDim() {
     LOG_TRACE(simInputHdf5) << "SimInputHDF5::ReadMesh() not implemented";
-    return 0;
+
+    // Open mesh group
+    H5::Group meshGroup;
+    try{
+      meshGroup = mainRoot_.openGroup("Mesh");
+    } H5_CATCH( "Could not open mesh group" );
+    
+    // Read dimension
+    UInt dim;
+    H5IO::ReadAttribute( meshGroup, "Dimension", dim );
+    meshGroup.close();
+    return dim;
   }
   
   UInt SimInputHDF5::GetNumNodes(){
@@ -240,10 +257,15 @@ namespace CoupledField {
     H5::Group gridResultGroup, actMsGroup;
     std::string actAnalysisString;
     AnalysisType actAnalysis;
-      
+    analysis.Clear();
+
+    // try to open grid results: if no groups is present,
+    // simply return, as this element is optional.
     try{
       gridResultGroup = mainRoot_.openGroup("Results").openGroup("Grid");
-    } H5_CATCH( "Could not open grid result group'" );
+    } catch (H5::Exception& h5Ex ) {                                        \
+     return;
+    }
 
     UInt numMsSteps = gridResultGroup.getNumObjs();
     analysis.Clear();
@@ -444,8 +466,6 @@ namespace CoupledField {
     std::string groupName = result->GetResultInfo()->resultName;
     groupName += "/" + regionName + "/" + entString;
     
-    std::cerr << "groupName = " << groupName << std::endl;
-
     H5::Group resGroup;
     try {
       resGroup = stepGroup.openGroup( groupName );
@@ -458,12 +478,22 @@ namespace CoupledField {
     H5IO::ReadArray( resGroup, "Real", realVals );
 
     // copy data array to result object
-    Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
-    resVec.Resize( realVals.size() );
-    for( UInt i = 0; i < realVals.size(); i++ ) {
-      resVec[i] = realVals[i];
+    if( result->GetEntryType() == EntryType::DOUBLE ) {
+      Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
+      resVec.Resize( realVals.size() );
+      for( UInt i = 0; i < realVals.size(); i++ ) {
+        resVec[i] = realVals[i];
+      } 
+    } else {
+      Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
+      std::vector<Double> imagVals;
+      H5IO::ReadArray( resGroup, "Imag", imagVals );
+      
+      resVec.Resize( realVals.size() );
+      for( UInt i = 0; i < realVals.size(); i++ ) {
+        resVec[i] = Complex( realVals[i], imagVals[i] );
+      } 
     }
-  
     resGroup.close();
     stepGroup.close();
   }

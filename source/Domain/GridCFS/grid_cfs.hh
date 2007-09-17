@@ -45,7 +45,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(); 
+    GridCFS(UInt dim); 
   
     //! Destructor
     virtual ~GridCFS();

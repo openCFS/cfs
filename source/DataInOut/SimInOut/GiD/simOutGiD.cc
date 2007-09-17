@@ -112,9 +112,9 @@ namespace CoupledField {
     } 
     
     // close result file, if binary format and only print grid
-    if( isAscii_ == false && printGridOnly_ == true ) {
-      GiD_ClosePostResultFile();
-    }
+//    if( isAscii_ == false && printGridOnly_ == true ) {
+//      GiD_ClosePostResultFile();
+//    }
       
 
     LOG_TRACE(simOutputGiD)<< "Finished writing of mesh" << std::endl;

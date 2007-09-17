@@ -18,6 +18,8 @@ namespace CoupledField {
         SimInput(fileName, inputNode)
   {
     ENTER_FCN( "SimInputMESH::SimInputMESH" );
+    capabilities_.insert( SimInput::MESH);
+    
     mi_ = NULL;
   }
 
@@ -28,10 +30,9 @@ namespace CoupledField {
   }
 
 
-  void SimInputMESH::InitModule(Grid *mi)
+  void SimInputMESH::InitModule()
   {
-    mi_ = mi;
-
+    
     inFile_.open( fileName_.c_str(), std::ios::binary );
     if ( !inFile_.good() ) {
       EXCEPTION("I am unable to open mesh file " << fileName_);
@@ -46,8 +47,11 @@ namespace CoupledField {
     maxNumNodes_ = GetNumNodes();
   }
     
-  void SimInputMESH::ReadMesh()
+  void SimInputMESH::ReadMesh(Grid *mi)
   {
+
+    mi_ = mi;
+    
     // Get Nodes
     UInt numNodes = GetNumNodes();
     mi_->AddNodes(numNodes);
