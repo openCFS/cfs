@@ -30,10 +30,10 @@ namespace CoupledField {
     virtual ~SimInputHDF5();
 
     //! Initialize module with pointer to grid
-    virtual void InitModule(Grid *mi);
+    virtual void InitModule();
 
     //! Trigger reading of the mesh
-    virtual void ReadMesh();
+    virtual void ReadMesh(Grid *mi);
     //@}
   
     // =======================================================================

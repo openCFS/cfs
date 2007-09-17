@@ -32,9 +32,9 @@ namespace CoupledField {
 
     //@}
 
-    virtual void InitModule(Grid *mi);
+    virtual void InitModule();
 
-    virtual void ReadMesh();
+    virtual void ReadMesh(Grid *mi);
   
     // =======================================================================
     // GENERAL MESH INFORMATION

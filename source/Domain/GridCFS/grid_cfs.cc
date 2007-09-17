@@ -26,24 +26,14 @@ namespace CoupledField {
   DECLARE_LOG(gridcfs)
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS() : Grid() {
+  GridCFS::GridCFS(UInt dim) : Grid( ) {
 
     ENTER_FCN( "GridCFS::GridCFS" );
 
     isInitialized_ = false;
     isQuadratic_ = false;
-    dim_ = 3;
+    dim_ = dim;
     
-    std::string probGeo;
-    param->Get("domain")->Get( "geometryType", probGeo );
-    
-    if ( probGeo == "3d")
-      dim_ = 3;
-    else if (probGeo == "axi")
-      dim_ = 2;
-    else if (probGeo == "plane")
-      dim_ = 2;
-
     numNodes_ = 0;
     numElems_ = 0;
     numFaces_ = 0;
@@ -181,6 +171,9 @@ namespace CoupledField {
 
   void GridCFS::CreateUserDefinedNodesElems() {
     ENTER_FCN( "GridCFS::CreateUserDefinedNodesElems" );
+    
+    // if no param object is present, just leave
+    if (!param) return;
     
     Vector<Double> coord(3);
     std::string coordSys;
@@ -1911,7 +1904,7 @@ namespace CoupledField {
     ENTER_FCN( "GRIDCFS::PrintGridInfo()" );
     
     std::string help, empty;
-
+    if( !Info) return;
     Info->PrintF("", "\n--- GridCFS: Region Map ---\n\n");
     Info->PrintF("", "ID\t| Name\n");
     Info->PrintF("", "-------------------\n");

@@ -29,18 +29,16 @@ namespace CoupledField
   
 
     //! Constructor with name of mesh-file
-      SimInputUnv(std::string fileName, ParamNode * inputNode ) :
-          SimInput(fileName, inputNode)
-      {};
+    SimInputUnv(std::string fileName, ParamNode * inputNode );
 
     //! Destructor
     virtual ~SimInputUnv() {};
 
     //@}
 
-    virtual void InitModule(Grid *mi);
+    virtual void InitModule();
       
-    virtual void ReadMesh();
+    virtual void ReadMesh(Grid *mi);
 
     virtual bool ReadData();
 
@@ -82,7 +80,7 @@ namespace CoupledField
     //! \note Since the RegionIdType is guaranteed to be defined by
     //! a number type (UInt, uint32), the regionId of an element can
     //! be directly used as index to the regionNames-vector
-    virtual void GetAllRegionNames( std::vector<std::string> & regionNames );
+    virtual void GetAllRegionNames( StdVector<std::string> & regionNames );
 
     //! Get vector with region names of given dimension
 

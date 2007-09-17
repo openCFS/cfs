@@ -1111,23 +1111,27 @@ namespace CoupledField
       // check defaults in case of legacy XML files
 
       // Check, if element "integRules" was defined
-      ParamNode * integNode = param->Get( "integRules", false );
-      if(integNode)    
-      { 
-        std::string type = integNode->Get("type")->AsString();
-        // we have values in the XML file
-        String2Enum(type,IntegMethod );    
-    
-        std::string str;
-        integNode->Get( "order", str );
-        IntegOrder = String2Int(str);    
-      }    
-      else
-      {
-        // The default Integration rules
+      if(!param) {
         SetDefaultIntegration();
+      } else {
+        ParamNode * integNode = param->Get( "integRules", false );
+        if(integNode)    
+        { 
+          std::string type = integNode->Get("type")->AsString();
+          // we have values in the XML file
+          String2Enum(type,IntegMethod );    
+
+          std::string str;
+          integNode->Get( "order", str );
+          IntegOrder = String2Int(str);    
+        }    
+        else
+        {
+          // The default Integration rules
+          SetDefaultIntegration();
+        }
       }
-    }
+    } 
     else
     {
       IntegMethod = method;
