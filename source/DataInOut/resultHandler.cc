@@ -49,15 +49,15 @@ namespace CoupledField {
 
     // From here on, the entry in the ResultInfo.resultName
     // is needed instead of the Resultinfo.resultType
-    std::string name;
-    Enum2String( actDof.resultType, name );
     if( actDof.resultName == "" ) {
+      std::string name;
+      Enum2String( actDof.resultType, name );
       actDof.resultName = name;
     }
     
     LOG_DBG(resHandler) << "Registering result:";
     LOG_DBG(resHandler) << "-------------------";
-    LOG_DBG(resHandler) << "name: " << name;
+    LOG_DBG(resHandler) << "name: " << actDof.resultName;
     LOG_DBG(resHandler) << "dofs: " << actDof.dofNames.Serialize();
     LOG_DBG(resHandler) << "resultList: " << sol->GetEntityList()->GetName();
     LOG_DBG(resHandler) << "saveBegin: " << saveBegin;
@@ -109,7 +109,7 @@ namespace CoupledField {
                      << "' was not registered yet!" );
         }
         LOG_DBG(resHandler) << "Registering output '" << newDest[i]
-                            << "' with result '" << name;
+                            << "' with result '" << actDof.resultName;
         actContext->outputs.Push_back( outFiles_[newDest[i]] );
         
         // register results also at the output writer class
@@ -283,11 +283,66 @@ namespace CoupledField {
   void ResultHandler::FinishMultiSequenceStep() {
     ENTER_FCN( "ResultHandler::FinishMultiSequenceStep" );
 
+    // Before finishing the multisequence step, we have to
+    // finalize all postprocessing steps and write all the results
+    // which are only defined for the last step
+    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
+    if( finalResultExists_ ) {
+
+      LOG_DBG(resHandler) << "There exist some results for the final step";
+      actStep_++;
+      actStepVal_ = 0.0;
+
+      std::string type;
+      // Trigger new step at all output writers
+      
+      for( fileIt = outFiles_.begin(); 
+      fileIt != outFiles_.end(); fileIt++ ) {
+        fileIt->second->BeginStep( actStep_, actStepVal_);
+      }    
+
+      // === Primary results ===
+      // iterate over all results, which are needed
+      std::set<shared_ptr<ResultContext> >::iterator it = contexts_.begin();
+      for( ; it != contexts_.end(); it++ ) {
+
+        // store context
+        ResultContext & actContext = **it;
+        BaseResult & actResult  = *(actContext.result);
+        LOG_DBG(resHandler) << "Testing result '" 
+        << actResult.GetResultInfo()->resultName << "' on '"
+        << actResult.GetEntityList()->GetName()
+        << "'";
+        // check, if result is to be written 
+        if( actContext.writeResult &&  actContext.isFinal )  {
+
+          // iterate over all outputs
+          for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
+
+            // Add current result to given output file
+            actContext.outputs[iOut]->AddResult( actContext.result );
+            LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
+            << actResult.GetEntityList()->GetName()
+            << "' to '" << actContext.outputs[iOut]->GetName()
+            << "'";
+          }
+        }
+
+        // In any case: Process also related secondary (postprocessing) results
+        FinishMultiSequenceStepRec( actContext );
+      }
+      // Finish newly created step
+      for( fileIt = outFiles_.begin(); 
+      fileIt != outFiles_.end(); fileIt++ ) {
+        fileIt->second->FinishStep();
+      }    
+    }
+    
+    
     // Iterate over all outfiles to notify them about the end of a
     // multisequence step
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
     it = outFiles_.begin();
-
     for( ; it != outFiles_.end(); it++ ) {
       it->second->FinishMultiSequenceStep( );
     }
@@ -516,75 +571,23 @@ namespace CoupledField {
     ENTER_FCN( "ResultHandler::Finalize" );
         
     LOG_TRACE(resHandler) << "Starting to Finalize";
-    actStep_++;
-    actStepVal_ = 0.0;
-
-    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-    
-    // Note: At the moment, the 'finalization' is done by
-    // writing an aditional last step to the file (with stepVal = 0 );
-    // However, this is only done, if an additional result is present
-    // for the final step.
-    if( finalResultExists_ ) {
-      
-      std::string type;
-      // Trigger new step at all output writers
-     
-      for( fileIt = outFiles_.begin(); 
-           fileIt != outFiles_.end(); fileIt++ ) {
-        fileIt->second->BeginStep( actStep_, actStepVal_);
-      }    
-      
-      // === Primary results ===
-      // iterate over all results, which are needed
-      std::set<shared_ptr<ResultContext> >::iterator it = contexts_.begin();
-      for( ; it != contexts_.end(); it++ ) {
-        
-        // store context
-        ResultContext & actContext = **it;
-        BaseResult & actResult  = *(actContext.result);
-        Enum2String( actResult.GetResultInfo()->resultType, type );
-        
-        LOG_DBG(resHandler) << "Testing result '" << type << "' on '"
-                            << actResult.GetEntityList()->GetName()
-                            << "'";
-        // check, if result is to be written 
-        if( actContext.writeResult &&  actContext.isFinal )  {
-          
-          // iterate over all outputs
-          for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
-            
-            // Add current result to given output file
-            actContext.outputs[iOut]->AddResult( actContext.result );
-            LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
-                                << actResult.GetEntityList()->GetName()
-                                << "' to '" << actContext.outputs[iOut]->GetName()
-                                << "'";
-          }
-        }
-        
-        // In any case: Process also related secondary (postprocessing) results
-        FinalizeRec( actContext );
-      }
-    }
     
     // Trigger writing and finalizing of all output writers
+    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
     for( fileIt = outFiles_.begin(); 
-         fileIt != outFiles_.end(); fileIt++ ) {
+    fileIt != outFiles_.end(); fileIt++ ) {
       LOG_DBG(resHandler) << "Finalizing result for output '"
-                          << fileIt->second->GetName() << "'";
-      if( finalResultExists_) {
-        fileIt->second->FinishStep( );
-      }
+      << fileIt->second->GetName() << "'";
       fileIt->second->Finalize( );
     }    
 
-    LOG_TRACE(resHandler) << "Finshed Finalizing" << std::endl;
+    LOG_TRACE(resHandler) << "Finished Finalizing" << std::endl;
   }
 
-  void ResultHandler::FinalizeRec( ResultContext& actContext ) {
-    ENTER_FCN( "ResultHandler::Finalize" );
+  void ResultHandler::FinishMultiSequenceStepRec( ResultContext& actContext ) {
+    ENTER_FCN( "ResultHandler::FinishMultiSequenceStepRec" );
 
+    LOG_TRACE(resHandler) << "Starting to finish MsStep  recursively";
     assert( actContext.postProcs.GetSize() ==
             actContext.nextContexts.GetSize() );
     
@@ -593,6 +596,7 @@ namespace CoupledField {
     // iterate over all postProcs and trigger finalization
     for( UInt i = 0 ; i < actContext.postProcs.GetSize(); i++ ) {
       actContext.postProcs[i]->Finalize();
+      
     }
 
     // iterate over all contexts
@@ -624,8 +628,9 @@ namespace CoupledField {
       } // isFinal
 
       // Call FinalizeRec recursively for each next-context in any case
-      FinalizeRec( next );
+      FinishMultiSequenceStepRec( next );
     }
+    LOG_TRACE(resHandler) << "Finished MsStep recursively";
   }
   
 
