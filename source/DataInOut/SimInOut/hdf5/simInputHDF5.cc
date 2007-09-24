@@ -375,8 +375,10 @@ namespace CoupledField {
       
       try{ 
         String2Enum( actResultName, actResultType );
-      } H5_CATCH( "Could not convert result '" << 
-                  actResultName << "' to a SolutionType ");
+      }  catch (Exception& ex ) {
+        actResultType = NO_SOLUTION_TYPE;
+      }
+      
       ptInfo->resultType = actResultType;
       ptInfo->resultName = actResultName;
       ptInfo->dofNames = StdVector<std::string>(dofNames);
@@ -398,8 +400,7 @@ namespace CoupledField {
                      StdVector<shared_ptr<EntityList> >& list ) {
 
     // get resultname from resultinfo object
-    std::string resultName;
-    Enum2String( info->resultType, resultName );
+    std::string resultName = info->resultName;
     
     // open ms group and specific entry in 'ResultDescription'
     H5::Group actMsGroup = H5IO::GetMultiStepGroup( mainFile_, sequenceStep );

@@ -196,9 +196,7 @@ namespace CFSTool {
          // iterate over all result types
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::string resultName;
-           Enum2String( infos[iRes]->resultType, resultName);
-           std::cout << "\t" << resultName << std::endl;
+           std::cout << "\t" << infos[iRes]->resultName << std::endl;
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
            input->GetResultEntities( iMsStep+1, infos[iRes], regions );
@@ -225,8 +223,15 @@ namespace CFSTool {
            output->BeginStep( iStep+1+stepOffset, actStepVal );
            // iterate over all results
            for( UInt iRes = 0; iRes < results.GetSize(); iRes++) {
+             try {
              input->GetResult( iMsStep+1, iStep+1+stepOffset, results[iRes] );
              output->AddResult( results[iRes] );
+             } catch (Exception& ex ) {
+               // do nothing
+               // Note: This is currently the "hard-coded" way of handling results,
+               // which have a saveBegin/End/Increment which differs from the 
+               // default values
+             }
            }
            output->FinishStep();
 
@@ -314,10 +319,8 @@ namespace CFSTool {
          // iterate over all result types of input1
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::string resultName;
-           Enum2String( infos[iRes]->resultType, resultName);
            if( output )
-             std::cout << "\t" << resultName << std::endl;
+             std::cout << "\t" << infos[iRes]->resultName << std::endl;
            
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;

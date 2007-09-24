@@ -179,8 +179,8 @@ namespace CoupledField {
     //! Finish steps recursively, for all results defined by postProcs
     void FinishStepRec( ResultContext& context );
   
-    //!  Finalize  all results defined by postProcs
-    void FinalizeRec( ResultContext& context );
+    //!  Finalize all results defined by postProcs
+    void FinishMultiSequenceStepRec( ResultContext& context );
 
     //! Operation mode of resultHandler
     OpMode opMode_;
