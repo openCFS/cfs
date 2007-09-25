@@ -125,6 +125,7 @@ Doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/p
 Doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
 Doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
 Doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
+Doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 Doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
 Doc/developer/makedoc.sh.in -text
 Doc/user/CMakeLists.txt svneol=native#text/plain
