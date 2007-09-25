@@ -6,6 +6,7 @@
 #define FILE_STDVECTOR_2004
 
 #include <boost/serialization/split_member.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 #include <vector>
 #include "General/exception.hh"
 
@@ -24,6 +25,95 @@ namespace CoupledField {
   template<class TYPE>
   class StdVector{
   public:
+
+    // =======================================================================
+    //  STL-COMPATIBLE ITERATOR DEFINITIONS
+    // =======================================================================
+    // The implementation of the iterator interface utilizes boost's iterator-
+    // facade concept.
+
+    //! Define iterator class
+    template<typename ITYPE>
+    class vec_iterator 
+      :  public boost::iterator_facade
+      < vec_iterator<ITYPE>, 
+        ITYPE,
+        boost::random_access_traversal_tag
+        > {
+    public: 
+      
+      //! default constructor
+      vec_iterator() : vec_(NULL), pos_(0) {}
+      
+    private:
+
+      friend class boost::iterator_core_access;
+      friend class StdVector<ITYPE>;
+
+      //! iterator with pointer to vector
+      vec_iterator( StdVector<ITYPE>* p, unsigned int pos = 0 ) 
+        : vec_( p ), pos_( pos ) {}
+    
+      //! dereferencing
+      ITYPE& dereference() const { 
+        return (*vec_)[pos_]; 
+      }
+      
+      //! check for equality
+      bool equal( vec_iterator const & other ) const {
+        return ( this->vec_ == other.vec_ &&
+                 this->pos_ == other.pos_ );
+      }
+      
+      //! increment position
+      void increment() { 
+        pos_++;
+      }
+      
+      //! decrement position
+      void decrement() { pos_--; }
+      
+      //! advance position by n
+      void advance( ptrdiff_t n) { 
+        pos_ += (unsigned int) n; }
+      
+      //! measure distance
+      unsigned int distance_to( vec_iterator const & other ) const {
+        return   (ptrdiff_t) other.pos_ - 
+                  (ptrdiff_t) (this->pos_);
+      }
+      
+      // references to StdVector
+      StdVector<ITYPE> * vec_;
+      unsigned int pos_;
+    };
+
+    typedef vec_iterator<TYPE> iterator;
+    typedef vec_iterator<TYPE const> const_iterator;
+  
+    //! Return iterator pointing to first element
+    iterator Begin() {
+        return iterator(this, 0);
+    }
+       
+    //! Return iterator pointing to first element
+    const_iterator Begin() const {
+      return const_iterator(this, 0);
+    }
+    
+    //! Return iterator pointing to last element
+    iterator End() {
+        return iterator(this, size_);
+    }
+    
+    //! Return iterator pointing to last element
+    const_iterator End() const {
+        return const_iterator( this, size_ );
+    }
+    
+    // =======================================================================
+    //  VECTOR METHODS
+    // =======================================================================
 
     //! Constructor
     StdVector();
