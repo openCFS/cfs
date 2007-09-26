@@ -28,7 +28,6 @@ namespace CoupledField
     : BaseForceOp(ptGrid, ptPDE, eqnMap, sol, dim, 
                   matData, isaxi, coordUpdate)
   {
-    ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
     gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, 
                                                sol, ELEC_POTENTIAL, result,isaxi,
@@ -39,7 +38,6 @@ namespace CoupledField
 
   ElecForceOp::~ElecForceOp()
   {
-    ENTER_FCN( "ElecForceOp::~ElecForceOp" );
 
     if (gradFieldOp_) 
       delete gradFieldOp_;
@@ -50,7 +48,6 @@ namespace CoupledField
                                  const EntityIterator& ent,
                                  const Vector<Double> & lCoord)
   {
-    ENTER_FCN( "ElecForceOp::ComputeField" );
 
     gradFieldOp_->CalcElemGradField(Field, ent, lCoord, 1);
 
@@ -58,7 +55,6 @@ namespace CoupledField
 
   Double ElecForceOp::GetMatVal(RegionIdType actRegion)
   {
-    ENTER_FCN( "ElecForceOp::GetMatVal" );
 
     Double epsilon;
     materials_[actRegion]->GetScalar(epsilon,ELEC_PERMITTIVITY,REAL);

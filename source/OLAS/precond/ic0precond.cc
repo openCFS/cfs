@@ -12,7 +12,6 @@ namespace OLAS {
   template <typename T>
   IC0Precond<T>::IC0Precond( const StdMatrix& mat, OLAS_Params *myParams,
                              OLAS_Report *myReport ) {
-    ENTER_FCN( "IC0Precond::IC0Precond" );
     this->myParams_ = myParams;
     this->myReport_ = myReport;
     size_           = mat.GetNrows();
@@ -25,7 +24,6 @@ namespace OLAS {
   // **************
   template <typename T>
   IC0Precond<T>::~IC0Precond() {
-    ENTER_FCN( "IC0Precond::~IC0Precond" );
 
     DeleteArray( rptrU_ );
     DeleteArray( cidxU_ );
@@ -38,7 +36,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
-    ENTER_FCN( "IC0Precond::Setup" );
 
     PROFILE( "IC0Precond::Setup",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
@@ -201,7 +198,6 @@ namespace OLAS {
   template<typename T>
   void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) 
   {
-    ENTER_FCN( "IC0Precond::Setup" );
 
     PROFILE( "IC0Precond::Setup",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
@@ -365,7 +361,6 @@ namespace OLAS {
   void IC0Precond<T>::Apply( const SCRS_Matrix<T> &sysmat,
 			     const Vector<T> &r, Vector<T> &z ) const {
 
-    ENTER_FCN( "IC0Precond::Apply" );
 
     PROFILE( "IC0Precond::Apply",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
@@ -411,7 +406,6 @@ namespace OLAS {
   template <typename T> 
   UInt IC0Precond<T>::CheckPositivity(Double val) {
 
-    ENTER_FCN( "IC0Precond::CheckPositivity" );
     if (val > 0)
       return 1;
     else
@@ -421,7 +415,6 @@ namespace OLAS {
   template <typename T> 
   UInt IC0Precond<T>::CheckPositivity(Complex val) {
 
-    ENTER_FCN( "IC0Precond::CheckPositivity" );
     if (std::norm(val) > 0)
       return 1;
     else

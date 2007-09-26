@@ -29,7 +29,6 @@ namespace CoupledField
                                          bool coordUpdate)
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    ENTER_FCN( "GradientFieldOp::GradientFieldOp" );  
     this->potential_ = &potential;
     solType_ = solType;
     result_ = result;
@@ -39,7 +38,6 @@ namespace CoupledField
   template<class TYPE>
   GradientFieldOp<TYPE>::~GradientFieldOp()
   {
-    ENTER_FCN( "GradientFieldOp::~GradientFieldOp" );
 
   }
 
@@ -49,7 +47,6 @@ namespace CoupledField
                                                 const Vector<Double> & lCoord,
                                                 const Double factor)
   {
-    ENTER_FCN( "GradientFieldOp::CalcElemGradField" );
   
     UInt dim;
 
@@ -88,7 +85,6 @@ namespace CoupledField
                                               const Vector<Double> & lCoord,
                                               const Vector<Double> & factors)
   {
-    ENTER_FCN( "GradientFieldOp::CalcSDGradField" );
   
     Error( "GradientFieldOp::CalcSDElecField: Not working yet", __FILE__, __LINE__);
     UInt nShFnc = 0;

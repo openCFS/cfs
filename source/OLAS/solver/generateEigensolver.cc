@@ -23,7 +23,6 @@ namespace OLAS {
                                               EigenSolverType solver,
                                               OLAS_Params *params, 
                                               OLAS_Report *report ) {
-    ENTER_FCN( "GenerateEigenSolverObject" );
     
     BaseEigenSolver *retSolver = NULL;
     MatrixEntryType eType = mat.GetEntryType();

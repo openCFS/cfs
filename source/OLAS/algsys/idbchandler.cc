@@ -18,7 +18,6 @@ namespace OLAS {
                                  BaseGraphManager *graphManager,
                                  UInt numPDEs, bool sbmCase ) {
 
-    ENTER_FCN( "IDBC_Handler::IDBC_Handler" );
 
     // -----------------------
     // Obtain basic dimensions
@@ -221,7 +220,6 @@ namespace OLAS {
   // **************
   template <typename T> IDBC_Handler<T>::~IDBC_Handler() {
 
-    ENTER_FCN( "IDBC_Handler::~IDBC_Handler" );
 
     // Delete vector of Dirichlet values
     delete vecIDBC_;
@@ -245,7 +243,6 @@ namespace OLAS {
   template <typename T> void IDBC_Handler<T>::
   BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
 
-    ENTER_FCN( "IDBC_Handler::BuiltSystemMatrix" );
 
     BaseMatrix *sys = auxMat_[SYSTEM];
 
@@ -270,7 +267,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_Handler<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val ) {
 
-    ENTER_FCN( "IDBC_Handler::SetIDBC" );
 
     // CASE 1: SparseVector
     if ( sbmCase_ == false ) {
@@ -300,7 +296,6 @@ namespace OLAS {
                                               Double realPart,
                                               Double imagPart ) {
 
-    ENTER_FCN( "IDBC_Handler::AddWeightFixedToFree" );
 
     // ---------------------------
     // Obtain pointer to StdMatrix
@@ -360,7 +355,6 @@ namespace OLAS {
                                               Double realPart,
                                               Double imagPart ) {
 
-    ENTER_FCN( "IDBC_Handler::SetWeightFixedToFree" );
 
     // ---------------------------
     // Obtain pointer to StdMatrix
@@ -418,7 +412,6 @@ namespace OLAS {
                                               Double & realPart,
                                               Double & imagPart ) const {
 
-    ENTER_FCN( "IDBC_Handler::GetWeightFixedToFree" );
 
       // ---------------------------
     // Obtain pointer to StdMatrix
@@ -477,7 +470,6 @@ namespace OLAS {
                                        Double realPart, 
                                        Double imagPart ) {
 
-    ENTER_FCN( "IDBC_Handler::SetRowWeights" );
 
   }
 
@@ -491,7 +483,6 @@ namespace OLAS {
                                        Double realPart, 
                                        Double imagPart ) {
 
-    ENTER_FCN( "IDBC_Handler::SetColWeights" );
   }
   
   // *****************
@@ -500,7 +491,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_Handler<T>::SetDofsToIDBC( BaseVector *vec ) {
 
-    ENTER_FCN( "IDBC_Handler::SetDofsToIDBC" );
 
     // ------------------
     // CASE 1: SBM_Vector
@@ -558,7 +548,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_Handler<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "IDBC_Handler::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
 

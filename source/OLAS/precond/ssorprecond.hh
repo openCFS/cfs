@@ -78,7 +78,6 @@ namespace OLAS {
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is JACOBI.
     PrecondType GetPrecondType() const{
-      ENTER_FCN( "SSORPrecond::GetPrecondType" );
       return SSOR;
     };
 
@@ -90,7 +89,6 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     SSORPrecond(){
-      ENTER_FCN( "SSORPrecond::SSORPrecond" );
       Error( "Default constructor of SSORPrecond should never be called!",
 	     __FILE__, __LINE__ );
     };

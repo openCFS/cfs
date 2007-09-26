@@ -17,7 +17,6 @@ namespace CoupledField {
     SimInputMESH::SimInputMESH(std::string fileName, ParamNode * inputNode) :
         SimInput(fileName, inputNode)
   {
-    ENTER_FCN( "SimInputMESH::SimInputMESH" );
     capabilities_.insert( SimInput::MESH);
     
     mi_ = NULL;
@@ -25,7 +24,6 @@ namespace CoupledField {
 
 
   SimInputMESH::~SimInputMESH() {
-    ENTER_FCN( "SimInputMESH::~SimInputMESH" );
     inFile_.close() ;
   }
 
@@ -211,17 +209,14 @@ namespace CoupledField {
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputMESH::GetDim() {
-    ENTER_FCN( "AndsysFile::GetDim ");
     return GetInteger("Dimension");
   }
   
   UInt SimInputMESH::GetNumNodes(){
-    ENTER_FCN( "AndsysFile::GetNumNodes ");
     return GetInteger("NumNodes");
   }
     
   UInt SimInputMESH::GetNumElems(const Integer dim){
-    ENTER_FCN( "AndsysFile::GetNumElems ");
     
     UInt numElems = 0;
     std::stringstream search;
@@ -246,7 +241,6 @@ namespace CoupledField {
   }
   
   UInt SimInputMESH::GetNumRegions(){
-    ENTER_FCN( "AndsysFile::GetNumRegions ");
     if(regionNames_.size() == 0)
     {
       StdVector<std::string> names;
@@ -257,7 +251,6 @@ namespace CoupledField {
   }
 
   UInt SimInputMESH::GetNumNamedNodes(){
-    ENTER_FCN( "AndsysFile::GetNumNamedNodes");
     UInt numNamedNodes = 0;
     
     numNamedNodes += GetInteger("NumNodeBC");
@@ -267,7 +260,6 @@ namespace CoupledField {
   }
 
   UInt SimInputMESH::GetNumNamedElems(){
-    ENTER_FCN( "AndsysFile::GetNumNamedElems");
     return GetInteger("NumSaveElements");
   }
   
@@ -276,7 +268,6 @@ namespace CoupledField {
   // ======================================================
 
   void SimInputMESH::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    ENTER_FCN( "SimInputMESH::GetAllRegionNames" );
     
     if(regionNames_.size() == 0)
     {
@@ -338,7 +329,6 @@ namespace CoupledField {
     
   void SimInputMESH::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
                                        const UInt dim ) {
-    ENTER_FCN( "SimInputMESH::GetRegionNamesOfDim" );
     
     regionNames.Resize(0);
 
@@ -360,7 +350,6 @@ namespace CoupledField {
 
   void SimInputMESH::GetNodeNames( StdVector<std::string> &nodeNames ) {
 
-    ENTER_FCN( "SimInputMESH::GetNodeNames" );
     
     std::string::size_type pos=0;
     std::string str;
@@ -395,7 +384,6 @@ namespace CoupledField {
   }
 
   void SimInputMESH::GetElemNames( StdVector<std::string> & elemNames ) {
-    ENTER_FCN( "SimInputMESH::GetElemNames" );
 
     std::string::size_type pos=0;
     std::string str;
@@ -426,7 +414,6 @@ namespace CoupledField {
   // ======================================================
   
   void SimInputMESH::GetCoordinates( std::vector< double > & nodeCoords ) {
-    ENTER_FCN( "SimInputMESH::GetCoordinates" );
 
     UInt i, ibuf;
 
@@ -452,7 +439,6 @@ namespace CoupledField {
   void SimInputMESH::GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
                                      const std::vector<RegionIdType> & regionId ) {
 
-    ENTER_FCN( "SimInputMESH::GetNodesOfRegions" );
 
     std::set<UInt>::iterator it;
     UInt iRegion, index, iNode;
@@ -478,7 +464,6 @@ namespace CoupledField {
                                   std::vector< std::vector<UInt> > & elemNums,                                
                                   std::vector<RegionIdType> & regionIds,
                                   const UInt dim ) {
-    ENTER_FCN( "SimInputMESH::GetElements" );
     
     // Check that dimension is correct
     if ( dim < 1 || dim > 3 ) {
@@ -620,7 +605,6 @@ namespace CoupledField {
   void SimInputMESH::GetNamedNodes( std::vector<StdVector<UInt> > & nodes,
                                  std::vector<std::string> & nodeNames ) {
 
-    ENTER_FCN( "SimInputMESH::GetNamedNodes" );
     
     std::string::size_type pos=0;
     std::string::size_type lineEndPos =0;
@@ -702,7 +686,6 @@ namespace CoupledField {
 
   void SimInputMESH::GetNamedElems( std::vector<StdVector<UInt> > & elems,
                                     std::vector<std::string> & elemNames ) {
-    ENTER_FCN( "SimInputMESH::GetNamedElems" );
     
     std::string::size_type pos=0;
     std::string::size_type lineEndPos =0;
@@ -785,7 +768,6 @@ namespace CoupledField {
   void SimInputMESH::GetPosLine( const std::string seekexp,
                               std::string::size_type &pos ) {
 
-    ENTER_FCN( "SimInputMESH::GetPosLine" );
     inFile_.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
@@ -827,7 +809,6 @@ namespace CoupledField {
   void SimInputMESH::GetPosition( const std::string seekexp,
                                std::string::size_type &pos ) {
 
-    ENTER_FCN( "SimInputMESH::GetPosition" );
 
     inFile_.seekg(pos, std::ios::beg);
     std::string buf;
@@ -864,7 +845,6 @@ namespace CoupledField {
   // **************
   UInt SimInputMESH::GetInteger( std::string seekexp ) {
 
-    ENTER_FCN( "SimInputMESH::GetInteger" );
 
     std::string::size_type pos = 0;
     std::string::size_type lineEndPos = 0;
@@ -898,7 +878,6 @@ namespace CoupledField {
   // *******************
   bool SimInputMESH::IsNextLineEmpty( std::string::size_type actPos ) {
 
-    ENTER_FCN( "SimInputMESH::IsNextLineEmpty" );
 
     std::string buf = "------";
   
@@ -922,7 +901,6 @@ namespace CoupledField {
   
   RegionIdType SimInputMESH::ObtainRegionId( const std::string & regionName, 
                                           const UInt dim ) {
-    ENTER_FCN( "SimInputMESH::ObtainRegionId" );
 
     RegionIdType index;
     std::vector< std::string >::iterator it, end;
@@ -955,7 +933,6 @@ namespace CoupledField {
   // ***************
   FEType SimInputMESH::AnsysType2ElemType( const UInt itype ) {
 
-    ENTER_FCN( "SimInputMESH::Type2ptElem" );
 
     switch( itype ) {
 

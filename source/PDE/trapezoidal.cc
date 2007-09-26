@@ -14,7 +14,6 @@ namespace CoupledField
   Trapezoidal :: Trapezoidal( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
-    ENTER_FCN( "Trapezoidal::Trapezoidal" );
 
     gamma_ = 1;
 
@@ -28,12 +27,10 @@ namespace CoupledField
 
   Trapezoidal :: ~Trapezoidal()
   {
-    ENTER_FCN( "Trapezoidal::~Trapezoidal" );
 
   }
 
   void Trapezoidal::Init( Double dt, UInt rhsSize ) {
-    ENTER_FCN( "Trapezoidal::Init" );
     
     dt_ = dt;
     rhsSize_ = rhsSize;
@@ -60,7 +57,6 @@ namespace CoupledField
 
   void Trapezoidal::Predictor(Vector<Double>& solold)
   {
-    ENTER_FCN( "Trapezoidal::Predictor" );
 
     solpred_ = solold + solderiv1_*a0_;
   }
@@ -68,7 +64,6 @@ namespace CoupledField
 
   void Trapezoidal::UpdateRHS()
   {
-    ENTER_FCN( "Trapezoidal::UpdateRHS" );
 
     Vector<Double> coeffMass;
 
@@ -80,7 +75,6 @@ namespace CoupledField
 
   void Trapezoidal::UpdateRHS(Vector<Double>& actSol)
   {
-    ENTER_FCN( "Trapezoidal::UpdateRHS" );
 
     Vector<Double> coeffMass;
 
@@ -92,14 +86,12 @@ namespace CoupledField
 
   void Trapezoidal::Corrector(Vector<Double>& solnew)
   {
-    ENTER_FCN( "Trapezoidal::Corrector" );
 
     solderiv1_ = (solnew - solpred_)*a1_;
   }
 
   void Trapezoidal :: CalcParameters(Double dt)
   {
-    ENTER_FCN( "Trapezoidal::CalcParameters" );
 
     //for predictors
     a0_ = (1-gamma_)*dt_;
@@ -117,7 +109,6 @@ namespace CoupledField
   TrapezoidalEffMass :: TrapezoidalEffMass( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
-    ENTER_FCN( "TrapezoidalEffMass::TrapezoidalEffMass" );
 
     gamma_ = 0.51;
 
@@ -125,12 +116,10 @@ namespace CoupledField
 
   TrapezoidalEffMass :: ~TrapezoidalEffMass()
   {
-    ENTER_FCN( "TrapezoidalEffMass::~TrapezoidalEffMass" );
 
   }
 
   void TrapezoidalEffMass::Init( Double dt, UInt rhsSize ) {
-    ENTER_FCN( "TrapezoidalEffMass::Init" );
     
     dt_ = dt;
     rhsSize_ = rhsSize;
@@ -159,14 +148,12 @@ namespace CoupledField
 
   void TrapezoidalEffMass::Predictor(Vector<Double>& solold)
   {
-    ENTER_FCN( "TrapezoidalEffMass::Predictor" );
     solpred_ = solold + solderiv1_*a0_;
   }
 
 
   void TrapezoidalEffMass::UpdateRHS()
   {
-    ENTER_FCN( "TrapezoidalEffMass::UpdateRHS" );
 
     Vector<Double> coeffStiff;
 
@@ -178,14 +165,12 @@ namespace CoupledField
 
   void TrapezoidalEffMass::UpdateRHS(Vector<Double>& actSol)
   {
-    ENTER_FCN( "TrapezoidalEffMass::UpdateRHS" );
     UpdateRHS();
   }
 
 
   void TrapezoidalEffMass::Corrector(Vector<Double>& vNew)
   {
-    ENTER_FCN( "TrapezoidalEffMass::Corrector" );
     // after solving the algebraic system of equation, we obtain as solution
     // the 1st time derivative: vNew .. 1st time derivative
     sol_ = solpred_ + vNew * a1_;
@@ -197,7 +182,6 @@ namespace CoupledField
 
   void TrapezoidalEffMass :: CalcParameters(Double dt)
   {
-    ENTER_FCN( "TrapezoidalEffMass::CalcParameters" );
 
     //for predictors
     a0_ = (1-gamma_)*dt;
@@ -209,7 +193,6 @@ namespace CoupledField
 
   Double TrapezoidalEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
   {
-    ENTER_FCN( "TrapezoidalEffMass::DirichletBC4EffMassMatrix" );
 
     Double velVal;
 

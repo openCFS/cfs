@@ -18,7 +18,6 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseODESolver() {
-      ENTER_FCN( "BaseODESolver::BaseODESolver" );
       successLastSolve_     = false;
       numStepsLastSolve_    = 0;
       numBadStepsLastSolve_ = 0;
@@ -29,7 +28,6 @@ namespace CoupledField {
 
     //! Default Destructor
     virtual ~BaseODESolver() {
-      ENTER_FCN( "BaseODESolver::~BaseODESolver" );
     }
 
     //! Compute the solution of the initial value problem
@@ -55,7 +53,6 @@ namespace CoupledField {
     //! \param numSteps    Number of time steps for last solve
     //! \param numBadSteps Number of rejected time steps in last solve
     void GetStatus( bool &success, Integer &numSteps, Integer &numBadSteps ) {
-      ENTER_FCN( "BaseODESolver::GetStatus" );
       success     = successLastSolve_;
       numSteps    = numStepsLastSolve_;
       numBadSteps = numBadStepsLastSolve_;
@@ -68,7 +65,6 @@ namespace CoupledField {
     Integer GetMaxSteps (){ return maxSteps_;}
 
     void SetMaxSteps(Integer maxStepsNew) {
-      ENTER_IFCN( "BaseODESolver::SetMaxSteps" );
       maxSteps_ = maxStepsNew;
     }
 
@@ -77,7 +73,6 @@ namespace CoupledField {
     void SetSafetyFac (Double safetyFacNew){safetyFac_ = safetyFacNew;}
 
     void SetNumEl (Integer numEl){
-      ENTER_IFCN( "ODESolver_RKF45::SetNumEl" );
       numEl_ = numEl;
     }
 

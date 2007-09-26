@@ -25,12 +25,10 @@ namespace OLAS {
 
     //! Default Constructor
     IdPrecond() {
-      ENTER_FCN( "IdPrecond::IdPrecond" );
     };
 
     //! Default Destructor
     ~IdPrecond() {
-      ENTER_FCN( "IdPrecond::~IdPrecond" );
     };
 
     //! Application of preconditioner
@@ -40,7 +38,6 @@ namespace OLAS {
     //! vector.
     void Apply( const StdMatrix &sysmat, const SparseVector &rhs,
 		SparseVector &sol ) const {
-      ENTER_FCN( "IdPrecond::Apply" );
       sol = rhs;
     }
 
@@ -50,7 +47,6 @@ namespace OLAS {
     //! but to copy some vector entries, the setup method does not do anything.
     /// diagonal entries of the system matrix
     void Setup( StdMatrix &sysmat ) {
-      ENTER_FCN( "IdPrecond::Setup" );
     }
 
     //! Query type of preconditioner object
@@ -58,7 +54,6 @@ namespace OLAS {
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is ID.
     PrecondType GetPrecondType() const {
-    ENTER_IFCN( "IdPrecond::GetPrecondType" );
     return ID;
     }
 

@@ -16,7 +16,6 @@ namespace CoupledField {
   
     SimOutput::SimOutput( const std::string& fileName, 
                           ParamNode * outputNode ) {
-    ENTER_FCN( "SimOutput::SimOutput" );
     fileName_ = fileName;
     myParam_ = outputNode;
     actStep_ = 0;
@@ -24,14 +23,12 @@ namespace CoupledField {
   }
 
   SimOutput::~SimOutput() {
-    ENTER_FCN( "SimOutput::~SimOutput" );
   }
 
   template<class TYPE>
   void SimOutput::FillGlobalVec( Vector<TYPE>& gSol, 
                                  const StdVector<shared_ptr<BaseResult> > & solList,
                                  ResultInfo::EntityUnknownType entityType ) {
-    ENTER_FCN( "SimOutput::FillGlobalVec" );
     
     ResultInfo & actDof = *(solList[0]->GetResultInfo());
     UInt numDofs = actDof.dofNames.GetSize();

@@ -15,7 +15,6 @@ namespace CoupledField {
 				 Matrix<Double> &TransMat, 
 				 Matrix<Double> &ShellCoord )
   {
-    ENTER_FCN( "FlatShellInt::CoordTrans");
    
     //std::cout << "FlatShellInt::CoordTrans\n" << std::endl;
     ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -132,7 +131,6 @@ namespace CoupledField {
   void FlatShellInt::LocaltoGlob( Matrix<Double> &ElemMat, const Matrix<Double> &TransMat )
   {
 
-    ENTER_FCN( "FlatShellInt::LocaltoGlob" );
     //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
 
     int i, j;
@@ -186,7 +184,6 @@ namespace CoupledField {
 void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Double> &TransMat )
   {
 
-    ENTER_FCN( "FlatShellInt::LocaltoGlobPiezo" );
     //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
 
     int i, j;
@@ -230,7 +227,6 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
   // *************************************
   FlatShellInt::FlatShellInt( Composite * composite ) 
     : BaseForm(NULL) {
-    ENTER_FCN( "FlatShellInt::FlatShellInt" );
 
     name_ = "FlatShellInt";
 
@@ -257,7 +253,6 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
   
   FlatShellInt::FlatShellInt( BaseMaterial * matData ) 
     : BaseForm(matData) {
-    ENTER_FCN( "FlatShellInt::FlatShellInt" );
     
     // Set flag
     isComposite_ = false;
@@ -267,7 +262,6 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
   //   Destructor
   // **************
   FlatShellInt::~FlatShellInt() {
-    ENTER_FCN( "FlatShellInt::~FlatShellInt" );
   }
   
 } // end namespace CoupledField

@@ -19,7 +19,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE>::Matrix ()
   {
-    ENTER_FCN("Matrix::Matrix");  
     size_row_ = 0;
     size_col_ = 0;
     data_ = NULL;
@@ -29,7 +28,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE>::Matrix (const UInt nRows, const UInt nCols)
   {
-    ENTER_FCN("Matrix::Matrix");
 #ifdef CHECK_INDEX 
     if (nRows <= 0 || nCols <= 0) EXCEPTION("invalid dimension");
 #endif
@@ -49,7 +47,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE>::Matrix (const UInt nRows,const Vector<TYPE> * const x)
   {
-    ENTER_FCN("Matrix::Matrix");
 #ifdef CHECK_INDEX
     if (nRows <= 0) EXCEPTION("invalid dimension");
 #endif
@@ -80,7 +77,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE>::Matrix (const Matrix<TYPE> &x)
   {
-    ENTER_FCN("Matrix::Matrix");
 
 #ifdef CHECK_INITIALIZED
 //     if (x.size_row_ == 0 || x.size_col_ == 0)  
@@ -111,7 +107,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE>::~Matrix ()
   {
-    ENTER_FCN("Matrix::~Matrix");
     if (data_ != NULL)
       {
         delete[] data_[0];
@@ -138,7 +133,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols )
   {
-    ENTER_FCN("Matrix::Resize");
   
     UInt k;
   
@@ -172,7 +166,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Resize(const UInt col )
   {
-    ENTER_FCN("Matrix::Resize");
     Resize(col,col);  
   }
 
@@ -182,7 +175,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
   {
-    ENTER_IFCN("Matrix::operator=");
 
 #ifdef CHECK_INITIALIZED
     if (x.size_row_ == 0 || x.size_col_ == 0) 
@@ -223,7 +215,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> Matrix<TYPE>::operator+ () const
   {
-    ENTER_IFCN("Matrix::operator+");
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
@@ -237,7 +228,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator+=(const Matrix<TYPE> &x)
   {
-    ENTER_IFCN("Matrix::operator+=");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -260,7 +250,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> Matrix<TYPE>::operator-() const
   {
-    ENTER_IFCN("Matrix::operator-");
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 )
       EXCEPTION("undefined Matrix");
@@ -280,7 +269,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> & Matrix<TYPE>::operator-=(const Matrix<TYPE> &x)
   {
-    ENTER_IFCN("Matrix::operator-=");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -305,7 +293,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
   {
-    ENTER_IFCN("Matrix::operator*=");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -324,7 +311,6 @@ namespace CoupledField
  template<class TYPE>
   Matrix<TYPE> & Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
   {   
-    ENTER_IFCN("Matrix::operator*=");    
  
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -361,7 +347,6 @@ namespace CoupledField
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE &x)
   {
-    ENTER_IFCN("Matrix::operator/=");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -383,7 +368,6 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::operator== (const Matrix<TYPE> &x) const
   {
-    ENTER_IFCN("Matrix::operator==");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -402,7 +386,6 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::operator!= (const Matrix<TYPE> &x) const
   {
-    ENTER_IFCN("Matrix::operator!=");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -423,7 +406,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Mult(const CFSVector & mvec, CFSVector & rvec) const
   {
-    ENTER_IFCN("Matrix::Mult");
     Vector<TYPE> const & mvec1 = dynamic_cast<const Vector<TYPE>& >(mvec);
     Vector<TYPE> & rvec1 = dynamic_cast<Vector<TYPE>& >(rvec);
   
@@ -458,7 +440,6 @@ namespace CoupledField
   // template<class TYPE>
   // void Matrix<TYPE>::Mult(CFSMatrix & mMat, CFSMatrix & rMat)
   // {
-  //   ENTER_IFCN("Matrix::Mult");
   //   Matrix<TYPE> & mMat1 = dynamic_cast<Matrix<TYPE> & >(mMat);
   //   Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
   //   
@@ -511,7 +492,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::AddRow (const Vector<TYPE> &x, const UInt pos)
   {
-    ENTER_IFCN("Matrix::add_row");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -548,7 +528,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::AddColumn (const Vector<TYPE> &x, const UInt pos)
   {
-    ENTER_IFCN("Matrix::AddColumn");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -586,7 +565,6 @@ namespace CoupledField
   template<class S>
   std::ostream &operator<< ( std::ostream &out, const Matrix<S> &mat ) {
 
-    ENTER_IFCN( "Matrix::operator<<" );
 
     // Set output format
     out.setf( std::ios::scientific );
@@ -620,7 +598,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Transpose (Matrix<TYPE> &transposedMat) const
   {
-    ENTER_FCN("Matrix::Transpose");
     transposedMat.Resize(size_col_, size_row_);
  
     UInt i,j;
@@ -634,7 +611,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::DirectSolve(CFSVector & x1, CFSVector & b1)
   {
-    ENTER_FCN("Matrix::DirectSolve");
 
     Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
     Vector<TYPE> & b = dynamic_cast<Vector<TYPE>& >(b1);
@@ -693,7 +669,6 @@ namespace CoupledField
   void Matrix<Complex>::solveWithLapack(Matrix<Complex> & b1,
                                         lapackSysMatType & LAPACK_MATRIX_TYPE)
   {
-    ENTER_FCN("Matrix::solveWithLapack");
 
     if(size_row_!=size_col_)
       EXCEPTION("Matrix is not quadratic, no solver!" );
@@ -828,7 +803,6 @@ namespace CoupledField
   template<>
   void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
   {
-    ENTER_FCN("Matrix::eigenvaluesWithLapack");
     // computes all eigenvalues of a complex hermitian matrix
 
     char lp_jobz='V';
@@ -901,7 +875,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const CFSVector & v1)
   {
-    ENTER_FCN("Matrix::DyadicMult");
     DyadicMult(v1, v1);
   }
 
@@ -910,7 +883,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const CFSVector & v1, const CFSVector & v2)
   {
-    ENTER_FCN("Matrix::DyadicMult");
   
     Vector<TYPE> const & vec1 = dynamic_cast<const Vector<TYPE>& >(v1);
     Vector<TYPE> const & vec2 = dynamic_cast<const Vector<TYPE>& >(v2);
@@ -928,7 +900,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Invert (Matrix <TYPE> & inv) const
   {   
-    ENTER_FCN("Matrix::Invert");   
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -1024,7 +995,6 @@ namespace CoupledField
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
   {
-    ENTER_FCN("Matrix::Invert"); 
 
     EXCEPTION("Matrix<Complex>::Invert: Not implemented!" );
   }
@@ -1032,7 +1002,6 @@ namespace CoupledField
   template<class TYPE>
   TYPE Matrix<TYPE>::Adjunct (UInt i, UInt j) const
   {
-    ENTER_FCN("Matrix::Adjunct");  
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -1085,7 +1054,6 @@ namespace CoupledField
   
   template<>
   Matrix<Double> Matrix<Double>::GetPart(  DataType part ) const {
-    ENTER_FCN( "Matrix<Double>::GetPart" )
     
     if ( part != REAL ) {
       EXCEPTION("Matrix<Double>::GetPart: Only possible for REAL part." );
@@ -1096,7 +1064,6 @@ namespace CoupledField
 
   template<>
   Matrix<Double> Matrix<Complex>::GetPart(  DataType part ) const {
-    ENTER_FCN( "Matrix<Complex>::GetPart" );
     
     Matrix<Double> ret;
     if ( part == REAL ) {
@@ -1173,7 +1140,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::GetSubMatrix(Matrix<TYPE>& subMat, UInt startRow, UInt startCol) const
   {
-    ENTER_FCN("Matrix::GetSubMatrix");
 
 #ifdef CHECK_INITIALIZED
     if (subMat.size_row_ == 0 || subMat.size_col_ == 0 || size_col_ == 0 || size_row_ == 0 ) 
@@ -1197,7 +1163,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::SetSubMatrix(const Matrix<TYPE>& subMat, UInt startRow, UInt startCol)
   {
-    ENTER_FCN("Matrix::SetSubMatrix");
 #ifdef CHECK_INITIALIZED
     if (subMat.size_row_ == 0 || subMat.size_col_ == 0 || size_col_ == 0 || size_row_ == 0 ) 
       EXCEPTION( "undefined matrix" );
@@ -1220,7 +1185,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::AddSubMatrix(const Matrix<TYPE>& subMat, UInt startRow, UInt startCol)
   {
-    ENTER_FCN("Matrix::AddSubMatrix");
 #ifdef CHECK_INITIALIZED
     if (subMat.size_row_ == 0 || subMat.size_col_ == 0 || size_col_ == 0 || size_row_ == 0 ) 
       EXCEPTION("undefined matrix" );
@@ -1242,7 +1206,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendRows(CFSVector & v) const
   {
-    ENTER_FCN("Matrix::ConvertToVec_AppendRows");
   
     Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
 
@@ -1257,7 +1220,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendCols(CFSVector &v) const
   {
-    ENTER_FCN("Matrix::ConvertToVec_AppendCols");
 
     Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
 
@@ -1275,7 +1237,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ScaleDiagElems(TYPE factor) 
   {
-    ENTER_FCN("Matrix::ScaleDiagElems");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -1298,7 +1259,6 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-    ENTER_FCN("Matrix::GetDiagInMatrix");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -1322,7 +1282,6 @@ namespace CoupledField
 
 
   template<class TYPE> bool Matrix<TYPE>::IsSymmetric() const {
-    ENTER_FCN( "Matrix::IsSymmetric" );
     bool amSymm = true;
     for ( UInt i = 1; i < size_row_; i++ ) {
       for ( UInt j = i+1; j < size_col_; j++ ) {
@@ -1341,7 +1300,6 @@ namespace CoupledField
   // asymmetries to standard output
 
   // template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
-  //   ENTER_FCN( "Matrix::IsSymmetric" );
   //   bool amSymm = true;
   //   for ( UInt i = 1; i < size_row_; i++ ) {
   //     for ( UInt j = i+1; j < size_col_; j++ ) {

@@ -14,7 +14,6 @@ namespace CoupledField {
                                               EntityIterator& ent1, 
                                               EntityIterator& ent2 ) {
 
-    ENTER_FCN( "FlatShellPiezoInt::CalcElementMatrix" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -108,7 +107,6 @@ namespace CoupledField {
   
   /*void FlatShellPiezoInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ShellCoord) {
 
-  ENTER_FCN( "FlatShellPiezoInt::calcBMat" );
 
   const UInt numFncs  = ptelem->GetNumNodes(); //4 nodes for linear element
   const UInt spaceDim = getDimD(); //8 
@@ -167,7 +165,6 @@ namespace CoupledField {
   
   void FlatShellPiezoInt::calcEMat( Matrix<Double> &eMat ){
 
-    ENTER_FCN( "FlatShellPiezoInt::calcEMat" );
 
     const UInt SizeOfD = 8;
     const UInt nrLayers  = composite_->thickness.GetSize();
@@ -271,7 +268,6 @@ namespace CoupledField {
   // *************************************
   FlatShellPiezoInt::FlatShellPiezoInt( Composite * composite ) 
     : FlatShellInt(composite)  {
-    ENTER_FCN( "FlatShellPiezoInt::FlatShellPiezoInt" );
     
     name_ = "FlatShellPiezoInt";
 
@@ -284,7 +280,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   FlatShellPiezoInt::~FlatShellPiezoInt() {
-    ENTER_FCN( "FlatShellPiezoInt::~FlatShellPiezoInt" );
   }
   
 } // end namespace CoupledField

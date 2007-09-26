@@ -277,7 +277,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return MINRES
     SolverType GetSolverType() {
-      ENTER_IFCN( "MINRESSolver::GetSolverType" );
       return MINRES;
     }
 

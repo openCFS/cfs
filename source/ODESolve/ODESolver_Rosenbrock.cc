@@ -23,7 +23,6 @@ namespace CoupledField
 				    Double &hInit,
 				    Double hMin,
 				    Double hMax ){
-    ENTER_FCN( " ODESolver_Rosenbrock::Solve " );
     const Double tiny = 1.0e-30;
     UInt i;
     UInt nstp;
@@ -123,7 +122,6 @@ namespace CoupledField
 						     Double &hNext,
 						     BaseODEProblem &myODE){
 
-    ENTER_FCN( "ODESolver_Rosenbrock::RosenbAdaptiveStepsize" );
     // powerGrow and powerShrink are exponents in computation of step size
     Double  powerGrow = -0.25;
     Double  powerShrink = -1.0/3.0;
@@ -274,7 +272,6 @@ namespace CoupledField
 					     StdVector<UInt> &indx,
 					     Double &d){
 
-    ENTER_FCN( "ODESolver_Rosenbrock::LUDecomposition" );
     const Double tiny = 1.0e-20;
     UInt i, imax, j, k;
     Double big, dum, sum, temp;
@@ -340,7 +337,6 @@ namespace CoupledField
 				       UInt n,
 				       StdVector<UInt> &indx,
 				       StdVector<Double> &b){
-    ENTER_FCN( " ODESolver_Rosenbrock::LUBackSub" );
     Integer i,ii, ip,j;
     Double sum;
     ii =0;

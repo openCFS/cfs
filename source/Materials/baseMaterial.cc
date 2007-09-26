@@ -27,7 +27,6 @@ namespace CoupledField
   // ***********************
   BaseMaterial::BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
 
     materialDatabaseName_ = "";
     matFileName_ = "";
@@ -42,14 +41,12 @@ namespace CoupledField
 
    BaseMaterial::~BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
 
   void BaseMaterial::NeedApproxMatCurve( ApproxMaterialCurves type ) {
 
-    ENTER_FCN( "Basematerial::NeedApproxMatCurve" );
 
     needApproxMatCurves_.insert( type );
   }
@@ -57,7 +54,6 @@ namespace CoupledField
 
   void BaseMaterial::SetScalar(int param, MaterialType matType) {
 
-    ENTER_FCN( "Basematerial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -73,7 +69,6 @@ namespace CoupledField
   void BaseMaterial::GetScalar(Integer& param, MaterialType matType, DataType dataType ) const 
   {
 
-    ENTER_FCN( "BaseMaterial::GetScalar" );
 
     integerMap::const_iterator pos;
     pos = integerParams_.find( matType );
@@ -94,7 +89,6 @@ namespace CoupledField
 
 
   bool BaseMaterial::IsSet( MaterialType matType ) const {
-    ENTER_FCN(" BaseMaterial::IsSet" );
 
     bool found = false;
     scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
@@ -109,7 +103,6 @@ namespace CoupledField
   }
 
   void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const std::string& dim ) const {
-    ENTER_FCN("BaseMaterial::matTypeNotAllowed");
 
     std::string help;
     Enum2String(matType, help);
@@ -121,7 +114,6 @@ namespace CoupledField
 
   void  BaseMaterial::dataTypeNotAllowed4SetGet(DataType dataType, 
 						 const std::string& msg ) const {
-    ENTER_FCN("BaseMaterial::dataTypeNotAllowed4Set");
 
     std::string help;
     Enum2String( dataType, help );
@@ -131,7 +123,6 @@ namespace CoupledField
 
 
   void BaseMaterial::dataTypeNotAllowed(DataType dataType, MaterialType matType ) const {
-    ENTER_FCN("BaseMaterial::dataTypeNotAllowed");
 
     std::string help1, help2;
     Enum2String( dataType, help1 );
@@ -141,7 +132,6 @@ namespace CoupledField
   }
 
   void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const {
-    ENTER_FCN("BaseMaterial::matTypeNotInFile");
 
     std::string help;
     Enum2String(matType, help);
@@ -151,7 +141,6 @@ namespace CoupledField
 
 
   void  BaseMaterial::setMakesNoSense(DataType dataType, const std::string& msg ) const {
-    ENTER_FCN("BaseMaterial::setMakesNoSense");
 
     std::string msgAll, help;
     Enum2String( dataType, help );
@@ -161,7 +150,6 @@ namespace CoupledField
 
 
   void  BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor ) const {
-    ENTER_FCN("BaseMaterial::subTensorNotAvailable") 
 
     std::string msg, help1, help2;
     Enum2String(matType, help1);
@@ -172,7 +160,6 @@ namespace CoupledField
 
   std::ostream & operator << ( std::ostream & out, const BaseMaterial& matData)
   {
-    ENTER_IFCN( "operator <<(BaseMaterial)" );
 
     std::set<MaterialType>::iterator iter;
     std::set<MaterialType> isSet = matData.GetIsSetInfo();
@@ -250,7 +237,6 @@ namespace CoupledField
                                                    MaterialType matType,
                                                    bool persistent ) {
 
-    ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
 
 
     using namespace std;
@@ -373,7 +359,6 @@ namespace CoupledField
 
   void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
                                                        bool persistent ) {
-    ENTER_FCN( "BaseMaterial::RotateAllTensorsByRotationAngles" );
 
     BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
     for( ; it != tensorParams_.end(); it++ ) {
@@ -385,7 +370,6 @@ namespace CoupledField
   void BaseMaterial::RotateTensorByPointCoord( const Vector<Double>&  coord,
                                                MaterialType matType ) {
 
-    ENTER_FCN( "BaseMaterial:: RotateTensorByPointCoord" );
 
     // Determine rotation angles from attached coordinate system
     Vector<Double> angles;
@@ -402,7 +386,6 @@ namespace CoupledField
   void BaseMaterial::PerformRotation( Matrix<Complex>& R,  Matrix<Complex>& matTensor,
 				      const Matrix<Complex>& matTensorOrig) {
 
-    ENTER_FCN( "BaseMaterial::PerformRotation" );
 
 
       // get memory for transposed rotation matrix
@@ -500,7 +483,6 @@ namespace CoupledField
 
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                bool isInverse, bool computeHystInverse ) {
-    ENTER_FCN( "BaseMaterial::InitHyst" );
 
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse_;
@@ -541,7 +523,6 @@ namespace CoupledField
 
 
   Double BaseMaterial::ConvertVec2ScalarWithSign( Vector<Double> & vecVal ) {
-    ENTER_FCN( "BaseMaterial::ConvertVec2ScalarWithSign" );
 
     Double absVal, maxVal;
     UInt idx;
@@ -564,7 +545,6 @@ namespace CoupledField
 
 
   void BaseMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& Xvec) {
-    ENTER_FCN( "BaseMaterial::SetPreviousHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
@@ -575,7 +555,6 @@ namespace CoupledField
   }
 
   Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xvec) {
-    ENTER_FCN( "BaseMaterial::ComputeScalarDiffVal" );
 
     Double matDiff, eps;
 
@@ -612,7 +591,6 @@ namespace CoupledField
   }
 
   Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xvec) {
-    ENTER_FCN( "BaseMaterial::ComputeScalarHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
@@ -624,7 +602,6 @@ namespace CoupledField
 
 
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
-    ENTER_FCN( "BaseMaterial::GetScalarHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
     Double Yval = hyst_->getValue( idx );
@@ -634,7 +611,6 @@ namespace CoupledField
 
 
   void BaseMaterial::ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF) {
-    ENTER_FCN( "BaseMaterial::ComputeRayleighDamping" );
 
     if ( IsSet( RAYLEIGH_ALPHA ) 
          && IsSet( RAYLEIGH_BETA ) 

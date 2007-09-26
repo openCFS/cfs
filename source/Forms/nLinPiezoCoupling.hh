@@ -72,19 +72,16 @@ namespace CoupledField {
 
 
     void getDimD( UInt nRows, UInt nCols ) {
-      ENTER_IFCN( "linPiezoCoupling::getDimD" );
       nRows = matDimRow_;
       nCols = matDimCol_;
     };
 
     UInt getNumDofsA() {
-      ENTER_IFCN( "linPiezoCoupling::getNumDofsA" );
       return numDofsA_;
     }
 
 
     UInt getNumDofsB() {
-      ENTER_IFCN( "linPiezoCoupling2DPlaneStrain::getNumDofsB" );
       return numDofsB_;
     }
 

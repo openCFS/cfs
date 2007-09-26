@@ -40,7 +40,6 @@ namespace CoupledField {
                                     UInt sequenceStep,
                                     bool isPartOfSequence) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
-    ENTER_FCN( "TransientDriver::TransientDriver" );
     
     LOG_TRACE(trans_driver) << "TransientDriver():  stepOffset: " << stepOffset
              << " timeOffset: " << timeOffset << " sequenceStep: " << sequenceStep
@@ -84,14 +83,12 @@ namespace CoupledField {
   // ==============
   TransientDriver::~TransientDriver()
   {
-    ENTER_FCN( "TransientDriver::~TransientDriver" );
   }
 
   // ==================
   //   Initialization
   // ==================
   void TransientDriver::Init() {
-    ENTER_FCN( "TransientDriver::Init" );
 
 
     InitializePDEs();
@@ -104,7 +101,6 @@ namespace CoupledField {
   // =================
   void TransientDriver::SolveProblem()
   {
-    ENTER_FCN( "TransientDriver::SolveProblem" );
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -219,7 +215,6 @@ namespace CoupledField {
   }
   
   void TransientDriver::ReadRestart() {
-    ENTER_FCN( "TransientDriver::ReadRestart" );
     
     if ( commandLine->GetRestart() ){
       ptPDE_->ReadRestart( restartStep_ );

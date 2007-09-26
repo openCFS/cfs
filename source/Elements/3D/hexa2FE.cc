@@ -15,20 +15,17 @@ namespace CoupledField
 
   Hexa2FE::Hexa2FE():HexaFE()
   { 
-    ENTER_FCN( "Hexa2FE::Hexa2FE" );
 
     Init();
   }
 
   Hexa2FE::~Hexa2FE()
   {
-    ENTER_FCN( "Hexa2FE::~Hexa2FE" );
 
   }
 
   void Hexa2FE::Init()
   {
-    ENTER_IFCN( "Hexa2FE::Init" );
   
     NumNodes_ = 20;
     NumEdges_ = 12;
@@ -38,7 +35,6 @@ namespace CoupledField
 
   void Hexa2FE::SetCornerCoords()
   {
-    ENTER_IFCN( "Hexa2FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -132,7 +128,6 @@ namespace CoupledField
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Hexa2FE::CalcShapeFnc" );
 
 #ifdef Hexa2Old
     //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
@@ -244,7 +239,6 @@ namespace CoupledField
                                        const Elem*, UInt dof,
                                        AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Hexa2FE::CalcLocalDerivShapeFnc" );
 #ifdef Hexa2Old
     //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
     //helper variables

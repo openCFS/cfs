@@ -17,7 +17,6 @@ namespace CoupledField{
       
   {
   
-    ENTER_FCN( "SingleDriver::SingleDriver" );
 
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
@@ -27,7 +26,6 @@ namespace CoupledField{
   
   SingleDriver::~SingleDriver()
   {
-    ENTER_FCN( "SingleDriver::~SingleDriver" );
   
   }
 
@@ -38,7 +36,6 @@ namespace CoupledField{
    
 
   void SingleDriver::InitializePDEs() {
-    ENTER_FCN( "void InitializePDEs()" );
    
        // read in pde data 
     if( ! isPartOfSequence_ ) {
@@ -57,7 +54,6 @@ namespace CoupledField{
   }
 
   void SingleDriver::SetPDE( BasePDE *pde) {
-    ENTER_FCN( "SingleDriver::SetPDE" );
     ptPDE_ = pde;
   }
       

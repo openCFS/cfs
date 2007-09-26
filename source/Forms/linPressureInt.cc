@@ -15,7 +15,6 @@ namespace CoupledField {
                                     const std::string& phase,
                                     bool isAxi )
     : LinearSurfForm() {
-    ENTER_FCN( "PressureLinForm::PressureLinForm" );
 
     name_ = "PressureLinForm";
     isaxi_ = isAxi;
@@ -29,14 +28,12 @@ namespace CoupledField {
 
 
   PressureLinForm::~PressureLinForm() {
-    ENTER_FCN( "PressureLinForm::~PressureLinForm" );
   }
 
 
 
   void PressureLinForm::CalcElemVector( Vector<Double> & elemVec,
                                         EntityIterator& ent ) {
-    ENTER_FCN( "PressureLinForm::CalcElemVector" );
 
     // compute element vector
     PrepareElemVec( elemVec, ent );
@@ -62,7 +59,6 @@ namespace CoupledField {
 
   void PressureLinForm::CalcElemVector( Vector<Complex> & elemVec,
                                         EntityIterator& ent ) {
-    ENTER_FCN( "PressureLinForm::CalcElemVector" );
 
     // compute element vector
     Vector<Double> helpVec;
@@ -93,7 +89,6 @@ namespace CoupledField {
 
   void PressureLinForm::PrepareElemVec( Vector<Double>& elemVec, 
                                         EntityIterator& ent ) {
-    ENTER_FCN( "PressureLinForm::PrepareElemVec" );
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 

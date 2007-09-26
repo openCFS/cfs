@@ -28,9 +28,6 @@ namespace CoupledField
                                          Vector<Double> & errorMap,
                                          Double & atotalErr, const Integer level)
   {
-#ifdef TRACE
-    *trace << "entering SpaceErrorEstimation::CalcErrorMap" << std::endl;
-#endif
   
     // loop over elements
     Vector<Double>          result;
@@ -189,18 +186,12 @@ namespace CoupledField
     //   std::cout << errorMap << std::endl;
     //   exit(1);
 
-#ifdef TRACE
-    *trace << "leaving SpaceErrorEstimator::CalcErrorMap" << std::endl;
-#endif    
   }
 
   void SpaceErrorEstimator::CalcErrorForElem(const Elem* elem,
                                              const Vector<Double>* SPRgrad,  Double & error, Double & normGradSPR,
                                              const Vector<Double> & sol, Grid * ptgrid, const Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering SpaceErrorEstimator::CalcErrorForElem" << std::endl;
-#endif
 #ifdef DEBUG
     (*debug) << " step: error map \n";
 #endif
@@ -279,9 +270,6 @@ namespace CoupledField
 
       } // end of loop over integration points
 
-#ifdef TRACE
-    (*trace) << "leaving SpaceErrorEstimator::CalcErrorForElem" << std::endl;
-#endif
   }
 
   void SpaceErrorEstimator::RecoveryProcedure4ElemsPatch(const std::vector<Elem*> &Elems,
@@ -292,9 +280,6 @@ namespace CoupledField
                                                          std::vector<Integer>&locations,
                                                          const Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering SpaceErrorEstimator::RecoveryProcedure4ElemsPatch " << std::endl;
-#endif
     
     Vector<Integer>  vec_connect; // auxilialary vector, stores connection of element
     Matrix<Double>   elemmat; // sys matrix for element
@@ -408,17 +393,10 @@ namespace CoupledField
 
     locations=mapGlbNumNodes2LocInPatch;
 
-#ifdef TRACE
-    (*trace) << "leaving SpaceErrorEstimator::RecoveryProcedure4ElemsPatch " << std::endl;
-#endif
-
   }  // end of fnc: RecoveryProcedure4ElemsPatch
 
   Integer SpaceErrorEstimator::CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch)
   {
-#ifdef TRACE
-    (*trace) << "entering Elecst2dPDE::CalcNumberOfNodesInPatch" << std::endl;
-#endif
 
     Integer              iels,ivc,imp;
     Vector<Integer>      vec_connect;
@@ -460,9 +438,6 @@ namespace CoupledField
                                                  Vector<Double> & errorMap,
                                                  Double & atotalErr, const Integer level)
   {
-#ifdef TRACE
-    *trace << "entering SpaceErrorEstimation::CalcErrorMapHarmonic" << std::endl;
-#endif
   
     // loop over elements
     Vector<Double>          result, resultIm;
@@ -637,9 +612,6 @@ namespace CoupledField
     errorMap/=glNrmErr;
     errorMap*=sumArea;   
   
-#ifdef TRACE
-    *trace << "leaving SpaceErrorEstimator::CalcErrorMapHarmonic" << std::endl;
-#endif    
   }
 
   void SpaceErrorEstimator::CalcErrorForElemHarmonic(const Elem* elem,
@@ -648,9 +620,6 @@ namespace CoupledField
                                                      const Vector<Double> & sol, const Vector<Double> & solIm,                                              
                                                      Grid * ptgrid, const Integer level)
   {
-#ifdef TRACE
-    (*trace) << "entering SpaceErrorEstimator::CalcErrorForElem" << std::endl;
-#endif
 #ifdef DEBUG
     (*debug) << " step: error map \n";
 #endif
@@ -737,17 +706,11 @@ namespace CoupledField
 
       } // end of loop over integration points
 
-#ifdef TRACE
-    (*trace) << "leaving SpaceErrorEstimator::CalcErrorForElem" << std::endl;
-#endif
   }
 
   // template <Integer Dim>
   // void SpaceErrorEstimator<Dim>::KellyError(Grid * ptgrid, std::vector<std::string> &sbdoms, Vector<Double> & errorMap,const Integer level) 
   // {
-  // #ifdef TRACE
-  //   (*trace) << "entering SpaceErrorEstimator::KellyError " << std::endl;
-  // #endif
   // #ifdef DEBUG
   //   (*trace) << " step: kelly error map is calculated\n";
   // #endif

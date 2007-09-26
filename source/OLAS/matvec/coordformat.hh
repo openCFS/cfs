@@ -46,7 +46,6 @@ namespace OLAS {
     CoordFormat( UInt nrows, UInt ncols, UInt nnz, bool symmStorage,
                  Layout myLayout = NOLAYOUT ) {
 
-      ENTER_FCN( "CoordFormat::CoordFormat" );
 
       nrows_ = nrows;
       ncols_ = ncols;
@@ -78,7 +77,6 @@ namespace OLAS {
 
     //! Default destructor
     ~CoordFormat() {
-      ENTER_FCN( "CoordFormat::~CoordFormat" );
     }
 
     //! Add a matrix entry
@@ -132,7 +130,6 @@ namespace OLAS {
     //! - It is an error to call any one of the access methods for matrix
     //!   entries before FinaliseAssembly was called.
     void FinaliseAssembly() {
-      ENTER_FCN( "CoordFormat::FinaliseAssembly" );
 
       // Determine that number of stored entries is correct
       UInt numEntries = 0;

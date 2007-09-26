@@ -55,7 +55,6 @@ namespace CoupledField {
   ElecPDE::ElecPDE( Grid* aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
-    ENTER_FCN( "ElecPDE::ElecPDE" );
 
     // =====================================================================
     // set solution information
@@ -75,7 +74,6 @@ namespace CoupledField {
   
 
   void ElecPDE::InitNonLin() {
-    ENTER_FCN( "ElecPDE::InitNonLin" );
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
@@ -149,7 +147,6 @@ namespace CoupledField {
 
   void ElecPDE::DefineIntegrators() {
 
-    ENTER_FCN( "ElecPDE::DefineIntegerators" );
     
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
@@ -499,7 +496,6 @@ namespace CoupledField {
   }
 
   void ElecPDE::DefineSolveStep() {
-    ENTER_FCN( "ElecPDE::DefineSolveStep" );
     solveStep_ = new SolveStepElec(*this);
   }
 
@@ -576,7 +572,6 @@ namespace CoupledField {
   //   CalcResults
   // ***************
    void ElecPDE::CalcResults( shared_ptr<BaseResult> res ) {
-     ENTER_FCN( "ElecPDE::CalcResults" );
      
      switch (res->GetResultInfo()->resultType ) {
      case ELEC_POTENTIAL:
@@ -641,7 +636,6 @@ namespace CoupledField {
   template <class TYPE>
   void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol )
   {
-    ENTER_FCN( "ElecPDE::PostProcess" );
     Vector<Double> lCoord;
     Vector<TYPE> tempE;
     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
@@ -672,7 +666,6 @@ namespace CoupledField {
 
 
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "ElecPDE::CalcPolarizationField" );
 
     //we assume, that the actual solution is stored in sol_!
     NodeStoreSol<Double> * solhelp = 
@@ -742,7 +735,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void ElecPDE::CalcCharges( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "ElecPDE::CalcCharges" );
 
 
     NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
@@ -876,7 +868,6 @@ namespace CoupledField {
   template <class TYPE>
   void ElecPDE::CalcEnergy( shared_ptr<BaseResult> vals )
   {
-    ENTER_FCN( "ElecPDE::CalcEnergy" );
 
     Matrix<Double> elemmat;  
     SubTensorType tensorType;
@@ -941,7 +932,6 @@ namespace CoupledField {
 
   void ElecPDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "ElecPDE::InitCoupling" );
   
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -1003,7 +993,6 @@ namespace CoupledField {
 
   void ElecPDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "ElecPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes     = NULL;
@@ -1055,7 +1044,6 @@ namespace CoupledField {
 
   bool ElecPDE::HasOutput(SolutionType output)
   {
-    ENTER_FCN( "ElecPDE::HasOutput" );
   
     switch (output)
       {
@@ -1081,14 +1069,12 @@ namespace CoupledField {
 
   void ElecPDE::SetPiezoCoupling()
   {
-    ENTER_FCN( "ElecPDE::SetPiezoCoupling" );
   
     isPiezoCoupled_ = true;
 
   }
 
   void ElecPDE::DefineAvailResults() {
-    ENTER_FCN( "ElecPDE::DefineAvailResults" );
     
     // Determine vectorial dofNames
     StdVector<std::string> vecDofNames;

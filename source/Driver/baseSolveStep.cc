@@ -13,7 +13,6 @@ namespace CoupledField {
 
   BaseSolveStep::BaseSolveStep()
   {
-    ENTER_FCN( "BaseSolveStep::BaseSolveStep" );
 
     actStep_ = 0;
     actTime_ = 0.0;
@@ -26,7 +25,6 @@ namespace CoupledField {
   // **********************
   BaseSolveStep::~BaseSolveStep() 
   {
-    ENTER_FCN( "BaseSolveStep::~BaseSolveStep" );
  
   }
 

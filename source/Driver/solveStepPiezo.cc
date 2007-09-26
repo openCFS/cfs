@@ -20,13 +20,11 @@ namespace CoupledField {
   SolveStepPiezo::SolveStepPiezo(StdPDE& apde) : StdSolveStep(apde)
   {
 
-    ENTER_FCN( "SolveStepPiezo::SolveStepPiezo" );
     doInit_ = true;
   }
 
 
   SolveStepPiezo::~SolveStepPiezo() {
-    ENTER_FCN( "SolveStepPiezo::~SolveStepPiezo" );
   }
  
 
@@ -36,7 +34,6 @@ namespace CoupledField {
 
   void SolveStepPiezo:: PreStepTrans()
   {
-    ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
 
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
@@ -107,7 +104,6 @@ namespace CoupledField {
   // don't get confused with REAL transient simulations!
   void SolveStepPiezo::SolveStepTrans() {
 
-    ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
 
     std::cout<<"Solve Step Trans"<<std::endl;  
     if (isHyst_) {
@@ -131,7 +127,6 @@ namespace CoupledField {
 
   void SolveStepPiezo::StepTransMaterialNonLin(){
     
-    ENTER_FCN( "SolveStepPiezo::StepTransMaterialNonLin" );
 
       std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
 
@@ -140,7 +135,6 @@ namespace CoupledField {
 
   void SolveStepPiezo::StepTransNonLinEpsDiff() {
 
-    ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
 
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -302,7 +296,6 @@ namespace CoupledField {
 
   void SolveStepPiezo::DoUpdateHyst() {
   
-    ENTER_FCN( "SolveStepPiezo::DoUpdateHyst" );
 
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
@@ -360,7 +353,6 @@ namespace CoupledField {
 
   void SolveStepPiezo::ComputeDiffEpsilon() {
   
-    ENTER_FCN( "SolveStepPiezo::ComputeDiffEpsilon" );
 
     //we assume, that the actual solution is stored in sol_!
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);

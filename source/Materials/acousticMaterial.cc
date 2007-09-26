@@ -22,7 +22,6 @@ namespace CoupledField
   // ***********************
   AcousticMaterial::AcousticMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Acoustic";
 
     //set the allowed material parameters
@@ -40,7 +39,6 @@ namespace CoupledField
 
   AcousticMaterial::~AcousticMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
@@ -49,7 +47,6 @@ namespace CoupledField
   void AcousticMaterial::SetScalar( Double param, MaterialType matType, 
 				    DataType dataType ) {
 
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -82,7 +79,6 @@ namespace CoupledField
   void AcousticMaterial::GetScalar( Double& param, MaterialType matType, 
 				    DataType dataType ) const {
 
-    ENTER_FCN( "AcousticMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );

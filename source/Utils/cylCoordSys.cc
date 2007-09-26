@@ -15,7 +15,6 @@ namespace CoupledField{
                                  ParamNode * myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     
-    ENTER_FCN("CylCoordSystem::CylCoordSystem");
     
     // check, if grid has three dimensions
     if ( ptGrid_->GetDim() != 3 ) {
@@ -41,12 +40,10 @@ namespace CoupledField{
   }
   
   CylCoordSystem::~CylCoordSystem(){
-    ENTER_FCN("CylCoordSystem::~CylCoordSystem");
   }
 
   void CylCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                           const Vector<Double> & loc ) const {
-    ENTER_FCN("CylCoordSystem::Local2GlobalCoord");
     
     Vector<Double> temp(3);
 
@@ -71,7 +68,6 @@ namespace CoupledField{
   
   void CylCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                           const Vector<Double> & glob ) const {
-    ENTER_FCN("CylCoordSystem:: Global2LocalCoord");
 
     Vector<Double> temp(3);
     if ( glob.GetSize() != 3 ) {
@@ -97,7 +93,6 @@ namespace CoupledField{
   void  CylCoordSystem::
   GetGlobRotationAngles( Vector<Double> & angles,
                          const Vector<Double>& point ) const {
-    ENTER_FCN( "CylCoordSystem::GetGlobRotationAngles" );
 
     Vector<Double> loc, anglesLoc, anglesGlob(3);
     Global2LocalCoord( loc, point );
@@ -136,7 +131,6 @@ namespace CoupledField{
   Local2GlobalVectorInt( Vector<TYPE> & globVec, 
                          const Vector<TYPE> & locVec, 
                          const Vector<Double> & globModelPoint ) const { 
-    ENTER_FCN("CylCoordSystem::Local2GlobalVectorInt");
 
     Double phi, r;
     Vector<Double> localPoint(3), d(3);
@@ -173,7 +167,6 @@ namespace CoupledField{
   }
     
   void CylCoordSystem::CalcRotationMatrix() {
-    ENTER_FCN( "CalcRotationMatrix" );
         
     Vector<Double> x(3), y(3), z(3);
 
@@ -249,7 +242,6 @@ namespace CoupledField{
 
 
   UInt CylCoordSystem::GetVecComponent( const std::string & dof ) const{
-    ENTER_FCN( "CylCoordSystem::GetVecComponent" );
     
     
     UInt component = 0;
@@ -272,7 +264,6 @@ namespace CoupledField{
   }  
 
   const std::string CylCoordSystem::GetDofName( const UInt dof ) const {
-    ENTER_FCN( "CylCoordSystem::GetDofName" );
     
     std::string ret = "";
     
@@ -296,7 +287,6 @@ namespace CoupledField{
   }
 
   void CylCoordSystem::PrintInfo() {
-    ENTER_FCN( "CylCoordSystem::PrintInfo") ;
 
     std::ostringstream out;
     out << "\n--- local coordinate system ---\n"

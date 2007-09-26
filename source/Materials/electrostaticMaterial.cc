@@ -23,7 +23,6 @@ namespace CoupledField
   // ***********************
   ElectroStaticMaterial::ElectroStaticMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Electrostatic";
 
     //set the allowed material parameters
@@ -46,13 +45,11 @@ namespace CoupledField
 
   ElectroStaticMaterial::~ElectroStaticMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
   void ElectroStaticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-    ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
     if ( matType == HYST_MODEL || matType == P_DIRECTION ) {
       stringParams_[matType] = param;
@@ -75,7 +72,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetScalar( Double param, MaterialType matType, 
 					 DataType dataType ) {
 
-    ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -106,7 +102,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetScalar( Complex param, MaterialType matType, 
 					 DataType dataType ) {
 
-    ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -137,7 +132,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
 					 DataType dataType ) {
     
-    ENTER_FCN( "ElectroStaticMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -178,7 +172,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
 					 DataType dataType ) {
     
-    ENTER_FCN( "ElectroStaticMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -206,7 +199,6 @@ namespace CoupledField
   void ElectroStaticMaterial::GetScalar( std::string& param, 
 					 MaterialType matType) const {
 
-    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
     stringMap::const_iterator pos;
     pos = stringParams_.find( matType );
@@ -224,7 +216,6 @@ namespace CoupledField
   void ElectroStaticMaterial::GetScalar( Double& param, MaterialType matType, 
 					   DataType dataType ) const {
 
-    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -252,7 +243,6 @@ namespace CoupledField
   void ElectroStaticMaterial::GetScalar( Complex& param, MaterialType matType, 
 					 DataType dataType ) const {
 
-    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
 
 
     scalarMap::const_iterator pos;
@@ -282,7 +272,6 @@ namespace CoupledField
 
   void ElectroStaticMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
-    ENTER_FCN( "ElectrostaticMaterial::GetScalar" );
     
      integerMap::const_iterator pos;
      pos = integerParams_.find( matType );
@@ -302,7 +291,6 @@ namespace CoupledField
 					 DataType dataType,
 					 SubTensorType subTensor) const {
 
-    ENTER_FCN( "ElectroStaticMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -335,7 +323,6 @@ namespace CoupledField
 					 DataType dataType,
 					 SubTensorType subTensor) const {
     
-    ENTER_FCN( "ElectroStaticMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -371,7 +358,6 @@ namespace CoupledField
 					       MaterialType matType, 
 					       SubTensorType subTensor) const {
 
-    ENTER_FCN( "ElectroStaticMaterial::ComputeSubTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -386,7 +372,6 @@ namespace CoupledField
   //============================== Hysteresis =====================================
 
   Double ElectroStaticMaterial::ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-    ENTER_FCN( "ElectroStaticMaterial::ComputeScalarDiffVal" );
 
     Double matDiff, eps;
 
@@ -412,7 +397,6 @@ namespace CoupledField
   
 
   void ElectroStaticMaterial::SetPreviousHystVal( UInt nrElem, Double Xval ) {
-    ENTER_FCN( "ElectroStaticMaterial::SetPreviousHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
@@ -422,7 +406,6 @@ namespace CoupledField
 
 
   Double ElectroStaticMaterial::ComputeScalarHystVal( UInt nrElem, Double Xval ) {
-    ENTER_FCN( "ElectroStaticMaterial::ComputeScalarHystVal" );
 
     UInt idx    = globalElem2Local_[nrElem];
     Double Yval = hyst_->computeValueAndUpdate( Xval, idx );

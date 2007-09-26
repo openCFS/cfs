@@ -18,7 +18,6 @@ namespace OLAS {
   template <typename T>
   IDBC_HandlerPenalty<T>::IDBC_HandlerPenalty( UInt numIDBC, UInt blockSize ){
 
-    ENTER_FCN( "IDBC_HandlerPenalty::IDBC_HandlerPenalty" );
 
     // Log some information
     (*cla) << "\n IDBC_HandlerPenalty: Administrating "
@@ -76,7 +75,6 @@ namespace OLAS {
   IDBC_HandlerPenalty<T>::IDBC_HandlerPenalty( UInt numIDBC, UInt numPDEs,
                                                UInt *bcOffsets ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::IDBC_HandlerPenalty" );
 
     // Log some information
     (*cla) << "\n IDBC_HandlerPenalty: Administrating "
@@ -155,7 +153,6 @@ namespace OLAS {
   template <typename T>
   IDBC_HandlerPenalty<T>::~IDBC_HandlerPenalty() {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::~IDBC_HandlerPenalty" );
 
     // Free memory for internal arrays
     DeleteArray( dirichletEQN_       );
@@ -174,7 +171,6 @@ namespace OLAS {
   // ***********************
   template <typename T>
   void IDBC_HandlerPenalty<T>::InitDirichletValues() {
-    ENTER_FCN( "IDBC_HandlerPenalty::InitDirichletValues" );
     dirichletValue_->Init();
   }
 
@@ -185,7 +181,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_HandlerPenalty<T>::AdaptSystemMatrix( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::AdaptSystemMatrix" );
 
     // Compute penalty term
     penaltyTerm_ = sysMat.GetMaxDiag() * PENALTY;
@@ -249,7 +244,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_HandlerPenalty<T>::AddIDBCToRHS( BaseVector *rhs ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::AddIDBCToRHS" );
 
     // --------------
     // StdMatrix case
@@ -315,7 +309,6 @@ namespace OLAS {
   void IDBC_HandlerPenalty<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo,
                                         const T &val ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::SetIDBC" );
 
     // StdMatrix case
     UInt index = 0;
@@ -348,7 +341,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_HandlerPenalty<T>::SetDofsToIDBC( BaseVector *vec ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::SetDofsToIDBC" );
 
     // -----------------
     // CASE 1: StdMatrix
@@ -417,7 +409,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_HandlerPenalty<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
 
@@ -445,7 +436,6 @@ namespace OLAS {
   template <typename T>
   void IDBC_HandlerPenalty<T>::PrintInternalState( std::ostream &os ) {
 
-    ENTER_FCN( "IDBC_HandlerPenalty::PrintInternalState" );
 
     // ----------------
     // CASE1: StdSystem

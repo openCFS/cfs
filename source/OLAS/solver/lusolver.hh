@@ -121,7 +121,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return LU_SOLVER
     SolverType GetSolverType() {
-      ENTER_IFCN( "LUSolver::GetSolverType" );
       return LU_SOLVER;
     }
 

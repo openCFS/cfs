@@ -18,7 +18,6 @@ namespace CoupledField {
   SolveStepSmooth::SolveStepSmooth(StdPDE& apde) : StdSolveStep(apde)
   {
 
-    ENTER_FCN( "SolveStepSmooth::SolveStepSmooth" );
   }
 
   
@@ -28,7 +27,6 @@ namespace CoupledField {
 
   void SolveStepSmooth::StepStaticNonLin( const bool reset )
   {
-    ENTER_FCN( "SolveStepSmooth::StepStaticNonLin" );
 
     UInt job = 1;
     Double * ptsol;
@@ -59,7 +57,6 @@ namespace CoupledField {
   // **********************
   SolveStepSmooth::~SolveStepSmooth() {
 
-    ENTER_FCN( "SolveStepSmooth::~SolveStepSmooth" );
  
   }
 

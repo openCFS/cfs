@@ -14,19 +14,16 @@ namespace CoupledField
 
   Triangle1FE :: Triangle1FE(IntegrationMethod method, int order) : TriangleFE()
   {
-    ENTER_FCN( "Triangle1FE::Triangle1FE" );
 
     Init(method, order);
   }
   
   Triangle1FE :: ~Triangle1FE()
   {
-    ENTER_FCN( "Triangle1FE::~Triangle1FE" );
   }
 
   void Triangle1FE :: Init(IntegrationMethod method, int order)
   {
-    ENTER_FCN( "Triangle1FE::Init" );
     NumNodes_ = 3;
 
     CommonInit(method, order);
@@ -34,7 +31,6 @@ namespace CoupledField
 
   void Triangle1FE :: SetCornerCoords()
   {
-    ENTER_IFCN( "Triangle1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -48,7 +44,6 @@ namespace CoupledField
   }
 
   void Triangle1FE :: SetEdgeIndices() {
-    ENTER_IFCN( "Triangle1FE::SetEdgeIndices" );
     
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
@@ -69,7 +64,6 @@ namespace CoupledField
                                     const Elem* el, UInt dof,
                                     AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Triangle1FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
 
@@ -94,7 +88,6 @@ namespace CoupledField
                                               const Elem*, UInt dof,
                                               AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Triangle1FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

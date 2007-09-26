@@ -35,7 +35,6 @@ namespace OLAS {
     //@{
     //! Compute the residual \f$r=b-Ax\f$
     void CompRes( SparseVector &r, const SparseVector &x, const SparseVector& b ) const{
-      ENTER_FCN( "SparseOLASMatrix::CompRes" );
       TRY_CAST {
 	RefCast     ( r, Vector<T>, tr );
 	ConstRefCast( x, Vector<T>, tx );
@@ -51,7 +50,6 @@ namespace OLAS {
     //@{
     //! Perform a matrix-vector multiplication rvec = this*mvec
     void Mult( const SparseVector& mvec, SparseVector& rvec ) const {
-      ENTER_FCN( "SparseOLASMatrix::Mult" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
 	RefCast     ( rvec, Vector<T>, trvec );
@@ -65,7 +63,6 @@ namespace OLAS {
     //@{
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SparseVector& mvec, SparseVector& rvec ) const {
-      ENTER_FCN( "SparseOLASMatrix::MultT" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
 	RefCast     ( rvec, Vector<T>, trvec );
@@ -79,7 +76,6 @@ namespace OLAS {
     //@{
     //! Perform a matrix-vector multiplication rvec += this*mvec
     void MultAdd( const SparseVector& mvec, SparseVector& rvec ) const {
-      ENTER_FCN( "SparseOLASMatrix::MultAdd" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
 	RefCast     ( rvec, Vector<T>, trvec );
@@ -93,7 +89,6 @@ namespace OLAS {
     //@{
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
     void MultTAdd( const SparseVector& mvec, SparseVector& rvec ) const {
-      ENTER_FCN( "SparseOLASMatrix::MultTAdd" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
 	RefCast     ( rvec, Vector<T>, trvec );
@@ -107,7 +102,6 @@ namespace OLAS {
     //@{
     //! Perform a matrix-vector multiplication rvec -= this*mvec
     void MultSub( const SparseVector& mvec, SparseVector& rvec ) const {
-      ENTER_FCN( "SparseOLASMatrix::MultSub" );
       TRY_CAST {
 	ConstRefCast( mvec, Vector<T>, tmvec );
 	RefCast     ( rvec, Vector<T>, trvec );
@@ -162,7 +156,6 @@ namespace OLAS {
     //! \return The same value as GetNrows(), since HyperMatrices only store
     //!         scalar entries anyhow.
     Integer GetNrowsScalar() const {
-      ENTER_IFCN( "SparseOLASMatrix::GetNrowsScalar" );
       return nrows_ * BlockSize<T>::size;
     }
 
@@ -175,7 +168,6 @@ namespace OLAS {
     //! \return The same value as GetNcols(), since HyperMatrices only store
     //!         scalar entries anyhow.
     Integer GetNcolsScalar() const {
-      ENTER_IFCN( "SparseOLASMatrix::GetNcolsScalar" );
       return ncols_ * BlockSize<T>::size;
     }
 

@@ -22,7 +22,6 @@ namespace OLAS {
 
   void OLAS_Params::SetDefaultParams() {
 
-    ENTER_FCN( "OLAS_Params::SetDefaultParams" );
 
     // Do we want parallel data structures?
     SetValue( "Parallel", false );

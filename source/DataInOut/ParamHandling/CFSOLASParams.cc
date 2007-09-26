@@ -25,7 +25,6 @@ namespace CoupledField {
                                  Assemble * assemble,
                                  bool overrideExpert ) {
 
-    ENTER_FCN( "CFSOLASParams::SetParams" );
 
     // We need three vectors for our parameter queries
     StdVector<std::string> keyVec;
@@ -279,7 +278,6 @@ namespace CoupledField {
                                        OLAS::OLAS_Params *olas,
                                        OLAS::SolverType sType ) {
 
-    ENTER_FCN( "CFSOLASParams::SetSolverParams" );
 
     // check if base element for solver is present
     if( !cfs) return;
@@ -470,7 +468,6 @@ namespace CoupledField {
                                         OLAS::OLAS_Params *olas,
                                         OLAS::PrecondType pType ) {
     
-    ENTER_FCN( "CFSOLASParams::SetPrecondParams" );
 
 
     // check for base element of solver
@@ -659,7 +656,6 @@ namespace CoupledField {
                                             OLAS::OLAS_Params *olas, 
                                             OLAS::EigenSolverType sType ) {
     
-    ENTER_FCN( "CFSOLASParams::SetEigenSolverParams" );
 
     // check, if eigenfrequency solver is present at all
     if( !cfs) return;
@@ -735,7 +731,6 @@ namespace CoupledField {
                               Assemble * assemble,
                               bool allowChangeOfReordering ) {
 
-    ENTER_FCN( "CFSOLASParams::Expert" );
 
     std::string warn;
     

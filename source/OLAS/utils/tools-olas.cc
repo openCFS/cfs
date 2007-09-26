@@ -68,14 +68,6 @@ namespace OLAS {
     // Create some space before the user prompt re-appears
     std::cerr << "\n\n";
 
-#ifdef TRACE
-    if ( trace != NULL ) {
-      (*OutInfo::trace) << "\n ==> an error has occurred in " << filename
-                        << " at line " << numline << '\n' << std::endl;
-      OutInfo::FcnTraceHandler::Dump();
-    }
-#endif
-
 #ifdef PARALLEL
     OLAS_MPI_Abort(OLAS_MPI_COMM_WORLD,-1);
 #endif

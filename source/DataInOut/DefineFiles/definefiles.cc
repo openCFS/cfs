@@ -127,7 +127,6 @@ namespace CoupledField
   // ==============
   DefineInOutFiles::~DefineInOutFiles() {
 
-    ENTER_FCN( "DefineInOutFiles::~DefineInOutFiles" );
 
 #ifdef DEBUG
     delete debug;
@@ -160,7 +159,6 @@ namespace CoupledField
                        std::map<std::string, 
                       StdVector<shared_ptr<SimInput> > >& gridInputs ) {
 
-    ENTER_FCN( "DefineInOutFiles::CreateSimInputFiles" );
 
     std::string meshFile = commandLine->GetMeshFile();
     std::string simName = commandLine->GetSimName();
@@ -262,7 +260,6 @@ namespace CoupledField
   void DefineInOutFiles::
   CreateSimOutputFiles( std::map<std::string, 
                         shared_ptr<SimOutput> >&  out ) {
-    ENTER_FCN( "DefineInOutFiles::CreateSimOutputFiles" );
     
     // resest map
     out.clear();
@@ -357,7 +354,6 @@ namespace CoupledField
   // ==================================
   MaterialHandler *
   DefineInOutFiles::CreateMaterialHandler() {
-    ENTER_FCN( "DefineInOutFiles::CreateMaterialHandler" );
 
     std::string fileName = "mat.dat";
     std::string format = "dat";
@@ -389,34 +385,10 @@ namespace CoupledField
   // ************
   void DefineInOutFiles::OpenFile( AuxFileType fileType ) {
 
-    ENTER_FCN( "DefineInOutFiles::OpenFile" );
 
     std::string fileName;
 
     switch( fileType ) {
-
-
-      // -------------
-      //  TRACE_FILE
-      // -------------
-    case TRACE_FILE:
-
-      fileName = commandLine->GetSimName() + ".trace";
-
-#ifdef TRACE
-      trace = new std::ofstream( fileName.c_str() );
-      if ( trace == NULL ) {
-        EXCEPTION( "Failed to open file '" << fileName << "' for "
-                   << "writing function trace information!" );
-      }
-      break;
-#else
-      EXCEPTION( "Executable was compiled without support for function "
-                 << "tracing! Refusing to open trace file '" 
-                 << fileName << "'" );
-      break;
-#endif
-
 
       // -------------
       //  DEBUG_FILE
@@ -479,7 +451,6 @@ namespace CoupledField
   }
 
   CFSMessenger* DefineInOutFiles::CreateScriptMessenger( const std::string& fileName) {
-    ENTER_FCN( "DefineInOutFiles::CreateScriptMessenger" );
     
     CFSMessenger * messenger = NULL;
 

@@ -14,7 +14,6 @@ namespace CoupledField
                                         bool coordUpdate )
     : BaseForm( matData, FULL, coordUpdate )
   {
-    ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
 
     name_ = "CurlCurlNode2DInt";
     isaxi_ = axi;
@@ -26,7 +25,6 @@ namespace CoupledField
  
   CurlCurlNode2DInt::~CurlCurlNode2DInt()
   {
-    ENTER_FCN( "CurlCurlNode2DInt::~CurlCurlNode2DInt" );
   }
 
 
@@ -34,7 +32,6 @@ namespace CoupledField
   void CurlCurlNode2DInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2  ) {
-    ENTER_FCN( "CurlCurlNode2DInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -88,7 +85,6 @@ namespace CoupledField
   
   void CurlCurlNode2DInt::calcBMat( Matrix<Double> &bMat,
                                     UInt ip, Matrix<Double> &ptCoord ) {
-    ENTER_FCN( "CurlCurlNode2DInt::calcBMat" );
     Matrix<Double> xiDx;
     if (isSetIntPoint_) {
       ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, 
@@ -119,7 +115,6 @@ namespace CoupledField
     : BaseForm( matData, FULL, coordUpdate )
 
   {
-    ENTER_FCN( "CurlCurlNode3DInt::CurlCurlNode3DInt" );
 
     name_   = "CurlCurlNode3DInt";
     isaxi_  = false;
@@ -149,7 +144,6 @@ namespace CoupledField
  
   CurlCurlNode3DInt::~CurlCurlNode3DInt()
   {
-    ENTER_FCN( "CurlCurlNode3DInt::~CurlCurlNode3DInt" );
   }
 
 
@@ -157,7 +151,6 @@ namespace CoupledField
   void CurlCurlNode3DInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2  ) {
-    ENTER_FCN( "CurlCurlNode3DInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -235,7 +228,6 @@ namespace CoupledField
   void CurlCurlNode3DInt::calcBMat( Matrix<Double> &bMatCurl, Matrix<Double> &bMatDiv,
 				    UInt ip, Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "CurlCurlNode3DInt::calcBMat" );
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
 
@@ -301,7 +293,6 @@ namespace CoupledField
   MagCoupVectorScalarPotentialInt::MagCoupVectorScalarPotentialInt(Double aVal, bool coordUpdate )
     : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
   {
-    ENTER_FCN( "MagCoupVectorScalarPotentialInt::MagCoupVectorScalarPotentialInt" );
 
     name_   = "MagCoupVectorScalarPotentialInt";
     isaxi_  = false;
@@ -315,7 +306,6 @@ namespace CoupledField
  
   MagCoupVectorScalarPotentialInt::~MagCoupVectorScalarPotentialInt()
   {
-    ENTER_FCN( "MagCoupVectorScalarPotentialInt::~MagCoupVectorScalarPotentialInt" );
   }
 
 
@@ -323,7 +313,6 @@ namespace CoupledField
   void MagCoupVectorScalarPotentialInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2  ) {
-    ENTER_FCN( "MagCoupVectorScalarPotentialInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

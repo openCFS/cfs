@@ -455,7 +455,6 @@ namespace CoupledField
      * See the comment of SetStandardIntegration */
     void SetReducedIntegration()
     {
-       ENTER_FCN( "BaseFE:SetReducedIntegration():" );
        SetDefaultReducedIntegration();
        //   SetIntPoints();
     }   
@@ -465,7 +464,6 @@ namespace CoupledField
      * and do a switch back here! */
     void SetStandardIntegration()
     {
-       ENTER_FCN( "BaseFE:SetStandardIntegration():" );
        SetDefaultIntegration();
        SetIntPoints(IntegMethod, IntegOrder);
     }   

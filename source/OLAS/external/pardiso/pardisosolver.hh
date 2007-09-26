@@ -129,7 +129,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return PARDISO
     SolverType GetSolverType() {
-      ENTER_IFCN( "PardisoSolver::GetSolverType" );
       return PARDISO;
     }
 

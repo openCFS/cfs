@@ -20,7 +20,6 @@ namespace CoupledField {
   DEFINE_LOG(resHandler, "resultHandler")
     
     ResultHandler::ResultHandler( OpMode opMode) {
-    ENTER_FCN( "ResultHandler::ResultHandler" );
     
     opMode_ = opMode;
     sequenceStep_ = 1;
@@ -31,7 +30,6 @@ namespace CoupledField {
 
 
   ResultHandler::~ResultHandler() {
-    ENTER_FCN( "ResultHandler::~ResultHandler" );
 
     // not much to do here
   }
@@ -43,7 +41,6 @@ namespace CoupledField {
                   const StdVector<std::string> & outDestNames,
                   const std::string& postProcName,
                   bool writeResult ) {
-    ENTER_FCN( "ResultHandler::RegisterResult" );
 
     ResultInfo & actDof = *(sol->GetResultInfo());
 
@@ -132,7 +129,6 @@ namespace CoupledField {
   void ResultHandler::BeginMultiSequenceStep( UInt step,
                                               AnalysisType type,
                                               UInt numSteps ) {
-    ENTER_FCN( "ResultHandler::BeginMultiSequenceStep" );
         
     // store current sequencestep
     sequenceStep_ = step;
@@ -148,7 +144,6 @@ namespace CoupledField {
   }
 
   void ResultHandler::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "ResultHandler::BeginStep" );
 
     LOG_TRACE(resHandler) << "Begin step " << stepNum;
 
@@ -184,7 +179,6 @@ namespace CoupledField {
   }
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( "ResultHandler::UpdateResult" );
 
     LOG_TRACE(resHandler) << "Updating results";
     
@@ -214,7 +208,6 @@ namespace CoupledField {
 
 
   void ResultHandler::FinishStep( ) {
-    ENTER_FCN( "ResultHandler::FinishStep" );
     
     LOG_TRACE(resHandler) << "Starting to finish step " << actStep_;
 
@@ -281,7 +274,6 @@ namespace CoupledField {
   }
 
   void ResultHandler::FinishMultiSequenceStep() {
-    ENTER_FCN( "ResultHandler::FinishMultiSequenceStep" );
 
     // Before finishing the multisequence step, we have to
     // finalize all postprocessing steps and write all the results
@@ -357,7 +349,6 @@ namespace CoupledField {
 
   void ResultHandler::RegisterResultRec( ResultContext& actContext, 
                                          const std::string& postProcName ) {
-    ENTER_FCN( "ResultHandler::RegisterResultRec" );
 
     LOG_DBG(resHandler) << "Registering (recursively) result of postProc '" 
                         << postProcName << "'";
@@ -469,7 +460,6 @@ namespace CoupledField {
   }
     
   void ResultHandler::FinishStepRec( ResultContext& actContext ) {
-    ENTER_FCN( " ResultHandler::FinishStepRec" );
     
     // ensure that we have for each postprocessing method
     // also the related result context
@@ -516,7 +506,6 @@ namespace CoupledField {
   
 
   void ResultHandler::UpdateResultRec( ResultContext& actContext ) {
-    ENTER_FCN( "ResultHandler::UpdateResultRec" );
 
     assert( actContext.postProcs.GetSize() ==
             actContext.nextContexts.GetSize() );
@@ -549,7 +538,6 @@ namespace CoupledField {
 
   void ResultHandler:: AddOutputDest( shared_ptr<SimOutput> out, 
                                       const std::string& id ) {
-    ENTER_FCN( "ResultHandler::AddOutputDest" );
 
     LOG_DBG(resHandler) << "Adding output writer with id ";
     outFiles_[id] = out;
@@ -557,7 +545,6 @@ namespace CoupledField {
   }
 
   void ResultHandler::Init( Grid* ptGrid, bool printGridOnly ) {
-    ENTER_FCN( "ResultHandler::Init" );
     
     // Trigger function with all output files
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
@@ -568,7 +555,6 @@ namespace CoupledField {
   
 
   void ResultHandler::Finalize() {
-    ENTER_FCN( "ResultHandler::Finalize" );
         
     LOG_TRACE(resHandler) << "Starting to Finalize";
     
@@ -585,7 +571,6 @@ namespace CoupledField {
   }
 
   void ResultHandler::FinishMultiSequenceStepRec( ResultContext& actContext ) {
-    ENTER_FCN( "ResultHandler::FinishMultiSequenceStepRec" );
 
     LOG_TRACE(resHandler) << "Starting to finish MsStep  recursively";
     assert( actContext.postProcs.GetSize() ==
@@ -664,7 +649,6 @@ namespace CoupledField {
 
   void ResultHandler::GetDefaultOutputs( shared_ptr<BaseResult> res,
                                          StdVector<std::string>& out ) {
-    ENTER_FCN( "ResultHandler::GetDefaultOutput" );
     
     out.Clear();
       
@@ -727,7 +711,6 @@ namespace CoupledField {
 
   void ResultHandler::AddInputReader( shared_ptr<SimInput> inClass, 
                                       const std::string& readerId ) {
-    ENTER_FCN( "ResultHandler::AddInputReader" );
 
     LOG_DBG(resHandler) << "Adding input reader with id ";
     inFiles_[readerId] = inClass;

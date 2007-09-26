@@ -138,7 +138,6 @@ namespace CoupledField
 
     //! Set number of time steps
     virtual void SetNumTimeSteps( UInt numTimeStep ) {
-      ENTER_FCN( "BaseSolveStep::SetNumSteps") ;
       numTimeStep_ = numTimeStep;
     };
     

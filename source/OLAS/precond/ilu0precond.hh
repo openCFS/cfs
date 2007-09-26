@@ -75,7 +75,6 @@ namespace OLAS {
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is ILU0.
     PrecondType GetPrecondType() const {
-      ENTER_FCN( "ILU0Precond::GetPrecondType" );
       return ILU0;
     };
 

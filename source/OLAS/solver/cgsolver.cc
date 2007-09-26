@@ -12,7 +12,6 @@ namespace OLAS {
   // **************
   template<typename T>
   CGSolver<T>::~CGSolver() {
-    ENTER_FCN("CGSolver::~CGSolver");
     delete r_;
     delete s_;
     delete d_;
@@ -27,7 +26,6 @@ namespace OLAS {
                            const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
-    ENTER_FCN("CGSolver::Solve");
 
     // If not yet done, create auxilliary vectors
     if ( r_ == NULL ) {

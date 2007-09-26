@@ -15,7 +15,6 @@ namespace CoupledField {
 
 
   PostProc::PostProc( Grid * ptGrid, ParamNode * postProcNode ) {
-    ENTER_FCN( "PostProc::PostProc" );
 
     ptGrid_ = ptGrid;
     myParam_ = postProcNode;
@@ -25,16 +24,13 @@ namespace CoupledField {
   }
 
   PostProc::~PostProc() {
-    ENTER_FCN( "PostProc::~PostProc" );
   }
 
   void PostProc::GetOutDestNames( StdVector<std::string> & outNames ) {
-    ENTER_IFCN( "PostProc::GetOutDestNames" );
     outNames = outputNames_;
   }
 
   bool PostProc::IsWriteResult( ) {
-    ENTER_IFCN( "PostProc::IsWriteResult" );
     return writeResult_;
   }
 
@@ -43,7 +39,6 @@ namespace CoupledField {
                                   const shared_ptr<EntityList> inList,
                                   const ResultInfo::EntityUnknownType inType,
                                   const ReductionType reducType ) {
-    ENTER_FCN( "PostProc::GetReducedList" );
 
     shared_ptr<EntityList> retList;
     
@@ -99,7 +94,6 @@ namespace CoupledField {
   void PostProc::CreatePostProc( ParamNode * procNode,
                                  Grid * ptGrid, 
                                  StdVector<shared_ptr<PostProc> > & postProcs ) {
-    ENTER_FCN( "PostProc::CreatePostProc" );
 
     // fetch single postProcs defined in this section
     StdVector<ParamNode*> procNodes = procNode->GetChildren();
@@ -220,14 +214,12 @@ namespace CoupledField {
   PostProcSum::PostProcSum( Grid * ptGrid, ReductionType type, 
                             ParamNode * postProcNode )
     : PostProc( ptGrid, postProcNode ) {
-    ENTER_FCN( "PostProcSum::PostProcSum" );
     
     name_ = "sum";
     reducType_ = type;
   }
 
   PostProcSum::~PostProcSum() {
-    ENTER_FCN( "PostProcSum::~PostProcSum" );
     
   }
 
@@ -236,7 +228,6 @@ namespace CoupledField {
 
   
   void PostProcSum::SetResult( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "PostProcSum::SetResult" );
     
     // Append result to list of results
     input_ =  res;
@@ -270,7 +261,6 @@ namespace CoupledField {
   }
 
   void PostProcSum::Apply() {
-    ENTER_FCN( "PostProcSum::Apply" );
     
     if( output_->GetEntryType() == EntryType::DOUBLE ) {
       CalcSum<Double>();
@@ -282,7 +272,6 @@ namespace CoupledField {
 
   template<class TYPE> 
   void PostProcSum::CalcSum() {
-    ENTER_FCN( "PostProcSum::CalcSum" );
     
     // Cast output into correct type
     Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
@@ -328,7 +317,6 @@ namespace CoupledField {
   }
   
   void PostProcSum::Finalize() {
-    ENTER_FCN( "PostProcSum::Finalize" );
 
   }
 
@@ -337,19 +325,16 @@ namespace CoupledField {
   PostProcMax::PostProcMax( Grid * ptGrid, ReductionType type,
                             ParamNode * postProcNode )
     : PostProc( ptGrid, postProcNode ) {
-    ENTER_FCN( "PostProcMax::PostProcMax" );
     
     name_ = "max";
     reducType_ = type;
   }
 
   PostProcMax::~PostProcMax() {
-    ENTER_FCN( "PostProcMax::~PostProcMax" );
     
   }
 
   void PostProcMax::SetResult( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "PostProcMax::SetResult" );
     
     // Append result to list of results
     input_ =  res;
@@ -383,7 +368,6 @@ namespace CoupledField {
   }
 
   void PostProcMax::Apply() {
-    ENTER_FCN( "PostProcMax::Apply" );
     
     if( output_->GetEntryType() == EntryType::DOUBLE ) {
       CalcMax<Double>();
@@ -395,7 +379,6 @@ namespace CoupledField {
 
   template<class TYPE> 
   void PostProcMax::CalcMax() {
-    ENTER_FCN( "PostProcMax::CalcMax" );
     
     // Cast output into correct type
     Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
@@ -447,7 +430,6 @@ namespace CoupledField {
   }
   
   void PostProcMax::Finalize() {
-    ENTER_FCN( "PostProcMax::Finalize" );
 
   }
 
@@ -469,7 +451,6 @@ namespace CoupledField {
   PostProcFunc::PostProcFunc( Grid * ptGrid,
                               ParamNode * postProcNode )
     : PostProc( ptGrid, postProcNode ) {
-    ENTER_FCN( "PostProcFunc::PostProcFunc" );
 
     name_ = "func";
     reducType_ = NONE;
@@ -479,12 +460,10 @@ namespace CoupledField {
   }
 
   PostProcFunc::~PostProcFunc() {
-    ENTER_FCN( "PostProcFunc::~PostProcFunc" );
     
   }
 
   void PostProcFunc::SetResult( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "PostProcFunc::SetResult" );
 
     // Set result as input
     input_ =  res;
@@ -572,7 +551,6 @@ namespace CoupledField {
                                  const StdVector<std::string>& dofNames,
                                  const StdVector<std::string>& rFunctions,
                                  const StdVector<std::string>& iFunctions ) {
-    ENTER_FCN( "PostProcFunc::Initialize" );
     
     // ensure, that dofNames has the same size as functions
     assert( dofNames.GetSize() == rFunctions.GetSize() );
@@ -588,7 +566,6 @@ namespace CoupledField {
 
   
   void PostProcFunc::Apply( ) {
-    ENTER_FCN( "PostProcFunc::Apply" );
 
     if( output_->GetEntryType() == EntryType::DOUBLE ) {
       ApplyReal();
@@ -598,7 +575,6 @@ namespace CoupledField {
   }
   
   void PostProcFunc::ApplyReal( ) {
-    ENTER_FCN( "PostProcFunc::ApplyReal" );
 
     // Cast output into correct type
     Result<Double> & out = dynamic_cast<Result<Double>&>(*output_);
@@ -646,7 +622,6 @@ namespace CoupledField {
   }
   
   void PostProcFunc::ApplyComplex( ) {
-    ENTER_FCN( "PostProcFunc::ApplyComplex" );
 
     // Cast output into correct type
     Result<Complex> & out = dynamic_cast<Result<Complex>&>(*output_);
@@ -705,7 +680,6 @@ namespace CoupledField {
   }
 
   void PostProcFunc::Finalize( ) {
-    ENTER_FCN( "PostProcFunc::Finalize" );
     
   }
   
@@ -714,7 +688,6 @@ namespace CoupledField {
   PostProcLimit::PostProcLimit( Grid * ptGrid, 
                               ParamNode * postProcNode )
     : PostProc( ptGrid, postProcNode ) {
-    ENTER_FCN( "PostProcLimit::PostProcLimit" );
     
     name_ = "limit";
     reducType_ = NONE;
@@ -727,12 +700,10 @@ namespace CoupledField {
   }
 
   PostProcLimit::~PostProcLimit() {
-    ENTER_FCN( "PostProcLimit::~PostProcLimit" );
     
   }
 
   void PostProcLimit::SetResult( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "PostProcLimit::SetResult" );
     
     // Append result to list of results
     input_ =  res;
@@ -778,7 +749,6 @@ namespace CoupledField {
   }
 
   void PostProcLimit::Apply() {
-    ENTER_FCN( "PostProcLimit::Apply" );
     
     if( output_->GetEntryType() == EntryType::DOUBLE ) {
       CalcLimit<Double>();
@@ -790,7 +760,6 @@ namespace CoupledField {
 
   template<class TYPE> 
   void PostProcLimit::CalcLimit() {
-    ENTER_FCN( "PostProcLimit::CalcLimit" );
     
     // Cast output into correct type
     Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);

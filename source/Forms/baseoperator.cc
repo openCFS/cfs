@@ -12,7 +12,6 @@ namespace CoupledField
                              bool isaxi, bool coordUpdate )
     : isaxi_(isaxi)
   {
-    ENTER_FCN( "BaseOperator::BaseOperator" );
 
     this->ptGrid_ = ptGrid;
     this->ptPDE_ = ptPDE;
@@ -23,7 +22,6 @@ namespace CoupledField
 
   BaseOperator::~BaseOperator()
   {
-    ENTER_FCN( "BaseOperator::BaseOperator" );
 
     ;
   }

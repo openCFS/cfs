@@ -57,13 +57,6 @@ namespace CoupledField {
   "name of script file to be evaluated";  
 #endif
 
-  const std::string BaseCommandLineHandler::helpTraceDepth_    =
-#ifdef TRACE
-  "depth of function tracing";
-#else
-  "depth of function tracing \033[1m(de-activated in this version)\033[0m";
-#endif
-
   const std::string BaseCommandLineHandler::helpWriteSkeleton_ =
   "write skeleton of XML file for subsequent simulation";
 
@@ -96,7 +89,6 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
   const std::string BaseCommandLineHandler::markerScriptFileName_  = "-e";
 #endif
-  const std::string BaseCommandLineHandler::markerTraceDepth_      = "-t";
   const std::string BaseCommandLineHandler::markerWriteSkeleton_   = "-w";
   const std::string BaseCommandLineHandler::markerPrintGrid_       = "-g";
   const std::string BaseCommandLineHandler::markerHelp_            = "-h";
@@ -117,8 +109,6 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerLongScriptFileName_ =
   "--scriptFile";
 #endif
-  const std::string BaseCommandLineHandler::markerLongTraceDepth_    =
-  "--traceDepth";
   const std::string BaseCommandLineHandler::markerLongWriteSkeleton_ =
   "--writeSkeleton";
   const std::string BaseCommandLineHandler::markerLongPrintGrid_     =
@@ -151,7 +141,6 @@ namespace CoupledField {
   // **************
   void BaseCommandLineHandler::PrintUsage() {
 
-    ENTER_FCN( "BaseCommandLineHandler::PrintUsage" );
 
     std::ostream &os = std::cout;
 
@@ -189,13 +178,6 @@ namespace CoupledField {
        << " = <string>\n"
        << " " << helpScriptFileName_ << "\n\n"
 #endif
-
-      // --traceDepth
-       << " " << COLOR_INIT
-       << markerTraceDepth_ << ", " << markerLongTraceDepth_
-       << COLOR_STOP
-       << " = <non-negative integer>\n"
-       << " " << helpTraceDepth_ << "\n\n"
 
       // --printGrid
        << " " << COLOR_INIT
@@ -265,7 +247,6 @@ namespace CoupledField {
   void BaseCommandLineHandler::PrintParams( std::ostream &out,
                                             bool colorise ) {
 
-    ENTER_FCN( "BaseCommandLineHandler::PrintParams" );
 
     std::string colorInit = "";
     std::string colorStop = "";
@@ -305,11 +286,6 @@ namespace CoupledField {
         << GetScriptFileName()
         << colorStop << '\n'
 #endif
-
-        << ' ' << markerLongTraceDepth_ << " = "
-        << colorInit
-        << GetTraceDepth()
-        << colorStop << '\n'
 
         << ' ' << markerLongPrintGrid_ << " = "
         << colorInit

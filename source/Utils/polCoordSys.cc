@@ -15,7 +15,6 @@ namespace CoupledField{
                                       ParamNode * myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     
-    ENTER_FCN("PolarCoordSystem::PolarCoordSystem");
     
     // check, if grid has three dimensions
     if ( ptGrid_->GetDim() != 2 ) {
@@ -38,12 +37,10 @@ namespace CoupledField{
   }
   
   PolarCoordSystem::~PolarCoordSystem(){
-    ENTER_FCN("PolarCoordSystem::~PolarCoordSystem");
   }
 
   void PolarCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                             const Vector<Double> & loc ) const {
-    ENTER_FCN("PolarCoordSystem::Local2GlobalCoord");
     
     Vector<Double> temp(2);
 
@@ -67,7 +64,6 @@ namespace CoupledField{
   
   void PolarCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                           const Vector<Double> & glob ) const {
-    ENTER_FCN("PolarCoordSystem:: Global2LocalCoord");
 
     Vector<Double> temp(2);
     if ( glob.GetSize() != 2 ) {
@@ -92,7 +88,6 @@ namespace CoupledField{
   void  PolarCoordSystem::
   GetGlobRotationAngles( Vector<Double> & angles,
                          const Vector<Double>& point ) const {
-     ENTER_FCN( "PolarCoordSystem::GetGlobRotationAngles" );
 
      Vector<Double> loc;
      Global2LocalCoord( loc, point );
@@ -127,7 +122,6 @@ namespace CoupledField{
   Local2GlobalVectorInt( Vector<TYPE> & globVec, 
                          const Vector<TYPE> & locVec, 
                          const Vector<Double> & globModelPoint ) const { 
-    ENTER_FCN("PolarCoordSystem::Local2GlobalVectorInt");
 
     Double phi, r;
     Vector<Double> localPoint(2), d(2);
@@ -162,7 +156,6 @@ namespace CoupledField{
   }
     
   void PolarCoordSystem::CalcRotationMatrix() {
-    ENTER_FCN( "CalcRotationMatrix" );
         
     Vector<Double> x(2), y(2);
 
@@ -230,7 +223,6 @@ namespace CoupledField{
 
 
   UInt PolarCoordSystem::GetVecComponent( const std::string & dof ) const{
-    ENTER_FCN( "PolarCoordSystem::GetVecComponent" );
     
     
     UInt component = 0;
@@ -251,7 +243,6 @@ namespace CoupledField{
   }  
 
   const std::string PolarCoordSystem::GetDofName( const UInt dof ) const {
-    ENTER_FCN( "PolarCoordSystem::GetDofName" );
     
     std::string ret = "";
     
@@ -272,7 +263,6 @@ namespace CoupledField{
   }
 
   void PolarCoordSystem::PrintInfo() {
-    ENTER_FCN( "PolarCoordSystem::PrintInfo") ;
 
     std::ostringstream out;
     out << "\n--- local coordinate system ---\n"

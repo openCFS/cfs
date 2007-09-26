@@ -12,7 +12,6 @@ namespace OLAS {
   // ******************************
   void BaseSolver::InstantiatePublicMethods( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "BaseSolver::InstantiatePublicMethods" );
 
     Error( "This method should _never_ be called!", __FILE__, __LINE__ );
 
@@ -34,7 +33,6 @@ namespace OLAS {
   // *****************************************
   void BaseSolver::InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "BaseSolver::InstantiateAdditionalPublicMethods" );
 
     Error( "This method should _never_ be called!", __FILE__, __LINE__ );
   }
@@ -48,7 +46,6 @@ namespace OLAS {
 
     static double lastNorm = 0;
 
-    ENTER_FCN( "BaseIterativeSolver::LogConvergence" );
 
     // Write header
     if ( firstCall == true ) {
@@ -91,7 +88,6 @@ namespace OLAS {
 						Double &resNorm,
 						bool beVerbose ) {
 
-    ENTER_FCN( "BaseIterativeSolver::ComputeThreshold" );
 
     // Compute norm of initial residual
     resNorm = res.NormEuclid();

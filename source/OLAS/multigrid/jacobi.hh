@@ -57,7 +57,6 @@ class Jacobi : public Smoother<T>
 
         //! set value of the damping parameter \f$\omega\f$
         void SetOmega( const T_Stype& omega ) {
-            ENTER_FCN("Jacobi::SetOmega");
             Omega_ = omega;
         }
         //@}

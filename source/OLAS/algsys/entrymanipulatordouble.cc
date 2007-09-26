@@ -32,7 +32,6 @@ namespace OLAS {
                     UInt limit1, UInt limit2,
                     bool setCounterPart ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::SetElementMatrix" );
 
     // Clear the arrays
     rowIndList_.clear();
@@ -210,7 +209,6 @@ namespace OLAS {
                       Integer *connect2, UInt length2,
                       UInt limit1, UInt limit2 ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::SetCounterPartOnly" );
 
     // Clear the arrays
     rowIndList_.clear();
@@ -358,7 +356,6 @@ namespace OLAS {
                                               UInt elemSize,
                                               UInt limit ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::SetElementRHS" );
 
 #ifdef DEBUG_ASSEMBLE
     (*debug) << "SetElementRHS (" << elemSize << "): ";
@@ -397,7 +394,6 @@ namespace OLAS {
                   Double & entry, Integer eqnNr1, 
                   Integer eqnNr2, 
                   UInt limit1, UInt limit2 ) {
-    ENTER_IFCN( "EntryManipulatorDouble::GetMatrixEntry" );
     
     Double dummy = 0.0;
 
@@ -431,7 +427,6 @@ namespace OLAS {
                   Complex & entry, Integer eqnNr1, 
                   Integer eqnNr2, 
                   UInt limit1, UInt limit2 ) {
-    ENTER_IFCN( "EntryManipulatorDouble::GetMatrixEntry" );
     (*error) << "EntryManipulatorDouble::GetMatrixEntry: "
              << "Interface for complex not implemented, since this "
              << "makes no sense!";
@@ -449,7 +444,6 @@ namespace OLAS {
                   Double  entry, Integer eqnNr1, 
                   Integer eqnNr2, 
                   UInt limit1, UInt limit2, bool setCounterPart ) {
-    ENTER_IFCN( "EntryManipulatorDouble::SetMatrixEntry" );
 
     Double dummy = 0.0;
     
@@ -487,7 +481,6 @@ namespace OLAS {
                   Complex entry, Integer eqnNr1, 
                   Integer eqnNr2, 
                   UInt limit1, UInt limit2,bool setCounterPart ) {
-    ENTER_IFCN( "EntryManipulatorDouble::SetMatrixEntry" );
     (*error) << "EntryManipulatorDouble::SetMatrixEntry: "
              << "Interface for complex not implemented, since this "
              << "makes no sense!";
@@ -501,7 +494,6 @@ namespace OLAS {
   void EntryManipulatorDouble::SetNodeRHS( SparseVector *rhs, Double val,
                                            Integer node ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::SetNodeRHS" );
 
     if ( node != 0 ) {
       rhs->AddToVectorEntry( std::abs(node), val );
@@ -516,7 +508,6 @@ namespace OLAS {
   // ***********************
   void EntryManipulatorDouble::SetNodeRHS( SparseVector *rhs, Complex val,
                                            Integer node ) {
-    ENTER_IFCN( "EntryManipulatorDouble::SetNodeRHS" );
     (*error) << "EntryManipulatorDouble::SetNodeRHS: "
              << "Interface for complex not implemented, since this "
              << "makes no sense!";
@@ -530,14 +521,12 @@ namespace OLAS {
   void EntryManipulatorDouble::SetVectorEntry( SparseVector *vec,
                                                UInt index,
                                                Double &newVal ) {
-    ENTER_IFCN( "EntryManipulatorDouble::SetVectorEntry" );
     vec->SetVectorEntry( index, newVal );
   }
 
   void EntryManipulatorDouble::SetVectorEntry( SparseVector *vec,
                                                UInt index,
                                                Complex &newVal ) {
-    ENTER_IFCN( "EntryManipulatorDouble::SetVectorEntry" );
     (*error) << "EntryManipulatorDouble::SetVectorEntry: "
              << "Interface for complex not implemented, since this "
              << "makes no sense!";
@@ -551,7 +540,6 @@ namespace OLAS {
   void EntryManipulatorDouble::InitRHS( SparseVector *rhs,
                                         const Double *newRHS ) {
 
-    ENTER_FCN( "EntryManipulatorDouble::InitRHS" );
 
     // For the standard vector class we use fast access
     if ( Vector<Double> *myRHS = dynamic_cast<Vector<Double>*>(rhs) ) {
@@ -582,7 +570,6 @@ namespace OLAS {
   void EntryManipulatorDouble::UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                                           Double* fup ) { 
 
-    ENTER_FCN( "EntryManipulatorDouble::UpdateRHS" );
 
 
     // Support for the Vector<Double> case was implemented for
@@ -621,7 +608,6 @@ namespace OLAS {
                                                   UInt numIDBC,
                                                   Double &penaltyTerm ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::AdaptSystemMatrix" );
 
     // Loop over all Dirichlet equation numbers and replace
     // diagonal matrix entry by penalty term (no components
@@ -641,7 +627,6 @@ namespace OLAS {
                                                 Double &penaltyTerm,
                                                 UInt numIDBC ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::AdaptRHSForIDBC" );
 
     Double entry;
       
@@ -660,7 +645,6 @@ namespace OLAS {
   void EntryManipulatorDouble::GetSolutionVal( SparseVector *sol, Double* &ptSol,
                                                const PdeIdType identifierPDE){
 
-    ENTER_FCN( "EntryManipulatorDouble::GetSolutionVal" );
 
     // only update the solution buffer if it is invalid
     if ( solBufferIsValid_ == false ) {
@@ -693,7 +677,6 @@ namespace OLAS {
   void EntryManipulatorDouble::GetRHSVal( SparseVector *rhs, Double* &ptRhs,
                                           const PdeIdType identifierPDE ) {
 
-    ENTER_FCN( "EntryManipulatorDouble::GetRHSVal" );
 
     // only update the rhs buffer if it is invalid
     if ( rhsBufferIsValid_ == false ) {
@@ -724,7 +707,6 @@ namespace OLAS {
                                                      Integer eqnNum,
                                                      Double *val ) {
 
-    ENTER_IFCN( "EntryManipulatorDouble::AddToDiagMatrixEntry" );
 
     // Perform consistency checks
 #ifdef DEBUG_ASSEMBLE

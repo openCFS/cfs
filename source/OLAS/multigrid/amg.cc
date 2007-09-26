@@ -48,7 +48,6 @@ AMGSolver<T>::AMGSolver( OLAS_Params* params )
                         params->GetBoolValue("AMG_logging") )
 #endif
 {
-    ENTER_FCN("AMGSolver::AMGSolver");
 }
 
 /**********************************************************/
@@ -56,7 +55,6 @@ AMGSolver<T>::AMGSolver( OLAS_Params* params )
 template <typename T>
 AMGSolver<T>::~AMGSolver()
 {
-    ENTER_FCN("AMGSolver::~AMGSolver");
 
     Reset();
 }
@@ -67,7 +65,6 @@ template <typename T>
 bool AMGSolver<T>::Setup( const CRS_Matrix<T>* const sys_matrix,
                           const CRS_Matrix<T>* const aux_matrix  )
 {
-    ENTER_FCN("AMGSolver::Setup");
 
     if( aux_matrix ) {
         Warning( "AMGSolver::Setup: please note that the auxiliary"
@@ -113,7 +110,6 @@ bool AMGSolver<T>::Setup( const CRS_Matrix<T>* const sys_matrix,
 template <typename T>
 void AMGSolver<T>::Reset()
 {
-    ENTER_FCN("AMGSolver::Reset");
 
     // Remove system and auxiliary matrix from top level
     // of hierarchy, since they are not intended to be owned
@@ -134,7 +130,6 @@ template <typename T>
 void AMGSolver<T>::Cycle( const Vector<T>& rhs,
                                 Vector<T>& sol ) const
 {
-    ENTER_FCN("AMGSolver::Cycle");
 
     if( !prepared_ ) {
         Warning( "called AMGSolver::Cycle at a non prepared AMG" );

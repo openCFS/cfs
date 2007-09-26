@@ -28,7 +28,6 @@ namespace CoupledField
   AcouCombustionNoise::AcouCombustionNoise( Grid *aptgrid, ParamNode* paramNode )
     :AcousticPDE( aptgrid, paramNode )
   {
-    ENTER_FCN( "AcouCombustionNoise::AcouCombustionNoise" );
 
     // pdename_ is also acoustic for this case
     pdename_          = "acoustic";
@@ -165,7 +164,6 @@ namespace CoupledField
 
   AcouCombustionNoise::~AcouCombustionNoise()
   {
-    ENTER_FCN( "AcouCombustionNoise::AcouCombustionNoise" );
     if ( dataCFD_ != NULL ) {
       delete[]  dataCFD_[0];
       delete[]  dataCFD_;
@@ -178,14 +176,12 @@ namespace CoupledField
 
   void AcouCombustionNoise::DefineSolveStep()
   {
-    ENTER_FCN( "AcouCombustionNoise::DefineSolveStep" );
 
     solveStep_ = new StdSolveStep(*this);
   }
 
   void AcouCombustionNoise::ComputeRHS(const Double atime)
   {
-    ENTER_FCN( "AcouCombustionNoise::ComputeRHS" );  
 
     Vector<Double> elemvec, nodalval;
     UInt i;
@@ -360,7 +356,6 @@ namespace CoupledField
 
   void AcouCombustionNoise::ReadFlowData(const char * aname)
   {
-    ENTER_FCN( "AcouCombustionNoise::ReadFlowData" );
     
     std::string filename;
     char buf[128];
@@ -385,7 +380,6 @@ namespace CoupledField
 }
 
   void AcouCombustionNoise::GetSrcTerm( Double& val, UInt idx) {
-    ENTER_FCN( "AcouCombustionNoise::GetSrcTerm" );
  
   if ( srcType_ ==  REYNOLDSTRESS_MOMENTUM_CHEMICAL ) {
     val = dataCFD_[srcReynoldStressIdx_][idx] 

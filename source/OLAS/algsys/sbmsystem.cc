@@ -30,7 +30,6 @@ namespace OLAS {
   // ***********************
   SBM_System::SBM_System(ParamNode* pn) : BaseSystem(pn) {
 
-    ENTER_FCN( "SBM_System::SBM_System" );
 
     precond_             = NULL;
     rhs_                 = NULL;
@@ -65,7 +64,6 @@ namespace OLAS {
   // **************
   SBM_System::~SBM_System() {
 
-    ENTER_FCN( "SBM_System::~SBM_System" );
 
     // Delete our own objects
     delete precond_;
@@ -89,7 +87,6 @@ namespace OLAS {
   //   SetupPrecond
   // ****************
   void SBM_System::SetupPrecond() {
-    ENTER_FCN( "SBM_System::SetupPrecond" );
     (*warning) << "SBM_System::SetupPrecond not yet implemented!";
     Warning( __FILE__, __LINE__ );
   }
@@ -100,7 +97,6 @@ namespace OLAS {
   // ****************
   void SBM_System::SetBlockSize( const PdeIdType identifier, const UInt bs ) {
 
-    ENTER_FCN( "SBM_System::SetBlockSize" );
 
     // Check consistency
     if ( bs > 1 ) {
@@ -122,7 +118,6 @@ namespace OLAS {
                                     const PdeIdType pdeID1,
                                     const PdeIdType pdeID2 ) {
 
-    ENTER_FCN( "SBM_System::SetFEMatrixType" );
 
     std::cerr << " Setting FE matrix type:"
               << "\n matType = " << Enum2String( matType )
@@ -173,7 +168,6 @@ namespace OLAS {
   // ****************
   void SBM_System::CreateLinSys() {
 
-    ENTER_FCN( "SBM_System::CreateLinSys" );
 
     BaseGraph *graph = NULL;
     std::set<FEMatrixType>::iterator fIt;
@@ -315,7 +309,6 @@ namespace OLAS {
   // *********************
   void SBM_System::PrintFeMatrixInfo( std::ostream *os ) {
 
-    ENTER_FCN( "SBM_System::PrintFeMatrixInfo" );
 
     std::set<FEMatrixType>::iterator fIt;
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
@@ -377,7 +370,6 @@ namespace OLAS {
   SBM_Matrix* SBM_System::GenerateSBM_Matrix( FEMatrixType matType,
                                               MatrixEntryType entryType ) {
 
-    ENTER_FCN( "SBM_System::GenerateSBM_Matrix" );
 
     // STEP 1: Generate empty SBM_Matrix
     SBM_Matrix *retMat = NULL;
@@ -441,7 +433,6 @@ namespace OLAS {
                                      Integer *eqnNrs2, Integer numEqn2,
                                      bool setCounterPart ) {
 
-    ENTER_IFCN( "SBM_System::SetElementMatrix" );
 
     // Set flag for setting the symmetric counter-part of
     // the element matrix
@@ -512,7 +503,6 @@ namespace OLAS {
   void SBM_System::InitMatrix( FEMatrixType matrixID,
                                const PdeIdType pdeID ) {
 
-    ENTER_FCN( "SBM_System::InitMatrix" );
 
     std::set<FEMatrixType>::iterator fIt;
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
@@ -545,7 +535,6 @@ namespace OLAS {
   // ***********************
   void SBM_System::InitRHS( PdeIdType pdeID ) {
 
-    ENTER_FCN( "SBM_System::InitRHS" );
 
     if ( pdeID == NO_PDE_ID ) {
       rhs_->Init();
@@ -561,7 +550,6 @@ namespace OLAS {
   // ***********
   void SBM_System::InitSol( PdeIdType pdeID ) {
 
-    ENTER_FCN( "SBM_System::InitSol" );
 
     if ( pdeID == NO_PDE_ID ) {
       sol_->Init();
@@ -577,7 +565,6 @@ namespace OLAS {
   // ****************************
   void SBM_System::ConstructEffectiveMatrix( const factorMap &matFactors ) {
 
-    ENTER_FCN( "SBM_System::ConstructEffectiveMatrix" );
     factorMap::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
 
@@ -634,7 +621,6 @@ namespace OLAS {
                                   Integer *connect,
                                   UInt length ) {
 
-    ENTER_IFCN("StandardSystem::SetElementRHS");
 
     // Delegate work to EntryManipulator
     assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
@@ -646,7 +632,6 @@ namespace OLAS {
   //   UpdateRHS
   // *************
   void SBM_System::UpdateRHS( FEMatrixType matrix_id, Double *fup ) {
-    ENTER_FCN( "SBM_System::UpdateRHS" );
     (*error) << "Method not yet implemented!";
     Error( __FILE__, __LINE__ );
   }
@@ -658,7 +643,6 @@ namespace OLAS {
   void SBM_System::SetDirichlet(const PdeIdType pdeID,
                                 Integer eqnNum, const Double &val ) {
 
-    ENTER_IFCN( "SBM_System::SetDirichlet" );
 
     // Perform some consistency checks
 #ifdef DEBUG_SBMSYSTEM
@@ -696,7 +680,6 @@ namespace OLAS {
   void SBM_System::SetDirichlet( const PdeIdType pdeID,
                                  Integer eqnNum, const Complex &val ) {
 
-    ENTER_IFCN( "SBM_System::SetDirichlet" );
 
     // Perform some consistency checks
 #ifdef DEBUG_SBMSYSTEM
@@ -732,7 +715,6 @@ namespace OLAS {
   // *******************
   void SBM_System::BuildInDirichlet() {
 
-    ENTER_FCN( "SBM_System::BuildInDirichlet" );
 
     // If necessary modify matrix diagonal for penalty approach
     if ( assembleDirichletToSysMat_ == true ) {
@@ -747,7 +729,6 @@ namespace OLAS {
   // *********
   void SBM_System::Solve(int step) {
 
-    ENTER_FCN( "SBM_System::Solve" );
 
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
@@ -846,7 +827,6 @@ namespace OLAS {
                                        Integer colEqnNum,
                                        Double & val ) {
 
-    ENTER_IFCN( "SBM_System::GetMatrixEntry");
 
     Error( "Not implemented", __FILE__, __LINE__ );
     
@@ -858,7 +838,6 @@ namespace OLAS {
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum2,
                                        Complex & val ) {
-    ENTER_IFCN( "SBM_System::GetMatrixEntry");
     
     Error( "Not implemented", __FILE__, __LINE__ );
   }
@@ -873,7 +852,6 @@ namespace OLAS {
                                    const PdeIdType colPdeID,
                                    Integer colEqnNum, 
                                    Double val, bool setCounterPart ) {
-    ENTER_IFCN( "SBM_System::SetMatrixEntry");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
   
@@ -883,7 +861,6 @@ namespace OLAS {
                                    const PdeIdType colPdeID,
                                    Integer colEqnNum,
                                    Complex val, bool setCounterPart ) {
-    ENTER_IFCN( "SBM_System::SetMatrixEntry");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
@@ -894,14 +871,12 @@ namespace OLAS {
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
-    ENTER_IFCN( "SBM_System::SetMatrixRowVals");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
   void SBM_System::SetMatrixRowVals( FEMatrixType matrixID,
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
-    ENTER_IFCN( "SBM_System::SetMatrixRowVals");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
@@ -912,7 +887,6 @@ namespace OLAS {
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
-    ENTER_IFCN( "SBM_System::SetMatrixColVals");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
@@ -920,7 +894,6 @@ namespace OLAS {
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
-    ENTER_IFCN( "SBM_System::SetMatrixColVals");
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
@@ -930,7 +903,6 @@ namespace OLAS {
   // **********
   void SBM_System::Export( FEMatrixType matrixID, Char *filename,
                            Char *comment ) const {
-    ENTER_FCN( "SBM_System::Export" );
     sysMat_[matrixID]->Export( filename, comment );
   }
 
@@ -940,7 +912,6 @@ namespace OLAS {
   // ****************
   void SBM_System::CreateSolver(){
 
-    ENTER_FCN("SBM_System::CreateSolver");
     
     solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), GMRES, xml,
                                     &myParams_, &myReport_ );
@@ -951,7 +922,6 @@ namespace OLAS {
   //   SetupSolver
   // ***************
   void SBM_System::SetupSolver() {
-    ENTER_FCN( "SBM_System::SetupSolver" );
     solver_->Setup( *sysMat_[SYSTEM] );
   }
 

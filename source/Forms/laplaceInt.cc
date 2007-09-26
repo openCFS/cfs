@@ -16,7 +16,6 @@ namespace CoupledField
   LaplaceInt::LaplaceInt(Double aVal, bool axi, bool coordUpdate )
     : BaseForm(NULL),laplVal_ (aVal)
   {
-    ENTER_FCN( "LaplaceInt::LaplaceInt" );
 
     name_ = "LaplaceInt";
     isaxi_ = axi;
@@ -27,7 +26,6 @@ namespace CoupledField
  
   LaplaceInt::~LaplaceInt()
   {
-    ENTER_FCN( "LaplaceInt::~LaplaceInt" );
   }
 
 
@@ -36,7 +34,6 @@ namespace CoupledField
                                       EntityIterator& ent1, 
                                       EntityIterator& ent2 ) {
   
-    ENTER_FCN( "LaplaceInt::CalcElementMatrix" );
    
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

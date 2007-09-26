@@ -16,7 +16,6 @@ namespace CoupledField {
 
   LinearForm::LinearForm( BaseMaterial* matData) : BaseForm( matData )
   {
-    ENTER_FCN( "LinearForm::LinearForm" );
   }
 
 
@@ -24,18 +23,15 @@ namespace CoupledField {
 
   LinearForm::~LinearForm()
   {
-    ENTER_FCN( "LinearForm::~LinearForm" );
   }
 
 
   void LinearForm::CalcElemVector( Vector<Double> & result,
                                    EntityIterator& ent ) {
-    ENTER_FCN( "LinearForm::CalcElemVector" );
   }
 
   void LinearForm::CalcElemVector( Vector<Complex> & result,
                                    EntityIterator& ent ) {
-    ENTER_FCN( "LinearForm::CalcElemVector" );
 
     Vector<Double> helpVec;
     CalcElemVector( helpVec, ent);
@@ -53,7 +49,6 @@ namespace CoupledField {
                                Vector<Double> * aCoilMidPt) 
     : direction_(aDirection)
   {
-    ENTER_FCN( "LinearEdgeInt::LinearEdgeInt" );
     name_ = "LinearEdgeInt";
   
     if(aCoilMidPt)
@@ -63,7 +58,6 @@ namespace CoupledField {
 
   LinearEdgeInt::~LinearEdgeInt()
   {
-    ENTER_FCN( "LinearEdgeInt::~LinearEdgeInt" );
   }
 
 
@@ -71,7 +65,6 @@ namespace CoupledField {
   void LinearEdgeInt::CalcElemVector( Vector<Double> & elemVec,
                                       EntityIterator& ent ) 
   {
-    ENTER_FCN( "LinearEdgeInt::CalcElemVector" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -182,7 +175,6 @@ namespace CoupledField {
                               bool isaxi, bool coordUpdate )
     : LinearForm()
   {
-    ENTER_FCN( "VolumeSrcIntInt::VolumeSrcInt" );
     name_ = "VolumeSrcInt";
     isaxi_ = isaxi;
     coordUpdate_ = coordUpdate;
@@ -192,11 +184,9 @@ namespace CoupledField {
 
   VolumeSrcInt::~VolumeSrcInt()
   {
-    ENTER_FCN( "VolumeSrcIntInt::~VolumeSrcInt" );
   }
 
   void VolumeSrcInt::SetFactor( const std::string& factor ) {
-    ENTER_FCN( "VolumeSrcInt::SetFactor" );
     mParser_->SetExpr( mHandle_, factor );
   }
   
@@ -204,7 +194,6 @@ namespace CoupledField {
   void VolumeSrcInt::CalcElemVector( Vector<Double> & elemVec,
                                      EntityIterator& ent ) 
   {
-    ENTER_FCN( "VolumeSrcInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -249,7 +238,6 @@ namespace CoupledField {
       perm_(vecVal), 
       reluctivity_(rel)
   {
-    ENTER_FCN( "MagPerm2DInt::MagPerm2DInt" );
     name_ = "MagPerm2DInt";
     isaxi_ = isaxi;
     coordUpdate_ = coordUpdate;
@@ -258,14 +246,12 @@ namespace CoupledField {
 
   MagPerm2DInt::~MagPerm2DInt()
   {
-    ENTER_FCN( "MagPerm2DInt::~MagPerm2DInt" );
   }
 
 
   void MagPerm2DInt::CalcElemVector( Vector<Double> & elemVec,
                                      EntityIterator& ent )
   {
-    ENTER_FCN( "MagPerm2DInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -314,7 +300,6 @@ namespace CoupledField {
       perm_(vecVal), 
       reluctivity_(rel)
   {
-    ENTER_FCN( "MagPerm3DInt::MagPerm3DInt" );
     name_ = "MagPerm3DInt";
     isaxi_ = false;
     coordUpdate_ = coordUpdate;
@@ -326,14 +311,12 @@ namespace CoupledField {
 
   MagPerm3DInt::~MagPerm3DInt()
   {
-    ENTER_FCN( "MagPerm3DInt::~MagPerm3DInt" );
   }
 
 
   void MagPerm3DInt::CalcElemVector( Vector<Double>& elemVec,
                                      EntityIterator& ent )
   {
-    ENTER_FCN( "MagPerm3DInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -396,7 +379,6 @@ namespace CoupledField {
                                                       bool coordUpdate)
     : LinearForm( matData )
   {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
 
     name_ = "nLinMagNode2D_linFormInt";
     isSolDependent_ = true;
@@ -412,13 +394,11 @@ namespace CoupledField {
   
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
   {
-    ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );  
   }
 
   void nLinMagNode2D_linFormInt::CalcElemVector( Vector<Double> & elemVec,
                                                  EntityIterator& ent )
   {
-    ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -461,7 +441,6 @@ namespace CoupledField {
                                                       bool coordUpdate)
     : LinearForm( matData )
   {
-    ENTER_FCN( "nLinMagNode3D_linFormInt::nLinMagNode3D_linFormInt" );
     name_ = "nLinMagNode3D_linFormInt";
     isSolDependent_ = true;
 
@@ -477,13 +456,11 @@ namespace CoupledField {
   
   nLinMagNode3D_linFormInt::~nLinMagNode3D_linFormInt()
   {
-    ENTER_FCN( "nLinMagNode3D_linFormInt ::~nLinMagNode3D_linFormInt" );  
   }
 
   void nLinMagNode3D_linFormInt::CalcElemVector( Vector<Double> & elemVec,
                                                  EntityIterator& ent )
   {
-    ENTER_FCN("nLinMagNode3D_linFormInt :: ~CalcElemVector" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -531,7 +508,6 @@ namespace CoupledField {
                                            bool isaxi) 
     : LinearForm(), matData_(matData)
   {
-    ENTER_FCN( "nLinMech_linFormInt::nLinMech_linFormInt" );
     name_ = "nLinMech_linFormInt";
     isaxi_ = isaxi;
     isSolDependent_ = true;
@@ -541,7 +517,6 @@ namespace CoupledField {
 
   nLinMech_linFormInt::~nLinMech_linFormInt()
   {
-    ENTER_FCN( "nLinMech_linFormInt::~nLinMech_linFormInt" );
   }
 
 
@@ -549,7 +524,6 @@ namespace CoupledField {
   void nLinMech_linFormInt::CalcElemVector( Vector<Double> & elemVec,
                                             EntityIterator& ent )
   {
-    ENTER_FCN( "nLinMech_linFormInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -643,13 +617,11 @@ namespace CoupledField {
 
   RHSForRecoveryProcedure::RHSForRecoveryProcedure() 
   {
-    ENTER_FCN( "RHSForRecoveryProcedure::RHSForRecoveryProcedure" );
     name_ = "RHSForRecoveryProcedure";
   }
  
   RHSForRecoveryProcedure::~RHSForRecoveryProcedure()
   {
-    ENTER_FCN( "RHSForRecoveryProcedure::~RHSForRecoveryProcedure" );
   }
 
   void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(BaseFE * aptelem,
@@ -659,7 +631,6 @@ namespace CoupledField {
                                                          const UInt aComponent,
                                                          Vector<Double> & elemVec)
   {
-    ENTER_FCN( "RHSForRecoveryProcedure::CalcElemVectorRHSForSPR" );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPnts = ptelem->GetNumIntPoints();
@@ -706,7 +677,6 @@ namespace CoupledField {
      preStressDir_(stressDir)
   
   {
-    ENTER_FCN( "PreStressLinFormInt::PreStressLinFormInt" );
     name_ = "PreStressLinFormInt";
     mParser_->SetExpr( mHandle_, aPreStressVal );
   }
@@ -715,7 +685,6 @@ namespace CoupledField {
 
   PreStressLinFormInt::~PreStressLinFormInt()
   {
-    ENTER_FCN( "PreStressLinFormInt::~PreStressLinFormInt" );
   }
 
 
@@ -724,7 +693,6 @@ namespace CoupledField {
   void PreStressLinFormInt::CalcElemVector( Vector<Double> & result,
                                             EntityIterator& ent )
   {
-    ENTER_FCN( "PreStressLinFormInt::CalcElemVector" );
     Error( "PreStressLinFormInt::CalcElemVector: not working",
            __FILE__, __LINE__ );
 
@@ -789,14 +757,12 @@ namespace CoupledField {
 
   LinearFlowNoiseInt::LinearFlowNoiseInt(BaseFE * aptelem) 
   {
-    ENTER_FCN( "LinearFlowNoiseInt::LinearFlowNoiseInt" );
     name_ = "LinearFlowNoiseInt";
     ptelem = aptelem;
   }
 
   LinearFlowNoiseInt::~LinearFlowNoiseInt()
   {
-    ENTER_FCN( "LinearFlowNoiseInt::~LinearFlowNoiseInt" );
   }
 
   void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,
@@ -804,7 +770,6 @@ namespace CoupledField {
                                               Vector<Double> & Result, 
                                               const Vector<Double> gradN_x_P)
   {
-    ENTER_FCN( "LinearForm::CalcElemVector4FlowSrc" );
 
     UInt l=ptelem->GetNumIntPoints();
     UInt n=ptelem->GetNumNodes();
@@ -867,9 +832,6 @@ namespace CoupledField {
                                                   const Matrix<Double>& dTijdi,
                                                   Vector<Double> & Result)
   {
-#ifdef TRACE
-    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withdTijdi" << std::endl;
-#endif
 
     // This functions computes the element RHS vector by integrating 
     // the gradient of the shape function times the divergence of the tensor T.
@@ -920,9 +882,6 @@ namespace CoupledField {
                                                      const Matrix<Double> & NodalVel,
                                                      Vector<Double> & Result)
   {
-#ifdef TRACE
-    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withVortexVel" << std::endl;
-#endif
 
     //std::cout << "NodalVel:\n" << NodalVel << std::endl;
 
@@ -997,7 +956,6 @@ namespace CoupledField {
                                                const Matrix<Double> & FlowData, 
                                                Vector<Double> & Result)
   {
-    ENTER_FCN( "LinearFlowNoiseInt::CalcElemVector4Quad" );
 
     // This is used if we get the interpolated velocity components with MpCCI 
     // from a fluid computation
@@ -1169,7 +1127,6 @@ namespace CoupledField {
                                               const StdVector<UInt>& connecth, 
                                               UInt matrixRow)
   {
-    ENTER_FCN( "LinearFlowNoiseInt::GetVecOfElement" );
  
     // displacement of element nodes
     elVel.Resize(matrixRow, connecth.GetSize());
@@ -1188,7 +1145,6 @@ namespace CoupledField {
   nLinKuznetsovRHSInt::nLinKuznetsovRHSInt( bool isaxi )
     : LinearForm()
   {
-    ENTER_FCN( "nLinKuznetsovRHSInt::nLinKuznetsovRHSInt" );
     name_ = "nLinKuznetsovRHSInt";
     isaxi_ = isaxi;
 
@@ -1197,14 +1153,12 @@ namespace CoupledField {
 
   nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt()
   {
-    ENTER_FCN( "nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt" );
   }
 
 
   void nLinKuznetsovRHSInt::CalcElemVector( Vector<Double> & elemVec,
                                             EntityIterator& ent ) 
   {
-    ENTER_FCN( "nLinKuznetsovRHSInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1281,7 +1235,6 @@ namespace CoupledField {
   nLinWesterveltRHSInt::nLinWesterveltRHSInt( bool isaxi )
     : LinearForm()
   {
-    ENTER_FCN( "nLinWesterveltRHSInt::nLinWesterveltRHSInt" );
     name_ = "nLinWesterveltRHSInt";
     isaxi_ = isaxi;
   }
@@ -1289,14 +1242,12 @@ namespace CoupledField {
 
   nLinWesterveltRHSInt::~nLinWesterveltRHSInt()
   {
-    ENTER_FCN( "nLinWesterveltRHSInt::~nLinWesterveltRHSInt" );
   }
 
 
   void nLinWesterveltRHSInt::CalcElemVector( Vector<Double> & elemVec,
                                              EntityIterator& ent )
   {
-    ENTER_FCN( "nLinWesterveltRHSInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1340,7 +1291,6 @@ namespace CoupledField {
   ElecPolarizationInt::ElecPolarizationInt(bool isaxi, bool coordUpdate )
     : LinearForm()
   {
-    ENTER_FCN( "ElecPolarizationInt::ElecPolarizationInt" );
     name_ = "ElecPolarizationInt";
     isaxi_ = isaxi;
     coordUpdate_ = coordUpdate;
@@ -1349,14 +1299,12 @@ namespace CoupledField {
 
   ElecPolarizationInt::~ElecPolarizationInt()
   {
-    ENTER_FCN( "ElecPolarizationInt::~ElecPolarizationInt" );
   }
 
 
   void ElecPolarizationInt::CalcElemVector( Vector<Double> & elemVec,
                                             EntityIterator& ent )
   {
-    ENTER_FCN( "ElecPolarizationInt::CalcElemVector" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1431,7 +1379,6 @@ namespace CoupledField {
   }
 
   PiezoPolarizationRhsInt::~PiezoPolarizationRhsInt() {
-    ENTER_FCN( "PiezoPolarizationRhsInt::~PiezoPolarizationRhsInt" );
 
     delete EfieldOp_;
     delete piezoBilinearForm_;
@@ -1442,7 +1389,6 @@ namespace CoupledField {
 						      UInt dirP,
 						      Vector<Double>& baseVecSirr) {
 
-   ENTER_FCN( "PiezoPolarizationRhsInt::ComputeNormalizedSirr" );
 
     //get basis vector for irreversibel strain
     if ( type == FULL ) {
@@ -1475,7 +1421,6 @@ namespace CoupledField {
 						   shared_ptr<EqnMap> eqnMap,
 						   shared_ptr<ResultInfo> result) {
 
-    ENTER_FCN( "PiezoPolarizationRhsInt::Set4NonLinMaterial" );
 
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
                                              eqnMap, *sol_, 
@@ -1495,7 +1440,6 @@ namespace CoupledField {
 							    SubTensorType type) 
     : PiezoPolarizationRhsInt( matDataElec, type ) {
 
-    ENTER_FCN( "PiezoPolarisationElecRhsInt::PiezoPolarisationElecRhsInt" );
 
     name_  = "PiezoPolarisationElecRhsInt";
 
@@ -1505,7 +1449,6 @@ namespace CoupledField {
 
 
   PiezoPolarizationElecRhsInt::~PiezoPolarizationElecRhsInt() {
-    ENTER_FCN( "PiezoPolarizationElecRhsInt::~PiezoPolarizationElecRhsInt" );
 
     delete matDataPiezo_;
     delete matDataMech_; 
@@ -1516,7 +1459,6 @@ namespace CoupledField {
 						    EntityIterator& ent ) 
     
   {
-    ENTER_FCN( "PiezoPolarizationElecRhsInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1620,7 +1562,6 @@ namespace CoupledField {
 							    SubTensorType type) 
     : PiezoPolarizationRhsInt( matDataElec, type ) {
 
-    ENTER_FCN( "PiezoPolarisationMechRhsInt::PiezoPolarisationMechRhsInt" );
 
     name_  = "PiezoPolarisationMechRhsInt";
     matDataMech_  = matDataMech;
@@ -1630,7 +1571,6 @@ namespace CoupledField {
 
   PiezoPolarizationMechRhsInt::~PiezoPolarizationMechRhsInt()
   {
-    ENTER_FCN( "PiezoPolarizationMechRhsInt::~PiezoPolarizationMechRhsInt" );
 
     delete matDataMech_; 
   }
@@ -1640,7 +1580,6 @@ namespace CoupledField {
 						    EntityIterator& ent ) 
     
   {
-    ENTER_FCN( "PiezoPolarizationMechRhsInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1738,7 +1677,6 @@ namespace CoupledField {
                                    const std::string& phase,
                                    bool isaxi) {
 
-    ENTER_FCN( "MechVolForceInt::MechVolForceInt" );
 
     name_ = "MechVolForceInt";
     isaxi_ = isaxi;
@@ -1749,7 +1687,6 @@ namespace CoupledField {
     
   MechVolForceInt::~MechVolForceInt() {
 
-    ENTER_FCN( "MechVolForceInt::~MechVolForceInt" );
 
   }
     
@@ -1757,7 +1694,6 @@ namespace CoupledField {
                                           const CoordSystem * coordSys,
                                           bool isUnit, Double volume ) {
 
-    ENTER_FCN( "MechVolForceInt::SetVolForceVector" );
 
     locForce_ = volForce;
     coordSys_ = coordSys;
@@ -1769,7 +1705,6 @@ namespace CoupledField {
   void MechVolForceInt::CalcElemVector( Vector<Double> & elemVec,
                                         EntityIterator& ent ) {
 
-    ENTER_FCN( "MechVolForceInt::CalcElemVector");
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1810,7 +1745,6 @@ namespace CoupledField {
   void MechVolForceInt::CalcElemVector( Vector<Complex> & elemVec,
                                         EntityIterator& ent ) {
 
-    ENTER_FCN( "MechVolForceInt::CalcElemVector");
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1905,7 +1839,6 @@ namespace CoupledField {
 				     SubTensorType type)
     : LinearForm(), matData_(matData)
   {
-    ENTER_FCN( "AddStressRHSInt::AddStressRHSInt" );
     name_ = "AddStressRHSInt";
     if ( type == AXI ) 
       isaxi_ = true;
@@ -1941,13 +1874,11 @@ namespace CoupledField {
 
   AddStressRHSInt::~AddStressRHSInt()
   {
-    ENTER_FCN( "AddStressRHSInt::~AddStressRHSInt" );
   }
 
   void AddStressRHSInt::CalcElemVector( Vector<Double> & elemVec,
 					 EntityIterator& ent )
   {
-    ENTER_FCN( "AddStressRHSInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );

@@ -25,7 +25,6 @@ namespace OLAS {
   template <typename T>
   CroutLU<T>::CroutLU() {
 
-    ENTER_FCN( "CroutLU::CroutLU" );
 
     // We do not yet have performed a factorisation
     storingFactors_ = false;
@@ -50,7 +49,6 @@ namespace OLAS {
   // ======================
   template <typename T>
   CroutLU<T>::~CroutLU() {
-    ENTER_FCN( "CroutLU::~CroutLU" );
     DeleteDynamicDataStructures();
   }
 
@@ -60,7 +58,6 @@ namespace OLAS {
   // ===============================
   template <typename T>
   void CroutLU<T>::DeleteDynamicDataStructures() {
-    ENTER_FCN( "CroutLU::DeleteDynamicDataStructures" );
   }
 
 
@@ -70,7 +67,6 @@ namespace OLAS {
   template <typename T>
   void CroutLU<T>::Reset() {
 
-    ENTER_FCN( "CroutLU::Reset" );
 
     // Free dynamically allocate memory
     DeleteDynamicDataStructures();
@@ -98,7 +94,6 @@ namespace OLAS {
   template <typename T>
   void CroutLU<T>::Factorise( CRS_Matrix<T> &sysMat ) {
 
-    ENTER_FCN( "CroutLU::Factorise" );
 
     // Reset the object before over-writing an existing factorisation
     if ( storingFactors_ == true ) {
@@ -713,7 +708,6 @@ namespace OLAS {
   template <typename T>
   void CroutLU<T>::Solve( const Vector<T> &y, Vector<T> &x ) const {
 
-    ENTER_FCN( "CroutLU::Solve" );
 
 #ifdef DEBUG_CROUTLU_SOLVE
     PrintVector( rptrU_ , "rptrU"  );
@@ -803,7 +797,6 @@ namespace OLAS {
   inline UInt CroutLU<T>::GetRowOfA( const CRS_Matrix<T> &sysMat,
                                      std::vector<T> &vecZ, UInt k ) {
 
-    ENTER_FCN( "CroutLU::GetRowOfA" );
 
     // Copy the non-zero entries of the k-th row of the system matrix
     // into the respective positions in the auxilliary full vector.
@@ -917,7 +910,6 @@ namespace OLAS {
   inline UInt CroutLU<T>::GetColOfA( const CRS_Matrix<T> &sysMat,
                                      std::vector<T> &vecW, UInt k ) {
 
-    ENTER_FCN( "CroutLU::GetColOfA" );
 
     // Our implementation of the Crout algorithm requires that we successively
     // copy the lower part of each column of the system matrix into a full
@@ -1121,7 +1113,6 @@ namespace OLAS {
   template <typename T>
   void CroutLU<T>::ExportILUFactorisation( const char *fname ) {
 
-    ENTER_FCN( "CroutLU::ExportILUFactorisation" );
 
     UInt i, j;
 

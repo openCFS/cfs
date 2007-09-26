@@ -17,7 +17,6 @@ MGPrecond<T>::MGPrecond( OLAS_Params *params )
       report_( NULL ),
       AMG_( NULL )
 {
-    ENTER_FCN("MGPrecond::MGPrecond(OLAS_Params*)");
 }    
 
 /**********************************************************/
@@ -30,7 +29,6 @@ MGPrecond<T>::MGPrecond( const StdMatrix   &matrix,
       report_( report ),
       AMG_( NULL )
 {
-    ENTER_FCN("MGPrecond::MGPrecond(StdMatrix&,...)");
 }
 
 /**********************************************************/
@@ -38,7 +36,6 @@ MGPrecond<T>::MGPrecond( const StdMatrix   &matrix,
 template <typename T>
 MGPrecond<T>::~MGPrecond()
 {
-    ENTER_FCN("MGPrecond::~MGPrecond:");
 
     delete AMG_;
 }
@@ -48,7 +45,6 @@ MGPrecond<T>::~MGPrecond()
 template <typename T>
 void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
 {
-    ENTER_FCN("MGPrecond::Setup(const BaseMatrix&)");
 
     if( ! AMG_ ) {
       if( NULL == (AMG_ = New AMGSolver<T>(params_)) ) {
@@ -87,7 +83,6 @@ template <typename T>
 void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
                           const StdMatrix& auxmatrix )
 {
-    ENTER_FCN("MGPrecond::Setup(StdMatrix,StdMatrix)");
 
     ///////////////////////////////////////////////////////////
     Error( "MGPrecond::Setup(StdMatrix,StdMatrix) not yet "
@@ -118,7 +113,6 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
                           const SparseVector& rhs,
 			  SparseVector& sol ) const
 {
-    ENTER_FCN("MGPrecond::Apply");
 
     if( this->readyToUse_ ) {
         sol.Init();

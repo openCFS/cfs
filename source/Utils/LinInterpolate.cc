@@ -26,7 +26,6 @@ namespace CoupledField
 
   Double LinInterpolate::EvaluateFuncInv(double inVal)
   {
-    ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
    
     if ( inVal < y_[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
@@ -71,7 +70,6 @@ namespace CoupledField
 
   Double LinInterpolate::EvaluatePrimeInv(double inVal)
   {
-    ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
   
     if ( inVal < y_[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);

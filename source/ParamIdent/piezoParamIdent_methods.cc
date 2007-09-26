@@ -26,7 +26,6 @@ namespace CoupledField
                                             Vector<Double> & absZ, 
                                             Vector<Double> & phi, 
                                             Vector<Complex> & y_hat){
-    ENTER_FCN("piezoParamIdent::calc_measuredCharge");
     Complex Z,j;
     Double x, y;
     j=Complex(0,1);
@@ -118,7 +117,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat_){
-    ENTER_FCN("piezoParamIdent::calcSyntheticData");
       
     createF(y_hat_,true); // calculates only forward problems over all omegas_
 
@@ -132,7 +130,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::calcImpedanceCurve(){
-    ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
 
 
     std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
@@ -303,7 +300,6 @@ namespace CoupledField
   } // end calcImpedance Curve
 
     void piezoParamIdent::calcMechDisplCurve(){
-    ENTER_FCN("PiezoParamIdent::calcMechDisplCurve");
 
     
       
@@ -380,7 +376,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut){
-    ENTER_FCN("PiezoParamIdent:createF");
    
     F_hat_.Resize(nrMeasuredData);
     F_hat_.Init();
@@ -559,7 +554,6 @@ namespace CoupledField
                                          Vector<Double> & parameterIncrement_, 
                                          Vector<Complex>& solElecPot_,
                                          Vector<Complex> &solMechDispl_){
-    ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     approxJacobiMatrix_.Resize(JacobiMatrix_.GetSizeRow(), JacobiMatrix_.GetSizeCol());
@@ -606,7 +600,6 @@ namespace CoupledField
                                           Vector<Double> & parameterIncrement_, 
                                           Vector<Complex>& solElecPot_,
                                           Vector<Complex> &solMechDispl_){
-    ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
@@ -660,7 +653,6 @@ namespace CoupledField
 
   void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat_, Matrix<Complex> & JacobiMatrix_, 
                                           Vector<Double> & parameter_){
-    ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
@@ -751,7 +743,6 @@ namespace CoupledField
 
   void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix_,
                                                   Matrix<Complex> & adjJacobiMatrix_){
-    ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
     //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
     adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),JacobiMatrix_.GetSizeRow());
     adjJacobiMatrix_.Init();
@@ -795,7 +786,6 @@ namespace CoupledField
   }  // end calcAbsImped 
 
   void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
-    ENTER_FCN("piezoParamIdent::norm");
 
     Vector<Complex> y_comp(nrParameter_);
     Vector<Complex> y_temp(nrParameter_);
@@ -848,7 +838,6 @@ namespace CoupledField
   
 
   Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
-    ENTER_FCN("piezoParamIdent::calcEuclidianMatrixNorm");
 
     Double norm=0.0;
     for (UInt i=0;i<mat.GetSizeRow();i++)
@@ -861,7 +850,6 @@ namespace CoupledField
 
   void piezoParamIdent::maxAndEuclNorm(Vector<Complex> & vec,
                                        Double & maxNorm, Double & euclNorm){
-    ENTER_FCN("piezoParamIdent::maxAndEuclNorm");
     Double maxNormTemp = 0.0;
     maxNorm=0.0;
     euclNorm=0.0;
@@ -877,7 +865,6 @@ namespace CoupledField
   } // end maxAndEuclNorm
 
   void piezoParamIdent::logNorm(Vector<Complex> & vec, Double & logNorm){
-    ENTER_FCN("piezoParamIdent::logNorm");
     logNorm=0.0;
     for (UInt i=0;i<vec.GetSize();i++){
       logNorm = logNorm + std::pow(std::log(std::abs(std::abs(vec[i]))),2);
@@ -890,7 +877,6 @@ namespace CoupledField
   void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec,
                                               Double & maxNorm, Double & wNorm,
                                               Vector<Complex> & q_meas){
-    ENTER_FCN("piezoParamIdent::maxAndWeightedResNorm");
     Double maxNormTemp = 0.0;
     maxNorm=0.0;
     wNorm=0.0;
@@ -936,7 +922,6 @@ namespace CoupledField
   void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res,
                                        Double & anorm_, 
                                        UInt nrMeasuredData){
-    ENTER_FCN("piezoParamIdent::calcNorm2Resid");
     anorm_=0.0;
     for (UInt i=0;i<2*nrMeasuredData;i++){
       anorm_+=res[i].real()*res[i].real()+ res[i].imag()*res[i].imag();
@@ -945,7 +930,6 @@ namespace CoupledField
   } // end calcNorm2Resid
 
   Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::realA2norm");
     Double result=0.0; 
     //      Double real_result;
     for(UInt i=0;i<vec.GetSize();i++)
@@ -955,7 +939,6 @@ namespace CoupledField
   }
 
   Double piezoParamIdent::realA2norm(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::realA2norm");
     Double result=0.0; 
     Complex resultC = Complex(0.0,0.0);
     //      Double real_result;
@@ -968,7 +951,6 @@ namespace CoupledField
   }
 
   Double piezoParamIdent::a2norm(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::a2norm");
     Double result=0.0; //Complex(0.0,0.0);
     //      Double real_result;
     for(UInt i=0;i<vec.GetSize();i++)
@@ -978,7 +960,6 @@ namespace CoupledField
   }
 
   Double piezoParamIdent::a2norm(Vector<Double> &vec){
-    ENTER_FCN("piezoParamIdent::a2norm");
     Double result=0.0; //Complex(0.0,0.0);
     //      Double real_result;
     for(UInt i=0;i<vec.GetSize();i++)
@@ -997,7 +978,6 @@ namespace CoupledField
                                          UInt & nrMeasuredData, 
                                          Double & thickness_, Double & radius_,
                                          Double & delta_){
-    ENTER_FCN( "piezoParamIdent::readMeasuredData" );
     char mDataRow[1024], helpChar[128];
     UInt i=0, j=0, k=0;
     nrMeasuredDataElec_=0;
@@ -1242,7 +1222,6 @@ namespace CoupledField
 
   void piezoParamIdent::readInMeasurement(Vector<Double> & frequenciesElec, Vector<Double> & frequenciesMech){
 
-    ENTER_FCN("piezoParamIdent::readInMeasurement");
 
     std::cout<<"++ Open and read file mess.dat ... " <<std::endl;    
 

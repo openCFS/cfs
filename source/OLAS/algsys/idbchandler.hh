@@ -80,7 +80,6 @@ namespace OLAS {
     //! object.
     void InitMatrix( FEMatrixType matrixID ) {
 
-      ENTER_FCN( "IDBC_Handler::InitMatrix" );
 
       // Check for validity of matrix identifier
       mySetIterator it = myMatrices_.find( matrixID );
@@ -104,7 +103,6 @@ namespace OLAS {
     //! internally on the values and degrees of freedom that are fixed
     //! by inhomogeneous Dirichlet boundary conditions.
     void InitDirichletValues() {
-      ENTER_FCN( "IDBC_Handler::InitDirichletValues" );
       vecIDBC_->Init();
     };
 
@@ -132,7 +130,6 @@ namespace OLAS {
     //!       them.
     //! \param rhs vector with right-hand side entries
     inline void AddIDBCToRHS( BaseVector *rhs ) {
-      ENTER_FCN( "IDBCHandler::AddIDBCToRHS" );
       if ( addIDBCPossible_ == false ) {
         (*error) << "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
                  << "add Dirichlet BCs, since addIDBCPossible_ = false! "
@@ -155,7 +152,6 @@ namespace OLAS {
     //!       them.
     //! \param rhs vector with right-hand side entries
     inline void RemoveIDBCFromRHS( BaseVector *rhs ) {
-      ENTER_FCN( "IDBCHandler::RemoveIDBCFromRHS" );
       if ( remIDBCPossible_ == false ) {
         (*error) << "IDBCHandler::RemoveIDBCFromRHS: Internal error! "
                  << "Refusing to remove Dirichlet BCs, since "
@@ -298,7 +294,6 @@ namespace OLAS {
 
     //! Adapt system matrix
     void AdaptSystemMatrix( BaseMatrix &sysMat ) {
-      ENTER_FCN( "IDBC_Handler::AdaptSystemMatrix" );
     }
 
     //@}

@@ -36,7 +36,6 @@ namespace CoupledField {
   SimOutputHDF5::SimOutputHDF5(std::string fileName, ParamNode * inputNode) :
     SimOutput(fileName, inputNode) 
   {
-    ENTER_FCN( "SimOutputHDF5::XMDF" );
     fileName_ = fileName;
     formatName_ = "hdf5";
     dirName_ = "simoutput_hdf5";
@@ -61,7 +60,6 @@ namespace CoupledField {
 
   SimOutputHDF5::~SimOutputHDF5() 
   {
-    ENTER_FCN( "SimOutputHDF5::~XMDF" );
     
     // close groups
     mainGroup_.close();

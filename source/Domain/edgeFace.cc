@@ -47,7 +47,6 @@ namespace CoupledField {
 
 
   void Face::Normalize( std::bitset<3>& flags) {
-    ENTER_FCN( "GridCFS:::NormalizeFace" );
     
     Vector<UInt> indices( nodes.GetSize() );
     UInt size = nodes.GetSize();

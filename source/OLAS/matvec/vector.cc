@@ -16,7 +16,6 @@ namespace OLAS {
   template<typename T>
   Vector<T>::Vector( Integer size ) {
 
-    ENTER_FCN( "Vector::Vector" );
     size_ = size;
 
     // Allocate memory and initialise entries to zero
@@ -37,7 +36,6 @@ namespace OLAS {
   // *******************
   template<typename T>
   Vector<T>::~Vector() {
-    ENTER_FCN( "Vector::~Vector" );
     if ( memBelongsToMe_ == true ) {
       DeleteArray( data_ );
     }
@@ -50,7 +48,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::Replace( UInt length, T_Vtype* entries, bool transferMem ) {
 
-    ENTER_FCN( "Vector::Replace" );
 
     // De-allocate old array, if required
     if ( memBelongsToMe_ == true ) {
@@ -72,7 +69,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::Resize( UInt newSize, bool init ) {
 
-    ENTER_FCN( "Vector::Resize" );
 
     if ( memBelongsToMe_ == false ) {
       (*error) << "I'm cowardly refusing to re-size the data_ array, since "
@@ -117,7 +113,6 @@ namespace OLAS {
   void Vector<T>::Add(const SparseVector &vec) {
 
     PROFILE("Vector::Add (1)",size_*BlockSize<T>::size);
-    ENTER_FCN("Vector::Add");
     TRY_CAST
     ConstRefCast(vec,Vector<T>,idvec);
 
@@ -138,7 +133,6 @@ namespace OLAS {
 		      T_Stype b, const SparseVector &vec2) {
 
     PROFILE("Vector::Add (2)",3*size_*BlockSize<T>::size);
-    ENTER_FCN("Vector::Add");
     TRY_CAST
     ConstRefCast(vec1,Vector<T>,idvec1);
     ConstRefCast(vec2,Vector<T>,idvec2);
@@ -157,7 +151,6 @@ namespace OLAS {
   // **********************************************************
   template <typename T>
   void Vector<T>::Add(T_Stype a, const SparseVector &vec) {
-    ENTER_FCN("Vector::Add");
     PROFILE("Vector::Add (3)",2*size_*BlockSize<T>::size);
 
     TRY_CAST
@@ -178,7 +171,6 @@ namespace OLAS {
   template <typename T>
   void Vector<T>::Inner( const SparseVector &vec, T_Stype &sum ) const {
 
-    ENTER_FCN( "Vector::Inner" );
     PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
 
     TRY_CAST {
@@ -197,7 +189,6 @@ namespace OLAS {
   // **********************************
   template<typename T>
   void Vector<T>::Init() {
-    ENTER_FCN("Vector::Init");
 
 #pragma omp parallel for 
 
@@ -213,7 +204,6 @@ namespace OLAS {
   // **************************
   template <typename T>
   Double Vector<T>::NormEuclid() const {				
-    ENTER_FCN( "Vector::NormEuclid" );
     PROFILE("Vector::NormEuclid",size_*2*BlockSize<T>::size);
     Double sum = 0.0;
 
@@ -231,7 +221,6 @@ namespace OLAS {
   // *******************************************
   template <typename T>
   void Vector<T>::Axpy( const T_Stype alpha, const SparseVector &y ) {
-    ENTER_FCN( "Vector::Axpy" );
     PROFILE("Vector::Axpy",size_*2*BlockSize<T>::size);
     TRY_CAST
     ConstRefCast( y, Vector<T>, vec );
@@ -250,7 +239,6 @@ namespace OLAS {
   // ******************
   template<typename T>
   void Vector<T>::SetVectorEntry( const Integer i, const T_Vtype &val ) {
-    ENTER_IFCN( "Vector::SetVectorEntry" );
 #ifdef DEBUG_VECTOR
     if ( i <= 0 || i > size_ ) {
       (*error) << "Vector<" << assocType<T>::tagV << ">::SetVectorEntry: "
@@ -269,7 +257,6 @@ namespace OLAS {
   // ********************
   template<typename T>
   void Vector<T>::AddToVectorEntry( const Integer i, const T_Vtype &val ) {
-    ENTER_IFCN( "Vector::AddToVectorEntry" );
     data_[i] += val;
   }
 
@@ -279,7 +266,6 @@ namespace OLAS {
   // ********************
   template<typename T>
   void Vector<T>::GetVectorEntry( const Integer i, T_Vtype &val ) const {
-    ENTER_IFCN( "Vector::GetVectorEntry" );
     val = data_[i];
   }
 
@@ -289,7 +275,6 @@ namespace OLAS {
   // ****************
   template<typename T>
   void Vector<T>::Print(std::ostream& os) const {
-    ENTER_FCN( "Vector::Print" );
     for ( UInt i = 1; i <= size_; i++ ) {
       (os) << data_[i] << " ";
     }
@@ -302,7 +287,6 @@ namespace OLAS {
   // *****************
   template<typename T>
   void Vector<T>::Export( const Char *fname ) const {
-    ENTER_FCN( "Vector::Export" );
 
     // open output file and check for errors
     FILE *fp = fopen( fname, "w" );
@@ -334,7 +318,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::ScalarDiv( const Double factor ) {
 
-    ENTER_IFCN( "Vector::ScalarDiv" );
 
 #ifdef DEBUG_VECTOR
     if ( factor == 0 ) {
@@ -355,7 +338,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::ScalarMult( const Double factor ) {
 
-    ENTER_IFCN( "Vector::ScalarMult" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       data_[i] *= factor;
@@ -369,7 +351,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::ScalarDiv( const Complex factor ) {
 
-    ENTER_IFCN( "Vector::ScalarDiv" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       opType<T_Vtype>::DivByComplex( data_[i], factor );
@@ -383,7 +364,6 @@ namespace OLAS {
   template<typename T>
   void Vector<T>::ScalarMult( const Complex factor ) {
 
-    ENTER_IFCN( "Vector::ScalarMult" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       opType<T_Vtype>::MultWithComplex( data_[i], factor );
@@ -396,7 +376,6 @@ namespace OLAS {
   // ********************************
   template<typename T>
   SparseVector& Vector<T>::operator=( const SparseVector &stdvec ) {
-    ENTER_IFCN( "Vector::operator=" );
 
     // Down-cast base vector
 #ifdef DEBUG_VECTOR
@@ -438,7 +417,6 @@ namespace OLAS {
   template <typename T>
   void Vector<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "Vector::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
 

@@ -12,19 +12,16 @@ namespace CoupledField
 
   Triangle2FE :: Triangle2FE() : TriangleFE()
   {
-    ENTER_FCN( "Triangle2FE::Triangle2FE" );
 
     Init();
   }
   
   Triangle2FE :: ~Triangle2FE()
   {
-    ENTER_FCN( "Triangle2FE::~Triangle2FE" );
   }
 
   void Triangle2FE :: Init()
   {
-    ENTER_FCN( "Triangle2FE::Init" );
     NumNodes_ = 6;
   
     CommonInit(); 
@@ -32,7 +29,6 @@ namespace CoupledField
 
   void Triangle2FE :: SetCornerCoords()
   {
-    ENTER_FCN( "Triangle2FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -56,7 +52,6 @@ namespace CoupledField
                                    const Elem*, UInt dof,
                                    AnsatzFct::FctEntityType )
   {
-    ENTER_FCN( "Triangle2FE::CalcShapeFnc" );
 
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 128.
     // corner nodes
@@ -87,7 +82,6 @@ namespace CoupledField
                                              const Elem*, UInt dof,
                                              AnsatzFct::FctEntityType )
   {
-    ENTER_FCN( "Triangle2FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

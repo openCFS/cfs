@@ -33,7 +33,6 @@ namespace CoupledField {
   MagPDE::MagPDE( Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
-    ENTER_FCN( "MagPDE::MagPDE" );
 
     // =====================================================================
     // set solution information
@@ -52,7 +51,6 @@ namespace CoupledField {
   //  Destructor
   // *************
   MagPDE::~MagPDE() {
-    ENTER_FCN( "MagPDE::~MagPDE" );
   }
 
 
@@ -62,7 +60,6 @@ namespace CoupledField {
 
   void MagPDE::ReadSpecialBCs() {
 
-    ENTER_FCN( "MagPDE::ReadSpecialBCs" );
 
     // --------------------------------------------------------------------
     //   Get information about coils and open files for measurement coils
@@ -82,7 +79,6 @@ namespace CoupledField {
   // ****************************
   void MagPDE::InitNonLin() {
 
-    ENTER_FCN( "MagPDE::InitNonLin" );
     nonLin_ = false;
     isHysteresis_ = false;
 
@@ -171,7 +167,6 @@ namespace CoupledField {
   // *****************************
   void MagPDE::DefineIntegrators() {
 
-    ENTER_FCN( "MagPDE::DefineIntegerators" );
 
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
@@ -443,7 +438,6 @@ namespace CoupledField {
 
   void MagPDE::DefineSolveStep()
   {
-    ENTER_FCN( "MagPDE::DefineSolveStep" );
 
     if ( isHysteresis_ ) 
       solveStep_ = new SolveStepMagHyst(*this);
@@ -457,7 +451,6 @@ namespace CoupledField {
   // ======================================================
 
   void MagPDE :: InitTimeStepping() {
-    ENTER_FCN( "MagPDE::InitTimeStepping" );
 
     TS_alg_ = new Trapezoidal( algsys_ );
   }
@@ -469,7 +462,6 @@ namespace CoupledField {
   //   CalcResults
   // ***************
   void MagPDE::CalcResults ( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "MagPDE::CalcResults" );
 
     switch (res->GetResultInfo()->resultType ) {
 
@@ -560,7 +552,6 @@ namespace CoupledField {
   
 
   void MagPDE::CalcForceVWP( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MagPDE::CalcForceVWP" );
 
     // fetch result object and convert data
     Result<Double> &  actSol = 
@@ -578,7 +569,6 @@ namespace CoupledField {
 
   template<class TYPE>
   void MagPDE::CalcFluxDensity( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MagPDE::CalcFluxDensity" );
 
      Vector<TYPE> elemFlux(dim_);
     
@@ -599,7 +589,6 @@ namespace CoupledField {
   }
 
   void MagPDE::CalcHfield( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MagPDE::CalcHfield" );
 
      Vector<Double> elemHfield(dim_);
     
@@ -621,7 +610,6 @@ namespace CoupledField {
   
   template<class TYPE>
   void MagPDE::CalcEddyCurrent( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MagPDE::CalcEddyCurrent" );
     
     
     // fetch result object and convert data
@@ -643,7 +631,6 @@ namespace CoupledField {
 
   template<class TYPE>
   void MagPDE::CalcEddyPower( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MagPDE::CalcEddyPower" );
 
     // fetch result object and convert data
     Result<TYPE> &  actSol = 
@@ -719,7 +706,6 @@ namespace CoupledField {
   template<class TYPE>
   void MagPDE::CalcEnergy( shared_ptr<BaseResult> result ) {
     
-    ENTER_FCN( "MagPDE::CalcEnergy" );
     
     Matrix<Double> elemmat, ptCoord;
     
@@ -794,7 +780,6 @@ namespace CoupledField {
                          TYPE& flux,
                          bool timeDeriv ) {
 
-    ENTER_FCN( "MagPDE::ComputeUI" );
 
     Vector<Double> elemMidPoint, flowDir(3);
 
@@ -921,7 +906,6 @@ namespace CoupledField {
   template<class TYPE>
   void MagPDE::WriteUI2File( ) {
 
-    ENTER_FCN( "MagPDE::WriteUI2File" );
 
     // Check analysis type
     if( analysistype_ == TRANSIENT ||
@@ -960,7 +944,6 @@ namespace CoupledField {
   // ******************************************************
   void MagPDE::ReadCoils() {
 
-    ENTER_FCN( "MagEdgePDE::ReadCoils" );
 
     // Check if the element "coils" is present at all.
     // Otherwise leave
@@ -994,7 +977,6 @@ namespace CoupledField {
   // ********************************************************
   void MagPDE::ReadMagnets() {
 
-    ENTER_FCN( "MagEdgePDE::ReadMagnets" );
 
 
     // Check if the element "magnets" is present at all.
@@ -1039,7 +1021,6 @@ namespace CoupledField {
 
 
   void MagPDE::DefineAvailResults() {
-    ENTER_FCN( "MagPDE::DefineAvailResults" );
     
     StdVector<std::string> vecComponents;
     if( is3d_ ) {
@@ -1156,7 +1137,6 @@ namespace CoupledField {
   }
 
   void MagPDE::ReadSpecialResults() {
-    ENTER_FCN( "MagPDE::ReadSpecialResults" );
     
     // There is a small problem with the magnetic force VWP:
     // The force itself is primarily calculated on nodes,
@@ -1268,7 +1248,6 @@ namespace CoupledField {
   void MagPDE::CalcFluxDensityAtIP( EntityIterator it,
                                     UInt ip,
                                     Vector<TYPE>& field ) {
-    ENTER_FCN( "MagPDE::CalcFluxDensityAtIP" );
 
     // get element solution
     Vector<TYPE> elSol;
@@ -1379,7 +1358,6 @@ namespace CoupledField {
 
   void MagPDE::CalcHfieldAtIP( EntityIterator it, UInt ip,
                                Vector<Double>& field ) {
-    ENTER_FCN( "MagPDE::CalcHfieldAtIP" );
 
 
     //first compute flux density
@@ -1413,7 +1391,6 @@ namespace CoupledField {
   void MagPDE::CalcEddyCurrentAtIP( EntityIterator it,
                                     UInt ip,
                                     Vector<TYPE>& jEddy ) {
-    ENTER_FCN( "MagPDE::CalcEddyCurrentAtIP" );
 
 
     Vector<Double> lCoord, shpFnc;
@@ -1498,7 +1475,6 @@ namespace CoupledField {
 
   void MagPDE::InitCoupling(PDECoupling * Coupling) {
 
-    ENTER_FCN( "MagPDE::InitCoupling" );
   
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -1549,7 +1525,6 @@ namespace CoupledField {
 
   void MagPDE::CalcOutputCoupling() {
 
-    ENTER_FCN( "MagPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes = NULL;
@@ -1594,7 +1569,6 @@ namespace CoupledField {
                         std::map<UInt, UInt> & cplNodeNumPos,
                         UInt actCoupling, UInt numCouplingNodes) {
     
-    ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
     
     //get the coupling regions
     StdVector<std::string> couplRegions;
@@ -1728,7 +1702,6 @@ namespace CoupledField {
 
 
   bool MagPDE::HasOutput( SolutionType output ) {
-    ENTER_FCN( "MagPDE::HasOutput" );
     if (output == MAG_FORCE_LORENTZ) {
       return true;
     }

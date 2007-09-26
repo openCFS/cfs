@@ -25,7 +25,6 @@ GaussSeidel<T>::GaussSeidel()
       Omega_( 1.0 ),
       PenaltyFlags_( NULL )
 {
-    ENTER_FCN("GaussSeidel::GaussSeidel");
 }
 
 /**********************************************************/
@@ -33,7 +32,6 @@ GaussSeidel<T>::GaussSeidel()
 template <typename T>
 GaussSeidel<T>::~GaussSeidel()
 {
-    ENTER_FCN("GaussSeidel::~GaussSeidel");
     
     Reset();
 }
@@ -43,7 +41,6 @@ GaussSeidel<T>::~GaussSeidel()
 template <typename T>
 bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
 {
-    ENTER_FCN("GaussSeidel::Setup");
 
 #ifdef  DEBUG_GAUSSSEIDEL
     if( matrix.GetNrows() <= 0 ) {
@@ -97,7 +94,6 @@ template <typename T>
 bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix,
                             const bool *const    penalty_flags )
 {
-    ENTER_FCN("GaussSeidel::Setup");
 
 
     if( Setup(matrix) ) {
@@ -118,7 +114,6 @@ Step( const CRS_Matrix<T>&                  matrix,
       const typename Smoother<T>::Direction direction,
       const bool                            force_setup )
 {
-    ENTER_FCN("GaussSeidel::Step");
 
     // call Setup, if object is not prepared or
     // preparation forced by force_setup == true
@@ -247,7 +242,6 @@ Step( const CRS_Matrix<T>&                  matrix,
 template <typename T>
 void GaussSeidel<T>::Reset()
 {
-    ENTER_FCN("GaussSeidel::Reset");
     
     DeleteArray( DiagonalInverse_ ); // delete diagonal inverse
     DiagonalInverse_ = NULL;

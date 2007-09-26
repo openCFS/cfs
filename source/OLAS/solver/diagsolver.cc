@@ -12,7 +12,6 @@ namespace OLAS {
   // **************
   template<typename T>
   DiagSolver<T>::~DiagSolver() {
-    ENTER_FCN("DiagSolver::~DiagSolver");
   }
 
 
@@ -25,7 +24,6 @@ namespace OLAS {
 				   const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
-    ENTER_FCN("DiagSolver::Solve");
     (*cla) << "### Solver for diagonal system  matrix" << std::endl;
 
     // just apply a jacobi-preconditioner

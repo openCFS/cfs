@@ -15,7 +15,6 @@ namespace OLAS {
   ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, OLAS_Params *myParams,
 			       OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILU0Precond::ILU0Precond" );
     
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -39,7 +38,6 @@ namespace OLAS {
   template <typename T>
   ILU0Precond<T>::~ILU0Precond() {
 
-    ENTER_FCN( "ILU0Precond::~ILU0Precond" );
 
     // De-allocate internal data arrays
     DeleteArray( diagPos_  );
@@ -57,7 +55,6 @@ namespace OLAS {
   void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 			     const Vector<T> & f, Vector<T> & u ) const {
 
-    ENTER_IFCN( "ILU0Precond::Apply" );
 
     UInt i, j;
     T_Mtype sum;
@@ -88,7 +85,6 @@ namespace OLAS {
   template <typename T>
   void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
 
-    ENTER_IFCN( "ILU0Precond::Setup" );
 
     // Assure that matrix is in proper format for current implementation
     // NOTE: By default while using CFS++ the matrix will be in LEX format,

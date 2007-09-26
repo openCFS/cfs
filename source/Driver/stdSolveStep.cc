@@ -23,7 +23,6 @@ namespace CoupledField {
      PDE_(apde)
   {
 
-    ENTER_FCN( "StdSolveStep::StdSolveStep" );
  
 
     pdename_      = PDE_.GetName();
@@ -69,7 +68,6 @@ namespace CoupledField {
   
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-    ENTER_FCN( "StdSolveStep::~StdSolveStep" );
 
   }
 
@@ -79,7 +77,6 @@ namespace CoupledField {
   // ======================================================
 
   void StdSolveStep::PreStepStatic( ) {
-    ENTER_FCN( "StdSolveStep::PreStepStatic" );
     
     // init RHS at this place, because e.g. forces of other PDEs are added 
     // to RHS afterwards
@@ -89,7 +86,6 @@ namespace CoupledField {
 
 
   void StdSolveStep::PostStepStatic() {
-    ENTER_FCN( "StdSolveStep::PostStepStatic" );
 
     // increment coupling counter
     if ( PDE_.IsIterCoupled() ) {
@@ -100,7 +96,6 @@ namespace CoupledField {
 
   
   void StdSolveStep::SolveStepStatic() {
-    ENTER_FCN( "StdSolveStep::SolveStepStatic" );
     
     if (nonLin_) {
       StepStaticNonLin();
@@ -112,7 +107,6 @@ namespace CoupledField {
 
 
   void StdSolveStep::StepStaticLin() {
-    ENTER_FCN( "StdSolveStep::StepStaticLin" );
     
     assemble_->AssembleMatrices();
     
@@ -163,7 +157,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepStaticNonLin()
   {
-    ENTER_FCN( "StdSolveStep::SolveStepStaticNonLin" );
 
     bool performOneMoreStep;
  
@@ -285,7 +278,6 @@ namespace CoupledField {
 
   void StdSolveStep::PreStepTrans() {
 
-    ENTER_FCN( "StdSolveStep::PreStepTrans" );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
@@ -296,7 +288,6 @@ namespace CoupledField {
 
   void StdSolveStep::SolveStepTrans() {
 
-    ENTER_FCN( "StdSolveStep::SolveStepTrans" );  
 
     // do a nonlinear material time step
     if ( nonLin_ && nonLinMaterial_ ) {
@@ -318,7 +309,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransLin() {
 
-    ENTER_FCN( "StdSolveStep::StepTransLin" );
 
     //account for RHS
     assemble_->AssembleLinRHS( actTime_ );
@@ -389,7 +379,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransNonLin() {
 
-    ENTER_FCN( "StdSolveStep::StepTransNonLin" );
 
     Double *solPtr;
 
@@ -525,7 +514,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransNonLinMaterial() {
 
-    ENTER_FCN( "StdSolveStep::StepTransNonLinMaterial" );
 
     Double *solPtr;
     Double *incPtr;
@@ -739,7 +727,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransNonLinHysteresis() {
 
-    ENTER_FCN( "StdSolveStep::StepTransNonLinHysteresis" );
 
     Double *solPtr;
     bool performOneMoreStep;
@@ -914,7 +901,6 @@ namespace CoupledField {
 
   void StdSolveStep::PostStepTrans( ) {
 
-    ENTER_FCN( "StdSolveStep::PostStepTrans" );
 
     if ( PDE_.GetFracDamping() ) {
       Vector<Double> & solHelp = 
@@ -933,7 +919,6 @@ namespace CoupledField {
 
   void StdSolveStep::PreStepHarmonic() {
     
-    ENTER_FCN( "StdSolveStep::PreStepHarmonic" );
   
     algsys_->InitRHS();
   }
@@ -941,7 +926,6 @@ namespace CoupledField {
 
   void StdSolveStep::SolveStepHarmonic() {
 
-    ENTER_FCN( "StdSolveStep::SolveStepHarmonic" );
 
     if ( nonLin_ ) {
       StepHarmonicNonLin();
@@ -954,7 +938,6 @@ namespace CoupledField {
 
   void StdSolveStep::StepHarmonicLin() {
 
-    ENTER_FCN( "StdSolveStep::StepHarmonicLin" );
 
     //this has to be done each frequency!
     assemble_->AssembleLinRHS( actFreq_ );
@@ -1000,7 +983,6 @@ namespace CoupledField {
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Double> & frequencies,
                                            Vector<Double> & errBounds,
                                            UInt numFreq, Double shift ) {
-    ENTER_FCN( "StdSolveStep::CalcEigenFrequencies" );
     
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1031,7 +1013,6 @@ namespace CoupledField {
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex> & frequencies,
                                            Vector<Double> & errBounds,
                                            UInt numFreq, Double shift ) {
-    ENTER_FCN( "StdSolveStep::CalcEigenFrequencies<Complex>" );
     
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1061,7 +1042,6 @@ namespace CoupledField {
 
   void StdSolveStep::CalcEigenMode( UInt numMode ) {
     
-    ENTER_FCN( "StdSolveStep::CalcEigenMode" );
 
     Double * ptSol = NULL;
     UInt size = 0;
@@ -1083,7 +1063,6 @@ namespace CoupledField {
   // sets excitation coil and returns L2Norm of them
   Double StdSolveStep::SetLinRHS( Double loadFactor)
   {
-    ENTER_FCN( "StdSolveStep::SetLinRHS" );
 
     Double RhsLinL2Norm;  
 
@@ -1113,7 +1092,6 @@ namespace CoupledField {
   //stores an algsys_ vector into a StdVector and returns that L2-norm
   void StdSolveStep::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 
-    ENTER_FCN( "StdSolveStep::StoreAlgsysToVec" );
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
     vec.Resize( numEqns_ );
@@ -1129,7 +1107,6 @@ namespace CoupledField {
   Double StdSolveStep::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                                   Double& etaLineSearch, bool trans)
   {
-    ENTER_FCN( "StdSolveStep::LineSearch" );
 
     Vector<Double> solOld(actSol);
     const UInt nrEtas = 5;
@@ -1185,7 +1162,6 @@ namespace CoupledField {
   Double StdSolveStep::LineSearchMaterial(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                                           Double& etaLineSearch, Double& RhsLinL2Norm, bool trans)
   {
-    ENTER_FCN( "StdSolveStep::LineSearch" );
 
     Vector<Double> solOld(actSol);
     const UInt nrEtas = 3;
@@ -1270,7 +1246,6 @@ namespace CoupledField {
   // returns that L2-norm of an algsys vector
   Double StdSolveStep::AlgsysL2Norm(Double * pt)
   {
-    ENTER_FCN( "StdSolveStep::AlgsysL2Norm" );
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
     Double quadSum = 0;
@@ -1283,7 +1258,6 @@ namespace CoupledField {
 
   // read nonlinear parameters from xml file
   void StdSolveStep::ReadNonLinData() {
-    ENTER_FCN( "StdSolveStep::ReadNonLinData" );
     
     // Get ParamNode of pde
     ParamNode  * nonLinNode = NULL;
@@ -1370,7 +1344,6 @@ namespace CoupledField {
                                      const Double actSolL2Norm, 
                                      const Double incrementalErr)
   {
-    ENTER_FCN( "StdSolveStep::WriteClaNlNorms" );
   
     *cla << std::endl << " ======================================================= " 
          << std::endl

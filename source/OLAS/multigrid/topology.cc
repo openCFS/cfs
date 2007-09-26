@@ -50,7 +50,6 @@ Topology<T>::Topology()
      ,importanceKnown_(0x0)
 #endif
 {
-    ENTER_FCN("Topology::Topology");
 }
 
 /**********************************************************/
@@ -70,7 +69,6 @@ Topology<T>::Topology( const CRS_Matrix<T>& matrix,
      ,importanceKnown_(0x0)
 #endif
 {
-    ENTER_FCN("Topology::Topology(...)");
 
     CreateDependencyGraphs( matrix, alpha, tolerance, diag_dominance );
 }
@@ -80,7 +78,6 @@ Topology<T>::Topology( const CRS_Matrix<T>& matrix,
 template <typename T>
 Topology<T>::~Topology()
 {
-    ENTER_FCN("Topology::~Topology");
     
     Reset();
 }
@@ -201,7 +198,6 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
 #endif
                        )
 {
-    ENTER_FCN("Topology::CreateDependencyGraphs");
     
 #ifdef PROFILE_TOPOLOGY
     Double t1 = AMG_GET_REAL_TIME
@@ -375,7 +371,6 @@ Integer Topology<T>::
 CalcCoarseFineSplitting( const Integer max_dependency,
                          const Integer gamma )
 {
-    ENTER_FCN("Topology::CalcCoarseFineSplitting");
 
 #ifdef TOPOLOGY_IMPORT_CF_SPLITTING
 // Standard code section does not import the splitting, but
@@ -484,7 +479,6 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
                                       DependencyGraph<T>& graph_VT,
                                       const Integer stretch_factor ) const
 {
-    ENTER_FCN("Topology::CalcGalerkinGraphs");
 
 #ifdef PROFILE_TOPOLOGY
     Double t1 = AMG_GET_REAL_TIME
@@ -651,7 +645,6 @@ inline Integer Topology<T>::GetNumFineNeighbours( const Integer i ) const
 template <typename T>
 Integer Topology<T>::GetNumInterpolatingPoints( Integer* const sizes ) const
 {
-    ENTER_FCN("Topology::GetNumInterpolatingPoints(Integer* const)");
 
     Integer totalNumPoints = 0;
     
@@ -684,7 +677,6 @@ Integer Topology<T>::GetNumInterpolatingPoints( Integer* const sizes ) const
 template <typename T>
 Integer Topology<T>::GetNumInterpolatingPoints( const Integer i ) const
 {
-    ENTER_FCN("Topology::GetNumInterpolatingPoints(const Integer)");
 
     Integer NumPoints = 0;
 
@@ -706,7 +698,6 @@ Integer Topology<T>::GetNumInterpolatingPoints( const Integer i ) const
 template <typename T>
 Integer Topology<T>::GetNumInterpolatingPoints() const
 {
-    ENTER_FCN("Topology::GetNumInterpolatingPoints");
 
     Integer nPoints = 0;
     
@@ -742,7 +733,6 @@ template <typename T>
 Integer Topology<T>::
 GetCoarseImportance( Integer const i ) const
 {
-    ENTER_FCN("Topology::GetCoarseImportance");
 
 
 #ifdef DEBUG_TOPOLOGY
@@ -777,7 +767,6 @@ template <typename T>
 Integer Topology<T>::
 GetNumInterpolatedPoints( Integer* const sizes ) const
 {
-    ENTER_FCN("Topology::GetNumInterpolatedPoints(Integer* const)");
 
     Integer totalNumPoints = 0;
 
@@ -951,7 +940,6 @@ Integer Topology<T>::GetNextCoarsePoint( const Integer p,
 template <typename T>
 inline void Topology<T>::SetCoarsePoint( const Integer i )
 {
-    ENTER_FCN("Topology::SetCoarsePoint");
     
     // put node [i] into C
     CoarseIndex_[i] = ++Size_H_;
@@ -971,7 +959,6 @@ inline void Topology<T>::SetCoarsePoint( const Integer i )
 template <typename T>
 inline void Topology<T>::SetDirichlet( const Integer i )
 {
-    ENTER_FCN("Topology::SetDirichlet");
     
     S_.RemoveAllEdges( i );
     ST_.RemoveAllEdges( i );
@@ -983,7 +970,6 @@ inline void Topology<T>::SetDirichlet( const Integer i )
 template <typename T>
 void Topology<T>::Reset()
 {
-    ENTER_FCN("Topology::Reset");
     
     S_.Reset();
     ST_.Reset();
@@ -1006,7 +992,6 @@ void Topology<T>::Reset()
 template <typename T>
 Integer Topology<T>::ImportCFSplitting()
 {
-    ENTER_FCN("Topology::ImportCFSplitting");
 
     char filename[500];
     sprintf( filename,
@@ -1060,7 +1045,6 @@ Integer Topology<T>::ImportCFSplitting()
 template <typename T>
 void Topology<T>::ExportCFSplitting()
 {
-    ENTER_FCN("Topology::ExportCFSplitting");
 
     if( CoarseIndex_ == NULL ) {
         Warning( "Topology::ExportCFSplitting: array for "

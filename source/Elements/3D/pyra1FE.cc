@@ -13,7 +13,6 @@ namespace CoupledField
 
   Pyra1FE::Pyra1FE():PyraFE()
   { 
-    ENTER_FCN( "Pyra1FE::Pyra1FE" );
   
     Init();
   }
@@ -21,12 +20,10 @@ namespace CoupledField
 
   Pyra1FE::~Pyra1FE()
   {
-    ENTER_FCN( "Pyra1FE::~Pyra1FE" );
   }
 
   void Pyra1FE::Init()
   {
-    ENTER_IFCN( "Pyra1FE::Init" );
   
     NumNodes_ = 5;
     NumEdges_ = 8;
@@ -37,7 +34,6 @@ namespace CoupledField
 
   void Pyra1FE::SetCornerCoords()
   {
-    ENTER_IFCN( "Pyra1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -79,7 +75,6 @@ namespace CoupledField
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Pyra1FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
 
@@ -121,7 +116,6 @@ namespace CoupledField
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Pyra1FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

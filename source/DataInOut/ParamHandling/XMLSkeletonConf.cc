@@ -32,7 +32,6 @@ namespace CoupledField {
       : simInput_(simInput)
   {
 
-    ENTER_FCN( "SkeletonConf::SkeletonConf" );
     
     level_ = 0;
 
@@ -68,7 +67,6 @@ namespace CoupledField {
   // **************
   SkeletonConf::~SkeletonConf() {
 
-    ENTER_FCN( "SkeletonConf::~SkeletonConf" );
 
     out_->close();
 
@@ -79,7 +77,6 @@ namespace CoupledField {
 
   void SkeletonConf::WriteConf ()
   {
-    ENTER_FCN("SkeletonConf::WriteConf");
 
     Info->StartProgress("Writing skeleton file to disc", false);
 
@@ -115,7 +112,6 @@ namespace CoupledField {
 
   void SkeletonConf::WriteGeneral ()
   {
-    ENTER_FCN("SkeletonConf::WriteGeneral");
 
     UInt dim=simInput_->GetDim();
     std::string geomType;
@@ -151,7 +147,6 @@ namespace CoupledField {
   // *******************
   void SkeletonConf:: WriteSubdomains() {
 
-    ENTER_FCN( "SkeletonConf::WriteSubdomains" );
 
     // Close the skeleton-config-file
     out_->close();
@@ -242,7 +237,6 @@ namespace CoupledField {
 
   void SkeletonConf::WriteLists ()
   {
-    ENTER_FCN("SkeletonConf::WriteLists");
 
     StdVector<std::string> nodeNames, surfRegionNames, elemNames;
     UInt dim = simInput_-> GetDim();
@@ -307,7 +301,6 @@ namespace CoupledField {
 
   
   void SkeletonConf::WritePDE () {
-    ENTER_FCN("SkeletonConf::WritePDE");
     
     WL( Quote( "Type of PDE (mechanic/electrostatic/...)",1) );
     WL( Indent(0) << "<XXX>" );
@@ -375,7 +368,6 @@ namespace CoupledField {
   }
 
   void SkeletonConf::WriteCouplingList () {
-    ENTER_FCN("SekeltonConf::WriteCoupling" );
 
     WL( Quote( "For coupled simulation, uncomment the following lines" ) );
     WL( Indent() << "<!--<couplingList>" );
@@ -417,7 +409,6 @@ namespace CoupledField {
   }
 
   void SkeletonConf::WriteAnalysisTypes(){
-    ENTER_FCN( "SkeletonConf::WriteAnalysisTypes" );
 
     WL( Quote( "Define type of analysis", 1 ) );
     WL( Quote( "Please uncomment the analysis of choice ") );

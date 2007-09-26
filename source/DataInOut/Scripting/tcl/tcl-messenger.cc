@@ -17,7 +17,6 @@ namespace CoupledField {
   
 
   TCL_CFSMessenger::TCL_CFSMessenger(  ) {
-    ENTER_FCN( "CFSMessenger::TCL_CFSMessenger" );
     
     // create new interpreter object
     tcl_ = Tcl_CreateInterp();
@@ -46,7 +45,6 @@ namespace CoupledField {
   
   
   TCL_CFSMessenger::~TCL_CFSMessenger() {
-    ENTER_FCN( "TCL_CFSMessenger::~TCL_CFSMessenger()" );
 
     // Delete interpreter object
     Tcl_DeleteInterp( tcl_ );
@@ -97,7 +95,6 @@ namespace CoupledField {
   
   bool TCL_CFSMessenger::TriggerEvent( const EventType event, 
                                           const StdVector<std::string> & context) {
-    ENTER_FCN( "TCL_CFSMessenger::TriggerEvent" );
     
     // get name of event
     curEvent_ = eventNames_[event];
@@ -126,7 +123,6 @@ namespace CoupledField {
   }
 
   void TCL_CFSMessenger::RegisterFunctions() {
-    ENTER_FCN( "TCL_CFSMessenger::RegisterFunctions") ;
 
     // register Eval-function
     Tcl_CreateCommand( tcl_, "cfs", TCL_CFSMessenger::TCL_CFSEval,
@@ -134,7 +130,6 @@ namespace CoupledField {
   }
   
   void TCL_CFSMessenger::RegisterEvents() {
-    ENTER_FCN( "TCL_CFSMessenger::RegisterFunctions") ;
 
     // First of all, generate mapping from event enumerations
     // to string representation
@@ -174,7 +169,6 @@ namespace CoupledField {
 
   int TCL_CFSMessenger::TCL_CFSEval(ClientData clientdata, Tcl_Interp *interp,
                                     int argc, const char *argv[]) {
-    ENTER_FCN( "TCL_CFSMessenger::TCL_CFSEval");
     
     bool success;
     StdVector<std::string> retVal;

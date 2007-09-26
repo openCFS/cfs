@@ -14,7 +14,6 @@ namespace OLAS {
   void IterativeRefinement::
   GenerateAuxilliaryVectors( const BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "IterativeRefinement::GenerateAuxilliaryVectors" );
 
     TRY_CAST {
 
@@ -59,7 +58,6 @@ namespace OLAS {
                                     const BaseVector &rhs,
                                     UInt numSteps, UInt logLevel ) {
 
-    ENTER_FCN( "IterativeRefinement::Refine" );
 
     // Be verbose
     if ( logLevel > 0 ) {

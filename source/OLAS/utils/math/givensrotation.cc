@@ -23,7 +23,6 @@ namespace OLAS {
   //   Default Constructor
   // ***********************
   GivensRotation::GivensRotation() {
-    ENTER_FCN( "GivensRotation::GivensRotation" );
     Error( "This constructor should never be called!", __FILE__, __LINE__ );
   }
 
@@ -32,7 +31,6 @@ namespace OLAS {
   //   Destructor
   // **************
   GivensRotation::~GivensRotation() {
-    ENTER_FCN( "GivensRotation::~GivensRotation" );
   }
 
 
@@ -40,7 +38,6 @@ namespace OLAS {
   //   Constructor
   // ***************
   GivensRotation::GivensRotation( GivensRotation::CompStyle interface ) {
-    ENTER_FCN( "GivensRotation::GivensRotation" );
     interface_ = interface;
   }
 
@@ -51,7 +48,6 @@ namespace OLAS {
   void GivensRotation::gRot( Double f, Double g, Double &c, Double &s,
                              Double &r ) const {
 
-    ENTER_IFCN( "GivensRotation::gRot" );
 
     // Determine which approach to use for the Givens rotation
     switch( interface_ ) {
@@ -109,7 +105,6 @@ namespace OLAS {
   void GivensRotation::gRot( Complex f, Complex g, Double &c, Complex &s,
                              Complex &r ) const {
 
-    ENTER_IFCN( "GivensRotation::gRot" );
 
     // Determine which approach to use for the Givens rotation
     switch( interface_ ) {
@@ -186,7 +181,6 @@ namespace OLAS {
   void GivensRotation::CompRot( Double f, Double g, Double &c, Double &s,
                                 Double &r ) const {
 
-    ENTER_IFCN( "GivensRotation::CompRot" );
 
     // Declaration of local variables
     Double fg2, rr;
@@ -234,7 +228,6 @@ namespace OLAS {
   void GivensRotation::CompRot( Complex f, Complex g, Double &c, Complex &s,
                                 Complex &r ) const {
 
-    ENTER_IFCN( "GivensRotation::CompRot" );
 
     // Declaration of local variables
     Double fn, gn, d1, f2, g2, fg2;

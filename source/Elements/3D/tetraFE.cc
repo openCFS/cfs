@@ -15,7 +15,6 @@ namespace CoupledField
 
 TetraFE::TetraFE()
 {
-  ENTER_FCN( "TetraFE::TetraFE" );
 
     Dim_      = 3;
     NumEdges_ = 6;
@@ -31,7 +30,6 @@ TetraFE::TetraFE()
 
 TetraFE::~TetraFE()
 {
-  ENTER_FCN( "TetraFE::~TetraFE" );
 }
 
   void Map(int rows, Double* in)
@@ -55,7 +53,6 @@ TetraFE::~TetraFE()
 
 void TetraFE::FillIntegrationPoints()
 {
-   ENTER_IFCN("TetraFE::FillIntegrationPoints");     
       
    
    // The ECONOMICAL implementation with the values from Solin, Segeth, Dolezel, High-Order Finite Element Methods
@@ -277,7 +274,6 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                                         const Vector<Double> & surfIntPoint,
                                         Vector<Double> & volIntPoint)
 {
-  ENTER_IFCN( "TetraFE::GetLocalIntPoints4Surface" );
   
   // Try to find out, which vertices are in common with
   // the surface element. Then calculate the product of all four

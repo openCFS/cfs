@@ -19,7 +19,6 @@ namespace CoupledField {
       dampFactor_(aFactor), flowHandler_(flow)
       
   {
-    ENTER_FCN( "PierceDampInt::PierceDampInt" );
     name_ = "PierceDampInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -30,7 +29,6 @@ namespace CoupledField {
  
   PierceDampInt::~PierceDampInt()
   {
-    ENTER_FCN( "PierceDampInt::~PierceDampInt" );
   }
 
  
@@ -38,7 +36,6 @@ namespace CoupledField {
   void PierceDampInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
                                    EntityIterator& ent2  )  {
-    ENTER_FCN( "PierceDampInt::CalcElemMatrix" );
    
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -107,7 +104,6 @@ namespace CoupledField {
       stiffFactor_(aFactor), flowHandler_(flow)
       
   {
-    ENTER_FCN( "PierceStiffInt::PierceStiffInt" );
     name_ = "PierceDampInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -118,7 +114,6 @@ namespace CoupledField {
  
   PierceStiffInt::~PierceStiffInt()
   {
-    ENTER_FCN( "PierceStiffInt::~PierceStiffInt" );
   }
 
  
@@ -126,7 +121,6 @@ namespace CoupledField {
   void PierceStiffInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
                                    EntityIterator& ent2  )  {
-    ENTER_FCN( "PierceStiffInt::CalcElemMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -198,14 +192,12 @@ namespace CoupledField {
 
   SimpleFlow::SimpleFlow() {
 
-    ENTER_FCN( "SimpleFlow::SimpleFlow" );
 
   }
 
  
   SimpleFlow::~SimpleFlow()
   {
-    ENTER_FCN( "SimpleFlow::~SimpleFlow" );
   }
 
 
@@ -214,7 +206,6 @@ namespace CoupledField {
   // ***********************************************************************
   void SimpleFlow::ReadFlowData( ParamNode * flowNode, UInt dim) {
     
-    ENTER_FCN( "AcousticPDE::ReadFlowData" );
 
 
     // ger flowDir
@@ -263,7 +254,6 @@ namespace CoupledField {
 				   Vector<Double>& velocity, 
 				   Vector<Double>& derivVel) {
 
-    ENTER_FCN( "SimpleFlow::ComputeActFlow" );
 
     //help variables 
     Double len1, len2, xa, pos, der, der2, omg, arg, factor, vel;

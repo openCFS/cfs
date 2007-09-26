@@ -15,7 +15,6 @@ namespace CoupledField {
 
   FreqFunc::FreqFunc() {
 
-    ENTER_FCN( "FreqFunc::FreqFunc" );
 
     maxnumFF_  = 0;
 
@@ -30,7 +29,6 @@ namespace CoupledField {
 
   void FreqFunc :: ReadFreqFuncs(UInt nodeNumber)
   {
-    ENTER_FCN( "FreqFunc::ReadFreqFuncs" );
 
     maxnumFF_ =  fnc_names_.GetSize();
 
@@ -110,7 +108,6 @@ namespace CoupledField {
   StdVector<Double> FreqFunc::NodalFreqFuncAtFreq(const Double freq,  
                                                   const std::string fncname, UInt nodeNumber)
   {
-    ENTER_FCN( "FreqFunc::FreqFuncAtFreq" );
   
     Integer numfnc;
     StdVector<Double> Amp_Phase_atF;
@@ -193,7 +190,6 @@ namespace CoupledField {
 
   FreqFunc :: ~FreqFunc()
   {
-    ENTER_FCN( "FreqFunc::~FreqFunc" );
  
     if (maxnumFF_) 
       {

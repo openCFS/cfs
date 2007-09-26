@@ -18,7 +18,6 @@ namespace CoupledField {
                                                  SubTensorType type) 
     : BDBInt(matData, type)
   {
-    ENTER_FCN( "nLinElec3dInt_Material::nLinElec3dInt_Material" );
     
     name_ = "nLinElec3dInt_Material";
 
@@ -42,7 +41,6 @@ namespace CoupledField {
   
   nLinElec3dInt_Material::~nLinElec3dInt_Material()
   {
-    ENTER_FCN( "nLinElec3dInt_Material::~nLinElec3dInt_Material" );
   }
 
 
@@ -54,7 +52,6 @@ namespace CoupledField {
                                                   shared_ptr<EqnMap> eqnMap,
                                                   shared_ptr<ResultInfo> result) 
   {
-    ENTER_FCN( "nLinElec3dInt_Material::Set4NonLinMaterial" );
     
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
                                              eqnMap, *sol_, 
@@ -70,7 +67,6 @@ namespace CoupledField {
   void nLinElec3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
 			     Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "nlinElecHystInt::calcBMat" );
 
     // Obtain info on number of element's nodes
     const UInt numNodes = ptelem->GetNumNodes();
@@ -116,7 +112,6 @@ namespace CoupledField {
   void nLinElec3dInt_Material::CalcElementMatrix( Matrix<Double>& elemMat,
                                                   EntityIterator& ent1, 
                                                   EntityIterator& ent2 ) {
-    ENTER_FCN( "nlinElec3dInt_Material::CalcElementMatrix" );
 
     // get displacements of element
     sol_->GetElemSolution( elemPot_, ent1 );
@@ -139,7 +134,6 @@ namespace CoupledField {
                                         UInt ip, 
                                         Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "nLinMech3dInt_Material::calcDMat" );
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
    
     Matrix<Double> xiDx;

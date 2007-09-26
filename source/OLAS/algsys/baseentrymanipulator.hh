@@ -45,14 +45,12 @@ namespace OLAS {
 
     //! Constructor
     BaseEntryManipulator() {
-      ENTER_FCN( "BaseEntryManipulator::BaseEntryManipulator" );
       solBufferIsValid_ = false;
       rhsBufferIsValid_ = false;
     }
  
     //! Destructor
     virtual ~BaseEntryManipulator() {
-      ENTER_FCN( "BaseEntryManipulator::~BaseEntryManipulator" );
     }
 
     //@}

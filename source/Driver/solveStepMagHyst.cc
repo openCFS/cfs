@@ -17,17 +17,14 @@
 namespace CoupledField {
 
   SolveStepMagHyst::SolveStepMagHyst(StdPDE& apde) : StdSolveStep(apde) {
-    ENTER_FCN( "SolveStepMagHyst::SolveStepMagHyst" );
   }
   
   
   SolveStepMagHyst::~SolveStepMagHyst() {
-    ENTER_FCN( "SolveStepMagHyst::~SolveStepMagHyst" );
   }
   
   void SolveStepMagHyst::StepTransNonLinHysteresis() {
 
-    ENTER_FCN( "SolveStepMagHyst::StepTransNonLinHysteresis" );
 
     Double *solPtr;
     bool performOneMoreStep;
@@ -230,7 +227,6 @@ namespace CoupledField {
 
   void SolveStepMagHyst::StepTransNonLinHysteresisDiff() {
 
-    ENTER_FCN( "SolveStepMagHyst::StepTransNonLinHysteresisDiff" );
 
     Double *solPtr;
     bool performOneMoreStep;
@@ -400,7 +396,6 @@ namespace CoupledField {
 
   void SolveStepMagHyst::SetPreviousVals4Hyst() {
   
-    ENTER_FCN( "SolveStepMagHyst::SetPreviousVals4Hyst");
 
     Vector<Double> LCoord, field;
     UInt pdeElem;

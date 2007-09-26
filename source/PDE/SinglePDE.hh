@@ -230,7 +230,6 @@ namespace CoupledField
 
     //! read damping information
     virtual void ReadDampingInformation( ){
-      ENTER_FCN( "SinglePDE::ReadDampingInformation" );
     };
     
     //! read material data

@@ -15,7 +15,6 @@ namespace CoupledField {
 					    EntityIterator& ent2 ) {
     
     
-    ENTER_FCN( "FlatShellStiffInt::CalcElementMatrix" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -162,7 +161,6 @@ namespace CoupledField {
   void FlatShellStiffInt::calcBMat(Matrix<Double> & bMat, Integer ip, BaseFE* elem,
                                    Matrix<Double> & ShellCoord, SubPartType part) {
 
-    ENTER_FCN( "FlatShellStiffInt::calcBMat" );
 
     const UInt numFncs = elem->GetNumFncs( ansatzFct1_ );
     elem->SetAnsatzFct( ansatzFct1_ );
@@ -231,7 +229,6 @@ namespace CoupledField {
   // calculates the summed D-matrix
   void FlatShellStiffInt::calcDMatComposite( Matrix<Double> &dMat ){
 
-    ENTER_FCN( "FlatShellIStiffnt::calcDMatComposite" );
 
     const UInt SizeOfD = 8;
     const UInt nrLayers  = composite_->thickness.GetSize();
@@ -535,7 +532,6 @@ namespace CoupledField {
   
   void FlatShellStiffInt::calcDMat( Matrix<Double> &dMat){
 
-    ENTER_FCN( "FlatShellStiffInt::calcDMat" );
 
     const UInt nrElems2d = 8;
     double t = thickness_;
@@ -585,7 +581,6 @@ namespace CoupledField {
   // *************************************
   FlatShellStiffInt::FlatShellStiffInt( Composite * composite ) 
     : FlatShellInt(composite) {
-    ENTER_FCN( "FlatShellStiffInt::FlatShellStiffInt" );
 
     name_ = "FlatShellStiffInt";
 
@@ -610,7 +605,6 @@ namespace CoupledField {
   
   FlatShellStiffInt::FlatShellStiffInt( BaseMaterial * matData ) 
     : FlatShellInt(matData) {
-    ENTER_FCN( "FlatShellStiffInt::FlatShellStiffInt" );
 
     name_ = "FlatShellStiffInt";
     
@@ -630,7 +624,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   FlatShellStiffInt::~FlatShellStiffInt() {
-    ENTER_FCN( "FlatShellStiffInt::~FlatShellStiffInt" );
   }
   
 } // end namespace CoupledField

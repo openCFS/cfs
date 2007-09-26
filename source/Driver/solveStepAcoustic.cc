@@ -17,11 +17,9 @@ namespace CoupledField {
 
   SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde) : StdSolveStep(apde) 
   {
-    ENTER_FCN( "SolveStepAcoustic::SolveStepAcoustic" );
   }
 
   SolveStepAcoustic::~SolveStepAcoustic() {
-    ENTER_FCN( "SolveStepAcoustic::~SolveStepAcoustic" );
   }
 
  
@@ -31,7 +29,6 @@ namespace CoupledField {
 
   void SolveStepAcoustic::StepTransNonLin() {
 
-    ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
 
     Double *solPtr;
   
@@ -161,7 +158,6 @@ namespace CoupledField {
 
   void SolveStepAcoustic::AddNonLinRHS() {
   
-    ENTER_FCN( "SolveStepAcoustic::AddNonLinRHS" );
 
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
     BaseFE             * ptElem;

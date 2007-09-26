@@ -26,7 +26,6 @@ namespace CoupledField {
 
   XMLMaterialHandler::XMLMaterialHandler( const std::string & fileName )
     : MaterialHandler( fileName) {
-    ENTER_FCN( "XMLMaterialHandler::XMLMaterialHandler" );
 
     parser_ = NULL;
 
@@ -44,7 +43,6 @@ namespace CoupledField {
   }
   
   XMLMaterialHandler::~XMLMaterialHandler() {
-    ENTER_FCN( "XMLMaterialHandler::~XMLMaterialHandler" ) 
       
     delete parser_;
   }
@@ -52,7 +50,6 @@ namespace CoupledField {
   BaseMaterial * XMLMaterialHandler::
   LoadMaterial( const std::string matName, 
                const MaterialClass matClass ) {
-    ENTER_FCN( "XMLMaterialHandler::LoadMaterial");
     
     BaseMaterial * material = NULL;
     
@@ -106,7 +103,6 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, ParamNode* pn) 
   {
-    ENTER_FCN( "XMLMaterialHandler::ReadPiezo" );
 
     //read real piezo coupling tensor
     if(pn->Has("piezoCouplingTensor"))

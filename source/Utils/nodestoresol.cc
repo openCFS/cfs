@@ -16,7 +16,6 @@ namespace CoupledField {
   template<class TYPE>
   NodeStoreSol<TYPE>::NodeStoreSol() {
 
-    ENTER_FCN( "NodeStoreSol::NodeStoreSol()" );
   
     numNodes_     = 0;
     numSolutions_ = 0;
@@ -32,7 +31,6 @@ namespace CoupledField {
   NodeStoreSol<TYPE>::NodeStoreSol( UInt numNodes, 
                                     StdVector<SolutionType> solTypes, 
                                     StdVector<UInt> solDofs ) {
-    ENTER_FCN( "NodeStoreSol::NodeStoreSol(numNodes, solTypes, solDofs" );
     EXCEPTION( "Not implemented here" );
   }
 
@@ -44,7 +42,6 @@ namespace CoupledField {
   NodeStoreSol<TYPE>::NodeStoreSol( const UInt numNodes,
                                     const SolutionType solType,
                                     const UInt numDofs ) {
-    ENTER_FCN( "NodeStoreSol::NodeStoreSol(numNodes, solType, soDofs" );
     EXCEPTION( "Not implemented here" );
   }
 
@@ -54,7 +51,6 @@ namespace CoupledField {
   // ***************************
   template<class TYPE>
   NodeStoreSol<TYPE>::NodeStoreSol( const NodeStoreSol &x ) {
-    ENTER_FCN( "NodeStoreSol::NodeStoreSol(const NodeStoreSol)" );
     EXCEPTION( "Not implemented here" );
   }
 
@@ -64,7 +60,6 @@ namespace CoupledField {
   // **************
   template<class TYPE>
   NodeStoreSol<TYPE>::~NodeStoreSol() {
-    ENTER_FCN( "NodeStoreSol::~NodeStoreSol" );
   }
 
 
@@ -87,7 +82,6 @@ namespace CoupledField {
   // *********
   template<class TYPE>
   void NodeStoreSol<TYPE>::Clear() {
-    ENTER_FCN( "NodeStoreSol::Clear" );
     EXCEPTION( "NodeStoreSol::Clear() not implemented" );
   }
 
@@ -97,7 +91,6 @@ namespace CoupledField {
   // ********
   template<class TYPE>
   void NodeStoreSol<TYPE>::Init() {
-    ENTER_FCN( "NodeStoreSol::Init" );
     Init( TYPE() );
   }
 
@@ -108,7 +101,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetPtrEQNData( EqnMap * eqnMap,
                                           Grid *ptGrid ) {
-    ENTER_FCN( "NodeStoreSol::SetPtrEQNData" );
     ptGrid_ = ptGrid;
     eqnMap_ = eqnMap;
   }
@@ -120,7 +112,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::Init( const TYPE val ) {
 
-    ENTER_FCN( "NodeStoreSol::Init" );
   
 #ifdef CHECK_INITIALIZED
     if (numSolutions_ == 0 || numNodes_ == 0 || solTypes_.size() == 0 ||
@@ -181,7 +172,6 @@ namespace CoupledField {
   // *******************
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetNumSolutions( const UInt nSols ) {
-    ENTER_IFCN( "NodeStoreSol::SetNumSolutions" );
     numSolutions_ = nSols;
     length_ = 0;
   }
@@ -192,7 +182,6 @@ namespace CoupledField {
   // ***************
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetNumNodes( const UInt nNodes ) {
-    ENTER_IFCN( "NodeStoreSol::SetNumNodes" );
     numNodes_ = nNodes;
     length_ = 0;
   }
@@ -205,7 +194,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::SetSolutionType( const SolutionType solType,
                                             const UInt numSolution ) {
 
-    ENTER_IFCN( "NodeStoreSol::SetSolutionType" );
 
 #ifdef CHECK_INDEX
     if (numSolution >= numSolutions_) {
@@ -231,7 +219,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::SetNumDofs( const UInt dof,
                                        const SolutionType sol ) {
 
-    ENTER_IFCN( "NodeStoreSol::SetDof" );
 
     // check if only one dof was assigned
     // -> only one entry exists
@@ -253,7 +240,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::
   GetSolutionTypes( StdVector<SolutionType> &solTypes ) const {
 
-    ENTER_FCN( "NodeStoreSol::GetSolutionTypes" );
 
     solTypes.Resize(numSolutions_);
     std::map<SolutionType,UInt>::const_iterator it;
@@ -266,7 +252,6 @@ namespace CoupledField {
   template<class TYPE>
   TYPE& NodeStoreSol<TYPE>::operator()(UInt node, UInt dof)
   {
-    ENTER_IFCN("NodeStoreSol::operator()");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -287,7 +272,6 @@ namespace CoupledField {
   template<class TYPE>
   TYPE  NodeStoreSol<TYPE>:: operator()(UInt node, UInt dof) const
   {
-    ENTER_IFCN("NodeStoreSol::operator()");
   
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -313,7 +297,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
                                               CFSVector & val) const
   {
-    ENTER_FCN("NodeStoreSol::GetGlobalSolVector");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) 
       EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -393,7 +376,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetNodalResult(const UInt nodeNr, const CFSVector &val)
   {
-    ENTER_FCN("NodeStoreSol::SetNodalResult");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -415,7 +397,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetNodalResult(const UInt nodeNr, CFSVector &val) const
   {
-    ENTER_FCN("NodeStoreSol::GetNodalResult");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -427,7 +408,6 @@ namespace CoupledField {
                                                        const UInt dof, 
                                                        CFSVector & val) const
   {
-    ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
     UInt solDof = (*solDofs_.find(type)).second;
 #ifdef CHECK_INITIALIZED
 
@@ -471,7 +451,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, 
                                                        CFSVector & val) const{
-    ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) {
       EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -509,7 +488,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::Get( const UInt nodeNr, const UInt dof,
                                 TYPE &ret ) const {
 
-    ENTER_FCN( "NodeStoreSol::Get" );
 
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) {
@@ -543,7 +521,6 @@ namespace CoupledField {
                                const UInt dof, 
                                TYPE & ret) const
   {
-    ENTER_FCN("NodeStoreSol::Get");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -561,7 +538,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::Set(const SolutionType type, const UInt nodeNr, const UInt dof, const TYPE val)
   {
-    ENTER_FCN("NodeStoreSol::Set");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -579,7 +555,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::Add(const SolutionType type, const UInt nodeNr, const UInt dof, const TYPE val) const
   {
-    ENTER_FCN("NodeStoreSol::Set");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -589,7 +564,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
   {
-    ENTER_FCN("NodeStoreSol::SetAlgSysVector");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -609,7 +583,6 @@ namespace CoupledField {
   template<class TYPE> 
   void NodeStoreSol<TYPE>::GetAlgSysVector(CFSVector & val) const
   {
-    ENTER_FCN("NodeStoreSol::GetAlgSysVector");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -621,7 +594,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(CFSVector* &ptrToVec)
   {
-    ENTER_FCN("NodeStoreSol::GetAlgSysVectorPointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -632,7 +604,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(Vector<TYPE>* &ptrToVec)
   {
-    ENTER_FCN("NodeStoreSol::GetAlgSysVectorPointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -643,7 +614,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::CopyFromAlgSysDataPointer(Double * ptr)
   {
-    ENTER_FCN("NodeStoreSol::CopyFromAlgSysDataPointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -658,7 +628,6 @@ namespace CoupledField {
   template<>
   void NodeStoreSol<Complex>::CopyFromAlgSysDataPointer(Double * ptr)
   {
-    ENTER_FCN("NodeStoreSol::CopyFromAlgSysDataPointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -673,7 +642,6 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetAlgSysDataPointer( UInt size, TYPE * ptr)
   {
-    ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
   
     data_.Replace( size, ptr, false );
 
@@ -683,7 +651,6 @@ namespace CoupledField {
   template<>
   Double* NodeStoreSol<Double>::GetAlgSysDoublePointer()
   {
-    ENTER_FCN("NodeStoreSol::GetAlgSysDoublePointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -694,7 +661,6 @@ namespace CoupledField {
   template<class TYPE>
   Double* NodeStoreSol<TYPE>::GetAlgSysDoublePointer()
   {
-    ENTER_FCN("NodeStoreSol::GetAlgSysDoublePointer");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -711,7 +677,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::GetElemSolution(CFSVector & elemSol,
                                            const EntityIterator& it) const
   {
-    ENTER_FCN( "NodeStoreSol::GetElemSolution" );
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(elemSol);
 
@@ -734,7 +699,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
                                                    const EntityIterator& it) const
   {
-    ENTER_FCN("NodeStoreSol::GetElemSolutionAsMatrix");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -762,7 +726,6 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
                                                   const StdVector<UInt>& nodeNumbers) const
   {
-    ENTER_FCN("NodeStoreSol:::NodeSolutionToCoupling");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
@@ -787,7 +750,6 @@ namespace CoupledField {
   template<class TYPE>
   NodeStoreSol<TYPE> & NodeStoreSol<TYPE>::operator= (const NodeStoreSol & x)
   {
-    ENTER_FCN("NodeStoreSol::operator=(const NodeStoreSol &");
     EXCEPTION("Not implemented here" );
     return *this;
   }
@@ -795,7 +757,6 @@ namespace CoupledField {
   template<class TYPE>
   BaseNodeStoreSol & NodeStoreSol<TYPE>::operator= (const BaseNodeStoreSol & x)
   {
-    ENTER_FCN("NodeStoreSol::operator=(const BaseNodeStoreSol &");
     if ( &x == dynamic_cast<BaseNodeStoreSol*>(this))
       return (*this);
 
@@ -815,7 +776,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void NodeStoreSol<TYPE>::Print( std::ostream& str ) {
-    ENTER_IFCN( "NodeStoreSol::Print" );
     EXCEPTION( "NodeStoreSol::Print() not implemented" );
   }
 

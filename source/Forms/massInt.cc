@@ -21,7 +21,6 @@ namespace CoupledField {
       diagMass_(false)
       
   {
-    ENTER_FCN( "MassInt::MassInt" );
     name_ = "MassInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -30,14 +29,12 @@ namespace CoupledField {
 
  
   MassInt::~MassInt() {
-    ENTER_FCN( "MassInt::~MassInt" );
   }
 
 
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
                                    EntityIterator& ent2  )  {
-    ENTER_FCN( "MassInt::CalcElemMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -111,7 +108,6 @@ namespace CoupledField {
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
                              const Matrix<Double>& massMatSingleDof,  const UInt nrDofs)
   {
-    ENTER_FCN( "MassInt::MassMultiDof" );
     
     const UInt singleDofSize = massMatSingleDof.GetSizeRow();
 
@@ -129,7 +125,6 @@ namespace CoupledField {
 
   void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
   {
-    ENTER_FCN( "MassInt::MassMultiDofZero" );
     
     const UInt singleDofSize = massMatSingleDof.GetSizeRow();
     

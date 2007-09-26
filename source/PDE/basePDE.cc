@@ -14,7 +14,6 @@ namespace CoupledField {
   // ***********************
   BasePDE::BasePDE( ParamNode* paramNode ) {
     
-    ENTER_FCN( "BasePDE::BasePDE" );
     
     myParam_ = paramNode;
     sequenceStep_ = 0;
@@ -24,7 +23,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   BasePDE::~BasePDE() {
-    ENTER_FCN( "BasePDE::~BasePDE" );
   }
 
 }

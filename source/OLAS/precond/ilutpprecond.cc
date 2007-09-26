@@ -22,7 +22,6 @@ namespace OLAS {
                                    OLAS_Params *myParams,
 				   OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILUTP_Precond::ILUTP_Precond" );
 
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -48,7 +47,6 @@ namespace OLAS {
   template <typename T>
   ILUTP_Precond<T>::~ILUTP_Precond() {
 
-    ENTER_FCN( "ILUTP_Precond::~ILUTP_Precond" );
 
   }
 
@@ -60,7 +58,6 @@ namespace OLAS {
   void ILUTP_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,
 				const Vector<T> &res, Vector<T> &sol ) const {
 
-    ENTER_FCN( "ILUTP_Precond::Apply" );
 
     // Test that a factorisation is available, if not issue an error.
     if ( amFactorised_ == false ) {
@@ -80,7 +77,6 @@ namespace OLAS {
   template <typename T>
   void ILUTP_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
 
-    ENTER_FCN( "ILUTP_Precond::Setup" );
 
     // Query parameter object for factorisation parameters
     tau_ = this->myParams_->GetDoubleValue( "ILUTP_tau" );
@@ -119,7 +115,6 @@ namespace OLAS {
 				      std::vector<T> &vecW,
 				      std::vector<UInt> &vecWFill ) {
 
-    ENTER_IFCN( "ILUTP_Precond::DropEntries" );
 
     Error( "ILUTP_Precond currently not operational", __FILE__, __LINE__ );
     UInt i, j;
@@ -284,7 +279,6 @@ namespace OLAS {
   template<typename T>
   void ILUTP_Precond<T>::
   InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    ENTER_FCN( "ILUTP_Precond::InstantiateAdditionalPublicMethods" );
     this->ExportILUFactorisation( "dummy.mtx" );
   }
 

@@ -584,7 +584,6 @@ namespace CoupledField {
   PROMOTE(TYPE,TYPE2) Vector<TYPE>::
   operator* (const Vector<TYPE2> &x) const
   {
-    ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.GetSize() == 0))
       EXCEPTION( "Vector: undefined Vector in operator *(vector)" );
@@ -609,7 +608,6 @@ namespace CoupledField {
   Vector<PROMOTE(TYPE,TYPE2)> Vector<TYPE>::
   operator+(const Vector<TYPE2> &x) const
   {       
-    ENTER_IFCN( "Vector::operator+" );
 
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.GetSize() == 0))
@@ -633,7 +631,6 @@ namespace CoupledField {
   Vector<PROMOTE(TYPE,TYPE2)> Vector<TYPE>::
   operator-(const Vector<TYPE2> &x) const
   {
-    ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.GetSize() == 0))
       EXCEPTION( "Vector: undefined Vector in operator -(vector)" );
@@ -655,7 +652,6 @@ namespace CoupledField {
   Vector<PROMOTE(TYPE,TYPE2)> Vector<TYPE>::
   operator* (const TYPE2 &x) const
   {
-    ENTER_IFCN( "Vector::operator*" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION( "Vector: undefined Vector in operator *(number)" );
@@ -673,7 +669,6 @@ namespace CoupledField {
   Vector<PROMOTE(TYPE,TYPE2)> Vector<TYPE>::
   operator/(const TYPE2 &x) const
   {
-    ENTER_IFCN( "Vector::operator/" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION( "Vector: undefined Vector in operator /(number)" );

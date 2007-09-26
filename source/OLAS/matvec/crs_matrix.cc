@@ -23,7 +23,6 @@ namespace OLAS {
   CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat )
     : diagPtr_( NULL ) {
 
-    ENTER_FCN( "CRS_Matrix::CRS_Matrix" );
 
     // Test, if the matrix is stored in symmetric format.
     // If yes, issue a warning, since we due not expand
@@ -100,7 +99,6 @@ namespace OLAS {
   CRS_Matrix<T>::CRS_Matrix( const CRS_Matrix<T> &origMat )
     : diagPtr_( NULL ) {
 
-    ENTER_FCN( "CRS_Matrix::CRS_Matrix" );
 
     // Set basic size informations
     this->nnz_        = origMat.nnz_;
@@ -138,7 +136,6 @@ namespace OLAS {
 			     const PreMatrix<T>& premat )
     : diagPtr_( NULL ) {
 
-    ENTER_FCN( "CRS_Matrix::CRS_Matrix" );
  
     colInd_           = NULL;
     rowPtr_           = NULL;
@@ -211,7 +208,6 @@ namespace OLAS {
     // node itself, in case of a self-reference) in lexicographic
     // ordering, i.e. in increasing number of node indices.
 
-    ENTER_FCN( "CRS_Matrix::SetSparsityPattern" );
 
     Integer rs;
     Integer *index;
@@ -259,7 +255,6 @@ namespace OLAS {
   // *************************
   template<typename T>
   void CRS_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
-    ENTER_FCN( "CRS_Matrix::BaseMatrix &mat" );
 
     (*error) << "CRS_Matrix::CopySparsityPattern: Not implemented";
     Error( __FILE__, __LINE__ );
@@ -273,7 +268,6 @@ namespace OLAS {
   inline void CRS_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
 
-    ENTER_FCN( "CRS_Matrix::Mult" );
 
     PROFILE( "CRS_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
              BlockSize<T>::size );
@@ -302,7 +296,6 @@ namespace OLAS {
   inline void CRS_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                       Vector<T> & rvec ) const {
 
-    ENTER_FCN( "CRS_Matrix::MultAdd" );
 
     Integer i, j, rs, k;
     T sum;
@@ -335,7 +328,6 @@ namespace OLAS {
   inline void CRS_Matrix<T>::MultSub( const Vector<T> &mvec,
                                       Vector<T> &rvec ) const {
 
-    ENTER_FCN( "CRS_Matrix::MultSub" );
 
     Integer i, j, rs, k;
     T sum;
@@ -368,7 +360,6 @@ namespace OLAS {
   inline void CRS_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    ENTER_FCN( "CRS_Matrix::CompRes" );
 
     PROFILE("CRS_Matrix::CompRes",
             (2*this->nnz_*BlockSize<T>::size + this->nrows_)
@@ -398,7 +389,6 @@ namespace OLAS {
   inline void CRS_Matrix<T>::MultT( const Vector<T> & mvec,
                                     Vector<T> & rvec ) const {
 
-    ENTER_FCN( "CRS_Matrix::MultT" );
 
     Integer i, j, rs, k;
 
@@ -427,7 +417,6 @@ namespace OLAS {
   template<typename T>
   inline void CRS_Matrix<T>::MultTAdd( const Vector<T> &mvec,
                                        Vector<T> &rvec ) const {
-    ENTER_FCN( "CRS_Matrix::MultTAdd" );
 
     Integer i, j, end;
 
@@ -494,7 +483,6 @@ namespace OLAS {
   template<typename T>
   void CRS_Matrix<T>::Print( std::ostream& os ) const {
 
-    ENTER_FCN( "CRS_Matrix::Print" );
 
     Integer i, j, k;
 
@@ -525,7 +513,6 @@ namespace OLAS {
   void CRS_Matrix<T>::Export( const Char *fname,
                               const Char *comment ) const{
 
-    ENTER_FCN( "CRS_Matrix::Export" );
 
     // Obtain blocksize of matrix
     Integer dof = this->GetBlockSize();
@@ -616,7 +603,6 @@ namespace OLAS {
   template<typename T>
   void CRS_Matrix<T>::AddToMatrixEntry( Integer i, Integer j, T& v ){
 
-    ENTER_IFCN( "CRS_Matrix::AddToMatrixEntry" );
 
     bool found = false;
 
@@ -646,7 +632,6 @@ namespace OLAS {
   template<typename T>
   void CRS_Matrix<T>::GetMatrixEntry( Integer i, Integer j, 
                                       T &v ) const {
-    ENTER_IFCN( "CRS_Matrix:GetMatrixEntry" );
 
     bool found = false;
 
@@ -675,7 +660,6 @@ namespace OLAS {
   template<typename T>
   void CRS_Matrix<T>::SetMatrixEntry( Integer i, Integer j, T &v,
                                       bool setCounterPart ) {
-    ENTER_IFCN( "CRS_Matrix:SetMatrixEntry" );
 
     bool found = false;
     
@@ -724,7 +708,6 @@ namespace OLAS {
   // **********
   template<typename T>
   void CRS_Matrix<T>::Insert(Integer row, Integer col,  Integer pos){
-    ENTER_IFCN( "CRS_Matrix::Insert" );
 #ifdef DEBUG_CRS_MATRIX
     (*debug) << "CRS_Matrix: inserting ("<<row<<","<<col<<") as Entry ";
     (*debug) << pos << std::endl;
@@ -745,7 +728,6 @@ namespace OLAS {
   template <typename T>
   void CRS_Matrix<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "CRS_Matrix::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
     
@@ -837,7 +819,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void CRS_Matrix<T>::Scale( Double factor ) {
-    ENTER_FCN( "CRS_Matrix::Scale" );
     for ( Integer i = 1; i <= this->nnz_; i++ ) {
       data_[i] *= factor;
     }
@@ -850,7 +831,6 @@ namespace OLAS {
   template<typename T>
   Double CRS_Matrix<T>::GetMaxDiag() const {
 
-    ENTER_FCN( "CRS_Matrix::GetMaxDiag" );
 
     double maxDiag = 0;
     double current = 0;
@@ -873,7 +853,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
-    ENTER_FCN( "CRS_Matrix::Add" );
 
     TRY_CAST {
 
@@ -895,7 +874,6 @@ namespace OLAS {
 
   template<>
   void CRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
-    ENTER_FCN( "CRS_Matrix::Add" );
     
     // Check for entry type of mat
     MatrixEntryType eType = mat.GetEntryType();
@@ -993,7 +971,6 @@ namespace OLAS {
   template <typename T>
   void CRS_Matrix<T>::ChangeLayout( const subFormat newLayout ) {
 
-    ENTER_FCN( "CRS_Matrix::ChangeLayout" );
 
     // Check, if we must do anything at all
     if ( newLayout != currentLayout_ ) {
@@ -1133,7 +1110,6 @@ namespace OLAS {
   template<typename T>
   void CRS_Matrix<T>::SetSize( Integer nrows, Integer ncols, Integer nnz ) {
 
-    ENTER_FCN( "CRS_Matrix::SetSize" );
     
 #ifdef DEBUG_CRS_MATRIX
     if ( nrows < 0 || nnz < 0 ) {
@@ -1168,7 +1144,6 @@ namespace OLAS {
   // ***********************
   template <typename T>
   void CRS_Matrix<T>::FindDiagonalEntries() {
-    ENTER_FCN( "CRS_Matrix::FindDiagonalEntries" );
 
     // If the matrix is in LEX_DIAG_FIRST format, setting up
     // the array is pretty easy
@@ -1209,7 +1184,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   void CRS_Matrix<T>::SortLex2LexDiagFirst() {
-    ENTER_FCN( "CRS_Matrix::SortLex2LexDiagFirst" );
 
     // Since the row is lexicographically ordered, we just have to move the
     // diagonal entry to the front and move the part of the row in front of
@@ -1250,7 +1224,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   void CRS_Matrix<T>::SortLexDiagFirst2Lex() {
-    ENTER_FCN( "CRS_Matrix::SortLexDiagFirst2Lex" );
 
     // Since the rest of the row is lexicographically ordered, we just have
     // to insert the diagonal entry at the correct position and move the

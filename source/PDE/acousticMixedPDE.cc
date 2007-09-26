@@ -28,7 +28,6 @@ namespace CoupledField
     :SinglePDE(aGrid, paramNode )
 
   {
-    ENTER_FCN( "AcousticMixedPDE::AcousticMixedPDE" );
 
     pdename_          = "acousticMixed";
     pdematerialclass_ = FLUID;
@@ -94,12 +93,10 @@ namespace CoupledField
 
   AcousticMixedPDE::~AcousticMixedPDE()
   {
-    ENTER_FCN( "AcousticMixedPDE::~AcousticMixedPDE" );
   }
 
   void AcousticMixedPDE::DefineIntegrators()
   {
-    ENTER_FCN( "AcousticMixedPDE::DefineIntegerators" );
 
     // help variables for parameter checking
     StdVector<std::string> keyVec;
@@ -178,7 +175,6 @@ namespace CoupledField
 
   void AcousticMixedPDE::DefineSolveStep()
   {
-    ENTER_FCN( "AcousticMixedPDE::DefineSolveStep" );
 
     solveStep_ = new  StdSolveStep(*this);
   }
@@ -191,7 +187,6 @@ namespace CoupledField
 
   void AcousticMixedPDE :: InitTimeStepping()
   {
-    ENTER_FCN( "AcousticMixedPDE::InitTimeStepping" );
     if ( effectiveMass_ == true ) {
       TS_alg_ = new TrapezoidalEffMass( algsys_ );
     }
@@ -211,7 +206,6 @@ namespace CoupledField
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void AcousticMixedPDE::DefineAvailResults() {
-    ENTER_FCN( "AcousticMixedPDE::DefineAvailResults" );
 
     // =====================================================================
     // set solution information
@@ -288,7 +282,6 @@ namespace CoupledField
 
 
   void  AcousticMixedPDE::CalcResults( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( " AcousticMixedPDE::CalcResults" );
     
     switch (result->GetResultInfo()->resultType ) {
       
@@ -319,7 +312,6 @@ namespace CoupledField
   // ************************************************************
 
   void AcousticMixedPDE::PostProcess() {
-    ENTER_FCN( "AcousticMixedPDE::PostProcess" );
   }
 } // end namespace CoupledField
 

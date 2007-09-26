@@ -22,7 +22,6 @@ namespace CoupledField
                                        bool isaxi, bool coordUpdate) 
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    ENTER_FCN( "MagLorentzForceOp::MagLorentzForceOp" );
 
     //Warning( "Only working with Lagrange Elements" __FILE__, __LINE__ );
     curlFieldOp_ = new  CurlNodeOp<TYPE>(ptGrid, ptPDE, eqnMap,
@@ -37,7 +36,6 @@ namespace CoupledField
   template<class TYPE>
   MagLorentzForceOp<TYPE>::~MagLorentzForceOp()
   {
-    ENTER_FCN( "MagLorentzForceOp::~MagLorentzForceOp" );
 
     if (curlFieldOp_) 
       delete curlFieldOp_;
@@ -48,7 +46,6 @@ namespace CoupledField
                                                         Vector<TYPE>& Jeddy,
                                                         const EntityIterator& ent)
   {
-    ENTER_FCN( "MagLorentzForceOp::CalcElemElecForce" );
 
     Vector<TYPE> B, B1;
     Vector<Double> * Ip;
@@ -157,7 +154,6 @@ namespace CoupledField
     : BaseForceOp(ptGrid, ptPDE,  eqnMap, sol, dim, 
                   matData, isaxi, coordUpdate )
   {
-    ENTER_FCN( "MagForceOp::MagForceOp" );
 
     curlFieldOp_ = new CurlNodeOp<Double>(ptGrid, ptPDE, eqnMap, sol);
     curlFieldOp_->Set2DType(isaxi);
@@ -168,7 +164,6 @@ namespace CoupledField
 
   MagForceOp::~MagForceOp()
   {
-    ENTER_FCN( "MagForceOp::~MagForceOp" );
 
     if (curlFieldOp_) 
       delete curlFieldOp_;
@@ -179,14 +174,12 @@ namespace CoupledField
                                 const EntityIterator& ent,
                                 const Vector<Double> & lCoord)
   {
-    ENTER_FCN( "MagForceOp::ComputeField" );
 
     curlFieldOp_->CalcElemCurlNode(Field, ent,lCoord);
   } 
 
   Double MagForceOp::GetMatVal(RegionIdType actRegion)
   {
-    ENTER_FCN( "MagForceOp::GetMatVal" );
 
     Double reluctivity;
     materials_[actRegion]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);

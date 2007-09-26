@@ -8,34 +8,9 @@
 #include <iostream>
 
 
-// namespace OLAS 
-// {
-// #ifdef TRACE
-//   extern std::ostream * trace;
-// #endif
-
-// #ifdef DEBUG
-//   extern std::ostream * debug;
-//   extern std::ostream * test;
-// #endif
-
-// #ifdef MEMTRACE
-//   extern std::ostream * memtrace;
-
-//   extern double sumdmem;
-//   extern double sumimem;
-// #endif
-
-
-// } // namespace
-
 
 namespace OutInfo
 {
-#ifdef TRACE
-  extern std::ostream * trace;
-#endif
-
 #ifdef DEBUG
   extern std::ostream * debug;
   extern std::ostream * test;
@@ -52,9 +27,6 @@ namespace OutInfo
 
 namespace OLAS 
 {
-#ifdef TRACE
-  using OutInfo::trace;
-#endif
 
 #ifdef DEBUG
   using OutInfo::debug;

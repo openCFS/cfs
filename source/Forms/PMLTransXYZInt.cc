@@ -16,7 +16,6 @@ namespace CoupledField
       nrDofsPerNode_(nrDofsPerNode), formsType_(type),formsFactor_(factor),  dampingFactor_(damp)
        
   {
-    ENTER_FCN( "PMLTransXYZInt::PMLTransXYZInt" );
 
     name_ = "PMLTransXYZInt";
     
@@ -52,7 +51,6 @@ namespace CoupledField
  
   PMLTransXYZInt::~PMLTransXYZInt()
   {
-    ENTER_FCN( "PMLTransXYZInt::~PMLTransXYZInt" );
   }
 
 
@@ -61,7 +59,6 @@ namespace CoupledField
                                           EntityIterator& ent1, 
                                           EntityIterator& ent2 )
   {
-    ENTER_FCN( "PMLTransXYZInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -155,7 +152,6 @@ namespace CoupledField
 
   void PMLTransXYZInt::ComputeFactorPML(Vector<Double>& factorsPML, Matrix<Double> & coordMat)
   {
-    ENTER_FCN( "PMLTransXYZInt ::ComputefactorPML"); 
 
     UInt numVals = coordMat.GetSizeRow();
     Vector<Double> pos;
@@ -275,7 +271,6 @@ namespace CoupledField
 
   Double PMLTransXYZInt:: ComputeDampingFactor(Vector<Double>& pos, Directions dir)
   {
-    ENTER_FCN( "PMLTransXYZInt :: ComputeDampingFactor"); 
 
     Double factor, maxPos, delta, diffCoord;
     UInt idx;
@@ -373,7 +368,6 @@ namespace CoupledField
 
   void PMLTransXYZInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
-    ENTER_FCN( "PMLTransXYZInt ::SetPosXML"); 
 
     // inner/outer:   xmin  ymin  zmin
     //                xmax  ymax  zmax

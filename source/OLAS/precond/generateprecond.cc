@@ -69,7 +69,6 @@ retVal = new precondObjType( mat, myParams, myReport );\
 					    OLAS_Params *myParams,
 					    OLAS_Report *myReport ) {
 
-    ENTER_FCN( "GenerateStdPrecondObject" );
 
     BaseStdPrecond *retVal = NULL;
 

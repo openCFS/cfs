@@ -27,7 +27,6 @@ namespace OLAS {
   // ***********************
   BaseSystem::BaseSystem(ParamNode* pn) {
 
-    ENTER_FCN( "BaseSystem::BaseSystem" );
 
     graphManager_   = NULL;
     assemble_       = NULL;
@@ -86,7 +85,6 @@ namespace OLAS {
   // **************
   BaseSystem::~BaseSystem() {
 
-    ENTER_FCN( "BaseSystem::~BaseSystem" );
 
     delete solver_;
     solver_ = NULL;
@@ -113,7 +111,6 @@ namespace OLAS {
   // ***************
   PdeIdType BaseSystem::ObtainPDEId( const std::string &pdeType ) {
 
-    ENTER_FCN( "BaseSystem::ObtainPDEId" );
 
 #ifdef DEBUG_BASESYSTEM
     (*debug) << "\n Obtain PDE Id for pde " << pdeType;
@@ -148,7 +145,6 @@ namespace OLAS {
                                 UInt const numEqns,
                                 UInt const numLastFreeDof ) {
     
-    ENTER_FCN( "BaseSystem::RegisterPDE" );
     
 #ifdef DEBUG_BASESYSTEM
     (*debug) << "\n RegisterPDE:"
@@ -200,7 +196,6 @@ namespace OLAS {
   void BaseSystem::SetNumDirichletBCs( const PdeIdType pdeID,
                                        const UInt numBCs ) {
 
-    ENTER_FCN( "BaseSystem::SetNumDirichletBCs" );
 
     // check if pdeID is known
     if ( pdeID  > numPDEs_ ) {
@@ -240,7 +235,6 @@ namespace OLAS {
   //   GetFEMatrixType
   // *******************
   void BaseSystem::GetFEMatrixTypes( std::set<FEMatrixType> &matTypes ) const{
-    ENTER_FCN( "BaseSystem::GetFEMatrixTypes" );
     matTypes = matrixTypes_;
   }
 
@@ -255,7 +249,6 @@ namespace OLAS {
   // ******************
   void BaseSystem::GraphSetupInit( UInt numPDEs ) {
 
-    ENTER_FCN( "BaseSystem::GraphSetupInit" );
     
     // Store number of PDEs and resize bcOffset vector and
     // sizePerPDE-array
@@ -287,7 +280,6 @@ namespace OLAS {
   //   GraphSetupDone
   // ******************
   void BaseSystem::GraphSetupDone() {
-    ENTER_FCN( "BaseSystem::GraphSetupDone" );
 
     // Print information about registered PDEs
     PrintRegistrationInfo( cla );
@@ -303,7 +295,6 @@ namespace OLAS {
   void BaseSystem::AssembleInit( const PdeIdType identifierPDE1,
 				 const PdeIdType identifierPDE2,
                                  bool assemblingTranspose ) {
-    ENTER_FCN( "BaseSystem::AssembleInit" );
     graphManager_->AssembleInit( identifierPDE1, identifierPDE2,
                                  assemblingTranspose );
   }
@@ -315,7 +306,6 @@ namespace OLAS {
   void BaseSystem::AssembleDone( const PdeIdType identifierPDE1,
 				 const PdeIdType identifierPDE2,
                                  bool assemblingTranspose ) {
-      ENTER_FCN( "BaseSystem::AssembleDone" );
       graphManager_->AssembleDone( identifierPDE1, identifierPDE2,
                                    assemblingTranspose );
   }
@@ -332,7 +322,6 @@ namespace OLAS {
 				  Integer elemSize2,
                                   bool setCounterPart ) {
 
-    ENTER_FCN( "BaseSystem::SetElementPos" );
 
     // Adjust 0-based index to 1-based
     Integer* connectOneBased1 = connect1;
@@ -354,7 +343,6 @@ namespace OLAS {
   //   GetReordering
   // *****************
   Integer* BaseSystem::GetReordering( const PdeIdType identifier ) {
-    ENTER_FCN( "BaseSystem::GetReordering" );
     Integer *newOrder = graphManager_->GetReordering(identifier);
     if ( newOrder != NULL ) {
       newOrder++;
@@ -367,7 +355,6 @@ namespace OLAS {
   //   PrintRegistrationInfo
   // *************************
   void BaseSystem::PrintRegistrationInfo( std::ostream *log ) const {
-    ENTER_FCN( "BaseSystem::PrintRegistrationInfo" );
 
     // Print name, id, number of unknowns and number of 
     // boundary conditions

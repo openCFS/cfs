@@ -15,7 +15,6 @@ namespace CoupledField
 
   HexaFE::HexaFE()
   {
-    ENTER_FCN( "HexaFE::HexaFE" );
 
     Dim_        = 3;
     NumEdges_   = 12;
@@ -30,13 +29,11 @@ namespace CoupledField
 
   HexaFE::~HexaFE()
   {
-    ENTER_FCN( "HexaFE::~HexaFE" );
     //  if (IntWeights) delete IntWeights;
   }
 
   void HexaFE::FillIntegrationPoints()
   {
-    ENTER_IFCN("HexaFE::FillIntegrationPoints");     
    
     // The ECONOMICAL implementation with the values from Solin, Segeth, Dolezel, High-Order Finite Element Methods
     // directly take from the CD    
@@ -1490,7 +1487,6 @@ namespace CoupledField
                                          const Vector<Double> & surfIntPoint,
                                          Vector<Double> & volIntPoint)
   {
-    ENTER_IFCN( "HexaFE::GetLocalIntPoints4Surface" );
   
     // Try to find out, which vertices are in common with
     // the surface element. Then calculate the product of all four
@@ -1585,7 +1581,6 @@ namespace CoupledField
 
   void HexaFE::GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin )
   {
-    ENTER_IFCN( "HexaFE::GetMaxMinEdgeLength" );
 
     Vector<Double> L(12);
     Double dx,dy,dz;

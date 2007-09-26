@@ -24,7 +24,6 @@ namespace CoupledField {
     : BasePDE( paramNode )
       {
 
-    ENTER_FCN( "StdPDE::StdPDE");
     
     // =====================================================================
     // initialize variables
@@ -77,14 +76,12 @@ namespace CoupledField {
   }
   
   StdPDE::~StdPDE() {
-    ENTER_FCN( "StdPDE::~StdPDE" );
   }
 
 
 
   const Vector<Double>& StdPDE::getS1() const {
   
-    ENTER_FCN( "StdPDE::getS1" );
   
     if ( TS_alg_ != NULL ) {
       return TS_alg_->GetDeriv1();
@@ -100,7 +97,6 @@ namespace CoupledField {
   
   const Vector<Double>& StdPDE::getS2() const {
     
-    ENTER_FCN( "StdPDE::getS2" );
     
     if ( TS_alg_ != NULL ) {
       return TS_alg_->GetDeriv2();
@@ -121,7 +117,6 @@ namespace CoupledField {
   // formulation by setting them 0
   Double StdPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
-    ENTER_FCN( "StdPDE::RhsL2Norm" );
 
     Integer eqnNr;
   
@@ -149,7 +144,6 @@ namespace CoupledField {
 
   void StdPDE::CreateMatrices_Solver() {
     
-    ENTER_FCN( "StdPDE::CreateMatrices_Solver" );
     
     // ==============================
     // create and initialize matrices 
@@ -184,7 +178,6 @@ namespace CoupledField {
 
   BaseSolveStep * StdPDE::GetSolveStep() {
     
-    ENTER_FCN( "StdPDE::GetSolveStep" );
     return solveStep_;
   }
   
@@ -195,7 +188,6 @@ namespace CoupledField {
 
   ParamNode* StdPDE::FindLinearSystem(const std::string& sysName) {
 
-    ENTER_FCN( "StdPDE::FindLinearSystem" );
 
     ParamNode* pn = NULL;
     pn = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
@@ -207,7 +199,6 @@ namespace CoupledField {
 
   Double StdPDE::GetFracDampMatrixCoeff(RegionIdType regionId) {
     
-    ENTER_FCN( "StdPDE::GetFracDampMatrixCoeff" );
 
     Double coeff;
 
@@ -248,7 +239,6 @@ namespace CoupledField {
                                    const EntityIterator& it,
                                    shared_ptr<ResultInfo> res ) {
 
-    ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
@@ -275,7 +265,6 @@ namespace CoupledField {
                                    const EntityIterator& it,
                                    shared_ptr<ResultInfo> res ) {
 
-    ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
@@ -302,7 +291,6 @@ namespace CoupledField {
                                        const EntityIterator& it,
                                        shared_ptr<ResultInfo> res) {
 
-    ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
     sol.Resize( eqns.GetSize() );
@@ -328,7 +316,6 @@ namespace CoupledField {
                                        const EntityIterator& it,
                                        shared_ptr<ResultInfo> res) {
 
-    ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
 
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
@@ -362,7 +349,6 @@ namespace CoupledField {
                                          const EntityIterator& it,
                                          shared_ptr<ResultInfo> res) {
 
-    ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
@@ -388,7 +374,6 @@ namespace CoupledField {
                                          const EntityIterator& it,
                                          shared_ptr<ResultInfo> res) {
 
-    ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *res, it );
@@ -417,7 +402,6 @@ namespace CoupledField {
   //stores an algsys_ vector into an StdVector
   void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 
-    ENTER_FCN( "StdPDE::StoreAlgsysToVec" );
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
     UInt numElems = eqnMap_->GetNumEqns();
@@ -429,14 +413,12 @@ namespace CoupledField {
   }
 
   CFSVector *  StdPDE::GetSolutionVector() {
-    ENTER_FCN( "StdPDE::GetSolutionVector" );
     return solVec_;
   }
 
 
 
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
-    ENTER_FCN( "StdPDE::GetResult" );
     
     shared_ptr<ResultInfo> res;
     for( UInt i = 0; i < results_.GetSize(); i++ ) {
@@ -463,7 +445,6 @@ namespace CoupledField {
   // ******************
   void StdPDE::ReadOlasParams( std::string sysName ) {
 
-    ENTER_FCN( "StdPDE::ReaOlasParams" );
 
     // Log to .las file
     (*cla) <<  " --- CFS: Setting parameters for linear system '"

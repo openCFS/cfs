@@ -25,7 +25,6 @@ namespace OLAS {
 
     //! Default Constructor
     BaseMatrix(){
-      ENTER_FCN("BaseMatrix::BaseMatrix");
     }
 
     //! Default Destructor
@@ -34,7 +33,6 @@ namespace OLAS {
     //! inherited object is destroyed via a reference to BaseMatrix, the
     //! corresponding desctructor is called.
     virtual ~BaseMatrix(){
-      ENTER_FCN("BaseMatrix::~BaseMatrix");
     }
 
     //! Return the block size of the matrix
@@ -112,7 +110,6 @@ namespace OLAS {
     //! since not all derived classes implement it, yet. The pseudo
     //! implementation will issue an error, if not over-written.
     virtual void Scale( Double factor ) {
-      ENTER_FCN( "BaseMatrix::Scale" );
       (*error) << "BaseMatrix::Scale: Method must be implemented by derived "
                << "class, but is not!";
       Error( __FILE__, __LINE__ );

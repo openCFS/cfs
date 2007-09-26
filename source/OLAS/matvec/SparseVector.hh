@@ -61,7 +61,6 @@ namespace OLAS {
     //! perform this task itself, but only performs a downcast and calls
     //! the method with an SparseVector interface.
     void Add(const BaseVector& vec){
-      ENTER_FCN("SparseVector::Add");
       TRY_CAST
       ConstRefCast(vec,SparseVector,stdvec);
       Add(stdvec);
@@ -84,14 +83,12 @@ namespace OLAS {
     //! This implementation only performs a downcast and calls the method
     //! with an interface for SparseVectors.
     virtual void Axpy( const Double alpha, const BaseVector &y ) {
-      ENTER_FCN("SparseVector::Axpy");
       TRY_CAST
       ConstRefCast(y,SparseVector,std_y);
       Axpy( alpha, std_y );
       CATCH_CAST
     }
     virtual void Axpy( const Complex alpha, const BaseVector &y ) {
-      ENTER_FCN("SparseVector::Axpy");
       TRY_CAST
       ConstRefCast(y,SparseVector,std_y);
       Axpy( alpha, std_y );
@@ -126,7 +123,6 @@ namespace OLAS {
     //! assignment operator does simply down-cast the base vector and call
     //! the implementation for standard vectors.
     virtual BaseVector &operator= ( const BaseVector &bvec ) {
-      ENTER_IFCN( "SparseVector::operator=" );
       TRY_CAST {
 	ConstRefCast( bvec, SparseVector, svec );
 	*this = svec;
@@ -146,7 +142,6 @@ namespace OLAS {
 
 #define DECL_SparseVector_FCN(TYPE)\
 	void Add(TYPE a, const BaseVector& vec){\
-	ENTER_FCN("SparseVector::Add");\
 	TRY_CAST\
 	ConstRefCast(vec,SparseVector,stdvec);\
 	Add(a,stdvec);\
@@ -158,7 +153,6 @@ namespace OLAS {
 \
 	void Add(TYPE a, const BaseVector& vec1,\
 		TYPE b,const BaseVector& vec2){\
-	ENTER_FCN("SparseVector::Add");\
 	TRY_CAST\
 	ConstRefCast(vec1,SparseVector,stdvec1);\
 	ConstRefCast(vec2,SparseVector,stdvec2);\
@@ -171,7 +165,6 @@ namespace OLAS {
 	 {Error("SparseVector::Add(): Not implemented here",__FILE__,__LINE__);};\
 \
 	void Inner(const BaseVector& vec,TYPE& s) const {\
-	ENTER_FCN("SparseVector::Inner");\
 	TRY_CAST\
 	ConstRefCast(vec,SparseVector,stdvec);\
 	Inner(stdvec,s);\

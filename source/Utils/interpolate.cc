@@ -15,7 +15,6 @@ namespace CoupledField {
   Double Interpolate1D::Interpolate( const char* fileName, 
                                      double xEntry,
                                      double method ) {
-    ENTER_FCN( "Interpolate1D::Interpolate" );
 
     // check if file was already read in
     if( xVals_.find(std::string(fileName)) == xVals_.end() ) {
@@ -107,7 +106,6 @@ namespace CoupledField {
   void Interpolate1D::ReadFile( const char* fileName, 
                                 Vector<Double>& xVals,
                                 Vector<Double>& yVals ) {
-    ENTER_FCN( "Interpolate1D::ReadFile" );
     
     // open file
     std::ifstream sampleData;
@@ -174,7 +172,6 @@ namespace CoupledField {
   void Interpolate1D::Spline( const Vector<Double>& x, const Vector<Double>& y,
                               Double yp0, Double ypn,
                               Vector<Double>& y2) {
-    ENTER_FCN( "Interpolate1D::Spline" );
     
     // Taken from "Numerical Recipes in C", W.H. Press et al.
     

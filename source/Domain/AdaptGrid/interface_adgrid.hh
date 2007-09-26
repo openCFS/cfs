@@ -269,7 +269,6 @@ namespace CoupledField
   inline GridInterfaceAdaptive<DIM>::GridInterfaceAdaptive(FileType * aptFileType)
     : Grid(aptFileType)
   {
-    ENTER_FCN( "GridInterfaceAdaptive<Dim>::GridInterfaceAdaptive<Dim>" );
     //ptGridAdaptive=new GridAdaptive<DIM>(ptFileType);
     ptGridAdaptive=new grd::MultilevelGrid;
   }

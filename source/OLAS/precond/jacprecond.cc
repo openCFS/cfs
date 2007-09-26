@@ -11,7 +11,6 @@ namespace OLAS {
   // ****************
   // template<class T_storage,typename T>
   // JacPrecond<T_storage,T>::JacPrecond(Integer asize ) {
-  //   ENTER_FCN("JacPrecond::JacPrecond");
   //   size_   = asize;
   //   NewArray(diagInv_,T,size_);
   // }
@@ -24,7 +23,6 @@ namespace OLAS {
   JacPrecond<T_storage,T>::JacPrecond( const StdMatrix &mat, 
                                        OLAS_Params *myParams,
 				       OLAS_Report *myReport )  {
-    ENTER_FCN( "JacPrecond::JacPrecond" );
     this->myParams_ = myParams;
     this->myReport_ = myReport;
     size_     = mat.GetNrows();
@@ -37,7 +35,6 @@ namespace OLAS {
   // **************
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::~JacPrecond() {
-    ENTER_FCN( "JacPrecond::~JacPrecond" );
     DeleteArray( diagInv_ );
   }
 
@@ -49,7 +46,6 @@ namespace OLAS {
   void JacPrecond<T_storage,T>::Apply( const T_storage &sysmat,	
 				       const Vector<T> &r,
 				       Vector<T> &z ) const {
-    ENTER_FCN( "JacPrecond::Apply" );
 
     PROFILE( "JacPrecond::Apply",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
@@ -66,7 +62,6 @@ namespace OLAS {
   // ***************************
   template<class T_storage,typename T>
   void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
-    ENTER_FCN( "JacPrecond::Setup" );  
 
 #pragma omp parallel for 
     for ( Integer i = 1; i <= size_; i++ ) {

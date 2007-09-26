@@ -44,14 +44,12 @@ namespace CoupledField {
     //! Constructor expecting reference to a material data object
     ADBInt( BaseMaterial* matData, SubTensorType type = FULL ) 
       : BaseForm( matData, type ) {
-      ENTER_FCN( "ADBInt::ADBInt" );
       baseType_ = STIFFNESS;
       name_ = "ADBInt";
     };
     
     //! Destructor
     virtual ~ADBInt() {
-      ENTER_FCN( "ADBInt::~ADBInt" );
     };
 
     //@}

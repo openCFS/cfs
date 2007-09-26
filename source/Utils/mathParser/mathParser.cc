@@ -31,7 +31,6 @@ namespace CoupledField {
   }
   
   MathParser::MathParser() {
-    ENTER_FCN( "MathParser::MathParser" );
 
     // Create global math parser and initialize it
     InitParser( parsers_[GLOB_HANDLER], true );
@@ -43,7 +42,6 @@ namespace CoupledField {
 
 
   MathParser::~MathParser() {
-    ENTER_FCN( "MathParser::~MathParser" );
 
     // Clear all variables in Pools
     PoolMap::iterator mapIt;
@@ -61,7 +59,6 @@ namespace CoupledField {
   }
 
   MathParser::HandleType MathParser::GetNewHandle() {
-    ENTER_FCN( "MathParser::GetNewHandle" );
     
     // Obtain new handle
     HandleType newHandle = GLOB_HANDLER;
@@ -90,7 +87,6 @@ namespace CoupledField {
   }
 
   void MathParser::ReleaseHandle( HandleType handle) {
-    ENTER_FCN( "MathParser::ReleaseHandle" );
 
     // Check if handle is the global one
     if( handle == GLOB_HANDLER ) {
@@ -114,7 +110,6 @@ namespace CoupledField {
   void MathParser::SetValue( HandleType handler,
                              const std::string & varName,
                              Double val) {
-    ENTER_FCN( "MathParser::RegisterVariable" );
 
     // Get parser related to handler
     mu::Parser & myParser  = GetParser( handler );
@@ -161,7 +156,6 @@ namespace CoupledField {
   void MathParser::SetCoordinates( HandleType handler,
                                    const CoordSystem & coosy,
                                    const Vector<Double> & globCoord ) {
-    ENTER_FCN( "MathParser::SetCoordinates" );
 
     // Get local representation of global vector
     Vector<Double> locCoord;
@@ -177,7 +171,6 @@ namespace CoupledField {
   }
 
   void MathParser::SetExpr( HandleType handler, const std::string & expr) {
-    ENTER_FCN( "MathParser::SetExpr" );
 
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
@@ -195,7 +188,6 @@ namespace CoupledField {
 
 
   Double MathParser::Eval( HandleType handler ) {
-    ENTER_FCN( "MathParser::Eval" );
 
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
@@ -208,7 +200,6 @@ namespace CoupledField {
   }
 
   void MathParser::InitParser( mu::Parser &parser, bool isGlobal ) {
-    ENTER_FCN( "MathParser::InitParser" );
     
     // Register alias functions for >, >=, <=, <
     parser.DefineOprt( "gt", MathParser::Op_gt, 2);
@@ -243,7 +234,6 @@ namespace CoupledField {
   }
   
   Double* MathParser::AddVariable( const char *varName ) {
-    ENTER_FCN( "MathParser::AddVariable" );
     
     dynamicPool_.push_back( 0.0 );
     return &dynamicPool_.back();

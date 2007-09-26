@@ -13,7 +13,6 @@ namespace CoupledField
 
   CoupledPDEDef::CoupledPDEDef(Grid * aptGrid)
   {
-    ENTER_FCN( "CoupledPDEDef::CoupledPDEDef" );
 
     ptGrid_ = aptGrid;
 
@@ -27,7 +26,6 @@ namespace CoupledField
 
   CoupledPDEDef::~CoupledPDEDef()
   {
-    ENTER_FCN( "CoupledPDEDef::~CoupledPDEDef" );
 
     for (UInt i=0; i<CoupledPDEs_.GetSize(); i++)
       if (CoupledPDEs_[i]) delete CoupledPDEs_[i];
@@ -38,7 +36,6 @@ namespace CoupledField
                                      StdVector<StdPDE*> & UnorderedPDEs,
                                      ParamNode * iterCoupledNode )
   {
-    ENTER_FCN( "CoupledPDEDef::OrderPDEs" );
 
 
     bool found = false;
@@ -163,24 +160,20 @@ namespace CoupledField
 
   void CoupledPDEDef::DefineOrdering()
   {
-    ENTER_FCN( "CoupledPDEDef::DefineOrdering" );
 
 #include <CoupledPDE/coupledPDE.conf>
   }
 
   Definition::Definition()
   {
-    ENTER_FCN ( "Definition::Definition" );
   }
 
   Definition::~Definition()
   {
-    ENTER_FCN( "Definition::~Definition" );
   }
 
   void Definition::AddPDE(std::string PDEName)
   {
-    ENTER_FCN( "Definition::AddPDE" );
 
     PDEs_.Push_back(PDEName);
     NumPDEs_ = PDEs_.GetSize();
@@ -191,7 +184,6 @@ namespace CoupledField
                                     SolutionType Quantity,
                                     bool optionalCoupling) //"optionalCoupling" is by default false
   {
-    ENTER_FCN( "Definition::AddCoupling" );
 
     InputCouplingTypes_[PDEName].Push_back(InType);
     InputCouplingQuantities_[PDEName].Push_back(Quantity);

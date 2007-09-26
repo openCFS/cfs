@@ -17,7 +17,6 @@ namespace OLAS {
   //   Default Constructor
   // ***********************
   Lapack_LU::Lapack_LU() {
-    ENTER_FCN( "Lapack_LU::Lapack_LU" );
     Error( "Default constructor of LAPACK_LU is forbidden!",
 	   __FILE__, __LINE__ );
   }
@@ -28,7 +27,6 @@ namespace OLAS {
   // *****************************
   Lapack_LU::Lapack_LU( OLAS_Params *myParams, OLAS_Report *myReport )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
-    ENTER_FCN( "Lapack_LU::Lapack_LU" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -54,7 +52,6 @@ namespace OLAS {
 			OLAS_Report *myReport )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
-    ENTER_FCN( "Lapack_LU::Lapack_LU" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -74,7 +71,6 @@ namespace OLAS {
   //   Deep Default Destructor
   // ***************************
   Lapack_LU::~Lapack_LU() {
-    ENTER_FCN( "Lapack_LU::~Lapack_LU" );
     delete facmat_;
     delete[] pivots_;
     delete[] workspaceF77REAL8_;
@@ -89,7 +85,6 @@ namespace OLAS {
   //   Setup: Perform Factorisation
   // ********************************
   void Lapack_LU::Setup( BaseMatrix &sysmat ) {
-    ENTER_FCN( "Lapack_LU::Setup" );
     PrivateSetup( sysmat );
   }
 
@@ -99,7 +94,6 @@ namespace OLAS {
   // ********************************
   void Lapack_LU::PrivateSetup( const BaseMatrix &sysmat ) {
 
-    ENTER_FCN( "Lapack_LU::PrivateSetup" );
 
     // Report to logfile
     (*cla) << " --------------------------------------\n"
@@ -159,7 +153,6 @@ namespace OLAS {
   // *******************************************
   void Lapack_LU::FactoriseF77REAL8( const StdMatrix &stdmat ) {
 
-    ENTER_FCN( "Lapack_LU::FactoriseF77REAL8" );
 
     // Down-cast matrix
     const LapackGBMatrix<F77real8,double> &mat =
@@ -319,7 +312,6 @@ namespace OLAS {
   // **********************************************
   void Lapack_LU::FactoriseF77COMPLEX16( const StdMatrix &stdmat ) {
 
-    ENTER_FCN( "Lapack_LU::FactoriseF77COMPLEX16" );
 
     // Down-cast matrix
     const LapackGBMatrix<F77complex16,Complex> &mat =
@@ -476,7 +468,6 @@ namespace OLAS {
   void Lapack_LU::Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
 			 const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "Lapack_LU::Solve" );
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
@@ -551,7 +542,6 @@ namespace OLAS {
   void Lapack_LU::SolveF77REAL8( const BaseVector &rhs, BaseVector &sol,
 				 const BaseMatrix *mat ) {
 
-    ENTER_FCN( "Lapack_LU::SolveF77REAL8" );
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
@@ -707,7 +697,6 @@ namespace OLAS {
   void Lapack_LU::SolveF77COMPLEX16( const BaseVector &rhs, BaseVector &sol,
 				     const BaseMatrix *mat ) {
 
-    ENTER_FCN( "Lapack_LU::SolveF77COMPLEX16" );
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );

@@ -31,7 +31,6 @@ namespace CoupledField {
 
     //! Destructor
     ~CommandLineHandlerSetting() {
-      ENTER_FCN( "CommandLineHandlerSetting::~CommandLineHandlerSetting" );
     };
 
     //@}
@@ -54,7 +53,6 @@ namespace CoupledField {
     //! CFS++ internally as basename for the generation of several (default)
     //! names for input and output files.
     std::string GetSimName() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetSimName" );
       return simName_;
     };
 
@@ -63,7 +61,6 @@ namespace CoupledField {
     //! This method can be used to query the name of the parameter file in
     //! XML format that contains the steering parameters for the simulation.
     std::string GetParamFile() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetParamFile" );
       std::string paramFile = DefaultParamFile();
       Setting *aux = commandLine_.getSetting( markerLongParamFile_.c_str() );
       if ( aux != NULL ) {
@@ -80,7 +77,6 @@ namespace CoupledField {
     //! interact dynamically with CFS++. If no filename was provided an
     //! empty string is returned.
     std::string GetScriptFileName() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetParamFile" );
       std::string fileName = "";
       Setting *aux = commandLine_.getSetting( markerLongScriptFileName_.c_str() );
       if ( aux != NULL ) {
@@ -101,7 +97,6 @@ namespace CoupledField {
     //! - This path is also used to locate the default XML-file that is
     //!   currently still needed by the XMLParamHandler.
     std::string GetSchemaPath() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetSchemaPath" );
       std::string schemaPath = DefaultSchemaPath();
       Setting *aux = commandLine_.getSetting( markerLongSchemaPath_.c_str() );
       if ( aux != NULL ) {
@@ -115,7 +110,6 @@ namespace CoupledField {
     //! This method can be used to query the name of the mesh file containing
     //! the description of the FEM mesh for the simulation.
     std::string GetMeshFile() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetMeshFile" );
       std::string meshFile = "";
       Setting *aux = commandLine_.getSetting( markerLongMeshFile_.c_str() );
       if ( aux != NULL ) {
@@ -132,7 +126,6 @@ namespace CoupledField {
     //! re-export it to an output file in the format specified in the XML
     //! parameter file.
     bool GetPrintGrid() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetPrintGrid" );
       bool retVal = DefaultPrintGrid();
       Setting *aux = commandLine_.getSetting( markerLongPrintGrid_.c_str() );
       if ( aux != NULL ) {
@@ -149,7 +142,6 @@ namespace CoupledField {
     //! numbers to equation numbers in the algebraic system. The maps are
     //! written to the standard OLAS report file.
     bool GetShowEqnMap() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetShowEqnMap" );
       bool retVal = DefaultShowEqnMap();
       Setting *aux = commandLine_.getSetting( markerLongShowEqnMap_.c_str() );
       if ( aux != NULL ) {
@@ -168,7 +160,6 @@ namespace CoupledField {
     //! \note The flag is only of use in the case that profiling was enabled
     //!       during compilation by defining the PROFILING macro.
     bool GetDoProfile() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetDoProfile" );
       bool retVal = DefaultDoProfile();
       Setting *aux = commandLine_.getSetting( markerLongDoProfile_.c_str() );
       if ( aux != NULL ) {
@@ -182,7 +173,6 @@ namespace CoupledField {
     //! This method can be used to query the status of the restart flag.
     //! If this flag is true the simulation restarts from an previous state.
     bool GetRestart() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetRestart" );
       bool retVal = DefaultRestart();
       Setting *aux = commandLine_.getSetting( markerLongRestart_.c_str() );
       if ( aux != NULL ) {
@@ -198,7 +188,6 @@ namespace CoupledField {
     //! executable write a skeleton XML parameter file that must then be
     //! filled out by the user for a subsequent simulation run.
     bool GetWriteSkeleton() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetWriteSkeleton" );
       bool retVal = DefaultWriteSkeleton();
       Setting *aux = commandLine_.getSetting( markerLongWriteSkeleton_.c_str() );
       if ( aux != NULL ) {
@@ -207,29 +196,7 @@ namespace CoupledField {
       return retVal;
     };
 
-    //! Return depth of function tracing
-
-    //! This method can be used to query the depth desired for generating
-    //! function trace information.
-    //! \note Function tracing is a time-consuming process that can easily
-    //!       lead to the generation of a tremendously large output file
-    //!       containing the trace information. Thus, tracing must explicitely
-    //!       be compiled into the executable by turning on the respective
-    //!       option in <em>Makefile.option</em>. Specifying a trace depth of
-    //!       zero avoids generation of the trace file, but does not remove
-    //!       the work associated with function tracing.
-    UInt GetTraceDepth() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetTraceDepth" );
-      Setting *aux = commandLine_.getSetting( markerLongTraceDepth_.c_str() );
-      UInt retVal = DefaultTraceDepth();
-      if ( aux != NULL ) {
-        retVal = (UInt)(aux->getInt());
-      }
-      return retVal;
-    };
-
     bool GetDumpStats() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetDumpStats" );
       bool retVal = DefaultDumpStats();
       Setting *aux = commandLine_.getSetting( markerLongDumpStats_.c_str() );
       if ( aux != NULL ) {
@@ -240,7 +207,6 @@ namespace CoupledField {
 
 #ifdef DEBUG
     bool GetForceSegFault() const {
-      ENTER_FCN( "CommandLineHandlerSetting::GetForceSegFault" );
       bool retVal = DefaultForceSegFault();
       Setting *aux = commandLine_.getSetting( markerLongForceSegFault_.c_str() );
       if ( aux != NULL ) {

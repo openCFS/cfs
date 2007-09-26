@@ -20,12 +20,10 @@ namespace CoupledField {
 
     //! Default Constructor
     ODESolver_RKF45()  {
-      ENTER_FCN( "ODESolver_RKF45::ODESolver_RKF45" );
     }
 
     //! Default Destructor
     ~ODESolver_RKF45() {
-      ENTER_FCN( "ODESolver_RKF45::~ODESolver_RKF45" );
     }
 
     //! Compute the solution of the initial value problem
@@ -50,7 +48,6 @@ namespace CoupledField {
 
 
     //   void SetNumEl (Integer numEl){
-    //ENTER_IFCN( "ODESolver_RKF45::SetNumEl" );
     // numEl_ = numEl;
     //}
 

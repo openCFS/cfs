@@ -35,7 +35,6 @@ namespace CoupledField {
 
     //! Destructor
     ~nlinElecHystInt() {
-      ENTER_FCN( "nlinElecHystInt::~nlinElecHystInt" );
 
     }
     //@}
@@ -62,7 +61,6 @@ namespace CoupledField {
     
     //! Returns dimension of D matrix
     UInt getDimD() {
-      ENTER_IFCN( "nlinElecHystInt::getDimD" );
       return dim_;
     }
 
@@ -72,7 +70,6 @@ namespace CoupledField {
 
     //! Returns nr. of degrees of freedom
     UInt getNrDofs() {
-      ENTER_IFCN( "linElecInt::getNrDofs" );
       return 1;
     }
         

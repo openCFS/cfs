@@ -672,7 +672,6 @@ namespace CoupledField
   template<class TYPE>
   inline TYPE *  Matrix<TYPE>::operator[] (const UInt i) const
   { 
-    ENTER_IFCN("Matrix::operator[]");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -744,7 +743,6 @@ namespace CoupledField
   inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat, 
                                  CFSMatrix & rMat) const {
 
-    ENTER_IFCN( "Matrix::Mult" );
 
     Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
     Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
@@ -797,7 +795,6 @@ namespace CoupledField
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator+(const Matrix<TYPE2> &x) const
   {
-    ENTER_IFCN("Matrix::operator+");
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
@@ -822,7 +819,6 @@ namespace CoupledField
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator-(const Matrix<TYPE2> &x) const
   {
-    ENTER_IFCN("Matrix::operator-");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
@@ -848,7 +844,6 @@ namespace CoupledField
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator* (const TYPE2 &x) const 
   { 
-    ENTER_IFCN("Matrix::operator*");
   
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -869,7 +864,6 @@ namespace CoupledField
   Vector<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator*(const Vector<TYPE2> &x) const
   {
-    ENTER_IFCN("Matrix::operator*");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -895,7 +889,6 @@ namespace CoupledField
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator*(const Matrix<TYPE2> &x) const
   {
-    ENTER_IFCN("Matrix::operator*");
 
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 

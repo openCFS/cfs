@@ -12,10 +12,6 @@ namespace OutInfo
 {
   std::ostream *cla = NULL;
   
-#ifdef TRACE
-  std::ostream * trace    = NULL;
-#endif
-
 #ifdef DEBUG
   std::ostream * debug    = NULL;
   std::ostream * test     = NULL;

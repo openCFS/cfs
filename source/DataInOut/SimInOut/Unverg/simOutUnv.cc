@@ -21,7 +21,6 @@ namespace CoupledField {
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
                                ParamNode * outputNode ) 
     : SimOutput ( filename, outputNode ) {
-    ENTER_FCN( "SimOutputUnv::SimOutputUnv" );
     
     formatName_ = "unv";
     fileName_ = filename;
@@ -42,7 +41,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   SimOutputUnv::~SimOutputUnv() {
-    ENTER_FCN( "SimOutputUnv::~SimOutputUnv" );
     delete output;
   }
 
@@ -52,7 +50,6 @@ namespace CoupledField {
   // *************
   void SimOutputUnv::WriteGrid() {
 
-    ENTER_FCN( "SimOutputUnv::WriteGrid" );
 
     if ( !output ) {
       EXCEPTION( "File for output results is not initialized" );
@@ -453,12 +450,10 @@ namespace CoupledField {
   void SimOutputUnv::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd ) {
-    ENTER_FCN( "SimOutputUnv::RegisterResult" );
     
   }
 
   void SimOutputUnv::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( " SimOutputUnv::BeginStep" );
     
     actStep_ = stepNum;
     actStepVal_ = stepVal;
@@ -466,12 +461,10 @@ namespace CoupledField {
   }
 
   void SimOutputUnv::AddResult( shared_ptr<BaseResult>  sol ) {
-    ENTER_FCN( "SimOutputUnv::SetResult" );
     resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
   }
   
   void SimOutputUnv::FinishStep( ) {
-    ENTER_FCN( "SimOutputUnv::FinishStep" );
 
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
@@ -548,7 +541,6 @@ namespace CoupledField {
 
                                    const StdVector<std::string>& dofNames ){
 
-    ENTER_FCN( "StdPDE::SortStresses" );
 
     //soring according to capa (unv) notation
     //our notation is Voigt: Txx Tyy Tzz Tyz Txz Txy
@@ -623,7 +615,6 @@ namespace CoupledField {
   
   std::string SimOutputUnv::SolutionTypeToString(const SolutionType type) const
   {
-    ENTER_FCN( "SimOutputUnv::SolutionTypeToString" );
 
     //   std::string warnMsg;
 

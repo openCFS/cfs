@@ -8,7 +8,6 @@ namespace CoupledField{
 
   PDEMemento::PDEMemento()
   {
-    ENTER_IFCN( "PDEMemento::PDEMemento");
 
     isSet_ = false;
     stepNum_ = 0;
@@ -17,13 +16,11 @@ namespace CoupledField{
 
   PDEMemento::~PDEMemento()
   {
-    ENTER_IFCN( "PDEMemento::~PDEMemento");
     solution_.clear();
   }
 
   void PDEMemento::Clear()
   {
-    ENTER_FCN( "PDEMemento::Clear");
     std::map<std::string,CFSVector*>::iterator it;
     
     for( it = solution_.begin(); it != solution_.end(); it++ ) {

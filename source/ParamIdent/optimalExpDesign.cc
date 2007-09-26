@@ -16,7 +16,6 @@ namespace CoupledField
 
   void piezoParamIdent::optimalExpDesign(){
 
-    ENTER_FCN("piezoParamIdent::optimalDesign");
 
 #ifndef USE_LAPACK
     std::cout<<"\n! Optimum experiment design works with LAPACK Routines"<<std::endl;
@@ -286,7 +285,6 @@ namespace CoupledField
 
   void piezoParamIdent::optimalExpDesignDiffNumberFreqs(){
 
-    ENTER_FCN("piezoParamIdent::optimalExpDesignDiffNumberFreqs");
 
     nrMeasuredData=1;
     Vector<Double> newFreqs;
@@ -383,7 +381,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::descentMethod(Complex & functional){
-    ENTER_FCN("piezoParamIdent::descentMethod");
 
     Vector<Complex> gradient;
     Double lambda;
@@ -592,7 +589,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::createCovA(Complex &J, bool writeOutCov){
-    ENTER_FCN("piezoParamIdent::createCovA");
 
     //    Complex J;
     J=Complex(0.0,0.0);
@@ -857,7 +853,6 @@ namespace CoupledField
 
   void piezoParamIdent::createGradient(Vector<Complex> & grad, Double dOmega){
 
-    ENTER_FCN("piezoParamIdent::createGradient");
 
     Vector<Complex> jacobi1, jacobi2;
     Vector<Double> freqsOld;
@@ -890,7 +885,6 @@ namespace CoupledField
 
 #ifdef USE_LAPACK
   void piezoParamIdent::invertWithLapack(Matrix<Complex> & data){
-    ENTER_FCN("piezoParamIdent::invertWithLapack");
     
     std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
     std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
@@ -943,7 +937,6 @@ namespace CoupledField
   }
   void piezoParamIdent::createJacobian(Vector<Complex> & jacobi, Double omega){
 
-    ENTER_FCN("piezoParamIdent::createJacobian");
     //    std::cout<<"create Jacobian .."<<std::endl;
 
     Vector<Double>parIncr1, parIncr2;
@@ -1020,7 +1013,6 @@ namespace CoupledField
 
   void piezoParamIdent::createFVec(Complex & F_hat_, bool typeOut,
                                    Double frequency){
-    ENTER_FCN("PiezoParamIdent:createFVec");
     //    std::cout<<"createFVec ...."<<std::endl;
       
 

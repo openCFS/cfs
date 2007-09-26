@@ -47,7 +47,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcApproximation( bool start )
   {
-    ENTER_FCN( "SmoothSpline::CalcApproximation" );
 
     Integer i;
 
@@ -87,7 +86,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcBestParameter()
   {
-    ENTER_FCN( "SmoothSpline::CalcBestParameter" );
 
     Integer i, j;
     bool monotone = true;
@@ -169,7 +167,6 @@ namespace CoupledField
 
   void SmoothSpline::ConstructMatrix()
   {
-    ENTER_FCN( "SmoothSpline::ConstructMatrix" );
 
     Integer i,j,k;
     Double x1,x2,x3,x4,x5,x6,x7,x8;
@@ -248,7 +245,6 @@ namespace CoupledField
 
   void SmoothSpline::ConstructRHS(Vector<Double>& y)
   {
-    ENTER_FCN( "SmoothSpline::ConstructRHS" );
 
     Integer i,j;
 
@@ -286,7 +282,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcCoef()
   {
-    ENTER_FCN( "SmoothSpline::CalcCoef" );
 
     Vector<Double> y(size_+1);
     Vector<Double> c(size_*size_+1);
@@ -348,7 +343,6 @@ namespace CoupledField
 
   Double SmoothSpline::EvaluateFunc(Double t)
   {
-   ENTER_FCN( "SmoothSpline::EvaluateFunc" );
 
     Integer i,j,k;
     Double f0,f1,f2,f3,p0,p1,p2,p3;
@@ -389,7 +383,6 @@ namespace CoupledField
 
   Double SmoothSpline::EvaluatePrime(Double t)
   {
-    ENTER_FCN( "SmoothSpline::EvaluatePrime" );
 
     Integer i,j,k;
     Double f0,f1,f2,f3,p0,p1,p2,p3;
@@ -430,7 +423,6 @@ namespace CoupledField
 
   Double SmoothSpline::EvaluateFuncInv( Double f )
   {
-    ENTER_FCN( "SmoothSpline::EvaluateFuncInv" );
 
     Double z,k,d;
     Integer i;
@@ -451,7 +443,6 @@ namespace CoupledField
 
   Double SmoothSpline::EvaluatePrimeInv( Double f )
   {
-    ENTER_FCN( "SmoothSpline::EvaluatePrimeInv" );
 
     Double z,p;
     Integer i;
@@ -466,7 +457,6 @@ namespace CoupledField
 
   void SmoothSpline::EvaluateInv( Double v, Double& f, Double& p )
   {
-    ENTER_FCN( "SmoothSpline::EvaluateInv" );
 
     Integer i;
   
@@ -478,7 +468,6 @@ namespace CoupledField
 
   Double SmoothSpline::HermiteFunc( Double t, Integer i )
   {
-    ENTER_FCN( "SmoothSpline::HermiteFunc" );
 
     Double x;
 
@@ -501,7 +490,6 @@ namespace CoupledField
 
   Double SmoothSpline::HermitePrime( Double t, Integer i )
   {
-    ENTER_FCN( "SmoothSpline::HermitePrime" );
 
     Double x;
 
@@ -524,7 +512,6 @@ namespace CoupledField
 
   Integer SmoothSpline::GetInterval( Double t )
   {
-    ENTER_FCN( "SmoothSpline::GetInterval" );
 
     Integer i;
     Double theta;
@@ -551,7 +538,6 @@ namespace CoupledField
 
   Double SmoothSpline::Newton( Double f, Double start )
   {
-    ENTER_FCN( "SmoothSpline::Newton" );
 
     Double za,zn,rel,eps;
     Integer k;
@@ -581,7 +567,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcStart()
   {
-    ENTER_FCN( "SmoothSpline::CalcStart" );
 
     Integer i;
     Double start = 0;
@@ -597,7 +582,6 @@ namespace CoupledField
 
   bool SmoothSpline::MonotoneBH()
   {
-    ENTER_FCN( "SmoothSpline::MonotoneBH" );
 
     Integer i,j;
     bool monotone;
@@ -665,7 +649,6 @@ namespace CoupledField
 
   bool SmoothSpline::MonotoneNu()
   {
-    ENTER_FCN( "SmoothSpline::MonotoneNu" );
 
     Integer i,j;
     Double eps = 1e-6;
@@ -688,7 +671,6 @@ namespace CoupledField
 
   void SmoothSpline::Read()
   {
-    ENTER_FCN( "SmoothSpline::Read" );
 
     UInt i;
 
@@ -719,7 +701,6 @@ namespace CoupledField
 
   void SmoothSpline::Print( )
   {
-    ENTER_FCN( "SmoothSpline::Print" );
 
     MakeOutput( x_, y_ );
     MakeOutputInv( x_, y_ );
@@ -730,7 +711,6 @@ namespace CoupledField
 
   void SmoothSpline::MakeOutput( Vector<Double>& x, Vector<Double>& y )
   {
-    ENTER_FCN( "SmoothSpline::MakeOutput" );
 
     Integer i,j;
     Double t,z,delta,val;
@@ -820,7 +800,6 @@ namespace CoupledField
 
   void SmoothSpline::MakeOutputInv( Vector<Double>& x, Vector<Double>& y)
   {
-    ENTER_FCN( "SmoothSpline::MakeOutputInv" );
 
     Integer i;
     Double t,delta;
@@ -861,7 +840,6 @@ namespace CoupledField
 
   void SmoothSpline::MakeOutputNu()
   {
-    ENTER_FCN( "SmoothSpline::MakeOutputNu" );
 
     std::ofstream out_nu;
     out_nu.open("nu_B.dat");

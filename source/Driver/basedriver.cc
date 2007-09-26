@@ -20,7 +20,6 @@ namespace CoupledField
 
   BaseDriver :: BaseDriver( )
   {
-    ENTER_FCN( "BaseDriver::BaseDriver" );
 
     actSequenceStep_ = 1;
     nummeshes_=0;
@@ -29,7 +28,6 @@ namespace CoupledField
 
   BaseDriver :: ~BaseDriver()
   {
-    ENTER_FCN( "BaseDriver::~BaseDriver" );
     //delete ptdomain_;
   }
 
@@ -53,7 +51,6 @@ namespace CoupledField
   // for computation with adaptivity
   bool BaseDriver::printMeshesOrNot() {
 
-    ENTER_FCN( "BaseDriver::DefinePrintMeshesOrNot" );
   
     EXCEPTION( "Currently not working, need change to XML-Standard" );
     bool meshesInfo=false;
@@ -63,7 +60,6 @@ namespace CoupledField
 
   void BaseDriver :: PrintSeqMeshes()
   {
-    ENTER_FCN( "BaseDriver::PrintSeqMeshes" );
 
     Warning( "Not implemented anymore", __FILE__, __LINE__ );
   }

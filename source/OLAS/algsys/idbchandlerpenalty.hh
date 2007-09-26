@@ -169,12 +169,10 @@ namespace OLAS {
 
     //! Combine different FE matrices into a single system matrix
     void BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::BuiltSystemMatrix" );
     }
 
     //! Remove inhomogeneous Dirichlet BCs from right hand side
     inline void RemoveIDBCFromRHS( BaseVector *rhs ) {
-      ENTER_FCN( "IDBCHandler::RemoveIDBCFromRHS" );
     }
 
     //! Add weight of coupling between a fixed and a free dof into matrix
@@ -185,7 +183,6 @@ namespace OLAS {
                                UInt colInd,
                                Double realPart,
                                Double imagPart = 0.0 ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::AddWeightFixedToFree" );
     };
 
     //! Set weight of coupling between a fixed and a free dof into matrix
@@ -196,34 +193,29 @@ namespace OLAS {
                                UInt colInd,
                                Double realPart,
                                Double imagPart = 0.0 ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::SetWeightFixedToFree" );
     };
 
     //! Get weight of coupling between a fixed and a free dof from matrix
     void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
                                Double & realPart,Double & imagPart ) const {
-      ENTER_FCN( "IDBC_HandlerPenalty::GetWeightFixedToFree" );
     };
     
     //! Set the value of all coupling weights of a free dof to its fixed ones
     void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
                         Double realPart, Double imagPart = 0.0 ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::SetRowWeights" );
     }
     
     
     //! Set the value of all coupling weights of a fixed dof to its free ones
     void SetColWeights( FEMatrixType matID, PdeIdType pdeID,UInt colInd,
                         Double realPart, Double imagPart = 0.0 ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::SetColWeights" );
     };
 
     
 
     //! Re-set specified internal matrix to zero
     void InitMatrix( FEMatrixType matrixID ) {
-      ENTER_FCN( "IDBC_HandlerPenalty::InitMatrix" );
     };
 
     //@}

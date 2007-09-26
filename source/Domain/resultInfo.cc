@@ -12,7 +12,6 @@ namespace CoupledField {
 
   ResultInfo::ResultInfo() {
 
-    ENTER_FCN( "ResultInfo::ResultInfo");
     resultType = NO_SOLUTION_TYPE;
     dofNames = "";
     unit = "";
@@ -23,7 +22,6 @@ namespace CoupledField {
 
 
   UInt ResultInfo::GetDofIndex( const std::string & dof ) const {
-    ENTER_FCN( "ResultInfo::GetDofIndex");
 
     Integer pos = dofNames.Find( dof );
     if( pos < 0  ) {
@@ -35,7 +33,6 @@ namespace CoupledField {
 
 
   std::string ResultInfo::GetDofName( const UInt dof ) const {
-    ENTER_FCN( "ResultInfo::GetDofName");
     if( dof <= 0 || dof > dofNames.GetSize()+1 ) {
       EXCEPTION( "'dof' must be in the range of [1.." 
                  << dofNames.GetSize()+1 << "]!" );
@@ -54,7 +51,6 @@ namespace CoupledField {
 
 
   ResultInfo& ResultInfo::operator=( const ResultInfo& data ) {
-    ENTER_FCN( "ResultInfo::operator=");
 
     resultType = data.resultType;
     resultName = data.resultName;

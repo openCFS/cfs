@@ -412,7 +412,7 @@ namespace CoupledField {
 
   //--------------------- Stuff for handling different IO files -------------
 
-  typedef enum {TRACE_FILE, DEBUG_FILE, MEMTRACE_FILE, OLAS_FILE} AuxFileType;
+  typedef enum {DEBUG_FILE, MEMTRACE_FILE, OLAS_FILE} AuxFileType;
 
 
   //------------------------ Stuff for bubble simulation --------------------
@@ -422,17 +422,15 @@ namespace CoupledField {
   extern BubbleDynType bubbleDyn;
  
 
-  //------------------------ Files for debug, trace and information ---------
+  //------------------------ Files for debug and information ---------
 
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the
-  // different filestreams such as (*cla), (*trace) etc. Therefore they are
+  // different filestreams such as (*cla) etc. Therefore they are
   // explicitely imported into namespace CoupledField at this point
 #ifndef INTEGLIB
-  using OutInfo::trace;
   using OutInfo::debug;
   using OutInfo::cla;
   using OutInfo::memtrace;
-  using OutInfo::data;
 #endif
   using OutInfo::error;
   using OutInfo::warning;

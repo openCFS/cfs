@@ -22,7 +22,6 @@ namespace OLAS {
   template <class T>
   ILDLTPFactoriser<T>::ILDLTPFactoriser() {
 
-    ENTER_FCN( "ILDLTPFactoriser::ILDLTPFactoriser" );
 
     (*error) << "Default constructor of ILDLTPFactoriser call was called! "
              << "This constructor is forbidden!";
@@ -38,7 +37,6 @@ namespace OLAS {
   ILDLTPFactoriser<T>::ILDLTPFactoriser( OLAS_Params *myParams,
                                          OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILDLTPFactoriser::ILDLTPFactoriser" );
 
     // Currently this approach is not in a functional state
     (*warning) << "The ILDLTPFactoriser is still in an experimental state. "
@@ -62,7 +60,6 @@ namespace OLAS {
   template <class T>
   ILDLTPFactoriser<T>::~ILDLTPFactoriser() {
 
-    ENTER_FCN( "ILDLTPFactoriser::~ILDLTPFactoriser" );
 
   }
 
@@ -78,7 +75,6 @@ namespace OLAS {
                                        std::vector<T> &dataU,
                                        bool newPattern ) {
 
-    ENTER_FCN( "ILDLTPFactoriser::Factorise" );
 
     UInt i, j, k, current, listPrevElem, listElem, numOffD;
     T elim, aux;
@@ -705,7 +701,6 @@ namespace OLAS {
   void ILDLTPFactoriser<T>::DropEntries( UInt *listIDX, T *listVAL, Double tau,
                                          UInt maxFill ) {
 
-    ENTER_FCN( "ILDLTPFactoriser::DropEntries" );
 
     UInt j;
     UInt listEnd = this->sysMatDim_ + 1;

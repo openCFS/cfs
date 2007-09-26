@@ -22,7 +22,6 @@ namespace CoupledField
   // ***********************
   PiezoMaterial::PiezoMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
 
     //set the allowed material parameters
     isAllowed_.insert( PIEZO_TENSOR );
@@ -44,12 +43,10 @@ namespace CoupledField
 
   PiezoMaterial::~PiezoMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
   }
 
   void PiezoMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
     if ( matType == HYST_MODEL ) {
       stringParams_[matType] = param;
       isSet_.insert( matType );
@@ -69,7 +66,6 @@ namespace CoupledField
 
   void PiezoMaterial::SetScalar( Double param, MaterialType matType, DataType dataType ) {
 
-    ENTER_FCN( "PiezoMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -99,7 +95,6 @@ namespace CoupledField
 
   void PiezoMaterial::SetScalar( Complex param, MaterialType matType, DataType dataType ) {
 
-    ENTER_FCN( "PiezoMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -130,7 +125,6 @@ namespace CoupledField
   void PiezoMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
                                 DataType dataType ) {
     
-    ENTER_FCN( "PiezoMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -165,7 +159,6 @@ namespace CoupledField
   void PiezoMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
 				                         DataType dataType ) {
     
-    ENTER_FCN( "PiezoMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -188,7 +181,6 @@ namespace CoupledField
 
   void PiezoMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
-    ENTER_FCN( "PiezoMaterial::GetScalar" );
 
     stringMap::const_iterator pos;
     pos = stringParams_.find( matType );
@@ -205,7 +197,6 @@ namespace CoupledField
  
    void PiezoMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
-     ENTER_FCN( "PiezoMaterial::GetScalar" );
     
      integerMap::const_iterator pos;
      pos = integerParams_.find( matType );
@@ -223,7 +214,6 @@ namespace CoupledField
                       
   void PiezoMaterial::GetScalar( Double& param, MaterialType matType, DataType dataType )  const {
 
-    ENTER_FCN( "PiezoMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -249,7 +239,6 @@ namespace CoupledField
 
   void PiezoMaterial::GetScalar( Complex& param, MaterialType matType, DataType dataType )  const {
 
-    ENTER_FCN( "PiezoMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -277,7 +266,6 @@ namespace CoupledField
   void PiezoMaterial::GetTensor( Matrix<Double>& param, MaterialType matType, 
 				                         DataType dataType, SubTensorType subTensor) const {
 
-    ENTER_FCN( "PiezoMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -308,7 +296,6 @@ namespace CoupledField
   void PiezoMaterial::GetTensor( Matrix<Complex>& param, MaterialType matType, 
 				                         DataType dataType, SubTensorType subTensor) const {
     
-    ENTER_FCN( "PiezoMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -343,7 +330,6 @@ namespace CoupledField
   void PiezoMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
 				                               MaterialType matType, SubTensorType subTensor) const {
 
-    ENTER_FCN( "PiezoMaterial::ComputeSubTensors" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );

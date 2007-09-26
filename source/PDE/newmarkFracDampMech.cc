@@ -30,7 +30,6 @@ namespace CoupledField {
                        std::map<RegionIdType,DampingType> adampingList) 
     :TimeStepping( algebraicsystem){
     
-    ENTER_FCN( "NewmarkFracDampMech::NewmarkFracDampMech" );
     
     EXCEPTION( "This version is not working properly anymore and should "
                << "be reimplemented by Gerhard" );
@@ -69,12 +68,10 @@ namespace CoupledField {
 
   NewmarkFracDampMech::~NewmarkFracDampMech() {
 
-    ENTER_FCN( "NewmarkFracDampMech::~NewmarkFracDampMech" );
   }
 
   void NewmarkFracDampMech::Init( Double dt, UInt rhsSize ) {
 	
-    ENTER_FCN( "NewmarkFracDampMech::Init" );
 
     dt_ = dt;
     rhsSize_ = rhsSize;
@@ -143,7 +140,6 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::Predictor(Vector<Double>& solold) {
 
-    ENTER_FCN( "NewmarkFracDampMech::Predictor" );
 
     actStep_ = domain->GetSingleDriver()->GetActStep( pdename_ );
 
@@ -165,7 +161,6 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::UpdateRHS() {
 
-    ENTER_FCN( "NewmarkFracDampMech::UpdateRHS" );
     
     // mass part
     Vector<Double> coeffMass;
@@ -336,7 +331,6 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::Corrector(Vector<Double>& solnew)
   {
-    ENTER_FCN( "NewmarkFracDampMech::Corrector" );
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
@@ -393,7 +387,6 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::CalcParameters(Double dt)
   {
-    ENTER_FCN( "NewmarkFracDampMech::CalcParameters" );
 
     //for predictors
     a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
@@ -412,7 +405,6 @@ namespace CoupledField {
                                               Vector<Double>& elemsol,
                                               const StdVector<Integer> & connectPDE ) {
 
-    ENTER_FCN( "NewmarkFracDampMech::GetElemSolution" );
    
     elemsol.Resize(connectPDE.GetSize());
     elemsol.Init();
@@ -425,7 +417,6 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::GLWeights(UInt memory, Double y ) {
 
-    ENTER_FCN( "NewmarkFracDampMech::GLWeights" );
    
     // reserve memory for weights of BDF, order of derivative is y-1
     coeff_.resize(memory+1);
@@ -454,7 +445,6 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem,
 				      Vector<Double> &displacementVector, 
 				     Integer elemNr)
 {
-  ENTER_FCN( "NewmarkFracDampMech::CalcStress" );
   
   Matrix<Double> bMat;
   Matrix<Double> dMat;
@@ -565,7 +555,6 @@ void NewmarkFracDampMech::InsertStressVector(Vector<Double> &stressVec, Integer 
 
 void NewmarkFracDampMech::GetAMat(Matrix<Double> & aMat)
    { 
-    ENTER_FCN( "NewmarkFracDampMech::GetAMat" );
 
      double val = 0.0;
      
@@ -587,7 +576,6 @@ void NewmarkFracDampMech::GetAMat(Matrix<Double> & aMat)
 
 void NewmarkFracDampMech::GetAlphaMat(Matrix<Double> & alphaMat)
    { 
-    ENTER_FCN( "NewmarkFracDampMech::GetAlphaMat" );
 
      double val = 0.0;
      
@@ -608,7 +596,6 @@ void NewmarkFracDampMech::GetAlphaMat(Matrix<Double> & alphaMat)
 void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, 
 				     BaseMaterial* matData)
    { 
-    ENTER_FCN( "NewmarkFracDampMech::GetBetaMat" );
 
      double val = 0.0;
 
@@ -626,7 +613,6 @@ void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E,
   
   UInt NewmarkFracDampMech::getStressDim() {
 
-    ENTER_FCN( "NewmarkFracDampMech::getStressDim" );
 
     if(subType_ == "axi") {
       return 4;
@@ -644,7 +630,6 @@ void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E,
   }
   
   UInt NewmarkFracDampMech::getDim() {
-    ENTER_FCN( "NewmarkFracDampMech::getDim" );
     
     if(subType_ == "axi") {
       return 4;

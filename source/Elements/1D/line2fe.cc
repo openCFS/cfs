@@ -13,19 +13,16 @@ namespace CoupledField
 
   Line2FE :: Line2FE() : LineFE()
   {
-    ENTER_FCN( "Line2FE::Line2FE" );
 
     Init();
   }
   
   Line2FE :: ~Line2FE()
   {
-    ENTER_FCN( "Line2FE::~Line2FE" );
   }
 
   void Line2FE :: Init()
   {
-     ENTER_IFCN( "Line2FE::Init" );
      NumNodes_ = 3;
      
      CommonInit();
@@ -33,7 +30,6 @@ namespace CoupledField
 
   void Line2FE :: SetCornerCoords()
   {
-    ENTER_IFCN( "Line2FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -48,7 +44,6 @@ namespace CoupledField
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Line2FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
 
@@ -66,7 +61,6 @@ namespace CoupledField
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Line2FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

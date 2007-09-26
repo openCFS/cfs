@@ -33,7 +33,6 @@ namespace OLAS {
     //! Currently the LAPACK matrices only support scalar entries. Thus, the
     //! answer will always be one.
     Integer GetBlockSize() const {
-      ENTER_IFCN( "LapackBaseMatrix::GetBlockSize" );
       return 1;
     };
 

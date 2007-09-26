@@ -13,7 +13,6 @@ namespace CoupledField {
   SurfStress3DLinForm::SurfStress3DLinForm( Vector<Double> stressVec,
                                             shared_ptr<SurfElemList> surfElems )
     : LinearForm(), stress_(stressVec) {
-    ENTER_FCN( "SurfStress3DLinForm::SurfStress3DLinForm" );
     name_ = "SurfStress3DLinForm";
 
     isaxi_ = false;
@@ -33,14 +32,12 @@ namespace CoupledField {
   
   
   SurfStress3DLinForm::~SurfStress3DLinForm() {
-    ENTER_FCN( "SurfStress3DLinForm::~SurfStress3DLinForm" );
 
   }
   
   
   void SurfStress3DLinForm::CalcElemVector( Vector<Double> & elemVec,
                                             EntityIterator& ent ) {
-    ENTER_FCN( "SurfStress3DLinForm::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ptelem = ent.GetElem()->ptElem;

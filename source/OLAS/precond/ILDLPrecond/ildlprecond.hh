@@ -146,7 +146,6 @@ namespace OLAS {
     //! \return The return value depends on the speficic ILDL variant this
     //! object uses. The latter is stored in the myVariant_ attribute.
     PrecondType GetPrecondType() const {
-      ENTER_IFCN( "ILDLPrecond::GetPrecondType" );
       return myVariant_;
     }
 

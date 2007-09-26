@@ -24,7 +24,6 @@ namespace CoupledField
                              Double  polytrop,
                              Double  viscosity) {
 
-    ENTER_FCN( "LinearKellerMiksis::LinearKellerMiksis" );
 
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -49,7 +48,6 @@ namespace CoupledField
   void  LinearKellerMiksis::CompDeriv(const Double &t,
                                 const StdVector<Double> &y,
                                 StdVector<Double> &dydt){
-    ENTER_FCN( "LinearKellerMiksis::CompDeriv" );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // "Dimesionsbehaftet" computation of the right hand sight of the 
@@ -123,7 +121,6 @@ namespace CoupledField
    			      Matrix<Double> &dfdy,
    			      Double &t){
   
-    ENTER_FCN( "LinearKellerMiksis::Jacobi" );
 
     Double omega02, alpha;
 

@@ -105,14 +105,6 @@ namespace CoupledField {
   //!     </tr>
   //!
   //!     <tr>
-  //!       <td align="center">-t / --traceDepth = \<traceDepth\></td>
-  //!       <td align="center">non-negative integer</td>
-  //!       <td><em>depth of function tracing</em></td>
-  //!       <td align="center">0</td>
-  //!       <td align="center">%GetTraceDepth()</td>
-  //!     </tr>
-  //!
-  //!     <tr>
   //!       <td align="center">-g / --printGrid</td>
   //!       <td align="center">flag / boolean</td>
   //!       <td><em>only read grid from mesh-file and write it to
@@ -158,7 +150,6 @@ namespace CoupledField {
     //! The destructor is made virtual
     //! for inheritance purposes.
     virtual ~BaseCommandLineHandler() {
-      ENTER_FCN( "BaseCommandLineHandler::~BaseCommandLineHandler" );
     };
 
     // =======================================================================
@@ -257,19 +248,6 @@ namespace CoupledField {
     //! filled out by the user for a subsequent simulation run.
     virtual bool GetWriteSkeleton() const = 0;
 
-    //! Return depth of function tracing
-
-    //! This method can be used to query the depth desired for generating
-    //! function trace information.
-    //! \note Function tracing is a time-consuming process that can easily
-    //!       lead to the generation of a tremendously large output file
-    //!       containing the trace information. Thus, tracing must explicitely
-    //!       be compiled into the executable by turning on the respective
-    //!       option in <em>Makefile.option</em>. Specifying a trace depth of
-    //!       zero avoids generation of the trace file, but does not remove
-    //!       the work associated with function tracing.
-    virtual UInt GetTraceDepth() const = 0;
-
     //! Return getDumpStats flag
 
     //! This method can be used to query the status of the getDumpStats flag.
@@ -307,7 +285,6 @@ namespace CoupledField {
     const static std::string helpScriptFileName_;
 #endif
     const static std::string helpMeshFile_;
-    const static std::string helpTraceDepth_;
     const static std::string helpWriteSkeleton_;
     const static std::string helpPrintGrid_;
     const static std::string helpHelp_;
@@ -330,7 +307,6 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     const static std::string markerScriptFileName_;
 #endif
-    const static std::string markerTraceDepth_;
     const static std::string markerWriteSkeleton_;
     const static std::string markerPrintGrid_;
     const static std::string markerHelp_;
@@ -352,7 +328,6 @@ namespace CoupledField {
 #ifdef USE_SCRIPTING
     const static std::string markerLongScriptFileName_;
 #endif
-    const static std::string markerLongTraceDepth_;
     const static std::string markerLongWriteSkeleton_;
     const static std::string markerLongPrintGrid_;
     const static std::string markerLongHelp_;
@@ -377,15 +352,6 @@ namespace CoupledField {
     //!       line parameters. Derived classes should use calls to these
     //!       methods for handling of defaults in their implementation of the
     //!       query methods instead of providing their own defaults.
-
-    //! Returns default value for --traceDepth parameter
-
-    //! This method returns the default value for --traceDepth parameter.
-    //! The current default is 0, which indicates no function tracing.
-    //! \return 0
-    UInt DefaultTraceDepth() const {
-      return 0;
-    }
 
     //! Returns default value for --paramFile parameter
 

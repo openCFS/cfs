@@ -20,14 +20,12 @@ namespace CoupledField {
 
     //! Default Constructor
     ODESolver_Rosenbrock()  {
-      ENTER_FCN( "ODESolver_Rosenbrock::ODESolver_Rosenbrock" );
 
 
     }
 
     //! Default Destructor
     ~ODESolver_Rosenbrock() {
-      ENTER_FCN( "ODESolver_Rosenbrock::~ODESolver_Rosenbrock" );
     }
 
     //! Compute the solution of the initial value problem

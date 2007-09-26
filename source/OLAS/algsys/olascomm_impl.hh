@@ -17,7 +17,6 @@ namespace OLAS {
   // ************************************
   template <class enumT>
   void OLAS_BaseComm::SetValue( const std::string key, enumT value ) {
-    ENTER_FCN( "OLAS_BaseComm::SetValue" );
     enumPool_[key] = (enumT) value;
   }
 
@@ -28,7 +27,6 @@ namespace OLAS {
   template <class enumT>
   void OLAS_BaseComm::GetEnumValue( const std::string key, enumT &value ) {
   
-    ENTER_FCN( "OLAS_BaseComm::GetEnumValue" );
   
     // look for key in pool
     enumMap::iterator position = enumPool_.find(key);

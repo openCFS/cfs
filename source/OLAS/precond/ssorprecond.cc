@@ -12,7 +12,6 @@ namespace OLAS {
   template <typename T>
   SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, OLAS_Params *myParams,
 			       OLAS_Report *myReport ) {
-    ENTER_FCN( "SSORPrecond::SSORPrecond" );
     this->myParams_ = myParams;
     this->myReport_ = myReport;
     size_     = mat.GetNrows();
@@ -25,7 +24,6 @@ namespace OLAS {
   // **************
   template <typename T>
   SSORPrecond<T>::~SSORPrecond() {
-    ENTER_FCN( "SSORPrecond::~SSORPrecond" );
     DeleteArray( diagInv_ );
   }
 
@@ -35,7 +33,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void SSORPrecond<T>::Setup( CRS_Matrix<T> &sysmat ) {
-    ENTER_FCN( "SSORPrecond::Setup" );
     for ( UInt i=1; i<=size_; i++ ) {
       diagInv_[i] = opType<T>::invert(sysmat.GetDiag(i));
     }
@@ -49,7 +46,6 @@ namespace OLAS {
   void SSORPrecond<T>::Apply( const CRS_Matrix<T> &sysmat,
 			      const Vector<T> &r, Vector<T> &z ) const {
 
-    ENTER_FCN( "SSORPrecond::Apply" );
 
     UInt i, j;
     T_Vtype sum;

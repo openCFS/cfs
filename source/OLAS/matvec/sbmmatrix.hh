@@ -215,7 +215,6 @@ namespace OLAS {
     //! MatrixEntryType. If no sub-matrix has yet been set, NOENTRYTYPE is
     //! returned.
     MatrixEntryType GetEntryType() const {
-      ENTER_FCN( "SBM_Matrix::GetEntryType" );
       return myEntryType_;
     }
 
@@ -229,7 +228,6 @@ namespace OLAS {
     //! \note All sub-matrices of an instance of the %SBM_Matrix class
     //!       must share the same block size.
     Integer GetBlockSize() const {
-      ENTER_FCN( "SBM_Matrix::GetBlockSize" );
       return (Integer)myBlockSize_;
     }
 
@@ -239,7 +237,6 @@ namespace OLAS {
     //! The latter is set during instantiation of the %SBM_Matrix object
     //! by the corresponding constructor argument.
     bool IsSymmetric() {
-      ENTER_FCN( "SBM_Matrix::IsSymmetric" );
       return amSymm_;
     }
 

@@ -120,7 +120,6 @@ HierarchyLevel<T>::HierarchyLevel()
 #endif
                    deleteDirSysMatrix_( true )
 {
-    ENTER_FCN("HierarchyLevel::HierarchyLevel()");
 }
 
 /**********************************************************/
@@ -148,7 +147,6 @@ HierarchyLevel<T>::HierarchyLevel( const Integer level_id )
 #endif
                    deleteDirSysMatrix_( true )
 {
-    ENTER_FCN("HierarchyLevel::HierarchyLevel(Integer)");
 }
 
 /**********************************************************/
@@ -156,7 +154,6 @@ HierarchyLevel<T>::HierarchyLevel( const Integer level_id )
 template <typename T>
 HierarchyLevel<T>::~HierarchyLevel()
 {
-    ENTER_FCN("HierarchyLevel::~HierarchyLevel");
     Reset();
 }
 
@@ -182,7 +179,6 @@ inline Integer HierarchyLevel<T>::GetLevelID() const
 template <typename T>
 void HierarchyLevel<T>::Reset()
 {
-    ENTER_FCN("HierarchyLevel::Reset");
 
     if( !GetLevelID() && (SysMatrix_ || AuxMatrix_) ) {
         std::cerr
@@ -228,7 +224,6 @@ template <typename T>
 void HierarchyLevel<T>::
 InsertSysMatrix( const CRS_Matrix<T>* const sysmat )
 {
-    ENTER_FCN("HierarchyLevel::InsertSysMatrix");
 
     delete SysMatrix_;
     SysMatrix_ = (CRS_Matrix<T>*)sysmat;
@@ -239,7 +234,6 @@ template <typename T>
 void HierarchyLevel<T>::
 InsertAuxMatrix( const CRS_Matrix<T>* const auxmat )
 {
-    ENTER_FCN("HierarchyLevel::InsertAuxMatrix");
     
     delete AuxMatrix_;
     AuxMatrix_ = (CRS_Matrix<T>*)auxmat;
@@ -250,7 +244,6 @@ InsertAuxMatrix( const CRS_Matrix<T>* const auxmat )
 template <typename T>
 const CRS_Matrix<T>* HierarchyLevel<T>::GetSysMatrixPtr() const
 {
-    ENTER_FCN("HierarchyLevel::GetSysMatrixPtr");
     
     return (const CRS_Matrix<T>*) SysMatrix_;
 }
@@ -259,7 +252,6 @@ const CRS_Matrix<T>* HierarchyLevel<T>::GetSysMatrixPtr() const
 template <typename T>
 const CRS_Matrix<T>* HierarchyLevel<T>::GetAuxMatrixPtr() const
 {
-    ENTER_FCN("HierarchyLevel::GetAuxMatrixPtr");
     
     return (const CRS_Matrix<T>*) AuxMatrix_;
 }
@@ -269,7 +261,6 @@ const CRS_Matrix<T>* HierarchyLevel<T>::GetAuxMatrixPtr() const
 template <typename T>
 CRS_Matrix<T>* HierarchyLevel<T>::UnhookSysMatrix()
 {
-    ENTER_FCN("HierarchyLevel::UnhookSysMatrix");
     
     CRS_Matrix<T> *temp = SysMatrix_;
     SysMatrix_ = NULL;
@@ -280,7 +271,6 @@ CRS_Matrix<T>* HierarchyLevel<T>::UnhookSysMatrix()
 template <typename T>
 CRS_Matrix<T>* HierarchyLevel<T>::UnhookAuxMatrix()
 {
-    ENTER_FCN("HierarchyLevel::UnhookAuxMatrix");
     
     CRS_Matrix<T> *temp = AuxMatrix_;
     AuxMatrix_ = NULL;
@@ -293,7 +283,6 @@ template <typename T>
 bool HierarchyLevel<T>::Setup( Settings* const settings,
                                Integer         numBadCoarsenings )
 {
-    ENTER_FCN("HierarchyLevel::Setup");
 
     bool *penaltyFlags = NULL;
 
@@ -495,7 +484,6 @@ Cycle( const Vector<T>& rhs,
        const Integer    num_postsmoothings,
        const Integer    cycle_parameter     )
 {
-    ENTER_FCN("HierarchyLevel::Cycle");
 
 #ifdef AMG_EXPORT_CYCLE
     char filename[256];
@@ -604,7 +592,6 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
 template <typename T>
 Double HierarchyLevel<T>::GetOperatorComplexity() const
 {
-    ENTER_FCN("HierarchyLevel::GetOperatorComplexity");
 
     const HierarchyLevel<T>* level      = this;
     Double                   complexity = 0.0;
@@ -624,7 +611,6 @@ template <typename T>
 std::ostream& HierarchyLevel<T>::Print( std::ostream& out,
                                         const bool color ) const
 {
-    ENTER_FCN("HierarchyLevel::Print");
 
     if( SysMatrix_ == NULL ) {
         out << "no matrix present in hierarchy level "
@@ -659,7 +645,6 @@ SetupTopology( const Double alpha,
                const Double forceFineRatio,
                bool *const  penaltyFlags )
 {
-    ENTER_FCN("HierarchyLevel::SetupTopology");
 
     if( logging_ )  (*cla) << " AMG: setup topology\n";
 
@@ -697,7 +682,6 @@ bool HierarchyLevel<T>::
 SetupSmoother( const Settings *const settings,
                bool *const penaltyFlags )
 {
-    ENTER_FCN("HierarchyLevel::SetupSmoother");
 
     if( logging_ ) (*cla) << " AMG: setup smoother\n";
 
@@ -769,7 +753,6 @@ template <typename T>
 bool HierarchyLevel<T>::
 SetupDirectSolver( const Settings* const settings )
 {
-    ENTER_FCN("HierarchyLevel::SetupDirectSolver");
 
     if( logging_ ) (*cla)<<" AMG: setup exact solver\n";
 
@@ -965,7 +948,6 @@ template <typename T>
 bool HierarchyLevel<T>::SetupAuxData( const Integer sizeh,
                                       const Integer sizeH )
 {
-    ENTER_FCN("HierarchyLevel::SetupAuxData");
 
     vh1_ = New Vector<T>( sizeh );
 

@@ -16,7 +16,6 @@ namespace CoupledField
                                 MaterialType materialParam,
                                 bool isaxi ) 
     : LinearSurfForm() {
-    ENTER_FCN( "LinNeumannInt::LinNeumannInt" );
 
     name_ = "LinNeumannInt";
     isaxi_ = isaxi;
@@ -35,7 +34,6 @@ namespace CoupledField
 
 
   LinNeumannInt::~LinNeumannInt() {
-    ENTER_FCN( "LinNeumannInt::~LinNeumannInt" );
 
     actElem_ = NULL;
 
@@ -43,7 +41,6 @@ namespace CoupledField
 
   void LinNeumannInt::PrepareElemVector( Vector<Double> & elemVec,
                                       EntityIterator& ent) {
-    ENTER_FCN( "LinNeumannInt::PrepareElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -119,7 +116,6 @@ namespace CoupledField
 
   void LinNeumannInt::CalcElemVector( Vector<Double> & elemVec,
                                       EntityIterator& ent) {
-    ENTER_FCN( "LinNeumannInt::CalcElemVector" );
     
     // compute element vector
     PrepareElemVector( elemVec, ent );
@@ -148,7 +144,6 @@ namespace CoupledField
 
   void LinNeumannInt::CalcElemVector( Vector<Complex> & elemVec,
                                       EntityIterator& ent) {
-    ENTER_FCN( "LinNeumannInt::CalcElemVector" );
 
     // compute element vector
     Vector<Double> helpVec;

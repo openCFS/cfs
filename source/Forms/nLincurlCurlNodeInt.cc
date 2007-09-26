@@ -18,7 +18,6 @@ namespace CoupledField
                          bool axi, bool coordUpdate )
     : CurlCurlNode2DInt( matData, axi, coordUpdate )
   {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt");
 
     name_ = "nLinCurlCurlNode2DInt";
     isSolDependent_ = true;
@@ -39,7 +38,6 @@ namespace CoupledField
  
   nLinCurlCurlNode2DInt::~nLinCurlCurlNode2DInt()
   {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::~nLinCurlCurlNode2DInt");
   }
 
 
@@ -47,7 +45,6 @@ namespace CoupledField
                                                   EntityIterator& ent1, 
                                                   EntityIterator& ent2 )
   {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::CalcElementMatrix");
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );  
@@ -168,7 +165,6 @@ namespace CoupledField
 
   void nLinCurlCurlNode2DInt::SetNonLinMethod(std::string atype)
   {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::SetNonLinMethod");
     
     if (atype == "fixPoint")
       nonLinType_ = FIXEDPOINT;
@@ -177,7 +173,6 @@ namespace CoupledField
 
   Double nLinCurlCurlNode2DInt::ComputeDiffReluctivity( UInt nrEl, Vector<Double>& Bvec )
   {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::ComputeDiffReluctivity");
 
     Double diffRelucVal;
 
@@ -198,7 +193,6 @@ namespace CoupledField
   nLinCurlCurlNode3DInt( BaseMaterial* matData, bool coordUpdate )
     : CurlCurlNode3DInt( matData, coordUpdate )
   {
-    ENTER_FCN( "nLinCurlCurlNode3DInt::nLinCurlCurlNode3DInt");
 
     name_ = "nLinCurlCurlNode3DInt";
     isaxi_      = false;
@@ -215,7 +209,6 @@ namespace CoupledField
  
   nLinCurlCurlNode3DInt::~nLinCurlCurlNode3DInt()
   {
-    ENTER_FCN( "nLinCurlCurlNode3DInt::~nLinCurlCurlNode3DInt");
   }
 
 
@@ -223,7 +216,6 @@ namespace CoupledField
                                                   EntityIterator& ent1, 
                                                   EntityIterator& ent2 )
   {
-    ENTER_FCN( "nLinCurlCurlNode3DInt::CalcElementMatrix");
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -325,7 +317,6 @@ namespace CoupledField
 
   void nLinCurlCurlNode3DInt::SetNonLinMethod(std::string atype)
   {
-    ENTER_FCN( "nLinCurlCurlNode3DInt::SetNonLinMethod");
     
     if (atype == "fixPoint")
       nonLinType_ = FIXEDPOINT;

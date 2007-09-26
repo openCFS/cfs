@@ -45,7 +45,6 @@ namespace OLAS {
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
     DiagSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
-      ENTER_FCN( "DiagSolver::DiagSolver" );
       myParams_ = myParams;
       myReport_ = myReport;
     };
@@ -77,7 +76,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return RICHARDSON
     virtual SolverType GetSolverType() {
-      ENTER_IFCN( "DiagSolver::GetSolverType" );
       return DIAGSOLVER;
     };
 

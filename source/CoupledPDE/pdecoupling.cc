@@ -103,7 +103,6 @@ namespace CoupledField
 
   PDECoupling::PDECoupling(Grid * aptgrid)
   {
-    ENTER_FCN("PDECoupling::PDECoupling")
   
       ptGrid_ = aptgrid;
   
@@ -114,7 +113,6 @@ namespace CoupledField
 
   PDECoupling::~PDECoupling()
   {
-    ENTER_FCN("PDECoupling::~PDECoupling");
   
     // NOTE: since each interface exists only one time
     // but is referenced two times (once as input and once
@@ -134,7 +132,6 @@ namespace CoupledField
   void PDECoupling::RegisterInput(CouplingInputType InType, SolutionType Quantity)
 
   {
-    ENTER_FCN("PDECoupling::RegisterInput");
     
     inputTypes_.Push_back(InType);
     inputQuantities_.Push_back(Quantity);  
@@ -150,7 +147,6 @@ namespace CoupledField
                              NormType normtype,
                              StdVector<PDECoupling*> & couplings)
   {
-    ENTER_FCN("PDECoupling::AddInput");
   
   
     CouplingInterface *myInterface = 0; 
@@ -386,7 +382,6 @@ namespace CoupledField
                                                          StdVector<std::string> & regions,
                                                          CouplingRegionType regionType)
   {
-    ENTER_FCN("PDECoupling::AddOutput");
   
     // search if output exists already
     for (UInt i=0; i<outputTypes_.GetSize(); i++)
@@ -580,13 +575,11 @@ namespace CoupledField
 
   void PDECoupling::SetPDE(StdPDE * aPDE)
   {
-    ENTER_FCN("PDECoupling::SetPDE");
     myPDE_ = aPDE;
   }
 
   void PDECoupling::SetOutputNumNodes(UInt i, UInt nnodes)
   {
-    ENTER_FCN("PDECoupling::SetOutputNumNodes");
   
     outputInterfaces_[i]->numNodes = nnodes;
     
@@ -594,7 +587,6 @@ namespace CoupledField
 
   void PDECoupling::SetOutputNumElems(UInt i, UInt nelems)
   {
-    ENTER_FCN("PDECoupling::SetOutputNumElems");
     outputInterfaces_[i]->numElems = nelems;
   
   }  
@@ -602,20 +594,17 @@ namespace CoupledField
 
   void PDECoupling::SetOutputDof(UInt i, UInt dof)
   {
-    ENTER_FCN("PDECoupling::SetOutputDof");
     outputInterfaces_[i]->dof = dof;
   }
 
   StdPDE*  PDECoupling::GetPDE()
   {
-    ENTER_FCN("PDECoupling::GetPDE");
     return myPDE_;
   }
 
 
   UInt PDECoupling::GetNumInputCouplings()
   {
-    ENTER_FCN("PDECoupling::GetnumInputCouplings");
     
     UInt numCouplings = 0;
     
@@ -631,7 +620,6 @@ namespace CoupledField
 
   UInt PDECoupling::GetNumOutputCouplings()
   {
-    ENTER_FCN("PDECoupling::GetnumOutputCouplings");
     UInt numCouplings = 0;
     
     for ( UInt i = 0; i < outputInterfaces_.GetSize(); i++ ) {
@@ -646,7 +634,6 @@ namespace CoupledField
   void PDECoupling::CreateCouplingVector(UInt i,
                                          bool isComplex)
   {
-    ENTER_FCN("PDECoupling::CreateCouplingVector");
 
     UInt numNodes = outputInterfaces_[i]->numNodes;
     UInt numElems = outputInterfaces_[i]->numElems;
@@ -698,7 +685,6 @@ namespace CoupledField
 
   CouplingOutputType PDECoupling::Input2OutputType(CouplingInputType inputType)
   {
-    ENTER_FCN("PDECoupling::Input2OutputType");
 
     switch (inputType)
       {
@@ -730,7 +716,6 @@ namespace CoupledField
   }
 
   void PDECoupling::GetMemento(CouplingMemento & memento) {
-    ENTER_FCN( "PDECoupling::GetMemento" );
   
     memento.inputTypes_ = inputTypes_;
     memento.inputQuantities_ = inputQuantities_;
@@ -744,7 +729,6 @@ namespace CoupledField
 
 
   void PDECoupling::SetMemento(CouplingMemento & memento) {
-    ENTER_FCN( "PDECoupling::SetMemento" );
   
     std::string errMsg, warnMsg, helper;
 

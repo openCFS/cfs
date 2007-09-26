@@ -27,7 +27,6 @@ DependencyGraph<T>::DependencyGraph()
                     Edges_(NULL),
                     ownStartIndex_(false)
 {
-    ENTER_FCN("DependencyGraph::DependencyGraph()");
 }
 
 /**********************************************************/
@@ -35,7 +34,6 @@ DependencyGraph<T>::DependencyGraph()
 template <typename T>
 DependencyGraph<T>::~DependencyGraph()
 {
-    ENTER_FCN("DependencyGraph::~DependencyGraph()");
 
     Reset();
 }
@@ -46,7 +44,6 @@ template <typename T>
 bool DependencyGraph<T>::Create( const Integer num_nodes,
                                  const Integer num_edges_per_node )
 {
-    ENTER_FCN("DependencyGraph::Create(Integer,Integer)");
 
     // create arrays, in particular also start indices
     if( !CreateArrays(num_nodes,
@@ -71,7 +68,6 @@ bool DependencyGraph<T>::
 CreateWithDiagonals( const Integer num_nodes,
                      const Integer num_edges_per_node )
 {
-    ENTER_FCN("DependencyGraph::CreateWithDiagonals(Integer,Integer)");
 
     // create arrays, in particular also start indices
     if( !CreateArrays(num_nodes,
@@ -99,7 +95,6 @@ bool DependencyGraph<T>::Create( const Integer        num_nodes,
                                  const Integer *const node_size,
                                        Integer        num_edges )
 {
-    ENTER_FCN("DependencyGraph::Create(Integer,Integer*)");
 
     // get total number of edges, if not passed
     if( num_edges < 0 ) {
@@ -145,7 +140,6 @@ Create( const Integer        num_nodes,
         const bool           accroach_startarray,
         const bool           copy_startarray )
 {
-    ENTER_FCN("DependencyGraph::Create(from startarray)");
 
     if( num_nodes <= 0 ) { Reset(); return true; }
 
@@ -186,7 +180,6 @@ bool DependencyGraph<T>::Create( const CRS_Matrix<T>& matrix,
                                  const bool buildemptygraph,
                                  const bool copystartarray  )
 {
-    ENTER_FCN("DependencyGraph::Create(CRS_Matrix&,bool,bool)");
 
     if( matrix.GetNnz() == 0 ) { Reset(); return true; }
 
@@ -229,7 +222,6 @@ InsertStartArray( const Integer *const startarray,
                   const bool           copy,
                   const bool           force )
 {
-    ENTER_FCN("DependencyGraph::InsertStartArray");
     
     // if there is already an array with start indices
     if( StartIndex_ ) {
@@ -262,7 +254,6 @@ template <typename T>
 inline void DependencyGraph<T>::AddEdge( const Integer i,
                                          const Integer j )
 {
-    ENTER_FCN("DependencyGraph::AddEdge");
     
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check range of the parameters
@@ -311,7 +302,6 @@ template <typename T>
 inline void DependencyGraph<T>::AddEdgeSavely( const Integer i,
                                                const Integer j )
 {
-    ENTER_FCN("DependencyGraph::AddEdgeSavely");
     
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check range of the parameters
@@ -353,7 +343,6 @@ AddEdgeSorted( const Integer i,
                const Integer j,
                const Integer first_position )
 {
-    ENTER_FCN("DependencyGraph::AddEdgeSorted");
 
     // simply append the edge
     if( first_position >= NodeSize_[i] ) {
@@ -449,7 +438,6 @@ inline void DependencyGraph<T>::SetEdgeAtPosition( const Integer i,
                                                    const Integer j,
                                                    const Integer position )
 {
-    ENTER_FCN("DependencyGraph::SetEdgeAtPosition");
     
 #ifdef DEBUG_DEPENDENCYGRAPH
     const char fn[] = "\033[31mDependencyGraph::AddEdgeAtPosition\033[0m\n";
@@ -486,7 +474,6 @@ template <typename T>
 inline void DependencyGraph<T>::RemoveEdge( const Integer i,
                                             const Integer j )
 {
-    ENTER_FCN("DependencyGraph::RemoveEdge");
     
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check range of the parameters
@@ -518,7 +505,6 @@ inline void DependencyGraph<T>::RemoveEdge( const Integer i,
 template <typename T>
 inline void DependencyGraph<T>::RemoveAllEdges( const Integer i )
 {
-    ENTER_FCN("DependencyGraph::RemoveAllEdges");
     
     NodeSize_[i] = 0;
 }
@@ -529,7 +515,6 @@ template <typename T>
 inline Integer DependencyGraph<T>::
 ShiftEdges( const Integer offset )
 {
-    ENTER_FCN("DependencyGraph::ShiftEdges");
 
     Integer max_j = 0;
     
@@ -584,7 +569,6 @@ AssignTransposed( const DependencyGraph<T>& graph,
                   bool    treat_as_square,
                   Integer overlap_per_node )
 {
-    ENTER_FCN("DependencyGraph::AssignTransposed");
 
     if( use_start_array == true ) {
 #ifdef DEBUG_DEPENDENCYGRAPH
@@ -730,7 +714,6 @@ template <typename T>
 bool DependencyGraph<T>::
 CheckTransposition( const DependencyGraph<T>& graph ) const
 {
-    ENTER_FCN("DependencyGraph::CheckTransposition");
 
     bool result = true;
 
@@ -786,7 +769,6 @@ template <typename T>
 inline bool DependencyGraph<T>::IsElement( const Integer i,
                                            const Integer j ) const
 {
-    ENTER_FCN("DependencyGraph::IsElement");
     
     const Integer end = StartIndex_[i] + NodeSize_[i];
     
@@ -897,7 +879,6 @@ GetEdges( const Integer        node,
 template <typename T>
 void DependencyGraph<T>::Reset()
 {
-    ENTER_FCN("DependencyGraph::Reset");
     
     // destroy start array only if it is mine
     if( ownStartIndex_ )  DeleteArray( StartIndex_ );
@@ -917,7 +898,6 @@ template <typename T>
 std::ostream& DependencyGraph<T>::Print( std::ostream& out,
                                          const bool color ) const
 {
-    ENTER_FCN("DependencyGraph::Print");
 
     if( NumNodes_ == 0 ) {
         out << "graph is empty\n";
@@ -951,7 +931,6 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
                                        const int  numedges,
                                        const bool createstart )
 {
-    ENTER_FCN("DependencyGraph::CreateArrays");
 
     // create start array, if demanded
     if( createstart ) {

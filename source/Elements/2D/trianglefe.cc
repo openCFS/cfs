@@ -16,7 +16,6 @@ namespace CoupledField
 
   TriangleFE::TriangleFE()
   {
-    ENTER_FCN( "TriangleFE::TriangleFE" );
   
     Dim_ = 2;
     NumEdges_   = 3;
@@ -31,12 +30,10 @@ namespace CoupledField
 
   TriangleFE :: ~TriangleFE()
   {
-    ENTER_FCN( "TriangleFE::~TriangleFE" );
   }
   
   void TriangleFE::FillIntegrationPoints()
   {
-      ENTER_IFCN("TriangleFE::FillIntegrationPoints");     
 
       // The ECONOMICAL implementation with the values from Solin, Segeth, Dolezel, High-Order Finite Element Methods
       // but the reference triangle is at another position and has another area than the original "SetIntPoints" data 
@@ -303,7 +300,6 @@ namespace CoupledField
                                              const Vector<Double> & surfIntPoint,
                                              Vector<Double> & volIntPoint)
   {
-    ENTER_IFCN( "TriangleFE::GetLocalIntPoints4Surface" );
   
     // Try to find out, which vertices are in common with
     // the surface element. Then calculate the product of both

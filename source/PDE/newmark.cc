@@ -16,7 +16,6 @@ namespace CoupledField
   Newmark::Newmark(BaseSystem * algebraicsystem, const std::string& sysName )
     :TimeStepping(algebraicsystem )
   {
-    ENTER_FCN( "Newmark::Newmark" );
 
     // Default values for beta and gamma are:
     //   beta  = 0.25
@@ -49,12 +48,10 @@ namespace CoupledField
 
   Newmark::~Newmark()
   {
-    ENTER_FCN( "Newmark::~Newmark" );
 
   }
 
   void Newmark::Init( Double dt, UInt rhsSize ) {
-    ENTER_FCN( "Newmark::Init" );
 
     rhsSize_ = rhsSize;
 
@@ -86,7 +83,6 @@ namespace CoupledField
 
   void Newmark::Predictor(Vector<Double>& solold)
   {
-    ENTER_FCN( "Newmark::Predictor" );
 
     solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -95,7 +91,6 @@ namespace CoupledField
 
   void Newmark::UpdateRHS()
   {
-    ENTER_FCN( "Newmark::UpdateRHS" );
 
     Vector<Double> coeffMass;
 
@@ -122,7 +117,6 @@ namespace CoupledField
 
   void Newmark::SubstractStiffnessFromRHS(Vector<Double>& actSol) {
 
-    ENTER_FCN( "Newmark::SubstractStiffness" );
 
     Vector<Double> actSolTemp;
     actSolTemp=-actSol;
@@ -132,7 +126,6 @@ namespace CoupledField
 
   void Newmark::UpdateRHS(Vector<Double>& actSol)
   {
-    ENTER_FCN( "Newmark::UpdateRHS" );
 
     // mass part
     Vector<Double> coeffMass;
@@ -159,7 +152,6 @@ namespace CoupledField
 
   void Newmark::Corrector(Vector<Double>& solnew)
   {
-    ENTER_FCN( "Newmark::Corrector" );
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
@@ -169,7 +161,6 @@ namespace CoupledField
 
   void Newmark::CalcParameters(Double dt)
   {
-    ENTER_FCN( "Newmark::CalcParameters" );
 
     //for predictors
     a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
@@ -192,7 +183,6 @@ namespace CoupledField
                                  bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 
-    ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
 
     intExplicit_ = intExplicit;
 
@@ -225,13 +215,11 @@ namespace CoupledField
 
   NewmarkEffMass::~NewmarkEffMass()
   {
-    ENTER_FCN( "NewmarkEffMass::~NewmarkEffMass" );
 
   }
 
   void NewmarkEffMass::Init( Double dt, UInt rhsSize ) 
   {
-    ENTER_FCN( "NewmarkEffMass::Init" );
 
     std::cout<<"Newmark uses Effective Mass Formulation " <<std::endl;
 
@@ -278,7 +266,6 @@ namespace CoupledField
 
   void NewmarkEffMass::Predictor(Vector<Double>& solold)
   {
-    ENTER_FCN( "NewmarkEffMass::Predictor" );
 
     solpred_ = sol_ + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -288,7 +275,6 @@ namespace CoupledField
 
   void NewmarkEffMass::Corrector(Vector<Double>& aNew)
   {
-    ENTER_FCN( "NewmarkEffMass::Corrector" );
 
     // after solving the algebraic system of equation, we obtain as solution
     // the 2nd time derivative: aNew .. 2nd second time derivative
@@ -303,7 +289,6 @@ namespace CoupledField
 
   void NewmarkEffMass::UpdateRHS()
   {
-    ENTER_FCN( "NewmarkEffMass::UpdateRHS" );
 
     Vector<Double> coeffStiff;
     coeffStiff = -solpred_;
@@ -322,7 +307,6 @@ namespace CoupledField
 
   void NewmarkEffMass::CalcParameters(Double dt)
   {
-    ENTER_FCN( "NewmarkEffMass::CalcParameters" );
 
     //for predictors
     a0_ = 0.5*dt_*dt_*(1-2*beta_);
@@ -336,7 +320,6 @@ namespace CoupledField
 
   Double NewmarkEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
   {
-    ENTER_FCN( "NewmarkEffMass::DirichletBC4EffMassMatrix" );
 
     Double accval;
 

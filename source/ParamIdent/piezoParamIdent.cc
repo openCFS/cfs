@@ -30,7 +30,6 @@ namespace CoupledField
                                       bool isPartOfSequence )
     :SingleDriver( sequenceStep, isPartOfSequence ){
 
-    ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
     // Set analysistype
     analysis_ = HARMONIC;
@@ -66,7 +65,6 @@ namespace CoupledField
   }
   
   void piezoParamIdent :: Init() {
-    ENTER_FCN( "piezoParamIdent::Init" );
     
     // Note: directCoupling_ is always true, as we de no
     // longer have the old structure with a SinglePDE as PiezoPDE
@@ -200,7 +198,6 @@ namespace CoupledField
   // destructor
   piezoParamIdent :: ~piezoParamIdent()
   {
-    ENTER_FCN( "piezoParamIdent::~piezoParamIdent" );
     if (allMeasuredData)
       allMeasuredData->close();
     if (impedCurve)
@@ -244,7 +241,6 @@ namespace CoupledField
   }
 
   void piezoParamIdent :: SolveProblem() {
-    ENTER_FCN( "piezoParamIdent::SolveProblem" );
 
     UInt highestAssumableNrOfMeasData=100;
 
@@ -663,7 +659,6 @@ namespace CoupledField
 
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_){
-    ENTER_FCN("piezoParamIdent::updateMaterialData");    
     //    std::cout<<"++ updateMaterialData " <<std::endl;
 
     UInt dim=ptPDE1_->getPDE_spaceDim();
@@ -750,7 +745,6 @@ namespace CoupledField
   } // end updateMaterialData
 
   void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_){
-    ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     //    std::cout<<"++ updateComplexMaterialData " <<std::endl;
 
     Matrix<Double> stiffTensorC;
@@ -857,7 +851,6 @@ namespace CoupledField
 
 
  void piezoParamIdent::computeScaling(){
-    ENTER_FCN("piezoParamIdent::coumputeScaling");
 
     Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat, stiffMatSchraube;
     Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC, stiffMatSchraubeC;
@@ -992,7 +985,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::writeTensorsInFile(){
-    ENTER_FCN("piezoParamIdent::writeTensorsInFile");
 
     Matrix<Complex> piezoMatC, stiffMatC, permMatC;
 

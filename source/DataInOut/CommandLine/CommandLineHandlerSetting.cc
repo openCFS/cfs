@@ -16,7 +16,6 @@ namespace CoupledField {
   CommandLineHandlerSetting::CommandLineHandlerSetting( Integer argc,
                                                         const char **argv ) {
 
-    ENTER_FCN( "CommandLineHandlerSetting::CommandLineHandlerSetting" );
 
 
     // --------------------------------------
@@ -106,15 +105,6 @@ namespace CoupledField {
                   helpMeshFile_.c_str() ),
 #endif
       
-      // --traceDepth
-      SettingDef( markerLongTraceDepth_.c_str(),
-                  markerTraceDepth_.c_str(),
-                  Setting::INT,
-                  1,
-                  1,
-                  Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
-                  helpTraceDepth_.c_str() ),
-
       // --writeSkeleton
       SettingDef( markerLongWriteSkeleton_.c_str(),
                   markerWriteSkeleton_.c_str(),

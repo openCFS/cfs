@@ -8,7 +8,6 @@ namespace OLAS {
 
   void IDBC_Graph::FinaliseAssembly( Integer *newEqn ) {
 
-    ENTER_FCN( "IDBC_Graph::FinaliseAssembly" );
 
     // Re-ordering strategy should be not to re-order
     if ( newOrder_ != NOREORDERING ) {

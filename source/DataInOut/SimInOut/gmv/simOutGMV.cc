@@ -40,7 +40,6 @@ namespace CoupledField {
     SimOutput( fileName, outputNode )
   {
 
-    ENTER_FCN( "SimOutputGMV::SimOutputGMV" );
 
     // Initialize variables
     formatName_ = "gmv";
@@ -91,12 +90,10 @@ namespace CoupledField {
   // **********************
   SimOutputGMV::~SimOutputGMV() {
 
-    ENTER_FCN( "SimOutputGMV::~SimOutputGMV" );
 
   }
   
   void SimOutputGMV::Init( Grid* ptGrid, bool printGridOnly ) {
-    ENTER_FCN( "SimOutputGMV::Init" );
     
     ptGrid_ = ptGrid;
 
@@ -120,7 +117,6 @@ namespace CoupledField {
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd )
   {
-    ENTER_FCN( "SimOutputGMV::RegisterResult" );
 
     ResultInfo & actDof = *(sol->GetResultInfo());
 
@@ -134,7 +130,6 @@ namespace CoupledField {
   //! Begin single analysis step
   void SimOutputGMV::BeginStep( UInt stepNum, Double stepVal )
   {
-    ENTER_FCN( "SimOutputGMV::BeginStep" );
 
     resultMap_.clear();
     
@@ -147,7 +142,6 @@ namespace CoupledField {
   //! Add result to current step
   void SimOutputGMV::AddResult( shared_ptr<BaseResult> sol )
   {
-    ENTER_FCN( "SimOutputGMV::AddResult" );
     ResultInfo & actDof = *(sol->GetResultInfo());
 
     LOG_DBG(simOutputGMV) << "Adding result '" 
@@ -160,7 +154,6 @@ namespace CoupledField {
   //! End single analysis step
   void SimOutputGMV::FinishStep( )
   {
-    ENTER_FCN( "SimOutputGMV::FinishStep" );
 
     LOG_TRACE(simOutputGMV) << "Starting to finish Step";
     
@@ -255,13 +248,11 @@ namespace CoupledField {
   //! End multisequence step
   void SimOutputGMV::FinishMultiSequenceStep( )
   {
-    ENTER_FCN( "SimOutputGMV::FinishMultiSequenceStep" );
   }
 
 
   //! Finalize the output
   void SimOutputGMV::Finalize() {
-    ENTER_FCN( "SimOutputGMV::Finalize" );
 
     // nothing to do here
   }
@@ -273,7 +264,6 @@ namespace CoupledField {
                           ResultInfo::EntryType entryType,
                           ResultInfo::EntityUnknownType entityType,
                           Double time ) {
-    ENTER_FCN ( "SimOutputGMV::WriteNodeElemDataTrans" );
     
     // get number of entities
     UInt numEnt = 0;
@@ -307,7 +297,6 @@ namespace CoupledField {
                          const Double freq, 
                          const ComplexFormat outputFormat )
   {
-    ENTER_FCN ( "SimOutputGMV::WriteNodeElemDataHarm" );
 
     // get number of entities
     UInt numEnt = 0;
@@ -530,7 +519,6 @@ namespace CoupledField {
   // **************
   void SimOutputGMV::WriteNodes( std::ofstream * gridFile ) {
 
-    ENTER_FCN( "SimOutputGMV::WriteNodes" );
 
     // write keyword
     (*gridFile) << "nodev   ";
@@ -570,7 +558,6 @@ namespace CoupledField {
   // **************
   void SimOutputGMV::WriteCells( std::ofstream * gridFile ) {
 
-    ENTER_FCN( "SimOutputGMV::WriteCells" );
 
     // write keyword
     (*gridFile) << "cells   ";
@@ -734,7 +721,6 @@ namespace CoupledField {
   // **************************************
   void SimOutputGMV::WriteNamedEntities( std::ofstream * gridFile ) {
 
-    ENTER_FCN( "SimOutputGMV::WriteNamedEntities" );
 
     StdVector<std::string> nodeNames, elemNames;
     StdVector<UInt> nodeNumbers;
@@ -840,7 +826,6 @@ namespace CoupledField {
 
   void SimOutputGMV::WriteGrid( bool printGridOnly ) {
 
-    ENTER_FCN( "SimOutputGMV::WriteGrid" );
 
     // fileName for external grid file
     std::string extGridFileName = fileName_+ "_GRID.gmv";
@@ -916,7 +901,6 @@ namespace CoupledField {
   // ***********
   std::ofstream * SimOutputGMV::OpenFile( const std::string& name ) {
 
-    ENTER_FCN( "SimOutputGMV::OpenFile") ;
 
     std::string totalName;
     std::ofstream * outFile = NULL;

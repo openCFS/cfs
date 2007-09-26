@@ -60,7 +60,6 @@ namespace CoupledField
   // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx NEWTON CG 4 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
   void piezoParamIdent::NewtonCG1(){   // here we scale in advance, just once before NewtonCG and afterwards
-    ENTER_FCN("piezoParamIdent::NewtonCG1");
 
     Integer nrNewtonIterations=0;
     Integer backtrackIterator=0;

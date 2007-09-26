@@ -12,7 +12,6 @@ namespace CoupledField
   // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx least square xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
   void piezoParamIdent::nonlinLandweber(){ 
-    ENTER_FCN("piezoParamIdent::nonlinLandweber");    
 
     //ptMaterial_=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 

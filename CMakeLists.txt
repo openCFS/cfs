@@ -83,8 +83,6 @@ IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.3)
     #---------------------------------------------------------------------------
     # Defines related to tracing of functions and memory usage
     #---------------------------------------------------------------------------
-    SET(TRACE 1)
-    SET(TRACE_ALL 1)
     SET(MEMTRACE 1)
 
     #---------------------------------------------------------------------------

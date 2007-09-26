@@ -33,7 +33,6 @@ namespace OLAS {
     // - If no IDBCs are present in the linear system an IDBC_HandlerVoid
     //   object will be generated instead.
 
-    ENTER_FCN( "GenerateIDBC_HandlerObject" );
 
     BaseIDBC_Handler *retVal = NULL;
 
@@ -114,7 +113,6 @@ namespace OLAS {
     // - If no IDBCs are present in the linear system an IDBC_HandlerVoid
     //   object will be generated instead.
 
-    ENTER_FCN( "GenerateIDBC_HandlerObject" );
 
     BaseIDBC_Handler *retVal = NULL;
 
@@ -188,7 +186,6 @@ namespace OLAS {
     //
     // - It works only for the SBM_System class
 
-    ENTER_FCN( "GenerateIDBC_HandlerObject" );
 
     BaseIDBC_Handler *retVal = NULL;
 

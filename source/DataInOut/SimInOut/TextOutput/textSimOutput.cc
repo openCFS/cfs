@@ -23,7 +23,6 @@ namespace CoupledField {
   SimOutputText::SimOutputText( const std::string& fileName,
                                 ParamNode * outputNode )
     : SimOutput( fileName, outputNode ){
-    ENTER_FCN( "SimOutputText::SimOutputText" );
 
     // initialize variables
     formatName_ = "text";
@@ -56,7 +55,6 @@ namespace CoupledField {
   }
 
   SimOutputText::~SimOutputText() {
-    ENTER_FCN( "SimOutputText::~SimOutputText" );
     
     // Delete all 'outFiles', which might be still open
     std::map<shared_ptr<BaseResult>,
@@ -72,7 +70,6 @@ namespace CoupledField {
   }
   
   void SimOutputText::Init( Grid * ptGrid, bool printGridOnly ) {
-    ENTER_FCN( "SimOutputText::Init" );
     ptGrid_ = ptGrid;
 
     // Get reference coordinate system
@@ -86,13 +83,11 @@ namespace CoupledField {
   void SimOutputText::RegisterResult( shared_ptr<BaseResult> sol,
                                       UInt saveBegin, UInt saveInc,
                                       UInt saveEnd ) {
-    ENTER_FCN( "SimOutputText::RegisterResult" );
 
   }
   
 
   void SimOutputText::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "SimOutputText::BeginStep" );
 
     actStep_ = stepNum;
     actStepVal_ = stepVal;
@@ -101,13 +96,11 @@ namespace CoupledField {
 
 
   void SimOutputText::AddResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( "SimOutputText::AddResult" );
 
     resultMap_[sol->GetResultInfo()->resultName].Push_back( sol );
   }
   
   void SimOutputText::FinishStep( ) {
-    ENTER_FCN( "SimOutputText::FinishStep" );
 
     // call correct function accordint fileCollectionType
     if( collecType_ == TIMEFREQ ) {
@@ -121,7 +114,6 @@ namespace CoupledField {
   }
 
   void SimOutputText::WriteStepCollectTimeFreq() {
-    ENTER_FCN( "SimInputText::WriteStepCollectTimeFreq" );
 
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
@@ -252,7 +244,6 @@ namespace CoupledField {
 
 
   void SimOutputText::WriteStepCollectEntity() {
-    ENTER_FCN( "SimInputText::WriteStepCollectEntity");
 
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
@@ -325,7 +316,6 @@ namespace CoupledField {
   }
   
   void SimOutputText::WriteStepCollectAltogether() {
-    ENTER_FCN( "SimInputText::WriteStepCollectAltogether");
 
     // iterate over all result types
     ResultMapType::iterator it = resultMap_.begin();
@@ -400,7 +390,6 @@ namespace CoupledField {
   void SimOutputText::CreateFiles( shared_ptr<BaseResult> res,
                                    UInt step,
                                    Double stepVal ) {
-    ENTER_FCN(" SimOutputText::CreateFiles" );
     
     std::string namePrefix="history/" + fileName_ + "-";
     std::string totalName;

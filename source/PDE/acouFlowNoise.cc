@@ -35,7 +35,6 @@ namespace CoupledField
   AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, ParamNode* paramNode )
     :AcousticPDE(aptgrid, paramNode)
   {
-    ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
     // pdename_ is also acoustic for this case
     pdename_          = "acoustic";
@@ -52,7 +51,6 @@ namespace CoupledField
   
   void AcouFlowNoise::Init( UInt sequenceStep ) 
   {
-    ENTER_FCN( "AcouFlowNoise::Init()" );
     
     // First, call init of base class
     SinglePDE::Init( sequenceStep );
@@ -277,7 +275,6 @@ namespace CoupledField
 
   AcouFlowNoise::~AcouFlowNoise()
   {
-    ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 #ifdef MpCCI
     delete ptMpCCIexch_;
 #endif
@@ -285,14 +282,12 @@ namespace CoupledField
 
   void AcouFlowNoise::DefineSolveStep()
   {
-    ENTER_FCN( "AcouFlowNoise::DefineSolveStep" );
 
     solveStep_ = new StdSolveStep(*this);
   }
 
   void AcouFlowNoise::ComputeRHS(const Double atime)
   {
-    ENTER_FCN( "AcouFlowNoise::ComputeRHS" );
 
   
     Vector<Double> elemvec, nodalval;
@@ -653,7 +648,6 @@ namespace CoupledField
 
   void  AcouFlowNoise::WriteOutVortexFineSources(UInt timestep)
   {
-    ENTER_FCN( "AcouFlowNoise::WriteOutVortexFineSources" );
 
     // static variable for suffix of output src file
     static Integer filenum=1;
@@ -737,7 +731,6 @@ namespace CoupledField
 
  void AcouFlowNoise::ComputeRHSwithVortexSource(const Double atime)
  {
-   ENTER_FCN( "AcouFlowNoise::ComputeRHSwithVortexSource" );
 
    Matrix<Double> Src_Matrix;
    Vector<Double> elemvec, nodalval;
@@ -1006,7 +999,6 @@ namespace CoupledField
   void AcouFlowNoise::ReadFlowData(const Char * aname, UInt timestep,
                                    Matrix<Double> &flowdata_)
   {
-    ENTER_FCN( "AcouFlowNoise::ReadFlowData" );
 
     std::ifstream flowdatafile;
     UInt maxnumnodes;
@@ -1069,7 +1061,6 @@ namespace CoupledField
                                        const Double y, const Double t, 
                                        const UInt outType)
   {
-    ENTER_FCN( "AcouFlowNoise::VortexAnalytical" );
 
     // From Vortex Implementation of HydSol by username iagschwa
 

@@ -13,7 +13,6 @@ namespace CoupledField
   LaplaceXYZInt::LaplaceXYZInt(Double aVal, const UInt nrDofsPerNode, bool axi)
     : BaseForm( NULL ),nrDofsPerNode_(nrDofsPerNode),laplVal_ (aVal)
   {
-    ENTER_FCN( "LaplaceXYZInt::LaplaceXYZInt" );
     
     name_ = "LaplaceXYZInt";
     
@@ -24,7 +23,6 @@ namespace CoupledField
  
   LaplaceXYZInt::~LaplaceXYZInt()
   {
-    ENTER_FCN( "LaplaceXYZInt::~LaplaceXYZInt" );
   }
 
 
@@ -33,7 +31,6 @@ namespace CoupledField
                                          EntityIterator& ent1, 
                                          EntityIterator& ent2 )
   {
-    ENTER_FCN( "LaplaceXYZInt::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

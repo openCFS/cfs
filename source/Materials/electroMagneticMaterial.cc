@@ -26,7 +26,6 @@ namespace CoupledField
   // ***********************
   ElectroMagneticMaterial::ElectroMagneticMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Electromagnetics";
     nlinFncBH_ = NULL;
 
@@ -53,13 +52,11 @@ namespace CoupledField
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
     
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-    ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
     if ( matType == HYST_MODEL ) {
       stringParams_[matType] = param;
@@ -75,7 +72,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetScalar( Double param, MaterialType matType, 
 					   DataType dataType ) {
 
-    ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -117,7 +113,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetScalar( Complex param, MaterialType matType, 
 					   DataType dataType ) {
 
-    ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -159,7 +154,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
 					   DataType dataType ) {
     
-    ENTER_FCN( "ElectroMagneticMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -200,7 +194,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
 					   DataType dataType ) {
     
-    ENTER_FCN( "ElectroMagneticMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -231,7 +224,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::GetScalar( Double& param, MaterialType matType, 
 					   DataType dataType ) const {
 
-    ENTER_FCN( "ElectroMagneticMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -258,7 +250,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::GetScalar( Complex& param, MaterialType matType, 
 					   DataType dataType ) const {
 
-    ENTER_FCN( "ElectroMagneticMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -288,7 +279,6 @@ namespace CoupledField
 					   DataType dataType,
 					   SubTensorType subTensor) const {
     
-    ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
 
 
     tensorMap::const_iterator pos;
@@ -322,7 +312,6 @@ namespace CoupledField
 					   DataType dataType,
 					   SubTensorType subTensor) const {
     
-    ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -357,7 +346,6 @@ namespace CoupledField
 						 MaterialType matType, 
 						 SubTensorType subTensor) const {
 
-    ENTER_FCN( "ElectroMagnetic::ComputeSubTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -370,7 +358,6 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::InitApproxCurves() {
-    ENTER_FCN( "ElectroMagneticMaterial::InitApproxCurves" );
 
     // check, if we need to approx BH curve
     if (  needApproxMatCurves_.find( magBH ) != needApproxMatCurves_.end() ) {
@@ -395,7 +382,6 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                           bool isInverse, bool computeHystInverse ) {
-    ENTER_FCN( "ElectroMagneticMaterial::InitHyst" );
 
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
@@ -460,7 +446,6 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& valVec) {
-    ENTER_FCN( "ElectroMagneticMaterial::SetPreviousHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
@@ -515,7 +500,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::ComputeScalarDiffValues( UInt nrElem, 
                                                          Vector<Double>& valVec,
                                                          Vector<Double>& scalarValues ) {
-    ENTER_FCN( "ElectroMagneticMaterial::ComputeScalarDiffValues" );
 
     Vector<Double> Ycurrent(dim_);
     Vector<Double> Xcurrent(dim_);
@@ -566,7 +550,6 @@ namespace CoupledField
 
 
   Double ElectroMagneticMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& valVec) {
-    ENTER_FCN( "ElectroMagneticMaterial::ComputeScalarDiffVal" );
 
     Double matDiff, eps;
     Vector<Double> Ycurrent(dim_);
@@ -608,7 +591,6 @@ namespace CoupledField
   }
 
   Double ElectroMagneticMaterial::ComputeMatDiff( Vector<Double>& dX, Vector<Double>& dY, UInt idx ) {
-    ENTER_FCN( "ElectroMagneticMaterial::ComputeMatDiff" );
 
     Double matDiff, eps;
     Double dB = dY[0]*dY[0] + dY[1]*dY[1];
@@ -637,7 +619,6 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::ComputeVectorHystVal( UInt nrElem, Vector<Double>& in, 
                                                       Vector<Double>& out ) {
-    ENTER_FCN( "ElectroMagneticMaterial::ComputeVectorHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
     
@@ -658,7 +639,6 @@ namespace CoupledField
   }
 
   void ElectroMagneticMaterial::GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
-    ENTER_FCN( "ElectroMagneticMaterial::GetVectorHystVal" );
 
     UInt idx = globalElem2Local_[nrElem];
 
@@ -677,7 +657,6 @@ namespace CoupledField
   }
 
   Double ElectroMagneticMaterial::GetScalarHystVal( UInt nrElem ) {
-    ENTER_FCN( "ElectroMagneticMaterial::GetScalarHystVal" );
 
     Error("ElectroMagneticMaterial::GetScalarHystVal makes no sense", __FILE__, __LINE__ );
 
@@ -694,7 +673,6 @@ namespace CoupledField
   void ElectroMagneticMaterial::ComputeInverseScalar( UInt idxEl, UInt comp, Double Yin, 
                                                       Double& Xout ) {
     
-    ENTER_FCN( "ElectroMagneticMaterial::ComputeScalarInverse" );
     
     Double eps = 1e-3;
     Double  dH = vecHyst_[0]->GetIncX();

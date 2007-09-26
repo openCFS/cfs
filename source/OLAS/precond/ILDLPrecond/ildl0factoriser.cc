@@ -17,7 +17,6 @@ namespace OLAS {
   template <class T>
   ILDL0Factoriser<T>::ILDL0Factoriser() {
 
-    ENTER_FCN( "ILDL0Factoriser::ILDL0Factoriser" );
 
     (*error) << "Default constructor of ILDL0Factoriser call was called! "
              << "This constructor is forbidden!";
@@ -33,7 +32,6 @@ namespace OLAS {
   ILDL0Factoriser<T>::ILDL0Factoriser( OLAS_Params *myParams,
                                        OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILDL0Factoriser::ILDL0Factoriser" );
 
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -51,7 +49,6 @@ namespace OLAS {
   template <class T>
   ILDL0Factoriser<T>::~ILDL0Factoriser() {
 
-    ENTER_FCN( "ILDL0Factoriser::~ILDL0Factoriser" );
 
   }
 
@@ -67,7 +64,6 @@ namespace OLAS {
                                       std::vector<T> &dataU,
                                       bool newPattern ) {
 
-    ENTER_FCN( "ILDL0Factoriser::Factorise" );
 
     this->sysMatDim_ = sysMat.GetNcols();
     Integer nnzA = (sysMat.GetNnz() + this->sysMatDim_ ) / 2;
@@ -100,7 +96,6 @@ namespace OLAS {
                                               std::vector<UInt> &cidxU,
                                               std::vector<T> &dataU ) {
 
-    ENTER_FCN( "ILDL0Factoriser::FactoriseNumerics" );
 
     // Shall we be verbose?
     bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;

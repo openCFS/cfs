@@ -17,7 +17,6 @@ namespace CoupledField {
   
     NonConformingInt::NonConformingInt( UInt dofsPerNode, bool isAxi,
                                         bool coordUpdate ) {
-    ENTER_FCN( "NonConformingInt::NonConformingInt" );
 
     name_ = "NonConformingInt";
     isaxi_ = isAxi;
@@ -27,13 +26,11 @@ namespace CoupledField {
   }
 
   NonConformingInt::~NonConformingInt() {
-    ENTER_FCN( "NonConformingInt::~NonConformingInt" );
   }
 
   void NonConformingInt::CalcElementMatrix(  Matrix<Double>& stiffMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2 ) {
-    ENTER_FCN( "NonConformingInt::CalcElementMatrix" );
 
     SurfElem *surfElem[2];
     Matrix<Double> coordMat;

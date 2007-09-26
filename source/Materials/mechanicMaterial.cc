@@ -22,7 +22,6 @@ namespace CoupledField
   // ***********************
   MechanicMaterial::MechanicMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Mechanics";
 
     //set the allowed material parameters
@@ -55,12 +54,10 @@ namespace CoupledField
 
   MechanicMaterial::~MechanicMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
   void MechanicMaterial::Finalize() {
-    ENTER_FCN( "MechanicMaterial::Finalize" );
 
 
     // Trigger calculation of stiffness tensor
@@ -70,7 +67,6 @@ namespace CoupledField
 
   void MechanicMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
 
       
     //check, if allowed
@@ -90,7 +86,6 @@ namespace CoupledField
   void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
 				    DataType dataType ) {
 
-    ENTER_FCN( "MechanicMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -122,7 +117,6 @@ namespace CoupledField
 				    DataType dataType ) {
 
 
-    ENTER_FCN( "MechanicMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -153,7 +147,6 @@ namespace CoupledField
   void MechanicMaterial::SetVector(const Vector<Double>& param, MaterialType matType, 
 				    DataType dataType ) {
     
-    ENTER_FCN( "MechanicMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -185,7 +178,6 @@ namespace CoupledField
   void MechanicMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
 				    DataType dataType ) {
     
-    ENTER_FCN( "MechanicMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -221,7 +213,6 @@ namespace CoupledField
   void MechanicMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
 				    DataType dataType ) {
     
-    ENTER_FCN( "MechanicMaterial::SetTensor" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -244,7 +235,6 @@ namespace CoupledField
 
   void MechanicMaterial::GetScalar( std::string& param, MaterialType matType)  const {
 
-    ENTER_FCN( "MechanicMaterial::GetScalar" );
 
     stringMap::const_iterator pos;
     pos = stringParams_.find( matType );
@@ -261,7 +251,6 @@ namespace CoupledField
  
    void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
     
-     ENTER_FCN( "MechanicMaterial::GetScalar" );
     
      integerMap::const_iterator pos;
      pos = integerParams_.find( matType );
@@ -281,7 +270,6 @@ namespace CoupledField
   void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
 				    DataType dataType )  const {
 
-    ENTER_FCN( "MechanicMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -308,7 +296,6 @@ namespace CoupledField
   void MechanicMaterial::GetScalar( Complex& param, MaterialType matType, 
 				    DataType dataType )  const {
 
-    ENTER_FCN( "MechanicMaterial::GetScalar" );
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
 
@@ -337,7 +324,6 @@ namespace CoupledField
 				    MaterialType matType, 
 				    DataType dataType ) const {
     
-    ENTER_FCN( "MechanicMaterial::GetVector" );
 
     vectorMap::const_iterator pos;
     pos = vectorParams_.find( matType );
@@ -366,7 +352,6 @@ namespace CoupledField
 				    DataType dataType,
 				    SubTensorType subTensor ) const {
     
-    ENTER_FCN( "MechanicMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -399,7 +384,6 @@ namespace CoupledField
 				    DataType dataType,
 				    SubTensorType subTensor ) const {	
     
-    ENTER_FCN( "MechanicMaterial::GetTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -435,7 +419,6 @@ namespace CoupledField
 					  MaterialType matType, 
 					  SubTensorType subTensor) const {
 
-    ENTER_FCN( "MechanicMaterial::ComputeSubTensor" );
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -505,7 +488,6 @@ namespace CoupledField
  
 
   void MechanicMaterial::ComputeFullStiffTensor() {
-    ENTER_FCN( "MechanicMaterial::ComputeFullStiffnessTensor" ) 
 
       Matrix<Complex> elasticityTensor;
 

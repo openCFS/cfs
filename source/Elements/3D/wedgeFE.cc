@@ -19,7 +19,6 @@ namespace CoupledField
 
   WedgeFE::WedgeFE()
   {
-    ENTER_FCN( "WedgeFE::WedgeFE" );
 
     Dim_        = 3;
     NumEdges_   = 9;
@@ -35,7 +34,6 @@ namespace CoupledField
   
   WedgeFE::~WedgeFE()
   {
-    ENTER_FCN( "WedgeFE::~WedgeFE" );
   }
 
 
@@ -78,7 +76,6 @@ namespace CoupledField
 
   void WedgeFE::FillIntegrationPoints()
   {
-      ENTER_IFCN("WedgeFE::FillIntegrationPoints");     
 
       
       // This values come from the originial WedgeFE::SetIntPoints() Implementation and are NOT from
@@ -286,7 +283,6 @@ namespace CoupledField
                                           const Vector<Double> & surfIntPoint,
                                           Vector<Double> & volIntPoint)
   {
-    ENTER_IFCN( "WedgeFE::GetLocalIntPoints4Surface" );
   
     // Try to find out, which vertices are in common with
     // the surface element. Then calculate the product of all four

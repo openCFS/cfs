@@ -14,7 +14,6 @@ namespace CoupledField {
     : FlatShellInt(matData) 
   {
     
-    ENTER_FCN( "FlatShellMassInt::FlatShellMassInt" );
     
     name_ = "FlatShellMassInt";
     matData->GetScalar(density_,DENSITY,REAL);
@@ -26,7 +25,6 @@ namespace CoupledField {
   FlatShellMassInt::FlatShellMassInt( Composite * composite )
     : FlatShellInt(composite) 
   {
-    ENTER_FCN( "FlatShellMassInt::FlatShellMassInt" );
 
     name_ = "FlatShellMassInt";
     baseType_ = MASS;
@@ -36,14 +34,12 @@ namespace CoupledField {
   
   FlatShellMassInt::~FlatShellMassInt()
   {
-    ENTER_FCN( "FlatShellMassInt::~FlatShellMassInt" );
   }
 
   void FlatShellMassInt::CalcElementMatrix(Matrix<Double>& elemMat,
 					   EntityIterator& ent1, 
 					   EntityIterator& ent2 )
   {
-    ENTER_FCN( "FlatShellMassInt::CalcElemMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

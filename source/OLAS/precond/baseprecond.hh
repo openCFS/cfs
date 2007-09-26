@@ -16,12 +16,10 @@ namespace OLAS {
 
     //! Default Constructor
     BasePrecond() {
-      ENTER_FCN( "BasePrecond::BasePrecond" );
     };
 
     //! Default Destructor
     virtual ~BasePrecond() {
-      ENTER_FCN( "BasePrecond::~BasePrecond" );
     };
 
     //! A call of this method triggers the construction of the preconditioner.
@@ -75,12 +73,10 @@ namespace OLAS {
     //! The constructor has nothing to do but to set the attribute
     //! readyToUse_ to false.
     BaseStdPrecond() : readyToUse_(false) {
-      ENTER_FCN( "BaseStdPrecond::BaseStdPrecond" );
     };
 
     //! Default Destructor
     ~BaseStdPrecond() {
-      ENTER_FCN( "BaseStdPrecond::~BaseStdPrecond" );
     };
 
     //! Applies the preconditioner by "solving" Az=r for z
@@ -93,7 +89,6 @@ namespace OLAS {
     //! \param z output vector computed by the preconditioner
     virtual void Apply( const BaseMatrix &sysmat, const BaseVector &r, 
                         BaseVector &z ) const {
-      ENTER_FCN( "BaseStdPrecond::Apply" );
       TRY_CAST {
         ConstRefCast(sysmat,StdMatrix,stdsysmat);
         ConstRefCast(r,SparseVector,stdr);
@@ -118,7 +113,6 @@ namespace OLAS {
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
     virtual void Setup( BaseMatrix &sysMat ) {
-      ENTER_FCN( "BaseStdPrecond::Setup" );
       TRY_CAST {
         RefCast( sysMat, StdMatrix, stdMat );
         Setup( stdMat );
@@ -152,12 +146,10 @@ namespace OLAS {
     //! The constructor has nothing to do but to set the attribute
     //! readyToUse_ to false.
     BaseSBMPrecond() : readyToUse_(false) {
-      ENTER_FCN( "BaseSBMPrecond::BaseSBMPrecond" );
     };
 
     //! Default Destructor
     ~BaseSBMPrecond() {
-      ENTER_FCN( "BaseSBMPrecond::~BaseSBMPrecond" );
     };
 
     //! Applies the preconditioner by "solving" Az=r for z
@@ -177,7 +169,6 @@ namespace OLAS {
     //! or SparseVectors will lead to a run-time error.
     virtual void Apply( const BaseMatrix& sysmat, const BaseVector& r, 
                         BaseVector& z ) const {
-      ENTER_FCN("BaseSBMPrecond::Apply");
       const SBM_Matrix& sbmsysmat = dynamic_cast<const SBM_Matrix&>(sysmat);
       const SBM_Vector& sbmr      = dynamic_cast<const SBM_Vector&>(r);
       SBM_Vector& sbmz            = dynamic_cast<SBM_Vector&>(z);
@@ -199,7 +190,6 @@ namespace OLAS {
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
     virtual void Setup( BaseMatrix &A ) {
-      ENTER_FCN("BaseSBM_Precond::Setup");
       SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
       Setup(sbmA);
     }

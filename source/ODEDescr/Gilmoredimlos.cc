@@ -26,7 +26,6 @@ namespace CoupledField
 			       Double  polytrop,
 			       Double  viscosity) {
     
-    ENTER_FCN( "Gilmoredimlos::Gilmoredimlos" );
 
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -66,7 +65,6 @@ namespace CoupledField
   void  Gilmoredimlos::CompDeriv(const Double &t,
 				 const StdVector<Double> &y,
 				 StdVector<Double> &dydt){
-    ENTER_FCN( "Gilmoredimlos::CompDeriv" );
 
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -144,7 +142,6 @@ namespace CoupledField
 // 			      Matrix<Double> &dfdy,
 // 			      Double &t){
     
-//     ENTER_FCN( "Gilmoredimlos::Jacobi" );
 
 //     dfdy(0,0) = 0;
 //     dfdy(0,1) = 1;
@@ -158,7 +155,6 @@ namespace CoupledField
    			      Matrix<Double> &dfdy,
    			      Double &t){
   
-    ENTER_FCN( "Gilmoredimlos::Jacobi" );
   
     Integer n = y.GetSize();
     StdVector<Double> yPlus(n);
@@ -198,7 +194,6 @@ namespace CoupledField
 			       Double &t){
 
 
-    ENTER_FCN( "Gilmoredimlos::df2dy1" );
 
     Double y1 = y[0];
     Double y2 = y[1];
@@ -350,7 +345,6 @@ namespace CoupledField
   Double Gilmoredimlos::df2dy2(StdVector<Double> &y,
 			       Double &t){
 
-    ENTER_FCN( "Gilmoredimlos::df2dy2" );
 
     Double y1 = y[0];
     Double y2 = y[1];

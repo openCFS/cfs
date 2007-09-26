@@ -23,7 +23,6 @@ namespace CoupledField
 
   Grid::Grid()
   {
-    ENTER_FCN( "Grid::Grid" );
 
     ptQ1     = new Quad1FE();
     ptQ2     = new Quad2FE();
@@ -51,7 +50,6 @@ namespace CoupledField
 
   Grid::~Grid()
   {
-    ENTER_FCN( "Grid::~Grid" );
     delete ptQ1;      ptQ1 = NULL;    
     delete ptQ2;      ptQ2 = NULL;    
     delete ptTet1;    ptTet1 = NULL;  
@@ -120,7 +118,6 @@ namespace CoupledField
   }
     
   void Grid::GetRegionIds( StdVector<RegionIdType> & regions ) {
-    ENTER_FCN( "Grid::GetRegionIds" );
     
     UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
     
@@ -131,7 +128,6 @@ namespace CoupledField
   }
   
   void Grid::GetRegionIds( std::vector<RegionIdType> & regions ) {
-    ENTER_FCN( "Grid::GetRegionIds" );
         
     UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
         
@@ -143,13 +139,11 @@ namespace CoupledField
 
   
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
-    ENTER_FCN( "Grid::GetVolRegionIds" );
     
     volRegions = volRegionIds_;
   }
   
   void Grid::GetVolRegionIds( std::vector<RegionIdType> & volRegions ) {
-    ENTER_FCN( "Grid::GetVolRegionIds" );
         
     UInt numRegions = volRegionIds_.GetSize();
         
@@ -161,13 +155,11 @@ namespace CoupledField
 
   
   void Grid::GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
-    ENTER_FCN( "Grid::GetSurfRegionIds" );
     
     surfRegions = surfRegionIds_;
   }
 
   void Grid::GetSurfRegionIds( std::vector<RegionIdType> & surfRegions ) {
-    ENTER_FCN( "Grid::GetSurfRegionIds" );
         
     UInt numRegions = surfRegionIds_.GetSize();
         
@@ -178,7 +170,6 @@ namespace CoupledField
   }
 
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
-    ENTER_FCN( "Grid::RegionNameToId" );
 
     RegionIdType ret = NO_REGION_ID;
 
@@ -196,7 +187,6 @@ namespace CoupledField
 
   void Grid::RegionIdToName( StdVector<std::string> & regionNames,
                              const StdVector<RegionIdType> & regionId ) {
-    ENTER_FCN( "Grid::RegionIdToName" );
   
     regionNames.Resize( regionId.GetSize() );
     for (UInt i=0; i<regionId.GetSize(); i++ ) {
@@ -210,7 +200,6 @@ namespace CoupledField
   void Grid::RegionNameToId( StdVector<RegionIdType> & regionIds,
                              const StdVector<std::string> 
                              & regionNames ) {
-    ENTER_FCN( "Grid::RegionNameToId" );
 
     RegionIdType ret = NO_REGION_ID;
     
@@ -231,7 +220,6 @@ namespace CoupledField
   }
   
   std::string Grid::RegionIdToName( const RegionIdType regionId ) {
-    ENTER_FCN( "Grid::RegionIdToName" );
   
     if ( regionId == ALL_REGIONS )
       return "all";
@@ -243,7 +231,6 @@ namespace CoupledField
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType, 
                                               const std::string& name,
                                               EntityList::DefineType defineType ) {
-    ENTER_FCN( "Grid::GetEntityList" );
 
     shared_ptr<EntityList> ret;
 
@@ -1943,7 +1930,6 @@ namespace CoupledField
   
   
   void Grid::RegisterFunctions() {
-    ENTER_FCN( "Grid::RegisterFunctions" );
 
     typedef FctPointer<Grid> FCPT;
     StdVector<ArgList> a;

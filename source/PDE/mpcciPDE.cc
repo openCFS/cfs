@@ -25,7 +25,6 @@ namespace CoupledField {
     :SinglePDE( aptgrid, paramNode ) 
   {
 
-    ENTER_FCN( "MpcciPDE::MpcciPDE" );
 
     // =====================================================================
     // set solution information
@@ -88,7 +87,6 @@ namespace CoupledField {
   void MpcciPDE::Init(UInt bcSequenceIndex )
   {
 
-    ENTER_FCN( "MpCCI::Init()" );
     
     sequenceStep_ = bcSequenceIndex;
     
@@ -137,7 +135,6 @@ namespace CoupledField {
 
   void MpcciPDE::PreparePDE4Computation()
   {
-    ENTER_FCN( "MpcciPDE::PreparePDE4Computation" );
 #ifdef MpCCI
 
   StdVector<Elem*> elemssd;
@@ -172,18 +169,15 @@ namespace CoupledField {
 
   void MpcciPDE::DefineAlgSys() {
     
-    ENTER_FCN( "MpcciPDE::DefineAlgSys" );
   }
 
   void MpcciPDE::DefineIntegrators()
   {
-    ENTER_FCN( "MpcciPDE::DefineIntegerators" );
   }
 
 
   void MpcciPDE::DefineSolveStep()
   {
-    ENTER_FCN( "MpcciPDE::DefineSolveStep" );
   
     solveStep_ = new SolveStepMpCCI(*this);
   }
@@ -196,7 +190,6 @@ namespace CoupledField {
 
   void MpcciPDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "MpcciPDE::InitCoupling" );
   
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -272,7 +265,6 @@ namespace CoupledField {
   void MpcciPDE::CalcInputCoupling()
   {
 
-    ENTER_FCN( "MpcciPDE::CalcInputCoupling" );
 
     std::string errMsg;
     StdVector<UInt> * nodes;
@@ -376,7 +368,6 @@ namespace CoupledField {
 
   void MpcciPDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "MpcciPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes = NULL;
@@ -464,7 +455,6 @@ namespace CoupledField {
 
   bool MpcciPDE::HasOutput(SolutionType output)
   {
-    ENTER_FCN( "MpcciPDE::HasOutput" );
   
     switch (output)
       {
@@ -482,7 +472,6 @@ namespace CoupledField {
 
   void MpcciPDE::GetNodesOfSubdomain()
   {
-    ENTER_FCN( "MpcciPDE::GetNodesOfSubdomain" );
     UInt i, j;
     UInt localPDENode;
     UInt numOfSubdom=subdoms_.GetSize();
@@ -510,7 +499,6 @@ namespace CoupledField {
 
   void MpcciPDE::SetupNodesSubdomainsMapping()
   {
-    ENTER_FCN( "MpcciPDE::SetupNodesSubdomainsMapping" );
 
     UInt i, j, k;
     UInt numOfSubdom=subdoms_.GetSize();

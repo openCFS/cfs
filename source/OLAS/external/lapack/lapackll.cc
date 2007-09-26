@@ -12,7 +12,6 @@ namespace OLAS {
   //   Default Constructor
   // ***********************
   Lapack_LL::Lapack_LL() {
-    ENTER_FCN( "Lapack_LL::Lapack_LL" );
     Error( "Default constructor of LAPACK_LL is forbidden!",
 	   __FILE__, __LINE__ );
   }
@@ -23,7 +22,6 @@ namespace OLAS {
   // *****************************
   Lapack_LL::Lapack_LL( OLAS_Params *myParams, OLAS_Report *myReport ) {
 
-    ENTER_FCN( "Lapack_LL::Lapack_LL" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -45,7 +43,6 @@ namespace OLAS {
   //   Deep Constructor
   // ********************
   Lapack_LL::~Lapack_LL() {
-    ENTER_FCN( "Lapack_LL::~Lapack_LL" );
     DeleteArray( lapackRHS_ );
     DeleteArray( facMat_ );
   }
@@ -56,7 +53,6 @@ namespace OLAS {
   // ********************************
   void Lapack_LL::Setup( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "Lapack_LL::Setup" );
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
@@ -131,7 +127,6 @@ namespace OLAS {
   // *****************
   void Lapack_LL::FactoriseReal( StdMatrix &stdMat ) {
 
-    ENTER_FCN( "Lapack_LL::FactoriseReal" );
 
     UInt i, k;
 
@@ -288,7 +283,6 @@ namespace OLAS {
   // ********************
   void Lapack_LL::FactoriseComplex( StdMatrix &stdMat ) {
 
-    ENTER_FCN( "Lapack_LL::FactoriseComplex" );
 
     UInt i, k;
 
@@ -449,7 +443,6 @@ namespace OLAS {
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
 			 const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "Lapack_LL::Solve" );
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
@@ -528,7 +521,6 @@ namespace OLAS {
   // *************
   void Lapack_LL::SolveReal( const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "Lapack_LL::SolveReal" );
 
     UInt i;
 
@@ -590,7 +582,6 @@ namespace OLAS {
   // ****************
   void Lapack_LL::SolveComplex( const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "Lapack_LL::SolveComplex" );
 
     UInt i;
 

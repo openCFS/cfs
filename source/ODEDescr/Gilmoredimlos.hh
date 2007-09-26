@@ -41,7 +41,6 @@ namespace CoupledField{
      
     //! Default Destructor
     virtual ~Gilmoredimlos() {
-      ENTER_FCN( "Gilmoredimlos::~Gilmoredimlos" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -54,25 +53,21 @@ namespace CoupledField{
 
     //! Get the pressure used in this class
     Double GetP (){
-      ENTER_IFCN( "Gilmoredimlos::GetP" );      
       return p_;
     }
 
     //! Set the pressure 
     void SetP (Double p){
-      ENTER_IFCN( "Gilmoredimlos::SetP" );
       p_ = p;
     }
 
     //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
-      ENTER_IFCN( "Gilmoredimlos::GetDpdt" );
       return dpdt_;
     }
 
     //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
-      ENTER_IFCN( "Gilmoredimlos::SetDpdt" );
       dpdt_ = dpdt;
     }
     

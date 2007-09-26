@@ -14,7 +14,6 @@ namespace OLAS {
   SBM_Matrix::SBM_Matrix( UInt nrows, UInt ncols, bool amSymm ) :
     nrows_(nrows), ncols_(ncols) {
 
-    ENTER_FCN( "SBM_Matrix::SBM_Matrix" );
 
     // Set symmetry flag and check for matrix being square
     amSymm_ = amSymm;
@@ -42,7 +41,6 @@ namespace OLAS {
   //   Initialise matrix to zero
   // *****************************
   void SBM_Matrix::Init() {
-    ENTER_FCN( "SBM_Matrix::Init" );
     for( Integer i = 1; i <= nrows_ * ncols_; i++ ) {
       if ( subMat_[i] != NULL ) {
         subMat_[i]->Init();
@@ -61,7 +59,6 @@ namespace OLAS {
                                  Integer nrows, Integer ncols,
                                  Integer nnz ) {
 
-    ENTER_FCN( "SBM_Matrix::SetSubMatrix" );
 
     // If matrix is symmetric check that the submatrix lies
     // in the upper triangular part
@@ -177,7 +174,6 @@ namespace OLAS {
   // *******************************************
   void SBM_Matrix::Add( const Double fac, const BaseMatrix &mat ) {
 
-    ENTER_FCN( "SBM_Matrix::Add" );
 
     // Downcast BaseMatrix to SBM_Matrix
     try {
@@ -231,7 +227,6 @@ namespace OLAS {
   void SBM_Matrix::CompRes( BaseVector &r, const BaseVector &x,
 			    const BaseVector& b ) const {
 
-    ENTER_FCN( "SBM_Matrix::CompRes" );
 
     // Downcast BaseVectors to SBM_Vectors
     try {
@@ -313,7 +308,6 @@ namespace OLAS {
   //   Perform a matrix-vector multiplication
   // ******************************************
   void SBM_Matrix::Mult( const BaseVector& mvec, BaseVector& rvec ) const {
-    ENTER_FCN( "SBM_Matrix::Mult" );
     rvec.Init();
     MultAdd( mvec, rvec );
   }
@@ -323,7 +317,6 @@ namespace OLAS {
   //   Perform a matrix-vector multiplication with transpose
   // *********************************************************
   void SBM_Matrix::MultT( const BaseVector& mvec, BaseVector& rvec ) const {
-    ENTER_FCN( "SBM_Matrix::MultT" );
     rvec.Init();
     this->MultTAdd( mvec, rvec );
   }
@@ -334,7 +327,6 @@ namespace OLAS {
   // ********************************************************
   void SBM_Matrix::MultAdd( const BaseVector& mvec, BaseVector& rvec ) const {
 
-    ENTER_FCN( "SBM_Matrix::MultAdd" );
 
     // Downcast BaseVectors to SBM_Vectors
     try {
@@ -403,7 +395,6 @@ namespace OLAS {
   // **********************************************************
   void SBM_Matrix::MultTAdd( const BaseVector& mvec, BaseVector& rvec ) const{
 
-    ENTER_FCN( "SBM_Matrix::MultTAdd" );
 
     Warning( "SBM_Matrix::MultTAdd has not yet been tested, my contain bugs");
 
@@ -449,7 +440,6 @@ namespace OLAS {
   // ***********************************************************
   void SBM_Matrix::MultSub( const BaseVector& mvec, BaseVector& rvec ) const {
 
-    ENTER_FCN( "SBM_Matrix::MultSub" );
 
     // Downcast BaseVectors to SBM_Vectors
     try {
@@ -509,7 +499,6 @@ namespace OLAS {
   // **********
   void SBM_Matrix::Export( const Char *fname, const Char *comment ) const {
 
-    ENTER_FCN( "SBM_Matrix::Export" );
 
     std::stringstream fileName;
     std::string outFile;
@@ -536,7 +525,6 @@ namespace OLAS {
   // **************
   Double SBM_Matrix::GetMaxDiag() const {
 
-    ENTER_FCN( "SBM_Matrix::GetMaxDiag" );
 
     Double retVal = 0.0;
     Double auxVal = 0.0;
@@ -559,7 +547,6 @@ namespace OLAS {
   // ******************
   Integer SBM_Matrix::GetNrowsScalar() const {
 
-    ENTER_FCN( "SBM_Matrix::GetNrowsScalar" );
 
     Integer sum = 0;
     StdMatrix *stdMat = NULL;
@@ -586,7 +573,6 @@ namespace OLAS {
   // ******************
   Integer SBM_Matrix::GetNcolsScalar() const {
 
-    ENTER_FCN( "SBM_Matrix::GetNcolsScalar" );
 
     Integer sum = 0;
     StdMatrix *stdMat = NULL;

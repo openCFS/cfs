@@ -178,7 +178,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return SYMMLQ
     SolverType GetSolverType() {
-      ENTER_IFCN( "SYMMLQSolver::GetSolverType" );
       return SYMMLQ;
     }
 

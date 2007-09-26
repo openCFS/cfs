@@ -53,7 +53,6 @@ class GaussSeidel : public Smoother<T>
 
         //! set value for the SOR damping parameter Omega
         void SetOmega( const T_Stype& omega ) {
-            ENTER_FCN("GaussSeidel::SetOmega");
             Omega_ = omega;
         }
         //@}

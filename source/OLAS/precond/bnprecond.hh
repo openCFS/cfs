@@ -33,7 +33,6 @@ namespace OLAS {
     //! cast the matrix into its full type and perform the Setup 
     //! of the preconditioner as subclass
     virtual void Setup( StdMatrix &A ) {
-      ENTER_FCN("BNPrecond::Setup");
       TRY_CAST {
 	RefCast( A, AssocMatrixType, idA );
       	SubClass().Setup(idA);
@@ -46,7 +45,6 @@ namespace OLAS {
     virtual void Apply( const StdMatrix &A, 
 			const SparseVector &r, SparseVector &z) const {
     	
-      ENTER_FCN( "BNPrecond::Apply" );
       TRY_CAST {
 	ConstRefCast(A,AssocMatrixType,idA);
 	ConstRefCast(r,AssocVectorType,idr);

@@ -58,7 +58,6 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
   // *******************************************************
   BaseVector* GenerateVectorObject( const BaseMatrix &m ) {
 
-    ENTER_FCN("GenerateVectorObject");
 
     BaseVector *retVector = NULL;
     MatrixStructureType m_structuretype;
@@ -129,7 +128,6 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
                                        const Integer blockSize,
                                        const Integer length ) {
 
-    ENTER_FCN( "GenerateSparseVectorObject" );
 
     BaseVector *retVector = NULL;
 
@@ -218,7 +216,6 @@ AssertMem( retMat, sizeof(matrix_obj_type) );\
                                       const Integer ncols,
                                       const Integer fill ) {
 
-    ENTER_FCN( "GenerateStdMatrixObject" );
     StdMatrix *retMat = NULL;
 
     // Branch depending on desired storage layout/StdMatrix type
@@ -344,7 +341,6 @@ catch(...){};
   // ******************************************************
   StdMatrix* CopyStdMatrixObject( const StdMatrix &origMat  ) {
 
-    ENTER_FCN( "CopyStdMatrixObject" );
 
     StdMatrix *retMat = NULL;
 
@@ -388,7 +384,6 @@ catch(...){};
                                        GraphManagerSBMMat *graphManager,
                                        bool symmetric ) {
 
-    ENTER_FCN( "GenerateSBMMatrixObject" );
 
     MatrixStorageType sType = NOSTORAGETYPE;
     BaseGraph *graph = NULL;

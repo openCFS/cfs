@@ -31,7 +31,6 @@ namespace OLAS {
   ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, OLAS_Params *myParams,
                                OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILDLPrecond::ILDLPrecond" );
 
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -65,7 +64,6 @@ namespace OLAS {
   template<typename T>
   ILDLPrecond<T>::~ILDLPrecond() {
 
-    ENTER_FCN( "ILDLPrecond::~ILDLPrecond" );
 
     delete factoriser_;
   }
@@ -77,7 +75,6 @@ namespace OLAS {
   template<typename T>
   void ILDLPrecond<T>::Setup( StdMatrix &stdMat ) {
 
-    ENTER_FCN( "ILDLPrecond::Setup" );
 
     // Test the storage layout
     MatrixStorageType sType = stdMat.GetStorageType();
@@ -171,7 +168,6 @@ namespace OLAS {
   void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const SparseVector &r,
                               SparseVector &z ) const {
 
-    ENTER_FCN( "ILDLPrecond::Solve" );
 
     bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 1;
 
@@ -216,7 +212,6 @@ namespace OLAS {
   void ILDLPrecond<T>::ExportFactorisation( const char *fname,
                                             bool patternOnly ) {
 
-    ENTER_FCN( "ILDLPrecond::ExportFactorisation" );
 
     UInt i, j;
     T aux;
@@ -313,7 +308,6 @@ namespace OLAS {
   template<typename T>
   void ILDLPrecond<T>::GenerateFactoriser() {
 
-    ENTER_FCN( "ILDLPrecond::GenerateFactoriser" );
 
     switch ( myVariant_ ) {
 

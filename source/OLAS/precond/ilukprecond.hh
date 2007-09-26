@@ -124,7 +124,6 @@ namespace OLAS {
     //! object. In the case of an object of this class the return
     //! value is ILUK.
     PrecondType GetPrecondType() const {
-      ENTER_FCN( "ILUK_Precond::GetPrecondType" );
       return ILUK;
     };
 
@@ -177,7 +176,6 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     ILUK_Precond() {
-      ENTER_FCN( "ILUK_Precond::ILUK_Precond" );
       Error( "Default constructor of ILUK_Precond should never be called!",
              __FILE__, __LINE__ );
     };

@@ -27,14 +27,12 @@ namespace OLAS {
 
     //! Default constructor
     SCRS_Pattern() {
-      ENTER_FCN( "SCRS_Pattern::SCRS_Pattern" );
       cidx_ = NULL;
       rptr_ = NULL;
     }
 
     //! Destructor
     virtual ~SCRS_Pattern() {
-      ENTER_FCN( "SCRS_Pattern::~SCRS_Pattern" );
       DeleteArray( cidx_ );
       DeleteArray( rptr_ );
     }

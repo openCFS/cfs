@@ -13,7 +13,6 @@ namespace CoupledField
 
 Pyra2FE::Pyra2FE():PyraFE()
 {
-  ENTER_FCN( "Pyra2FE::Pyra2FE" );
   
   Init();
 }
@@ -22,12 +21,10 @@ Pyra2FE::Pyra2FE():PyraFE()
 
 Pyra2FE::~Pyra2FE()
 {
-  ENTER_FCN( "Pyra2FE::~Pyra2FE" );
 }
 
 void Pyra2FE::Init()
 {
-  ENTER_IFCN( "Pyra2FE::Init" );
 
   NumNodes_ = 13;
   NumEdges_ = 8;
@@ -38,7 +35,6 @@ void Pyra2FE::Init()
 
 void Pyra2FE::SetCornerCoords()
 {
-  ENTER_IFCN( "Pyra2FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
 
@@ -175,7 +171,6 @@ void Pyra2FE :: CalcShapeFnc(Vector<Double> & Shape,
                              const Elem*, UInt dof,
                              AnsatzFct::FctEntityType fctEntityType )
 {
-  ENTER_IFCN( "Pyra2FE::CalcShapeFnc" );
 
   Shape.Resize(NumNodes_);
 
@@ -292,7 +287,6 @@ void Pyra2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                        const Elem*, UInt dof,
                                        AnsatzFct::FctEntityType fctEntityType )
 {
-  ENTER_IFCN( "Pyra2FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 

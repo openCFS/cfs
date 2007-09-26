@@ -28,7 +28,6 @@ namespace CoupledField {
 
   GridCFS::GridCFS(UInt dim) : Grid( ) {
 
-    ENTER_FCN( "GridCFS::GridCFS" );
 
     isInitialized_ = false;
     isQuadratic_ = false;
@@ -51,7 +50,6 @@ namespace CoupledField {
   
   GridCFS::~GridCFS() {
 
-    ENTER_FCN( "GridCFS::GridCFS" );
 
     for ( UInt i = 0; i < numElems_; i++ ) {
       delete orderedElems_[i];
@@ -62,7 +60,6 @@ namespace CoupledField {
   /*
     void GridCFS::Read()
     {
-    ENTER_FCN( "GridCFS::Read" );
  
     StdVector<StdVector<Elem*> >temp;
 
@@ -170,7 +167,6 @@ namespace CoupledField {
   */
 
   void GridCFS::CreateUserDefinedNodesElems() {
-    ENTER_FCN( "GridCFS::CreateUserDefinedNodesElems" );
     
     // if no param object is present, just leave
     if (!param) return;
@@ -280,7 +276,6 @@ namespace CoupledField {
   void GridCFS::AddEntityByParam( const std::string& name, bool isNode, 
                                   const std::string& coordSysId,
                                   StdVector<PointSelection>& coords ) {
-    ENTER_FCN( "GridCFS::AddEntityByParam" );
 
     // get coordinate system
     CoordSystem * cosy = NULL;
@@ -437,7 +432,6 @@ namespace CoupledField {
 }
 
   void GridCFS::MapFaces() {
-    ENTER_FCN( "GridCFS::MapFaces" );
 
     LOG_TRACE(gridcfs) << "Starting to map faces ";
 
@@ -542,7 +536,6 @@ namespace CoupledField {
 
 
   void GridCFS::MapEdges() {
-    ENTER_FCN( "GridCFS::MapEdges" );
 
     LOG_TRACE(gridcfs) << "Starting to map edges";
 
@@ -807,7 +800,6 @@ namespace CoupledField {
 
   
   UInt GridCFS::GetNumElemOfType( FEType type ) {
-    ENTER_FCN( "GridCFS::GetNumElemOfType" );
     return numElemTypes_[type];
   }
 
@@ -857,19 +849,16 @@ namespace CoupledField {
 
   
   UInt GridCFS::GetDim() {
-    ENTER_FCN( "GridCFS::GetDim" );
     return dim_;
   }
 
   
   UInt GridCFS::GetNumNodes(){
-    ENTER_FCN( "GridCFS::GetNumNodes" );
     return numNodes_;
   }
 
   
   UInt GridCFS::GetNumNodes( const StdVector<RegionIdType> & regions ) {
-    ENTER_FCN( "GridCFS::GetNumNodes" );
     
     UInt numNodes = 0;
     Integer index = 0;
@@ -899,7 +888,6 @@ namespace CoupledField {
 
   
   UInt GridCFS::GetNumNodes( const std::string & nodesName ) {
-    ENTER_FCN( "GridCFS::GetNumNodes" );
 
     UInt numNodes = 0;
     Integer index = namedNodeNames_.Find(nodesName);
@@ -916,13 +904,11 @@ namespace CoupledField {
   
   
   UInt GridCFS::GetNumElems() {
-    ENTER_IFCN( "GridCFS::GetNumElems" );
     return numElems_;
   }
 
   
   UInt GridCFS::GetNumSurfElems() {
-    ENTER_FCN( "GridCFS::GetNumSurfElems" );
     
     UInt numSurfElems = 0;
     
@@ -935,7 +921,6 @@ namespace CoupledField {
   
   
   UInt GridCFS::GetNumVolElems() {
-    ENTER_FCN( "GridCFS::GetNumVolElems" );
     
     UInt numVolElems = 0;
     
@@ -948,7 +933,6 @@ namespace CoupledField {
   
   
   UInt GridCFS::GetNumElems( const StdVector<RegionIdType> & regions ){
-    ENTER_FCN( "GridCFS::GetNumElems" );
 
     
     UInt numElems = 0;
@@ -1040,13 +1024,11 @@ namespace CoupledField {
     
   
   void GridCFS::GetListNodeNames( StdVector<std::string> & nodeNames) {
-    ENTER_FCN( "GridCFS::GetListNodeNames" );
     nodeNames = namedNodeNames_;
   }
 
   
   void GridCFS::GetListElemNames( StdVector<std::string> & elemNames) {
-    ENTER_FCN( "GridCFS::GetListElemNames" );
     elemNames = namedElemNames_;
   }
   
@@ -1079,7 +1061,6 @@ namespace CoupledField {
   
   void GridCFS::GetNodesByName( StdVector<UInt> & nodeList,
                                 const std::string & name ) {
-    ENTER_FCN( "GridCFS::GetNodesByName" );
 
     Integer index = namedNodeNames_.Find(name);
     if ( index != -1 ) {
@@ -1093,7 +1074,6 @@ namespace CoupledField {
 
   void GridCFS::GetNodesByName( std::vector<UInt> & nodeList,
                                 const std::string & name ) {
-    ENTER_FCN( "GridCFS::GetNodesByName" );
 
     Integer index = namedNodeNames_.Find(name);
     if ( index != -1 ) {
@@ -1112,7 +1092,6 @@ namespace CoupledField {
   
   void GridCFS::GetNodesByRegion( StdVector<UInt> & nodeList,
                                   const RegionIdType regionId ) {
-    ENTER_FCN( "GridCFS::GetNodesByRegion" );
 
     Integer index = 0;
     
@@ -1144,7 +1123,6 @@ namespace CoupledField {
   void GridCFS::GetNodeCoordinate( Point & rfPoint,
                                    const UInt inode, 
                                    bool updated ) {
-    ENTER_FCN( "GridCFS::GetNodeCoordinate" );
     
     if ( inode > numNodes_ || inode < 0 ) {
       EXCEPTION( "GridCFS: There are only " << numNodes_
@@ -1165,7 +1143,6 @@ namespace CoupledField {
   void GridCFS::GetNodeCoordinate( Vector<Double> & rfPoint,
                                    const UInt inode, 
                                    bool updated ) {
-    ENTER_FCN( "GridCFS::GetNodeCoordinate" );
 
     if ( inode > numNodes_ || inode < 0 ) {
       EXCEPTION( "GridCFS: There are only " << numNodes_
@@ -1343,7 +1320,6 @@ namespace CoupledField {
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
-    ENTER_FCN( "GridCFS::GetElem" );
     
  #ifdef DEBUG
     if ( elemNr > numElems_ || elemNr < 0) {  
@@ -1364,7 +1340,6 @@ namespace CoupledField {
   
   void GridCFS::GetElems( StdVector<Elem*> & elems, 
                           const RegionIdType regionId ) {
-    ENTER_FCN( "GridCFS::GetElems" );
     elems.Clear();
     
     // check if region Id is ALL_REGIONS
@@ -1400,7 +1375,6 @@ namespace CoupledField {
   
   void GridCFS::GetVolElems( StdVector<Elem*> & elems, 
                              const RegionIdType regionId ) {
-    ENTER_FCN( "GridCFS::GetVolElems" );
     
     // check if region Id is ALL_REGIONS
     if ( regionId == ALL_REGIONS ) {
@@ -1424,7 +1398,6 @@ namespace CoupledField {
   
   void GridCFS::GetSurfElems( StdVector<SurfElem*> & elems, 
                               const RegionIdType regionId ) {
-    ENTER_FCN( "GridCFS::GetSurfElems" );
     
     Integer index = surfRegionIds_.Find(regionId);
     if ( index != -1 ) {
@@ -1444,7 +1417,6 @@ namespace CoupledField {
   
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
                                 const std::string & elemsName ) {
-    ENTER_FCN( "GridCFS::GetElemsByName" );
 
     StdVector<UInt> elemNumbers;
     Integer index = namedElemNames_.Find(elemsName);
@@ -1465,7 +1437,6 @@ namespace CoupledField {
 
   void GridCFS::GetElemsByName( std::vector<Elem*> & elems,
                                 const std::string & elemsName ) {
-    ENTER_FCN( "GridCFS::GetElemsByName" );
 
     Integer index = namedElemNames_.Find(elemsName);
     
@@ -1487,7 +1458,6 @@ namespace CoupledField {
   void GridCFS::GetElemNumsByName( std::vector<UInt> & elemNums,
                                    const std::string & elemsName )
   {
-    ENTER_FCN( "GridCFS::GetElemNumsByName" );
 
     Integer index = namedElemNames_.Find(elemsName);
     
@@ -1507,7 +1477,6 @@ namespace CoupledField {
   
   void GridCFS::GetElemNodes( StdVector<UInt> & connect, 
                               const UInt iElem ) {
-    ENTER_FCN( "GridCFS::GetElemNodes" );
     
     if ( iElem > numElems_ || iElem < 0) {  
       EXCEPTION( "GridCFS: There are only " << numElems_ 
@@ -1529,7 +1498,6 @@ namespace CoupledField {
   void GridCFS::GetElemNodesCoord( Matrix<Double> & coordMat,  
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
-    ENTER_FCN( "GridCFS::GetElemNodesCoord" );
 
     coordMat.Resize(dim_, connect.GetSize());
 
@@ -1559,7 +1527,6 @@ namespace CoupledField {
                                      const StdVector<UInt> & nodeList,
                                      const StdVector<RegionIdType> 
                                      & regionIds ) {
-    ENTER_FCN( "GridCFS::GetElemsNextToNodes" );
     bool belongs2Interface;
 
     StdVector<UInt> map;
@@ -1610,7 +1577,6 @@ namespace CoupledField {
                                        const StdVector<Elem*> & surfElems,
                                        const StdVector<RegionIdType> 
                                        &neighRegions ) {
-    ENTER_FCN( "GridCFS::GetElemsNextToSurface" );
     EXCEPTION( "Not implemented" );
   }
     
@@ -1624,7 +1590,6 @@ namespace CoupledField {
   void GridCFS::GetNodesOfElemList( StdVector<UInt> & nodeList,
                                     const StdVector<Elem*> & elemList,
                                     bool onlyLinNodes) {
-    ENTER_FCN( "GridCFS::GetNodesOfElemList" );
 
     std::set<UInt> elemNodes;
     std::set<UInt>::iterator it;
@@ -1655,7 +1620,6 @@ namespace CoupledField {
   
   
   void GridCFS::GetRegionNames( StdVector<std::string> & regionNames ) {
-    ENTER_FCN( "GridCFS::GetAllRegionNames");
         
     regionNames = regionNames_;
         
@@ -1680,7 +1644,6 @@ namespace CoupledField {
   
   void GridCFS::SetNodeOffset( const StdVector<UInt>& nodes, 
                                const Vector<Double>& offsets ) {
-    ENTER_FCN( "GridCFS::SetNodeOffset" );
 
     // Check if node offsets were already set
     if( deltCoords_.GetSize() == 0 ) {
@@ -1700,7 +1663,6 @@ namespace CoupledField {
 
   
   bool GridCFS::HasNodalOffset() {
-    ENTER_FCN( "GridCFS::HasNodalOffset()" );
 
     if( deltCoords_.GetSize() != 0 ) {
       return true;
@@ -1715,7 +1677,6 @@ namespace CoupledField {
   // =======================================================================
   
   void GridCFS::CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems) {
-    ENTER_FCN( "GridCFS::CreateSurfaceElements" );
    
 
     // 1.) Create vector of vector of elems
@@ -1901,7 +1862,6 @@ namespace CoupledField {
 
   
   void GridCFS::PrintGridInfo() const {
-    ENTER_FCN( "GRIDCFS::PrintGridInfo()" );
     
     std::string help, empty;
     if( !Info) return;
@@ -1922,7 +1882,6 @@ namespace CoupledField {
   void GridCFS::CalcSurfNormal( Vector<Double> & n, 
                                 const Elem & surfElem,
                                 bool updated ) {
-    ENTER_FCN( "GridCFS::CalcSurfNormal" );
     
     //compute normal vector
     Matrix<Double>  ptCoord;
@@ -1973,7 +1932,6 @@ namespace CoupledField {
                                        const Elem & volElem,
                                        bool updated )
   {
-    ENTER_IFCN( "GridCFS::CalcSurfNormalOutOfVol" );
 
     //compute normal vector
     Matrix<Double>  ptVolCoord, ptSurfCoord;
@@ -2064,7 +2022,6 @@ namespace CoupledField {
   Double GridCFS::CalcVolumeOfRegion( const RegionIdType regionId,
                                       bool isaxi,
                                       bool updated ) {
-    ENTER_FCN( "GridCFS::GetVolumeOfRegion" );
 
     StdVector<Elem*> elems;
     Matrix<Double> cornerCoords;
@@ -2081,7 +2038,6 @@ namespace CoupledField {
   }
   
   void GridCFS::GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) {
-    ENTER_FCN( "GridCFS::GetGlobalElemMidPoint" );
 
     if( elemNum > numElems_ ) {
       EXCEPTION("Eleement number " << elemNum << " is bigger than total "
@@ -2106,7 +2062,6 @@ namespace CoupledField {
   void GridCFS::putNodesFromGrid_RG(grd::MultilevelGrid * grid,
                                     const UInt level)
   {
-    ENTER_FCN( "GridCFS::putNodesFromGrid_RG" );
 
     Integer maxnumnodes = (*grid).getNoOfVertices();
     maxnumnodes_=maxnumnodes;
@@ -2145,7 +2100,6 @@ namespace CoupledField {
   void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid,
                                        const Integer level)
   {
-    ENTER_FCN( "GridCFS::putElemsFromGrid_RG" );
 
     typedef std::list<grd::Element*>::iterator ElmI;
     ElmI p;
@@ -2290,7 +2244,6 @@ namespace CoupledField {
   void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid,
                                        const Integer level)
   {
-    ENTER_FCN( "GridCFS::putElemsNodesFromGrid_RG" );
 
     typedef std::list<grd::Element*>::iterator ElmI;
     ElmI p;
@@ -2468,7 +2421,6 @@ namespace CoupledField {
 
   void GridCFS::Refine(grd::MultilevelGrid& grid)
   {
-    ENTER_FCN( "GridCFS::Refine" );
 
     Integer i,j;
     Integer counter = 0;
@@ -2534,7 +2486,6 @@ namespace CoupledField {
 
   void GridCFS::ReRefine(grd::MultilevelGrid& grid)
   {
-    ENTER_FCN( "GridCFS<Dim>::ReRefine" );
     
     Integer i,j;
     Integer counter = 0;

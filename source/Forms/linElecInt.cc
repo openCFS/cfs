@@ -17,7 +17,6 @@ namespace CoupledField {
   void linElecInt::calcBMat( Matrix<Double> &bMat, UInt ip,
 			     Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linElecInt::calcBMat" );
 
     // Obtain info on number of elements' funtions
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -68,14 +67,12 @@ namespace CoupledField {
   // ============
   void linElecInt::calcDMat( Matrix<Double> &dMat ) {
 
-    ENTER_FCN( "linElecInt::calcDMat" );
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat *= mParser_->Eval( mHandle_ );
   }
 
 
   void linElecInt::SetFactor( const std::string& factor ) {
-    ENTER_FCN( "linElecInt::SetFactor" );
     
     mParser_->SetExpr( mHandle_, factor );
   }
@@ -90,7 +87,6 @@ namespace CoupledField {
                          bool coordUpdate ) 
     : BDBInt(matData, type, coordUpdate ) {
 
-    ENTER_FCN( "linElecInt::linElecInt" );
 
     name_ = "linElecInt";
     if ( type == FULL ) {

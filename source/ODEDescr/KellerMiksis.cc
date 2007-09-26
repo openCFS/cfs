@@ -24,7 +24,6 @@ namespace CoupledField
                              Double  polytrop,
                              Double  viscosity) {
 
-    ENTER_FCN( "KellerMiksis::KellerMiksis" );
 
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -49,7 +48,6 @@ namespace CoupledField
   void  KellerMiksis::CompDeriv(const Double &t,
                                 const StdVector<Double> &y,
                                 StdVector<Double> &dydt){
-    ENTER_FCN( "KellerMiksis::CompDeriv" );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // "Dimesionsbehaftet" computation of the right hand sight of the 
@@ -126,7 +124,6 @@ namespace CoupledField
    			      Matrix<Double> &dfdy,
    			      Double &t){
   
-    ENTER_FCN( "KellerMiksis::Jacobi" );
     std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
 
  

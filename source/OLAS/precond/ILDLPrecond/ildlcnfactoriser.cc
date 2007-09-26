@@ -21,7 +21,6 @@ namespace OLAS {
   template <class T>
   ILDLCNFactoriser<T>::ILDLCNFactoriser() {
 
-    ENTER_FCN( "ILDLCNFactoriser::ILDLCNFactoriser" );
 
     (*error) << "Default constructor of ILDLCNFactoriser call was called! "
              << "This constructor is forbidden!";
@@ -37,7 +36,6 @@ namespace OLAS {
   ILDLCNFactoriser<T>::ILDLCNFactoriser( OLAS_Params *myParams,
                                          OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILDLCNFactoriser::ILDLCNFactoriser" );
 
     // Currently this approach is not in a functional state
     (*warning) << "The ILDLCNFactoriser is still in an experimental state. "
@@ -61,7 +59,6 @@ namespace OLAS {
   template <class T>
   ILDLCNFactoriser<T>::~ILDLCNFactoriser() {
 
-    ENTER_FCN( "ILDLCNFactoriser::~ILDLCNFactoriser" );
 
   }
 
@@ -77,7 +74,6 @@ namespace OLAS {
                                        std::vector<T> &dataU,
                                        bool newPattern ) {
 
-    ENTER_FCN( "ILDLCNFactoriser::Factorise" );
 
     UInt i, j, k, current, listPrevElem, listElem, numOffD;
     T elim, aux;
@@ -719,7 +715,6 @@ namespace OLAS {
   void ILDLCNFactoriser<T>::DropEntries( UInt *listIDX, T *listVAL, Double tau,
                                          Double norm ) {
 
-    ENTER_FCN( "ILDLCNFactoriser::DropEntries" );
 
     std::cerr << " Row norm estimate = " << norm << std::endl;
 

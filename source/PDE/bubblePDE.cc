@@ -27,7 +27,6 @@ namespace CoupledField {
   BubblePDE::BubblePDE( Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
-    ENTER_FCN( "BubblePDE::BubblePDE" );
 
     // set flag for algsys
     needsAlgsys_ = false;
@@ -105,7 +104,6 @@ namespace CoupledField {
   }
   
   BubblePDE::~BubblePDE() {
-    ENTER_FCN( "BubblePDE::~BubblePDE" );
     
     // close output stream
     if( !isIterCoupled_ ) {
@@ -128,7 +126,6 @@ namespace CoupledField {
 
   void BubblePDE::DefineIntegrators()
   {
-    ENTER_FCN( "BubblePDE::DefineIntegerators" );
 
     // Define entitlists for the eqnMap in order to get
     // a local<->global mapping of results
@@ -292,7 +289,6 @@ namespace CoupledField {
 
 
   void BubblePDE::DefineSolveStep() {
-    ENTER_FCN( "BubblePDE::DefineSolveStep" );
     solveStep_ = new SolveStepODE(*this);
   }
 
@@ -302,7 +298,6 @@ namespace CoupledField {
   // ======================================================
   
   void BubblePDE::Solve() {
-    ENTER_FCN( "BubblePDE::Solve" );
    
     // Calculate basic data
     mHandle_ =  domain->GetMathParser()->GetNewHandle();
@@ -427,7 +422,6 @@ namespace CoupledField {
 //                                       UInt stepOffset,
 //                                       Double timeOffset ) {
     
-//     ENTER_FCN( "BubblePDE::WriteResultsInFile" );
 
 //     UInt actStep = kstep + stepOffset;
 //     Double actTime = timeOffset + asteptime;
@@ -513,7 +507,6 @@ namespace CoupledField {
 //                                       UInt stepOffset,
 //                                       Double timeOffset ) {
 
-//     ENTER_FCN( "BubblePDE::WriteHistoryInFile" );
 
 
 //     if (analysistype_== TRANSIENT) {
@@ -562,7 +555,6 @@ namespace CoupledField {
   //   PostProcess
   // ***************
   void BubblePDE::CalcResults( shared_ptr<BaseResult> result) {
-    ENTER_FCN( "BubblePDE::CalcResults" );
     EXCEPTION( "Implement" );
  
   }
@@ -573,7 +565,6 @@ namespace CoupledField {
   // COUPLING SECTION
   // ======================================================
   void BubblePDE::CalcInputCoupling() {
-    ENTER_FCN( "BubblePDE::CalcInputCoupling" );
 
     CFSVector * tempValues = NULL;
     SolutionType quantity;
@@ -616,7 +607,6 @@ namespace CoupledField {
 
   void BubblePDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "BubblePDE::InitCoupling" );
   
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -664,7 +654,6 @@ namespace CoupledField {
 
   void BubblePDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "BubblePDE::CalcOutputCoupling" );
 
     SolutionType quantity;
     StdVector<Elem*> * couplingElems = NULL;
@@ -713,7 +702,6 @@ namespace CoupledField {
                                StdVector<UInt>& nodes,
                                Vector<Double>& values ) {
 
-    ENTER_FCN( "BubblePDE::CalcAcouRHS" );
 
     Vector<Double> bubbleValues(2);
 
@@ -882,7 +870,6 @@ namespace CoupledField {
 				    Vector<Double>& couplVals,
 				    SolutionType solType ) {
 
-    ENTER_FCN( "BubblePDE::CalcBubbleRadius" );
 
 
     //	std::cerr<<"bubble calcradius radiussize "<<radius_.GetSize()<<std::endl;
@@ -940,7 +927,6 @@ namespace CoupledField {
 
   bool BubblePDE::HasOutput(SolutionType output)
   {
-    ENTER_FCN( "BubblePDE::HasOutput" );
   
     switch (output) {
     case ACOU_BUBBLE_RHS_VAL:
@@ -963,7 +949,6 @@ namespace CoupledField {
   }
 
   void BubblePDE::DefineAvailResults() {
-    ENTER_FCN( "BublePDE::DefineAvailResults" );
     
     EXCEPTION( "Implement -> Contact Andreas!" );
   }
@@ -973,7 +958,6 @@ namespace CoupledField {
 //   // ***********************************************************************
 //   void BubblePDE::ReadStoreResults() {
 
-//     ENTER_FCN( "BubblePDE::ReadStoreResults" );
 
 //     // Construct vectors for restricted parameter search
 //     StdVector<std::string> keyVec;

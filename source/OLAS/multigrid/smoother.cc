@@ -22,7 +22,6 @@ template <typename T>
 Smoother<T>::Smoother()
            : prepared_(false)
 {
-    ENTER_FCN("Smoother::Smoother");
 }
 
 /**********************************************************/
@@ -30,7 +29,6 @@ Smoother<T>::Smoother()
 template <typename T>
 Smoother<T>::~Smoother()
 {
-    ENTER_FCN("Smoother::~Smoother");
 }
 
 /**********************************************************/
@@ -38,7 +36,6 @@ Smoother<T>::~Smoother()
 template <typename T>
 void Smoother<T>::Reset()
 {
-    ENTER_FCN("Smoother::Reset");
 
     prepared_ = false;
 }
@@ -48,7 +45,6 @@ void Smoother<T>::Reset()
 template <typename T>
 bool Smoother<T>::Setup( const CRS_Matrix<T>& matrix )
 {
-    ENTER_FCN("Smoother::Setup");
 
     return prepared_ = true;
 }

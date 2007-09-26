@@ -26,7 +26,6 @@ namespace OLAS {
   template<typename T>
   LDLSolver<T>::LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
 
-    ENTER_FCN( "LDLSolver::LDLSolver" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -69,7 +68,6 @@ namespace OLAS {
   template<typename T>
   LDLSolver<T>::~LDLSolver() {
 
-    ENTER_FCN( "LDLSolver::~LDLSolver" );
 
     // Free dynamically allocated memory
     DeleteArray( denseVec_ );
@@ -90,7 +88,6 @@ namespace OLAS {
   template<typename T>
   void LDLSolver<T>::
   InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    ENTER_FCN( "LDLSolver::InstantiateAdditionalPublicMethods" );
   }
 
 
@@ -100,7 +97,6 @@ namespace OLAS {
   template<typename T>
   void LDLSolver<T>::Setup( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "LDLSolver::Setup" );
 
     // Check that we have a StdMatrix
     if ( sysMat.GetStructureType() != STDMATRIX ) {
@@ -258,7 +254,6 @@ namespace OLAS {
                             const BaseVector  &rhs,
                             BaseVector &sol ) {
 
-    ENTER_FCN( "LDLSolver::Solve" );
 
     bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
 
@@ -337,7 +332,6 @@ namespace OLAS {
   template<typename T>
   void LDLSolver<T>::Analyse( const SCRS_Matrix<T> &sysMat ) {
 
-    ENTER_FCN( "LDLSolver::Analyse" );
 
     UInt i, j, k, nnzInRowOfU, nnzInRowOfA, colInd, succ, pred, lastNZ, tmp;
 
@@ -749,7 +743,6 @@ namespace OLAS {
   template<typename T>
   void LDLSolver<T>::Factorise( const SCRS_Matrix<T> &sysMat ) {
 
-    ENTER_FCN( "LDLSolver::Factorise" );
 
     UInt k, i, j, numOffD;
     T elim;
@@ -1215,7 +1208,6 @@ namespace OLAS {
   void LDLSolver<T>::ExportFactorisation( const char *fname,
                                           bool patternOnly ) {
 
-    ENTER_FCN( "LDLSolver::ExportFactorisation" );
 
     UInt i, j, k;
     T aux;

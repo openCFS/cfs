@@ -19,12 +19,10 @@ namespace CoupledField{
 
     //! Default Constructor
     BubbleODE() {
-      ENTER_FCN( "BubbleODE::BubbleODE" );
     }
 
     //! Default Destructor
     virtual ~BubbleODE() {
-      ENTER_FCN( "BubbleODE::~BubbleODE" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)

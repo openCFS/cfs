@@ -32,7 +32,6 @@ namespace CoupledField {
   // ======================================================
   HeatCondPDE::HeatCondPDE(Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
-    ENTER_FCN( "HeatCondPDE::HeatCondPDE" );
 
     pdename_          = "heatConduction";
     pdematerialclass_ = THERMIC;
@@ -43,7 +42,6 @@ namespace CoupledField {
   }
 
   void HeatCondPDE::ReadSpecialBCs() {
-    ENTER_FCN( "HeatCondPDE::ReadSpecialBCs" );
 
     // First, delete all of the "normal" boundary conditions
     inBcs_.Clear();
@@ -100,7 +98,6 @@ namespace CoupledField {
   }
 
   void HeatCondPDE::DefineIntegrators() {
-    ENTER_FCN( "HeatCondPDE::DefineIntegerators" );
 
     Double density, heatCapacity, thermalConductivity;
     Double coeffmass, coeffstiff;
@@ -186,7 +183,6 @@ namespace CoupledField {
   }
 
   void HeatCondPDE::DefineSolveStep() {
-    ENTER_FCN( "HeatCondPDE::DefineSolveStep" );
 
     solveStep_ = new StdSolveStep(*this);
 
@@ -197,7 +193,6 @@ namespace CoupledField {
   // ======================================================
 
   void HeatCondPDE::InitTimeStepping() {
-    ENTER_FCN( "HeatCondPDE::InitTimeStepping" );
     
     // Until now no effective mass formulation in the trapezoidal 
     //  integration scheme is implemented!
@@ -210,7 +205,6 @@ namespace CoupledField {
   // ======================================================
 
   void HeatCondPDE::InitCoupling(PDECoupling * Coupling) {
-    ENTER_FCN( "HeatCondPDE::InitCoupling" );
     
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -229,7 +223,6 @@ namespace CoupledField {
   
 
   void HeatCondPDE::CalcOutputCoupling() {
-    ENTER_FCN( "HeatCondPDE::CalcOutputCoupling" );
 
    //  UInt dof;
 //     SolutionType quantity;
@@ -270,7 +263,6 @@ namespace CoupledField {
 
 
   void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "HeatCondPDE::CalcResults" );
     
     switch (result->GetResultInfo()->resultType ) {
     case HEAT_TEMPERATURE:
@@ -298,7 +290,6 @@ namespace CoupledField {
 
 
   void HeatCondPDE::DefineAvailResults() {
-    ENTER_FCN( "HeatCondPDE::DefineAvailResults" );
     
     // === TEMPERATURE ===
     shared_ptr<ResultInfo> res1(new ResultInfo);

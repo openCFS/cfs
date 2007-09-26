@@ -49,7 +49,6 @@ namespace OLAS {
 
     //! Default Constructor
     Vector() : SparseVector(), data_(NULL) {
-      ENTER_FCN( "Vector::Vector" );
       dof_ = BlockSize<T>::size;
       size_ = 0;
       dataSize_ = 0;
@@ -68,7 +67,6 @@ namespace OLAS {
     //! arithmetic operations of the SBM_Vector class.
     Vector( const Vector<T> &origVec ) {
 
-      ENTER_FCN( "Vector::Vector" );
 
       dof_ = BlockSize<T>::size;
 
@@ -146,7 +144,6 @@ namespace OLAS {
     //!       when an attempt is made to obtain that responsibilty from the
     //!       vector object and the latter does not own it.
     T_Vtype* DecoupleMem() {
-      ENTER_FCN( "Vector::DecoupleMem" );
       if ( memBelongsToMe_ == false ) {
 	(*warning) << "DecoupleMem was called on a vector object not "
 		   << "responsible for managing its memory block! Memory "
@@ -164,7 +161,6 @@ namespace OLAS {
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
     void Clear() {
-      ENTER_FCN( "Vector::Clear" );
 
       if ( memBelongsToMe_ == true ) {
         DeleteArray( data_ );
@@ -318,7 +314,6 @@ namespace OLAS {
 
     //! Return pointer to internal data array data_
     T_Vtype* GetPointer(){
-      ENTER_IFCN( "Vector::GetPointer" );
       return data_;
     }
 
@@ -338,25 +333,21 @@ namespace OLAS {
 
     //! Query size of internal data array
     UInt GetDataSize() const {
-      ENTER_IFCN( "Vector::GetDataSize" );
       return dataSize_;
     }
 
     //! Query tag for matrix entries compatible with vector
     std::string GetTagM() {
-      ENTER_IFCN( "Vector::GetTagM" );
       return assocType<T>::tagM;
     }
  
     //! Query tag for vector entries compatible with vector
     std::string GetTagV() {
-      ENTER_IFCN( "Vector::GetTagV" );
       return assocType<T>::tagV;
     }
 
     //! Query tag for scalar entries compatible with vector
     std::string GetTagS() {
-      ENTER_IFCN( "Vector::GetTagS" );
       return assocType<T>::tagS;
     }
 
