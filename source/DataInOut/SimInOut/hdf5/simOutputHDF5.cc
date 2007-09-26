@@ -64,8 +64,6 @@ namespace CoupledField {
     ENTER_FCN( "SimOutputHDF5::~XMDF" );
     
     // close groups
-    dataGroup_.close();
-    volDataGroup_.close();
     mainGroup_.close();
 
     // check for open groups, datasets etc.
@@ -251,7 +249,11 @@ namespace CoupledField {
   void SimOutputHDF5::FinishMultiSequenceStep( ) 
   {
     registeredResults_.clear();
+    
+    // close groups, which were opened in BeginMultiSequenceStep()
     currMSGroup_.close();
+    dataGroup_.close();
+    volDataGroup_.close();
   }
 
   void SimOutputHDF5::Finalize() 
@@ -259,6 +261,11 @@ namespace CoupledField {
 
     // return, if only the grid is to be printed
     if( printGridOnly_ )
+      return;
+    
+    // return, if no commandLine handler or
+    // global root ParaemNode are present
+    if( !commandLine || !param )
       return;
 
     std::vector<std::string> fileNames;

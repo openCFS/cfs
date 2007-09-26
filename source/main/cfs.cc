@@ -334,6 +334,7 @@ int main( int argc, const char **argv ) {
     delete domain;
     delete Info;
     delete commandLine; 
+    delete ptHandler;
     return 0;
   }
 
