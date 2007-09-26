@@ -20,7 +20,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
-#include "Utils/tracing.hh"
 #include "Utils/profiler.hh"
 
 #include <def_use_mesh.hh>
@@ -127,22 +126,6 @@ int main( int argc, const char **argv ) {
   // ACTIVATE DEBUGGING STUFF
   // =========================================================================
 
-  // Activate function tracing
-#ifdef TRACE
-  Integer traceDepth = commandLine->GetTraceDepth();
-  OutInfo::FcnTraceHandler::SetMaxTraceDepth( traceDepth );
-  if ( traceDepth == 0 ) {
-    Info->StartProgress( "De-activating function tracing since depth = 0" );
-    Info->FinishProgress();
-  }
-  else {
-    std::stringstream msg;
-    msg << "Activating function tracing with depth = " << traceDepth;
-    Info->StartProgress( msg.str() );
-    FileHandler.OpenFile( TRACE_FILE );
-    Info->FinishProgress();
-  }
-#endif
 
   // Open file for debugging ouput
 #ifdef DEBUG
@@ -193,9 +176,6 @@ int main( int argc, const char **argv ) {
   // be used, since it would try to open other files also, that need not be
   // present????
   if ( commandLine->GetWriteSkeleton() == true ) {
-#ifdef TRACE
-    FileHandler.OpenFile( TRACE_FILE );
-#endif
  
 #ifdef DEBUG
     FileHandler.OpenFile( DEBUG_FILE );
@@ -390,12 +370,6 @@ int main( int argc, const char **argv ) {
 #ifdef PROFILING
   delete profiler;
   profiler = NULL;
-#endif
-
-  // As the last thing we close the trace file (if exists)
-#ifdef TRACE
-  delete trace;
-  trace = NULL;
 #endif
   
   }  

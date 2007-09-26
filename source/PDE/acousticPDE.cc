@@ -46,7 +46,6 @@ namespace CoupledField {
     AcousticPDE::AcousticPDE( Grid* aptgrid, ParamNode* paramNode )
       : SinglePDE( aptgrid, paramNode ) {
 
-      ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
       pdename_          = "acoustic";
       pdematerialclass_ = FLUID;
@@ -80,7 +79,6 @@ namespace CoupledField {
   // *********************************************
   void AcousticPDE::ReadDampingInformation( ) {
 
-    ENTER_FCN( "AcousticPDE::ReadDampingInformation" );
 
     fracMemory_ = 0;
     Integer firstFrac=-1;
@@ -228,7 +226,6 @@ namespace CoupledField {
   }
   
   void AcousticPDE::ReadSpecialBCs() {
-    ENTER_FCN( "AcousticPDE::ReadSpecialBCs" );
 
     // ***************************************************************
     //   If no other damping type is specified and we have absorbing
@@ -258,7 +255,6 @@ namespace CoupledField {
   //   Check what type of nonlinear PDE formulation should be used
   // *************************************************************
   void  AcousticPDE::InitNonLin() {
-    ENTER_FCN( "AcousticPDE::InitNonLin" );
     
     nonLin_ = false; 
     // Check, if "nonLinList" is present
@@ -343,7 +339,6 @@ namespace CoupledField {
 
   void AcousticPDE::DefineIntegrators() {
 
-    ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
     // =======================================================================
     //  Read flow data
@@ -928,7 +923,6 @@ namespace CoupledField {
   }
 
   void AcousticPDE::DefineSolveStep() {
-    ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
     solveStep_ = new SolveStepAcoustic(*this);
   }
@@ -940,7 +934,6 @@ namespace CoupledField {
   //    // ======================================================
   //    void AcousticPDE::DefineAlgSys() {
     
-  //      ENTER_FCN( "Acoustic::DefineAlgSys" );
 
   //      //=====================================================
   //      // Only if acousticPDE is iteratively coupled with
@@ -1020,7 +1013,6 @@ namespace CoupledField {
   // ======================================================
 
   void AcousticPDE::InitTimeStepping() {
-    ENTER_FCN( "AcousticPDE::InitTimeStepping" );
 
 	  // timestepping formulation
 	  ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
@@ -1089,7 +1081,6 @@ namespace CoupledField {
 
   void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
     
-    ENTER_FCN( "AcousticPDE::InitCoupling" );
     
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -1257,7 +1248,6 @@ namespace CoupledField {
 
   void AcousticPDE::CalcOutputCoupling() {
 
-    ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
     UInt dof;
     SolutionType quantity;
@@ -1332,7 +1322,6 @@ namespace CoupledField {
                        Vector<Double>& elemCouplingSols,
                        UInt couplingdof ) {
     
-    ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
     
     EXCEPTION( "Not working at the moment" );
     
@@ -1423,7 +1412,6 @@ namespace CoupledField {
                        Vector<Double>& elemCouplingSols,
                        UInt couplingdof ) {
     
-    ENTER_FCN( "AcousticPDE::CalcNRBCCouplingRHS" );
     
     EXCEPTION( "Not working at the moment" );
 
@@ -1575,7 +1563,6 @@ namespace CoupledField {
                       UInt numCouplingNodes) {
 
 
-    ENTER_FCN( "AcousticPDE::CalcHeatCouplingRHS" );
     
     // get the coupling regions
     StdVector<std::string> couplRegions;
@@ -1627,7 +1614,6 @@ namespace CoupledField {
                                         Vector<Double>& couplVals,
                                         SolutionType solType ) {
 
-    ENTER_FCN( "AcousticPDE::CalcBubblePressure" );
 
     //     //NUR BEI BOSCH!!!
     //     mHandle_ =  domain->GetMathParser()->GetNewHandle();
@@ -1703,7 +1689,6 @@ namespace CoupledField {
 
 
   bool AcousticPDE::HasOutput(SolutionType output) {
-    ENTER_FCN( "AcousticPDE::HasOutput" );
     if ((output == ACOU_FORCE) || (output == ACOU_POWERDENSITY)) {
       return true;
     }
@@ -1731,7 +1716,6 @@ namespace CoupledField {
   
 
   void AcousticPDE::CalcResults( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "AcousticPDE::CalcResults" );
     
     switch (result->GetResultInfo()->resultType ) {
       
@@ -1821,7 +1805,6 @@ namespace CoupledField {
  
   template <class TYPE>
   void AcousticPDE::CalcForce( shared_ptr<BaseResult> vals ) {  
-    ENTER_FCN( "AcousticPDE::CalcForce" );
     
     Matrix<Double> ptCoord;
 
@@ -1923,7 +1906,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void AcousticPDE::CalcElemPressure( shared_ptr<BaseResult> vals) {  
-    ENTER_FCN( "AcousticPDE::CalcElemPressure" );
 
     // get data from result object and resize its vector
     Result<TYPE> &  actRes = 
@@ -1967,7 +1949,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void AcousticPDE::CalcAcouIntensity( shared_ptr<BaseResult> vals ) {
-    ENTER_FCN( "AcousticPDE::CalcAcouIntensity" );
 
     // currently we just support harmonic analysis: complex data
 
@@ -2105,7 +2086,6 @@ namespace CoupledField {
   
   template<class TYPE>
   void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
-    ENTER_FCN( "AcousticPDE::CalcAcouPower" );
     
     // currently we just support harmonic analysis: complex data
 
@@ -2278,7 +2258,6 @@ namespace CoupledField {
 
   /**  template <class TYPE>
        void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
-       ENTER_FCN( "AcousticPDE::CalcAcouPower" );
     
        // currently we just support harmonic analysis: complex data
 
@@ -2438,7 +2417,6 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void AcousticPDE::DefineAvailResults() {
-    ENTER_FCN( "AcousticPDE::DefineAvailResults" );
 
     // === NODE POTENTIAL / PRESSURE (Primary Unknown) ===
     // check if problem is lagrange or legendre
@@ -2630,7 +2608,6 @@ namespace CoupledField {
   
   
   void AcousticPDE::ReadFlowData() {
-    ENTER_FCN( "AcousticPDE::ReadFlowDaa" );
     
     // check if bcsNode is present
     ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
@@ -2657,7 +2634,6 @@ namespace CoupledField {
                                        Double& endRadius, 
                                        ParamNode * actNode ) {
     
-    ENTER_FCN( "AcousticPDE::ReadDataDampLayer" );
     
     
     

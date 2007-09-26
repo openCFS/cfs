@@ -141,7 +141,6 @@ namespace CoupledField
 
   inline SpaceErrorEstimator::~SpaceErrorEstimator()
   {
-    ENTER_FCN( "SpaceErrorEstimator::~SpaceErrorEstimator" );
     ;
   }
 

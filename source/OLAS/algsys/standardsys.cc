@@ -31,7 +31,6 @@ namespace OLAS {
   // ***********************
   StandardSystem::StandardSystem(ParamNode* pn) : BaseSystem(pn) {
 
-    ENTER_FCN( "StandardSystem::StandardSystem" );
 
     totalSize_           = 0;
     precond_             = NULL;
@@ -63,7 +62,6 @@ namespace OLAS {
   // **************
   StandardSystem::~StandardSystem() {
 
-    ENTER_FCN( "StandardSystem::~StandardSystem" );
 
     delete precond_;
     delete sol_;
@@ -86,7 +84,6 @@ namespace OLAS {
   //   Trigger setup phase of preconditioner
   // *****************************************
   void StandardSystem::SetupPrecond( ) {
-    ENTER_FCN("StandardSystem::SetupPrecond");
     precond_->Setup( *sysmat_[SYSTEM] );
   }
 
@@ -95,7 +92,6 @@ namespace OLAS {
   //   Trigger setup phase of solver
   // *********************************
   void StandardSystem::SetupSolver( ) {
-    ENTER_FCN( "StandardSystem::SetupSolver" );
     solver_->Setup( *sysmat_[SYSTEM] );
   }
   
@@ -104,7 +100,6 @@ namespace OLAS {
   // **************************************
   void StandardSystem::SetupEigenSolver( UInt numFreq, Double shift, 
                                          bool isQuadratic ) {
-    ENTER_FCN( "StandardSystem::SetupEigenSolver" );
 
     // Determine if a generalized or a quadratic eigenvalue 
     // problem has to be solved.
@@ -159,7 +154,6 @@ namespace OLAS {
   // ***********************
   void StandardSystem::Solve(int step) {
 
-    ENTER_FCN( "StandardSystem::Solve" );
 
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
@@ -274,7 +268,6 @@ namespace OLAS {
   UInt StandardSystem::
   CalcEigenFrequencies( const Double * &frequencies, const Double* &err  ) {
 
-    ENTER_FCN( "StandardSystem::CalcEigenFrequencies" );
     
     // Trigger calculation of eigenvalues
     UInt numConverged = 
@@ -297,7 +290,6 @@ namespace OLAS {
   UInt StandardSystem::
   CalcEigenFrequencies( const Complex * &frequencies, const Double* &err  ) {
 
-    ENTER_FCN( "StandardSystem::CalcEigenFrequencies" );
     
     // Check, if eigenvalue solver is quadratic, as only in this case
     // this method is well-defined
@@ -333,7 +325,6 @@ namespace OLAS {
   // ******************************
   void StandardSystem::CalcEigenMode( UInt numMode ) {
     
-    ENTER_FCN( "StandardSystem::CalcEigenMode" );
     Vector<Double> & solHelp =
       dynamic_cast<Vector<Double> &> (*sol_);
     eigenSolver_->CalcEigenMode( numMode, solHelp );
@@ -348,7 +339,6 @@ namespace OLAS {
   // ************************************
   void StandardSystem::CreateLinSys() {
 
-    ENTER_FCN( "StandardSystem::CreateLinSys" );
 
     MatrixEntryType   entryType;
     MatrixStorageType storageType;
@@ -561,7 +551,6 @@ namespace OLAS {
   // Das Interface muessen wir uns noch ueberlegen
   void StandardSystem::CreatePrecond() {
 
-    ENTER_FCN("StandardSystem::CreatePrecond");
     
     PrecondType precond;
     myParams_.GetEnumValue("Precond", precond);
@@ -576,7 +565,6 @@ namespace OLAS {
 
   void StandardSystem::CreateEigenSolver() {
 
-    ENTER_FCN("StandardSystem::CreateEigenSolver");
     
     EigenSolverType egSolver;
     myParams_.GetEnumValue("EigenSolver", egSolver);
@@ -598,7 +586,6 @@ namespace OLAS {
   void StandardSystem::SetFEMatrixType(const FEMatrixType matType,
                                        const PdeIdType identifier1, 
                                        const PdeIdType identifier2) {
-    ENTER_FCN( "StandardSystem::SetFEMatrixType" );
 
     if( matType != NOTYPE ) {
       matrixTypes_.insert( matType );
@@ -611,7 +598,6 @@ namespace OLAS {
   // ****************
   void StandardSystem::SetBlockSize( const PdeIdType identifier,
                                      const UInt bs ) {
-    ENTER_FCN( "StandardSystem::SetNumDof" );
     blockSize_ = bs;
   }
 
@@ -629,7 +615,6 @@ namespace OLAS {
   void StandardSystem::InitMatrix( FEMatrixType matrixID,
                                    const PdeIdType identifierPDE ) {
 
-    ENTER_FCN( "StandardSystem::InitMatrix" );
 
     // If matrix specified init this one
     if ( matrixID != NOTYPE ) {
@@ -658,7 +643,6 @@ namespace OLAS {
   //   InitRHS (Version 1)
   // ***********************
   void StandardSystem::InitRHS( const PdeIdType identifierPDE ) {
-    ENTER_FCN("StandardSystem::InitRHS");
     rhs_->Init();
 
     // Invalidate rhs buffer of assemble
@@ -670,7 +654,6 @@ namespace OLAS {
   //   InitRHS (Version 2)
   // ***********************
   void StandardSystem::InitRHS( const Double *newRHS ) {
-    ENTER_FCN( "StandardSystem::InitRHS" );
     assemble_->InitRHS( rhs_, newRHS );
   }
 
@@ -679,7 +662,6 @@ namespace OLAS {
   //   InitSol
   // ***********
   void StandardSystem::InitSol( const PdeIdType identifierPDE ) {
-    ENTER_FCN("StandardSystem::InitSol");
     sol_->Init();
 
     // Invalidate sol buffer of assemble
@@ -700,7 +682,6 @@ namespace OLAS {
                                          Integer elemSize2,
                                          bool setCounterPart ) {
 
-    ENTER_IFCN( "StandardSystem::SetElementMatrix" );
 
 
     // The following section is obsolete alltogether, as
@@ -745,7 +726,6 @@ namespace OLAS {
                                       const PdeIdType identifierPDE,
                                       Integer *connect, UInt length ) {
 
-    ENTER_IFCN( "StandardSystem::SetElementRHS" );
 
     // Delegate work to EntryManipulator
     assemble_->SetElementRHS( rhs_, elemRHS, connect, length, size_ );
@@ -758,7 +738,6 @@ namespace OLAS {
   void StandardSystem::SetNodeRHS( Double val, const PdeIdType identifierPDE,
                                    Integer eqnNum ) {
 
-    ENTER_IFCN( "StandardSystem::SetNodeRHS" );
 
     // Perform consistency check
 #ifdef DEBUG_STANDARDSYSTEM
@@ -781,7 +760,6 @@ namespace OLAS {
   void StandardSystem::SetNodeRHS( Complex val, const PdeIdType identifierPDE,
                                    Integer eqnNum  ) {
 
-    ENTER_IFCN( "StandardSystem::SetNodeRHS" );
     
     // Perform consistency check
 #ifdef DEBUG_STANDARDSYSTEM
@@ -810,7 +788,6 @@ namespace OLAS {
   //   Update RHS
   // **************  
   void StandardSystem::UpdateRHS( FEMatrixType matrix_id, Double *fup ) {
-    ENTER_FCN( "StandardSystem::UpdateRHS" );
     if ( numDirichletValues_ > 0 &&
          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
       (*warning) << "UpdateRHS may fail in combo with "
@@ -826,7 +803,6 @@ namespace OLAS {
 
   void StandardSystem::RemoveIDBCInfoFromMatrix() const {
 
-    ENTER_FCN("StandardSystem::RemoveIDBCFromMatrix" );
     std::set<FEMatrixType>::iterator it;
     BaseVector *rhs;
     for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
@@ -844,7 +820,6 @@ namespace OLAS {
   void StandardSystem::SetDirichlet(const PdeIdType pdeID,
                                      Integer eqnNum, const Double &val  ) {
 
-    ENTER_IFCN( "StandardSystem::SetDirichlet" );
 
     // Perform some consistency checks
 #ifdef DEBUG_STANDARDSYSTEM
@@ -880,7 +855,6 @@ namespace OLAS {
   void StandardSystem::SetDirichlet( const PdeIdType pdeID,
                                      Integer eqnNum, const Complex &val ) {
 
-    ENTER_IFCN( "StandardSystem::SetDirichlet" );
 
     // Perform some consistency checks
 #ifdef DEBUG_STANDARDSYSTEM
@@ -913,7 +887,6 @@ namespace OLAS {
   // *******************
   void StandardSystem::BuildInDirichlet() {
 
-    ENTER_IFCN( "StandardSystem::BuildInDirichlet" );
 
     // If necessary modify matrix diagonal for penalty approach
     if ( assembleDirichletToSysMat_ == true ) {
@@ -929,7 +902,6 @@ namespace OLAS {
   void StandardSystem::
   ConstructEffectiveMatrix( const factorMap &matFactors ) {
 
-    ENTER_FCN( "StandardSystem::ConstructEffectiveMatrix" );
 
     factorMap::const_iterator it;
     StdMatrix *sys = sysmat_[SYSTEM];
@@ -995,7 +967,6 @@ namespace OLAS {
   GetSolutionVal( Double* &ptSol,
                   const PdeIdType identifierPDE ) {
 
-    ENTER_FCN("BaseSystem::GetSolutionVal");
 
     // Elimination case
     if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
@@ -1037,7 +1008,6 @@ namespace OLAS {
   GetSolutionVal( Complex* &ptSol,
                   const PdeIdType identifierPDE ) {
 
-    ENTER_FCN( "BaseSystem::GetSolutionVal" );
 
     // Elimination case
     if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
@@ -1077,7 +1047,6 @@ namespace OLAS {
   // *************************
   Integer StandardSystem::GetRHSVal( Double* &ptRhs,
                                      const PdeIdType identifierPDE ) {
-    ENTER_FCN( "StandardSystem::GetRHSVal" );
    //  if ( numDirichletValues_ > 0 &&
 //          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
 //       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
@@ -1093,7 +1062,6 @@ namespace OLAS {
   // *************************
   Integer StandardSystem::GetRHSVal( Complex* &ptRhs,
                                      const PdeIdType identifierPDE ) {
-    ENTER_FCN("StandardSystem::GetRHSVal");
 //     if ( numDirichletValues_ > 0 &&
 //          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
 //       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
@@ -1108,7 +1076,6 @@ namespace OLAS {
   //   Print
   // *********
   void StandardSystem::Print( FEMatrixType matrix_id) const {
-    ENTER_FCN( "StandardSystem::Print" );
     sysmat_[matrix_id]->Print(*cla);
   }
 
@@ -1117,7 +1084,6 @@ namespace OLAS {
   //  containing all upper triangle entries 
   // ********
   void StandardSystem::GetFullSystemMatrixAsVec(Complex*  &vec ) const {
-    ENTER_FCN("StandardSystem::GetFullSystemMatrix");
      
     sysmat_[1]->CopySCRSMatrix2Vec(vec);
 
@@ -1131,7 +1097,6 @@ namespace OLAS {
   // **********
   void StandardSystem::Export( FEMatrixType type, Char *filename,
                                Char *comment ) const {
-    ENTER_FCN( "StandardSystem::Export" );
     sysmat_[type]->Export( filename, comment );
   }
 
@@ -1144,7 +1109,6 @@ namespace OLAS {
                                              Integer eqnNum,
                                              Double *val ) {
 
-    ENTER_IFCN( "StandardSystem::AddToDiagMatrixEntry" );
 
     // Delegate work to implementation in assemble class
     assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, val );
@@ -1160,7 +1124,6 @@ namespace OLAS {
                                        Integer colEqnNum, 
                                        Double & val ) {
 
-    ENTER_IFCN( "StandardSystem::GetMatrixEntry");
 
     // Delegate work to implementation in assemble class
     assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID, 
@@ -1177,7 +1140,6 @@ namespace OLAS {
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum, 
                                        Complex & val ) {
-    ENTER_IFCN( "StandardSystem::GetMatrixEntry");
     
 
     // Delegate work to implementation in assemble class
@@ -1198,7 +1160,6 @@ namespace OLAS {
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum, 
                                        Double val, bool setCounterPart ) {
-    ENTER_IFCN( "StandardSystem::SetMatrixEntry");
 
      
     // Delegate work to implementation in assemble class
@@ -1214,7 +1175,6 @@ namespace OLAS {
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum,
                                        Complex val, bool setCounterPart ) {
-    ENTER_IFCN( "StandardSystem::SetMatrixEntry");
 
      // Delegate work to implementation in assemble class
     assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID, 
@@ -1229,7 +1189,6 @@ namespace OLAS {
   // ******************************
   void StandardSystem::GenerateCFSTransferBuffers() {
 
-    ENTER_FCN( "StandardSystem::GenerateCFSTransferBuffers" );
 
     BaseVector *bVec = NULL;
 

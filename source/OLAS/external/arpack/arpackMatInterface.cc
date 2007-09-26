@@ -16,7 +16,6 @@ namespace OLAS {
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
                                           const BaseMatrix * matB, 
                                           bool shiftMode, Double shift) {
-    ENTER_FCN( "ArpackMatInterface::ArpackMatInterface" );
     
     matrixA_ = matA;
     matrixB_ = matB;
@@ -27,13 +26,11 @@ namespace OLAS {
     
   
   ArpackMatInterface::~ArpackMatInterface() {
-    ENTER_FCN( "ArpackMatInterface::~ArpackMatInterface" );
 
   }
   
   
   void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond ) {
-    ENTER_FCN( "ArpackMatInterface::Setup" );
 
     // Copy references
     solver_ = solver;
@@ -64,7 +61,6 @@ namespace OLAS {
   }
     
   void ArpackMatInterface::MultShiftOpV( Double* x, Double* y ) {
-    ENTER_FCN( "ArpackMatInterface::MultShiftOpV" );
 
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
@@ -81,7 +77,6 @@ namespace OLAS {
   }
 
   void ArpackMatInterface::MultRegularOpV( Double* x, Double* y ) {
-    ENTER_FCN( "ArpackMatInterface::MultRegularOpV" );
 
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
@@ -102,7 +97,6 @@ namespace OLAS {
   }
   
   void ArpackMatInterface::MultBV( Double* x, Double* y ) {
-    ENTER_FCN( "ArpackMatInterface::MultBV" );
     
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
@@ -119,7 +113,6 @@ namespace OLAS {
   }
   
   void ArpackMatInterface::MultAV( Double* x, Double* y ) {
-    ENTER_FCN( "ArpackMatInterface::MultAV" );
     
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;

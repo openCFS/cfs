@@ -27,7 +27,6 @@ namespace OLAS {
   // ***********************
   template<typename T>
   PardisoSolver<T>::PardisoSolver() {
-    ENTER_FCN( "PardisoSolver::PardisoSolver" );
     Error( "Default constructor of PardisoSolver is forbidden!",
            __FILE__, __LINE__ );
   }
@@ -40,7 +39,6 @@ namespace OLAS {
   PardisoSolver<T>::PardisoSolver( OLAS_Params *myParams,
                                    OLAS_Report *myReport ) {
 
-    ENTER_FCN( "PardisoSolver::PardisoSolver" );
 
     // Set pointers to communication objects
     myParams_  = myParams;
@@ -72,7 +70,6 @@ namespace OLAS {
   // **************
   template<typename T>
   PardisoSolver<T>::~PardisoSolver() {
-    ENTER_FCN( "PardisoSolver::~PardisoSolver" );
 
     // PARDISO - Last Phase: Cleaning up the parameters
     if ( firstCall_ == false ) {
@@ -105,7 +102,6 @@ namespace OLAS {
   template<typename T>
   void PardisoSolver<T>::Setup( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "PardisoSolver::Setup" );
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
@@ -440,7 +436,6 @@ namespace OLAS {
                                 const BasePrecond &precond,
                                 const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "PardisoSolver::Solve" );
 
     // Determine, whether we are expected to be verbose
     bool logging = myParams_->GetBoolValue( "PARDISO_logging" );

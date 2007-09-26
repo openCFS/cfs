@@ -17,7 +17,6 @@ namespace OLAS {
   template <class T>
   ILDLKFactoriser<T>::ILDLKFactoriser() {
 
-    ENTER_FCN( "ILDLKFactoriser::ILDLKFactoriser" );
 
     (*error) << "Default constructor of ILDLKFactoriser call was called! "
              << "This constructor is forbidden!";
@@ -33,7 +32,6 @@ namespace OLAS {
   ILDLKFactoriser<T>::ILDLKFactoriser( OLAS_Params *myParams,
                                        OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILDLKFactoriser::ILDLKFactoriser" );
 
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -52,7 +50,6 @@ namespace OLAS {
   template <class T>
   ILDLKFactoriser<T>::~ILDLKFactoriser() {
 
-    ENTER_FCN( "ILDLKFactoriser::~ILDLKFactoriser" );
 
   }
 
@@ -68,7 +65,6 @@ namespace OLAS {
                                       std::vector<T> &dataU,
                                       bool newPattern ) {
 
-    ENTER_FCN( "ILDLKFactoriser::Factorise" );
 
     // Get new problem size and perform consistency check
     if ( this->amFactorised_ == false ) {
@@ -116,7 +112,6 @@ namespace OLAS {
                                               std::vector<UInt> &cidxU,
                                               std::vector<T> &dataU ) {
 
-    ENTER_FCN( "ILDLKFactoriser::FactoriseAnalytic" );
 
     UInt i, j, k, current, listPrevElem, listElem, numOffD;
     UInt lvlParent1, lvlParent2, auxLevel;
@@ -762,7 +757,6 @@ namespace OLAS {
                                               std::vector<UInt> &cidxU,
                                               std::vector<T> &dataU ) {
 
-    ENTER_FCN( "ILDLKFactoriser::FactoriseNumerics" );
 
     // Shall we be verbose?
     bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
@@ -776,7 +770,6 @@ namespace OLAS {
   UInt ILDLKFactoriser<T>::EstimateFactorMemory( SCRS_Matrix<T> &sysMat,
                                                  UInt* auxVec ) {
 
-    ENTER_FCN( "ILDLKFactoriser::EstimateFactorMemory" );
 
     // For large profiles the estimates will be way too large, or
     // maybe even negative, since unsigned int will be too short.
@@ -887,7 +880,6 @@ namespace OLAS {
                                              std::vector<UInt> cidxU,
                                              std::vector<UInt> fillU ) {
 
-    ENTER_FCN( "ILDLKFactoriser::ExportFillLevels" );
 
     UInt i, j;
 
@@ -942,7 +934,6 @@ namespace OLAS {
   void ILDLKFactoriser<T>::DropEntries( UInt *listIDX, T *listVAL,
                                         UInt *listLVL ) {
 
-    ENTER_FCN( "ILDLKFactoriser::DropEntries" );
 
     UInt listEnd = this->sysMatDim_ + 1;
     UInt listNoElem = 0;

@@ -12,7 +12,6 @@ namespace CoupledField
 
   PMLBasics::PMLBasics( std::string dampingTypePML, Double damp, std::string type)
   {
-    ENTER_FCN( "PMLBasics::PMLBasics" );
 
     //check for correct type
     if ( type == "laplaceInt" ) {
@@ -45,14 +44,12 @@ namespace CoupledField
 
   PMLBasics::~PMLBasics()
   {
-    ENTER_FCN( "PML::~PML" );
   }
 
 
   void PMLBasics::ComputeFactorPML(Vector<Complex>& factorsPML, Complex& pmlDet, 
                                    Vector<Double> & pos, Double omega)
   {
-    ENTER_FCN( "PMLBasics ::ComputefactorPML"); 
 
     UInt numVals = pos.GetSize();
 
@@ -185,7 +182,6 @@ namespace CoupledField
 
   Double PMLBasics::ComputeDampingFactor(Vector<Double>& pos, Directions dir)
   {
-    ENTER_FCN( "PMLBasics :: ComputeDampingFactor"); 
 
     Double factor, maxPos, delta, diffCoord;
     UInt idx;
@@ -284,7 +280,6 @@ namespace CoupledField
 
   void PMLBasics:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
-    ENTER_FCN( "PMLBasics ::SetPosXML"); 
 
     // inner/outer:   xmin  ymin  zmin
     //                xmax  ymax  zmax

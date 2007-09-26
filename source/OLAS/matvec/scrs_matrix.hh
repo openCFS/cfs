@@ -51,7 +51,6 @@ namespace OLAS {
 
     //! Default Constructor
     SCRS_Matrix() {
-      ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
       colInd_      = NULL;
       rowPtr_      = NULL;
       data_        = NULL;
@@ -86,7 +85,6 @@ namespace OLAS {
     //!              must be passed, as if the matrix was not symmetric.
     SCRS_Matrix( Integer nrows, Integer ncols, Integer nnz ) {
 
-      ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
 
       // assign storage type for dynamic type information
       // this->storagetype_ = SPARSE_SYM;
@@ -129,7 +127,6 @@ namespace OLAS {
     //! allocated for attributes of this class.
     ~SCRS_Matrix() {
 
-      ENTER_FCN( "SCRS_Matrix::~SCRS_Matrix" );
 
       // Delete data vector
       DeleteArray( data_   );
@@ -209,7 +206,6 @@ namespace OLAS {
     //! lost, of course.
     void SetSize( Integer nrows, Integer ncols, Integer nnz ) {
 
-      ENTER_FCN( "SCRS_Matrix::SetSize" );
 
       this->ncols_ = ncols;
       if ( this->nrows_ != nrows ) {
@@ -237,7 +233,6 @@ namespace OLAS {
     //! the structure/data layout remains the same. All positions in the
     //! structure can still be over-written with non-zero values.
     inline void Init() {
-      ENTER_FCN( "SCRS_Matrix::Init" );
       for ( Integer i = 1; i<= numEntries_; i++ ) {
         this->data_[i] = 0;
       }
@@ -327,26 +322,22 @@ namespace OLAS {
     //! Return the diagonal entry of row i
     inline
     T& GetDiag( Integer i ) {
-      ENTER_IFCN( "SCRS_Matrix::GetDiag" );
       return data_[rowPtr_[i]];
     }
 
     //! Return the diagonal entry of row i (read only)
     inline
     const T& GetDiag( Integer i ) const {
-      ENTER_IFCN( "SCRS_Matrix::GetDiag" );
       return this->data_[rowPtr_[i]];
     }
 
     //! Set the diagonal entry of row i to the value of v
     void SetDiagEntry( Integer i, T &v ) {
-      ENTER_IFCN( "SCRS_Matrix::SetDiagEntry" );
       data_[rowPtr_[i]] = v;
     }
 
     //! Returns the value of the diagonal entry of row i
     virtual void GetDiagEntry( Integer i, T &v ) const {
-      ENTER_IFCN( "SCRS_Matrix::GetDiagEntry" );
       v = data_[rowPtr_[i]];
     }
 

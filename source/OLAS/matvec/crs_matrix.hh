@@ -111,7 +111,6 @@ namespace OLAS {
 
     //! Default Constructor
     CRS_Matrix() {
-      ENTER_FCN( "CRS_Matrix::CRS_Matrix" );
       colInd_           = NULL;
       rowPtr_           = NULL;
       diagPtr_          = NULL;
@@ -159,7 +158,6 @@ namespace OLAS {
     CRS_Matrix( Integer nrows, Integer ncols, Integer nnz )
       : diagPtr_( NULL ) {
 
-      ENTER_FCN( "CRS_Matrix::CRS_Matrix" );
 
       // assign basic properties
       this->nnz_   = nnz;
@@ -198,7 +196,6 @@ namespace OLAS {
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
     ~CRS_Matrix() {
-      ENTER_FCN( "CRS_Matrix::~CRS_Matrix" );
       DeleteArray( data_    );
       DeleteArray( rowPtr_  );
       DeleteArray( colInd_  );
@@ -240,7 +237,6 @@ namespace OLAS {
     //! the structure/data layout remains the same. All positions in the
     //! structure can still be over-written with non-zero values.
     inline void Init() {
-      ENTER_FCN( "CRS_Matrix::Init" );
       for ( Integer i = 1; i <= this->nnz_; i++ ) {
         data_[i] = 0;
       }
@@ -308,7 +304,6 @@ namespace OLAS {
     //! standard format and will sort the matrix accordingly. The method will
     //! be removed in a future release
     void SortConformingToLayout( const bool forced = true ) {
-      ENTER_FCN( "CRS_Matrix::SortConformingToLayout" );
       ChangeLayout( LEX_DIAG_FIRST );
     }
     //@}
@@ -341,7 +336,6 @@ namespace OLAS {
     //! Return the diagonal entry of row i
     inline
     T& GetDiag( Integer i ) {
-      ENTER_IFCN( "CRS_Matrix::GetDiag" );
       Integer aux = diagPtr_[i];
       if ( aux == 0 ) {
         (*error) << "Illegal request for diagonal entry in row " << i;
@@ -353,7 +347,6 @@ namespace OLAS {
     //! Return the diagonal entry of row i (read only)
     inline
     const T& GetDiag( Integer i ) const {
-      ENTER_IFCN( "CRS_Matrix::GetDiag" );
       Integer aux = diagPtr_[i];
       if ( aux == 0 ) {
         (*error) << "Illegal request for diagonal entry in row " << i;
@@ -364,7 +357,6 @@ namespace OLAS {
 
     //! Set the diagonal entry of row i to the value of v
     void SetDiagEntry( Integer i, T &v ) {
-      ENTER_IFCN( "CRS_Matrix::SetDiagEntry" );
       Integer aux = diagPtr_[i];
       if ( aux == 0 ) {
         (*error) << "Illegal request to set diagonal entry in row " << i;
@@ -375,7 +367,6 @@ namespace OLAS {
 
     //! Returns the value of the diagonal entry of row i
     void GetDiagEntry( Integer i, T &v ) const {
-      ENTER_IFCN( "CRS_Matrix::GetDiagEntry" );
       Integer aux = diagPtr_[i];
       if ( aux == 0 ) {
         (*error) << "Illegal request for diagonal entry in row " << i;

@@ -13,19 +13,16 @@ namespace CoupledField
 
   Quad2FE :: Quad2FE() : RectangleFE()
   {
-    ENTER_FCN( "Quad2FE::Quad2FE" );
 
     Init();
   }
   
   Quad2FE :: ~Quad2FE()
   {
-    ENTER_FCN( "Quad2FE::~Quad2FE" );
   }
 
   void Quad2FE :: Init()
   {
-    ENTER_IFCN( "Quad2FE::Init" );
     NumNodes_ = 8;
 
     CommonInit();   
@@ -33,7 +30,6 @@ namespace CoupledField
   // Should be called SetNodalCoords!!
   void Quad2FE :: SetCornerCoords()
   {
-    ENTER_IFCN( "Quad2FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -62,7 +58,6 @@ namespace CoupledField
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Quad2FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
@@ -88,7 +83,6 @@ namespace CoupledField
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Quad2FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 
@@ -126,7 +120,6 @@ namespace CoupledField
 
   Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
   {
-    ENTER_IFCN( "Quad2FE::CalcDistortion" );
 
     (*error) << "Quad2FE::CalcDistortion. This function has not yet been implemented in " 
              << " quadratic quadrilaterals" << std::endl;

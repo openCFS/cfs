@@ -17,7 +17,6 @@ namespace CoupledField {
   void ADBInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                   EntityIterator& ent1, 
                                   EntityIterator& ent2) {
-    ENTER_FCN( "ADBInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

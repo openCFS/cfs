@@ -24,14 +24,12 @@ namespace OLAS {
 
     //! Default constructor
     PatternPool() {
-      ENTER_FCN( "PatternPool::PatternPool" );
     }
 
 
     //! Destructor
     ~PatternPool() {
 
-      ENTER_FCN( "PatternPool::~PatternPool" );
 
       // Check if there are any undeleted patterns, which we consider to be
       // a sever error, due to the memory problems involved when we go out
@@ -73,7 +71,6 @@ namespace OLAS {
     //!   an associated matrix object and to put it into the pool
     PatternIdType InsertPattern( BaseSparsityPattern *newPattern ) {
 
-      ENTER_FCN( "PatternPool::InsertPattern" );
 
       // safety check
       if ( newPattern == NULL ) {
@@ -105,7 +102,6 @@ namespace OLAS {
     //!         pattern belonging to the specified pattern.
     BaseSparsityPattern* RegisterUser( PatternIdType patternID ) {
 
-      ENTER_FCN( "PatternPool::RegisterUser" );
 
       // Check that identifier is legal
       if ( patternID > patterns_.size() ) {
@@ -149,7 +145,6 @@ namespace OLAS {
     //!       falls by a call to %DeRegisterUser().
     void DeRegisterUser( PatternIdType patternID ) {
 
-      ENTER_FCN( "PatternPool::DeRegisterUser" );
 
       // Check that identifier is legal
       if ( patternID > patterns_.size() ) {

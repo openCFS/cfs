@@ -35,7 +35,6 @@ namespace CoupledField {
                                 ParamNode * paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
-    ENTER_FCN( "PiezoCoupling::PiezoCoupling" );
 
     couplingName_ = "piezoDirect";
     materialClass_ = PIEZO;
@@ -81,7 +80,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   PiezoCoupling::~PiezoCoupling() {
-    ENTER_FCN( "PiezoCoupling::~PiezoCoupling" );
   }
 
 
@@ -89,7 +87,6 @@ namespace CoupledField {
   //   CalcResults
   // ***************
   void PiezoCoupling::CalcResults( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "PiezoCoupling::CalcResults" );
 
     switch (result->GetResultInfo()->resultType ) {
     case ELEC_CHARGE:
@@ -117,7 +114,6 @@ namespace CoupledField {
   
   template <class TYPE>
   void PiezoCoupling::CalcStress( shared_ptr<BaseResult> res ){
-    ENTER_FCN("PiezoCoupling::CalcStress");
 
     UInt stressDim=0, elecDim=0;
     Vector<Double> intPoint;
@@ -259,7 +255,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void PiezoCoupling::CalcCharges( shared_ptr<BaseResult> res ){
-    ENTER_FCN("PiezoCoupling::CalcCharges");
     
     // do cast of restult and resize solution vector
     Result<TYPE> &  actRes = 
@@ -459,7 +454,6 @@ namespace CoupledField {
 
   void PiezoCoupling::ReadPiezoNonLin(){
 
-    ENTER_FCN("PiezoCoupling::ReadPiezoNonLin");
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
@@ -576,7 +570,6 @@ namespace CoupledField {
   // *********************
   void PiezoCoupling::DefineIntegrators() {
 
-    ENTER_FCN( "PiezoCoupling::DefineIntegrators" );
     
     DataType matType = REAL;
     RegionIdType actRegion;
@@ -811,7 +804,6 @@ namespace CoupledField {
 
 
   void PiezoCoupling::DefineAvailResults() {
-    ENTER_FCN( "PiezoCoupling::DefineAvailResults" );
 
    // Check for subType
     StdVector<std::string> stressDofNames;

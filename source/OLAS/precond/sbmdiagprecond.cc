@@ -14,7 +14,6 @@ namespace OLAS {
 
   void SBMDiagPrecond::Setup( SBM_Matrix &mat ) {
 
-    ENTER_FCN( "SBMDiagPrecond::Setup" );
 
     // Obtain size information from matrix
     Ncols_ = mat.GetNcols();
@@ -50,7 +49,6 @@ namespace OLAS {
   void SBMDiagPrecond::Apply( const SBM_Matrix mat, const SBM_Vector r,
 			      SBM_Vector z ) const {
 
-    ENTER_FCN( "SBMDiagPrecond::Apply" );
 
     for ( int i = 1; i <= Ncols_; i++ ) {
       precond_[i].Setup( mat(i,i) );

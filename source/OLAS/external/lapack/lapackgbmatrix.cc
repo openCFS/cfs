@@ -20,7 +20,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::Convert( const CRS_Matrix<entryC>& A ) {
 
-    ENTER_FCN( "LapackGBMatrix::Convert(CRS_Matrix)" );
   
     // check the dimensions
     if( A.GetNrows() != GetNrows() || A.GetNcols() != GetNcols() ) {
@@ -96,7 +95,6 @@ namespace OLAS {
   // **************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::SetSparsityPattern( BaseGraph &graph ) {
-    ENTER_FCN( "LapackGBMatrix::SetSparsityPattern" );
 
     // Check that matrix has not already been defined
     if ( data_ != NULL ) {
@@ -146,7 +144,6 @@ namespace OLAS {
 						 Integer wupper,
 						 MatrixEntryType etype ) {
 
-    ENTER_FCN( "LapackGBMatrix::LapackGBMatrix" );
 
     // Ensure that matrix is square
     if ( nrows != ncols ) {
@@ -192,7 +189,6 @@ namespace OLAS {
   // *****************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::Init() {
-    ENTER_FCN( "LapackGBMatrix::Init" );
     entryF fzero;
     entryC czero = 0;
     CC2F77( czero, fzero );
@@ -207,7 +203,6 @@ namespace OLAS {
   // ********************************************
   template <>
   void LapackGBMatrix<F77complex16,std::complex<double> >::Init() {
-    ENTER_FCN( "LapackGBMatrix::Init" );
     for ( Integer i = 1; i <= length_; i++ ) {
       data_[i].real = 0.0;
       data_[i].imag = 0.0;
@@ -221,7 +216,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::SetMatrixEntry( Integer i, Integer j,
 						      entryC &v ) {
-    ENTER_IFCN( "LapackGBMatrix::SetMatrixEntry" );
 
 #ifdef DEBUG_LAPACKGBMATRIX
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
@@ -248,7 +242,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::AddToMatrixEntry( Integer i, Integer j,
 							entryC &v ) {
-    ENTER_IFCN( "LapackGBMatrix::AddToMatrixEntry" );
 
 #ifdef DEBUG_LAPACKGBMATRIX
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
@@ -276,7 +269,6 @@ namespace OLAS {
   void LapackGBMatrix<entryF,entryC>::Export( const Char *fname,
 					      const Char *comment ) const {
 
-    ENTER_FCN( "LapackGBMatrix::Export" );
 
     // open output file and check for errors
     FILE *fp = fopen( fname, "w" );
@@ -333,7 +325,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::WriteEntries( FILE *fp ) const {
 
-    ENTER_FCN( "LapackGBMatrix::WriteEntries" );
 
     int i, j;
     int colinit, colstop;
@@ -398,7 +389,6 @@ namespace OLAS {
   void LapackGBMatrix<F77complex16,std::complex<double> >::
   WriteEntries(FILE *fp) const {
 
-    ENTER_FCN( "LapackGBMatrix::WriteEntries" );
 
     int i, j;
     int colinit, colstop;
@@ -450,7 +440,6 @@ namespace OLAS {
   void LapackGBMatrix<entryF,entryC>::Add( const Double factor,
 					   const StdMatrix& mat ) {
 
-    ENTER_FCN( "LapackGBMatrix::Add" );
 
     // Down-cast to LapackGBMatrix
     TRY_CAST {
@@ -490,7 +479,6 @@ namespace OLAS {
   void LapackGBMatrix<F77complex16,std::complex<double> >::
   Add( const Double factor, const StdMatrix& mat ) {
 
-    ENTER_FCN( "LapackGBMatrix::Add" );
 
     // Down-cast to LapackGBMatrix
     TRY_CAST {
@@ -515,7 +503,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   Double LapackGBMatrix<entryF,entryC>::GetMaxDiag() const {
 
-    ENTER_FCN( "LapackGBMatrix::GetMaxDiag" );
 
     Double absmax = 0.0;
     entryF fdata;
@@ -535,7 +522,6 @@ namespace OLAS {
   // ************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::SetDiagEntry( Integer i, entryC &v ){
-    ENTER_FCN( "LapackGBMatrix::SetDiagEntry" );
     entryF fdata;
     CC2F77( v, fdata );
     data_[Index(i,i)] = fdata;
@@ -548,7 +534,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::GetDiagEntry( Integer i,
 						    entryC &v ) const {
-    ENTER_FCN( "LapackGBMatrix::GetDiagEntry" );
     F772CC( data_[Index(i,i)], v );
   }
 
@@ -559,7 +544,6 @@ namespace OLAS {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "LapackGBMatrix::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
 

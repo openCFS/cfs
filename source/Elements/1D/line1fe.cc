@@ -13,19 +13,16 @@ namespace CoupledField
 
   Line1FE :: Line1FE(IntegrationMethod method, int order) : LineFE()
   {
-    ENTER_FCN( "Line1FE::Line1FE" );
 
     Init(method, order);
   }
   
   Line1FE :: ~Line1FE()
   {
-    ENTER_FCN( "Line1FE::~Line1FE" );
   }
 
   void Line1FE :: Init(IntegrationMethod method, int order)
   {
-    ENTER_IFCN( "Line1FE::Init" );
     NumNodes_ = 2;
 
     CommonInit(method, order);
@@ -34,7 +31,6 @@ namespace CoupledField
 
   void Line1FE :: SetCornerCoords()
   {
-    ENTER_IFCN( "Line1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -44,7 +40,6 @@ namespace CoupledField
   }
 
   void Line1FE :: SetEdgeIndices () {
-    ENTER_FCN( "Line1FE::SetEdgeIndices" );
 
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     edgeIndices_[0].Resize(2);
@@ -61,7 +56,6 @@ namespace CoupledField
                                const Elem* elem, UInt dof,
                                AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Line1FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
   
@@ -75,7 +69,6 @@ namespace CoupledField
                                          const Elem* elem, UInt dof,
                                          AnsatzFct::FctEntityType )
   {
-    ENTER_IFCN( "Line1FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

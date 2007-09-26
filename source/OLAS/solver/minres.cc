@@ -13,7 +13,6 @@ namespace OLAS {
   template<typename T>
   MINRESSolver<T>::MINRESSolver( OLAS_Params *myParams, OLAS_Report *myReport){
 
-    ENTER_FCN( "MINRESSolver::MINRESSolver" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -44,7 +43,6 @@ namespace OLAS {
   template<typename T>
   MINRESSolver<T>::~MINRESSolver() {
 
-    ENTER_FCN( "MINRESSolver::~MINRESSolver" );
 
     // Delete auxillary math objects
     delete givens_;
@@ -67,7 +65,6 @@ namespace OLAS {
   // **************************
   template<typename T>
   void MINRESSolver<T>::Setup( BaseMatrix &sysMat ) {
-    ENTER_FCN( "MINRESSolver::Setup" );
     PrivateSetup( sysMat );
   }
 
@@ -78,7 +75,6 @@ namespace OLAS {
   template<typename T>
   void MINRESSolver<T>::PrivateSetup( const BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "MINRESSolver::PrivateSetup" );
 
     // Test, whether the problem dimension has changed
     UInt newDim_ = sysMat.GetNcols();
@@ -167,7 +163,6 @@ namespace OLAS {
                                const BasePrecond &precond,
                                const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "MINRESSolver::Solve" );
 
     // ----------------------------------------
     //   Let private setup test the type of
@@ -392,7 +387,6 @@ namespace OLAS {
   template<typename T>
   void MINRESSolver<T>::TestMatrixType( const BaseMatrix &sysMat ) const {
 
-    ENTER_FCN( "MINRESSolver::TestMatrixType" );
 
     if ( sysMat.GetStructureType() == SBM_MATRIX ) {
       Warning( "MINRESSolver expects matrix entries to be scalars!"

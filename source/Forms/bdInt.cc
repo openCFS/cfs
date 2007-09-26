@@ -14,7 +14,6 @@ namespace CoupledField
   void BDInt::calcElementVector(Vector<Double> & resultStressVector,
                                 EntityIterator& ent,
                                 Vector<Double> & fracDerivStress)  {
-    ENTER_FCN( "BDInt::CalcElementMatrix" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -67,7 +66,6 @@ namespace CoupledField
 
   void BDInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord_)
   {
-    ENTER_FCN( "BDInt::calcBMat" );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -192,7 +190,6 @@ namespace CoupledField
 
  Integer BDInt::getDim()
   {
-    ENTER_FCN( "linViscoElastInt::getDimD" );
     
     if(geomType_ == "axi")
       {
@@ -216,7 +213,6 @@ namespace CoupledField
   /// returns nr. of degrees of freedom
   Integer BDInt::getNrDofs()
   {
-    ENTER_FCN( "linViscoElastInt::getNrDofs" );
    
     if(geomType_ == "axi" || geomType_ == "planeStrain")
       {
@@ -236,7 +232,6 @@ namespace CoupledField
 
   BDInt::BDInt(BaseMaterial* matData,std::string geomType, Double timeStep)
     : BaseForm(matData), updateDMatInEveryIP_(0) {
-    ENTER_FCN( "BDInt::BDInt" );
 
     *warning << "This class is a candidate for major reimplementation and therefore "
              << "not working -> Contact Gerhard and Andreas";
@@ -254,7 +249,6 @@ namespace CoupledField
 
   BDInt::~BDInt()
   {
-    ENTER_FCN( "BDInt::~BDInt" );
   }
 
 

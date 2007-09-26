@@ -24,7 +24,6 @@ namespace CoupledField {
                                        BaseMaterial* matDataElec,                                       
                                        SubTensorType type) 
     : linPiezoCoupling(matData, type){
-    ENTER_FCN( "nLinPiezoCoupling::nLinPiezoCoupling" );
     
     name_ = "nLinPiezoCoupling";
     isSolDependent_ = true;
@@ -62,7 +61,6 @@ namespace CoupledField {
 
     //! Destructor
   nLinPiezoCoupling::~nLinPiezoCoupling() {
-    ENTER_FCN( "nLinPiezoCoupling::~nLinPiezoCoupling" );
   }
 
 
@@ -72,7 +70,6 @@ namespace CoupledField {
                                              shared_ptr<EqnMap> eqnMap,
                                              shared_ptr<ResultInfo> result) 
   {
-    ENTER_FCN( "nLinPiezoCoupling::Set4NonLinMaterial" );
 
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
                                              eqnMap, *sol2_, 
@@ -100,7 +97,6 @@ namespace CoupledField {
   void nLinPiezoCoupling::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2 ) {
-    ENTER_FCN( "nLinPiezoCoupling::CalcElementMatrix" );
 
 
     ent1_ = ent1;
@@ -210,7 +206,6 @@ namespace CoupledField {
                                    UInt ip, 
                                    Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "nLinPiezoCoupling::calcDMat" );
 
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);

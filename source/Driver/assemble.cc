@@ -25,7 +25,6 @@ namespace CoupledField {
   Assemble::Assemble( BaseSystem* algsys,
                       AnalysisType analysis,
                       UInt maxTimeDerivOrder ) {
-    ENTER_FCN( "Assemble::Assemble" );
     
     // init general params
     algsys_ = algsys;
@@ -52,7 +51,6 @@ namespace CoupledField {
   }
 
   Assemble::~Assemble() {
-    ENTER_FCN( "Assemble::~Assemble" );
     
     // Delete bilinear contexts
     std::set<BiLinFormContext*>::iterator biLinIt;
@@ -102,7 +100,6 @@ namespace CoupledField {
  
  
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
-    ENTER_FCN( "Assemble::AddBiLinearForm" );
     
     LOG_DBG(assemble) << "Adding BiLinearForm '" 
                       << biLinContext->GetIntegrator()->GetName()
@@ -159,7 +156,6 @@ namespace CoupledField {
   }
 
   void Assemble::AddLinearForm( LinearFormContext* linContext ) {
-    ENTER_FCN( "Assemble::AddLinearForm" );
 
     // assert that Integrator is set
     assert( linContext->GetIntegrator() != NULL );
@@ -175,7 +171,6 @@ namespace CoupledField {
   }
 
   void Assemble::AddLoads( LoadList& load ) {
-    ENTER_FCN( "Assemble::AddLoad" );
     
     for( UInt i=0; i<load.GetSize(); i++ ) {
       loads_.Push_back( load[i] );
@@ -183,7 +178,6 @@ namespace CoupledField {
   }
 
   void Assemble::SetupMatrixGraph(PdeIdType pdeId1, PdeIdType pdeId2 ) {
-    ENTER_FCN( "Assemble::SetupMatrixGraph" );
 
     StdVector<Integer> eqnVec1, eqnVec2;
     PdeIdType id1, id2;
@@ -237,7 +231,6 @@ namespace CoupledField {
   }
 
   void Assemble::AssembleMatrices() {
-    ENTER_FCN( "Assemble::AssembleMatrices" );
 
     Matrix<Double> elemMatrix;
     Matrix<Complex> elemMatrixC;
@@ -365,19 +358,16 @@ namespace CoupledField {
   }
   
   void Assemble::AssembleLinRHS( Double actTimeFreq){
-    ENTER_FCN( "Assemble::AssembleLinRHS" );
   
     AssembleRHSLinForms( actTimeFreq, false );
     AssembleRHSLoads( actTimeFreq );
   }
   
   void Assemble::AssembleNonLinRHS( Double actTimeFreq) {
-    ENTER_FCN( "Assemble::AssembleNonLinRHS" );
     AssembleRHSLinForms( actTimeFreq, true );
   }
 
   void Assemble::AssembleRHSLinForms( Double actTimeFreq, bool nonLin ) {
-    ENTER_FCN( " Assemble::AssembleRHSLinForms" );
     
     StdVector<Integer> eqnVec;
     PdeIdType pdeId;
@@ -468,7 +458,6 @@ namespace CoupledField {
   }
 
   void Assemble::AssembleRHSLoads( Double actTimeFreq ) {
-    ENTER_FCN( "Assemble::AssembleRHSLoads" );
 
     Vector<Double> globCoord;
     Integer eqnNr = 0;
@@ -547,7 +536,6 @@ namespace CoupledField {
   }
   
   void Assemble::PrintInfo( std::ostream& out ) {
-    ENTER_FCN( "Assemble::PrintInfo" );
 
     out << "=================================\n"
         << "  Assemble: List of Integrators  \n"
@@ -636,7 +624,6 @@ namespace CoupledField {
   }
 
   void Assemble::CheckNonLinearities() {
-    ENTER_FCN( "Assemble::CheckNonLinearities" );
 
     // Clear reassemble mat
     matReassemble_.clear();
@@ -665,7 +652,6 @@ namespace CoupledField {
                                  FEMatrixType matrixType,
                                  DataType entryType,
                                  Double omega ) {
-    ENTER_FCN( "Assemble::Matrix2Harmonic" );
     
     Integer numRow = origMat.GetSizeRow();
     Integer numCol = origMat.GetSizeCol();
@@ -779,7 +765,6 @@ namespace CoupledField {
                                  FEMatrixType matrixType,
                                  DataType entryType,
                                  Double omega ) {
-    ENTER_FCN( "Assemble::Matrix2Harmonic" );
     
     Integer numRow = origMat.GetSizeRow();
     Integer numCol = origMat.GetSizeCol();
@@ -833,7 +818,6 @@ namespace CoupledField {
 
 
   void Assemble::CreateMatrixMap() {
-    ENTER_FCN( "Assemble::CreateMatrixMap()" );
 
     // Dependent on the type of analysis, only certain matrix types
     // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION) are present.
@@ -874,7 +858,6 @@ namespace CoupledField {
   }
 
  //  void Assemble::AdjustDamping( BiLinFormContext& context ) {
-//     ENTER_FCN( "Assemble::CheckDamping" );
     
 //     // Check, if damping matrix is present
 //     if( matReassemble_.find( DAMPING) == matReassemble_.end() )
@@ -917,7 +900,6 @@ namespace CoupledField {
 //   }
 
   bool Assemble::IsFEMatSymmetric( FEMatrixType feType ) {
-    ENTER_FCN( " Assemble::IsFEMatSymmetric" );
     
     // Run over all bilinearform contexts
     std::map<FEMatrixType, bool> isSymmetric;
@@ -972,7 +954,6 @@ namespace CoupledField {
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
                                PdeIdType pdeId1, PdeIdType pdeId2) {
-    ENTER_FCN( "Assemble::InsertMatrix" );
     Vector<Double> harmMat;
 
     // map original matrix destination to analysis-dependent one
@@ -1018,7 +999,6 @@ namespace CoupledField {
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
                                PdeIdType pdeId1, PdeIdType pdeId2) {
-    ENTER_FCN( "Assemble::InsertMatrix" );
     Vector<Double> harmMat;
 
     // map original matrix destination to analysis-dependent one

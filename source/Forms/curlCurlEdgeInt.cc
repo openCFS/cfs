@@ -13,7 +13,6 @@ namespace CoupledField
   CurlCurlEdgeInt::CurlCurlEdgeInt(Double aVal)
     : BaseForm( NULL ), reluctivity_ (aVal)
   {
-    ENTER_FCN( "CurlCurlEdgeInt::CurlCurlEdgeInt" );
     name_ = "CurlCurlEdgeInt";
   }
 
@@ -21,7 +20,6 @@ namespace CoupledField
  
   CurlCurlEdgeInt::~CurlCurlEdgeInt()
   {
-    ENTER_FCN( "CurlCurlEdgeInt::~CurlCurlEdgeInt" );
   }
 
 
@@ -29,7 +27,6 @@ namespace CoupledField
   void CurlCurlEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                            EntityIterator& ent1, 
                                            EntityIterator& ent2 ) {
-    ENTER_FCN( "CurlCurlEdgeInt::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

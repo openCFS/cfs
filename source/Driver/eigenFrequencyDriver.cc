@@ -20,7 +20,6 @@ namespace CoupledField {
   EigenFrequencyDriver::EigenFrequencyDriver(UInt sequenceStep,
                                              bool isPartOfSequence) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
-    ENTER_FCN( "EigenFrequencyDriver::EigenFrequencyDriver" );
 
     // set correct analysistype
     analysis_ = EIGENFREQUENCY;
@@ -33,7 +32,6 @@ namespace CoupledField {
 
 
   void EigenFrequencyDriver::Init() {
-    ENTER_FCN( "EigenFrequencyDriver::Init" );
     
     // get parameter node
     ParamNode * myNode = 
@@ -54,7 +52,6 @@ namespace CoupledField {
   //   Default destructor
   // **********************
   EigenFrequencyDriver::~EigenFrequencyDriver() {
-    ENTER_FCN( "EigenFrequencyDriver::~EigenFrequencyDriver" );
   }
 
 
@@ -62,7 +59,6 @@ namespace CoupledField {
   //   Solve problem
   // *****************
   void EigenFrequencyDriver::SolveProblem() {
-    ENTER_FCN( "EigenFrequencyDriver::SolveProblem" );
 
     ResultHandler * resHandler = domain->GetResultHandler();
 

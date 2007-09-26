@@ -17,7 +17,6 @@ namespace CoupledField {
 
   SmoothPDE::SmoothPDE(Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE(aptgrid, paramNode ) {
-    ENTER_FCN( "SmoothPDE::SmoothPDE" );
     
     pdename_ = "smooth";
     pdematerialclass_ = MECHANIC;
@@ -38,7 +37,6 @@ namespace CoupledField {
 
 
   void SmoothPDE::DefineIntegrators() {
-    ENTER_FCN( "SmoothPDE::DefineIntegerators" );
     
     // Get problem geometry and PDE subtype
     myParam_->Get("subType", subType_ );
@@ -82,14 +80,12 @@ namespace CoupledField {
 
 
   void SmoothPDE::DefineSolveStep() {
-    ENTER_FCN( "SmoothPDE::DefineSolveStep" );
     
     solveStep_ = new StdSolveStep(*this); 
   }
 
 
   void SmoothPDE::InitCoupling(PDECoupling * coupling) {
-    ENTER_FCN( "SmoothPDE::Initcoupling" );
 
     isIterCoupled_ = true;
     ptCoupling_   = coupling; 
@@ -118,7 +114,6 @@ namespace CoupledField {
 
 
   void SmoothPDE::CalcOutputCoupling() {
-    ENTER_FCN( "SmoothPDE::CalcOutputCoupling" );
     
     SolutionType quantity;
     StdVector<UInt> * couplingnodes;
@@ -156,7 +151,6 @@ namespace CoupledField {
 
 
   bool SmoothPDE::HasOutput(SolutionType output) {
-    ENTER_FCN( "SmoothPDE::HasOutput" );
     
     if (output == SMOOTH_DISPLACEMENT)
       return true;
@@ -165,7 +159,6 @@ namespace CoupledField {
   }
   
   void SmoothPDE::CalcResults( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "SmoothPDE::CalcResults" );
     
     switch (res->GetResultInfo()->resultType ) {
     case SMOOTH_DISPLACEMENT:
@@ -182,7 +175,6 @@ namespace CoupledField {
   }
     
   void SmoothPDE::DefineAvailResults() {
-    ENTER_FCN( "SmoothPDE::DefineAvailResults" );
 
     // =====================================================================
     // set solution information

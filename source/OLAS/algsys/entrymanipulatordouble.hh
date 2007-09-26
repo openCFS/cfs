@@ -47,12 +47,10 @@ namespace OLAS {
 
     //! Constructor
     EntryManipulatorDouble() : BaseEntryManipulator() {
-      ENTER_FCN("EntryManipulatorDouble::EntryManipulatorDouble");
     }
  
     //! Destructor
     ~EntryManipulatorDouble() {
-      ENTER_FCN( "EntryManipulatorDouble::~EntryManipulatorDouble" );
     }
 
     //@}

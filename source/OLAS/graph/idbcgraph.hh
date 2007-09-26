@@ -47,12 +47,10 @@ namespace OLAS {
     //!                    of associated matrix
     IDBC_Graph( UInt numFreeDofs, UInt numFixedDofs ) :
       BaseGraph( numFreeDofs, numFixedDofs, NOREORDERING ) {
-      ENTER_FCN( "IDBC_Graph::IDBC_Graph" );
     }
 
     //! Default destructor
     virtual ~IDBC_Graph() {
-      ENTER_FCN( "IDBC_Graph::~IDBC_Graph" );
     }
 
     //! Method to be called after all vertices were inserted into the graph

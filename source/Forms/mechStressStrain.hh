@@ -43,7 +43,6 @@ namespace CoupledField
       \end{array}\right) \f]         
     */
     virtual void SetActElemSol(Matrix<TYPE>& disp) {
-      ENTER_FCN( "MechStressStrain::SetActElemSol" );
       elemDisp_ = disp;};
 
   protected:  

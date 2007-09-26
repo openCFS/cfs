@@ -31,8 +31,10 @@ namespace CoupledField{
     //! Constructor 
     //! creates an empty matrix of size 0x0
     CFSMatrix(){
-      ENTER_IFCN("CFSMatrix::CFSMatrix");
     };
+
+    //! Destructor
+    virtual ~CFSMatrix() {};
 
     //! Constructor
     //! creates a matrix of size nRows x nCols, initalized
@@ -47,7 +49,6 @@ namespace CoupledField{
     CFSMatrix(const CFSMatrix &m){};
 
     //! Destructor
-    virtual ~CFSMatrix(){ENTER_IFCN("CFSMatrix::CFSMatrix");};
 
     //! Get entry type of matrix
     virtual EntryType::ScalarType GetEntryType() = 0;

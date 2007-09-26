@@ -20,7 +20,6 @@ namespace OLAS {
   template<typename T>
   GMRESSolver<T>::GMRESSolver( OLAS_Params *myParams, OLAS_Report *myReport ){
 
-    ENTER_FCN( "GMRESSolver::GMRESSolver" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -46,7 +45,6 @@ namespace OLAS {
   template<typename T>
   GMRESSolver<T>::~GMRESSolver() {
 
-    ENTER_FCN( "GMRESSolver::~GMRESSolver" );
 
     // ---------------
     //   Free memory
@@ -76,7 +74,6 @@ namespace OLAS {
   // **************************
   template<typename T>
   void GMRESSolver<T>::Setup( BaseMatrix &sysMat ) {
-    ENTER_FCN( "GMRESSolver::Setup" );
     PrivateSetup( sysMat );
   }
 
@@ -87,7 +84,6 @@ namespace OLAS {
   template<typename T>
   void GMRESSolver<T>::PrivateSetup( const BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "GMRESSolver::PrivateSetup" );
 
     // ----------------------------------------
     //   Preform some consistency checks
@@ -163,7 +159,6 @@ namespace OLAS {
                               const BasePrecond &precond,
                               const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "GMRESSolver::Solve" );
 
     bool logging = myParams_->GetBoolValue( "GMRES_logging" );
 
@@ -308,7 +303,6 @@ namespace OLAS {
                                   UInt &stepCount,
                                   UInt globNum ) {
 
-    ENTER_IFCN( "GMRESSolver::InnerLoop" );
 
     UInt i, k;
     T aux = 0;
@@ -442,7 +436,6 @@ namespace OLAS {
   template<typename T>
   void GMRESSolver<T>::AllocateHessenbergMatrix() {
 
-    ENTER_FCN( "GMRESSolver::AllocateHessenbergMatrix" );
 
     bool logging = myParams_->GetBoolValue( "GMRES_logging" );
 
@@ -488,7 +481,6 @@ namespace OLAS {
   template<typename T>
   void GMRESSolver<T>::DeleteHessenbergMatrix() {
 
-    ENTER_FCN( "GMRESSolver::DeleteHessenbergMatrix" );
 
     if ( hMat_ != NULL ) {
       delete[] ( hMat_[1] + 1 );
@@ -508,7 +500,6 @@ namespace OLAS {
   template<typename T>
   void GMRESSolver<T>::AllocateKrylovBasis( const BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "GMRESSolver::AllocateKrylovBasis" );
 
     bool logging = myParams_->GetBoolValue( "GMRES_logging" );
 
@@ -567,7 +558,6 @@ namespace OLAS {
   template<typename T>
   void GMRESSolver<T>::DeleteKrylovBasis() {
 
-    ENTER_FCN( "GMRESSolver::DeleteKrylovBasis" );
 
     for ( UInt k = 0; k < vMat_.size(); k++ ) {
       delete vMat_[k];

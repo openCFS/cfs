@@ -21,7 +21,6 @@ namespace CoupledField
     : linElastInt(matData, type)
 
   {
-    ENTER_FCN( "MechStressStrain::MechStressStrain" );
 
     name_ = "MechStressStrain";
   }
@@ -30,7 +29,6 @@ namespace CoupledField
   template <class TYPE>
   MechStressStrain<TYPE>::~MechStressStrain()
   {
-    ENTER_FCN( "MechStressStrain::~MechStressStrain" );
   }
 
 
@@ -42,7 +40,6 @@ namespace CoupledField
   template <class TYPE>
   void MechStressStrain<TYPE>::
   CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent) {
-    ENTER_FCN( "MechStressStrain::calcPiolaStressTensor" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -74,7 +71,6 @@ namespace CoupledField
   template <class TYPE>
   void MechStressStrain<TYPE>::
   CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) {
-    ENTER_FCN( "MechStressStrain::CalcStrainVec" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -102,7 +98,6 @@ namespace CoupledField
   void MechStressStrain<TYPE>::
   calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "MechStressStrain::calcLinBMat" );
 
     // linear differential operator B_lin
     linElastInt::calcBMat(bMat, ip, ptCoord);

@@ -13,7 +13,6 @@ namespace OLAS {
   //   Constructor for empty vectors of specified length
   // *****************************************************
   SBM_Vector::SBM_Vector( UInt size ) {
-    ENTER_FCN( "SBM_Vector::SBM_Vector" );
     size_ = size;
     NewArray( subVec_, SparseVector*, size );
     for ( UInt i = 1; i <= size_; i++ ) {
@@ -26,7 +25,6 @@ namespace OLAS {
   //   Deep destructor
   // *******************
   SBM_Vector::~SBM_Vector() {
-    ENTER_FCN( "SBM_Vector::~SBM_Vector" );
     if ( subVec_ != NULL ) {
       for ( UInt i = 1; i <= size_; i++ ) {
 	delete subVec_[i];
@@ -40,7 +38,6 @@ namespace OLAS {
   //   Set number of vector entries and re-size internal array
   // ***********************************************************
   void SBM_Vector::SetSize( Integer size ) {
-    ENTER_FCN( "SBM_Vector::SetSize" );
     if ( subVec_ != NULL ) {
       for ( UInt i = 1; i <= size_; i++ ) {
 	delete subVec_[i];
@@ -62,7 +59,6 @@ namespace OLAS {
   // Double version
   void SBM_Vector::Inner( const BaseVector& vec, Double &retval ) const {
 
-    ENTER_FCN( "SBM_Vector::Inner" );
 
     // Downcast BaseVector to SBM_Vector
     try {
@@ -88,7 +84,6 @@ namespace OLAS {
   // Complex version
   void SBM_Vector::Inner( const BaseVector& vec, Complex &retval ) const {
 
-    ENTER_FCN( "SBM_Vector::Inner" );
 
     // Downcast BaseVector to SBM_Vector
     try {
@@ -114,7 +109,6 @@ namespace OLAS {
   //   Add vector to this vector object
   // ************************************
   void SBM_Vector::Add( const BaseVector &vec ) {
-    ENTER_FCN( "SBM_Vector::Add" );
 
     try {
 
@@ -151,7 +145,6 @@ namespace OLAS {
   // ******************************
   void SBM_Vector::AddToSubVector( const SparseVector &vec, const Integer i ) {
 
-    ENTER_FCN( "SBM_Vector::AddToSubVector" );
 
     if ( subVec_[i] != NULL ) {
       subVec_[i]->Add( vec );
@@ -171,7 +164,6 @@ namespace OLAS {
 
   // Double Version
   void SBM_Vector::Axpy( const Double alpha, const BaseVector &y ) {
-    ENTER_FCN( "SBM_Vector::Axpy" );
 
     try {
 
@@ -205,7 +197,6 @@ namespace OLAS {
 
   // Complex Version
   void SBM_Vector::Axpy( const Complex alpha, const BaseVector &y ) {
-    ENTER_FCN( "SBM_Vector::Axpy" );
 
     try {
 
@@ -244,7 +235,6 @@ namespace OLAS {
   // Double Version
   void SBM_Vector::Add( Double alpha, const BaseVector& v ) {
 
-    ENTER_FCN( "SBM_Vector::Add" );
     
     try {
 
@@ -279,7 +269,6 @@ namespace OLAS {
   // Complex Version
   void SBM_Vector::Add( Complex alpha, const BaseVector& v ) {
 
-    ENTER_FCN( "SBM_Vector::Add" );
     
     try {
 
@@ -316,7 +305,6 @@ namespace OLAS {
   // ***************************************************************
   void SBM_Vector::Add( Double alpha, const BaseVector& y,
 			Double beta, const BaseVector& z ) {
-    ENTER_FCN( "SBM_Vector::Add" );
     
     try {
 
@@ -345,7 +333,6 @@ namespace OLAS {
 
   void SBM_Vector::Add( Complex alpha, const BaseVector& y,
 			Complex beta, const BaseVector& z ) {
-    ENTER_FCN( "SBM_Vector::Add" );
     
     try {
 
@@ -377,7 +364,6 @@ namespace OLAS {
   //   Compute Euclidean norm of this vector object
   // ************************************************
   Double SBM_Vector::NormEuclid() const {
-    ENTER_FCN( "SBM_Vector::NormEuclid" );
     Double norm = 0.0;
     Double auxval;
     for ( UInt i = 1; i <= size_; i++ ) {
@@ -395,7 +381,6 @@ namespace OLAS {
   // *****************
   void SBM_Vector::Export( const Char *fname ) const {
 
-    ENTER_FCN( "SBM_Vector::Export" );
 
     std::stringstream fileName;
     std::string outFile;
@@ -420,7 +405,6 @@ namespace OLAS {
   // ********************
   void SBM_Vector::ScalarDiv( const Double factor ) {
 
-    ENTER_IFCN( "SBM_Vector::ScalarDiv" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       if ( subVec_[i] != NULL ) {
@@ -435,7 +419,6 @@ namespace OLAS {
   // *********************
   void SBM_Vector::ScalarMult( const Double factor ) {
 
-    ENTER_IFCN( "SBM_Vector::ScalarMult" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       if ( subVec_[i] != NULL ) {
@@ -450,7 +433,6 @@ namespace OLAS {
   // ***********************
   void SBM_Vector::ScalarDiv( const Complex factor ) {
 
-    ENTER_IFCN( "SBM_Vector::ScalarDiv" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       if ( subVec_[i] != NULL ) {
@@ -465,7 +447,6 @@ namespace OLAS {
   // ************************
   void SBM_Vector::ScalarMult( const Complex factor ) {
 
-    ENTER_IFCN( "SBM_Vector::ScalarMult" );
 
     for ( UInt i = 1; i <= size_; i++ ) {
       if ( subVec_[i] != NULL ) {

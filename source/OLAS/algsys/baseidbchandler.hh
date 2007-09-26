@@ -27,7 +27,6 @@ namespace OLAS {
 
     //! Destructor
     virtual ~BaseIDBC_Handler() {
-      ENTER_FCN( "BaseIDBC_Handler::~BaseIDBC_Handler" );
     }
 
     //! Combine different FE matrices into a single system matrix

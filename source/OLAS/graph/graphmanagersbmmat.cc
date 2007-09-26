@@ -15,7 +15,6 @@ namespace OLAS {
   // ===============
   GraphManagerSBMMat::GraphManagerSBMMat() {
 
-    ENTER_FCN( "GraphManagerSBMMat::GraphManagerSBMMat" );
 
     graph_               = NULL;
     graphIDBC_           = NULL;
@@ -37,7 +36,6 @@ namespace OLAS {
   // ==============
   GraphManagerSBMMat::~GraphManagerSBMMat() {
 
-    ENTER_FCN( "GraphManagerSBMMat::~GraphManagerSBMMat" );
 
     // If no re-ordering was performed the pointers to the re-ordering
     // vectors are still NULL. If they were claimed by the PDEs they
@@ -81,7 +79,6 @@ namespace OLAS {
   // =============
   void GraphManagerSBMMat::SetupInit( UInt numPDEs ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::SetupInit" );
 
     // Now we now for how many PDEs we are responsible ...
     numPDEs_ = numPDEs;
@@ -127,7 +124,6 @@ namespace OLAS {
   // =============
   void GraphManagerSBMMat::SetupDone() {
 
-    ENTER_FCN( "GraphManagerSBMMat::SetupDone" );
 
     // Print statistics to standard log stream
     PrintStats( cla );
@@ -143,7 +139,6 @@ namespace OLAS {
                                         const UInt numLastFreeDof,
 					const ReorderingType reorder ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::RegisterPDE" );
 
     // Be cautious
     if ( registrationDone_ == true ) {
@@ -204,7 +199,6 @@ namespace OLAS {
 					 const PdeIdType idPDE2,
                                          bool assemblingTranspose ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::AssembleInit" );
 
     // Perform a consistency check
     if ( idPDE1 == NO_PDE_ID || idPDE2 == NO_PDE_ID ) {
@@ -245,7 +239,6 @@ namespace OLAS {
 					 const PdeIdType idPDE2,
                                          bool assemblingTranspose ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::AssembleDone" );
 
     // Compute index into graph pointer matrix
     UInt idx = ComputeIndex( idPDE1, idPDE2 );
@@ -339,7 +332,6 @@ namespace OLAS {
 					  Integer length2,
                                           bool setCounterPart ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::SetElementPos" );
 
     // Compute index of graph in graph pointer matrix
     UInt idx = ComputeIndex( pdeID1, pdeID2 );
@@ -480,7 +472,6 @@ namespace OLAS {
   // =================
   Integer* GraphManagerSBMMat::GetReordering( const PdeIdType identifier ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::GetReordering" );
 
     Integer *retVal = NULL;
 
@@ -514,7 +505,6 @@ namespace OLAS {
   BaseGraph* GraphManagerSBMMat::GetGraph( const PdeIdType identifierPDE1,
 					   const PdeIdType identifierPDE2 ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::GetGraph" );
 
     // Check consisteny
     if ( identifierPDE1 == NO_PDE_ID ) {
@@ -547,7 +537,6 @@ namespace OLAS {
   BaseGraph* GraphManagerSBMMat::GetIDBCGraph( const PdeIdType pdeID1,
                                                const PdeIdType pdeID2 ) const{
 
-    ENTER_FCN( "GraphManagerSBMMat::GetIDBCGraph" );
 
     // Check consisteny
     if ( pdeID1 == NO_PDE_ID || pdeID2 == NO_PDE_ID ) {
@@ -575,7 +564,6 @@ namespace OLAS {
   // ==================
   bool GraphManagerSBMMat::SubGraphExists( const PdeIdType idPDE1,
 					   const PdeIdType idPDE2 ) const {
-    ENTER_FCN( "GraphManagerSBMMat::SubGraphExists" );
     return graph_[ ComputeIndex( idPDE1, idPDE2 ) ] != NULL;
   }
 
@@ -585,7 +573,6 @@ namespace OLAS {
   // ===================
   bool GraphManagerSBMMat::IDBCGraphExists( const PdeIdType idPDE1,
                                             const PdeIdType idPDE2 ) const {
-    ENTER_FCN( "GraphManagerSBMMat::IDBCGraphExists" );
     return graphIDBC_[ ComputeIndex( idPDE1, idPDE2 ) ] != NULL;
   }
 
@@ -595,7 +582,6 @@ namespace OLAS {
   // ==============
   void GraphManagerSBMMat::PrintStats( std::ostream *log ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::PrintStats" );
 
 
     // ***********************************
@@ -713,7 +699,6 @@ namespace OLAS {
   void GraphManagerSBMMat::GenerateCouplingGraph( PdeIdType pdeID1,
                                                   PdeIdType pdeID2 ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::GenerateCouplingGraph" );
 
     UInt idx = ComputeIndex( pdeID1, pdeID2 );
 
@@ -752,7 +737,6 @@ namespace OLAS {
   void GraphManagerSBMMat::GenerateIDBCGraph( PdeIdType pdeID1,
                                               PdeIdType pdeID2 ) {
 
-    ENTER_FCN( "GraphManagerSBMMat::GenerateIDBCGraph" );
 
     UInt idx = ComputeIndex( pdeID1, pdeID2 );
 

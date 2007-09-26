@@ -25,7 +25,6 @@ namespace CoupledField {
 
       
   {
-    ENTER_FCN( "BubbleStiffInt::BubbleStiffInt" );
     name_ = "BubbleStiffInt";
     isaxi_ = axi;
     baseType_ = STIFFNESS;
@@ -44,7 +43,6 @@ namespace CoupledField {
  
   BubbleStiffInt::~BubbleStiffInt()
   {
-    ENTER_FCN( "BubbleStiffInt::~BubbleStiffInt" );
   }
 
  
@@ -52,7 +50,6 @@ namespace CoupledField {
   void BubbleStiffInt::CalcElementMatrix( Matrix<Double>& elemMat,
 					 EntityIterator& ent1, 
 					 EntityIterator& ent2  )  {
-    ENTER_FCN( "BubbleStiffInt::CalcElemMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -118,7 +115,6 @@ namespace CoupledField {
 
   void  BubbleStiffInt::SetValues( StdVector<UInt> elemNumbers, Vector<Double> * radius,
 				   Vector<Double> * radiusDeriv ) {
-    ENTER_FCN( "BubbleStiffInt::SetValues" );
     
     elemNumbers_ = elemNumbers;
     radius_ = radius;

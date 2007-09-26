@@ -26,8 +26,6 @@
 
 #include "utils/profiler.hh"
 
-#include "Utils/tracing.hh"
-
 //! Can be used for outputting the value of a macro (expansion gives "a")
 
 //! This macro can be used to obtain the value of the macro at compile time
@@ -108,22 +106,6 @@ namespace OLAS {
 // ****************************************************************************
 //   This block deals with function tracing
 // ****************************************************************************
-
-#ifdef TRACE //normal function tracing
-#define ENTER_FCN(name)	\
-OutInfo::FcnTraceObjLocal fcn(name);
-
-#ifdef TRACE_ALL // trace absolutely everything
-#define ENTER_IFCN(name)	\
-OutInfo::FcnTraceObjLocal fcn(name);
-#else //no tracing
-#define ENTER_IFCN(name)
-#endif//IFCN
-#else//no tracing
-#define ENTER_FCN(name)
-#define ENTER_IFCN(name)
-#endif
-
 #ifdef PROFILING
 #define PROFILE(name,ops)\
 FcnProf fcnprof(name,ops);

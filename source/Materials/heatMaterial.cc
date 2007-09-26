@@ -22,7 +22,6 @@ namespace CoupledField
   // ***********************
   HeatMaterial::HeatMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
     materialDatabaseName_ = "Heat";
 
     //set the allowed material parameters
@@ -33,7 +32,6 @@ namespace CoupledField
 
   HeatMaterial::~HeatMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
     materialDatabaseName_ = "Heat";
 
   }
@@ -41,7 +39,6 @@ namespace CoupledField
   void HeatMaterial::SetScalar( Double param, MaterialType matType, 
 				DataType dataType ) {
 
-    ENTER_FCN( "HeatMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -72,7 +69,6 @@ namespace CoupledField
   void HeatMaterial::SetScalar( Complex param, MaterialType matType, 
 				DataType dataType ) {
 
-    ENTER_FCN( "HeatMaterial::SetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -104,7 +100,6 @@ namespace CoupledField
   void HeatMaterial::GetScalar( Double& param, MaterialType matType, 
 				DataType dataType ) const {
 
-    ENTER_FCN( "HeatMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -132,7 +127,6 @@ namespace CoupledField
   void HeatMaterial::GetScalar( Complex& param, MaterialType matType, 
 					   DataType dataType ) const {
 
-    ENTER_FCN( "HeatMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );

@@ -24,7 +24,6 @@ namespace CoupledField {
                                       ParamNode * paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
-    ENTER_FCN( "AcouMechCoupling::AcouMechCoupling" );
 
     couplingName_ = "acouMechDirect";
     materialClass_ = FLUID;
@@ -59,7 +58,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   AcouMechCoupling::~AcouMechCoupling() {
-    ENTER_FCN( "AcouMechCoupling::~AcouMechCoupling" );
   }
 
 
@@ -67,7 +65,6 @@ namespace CoupledField {
   //   CalcResults
   // ***************
   void AcouMechCoupling::CalcResults() {
-    ENTER_FCN( "AcouMechCoupling::CalcResults" );
   }
 
 
@@ -78,7 +75,6 @@ namespace CoupledField {
                                             const Double asteptime,
                                             UInt stepOffset,
                                             Double timeOffset){
-    ENTER_FCN( "AcouMechCoupling::WriteResultsInFile" );
   }
 
 
@@ -88,7 +84,6 @@ namespace CoupledField {
   // *********************
   void AcouMechCoupling::DefineIntegrators() {
 
-    ENTER_FCN( "AcouMechCoupling::DefineIntegrators" );
     
     //number of mechanical dofs = geometric dimension
     UInt dofs = ptGrid_->GetDim();
@@ -186,7 +181,6 @@ namespace CoupledField {
   //   ReadStoreResults
   // ********************
   void AcouMechCoupling::ReadStoreResults() {
-    ENTER_FCN( "AcouMechCoupling::ReadStoreResults" );
   }
 
 
@@ -194,7 +188,6 @@ namespace CoupledField {
   //   ReadMaterialData
   // ********************
   void AcouMechCoupling::ReadMaterialData() {
-    ENTER_FCN( "AcouMechCoupling::ReadMaterialData" );
   }
 
 }

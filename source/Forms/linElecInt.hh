@@ -34,7 +34,6 @@ namespace CoupledField {
 
     //! Destructor
     ~linElecInt() {
-      ENTER_FCN( "linElecInt::~linElecInt" );
 
     }
     //@}
@@ -55,7 +54,6 @@ namespace CoupledField {
     
     //! Returns dimension of D matrix
     UInt getDimD() {
-      ENTER_IFCN( "linElecInt::getDimD" );
       return dim_;
     }
 
@@ -64,7 +62,6 @@ namespace CoupledField {
 
     //! Returns nr. of degrees of freedom
     UInt getNrDofs() {
-      ENTER_IFCN( "linElecInt::getNrDofs" );
       return 1;
     }
 

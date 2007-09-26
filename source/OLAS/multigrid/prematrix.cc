@@ -36,13 +36,11 @@ PreMatrix<T>::PreMatrix()
               hasRowsSorted_(false),
               hasDiagFirst_(false)
 {
-    ENTER_FCN("PreMatrix::PreMatrix");
 }
 
 template <typename T>
 PreMatrix<T>::~PreMatrix()
 {
-    ENTER_FCN("PreMatrix::~PreMatrix");
     
     Reset();
 }
@@ -137,7 +135,6 @@ template <typename T>
 void PreMatrix<T>::SetEntry( const Integer  row, const Integer col,
                              const T& value )
 {
-    ENTER_FCN("PreMatrix::SetEntry");
 
 #ifdef DEBUG_PREMATRIX
     if( row < 1 || GetNrows() < row ) {
@@ -170,7 +167,6 @@ void PreMatrix<T>::AddToEntry( const Integer  row,
                                const Integer  col,
                                const T& value )
 {
-    ENTER_FCN("PreMatrix::AddToEntry");
 
 #ifdef DEBUG_PREMATRIX
     if( row < 1 || row > GetNrows() ) {
@@ -201,7 +197,6 @@ void PreMatrix<T>::AddToEntry( const Integer  row,
 template <typename T>
 void PreMatrix<T>::SortDiagonal()
 {
-    ENTER_FCN("PreMatrix::SortDiagonal");
 
     T tdat;
     for( Integer i = 1; i <= numRows_; i++ ) {
@@ -241,7 +236,6 @@ void PreMatrix<T>::SortDiagonal()
 template <typename T>
 void PreMatrix<T>::Sort()
 {
-    ENTER_FCN("PreMatrix::Sort");
 
     hasDiagFirst_ = true;
 
@@ -283,7 +277,6 @@ void PreMatrix<T>::Sort()
 template <typename T>
 void PreMatrix<T>::Reset()
 {
-    ENTER_FCN("PreMatrix::Reset");
 
     // delete array with row data
     if( rows_ != NULL ) {
@@ -315,7 +308,6 @@ void PreMatrix<T>::Reset()
 template <typename T>
 bool PreMatrix<T>::ImportASCII( const char* const filename )
 {
-    ENTER_FCN("PreMatrix::importASCII");
 
     FILE    *file   = fopen( filename, "rt" );
     char    *line   = NULL;
@@ -385,7 +377,6 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
 template <typename T>
 std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
 {
-    ENTER_FCN("PreMatrix::Print");
 
     out << "\033[1mPreMatrix:\033[0m" << std::endl
         << "  "<<GetNrows()<<" rows " << std::endl
@@ -406,7 +397,6 @@ std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
 template <typename T>
 bool PreMatrix<T>::CreateArrays( const Integer num_rows )
 {
-    ENTER_FCN("PreMatrix::CreateArrays");
 
     if( !num_rows ) { Reset();  return true; }
 
@@ -484,7 +474,6 @@ void PreMatrix<T>::InstantiatePublicMethods()
 template <typename T>
 inline void PreMatrix<T>::CheckBufferSize( const Integer row )
 {
-    ENTER_FCN("PreMatrix::CheckBufferSize");
 
 #ifdef PREMATRIX_USE_MODULO
     // enlarge row, if necessary
@@ -527,7 +516,6 @@ void PreMatrix<T>::QuickSort(       Integer *const cols,
                                     T *const data,
                               const Integer        length )
 {
-    ENTER_FCN("PreMatrix::QuickSort");
 
     if( length <= 1 )  return;
 

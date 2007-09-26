@@ -28,7 +28,6 @@ namespace CoupledField
 
 MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
 {
-  ENTER_FCN("entering MpCCIexch::MpCCIexch");
 
   //std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
   ptgrid_ = aptgrid;
@@ -108,7 +107,6 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
   //constructer used for FSI
   MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<RegionIdType>  subdoms)
   {
-    ENTER_FCN( "entering MpCCIexch::MpCCIexch" );
 
     ptgrid_ = aptgrid;
     Dim_ = ptgrid_->GetDim();
@@ -134,7 +132,6 @@ MpCCIexch::~MpCCIexch()
 
 void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 {
-    ENTER_FCN("entering MpCCIexch::PutExchangeGrid2MpCCI");
 
     // Here starts part for giving mixed mesh to MpCCI
 
@@ -375,14 +372,12 @@ if (elemTypes_)  delete [] elemTypes_;
     
 void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
 {
-  ENTER_FCN( "MpCCIexch::DefMpcciPartition" );
   CCI_Def_partition(meshId, partId);
 }
 
 void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD, 
                               UInt* nodeIds,  shared_ptr<EqnMap> eqnMap)
 {
-  ENTER_FCN( "MpCCIexch::DefMpcciNodes" );
 
   UInt i;
   UInt globalNode;
@@ -570,7 +565,6 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
 
 void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 {
-  ENTER_FCN("entering MpCCIexch::CouplCompPhase");
 
 
   //Coupling parameters for MpCCI
@@ -746,7 +740,6 @@ if (value_VxVy)  delete [] value_VxVy;
 
 void MpCCIexch::RecvAllPartitions(std::string couplingType)
 {
-  ENTER_FCN( "MpCCIexch::RecvAllPartitions" );
 
   //Coupling parameters for MpCCI
   Integer nQuantityIds;
@@ -813,7 +806,6 @@ void MpCCIexch::RecvAllPartitions(std::string couplingType)
 void MpCCIexch::GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceData, UInt nrNodesSD, 
                                           UInt* nodeIds, std::string couplingType)
 {
-  ENTER_FCN( "MpCCIexch::GetNodalValOfOnePartition" );
 
   Integer quantityId1; // Id for force from p 'a'
   Integer quantityId2; // Id for force from tau 'a'
@@ -910,7 +902,6 @@ void MpCCIexch::GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceDat
 void MpCCIexch::PutPartition(UInt partId, const Vector<Double> & displData, UInt nrNodesSD, 
                              UInt* nodeIds, bool conv)
 {
-  ENTER_FCN("entering MpCCIexch::PutPartition");
 
   //Coupling parameters for MpCCI
   Integer nQuantityIds;
@@ -983,7 +974,6 @@ void MpCCIexch::PutPartition(UInt partId, const Vector<Double> & displData, UInt
 
 void MpCCIexch::SendAllPartitions()
 {
-  ENTER_FCN("entering MpCCIexch::SendAllPartitions");
 
   //Coupling parameters for MpCCI
   Integer nQuantityIds;

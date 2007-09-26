@@ -19,7 +19,6 @@ namespace CoupledField
       rPDE_(apde),
       rCouplings_(apde.Couplings_)
   {
-    ENTER_FCN( "IterSolveStep::IterSolveStep" );
     
     startStep_ = 1;
 
@@ -27,7 +26,6 @@ namespace CoupledField
 
   IterSolveStep::~IterSolveStep()
   {
-    ENTER_FCN( "IterSolveStep::~IterSolveStep" );
   }
 
 
@@ -35,7 +33,6 @@ namespace CoupledField
 
   void IterSolveStep::SolveStepStatic()
   {
-    ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
     CFSVector *val, *oldVal;
     UInt iter = 0;
@@ -113,7 +110,6 @@ namespace CoupledField
   //----------------------- TRANSIENT-----------------------------------------
   void IterSolveStep::SolveStepTrans()
   {
-    ENTER_FCN( "IterSolveStep::SolveStepTrans" );
 
     UInt iter = 0;
 
@@ -234,7 +230,6 @@ namespace CoupledField
   //----------------------- TRANSIENTHARMONIC---------------------------------
   void IterSolveStep::SolveStepTransHarmonic()
   {
-    ENTER_FCN( "IterSolveStep::SolveStepTransHarmonic" );
 
 
     // In the beginning of each time step the coupling data has to be reseted
@@ -346,7 +341,6 @@ namespace CoupledField
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::SolveStepHarmonic()
   {
-    ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
     
     Error( "Harmonic iterative coupling is not yet implemented", 
            __FILE__, __LINE__);
@@ -355,7 +349,6 @@ namespace CoupledField
 
   void IterSolveStep::SetActTime( const Double actTime )
   {
-    ENTER_FCN( "IterSolveStep::SetActTime");
 
     actTime_ = actTime;
 
@@ -369,7 +362,6 @@ namespace CoupledField
 
   void IterSolveStep::SetActFreq( const Double actFreq )
   {
-    ENTER_FCN( "IterSolveStep::SetActFreq");
 
     actFreq_ = actFreq;
     
@@ -383,7 +375,6 @@ namespace CoupledField
 
   void IterSolveStep::SetActStep( const UInt actStep )
   {
-    ENTER_FCN( "IterSolveStep::SetActStep");
     
     actStep_ = actStep;
 
@@ -401,7 +392,6 @@ namespace CoupledField
 
   void IterSolveStep::SetNumTimeSteps( UInt numTimeStep)
   {
-    ENTER_FCN( "IterSolveStep::SetNumTimeSteps");
 
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
@@ -415,7 +405,6 @@ namespace CoupledField
 
   void IterSolveStep::SetStartStep( const UInt startStep )
   {
-    ENTER_FCN( "IterSolveStep::SetStartStep");
     
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
@@ -429,7 +418,6 @@ namespace CoupledField
   Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val,
                                  CFSVector & oldval)
   {
-    ENTER_FCN( "IterSolveStep::CalcNorm" );
 
     // ATTENTION: Currently only working with Double-values
     // will be changed as soon as dynamic type information

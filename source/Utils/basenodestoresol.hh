@@ -526,13 +526,11 @@ namespace CoupledField{
 
   inline UInt BaseNodeStoreSol::GetTotalNumDofs() const
   { 
-    ENTER_IFCN( "BaseNodeStoreSol::GetTotalNumDofs" );
     return totalDofs_; 
   }
 
   inline UInt BaseNodeStoreSol::GetDof(const SolutionType solType) const
   {
-    ENTER_IFCN( "BaseNodeStoreSol::GetDof" );
 #ifdef CHECK_INDEX
     std::string errMsg;
     if (numSolutions_ > 1 &&
@@ -564,19 +562,16 @@ namespace CoupledField{
   
   inline UInt BaseNodeStoreSol::GetNumNodes() const
   {
-    ENTER_IFCN( "BaseNodeStoreSol::GetNumNodes" );
     return numNodes_;
   }
   
   inline UInt BaseNodeStoreSol::GetSize() const 
   {
-    ENTER_IFCN( "BaseNodeStoreSol::GetSize()" );
     return length_;
   }
   
   inline UInt BaseNodeStoreSol::GetNumSolutions() const 
   {
-    ENTER_IFCN( "BaseNodeStoreSol::GetNumSolutions()" );
     return numSolutions_;
   }
 /*

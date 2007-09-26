@@ -16,7 +16,6 @@ namespace CoupledField
                                           EntityIterator& ent1, 
                                           EntityIterator& ent2 ) {
 
-    ENTER_FCN( "nLinMagHystInt2D::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -106,7 +105,6 @@ namespace CoupledField
   void nLinMagHystInt2D::calcMyBMat( Matrix<Double> &bMat, UInt ip,
                                  Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "nLinMagHystInt2D::calcBMat" );
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
@@ -172,7 +170,6 @@ namespace CoupledField
 
   void nLinMagHystInt2D::calcDMat(Matrix<Double> & dMat, UInt elNr)
   {
-    ENTER_FCN( "nLinMagHystInt::calcDMat" );
 
     Vector<Double> scalarVals(2);
 
@@ -191,7 +188,6 @@ namespace CoupledField
   // returns B for postprocessing
   void nLinMagHystInt2D::calcBMat( Matrix<Double> &bMat, UInt ip,
                                      Matrix<Double> &ptCoord ) {
-    ENTER_FCN( "nLinMagHystInt::calcBMat" );
 
     ptBMat_->ExtractElemInfo( it1_ );
     ptBMat_->SetIntPoint( intPoint_ );
@@ -209,7 +205,6 @@ namespace CoupledField
 
   nLinMagHystInt2D::nLinMagHystInt2D( BaseMaterial* matData, bool axi, bool coordUpdate) :
     BDBInt(matData) {
-    ENTER_FCN( "nLinMagHystInt2D::nLinMagHystInt2D" );
 
     name_        = "nLinMagHystInt2D";
     isaxi_       = axi;
@@ -227,7 +222,6 @@ namespace CoupledField
 
 
   nLinMagHystInt2D::~nLinMagHystInt2D() {
-    ENTER_FCN( "nLinMagHystInt2D::~nLinMagHystInt2D" );
   }
 
 } // end namespace CoupledField

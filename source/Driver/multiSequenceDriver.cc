@@ -24,7 +24,6 @@ namespace CoupledField {
   // ***************
   MultiSequenceDriver::MultiSequenceDriver( ) 
     : BaseDriver() {
-    ENTER_FCN( "MultiSequenceDriver::MultiSequenceDriver" );
 
     analysis_ = MULTI_SEQUENCE;
     
@@ -39,7 +38,6 @@ namespace CoupledField {
   //   Default destructor
   // **********************
   MultiSequenceDriver::~MultiSequenceDriver() {
-    ENTER_FCN( "MultiSequenceDriver::~MultiSequenceDriver" );
   }
 
 
@@ -47,7 +45,6 @@ namespace CoupledField {
   //   Solve problem
   // *****************
   void MultiSequenceDriver::SolveProblem() {
-    ENTER_FCN( "MultiSequenceDriver::SolveProblem" );
 
     // vector containing pointer to current set of PDEs
     StdVector<SinglePDE *> ptPDEs;
@@ -183,7 +180,6 @@ namespace CoupledField {
 
 
   UInt MultiSequenceDriver::GetActStep( const std::string& pdename ) {
-    ENTER_FCN( "MultiSequenceDriver::GetActStep" );
     assert( actDriver_);
     return actDriver_->GetActStep( pdename );
   }
@@ -193,7 +189,6 @@ namespace CoupledField {
   // *****************
   void MultiSequenceDriver::Init() 
   {
-    ENTER_FCN( "MultiSequenceDriver::Init" );
     
 
     // get nodes for all sequencesteps

@@ -14,7 +14,6 @@ namespace OLAS {
 
   ArpackEigenSolver::ArpackEigenSolver( OLAS_Params *myParams, OLAS_Report *myReport ) 
     : BaseEigenSolver( myParams, myReport ){
-    ENTER_FCN( "ArpackEigenSolver::ArpackEigenSolver" );
 
     interface_    = NULL;
     matrixA_      = NULL;
@@ -29,7 +28,6 @@ namespace OLAS {
   }
   
   ArpackEigenSolver::~ArpackEigenSolver() {
-    ENTER_FCN( "ArpackEigenSolver::~ArpackEigenSolver" );
     
     delete solver_;
     delete precond_;
@@ -45,7 +43,6 @@ namespace OLAS {
   void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
                                 const  BaseMatrix & massMat,
                                 UInt numFreq, Double freqShift ) {
-    ENTER_FCN( "ArpackEigenSolver::Setup" );
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
@@ -136,7 +133,6 @@ namespace OLAS {
                                 const  BaseMatrix & massMat,
                                 const  BaseMatrix & dampMat,
                                 UInt numFreq, Double freqShift ) {
-    ENTER_FCN( "ArpackEigenSolver::Setup" );
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
@@ -193,7 +189,6 @@ namespace OLAS {
   
   UInt ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol,
                                                 BaseVector &err) {
-    ENTER_FCN( "ArpackEigenSolver::Solve" );
     
     // Find the eigenvalues and calculate the eigenvectors
     UInt numEVs = arpackSolver_->FindEigenvalues();
@@ -230,7 +225,6 @@ namespace OLAS {
   }
  
   void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Double> & mode ) {
-    ENTER_FCN( "ArpackEigenSolver::CalcEigenMode" );
     
     UInt size = matrixA_->GetNrows();
     mode.Resize( size );
@@ -242,7 +236,6 @@ namespace OLAS {
   }
 
   void ArpackEigenSolver::PrintInfo() {
-    ENTER_FCN( "ArpackEigenSolver::PrintInfo" );
     
     (*cla) << " -------------------------------------------------------"
            << "-----------------------\n"

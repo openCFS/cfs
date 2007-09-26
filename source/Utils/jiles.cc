@@ -15,7 +15,6 @@ namespace CoupledField
                  Double alpha, Double k, Double c)
     : Hysteresis(numElem)
   {
-    ENTER_FCN("Jiles::Jiles" );
 
     Ysaturated_  = ysat;
     a_           = a;
@@ -43,7 +42,6 @@ namespace CoupledField
 
   Double Jiles :: computeValue(Double Xin, Integer idxElem) 
   {
-    ENTER_FCN( "Jiles::computeValue" );
 
     Integer idx = idxElem - 1;
   
@@ -137,7 +135,6 @@ namespace CoupledField
 
   void Jiles :: updateMinMaxList(Double Xin, Integer nrEl)
   {
-    ENTER_FCN( "Jiles::updateMinMaxList" );
 
     Integer idx = nrEl-1;
 

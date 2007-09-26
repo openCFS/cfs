@@ -18,7 +18,6 @@ namespace CoupledField {
 
 
     EqnMap::EqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty ) {
-    ENTER_FCN( "EqnMap::EqnMap" );
 
     ptGrid_ = grid;
 
@@ -39,7 +38,6 @@ namespace CoupledField {
   }
 
   EqnMap::~EqnMap() {
-    ENTER_FCN( "EqnMap::~EqnMap" );
 
   }
 
@@ -48,12 +46,10 @@ namespace CoupledField {
   //! ======================================================================
   void EqnMap::AddResult( ResultInfo& result, 
 		          shared_ptr<EntityList> list ) {
-    ENTER_FCN( "EqnMap::AddResult" );
     resEntMap_[result].Push_back( list );
   }
 
   void EqnMap::SetHomoDirichletBCs(HdBcList& hdBcs) {
-    ENTER_FCN( "EqnMap::SetHomoDirichletBCs" );
 
     for( UInt i = 0; i< hdBcs.GetSize(); i++ ) {
       ResultInfo actResult = *(hdBcs[i]->result);
@@ -62,7 +58,6 @@ namespace CoupledField {
   }
   
   void EqnMap::SetInhomDirichletBCs( IdBcList& idBcs ) {
-    ENTER_FCN( "EqnMap::SetInhomDirichletBCs" );
 
     for( UInt i = 0; i < idBcs.GetSize(); i++ ) {
       ResultInfo actResult = *(idBcs[i]->result);
@@ -71,7 +66,6 @@ namespace CoupledField {
   }
   
   void EqnMap::SetConstraints( ConstraintList& constraints ) {
-    ENTER_FCN( "EqnMap::SetConstraints" );
     
     for( UInt i = 0; i < constraints.GetSize(); i++ ) {
       ResultInfo actResult = *(constraints[i]->result);
@@ -80,7 +74,6 @@ namespace CoupledField {
   }
   
   void EqnMap::Finalize() {
-    ENTER_FCN( "EqnMap::Finalize" );
 
     LOG_TRACE(eqnMap) << "Starting Initialization";
     
@@ -255,7 +248,6 @@ namespace CoupledField {
   }
 
   void EqnMap::ReorderMapping( Integer **order ) {
-    ENTER_FCN( "EqnMap::ReorderMapping" );
 
     
     // Check if any reordering array was given
@@ -499,7 +491,6 @@ namespace CoupledField {
   void EqnMap::GetEqns( StdVector<Integer> &eqns,
 		        const ResultInfo& result, 
 		        const EntityIterator& it ) const{
-    ENTER_IFCN( "EqnMap::GetEqns" );
     
     UInt numDofs = result.dofNames.GetSize();          
 
@@ -670,7 +661,6 @@ namespace CoupledField {
 
   Integer EqnMap::GetNodeEqn( const ResultInfo& result,
 		              UInt nodeNr, UInt dof ) { 
-    ENTER_FCN( "EqnMap::GetNodeEqn" );
     
 
     if ( result.definedOn == ResultInfo::NODE
@@ -749,7 +739,6 @@ namespace CoupledField {
   
   void EqnMap::Mesh2PdeNode(StdVector<UInt> & PdeNodes,
 		            const StdVector<UInt> & MeshNodes) const {
-    ENTER_FCN( "EqnMap::Mesh2PdeNode" );
 
     PdeNodes.Resize(MeshNodes.GetSize());
     PdeNodes.Init();
@@ -759,7 +748,6 @@ namespace CoupledField {
   }
  
   UInt EqnMap::Mesh2PdeNode(const UInt meshNode) const {
-    ENTER_FCN( "EqnMap::Mesh2PdeNode" );
 
     if ( mesh2PdeNode_[meshNode-1] < 0 ) {
       EXCEPTION(  "MeshNode Nr. " << meshNode 
@@ -771,7 +759,6 @@ namespace CoupledField {
     
   void EqnMap::Pde2MeshNode(StdVector<UInt> & meshNodes,
 		            const StdVector<UInt> & pdeNodes) const {
-    ENTER_FCN( "EqnMap::Pde2MeshNode" );
     meshNodes.Resize(pdeNodes.GetSize());
     meshNodes.Init();
    
@@ -780,12 +767,10 @@ namespace CoupledField {
   }
   
   UInt EqnMap::Pde2MeshNode(const UInt pdeNode) const {
-    ENTER_FCN( "EqnMap::Pde2MeshNode" );
     return pde2MeshNode_[pdeNode-1];
   }
   
   UInt EqnMap::Mesh2PdeElem(const UInt elemNumGlob) const {
-    ENTER_FCN( "EqnMap::Mesh2PdeElem" );
 
     if ( mesh2PdeElem_[elemNumGlob-1] < 0 ) {
       EXCEPTION( "MeshElem Nr. " << elemNumGlob 
@@ -796,7 +781,6 @@ namespace CoupledField {
   }
   
   UInt EqnMap::Pde2MeshElem(const UInt elemNumLoc) const {
-    ENTER_FCN( "EqnMap::Pde2MeshElem" );
     return pde2MeshElem_[elemNumLoc-1];
   }
   
@@ -805,7 +789,6 @@ namespace CoupledField {
   //! ======================================================================
   
   void EqnMap::Print(std::ostream & out) const {
-    ENTER_FCN( "EqnMap::Print" );
     out << "======================================\n"
 	<< "  Equation numbering - Information\n"
 	<< "======================================\n\n";
@@ -1116,7 +1099,6 @@ namespace CoupledField {
 
   
   void EqnMap::CalcNodeElemMapping() {
-    ENTER_FCN( "EqnMap::CalcNodeElemMapping" );
     
     mesh2PdeNode_.Resize( ptGrid_->GetNumNodes() );
     mesh2PdeNode_.Init( -1 );
@@ -1210,7 +1192,6 @@ namespace CoupledField {
   
   
   void EqnMap::CalcEdgeMapping()  {
-    ENTER_FCN( "EqnMap::CalcEdgeMapping" );
 
     mesh2PdeEdge_.Resize( ptGrid_->GetNumEdges() );
     mesh2PdeEdge_.Init( -1 );
@@ -1249,7 +1230,6 @@ namespace CoupledField {
   
 
   void EqnMap::CalcFaceMapping()  {
-    ENTER_FCN( "EqnMap::CalcFaceMapping" );
 
     LOG_TRACE(eqnMap) << "Starting local<->global face mapping\n";
     
@@ -1292,7 +1272,6 @@ namespace CoupledField {
   }
   
   void EqnMap::CalcNodalEquations( UInt phase ) {
-    ENTER_FCN( "EqnMap::CalcNodalEquations" );
 
 
     // MAGIC number, which gets assignetd to all nodes,
@@ -1589,7 +1568,6 @@ namespace CoupledField {
   }
    
   void EqnMap::CalcElemInteriorEquations( UInt phase ) {
-    ENTER_FCN( "EqnMap::CalcElemInteriorEquations" );
     
     // Big outer loop over all element interior mapped lists
     ResultEntityMap::iterator listIt;
@@ -1688,7 +1666,6 @@ namespace CoupledField {
   
 
   void EqnMap::CalcElemConstEquations( UInt phase ) {
-    ENTER_FCN( "EqnMap::CalcElemEquations" );
 
     // Big outer loop over all nodal mapped element lists
     ResultEntityMap::iterator listIt;
@@ -1848,7 +1825,6 @@ namespace CoupledField {
   }
   
   void EqnMap::CalcEdgeEquations( UInt phase ) {
-    ENTER_FCN( "EqnMap::CalcEdgeEquations" );
 
     // Big outer loop over all edge mapped element lists
     ResultEntityMap::iterator listIt;
@@ -1954,7 +1930,6 @@ namespace CoupledField {
   } 
 
   void EqnMap::CalcFaceEquations( UInt phase ) {
-    ENTER_FCN( "EqnMap::CalcFaceEquations" );
 
     LOG_TRACE(eqnMap) << "Starting to map face equations\n";
     
@@ -2079,7 +2054,6 @@ namespace CoupledField {
 
   void EqnMap::GetNodesOfEntities( StdVector<UInt>& nodes,
 		                   shared_ptr<EntityList> ent ) {
-    ENTER_FCN( "EqnMap::GetNodesOfEntities" );
     
     // Get type of entries of the particular entity list
     EntityList::ListType type = ent->GetType();
@@ -2133,7 +2107,6 @@ namespace CoupledField {
   }
 
   UInt EqnMap::GetNumLastFreeDof() const {
-    ENTER_FCN( "EqnMap::GetNumLastFreeDof" );
 
     if( usePenalty_ ) {
       return numEqns_;

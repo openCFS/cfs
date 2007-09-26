@@ -16,7 +16,6 @@ namespace CoupledField
 
   LineFE :: LineFE()
   {
-    ENTER_FCN( "LineFE::LineFE" );
 
     Dim_ = 1;
     NumEdges_   = 1;
@@ -31,13 +30,11 @@ namespace CoupledField
 
   LineFE :: ~LineFE()
   {
-    ENTER_FCN( "LineFE::~LineFE" );
   }
 
 
   void LineFE::FillIntegrationPoints()
   {
-    ENTER_IFCN("LineFE::FillIntegrationPoints");  	
       
     //  Gauss  quadrature  points  and  weights  order  1 - Fabian
     static Double a1[][2] = { 
@@ -302,7 +299,6 @@ namespace CoupledField
 
   void LineFE::SetShapeFncAtIp()
   {
-    ENTER_FCN( "LineFE::SetShapeFncAtIp" );
 
     if (!ShFncAtIp_)
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
@@ -316,7 +312,6 @@ namespace CoupledField
 
   void LineFE::SetShapeFncDerivAtIp()
   {
-    ENTER_FCN( "LineFE::SetShapeFncDerivAtIp" );
 
     if( !ShFncDerivAtIp_)
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
@@ -331,7 +326,6 @@ namespace CoupledField
                                   const Matrix<Double> & CornerCoords,
                                   const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcJacobianDet" );
     
     /*
     Matrix<Double> J;
@@ -362,7 +356,6 @@ namespace CoupledField
                                      const Matrix<Double> & CornerCoords,
                                      const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcJacobianDetAtIp" );
 
     //   Matrix<Double> J;
 
@@ -393,7 +386,6 @@ namespace CoupledField
                              const Matrix<Double> & CornerCoords,
                              const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcJacobian" );
 
     J.Resize(1,1);
 
@@ -409,7 +401,6 @@ namespace CoupledField
                                 const Matrix<Double> & CornerCoords,
                                 const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcJacobianAtIp" );
 
     if (CornerCoords.GetSizeRow()==2) {
       // Surface element in 2D 
@@ -427,7 +418,6 @@ namespace CoupledField
                                const Matrix<Double> & CornerCoords,
                                const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcInvJacobian" );
   
     JInv.Resize(1,1);
 
@@ -446,7 +436,6 @@ namespace CoupledField
                                    const Matrix<Double> & CornerCoords,
                                    const Elem* elem )
   {
-    ENTER_FCN( "LineFE::CalcInvJacobianAtIp" );
   
     JInv.Resize(1,1);
 

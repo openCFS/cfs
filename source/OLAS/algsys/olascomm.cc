@@ -19,7 +19,6 @@ namespace OLAS {
   //   Deep Destructor
   // *******************
   OLAS_BaseComm::~OLAS_BaseComm() {
-    ENTER_FCN( "OLAS_BaseComm::~OLAS_BaseComm" );
     stringPool_.clear();
     intPool_.clear();
     doublePool_.clear();
@@ -31,7 +30,6 @@ namespace OLAS {
   //   Set string value for a key
   // ******************************
   void OLAS_BaseComm::SetValue( const std::string key, std::string value ) {
-    ENTER_FCN( "OLAS_BaseComm::SetValue" );
     stringPool_[key] = value;
   }
 
@@ -40,7 +38,6 @@ namespace OLAS {
   //   Set Integer value for a key
   // *******************************
   void OLAS_BaseComm::SetValue( const std::string key, Integer value ) {
-    ENTER_FCN( "OLAS_BaseComm::SetValue" );
     intPool_[key] = value;
   }
 
@@ -49,7 +46,6 @@ namespace OLAS {
   //   Set Double value for a key
   // ******************************
   void OLAS_BaseComm::SetValue( const std::string key, Double value ) {
-    ENTER_FCN( "OLAS_BaseComm::SetValue" );
     doublePool_[key] = value;
   }
 
@@ -58,7 +54,6 @@ namespace OLAS {
   //   Set Bool value for a key
   // ******************************
   void OLAS_BaseComm::SetValue( const std::string key, bool value ) {
-    ENTER_FCN( "OLAS_BaseComm::SetValue" );
     booleanPool_[key] = value;
   }  
 
@@ -68,7 +63,6 @@ namespace OLAS {
   // *****************************************
   std::string OLAS_BaseComm::GetStringValue( std::string key ) {
 
-    ENTER_FCN( "OLAS_BaseComm::GetStringValue" );
 
     // Look for key in pool
     stringMap::iterator position = stringPool_.find(key);
@@ -101,7 +95,6 @@ namespace OLAS {
 
   bool OLAS_BaseComm::HasKey(const std::string key)
   {
-     ENTER_FCN( "OLAS_BaseComm::HasValue" );
      
      // check all pools!
      if(intPool_.find(key)    != intPool_.end()) return true;
@@ -118,7 +111,6 @@ namespace OLAS {
   // ******************************************
   Integer OLAS_BaseComm::GetIntValue( const std::string key ) {
 
-    ENTER_FCN( "OLAS_BaseComm::GetIntValue" );
 
     // look for key in pool
     intMap::iterator position = intPool_.find(key);
@@ -143,7 +135,6 @@ namespace OLAS {
   // *****************************************
   Double OLAS_BaseComm::GetDoubleValue( const std::string key ) {
 
-    ENTER_FCN( "OLAS_BaseComm::GetDoubleValue" );
 
     // look for key in pool
     doubleMap::iterator position = doublePool_.find(key);
@@ -168,7 +159,6 @@ namespace OLAS {
   // *****************************************
   bool OLAS_BaseComm::GetBoolValue( const std::string key ) {
 
-    ENTER_FCN( "OLAS_BaseComm::GetBoolValue" );
 
     // look for key in pool
     booleanMap::iterator position = booleanPool_.find(key);
@@ -192,7 +182,6 @@ namespace OLAS {
   //   Return the size of a pool
   // *****************************
   Integer OLAS_BaseComm::GetSize( const poolType pool ) const {
-    ENTER_FCN( "OLAS_BaseComm::GetSize" );
     switch( pool ) {
     case STRING_POOL:
       return (Integer) stringPool_.size();
@@ -220,7 +209,6 @@ namespace OLAS {
   //   Flush a pool
   // ****************
   void OLAS_BaseComm::FlushPool( const poolType pool ) {
-    ENTER_FCN( "OLAS_BaseComm::FlushPool" );
     switch( pool ) {
     case STRING_POOL:
       stringPool_.clear();
@@ -248,7 +236,6 @@ namespace OLAS {
   // ***************************
   void OLAS_BaseComm::ShowPool( const poolType pool,
 				std::ostream &liststream ) {
-    ENTER_FCN( "OLAS_BaseComm::ShowPool" );
 
     switch( pool ) {
 
@@ -302,7 +289,6 @@ namespace OLAS {
   //   Show contents of all pools
   // ******************************
   void OLAS_BaseComm::ShowAll( std::ostream &liststream ) {
-    ENTER_FCN( "OLAS_BaseComm::ShowAll" );
     ShowPool( INT_POOL    , liststream );
     ShowPool( DOUBLE_POOL , liststream );
     ShowPool( BOOLEAN_POOL, liststream );

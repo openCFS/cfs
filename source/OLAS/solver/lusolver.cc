@@ -19,7 +19,6 @@ namespace OLAS {
   template<typename T>
   LUSolver<T>::LUSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
 
-    ENTER_FCN( "LUSolver::LUSolver" );
 
     // Set pointers to communication objects
     myParams_ = myParams;
@@ -39,7 +38,6 @@ namespace OLAS {
   template<typename T>
   LUSolver<T>::~LUSolver() {
 
-    ENTER_FCN( "LUSolver::~LUSolver" );
 
   }
 
@@ -48,7 +46,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   void LUSolver<T>::InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    ENTER_FCN( "LUSolver::InstantiateAdditionalPublicMethods" );
     this->ExportILUFactorisation( "dummy.mtx" );
   }
 
@@ -59,7 +56,6 @@ namespace OLAS {
   template<typename T>
   void LUSolver<T>::Setup( BaseMatrix &sysMat ) {
 
-    ENTER_FCN( "LUSolver::Setup" );
 
     // Check that we have a StdMatrix
     if ( sysMat.GetStructureType() != STDMATRIX ) {
@@ -123,7 +119,6 @@ namespace OLAS {
 			   const BasePrecond &precond,
 			   const BaseVector &rhs, BaseVector &sol ) {
 
-    ENTER_FCN( "LUSolver::Solve" );
 
     // Test that a factorisation is available, if not issue a warning.
     // Note: We cannot initiate the factorisation from here, since we
@@ -204,7 +199,6 @@ namespace OLAS {
 					   UInt &maxEntriesU,
 					   CRS_Matrix<T> &crsMat ) {
 
-    ENTER_FCN( "LUSolver:ComputeRequiredMemory:" );
 
 
     // If matrix is unsorted, change to LEX format

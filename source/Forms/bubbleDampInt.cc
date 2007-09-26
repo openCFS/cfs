@@ -23,7 +23,6 @@ namespace CoupledField {
     : BaseForm(NULL), 
       density_(aDensity)     
   {
-    ENTER_FCN( "BubbleDampInt::BubbleDampInt" );
     name_ = "BubbleDampInt";
     isaxi_ = axi;
     baseType_ = DAMPING;
@@ -43,7 +42,6 @@ namespace CoupledField {
  
   BubbleDampInt::~BubbleDampInt()
   {
-    ENTER_FCN( "BubbleDampInt::~BubbleDampInt" );
   }
 
  
@@ -51,7 +49,6 @@ namespace CoupledField {
   void BubbleDampInt::CalcElementMatrix( Matrix<Double>& elemMat,
 					 EntityIterator& ent1, 
 					 EntityIterator& ent2  )  {
-    ENTER_FCN( "BubbleDampInt::CalcElemMatrix" );
   
 
     // Extract pointer to reference element and get coordinates
@@ -120,7 +117,6 @@ namespace CoupledField {
 
   void  BubbleDampInt::SetValues( StdVector<UInt> elemNumbers, Vector<Double> * radius,
 				   Vector<Double> * radiusDeriv ) {
-    ENTER_FCN( "BubbleDampInt::SetValues" );
     
     elemNumbers_ = elemNumbers;
     radius_ = radius;

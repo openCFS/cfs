@@ -32,7 +32,6 @@ namespace CoupledField {
 
     : StdPDE( aptgrid, paramNode ) {
 
-    ENTER_FCN( "DirectCoupledPDE::DirectCoupledPDE" );
 
     totalUnknowns_ = 0;
   }
@@ -43,7 +42,6 @@ namespace CoupledField {
   // **************
   DirectCoupledPDE::~DirectCoupledPDE() {
 
-    ENTER_FCN( "DirectCoupledPDE::~DirectCoupledPDE" );
 
     // The following cannot easily be deleted by StdPDE from which we inherit
     // them, since SinglePDE also inherits them.
@@ -67,7 +65,6 @@ namespace CoupledField {
   // *****************
   void DirectCoupledPDE::SetSinglePDEs( const StdVector<SinglePDE*> &pdes ) {
 
-    ENTER_FCN( "DirectCoupledPDE::SetSinglePDEs" );
 
     singlePDEs_ = pdes;
     
@@ -86,7 +83,6 @@ namespace CoupledField {
   // ****************
   void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*>
                                        &couplings ) {
-    ENTER_FCN( "DirectCoupledPDE::SetCouplings" );
     couplings_ = couplings;
   }
 
@@ -96,7 +92,6 @@ namespace CoupledField {
   // ********
   void DirectCoupledPDE::Init( UInt sequenceStep ) {
 
-    ENTER_FCN( "DirectCoupledPDE::Init" );
   
     sequenceStep_ = sequenceStep;
 
@@ -278,7 +273,6 @@ namespace CoupledField {
   //   WriteGeneralPDEdefines
   // **************************
   void DirectCoupledPDE::WriteGeneralPDEdefines() {
-    ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->WriteGeneralPDEdefines();
@@ -291,7 +285,6 @@ namespace CoupledField {
   // **********
   void DirectCoupledPDE::SetBCs( const Double atimestep ) {
 
-    ENTER_FCN( "DirectCoupledPDE::SetBCs" );
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetBCs( atimestep );
@@ -304,7 +297,6 @@ namespace CoupledField {
   // formulation by setting them 0
   Double DirectCoupledPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
-    ENTER_FCN( "DirectCoupledPDE::RhsL2Norm" );
 
     Integer eqnNr;
 
@@ -340,7 +332,6 @@ namespace CoupledField {
   // ****************
   void DirectCoupledPDE::DefineAlgSys() {
 
-    ENTER_FCN( "DirectCoupledPDE::DefineAlgSys" );
  
     
     std::string pdeName;
@@ -448,7 +439,6 @@ namespace CoupledField {
   }
 
   void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
-    ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
 
     BaseNodeStoreSol *ptNodeSol;
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
@@ -468,7 +458,6 @@ namespace CoupledField {
   }
 
   void DirectCoupledPDE::SaveSolution( const Complex * ptSol, UInt size) {
-    ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
 
     BaseNodeStoreSol *ptNodeSol;
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
@@ -487,7 +476,6 @@ namespace CoupledField {
   }
 
    void DirectCoupledPDE::SaveRHS( const Double * ptSol, UInt size) {
-    ENTER_FCN( "DirectCoupledPDE::SaveRhs" );
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
     solHelp.Resize(size);
@@ -503,7 +491,6 @@ namespace CoupledField {
     }
   }
   void DirectCoupledPDE::SaveRHS( const Complex * ptSol, UInt size) {
-    ENTER_FCN( "DirectCoupledPDE::SaveRhs" );
 
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
     solHelp.Resize(size);
@@ -525,7 +512,6 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
-    ENTER_FCN( "DirecCoupledPDE::InitTimeStepping" );
 
     // Hard Coded
     TS_alg_ = new Newmark( algsys_, "direct" );
@@ -544,7 +530,6 @@ namespace CoupledField {
 
   void DirectCoupledPDE::WriteRestart( ) 
   {
-    ENTER_FCN( "DirectCoupledPDE::WriteRestart" );
 
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->WriteRestart( );
@@ -553,7 +538,6 @@ namespace CoupledField {
 
   void DirectCoupledPDE::ReadRestart( UInt &startStep ) 
   {
-    ENTER_FCN( "DirectCoupledPDE::ReadRestart" );
 
     StdVector<UInt> startSteps( singlePDEs_.GetSize() );
      
@@ -582,7 +566,6 @@ namespace CoupledField {
                                             UInt stepOffset,
                                             Double timeOffset)
   {
-    ENTER_FCN( "DirectCoupledPDE::WriteResultsInFile" );
 
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->WriteResultsInFile( kstep, asteptime, 
@@ -596,7 +579,6 @@ namespace CoupledField {
   }
 
   void DirectCoupledPDE::Finalize() {
-    ENTER_FCN( "DirectCoupledPDE::Finalize" );
 
     for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->Finalize();
@@ -614,12 +596,10 @@ namespace CoupledField {
 
   void DirectCoupledPDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "DirectCoupledPDE::InitCoupling" );
     isIterCoupled_ = true;
   }
   void DirectCoupledPDE::ResetCoupling()
   {
-    ENTER_FCN( "DirectCoupledPDE::ResetCoupling ");
 
     iterCoupledCounter_ = 0;
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
@@ -630,7 +610,6 @@ namespace CoupledField {
            
   void DirectCoupledPDE::CalcInputCoupling()
   {
-    ENTER_FCN( "DirectCoupledPDE::CalcInputCoupling" );
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->CalcInputCoupling();
@@ -639,7 +618,6 @@ namespace CoupledField {
 
   void DirectCoupledPDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "DirectCoupledPDE::CalcOutputCoupling" );
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->CalcOutputCoupling();
@@ -650,7 +628,6 @@ namespace CoupledField {
 
 
   void DirectCoupledPDE::DefineSolveStep() {
-    ENTER_FCN( "DirectCoupledPDE::DefineSolveStep" );
   
     solveStep_ = new StdSolveStep(*this);
   }
@@ -660,7 +637,6 @@ namespace CoupledField {
   // *************************
   void DirectCoupledPDE::IncorporateReordering() {
 
-    ENTER_FCN( "DirectCoupledPDE::IncorporateReordering" );
 
     PdeIdType pdeId   = NO_PDE_ID;
     shared_ptr<EqnMap> eqn;

@@ -50,7 +50,6 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
         //! object. In the case of an object of this class the return
         //! value is MG (enum constant defined in utils/environment.hh)
         PrecondType GetPrecondType() const {
-            ENTER_FCN( "MGPrecond::GetPrecondType" );
             return MG;
         };
         
@@ -101,7 +100,6 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
         //! information and pointers to communication objects for corrected
         //! initialisation.
         MGPrecond() {
-            ENTER_FCN( "MGPrecond::MGPrecond" );
             Error( "Default constructor of MGPrecond should never be called!",
                    __FILE__, __LINE__ );
         };

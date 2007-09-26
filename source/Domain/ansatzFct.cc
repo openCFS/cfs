@@ -9,28 +9,23 @@ namespace CoupledField {
 
 
   AnsatzFct::AnsatzFct() {
-    ENTER_FCN( "AnsatzFct::AnsatzFct" );
     
     isIsotropic_ = true;
 
   }
 
   AnsatzFct::~AnsatzFct() {
-    ENTER_FCN( "AnsatzFct::~AnsatzFct" );
   }
 
   ConstFct::ConstFct() {
-    ENTER_FCN( "ConstFct::ConstFct" );
     type_ = CONST;
   }
 
   LagrangeFct::LagrangeFct() {
-    ENTER_FCN( "LagrangeFct::LagrangeFct" );
     type_ = LAGRANGE;
   }
 
   LegendreFct::LegendreFct() {
-    ENTER_FCN( "LegendreFct::LegendreFct" );
     type_ = LEGENDRE;
     isoOrder_ = 0;
     maxOrder_ = 0;
@@ -39,7 +34,6 @@ namespace CoupledField {
   }
   
   void LegendreFct::SetIsoOrder( UInt order ) {
-    ENTER_FCN( "LegendreFct::SetIsoOrder" );
 
     isoOrder_ = order;
     isIsotropic_ = true;
@@ -48,7 +42,6 @@ namespace CoupledField {
   
   
   UInt LegendreFct::GetIsoOrder() const {
-    ENTER_FCN( " LegendreFct::GetIsoOrder" );
     if( !isIsotropic_) {
       Error( "Approximation is anisotropic!", __FILE__, __LINE__ );
     }
@@ -58,7 +51,6 @@ namespace CoupledField {
   
   
   void LegendreFct::SetAnisoOrder( Matrix<UInt>& order ) {
-    ENTER_FCN( "LegendreFct::SetAnsioOrder" );
 
     anOrder_ = order;
     isIsotropic_ = false;
@@ -90,7 +82,6 @@ namespace CoupledField {
   
   
   const Matrix<UInt>& LegendreFct::GetAnisoOrder() const {
-    ENTER_FCN( "LegendreFct::GetAnisoOrder" );
     if( isIsotropic_) {
       Error( "Approximation is isotropic!", __FILE__, __LINE__ );
     }
@@ -99,7 +90,6 @@ namespace CoupledField {
   
   
   UInt LegendreFct::GetMaxOrderLocDir( UInt locDir ) const {
-    ENTER_FCN( "LegendreFct::GetMaxOrderLocDir" );
     if( isIsotropic_ ) {
       return isoOrder_;
     } else {
@@ -109,7 +99,6 @@ namespace CoupledField {
   
   
   UInt LegendreFct::GetMaxOrderDof( UInt dof ) const {
-    ENTER_FCN( "LegendreFct::GetMaxOrderDof" );
     if( isIsotropic_ ) {
       return isoOrder_;
     } else {

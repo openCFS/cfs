@@ -33,7 +33,6 @@ namespace CoupledField {
   SimInputHDF5::SimInputHDF5(std::string fileName, ParamNode * inputNode) :
       SimInput(fileName, inputNode)
   {
-    ENTER_FCN( "SimInputHDF5::XMDF" );
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
     
@@ -72,7 +71,6 @@ namespace CoupledField {
   }
 
   SimInputHDF5::~SimInputHDF5() {
-    ENTER_FCN( "SimInputHDF5::~XMDF" );
     
     mainRoot_.close();
     mainFile_.close();

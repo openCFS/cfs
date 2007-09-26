@@ -20,7 +20,6 @@ namespace CoupledField
   nLinStokesFluidInt::nLinStokesFluidInt(Double density, Double dynamicViscosity) 
     : StokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "nLinStokesFluidInt::nLinStokesFluidInt" );
 
     name_ = "nLinStokesFluidInt";
   }
@@ -28,14 +27,12 @@ namespace CoupledField
 
   nLinStokesFluidInt::~nLinStokesFluidInt()
   {
-    ENTER_FCN( "nLinStokesFluidInt::~nLinStokesFluidInt" );
   }
 
 
   // returns nonlinear B - matrix (first part) for BDB
 //  void nLinStokesFluidInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
 //  {
-//    ENTER_FCN( "nLinStokesFluidInt::calcBMat" );
 //
 //    
 //    if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
@@ -122,14 +119,12 @@ namespace CoupledField
                                                                    Double dynamicViscosity) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "nLinStokesFluid3DInt_Convective::nLinStokesFluid3DInt_Convective" );
 
     name_ = "nLinStokesFluid3DInt_Convective";
   }
 
   nLinStokesFluid3DInt_Convective::~nLinStokesFluid3DInt_Convective()
   {
-    ENTER_FCN( "nLinStokesFluid3DInt_Convective::~nLinStokesFluid3DInt_Convective" );
   }
 
   void nLinStokesFluid3DInt_Convective::CalcElementMatrix( Matrix<Double>& elemMat,
@@ -137,7 +132,6 @@ namespace CoupledField
                                                            EntityIterator& ent2 ) 
     
   {
-    ENTER_FCN( "nLinStokesFluid3DInt_Convective::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -271,7 +265,6 @@ namespace CoupledField
                                                               EntityIterator& ent1, 
                                                               EntityIterator& ent2 )
   {
-    ENTER_FCN( "nLinStokesFluidPlaneInt_Convective::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -385,7 +378,6 @@ namespace CoupledField
                                                              EntityIterator& ent1, 
                                                              EntityIterator& ent2 )
   {
-    ENTER_FCN( "nLinStokesFluidAxiInt_Convective::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -401,14 +393,12 @@ namespace CoupledField
                                      Double dynamicViscosity) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "nLinStokesFluidPlaneInt_Convective::nLinStokesFluidPlaneInt_Convective" );
 
     name_ = "nLinStokesFluidPlaneInt_Convective";
   }
 
   nLinStokesFluidPlaneInt_Convective::~nLinStokesFluidPlaneInt_Convective()
   {
-    ENTER_FCN( "nLinStokesFluidPlaneInt_Convective::~nLinStokesFluidPlaneInt_Convective" );
   }
 
 
@@ -419,7 +409,6 @@ namespace CoupledField
   nLinStokesFluidAxiInt_Convective::nLinStokesFluidAxiInt_Convective(Double density, Double dynamicViscosity) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "nLinStokesFluidAxiInt_Convective::nLinStokesFluidAxiInt_Convective" );
 
     name_ = "nLinStokesFluid3DInt_Convective";
     isaxi_ = true;
@@ -427,7 +416,6 @@ namespace CoupledField
 
   nLinStokesFluidAxiInt_Convective::~nLinStokesFluidAxiInt_Convective()
   {
-    ENTER_FCN( "nLinStokesFluidAxiInt_Convective::~nLinStokesFluidAxiInt_Convective" );
 
   }
 
@@ -441,7 +429,6 @@ namespace CoupledField
                                                          bool isaxi) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "nLinStokesFluid_linFormInt::nLinStokesFluid_linFormInt" );
 
     name_ = "nLinStokesFluid_linFormInt";
     isaxi_ = isaxi;
@@ -451,7 +438,6 @@ namespace CoupledField
 
   nLinStokesFluid_linFormInt::~nLinStokesFluid_linFormInt()
   {
-    ENTER_FCN( "nLinStokesFluid_linFormInt::~nLinStokesFluid_linFormInt" );
   }
 
 
@@ -459,7 +445,6 @@ namespace CoupledField
   void nLinStokesFluid_linFormInt::CalcElemVector(Vector<Double> & elemVec,
                                                   EntityIterator& ent )
   {
-    ENTER_FCN( "nLinStokesFluid_linFormInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );

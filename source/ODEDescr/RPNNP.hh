@@ -39,7 +39,6 @@ namespace CoupledField{
      
     //! Default Destructor
     virtual ~RPNNP() {
-      ENTER_FCN( "RPNNP::~RPNNP" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -57,25 +56,21 @@ namespace CoupledField{
 
     //! Get the pressure used in this class
     Double GetP (){
-      ENTER_IFCN( "RPNNP::GetP" );      
       return p_;
     }
 
     //! Set the pressure 
     void SetP (Double p){
-      ENTER_IFCN( "RPNNP::SetP" );
       p_ = p;
     }
 
     //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
-      ENTER_IFCN( "RPNNP::GetDpdt" );
       return dpdt_;
     }
 
     //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
-      ENTER_IFCN( "RPNNP::SetDpdt" );
       dpdt_ = dpdt;
     }
     

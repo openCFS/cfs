@@ -36,7 +36,6 @@ namespace CoupledField {
 
   MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
-    ENTER_FCN( "MechPDE::MechPDE" );
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
@@ -98,13 +97,11 @@ namespace CoupledField {
 
   MechPDE::~MechPDE()
   {
-    ENTER_FCN( "MechPDE::~MechPDE" );
 
   }
 
   void MechPDE::ReadDampingInformation( )
   {
-    ENTER_FCN( "MechPDE::ReadDampingInformation" );
       
     fracMemory_ = 0;
     bool identical = true; // i.e. same type of damping for all regions
@@ -255,7 +252,6 @@ namespace CoupledField {
   }
     
   void MechPDE::ReadSpecialBCs() {
-    ENTER_FCN( "MechPDE::ReadSpecialBCs" );
     
     // read volume force definition
     ReadRegionLoads();
@@ -273,7 +269,6 @@ namespace CoupledField {
 
 
   void MechPDE::DefineSprings() {
-    ENTER_FCN( "MechPDE::DefineSprings" );
     
     // try to get bcsAndLoads node
     ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
@@ -341,7 +336,6 @@ namespace CoupledField {
   }
 
   void MechPDE::ReadSoftening() {
-    ENTER_FCN( "MechPDE::ReadSoftening" );
 
     // Check if softeningList node is present
     ParamNode * softListNode = myParam_->Get("softeningList", false );
@@ -391,7 +385,6 @@ namespace CoupledField {
   
   void MechPDE::InitNonLin()
   {
-    ENTER_FCN( "MechPDE::InitNonLin");
     
     nonLin_ = false;
 
@@ -498,7 +491,6 @@ namespace CoupledField {
   
 
   void MechPDE::DefineIntegrators() {
-    ENTER_FCN( "MechPDE::DefineIntegerators" );
 
     bool isRegionPML;
 
@@ -1058,7 +1050,6 @@ namespace CoupledField {
                               RegionIdType regionId,
                               bool reducedInt)
   {
-    ENTER_FCN( "MechPDE::GetStiffIntegrator" );
     
     // Get region name
     std::string regionName = ptgrid_->RegionIdToName( regionId );
@@ -1109,7 +1100,6 @@ namespace CoupledField {
   
   
   void MechPDE::ReadRegionLoads( ) {
-    ENTER_FCN ( "MechPDE::ReadRegionLoads" );
     
     StdVector<std::string> names, dofs, refCoord, type, phase;
     StdVector<std::string> tempNames, tempDofs,  tempPhase;
@@ -1256,7 +1246,6 @@ namespace CoupledField {
   
   void MechPDE::DefineSolveStep()
   {
-    ENTER_FCN( "MechPDE::DefineSolveStep" );
 
     solveStep_ = new StdSolveStep(*this);
   }
@@ -1271,7 +1260,6 @@ namespace CoupledField {
 
   void MechPDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "MechPDE::InitCoupling" );
   
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -1308,7 +1296,6 @@ namespace CoupledField {
 
   void MechPDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "MechPDE::CalcOutputCoupling" );
 
     UInt dof = 0;
     SolutionType quantity;
@@ -1378,7 +1365,6 @@ namespace CoupledField {
                                          Vector<Double> & elemCouplingSols,
                                          UInt couplingdof )
   {
-    ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
 
     EXCEPTION( "Not working at the moment" );
     //     Matrix<Double> ptCoord, elemMat;
@@ -1469,7 +1455,6 @@ namespace CoupledField {
 
   bool MechPDE::HasOutput(SolutionType output)
   {
-    ENTER_FCN( "MechPDE::HasOutput" );
 
     if (output == MECH_DISPLACEMENT || output == MECH_VELOCITY || output == MECH_FORCE)
       return true;
@@ -1486,7 +1471,6 @@ namespace CoupledField {
 
   void MechPDE :: InitTimeStepping()
   {
-    ENTER_FCN( "MechPDE::InitTimeStepping" );
 
     // timestepping formulation
     ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
@@ -1545,7 +1529,6 @@ namespace CoupledField {
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void MechPDE::ReadSpecialResults() {
-    ENTER_FCN( "MechPDE::ReadSpecialResults" );
 
      // ---------------------------
     //  Determine special results
@@ -1598,7 +1581,6 @@ namespace CoupledField {
   }
 
   void MechPDE::DefineAvailResults() {
-    ENTER_FCN( "MechPDE::DefineAvailResults" );
     
     // Check for subType
     StdVector<std::string> dispDofNames, stressDofNames;
@@ -1730,7 +1712,6 @@ namespace CoupledField {
   }
 
   void MechPDE::CalcResults( shared_ptr<BaseResult> result ) {
-    ENTER_FCN( "MechPDE::CalcResults" );
     
     switch (result->GetResultInfo()->resultType ) {
       
@@ -1815,7 +1796,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void MechPDE::CalcStresses( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "MechPDE::CalcStresses" );
     
     //get the correct bilinear form
     Vector<Double> intPoint;
@@ -1865,7 +1845,6 @@ namespace CoupledField {
 
   template <class TYPE>
   void MechPDE::CalcStrains( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "MechPDE::CalcStrains" );
     //transform the subType of the pde
     SubTensorType type;
     String2Enum(subType_,type);
@@ -1919,7 +1898,6 @@ namespace CoupledField {
   template<class TYPE>
   void MechPDE::ComputeVolDefSurf( shared_ptr<BaseResult> vals ) {
 
-    ENTER_FCN( "MechPDE::ComputeVolDefSurf" );
     
     // convert result and get region iterator
     Result<TYPE> &  actSol = 
@@ -1977,7 +1955,6 @@ namespace CoupledField {
   TYPE MechPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord, 
                                Vector<TYPE> disp) {
 
-    ENTER_FCN( "MechPDE::ComputeVolElem" );
 
     TYPE elemVol, averageDis;
     UInt nrSurfNodes = surfEl->GetNumNodes();
@@ -2003,7 +1980,6 @@ namespace CoupledField {
   // ********************************************************
   void MechPDE::ReadPreStressing() {
 
-    ENTER_FCN( "MechPDE::ReadPreStressing" );
 
     // Check, if any prestressing boundary condition is present
     ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
@@ -2085,7 +2061,6 @@ namespace CoupledField {
   }
 
   void MechPDE::ReadSurfStress() {
-    ENTER_FCN( "MechPDE::ReadSurfStress" );
     
     // try to get bcsAndLoads node
     ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
@@ -2122,7 +2097,6 @@ namespace CoupledField {
   }
 
   void MechPDE::ReadPressureLoads() {
-    ENTER_FCN( "MechPDE::ReadPressureLoads" );
 
     // try to get bcsAndLoads node
     ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
@@ -2149,7 +2123,6 @@ namespace CoupledField {
   template <class TYPE>
   void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )
   {
-    ENTER_FCN( "MechPDE::CalcEnergy" );
 
     Matrix<Double> elemmat;  
     Vector<TYPE> help, eldisp;

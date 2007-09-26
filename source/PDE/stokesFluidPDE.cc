@@ -31,7 +31,6 @@ namespace CoupledField
     :SinglePDE( aptgrid, paramNode )
 
   {
-    ENTER_FCN( "StokesFluidPDE::StokesFluidPDE" );
 
     isAlwaysStatic_ = true;
 
@@ -78,7 +77,6 @@ namespace CoupledField
 
   StokesFluidPDE::~StokesFluidPDE()
   {
-    ENTER_FCN( "StokesFluidPDE::~StokesFluidPDE" );
   }
 
   
@@ -86,7 +84,6 @@ namespace CoupledField
   {
 
     EXCEPTION( "Method was not adapted during last change in parameterhandling interface ");
- //    ENTER_FCN( "StokesFluidPDE::InitNonLin");
 
 //     // ==============================================================
 //     // NOTE: Currently we can only treat convective non-linearity and
@@ -146,7 +143,6 @@ namespace CoupledField
 
   void StokesFluidPDE::DefineIntegrators()
   {
-    ENTER_FCN( "StokesFluidPDE::DefineIntegerators" );
 
     EXCEPTION( "Not implemented ");
 //     // help variables for parameter checking
@@ -241,7 +237,6 @@ namespace CoupledField
   StokesFluidPDE::GetStiffIntegrator(Double density, Double dynamicViscosity)
   {
 
-    ENTER_FCN( "StokesFluidPDE::GetStiffIntegrator" );
   
     BaseForm * bilinearStiff = NULL;
 
@@ -267,7 +262,6 @@ namespace CoupledField
  
   void StokesFluidPDE::DefineSolveStep()
   {
-    ENTER_FCN( "StokesFluidPDE::DefineSolveStep" );
 
     solveStep_ = new SolveStepStokesFluid(*this);
   }
@@ -282,7 +276,6 @@ namespace CoupledField
 
   void StokesFluidPDE::InitCoupling(PDECoupling * Coupling)
   {
-    ENTER_FCN( "StokesFluidPDE::InitCoupling" );
 
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
@@ -332,7 +325,6 @@ namespace CoupledField
   void StokesFluidPDE::CalcInputCoupling() {
 
     EXCEPTION( "Method was not adapted during last change in parameterhandling interface ");
-//     ENTER_FCN( "StokesFluidPDE::CalcInputCoupling" );
 
 //     std::string errMsg;
 //     StdVector<UInt> * nodes;
@@ -493,7 +485,6 @@ namespace CoupledField
   void StokesFluidPDE::GetPresSolVecOfElement( Vector<Double>& elemSol,
                                        StdVector<UInt>& connecth ) {
 
-    ENTER_FCN( "StokesFluidPDE::GetPresSolVecOfElement" );
 
     // stokesFluid pressure of element nodes
     elemSol.Resize(1 * connecth.GetSize());
@@ -530,7 +521,6 @@ namespace CoupledField
 
   void StokesFluidPDE::CalcOutputCoupling()
   {
-    ENTER_FCN( "StokesFluidPDE::CalcOutputCoupling" );
     UInt dof;
     SolutionType quantity;
     StdVector<Elem*> * couplingElems = NULL;
@@ -576,7 +566,6 @@ namespace CoupledField
                                             Vector<Double>& elemCouplingSols,
                                             UInt couplingdof ) {
     
-    ENTER_FCN( "StokesFluidPDE::CalcMechCouplingRHS" );
     
     Error( "Not working yet", __FILE__, __LINE__ );
 //     Double density = 0.0;
@@ -672,7 +661,6 @@ namespace CoupledField
 
   bool StokesFluidPDE::HasOutput(SolutionType output)
   {
-    ENTER_FCN( "StokesFluidPDE::HasOutput" );
 
     if (output == STOKESFLUID_FORCE)
       return true;
@@ -689,7 +677,6 @@ namespace CoupledField
 
   void StokesFluidPDE :: InitTimeStepping()
   {
-    ENTER_FCN( "StokesFluidPDE::InitTimeStepping" );
   }
 
 
@@ -700,7 +687,6 @@ namespace CoupledField
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void StokesFluidPDE::DefineAvailResults() {
-    ENTER_FCN( "StokesFluidPDE::DefineAvailResults" );
 
     Error( "Implement!", __FILE__, __LINE__ );
 
@@ -736,7 +722,6 @@ namespace CoupledField
   // ************************************************************
 
   void StokesFluidPDE::CalcResults( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "StokesFluidPDE::CalcResults" );
     Error( "Implement!", __FILE__, __LINE__ );
   }
 } // end namespace CoupledField

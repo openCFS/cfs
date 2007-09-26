@@ -25,7 +25,6 @@ namespace OLAS {
   BaseEntryManipulator *GenerateEntryManipulatorObject( MatrixEntryType eType,
                                                         UInt bs ) {
 
-    ENTER_FCN( "GenerateEntryManipulatorObject()" );
 
     BaseEntryManipulator *retVal = NULL;
 

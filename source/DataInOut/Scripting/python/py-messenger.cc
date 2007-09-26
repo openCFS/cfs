@@ -30,7 +30,6 @@ namespace CoupledField {
 
 
   PY_CFSMessenger::PY_CFSMessenger() {
-    ENTER_FCN( "PY_CFSMessenger::PY_CFSMessenger" );
     
     // Initialize interpreter
     Py_Initialize();
@@ -50,14 +49,12 @@ namespace CoupledField {
   
   
   PY_CFSMessenger::~PY_CFSMessenger() {
-    ENTER_FCN( "PY_CFSMessenger::~PY_CFSMessenger" );
 
     // finalize script execution
     Py_Finalize();
   }
   
   void PY_CFSMessenger::ReadScriptFile ( const std::string & fileName ) {
-    ENTER_FCN( "PY_CFSMessenger::ReadScriptFile" );
 
     // open file
     FILE *scriptFile;
@@ -87,7 +84,6 @@ namespace CoupledField {
   
   bool PY_CFSMessenger::TriggerEvent( const EventType event, 
                                       const StdVector<std::string> & context) {
-    ENTER_FCN( "PY_CFSMessenger::TriggerEvent" );
     
     // get name of event
     curEvent_ = eventNames_[event];
@@ -127,7 +123,6 @@ namespace CoupledField {
   
   void PY_CFSMessenger::Warning( const Char * msg, const Char * const filename,
                                  const UInt numline) {
-    ENTER_FCN( "PY_CFSMessenger::Warning" );
     
     std::stringstream warn;
     warn <<  "PYTHON warning in function '"  << curEvent_ << "':\n";
@@ -146,7 +141,6 @@ namespace CoupledField {
   
   void PY_CFSMessenger::Error( const Char * msg, const Char * const filename,
                                const UInt numline) {
-    ENTER_FCN( "PY_CFSMessenger::Error" );
 
     std::stringstream error;
 
@@ -170,7 +164,6 @@ namespace CoupledField {
   
   
   PyObject* PY_CFSMessenger::PY_CFSEval( PyObject *self, PyObject *args) {
-    ENTER_FCN( "PY_CFSMessenger::PY_CFSEval" );
 
     bool success;
 
@@ -233,7 +226,6 @@ namespace CoupledField {
   }
   
   void PY_CFSMessenger::RegisterEvents() {
-    ENTER_FCN( "PY_CFSMessenger::RegisterEvents" );
    
     // First of all, generate mapping from event enumerations
     // to string representation
@@ -281,7 +273,6 @@ namespace CoupledField {
  //  std::string PY_CFSMessenger::ExtractErrorInfo( PyObject *exception,
 //                                                  PyObject *value,
 //                                                  PyObject *traceback ) {
-//     ENTER_FCN( "PY_CFSMessenger::ExtractErrorInfo" );
 //     PyErr_NormalizeException(&exception, &value, &traceback);
 //     Py_INCREF(value);
 //     PyObject *f = PyString_FromString("");

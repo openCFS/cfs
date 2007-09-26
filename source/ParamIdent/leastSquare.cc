@@ -16,7 +16,6 @@ namespace CoupledField
   // xxxxxxxxxxxxxxxxxxxxxxxxxxxxx least square xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
   void piezoParamIdent::leastSquare(){ 
-    ENTER_FCN("piezoParamIdent::leastSquare");    
 
     //ptMaterial_=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 

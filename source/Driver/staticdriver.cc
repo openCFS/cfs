@@ -24,7 +24,6 @@ namespace CoupledField {
                               bool isPartOfSequence ) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
     
-    ENTER_FCN( "StaticDriver::StaticDriver" );
 
     analysis_ = STATIC;
 
@@ -34,7 +33,6 @@ namespace CoupledField {
   }
 
   void StaticDriver::Init() {
-    ENTER_FCN( "StaticDriver::Init" );
 
     InitializePDEs();
   }
@@ -44,7 +42,6 @@ namespace CoupledField {
   //   Default destructor
   // **********************
   StaticDriver::~StaticDriver() {
-    ENTER_FCN( "StaticDriver::~StaticDriver" );
   }
 
 
@@ -52,7 +49,6 @@ namespace CoupledField {
   //   Solve problem
   // *****************
   void StaticDriver::SolveProblem(int optimizationIteration) {
-    ENTER_FCN( "StaticDriver::SolveProblem" );
  
     lastOptimizationIteration_ = optimizationIteration;
     ResultHandler * resHandler = domain->GetResultHandler();

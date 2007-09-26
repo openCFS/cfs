@@ -240,7 +240,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return GMRES
     SolverType GetSolverType() {
-      ENTER_IFCN( "GMRESSolver::GetSolverType" );
       return GMRES;
     }
 

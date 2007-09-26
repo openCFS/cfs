@@ -8,22 +8,18 @@ namespace CoupledField
 {
 
   MyClock::MyClock () {
-    ENTER_FCN( "MyClock::MyClock" );
   }
  
   MyClock::~MyClock() {
-    ENTER_FCN( "MyClock::~MyClock" );
   }
 
   void MyClock::Start() {
-    ENTER_FCN( "MyClock::Start" );
 
     wTimeStart_ = std::time(NULL);
     cTimeStart_ = std::clock();
   }
 
   void MyClock::Reset() {
-    ENTER_FCN( "MyClock::Reset" );
     wTimeStart_ = std::time(NULL);
     cTimeStart_ = std::clock();
   }

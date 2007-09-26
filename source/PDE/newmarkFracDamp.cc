@@ -29,7 +29,6 @@ namespace CoupledField {
                                     std::map<RegionIdType,DampingType> adampingList) 
     :TimeStepping( algebraicsystem ){
 	
-    ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
   
     pdename_     = aptStdPDE->GetName();
     pdeId_       = apdeId;
@@ -77,14 +76,12 @@ beta and gamma!\n" );
 
   NewmarkFracDamp::~NewmarkFracDamp() {
 
-    ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
 
     delete [] solMemory_;
   }
 
   void NewmarkFracDamp::Init( Double dt, UInt rhsSize ) {
 	
-    ENTER_FCN( "NewmarkFracDamp::Init" );
 
     rhsSize_ = rhsSize;
     dt_ = dt;
@@ -128,7 +125,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::Predictor(Vector<Double>& solold) {
 
-    ENTER_FCN( "NewmarkFracDamp::Predictor" );
 
     actStep_ = domain->GetSingleDriver()->GetActStep( pdename_ );
 
@@ -150,7 +146,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::UpdateRHS() {
 
-    ENTER_FCN( "NewmarkFracDamp::UpdateRHS" );
 
     // mass part
     Vector<Double> coeffMass;
@@ -269,7 +264,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
   {
-    ENTER_FCN( "NewmarkFracDamp::Corrector" );
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
@@ -278,7 +272,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::AdvanceTimestep(Vector<Double>& solnew)
   {
-    ENTER_FCN( "NewmarkFracDamp::AdvanceTimestep" );
 
     // store function values, reverse storing!!!!
     // solMemory_[0]=p_n
@@ -336,7 +329,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::CalcParameters(Double dt)
   {
-    ENTER_FCN( "NewmarkFracDamp::CalcParameters" );
 
     //for predictors
     a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
@@ -356,7 +348,6 @@ beta and gamma!\n" );
                     Vector<Double>& elemsol,
                     const StdVector<Integer> eqnNumbers  ) {
 
-    ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
 
     elemsol.Resize(eqnNumbers.GetSize());
     for (UInt eqn=0; eqn<eqnNumbers.GetSize(); eqn++) {
@@ -369,7 +360,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::GLWeights(UInt memory, Double y ) {
 
-    ENTER_FCN( "NewmarkFracDamp::GLWeights" );
    
     // reserve memory for weights of BDF, order of derivative is y-1
     coeff_.resize(memory+1);
@@ -383,7 +373,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::BlankWeights(UInt memory, Double y, bool full) {
 
-    ENTER_FCN( "NewmarkFracDamp::BlankWeights" );
  
     Double pot;
     pot = 1.0- (y - 1.0);
@@ -413,7 +402,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::CompressWeights() {
 
-    ENTER_FCN( "NewmarkFracDamp::CompressWeights" );
 
     std::vector<Double> newCoeff;
     newCoeff.resize(numTrueValues_);
@@ -460,7 +448,6 @@ beta and gamma!\n" );
 
   void NewmarkFracDamp::PrintSolMemoryVal(std::string & msg) {
 
-    ENTER_FCN( "NewmarkFracDamp::PrintSolMemoryVal" );
 
     msg="BDF will be build from (T=true value, L=linear interpolated):\n";
     for (UInt i=0; i<solMemoryVal_.size(); i++) {

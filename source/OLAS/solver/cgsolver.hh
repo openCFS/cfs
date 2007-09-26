@@ -144,7 +144,6 @@ namespace OLAS {
           s_(NULL),
           d_(NULL),
           q_(NULL) {
-      ENTER_FCN( "CGSolver::CGSolver" );
       xml_       = xml != NULL ? xml->Get("cg", false) : NULL;
       myParams_ = myParams;
       myReport_ = myReport;
@@ -182,7 +181,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return CG
     SolverType GetSolverType() {
-      ENTER_IFCN( "CGSolver::GetSolverType" );
       return CG;
     }
 

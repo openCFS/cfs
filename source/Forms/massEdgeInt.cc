@@ -14,7 +14,6 @@ namespace CoupledField
   void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                        EntityIterator& ent1, 
                                        EntityIterator& ent2 ) {
-    ENTER_FCN( "MassEdgeInt::CalcElemMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -59,7 +58,6 @@ namespace CoupledField
   MassEdgeInt::MassEdgeInt( Double acond )
     : BaseForm( NULL ), conductivity_(acond)
   {
-    ENTER_FCN( "MassEdgeInt::MassEdgeInt" );
 
     name_ = "MassEdgeInt";
   }
@@ -68,7 +66,6 @@ namespace CoupledField
  
   MassEdgeInt::~MassEdgeInt()
   {
-    ENTER_FCN( "MassEdgeInt::~MassEdgeInt" );
   }
 
 } // end namespace CoupledField

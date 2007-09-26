@@ -15,7 +15,6 @@ namespace CoupledField {
 
   Double gammaln(Double xx)
   {
-    ENTER_FCN("mathfunctions::gammaln");
     // Internal arithmetic will be done in double precision
     // A nicety that you can omit if five-figure accuracy is good enough.
     Double x,y,tmp,ser;
@@ -44,7 +43,6 @@ namespace CoupledField {
   */
   void eigenValues(Matrix<Double> & mat, Double eps, Vector<Double> & eigen)
   {
-    ENTER_FCN("mathfunctions::eigenValues");
     Integer i, j;
     Integer k, kmax;
     Integer l_conv;
@@ -86,7 +84,6 @@ namespace CoupledField {
 
   void givensRotation(Integer ndim, Matrix<Double> & mat)
   {
-    ENTER_FCN("mathfunctions::givensRotation");
     Matrix<Double> b(ndim,ndim);
     
     Double a2, max_a2;
@@ -160,7 +157,6 @@ namespace CoupledField {
   */
   void terminationCriterion(Integer ndim, Matrix<Double> & mat, Double a2, Double eps2, Integer *l_conv)
   {
-    ENTER_FCN("mathfunctions::terminationCriterion");
     Double a_nd2;
     Integer i, j;
   
@@ -182,7 +178,6 @@ namespace CoupledField {
 
   void sortArray(Integer ndim, Integer l_sort, Vector<Double> & d)
   {
-    ENTER_FCN("mathfunctions::sortArray");
     Double dv;
     Integer k, i;
  

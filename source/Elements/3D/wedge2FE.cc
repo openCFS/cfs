@@ -13,19 +13,16 @@ namespace CoupledField
 
   Wedge2FE::Wedge2FE():WedgeFE()
   { 
-    ENTER_FCN( "Wedge2FE::Wedge2FE" );
     Init();
   }
 
 
   Wedge2FE::~Wedge2FE()
   {
-    ENTER_FCN( "Wedge2FE::~Wedge2FE" );
   }
 
   void Wedge2FE::Init()
   {
-    ENTER_IFCN( "Wedge2FE::Init" );
 
     NumNodes_ = 15; 
 
@@ -35,7 +32,6 @@ namespace CoupledField
 
   void Wedge2FE::SetCornerCoords()
   {
-    ENTER_IFCN( "Wedge2FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -108,7 +104,6 @@ namespace CoupledField
                                 const Elem*, UInt dof,
                                 AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Wedge2FE::CalcShapeFnc" );
 
     Shape.Resize(NumNodes_);
 
@@ -141,7 +136,6 @@ namespace CoupledField
                                           const Elem*, UInt dof,
                                           AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Wedge2FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 

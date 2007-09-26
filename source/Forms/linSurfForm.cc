@@ -11,26 +11,22 @@ namespace CoupledField
 
   
   LinearSurfForm::LinearSurfForm() {
-    ENTER_FCN( "LinearSurfForm::LinearSurfForm" );
 
     actElem_ = NULL;   
   }
 
   
   LinearSurfForm::~LinearSurfForm() {
-    ENTER_FCN( "LinearSurfForm::~LinearSurfForm" );
   }
 
   
   void LinearSurfForm::SetSurfElem( SurfElem * ptSurfElem) {
-    ENTER_FCN( "LinearSurfForm::SetSurfElem" );
 
     actElem_ = ptSurfElem;
   }
 
   
   void LinearSurfForm::SetVoluNormal( Vector<Double> & n ) {
-    ENTER_FCN( "LinearSurfForm::SetVoluNormal" );
 
     normal_ = n;
   }
@@ -38,14 +34,12 @@ namespace CoupledField
   
   void LinearSurfForm::SetVoluInfo( std::map<RegionIdType, BaseMaterial*> 
                                     & materials ) {
-    ENTER_FCN( "LinearSurfForm::SetVoluInfo" );
 
     materials_ = materials;
   }
     
   
   void LinearSurfForm::ExtractElemInfo( EntityIterator& it) {
-    ENTER_FCN( "LinearSurfForm::ExtractElemInfo" );
     ptelem = it.GetElem()->ptElem;
 
  
@@ -66,7 +60,6 @@ namespace CoupledField
   RegisterSurfElemMidPoint( MathParser::HandleType handle,
                             const SurfElem * ptSurfElem,
                             const Elem * ptVolElem ) {
-    ENTER_FCN( "LinearSurfForm::RegisterSurfElemMidPoint" );
 
     Vector<Double> locMidPoint, locMidPointVol, globMidPointVol;
 

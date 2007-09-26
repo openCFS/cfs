@@ -82,7 +82,6 @@ namespace OLAS {
 			 BaseVector &q3, BaseVector &aux, Double &alpha2,
 			 const Double &beta1, Double &beta2 ) {
 
-      ENTER_IFCN( "LanczosMethod::CompNextVector" );
 
       mat.Mult( q2, aux );
       precond.Apply( mat, aux, q3 );
@@ -99,7 +98,6 @@ namespace OLAS {
 			 BaseVector &q3, BaseVector &aux, Complex &alpha2,
 			 const Complex &beta1, Complex &beta2 ) {
 
-      ENTER_IFCN( "LanczosMethod::CompNextVector" );
 
       mat.Mult( q2, aux );
       precond.Apply( mat, aux, q3 );

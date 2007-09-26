@@ -15,7 +15,6 @@ namespace CoupledField {
   SolveStepMpCCI::SolveStepMpCCI(StdPDE& apde) : StdSolveStep(apde)
   {
 
-    ENTER_FCN( "SolveStepMpCCI::SolveStepMpCCI" );
   }
 
 
@@ -25,7 +24,6 @@ namespace CoupledField {
 
   void SolveStepMpCCI:: PreStepStatic()
   {
-    ENTER_FCN( "SolveStepMpCCI::PreStepStatic" );
   }
   
   // ======================================================
@@ -34,7 +32,6 @@ namespace CoupledField {
 
   void SolveStepMpCCI::PostStepTrans()
   { 
-    ENTER_FCN( "SolveStepMpCCI::PostStepTrans");
   }
 
 
@@ -44,7 +41,6 @@ namespace CoupledField {
   // **********************
   SolveStepMpCCI::~SolveStepMpCCI() {
 
-    ENTER_FCN( "SolveStepMpCCI::~SolveStepMpCCI" );
  
   }
 

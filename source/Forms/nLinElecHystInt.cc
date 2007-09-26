@@ -18,7 +18,6 @@ namespace CoupledField {
   void nlinElecHystInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                                   Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "nlinElecHystInt::calcBMat" );
 
     // Obtain info on number of element's nodes
     ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -64,7 +63,6 @@ namespace CoupledField {
   // ============
   void nlinElecHystInt::calcDMat( Matrix<Double> &dMat ) {
 
-    ENTER_FCN( "nlinElecHystInt::calcDMat" );
 
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat.Init();
@@ -84,7 +82,6 @@ namespace CoupledField {
   void nlinElecHystInt::CalcElementMatrix( Matrix<Double>& elemMat,
 					   EntityIterator& ent1, 
 					   EntityIterator& ent2 ) {
-    ENTER_FCN( "nlinElecHystInt::CalcElementMatrix" );
 
     // Get pointer to reference element and its coordinates
     ExtractElemInfo( ent1 );
@@ -116,7 +113,6 @@ namespace CoupledField {
   void nlinElecHystInt::Set4Hyst(Grid* ptGrid, StdPDE* ptPDE,
 				 shared_ptr<EqnMap> eqnMap,
 				 shared_ptr<ResultInfo> result) {
-    ENTER_FCN( "nlinElecHystInt::Set4Hyst" );
     
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
 					     eqnMap, *sol_, 
@@ -132,7 +128,6 @@ namespace CoupledField {
 
 
   void nlinElecHystInt::SetFactor( const std::string& factor ) {
-    ENTER_FCN( "nlinElecHystInt::SetFactor" );
     mParser_->SetExpr( mHandle_, factor );
   }
   
@@ -146,7 +141,6 @@ namespace CoupledField {
 				   bool coordUpdate ) 
     : BDBInt(matData, type, coordUpdate ) {
 
-    ENTER_FCN( "nlinElecHystInt::nlinElecHystInt" );
 
     name_ = "nlinElecHystInt";
 

@@ -21,7 +21,6 @@ namespace CoupledField
       isaxi_(false), 
       subTensorType_(type)
   {
-    ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = false;
     isSymmetric_ = true;
     ptMaterial = matData;
@@ -64,7 +63,6 @@ namespace CoupledField
   //   Destructor
   // **************
   BaseForm::~BaseForm() {
-    ENTER_FCN( "BaseForm::~BaseForm" );
 
 #ifndef INTEGLIB
     // Release math parser object
@@ -82,7 +80,6 @@ namespace CoupledField
   // ***************
   void BaseForm::SetMaterial( BaseMaterial *matPtr ) {
 
-    ENTER_FCN( "BaseForm::SetMaterial" );
 
     // Avoid leaks
     if ( ptMaterial != NULL && delMatDataAtEnd_ == true ) {
@@ -97,7 +94,6 @@ namespace CoupledField
  
   void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
                                shared_ptr<AnsatzFct> actFct2 ) {
-    ENTER_FCN( "BaseForm::SetAnsatzFct" );
 
     assert( actFct1 != NULL );
     ansatzFct1_ = actFct1;
@@ -135,13 +131,11 @@ namespace CoupledField
 
   SurfForm::SurfForm() 
     : BaseForm( NULL ){
-    ENTER_FCN( "SurfForm::SurfForm" );
 
   }
 
 
   SurfForm::~SurfForm() {
-    ENTER_FCN( "SurfForm::~SurfForm" );
   }
   
   void SurfForm::SetSurfElem( SurfElem * ptSurfElem) {

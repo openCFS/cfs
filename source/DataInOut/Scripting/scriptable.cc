@@ -17,7 +17,6 @@ namespace CoupledField
   std::stringstream Scriptable::errMsg_;
   
   Scriptable::Scriptable() {
-    ENTER_FCN( "Scriptable::Scriptable" );
 
     isExecuting_ = false;
     currentArgs_ = NULL;
@@ -31,7 +30,6 @@ namespace CoupledField
   }
 
   Scriptable::~Scriptable() {
-    ENTER_FCN( "Scriptable::~Scriptable" );
 
     // Delete all fctPointers
     FctPtMap::iterator it;
@@ -60,14 +58,12 @@ namespace CoupledField
   }
 
   ArgList * Scriptable::Script_GetArgList(  ) {
-    ENTER_FCN( "Scriptable::Script_GetArgList" );
     return currentArgs_;
   }
   
   bool Scriptable::Script_Eval( const StdVector<std::string> & args,
                                 UInt & argOffset,
                                 StdVector<std::string> & retVal) {
-    ENTER_FCN( "Scriptable::Script_Eval" );
     
     // Save complete args vector in serial string
     std::stringstream argStr;
@@ -135,7 +131,6 @@ namespace CoupledField
   
   
   void Scriptable::Script_GetCommands( StdVector<std::string> & commands ) {
-    ENTER_FCN( "Scriptable::Script_GetCommands" );
     ArgListMap::iterator it;
     std::stringstream out;
     std::string signature;
@@ -150,7 +145,6 @@ namespace CoupledField
   }
 
   void Scriptable::Script_GetError( std::string & errMsg ) {
-    ENTER_FCN( "Scriptable::Script_GetError" );
 
     errMsg = errMsg_.str();
     errMsg_.str("");
@@ -170,7 +164,6 @@ namespace CoupledField
   
   void ArgList::RegisterParam( const std::string name, 
                                ParamType paramType ) {
-    ENTER_FCN( "ArgList::RegisterParam" );
     
     // Check if parameter with this name already exists
     if ( orderedParams_.Find(name) != -1 ) {
@@ -184,7 +177,6 @@ namespace CoupledField
   }
 
   void ArgList::GetSignature( std::string & signature ) {
-    ENTER_FCN( "ArgList::GetSignature" );
     std::stringstream out;
     
     // Iterate over all arguments
@@ -198,7 +190,6 @@ namespace CoupledField
   }
 
   void ArgList::SetParams( const StdVector<std::string> params ) {
-    ENTER_FCN( "ArgList::SetParams" );
 
     StdVector<std::string> help;
     
@@ -261,7 +252,6 @@ namespace CoupledField
   }
   
   std::string ArgList::ParamType2String( const ParamType type ) {
-    ENTER_FCN( "ArgList::ParamType2String" );
     
     std::string out;
     
@@ -306,7 +296,6 @@ namespace CoupledField
   }
   
   StdVector<std::string> & ArgList::GetRetVal() {
-    ENTER_FCN( " ArgList::GetRetVals" );
     
     return returnVals_;
   }

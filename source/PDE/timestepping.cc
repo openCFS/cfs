@@ -13,7 +13,6 @@ namespace CoupledField {
 
   TimeStepping::TimeStepping(BaseSystem * algebraicsystem )
   {
-    ENTER_FCN( "TimeStepping::TimeStepping" );
 
     algsys_  = algebraicsystem;
     rhsSize_ = 0 ;
@@ -29,7 +28,6 @@ namespace CoupledField {
 
   TimeStepping::~TimeStepping()
   {
-    ENTER_FCN( "TimeStepping::~TimeStepping" );
   }
 
   bool TimeStepping::FeMatrixPresent( FEMatrixType type) {

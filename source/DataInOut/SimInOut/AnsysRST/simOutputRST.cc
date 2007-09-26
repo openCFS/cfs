@@ -30,7 +30,6 @@ namespace CoupledField {
                               ParamNode * outputNode )
     : SimOutput( fileName, outputNode ) {
 
-    ENTER_FCN( "SimOutputRST::SimOutputRST" );
 
     // Initialize variables
     formatName_ = "rst";
@@ -141,19 +140,16 @@ namespace CoupledField {
 
 
   SimOutputRST::~SimOutputRST() {
-    ENTER_FCN( "SimOutputRST::~SimOutputRST" );
   }
 
   void SimOutputRST::Init( Grid* ptGrid, bool printGridOnly ) {
     
-    ENTER_FCN( "SimOutputRST::OpenFile" );
 
     ptGrid_ = ptGrid;
     WriteGrid();
   }
 
   void SimOutputRST::WriteGrid() {
-    ENTER_FCN( "SimOutputRST::WriteGrid" );
     
     LOG_TRACE(simOutputRST) << "Writing mesh";
 
@@ -390,7 +386,6 @@ namespace CoupledField {
   }
 
   void SimOutputRST::WriteNodes() {
-    ENTER_FCN( "SimOutputRST::WriteNodes" );
 
     LOG_TRACE(simOutputRST) << "Writing nodes";
     
@@ -422,7 +417,6 @@ namespace CoupledField {
   }
 
   void SimOutputRST::WriteElements() {
-    ENTER_FCN( "SimOutputRST::WriteElements" );
    
     LOG_TRACE(simOutputRST) << "Writing elements";
     
@@ -493,7 +487,6 @@ namespace CoupledField {
   void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd ) {
-    ENTER_FCN( "SimOutputRST::RegisterResult" );
     
     ResultInfo & resInfo = *sol->GetResultInfo();
 
@@ -502,7 +495,6 @@ namespace CoupledField {
   }
 
   void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "SimOutputRST::BeginStep" );
 
     stepNum_ = stepNum;
     stepVal_ = stepVal;
@@ -520,7 +512,6 @@ namespace CoupledField {
   }
  
   void SimOutputRST::AddResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( " SimOutputRST::AddResult" );
 
     ResultInfo & actDof = *(sol->GetResultInfo());
 
@@ -532,7 +523,6 @@ namespace CoupledField {
   }
   
   void SimOutputRST::FinishStep( ) {
-    ENTER_FCN( "SimOutputRST::FinishStep" );
 
     LOG_TRACE(simOutputRST) << "Starting to finish Step";
     
@@ -781,7 +771,6 @@ namespace CoupledField {
                                     SolutionType solType,
                                     UInt numDOFs,
                                     const ResultInfo::EntryType entryType) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeData" );
 
     AnsysNodalDof ansysDOF = internal2AnsysNodeDofMap_[solType];
     UInt numNodes = ptGrid_->GetNumNodes();
@@ -806,7 +795,6 @@ namespace CoupledField {
                                     UInt numDOFs,
                                     ResultInfo::EntryType entryType)
   {
-    ENTER_FCN ( "SimOutputRST::WriteElemData" );
 
     UInt numElems = ptGrid_->GetNumElems();
     Integer ansIdx, intIdx;
@@ -837,7 +825,6 @@ namespace CoupledField {
                                     SolutionType solType,
                                     UInt numDOFs,
                                     const ResultInfo::EntryType entryType) {
-    ENTER_FCN ( "SimOutputRST::WriteNodeData" );
 
     AnsysNodalDof ansysDOF = internal2AnsysNodeDofMap_[solType];
     UInt numNodes = ptGrid_->GetNumNodes();
@@ -863,7 +850,6 @@ namespace CoupledField {
                                     UInt numDOFs,
                                     ResultInfo::EntryType entryType)
   {
-    ENTER_FCN ( "SimOutputRST::WriteElemData" );
 
     UInt numElems = ptGrid_->GetNumElems();
     Integer ansIdx, intIdx;

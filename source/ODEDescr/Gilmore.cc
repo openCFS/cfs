@@ -24,7 +24,6 @@ namespace CoupledField
                    Double  surfacTen,
                    Double  polytrop,
                    Double  viscosity) {
-    ENTER_FCN( "Gilmore::Gilmore" );
     RadiusInit_ = RadiusInit;
     density_    = density;
     sonicVel_   = sonicVel;
@@ -48,7 +47,6 @@ namespace CoupledField
   void  Gilmore::CompDeriv(const Double &t,
                            const StdVector<Double> &y,
                            StdVector<Double> &dydt){
-    ENTER_FCN( "Gilmore::CompDeriv" );
 
     Double temp1, temp2, temp3, temp4, temp5, temp6, temp7;
 

@@ -39,7 +39,6 @@ namespace CoupledField{
      
     //! Default Destructor
     virtual ~KellerMiksis() {
-      ENTER_FCN( "KellerMiksis::~KellerMiksis" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -57,25 +56,21 @@ namespace CoupledField{
 
     //! Get the pressure used in this class
     Double GetP (){
-      ENTER_IFCN( "KellerMiksis::GetP" );      
       return p_;
     }
 
     //! Set the pressure 
     void SetP (Double p){
-      ENTER_IFCN( "KellerMiksis::SetP" );
       p_ = p;
     }
 
     //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
-      ENTER_IFCN( "KellerMiksis::GetDpdt" );
       return dpdt_;
     }
 
     //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
-      ENTER_IFCN( "KellerMiksis::SetDpdt" );
       dpdt_ = dpdt;
     }
 

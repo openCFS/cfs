@@ -441,13 +441,11 @@ namespace CoupledField{
 
   inline UInt BaseElemStoreSol::GetTotalNumDofs() const
   { 
-    ENTER_IFCN( "BaseElemStoreSol::GetTotalNumDofs" );
     return totalDofs_; 
   }
 
   inline UInt BaseElemStoreSol::GetDof(const SolutionType solType) const
   {
-    ENTER_IFCN( "BaseElemStoreSol::GetDof" );
     if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
       return (*solDofs_.begin()).second;
     else
@@ -456,19 +454,16 @@ namespace CoupledField{
   
   inline UInt BaseElemStoreSol::GetNumElems() const
   {
-    ENTER_IFCN( "BaseElemStoreSol::GetNumElems" );
     return numElems_;
   }
   
   inline UInt BaseElemStoreSol::GetSize() const 
   {
-    ENTER_IFCN( "BaseElemStoreSol::GetSize()" );
     return length_;
   }
   
   inline UInt BaseElemStoreSol::GetNumSolutions() const 
   {
-    ENTER_IFCN( "BaseElemStoreSol::GetNumSolutions()" );
     return numSolutions_;
   }
 

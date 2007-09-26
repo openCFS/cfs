@@ -39,7 +39,6 @@ namespace CoupledField{
      
     //! Default Destructor
     virtual ~Gilmore() {
-      ENTER_FCN( "Gilmore::~Gilmore" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -53,25 +52,21 @@ namespace CoupledField{
 
     //! Get the pressure used in this class
     Double GetP (){
-      ENTER_IFCN( "Gilmore::GetP" );      
       return p_;
     }
 
     //! Set the pressure 
     void SetP (Double p){
-      ENTER_IFCN( "Gilmore::SetP" );
       p_ = p;
     }
 
     //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
-      ENTER_IFCN( "Gilmore::GetDpdt" );
       return dpdt_;
     }
 
     //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
-      ENTER_IFCN( "Gilmore::SetDpdt" );
       dpdt_ = dpdt;
     }
     

@@ -19,12 +19,10 @@ namespace OLAS {
 
     //! Defaul Constructor
     BaseVector() {
-      ENTER_FCN( "BaseVector::BaseVector" );
     }
 
     //! Destructor
     virtual ~BaseVector() {
-      ENTER_FCN( "BaseVector::~BaseVector" );
     }
 
     //! Get number of vector entries

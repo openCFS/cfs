@@ -18,7 +18,6 @@ namespace CoupledField {
   void linPiezoCoupling::calcAMat( Matrix<Double> &aMat, UInt ip,
 				   const Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linPiezoCoupling::calcAMat" );
 
     // Obtain info on problem sizes
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -127,7 +126,6 @@ namespace CoupledField {
   void linPiezoCoupling::calcBMat( Matrix<Double> &bMat, UInt ip,
 				   const Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linPiezoCoupling::calcBMat" );
 
     // Set type of ansatz function , but do not recalculate
     // integration points
@@ -183,7 +181,6 @@ namespace CoupledField {
   // ============
   void linPiezoCoupling::calcDMat( Matrix<Double> &dMat ) {
 
-    ENTER_FCN( "linPiezoCoupling::calcDMat" );
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
@@ -196,7 +193,6 @@ namespace CoupledField {
   linPiezoCoupling::linPiezoCoupling(BaseMaterial* matData,
                                      SubTensorType type) 
     : ADBInt( matData, type ) {
-    ENTER_FCN( "linPiezoCoupling::linPiezoCoupling" );
 
     name_ = "linPiezoCoupling";
 

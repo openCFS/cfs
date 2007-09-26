@@ -17,13 +17,11 @@
 namespace CoupledField {
 
   SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde) {
-    ENTER_FCN( "SolveStepElec::SolveStepElec" );
     doInit_ = true;
   }
   
   
   SolveStepElec::~SolveStepElec() {
-    ENTER_FCN( "SolveStepElec::~SolveStepElec" );
   }
   
 
@@ -33,7 +31,6 @@ namespace CoupledField {
 
   void SolveStepElec::PreStepStatic() {
 
-    ENTER_FCN( "SolveStepElec::PreStepStatic" );
 
     // Set right-hand side to zero
     //
@@ -49,7 +46,6 @@ namespace CoupledField {
   // don't get confused with REAL transient simulations!
   void SolveStepElec::SolveStepStatic( ) {
 
-    ENTER_FCN( "SolveStepElec::SolveStepStatic" );
   
     bool nonLin = false;
 
@@ -66,7 +62,6 @@ namespace CoupledField {
 
   void SolveStepElec::StepStaticNonLinEpsDiff() {
 
-    ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -211,7 +206,6 @@ namespace CoupledField {
 
   void SolveStepElec::SetPreviousVals4Hyst() {
   
-    ENTER_FCN( "SolveStepElec::SetPreviousVals4Hyst");
 
     
     //we assume, that the actual solution is stored in sol_!

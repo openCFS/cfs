@@ -30,7 +30,6 @@ namespace CoupledField {
   //   Default Destructor
   // ----------------------
   Coil::~Coil() {
-    ENTER_FCN( "Coil::~Coil" );
     if ( fileL_ != NULL ) {
       fileL_->close();
       delete fileL_;
@@ -48,7 +47,6 @@ namespace CoupledField {
   Coil::Coil( RegionIdType coilRegionId, 
               ParamNode * coilNode,
               Grid * ptGrid ) {
-    ENTER_FCN( "Coil::Coil" );
 
     // We already know our name
     coilRegionId_ = coilRegionId;

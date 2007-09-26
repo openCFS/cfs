@@ -13,7 +13,6 @@ namespace CoupledField{
   CoordSystem::CoordSystem(const std::string & name,
                            Grid * ptGrid,
                            ParamNode * myParamNode ) {
-    ENTER_FCN("CoordSystem::CoordSystem");
 
     name_ = name;
     ptGrid_ = ptGrid;
@@ -24,13 +23,11 @@ namespace CoupledField{
   }
 
   CoordSystem::~CoordSystem(){
-    ENTER_FCN("CoordSystem::~CoordSystem");
   }
 
   void CoordSystem::GetPoint(Vector<Double> & vec,
                              ParamNode * pointNode ) {
 
-    ENTER_FCN( "CoordSystem::GetVector");
     
    
     std::string nodeName;
@@ -68,7 +65,6 @@ namespace CoupledField{
 
   void CoordSystem::CalcKardanAngles( Vector<Double>& angles,
                                       Matrix<Double>& rotMat ) {
-    ENTER_FCN( "CoordSystem::CalcKardanAngles" );
 
     angles.Resize(3);
 
@@ -105,7 +101,6 @@ namespace CoupledField{
   }
 
   Double CoordSystem::GetAngle( Double sinAlpha, Double cosAlpha ) {
-    ENTER_FCN( "CoordSystem::GetAngle ");
     
     // Calculate absolute value of angle ( 0 < alpha < pi/2)
     Double angle = std::abs(std::acos( cosAlpha ) );

@@ -28,7 +28,6 @@ namespace CoupledField
                                  bool isaxi)
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi)
   {
-    ENTER_FCN( "LinStrainOp::LinStrainOp" );  
     this->displacement_ = &displacement;
     solType_ = solType;
     ptPDE_ = ptPDE;
@@ -38,7 +37,6 @@ namespace CoupledField
   template<class TYPE>
   LinStrainOp<TYPE>::~LinStrainOp()
   {
-    ENTER_FCN( "LinStrainOp::~LinStrainOp" );
 
   }
 
@@ -47,7 +45,6 @@ namespace CoupledField
                                                const Elem * ptElement,
                                                Matrix<Double> & lCoord)
   {
-    ENTER_FCN( "LinStrainOp::CalcElemLinearStrain" );
   
     UInt dim;
     Vector<TYPE> potEntry(1);
@@ -80,7 +77,6 @@ namespace CoupledField
   template<class TYPE>
   void LinStrainOp<TYPE>::calcBMat(Matrix<Double> &bMat, BaseFE * ptelem, 
                                    UInt ip, Matrix<Double> & ptCoord){
-    ENTER_FCN("LinStrainOP::calcBMat");
 
     UInt numFncs = ptelem->GetNumNodes ();
     const UInt spaceDim = ptelem->GetDim();  
@@ -181,7 +177,6 @@ namespace CoupledField
                                               const StdVector<RegionIdType> & SD, 
                                               Matrix<Double> & lCoords)
   {
-    ENTER_FCN( "LinStrainOp::CalcSDLinearStrain" );
   
      Error( "LinStrainOp::CalcSDLinearStrain: Not working yet", __FILE__, __LINE__);
 

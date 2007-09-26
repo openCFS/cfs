@@ -120,7 +120,6 @@ namespace OLAS {
 
     //! Destructor
     virtual ~BaseGraphManager(){
-      ENTER_FCN( "BaseGraphManager::~BaseGraphManager" );
     };
 
     //! Prepares graph manager for generation of sub-graphs
@@ -373,7 +372,6 @@ namespace OLAS {
                                UInt offsetEdgeList1,
                                Integer offsetEdgeList2 ) {
 
-      ENTER_IFCN( "BaseGraphManager::AdaptConnects" );
 
       UInt aux;
 

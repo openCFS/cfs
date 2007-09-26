@@ -39,7 +39,6 @@ namespace CoupledField {
 
     //! Destructor
     ~linPiezoCoupling() {
-      ENTER_FCN( "linPiezoCoupling::~linPiezoCoupling" );
     };
 
     //@}
@@ -142,7 +141,6 @@ namespace CoupledField {
     //! In the case of 2D plane strain piezoelectric coupling we have
     //! \f$\mbox{dim}D=3\times 2\f$
     virtual void getDimD( UInt nRows, UInt nCols ) {
-      ENTER_IFCN( "linPiezoCoupling::getDimD" );
       nRows = matDimRow_;
       nCols = matDimCol_;
     };
@@ -156,7 +154,6 @@ namespace CoupledField {
     //! physical quantity is the mechanical displacements.
     //! \return 2
     virtual UInt getNumDofsA() {
-      ENTER_IFCN( "linPiezoCoupling::getNumDofsA" );
       return numDofsA_;
     }
 
@@ -169,7 +166,6 @@ namespace CoupledField {
     //! physical quantity is the electric potential.
     //! \return 1
     UInt getNumDofsB() {
-      ENTER_IFCN( "linPiezoCoupling2DPlaneStrain::getNumDofsB" );
       return numDofsB_;
     }
 

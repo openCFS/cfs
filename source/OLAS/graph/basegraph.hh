@@ -121,7 +121,6 @@ namespace OLAS {
     //! lexicographically sorted with increasing index number.
     inline Integer* GetGraphRow( Integer i ) {
 
-      ENTER_IFCN( "BaseGraph::GetGraphRow" );
 
 #ifdef DEBUG_BASEGRAPH
       if ( amAssembled_ == false ) {
@@ -143,7 +142,6 @@ namespace OLAS {
     //! In this case we understand by the number of vertices in the graph
     //! the number of vertices that are (potential) start points of an edge.
     Integer GetSize() const {
-      ENTER_IFCN( "BaseGraph::GetSize" );
       return numNodes_;
     }
 
@@ -153,7 +151,6 @@ namespace OLAS {
     //! which corresponds to the number of non-zero entries in its CRS
     //! representation
     Integer GetNNE() const {
-      ENTER_IFCN( "BaseGraph::GetNNE" );
       return nne_;
     }
 
@@ -166,7 +163,6 @@ namespace OLAS {
     //! only to the number of rows of the associated matrix.
     //! This method allows to obtain the number of columns in this case.
     UInt GetNumColsMat() {
-      ENTER_FCN( "BaseGraph::GetNumColsMat" );
       return numColsMat_;
     }
 
@@ -176,13 +172,11 @@ namespace OLAS {
     //! the assembly of the graph was finalised, then this method will return
     //! true and it is safe to use other query methods on the graph.
     bool IsAssembled() {
-      ENTER_IFCN( "BaseGraph::IsAssembled" );
       return amAssembled_;
     }
 
     //! Query wether the graph has been reordered
     bool IsReordered() {
-      ENTER_IFCN( "BaseGraph::IsReordered" );
       return amReordered_;
     }
 
@@ -211,7 +205,6 @@ namespace OLAS {
     //!       if this is contained in the graph.
     inline Integer GetRowSize( UInt i ) const {
 
-      ENTER_IFCN( "BaseGraph::GetRowSize" );
 
 #ifdef DEBUG_BASEGRAPH
       if ( amAssembled_ == false ) {
@@ -240,7 +233,6 @@ namespace OLAS {
   
     //! print the Graph to the .las file
     void Print() const {
-      ENTER_IFCN( "BaseGraph::Print" );
       Print(*cla);
     }
 

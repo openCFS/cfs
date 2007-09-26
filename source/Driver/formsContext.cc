@@ -17,7 +17,6 @@ namespace CoupledField {
 
   BiLinFormContext::BiLinFormContext( BaseForm* biLinForm, 
                                       FEMatrixType destMat) {
-    ENTER_FCN( "BiLinFormContext::BiLinFormContext" );
 
     integrator_ = biLinForm;
     
@@ -41,7 +40,6 @@ namespace CoupledField {
   }
 
   BiLinFormContext::~BiLinFormContext() {
-    ENTER_FCN( "BiLinFormContext::~BiLinFormContext" );
     
     // delete bilinearform
     if( integrator_ != NULL ) {
@@ -55,7 +53,6 @@ namespace CoupledField {
                                   StdVector<Integer>& eqnVec1, 
                                   StdVector<Integer>& eqnVec2,
                                   PdeIdType& id1, PdeIdType& id2 ) {
-    ENTER_FCN( "BiLinFormContext::MapEqns" );
 
     // Get equation numbers
     map1_->GetEqns( eqnVec1, *result1_, it1 );
@@ -69,7 +66,6 @@ namespace CoupledField {
   
   void BiLinFormContext::SetPtPdes(SinglePDE * aPDE1, 
                                    SinglePDE * aPDE2 ) {
-    ENTER_FCN( "BiLinFormContext::SetPtPdes" );
 
     ptPde1_ = aPDE1;
     ptPde2_ = aPDE2;
@@ -83,7 +79,6 @@ namespace CoupledField {
                                      shared_ptr<ResultInfo> result2,
                                      shared_ptr<EntityList> list1, 
                                      shared_ptr<EntityList> list2 ) {
-    ENTER_FCN( "BiLinFormContext::SetResults" );
 
     result1_ = result1;
     result2_ = result2;
@@ -96,7 +91,6 @@ namespace CoupledField {
   }  
 
   bool BiLinFormContext::IsNonLin() {
-    ENTER_FCN( "BiLinFormContext::IsNonLin" );
 
     // Return true if either
     // - bilinearform is solution dependent (true non-linearity)
@@ -118,7 +112,6 @@ namespace CoupledField {
 				      Double& dampFactorMax, 
 				      Double& startRadius, 
 				      Double& endRadius) {
-    ENTER_FCN( "BiLinFormContext::SetDampLayer" );
 
     dampingLayer_ = new DampLayer(typeFnc);
     dampingLayer_->SetDampingParams(mPoint, dampFactor, 
@@ -139,7 +132,6 @@ namespace CoupledField {
 // -------------------------------------------------------------------------
 
   LinearFormContext::LinearFormContext( LinearForm* linearForm ) {
-    ENTER_FCN( "LinearFormContext::LinearFormContext" );
 
     integrator_ = linearForm;
 
@@ -148,7 +140,6 @@ namespace CoupledField {
   }
 
   LinearFormContext::~LinearFormContext() {
-    ENTER_FCN( "LinearFormContext::~LinearFormContext" );
 
     // delete linearform
     if( integrator_ != NULL ) {
@@ -161,7 +152,6 @@ namespace CoupledField {
   void LinearFormContext::MapEqns( EntityIterator& it,
                                    StdVector<Integer>& eqnVec,
                                    PdeIdType& id ) {
-    ENTER_FCN( "LinearFormContext::MapEqns" );
     
     // Get equation numbers
     map_->GetEqns( eqnVec, *result_, it );
@@ -172,7 +162,6 @@ namespace CoupledField {
   }
   
   void LinearFormContext::SetPtPde(SinglePDE * ptPde ) {
-    ENTER_FCN( "LinearFormContext::SetPtPde" );
     
     ptPde_ = ptPde;
     map_ = ptPde_->GetEqnMap();
@@ -189,7 +178,6 @@ namespace CoupledField {
     }
 
   bool LinearFormContext::IsNonLin() {
-    ENTER_FCN( "LinearFormContext::IsNonLin" );
    // Return true if linearform is solution-dependent
 
     if( integrator_->IsSolDependent() ) {
@@ -203,12 +191,10 @@ namespace CoupledField {
   NcBiLinFormContext::NcBiLinFormContext( BaseForm* biLinForm, 
                                           FEMatrixType destMat ) 
     : BiLinFormContext( biLinForm, destMat ) {
-    ENTER_FCN( "NcBiLinFormContext::BiLinFormContext" );
 
   }
   
   NcBiLinFormContext::~NcBiLinFormContext() {
-    ENTER_FCN( "NcBiLinFormContext::~NcBiLinFormContext" );
     
     // delete bilinearform
     if( integrator_ != NULL ) {
@@ -222,7 +208,6 @@ namespace CoupledField {
                                     StdVector<Integer>& eqnVec1, 
                                     StdVector<Integer>& eqnVec2,
                                     PdeIdType& id1, PdeIdType& id2 ) {
-    ENTER_FCN( "NcBiLinFormContext::MapEqns" );
 
     const NCElem *elem = dynamic_cast< const NCElem* >(it1.GetElem()); 
 

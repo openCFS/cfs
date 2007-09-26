@@ -27,12 +27,10 @@ namespace OLAS {
 
     //! Default Constructor
     BaseSolver() {
-      ENTER_FCN( "BaseSolver::BaseSolver" );
     }
 
     //! Default Destructor
     virtual ~BaseSolver() {
-      ENTER_FCN( "BaseSolver::~BaseSolver" );
     }
 
     //! General setup routine
@@ -112,13 +110,11 @@ namespace OLAS {
 
     //! Default Constructor
     BaseIterativeSolver() {
-      ENTER_FCN( "BaseIterativeSolver::BaseIterativeSolver" );
       scalFac_ = -1.0;
     }
 
     //! Default Destructor
     ~BaseIterativeSolver() {
-      ENTER_FCN( "BaseIterativeSolver::~BaseIterativeSolver" );
     }
 
   protected:
@@ -193,12 +189,10 @@ namespace OLAS {
 
     //! Default Constructor
     BaseDirectSolver() {
-      ENTER_FCN( "BaseDirectSolver::~BaseDirectSolver" );
     }
 
     //! Default Destructor
     ~BaseDirectSolver() {
-      ENTER_FCN( "BaseDirectSolver::~BaseDirectSolver" );
     }
 
   };

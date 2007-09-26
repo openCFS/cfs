@@ -16,7 +16,6 @@ namespace CoupledField
 
   RectangleFE::RectangleFE()
   {
-    ENTER_FCN( "RectangleFE::RectangleFE" );
   
     Dim_ = 2;
     NumEdges_ = 4;
@@ -32,13 +31,11 @@ namespace CoupledField
 
   RectangleFE :: ~RectangleFE()
   {
-    ENTER_FCN( "RectangleFE::~RectangleFE" );
   }
 
 
   void RectangleFE::FillIntegrationPoints()
   {
-    ENTER_IFCN("RectangleFE::FillIntegrationPoints");  	
       
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=0  1
     static Double a1[][3] = { 
@@ -276,7 +273,6 @@ namespace CoupledField
 
   Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
   {
-    ENTER_FCN( "RectangleFE::CalcDistortion" );
     Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
     return -1.0;
   }
@@ -286,7 +282,6 @@ namespace CoupledField
                                               const Vector<Double> & surfIntPoint,
                                               Vector<Double> & volIntPoint)
   {
-    ENTER_IFCN( "RectangleFE::GetLocalIntPoints4Surface" );
   
     // Try to find out, which vertices are in common with
     // the surface element. Then calculate the product of both

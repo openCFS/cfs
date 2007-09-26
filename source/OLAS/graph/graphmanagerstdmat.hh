@@ -146,7 +146,6 @@ namespace OLAS {
     void AssembleDone( const PdeIdType identifierPDE1,
 		       const PdeIdType identifierPDE2,
                        bool assemblingTranspose ) {
-      ENTER_FCN( "GraphManagerStdMat::AssembleDone" );
     }
 
     //! Insert connectivity of a finite element into the matrix graph

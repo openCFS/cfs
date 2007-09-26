@@ -35,12 +35,10 @@ namespace OLAS {
 
     //! Default constructor
     LDLSystemSolve() {
-      ENTER_FCN( "LDLSystemSolve::LDLSystemSolve" );
     };
 
     //! Destructor
     virtual ~LDLSystemSolve() {
-      ENTER_FCN( "LDLSystemSolve::~LDLSystemSolve" );
     };
 
     //! Solution of \f$LDL^Tx=y\f$ by forward backward substitutions
@@ -57,7 +55,6 @@ namespace OLAS {
                          const T *invDiag, Vector<T> &x, const Vector<T> &y,
                          UInt dim ) const {
 
-      ENTER_FCN( "LDLSystemSolve::SolveLDLSystem" );
 
 
       // We solve the linear system L D L^T x = y by performing the following

@@ -31,12 +31,10 @@ namespace OLAS {
         freqShift_(0.0),
         isQuadratic_(false)
     {
-      ENTER_FCN( "BaseEigenSolver::BaseEigenSolver" );
     }
     
     //! Default Destructor
     virtual ~BaseEigenSolver() {
-      ENTER_FCN( "BaseEigenSolver::~BaseEigenSolver" );
     }
 
     //! Get type of eigenvalue problem to be solved

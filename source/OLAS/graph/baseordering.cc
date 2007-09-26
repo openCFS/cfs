@@ -16,7 +16,6 @@ namespace OLAS {
   BaseOrdering::BaseOrdering( NodeList *graph, Integer *order,
 			      Integer size ) {
 
-    ENTER_FCN( "BaseOrdering::BaseOrdering" );
     graph_ = graph;
     order_ = order;
     size_  = (UInt)size;
@@ -32,7 +31,6 @@ namespace OLAS {
   //   Destructor
   // **************
   BaseOrdering::~BaseOrdering() {
-    ENTER_FCN( "BaseOrdering::~BaseOrdering" );
   }
 
 

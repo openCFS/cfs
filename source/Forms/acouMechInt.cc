@@ -9,7 +9,6 @@ namespace CoupledField {
   
   
   AcouMechInt::AcouMechInt( UInt dofsPerNode, bool isAxi) {
-    ENTER_FCN( "AcouMechInt::AcouMechInt" );
 
     name_ = "AcouMechInt";
     isaxi_ = isAxi;
@@ -22,11 +21,9 @@ namespace CoupledField {
   }
 
   AcouMechInt::~AcouMechInt() {
-    ENTER_FCN( "AcouMechInt::~AcouMechInt" );
   }
   
   void AcouMechInt::SetFormulation( SolutionType aformulation) {
-    ENTER_FCN( "AcouMechInt::SetFormulation" );
     
     formulation_ = aformulation;
   }
@@ -34,7 +31,6 @@ namespace CoupledField {
   void AcouMechInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                        EntityIterator& ent1, 
                                        EntityIterator& ent2 ) {
-    ENTER_FCN( "AcouMechInt::CalcElementMatrix" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

@@ -36,7 +36,6 @@ namespace OLAS {
   // ===============
   GraphManagerSimple::GraphManagerSimple() {
 
-    ENTER_FCN( "GraphManagerSimple::GraphManager" );
 
     myPDEIdent_          = NO_PDE_ID;
     graph_               = NULL;
@@ -53,7 +52,6 @@ namespace OLAS {
   //   Destructor
   // ==============
   GraphManagerSimple::~GraphManagerSimple() {
-    ENTER_FCN( "GraphManagerSimple::~GraphManager" );
 
     // If no re-ordering was performed the pointer to the re-ordering vector
     // is still NULL. If it was claimed by the PDE it was re-set to NULL and
@@ -82,7 +80,6 @@ namespace OLAS {
   // =============
   void GraphManagerSimple::SetupInit( UInt numPDEs ) {
 
-    ENTER_FCN( "GraphManagerSimple::SetupInit" );
 
     // Make sure that there is only one PDE, since we are the graph manager
     // for the simple case
@@ -103,7 +100,6 @@ namespace OLAS {
                                         const UInt numLastFreeDof,
 					const ReorderingType reorder ) {
 
-    ENTER_FCN( "GraphManagerSimple::RegisterPDE" );
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
 
@@ -167,7 +163,6 @@ namespace OLAS {
 					 const PdeIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
-    ENTER_FCN( "GraphManagerSimple::AssembleInit" );
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
     CheckConsistency( identifierPDE1, identifierPDE2, "AssembleInit" );
@@ -186,7 +181,6 @@ namespace OLAS {
 					 const PdeIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
-    ENTER_FCN( "GraphManagerSimple::AssembleDone" );
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
     CheckConsistency( identifierPDE1, identifierPDE2, "AssembleDone" );
@@ -201,7 +195,6 @@ namespace OLAS {
   BaseGraph* GraphManagerSimple::GetGraph( const PdeIdType identifierPDE1,
 					   const PdeIdType identifierPDE2 ){
 
-    ENTER_FCN( "GraphManagerSimple::GetGraph" );
 
     // Avoid trouble (keep defaults in mind)
     if ( identifierPDE1 == NO_PDE_ID ) {
@@ -222,7 +215,6 @@ namespace OLAS {
   BaseGraph* GraphManagerSimple::GetIDBCGraph( const PdeIdType pdeID1,
                                                const PdeIdType pdeID2 ) const{
 
-    ENTER_FCN( "GraphManagerSimple::GetIDBCGraph" );
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
     if ( pdeID1 != NO_PDE_ID && pdeID2 != NO_PDE_ID ) {
@@ -247,7 +239,6 @@ namespace OLAS {
 					  Integer length2,
                                           bool setCounterPart ) {
 
-    ENTER_FCN( "GraphManagerSimple::SetElementPos" );
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE2
     CheckConsistency( identifierPDE1, identifierPDE2, "SetElementPos" );
@@ -361,7 +352,6 @@ namespace OLAS {
   // =================
   Integer* GraphManagerSimple::GetReordering( const PdeIdType identifier ) {
 
-    ENTER_FCN( "GraphManagerSimple::GetReordering" );
 
     Integer *retVal = NULL;
 
@@ -396,7 +386,6 @@ namespace OLAS {
                                              const PdeIdType idPDE2,
                                              std::string caller ) const {
 
-    ENTER_FCN( "GraphManagerSimple::CheckConsistency" );
 
     // Check that first identifier is not nil
     if ( idPDE1 == NO_PDE_ID ) {
@@ -438,7 +427,6 @@ namespace OLAS {
   // ==========================
   void GraphManagerSimple::BuildPermutationVector() {
 
-    ENTER_FCN( "GraphManagerSimple::BuildPermutationVector" );
 
     // CASE 1:
     //
@@ -494,7 +482,6 @@ namespace OLAS {
   // =============
   void GraphManagerSimple::SetupDone() {
 
-    ENTER_FCN( "GraphManagerSimple::SetupDone" );
 
     // Finish generation of primary graph
     graph_->FinaliseAssembly( newOrdering_ );
@@ -517,7 +504,6 @@ namespace OLAS {
   // ==============
   void GraphManagerSimple::PrintStats( std::ostream *log ) {
 
-    ENTER_FCN( "GraphManagerSimple::PrintStats" );
 
     // Determine width for pretty-printing
     UInt tw = numLastFreeDof_;

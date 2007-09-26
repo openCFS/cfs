@@ -18,7 +18,6 @@ namespace OLAS {
   // Default implementation
   template <class ENUMTYPE> 
   std::string Enum2String( const ENUMTYPE &in ) {
-    ENTER_IFCN( "Enum2String" );
     (*error) << "Enum2String not implemented for the desired type"
          << " of enumeration";
     Error( __FILE__, __LINE__ );
@@ -28,7 +27,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<SolverType>( const SolverType &in ) {
 
-    ENTER_IFCN( "Enum2String" );
 
     std::string out;
 
@@ -92,7 +90,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<EigenSolverType>( const EigenSolverType &in ) {
     
-    ENTER_IFCN( "Enum2String" );
     
     std::string out;
     
@@ -121,7 +118,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<PrecondType>( const PrecondType &in ) {
 
-    ENTER_IFCN( "Enum2String" );
 
     std::string out;
 
@@ -179,7 +175,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<MatrixStorageType>( const MatrixStorageType &in ) {
 
-    ENTER_IFCN( "Enum2String" );
 
     std::string out;
 
@@ -220,7 +215,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<MatrixEntryType>( const MatrixEntryType &in ) {
 
-    ENTER_IFCN( "Enum2String" );
 
     std::string out;
 
@@ -258,7 +252,6 @@ namespace OLAS {
   template<> 
   std::string Enum2String<StopCritType>( const StopCritType &in ) {
 
-    ENTER_IFCN( "Enum2String" );
 
     std::string out;
 
@@ -437,7 +430,6 @@ namespace OLAS {
   // Default implementation
   template <class ENUMTYPE> 
   void String2Enum( const std::string &in, ENUMTYPE &out ) {
-    ENTER_IFCN( "String2Enum" );
     (*error) << "String2Enum not implemented for the desired type"
          << " of enumeration";
     Error( __FILE__, __LINE__ );
@@ -720,7 +712,6 @@ namespace OLAS {
   // Function that constitutes as sort of factory
   void EnumConversionFactory() {
 
-    ENTER_FCN( "Function: EnumConversionFactory" );
 
     std::string auxString = "dummyString";
 

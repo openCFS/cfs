@@ -30,27 +30,23 @@ namespace CoupledField
 
 
     //! solves for one linear static step 
-    void StepStaticLin( )
-    { ENTER_FCN( "SolveStepMpCCI::StepStaticLin");};
+    void StepStaticLin( ) {};
 
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-     void PreStepTrans( )
-    { ENTER_FCN( "SolveStepMpCCI::PreStepTrans");};
+    void PreStepTrans( ) {};
     
     //! base method for solving one transient step 
-    void SolveStepTrans( )
-    { ENTER_FCN( "SolveStepMpCCI::SolveStepTrans"); };
+    void SolveStepTrans( ) {};
 
     //! solves for one linear transient step 
     //! \param reset true: perfrom new assembly, etc
-    void StepTransLin( )
-    { ENTER_FCN( "SolveStepMpCCI::StepTransLin");};
+    void StepTransLin( ) {};
 
     //! routine for actions after the SolveStep-method
     void PostStepTrans();
-
+    
 
   private:
 

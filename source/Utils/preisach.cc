@@ -14,7 +14,6 @@ namespace CoupledField
 		       Matrix<Double>& preisachWeight, bool isVirgin) 
     : Hysteresis(numElem)
   {
-    ENTER_FCN("Preisach::Preisach" );
 
     eps_ = 1e-5;
 
@@ -68,14 +67,12 @@ namespace CoupledField
 
   Double Preisach :: getValue( Integer idx ) 
   {
-    ENTER_FCN( "Preisach::getValue" );
 
     return ( preisachSum_[idx]*YSaturated_ );
   }
 
   Double Preisach :: computeValue(Double Xin, Integer idx, bool overwrite) 
   {
-    ENTER_FCN( "Preisach::computeValue" );
 
     Vector<Double> &stringEl     = strings_[idx];
     UInt& actLength = StringLenght_[idx];
@@ -126,7 +123,6 @@ namespace CoupledField
   Double Preisach :: computeValueAndUpdate( Double Xin, Integer idx,
                                             bool overwrite )  
   {
-    ENTER_FCN( "Preisach::computeValueAndUpdate" );
 
     //do the deletion
     Double newY = updateMinMaxList(Xin, idx, overwrite);
@@ -138,7 +134,6 @@ namespace CoupledField
   Double Preisach :: updateMinMaxList(Double Xin, Integer idx, 
                                       bool overwrite )
   {
-    ENTER_FCN( "Preisach::updateMinMaxList" );
 
     Double newY;
 
@@ -257,7 +252,6 @@ namespace CoupledField
 
   Double Preisach :: EvalEverett(Double xVal1, Double xVal2, Integer idx)
   {
-    ENTER_FCN( "Preisach:: EvalEverett" );
 
     //normalize input
     Double X1 = normalizeInput( xVal1 );
@@ -283,7 +277,6 @@ namespace CoupledField
 
   Double Preisach :: everett(Double X1, Double X2)
   {
-    ENTER_FCN( "Preisach:: everett" );
 
 //     Double newY;
 //     Double diffX = X2 - X1;
@@ -303,7 +296,6 @@ namespace CoupledField
 
   Double Preisach :: everettPixel(Double val1, Double val2)
   {
-    ENTER_FCN( "Preisach:: everettPixel" );
 
     Double X1 = std::max(val1,val2);
     Double X2 = std::min(val1,val2);
@@ -413,7 +405,6 @@ namespace CoupledField
 
   void Preisach :: computePreisachWeights()
   {
-    ENTER_FCN( "Preisach::computePreisachWeights" );
 
     UInt dim = 6;
     preisachWeights_.Resize(dim,dim);
@@ -426,7 +417,6 @@ namespace CoupledField
 
   Double Preisach :: normalizeInput(Double Xin)
   {
-    ENTER_FCN( "Preisach::normalizeInput" );
 
     Double Xout;
 

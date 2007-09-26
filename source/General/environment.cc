@@ -18,11 +18,9 @@
 namespace OutInfo{
 
 #ifndef INTEGLIB
-  std::ostream *trace    = NULL;
   std::ostream *debug    = NULL;
   std::ostream *cla      = NULL;
   std::ostream *memtrace = NULL;
-  std::ostream *data     = NULL;
 #endif
 
   // Generate string stream for generation of error messages

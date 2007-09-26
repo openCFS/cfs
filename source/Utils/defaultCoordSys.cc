@@ -10,23 +10,19 @@ namespace CoupledField{
   DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid) 
     : CoordSystem(std::string("default") , ptGrid, NULL ) {
     
-    ENTER_FCN("DefaultCoordSystem::DefaultCoordSystem");
    
   }
   
   DefaultCoordSystem::~DefaultCoordSystem(){
-    ENTER_FCN("DefaultCoordSystem::~DefaultCoordSystem");
   }
 
   void DefaultCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                           const Vector<Double> & loc ) const {
-    ENTER_FCN("DefaultCoordSystem::Local2GlobalCoord");
     glob = loc;
 }
   
   void DefaultCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                           const Vector<Double> & glob ) const {
-    ENTER_FCN("DefaultCoordSystem:: Global2LocalCoord");
     loc = glob;
   }
   
@@ -34,7 +30,6 @@ namespace CoupledField{
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
                       const Vector<Double> & globModelPoint ) const { 
-    ENTER_FCN("DefaultCoordSystem::Local2GlobalVector");
 
     globVec = locVec;
   }
@@ -43,13 +38,11 @@ namespace CoupledField{
   Local2GlobalVector( Vector<Complex> & globVec, 
                       const Vector<Complex> & locVec, 
                       const Vector<Double> & globModelPoint ) const { 
-    ENTER_FCN("DefaultCoordSystem::Local2GlobalVector");
 
     globVec = locVec;
   }
 
   UInt DefaultCoordSystem::GetVecComponent( const std::string & dof )  const {
-    ENTER_FCN( "DefaultCoordSystem::GetVecComponent" );
 
     
     UInt component = 0;
@@ -72,7 +65,6 @@ namespace CoupledField{
 
   
   const std::string DefaultCoordSystem::GetDofName( const UInt dof ) const {
-    ENTER_FCN( "DefaultCoordSystem::GetDofName" );
     
     std::string ret = "";
     

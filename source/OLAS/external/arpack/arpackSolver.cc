@@ -12,7 +12,6 @@
 namespace OLAS {
 
   ArpackSolver::ArpackSolver() {
-      ENTER_FCN( "ArpackSolver::ArpackSolver" );
 
       shiftAndInvert_ = TRUE;
       freqShift_ = 0.0;
@@ -25,7 +24,6 @@ namespace OLAS {
   }
   
   ArpackSolver::~ArpackSolver() {
-      ENTER_FCN( "ArpackSolver::~ArpackSolver" );
     
       delete[] eigenValues_;
       delete[] eigenTolerances_;
@@ -36,7 +34,6 @@ namespace OLAS {
 
   void ArpackSolver::Setup( ArpackMatInterface *matInterface, UInt size, 
               UInt numFreq, Double freqShift, Char* which, bool shiftMode ) {
-      ENTER_FCN( "ArpackSolver::Setup" );
 
       size_ = size;
 
@@ -101,7 +98,6 @@ namespace OLAS {
   }
 
   UInt ArpackSolver::FindEigenvalues( ) {
-      ENTER_FCN( "ArpackSolver::FindEigenvalues" );
 
       bool converged = FALSE;
       Integer  ido = 0, info = 0;

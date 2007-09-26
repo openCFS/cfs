@@ -54,7 +54,6 @@ namespace OLAS {
 
     // Default constructor
     IterativeRefinement() {
-      ENTER_FCN( "IterativeRefinement::IterativeRefinement" );
       residual_     = NULL;
       update_       = NULL;
       dummyPrecond_ = new IdPrecond();
@@ -62,7 +61,6 @@ namespace OLAS {
 
     // Destructor
     ~IterativeRefinement() {
-      ENTER_FCN( "IterativeRefinement::~IterativeRefinement" );
       delete residual_;
       delete update_;
       delete dummyPrecond_;

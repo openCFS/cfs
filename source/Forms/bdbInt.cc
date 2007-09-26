@@ -15,7 +15,6 @@ namespace CoupledField {
                                   EntityIterator& ent1, 
                                   EntityIterator& ent2 ) {
 
-    ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -203,7 +202,6 @@ namespace CoupledField {
                                           EntityIterator& ent2,
                                           Double & beta, Double & omega) {
     
-    ENTER_FCN( "BDBInt::CalcComplexElementMatrix" );
     
     // Get pointer to reference element and its coordinates
     ExtractElemInfo( ent1 );
@@ -290,7 +288,6 @@ namespace CoupledField {
 
 
   void BDBInt::calcBMat(EntityIterator it, Matrix<Double>& bMat ) {
-    ENTER_FCN( "BDBInt::GetBMat" );
     
     // get midpoint
     ExtractElemInfo( it );
@@ -304,7 +301,6 @@ namespace CoupledField {
   }
 
   void BDBInt::calcDBMat(EntityIterator it, Matrix<Double>& dbMat ) {
-    ENTER_FCN( "BDBInt::GetBMat" );
     
     // get midpoint
     ExtractElemInfo( it );
@@ -328,7 +324,6 @@ namespace CoupledField {
   BDBInt::BDBInt( BaseMaterial* matData, SubTensorType type,
                   bool geoUpdate ) 
     : BaseForm(matData,type, geoUpdate ), updateDMatInEveryIP_(0) {
-    ENTER_FCN( "BDBInt::BDBInt" );
     name_ = "BDBInt";
     baseType_ = STIFFNESS;
   }
@@ -338,7 +333,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   BDBInt::~BDBInt() {
-    ENTER_FCN( "BDBInt::~BDBInt" );
   }
 
 

@@ -168,7 +168,6 @@ namespace OLAS {
     //! defined in the BaseMatrix class.
     void CompRes( BaseVector &r, const BaseVector &x,
                           const BaseVector& b ) const {
-      ENTER_FCN( "StdMatrix::CompRes (BaseVector)" );
       TRY_CAST
       ConstRefCast( x, SparseVector, std_x );
       ConstRefCast( b, SparseVector, std_b );
@@ -194,7 +193,6 @@ namespace OLAS {
     //! the appropriate interface. It implements the method defined in the
     //! BaseMatrix class.
     void Add( const Double a, const BaseMatrix& mat ){
-      ENTER_FCN( "StdMatrix::Add" );
       TRY_CAST
       ConstRefCast( mat, StdMatrix, stdmat );
       Add( a, stdmat );
@@ -216,7 +214,6 @@ namespace OLAS {
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void Mult(const BaseVector& mvec, BaseVector& rvec) const {
-      ENTER_FCN("StdMatrix::Mult");
       TRY_CAST
       ConstRefCast(mvec,SparseVector,stdmvec);
       RefCast(rvec,SparseVector,stdrvec);
@@ -238,7 +235,6 @@ namespace OLAS {
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultT(const BaseVector& mvec, BaseVector& rvec) const {
-      ENTER_FCN("StdMatrix::MultT");
       TRY_CAST
       ConstRefCast(mvec,SparseVector,stdmvec);
       RefCast(rvec,SparseVector,stdrvec);
@@ -263,7 +259,6 @@ namespace OLAS {
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     virtual void MultAdd(const BaseVector& mvec, BaseVector& rvec) const {
-      ENTER_FCN("StdMatrix::MultAdd");
       TRY_CAST
         ConstRefCast(mvec,SparseVector,stdmvec);
       RefCast(rvec,SparseVector,stdrvec);
@@ -286,7 +281,6 @@ namespace OLAS {
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultTAdd(const BaseVector& mvec, BaseVector& rvec) const {
-      ENTER_FCN("StdMatrix::MultTAdd");
       TRY_CAST
       ConstRefCast(mvec,SparseVector,stdmvec);
       RefCast(rvec,SparseVector,stdrvec);
@@ -306,7 +300,6 @@ namespace OLAS {
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
     void MultSub( const BaseVector& mvec, BaseVector& rvec ) const {
-      ENTER_FCN( "StdMatrix::MultSub" );
       TRY_CAST
         ConstRefCast(mvec,SparseVector,stdmvec);
       RefCast(rvec,SparseVector,stdrvec);

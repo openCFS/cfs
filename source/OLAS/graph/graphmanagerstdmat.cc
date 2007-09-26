@@ -15,7 +15,6 @@ namespace OLAS {
   // ===============
   GraphManagerStdMat::GraphManagerStdMat() {
 
-    ENTER_FCN( "GraphManagerStdMat::GraphManagerStdMat" );
 
     graph_               = NULL;
     graphIDBC_           = NULL;
@@ -44,7 +43,6 @@ namespace OLAS {
   // ==============
   GraphManagerStdMat::~GraphManagerStdMat() {
 
-    ENTER_FCN( "GraphManagerStdMat::~GraphManagerStdMat" );
 
     // If no re-ordering was performed the pointers to the re-ordering
     // vectors are still NULL. If they were claimed by the PDEs they
@@ -82,7 +80,6 @@ namespace OLAS {
   // =============
   void GraphManagerStdMat::SetupInit( UInt numPDEs ) {
 
-    ENTER_FCN( "GraphManagerStdMat::SetupInit" );
 
     // Now we now for how many PDEs we are repsonsible
     numPDEs_ = numPDEs;
@@ -108,7 +105,6 @@ namespace OLAS {
   // =============
   void GraphManagerStdMat::SetupDone() {
 
-    ENTER_FCN( "GraphManagerStdMat::SetupDone" );
 
 
     // *******************
@@ -226,7 +222,6 @@ namespace OLAS {
                                         const UInt numLastFreeDof,
 					const ReorderingType reorder ) {
 
-    ENTER_FCN( "GraphManagerStdMat::RegisterPDE" );
 
     // Step counter for the number of registered PDEs and check number
     numRegisteredPDEs_++;
@@ -305,7 +300,6 @@ namespace OLAS {
 					 const PdeIdType identifierPDE2,
                                          bool assemblingTranspose ) {
 
-    ENTER_FCN( "GraphManagerStdMat::AssembleInit" );
 
     // Perform a consistency check
     if ( identifierPDE1 == NO_PDE_ID ) {
@@ -360,7 +354,6 @@ namespace OLAS {
 					  Integer length2,
                                           bool setCounterPart ) {
 
-    ENTER_FCN( "GraphManagerStdMat::SetElementPos" );
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
 
@@ -502,7 +495,6 @@ namespace OLAS {
   // =================
   Integer* GraphManagerStdMat::GetReordering( const PdeIdType identifier ) {
 
-    ENTER_FCN( "GraphManagerStdMat::GetReordering" );
 
     Integer *retVal = NULL;
 
@@ -558,7 +550,6 @@ namespace OLAS {
   BaseGraph* GraphManagerStdMat::GetGraph( const PdeIdType identifierPDE1,
 					   const PdeIdType identifierPDE2){
 
-    ENTER_FCN( "GraphManagerStdMat::GetGraph" );
 
     // Check if a graph object was already created
     if ( graph_ == NULL ) {
@@ -578,7 +569,6 @@ namespace OLAS {
   // ================
   BaseGraph* GraphManagerStdMat::GetIDBCGraph( const PdeIdType pdeID1,
                                                const PdeIdType pdeID2 ) const{
-    ENTER_FCN( "GraphManagerStdMat::GetIDBCGraph" );
     return graphIDBC_;
   }
 
@@ -588,7 +578,6 @@ namespace OLAS {
   // ==============
   void GraphManagerStdMat::PrintStats( std::ostream *log ) {
 
-    ENTER_FCN( "GraphManagerStdMat::PrintStats" );
 
     std::map<std::string,UInt>::iterator it;
 

@@ -24,7 +24,6 @@ namespace CoupledField
                              Double  polytrop,
                              Double  viscosity) {
 
-    ENTER_FCN( "RPNNP::RPNNP" );
 
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -49,7 +48,6 @@ namespace CoupledField
   void  RPNNP::CompDeriv(const Double &t,
                                 const StdVector<Double> &y,
                                 StdVector<Double> &dydt){
-    ENTER_FCN( "RPNNP::CompDeriv" );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // "Dimesionsbehaftet" computation of the right hand sight of the 
@@ -117,7 +115,6 @@ namespace CoupledField
    			      Matrix<Double> &dfdy,
    			      Double &t){
   
-    ENTER_FCN( "RPNNP::Jacobi" );
     std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
 
  

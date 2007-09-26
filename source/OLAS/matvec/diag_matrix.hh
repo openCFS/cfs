@@ -38,7 +38,6 @@ namespace OLAS {
 
     //! Default Constructor
     Diag_Matrix() {
-      ENTER_FCN( "Diag_Matrix::Diag_Matrix" );
       data_             = NULL;
       this->nnz_        = 0;
       this->ncols_      = 0;
@@ -82,7 +81,6 @@ namespace OLAS {
     //! \param nnz   number of non-zero matrix entries
     Diag_Matrix( Integer nrows, Integer ncols, Integer nnz ) {
 
-      ENTER_FCN( "Diag_Matrix::Diag_Matrix" );
 
       // assign basic properties
       this->nnz_   = nrows;
@@ -105,7 +103,6 @@ namespace OLAS {
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
     ~Diag_Matrix() {
-      ENTER_FCN( "Diag_Matrix::~Diag_Matrix" );
       DeleteArray( data_    );
     }
 
@@ -144,7 +141,6 @@ namespace OLAS {
     //! the structure/data layout remains the same. All positions in the
     //! structure can still be over-written with non-zero values.
     inline void Init() {
-      ENTER_FCN( "Diag_Matrix::Init" );
       for ( Integer i = 1; i <= this->nnz_; i++ ) {
         data_[i] = 0;
       }
@@ -207,26 +203,22 @@ namespace OLAS {
     //! Return the diagonal entry of row i
     inline
     T& GetDiag( Integer i ) {
-      ENTER_IFCN( "Diag_Matrix::GetDiag" );
       return data_[i];
     }
 
     //! Return the diagonal entry of row i (read only)
     inline
     const T& GetDiag( Integer i ) const {
-      ENTER_IFCN( "Diag_Matrix::GetDiag" );
       return data_[i];
     }
 
     //! Set the diagonal entry of row i to the value of v
     void SetDiagEntry( Integer i, T &v ) {
-      ENTER_IFCN( "Diag_Matrix::SetDiagEntry" );
       data_[i] = v;
     }
 
     //! Returns the value of the diagonal entry of row i
     void GetDiagEntry( Integer i, T &v ) const {
-      ENTER_IFCN( "Diag_Matrix::GetDiagEntry" );
       v = data_[i];
     }
 

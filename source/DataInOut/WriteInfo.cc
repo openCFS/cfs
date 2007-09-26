@@ -34,7 +34,6 @@ namespace CoupledField {
 
   WriteInfo::WriteInfo () {
 
-    ENTER_FCN( "WriteInfo::WriteInfo");
     warningOccured_ = false;
     progressRunning_ = false;
     needAck_ = false;
@@ -47,7 +46,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   WriteInfo::~WriteInfo () {
-    ENTER_FCN( "WriteInfo::~WriteInfo" );
     delete cfsInfo;
   }
 
@@ -60,7 +58,6 @@ namespace CoupledField {
   // **************
   void WriteInfo::CreateFile() {
 
-    ENTER_FCN( "WriteInfo::CreateFile" );
 
     // Check if a file is already open
     if ( cfsInfo != NULL ) {
@@ -138,7 +135,6 @@ namespace CoupledField {
   // *****************
   void WriteInfo::PrintMaterial( BaseMaterial* material ) {
 
-    ENTER_FCN( "WriteInfo::PrintMaterial" );
 
     *cfsInfo << *material << std::endl;
   }
@@ -150,7 +146,6 @@ namespace CoupledField {
                                   const Double incrementalErr,
                                   double etaLineSearch)
   {
-    ENTER_FCN( "WriteInfo::WriteNonLinIter" );
 
     std::string pdeNameLong(pdeName);
     
@@ -181,7 +176,6 @@ namespace CoupledField {
 
     Enum2String(analysis, analysisString);
 
-    ENTER_FCN( "WriteInfo::WriteMultiSequenceStep" );
  
     // write std::out info 
     std::cout << myEndl 
@@ -214,7 +208,6 @@ namespace CoupledField {
   void WriteInfo::WriteTimeStep(const std::string& pdeName,
                                 const UInt timeStep, const Double time)
   {
-    ENTER_FCN( "WriteInfo::WriteTimeStep" );
 
     std::string pdeNameLong(pdeName);
 
@@ -248,7 +241,6 @@ namespace CoupledField {
                                      const UInt freqStep,
                                      const Double frequency ) {
 
-    ENTER_FCN( "WriteInfo::WriteHarmonicStep" );
 
     // We do not log something in the case of the paramIdent driver,
     // since the output will be more disturbing than helpful in this case
@@ -295,7 +287,6 @@ namespace CoupledField {
                                std::string analysis,
                                Double analysisVal)
   {
-    ENTER_FCN( "WriteInfo::WriteResult" );
 
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
@@ -320,7 +311,6 @@ namespace CoupledField {
                                std::string analysis,
                                Double analysisVal)
   {
-    ENTER_FCN( "WriteInfo::WriteResult" );
 
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
@@ -341,7 +331,6 @@ namespace CoupledField {
 
   void WriteInfo::PrintCoil( Coil &coil, AnalysisType &analysistype ) {
 
-    ENTER_FCN( "WriteInfo::PrintCoil" );
 
     if (!cfsInfo)
       return;
@@ -430,7 +419,6 @@ namespace CoupledField {
 					   StdVector<std::string> & subdoms,
 					   Vector<TYPE>& power)
   {
-    ENTER_FCN( "WriteInfo::WriteAcouIntensityPower" );
  
     if (cfsInfo) {
       *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
@@ -446,14 +434,12 @@ namespace CoupledField {
 
   void WriteInfo::PrintVec(Vector<Complex>& vec)
   {
-    ENTER_FCN( "WriteInfo::PrintVec" );
     if (cfsInfo)
       *cfsInfo << vec << std::endl;
   }
 
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
-    ENTER_FCN( "WriteInfo::PrintVec" );
     if (cfsInfo)
       *cfsInfo << vec << std::endl;
   }
@@ -463,7 +449,6 @@ namespace CoupledField {
 					   UInt sosIdx, UInt src1, UInt src2, UInt src3, 
 					   UInt src4, UInt src5, UInt src6, UInt src7) {
 
-    ENTER_FCN( "WriteInfo::PrintSrcRHS" );
 
     *cfsInfo << "\nCombustion Noise Info:\n" 
 	     << " Name of file: " << filename  
@@ -506,7 +491,6 @@ namespace CoupledField {
 
   void WriteInfo::PrintVec(StdVector<Integer>& vec)
   {
-    ENTER_FCN( "WriteInfo::PrintVec" );
     if (cfsInfo)
       *cfsInfo << vec << std::endl;
   }
@@ -515,7 +499,6 @@ namespace CoupledField {
 
   void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
   {
-    ENTER_FCN( "WriteInfo::PrintVec" );
     if (cfsInfo)
       *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
   }
@@ -525,7 +508,6 @@ namespace CoupledField {
   void WriteInfo::PrintVec(const char * comment,
                            StdVector<std::string>& vec)
   {
-    ENTER_FCN( "WriteInfo::PrintVec" );
 
     if (cfsInfo)
       {
@@ -540,7 +522,6 @@ namespace CoupledField {
 
   void WriteInfo::PrintMatrix(std::string &comment, const Matrix<Double> &mat)
   {
-    ENTER_FCN( "WriteInfo::PrintMatrix" );
 
     if (cfsInfo)
       *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
@@ -552,7 +533,6 @@ namespace CoupledField {
   void WriteInfo::Warning( const std::string & Text,
                            const Char* const filename, const UInt numline ) {
 
-    ENTER_FCN( "WriteInfo::Warning" );
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
 #else
@@ -611,7 +591,6 @@ namespace CoupledField {
   void WriteInfo::Error( const std::string &Text, const Char *const filename,
                          const UInt numline ) {
 
-    ENTER_FCN( "WriteInfo::Error" );
 
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
@@ -643,14 +622,6 @@ namespace CoupledField {
       std::cerr << "\n\n This error message was brought to you by\n "
                 << filename << ", line " << numline;
     }
-
-#ifdef TRACE
-    if ( commandLine->GetTraceDepth() > 0 ) {
-      OutInfo::FcnTraceHandler::Dump();
-      std::cerr << "\n\n See '" << commandLine->GetSimName()
-                << ".trace' for trace dump of function call tree.";
-    }
-#endif
 
     std::cerr << std::endl << std::endl;
     
@@ -690,7 +661,6 @@ namespace CoupledField {
   void WriteInfo::WriteHomDirBC( const std::string& pdeName,
                                  HdBcList& list ) {
                                  
-    ENTER_FCN( "WriteInfo::WriteHomBC" );
     std::string prefix = pdeName + "-PDE: ";
 
     if (cfsInfo && list.GetSize() > 0) {
@@ -719,7 +689,6 @@ namespace CoupledField {
   void WriteInfo::WriteInhomDirBC( const std::string& pdeName, 
                                    IdBcList& list ) {
     
-    ENTER_FCN( "WriteInfo::WriteInHomBC" );
     
     std::string prefix = pdeName + "-PDE: ";
 
@@ -750,7 +719,6 @@ namespace CoupledField {
   void WriteInfo::WriteInhomNeuBC( const std::string& pdeName, 
                                    InBcList& list ) {
     
-    ENTER_FCN( "WriteInfo::WriteInHomNeuBC" );
     std::string prefix = pdeName + "-PDE: ";
     
     if (cfsInfo && list.GetSize() > 0 ) {
@@ -779,7 +747,6 @@ namespace CoupledField {
   // ********************
   void WriteInfo::WriteConstraints(  const std::string& pdeName, 
                                      ConstraintList& list ) {
-    ENTER_FCN( "WriteInfo::WriteConstraints" );
     
    std::string prefix = pdeName + "-PDE: ";
     
@@ -814,7 +781,6 @@ namespace CoupledField {
 
   void WriteInfo::WriteLoad(const std::string& pdeName, 
                             LoadList& list ) {
-    ENTER_FCN( "WriteInfo::WriteLoad" );
     
     std::string prefix = pdeName + "-PDE: ";
     
@@ -844,7 +810,6 @@ namespace CoupledField {
   void WriteInfo::PrintF( const std::string& pdeName,
                           const char * formatChar ... ) {
 
-    ENTER_FCN( "WriteInfo::PrintF" );
 
     // list of supported format specifiers
     std::string supported = "idugGeEfsc";
@@ -946,7 +911,6 @@ namespace CoupledField {
   // *****************
   void WriteInfo::StartProgress( const std::string &name, bool needAck ) {
 
-    ENTER_IFCN( "WriteInfo::StartProgress" );
    
     std::string modifiedName = name + " ";
 
@@ -974,7 +938,6 @@ namespace CoupledField {
   // ******************
   void WriteInfo::FinishProgress( const bool success ) {
 
-    ENTER_IFCN( "WriteInfo::StartProgress" );
 
     bool okay = ( warningOccured_ == false ) && ( success == true );
 

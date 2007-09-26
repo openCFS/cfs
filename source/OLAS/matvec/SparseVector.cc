@@ -13,7 +13,6 @@ namespace OLAS {
   //   Default Constructor
   // =======================
   SparseVector::SparseVector() {
-    ENTER_FCN( "SparseVector::SparseVector" );
     size_ = 0;
   }
   
@@ -21,7 +20,6 @@ namespace OLAS {
   //   Default Destructor
   // ======================
   SparseVector::~SparseVector() {
-    ENTER_FCN( "SparseVector::~SparseVector" );
   }
 
 

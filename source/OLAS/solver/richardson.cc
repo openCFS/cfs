@@ -12,7 +12,6 @@ namespace OLAS {
   // **************
   template<typename T>
   RichardsonSolver<T>::~RichardsonSolver() {
-    ENTER_FCN("RichardsonSolver::~RichardsonSolver");
     delete r_;
     delete w_;
   }
@@ -27,7 +26,6 @@ namespace OLAS {
 				   const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
-    ENTER_FCN("RichardsonSolver::Solve");
     (*cla) << "### preconditioned Richardson Solver" << std::endl;
 
     // If not yet done, create auxilliary vectors

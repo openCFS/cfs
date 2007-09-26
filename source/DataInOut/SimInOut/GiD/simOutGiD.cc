@@ -28,7 +28,6 @@ namespace CoupledField {
                                 ParamNode * outputNode )
       : SimOutput( fileName, outputNode ) {
 
-    ENTER_FCN( "SimOutputGiD::SimOutputGiD" );
 
     // Initialize variables
     formatName_ = "gid";
@@ -61,7 +60,6 @@ namespace CoupledField {
 
   SimOutputGiD::~SimOutputGiD() {
 
-    ENTER_FCN( "SimOutputGiD::~SimOutputGiD" );
 
     // Close result file
     GiD_ClosePostResultFile();
@@ -69,7 +67,6 @@ namespace CoupledField {
 
 
   void SimOutputGiD::WriteGrid() {
-    ENTER_FCN( "SimOutputGiD::WriteGrid" );
     
     LOG_TRACE(simOutputGiD) << "Writing mesh";
     
@@ -122,7 +119,6 @@ namespace CoupledField {
   }
 
   void SimOutputGiD::WriteNodes() {
-    ENTER_FCN( "SimOutputGiD::WriteNodes" );
 
     LOG_TRACE(simOutputGiD) << "Writing nodes";
     
@@ -160,7 +156,6 @@ namespace CoupledField {
   }
 
   void SimOutputGiD::WriteElements() {
-    ENTER_FCN( "SimOutputGiD::WriteElements" );
    
     LOG_TRACE(simOutputGiD) << "Writing elements";
     
@@ -433,7 +428,6 @@ namespace CoupledField {
   void SimOutputGiD::BeginMultiSequenceStep( UInt step, 
                                              AnalysisType type,
                                              UInt numSteps ) {
-    ENTER_FCN( "SimOutputGiD::BeginMultiSequenceStep" );
     
     actMsStep_ = step;
   }
@@ -441,7 +435,6 @@ namespace CoupledField {
   void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
                                      UInt saveEnd ) {
-    ENTER_FCN( "SimOutputGiD::RegisterResult" );
     
     ResultInfo & actDof = *(sol->GetResultInfo());
     LOG_DBG(simOutputGiD) << "Registering output '" << actDof.resultName
@@ -452,7 +445,6 @@ namespace CoupledField {
   }
 
   void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
-    ENTER_FCN( "SimOutputGiD::BeginStep" );
 
     actStep_ = stepNum;
     actStepVal_ = stepVal;
@@ -460,7 +452,6 @@ namespace CoupledField {
   }
  
   void SimOutputGiD::AddResult( shared_ptr<BaseResult> sol ) {
-    ENTER_FCN( " SimOutputGiD::AddResult" );
     ResultInfo & actDof = *(sol->GetResultInfo());
 
     LOG_DBG(simOutputGiD) << "Adding result '" 
@@ -470,7 +461,6 @@ namespace CoupledField {
   }
   
   void SimOutputGiD::FinishStep( ) {
-    ENTER_FCN( "SimOutputGiD::FinishStep" );
 
     LOG_TRACE(simOutputGiD) << "Starting to finish Step";
     
@@ -530,7 +520,6 @@ namespace CoupledField {
                           ResultInfo::EntryType entryType,
                           ResultInfo::EntityUnknownType entityType,
                           Double time ) {
-    ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataTrans" );
     
     // assemble name for analysis step
     std::string analysisName = "transient";
@@ -646,7 +635,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                          ResultInfo::EntityUnknownType entityType,
                          const Double freq, 
                          const ComplexFormat outputFormat ) {
-    ENTER_FCN ( "SimOutputGiD::WriteNodeElemDataHarm" );
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
@@ -946,7 +934,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
   // ********
   void SimOutputGiD::Init( Grid* ptGrid, bool printGridOnly) {
     
-    ENTER_FCN( "SimOutputGiD::OpenFile" );
 
     ptGrid_ = ptGrid;
     printGridOnly_ = printGridOnly;

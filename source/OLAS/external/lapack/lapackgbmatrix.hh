@@ -56,7 +56,6 @@ namespace OLAS {
     //! fill value is meaningless and not required. It is only provided as
     //! (optional) argument for constistency reasons.
     LapackGBMatrix( Integer nrows, Integer ncols, MatrixEntryType entryType ) {
-      ENTER_FCN( "LapackGBMatrix::LapackGBMatrix" );
       nrows_ = nrows;
       ncols_ = ncols;
       data_ = NULL;
@@ -78,7 +77,6 @@ namespace OLAS {
     //! This is the default destructor. It needs to be deep, since the
     //! class dynamically allocates memory for the matrix entries.
     ~LapackGBMatrix() {
-      ENTER_FCN( "LapackGBMatrix::~LapackGBMatrix" );
       DeleteArray(data_);
     }
 
@@ -131,7 +129,6 @@ namespace OLAS {
     //! as a value of the enumeration data type MatrixStorageType. In the
     //! case of this class the return value is of course LAPACK_GBMATRIX.
     MatrixStorageType GetStorageType() const {
-      ENTER_IFCN( "LapackGBMatrix::GetStorageType" );
       return LAPACK_GBMATRIX;
     }
 
@@ -210,7 +207,6 @@ namespace OLAS {
     //! \return The same value as GetNrows(), since LapackGBMatrices only
     //!         store scalar entries anyhow.
     Integer GetNrowsScalar() const {
-      ENTER_IFCN( "LapackGBMatrix::GetNrowsScalar" );
       return nrows_;
     }
 
@@ -222,7 +218,6 @@ namespace OLAS {
     //! \return The same value as GetNcols(), since LapackGBMatrices only
     //!         store scalar entries anyhow.
     Integer GetNcolsScalar() const {
-      ENTER_IFCN( "LapackGBMatrix::GetNcolsScalar" );
       return ncols_;
     }
 

@@ -62,7 +62,6 @@ namespace OLAS {
     //!                 information on solution process
     RichardsonSolver( OLAS_Params *myParams, OLAS_Report *myReport ) :
       r_(NULL), w_(NULL) {
-      ENTER_FCN( "RichardsonSolver::RichardsonSolver" );
       myParams_ = myParams;
       myReport_ = myReport;
     };
@@ -95,7 +94,6 @@ namespace OLAS {
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return RICHARDSON
     virtual SolverType GetSolverType() {
-      ENTER_IFCN( "CGSolver::GetSolverType" );
       return RICHARDSON;
     };
 

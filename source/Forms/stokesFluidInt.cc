@@ -13,14 +13,12 @@ namespace CoupledField
   StokesFluidInt::StokesFluidInt(Double aVal, Double bVal)
     : BaseForm(NULL),density_ (aVal),dynamicViscosity_ (bVal)
   {
-    ENTER_FCN( "StokesFluidInt::StokesFluidInt" );
 
     name_ = "stokesFluidInt";
   }
 
   StokesFluidInt::~StokesFluidInt()
   {
-    ENTER_FCN( "StokesFluidInt::~StokesFluidInt" );
   }
 
 
@@ -34,7 +32,6 @@ namespace CoupledField
                                       const Matrix<Double> & elemMat, 
                                       const UInt & nrOfNodes, 
                                       const UInt & dofPerNode) {
-    ENTER_FCN( "StokesFluidInt::ResortElementMatrix" );
 
     UInt i, j, k, dofPerElem;
     Matrix<Double> auxMat;

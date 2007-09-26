@@ -16,7 +16,6 @@ namespace CoupledField
 
   PyraFE::PyraFE()
   {
-    ENTER_FCN( "PyraFE::PyraFE" );
 
     Dim_        = 3;
     NumEdges_   = 8;
@@ -32,13 +31,11 @@ namespace CoupledField
   
   PyraFE::~PyraFE()
   {
-    ENTER_FCN( "PyraFE::~PyraFE" );
   }
 
 
  void PyraFE::FillIntegrationPoints()
  {
-      ENTER_IFCN("PyraFE::FillIntegrationPoints");      
 
       //"Pyramidal Elements"
       // F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996

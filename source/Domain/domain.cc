@@ -61,7 +61,6 @@ namespace CoupledField {
                   MaterialHandler * ptMat ) {
     
     
-    ENTER_FCN( "Domain::Domain" );
     
     Info->PrintF("","==================\n");
     Info->PrintF("","   DOMAIN SETUP   \n");
@@ -84,7 +83,6 @@ namespace CoupledField {
   }
   
   void Domain::CreateGrid() {
-    ENTER_FCN( "Domain::CreateGrid" );
    
     // read type of mesh library
     std::string libmesh = "cfsGrid";
@@ -241,7 +239,6 @@ namespace CoupledField {
   // **************
   Domain::~Domain() {
 
-    ENTER_FCN( "Domain::~Domain" );
 
     // delete all grid
     std::map<std::string, Grid* >::iterator gridIt;
@@ -310,7 +307,6 @@ namespace CoupledField {
   // **********************
   StdPDE * Domain::GetStdPDE(const std::string pdeName)
   {
-    ENTER_IFCN( "Domain::GetStdDPE" );
     bool pdeFound = false;
     UInt i;
     std::string errMsg;
@@ -355,7 +351,6 @@ namespace CoupledField {
   
   SinglePDE * Domain::GetSinglePDE(const std::string pdeName)
   {
-    ENTER_IFCN( "Domain::GetSingleDPE" );
     bool pdeFound = false;
     UInt i;
     std::string errMsg;
@@ -377,7 +372,6 @@ namespace CoupledField {
 
   BasePDE* Domain::GetBasePDE()
   {
-    ENTER_IFCN( "Domain::GetDPE" );
     
     // if only one SinglePDE exists
     if ( numSinglePde_ == 1)
@@ -404,7 +398,6 @@ namespace CoupledField {
   }
 
   CoordSystem * Domain::GetCoordSystem( const std::string & name ) {
-    ENTER_FCN( "Domain::GetCoordSystem" );
     
     
     std::map<std::string, CoordSystem*>::iterator it;
@@ -426,7 +419,6 @@ namespace CoupledField {
   // **************************
   void Domain::CreatePDEs( UInt sequenceStep ) {
 
-    ENTER_FCN( "Domain::CreatePDEs" );
 
     // create single pde(s)
     CreateSinglePDEs( sequenceStep );    
@@ -440,7 +432,6 @@ namespace CoupledField {
 
   void Domain::InitPDEs( UInt sequenceStep ) {
 
-    ENTER_FCN( "Domain::InitPDEs" );
 
 #ifdef USE_SCRIPTING
 
@@ -497,7 +488,6 @@ namespace CoupledField {
   // **************************
   void Domain::CreateSinglePDEs( UInt sequenceStep ) {
 
-    ENTER_FCN( "Domain::CreatePDEs" );
 
     // default grid
     Grid * defaultGrid = gridMap_["default"];
@@ -581,7 +571,6 @@ namespace CoupledField {
 
 
   void Domain::CreateIterCoupledPDE( UInt sequenceStep ) {
-    ENTER_FCN( "Domain::CreateIterCoupledPDE" );
   
     std::string errMsg;
 
@@ -679,7 +668,6 @@ namespace CoupledField {
   // ***************************
   void Domain::CreateDirectCoupledPDEs( UInt sequenceStep ) {
 
-    ENTER_FCN( "Domain::CreateDirectCoupledPDEs" );
 
     numIterCoupledStdPde_ = numSinglePde_;
 
@@ -790,7 +778,6 @@ namespace CoupledField {
   }
 
   void Domain::CreateCoordinateSystems() {
-    ENTER_FCN( "Domain::CreateCoordinateSystems");
 
     // first create the "global" standard cartesian
     // coordinate system
@@ -852,7 +839,6 @@ namespace CoupledField {
   // *************
   void Domain::ResetPDEs() {
 
-    ENTER_FCN( "Domain::ResetDEs" );
 
     // Delete single pde(s)
     for (UInt iPDE=0; iPDE<numSinglePde_; iPDE++) {
@@ -984,7 +970,6 @@ namespace CoupledField {
   // *************
   void Domain::PrintGrid() {
     
-    ENTER_FCN( "Domain::PrintGrid" );
 
     resultHandler_->Init( gridMap_["default"], true  );
     resultHandler_->Finalize();

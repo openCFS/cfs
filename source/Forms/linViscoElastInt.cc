@@ -17,7 +17,6 @@ namespace CoupledField
 				     std::string matrixType, Double timeStep) 
     : linElastInt(matData, type)
   {
-    ENTER_FCN( "LinViscoElastInt::LinViscoElastInt" );
 
     name_ = "LinViscoElastInt";
 
@@ -46,13 +45,11 @@ namespace CoupledField
 
   LinViscoElastInt::~LinViscoElastInt()
   {
-    ENTER_FCN( "LinViscoElastInt::~LinViscoElastInt" );
 
   }
 
  void LinViscoElastInt::calcDMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "LinViscoElastInt::calcDMat" );
 
     double E = elastModule_;
     double val = 0.0;
@@ -160,7 +157,6 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
 
   void LinViscoElastInt::SetDimensions(SubTensorType type) {
 
-    ENTER_FCN( "linElastInt::SetDimensions" );
 
     if ( type == FULL ) {
       dimD_   = 6;

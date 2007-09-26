@@ -20,7 +20,6 @@ namespace CoupledField
                                  ParamNode* paramNode ) 
     : BasePDE( paramNode )
   {
-    ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
     
     PDEs_       = PDEs;
     singlePDEs_ = singlePDEs;
@@ -54,7 +53,6 @@ namespace CoupledField
   
   IterCoupledPDE::~IterCoupledPDE()
   {
-    ENTER_FCN( "IterCoupledPDE::~IterCoupledPDE" );
     
     // delete solveStep-object
     delete solveStep_;
@@ -69,7 +67,6 @@ namespace CoupledField
 
   void IterCoupledPDE::InitCoupling()
   {
-    ENTER_FCN ("IterCoupledPDE::InitCoupling" );
     
     StdVector<std::string> quantities;
     StdVector<std::string> interfaceTypes;
@@ -277,7 +274,6 @@ namespace CoupledField
 
   void IterCoupledPDE::WriteRestart() 
   {
-    ENTER_FCN( "IterCoupledPDE::WriteRestart" );
 
     for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
       PDEs_[actPDE]->WriteRestart( );
@@ -286,7 +282,6 @@ namespace CoupledField
 
   void IterCoupledPDE::ReadRestart(UInt &startStep) 
   {
-    ENTER_FCN( "IterCoupledPDE::ReadRestart" );
     
     for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
       PDEs_[actPDE]->ReadRestart(startStep);
@@ -298,7 +293,6 @@ namespace CoupledField
                                           UInt stepOffset,
                                           Double timeOffset)
   {
-    ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
     for (UInt i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->WriteResultsInFile(kstep, asteptime, stepOffset, timeOffset);
@@ -307,7 +301,6 @@ namespace CoupledField
 
   void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
   {
-    ENTER_FCN( "IterCoupledPDE::WriteCouplingInfo" );
 
     CFSVector *val;
     StdVector<UInt> * nodes;
@@ -409,7 +402,6 @@ namespace CoupledField
 
   void IterCoupledPDE::WriteGeneralPDEdefines()
   {
-    ENTER_FCN( "IterCoupledPDE::WriteGeneralPDEdefines" );
   
     for (UInt i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->WriteGeneralPDEdefines();
@@ -418,7 +410,6 @@ namespace CoupledField
 
   BaseSolveStep * IterCoupledPDE::GetSolveStep()
   {
-    ENTER_FCN( "IterCoupledPDE::GetSolveStep" );
     return solveStep_;
   }
 

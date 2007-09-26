@@ -18,7 +18,6 @@ namespace CoupledField
                                    shared_ptr<ResultInfo> result,
                                    bool isaxi, bool coordUpdate )
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate ) {
-    ENTER_FCN( "ElecChargeOp::ElecChargeOp" );
     
     result_ = result;
     
@@ -26,7 +25,6 @@ namespace CoupledField
   
   template <class TYPE>
   ElecChargeOp<TYPE>::~ElecChargeOp() {
-    ENTER_FCN( "ElecChargeOp::~ElecChargeOp" );
     
   }
   
@@ -36,7 +34,6 @@ namespace CoupledField
                                           const Vector<Double> & lCoord,
                                           const TYPE & eNormalFluxDensity) {
 
-    ENTER_IFCN( "ElecChargeOp::CalcElemCharge" );
     
     Double jacDet;
     TYPE chargeAux;
@@ -86,7 +83,6 @@ namespace CoupledField
                   const Vector<Double> & lCoord,
                   const Vector<TYPE> & eNormalFluxDensity)
   {
-    ENTER_FCN( "ElecChargeOp::CalcElemCharges" );
     
     Warning( "Not used anymore", __FILE__, __LINE__ );
   //   Double jacDet; 

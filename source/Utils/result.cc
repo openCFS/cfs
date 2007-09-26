@@ -35,7 +35,6 @@ namespace CoupledField {
 
   template<class TYPE>
   Result<TYPE>::Result() {
-    ENTER_FCN("Result<TYPE>::Result()" );
   }
   
   template<class TYPE>

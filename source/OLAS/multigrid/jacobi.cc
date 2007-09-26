@@ -25,7 +25,6 @@ Jacobi<T>::Jacobi()
       Omega_( 0.8 ),
       PenaltyFlags_( NULL )
 {
-    ENTER_FCN("Jacobi::Jacobi");
 }
 
 /**********************************************************/
@@ -33,7 +32,6 @@ Jacobi<T>::Jacobi()
 template <typename T>
 Jacobi<T>::~Jacobi()
 {
-    ENTER_FCN("Jacobi::~Jacobi");
     
     Reset();
 }
@@ -43,7 +41,6 @@ Jacobi<T>::~Jacobi()
 template <typename T>
 bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
 {
-    ENTER_FCN("Jacobi::Setup");
 
 #ifdef  DEBUG_JACOBI
     if( matrix.GetNrows() <= 0 ) {
@@ -100,7 +97,6 @@ template <typename T>
 bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix,
                        const bool *const    penalty_flags )
 {
-    ENTER_FCN("Jacobi::Setup");
 
 
     if( Setup(matrix) ) {
@@ -121,7 +117,6 @@ Step( const CRS_Matrix<T>&                  matrix,
       const typename Smoother<T>::Direction direction,
       const bool                            force_setup )
 {
-    ENTER_FCN("Jacobi::Step");
 
     // call Setup, if object is not prepared or
     // preparation forced by force_setup == true
@@ -206,7 +201,6 @@ Step( const CRS_Matrix<T>&                  matrix,
 template <typename T>
 void Jacobi<T>::Reset()
 {
-    ENTER_FCN("Jacobi::Reset");
     
     DeleteArray( DiagonalInverse_ ); // delete diagonal inverse
     DiagonalInverse_ = NULL;

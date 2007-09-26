@@ -47,7 +47,6 @@ namespace OLAS {
   // ***************
   BaseGraph::BaseGraph( UInt nRows, UInt nCols, ReorderingType reorder ) {
 
-    ENTER_FCN("BaseGraph::BaseGraph");
 
     // Avoid problems with partially empty graphs
     if ( nRows == 0 || nCols ==0 ) {
@@ -86,7 +85,6 @@ namespace OLAS {
     amReordered_(false),
     amAssembled_(false) {
 
-    ENTER_FCN( "BaseGraph::BaseGraph" );
 
     newOrder_    = reorder;
     numNodes_    = nRows;
@@ -107,7 +105,6 @@ namespace OLAS {
   // *******************
   BaseGraph::~BaseGraph() {
 
-    ENTER_FCN( "BaseGraph::~BaseGraph" );
 
     DeleteArray( csNodes_ );
     DeleteArray( csEdges_ );
@@ -125,7 +122,6 @@ namespace OLAS {
   void BaseGraph::AddVertexNeighbours( std::vector<UInt> vertexList,
                                        std::vector<UInt> neighbourList ) {
 
-    ENTER_IFCN( "BaseGraph::AddVertexNeighbours" );
 
     Integer i, j, nodeIndex;
 
@@ -181,7 +177,6 @@ namespace OLAS {
   //   Count non-zeros
   // *******************
   void BaseGraph::CountNNE() {
-    ENTER_FCN( "BaseGraph::CountNNE" );
     Integer i;
     nne_ = 0;
     for ( i = 1; i <= numNodes_; i++ ) {
@@ -194,7 +189,6 @@ namespace OLAS {
   //   Print graph to an output stream
   // ***********************************
   void BaseGraph :: Print(std::ostream &os) const {
-    ENTER_FCN("BaseGraph::Print");
     Integer i;
     NodeListIterator j;
         
@@ -230,7 +224,6 @@ namespace OLAS {
   // ********************
   void BaseGraph::FinaliseAssembly( Integer *order ) {
 
-    ENTER_FCN( "BaseGraph::FinaliseAssembly" );
 
     NodeListIterator iter;
 
@@ -309,7 +302,6 @@ namespace OLAS {
   // **************
   void BaseGraph::SortLists() {
 
-    ENTER_FCN( "BaseGraph::SortLists" );
 
     // Sort lists and remove duplicate entries 
     for ( Integer i = 1; i <= numNodes_; i++ ) {
@@ -329,7 +321,6 @@ namespace OLAS {
   // ****************
   void BaseGraph::ConvertToCRS() {
 
-    ENTER_FCN( "BaseGraph::ConvertToCRS" );
 
     UInt i, j;
 
@@ -376,7 +367,6 @@ namespace OLAS {
   // *********************
   void BaseGraph::ConvertToMetisCRS( Integer **rptr, Integer **cidx ) {
 
-    ENTER_FCN( "BaseGraph::ConvertToMetisCRS" );
 
     UInt i, j;
 
@@ -429,7 +419,6 @@ namespace OLAS {
   // *************************
   void BaseGraph::Reorder( ReorderingType newOrder, Integer *order ) {
 
-    ENTER_FCN( "BaseGraph::Reorder" );
     Integer i;
     
     // Test, if there is memory available for storing new ordering
@@ -579,7 +568,6 @@ namespace OLAS {
   // *********************************************************************
   void BaseGraph::GetBandwidth( UInt& bwlower, UInt& bwupper ) {
 
-    ENTER_FCN( "BaseGraph::GetBandwidth" );
                 
 #ifdef DEBUG_BASEGRAPH
     if ( amAssembled_ == false ) {

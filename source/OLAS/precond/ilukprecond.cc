@@ -25,7 +25,6 @@ namespace OLAS {
                                  OLAS_Params *myParams,
                                  OLAS_Report *myReport ) {
 
-    ENTER_FCN( "ILUK_Precond::ILUK_Precond" );
 
     // Set pointers to communication objects
     this->myParams_ = myParams;
@@ -57,7 +56,6 @@ namespace OLAS {
   template <typename T>
   ILUK_Precond<T>::~ILUK_Precond() {
 
-    ENTER_FCN( "ILUK_Precond::~ILUK_Precond" );
 
   }
 
@@ -69,7 +67,6 @@ namespace OLAS {
   void ILUK_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,
 				const Vector<T> &res, Vector<T> &sol ) const {
 
-    ENTER_FCN( "ILUK_Precond::Apply" );
 
     // Test that a factorisation is available, if not issue an error.
 
@@ -91,7 +88,6 @@ namespace OLAS {
   template <typename T>
   void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
 
-    ENTER_FCN( "ILUK_Precond::Setup" );
 
     bool logging = this->myParams_->GetBoolValue( "ILUK_logging" );
 
@@ -159,7 +155,6 @@ namespace OLAS {
 				      std::vector<T> &vecW,
 				      std::vector<UInt> &vecWFill ) {
 
-    ENTER_IFCN( "ILUK_Precond::DropEntries" );
 
     std::vector<UInt>::iterator it;
 
@@ -196,7 +191,6 @@ namespace OLAS {
   template<typename T>
   void ILUK_Precond<T>::
   InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    ENTER_FCN( "ILUK_Precond::InstantiateAdditionalPublicMethods" );
     this->ExportILUFactorisation( "dummy.mtx" );
   }
 

@@ -56,7 +56,6 @@ namespace CoupledField {
   SinglePDE::SinglePDE( Grid *aptgrid, ParamNode* paramNode )
     :  StdPDE( aptgrid, paramNode ) {
   
-    ENTER_FCN( "BasePDE::BasePDE" );
   
     nonLin_ = false;
    
@@ -99,7 +98,6 @@ namespace CoupledField {
   // **************
   SinglePDE::~SinglePDE() {
 
-    ENTER_FCN( "SinglePDE::~SinglePDE" );
 
     // Delete algebraic system only if
     // PDE is not direct coupled
@@ -133,7 +131,6 @@ namespace CoupledField {
   //   Init
   // ********
   void SinglePDE::Init( UInt sequenceStep ) {
-    ENTER_FCN( "SinglePDE::Init()" );
 
     sequenceStep_ = sequenceStep;
 
@@ -467,7 +464,6 @@ namespace CoupledField {
   }
   
     void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
-    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
 
@@ -482,7 +478,6 @@ namespace CoupledField {
   }
 
   void SinglePDE::SaveSolution( const Complex * ptSol, UInt size ) {
-    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
 
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
 
@@ -497,7 +492,6 @@ namespace CoupledField {
   }
 
  void SinglePDE::SaveRHS( const Double * ptSol, UInt size ) {
-    ENTER_FCN( "SinglePDE::SaveRHS" );
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
     solHelp.Resize(size);
@@ -507,7 +501,6 @@ namespace CoupledField {
   }
 
   void SinglePDE::SaveRHS( const Complex * ptSol, UInt size ) {
-    ENTER_FCN( "SinglePDE::SaveRHS" );
 
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
     solHelp.Resize(size);
@@ -519,7 +512,6 @@ namespace CoupledField {
   
   void SinglePDE::WriteGeneralPDEdefines() {
     
-    ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
     
     // 1.) Homogeneous boundary condition
     Info-> WriteHomDirBC( pdename_, hdBcs_ );
@@ -538,7 +530,6 @@ namespace CoupledField {
       }
       
   void SinglePDE::ReadStoreResults() {
-    ENTER_FCN( "SinglePDE::ReadStoreResults" );
 
     ResultSet::iterator it;
 
@@ -558,7 +549,6 @@ namespace CoupledField {
 
   bool SinglePDE::CheckStoreResult(shared_ptr<ResultInfo> candidate)
   {
-    ENTER_FCN( "SinglePDE::ReadStoreResults" );
 
     StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
     StdVector<std::string> postProcNames, outDestNames, neighborRegions;
@@ -874,7 +864,6 @@ namespace CoupledField {
   void SinglePDE::WriteResultsInFile( const UInt kstep, 
                                       const Double actTimeFreq, 
                                       UInt stepOffset, Double timeOffset ) {
-    ENTER_FCN( "SinglePDE::WriteResultsInFile" );
     LOG_DBG(pde) << "WriteResultsInFile() kstep: " <<  kstep << " actTimeFreq: " 
             << actTimeFreq << " stepOffset: " <<  stepOffset << " timeOffset: " << timeOffset;
     ResultMap::iterator it = resultLists_.begin();
@@ -933,7 +922,6 @@ namespace CoupledField {
 
 
   void SinglePDE::Finalize() {
-    ENTER_FCN( "SinglePDE::Finalize" );
 
     // nothing to be done anymore here
   }
@@ -944,7 +932,6 @@ namespace CoupledField {
   // **********
   void SinglePDE::SetBCs( const Double time ) {
     
-     ENTER_FCN( "SinglePDE::SetBCs" );
   
 
      // Trigger setting of BC from script file
@@ -1064,7 +1051,6 @@ namespace CoupledField {
 
   void SinglePDE::ReadBCs() {
 
-    ENTER_FCN( "SinglePDE::ReadBCs" );
 
     // vectors for parameter handling
     StdVector<std::string> keyVec;
@@ -1363,7 +1349,6 @@ namespace CoupledField {
   
   
   void SinglePDE::ReadMaterialData() {
-    ENTER_FCN( "SinglePDE::ReadMaterialData" );
 
     // get list of parameter nodes for region definitions
     StdVector<ParamNode*> regionNodes;
@@ -1545,7 +1530,6 @@ namespace CoupledField {
   //! Activate the direct coupling
   void SinglePDE::SetDirectCoupling () {
                            
-    ENTER_FCN( "SinglePDE::SetDirectCoupling" );
     
     isDirectCoupled_ = true;          
   }
@@ -1557,7 +1541,6 @@ namespace CoupledField {
   // ======================================================
   void SinglePDE::DefineAlgSys() {
 
-    ENTER_FCN( "StdPDE::DefineAlgSys" );
 
 
     // First check if the PDE needs an algebraic system at all
@@ -1634,7 +1617,6 @@ namespace CoupledField {
 #ifdef ADAPTGRID
   void SinglePDE::RefineMesh( const Integer level) {
 
-    ENTER_FCN( "SinglePDE::RefineMesh" );
   
     Integer          numChilds;
     Integer          numElems;
@@ -1702,7 +1684,6 @@ namespace CoupledField {
 
   bool SinglePDE::TestError(const Integer level) {
 
-    ENTER_FCN( "SinglePDE::TestError" );
 
     if (!ptError_) ConstructorError();
   
@@ -1729,7 +1710,6 @@ namespace CoupledField {
   //In this fnc we delete old pointer to Error-object & create new
   void SinglePDE::ConstructorError() {
 
-    ENTER_FCN( "SinglePDE::ConstructorError" );
 
     if (ptError_) delete ptError_;
   
@@ -1751,7 +1731,6 @@ namespace CoupledField {
 
   void SinglePDE::CalcInputCoupling() {
 
-    ENTER_FCN( "SinglePDE::CalcInputCoupling" );
 
     std::string errMsg;
     StdVector<UInt> * nodes;
@@ -1878,7 +1857,6 @@ namespace CoupledField {
   }
   
   void SinglePDE::ResetCoupling() {
-    ENTER_FCN( "SinglePDE::ResetCoupling" );
     
     iterCoupledCounter_ = 0;
     
@@ -1889,7 +1867,6 @@ namespace CoupledField {
                            const std::string &dofString, 
                            const std::string &value, 
                            const std::string &phase ) {
-    ENTER_FCN("SinglePDE::SetIDBC");
 
     // Try ro find existing entry in IDBC vector
     Integer index = -1;
@@ -1912,7 +1889,6 @@ namespace CoupledField {
 
 
  void SinglePDE::WriteRestart( ) {
-   ENTER_FCN( "SinglePDE::WriteRestart" );
    
    if (pdename_=="mechanic" || pdename_=="acoustic") {
      std::string simName = commandLine->GetSimName();
@@ -1940,7 +1916,6 @@ namespace CoupledField {
  }
 
   void SinglePDE::ReadRestart(UInt &startStep ) {
-    ENTER_FCN( "SinglePDE::ReadRestart" );
     
     if (pdename_=="mechanic" || pdename_=="acoustic") {
       std::string simName = commandLine->GetSimName();
@@ -1967,7 +1942,6 @@ namespace CoupledField {
   
   
   void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
-    ENTER_FCN( "SinglePDE::GetMemento" );
 
     // create new memento
     shared_ptr<PDEMemento> myMemento (new PDEMemento() );
@@ -2089,7 +2063,6 @@ namespace CoupledField {
 
   void SinglePDE::SetMemento( shared_ptr<PDEMemento>& memento, 
                               PDEMemento::ValueUsageType usage) {
-    ENTER_FCN( "SinglePDE::SetMemento" );
     
     if( isInitialized_ == true ) {
       EXCEPTION( "SetMemento may only be called, if the method "
@@ -2101,7 +2074,6 @@ namespace CoupledField {
   }
 
   void SinglePDE::IncorporateMemento( ) {
-    ENTER_FCN( "SinglePDE::IncorporateMemento" );
     
     // if there is no memento present -> leave
     if( !memento_ ) {
@@ -2304,7 +2276,6 @@ namespace CoupledField {
   template<class TYPE>
   void SinglePDE::ExtractResult( shared_ptr<BaseResult> res,
                                  BaseNodeStoreSol * ptStoreSol ) {
-    ENTER_FCN( "SinglePDE::ExtractResult" );
 
     StdVector<Integer> eqnNums;
     ResultInfo & actDof = *(res->GetResultInfo() );
@@ -2335,7 +2306,6 @@ namespace CoupledField {
   }
 
   void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv ) {
-    ENTER_FCN( "SinglePDE::ExtractDerivResult" );
 
     StdVector<Integer> eqnNums;
     
@@ -2427,7 +2397,6 @@ namespace CoupledField {
   template<class TYPE>
   void SinglePDE::ExtractRhsResult( shared_ptr<BaseResult> res,
                                     shared_ptr<ResultInfo> eqnResultInfo ) {
-    ENTER_FCN( "SinglePDE::ExtractRhsResult" );
     
     StdVector<Integer> eqnNums;
     ResultInfo & actDof = *(res->GetResultInfo() );
@@ -2523,7 +2492,6 @@ namespace CoupledField {
                               Double& dampPML, 
                               ParamNode * actNode ) {
   
-    ENTER_FCN( "SinglePDE::ReadDataPML" );
 
     // Check, if pml node has a child "propRegion"
     ParamNode * propRegionNode = actNode->Get( "propRegion", false );
@@ -2574,7 +2542,6 @@ namespace CoupledField {
                                   Matrix<Double>& outer,
                                   RegionIdType actRegion )  {  
 
-    ENTER_FCN( "SinglePDE::GetPMLLayerData" );
     
     // outstream for info-File
     std::ostringstream out;

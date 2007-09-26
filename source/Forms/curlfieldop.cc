@@ -25,7 +25,6 @@ namespace CoupledField
                          BaseSystem * algsys, bool coordUpdate) 
     : BaseOperator(ptGrid, ptPDE, eqnMap, coordUpdate ), algsys_(algsys)
   {
-    ENTER_FCN( "CurlEdgeOp::CurlEdgeOp" );
 
     sol_ = &aSol;
   }
@@ -33,7 +32,6 @@ namespace CoupledField
 
   CurlEdgeOp::~CurlEdgeOp()
   {
-    ENTER_FCN( "CurlEdgeOp::~CurlEdgeOp" );
   }
 
 
@@ -41,7 +39,6 @@ namespace CoupledField
                                     const EntityIterator& ent,
                                     const Vector<Double> & LCoord)
   {
-    ENTER_FCN( "CurlEdgeOp::CalcElemCurlEdgeOp" );
   
     Error("CurlEdgeOp::CalcElemCurlEdgeOp: Not working due to EQN-class!",
           __FILE__, __LINE__);
@@ -123,7 +120,6 @@ namespace CoupledField
                                   const EntityIterator& ent,
                                   const Vector<Double> & lCoord)
   {
-    ENTER_FCN( "CurlEdgeOp::CalcElemMagVec" );
   
     Error( "CurlEdgeOp::CalcElemMagVec: Not working due to EQN-class",
            __FILE__, __LINE__);
@@ -190,7 +186,6 @@ namespace CoupledField
                                bool coordUpdate) 
     : BaseOperator(ptGrid, ptPDE , eqnMap, false, coordUpdate )
   {
-    ENTER_FCN( "CurlNodeOp::CurlNodeOp" );
 
     sol_ = &aSol;
   }
@@ -198,7 +193,6 @@ namespace CoupledField
   template<class TYPE>
   CurlNodeOp<TYPE>::~CurlNodeOp()
   {
-    ENTER_FCN( "CurlNodeOp::~CurlNodeOp" );
 
   }
 
@@ -207,7 +201,6 @@ namespace CoupledField
                                           const EntityIterator& ent,
                                           const Vector<Double> & lCoord ) 
   {
-    ENTER_FCN( "CurlNodeOp::CalcElemCurlNode" );
   
     UInt dim;
     TYPE solEntry;

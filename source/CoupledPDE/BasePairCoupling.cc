@@ -23,7 +23,6 @@ namespace CoupledField {
                                      ParamNode * paramNode)    
   {
 
-    ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
     
     // initialize pointers
     sol_            = NULL;
@@ -54,7 +53,6 @@ namespace CoupledField {
   // **************
   BasePairCoupling::~BasePairCoupling() {
 
-    ENTER_FCN( "BasePairCoupling::~BasePairCoupling" );
 
     pde1_ = NULL;
     pde2_ = NULL;
@@ -73,7 +71,6 @@ namespace CoupledField {
   // ********
   void BasePairCoupling::Init( UInt sequenceStep ) {
     
-    ENTER_FCN( "BasePairCoupling::Init" );
     
     results1_ = pde1_->GetResultInfos();
     results2_ = pde2_->GetResultInfos();
@@ -201,7 +198,6 @@ namespace CoupledField {
   }
 
   void BasePairCoupling::ReadMaterialData() {
-    ENTER_FCN( "BasePairCoupling::ReadMaterialData" );
  
     // get list of parameter nodes for region definitions
     StdVector<ParamNode*> regionNodes;
@@ -375,7 +371,6 @@ namespace CoupledField {
   }
 
   void BasePairCoupling::ReadStoreResults() {
-    ENTER_FCN( "BasePairCoupling::ReadStoreResults" );
 
  StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
     StdVector<std::string> postProcNames, outDestNames, neighborRegions;
@@ -690,7 +685,6 @@ namespace CoupledField {
                                              const Double asteptime,
                                              UInt stepOffset,
                                              Double timeOffset ) {
-    ENTER_FCN( "BasePairCoupling::WriteResultsInFile" );
 
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -733,12 +727,10 @@ namespace CoupledField {
 
 
   PdeIdType BasePairCoupling::GetPdeId1() {
-    ENTER_FCN( "BasePairCoupling::GetPdeId1" );
     return pde1_->GetPDEId();
   }
 
   PdeIdType BasePairCoupling::GetPdeId2() {
-    ENTER_FCN( "BasePairCoupling::GetPdeId2" );
     return pde2_->GetPDEId();
   }
 

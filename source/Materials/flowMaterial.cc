@@ -22,7 +22,6 @@ namespace CoupledField
   // ***********************
   FlowMaterial::FlowMaterial() : BaseMaterial() {
 
-    ENTER_FCN("BaseMaterial::BaseMaterial");
 
     materialDatabaseName_ = "FluidFlow";
     //set the allowed material parameters
@@ -32,7 +31,6 @@ namespace CoupledField
 
   FlowMaterial::~FlowMaterial() {
 
-    ENTER_FCN("BaseMaterial::~BaseMaterial");
 
   }
 
@@ -40,7 +38,6 @@ namespace CoupledField
   void FlowMaterial::SetScalar( Double param, MaterialType matType, 
 				DataType dataType ) {
 
-    ENTER_FCN( "FlowMaterial::SetScalar" );
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -71,7 +68,6 @@ namespace CoupledField
   void FlowMaterial::GetScalar( Double& param, MaterialType matType, 
 				DataType dataType ) const {
 
-    ENTER_FCN( "FlowMaterial::GetScalar" );
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );

@@ -135,7 +135,6 @@ namespace OLAS {
     //! object. In the case of an object of this class the return
     //! value is ILUTP.
     PrecondType GetPrecondType() const {
-      ENTER_FCN( "ILUTP_Precond::GetPrecondType" );
       return ILUTP;
     };
 
@@ -188,7 +187,6 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     ILUTP_Precond() {
-      ENTER_FCN( "ILUTP_Precond::ILUTP_Precond" );
       Error( "Default constructor of ILUTP_Precond should never be called!",
 	     __FILE__, __LINE__ );
     };

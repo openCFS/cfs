@@ -24,7 +24,6 @@ namespace CoupledField {
                                                bool isaxi)
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi)
   {
-    ENTER_FCN( "AcouPowerDensityOp::AcouPowerDensityOp" );
     
     isaxi_ = isaxi;
     //Warning( "Only working with Lagrange Functions", __FILE__, __LINE__ );
@@ -34,7 +33,6 @@ namespace CoupledField {
   template<class TYPE>
   AcouPowerDensityOp<TYPE>::~AcouPowerDensityOp()
   {
-    ENTER_FCN( "AcouPowerDensityOp::~AcouPowerDensityOp" );
   }
 
 
@@ -43,7 +41,6 @@ namespace CoupledField {
                                             const EntityIterator& it,
                                             const Double density)
   {
-    ENTER_FCN( "AcouPowerDensityOp::CalcElemEnergy" );
 
     Elem const * ptElement = it.GetElem();
     const UInt nrIntPts = ptElement->ptElem->GetNumIntPoints();
@@ -134,7 +131,6 @@ namespace CoupledField {
   Double AcouPowerDensityOp<TYPE>::ComputeN1( Vector<TYPE> solGrtIp,
                                               Vector<TYPE> solD1GrAtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN1" );
 
     (*error) << "AcouPowerDensityOp::ComputeN1 "
              << "only defined for TYPE=Complex/Double "; 
@@ -146,7 +142,6 @@ namespace CoupledField {
   Double AcouPowerDensityOp<Double>::ComputeN1( Vector<Double> solGrAtIp,
                                                 Vector<Double> solD1GrAtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN1" );
 
     Double N1 = 0;
     for (UInt k=0; k<dimensions_; k++)
@@ -158,7 +153,6 @@ namespace CoupledField {
   Double AcouPowerDensityOp<Complex>::ComputeN1( Vector<Complex> solGrAtIp,
                                                  Vector<Complex> solD1GrAtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN1" );
 
     Double N1 = 0;
     for (UInt k=0; k<dimensions_; k++)
@@ -171,7 +165,6 @@ namespace CoupledField {
   Vector<Double> AcouPowerDensityOp<TYPE>::ComputeN2( Vector<TYPE> solGrAtIp,
                                                       TYPE solD1AtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN2" );
 
     (*error) << "AcouPowerDensityOp::ComputeN2 "
              << "only defined for TYPE=Complex/Double "; 
@@ -183,7 +176,6 @@ namespace CoupledField {
   Vector<Double> AcouPowerDensityOp<Double>::ComputeN2( Vector<Double> solGrAtIp,
                                                         Double solD1AtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN2" );
 
     Vector<Double> N2;
     N2 = solGrAtIp * solD1AtIp;
@@ -194,7 +186,6 @@ namespace CoupledField {
   Vector<Double> AcouPowerDensityOp<Complex>::ComputeN2( Vector<Complex> solGrAtIp,
                                                          Complex solD1AtIp )
   {
-    ENTER_FCN( "AcouPowerDensityOp::ComputeN2" );
 
     Vector<Double> N2;
     N2.Resize( solGrAtIp.GetSize() );
@@ -209,7 +200,6 @@ namespace CoupledField {
 //                                         const StdVector<RegionIdType> & SD,
 //                                         const Double density)
 //   {
-//     ENTER_FCN( "AcouPowerDensityOp::CalcSDEnergy" );
 //     (*error) << "AcouPowerDensityOp::CalcSDElecField: Not implemented yet"; 
 //     Error( __FILE__, __LINE__ );
 //   }

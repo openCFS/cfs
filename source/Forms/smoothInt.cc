@@ -15,7 +15,6 @@ namespace CoupledField
   // returns B - matrix for BDB
   void SmoothInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "SmoothInt::calcBMat" );
     
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -81,7 +80,6 @@ namespace CoupledField
   // calculates the D-matrix 
   void SmoothInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
-    ENTER_FCN( "smooth3DInt::calcDMat" );
 
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
@@ -107,7 +105,6 @@ namespace CoupledField
                        bool coordUpdate ) 
     : BDBInt(matData, type) 
   {
-    ENTER_FCN( "SmoothInt::SmoothInt" );
 
     name_ = "SmoothInt";
     updateDMatInEveryIP_ = 1;
@@ -131,7 +128,6 @@ namespace CoupledField
 
   SmoothInt::~SmoothInt()
   {
-    ENTER_FCN( "SmoothInt::~SmoothInt" );
   }
 
 

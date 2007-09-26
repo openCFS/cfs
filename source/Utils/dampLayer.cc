@@ -13,7 +13,6 @@ namespace CoupledField
 {
 
   DampLayer::DampLayer(std::string type) {
-    ENTER_FCN( "DampLayer::DampLayer" );
 
     //check correct damping type
     if ( type == "linear" ) {
@@ -37,13 +36,11 @@ namespace CoupledField
  
   DampLayer::~DampLayer()
   {
-    ENTER_FCN( "DampLayer::~DampLayer" );
   }
 
 
   void DampLayer::CalcDampFactor( Double& factor, EntityIterator& ent)
   {
-    ENTER_FCN( "DampLayer ::ComputeDampFactor"); 
 
     domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
                                           ent.GetElem()->connect,
@@ -69,7 +66,6 @@ namespace CoupledField
 
   Double DampLayer::EvalDampFnc(Vector<Double>& pos)
   {
-    ENTER_FCN( "DampLayer :: EvalDampFnc"); 
 
     Double factor;
 
@@ -113,7 +109,6 @@ namespace CoupledField
 				   Double& dampFactorMax, 
 				   Double& startRadius, 
 				   Double& endRadius) {
-    ENTER_FCN( "DampLayer::DampingParams"); 
 
     // center point
     midPoint_ = point;

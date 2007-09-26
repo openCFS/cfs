@@ -23,7 +23,6 @@ namespace CoupledField
 
   BaseFE :: BaseFE()
   {
-    ENTER_FCN( "entering BaseFE::BaseFE" );
   
     // initializing dynamic objects
     ShFncAtIp_             = NULL;
@@ -44,7 +43,6 @@ namespace CoupledField
  
   BaseFE :: ~BaseFE()
   {
-    ENTER_FCN( "BaseFE::~BaseFE" );
  
     if( ShFncAtIp_ ) delete[] ShFncAtIp_;
     if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
@@ -78,7 +76,6 @@ namespace CoupledField
                           const Elem* elem,
                           UInt dof  )
   {
-    ENTER_FCN( "BaseFE::GetShFnc" );
 
     CalcShapeFnc(S, LCoord, elem, dof );
 
@@ -89,7 +86,6 @@ namespace CoupledField
                                    const Matrix<Double> & coordMat,
                                    const Elem* elem ) {
     
-    ENTER_FCN( "BaseFE::Local2GlobalCoord");
     
     // step 1: evaluate shape fncs. at local coordinate
     Vector<Double> shFnc;
@@ -104,7 +100,6 @@ namespace CoupledField
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat ) {
     
-    ENTER_FCN( "BaseFE::Global2LocalCoords");
     
     Vector<Double> globalPoint; // global point coordinates
     UInt globDim = globalCoords.GetSizeRow(); // determine global dimension
@@ -358,7 +353,6 @@ namespace CoupledField
   void BaseFE :: GetShFncAtIp(Vector<Double> & S, const UInt ip,
                               const Elem * elem, UInt dof )
   {
-    ENTER_FCN( "GetShFncAtIp" );
     
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
       S = ShFncAtIp_[ip-1];
@@ -374,7 +368,6 @@ namespace CoupledField
                                    const Elem * elem, 
                                    UInt dof )
   {
-    ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
 
     
     CalcInvJacobian(JInv, LCoord, CornerCoords, elem );
@@ -389,7 +382,6 @@ namespace CoupledField
                                        const Elem * elem, 
                                        UInt dof )
   {
-    ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
 
     std::string errMsg;
 
@@ -428,7 +420,6 @@ namespace CoupledField
                                        const Elem* elem,
                                        UInt dof )
   {
-    ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
   
     //  Deriv.Resize(NumNodes_,Dim_);
   
@@ -462,7 +453,6 @@ namespace CoupledField
                               const Matrix<Double> & CornerCoords,
                               const Elem* elem )
   {
-    ENTER_FCN( "BaseFE::CalcJacobian" );
 
     //  J.Resize(Dim_,Dim_);
 
@@ -476,7 +466,6 @@ namespace CoupledField
                                   const Matrix<Double> & CornerCoords,
                                   const Elem* elem)
   {
-    ENTER_FCN( "BaseFE::CalcJacobianAtIp" );
 
     if (CornerCoords.GetSizeRow()==3 && Dim_==2) // Surface element in 3D
       J.Resize(CornerCoords.GetSizeRow(),Dim_);
@@ -488,7 +477,6 @@ namespace CoupledField
                                    const Matrix<Double> & CornerCoords,
                                    const Elem* elem )
   {
-    ENTER_FCN( "BaseFE::CalcJacobianDet" );
 
     std::string errMsg;
     Double jacDet;
@@ -524,7 +512,6 @@ namespace CoupledField
                                        const Matrix<Double> & CornerCoords,
                                        const Elem* elem)
   {
-    ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
 
     std::string errMsg;
 
@@ -568,7 +555,6 @@ namespace CoupledField
                                  const Matrix<Double> & CornerCoords,
                                  const Elem* elem )
   {
-    ENTER_FCN( "BaseFE::CalcInvJacobian" );
   
     Matrix<Double> J, LDeriv;
     Double det;
@@ -595,7 +581,6 @@ namespace CoupledField
                                      const Matrix<Double> & CornerCoords,
                                      const Elem* elem)
   {
-    ENTER_FCN( "BaseFE::CalcInvJacobianAtIp" );
 
     JInv.Resize(Dim_,Dim_);
 
@@ -609,7 +594,6 @@ namespace CoupledField
 
   void BaseFE :: SetShapeFncAtIp()
   {
-    ENTER_FCN( "BaseFE::SetShapeFncAtIp" );
   
     if (!ShFncAtIp_) {
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
@@ -628,7 +612,6 @@ namespace CoupledField
   
   void BaseFE :: SetShapeFncDerivAtIp()
   {
-    ENTER_FCN( "BaseFE::SetShapeFncDerivAtIp" );
 
     if( !ShFncDerivAtIp_) {
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
@@ -663,7 +646,6 @@ namespace CoupledField
   void BaseFE::GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord, UInt ip,
                                          const Matrix<Double> & cornerCoords)
   {
-    ENTER_FCN( "BaseFE::GetGlobalEdgeIndicesAtIP" );
     // cornerCoords: nrCorners x dim
 
     globCoord.Resize(Dim_);
@@ -679,7 +661,6 @@ namespace CoupledField
                                          const UInt ip,
                                          const Matrix<Double> & cornerCoords)
   {
-    ENTER_FCN( "BaseFE::GetEdgeGlobDerivShFncAtIp" );
 
     // vector of coordinates of the desired integration point
     Vector<Double> lCoord;
@@ -695,7 +676,6 @@ namespace CoupledField
                                     const UInt ip,
                                     const Matrix<Double> & cornerCoords)
   {
-    ENTER_FCN( "BaseFE::CalcEdgeShapeFncAtIp" );
 
     Vector<Double> lCoord;
     lCoord.Resize(Dim_);
@@ -711,7 +691,6 @@ namespace CoupledField
                                     UInt * pDENodes, 
                                     BaseSystem * algsys)
   {
-    ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
 
     EXCEPTION( "Edge functions are currently not supported!");
 
@@ -741,7 +720,6 @@ namespace CoupledField
   Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, 
                               const bool isaxi)
   {
-    ENTER_FCN( "BaseFE::CalcVolume" );
 
     Double elemVol = 0;
     Double  jacDet, partVol;
@@ -798,7 +776,6 @@ namespace CoupledField
                            Matrix<Double> &TransMat, 
                            Matrix<Double> &ShellCoord )
   {
-    ENTER_FCN( "BaseFE::CoordTrans" );
 
     // Method based on book XXX and Master thesis from Xiong //
     const Integer spaceDim = 3;
@@ -879,7 +856,6 @@ namespace CoupledField
 			     Matrix<Double> &TransMat, 
 			     Matrix<Double> &ShellCoord )
   {
-    ENTER_FCN( "BaseFE::CoordTrans2D" );
 
     // Method based on book XXX and Master thesis from Xiong //
     const Integer spaceDim = 2;
@@ -940,7 +916,6 @@ namespace CoupledField
    
   void BaseFE::MakeKey(IntegrationMethod type, int order, std::string &out)
   {
-    ENTER_FCN( "BaseFE::MakeKey" );         
     Enum2String(type, out);       
     std::stringstream ss;
     ss << GetShapeName() << " (" << out << ") order " << order;
@@ -978,7 +953,6 @@ namespace CoupledField
 
   void BaseFE::MakeKey(int order1, int order2, int order3, std::string &out)
   {
-    ENTER_FCN( "BaseFE::MakeKey(order1,order2,order3)" );         
     // this is only for debugging, we can encode the orders as defined in environment.hh
     int order = EncodeCartesianOrder(order1, order2, order3);
        
@@ -991,7 +965,6 @@ namespace CoupledField
   void BaseFE::AddIntegrationPoints(IntegrationMethod type, int order, 
                                     int numberOfRows, Double* data)
   {
-    ENTER_FCN( "BaseFE::AddIntegrationPoints" );   	   	
 
     std::string key;
     MakeKey(type, order, key);
@@ -1019,7 +992,6 @@ namespace CoupledField
   StdVector<Double*>* BaseFE::GetIntegrationPoints(IntegrationMethod type, int order, bool search_upwards, 
                                                    bool search_downwards, bool fallback)     
   {
-    ENTER_FCN( "BaseFE::GetIntegrationPoints" );   	   	
     std::string key;
     int org_order = order;
 
@@ -1101,7 +1073,6 @@ namespace CoupledField
 
   void BaseFE::CommonInit(IntegrationMethod method, int order)
   {
-    ENTER_FCN( "BaseFE::CommonInit()" );             
     
  #ifndef INTEGLIB
     // if undefined we have an empty constructor and search :)
@@ -1253,7 +1224,6 @@ namespace CoupledField
   /** Expicitly set and load the integration type  */
   void BaseFE::SetIntPoints(IntegrationMethod method, int order)
   {
-    ENTER_FCN( "BaseFE:SetIntPoints(method,order):" );
     IntegMethod = method;
     IntegOrder  = order;
 
@@ -1268,7 +1238,6 @@ namespace CoupledField
   // reads from the map but generates cartesian integration points on the fly when set in XML for the proper elements!
   void BaseFE::SetIntPoints()
   {
-    ENTER_FCN( "BaseFE::SetIntPoints" );   	
       
     // if we are not a valid element for CARTESIAN (assuming reading from XML) the fallback will work
     if(IntegMethod == CARTESIAN 
@@ -1343,7 +1312,6 @@ namespace CoupledField
                            AnsatzFct::FctEntityType fctEntityType, 
                            UInt dof) {
 
-    ENTER_FCN( "BaseFE::GetNumFcns" );
     
     // Check ansatzFctType
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
@@ -1372,7 +1340,6 @@ namespace CoupledField
   void BaseFE::EvalPolynom( Double& value, Double& deriv,
                             const UInt order, const Double* coeff, 
                             const Double xVal ) {
-    ENTER_FCN( "BaseFE::EvalPolynom" );
 
     // Consider the following expression
     // f(xVal) = a0 * (a1*x^order + a2*x^(order-1) + .. + a(order+1))

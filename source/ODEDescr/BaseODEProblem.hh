@@ -18,12 +18,10 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseODEProblem() {
-      ENTER_FCN( "BaseODEProblem::BaseODEProblem" );
     }
 
     //! Default Destructor
     virtual ~BaseODEProblem() {
-      ENTER_FCN( "BaseODEProblem::~BaseODEProblem" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -39,7 +37,6 @@ namespace CoupledField {
 			Matrix<Double> &dfdy,
 			Double &t) //= 0;
     {
-      ENTER_FCN( "BadeODEProblem::Jacobi" );
       std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
     }
 

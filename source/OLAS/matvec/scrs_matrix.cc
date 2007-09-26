@@ -16,7 +16,6 @@ namespace OLAS {
   template<typename T>
   SCRS_Matrix<T>::SCRS_Matrix( const SCRS_Matrix<T> &origMat ) {
 
-    ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
 
     // Set basic size informations
     numEntries_ = origMat.numEntries_;
@@ -75,7 +74,6 @@ namespace OLAS {
   // For all cases, but RMatrix1
   template<typename T>
   SCRS_Matrix<T>::SCRS_Matrix( CoordFormat<T> &sparseMat ) {
-    ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
     Error( "Alternate Constructor for SCRS_Matrix only works for RMatrix1",
            __FILE__, __LINE__ );
   }
@@ -85,7 +83,6 @@ namespace OLAS {
   template<>
   SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) {
 
-    ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
 
     // Set general matrix pattern and dimension info
     this->nrows_ = sparseMat.GetNrows();
@@ -188,7 +185,6 @@ namespace OLAS {
   template<>
   SCRS_Matrix<Complex>::SCRS_Matrix( CoordFormat<Complex> &sparseMat ) {
 
-    ENTER_FCN( "SCRS_Matrix::SCRS_Matrix" );
 
     // Set general matrix pattern and dimension info
     this->nrows_ = sparseMat.GetNrows();
@@ -299,7 +295,6 @@ namespace OLAS {
     // obtained with GetGraphRow(). But, it is also expected that the array
     // contains an entry for the node itself.
 
-    ENTER_FCN( "SCRS_Matrix::SetSparsityPattern" );
 
     Integer rs;
     Integer *index;
@@ -370,7 +365,6 @@ namespace OLAS {
   void SCRS_Matrix<T>::SetSparsityPattern( PatternPool *patternPool,
                                            PatternIdType patternID ) {
 
-    ENTER_FCN( "SCRS_Matrix::SetSparsityPattern" );
 
     // Safety checks
     if ( patternPool == NULL ) {
@@ -409,7 +403,6 @@ namespace OLAS {
   template<typename T> PatternIdType
   SCRS_Matrix<T>::TransferPatternToPool( PatternPool *patternPool ) {
 
-    ENTER_FCN( "SCRS_Matrix::TransferPatternToPool" );
 
     // Safety checks
     if ( patternPool == NULL ) {
@@ -446,7 +439,6 @@ namespace OLAS {
   // *************************
   template<typename T>
   void SCRS_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
-    ENTER_FCN( "SCRS_Matrix::CopySparsityPattern &mat" );
 
     // Check, if pointer to pattern pool exists
     if( patternPool_ == NULL ) {
@@ -468,7 +460,6 @@ namespace OLAS {
   inline void SCRS_Matrix<T>::Mult( const Vector<T> &mvec,
 				    Vector<T> &rvec ) const {
 
-    ENTER_FCN( "SCRS_Matrix::Mult" );
 
     register Integer k, rs;
     register Integer c;
@@ -498,7 +489,6 @@ namespace OLAS {
   inline void SCRS_Matrix<T>::MultAdd( const Vector<T> & mvec,
 				       Vector<T> & rvec ) const {
 
-    ENTER_FCN( "SCRS_Matrix::MultAdd" );
 
     register Integer k,rs;
     register Integer c;
@@ -526,7 +516,6 @@ namespace OLAS {
   inline void SCRS_Matrix<T>::MultSub( const Vector<T> &mvec,
 				       Vector<T> &rvec ) const {
 
-    ENTER_FCN( "SCRS_Matrix::MultSub" );
 
     register Integer k,rs;
     register Integer c;
@@ -554,7 +543,6 @@ namespace OLAS {
   inline void SCRS_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
 				       const Vector<T> &b ) const {
 
-    ENTER_FCN( "SCRS_Matrix::CompRes" );
 
     Integer i;
 
@@ -584,7 +572,6 @@ namespace OLAS {
   template<typename T>
   inline void SCRS_Matrix<T>::MultT( const Vector<T> & mvec,
 				     Vector<T> & rvec ) const {
-    ENTER_FCN( "SCRS_Matrix::MultT" );
     Mult( mvec, rvec );
   }
 
@@ -595,7 +582,6 @@ namespace OLAS {
   template<typename T>
   inline void SCRS_Matrix<T>::MultTAdd( const Vector<T> & mvec,
 					Vector<T> & rvec ) const {
-    ENTER_FCN( "SCRS_Matrix::MultTAdd" );
     MultAdd( mvec, rvec );
   }
 
@@ -606,7 +592,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::Print(std::ostream& os) const {
 
-    ENTER_FCN( "SCRS_Matrix::Print" );
 
     register Integer k,rs;
     register Integer c;
@@ -636,7 +621,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::Export( const Char *fname, const Char *comment ) const{
 
-    ENTER_FCN( "SCRS_Matrix::Export" );
 
     // Obtain blocksize of matrix
     Integer dof = this->GetBlockSize();
@@ -733,7 +717,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::CopySCRSMatrix2Vec(Complex* &dataVec){
     
-    ENTER_FCN( "SCRS_Matrix::CopySRCSMatrix2CFSFullMatrix" );  
     (*error) << "CopySCRSMatrix2Vec is only implemented for complex valued "
              << "scalar matrices!";
     Error( __FILE__, __LINE__ );
@@ -743,7 +726,6 @@ namespace OLAS {
   template<>
   void SCRS_Matrix<Complex>::CopySCRSMatrix2Vec(Complex* &dataVec){
 
-    ENTER_FCN( "SCRS_Matrix::CopySRCSMatrix2CFSFullMatrix" );
 
     UInt k=0;
 
@@ -775,7 +757,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::AddToMatrixEntry( Integer i, Integer j, T& v ) {
 
-    ENTER_IFCN( "SCRS_Matrix::AddToMatrixEntry" );
 
     // If the entry lies in the lower triangular part, we simply ignore it
     if ( j < i ) {
@@ -807,7 +788,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::GetMatrixEntry( Integer i, Integer j, 
                                        T &v ) const {
-    ENTER_IFCN( "SCRS_Matrix:GetMatrixEntry" );
     
     // Determine, which of i and j is row and column index for upper
     // triangular part
@@ -841,7 +821,6 @@ namespace OLAS {
   template<typename T>
   void SCRS_Matrix<T>::SetMatrixEntry( Integer i, Integer j, T &v, 
                                        bool setCounterPart ) {
-    ENTER_IFCN( "SCRS_Matrix:SetMatrixEntry" );
 
     // Check, if a non-diagonal entry should be set without its counterpart
     if ( i!= j && setCounterPart == false ) {
@@ -880,7 +859,6 @@ namespace OLAS {
   // ***********
   template<typename T>
   void SCRS_Matrix<T>::Insert(Integer row, Integer col,  Integer pos){
-    ENTER_IFCN( "SCRS_Matrix::Insert" );
     Error( "not implemented", __FILE__, __LINE__ );
   }
 
@@ -891,7 +869,6 @@ namespace OLAS {
   template <typename T>
   void SCRS_Matrix<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "SCRS_Matrix::InstantiatePublicMethods" );
 
     std::cout << "Haha" << std::endl;
 
@@ -963,7 +940,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void SCRS_Matrix<T>::Scale( Double factor ) {
-    ENTER_FCN( "SCRS_Matrix::Scale" );
     for ( Integer i = 1; i <= numEntries_; i++ ) {
       data_[i] *= factor;
     }
@@ -976,7 +952,6 @@ namespace OLAS {
   template<typename T>
   Double SCRS_Matrix<T>::GetMaxDiag() const {
 
-    ENTER_FCN( "SCRS_Matrix::GetMaxDiag" );
 
     double maxDiag = 0;
     double current = 0;
@@ -999,7 +974,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   void SCRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
-    ENTER_FCN( "SCRS_Matrix::Add" );
      TRY_CAST {
 
       // Down-cast input matrix
@@ -1021,7 +995,6 @@ namespace OLAS {
   // Sepcialisation for complex matrices
   template<>
   void SCRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
-    ENTER_FCN( "SCRS_Matrix::Add" );
 
     // Check for entry type of mat
     MatrixEntryType eType = mat.GetEntryType();
@@ -1074,7 +1047,6 @@ namespace OLAS {
   void SCRS_Matrix<T>::AccountForPenalty( Vector<T> &vec,
                                           const Vector<T> &rhs ) const {
 
-      ENTER_FCN( "SCRS_Matrix::AccountForPenalty" );
       Error( "Method not defined for this kind of template!",
              __FILE__,__LINE__ );
   }
@@ -1088,7 +1060,6 @@ namespace OLAS {
                                                const Vector<Double> &rhs )
     const {
 
-    ENTER_FCN( "SCRS_Matrix::AccountForPenalty" );
 
     // Determine value of penalty approach
     Double penalty = GetMaxDiag();

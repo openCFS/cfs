@@ -3,8 +3,6 @@
 #cmakedefine _DEBUG
 
 // Defines related to tracing of functions and memory usage
-#cmakedefine TRACE
-#cmakedefine TRACE_ALL
 #cmakedefine MEMTRACE
 
 // Use profiling or not

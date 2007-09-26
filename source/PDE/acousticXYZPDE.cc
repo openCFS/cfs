@@ -40,7 +40,6 @@ namespace CoupledField {
   AcousticXYZPDE::AcousticXYZPDE( Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
-    ENTER_FCN( "AcousticXYZPDE::AcousticXYZPDE" );
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -58,7 +57,6 @@ namespace CoupledField {
   // *********************************************
   void AcousticXYZPDE::ReadDampingInformation( ) {
 
-    ENTER_FCN( "AcousticXYZPDE::ReadDampingInformation" );
     
     // Get region parameter nodes
     StdVector<ParamNode*> regionNodes = myParam_->Get("regionList")->GetList( "region" );
@@ -104,7 +102,6 @@ namespace CoupledField {
 
   void AcousticXYZPDE::DefineIntegrators() {
 
-    ENTER_FCN( "AcousticXYZPDE::DefineIntegerators" );
 
     Double density, compressibility, c0, alpha, beta, BoverA;
     Double coeffmass, coeffdamp, coeffstiff;
@@ -250,7 +247,6 @@ namespace CoupledField {
   }
 
   void AcousticXYZPDE::DefineSolveStep() {
-    ENTER_FCN( "AcousticXYZPDE::DefineSolveStep" );
    
     solveStep_ = new SolveStepAcoustic(*this);
    
@@ -262,7 +258,6 @@ namespace CoupledField {
   // ======================================================
 
   void AcousticXYZPDE::InitTimeStepping() {
-    ENTER_FCN( "AcousticXYZPDE::InitTimeStepping" );
     
     // timestepping formulation
     ParamNode* myLinSysNode = FindLinearSystem( pdename_ );
@@ -300,14 +295,12 @@ namespace CoupledField {
   // ======================================================
 
   void AcousticXYZPDE::CalcResults( shared_ptr<BaseResult> res ) {
-    ENTER_FCN( "AcousticXYZPDE::CalcResults" );
 
     EXCEPTION( "Not implemented -> Blame Manfred and Andreas ;_)" );
 
   }
 
   void AcousticXYZPDE::DefineAvailResults() {
-    ENTER_FCN( "AcousticXYZPDE::DefineAvailResults" );
 
     // Get problem geometry and PDE subtype
     std::string probGeo = param->Get("domain")->Get("geometryType")->AsString();
@@ -361,7 +354,6 @@ namespace CoupledField {
                                 Double& dampPML, 
                                 ParamNode * actNode ) {
   
-    ENTER_FCN( "AcousticXYZPDE::ReadDataPML" );
 
     // help variables for parameter checking
     StdVector<std::string> propGeo;
@@ -416,7 +408,6 @@ namespace CoupledField {
                                     Matrix<Double>& outer,
                                     RegionIdType actRegion )  {  
 
-    ENTER_FCN( "AcousticXYZPDE::GetPMLLayerData" );
 
     // inner/outer:   xmin  ymin  zmin
     //                xmax  ymax  zmax

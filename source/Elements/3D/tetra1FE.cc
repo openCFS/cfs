@@ -13,7 +13,6 @@ namespace CoupledField
 
   Tetra1FE::Tetra1FE():TetraFE()
   { 
-    ENTER_FCN( "Tetra1FE::Tetra1FE" );
 
     Init();
   }
@@ -21,13 +20,11 @@ namespace CoupledField
 
   Tetra1FE::~Tetra1FE()
   {
-    ENTER_FCN( "Tetra1FE::~Tetra1FE" );
   
   }
 
   void Tetra1FE::Init()
   {
-    ENTER_IFCN( "Tetra1FE::Init" );
   
     NumNodes_ = 4;
     NumEdges_ = 6;
@@ -38,7 +35,6 @@ namespace CoupledField
 
   void Tetra1FE::SetCornerCoords()
   {
-    ENTER_IFCN( "Tetra1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -78,7 +74,6 @@ namespace CoupledField
   /// defines the connection between nodes with "their" edge 
   void Tetra1FE :: SetEdgeVertices()
   {
-    ENTER_IFCN( "SetEdgeVertices" );
     const UInt nrNodesPerEdge = 2;
   
     edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
@@ -135,7 +130,6 @@ namespace CoupledField
                                  const Elem*, UInt dof,
                                  AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Tetra1FE::CalcShapeFnc" );
 
 
     Shape.Resize(NumNodes_);
@@ -158,7 +152,6 @@ namespace CoupledField
                                            const Elem*, UInt dof,
                                            AnsatzFct::FctEntityType fctEntityType )
   {
-    ENTER_IFCN( "Tetra1FE::CalcLocalDerivShapeFnc" );
 
     LDeriv.Resize(NumNodes_,Dim_);
 
@@ -177,7 +170,6 @@ namespace CoupledField
                                     const Vector<Double> & LCoord, 
                                     const Matrix<Double> & cornernodes)
   {
-    ENTER_IFCN( "Tetra1FE::CalcShapeFnc" );
 
     edgeShape.Resize(NumEdges_, Dim_);
     edgeShape.Init();
@@ -211,7 +203,6 @@ namespace CoupledField
                                               const Vector<Double> & lCoord,
                                               const Matrix<Double> & cornerCoords)
   {
-    ENTER_IFCN( "Tetra1FE::GetEdgeGlobalDerivShapeFnc" );
 
     shapeDeriv.Resize(NumEdges_);
 

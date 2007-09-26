@@ -20,7 +20,6 @@ namespace CoupledField
   Vector<TYPE>::Vector()
     : CFSVector()
   {
-    ENTER_IFCN("Vector::Vector");
     data_ = NULL;
     size_ = 0;
     capacity_ = 0;
@@ -31,7 +30,6 @@ namespace CoupledField
   Vector<TYPE>::Vector(UInt size, const TYPE entry)
     : CFSVector(size)
   {
-    ENTER_IFCN("Vector::Vector");
     size_ = size;
     capacity_ = size;
     data_ = new TYPE [size];
@@ -44,7 +42,6 @@ namespace CoupledField
   template<class TYPE> 
   Vector<TYPE>::Vector(const Vector<TYPE> &vec)
   {
-    ENTER_IFCN("Vector::Vector");    
 
     size_ = vec.size_;
     capacity_ = size_;
@@ -64,7 +61,6 @@ namespace CoupledField
   template<class TYPE> 
   Vector<TYPE>::Vector(const Point & p)
   {
-    ENTER_IFCN("Vector::Vector");
     size_ = 3;
     capacity_ = 3;
     data_ = new TYPE[3];
@@ -78,7 +74,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE>::~Vector()
   {
-    ENTER_IFCN("Vector::~Vector");
     if (data_ && memBelongsToMe_ == true )
       delete[] data_;
   }
@@ -87,7 +82,6 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Clear()
   {
-    ENTER_IFCN( "Vector::Clear()" );
   
     if (memBelongsToMe_ == false ) {
       EXCEPTION( "Refusing to clear vector, since memory does not " 
@@ -104,7 +98,6 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Init(const TYPE entry)
   {
-    ENTER_IFCN("Vector::Init");
 
     //#ifdef CHECK_INITIALIZED
     //  if (size_ == 0) 
@@ -118,7 +111,6 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Replace( UInt length, TYPE* entries, bool transferMem ) {
   
-    ENTER_FCN( "Vector::Replace" );
 
     // De-allocate old array, if required
     if ( memBelongsToMe_ == true ) {
@@ -137,7 +129,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Resize(const UInt size)
   {
-    ENTER_IFCN("Vector::Resize");
 
 #ifdef CHECK_INDEX
     if (size < 0) 
@@ -166,7 +157,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::SetEntry(const UInt i, const TYPE &s)
   {
-    ENTER_IFCN("Vector::SetEntry");
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
@@ -180,7 +170,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::GetEntry(const UInt i, TYPE &ret) const
   {
-    ENTER_IFCN("Vector::GetEntry");  
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
@@ -203,7 +192,6 @@ namespace CoupledField
   
   template<>
   Vector<Double> Vector<Double>::GetPart(  DataType part ) const {
-    ENTER_FCN( "Vector<Double>::GetPart" )
     
     if ( part != REAL ) {
       EXCEPTION("Vector<Double>::GetPart: Only possible for REAL part." );
@@ -213,7 +201,6 @@ namespace CoupledField
 
   template<>
   Vector<Double> Vector<Complex>::GetPart(  DataType part ) const {
-    ENTER_FCN( "Vector<Complex>::GetPart" );
     
     Vector<Double> ret;
     if ( part == REAL ) {
@@ -281,7 +268,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::AddEntry(const UInt i, const TYPE &s)
   {
-    ENTER_IFCN("Vector::AddEntry");
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
@@ -296,7 +282,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::MultEntry(const UInt i, const TYPE &s)
   {
-    ENTER_IFCN("Vector::MultEntry");
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
@@ -311,7 +296,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::MultAddEntry(const UInt i, const TYPE &a, const TYPE &s)
   {
-    ENTER_IFCN("Vector::MuldAddEntry");
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
@@ -326,7 +310,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Add(const CFSVector& y)
   {
-    ENTER_IFCN("Vector::Add");
 
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 
@@ -342,7 +325,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Add(const TYPE a, const CFSVector &y)
   {
-    ENTER_IFCN("Vector::Add"); 
 
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
 
@@ -360,7 +342,6 @@ namespace CoupledField
   void Vector<TYPE>::Add( const TYPE a, const CFSVector& y,
                           const TYPE b, const CFSVector& z )
   {
-    ENTER_IFCN("Vector::Add");  
 
     const Vector<TYPE> & yvec = dynamic_cast<const Vector<TYPE>&>(y);
     const Vector<TYPE> & zvec = dynamic_cast<const Vector<TYPE>&>(z);
@@ -378,7 +359,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Axpy(const TYPE a, const CFSVector &y)
   {
-    ENTER_IFCN("Vector::Axpy"); 
     
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
 
@@ -394,7 +374,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Inner(const CFSVector &y, TYPE &result) const
   {
-    ENTER_IFCN("Vector::Inner");
 
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 #ifdef CHECK_INDEX
@@ -413,7 +392,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
   {
-    ENTER_IFCN( "Vector::operator=(const Vector)");
   
     if (this == &x)
       return *this;
@@ -443,7 +421,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator+=(const Vector<TYPE> &x)
   {
-    ENTER_IFCN( "Vector::operator+" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator +=(vector)" );
@@ -463,7 +440,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> Vector<TYPE>::operator- () const
   {
-    ENTER_IFCN( "Vector::operator-" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in oprator -()" );
@@ -480,7 +456,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> Vector<TYPE>::operator+ () const
   {
-    ENTER_IFCN( "Vector::operator+" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in oprator +()" );
@@ -495,7 +470,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
   {
-    ENTER_IFCN( "Vector::operator-=" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator -=(vector)" );
@@ -518,7 +492,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
   {
-    ENTER_IFCN( "Vector::operator/=" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in operator /=(number)" );
@@ -536,7 +509,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator*= (const TYPE &x)
   {
-    ENTER_IFCN( "Vector::operator*=" );   
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in operator*=" );
@@ -571,7 +543,6 @@ namespace CoupledField
   template<class TYPE>
   bool Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
   {
-    ENTER_IFCN( "Vector::operator!=" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator !=" );
@@ -587,7 +558,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> Vector<TYPE>::Part(const UInt i1,const UInt i2) const
   {
-    ENTER_IFCN( "Vector::Part" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION( "Vector: undefined Vector" );
@@ -609,7 +579,6 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> Vector<TYPE>::Unit (const UInt n,const UInt i)
   {
-    ENTER_IFCN( "Vector::Unit" );
 #ifdef CHECK_INDEX      
     if (n <= 0)
       std::cerr << "Vector::unit() invalid dimension";
@@ -629,7 +598,6 @@ namespace CoupledField
   template<class TYPE>
   Double Vector<TYPE>::NormL2() const
   {
-    ENTER_IFCN( "Vector::NormL2" );
     EXCEPTION( "Vector<TPYE>::NormL2 only defined for TYPE=Complex/Double" );
     return TYPE();
   }
@@ -637,7 +605,6 @@ namespace CoupledField
  template<>
   Double Vector<Double>::NormL2() const
   {
-    ENTER_IFCN( "Vector::NormL2" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in function norm_2()" );
@@ -675,7 +642,6 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Push_back(const TYPE & y)
   {
-    ENTER_IFCN( "Vector::Push_back" );
     // add y at the end of the vector (size_=length of vec)
     AddElement(y,size_);
   }
@@ -685,7 +651,6 @@ namespace CoupledField
   template<class TYPE>
   void  Vector<TYPE>:: AddElement (const TYPE & y, UInt pos)
   {
-    ENTER_IFCN( "Vector::AddElement" );
 #ifdef CHECK_INDEX
     if (pos < 0 || pos > size_)
       EXCEPTION("Vector::AddElemen(): Index out of bounds" );
@@ -716,7 +681,6 @@ namespace CoupledField
   template<class TYPE>
   void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, UInt pos)
   {
-    ENTER_IFCN( "Vector::InsertVector" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in function InsertVector()" );
@@ -754,7 +718,6 @@ namespace CoupledField
   template<class TYPE>
   void  Vector<TYPE>:: Cut (const UInt pos)
   {
-    ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in function Cut()" );
@@ -785,7 +748,6 @@ namespace CoupledField
   template<class TYPE>
   void  Vector<TYPE>:: Cut (const UInt pos1, const UInt pos2)
   {
-    ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in function Cut()" );
@@ -821,14 +783,12 @@ namespace CoupledField
   template<class TYPE>
   UInt  Vector<TYPE>::Memory() const
   {
-    ENTER_IFCN( "Vector::Memory" );
     return size_*sizeof(TYPE);
   }
 
   template<class TYPE>
   void Swap(Vector<TYPE> & a, Vector<TYPE> & b) 
   {
-    ENTER_IFCN( "Swap" );
     UInt tmp_size;
 
     tmp_size = a.size_;
@@ -859,7 +819,6 @@ namespace CoupledField
   template<class TYPE> 
   void Vector<TYPE>::Sort()
   {
-    ENTER_IFCN( "Vector::Sort" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector::Sort: Use of uninitialized vector");
@@ -887,7 +846,6 @@ namespace CoupledField
   template<class S>
   std::ostream & operator << ( std::ostream & out, const Vector<S> & vc)
   {
-    ENTER_IFCN( "operator <<(Vector)" );
 
     for (UInt i=0; i < vc.GetSize(); i++)
       out << vc[i] << " " << std::endl;

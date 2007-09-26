@@ -69,7 +69,6 @@ if ( entryType == eType && blockSize == bSize ) { \
   // ****************************
   BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
 				    ParamNode* xml, OLAS_Params *params, OLAS_Report *report ){
-    ENTER_FCN( "GenerateSolverObject" );
 
     BaseSolver *retSolver = NULL;
     MatrixEntryType eType = mat.GetEntryType();

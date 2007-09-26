@@ -14,7 +14,6 @@ namespace CoupledField
 
   void piezoParamIdent::nuMethods(){
 
-    ENTER_FCN("piezoParamIdent::nuMethod()");
 
     UInt nrIterations=0;
     UInt nNuMethods=0;
@@ -395,7 +394,6 @@ namespace CoupledField
 
   void piezoParamIdent::nuMethodsC2(){
 
-    ENTER_FCN("piezoParamIdent::nuMethodsC2");
 
     UInt nrIterations=0;
     UInt nNuMethods=0;

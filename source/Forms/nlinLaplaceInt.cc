@@ -18,7 +18,6 @@ namespace CoupledField
                                  bool coordUpdate )
     : BaseForm(NULL),laplVal_ (aVal)
   {
-    ENTER_FCN( "nLinLaplaceInt::LaplaceInt" );
 
     name_ = "nLinLaplaceInt";
 
@@ -34,7 +33,6 @@ namespace CoupledField
  
   nLinLaplaceInt::~nLinLaplaceInt()
   {
-    ENTER_FCN( "nLinLaplaceInt::~LaplaceInt" );
   }
 
 
@@ -43,7 +41,6 @@ namespace CoupledField
                                       EntityIterator& ent1, 
                                       EntityIterator& ent2 ) {
   
-    ENTER_FCN( "nLinLaplaceInt::CalcElementMatrix" );
    
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

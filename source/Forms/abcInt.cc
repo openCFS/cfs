@@ -9,7 +9,6 @@ namespace CoupledField {
   
   
   AbsorbingBCsInt::AbsorbingBCsInt(bool isAxi) {
-    ENTER_FCN( "AbsorbingBCsInt::AbsorbingBCsInt" );
 
     name_ = "AbsorbingBCsInt";
     isaxi_ = isAxi;
@@ -17,19 +16,16 @@ namespace CoupledField {
   }
 
   AbsorbingBCsInt::~AbsorbingBCsInt() {
-    ENTER_FCN( "AbsorbingBCsInt::~AbsorbingBCsInt" );
   }
 
 
   void AbsorbingBCsInt::SetFactor( const std::string& factor ) {
-    ENTER_FCN( "AbsorbingBCsInt::SetFactor" );
     mParser_->SetExpr( mHandle_, factor );
   }
 
   void AbsorbingBCsInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                            EntityIterator& ent1, 
                                            EntityIterator& ent2 ) {
-    ENTER_FCN( "AbsorbingBCsInt::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

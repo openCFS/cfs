@@ -14,7 +14,6 @@ namespace CoupledField {
   std::string CFSMessenger::errMsg_ = std::string();
   
   CFSMessenger::CFSMessenger() {
-    ENTER_FCN( "CFSMessenger::CFSMessenger" );
 
     // Initialize number of parameters for event procedures
     eventNumParams_[CFS_Init] = 1;
@@ -32,13 +31,11 @@ namespace CoupledField {
   }
   
   void CFSMessenger::ReadScriptFile( const std::string & fileName ) {
-    ENTER_FCN( "CFSMessenger::ReadScriptFile" );
   }
 
   bool CFSMessenger::
   TriggerEvent( const EventType event, 
                 const StdVector<std::string> & context) {
-    ENTER_FCN( "CFSMessenger::TriggerEvent" );
 
     // Nothing to do here, since we do not perform any scripting from
     // within c++ itself (...)
@@ -65,7 +62,6 @@ namespace CoupledField {
     
   bool CFSMessenger::CFSEval( const StdVector<std::string> & args,
                                  StdVector<std::string> & retVal ) {
-    ENTER_FCN( "CFSMessenger::CFSEval" );
 
     UInt argOffset = 2;
     bool success = false;

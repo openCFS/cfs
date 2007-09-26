@@ -21,7 +21,6 @@ namespace CoupledField {
       nrDofsPerNode_(nrDofsPerNode)
       
   {
-    ENTER_FCN( "NlinMassInt::MassInt" );
     name_ = "MassInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -32,7 +31,6 @@ namespace CoupledField {
  
   NlinMassInt::~NlinMassInt()
   {
-    ENTER_FCN( "NlinMassInt::~NlinMassInt" );
   }
 
  
@@ -40,7 +38,6 @@ namespace CoupledField {
   void NlinMassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
                                    EntityIterator& ent2  )  {
-    ENTER_FCN( "NlinMassInt::CalcElemMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

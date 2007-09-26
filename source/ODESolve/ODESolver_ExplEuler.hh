@@ -19,12 +19,10 @@ namespace CoupledField {
 
     //! Default Constructor
     ODESolver_ExplEuler() {
-      ENTER_FCN( "ODESolver_ExplEuler::ODESolver_ExplEuler" );
     }
 
     //! Default Destructor
     virtual ~ODESolver_ExplEuler() {
-      ENTER_FCN( "ODESolver_ExplEuler::~ODESolver_ExplEuler" );
     }
 
     //! Compute the solution of the initial value problem

@@ -9,11 +9,9 @@
 namespace CoupledField {
 
   SolveStepODE::SolveStepODE(StdPDE& apde) : StdSolveStep(apde) {
-    ENTER_FCN( "SolveStepODE::SolveStepODE" );
   }
   
   SolveStepODE::~SolveStepODE() {
-    ENTER_FCN( "SolveStepODE::~SolveStepODE" );
   }
   
   void SolveStepODE::SolveStepTrans() {

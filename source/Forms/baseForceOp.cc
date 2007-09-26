@@ -26,7 +26,6 @@ namespace CoupledField
                            bool isaxi, bool coordUpdate ) 
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    ENTER_FCN( "BaseForceOp::BaseForceOp" );
     //Warning( "Only working wit Lagrange elements", __FILE__, __LINE__ );
     dim_ = dim;
     materials_ = matData;
@@ -35,7 +34,6 @@ namespace CoupledField
 
   BaseForceOp::~BaseForceOp()
   {
-    ENTER_FCN( "BaseForceOp::~BaseForceOp" );
 
   }
 
@@ -43,7 +41,6 @@ namespace CoupledField
   void BaseForceOp::Setup( StdVector<RegionIdType>& neighRegions, 
                            StdVector<UInt>& couplingnodes )
   {
-    ENTER_FCN( "BaseForceOp::Setup" );
 
     couplingNodes_ = couplingnodes;
     neighRegions_  = neighRegions;
@@ -86,7 +83,6 @@ namespace CoupledField
 
   void BaseForceOp::CalcNodeForce(Vector<Double> & force, Vector<Double> & totalForce )
   {
-    ENTER_FCN( "BaseForceOp::CalcNodeForce" );
 
     ElemStoreSol<Double> force_temp;
   
@@ -132,7 +128,6 @@ namespace CoupledField
                                       Double matVal,
                                       const StdVector<ShortInt> & IsBoundaryNode)
   {
-    ENTER_FCN( "BaseForceOp::CalcElemElecForce" );
 
     
     Vector<Double> E;
@@ -252,7 +247,6 @@ namespace CoupledField
   //                                  Double epsilon,
   //                                  const StdVector<ShortInt> & IsBoundaryNode)
   // {
-  // ENTER_FCN( "BaseForceOp::CalcElemElecForce");
 
 
   //   Vector<Double> E;
@@ -355,7 +349,6 @@ namespace CoupledField
 
   Double BaseForceOp::CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr, UInt dim)
   {
-    ENTER_FCN( "BaseForceOp::CalcDetJDr" );
   
     Double det;
 

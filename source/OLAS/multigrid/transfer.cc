@@ -55,7 +55,6 @@ TransferOperator<T>::TransferOperator()
                    : Prolongation_(NULL),
                      Restriction_(NULL)
 {
-    ENTER_FCN("TransferOperator::TransferOperator()");
 }
 
 /**********************************************************/
@@ -63,7 +62,6 @@ TransferOperator<T>::TransferOperator()
 template <typename T>
 TransferOperator<T>::~TransferOperator()
 {
-    ENTER_FCN("TransferOperator::~TransferOperator()");
     
     Reset();
 }
@@ -73,7 +71,6 @@ TransferOperator<T>::~TransferOperator()
 template <typename T>
 void TransferOperator<T>::Reset()
 {
-    ENTER_FCN("TransferOperator::Reset()");
 
     delete Prolongation_;  Prolongation_ = NULL;
     delete Restriction_;   Restriction_  = NULL;
@@ -92,7 +89,6 @@ CreateOperators( const CRS_Matrix<T>& matrix,
                  const AMGInterpolationType itype,
                  const bool build_interpolation )
 {
-    ENTER_FCN("TransferOperator::CreateOperators");
 
     ////////////////////////////////////////////////////////
     // eventual import of interpolation
@@ -191,7 +187,6 @@ bool TransferOperator<T>::
 CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
                          const Topology<T>&   topology )
 {
-    ENTER_FCN("TransferOperator::CreateOperatorsConstant");
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
@@ -307,7 +302,6 @@ bool TransferOperator<T>::
 CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
                                const Topology<T>&   topology )
 {
-    ENTER_FCN("TransferOperator::CreateOperators_new");
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
@@ -579,7 +573,6 @@ void TransferOperator<T>::Prolongate( const Vector<T>& v_H,
                                             Vector<T>& v_h,
                                       const bool       add  ) const
 {
-    ENTER_FCN("TransferOperator::Prolongate");
 
 #ifdef DEBUG_TRANSFEROPERATOR
     // Since the restriction operator is always build, its absence
@@ -634,7 +627,6 @@ void TransferOperator<T>::Restrict( const Vector<T>& v_h,
                                           Vector<T>& v_H,
                                     const bool       add  ) const
 {
-    ENTER_FCN("TransferOperator::Restrict");
 
 #ifdef DEBUG_TRANSFEROPERATOR
     if( Restriction_ == NULL ) {
@@ -710,7 +702,6 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
                  const DependencyGraph<T>& graph_AHT,
                  const DependencyGraph<T>& graph_VT  ) const
 {
-    ENTER_FCN("TransferOperator::GalerkinProduct");
     
 #ifdef PROFILE_TRANSFEROPERATOR
     Double t1 = AMG_GET_REAL_TIME
@@ -1040,7 +1031,6 @@ template <typename T>
 void TransferOperator<T>::ImportInterpolation( const Integer size_h,
                                                const Integer size_H )
 {
-    ENTER_FCN("TransferOperator::ImportInterpolation");
 
     char filename[500];
     sprintf( filename,
@@ -1208,7 +1198,6 @@ bool TransferOperator<T>::
 CreateOperators( const CRS_Matrix<T>& matrix,
                  const Topology<T>&   topology )
 {
-    ENTER_FCN("TransferOperator::CreateOperators");
 
 #ifdef DEBUG_TRANSFEROPERATOR
     if( matrix.GetNcols() != topology.GetSizeh() ) {

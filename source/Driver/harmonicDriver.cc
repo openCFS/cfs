@@ -30,7 +30,6 @@ namespace CoupledField {
 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
     
-    ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
     
     // Set correct analysistype
     analysis_ = HARMONIC;
@@ -45,7 +44,6 @@ namespace CoupledField {
   }
 
   void HarmonicDriver::Init() {
-    ENTER_FCN( "HarmonicDriver::Init" );
 
     // get parameter node
     ParamNode * myNode = 
@@ -141,7 +139,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   HarmonicDriver::~HarmonicDriver() {
-    ENTER_FCN( " HarmonicDriver::~HarmonicDriver" );
   }
 
 
@@ -150,7 +147,6 @@ namespace CoupledField {
   // ****************
   void HarmonicDriver::SolveProblem() {
 
-    ENTER_FCN( " HarmonicDriver::SolveProblem" );
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -202,7 +198,6 @@ namespace CoupledField {
   // ************************
   Double HarmonicDriver::ComputeNextFrequency( UInt freqIndex ) {
 
-    ENTER_FCN( "HarmonicDriver::ComputeNextFrequency" );
 
     Double retFreq = 0.0;
 

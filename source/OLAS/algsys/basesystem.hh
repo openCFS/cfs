@@ -728,7 +728,6 @@ namespace OLAS {
 
     //! Get number of iterations specified for an iterative solver
     Integer GetNumIter() {
-      ENTER_FCN("BaseSystem::GetNumIter");
       return myReport_.GetIntValue( "NumIter" );
     }
     //@}

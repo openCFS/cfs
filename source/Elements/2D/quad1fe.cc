@@ -14,7 +14,6 @@ namespace CoupledField
 
   Quad1FE :: Quad1FE() : RectangleFE()
   {
-    ENTER_FCN( "Quad1FE::Quad1FE" );
 
     UseICModes();
     Init();
@@ -22,12 +21,10 @@ namespace CoupledField
   
   Quad1FE :: ~Quad1FE()
   {
-    ENTER_FCN( "Quad1FE::~Quad1FE" );
   }
 
   void Quad1FE :: Init()
   {
-    ENTER_IFCN( "Quad1FE::Init" );
     NumNodes_ = 4;
     
     CommonInit();
@@ -37,7 +34,6 @@ namespace CoupledField
 
   void Quad1FE :: SetCornerCoords()
   {
-    ENTER_IFCN( "Quad1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -54,7 +50,6 @@ namespace CoupledField
   }
 
   void Quad1FE :: SetFaceIndices() {
-    ENTER_IFCN( "Hexa1FE::SetFaceIndices");
 
     faceIndices_ = new StdVector<UInt>[NumFaces_];
     for (UInt i = 0; i < NumFaces_; i++) {
@@ -69,7 +64,6 @@ namespace CoupledField
   }
 
   void Quad1FE :: SetEdgeIndices() {
-    ENTER_IFCN( "Quad1FE::SetEdgeIndices" );
     
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
@@ -103,7 +97,6 @@ namespace CoupledField
                                 const Elem* elem,
                                 UInt dof, AnsatzFct::FctEntityType type )
   {
-    ENTER_IFCN( "Quad1FE::CalcShapeFnc" );
 
 
     // Check ansatzFctType
@@ -194,7 +187,6 @@ namespace CoupledField
                                          const Elem* elem,
                                          UInt dof, AnsatzFct::FctEntityType type )
   {
-    ENTER_IFCN( "Quad1FE::CalcLocalDerivShapeFnc" );
 
 
 
@@ -295,7 +287,6 @@ namespace CoupledField
 						const Elem* elem,
 						UInt dof, AnsatzFct::FctEntityType type )
   {
-    ENTER_IFCN( "Quad1FE::CalcLocalICModesDerivShapeFnc" );
 
 
 
@@ -320,7 +311,6 @@ namespace CoupledField
   Double Quad1FE::CalcMeanStrain(Matrix<Double> &cornerCoords, 
                                  Matrix<Double> &displacements)
   {
-    ENTER_IFCN( "Quad1FE::CalcDistortion" );
 
     Double factor;
     Double eps1, eps2, eps4, eps5, eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;
@@ -365,7 +355,6 @@ namespace CoupledField
                              const shared_ptr<AnsatzFct>& fcnType, 
                              AnsatzFct::FctEntityType fctEntityType, 
                              UInt dof ) {
-    ENTER_FCN( "Quad1FE::GetNumFncs" );
 
     // Check ansatzFctType
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
@@ -431,7 +420,6 @@ namespace CoupledField
 
   void Quad1FE::SetAnsatzFct( shared_ptr<AnsatzFct>& actFct, 
                               bool setIntPoints ) {
-    ENTER_FCN( "Quad1FE::SetAnsatzFct" );
 
     // Check if this ansatz fct was already set
     if( actFct_ == actFct ) {

@@ -14,7 +14,6 @@ namespace CoupledField
 
   void piezoParamIdent::optimalExpDesignVarNrFreqs(){
 
-    ENTER_FCN("piezoParamIdent::optimalDesignVarNrFreqs");
 
     bool firstTime=true;
     parameterInitial_ = parameter_;
@@ -411,7 +410,6 @@ namespace CoupledField
   }
 
   void piezoParamIdent::writeOutConfInterval(){
-    ENTER_FCN("piezoParamIdent::writeOutConfInterval");
 
     std::cout<<"++ Write out confidence intervals into file confInterval.dat " <<std::endl;
 
@@ -540,7 +538,6 @@ namespace CoupledField
   } // end writeOutConfInterval
 
   void piezoParamIdent::createJRho(Complex &J, bool writeOutCov){
-    ENTER_FCN("piezoParamIdent::createJRho");
 
     Double  hOmega = (stopfreq_-startfreq_)/nrfreq_;
     delta_=0.00;
@@ -769,7 +766,6 @@ namespace CoupledField
   }// end createJRHo
 
   void piezoParamIdent::createGradientRho(Vector<Complex> & grad, Double dOmega){
-    ENTER_FCN("piezoParamIdent::createGradientRho");
 
     Complex J1, J2;
     createJRho(J1,false);
@@ -794,7 +790,6 @@ namespace CoupledField
 
 
   void piezoParamIdent::descentMethodRho(Complex & functional){
-    ENTER_FCN("piezoParamIdent::descentMethodRho");
 
     UInt maxNumberDescentIterations=1;
     Vector<Complex> grad;

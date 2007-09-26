@@ -47,26 +47,21 @@ namespace CoupledField
 
     //! initialize time stepping: 
     //! nothing to do in mpcci!
-    virtual void InitTimeStepping(){ ENTER_FCN( "MpcciPDE::InitTimeStepping"); };
 
     //! set current time step
-    virtual void SetTimeStep(const Double dt){ ENTER_FCN( "MpcciPDE::SetTimeStep");};
 
    
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
 
-    virtual void WriteGeneralPDEdefines()
-    { ENTER_FCN( "MpcciPDE::WriteGeneralPDEdefines");};
+    virtual void WriteGeneralPDEdefines() {};
 
   
-    void WriteRestart(const UInt nstep, UInt totalUnknowns=0)
-    { ENTER_FCN( "MpcciPDE::WriteRestart");};
+    void WriteRestart(const UInt nstep, UInt totalUnknowns=0);
 
 
-    void ReadRestart(UInt &startStep, UInt totalUnknowns=0)
-    { ENTER_FCN( "MpcciPDE::ReadRestart");};
+    void ReadRestart(UInt &startStep, UInt totalUnknowns=0);
 
     // ======================================================
     // COUPLING SECTION

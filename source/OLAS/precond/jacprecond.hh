@@ -62,7 +62,6 @@ namespace OLAS {
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is JACOBI.
     PrecondType GetPrecondType() const {
-      ENTER_FCN( "JacPrecond::GetPrecondType" );
       return JACOBI;
     };
 
@@ -73,7 +72,6 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     JacPrecond(){
-      ENTER_FCN( "JacPrecond::JacPrecond" );
       Error( "Default constructor of JacPrecond should never be called!",
 	     __FILE__, __LINE__ );
     };

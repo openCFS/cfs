@@ -13,7 +13,6 @@ namespace CoupledField
 
   Hysteresis :: Hysteresis(Integer numElem)
   {
-    ENTER_FCN("Hysteresis::Hysteresis" );
 
     numElements_ = numElem;
   }

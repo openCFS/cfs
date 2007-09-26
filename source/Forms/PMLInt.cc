@@ -16,7 +16,6 @@ namespace CoupledField
 		 bool axi)
     : BaseForm(NULL), formsFactor_(factor)
   {
-    ENTER_FCN( "PMLInt::PMLInt" );
     name_ = "PMLInt";
 
     isComplex_ = true;
@@ -33,7 +32,6 @@ namespace CoupledField
  
   PMLInt::~PMLInt()
   {
-    ENTER_FCN( "PMLInt::~PMLInt" );
   }
 
 
@@ -42,7 +40,6 @@ namespace CoupledField
                                   EntityIterator& ent1, 
                                   EntityIterator& ent2 )
   {
-    ENTER_FCN( "PMLInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -58,7 +55,6 @@ namespace CoupledField
 
   void PMLInt::CalcElementMatrixStiff(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat)
   {
-    ENTER_FCN( "PMLInt::CalcElementMatrixStiff" );
 
     
     ptelem->SetAnsatzFct( ansatzFct1_ );
@@ -124,7 +120,6 @@ namespace CoupledField
 
   void PMLInt::CalcElementMatrixMass(Matrix<Double> & ptCoord, Matrix<Complex> & elemMat)
   {
-    ENTER_FCN( "PMLInt::CalcElementMatrixMass" );
     
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -195,7 +190,6 @@ namespace CoupledField
 
   void PMLInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
-    ENTER_FCN( "PMLInt ::SetPosXML"); 
 
     pmlFnc_-> SetPosPML( inner, outer );
   }
@@ -209,7 +203,6 @@ namespace CoupledField
                           SubTensorType tensorType)
     : linElastInt( matData, tensorType)
   {
-    ENTER_FCN( "MechPMLInt::MechPMLInt" );
     name_ = "MechPMLInt";
 
     isComplex_ = true;
@@ -223,7 +216,6 @@ namespace CoupledField
  
   MechPMLInt::~MechPMLInt()
   {
-    ENTER_FCN( "MechPMLInt::~MechPMLInt" );
   }
 
 
@@ -232,7 +224,6 @@ namespace CoupledField
                                       EntityIterator& ent1, 
                                       EntityIterator& ent2 ) {
 
-    ENTER_FCN( "MechPMLInt::CalcElementMatrix" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -320,7 +311,6 @@ namespace CoupledField
   void MechPMLInt::calcBMatPML( Matrix<Double>& bMat, Vector<Double>& CoordAtIP, 
                                 Matrix<Complex>& bMatC, Complex& jacDetC)
   {
-    ENTER_FCN( "MechPMLInt::calcBMatPML"); 
 
     bMatC.Resize( bMat.GetSizeRow(),  bMat.GetSizeCol() );
     bMatC.Init();
@@ -365,7 +355,6 @@ namespace CoupledField
 
   void MechPMLInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
-    ENTER_FCN( "MechPMLInt ::SetPosXML"); 
 
     pmlFnc_-> SetPosPML( inner, outer );
   }

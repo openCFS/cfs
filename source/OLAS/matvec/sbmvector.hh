@@ -53,7 +53,6 @@ namespace OLAS {
     //! A call to this method will set the i-th entry of the SBM_Vector to
     //! be the given SparseVector subvec.
     void SetSubVector( SparseVector *subvec, Integer i ) {
-      ENTER_FCN( "SBM_Vector::SetSubVector" );
       delete subVec_[i];
       subVec_[i] = subvec;
     }
@@ -70,7 +69,6 @@ namespace OLAS {
     //! denote the sub-vectors but the individual entries of the SBM_Vector
     //! if not seen in a block fashion.
     void Init() {
-      ENTER_FCN( "SBM_Vector::Init" );
       for ( UInt i = 1; i <= size_; i++ ) {
         if ( subVec_[i] != NULL ) {
           subVec_[i]->Init();

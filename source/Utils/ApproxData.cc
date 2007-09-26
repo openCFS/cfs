@@ -14,7 +14,6 @@ namespace CoupledField
 
   ApproxData :: ApproxData(std::string nlFileName, ApproxCurveType curveType )
   {
-    ENTER_FCN("ApproxData::ApproxData" );
     curveType_ = curveType;
  
     ReadNlinFunc(nlFileName);
@@ -23,7 +22,6 @@ namespace CoupledField
 
   void ApproxData ::ReadNlinFunc(std::string fncName)
   {
-    ENTER_FCN("ApproxData::ReadNlinFunc" );
   
     std::ifstream datafile;
   

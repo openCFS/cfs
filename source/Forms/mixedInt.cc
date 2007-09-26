@@ -14,7 +14,6 @@ namespace CoupledField {
     : BaseForm(NULL), 
       factor_(aFactor)     
   {
-    ENTER_FCN( "MassMixedInt::MassMixedInt" );
     name_ = "MassMixedPressureInt";
 
     isaxi_ = axi;
@@ -25,7 +24,6 @@ namespace CoupledField {
  
   MassMixedInt_PP::~MassMixedInt_PP()
   {
-    ENTER_FCN( "MassMixedInt::~MassMixedInt" );
   }
 
  
@@ -34,7 +32,6 @@ namespace CoupledField {
   void MassMixedInt_PP::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1,
                                    EntityIterator& ent2  )  {
-     ENTER_FCN( "MassMixedInt::CalcElemMatrix" );
 
      // Extract pointer to reference element and get coordinates
      Vector<Double> CoordAtIP;
@@ -84,7 +81,6 @@ namespace CoupledField {
     : BaseForm(NULL), 
       factor_(aFactor)
   {
-    ENTER_FCN( "MassMixedInt::MassMixedInt" );
     name_ = "MassMixedVelocityInt";
 
     isaxi_ = axi;
@@ -95,7 +91,6 @@ namespace CoupledField {
  
   MassMixedInt_VV::~MassMixedInt_VV()
   {
-    ENTER_FCN( "MassMixedInt::~MassMixedInt" );
   }
 
  
@@ -104,7 +99,6 @@ namespace CoupledField {
   void MassMixedInt_VV::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1,
                                    EntityIterator& ent2  )  {
-     ENTER_FCN( "MassMixedInt::CalcElemMatrix" );
 
      // Extract pointer to reference element and get coordinates
      Vector<Double> CoordAtIP;
@@ -175,7 +169,6 @@ namespace CoupledField {
     : BaseForm(NULL), factor_ (aVal)
   {
 
-    ENTER_FCN( "StiffMixedInt::StiffMixedInt" );
 
     name_ = "StiffMixed_KPV_Int";
     isaxi_ = axi;
@@ -186,7 +179,6 @@ namespace CoupledField {
  
   StiffMixedInt_KPV::~StiffMixedInt_KPV()
   {
-    ENTER_FCN( "StiffMixedInt::~StiffMixedInt" );
   }
 
 
@@ -196,7 +188,6 @@ namespace CoupledField {
     
 
   
-    ENTER_FCN( "StiffInt::CalcElementMatrix" );
     
     //Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -286,7 +277,6 @@ namespace CoupledField {
     : BaseForm(NULL), factor_ (aVal)
   {
 
-    ENTER_FCN( "StiffMixedInt::StiffMixedInt" );
 
     name_ = "StiffMixed_KVP_Int";
     isaxi_ = axi;
@@ -299,7 +289,6 @@ namespace CoupledField {
   {
 
 
-    ENTER_FCN( "StiffMixedInt::~StiffMixedInt" );
   }
 
 
@@ -308,7 +297,6 @@ namespace CoupledField {
                                              EntityIterator& ent2 ) {
 
     
-    ENTER_FCN( "StiffInt::CalcElementMatrix" );
    
     //Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

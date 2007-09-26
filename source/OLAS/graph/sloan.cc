@@ -16,7 +16,6 @@ namespace OLAS {
   Sloan::Sloan( NodeList* agraph, Integer *order, Integer asize ) :
     BaseOrdering( agraph, order, asize ) {
 
-    ENTER_FCN( "Sloan::Sloan" );
 
     profOldRem_  = 0;
     profNewRem_  = 0;
@@ -29,7 +28,6 @@ namespace OLAS {
   //   Destructor
   // **************
   Sloan::~Sloan() {
-    ENTER_FCN( "Sloan::~Sloan" );
   }
 
 
@@ -38,7 +36,6 @@ namespace OLAS {
   // ***************
   void Sloan::LabelGraph() {
 
-    ENTER_FCN( "Sloan::LabelGraph" );
  
     // label a graph for small profile and rms wavefront
 
@@ -78,7 +75,6 @@ namespace OLAS {
   void Sloan::PseudoDiameter( Integer *ls, Integer *xls, Integer *hlevel, 
                               Integer &snode, Integer &nc ) {
 
-    ENTER_FCN( "Sloan::PseudoDiameter" );
 
     // find a pair of nodes with maximum distance within the graph
 
@@ -187,7 +183,6 @@ namespace OLAS {
   void Sloan::RootedLevel( Integer root, Integer maxwidth, Integer *ls,
                            Integer *xls, Integer &depth, Integer &width ) {
 
-    ENTER_FCN("Sloan::RootedLevel");
  
     // generate rooted level structure using a FORTRAN 77 implementation
     // of the algorithm given by George and Liu
@@ -249,7 +244,6 @@ namespace OLAS {
   void Sloan::NumberNodes( Integer nc, Integer snode, Integer &lstnum,
                            Integer* q, Integer* p ) {
 
-    ENTER_FCN("Sloan::NumberNodes");
 
     // number nodes in component of graph for small profile and rms
     // wavefront priority is assigned so that nodes with a large distance
@@ -361,7 +355,6 @@ namespace OLAS {
   // ************
   void Sloan::SortList( Integer nl, Integer* list, Integer *key ) {
 
-    ENTER_FCN( "Sloan::NumberNodes" );
 
     Integer t, value;
     bool found;
@@ -392,7 +385,6 @@ namespace OLAS {
   // ***************
   void Sloan::CalcProfile() {
 
-    ENTER_FCN( "Sloan::CalcProfile" );
 
     NodeList::iterator liter;
     UInt node, oldMin, newMin;
@@ -453,7 +445,6 @@ namespace OLAS {
   // **************
   void Sloan::GetProfile( Double &oldprof, Double &newprof ) {
 
-    ENTER_FCN( "Sloan::GetProfile" );
 
     // Check if we must compute the profile
     if ( profOldRem_ == 0 ) {

@@ -14,7 +14,6 @@ namespace CoupledField
                                        Double dynamicViscosity)
     : StokesFluidInt(density, dynamicViscosity)
   {
-    ENTER_FCN( "StokesFluidAxiInt::StokesFluidAxiInt" );
 
     name_ = "StokesFluidAxiInt";
   }
@@ -23,7 +22,6 @@ namespace CoupledField
  
   StokesFluidAxiInt::~StokesFluidAxiInt()
   {
-    ENTER_FCN( "StokesFluidAxiInt::~StokesFluidAxiInt" );
   }
 
 
@@ -32,7 +30,6 @@ namespace CoupledField
                           EntityIterator& ent1, 
                           EntityIterator& ent2 )
   {
-    ENTER_FCN( "StokesFluidAxiInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );

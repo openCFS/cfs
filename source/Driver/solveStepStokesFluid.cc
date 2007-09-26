@@ -17,11 +17,9 @@ namespace CoupledField {
 
   SolveStepStokesFluid::SolveStepStokesFluid(StdPDE& apde) : StdSolveStep(apde) 
   {
-    ENTER_FCN( "SolveStepStokesFluid::SolveStepStokesFluid" );
   }
 
   SolveStepStokesFluid::~SolveStepStokesFluid() {
-    ENTER_FCN( "SolveStepStokesFluid::~SolveStepStokesFluid" );
   }
 
   // ======================================================
@@ -30,7 +28,6 @@ namespace CoupledField {
 
   void SolveStepStokesFluid::StepStaticNonLin()
   {
-    ENTER_FCN( "SolveStepStokesFluid::SolveStepStaticNonLin" );
 
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -170,12 +167,10 @@ namespace CoupledField {
   // ======================================================
 
   //  void SolveStepStokesFluid::StepTransNonLin() {
-  //    ENTER_FCN( "SolveStepStokesFluid::StepTransNonLin" );
   //  }
 
 
   void SolveStepStokesFluid::AddNonLinRHS() {
-    ENTER_FCN( "SolveStepStokesFluid::AddNonLinRHS" );
   }
 
 

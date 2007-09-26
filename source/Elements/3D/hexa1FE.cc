@@ -19,7 +19,6 @@ namespace CoupledField
 
   Hexa1FE::Hexa1FE():HexaFE()
   { 
-    ENTER_FCN( "Hexa1FE::Hexa1FE" );
 
     // Evaluate legendre polynomials of order 
     // 1-10 in the unit interval
@@ -44,13 +43,11 @@ namespace CoupledField
 
   Hexa1FE::~Hexa1FE()
   {
-    ENTER_FCN( "Hexa1FE::~Hexa1FE" );
 
   }
 
   void Hexa1FE::Init()
   {
-    ENTER_IFCN( "Hexa1FE::Init" );
   
     NumNodes_ = 8;
  
@@ -61,7 +58,6 @@ namespace CoupledField
 
   void Hexa1FE::SetCornerCoords()
   {
-    ENTER_IFCN( "Hexa1FE::SetCornerCoords" );
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
   
@@ -101,7 +97,6 @@ namespace CoupledField
 
 
   void Hexa1FE::SetEdgeIndices() {
-    ENTER_IFCN( "Hexa1FE::SetEdgeIndices" );
 
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
@@ -164,7 +159,6 @@ namespace CoupledField
   }
 
   void Hexa1FE::SetFaceIndices() {
-    ENTER_IFCN( "Hexa1FE::SetSurfIndices" );
 
     faceIndices_ = new StdVector<UInt>[NumFaces_];
     
@@ -217,7 +211,6 @@ namespace CoupledField
                                const Elem* elem, UInt dof,
                                AnsatzFct::FctEntityType fcnType )
   {
-    ENTER_IFCN( "Hexa1FE::CalcShapeFnc" );
     
     // Check ansatzFctType
     if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
@@ -413,7 +406,6 @@ namespace CoupledField
                                         const Vector<Double> & actCoord,
                                         const Elem* elem, UInt dof,
                                         AnsatzFct::FctEntityType fctType ) {
-    ENTER_IFCN( "Hexa1FE::CalcLocalDerivShapeFnc" );
     
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
         fctType == AnsatzFct::NODE ) {
@@ -644,7 +636,6 @@ namespace CoupledField
 					       const Vector<Double> & actCoord,
 					       const Elem* elem, UInt dof,
 					       AnsatzFct::FctEntityType fctType ) {
-    ENTER_IFCN( "Hexa1FE::CalcLocalICModesDerivShapeFnc" );
     
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
         fctType == AnsatzFct::NODE ) {
@@ -667,7 +658,6 @@ namespace CoupledField
                              const shared_ptr<AnsatzFct>& fcnType, 
                              AnsatzFct::FctEntityType fctEntityType, 
                              UInt dof ) {
-    ENTER_FCN( "Hexa1FE::GetNumFncs" );
 
     // Check ansatzFctType
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
@@ -828,7 +818,6 @@ namespace CoupledField
   }
 
   UInt Hexa1FE::GetNumFncs( const shared_ptr<AnsatzFct>& type ) {
-    ENTER_FCN( "Hexa1FE::GetNumFncs" );
     
     // Check ansatzFctType
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
@@ -965,7 +954,6 @@ namespace CoupledField
   
   void Hexa1FE::SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
                               bool setIntPoints ) {
-    ENTER_FCN( "Hexa1FE::SetAnsatzFct" );
   // Check if this ansatz fct was already set
     if( actFct_ == actFct ) {
       return;

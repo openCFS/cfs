@@ -20,7 +20,6 @@ namespace OLAS {
   template<typename T>
   inline void Diag_Matrix<T>::AddToMatrixEntry( Integer i, Integer j, T& v ) {
 
-    ENTER_IFCN( "Diag_Matrix::AddToMatrixEntry" );
 
     //we just add the diagonal entries
     // Otherwise, we add the value to the existing entry
@@ -36,7 +35,6 @@ namespace OLAS {
   // ************************
   template<typename T>
   inline void Diag_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
-    ENTER_FCN( "Diag_Matrix::Add" );
      TRY_CAST {
 
       // Down-cast input matrix
@@ -62,7 +60,6 @@ namespace OLAS {
   inline void Diag_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
 
-    ENTER_FCN( "Diag_Matrix::Mult" );
 
     PROFILE( "Diag_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
              BlockSize<T>::size );
@@ -83,7 +80,6 @@ namespace OLAS {
   inline void Diag_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                       Vector<T> & rvec ) const {
 
-    ENTER_FCN( "Diag_Matrix::MultAdd" );
 
     Integer i;
 
@@ -108,7 +104,6 @@ namespace OLAS {
   inline void Diag_Matrix<T>::MultSub( const Vector<T> &mvec,
                                       Vector<T> &rvec ) const {
 
-    ENTER_FCN( "Diag_Matrix::MultSub" );
 
     Integer i;
 
@@ -133,7 +128,6 @@ namespace OLAS {
   inline void Diag_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
 
-    ENTER_FCN( "Diag_Matrix::CompRes" );
 
     PROFILE("Diag_Matrix::CompRes",
             (2*this->nnz_*BlockSize<T>::size + this->nrows_)
@@ -155,7 +149,6 @@ namespace OLAS {
   inline void Diag_Matrix<T>::MultT( const Vector<T> & mvec,
                                     Vector<T> & rvec ) const {
 
-    ENTER_FCN( "Diag_Matrix::MultT" );
 
     Integer i;
 
@@ -172,7 +165,6 @@ namespace OLAS {
   template<typename T>
   inline void Diag_Matrix<T>::MultTAdd( const Vector<T> &mvec,
                                        Vector<T> &rvec ) const {
-    ENTER_FCN( "Diag_Matrix::MultTAdd" );
 
     Integer i;
 
@@ -189,7 +181,6 @@ namespace OLAS {
   template<typename T>
   void Diag_Matrix<T>::Print( std::ostream& os ) const {
 
-    ENTER_FCN( "Diag_Matrix::Print" );
 
     Integer i, j, k;
 
@@ -207,7 +198,6 @@ namespace OLAS {
   template <typename T>
   void Diag_Matrix<T>::InstantiatePublicMethods() {
 
-    ENTER_FCN( "Diag_Matrix::InstantiatePublicMethods" );
 
     Error( "This function should never be called", __FILE__, __LINE__ );
   }
@@ -218,7 +208,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void Diag_Matrix<T>::Scale( Double factor ) {
-    ENTER_FCN( "Diag_Matrix::Scale" );
     for ( Integer i = 1; i <= this->nnz_; i++ ) {
       data_[i] *= factor;
     }
@@ -231,7 +220,6 @@ namespace OLAS {
   template<typename T>
   Double Diag_Matrix<T>::GetMaxDiag() const {
 
-    ENTER_FCN( "Diag_Matrix::GetMaxDiag" );
 
     double maxDiag = 0;
     double current = 0;
@@ -255,7 +243,6 @@ namespace OLAS {
   template<typename T>
   void Diag_Matrix<T>::SetSize( Integer nrows, Integer ncols, Integer nnz ) {
 
-    ENTER_FCN( "Diag_Matrix::SetSize" );
     
 #ifdef DEBUG_Diag_MATRIX
     if ( nrows < 0 || nnz < 0 ) {

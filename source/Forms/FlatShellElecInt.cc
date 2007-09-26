@@ -14,7 +14,6 @@ namespace CoupledField {
 					   EntityIterator& ent1, 
 					   EntityIterator& ent2 ) {
 
-    ENTER_FCN( "FlatShellElecInt::CalcElementMatrix" );
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -56,7 +55,6 @@ namespace CoupledField {
   
   void FlatShellElecInt::calcEMat( Matrix<Double> &eMat ){
 
-    ENTER_FCN( "FlatShellElecInt::calcEMat" );
 
     const UInt nrLayers  = composite_->thickness.GetSize();
     Double thickness_all = 0.0;
@@ -100,7 +98,6 @@ namespace CoupledField {
   // *************************************
   FlatShellElecInt::FlatShellElecInt( Composite * composite ) 
     : FlatShellInt(composite) {
-    ENTER_FCN( "FlatShellElecInt::FlatShellElecInt" );
 
     name_ = "FlatShellElecInt";
     
@@ -111,7 +108,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   FlatShellElecInt::~FlatShellElecInt() {
-    ENTER_FCN( "FlatShellElecInt::~FlatShellElecInt" );
   }
   
 } // end namespace CoupledField

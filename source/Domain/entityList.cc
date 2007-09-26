@@ -107,7 +107,6 @@ namespace CoupledField {
   }
 
   void ElemList::SetNamedElems( const std::string& name ) {
-    ENTER_FCN( "ElemList::SetNamedElems" );
     defineType_ = NAMED_ELEMS;
     name_ = name;
     StdVector<Elem*> elems;
@@ -121,7 +120,6 @@ namespace CoupledField {
       
 
   void ElemList::SetRegion( RegionIdType region ) {
-    ENTER_FCN( "ElemList::SetRegions" );
     
     defineType_ = REGION;
     region_ = region;
@@ -174,7 +172,6 @@ namespace CoupledField {
   }
 
   void SurfElemList::SetNamedElems( const std::string& name ) {
-    ENTER_FCN( "ElemList::SetNamedElems" );
     std::cerr << "IN SurfElemList::SetNamedElems\n" << std::endl;
     defineType_ = NAMED_ELEMS;
     name_ = name;
@@ -345,23 +342,19 @@ namespace CoupledField {
   
 
   void EntityIterator::Begin() {
-    ENTER_FCN( "EntityIterator::Begin" );
     pos_ = 0;
   }
 
   bool EntityIterator::IsEnd() const {
-    ENTER_FCN( "EntityIterator::IsEnd" );
     return (pos_ == size_);
   }
   
   EntityIterator& EntityIterator::operator++(int) {
-    ENTER_FCN( "EntityIterator::operator++" );
     pos_++;
     return *this;
   }
   
   const Elem* EntityIterator::GetElem() const{
-    ENTER_FCN( "EntityIterator:: GetElem" );
     if( type_ == EntityList::ELEM_LIST ) {
       return elemList_->GetElem( pos_ );
     } else if( type_ == EntityList::SURF_ELEM_LIST ) {
@@ -370,22 +363,18 @@ namespace CoupledField {
   }
   
   const SurfElem* EntityIterator::GetSurfElem() const {
-    ENTER_FCN( "EntityIterator::GetSurfElem" );
     return surfElemList_->list_[ pos_ ];
   }
   
   RegionIdType EntityIterator::GetRegion() const {
-    ENTER_FCN( "EntityIterator::GetRegion" );
     return regionList_->list_[ pos_ ];
   }
   
   UInt EntityIterator::GetNode() const {
-    ENTER_FCN( "EntityIterator::GetNode" );
     return nodeList_->list_[ pos_ ];
   }
   
   UInt EntityIterator::GetUnknown() const {
-    ENTER_FCN( "EntityIterator::GetUnknown" );
     EXCEPTION( "Not Implemented" );
     return 0;
   }

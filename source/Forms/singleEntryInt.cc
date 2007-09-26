@@ -12,7 +12,6 @@ namespace CoupledField {
  SingleEntryInt::SingleEntryInt(  const std::string& real,
                                   UInt dof, UInt numDofs )
     : BaseForm( NULL, FULL, false ) {
-    ENTER_FCN( "SingleEntryInt::SingleEntryInt" );
 
     name_ = "SingleEntryInt";
     dof_ = dof;
@@ -32,7 +31,6 @@ namespace CoupledField {
                                    const std::string& imag,
                                   UInt dof, UInt numDofs )
     : BaseForm( NULL, FULL, false ) {
-    ENTER_FCN( "SingleEntryInt::SingleEntryInt" );
 
     name_ = "SingleEntryInt";
     dof_ = dof;
@@ -48,13 +46,11 @@ namespace CoupledField {
   }
   
   SingleEntryInt::~SingleEntryInt() {
-    ENTER_FCN( "SingleEntryInt::~SingleEntryInt" );
   }
   
   void SingleEntryInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                           EntityIterator& ent1, 
                                           EntityIterator& ent2 ) {
-    ENTER_FCN( "SingleEntryInt::CalcElementMatrix" );
 
     // Resize and init elemMat
     elemMat.Resize( numDofs_ );
@@ -66,7 +62,6 @@ namespace CoupledField {
   void SingleEntryInt::CalcElementMatrix( Matrix<Complex>& elemMat,
                                           EntityIterator& ent1, 
                                           EntityIterator& ent2 ) {
-    ENTER_FCN( "SingleEntryInt::CalcElementMatrix" );
 
     // Resize and init elemMat
     elemMat.Resize( numDofs_ );

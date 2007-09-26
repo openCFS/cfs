@@ -13,7 +13,6 @@ namespace CoupledField
 
 Tetra2FE::Tetra2FE():TetraFE()
 { 
-  ENTER_FCN( "Tetra2FE::Tetra2FE" );
 
   Init();
 }
@@ -21,13 +20,11 @@ Tetra2FE::Tetra2FE():TetraFE()
 
 Tetra2FE::~Tetra2FE()
 {
-  ENTER_FCN( "Tetra2FE::~Tetra2FE" );
   
 }
 
 void Tetra2FE::Init()
 {
-  ENTER_IFCN( "Tetra2FE::Init" );
 
   NumNodes_ = 10;
   NumEdges_ = 6;
@@ -38,7 +35,6 @@ void Tetra2FE::Init()
 
 void Tetra2FE::SetCornerCoords()
 {
-  ENTER_IFCN( "Tetra2FE::SetCornerCoords" );
 
   LCornerCoords_.Resize(Dim_,NumNodes_);
 
@@ -89,7 +85,6 @@ void Tetra2FE::SetCornerCoords()
 /// defines the connection between nodes with "their" edge
 void Tetra2FE :: SetEdgeVertices()
 {
-  ENTER_IFCN( "SetEdgeVertices" );
   const UInt nrNodesPerEdge = 3;
 
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
@@ -134,7 +129,6 @@ void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
                               const Elem*, UInt dof, 
                               AnsatzFct::FctEntityType fctEntityType )
 {
-  ENTER_IFCN( "Tetra2FE::CalcShapeFnc" );
 
 
   Shape.Resize(NumNodes_);
@@ -171,7 +165,6 @@ void Tetra2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                         const Elem*, UInt dof,
                                         AnsatzFct::FctEntityType fctEntityType )
 {
-  ENTER_IFCN( "Tetra2FE::CalcLocalDerivShapeFnc" );
 
   LDeriv.Resize(NumNodes_,Dim_);
 
@@ -228,7 +221,6 @@ void Tetra2FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 				  const Vector<Double> & LCoord,
 				  const Matrix<Double> & cornernodes)
 {
-  ENTER_IFCN( "Tetra2FE::CalcEdgeShapeFnc" );
 
 Error("Tetra2FE::CalcEdgeShapeFnc not yet implemented!!",__FILE__,__LINE__);
 
@@ -264,7 +256,6 @@ void Tetra2FE::GetEdgeGlobalDerivShapeFnc(Vector<Matrix<Double>*> &shapeDeriv,
 					   const Vector<Double> & lCoord,
 					   const Matrix<Double> &cornerCoords)
 {
-  ENTER_IFCN( "Tetra2FE::GetEdgeGlobalDerivShapeFnc" );
 
 Error("Tetra2FE::GetEdgeGlobalDerivShapeFnc not yet implemented!!",
       __FILE__,__LINE__);

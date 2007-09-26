@@ -97,7 +97,6 @@ namespace CoupledField
     
     //! query pointer to actual material
     BaseMaterial* GetMaterial() {
-      ENTER_FCN( "BaseForm::GetMaterial" );
       return ptMaterial;
     }
 

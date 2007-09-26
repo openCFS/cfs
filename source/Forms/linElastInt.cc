@@ -16,7 +16,6 @@ namespace CoupledField
   void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                        EntityIterator& ent1, 
                                        EntityIterator& ent2 ) {
-    ENTER_FCN( "linElastInt::CalcElementMatrix" );
 
     //  softeningModel_ = "ICM_Taylor";
 
@@ -69,7 +68,6 @@ namespace CoupledField
   void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                               Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linElastInt::calcBMat" );
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
@@ -166,7 +164,6 @@ namespace CoupledField
 
   void linElastInt:: calcDMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "linElastInt::calcDMat" );
 
     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
 
@@ -285,7 +282,6 @@ namespace CoupledField
 
   void linElastInt:: calcDMat(Matrix<Complex> & dMat)
   {
-    ENTER_FCN( "linElastInt::calcDMat" );
     
     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,COMPLEX,subTensorType_);
 
@@ -301,7 +297,6 @@ namespace CoupledField
   void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
                               Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linElastInt::calcBMat" );
 
     const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
@@ -393,7 +388,6 @@ namespace CoupledField
   void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
 					  EntityIterator& ent1, 
 					  EntityIterator& ent2 ) {
-    ENTER_FCN( "linElastInt::CalcElementMatrixICM" );
 
 
     // Extract pointer to reference element and get coordinates
@@ -583,7 +577,6 @@ namespace CoupledField
 					       EntityIterator& ent1, 
 					       EntityIterator& ent2 ) {
 
-    ENTER_FCN( "BDBInt::CalcElementMatrixShearBK1" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -809,7 +802,6 @@ namespace CoupledField
 
   void linElastInt::SetDimensions(SubTensorType type) {
 
-    ENTER_FCN( "linElastInt::SetDimensions" );
 
     if ( type == FULL ) {
       dimD_      = 6;
@@ -838,7 +830,6 @@ namespace CoupledField
 
   linElastInt::linElastInt( BaseMaterial* matData, SubTensorType type) :
     BDBInt(matData,type) {
-    ENTER_FCN( "linElastInt::linElastInt" );
 
     name_ = "linElastInt";
     subTensorType_ = type;
@@ -847,7 +838,6 @@ namespace CoupledField
 
 
   linElastInt::~linElastInt() {
-    ENTER_FCN( "linElastInt::~linElastInt" );
   }
 
 } // end namespace CoupledField
