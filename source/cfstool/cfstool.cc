@@ -109,8 +109,7 @@ namespace CFSTool {
         binary->SetValue( "false");  
       }
       gidNode->GetChildren().Push_back(binary);
-      writer = 
-        shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
 #endif
@@ -126,14 +125,24 @@ namespace CFSTool {
       fixedGrid->SetValue( "yes" );
       gmvNode->GetChildren().Push_back(binary);
       gmvNode->GetChildren().Push_back(fixedGrid);
-      writer = 
-              shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
+      writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
 #else 
       EXCEPTION( "No support for GMV output file format." );
 #endif
-    }
-    else {
-      EXCEPTION( "No support for GiD format" );
+    } else if(fileName.find( ".h5") != std::string::npos) {
+#ifdef USE_HDF5
+      baseName = std::string(fileName, 0, fileName.find(".h5"));
+      ParamNode * h5Node = new ParamNode(false);
+      ParamNode * eFiles = new ParamNode(false);
+      eFiles->SetName("externalFiles");
+      eFiles->SetValue( "false" );
+      h5Node->GetChildren().Push_back(eFiles);
+      writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node ) );
+#else
+      EXCEPTION( "No support for HDF5 output file format." );
+#endif
+    } else {
+      EXCEPTION( "Output format not supported!" );
     }
     // create output writer
     return writer;
@@ -170,13 +179,13 @@ namespace CFSTool {
        // obtain number of multiSequenceSteps and get analysis types
        StdVector<AnalysisType> types;
        input->GetNumMultiSequenceSteps( types );
-       std::cout << "Found " << types.GetSize() << " multisequence steps\n\n";
+       std::cout << "\nFound " << types.GetSize() << " sequence steps:\n";
 
        // iterate over all multiSequenceSteps
        UInt stepOffset = 0;
        for( UInt iMsStep = 0; iMsStep < types.GetSize(); iMsStep++ ) {
          
-         std::cout << "Converting multi sequence step " << iMsStep+1 << std::endl;
+         std::cout << "\tConverting step no. " << iMsStep+1 << std::endl;
          // get resulttypes
          StdVector<shared_ptr<ResultInfo> > infos;
          input->GetResultTypes( iMsStep+1, infos );
@@ -191,12 +200,13 @@ namespace CFSTool {
          StdVector<shared_ptr<BaseResult> > results;
          
          if( infos.GetSize() > 0 ){
-             std::cout << "Found the following results:\n";
+             std::cout << "\tfor results ";
          }
          // iterate over all result types
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
            std::cout << "\t" << infos[iRes]->resultName << std::endl;
+
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
            input->GetResultEntities( iMsStep+1, infos[iRes], regions );
@@ -247,11 +257,15 @@ namespace CFSTool {
      delete ptGrid;
      std::cout << "\nOutput successfully written to " << outFile << std::endl;
   } //Convert()
-  
+ 
+  double RadPhase( const Complex& c ) {
+    return std::atan2(c.imag() ,c.real() ); 
+  }
   
   Double Diff( const std::string& inFile1, 
                const std::string& inFile2,
-               const std::string& outFile ) {
+               const std::string& outFile,
+               const bool normedtomax) {
        
        // obtain input reader for inFiles
        shared_ptr<SimInput> input1 = GetInputReader( inFile1 );
@@ -287,19 +301,19 @@ namespace CFSTool {
          output->Init( ptGrid1, printGridOnly);
        }
        
-       // obtain number of multiSequenceSteps and get analysis types
+       // obtain number of Sequence Steps and get analysis types
        StdVector<AnalysisType> types;
        input1->GetNumMultiSequenceSteps( types );
        if( output )
-         std::cout << "Found " << types.GetSize() << " multisequence steps\n\n";
+         std::cout << "\nFound " << types.GetSize() << " sequence steps:\n";
 
-       // iterate over all multiSequenceSteps
+       // iterate over all Sequence Steps
        UInt stepOffset = 0;
        Double maxDiff = 0.0;
        for( UInt iMsStep = 0; iMsStep < types.GetSize(); iMsStep++ ) {
 
          if( output )
-           std::cout << "Performing diff on multi sequence step " << iMsStep+1 << std::endl;
+           std::cout << "\tPerforming diff on step no. " << iMsStep+1 << std::endl;
          
          // get resulttypes
          StdVector<shared_ptr<ResultInfo> > infos;
@@ -320,8 +334,8 @@ namespace CFSTool {
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
            if( output )
-             std::cout << "\t" << infos[iRes]->resultName << std::endl;
-           
+             std::cout << "\tfor result '" << infos[iRes]->resultName << "'" << std::endl;
+
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
            input1->GetResultEntities( iMsStep+1, infos[iRes], regions );
@@ -350,7 +364,8 @@ namespace CFSTool {
              outResults.Push_back( outResult );
              if( output) {
                // Hardcoded: set output format to AMPL_PHASE
-               outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+               //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+               outResult->GetResultInfo()->complexFormat = REAL_IMAG;
                
                // CAUTION: begin, inc, end are hardcoded and noch checked for each result
                output->RegisterResult( outResult, 1, 1, stepVals.GetSize() );
@@ -358,7 +373,7 @@ namespace CFSTool {
            }
          }
 
-         // iterate over all stepvalues
+         // iterate over all time/frequency steps
          for( UInt iStep = 0; iStep < stepVals.GetSize(); iStep++ ) {
            Double actStepVal = stepVals[iStep];
            
@@ -371,59 +386,119 @@ namespace CFSTool {
              // obtain both result objects for current step
              input1->GetResult( iMsStep+1, iStep+1+stepOffset, inResults1[iRes] );
              input2->GetResult( iMsStep+1, iStep+1+stepOffset, inResults2[iRes] );
+             
+             // cast result objects, get vector and calculate difference vector
              if( types[iMsStep] != HARMONIC ) {
                Vector<Double> & inVec1 = dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
                Vector<Double> & inVec2 = dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
                Vector<Double> & outVec = dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
-               
                outVec.Resize( inVec1.GetSize() );
-               Double max = 0.0;
-               for( UInt i = 0; i<inVec1.GetSize(); i++ ) {
-                 if( std::abs(inVec1[i]) > max) 
-                   max = std::abs(inVec1[i]);
+
+               // normalize to maximum value of inResult2
+               Double maxRes2 = 0.0;
+               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
+                 if( std::abs(inVec2[i]) > maxRes2) 
+                   maxRes2 = std::abs(inVec2[i]);
                }
                outVec = inVec1 - inVec2;
-               outVec /= max;
+               if (normedtomax == true) {
+                 outVec /= maxRes2;
+               }
+               
+               // find maximum entry in difference vector
                for( UInt i = 0; i < outVec.GetSize(); i++ ) {
                  if( std::abs(outVec[i]) > maxDiff) {
                    maxDiff = std::abs(outVec[i]) ;
                  }
                }
-             
              } else {
                Vector<Complex> & inVec1 = dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
                Vector<Complex> & inVec2 = dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
                Vector<Complex> & outVec = dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-
                outVec.Resize( inVec1.GetSize() );
-               Double max = 0.0;
-               for( UInt i = 0; i<inVec1.GetSize(); i++ ) {
-                 if( std::abs(inVec1[i]) > max) 
-                   max = std::abs(inVec1[i]);
+
+               // find maximum amplitude of inResult2
+               Double maxRes2 = 0.0;
+               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
+                 if( std::abs(inVec2[i]) > maxRes2) 
+                   maxRes2 = std::abs(inVec2[i]);
                }
-               outVec = inVec1 - inVec2;
-               outVec /= max;
-               
-               for( UInt i = 0; i < outVec.GetSize(); i++ ) {
-                 if( std::abs(outVec[i]) > maxDiff) {
-                   maxDiff = std::abs(outVec[i]) ;
+
+               Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
+               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
+                 aDiff = std::abs(inVec1[i]) - std::abs(inVec2[i]);
+                 // phase difference in multiples of pi
+                 pDiff = RadPhase(inVec1[i]) - RadPhase(inVec2[i]);
+                 
+                 // correct 2*pi-offset if phase angles have different signs
+                 if ( (std::abs(pDiff)>PI) && (pDiff<0) )
+                   pDiff+= 2*PI;
+                 if ( (std::abs(pDiff)>PI) && (pDiff>0) )
+                   pDiff-= 2*PI;
+
+                 
+                 if ( normedtomax == true ) {
+                   aDiff /= maxRes2; // norm by maximum amplitude of inResult2
+                   pDiff /= 2*PI; // norm relative phase difference by 2 pi
+                   
+                   if( std::abs(aDiff) > std::abs(pDiff) ) {
+                     if( std::abs(aDiff) > maxDiff)
+                       maxDiff = std::abs(aDiff);
+                   } else {
+                     if( std::abs(pDiff) > maxDiff)
+                       maxDiff = std::abs(pDiff);
+                   }
+                   
+                 } else {
+                   
+                   // if no relative differences are calculated return maximum amplitude difference
+                   if( std::abs(aDiff) > maxDiff)
+                     maxDiff = std::abs(aDiff);
                  }
+                 
+                 // maximum values in positive and negative direction                                  
+                 if( pDiff > pMax )
+                   pMax = pDiff;
+                 if( pDiff < pMin )
+                   pMin = pDiff;
+                 if( aDiff > aMax )
+                   aMax = aDiff;
+                 if( aDiff < aMin )
+                   aMin = aDiff;
+                 
+                 // ------------------------------------------------------------------------------------
+                 // sign of amplitude difference gets lost, otherwise
+                 //  negative sign of aDiff would mean phase shift by +/- pi
+                 //outVec[i] = Complex( std::abs(aDiff)*std::cos(pDiff), 
+                 //                     std::abs(aDiff)*std::sin(pDiff) );
+                 
+                 // Dirty hack! Write differences in real_imag format.
+                 outVec[i] = Complex( aDiff, pDiff*180/PI );
+                 // ------------------------------------------------------------------------------------
                }
                
+               if( normedtomax == true)
+                 std::cerr << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
+                           << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n"
+                           << "\tMaximum rel. + phase difference:      " << pMax*100 << " %\n"
+                           << "\tMaximum rel. - phase difference:     " << pMin*100 << " %\n";
+               else
+                 std::cerr << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
+                           << "\tMaximum - amplitude difference: " << aMin <<  "\n"
+                           << "\tMaximum + phase difference:      " << pMax*180/PI <<  "°\n"
+                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";
+               
+               
+               std::cerr << "\n\tmaxDiff = " << maxDiff << std::endl;
              }
              
-             // cast result objects, get vector and calculate difference vector
-             // iterate over all entities and dofs
-             // for vector results: 
-             // 1) calculate vector norm of reference result
-             // 2) 
-             if (output) {
+             
+             if ( output ) {
                output->AddResult( outResults[iRes] ); 
              }
            }
            if( output )
              output->FinishStep();
-
          }
          if( output )
            output->FinishMultiSequenceStep();
@@ -441,14 +516,15 @@ namespace CFSTool {
        
        return maxDiff;
        
-  } //MeshDiff
-}
+  } //Diff
+  
+} //Namespace CFSTool
 
 
 int main(int argc, char** argv) {
   
   // 
-  Exception::segfault_ = false;
+  Exception::segfault_ = true;
   
   try {
     if( argc < 2) {
@@ -456,22 +532,24 @@ int main(int argc, char** argv) {
                 << "Usage:\tcfstool modus [args]\n\n"
                 << "The following modi are vailable:\n\n"
                 << "\tconvert <infile> <outfile>\n"
-                << "\tdiff <infile1> <infile2> <tolerance>\n"
+                << "\tscalardiff <infile1> <infile2> <tolerance>\n"
                 << "\tmeshdiff <infile1> <infile2> <outfile>\n"
+                << "\tmeshdiffnormed <infile1> <infile2> <outfile>\n"
                 << "\n\n"
                 << "List of supported formats:\n"
                 << "\tinput: .mesh .h5\n"
                 << "\toutput: .h5, .post.res, .post.bin, .gmv\n"
                 << "\n\n"
-                << "Please not that the input / output format is chosen "
+                << "Please note that the input/output format is chosen "
                 << "depending on the file suffix\n\n";
       return EXIT_FAILURE;
     }
     // check command line arguments
-    // 3 modi:
+    // 4 modi:
     // 1) cfstool convert <infile> <outfile>
-    // 2) cfstool meshdiff <infile1> <infile2> <outfile>
-    // 3) cfstool scalardiff <infile1> <infile2>
+    // 2) cfstool scalardiff <infile1> <infile2>
+    // 3) cfstool meshdiff <infile1> <infile2> <outfile>
+    // 4) cfstool meshdiffnormed <infile1> <infile2> <outfile>
     std::string modus = argv[1];
 
     if( modus == "convert" ) {
@@ -484,14 +562,14 @@ int main(int argc, char** argv) {
       if( argc != 5 ) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <tolerance>" );
       }
-      Double maxDiff = 0.0;
       Double tolerance = 0.0;
       try {
         tolerance = boost::lexical_cast<Double>(argv[4]);
       } catch (std::exception& ex ) {
         EXCEPTION( "Could not convert '" << argv[4] << "' to double value");
       }
-      maxDiff = CFSTool::Diff( argv[2], argv[3], "" );
+      Double maxDiff = 0.0;
+      maxDiff = CFSTool::Diff( argv[2], argv[3], "", true );
       if( maxDiff > tolerance ) {
         std::cerr << "Files '" << argv[2] << "' and '"
         << argv[3] << "' differ with maximum difference of "
@@ -506,7 +584,14 @@ int main(int argc, char** argv) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4] );
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false );
+
+    } else if( modus == "meshdiffnormed" ) {
+      if( argc != 5 ) {
+        EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
+      }
+      Double maxDiff = 0.0;
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true );
 
     } else {
       std::cerr << "modus '" << modus << "' not known\n";

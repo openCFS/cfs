@@ -6,7 +6,6 @@ ADD_EXECUTABLE(cfstool ${CFSTOOL_SRCS})
 
 
 SET(TARGET_LL ${TARGET_LL}
-  cmdline
   optimization
   driver
   gridcfs
@@ -67,6 +66,7 @@ ENDIF(USE_PYTHON)
 
 # Target link libraries for cfstool target.
 SET(TARGET_LL ${TARGET_LL}  
+  cmdline
   domain
   elements
   domain
