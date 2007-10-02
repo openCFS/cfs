@@ -386,12 +386,20 @@ namespace CoupledField {
     
     // initialize map for relating EntityUnknownType and name of xml-element
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
+    std::map<ResultInfo::EntityUnknownType, bool> isHistory;
     elemNames[ResultInfo::NODE] = "nodeResult";
     elemNames[ResultInfo::ELEMENT] = "elemResult";
     elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
     elemNames[ResultInfo::REGION] = "regionResult";
     elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
 
+    isHistory[ResultInfo::NODE] = false;
+    isHistory[ResultInfo::PFEM] = false;
+    isHistory[ResultInfo::ELEMENT] = false;
+    isHistory[ResultInfo::SURF_ELEM] = false;
+    isHistory[ResultInfo::REGION] = true;
+    isHistory[ResultInfo::SURF_REGION] = true;
+    
     // fetch result node and leave, if none is present
     ParamNode * resultNode = myParam_->Get("storeResults", false);
     if( !resultNode )
@@ -554,7 +562,8 @@ namespace CoupledField {
           // pass result to resulthandler
           resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
                                       actOutDest, 
-                                      postProcNames[iRegion], writeResult );
+                                      postProcNames[iRegion], writeResult,
+                                      (*it)->definedOn );
           
           // if neighboring region is present, store related volume 
           // neighbor region
@@ -658,7 +667,7 @@ namespace CoupledField {
             
           resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
                                       actOutDest, 
-                                      postProcNames[i], writeResult );
+                                      postProcNames[i], writeResult, true );
             
           // if neighboring region is present, store related volume 
           // neighbor region
@@ -682,9 +691,7 @@ namespace CoupledField {
   }
 
   void BasePairCoupling::WriteResultsInFile( const UInt kstep,
-                                             const Double asteptime,
-                                             UInt stepOffset,
-                                             Double timeOffset ) {
+                                             const Double asteptime ) {
 
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();

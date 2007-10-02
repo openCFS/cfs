@@ -33,7 +33,8 @@ namespace CoupledField
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
                          UInt saveBegin, UInt saveInc,
-                         UInt saveEnd );
+                         UInt saveEnd,
+                         bool isHistory );
 
     //! Begin single analysis step
     void BeginStep( UInt stepNum, Double stepVal );
@@ -43,6 +44,9 @@ namespace CoupledField
 
     //! End single analysis step
     void FinishStep( );
+    
+    //! Finish multisequence step
+    void FinishMultiSequenceStep( );
 
   private:
     
@@ -51,6 +55,12 @@ namespace CoupledField
 
     //! Map with result objects for each result type
     ResultMapType resultMap_;
+    
+    //! Offset for step number in case of multisequence analysis
+    Integer stepNumOffset_;
+            
+    //! Offset for step value in case of multisequence analysis
+    Double stepValOffset_;
 
     //! dataset 666. 
     void Dataset666();

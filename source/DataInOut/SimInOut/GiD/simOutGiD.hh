@@ -40,7 +40,11 @@ namespace CoupledField
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
                          UInt saveBegin, UInt saveInc,
-                         UInt saveEnd );
+                         UInt saveEnd,
+                         bool isHistory );
+    
+    //! End multisequence step
+    void FinishMultiSequenceStep( );
     
     //! Begin single analysis step
     void BeginStep( UInt stepNum, Double stepVal );
@@ -91,6 +95,9 @@ namespace CoupledField
 
     //! Current multisequence step
     UInt actMsStep_;
+    
+    //! Offset for step numbers for multisequence analysis
+    Double stepValueOffset_;
 
     //! Flag for binary file format
     bool isAscii_;

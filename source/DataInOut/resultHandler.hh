@@ -65,8 +65,9 @@ namespace CoupledField {
                          UInt saveBegin, UInt saveInc,
                          UInt saveEnd, 
                          const StdVector<std::string> & outDestNames,
-                         const std::string & postProcName = "",
-                         bool writeResult = true );
+                         const std::string & postProcName,
+                         bool writeResult,
+                         bool isHistory );
 
 
     //! Begin new multisequence step
@@ -100,24 +101,36 @@ namespace CoupledField {
 
     //! Return number of multisequence steps for a givne inpute read
     void GetNumMultiSequenceSteps( const std::string& readerId,
-                                   StdVector<AnalysisType>& analysis );
+                                   std::map<UInt, AnalysisType>& analysis,
+                                   std::map<UInt, UInt>& numSteps,
+                                   bool isHistory = false );
 
     //! Return result types present in a given input reader
     void GetResultTypes( const std::string& readerId,
                          UInt sequenceStep,
-                         StdVector<shared_ptr<ResultInfo> >& infos );
+                         StdVector<shared_ptr<ResultInfo> >& infos,
+                         bool isHistory = false );
+    
+    //! Return list with time / frequency values and step for a given result
+     void GetStepValues( const std::string& readerId,
+                         UInt sequenceStep,
+                         shared_ptr<ResultInfo> info,
+                         std::map<UInt, Double>& steps,
+                         bool isHistory = false );
     
     //! Return the entities for a given result
     void GetResultEntities( const std::string& readerId,
                             UInt sequenceStep,
                             shared_ptr<ResultInfo> info,
-                            StdVector<shared_ptr<EntityList> >& list );
+                            StdVector<shared_ptr<EntityList> >& list,
+                            bool isHistory = false );
     
     //! Fill previously initialized result object
     void GetResult( const std::string& readerId,
                     UInt sequenceStep,
                     UInt stepValue,
-                    shared_ptr<BaseResult> result );
+                    shared_ptr<BaseResult> result,
+                    bool isHistory = false );
     
 
 
@@ -153,6 +166,9 @@ namespace CoupledField {
 
       //! Flag indicating, if a result should be written only as final result
       bool isFinal;
+      
+      //! Flag indicating, if result should be treated as history value
+      bool isHistory;
 
       //! List of postprocessing procedures
       StdVector<shared_ptr<PostProc> > postProcs;
@@ -209,6 +225,8 @@ namespace CoupledField {
 
     //! Current time / frequency
     Double actStepVal_;
+    
+    //! Number of steps from previous multiSequence analyses
     
     //! Indicates if one result is to be written in final step
     bool finalResultExists_;

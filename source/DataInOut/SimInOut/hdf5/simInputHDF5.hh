@@ -103,25 +103,32 @@ namespace CoupledField {
     //@{ \name General Solution Information
 
     //! Return multisequence steps and their analysistypes
-    void GetNumMultiSequenceSteps( StdVector<AnalysisType>& analysis );
-
-    //! Return list with time / frequency values in given multisequence step
-    void GetStepValues( UInt sequenceStep, 
-                        StdVector<Double>& stepVals );
+    void GetNumMultiSequenceSteps( std::map<UInt, AnalysisType>& analysis,
+                                   std::map<UInt, UInt>& numSteps,
+                                   bool isHistory = false );
 
     //! Obtain list with result types in each sequence step
     void GetResultTypes( UInt sequenceStep, 
-                         StdVector<shared_ptr<ResultInfo> >& infos );
-
+                         StdVector<shared_ptr<ResultInfo> >& infos,
+                         bool isHistory = false );
+    
+    //! Return list with time / frequency values and step for a given result
+    virtual void GetStepValues( UInt sequenceStep,
+                                    shared_ptr<ResultInfo> info,
+                                    std::map<UInt, Double>& steps,
+                                    bool isHistory = false );
+    
     //! Return entitylist the result is defined on
     void GetResultEntities( UInt sequenceStep,
-                            shared_ptr<ResultInfo> info,
-                            StdVector<shared_ptr<EntityList> >& list );
+                               shared_ptr<ResultInfo> info,
+                               StdVector<shared_ptr<EntityList> >& list,
+                               bool isHistory = false );
 
     //! Fill pre-initialized results object with values of specified step
     void GetResult( UInt sequenceStep,
-                    UInt stepValue,
-                    shared_ptr<BaseResult> result );
+                      UInt stepNum,
+                      shared_ptr<BaseResult> result,
+                      bool isHistory = false );
     //@}
 
   protected:
@@ -134,14 +141,22 @@ namespace CoupledField {
     //! Read elements of regions
     void ReadRegions(const H5::Group& meshGroup);
 
-    //! Read named nodes
-    void ReadNamedNodes(const H5::Group& meshGroup);
+    //! Read node groups
+    void ReadNodeGroups(const H5::Group& meshGroup);
 
-    //! Read named elements
-    void ReadNamedElems(const H5::Group& meshGroup);
+    //! Read element groups
+    void ReadElemGroups(const H5::Group& meshGroup);
   
-    //! Read mate information about grid
+    //! Read meta information about grid
     void ReadMeshStats(const H5::Group& meshGroup);
+    
+    //! Read mesh result
+    void GetMeshResult( UInt sequenceStep, UInt stepNum,
+                           shared_ptr<BaseResult> result );
+    
+    //! Read history result
+    void GetHistResult( UInt sequenceStep, UInt stepNum,
+                           shared_ptr<BaseResult> result );
     //@}
 
     // =======================================================================
@@ -160,7 +175,7 @@ namespace CoupledField {
     //  CLASS ATTRIBUTES
     // =======================================================================
     //@{ \name Attributes
-
+    
     //! Flag inicating if mesh meta data is already read in
     bool statsRead_;
 
@@ -176,10 +191,10 @@ namespace CoupledField {
     //! Map with number of dimensions for each region
     std::map<std::string, UInt> regionDims_;
 
-    //! List with names of nodes
+    //! List with names of node groups
     std::vector< std::string > nodeNames_;
 
-    //! List with named of elements
+    //! List with names of element groups
     std::vector< std::string > elemNames_;
   };
 

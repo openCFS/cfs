@@ -563,12 +563,22 @@ namespace CoupledField {
     
     // initialize map for relating EntityUnknownType and name of xml-element
     std::map<ResultInfo::EntityUnknownType, std::string> elemNames;
+    std::map<ResultInfo::EntityUnknownType, bool> isHistory;
     elemNames[ResultInfo::NODE] = "nodeResult";
     elemNames[ResultInfo::PFEM] = "nodeResult";
     elemNames[ResultInfo::ELEMENT] = "elemResult";
     elemNames[ResultInfo::SURF_ELEM] = "surfElemResult";
     elemNames[ResultInfo::REGION] = "regionResult";
     elemNames[ResultInfo::SURF_REGION] = "surfRegionResult";
+    
+    isHistory[ResultInfo::NODE] = false;
+    isHistory[ResultInfo::PFEM] = false;
+    isHistory[ResultInfo::ELEMENT] = false;
+    isHistory[ResultInfo::SURF_ELEM] = false;
+    isHistory[ResultInfo::REGION] = true;
+    isHistory[ResultInfo::SURF_REGION] = true;
+    
+    
 
     // fetch result node and leave, if none is present
     ParamNode * resultNode = myParam_->Get("storeResults", false);
@@ -735,7 +745,8 @@ namespace CoupledField {
             // pass result to resulthandler
             resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
                                         actOutDest, 
-                                        postProcNames[iRegion], writeResult );
+                                        postProcNames[iRegion], writeResult,
+                                        isHistory[candidate->definedOn] );
           
             // if neighboring region is present, store related volume 
             // neighbor region
@@ -840,7 +851,7 @@ namespace CoupledField {
             
             resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
                                         actOutDest, 
-                                        postProcNames[i], writeResult );
+                                        postProcNames[i], writeResult, true );
             
             // if neighboring region is present, store related volume 
             // neighbor region
@@ -862,10 +873,9 @@ namespace CoupledField {
   }
 
   void SinglePDE::WriteResultsInFile( const UInt kstep, 
-                                      const Double actTimeFreq, 
-                                      UInt stepOffset, Double timeOffset ) {
-    LOG_DBG(pde) << "WriteResultsInFile() kstep: " <<  kstep << " actTimeFreq: " 
-            << actTimeFreq << " stepOffset: " <<  stepOffset << " timeOffset: " << timeOffset;
+                                      const Double actTimeFreq ) {
+    LOG_DBG(pde) << "WriteResultsInFile() kstep: " <<  kstep 
+                 << " actTimeFreq: " << actTimeFreq;
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();
     

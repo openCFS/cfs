@@ -39,6 +39,7 @@ namespace CoupledField {
 
     dim_ = GiD_2D;
     actMsStep_ = 0;
+    stepValueOffset_ = 0;
     isAscii_ = true;
     degen3DElems_ = true;
     printGridOnly_ = false;
@@ -434,7 +435,8 @@ namespace CoupledField {
  
   void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd ) {
+                                     UInt saveEnd,
+                                     bool isHistory ) {
     
     ResultInfo & actDof = *(sol->GetResultInfo());
     LOG_DBG(simOutputGiD) << "Registering output '" << actDof.resultName
@@ -447,7 +449,8 @@ namespace CoupledField {
   void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
 
     actStep_ = stepNum;
-    actStepVal_ = stepVal;
+    // add  offset to step value to account for multisequence steps
+    actStepVal_ = stepVal + stepValueOffset_;
     resultMap_.clear();
   }
  
@@ -510,6 +513,11 @@ namespace CoupledField {
       }
       
     }
+  }
+  
+  void SimOutputGiD::
+  FinishMultiSequenceStep( ) {
+    stepValueOffset_ = actStepVal_;
   }
   
 

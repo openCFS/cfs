@@ -11,6 +11,7 @@
 
 #include "General/environment.hh"
 #include "Domain/resultInfo.hh"
+#include "DataInOut/simOutput.hh"
 
 
 #include "H5Cpp.h"
@@ -52,6 +53,21 @@ namespace CoupledField {
                               const H5::DSetCreatPropList &create_plist
                               = H5::DSetCreatPropList::DEFAULT );
     
+    //! Reserve space for a 1D array, but do not write anything to it
+    template<typename TYPE>
+    static void Reserve1DArray( H5::CommonFG &loc,
+                                const std::string& name,
+                                UInt size,
+                                const H5::DSetCreatPropList &create_plist
+                                = H5::DSetCreatPropList::DEFAULT );
+    
+    //! Set entries entries in 1D array
+    template<typename TYPE>
+    static void SetEntries1DArray( H5::CommonFG &loc,
+                                   const std::string& name,
+                                   UInt begin, UInt end,
+                                   const TYPE * buffer  );
+    
     //! Commodity function for writing a 2D dataset
     template<typename TYPE>
     static void Write2DArray( H5::CommonFG &loc,
@@ -62,6 +78,23 @@ namespace CoupledField {
                               const H5::DSetCreatPropList &create_plist
                               = H5::DSetCreatPropList::DEFAULT );
     
+    //! Reserve space for a 2D array, but do not write anything to it
+    template<typename TYPE>
+    static void Reserve2DArray( H5::CommonFG &loc,
+                                const std::string& name,
+                                UInt rowSize,
+                                UInt colSize,
+                                const H5::DSetCreatPropList &create_plist
+                                = H5::DSetCreatPropList::DEFAULT );
+    
+    //! Commodity function for writing a 2D dataset
+    template<typename TYPE>
+    static void SetEntries2DArray( H5::CommonFG &loc,
+                                   const std::string& name,
+                                   UInt rowBegin, UInt rowEnd,
+                                   UInt colBegin, UInt colEnd,
+                                   const TYPE * buffer );
+       
     //! Commoditiy function for writing a scalar compound (1x1 rank)
     static void WriteCompound( H5::CommonFG& loc,
                                const std::string& name,
@@ -81,7 +114,7 @@ namespace CoupledField {
     //! H5::CommonFG::getObjnameByIdx(), which skips by default the last 
     //! character of the groupname
     static std::string GetObjNameByIdx( const H5::CommonFG& loc, hsize_t idx );
-
+   
     //! Read data from an attribute
     template<typename TYPE>
     static void ReadAttribute( H5::H5Object& obj,
@@ -131,7 +164,8 @@ namespace CoupledField {
 
     //! Obtain grid result group for specified multisequence step
     static H5::Group GetMultiStepGroup( H5::H5File& file, 
-                                        UInt msStep );
+                                            UInt msStep, 
+                                            bool isHistory );
 
     //! Obtain grid result group for specified step in a given multistep
     static H5::Group GetStepGroup( H5::H5File& file, 
@@ -142,11 +176,20 @@ namespace CoupledField {
     //  CONVERSION METHODS
     // =======================================================================
 
+    //! Map SimOuput::Capability class to hdf5 type
+    static Integer MapCapabilityType( SimOutput::Capability c );
+    
+    //! Map hdf5 representation of simOutput::Capability to enum representat
+    static SimOutput::Capability MapCapabilityType( Integer c );
+    
     //! Map EntityUnknownType enum to hdf5 type
     static Integer MapUnknownType( ResultInfo::EntityUnknownType t );
 
     //! Map EntityUnknown hdf5 type to enum
     static ResultInfo::EntityUnknownType MapUnknownType( Integer t );
+    
+    //! Map EntityUnknownType enum to string representation
+    static std::string MapUnknownTypeAsString( ResultInfo::EntityUnknownType t );
 
     //! Map entryType from enum to hdf5 type
     static Integer MapEntryType( ResultInfo::EntryType t );
@@ -154,8 +197,20 @@ namespace CoupledField {
     //! Map entryType from hdf5 type to enum
     static ResultInfo::EntryType MapEntryType( Integer t );
 
+    // =======================================================================
+    //  MISCELANEOUS METHODS
+    // =======================================================================
+    
+    //! Set chunksize to be used for Array data
+    static void SetMaxChunkSize( UInt chunkSize );
+    
   private:
 
+    // =======================================================================
+    //  MAXIMUM CHUNKSIZE
+    // =======================================================================
+    static hsize_t maxChunkSize_;
+    
     // =======================================================================
     //  HELPER CLASSES FOR DEFINING CONVERSION C++ <-> HDF5 DATATYPES
     // =======================================================================

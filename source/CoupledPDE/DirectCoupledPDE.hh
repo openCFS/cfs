@@ -103,12 +103,8 @@ namespace CoupledField {
     void Finalize();
 
     //! write results in file
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time  
     void WriteResultsInFile(const UInt kstep = 0,
-                            const Double asteptime = 0.0,
-                            UInt stepOffset = 0,
-                            Double timeOffset = 0.0);
+                            const Double asteptime = 0.0 );
 
     //@}
 

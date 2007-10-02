@@ -18,17 +18,13 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  StaticDriver::StaticDriver( UInt stepOffset,
-                              Double timeOffset,
-                              UInt sequenceStep, 
+  StaticDriver::StaticDriver( UInt sequenceStep,
                               bool isPartOfSequence ) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
     
 
     analysis_ = STATIC;
 
-    stepOffset_ = stepOffset;
-    timeOffset_ = timeOffset;
     consecutiveRun_ = false; 
   }
 
@@ -73,9 +69,9 @@ namespace CoupledField {
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // resHandler->BeginStep( nstep+stepOffset_, timeOffset_ + steptime );
-    resHandler->BeginStep( loi + stepOffset_, step_val > 0 ? step_val : timeOffset_ + (loi-1) );
+    resHandler->BeginStep( loi, step_val > 0 ? step_val : (loi-1) );
     // actually the parameters seem to be not used :(
-    ptPDE_->WriteResultsInFile(loi , loi-1, stepOffset_, timeOffset_);
+    ptPDE_->WriteResultsInFile(loi , loi-1 );
     resHandler->FinishStep();
 
     ptPDE_->Finalize();

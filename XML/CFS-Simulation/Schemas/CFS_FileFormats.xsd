@@ -188,6 +188,14 @@
     <xsd:complexContent>
       <xsd:extension base="DT_OutputBasic">
         <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
+        <xsd:attribute name="maxChunkSize" type="xsd:positiveInteger" default="100"/>
+        <xsd:attribute name="compressionLevel" default="6">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:nonNegativeInteger">
+              <xsd:maxInclusive value="9"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

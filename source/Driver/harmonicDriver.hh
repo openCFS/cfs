@@ -16,13 +16,9 @@ namespace CoupledField
   public:
 
     //! Constructor
-    //! \param stepOffset offset for starting (frequency)step
-    //! \param reqOffset offset for starting frequency
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
-    HarmonicDriver( UInt stepOffset,
-                    Double freqOffset,
-                    UInt sequenceStep,
+    HarmonicDriver( UInt sequenceStep,
                     bool isPartOfSequence = false);
 
     //! Detructor 
@@ -75,12 +71,6 @@ namespace CoupledField
 
     //! A attribute storing the type of algorithm used for frequency sampling
     FreqSamplingType samplingType_;
-
-    //! Offset for first frequency step
-    UInt stepOffset_;
-
-    //! offset for first time
-    Double freqOffset_;
 
   };
 

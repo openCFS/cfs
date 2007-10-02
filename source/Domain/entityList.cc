@@ -2,8 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <boost/lexical_cast.hpp>
+
 #include "entityList.hh"
 #include "Domain/grid.hh"
+
 
 
 namespace CoupledField {
@@ -58,7 +61,6 @@ namespace CoupledField {
   void EntityList::String2Enum( const std::string& type,
                                 EntityList::ListType & out ) {
 
-    ListType ret;
     if( type == "elemList" ) {
       out = ELEM_LIST;
     } else if( type == "surfElemList" ||
@@ -283,14 +285,16 @@ namespace CoupledField {
   }
 
   std::string RegionList::GetName() const {
-    std::string ret = "regionList( ";
-    for( UInt i=0; i < list_.GetSize()-1; i++ ) { 
-      ret += grid_->RegionIdToName( list_[i] ) + ", ";
-    }
-    if( list_.GetSize() > 0 ) {
-      ret+= grid_->RegionIdToName( list_.Last() );
-    }
-    return ret + ")";
+//    std::string ret = "regionList( ";
+//    for( UInt i=0; i < list_.GetSize()-1; i++ ) { 
+//      ret += grid_->RegionIdToName( list_[i] ) + ", ";
+//    }
+//    if( list_.GetSize() > 0 ) {
+//      ret+= grid_->RegionIdToName( list_.Last() );
+//    }
+//    return ret + ")";
+    
+    return grid_->RegionIdToName( list_.Last() );
   }
 
   void RegionList::SetRegionId( RegionIdType region ) {
@@ -378,6 +382,28 @@ namespace CoupledField {
     EXCEPTION( "Not Implemented" );
     return 0;
   }
+  
+  std::string EntityIterator::GetIdString() const {
+    
+    std::string id = "";
+    switch( type_ ) {
+    case EntityList::ELEM_LIST:
+    case EntityList::SURF_ELEM_LIST:
+    case EntityList::NC_ELEM_LIST:
+      id = lexical_cast<std::string>(GetElem()->elemNum);
+      break;
+    case EntityList::NODE_LIST:
+      id = lexical_cast<std::string>(GetNode());
+      break;
+    case EntityList::REGION_LIST:
+      id = regionList_->grid_->RegionIdToName( GetRegion() );
+      break;
+    default:
+        EXCEPTION( "Not implemented" );
+    }
+      
+     return id; 
+  }
 
 
-}
+} // end of namespace

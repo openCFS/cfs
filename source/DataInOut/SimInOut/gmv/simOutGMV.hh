@@ -38,7 +38,8 @@ namespace CoupledField
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
                           UInt saveBegin, UInt saveInc,
-                          UInt saveEnd );
+                          UInt saveEnd,
+                          bool isHistory );
     
     //! Begin single analysis step
     void BeginStep( UInt stepNum, Double stepVal );
@@ -68,15 +69,21 @@ namespace CoupledField
     //! pointer to ofstream of current file
     std::ofstream * output;
 
-    // current multiSequence step
+    //! current multiSequence step
     Integer currMsStep_;
     
-    // current analysis type
+    //! current analysis type
     std::string currAnalysis_;
 
     //! indicator of type for data
     bool ascii_;
 
+    //!  Offset for step number in case of multisequence analysis
+    Integer stepNumOffset_;
+        
+    //! Offset for step value in case of multisequence analysis
+    Double stepValOffset_;
+    
     //! size of character string to be written out
     UInt charOutSize_;
 

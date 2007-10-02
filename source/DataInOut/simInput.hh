@@ -148,33 +148,40 @@ namespace CoupledField
     //@{ \name General Solution Information
 
     //! Return multisequence steps and their analysistypes
-    virtual void GetNumMultiSequenceSteps( StdVector<AnalysisType>& analysis ) {
-      EXCEPTION( "Not implemented in base class" );
-    }
-
-    //! Return list with time / frequency values in given multisequence step
-    virtual void GetStepValues( UInt sequenceStep, 
-                        StdVector<Double>& stepVals ) {
+    virtual void GetNumMultiSequenceSteps( std::map<UInt, AnalysisType>& analysis,
+                                           std::map<UInt, UInt>& numSteps,
+                                           bool isHistory = false ) {
       EXCEPTION( "Not implemented in base class" );
     }
 
     //! Obtain list with result types in each sequence step
     virtual void GetResultTypes( UInt sequenceStep, 
-                         StdVector<shared_ptr<ResultInfo> >& infos ) {
+                                 StdVector<shared_ptr<ResultInfo> >& infos,
+                                 bool isHistory = false ) {
       EXCEPTION( "Not implemented in base class" );
     }
-
+    
+    //! Return list with time / frequency values and step for a given result
+    virtual void GetStepValues( UInt sequenceStep,
+                                shared_ptr<ResultInfo> info,
+                                std::map<UInt, Double>& steps,
+                                bool isHistory = false ) {
+      EXCEPTION( "Not implemented in base class" );
+    }
+    
     //! Return entitylist the result is defined on
     virtual void GetResultEntities( UInt sequenceStep,
-                            shared_ptr<ResultInfo> info,
-                            StdVector<shared_ptr<EntityList> >& list ) {
+                                    shared_ptr<ResultInfo> info,
+                                    StdVector<shared_ptr<EntityList> >& list,
+                                    bool isHistory = false) {
       EXCEPTION( "Not implemented in base class" );
     }
     
     //! Fill pre-initialized results object with values of specified step
     virtual void GetResult( UInt sequenceStep,
-                    UInt stepValue,
-                    shared_ptr<BaseResult> result ) {
+                               UInt stepValue,
+                               shared_ptr<BaseResult> result,
+                               bool isHistory = false ) {
       EXCEPTION( "Not implemented in base class" );
     } 
     //@}
@@ -184,9 +191,9 @@ namespace CoupledField
     //! Name of input file
     std::string fileName_;
 
-    std::string baseDir_;
-    std::string baseName_;
+
     Grid *mi_;
+
     //! Capabilities of output class
     std::set<Capability> capabilities_;
     

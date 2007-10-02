@@ -40,7 +40,8 @@ namespace CoupledField {
                   UInt saveEnd, 
                   const StdVector<std::string> & outDestNames,
                   const std::string& postProcName,
-                  bool writeResult ) {
+                  bool writeResult,
+                  bool isHistory ) {
 
     ResultInfo & actDof = *(sol->GetResultInfo());
 
@@ -81,6 +82,7 @@ namespace CoupledField {
     actContext->saveInc = saveInc;
     actContext->writeResult = writeResult;
     actContext->isFinal = false;
+    actContext->isHistory = isHistory;
     resultContexts_[sol] = actContext;
     
     // if no destination output was provided, try to find default one
@@ -111,7 +113,8 @@ namespace CoupledField {
         
         // register results also at the output writer class
         outFiles_[newDest[i]]->RegisterResult( sol, saveBegin,
-                                               saveInc, saveEnd );
+                                               saveInc, saveEnd,
+                                               actContext->isHistory );
       }
     }
 
@@ -442,7 +445,8 @@ namespace CoupledField {
         outFiles_[outDest[iOut]]->
           RegisterResult(  postProcs[i]->GetOutputResult(),
                            actContext.saveBegin, actContext.saveInc,
-                           actContext.saveEnd );
+                           actContext.saveEnd,
+                           actContext.isHistory );
       }
       
       // store postproc and result in current context2
@@ -720,7 +724,9 @@ namespace CoupledField {
 
   void ResultHandler::
   GetNumMultiSequenceSteps( const std::string& readerId,
-                            StdVector<AnalysisType>& analysis ) {
+                            std::map<UInt, AnalysisType>& analysis,
+                            std::map<UInt, UInt>& numSteps,
+                            bool isHistory ) { 
     
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
@@ -728,14 +734,16 @@ namespace CoupledField {
                  << "' is not regsitered yet" );
     }
     
-    inFiles_[readerId]->GetNumMultiSequenceSteps( analysis );
+    inFiles_[readerId]->GetNumMultiSequenceSteps( analysis, numSteps, 
+                                                  isHistory );
   }
 
   
   void ResultHandler::
   GetResultTypes( const std::string& readerId,
-                  UInt sequenceStep,
-                  StdVector<shared_ptr<ResultInfo> >& infos ) {
+                    UInt sequenceStep,
+                    StdVector<shared_ptr<ResultInfo> >& infos,
+                    bool isHistory ) {
 
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
@@ -744,16 +752,31 @@ namespace CoupledField {
     }
 
     inFiles_[readerId]->GetResultTypes( sequenceStep,
-                                        infos );
-    
+                                        infos, isHistory );
   }
     
+  void ResultHandler::
+  GetStepValues( const std::string& readerId,
+                 UInt sequenceStep,
+                 shared_ptr<ResultInfo> info,
+                 std::map<UInt, Double>& steps,
+                 bool isHistory ) {
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+          << "' is not regsitered yet" );
+    }
+    
+    inFiles_[readerId]->GetStepValues( sequenceStep, info,
+                                       steps, isHistory );
+  }
   
   void ResultHandler::
   GetResultEntities( const std::string& readerId,
                      UInt sequenceStep,
                      shared_ptr<ResultInfo> info,
-                     StdVector<shared_ptr<EntityList> >& list ) {
+                     StdVector<shared_ptr<EntityList> >& list,
+                     bool isHistory ) {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
@@ -761,14 +784,15 @@ namespace CoupledField {
     }
 
     inFiles_[readerId]
-      ->GetResultEntities( sequenceStep, info, list );
+      ->GetResultEntities( sequenceStep, info, list, isHistory );
   }
 
   void ResultHandler::
   GetResult( const std::string& readerId,
              UInt sequenceStep,
              UInt stepValue,
-             shared_ptr<BaseResult> result ) {
+             shared_ptr<BaseResult> result,
+             bool isHistory ) {
 
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
@@ -776,7 +800,8 @@ namespace CoupledField {
                  << "' is not regsitered yet" );
     }
     
-    inFiles_[readerId]->GetResult( sequenceStep, stepValue, result );
+    inFiles_[readerId]->GetResult( sequenceStep, stepValue, 
+                                   result, isHistory );
   }
   
 

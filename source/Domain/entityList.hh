@@ -320,6 +320,17 @@ namespace CoupledField {
     //! Return position
     UInt GetPos() const { return pos_; }
     
+    //! This method returns for each type of unknown a characteristic string 
+    
+    //! This method resturn the following information (as string) for the 
+    //! following entity types:
+    //! ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST: number of element 
+    //! NODE_LIST: node number
+    //! REGION_LIST: region name
+    //! COIL_LIST: coild id
+    //! NUMBER_LIST: unknown number
+    std::string GetIdString() const;
+    
   protected:
     EntityList::ListType type_;
     const ElemList* elemList_;

@@ -244,9 +244,7 @@ namespace CoupledField
 
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
-                             const Double actTimeFreq, 
-                             UInt stepOffset = 0,
-                             Double timeOffset = 0.0 );
+                             const Double actTimeFreq );
     
     //! incorporate information of memento object, if set
     virtual void IncorporateMemento();
