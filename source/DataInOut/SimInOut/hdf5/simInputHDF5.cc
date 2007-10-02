@@ -40,6 +40,7 @@ namespace CoupledField {
     
     mi_ = NULL;
     statsRead_ = false;
+    hasExternalFiles_ = false;
     fileName_ = fileName;
     genRegionNodes_ = false;
     ParamNode *readRegionNode = NULL;
@@ -81,12 +82,12 @@ namespace CoupledField {
   void SimInputHDF5::InitModule()
   {
     
-    std::string baseDir, baseName;
+    std::string baseName;
     try 
     {
       fs::path fn = fs::system_complete(fileName_);
       fn.normalize();
-      baseDir = fn.branch_path().native_directory_string();
+      baseDir_ = fn.branch_path().native_directory_string();
       baseName = (fs::change_extension( fn.leaf(), "" )).native_directory_string();
       if(fs::extension(fn) == "")
       {
@@ -100,7 +101,7 @@ namespace CoupledField {
     }
     
     LOG_TRACE(simInputHdf5) << "fileName_: " << fileName_;
-    LOG_TRACE(simInputHdf5) << "baseDir: " << baseDir;
+    LOG_TRACE(simInputHdf5) << "baseDir: " << baseDir_;
     LOG_TRACE(simInputHdf5) << "baseName: " << baseName;
 
     statsRead_ = false;
@@ -112,6 +113,16 @@ namespace CoupledField {
     try {
       mainRoot_ = mainFile_.openGroup("/");
     } H5_CATCH( "Could not open main root" );
+    
+    // check for use of external files
+    try {
+      H5::Group meshResGroup = mainRoot_.openGroup("Results/Mesh");
+      H5IO::ReadAttribute( meshResGroup, "externalFiles",
+                           hasExternalFiles_ );
+      meshResGroup.close();
+    } catch( H5::Exception& ex ) {
+      hasExternalFiles_ = false;
+    }
   }
 
   void SimInputHDF5::ReadMesh( Grid *mi )
@@ -491,6 +502,27 @@ namespace CoupledField {
     // open stepgroup, open specific result subgroup
     H5::Group stepGroup = H5IO::GetStepGroup( mainFile_, sequenceStep, 
                                               stepNum );
+    
+    // check, if results are stored at external file location
+    H5::H5File extFile;
+    if( hasExternalFiles_ ) {
+      std::string extFileString;
+      H5IO::ReadAttribute( stepGroup, "ExtHDF5FileName", extFileString);
+      std::string pathsep = fs::path("/").native_directory_string();
+      std::string extFileNameComplete = baseDir_ + pathsep + extFileString;
+      try {
+        extFile = H5::H5File( extFileNameComplete, H5F_ACC_RDONLY );
+      } H5_CATCH( "Could not open external file '" 
+                  << extFileString << "' for result '" 
+                  << result->GetResultInfo()->resultName
+                  << "' in multisequence step " << sequenceStep
+                  << ", analysis step " << stepNum  );
+
+      // replace old step group by new one
+      stepGroup.close();
+      stepGroup = extFile.openGroup( "/" );
+    }
+    
     // determine region for this results
     std::string regionName =  result->GetEntityList()->GetName();
 
@@ -542,6 +574,9 @@ namespace CoupledField {
     }
     resGroup.close();
     stepGroup.close();
+    // close external file for current step
+    if( hasExternalFiles_ )
+      extFile.close();
   }
   
   void SimInputHDF5::GetHistResult( UInt sequenceStep, UInt stepNum,

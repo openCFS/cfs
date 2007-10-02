@@ -260,9 +260,10 @@ namespace CFSTool {
                input->GetResult( actMsStep, actStepNum, results[iRes] );
                output->AddResult( results[iRes] );
              } catch (Exception& ex ) {
-             std::cerr <<  "Result '" << results[iRes]->GetResultInfo()->resultName 
+             std::cerr <<  "\nResult '" << results[iRes]->GetResultInfo()->resultName 
                        << "' in MsStep" << actMsStep << ", step " << actStepNum
-                       << " could not be converted\n";
+                       << " could not be converted:\n\n";
+             std::cerr << ex.what() << std::endl;
              }
            }
            output->FinishStep();
