@@ -177,43 +177,50 @@ namespace CFSTool {
      if( !printGridOnly ) {
 
        // obtain number of multiSequenceSteps and get analysis types
-       StdVector<AnalysisType> types;
-       input->GetNumMultiSequenceSteps( types );
-       std::cout << "\nFound " << types.GetSize() << " sequence steps:\n";
+       std::map<UInt, AnalysisType> types;
+       std::map<UInt, UInt> numSteps;
+       input->GetNumMultiSequenceSteps( types, numSteps );
+       std::cout << "\nFound " << types.size() << " sequence step(s)\n";
 
        // iterate over all multiSequenceSteps
-       UInt stepOffset = 0;
-       for( UInt iMsStep = 0; iMsStep < types.GetSize(); iMsStep++ ) {
+       std::map<UInt,UInt>::iterator it;
+       for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
          
-         std::cout << "\tConverting step no. " << iMsStep+1 << std::endl;
+         UInt actMsStep = it->first;
+         std::cout << "\n----------------------------\n"
+                   << " Converting sequence step " << actMsStep << std::endl
+                   << "----------------------------\n\n";
          // get resulttypes
          StdVector<shared_ptr<ResultInfo> > infos;
-         input->GetResultTypes( iMsStep+1, infos );
+         input->GetResultTypes( actMsStep, infos );
 
-         // get stepvalues
-         StdVector<Double> stepVals;
-         input->GetStepValues( iMsStep+1, stepVals );
-         
          // notify writer
-         output->BeginMultiSequenceStep( iMsStep+1, types[iMsStep], stepVals.GetSize() );
-
+         output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
          StdVector<shared_ptr<BaseResult> > results;
+         std::map<UInt, Double> stepVals;
+         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
          
          if( infos.GetSize() > 0 ){
-             std::cout << "\tfor results ";
+             std::cout << "Converting the following results:\n";
          }
          // iterate over all result types
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::cout << "\t" << infos[iRes]->resultName << std::endl;
+           shared_ptr<ResultInfo> actRes = infos[iRes];
+           std::cout << "\t" << actRes->resultName << std::endl;
 
+           // get stepvalues
+           input->GetStepValues( actMsStep, actRes, resultSteps[actRes] );
+           stepVals.insert( resultSteps[actRes].begin(),
+                            resultSteps[actRes].end() );
+           
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
-           input->GetResultEntities( iMsStep+1, infos[iRes], regions );
+           input->GetResultEntities( actMsStep, infos[iRes], regions );
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > result;
-             if( types[iMsStep] != HARMONIC ) {
+             if( types[actMsStep] != HARMONIC ) {
                result = shared_ptr<BaseResult>( new Result<Double>() );
              } else {
                result = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -221,37 +228,48 @@ namespace CFSTool {
              result->SetEntityList( regions[iRegion] );
              result->SetResultInfo( infos[iRes] );
              results.Push_back( result );
-             // CAUTION: begin, inc, end are hardcoded and noch checked for each result!
-             output->RegisterResult( result, 1, 1, stepVals.GetSize() ); 
+             // Note: as the real values of saveBegin, saveInc and saveEnd are almost
+             // nevert queried within an output format. we simply set saveBegin = 1,
+             // saveInc = 1, saveEnd = number of result steps.
+             output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false ); 
            }
-           
          }
-         // iterate over all stepvalues
-         for( UInt iStep = 0; iStep < stepVals.GetSize(); iStep++ ) {
-           Double actStepVal = stepVals[iStep];
+         
+         // iterate over all stepvalues of this multisequence step
+         for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
 
-           output->BeginStep( iStep+1+stepOffset, actStepVal );
+           // check, if current step contains any results
+           if( stepVals.find( iStep+1) == stepVals.end() )
+             continue;
+
+           UInt actStepNum = iStep+1;
+           Double actStepVal = stepVals[iStep+1];
+
+           output->BeginStep( actStepNum, actStepVal );
+
            // iterate over all results
            for( UInt iRes = 0; iRes < results.GetSize(); iRes++) {
+             
+             // check if current result is defined within this step
+             if( resultSteps[results[iRes]->GetResultInfo()].find(actStepNum)
+                 == resultSteps[results[iRes]->GetResultInfo()].end() ) {
+               continue;
+             }
+
              try {
-             input->GetResult( iMsStep+1, iStep+1+stepOffset, results[iRes] );
-             output->AddResult( results[iRes] );
+               input->GetResult( actMsStep, actStepNum, results[iRes] );
+               output->AddResult( results[iRes] );
              } catch (Exception& ex ) {
-               // do nothing
-               // Note: This is currently the "hard-coded" way of handling results,
-               // which have a saveBegin/End/Increment which differs from the 
-               // default values
+             std::cerr <<  "Result '" << results[iRes]->GetResultInfo()->resultName 
+                       << "' in MsStep" << actMsStep << ", step " << actStepNum
+                       << " could not be converted\n";
              }
            }
            output->FinishStep();
-
          }
          output->FinishMultiSequenceStep();
          
-         // add number of steps to stepoffset for subsequente 
-         // multisequence steps
-         stepOffset += stepVals.GetSize();
-       }
+       } // loop over multisequence steps
      } // printGridOnly
      output->Finalize();
      delete ptGrid;
@@ -265,7 +283,8 @@ namespace CFSTool {
   Double Diff( const std::string& inFile1, 
                const std::string& inFile2,
                const std::string& outFile,
-               const bool normedtomax) {
+               bool normedtomax,
+               bool isHistory ) {
        
        // obtain input reader for inFiles
        shared_ptr<SimInput> input1 = GetInputReader( inFile1 );
@@ -302,47 +321,56 @@ namespace CFSTool {
        }
        
        // obtain number of Sequence Steps and get analysis types
-       StdVector<AnalysisType> types;
-       input1->GetNumMultiSequenceSteps( types );
-       if( output )
-         std::cout << "\nFound " << types.GetSize() << " sequence steps:\n";
+       std::map<UInt, AnalysisType> types;
+       std::map<UInt, UInt> numSteps;
+       input1->GetNumMultiSequenceSteps( types, numSteps, isHistory );
+       
+       std::cout << "\nFound " << types.size() << " sequence step(s)\n";
 
        // iterate over all Sequence Steps
-       UInt stepOffset = 0;
        Double maxDiff = 0.0;
-       for( UInt iMsStep = 0; iMsStep < types.GetSize(); iMsStep++ ) {
-
-         if( output )
-           std::cout << "\tPerforming diff on step no. " << iMsStep+1 << std::endl;
+       std::map<UInt,UInt>::iterator it;
+       for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
+         
+         UInt actMsStep = it->first;
+         std::cout << "\n-------------------------\n"
+                   << " Diffing sequence step " << actMsStep << std::endl
+                   << "-------------------------\n\n";
          
          // get resulttypes
          StdVector<shared_ptr<ResultInfo> > infos;
-         input1->GetResultTypes( iMsStep+1, infos );
-
-         // get stepvalues
-         StdVector<Double> stepVals;
-         input1->GetStepValues( iMsStep+1, stepVals );
-
-         // notify writer
-         if( output) {
-           output->BeginMultiSequenceStep( iMsStep+1, types[iMsStep], stepVals.GetSize() );
-         }
+         input1->GetResultTypes( actMsStep, infos, isHistory );
 
          StdVector<shared_ptr<BaseResult> > inResults1, inResults2, outResults;
-
+         // stepnumbers, for which at least one result is defined 
+         std::map<UInt, Double> stepVals; 
+         // contains the stepnumbers/-values in which the particular result is
+         // defined in
+         std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+         
+         if( infos.GetSize() > 0 ){
+           std::cout << "Performing diff on the following results:\n";
+         }
          // iterate over all result types of input1
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           if( output )
-             std::cout << "\tfor result '" << infos[iRes]->resultName << "'" << std::endl;
+           std::cout << "\t" << infos[iRes]->resultName << std::endl; 
 
+           // get stepvalues
+           shared_ptr<ResultInfo> actRes = infos[iRes];
+           input1->GetStepValues( actMsStep, actRes, 
+                                  resultSteps[actRes], isHistory);
+           stepVals.insert( resultSteps[actRes].begin(),
+                            resultSteps[actRes].end() );
+           
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
-           input1->GetResultEntities( iMsStep+1, infos[iRes], regions );
+           input1->GetResultEntities( actMsStep, infos[iRes], 
+                                      regions, isHistory );
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > inResult1, inResult2, outResult;
-             if( types[iMsStep] != HARMONIC ) {
+             if( types[actMsStep] != HARMONIC ) {
                inResult1 = shared_ptr<BaseResult>( new Result<Double>() );
                inResult2 = shared_ptr<BaseResult>( new Result<Double>() );
                outResult = shared_ptr<BaseResult>( new Result<Double>() );
@@ -368,30 +396,52 @@ namespace CFSTool {
                outResult->GetResultInfo()->complexFormat = REAL_IMAG;
                
                // CAUTION: begin, inc, end are hardcoded and noch checked for each result
-               output->RegisterResult( outResult, 1, 1, stepVals.GetSize() );
+               output->RegisterResult( outResult, 1, 1, 
+                                       resultSteps[actRes].size(), 
+                                       isHistory );
              }
            }
          }
 
+         // notify writer
+         if( output) {  
+           output->BeginMultiSequenceStep( actMsStep, types[actMsStep], 
+                                           numSteps[actMsStep] );
+         }
+         
          // iterate over all time/frequency steps
-         for( UInt iStep = 0; iStep < stepVals.GetSize(); iStep++ ) {
-           Double actStepVal = stepVals[iStep];
+         for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
+
+           // check, if current step contains any results
+           if( stepVals.find( iStep+1) == stepVals.end() )
+             continue;
+           UInt actStepNum = iStep+1;
+           Double actStepVal = stepVals[iStep+1];
            
            if( output) {
-             output->BeginStep( iStep+1+stepOffset, actStepVal );
+             output->BeginStep( actStepNum, actStepVal );
            }
            
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
+             // check if current result is defined within this step
+             if( resultSteps[inResults1[iRes]->GetResultInfo()].find(actStepNum)
+                 == resultSteps[inResults1[iRes]->GetResultInfo()].end() ) {
+               continue;
+             }
+             
              // obtain both result objects for current step
-             input1->GetResult( iMsStep+1, iStep+1+stepOffset, inResults1[iRes] );
-             input2->GetResult( iMsStep+1, iStep+1+stepOffset, inResults2[iRes] );
+             input1->GetResult( actMsStep, actStepNum, inResults1[iRes], isHistory );
+             input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
              
              // cast result objects, get vector and calculate difference vector
-             if( types[iMsStep] != HARMONIC ) {
-               Vector<Double> & inVec1 = dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
-               Vector<Double> & inVec2 = dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
-               Vector<Double> & outVec = dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
+             if( types[actMsStep] != HARMONIC ) {
+               Vector<Double> & inVec1 = 
+                 dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
+               Vector<Double> & inVec2 = 
+                  dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
+               Vector<Double> & outVec = 
+                 dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
 
                // normalize to maximum value of inResult2
@@ -412,9 +462,12 @@ namespace CFSTool {
                  }
                }
              } else {
-               Vector<Complex> & inVec1 = dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
-               Vector<Complex> & inVec2 = dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
-               Vector<Complex> & outVec = dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
+               Vector<Complex> & inVec1 = 
+                 dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
+               Vector<Complex> & inVec2 = 
+                 dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
+               Vector<Complex> & outVec = 
+                 dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
 
                // find maximum amplitude of inResult2
@@ -451,7 +504,8 @@ namespace CFSTool {
                    
                  } else {
                    
-                   // if no relative differences are calculated return maximum amplitude difference
+                   // if no relative differences are calculated return
+                   // maximum amplitude difference
                    if( std::abs(aDiff) > maxDiff)
                      maxDiff = std::abs(aDiff);
                  }
@@ -503,9 +557,6 @@ namespace CFSTool {
          if( output )
            output->FinishMultiSequenceStep();
 
-         // add number of steps to stepoffset for subsequente 
-         // multisequence steps
-         stepOffset += stepVals.GetSize();
        }
        if( output ) {
          output->Finalize();
@@ -523,8 +574,8 @@ namespace CFSTool {
 
 int main(int argc, char** argv) {
   
-  // 
-  Exception::segfault_ = true;
+  // Switch this flag to true for debugging
+  Exception::segfault_ = false;
   
   try {
     if( argc < 2) {
@@ -568,14 +619,23 @@ int main(int argc, char** argv) {
       } catch (std::exception& ex ) {
         EXCEPTION( "Could not convert '" << argv[4] << "' to double value");
       }
-      Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], "", true );
+      Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
+      std::cout << "\n===========================\n" 
+                << " Checking for mesh results \n"
+                << "===========================\n";
+      maxDiffMesh = CFSTool::Diff( argv[2], argv[3], "", true, false );
+      std::cout << "\n==============================\n" 
+                << " Checking for history results \n"
+                << "==============================\n";
+      maxDiffHist = CFSTool::Diff( argv[2], argv[3], "", true, true );
+      Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cerr << "Files '" << argv[2] << "' and '"
+        std::cout << "\nFiles '" << argv[2] << "' and '"
         << argv[3] << "' differ with maximum difference of "
         << maxDiff << "\n";
         exit(EXIT_FAILURE);
       } else {
+        std::cout << "\nNo difference found\n";
         exit(EXIT_SUCCESS);
       }
 
@@ -584,14 +644,14 @@ int main(int argc, char** argv) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false );
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false, false );
 
     } else if( modus == "meshdiffnormed" ) {
       if( argc != 5 ) {
         EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true );
+      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true, false );
 
     } else {
       std::cerr << "modus '" << modus << "' not known\n";

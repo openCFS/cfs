@@ -11,6 +11,12 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
+// =================================
+//    Initialize Static Variables
+// =================================
+hsize_t H5IO::maxChunkSize_= 100; 
+
+
   // ====================================
   //    Initialize Atom Data Typemaps
   // ====================================
@@ -530,8 +536,13 @@ namespace CoupledField {
         EXCEPTION( "Could not convert data for 1D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
+      
+      // set chunking of dataset
+      H5::DSetCreatPropList newList(create_plist);
+      const hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
+      newList.setChunk( 1, &chunk);
       H5::DataSet dataset = loc.createDataSet( name, stdType, 
-                                               space, create_plist );
+                                               space, newList );
       dataset.write( conv.GetOutBufferPtr(), nativeType  );
 
       // reset conversion object
@@ -551,6 +562,103 @@ namespace CoupledField {
     
   }
 
+  template<typename TYPE>
+  void H5IO::Reserve1DArray( H5::CommonFG &loc,
+                             const std::string& name,
+                             UInt size,
+                             const H5::DSetCreatPropList &create_plist ) {
+    
+    try {
+  
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType stdType = conv.GetStdType();
+               
+      // create memory data space
+      hsize_t dims[1] = {size};
+      const hsize_t maxDims[1] = {H5S_UNLIMITED};
+      H5::DataSpace space( 1, dims, maxDims );
+      
+      // set chunking of dataset
+      H5::DSetCreatPropList newList(create_plist);
+      
+      hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
+      newList.setChunk( 1, &chunk);
+      H5::DataSet dataset = loc.createDataSet( name, stdType, 
+                                               space, newList );
+            
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      space.close();
+      dataset.close();
+
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not reserve 1D-Array '" 
+                << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not reserve 1D-Array '" << name << "'" );
+    }
+  }
+      
+  
+  template<typename TYPE>
+  void H5IO::SetEntries1DArray( H5::CommonFG &loc,
+                                const std::string& name,
+                                UInt start, UInt end,
+                                const TYPE * buffer ) {
+    
+    // check, that size is greate than zero
+    if( start > end || buffer == NULL ) {
+      EXCEPTION( "Attribute data buffer of 1D array '" << name 
+                 << "' is NULL or has zero size" );
+    }
+    try {
+
+      // create conversion helper object and get native / std hdf5 datatype
+      HdfTypeConversion<TYPE> conv;
+      H5::DataType nativeType = conv.GetNativeType();
+  
+      // create memory data space
+      const hsize_t size = ( end - start ) + 1;
+      const hsize_t maxDims = H5S_UNLIMITED;
+      H5::DataSpace memSpace( 1, &size, &maxDims );
+      
+      // fill conversion object
+      conv.SetNativeData( buffer, size );
+      if( !conv.IsSet() ) {
+        EXCEPTION( "Could not convert data for 1D array '"
+                   << name << "' of type " << typeid(TYPE).name() );
+      }
+      // open dataset and dataspace of file dataset
+      H5::DataSet dataset = loc.openDataSet( name );
+      H5::DataSpace fileSpace = dataset.getSpace();
+      
+      hsize_t Offset[1] = {start};
+      hsize_t Mysize[1] = {size};
+      fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
+                                                            
+      // write data
+      dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
+
+      // reset conversion object
+      conv.CleanUp();
+
+      // close dataset, dataspace- and types
+      fileSpace.close();
+      memSpace.close();
+      dataset.close();
+      
+    } catch (H5::Exception& h5ex) {
+      EXCEPTION("Could not set entries in 1D-Array '" 
+                << name << "':\n" << h5ex.getCDetailMsg());
+    } catch( Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '" 
+                        << name << "'" );
+    }
+  }
+  
   template<typename TYPE>
   void H5IO::Write2DArray( H5::CommonFG &loc,
                            const std::string& name,
@@ -585,8 +693,15 @@ namespace CoupledField {
         EXCEPTION( "Could not convert data for 2D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
+      
+      H5::DSetCreatPropList newList(create_plist);
+      const hsize_t chunk[2] = { std::min( (UInt) rowSize, 
+                                           (UInt) maxChunkSize_ ),
+                                 std::min( (UInt) colSize, 
+                                           (UInt) maxChunkSize_ ) };
+      newList.setChunk( 2, chunk);
       H5::DataSet dataset = loc.createDataSet( name, stdType, 
-                                               space, create_plist );
+                                               space, newList );
       dataset.write( conv.GetOutBufferPtr(), nativeType  );
 
       // reset conversion object
@@ -602,10 +717,110 @@ namespace CoupledField {
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
     }
-    
-
   }
 
+  template<typename TYPE>
+  void H5IO::Reserve2DArray( H5::CommonFG &loc,
+                             const std::string& name,
+                             UInt rowSize,
+                             UInt colSize,
+                             const H5::DSetCreatPropList &create_plist ) {
+    try {
+
+       // create conversion helper object and get native / std hdf5 datatype
+       HdfTypeConversion<TYPE> conv;
+       H5::DataType stdType = conv.GetStdType();
+       
+       // create memory data space
+       const hsize_t dims[] = {rowSize, colSize};
+       const hsize_t maxDims[2] = {H5S_UNLIMITED, H5S_UNLIMITED};
+       const Integer rank = 2;
+       H5::DataSpace space( rank, dims, maxDims );
+       
+       // set chunking of dataset
+       H5::DSetCreatPropList newList(create_plist);
+       const hsize_t chunk[2] = { std::min( (UInt) rowSize, 
+                                            (UInt) maxChunkSize_ ),
+                                  std::min( (UInt) colSize, 
+                                            (UInt) maxChunkSize_) };
+       newList.setChunk( 2, chunk);
+       H5::DataSet dataset = loc.createDataSet( name, stdType, 
+                                                space, newList );
+
+       // reset conversion object
+       conv.CleanUp();
+
+       // close dataset, dataspace- and types
+       space.close();
+       dataset.close();
+
+     } catch (H5::Exception& h5ex) {
+       EXCEPTION("Could not write 2D-Array '" << name 
+                 << "':\n" << h5ex.getCDetailMsg());
+     } catch( Exception& ex ) {
+       RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
+     }
+  
+  }
+  
+  template<typename TYPE>
+  void H5IO::SetEntries2DArray( H5::CommonFG &loc,
+                                const std::string& name,
+                                UInt rowBegin, UInt rowEnd,
+                                UInt colBegin, UInt colEnd,
+                                const TYPE * buffer ) {
+    // check, that size is greate than zero
+      if( rowBegin > rowEnd || colBegin > colEnd || buffer == NULL ) {
+        EXCEPTION( "Data buffer of 2D array '" << name 
+                   << "' is NULL or has zero size" );
+      }
+      try {
+
+        // create conversion helper object and get native / std hdf5 datatype
+        HdfTypeConversion<TYPE> conv;
+        H5::DataType nativeType = conv.GetNativeType();
+    
+        // create memory data space
+        const hsize_t size[2] = { (( rowEnd - rowBegin ) + 1), 
+                                  (( colEnd - colBegin ) + 1)};
+        const hsize_t maxDims[2] = {H5S_UNLIMITED, H5S_UNLIMITED };
+        H5::DataSpace memSpace( 2, size, maxDims );
+        
+        
+        // fill conversion object
+        conv.SetNativeData( buffer, size[0]*size[1] );
+        if( !conv.IsSet() ) {
+          EXCEPTION( "Could not convert data for 1D array '"
+                     << name << "' of type " << typeid(TYPE).name() );
+        }
+        // open dataset and dataspace of file dataset
+        H5::DataSet dataset = loc.openDataSet( name );
+        H5::DataSpace fileSpace = dataset.getSpace();
+        
+        hsize_t Offset[2] = {rowBegin, colBegin};
+        hsize_t Mysize[2] = {size[0], size[1] };
+        fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
+                                                              
+        // write data
+        dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
+
+        // reset conversion object
+        conv.CleanUp();
+
+        // close dataset, dataspace- and types
+        fileSpace.close();
+        memSpace.close();
+        dataset.close();
+        
+      } catch (H5::Exception& h5ex) {
+        EXCEPTION("Could not set entries in 1D-Array '" 
+                  << name << "':\n" << h5ex.getCDetailMsg());
+      } catch( Exception& ex ) {
+        RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '" 
+                          << name << "'" );
+      }
+  }
+  
   void H5IO::WriteCompound( H5::CommonFG& loc,
                             const std::string& name,
                             const CompoundType comp,
@@ -689,8 +904,7 @@ namespace CoupledField {
     delete []name_C;
 
     return name;
-  }
-    
+  }    
 
   template<typename TYPE>
   void H5IO::ReadAttribute( H5::H5Object& obj,
@@ -897,6 +1111,17 @@ namespace CoupledField {
                                   const H5::DSetCreatPropList   \
                                   &create_plist);               \
     template                                                    \
+    void H5IO::Reserve1DArray<TYPE>(H5::CommonFG &loc,          \
+                                    const std::string& name,    \
+                                    UInt size,                  \
+                                    const H5::DSetCreatPropList \
+                                    &create_plist);             \
+    template                                                    \
+    void H5IO::SetEntries1DArray( H5::CommonFG &loc,            \
+                                  const std::string& name,      \
+                                  UInt start, UInt end,         \
+                                  const TYPE * buffer );        \
+    template                                                    \
     void H5IO::Write2DArray<TYPE>( H5::CommonFG &loc,           \
                                    const std::string& name,     \
                                    UInt rowSize,                \
@@ -904,6 +1129,19 @@ namespace CoupledField {
                                    const TYPE * buffer,         \
                                    const H5::DSetCreatPropList  \
                                    &create_plist );             \
+    template                                                    \
+    void H5IO::Reserve2DArray<TYPE>( H5::CommonFG &loc,         \
+                                     const std::string& name,   \
+                                     UInt rowSize,              \
+                                     UInt colSize,              \
+                                     const H5::DSetCreatPropList\
+                                     &create_plist );           \
+    template                                                    \
+    void H5IO::SetEntries2DArray( H5::CommonFG &loc,            \
+                                  const std::string& name,      \
+                                  UInt rowBegin, UInt rowEnd,   \
+                                  UInt colBegin, UInt colEnd,   \
+                                  const TYPE * buffer );        \
     template                                                    \
     void H5IO::ReadAttribute( H5::H5Object& obj,                \
                               const std::string& name,          \
@@ -936,32 +1174,31 @@ namespace CoupledField {
   //  GENERAL ACCESS METHODS
   // =======================================================================
   
-  H5::Group H5IO::GetMultiStepGroup( H5::H5File& file, UInt msStep ) {
+  H5::Group H5IO::GetMultiStepGroup( H5::H5File& file, 
+                                         UInt msStep,
+                                         bool isHistory ) {
     
     // open group with multisteps
-    H5::Group gridResultGroup;
+    H5::Group resultGroup;
     try {
-      gridResultGroup = file.openGroup("/Results/Grid");
-    } H5_CATCH( "Could not open grid result group" );
+      if( !isHistory ) {
+        resultGroup = file.openGroup("/Results/Mesh");
+      } else {
+        resultGroup = file.openGroup("/Results/History");
+      }
+    } H5_CATCH( "Could not open result group" );
     
-    UInt numMsSteps = gridResultGroup.getNumObjs();
+    UInt numMsSteps = resultGroup.getNumObjs();
     
-    // check, if msStep is bigger than current number of steps
-    if( msStep > numMsSteps ) {
-      EXCEPTION( "Requesting multistep " << msStep 
-                 << " although only " << numMsSteps 
-                 << " multisteps are present" );
-    }
-
     // open specified msgroup
     H5::Group actMsGroup;
     std::string actMsName = "MultiStep_" 
       + boost::lexical_cast<std::string>( msStep );
     try {
-      actMsGroup = gridResultGroup.openGroup( actMsName );
+      actMsGroup = resultGroup.openGroup( actMsName );
     } H5_CATCH( "Could not open group for multistep " << msStep );
 
-    gridResultGroup.close();
+    resultGroup.close();
     return actMsGroup;
   }
 
@@ -969,7 +1206,7 @@ namespace CoupledField {
                                 UInt msStep, 
                                 UInt stepNum ) {
     // get multistep group
-    H5::Group actMsGroup = GetMultiStepGroup( file, msStep );
+    H5::Group actMsGroup = GetMultiStepGroup( file, msStep, false );
 
     std::string groupName = "Step_" + 
       boost::lexical_cast<std::string> (stepNum );
@@ -982,7 +1219,57 @@ namespace CoupledField {
     actMsGroup.close();
     return stepGroup;
   }
+  
+  void H5IO::SetMaxChunkSize( UInt chunkSize ) {
+    H5IO::maxChunkSize_ = chunkSize;
+    
+  }
+  
 
+  Integer H5IO::MapCapabilityType( SimOutput::Capability c ) {
+    Integer ret = 0;
+    switch( c ) {
+    case SimOutput::NONE:
+      ret = 0;
+      break;
+    case SimOutput::MESH:
+      ret = 1;
+      break;
+    case SimOutput::MESH_RESULTS:
+      ret = 2;
+      break;
+    case SimOutput::HISTORY:
+      ret = 3;
+      break;
+    default:
+      EXCEPTION( "Could not map capability '" << c 
+                 << "' to hdf5 representation" );
+    }
+    return ret;
+  }
+  
+  SimOutput::Capability H5IO::MapCapabilityType( Integer c ) {
+    SimOutput::Capability ret = SimOutput::NONE;
+    switch ( c ) {
+    case 0:
+      ret = SimOutput::NONE;
+      break;
+    case 1:
+      ret = SimOutput::MESH;
+      break;
+    case 2:
+      ret = SimOutput::MESH_RESULTS;
+      break;
+    case 3:
+      ret = SimOutput::HISTORY;
+      break;
+    default:
+      break;
+    }
+    return ret;
+  }
+  
+  
   Integer H5IO::MapUnknownType( ResultInfo::EntityUnknownType t ) {
     Integer definedOn = 0;
     switch(t) {
@@ -1024,6 +1311,48 @@ namespace CoupledField {
     return definedOn;
 
   }
+  
+  std::string H5IO::MapUnknownTypeAsString( ResultInfo::EntityUnknownType t ) {
+     std::string definedOn = "";
+     switch(t) {
+     case ResultInfo::NODE:
+       definedOn = "Nodes";
+       break;
+     case ResultInfo::EDGE:
+       definedOn = "Edges";
+       break;
+     case ResultInfo::FACE:
+       definedOn = "Faces";
+       break;
+     case ResultInfo::ELEMENT:
+       definedOn = "Elements";
+       break;
+     case ResultInfo::SURF_ELEM:
+       definedOn = "Elements";
+       break;
+     case ResultInfo::PFEM:
+       definedOn = "Nodes";
+       break;
+     case ResultInfo::REGION:
+       definedOn = "Regions";
+       break;
+     case ResultInfo::SURF_REGION:
+       definedOn = "ElementGroup";
+       break;
+     case ResultInfo::NODELIST:
+       definedOn = "NodeGroup";
+       break;
+     case ResultInfo::COIL:
+       definedOn = "Coils";
+       break;
+     case ResultInfo::FREE:
+       definedOn = "Unknowns";
+       break;
+     }
+
+     return definedOn;
+
+   }
   
   ResultInfo::EntityUnknownType H5IO::MapUnknownType( Integer t ) {
 

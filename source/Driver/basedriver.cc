@@ -83,8 +83,6 @@ namespace CoupledField
     // a) if count is bigger than one -> create multiSequence
     if( numSteps == 1 ) {
       std::string analysisString;
-      UInt stepOffset = 0;
-      Double timeFreqOffset = 0;
       UInt seqStep = 1;
       std::string name = "sequenceStep";
       std::string idx = "index";
@@ -98,11 +96,11 @@ namespace CoupledField
       switch( type ) {
       case STATIC:
         
-        ptdriver = new StaticDriver( stepOffset, timeFreqOffset, seqStep );
+        ptdriver = new StaticDriver( seqStep );
         break;
         
       case TRANSIENT:
-        ptdriver = new TransientDriver( stepOffset, timeFreqOffset, seqStep );
+        ptdriver = new TransientDriver( seqStep );
         break;
         
       case HARMONIC:
@@ -111,7 +109,7 @@ namespace CoupledField
           ptdriver = new piezoParamIdent(0, 0.0 );
         }
         else
-          ptdriver = new HarmonicDriver( stepOffset, timeFreqOffset, seqStep );
+          ptdriver = new HarmonicDriver( seqStep );
         break;
         
       case EIGENFREQUENCY:

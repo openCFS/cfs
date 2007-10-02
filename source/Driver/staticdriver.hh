@@ -14,13 +14,9 @@ namespace CoupledField {
 
   public:
     //! constructor
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time
     //! \param sequenceStep current step in multisequence simulation
     //! \param true, if driver is part of  multiSequence
-    StaticDriver( UInt stepOffset,
-                  Double timeOffset,
-                  UInt sequenceStep,
+    StaticDriver( UInt sequenceStep,
                   bool isPartOfSequence = false );
 
     //! Destructor 
@@ -48,11 +44,6 @@ namespace CoupledField {
     
   private:
     
-    //! offset for first timestep
-    UInt stepOffset_;
-    
-    //! offset for first time
-    Double timeOffset_;
     
   };
 

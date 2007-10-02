@@ -48,6 +48,8 @@ namespace CoupledField {
 
     std::ostringstream strBuffer;
 
+    stepNumOffset_ = 0;
+    stepValOffset_ = 0.0;
     dirName_ = "simoutput_gmv";
     fileName_ = fileName;
 
@@ -115,7 +117,8 @@ namespace CoupledField {
   
   void SimOutputGMV::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd )
+                                     UInt saveEnd,
+                                     bool isHistory )
   {
 
     ResultInfo & actDof = *(sol->GetResultInfo());
@@ -133,8 +136,8 @@ namespace CoupledField {
 
     resultMap_.clear();
     
-    actStep_ = stepNum;
-    actStepVal_ = stepVal;
+    actStep_ = stepNum + stepNumOffset_;
+    actStepVal_ = stepVal + stepValOffset_;
 
   }
 
@@ -246,8 +249,10 @@ namespace CoupledField {
   }
 
   //! End multisequence step
-  void SimOutputGMV::FinishMultiSequenceStep( )
-  {
+  void SimOutputGMV::FinishMultiSequenceStep( ) {
+    // set offset for step value and number to last values
+    stepNumOffset_ = actStep_;
+    stepValOffset_ = actStepVal_;
   }
 
 

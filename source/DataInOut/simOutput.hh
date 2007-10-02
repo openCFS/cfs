@@ -51,7 +51,8 @@ namespace CoupledField {
     //! Register result (within one multisequence step)
     virtual void RegisterResult( shared_ptr<BaseResult> sol,
                                  UInt saveBegin, UInt saveInc,
-                                 UInt saveEnd ) {};
+                                 UInt saveEnd,
+                                 bool isHistory ) {};
 
     //! Begin single analysis step
     virtual void BeginStep( UInt stepNum, Double stepVal ) {};

@@ -111,8 +111,7 @@ namespace CoupledField {
           ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
           ptPDE_->GetSolveStep()->CalcEigenMode( i );
           resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
-          ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]), 
-                                     0, 0.0);
+          ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
           resHandler->FinishStep( );
           ptPDE_->Finalize();
         }
@@ -162,8 +161,7 @@ namespace CoupledField {
           ptPDE_->GetSolveStep()->SetActTime(eigenFreqs[i]);
           ptPDE_->GetSolveStep()->CalcEigenMode( i );
           resHandler->BeginStep( i+1, eigenFreqs[i] );
-          ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
-                                     0, 0.0);
+          ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i] );
           resHandler->FinishStep( );
           
         }

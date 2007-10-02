@@ -29,6 +29,8 @@ namespace CoupledField {
     dirName_ = "history";
     fileName_ = fileName;
     coordSys_ = NULL;
+    stepNumOffset_ = 0;
+    stepValOffset_ = 0.0;
 
     capabilities_.insert( HISTORY );
 
@@ -79,18 +81,19 @@ namespace CoupledField {
       coordSys_ = domain->GetCoordSystem( coordSysName );
     }
   }
-
+  
   void SimOutputText::RegisterResult( shared_ptr<BaseResult> sol,
                                       UInt saveBegin, UInt saveInc,
-                                      UInt saveEnd ) {
+                                      UInt saveEnd,
+                                      bool isHistory ) {
 
   }
   
 
   void SimOutputText::BeginStep( UInt stepNum, Double stepVal ) {
 
-    actStep_ = stepNum;
-    actStepVal_ = stepVal;
+    actStep_ = stepNum + stepNumOffset_;
+    actStepVal_ = stepVal + stepValOffset_;
     resultMap_.clear();
   }
 
@@ -113,6 +116,13 @@ namespace CoupledField {
 
   }
 
+  void SimOutputText::FinishMultiSequenceStep( ) {
+    
+    // set offset for step value and number to last values
+    stepNumOffset_ = actStep_;
+    stepValOffset_ = actStepVal_;
+   }
+  
   void SimOutputText::WriteStepCollectTimeFreq() {
 
     // iterate over all result types
@@ -416,30 +426,31 @@ namespace CoupledField {
 
       for( it.Begin(); !it.IsEnd(); it++ ) {
 
-        switch( actInfo.definedOn ) {
-          
-        case ResultInfo::NODE:
-          entityString = GenStr(it.GetNode() );
-          break;
-        case ResultInfo::PFEM:
-          entityString = GenStr(it.GetNode() );
-          entTypeString="node";
-          break;
-        case ResultInfo::ELEMENT:
-          entityString = GenStr(it.GetElem()->elemNum );
-          break;
-        case ResultInfo::SURF_ELEM:
-          entityString = GenStr(it.GetSurfElem()->elemNum );
-          break;
-        case ResultInfo::REGION:
-          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
-          break;
-        case ResultInfo::SURF_REGION:
-          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
-          break;
-        default:
-          EXCEPTION( "Not implemented!" );
-        }
+        entityString = it.GetIdString();
+//        switch( actInfo.definedOn ) {
+//          
+//        case ResultInfo::NODE:
+//          entityString = GenStr(it.GetNode() );
+//          break;
+//        case ResultInfo::PFEM:
+//          entityString = GenStr(it.GetNode() );
+//          entTypeString="node";
+//          break;
+//        case ResultInfo::ELEMENT:
+//          entityString = GenStr(it.GetElem()->elemNum );
+//          break;
+//        case ResultInfo::SURF_ELEM:
+//          entityString = GenStr(it.GetSurfElem()->elemNum );
+//          break;
+//        case ResultInfo::REGION:
+//          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
+//          break;
+//        case ResultInfo::SURF_REGION:
+//          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
+//          break;
+//        default:
+//          EXCEPTION( "Not implemented!" );
+//        }
 
         // Concatenate 'simName-resultName-NODE/ELEM-#.hist'
         totalName = namePrefix + "-";

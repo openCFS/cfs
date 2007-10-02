@@ -562,18 +562,13 @@ namespace CoupledField {
   
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
-                                            const Double asteptime,
-                                            UInt stepOffset,
-                                            Double timeOffset)
-  {
+                                            const Double asteptime ) {
 
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->WriteResultsInFile( kstep, asteptime, 
-                                          stepOffset, timeOffset);
+      singlePDEs_[i]->WriteResultsInFile( kstep, asteptime );
     }
     for (UInt i=0; i<couplings_.GetSize(); i++) {
-      couplings_[i]->WriteResultsInFile( kstep, asteptime, 
-                                         stepOffset, timeOffset);
+      couplings_[i]->WriteResultsInFile( kstep, asteptime );
     }
 
   }

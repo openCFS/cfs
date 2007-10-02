@@ -62,12 +62,8 @@ namespace CoupledField
     //! \name Methods performing post-processing
 
     //! write results in file
-    //! \param stepOffset offset for starting (time/frequency)step
-    //! \param timeOffset offset for starting time / frequency
     virtual void WriteResultsInFile(const UInt kstep, 
-                                    const Double actTimeFreq, 
-                                    UInt stepOffset = 0,
-                                    Double timeOffset = 0.0) = 0; 
+                                    const Double actTimeFreq ) = 0; 
 
     //@}
 

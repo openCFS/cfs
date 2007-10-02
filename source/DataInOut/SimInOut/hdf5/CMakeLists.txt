@@ -6,7 +6,7 @@ SET(SIMINOUTHDF5_SRCS
 
 ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
-TARGET_LINK_LIBRARIES(siminouthdf5 hdf5_cpp hdf5)
+TARGET_LINK_LIBRARIES(siminouthdf5 hdf5_cpp hdf5 boost_date_time )
 
 IF(DEBUG)
   SET(CMAKE_C_FLAGS "-g")

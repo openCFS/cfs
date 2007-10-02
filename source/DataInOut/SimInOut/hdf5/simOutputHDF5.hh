@@ -18,6 +18,11 @@
 
 namespace CoupledField {
 
+  //! define CFS-HDF5 file format version
+#define CFS_HDF5_FORMAT_MAJOR 0
+#define CFS_HDF5_FORMAT_MINOR 9
+
+
   //! HDF5 output writer class
   class SimOutputHDF5: virtual public SimOutput {
 
@@ -48,7 +53,8 @@ namespace CoupledField {
     //! Register result (within one multisequence step)
     virtual void RegisterResult( shared_ptr<BaseResult> sol,
                                  UInt saveBegin, UInt saveInc,
-                                 UInt saveEnd );
+                                 UInt saveEnd,
+                                 bool isHistory );
 
     //! Begin single analysis step
     virtual void BeginStep( UInt stepNum, Double stepVal );
@@ -79,20 +85,16 @@ namespace CoupledField {
     //! Write Nodes/Edges/Faces/Elements of Regions to file
     void WriteRegions(const H5::Group& meshGroup);
 
-    //! Write list of named nodes to file
-    void WriteNamedNodes(const H5::Group& meshGroup);
+    //! Write list of node groups to file
+    void WriteNodeGroups(const H5::Group& meshGroup);
 
-    //! Write list of named elements to file
-    void WriteNamedElems(const H5::Group& meshGroup);
+    //! Write list of element groups to file
+    void WriteElemGroups(const H5::Group& meshGroup);
 
     //! Write Meta-Information about results to file
-    void WriteResultDescriptions( const H5::Group& descGroup );
-    
-    //! Write single result to file
-    void WriteResults( H5::Group& resultGroup,
-                       Vector<Double>& resultVals,
-                       const UInt numDOFs,
-                       const bool isImag );
+    void WriteResultDescriptions( const H5::Group& descGroup,
+                                  UInt numSteps,
+                                  bool isHistory );
 
     //! Create separate external file for each time / frequency step
     void CreateExternalFile();
@@ -102,8 +104,28 @@ namespace CoupledField {
 
     //! Check for open objects in the hdf5 file
     void CheckOpenObjects();
+    
+    //! Write file meta information
+    void WriteFileInfoHeader(); 
+    
 
   private:
+    
+    // =======================================================================
+    //  HELPER METHODS
+    // =======================================================================
+    
+    //! Add mesh result
+    void AddMeshResult( shared_ptr<BaseResult> sol );
+    
+    //! Add history result
+    void AddHistResult( shared_ptr<BaseResult> sol );
+    
+    //! Write single result to file
+    void WriteResults( H5::Group& resultGroup,
+                       Vector<Double>& resultVals,
+                       const UInt numDOFs,
+                       const bool isImag );
 
     // =======================================================================
     //  HDF5 DATA MEMBERS
@@ -111,6 +133,9 @@ namespace CoupledField {
     
     //@{ \name H5 Data MEMBERS
 
+    //! Dataset property list (used for chunking and compression )
+    H5::DSetCreatPropList dPropList_;
+    
     //! Main file containing grid and meta information
     H5::H5File mainFile_;
 
@@ -123,17 +148,26 @@ namespace CoupledField {
     //! Mesh Group
     H5::Group meshGroup_;
 
-    //! Group for data / results
-    H5::Group dataGroup_;
+    //! Group for results
+    H5::Group resultsGroup_;
 
-    //! Group for grid / volume data
-    H5::Group volDataGroup_;
+    //! Group for mesh results
+    H5::Group meshResultsGroup_;
+    
+    //! Group for history results
+    H5::Group histResultsGroup_;
 
-    //! Group for current multisequence ste
-    H5::Group currMSGroup_;
+    //! Group for current multisequence step for mesh results
+    H5::Group currMSMeshGroup_;
+    
+    //! Group for current multisequence step for history results
+    H5::Group currMSHistGroup_;
 
-    //! Group for current analysis step
-    H5::Group currStepGroup_;
+    //! Group for current analysis step for mesh results
+    H5::Group currMeshStepGroup_;
+    
+    //! Group for current analysis step for history results
+    H5::Group currHistStepGroup_;
     //@}
 
     // =======================================================================
@@ -142,6 +176,9 @@ namespace CoupledField {
     
     //@{ \name Generic Data Members
 
+    //! Set with used capabilities, i.e. types of content written to file
+    std::set<Capability> usedCapabilities_;
+    
     //! Flag indicating if grid is already written
     bool gridWritten_;
 
@@ -154,16 +191,60 @@ namespace CoupledField {
     //! Current multisequence number
     UInt currMS_;
     
+    //! Number of steps in this multisequence step
+    UInt currMSNumSteps_;
+    
     //! Current analysis step
     UInt currStep_;
+    
+    //! Current analysis step value (time / frequency);
+    Double currStepValue_;
 
     //! Type of current analysis type
     AnalysisType currAnalysisType_;
 
     //! Type definition for registered results
     typedef std::map< std::string, std::vector< 
-      boost::shared_ptr<BaseResult> > > ResDescType;
-    ResDescType registeredResults_;
+      shared_ptr<BaseResult> > > ResDescType;
+    
+    //! Set of registered mesh results for current MSstep
+    ResDescType registeredMeshResults_;
+    
+    //! Set of registered history results for current MSstep
+    ResDescType registeredHistResults_;
+    
+    //! Map attribute saveBegin for each result type (mesh)
+    std::map<std::string, UInt> meshResultSaveBegin_;
+    
+    //! Map attribute saveEnd for each result type (mesh)
+    std::map<std::string, UInt> meshResultSaveEnd_;
+        
+    //! Map attribute saveBegin for each result type (mesh)
+    std::map<std::string, UInt> meshResultSaveInc_;
+    
+    //! Map attribute saveBegin for each result type (history)
+    std::map<std::string, UInt> histResultSaveBegin_;
+        
+    //! Map attribute saveEnd for each result type (history)
+    std::map<std::string, UInt> histResultSaveEnd_;
+            
+    //! Map attribute saveBegin for each result type (history)
+    std::map<std::string, UInt> histResultSaveInc_;
+    
+    //! Map with step numbers for each mesh result
+    std::map<std::string, StdVector<UInt> > meshResultStepNums_;
+    
+    //! Map with step numbers for each hist result
+    std::map<std::string, StdVector<UInt> > histResultStepNums_;
+    
+    //! Map with step values for each mesh result
+    std::map<std::string, StdVector<Double> > meshResultStepVal_;
+    
+    //! Map with step values for each hist result
+    std::map<std::string, StdVector<Double> > histResultStepVal_;
+    
+    
+    
     //@}
     
   };

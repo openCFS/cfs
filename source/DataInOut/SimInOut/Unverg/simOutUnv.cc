@@ -25,6 +25,8 @@ namespace CoupledField {
     formatName_ = "unv";
     fileName_ = filename;
     dirName_ = ".";
+    stepNumOffset_ = 0;
+    stepValOffset_ = 0.0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -449,14 +451,15 @@ namespace CoupledField {
 
   void SimOutputUnv::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd ) {
+                                     UInt saveEnd,
+                                     bool isHistory ) {
     
   }
 
   void SimOutputUnv::BeginStep( UInt stepNum, Double stepVal ) {
     
-    actStep_ = stepNum;
-    actStepVal_ = stepVal;
+    actStep_ = stepNum + stepNumOffset_;
+    actStepVal_ = stepVal + stepValOffset_;
     resultMap_.clear();
   }
 
@@ -488,6 +491,17 @@ namespace CoupledField {
       
       ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
       std::string title =  SolutionTypeToString( actInfo.resultType );
+      
+      // if result could not be mapped, omit it
+      if( title == "") {
+        std::stringstream warning;
+        warning  <<  "Result '" << actInfo.resultName
+                 << "' coul not be mappted to unv result type and is "
+                 << "omitted!";
+        Warning( warning.str().c_str(), __FILE__, __LINE__ );
+        continue;
+      }
+      
       StdVector<std::string> & dofNames = actInfo.dofNames;
       UInt numDofs = dofNames.GetSize();
       
@@ -534,6 +548,13 @@ namespace CoupledField {
     } // over all result types
   }
   
+  
+  void SimOutputUnv::FinishMultiSequenceStep() {
+
+    // set offset for step value and number to last values
+    stepNumOffset_ = actStep_;
+    stepValOffset_ = actStepVal_;
+  }
   
   
   template<class TYPE>
@@ -725,8 +746,7 @@ namespace CoupledField {
         break;
 
       default:
-        EXCEPTION( "Wrong type of solution or 'SolutionType2String'"
-                   << " not implemented for this type of solution" )
+        return "";
       }
     return std::string();
   }

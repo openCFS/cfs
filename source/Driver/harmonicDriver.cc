@@ -23,9 +23,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  HarmonicDriver::HarmonicDriver( UInt stepOffset,
-                                  Double freqOffset,
-                                  UInt sequenceStep,
+  HarmonicDriver::HarmonicDriver( UInt sequenceStep,
                                   bool isPartOfSequence )
 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
@@ -34,9 +32,6 @@ namespace CoupledField {
     // Set correct analysistype
     analysis_ = HARMONIC;
 
-    stepOffset_ = stepOffset;
-    freqOffset_ = freqOffset;
-    
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
     numFreq_ = 0;

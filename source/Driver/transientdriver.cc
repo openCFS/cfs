@@ -35,20 +35,16 @@ namespace CoupledField {
   // ===============
   //   Constructor
   // ===============
-  TransientDriver::TransientDriver( UInt stepOffset,
-                                    Double timeOffset, 
-                                    UInt sequenceStep,
+  TransientDriver::TransientDriver( UInt sequenceStep,
                                     bool isPartOfSequence) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
     
-    LOG_TRACE(trans_driver) << "TransientDriver():  stepOffset: " << stepOffset
-             << " timeOffset: " << timeOffset << " sequenceStep: " << sequenceStep
-             << " isPartOfSequence: " << isPartOfSequence;
+    LOG_TRACE(trans_driver) << "TransientDriver():  "
+                            << " sequenceStep: " << sequenceStep
+                            << " isPartOfSequence: " << isPartOfSequence;
     // Set analysistype
     analysis_ = TRANSIENT;
 
-    stepOffset_ = stepOffset;
-    timeOffset_ = timeOffset;
     actTimeStep_ = 0;
     firstdt_ = 0.0;
     restartIncr_ = 0;
@@ -149,19 +145,16 @@ namespace CoupledField {
 
       // Determine when to write logging information on terminal
       if ( numstep_ <= 50 )
-        Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_+stepOffset_, 
-                            steptime+timeOffset_);
+        Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, 
+                            steptime);
       else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
         if ( (actTimeStep_%10) == 0 )            
-          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_+stepOffset_, 
-                              steptime+timeOffset_);
+          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, steptime);
       }
       else if ( numstep_ > 500 ) {
         // Output in steps of ten percent 
         if ((double)actTimeStep_ >= percentCounter  ){           
-          Info->WriteTimeStep(ptPDE_->GetName(), 
-                              actTimeStep_+stepOffset_, 
-                              steptime+timeOffset_);
+          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, steptime );
           percentCounter += timeStepPercent;
         }
       }
@@ -175,10 +168,8 @@ namespace CoupledField {
 
       
       // writing results in output-file(s)
-      resHandler->BeginStep( stepOffset_ + actTimeStep_,
-                              timeOffset_ + steptime );
-      ptPDE_->WriteResultsInFile(actTimeStep_, steptime, 
-                                 stepOffset_, timeOffset_);
+      resHandler->BeginStep( actTimeStep_, steptime );
+      ptPDE_->WriteResultsInFile(actTimeStep_, steptime );
       resHandler->FinishStep( );
 
       // writing current PDE-state into the restart-file

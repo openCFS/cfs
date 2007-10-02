@@ -52,8 +52,6 @@ namespace CoupledField {
     // Vector of memento objects, which save the internal state
     // of a PDE
     StdVector<shared_ptr<PDEMemento> > memento;
-    UInt nextStep = 0;
-    Double nextTime = 0.0;
 
     Info->StartProgress("Starting to solve problem",false);
 
@@ -69,39 +67,18 @@ namespace CoupledField {
       // log info about new step to info-class
       Info->WriteMultiSequenceStep(iStep+1, 
                                    analysisPerStep_[iStep]);
-
-      // notify resultHandler about new step
-      //      resHandler->BeginMultiSequenceStep( iStep+1, 
-      //                                          analysisPerStep_[iStep], 1 );
       
       // Since per time step only one type of 
       // analysis is allowed, we simple access
       // the first entry fo analysisPerStep_
       if (analysisPerStep_[iStep] == STATIC) {
-        actDriver_ = new StaticDriver( actStep_, actTime_,
-                                       iStep+1, true );
-        nextStep = actStep_ + 1;
+        actDriver_ = new StaticDriver( iStep+1, true );
       }
       else if (analysisPerStep_[iStep] == TRANSIENT) {      
-        actDriver_ = new TransientDriver( actStep_, actTime_, 
-                                          iStep+1,true );
-
-        // cast current driver to query transient-specific information
-        TransientDriver * transDriver = 
-          dynamic_cast<TransientDriver*>(actDriver_);
-
-        // the time step and the current time have to adapted 
-        // after solving the first multiSequence step
-        UInt actNumSteps = transDriver->GetNumSteps();
-        Double actDt = transDriver->GetDeltaT();
-        nextStep = actStep_ + actNumSteps;
-        nextTime = actTime_ + actNumSteps * actDt;
+        actDriver_ = new TransientDriver( iStep+1,true );
       }
       else if (analysisPerStep_[iStep] == HARMONIC) {
-        actDriver_ = new HarmonicDriver( actStep_, actTime_,
-                                         iStep+1, true );
-
-        nextStep = actStep_ + 1;
+        actDriver_ = new HarmonicDriver( iStep+1, true );
       }
     
 
@@ -167,11 +144,6 @@ namespace CoupledField {
 
       // delete analysistypes
       delete actDriver_;
-    
-      // increase stepNumber and time
-      actStep_ = nextStep;
-      actTime_ = nextTime;
-
     } // iStep
 
     // trigger finalization

@@ -38,6 +38,8 @@ namespace CoupledField {
 
     numSteps_ = 0;
     msStep_ = 0;
+    stepNumOffset_ = 0;
+    stepValOffset_ = 0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -496,8 +498,8 @@ namespace CoupledField {
 
   void SimOutputRST::BeginStep( UInt stepNum, Double stepVal ) {
 
-    stepNum_ = stepNum;
-    stepVal_ = stepVal;
+    stepNum_ = stepNum + stepNumOffset_;
+    stepVal_ = stepVal + stepValOffset_;
 
     // At this stage we exactly know the number of nodal DOFs
     // and can therefore write the grid.
@@ -752,6 +754,10 @@ namespace CoupledField {
   
   void SimOutputRST::FinishMultiSequenceStep( )
   {
+    // set offset for step value and number to last values
+    stepNumOffset_ = stepNum_;
+    stepValOffset_ = stepVal_;
+    
     // Close result file
     reswrend_();
 

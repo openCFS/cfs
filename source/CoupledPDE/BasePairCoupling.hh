@@ -50,9 +50,7 @@ namespace CoupledField
 
     //! Write solutions of postprocessing into gmv/unv ... files
     void WriteResultsInFile( const UInt kstep,
-                             const Double asteptime,
-                             UInt stepOffset = 0,
-                             Double timeOffset = 0.0 );
+                             const Double asteptime );
 
     //! initialize nonlinearities
     virtual void InitNonLin() {};
