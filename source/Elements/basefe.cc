@@ -402,15 +402,12 @@ namespace CoupledField
     JInv.Determinant(JInvDet);
     jacDet = 1.0 / JInvDet;
 
-
     if ( jacDet < 0.0 ){
-      EXCEPTION("BaseFE:GetGlobDerivShFncAtIp: " <<
-                "Negative Jacobian Determinant!\n" <<
-                "The coordinates of the element are:\n" <<
-                CoordMatrix2String(CornerCoords));
+      EXCEPTION("BaseFE:GetGlobDerivShFncAtIp: Negative Jacobian Determinant "
+                << "at element " << elem->elemNum 
+                << " with connectivity " << elem->connect.Serialize());
     }
-
- 
+    
   }
 
 
@@ -422,7 +419,7 @@ namespace CoupledField
   {
   
     //  Deriv.Resize(NumNodes_,Dim_);
-  
+
     if ( CalcICModes_ && ICModes_ ) {
       //incompatible modes
       Vector<Double> LCoord( CornerCoords.GetSizeRow());
@@ -434,12 +431,12 @@ namespace CoupledField
       CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
 
       if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
-	Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+        Deriv = ShFncDerivAtIp_[ip-1] * JInv;
       } 
       else {
-	CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
-				elem, dof, AnsatzFct::ALL );
-	Deriv = LDeriv * JInv;
+        CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
+                                elem, dof, AnsatzFct::ALL );
+        Deriv = LDeriv * JInv;
       }
       //std::cerr << "Deriv = \n" << Deriv << std::endl;
     }
@@ -1235,11 +1232,13 @@ namespace CoupledField
 
 
   
-  // reads from the map but generates cartesian integration points on the fly when set in XML for the proper elements!
+  // reads from the map but generates cartesian integration points on the 
+  // fly when set in XML for the proper elements!
   void BaseFE::SetIntPoints()
   {
       
-    // if we are not a valid element for CARTESIAN (assuming reading from XML) the fallback will work
+    // if we are not a valid element for CARTESIAN (assuming reading from XML)
+    // the fallback will work
     if(IntegMethod == CARTESIAN 
        && (strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_HEXA8].c_str()) == 0  
            || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_QUAD4].c_str()) == 0))
@@ -1252,7 +1251,8 @@ namespace CoupledField
       SetCartesianInteg(order1, order2, order3, true);
     }
       
-    // searched upwards, e.g. a quadrilateral for order 2,3 should be stored with higher order 3, so we find for 2
+    // searched upwards, e.g. a quadrilateral for order 2,3 should be 
+    // stored with higher order 3, so we find for 2
     StdVector<Double*>* data = GetIntegrationPoints(IntegMethod, IntegOrder, true, false, true);
       
     NumIntPoints_= data->GetSize();
@@ -1286,7 +1286,8 @@ namespace CoupledField
     std::string key;
     MakeKey(IntegMethod, IntegOrder, key);
         
-    std::cout << "Current Integration method with " << key << " and " << NumIntPoints_ << " integration points\n";
+    std::cout << "Current Integration method with " << key << " and " 
+              << NumIntPoints_ << " integration points\n";
       
     std::map<const std::string, StdVector<Double*>*>::iterator iter;
 
