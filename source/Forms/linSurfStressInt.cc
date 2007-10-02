@@ -158,19 +158,7 @@ namespace CoupledField {
      //std::cerr << "\n\nValue at (" << locVolCoord.Serialize();
 
 
-     //Get edge function 
-     Double delta = 0.01;
-     UInt nums = (int) 2.0/delta;
-     Double x = -1.0;
-     Double val, deriv;
-     for( UInt i = 0; i <= nums; i++ ) {
-       Vector<Double> coord(3);
-       coord[0]= x;
-       coord[1] = +1;
-       coord[2] = -1;
-       ptelem->GetShFnc( shapeFnc, coord, ent.GetElem() );
-       x+=delta;
-     }
+ 
     
     
   }
