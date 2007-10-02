@@ -177,6 +177,9 @@ namespace CoupledField {
       } catch (H5::Exception& h5ex) {
         try {
           meshResultsGroup_ = resultsGroup_.createGroup("Mesh");
+          // write attribute indicating use of external files for simlation 
+          // steps
+          H5IO::WriteAttribute( meshResultsGroup_, "externalFiles", externalFiles_ );
         } H5_CATCH( "Could not create group for mesh results" );
       } 
 

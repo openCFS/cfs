@@ -905,7 +905,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     return name;
   }    
-
+  
   template<typename TYPE>
   void H5IO::ReadAttribute( H5::H5Object& obj,
                             const std::string& name,
@@ -1187,8 +1187,6 @@ hsize_t H5IO::maxChunkSize_= 100;
         resultGroup = file.openGroup("/Results/History");
       }
     } H5_CATCH( "Could not open result group" );
-    
-    UInt numMsSteps = resultGroup.getNumObjs();
     
     // open specified msgroup
     H5::Group actMsGroup;

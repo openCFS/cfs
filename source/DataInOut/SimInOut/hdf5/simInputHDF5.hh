@@ -178,9 +178,15 @@ namespace CoupledField {
     
     //! Flag inicating if mesh meta data is already read in
     bool statsRead_;
+    
+    //! Flag indicating use of external files for mesh results
+    bool hasExternalFiles_;
 
     //! Flag for creating named nodes for each region
     bool genRegionNodes_;
+    
+    //! Native directory path to hdf5 file
+    std::string baseDir_;
 
     //! List of regions to be read in from the file
     std::vector< std::string > readRegions_;
