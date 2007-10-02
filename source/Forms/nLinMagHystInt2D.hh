@@ -53,7 +53,9 @@ namespace CoupledField {
     virtual UInt getNrDofs() { return 1; };
 
     //! Query material type for \f$D\f$ tensor
-    virtual MaterialType getDMaterialType() {;};
+    virtual MaterialType getDMaterialType() {
+      EXCEPTION("Not applicable for 2D magnetic with hysteresis");
+      return NO_MATERIAL; }
 
 
   private:
