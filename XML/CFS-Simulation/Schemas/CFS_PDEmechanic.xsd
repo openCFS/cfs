@@ -92,7 +92,7 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
 
-              <xsd:choice maxOccurs="unbounded">
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_MechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_MechID"        />
                 <xsd:element name="neumannInhom"   type="DT_MechIN"        />
@@ -103,6 +103,7 @@
                 <xsd:element name="surfStress"     type="DT_MechSurfStress"/>
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>
                 <xsd:element name="constraint"     type="DT_MechCS"   />
+                <xsd:element name="periodic"       type="DT_MechPeriodic"   />
               </xsd:choice>
 
             </xsd:complexType>
@@ -484,8 +485,19 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
-
+  <!-- Element type for periodic boundary condition -->
+  <xsd:complexType name="DT_MechPeriodic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="master" type="xsd:token" use="required"/>
+        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
+        <xsd:attribute name="quantity" default="mechDisplacement"
+          type="DT_MechUnknownType"/>
+        <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+   
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->
