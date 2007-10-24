@@ -203,8 +203,9 @@ namespace CoupledField {
     //! bubbledensity
     Double bubbleDensity_;
 
-    bool plotRHS_; //!< Flag for saving of rhs for output
-    bool plotRHSVel_; //!< Flag for saving of rhs as a vector field
+    bool plotRHS_; // Flag for saving of rhs for output
+    bool plotRHSVel_; // Flag for saving of rhs as a vector field
+    bool justInterpolate_; // Should only the RHS interpolation be performed?
     
     bool saveNodalSourcesRHS_;  //!< Flag for saving nodal acoustic sources
 

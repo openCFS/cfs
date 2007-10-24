@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include "hdf5io.hh"
 #include <boost/lexical_cast.hpp>
 
@@ -273,10 +277,10 @@ hsize_t H5IO::maxChunkSize_= 100;
   
   
   // --------------------------
-  //  std::vector<std::string>
+  //  StdVector<std::string>
   // --------------------------
   template<>
-  class H5IO::HdfTypeConversion<std::vector<std::string> > :
+  class H5IO::HdfTypeConversion< StdVector<std::string> > :
     public H5IO::BaseHdfTypeConversion {
 
   private:
@@ -305,21 +309,21 @@ hsize_t H5IO::maxChunkSize_= 100;
       return buffer_;
     }
     
-    void GetNativeData( std::vector<std::string> * data) {
+    void GetNativeData( StdVector<std::string> * data) {
       for( UInt i = 0; i < numElems_; i++ ) {
-        data[i].resize( buffer_[i].len );
+        data[i].Resize( buffer_[i].len );
         for( UInt j = 0; j < buffer_[i].len; j++ ) {
           data[i][j].assign( ((const char**)buffer_[i].p)[j] );
         }
       }
     }
 
-    void SetNativeData( const std::vector<std::string>& t ) {
+    void SetNativeData( const StdVector<std::string>& t ) {
       CleanUp();
       buffer_ = new hvl_t[1];
-      buffer_[0].p = (void*) new const char*[t.size()];
-      buffer_[0].len = t.size();
-      for( UInt j = 0; j < t.size(); j++ ) {
+      buffer_[0].p = (void*) new const char*[t.GetSize()];
+      buffer_[0].len = t.GetSize();
+      for( UInt j = 0; j < t.GetSize(); j++ ) {
         ((const char **)buffer_[0].p)[j] = t[j].c_str();
       }
       size_ = sizeof( hvl_t );
@@ -328,13 +332,13 @@ hsize_t H5IO::maxChunkSize_= 100;
     }
 
     
-    void SetNativeData( const std::vector<std::string>* t, UInt size ) {
+    void SetNativeData( const StdVector<std::string>* t, UInt size ) {
       CleanUp();
       buffer_ = new hvl_t[size];
       for( UInt i = 0; i < size; i++ ) {
-        buffer_[i].p = (void*) new const char*[t[i].size()];
-        buffer_[i].len = t[i].size();
-        for( UInt j = 0; j < t[i].size(); j++ ) {
+        buffer_[i].p = (void*) new const char*[t[i].GetSize()];
+        buffer_[i].len = t[i].GetSize();
+        for( UInt j = 0; j < t[i].GetSize(); j++ ) {
           ((const char **)buffer_[i].p)[j] = ((t[i])[j]).c_str();
         }
       }
@@ -367,11 +371,11 @@ hsize_t H5IO::maxChunkSize_= 100;
   
   
   // ----------------------
-  //  std::vector<TYPE>
+  //  StdVector<TYPE>
   // ----------------------
 #define DECL_STL_VECTOR_CONVERSION( TYPE )                              \
   template<>                                                            \
-  class H5IO::HdfTypeConversion<std::vector<TYPE> > :                   \
+  class H5IO::HdfTypeConversion<StdVector<TYPE> > :                     \
     public H5IO::BaseHdfTypeConversion {                                \
   private:                                                              \
     hvl_t * buffer_;                                                    \
@@ -399,21 +403,21 @@ hsize_t H5IO::maxChunkSize_= 100;
       return buffer_;                                                   \
     }                                                                   \
                                                                         \
-    void GetNativeData( std::vector<TYPE> * data) {                     \
+    void GetNativeData( StdVector<TYPE> * data) {                       \
       for( UInt i = 0; i < numElems_; i++ ) {                           \
-        data[i].resize( buffer_[i].len );                               \
+        data[i].Resize( buffer_[i].len );                               \
         for( UInt j = 0; j < buffer_[i].len; j++ ) {                    \
           data[i][j] = ((TYPE*)buffer_[i].p)[j];                        \
         }                                                               \
       }                                                                 \
     }                                                                   \
                                                                         \
-    void SetNativeData( const std::vector<TYPE>& t ) {                  \
+    void SetNativeData( const StdVector<TYPE>& t ) {                    \
       CleanUp();                                                        \
       buffer_ = new hvl_t[1];                                           \
-      buffer_[0].p =  (void*) new TYPE[t.size()];                       \
-      buffer_[0].len = t.size();                                        \
-      for( UInt j = 0; j < t.size(); j++ ) {                            \
+      buffer_[0].p =  (void*) new TYPE[t.GetSize()];                    \
+      buffer_[0].len = t.GetSize();                                     \
+      for( UInt j = 0; j < t.GetSize(); j++ ) {                         \
         ((TYPE*)buffer_[0].p)[j] = t[j];                                \
       }                                                                 \
       numElems_ = 1;                                                    \
@@ -421,13 +425,13 @@ hsize_t H5IO::maxChunkSize_= 100;
       isSet_ = true;                                                    \
     }                                                                   \
                                                                         \
-    void SetNativeData( const std::vector<TYPE>* t, UInt size ) {       \
+    void SetNativeData( const StdVector<TYPE>* t, UInt size ) {         \
       CleanUp();                                                        \
       buffer_ = new hvl_t[size];                                        \
       for( UInt i = 0; i < size; i++ ) {                                \
-        buffer_[i].p =  new TYPE[t[i].size()];                          \
-        buffer_[i].len = t[i].size();                                   \
-        for( UInt j = 0; j < t[i].size(); j++ ) {                       \
+        buffer_[i].p =  new TYPE[t[i].GetSize()];                       \
+        buffer_[i].len = t[i].GetSize();                                \
+        for( UInt j = 0; j < t[i].GetSize(); j++ ) {                    \
           ((TYPE*)buffer_[i].p)[j] = t[i][j];                           \
         }                                                               \
       }                                                                 \
@@ -828,10 +832,10 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     try {
       // collect datatypes for compound array
-      std::vector<shared_ptr<BaseHdfTypeConversion > > conv (comp.size() );  
-      std::vector<H5::CompType> memCompTypes( comp.size() );
+      StdVector<shared_ptr<BaseHdfTypeConversion > > conv (comp.GetSize() );  
+      StdVector<H5::CompType> memCompTypes( comp.GetSize() );
       UInt totalSize = 0;
-      for( UInt i = 0; i < comp.size(); i++ ) {
+      for( UInt i = 0; i < comp.GetSize(); i++ ) {
         
         // get name of compound member
         std::string memName = comp[i].first;
@@ -852,7 +856,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       // Create file compound data type
       H5::CompType fileCompType( (size_t) totalSize );
       UInt actOffset = 0;
-      for( UInt i = 0; i < comp.size(); i++ ) {
+      for( UInt i = 0; i < comp.GetSize(); i++ ) {
         fileCompType.insertMember( comp[i].first,
                                    actOffset,
                                    conv[i]->GetStdType() );
@@ -868,7 +872,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                space, create_plist );
 
       // iterate again over all entries and fill in values
-      for( UInt i = 0; i < comp.size(); i++ ) {
+      for( UInt i = 0; i < comp.GetSize(); i++ ) {
         dataset.write( conv[i]->GetOutBufferPtr(), memCompTypes[i] );
         conv[i]->CleanUp();
       }
@@ -943,8 +947,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   }
 
 
-  std::vector<UInt> H5IO::GetArrayDims( const H5::CommonFG &loc,
-                                        const std::string& name ) {
+  StdVector<UInt> H5IO::GetArrayDims( const H5::CommonFG &loc,
+                                      const std::string& name ) {
     
     H5::DataSet dataset = loc.openDataSet( name );
     H5::DataSpace dataspace = dataset.getSpace();
@@ -1038,10 +1042,10 @@ hsize_t H5IO::maxChunkSize_= 100;
   template<typename TYPE>
   void H5IO::ReadArray( H5::CommonFG &loc,
                         const std::string& name,
-                        std::vector<TYPE>& data ) {
+                        StdVector<TYPE>& data ) {
 
     // clear data
-    data.clear();
+    data.Clear();
 
     // obtain information about dimension of dataset
     UInt numEntries = GetNumEntries( loc, name );
@@ -1053,7 +1057,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     ReadArray( loc, name, buffer );
 
     // copy buffer data to vector
-    data.resize( numEntries );
+    data.Resize( numEntries );
     for( UInt i = 0; i < numEntries; i++ ) {
       data[i] = buffer[i];
     }
@@ -1081,10 +1085,10 @@ hsize_t H5IO::maxChunkSize_= 100;
     ANY_CONVERSION( Integer );
     ANY_CONVERSION( Double );
     ANY_CONVERSION( std::string );
-    ANY_CONVERSION( std::vector<UInt> );
-    ANY_CONVERSION( std::vector<Integer> );
-    ANY_CONVERSION( std::vector<Double> );
-    ANY_CONVERSION( std::vector<std::string> );
+    ANY_CONVERSION( StdVector<UInt> );
+    ANY_CONVERSION( StdVector<Integer> );
+    ANY_CONVERSION( StdVector<Double> );
+    ANY_CONVERSION( StdVector<std::string> );
 
 #undef ANY_CONVERSION
 
@@ -1150,7 +1154,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     template                                                    \
     void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
                                 const std::string& name,        \
-                                std::vector<TYPE>& data );      \
+                                StdVector<TYPE>& data );        \
                                                                 \
     template                                                    \
     void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
@@ -1162,10 +1166,10 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_IO_METHODS( UInt );
   DECL_IO_METHODS( Double );
   DECL_IO_METHODS( std::string );
-  DECL_IO_METHODS( std::vector<Integer> );
-  DECL_IO_METHODS( std::vector<UInt> );
-  DECL_IO_METHODS( std::vector<Double> );
-  DECL_IO_METHODS( std::vector<std::string> );
+  DECL_IO_METHODS( StdVector<Integer> );
+  DECL_IO_METHODS( StdVector<UInt> );
+  DECL_IO_METHODS( StdVector<Double> );
+  DECL_IO_METHODS( StdVector<std::string> );
 
 #undef DECL_IO_METHODS
 

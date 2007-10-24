@@ -1,0 +1,574 @@
+#!/usr/bin/perl
+
+use File::Copy;
+#use File::Path;
+#use File::stat;
+use File::Spec::Functions;
+use File::Spec::Functions qw(rel2abs);
+
+# FASTEST-FileRenamer written june 2006 by Simon
+# Triebenbacher. ( Simon.Triebenbacher@lse.eei.uni-erlangen.de )
+# Department of Sensor Technology. Uni Erlangen.
+#
+# Usage: FASTEST-FileRenamer.pl Datasetname Mode BaseDir OutputDir
+
+if ((scalar $ARGV) eq 0 ) {
+    print "Usage: FASTEST-FileRenamer.pl Datasetname Mode BaseDir OutputDir\n";
+    exit 0;
+}
+
+
+$mode = "cp";
+$datasetname = "dataset";
+$basedir = ".";
+$outdir = ".";
+
+$i=0;
+
+foreach $argument ( @ARGV ) {
+    if($i == 0)
+    {
+	$datasetname = $argument;
+    }
+    if($i == 1)
+    {
+	$mode = $argument;
+    }
+    if($i == 2)
+    {
+	$basedir = $argument;
+    }
+    if($i == 3)
+    {
+	$outdir = $argument;
+    }
+
+    $i++;
+}
+
+$basedir = rel2abs(canonpath($basedir));
+$outdir = rel2abs(canonpath($outdir));
+
+print "Renaming files in directory $basedir.\n";
+print "Dataset name: $datasetname.\n";
+print "Mode is $mode.\n";
+print "Output dir is $outdir.\n";
+
+#http://www.somacon.com/p114.php
+
+# Declare the subroutines
+sub trim($);
+sub ltrim($);
+sub rtrim($);
+
+# Create a test string
+#my $string = "  \t  Hello world!   ";
+
+# Here is how to output the trimmed text "Hello world!"
+#print trim($string)."\n";
+#print ltrim($string)."\n";
+#print rtrim($string)."\n";
+
+# Perl trim function to remove whitespace from the start and end of the string
+sub trim($)
+{
+	my $string = shift;
+	$string =~ s/^\s+//;
+	$string =~ s/\s+$//;
+	return $string;
+}
+# Left trim function to remove leading whitespace
+sub ltrim($)
+{
+	my $string = shift;
+	$string =~ s/^\s+//;
+	return $string;
+}
+# Right trim function to remove trailing whitespace
+sub rtrim($)
+{
+	my $string = shift;
+	$string =~ s/\s+$//;
+	return $string;
+}
+
+%proc_map_begin = ();
+%proc_map_end = ();
+$timestep_min = -1;
+$timestep_max = -1;
+
+chdir $basedir or die "Can not set working dir to $basedir!";
+
+opendir (DIR , ".") || die "Can not open dir." ; 
+
+$numparti = 0;
+
+if ($mode eq "fix") {
+    foreach $filename (sort readdir(DIR)) {
+	if( $filename =~ /$datasetname\_[0-9]{2}\_[0-9]{4}.dat/ )
+	{
+	    @str2 = $filename;
+
+	    @parti = grep { s/$datasetname\_// } @str2;
+	    @parti = grep { s/\_[0-9]{4}.dat// } @parti;
+	    
+	    $numparti = $parti[0] > $numparti ? $parti[0] : $numparti;
+	    
+	    @str2 = $filename;
+
+	    @ts = grep { s/$datasetname\_[0-9]{2}\_// } @str2;
+	    @ts = grep { s/.dat// } @ts;
+
+	    $timestep_max = $ts[0] > $timestep_max ? $ts[0] : $timestep_max;
+	}
+    }
+
+    $numparti = $numparti+1-1;
+    $timestep_max = $timestep_max+1-1;
+}
+else {
+    $srcfile = "";
+
+    foreach $filename (sort readdir(DIR)) {
+
+	if( $filename =~ /Int_p[0-9]{3}b[0-9]{3}t[0-9]{5}/ )
+	{
+	    $ds = trim($filename);
+	    @str2 = $ds;
+
+	    @procnum = grep { s/Int_p// } @str2;
+	    @procnum = grep { s/b[0-9]{3}t[0-9]{5}// } @procnum;
+
+	    @str2 = $ds;
+
+	    @blocknum = grep { s/Int_p[0-9]{3}b// } @str2;
+	    @blocknum = grep { s/t[0-9]{5}// } @blocknum;
+
+	    @str2 = $ds;
+
+	    @timestep = grep { s/Int_p[0-9]{3}b[0-9]{3}t// } @str2;
+
+#    printf "Ausgabe: %s %s %s %s\n", $ds, @procnum, @blocknum, @timestep;
+
+
+	    if($proc_map_begin{$procnum[0]} eq "") {
+		$proc_map_begin{$procnum[0]} = $blocknum[0];
+	    }
+	    else {
+		if($proc_map_begin{$procnum[0]} > $blocknum[0]) {
+		    $proc_map_begin{$procnum[0]} = $blocknum[0];
+		}
+	    }
+
+
+	    if($proc_map_end{$procnum[0]} eq "") {
+		$proc_map_end{$procnum[0]} = $blocknum[0];
+	    }
+	    else {
+		if($proc_map_end{$procnum[0]} < $blocknum[0]) {
+		    $proc_map_end{$procnum[0]} = $blocknum[0];
+		}
+	    }
+
+	    $newsrcfile = "$basedir/nodes_p$procnum[0]";
+	    $newsrcfile.= "b$blocknum[0]";
+
+	    if (!($newsrcfile eq $srcfile)) {
+		$srcfile = $newsrcfile;
+		if ( -r $srcfile ) {
+		    $numparti++;
+		}
+	    }
+
+	    if( $timestep_min < 0) {
+		$timestep_min = $timestep[0];
+	    }
+	    else {
+		if( $timestep[0] < $timestep_min ) {
+		    $timestep_min = $timestep[0];
+		}
+	    }
+
+	    if( $timestep_max < 0) {
+		$timestep_max = $timestep[0];
+	    }
+	    else {
+		if( $timestep[0] > $timestep_max ) {
+		    $timestep_max = $timestep[0];
+		}
+	    }
+
+	}
+    }
+
+}
+
+closedir (DIR);
+
+print "$numparti $timestep_max\n";
+
+#printf "Number of keys: %d\n", scalar keys(proc_map_begin);
+
+#while(($schluessel, $wert) = each %proc_map_begin) {
+#    print "$schluessel = $wert\n";
+#}
+
+#while(($schluessel, $wert) = each %proc_map_end) {
+#    print "$schluessel = $wert\n";
+#}
+
+#printf "timestep_min, timestep_max: %d %d\n", $timestep_min, $timestep_max;
+
+
+if($mode eq "fix") {
+    open( FILE, "> Types.cfg" ) or die "Can't open Types.cfg : $!";
+    close FILE;
+    open( FILE, "> Connectivity.cfg" ) or die "Can't open Connectivity.cfg : $!";
+    close FILE;
+    open( FILE, "> Coordinates.cfg" ) or die "Can't open Coordinates.cfg : $!";
+    close FILE;
+
+    open( FILE, "> Types.dat" ) or die "Can't open Types.dat : $!";
+    close FILE;
+    open( FILE, "> Connectivity.dat" ) or die "Can't open Connectivity.dat : $!";
+    close FILE;
+    open( FILE, "> Coordinates.dat" ) or die "Can't open Coordinates.dat : $!";
+    close FILE;
+
+    $numnodes=0;
+    $numelems=0;
+    $elem=1;
+
+    for ($k=1; $k <= $numparti; $k+=1){
+
+	print "Fixing partition $k\n";
+	print "Fixing nodes...\n";
+
+	$parti = sprintf("%02d", $k);
+
+	$filename = "$basedir/$datasetname\_$parti.coord";
+
+	open( FILE, "< $filename" ) or die "Can't open $filename : $!";
+	@data = <FILE>;
+	close FILE;
+
+	splice(@data,0,1);
+	$linecount = scalar @data;
+	$numnodes+=$linecount;
+
+
+#	open( DEST, "> $filename" ) or die "Can't open $filename : $!";
+	open( COORDFILE, ">> Coordinates.dat" ) or die "Can't open Coordinates.dat : $!";
+
+#	print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\n";
+
+	foreach $line ( @data ) {
+#	    print DEST $line;
+	    print COORDFILE $line;
+	}
+
+	close COORDFILE;
+#	close DEST;
+
+	print "Fixing elements...\n";
+
+	$filename = "$basedir/$datasetname\_$parti.topo";
+
+	open( FILE, "< $filename" ) or die "Can't open $filename : $!";
+	@data = <FILE>;
+	close FILE;
+
+	splice(@data,0,1);
+	$linecount = scalar @data;
+	$numelems+=$linecount;
+
+
+#	open( DEST, "> $filename" ) or die "Can't open $filename : $!";
+#	print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\t4\n";
+
+	open( CONNFILE, ">> Connectivity.dat" ) or die "Can't open Connectivity.dat : $!";
+	open( TYPEFILE, ">> Types.dat" ) or die "Can't open Types.dat : $!";
+	open( REGIONNODEFILE, "> RegionNodes_partition$k.dat" ) or die "Can't open RegionNodes_partition$k.dat : $!";
+	open( REGIONELEMFILE, "> RegionElems_partition$k.dat" ) or die "Can't open RegionElems_partition$k.dat : $!";
+	open( REGIONDIMFILE, "> RegionDim_partition$k.dat" ) or die "Can't open RegionDim_partition$k.dat : $!";
+
+	foreach $line ( @data ) {
+#	    print DEST $line;
+	    print CONNFILE $line;
+	    print TYPEFILE "6\n";
+
+	    print REGIONNODEFILE $line;
+	    print REGIONELEMFILE "$elem\n";
+	    $elem++;
+	}
+
+	print REGIONDIMFILE "2\n";
+
+	close REGIONDIMFILE;
+	close REGIONNODEFILE;
+	close REGIONELEMFILE;
+	close CONNFILE;
+	close TYPEFILE;
+#	close DEST;
+
+	print "Fixing data...\n";
+
+	for ($t=1; $t <= $timestep_max; $t+=1){
+	    $ts = sprintf("%04d", $t);
+
+	    $filename = "$basedir/$datasetname\_$parti\_$ts.dat";
+
+	    open( FILE, "< $filename" ) or die "Can't open $filename : $!";
+	    @data = <FILE>;
+	    close FILE;
+
+	    @firstline_array = split '\t', $data[0];
+	    @dummy_array = split ' ', $data[1];
+	    $numscalars = scalar @dummy_array;
+
+	    if(trim($data[0]) == $numscalars)
+	    {
+		splice(@data,0,1);
+	    }
+
+	    $linecount = scalar @data;
+	    open( DEST, "> Result.dat" ) or die "Can't open Result.dat : $!";
+#	    print DEST "\t$numscalars\n";
+	    foreach $line ( @data ) {
+		print DEST $line;
+	    }
+	    close DEST;
+
+	    open( CFGSHFILE, "> Result.sh" ) or die "Can't open Result.sh : $!";
+
+	    print CFGSHFILE "RESULT_TYPE=Grid\n";
+	    print CFGSHFILE "MULTISTEP=1\n";
+	    print CFGSHFILE "ANALYSIS_TYPE=transient\n";
+	    print CFGSHFILE "RESULT_NAME=acouRhsLoad\n";
+	    print CFGSHFILE "RESULT_REGION=partition$k\n";
+
+	    print CFGSHFILE "DESC_DOFNAMES=-\n";
+	    print CFGSHFILE "DESC_DEFINEDON=1\n";
+	    print CFGSHFILE "DESC_ENTRYTYPE=1\n";
+	    print CFGSHFILE "DESC_NUMDOFS=1\n";
+	    print CFGSHFILE "DESC_REGIONS=partition$k\n";
+	    print CFGSHFILE "DESC_UNIT=unknown\n";
+
+	    print CFGSHFILE "STEP_NUM=$t\n";
+	    print CFGSHFILE "STEP_VALUE=0.0\n";
+
+	    print CFGSHFILE "RESULT_ON=Nodes\n";
+	    print CFGSHFILE "COMPLEX_TYPE=Real\n";
+	    print CFGSHFILE "RESULT_DATAFILE=Result.dat\n";
+	    print CFGSHFILE "RESULT_RANK=1\n";
+	    print CFGSHFILE "RESULT_DIMENSION_SIZES=$linecount\n";
+	    close CFGSHFILE;
+
+	    $cmd = "sh @CFS_BINARY_DIR@/bin/hdf5_import_dataset.sh $basedir $datasetname.h5";
+	    if (system($cmd)) {
+		print "ERROR: Running of h5import failed!\n";
+		exit 1;
+	    }
+
+	}
+    }
+
+    open( CFGFILE, "> Coordinates.cfg" ) or die "Can't open Coordinates.cfg : $!";
+    print CFGFILE "PATH /Mesh/Nodes/Coordinates\n";
+    print CFGFILE "INPUT-CLASS TEXTFP\n";
+    print CFGFILE "INPUT-SIZE 64\n";
+    print CFGFILE "RANK 2\n";
+    print CFGFILE "DIMENSION-SIZES $numnodes 3\n";
+    print CFGFILE "OUTPUT-CLASS FP\n";
+    print CFGFILE "OUTPUT-SIZE 64\n";
+    print CFGFILE "OUTPUT-ARCHITECTURE IEEE\n";
+    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+    close CFGFILE;
+
+    open( CFGFILE, "> Types.cfg" ) or die "Can't open Types.cfg : $!";
+    print CFGFILE "PATH /Mesh/Elements/Types\n";
+    print CFGFILE "INPUT-CLASS TEXTUIN\n";
+    print CFGFILE "INPUT-SIZE 32\n";
+    print CFGFILE "RANK 1\n";
+    print CFGFILE "DIMENSION-SIZES $numelems\n";
+    print CFGFILE "OUTPUT-CLASS UIN\n";
+    print CFGFILE "OUTPUT-SIZE 32\n";
+    print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
+    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+    close CFGFILE;
+    
+    open( CFGFILE, "> Connectivity.cfg" ) or die "Can't open Connectivity.cfg : $!";
+    print CFGFILE "PATH /Mesh/Elements/Connectivity\n";
+    print CFGFILE "INPUT-CLASS TEXTUIN\n";
+    print CFGFILE "INPUT-SIZE 32\n";
+    print CFGFILE "RANK 2\n";
+    print CFGFILE "DIMENSION-SIZES $numelems 4\n";
+    print CFGFILE "OUTPUT-CLASS UIN\n";
+    print CFGFILE "OUTPUT-SIZE 32\n";
+    print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
+    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+    close CFGFILE;
+
+    $cmd = "sh @CFS_BINARY_DIR@/bin/hdf5_import_mesh.sh $basedir $datasetname.h5";
+    if (system($cmd)) {
+        print "ERROR: Running of h5import failed!\n";
+        exit 1;
+    }
+}
+else {
+    $i = 1;
+
+# Iterate over all processors and blocks
+    $parti = 1;
+    $numtimesteps = $timestep_max - $timestep_min + 1;
+
+    foreach $proc (keys %proc_map_begin) {
+	print "Processor: $proc\n";
+
+	for ($k=$proc_map_begin{$proc}; $k <= $proc_map_end{$proc}; $k+=1){
+
+#	$block = $k + 0;
+
+#	if ($block < 10) {
+#	    $block = "0$block";
+#	}
+#	if ($block < 100) {
+#	    $block = "0$block";
+#	}
+
+	    $block = sprintf("%03d", $k);
+	    print "Block: $block\n";
+
+	    $srcfile = "$basedir/elems_p$proc";
+	    $srcfile.= "b$block";
+	    $outfile = "$outdir/$datasetname\_";
+	    $outfile.= sprintf("%02d.topo", $i);
+
+	    if ( -r $srcfile ) {
+
+		# Read source topology file and get line count
+		open( FILE, "< $srcfile" ) or die "Can't open $srcfile : $!";
+		@data = <FILE>;
+		$linecount = scalar @data;
+		close FILE;
+
+		# If the input file already contains a line count \
+		# delete the first line
+		if(trim($data[0]) eq ($linecount-1))
+		{
+		    splice(@data,0,1);
+		    $linecount--;
+		}
+
+		# Write destination topology file with line count in 1st line
+		open( DEST, "> $outfile" ) or die "Can't open $outfile : $!";
+
+		@dummy_array = split ' ', $data[0];
+		$dim = scalar @dummy_array;
+
+		print DEST "\t$i\t$numparti\t$numtimesteps\t$linecount\t4\n";
+		foreach $line ( @data ) {
+		    print DEST $line;
+		}
+
+		close DEST;
+
+		# If the mode is set to move delete the source file
+		if($mode eq "mv")
+		{
+		    unlink($srcfile);
+		}
+
+
+
+		$srcfile = "$basedir/nodes_p$proc";
+		$srcfile.= "b$block";
+		$outfile = "$outdir/$datasetname\_";
+		$outfile.= sprintf("%02d.coord", $i);
+
+		# Read source nodes file and get line count
+		open( FILE, "< $srcfile" ) or die "Can't open $srcfile : $!";
+		@data = <FILE>;
+		$linecount = scalar @data;
+		close FILE;
+
+		# If the input file already contains a line count \
+		# delete the first line
+		if(trim($data[0]) eq ($linecount-1))
+		{
+		    splice(@data,0,1);
+		    $linecount--;
+		}
+
+		# Write destination nodes file with line count in 1st line
+		open( DEST, "> $outfile" ) or die "Can't open $outfile : $!";
+
+		print DEST "\t$i\t$numparti\t$numtimesteps\t$linecount\n";
+		foreach $line ( @data ) {
+		    print DEST $line;
+		}
+
+		close DEST;
+
+		# If the mode is set to move delete the source file
+		if($mode eq "mv")
+		{
+		    unlink($srcfile);
+		}
+
+
+		$realtime = 1;
+		for ($t=$timestep_min; $t <= $timestep_max; $t+=1){
+		    $srcfile = "$basedir/Int_p$proc";
+		    $srcfile.= "b$block";
+		    $srcfile.= "t";
+		    $srcfile.= sprintf("%05d", $t);
+		    
+#		print "$srcfile\n";
+
+		    $outfile = "$outdir/$datasetname\_";
+		    $outfile.= sprintf("%02d\_", $i);
+		    $outfile.= sprintf("%04d", $realtime);
+		    $outfile.= ".dat";
+
+
+		    open( FILE, "< $srcfile" ) or die "Can't open $srcfile : $!";
+		    @data = <FILE>;
+		    close FILE;
+
+		    open( DEST, "> $outfile" ) or die "Can't open $outfile : $!";
+
+		    @dummy_array = split ' ', $data[0];
+		    $numscalars = scalar @dummy_array;
+
+		    print DEST "\t$numscalars\n";
+#		    print DEST "\t4\n";
+		    foreach $line ( @data ) {
+			($acousrc, $x, $y, $z, $u, $v, $w) = split ' ', $line, 7;
+#			print DEST "$acousrc $u $v $w";
+			print DEST "$acousrc\n";
+#			print DEST $line
+		    }
+		    
+		    close DEST;
+
+#		if($mode eq "mv")
+#		{
+#		    move($srcfile, $outfile);
+#		}
+#		else
+#		{
+#		    copy($srcfile, $outfile);
+#		}
+
+		    $realtime++;
+		}
+
+		$i++;
+	    }
+
+	}
+
+    }
+
+}

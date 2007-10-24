@@ -2,6 +2,7 @@ SET(FORMS_SRCS
   abcInt.cc
   acouMechInt.cc
   acouPowerDensityOp.cc
+  acouRHSLinForm.cc
   adbInt.cc
   baseForceOp.cc
   baseForm.cc
@@ -61,3 +62,9 @@ SET(FORMS_SRCS
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
+
+TARGET_LINK_LIBRARIES(forms
+  domain
+  materials
+  mathparser
+)

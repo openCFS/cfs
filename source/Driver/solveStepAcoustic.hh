@@ -18,7 +18,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    SolveStepAcoustic(StdPDE& apde);
+    SolveStepAcoustic(StdPDE& apde, bool justInterpolate = false);
 
     //! Destructor
     virtual ~SolveStepAcoustic();
@@ -28,12 +28,15 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     void StepTransNonLin();
 
+    void StepTransLin();
+    
+
     //! compute nonlinear part of RHS
     void AddNonLinRHS();
 
   private:
 
-
+    bool justInterpolate_;
   };
 
 } // end of namespace

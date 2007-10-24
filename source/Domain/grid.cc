@@ -8,10 +8,12 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Elements/elements_header.hh"
-#include "Domain/elem.hh"
+#include "elem.hh"
+#include "domain.hh"
 #include "grid.hh"
 #include "General/exception.hh"
 #include "Utils/mathfunctions.hh"
+#include "Utils/coordSystem.hh"
 #include "polygonIterator.hh"
 
 namespace CoupledField
@@ -24,20 +26,20 @@ namespace CoupledField
   Grid::Grid()
   {
 
-    ptQ1     = new Quad1FE();
-    ptQ2     = new Quad2FE();
-    ptTet1   = new Tetra1FE();
-    ptTet2   = new Tetra2FE();
-    ptL1     = new Line1FE();
-    ptL2     = new Line2FE();
-    ptTr1    = new Triangle1FE();
-    ptTr2    = new Triangle2FE();
-    ptHexa1  = new Hexa1FE();
-    ptHexa2  = new Hexa2FE();
-    ptPyra1  = new Pyra1FE();
-    ptPyra2  = new Pyra2FE();
-    ptWedge1 = new Wedge1FE();
-    ptWedge2 = new Wedge2FE();
+    if (!ptQ1)     ptQ1     = new Quad1FE();
+    if (!ptQ2)     ptQ2     = new Quad2FE();
+    if (!ptTet1)   ptTet1   = new Tetra1FE();
+    if (!ptTet2)   ptTet2   = new Tetra2FE();
+    if (!ptL1)     ptL1     = new Line1FE();
+    if (!ptL2)     ptL2     = new Line2FE();
+    if (!ptTr1)    ptTr1    = new Triangle1FE();
+    if (!ptTr2)    ptTr2    = new Triangle2FE();
+    if (!ptHexa1)  ptHexa1  = new Hexa1FE();
+    if (!ptHexa2)  ptHexa2  = new Hexa2FE();
+    if (!ptPyra1)  ptPyra1  = new Pyra1FE();
+    if (!ptPyra2)  ptPyra2  = new Pyra2FE();
+    if (!ptWedge1) ptWedge1 = new Wedge1FE();
+    if (!ptWedge2) ptWedge2 = new Wedge2FE();
 
  #ifdef USE_SCRIPTING
     // Register functions
@@ -64,7 +66,6 @@ namespace CoupledField
     delete ptPyra2;   ptPyra2 = NULL; 
     delete ptWedge1;  ptWedge1 = NULL;
     delete ptWedge2;  ptWedge2 = NULL;
-  
   }
 
 
@@ -88,20 +89,6 @@ namespace CoupledField
     }
   }
     
-  void Grid::AddRegions(const std::vector<std::string> & regionNames,
-                        std::vector<RegionIdType> & rIds)
-  {
-    UInt numRegions = regionNames.size();
-    UInt newId = regionNames_.GetSize();
-
-    rIds.resize(numRegions);
-    for(UInt i=0; i<numRegions; i++, newId++)
-    {
-      rIds[i] = newId;
-      regionNames_.Push_back(regionNames[i]);
-    }
-  }
-
   UInt Grid::GetNumRegions()
   {
     return regionNames_.GetSize();
@@ -127,46 +114,13 @@ namespace CoupledField
       regions.Push_back(i);
   }
   
-  void Grid::GetRegionIds( std::vector<RegionIdType> & regions ) {
-        
-    UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
-        
-    regions.clear();
-        
-    for(UInt i=0; i<numRegions; i++)
-      regions.push_back(i);
-  }
-
-  
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
-    
     volRegions = volRegionIds_;
   }
-  
-  void Grid::GetVolRegionIds( std::vector<RegionIdType> & volRegions ) {
-        
-    UInt numRegions = volRegionIds_.GetSize();
-        
-    volRegions.resize(numRegions);
-        
-    for(UInt i=0; i<numRegions; i++)
-      volRegions[i] = volRegionIds_[i];
-  }
-
   
   void Grid::GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
     
     surfRegions = surfRegionIds_;
-  }
-
-  void Grid::GetSurfRegionIds( std::vector<RegionIdType> & surfRegions ) {
-        
-    UInt numRegions = surfRegionIds_.GetSize();
-        
-    surfRegions.resize(numRegions);
-        
-    for(UInt i=0; i<numRegions; i++)
-      surfRegions[i] = surfRegionIds_[i];
   }
 
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
@@ -323,42 +277,6 @@ namespace CoupledField
 
     StdVector<SurfElem*> ifaceElems;
 
-#ifdef USE_INTERPOLATION
-    Vector<double> coord;
-    Vector<double> localCoords;
-    
-    coord.Resize(3);
-    coord[0] = 0.0011;
-    coord[1] = 0.0011;
-    coord[2] = 0.0;
-    
-    const Elem* elemAtCoord = GetElemAtGlobalCoord(coord, localCoords);
-
-    if (elemAtCoord)
-    {
-      std::cout << "++++++ Yipeaiäh! Element nummer " << elemAtCoord->elemNum << std::endl;
-      std::cout << "++++++ Local coordinates "
-                << localCoords[0] << ", "
-                << localCoords[1] << std::endl;
-    }
-    
-    
-    coord[0] = 0.00125;
-    coord[1] = 0.00175;
-    coord[2] = 0.0;
-
-    elemAtCoord = GetElemAtGlobalCoord(coord, localCoords);
-
-    if (elemAtCoord)
-    {
-      std::cout << "++++++ Yipeaiäh! Element nummer " << elemAtCoord->elemNum << std::endl;
-      std::cout << "++++++ Local coordinates "
-                << localCoords[0] << ", "
-                << localCoords[1] << std::endl;
-    }
-
-#endif
-    
     ParamNode* pNode;
     StdVector<ParamNode*> ncIfaceNodes;
     pNode = param->Get("domain");
@@ -456,18 +374,9 @@ namespace CoupledField
     StdVector<UInt> masterNodes;
     StdVector< UInt > ncElemIds;
     std::string isecCalc;
-    bool lostDOFs = false;
 
     GetSurfElems(masterElems, masterId);
     GetSurfElems(slaveElems, slaveId);
-
-    if(regionNames_.Find(ncRegionBaseName) != -1)
-    {
-      ncRegionId = RegionNameToId(ncRegionBaseName);
-      ClearRegion(ncRegionId);
-    }
-    else
-      AddSurfaceRegion(ncRegionBaseName, ncRegionId);
 
     ParamNode* ncIfaceNode;
     ncIfaceNode = param->Get("domain")->Get("ncInterfaceList");
@@ -477,10 +386,6 @@ namespace CoupledField
     
     if(GetDim() == 2)
     {
-      if (!coPlanarIface)
-      {
-        EXCEPTION( "Only collinear interfaces are supported at the moment!");
-      }
       for(UInt i=0; i<masterElems.GetSize(); i++)
       {
         for(UInt j=0; j<slaveElems.GetSize(); j++)
@@ -492,62 +397,86 @@ namespace CoupledField
     }
     else //GetDim == 2
     {
-      for(UInt i=0; i<masterElems.GetSize(); i++)
+      if((isecCalc == "dirty"))
       {
-        for(UInt j=0; j<slaveElems.GetSize(); j++)
+        EXCEPTION("ISNMG: Dirty Intersection not implemented anymore!");
+      }
+      if((isecCalc == "coaxi"))
+      {
+        if (!coPlanarIface) {
+          EXCEPTION("Only coplanar interfaces are supported with coaxi algorithm!");
+        }
+        for(UInt i=0; i<masterElems.GetSize(); i++)
         {
-          if((isecCalc == "dirty") || (isecCalc == ""))
+          for(UInt j=0; j<slaveElems.GetSize(); j++)
           {
-            EXCEPTION("ISNMG: Dirty Intersection not implemented anymore!");
-          }
-
-          if((isecCalc == "coaxi"))
-          {
-	    if (!coPlanarIface) {
-	      EXCEPTION("Only coplanar interfaces are supported with coaxi algorithm!");
-	    }
             if((masterElems[i]->ptElem != ptQ1) ||
-               (slaveElems[j]->ptElem != ptQ1))
+                (slaveElems[j]->ptElem != ptQ1))
             {
               EXCEPTION("Only linear Quads can be intersected with coaxi algorithm!");
             }
-            
-            if(RectangleOnRectangle(masterElems[i], slaveElems[j], coPlanarIface, ncElems))
-              LOG_DBG3(grid) << "Intersection between " << masterElems[i]->elemNum << " and " << slaveElems[j]->elemNum << std::endl;
+
+            if(RectangleOnRectangle(masterElems[i], slaveElems[j],
+                  coPlanarIface, ncElems))
+              LOG_DBG3(grid) << "Intersection between "
+                << masterElems[i]->elemNum << " and "
+                << slaveElems[j]->elemNum << std::endl;
           }
-	  else if (isecCalc == "polygon")
-	  {
+        }
+      }
+      else if (isecCalc == "polygon")
+      {
+
+        // set tolerance values
+        tolAbs_ = 1e-12;
+        tolRel_ = 1e-4;
+        try {
+          ncIfaceNode->Get("tolAbs", tolAbs_, false);
+          ncIfaceNode->Get("tolRel", tolRel_, false);
+        } catch (Exception &ex) {
+          RETHROW_EXCEPTION(ex, "ncInterface '" << ncRegionBaseName
+              << "': cannot interpret tolerance value.");
+        }
+        
+        for(UInt i=0; i<masterElems.GetSize(); i++)
+        {
+          for(UInt j=0; j<slaveElems.GetSize(); j++)
+          {
             if (((masterElems[i]->ptElem != ptTr1) &&
-                 (masterElems[i]->ptElem != ptQ1)) ||
+                  (masterElems[i]->ptElem != ptQ1)) ||
                 ((slaveElems[j]->ptElem != ptTr1) &&
                  (slaveElems[j]->ptElem != ptQ1)))
             {
               EXCEPTION("Only linear triangles and quads can be intersected with polygon algorithm.");
             }
 
-            if (PolygonOnPolygon(masterElems[i], slaveElems[j],
-                                 coPlanarIface, ncElems))
-              LOG_DBG3(grid) << "Intersection between " <<
-                masterElems[i]->elemNum << " and " <<
-                slaveElems[j]->elemNum << std::endl;
-	  }
+            if (PolygonOnPolygon(masterElems[i], slaveElems[j], coPlanarIface,
+                  ncElems))
+              LOG_DBG3(grid) << "Intersection between "
+                << masterElems[i]->elemNum << " and "
+                << slaveElems[j]->elemNum << std::endl;
+          }
         }
+      }
+      else
+      {
+        EXCEPTION("Non-conforming grid interfaces: unknown intersection algorithm '"
+            << isecCalc << "'");
       }
     }
 
-    if(lostDOFs)
+    if(ncElems.GetSize() != 0)
     {
-      Warning( "Not all lagrange DOFs might be incorporated in system matrix!\n"
-               "Try to set isecRefines to a higher value.",
-               __FILE__ ,__LINE__);
-    }
+      if(regionNames_.Find(ncRegionBaseName) != -1)
+      {
+        ncRegionId = RegionNameToId(ncRegionBaseName);
+        ClearRegion(ncRegionId);
+      }
+      else
+        AddSurfaceRegion(ncRegionBaseName, ncRegionId);
 
-    if(ncElems.GetSize() == 0)
-    {
-      ClearRegion(ncRegionId);
-    }
-    else
-    {
+      isNcIfaceCoplanar_.insert(std::make_pair(ncRegionId, coPlanarIface));
+
       ncElemsHelper.Resize(ncElems.GetSize());
       
       for(UInt i=0; i<ncElems.GetSize(); i++)
@@ -694,23 +623,23 @@ namespace CoupledField
    ** 
    ** SideOnSide
    **
-   **		computes the local coordinates of the overlap of the master
-   **		and slave element with respect to the master side in the 
-   **		order of the orientation of the slave side element
-   **		without projection to any hyperplane. It pushes back the
+   **   computes the local coordinates of the overlap of the master
+   **   and slave element with respect to the master side in the 
+   **   order of the orientation of the slave side element
+   **   without projection to any hyperplane. It pushes back the
    **           intersection element to elemList.
    **           This functions assumes a coplanar interface!
    **
    ** Input Parameters:   
-   **		ifaceElemM:  Master Side
-   **		ifaceElemS: Slave Side
-   **		coPlanarIface: this parameter indicates wether interface is
+   **   ifaceElemM:  Master Side
+   **   ifaceElemS: Slave Side
+   **   coPlanarIface: this parameter indicates wether interface is
    **                          coplanar
    **
    ** Output Parameters:
-   **		elemList: the found intersection NCElems will be pushed
+   **   elemList: the found intersection NCElems will be pushed
    **                     back to this vector 
-   **		
+   **   
    */
 
 
@@ -724,21 +653,73 @@ namespace CoupledField
     //           d0 x--------------------------x d1
     // c0 x---------|-----------x c1
 
-    Vector<Double> c0, c1, d0, d1; // endpoint-coordinates of the two lines
+    Vector<Double> c0, c1, d0, d1, tmp; // endpoint-coordinates of the two lines
     Vector<Double> diff0, diff1;
     Vector<Double> s, t;
+    Vector<Double> normal;
     StdVector<UInt> connect2;
     Double dist, dist1, fac;
+    UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
     
     s.Resize(2);
     t.Resize(2);
     connect2.Resize(2);
     
     // Get coordinates of the endpoints
-    GetNodeCoordinate(c0, ifaceElem1->connect[0]);
-    GetNodeCoordinate(c1, ifaceElem1->connect[1]);
-    GetNodeCoordinate(d0, ifaceElem2->connect[0]);
-    GetNodeCoordinate(d1, ifaceElem2->connect[1]);
+    nodenum_c0 = ifaceElem1->connect[0];
+    nodenum_c1 = ifaceElem1->connect[1];
+    nodenum_d0 = ifaceElem2->connect[0];
+    nodenum_d1 = ifaceElem2->connect[1];
+    GetNodeCoordinate(c0, nodenum_c0);
+    GetNodeCoordinate(c1, nodenum_c1);
+    GetNodeCoordinate(d0, nodenum_d0);
+    GetNodeCoordinate(d1, nodenum_d1);
+
+    // Project master nodes onto slave element, if interface is not coplanar
+    if (!coPlanarIface) {
+      UInt node_num;
+      Vector<Double> new_node;
+      // compute maximal allowed distance as sum of lengths of both lines
+      tmp = c1 - c0;
+      Double maxDist = tmp.NormL2();
+      tmp = d1 - d0;
+      maxDist += tmp.NormL2();
+      // compute normal vector of slave element
+      CalcSurfNormal(normal, *ifaceElem2);
+      // compute distance of c0 to plane of slave element
+      tmp = c0 - d0;
+      normal.Inner(tmp, fac);
+      // make sure that distance does not exceed maximum distance
+      if (fabs(fac) > maxDist)
+        return false;
+      // do the projection
+      c0 -= normal * fac;
+      // add new node
+      new_node.Resize(3);
+      new_node[0] = c0[0];
+      new_node[1] = c0[1];
+      if (c0.GetSize() == 2) {
+        new_node[2] = 0.0;
+      } else {
+        new_node[2] = c0[2];
+      }
+      AddNode(new_node, node_num);
+      nodenum_c0 = node_num;
+      
+      // do the same for c1
+      tmp = c1 - d0;
+      normal.Inner(tmp, fac);
+      c1 -= normal * fac;
+      new_node[0] = c1[0];
+      new_node[1] = c1[1];
+      if (c1.GetSize() == 2) {
+        new_node[2] = 0.0;
+      } else {
+        new_node[2] = c1[2];
+      }
+      AddNode(new_node, node_num);
+      nodenum_c1 = node_num;
+    }
 
     // Compute and normalize vector from c0 to c1.
     // This becomes the new x-unit vector.
@@ -766,15 +747,15 @@ namespace CoupledField
     {
       t[0] = s[1];
       t[1] = s[0];
-      connect2[0] = ifaceElem2->connect[1];
-      connect2[1] = ifaceElem2->connect[0];      
+      connect2[0] = nodenum_d1;
+      connect2[1] = nodenum_d0;      
     }
     else
     {
       t[0] = s[0];
       t[1] = s[1];
-      connect2[0] = ifaceElem2->connect[0];
-      connect2[1] = ifaceElem2->connect[1];
+      connect2[0] = nodenum_d0;
+      connect2[1] = nodenum_d1;
     }
 
     // Check if an intersection between line1 and line2
@@ -793,14 +774,14 @@ namespace CoupledField
     // 4 different cases.
     if(t[0] <= 0)
     {
-      ncElem->connect[0] = ifaceElem1->connect[0];
+      ncElem->connect[0] = nodenum_c0;
 
       if(t[1] >= 1)
       {
         // connect2[0] x--------|--------------------|-----x connect2[1]
         //                   c0 x--------------------x c1
 
-        ncElem->connect[1] = ifaceElem1->connect[1];
+        ncElem->connect[1] = nodenum_c1;
       }      
       else
       {
@@ -820,7 +801,7 @@ namespace CoupledField
         // connect2[0] x----------------|------x connect2[1]
         //      c0 x---|----------------x c1
         
-        ncElem->connect[1] = ifaceElem1->connect[1];
+        ncElem->connect[1] = nodenum_c1;
       }
       else
       {
@@ -851,7 +832,6 @@ namespace CoupledField
     StdVector<UInt> connect2;
     Double distX, distY, facX, facY;
     UInt nodeNr;
-    
     
     s.Resize(4);
     t.Resize(4);
@@ -945,10 +925,16 @@ namespace CoupledField
       {
         t[1] = s[3];
         t[3] = s[1];
+        connect2[0] = ifaceElem2->connect[1];
+        connect2[1] = ifaceElem2->connect[2];
+        connect2[2] = ifaceElem2->connect[3];
+        connect2[3] = ifaceElem2->connect[0];
+        /*
         connect2[0] = ifaceElem2->connect[3];
         connect2[1] = ifaceElem2->connect[2];
         connect2[2] = ifaceElem2->connect[1];
         connect2[3] = ifaceElem2->connect[0];
+        */
       }
       else
       {
@@ -1219,8 +1205,6 @@ namespace CoupledField
     return true;
   }
 
-  const double TOL = 1e-8;
-
   bool Grid::PolygonOnPolygon(SurfElem *ifElem1, SurfElem *ifElem2,
                               const bool coPlanarIface, StdVector<NCElem*> &elemList)
   {
@@ -1241,12 +1225,11 @@ namespace CoupledField
 
       for (UInt i = start; i < elemList.GetSize(); ++i)
       {
-        elemList[i]->ptElem = ifElem1->ptElem;
         elemList[i]->ptLagrangeParent = ifElem2;
         elemList[i]->ptSurfParent = ifElem1;
-        elemList[i]->ptElem = ptTr1;
+        //elemList[i]->ptElem = ptTr1;
       }
-	  
+    
       return true;
     }
     return false;
@@ -1296,23 +1279,23 @@ namespace CoupledField
         temp = (d - b);
         l_bd = temp.NormL2();
 
-        if (fabs(l_ac + l_ad - l2) < TOL) {
+        if (fabs(l_ac + l_ad - l2) < tolAbs_) {
           e = a;
-          if (l_ac < TOL)
+          if (l_ac < tolAbs_)
             return INTERSECT_A_EQ_C;
-          if (l_ad < TOL)
+          if (l_ad < tolAbs_)
             return INTERSECT_IN_D;
           return INTERSECT_IN_A;
         }
-        if (fabs(l_bc + l_bd - l2) < TOL) {
+        if (fabs(l_bc + l_bd - l2) < tolAbs_) {
           e = b;
           return INTERSECT_IN_B;
         }
-        if (fabs(l_ac + l_bc - l1) < TOL) {
+        if (fabs(l_ac + l_bc - l1) < tolAbs_) {
           e = c;
           return INTERSECT_IN_C;
         }
-        if (fabs(l_ad + l_bd - l1) < TOL) {
+        if (fabs(l_ad + l_bd - l1) < tolAbs_) {
           e = d;
           return INTERSECT_IN_D;
         }
@@ -1339,44 +1322,44 @@ namespace CoupledField
      * equations 1 and 2, k2 from equations 1 and 3.
      */
     denom1 = v1[1] * v2[0] - v1[0] * v2[1];
-    if (fabs(denom1) > TOL)
+    if (fabs(denom1) > tolAbs_)
       k1 = (v1[0] * (c[1] - a[1]) + v1[1] * (a[0] - c[0])) / denom1;
     denom2 = v1[2] * v2[0] - v1[0] * v2[2];
-    if (fabs(denom2) > TOL)
+    if (fabs(denom2) > tolAbs_)
       k2 = (v1[0] * (c[2] - a[2]) + v1[2] * (a[0] - c[0])) / denom2;
     // If this system has no solution, lines do not intersect.
-    if ((fabs(denom1) <= TOL) && (fabs(denom2) <= TOL))
+    if ((fabs(denom1) <= tolAbs_) && (fabs(denom2) <= tolAbs_))
       return INTERSECT_NONE;
-    if ((fabs(denom1) > TOL) && (fabs(denom2) > TOL)) {
-      if (fabs(k1 - k2) > TOL)
+    if ((fabs(denom1) > tolAbs_) && (fabs(denom2) > tolAbs_)) {
+      if (fabs(k1 - k2) > tolRel_)
         return INTERSECT_NONE;
     }
 
     // compute second unknown
-    if (fabs(denom1) > TOL) k = k1; else k = k2;
-    if (fabs(v1[0]) > TOL)
+    if (fabs(denom1) > tolAbs_) k = k1; else k = k2;
+    if (fabs(v1[0]) > tolAbs_)
       h = (c[0] - a[0] + v2[0] * k) / v1[0];
-    else if (fabs(v1[1]) > TOL)
+    else if (fabs(v1[1]) > tolAbs_)
       h = (c[1] - a[1] + v2[1] * k) / v1[1];
     else
       h = (c[2] - a[2] + v2[2] * k) / v1[2];
 
     e = a + v1 * h; // compute point of intersection
 
-    if (h > -TOL) { // we consider only [a,inf)
-      if ((k > -TOL) && (k < 1.0 + TOL)) { // intersection on [c,d]?
-        if (h < 1.0 + TOL) { // intersection on [a,b]?
+    if (h > -tolRel_) { // we consider only [a,inf)
+      if ((k > -tolRel_) && (k < 1.0 + tolRel_)) { // intersection on [c,d]?
+        if (h < 1.0 + tolRel_) { // intersection on [a,b]?
           // treat special cases
-          if (fabs(h - 1.0) < TOL) // h=1 means intersection in b
+          if (fabs(h - 1.0) < tolRel_) // h=1 means intersection in b
             return INTERSECT_IN_B;
-          if (fabs(k - 1.0) < TOL) // k=1 means intersection in d
+          if (fabs(k - 1.0) < tolRel_) // k=1 means intersection in d
             return INTERSECT_IN_D;
-          if (fabs(k) < TOL) { // k=0 means intersection in c
-            if (fabs(h) < TOL) // h=0 means intersection in a
+          if (fabs(k) < tolRel_) { // k=0 means intersection in c
+            if (fabs(h) < tolRel_) // h=0 means intersection in a
               return INTERSECT_A_EQ_C;
             return INTERSECT_IN_C;
           }
-          if (fabs(h) < TOL) // h=0 means intersection in a
+          if (fabs(h) < tolRel_) // h=0 means intersection in a
             return INTERSECT_IN_A;
           return INTERSECT_CROSS; // X intersection
         }
@@ -1427,11 +1410,13 @@ namespace CoupledField
     if (!coPlanarIface) {
       Double scale;
       Vector<Double> n;
+      
       // compute surface normal of p2
       temp1 = p2[1]- p2[0];
       temp2 = p2[2] - p2[0];
       CrossProd(temp1,temp2, n);
       Normalize(n);
+      
       // project each point of p1
       for (i = 0; i < p1.GetSize(); ++i) {
         temp1 = p1[i] - p2[0];
@@ -1492,40 +1477,40 @@ namespace CoupledField
         // can happen despite the starting point lying outside, because
         // an edge of p1 might cut p2 into halves.
         switch (cuttype) {
-        case INTERSECT_CROSS: // lines cross each other
-          break; // always store the cut
-        case INTERSECT_IN_A:
-          // see if [a,b] lies inside of p2 or not
-          if ((CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
-               >= INTERSECT_ON_LINE2) ||
-              (CutLines(*pi1, pi1.Next(), pi2.Prev(),
-                        pi2.Next(), e) >= INTERSECT_ON_LINE2))
-            break;
-          continue; // [a,b] lies outside of p2 => no cut 
-        case INTERSECT_IN_C:
-        case INTERSECT_A_EQ_C:
-          // does [a,b] cut into p2?
-          if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
-                       e) >= INTERSECT_ON_LINE2)
-            break; // yes, store cut
-          // does [c,d] lie inside of p1?
-          if (CutLines(*pi2, pi2.Next(), pi1.Prev(), pi1.Next(),
-                       e) >= INTERSECT_ON_LINE2) {
-            cut.swap = true; // continue with p2
-            break; // add cut
-          }
-          if (cuttype != INTERSECT_A_EQ_C) { // not for a=c
-            if (CutLines(*pi2, pi2.Next(), *pi1, pi1.Next(2), e)
-                >= INTERSECT_ON_LINE2) {
+          case INTERSECT_CROSS: // lines cross each other
+            break; // always store the cut
+          case INTERSECT_IN_A:
+            // see if [a,b] lies inside of p2 or not
+            if ((CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
+                  >= INTERSECT_ON_LINE2) ||
+                (CutLines(*pi1, pi1.Next(), pi2.Prev(),
+                          pi2.Next(), e) >= INTERSECT_ON_LINE2))
+              break;
+            continue; // [a,b] lies outside of p2 => no cut 
+          case INTERSECT_IN_C:
+          case INTERSECT_A_EQ_C:
+            // does [a,b] cut into p2?
+            if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
+                  e) >= INTERSECT_ON_LINE2)
+              break; // yes, store cut
+            // does [c,d] lie inside of p1?
+            if (CutLines(*pi2, pi2.Next(), pi1.Prev(), pi1.Next(),
+                  e) >= INTERSECT_ON_LINE2) {
               cut.swap = true; // continue with p2
               break; // add cut
             }
-          }
-          continue; // polygons touch in c only
-        default:
-          // cases for cuts in b and d are not stored, because
-          // they would give duplicate cuts (polygons are closed!)
-          continue;
+            if (cuttype != INTERSECT_A_EQ_C) { // not for a=c
+              if (CutLines(*pi2, pi2.Next(), *pi1, pi1.Next(2), e)
+                  >= INTERSECT_ON_LINE2) {
+                cut.swap = true; // continue with p2
+                break; // add cut
+              }
+            }
+            continue; // polygons touch in c only
+          default:
+            // cases for cuts in b and d are not stored, because
+            // they would give duplicate cuts (polygons are closed!)
+            continue;
         }
 
         if (nCuts < 2)
@@ -1556,7 +1541,7 @@ namespace CoupledField
     if (nCuts == 2) { // two cuts
       // make sure we do not treat a duplicate cut
       temp1 = (cuts[1].loc - cuts[0].loc);
-      if (temp1.NormL2() < TOL) {
+      if (temp1.NormL2() < tolAbs_) {
         nCuts = 1;
       } else {
         // Here we can assume that we have found two "real" cuts. In
@@ -1569,7 +1554,7 @@ namespace CoupledField
           r.Push_back(cuts[0].loc);
           //last_cut = cuts[1].loc;
           r.Push_back(cuts[1].loc);
-		  
+      
           pi2.Seek(cuts[0].index);
           if ((cuts[0].type != INTERSECT_IN_C) &&
               (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
@@ -1580,7 +1565,7 @@ namespace CoupledField
           r.Push_back(cuts[1].loc);
           //last_cut = cuts[0].loc;
           r.Push_back(cuts[0].loc);
-		  
+      
           pi2.Seek(cuts[1].index);
           if ((cuts[1].type != INTERSECT_IN_C) &&
               (cuts[1].type != INTERSECT_A_EQ_C)) ++pi2;
@@ -1625,25 +1610,25 @@ namespace CoupledField
       if ( ! pi2.AtBegin() || !swapped ) {
         do {
           switch (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e)) {
-          case INTERSECT_CROSS:
-          case INTERSECT_IN_C:
-            /*r.Push_back(last_cut);
-              last_cut = e;*/
-            r.Push_back(e);
-            swap = true;
-            break;
-          case INTERSECT_IN_A:
-            if (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
-                >= INTERSECT_ON_LINE2)
-              continue;
-          case INTERSECT_A_EQ_C:
-            if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
-                         e) >= INTERSECT_ON_LINE2)
-              continue;
-            swap = true;
-            break;
-          default:
-            break;
+            case INTERSECT_CROSS:
+            case INTERSECT_IN_C:
+              /*r.Push_back(last_cut);
+                last_cut = e;*/
+              r.Push_back(e);
+              swap = true;
+              break;
+            case INTERSECT_IN_A:
+              if (CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(2), e)
+                  >= INTERSECT_ON_LINE2)
+                continue;
+            case INTERSECT_A_EQ_C:
+              if (CutLines(*pi1, pi1.Next(), pi2.Prev(), pi2.Next(),
+                    e) >= INTERSECT_ON_LINE2)
+                continue;
+              swap = true;
+              break;
+            default:
+              break;
           }
           if (swap) break;
         } while ( ! (++pi2).AtBegin() );
@@ -1688,7 +1673,7 @@ namespace CoupledField
     // Test if p is the centroid of the polygon (should always lie inside of a
     // convex polygon). In this case the algorithm below will not work.
     temp = (p - center);
-    if ( temp.NormL2() < TOL)
+    if ( temp.NormL2() < tolAbs_)
       return TRUE;
 
     // try intersecting [c,p] with each edge of the polygon
@@ -1740,119 +1725,106 @@ namespace CoupledField
                              StdVector<NCElem*> &tri)
   {
     UInt nodeNo, firstNo = tri.GetSize();
-    NCElem *ncElem, *ncElem2;
+    NCElem *ncElem/*, *ncElem2*/;
     UInt numPoints = p.GetSize();
     Vector<Double> temp1, temp2;
 
-    /*      
-            Vector<Double> point, midPoint;
-            Double dist, maxDist = 0.0;
-
-            midPoint.Resize(3);
-            midPoint[0] = midPoint[1] = midPoint[2] = 0;
-
-            for(UInt i=0; i<numPoints; i++)
-            {
-            midPoint += p[i];
-            }
-
-            midPoint *= 1.0/numPoints;
-
-            for(UInt i=0; i<numPoints; i++)
-            {
-            dist = p[i][0] - midPoint[0] +
-            p[i][1] - midPoint[1] +
-            p[i][2] - midPoint[2];
-            maxDist = maxDist > dist ? maxDist : dist;
-            }
-
-            if(maxDist < 0.001)
-            {
-            std::cerr << "maxDist = " << maxDist <<std::endl;
-            return firstNo;
-            }
-    */
-      
     switch (numPoints) {
-    case 3:
-      ncElem = new NCElem;
-      ncElem->connect.Resize(3);
-	      
-      AddNode(p[0], nodeNo);
-      ncElem->connect[0] = nodeNo;
-      AddNode(p[1], nodeNo);
-      ncElem->connect[1] = nodeNo;
-      AddNode(p[2], nodeNo);
-      ncElem->connect[2] = nodeNo;
-
-      tri.Push_back(ncElem);
-      break;
-    case 4:
-      ncElem = new NCElem;
-      ncElem2 = new NCElem;
-      ncElem->connect.Resize(3);
-      ncElem2->connect.Resize(3);
-	      
-      temp1 = (p[0] - p[2]);
-      temp2 = (p[1] - p[3]);
-      if (temp1.NormL2() < temp2.NormL2())
-      {
-        AddNode(p[0], nodeNo);
-        ncElem->connect[0] = nodeNo;
-        ncElem2->connect[0] = nodeNo;
-        AddNode(p[1], nodeNo);
-        ncElem->connect[1] = nodeNo;
-        AddNode(p[2], nodeNo);
-        ncElem->connect[2] = nodeNo;
-        ncElem2->connect[1] = nodeNo;
-        AddNode(p[3], nodeNo);
-        ncElem2->connect[2] = nodeNo;
-      } else {
-        AddNode(p[0], nodeNo);
-        ncElem->connect[0] = nodeNo;
-        AddNode(p[1], nodeNo);
-        ncElem->connect[1] = nodeNo;
-        ncElem2->connect[0] = nodeNo;
-        AddNode(p[2], nodeNo);
-        ncElem2->connect[1] = nodeNo;
-        AddNode(p[3], nodeNo);
-        ncElem->connect[2] = nodeNo;
-        ncElem2->connect[2] = nodeNo;
-      }
-
-      tri.Push_back(ncElem);
-      tri.Push_back(ncElem2);
-      break;
-    default:
-      UInt i, centerNode, firstNode;
-      Vector<Double> c;
-	      
-      PolyCentroid(p, c);
-      AddNode(c, centerNode);
-      AddNode(p[0], nodeNo);
-      firstNode = nodeNo;
-	      
-      for (i = 1; i < p.GetSize(); ++i)
-      {
+      case 3:
         ncElem = new NCElem;
+        ncElem->ptElem = ptTr1;
         ncElem->connect.Resize(3);
-		  
+
+        AddNode(p[0], nodeNo);
         ncElem->connect[0] = nodeNo;
-        AddNode(p[i], nodeNo);
+        AddNode(p[1], nodeNo);
         ncElem->connect[1] = nodeNo;
-        ncElem->connect[2] = centerNode;
-		  
+        AddNode(p[2], nodeNo);
+        ncElem->connect[2] = nodeNo;
+
         tri.Push_back(ncElem);
-      }
-	      
-      ncElem = new NCElem;
-      ncElem->connect.Resize(3);
+        break;
+      case 4:
+        ncElem = new NCElem;
+        ncElem->ptElem = ptQ1;
+        ncElem->connect.Resize(4);
+        
+        AddNode(p[0], nodeNo);
+        ncElem->connect[0] = nodeNo;
+        AddNode(p[1], nodeNo);
+        ncElem->connect[1] = nodeNo;
+        AddNode(p[2], nodeNo);
+        ncElem->connect[2] = nodeNo;
+        AddNode(p[3], nodeNo);
+        ncElem->connect[3] = nodeNo;
+        
+        tri.Push_back(ncElem);
+        
+        /*ncElem = new NCElem;
+        ncElem2 = new NCElem;
+        ncElem->connect.Resize(3);
+        ncElem2->connect.Resize(3);
 
-      ncElem->connect[0] = nodeNo;
-      ncElem->connect[1] = firstNode;
-      ncElem->connect[2] = centerNode;
+        if ((p[0] - p[2]).NormL2() < (p[1] - p[3]).NormL2())
+        {
+          AddNode(p[0], nodeNo);
+          ncElem->connect[0] = nodeNo;
+          ncElem2->connect[0] = nodeNo;
+          AddNode(p[1], nodeNo);
+          ncElem->connect[1] = nodeNo;
+          AddNode(p[2], nodeNo);
+          ncElem->connect[2] = nodeNo;
+          ncElem2->connect[1] = nodeNo;
+          AddNode(p[3], nodeNo);
+          ncElem2->connect[2] = nodeNo;
+        } else {
+          AddNode(p[0], nodeNo);
+          ncElem->connect[0] = nodeNo;
+          AddNode(p[1], nodeNo);
+          ncElem->connect[1] = nodeNo;
+          ncElem2->connect[0] = nodeNo;
+          AddNode(p[2], nodeNo);
+          ncElem2->connect[1] = nodeNo;
+          AddNode(p[3], nodeNo);
+          ncElem->connect[2] = nodeNo;
+          ncElem2->connect[2] = nodeNo;
+        }
 
-      tri.Push_back(ncElem);
+        tri.Push_back(ncElem);
+        tri.Push_back(ncElem2);*/
+        break;
+      default:
+        UInt i, centerNode, firstNode;
+        Vector<Double> c;
+
+        PolyCentroid(p, c);
+        AddNode(c, centerNode);
+        AddNode(p[0], nodeNo);
+        firstNode = nodeNo;
+
+        for (i = 1; i < p.GetSize(); ++i)
+        {
+          ncElem = new NCElem;
+          ncElem->ptElem = ptTr1;
+          ncElem->connect.Resize(3);
+
+          ncElem->connect[0] = nodeNo;
+          AddNode(p[i], nodeNo);
+          ncElem->connect[1] = nodeNo;
+          ncElem->connect[2] = centerNode;
+
+          tri.Push_back(ncElem);
+        }
+
+        ncElem = new NCElem;
+        ncElem->ptElem = ptTr1;
+        ncElem->connect.Resize(3);
+
+        ncElem->connect[0] = nodeNo;
+        ncElem->connect[1] = firstNode;
+        ncElem->connect[2] = centerNode;
+
+        tri.Push_back(ncElem);
     }
     return firstNo;
   }
@@ -2188,6 +2160,186 @@ namespace CoupledField
       return NULL;
     
   }
+
+
+  void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
+                                                     const NodeList& sourceNodeList,
+                                                     std::string coordSysId,
+                                                     Double globalEpsilon,
+                                                     Double localEpsilon,
+                                                     std::vector< std::map<UInt, Double> >& consInterpWeights)
+  {
+    double xmin, ymin, xmax, ymax, zmin, zmax;
+    UInt i;
+    std::vector<HandleBox> elemBoxes2;
+    Point p;
+    Grid* source = sourceNodeList.GetGrid();
+    UInt dim = GetDim();
+    UInt srcDim = source->GetDim();
+    CoordSystem* coordSys = domain->GetCoordSystem(coordSysId);
+    std::vector< Vector<Double> > nodeCoords;
+    UInt numSourceNodes = sourceNodeList.GetSize(); // number of nodes in source region
+    UInt numActualSourceNodes; // actual number of nodes to be interpolated
+    
+    EntityIterator it = sourceNodeList.GetIterator();
+    StdVector<UInt> sourceNodeNumbers, sourceNodeIndices;
+
+    Vector<Double> point;
+    Vector<Double> globPoint;
+
+    i=0;
+     while(!it.IsEnd())
+    {
+      if(!consInterpWeights.empty())
+      {
+        if(consInterpWeights[i].empty())
+        {
+          // If the source grid is 3D and the destination grid is 2D
+          // we have to map the global source coordinates into the
+          // local source coordinate sys and only use those nodes
+          // with z=0.
+          if( srcDim == 3 && dim == 2)
+          {
+            source->GetNodeCoordinate(point, it.GetNode(), true);
+            coordSys->Global2LocalCoord(globPoint, point);
+
+            if( globPoint[2] == 0.0 )
+            {
+              sourceNodeNumbers.Push_back(it.GetNode());
+              sourceNodeIndices.Push_back(it.GetPos());
+            }
+          }
+          else
+          {
+            sourceNodeNumbers.Push_back(it.GetNode());
+            sourceNodeIndices.Push_back(it.GetPos());
+          }    
+        }
+      }
+      else
+      {
+        if( srcDim == 3 && dim == 2)
+        {
+          source->GetNodeCoordinate(point, it.GetNode(), true);
+          coordSys->Global2LocalCoord(globPoint, point);
+
+          if( globPoint[2] == 0.0 )
+          {
+            sourceNodeNumbers.Push_back(it.GetNode());
+            sourceNodeIndices.Push_back(it.GetPos());
+          }
+        }
+        else
+        {
+          sourceNodeNumbers.Push_back(it.GetNode());
+          sourceNodeIndices.Push_back(it.GetPos());
+        }
+            
+      }
+        
+      it++;
+      i++;
+    }
+
+    numActualSourceNodes = sourceNodeNumbers.GetSize();
+
+    if(numActualSourceNodes == 0)
+      return;
+    
+    if(consInterpWeights.empty())
+      consInterpWeights.resize(numSourceNodes);
+
+    nodeCoords.resize(numSourceNodes);
+
+    for(UInt i=0; i<numSourceNodes; i++) {
+      nodeCoords[i].Resize(0);
+    }
+
+    // If we haven't initialized the grid bounding boxes yet, do so now!
+    elemBoxes_.resize(destElemList.GetSize());
+    const Elem* elem = NULL;
+    
+    for(UInt i = 0, m=destElemList.GetSize(); i < m; i++)
+    {
+      elem = destElemList.GetElem(i);
+      GetNodeCoordinate(p, elem->connect[0]);
+      
+      xmin = xmax = p[0];
+      ymin = ymax = p[1];
+      zmin = zmax = p[2];
+      
+      for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+      {
+        GetNodeCoordinate(p, elem->connect[j]);
+        xmin = p[0] < xmin ? p[0] : xmin;
+        xmax = p[0] > xmax ? p[0] : xmax;
+        ymin = p[1] < ymin ? p[1] : ymin;
+        ymax = p[1] > ymax ? p[1] : ymax;
+        zmin = p[2] < zmin ? p[2] : zmin;
+        zmax = p[2] > zmax ? p[2] : zmax;
+      }
+      
+      elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                                &elem->elemNum);
+      
+      //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
+      
+    }
+
+    for(UInt n=0; n<numActualSourceNodes; n++)
+    {
+      Vector<Double> point;
+      source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
+      coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
+
+      // Hier den origin abziehen!
+      if(dim == 3)
+        elemBoxes2.push_back(HandleBox(BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][1]-globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][2]-globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][0]+globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][1]+globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][2]+globalEpsilon),
+                                       &sourceNodeIndices[n]));
+      else
+        elemBoxes2.push_back(HandleBox(BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][1]-globalEpsilon,
+                                              0.0,
+                                              nodeCoords[sourceNodeIndices[n]][0]+globalEpsilon,
+                                              nodeCoords[sourceNodeIndices[n]][1]+globalEpsilon,
+                                              0.0),
+                                       &sourceNodeIndices[n]));
+    }
+    
+    // run the intersection algorithm and store results in a vector
+    
+    std::cout << "Calculating conservative interpolation weights..." << std::endl;
+    CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
+                              elemBoxes2.begin(), elemBoxes2.end(),
+                              GenConsInterpReportFunctor(destElemList,
+                                                         sourceNodeList,
+                                                         nodeCoords,
+                                                         localEpsilon,
+                                                         consInterpWeights));
+
+    std::map<UInt, double>::const_iterator cIWit, cIWend;
+    for(UInt i=0; i<numActualSourceNodes; i++)
+    {
+      cIWit = consInterpWeights[sourceNodeIndices[i]].begin();
+      cIWend = consInterpWeights[sourceNodeIndices[i]].end();
+      
+      if(!std::distance(cIWit, cIWend))
+      {
+        std::stringstream sstr;
+        sstr << "Node " << sourceNodeNumbers[i] << " from source grid does not get mapped to destination grid!";
+        Warning(sstr.str().c_str(), __FILE__, __LINE__);
+        continue;
+      }
+    }
+    
+
+  }
+
   
 #endif // USE_INTERPOLATION
 

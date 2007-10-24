@@ -65,7 +65,7 @@ namespace CoupledField
     void MapEdges();
 
 
-      virtual void FinishInit();
+    virtual void FinishInit();
     
     //@}
 
@@ -93,12 +93,12 @@ namespace CoupledField
     //! Returns the maximum node number in the finite element grid.
     UInt GetNumNodes();
 
-      virtual void AddNodes(const UInt numNodes);
+    virtual void AddNodes(const UInt numNodes);
       
 
-      virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
+    virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
       
-      virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
+    virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
       
 
     //! Returns the number of nodes contained in given region
@@ -109,17 +109,17 @@ namespace CoupledField
 
 
 
-      virtual void AddElems(UInt nElems);
+    virtual void AddElems(UInt nElems);
       
-      virtual void SetElemData(UInt ielem,
-                               FEType type,
-                               RegionIdType region,
-                               const UInt* connect);
+    virtual void SetElemData(UInt ielem,
+                             FEType type,
+                             RegionIdType region,
+                             const UInt* connect);
 
-      virtual void GetElemData(const UInt ielem,
-                               FEType & type,
-                               RegionIdType & region,
-                               UInt* connect) const;
+    virtual void GetElemData(const UInt ielem,
+                             FEType & type,
+                             RegionIdType & region,
+                             UInt* connect) const;
 
     //! Returns the total number of elements in the grid
     UInt GetNumElems();
@@ -144,22 +144,12 @@ namespace CoupledField
     //! Get a list with names of all named nodes in the grid
     //! \param nodeNames list of names of nodes
     virtual void GetListNodeNames( StdVector<std::string> & nodeNames);
-      virtual void GetListNodeNames( std::vector<std::string> & nodeNames);
 
     //! Get list with names of all named elements
 
     //! Get a list with names of all named elements in the grid
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames);
-      virtual void GetListElemNames( std::vector<std::string> & elemNames);
-
-    virtual void GetElemsByName( std::vector<Elem*> & elems,
-                                 const std::string & elemsName );
-    virtual void GetNodesByName( std::vector<UInt> & nodes,
-                                 const std::string & nodesName );
-      
-      virtual void GetElemNumsByName( std::vector<UInt> & elemsNums,
-                                      const std::string & elemsName );
       
     //@}
 
@@ -217,12 +207,12 @@ namespace CoupledField
     //! \param elemNr element number
     const Elem * GetElem( UInt elemNr );
 
-      virtual const UInt GetMaxNumNodesPerElem()
-      {
-          return maxNumElemNodes_;
-      }
+    virtual const UInt GetMaxNumNodesPerElem()
+    {
+      return maxNumElemNodes_;
+    }
       
-      virtual void SetElemRegion(UInt ielem, RegionIdType region);
+    virtual void SetElemRegion(UInt ielem, RegionIdType region);
 
 
     //! Get list of elements (surface / volumes)
@@ -264,11 +254,9 @@ namespace CoupledField
                        const UInt iElem );
 
 
-      virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
-      virtual void AddNamedNodes( std::string name, std::vector<UInt> & nodeNums);
-
-      virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
-      virtual void AddNamedElems( std::string name, std::vector<UInt> & elemNums);
+    virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
+    
+    virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
 
 
     //! Get coordinates of element nodes
@@ -431,9 +419,7 @@ namespace CoupledField
 
     //! This method return the names of all (surface and volume) regions.
     //! \param regionNames (out) vector containing all region Names
-      virtual void GetRegionNames( StdVector<std::string> & regionNames );
-      virtual void GetRegionNames( std::vector<std::string> 
-                                   & regionNames );
+    virtual void GetRegionNames( StdVector<std::string> & regionNames );
 
     
     //! Set offset for coordinates due to updated Lagrangian formulation
@@ -444,7 +430,7 @@ namespace CoupledField
     bool HasNodalOffset();
     //@}
 
-#ifdef ADAPTGRID
+ #ifdef ADAPTGRID
     // =======================================================================
     // MISCELLANEOUS
     // =======================================================================
@@ -462,65 +448,65 @@ namespace CoupledField
 
     //@}
 
-#endif
+ #endif
 
-      //! NC_SIMON: add node to the grid
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      virtual void AddNode( const Point & coord, UInt & inode);
+    //! NC_SIMON: add node to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    virtual void AddNode( const Point & coord, UInt & inode);
 
-      //! NC_SIMON: add node to the grid
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      virtual void AddNode( const Vector<Double> & coord, UInt & inode );
+    //! NC_SIMON: add node to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    virtual void AddNode( const Vector<Double> & coord, UInt & inode );
     
-      //! NC_SIMON: add multiple nodes to the grid
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      //! \param coords (in) coordinates of points
-      //! \param inode (out) node numbers
-      virtual void AddNodes( const StdVector< Point > & coords,
-                             StdVector< UInt > & inodes);
+    //! NC_SIMON: add multiple nodes to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param coords (in) coordinates of points
+    //! \param inode (out) node numbers
+    virtual void AddNodes( const StdVector< Point > & coords,
+                           StdVector< UInt > & inodes);
 
-      //! NC_SIMON: Add surface elements
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      //! \param regionId (in) elements will be added to region with this id
-      //! \param surfelems (in) surface elements to be added
-      //! \param elemids (out) element id numbers returned
-      virtual void AddSurfaceElems( const RegionIdType regionid,
-                                    const StdVector< SurfElem* > & surfelems,
-                                    StdVector< UInt > & elemids);
+    //! NC_SIMON: Add surface elements
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param regionId (in) elements will be added to region with this id
+    //! \param surfelems (in) surface elements to be added
+    //! \param elemids (out) element id numbers returned
+    virtual void AddSurfaceElems( const RegionIdType regionid,
+                                  const StdVector< SurfElem* > & surfelems,
+                                  StdVector< UInt > & elemids);
 
-      //! NC_SIMON: Add volume elements 
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      //! \param regionId (in) elements will be added to region with this id
-      //! \param volelems (in) volume elements to be added
-      //! \param elemids (out) element id numbers returned
-      virtual void AddVolumeElems(  const RegionIdType regionid,
-                                    const StdVector< Elem* > & volelems,
-                                    StdVector< UInt > & elemids);
+    //! NC_SIMON: Add volume elements 
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param regionId (in) elements will be added to region with this id
+    //! \param volelems (in) volume elements to be added
+    //! \param elemids (out) element id numbers returned
+    virtual void AddVolumeElems(  const RegionIdType regionid,
+                                  const StdVector< Elem* > & volelems,
+                                  StdVector< UInt > & elemids);
 
-      //! NC_SIMON: Add a new Surface region to the grid
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      //! \param name (in) name of the new region
-      //! \param regionid (out) id of the new region
-      virtual void AddSurfaceRegion( const std::string name,
-                                     RegionIdType& regionid);
+    //! NC_SIMON: Add a new Surface region to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param name (in) name of the new region
+    //! \param regionid (out) id of the new region
+    virtual void AddSurfaceRegion( const std::string name,
+                                   RegionIdType& regionid);
 
-      //! NC_SIMON: Add a new volume region to the grid
-      //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-      //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-      //! \param name (in) name of the new region
-      //! \param regionid (out) id of the new region
-      virtual void AddVolumeRegion( const std::string name,
-                                    RegionIdType& regionid);
+    //! NC_SIMON: Add a new volume region to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param name (in) name of the new region
+    //! \param regionid (out) id of the new region
+    virtual void AddVolumeRegion( const std::string name,
+                                  RegionIdType& regionid);
 
-      //! NC_SIMON: Remove all elements from the given region
-      //! \param regionid (in) id of the region
-      virtual void ClearRegion( const RegionIdType regionid );
+    //! NC_SIMON: Remove all elements from the given region
+    //! \param regionid (in) id of the region
+    virtual void ClearRegion( const RegionIdType regionid );
 
   private:
 
@@ -615,7 +601,7 @@ namespace CoupledField
     //! Map containing number elements of each type
     std::map<FEType, UInt> numElemTypes_;
 
-      UInt maxNumElemNodes_;
+    UInt maxNumElemNodes_;
     //@}
   
     //! Map containing face number for each face
@@ -652,7 +638,7 @@ namespace CoupledField
   
  
     
-#ifdef ADAPTGRID
+ #ifdef ADAPTGRID
     
     //@{ \name To We Need This ?
     //! procedure for forming list with neighbors
@@ -675,7 +661,7 @@ namespace CoupledField
     //! only for test
     void SetRefinementFlag();
     //@}
-#endif
+ #endif
 
   };
 

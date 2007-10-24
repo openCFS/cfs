@@ -160,6 +160,9 @@ namespace CoupledField {
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "step", actFreqStep_ );        
+
 
       // Log info for this frequency
       Info->WriteHarmonicStep( ptPDE_->GetName(), actFreqStep_, actFreq_ );

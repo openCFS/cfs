@@ -185,7 +185,8 @@ namespace CoupledField
   void Quad1FE ::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
                                          const Vector<Double> & actCoord,
                                          const Elem* elem,
-                                         UInt dof, AnsatzFct::FctEntityType type )
+                                         UInt dof,
+                                         AnsatzFct::FctEntityType type )
   {
 
 
@@ -313,7 +314,8 @@ namespace CoupledField
   {
 
     Double factor;
-    Double eps1, eps2, eps4, eps5, eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;
+    Double eps1, eps2, eps4, eps5,
+           eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;
     Double length1, length2, length11, length12, length21, length22;
 
 

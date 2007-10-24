@@ -814,12 +814,12 @@ namespace CoupledField {
 
   void SimOutputHDF5::WriteRegions(const H5::Group& meshGroup) {
     H5::Group regionListGroup;
-    std::vector< std::string > regionNames;
-    std::vector< UInt > regionDims;
-    std::vector< std::vector<UInt> > regionElems;
-    std::vector< StdVector<UInt> > regionNodes;
+    StdVector< std::string > regionNames;
+    StdVector< UInt > regionDims;
+    StdVector< std::vector<UInt> > regionElems;
+    StdVector< StdVector<UInt> > regionNodes;
     StdVector<Elem*> elems;
-    std::vector<RegionIdType> surfRegionIds, volRegionIds;
+    StdVector<RegionIdType> surfRegionIds, volRegionIds;
     UInt dim, idx, numRegions;
 
     // create region group
@@ -835,13 +835,13 @@ namespace CoupledField {
     ptGrid_->GetVolRegionIds(volRegionIds);
     ptGrid_->GetSurfRegionIds(surfRegionIds);
     ptGrid_->GetRegionNames(regionNames);
-    regionDims.resize(numRegions);
-    regionElems.resize(numRegions);
-    regionNodes.resize(numRegions);
-    regionDims.resize(numRegions);
+    regionDims.Resize(numRegions);
+    regionElems.Resize(numRegions);
+    regionNodes.Resize(numRegions);
+    regionDims.Resize(numRegions);
 
     // obtain nodes and elements per surface region
-    for(UInt i=0; i<surfRegionIds.size(); i++) {
+    for(UInt i=0; i<surfRegionIds.GetSize(); i++) {
       idx = surfRegionIds[i];
       regionDims[idx] = dim-1;
       
@@ -863,7 +863,7 @@ namespace CoupledField {
     }
 
     // obtain nodes and elements per volume region
-    for(UInt i=0; i<volRegionIds.size(); i++) {
+    for(UInt i=0; i<volRegionIds.GetSize(); i++) {
       idx = volRegionIds[i];
       regionDims[idx] = dim;
 
@@ -922,13 +922,13 @@ namespace CoupledField {
 
   void SimOutputHDF5::WriteNodeGroups(const H5::Group& meshGroup) {
     H5::Group myGroup;
-    std::vector< UInt > nodes;
-    std::vector<std::string> nodeNames;
+    StdVector< UInt > nodes;
+    StdVector<std::string> nodeNames;
     UInt numNodeGroups = 0;
     
     // obtain list with names of nodes
     ptGrid_->GetListNodeNames(nodeNames);
-    numNodeGroups = nodeNames.size();
+    numNodeGroups = nodeNames.GetSize();
     
     for(UInt i = 0; i < numNodeGroups; i++ ) {
       ptGrid_->GetNodesByName(nodes, nodeNames[i]);      
@@ -941,7 +941,7 @@ namespace CoupledField {
       }
       H5IO::WriteAttribute( myGroup, "Dimension", 0 );
       H5IO::Write1DArray( myGroup, "Nodes",
-                          nodes.size(), &nodes[0], dPropList_ );
+                          nodes.GetSize(), &nodes[0], dPropList_ );
       
       // close nodes array of current group
       myGroup.close();
@@ -950,17 +950,17 @@ namespace CoupledField {
 
   void SimOutputHDF5::WriteElemGroups(const H5::Group& meshGroup) {
     H5::Group myGroup;
-    std::vector< UInt > elemNums;
+    StdVector< UInt > elemNums;
     StdVector<Elem*> elems;
-    std::vector<std::string> elemNames;
+    StdVector<std::string> elemNames;
 
     // obtain list with names of elements
     ptGrid_->GetListElemNames(elemNames);
-    UInt numElemGroups = elemNames.size();
+    UInt numElemGroups = elemNames.GetSize();
 
     for(UInt i = 0; i < numElemGroups; i++ ) {
       ptGrid_->GetElemsByName(elems, elemNames[i]);
-      elemNums.resize( elems.GetSize() );
+      elemNums.Resize( elems.GetSize() );
       std::set<UInt> dims;
       for( UInt j = 0; j < elems.GetSize(); j++ ) {
         elemNums[j] = elems[j]->elemNum;
@@ -977,7 +977,7 @@ namespace CoupledField {
       }
       H5IO::WriteAttribute( myGroup, "Dimension", *dims.begin() );
       H5IO::Write1DArray( myGroup, "Elements",
-                          elemNums.size(), &elemNums[0],
+                          elemNums.GetSize(), &elemNums[0],
                           dPropList_);
 
       // To do: in the future, we will also write the nodes
@@ -985,7 +985,6 @@ namespace CoupledField {
       
       // close nodes array of current group
       myGroup.close();
-      
     }
   }
 
@@ -1153,4 +1152,3 @@ namespace CoupledField {
   }
 
 } // end of namespace
-

@@ -94,9 +94,6 @@ namespace CoupledField
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint)
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
 
-    virtual void SetNodeCoordinate(const UInt numNode, const std::vector<Double> & rfPoint)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
-
     //! Return dimension of mesh
 
     //! Returns the geometrical dimension of the mesh. Currently only
@@ -256,9 +253,6 @@ namespace CoupledField
     virtual void AddRegion(const std::string regionName, RegionIdType & rId);
     virtual void AddRegions(const StdVector<std::string> & regionNames,
                             StdVector<RegionIdType> & rIds);
-    virtual void AddRegions(const std::vector<std::string> & regionNames,
-                            std::vector<RegionIdType> & rIds);
-      
 
     virtual UInt GetNumRegions();
     virtual UInt GetNumVolRegions();
@@ -284,11 +278,6 @@ namespace CoupledField
     //! current mesh.
     //! \param surfRegions (out) vector with volume region identifiers
     virtual void GetSurfRegionIds( StdVector<RegionIdType> 
-                                   & surfRegions );
-
-    virtual void GetRegionIds( std::vector<RegionIdType> & regions );
-    virtual void GetVolRegionIds( std::vector<RegionIdType> & volRegions );
-    virtual void GetSurfRegionIds( std::vector<RegionIdType> 
                                    & surfRegions );
 
     //! Returns the number of nodes contained in given region
@@ -402,26 +391,15 @@ namespace CoupledField
 
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums) = 0;
-    virtual void AddNamedNodes( std::string name, std::vector<UInt> & nodeNums) = 0;
 
     //! Get list with names of all named nodes
 
     //! Get a list with names of all named nodes in the grid
     //! \param nodeNames list of names of nodes
     virtual void GetListNodeNames( StdVector<std::string> & nodeNames) = 0;
-    virtual void GetListNodeNames( std::vector<std::string> & nodeNames)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
 
-    virtual void GetElemsByName( std::vector<Elem*> & elems,
-                                 const std::string & elemsName )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
-
-    virtual void GetElemNumsByName( std::vector<UInt> & elemsNums,
+    virtual void GetElemNumsByName( StdVector<UInt> & elemsNums,
                                     const std::string & elemsName )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
-
-    virtual void GetNodesByName( std::vector<UInt> & nodes,
-                                 const std::string & nodesName )
     { Error( "Not implemented", __FILE__, __LINE__ ); }
 
     //! Returns the number of nodes in the given nodelist
@@ -443,15 +421,12 @@ namespace CoupledField
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums) = 0;
-    virtual void AddNamedElems( std::string name, std::vector<UInt> & elemNums) = 0;
 
     //! Get list with names of all named elements
 
     //! Get a list with names of all named elements in the grid
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames) = 0;
-    virtual void GetListElemNames( std::vector<std::string> & elemNames)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
 
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
@@ -493,11 +468,6 @@ namespace CoupledField
     //! RegionId and get the according entry of the vector.
     virtual void GetRegionNames( StdVector<std::string> 
                                  & regionNames ) = 0;
-
-    virtual void GetRegionNames( std::vector<std::string> 
-                                 & regionNames )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
-
 
     // =======================================================================
     // NODE ACCESS FUNCTIONS
@@ -773,6 +743,10 @@ namespace CoupledField
 
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;
+    
+    //! mapping from non-matching grid interface name to a flag if the
+    //! interface is coplanar
+    std::map<RegionIdType, bool> isNcIfaceCoplanar_;
 
     // =======================================================================
     // Non-matching grid interface calculation
@@ -844,6 +818,15 @@ namespace CoupledField
     //! \param tri (out) list of triangles
     UInt TriangulatePoly(const StdVector< Vector<Double> > &p,
 	    StdVector<NCElem*> &tri);
+
+    //! variable for tolerance of absolute values (used in polygonal
+    //! intersection algorithm)
+    double tolAbs_;
+
+    //! variable for tolerance of relative values (used in polygonal
+    //! intersection algorithm)
+    double tolRel_;
+
     //@}
 
   private:
@@ -855,7 +838,7 @@ namespace CoupledField
     //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
     //  typedef CGAL::Bbox_2                              BBox2D;
     typedef CGAL::Bbox_3                              BBox3D;
-    typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,UInt*> HandleBox;
+    typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,const UInt*> HandleBox;
     
     typedef CGAL::Cartesian<double> K;
     typedef K::Point_2 Point2D;
@@ -888,7 +871,7 @@ namespace CoupledField
 
       connect.resize(64);
       
-      //      std::cout << "Elem Number " << elemNum << std::endl;
+      std::cout << "Elem Number " << elemNum << std::endl;
 
       grid.GetElemData(elemNum, type, region, &connect[0]);
       numElemNodes = NUM_ELEM_NODES[type];
@@ -946,13 +929,201 @@ namespace CoupledField
   Report2<Iter, Grid> report2(Iter it, Grid& g) { return Report2<Iter, Grid>(it, g); }
 
 
+
+
+  // callback function object writing results to an output iterator
+  struct ConsInterpReportFunctor {
+    //    const ElemList& destElemList_;
+    //    const NodeList& sourceNodeList_;
+    Grid* sourceGrid_;
+    Grid* destGrid_;
+    const std::vector< Vector<Double> >& nodeCoords_;
+    std::vector< std::map<UInt, Double> >& consInterpWeights_;
+    std::vector<UInt> connect_;
+    UInt nodeCounter_;
+    UInt numSourceNodes_;
+    UInt percentage_;
+    UInt oldPercentage_;
+    Double localEpsilon_;
+    std::map<UInt, UInt> destNodeNumToPosMap_;
+    
+    ConsInterpReportFunctor(const ElemList& destElemList,
+                            const NodeList& sourceNodeList,
+                            const std::vector< Vector<Double> >& nodeCoords,
+                            Double localEpsilon,
+                            std::vector< std::map<UInt, Double> >& consInterpWeights)
+      : //destElemList_(destElemList),
+      //sourceNodeList_(sourceNodeList),
+        nodeCoords_(nodeCoords),
+        localEpsilon_(localEpsilon),
+        consInterpWeights_(consInterpWeights),
+        nodeCounter_(0),
+        percentage_(0),
+        oldPercentage_(9)
+    {
+      numSourceNodes_ = consInterpWeights_.size();
+      connect_.resize(64);
+
+      sourceGrid_ = sourceNodeList.GetGrid();
+      destGrid_ = destElemList.GetGrid();      
+
+      StdVector<UInt> destNodeNumbers;
+      NodeList destNodeList(destGrid_);
+      destNodeList.SetNodesOfRegion(destElemList.GetRegion());
+      EntityIterator it = destNodeList.GetIterator();
+      while(!it.IsEnd())
+      {
+        destNodeNumToPosMap_[it.GetNode()] = it.GetPos();
+        it++;
+      }
+
+      destNodeNumbers = destNodeList.GetNodes();
+    } // store iterator in object
+
+    // We write the id-number of box a to the output iterator assuming
+    // that box b (the query box) is not interesting in the result.
+    void operator()( const HandleBox& a, const HandleBox& b) {
+      UInt destElemNum = *a.handle();
+      UInt sourceNodeIndex = *b.handle();
+      UInt dim = destGrid_->GetDim();
+      UInt localDim;
+      UInt numElemNodes;
+      FEType type;
+      RegionIdType region;
+      Matrix<Double> coordMat;
+      Matrix<Double> globCoordMat;
+      Matrix<Double> localCoords;
+      Vector<Double> point;
+      StdVector<bool> coordsInside;
+      Vector<Double> locCoords;
+      const Elem* elem = NULL;
+
+   #if 0
+      nodeCounter_++;
+
+      if((nodeCounter_ % 10000) == 0)
+        std::cout << "nodeCounter_ " << nodeCounter_ << " pointer " << (&nodeCounter_) << std::endl;
+      
+      return;
+   #endif
+      //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
+
+      destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
+      numElemNodes = NUM_ELEM_NODES[type];
+      coordMat.Resize(dim, numElemNodes);
+      globCoordMat.Resize(dim, 1);
+
+      for(UInt i=0; i<numElemNodes; i++)
+      {
+        destGrid_->GetNodeCoordinate(point, connect_[i], true);
+        // coordMat auffüllen!
+        for(UInt j=0; j<dim; j++)
+        {
+          coordMat[j][i] = point[j];
+
+          //          std::cout << "Corner " << (i+1) << " Coord "
+          //                    << (j+1) << " " << point[j] << std::endl;
+        }
+      }
+
+      //      sourceGrid_->GetNodeCoordinate(point, sourceNodeNum, true);
+
+      for(UInt j=0; j<dim; j++)
+      {
+        globCoordMat[j][0] = nodeCoords_[sourceNodeIndex][j];
+
+        //        std::cout << "Glob Coord " << (j+1)
+        //                  << " Coord " << b.min_coord(j) << " " << globCoordMat[j][0] <<std::endl;
+
+      }
+
+      elem = destGrid_->GetElem(destElemNum);
+      elem->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
+
+      elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
+
+      if(coordsInside[0])
+      {  
+        localDim = localCoords.GetSizeRow();
+        locCoords.Resize(localDim);
+
+        for(UInt j=0; j<localDim; j++)
+        {
+          locCoords[j] = localCoords[j][0];
+        }
+        
+        Vector<double> S;
+
+        elem->ptElem->GetShFnc(S, locCoords, elem );
+
+        //        std::cout << "Local Coord: " << locCoords << std::endl;
+        //        std::cout << "Shape functions: " << S << std::endl;
+
+        for(UInt i=0; i<numElemNodes; i++)
+        {
+          UInt pos = destNodeNumToPosMap_[connect_[i]];
+
+          if(consInterpWeights_[sourceNodeIndex].find(pos) == 
+             consInterpWeights_[sourceNodeIndex].end())
+          {
+            if(S[i] != 0.0)
+            {
+              consInterpWeights_[sourceNodeIndex][pos] = S[i];
+            }
+            //            std::cout << "Node: " << connect_[i] << ": " << S[i] << std::endl;
+          }  
+        }
+
+        nodeCounter_++;
+        
+        percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
+        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
+        {
+          std::cout << percentage_ << "% done... " << std::endl;
+        }
+        oldPercentage_ = percentage_;
+      }
+#if 0
+      else
+      {
+        std::cout << sourceNodeNum << ": Local Coord: " << localCoords[0][0] << " " << localCoords[1][0] << std::endl;
+      }
+#endif
+    }
+  };
+
+    // helper function to create the function object
+    ConsInterpReportFunctor
+    GenConsInterpReportFunctor(const ElemList& destElemList,
+                               const NodeList& sourceNodeList,
+                               const std::vector< Vector<Double> >& nodeCoords,
+                               Double localEpsilon,
+                               std::vector< std::map<UInt, Double> >& consInterpWeights)
+    {
+      return ConsInterpReportFunctor(destElemList,
+                                     sourceNodeList,
+                                     nodeCoords,
+                                     localEpsilon,
+                                     consInterpWeights);
+    }
+
+
+
     void intersection();
 
   public:
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      Vector<double>& localCoords);
-#endif
 
+    void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
+                                                 const NodeList& sourceNodeList,
+                                                 std::string coordSysId,
+                                                 Double globalEpsilon,
+                                                 Double localEpsilon,
+                                                 std::vector< std::map<UInt, Double> >& consInterpWeights);
+
+#endif
+    
     ///
   };
 

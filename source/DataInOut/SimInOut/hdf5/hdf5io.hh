@@ -26,10 +26,10 @@ namespace CoupledField {
     // =======================================================================
     //  TYPE DEFINITIONS
     // =======================================================================
-    typedef std::vector<std::pair<std::string, boost::any> >
+    typedef StdVector<std::pair<std::string, boost::any> >
     CompoundType;
 
-    typedef std::vector<std::pair<std::string, std::vector<boost::any> >  >
+    typedef StdVector<std::pair<std::string, StdVector<boost::any> >  >
     CompoundArrayType;
 
     // =======================================================================
@@ -123,7 +123,7 @@ namespace CoupledField {
     
     //! Retrieve rank and dimensionality of a dataset and return
     //! total number of entries in the dataset
-    static std::vector<UInt> GetArrayDims( const H5::CommonFG &loc,
+    static StdVector<UInt> GetArrayDims( const H5::CommonFG &loc,
                                            const std::string& name );
 
     //! Return number of entries of a dataset / rray
@@ -143,7 +143,7 @@ namespace CoupledField {
     template<typename TYPE>
     static void ReadArray( H5::CommonFG &loc,
                            const std::string& name,
-                           std::vector<TYPE>& data );
+                           StdVector<TYPE>& data );
 
 //     //! Read data from a dataset into a vector
 //     template<typename TYPE>

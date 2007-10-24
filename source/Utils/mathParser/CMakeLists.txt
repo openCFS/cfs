@@ -10,4 +10,9 @@ SET(MATHPARSER_SRCS mathParser.cc muParserBase.cpp muParser.cpp
 
 ADD_LIBRARY(mathparser STATIC ${MATHPARSER_SRCS})
 
+SET(TARGET_LL
+  utils
+)
+
+TARGET_LINK_LIBRARIES(mathparser ${TARGET_LL})
 

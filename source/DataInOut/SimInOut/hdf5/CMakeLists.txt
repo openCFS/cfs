@@ -8,8 +8,8 @@ ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
 TARGET_LINK_LIBRARIES(siminouthdf5 hdf5_cpp hdf5 boost_date_time )
 
-IF(DEBUG)
-  SET(CMAKE_C_FLAGS "-g")
-ELSE(DEBUG)
-  SET(CMAKE_C_FLAGS "")
-ENDIF(DEBUG)
+
+
+ADD_EXECUTABLE(h5tool h5tool.cc)
+
+TARGET_LINK_LIBRARIES(h5tool siminouthdf5 general)

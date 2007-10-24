@@ -12,6 +12,7 @@
 #include "Forms/abcInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nonConformingInt.hh"
+#include "Forms/acouRHSLinForm.hh"
 #include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
@@ -57,6 +58,8 @@ namespace CoupledField {
       isBubbleCoupled_ = false;
       variableSpeedOfSoundCN_ = false;
 
+      justInterpolate_ = false;
+      
       mHandle_ =  domain->GetMathParser()->GetNewHandle();
       //      MathParser * mParser =  domain->GetMathParser();
       //      mParser->SetExpr( mHandle_, "t" );
@@ -920,14 +923,85 @@ namespace CoupledField {
       // Give result LAGRANGE_MULT to equation numbering class
       eqnMap_->AddResult( *results_[1], actSDList );
     }
+
+    // =======================================================================
+    // Integrators for acoustic RHS values (i.e. Lighthill sources)
+    // =======================================================================
+
+    shared_ptr<NodeList> acouRHSRegionNodeList( new NodeList(ptgrid_ ) );
+
+    std::string rhsRegion;
+    std::string rhsFileId;
+    ParamNode* rhsValuesNode;
+    std::string factor = "1.0";
+    bool interpolate = false;
+    std::string srcInputId;
+    std::string srcRegions;
+    std::string coordSysId = "default";
+    std::string restartFileMode = "";
+    Double globalEpsilon = 0.0;
+    Double localEpsilon = 0.0;
+
+    try
+    {
+      rhsValuesNode = myParam_->Get("bcsAndLoads")->Get("rhsValues");
+    } catch (Exception& ex) 
+    {
+      rhsValuesNode = NULL;
+    }
+
+    if(!rhsValuesNode)
+      return;
+      
+    try
+    {
+      rhsRegion = rhsValuesNode->Get("region")->AsString();
+//      rhsFileId = rhsValuesNode->Get("inputId")->AsString();
+      rhsFileId = "default";
+      rhsValuesNode->Get("factor", factor, false);
+      rhsValuesNode->Get("interpolate", interpolate, false);
+      if(interpolate)
+      {
+        srcInputId = rhsValuesNode->Get("srcInputId")->AsString();
+        srcRegions = rhsValuesNode->Get("srcRegions")->AsString();
+        rhsValuesNode->Get("coordSysId", coordSysId, false);
+        rhsValuesNode->Get("globalEpsilon", globalEpsilon, false);
+        rhsValuesNode->Get("localEpsilon", localEpsilon, false);
+        rhsValuesNode->Get("justInterpolate", justInterpolate_, false);
+        rhsValuesNode->Get("restartFileMode", restartFileMode, false);
+      }
+      
+    } catch (Exception& ex) 
+    {
+      RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
+    }
+
+    if(rhsRegion != "")
+    {
+      acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->RegionNameToId(rhsRegion) );
+      
+      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsFileId,
+                                                      rhsRegion,
+                                                      factor,
+                                                      interpolate,
+                                                      srcInputId,
+                                                      srcRegions,
+                                                      coordSysId,
+                                                      globalEpsilon,
+                                                      localEpsilon,
+                                                      restartFileMode);
+
+      LinearFormContext * acouRHSContext = 
+        new LinearFormContext( acouRHSInt );
+      acouRHSContext->SetPtPde( this );
+      acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
+      assemble_->AddLinearForm( acouRHSContext );
+    }
   }
 
   void AcousticPDE::DefineSolveStep() {
-
-    solveStep_ = new SolveStepAcoustic(*this);
+    solveStep_ = new SolveStepAcoustic(*this, justInterpolate_);
   }
-
-
 
   //    // ======================================================
   //    // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
@@ -2558,38 +2632,41 @@ namespace CoupledField {
     domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
 
     if(domainNCIfaceListNode)
-      {
+    {
+      ParamNode* ncInterfaceListNode =
+        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+        ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList", false);
+      StdVector<ParamNode*> pdeNCIfaceNodes;
 
-        StdVector<ParamNode*> pdeNCIfaceNodes = 
-          param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-          ->Get("pdeList")->Get("acoustic")->Get("ncInterfaceList")
-          ->GetList("ncInterface");
+      if(ncInterfaceListNode)
+      {
+        pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
 
         for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
           std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
           std::string domainIfaceName;
-        
+
           ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
-                                                                  "name",
-                                                                  pdeIfaceName,
-                                                                  false);
+              "name",
+              pdeIfaceName,
+              false);
           if(!domainIfaceNode)
-            {
-              LOG_DBG2(acoupde) << "NonMatching: Nonconforming "
-                                << "interface '" << ncIfaceNames[i]
-                                << "' does not exist in domain.";
-            
-              EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
-            }
+          {
+            LOG_DBG2(acoupde) << "NonMatching: Nonconforming "
+            << "interface '" << ncIfaceNames[i]
+                                             << "' does not exist in domain.";
+
+            EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+          }
 
           ncIfaceNamesForPDE.Push_back(pdeIfaceName);
         }
         ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
-    
+
         for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
           ncIFaces_.Push_back(ncIfaceIds[i]);
         }
-    
+
         // In the case of the presence of non-conforming interfaces,
         // a second resultdof object has to be created, which describes the 
         // Lagrange multiplier
@@ -2603,9 +2680,9 @@ namespace CoupledField {
           results_.Push_back( lagr );
         }
       }
-    
+
+    }
   }
-  
   
   void AcousticPDE::ReadFlowData() {
     

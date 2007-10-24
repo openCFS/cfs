@@ -99,6 +99,9 @@ namespace CoupledField {
     //! Add input writer
     void AddInputReader( shared_ptr<SimInput> inClass, const std::string& readerId );
 
+    //! Retrieve input reader with given id
+    shared_ptr<SimInput> GetInputReader( const std::string& readerId );
+    
     //! Return number of multisequence steps for a givne inpute read
     void GetNumMultiSequenceSteps( const std::string& readerId,
                                    std::map<UInt, AnalysisType>& analysis,
@@ -132,7 +135,12 @@ namespace CoupledField {
                     shared_ptr<BaseResult> result,
                     bool isHistory = false );
     
-
+    //! Commoditiy method for aquiring a result from an input reader class
+    shared_ptr<BaseResult> GetResult( const std::string& readerId,
+                                      UInt sequenceStep,
+                                      UInt stepValue, 
+                                      SolutionType solType,
+                                      const std::string& regionName );
 
     /** This dumps the content of the result handler for debugging */
     void Dump(); 

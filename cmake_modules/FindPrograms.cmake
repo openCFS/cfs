@@ -1,17 +1,37 @@
 # Find executables of a few required programs
 
+#-------------------------------------------------------------------------------
 # Find the Subversion executable
+#-------------------------------------------------------------------------------
 FIND_PROGRAM(SVN svn)
 
-# Find the Subversion executable
+#-------------------------------------------------------------------------------
+# Find the Subversion executable and determine version
+#-------------------------------------------------------------------------------
 FIND_PROGRAM(SVNVERSION svnversion)
 
 IF(NOT SVN OR
    NOT SVNVERSION)
-  MESSAGE(SEND_ERROR "Subversion executable (svn) could not be found!")
-  SUGGEST_INSTALL_PCKG()
+ SET(MSG "Subversion executable (svn) could not be found!")
+ FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log
+   ${MSG})
+ MESSAGE(FATAL_ERROR ${MSG})
 ENDIF(NOT SVN OR
       NOT SVNVERSION)
+
+EXEC_PROGRAM("${SVN} --version"
+    ARGS
+    OUTPUT_VARIABLE NACS_SUBVERSION_VER
+    RETURN_VALUE RETVAL)
+STRING(REGEX MATCH "svn, .ersion [0-9]+\\.[0-9]+\\.[0-9]+"
+    NACS_SUBVERSION_VER ${NACS_SUBVERSION_VER})
+STRING(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" NACS_SUBVERSION_VER
+    ${NACS_SUBVERSION_VER})
+# MESSAGE("NACS_SUBVERSION_VER ${NACS_SUBVERSION_VER}")
+
+IF(NOT NACS_SUBVERSION_VER MATCHES "1\\.[4-9]+\\.[0-9]+")
+  MESSAGE(STATUS "You should upgrade subversion to at least 1.4.x!")
+ENDIF(NOT NACS_SUBVERSION_VER MATCHES "1\\.[4-9]+\\.[0-9]+")
 
 FIND_PACKAGE(Doxygen)
 

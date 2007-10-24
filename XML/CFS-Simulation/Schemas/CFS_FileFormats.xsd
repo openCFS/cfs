@@ -49,6 +49,15 @@
     </xsd:choice>
   </xsd:group>
 
+<!--
+
+  <xsd:group name="InputGroup">
+    <xsd:sequence>
+      <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:group>
+-->
+
  <!-- Data type for specification of output file format -->
   <xsd:complexType name="DT_InputList">
     <xsd:sequence>

@@ -142,6 +142,8 @@ namespace CoupledField {
                                          "t", steptime );
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "dt", dt );    
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "step", actTimeStep_ );    
 
       // Determine when to write logging information on terminal
       if ( numstep_ <= 50 )

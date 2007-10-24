@@ -21,6 +21,23 @@ SET(PDE_SRCS basePDE.cc StdPDE.cc SinglePDE.cc elecPDE.cc mechPDE.cc
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
 
+SET(TARGET_LL
+  domain
+  algsys-olas
+  forms
+  driver
+  utils
+  odedescr
+  odesolver
+  paramh
+)
+
 IF(USE_MPCCI)
-  TARGET_LINK_LIBRARIES(pde mpccicpl ${MPCCI_LIBRARIES})
+  SET(TARGET_LL
+    ${TARGET_LL}
+    mpccicpl
+    ${MPCCI_LIBRARIES}
+    )
 ENDIF(USE_MPCCI)
+
+TARGET_LINK_LIBRARIES(pde ${TARGET_LL})

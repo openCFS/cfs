@@ -9,3 +9,10 @@ SET(COUPLED_PDE_SRCS itercoupledpde.cc coupledpdedef.cc pdecoupling.cc
   PiezoCoupling.cc AcouMechCoupling.cc)
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})
+
+SET(TARGET_LL
+  driver
+  forms
+)
+
+TARGET_LINK_LIBRARIES(coupledpde ${TARGET_LL})

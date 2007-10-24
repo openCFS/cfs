@@ -7,3 +7,10 @@ SET(DATAINOUT_SRCS
   postProc.cc)
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
+
+SET(TARGET_LL
+  materials
+  simouttext  
+)
+
+TARGET_LINK_LIBRARIES(datainout ${TARGET_LL})

@@ -9,3 +9,8 @@ SET(MATERIALS_SRCS acousticMaterial.cc baseMaterial.cc
   heatMaterial.cc mechanicMaterial.cc piezoMaterial.cc)
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
+
+TARGET_LINK_LIBRARIES(materials
+  utils
+  domain
+)

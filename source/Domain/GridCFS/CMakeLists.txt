@@ -7,3 +7,9 @@
 SET(GRIDCFS_SRCS grid_cfs.cc)
 
 ADD_LIBRARY(gridcfs STATIC ${GRIDCFS_SRCS})
+
+SET(TARGET_LL
+  domain
+)
+
+TARGET_LINK_LIBRARIES(gridcfs ${TARGET_LL})

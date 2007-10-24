@@ -195,6 +195,7 @@
                 <xsd:element name="load"           type="DT_AcousticLoad"      />
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
+                <xsd:element name="rhsValues"      type="DT_AcousticRHS"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -569,6 +570,20 @@
     <xsd:attribute name="region" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+
+  <xsd:complexType name="DT_AcousticRHS">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
+    <xsd:attribute name="factor" type="xsd:token" use="optional"/>
+    <xsd:attribute name="interpolate" type="DT_CFSBool" use="optional"/>
+    <xsd:attribute name="srcInputId" type="xsd:token" use="optional"/>
+    <xsd:attribute name="srcRegions" type="xsd:token" use="optional"/>
+    <xsd:attribute name="coordSysId" type="xsd:token" use="optional"/>
+    <xsd:attribute name="globalEpsilon" type="xsd:double" use="optional"/>
+    <xsd:attribute name="localEpsilon" type="xsd:double" use="optional"/>
+    <xsd:attribute name="justInterpolate" type="DT_CFSBool" use="optional"/>
+    <xsd:attribute name="restartFileMode" type="xsd:token" use="optional"/>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for damping model -->

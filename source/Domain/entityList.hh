@@ -50,7 +50,9 @@ namespace CoupledField {
     //! which can be either the name of the Region, the elements or the
     //! nodes contained.
     virtual std::string GetName() const = 0;
-    
+
+    //! Return pointer to grid.
+    Grid* GetGrid() const { return grid_; }
     
     //! Return size of list
     UInt GetSize() const { return size_; }
