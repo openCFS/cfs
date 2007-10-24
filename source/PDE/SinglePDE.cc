@@ -1302,6 +1302,90 @@ namespace CoupledField {
     }
     
     // =====================================================================
+    // Periodic boundary conditions
+    // =====================================================================
+
+    // fetch paramnodes for constraint
+    StdVector<ParamNode*> prNodes = bcsNode->GetList("periodic");
+    std::string masterName, slaveName;
+
+    // iterate over all parameter nodes
+    for( UInt i = 0; i < prNodes.GetSize(); i++ ) {
+      try {
+        prNodes[i]->Get( "master", masterName );
+        prNodes[i]->Get( "slave", slaveName );
+        prNodes[i]->Get( "dof", dof );
+        prNodes[i]->Get( "quantity", resultName );
+
+        // fetch related resultInfo object
+        String2Enum( resultName, solType );
+        actResultInfo = GetResultInfo( solType );
+
+        // get entitylists
+        NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
+        masterList.SetNamedNodes( masterName );
+        slaveList.SetNamedNodes( slaveName );
+
+        // ensure, that both lists have the same length
+        if( masterList.GetSize() != slaveList.GetSize() ) {
+          EXCEPTION( "Node lists '" << masterName << "' and '"
+                     << slaveName << "' have different size" );
+        }
+
+        // iterate over all master nodes and try to find "nearest"
+        // node in slave list
+        Vector<Double> mLoc, sLoc, diff;
+        Double minDist, dist;
+        StdVector<UInt> nodes(2);
+        EntityIterator masterIt = masterList.GetIterator();
+        for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
+
+          minDist = 1e42;
+
+          // obtain nodal coordinate
+          ptgrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
+          nodes.Init();
+          nodes[0] = masterIt.GetNode();
+
+          // iterate over all slave nodes and find the one with minimum
+          // distance
+          EntityIterator slaveIt = slaveList.GetIterator();
+          for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
+            ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
+            diff = mLoc - sLoc;
+            dist = diff.NormL2();
+            if( dist < minDist) {
+              minDist = dist;
+              nodes[1] = slaveIt.GetNode();
+            }
+          }
+          shared_ptr<NodeList> nodePair(new NodeList( ptgrid_ ) );
+          std::cerr << "nodePair is " << nodes.Serialize() << std::endl;
+          nodePair->SetNodes( nodes );
+
+          // create new constraint condition
+          shared_ptr<Constraint> actBc ( new Constraint );
+          actBc->masterEntities = nodePair;
+          actBc->slaveEntities = nodePair;
+          if( dof == "" ) {
+            actBc->masterDof = 1;
+          } else {
+            actBc->masterDof = actResultInfo->GetDofIndex( dof );
+          }
+          actBc->slaveDof = actBc->masterDof;
+          actBc->result = actResultInfo;
+          actBc->eqnMap = eqnMap_;
+
+          // add definition
+          constraints_.Push_back( actBc );
+        }
+      } catch (Exception & ex ) {
+        RETHROW_EXCEPTION( ex, "Can not create periodic boundary on '"
+                           << name << "'" );
+      }
+    }
+    
+    // =====================================================================
     // Load definitions
     // =====================================================================
     
