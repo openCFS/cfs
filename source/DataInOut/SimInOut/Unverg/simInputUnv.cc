@@ -1,3 +1,6 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <algorithm>
 #include <fstream>
@@ -230,9 +233,8 @@ namespace CoupledField {
       partitions.insert(elemColor);
     }
 
-    std::vector<std::string> regionNames;
-    std::vector<UInt> regionDims;
-    std::vector<RegionIdType> regionIds;
+    StdVector<std::string> regionNames;
+    StdVector<RegionIdType> regionIds;
     std::set<UInt>::iterator pit, pend;
 
     pit = partitions.begin();
@@ -243,8 +245,7 @@ namespace CoupledField {
       strBuffer.str("");
       strBuffer.clear();
       strBuffer << "Partition" << (*pit);
-      regionNames.push_back(strBuffer.str());
-      regionDims.push_back(3);
+      regionNames.Push_back(strBuffer.str());
     }
     mi_->AddRegions(regionNames, regionIds);
 

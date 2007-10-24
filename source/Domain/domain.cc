@@ -22,6 +22,8 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
 #include "Utils/polCoordSys.hh"
+#include "Utils/cartesianCoordSys.hh"
+#include "Utils/trivialCartesianCoordSys.hh"
 #include "Utils/defaultCoordSys.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "DataInOut/resultHandler.hh"
@@ -109,38 +111,47 @@ namespace CoupledField {
 
     // iterate over all grid ids
     for( gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); gridIt++ ) {
-      
+
+      std::string gridId = gridIt->first;
+      StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
+
+      // iterate over all inputs for the current grid and init reader
+      for( UInt iFile = 0; iFile < inputs.GetSize(); iFile++ ) {
+        shared_ptr<SimInput> actInFile = inputs[iFile];
+        actInFile->InitModule();
+      }
+
       // create new grid
       Grid * actGrid = NULL;
       if (libmesh =="cfsGrid") {
-        actGrid = new GridCFS( dim_);
+        if(gridId == "default")
+          actGrid = new GridCFS(dim_);
+        else
+        {
+          actGrid = new GridCFS(inputs[0]->GetDim());
+        }
       } else {
         EXCEPTION( "Type of mesh_library should be one of "
                    << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
       }
       
-      // iterate over all inputs for the current grid
-      StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
-      
-      for( UInt iFile = 0; iFile < inputs.GetSize(); iFile++ ) {
-        
-        shared_ptr<SimInput> actInFile = inputs[iFile];
-        
-        actInFile->InitModule();
-        actInFile->ReadMesh(actGrid);
-      }
-
       // add grid to internal map
-      gridMap_[gridIt->first] = actGrid;
-      
+      gridMap_[gridId] = actGrid;
+
       // Read in coordinate systems
       // This has to be done, before the grid gets finalized,
       // as some methods in the grid rely on the existence of coordinate
       // systems
-      CreateCoordinateSystems();
+      if(gridId == "default")
+        CreateCoordinateSystems();
       
-      actGrid->FinishInit();
+      // iterate over all inputs for the current grid and read mesh
+      for( UInt iFile = 0; iFile < inputs.GetSize(); iFile++ ) {
+        shared_ptr<SimInput> actInFile = inputs[iFile];
+        actInFile->ReadMesh(actGrid);
+      }
 
+      actGrid->FinishInit();
     }
       
     SETPROFILE("After Grid Creation");
@@ -148,7 +159,7 @@ namespace CoupledField {
     Info->FinishProgress();
 
     Info->StartProgress("Initializing non-matching interfaces");
-
+    
     // Call the nonmatching grid intersection calculation
     gridMap_["default"]->InitNonmatchingInterfaces();
 
@@ -162,43 +173,6 @@ namespace CoupledField {
       resultHandler_->Init( gridMap_["default"], false );
     }   
 
-    // TEMPORARY
-    // @Simon: Im folgenden Block werden einige Dinge am 
-    // SimInput abgefragt und danach der zweite Ergebnistyp
-    // des ersten schritts im ersten multistep abgefragt.
-    // Zum Aschluss wird dieses Ergebnis "hardcodiert" wieder zum
-    // ResultHandler gegeben, der das wieder im ersten Schritt in das
-    // neue Format schreibt, d.h. es wird letztendlich eine Konvertierung
-    // des Ergebnisses vorgenommen.
-    /* 
-       StdVector<AnalysisType> types;
-       (gridInputs_.begin()->second)[0]->GetNumMultiSequenceSteps( types );
-       std::cerr << "types are " << types.Serialize() << std::endl;
-    
-       StdVector<Double> stepVals;
-       (gridInputs_.begin()->second)[0]->GetStepValues( 1, stepVals );
-    
-       StdVector<shared_ptr<ResultInfo> >infos;
-       (gridInputs_.begin()->second)[0]->GetResultTypes( 1, infos );
-    
-       StdVector<shared_ptr<EntityList> > lists;
-       (gridInputs_.begin()->second)[0]->GetResultEntities( 1, infos[0], lists ); 
-
-       // generate new result object
-       shared_ptr<Result<Double> > result( new Result<Double>() );
-       result->SetEntityList( lists[0] );
-       result->SetResultInfo( infos[1] );
-       (gridInputs_.begin()->second)[0]->GetResult( 1, 1, result ); 
-    
-       // add result "hardcoded" to resultHandler, so that it gets
-       // written out again
-       StdVector<std::string> outDest;
-       outDest = "default";
-       resultHandler_->RegisterResult( result, 1, 1, 1, outDest );
-       resultHandler_->BeginStep( 1, 1e-4 );
-       resultHandler_->UpdateResult( result );
-       resultHandler_->FinishStep();
-    */
   }
 
   void Domain::PostInit() 
@@ -806,6 +780,14 @@ namespace CoupledField {
       else if ( type == "cylindric" ) {
         actCoord = new CylCoordSystem( name, gridMap_["default"], 
                                        coordNodes[i] );
+      }
+      else if ( type == "cartesian" ) {
+        actCoord = new CartesianCoordSystem( name, gridMap_["default"], 
+                                             coordNodes[i] );
+      }
+      else if ( type == "trivialCartesian" ) {
+        actCoord = new TrivialCartesianCoordSystem( name, gridMap_["default"], 
+                                                    coordNodes[i] );
       } else {
         EXCEPTION( "Coordinate system with type '" << type 
                    << "' not known!" );

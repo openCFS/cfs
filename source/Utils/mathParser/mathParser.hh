@@ -12,9 +12,9 @@
 #include "Utils/vector.hh"
 #include "General/environment.hh"
 
-template <class TYPE> class Vector;
-
 namespace CoupledField {
+
+  template <class TYPE> class Vector;
 
   //! Forward class declarations
   class CoordSystem;

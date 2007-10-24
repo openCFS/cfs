@@ -12,3 +12,13 @@ SET(DRIVER_SRCS solveStepAcoustic.cc stdSolveStep.cc baseSolveStep.cc
   solveStepODE.cc solveStepMpCCI.cc solveStepMagHyst.cc)
 
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})
+
+SET(TARGET_LL
+  paramident
+  utils-olas
+  algsys-olas
+  graph-olas
+  utils
+)
+
+TARGET_LINK_LIBRARIES(driver ${TARGET_LL})

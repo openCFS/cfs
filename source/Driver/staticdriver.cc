@@ -49,6 +49,14 @@ namespace CoupledField {
     lastOptimizationIteration_ = optimizationIteration;
     ResultHandler * resHandler = domain->GetResultHandler();
 
+    // Set curent value of timestep and time step size in the mathParser
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t", 0.0 );
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "dt", 0.0 );    
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "step", 0 );        
+
     // notify resultHandler about beginning of new sequence step 
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, 1 );
     
@@ -73,7 +81,6 @@ namespace CoupledField {
     // actually the parameters seem to be not used :(
     ptPDE_->WriteResultsInFile(loi , loi-1 );
     resHandler->FinishStep();
-
     ptPDE_->Finalize();
     
     // notify resultHandler about finishing of current sequence step

@@ -71,6 +71,8 @@
     <xsd:attribute name="slaveSide" type="xsd:token" use="required"/>
     <xsd:attribute name="lagrangeMultType" type="xsd:token" use="optional"/>
     <xsd:attribute name="isecCalculation" type="xsd:token" use="optional"/>
+    <xsd:attribute name="tolAbs" type="xsd:token" use="optional"/>
+    <xsd:attribute name="tolRel" type="xsd:token" use="optional"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -236,6 +238,57 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for cartesian coordinate system -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="cartesian" type="DT_CoordSysCartesian"
+    substitutionGroup="CoordSysBasic"/>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for cartesian coordinate system -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_CoordSysCartesian">
+    <xsd:complexContent>
+      <xsd:extension base="DT_CoordSysBasic">
+        <xsd:sequence>
+          <xsd:element name="origin" type="DT_PointType"/>
+          <xsd:element name="xAxis" type="DT_PointType"/>
+          <xsd:element name="yAxis" type="DT_PointType"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for cartesian coordinate system -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="trivialCartesian" type="DT_CoordSysTrivialCartesian"
+    substitutionGroup="CoordSysBasic"/>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for cartesian coordinate system -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_CoordSysTrivialCartesian">
+    <xsd:complexContent>
+      <xsd:extension base="DT_CoordSysBasic">
+        <xsd:sequence>
+          <xsd:element name="origin" type="DT_PointType"/>
+          <xsd:element name="axisMap">
+	    <xsd:complexType>
+              <xsd:attribute name="x" type="xsd:token" use="required"/>
+              <xsd:attribute name="y" type="xsd:token" use="required"/>
+              <xsd:attribute name="z" type="xsd:token" use="required"/>
+	    </xsd:complexType>
+	  </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Data type for domain section -->

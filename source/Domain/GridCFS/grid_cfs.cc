@@ -985,44 +985,12 @@ namespace CoupledField {
     namedNodes_.Push_back(nodeNums);
   }
 
-  void GridCFS::AddNamedNodes( std::string name, std::vector<UInt> & nodeNums)
-  {
-    UInt numNodes = nodeNums.size();
-    StdVector<UInt> nn;
-
-    namedNodeNames_.Push_back(name);
-    nn.Resize(numNodes);
-    for(UInt i=0; i<numNodes; i++)
-    {
-      nn[i] = nodeNums[i];
-    }
-        
-    namedNodes_.Push_back(nn);
-  }
-    
-
   void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
   {
     namedElemNames_.Push_back(name);
     namedElems_.Push_back(elemNums);
   }
 
-  void GridCFS::AddNamedElems( std::string name, std::vector<UInt> & elemNums)
-  {
-    UInt numElems = elemNums.size();
-    StdVector<UInt> en;
-
-    namedElemNames_.Push_back(name);
-    en.Resize(numElems);
-    for(UInt i=0; i<numElems; i++)
-    {
-      en[i] = elemNums[i];
-    }
-        
-    namedElems_.Push_back(en);
-  }
-    
-  
   void GridCFS::GetListNodeNames( StdVector<std::string> & nodeNames) {
     nodeNames = namedNodeNames_;
   }
@@ -1031,29 +999,6 @@ namespace CoupledField {
   void GridCFS::GetListElemNames( StdVector<std::string> & elemNames) {
     elemNames = namedElemNames_;
   }
-  
-  void GridCFS::GetListNodeNames( std::vector<std::string> & nodeNames)
-  {
-    UInt numNamedNodes = namedNodeNames_.GetSize();
-    nodeNames.resize(numNamedNodes);
-        
-    for(UInt i=0; i<numNamedNodes; i++)
-    {
-      nodeNames[i] = namedNodeNames_[i];
-    }
-  }
-    
-  void GridCFS::GetListElemNames( std::vector<std::string> & elemNames)
-  {
-    UInt numNamedElems = namedElemNames_.GetSize();
-    elemNames.resize(numNamedElems);
-        
-    for(UInt i=0; i<numNamedElems; i++)
-    {
-      elemNames[i] = namedElemNames_[i];
-    }
-  }
-
   
   // ======================================================
   // NODE ACCESS FUNCTIONS
@@ -1072,24 +1017,6 @@ namespace CoupledField {
     
   }
 
-  void GridCFS::GetNodesByName( std::vector<UInt> & nodeList,
-                                const std::string & name ) {
-
-    Integer index = namedNodeNames_.Find(name);
-    if ( index != -1 ) {
-      UInt numNodes = namedNodes_[index].GetSize();
-      nodeList.resize(numNodes);
-        
-      for(UInt i=0; i<numNodes; i++)
-        nodeList[i] = namedNodes_[index][i];
-    } else {
-      EXCEPTION( "GridCFS: There are no nodes with name '" << name
-                 << "' in the grid!" );
-    }
-    
-  }
-  
-  
   void GridCFS::GetNodesByRegion( StdVector<UInt> & nodeList,
                                   const RegionIdType regionId ) {
 
@@ -1101,7 +1028,7 @@ namespace CoupledField {
       nodeList.Resize(volElemNodes_[index].size());
       std::copy(volElemNodes_[index].begin(),
                 volElemNodes_[index].end(),
-                &nodeList[0]);
+                nodeList.Begin());
     } else {
       
       // look in surface regions
@@ -1110,7 +1037,7 @@ namespace CoupledField {
         nodeList.Resize(surfElemNodes_[index].size());
         std::copy(surfElemNodes_[index].begin(),
                   surfElemNodes_[index].end(),
-                  &nodeList[0]);
+                  nodeList.Begin());
       } else {
         EXCEPTION( "GridCFS: The region with id '" << regionId
                    << "' was not found in the grid!" );
@@ -1435,46 +1362,6 @@ namespace CoupledField {
     
   }
 
-  void GridCFS::GetElemsByName( std::vector<Elem*> & elems,
-                                const std::string & elemsName ) {
-
-    Integer index = namedElemNames_.Find(elemsName);
-    
-
-    if ( index != -1 ) {
-      UInt numElems = namedElems_[index].GetSize();
-      elems.resize(numElems);
-        
-      for(UInt i=0; i<numElems; i++)
-        elems[i] = orderedElems_[namedElems_[index][i]-1];
-    } else {
-      EXCEPTION( "GridCFS: There are no named elements with name '" 
-                 << elemsName << "' in the grid!" );
-    }
-    
-  }
-
-
-  void GridCFS::GetElemNumsByName( std::vector<UInt> & elemNums,
-                                   const std::string & elemsName )
-  {
-
-    Integer index = namedElemNames_.Find(elemsName);
-    
-
-    if ( index != -1 ) {
-      UInt numElems = namedElems_[index].GetSize();
-      elemNums.resize(numElems);
-        
-      for(UInt i=0; i<numElems; i++)
-        elemNums[i] = namedElems_[index][i];
-    } else {
-      EXCEPTION( "GridCFS: There are no named elements with name '" 
-                 << elemsName << "' in the grid!" );
-    }
-    
-  }
-  
   void GridCFS::GetElemNodes( StdVector<UInt> & connect, 
                               const UInt iElem ) {
     
@@ -1624,22 +1511,6 @@ namespace CoupledField {
     regionNames = regionNames_;
         
   }
-
-  void GridCFS::GetRegionNames( std::vector<std::string> 
-                                & regionNames )
-  {
-    UInt numRegions = regionNames_.GetSize();
-
-    regionNames.resize(numRegions);
-        
-
-    for(UInt i=0; i< numRegions; i++)
-    {
-      regionNames[i] = regionNames_[i];
-    }
-  }
-    
-
 
   
   void GridCFS::SetNodeOffset( const StdVector<UInt>& nodes, 

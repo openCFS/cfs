@@ -721,6 +721,16 @@ namespace CoupledField {
 
   }
 
+  shared_ptr<SimInput> ResultHandler::GetInputReader( const std::string& readerId ) {
+    
+    // check, if input read with specified id is present
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId << "' does not exist")
+    }
+    return inFiles_[readerId];
+  }
+
+
 
   void ResultHandler::
   GetNumMultiSequenceSteps( const std::string& readerId,
@@ -738,7 +748,6 @@ namespace CoupledField {
                                                   isHistory );
   }
 
-  
   void ResultHandler::
   GetResultTypes( const std::string& readerId,
                     UInt sequenceStep,
@@ -803,7 +812,68 @@ namespace CoupledField {
     inFiles_[readerId]->GetResult( sequenceStep, stepValue, 
                                    result, isHistory );
   }
-  
-
-  
+ 
+  shared_ptr<BaseResult> ResultHandler::
+  GetResult( const std::string& readerId,
+             UInt sequenceStep,
+             UInt stepValue,
+             SolutionType solType,
+             const std::string& regionName ) {
+    
+    // aquire input reader
+    shared_ptr<SimInput> actInput = GetInputReader( readerId );
+    
+    // get all defined result types
+    StdVector<shared_ptr<ResultInfo> > infos;
+    GetResultTypes( readerId, sequenceStep, infos );
+    
+    // find correct one; if multiple are present -> Exception
+    bool found = false;
+    shared_ptr<ResultInfo> actInfo;
+    for( UInt i = 0; i < infos.GetSize(); i++ ) {
+      if( infos[i]->resultType == solType ) {
+        // check, if result was already found
+        if(found) { 
+          std::string resultName;
+          Enum2String( solType, resultName);
+          EXCEPTION( "A result of type '" << resultName << "' was already "
+                      << "found in input reader '" << readerId
+                      << "' in sequence Step " << sequenceStep );
+        }
+        actInfo = infos[i];
+      }
+    }
+    
+    // check if any result at all was found
+    if( !actInfo ) {
+     EXCEPTION( "Result was not found in input reader '"
+                 << readerId << "'" );
+    }
+    
+    // get all regions for given resulinfo object
+    StdVector<shared_ptr<EntityList> > entList;
+    GetResultEntities( readerId, sequenceStep, actInfo, entList);
+    
+    // find correct one; if none is found -> Exception
+    shared_ptr<EntityList> actList;
+    for( UInt i = 0; i < entList.GetSize(); i++ ) {
+      if( entList[i]->GetName() == regionName )
+        actList = entList[i];
+    }
+    
+    // check if any region at all was  found
+    if( !actList) {
+      EXCEPTION( "No entitylist found for result '"
+                << solType << "' on region '" << regionName << "'" ); 
+      }
+      
+    // create new result object, fill it and return it
+    shared_ptr<BaseResult> result = 
+          shared_ptr<BaseResult>(new Result<Double>() );
+    result->SetResultInfo( actInfo );
+    result->SetEntityList( actList );
+    GetResult( readerId, sequenceStep, stepValue, result);
+    
+    return result;
+  }
 }

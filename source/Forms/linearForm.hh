@@ -351,6 +351,16 @@ namespace CoupledField
                              const StdVector<UInt> & connecth,
                              const Matrix<Double> & FlowData, 
                              Vector<Double> & Result);
+
+    /// Calculation of vector of right hand side using nodal dTijdxj values
+    void CalcElemVec4Quad(const Matrix<Double>& ptCoord,
+                          const  Matrix<Double> & NodaldTijdxj,
+                          Vector<Double> & Result);
+
+    /// Calculation of vector of right hand side using nodal velocity values
+    void CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalVel,
+                                 Vector<Double> & Result, const Elem* elem);
+
     
     /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
     void GetQttiesOfElement(Matrix<Double>& elVec, 
@@ -358,6 +368,41 @@ namespace CoupledField
                             const StdVector<UInt>& connecth, 
                             UInt matrixRow);
     
+  /// Calculation of vector of right hand side using nodal pressure values
+  void CalcElemVec4QuadwithPress(const Matrix<Double>& ptCoord, const Matrix<Double> & NodalPress,
+                                 Vector<Double> & Result, const Elem* elem);
+
+
+  //================= Combustion Noise ========================================================
+
+  void CalcElemVec4CombustionTij(const Matrix<Double>& ptCoord,
+				 const Matrix<Double>& NodalVel,
+				 const Vector<Double>& NodalRho,
+				 Vector<Double>& Result, const Elem* elem);
+
+  void CalcElemVec4CombustionVec(const Matrix<Double>& ptCoord,
+				 const Matrix<Double>& NodalVec,
+				 Vector<Double>& Result, const Elem* elem);
+
+  void CalcElemVec4CombustionScalar(const Matrix<Double>& ptCoord,
+				    const Vector<Double>& NodalScalar,
+				    Vector<Double>& Result, const Elem* elem);
+
+  void CalcElemVec4CombustionTijOnSurface(const Matrix<Double>& ptCoord,
+					  const Matrix<Double>& NodalVel,
+					  const Vector<Double>& NodalRho,
+					  Vector<Double>& Result, const Elem* elem);
+
+  void CalcElemVec4CombustionVectorOnSurface(const Matrix<Double>& ptCoord,
+					     const Matrix<Double>& NodalVel,
+					     Vector<Double>& Result, const Elem* elem);
+
+  void ComputeDerivOfTij( const Double RhoAtIP, const Vector<Double>& RhoDerAtIP,
+			  const Vector<Double>& VelAtIP, const Matrix<Double>& VelDerAtIP,
+			  const Integer dim, Vector<Double>& helpVec);
+
+  void ComputeNormalVec( const Matrix<Double>& ptCoord, Vector<Double>& nVec);
+
   private:
 
   };

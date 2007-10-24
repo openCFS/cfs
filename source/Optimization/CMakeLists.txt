@@ -24,4 +24,10 @@ ENDIF(USE_SCPIP)
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 
+SET(TARGET_LL
+  ${TARGET_LL}
+  domain
+  forms
+)
+
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})

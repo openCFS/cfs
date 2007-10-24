@@ -85,8 +85,8 @@ namespace CoupledField
     //! This method takes a pointer to an element, replaces it with 
     //! the degenerated element if necessary and writes this element
     //! to the mesh file.
-    void WriteElement( Elem* ptEl );
-    
+    void WriteElement( Elem* ptEl, UInt numNodes);
+
     //! Map with result objects for each result type
     ResultMapType resultMap_;
 
@@ -101,9 +101,6 @@ namespace CoupledField
 
     //! Flag for binary file format
     bool isAscii_;
-
-    //! Flag for use of degenerated elements
-    bool degen3DElems_;
 
     //! Check if class is initialized
     bool isInitialized_;

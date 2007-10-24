@@ -11,3 +11,10 @@ ADD_DEFINITIONS()
 
 ADD_LIBRARY(algsys-olas STATIC ${ALGSYS_SRCS})
 
+SET(TARGET_LL
+  matvec-olas
+  solver-olas
+  precond-olas
+)
+
+TARGET_LINK_LIBRARIES(algsys-olas ${TARGET_LL})

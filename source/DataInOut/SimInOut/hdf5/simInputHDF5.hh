@@ -189,19 +189,31 @@ namespace CoupledField {
     std::string baseDir_;
 
     //! List of regions to be read in from the file
-    std::vector< std::string > readRegions_;
+    StdVector< std::string > readRegions_;
 
     //! List with names of regions
-    std::vector< std::string > regionNames_;
+    StdVector< std::string > regionNames_;
 
     //! Map with number of dimensions for each region
     std::map<std::string, UInt> regionDims_;
 
     //! List with names of node groups
-    std::vector< std::string > nodeNames_;
+    StdVector< std::string > nodeNames_;
 
     //! List with names of element groups
-    std::vector< std::string > elemNames_;
+    StdVector< std::string > elemNames_;
+
+    // Number of nodes in mesh file
+    UInt numNodes_;
+    
+    // Node coordinates
+    StdVector<Double> nodeCoords_;
+    
+    // Map from mesh file node numbers to grid node numbers
+    std::map<UInt, UInt> nodeNumMap_;
+
+    // Map from mesh file elem numbers to grid elem numbers
+    std::map<UInt, UInt> elemNumMap_;
   };
 
 } // end of namespace

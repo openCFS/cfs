@@ -64,9 +64,9 @@ namespace CoupledField {
       end = t.end();
       
       for( ; it != end; it++)
-        readRegions_.push_back(*it);
+        readRegions_.Push_back(*it);
     } else {
-      readRegions_.push_back("all");
+      readRegions_.Push_back("all");
     }
 
     // Do not print HDF5 exceptions by default
@@ -146,10 +146,10 @@ namespace CoupledField {
     }
     
     // Check if all readRegions_ can be found in file.
-     for(UInt i=0; i<readRegions_.size(); i++) {
-       if(std::find(regionNames_.begin(),
-                    regionNames_.end(),
-                    readRegions_[i]) == regionNames_.end())
+     for(UInt i=0; i<readRegions_.GetSize(); i++) {
+       if(std::find(regionNames_.Begin(),
+                    regionNames_.End(),
+                    readRegions_[i]) == regionNames_.End())
          EXCEPTION("Region " << readRegions_[i] << " specified for"
                    " reading does not exist." );
      }
@@ -159,29 +159,15 @@ namespace CoupledField {
      // ========================
 
      // get the number of nodes
-     UInt numNodes;
      try{ 
        nodeGroup = mGroup.openGroup( "Nodes") ;
      } H5_CATCH( "Could not open Elements / Nodes group" );
 
-     H5IO::ReadAttribute( nodeGroup, "NumNodes", numNodes );
+     //     H5IO::ReadAttribute( nodeGroup, "NumNodes", numNodes_ );
 
      // read node coordinates
-     std::vector<Double> nodeCoords;
-     H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords );
+     H5IO::ReadArray( nodeGroup, "Coordinates", nodeCoords_ );
 
-     // add nodes to grid
-     mi_->AddNodes( numNodes );
-
-     UInt pos = 0;
-     for( UInt i = 0; i < numNodes; i++ ) {
-       Vector<Double> p(3);
-       p[0] = nodeCoords[pos++];
-       p[1] = nodeCoords[pos++];
-       p[2] = nodeCoords[pos++];
-       mi_->SetNodeCoordinate( i+1, p );
-     }
-     
      // read region, element and named entity informaion
      ReadRegions(mGroup);
      ReadNodeGroups(mGroup);
@@ -335,19 +321,19 @@ namespace CoupledField {
                  << info->resultName << "'" );
     
     // read stepValues and stepNumbers
-    std::vector<Double> values;
-    std::vector<UInt> numbers;
+    StdVector<Double> values;
+    StdVector<UInt> numbers;
     H5IO::ReadArray( resGroup, "StepNumbers", numbers );
     H5IO::ReadArray( resGroup, "StepValues", values );
     
     // sanity check: both vectors need to have the same dimension
-    if( values.size() != numbers.size() ) {
+    if( values.GetSize() != numbers.GetSize() ) {
       EXCEPTION( "There are not as many stepnumbers as stepvalues" );
     }
     
     // copy to steps-array
     steps.clear();
-    for( UInt i = 0; i < numbers.size(); i++ ) {
+    for( UInt i = 0, n=numbers.GetSize(); i < n; i++ ) {
       steps[numbers[i]] = values[i];
     }
 
@@ -386,7 +372,7 @@ namespace CoupledField {
       // Read resultinfo data
       UInt definedOn, numDOFs, entryType;
       std::string unit;
-      std::vector<std::string> dofNames;
+      StdVector<std::string> dofNames;
 
       H5IO::ReadArray( actResInfoGroup, "DefinedOn", &definedOn );
       H5IO::ReadArray( actResInfoGroup, "NumDOFs", &numDOFs );
@@ -438,7 +424,7 @@ namespace CoupledField {
                 << resultName );
     
     // get regions
-    std::vector<std::string> regions;
+    StdVector<std::string> regions;
     H5IO::ReadArray( resInfoGroup, "EntityNames", regions );
 
     // determine type of list for this result
@@ -475,7 +461,7 @@ namespace CoupledField {
 
     // iterate over all regions
     list.Clear();
-    for( UInt i = 0; i < regions.size(); i++ ) {
+    for( UInt i = 0; i < regions.GetSize(); i++ ) {
       list.Push_back( mi_->GetEntityList( listType, regions[i], 
                                           defineType ) );
     }
@@ -552,23 +538,23 @@ namespace CoupledField {
                 << "' on '" << regionName << "' in step " << stepNum );
 
     // read data array
-    std::vector<Double> realVals;
+    StdVector<Double> realVals;
     H5IO::ReadArray( resGroup, "Real", realVals );
 
     // copy data array to result object
     if( result->GetEntryType() == EntryType::DOUBLE ) {
       Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
-      resVec.Resize( realVals.size() );
-      for( UInt i = 0; i < realVals.size(); i++ ) {
+      resVec.Resize( realVals.GetSize() );
+      for( UInt i = 0; i < realVals.GetSize(); i++ ) {
         resVec[i] = realVals[i];
       } 
     } else {
       Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
-      std::vector<Double> imagVals;
+      StdVector<Double> imagVals;
       H5IO::ReadArray( resGroup, "Imag", imagVals );
       
-      resVec.Resize( realVals.size() );
-      for( UInt i = 0; i < realVals.size(); i++ ) {
+      resVec.Resize( realVals.GetSize() );
+      for( UInt i = 0; i < realVals.GetSize(); i++ ) {
         resVec[i] = Complex( realVals[i], imagVals[i] );
       } 
     }
@@ -614,7 +600,7 @@ namespace CoupledField {
           entityGroup.openGroup(it.GetIdString() );
 
         // read single part of array and set it in the result vector
-        std::vector<Double> vals;
+        StdVector<Double> vals;
         H5IO::ReadArray( actEntGroup, "Real", vals );
 
         for( UInt i = 0; i < numDofs; i++ ) {
@@ -636,7 +622,7 @@ namespace CoupledField {
           entityGroup.openGroup(it.GetIdString() );
 
         // read single part of array and set it in the result vector
-        std::vector<Double> realVals, imagVals;
+        StdVector<Double> realVals, imagVals;
         H5IO::ReadArray( actEntGroup, "Real", realVals );
         H5IO::ReadArray( actEntGroup, "Imag", imagVals );
 
@@ -651,7 +637,6 @@ namespace CoupledField {
     entityGroup.close();
   }
                                        
-
   // =========================================================================
   //  MISCELLANEOUS METHODS
   // =========================================================================
@@ -676,17 +661,17 @@ namespace CoupledField {
       H5IO::GetArrayDims( elemGroup, "Connectivity")[1];
     
     // read element types
-    std::vector<Integer> elemTypes;
+    StdVector<Integer> elemTypes;
     H5IO::ReadArray( elemGroup, "Types", elemTypes );
     
     // read nodes per element
-    std::vector<UInt> globConnect;
+    StdVector<UInt> globConnect;
     H5IO::ReadArray( elemGroup, "Connectivity", globConnect );
     
     elemGroup.close();
 
     // =========================
-    //  Add Elements Per Reigon
+    //  Add Elements Per Region
     // =========================
     
     // ensure, that region names are already read in
@@ -699,13 +684,77 @@ namespace CoupledField {
           } H5_CATCH( "Could not open 'Regions' group" );
 
     // pass region names to grid and obtain RegionIds
-    std::vector<RegionIdType> regionIds;
+    StdVector<RegionIdType> regionIds;
     mi_->AddRegions(readRegions_, regionIds);
 
-    mi_->AddElems( numElems );
+    // Read all nodes from regions and initialize mapping from mesh node
+    // numbers to grid node numbers accordingly.
+    UInt baseNodeNum = mi_->GetNumNodes() + 1;
+    UInt baseElemNum = mi_->GetNumElems() + 1;
+    typedef std::set<UInt,
+      std::less<UInt>,
+      std::allocator<UInt> > RegionSetType;
+  
+    RegionSetType readNodeSet;
+    RegionSetType readElemSet;
+
+    for( UInt i = 0; i < readRegions_.GetSize(); i++ ) {
+      try {
+        actRegion = regionGroup.openGroup( readRegions_[i] );
+      } H5_CATCH( "Could not open group for region '" <<
+                  regionNames_[i] << "'" );
+      
+      // read node numbers for this region
+      StdVector<UInt> regionNodes;
+      H5IO::ReadArray( actRegion, "Nodes", regionNodes );
+      
+      readNodeSet.insert( regionNodes.Begin(), regionNodes.End());
+
+      // read elem numbers for this region
+      StdVector<UInt> regionElems;
+      H5IO::ReadArray( actRegion, "Elements", regionElems );
+      
+      readElemSet.insert( regionElems.Begin(), regionElems.End());
+    }
+    
+    
+    // Add only required nodes to grid.
+    mi_->AddNodes( readNodeSet.size() );
+    UInt idx;
+    Vector<Double> p(3);
+
+    RegionSetType::iterator it, end;
+    for( it=readNodeSet.begin(), end=readNodeSet.end();
+         it != end;
+         it++ ) {
+
+      idx = ((*it)-1)*3;
+      p[0] = nodeCoords_[idx + 0];
+      p[1] = nodeCoords_[idx + 1];
+      p[2] = nodeCoords_[idx + 2];
+      mi_->SetNodeCoordinate( baseNodeNum, p );
+
+      nodeNumMap_[*it] = baseNodeNum++;
+    }
+
+    // Add only required elements to grid.
+    mi_->AddElems( readElemSet.size() );
+    idx = baseElemNum;
+    for( it=readElemSet.begin(), end=readElemSet.end();
+         it != end;
+         it++ ) {
+      elemNumMap_[*it] = idx++;
+    }
+
+    // Remap global connectivity from mesh nodes to grid node numbers
+    for( UInt i = 0, n=globConnect.GetSize();
+         i < n;
+         i++ ) {
+      globConnect[i] = nodeNumMap_[globConnect[i]];
+    }
 
     // iterate over all regions
-    for( UInt i = 0; i < readRegions_.size(); i++ ) {
+    for( UInt i = 0; i < readRegions_.GetSize(); i++ ) {
 
       try {
         actRegion = regionGroup.openGroup( readRegions_[i] );
@@ -713,26 +762,33 @@ namespace CoupledField {
                   regionNames_[i] << "'" );
 
       // read element numbers for this region
-      std::vector<UInt> regionElems;
+      StdVector<UInt> regionElems;
       H5IO::ReadArray( actRegion, "Elements", regionElems );
 
       // pass for each element the definition to the grid      
       RegionIdType actRegionId = regionIds[i];
-      for( UInt iElem = 0; iElem < regionElems.size(); iElem ++ ) {
+      for( UInt iElem = 0; iElem < regionElems.GetSize(); iElem ++ ) {
 
         UInt elemNum = regionElems[iElem];
         FEType type = (FEType) elemTypes[elemNum-1];
         UInt * connect = &globConnect[numNodesPerElem*(elemNum-1)];
-        mi_->SetElemData( elemNum, type, actRegionId, connect );
+
+        mi_->SetElemData( elemNumMap_[elemNum], type, actRegionId, connect );
       }
 
-       // check, if nodes nodes of region should be additionally added
+      // check, if nodes nodes of region should be additionally added
       // to list of named nodes
       if( genRegionNodes_) {
         
         // read nodes of region
-        std::vector<UInt> regionNodes;
+        StdVector<UInt> regionNodes;
         H5IO::ReadArray( actRegion, "Nodes", regionNodes );
+        
+        for( UInt j = 0, n=regionNodes.GetSize();
+             j < n;
+             j++ ) {
+          regionNodes[j] = nodeNumMap_[regionNodes[j]];
+        }
 
         // add nodes as named nodes
         mi_->AddNamedNodes( readRegions_[i]+"_Nodes", regionNodes );
@@ -749,9 +805,12 @@ namespace CoupledField {
     
     try{
       entityGroup = meshGroup.openGroup( "Groups" );
-    } H5_CATCH( "Could not open group for entity groups" );
+    } catch (H5::Exception& h5ex) {
+      LOG_TRACE(simInputHdf5) << "Could not open group for entity groups";
+      return;
+    }
 
-    for( UInt i = 0; i < nodeNames_.size(); i++ ) {
+    for( UInt i = 0; i < nodeNames_.GetSize(); i++ ) {
 
       // open entitygroup with given name
       try {
@@ -760,9 +819,22 @@ namespace CoupledField {
                   << nodeNames_[i] << "'" );
       
       // read nodes from file and add to grid
-      std::vector<UInt> nodes;
-      H5IO::ReadArray( actEntityGroup, "Nodes", nodes );
-      mi_->AddNamedNodes( nodeNames_[i], nodes );
+      StdVector<UInt> readNodes;
+      StdVector<UInt> nodes;
+      H5IO::ReadArray( actEntityGroup, "Nodes", readNodes );
+
+      for( UInt j = 0, n=readNodes.GetSize();
+           j < n;
+           j++ ) {
+        if(nodeNumMap_[readNodes[j]] != 0)
+          nodes.Push_back(nodeNumMap_[readNodes[j]]);
+      }
+
+      // add nodes to grid
+      if(nodes.GetSize())
+        mi_->AddNamedNodes( nodeNames_[i], nodes );
+      
+      actEntityGroup.close();
       
       actEntityGroup.close();
     }
@@ -776,22 +848,35 @@ namespace CoupledField {
      
      try{
        entityGroup = meshGroup.openGroup( "Groups" );
-     } H5_CATCH( "Could not open group for entity groups" );
+     } catch (H5::Exception& h5ex) {
+       LOG_TRACE(simInputHdf5) << "Could not open group for entity groups";
+       return;
+     }
 
-     for( UInt i = 0; i < elemNames_.size(); i++ ) {
-
+     for( UInt i = 0; i < elemNames_.GetSize(); i++ ) {
        // open entitygroup with given name
        try {
          actEntityGroup = entityGroup.openGroup( elemNames_[i] );
        } H5_CATCH( "Could not open definition of element group '"
                    << nodeNames_[i] << "'" );
        
-       // read nodes from file and add to grid
-       std::vector<UInt> elems;
-       H5IO::ReadArray( actEntityGroup, "Elements", elems );
-       mi_->AddNamedNodes( elemNames_[i], elems );
-       
+       // read elems from grid
+       StdVector<UInt> readElems;
+       StdVector<UInt> elems;
+       H5IO::ReadArray( actEntityGroup, "Elements", readElems );
+
+       for( UInt j = 0, n=readElems.GetSize();
+            j < n;
+            j++ ) {
+         if(elemNumMap_[readElems[j]] != 0)
+           elems.Push_back(elemNumMap_[readElems[j]]);
+       }
+
        actEntityGroup.close();
+
+       // add elems to grid
+       if(elems.GetSize())
+         mi_->AddNamedElems( elemNames_[i], elems );
      }
 
      entityGroup.close();
@@ -807,7 +892,7 @@ namespace CoupledField {
       regionGroup = meshGroup.openGroup("Regions");
     } H5_CATCH( "Could not open 'Regions' subgroup" );
 
-    regionNames_.clear();
+    regionNames_.Clear();
     
     // iterate over all region names
     hsize_t numRegions = regionGroup.getNumObjs();
@@ -815,7 +900,7 @@ namespace CoupledField {
 
       // get name
       std::string actName = H5IO::GetObjNameByIdx( regionGroup, i );
-      regionNames_.push_back(  actName );
+      regionNames_.Push_back(  actName );
 
       // get dimension
       UInt dim = 0;
@@ -826,19 +911,27 @@ namespace CoupledField {
     }
 
     regionGroup.close();
-    
+
+    // ==============================
+    //  Read Named Nodes Description
+    // ==============================
     H5::Group entityGroup;
+
+    nodeNames_.Clear();
+
     try {
       entityGroup = meshGroup.openGroup("Groups");
     } catch (H5::Exception& h5ex) {
       LOG_TRACE(simInputHdf5) << "No node / elem groups present";
+      statsRead_ = true;
+      return;
     }
     
     // =================================
     //  Read node / element group names
     // =================================
-    nodeNames_.clear();
-    elemNames_.clear();
+    nodeNames_.Clear();
+    elemNames_.Clear();
     
     hsize_t numGroups = entityGroup.getNumObjs();
     for( hsize_t i = 0; i < numGroups; i++ ) {
@@ -858,9 +951,9 @@ namespace CoupledField {
         std::string actType = H5IO::GetObjNameByIdx( actEntityGroup, iType );
         // depending on typename, add nodes /elements
         if( actType == "Nodes" ) {
-          nodeNames_.push_back(  actName );
+          nodeNames_.Push_back(  actName );
         } else if( actType == "Elements" ) {
-          elemNames_.push_back( actName );
+          elemNames_.Push_back( actName );
         } else {
           EXCEPTION( "Entity type '" << actType << "' not known");
         }

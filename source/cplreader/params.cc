@@ -1,0 +1,203 @@
+#include <iostream>
+
+#include <boost/program_options/cmdline.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+
+namespace fs = boost::filesystem;
+
+#include "params.hh"
+#include "settings.hh"
+
+namespace CoupledField 
+{
+
+  namespace po = boost::program_options;
+
+  std::auto_ptr<Settings> Settings::settingsInstance_;
+
+  void ParamsInit(int argc, char* argv[])
+  {
+    Settings& settings = Settings::Instance();
+    std::string param_name;
+    std::string param_coupling;
+    uint32_t param_dim;
+    uint32_t param_numsteps;
+    uint32_t param_stepincr;
+    std::string param_type;
+    bool param_calcsrc;
+    bool param_verbose;
+    bool param_floatds;
+    bool param_deltemp;
+    std::string param_deffile;
+    double param_timestep;
+    std::string param_dump;
+    std::string param_quantities;
+    std::string param_lhsrc;
+    std::string param_vx;
+    std::string param_vy;
+    std::string param_vz;
+    std::string param_pres;
+
+
+    if(argc == 2) {
+      std::string arg = argv[1];
+      if(arg == "-?" || arg == "--help")
+      {
+        std::cout << std::endl
+                  << "cplreader - A fluid data reader for CFS++/MpCCI coupling"
+                  << std::endl << std::endl
+                  << "Compiled:" << std::endl << "  "
+                  << __DATE__ << std::endl << std::endl;
+      }
+    }
+    
+    int myargc = argc;
+    char** myargv = argv;
+    char* dummy[32];
+
+    for (int n=1; n<argc; n++)
+    {
+      std::string arg = argv[n];
+
+      if(arg == "-p4amslave" ||
+         arg == "-p4yourname" || 
+         arg == "-p4rmrank")
+      {
+        myargc = argc - 8;
+
+        dummy[0] = argv[0];
+        for(int i=0; i<myargc; i++)
+        {
+          dummy[i+1] = argv[8+i];
+        }
+
+        myargv = dummy;
+        myargc++;
+                
+        break;
+                
+      }
+    }
+
+    try 
+    {
+    
+      // Declare the supported options.
+      po::options_description desc("Allowed options");
+      desc.add_options()
+        ("help", "Produce help message")
+        ("name", po::value< std::string >(&param_name)->default_value("dataset"),
+         "Name of dataset")
+
+        ("type", po::value< std::string >(&param_type)->default_value("CFX"),
+         "Type of dataset (can be FASTEST|CFX)")
+
+        ("coupling", po::value< std::string >(&param_coupling)->default_value("file"),
+         "Specify kind of coupling MpCCI|file (not used!)")
+
+        ("dim", po::value< uint32_t >(&param_dim)->default_value(3),
+         "Dimension of fluid data. (can be 2|3)")
+
+        ("numsteps", po::value< uint32_t >(&param_numsteps)->default_value(1),
+         "Number N of timesteps to read")
+
+        ("stepincr", po::value< uint32_t >(&param_stepincr)->default_value(1),
+         "Step increment for reading the files")
+
+        ("timestep", po::value< double >(&param_timestep)->default_value(1),
+         "Time step length T in seconds")
+
+        ("deffile", po::value< std::string >(&param_deffile)->default_value(""),
+         "Definition file name. Only for CFX!")
+
+        ("calcsrc", po::value< bool >(&param_calcsrc)->default_value(false),
+         "Calculate the acoustic sources from velocity")
+
+        ("floatds", po::value< bool >(&param_floatds)->default_value(true),
+         "Do the CFX .trn files contain float or double values.")
+
+        ("deltemp", po::value< bool >(&param_deltemp)->default_value(true),
+         "Delete temporary files created during conversion.")
+/*
+        ("dump", po::value< std::string >(&param_dump)->default_value("GID"),
+         "Dump the grid and data to a file (can be GID|GMV)")
+*/
+        ("verbose", po::value< bool >(&param_verbose)->default_value(false),
+         "Be verbose")
+
+        ("lhsrc", po::value< std::string >(&param_lhsrc)->default_value(""),
+         "Column of Lighthill source term in FASTEST result files (e.g. col1).")
+
+        ("vx", po::value< std::string >(&param_vx)->default_value(""),
+         "Column of x-velocity in FASTEST result files (e.g. col2).")
+
+        ("vy", po::value< std::string >(&param_vy)->default_value(""),
+         "Column of y-velocity in FASTEST result files (e.g. col3).")
+
+        ("vz", po::value< std::string >(&param_vz)->default_value(""),
+         "Column of z-velocity in FASTEST result files (e.g. col4).")
+         
+        ("pres", po::value< std::string >(&param_pres)->default_value(""),
+         "Column of pressure in FASTEST result files (e.g. col5).")
+        ;
+
+      po::variables_map vm;
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+      po::notify(vm);    
+
+      if (vm.count("help")) {
+        std::cout << desc << "\n";
+        exit(0);
+      }
+    }
+    catch(std::exception &ex)
+    {
+      EXCEPTION("Error while parsing command line: " << ex.what());
+    }
+
+    std::string baseDir;
+    std::string baseName;
+
+    try 
+    {
+      fs::path fn = fs::system_complete(argv[0]);
+      fn.normalize();
+      baseDir = fn.branch_path().native_directory_string();
+      baseName = (fs::change_extension( fn.leaf(), "" )).native_directory_string();
+    } catch (fs::filesystem_error& ex)
+    {
+      EXCEPTION("Received exception: " << ex.what());
+      return;
+    }
+
+  
+    settings.SetString("name", param_name);
+    settings.SetString("type", param_type);
+    settings.SetString("coupling", param_coupling);
+    settings.SetInt("dim", param_dim);
+    settings.SetInt("numSteps", param_numsteps);
+    settings.SetInt("stepIncr", param_stepincr);
+    settings.SetInt("calcSrc", param_calcsrc);
+    settings.SetInt("floatDataset", param_floatds);
+    settings.SetInt("deltemp", param_deltemp);
+    settings.SetInt("verbose", param_verbose);
+    settings.SetString("defFile", param_deffile);
+    settings.SetDouble("timeStep", param_timestep);
+    settings.SetString("dump", param_dump);
+    settings.SetString("exename", baseName);
+    settings.SetString("baseExeDir", baseDir);
+    settings.SetString("lhsrc", param_lhsrc);
+    settings.SetString("vx", param_vx);
+    settings.SetString("vy", param_vy);
+    settings.SetString("vz", param_vz);
+    settings.SetString("pres", param_pres);
+  }
+
+    
+}

@@ -1137,6 +1137,510 @@ namespace CoupledField {
         elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; 
   }
 
+  void LinearFlowNoiseInt::CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double> & NodalVel,
+                                                   Vector<Double> & Result,
+                                                   const Elem* elem)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
+#endif
+
+    //std::cout << "NodalVel:\n" << NodalVel << std::endl;
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+  
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Vector<Double>  Sf;
+
+    Vector<Double>  VelAtIP;
+    Matrix<Double> VelDerAtIP;
+    VelDerAtIP.Resize(dimelem);  
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+    Double density=1.0;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dimelem);
+
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+
+	//first derivative of velocity at integration point: (2x2)
+	//  vx,x   vx,y
+        //  vy,x   vy,y
+	//
+        VelDerAtIP = NodalVel * xiDx;
+
+	helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
+	  + VelAtIP[1] *  VelDerAtIP[0][1] 
+	  + VelAtIP[0] *  VelDerAtIP[1][1];
+        if(n == 8)
+        {
+          helpVec[0] += VelAtIP[2] *  VelDerAtIP[0][2]
+                        + VelAtIP[0] *  VelDerAtIP[2][2]; 
+        }
+        
+
+	helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
+	  + VelAtIP[0] *  VelDerAtIP[1][0] 
+	  + VelAtIP[1] *  VelDerAtIP[0][0]; 
+        if(n == 8)
+        {
+            helpVec[1] += VelAtIP[1] *  VelDerAtIP[2][2]
+                          + VelAtIP[2] *  VelDerAtIP[1][2]; 
+        }
+        
+
+        if(n == 8)
+        {
+            helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
+                         + VelAtIP[0] *  VelDerAtIP[2][0] 
+                         + VelAtIP[2] *  VelDerAtIP[0][0]
+                         + VelAtIP[1] *  VelDerAtIP[2][1]
+                         + VelAtIP[2] *  VelDerAtIP[1][1]; 
+        }
+
+	  
+	helpVec *= density;
+        
+        // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * helpVec;
+        partResult *= jacDet * intWeights[actInt-1];
+        //std::cout<<"JacDet= "<<jacDet<<std::endl;
+        Result     += partResult;
+      }
+
+  } // end of method
+
+//===================================================================================
+//=========================== Combustion Noise ======================================
+//===================================================================================
+
+
+void LinearFlowNoiseInt::CalcElemVec4CombustionTij(const Matrix<Double>& ptCoord,
+                                                   const Matrix<Double>& NodalVel,
+                                                   const Vector<Double>& NodalRho,
+                                                   Vector<Double>& Result,
+                                                   const Elem* elem) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4CombustionTij" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+    // T_ij = rho v_i v_j
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dim = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Matrix<Double> xiDxTransp;      
+    Vector<Double>  Sf;
+
+    Double RhoAtIP;
+    Vector<Double> RhoDerAtIP;
+    Vector<Double> VelAtIP;
+    Matrix<Double> VelDerAtIP;
+    VelDerAtIP.Resize(dim);  
+
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dim);
+
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+
+	//density at integration point
+	RhoAtIP = NodalRho * Sf;
+
+	//first derivative of velocity at integration point: (2x2)
+	// xiDx: 
+	//  vx,x   vx,y
+        //  vy,x   vy,y
+	//
+        VelDerAtIP = NodalVel * xiDx;
+
+	//first order derivative of density at integration point
+	xiDx.Transpose(xiDxTransp);
+	RhoDerAtIP = xiDxTransp * NodalRho;
+
+	ComputeDerivOfTij(RhoAtIP,RhoDerAtIP,VelAtIP, VelDerAtIP,dim, helpVec);
+        
+        // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * helpVec;
+        partResult *= jacDet * intWeights[actInt-1];
+        Result     += partResult;
+      }
+
+  } // end of method
+
+
+void LinearFlowNoiseInt::CalcElemVec4CombustionVec(const Matrix<Double>& ptCoord,
+						   const Matrix<Double>& NodalVec,
+                                                   Vector<Double>& Result,
+                                                   const Elem* elem) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4CombustionVec" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times  vec
+    // vec = partial / partial t ( (1-rho) * velocity )
+    // Source term =  integral(grad[Sf].vec)
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dim = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Vector<Double>  Sf;
+    Vector<Double> VecAtIP;
+
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dim);
+
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VecAtIP = NodalVec * Sf;
+
+        // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * VecAtIP;
+        partResult *= jacDet * intWeights[actInt-1];
+        Result     += partResult;
+      }
+
+  } // end of method
+
+
+void LinearFlowNoiseInt::CalcElemVec4CombustionScalar(const Matrix<Double>& ptCoord,
+						      const Vector<Double>& NodalScalar,
+						      Vector<Double>& Result,
+                                                      const Elem* elem) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4CombustionScalar" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the shape function times  the scalar value
+    // scalar = partial / partial t ( 1/rho * partial_C ( rho*partial omega / partial t ) )
+    // Source term =  integral(Sf * scalar)
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+
+    Vector<Double>  Sf;
+    Double ScalarAtIP;
+    Vector<Double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+	jacDet = ptelem->CalcJacobianDetAtIp(actInt, ptCoord, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	ScalarAtIP = NodalScalar * Sf;
+
+        // Multiplication with the derivatives of the shape functions
+        Sf *= ScalarAtIP * jacDet * intWeights[actInt-1];
+        Result     += Sf;
+      }
+
+} // end of method
+
+
+void LinearFlowNoiseInt::CalcElemVec4CombustionTijOnSurface(const Matrix<Double>& ptCoord,
+							    const Matrix<Double>& NodalVel,
+							    const Vector<Double>& NodalRho,
+							    Vector<Double>& Result,
+                                                            const Elem* elem) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4CombustionTij" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+    // T_ij = rho v_i v_j
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dim = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Matrix<Double> xiDxTransp;      
+    Vector<Double>  Sf;
+
+    Double RhoAtIP;
+    Vector<Double> RhoDerAtIP;
+    Vector<Double> VelAtIP;
+    Matrix<Double> VelDerAtIP;
+    VelDerAtIP.Resize(dim);  
+
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dim);
+
+    Vector<Double> nVec(dim);
+    ComputeNormalVec( ptCoord, nVec);
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+
+	//density at integration point
+	RhoAtIP = NodalRho * Sf;
+
+	//first derivative of velocity at integration point: (2x2)
+	// xiDx: 
+	//  vx,x   vx,y
+        //  vy,x   vy,y
+	//
+        VelDerAtIP = NodalVel * xiDx;
+
+	//first order derivative of density at integration point
+	xiDx.Transpose(xiDxTransp);
+	RhoDerAtIP = xiDxTransp * NodalRho;
+
+	ComputeDerivOfTij(RhoAtIP,RhoDerAtIP,VelAtIP, VelDerAtIP,dim,helpVec);
+        
+	// scalar product with normal vector
+	Double val = nVec * helpVec;
+
+        // Multiplication with the derivatives of the shape functions
+        Sf *= val * jacDet * intWeights[actInt-1];
+        Result     += Sf;
+      }
+
+} // end of method
+
+
+void LinearFlowNoiseInt::CalcElemVec4CombustionVectorOnSurface(const Matrix<Double>& ptCoord,
+							       const Matrix<Double>& NodalVel,
+							       Vector<Double>& Result,
+                                                               const Elem* elem) {
+#ifdef TRACE
+  (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4CombustionVectorOnSurface" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the shape function times scalar product of the vector with he normal vector
+    // vector = \partial / \partial t ( (1-rho) v )
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dim = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Vector<Double>  Sf;
+    Vector<Double> VelAtIP;
+    Vector<double> intWeights = ptelem->GetIntWeights();
+
+    Double jacDet;
+    UInt actInt;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+    
+    Vector<Double> nVec(dim);
+    ComputeNormalVec( ptCoord, nVec);
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	jacDet = ptelem->CalcJacobianDetAtIp(actInt, ptCoord, elem);
+	ptelem->GetShFncAtIp(Sf, actInt, elem);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+
+	// scalar product with normal vector
+	Double val = nVec * VelAtIP;
+
+	Sf    *= val * jacDet * intWeights[actInt-1];
+        Result += Sf; 
+      }
+
+} // end of method
+
+
+void LinearFlowNoiseInt::ComputeDerivOfTij( const Double RhoAtIP,
+					    const Vector<Double>& RhoDerAtIP,
+					    const Vector<Double>& VelAtIP, 
+					    const Matrix<Double>& VelDerAtIP,
+					    const Integer dim,
+					    Vector<Double>& helpVec) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::ComputeDerivOfTij" << std::endl;
+#endif
+
+    // This functions computes derivative of T_ij
+    // T_ij = rho v_i v_j
+
+    helpVec[0] = VelAtIP[0]*VelAtIP[0]*RhoDerAtIP[0] 
+      + 2.0 * RhoAtIP * VelAtIP[0] * VelDerAtIP[0][0] 
+      + VelAtIP[0] * VelAtIP[1] * RhoDerAtIP[1] 
+      + RhoAtIP * VelAtIP[1] *  VelDerAtIP[0][1]
+      + RhoAtIP * VelAtIP[0] * VelDerAtIP[1][1] ;
+    
+    if ( dim == 3 ) {
+      helpVec[0] += VelAtIP[0] * VelAtIP[2] * RhoDerAtIP[2]
+	+ RhoAtIP * VelAtIP[0] * VelDerAtIP[2][2]
+	+ RhoAtIP * VelAtIP[2] * VelDerAtIP[0][2];
+    }
+    
+    helpVec[1] = RhoAtIP * VelAtIP[0] * VelDerAtIP[1][0] 
+      + RhoAtIP * VelAtIP[1] *  VelDerAtIP[0][0] 
+      + VelAtIP[0] * VelAtIP[1] *  RhoDerAtIP[0]
+      + VelAtIP[1] * VelAtIP[1] * RhoDerAtIP[1]
+      + 2 * RhoAtIP * VelAtIP[1] * VelDerAtIP[1][1];
+    
+    if( dim == 3 ) {
+      helpVec[1] += VelAtIP[1] *  VelAtIP[2] * RhoDerAtIP[2] 
+	+ RhoAtIP * VelAtIP[1] * VelDerAtIP[2][2]
+	+ RhoAtIP * VelAtIP[2] * VelDerAtIP[1][2];
+      
+      helpVec[2] = RhoAtIP * VelAtIP[0] * VelDerAtIP[2][0] 
+	+ RhoAtIP * VelAtIP[2] *  VelDerAtIP[0][0] 
+	+ VelAtIP[0] * VelAtIP[2] *  RhoDerAtIP[0]
+	+ RhoAtIP * VelAtIP[1] * VelDerAtIP[2][1]
+	+ RhoAtIP * VelAtIP[2] * VelDerAtIP[1][1]
+	+ VelAtIP[1] * VelAtIP[2] * RhoDerAtIP[1]
+	+ VelAtIP[2] * VelAtIP[2] * RhoDerAtIP[2]
+	+ 2 * RhoAtIP * VelAtIP[2] * VelDerAtIP[2][2];
+    }
+}
+
+
+void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
+					    Vector<Double>& nVec) {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::ComputeNormalVec" << std::endl;
+#endif
+
+    // compute the normal vector
+    UInt dim = nVec.GetSize();
+    Vector<Double> vec1(dim);
+    Vector<Double> vec2(dim);
+
+    if ( dim == 3) {
+      UInt idx;
+      if ( ptCoord.GetSizeCol() == 4) {
+	idx = 3;
+      }
+      else if ( ptCoord.GetSizeCol() == 3) {
+	idx = 2;
+      }
+      else {
+	Error("Surface Element is no quadrilateral or triangle",__FILE__,__LINE__);
+      }
+
+      for ( UInt i=0; i<dim; i++ ) {
+	vec1[i] = ptCoord[i][1]   - ptCoord[i][0];
+	vec2[i] = ptCoord[i][idx] - ptCoord[i][0];
+      }
+
+      // cross product: vec1 x vec 2
+      nVec[0] = vec1[1]*vec2[2] - vec1[2]*vec2[1];
+      nVec[1] = vec1[2]*vec2[0] - vec1[0]*vec2[2];
+      nVec[2] = vec1[0]*vec2[1] - vec1[1]*vec2[0];
+    }
+    else {
+      nVec[0] =  ptCoord[1][1] - ptCoord[1][0];
+      nVec[1] = -ptCoord[0][1] + ptCoord[0][0];
+    }
+
+    Double invLength = 1.0 / nVec.NormL2();
+    nVec *= invLength;
+}
+
+
 
   // ===================================================================
   // nonlinear RHS for nonlinear acoustics

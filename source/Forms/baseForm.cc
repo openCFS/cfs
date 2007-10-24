@@ -49,9 +49,17 @@ namespace CoupledField
     // This object has per default the variable
     // f (harmonic) or t (transient) registered with the
     // current value
-    mHandle_ =  domain->GetMathParser()->GetNewHandle();
-    mParser_ = domain->GetMathParser();
-    mParser_->SetExpr( mHandle_, "1.0" );
+    if(domain)
+    {
+      mHandle_ =  domain->GetMathParser()->GetNewHandle();
+      mParser_ = domain->GetMathParser();
+      mParser_->SetExpr( mHandle_, "1.0" );
+    }
+    else
+    {
+      mHandle_ = NULL;
+    }
+    
 #endif
   }
 
@@ -66,7 +74,8 @@ namespace CoupledField
 
 #ifndef INTEGLIB
     // Release math parser object
-    mParser_->ReleaseHandle( mHandle_ );
+    if(mHandle_)
+      mParser_->ReleaseHandle( mHandle_ );
 #endif
 
 //     if ( delMatDataAtEnd_ == true ) {

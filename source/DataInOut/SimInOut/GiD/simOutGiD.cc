@@ -41,7 +41,7 @@ namespace CoupledField {
     actMsStep_ = 0;
     stepValueOffset_ = 0;
     isAscii_ = true;
-    degen3DElems_ = true;
+    printGridOnly_ = false;
     printGridOnly_ = false;
 
     // Determine, if binary result file should be written
@@ -92,11 +92,7 @@ namespace CoupledField {
         GiD_EndGaussPoint();
       }
     } else {
-      if ( degen3DElems_ == true ) {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
-      } else {
-        GiD_BeginGaussPoint( "mid-3D", GiD_Tetrahedra, NULL, 1, 1, 1);
-      }
+      GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
       GiD_EndGaussPoint();
       if ( ptGrid_->GetNumSurfElems() > 0 ) {
         GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
@@ -163,7 +159,10 @@ namespace CoupledField {
     // iterate over all regions
     StdVector<RegionIdType> regionIds;
     StdVector<Elem*> elemVec;
-    ptGrid_->GetRegionIds( regionIds );
+    UInt numElemNodes;
+    GiD_ElementType eType;
+
+    ptGrid_->GetRegionIds(regionIds);
 
     for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
 
@@ -171,9 +170,8 @@ namespace CoupledField {
       std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
       ptGrid_->GetElems(elemVec,regionIds[iReg]);
 
-    
-      GiD_ElementType eType = GiD_NoElement;
-      UInt numElemNodes = 0;
+      numElemNodes = 0;
+      eType = GiD_NoElement;
 
       // determine element type and number of nodes
       if ( elemVec[0]->ptElem->GetDim() == 1 ) {
@@ -191,20 +189,11 @@ namespace CoupledField {
           numElemNodes = 4;
         }
       } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
-        if ( degen3DElems_ == true ) {
-          eType = GiD_Hexahedra;
-          if ( ptGrid_->IsQuadratic() == true ) {
-            numElemNodes = 20;
-          } else {
-            numElemNodes = 8;
-          }
+        eType = GiD_Hexahedra;
+        if ( ptGrid_->IsQuadratic() == true ) {
+          numElemNodes = 20;
         } else {
-          eType = GiD_Tetrahedra;
-          if ( ptGrid_->IsQuadratic() == true ) {
-            numElemNodes = 10;
-          } else {
-            numElemNodes = 4;
-          }
+          numElemNodes = 8;
         }
       }
       
@@ -214,12 +203,12 @@ namespace CoupledField {
       GiD_BeginCoordinates();
       GiD_EndCoordinates();
       
-      // write alle element declarations
+      // write all element declarations
       GiD_BeginElements();
       for ( UInt iElem = 0; iElem < elemVec.GetSize(); iElem++ ) {
         Elem * ptEl = elemVec[iElem];
     
-        WriteElement( ptEl );
+        WriteElement( ptEl, numElemNodes);
       }
       GiD_EndElements();
 
@@ -273,156 +262,221 @@ namespace CoupledField {
   }
   
   void SimOutputGiD::
-  WriteElement( Elem * ptEl ) {
+  WriteElement( Elem * ptEl, UInt numNodes) {
+
+    uint32_t elemNum;
+    FEType eType;
+    Integer region;
+
+    eType = ptEl->ptElem->feType();
+    region = ptEl->regionId+1;
+    elemNum = ptEl->elemNum;
+    StdVector<UInt> const & connectDummy = ptEl->connect;
+    StdVector<UInt> connect;
+    connect.Resize(numNodes+1);
     
-    // determine element dimension
-    BaseFE * ptFE = ptEl->ptElem;
-    StdVector<UInt> const & connect = ptEl->connect;
-    StdVector<UInt> connectM;
-    
-    // --- LINEAR ELEMENTS ---
-    if ( ptGrid_->IsQuadratic() == false ) {
-      if ( ptFE == ptTr1 ) {
-        connectM = connect;
-        connectM.Push_back(connectM[2]);
-      } else  if ( ptFE == ptTet1 ) {
-        if ( degen3DElems_ == true ) {
-          connectM.Resize(8);
-          connectM[0]= connect[0];
-          connectM[1]= connect[1];
-          connectM[2]= connect[2];
-          connectM[3]= connect[2];
-          connectM[4]= connect[3];
-          connectM[5]= connect[3];
-          connectM[6]= connect[3];
-          connectM[7]= connect[3];
-        } else {
-          connectM = connect;
-        }
-      } else  if ( ptFE == ptPyra1 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[3];
-        connectM[4]= connect[4];
-        connectM[5]= connect[4];
-        connectM[6]= connect[4];
-        connectM[7]= connect[4];
-      } else  if ( ptFE == ptWedge1 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[5];
-        connectM[7]= connect[5];
-        
-      } else {
-        connectM = connect;
-      }
-    } else {
-      // --- QUADRATIC ELEMENTS ---
-      if ( ptFE == ptTr2 ) {
-        connectM.Resize(8);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[2];
-        connectM[7]= connect[5];
-      } else  if ( ptFE == ptTet2 ) {
-        if ( degen3DElems_ == true ) {
-          connectM.Resize(20);
-          connectM[0]= connect[0];
-          connectM[1]= connect[1];
-          connectM[2]= connect[2];
-          connectM[3]= connect[2];
-          connectM[4]= connect[3];
-          connectM[5]= connect[3];
-          connectM[6]= connect[3];
-          connectM[7]= connect[3];
-          connectM[8]= connect[4];
-          connectM[9]= connect[5];
-          connectM[10]= connect[6];
-          connectM[11]= connect[2];
-          connectM[12]= connect[7];
-          connectM[13]= connect[8];
-          connectM[14]= connect[9];
-          connectM[15]= connect[2];
-          connectM[16]= connect[3];
-          connectM[17]= connect[3];
-          connectM[18]= connect[3];
-          connectM[19]= connect[3];
-        } else {
-          connectM = connect;
-        }
-        // NOTE: The numberings of hexehadras in gid differs for
-        // the quadratic case!
-      } else  if ( ptFE == ptHexa2 ) {
-        connectM=connect;
-        connectM[12] = connect[16];
-        connectM[13] = connect[17];
-        connectM[14] = connect[18];
-        connectM[15] = connect[19];
-        connectM[16] = connect[12];
-        connectM[17] = connect[13];
-        connectM[18] = connect[14];
-        connectM[19] = connect[15];
-      } else  if ( ptFE == ptPyra2 ) {
-        connectM.Resize(20);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[3];
-        connectM[4]= connect[4];
-        connectM[5]= connect[4];
-        connectM[6]= connect[4];
-        connectM[7]= connect[4];
-        connectM[8]= connect[5];
-        connectM[9]= connect[6];
-        connectM[10]= connect[7];
-        connectM[11]= connect[8];
-        connectM[12]= connect[9];
-        connectM[13]= connect[10];
-        connectM[14]= connect[11];
-        connectM[15]= connect[12];
-        connectM[16]= connect[4];
-        connectM[17]= connect[4];
-        connectM[18]= connect[4];
-        connectM[19]= connect[4];
-      } else  if ( ptFE == ptWedge2 ) {
-        connectM.Resize(20);
-        connectM[0]= connect[0];
-        connectM[1]= connect[1];
-        connectM[2]= connect[2];
-        connectM[3]= connect[2];
-        connectM[4]= connect[3];
-        connectM[5]= connect[4];
-        connectM[6]= connect[5];
-        connectM[7]= connect[5];
-        connectM[8]= connect[6];
-        connectM[9]= connect[7];
-        connectM[10]= connect[8];
-        connectM[11]= connect[2];
-        connectM[12]= connect[12];
-        connectM[13]= connect[13];
-        connectM[14]= connect[14];
-        connectM[15]= connect[14];
-        connectM[16]= connect[9];
-        connectM[17]= connect[10];
-        connectM[18]= connect[11];
-        connectM[19]= connect[5];
-      } else {
-        connectM = connect;
-      }
+
+    switch(eType)
+    {
+    default:
+      std::copy(connectDummy.GetPointer(),
+                connectDummy.GetPointer()+connectDummy.GetSize(),
+                connect.GetPointer());
+      //      memcpy(&connect[0],
+      //             (const void*) &connectDummy[0],
+      //             connectDummy.GetSize()*sizeof(UInt));
+      break;
+
+    case ET_TRIA3:
+      connect[0]= connectDummy[0];
+      connect[1]= connectDummy[1];
+      connect[2]= connectDummy[2];
+      connect[3]= connectDummy[2];
+      break;
+      
+    case ET_TRIA6:
+      connect[0] = connectDummy[0];
+      connect[1] = connectDummy[1];
+      connect[2] = connectDummy[2];
+      connect[3] = connectDummy[2];
+      connect[4] = connectDummy[3];
+      connect[5] = connectDummy[4];
+      connect[6] = connectDummy[5];
+      connect[7] = connectDummy[5];
+      break;
+
+    case ET_TET4:
+      connect[0] = connectDummy[0];
+      connect[1] = connectDummy[1];
+      connect[2] = connectDummy[2];
+      connect[3] = connectDummy[2];
+      connect[4] = connectDummy[3];
+      connect[5] = connectDummy[3];
+      connect[6] = connectDummy[3];
+      connect[7] = connectDummy[3];
+      break;
+
+    case ET_TET10:
+      connect[0] = connectDummy[0];
+      connect[1] = connectDummy[1];
+      connect[2] = connectDummy[2];
+      connect[3] = connectDummy[2];
+      connect[4] = connectDummy[3];
+      connect[5] = connectDummy[3];
+      connect[6] = connectDummy[3];
+      connect[7] = connectDummy[3];
+      connect[8] = connectDummy[4];
+      connect[9] = connectDummy[5];
+      connect[10]= connectDummy[6];
+      connect[11]= connectDummy[6];
+      connect[12]= connectDummy[7];
+      connect[13]= connectDummy[8];
+      connect[14]= connectDummy[9];
+      connect[15]= connectDummy[9];
+      connect[16]= connectDummy[3];
+      connect[17]= connectDummy[3];
+      connect[18]= connectDummy[3];
+      connect[19]= connectDummy[3];
+      break;
+
+    case ET_HEXA8:
+      connect[0] = connectDummy[4];
+      connect[1] = connectDummy[5];
+      connect[2] = connectDummy[6];
+      connect[3] = connectDummy[7];
+      connect[4] = connectDummy[0];
+      connect[5] = connectDummy[1];
+      connect[6] = connectDummy[2];
+      connect[7] = connectDummy[3];
+      break;
+
+      // NOTE: The numberings of hexehadras in gid differs for
+      // the quadratic case!
+    case ET_HEXA20:
+      connect[0]  = connectDummy[0];
+      connect[1]  = connectDummy[1];
+      connect[2]  = connectDummy[2];
+      connect[3]  = connectDummy[3];
+      connect[4]  = connectDummy[4];
+      connect[5]  = connectDummy[5];
+      connect[6]  = connectDummy[6];
+      connect[7]  = connectDummy[7];
+      connect[8]  = connectDummy[8];
+      connect[9]  = connectDummy[9];
+      connect[10] = connectDummy[10];
+      connect[11] = connectDummy[11];
+      connect[12] = connectDummy[16];
+      connect[13] = connectDummy[17];
+      connect[14] = connectDummy[18];
+      connect[15] = connectDummy[19];
+      connect[16] = connectDummy[12];
+      connect[17] = connectDummy[13];
+      connect[18] = connectDummy[14];
+      connect[19] = connectDummy[15];
+      break;
+
+    case ET_HEXA27:
+      connect[0]  = connectDummy[0];
+      connect[1]  = connectDummy[1];
+      connect[2]  = connectDummy[2];
+      connect[3]  = connectDummy[3];
+      connect[4]  = connectDummy[4];
+      connect[5]  = connectDummy[5];
+      connect[6]  = connectDummy[6];
+      connect[7]  = connectDummy[7];
+      connect[8]  = connectDummy[8];
+      connect[9]  = connectDummy[9];
+      connect[10] = connectDummy[10];
+      connect[11] = connectDummy[11];
+      connect[12] = connectDummy[16];
+      connect[13] = connectDummy[17];
+      connect[14] = connectDummy[18];
+      connect[15] = connectDummy[19];
+      connect[16] = connectDummy[12];
+      connect[17] = connectDummy[13];
+      connect[18] = connectDummy[14];
+      connect[19] = connectDummy[15];
+
+      connect[20]  = connectDummy[24];
+      connect[21]  = connectDummy[20];
+      connect[22]  = connectDummy[21];
+      connect[23]  = connectDummy[22];
+      connect[24]  = connectDummy[23];
+      connect[25]  = connectDummy[25];
+      connect[26]  = connectDummy[26];
+      break;
+
+    case ET_PYRA5:
+      connect[0] = connectDummy[0];
+      connect[1] = connectDummy[1];
+      connect[2] = connectDummy[2];
+      connect[3] = connectDummy[3];
+      connect[4] = connectDummy[4];
+      connect[5] = connectDummy[4];
+      connect[6] = connectDummy[4];
+      connect[7] = connectDummy[4];
+      break;
+
+    case ET_PYRA13:
+      connect[0]= connectDummy[0];
+      connect[1]= connectDummy[1];
+      connect[2]= connectDummy[2];
+      connect[3]= connectDummy[3];
+      connect[4]= connectDummy[4];
+      connect[5]= connectDummy[4];
+      connect[6]= connectDummy[4];
+      connect[7]= connectDummy[4];
+      connect[8]= connectDummy[5];
+      connect[9]= connectDummy[6];
+      connect[10]= connectDummy[7];
+      connect[11]= connectDummy[8];
+      connect[12]= connectDummy[9];
+      connect[13]= connectDummy[10];
+      connect[14]= connectDummy[11];
+      connect[15]= connectDummy[12];
+      connect[16]= connectDummy[4];
+      connect[17]= connectDummy[4];
+      connect[18]= connectDummy[4];
+      connect[19]= connectDummy[4];
+      break;
+
+    case ET_WEDGE6:
+      connect[0]= connectDummy[0];
+      connect[1]= connectDummy[1];
+      connect[2]= connectDummy[2];
+      connect[3]= connectDummy[2];
+      connect[4]= connectDummy[3];
+      connect[5]= connectDummy[4];
+      connect[6]= connectDummy[5];
+      connect[7]= connectDummy[5];
+      break;
+
+    case ET_WEDGE15:
+      connect[0] = connectDummy[0];
+      connect[1] = connectDummy[1];
+      connect[2] = connectDummy[2];
+      connect[3] = connectDummy[2];
+      connect[4] = connectDummy[3];
+      connect[5] = connectDummy[4];
+      connect[6] = connectDummy[5];
+      connect[7] = connectDummy[5];
+      connect[8] = connectDummy[6];
+      connect[9] = connectDummy[7];
+      connect[10]= connectDummy[8];
+      connect[11]= connectDummy[8];
+      connect[12]= connectDummy[12];
+      connect[13]= connectDummy[13];
+      connect[14]= connectDummy[14];
+      connect[15]= connectDummy[14];
+      connect[16]= connectDummy[9];
+      connect[17]= connectDummy[10];
+      connect[18]= connectDummy[11];
+      connect[19]= connectDummy[11];
+      break;
     }
-    connectM.Push_back(ptEl->regionId+1);
-    GiD_WriteElementMat( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
+
+    connect[numNodes] = region;
+    GiD_WriteElementMat( elemNum, (int*)connect.GetPointer() ); 
   }
 
 
@@ -957,20 +1011,11 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
                << " is not supported by GiD mesh format." );
     }
 
-    // check, if only tetrahedra are present
-    // -> only in this case we can treat tetrahedras as elements with 4 nodes.
-    // In all other cases (hexa and tets mixed) tetrahedras are treated as
-    // degenerated hexahedras.
-    if ( dim_ == GiD_3D ) {
-      if ( ptGrid_->GetNumElemOfType( ET_TET4 ) > 0  &&
-           ptGrid_->GetNumElemOfType( ET_HEXA8 ) ==  0  &&
-           ptGrid_->GetNumElemOfType( ET_PYRA5 ) ==  0  &&
-           ptGrid_->GetNumElemOfType( ET_WEDGE6 ) ==  0  ) {
-        degen3DElems_ = false;
-      }
-    }
+    // All meshes will be treated as degenerated quad and hexa meshes!
 
     // print grid
     WriteGrid(); 
   }
+
+
 } // end of namespace

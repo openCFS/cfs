@@ -15,7 +15,9 @@
 
 namespace CoupledField {
 
-  SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde) : StdSolveStep(apde) 
+  SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde, bool justInterpolate)
+    : StdSolveStep(apde),
+      justInterpolate_(justInterpolate)
   {
   }
 
@@ -232,6 +234,24 @@ namespace CoupledField {
                                  connect_PDE.GetSize());
         }
       }
+    }
+  }
+
+  void SolveStepAcoustic::StepTransLin() {
+    if(justInterpolate_) {
+      //account for RHS
+      assemble_->AssembleLinRHS( actTime_ );
+      PDE_.ComputeRHS( actTime_ );
+      
+      UInt length = 0;
+      
+      // store rhs vector back to PDE
+      Double * rhsPt;
+      length = algsys_->GetRHSVal(rhsPt);
+      PDE_.SaveRHS( rhsPt, length );
+    }
+    else {
+      StdSolveStep::StepTransLin();
     }
   }
 

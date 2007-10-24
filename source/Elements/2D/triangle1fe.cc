@@ -69,8 +69,10 @@ namespace CoupledField
 
     Shape[0] = 1.0 - LCoord[0] - LCoord[1];
 
-    if (Shape[0] < 0)
-        EXCEPTION("Local coordinates are not inside triangular element!");
+
+    //    if (Shape[0] < 0)
+    //      EXCEPTION("Local coordinates are not inside triangular element #"
+    //                << el->elemNum << "!");
     
     for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
@@ -103,10 +105,10 @@ namespace CoupledField
                                          const Matrix<Double> & globalCoords,
                                          const Matrix<Double> & coordMat)
   {
-      Vector<Double> c0, c1, c2; // endpoint-coordinates
-      Vector<Double> dummy;
-      Vector<Double> bCoords;
-      UInt globDim = globalCoords.GetSizeRow();
+    Vector<Double> c0, c1, c2; // endpoint-coordinates
+    Vector<Double> dummy;
+    Vector<Double> bCoords;
+    UInt globDim = globalCoords.GetSizeRow();
 
     // Get coordinates of the endpoints
     c0.Resize(3);
@@ -114,15 +116,21 @@ namespace CoupledField
     c2.Resize(3);
     dummy.Resize(3);
     bCoords.Resize(3);
+
+    c0.Init(0.0);
+    c1.Init(0.0);
+    c2.Init(0.0);
+    dummy.Init(0.0);
+    bCoords.Init(0.0);
     
     //    std::cout << "SIMON> Line1FE->Global2Local(): coordMat " << coordMat << std::endl;
     //    std::cout << "SIMON> Line1FE->Global2Local(): globalCoords " << globalCoords << std::endl;
 
     for(UInt i = 0; i < globDim; i++)
     {
-        c0[i] = coordMat[i][0];
-        c1[i] = coordMat[i][1];
-        c2[i] = coordMat[i][2];
+      c0[i] = coordMat[i][0];
+      c1[i] = coordMat[i][1];
+      c2[i] = coordMat[i][2];
     }
 
 
@@ -130,33 +138,33 @@ namespace CoupledField
     
     for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
     {
-        for(UInt j = 0; j < globDim; j++)
-        {
-            dummy[j] = globalCoords[j][i];
-        }
+      for(UInt j = 0; j < globDim; j++)
+      {
+        dummy[j] = globalCoords[j][i];
+      }
 
-        GetBarycentricCoords(c0, c1, c2, dummy, bCoords);
+      GetBarycentricCoords(c0, c1, c2, dummy, bCoords);
         
 
-        localCoords[0][i] = bCoords[0] * LCornerCoords_[0][0] +
-                            bCoords[1] * LCornerCoords_[0][1] +
-                            bCoords[2] * LCornerCoords_[0][2];
+      localCoords[0][i] = bCoords[0] * LCornerCoords_[0][0] +
+                          bCoords[1] * LCornerCoords_[0][1] +
+                          bCoords[2] * LCornerCoords_[0][2];
         
                             
-        localCoords[1][i] = bCoords[0] * LCornerCoords_[1][0] +
-                            bCoords[1] * LCornerCoords_[1][1] +
-                            bCoords[2] * LCornerCoords_[1][2];
+      localCoords[1][i] = bCoords[0] * LCornerCoords_[1][0] +
+                          bCoords[1] * LCornerCoords_[1][1] +
+                          bCoords[2] * LCornerCoords_[1][2];
 
-        //        std::cout << "SIMON> Triangle1FE->Global2Local(): localCoord[" << i << "]: (" <<localCoords[0][i]<< ", " << localCoords[1][i] << ")" << std::endl;
-        /*        
-        std::cout << "SIMON> Line1FE->Global2Local(): s " << s << std::endl;
+      //        std::cout << "SIMON> Triangle1FE->Global2Local(): localCoord[" << i << "]: (" <<localCoords[0][i]<< ", " << localCoords[1][i] << ")" << std::endl;
+      /*        
+                std::cout << "SIMON> Line1FE->Global2Local(): s " << s << std::endl;
 
-        for(UInt j = 0; j < Dim_; j++)
-        {
-            localCoords[j][i] = LCornerCoords_[j][0] * s + LCornerCoords_[j][1] * (1-s);
-            std::cout << "SIMON> Line1FE->Global2Local(): localcoord " <<localCoords[j][i]<< std::endl;
-        }
-        */
+                for(UInt j = 0; j < Dim_; j++)
+                {
+                localCoords[j][i] = LCornerCoords_[j][0] * s + LCornerCoords_[j][1] * (1-s);
+                std::cout << "SIMON> Line1FE->Global2Local(): localcoord " <<localCoords[j][i]<< std::endl;
+                }
+      */
     }
     
   }

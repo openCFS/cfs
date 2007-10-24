@@ -587,7 +587,7 @@ namespace CoupledField {
     std::string gmvElemName;
     connect.resize(100);
     std::vector<UInt> elemRegions;
-    std::vector<std::string> regionNames;
+    StdVector<std::string> regionNames;
     
     ptGrid_->GetRegionNames(regionNames);
     
