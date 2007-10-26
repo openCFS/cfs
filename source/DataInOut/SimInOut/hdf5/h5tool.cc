@@ -379,8 +379,8 @@ Integer ExistsDataset(H5::H5File& file,
   }
   catch (H5::Exception& h5ex)
   {
-    //    std::cerr << h5ex.getCDetailMsg() << std::endl;
-    std::cerr << "ExistsDataset: Failed to open base group!" << std::endl;
+    // std::cerr << "ExistsDataset: Failed to open base group!" << std::endl;
+    return 1;
   }
 
 
@@ -411,7 +411,48 @@ Integer ExistsDataset(H5::H5File& file,
 
   return 1;
 }
-    
+
+Integer DeleteDataset(H5::H5File& file,
+                      std::string path,
+                      std::string ds_name)
+{
+  H5::Group base_group;
+
+  try
+  {
+    base_group = file.openGroup(path);
+  }
+  catch (H5::Exception& h5ex)
+  {
+    // std::cerr << "ExistsDataset: Failed to open base group!" << std::endl;
+    return 0;
+  }
+
+
+  UInt numObjs = base_group.getNumObjs();
+  
+  for(UInt i=0; i<numObjs; i++)
+  {
+    std::string objName = H5IO::GetObjNameByIdx( base_group, i );
+    //    std::cout << "PATH: " << path << "/" << objName << std::endl;
+    if(objName == ds_name) {
+      try {
+        base_group.unlink(ds_name);
+      }
+      catch (H5::Exception& h5ex)
+      {
+        std::cerr << "DeleteDataset: Unlinkinf of old dataset failed"
+                  << std::endl;
+        return 1;
+      }
+      break;
+    }
+  }
+
+  return 0;
+}
+
+
 int main(int argc, char** argv)
 {
   std::string op_target;
@@ -632,6 +673,19 @@ int main(int argc, char** argv)
       
       ret = ExistsDataset(*file, path, ds_name);
     }
+
+    if(op_name == "delete")
+    {
+      std::string ds_name;
+
+      std::cout << "Dataset name: " << std::endl;
+      getline(std::cin, ds_name);
+
+      ret = DeleteDataset(*file,
+                          path,
+                          ds_name);
+    }
+    
   }
 
 
