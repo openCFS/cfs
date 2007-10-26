@@ -7,6 +7,8 @@ H5FILE=$WORKDIR/$2
 H5IMPORT=@CFSDEPS_ROOT_DIR@/bin/h5import
 H5CFSHELPER=@CFS_BINARY_DIR@/bin/h5tool
 INPUTTYPE=$3
+FLOATDS=$4
+EXTERNFILES=$5
 
 BASEPATH=`dirname $0`
 if [ -e $BASEPATH/import_cfsdeps.sh ]
@@ -69,7 +71,7 @@ fi
 #RESULT_RANK=1
 #RESULT_DIMENSION_SIZES=100
 
-echo "Writing result descriptions for region: $RESULT_REGION..."
+echo "Writing result descriptions ($RESULT_NAME) for region: $RESULT_REGION..."
 
 if [ ! -e $H5FILE ]
 then
@@ -83,7 +85,7 @@ printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
 CMDSTR="group\ncreate\n$H5FILE\n/Results\n$RESULT_TYPE\nignore\n"
 printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
 
-CMDSTR="attribute\ncreate\n$H5FILE\n/Results/$RESULT_TYPE\nuint\nexternalFiles\nignore\n0\n"
+CMDSTR="attribute\ncreate\n$H5FILE\n/Results/$RESULT_TYPE\nuint\nExternalFiles\nignore\n$EXTERNFILES\n"
 printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck                    
 
 CMDSTR="group\ncreate\n$H5FILE\n/Results/$RESULT_TYPE\nMultiStep_$MULTISTEP\nignore\n"
@@ -178,18 +180,82 @@ then
 fi
 
 CFGFILE=$WORKDIR/tmp.cfg
-echo "PATH /Results/$RESULT_TYPE/MultiStep_$MULTISTEP/Step_$STEP_NUM/$RESULT_NAME/$RESULT_REGION/$RESULT_ON/$COMPLEX_TYPE" > $CFGFILE
-echo "INPUT-CLASS TEXTFP" >> $CFGFILE
-echo "INPUT-SIZE 64" >> $CFGFILE
-echo "RANK $RESULT_RANK" >> $CFGFILE
-echo "DIMENSION-SIZES $RESULT_DIMENSION_SIZES" >> $CFGFILE
-echo "OUTPUT-CLASS FP" >> $CFGFILE
-echo "OUTPUT-SIZE 64" >> $CFGFILE
-echo "OUTPUT-ARCHITECTURE IEEE" >> $CFGFILE
-echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
 
-$H5IMPORT $WORKDIR/$RESULT_DATAFILE -c $CFGFILE -o $H5FILE
-ErrorCheck
+NUMRESULTS=`echo $RESULT_DIMENSION_SIZES | cut -d' ' -f1`
+
+if [ $RESULT_RANK -eq 1 ]
+then
+    if [ $(( $NUMRESULTS > 1000 )) -eq 1 ]
+    then
+	CHUNKED_DIM_SIZES=1000
+    else
+	CHUNKED_DIM_SIZES=$NUMRESULTS
+    fi
+fi
+if [ $RESULT_RANK -eq 2 ]
+then
+    if [ $(( $NUMRESULTS > 1000 )) -eq 1 ]
+    then
+	CHUNKED_DIM_SIZES="1000 1"
+    else
+	CHUNKED_DIM_SIZES="$NUMRESULTS 1"
+    fi
+fi
+
+if [ $FLOATDS -eq 1 ]
+then
+    OUTSIZE=32
+else
+    OUTSIZE=64
+fi
+
+
+if [ $EXTERNFILES -eq 1 ]
+then
+    MASTERFILENAME=$2
+    EXTFILENAME="$WORKDIR/TimeStep_$STEP_NUM.h5"
+
+    echo "PATH /$RESULT_NAME/$RESULT_REGION/$RESULT_ON/$COMPLEX_TYPE" > $CFGFILE
+    echo "INPUT-CLASS TEXTFP" >> $CFGFILE
+    echo "INPUT-SIZE 64" >> $CFGFILE
+    echo "RANK $RESULT_RANK" >> $CFGFILE
+    echo "DIMENSION-SIZES $RESULT_DIMENSION_SIZES" >> $CFGFILE
+    echo "OUTPUT-CLASS FP" >> $CFGFILE
+    echo "OUTPUT-SIZE $OUTSIZE" >> $CFGFILE
+    echo "OUTPUT-ARCHITECTURE IEEE" >> $CFGFILE
+    echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    echo "CHUNKED-DIMENSION-SIZES $CHUNKED_DIM_SIZES" >> $CFGFILE
+    echo "COMPRESSION-TYPE GZIP" >> $CFGFILE
+    echo "COMPRESSION-PARAM 9" >> $CFGFILE
+
+    $H5IMPORT $WORKDIR/$RESULT_DATAFILE -c $CFGFILE -o $EXTFILENAME
+    ErrorCheck
+
+    CMDSTR="attribute\ncreate\n$EXTFILENAME\n/\nstring\nMasterHDF5FileName\nignore\n$MASTERFILENAME\n"
+    printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+    CMDSTR="group\ncreate\n$H5FILE\n/Results/$RESULT_TYPE/MultiStep_$MULTISTEP\nStep_$STEP_NUM\nignore\n"
+    printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+    CMDSTR="attribute\ncreate\n$H5FILE\n/Results/$RESULT_TYPE/MultiStep_$MULTISTEP/Step_$STEP_NUM\nstring\nExtHDF5FileName\nignore\n`basename $EXTFILENAME`\n"
+    printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
+else
+
+    echo "PATH /Results/$RESULT_TYPE/MultiStep_$MULTISTEP/Step_$STEP_NUM/$RESULT_NAME/$RESULT_REGION/$RESULT_ON/$COMPLEX_TYPE" > $CFGFILE
+    echo "INPUT-CLASS TEXTFP" >> $CFGFILE
+    echo "INPUT-SIZE 64" >> $CFGFILE
+    echo "RANK $RESULT_RANK" >> $CFGFILE
+    echo "DIMENSION-SIZES $RESULT_DIMENSION_SIZES" >> $CFGFILE
+    echo "OUTPUT-CLASS FP" >> $CFGFILE
+    echo "OUTPUT-SIZE $OUTSIZE" >> $CFGFILE
+    echo "OUTPUT-ARCHITECTURE IEEE" >> $CFGFILE
+    echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    echo "CHUNKED-DIMENSION-SIZES $CHUNKED_DIM_SIZES" >> $CFGFILE
+    echo "COMPRESSION-TYPE GZIP" >> $CFGFILE
+    echo "COMPRESSION-PARAM 9" >> $CFGFILE
+
+    $H5IMPORT $WORKDIR/$RESULT_DATAFILE -c $CFGFILE -o $H5FILE
+    ErrorCheck
+
+fi
 
 CMDSTR="attribute\ncreate\n$H5FILE\n/Results/$RESULT_TYPE/MultiStep_$MULTISTEP/Step_$STEP_NUM\ndouble\nStepValue\nignore\n$STEP_VALUE\n"
 printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck

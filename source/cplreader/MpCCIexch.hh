@@ -1,6 +1,8 @@
 #ifndef FILE_MPCCIEXCH_2006
 #define FILE_MPCCIEXCH_2006
 
+#include <General/environment.hh>
+
 #include "filereader.hh"
 
 namespace CoupledField
@@ -11,48 +13,54 @@ namespace CoupledField
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
   */
 
-class MpCCIexch
-{
-public:
+  class MpCCIexch
+  {
+  public:
 
-  //!
+    //!
     MpCCIexch(int argc, char *argv[], FileReader * ptFileReader);
 
 
-  //!
-  virtual ~MpCCIexch();
+    //!
+    virtual ~MpCCIexch();
 
-  //! Reorganizing grid info for MpCCi and hand over to MpCCI
-  void PutExchangeGrid2MpCCI();
+    //! Reorganizing grid info for MpCCi and hand over to MpCCI
+    void PutExchangeGrid2MpCCI();
 
-  //! Performs the coupled computation phase
-  void Couple();
+    //! Performs the coupled computation phase
+    void Couple();
 
-private:
+  private:
 
     void CalculateAcouSrcs(const int partitionIdx,
-                           const std::vector<double>& velocity,
-                           // const std::vector<double>& pressure,
-                           std::vector<double>& acouSrc);
+                           std::vector<double>& flowdata);
     
+    void ClearMeshTempFiles(std::string& coordCfgFileName,
+                            std::string& coordDatFileName,
+                            std::string& connCfgFileName,
+                            std::string& connDatFileName,
+                            std::string& typesCfgFileName,
+                            std::string& typesDatFileName,
+                            std::string& importMeshCmd);
 
-  FileReader *  ptFileReader_;
-  std::map<int, std::vector<Realtype> > NodalCoords_;
-  std::map<int, std::vector<int> > Topology_;
+    void ClearDatasetTempFiles(std::string& stepNumsFileName,
+                               std::string& stepValuesFileName,
+                               std::string& resultScriptFileName,
+                               std::string& resultDatFileName,
+                               std::string& writeResultCmd,
+                               std::string& writeAuxCmd);
+
+    
+    FileReader *  ptFileReader_;
+    std::map<UInt, std::vector<Double> > NodalCoords_;
+    std::map<UInt, std::vector<UInt> > Topology_;
+
+    std::map<UInt, std::vector<UInt> > numNodesPerElem_;
+    std::map<UInt, std::vector<UInt> > elemTypes_;
+
+    std::map<UInt, std::map<UInt, UInt> > nodesInPartition_;
   
-  std::map<int, std::vector<int> > numNodesPerElem_;
-  std::map<int, std::vector<int> > elemTypes_;
-
-  std::map<int, std::map<int, int> > nodesInPartition_;
-  
-#if 0
-  //!MpCCI
-  int meshId_;
-  int GlobalDim_;
-  int MpCCIprocess_;
-#endif
-
-};
+  };
 
 } // end of namespace
 #endif

@@ -8,13 +8,8 @@
 
 #include <General/environment.hh>
 
-#ifdef MpCCI
-#include <mpcci.h>
-#endif
-
 #include "../params.hh"
 #include "../settings.hh"
-// #include "../mpcci_defs.hh"
 #include "filereader_FASTEST.hh"
 
 
@@ -22,8 +17,8 @@ namespace CoupledField
 {
 
     FileReader_FASTEST::FileReader_FASTEST(const std::string& name,
-                           const int dim,
-                           const int numFiles) :
+                           const UInt dim,
+                           const UInt numFiles) :
         FileReader(name, dim, numFiles)
     {
     }
@@ -37,21 +32,42 @@ namespace CoupledField
       Settings& settings = Settings::Instance();
         std::string filename;
         char buf[128];
-        int dummy;
+        UInt dummy;
+        UInt i;
         
-        filename = basename_;
-        sprintf(buf, "%02i", 1);
-        filename+= buf;
-        filename+= ".coord";
+        
+        if(settings.GetDouble("timeStep") < 0)
+          EXCEPTION("No proper time step has been specified! Use --timestep X.");
+        
+        // Let's first determine the format if filenames        
+        std::stringstream sstr;
+        std::string regionFormatStr;
+        std::string timeStepFormatStr;
+        
+        std::cout << "Trying to determine file name format for "
+                  << ".coord/.node files..." << std::endl;
+        for(i=1; i<10; i++)
+        {
+          filename = basename_;
+          sstr.str("");
+          sstr << "%0" << i << "i";
+          regionFormatStr = sstr.str();
+          sprintf(buf, regionFormatStr.c_str(), 1);
+          filename+= buf;
+          filename+= ".coord";
 
-        infile.clear();
-        infile.open(filename.c_str());  
-        if (!infile) {
-            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                      << ") Can't open " << filename << std::endl;
-            exit(1);
+          infile.clear();
+          infile.open(filename.c_str());  
+          if (!infile) {
+            std::cerr << "Can't open " << filename << std::endl;
+          }
+          else
+            break;
         }
-
+        
+        if( i == 10 )
+          EXCEPTION("Could not determine file name format for .coord/.node files");
+        
         infile >> dummy;
         infile >> numPartitions_;
         infile >> dummy;
@@ -60,21 +76,32 @@ namespace CoupledField
         infile.close();
         infile.clear();
 
-        filename = basename_;
-        sprintf(buf, "%02i", 1);
-        filename+= buf;
-        filename+= "_";
-        sprintf(buf, "%04i", 1);
-        filename+= buf;
-        filename+= ".dat";
+        std::cout << "Trying to determine file name format for .dat files..."
+                  << std::endl;
+        for(i=1; i<10; i++)
+        {
+          filename = basename_;
+          sprintf(buf, regionFormatStr.c_str(), 1);
+          filename+= buf;
+          filename+= "_";
+          sstr.str("");
+          sstr << "%0" << i << "i";
+          timeStepFormatStr = sstr.str();
+          sprintf(buf, timeStepFormatStr.c_str(), 1);
+          filename+= buf;
+          filename+= ".dat";
 
-        infile.clear();
-        infile.open(filename.c_str());  
-        if (!infile) {
-            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                      << ") Can't open " << filename << std::endl;
-            exit(1);
+          infile.clear();
+          infile.open(filename.c_str());  
+          if (!infile) {
+            std::cerr << "Can't open " << filename << std::endl;
+          }
+          else
+            break;
         }
+        
+        if( i == 10 )
+          EXCEPTION("Could not determine file name format for .dat files");
 
         infile >> numResults_;
 
@@ -83,7 +110,6 @@ namespace CoupledField
 
         // Initialize mapping between columns in FASTEST result files and
         // internal variables.
-        std::stringstream sstr;
         Integer dataCol;
         StdVector<std::string> fastestDOFs;
         fastestDOFs.Push_back("lhsrc");
@@ -124,6 +150,7 @@ namespace CoupledField
                   << " numfiles: " << numFiles_ << std::endl
                   << " numPartitions: " << numPartitions_ << std::endl
                   << " numResults: " << numResults_ << std::endl
+                  << " timeStep: " << settings.GetDouble("timeStep") << std::endl
                   << " Lighthill source term column: " << dataColumns_[0]+1 << std::endl
                   << " vx column: " << dataColumns_[1]+1 << std::endl
                   << " vy column: " << dataColumns_[2]+1 << std::endl
@@ -134,7 +161,7 @@ namespace CoupledField
         MpCCInodes_.resize(numPartitions_);
         MpCCIelems_.resize(numPartitions_);
 
-        for(int i=0; i<numPartitions_; i++)
+        for(UInt i=0; i<numPartitions_; i++)
         {
             filename = basename_;
             sprintf(buf, "%02i", i+1);
@@ -189,8 +216,8 @@ namespace CoupledField
     }
 
 
-    void FileReader_FASTEST::ReadNodalCoords(std::vector<Realtype> & NODECOORD,
-                                             const int partitionIdx)
+    void FileReader_FASTEST::ReadNodalCoords(std::vector<Double> & NODECOORD,
+                                             const UInt partitionIdx)
     {
      #ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadNodalCoords" << std::endl;
@@ -198,7 +225,7 @@ namespace CoupledField
 
         std::string filename;
         char buf[128];
-        int dummy;
+        UInt dummy;
         
         filename = basename_;
         sprintf(buf, "%02i", partitionIdx+1);
@@ -233,9 +260,9 @@ namespace CoupledField
         min[1] = max[1] = NODECOORD[1];  
         min[2] = max[2] = NODECOORD[2];
 
-        for (int i=1; i < MpCCInodes_[partitionIdx]; i++)
+        for (UInt i=1; i < MpCCInodes_[partitionIdx]; i++)
         {
-            for (int j=0; j < 3; j++)
+            for (UInt j=0; j < 3; j++)
             {
                 infile >> NODECOORD[3*i+j];
                 if(NODECOORD[3*i+j] > max[j])
@@ -253,10 +280,10 @@ namespace CoupledField
         infile.close();
     }
 
-    void FileReader_FASTEST::ReadTopology(std::vector<int> & TOPOLOGYDATA,
-                                          std::vector<int> & numNodesPerElem,
-                                          std::vector<int> & elemTypes,
-                                          const int partitionIdx)
+    void FileReader_FASTEST::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                                          std::vector<UInt> & numNodesPerElem,
+                                          std::vector<UInt> & elemTypes,
+                                          const UInt partitionIdx)
     {
      #ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadTopology" << std::endl;
@@ -265,7 +292,7 @@ namespace CoupledField
 
         std::string filename;
         char buf[128];
-        int dummy, numNodes, elemType;
+        UInt dummy, numNodes, elemType;
         
         filename = basename_;
         sprintf(buf, "%02i", partitionIdx+1);
@@ -334,9 +361,9 @@ namespace CoupledField
         numNodesPerElem.resize(MpCCIelems_[partitionIdx]);
         elemTypes.resize(MpCCIelems_[partitionIdx]);
 
-        for (int i=0; i < MpCCIelems_[partitionIdx]; i++)
+        for (UInt i=0; i < MpCCIelems_[partitionIdx]; i++)
         {
-            for (int j=0; j < elsize_[partitionIdx]; j++)
+            for (UInt j=0; j < elsize_[partitionIdx]; j++)
             {
                 infile >> TOPOLOGYDATA[elsize_[partitionIdx]*i+j];
             }
@@ -354,8 +381,8 @@ namespace CoupledField
     }
 
     void FileReader_FASTEST::ReadNodalValues(std::vector<double> & flowdata,
-                                             const int partitionIdx,
-                                             const int timeStepIdx)
+                                             const UInt partitionIdx,
+                                             const UInt timeStepIdx)
     {
      #ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadNodalValues" << std::endl;
@@ -364,7 +391,7 @@ namespace CoupledField
 
         std::string filename;
         char buf[128];
-        int dummy;
+        UInt dummy;
 
         
         filename = basename_;
@@ -394,7 +421,7 @@ namespace CoupledField
         StdVector<Double> tempVec;
         tempVec.Resize(numResults_);
         
-        for (int i=0; i < MpCCInodes_[partitionIdx]; i++)
+        for (UInt i=0; i < MpCCInodes_[partitionIdx]; i++)
         {
           std::fill(&flowdata[i*7+0], &flowdata[i*7+7], 0.0);
           
@@ -406,59 +433,6 @@ namespace CoupledField
             if(dataColumns_[j] > -1)
               flowdata[i*7+j] = tempVec[dataColumns_[j]];
           }
-/*          
-            switch(numResults_) 
-            {
-            case 1:
-                
-                infile >> flowdata[i*7+0];
-                flowdata[i*7+1] = 0.567;
-                flowdata[i*7+2] = 0.567;
-                flowdata[i*7+3] = 0.567;
-                flowdata[i*7+4] = 0.890;
-                flowdata[i*7+5] = 0.890;
-                flowdata[i*7+6] = 0.890;
-                break;
-            case 3:
-                infile >> flowdata[i*7+0];
-                infile >> flowdata[i*7+1];
-                infile >> flowdata[i*7+2];
-                flowdata[i*7+3] = 0.0;
-                flowdata[i*7+4] = 0.123;
-                flowdata[i*7+5] = 0.123;
-                flowdata[i*7+6] = 0.123;
-                break;
-            case 4:
-                infile >> flowdata[i*7+0];
-                infile >> flowdata[i*7+1];
-                infile >> flowdata[i*7+2];
-                infile >> flowdata[i*7+3];
-                flowdata[i*7+4] = 0.4590;
-                flowdata[i*7+5] = 0.4590;
-                flowdata[i*7+6] = 0.4590;
-                break;
-            case 6:
-              infile >> flowdata[i*7+0];
-              infile >> flowdata[i*7+1];
-              infile >> flowdata[i*7+2];
-              infile >> flowdata[i*7+3];
-              infile >> flowdata[i*7+4];
-              infile >> flowdata[i*7+5];
-              break;
-            case 7:
-                infile >> flowdata[i*7+0];
-                infile >> flowdata[i*7+4];
-                infile >> flowdata[i*7+5];
-                infile >> flowdata[i*7+6];
-                infile >> flowdata[i*7+1];
-                infile >> flowdata[i*7+2];
-                infile >> flowdata[i*7+3];
-                break;
-            default:
-                break;
-            }
-*/                
-            
         }
 
         infile.close();

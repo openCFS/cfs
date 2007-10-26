@@ -4,8 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#define REALTYPE CCI_DOUBLE
-typedef double Realtype;
+#include <General/environment.hh>
 
 //! Base class for reading topology and nodal data from results of fluid computations 
 /*!
@@ -23,7 +22,7 @@ namespace CoupledField
     public:
 
         //! Constructor
-        FileReader(const std::string& name, const int dim, const int numFiles);
+        FileReader(const std::string& name, const UInt dim, const UInt numFiles);
     
         //! Deconstructor
         virtual ~FileReader();
@@ -31,47 +30,47 @@ namespace CoupledField
         virtual void Init() = 0;
 
         //! get node coordinates from the corresponding file
-        virtual void ReadNodalCoords(std::vector<Realtype> & NODECOORD,
-                             const int partitionIdx) = 0;
+        virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
+                             const UInt partitionIdx) = 0;
 
 
         //! get topology information from the corresponding topology file
-        virtual void ReadTopology(std::vector<int> & TOPOLOGYDATA,
-                                  std::vector<int> & numNodesPerElem,
-                                  std::vector<int> & elemTypes,
-                                  const int partitionIdx) = 0;
+        virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                                  std::vector<UInt> & numNodesPerElem,
+                                  std::vector<UInt> & elemTypes,
+                                  const UInt partitionIdx) = 0;
 
         //! get nodal values from the corresponding fluid datafile
-        virtual void ReadNodalValues(std::vector<double> & flowdata,
-                             const int partitionIdx,
-                             const int timeStepIdx) = 0;
+        virtual void ReadNodalValues(std::vector<Double> & flowdata,
+                             const UInt partitionIdx,
+                             const UInt timeStepIdx) = 0;
 
         //! Return number of partitions
-        virtual int GetNumPartitions() { return numPartitions_;}
+        virtual UInt GetNumPartitions() { return numPartitions_;}
 
         //! Return number number of timestep files
-        virtual int GetNumFiles() { return numFiles_;}
+        virtual UInt GetNumFiles() { return numFiles_;}
 
         //! Return maximum number of nodes
-        virtual int GetNumNodes(const int partitionIdx) { 
+        virtual UInt GetNumNodes(const UInt partitionIdx) { 
             return MpCCInodes_[partitionIdx];
         }
 
         //! Return maximum number of nodes
-        virtual int GetNumElems(const int partitionIdx) { 
+        virtual UInt GetNumElems(const UInt partitionIdx) { 
             return MpCCIelems_[partitionIdx];
         }
 
         //! return dimension of grid
-        virtual int GetDim() { return dim_;}
+        virtual UInt GetDim() { return dim_;}
 
         //! return size of element
-        virtual int GetElemSize(const int partitionIdx) {
+        virtual UInt GetElemSize(const UInt partitionIdx) {
             return elsize_[partitionIdx];
         }
 
         //! return size of element
-        virtual int GetNumResults() { 
+        virtual UInt GetNumResults() { 
             return numResults_;
         }
 
@@ -86,17 +85,17 @@ namespace CoupledField
         std::ifstream flowdatafile;
         std::string name_;
         std::string basename_;
-        std::vector<int> elsize_;
+        std::vector<UInt> elsize_;
         //<! current number of partitions
-        int numPartitions_; 
+        UInt numPartitions_; 
         //<! dimension of grid
-        int dim_;
+        UInt dim_;
         //<! maximum number of nodes
-        std::vector<int> MpCCInodes_;
+        std::vector<UInt> MpCCInodes_;
         //<! maximum number of elements
-        std::vector<int> MpCCIelems_;
-        int numResults_;
-        int numFiles_;
+        std::vector<UInt> MpCCIelems_;
+        UInt numResults_;
+        UInt numFiles_;
     };
 
       

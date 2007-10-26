@@ -559,6 +559,16 @@ namespace CoupledField {
     else if (in == "stokesFluidForce")
       out = STOKESFLUID_FORCE;
 
+    //fluidMech
+    else if (in == "fluidMechVelocity")
+      out = FLUIDMECH_VELOCITY;
+    else if (in == "fluidMechPressure")
+      out = FLUIDMECH_PRESSURE;
+    else if (in == "fluidMechForce")
+      out = FLUIDMECH_FORCE;
+    else if (in == "lambda_k")
+      out = LAMBDA_K;
+    
     // bubble
     else if (in == "bubbleRadius")
       out = BUBBLE_RADIUS;
@@ -776,6 +786,20 @@ namespace CoupledField {
         out = "stokesFluidForce";
         break;
 
+        //fluidMech
+      case FLUIDMECH_VELOCITY:
+        out = "fluidMechVelocity";
+        break;
+      case FLUIDMECH_PRESSURE:
+        out = "fluidMechPressure";
+        break;
+      case FLUIDMECH_FORCE:
+        out = "fluidMechForce";
+        break;
+      case LAMBDA_K:
+        out = "lambda_k";
+        break;
+        
         // bubble
       case BUBBLE_RADIUS:
         out = "bubbleRadius";
