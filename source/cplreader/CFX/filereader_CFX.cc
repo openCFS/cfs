@@ -5,18 +5,14 @@
 #include <stdio.h>
 #include <iomanip>
 
-#ifdef MpCCI
-#include <mpcci.h>
-#endif
-
 // #include <pcrecpp.h>
 // #include <muParser.h>
 
 #include <General/environment.hh>
 
-#include "params.hh"
-#include "settings.hh"
-#include "mpcci_defs.hh"
+#include "../params.hh"
+#include "../settings.hh"
+#include "../mpcci_defs.hh"
 #include "filereader_CFX.hh"
 #include "cfx_fortran_defs.h"
 
@@ -25,9 +21,7 @@ if(NERR)                                                  \
 {                                                         \
             std::string errStr;                           \
             IOErrorToString(NERR, errStr);                \
-            std::cerr << __FILE__ << " line " << __LINE__ \
-                      << ": " << errStr << std::endl;     \
-            exit(1);                                      \
+            EXCEPTION(errStr);                            \
 }
 
 
@@ -42,33 +36,14 @@ namespace CoupledField
     int ind = 0;
 
     FileReader_CFX::FileReader_CFX(const std::string& name,
-                                   const int dim,
-                                   const int numFiles) :
+                                   const UInt dim,
+                                   const UInt numFiles) :
         FileReader(name, dim, numFiles)
     {
         name_ = name;
         basename_ = "./";
         basename_+= name_;
         basename_+= "_data/";
-
-        /*        
-        ReadNodalCoords(doublevec, 0);
-        std::vector<int> TOPOLOGYDATA;
-        std::vector<int> numNodesPerElem;
-        std::vector<int> elemTypes;
-
-        ReadTopology(TOPOLOGYDATA,
-                     numNodesPerElem,
-                     elemTypes,
-                     0);
-
-        std::vector<double> flowdata;
-        
-        ReadNodalValues(flowdata,
-                        0,
-                        0);
-        */
-        
     }
 
     FileReader_CFX::~FileReader_CFX()
@@ -79,6 +54,9 @@ namespace CoupledField
     {
         Settings& settings = Settings::Instance();
 
+        if(settings.GetDouble("timeStep") < 0)
+          EXCEPTION("No proper time step has been specified! Use --timestep X.");
+        
         //-----------------------------------------------------------------------
         //     Open RESULTS file
         //-----------------------------------------------------------------------
@@ -419,8 +397,8 @@ namespace CoupledField
         CHECK_CFX_IO(nerr);
     }
     
-    void FileReader_CFX::ReadNodalCoords(std::vector<Realtype> & NODECOORD,
-                                         const int partitionIdx)
+    void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD,
+                                         const UInt partitionIdx)
     {
         Settings& settings = Settings::Instance();
         NODECOORD.resize(MpCCInodes_[partitionIdx]*3);
@@ -466,10 +444,10 @@ namespace CoupledField
         CHECK_CFX_IO(nerr);
     }
     
-    void FileReader_CFX::ReadTopology(std::vector<int> & TOPOLOGYDATA,
-                                      std::vector<int> & numNodesPerElem,
-                                      std::vector<int> & elemTypes,
-                                      const int partitionIdx)
+    void FileReader_CFX::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                                      std::vector<UInt> & numNodesPerElem,
+                                      std::vector<UInt> & elemTypes,
+                                      const UInt partitionIdx)
     {
         Settings& settings = Settings::Instance();
         int numNodes = elsize_[partitionIdx];
@@ -550,7 +528,7 @@ namespace CoupledField
             if(elemType == ET_HEXA8)
             {
                 baseIdx = i*8;
-                // Reihenfolge für MpCCI
+                // Reihenfolge fï¿½r MpCCI
                 TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 4];
                 TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 6];
                 TOPOLOGYDATA[baseIdx + 2] = intvec[baseIdx + 7];
@@ -560,7 +538,7 @@ namespace CoupledField
                 TOPOLOGYDATA[baseIdx + 6] = intvec[baseIdx + 3];
                 TOPOLOGYDATA[baseIdx + 7] = intvec[baseIdx + 1];
 
-                // Reihenfolge für HDF5
+                // Reihenfolge fï¿½r HDF5
                 /*
                 TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 0]; // 1
                 TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 2]; // 22
@@ -577,8 +555,8 @@ namespace CoupledField
     
 
     void FileReader_CFX::ReadNodalValues(std::vector<double> & flowdata,
-                                         const int partitionIdx,
-                                         const int timeStepIdx)
+                                         const UInt partitionIdx,
+                                         const UInt timeStepIdx)
     {
         Settings& settings = Settings::Instance();
         int nvx = MpCCInodes_[partitionIdx];
@@ -625,14 +603,6 @@ namespace CoupledField
 
         CHECK_CFX_IO(nerr);
 
-        //-----------------------------------------------------------------------
-        //     Close INPUT file
-        //-----------------------------------------------------------------------
-
-        whatfile = __io_close_primaryfile__;
-        closefile_(&nerr, &whatfile);
-        CHECK_CFX_IO(nerr);
-
         if(flowdata.size() != nvx*7)
             flowdata.resize(nvx*7);
 
@@ -649,6 +619,54 @@ namespace CoupledField
             flowdata[n*7+1] = doublevec[n*3+0];
             flowdata[n*7+2] = doublevec[n*3+1];
             flowdata[n*7+3] = doublevec[n*3+2];
+          }          
+        }
+        
+        //-----------------------------------------------------------------------
+        //     Reading pressure from input file
+        //-----------------------------------------------------------------------
+
+        sprintf(what, "G/PRES");
+        sprintf(where, "ZN1/VX");
+        when  = timeStepNumbers_[timeStepIdx];
+
+        if(settings.GetInt("floatDataset"))
+          dattyp = __real_data_type__;
+        else
+          dattyp = __double_data_type__;
+
+        length = 1;
+        nsize  = nvx;
+        iopt   = __stop_if_failed__;
+        
+        if(settings.GetInt("floatDataset"))
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+                    &floatvec[0],iarr,carr,larr,darr,sarr,
+                    strlen(what), strlen(where), 0);
+        else
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+                    &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+                    strlen(what), strlen(where), 0);
+
+        CHECK_CFX_IO(nerr);
+        
+        //-----------------------------------------------------------------------
+        //     Close INPUT file
+        //-----------------------------------------------------------------------
+
+        whatfile = __io_close_primaryfile__;
+        closefile_(&nerr, &whatfile);
+        CHECK_CFX_IO(nerr);
+
+        for(int n=0; n<nvx; n++)
+        {
+          if(settings.GetInt("floatDataset"))
+          {
+            flowdata[n*7+4] = floatvec[n];
+          }
+          else
+          {
+            flowdata[n*7+4] = doublevec[n];
           }          
         }
     }
@@ -1104,173 +1122,4 @@ namespace CoupledField
         }
         
     }
-    
-
-        /* 
-    //-----------------------------------------------------------------------
-    //     Open RESULTS file
-    //-----------------------------------------------------------------------
-
-    sprintf(fn, "/home/lse24/lseguest/mkuntz/stump_sas_003.res");
-    whatfile = __io_open_primaryfile__;
-    printf("%s\n", fn); 
-    
-    openfile_(&nerr, fn, &whatfile, strlen(fn)); 
-
-    //-----------------------------------------------------------------------
-    //     Read the latest time step number
-    //-----------------------------------------------------------------------
-
-    sprintf(what, "G/TRANSIENT");
-    sprintf(where, "ZN1");
-
-    when  = -1;
-    length= 6;
-    nsize = 1;
-    iopt   = __not_stop_if_failed__;
-    ioptar = 0;
-    int iarrt[10000];
-    real rarrt[10000];
-    int its;
-    
-    memset(iarrt, 0, sizeof(iarrt));
-    memset(rarrt, 0, sizeof(rarrt));
-    
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarrt,iarrt,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-
-    its = iarrt[2];
-    
-    //-----------------------------------------------------------------------
-    //     Read the trninfo data set
-    //-----------------------------------------------------------------------
-    sprintf(what, "G/TRN_INFO");
-    sprintf(where, "EVERY");
-    when  = its;
-
-    dattyp    = -3;
-    length    = 3;
-    nsize     = 10000;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    int larrt[10000];
-    double darrt[10000];
-    char sarrt[10000*80];
-    int ntrn;
-
-    memset(larrt, 0, sizeof(larrt));
-    memset(darrt, 0, sizeof(darrt));
-    memset(sarrt, 0, sizeof(sarrt));
-    
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarrt,iarrt,carr,larrt,darrt,sarrt, strlen(what), strlen(where), 0);
-
-
-    ntrn = nsize;
-
-    //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
-    
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile); 
-
-    ntrn = 26;
-
-    fprintf(out, "variable\n");
-
-    for(i = 0; i< ntrn; i++)
-    {
-        int its  = iarrt[i];
-        
-        printf("Time step=%d\n", its);
-
-        
-        char* trnnam = &sarrt[i*80];
-        int n;
-        for(n = 0; n< 80; n++)
-        {
-            if(isblank((int)trnnam[i]))
-            {
-                trnnam[8] = 0;
-                break;
-            }
-        }
-        
-        //        trnnam = resnam(1:lenact(resnam)-4)//'/'//sarrt(itrn)
-
-        sprintf(fn, "/home/lse24/lseguest/mkuntz/%s", trnnam);
-        FILE* fp = fopen(fn, "rb");
-        printf("%s %d\n", fn, fp); 
-
-        
-        if(!fp)
-            continue;
-        else
-            fclose(fp);
-
-        whatfile = __io_open_primaryfile__;
-        printf("%s\n", fn); 
-    
-        openfile_(&nerr, fn, &whatfile, strlen(fn)); 
-        
-        //-----------------------------------------------------------------------
-        //     Reading velocity from input file
-        //-----------------------------------------------------------------------
-
-        sprintf(what, "G/VEL_FL1");
-        sprintf(where, "ZN1/VX");
-        when  = its;
-
-        dattyp = __real_data_type__;
-        length = 3;
-        nsize  = nvx;
-        iopt   = __stop_if_failed__;
-        float vel[12000000];
-
-        memset(vel, 0, sizeof(vel));
-        
-        readlong_(&dattyp,what,where,&when,&nsize,&iopt,
-                  vel,iarr,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
-
-
-        fprintf(out, "\nvelocity_x_%d 1\n", its);
-
-        for(n=0; n<nvx; n++)
-        {
-            fprintf(out, "%f ",
-                    vel[n*3+0]);
-        }
-        
-        fprintf(out, "\nvelocity_y_%d 1\n", its);
-
-        for(n=0; n<nvx; n++)
-        {
-            fprintf(out, "%f ",
-                    vel[n*3+1]);
-        }
-
-        fprintf(out, "\nvelocity_z_%d 1\n", its);
-
-        for(n=0; n<nvx; n++)
-        {
-            fprintf(out, "%f ",
-                    vel[n*3+2]);
-        }
-
-
-        //-----------------------------------------------------------------------
-        //     Close INPUT file
-        //-----------------------------------------------------------------------
-
-        whatfile = __io_close_primaryfile__;
-        closefile_(&nerr, &whatfile); 
-
-    }
-
-    fprintf(out, "endvars\nendgmv\n");
-
-    fclose(out);
-*/    
 }

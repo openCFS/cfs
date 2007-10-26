@@ -43,6 +43,8 @@ namespace CoupledField
     std::string param_vy;
     std::string param_vz;
     std::string param_pres;
+    std::string param_outputfields;
+    bool param_extfiles;
 
 
     if(argc == 2) {
@@ -110,7 +112,7 @@ namespace CoupledField
         ("stepincr", po::value< uint32_t >(&param_stepincr)->default_value(1),
          "Step increment for reading the files")
 
-        ("timestep", po::value< double >(&param_timestep)->default_value(1),
+        ("timestep", po::value< double >(&param_timestep)->default_value(-1),
          "Time step length T in seconds")
 
         ("deffile", po::value< std::string >(&param_deffile)->default_value(""),
@@ -120,10 +122,15 @@ namespace CoupledField
          "Calculate the acoustic sources from velocity")
 
         ("floatds", po::value< bool >(&param_floatds)->default_value(true),
-         "Do the CFX .trn files contain float or double values.")
+         "Do the CFX .trn files contain float or double values. ATTENTION!" 
+         " If this flag is set all data will be written as floats! "
+         "This is also true for FASTEST data!")
 
         ("deltemp", po::value< bool >(&param_deltemp)->default_value(true),
          "Delete temporary files created during conversion.")
+
+        ("extfiles", po::value< bool >(&param_extfiles)->default_value(true),
+         "Use external time step files (just like CFX .trn files).")
 /*
         ("dump", po::value< std::string >(&param_dump)->default_value("GID"),
          "Dump the grid and data to a file (can be GID|GMV)")
@@ -145,6 +152,11 @@ namespace CoupledField
          
         ("pres", po::value< std::string >(&param_pres)->default_value(""),
          "Column of pressure in FASTEST result files (e.g. col5).")
+
+        ("outputfields", po::value< std::string >(&param_outputfields)->default_value("acouRhsLoad"),
+         "Which physical fields should be output "
+         "([acouRhsLoad | fluidMechPressure | fluidMechVelocity]). "
+         "Values may be separated by SPACE or ; or |")
         ;
 
       po::variables_map vm;
@@ -197,6 +209,8 @@ namespace CoupledField
     settings.SetString("vy", param_vy);
     settings.SetString("vz", param_vz);
     settings.SetString("pres", param_pres);
+    settings.SetString("outputfields", param_outputfields);
+    settings.SetInt("extfiles", param_extfiles);
   }
 
     

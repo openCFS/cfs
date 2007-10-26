@@ -196,6 +196,13 @@ for FILE in $REGION_ELEM_FILE_LIST; do
 
     echo "Writing region $REGION_NAME..."
 
+    if [ $(( $NUM_REGION_ELEMS > 1000 )) -eq 1 ]
+    then
+	CHUNKED_DIM_SIZES=1000
+    else
+	CHUNKED_DIM_SIZES=$NUM_REGION_ELEMS
+    fi
+
     CFGFILE=$WORKDIR/RegionElems_$REGION_NAME.cfg
     echo "Number of Elems in region $REGION_NAME: $NUM_REGION_ELEMS"
     echo "PATH /Mesh/Regions/$REGION_NAME/Elements" > $CFGFILE
@@ -207,8 +214,18 @@ for FILE in $REGION_ELEM_FILE_LIST; do
     echo "OUTPUT-SIZE 32" >> $CFGFILE
     echo "OUTPUT-ARCHITECTURE STD" >> $CFGFILE
     echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    echo "CHUNKED-DIMENSION-SIZES $CHUNKED_DIM_SIZES" >> $CFGFILE
+    echo "COMPRESSION-TYPE GZIP" >> $CFGFILE
+    echo "COMPRESSION-PARAM 9" >> $CFGFILE
     $H5IMPORT $ELEM_FILE -c $CFGFILE -o $H5FILE
     ErrorCheck
+
+    if [ $(( $NUM_REGION_NODES > 1000 )) -eq 1 ]
+    then
+	CHUNKED_DIM_SIZES=1000
+    else
+	CHUNKED_DIM_SIZES=$NUM_REGION_NODES
+    fi
 
     CFGFILE=$WORKDIR/RegionNodes_$REGION_NAME.cfg
     echo "Number of Nodes in region $REGION_NAME: $NUM_REGION_NODES"
@@ -221,6 +238,9 @@ for FILE in $REGION_ELEM_FILE_LIST; do
     echo "OUTPUT-SIZE 32" >> $CFGFILE
     echo "OUTPUT-ARCHITECTURE STD" >> $CFGFILE
     echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
+    echo "CHUNKED-DIMENSION-SIZES $CHUNKED_DIM_SIZES" >> $CFGFILE
+    echo "COMPRESSION-TYPE GZIP" >> $CFGFILE
+    echo "COMPRESSION-PARAM 9" >> $CFGFILE
     $H5IMPORT $NODE_FILE -c $CFGFILE -o $H5FILE
     ErrorCheck
 

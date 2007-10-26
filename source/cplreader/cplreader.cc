@@ -5,10 +5,6 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
-#ifdef MpCCI
-#include <mpcci.h>
-#endif
-
 
 #include "params.hh"
 #include "settings.hh"
@@ -19,25 +15,16 @@
 #include "CFX/cfx_fortran_defs.h"
 #include "MpCCIexch.hh"
 
-#define REALTYPE CCI_DOUBLE
-  typedef double Realtype;
-
- 
 using namespace CoupledField;
 
 int main(int argc, char *argv[])
 {
-#ifdef MpCCI
-  CCI_Init_with_id_string( &argc, &argv, "simulationcode1" );
-#endif
   int ret = 0;
   FileReader* fileReader = NULL;
 
   try 
   {
-      
     Settings& settings = Settings::Instance();
-
 
     ParamsInit(argc, argv);
     std::string type = settings.GetString("type");
@@ -68,7 +55,7 @@ int main(int argc, char *argv[])
     }
  #endif
 
-    if(settings.GetString("type") == "CFX")
+    if(type == "CFX")
     {
       fileReader = new FileReader_CFX(settings.GetString("name"),
                                       settings.GetInt("dim"),
@@ -78,13 +65,11 @@ int main(int argc, char *argv[])
 
     if(!fileReader)
     {
-      std::cerr << "ERROR: Could not initialize " << settings.GetString("type")
+      std::cerr << "ERROR: Could not initialize " << type
                 << " filereader." << std::endl;
       return 0;
     }
     
-    //    CCI_Init(&argc, &argv);
-
     MpCCIexch mpCCIexch(argc, argv, fileReader);
     mpCCIexch.PutExchangeGrid2MpCCI();
     mpCCIexch.Couple();

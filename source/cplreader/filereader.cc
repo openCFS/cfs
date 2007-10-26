@@ -14,8 +14,8 @@ namespace CoupledField
 {
 
     FileReader::FileReader(const std::string& name,
-                           const int dim,
-                           const int numFiles) :
+                           const UInt dim,
+                           const UInt numFiles) :
         numPartitions_(0), 
         dim_(dim),
         numResults_(1),

@@ -117,7 +117,7 @@ namespace CoupledField {
     // check for use of external files
     try {
       H5::Group meshResGroup = mainRoot_.openGroup("Results/Mesh");
-      H5IO::ReadAttribute( meshResGroup, "externalFiles",
+      H5IO::ReadAttribute( meshResGroup, "ExternalFiles",
                            hasExternalFiles_ );
       meshResGroup.close();
     } catch( H5::Exception& ex ) {
