@@ -6,6 +6,7 @@
 #define FILE_CFS_RESULTHANDLER_HH
 
 #include "Utils/result.hh"
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField {
 
@@ -141,7 +142,16 @@ namespace CoupledField {
                                       UInt stepValue, 
                                       SolutionType solType,
                                       const std::string& regionName );
-
+    
+    //! Commoditiy method for aquiring a result from an input reader class
+    //! as NodeStoreSol object
+    template<typename TYPE>
+    shared_ptr<NodeStoreSol<TYPE> > GetStoreSol( const std::string& readerId,
+                                                 UInt sequenceStep,
+                                                 UInt stepValue,  
+                                                 SolutionType solType,
+                                                 StdVector<std::string>& regionNames );
+    
     /** This dumps the content of the result handler for debugging */
     void Dump(); 
 
