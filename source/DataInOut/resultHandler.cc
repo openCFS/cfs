@@ -876,4 +876,134 @@ namespace CoupledField {
     
     return result;
   }
+  
+  
+  template<typename TYPE>
+  shared_ptr<NodeStoreSol<TYPE> >
+  ResultHandler::GetStoreSol( const std::string& readerId,
+                              UInt sequenceStep,
+                              UInt stepValue, 
+                              SolutionType solType,
+                              StdVector<std::string>& regionNames ) {
+    
+    
+    // get grid
+    Grid * ptGrid = static_pointer_cast<Result<TYPE> >
+    (GetResult( readerId, sequenceStep,stepValue, solType, regionNames[0] ) )
+    ->GetEntityList()->GetGrid();
+    
+    shared_ptr<ResultInfo> actInfo =  static_pointer_cast<Result<TYPE> >
+    (GetResult( readerId, sequenceStep,stepValue, solType, regionNames[0] ) )
+    ->GetResultInfo();             
+    
+    // create new equation map object
+    EqnMap *  eqnMap = new EqnMap( ptGrid, 1, true);
+    
+    // iterate over all regionNames
+    StdVector<shared_ptr<Result<TYPE> > > results;
+    results.Resize( regionNames.GetSize() );
+    for( UInt i = 0; i < regionNames.GetSize(); i++) {
+
+      // obtain result object
+      results[i] = static_pointer_cast<Result<TYPE> >(GetResult(readerId,
+                   sequenceStep, stepValue, solType, regionNames[i] ) );
+
+      // pass it ot eqnMap
+      shared_ptr<EntityList> entList = results[i]->GetEntityList();
+      eqnMap->AddResult( *actInfo, entList );
+    }
+    
+    // finalize eqnMap
+    eqnMap->Finalize();
+    if( debug )
+    eqnMap->Print(*debug);
+    
+    // create new vector with coefficients
+    Vector<TYPE> solVec;
+    solVec.Resize( eqnMap->GetNumEqns() );
+    
+    // create new storesolution object
+    shared_ptr<NodeStoreSol<TYPE> > sol( new NodeStoreSol<TYPE>());
+    sol->SetNumSolutions( 1 );
+    sol->SetNumNodes( 1 );
+    sol->SetSolutionType( results[0]->GetResultInfo()->resultType );
+    sol->SetNumDofs( results[0]->GetResultInfo()->dofNames.GetSize() );
+    sol->SetResult( actInfo );
+    sol->SetPtrEQNData( eqnMap, ptGrid );
+    sol->Init();
+    sol->SetAlgSysVector( solVec );
+
+    
+    // iterate over all regions
+    Double max = 0.0;
+    for( UInt i = 0; i < regionNames.GetSize(); i++) {
+
+      // get result and entitylist
+      shared_ptr<EntityList> regionList = results[i]->GetEntityList();
+
+      // get related nodelist
+      shared_ptr<EntityList> nodeList
+      = ptGrid->GetEntityList(EntityList::NODE_LIST,
+                              regionList->GetName(),
+                              EntityList::REGION );
+      EntityIterator it= nodeList->GetIterator();
+      Vector<TYPE> & resVec = results[i]->GetVector();
+      UInt pos = 0;
+      StdVector<Integer> eqns;
+      for( it.Begin(); !it.IsEnd(); it++ ) {
+
+        // fetch equations
+        eqnMap->GetEqns( eqns, *actInfo, it );
+        //std::cerr << "equations: " << eqns.Serialize() << std::endl;
+
+        // iterate over all equations
+        for( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++ ) {
+          solVec[eqns[iEqn]-1] = resVec[pos++];
+          if( std::abs(solVec[eqns[iEqn]-1]) > max ) {
+            max = std::abs(solVec[eqns[iEqn]-1]);
+          }
+        } 
+      }
+    }
+   
+    
+//    StdVector<Integer> eqns;
+//    for( UInt i = 0; i < eqnMap->GetNumLocalNodes(); i++ ) {
+//      StdVector<UInt> node(1);
+//      node.Init(i+1);
+//      NodeList list(ptGrid);
+//      list.SetNodes( node);
+//      EntityIterator nodeIt = list.GetIterator();
+//      eqnMap->GetEqns( eqns, *actInfo, nodeIt);
+//      std::cerr << "node " << i+1 << "\t";
+//      std::cerr << solVec[eqns[0]-1] << ", " << solVec[eqns[1]-1] << std::endl;
+//    }
+    
+//    std::cerr << "Storing algebraic pointer back\n";
+    sol->SetAlgSysVector( solVec );
+     
+    return sol; 
+    
+  }
+
+
+  //instantiate template methods
+  template
+  shared_ptr<NodeStoreSol<Double> >
+  ResultHandler::GetStoreSol<Double>( const std::string& readerId,
+                                      UInt sequenceStep,
+                                      UInt stepValue, 
+                                      SolutionType solType,
+                                      StdVector<std::string>& regionNames );
+
+  template
+  shared_ptr<NodeStoreSol<Complex> >
+  ResultHandler::GetStoreSol<Complex>( const std::string& readerId,
+                                      UInt sequenceStep,
+                                      UInt stepValue, 
+                                      SolutionType solType,
+                                      StdVector<std::string>& regionNames );
+ 
+
+  
 }
