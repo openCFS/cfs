@@ -214,10 +214,13 @@ XML/TestParser/TestParser.cc svneol=native#text/x-c%2B%2Bsrc
 XML/TestParser/tryStuff.cc svneol=native#text/x-c%2B%2Bsrc
 XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 auxiliary/MaterialFile/mat.xml svneol=native#text/xml
+auxiliary/matlab/CopyTreeHDF5.m -text
 auxiliary/matlab/FindPathHDF5.m -text
 auxiliary/matlab/PCOLOR.m svneol=native#text/plain
 auxiliary/matlab/README -text
 auxiliary/matlab/Time2FreqHDF5.m -text
+auxiliary/matlab/WriteFileInfoHDF5.m -text
+auxiliary/matlab/exec.m -text
 auxiliary/matlab/mminfo.m svneol=native#text/plain
 auxiliary/matlab/mmread.m svneol=native#text/plain
 auxiliary/matlab/sbmread.m svneol=native#text/plain

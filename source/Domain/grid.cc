@@ -2139,7 +2139,7 @@ namespace CoupledField
       }
     }
     
-    UInt test = 9696969696;
+    UInt test = 0xFFFFFFFF;
     elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], globCoord[2],
                                           globCoord[0], globCoord[1], globCoord[2]),
                                    &test));
