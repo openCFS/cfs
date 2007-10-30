@@ -44,7 +44,7 @@
 %    ABOUT
 %
 %      -Created:     Jun 2007
-%      -Last update: 26 Oct 2007
+%      -Last update: 30 Oct 2007
 %      -Revision:    0.2
 %      -Authors:     Simon Triebenbacher, Jens Grabinger
 %
@@ -55,6 +55,7 @@ function [found resgroup restype msgroup] =  FindPathHDF5(toplevel, multistep, s
 
 found = 0;
 
+% look for MultiStep_x group
 number_of_groups = length(toplevel.Groups);
 for group=1:number_of_groups
   actgroup = toplevel.Groups(group);
@@ -120,6 +121,7 @@ resgroup = msgroup;
 %  end
 %end
 
+% look for time step
 nmstepgroups = length(actgroup3.Groups);
 for mstepgroup=1:nmstepgroups
   actgroup = actgroup3.Groups(mstepgroup);
@@ -148,6 +150,7 @@ if found < 4
 end
 resgroup = actgroup;
 
+% look for the quantity group
 cmpstr = sprintf('%s/%s/%s', basepath, stepname, quantity);
 nstepgroups = length(actgroup.Groups);
 for stepgroup=1:nstepgroups
@@ -167,6 +170,7 @@ if found < 5
 end
 resgroup = actgroup2;
 
+% look for the region group
 cmpstr = sprintf('%s/%s/%s/%s', basepath, stepname, quantity, region);
 nqgroups = length(actgroup2.Groups);
 for qgroup=1:nqgroups
@@ -185,6 +189,7 @@ if found < 6
 end
 resgroup = actgroup;
 
+% search resultDescription for type of result
 restype = 0;
 cmpstr = sprintf('%s/ResultDescription', basepath);
 nmstepgroups = length(msgroup.Groups);
@@ -239,6 +244,7 @@ otherwise
   return;
 end
 
+% look for Nodes/Elements group
 cmpstr = sprintf('%s/%s/%s/%s/%s', basepath, stepname, quantity, region, path_suffix);
 nreggroups = length(actgroup.Groups);
 for reggroup=1:nreggroups
@@ -257,6 +263,7 @@ if found < 7
 end
 resgroup = actgroup2;
 
+%look for the Real dataset
 ndatasets = length(actgroup2.Datasets);
 for dataset=1:ndatasets
   ds = actgroup2.Datasets(dataset);

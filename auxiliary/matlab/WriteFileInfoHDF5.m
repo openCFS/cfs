@@ -1,7 +1,7 @@
 % ==============================================================
 %
 %    GENERAL
-%    CFS++ HDF5 file support for MATLAB
+%    Writes the FileInfo group of an HDF5 file.
 %
 %    INPUT/S
 %      filename  - full path of a new or existing HDF5 file
