@@ -172,12 +172,15 @@ XML/CFS-Material/Schemas/CFS_MATheatConduction.xsd -text svneol=unset#text/xml
 XML/CFS-Material/Schemas/CFS_MATmagnetic.xsd -text svneol=unset#text/xml
 XML/CFS-Material/Schemas/CFS_MATmechanical.xsd -text svneol=unset#text/xml
 XML/CFS-Material/Schemas/CFS_MATpiezo.xsd -text svneol=unset#text/xml
+XML/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
+XML/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
 XML/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
 XML/CFS-Simulation/CFS.xsd svneol=native#text/xml
 XML/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
 XML/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
 XML/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
 XML/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
+XML/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
 XML/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
