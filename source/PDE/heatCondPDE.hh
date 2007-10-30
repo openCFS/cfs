@@ -45,14 +45,33 @@ namespace CoupledField {
   
     //! calculate coupling terms
     void CalcOutputCoupling();
+    
+    //! Set the flag for a thermo-electrostatic coupling, this
+    //! means to add the thermo integrator block into the damping 
+    //! matrix and set off the thermo integrator block from the 
+    //! mass matrix
+    void SetElectroCoupling();
 
+    
+    //! Set the flag for a thermo-mechanical coupling, this
+    //! means to add the thermo integrator block into the damping 
+    //! matrix and set off the thermo integrator block from the 
+    //! mass matrix
+    void SetMechCoupling();
+    
+    
+    //! Initialize all the nodes by this value
+    void SetInitialCondition();
+    
+    
   protected:
-
+	  
     //! Define availabe result types
     void DefineAvailResults();
 
     //! Init the time stepping
     void InitTimeStepping();
+    
 
   private:
 
@@ -87,6 +106,14 @@ namespace CoupledField {
 
     //! special neumann boundary conditions
     HeatInBcList heatInBcs_;
+    
+    //! flag for thermoelectro-coupling
+    bool isElectroCoupled_;
+    
+    //! flag for thermoelastic-coupling
+    bool isMechCoupled_;
+    
+    //Double InitialTemp_;
     
   };
 

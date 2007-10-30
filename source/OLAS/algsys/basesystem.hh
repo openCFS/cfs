@@ -17,6 +17,7 @@
 
 using CoupledField::ParamNode;
 
+
 namespace OLAS {
 
   // Forward declarations
@@ -67,9 +68,9 @@ namespace OLAS {
     //! Obtain the dimension of the linear system
 
     //! This method can be used to query the dimension of the linear system.
-    //! By dimension we understand the length of the vectors \f$x\f$ and
-    //! \f$b\f$ in the linear system \f$Ax=b\f$ and the number of rows and
-    //! columns in the system matrix \f$A\f$.
+    //! By dimension we understand the length of the vectors  \f$ x \f$ and
+    //!   \f$ b  \f$  in the linear system    \f$  Ax=b  \f$  and the number of rows and
+    //! columns in the system matrix    \f$  A  \f$ .
     //!
     //! \note
     //! - The number is understood on a meta level, i.e. the number of
@@ -263,7 +264,7 @@ namespace OLAS {
     //!                       unfixed degree of freedom (if inhomogeneous
     //!                       Dirichlet boundary conditions are treated by the
     //!                       penalty method numLastFreeDof
-    //!                       \f$\stackrel{!}{=}\f$ numEqns)
+    //!                          \f$  \stackrel{!}{=}  \f$  numEqns)
     void RegisterPDE( const PdeIdType pdeId, UInt const numEqns,
                       UInt const numLastFreeDof );
 
@@ -413,6 +414,16 @@ namespace OLAS {
     //!                      method
     virtual void InitSol( const PdeIdType identifierPDE = NO_PDE_ID ) = 0;
     
+    //! Set the global solution vector to given initial values
+
+    //! Set the solution vector to the values specified in the array
+    //! newSol
+    //! \param newSol Pointer to new solution values
+    //! \note The values of newSol are copied, so the pointer to newSol
+    //! can be changed afterwards!
+    virtual void InitSol( const Double * newSol, const UInt size ) = 0;
+    
+    
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
@@ -437,20 +448,20 @@ namespace OLAS {
     //! \param numEqn2 number of equations related to sub-graph of 
     //!                identifierPDE2
     //! \param setCounterPart if this flag is true, then the method will
-    //!                not only insert the element matrix \f$E\f$, but also
-    //!                its transpose \f$E^T\f$. In doing so also the
+    //!                not only insert the element matrix    \f$  E  \f$ , but also
+    //!                its transpose    \f$  E^T  \f$ . In doing so also the
     //!                row and column indices derived from the equation
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different PDE identifiers.
     virtual void SetElementMatrix( FEMatrixType matrix_id, Double * elemmat, 
-				   PdeIdType identifierPDE1,
-				   Integer *eqnNrs1,
-				   Integer numEqn1,
-				   PdeIdType identifierPDE2,
-                                   Integer *eqnNrs2,
-                                   Integer numEqn2,
-                                   bool setCounterPart = true ) = 0;
+                                    PdeIdType identifierPDE1,
+                                    Integer *eqnNrs1,
+                                    Integer numEqn1,
+                                    PdeIdType identifierPDE2,
+                                    Integer *eqnNrs2,
+                                    Integer numEqn2,
+                                    FEMatrix_Flags pFlags ) = 0;
 
     //! Assemble the local rhs vector to the global one
 
@@ -504,7 +515,7 @@ namespace OLAS {
     //! \param eqnNum   determines the diagonal entry to be manipulated, i.e.
     //!                 the parameter gives the equation number of the unknown
     //!                 coupled to the row/column of the entry; e.g. for
-    //!                 \f$\mbox{eqnNum}=k\f$ it is \f$a_{kk}\f$ that will be
+    //!                    \f$  \mbox{eqnNum}=k  \f$  it is    \f$  a_{kk}  \f$  that will be
     //!                 altered
     //! \param val      zero-based array containing the numerical value that
     //!                 is to be added to the matrix entry; in the case of

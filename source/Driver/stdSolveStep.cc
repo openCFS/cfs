@@ -331,6 +331,7 @@ namespace CoupledField {
     if ( isIterCoupled == false || iterCoupledCounter == 0 ) {        
       Vector<Double> & solHelp = 
         dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+        //std::cout << "\n d("<<actTime_<<") = " << solHelp.Serialize() << std::endl;
       TS_alg_->Predictor(solHelp);
     }
 

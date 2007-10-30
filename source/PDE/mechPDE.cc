@@ -45,7 +45,7 @@ namespace CoupledField {
     effectiveMass_ = false;
     nonLin_        = false;
     nonLinMaterial_= false;
-
+	isHeatCoupled_ = false;
 
     // ****************************
     // DETERMINE GEOMETRY

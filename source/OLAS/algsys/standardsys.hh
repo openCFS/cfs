@@ -240,6 +240,16 @@ namespace OLAS {
     //!                       graph manager
     void InitSol( const PdeIdType identifierPDE = NO_PDE_ID );
     
+    //! Set the global solution vector to given initial values
+
+    //! Set the solution vector to the values specified in the array
+    //! newSol
+    //! \param newSol Pointer to new solution values
+    //! \note The values of newSol are copied, so the pointer to newSol
+    //! can be changed afterwards!
+    void InitSol(const Double *  newSol, const UInt size);
+    
+    
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
@@ -264,12 +274,13 @@ namespace OLAS {
     //! \param numEqn2 number of equations related to sub-graph of 
     //!                identifierPDE2
     //! \param setCounterPart if this flag is true, then the method will
-    //!                not only insert the element matrix \f$E\f$, but also
-    //!                its transpose \f$E^T\f$. In doing so also the
+    //!                insert the element matrix \f$E\f$, In doing so the
     //!                row and column indices derived from the equation
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different PDE identifiers.
+    //! \param setTransposeInt if this flag is true, then the method will
+    //!                insert the transpose of the element matrix \f$E^T\f$. 
     //! \note We currently use setCounterPart = true as default, since we
     //!       have no clear concept how to administer this information within
     //!       CFS++ up to now. In the case of a diagonal matrix block, we
@@ -281,7 +292,7 @@ namespace OLAS {
                            PdeIdType identifierPDE2,
                            Integer *eqnNrs2,
                            Integer numEqn2,
-                           bool setCounterPart = true );
+                           FEMatrix_Flags pFlags );
     
     //! Assemble the local rhs vector to the global one
 

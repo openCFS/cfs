@@ -151,6 +151,13 @@ namespace CoupledField {
 
     ptPDE_->WriteGeneralPDEdefines();
 
+    //---------------------------------------------------------------------------
+    // to save the initial state
+    //  resHandler->BeginStep( 0, 0 );
+    //     ptPDE_->WriteResultsInFile(0, 0);
+    //     resHandler->FinishStep( );
+    //---------------------------------------------------------------------------
+    
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ ) {
 

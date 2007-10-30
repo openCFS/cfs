@@ -99,6 +99,36 @@ namespace OLAS {
   typedef enum {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS}
   FEMatrixType;
 
+  //! class for flags of the FE matrix
+	class FEMatrix_Flags {
+		public:
+			FEMatrix_Flags() {
+				setCounterPart=false;
+				setTransposeInt = true;
+				setOnlyCounterPart = false;
+				setNegate = false;
+			}
+	
+			//! Flag indicating assembling of the integrator
+			//! in the counterpart of the pde location
+			bool setCounterPart;
+			//! Flag indicating the assembling of the integrator.
+			//! in the counter part of the pde transposing it.
+			//! Note: By default, we set the transpose of a matrix 
+			//! true when assembling the counter part of the 
+			//! matrix, i.e. the case of piezoelectric coupling.
+			//! if we want set the counter part without transposing
+			//! the integrator within the global FE-matrix, this 
+			//! flag must be changed through 'SetTransposeInt()'
+			bool setTransposeInt;
+			//! Flag to set only the counter part of the element matrix.
+			bool setOnlyCounterPart;
+			//! To negate the FEMatrix
+			bool setNegate;
+		
+	}; 
+	//extern FEMatrix_Flags setOfFlags_;
+  
   //! Type of algebraic system
 
   //! This enumeration data type describes the type of the algebraic system.

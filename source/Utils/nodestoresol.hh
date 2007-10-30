@@ -25,9 +25,9 @@ namespace CoupledField{
   //!
   //! A StoreSolution example for the Piezoelectric PDE would look
   //! like this:
-  //! \f[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
+  //! \f$[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
   //! V_{elec}^1 \\ disp_x^2 \\ disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
-  //! \end{array} \right) \f]
+  //! \end{array} \right) \f$]
   //! Here the first three entries are the displacements for the first node,
   //! afterwards follows the electric Potential of it. This repeats for each
   //! node, so this is basically the layout of the solution vector as it is

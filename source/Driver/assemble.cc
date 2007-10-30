@@ -274,14 +274,14 @@ namespace CoupledField {
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
       if( isFirstTime_ == false && matReassemble_[destMat] == false ) {
-        continue;
+         continue;
       }
 
       // Update flag
       matrixUpdated_ = true;
 
       BaseForm * form = actContext.GetIntegrator();
-      
+
       try {
 
         // get entity iterators
@@ -301,8 +301,22 @@ namespace CoupledField {
             form->CalcElementMatrix( elemMatrix, it1, it2 );
 
           
+	      //std::cerr << "Element matrix of " << elemMatrix.GetSizeRow()<< " X " <<elemMatrix.GetSizeCol() << std::endl;
+	      //std::cerr << "Element matrix is \n" << elemMatrix << std::endl;
+	      
+	      
+	      if(actContext.IsSetNegate()== true){
+	    	  elemMatrix*= (-1);
+	    	  //std::cerr << "Negated element matrix is \n" << elemMatrix << std::endl;
+	      }
+
+	      
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
+
+          //std::cerr << "Assembling into: " << matrixMap_[destMat] << std::endl; 
+	      //std::cerr << "eqns1 (rows)= " << eqnVec1.Serialize() << std::endl;
+          //std::cerr << "eqns2 (cols)= " << eqnVec2.Serialize() << std::endl;
 
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() ) 
@@ -632,20 +646,34 @@ namespace CoupledField {
     std::set<BiLinFormContext*>::iterator it;
 
     for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
-      BiLinFormContext & actContext = **it;
+			BiLinFormContext & actContext = **it;
 
-      if( actContext.IsNonLin() == true 
-          || analysisType_ == HARMONIC ) {
-        matReassemble_[actContext.GetDestMat()] = true;
-        if ( actContext.GetSecDestMat() != NOTYPE ) {
-          matReassemble_[actContext.GetSecDestMat()] = true; 
-        }
-      }
-    }
-    
-    
+			if( actContext.IsNonLin() == true
+					|| analysisType_ == HARMONIC ) {
+				matReassemble_[actContext.GetDestMat()] = true;
+				if ( actContext.GetSecDestMat() != NOTYPE ) {
+					matReassemble_[actContext.GetSecDestMat()] = true;
+				}
+			}
+			//std::cerr << "\nCheckNonLinearities on: " << actContext.GetIntegrator()->GetName() << "... ";
+			if ( actContext.GetIntegrator()->GetName()=="LinThermoElecDampInt") {
+				//std::cerr << "set re-asembling on " << std::endl;
+				matReassemble_[actContext.GetDestMat()] = true;
+				if ( actContext.GetSecDestMat() != NOTYPE ) {
+					matReassemble_[actContext.GetSecDestMat()] = true;
+				}
+			}
+			if ( actContext.GetIntegrator()->GetName()=="LinThermoMechDampInt") {
+							//std::cerr << "set re-asembling on " << std::endl;
+							matReassemble_[actContext.GetDestMat()] = true;
+							if ( actContext.GetSecDestMat() != NOTYPE ) {
+								matReassemble_[actContext.GetSecDestMat()] = true;
+							}
+						}
+			
+
+	}
   }
-
   
   void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
                                  Matrix<Double>& origMat,
@@ -954,6 +982,7 @@ namespace CoupledField {
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
                                PdeIdType pdeId1, PdeIdType pdeId2) {
+
     Vector<Double> harmMat;
 
     // map original matrix destination to analysis-dependent one
@@ -971,7 +1000,7 @@ namespace CoupledField {
         SetElementMatrix( mappedDest, elemMat.GetDataPointer(), 
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                           pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.IsSetCounterPart() );
+                          context.getBiLinFormContextFlags() );
     } else {
       Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
       Double omega = freq * 2 * PI;
@@ -981,8 +1010,9 @@ namespace CoupledField {
         SetElementMatrix( mappedDest, harmMat.GetPointer(), 
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                           pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.IsSetCounterPart() );
+                          context.getBiLinFormContextFlags() );
     }
+    
   }
   
   void Assemble::Dump()
@@ -1017,7 +1047,7 @@ namespace CoupledField {
         SetElementMatrix( mappedDest, harmMat.GetPointer(), 
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                           pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.IsSetCounterPart() );
+                          context.getBiLinFormContextFlags() );
     }
     else {
       EXCEPTION("Currently complex element matrices are just allowed for harmonic analysis");

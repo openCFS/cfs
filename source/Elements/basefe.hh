@@ -60,7 +60,7 @@ namespace CoupledField
     //! \param globCoord (output) global coordinate
     //! \param locCoord (input) local coordinate
     //! \param coordMat (input) global corner coordinates of element
-    //!                         (spaceDim \f$\times\f$ nrNodes)
+    //!                         (spaceDim \f$ \times \f$ nrNodes)
     virtual void Local2GlobalCoord(Vector<Double> & globCoord,
                                    const Vector<Double> & locCoord,
                                    const Matrix<Double> & coordMat,
@@ -100,13 +100,13 @@ namespace CoupledField
     //! Get global derivatives of all shape fnc at arbitrary local point
     /*! 
       \param S (output) Matrix with global derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+      \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
       N_{2,dx} & N_{2,dy} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right) \f ]
       \param LCoord (input) Local Coordinates of evalutaion point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]       
+      \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right) \f ]       
     */
     virtual  void GetGlobDerivShFnc(Matrix<Double> & Deriv, 
                                     const Vector<Double> & LCoord,
@@ -118,13 +118,13 @@ namespace CoupledField
     //! Get global derivatives of all shape fnc at integration point ip
     /*! 
       \param deriv (output) Matrix with global derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dx} & \cdots \\
+      \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dx} & \cdots \\
       N_{2,dx} & N_{2,dy} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right) \f ]
       \param ip(input) Integration point
       \param cornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
       \param jacDet jacobian determinant
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & deriv, 
@@ -139,13 +139,13 @@ namespace CoupledField
     //! Get global derivatives of all shape fnc at integration point ip
     /*! 
       \param S (output) Matrix with global derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+       \f$ [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
       N_{2,dx} & N_{2,dy} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right)  \f$ ]
       \param ip(input) Integration point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                         const UInt ip,
@@ -156,13 +156,13 @@ namespace CoupledField
     //! Calculates the Jacobian Matrix at an arbitrary local point
     /*!
       \param J (output) Jacobian Matrix
-      \f[ J = \left( \begin{array}{ccc} x_{\xi} & x_{\eta} & x_{\zeta} \\
+       \f$ [ J = \left( \begin{array}{ccc} x_{\xi} & x_{\eta} & x_{\zeta} \\
       y_{\xi} & y_{\eta} & y_{\zeta}\\
-      z_{\xi} & z_{\eta} & z_{\zeta} \end{array}\right)\f] 
+      z_{\xi} & z_{\eta} & z_{\zeta} \end{array}\right) \f$ ] 
       \param LCoord (input) Local coorindates of evaluation point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f] 
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ] 
     */
     virtual void CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
@@ -172,13 +172,13 @@ namespace CoupledField
     //! Calculates the Jacobian Matrix at integration point ip
     /*!
       \param J (output) Jacobian Matrix
-      \f[ J = \left( \begin{array}{ccc} x_{\xi} & x_{\eta} & x_{\zeta} \\
+       \f$ [ J = \left( \begin{array}{ccc} x_{\xi} & x_{\eta} & x_{\zeta} \\
       y_{\xi} & y_{\eta} & y_{\zeta}\\
-      z_{\xi} & z_{\eta} & z_{\zeta} \end{array}\right)\f]  
+      z_{\xi} & z_{\eta} & z_{\zeta} \end{array}\right) \f$ ]  
       \param ip (input) Integration point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f] 
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ] 
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
                                   const UInt ip, 
@@ -188,13 +188,13 @@ namespace CoupledField
     //! Calculates the Inverse Jacobian Matrix at an arbitrary local point
     /*!
       \param JInv (output) Inverse Jacobian Matrix 
-      \f[ J^{-1} = \left( \begin{array}{ccc} \xi_{x} & \xi_{y} & \xi_{z} \\
+       \f$ [ J^{-1} = \left( \begin{array}{ccc} \xi_{x} & \xi_{y} & \xi_{z} \\
       \eta_{x} & \eta_{y} & \eta_{z}\\
-      \zeta_{x} & \zeta_{y} & \zeta_{z} \end{array}\right)\f]
+      \zeta_{x} & \zeta_{y} & \zeta_{z} \end{array}\right) \f$ ]
       \param LCoord (input) Local coorindates of evaluation point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f] 
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ] 
     */
     virtual void CalcInvJacobian(Matrix<Double> & JInv,
                                  const Vector<Double> & LCoord,
@@ -204,13 +204,13 @@ namespace CoupledField
     //! Calculates the Inverse Jacobian Matrix at integration point ip
     /*!
       \param JInv (output) Inverse Jacobian Matrix 
-      \f[ J^{-1} = \left( \begin{array}{ccc} \xi_{x} & \xi_{y} & \xi_{z} \\
+       \f$ [ J^{-1} = \left( \begin{array}{ccc} \xi_{x} & \xi_{y} & \xi_{z} \\
       \eta_{x} & \eta_{y} & \eta_{z}\\
-      \zeta_{x} & \zeta_{y} & \zeta_{z} \end{array}\right)\f]
+      \zeta_{x} & \zeta_{y} & \zeta_{z} \end{array}\right) \f$ ]
       \param ip (input) Integration point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f] 
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ] 
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
                                      const UInt ip,
@@ -222,8 +222,8 @@ namespace CoupledField
     /*! 
       \param LCoord (input) Local Coordinates of evaluation point
       \param CornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
     */
     virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
                                    const Matrix<Double> & CornerCoords,
@@ -233,8 +233,8 @@ namespace CoupledField
     /*! 
       \param ip (input) Integration point
       \param CornerCoords (input)
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
     */
     virtual Double CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoords,
@@ -351,10 +351,10 @@ namespace CoupledField
     /*!
       \param deriv (output) Vector of matrices with local derivatives of all shape functions.
       Every matrix stores a complete set of global derivations
-      \f[ LDeriv_1 = \left( \begin{array}{ccc} N_{1\xi,d\xi} & N_{1\xi,d\eta} & N_{1\xi,d\zeta}\\
+       \f$ [ LDeriv_1 = \left( \begin{array}{ccc} N_{1\xi,d\xi} & N_{1\xi,d\eta} & N_{1\xi,d\zeta}\\
       N_{1\eta,d\xi} & N_{1\eta,d\eta} & N_{1\eta,d\zeta}\\
       N_{1\zeta,d\xi} & N_{1\zeta,d\eta} & N_{1\zeta,d\zeta}
-      \end{array}\right) \f]
+      \end{array}\right)  \f$ ]
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>* > & deriv, 
@@ -367,13 +367,13 @@ namespace CoupledField
     //! Get global derivatives of all edge shape functions at integration point ip
     /*! 
       \param deriv (output) Matrix with global derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+       \f$ [ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
       N_{2,d\xi} & N_{2,d\eta} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right)  \f$ ]
       \param ip(input) Integration point
       \param cornerCoords (input) Coordinates of element corners
-      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
-      \cdots & \cdots & \cdots \end{array} \right) \f]
+       \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
     */
     virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> *> & deriv, 
                                            const UInt ip,
@@ -385,11 +385,11 @@ namespace CoupledField
     //! Calculates the edge shape functions at an arbitrary local point
     /*!
       \param shape (output) Matrix of shape shape values (size: nrEdges x nrSpaceDim) 
-      \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+       \f$ [ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
       \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
       N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
       \cdots     & \cdots      & \cdots 
-      \end{array}\right) \f]
+      \end{array}\right)  \f$ ]
       \param lCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
@@ -402,11 +402,11 @@ namespace CoupledField
     //! Calculates the edge shape functions at an integration point
     /*!
       \param shape (output) Matrix of shape shape values (size: nrEdges x nrSpaceDim) 
-      \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+       \f$ [ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
       \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
       N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
       \cdots     & \cdots      & \cdots 
-      \end{array}\right) \f]
+      \end{array}\right)  \f$ ]
       \param ip (input) Number of desired integration point
       \param cornerCoords (input) Coordinates of edge points 
     */
@@ -522,7 +522,7 @@ namespace CoupledField
   
     //! Calculates the shape functions at an arbitrary local point
     /*!
-      \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+      \param Shape (output) Vector of shape fnc values  \f$  (N_{1},\cdots\,N_{NumNodes})^T \f$
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & Shape, 
@@ -533,9 +533,9 @@ namespace CoupledField
     //! Calculates the local derivatives of shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+       \f$ [ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
       N_{2,d\xi} & N_{2,d\eta} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right)  \f$ ]
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
@@ -546,9 +546,9 @@ namespace CoupledField
     //! Calculates the local derivatives of incompatible mode shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
-      \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+       \f$ [ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
       N_{2,d\xi} & N_{2,d\eta} & \cdots \\
-      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \cdots     & \cdots      & \cdots \end{array}\right)  \f$ ]
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalICModesDerivShapeFnc(Matrix<Double> & LDeriv, 
@@ -666,11 +666,11 @@ namespace CoupledField
   
     /// Matrix with connected nodes to the proper edge
     /*!
-      \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+       \f$ [ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
       \left( \begin{array}{cc} node_1^{E1} & node_2^{E1} \\
       node_1^{E2} & node_2^{E2}  \\
       \cdots & \cdots 
-      \end{array} \right) \f]
+      \end{array} \right)  \f$ ]
     */
     Matrix<UInt> edgeVertices_; 
     

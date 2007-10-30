@@ -72,7 +72,7 @@ namespace OLAS {
                                    Integer *connect1, UInt length1,
                                    Integer *connect2, UInt length2,
                                    UInt limit1, UInt limit2,
-                                   bool setCounterPart ) = 0;
+                                   bool setCounterPart) = 0;
 
     //! Only insert counter part of local element matrix into global one
     virtual void SetCounterPartOnly( FEMatrixType matrix_id,
@@ -84,7 +84,8 @@ namespace OLAS {
                                      Double *elemMat,
                                      Integer *connect1, UInt length1,
                                      Integer *connect2, UInt length2,
-                                     UInt limit1, UInt limit2 ) = 0;
+                                     UInt limit1, UInt limit2,
+                                     bool setTransposeInt ) = 0;
 
     //! Method for insertion of local element vector into right-hand side
 
@@ -246,6 +247,9 @@ namespace OLAS {
     virtual void SetNodeRHS( SparseVector *rhs, Complex val, 
                              Integer node ) = 0;
     //@}
+    
+    //! Initialise sol vector  with given vector
+    virtual void InitSol( SparseVector *sol, const Double *newSol) = 0;
 
     //! Initialise right-hand side with given vector
     virtual void InitRHS( SparseVector *rhs, const Double *newRHS) = 0;

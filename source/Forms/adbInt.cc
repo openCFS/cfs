@@ -64,15 +64,18 @@ namespace CoupledField {
                                   ptCoord_, ent1.GetElem() );
         ptMaterial->RotateTensorByPointCoord( globIntPoint, getDMaterialType() );
         calcDMat( dMat );
+		//std::cerr << "dMat = \n" << dMat << std::endl;
       }
       
       //std::cerr << "*** Calculating A ****\n";
       // Setup the A matrix for current integration point
       calcAMat( aMat, actIntPt, ptCoord_ );
+		//std::cerr << "aMat = \n" << aMat << std::endl;
 
       //std::cerr << "*** Calculating B ****\n";
       // Setup the B matrix for current integration point
       calcBMat( bMat, actIntPt, ptCoord_ );
+		//std::cerr << "bMat = \n" << bMat << std::endl;
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, 
@@ -129,6 +132,7 @@ namespace CoupledField {
 
 
     //std::cerr << "elemMat = \n" << elemMat << std::endl;
+
   }
 
 }

@@ -223,6 +223,17 @@ namespace OLAS {
           file = base + ".mtx";
           sysmat_[SYSTEM]->Export( file.c_str() );
           (*cla) << " Export system matrix to " << file << std::endl;
+          
+          //-------- somehow printing the damping matrix ---------------------
+          // to print the damping matrix
+          if(sysmat_[DAMPING] != NULL){
+  			std::cout << "\n si hay damping ..... " << std::endl;
+  			file = base + "_damping.mtx";
+  			sysmat_[DAMPING]->Export( file.c_str() );
+  			(*cla) << " Export damping matrix to " << file << std::endl;
+          }
+          //------------------------------------------------------------------
+          
     
           file = base + ".vec";
           rhs_->Export( file.c_str() );
@@ -230,7 +241,11 @@ namespace OLAS {
       }    
     }
 
-
+    //------------------------------------------------------------------
+    //temp...only to check the initial sol_ .....erase
+    //std::cout << "\n exporting the initial solution vector ..... " << std::endl;
+    //sol_->Export("initialSolution.vec");
+    //------------------------------------------------------------------
     // Trigger solution
     solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
     
@@ -239,6 +254,10 @@ namespace OLAS {
       file = base + ".sol.vec";
       sol_->Export(file.c_str());
       (*cla) << " Export system solution to " << file << " euclidian norm=" << sol_->NormEuclid() << std::endl;
+      
+      
+      
+      
     }
 
     // Now de-modifiy the right-hand side vector
@@ -658,9 +677,9 @@ namespace OLAS {
   }
 
 
-  // ***********
-  //   InitSol
-  // ***********
+  // **********************
+  //   InitSol (Version1)
+  // **********************
   void StandardSystem::InitSol( const PdeIdType identifierPDE ) {
     sol_->Init();
 
@@ -668,9 +687,42 @@ namespace OLAS {
     assemble_->InvalidateSolBuffer();
   }
 
+  // ***********************
+  //   InitSol (Version 2)
+  //   for doubles
+  // ***********************
+  void StandardSystem::InitSol( const Double *newSol, const UInt size ) {
+    
+//     try{
+// 	    std::cerr << "\n Initializing solution vector to initial conditions " << std::endl;
+	
+	    if( size == sol_->GetSize() ){
+//	    	std::cout << "\n InitSol: " ;
+//	    	for(UInt i=0; i<size; i++){
+//	    		std::cout <<  newSol[i] << "," ;
+//	    	}
+//	    	std::cout << std::endl;
+	    	assemble_->InitSol( sol_, newSol );
+	    }
+// 	    else{
+// #ifdef DEBUG_STANDARDSYSTEM
+//           std::cout << "\n aux:" << size <<" != sol_:"<< sol_->GetSize() << std::endl;
+//           (*error) << "size of initial solution vector doesn't match "
+//                    << "with the size of the initialized solution vector!";
+//           Error( __FILE__, __LINE__ );
+// #endif
+// 	    }
+//     }
+//     catch(Exception& e) {
+//       throw e.ToString();
+//     }
+        
+  }
+  
+
 
   // ********************
-  //   SetElementMatrix
+  //   SetElementMatrix 
   // ********************
   void StandardSystem::SetElementMatrix( FEMatrixType matrixID,
                                          Double *elemMat, 
@@ -680,10 +732,10 @@ namespace OLAS {
                                          PdeIdType idPDE2,
                                          Integer *connect2,
                                          Integer elemSize2,
-                                         bool setCounterPart ) {
+                                         FEMatrix_Flags pFlags ) {
 
-
-
+    
+    
     // The following section is obsolete alltogether, as
     // in CFS++ the flag 'setCounterPart' is really only
     // set for non-diagonal matrices, where the transposed
@@ -707,15 +759,45 @@ namespace OLAS {
 //     }
 
     // Delegate remaining work to assemble
-    assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
-                                 sysmat_[matrixID],
-                                 sysmat_[matrixID],
-                                 idbcHandler_, elemMat,
-                                 connect1, (UInt)elemSize1,
-                                 connect2, (UInt)elemSize2,
-                                 numLastFreeDof_[1],
-                                 numLastFreeDof_[1],
-                                 setCounterPart );
+    
+    // check which kind of assembly
+    if(pFlags.setOnlyCounterPart == false )
+    {
+    	// then normal assembly:
+    	// element matrix and its transposed on the counter  
+    	// part of the global matrix when setCounterPart is 
+    	// true (upper and lower global assembly).
+    	// Note: setTransposeInt is always true by default
+	    assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
+							sysmat_[matrixID],
+							sysmat_[matrixID],
+							idbcHandler_, elemMat,
+							connect1, (UInt)elemSize1,
+							connect2, (UInt)elemSize2,
+							numLastFreeDof_[1],
+							numLastFreeDof_[1],
+							pFlags.setCounterPart );
+	    
+    }
+    else{
+    	// then special assembly: 
+    	// assemble the element matrix when setTransposeInt is false.
+    	// (lower global assembly).
+    	// Note: setTransposeInt is set to false in thermo-mechanical
+    	// coupling and in thermo-electrical coupling class.
+        assemble_->SetCounterPartOnly( matrixID, idPDE1, idPDE2,
+                             sysmat_[matrixID],
+                             sysmat_[matrixID],
+                             idbcHandler_, elemMat,
+                             connect1, (UInt)elemSize1,
+                             connect2, (UInt)elemSize2,
+                             numLastFreeDof_[1],
+                             numLastFreeDof_[1],
+                             pFlags.setTransposeInt );
+        
+        
+    }
+    
   }
 
 

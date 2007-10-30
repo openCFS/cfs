@@ -302,12 +302,13 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+    	  matTensor = pos->second;
+    	  
       }
       else {
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
-
+      
       if ( dataType == REAL || dataType == IMAG) {
 	param = matTensor.GetPart( dataType );
       }
@@ -366,6 +367,8 @@ namespace CoupledField
     matMatrix.Resize(2,2);
     matMatrix.Init();
     pos->second.GetSubMatrix(matMatrix, 0, 0);
+    
+
   }
 
 

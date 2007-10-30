@@ -59,6 +59,10 @@ namespace CoupledField {
     }
 
     
+// 	Matrix<Double> auxbMat;
+// 	auxbMat.Init();
+// 	bMat.Transpose (auxbMat);
+//     std::cerr << "linElecInt::bMat transpose = \n" << auxbMat << std::endl;
   }
 
 
@@ -68,7 +72,10 @@ namespace CoupledField {
   void linElecInt::calcDMat( Matrix<Double> &dMat ) {
 
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
+    
     dMat *= mParser_->Eval( mHandle_ );
+    
+    //std::cerr << "linElecInt: dMat = \n" << dMat << std::endl;
   }
 
 

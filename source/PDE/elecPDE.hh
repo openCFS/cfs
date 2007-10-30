@@ -95,12 +95,18 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetPiezoCoupling();
 
+    //! Triggers the correct assembly of the electrostatic block in a 
+    //! thermo-coupled simulation, because the coupled electrostatic block
+    //! is negative compared to the normal one
+    void SetThermoCoupling();
+
 
   protected:
 
     //! SubType of electrostatic section
     std::string subType_;
-    
+
+
     // *****************
     //  POSTPROCESSING
     // *****************
@@ -175,6 +181,9 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
+    //! flag for thermoElectric-coupling
+    bool isThermoCoupled_;
+    
     //! force operator (for coupling as well as postprocessing)
     ElecForceOp* ForceOp_;
 

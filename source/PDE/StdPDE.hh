@@ -151,8 +151,12 @@ namespace CoupledField {
     //! set boundary condition
     //! \param atimestep         time step of claculation
     virtual  void SetBCs( const Double atimestep ) = 0;
-
-
+    
+    //! Initialize all/some the nodes by this value
+    virtual void SetInitialCondition(){;};
+    bool IsSetInitialCondition() { return isSetInitialCondition_;};
+    double getInitialCondition(){return InitialCondition_;}; 
+    
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
@@ -509,6 +513,12 @@ namespace CoupledField {
   
     OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
     OLAS_Report * olasReport_; //!< pointer to report object of OLAS
+    
+    //! flag to check if there are initial conditions in the set up
+    bool isSetInitialCondition_;
+    //! initial value.
+    Double InitialCondition_;
+    
     //@}
 
   }; // class StdPDE

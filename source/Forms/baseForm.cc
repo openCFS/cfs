@@ -26,6 +26,8 @@ namespace CoupledField
     ptMaterial = matData;
     ptelem = NULL;
     sol_ = NULL;
+    sol1_ = NULL; 
+    sol2_ = NULL; 
     solDeriv1_ = NULL;
     solDeriv2_ = NULL;
 

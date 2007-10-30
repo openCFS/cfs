@@ -1084,8 +1084,14 @@ namespace CoupledField {
     case HEAT_CONDUCTIVITY:
       out = "HeatConductivity";
       break;
+    case HEAT_CONDUCTIVITY_TENSOR:
+      out = "HeatConductivity_Tensor";
+      break;
     case HEAT_CAPACITY:
       out = "HeatCapacity";
+      break;
+    case THERMAL_EXPANSION_TENSOR:
+      out = "thermalExpansion";
       break;
     case DYNAMIC_VISCOSITY:
       out = "dynamicViscosity";
@@ -1138,7 +1144,9 @@ namespace CoupledField {
     case MAX_APPROX_VAL:
       out = "maxApproxVal";
       break;
-
+    case PYROCOEFFICIENT_TENSOR:
+      out = "Pyrocoefficient_Tensor";
+      break;
     default:  
       EXCEPTION("No conversion found for your 'DataType'");
     }
@@ -1266,8 +1274,14 @@ namespace CoupledField {
     else if ( in == "HeatConductivity" ) {
       out = HEAT_CONDUCTIVITY;
     }
+    else if ( in == "HeatConductivity_Tensor" ) {
+      out = HEAT_CONDUCTIVITY_TENSOR;
+    }
     else if ( in == "HeatCapacity" ) {
       out = HEAT_CAPACITY;
+    }
+    else if ( in == "thermalExpansion_Tensor" ) {
+      out = THERMAL_EXPANSION_TENSOR;
     }
     else if ( in == "dynamicViscosity" ) {
       out = DYNAMIC_VISCOSITY;
@@ -1319,6 +1333,9 @@ namespace CoupledField {
     }
     else if ( in == "maxApproxVal" ) {
       out = MAX_APPROX_VAL;
+    }
+    else if ( in == "Pyrocoefficient_Tensor" ) {
+      out = PYROCOEFFICIENT_TENSOR;
     }
     else {
       EXCEPTION("No conversion from string to 'MaterialType' found");
@@ -1396,6 +1413,12 @@ namespace CoupledField {
     case THERMIC:
       out = "heatConduction";
       break;
+    case PYROELECTRIC:
+      out = "pyroelectric";
+      break;
+    case THERMOELASTIC:
+      out = "thermoelastic";
+      break;
       
     default:  
       EXCEPTION("No conversion found for your 'MaterialClass'" );
@@ -1431,6 +1454,12 @@ namespace CoupledField {
     }
     else if ( in == "thermic" ) {
       out = THERMIC;
+    }
+	else if ( in == "pyroelectric" ) {
+      out = PYROELECTRIC;
+    }
+	else if ( in == "thermoelastic" ) {
+      out = THERMOELASTIC;
     }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"

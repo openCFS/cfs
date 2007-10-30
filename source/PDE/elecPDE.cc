@@ -67,6 +67,8 @@ namespace CoupledField {
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
+    isThermoCoupled_= false;
+
 
     // Check the subtype of the problem
     paramNode->Get("subType", subType_);
@@ -173,7 +175,7 @@ namespace CoupledField {
     // if the pde is piezo-coupled, the electrostatic entries
     // have to multiplied with -1
     std::string factor = "1.0";
-    if ( isPiezoCoupled_ == true )
+    if ( isPiezoCoupled_ == true || isThermoCoupled_== true )
       factor = "-1.0";  
 
     // Define integrators for "standard" materials
@@ -1071,6 +1073,13 @@ namespace CoupledField {
   {
   
     isPiezoCoupled_ = true;
+
+  }
+  
+  void ElecPDE::SetThermoCoupling()
+  {
+  
+    isThermoCoupled_ = true;
 
   }
 

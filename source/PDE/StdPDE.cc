@@ -45,6 +45,8 @@ namespace CoupledField {
     isIncrFormulation_ = false;
     ComputeRHSforHarm_ = false;
     solveStep_ = NULL;
+    isSetInitialCondition_ = false;
+    InitialCondition_=0.0;
     
 
     // =====================================================================
@@ -171,7 +173,11 @@ namespace CoupledField {
         
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
-    algsys_->InitSol();
+  	algsys_->InitSol();
+
+    
+    
+    
     SETPROFILE("-- Finished CreateMatrices_Solver--");
   }
 

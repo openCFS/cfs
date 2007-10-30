@@ -33,6 +33,11 @@ SET(FORMS_SRCS
   linStrainOp.cc
   linSurfForm.cc
   linSurfStressInt.cc
+  linThermoElectricInt.cc 
+  linThermoMechInt.cc
+  linThermoElecDampInt.cc 
+  linThermoMechDampInt.cc 
+  linHeatCondInt.cc
   linViscoElastInt.cc
   magforceop.cc
   massEdgeInt.cc
@@ -62,6 +67,7 @@ SET(FORMS_SRCS
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
+
 
 TARGET_LINK_LIBRARIES(forms
   domain

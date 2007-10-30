@@ -94,6 +94,9 @@ namespace OLAS {
   template <typename T>
   void CroutLU<T>::Factorise( CRS_Matrix<T> &sysMat ) {
 
+    
+    
+    sysMat.Export("sysMat.mtx");
 
     // Reset the object before over-writing an existing factorisation
     if ( storingFactors_ == true ) {
@@ -414,6 +417,8 @@ namespace OLAS {
 
 	  // Check if index of maximal (i.e. bottom-most) non-zero entry
 	  // in column of L has increased
+         // std::cerr << "j-1: "<<j-1<<" size of ridxL_:"<< ridxL_.size() << std::endl; 
+         // std::cerr << ridxL_[j-1]<<" > "<<lowestL << std::endl;   
 	  lowestL = ridxL_[j-1] > lowestL ? ridxL_[j-1] : lowestL;
         }
       }
@@ -452,7 +457,7 @@ namespace OLAS {
 
 	  // Check if inded of maximal (i.e. bottom-most) non-zero entry
 	  // in column of L has increased
-	  lowestL = ridxL_[j-1] > lowestL ? ridxL_[j-1] : lowestL;
+      lowestL = ridxL_[j-1] > lowestL ? ridxL_[j-1] : lowestL;
 
         }
       }
@@ -1044,6 +1049,8 @@ namespace OLAS {
 
               // This entry must be copied into the full auxilliary vector
               vecW[ i ] = entryA[ firstUncheckedAij[i] ];
+              
+              //std::cerr << "vecW[ "<<i<<" ] = "<<entryA[ firstUncheckedAij[i] ] <<  std::endl;
 
               // This entry is a candidate for the largest row index
               lowest = i;
