@@ -20,7 +20,7 @@
 %      
 %    ABOUT
 %
-%      -Created:     29 Oct 2007
+%      -Created:     30 Oct 2007
 %      -Revision:    0.1
 %      -Author:      Jens Grabinger
 %
@@ -73,6 +73,7 @@ if ~strcmp(cur_group.Name, srcpath)
   return;
 end
 
+% copy tree recursively
 CopyGroupHDF5(cur_group, length(srcpath), destfile, destpath);
 
 
@@ -82,6 +83,7 @@ if ~strcmp(destpath(length(destpath)), '/')
   destpath = strcat(destpath, '/');
 end
 
+% first copy all datasets in current group
 ndatasets = length(srcgroup.Datasets);
 for dataset=1:ndatasets
   ds = srcgroup.Datasets(dataset);
@@ -95,11 +97,13 @@ for dataset=1:ndatasets
   end
 end
 
+% handle all subgroups
 nsubgroups = length(srcgroup.Groups);
 for subgroup=1:nsubgroups
   CopyGroupHDF5(srcgroup.Groups(subgroup), srcpathlen, destfile, destpath);
 end
 
+% copy attributes of current group
 nattribs = length(srcgroup.Attributes);
 for attrib=1:nattribs
   attr = srcgroup.Attributes(attrib);
