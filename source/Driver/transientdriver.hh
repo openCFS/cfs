@@ -44,7 +44,13 @@ namespace CoupledField {
     //! Read restart information
     void ReadRestart();
 
-    //! Number of timesteps
+    //! offset for first timestep (due to multiSequence )
+    UInt stepOffset_;
+
+    //! offset for first time (due to multiSequence)
+    Double timeOffset_;
+
+    //! Number of timesteps~
     UInt numstep_;
 
     //! current time step

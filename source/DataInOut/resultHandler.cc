@@ -77,7 +77,8 @@ namespace CoupledField {
     actContext = 
       shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
-    actContext->saveBegin = saveBegin;
+    // modified to force saveBegin to cero ... !!! change
+    actContext->saveBegin = 0;// saveBegin;
     actContext->saveEnd = saveEnd;
     actContext->saveInc = saveInc;
     actContext->writeResult = writeResult;

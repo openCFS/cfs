@@ -276,6 +276,17 @@ namespace OLAS {
     //!                      method
     void InitSol( const PdeIdType identifierPDE = NO_PDE_ID );
 
+    //! Set the global solution vector to given initial values
+
+    //! Set the solution vector to the values specified in the array
+    //! newSol
+    //! \param newSol Pointer to new solution values
+    //! \note The values of newSol are copied, so the pointer to newSol
+    //! can be changed afterwards!
+    //! not in use
+    void InitSol(const Double *  newSol, const UInt size){};
+    
+    
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
@@ -310,7 +321,7 @@ namespace OLAS {
                            PdeIdType pdeID1, Integer *eqnNrs1,
                            Integer numEqn1, PdeIdType pdeID2,
                            Integer *eqnNrs2, Integer numEqn2,
-                           bool setCounterPart = true );
+                           FEMatrix_Flags pFlags);
 
     //! Assemble the local rhs vector to the global one
 

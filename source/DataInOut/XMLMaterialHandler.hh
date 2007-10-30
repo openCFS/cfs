@@ -62,6 +62,17 @@ namespace CoupledField {
     //! Reads flow material.
     //! \param material Material object to be filled with data
     void ReadFlow(BaseMaterial *material, ParamNode* pn);
+    //! Reads thermoelastic material.
+    //! \param material Material object to be filled with data
+    //! \param matName Name of the material to be read
+    void ReadThermoelastic(BaseMaterial *material, ParamNode* pn);
+
+
+    //! Reads pyroelectric material.
+    //! \param material Material object to be filled with data
+    //! \param matName Name of the material to be read
+    void ReadPyroelectric(BaseMaterial *material, ParamNode* pn);
+
   };
   
 }

@@ -69,7 +69,11 @@ namespace CoupledField
 
     /// setup source term
     void SetupRHS( );
-  
+
+	//! Turn on thermo-elastic coupling
+  	void SetHeatCoupling() {
+       isHeatCoupled_ = true;
+    }  
 
     // ======================================================
     // POSTPROC SECTION
@@ -109,6 +113,15 @@ namespace CoupledField
     //! Nodestoresol for RHS
     BaseNodeStoreSol * rhs_;
     
+
+    // ========================
+    // set solution information
+    // ========================
+	//! flag for thermo-elastic coupling
+    bool isHeatCoupled_; 
+
+
+
     // ======================================================
     // SCRIPTING SECTION
     // ======================================================

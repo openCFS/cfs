@@ -164,6 +164,12 @@ namespace CoupledField {
       data_.Resize(lengthVector_);
       data_.Init(val);
     }
+    // Assuming that the struct is already initialized
+    // and it is only needed a change of the initial value
+    else{
+    	data_.Init(val);
+    }
+    	
   }
 
 

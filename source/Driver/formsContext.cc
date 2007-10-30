@@ -16,22 +16,27 @@ namespace CoupledField {
 
 
   BiLinFormContext::BiLinFormContext( BaseForm* biLinForm, 
-                                      FEMatrixType destMat) {
+                                      FEMatrixType destMat): setOfFlags_(){
 
     integrator_ = biLinForm;
     
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
     secMatFac_ = "0.0";
-    setCounterPart_ = false;
+    //    setCounterPart_ = false;
     entryType_ = REAL;
 
-    // Note: By default, we do not set the transposed
+    // Note: By default, we do not set the counter part
     // of a matrix as well, i.e. if an element matrix
     // gets assembled to a main diagonal block within the
     // big FE-Matrix, this flag must not be changed
     // through 'SetCounterPart()'
-    setCounterPart_ = false;
+    //setCounterPart_ = false;
+    
+    // setCounterPart_ flag handle is replaced by a 
+    // composition with OLAS::FEMatrix_Flags
+    
+    //std::cout << "initialize bilinnear form ..... (" << setOfFlags_.setCounterPart << "," << setOfFlags_.setTransposeInt<< ","<< setOfFlags_.setOnlyCounterPart << ")" << std::endl;
 
     ptPde1_ = NULL;
     ptPde2_ = NULL;

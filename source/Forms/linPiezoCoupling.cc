@@ -116,7 +116,7 @@ namespace CoupledField {
 	actInd++;
       }
     }
-    
+   // std::cerr << "linPiezoCoupling::aMat = \n" << aMat << std::endl;
   }
 
 
@@ -172,7 +172,8 @@ namespace CoupledField {
      }
    }
 
-    //std::cerr << "bMat = \n" << bMat << std::endl;
+    
+    //std::cerr << "linPiezoCoupling::bMat = \n" << bMat << std::endl;
   }
 
 
@@ -184,6 +185,9 @@ namespace CoupledField {
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
+    
+    //std::cerr << "e = \n" << dMat << std::endl;
+    
   }
 
 

@@ -80,7 +80,8 @@ namespace OLAS {
                              Double *elemMat,
                              Integer *connect1, UInt length1,
                              Integer *connect2, UInt length2,
-                             UInt limit1, UInt limit2 );
+                             UInt limit1, UInt limit2,
+                             bool setTransposeInt );
 
     void SetElementRHS( SparseVector *rhs, Double *elemRHS,
                         Integer *connect, UInt elemSize, UInt limit );
@@ -124,7 +125,9 @@ namespace OLAS {
 
     void SetNodeRHS( SparseVector *rhs, Complex val, 
                      Integer node);
-                          
+
+    void InitSol( SparseVector *sol, const Double *newSol);
+    
     void InitRHS( SparseVector *rhs, const Double *newRHS);
                           
     void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,

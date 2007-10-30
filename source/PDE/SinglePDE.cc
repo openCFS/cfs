@@ -439,7 +439,13 @@ namespace CoupledField {
       TS_alg_->Init( dt, eqnMap_->GetNumEqns() );
     }
 
-
+//    // =====================================================================
+//    // Set the initial conditions
+//    // =====================================================================
+//    if ( analysistype_ == TRANSIENT){
+//    	SetInitialCondition();
+//    }
+    
     // =====================================================================
     // define which solution types have to be saved
     // =====================================================================
@@ -449,6 +455,7 @@ namespace CoupledField {
 
     // Set information at sol_ object
     sol_->SetResult( results_[0] );
+    
 
     PreparePDE4Computation();
 
@@ -1690,6 +1697,13 @@ namespace CoupledField {
     // create matrices and solver object, if PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
       CreateMatrices_Solver();
+      
+      // =====================================================================
+      // Set the initial conditions
+      // =====================================================================
+      if ( analysistype_ == TRANSIENT){
+      	SetInitialCondition();
+      }
       
       // Incorporate values of memento here, if the values are used
       // as "start"-values from a previous simulation run

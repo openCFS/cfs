@@ -122,7 +122,17 @@ namespace CoupledField {
     
     
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
+    //---------------------------------------------------------------------------
+    // to save the initial state
+    // commented out, since all time-dependend examples in testsuite consider the first
+    // not the zeroth time step
 
+    //     resHandler->BeginStep( 0, 0 );
+    //     ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+    //     resHandler->FinishStep( );
+
+
+    //---------------------------------------------------------------------------
     // Outer loop over all timesteps
     for (actTimeStep_ = startStep; actTimeStep_ <= numstep_+restartStep_; actTimeStep_++) {
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;

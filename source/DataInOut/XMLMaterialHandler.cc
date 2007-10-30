@@ -18,6 +18,8 @@
 #include "Materials/mechanicMaterial.hh"
 #include "Materials/piezoMaterial.hh"
 #include "Materials/flowMaterial.hh"
+#include "Materials/thermoelasticMaterial.hh"
+#include "Materials/pyroelectricMaterial.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -50,7 +52,7 @@ namespace CoupledField {
   BaseMaterial * XMLMaterialHandler::
   LoadMaterial( const std::string matName, 
                const MaterialClass matClass ) {
-    
+
     BaseMaterial * material = NULL;
     
     std::string strMatClass;
@@ -89,6 +91,14 @@ namespace CoupledField {
     else if ( matClass == FLOW ) {
       material = new FlowMaterial();
       ReadFlow( material, pn );
+    }
+    else if ( matClass == PYROELECTRIC ) {
+      material = new PyroelectricMaterial();
+      ReadPyroelectric( material,pn );
+    }
+    else if ( matClass == THERMOELASTIC ) {
+      material = new ThermoelasticMaterial();
+      ReadThermoelastic( material, pn );
     }
     else {
       EXCEPTION( "material type:" << matClass << " not defined " );
@@ -755,24 +765,166 @@ namespace CoupledField {
 
     // read thermal conductivity
     if(therm->Has("thermalConductivity"))
-      material->SetScalar(therm->Get("thermalConductivity")->AsDouble(), HEAT_CONDUCTIVITY, REAL);
-
+      {
+        ParamNode* thc = therm->Get("thermalConductivity");
+        if(thc->Has("isotropic"))
+          {
+            material->SetScalar(thc->Get("isotropic")->AsDouble(), HEAT_CONDUCTIVITY, REAL);
+          }
+        if(thc->Has("tensor"))
+          {
+            // can only be a real 3x3 tensor
+            Matrix<double> tensor(3,3);
+            ParamNode* tens_pn = thc->Get("tensor", "dim1", "3")->Get("real");
+            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, REAL);
+          }
+      }
+    
     // Print information to info file
     Info->PrintMaterial( material );
   }
-
-//**********************************************************************
-//*************  READ FLOW *********************************************
-//**********************************************************************
-  void XMLMaterialHandler::ReadFlow(BaseMaterial *material, ParamNode* flow)
-  {    
-    // read density
-    if(flow->Has("density"))
-      material->SetScalar(flow->Get("density")->AsDouble(), DENSITY, REAL);
+  
+  //**********************************************************************
+    //*************  READ FLOW *********************************************
+      //**********************************************************************
+    void XMLMaterialHandler::ReadFlow(BaseMaterial *material, ParamNode* flow)
+    {    
+      // read density
+      if(flow->Has("density"))
+        material->SetScalar(flow->Get("density")->AsDouble(), DENSITY, REAL);
       
-    // dynamicViscosity is NOT set in r7562 
+      // dynamicViscosity is NOT set in r7562 
+      
+      // Print information to info file
+      Info->PrintMaterial( material );
+    }
 
-    // Print information to info file
-    Info->PrintMaterial( material );
-  }
+  //**********************************************************************
+    //*************  READ PYROELECTRIC *************************************
+      //**********************************************************************
+    void XMLMaterialHandler::ReadPyroelectric(BaseMaterial *material, 
+                                              ParamNode* pyro){
+      
+      if (pyro->Has("pyrocoefficient")){
+        ParamNode* py = pyro->Get("pyrocoefficient");
+        if(py->Has("tensor"))
+          {
+            // can only be a real 3x3 tensor
+            Matrix<double> tensor(3,3);
+            ParamNode* tens_pn = py->Get("tensor", "dim1", "3")->Get("real");
+            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            material->SetTensor(tensor, PYROCOEFFICIENT_TENSOR , REAL);
+          }
+      }
+      Info->PrintMaterial( material );
+    }
+
+  //**********************************************************************
+    //*************  READ THERMOELASTIC ************************************
+      //**********************************************************************
+    void XMLMaterialHandler::ReadThermoelastic(BaseMaterial *material,
+                                               ParamNode* thermExp) {
+
+      if(thermExp->Has("thermalExpansion")){
+        ParamNode* te = thermExp->Get("thermalExpansion");
+        if(te->Has("tensor"))
+          {
+            // can only be a real 3x3 tensor
+            Matrix<double> tensor(3,3);
+            ParamNode* tens_pn = te->Get("tensor", "dim1", "3")->Get("real");
+            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR, REAL);
+          }
+      }
+      Info->PrintMaterial( material );
+    }
 }
+
+  //   //Double      doubValue;
+//     //Integer     inteValue, dim;
+//     std::string striValue;
+//     Matrix<Double> Pyrocoefficient_Tensor(3,3);
+
+//     // Construct vectors for restricted search parameter
+//     StdVector<std::string> keyVec;
+//     StdVector<std::string> attrVec;
+//     StdVector<std::string> valVec;
+
+//     //read real permittivity tensor
+//     const unsigned int dim1=3, dim2=3;
+//     keyVec = "material","pyroelectric","pyrocoefficient","tensor","real";
+//     attrVec= "name"    ,""        ,""            ,"dim1";
+//     valVec =  matName  ,""        ,""            ,"3";
+//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+//                                    dim1, dim2, Pyrocoefficient_Tensor );
+//       material->SetTensor( Pyrocoefficient_Tensor, PYROCOEFFICIENT_TENSOR, REAL ); 
+//            // std::cerr << "real Pyrocoefficient_Tensor=" << std::endl << Pyrocoefficient_Tensor << std::endl;
+//     }
+
+//     //read imaginary permittivity tensor
+//     keyVec = "material","pyroelectric","pyrocoefficient","tensor","imag";
+//     attrVec= "name"    ,""        ,""            ,"dim1";
+//     valVec =  matName  ,""        ,""            ,"3";
+//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+//                                    dim1, dim2, Pyrocoefficient_Tensor );
+//       material->SetTensor( Pyrocoefficient_Tensor, PYROCOEFFICIENT_TENSOR, IMAG ); 
+//       // std::cerr << "imaginary permittivityTensor=" << std::endl << permittivityTensor << std::endl;
+//     }
+ 
+//     // Print information to info file
+//     Info->PrintMaterial( material );
+//  }
+
+//**********************************************************************
+//*************  READ THERMOELASTIC ************************************
+//**********************************************************************
+//   void XMLMaterialHandler::ReadThermoelastic(BaseMaterial *material,
+//                                     const std::string matName) {
+//     Double      doubValue;
+// 
+//     // Construct vectors for restricted search parameter
+//     StdVector<std::string> keyVec;
+//     StdVector<std::string> attrVec;
+//     StdVector<std::string> valVec;
+// 
+//     //read thermal expansion
+//     keyVec = "material","thermoelastic","thermalExpansion";
+//     attrVec= "name"    ,"";
+//     valVec =  matName  ,"";
+//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+//       parser_->Get( keyVec, attrVec, valVec, doubValue );
+//       material->SetScalar( doubValue, THERMAL_EXPANSION, REAL );
+//        //std::cerr << "thermalExpansion=" << doubValue << std::endl;
+//     }
+
+
+
+//     std::string striValue;
+//     Matrix<Double> thermalExpansion_Tensor(3,3);
+
+//     // Construct vectors for restricted search parameter
+//     StdVector<std::string> keyVec;
+//     StdVector<std::string> attrVec;
+//     StdVector<std::string> valVec;
+
+//     //read real permittivity tensor
+//     const unsigned int dim1=3, dim2=3;
+//     keyVec = "material","thermoelastic","thermalExpansion","tensor","real";
+//     attrVec= "name"    ,""        ,""            ,"dim1";
+//     valVec =  matName  ,""        ,""            ,"3";
+//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+//                                    dim1, dim2, thermalExpansion_Tensor );
+//       material->SetTensor( thermalExpansion_Tensor, THERMAL_EXPANSION_TENSOR, REAL ); 
+//             //std::cerr << "real thermalExpansion_Tensor=" << std::endl << thermalExpansion_Tensor << std::endl;
+//     }
+
+
+//     // Print information to info file
+//     Info->PrintMaterial( material );
+//   }
+
+  //}

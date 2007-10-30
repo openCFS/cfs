@@ -1,0 +1,69 @@
+#ifndef PYROELECTRICMATERIAL_DATA
+#define PYROELECTRICMATERIAL_DATA
+
+#include "baseMaterial.hh"
+
+namespace CoupledField {
+
+  //! Class for Material Data
+  /*! 
+     Class for handling thermoelastic material data
+  */
+
+  class PyroelectricMaterial : public BaseMaterial {
+
+  public:
+
+    //! Default constructor
+    PyroelectricMaterial();
+
+    //! Destructor
+    ~PyroelectricMaterial();
+
+    //! set a real material tensor
+    void SetTensor( Matrix<Double>& param, const MaterialType& matType,
+		    const DataType& dataType );
+
+    //! set a complex material tensor
+    void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
+		    const DataType& dataType );
+
+    //! get a real material tensor
+    void GetTensor( Matrix<Double>& param, const MaterialType& matType,
+		    const DataType& dataType,
+		    const SubTensorType = FULL ) const;	
+
+    //! get a complex material tensor
+    void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
+		    const DataType& dataType,
+		    const SubTensorType = FULL ) const;
+
+    //! set a scalar real material parameter
+    void SetScalar( Double param, MaterialType matType, 
+		    DataType dataType );
+
+
+    //! get a scalar real material parameter
+    void GetScalar( Double& param, MaterialType matType, 
+		    DataType dataType ) const;
+
+
+    //! get a scalar complex real material parameter
+    void GetScalar( Complex& param, MaterialType matType, 
+		    DataType dataType ) const;
+    
+
+
+  private:
+
+    //! compute the correct subTensor (3D, AXI, ..)
+    void ComputeSubTensor(Matrix<Complex>& matMatrix,
+			  const MaterialType& matType, 
+			  const SubTensorType& subTensor) const;
+
+    //Complex scalarPyrocoefficient_;
+  };
+
+} // end of namespace
+
+#endif

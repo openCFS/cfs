@@ -312,7 +312,9 @@ namespace CoupledField {
                STOKESFLUID_FORCE,
                LAMBDA_K, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE, FLUIDMECH_FORCE,
                BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
-               OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3, LAGRANGE_MULT} SolutionType;
+               OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3, LAGRANGE_MULT,
+               THERMOMECH_FORCE, THERMOELEC_FORCE} SolutionType;
+
 
   //! describes the possible material types
   typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY, 
@@ -328,17 +330,19 @@ namespace CoupledField {
                DENSITY, ACOU_BULK_MODULUS, ACOU_SOUND_SPEED, 
                ACOU_ALPHA, FRACTIONAL_ALG, FRACTIONAL_MEMORY, FRACTIONAL_INTERPOL,
                FRACTIONAL_EXPONENT,
-               HEAT_CONDUCTIVITY, HEAT_CAPACITY, PIEZO_TENSOR,
+               HEAT_CONDUCTIVITY, HEAT_CAPACITY, PIEZO_TENSOR, HEAT_CONDUCTIVITY_TENSOR,
                X_SATURATION, Y_SATURATION, PREISACH_WEIGHTS, A_JILES, ALPHA_JILES, K_JILES,
                C_JILES, P_DIRECTION, HYST_MODEL, 
                NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,
                NONLIN_DATA_NAME, DYNAMIC_VISCOSITY,
-               DATA_ACCURACY, MAX_APPROX_VAL} MaterialType;
+               DATA_ACCURACY, MAX_APPROX_VAL,
+               THERMAL_EXPANSION_TENSOR, PYROCOEFFICIENT_TENSOR} MaterialType;
 
   typedef enum{FULL, PLANE_STRAIN, PLANE_STRESS, AXI} SubTensorType;
 
   typedef enum{ NO_CLASS, ELECTROMAGNETIC, ELECTROSTATIC, FLUID, FLOW,
-                MECHANIC, PIEZO, THERMIC } MaterialClass;
+                MECHANIC, PIEZO, THERMIC, PYROELECTRIC, THERMOELASTIC } MaterialClass;
+
 
   typedef enum{ noCurve, magBH } ApproxMaterialCurves;
 
@@ -349,17 +353,17 @@ namespace CoupledField {
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
-  //! DIRECT_COUPLING      = Direct Coupling via matrix\n
-  //! ITER_RHS_COUPLING    = Iterative via RHS\n
+  //! DIRECT_COUPLING      = Direct Coupling via matrix \n
+  //! ITER_RHS_COUPLING    = Iterative via RHS \n
   //! ITER_MATRIX_COUPLING = Iterative via matrix
   typedef enum{NO_COUPLING, DIRECT_COUPLING, ITER_RHS_COUPLING,
                  ITER_MATRIX_COUPLING} CouplingMethod;
 
   //! Enumeration for Input Coupling types \n
-  //! COORD = Coupling via coordinate displacement\n
-  //! RHS   = Coupling via Right hand side\n
-  //! ID_BC = Coupling via inhomogenous dirichlet bc\n
-  //! MAT   = Coupling via material change\n
+  //! COORD = Coupling via coordinate displacement \n
+  //! RHS   = Coupling via Right hand side \n
+  //! ID_BC = Coupling via inhomogenous dirichlet bc \n
+  //! MAT   = Coupling via material change \n
   typedef enum {COORD, RHS, ID_BC, MAT} CouplingInputType;
 
   //! Enumeration for Output Coupling types\n
@@ -421,6 +425,8 @@ namespace CoupledField {
   typedef enum {NOBUBBLETYPE, KELLERMIKSIS, GILMORE} BubbleDynType;
 
   extern BubbleDynType bubbleDyn;
+  
+
  
 
   //------------------------ Files for debug and information ---------
@@ -498,8 +504,38 @@ namespace CoupledField {
 #ifdef INTEGLIB
   typedef enum {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS}
   FEMatrixType;
-#endif
-
+  
+  //! class for flags of the FE matrix
+	class FEMatrix_Flags {
+		public:
+			FEMatrix_Flags() {
+				setCounterPart=false;
+				setTransposeInt = true;
+				setOnlyCounterPart = false;
+			}
+	
+			//! Flag indicating assembling of the integrator
+			//! in the counterpart of the pde location
+			bool setCounterPart;
+			//! Flag indicating the assembling of the integrator.
+			//! in the counter part of the pde transposing it.
+			//! Note: By default, we set the transpose of a matrix 
+			//! true when assembling the counter part of the 
+			//! matrix, i.e. the case of piezoelectric coupling.
+			//! if we want set the counter part without transposing
+			//! the integrator within the global FE-matrix, this 
+			//! flag must be changed through 'SetTransposeInt()'
+			bool setTransposeInt;
+			//! Flag to set only the counter part of the element matrix.
+			bool setOnlyCounterPart;
+		
+	};  
+	//extern FEMatrix_Flags * matrix_flags;
+	
+#endif 
+  
+	
+	
 } // end of namespace
 
 #endif // FILE_SCFE_MYDEFS

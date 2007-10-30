@@ -72,7 +72,7 @@ namespace OLAS {
                            Integer *connect1, UInt length1,
                            Integer *connect2, UInt length2,
                            UInt limit1, UInt limit2,
-                           bool setCounterPart );
+                           bool setCounterPart);
 
     //!
     void SetCounterPartOnly( FEMatrixType matrix_id,
@@ -84,7 +84,8 @@ namespace OLAS {
                              Double *elemMat,
                              Integer *connect1, UInt length1,
                              Integer *connect2, UInt length2,
-                             UInt limit1, UInt limit2 );
+                             UInt limit1, UInt limit2,
+                             bool setTransposeInt);
 
     //!
     void SetElementRHS( SparseVector *rhs, Double *elemRHS,
@@ -137,10 +138,14 @@ namespace OLAS {
     //!
     void SetNodeRHS( SparseVector *rhs, Complex val, 
                      Integer node );
-                          
+    
     //!
+
     void InitRHS( SparseVector *rhs, const Double *newRHS);
-                          
+
+    //! 
+    void InitSol( SparseVector *sol, const Double *newSol);
+    
     //!
     void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                     Double *fup );

@@ -241,6 +241,8 @@ namespace CoupledField
     // overloaded version of ReadBCs for special
     // boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
+    
+
 
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 

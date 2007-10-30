@@ -14,6 +14,7 @@
 // include PDE classes
 #include "PDE/SinglePDE.hh"
 
+
 #include "Domain/domain.hh"
 #include "Driver/singleDriver.hh"
 #include "Driver/transientdriver.hh"
@@ -86,7 +87,85 @@ namespace CoupledField {
     couplings_ = couplings;
   }
 
+  // ****************
+  //   SetInitial conditions
+  //   from the pde members
+  // ****************
+  
+  void DirectCoupledPDE::SetInitialCondition() {
 
+	Vector< Double > aux;
+	aux.Init(0.0);
+	std::cout << "\n totalUnknowns_= "<< totalUnknowns_<< std::endl;
+
+	// Construct the initial solution vector
+	shared_ptr<EqnMap> eqn;
+	UInt singleUnknowns=0;
+	UInt lastIndex=0;
+	
+
+	for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+
+		//------------------------------------------------
+		// get the id of the this pde
+		//pdeId = singlePDEs_[i]->GetPDEId();
+		std::cout << "\n PDEId ->  "<< singlePDEs_[i]->GetPDEId()
+				<<", PDEname -> "<< singlePDEs_[i]->GetName();
+		//------------------------------------------------
+
+		// the PDEs members haven't set up their initial conditions yet
+		// -> set the initial conditions of this pde
+		singlePDEs_[i]->SetInitialCondition();
+		if(singlePDEs_[i]->IsSetInitialCondition()==true){
+			this->isSetInitialCondition_=true;
+			std::cout << ", is set the initial cond? "<< singlePDEs_[i]->IsSetInitialCondition();
+		}
+		
+		
+		//------------------------------------------------
+		// get the number of unknowns of this pde
+		eqn = singlePDEs_[i]->GetEqnMap();
+		singleUnknowns = eqn->GetNumEqns();
+		std::cout << ", singleUnknowns = "<< singleUnknowns;
+		
+		std::cout << ", use penalty? "<< singlePDEs_[i]->usePenalty_ << std::endl;
+		// check setup of linear system
+		if(singlePDEs_[i]->usePenalty_==false){
+			// uses elimination of Inhomogeneous DBC	
+			//std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
+				singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
+		}
+		//------------------------------------------------	
+		
+		// init the aux vector
+		// **** it is supoussed that i=pdeID ****
+		// -> the order of the solution vector is the same as ordering of pdeID
+		for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
+			//aux[ii]=singlePDEs_[i]->getInitialCondition();
+			aux.Push_back(singlePDEs_[i]->getInitialCondition());
+		}
+
+		lastIndex+=singleUnknowns;
+		
+	}
+
+	std::cout << "is set the initial cond? "<< this->IsSetInitialCondition();
+	// now we have our solution vector initialized
+	//std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
+
+	if(this->IsSetInitialCondition()==true){
+		// save the initial vector in each pde solution vector 
+		SaveSolution(aux.GetPointer(), aux.GetSize());
+
+		// save the initial solution vector into algsys
+		algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
+	}
+
+  }
+
+  
+    
+  
   // ********
   //   Init
   // ********
@@ -152,6 +231,7 @@ namespace CoupledField {
       singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep );
+  
     }
 
     // Get information about number of dirichlet values,
@@ -206,7 +286,8 @@ namespace CoupledField {
       }
     }
 
-  
+    
+   
     //! Augment nonlinearity information
     //! from PiezoCoupling, mechPDE and elecPDE
 
@@ -424,6 +505,14 @@ namespace CoupledField {
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
+    
+    // =====================================================================
+    // Set the initial conditions
+    // =====================================================================
+    if ( analysistype_ == TRANSIENT ){
+    	SetInitialCondition();
+    }
+    
 
     for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       if (singlePDEs_[i]->memento_ != NULL &&

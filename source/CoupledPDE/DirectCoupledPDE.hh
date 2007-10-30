@@ -125,6 +125,11 @@ namespace CoupledField {
   
     //! calculate coupling terms
     void CalcOutputCoupling();
+    
+    //! Set initial conditions
+    void SetInitialCondition();
+
+    
 
   private:
 

@@ -273,6 +273,10 @@ source/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/DirectCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/PiezoCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/PiezoCoupling.hh svneol=native#text/x-c%2B%2Bhdr
+source/CoupledPDE/ThermoElectricCoupling.cc -text
+source/CoupledPDE/ThermoElectricCoupling.hh -text
+source/CoupledPDE/ThermoMechCoupling.cc -text
+source/CoupledPDE/ThermoMechCoupling.hh -text
 source/CoupledPDE/coupledPDE.conf svneol=native#text/plain
 source/CoupledPDE/coupled_pdes_header.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/coupledpdedef.cc svneol=native#text/x-c%2B%2Bsrc
@@ -619,6 +623,8 @@ source/Forms/linElastInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linElastInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linElecInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Forms/linElecInt.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/Forms/linHeatCondInt.cc -text
+source/Forms/linHeatCondInt.hh -text
 source/Forms/linNeumannInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linNeumannInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linPiezoCoupling.cc -text svneol=unset#text/x-c%2B%2Bsrc
@@ -631,6 +637,14 @@ source/Forms/linSurfForm.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linSurfForm.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linSurfStressInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linSurfStressInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/linThermoElecDampInt.cc -text
+source/Forms/linThermoElecDampInt.hh -text
+source/Forms/linThermoElectricInt.cc -text
+source/Forms/linThermoElectricInt.hh -text
+source/Forms/linThermoMechDampInt.cc -text
+source/Forms/linThermoMechDampInt.hh -text
+source/Forms/linThermoMechInt.cc -text
+source/Forms/linThermoMechInt.hh -text
 source/Forms/linViscoElastInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linViscoElastInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linearForm.cc svneol=native#text/x-c%2B%2Bsrc
@@ -707,6 +721,10 @@ source/Materials/mechanicMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/mechanicMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/piezoMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/piezoMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/Materials/pyroelectricMaterial.cc -text
+source/Materials/pyroelectricMaterial.hh -text
+source/Materials/thermoelasticMaterial.cc -text
+source/Materials/thermoelasticMaterial.hh -text
 source/Matrix/CMakeLists.txt svneol=native#text/plain
 source/Matrix/cfsmatrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/Matrix/dinolfo_matrix.hh svneol=native#text/x-c%2B%2Bhdr
