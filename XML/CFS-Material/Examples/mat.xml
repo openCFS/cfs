@@ -155,5 +155,27 @@
         <dataName>   PZT5A33NL1    </dataName>
       </piezoCouplingCoefficient>
     </piezo>
+    <pyroelectric>	
+	    <pyrocoefficient>
+		    <tensor dim1="3" >		
+			    <real>									
+				    2.50000E-04	0.00000E+00	0.00000E+00						
+				    0.00000E+00	2.50000E-04	0.00000E+00						
+				    0.00000E+00	0.00000E+00	2.50000E-04						
+			    </real>
+		    </tensor>	
+	    </pyrocoefficient>
+    </pyroelectric>	
+    <thermoelastic>
+	    <thermalExpansion>			
+		    <tensor dim1="3" >		
+			    <real>									
+				    10.0000E-6	0.00000E+00	0.00000E+00						
+				    0.00000E+00	10.0000E-6	0.00000E+00						
+				    0.00000E+00	0.00000E+00	10.0000E-6						
+			    </real>
+		    </tensor>	
+		</thermalExpansion>
+	</thermoelastic>
   </material>
 </cfsMaterialDataBase>

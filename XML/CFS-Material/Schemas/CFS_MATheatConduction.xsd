@@ -16,12 +16,51 @@
   <!--   Definition of material for heat conduction PDEs -->
   <!-- ******************************************************************* -->
 
-  <xsd:complexType name="DT_MatHeatConduction">
+ <!-- <xsd:complexType name="DT_MatHeatConduction">
     <xsd:sequence>
       <xsd:element name="density" type="DT_NonNegFloat"/>
       <xsd:element name="heatCapacity" type="DT_NonNegFloat"/>
       <xsd:element name="thermalConductivity" type="DT_NonNegFloat"/>
+	  
+    </xsd:sequence>
+  </xsd:complexType> -->
+  
+  
+    <xsd:complexType name="DT_MatHeatConduction">
+    <xsd:sequence>
+      <xsd:element name="density" type="DT_NonNegFloat"/>
+      <xsd:element name="heatCapacity" type="DT_NonNegFloat"/>
+      <xsd:element name="thermalConductivity" type="DT_thermalConductivity"/>
     </xsd:sequence>
   </xsd:complexType>
+  
+    <!-- ******************************************************************* -->
+  <!--   Definition of Thermal Conductivity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_thermalConductivity">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_thermalConductivityTensor"/>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of Thermal Conductivity in tensor form                -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_thermalConductivityTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="9"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+
+  
   
 </xsd:schema>

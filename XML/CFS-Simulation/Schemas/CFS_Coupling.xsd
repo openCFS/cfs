@@ -394,6 +394,8 @@
   <!--   Definition of pairwiese PDE couplings -->
   <!-- ******************************************************************** -->
 
+  
+  
   <!-- Acoustic-mechanic coupling -->
   <xsd:element name="acouMech" substitutionGroup="PDEBasicIterCoupling">
     <xsd:complexType>

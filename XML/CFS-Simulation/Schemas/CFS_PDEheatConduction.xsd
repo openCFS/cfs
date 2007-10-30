@@ -65,6 +65,9 @@
             </xsd:complexType>
           </xsd:element>
 
+		  <!-- Section for specifying initial conditions (optional) -->
+          <xsd:element name="InitialCondition" type="xsd:double" minOccurs="0"/>
+          
           <!-- Section for specifying non-linear parameters (optional) -->
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
