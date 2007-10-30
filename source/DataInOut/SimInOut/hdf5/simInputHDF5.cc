@@ -835,8 +835,6 @@ namespace CoupledField {
         mi_->AddNamedNodes( nodeNames_[i], nodes );
       
       actEntityGroup.close();
-      
-      actEntityGroup.close();
     }
 
     entityGroup.close();
