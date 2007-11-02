@@ -528,9 +528,11 @@ namespace CoupledField
     //! This method creates the surface elements, by assigning each surface 
     //! element one or two volume neighbours. Also the flag for indicating
     //! the direction of the surface normal is calculated.
-    //! \param elems (input) vector containing surface elements which are not
+    //! \param elems (input) set containing surface elements which are not
     //!                      yet converted to \a SurfElem*
-    void CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems);
+    //! \param mappedElems (output) set containing mapped surface elements 
+    void CreateSurfaceElements( std::set<Elem*> & elems,
+                                std::set<SurfElem*> & mappedElems );
 
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
@@ -629,6 +631,9 @@ namespace CoupledField
 
     //! Vector with named elements
     StdVector<StdVector<UInt> > namedElems_;
+    
+    //! Vector with nodes of named elements
+    StdVector<StdVector<UInt> > namedElemNodes_;
   
     //! Vector with names of named elements
     StdVector<std::string> namedElemNames_;

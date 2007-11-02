@@ -121,6 +121,10 @@ namespace CoupledField {
           Info->PrintF( couplingName_, "%s, ID = %i\n", regionName.c_str(), 
                         regionId );
           subdoms_.Push_back( regionId );
+          entityLists_.Push_back( ptGrid_->
+                                  GetEntityList( EntityList::ELEM_LIST, 
+                                                 regionName, EntityList::REGION ) );
+                                                          
         }
       }
     }
@@ -136,14 +140,12 @@ namespace CoupledField {
                       "The %s coupling lives on the following surface regions:\n",
                       couplingName_.c_str());
         std::string surfRegionName;
-        RegionIdType surfRegionId;
         for( UInt i = 0; i < surfRegionList.GetSize(); i++ ) {
           
           surfRegionList[i]->Get("name", surfRegionName );
-          surfRegionId = ptGrid_->RegionNameToId( surfRegionName );
-          Info->PrintF( couplingName_, "%s, ID = %i\n", surfRegionName.c_str(), 
-                        surfRegionId );
-          surfdoms_.Push_back( surfRegionId );
+          Info->PrintF( couplingName_, "%s", surfRegionName.c_str() );
+          entityLists_.Push_back( ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, 
+                                                          surfRegionName, EntityList::REGION ) );
         }
       }
     }

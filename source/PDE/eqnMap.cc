@@ -2064,46 +2064,51 @@ namespace CoupledField {
     shared_ptr<RegionList> regionList;
     StdVector<UInt> helpNodes;
     EntityIterator it;
-    switch( type ) {
-      
-    case EntityList::ELEM_LIST:
-      elemList= 
-	dynamic_pointer_cast<ElemList, EntityList>(ent);
-      ptGrid_->GetNodesByRegion( nodes, elemList->GetRegion() );
-      break;
-      
-    case EntityList::SURF_ELEM_LIST:
-      sElemList = 
-	dynamic_pointer_cast<SurfElemList, EntityList>(ent);
-      ptGrid_->GetNodesByRegion( nodes, sElemList->GetRegion() );
-      break;
-
-    case EntityList::REGION_LIST:
-      regionList= 
-	dynamic_pointer_cast<RegionList, EntityList>(ent);
-      it = regionList->GetIterator();
-      for( ; !it.IsEnd(); it++ ) {
-        helpNodes.Clear();
-        ptGrid_->GetNodesByRegion( helpNodes, it.GetRegion() );
-        for( UInt i = 0; i < helpNodes.GetSize(); i++ ) {
-          nodes.Push_back( helpNodes[i] );
-        }
-      }
-      break;
-
-    case EntityList::NODE_LIST:
-      nodeList = 
-	dynamic_pointer_cast<NodeList, EntityList>(ent);        
-      nodes = nodeList->GetNodes();
-      break;
-      
-    default :
-      std::string listString;
-      EntityList::Enum2String( type, listString );
-      EXCEPTION( "'" << listString
-                 << "' is no EntityList with nodal information." );
-      
-    }
+    
+    // get name of entitylist
+    std::string name= ent->GetName();
+    ptGrid_->GetNodesByName( nodes, name );
+    
+//    switch( type ) {
+//      
+//    case EntityList::ELEM_LIST:
+//      elemList= 
+//	dynamic_pointer_cast<ElemList, EntityList>(ent);
+//      ptGrid_->GetNodesByRegion( nodes, elemList->GetRegion() );
+//      break;
+//      
+//    case EntityList::SURF_ELEM_LIST:
+//      sElemList = 
+//	dynamic_pointer_cast<SurfElemList, EntityList>(ent);
+//      ptGrid_->GetNodesByRegion( nodes, sElemList->GetRegion() );
+//      break;
+//
+//    case EntityList::REGION_LIST:
+//      regionList= 
+//	dynamic_pointer_cast<RegionList, EntityList>(ent);
+//      it = regionList->GetIterator();
+//      for( ; !it.IsEnd(); it++ ) {
+//        helpNodes.Clear();
+//        ptGrid_->GetNodesByRegion( helpNodes, it.GetRegion() );
+//        for( UInt i = 0; i < helpNodes.GetSize(); i++ ) {
+//          nodes.Push_back( helpNodes[i] );
+//        }
+//      }
+//      break;
+//
+//    case EntityList::NODE_LIST:
+//      nodeList = 
+//	dynamic_pointer_cast<NodeList, EntityList>(ent);        
+//      nodes = nodeList->GetNodes();
+//      break;
+//      
+//    default :
+//      std::string listString;
+//      EntityList::Enum2String( type, listString );
+//      EXCEPTION( "'" << listString
+//                 << "' is no EntityList with nodal information." );
+//      
+//    }
   }
 
   UInt EqnMap::GetNumLastFreeDof() const {

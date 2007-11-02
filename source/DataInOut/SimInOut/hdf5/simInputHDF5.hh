@@ -138,8 +138,8 @@ namespace CoupledField {
     // =======================================================================
     //@{ \name Helper methods
 
-    //! Read elements of regions
-    void ReadRegions(const H5::Group& meshGroup);
+    //! Read nodal and element definitions
+    void ReadNodeElemData(const H5::Group& meshGroup);
 
     //! Read node groups
     void ReadNodeGroups(const H5::Group& meshGroup);

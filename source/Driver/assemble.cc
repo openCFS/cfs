@@ -580,13 +580,15 @@ namespace CoupledField {
         shared_ptr<ElemList> list = 
           boost::dynamic_pointer_cast<ElemList,EntityList> 
           (context.GetFirstEntities());
-        regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        regionName = list->GetName();
       } else if ( context.GetFirstEntities()->GetType()
                   == EntityList::SURF_ELEM_LIST ) {
         shared_ptr<SurfElemList> list = 
           boost::dynamic_pointer_cast<SurfElemList,EntityList> 
           (context.GetFirstEntities());
-        regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        regionName = list->GetName();
       }
       out << std::setw(15) << regionName << " | " ;
       
@@ -621,13 +623,15 @@ namespace CoupledField {
         shared_ptr<ElemList> list = 
           boost::dynamic_pointer_cast<ElemList,EntityList> 
           (context.GetEntities());
-        regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        regionName = list->GetName();
       } else if ( context.GetEntities()->GetType()
                   == EntityList::SURF_ELEM_LIST ) {
         shared_ptr<SurfElemList> list = 
           boost::dynamic_pointer_cast<SurfElemList,EntityList> 
           (context.GetEntities());
-        regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
+        regionName = list->GetName();
       }
       out << std::setw(15) << regionName ;
       

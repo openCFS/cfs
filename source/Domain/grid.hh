@@ -739,10 +739,13 @@ namespace CoupledField
     StdVector<StdVector<Elem*> > surfElems_;  
 
     //! Vector with node numbers for each surface region
-      StdVector< std::set<UInt> > surfElemNodes_;
+    StdVector< std::set<UInt> > surfElemNodes_;
 
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;
+    
+    //! Map from name to type of entity
+    std::map<std::string, EntityList::DefineType> nameTypeMap_;
     
     //! mapping from non-matching grid interface name to a flag if the
     //! interface is coplanar

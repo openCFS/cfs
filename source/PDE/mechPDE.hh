@@ -304,7 +304,7 @@ namespace CoupledField
     //bool fracDamping_;
 
     //! surface of pressure loads
-    StdVector<RegionIdType> pressSurf_;  
+    StdVector<shared_ptr<EntityList> > pressSurf_;  
 
     //! values of the pressure loads
     StdVector<std::string>  pressVals_; 

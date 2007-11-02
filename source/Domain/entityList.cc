@@ -174,7 +174,6 @@ namespace CoupledField {
   }
 
   void SurfElemList::SetNamedElems( const std::string& name ) {
-    std::cerr << "IN SurfElemList::SetNamedElems\n" << std::endl;
     defineType_ = NAMED_ELEMS;
     name_ = name;
     StdVector<Elem*> elems;
@@ -191,7 +190,6 @@ namespace CoupledField {
     }
     size_ = list_.GetSize();
     name_ = name;
-    std::cerr << "===========================\n";
   }
 
   void SurfElemList::SetRegion( RegionIdType  region ) { 

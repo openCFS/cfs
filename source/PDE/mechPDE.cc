@@ -972,13 +972,6 @@ namespace CoupledField {
     //RHS-part
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
 
-      // create new surface element list
-      shared_ptr<SurfElemList> actPressSurf( new SurfElemList(ptgrid_ ) );
-      shared_ptr<ElemList> actPressElem( new ElemList(ptgrid_ ) );
-      actPressSurf->SetRegion( pressSurf_[actSF] );
-      actPressElem->SetRegion( pressSurf_[actSF] );
-
-
       LinearSurfForm * rhsSrcSurf = 
         new PressureLinForm(pressVals_[actSF], pressPhase_[actSF], isaxi_ );
       rhsSrcSurf->SetVoluInfo( materials_ );
@@ -986,12 +979,12 @@ namespace CoupledField {
       LinearFormContext * pressRhs = 
         new LinearFormContext( rhsSrcSurf );
       pressRhs->SetPtPde( this );
-      pressRhs->SetResult( results_[0], actPressSurf );
+      pressRhs->SetResult( results_[0], pressSurf_[actSF] );
       assemble_->AddLinearForm( pressRhs );
       
       // Give entities and result to equation numbering class
       // and solution class
-      eqnMap_->AddResult( *results_[0], actPressElem );
+      eqnMap_->AddResult( *results_[0], pressSurf_[actSF] );
     }
     
     
@@ -2112,7 +2105,9 @@ namespace CoupledField {
       presNodes[i]->Get("value", value );
       presNodes[i]->Get("phase", phase );
       
-      pressSurf_.Push_back( ptgrid_->RegionNameToId( name ) );
+      pressSurf_.Push_back( 
+        ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
+                                name, EntityList::REGION ) );
       pressVals_.Push_back( value );
       pressPhase_.Push_back( phase );
 

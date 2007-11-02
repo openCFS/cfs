@@ -71,8 +71,15 @@ namespace CoupledField
 
   void Grid::AddRegion(const std::string regionName, RegionIdType & rId)
   {
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( regionName) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << regionName 
+                 << " are already defined" );
+    }
+    
     rId = regionNames_.GetSize();
     regionNames_.Push_back(regionName);
+    nameTypeMap_[regionName] = EntityList::REGION;
   }
     
   void Grid::AddRegions(const StdVector<std::string> & regionNames,
@@ -84,8 +91,14 @@ namespace CoupledField
     rIds.Resize(numRegions);
     for(UInt i=0; i<numRegions; i++, newId++)
     {
+      // Check if entities with given name exist already
+      if( nameTypeMap_.find( regionNames[i]) != nameTypeMap_.end() ) {
+        EXCEPTION( "Entities with name " << regionNames[i] 
+                   << " are already defined" );
+      }
       rIds[i] = newId;
       regionNames_.Push_back(regionNames[i]);
+      nameTypeMap_[regionNames[i]] = EntityList::REGION;
     }
   }
     
@@ -185,12 +198,20 @@ namespace CoupledField
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType, 
                                               const std::string& name,
                                               EntityList::DefineType defineType ) {
-
+    
+    // First check, if there any entites with this name at all
+    if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
+      EXCEPTION( "There are no entities with name '" << name 
+                 << "' in the mesh" ) ;
+    }
+    
+    EntityList::DefineType entityType = nameTypeMap_[name];
+    
     shared_ptr<EntityList> ret;
-
+    
     if( listType == EntityList::ELEM_LIST ) {
       shared_ptr<ElemList> eList  = shared_ptr<ElemList>( new ElemList(this) );
-      if( defineType == EntityList::REGION ) {
+      if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         eList->SetRegion( regionId);
       } else {
@@ -201,7 +222,7 @@ namespace CoupledField
     } else if( listType == EntityList::SURF_ELEM_LIST ) {
       shared_ptr<SurfElemList> surfList  = 
         shared_ptr<SurfElemList>( new SurfElemList(this) );
-      if( defineType == EntityList::REGION ) {
+      if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         surfList->SetRegion( regionId);
       } else {
@@ -212,11 +233,11 @@ namespace CoupledField
     } else if( listType == EntityList::NODE_LIST ) {
       shared_ptr<NodeList> nodeList = shared_ptr<NodeList>( new NodeList(this) );
       // Check if name describes a nodeList
-      if( defineType == EntityList::NAMED_NODES ) {
+      if( entityType == EntityList::NAMED_NODES ) {
         StdVector<std::string> nodeNames;
         GetListNodeNames( nodeNames );
         nodeList->SetNamedNodes( name );
-      } else if( defineType == EntityList::REGION ) {
+      } else if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         nodeList->SetNodesOfRegion( regionId );
       } else {
@@ -227,7 +248,7 @@ namespace CoupledField
     } else if( listType == EntityList::REGION_LIST ) {
       shared_ptr<RegionList> regionList = 
         shared_ptr<RegionList>( new RegionList(this) );
-      if( defineType == EntityList::REGION ) {
+      if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         regionList->SetRegionId( regionId );
       } else {

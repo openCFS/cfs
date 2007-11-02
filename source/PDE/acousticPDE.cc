@@ -240,11 +240,11 @@ namespace CoupledField {
     if( bcNode ) {
       StdVector<ParamNode*> abcNodes = bcNode->GetList( "absorbingBCs" );
       
-      RegionIdType actRegion;
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->AsString(); 
-        actRegion = ptgrid_->RegionNameToId( regionName );
-        absBCs_.Push_back( actRegion );
+        absBCs_.Push_back( ptgrid_
+          ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                           regionName, EntityList::REGION ) );
         absorbingBCs_ = true;
         Info->PrintF( pdename_, 
                       "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
@@ -829,10 +829,6 @@ namespace CoupledField {
     if ( absorbingBCs_ == true) { // && analysistype_ != HARMONIC ) {
       for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
 
-        // create new entity list
-        shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-        actSDList->SetRegion( absBCs_[actSD] );
-        
         AbsorbingBCsInt * bilinear_damp = new AbsorbingBCsInt(isaxi_);
         bilinear_damp->SetFirstVoluInfo(pdename_, materials_ );
 
@@ -850,11 +846,11 @@ namespace CoupledField {
           new BiLinFormContext( bilinear_damp, DAMPING );
         abcContext->SetPtPdes(this, this);     
         abcContext->SetResults( results_[0], results_[0],
-                                actSDList, actSDList );
+                                absBCs_[actSD], absBCs_[actSD] );
         assemble_->AddBiLinearForm( abcContext );
 
         // Give result to equation numbering class
-        eqnMap_->AddResult( *results_[0], actSDList );
+        eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
       }
     }
 
@@ -932,7 +928,8 @@ namespace CoupledField {
 
     std::string rhsRegion;
     std::string rhsFileId;
-    ParamNode* rhsValuesNode;
+    ParamNode* rhsValuesNode = NULL;
+    ParamNode* bcsNode = NULL;
     std::string factor = "1.0";
     bool interpolate = false;
     std::string srcInputId;
@@ -942,14 +939,9 @@ namespace CoupledField {
     Double globalEpsilon = 0.0;
     Double localEpsilon = 0.0;
 
-    try
-    {
-      rhsValuesNode = myParam_->Get("bcsAndLoads")->Get("rhsValues");
-    } catch (Exception& ex) 
-    {
-      rhsValuesNode = NULL;
-    }
-
+    bcsNode = myParam_->Get("bcsAndLoads", false );
+    if( bcsNode )
+      rhsValuesNode = bcsNode->Get("rhsValues", false);
     if(!rhsValuesNode)
       return;
       

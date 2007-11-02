@@ -19,7 +19,6 @@ namespace CoupledField
   // forward class declaration
   class SinglePDE;
   class Assemble;
-  class MHassemble;
   class BaseSystem;
   class Grid;
   class BaseMaterial;
@@ -235,8 +234,8 @@ namespace CoupledField
     //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;
 
-    //! (Surface) regions of coupling object
-    StdVector<RegionIdType> surfdoms_;
+    //! Entity lists for current coupling object
+    StdVector<shared_ptr<EntityList> > entityLists_;
 
     //! Name of coupling
     std::string couplingName_;
