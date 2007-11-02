@@ -63,6 +63,11 @@ namespace CoupledField
     //! Write element declarations
     void WriteElements();
     
+    //! Write list of elements of one region/group to file
+    void WriteElementMesh( const std::string& name ,
+                           StdVector<Elem*> & elemVec );
+                           
+    
     //! Write transient results on nodes or elements
     void WriteNodeElemDataTrans( const Vector<Double> & var, 
                                  const StdVector<std::string> & dofNames,
@@ -85,7 +90,7 @@ namespace CoupledField
     //! This method takes a pointer to an element, replaces it with 
     //! the degenerated element if necessary and writes this element
     //! to the mesh file.
-    void WriteElement( Elem* ptEl, UInt numNodes);
+    void WriteElement( Elem* ptEl, UInt numNodes );
 
     //! Map with result objects for each result type
     ResultMapType resultMap_;
@@ -93,6 +98,9 @@ namespace CoupledField
     //! Dimension of grid
     GiD_Dimension dim_;
 
+    //! Current region number written
+    Integer actMeshId_;
+    
     //! Current multisequence step
     UInt actMsStep_;
     

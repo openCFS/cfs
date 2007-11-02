@@ -168,7 +168,6 @@ namespace CoupledField {
     
     // Assemble name of multistep
     msName << "MultiStep_" << step;
-    std::cerr << "Opening multisequence step " << msName.str() << std::endl;
     
     // 1) Write group for mesh results
     if( registeredMeshResults_.size() != 0 ) {

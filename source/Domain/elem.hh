@@ -33,7 +33,10 @@ namespace CoupledField
   public:
  
     //! Dummy constructor
-    Elem() {;}
+    Elem() : 
+      elemNum(0),
+      regionId( NO_REGION_ID )
+      {;}
 
     //! Dummy destructor
     virtual ~Elem() {;}

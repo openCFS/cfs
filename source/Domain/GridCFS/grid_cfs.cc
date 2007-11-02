@@ -277,6 +277,12 @@ namespace CoupledField {
                                   const std::string& coordSysId,
                                   StdVector<PointSelection>& coords ) {
 
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
+    }
+    
     // get coordinate system
     CoordSystem * cosy = NULL;
     try {
@@ -669,25 +675,24 @@ namespace CoupledField {
     std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
     std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
 
+    // set of elements, which get surface-mapped
+    std::set<Elem*> surfElems;
     for(e=0; e<numElems; e++)
     {
+      bool isSurfElem = false;
       Elem* el = orderedElems_[e];
       FEType type = el->ptElem->feType();
       numNodes = NUM_ELEM_NODES[type];
 
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
                          numNodes : maxNumElemNodes_;
-            
+
       switch(type)
       {
       case ET_LINE2:
       case ET_LINE3:
-        if(dim_ == 2)
-        {
-          surfRegionElems[el->regionId].Push_back(el);
-
-          surfRegionNodes[el->regionId].insert(&el->connect[0],
-                                               (&el->connect[0])+numNodes);
+        if(dim_ == 2) {
+          isSurfElem = true;
         }
         break;
       case ET_TRIA3:
@@ -695,19 +700,8 @@ namespace CoupledField {
       case ET_QUAD4:
       case ET_QUAD8:
       case ET_QUAD9:
-        if(dim_ == 2)
-        {
-          volRegionElems[el->regionId].Push_back(el);
-
-          volRegionNodes[el->regionId].insert(&el->connect[0],
-                                              (&el->connect[0])+numNodes);
-        }
-        else
-        {
-          surfRegionElems[el->regionId].Push_back(el);
-
-          surfRegionNodes[el->regionId].insert(&el->connect[0],
-                                               (&el->connect[0])+numNodes);
+        if(dim_ == 3) {
+          isSurfElem = true;
         }
         break;
       case ET_TET4:
@@ -719,14 +713,19 @@ namespace CoupledField {
       case ET_PYRA13:
       case ET_WEDGE6:
       case ET_WEDGE15:
-        {
-          volRegionElems[el->regionId].Push_back(el);
-
-          volRegionNodes[el->regionId].insert(&el->connect[0],
-                                              (&el->connect[0])+numNodes);
-        }
+        break;
       default:
         break;
+      }
+      
+      // decide, what to do with the element
+      if( isSurfElem ) {
+        surfElems.insert( el );
+      } else  {
+        volRegionElems[el->regionId].Push_back(el);
+
+        volRegionNodes[el->regionId].insert(&el->connect[0],
+                                            (&el->connect[0])+numNodes);
       }
     }
 
@@ -735,12 +734,9 @@ namespace CoupledField {
     std::map<RegionIdType, std::set<UInt> >::iterator regionNodeIt;
     std::set<UInt>::iterator setIt, setEnd;
     UInt region = 0;
-    UInt regionId;
 
     numVolRegions = volRegionElems.size();
-    numSurfRegions = surfRegionElems.size();
     volElemNodes_.Resize(numVolRegions);
-    surfElemNodes_.Resize(numSurfRegions);
         
     regionElemIt = volRegionElems.begin();
     regionElemEnd = volRegionElems.end();
@@ -761,6 +757,29 @@ namespace CoupledField {
             
     }
 
+    // Call creation of surface elements
+    std::set<SurfElem* > mappedSurfElems;
+    CreateSurfaceElements( surfElems, mappedSurfElems );
+    
+    // Iterate over all surface elements and put their nodes and elements
+    // according to their region id
+    std::set<SurfElem*>::iterator surfElemIt;
+    for( surfElemIt = mappedSurfElems.begin();
+         surfElemIt != mappedSurfElems.end();
+         surfElemIt++ ) {
+      SurfElem * surfEl = *surfElemIt;
+      orderedElems_[surfEl->elemNum-1] = surfEl;
+      LOG_DBG3(gridcfs) << "Adding element #" << surfEl->elemNum 
+                         << " to list of surface elements"; 
+      if( surfEl->regionId != NO_REGION_ID ) {
+        surfRegionElems[surfEl->regionId].Push_back( surfEl );
+        surfRegionNodes[surfEl->regionId].insert( &surfEl->connect[0],
+                                                  (&surfEl->connect[0]) + numNodes );
+      }
+    }
+    numSurfRegions = surfRegionElems.size();
+    surfElemNodes_.Resize(numSurfRegions );
+                                  
     regionElemIt = surfRegionElems.begin();
     regionElemEnd = surfRegionElems.end();
     regionNodeIt = surfRegionNodes.begin();
@@ -780,8 +799,6 @@ namespace CoupledField {
       }
             
     }
-        
-    CreateSurfaceElements(surfElems_);
 
     isInitialized_ = true;
 
@@ -981,14 +998,38 @@ namespace CoupledField {
   
   void GridCFS::AddNamedNodes( std::string name, StdVector<UInt> & nodeNums)
   {
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
+    }
     namedNodeNames_.Push_back(name);
     namedNodes_.Push_back(nodeNums);
+    nameTypeMap_[name] = EntityList::NAMED_NODES;
   }
 
   void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
   {
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
+    }
     namedElemNames_.Push_back(name);
     namedElems_.Push_back(elemNums);
+    nameTypeMap_[name] = EntityList::NAMED_ELEMS;
+    
+    // get unique node number of elements
+    UInt size = elemNums.GetSize();
+    std::set<UInt> nodes;
+    StdVector<UInt> nodeVec;
+    for( UInt i = 0; i < size; i++ ) {
+      const StdVector<UInt> & connect = orderedElems_[elemNums[i]-1]->connect;
+      nodes.insert( connect.Begin(), connect.End() );
+    }
+    nodeVec.Resize( nodes.size() );
+    std::copy( nodes.begin(), nodes.end(), nodeVec.Begin() );
+    namedElemNodes_.Push_back( nodeVec );
   }
 
   void GridCFS::GetListNodeNames( StdVector<std::string> & nodeNames) {
@@ -1007,14 +1048,47 @@ namespace CoupledField {
   void GridCFS::GetNodesByName( StdVector<UInt> & nodeList,
                                 const std::string & name ) {
 
-    Integer index = namedNodeNames_.Find(name);
-    if ( index != -1 ) {
-      nodeList = namedNodes_[index];
-    } else {
-      EXCEPTION( "GridCFS: There are no nodes with name '" << name
-                 << "' in the grid!" );
+    // Check if entities with given name exists at all
+    if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
     }
     
+    // check, which entity type the name belongs to
+    EntityList::DefineType defType = nameTypeMap_[name];
+    Integer index = -1;
+        
+    switch( defType ) {
+    
+    case EntityList::REGION:
+      GetNodesByRegion( nodeList, RegionNameToId( name ) );
+      break;
+    
+    case EntityList::NAMED_NODES:
+      index = namedNodeNames_.Find(name);
+      if ( index != -1 ) {
+        nodeList = namedNodes_[index];
+      } else {
+        EXCEPTION( "GridCFS: There are no nodes with name '" << name
+                   << "' in the grid!" );
+      }
+      break;
+    
+    case EntityList::NAMED_ELEMS:
+      index = namedElemNames_.Find(name);
+      if ( index != -1 ) {
+        nodeList = namedElemNodes_[index];
+      } else {
+        EXCEPTION( "GridCFS: There are no nodes with name '" << name
+                   << "' in the grid!" );
+      }
+      
+      break;
+      
+    default:
+      EXCEPTION( "Can obtain nodes only for one region, named elements and "
+                 << "named nodes" );
+    }
   }
 
   void GridCFS::GetNodesByRegion( StdVector<UInt> & nodeList,
@@ -1547,9 +1621,11 @@ namespace CoupledField {
   // Helper Methods
   // =======================================================================
   
-  void GridCFS::CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems) {
-   
+  void GridCFS::CreateSurfaceElements( std::set<Elem*>& elems,
+                                       std::set<SurfElem*>& surfElems ) {
 
+    LOG_TRACE(gridcfs) << "Starting to map surface elements";
+    
     // 1.) Create vector of vector of elems
     StdVector<StdVector<UInt> > elemNrPerNode;
     UInt nrNodes, iRegion, iElem;
@@ -1579,34 +1655,23 @@ namespace CoupledField {
     // surface elements
     SurfElem *myElem;
     Elem* oldElem;
-    surfElems_.Resize(elems.GetSize());
-    //    surfElems_.Init();
     
-    for ( UInt iRegion = 0; iRegion < elems.GetSize(); iRegion++ ) {
+    std::set<Elem*>::iterator elIt;
+    
+    LOG_DBG(gridcfs) << "There are " << elems.size() << " surface element to be mapped";
+    for( elIt = elems.begin(); elIt != elems.end(); elIt++ ) {
+      
+      oldElem = *elIt;
+     // create new surface element
+      myElem = new SurfElem();
+      myElem->connect = oldElem->connect;
+      myElem->regionId = oldElem->regionId;
+      myElem->elemNum = oldElem->elemNum;
+      myElem->ptElem = oldElem->ptElem;
+      surfElems.insert( myElem );
 
-      surfElems_[iRegion].Resize(elems[iRegion].GetSize());
-      //      surfElems_[iRegion].Init();
-
-      for (UInt iSurfElem = 0; iSurfElem < elems[iRegion].GetSize();
-           iSurfElem++ ) {
-
-        oldElem = elems[iRegion][iSurfElem];
-          
-
-        // create new surface element
-        myElem = new SurfElem();
-        myElem->connect = oldElem->connect;
-        myElem->regionId = oldElem->regionId;
-        myElem->elemNum = oldElem->elemNum;
-        myElem->ptElem = oldElem->ptElem;
-        surfElems_[iRegion][iSurfElem] = myElem;
-        
-        // add surface element into vector with ordered Elements
-        orderedElems_[myElem->elemNum-1] = myElem;
-
-        // delete old volume element
-        delete oldElem;
-      }
+      // delete old volume element
+      delete oldElem;
     }
 
     // 3.) Iterate over all surface elements and look for each
@@ -1617,72 +1682,69 @@ namespace CoupledField {
     UInt elemsFound = 0;
     UInt elemsAssigned = 0;
     
-    for ( iRegion = 0; iRegion < surfElems_.GetSize(); iRegion++ ) {
+    std::set<SurfElem*>::iterator surfElIt;
+    for( surfElIt = surfElems.begin(); 
+         surfElIt != surfElems.end(); 
+         surfElIt++ ) {
 
-      
-      for (UInt iSurfElem = 0; iSurfElem < surfElems_[iRegion].GetSize();
-           iSurfElem++ ) {
-        elemsAssigned = 0;
+      elemsAssigned = 0;
 
-        myElem = dynamic_cast<SurfElem*>(surfElems_[iRegion][iSurfElem]);
+      myElem = *surfElIt;
 
-        // get number of nodes of surface element
-        nrNodes = myElem->connect.GetSize();
-        StdVector<UInt> const & connect = 
-          myElem->connect;
+      // get number of nodes of surface element
+      nrNodes = myElem->connect.GetSize();
+      StdVector<UInt> const & connect = 
+        myElem->connect;
 
-        // get first node of surface element
-        surfNodeNr = myElem->connect[0];
-        
-        // make loop over all elements, which have first node
-        // of surface element in common
-        for (UInt iVolElem = 0; 
-             iVolElem < elemNrPerNode[surfNodeNr-1].GetSize(); iVolElem++ ) {
-          elemsFound = 1;         
+      // get first node of surface element
+      surfNodeNr = myElem->connect[0];
 
-          // look if this element is also defined by the other nodes
-          // of the surface element
-          for (UInt iNode = 1; iNode < nrNodes; iNode++ ) {
+      // make loop over all elements, which have first node
+      // of surface element in common
+      for (UInt iVolElem = 0; 
+      iVolElem < elemNrPerNode[surfNodeNr-1].GetSize(); iVolElem++ ) {
+        elemsFound = 1;         
 
-            UInt index = connect[iNode]-1;
-            for (UInt iElem2 = 0 ; iElem2 < elemNrPerNode[index].GetSize(); 
-                 iElem2++ ) {
+        // look if this element is also defined by the other nodes
+        // of the surface element
+        for (UInt iNode = 1; iNode < nrNodes; iNode++ ) {
 
-              if ( elemNrPerNode[index][iElem2] == 
-                   elemNrPerNode[surfNodeNr-1][iVolElem] ) {
-                elemsFound++;
-                break;
-              }
+          UInt index = connect[iNode]-1;
+          for (UInt iElem2 = 0 ; iElem2 < elemNrPerNode[index].GetSize(); 
+          iElem2++ ) {
 
-            } // loop over all elements of other nodes
-          } // loop over all other nodes
-          
-          if ( elemsFound == nrNodes ) {
-            
-            ptVolElem = orderedElems_[elemNrPerNode[surfNodeNr-1][iVolElem]-1];
-              
-            if ( elemsAssigned == 0 ) {
-              myElem->ptVolElem1 = ptVolElem;
-            }
-            else {
-              myElem->ptVolElem2 = ptVolElem;
+            if ( elemNrPerNode[index][iElem2] == 
+              elemNrPerNode[surfNodeNr-1][iVolElem] ) {
+              elemsFound++;
+              break;
             }
 
-            elemsAssigned++;
+          } // loop over all elements of other nodes
+        } // loop over all other nodes
+
+        if ( elemsFound == nrNodes ) {
+
+          ptVolElem = orderedElems_[elemNrPerNode[surfNodeNr-1][iVolElem]-1];
+
+          if ( elemsAssigned == 0 ) {
+            myElem->ptVolElem1 = ptVolElem;
           }
-        } // loop over element numbers of first node
+          else {
+            myElem->ptVolElem2 = ptVolElem;
+          }
 
-        // sanity check (avoid the impossible ;-)
-        if ( elemsAssigned > 2 ) {
-          EXCEPTION( "Found " << elemsAssigned
-                     << " volume elements for surface element no. "
-                     << surfElems_[iRegion][iSurfElem]->elemNum );
+          elemsAssigned++;
         }
+      } // loop over element numbers of first node
 
-      } // loop over surface elements
-    } // loop over regions
+      // sanity check (avoid the impossible ;-)
+      if ( elemsAssigned > 2 ) {
+        EXCEPTION( "Found " << elemsAssigned
+                   << " volume elements for surface element no. "
+                   << myElem->elemNum );
+      }
 
-
+    } // loop over surface elements
 
 
     // 4.) Iterate over all surface elements and calculate surface
@@ -1691,40 +1753,39 @@ namespace CoupledField {
     Vector<Double> normalUndefSign, normalDefSign;
     Double sign;
 
-    for ( UInt iRegion = 0; iRegion < surfElems_.GetSize(); iRegion++ ) {
-      for (UInt iSurfElem = 0; iSurfElem < surfElems_[iRegion].GetSize();
-           iSurfElem++ ) {
-        
-        myElem = dynamic_cast<SurfElem*>(surfElems_[iRegion][iSurfElem]);
+    for( surfElIt = surfElems.begin(); 
+         surfElIt != surfElems.end(); 
+         surfElIt++ ) {
 
-        // check, if each surface element has at least one volume neighbour
-        if ( myElem->ptVolElem1 == NULL ) {
-          //  EXCEPTION( "Pointer to first volume element is NULL for surface"
-          //                    << " element no. "  
-          //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
-          //                    << "Please check your mesh-file!" );
-          //         }
-          myElem->normalSign = 0;
+      myElem = *surfElIt;
+
+      // check, if each surface element has at least one volume neighbour
+      if ( myElem->ptVolElem1 == NULL ) {
+        //  EXCEPTION( "Pointer to first volume element is NULL for surface"
+        //                    << " element no. "  
+        //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+        //                    << "Please check your mesh-file!" );
+        //         }
+        myElem->normalSign = 0;
+      } else {
+
+        CalcSurfNormal( normalUndefSign, *myElem, false );
+        CalcSurfNormalOutOfVol( normalDefSign, 
+                                *myElem,
+                                *myElem->ptVolElem1,
+                                false );
+
+
+        // Check if all entries have the same sign by calulating
+        // a scalar product between both vectors.
+        // If it is positive, they point in the smae direction,
+        // otherwise an angle of 180 lies in between.
+        sign = normalUndefSign * normalDefSign;
+
+        if ( sign > 0.0 ) {
+          myElem->normalSign = 1;
         } else {
-          
-          CalcSurfNormal( normalUndefSign, *myElem, false );
-          CalcSurfNormalOutOfVol( normalDefSign, 
-                                  *myElem,
-                                  *myElem->ptVolElem1,
-                                  false );
-          
-          
-          // Check if all entries have the same sign by calulating
-          // a scalar product between both vectors.
-          // If it is positive, they point in the smae direction,
-          // otherwise an angle of 180 lies in between.
-          sign = normalUndefSign * normalDefSign;
-          
-          if ( sign > 0.0 ) {
-            myElem->normalSign = 1;
-          } else {
-            myElem->normalSign = -1;
-          }
+          myElem->normalSign = -1;
         }
       }
     }
@@ -2557,6 +2618,13 @@ namespace CoupledField {
   void GridCFS::AddSurfaceRegion( const std::string name,
                                   RegionIdType& regionid)
   {
+    
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
+    }
+    
     if(!isInitialized_)
       EXCEPTION("Cannot add a surface region to an uninitialized grid!");
 
@@ -2580,6 +2648,12 @@ namespace CoupledField {
   void GridCFS::AddVolumeRegion( const std::string name,
                                  RegionIdType& regionid)
   {
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
+      EXCEPTION( "Entities with name " << name 
+                 << " are already defined" );
+    }
+    
     if(!isInitialized_)
       EXCEPTION("Cannot add a volume region to an uninitialized grid!");
 

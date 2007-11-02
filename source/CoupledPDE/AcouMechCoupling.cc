@@ -90,7 +90,7 @@ namespace CoupledField {
     
     // Abfrage ob pressure Formulierung, wenn ja
     // FEMatrixType destMat EFFECTIVE oder wie bisher DAMPING
-    // Vorfaktoren? Faktor=1 oder Faktor für pressure
+    // Vorfaktoren? Faktor=1 oder Faktor fï¿½r pressure
     // mit MASSINT setfaktor setzten
     // iterate over all subdomains
     
@@ -100,13 +100,11 @@ namespace CoupledField {
     
     
     if ( formulation ==  ACOU_PRESSURE) {
-     for ( UInt actSD = 0; actSD < surfdoms_.GetSize(); actSD++ ) {
+      for ( UInt actSD = 0; actSD < entityLists_.GetSize(); actSD++ ) {
 
-       // create new entity list
-      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptGrid_ ) );
-      actSDList->SetRegion( surfdoms_[actSD] );
-      
-       // =========  add first damp integrator (mechanic equation) ======
+        shared_ptr<EntityList> actSDList = entityLists_[actSD];
+        
+        // =========  add first damp integrator (mechanic equation) ======
        AcouMechInt * massInt1 = new AcouMechInt(dofs,isaxi_);
        massInt1->SetFormulation(formulation);
        
@@ -147,10 +145,9 @@ namespace CoupledField {
      }
     }
     else {      
-      for ( UInt actSD = 0; actSD < surfdoms_.GetSize(); actSD++ ) {
+      for ( UInt actSD = 0; actSD < entityLists_.GetSize(); actSD++ ) {
 
-        shared_ptr<SurfElemList> actSDList( new SurfElemList(ptGrid_ ) );
-        actSDList->SetRegion( surfdoms_[actSD] );        
+        shared_ptr<EntityList> actSDList = entityLists_[actSD];
 
         // ========  add damping coupling ===================================
         AcouMechInt * dampInt = new AcouMechInt(dofs,isaxi_);

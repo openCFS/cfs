@@ -158,7 +158,8 @@ namespace CoupledField {
     //! indicator for mechanic coupling
     bool isNrbcCoupled_;    
 
-    StdVector<RegionIdType> absBCs_; //!< subdomains, which form absorbing BCs
+    //! surface elements with absorbing boundary conditions
+    StdVector<shared_ptr<EntityList> > absBCs_; 
 
     bool absorbingBCs_; //!< switch for absorbing BCs     
 

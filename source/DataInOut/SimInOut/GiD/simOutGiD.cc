@@ -38,6 +38,7 @@ namespace CoupledField {
     capabilities_.insert( MESH_RESULTS );
 
     dim_ = GiD_2D;
+    actMeshId_ = 1;
     actMsStep_ = 0;
     stepValueOffset_ = 0;
     isAscii_ = true;
@@ -152,6 +153,55 @@ namespace CoupledField {
 
   }
 
+  void SimOutputGiD::WriteElementMesh( const std::string& name ,
+                                       StdVector<Elem*> & elemVec ) {
+    UInt numElemNodes;
+    GiD_ElementType eType;
+    numElemNodes = 0;
+    eType = GiD_NoElement;
+
+    // determine element type and number of nodes
+    if ( elemVec[0]->ptElem->GetDim() == 1 ) {
+      eType = GiD_Linear;
+      if ( ptGrid_->IsQuadratic() == true ) {
+        numElemNodes = 3;
+      } else {
+        numElemNodes = 2;
+      }
+    } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
+      eType = GiD_Quadrilateral;
+      if ( ptGrid_->IsQuadratic() == true ) {
+        numElemNodes = 8;
+      } else {
+        numElemNodes = 4;
+      }
+    } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
+      eType = GiD_Hexahedra;
+      if ( ptGrid_->IsQuadratic() == true ) {
+        numElemNodes = 20;
+      } else {
+        numElemNodes = 8;
+      }
+    }
+
+    GiD_BeginMesh( name.c_str(), dim_, eType, numElemNodes );
+
+    // write dummy coordinate section
+    GiD_BeginCoordinates();
+    GiD_EndCoordinates();
+
+    // write all element declarations
+    GiD_BeginElements();
+    for ( UInt iElem = 0; iElem < elemVec.GetSize(); iElem++ ) {
+      Elem * ptEl = elemVec[iElem];
+
+      WriteElement( ptEl, numElemNodes);
+    }
+    GiD_EndElements();
+
+    GiD_EndMesh();
+  }
+  
   void SimOutputGiD::WriteElements() {
    
     LOG_TRACE(simOutputGiD) << "Writing elements";
@@ -159,83 +209,64 @@ namespace CoupledField {
     // iterate over all regions
     StdVector<RegionIdType> regionIds;
     StdVector<Elem*> elemVec;
-    UInt numElemNodes;
-    GiD_ElementType eType;
-
+    
+    // =================
+    //  REGION ELEMENTS
+    // =================
     ptGrid_->GetRegionIds(regionIds);
-
     for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
 
       // get region name and elements
       std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
       ptGrid_->GetElems(elemVec,regionIds[iReg]);
 
-      numElemNodes = 0;
-      eType = GiD_NoElement;
-
-      // determine element type and number of nodes
-      if ( elemVec[0]->ptElem->GetDim() == 1 ) {
-        eType = GiD_Linear;
-        if ( ptGrid_->IsQuadratic() == true ) {
-          numElemNodes = 3;
-        } else {
-          numElemNodes = 2;
-        }
-      } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
-        eType = GiD_Quadrilateral;
-        if ( ptGrid_->IsQuadratic() == true ) {
-          numElemNodes = 8;
-        } else {
-          numElemNodes = 4;
-        }
-      } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
-        eType = GiD_Hexahedra;
-        if ( ptGrid_->IsQuadratic() == true ) {
-          numElemNodes = 20;
-        } else {
-          numElemNodes = 8;
-        }
-      }
+      // write list of elements
+      WriteElementMesh( regionName, elemVec );
       
-      GiD_BeginMesh( regionName.c_str(), dim_, eType, numElemNodes );
-    
-      // write dummy coordinate section
-      GiD_BeginCoordinates();
-      GiD_EndCoordinates();
-      
-      // write all element declarations
-      GiD_BeginElements();
-      for ( UInt iElem = 0; iElem < elemVec.GetSize(); iElem++ ) {
-        Elem * ptEl = elemVec[iElem];
-    
-        WriteElement( ptEl, numElemNodes);
-      }
-      GiD_EndElements();
-
-      GiD_EndMesh();
-    
+      // increment current mesh id
+      actMeshId_++;
     }
 
     LOG_TRACE(simOutputGiD) << "Writing named elements/nodes";
     
+    // ================
+    //  ELEMENT GROUPS
+    // ================
+    StdVector<std::string> elemNames;
+    StdVector<UInt> elemNumbers;
+    ptGrid_->GetListElemNames(elemNames);
+
+    for( UInt i = 0; i < elemNames.GetSize(); i++ ) {
+
+      ptGrid_->GetElemsByName( elemVec, elemNames[i] );
+
+      // write list of elements
+      WriteElementMesh( elemNames[i], elemVec );
+
+      // increment current mesh id
+      actMeshId_++;
+    }
+    
+    // =============
+    //  NODE GROUPS
+    // =============
+    StdVector<std::string> nodeNames;
+    StdVector<UInt> nodeNumbers; 
+    
     // write named nodes to mesh file
     // Note:  Named nodes are written as 'point' elements, so we need
     // for each set of named nodes a separate MESH section
-    StdVector<std::string> nodeNames, elemNames;
-    StdVector<UInt> nodeNumbers, elemNumbers;
+  
 
+    // remember number of 'normal' elements
+    UInt numelem = ptGrid_->GetNumElems() + 1;
+    
     ptGrid_->GetListNodeNames(nodeNames);
     
     // check if there are any named nodes / elems in the grid
     if( nodeNames.GetSize() == 0 ) {
       return;
     }
-
-    // get number of 'normal' regions within the grid
-    UInt numRegions = regionIds.GetSize();
-    
-    // remember number of 'normal' elements
-    UInt numelem = ptGrid_->GetNumElems() + 1;
     
     for( UInt i = 0; i < nodeNames.GetSize(); i++ ) {
 
@@ -251,11 +282,14 @@ namespace CoupledField {
       GiD_BeginElements();
       
       for ( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode ++ ) {
-        UInt nodeNumber[2] = {nodeNumbers[iNode],i+numRegions+1};
+        UInt nodeNumber[2] = { nodeNumbers[iNode], actMeshId_ };
         GiD_WriteElementMat( numelem++, (int*)(&nodeNumber) ); 
       }
       GiD_EndElements();
       GiD_EndMesh();
+      
+      // increment current mesh id
+      actMeshId_++;
     }
 
     LOG_TRACE(simOutputGiD) << "Finished writing elements" << std::endl;
@@ -475,7 +509,7 @@ namespace CoupledField {
       break;
     }
 
-    connect[numNodes] = region;
+    connect[numNodes] = actMeshId_;
     GiD_WriteElementMat( elemNum, (int*)connect.GetPointer() ); 
   }
 
