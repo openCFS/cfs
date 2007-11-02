@@ -33,34 +33,33 @@ namespace CoupledField {
     // facade concept.
 
     //! Define iterator class
-    template<typename ITYPE>
-    class vec_iterator 
+    class iterator 
       :  public boost::iterator_facade
-      < vec_iterator<ITYPE>, 
-        ITYPE,
+      < iterator, 
+        TYPE,
         boost::random_access_traversal_tag
         > {
     public: 
       
       //! default constructor
-      vec_iterator() : vec_(NULL), pos_(0) {}
+      iterator() : vec_(NULL), pos_(0) {}
       
     private:
 
       friend class boost::iterator_core_access;
-      friend class StdVector<ITYPE>;
+      friend class StdVector<TYPE>;
 
       //! iterator with pointer to vector
-      vec_iterator( StdVector<ITYPE>* p, unsigned int pos = 0 ) 
+      iterator( StdVector<TYPE>* p, unsigned int pos = 0 ) 
         : vec_( p ), pos_( pos ) {}
     
       //! dereferencing
-      ITYPE& dereference() const { 
+      TYPE& dereference() const { 
         return (*vec_)[pos_]; 
       }
       
       //! check for equality
-      bool equal( vec_iterator const & other ) const {
+      bool equal( iterator const & other ) const {
         return ( this->vec_ == other.vec_ &&
                  this->pos_ == other.pos_ );
       }
@@ -78,18 +77,70 @@ namespace CoupledField {
         pos_ += (unsigned int) n; }
       
       //! measure distance
-      unsigned int distance_to( vec_iterator const & other ) const {
+      unsigned int distance_to( iterator const & other ) const {
         return   (ptrdiff_t) other.pos_ - 
                   (ptrdiff_t) (this->pos_);
       }
       
       // references to StdVector
-      StdVector<ITYPE> * vec_;
+      StdVector<TYPE> * vec_;
       unsigned int pos_;
     };
+    
+    //! Define CONST iterator class
+    class const_iterator 
+    :  public boost::iterator_facade
+    < const_iterator, 
+    TYPE const,
+    boost::random_access_traversal_tag
+    > {
+    public: 
 
-    typedef vec_iterator<TYPE> iterator;
-    typedef vec_iterator<TYPE const> const_iterator;
+      //! default constructor
+      const_iterator() : vec_(NULL), pos_(0) {}
+
+    private:
+
+      friend class boost::iterator_core_access;
+      friend class StdVector<TYPE>;
+
+      //! iterator with pointer to vector
+      const_iterator( const StdVector<TYPE>* p, unsigned int pos = 0 ) 
+      : vec_( p ), pos_( pos ) {}
+
+      //! dereferencing
+      const TYPE& dereference() const { 
+        return (*vec_)[pos_]; 
+      }
+
+      //! check for equality
+      bool equal( const_iterator const & other ) const {
+        return ( this->vec_ == other.vec_ &&
+            this->pos_ == other.pos_ );
+      }
+
+      //! increment position
+      void increment() { 
+        pos_++;
+      }
+
+      //! decrement position
+      void decrement() { pos_--; }
+
+      //! advance position by n
+      void advance( ptrdiff_t n) { 
+        pos_ += (unsigned int) n; }
+
+      //! measure distance
+      unsigned int distance_to( const_iterator const & other ) const {
+        return   (ptrdiff_t) other.pos_ - 
+        (ptrdiff_t) (this->pos_);
+      }
+
+      // references to StdVector
+      const StdVector<TYPE> * vec_;
+      unsigned int pos_;
+    };
   
     //! Return iterator pointing to first element
     iterator Begin() {
@@ -185,7 +236,7 @@ namespace CoupledField {
     inline TYPE &operator[] (const unsigned int i);
 
     //! Read-Only access operator
-    inline TYPE operator[] (const unsigned int i) const;
+    inline const TYPE & operator[] (const unsigned int i) const;
 
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
@@ -322,7 +373,7 @@ namespace CoupledField {
 
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE StdVector<TYPE>::operator[] (const unsigned int i) const
+  const TYPE & StdVector<TYPE>::operator[] (const unsigned int i) const
   {     
 #ifdef CHECK_INDEX
      if (i >= size_){
