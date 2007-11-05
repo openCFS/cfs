@@ -96,7 +96,6 @@ namespace CoupledField {
 
 	Vector< Double > aux;
 	aux.Init(0.0);
-	std::cout << "\n totalUnknowns_= "<< totalUnknowns_<< std::endl;
 
 	// Construct the initial solution vector
 	shared_ptr<EqnMap> eqn;
@@ -109,8 +108,8 @@ namespace CoupledField {
 		//------------------------------------------------
 		// get the id of the this pde
 		//pdeId = singlePDEs_[i]->GetPDEId();
-		std::cout << "\n PDEId ->  "<< singlePDEs_[i]->GetPDEId()
-				<<", PDEname -> "<< singlePDEs_[i]->GetName();
+		//	std::cout << "\n PDEId ->  "<< singlePDEs_[i]->GetPDEId()
+		//		<<", PDEname -> "<< singlePDEs_[i]->GetName();
 		//------------------------------------------------
 
 		// the PDEs members haven't set up their initial conditions yet
@@ -118,7 +117,7 @@ namespace CoupledField {
 		singlePDEs_[i]->SetInitialCondition();
 		if(singlePDEs_[i]->IsSetInitialCondition()==true){
 			this->isSetInitialCondition_=true;
-			std::cout << ", is set the initial cond? "<< singlePDEs_[i]->IsSetInitialCondition();
+				
 		}
 		
 		
@@ -126,9 +125,7 @@ namespace CoupledField {
 		// get the number of unknowns of this pde
 		eqn = singlePDEs_[i]->GetEqnMap();
 		singleUnknowns = eqn->GetNumEqns();
-		std::cout << ", singleUnknowns = "<< singleUnknowns;
-		
-		std::cout << ", use penalty? "<< singlePDEs_[i]->usePenalty_ << std::endl;
+
 		// check setup of linear system
 		if(singlePDEs_[i]->usePenalty_==false){
 			// uses elimination of Inhomogeneous DBC	
@@ -149,7 +146,6 @@ namespace CoupledField {
 		
 	}
 
-	std::cout << "is set the initial cond? "<< this->IsSetInitialCondition();
 	// now we have our solution vector initialized
 	//std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
 
@@ -301,7 +297,6 @@ namespace CoupledField {
       if(singlePDEs_[i]->IsNonLinMaterial())
         globalNonLinMaterial=true;
     }
-    //    std::cout<< "Direct CoupledPDE - Init globalNonLinMaterial " << globalNonLinMaterial << std::endl;
     
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       //      Is NonLin()
