@@ -108,9 +108,11 @@ namespace CoupledField {
 
     return material;
   }
-//**********************************************************************
-//*************  READ PIEZO ********************************************
-//**********************************************************************
+
+  //**********************************************************************
+    //*************  READ PIEZO ********************************************
+      //**********************************************************************
+
   void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, ParamNode* pn) 
   {
 
@@ -814,7 +816,7 @@ namespace CoupledField {
             Matrix<double> tensor(3,3);
             ParamNode* tens_pn = py->Get("tensor", "dim1", "3")->Get("real");
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-            material->SetTensor(tensor, PYROCOEFFICIENT_TENSOR , REAL);
+            material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,REAL);
           }
       }
       Info->PrintMaterial( material );
@@ -834,7 +836,7 @@ namespace CoupledField {
             Matrix<double> tensor(3,3);
             ParamNode* tens_pn = te->Get("tensor", "dim1", "3")->Get("real");
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-            material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR, REAL);
+            material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,REAL);
           }
       }
       Info->PrintMaterial( material );

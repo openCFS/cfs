@@ -105,21 +105,20 @@ namespace CoupledField {
   void SolveStepPiezo::SolveStepTrans() {
 
 
-    std::cout<<"Solve Step Trans"<<std::endl;  
     if (isHyst_) {
       StepTransNonLinEpsDiff();
     }
     else if (nonLin_){
-      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
+      //      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
       StepTransNonLin();
     }
     else if (nonLinMaterial_){
-      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
+      //      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
       StepTransNonLinMaterial();
     }
 
     else {
-      std::cout<<"We do a transient linear calculation"<<std::endl;
+      //      std::cout<<"We do a transient linear calculation"<<std::endl;
       StepTransLin();
     }
 
@@ -128,7 +127,7 @@ namespace CoupledField {
   void SolveStepPiezo::StepTransMaterialNonLin(){
     
 
-      std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
+    //      std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
 
 
   }
@@ -247,8 +246,6 @@ namespace CoupledField {
       //    newSol = oldSol + incrSol * alpha;
       newSol = incrSol;
 
-      //    std::cout << "New Solution:\n" << newSol << std::endl;
-      //    std::cout << "Old Solution:\n" << oldSol << std::endl;
 #ifdef DEBUG
       *debug << std::endl
              << "New Solution:" << std::endl << newSol << std::endl;

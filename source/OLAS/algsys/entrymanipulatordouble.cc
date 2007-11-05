@@ -33,7 +33,6 @@ namespace OLAS {
                     bool setCounterPart) {
 
     
-    //std::cout << " SetElementMatrix ..... "  << std::endl;
     
     // Clear the arrays
     rowIndList_.clear();

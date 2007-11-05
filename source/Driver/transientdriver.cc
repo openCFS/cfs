@@ -126,7 +126,6 @@ namespace CoupledField {
     // to save the initial state
     // commented out, since all time-dependend examples in testsuite consider the first
     // not the zeroth time step
-
     //     resHandler->BeginStep( 0, 0 );
     //     ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
     //     resHandler->FinishStep( );

@@ -870,8 +870,6 @@ namespace OLAS {
   void SCRS_Matrix<T>::InstantiatePublicMethods() {
 
 
-    std::cout << "Haha" << std::endl;
-
     Error( "This function should never be called", __FILE__, __LINE__ );
     
     Integer dummyInt = 0;
