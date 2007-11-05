@@ -21,22 +21,21 @@ namespace CoupledField {
     ~PyroelectricMaterial();
 
     //! set a real material tensor
-    void SetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor(const Matrix<Double>& param, MaterialType matType, DataType dataType );
 
     //! set a complex material tensor
-    void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType );
+    void SetTensor( const Matrix<Complex>& param, MaterialType matType,
+                    DataType dataType );
 
     //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Double>& param, const MaterialType matType,
+		    DataType dataType,
+		    SubTensorType = FULL ) const;	
 
     //! get a complex material tensor
-    void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;
+    void GetTensor( Matrix<Complex>& param, MaterialType matType,
+		    DataType dataType,
+		    SubTensorType = FULL ) const;
 
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
