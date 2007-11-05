@@ -43,8 +43,9 @@ namespace CoupledField
      Error("SetScalar for 'Double' not implemented",__FILE__,__LINE__);}
  
 
-  void ThermoelasticMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+  void ThermoelasticMaterial::SetTensor(const Matrix<Double>& param,
+                                        MaterialType matType, 
+                                        DataType dataType ) {
     
 
     //check, if allowed
@@ -103,8 +104,8 @@ namespace CoupledField
 
 
   void ThermoelasticMaterial::GetTensor( Matrix<Double>& param, 
-                                         MaterialType& matType, 
-                                         DataType& dataType,
+                                         MaterialType matType, 
+                                         DataType dataType,
                                          SubTensorType subTensor) const {
 
 

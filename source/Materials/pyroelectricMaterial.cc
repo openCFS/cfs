@@ -30,8 +30,7 @@ namespace CoupledField
 
   }
 
-  void PyroelectricMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void PyroelectricMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, DataType dataType ) {
     
 
     //check, if allowed
@@ -70,8 +69,9 @@ namespace CoupledField
     }
   }
 
-  void PyroelectricMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-					 const DataType& dataType ) {
+  void PyroelectricMaterial::SetTensor( const Matrix<Complex>& param, 
+                                        MaterialType matType, 
+                                        DataType dataType ) {
     
 
     //check, if allowed
@@ -97,9 +97,9 @@ namespace CoupledField
   }
 
   void PyroelectricMaterial::GetTensor( Matrix<Double>& param, 
-					 const MaterialType& matType, 
-					 const DataType& dataType,
-					 const SubTensorType subTensor) const {
+                                        MaterialType matType, 
+                                        DataType dataType,
+                                        SubTensorType subTensor) const {
 
 
     tensorMap::const_iterator pos;
@@ -129,9 +129,9 @@ namespace CoupledField
   }
 
   void PyroelectricMaterial::GetTensor( Matrix<Complex>& param, 
-					 const MaterialType& matType, 
-					 const DataType& dataType,
-					 const SubTensorType subTensor) const {
+                                        MaterialType matType, 
+                                        DataType dataType,
+                                        SubTensorType subTensor) const {
     
 
     tensorMap::const_iterator pos;
