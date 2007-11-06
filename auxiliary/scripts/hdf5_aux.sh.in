@@ -169,4 +169,6 @@ if [ $DELTEMP -eq 1 ]; then
     rm -f $WORKDIR/Step*
     rm -f $WORKDIR/tmp.*
     rm -f $WORKDIR/Types.*
+    rm -f $WORKDIR/UserData_*
+    rm -f $WORKDIR/CFXCMDS.dat
 fi

@@ -237,6 +237,9 @@ namespace CoupledField
     //! Entity lists for current coupling object
     StdVector<shared_ptr<EntityList> > entityLists_;
 
+    //! ncInterface regions of coupling object
+    StdVector<RegionIdType> ncIfaces_;
+
     //! Name of coupling
     std::string couplingName_;
 

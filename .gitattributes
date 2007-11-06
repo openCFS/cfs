@@ -229,6 +229,7 @@ auxiliary/matlab/mmread.m svneol=native#text/plain
 auxiliary/matlab/sbmread.m svneol=native#text/plain
 auxiliary/scripts/CMakeLists.txt svneol=native#text/plain
 auxiliary/scripts/hdf5_aux.sh.in -text
+auxiliary/scripts/hdf5_concat.sh.in -text
 auxiliary/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 auxiliary/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 auxiliary/scripts/log.tcl svneol=native#text/x-tcl
@@ -585,6 +586,8 @@ source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/abcInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouMechInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/acouMechInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/acouMechNcInt.cc svneol=native#text/plain
+source/Forms/acouMechNcInt.hh svneol=native#text/plain
 source/Forms/acouPowerDensityOp.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/acouPowerDensityOp.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouRHSLinForm.cc svneol=native#text/plain

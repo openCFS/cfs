@@ -640,6 +640,26 @@ namespace CoupledField
     return true;
   }
 
+  bool Grid::IsNcInterfaceCoplanar(const std::string &ncIfaceName) {
+    std::map<RegionIdType, bool>::const_iterator it =
+      isNcIfaceCoplanar_.find(RegionNameToId(ncIfaceName));
+    if (it != isNcIfaceCoplanar_.end())
+      return it->second;
+    else
+      EXCEPTION("Non-matching grid interface does not exist: "
+          << ncIfaceName);
+  }
+
+  bool Grid::IsNcInterfaceCoplanar(const RegionIdType regionId) {
+    std::map<RegionIdType, bool>::const_iterator it =
+      isNcIfaceCoplanar_.find(regionId);
+    if (it != isNcIfaceCoplanar_.end())
+      return it->second;
+    else
+      EXCEPTION("Non-matching grid interface does not exist: "
+          << RegionIdToName(regionId));
+  }
+
   /****************************************************************************
    ** 
    ** SideOnSide

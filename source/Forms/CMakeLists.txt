@@ -1,6 +1,7 @@
 SET(FORMS_SRCS
   abcInt.cc
   acouMechInt.cc
+  acouMechNcInt.cc
   acouPowerDensityOp.cc
   acouRHSLinForm.cc
   adbInt.cc
