@@ -12,6 +12,7 @@
 
 // integrator (bi-)linear forms
 #include "Forms/acouMechInt.hh"
+#include "Forms/acouMechNcInt.hh"
 
 
 namespace CoupledField {
@@ -108,41 +109,86 @@ namespace CoupledField {
        AcouMechInt * massInt1 = new AcouMechInt(dofs,isaxi_);
        massInt1->SetFormulation(formulation);
        
-       // Set information about two neighbouring volume regions
-       massInt1->SetFirstVoluInfo(pde1_->GetName(), 
-                                  pde1_->getPDEMaterialData());
-       massInt1->SetSecondVoluInfo(pde2_->GetName(), 
-                                   pde2_->getPDEMaterialData());
-       
-       BiLinFormContext * massContext1 = 
-         new BiLinFormContext(massInt1, STIFFNESS );
-       massContext1->SetPtPdes(pde1_, pde2_);  
-       massContext1->SetResults( results1_[0], results2_[0],
-                                 actSDList, actSDList );    
-       massContext1->SetCounterPart(false);
-       
-       // ========  add second mass integrator (acoustic equation)=======
-       AcouMechInt * massInt2 = new AcouMechInt(dofs,isaxi_);
-       massInt2->SetFormulation(formulation);
-       
-       // Set information about two neighbouring volume regions
-       massInt2->SetFirstVoluInfo(pde2_->GetName(), 
-                                  pde2_->getPDEMaterialData());
-       massInt2->SetSecondVoluInfo(pde1_->GetName(),
+        // Set information about two neighbouring volume regions
+        massInt1->SetFirstVoluInfo(pde1_->GetName(), 
                                    pde1_->getPDEMaterialData());
+        massInt1->SetSecondVoluInfo(pde2_->GetName(), 
+                                    pde2_->getPDEMaterialData());
        
-       BiLinFormContext * massContext2 = 
-         new BiLinFormContext(massInt2, MASS );
-       massContext2->SetPtPdes(pde2_, pde1_);      
-       massContext2->SetResults( results2_[0], results1_[0],
-                                 actSDList, actSDList );    
-       massContext2->SetCounterPart(false);
+        BiLinFormContext * massContext1 = 
+          new BiLinFormContext(massInt1, STIFFNESS );
+        massContext1->SetPtPdes(pde1_, pde2_);  
+        massContext1->SetResults( results1_[0], results2_[0],
+                                  actSDList, actSDList );    
+        massContext1->SetCounterPart(false);
+       
+        // ========  add second mass integrator (acoustic equation)=======
+        AcouMechInt * massInt2 = new AcouMechInt(dofs,isaxi_);
+        massInt2->SetFormulation(formulation);
+       
+        // Set information about two neighbouring volume regions
+        massInt2->SetFirstVoluInfo(pde2_->GetName(), 
+                                   pde2_->getPDEMaterialData());
+        massInt2->SetSecondVoluInfo(pde1_->GetName(),
+                                    pde1_->getPDEMaterialData());
+       
+        BiLinFormContext * massContext2 = 
+          new BiLinFormContext(massInt2, MASS );
+        massContext2->SetPtPdes(pde2_, pde1_);      
+        massContext2->SetResults( results2_[0], results1_[0],
+                                  actSDList, actSDList );    
+        massContext2->SetCounterPart(false);
 
-       assemble_->AddBiLinearForm( massContext1 );
-       assemble_->AddBiLinearForm( massContext2 );
-       
-       
-     }
+        assemble_->AddBiLinearForm( massContext1 );
+        assemble_->AddBiLinearForm( massContext2 );
+      }
+
+      // Iterate over nonconforming interfaces
+      for (UInt actNCI = 0; actNCI < ncIfaces_.GetSize(); ++actNCI) {
+        // get surface elements of coupling region
+        shared_ptr<SurfElemList> actNCList(new SurfElemList(ptGrid_));
+        actNCList->SetRegion(ncIfaces_[actNCI]);
+
+        //====== add mass integrator (acoustic eq.) ======
+        AcouMechNcInt *ncMassInt = new AcouMechNcInt(dofs, isaxi_);
+        ncMassInt->SetFormulation(ACOU_PRESSURE);
+
+        // set material data
+        ncMassInt->SetFirstVoluInfo(pde2_->GetName(),
+                                    pde2_->getPDEMaterialData());
+        ncMassInt->SetSecondVoluInfo(pde1_->GetName(),
+                                     pde1_->getPDEMaterialData());
+
+        // create context
+        NcBiLinFormContext *massContext =
+          new NcBiLinFormContext(ncMassInt, MASS);
+        massContext->SetPtPdes(pde2_, pde1_);
+        massContext->SetResults(results2_[0], results1_[0],
+                                actNCList, actNCList);
+        massContext->SetCounterPart(false);
+
+        //====== add stiffness integrator (mechanic eq.) ======
+        AcouMechNcInt *ncStiffInt = new AcouMechNcInt(dofs, isaxi_);
+        ncStiffInt->SetFormulation(ACOU_PRESSURE);
+
+        // set material data
+        ncStiffInt->SetFirstVoluInfo(pde1_->GetName(),
+                                     pde1_->getPDEMaterialData());
+        ncStiffInt->SetSecondVoluInfo(pde2_->GetName(),
+                                      pde2_->getPDEMaterialData());
+
+        // create context
+        NcBiLinFormContext *stiffContext =
+          new NcBiLinFormContext(ncStiffInt, STIFFNESS);
+        stiffContext->SetPtPdes(pde1_, pde2_);
+        stiffContext->SetResults(results1_[0], results2_[0],
+                                 actNCList, actNCList);
+        stiffContext->SetCounterPart(false);
+
+        //====== hand over to assemble object ======
+        assemble_->AddBiLinearForm(massContext);
+        assemble_->AddBiLinearForm(stiffContext);
+      }
     }
     else {      
       for ( UInt actSD = 0; actSD < entityLists_.GetSize(); actSD++ ) {
@@ -154,7 +200,7 @@ namespace CoupledField {
         
         // Set information about two neighbouring volume regions
         dampInt->SetFirstVoluInfo(pde1_->GetName(), 
-    			  pde1_->getPDEMaterialData());
+                                  pde1_->getPDEMaterialData());
         dampInt->SetSecondVoluInfo(pde2_->GetName(),
                                    pde2_->getPDEMaterialData());
         
@@ -170,7 +216,36 @@ namespace CoupledField {
                                  actSDList, actSDList );
         assemble_->AddBiLinearForm( dampContext );
       }
-   }
+
+      // Iterate over nonconforming interfaces
+      for (UInt actNCI = 0; actNCI < ncIfaces_.GetSize(); ++actNCI) {
+        // get surface elements of coupling region
+        shared_ptr<SurfElemList> actNCList(new SurfElemList(ptGrid_));
+        actNCList->SetRegion(ncIfaces_[actNCI]);
+
+        // define integrator
+        AcouMechNcInt *ncInt = new AcouMechNcInt(dofs, isaxi_);
+        ncInt->SetFormulation(ACOU_POTENTIAL);
+
+        // set material data
+        ncInt->SetFirstVoluInfo(pde1_->GetName(),
+                                pde1_->getPDEMaterialData());
+        ncInt->SetSecondVoluInfo(pde2_->GetName(),
+                                 pde2_->getPDEMaterialData());
+
+        // define damping context
+        NcBiLinFormContext *dampContext =
+          new NcBiLinFormContext(ncInt, DAMPING);
+
+        dampContext->SetCounterPart(true); // coupling is symmetric
+        dampContext->SetPtPdes(pde1_, pde2_);
+        dampContext->SetResults(results1_[0], results2_[0],
+                                actNCList, actNCList);
+
+        // hand over to assemble object
+        assemble_->AddBiLinearForm(dampContext);
+      }
+    }
   }
 
 

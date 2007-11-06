@@ -617,6 +617,10 @@ namespace CoupledField
     //! NC_SIMON: Main nonmatching grid intersection method
     bool InitNonmatchingInterfaces();
 
+    //! NC_SIMON: check if NC interface is coplanar
+    bool IsNcInterfaceCoplanar(const std::string &ncIfaceName);
+    bool IsNcInterfaceCoplanar(const RegionIdType regionId);
+
     //! NC_SIMON: Initialization method for master interface
     bool InitMasterInterface(const std::string & ncRegionBaseName,
                              const std::string & slaveIfaceName,

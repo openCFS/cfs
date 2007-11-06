@@ -149,6 +149,32 @@ namespace CoupledField {
         }
       }
     }
+
+    // ===========================================================
+    // Non-conforming grid interfaces
+    // ===========================================================
+    ParamNode *ncIfListNode = myParam_->Get("ncInterfaceList", false);
+    if (ncIfListNode) {
+      StdVector<ParamNode*> ncIfList = ncIfListNode->GetList("ncInterface");
+
+      if (ncIfList.GetSize() > 0) {
+        // output to info-file
+        Info->PrintF(couplingName_,
+            "The %s coupling lives on the following non-conforming grid interfaces:\n",
+            couplingName_.c_str());
+
+        std::string ncIfName;
+        RegionIdType ncIfId;
+
+        for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
+          ncIfList[i]->Get("name", ncIfName);
+          ncIfId = ptGrid_->RegionNameToId(ncIfName);
+          Info->PrintF(couplingName_, "%s, ID = %i\n", ncIfName.c_str(),
+                       ncIfId);
+          ncIfaces_.Push_back(ncIfId);
+        }
+      }
+    }
     
     // Determine, if axisymmetric geometry is used
     std::string probGeo;
