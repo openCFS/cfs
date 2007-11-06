@@ -227,7 +227,6 @@ namespace OLAS {
           //-------- somehow printing the damping matrix ---------------------
           // to print the damping matrix
           if(sysmat_[DAMPING] != NULL){
-  			std::cout << "\n si hay damping ..... " << std::endl;
   			file = base + "_damping.mtx";
   			sysmat_[DAMPING]->Export( file.c_str() );
   			(*cla) << " Export damping matrix to " << file << std::endl;

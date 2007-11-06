@@ -96,8 +96,6 @@ namespace OLAS {
 
     
     
-    sysMat.Export("sysMat.mtx");
-
     // Reset the object before over-writing an existing factorisation
     if ( storingFactors_ == true ) {
       Reset();
@@ -1050,7 +1048,6 @@ namespace OLAS {
               // This entry must be copied into the full auxilliary vector
               vecW[ i ] = entryA[ firstUncheckedAij[i] ];
               
-              //std::cerr << "vecW[ "<<i<<" ] = "<<entryA[ firstUncheckedAij[i] ] <<  std::endl;
 
               // This entry is a candidate for the largest row index
               lowest = i;
