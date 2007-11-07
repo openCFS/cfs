@@ -58,6 +58,21 @@ OPTION(CONVERTER "Build CFS++ converter tool (cfstool)." OFF)
 OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling." OFF)
 
 #-----------------------------------------------------------------------------
+# Specify path to CFS++ testsuite. If this path exists, CTest compatible
+# test cases will be generated in the current binary directory.
+#-----------------------------------------------------------------------------
+SET(TESTSUITE_DIR "CFS_TESTSUITE_DIR_NOT_FOUND" CACHE STRING
+  "Path where the CFS++ testsuite is located.")
+
+IF(EXISTS ${TESTSUITE_DIR})
+  # In order to perform tests we need the CONVERTER!
+  SET(CONVERTER ON CACHE BOOL
+    "Build CFS++ converter tool (cfstool)." FORCE)
+
+  SUBDIRS(${TESTSUITE_DIR})
+ENDIF(EXISTS ${TESTSUITE_DIR})
+
+#-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
 MARK_AS_ADVANCED(USE_UNV)
@@ -447,3 +462,4 @@ SUBDIRS(Doc/user)
 # Add targets for scripts
 #-----------------------------------------------------------------------------
 SUBDIRS(auxiliary/scripts)
+
