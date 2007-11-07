@@ -80,19 +80,17 @@ namespace CoupledField {
     // 1) Get all entity lists, which consist of elements. 
     //    They are used lateron for global/local element/nodal number mapping    
     ResultEntityMap::iterator it;
-    shared_ptr<ElemList> elemList;
     // iterate over all results
     for (it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
       StdVector<shared_ptr<EntityList> > & lists = (*it).second;
     
       // iterate over entity-lists of this result type
       for (UInt iList=0; iList<lists.GetSize(); iList++) {
-	if (lists[iList]->GetType() == EntityList::ELEM_LIST ) {
+        if (lists[iList]->GetType() == EntityList::ELEM_LIST ) {
 
-	  // Add element list to list of mapped regions
-	  elemList = dynamic_pointer_cast<ElemList, EntityList>(lists[iList]);
-	  locElems_.Push_back( elemList );
-	}
+          // Add element list to list of mapped regions
+          locEntities_.Push_back( lists[iList] );
+        }
       }
     }
 
@@ -124,10 +122,10 @@ namespace CoupledField {
 
       // check if resultDof is mapped onto nodes
       if( it->first.definedOn == ResultInfo::NODE ||
-	  it->first.definedOn == ResultInfo::PFEM ) {
-	for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-	  nodeMappedList_[it->first].Push_back( it->second[iList] );
-	}
+          it->first.definedOn == ResultInfo::PFEM ) {
+        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
+          nodeMappedList_[it->first].Push_back( it->second[iList] );
+        }
       }
     }
     
@@ -142,17 +140,17 @@ namespace CoupledField {
     for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
       // check if resultDof is mapped onto nodes
       if( it->first.definedOn == ResultInfo::EDGE ||
-	  it->first.definedOn == ResultInfo::PFEM ) {
-	for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-	  edgeMappedList_[it->first].Push_back( it->second[iList] );
-	}
+          it->first.definedOn == ResultInfo::PFEM ) {
+        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
+          edgeMappedList_[it->first].Push_back( it->second[iList] );
+        }
       }
     }
 
     // Only calc global->local mapping of edges, if at
     // least on entry is present in edgeMappedList_
     if( edgeMappedList_.size() > 0 ) {
-      
+
       // Trigger calculation of edges at grid class
       ptGrid_->MapEdges();
 
@@ -165,7 +163,7 @@ namespace CoupledField {
 
     //   c) face <-> eqnNr (only in 3D)
     //   -------------------------------
-    
+
     if( ptGrid_->GetDim() == 3 ) {
       // iterate over all resultDofs
       for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
@@ -349,8 +347,6 @@ namespace CoupledField {
 
     // Note: this is currently hard-coded
 
-    UInt numDofs = result.dofNames.GetSize();          
-
     // first of all, delete eqns-array
     eqns.Clear();
     
@@ -384,7 +380,7 @@ namespace CoupledField {
 	}
       } else if ( it.GetType() == EntityList::NODE_LIST ) {
 	UInt node = it.GetNode();
-	UInt numDofs = result.dofNames.GetSize();
+
 	eqns.Resize( 1);
 	eqns.Init();
 	
@@ -1154,37 +1150,43 @@ namespace CoupledField {
       // Case 2: This pde is defined on a subset of all regions
       //         --> Perform normal node renumbering
       
+      
       //  // iterate over all element lists
-      for ( UInt iList = 0; iList < locElems_.GetSize(); iList++ ) {
+      for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
 
-	// Get iterator of current element list
-	EntityIterator it = locElems_[iList]->GetIterator();
-	
-	// iterate over all elements in element list
-	for ( it.Begin(); !it.IsEnd(); it++ ) {
+        // Get iterator of current element list
+        EntityIterator it = locEntities_[iList]->GetIterator();
 
-	  // Store current element
-	  const Elem* actEl = it.GetElem();
-	  
-	  // *** Mapping of Elements ***
-	  mesh2PdeElem_[actEl->elemNum - 1 ] = elemCounter;
-	  pde2MeshElem_.Push_back( actEl->elemNum );
-	  elemCounter++;
-	  
-	  
-	  // *** Mapping of Nodes ***
-	  // iterate over all nodes in elem
-	  for ( UInt iNode=0; iNode < actEl->connect.GetSize(); iNode++)
+        // 1) Check, if entity list contains elements
+        if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
+            locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
+          // iterate over all elements in element list
+          for ( it.Begin(); !it.IsEnd(); it++ ) {
+            
+            // Store current element
+            const Elem* actEl = it.GetElem();
+            // *** Mapping of Elements ***
+            mesh2PdeElem_[actEl->elemNum - 1 ] = elemCounter;
+          pde2MeshElem_.Push_back( actEl->elemNum );
+          elemCounter++;
+          }
+        }
+          
+        // 2) Perform nodal mapping in any case
+        StdVector<UInt> nodes;
+        this->GetNodesOfEntities( nodes, locEntities_[iList] );
 
-	    // Check if node was already assigned
-	    if (mesh2PdeNode_[actEl->connect[iNode]-1] == -1) {
-	      mesh2PdeNode_[actEl->connect[iNode]-1] = ++nodeCounter;
-	      pde2MeshNode_.Push_back(actEl->connect[iNode]);
-	    }
-	}
+        // iterate over all nodes in elem
+        for ( UInt iNode=0; iNode < nodes.GetSize(); iNode++)
+
+          // Check if node was already assigned
+          if (mesh2PdeNode_[nodes[iNode]-1] == -1) {
+            mesh2PdeNode_[nodes[iNode]-1] = ++nodeCounter;
+            pde2MeshNode_.Push_back(nodes[iNode]);
+          }
       }
     }
-    
+
     // remember number of local nodes and elements
     numLocNodes_ = pde2MeshNode_.GetSize();
     numLocElems_ = pde2MeshElem_.GetSize();
@@ -1197,78 +1199,83 @@ namespace CoupledField {
     mesh2PdeEdge_.Init( -1 );
 
     UInt edgeCounter = 0;
-    
-    // iterate over all element lists
-    for ( UInt iList = 0; iList < locElems_.GetSize(); iList++ ) {
 
-      // Get iterator of current element list
-      EntityIterator it = locElems_[iList]->GetIterator();
-      
-      // iterate over all elements in element list
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-	
-	// Store current element
-	const Elem* actEl = it.GetElem();
-	
-	// iterate over all edges
-	for ( UInt iEdge=0; iEdge < actEl->edges.GetSize(); iEdge++) {
-	  
-	  // Check if edge was already assigned
-	  if( mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
-	      == -1 ) {
-	    mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
-	      = ++edgeCounter;
-	  }
-	}
+    // iterate over all element lists
+    for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
+      if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
+          locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        // Get iterator of current element list
+        EntityIterator it = locEntities_[iList]->GetIterator();
+
+        // iterate over all elements in element list
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          // Store current element
+          const Elem* actEl = it.GetElem();
+
+          // iterate over all edges
+          for ( UInt iEdge=0; iEdge < actEl->edges.GetSize(); iEdge++) {
+
+            // Check if edge was already assigned
+            if( mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
+                              == -1 ) {
+              mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
+                            = ++edgeCounter;
+            }
+          }
+        }
       }
     }
-    
+
     // store number of local edges
     numLocEdges_ = edgeCounter;
-    
+
   }
   
 
   void EqnMap::CalcFaceMapping()  {
 
     LOG_TRACE(eqnMap) << "Starting local<->global face mapping\n";
-    
+
     mesh2PdeFace_.Resize( ptGrid_->GetNumFaces() );
     mesh2PdeFace_.Init( -1 );
-    
+
     UInt faceCounter = 0;
-    
+
     // iterate over all element lists
-    for ( UInt iList = 0; iList < locElems_.GetSize(); iList++ ) {
-      
-      // Get iterator of current element list
-      EntityIterator it = locElems_[iList]->GetIterator();
-      
-      // iterate over all elements in element list
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-	
-	// Store current element
-	const Elem* actEl = it.GetElem();
-	
-	// iterate over element faces
-	for ( UInt iFace=0; iFace < actEl->faces.GetSize(); iFace++) {
-          
-	  // Check if face was already assigned
-	  if( mesh2PdeFace_[actEl->faces[iFace]-1] 
-	      == -1 ) {
-	    mesh2PdeFace_[actEl->faces[iFace]-1] 
-              = ++faceCounter;
-	  }
-	}
+    for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
+      if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
+          locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
+
+        // Get iterator of current element list
+        EntityIterator it = locEntities_[iList]->GetIterator();
+
+        // iterate over all elements in element list
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          // Store current element
+          const Elem* actEl = it.GetElem();
+
+          // iterate over element faces
+          for ( UInt iFace=0; iFace < actEl->faces.GetSize(); iFace++) {
+
+            // Check if face was already assigned
+            if( mesh2PdeFace_[actEl->faces[iFace]-1] 
+                              == -1 ) {
+              mesh2PdeFace_[actEl->faces[iFace]-1] 
+                            = ++faceCounter;
+            }
+          }
+        }
       }
     }
-    
+
     // store number of local faces
     numLocFaces_ = faceCounter;
 
     LOG_DBG(eqnMap) << "There are " << numLocFaces_ << " local faces";
     LOG_TRACE(eqnMap) << "Finished local<->global face mapping\n";
-    
+
   }
   
   void EqnMap::CalcNodalEquations( UInt phase ) {

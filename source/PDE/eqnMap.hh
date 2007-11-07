@@ -358,8 +358,8 @@ namespace CoupledField {
     //! Number of local faces
     UInt numLocFaces_;
 
-    //! Elements which are locally element/nodal/edge/face mapped
-    StdVector<shared_ptr<ElemList> > locElems_;
+    //! Entities which are locally element/nodal/edge/face mapped
+    StdVector<shared_ptr<EntityList> > locEntities_;
 
     //! Mapping Local -> Global node numbering
     StdVector<UInt> pde2MeshNode_;

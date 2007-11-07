@@ -20,6 +20,7 @@ namespace CoupledField {
     myParam_ = postProcNode;
     reducType_ = NONE;
     writeResult_ = true;
+    isHistory_ = false;
 
   }
 
@@ -33,6 +34,10 @@ namespace CoupledField {
   bool PostProc::IsWriteResult( ) {
     return writeResult_;
   }
+  
+  bool PostProc::IsHistory( ) {
+      return isHistory_;
+    }
 
   void PostProc:: GetReducedList( shared_ptr<EntityList>& outList,
                                   ResultInfo::EntityUnknownType& outType,
@@ -50,6 +55,7 @@ namespace CoupledField {
 
     if( reducType == SPACE ) {
 
+        isHistory_ = true;
       // Check original type
       // a) NodeList (by Region) -> REGION-List
       // b) ElemList (by Region) -> REGION-List

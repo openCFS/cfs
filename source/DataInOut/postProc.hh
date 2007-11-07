@@ -54,6 +54,9 @@ namespace CoupledField {
     //! Get flag, if result should be written
     bool IsWriteResult();
 
+    //! Get flag if result of postprocessing is history result
+    bool IsHistory();
+    
     //! Get next postProc for this result
     const std::string& GetNextPostProcName() { return next_;}
 
@@ -97,6 +100,9 @@ namespace CoupledField {
     
     //! Flag for writing output
     bool writeResult_;
+    
+    //! Flag indicatin if result is history
+    bool isHistory_;
 
     //! Name of output destinations for output result
     StdVector<std::string> outputNames_;

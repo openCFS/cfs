@@ -591,7 +591,7 @@ namespace CoupledField {
           resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
                                       actOutDest, 
                                       postProcNames[iRegion], writeResult,
-                                      (*it)->definedOn );
+                                      isHistory[(*it)->definedOn] );
           
           // if neighboring region is present, store related volume 
           // neighbor region
