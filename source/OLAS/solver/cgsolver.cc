@@ -66,7 +66,7 @@ namespace OLAS {
     if(xml_ != NULL)
     {
       xml_->Get("maxIter", maxiter, false);
-      xml_->Get("tol", maxiter, false);
+      xml_->Get("tol", eps, false);
       xml_->Get("resDirectly", tmp, false);
     } 
     if ( tmp <= 0 ) {
@@ -130,7 +130,7 @@ namespace OLAS {
 
     // If Euclidean norm of initial preconditioned residual is too small
     // do not start CG loop
-    if ( resNorm < tol ) {
+    if ( resNorm < tol || resNorm == 0 ) {
       loop = false;
       (*cla) << "### Norm is small enough, we do not start PCG" << std::endl;
     }

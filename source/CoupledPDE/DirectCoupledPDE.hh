@@ -68,12 +68,16 @@ namespace CoupledField {
     //! return the solution
     CFSVector * GetSolutionVector();
 
+    //! return the previous solution
+    CFSVector * GetPrevSolutionVector();
+
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
     void SaveSolution( const Double * ptSol, UInt size );
     void SaveSolution( const Complex * ptSol, UInt size );
+    void SavePrevSolution( const Double * ptSol, UInt size );
     //@}
 
     //@{

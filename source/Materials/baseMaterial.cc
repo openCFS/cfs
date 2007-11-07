@@ -610,6 +610,11 @@ namespace CoupledField
   }
 
 
+  Double BaseMaterial::GetScalarHystPrevVal( UInt nrElem ) {
+    UInt idx = globalElem2Local_[nrElem];
+    return Yprevious_[idx];
+  }
+
   void BaseMaterial::ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF) {
 
     if ( IsSet( RAYLEIGH_ALPHA ) 

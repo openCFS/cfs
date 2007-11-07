@@ -72,10 +72,9 @@ namespace CoupledField {
   void linElecInt::calcDMat( Matrix<Double> &dMat ) {
 
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
-    
     dMat *= mParser_->Eval( mHandle_ );
     
-    //std::cerr << "linElecInt: dMat = \n" << dMat << std::endl;
+    //  std::cerr << "linElecInt: dMat = \n" << dMat << std::endl;
   }
 
 

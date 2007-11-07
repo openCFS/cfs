@@ -385,7 +385,7 @@ namespace CoupledField {
     {
       ParamNode* isc = mech->Get("irreversibleStrainCoefficient");
       // the dimension is only printed in the old param handler version 7562
-      if(isc->Has("dim")) std::cout << "dim=" << isc->Get("dim")->AsInt() << std::endl;
+      //if(isc->Has("dim")) std::cout << "dim=" << isc->Get("dim")->AsInt() << std::endl;
       
       if(isc->Has("coeffs"))
       {
@@ -586,6 +586,10 @@ namespace CoupledField {
         // read P saturation of Preisach hysterese model
         if(p->Has("pSat"))
           material->SetScalar(p->Get("pSat")->AsDouble(), Y_SATURATION, REAL ); 
+
+        // read P saturation of Preisach hysterese model
+        if(p->Has("Pr"))
+          material->SetScalar(p->Get("Pr")->AsDouble(), Y_REMANENCE, REAL ); 
 
         // read direction of polarization
         if(p->Has("dirP"))

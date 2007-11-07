@@ -447,6 +447,8 @@ namespace CoupledField {
       out = MECH_STRESS;
     else if (in == "mechStrain")
       out = MECH_STRAIN;
+    else if (in == "mechStrainIrr")
+      out = MECH_STRAIN_IRR;
     else if (in == "mechEnergy")
       out = MECH_ENERGY;
     else if (in == "mechDeformedVolume" ) 
@@ -620,6 +622,9 @@ namespace CoupledField {
         break;
       case MECH_STRAIN:
         out = "mechStrain";
+        break;
+      case MECH_STRAIN_IRR:
+        out = "mechStrainIrr";
         break;
       case MECH_ENERGY:
         out = "mechEnergy";
@@ -1105,6 +1110,9 @@ namespace CoupledField {
     case Y_SATURATION:
       out = "Ysaturation";
       break;
+    case Y_REMANENCE:
+      out = "Yremanence";
+      break;
     case PREISACH_WEIGHTS:
       out = "preisachWeights";
       break;
@@ -1294,6 +1302,9 @@ namespace CoupledField {
     }
     else if ( in == "Ysaturation" ) {
       out = Y_SATURATION;
+    }
+    else if ( in == "Yremanence" ) {
+      out = Y_REMANENCE;
     }
     else if ( in == "preisachWeights" ) {
       out = PREISACH_WEIGHTS;

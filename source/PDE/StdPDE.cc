@@ -45,6 +45,8 @@ namespace CoupledField {
     isIncrFormulation_ = false;
     ComputeRHSforHarm_ = false;
     solveStep_ = NULL;
+    needSolPrev_ = false;
+    solPrev_ = NULL;
     isSetInitialCondition_ = false;
     InitialCondition_=0.0;
     
@@ -422,7 +424,9 @@ namespace CoupledField {
     return solVec_;
   }
 
-
+  CFSVector *  StdPDE::GetPrevSolutionVector() {
+    return solVecPrev_;
+  }
 
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
     

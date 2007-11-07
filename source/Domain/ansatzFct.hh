@@ -16,7 +16,7 @@ namespace CoupledField {
   class AnsatzFct {
 
   public:
-    typedef enum {CONST, LAGRANGE, LEGENDRE} AnsatzFctType;
+    typedef enum {CONST, LAGRANGE, LEGENDRE, NEDELEC} AnsatzFctType;
 
     typedef enum {NONE, ALL, NODE, EDGE, FACE, INTERIOR} FctEntityType;
 
@@ -65,6 +65,16 @@ namespace CoupledField {
 
     //! Constructor
     LagrangeFct();
+    
+  };
+
+  //! Class for standard 1st and 2nd order Nedelec functions
+  class NedelcFct : public AnsatzFct {
+
+  public:
+
+    //! Constructor
+    NedelcFct();
     
   };
 

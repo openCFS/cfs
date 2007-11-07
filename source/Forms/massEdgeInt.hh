@@ -15,7 +15,7 @@ class MassEdgeInt : public BaseForm
 {
 public:
   /// Constructor
-  MassEdgeInt(Double acond);
+  MassEdgeInt( Double acond, bool coordUpdate = false );
 
   /// Destructor
   virtual ~MassEdgeInt();

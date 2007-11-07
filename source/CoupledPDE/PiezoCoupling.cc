@@ -11,8 +11,6 @@
 #include "DataInOut/WriteInfo.hh"
 
 // integrator (bi-)linear forms
-#include "Forms/linPiezoCoupling.hh"
-#include "Forms/nLinPiezoCoupling.hh"
 #include "Forms/forms_header.hh"
 #include "Forms/linElecInt.hh"
 #include "Forms/FlatShellPiezoInt.hh"
@@ -23,7 +21,6 @@
 
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
-
 
 namespace CoupledField {
 
@@ -91,7 +88,7 @@ namespace CoupledField {
     switch (result->GetResultInfo()->resultType ) {
     case ELEC_CHARGE:
       if ( isComplex_ ) {
-        CalcCharges<Complex>( result );
+      	CalcCharges<Complex>( result );
       } else{
         CalcCharges<Double>( result );
       }
@@ -99,9 +96,27 @@ namespace CoupledField {
       
     case MECH_STRESS:
       if ( isComplex_ ) {
-        CalcStress<Complex>( result );
+        CalcStressStrain<Complex>( result );
       } else {
-        CalcStress<Double>( result );
+        CalcStressStrain<Double>( result );
+        
+      }
+      break;
+
+    case MECH_STRAIN:
+      if ( isComplex_ ) {
+        CalcStressStrain<Complex>( result );
+      } else {
+        CalcStressStrain<Double>( result );
+        
+      }
+      break;
+
+    case MECH_STRAIN_IRR:
+      if ( isComplex_ ) {
+        EXCEPTION("Ireversible Strain makes no sense in Harmonic analysis");
+      } else {
+        CalcStrainIrr( result );
         
       }
       break;
@@ -113,7 +128,9 @@ namespace CoupledField {
   }
   
   template <class TYPE>
-  void PiezoCoupling::CalcStress( shared_ptr<BaseResult> res ){
+  void PiezoCoupling::CalcStressStrain( shared_ptr<BaseResult> res ){
+
+    SolutionType resultType = res->GetResultInfo()->resultType;
 
     UInt stressDim=0, elecDim=0;
     Vector<Double> intPoint;
@@ -159,18 +176,18 @@ namespace CoupledField {
  
     // Determines linear Strain S=Bu, i.e.
     //  partial derivates of mechanical displacement
-    Vector<TYPE> elemElecStress, elemStress, sortedStress;
+    Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
     elemElecStress.Resize(stressDim);
-    elemStress.Resize(stressDim);
+    elemStressStrain.Resize(stressDim);
     TempMechStress.Resize(stressDim);
     TempMechStress.Init();
     TempDField.Resize(elecDim);
     TempDField.Init();
     elemElecStress.Init(0);
-    elemStress.Init(0);
+    elemStressStrain.Init(0);
     sortedStress.Resize(6);
         
-    Matrix<TYPE> stiffnessMat;
+    Matrix<TYPE> stiffnessMat, sTensor;
     Matrix<TYPE> piezoCouplingMat; 
     Matrix<TYPE> piezoCouplingMatT; 
     Matrix<TYPE> permittivityMat;
@@ -233,18 +250,27 @@ namespace CoupledField {
       mechStressOp->SetIntPoint(LCoord);
       mechStressOp->CalcStressVec(TempMechStress,1,it);
       mechStressOp->UnsetIntPoint();
-      elemStress.Init(0);
+      elemStressStrain.Init(0);
       
       // get correct coupling tensor and transpose it
       matPiezo = materials_[it.GetElem()->regionId];
       matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,dataType,type);
       piezoCouplingMat.Transpose(piezoCouplingMatT);
       
-      TempDField = piezoCouplingMatT*TempE;
-      elemStress = TempMechStress-TempDField;
-      
+      if ( resultType  == MECH_STRAIN ) {
+        mechMatSD = mechMat[it.GetElem()->regionId];
+        mechMatSD->GetTensor( stiffnessMat,  MECH_STIFFNESS_TENSOR, 
+                              dataType, type);
+        stiffnessMat.Invert( sTensor );
+        elemStressStrain  = sTensor * TempMechStress;
+      }
+      else {
+        TempDField = piezoCouplingMatT*TempE;
+        elemStressStrain = TempMechStress-TempDField;
+      }
+        
       for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
-        actVal[it.GetPos()*stressDim + iDof] = elemStress[iDof];
+        actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
       }
       
     }
@@ -452,6 +478,114 @@ namespace CoupledField {
   } // end CalcCharges
 
 
+  void PiezoCoupling::CalcStrainIrr( shared_ptr<BaseResult> res ){
+
+    UInt strainDim=0;
+    if (subType_ == "planeStrain") {
+      strainDim = 3;
+    }
+ 
+    else if (subType_ == "axi") {
+      strainDim = 4;
+    }
+ 
+    else if (subType_ == "3d") {
+      strainDim = 6;
+    }
+ 
+    else 
+      EXCEPTION("StressOp: Unknown subtype in mech PDE!" );
+
+    // Retrieve solution from nodeStoreSolution Class
+    BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
+
+    NodeStoreSol<Double> * solElec = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+
+    // Determines gradient of electric potential, i.e. E=\grad \phi
+    GradientFieldOp<Double> * ElecFieldOp
+      = new GradientFieldOp<Double>( ptGrid_, pde2_, eqnMap2_,
+                                     *solElec, ELEC_POTENTIAL, 
+                                     results2_[0],
+                                     isaxi_);
+ 
+    // Determines linear Strain S=Bu, i.e.
+    //  partial derivates of mechanical displacement
+    Vector<Double> elemStrain;
+    elemStrain.Resize(strainDim);
+        
+    // get material objects
+    std::map<RegionIdType, BaseMaterial*> elecMat =    
+      pde2_->getPDEMaterialData();
+    std::map<RegionIdType, BaseMaterial*> mechMat =    
+      pde1_->getPDEMaterialData();
+
+    // get result object 
+    Result<Double> &  actRes = 
+      dynamic_cast<Result<Double>&>(*res);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+    
+    Vector<Double> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * strainDim );
+    
+    // Fetch material: As we assume, that all elements belong to
+    // one and the same region, we simply take the subdomain of the first 
+    // element
+    it.Begin();
+    
+    // get the materials for the subdomain
+    BaseMaterial* elecMatSD = elecMat[it.GetElem()->regionId];
+    BaseMaterial* mechMatSD = mechMat[it.GetElem()->regionId];
+    
+    //transform the type
+    SubTensorType type;
+    String2Enum(subType_,type);
+
+    Vector<Double> actSirr, elecField, LCoord;
+    UInt nrEl;
+    std::string str;
+    Double actP, Psat;
+    Directions dirP;
+
+    bool isHyst = false;    
+    if ( elecMatSD->getHysteresis() != NULL ) {
+      isHyst = true;
+    }
+
+    // loop over all elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      
+      if ( isHyst ) {
+        // Calc E - field;
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+        
+        ElecFieldOp->CalcElemGradField( elecField, it, LCoord, 1); 
+        
+        // compute actual and old polarization
+        elecMatSD->GetScalar( str, P_DIRECTION );
+        String2Enum( str, dirP );
+        elecMatSD->GetScalar( Psat, Y_SATURATION, REAL);
+        
+        nrEl  = it.GetElem()->elemNum;
+        actP  = elecMatSD->ComputeScalarHystVal( nrEl, elecField[dirP] );
+        
+        // compute irreversible mechanical strain
+        ComputeSirr( actSirr, type, dirP, actP, mechMatSD );
+        
+        // Calc linear mechanical stresses
+        //get coordinates of element
+        
+        for(UInt iDof = 0; iDof < strainDim; iDof++ ) {
+          actVal[it.GetPos()*strainDim + iDof] = actSirr[iDof];
+        }
+      }
+      
+    }
+    // Delete integrator again (Stressabbau ;-)
+    delete ElecFieldOp;
+  }
+
+
   void PiezoCoupling::ReadPiezoNonLin(){
 
 
@@ -576,26 +710,6 @@ namespace CoupledField {
     BaseMaterial * actSDMat = NULL;
 
 
-    //check if we have material nonlinearities for piezo coupling
-
-    //NOT NECESSARY: already done in constructor!!!!!!
-
-    //     StdVector<std::string> nonLinRegion;
-    //     params->GetList( "nonLinear", nonLinRegion, couplingName_, "coupling" );
-    //     if ( nonLinRegion.GetSize() == 0 ) {
-    //       nonLin_ = false;
-    //     }
-    //     else {
-    //       for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
-    //         if ( nonLinRegion[k] != nonLinRegion[0] ) {
-    //           EXCEPTION( "Non-linearity should be the same for all regions!" );
-    //         }
-    //       }
-    //       nonLin_ = nonLinRegion[0] == "material" ? true : false;
-    //       nonLinMaterial_ = nonLinRegion[0] == "material" ? true : false;
-    //     }
-    
-
     // get material from electrostatics
     std::map<RegionIdType, BaseMaterial*> elecMat = 
       pde2_->getPDEMaterialData();
@@ -616,36 +730,17 @@ namespace CoupledField {
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
-
-      BaseForm *bilinearStiff = NULL;
-      
+   
       BiLinFormContext *actContextStiff = NULL;
 
-      if (nonLinPiezoCoupling_){
-        ApproxData *nlinFnc;
+      if (  nonLinHysteresis_ ) {
+        //Piezoelectric problem with hysteresis
 
-        if (  nonLinMaterial_ ) {
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
-        
-          nlinFnc = new SmoothSpline(nlfnc);
-          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
-          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-        }
-        else if ( nonLinHysteresis_ ) {
-          nlinFnc = NULL;
-
-          //allocate for hystersis modeling
-          StdVector<Elem*> elemssd;
-          ptGrid_->GetElems(elemssd, actRegion);
-          UInt numElSD =  elemssd.GetSize();
-          elecMat[actRegion]->InitHyst(numElSD, actSDList);
-        }
-        else {
-          EXCEPTION ("PiezoCoupling: Nonlinear Type not supported" );
-        }
+        //allocate for hystersis modeling
+        StdVector<Elem*> elemssd;
+        ptGrid_->GetElems(elemssd, actRegion);
+        UInt numElSD =  elemssd.GetSize();
+        elecMat[actRegion]->InitHyst(numElSD, actSDList);
 
         // get material from mechanics
         std::map<RegionIdType, BaseMaterial*> mechMat = 
@@ -655,13 +750,7 @@ namespace CoupledField {
         std::map<RegionIdType, BaseMaterial*> elecMat = 
           pde2_->getPDEMaterialData();
 
-        // add nonlinear stiffness
-        nLinPiezoCoupling * bilinearStiffNonLin;
-        bilinearStiffNonLin =  new nLinPiezoCoupling(nlinFnc, materials_[actRegion],
-                                                     mechMat[actRegion], 
-                                                     elecMat[actRegion],
-                                                     tensorType);
-
+        // get solutions of PDEs
         BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
         BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
         
@@ -669,107 +758,241 @@ namespace CoupledField {
           dynamic_cast<NodeStoreSol<Double>*>(solPDE1);    
         NodeStoreSol<Double> * solhelp2 = 
           dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+
+        // get previous solution of PDE
+        BaseNodeStoreSol * solPrevPDE1 = pde1_->getPDESolutionPrev();
+        BaseNodeStoreSol * solPrevPDE2 = pde2_->getPDESolutionPrev();
         
-        bilinearStiffNonLin->SetSolution1(*solhelp1);
-        bilinearStiffNonLin->SetSolution2(*solhelp2);
+        NodeStoreSol<Double> * solPrevhelp1 = 
+          dynamic_cast<NodeStoreSol<Double>*>(solPrevPDE1);    
+        NodeStoreSol<Double> * solPrevhelp2 = 
+          dynamic_cast<NodeStoreSol<Double>*>(solPrevPDE2);
+
+        // add nonlinear coupling stiffness in mechanical equation
+        nLinPiezoHystCouple* bilinearStiffNonLin =  
+          new nLinPiezoHystCouple( materials_[actRegion], mechMat[actRegion], 
+                                   elecMat[actRegion], tensorType, true);
+           
+        //set solution object for (n+1) and (n)
+        bilinearStiffNonLin->SetSolutionMech(*solhelp1);
+        bilinearStiffNonLin->SetSolutionElec(*solhelp2);
+        bilinearStiffNonLin->SetPrevSolutionMech(*solPrevhelp1);
+        bilinearStiffNonLin->SetPrevSolutionElec(*solPrevhelp2);
 
         bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-                                                results2_[0]);
+                                                results2_[0], this);
 
         bilinearStiffNonLin->SetMatDataType( matType );
         
-        actContextStiff =
+        BiLinFormContext *actContextStiffCoupling =
           new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
+        
+        // explicit definition of counter part!!
+        actContextStiffCoupling->SetCounterPart( false );
+        
+        actContextStiffCoupling->SetEntryType( matType );
+        actContextStiffCoupling->SetPtPdes( pde1_, pde2_ );
+        actContextStiffCoupling->SetResults( results1_[0], results2_[0],
+                                   actSDList, actSDList );
+      
+        assemble_->AddBiLinearForm( actContextStiffCoupling );
+
+        // add nonlinear coupling stiffness in electric equation
+        nLinPiezoHystCouple* bilinearCoupleElec =  
+          new nLinPiezoHystCouple( materials_[actRegion], mechMat[actRegion], 
+                                   elecMat[actRegion], tensorType, false);
+           
+        //set solution object for (n+1) and (n)
+        bilinearCoupleElec->SetSolutionMech(*solhelp1);
+        bilinearCoupleElec->SetSolutionElec(*solhelp2);
+        bilinearCoupleElec->SetPrevSolutionMech(*solPrevhelp1);
+        bilinearCoupleElec->SetPrevSolutionElec(*solPrevhelp2);
+
+        bilinearCoupleElec->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                               results2_[0], this);
+
+        bilinearCoupleElec->SetMatDataType( matType );
+        
+        BiLinFormContext *actContextCoupleElec =
+          new BiLinFormContext( bilinearCoupleElec, STIFFNESS  );
+        
+        // explicit definition og counter part!!
+        actContextCoupleElec->SetCounterPart( false );
+        
+        actContextCoupleElec->SetEntryType( matType );
+        actContextCoupleElec->SetPtPdes( pde2_, pde1_ );
+        actContextCoupleElec->SetResults( results2_[0], results1_[0],
+                                   actSDList, actSDList );
+      
+        assemble_->AddBiLinearForm( actContextCoupleElec );
+
+
+        // add nonlinear electrostattic stiffness
+        nLinPiezoHystElec* bilinearStiffElec =  
+          new nLinPiezoHystElec( materials_[actRegion], mechMat[actRegion], 
+                                 elecMat[actRegion], tensorType);
+           
+        //set soltuion object for (n+1) and (n)
+        bilinearStiffElec->SetSolutionMech(*solhelp1);
+        bilinearStiffElec->SetSolutionElec(*solhelp2);
+        bilinearStiffElec->SetPrevSolutionMech(*solPrevhelp1);
+        bilinearStiffElec->SetPrevSolutionElec(*solPrevhelp2);
+
+        bilinearStiffElec->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                              results2_[0], this);
+
+        bilinearStiffElec->SetMatDataType( matType );
+        
+        BiLinFormContext *actContextStiffElec =
+          new BiLinFormContext( bilinearStiffElec, STIFFNESS  );
+        
+        actContextStiffElec->SetEntryType( matType );
+        actContextStiffElec->SetPtPdes( pde2_, pde2_ );
+        actContextStiffElec->SetResults( results2_[0], results2_[0],
+                                         actSDList, actSDList );
+      
+        assemble_->AddBiLinearForm( actContextStiffElec );
+
+
+        //hysteresis formulation: RHS for electric equation
+        PiezoPolarizationElecRhsInt * elecRHS = 
+          new PiezoPolarizationElecRhsInt( materials_[actRegion],
+                                           mechMat[actRegion],
+                                           elecMat[actRegion],
+                                           tensorType );	 
+        
+        elecRHS->SetSolutionMech(*solhelp1);
+        elecRHS->SetSolutionElec(*solhelp2);
+        elecRHS->SetPrevSolutionMech(*solPrevhelp1);
+        elecRHS->SetPrevSolutionElec(*solPrevhelp2);
+        
+        elecRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                    results2_[0], this);
+        LinearFormContext * rhsContextElec = 
+          new LinearFormContext( elecRHS );
+        rhsContextElec->SetPtPde( pde2_ );
+        rhsContextElec->SetResult( results2_[0], actSDList );
+        assemble_->AddLinearForm( rhsContextElec );
+        
+        
+        // hysteresis formulation: RHS for mechanic equation
+        PiezoPolarizationMechRhsInt * mechRHS = 
+          new PiezoPolarizationMechRhsInt( materials_[actRegion], 
+                                           mechMat[actRegion], 
+                                           elecMat[actRegion], 
+                                           tensorType);
+        mechRHS->SetSolutionMech(*solhelp1);
+        mechRHS->SetSolutionElec(*solhelp2);
+        mechRHS->SetPrevSolutionMech(*solPrevhelp1);
+        mechRHS->SetPrevSolutionElec(*solPrevhelp2);
+        
+        // for computation of electric field
+        mechRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                    results2_[0], this);
+        LinearFormContext * rhsContextMech = 
+          new LinearFormContext( mechRHS );
+        rhsContextMech->SetPtPde( pde1_ );
+        rhsContextMech->SetResult( results1_[0], actSDList );
+        assemble_->AddLinearForm( rhsContextMech );
+      }
+
+      else {
+        if (  nonLinMaterial_ ) {
+          //material nonlinearity
+          
+          ApproxData *nlinFnc;
+          std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
+          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+          
+          nlinFnc = new SmoothSpline(nlfnc);
+          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
+          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+          nlinFnc->CalcBestParameter();
+          nlinFnc->CalcApproximation();
+          
+          // get material from mechanics
+          std::map<RegionIdType, BaseMaterial*> mechMat = 
+            pde1_->getPDEMaterialData();
+          
+          // get material from electrostatics
+          std::map<RegionIdType, BaseMaterial*> elecMat = 
+            pde2_->getPDEMaterialData();
+          
+          // add nonlinear stiffness
+          nLinPiezoCoupling * bilinearStiffNonLin;
+          bilinearStiffNonLin =  new nLinPiezoCoupling(nlinFnc, materials_[actRegion],
+                                                       mechMat[actRegion], 
+                                                       elecMat[actRegion],
+                                                       tensorType);
+          
+          BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
+          BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
+          
+          NodeStoreSol<Double> * solhelp1 = 
+            dynamic_cast<NodeStoreSol<Double>*>(solPDE1);    
+          NodeStoreSol<Double> * solhelp2 = 
+            dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+          
+          bilinearStiffNonLin->SetSolution1(*solhelp1);
+          bilinearStiffNonLin->SetSolution2(*solhelp2);
+          
+          bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                                  results2_[0]);
+          
+          bilinearStiffNonLin->SetMatDataType( matType );
+          
+          actContextStiff =
+            new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
+          
+          // We also need to set the transposed of the coupling
+          // matrix to the lower diagonal side
+          actContextStiff->SetCounterPart( true );
+        } 
+        else {
+          // add linear stiffness
+          BaseForm *bilinearStiff = 
+            new linPiezoCoupling(materials_[actRegion], tensorType);
+          
+          bilinearStiff->SetMatDataType( matType );  
+          
+          actContextStiff =
+            new BiLinFormContext( bilinearStiff, STIFFNESS  );
+        }
+        
         
         // We also need to set the transposed of the coupling
         // matrix to the lower diagonal side
         actContextStiff->SetCounterPart( true );
         
-        if ( nonLinHysteresis_ ) {
-          //hysteresis formulation: RHS for electric equation
-          PiezoPolarizationElecRhsInt * elecRHS = 
-            new PiezoPolarizationElecRhsInt( elecMat[actRegion],
-                                             materials_[actRegion],
-                                             mechMat[actRegion],
-                                             tensorType );	 
-
-          elecRHS->SetSolution( *solhelp2 );
-
-          elecRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-                                      results2_[0]);
-          LinearFormContext * rhsContextElec = 
-            new LinearFormContext( elecRHS );
-          rhsContextElec->SetPtPde( pde2_ );
-          rhsContextElec->SetResult( results2_[0], actSDList );
-          assemble_->AddLinearForm( rhsContextElec );
-
-
-          //	  hysteresis formulation: RHS for mechanic equation
-          PiezoPolarizationMechRhsInt * mechRHS = 
-            new PiezoPolarizationMechRhsInt( elecMat[actRegion],
-                                             mechMat[actRegion],
-                                             tensorType );	 
-          // we need electric potential
-          mechRHS->SetSolution( *solhelp2 );
-
-          // for computation of electric field
-          mechRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-                                      results2_[0]);
-          LinearFormContext * rhsContextMech = 
-            new LinearFormContext( mechRHS );
-          rhsContextMech->SetPtPde( pde1_ );
-          rhsContextMech->SetResult( results1_[0], actSDList );
-          assemble_->AddLinearForm( rhsContextMech );
+        actContextStiff->SetEntryType( matType );
+        actContextStiff->SetPtPdes( pde1_, pde2_ );
+        actContextStiff->SetResults( results1_[0], results2_[0],
+                                     actSDList, actSDList );
+        
+        assemble_->AddBiLinearForm( actContextStiff );
+      
+        // check for complex valued material parameter
+        if( hasComplexMatParams_ ) {
+          matType = IMAG; 
+          
+          BaseForm * bilinearStiffC = 
+            new linPiezoCoupling( materials_[actRegion], tensorType);
+          
+          //GetStiffIntegrator(materialData_[actSD]);
+          BiLinFormContext *actComplexContextStiff = 
+            new BiLinFormContext(bilinearStiffC, STIFFNESS );
+          actComplexContextStiff->SetPtPdes(pde1_, pde2_);
+          actComplexContextStiff->SetResults( results1_[0], results2_[0],
+                                              actSDList, actSDList );
+          // We also need to set the transposed of the coupling
+          // matrix to the lower diagonal side
+          actComplexContextStiff->SetCounterPart( true );
+          
+          actComplexContextStiff->SetEntryType(matType);
+          bilinearStiffC->SetMatDataType(matType);
+          assemble_->AddBiLinearForm( actComplexContextStiff );
         }
-      } else {
-        
-        // add stiffness
-        bilinearStiff = 
-          new linPiezoCoupling(materials_[actRegion], tensorType);
-        
-        //GetStiffIntegrator( materials_[actSD] );
-        
-        bilinearStiff->SetMatDataType( matType );  
-        
-        actContextStiff =
-          new BiLinFormContext( bilinearStiff, STIFFNESS  );
-        
       }
-      
-      
-      // We also need to set the transposed of the coupling
-      // matrix to the lower diagonal side
-      actContextStiff->SetCounterPart( true );
-      
-      actContextStiff->SetEntryType( matType );
-      actContextStiff->SetPtPdes( pde1_, pde2_ );
-      actContextStiff->SetResults( results1_[0], results2_[0],
-                                   actSDList, actSDList );
-      
-      assemble_->AddBiLinearForm( actContextStiff );
-      
-      // check for complex valued material parameter
-      if( hasComplexMatParams_ ) {
-        matType = IMAG; 
-        
-        BaseForm * bilinearStiffC = 
-          new linPiezoCoupling( materials_[actRegion], tensorType);
-        
-        //GetStiffIntegrator(materialData_[actSD]);
-        BiLinFormContext *actComplexContextStiff = 
-          new BiLinFormContext(bilinearStiffC, STIFFNESS );
-        actComplexContextStiff->SetPtPdes(pde1_, pde2_);
-        actComplexContextStiff->SetResults( results1_[0], results2_[0],
-                                            actSDList, actSDList );
-        // We also need to set the transposed of the coupling
-        // matrix to the lower diagonal side
-        actComplexContextStiff->SetCounterPart( true );
-
-        actComplexContextStiff->SetEntryType(matType);
-        bilinearStiffC->SetMatDataType(matType);
-        assemble_->AddBiLinearForm( actComplexContextStiff );
-      }
-
     }
 
     // Define integrators for composite materials
@@ -833,6 +1056,26 @@ namespace CoupledField {
     stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( stress );
 
+    // === MECHANIC STRAIN ===
+    shared_ptr<ResultInfo> strain(new ResultInfo);    
+    strain->resultType = MECH_STRAIN;
+    strain->dofNames = stressDofNames;
+    strain->unit = "N/m^2";
+    strain->entryType = ResultInfo::TENSOR;
+    strain->definedOn = ResultInfo::ELEMENT;
+    strain->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( strain );
+
+    // === MECHANIC STRAIN Irreversibel===
+    shared_ptr<ResultInfo> strainIrr(new ResultInfo);    
+    strainIrr->resultType = MECH_STRAIN_IRR;
+    strainIrr->dofNames = stressDofNames;
+    strainIrr->unit = "N/m^2";
+    strainIrr->entryType = ResultInfo::TENSOR;
+    strainIrr->definedOn = ResultInfo::ELEMENT;
+    strainIrr->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( strainIrr );
+
     // === ELECTRIC CHARGE ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
@@ -843,4 +1086,230 @@ namespace CoupledField {
     charge->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( charge );
   }
+
+
+
+  //==================================   Methods for hysteresis ============================
+
+  void PiezoCoupling::GetNonlinMaterialTensor(Matrix<Double>& matTensor, 
+                                              Vector<Double>& elecD,
+                                              std::string matTensorType,
+                                              BaseMaterial* matMech,
+                                              BaseMaterial* matElec,
+                                              BaseMaterial* matCouple,
+                                              SubTensorType subTensorType,
+                                              Vector<Double>& elecField,
+                                              Vector<Double>& mechStrain, 
+                                              Vector<Double>& elecFieldPrev,
+                                              Vector<Double>& mechStrainPrev, 
+                                              EntityIterator& ent ) {
+
+    // linear c-Tensor
+    Matrix<Double> cTensor;
+    matMech->GetTensor( cTensor, MECH_STIFFNESS_TENSOR, REAL, subTensorType );
+
+    // lineaer eps-Tensor at constant strain
+    Matrix<Double> epsTensor_cStrain;
+    matElec->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, REAL, subTensorType );
+
+    // linear e-Tensor
+    Matrix<Double> eTensor;
+    matCouple->GetTensor( eTensor, PIEZO_TENSOR, REAL, subTensorType );
+
+    // compute actual and old polarization
+    UInt nrEl;
+    std::string str;
+    Double Psat, actP, prevP, scaleFactor;
+    Directions dirP;
+    matElec->GetScalar( str, P_DIRECTION );
+    String2Enum( str, dirP );
+    matElec->GetScalar( Psat, Y_SATURATION, REAL);
+
+    nrEl  = ent.GetElem()->elemNum;
+    actP  = matElec->ComputeScalarHystVal( nrEl, elecField[dirP] );
+    prevP = matElec->GetScalarHystPrevVal( nrEl );
+
+    Double Pr; // = 0.26;
+    matElec->GetScalar( Pr, Y_REMANENCE, REAL);
+    Psat += Pr;
+
+    // compute d-Tensor
+    Matrix<Double> sTensor, dTensor, epsTensor_cStress;
+    Matrix<Double> eTensorTrans;
+    cTensor.Invert(sTensor);
+    dTensor = eTensor*sTensor;
+
+    // compute eps-tensor at constant stress
+    eTensor.Transpose(eTensorTrans);
+    epsTensor_cStress = epsTensor_cStrain + dTensor*eTensorTrans;
+    
+
+    // scale the dTensor
+    Matrix<Double> dsTensor, dsTensorTrans, dsPrevTensor, dsPrevTensorTrans;
+    scaleFactor = (actP+Pr) / (Psat);
+    dsTensor = dTensor * scaleFactor;
+    dsTensor.Transpose(dsTensorTrans);
+    
+    scaleFactor = (prevP+Pr) / (Psat);
+    dsPrevTensor = dTensor * scaleFactor;
+    dsPrevTensor.Transpose(dsPrevTensorTrans);
+    
+    // compute irreversible mechanical strain
+    Vector<Double> actSirr, prevSirr;
+    ComputeSirr( actSirr, subTensorType, dirP, actP, matMech );
+    ComputeSirr( prevSirr, subTensorType, dirP, prevP, matMech );
+//     actSirr.Init(0.0);
+//     prevSirr.Init(0.0);
+    
+//     std::cout << "\n actSirr:\n" << actSirr << std::endl;
+//     std::cout << "\n prevSirr:\n" << prevSirr << std::endl;
+
+    // compute the old mechanical stress
+    Vector<Double> help, prevStressVec;
+    help  = mechStrainPrev;
+    help -= dsPrevTensorTrans * elecFieldPrev;
+    help -= prevSirr;
+    prevStressVec = cTensor * help;
+    
+    if ( matTensorType == "CouplingTensorElecEQ" ) {
+      Matrix<Double> tmp;
+      tmp = dsTensor * cTensor;
+      tmp.Transpose( matTensor );
+    }
+    else if ( matTensorType == "CouplingTensorMechEQ" || 
+              matTensorType == "ElecTensor") {
+      // compute differential coupling tensor
+      Matrix<Double> diffdTensor, diffcTensor;
+      diffdTensor = dsTensorTrans;
+      ComputeDiffCouplingTensor( diffdTensor, elecField, elecFieldPrev, 
+                                 actSirr, prevSirr, dirP, subTensorType);
+      
+      if ( matTensorType == "CouplingTensorMechEQ" ) 
+        matTensor = cTensor * diffdTensor;
+      else {
+        Matrix<Double> diffeTensor;
+        diffeTensor = cTensor * diffdTensor;
+
+        Double diffEpsVal;
+        matTensor  = epsTensor_cStress;
+        diffEpsVal = matElec->ComputeScalarDiffVal( nrEl, elecField[dirP] );
+        //      std::cout << "diffEpsval: " << diffEpsVal << std::endl;
+      
+        if (  diffEpsVal < 0.0 ) 
+          Error("Negative effective permittivity", __FILE__, __LINE__);
+        matTensor[dirP][dirP] += diffEpsVal;
+
+        Matrix<Double> tmp;
+        tmp = dsTensor * diffeTensor;
+        matTensor -= tmp;
+      }
+    }
+    else if ( matTensorType == "MechRHS" ) {
+      scaleFactor = (actP - prevP) / Psat;
+      dsTensor = dTensor * scaleFactor;
+      dsTensor.Transpose(dsTensorTrans);
+      matTensor = cTensor * dsTensorTrans;
+    }
+    else if ( matTensorType == "ElecRHS1" ) {
+      Matrix<Double> dcTensor;
+      dcTensor = dsTensor * cTensor;
+      scaleFactor = (actP - prevP) / Psat;
+      dsTensor = dTensor * scaleFactor;
+      dsTensor.Transpose(dsTensorTrans);
+      matTensor = dcTensor * dsTensorTrans;
+    }
+    else if ( matTensorType == "ElecRHS2" ) {
+      scaleFactor = (actP - prevP) / Psat;
+      dsTensor = dTensor * scaleFactor;
+      elecD = dsTensor * prevStressVec;
+    }
+  }
+
+  
+  void PiezoCoupling::ComputeSirr( Vector<Double>& VecSirr,
+                                   SubTensorType type, 
+                                   UInt dirP,
+                                   Double actP,
+                                   BaseMaterial* matMech ) {
+
+
+    //get basis vector for irreversibel strain
+    if ( type == FULL ) {
+      VecSirr.Resize(6);
+      VecSirr.Init();
+      for ( UInt i=0; i<3; i++ )
+	VecSirr[i] = -0.5;
+      VecSirr[ dirP ] = 1.0;
+    }
+    else if ( type ==  AXI ) {
+      VecSirr.Resize(4);
+      VecSirr.Init();
+      for ( UInt i=0; i<4; i++ )
+	VecSirr[i] = -0.5;
+      VecSirr[2] = 0.0;  // no shear strain
+      VecSirr[ dirP ] = 1.0;
+    }
+    else {
+      VecSirr.Resize(3);
+      VecSirr.Init();
+      for ( UInt i=0; i<1; i++ )
+	VecSirr[i] = -0.5;
+      VecSirr[ dirP ] = 1.0;
+    }
+
+    // compute irreversibel strain
+    Vector<Double> coeff;
+    matMech->GetVector( coeff, COEFF_STRAIN_IRREVERSIBLE, REAL);
+
+    Double val =  coeff[0] +
+      coeff[1] * actP +
+      coeff[2] * actP * actP +
+      coeff[3] * actP * actP * actP + 
+      coeff[4] * actP * actP * actP * actP;
+  
+    VecSirr *= val;
+  }
+
+
+  void PiezoCoupling::ComputeDiffCouplingTensor( Matrix<Double>& dMat, 
+                                                 Vector<Double>& actE,
+                                                 Vector<Double>& prevE,
+                                                 Vector<Double>& actSirr,
+                                                 Vector<Double>& prevSirr,
+                                                 Directions dirP,
+                                                 SubTensorType subTensorType ) {
+
+    Vector<Double> diffE, diffSirr;
+    diffE    = actE - prevE;
+    diffSirr = actSirr - prevSirr;
+
+    if ( subTensorType == PLANE_STRAIN ) {
+      if ( abs( diffE[0]) > 1 ) {
+        if ( dirP == X ) 
+          dMat[0][1] += diffSirr[0] / diffE[0];
+      }
+      if ( abs(diffE[1]) > 1 ) {
+        if ( dirP == Y ) 
+          dMat[1][1] += diffSirr[1] / diffE[1];
+      }
+      
+    }
+    else if ( subTensorType == FULL ) {
+      if ( abs( diffE[0]) > 1 )
+        dMat[0][2] += diffSirr[0] / diffE[0];
+
+      if ( abs(diffE[1]) > 1 )
+        dMat[1][2] += diffSirr[1] / diffE[1];
+
+      if ( abs(diffE[2]) > 1 )
+        dMat[2][2] += diffSirr[2] / diffE[2];
+    }
+    else 
+      Error( "Problems in ComputeDiffElasticitytensor", __FILE__, __LINE__ );
+
+    //    std::cout << "dMatEff:\n" << dMat << std::endl;
+
+  }
+
+
 }

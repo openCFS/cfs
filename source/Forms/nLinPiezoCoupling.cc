@@ -6,8 +6,6 @@
 #include <fstream>
 
 #include "General/environment.hh"
-//#include "nLinPiezoCoupling.hh"
-//#include "linPiezoCoupling.hh"
 #include "Utils/nodestoresol.hh"
 #include "Forms/forms_header.hh"
 

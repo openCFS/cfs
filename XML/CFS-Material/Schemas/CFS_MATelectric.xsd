@@ -96,12 +96,13 @@
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
+      <xsd:element name="Pr" type="xsd:double"/>
       <xsd:element name="dirP" type="DT_Direction"/>
       <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
       <xsd:element name="weights">
         <xsd:simpleType>
           <xsd:restriction base="DT_DoubleList">
-            <xsd:maxLength value="200"/>
+            <xsd:maxLength value="2000"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 

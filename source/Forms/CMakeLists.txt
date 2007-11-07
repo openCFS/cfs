@@ -51,6 +51,8 @@ SET(FORMS_SRCS
   nlinLaplaceInt.cc
   nLinMassInt.cc
   nLinPiezoCoupling.cc
+  nLinPiezoHyst.cc
+  nLinPiezoHystRHS.cc
   nLinStokesFluidInt.cc
   nonConformingInt.cc
   pierceInt.cc

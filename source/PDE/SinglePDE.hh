@@ -21,12 +21,14 @@
 namespace CoupledField
 {
   // forward class declaration
-  class SpaceErrorEstimator;
+	class VolForceInt;
+	class SpaceErrorEstimator;
   class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
 
+  
   //! Base class for all kinds of single field problems.
 
   class SinglePDE : public StdPDE, public Scriptable
@@ -242,7 +244,8 @@ namespace CoupledField
     // boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
     
-
+    //! read in volume sources
+    void ReadRegionLoads();
 
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
@@ -259,6 +262,7 @@ namespace CoupledField
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
     void SaveSolution( const Double * ptSol, UInt size );
+    void SavePrevSolution( const Double * ptSol, UInt size );
     void SaveSolution( const Complex * ptSol, UInt size );
     //@}
 
@@ -266,6 +270,55 @@ namespace CoupledField
     //! Save load part of RHS to private variable
     void SaveRHS( const Double * ptSol, UInt size );
     void SaveRHS( const Complex * ptSol, UInt size );
+    
+    //! Class defining data needed for region loads
+    class RegionLoad {
+
+    public:
+
+      //! Constructor
+      RegionLoad( UInt dim, bool isaxi );
+
+      //! Print region definition to info-file
+      void Print( bool onlyHeader, std::string pdeName );
+      
+      //! Returns the RHS-integrator
+      VolForceInt *  GetIntegrator();
+      
+      // ----------------------------
+      //   Data members
+      // ----------------------------
+
+      //@{
+      // \name Data members
+      
+      //! Name of region
+      std::string name;
+
+      //! Value of load
+      StdVector<std::string>  value;
+
+      //! Phase value
+      std::string phase;
+
+      //! Name of reference coordinate system
+      std::string refCoord;
+
+      //! Type of load (total/unit)
+      std::string type;
+
+      //! Volume of region
+      Double volume;
+
+      //! Flag for axisymmetry
+      bool isAxi_;
+      //@}
+
+    };
+    
+    //! List of region loads
+     std::map<RegionIdType, RegionLoad> regionLoads_;
+     
     //@}
 
     // ======================================================
@@ -283,7 +336,11 @@ namespace CoupledField
     //! Wrapper for getting the nodal result
     void Wrap_GetValue();
 
-
+    //! check if subdomain is a coupled piezo subdomain with hystersis
+    bool IsRegionPiezoHyst( std::string regionName );
+    
+    //! check if PDE is a coupled piezo subdomain with hystersis
+    bool BelongsPDE2PiezoHyst();    
     //@}
     
     // ======================================================

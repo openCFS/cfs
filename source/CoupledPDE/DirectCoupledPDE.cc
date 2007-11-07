@@ -9,6 +9,7 @@
 
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
+#include "Driver/solveStepPiezo.hh"
 #include "Driver/assemble.hh"
 
 // include PDE classes
@@ -58,6 +59,8 @@ namespace CoupledField {
 
     delete solVec_;
     delete rhsVec_;
+    if ( needSolPrev_ )
+    	delete solVecPrev_;
   }
 
 
@@ -108,8 +111,6 @@ namespace CoupledField {
 		//------------------------------------------------
 		// get the id of the this pde
 		//pdeId = singlePDEs_[i]->GetPDEId();
-		//	std::cout << "\n PDEId ->  "<< singlePDEs_[i]->GetPDEId()
-		//		<<", PDEname -> "<< singlePDEs_[i]->GetName();
 		//------------------------------------------------
 
 		// the PDEs members haven't set up their initial conditions yet
@@ -117,7 +118,6 @@ namespace CoupledField {
 		singlePDEs_[i]->SetInitialCondition();
 		if(singlePDEs_[i]->IsSetInitialCondition()==true){
 			this->isSetInitialCondition_=true;
-				
 		}
 		
 		
@@ -219,6 +219,8 @@ namespace CoupledField {
       InitTimeStepping();
     }
 
+    needSolPrev_ = false;
+
     // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -227,7 +229,10 @@ namespace CoupledField {
       singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep );
-  
+
+      // check if single PDE really needs previous solution
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() ) 
+        needSolPrev_ = true;
     }
 
     // Get information about number of dirichlet values,
@@ -257,12 +262,16 @@ namespace CoupledField {
     else {
       solVec_ = new Vector<Double>;
       rhsVec_ = new Vector<Double>;
+      if ( needSolPrev_ ) {
+        solVecPrev_ = new Vector<Double>;
+        solVecPrev_->Resize(totalUnknowns_);
+      }
     }
     
     solVec_->Resize(totalUnknowns_);
 
     // TEMPORARY CHANGE CHANGE CHANGE
-    BaseNodeStoreSol *ptNodeSol;
+    BaseNodeStoreSol *ptNodeSol, *ptNodeSolPrev;
 
     if ( analysistype_ == HARMONIC  ) {
       solVec_->Init( Complex(0.0, 0.0 ) );
@@ -279,6 +288,16 @@ namespace CoupledField {
         singlePDEs_[i]->solVec_ = solVec_;
         ptNodeSol = singlePDEs_[i]->getPDESolution();
         ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
+      }
+
+      if (  needSolPrev_ ) {
+        solVecPrev_->Init( 0.0 );
+        Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
+        for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+          singlePDEs_[i]->solVecPrev_ = solVecPrev_;
+          ptNodeSolPrev = singlePDEs_[i]->getPDESolutionPrev();
+          ptNodeSolPrev->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
+        }
       }
     }
 
@@ -522,6 +541,10 @@ namespace CoupledField {
     return singlePDEs_[0]->GetSolutionVector();
   }
 
+  CFSVector* DirectCoupledPDE::GetPrevSolutionVector() {
+    return singlePDEs_[0]->GetPrevSolutionVector();
+  }
+
   void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
 
     BaseNodeStoreSol *ptNodeSol;
@@ -590,6 +613,25 @@ namespace CoupledField {
     }
   }
   
+  void DirectCoupledPDE::SavePrevSolution( const Double * ptSolPrev, UInt size) {
+
+  	if ( needSolPrev_ ) {
+  		BaseNodeStoreSol *ptNodeSol;
+  		Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
+  		solHelp.Resize(size);
+    
+  		for ( UInt i = 0; i < size; i++ ) {
+  			solHelp[i] = ptSolPrev[i];
+  		}
+    
+  		for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+  			// set pointer to solution object of the PDE
+  			ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
+  			ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+  			singlePDEs_[i]->solVecPrev_  = solVecPrev_;
+  		}
+  	}
+  }
 
   // ********************
   //   InitTimeStepping
@@ -708,7 +750,20 @@ namespace CoupledField {
 
   void DirectCoupledPDE::DefineSolveStep() {
   
-    solveStep_ = new StdSolveStep(*this);
+    bool isPiezoHyst = false;
+
+    // activate direct coupling information
+    // and initialize all single pdes
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      // check if single PDE really needs previous solution
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() ) 
+        isPiezoHyst = true;
+    }
+
+    if ( isPiezoHyst ) 
+      solveStep_ = new SolveStepPiezo(*this);
+    else
+      solveStep_ = new StdSolveStep(*this);
   }
 
   // *************************

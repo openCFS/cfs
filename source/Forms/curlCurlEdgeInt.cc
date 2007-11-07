@@ -10,10 +10,32 @@
 namespace CoupledField
 {
 
-  CurlCurlEdgeInt::CurlCurlEdgeInt(Double aVal)
-    : BaseForm( NULL ), reluctivity_ (aVal)
+  CurlCurlEdgeInt::CurlCurlEdgeInt( BaseMaterial* matData, bool coordUpdate )
+    : BaseForm( matData, FULL, coordUpdate )
   {
     name_ = "CurlCurlEdgeInt";
+
+    isaxi_  = false;
+    nrDofs_ = 1;
+
+    isOrthotropic_ = false;
+    if ( matData != NULL ) {
+      if ( matData->GetSymmetryType() == BaseMaterial::ORTHOTROPIC ) {
+        isOrthotropic_ = true;
+        reluctivityVec_.Resize(3);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, REAL);
+        reluctivityVec_[0] = 1.0 / matVal_;
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, REAL);
+        reluctivityVec_[1] = 1.0 / matVal_;
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, REAL);
+        reluctivityVec_[2] = 1.0 / matVal_;
+        //        std::cout << "Orthotropic: \n" << reluctivityVec_ << std::endl;
+      }
+      else {
+        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+        //std::cout << "Isotropic: mu=" << matVal_ << std::endl;
+      }
+    }
   }
 
 
@@ -47,9 +69,6 @@ namespace CoupledField
     Matrix<Double> curlTransp;
     Matrix<Double> partElemMat;
   
-  
-  
-  
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrEdges,true); 
     elemMat.Init();
@@ -68,18 +87,11 @@ namespace CoupledField
       
         jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem());
       
-        partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
+        partElemMat *= intWeights[actIntPt-1] * jacDet * matVal_;
       
         elemMat += partElemMat;
       }
   
-  
-#ifdef DEBUG 
-    //      (*debug) << "CurlCurlEdgeInt: ElemMat " << std::endl
-    //               << elemMat << std::endl
-    //               << "\n reluctivity " << reluctivity_ << std::endl;
-#endif
-
   }
 
 

@@ -11,9 +11,11 @@
 #include "Utils/jiles.hh"
 #include "assemble.hh"
 #include "Forms/gradfieldop.hh"
+#include "PDE/SinglePDE.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
+#include "Utils/result.hh"
 
 namespace CoupledField {
 
@@ -40,62 +42,15 @@ namespace CoupledField {
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
 
-    UInt numElems = PDE_.getPDE_numElems();
 
-    if (isHyst_) {
-      if (actStep_==1) {
-        Eprevious_.Resize(numElems);
-        Dprevious_.Resize(numElems);
-        epsDiff_.Resize(subdoms_.GetSize(),numElems);
-        Eprevious_.Init(0);
-        Dprevious_.Init(0);
-        epsDiff_.Init(8.854e-12);
-      }
+    // save solution of time step n as previous solution
+    //save solution of previous time step 
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
 
-      if (doInit_) {
-        //set the Preisach values; should be obtained from the xml_file
-        StdVector<Elem*> elemssd;
-        bool isVirgin;
-        hyst_.Resize(subdoms_.GetSize());
-        hyst_.Init(NULL);
+    //store solution for (n)
+    PDE_.SavePrevSolution( solHelp.GetPointer(), solHelp.GetSize() );
 
-        for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++) {
-          Double Esat, Psat;
-          Double Ec = 0; //currently not used
-          UInt dir, numSDElems;
-
-          ptgrid_->GetVolElems(elemssd,subdoms_[iSD]);
-          numSDElems = elemssd.GetSize(); 
-
-          std::string hystType;
-          materialData_[iSD]->GetScalar(hystType, HYST_MODEL);
-          if ( hystType == "preisach" ) {
-            materialData_[iSD]->GetScalar(Esat,X_SATURATION,REAL);
-            materialData_[iSD]->GetScalar(Psat,Y_SATURATION,REAL);
-            materialData_[iSD]->GetScalar((Integer&)dir,P_DIRECTION,INTEGER);
-            isVirgin = true; 
-
-	    //            hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, isVirgin);
-          }
-          else if (hystType == "jiles") {
-            Double a, alpha, k, c;
-	    materialData_[iSD]->GetScalar(a,A_JILES,REAL);
-	    materialData_[iSD]->GetScalar(alpha,ALPHA_JILES,REAL);
-	    materialData_[iSD]->GetScalar(k,K_JILES,REAL);
-	    materialData_[iSD]->GetScalar(c,C_JILES,REAL);
-	    materialData_[iSD]->GetScalar(Psat,Y_SATURATION,REAL);
-
-            hyst_[iSD] = new Jiles(numSDElems, Psat, a, alpha, k, c);
-            hyst_[iSD]->SetTimeStepVal(TS_alg_->GetTimeStep());
-          }
-        }
-        doInit_ = false;
-      }
-      else {
-        //   std::cout << "Do Update in PreStep" << std::endl;
-        DoUpdateHyst();
-      }
-    }
   }
 
 
@@ -109,16 +64,13 @@ namespace CoupledField {
       StepTransNonLinEpsDiff();
     }
     else if (nonLin_){
-      //      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
       StepTransNonLin();
     }
     else if (nonLinMaterial_){
-      //      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
-      StepTransNonLinMaterial();
+      EXCEPTION("StepTransNonLinMaterial() not supported in SolveStepPiezo");
     }
 
     else {
-      //      std::cout<<"We do a transient linear calculation"<<std::endl;
       StepTransLin();
     }
 
@@ -126,23 +78,24 @@ namespace CoupledField {
 
   void SolveStepPiezo::StepTransMaterialNonLin(){
     
-
-    //      std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
-
+    //  std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
 
   }
 
   void SolveStepPiezo::StepTransNonLinEpsDiff() {
 
 
+    //    std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
+ 
     bool performOneMoreStep;
     UInt iterationCounter=0;
   
-    UInt numEqns = eqnMap_->GetNumEqns();
-    Vector<Double> newSol(numEqns);
-    Vector<Double> oldSol(numEqns);
-    Vector<Double> solPrev(numEqns);
-    Vector<Double> incrSol(numEqns);
+    Vector<Double> newSol( numEqns_ ); 
+    Vector<Double> oldSol( numEqns_ );
+    Vector<Double> solPrev( numEqns_ );
+ 
+    // get second order derivative of previous time step;
+    Vector<Double> solDeriv2Prev = PDE_.getS2();
 
     Double* actRHS;
     Double* solPtr;
@@ -153,41 +106,43 @@ namespace CoupledField {
     newSol.Init(0);
   
     //save solution of previous time step  
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    solhelp->GetAlgSysVector(solPrev);
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+    solPrev = solHelp;
+    //    std::cout << "Previous Solution:\n" << solPrev << std::endl;
 
-    // Update extrema-list just for first time step
-    if (actStep_ == 1) {
-      DoUpdateHyst();
+    // perform predictor step
+    if ( TS_alg_== NULL ) {
+      Error( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin",
+             __FILE__, __LINE__ );
+    }
+    else {
+      //compute predictors
+      TS_alg_->Predictor(solPrev);
     }
 
-    //clear RHS
-    algsys_->InitRHS();
-
-    //set BCs
-    PDE_.SetBCs(actTime_);
-
-    // stores this as linear part of RHS
-    algsys_->GetRHSVal( actRHS );
-    StoreAlgsysToVec(RhsLinVal_, actRHS );
+    //! account for Dirichlet BCs
+    PDE_.SetBCs( actTime_ );    //clear RHS
 
     do {
       iterationCounter++;
       // for every time step write out number of iteration loops to standard out
-      if (iterationCounter == 1)
-        std::cout << std::endl << "Time step:   "  << actStep_ 
-                  << "  ,Iterations: " << iterationCounter << std::endl;
-      else 
-        std::cout << "Iter:  " << iterationCounter << std::endl;
+//       if (iterationCounter == 1)
+//         std::cout << std::endl << "Time step:   "  << actStep_
+//                   << "  ,Iterations: " << iterationCounter << std::endl;
+//       else 
+//         std::cout << "Iter:  " << iterationCounter << std::endl;
     
+
 #ifdef DEBUG
       *debug << std::endl
              << "====================================================== "
              << std::endl
-             <<   "Nonlinear Piezos: Perform internal loop no. "
+             <<   "Nonlinear Elecs: Perform internal loop no. "
              << iterationCounter << std::endl;      
 #endif
         
+
       // set solution of previous iteration
       if (iterationCounter == 1 ) {
         oldSol = solPrev;
@@ -196,64 +151,45 @@ namespace CoupledField {
         oldSol = newSol;
       }
     
-      // Set linear part of RHS
-      //    algsys_->InitRHS(RhsLinVal_.GetPointer());
-
       //clear RHS
       algsys_->InitRHS();
 
-      //compute differential permittivity
-      if ( iterationCounter != 1 || actStep_ ==1 ) {
-        ComputeDiffEpsilon();
-      }
+      // setup RHS to incorporate loads and linear-Forms
+      assemble_->AssembleLinRHS(actTime_); 
 
-      //set up the new matrices
-      algsys_->InitMatrix();
-      //assemble_->SetReassemble();   
+      //Update RHS (mass matrix on right hand side)
+      TS_alg_->UpdateRHS();
 
-      //assemble_->SetMaterialArray( &epsDiff_ ); 
-      Warning( "Assemble::SetMaterialArray not implemented!",
-               __FILE__, __LINE__ );
+      //perform new assembly
       assemble_->AssembleMatrices();
-
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-      // set changing part of RHS
-      algsys_->UpdateRHS(SYSTEM,solPrev.GetPointer());
+      // K*(u_n,Ve_n)
+      algsys_->UpdateRHS(STIFFNESS, solPrev.GetPointer());
 
-      //compute residual for incremental solution
-      //    coeff = -oldSol;
-      //algsys_->UpdateRHS(SYSTEM,coeff.GetPointer());
+      // M*(d2u_n,Ve_n)
+      algsys_->UpdateRHS(MASS, solDeriv2Prev.GetPointer());
 
       // build in the Dirichlet vales in system mmatrix and rhs
       algsys_->BuildInDirichlet();
-
-      //   algsys_->Print(SYSTEM);
 
       //get RHS
       Vector<Double> RHS;
       algsys_->GetRHSVal( actRHS );
       StoreAlgsysToVec(RHS, actRHS );       
       Double residualNorm = PDE_.GetRhsL2Norm( RHS );
+      residualNorm = 0.0;
 
       algsys_->SetupSolver();
       algsys_->SetupPrecond();
     
       algsys_->Solve();
       algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(incrSol, solPtr );
+      StoreAlgsysToVec(newSol, solPtr );
 
-      //    newSol = oldSol + incrSol * alpha;
-      newSol = incrSol;
+      //store solution for (n+1)
+      PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
 
-#ifdef DEBUG
-      *debug << std::endl
-             << "New Solution:" << std::endl << newSol << std::endl;
-#endif
-
-      //put new solution to sol_
-      sol_->SetAlgSysVector(newSol);  
-    
       // compute L2-Norm of error between last incremental solution and
       // actual incremental solution
       Double solIncrL2Norm=0;
@@ -270,81 +206,95 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm;
     
       // output of norms and data
+      nonLinLogging_ = true;
       if ( nonLinLogging_ == true ) {
         Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
                               incrementalErr);
       }
 
-      // boolean variable, holds condition if another iteration step
-      //   is necessary
-      performOneMoreStep =  ( (incrementalErr > incStopCrit_) || (residualNorm > residualStopCrit_) )
-        && (residualNorm > 1e-14 || iterationCounter == 1 ) ;
-                              
-    } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
+      //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
+      //        << incrementalErr << std::endl;
+    
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
+      
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
-    if ( iterationCounter >=  nonLinMaxIter_) {
-      Error(" Number of nonlinear iterations too larger", __FILE__, __LINE__ );
+    if ( iterationCounter >= nonLinMaxIter_ ) {
+      (*error) << "Number of nonlinear iterations exceeds limit "
+               << "nonLinearMaxIter_ = "
+               << nonLinMaxIter_;
+      Error( __FILE__, __LINE__ );
     }
-  
-    //  std::cout << "Do Update after Sol" << std::endl;
-    DoUpdateHyst();
+
+    //set the current values to the previous for the next time step!
+    SetPreviousVals4Hyst();
+
+    //perform corrector step  
+    TS_alg_->Corrector(newSol);
   }
 
 
-  void SolveStepPiezo::DoUpdateHyst() {
+  void SolveStepPiezo::SetPreviousVals4Hyst() {
   
+    // get solution object of PDE elec
+    SinglePDE * pdeElec = domain->GetSinglePDE( "electrostatic" );
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    BaseNodeStoreSol* solPDE = pdeElec->getPDESolution();
+    NodeStoreSol<Double> * sol = 
+          dynamic_cast<NodeStoreSol<Double>*>(solPDE);
+   
+    ResultInfoList results =  pdeElec->GetResultInfos();
 
-    // Get correct result-type
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_,
-                                                                    eqnMap_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    results_[0], isaxi_);
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, pdeElec, pdeElec->GetEqnMap(),
+                                  *sol, ELEC_POTENTIAL, 
+                                  results[0], isaxi_);
+
+    std::map<RegionIdType, BaseMaterial*> elecMat = 
+      pdeElec->getPDEMaterialData();
 
     Vector<Double> LCoord, Efield;
-    StdVector<Elem*> elemssd;
-    UInt pdeElem=1;
-    Double Ecomp, Pval;
-    UInt comp;
+    Double Ecomp, Pval, Dval, dE, dD, eps;
+    UInt pdeElem;
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
 
-    // loop over all subdomains
-    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = elecMat.begin(); it != elecMat.end(); it++ ) {
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
 
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[isd] );
-      EntityIterator it = actSDList.GetIterator();
-      
-      //get direction of polarization
-      materialData_[isd]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
-      comp -= 1;
+      Hysteresis* hyst = elecMat[actRegion]->getHysteresis();
+      if ( hyst!= NULL ) {
+	//get direction of polarization
+	std::string str;
+	elecMat[actRegion]->GetScalar(str, P_DIRECTION);
+	Directions dirP;
+	String2Enum(str,dirP);
 
-      // loop over elements of subdomain
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-
-        //compute electric field
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-
-        //get correct component of electric field for scalar Preisach model
-        //and invoke the update MinMaxList method
-        Ecomp = Efield[comp]; 
-        //      pdeElem = 0;
-        hyst_[isd]->updateMinMaxList(Ecomp, pdeElem, true);
-
-        Pval = hyst_[isd]->computeValue(Ecomp,pdeElem);
-
-        //      std::cerr << Ecomp << "    " << Pval << std::endl;
-
-        Eprevious_[pdeElem-1] = Ecomp;
-        Dprevious_[pdeElem-1] = Pval; //8.85419E-12 * Ecomp + Pval;
-
-        pdeElem++;
+	ElemList actSDList(ptgrid_ );
+	actSDList.SetRegion( actRegion );
+	
+	EntityIterator it = actSDList.GetIterator();
+	UInt iel = 0;
+	for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	  
+	  //compute the electric field intensity
+	  it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+	  
+	  //get correct component of electric field for scalar Preisach model
+	  Ecomp   = Efield[dirP]; 	  
+	  pdeElem = it.GetElem()->elemNum;
+	  
+	  //set the values
+	  elecMat[actRegion]->SetPreviousHystVal( pdeElem, Ecomp );
+	}  
       }
     }
-
-    delete FieldOp;
-
   }
 
 

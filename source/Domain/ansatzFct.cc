@@ -25,6 +25,10 @@ namespace CoupledField {
     type_ = LAGRANGE;
   }
 
+  NedelcFct::NedelcFct() {
+    type_ = NEDELEC;
+  }
+
   LegendreFct::LegendreFct() {
     type_ = LEGENDRE;
     isoOrder_ = 0;

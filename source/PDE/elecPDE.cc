@@ -69,7 +69,8 @@ namespace CoupledField {
     isPiezoCoupled_ = false;
     isThermoCoupled_= false;
 
-
+    needSolPrev_ = true;
+ 
     // Check the subtype of the problem
     paramNode->Get("subType", subType_);
   }
@@ -193,115 +194,123 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
 
-      // check for nonlinearity
-      if ( regionNonLinType_[actRegion] == HYSTERESIS) {
-        StdVector<Elem*> elemssd;
-        ptgrid_->GetElems(elemssd, actRegion);
-        UInt numElSD =  elemssd.GetSize();
+      // isPiezoHyst = true means, that the bilinear-forms will be 
+      // defined in PiezoCupling.cc!!
+      bool isPiezoHyst = false;
+      if ( isPiezoCoupled_ == true )
+        isPiezoHyst = IsRegionPiezoHyst( regionName );
 
+      if ( !isPiezoHyst ) {
+        // check for nonlinearity
+        if ( regionNonLinType_[actRegion] == HYSTERESIS) {
+          StdVector<Elem*> elemssd;
+          ptgrid_->GetElems(elemssd, actRegion);
+          UInt numElSD =  elemssd.GetSize();
+          
+          
+          //allocate for hystersis modeling
+          actSDMat->InitHyst(numElSD, actSDList);
+          
+          nlinElecHystInt* nlForm;
+          nlForm = new nlinElecHystInt( actSDMat, tensorType,
+                                        upLagrangeForm );
 
-        //allocate for hystersis modeling
-        actSDMat->InitHyst(numElSD, actSDList);
-	
-        nlinElecHystInt* nlForm;
-        nlForm = new nlinElecHystInt( actSDMat, tensorType,
-                                      upLagrangeForm );
-
-        nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
-        nlForm->SetFactor( GenStr(factor) );
-
-        BiLinFormContext * stiffIntDescr = 
-          new BiLinFormContext(nlForm, STIFFNESS );
-	
-        stiffIntDescr->SetPtPdes(this, this);
-        stiffIntDescr->SetResults( results_[0], results_[0],
-                                   actSDList, actSDList );
-	
-        assemble_->AddBiLinearForm( stiffIntDescr );
-      }
-
-      else if (  regionNonLinType_[actRegion] == MATERIAL ) {
+          nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
+          nlForm->SetFactor( GenStr(factor) );
+          
+          BiLinFormContext * stiffIntDescr = 
+            new BiLinFormContext(nlForm, STIFFNESS );
+          
+          stiffIntDescr->SetPtPdes(this, this);
+          stiffIntDescr->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
+          
+          assemble_->AddBiLinearForm( stiffIntDescr );
+        }
         
-        std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
-        materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+        else if (  regionNonLinType_[actRegion] == MATERIAL ) {
+          
+          std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
+          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+          
+          ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+          //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+          nlinFnc->CalcBestParameter();
+          nlinFnc->CalcApproximation();
+          
+          //         if (dim_ == 3)
+          //           {   
+          nLinElec3dInt_Material* nLinMaterial;
+          nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
+          //          }
+          
+          nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
+          
+          BiLinFormContext * stiffNLMaterialDescr = 
+            new BiLinFormContext(nLinMaterial, STIFFNESS );
+          
+          stiffNLMaterialDescr->SetPtPdes(this, this);
+          stiffNLMaterialDescr->SetResults( results_[0], results_[0],
+                                            actSDList, actSDList );
+          assemble_->AddBiLinearForm(stiffNLMaterialDescr);
+        }
         
-        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-        //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-        nlinFnc->CalcBestParameter();
-        nlinFnc->CalcApproximation();
+        else {
 
-//         if (dim_ == 3)
-//           {   
-        nLinElec3dInt_Material* nLinMaterial;
-        nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
-            //          }
-        
-        nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
-        
-        BiLinFormContext * stiffNLMaterialDescr = 
-          new BiLinFormContext(nLinMaterial, STIFFNESS );
+          // --- standard real-valued stiffness integrator ---
+          linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
+                                                      upLagrangeForm );
+          linElecForm->SetFactor( factor );
+          
+          BiLinFormContext * stiffIntDescr = 
+            new BiLinFormContext(linElecForm, STIFFNESS );
+          
+          stiffIntDescr->SetPtPdes(this, this);
+          stiffIntDescr->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
+          
+          assemble_->AddBiLinearForm( stiffIntDescr );
+          
+          
+          // --- check for complex valued material parameter ---
+          // check for piezo-coupling and 
+          if( isPiezoCoupled_ ) {
+            ParamNode * dataTypeNode = 
+              param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+              ->Get("couplingList")->Get("direct")->Get("piezoDirect")
+              ->Get("materialDataType", false );
+            bool isImag = false;
             
-        stiffNLMaterialDescr->SetPtPdes(this, this);
-        stiffNLMaterialDescr->SetResults( results_[0], results_[0],
+            if( dataTypeNode ) 
+              isImag = dataTypeNode->Get("type")->AsString() 
+                == "imagMaterialParameter";
+            
+            if( isImag ) {
+              DataType matType = IMAG; 
+              
+              linElecInt * linElecFormC  = new 
+                linElecInt( materials_[actRegion], tensorType,
+                            upLagrangeForm);
+              linElecFormC->SetFactor( factor );
+              linElecFormC->SetMatDataType(matType);
+              
+              BiLinFormContext * stiffIntDescrC = 
+                new BiLinFormContext(linElecFormC, STIFFNESS);
+              
+              stiffIntDescrC->SetPtPdes(this, this);
+              stiffIntDescrC->SetEntryType(matType);
+              stiffIntDescrC->SetResults( results_[0], results_[0],
                                           actSDList, actSDList );
-        assemble_->AddBiLinearForm(stiffNLMaterialDescr);
-      }
-      
-      else {
-
-        // --- standard real-valued stiffness integrator ---
-        linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-                                                    upLagrangeForm );
-        linElecForm->SetFactor( factor );
-
-        BiLinFormContext * stiffIntDescr = 
-          new BiLinFormContext(linElecForm, STIFFNESS );
-
-        stiffIntDescr->SetPtPdes(this, this);
-        stiffIntDescr->SetResults( results_[0], results_[0],
-                                   actSDList, actSDList );
-	
-        assemble_->AddBiLinearForm( stiffIntDescr );
-      
-      
-        // --- check for complex valued material parameter ---
-        // check for piezo-coupling and 
-        if( isPiezoCoupled_ ) {
-          ParamNode * dataTypeNode = 
-            param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-            ->Get("couplingList")->Get("direct")->Get("piezoDirect")
-            ->Get("materialDataType", false );
-          bool isImag = false;
-
-          if( dataTypeNode ) 
-            isImag = dataTypeNode->Get("type")->AsString() 
-              == "imagMaterialParameter";
-
-          if( isImag ) {
-            DataType matType = IMAG; 
-            
-            linElecInt * linElecFormC  = new 
-              linElecInt( materials_[actRegion], tensorType,
-                          upLagrangeForm);
-            linElecFormC->SetFactor( factor );
-            linElecFormC->SetMatDataType(matType);
-            
-            BiLinFormContext * stiffIntDescrC = 
-              new BiLinFormContext(linElecFormC, STIFFNESS);
-            
-            stiffIntDescrC->SetPtPdes(this, this);
-            stiffIntDescrC->SetEntryType(matType);
-            stiffIntDescrC->SetResults( results_[0], results_[0],
-                                        actSDList, actSDList );
-            assemble_->AddBiLinearForm( stiffIntDescrC );
+              assemble_->AddBiLinearForm( stiffIntDescrC );
+            }
           }
         }
-      }
-        
+      }  
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
+      
     }
 
     // Define integrators for composite materials

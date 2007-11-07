@@ -68,6 +68,9 @@ namespace CoupledField {
     // Update RHS (mass matrix and damping matrix on right hand side)
     TS_alg_->UpdateRHS();
 
+    //account for RHS-forms
+    assemble_->AssembleLinRHS( actTime_ );
+
     // stores this as linear part of RHS
     algsys_->GetRHSVal( solPtr );
     StoreAlgsysToVec(RhsLinVal_, solPtr );
@@ -75,14 +78,14 @@ namespace CoupledField {
     do {
       iterationCounter++;
       // write out number of iteration loops to standard out
-	  if ( (actStep_ < 100) || (actStep_%1000) == 0 ) {
-		if (iterationCounter == 1)
-		  std::cout << std::endl << "Time step:   "  << actStep_ 
-					<< "  ,Iterations: " << iterationCounter;
-		else 
-		  std::cout << "  " << iterationCounter;
-	  }
-
+      if ( (actStep_ < 100) || (actStep_%1000) == 0 ) {
+        if (iterationCounter == 1)
+          std::cout << std::endl << "Time step:   "  << actStep_ 
+                    << "  ,Iterations: " << iterationCounter;
+        else 
+          std::cout << "  " << iterationCounter;
+      }
+      
 #ifdef DEBUG
       *debug << std::endl
              << "====================================================== "
@@ -90,7 +93,7 @@ namespace CoupledField {
              <<   "Nonlinear Acoustics: Perform internal loop no. "
              << iterationCounter << std::endl;      
 #endif
-        
+      
       // set solution of previous iteration
       oldSol = newSol;
         

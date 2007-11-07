@@ -69,7 +69,8 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_AcousticMixedHD"  />
                 <xsd:element name="dirichletInhom" type="DT_AcousticMixedID"  />
-                <xsd:element name="neumannInhom"   type="DT_AcousticMixedIN"  />
+                <xsd:element name="neumannInhom"  type="DT_AcousticMixedIN"  />
+                <xsd:element name="regionLoad"  type="DT_AcouMixedRegionLoad"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -177,6 +178,33 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AcouMixedLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Element type for region Loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_AcouMixedRegionLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcouMixedLoad">
+        <xsd:attribute name="coordSysId" type="xsd:token"
+          use="optional" default="default"/>
+        <xsd:attribute name="type" use="optional" default="total">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="total"/>
+              <xsd:enumeration value="unit"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for time stepping formulation -->
@@ -199,6 +227,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="acouRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
 
