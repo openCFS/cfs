@@ -1,3 +1,4 @@
+
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -56,7 +57,7 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
