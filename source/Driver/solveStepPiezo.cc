@@ -76,11 +76,6 @@ namespace CoupledField {
 
   }
 
-  void SolveStepPiezo::StepTransMaterialNonLin(){
-    
-    //  std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
-
-  }
 
   void SolveStepPiezo::StepTransNonLinEpsDiff() {
 
