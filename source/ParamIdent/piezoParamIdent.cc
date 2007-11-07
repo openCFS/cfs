@@ -478,7 +478,7 @@ namespace CoupledField
       calcMechDisplCurve();
       freqs_ = freqsTemp;
       std::cout<<"\n Press any key to continue ... "<<std::endl;
-      getchar();
+      //      getchar();
     }
 
 
@@ -498,7 +498,7 @@ namespace CoupledField
       calcImpedanceCurve();
       freqs_ = freqsTemp;
       std::cout<<"\n Press any key to continue ... "<<std::endl;
-      getchar();
+      //      getchar();
     }
    
 
@@ -526,7 +526,7 @@ namespace CoupledField
         std::cerr<<" This version of nuMethods only works for real valued paraeters " <<std::endl;
         std::cerr<<" Choose either nuMethods=8 in your input file or " <<std::endl;
         std::cerr<<" use only real - valued parameters " <<std::endl;
-        getchar();
+        //        getchar();
       }
       std::cout<<"++ Newton - nu Methods " <<std::endl;
       UInt nrNuMethods=0;

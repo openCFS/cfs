@@ -70,8 +70,8 @@ namespace CoupledField
       std::cout<<"F_hat"<<std::endl;
       std::cout<<F_hat_<<std::endl;
 
-      if ((iterIndex+1)%5==0){
-        Integer nrfreqTemp=100;
+      if ((iterIndex+1)%10==0){
+        Integer nrfreqTemp=80;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
         Double startFreqTemp;
@@ -85,7 +85,13 @@ namespace CoupledField
           impedCurve->close();
         if(mechDispl)
           mechDispl->close();
-        std::string filename= "imped.dat";
+
+        std::ostringstream num;
+        num<<iterIndex;
+        std::string filename= "imped";
+        std::string numString = num.str();
+        filename.append(numString);
+        filename.append(".dat");
         impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
         filename="mechDispl.dat";
         mechDispl = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
