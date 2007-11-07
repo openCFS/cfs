@@ -86,8 +86,8 @@ namespace CoupledField {
     
       // iterate over entity-lists of this result type
       for (UInt iList=0; iList<lists.GetSize(); iList++) {
-        if (lists[iList]->GetType() == EntityList::ELEM_LIST ) {
-
+        if (lists[iList]->GetType() == EntityList::ELEM_LIST ||  
+            lists[iList]->GetType() == EntityList::NODE_LIST ) {
           // Add element list to list of mapped regions
           locEntities_.Push_back( lists[iList] );
         }
