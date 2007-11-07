@@ -35,9 +35,6 @@ namespace CoupledField
     //! base method for solving one transient step 
     void SolveStepTrans();
 
-    //! solves one nonlinear transient step (material nonlinearity)
-    void StepTransMaterialNonLin();
-
     //! solves for one nonlinear transient step (with hysteresis) 
     void StepTransNonLinEpsDiff();
 
