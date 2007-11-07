@@ -150,7 +150,7 @@ namespace OLAS {
 
     // STEP 3b: Insert values of transpose counterpart into matrix
     if ( setCounterPart == true ) {
-    	//std::cout << " Set CounterPart Transposed ..... "<< std::endl;
+    	//F << " Set CounterPart Transposed ..... "<< std::endl;
 
 #ifdef DEBUG_ASSEMBLE
       (*debug) << "\n free <-> free matrix (counterpart):\n";

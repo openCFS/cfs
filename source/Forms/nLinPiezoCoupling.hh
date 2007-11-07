@@ -8,7 +8,6 @@
 #include "Elements/basefe.hh"
 #include "Forms/adbInt.hh"
 #include "Forms/linPiezoCoupling.hh"
-#include "Forms/nLinPiezoCoupling.hh"
 #include "Materials/baseMaterial.hh"
 #include "Utils/nodestoresol.hh"  
 
@@ -21,7 +20,7 @@
 
 namespace CoupledField {
 
- class nLinPiezoCoupling : public linPiezoCoupling {
+  class nLinPiezoCoupling : public linPiezoCoupling {
 
     
   public:
@@ -55,6 +54,7 @@ namespace CoupledField {
                            shared_ptr<EqnMap> eqnMap,
                            shared_ptr<ResultInfo> result);
 
+   //!
    void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
@@ -88,32 +88,32 @@ namespace CoupledField {
 
   private:
 
-   ApproxData *nLinFnc_;
+    ApproxData *nLinFnc_;
    
-   /// scalar electric potential of all nodes of actual element
-   Vector<Double> elemPot_;
-   Matrix<Double> elemDispl_;
-   
-   GradientFieldOp<Double> * EfieldOp_;
-   
-   // local copy of entity iterator
-   EntityIterator ent1_;
-   
-   UInt numDofsA_;
-   UInt numDofsB_;
-   
-   UInt matDimRow_;
-   UInt matDimCol_;
-   
-   NodeStoreSol<Double> * solElec_;
-   NodeStoreSol<Double> * solMech_;
-
-   BaseMaterial* matDataMech_;
-   BaseMaterial* matDataElec_;
-
-   bool isHysteresis_; 
-   UInt dirP_;   //< direction of polarization
-   Double Psat_; //< maximum value of saturation
+    /// scalar electric potential of all nodes of actual element
+    Vector<Double> elemPot_;
+    Matrix<Double> elemDispl_;
+    
+    GradientFieldOp<Double> * EfieldOp_;
+    
+    // local copy of entity iterator
+    EntityIterator ent1_;
+    
+    UInt numDofsA_;
+    UInt numDofsB_;
+    
+    UInt matDimRow_;
+    UInt matDimCol_;
+    
+    NodeStoreSol<Double> * solElec_;
+    NodeStoreSol<Double> * solMech_;
+    
+    BaseMaterial* matDataMech_;
+    BaseMaterial* matDataElec_;
+    
+    bool isHysteresis_; 
+    UInt dirP_;   //< direction of polarization
+    Double Psat_; //< maximum value of saturation
   };
 
 }

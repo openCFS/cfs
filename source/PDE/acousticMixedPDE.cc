@@ -147,7 +147,7 @@ namespace CoupledField
       BaseForm * bilinearMass_PP = new MassMixedInt_PP(coeffMass, isaxi_);
 
       BiLinFormContext * massContext_PP =  
-	new BiLinFormContext( bilinearMass_PP, MASS );
+      	new BiLinFormContext( bilinearMass_PP, MASS );
 
       massContext_PP->SetPtPdes(this, this);
       massContext_PP->SetResults( results_[0], results_[0],
@@ -159,7 +159,7 @@ namespace CoupledField
       BaseForm * bilinearMass_VV = new MassMixedInt_VV(coeffMass, isaxi_);
 
       BiLinFormContext * massContext_VV =  
-	new BiLinFormContext( bilinearMass_VV, MASS );
+      	new BiLinFormContext( bilinearMass_VV, MASS );
 
       massContext_VV->SetPtPdes(this, this);
       massContext_VV->SetResults( results_[1], results_[1],
@@ -170,9 +170,37 @@ namespace CoupledField
       eqnMap_->AddResult( *results_[0], actSDList );
       eqnMap_->AddResult( *results_[1], actSDList );
     }
+    
+    // Add integrators for region loads
+    VolForceInt * forceInt;
+    std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
+    if (regionLoads_.size() != 0 ) {
+      (*loadIt).second.Print(true, pdename_ );
+    }
+    for( loadIt = regionLoads_.begin(); loadIt != regionLoads_.end(); loadIt++ ) {
+      forceInt = (*loadIt).second.GetIntegrator();
+
+      // Create new element list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( loadIt->first );
+      LinearFormContext * forceContext = 
+        new LinearFormContext( forceInt );
+      forceContext->SetPtPde(this);
+      forceContext->SetResult( results_[0], actSDList );
+      assemble_->AddLinearForm( forceContext );
+
+      (*loadIt).second.Print(false, pdename_);
+    }
   }
 
 
+  void AcousticMixedPDE::ReadSpecialBCs() {
+    
+    // read volume force definition
+    ReadRegionLoads();
+
+  }
+  
   void AcousticMixedPDE::DefineSolveStep()
   {
 
@@ -278,6 +306,16 @@ namespace CoupledField
     results_.Push_back( res2 );
     availResults_.insert( res2 );
 
+    // ===  RHS LOAD ===
+    //shared_ptr<ResultInfo> rhs(new ResultInfo);
+    //rhs->resultType = ACOU_RHS_LOAD;
+    //rhs->dofNames = dispDofNames;
+    //rhs->unit = "N";
+    //rhs->entryType = disp->entryType;
+    //rhs->definedOn = disp->definedOn;
+    //rhs->fctType = disp->fctType;
+    //availResults_.insert( rhs );
+    
   }
 
 
@@ -301,6 +339,14 @@ namespace CoupledField
       }
       break;
 
+    case ACOU_RHS_LOAD:
+      if( isComplex_ ) {
+        ExtractRhsResult<Complex>( result, results_[0] );
+      } else {
+        ExtractRhsResult<Double>( result, results_[0] );
+      }
+      break;
+      
     default:
       Warning( "Resulttype not computable by mechanic PDE",
                __FILE__, __LINE__ );

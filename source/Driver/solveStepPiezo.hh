@@ -18,6 +18,8 @@ namespace CoupledField
 
   public:
 
+    typedef StdVector<shared_ptr<ResultInfo> > ResultInfoList;
+
     //! Constructor
     SolveStepPiezo(StdPDE& apde);
 
@@ -39,8 +41,8 @@ namespace CoupledField
     //! solves for one nonlinear transient step (with hysteresis) 
     void StepTransNonLinEpsDiff();
 
-    //! update the hysteresis values
-    void DoUpdateHyst();
+    //! computes differential permittivity
+    void SetPreviousVals4Hyst();
 
     //! computes differential permittivity
     void ComputeDiffEpsilon();

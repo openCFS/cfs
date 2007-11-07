@@ -41,6 +41,9 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
 
+    //! Read special boundary conditions
+    void ReadSpecialBCs();
+    
     // ======================================================
     // POSTPROC SECTION
     // ======================================================

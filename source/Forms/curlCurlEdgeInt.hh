@@ -15,7 +15,7 @@ class CurlCurlEdgeInt : public BaseForm
 {
 public:
   /// Constructor
-  CurlCurlEdgeInt(Double laplVal);
+  CurlCurlEdgeInt( BaseMaterial* matData, bool coordUpdate = false );
 
   /// 
   virtual ~CurlCurlEdgeInt();
@@ -39,8 +39,16 @@ public:
   
 
 private:
-  /// multiplicative value for curl curl integration 
-  Double reluctivity_;
+  UInt nrDofs_;
+
+  //! multiplicative value for curl-curl operator 
+  Double matVal_;
+
+  //! true, if we have an orthotropic material
+  bool isOrthotropic_;
+
+  //! contains the orthotropic reluctivities
+  Vector<Double> reluctivityVec_;
 };
 
 }

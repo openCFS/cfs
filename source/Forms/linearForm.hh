@@ -568,123 +568,21 @@ namespace CoupledField
   };
   
   
-  // =============================================================================
-  // piezoelectric polarization
-  // =============================================================================
-  
-  /// base class for calculation of right hand side due to a hysteresis model with
-  /// polarization P
-  class PiezoPolarizationRhsInt : public LinearForm
-  {
-  public:
-
-    ///
-    PiezoPolarizationRhsInt( BaseMaterial* matDataElec, SubTensorType type ); 
-    
-    ///
-    virtual ~PiezoPolarizationRhsInt();
-    
-    /// Calculation of vector of right hand side 
-    virtual void CalcElemVector( Vector<Double> & result,
-				 EntityIterator& ent ) {
-      Error("CalcElemVector not implemented in base class",__FILE__,__LINE__);
-    }
-    
-    //! set objects for computation of E-field
-    void Set4NonLinMaterial(Grid* ptGrid, 
-			    StdPDE* ptPDE,
-			    shared_ptr<EqnMap> eqnMap,
-			    shared_ptr<ResultInfo> result);
-
-    //! compute normalized irreversible strain
-    void ComputeNormalizedSirr(SubTensorType type, UInt dirP,
-			       Vector<Double>& Sirr);
-
-  protected:
-
-    //! object for computing electric field
-    GradientFieldOp<Double>* EfieldOp_;
-
-    //!object for B-operators
-    linPiezoCoupling* piezoBilinearForm_;
-
-    //! vector for normalized irreversible strains
-    Vector<Double> baseVecSirr_;
-
-    //! direction of polarization
-    UInt dirP_;   //< direction of polarization
-
-    //! pointer of electric material data
-    BaseMaterial* matDataElec_;
-
-  };
-
-  
-  /// class for calculation of right hand side due to a hysteresis model with
-  /// polarization P: RHS of electric equation
-  class PiezoPolarizationElecRhsInt : public PiezoPolarizationRhsInt  {
-
-  public:
-
-    PiezoPolarizationElecRhsInt( BaseMaterial* matDataElec,
-				 BaseMaterial* matDataPiezo,
-				 BaseMaterial* matDataMech,
-				 SubTensorType type); 
-    
-    ///
-    virtual ~PiezoPolarizationElecRhsInt();
-    
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
-                         EntityIterator& ent );
-    
-  private:
-    BaseMaterial* matDataPiezo_;
-    BaseMaterial* matDataMech_;
-
-  };
-
-  
-  
-  /// class for calculation of right hand side due to a hysteresis model with
-  /// polarization P: RHS of mechanical equation
-  class PiezoPolarizationMechRhsInt : public PiezoPolarizationRhsInt
-  {
-  public:
-
-    ///
-    PiezoPolarizationMechRhsInt( BaseMaterial* matDataElec,
-				 BaseMaterial* matDataMech,
-				 SubTensorType type); 
-    
-    ///
-    virtual ~PiezoPolarizationMechRhsInt();
-    
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
-                         EntityIterator& ent );
-    
-  private:
-    BaseMaterial* matDataMech_;
-
-  };
-
-
   // =========================================================================
-  // mechanic rhs volume integrator
+  // rhs volume integrator
   // =========================================================================
   
-  //! Linear integrator for mechanic volume load sources. This integrator
+  //! Linear integrator for volume load sources. This integrator
   //! can also work on different local coordinate systems
-  class MechVolForceInt : public LinearForm {
+  class VolForceInt : public LinearForm {
     
   public:
     
     //! Constructor
-    MechVolForceInt(UInt numDof, const std::string& phase, bool isaxi);
+    VolForceInt(UInt numDof, const std::string& phase, bool isaxi);
     
     //! Destructor
-    virtual ~MechVolForceInt();
+    virtual ~VolForceInt();
     
     //! Set the volume force vector
     //! \param volForce vector with volume force w.r.t. coordSys

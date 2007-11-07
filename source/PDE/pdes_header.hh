@@ -11,6 +11,7 @@
 #include "acousticPDE.hh"
 #include "smoothPDE.hh"
 #include "magneticPDE.hh"
+#include "magEdgePDE.hh"
 #include "acouFlowNoise.hh"
 #include "mpcciPDE.hh"
 #include "heatCondPDE.hh"

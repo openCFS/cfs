@@ -163,6 +163,7 @@ namespace CoupledField {
     //! \param size legnth of solution array
     virtual void SaveSolution( const Double * ptSol, UInt size ) = 0;
     virtual void SaveSolution( const Complex * ptSol, UInt size ) = 0;
+    virtual void SavePrevSolution( const Double * ptSol, UInt size ) = 0;
     //@}
 
     //@{
@@ -173,6 +174,9 @@ namespace CoupledField {
 
     //! get the data vector of the current solution of a PDE.
     virtual CFSVector * GetSolutionVector();
+
+    //! get the data vector of the previous solution of a PDE.
+    virtual CFSVector * GetPrevSolutionVector();
     
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
@@ -213,6 +217,8 @@ namespace CoupledField {
     {return materials_;};
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
+
+    BaseNodeStoreSol * getPDESolutionPrev() {return solPrev_;};
     
     BaseSystem * getPDE_algsys(){return algsys_;};
   
@@ -322,6 +328,10 @@ namespace CoupledField {
     //! damping model gets implemented in a separate Forms-class
     virtual Double GetFracDampMatrixCoeff(RegionIdType region);
 
+    //! retruns, if PDE needs to store previous solution or not
+    virtual bool NeedsPrevSol() {
+      return  needSolPrev_;
+    }
 
     // ======================================================
     // DATA SECTION
@@ -481,10 +491,13 @@ namespace CoupledField {
     bool isaxi_;             //!< true: axisymmetric problem
     bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     shared_ptr<EqnMap> eqnMap_; //!< new equation handling
+    bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
     BaseNodeStoreSol * sol_;    //!< solution
     CFSVector * solVec_;        //! needed in iterative coupled computation 
     CFSVector * rhsVec_;        //! needed when writing the RHS to file
+    BaseNodeStoreSol * solPrev_;    //!< solution at time step n
+    CFSVector * solVecPrev_;        //! needed in coupled computation 
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;

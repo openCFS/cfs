@@ -29,6 +29,7 @@ namespace CoupledField
     isAllowed_.insert( ELEC_PERMITTIVITY );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
+    isAllowed_.insert( Y_REMANENCE );
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );

@@ -28,7 +28,6 @@ namespace CoupledField
     Matrix<Double> shapeEdge;
     Matrix<Double> shapeEdgeTransp;
     Matrix<Double> partElemMat;
-    //    partElemMat.Resize(nrNodes);
   
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrEdges);
@@ -55,11 +54,16 @@ namespace CoupledField
 
 
 
-  MassEdgeInt::MassEdgeInt( Double acond )
-    : BaseForm( NULL ), conductivity_(acond)
+  MassEdgeInt::MassEdgeInt( Double acond, bool coordUpdate )
+    : BaseForm( NULL )
   {
 
-    name_ = "MassEdgeInt";
+    name_   = "MassEdgeInt";
+    isaxi_  = false;
+
+    conductivity_ = acond;
+    coordUpdate_  = coordUpdate;
+    baseType_     = MASS;
   }
 
 

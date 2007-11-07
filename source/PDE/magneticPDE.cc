@@ -356,9 +356,9 @@ namespace CoupledField {
             GenStr(coilDef_[coil]->windingCrossSection_);
 
           if ( is3d_ ) {
-            MechVolForceInt *coilSource3d = 
-              new MechVolForceInt( dim_, coilDef_[coil]->phase_,
-                                   isaxi_ );
+          	VolForceInt *coilSource3d = 
+              new VolForceInt( dim_, coilDef_[coil]->phase_,
+              									isaxi_ );
 
 
             StdVector<std::string> currDensity(3);

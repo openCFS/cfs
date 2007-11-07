@@ -95,7 +95,6 @@ namespace OLAS {
   void CroutLU<T>::Factorise( CRS_Matrix<T> &sysMat ) {
 
     
-    
     // Reset the object before over-writing an existing factorisation
     if ( storingFactors_ == true ) {
       Reset();

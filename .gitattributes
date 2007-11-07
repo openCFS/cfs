@@ -677,6 +677,10 @@ source/Forms/nLinMassInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLinMassInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLinPiezoCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLinPiezoCoupling.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/nLinPiezoHyst.cc -text
+source/Forms/nLinPiezoHyst.hh -text
+source/Forms/nLinPiezoHystRHS.cc -text
+source/Forms/nLinPiezoHystRHS.hh -text
 source/Forms/nLinStokesFluidInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLinStokesFluidInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1016,6 +1020,8 @@ source/PDE/eqnMap.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/eqnMap.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/heatCondPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/heatCondPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/magEdgePDE.cc -text
+source/PDE/magEdgePDE.hh -text
 source/PDE/magneticPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/magneticPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/mechPDE.cc svneol=native#text/x-c%2B%2Bsrc

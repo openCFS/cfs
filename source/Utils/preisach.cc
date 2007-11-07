@@ -28,7 +28,7 @@ namespace CoupledField
     //    YRemnant_    = xRem;
     isVirgin_    = isVirgin;
 
-    std::cout << "xSat: " << Xsaturated_ << "  Ysat=" << YSaturated_ << std::endl;
+    //    std::cout << "xSat: " << Xsaturated_ << "  Ysat=" << YSaturated_ << std::endl;
     preisachWeights_ = preisachWeight;
 
     lastVal_.Resize(numElem);
@@ -111,9 +111,9 @@ namespace CoupledField
 //         Yval +=  everett(stringEl[actLength-1],newX);
 //       }
 
-      std::cout << "\n Strings:\n "; 
-      for ( UInt i=0; i<actLength; i++)
-         std::cout <<  stringEl[i] << std::endl;
+//       std::cout << "\n Strings:\n "; 
+//       for ( UInt i=0; i<actLength; i++)
+//          std::cout <<  stringEl[i] << std::endl;
     }
 
     return ( Yval*YSaturated_ );

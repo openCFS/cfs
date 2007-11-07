@@ -12,8 +12,6 @@
 namespace CoupledField
 {
 
-  // forward class declarations
-  class MechVolForceInt;
   class BaseForm;
 
   //! Class for mechanic equation (no adaptivity)
@@ -200,9 +198,6 @@ namespace CoupledField
     //! read in the domains with prestressing
     void ReadPreStressing();
 
-    //! read in volume sources
-    void ReadRegionLoads();
-
     //! read in surface stress boundary conditions
     void ReadSurfStress();
 
@@ -214,51 +209,6 @@ namespace CoupledField
 
     //! define available result types
     void DefineAvailResults();
-
-    //! Class defining data needed for region loads
-    class RegionLoad {
-
-    public:
-
-      //! Constructor
-      RegionLoad( UInt dim, bool isaxi );
-
-      //! Print region definition to info-file
-      void Print( bool onlyHeader, std::string pdeName );
-      
-      //! Returns the RHS-integrator
-      MechVolForceInt *  GetIntegrator();
-      
-      // ----------------------------
-      //   Data members
-      // ----------------------------
-
-      //@{
-      // \name Data members
-      
-      //! Name of region
-      std::string name;
-
-      //! Value of load
-      StdVector<std::string>  value;
-
-      //! Phase value
-      std::string phase;
-
-      //! Name of reference coordinate system
-      std::string refCoord;
-
-      //! Type of load (total/unit)
-      std::string type;
-
-      //! Volume of region
-      Double volume;
-
-      //! Flag for axisymmetry
-      bool isAxi_;
-      //@}
-
-    };
 
     struct SurfStress {
       
@@ -275,9 +225,6 @@ namespace CoupledField
       std::string phase;
     };
       
-    
-    //! List of region loads
-    std::map<RegionIdType, RegionLoad> regionLoads_;
 
     //! List of surface stresses
     std::map<RegionIdType, SurfStress> surfStresses_;

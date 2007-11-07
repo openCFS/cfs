@@ -48,6 +48,19 @@ namespace CoupledField
     //! Gathers all information concerning nonlinear computations
     void ReadPiezoNonLin();
 
+    //!
+    void GetNonlinMaterialTensor( Matrix<Double>& matTensor, 
+                                  Vector<Double>& elecD,
+                                  std::string matTensorType,
+                                  BaseMaterial* matMech,
+                                  BaseMaterial* matElec,
+                                  BaseMaterial* matCouple,
+                                  SubTensorType subTensorType,
+                                  Vector<Double>& elecField,
+                                  Vector<Double>& mechStrain,
+                                  Vector<Double>& elecFieldPrev,
+                                  Vector<Double>& mechStrainPrev,
+                                  EntityIterator& ent );
     
   protected:
 
@@ -57,6 +70,7 @@ namespace CoupledField
     //! Define available results
     void DefineAvailResults();
 
+ 
     // Data section
     bool hasOutput_;
 
@@ -67,13 +81,28 @@ namespace CoupledField
     bool nonLinPiezoCoupling_;
 
   private:
-    
 
+    //! compute normalized irreversible strain
+    void ComputeSirr( Vector<Double>& VecSirr, SubTensorType type,
+                      UInt dirP, Double ctP, 
+                      BaseMaterial* matMech );
+
+    //!
+    void ComputeDiffCouplingTensor( Matrix<Double>& dMat, 
+                                    Vector<Double>& actE,
+                                    Vector<Double>& prevE,
+                                    Vector<Double>& actSirr,
+                                    Vector<Double>& prevSirr,
+                                    Directions dirP,
+                                    SubTensorType subTensorType );
     // Postprocession section
 
-    //! computes stresses, i.e. \sigma = cBu + e \grad \phi
+    //! computes stresses, strain, i.e. \sigma = cBu + e \grad \phi
     template <class TYPE>
-    void CalcStress( shared_ptr<BaseResult> result );
+    void CalcStressStrain( shared_ptr<BaseResult> result );
+
+    //! computes irreversibel strain
+    void CalcStrainIrr( shared_ptr<BaseResult> result );
 
     //! calculate Charges
     template <class TYPE>

@@ -40,8 +40,10 @@
 #include "pierceInt.hh"
 #include "nLinElecMaterial.hh" 
 #include "nLinPiezoCoupling.hh" 
+#include "nLinPiezoHyst.hh" 
 #include "nLinMassInt.hh"
 #include "nlinLaplaceInt.hh"
 #include "nLinMagHystInt2D.hh"
 #include "mixedInt.hh"
+#include "nLinPiezoHystRHS.hh"
 #endif

@@ -281,6 +281,9 @@ namespace CoupledField {
     //! computes the scalar hystereis value
     virtual Double GetScalarHystVal( UInt nrElem );
 
+    //! computes the scalar hystereis value
+    virtual Double GetScalarHystPrevVal( UInt nrElem );
+
     //! get vector of hysteresis model
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
       Error( "GetVectorHystVal not implemented", __FILE__, __LINE__ );
