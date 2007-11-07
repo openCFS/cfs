@@ -105,7 +105,6 @@ namespace CoupledField
 //       std::cout<<parUpdate<<std::endl;
 
       // make Landwebers iteration a steepest descent method
-
        if (true){
          Vector<Complex> adjResidual(actNrParameter+actNrParameterC);
          Vector<Complex> normalResidual(nrMeasuredData);
@@ -126,7 +125,7 @@ namespace CoupledField
 //          std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
 //          std::cout<<"normalResidual Norm (relative) = " << normNormalResidual<< std::endl;
 //          std::cout<<"omega = " << normAdjResidual/normNormalResidual<< std::endl;
-         omega = normAdjResidual/normNormalResidual;
+         omega = 50*normAdjResidual/normNormalResidual;
          *piezoLog<<omega;
       }
 
@@ -143,7 +142,7 @@ namespace CoupledField
          std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
          std::cout<<"normFy0= " << normFy0 << std::endl;
          std::cout<<"omega = " << normFy0/normAdjResidual<< std::endl;
-         omega = normFy0/normAdjResidual;
+         omega =0.0001*normFy0/normAdjResidual;
          *piezoLog<<omega;
       }
 
@@ -183,13 +182,13 @@ namespace CoupledField
         if (negFlag==true)
           std::cout<< "reduce omega due to negative parameters  "<<std::endl;
 
-        omega=0.8*omega;
-        std::cout<<"Linesearch - Step = " << lineSearchCount << "\t omega = " << omega << std::endl;
+        omega=0.5*omega;
+        std::cout<<"Linesearch - Step = " << lineSearchCount << "\t omega = " << omega << "\t norm = " << normFy1 << std::endl;
         negFlag=false;
 
         //avoids that programm stagnates!
         lineSearchCount++;
-        if (lineSearchCount>100)
+        if (lineSearchCount>20)
           break;
         
         indPar=0;
