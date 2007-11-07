@@ -389,6 +389,12 @@ namespace CoupledField {
       nextContext->saveBegin = actContext.saveBegin;
       nextContext->saveEnd = actContext.saveEnd;
       nextContext->saveInc = actContext.saveInc;
+      if( postProcs[i]->IsHistory() ||
+          actContext.isHistory ) {
+        nextContext->isHistory = true;
+      } else {
+        nextContext->isHistory = false;
+      }
       nextContext->writeResult = postProcs[i]->IsWriteResult();
       if( postProcs[i]->GetReductionType() == PostProc::TIME_FREQ ||
           actContext.isFinal ) {
@@ -429,6 +435,7 @@ namespace CoupledField {
       LOG_DBG(resHandler) << "saveInc: " << nextContext->saveInc;
       LOG_DBG(resHandler) << "writeResult: " << nextContext->writeResult;
       LOG_DBG(resHandler) << "isFinal: " << nextContext->isFinal;
+      LOG_DBG(resHandler) << "isHistory: " << nextContext->isHistory;
       LOG_DBG(resHandler) << "outputDest: " << outDest.Serialize();
       LOG_DBG(resHandler) << "postProcName: " 
                           << postProcs[i]->GetNextPostProcName() << std::endl;
@@ -444,9 +451,9 @@ namespace CoupledField {
         // register results also at the output writer class
         outFiles_[outDest[iOut]]->
           RegisterResult(  postProcs[i]->GetOutputResult(),
-                           actContext.saveBegin, actContext.saveInc,
-                           actContext.saveEnd,
-                           actContext.isHistory );
+                           nextContext->saveBegin, nextContext->saveInc,
+                           nextContext->saveEnd,
+                           nextContext->isHistory );
       }
       
       // store postproc and result in current context2

@@ -408,8 +408,8 @@ namespace CoupledField {
       entityString = "Elements";
       break;
     default:
-      EXCEPTION( "Only nodal and element results can be stored to hdf5 "
-                 << "files up to now ");
+      EXCEPTION( "Result of type '" << resInfo->resultName
+                  << "'can not be written as mesh result" );
     }
 
     // try to create regionGroup
@@ -949,9 +949,10 @@ namespace CoupledField {
 
   void SimOutputHDF5::WriteElemGroups(const H5::Group& meshGroup) {
     H5::Group myGroup;
-    StdVector< UInt > elemNums;
+    StdVector< UInt > elemNums, elemNodes;
     StdVector<Elem*> elems;
     StdVector<std::string> elemNames;
+    std::set<UInt> nodeSet;
 
     // obtain list with names of elements
     ptGrid_->GetListElemNames(elemNames);
@@ -964,6 +965,8 @@ namespace CoupledField {
       for( UInt j = 0; j < elems.GetSize(); j++ ) {
         elemNums[j] = elems[j]->elemNum;
         dims.insert( elems[j]->ptElem->GetDim() );
+        nodeSet.insert( elems[j]->connect.Begin(),
+                        elems[j]->connect.End() );
       }
       if( dims.size() > 1 ) {
         EXCEPTION( "Element group '" << elemNames[i]
@@ -979,8 +982,12 @@ namespace CoupledField {
                           elemNums.GetSize(), &elemNums[0],
                           dPropList_);
 
-      // To do: in the future, we will also write the nodes
-      // of the element group to this group ...
+      // Write nodes of element group
+      elemNodes.Resize( nodeSet.size() );
+      std::copy( nodeSet.begin(), nodeSet.end(), elemNodes.Begin() );
+      H5IO::Write1DArray( myGroup, "Nodes",
+                          elemNodes.GetSize(), &elemNodes[0],
+                          dPropList_);
       
       // close nodes array of current group
       myGroup.close();
