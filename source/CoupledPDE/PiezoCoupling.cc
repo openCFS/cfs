@@ -1278,31 +1278,34 @@ namespace CoupledField {
                                                  Vector<Double>& prevSirr,
                                                  Directions dirP,
                                                  SubTensorType subTensorType ) {
-
     Vector<Double> diffE, diffSirr;
     diffE    = actE - prevE;
     diffSirr = actSirr - prevSirr;
 
-    if ( subTensorType == PLANE_STRAIN ) {
+    if ( subTensorType = PLANE_STRAIN ) {
       if ( abs( diffE[0]) > 1 ) {
         if ( dirP == X ) 
-          dMat[0][1] += diffSirr[0] / diffE[0];
+          dMat[dirP][dirP] += diffSirr[0] / diffE[0];
       }
       if ( abs(diffE[1]) > 1 ) {
         if ( dirP == Y ) 
-          dMat[1][1] += diffSirr[1] / diffE[1];
+          dMat[dirP][dirP] += diffSirr[1] / diffE[1];
       }
       
     }
-    else if ( subTensorType == FULL ) {
-      if ( abs( diffE[0]) > 1 )
-        dMat[0][2] += diffSirr[0] / diffE[0];
-
-      if ( abs(diffE[1]) > 1 )
-        dMat[1][2] += diffSirr[1] / diffE[1];
-
-      if ( abs(diffE[2]) > 1 )
-        dMat[2][2] += diffSirr[2] / diffE[2];
+    else if ( subTensorType = FULL ) {
+      if ( abs( diffE[0]) > 1 ) {
+        if ( dirP == X ) 
+          dMat[dirP][dirP] += diffSirr[0] / diffE[0];
+      }
+      if ( abs(diffE[1]) > 1 ) {
+        if ( dirP == Y ) 
+          dMat[dirP][dirP] += diffSirr[1] / diffE[1];
+      }
+      if ( abs(diffE[2]) > 1 ) {
+        if ( dirP == Z ) 
+          dMat[dirP][dirP] += diffSirr[2] / diffE[2];
+      }
     }
     else 
       Error( "Problems in ComputeDiffElasticitytensor", __FILE__, __LINE__ );
@@ -1310,6 +1313,5 @@ namespace CoupledField {
     //    std::cout << "dMatEff:\n" << dMat << std::endl;
 
   }
-
 
 }
