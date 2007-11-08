@@ -53,6 +53,17 @@ step = 1
 fileinfo = hdf5info(infile);
 toplevel = fileinfo.GroupHierarchy;
 
+% construct cfg filename for h5tool
+tmpfile = strcat(infile, '.h5cfg');
+
+% check that h5tool is found
+fid = fopen(tmpfile, 'w');
+attr_cfg = fprintf(fid, 'gschmarri\nnix\n%s\n', infile);
+fclose(fid);
+if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
+  error('h5tool not found! Make sure h5tool is in PATH.');
+end
+
 % check that requested result is really present in input file
 [found resgroup restype msgroup datafile] =  FindPathHDF5(toplevel, multistep, step, quantity, region);
 if found < 8
@@ -61,7 +72,7 @@ if found < 8
     errorstr = sprintf('%s Search aborted at %s', errorstr, resgroup.Name);
   end
   error(errorstr);
-  return;
+  return
 end
 
 % store path of multistep and of result dataset
@@ -90,7 +101,7 @@ if exist(outfile, 'file') == 2
   if found2 == 8
     errorstr = sprintf('Quantity %s already present in file %s under path: %s.', quantity, outfile, respath);
     error(errorstr);
-    return;
+    return
   end
 end
 
@@ -136,7 +147,7 @@ for iter=1:numiter
   
     mat(i,1:item_end-item_start+1) = ds(item_start:item_end);
 
-    disp(sprintf('reading step %d of %d, chunk %d', i, numsteps, iter))
+    disp(sprintf('reading step %d of %d, chunk %d of %d', i, numsteps, iter, numiter))
 
   end
 
@@ -238,14 +249,13 @@ hdf5write(outfile, attr_details, uint32(i), 'WriteMode', 'append');
 attr_details.Name = 'LastStepValue';
 hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
 
-% construct cfg filename for h5tool
-tmpfile = strcat(infile, '.h5cfg');
-
 % use h5tool to write analysis type
 fid = fopen(tmpfile, 'w');
 attr_cfg = fprintf(fid, 'attribute\ncreate\n%s\n%s\nstring\nAnalysisType\nappend\nharmonic\n', outfile, basepath);
 fclose(fid);
-exec(sprintf('h5tool < %s > /dev/null', tmpfile));
+if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
+  warning('h5tool failed, result file may be incomplete.');
+end
 
 % declare not to use external files
 attr_details.AttachedTo = '/Results/Mesh';
