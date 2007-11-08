@@ -59,6 +59,10 @@ namespace CoupledField {
     it = acouMaterials->find(actElem_->ptVolElem1->regionId);
     if ( it == acouMaterials->end() ) {
       it = acouMaterials->find(actElem_->ptVolElem2->regionId);
+      if ( it == acouMaterials->end()) {
+        EXCEPTION("Acoustic parent region of surface element "
+            << actElem_->elemNum << " could not be determined.");
+      }
     } else {
       normal_ *= -1.0;
     }
