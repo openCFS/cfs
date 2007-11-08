@@ -38,7 +38,7 @@
 %    ABOUT
 %
 %      -Created:     Jan 2006
-%      -Last update: 30 Oct 2007
+%      -Last update: 07 Nov 2007
 %      -Revision:    0.5
 %      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
 %
@@ -54,7 +54,7 @@ fileinfo = hdf5info(infile);
 toplevel = fileinfo.GroupHierarchy;
 
 % check that requested result is really present in input file
-[found resgroup restype msgroup] =  FindPathHDF5(toplevel, multistep, step, quantity, region);
+[found resgroup restype msgroup datafile] =  FindPathHDF5(toplevel, multistep, step, quantity, region);
 if found < 8
   errorstr = 'Cannot find requested dataset.';
   if found >= 3
@@ -101,7 +101,7 @@ dt = time_step2 - time_step1;
 
 % read first time step
 dataset = sprintf('%s/Real', respath);
-ds = hdf5read(infile, dataset);
+ds = hdf5read(datafile.Filename, dataset);
 
 % Number of scalars in dataset
 num_items = length(ds);
@@ -132,7 +132,7 @@ for iter=1:numiter
   for i=1:numsteps
   
     dataset = sprintf('%s/Real', respath);
-    ds = hdf5read(infile, dataset);
+    ds = hdf5read(datafile.Filename, dataset);
   
     mat(i,1:item_end-item_start+1) = ds(item_start:item_end);
 

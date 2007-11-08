@@ -45,7 +45,6 @@ Integer CreateAttribute(H5::H5File& file,
     }
   }
   
-
   UInt numAttrs = object->getNumAttrs();
   for(UInt i=0; i<numAttrs; i++)
   {
@@ -96,6 +95,129 @@ Integer CreateAttribute(H5::H5File& file,
     std::cerr << "CreateAttribute: " << h5ex.getCDetailMsg() << std::endl;
     return 1;
   }
+}
+
+
+template <typename TYPE>
+Integer ReadAttribute(H5::H5File& file, std::string path,
+    std::string attr_name, TYPE& value)
+{
+  H5::H5Object *object = NULL;
+  H5::DataSet dataset;
+  H5::Group group;
+
+  try
+  {
+    group = file.openGroup(path);
+    object = &group;
+  }
+  catch (H5::Exception& h5ex) { }
+
+  if(!object)
+  {
+    try
+    {
+      dataset = file.openDataSet(path);
+      object = &dataset;
+    }
+    catch (H5::Exception& h5ex)
+    {
+      std::cerr << "ReadAttribute: Failed to open dataset or group!\n";
+      return 1;
+    }
+  }
+
+  try {
+    H5IO::ReadAttribute(*object, attr_name, value);
+  } catch (Exception& ex) {
+    std::cerr << ex.GetMsg() << std::endl;
+    return 1;
+  }
+
+  return 0;
+}
+
+
+Integer RenameAttribute(H5::H5File& file,
+                        std::string path,
+                        std::string old_name,
+                        std::string new_name)
+{
+  H5::H5Object *object = NULL;
+  H5::DataSet dataset;
+  H5::Group group;
+
+  try
+  {
+    group = file.openGroup(path);
+    object = &group;
+  }
+  catch (H5::Exception& h5ex) { }
+
+  if(!object)
+  {
+    try
+    {
+      dataset = file.openDataSet(path);
+      object = &dataset;
+    }
+    catch (H5::Exception& h5ex)
+    {
+      std::cerr << "RenameAttribute: Failed to open dataset or group!\n";
+      return 1;
+    }
+  }
+
+  try {
+    object->renameAttr(old_name, new_name);
+  } catch (H5::AttributeIException& h5aex) {
+    std::cerr << "RenameAttribute: Unable to rename attribute '" << old_name
+              << "'\n";
+    return 1;
+  }
+  
+  return 0;
+}
+
+
+Integer DeleteAttribute(H5::H5File& file,
+                        std::string path,
+                        std::string attr_name)
+{
+  H5::H5Object *object = NULL;
+  H5::DataSet dataset;
+  H5::Group group;
+
+  try
+  {
+    group = file.openGroup(path);
+    object = &group;
+  }
+  catch (H5::Exception& h5ex) { }
+
+  if(!object)
+  {
+    try
+    {
+      dataset = file.openDataSet(path);
+      object = &dataset;
+    }
+    catch (H5::Exception& h5ex)
+    {
+      std::cerr << "DeleteAttribute: Failed to open dataset or group!\n";
+      return 1;
+    }
+  }
+
+  try {
+    object->removeAttr(attr_name);
+  } catch (H5::AttributeIException& h5aex) {
+    std::cerr << "DeleteAttribute: Unable to delete attribute '" << attr_name
+              << "'\n";
+    return 1;
+  }
+  
+  return 0;
 }
 
 
@@ -161,6 +283,30 @@ Integer CreateGroup(H5::H5File& file,
     return 1;
   }
 
+  return 0;
+}
+
+
+Integer ListGroup(H5::H5File& file, std::string path) {
+  H5::Group base_group;
+  
+  try {
+    base_group = file.openGroup(path);
+  } catch (H5::Exception& h5ex) {
+    std::cerr << "ListGroup: failed to open group '" << path << "'\n";
+    return 1;
+  }
+  
+  UInt numObjs = base_group.getNumObjs();
+  
+  for (UInt i=0; i < numObjs; ++i) {
+    
+    if (base_group.getObjTypeByIdx(i) == H5G_GROUP) {
+      std::cout << H5IO::GetObjNameByIdx(base_group, i) << std::endl;
+    }
+  
+  }
+  
   return 0;
 }
 
@@ -412,7 +558,7 @@ Integer ExistsDataset(H5::H5File& file,
   return 1;
 }
 
-Integer DeleteDataset(H5::H5File& file,
+Integer DeleteObj(H5::H5File& file,
                       std::string path,
                       std::string ds_name)
 {
@@ -441,8 +587,8 @@ Integer DeleteDataset(H5::H5File& file,
       }
       catch (H5::Exception& h5ex)
       {
-        std::cerr << "DeleteDataset: Unlinkinf of old dataset failed"
-                  << std::endl;
+        std::cerr << "DeleteObj: Unlinking of group/dataset '" << ds_name
+                  << "' failed" << std::endl;
         return 1;
       }
       break;
@@ -452,6 +598,29 @@ Integer DeleteDataset(H5::H5File& file,
   return 0;
 }
 
+Integer MoveObj(H5::H5File& file,
+                  std::string path,
+                  std::string name_old,
+                  std::string name_new)
+{
+  H5::Group base_group;
+  
+  try {
+    base_group = file.openGroup(path);
+  } catch (H5::Exception& h5ex) {
+    std::cerr << "MoveObj: failed to open base group!\n";
+    return 1;
+  }
+  
+  try {
+    base_group.move(name_old, name_new);
+  } catch (H5::Exception& h5ex) {
+    std::cerr << "MoveObj: failed to move '" << name_old << "'\n";
+    return 1;
+  }
+  
+  return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -578,6 +747,51 @@ int main(int argc, char** argv)
                               modeMap[attr_opmode]);
       }
     }
+    else if (op_name == "read") {
+      std::string attr_name, datatype;
+      
+      std::cout << "Attribute name:\n";
+      getline(std::cin, attr_name);
+      std::cout << "Data type:\n";
+      getline(std::cin, datatype);
+      
+      if (datatype == "double") {
+        Double value;
+        ret = ReadAttribute(*file, path, attr_name, value);
+        if (ret == 0)
+          std::cout << value;
+      }
+      else if (datatype == "string") {
+        std::string value;
+        ret = ReadAttribute(*file, path, attr_name, value);
+        if (ret == 0)
+          std::cout << value;
+      }
+      else if (datatype == "uint") {
+        UInt value;
+        ret = ReadAttribute(*file, path, attr_name, value);
+        if (ret == 0)
+          std::cout << value;
+      }
+    }
+    else if (op_name == "rename") {
+      std::string old_name, new_name;
+      
+      std::cout << "Current attribute name:\n";
+      getline(std::cin, old_name);
+      std::cout << "New attribute name:\n";
+      getline(std::cin, new_name);
+      
+      ret = RenameAttribute(*file, path, old_name, new_name);
+    }
+    else if (op_name == "delete") {
+      std::string attr_name;
+      
+      std::cout << "Attribute name:\n";
+      getline(std::cin, attr_name);
+      
+      ret = DeleteAttribute(*file, path, attr_name);
+    }
   }
 
   if(op_target == "group")
@@ -600,6 +814,31 @@ int main(int argc, char** argv)
       }
       
       ret = CreateGroup(*file, path, group_name, modeMap[group_opmode]);
+    }
+    
+    if (op_name == "move") {
+      std::string group_old;
+      std::string group_new;
+      
+      std::cout << "Current group name: \n";
+      getline(std::cin, group_old);
+      std::cout << "New group name: \n";
+      getline(std::cin, group_new);
+      
+      ret = MoveObj(*file, path, group_old, group_new);
+    }
+    
+    if (op_name == "delete") {
+      std::string group_name;
+      
+      std::cout << "Group name: \n";
+      getline(std::cin, group_name);
+      
+      ret = DeleteObj(*file, path, group_name);
+    }
+    
+    if (op_name == "list") {
+      ret = ListGroup(*file, path);
     }
   }
 
@@ -681,11 +920,20 @@ int main(int argc, char** argv)
       std::cout << "Dataset name: " << std::endl;
       getline(std::cin, ds_name);
 
-      ret = DeleteDataset(*file,
-                          path,
-                          ds_name);
+      ret = DeleteObj(*file, path, ds_name);
     }
     
+    if (op_name == "move") {
+      std::string ds_old;
+      std::string ds_new;
+      
+      std::cout << "Current dataset name: \n";
+      getline(std::cin, ds_old);
+      std::cout << "New dataset name: \n";
+      getline(std::cin, ds_new);
+      
+      ret = MoveObj(*file, path, ds_old, ds_new);
+    }
   }
 
 

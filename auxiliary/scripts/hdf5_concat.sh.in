@@ -58,6 +58,8 @@ fi
 # echo "Input type: $INPUTTYPE"
 # rm -f $H5FILE;
 
+export LANG=en_US.UTF-8
+
 AVAIL_RESULTS=`$H5DUMP --group=/Results/Mesh/MultiStep_1/ResultDescription $H5FILE2 | grep '   GROUP "' | sed -e 's/   GROUP "//g' | sed -e 's/" {//g'`
 RESULT=`echo $AVAIL_RESULTS | cut -d' ' -f1`
 
@@ -75,9 +77,11 @@ STEP_NUMBERS2=`cat out.txt | sed -e 's/,//g'`
 $H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" -y --output=out.txt $H5FILE2 > /dev/null;
 STEP_VALUES2=`cat out.txt | sed -e 's/,//g'`
 T1=`echo $STEP_VALUES2 | cut -d' ' -f1`
+T1=`echo $T1 | awk -F"e" 'BEGIN{OFMT="%20.12f"} {print $1 * (10 ^ $2)}'`
 T2=`echo $STEP_VALUES2 | cut -d' ' -f2`
+T2=`echo $T2 | awk -F"e" 'BEGIN{OFMT="%20.12f"} {print $1 * (10 ^ $2)}'`
 DT=`echo "$T2 - $T1" | bc`
-
+echo "DT: $DT"
 
 echo $STEP_NUMBERS1 | sed -e 's/\x20/\x0a/g' > StepNumbers.dat
 echo $STEP_VALUES1 | sed -e 's/\x20/\x0a/g' > StepValues.dat
@@ -167,4 +171,3 @@ rm -f StepValues.dat
 rm -f StepNumbers.cfg
 rm -f StepValues.cfg
 rm -f out.txt
-
