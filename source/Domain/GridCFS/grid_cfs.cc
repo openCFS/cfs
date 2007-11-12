@@ -758,18 +758,19 @@ namespace CoupledField {
     }
 
     // Call creation of surface elements
-    std::set<SurfElem* > mappedSurfElems;
+    std::map<UInt, SurfElem* > mappedSurfElems;
     CreateSurfaceElements( surfElems, mappedSurfElems );
     
     // Iterate over all surface elements and put their nodes and elements
     // according to their region id
-    std::set<SurfElem*>::iterator surfElemIt;
+    std::map<UInt, SurfElem*>::iterator surfElemIt;
     for( surfElemIt = mappedSurfElems.begin();
          surfElemIt != mappedSurfElems.end();
          surfElemIt++ ) {
-      SurfElem * surfEl = *surfElemIt;
-      orderedElems_[surfEl->elemNum-1] = surfEl;
-      LOG_DBG3(gridcfs) << "Adding element #" << surfEl->elemNum 
+      SurfElem * surfEl = surfElemIt->second;
+      UInt elemNum = surfElemIt->first;
+      orderedElems_[elemNum-1] = surfEl;
+      LOG_DBG3(gridcfs) << "Adding element #" << elemNum
                          << " to list of surface elements"; 
       if( surfEl->regionId != NO_REGION_ID ) {
         surfRegionElems[surfEl->regionId].Push_back( surfEl );
@@ -1622,7 +1623,7 @@ namespace CoupledField {
   // =======================================================================
   
   void GridCFS::CreateSurfaceElements( std::set<Elem*>& elems,
-                                       std::set<SurfElem*>& surfElems ) {
+                                       std::map<UInt, SurfElem*>& surfElems ) {
 
     LOG_TRACE(gridcfs) << "Starting to map surface elements";
     
@@ -1668,7 +1669,7 @@ namespace CoupledField {
       myElem->regionId = oldElem->regionId;
       myElem->elemNum = oldElem->elemNum;
       myElem->ptElem = oldElem->ptElem;
-      surfElems.insert( myElem );
+      surfElems[myElem->elemNum] = myElem;
 
       // delete old volume element
       delete oldElem;
@@ -1682,14 +1683,14 @@ namespace CoupledField {
     UInt elemsFound = 0;
     UInt elemsAssigned = 0;
     
-    std::set<SurfElem*>::iterator surfElIt;
+    std::map<UInt,SurfElem*>::iterator surfElIt;
     for( surfElIt = surfElems.begin(); 
          surfElIt != surfElems.end(); 
          surfElIt++ ) {
 
       elemsAssigned = 0;
 
-      myElem = *surfElIt;
+      myElem = surfElIt->second;
 
       // get number of nodes of surface element
       nrNodes = myElem->connect.GetSize();
@@ -1757,7 +1758,7 @@ namespace CoupledField {
          surfElIt != surfElems.end(); 
          surfElIt++ ) {
 
-      myElem = *surfElIt;
+      myElem = surfElIt->second;
 
       // check, if each surface element has at least one volume neighbour
       if ( myElem->ptVolElem1 == NULL ) {

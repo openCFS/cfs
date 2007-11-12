@@ -533,18 +533,18 @@ namespace CFSTool {
                }
                
                if( normedtomax == true)
-                 std::cerr << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
+                 std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
                            << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n"
                            << "\tMaximum rel. + phase difference:      " << pMax*100 << " %\n"
                            << "\tMaximum rel. - phase difference:     " << pMin*100 << " %\n";
                else
-                 std::cerr << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
+                 std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
                            << "\tMaximum - amplitude difference: " << aMin <<  "\n"
                            << "\tMaximum + phase difference:      " << pMax*180/PI <<  "°\n"
                            << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";
                
                
-               std::cerr << "\n\tmaxDiff = " << maxDiff << std::endl;
+               std::cout << "\n\tmaxDiff = " << maxDiff << std::endl;
              }
              
              
@@ -663,6 +663,7 @@ int main(int argc, char** argv) {
   }  catch(std::exception& ex) {
     std::cerr << "The following error occured during program execution:\n\n" 
     << ex.what ();
+    return -1;
   }
 
   return 0;
