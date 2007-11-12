@@ -774,16 +774,20 @@ namespace CoupledField {
       {
         ParamNode* thc = therm->Get("thermalConductivity");
         if(thc->Has("isotropic"))
+
           {
             material->SetScalar(thc->Get("isotropic")->AsDouble(), HEAT_CONDUCTIVITY, REAL);
+
           }
-        if(thc->Has("tensor"))
+        else if(thc->Has("tensor"))
           {
             // can only be a real 3x3 tensor
             Matrix<double> tensor(3,3);
             ParamNode* tens_pn = thc->Get("tensor", "dim1", "3")->Get("real");
+
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
             material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, REAL);
+
           }
       }
     

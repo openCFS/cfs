@@ -86,11 +86,10 @@ namespace CoupledField {
   // ============
   void linHeatCondInt::calcDMat( Matrix<Double> &dMat ) {
 
-    ptMaterial->GetTensor(dMat,HEAT_CONDUCTIVITY_TENSOR,matDataType_,subTensorType_);
+    ptMaterial->GetTensor(dMat,HEAT_CONDUCTIVITY_TENSOR, matDataType_,subTensorType_);
     
     dMat *= mParser_->Eval( mHandle_ );
     
-    //std::cerr << "linHeatCondInt: dMat = \n" << dMat << std::endl;
   }
 
 
