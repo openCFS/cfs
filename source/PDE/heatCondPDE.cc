@@ -170,25 +170,26 @@ namespace CoupledField {
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( subdoms_[actSD] );
-
+      
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
       actMat->GetScalar(density,DENSITY,REAL);
       actMat->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
       //actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
-
+      
       
       //check how is comming the heat conductivity-----------------------------------
       BaseForm *bilinearStiff = NULL;
       
       if(actMat->IsSet(HEAT_CONDUCTIVITY)){
-    	  // stiffness integrator for isotropic material
-          actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
-          
-          coeffstiff = thermalConductivity;
-          bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+        // stiffness integrator for isotropic material
+        actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
+        
+        coeffstiff = thermalConductivity;
+        bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+        
       }
-      else{
-          bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
+      else if(actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR)){
+        bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
       }
       //-----------------------------------------------------------------------------
       

@@ -33,9 +33,9 @@ namespace CoupledField {
 		    DataType dataType );
 
     //! set a real material tensor
-    void SetTensor(Matrix<Double>& param, 
-                   const MaterialType& matType, 
-                   const DataType& dataType );
+    void SetTensor(const Matrix<Double>& param, 
+                   MaterialType matType, 
+                   DataType  dataType );
 
 
     //! set a complex material tensor
@@ -57,9 +57,9 @@ namespace CoupledField {
 		    DataType dataType ) const;
     
     //! get a real material tensor
-    void GetTensor( Matrix<Double>& param, const MaterialType& matType,
-		    const DataType& dataType,
-		    const SubTensorType = FULL ) const;	
+    void GetTensor( Matrix<Double>& param, MaterialType matType,
+		    DataType dataType,
+		    SubTensorType = FULL ) const;	
     
     
 
