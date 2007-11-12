@@ -331,7 +331,6 @@ namespace CoupledField {
      Matrix<TYPE> stiffnessMat;
      Matrix<TYPE> piezoCouplingMat; 
      Matrix<TYPE> permittivityMat;
-
    
 
      // get material from mechanics
@@ -474,6 +473,8 @@ namespace CoupledField {
      }    
 
      delete FieldOp2;
+
+     delete chargeOp;
     
   } // end CalcCharges
 
