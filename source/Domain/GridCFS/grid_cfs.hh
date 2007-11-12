@@ -532,7 +532,7 @@ namespace CoupledField
     //!                      yet converted to \a SurfElem*
     //! \param mappedElems (output) set containing mapped surface elements 
     void CreateSurfaceElements( std::set<Elem*> & elems,
-                                std::set<SurfElem*> & mappedElems );
+                                std::map<UInt, SurfElem*> & mappedElems );
 
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
