@@ -79,7 +79,6 @@ int main( int argc, const char **argv ) {
   // Log program startup
   Info->PrintHeader();
 
-
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
   // =========================================================================
