@@ -1683,9 +1683,6 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         
       if (isaxi_) {
         CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
-        for (UInt i=0; i<numFncs; i++)
-          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
-          
         jacDet *= 2 * PI * CoordAtIp_[0];
       }
         
@@ -1849,8 +1846,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     elemPower.Init(0.0);
     
     Double jacDet, factor;
-    solGradAtIp.Resize(numFncs);
-    solD1GradAtIp.Resize(numFncs);
+    solGradAtIp.Resize(spacedim);
+    solD1GradAtIp.Resize(spacedim);
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
       jacDet = 0;
@@ -1860,9 +1857,6 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
        
       if (isaxi_) {
         CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
-        for (UInt i=0; i<numFncs; i++)
-          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
-
         jacDet *= 2 * PI * CoordAtIp_[0];
       }
       
@@ -1880,7 +1874,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       
       // calculate helper variables N1 and N2
       N1 = 0;
-      for (UInt k=0; k<xiDx_.GetSizeCol(); k++)
+      for (UInt k=0; k<spacedim; k++)
         N1 += solGradAtIp[k] * solD1GradAtIp[k];
       
       N2 = solGradAtIp * solD1AtIp;
@@ -1892,7 +1886,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         
         elemPower[i] += factor * ShpFncAtIp_[i] * N1;
         
-        for (UInt j=0; j<xiDx_.GetSizeCol(); j++)
+        for (UInt j=0; j<spacedim; j++)
           elemPower[i] -= factor * xiDx_[i][j] * N2[j];
       }
     }
@@ -1938,8 +1932,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     
     Double jacDet, factor;
     N2.Resize(spacedim);
-    solGradAtIp.Resize(numFncs);
-    solD1GradAtIp.Resize(numFncs);
+    solGradAtIp.Resize(spacedim);
+    solD1GradAtIp.Resize(spacedim);
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
       jacDet = 0.0;
@@ -1949,9 +1943,6 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       
       if (isaxi_) {
         CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
-        for (UInt i=0; i<numFncs; i++)
-          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
-
         jacDet *= 2 * PI * CoordAtIp_[0];
       }
       

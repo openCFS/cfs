@@ -448,7 +448,7 @@ namespace CoupledField {
           actSol += solInc;
         }
         else {
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, true);
         }
       
         //store A_(n+1) in the solution-object sol_
