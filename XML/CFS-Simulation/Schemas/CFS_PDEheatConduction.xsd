@@ -62,6 +62,7 @@
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
                 <xsd:element name="load"           type="DT_HeatLoad" />
+                <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -146,7 +147,13 @@
       <xsd:extension base="DT_HeatID"/>
     </xsd:complexContent>
   </xsd:complexType>
-
+  
+  <!-- Element type for specifying rhs source term -->
+  <xsd:complexType name="DT_HeatRHS">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="isharmonic" type="DT_CFSBool" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
+  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
