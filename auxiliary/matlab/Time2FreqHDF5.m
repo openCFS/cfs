@@ -6,22 +6,19 @@
 %    GENERAL
 %    Time data filtering tool for CFS++ HDF5 data.
 %
-%    This script reads transient results from our HDF5 files
-%    and performs a FFT on them. Afterwards the harmonic data
-%    is written either to a (different) HDF5 file.
-%    First the script tries to determine the size of the
-%    transient data in megabytes:
-%    size_in_mb = num_items * numsteps * 8 / 1024 / 1024;
-%    Then it determines how many iterations are needed to
-%    perform the FFT with the given buffer size (bufsize)
-%    and how many items (items_per_iter=nodes) can be processed
-%    in one iteration. Next the script allocates a matrix of
-%    size numsteps*items_per_iter performs a FFT on it and
-%    writes the harmonic data to temporary files in amplitude-
-%    phase format.
-%    At the end all temporary files are combined into one file.
+%    This script reads transient results from our HDF5 files and performs a
+%    FFT on them. Afterwards the harmonic data is written to a (different)
+%    HDF5 file.
+%    First the script tries to determine the size of the transient data in
+%    megabytes: size_in_mb = num_items * numsteps * 8 / 1024 / 1024;
+%    Then it determines how many iterations are needed to perform the FFT
+%    with the given buffer size (bufsize) and how many items
+%    (items_per_iter=nodes) can be processed in one iteration. Next the
+%    script allocates a matrix of size numsteps*items_per_iter performs a
+%    FFT on it and writes the harmonic data to temporary files in real-imag
+%    format. At the end all temporary files are combined into one file.
 %    
-%    PATH must include h5tool for this script to work correctly.
+%    ATTENTION: PATH must include h5tool for this script to work correctly.
 %
 %
 %    INPUT/S
@@ -30,7 +27,7 @@
 %      quantity  - which quantity to convert
 %      region    - region the quantity is defined on
 %      bufsize   - buffer size for transient data in megabytes
-%      dt        - time step size in seconds (not used)
+%      nullstep  - set to true, if values at f=0 are desired
 %        
 %    OUTPUT/S
 %
@@ -38,18 +35,18 @@
 %    ABOUT
 %
 %      -Created:     Jan 2006
-%      -Last update: 07 Nov 2007
+%      -Last update: 13 Nov 2007
 %      -Revision:    0.5
 %      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
 %
 % =======================================================================
 
 
-function [amplitude] =  Time2FreqHDF5(infile, outfile, quantity, region, bufsize, dt)
+function [] =  Time2FreqHDF5(infile, outfile, quantity, region, bufsize, nullstep)
 
 
-multistep = 1
-step = 1
+multistep = 1;
+step = 1;
 fileinfo = hdf5info(infile);
 toplevel = fileinfo.GroupHierarchy;
 
@@ -61,6 +58,7 @@ fid = fopen(tmpfile, 'w');
 attr_cfg = fprintf(fid, 'gschmarri\nnix\n%s\n', infile);
 fclose(fid);
 if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
+  delete(tmpfile);
   error('h5tool not found! Make sure h5tool is in PATH.');
 end
 
@@ -80,8 +78,10 @@ basepath = msgroup.Name;
 respath = resgroup.Name;
 
 % calculate no of time and frequency steps
-numsteps = size(msgroup.Groups,2)-1
-numharmsteps = floor(numsteps / 2)
+numsteps = size(msgroup.Groups,2)-1;
+numharmsteps = floor(numsteps / 2);
+disp(sprintf('No. of time steps:      %d', numsteps))
+disp(sprintf('No. of frequency steps: %d\n', numharmsteps))
 
 % store result type of quantity
 switch restype
@@ -147,7 +147,7 @@ for iter=1:numiter
   
     mat(i,1:item_end-item_start+1) = ds(item_start:item_end);
 
-    disp(sprintf('reading step %d of %d, chunk %d of %d', i, numsteps, iter, numiter))
+    disp(sprintf('Reading step %d of %d, chunk %d of %d', i, numsteps, iter, numiter))
 
   end
 
@@ -193,14 +193,22 @@ end
 ds_real = zeros(1, num_items);
 ds_imag = zeros(1, num_items);
 
+if nullstep
+  firstharmstep = 0;
+else
+  firstharmstep = 1;
+  numharmsteps = numharmsteps-1;
+end
+
 % calculate frequency steps
-f = double((0:numharmsteps-1)/(numsteps*dt));
+f = double((firstharmstep:numharmsteps-1+firstharmstep)/(numsteps*dt));
 
 % Write back harmonic datasets
 for i=1:numharmsteps
 
   steppath = sprintf('%s/Step_%d', basepath, i);
-  inoutpath = sprintf('%s/%s/%s/%s', steppath, quantity, region, restypestr);
+  outpath = sprintf('%s/%s/%s/%s', steppath, quantity, region, restypestr);
+  tmppath = sprintf('%s/Step_%d/%s/%s/%s', basepath, i+firstharmstep, quantity, region, restypestr);
 
   % store chunks into one dataset
   for iter=1:numiter
@@ -210,25 +218,27 @@ for i=1:numharmsteps
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
   
-    dataset = sprintf('%s/Real', inoutpath);
+    dataset = sprintf('%s/Real', tmppath);
     ds = hdf5read(outfile_iter, dataset);
     ds_real(idx+1:idxend) = ds;
 
-    dataset = sprintf('%s/Imag', inoutpath);
+    dataset = sprintf('%s/Imag', tmppath);
     ds = hdf5read(outfile_iter, dataset);
     ds_imag(idx+1:idxend) = ds;
 
   end
 
+  disp(sprintf('Writing step %d of %d', i, numharmsteps))
+
   % write to final output file
-  dataset = sprintf('%s/Real', inoutpath);
+  dataset = sprintf('%s/Real', outpath);
   if exist(outfile, 'file') ~= 2
     hdf5write(outfile, dataset, ds_real(1:num_items), 'WriteMode', 'overwrite');
   else
     hdf5write(outfile, dataset, ds_real(1:num_items), 'WriteMode', 'append');
   end
 
-  dataset = sprintf('%s/Imag', inoutpath);
+  dataset = sprintf('%s/Imag', outpath);
   hdf5write(outfile, dataset, ds_imag(1:num_items), 'WriteMode', 'append');
 
   % store current frequency in step attribute
@@ -237,9 +247,9 @@ for i=1:numharmsteps
   attr_details.Name = 'StepValue';
   hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
 
-  disp(sprintf('Writing step %d of %d', i, numharmsteps))
-
 end
+
+disp(sprintf('\nFinalizing output file ...\n'))
 
 % set required attributes of results
 attr_details.AttachedTo = basepath;
