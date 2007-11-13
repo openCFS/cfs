@@ -874,9 +874,18 @@ namespace CoupledField {
                 << solType << "' on region '" << regionName << "'" ); 
       }
       
+    // determine analysistype of current multi sequence step
+    std::map<UInt, AnalysisType> analysis;
+    std::map<UInt, UInt> numSteps;
+    GetNumMultiSequenceSteps( readerId, analysis, numSteps, false );
+    
     // create new result object, fill it and return it
-    shared_ptr<BaseResult> result = 
-          shared_ptr<BaseResult>(new Result<Double>() );
+    shared_ptr<BaseResult> result;
+    if( analysis[sequenceStep] != HARMONIC ) {
+      result = shared_ptr<BaseResult>(new Result<Double>() );
+    } else {
+      result = shared_ptr<BaseResult>(new Result<Complex>() );
+    }
     result->SetResultInfo( actInfo );
     result->SetEntityList( actList );
     GetResult( readerId, sequenceStep, stepValue, result);
@@ -985,9 +994,10 @@ namespace CoupledField {
 //      std::cerr << "node " << i+1 << "\t";
 //      std::cerr << solVec[eqns[0]-1] << ", " << solVec[eqns[1]-1] << std::endl;
 //    }
-    
+
 //    std::cerr << "Storing algebraic pointer back\n";
     sol->SetAlgSysVector( solVec );
+    //std::cerr << "solution vector is " << solVec << std::endl;
      
     return sol; 
     

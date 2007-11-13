@@ -139,11 +139,11 @@ namespace CoupledField {
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
 
-   //! calculate element mean pressure and derivative for bubble PDE
+    //! calculate element mean pressure and derivative for bubble PDE
     void CalcBubblePressure( StdVector<Elem*>& couplingElems,
                              Vector<Double>& elemCouplingSols,
                              SolutionType solType );
-
+    
 
     // ========================
     // set solution information
@@ -268,7 +268,8 @@ namespace CoupledField {
   //! 
   //! \purpose 
   //! This class is derived from class SinglePDE.
-  //! It is used for solving acoustic equation on one time step.  
+  //! It is used for solving acoustic equation in transient and harmonic
+  //! case, linear and nonlinear.  
   //! 
   //! \collab 
   //! 

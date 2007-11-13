@@ -14,6 +14,7 @@
 #include "Forms/linHeatCondInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linNeumannInt.hh"
+#include "Forms/linearForm.hh"
 
 #include "PDE/trapezoidal.hh"
 
@@ -50,40 +51,36 @@ namespace CoupledField {
   
   void HeatCondPDE::SetInitialCondition() {
 
-	try {
-		// fetch paramnodes for initial condition
-		myParam_->Get("InitialCondition",InitialCondition_);
+    try {
+      // fetch paramnodes for initial condition
+      myParam_->Get("InitialCondition",InitialCondition_);
 
-		//std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-
-
-		if (!isDirectCoupled_ ) {
-			if (isComplex_ ) {
-				solVec_->Init(Complex(InitialCondition_, 0.0) );
-			} else {
-				solVec_->Init( InitialCondition_);
-			}
-			sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
-			                    dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-			
-			// to test -----------------------------------------------------------
-			//Vector< Double > h;
-			//h.Init();
-			//sol_->GetGlobalSolVector(HEAT_TEMPERATURE, h);
-			//std::cout << "\n Initial solution vector = " << h.Serialize() << std::endl;
-			// to test -----------------------------------------------------------
-		}
-
-		
-		isSetInitialCondition_ = true;
+      //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
 
 
-	}
-	catch(Exception & ex ) {
-		InitialCondition_=0.0;
-		//std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
-	}
+      if (!isDirectCoupled_ ) {
+        if (isComplex_ ) {
+          solVec_->Init(Complex(InitialCondition_, 0.0) );
+        } else {
+          solVec_->Init( InitialCondition_);
+        }
+        sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+            dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
 
+        // to test -----------------------------------------------------------
+        //Vector< Double > h;
+        //h.Init();
+        //sol_->GetGlobalSolVector(HEAT_TEMPERATURE, h);
+        //std::cout << "\n Initial solution vector = " << h.Serialize() << std::endl;
+        // to test -----------------------------------------------------------
+      }
+
+      isSetInitialCondition_ = true;
+
+    } catch(Exception & ex ) {
+      InitialCondition_=0.0;
+      //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
+    }
   }
   
   
@@ -149,22 +146,22 @@ namespace CoupledField {
     Double coeffmass, coeffstiff;
     Matrix<Double> thermalConductivityTensor;
 
-    //type of geometry-------------------------------------------------------------
-	std::string geometryType;
-	param->Get("domain")->Get("geometryType", geometryType );
+    //type of geometry
+    std::string geometryType;
+    param->Get("domain")->Get("geometryType", geometryType );
 
-	// convert to tensor type
-	SubTensorType tensorType;
-	if (geometryType == "3d") {
-		tensorType = FULL;
-	} else if (geometryType == "plane") {
-		tensorType = PLANE_STRAIN;
-	} else if (geometryType == "axi") {
-		tensorType = AXI;
-		isaxi_ = true;
-	}
-	//-----------------------------------------------------------------------------
-    
+    // convert to tensor type
+    SubTensorType tensorType = FULL;
+    if (geometryType == "3d") {
+      tensorType = FULL;
+    } else if (geometryType == "plane") {
+      tensorType = PLANE_STRAIN;
+    } else if (geometryType == "axi") {
+      tensorType = AXI;
+      isaxi_ = true;
+    }
+
+    // loop over all subdomains
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
       
       // create new entity list
@@ -176,116 +173,164 @@ namespace CoupledField {
       actMat->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
       //actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
       
-      
-      //check how is comming the heat conductivity-----------------------------------
+      // ====================================================================
+      // stiffness integrator
+      // ====================================================================
+
       BaseForm *bilinearStiff = NULL;
-      
-      if(actMat->IsSet(HEAT_CONDUCTIVITY)){
+      if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
+
         // stiffness integrator for isotropic material
         actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
         
         coeffstiff = thermalConductivity;
         bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
         
-      }
-      else if(actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR)){
+        Info->PrintF( pdename_, 
+            "Assemble Laplace integrator with multiplicative factor %6.1f\n", coeffstiff );
+        
+      } else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
+        
         bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
       }
-      //-----------------------------------------------------------------------------
-      
-      // stiffness integrator
-//      coeffstiff = thermalConductivity;
-//      BaseForm * bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+
       BiLinFormContext * stiffContext = 
         new BiLinFormContext(bilinearStiff, STIFFNESS );
 
       stiffContext->SetPtPdes(this, this);
-      
       stiffContext->SetResults( results_[0], results_[0],
                                  actSDList, actSDList );
 
       // Finally add the standard integrators - stiffness
       assemble_->AddBiLinearForm( stiffContext );
+
       
-	  coeffmass = density * heatCapacity;
+      // ====================================================================
+      // mass integrator
+      // ====================================================================
+      coeffmass = density * heatCapacity;
 		
       if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
-			// mass integrator
 
-			BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
-			BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
+        BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
+        BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
 
-			massContext->SetPtPdes(this, this);
-			massContext->SetResults(results_[0], results_[0], actSDList,
-					actSDList );
+        massContext->SetPtPdes(this, this);
+        massContext->SetResults(results_[0], results_[0], actSDList,
+            actSDList );
 
-			// Finally add the standard integrators - mass
-			assemble_->AddBiLinearForm(massContext );
-		} else {
-			// damping integrator
-			BaseForm * bilinearDamp = new MassInt(coeffmass, 1, isaxi_, true );
-			BiLinFormContext * dampContext = new BiLinFormContext(bilinearDamp, DAMPING );
+        // Finally add the standard integrators - mass
+        assemble_->AddBiLinearForm(massContext );
+        
+        Info->PrintF( pdename_, 
+             "Assemble Mass integrator with multiplicative factor %6.1f\n", coeffmass );
+      } else {
+        // damping integrator
+        BaseForm * bilinearDamp = new MassInt(coeffmass, 1, isaxi_, true );
+        BiLinFormContext * dampContext = new BiLinFormContext(bilinearDamp, DAMPING );
 
-			dampContext->SetPtPdes(this, this);
-			dampContext->SetResults(results_[0], results_[0], actSDList,
-					actSDList );
 
-			// Finally add the standard integrators - mass
-			assemble_->AddBiLinearForm(dampContext );
+        dampContext->SetPtPdes(this, this);
+        dampContext->SetResults(results_[0], results_[0], actSDList,
+            actSDList );
 
-		}
+        // Finally add the standard integrators - mass
+        assemble_->AddBiLinearForm(dampContext );
+      }
 
-      
-      // Finally add the standard integrators
-      //assemble_->AddBiLinearForm( stiffContext );
-      //assemble_->AddBiLinearForm( massContext );
-      
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
     }
-
+    
+    // ======================================================================    
     // Neumann boundary condition
+    // ======================================================================
     try{
-	    for( UInt iBc = 0; iBc < heatInBcs_.GetSize(); iBc++ ) {
-	      
-	      // get current Bc
-	      InhomHeatNeumannBc const & actBc = *heatInBcs_[iBc];
-	
-	      // Because the value of the Neumann BC can be determined by either
-	      //  'value' or
-	      //  'heatTransferCoefficient', 'tSolid' and 'tFluid'
-	      // we convert everything to doubles and look at the values
-	      std::string value  = actBc.value;
-	
-	      // If 'htc' is different from zero, we assume the user wants this definition
-	      if (actBc.htc  != "0.0") {
-	        value = actBc.htc +  " * ( " + actBc.tSolid + "- " + actBc.tFluid + ")";
-	        
-	        Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
-	        			\n  heat transfer coefficient: %s \n  TempSolid:  %s \n  TempFluid: %s\n\n",
-	                    actBc.htc.c_str(), actBc.tSolid.c_str() , actBc.tFluid.c_str() );
-	      }
-	
-	      LinearSurfForm *neumannBC = new LinNeumannInt( value,
-	                                                     actBc.phase, 
-	                                                     HEAT_CONDUCTIVITY,
-	                                                     isaxi_ );
-	      neumannBC->SetVoluInfo( materials_ );
-	      
-	      LinearFormContext * neumannContext =
-	        new LinearFormContext( neumannBC );
-	      neumannContext->SetPtPde( this );
-	      neumannContext->SetResult( actBc.result, actBc.entities );
-	      
-	      assemble_->AddLinearForm( neumannContext );
-	      
-	      // Give result to equation numbering class
-	      eqnMap_->AddResult( *actBc.result, actBc.entities );
-	    }
+      
+      for( UInt iBc = 0; iBc < heatInBcs_.GetSize(); iBc++ ) {
+        
+        // get current Bc
+        InhomHeatNeumannBc const & actBc = *heatInBcs_[iBc];
+  
+        // Because the value of the Neumann BC can be determined by either
+        //  'value' or
+        //  'heatTransferCoefficient', 'tSolid' and 'tFluid'
+        // we convert everything to doubles and look at the values
+        std::string value  = actBc.value;
+  
+        // If 'htc' is different from zero, we assume the user wants this definition
+        if (actBc.htc  != "0.0") {
+          value = actBc.htc +  " * ( " + actBc.tSolid + "- " + actBc.tFluid + ")";
+          
+          Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
+                \n  heat transfer coefficient: %s \n  TempSolid:  %s \n  TempFluid: %s\n\n",
+                      actBc.htc.c_str(), actBc.tSolid.c_str() , actBc.tFluid.c_str() );
+        }
+  
+        LinearSurfForm *neumannBC = new LinNeumannInt( value,
+                                                       actBc.phase, 
+                                                       HEAT_CONDUCTIVITY,
+                                                       isaxi_ );
+        neumannBC->SetVoluInfo( materials_ );
+        
+        LinearFormContext * neumannContext =
+          new LinearFormContext( neumannBC );
+        neumannContext->SetPtPde( this );
+        neumannContext->SetResult( actBc.result, actBc.entities );
+        
+        assemble_->AddLinearForm( neumannContext );
+        
+        // Give result to equation numbering class
+        eqnMap_->AddResult( *actBc.result, actBc.entities );
+      }
+    } catch(Exception & ex){
+      RETHROW_EXCEPTION(ex, "Could not assemble Neumann boundary condition"
+          <<" in HeatCondPDE" );
     }
-    catch(Exception & ex){
-		RETHROW_EXCEPTION(ex, "Could not calculate Neumann boundary condition"
-				<<" in HeatCondPDE" );
+    
+    // ======================================================================
+    // RHS source values
+    // ====================================================================== 
+    
+    // fetch paramnodes for RHS source
+    StdVector<ParamNode*> rhsValuesNodes = 
+      myParam_->Get("bcsAndLoads")->GetList("rhsValues");
+
+    bool isharmonic;
+    std::string rhsRegion, rhsFileId = "default";
+    
+    try {
+      // iterate over all parameter nodes
+      for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ ) {
+
+        rhsRegion = rhsValuesNodes[i]->Get("region")->AsString();
+        rhsValuesNodes[i]->Get("isharmonic", isharmonic, true);
+        //rhsFileId = rhsValuesNodes[i]->Get("inputId")->AsString();
+
+        if ( isharmonic ) {
+          Info->PrintF( pdename_, 
+              "Use same RHS source vector for region '%s' for all timesteps.\n\n", 
+              rhsRegion.c_str() );
+        }
+        
+        // get material density
+        BaseMaterial * actMat = materials_[ ptgrid_->RegionNameToId(rhsRegion) ];
+        actMat->GetScalar(density,DENSITY,REAL);
+
+        linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_, 
+            isharmonic, rhsFileId, rhsRegion, density );
+        
+        LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
+        sourceRHSContext->SetPtPde( this );
+
+        shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
+        rhsElemList->SetRegion( ptgrid_->RegionNameToId(rhsRegion) );
+        sourceRHSContext->SetResult( results_[0], rhsElemList );
+        assemble_->AddLinearForm( sourceRHSContext );
+      }
+    } catch(Exception & ex){
+      RETHROW_EXCEPTION(ex, "Could not assemble RHS source integrator"
+          <<" in HeatCondPDE" );
     }
     
   }
@@ -332,34 +377,26 @@ namespace CoupledField {
 
   void HeatCondPDE::CalcOutputCoupling() {
 
-   //  UInt dof;
+//     UInt dof;
 //     SolutionType quantity;
 //     StdVector<Elem*> * couplingElems = NULL;
 //     StdVector<UInt> * couplingNodes = NULL;
 //     CFSVector * temp_values = NULL;
-  
 //     // at first, check if this PDE is iterative coupled
 //     if (isIterCoupled_ == false)
 //       return;
-
-    // loop over all output coupling quantities
+//     // loop over all output coupling quantities
 //     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-      
 //       quantity = ptCoupling_->GetOutputQuantity(i);
 //       ptCoupling_->GetOutputValues(i, temp_values);
-
 //       // hard coded cast, since coupling is only possible with
 //       // real valued entries
 //       Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
-
 //       switch(ptCoupling_->GetOutputType(i)) {
-        
 //       case NODE:
-
 //         ptCoupling_->GetOutputNodes(i, couplingNodes);
 //         ptCoupling_->GetOutputElements(i, couplingElems);
 //         dof = ptCoupling_->GetOutputDof(i);    
-  
 //         break;
 //       case ELEM:
 //         EXCEPTION("No Element coupling output", __FILE__,__LINE__);
@@ -367,7 +404,6 @@ namespace CoupledField {
 //     }
 
   }
-
 
 
   void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
@@ -424,16 +460,14 @@ namespace CoupledField {
 
   }
   
-  void HeatCondPDE::SetElectroCoupling()
-  {
+  void HeatCondPDE::SetElectroCoupling() {
+    
     isElectroCoupled_ = true;
-
   }
   
-  void HeatCondPDE::SetMechCoupling()
-  {
+  void HeatCondPDE::SetMechCoupling() {
+    
     isMechCoupled_ = true;
-
   }
 
 } // end of namespace CoupledField

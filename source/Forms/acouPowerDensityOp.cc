@@ -27,7 +27,6 @@ namespace CoupledField {
     
     isaxi_ = isaxi;
     //Warning( "Only working with Lagrange Functions", __FILE__, __LINE__ );
-
   }
 
   template<class TYPE>
@@ -45,6 +44,7 @@ namespace CoupledField {
     Elem const * ptElement = it.GetElem();
     const UInt nrIntPts = ptElement->ptElem->GetNumIntPoints();
     const UInt nrNodes  = ptElement->ptElem->GetNumNodes();
+    const Vector<Double> &intWeights = ptElement->ptElem->GetIntWeights();  
 
     // initialize output vector
     elemPD.Resize(nrNodes);
@@ -76,7 +76,7 @@ namespace CoupledField {
     Double N1;
     Vector<Double> N2;
     Double jacDet;
-    Double Jdet=0.0;
+    Double sumJacDet=0.0;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
@@ -105,20 +105,21 @@ namespace CoupledField {
 
         
       N1 = ComputeN1( solGradAtIp, solDeriv1GradAtIp );
-      N2 = ComputeN2(solGradAtIp, solDeriv1AtIp);
+      N2 = ComputeN2( solGradAtIp, solDeriv1AtIp );
 
-      Jdet += jacDet;
+      sumJacDet += jacDet;
       for (UInt i=0; i< nrNodes; i++) {
 
-        elemPD[i] += ShpFncAtIp[i] * N1 * jacDet;
+        elemPD[i] += ShpFncAtIp[i] * N1;
 
         for (UInt j=0; j<xiDx.GetSizeCol(); j++)
-          elemPD[i] -= xiDx[i][j] * N2[j] * jacDet;
+          elemPD[i] -= xiDx[i][j] * N2[j];
       }
+      elemPD *= jacDet * intWeights[actIntPt-1];
     }
-//     std::cout << "Jdet=" << Jdet << std::endl;
+//     std::cout << "sum of jacDet=" << sumJacDet << std::endl;
 
-    elemPD *= density;
+    elemPD *=  density;
 
 #ifdef DEBUG
     (*debug) << "Coupling vector acoustic-heat conduction is: " 
