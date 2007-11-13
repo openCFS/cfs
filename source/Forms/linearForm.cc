@@ -9,6 +9,7 @@
 #include "forms_header.hh"
 #include "Utils/coordSystem.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/resultHandler.hh"
 #include "Utils/SmoothSpline.hh"
 
 namespace CoupledField {
@@ -1651,25 +1652,19 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   {
     name_ = "nLinKuznetsovRHSInt";
     isaxi_ = isaxi;
-
   }
 
+  nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt() {}
 
-  nLinKuznetsovRHSInt::~nLinKuznetsovRHSInt()
-  {
-  }
-
-
-  void nLinKuznetsovRHSInt::CalcElemVector( Vector<Double> & elemVec,
+  void nLinKuznetsovRHSInt::CalcElemVector( Vector<Double>& elemVec,
                                             EntityIterator& ent ) 
   {
-
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt spaceDim = ptelem->GetDim();  
 
     elemVec.Resize(numFncs);
@@ -1677,14 +1672,6 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     solGradAtIp_.Resize(numFncs);
     solDeriv1GradAtIp_.Resize(numFncs);
-
-//     // calculate real factors
-//     Double fac1,fac2;
-//     mParser_->SetExpr( mHandle_, factorN1_);
-//     fac1 = mParser_->Eval( mHandle_ );
-//     mParser_->SetExpr( mHandle_, factorN2_);
-//     fac2 = mParser_->Eval( mHandle_ );
-
 
     Double jacDet, totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
@@ -1713,8 +1700,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         }
       }
 //       xiDx.Transpose(xiDxTransp);
-//       solGradAtIp       = xiDxTransp * sol_;
-//       solDeriv1GradAtIp = xiDxTransp * solderiv1_;
+//       solGradAtIp_       = xiDxTransp * sol_;
+//       solDeriv1GradAtIp_ = xiDxTransp * solderiv1_;
 
 
       //get 1st and 2nd derivative of solution at integration point
@@ -1743,23 +1730,18 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     isaxi_ = isaxi;
   }
 
+  nLinWesterveltRHSInt::~nLinWesterveltRHSInt() {}
 
-  nLinWesterveltRHSInt::~nLinWesterveltRHSInt()
-  {
-  }
-
-
-  void nLinWesterveltRHSInt::CalcElemVector( Vector<Double> & elemVec,
+  void nLinWesterveltRHSInt::CalcElemVector( Vector<Double>& elemVec,
                                              EntityIterator& ent )
   {
-
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-   
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+       
     elemVec.Resize(numFncs);
     elemVec.Init(0.0);
 
@@ -1775,9 +1757,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       }
         
       //get solution and derivatives at integration point
-      solAtIp_ = sol_ * ShpFncAtIp_;
-      solDeriv1AtIp_ = solderiv1_ * ShpFncAtIp_;
-      solDeriv2AtIp_ = solderiv2_ * ShpFncAtIp_;
+      solAtIp_ = ShpFncAtIp_ * sol_;
+      solDeriv1AtIp_ =  ShpFncAtIp_ * solderiv1_;
+      solDeriv2AtIp_ =  ShpFncAtIp_ * solderiv2_;
         
       totalfactor = jacDet * 2.0 * factor_ * (solDeriv1AtIp_ * solDeriv1AtIp_ +
                                               solAtIp_ * solDeriv2AtIp_);
@@ -1787,7 +1769,234 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     }
   }
 
+  // =============================================================================
+  // acoustic power source in heat conduction PDE
+  // =============================================================================
+  linAcouPowerSourceInt::linAcouPowerSourceInt( bool isaxi, 
+                                                bool isharmonic,
+                                                const std::string& readerId,
+                                                const std::string& regionName,
+                                                Double density )
+  : LinearForm()
+  {
+    name_ = "linAcouPowerSourceInt";
+    
+    isaxi_ = isaxi;
+    isharmonic_ = isharmonic;
+    readerId_ = readerId;
+    regionNames_.Resize(1);
+    regionNames_[0] = regionName;
+    density_ = density;
+    
+    // assume, that acoustic results do not come from multi sequence analysis
+    sequenceStep_ = 1;
+     
+    if ( isharmonic_ == true ) {
+      // in harmonic case, results are from single frequency step
+      UInt stepValue = 1;
+      
+      res_C_ = domain->GetResultHandler()->GetStoreSol<Complex>( readerId_,
+          sequenceStep_, stepValue, ACOU_POTENTIAL, regionNames_ );
+      resD1_C_ = domain->GetResultHandler()->GetStoreSol<Complex>( readerId_, 
+          sequenceStep_, stepValue, ACOU_POTENTIAL_DERIV_1, regionNames_ );
+      
+    } else {
+      // Specify that we want to use the current step number.
+      mParser_->SetExpr( mHandle_, "step" );
+      
+      // assume, that first calculated time step is 1
+      lastStep_ = 0;
+    }
+  }
 
+  linAcouPowerSourceInt::~linAcouPowerSourceInt() {}
+  
+  void linAcouPowerSourceInt::CalcElemVectorDouble( Vector<Double>& elemPower,
+                                                    EntityIterator& ent )
+  {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const UInt spacedim = ptelem->GetDim();
+    //const UInt nrNodes  = ptelem->GetNumNodes();
+
+    Vector<Double> elemSol, elemSolD1, solGradAtIp, solD1GradAtIp, N2;
+    Double solD1AtIp, N1;
+
+    // get current time step of transient analysis
+    actStep_ = mParser_->Eval(mHandle_);
+    
+    if ( lastStep_ < actStep_ ) {
+      // get result only once per time step
+      res_R_ = domain->GetResultHandler()->GetStoreSol<Double>( readerId_,
+           sequenceStep_, actStep_, ACOU_POTENTIAL, regionNames_ );
+      resD1_R_ = domain->GetResultHandler()->GetStoreSol<Double>( readerId_, 
+           sequenceStep_, actStep_, ACOU_POTENTIAL_DERIV_1, regionNames_ );
+      
+      lastStep_ = actStep_;
+    }
+    
+    // retrieve acoustic solution, i.e. acouPotential and acouPotentialD1 of element
+    res_R_->GetElemSolution(elemSol, ent);
+    resD1_R_->GetElemSolution(elemSolD1, ent);
+    
+    // resize and initialize output vector
+    elemPower.Resize(numFncs);
+    elemPower.Init(0.0);
+    
+    Double jacDet, factor;
+    solGradAtIp.Resize(numFncs);
+    solD1GradAtIp.Resize(numFncs);
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
+
+      jacDet = 0;
+      ptelem->GetShFncAtIp( ShpFncAtIp_, actIntPt ,  ent.GetElem() );
+      ptelem->GetGlobDerivShFncAtIp( xiDx_ , actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );
+       
+      if (isaxi_) {
+        CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
+        for (UInt i=0; i<numFncs; i++)
+          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
+
+        jacDet *= 2 * PI * CoordAtIp_[0];
+      }
+      
+      // gradient of acouPotential and acouPotentialD1 at integration point
+      solGradAtIp.Init();
+      solD1GradAtIp.Init();
+      for ( UInt i=0; i<spacedim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp[i] += xiDx_[j][i] * elemSol[j];
+          solD1GradAtIp[i] += xiDx_[j][i] * elemSolD1[j];
+        }
+      }
+      // acouPotentialD1 at integration point
+      solD1AtIp = ShpFncAtIp_ * elemSolD1;
+      
+      // calculate helper variables N1 and N2
+      N1 = 0;
+      for (UInt k=0; k<xiDx_.GetSizeCol(); k++)
+        N1 += solGradAtIp[k] * solD1GradAtIp[k];
+      
+      N2 = solGradAtIp * solD1AtIp;
+      // std::cerr << "N1:\n" << N1 << "\nN2:\n" << N2 << "\n";
+      
+      factor = density_ * jacDet * intWeights[actIntPt-1];
+      // source element vector
+      for (UInt i=0; i< numFncs; i++) {
+        
+        elemPower[i] += factor * ShpFncAtIp_[i] * N1;
+        
+        for (UInt j=0; j<xiDx_.GetSizeCol(); j++)
+          elemPower[i] -= factor * xiDx_[i][j] * N2[j];
+      }
+    }
+    // std::cerr << "elemPower = " << elemPower << "\n\n";
+  }
+
+  
+  void linAcouPowerSourceInt::CalcElemVectorComplex( Vector<Double>& elemPower,
+                                                     EntityIterator& ent )
+  {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const UInt spacedim = ptelem->GetDim();  
+    // const UInt nrNodes  = ptelem->GetNumNodes();
+    
+    Vector<Complex> elemSol, elemSolD1, solGradAtIp, solD1GradAtIp, N2;
+    Complex solD1AtIp, N1;
+    
+    // get element solution
+    res_C_->GetElemSolution(elemSol, ent);
+    resD1_C_->GetElemSolution(elemSolD1, ent);
+    
+    // ----------------------------------------------------------------------
+//    std::cerr << "elemSol:\n";
+//    for (UInt i=0; i<elemSol.GetSize();i++)
+//      std::cerr << "  abs = " << std::abs(elemSol[i]) << "  angle = "
+//                << std::atan2( elemSol[i].imag(), elemSol[i].real() )*180/PI << "\n";
+//    std::cerr << "elemSolD1:\n";
+//    for (UInt i=0; i<elemSolD1.GetSize();i++)
+//      std::cerr << "  abs = " << std::abs(elemSolD1[i]) << "  angle = "
+//                << std::atan2( elemSolD1[i].imag(), elemSolD1[i].real() )*180/PI << "\n";
+    // ----------------------------------------------------------------------
+    
+    
+    // resize and initialize output vector
+    elemPower.Resize(numFncs);
+    elemPower.Init(0.0);
+    
+    Double jacDet, factor;
+    N2.Resize(spacedim);
+    solGradAtIp.Resize(numFncs);
+    solD1GradAtIp.Resize(numFncs);
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+
+      jacDet = 0.0;
+      ptelem->GetShFncAtIp( ShpFncAtIp_, actIntPt ,  ent.GetElem() );
+      ptelem->GetGlobDerivShFncAtIp( xiDx_ , actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );
+      
+      if (isaxi_) {
+        CoordAtIp_ = ptCoord_ * ShpFncAtIp_;
+        for (UInt i=0; i<numFncs; i++)
+          xiDx_[i][0] += ShpFncAtIp_[i] / CoordAtIp_[0];
+
+        jacDet *= 2 * PI * CoordAtIp_[0];
+      }
+      
+      // gradient of acouPotential and acouPotentialD1 at integration point
+      solGradAtIp.Init();
+      solD1GradAtIp.Init();
+      for ( UInt i=0; i<spacedim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp[i] += xiDx_[j][i] * elemSol[j];
+          solD1GradAtIp[i] += xiDx_[j][i] * elemSolD1[j];
+        }
+      }
+      // acouPotentialD1 at integration point
+      solD1AtIp = ShpFncAtIp_ * elemSolD1;
+      
+      // calculate helper variables N1 and N2
+      N1 = Complex(0.0, 0.0);
+      for (UInt k=0; k<spacedim; k++)
+        N1 += 0.5 * solD1GradAtIp[k] * std::conj( solGradAtIp[k] );
+
+      for (UInt k=0; k<spacedim; k++)
+        N2[k] = 0.5 * std::conj( solGradAtIp[k] ) * solD1AtIp;
+      
+      // --------------------------------------------------------------------
+      std::cerr << "N1:\n" << "  abs = " << std::abs(N1) << "  angle = "
+                << std::atan2( N1.imag(), N1.real() )*180/PI << "\n";
+      std::cerr << "N2:\n";
+      for (UInt i=0; i<N2.GetSize(); i++)
+        std::cerr << "  abs = " << std::abs(N2[i]) << "  angle = "
+                  << std::atan2( N2[i].imag(), N2[i].real() )*180/PI << "\n";
+      // --------------------------------------------------------------------
+        
+      factor = density_ * jacDet * intWeights[actIntPt-1];
+      // source element vector
+      for (UInt i=0; i< numFncs; i++) {
+        
+        elemPower[i] += factor * ShpFncAtIp_[i] * N1.real();
+        
+        for (UInt j=0; j<spacedim; j++)
+          elemPower[i] -= factor * xiDx_[i][j] * N2[j].real();
+      }
+    }
+    std::cerr << "elemPower:\n" << elemPower << "\n\n";
+  }
+  
   // ====================================================================
   // electric polarization
   // ====================================================================

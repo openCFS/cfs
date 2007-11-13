@@ -225,13 +225,48 @@ namespace CoupledField {
     reducType_ = type;
   }
 
-  PostProcSum::~PostProcSum() {
-    
+  PostProcSum::~PostProcSum() { }
+  
+  template<class TYPE> 
+  void PostProcSum::CalcSum() {
+
+    // Cast output into correct type
+    Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
+    Result<TYPE> & in =  dynamic_cast<Result<TYPE>&>(*input_ );
+    Vector<TYPE> & outVec = out.GetVector();
+    Vector<TYPE> & inVec = in.GetVector();
+
+    if( reducType_ == SPACE ) {
+      // If ReductionType == SPACE, we have to iterate over all
+      // entities of output_ and get the related EntityList in
+      // input_..
+
+      shared_ptr<EntityList> outList = out.GetEntityList();
+      EntityIterator outIt = outList->GetIterator();
+      ResultInfo & outResInfo = *(out.GetResultInfo() );
+      outVec.Resize( outResInfo.dofNames.GetSize() );
+      outVec.Init();
+      outIt.Begin();
+
+      EntityIterator inIt = in.GetEntityList()->GetIterator();
+      UInt numDofs = in.GetResultInfo()->dofNames.GetSize();
+
+      // Iterate over all entities of the input entitylist
+      for( inIt.Begin(); !inIt.IsEnd(); inIt++ ) {
+        // Iterate over all dofs
+        for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+          outVec[iDof] += inVec[inIt.GetPos()*numDofs + iDof];
+        } // dofs
+      } // input entities
+    } else {
+      // Iterate over all vector entries
+      if( outVec.GetSize() != inVec.GetSize() ) {
+        outVec.Resize( inVec.GetSize() );
+        outVec.Init();
+      }
+      outVec += inVec;
+    }
   }
-
-
- 
-
   
   void PostProcSum::SetResult( shared_ptr<BaseResult> res ) {
     
@@ -263,7 +298,6 @@ namespace CoupledField {
     newResult->SetEntityList( newList );
     newResult->SetResultInfo( newInfo );
     output_ = newResult;
-
   }
 
   void PostProcSum::Apply() {
@@ -276,55 +310,7 @@ namespace CoupledField {
   }
 
 
-  template<class TYPE> 
-  void PostProcSum::CalcSum() {
-    
-    // Cast output into correct type
-    Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
-    Result<TYPE> & in =  dynamic_cast<Result<TYPE>&>(*input_ );
-    Vector<TYPE> & outVec = out.GetVector();
-    Vector<TYPE> & inVec = in.GetVector();
-      
-  
-    if( reducType_ == SPACE ) {
-
-      // If ReductionType == SPACE, we have to iterate over all
-      // entities of output_ and get the related EntityList in
-      // input_..
-      
-      shared_ptr<EntityList> outList = out.GetEntityList();
-      EntityIterator outIt = outList->GetIterator();
-      ResultInfo & outResInfo = *(out.GetResultInfo() );
-      outVec.Resize( outResInfo.dofNames.GetSize() );
-      outVec.Init();
-      outIt.Begin();
-      
-      EntityIterator inIt = in.GetEntityList()->GetIterator();
-      UInt numDofs = in.GetResultInfo()->dofNames.GetSize();
-      
-      // Iterate over all entities of the input entitylist
-      for( inIt.Begin(); !inIt.IsEnd(); inIt++ ) {
-        // Iterate over all dofs
-        for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-          outVec[iDof] += inVec[inIt.GetPos()*numDofs + iDof];
-        } // dofs
-      } // input entities
-    } else {
-      
-      // Iterate over all vector entries
-      if( outVec.GetSize() != inVec.GetSize() ) {
-        outVec.Resize( inVec.GetSize() );
-        outVec.Init();
-      }
-      outVec += inVec;
-
-    }
-
-  }
-  
-  void PostProcSum::Finalize() {
-
-  }
+  void PostProcSum::Finalize() {  }
 
   // =================== MAXIMUM-POSTPROCEDURE ===================
 

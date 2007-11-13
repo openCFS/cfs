@@ -1627,8 +1627,6 @@ namespace CoupledField {
                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                       UInt actCoupling,
                       UInt numCouplingNodes) {
-
-
     
     // get the coupling regions
     StdVector<std::string> couplRegions;
@@ -1676,10 +1674,11 @@ namespace CoupledField {
       offset = actSDList.GetSize();
     }
   }
+  
+  
   void AcousticPDE::CalcBubblePressure( StdVector<Elem*> & elems,
                                         Vector<Double>& couplVals,
                                         SolutionType solType ) {
-
 
     //     //NUR BEI BOSCH!!!
     //     mHandle_ =  domain->GetMathParser()->GetNewHandle();
@@ -1854,6 +1853,7 @@ namespace CoupledField {
                    << "analysis!" );
       }
       break;
+      
     case ACOU_FORCE:
       if( isComplex_ ) {
         CalcForce<Complex>( result );
@@ -1861,7 +1861,7 @@ namespace CoupledField {
         CalcForce<Double>( result );
       }
       break;
-      
+           
     default:
       Warning( "Resulttype not computable by acoustic PDE",
                __FILE__, __LINE__ );
@@ -2314,13 +2314,8 @@ namespace CoupledField {
         
       }
     }
-
     delete gradOp;
   }
-
-
-
-
 
   /**  template <class TYPE>
        void AcousticPDE::CalcAcouPower( shared_ptr<BaseResult> vals ) {
@@ -2610,7 +2605,7 @@ namespace CoupledField {
     force->definedOn = ResultInfo::SURF_ELEM;
     force->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( force );
-
+    
     // ===================================
     // Check for non-conforming interfaces
     // ===================================

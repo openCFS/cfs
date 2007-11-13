@@ -422,8 +422,8 @@ namespace CoupledField
     ///
     virtual ~nLinKuznetsovRHSInt();
 
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
+    /// Calculation of RHS vector 
+    void CalcElemVector( Vector<Double>& result,
                          EntityIterator& ent );
 
     //! the solution is needed for setting up the matrix
@@ -459,8 +459,6 @@ namespace CoupledField
 
     Double factorN1_;      //!< multiplicative value for integrator
     Double factorN2_;     //!< multiplicative value for integrator
-
-    //    std::string val_;       //!< source factor
   };
 
   /// calculation of RHS in nonlinear acoustics using Westervelt's equation
@@ -473,8 +471,8 @@ namespace CoupledField
     ///
     virtual ~nLinWesterveltRHSInt();
 
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
+    /// Calculation of RHS vector 
+    void CalcElemVector( Vector<Double>& result,
                          EntityIterator& ent );
 
     //! the solution is needed for setting up the matrix
@@ -503,9 +501,57 @@ namespace CoupledField
     Double solAtIp_, solDeriv1AtIp_, solDeriv2AtIp_; //<! sol at integration point
 
     Double factor_;      //!< multiplicative value for integrator
-
-//     std::string  val_;          //!< source factor
   };
+  
+  // =============================================================================
+  // acoustic source term in heat conduction PDE
+  // =============================================================================
+  
+  /// compute acoustic power source in heat conduction PDE
+  class linAcouPowerSourceInt : public LinearForm
+  {
+  public:
+    ///
+    linAcouPowerSourceInt( bool isaxi, bool isharmonic,
+                           const std::string& readerId, const std::string& regionName,
+                           Double density);
+  
+    ///
+    virtual ~linAcouPowerSourceInt();
+    
+    //! calculate RHS source vector
+    void CalcElemVector( Vector<Double>& elemPower, EntityIterator& ent) {
+      
+      if( isharmonic_ == true )
+        CalcElemVectorComplex( elemPower, ent );
+      else
+        CalcElemVectorDouble( elemPower, ent );
+    }
+    
+  private:
+    
+    //! transient acoustic - transient heat conduction coupling
+    void CalcElemVectorDouble(Vector<Double>& elemPower, EntityIterator& ent );
+    
+    //! harmonic acoustic - transient heat conduction coupling
+    void CalcElemVectorComplex( Vector<Double>& elemPower, EntityIterator& ent);
+
+    std::string readerId_;
+    StdVector<std::string> regionNames_;
+    bool isharmonic_;
+    Double density_;
+    UInt actStep_, lastStep_;
+    UInt sequenceStep_;
+    shared_ptr<NodeStoreSol<Complex> > res_C_, resD1_C_;
+    shared_ptr<NodeStoreSol<Double> > res_R_, resD1_R_;
+    
+    Vector<Double> ShpFncAtIp_; //! shape function at integration point
+    Matrix<Double> xiDx_; //! derivation of shape functions after global coordinates 
+    Vector<Double> CoordAtIp_; //! coordinate at integration point
+};
+
+  
+  
 
 
 

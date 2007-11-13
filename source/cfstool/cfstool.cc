@@ -334,8 +334,7 @@ namespace CFSTool {
        for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
          
          UInt actMsStep = it->first;
-         std::cout << "\n-------------------------\n"
-                   << " Diffing sequence step " << actMsStep << std::endl
+         std::cout << " Diffing sequence step " << actMsStep << std::endl
                    << "-------------------------\n\n";
          
          // get resulttypes
@@ -355,7 +354,7 @@ namespace CFSTool {
          // iterate over all result types of input1
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::cout << "\t" << infos[iRes]->resultName << std::endl; 
+           std::cout << "\t" << infos[iRes]->resultName << "\n\n"; 
 
            // get stepvalues
            shared_ptr<ResultInfo> actRes = infos[iRes];
@@ -435,6 +434,9 @@ namespace CFSTool {
              input1->GetResult( actMsStep, actStepNum, inResults1[iRes], isHistory );
              input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
              
+             // get number of dofs of result
+               UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
+             
              // cast result objects, get vector and calculate difference vector
              if( types[actMsStep] != HARMONIC ) {
                Vector<Double> & inVec1 = 
@@ -444,7 +446,7 @@ namespace CFSTool {
                Vector<Double> & outVec = 
                  dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
-
+               
                // normalize to maximum value of inResult2
                Double maxRes2 = 0.0;
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
@@ -544,7 +546,8 @@ namespace CFSTool {
                            << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";
                
                
-               std::cout << "\n\tmaxDiff = " << maxDiff << std::endl;
+
+               std::cout << "\n\tMaximum overall differenc = " << maxDiff << "\n\n";
              }
              
              
@@ -585,8 +588,11 @@ int main(int argc, char** argv) {
                 << "The following modi are vailable:\n\n"
                 << "\tconvert <infile> <outfile>\n"
                 << "\tscalardiff <infile1> <infile2> <tolerance>\n"
+                << "\t\tIs max(in_1 - in_2) / max(in_2) < tolerance?\n"
                 << "\tmeshdiff <infile1> <infile2> <outfile>\n"
+                << "\t\ti.e. out = in_1 -in_2\n"
                 << "\tmeshdiffnormed <infile1> <infile2> <outfile>\n"
+                << "\t\ti.e. out = (in_1 - in_2) / max(in_2)\n"
                 << "\n\n"
                 << "List of supported formats:\n"
                 << "\tinput: .mesh .h5\n"
@@ -621,22 +627,20 @@ int main(int argc, char** argv) {
         EXCEPTION( "Could not convert '" << argv[4] << "' to double value");
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
-      std::cout << "\n===========================\n" 
-                << " Checking for mesh results \n"
-                << "===========================\n";
+      std::cout << "Checking for mesh results:\n"
+                << "==========================";
       maxDiffMesh = CFSTool::Diff( argv[2], argv[3], "", true, false );
-      std::cout << "\n==============================\n" 
-                << " Checking for history results \n"
-                << "==============================\n";
+      std::cout << "Checking for history results:\n"
+                << "=============================";
       maxDiffHist = CFSTool::Diff( argv[2], argv[3], "", true, true );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "\nFiles '" << argv[2] << "' and '"
-        << argv[3] << "' differ with maximum difference of "
-        << maxDiff << "\n";
+        std::cout << "  Files '" << argv[2] << "' and '" << argv[3]
+                  << "' differ with maximum difference of "
+                  << maxDiff << "\n";
         exit(EXIT_FAILURE);
       } else {
-        std::cout << "\nNo difference found\n";
+        std::cout << "  No differences larger than tolerance found.\n";
         exit(EXIT_SUCCESS);
       }
 
