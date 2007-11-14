@@ -432,6 +432,7 @@ namespace CoupledField {
     EntityList::DefineType defineType;
     switch( info->definedOn ) {
     case ResultInfo::NODE:
+    case ResultInfo::PFEM:
       listType = EntityList::NODE_LIST;
       if( isHistory ) 
         defineType = EntityList::NAMED_NODES;
@@ -516,6 +517,7 @@ namespace CoupledField {
     std::string entString;
     switch( result->GetResultInfo()->definedOn ) {
     case ResultInfo::NODE:
+    case ResultInfo::PFEM:
       entString = "Nodes";
       break;
     case ResultInfo::ELEMENT:

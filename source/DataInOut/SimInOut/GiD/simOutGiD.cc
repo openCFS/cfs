@@ -518,6 +518,7 @@ namespace CoupledField {
                                              AnalysisType type,
                                              UInt numSteps ) {
     
+    actAnalysis_ = type;
     actMsStep_ = step;
   }
  
@@ -537,8 +538,14 @@ namespace CoupledField {
   void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
 
     actStep_ = stepNum;
+    actStepVal_ = stepVal;
+    
     // add  offset to step value to account for multisequence steps
-    actStepVal_ = stepVal + stepValueOffset_;
+    if( actAnalysis_ == TRANSIENT ||
+        actAnalysis_ == STATIC  ) { 
+     actStepVal_ += stepValueOffset_;
+    }
+    
     resultMap_.clear();
   }
  
@@ -605,7 +612,10 @@ namespace CoupledField {
   
   void SimOutputGiD::
   FinishMultiSequenceStep( ) {
-    stepValueOffset_ = actStepVal_;
+    if( actAnalysis_ == TRANSIENT ||
+        actAnalysis_ == STATIC ) {
+      stepValueOffset_ = actStepVal_;
+    }
   }
   
 
@@ -619,10 +629,8 @@ namespace CoupledField {
     
     // assemble name for analysis step
     std::string analysisName = "transient";
+    analysisName += "_" + GenStr( actMsStep_ );
 
-    if( actMsStep_ > 1 ) {
-      analysisName += "_" + GenStr( actMsStep_ );
-    }
 
     // get number of entities
     UInt numEnt = 0;
@@ -734,10 +742,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-
-    if( actMsStep_ > 1 ) {
-      analysisName += "_" + GenStr( actMsStep_ );
-    }
+    analysisName += "_" + GenStr( actMsStep_ );
     
    // get number of entities
     UInt numEnt = 0;

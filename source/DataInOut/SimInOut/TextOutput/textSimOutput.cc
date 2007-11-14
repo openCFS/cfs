@@ -14,6 +14,7 @@ namespace fs = boost::filesystem;
 #include "Utils/coordSystem.hh"
 #include "Elements/basefe.hh"
 
+
 namespace CoupledField {
 
 
@@ -82,6 +83,13 @@ namespace CoupledField {
     }
   }
   
+  void SimOutputText::BeginMultiSequenceStep( UInt step, 
+                                               AnalysisType type,
+                                               UInt numSteps ) {
+      
+      actAnalysis_ = type;
+    }
+  
   void SimOutputText::RegisterResult( shared_ptr<BaseResult> sol,
                                       UInt saveBegin, UInt saveInc,
                                       UInt saveEnd,
@@ -92,8 +100,16 @@ namespace CoupledField {
 
   void SimOutputText::BeginStep( UInt stepNum, Double stepVal ) {
 
-    actStep_ = stepNum + stepNumOffset_;
-    actStepVal_ = stepVal + stepValOffset_;
+    actStep_ = stepNum;
+    actStepVal_ = stepVal;
+
+    // add  offset to step value to account for multisequence steps
+    if( actAnalysis_ == TRANSIENT ||
+        actAnalysis_ == STATIC  ) { 
+      actStep_ += stepNumOffset_;
+      actStepVal_ += stepValOffset_;
+    }
+
     resultMap_.clear();
   }
 
@@ -119,8 +135,11 @@ namespace CoupledField {
   void SimOutputText::FinishMultiSequenceStep( ) {
     
     // set offset for step value and number to last values
-    stepNumOffset_ = actStep_;
-    stepValOffset_ = actStepVal_;
+    if( actAnalysis_ == TRANSIENT ||
+         actAnalysis_ == STATIC ) {
+      stepNumOffset_ = actStep_; 
+      stepValOffset_ = actStepVal_;
+     }
    }
   
   void SimOutputText::WriteStepCollectTimeFreq() {
@@ -459,7 +478,14 @@ namespace CoupledField {
     
         totalName += entityString + ".hist";
       
-        outFiles[it.GetPos()] = new std::ofstream( totalName.c_str() );
+        if( usedFileNames_.find( totalName ) != usedFileNames_.end() ) {
+          outFiles[it.GetPos()] = new std::ofstream( totalName.c_str(), 
+                                                     std::ios::out | 
+                                                     std::ios::app );
+        } else {
+          outFiles[it.GetPos()] = new std::ofstream( totalName.c_str() );
+          usedFileNames_.insert( totalName );
+        }
 
         // write header to file
         std::ofstream & actFile = *outFiles[it.GetPos()];
