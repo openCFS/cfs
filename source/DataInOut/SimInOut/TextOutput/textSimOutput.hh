@@ -37,6 +37,11 @@ namespace CoupledField {
                          UInt saveEnd,
                          bool isHistory );
 
+    //! Begin multisequence step
+    void BeginMultiSequenceStep( UInt step,
+                                 AnalysisType type,
+                                 UInt numSteps);
+    
     //! Begin single analysis step
     void BeginStep( UInt stepNum, Double stepVal );
 
@@ -100,6 +105,9 @@ namespace CoupledField {
     //! Map of result and vector of ofstreams
     std::map<shared_ptr<BaseResult>,
              StdVector<std::ofstream*> > outFiles_;
+    
+    //! Store all fileNames, which are created during this simulation run
+    std::set<std::string> usedFileNames_;
 
     //! Comment char
     char cmChar_;
@@ -110,6 +118,9 @@ namespace CoupledField {
     //! Coordinate system
     CoordSystem * coordSys_;
 
+    //! Type of analysis in current multisequence step
+    AnalysisType actAnalysis_;
+    
     //! Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;
         

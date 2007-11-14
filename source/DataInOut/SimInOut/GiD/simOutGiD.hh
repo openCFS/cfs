@@ -104,6 +104,9 @@ namespace CoupledField
     //! Current multisequence step
     UInt actMsStep_;
     
+    //! Type of analysis in current multisequence step
+    AnalysisType actAnalysis_;
+    
     //! Offset for step numbers for multisequence analysis
     Double stepValueOffset_;
 

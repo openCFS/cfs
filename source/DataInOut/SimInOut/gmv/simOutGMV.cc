@@ -110,7 +110,7 @@ namespace CoupledField {
                                              UInt numSteps )
   {
 
-    Enum2String( type, currAnalysis_ );
+    currAnalysis_ = type;
     currMsStep_ = step;
 
   }
@@ -136,8 +136,13 @@ namespace CoupledField {
 
     resultMap_.clear();
     
-    actStep_ = stepNum + stepNumOffset_;
-    actStepVal_ = stepVal + stepValOffset_;
+    actStep_ = stepNum;
+    actStepVal_ = stepVal;
+    if( currAnalysis_ == TRANSIENT ||
+        currAnalysis_ == STATIC  ) { 
+      actStep_ += stepNumOffset_;
+      actStepVal_ += stepValOffset_;
+    }
 
   }
 
@@ -169,7 +174,9 @@ namespace CoupledField {
     // Open new file
     // ----------------------
     std::ostringstream strBuffer;
-    strBuffer <<  fileName_ << "-" << currAnalysis_
+    std::string analysisString;
+    Enum2String( currAnalysis_, analysisString );
+    strBuffer <<  fileName_ << "-" << analysisString
               << "-" << currMsStep_ << ".gmv";
     if ( actStep_ < 10 ) strBuffer << "000";
     else if ( actStep_ < 100 ) strBuffer << "00";
@@ -251,8 +258,12 @@ namespace CoupledField {
   //! End multisequence step
   void SimOutputGMV::FinishMultiSequenceStep( ) {
     // set offset for step value and number to last values
-    stepNumOffset_ = actStep_;
-    stepValOffset_ = actStepVal_;
+    if( currAnalysis_ == TRANSIENT ||
+          currAnalysis_ == STATIC ) {
+      stepNumOffset_ = actStep_;
+      stepValOffset_ = actStepVal_;
+    }
+
   }
 
 

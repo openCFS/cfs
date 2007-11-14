@@ -73,7 +73,7 @@ namespace CoupledField
     Integer currMsStep_;
     
     //! current analysis type
-    std::string currAnalysis_;
+    AnalysisType currAnalysis_;
 
     //! indicator of type for data
     bool ascii_;
