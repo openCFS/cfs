@@ -12,7 +12,7 @@
 %      step      - which step to search for
 %      quantity  - what quantity
 %      region    - on what region
-%        
+%      
 %    OUTPUT/S
 %      found     - integer that indicates at which node level the search
 %                  was stopped.
@@ -49,8 +49,8 @@
 %    ABOUT
 %
 %      -Created:     Jun 2007
-%      -Last update: 07 Nov 2007
-%      -Revision:    0.2
+%      -Last update: 15 Nov 2007
+%      -Revision:    0.3
 %      -Authors:     Simon Triebenbacher, Jens Grabinger
 %
 % ==============================================================
@@ -165,8 +165,9 @@ resgroup = actgroup;
 curpath = resgroup.Name;
 
 if ext_files
+
   % construct cfg filename for h5tool
-  tmpfile = strcat(toplevel.Filename, '.h5cfg');
+  tmpfile = strcat(toplevel.Filename, '.cfg');
 
   % use h5tool to read external file name
   fid = fopen(tmpfile, 'w');
@@ -177,6 +178,19 @@ if ext_files
   if status ~= 0 || length(ext_filename) == 0
     return
   end
+
+  % extract path to input file, because external time step files are given
+  % relative to this path
+  pos = strfind(toplevel.Filename, '/');
+  if size(pos, 2)
+    prefix = toplevel.Filename(1:pos(size(pos, 2)));
+    if prefix(length(prefix)) == '/'
+      ext_filename = sprintf('%s%s', prefix, ext_filename);
+    else
+      ext_filename = sprintf('%s/%s', prefix, ext_filename);
+    end
+  end
+
   if exist(ext_filename) == 2
     try
       df_info = hdf5info(ext_filename);

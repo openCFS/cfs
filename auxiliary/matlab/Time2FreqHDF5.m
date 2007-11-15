@@ -26,7 +26,7 @@
 %      outfile   - path of output HDF5 file
 %      quantity  - which quantity to convert
 %      region    - region the quantity is defined on
-%      bufsize   - buffer size for transient data in megabytes
+%      bufsize   - maximum memory consumption (in megabytes)
 %      nullstep  - set to true, if values at f=0 are desired
 %        
 %    OUTPUT/S
@@ -35,7 +35,7 @@
 %    ABOUT
 %
 %      -Created:     Jan 2006
-%      -Last update: 13 Nov 2007
+%      -Last update: 15 Nov 2007
 %      -Revision:    0.5
 %      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
 %
@@ -51,7 +51,7 @@ fileinfo = hdf5info(infile);
 toplevel = fileinfo.GroupHierarchy;
 
 % construct cfg filename for h5tool
-tmpfile = strcat(infile, '.h5cfg');
+tmpfile = strcat(infile, '.cfg');
 
 % check that h5tool is found
 fid = fopen(tmpfile, 'w');
@@ -63,7 +63,7 @@ if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
 end
 
 % check that requested result is really present in input file
-[found resgroup restype msgroup datafile] =  FindPathHDF5(toplevel, multistep, step, quantity, region);
+[found resgroup restype msgroup datafile] = FindPathHDF5(toplevel, multistep, step, quantity, region);
 if found < 8
   errorstr = 'Cannot find requested dataset.';
   if found >= 3
@@ -75,11 +75,10 @@ end
 
 % store path of multistep and of result dataset
 basepath = msgroup.Name;
-respath = resgroup.Name;
 
 % calculate no of time and frequency steps
 numsteps = size(msgroup.Groups,2)-1;
-numharmsteps = floor(numsteps / 2);
+numharmsteps = floor(numsteps / 2)+1;
 disp(sprintf('No. of time steps:      %d', numsteps))
 disp(sprintf('No. of frequency steps: %d\n', numharmsteps))
 
@@ -96,10 +95,10 @@ if exist(outfile, 'file') == 2
   outfileinfo = hdf5info(outfile);
   toplevelout = outfileinfo.GroupHierarchy;
 
-  [found2 resgroup2 restype2 msgroup2] = FindPathHDF5(toplevelout, multistep, step, quantity, region);
+  [found2 resgroup2 restype2 msgroup2 datafile2] = FindPathHDF5(toplevelout, multistep, step, quantity, region);
 
   if found2 == 8
-    errorstr = sprintf('Quantity %s already present in file %s under path: %s.', quantity, outfile, respath);
+    errorstr = sprintf('Quantity %s already present in file %s under path: %s.', quantity, datafile2.Filename, resgroup2.Name);
     error(errorstr);
     return
   end
@@ -111,17 +110,19 @@ time_step2 = hdf5read(infile, strcat(basepath, '/Step_2/StepValue'));
 dt = time_step2 - time_step1;
 
 % read first time step
-dataset = sprintf('%s/Real', respath);
+dataset = sprintf('%s/Real', resgroup.Name);
 ds = hdf5read(datafile.Filename, dataset);
 
 % Number of scalars in dataset
 num_items = length(ds);
+clear ds
 
 % Size in megabytes of whole transient dataset
 size_in_mb = num_items*numsteps*8 / 1024 / 1024;
 
 % Number of iterations required to perform the FFT on the whole dataset
-numiter = ceil(size_in_mb / bufsize);
+numiter = ceil(size_in_mb / bufsize * 5); % scale by 5, because we need 5 times
+                                          % bufsize for fft
 
 % Number of scalars treated in one iteration (= chunk size)
 items_per_iter = ceil(num_items / numiter);
@@ -142,13 +143,24 @@ for iter=1:numiter
 
   for i=1:numsteps
   
-    dataset = sprintf('%s/Real', respath);
-    ds = hdf5read(datafile.Filename, dataset);
-  
-    mat(i,1:item_end-item_start+1) = ds(item_start:item_end);
-
     disp(sprintf('Reading step %d of %d, chunk %d of %d', i, numsteps, iter, numiter))
 
+    [found resgroup restype msgroup datafile] = FindPathHDF5(toplevel, multistep, i, quantity, region);
+    if found < 8
+      errorstr = sprintf('Cannot find dataset of time step %d.', i);
+      if found >= 3
+        errorstr = sprintf('%s Search aborted at %s', errorstr, resgroup.Name);
+      end
+      error(errorstr);
+      return
+    end
+
+    dataset = sprintf('%s/Real', resgroup.Name);
+    ds = hdf5read(datafile.Filename, dataset);
+
+    mat(i,1:(item_end-item_start+1)) = ds(item_start:item_end);
+
+    clear ds
   end
 
   % move counters to next chunk
@@ -160,13 +172,18 @@ for iter=1:numiter
 
   % perform FFT
   MAT = fft(mat);
-
+  
   % split result into real and imaginary part
   real_MAT = real(MAT);
   imag_MAT = imag(MAT);
+  clear MAT
 
   % write back harmonic datasets, one file for each chunk
   outfile_iter = sprintf('%s_%d', outfile, iter);
+
+  if numiter > 1
+    disp(sprintf('\nBuffering result of chunk %d\n', iter))
+  end
 
   for i=1:numharmsteps
   
@@ -187,6 +204,7 @@ for iter=1:numiter
 
   end
 
+  clear real_MAT imag_MAT ds
 end
 
 % create buffers for whole datasets
@@ -228,6 +246,8 @@ for i=1:numharmsteps
 
   end
 
+  clear ds
+
   disp(sprintf('Writing step %d of %d', i, numharmsteps))
 
   % write to final output file
@@ -248,6 +268,8 @@ for i=1:numharmsteps
   hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
 
 end
+
+clear ds_real ds_imag
 
 disp(sprintf('\nFinalizing output file ...\n'))
 
