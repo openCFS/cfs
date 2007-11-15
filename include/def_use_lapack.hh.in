@@ -1,3 +1,5 @@
 // Define used to check if LAPACK library is used
 
 #cmakedefine USE_LAPACK
+
+#define LAPACK_LIBRARY "@LAPACK_LIBRARY@"

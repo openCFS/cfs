@@ -1,3 +1,5 @@
 // Define used to check if BLAS library is used
 
 #cmakedefine USE_BLAS
+
+#define BLAS_LIBRARY "@BLAS_LIBRARY@"

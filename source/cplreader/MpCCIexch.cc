@@ -210,7 +210,9 @@ namespace CoupledField
     outFile << "OUTPUT-SIZE 64" << std::endl;;
     outFile << "OUTPUT-ARCHITECTURE IEEE" << std::endl;;
     outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES 1000 3" << std::endl;
+    outFile << "CHUNKED-DIMENSION-SIZES "
+            << (nodeOffset < 1000 ? nodeOffset : 1000)
+            << " 3" << std::endl;
     outFile << "COMPRESSION-TYPE GZIP" << std::endl;
     outFile << "COMPRESSION-PARAM 9" << std::endl;
 
@@ -222,12 +224,15 @@ namespace CoupledField
     outFile << "INPUT-CLASS TEXTIN" << std::endl;
     outFile << "INPUT-SIZE 32" << std::endl;
     outFile << "RANK 2" << std::endl;
-    outFile << "DIMENSION-SIZES " << elemOffset << " "<< maxNumElemNodes << std::endl;
+    outFile << "DIMENSION-SIZES " << elemOffset << " "
+            << maxNumElemNodes << std::endl;
     outFile << "OUTPUT-CLASS UIN" << std::endl;
     outFile << "OUTPUT-SIZE 32" << std::endl;
     outFile << "OUTPUT-ARCHITECTURE STD" << std::endl;
     outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES 1000 " << maxNumElemNodes << std::endl;
+    outFile << "CHUNKED-DIMENSION-SIZES " 
+            << (elemOffset < 1000 ? elemOffset : 1000)
+            << " " << maxNumElemNodes << std::endl;
     outFile << "COMPRESSION-TYPE GZIP" << std::endl;
     outFile << "COMPRESSION-PARAM 9" << std::endl;
     outFile.close();
@@ -243,7 +248,8 @@ namespace CoupledField
     outFile << "OUTPUT-SIZE 32" << std::endl;
     outFile << "OUTPUT-ARCHITECTURE STD" << std::endl;
     outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES 1000" << std::endl;
+    outFile << "CHUNKED-DIMENSION-SIZES "
+            << (elemOffset < 1000 ? elemOffset : 1000) << std::endl;
     outFile << "COMPRESSION-TYPE GZIP" << std::endl;
     outFile << "COMPRESSION-PARAM 9" << std::endl;
     outFile.close();

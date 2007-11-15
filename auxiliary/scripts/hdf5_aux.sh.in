@@ -9,10 +9,13 @@ H5CFSHELPER=@CFS_BINARY_DIR@/bin/h5tool
 INPUTTYPE=$3
 DELTEMP=$4
 
+export LD_LIBRARY_PATH=@CFSDEPS_ROOT_DIR@/lib:@CFSDEPS_ROOT_DIR@/lib64
+
+
 BASEPATH=`dirname $0`
 if [ -e $BASEPATH/import_cfsdeps.sh ]
 then
-    source $BASEPATH/import_cfsdeps.sh $BASEPATH
+    . $BASEPATH/import_cfsdeps.sh $BASEPATH
 fi
 
 if [ ! -d $WORKDIR ]
@@ -24,6 +27,8 @@ fi
 if [ ! -e $H5IMPORT ]
 then
     H5IMPORT=$CFSDEPS_ROOT/bin/h5import
+
+    export LD_LIBRARY_PATH=$CFSDEPS_ROOT/lib:$CFSDEPS_ROOT/lib64
 
     if [ ! -e $H5IMPORT ]
     then

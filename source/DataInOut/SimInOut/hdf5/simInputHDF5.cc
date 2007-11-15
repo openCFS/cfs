@@ -74,7 +74,10 @@ namespace CoupledField {
   }
 
   SimInputHDF5::~SimInputHDF5() {
+    if( mainFile_.getLocId() <= 0 )
+      return;
     
+
     mainRoot_.close();
     mainFile_.close();
   }

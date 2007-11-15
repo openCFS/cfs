@@ -268,6 +268,7 @@ namespace CoupledField
 
     // get list of output formats
     ParamNode * outNode = param->Get("fileFormats")->Get("output", false);
+
     if( !outNode ) {
       Warning( "There was no output writer specified at all",
                __FILE__, __LINE__ );
@@ -298,6 +299,7 @@ namespace CoupledField
 #ifdef USE_UNV
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputUnv( simName, actNode ) );
+        continue;
 #else
         EXCEPTION( "No support for UNV output file format." );
 #endif
@@ -307,6 +309,7 @@ namespace CoupledField
 #ifdef USE_GIDPOST
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputGiD( simName, actNode ) );
+        continue;
 #else
         EXCEPTION( "No support for GiD output file format." );
 #endif
@@ -316,6 +319,7 @@ namespace CoupledField
 #ifdef USE_GMV_OUTPUT
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputGMV( simName, actNode ) );
+        continue;
 #else
         EXCEPTION( "No support for GMV output file format." );
 #endif
@@ -325,6 +329,7 @@ namespace CoupledField
 #ifdef USE_HDF5
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputHDF5( simName, actNode ) );
+        continue;
 #else
         EXCEPTION( "No support for HDF5 output file format." );
 #endif
@@ -334,6 +339,7 @@ namespace CoupledField
 #ifdef USE_ANSYSRST
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
+        continue;
 #else
         EXCEPTION( "No support for ANSYS RST output file format." );
 #endif
@@ -343,6 +349,7 @@ namespace CoupledField
       if ( actFormat == "text" ) {
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputText( simName, actNode ) );
+        continue;
       }
     }
 

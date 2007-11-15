@@ -79,6 +79,10 @@ namespace CoupledField {
 
   SimOutputHDF5::~SimOutputHDF5() {
     
+    if( mainGroup_.getLocId() <= 0 ) 
+      return;
+    
+        
     // close groups
     mainGroup_.close();
 
