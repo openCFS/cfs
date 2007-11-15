@@ -102,24 +102,35 @@ IF(USE_GIDPOST)
 ENDIF(USE_GIDPOST)
 
 #-------------------------------------------------------------------------------
-# Find mkl library
+# Find ACML library
 #-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+IF(CFS_SUBARCH STREQUAL "OPTERON")
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindACML.cmake")
+ELSE(CFS_SUBARCH STREQUAL "OPTERON")
+  #-----------------------------------------------------------------------------
+  # Find mkl library
+  #-----------------------------------------------------------------------------
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+ENDIF(CFS_SUBARCH STREQUAL "OPTERON")
 
-#-------------------------------------------------------------------------------
-# If USE_BLAS option is defined find BLAS library
-#-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBLAS.cmake")
-
-#-------------------------------------------------------------------------------
-# If USE_LAPACK option is defined find LAPACK library
-#-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+IF(NOT ACML_FOUND AND NOT MKL_FOUND)
+  #-----------------------------------------------------------------------------
+  # If USE_BLAS option is defined find BLAS library
+  #-----------------------------------------------------------------------------
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBLAS.cmake")
+  
+  #-----------------------------------------------------------------------------
+  # If USE_LAPACK option is defined find LAPACK library
+  #-----------------------------------------------------------------------------
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+ENDIF(NOT ACML_FOUND AND NOT MKL_FOUND)
 
 #-------------------------------------------------------------------------------
 # Search for Pardiso Library
 #-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
+IF(NOT MKL_FOUND)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
+ENDIF(NOT MKL_FOUND)
 
 #-------------------------------------------------------------------------------
 # If USE_ARPACK option is defined find ARPACK library
