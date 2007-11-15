@@ -435,7 +435,8 @@ namespace CFSTool {
              input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
              
              // get number of dofs of result
-               UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
+             UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
+             std::cout << "Found " << numDofs << " degrees of freedom.\n";
              
              // cast result objects, get vector and calculate difference vector
              if( types[actMsStep] != HARMONIC ) {
@@ -447,12 +448,14 @@ namespace CFSTool {
                  dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
                
-               // normalize to maximum value of inResult2
+               // find maximum value of inResult2
                Double maxRes2 = 0.0;
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
                  if( std::abs(inVec2[i]) > maxRes2) 
                    maxRes2 = std::abs(inVec2[i]);
                }
+               
+               // calculate difference entrywise 
                outVec = inVec1 - inVec2;
                if (normedtomax == true) {
                  outVec /= maxRes2;
@@ -464,6 +467,7 @@ namespace CFSTool {
                    maxDiff = std::abs(outVec[i]) ;
                  }
                }
+               
              } else {
                Vector<Complex> & inVec1 = 
                  dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
@@ -479,81 +483,77 @@ namespace CFSTool {
                  if( std::abs(inVec2[i]) > maxRes2) 
                    maxRes2 = std::abs(inVec2[i]);
                }
-
+               
                Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
-               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 aDiff = std::abs(inVec1[i]) - std::abs(inVec2[i]);
-                 // phase difference in multiples of pi
-                 pDiff = RadPhase(inVec1[i]) - RadPhase(inVec2[i]);
-                 
-                 // correct 2*pi-offset if phase angles have different signs
-                 if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                   pDiff+= 2*PI;
-                 if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                   pDiff-= 2*PI;
+               Double rDiff, iDiff, rMax=0.0, iMax=0.0;
+               
+               // iterate over all dofs
+               for (UInt dof = 0; dof<numDofs ; dof++) {
+                 // iterate over number of entities
+                 for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
+                   
+                   // index to access entity 'x' with dof 'dof'
+                   UInt actIndex = i * numDofs + dof;
+                   
+                   // amplitude difference
+                   if (normedtomax == true)
+                     aDiff = ( std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]) )/maxRes2;
+                   else
+                     aDiff = std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]);
 
-                 
-                 if ( normedtomax == true ) {
-                   aDiff /= maxRes2; // norm by maximum amplitude of inResult2
-                   pDiff /= 2*PI; // norm relative phase difference by 2 pi
+                   // phase difference in multiples of pi
+                   pDiff = RadPhase(inVec1[actIndex]) - RadPhase(inVec2[actIndex]);
                    
-                   if( std::abs(aDiff) > std::abs(pDiff) ) {
-                     if( std::abs(aDiff) > maxDiff)
-                       maxDiff = std::abs(aDiff);
-                   } else {
-                     if( std::abs(pDiff) > maxDiff)
-                       maxDiff = std::abs(pDiff);
-                   }
+                   // correct 2*pi-offset if phase angles have different signs
+                   if ( (std::abs(pDiff)>PI) && (pDiff<0) )
+                     pDiff+= 2*PI;
+                   if ( (std::abs(pDiff)>PI) && (pDiff>0) )
+                     pDiff-= 2*PI;
                    
-                 } else {
+                   // Dirty hack! Write differences in real_imag format.
+                   outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
                    
-                   // if no relative differences are calculated return
-                   // maximum amplitude difference
-                   if( std::abs(aDiff) > maxDiff)
-                     maxDiff = std::abs(aDiff);
+                   // maximum and minimum values                      
+                   if( pDiff > pMax )
+                     pMax = pDiff;
+                   if( pDiff < pMin )
+                     pMin = pDiff;
+                   if( aDiff > aMax )
+                     aMax = aDiff;
+                   if( aDiff < aMin )
+                     aMin = aDiff;
+
+                   // maximum difference in real and imaginary part
+                   rDiff = std::abs( inVec1[actIndex].real() - inVec2[actIndex].real() )/maxRes2;
+                   iDiff = std::abs( inVec1[actIndex].imag() - inVec2[actIndex].imag() )/maxRes2;
+                   if ( rDiff > rMax )
+                     rMax = rDiff;
+                   if ( iDiff > iMax)
+                     iMax = iDiff;
                  }
                  
-                 // maximum values in positive and negative direction                                  
-                 if( pDiff > pMax )
-                   pMax = pDiff;
-                 if( pDiff < pMin )
-                   pMin = pDiff;
-                 if( aDiff > aMax )
-                   aMax = aDiff;
-                 if( aDiff < aMin )
-                   aMin = aDiff;
-                 
-                 // ------------------------------------------------------------------------------------
-                 // sign of amplitude difference gets lost, otherwise
-                 //  negative sign of aDiff would mean phase shift by +/- pi
-                 //outVec[i] = Complex( std::abs(aDiff)*std::cos(pDiff), 
-                 //                     std::abs(aDiff)*std::sin(pDiff) );
-                 
-                 // Dirty hack! Write differences in real_imag format.
-                 outVec[i] = Complex( aDiff, pDiff*180/PI );
-                 // ------------------------------------------------------------------------------------
-               }
-               
-               if( normedtomax == true)
-                 std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
-                           << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n"
-                           << "\tMaximum rel. + phase difference:      " << pMax*100 << " %\n"
-                           << "\tMaximum rel. - phase difference:     " << pMin*100 << " %\n";
-               else
-                 std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
-                           << "\tMaximum - amplitude difference: " << aMin <<  "\n"
-                           << "\tMaximum + phase difference:      " << pMax*180/PI <<  "°\n"
-                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";
-               
-               
+                 if( normedtomax == true)
+                   std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
+                             << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
+                 else
+                   std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
+                             << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
-               std::cout << "\n\tMaximum overall differenc = " << maxDiff << "\n\n";
+                 std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  "°\n"
+                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";        
+                 
+                 // return maxDiff for differences in real and imaginary part
+                 if ( (rMax > iMax) && (rMax > maxDiff) )
+                   maxDiff = rMax;
+                 else if ( (iMax > rMax) && (iMax > maxDiff) )
+                   maxDiff = iMax;        
+               }
+               std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
              }
-             
-             
-             if ( output ) {
+
+             // add result to output file
+             if ( output )
                output->AddResult( outResults[iRes] ); 
-             }
            }
            if( output )
              output->FinishStep();
