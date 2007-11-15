@@ -36,7 +36,7 @@ OPTION(USE_TCL "Use Tool Command Language (TCL) for scripting." ON)
 OPTION(USE_PYTHON "Use Python for scripting." OFF)
 OPTION(USE_MESH "Use the mesh file reader for input from ANSYS/GiD." ON)
 OPTION(USE_GIDPOST "Use the GiD library for simulation output." ON)
-OPTION(USE_HDF5 "Use HDF5 for simulation in/output." OFF)
+OPTION(USE_HDF5 "Use HDF5 for simulation in/output." ON)
 OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output." ON)
 OPTION(USE_UNV "Use Universal File for simulation output." ON)
 OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." OFF)
@@ -46,6 +46,8 @@ OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
 OPTION(USE_INTERPOLATION "Activate Interpolation between grids." OFF)
+OPTION(USE_ADAPTGRID "Use h-Adaptivity for meshes." OFF)
+OPTION(USE_OPENMP "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++." OFF)
 
 OPTION(DEBUG "Build debug version of the code." ON)
 OPTION(PROFILING "Turn on profiling (DEBUG/RELEASE)." OFF)
@@ -61,13 +63,16 @@ OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling." OFF)
 # Specify path to CFS++ testsuite. If this path exists, CTest compatible
 # test cases will be generated in the current binary directory.
 #-----------------------------------------------------------------------------
-SET(TESTSUITE_DIR "CFS_TESTSUITE_DIR_NOT_FOUND" CACHE STRING
+SET(TESTSUITE_DIR "TESTSUITE_DIR_NOT_FOUND" CACHE STRING
   "Path where the CFS++ testsuite is located.")
 
 IF(EXISTS ${TESTSUITE_DIR})
-  # In order to perform tests we need the CONVERTER!
+  # In order to perform tests we need the CONVERTER and HDF5!
   SET(CONVERTER ON CACHE BOOL
     "Build CFS++ converter tool (cfstool)." FORCE)
+
+  SET(USE_HDF5 ON CACHE BOOL
+    "Use HDF5 for simulation in/output." FORCE)
 
   SUBDIRS(${TESTSUITE_DIR})
 ENDIF(EXISTS ${TESTSUITE_DIR})
@@ -82,8 +87,6 @@ MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
-
-
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE

@@ -8,7 +8,22 @@ ADD_LIBRARY(ilupack-olas STATIC ${ILUPACK_SRCS})
 SET(TARGET_LL
   Dilupack
   Zilupack
-  blaslike
+  )
+
+IF(BLAS_LIBRARY MATCHES "libmkl")
+  SET(TARGET_LL
+    ${TARGET_LL}
+    blaslike_mkl
+    )
+ELSE(BLAS_LIBRARY MATCHES "libmkl")
+  SET(TARGET_LL
+    ${TARGET_LL}
+    blaslike
+    )
+ENDIF(BLAS_LIBRARY MATCHES "libmkl")
+
+SET(TARGET_LL
+  ${TARGET_LL}
   sparspak
   amd
   ${PARDISO_LIBRARY}

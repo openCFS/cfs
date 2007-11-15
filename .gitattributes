@@ -237,6 +237,7 @@ auxiliary/scripts/xmlreplace.py -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindIPOPT.cmake -text
+cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindMpCCI.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindXerces.cmake -text

@@ -43,10 +43,19 @@ IF(CMAKE_COMPILER_IS_GNUCXX AND
     CFS_FORTRAN_COMPILER_VER
     ${CFS_FORTRAN_COMPILER_VER})
 
+  # Check for a parallel compiler
+  IF(USE_OPENMP)
+    IF(CFS_CXX_COMPILER_VER MATCHES "4.2")
+      SET(CFS_C_FLAGS "-fopenmp")
+    ELSE(CFS_CXX_COMPILER_VER MATCHES "4.2")
+      MESSAGE("You chose to use OpenMP but your current GCC does not support it!")
+    ENDIF(CFS_CXX_COMPILER_VER MATCHES "4.2")
+  ENDIF(USE_OPENMP)
+
   # Determine compiler/linker flags according to build type
   IF(DEBUG)
 
-    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS} ")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
@@ -59,7 +68,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX AND
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused -Wno-sign-compare")
-    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0 ")
+    SET(CFS_C_FLAGS "-ansi -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS} ")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")
@@ -100,10 +109,15 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC" AND
     CFS_FORTRAN_COMPILER_VER
     ${CFS_FORTRAN_COMPILER_INFO})
 
+  # Check for a parallel compiler
+  IF(USE_OPENMP)
+    SET(CFS_C_FLAGS "-openmp")
+  ENDIF(USE_OPENMP)
+
   # Determine compiler/linker flags according to build type
   IF(DEBUG)
 
-    SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck")
+    SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck ${CFS_C_FLAGS} ")
     SET(CHECK_MEM_ALLOC 1)
     SET(CHECK_TYPE_CASTS 1)
 
@@ -113,7 +127,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC" AND
 
   ELSE(DEBUG)
 
-    SET(CFS_C_FLAGS "-ansi -w0 -O2")
+    SET(CFS_C_FLAGS "-ansi -w0 -O2 ${CFS_C_FLAGS} ")
 
   ENDIF(DEBUG)
 

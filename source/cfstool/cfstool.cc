@@ -84,7 +84,7 @@ namespace CFSTool {
 //      EXCEPTION( "No support for UNV input file format." );
 //#endif  
     } else {
-      EXCEPTION( "Found not suitalbe reader for file '" << fileName
+      EXCEPTION( "Found not suitable reader for file '" << fileName
           << "'" );
     }
 
@@ -215,9 +215,9 @@ namespace CFSTool {
                             resultSteps[actRes].end() );
            
            // iterate over all regions
-           StdVector<shared_ptr<EntityList> > regions;
-           input->GetResultEntities( actMsStep, infos[iRes], regions );
-           for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
+           StdVector<shared_ptr<EntityList> > resEntities;
+           input->GetResultEntities( actMsStep, actRes, resEntities );
+           for( UInt iEntity = 0; iEntity < resEntities.GetSize(); iEntity++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > result;
              if( types[actMsStep] != HARMONIC ) {
@@ -225,8 +225,8 @@ namespace CFSTool {
              } else {
                result = shared_ptr<BaseResult>( new Result<Complex>() );
              }
-             result->SetEntityList( regions[iRegion] );
-             result->SetResultInfo( infos[iRes] );
+             result->SetEntityList( resEntities[iEntity] );
+             result->SetResultInfo( actRes );
              results.Push_back( result );
              // Note: as the real values of saveBegin, saveInc and saveEnd are almost
              // nevert queried within an output format. we simply set saveBegin = 1,

@@ -380,12 +380,16 @@ namespace CoupledField {
 
  #ifdef USE_BLAS
     outstr << "USE_BLAS:              YES" << std::endl;
+    outstr << "BLAS_LIBRARY:          " << BLAS_LIBRARY
+           << std::endl;    
  #else
     outstr << "USE_BLAS:              NO" << std::endl;
  #endif
 
  #ifdef USE_LAPACK
     outstr << "USE_LAPACK:            YES" << std::endl;
+    outstr << "LAPACK_LIBRARY:        " << LAPACK_LIBRARY
+           << std::endl;    
  #else
     outstr << "USE_LAPACK:            NO" << std::endl;
  #endif
@@ -398,6 +402,9 @@ namespace CoupledField {
 
  #ifdef USE_PARDISO
     outstr << "USE_PARDISO:           YES" << std::endl;
+    outstr << "PARDISO_LIBRARY:       " << PARDISO_LIBRARY
+           << std::endl;    
+
  #else
     outstr << "USE_PARDISO:           NO" << std::endl;
  #endif

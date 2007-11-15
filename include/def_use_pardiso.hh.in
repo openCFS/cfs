@@ -1,3 +1,5 @@
 // Define used to check if PARDISO library is used
 
 #cmakedefine USE_PARDISO
+
+#define PARDISO_LIBRARY "@PARDISO_LIBRARY@"
