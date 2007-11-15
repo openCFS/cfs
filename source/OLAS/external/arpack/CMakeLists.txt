@@ -6,7 +6,7 @@ ADD_LIBRARY(arpack-olas STATIC ${ARPACK_SRCS})
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
 SET(TARGET_LL
-  arpack
+  ${ARPACK_LIBRARY}
   ${LAPACK_LIBRARY}
   ${BLAS_LIBRARY}
   ${CFS_FORTRAN_LIBS})

@@ -20,7 +20,12 @@ SET(CFS_BUILD_VERSION 0)
 SET(CFS_VERSION
   "${CFS_MAJOR_VERSION}.${CFS_MINOR_VERSION}.${CFS_BUILD_VERSION}")
 
-
+#-----------------------------------------------------------------------------
+# Set hostname of build host
+#-----------------------------------------------------------------------------
+SITE_NAME(CFS_BUILD_HOST)
+SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
+  CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
@@ -29,7 +34,6 @@ OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ON)
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ON)
 OPTION(USE_PARDISO "Use Pardiso" ON)
 OPTION(USE_METIS "Use Metis Graph partitioning." ON)
-OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ON)
 OPTION(USE_BLAS "Use the basic linear algebra systems library." ON)
 OPTION(USE_XERCES "Use the Xerces-C XML parser library." ON)
 OPTION(USE_TCL "Use Tool Command Language (TCL) for scripting." ON)
@@ -45,8 +49,26 @@ OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
   OFF)
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
+
+#-----------------------------------------------------------------------------
+# Only switch on ILUPACK at lse per default.
+#-----------------------------------------------------------------------------
+IF(CFS_BUILD_HOST MATCHES "lse")
+  OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ON)
+ELSE(CFS_BUILD_HOST MATCHES "lse")
+  OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." OFF)
+ENDIF(CFS_BUILD_HOST MATCHES "lse")
+
+#-----------------------------------------------------------------------------
+# Use interpolation toggles the inclusion of the CGAL library.
+#-----------------------------------------------------------------------------
 OPTION(USE_INTERPOLATION "Activate Interpolation between grids." OFF)
+
+#-----------------------------------------------------------------------------
+# USE_ADPATGRID is only queried in the testsuite for the moment.
+#-----------------------------------------------------------------------------
 OPTION(USE_ADAPTGRID "Use h-Adaptivity for meshes." OFF)
+
 OPTION(USE_OPENMP "Turn on support for OpenMP. Needs GCC >= 4.2 or Intel C++." OFF)
 
 OPTION(DEBUG "Build debug version of the code." ON)
@@ -176,91 +198,6 @@ IF(NOT CFSDEPS_FOUND)
 ENDIF(NOT CFSDEPS_FOUND)
 
 #-----------------------------------------------------------------------------
-# Find Boost
-#-----------------------------------------------------------------------------
-FIND_PACKAGE(Boost)
-MARK_AS_ADVANCED(Boost_INCLUDE_DIR)
-IF(NOT Boost_FOUND)
-  MESSAGE(SEND_ERROR "Boost could not be found!")
-  SUGGEST_INSTALL_PCKG()
-ENDIF(NOT Boost_FOUND)
-
-#-----------------------------------------------------------------------------
-# If USE_PYTHON option is defined find Python library
-#-----------------------------------------------------------------------------
-IF(USE_PYTHON)
-  FIND_PACKAGE(PythonLibs)
-  IF(NOT PYTHON_LIBRARY)
-    MESSAGE(SEND_ERROR "Python library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT PYTHON_LIBRARY)
-
-  SET(USE_SCRIPTING 1)
-  SET(USE_SCRIPTING_PYTHON 1)
-
-ENDIF(USE_PYTHON)
-
-#-----------------------------------------------------------------------------
-# If USE_TCL option is defined find TCL library
-#-----------------------------------------------------------------------------
-IF(USE_TCL)
-  FIND_PACKAGE(TCL)
-  IF(NOT TCL_LIBRARY)
-    MESSAGE(SEND_ERROR "TCL library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT TCL_LIBRARY)
-
-  SET(USE_SCRIPTING 1)
-  SET(USE_SCRIPTING_TCL 1)
-
-  MARK_AS_ADVANCED(
-    TCL_INCLUDE_PATH
-    TCL_LIBRARY
-    TCL_LIBRARY_DEBUG
-    TCL_TCLSH
-    TK_INCLUDE_PATH
-    TK_LIBRARY
-    TK_LIBRARY_DEBUG
-    TK_WISH
-    )
-ENDIF(USE_TCL)
-
-#-----------------------------------------------------------------------------
-# If USE_BLAS option is defined find BLAS library
-#-----------------------------------------------------------------------------
-IF(USE_BLAS)
-  IF(NOT BLAS_FOUND)
-    MESSAGE(SEND_ERROR "BLAS library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT BLAS_FOUND)
-ENDIF(USE_BLAS)
-
-#-----------------------------------------------------------------------------
-# If USE_LAPACK option is defined find LAPACK library
-#-----------------------------------------------------------------------------
-IF(USE_LAPACK)
-  IF(NOT BLAS_FOUND)
-    MESSAGE(SEND_ERROR "BLAS library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT BLAS_FOUND)
-  IF(NOT LAPACK_FOUND)
-    MESSAGE(SEND_ERROR "LAPACK library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT LAPACK_FOUND)
-ENDIF(USE_LAPACK)
-
-#-----------------------------------------------------------------------------
-# If USE_XERCES option is defined find Xerces library
-#-----------------------------------------------------------------------------
-IF(USE_XERCES)
-  INCLUDE("cmake_modules/FindXerces.cmake")
-  IF(NOT XERCES_FOUND)
-    MESSAGE(SEND_ERROR "Xerces library could not be found!")
-    SUGGEST_INSTALL_PCKG()
-  ENDIF(NOT XERCES_FOUND)
-ENDIF(USE_XERCES)
-
-#-----------------------------------------------------------------------------
 # Set path of XML schema. If env variable XMLSCHEMA is set, use it!
 #-----------------------------------------------------------------------------
 SET(MYXMLSCHEMA $ENV{XMLSCHEMA})
@@ -271,29 +208,12 @@ IF(NOT ${MYXMLSCHEMA} STREQUAL "")
 ENDIF(NOT ${MYXMLSCHEMA} STREQUAL "")
 
 #-----------------------------------------------------------------------------
-# Find MpCCI / MPICH
-#-----------------------------------------------------------------------------
-IF(USE_MPCCI)
-  INCLUDE("cmake_modules/FindMpCCI.cmake")    
-  IF(NOT MPCCI_FOUND)
-    MESSAGE(FATAL_ERROR "MpCCI could not be found!")
-  ENDIF(NOT MPCCI_FOUND)
-ENDIF(USE_MPCCI)
-
-#-----------------------------------------------------------------------------
 # Set date of configure run. TODO: make platform independent!!!
 #-----------------------------------------------------------------------------
 EXEC_PROGRAM("date"
   ARGS +%D
   OUTPUT_VARIABLE CFS_CONF_DATE
   RETURN_VALUE RETVAL)
-
-#-----------------------------------------------------------------------------
-# Set hostname of build host
-#-----------------------------------------------------------------------------
-SITE_NAME(CFS_BUILD_HOST)
-SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
-  CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
 # Determine URL of subversion repository
@@ -320,7 +240,7 @@ ENDIF(NOT RETVAL STREQUAL 0)
 #-----------------------------------------------------------------------------
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIR} 
-  ${CFSDEPS_INCLUDE_DIR} 
+#  ${CFSDEPS_INCLUDE_DIR} 
   ${CFS_BINARY_DIR}/include
   ${CFS_SOURCE_DIR}/source
   ${CFS_SOURCE_DIR}/source/OLAS)

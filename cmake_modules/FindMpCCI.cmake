@@ -21,195 +21,95 @@
 # Simon Triebenbacher simon@ibtriebenbacher.de (07/2006)
 
 
-IF(WIN32)
-  SET(WIN32_STYLE_FIND 1)
-ENDIF(WIN32)
-IF(MINGW)
-  SET(WIN32_STYLE_FIND 0)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(MINGW)
-IF(UNIX)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(UNIX)
-
-OPTION(USE_MPCCI_305 "Use the new (3.0.5) or the old (3.0.3) MpCCI" ON)
-
-IF(WIN32_STYLE_FIND)
-
-  ## ######################################################################
-  ##
-  ## Windows specific:
-  ##
-  ## candidates for root/base directory of Glib2
-  ## should have subdirs include and lib containing source/glib2.h
-  ## fix the root dir to avoid mixing of headers/libs from different
-  ## versions/builds:
-  
-  SET (MPCCI_POSSIBLE_ROOT_PATHS
-    $ENV{MPCCI_ROOT}
-    "C:\\Dev\\glib2"
-    )
-  
-  FIND_PATH(MPCCI_ROOT_DIR  source/glib2.h 
-    ${MPCCI_POSSIBLE_ROOT_PATHS} )  
-  
-  
-  ## find libs for combination of static/shared with release/debug
-  ## be careful if you add something here, 
-  SET (MPCCI_POSSIBLE_LIB_PATHS
-    "${MPCCI_ROOT_DIR}/win/Release"
-    "${MPCCI_ROOT_DIR}/win/Debug"
-    ) 
-  
-  FIND_LIBRARY(MPCCI_STATIC_LIBRARY
-    NAMES glib2
-    PATHS 
-    "${MPCCI_ROOT_DIR}/win/Release"
-    ${MPCCI_POSSIBLE_LIB_PATHS}
-    DOC "glib2 static release build library" ) 
-  
-  FIND_LIBRARY(MPCCI_STATIC_DEBUG_LIBRARY
-    NAMES glib2
-    PATHS 
-    "${MPCCI_ROOT_DIR}/win/Debug"
-    ${MPCCI_POSSIBLE_LIB_PATHS}
-    DOC "glib2 static debug build library" )
-
-  
-  
-  ##
-  ## now we should have found all Glib2 libs available on the system.
-  ## let the user decide which of the available onse to use.
-  ## 
-  
-  SET(MPCCI_LIBRARIES
-    debug ${MPCCI_STATIC_DEBUG_LIBRARY}   optimized ${MPCCI_STATIC_LIBRARY}
-    )
+SET (MPI_POSSIBLE_ROOT_PATHS
+  "$ENV{CFSDEPS_ROOT}"
+  "/opt/mpich/ch-p4"
+  #          "/home/data/programs/MpCCI/MpCCI_3.0.5/AMD64/MPICH64/mpich-1.2.7p1"
+  #	"/home/data/programs/mpich-1.2.7"
+  #	"/opt/mpich/ch-p4mpd"
+  )
 
 
-  
-  
-  
-  
-  ## Find the include directories for Glib2
-  ## add inc dir for general for "glib2.h"
-  FIND_PATH(MPCCI_INCLUDE_DIR  glib2.h 
-    "${MPCCI_ROOT_DIR}/source" )  
-  
-  MARK_AS_ADVANCED(
-    MPCCI_ROOT_DIR
-    MPCCI_INCLUDE_DIR
-    MPCCI_STATIC_LIBRARY
-    MPCCI_STATIC_DEBUG_LIBRARY
-    )
-  
-  
-ELSE(WIN32_STYLE_FIND)
+FIND_PATH(MPI_ROOT_DIR include/mpi.h 
+  ${MPI_POSSIBLE_ROOT_PATHS} )
 
-  IF (UNIX_STYLE_FIND) 
+SET(MPI_ROOT_DIR "${MPI_ROOT_DIR}" CACHE INTERNAL "MPI_ROOT_DIR")
 
-    IF(USE_MPCCI_305)
-      SET (MPICH_POSSIBLE_ROOT_PATHS
-          "$ENV{CFSDEPS_ROOT}"
-       	  "/opt/mpich/ch-p4"
-          #          "/home/data/programs/MpCCI/MpCCI_3.0.5/AMD64/MPICH64/mpich-1.2.7p1"
-          #	"/home/data/programs/mpich-1.2.7"
-          #	"/opt/mpich/ch-p4mpd"
-	)
+SET(MPI_INCLUDE_DIR "${MPI_ROOT_DIR}/include" CACHE FILEPATH "MPI include directory.")
 
-      
-      FIND_PATH(MPICH_ROOT_DIR include/mpi.h 
-	${MPICH_POSSIBLE_ROOT_PATHS} )
-      
-      SET (MPICH_POSSIBLE_LIB_PATHS
-	"${MPICH_ROOT_DIR}/lib64"
-	"${MPICH_ROOT_DIR}/lib"
-	) 
-      
-      FIND_LIBRARY(MPICH_LIBRARY
-	NAMES mpich
-	PATHS ${MPICH_POSSIBLE_LIB_PATHS}
-	DOC "MPICH library" ) 
-      
-      SET(MPICH_LIBRARIES
-	"${MPICH_LIBRARY}"
-	) 
-      
-      #/opt/mpich/ch-p4/lib64/libmpich.a
-#      MESSAGE("DBG found MPICH_LIBRARIES: ${MPICH_LIBRARIES}")
-      
-      STRING(REGEX REPLACE "/libmpich.*" #"[^/]*$"
-        "" MPICH_LIBRARY_DIR
-        ${MPICH_LIBRARIES})
-      
-#      MESSAGE("DBG found MPICH_LIBRARY_DIR: ${MPICH_LIBRARY_DIR}")
-      
-      
-      SET(MPCCI_ROOT_DIR "/home/data/programs/MpCCI/MpCCI_3.0.5")
+SET (MPI_POSSIBLE_LIB_PATHS
+  "${MPI_ROOT_DIR}/lib64"
+  "${MPI_ROOT_DIR}/lib"
+  ) 
 
-      #    MESSAGE("DBG found MPCCI_ROOTDIR: ${MPCCI_ROOT_DIR}")
+FIND_LIBRARY(MPI_LIBRARY
+  NAMES mpich mpi
+  PATHS ${MPI_POSSIBLE_LIB_PATHS}
+  DOC "MPI library" ) 
 
-      EXEC_PROGRAM("${MPCCI_ROOT_DIR}/bin/mpcci"
-	ARGS arch -n
-	OUTPUT_VARIABLE MPCCI_ARCH
-	RETURN_VALUE RETVAL)
+SET(MPI_LIBRARIES
+  "${MPI_LIBRARY}"
+  ) 
 
-      IF(MPCCI_ARCH STREQUAL "linux_amd64")
-	SET(MPCCI_LIBRARY -lmpccisdk-64)
-      ENDIF(MPCCI_ARCH STREQUAL "linux_amd64")
+MARK_AS_ADVANCED(MPI_INCLUDE_DIR)
+MARK_AS_ADVANCED(MPI_LIBRARY)
 
-      IF(MPCCI_ARCH STREQUAL "linux_em64t")
-	SET(MPCCI_LIBRARY -lmpccisdk-64)
-      ENDIF(MPCCI_ARCH STREQUAL "linux_em64t")
+#/opt/mpich/ch-p4/lib64/libmpich.a
+#      MESSAGE("DBG found MPI_LIBRARIES: ${MPI_LIBRARIES}")
 
-      IF(MPCCI_ARCH STREQUAL "linux_x86")
-	SET(MPCCI_LIBRARY -lmpccisdk-32)
-      ENDIF(MPCCI_ARCH STREQUAL "linux_x86")
+STRING(REGEX REPLACE "/libmpich.*" #"[^/]*$"
+  "" MPI_LIBRARY_DIR
+  ${MPI_LIBRARIES})
 
-      SET(MPCCI_LIBRARIES "-L${MPCCI_ROOT_DIR}/lib/${MPCCI_ARCH};${MPCCI_LIBRARY};-L${MPICH_LIBRARY_DIR};${MPICH_LIBRARY}")
-      SET(MPCCI_INCLUDE_DIR "${MPCCI_ROOT_DIR}/include;${MPICH_ROOT_DIR}/include")
-      SET(MPCCI_CXX_FLAGS "-fPIC -O3 -Wall")
+#      MESSAGE("DBG found MPI_LIBRARY_DIR: ${MPI_LIBRARY_DIR}")
 
-      EXEC_PROGRAM("${MPCCI_ROOT_DIR}/bin/mpcci"
-	ARGS info -release
-	OUTPUT_VARIABLE MPCCI_RELEASE
-	RETURN_VALUE RETVAL)
+SET(MPCCI_ROOT_DIR "/home/data/programs/MpCCI/MpCCI_3.0.5" CACHE FILEPATH "MpCCI root directory (MPCCI_ROOT_DIR/bin/mpcci).")
+MARK_AS_ADVANCED(MPCCI_ROOT_DIR)
 
-#      MESSAGE("DBG found MPCCI_RELEASE: ${MPCCI_RELEASE}")
-    ELSE(USE_MPCCI_305)
-      SET(MPCCI_ROOT_DIR "/home/data/programs/MpCCI/mpcci-3.0.3-sdk-linux-x86")
-      SET(MPICH_ROOT_DIR "/home/data/programs/mpich-1.2.7")
+#    MESSAGE("DBG found MPCCI_ROOTDIR: ${MPCCI_ROOT_DIR}")
 
-      SET(MPCCI_LIBRARIES "-L${MPCCI_ROOT_DIR}/lib;-lcci;-L${MPICH_ROOT_DIR}/lib;-lmpich;-lg2c;-lstdc++")
-      SET(MPCCI_INCLUDE_DIR "${MPCCI_ROOT_DIR}/include;${MPICH_ROOT_DIR}/include")
-      SET(MPCCI_CXX_FLAGS "")
+EXEC_PROGRAM("${MPCCI_ROOT_DIR}/bin/mpcci"
+  ARGS arch -n
+  OUTPUT_VARIABLE MPCCI_ARCH
+  RETURN_VALUE RETVAL)
 
-      EXEC_PROGRAM("${MPCCI_ROOT_DIR}/bin/ccirun"
-	ARGS -version
-	OUTPUT_VARIABLE MPCCI_RELEASE
-	RETURN_VALUE RETVAL)
+IF(MPCCI_ARCH STREQUAL "linux_amd64")
+  SET(MPCCI_LIBRARY -lmpccisdk-64)
+ENDIF(MPCCI_ARCH STREQUAL "linux_amd64")
 
-    ENDIF(USE_MPCCI_305)
-    
-    STRING(REGEX MATCH "3\\.0\\.[0-9]+"
-      MPCCI_RELEASE
-      ${MPCCI_RELEASE})
+IF(MPCCI_ARCH STREQUAL "linux_em64t")
+  SET(MPCCI_LIBRARY -lmpccisdk-64)
+ENDIF(MPCCI_ARCH STREQUAL "linux_em64t")
 
-    STRING(REGEX REPLACE "\\." ""
-      MPCCI_RELEASE
-      ${MPCCI_RELEASE})
+IF(MPCCI_ARCH STREQUAL "linux_x86")
+  SET(MPCCI_LIBRARY -lmpccisdk-32)
+ENDIF(MPCCI_ARCH STREQUAL "linux_x86")
 
-#    MESSAGE("DBG found MPCCI_RELEASE: ${MPCCI_RELEASE}")
+SET(MPCCI_LIBRARIES "-L${MPCCI_ROOT_DIR}/lib/${MPCCI_ARCH};${MPCCI_LIBRARY};-L${MPI_LIBRARY_DIR};${MPI_LIBRARY}")
+SET(MPCCI_INCLUDE_DIR "${MPCCI_ROOT_DIR}/include;${MPI_INCLUDE_DIR}/include")
+SET(MPCCI_CXX_FLAGS "-fPIC -O3 -Wall")
+
+EXEC_PROGRAM("${MPCCI_ROOT_DIR}/bin/mpcci"
+  ARGS info -release
+  OUTPUT_VARIABLE MPCCI_RELEASE
+  RETURN_VALUE RETVAL)
+
+# MESSAGE("DBG found MPCCI_RELEASE: ${MPCCI_RELEASE}")
+
+STRING(REGEX MATCH "3\\.0\\.[0-9]+"
+  MPCCI_RELEASE
+  ${MPCCI_RELEASE})
+
+STRING(REGEX REPLACE "\\." ""
+  MPCCI_RELEASE
+  ${MPCCI_RELEASE})
+
+# MESSAGE("DBG found MPCCI_RELEASE: ${MPCCI_RELEASE}")
 
 #    MESSAGE("DBG found MPCCI_LIBRARIES: ${MPCCI_LIBRARIES}")
 #    MESSAGE("DBG found MPCCI_INCLUDE_DIR: ${MPCCI_INCLUDE_DIR}")
 #    MESSAGE("DBG found MPCCI_CXX_FLAGS: ${MPCCI_CXX_FLAGS}")
 #    MESSAGE("DBG found MPCCI_LD_FLAGS: ${MPCCI_LD_FLAGS}")
-
-  ELSE(UNIX_STYLE_FIND)
-    MESSAGE(STATUS "FindMpCCI.cmake:  Platform unknown/unsupported by FindGlib2.cmake. It's neither WIN32 nor UNIX")
-  ENDIF(UNIX_STYLE_FIND)
-ENDIF(WIN32_STYLE_FIND)
 
 
 IF(MPCCI_LIBRARIES)
@@ -228,4 +128,4 @@ IF(MPCCI_LIBRARIES)
   ENDIF(MPCCI_INCLUDE_DIR OR MPCCI_CXX_FLAGS)
 ENDIF(MPCCI_LIBRARIES)
 
-MESSAGE("DBG found MPCCI_FOUND: ${MPCCI_FOUND}")
+#MESSAGE("DBG found MPCCI_FOUND: ${MPCCI_FOUND}")

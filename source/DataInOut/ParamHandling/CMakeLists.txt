@@ -21,7 +21,7 @@ ENDIF(USE_XERCES)
 
 SET(TARGET_LL
   ${TARGET_LL}
-  boost_filesystem
+  ${BOOST_FILESYSTEM_LIB}
   )
 
 
