@@ -70,7 +70,7 @@ namespace CoupledField
     void SetDefaultIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 3; // actually 2 but 2+3 is same and we avoid the msg
+        IntegOrder  = 5; // actually 2 but 2+3 is same and we avoid the msg
     }
 
     /** Sets the default reduced integration  */ 
