@@ -10,7 +10,13 @@
 #  XERCES_VERSION_REVISION
 #  XERCES_VERSION
 
+SET(XERCES_FOUND 0)
+
+#-------------------------------------------------------------------------------
+# Determine paths of XERCES libraries.
+#-------------------------------------------------------------------------------
 SET (XERCES_POSSIBLE_LIB_PATHS
+  ${CFSDEPS_LIBRARY_DIR}
   /usr/lib64
   /usr/lib
   /usr/local/lib64
@@ -20,39 +26,67 @@ SET (XERCES_POSSIBLE_LIB_PATHS
 FIND_LIBRARY(XERCES_LIBRARY
   NAMES xerces-c
   PATHS ${XERCES_POSSIBLE_LIB_PATHS}
-)
+  )
 
+#-------------------------------------------------------------------------------
+# Mark paths of XERCES libraries as advanced.
+#-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(XERCES_LIBRARY)
+
+
+#-------------------------------------------------------------------------------
+# Look for Xerces header.
+#-------------------------------------------------------------------------------
 SET (XERCES_POSSIBLE_INCLUDE_PATHS
+  ${CFSDEPS_INCLUDE_DIR}
   /usr/include
   /usr/local/include
-)
+  )
 
-FIND_PATH(XERCES_INCLUDE_DIR xercesc/util/XercesVersion.hpp 
-  ${XERCES_POSSIBLE_INCLUDE_PATHS} )
+FIND_PATH(XERCES_INCLUDE_DIR
+  NAMES xercesc/util/XercesVersion.hpp 
+  PATHS ${XERCES_POSSIBLE_INCLUDE_PATHS} 
+  )
 
-IF(XERCES_INCLUDE_DIR)
-  EXEC_PROGRAM("cat ${XERCES_INCLUDE_DIR}/xercesc/util/XercesVersion.hpp | grep '#define XERCES_VERSION_MAJOR' | tail -1 | cut -d' ' -f 3"
+MARK_AS_ADVANCED(XERCES_INCLUDE_DIR)
+
+
+IF(XERCES_LIBRARY AND XERCES_INCLUDE_DIR)
+  SET(XERCES_FOUND 1)
+ENDIF(XERCES_LIBRARY AND XERCES_INCLUDE_DIR)
+
+
+IF(XERCES_FOUND)
+
+  SET(XERCES_TEST_FILE "${CFS_BINARY_DIR}/include/get_xerces_infos.hh")
+  FILE(WRITE ${XERCES_TEST_FILE}
+    "#include <${XERCES_INCLUDE_DIR}/xercesc/util/XercesVersion.hpp>\n\n"
+    "<CFS_XERCES_VERSION>XERCES_VERSION_MAJOR.XERCES_VERSION_MINOR.XERCES_VERSION_REVISION</CFS_XERCES_VERSION>\n")
+
+  IF(CMAKE_VC_COMPILER_TESTS_RUN)
+    SET(XERCES_VERSION_CMD "${CFS_CXX_COMPILER} /nologo /EP ${XERCES_TEST_FILE}")
+  ELSE(CMAKE_VC_COMPILER_TESTS_RUN)
+    SET(XERCES_VERSION_CMD "${CMAKE_CXX_COMPILER} -E ${XERCES_TEST_FILE}")
+  ENDIF(CMAKE_VC_COMPILER_TESTS_RUN)
+
+  EXEC_PROGRAM(${XERCES_VERSION_CMD}
     ARGS
-    OUTPUT_VARIABLE XERCES_VERSION_MAJOR
+    OUTPUT_VARIABLE XERCES_VERSION_STR
     RETURN_VALUE RETVAL)
 
-  EXEC_PROGRAM("cat ${XERCES_INCLUDE_DIR}/xercesc/util/XercesVersion.hpp | grep '#define XERCES_VERSION_MINOR' | tail -1 | cut -d' ' -f 3"
-    ARGS
-    OUTPUT_VARIABLE XERCES_VERSION_MINOR
-    RETURN_VALUE RETVAL)
+  FILE(REMOVE ${XERCES_TEST_FILE})
 
-  EXEC_PROGRAM("cat ${XERCES_INCLUDE_DIR}/xercesc/util/XercesVersion.hpp | grep '#define XERCES_VERSION_REVISION' | tail -1 | cut -d' ' -f 3"
-    ARGS
-    OUTPUT_VARIABLE XERCES_VERSION_REVISION
-    RETURN_VALUE RETVAL)
+  STRING(REGEX MATCH "<CFS_XERCES_VERSION>.*</CFS_XERCES_VERSION>" CFS_XERCES_VERSION "${XERCES_VERSION_STR}")
+  STRING(REGEX REPLACE " " "" CFS_XERCES_VERSION "${CFS_XERCES_VERSION}")
+  STRING(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" CFS_XERCES_VERSION "${CFS_XERCES_VERSION}")
 
-  SET(XERCES_VERSION "${XERCES_VERSION_MAJOR}.${XERCES_VERSION_MINOR}.${XERCES_VERSION_REVISION}")
-ENDIF(XERCES_INCLUDE_DIR)
+#  MESSAGE("CFS_XERCES_VERSION ${CFS_XERCES_VERSION}")
+
+ENDIF(XERCES_FOUND)
 
 IF(XERCES_LIBRARY)
   IF(XERCES_INCLUDE_DIR)
     SET(XERCES_FOUND 1)
-#    MESSAGE("XERCES_VERSION ${XERCES_VERSION}")
   ENDIF(XERCES_INCLUDE_DIR)
 ENDIF(XERCES_LIBRARY)
 
@@ -65,3 +99,8 @@ MARK_AS_ADVANCED(
   XERCES_VERSION_REVISION
   XERCES_VERSION
   )
+
+IF(NOT XERCES_FOUND)
+  MESSAGE("Warning: XERCES could not be found! Please specify proper paths.")
+ENDIF(NOT XERCES_FOUND)
+

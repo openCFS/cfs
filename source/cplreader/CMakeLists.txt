@@ -52,7 +52,7 @@ SET(TARGET_LL ${TARGET_LL}
   utils
   general
   io # CFX I/O library
-  boost_program_options
+  ${BOOST_PROGRAM_OPTIONS_LIB}
 # DIRTY, DIRTYYYY HACK!
   datainout
   simouttext
@@ -61,8 +61,8 @@ SET(TARGET_LL ${TARGET_LL}
 
 TARGET_LINK_LIBRARIES(cplreader
   ${TARGET_LL}
-#  boost_serialization
-#  boost_filesystem
+#  ${BOOST_SERIALIZATION_LIB}
+#  ${BOOST_FILESYSTEM_LIB}
   )
 
 SET_TARGET_PROPERTIES(cplreader PROPERTIES

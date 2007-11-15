@@ -83,8 +83,8 @@ SET(TARGET_LL ${TARGET_LL}
   logging
   scripting
   simouttext
-  boost_serialization
-  boost_filesystem
+  ${BOOST_SERIALIZATION_LIB}
+  ${BOOST_FILESYSTEM_LIB}
 )
   
 SET(TARGET_LL ${TARGET_LL} 
