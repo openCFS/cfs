@@ -10,7 +10,7 @@
 #include <Domain/resultInfo.hh>
 
 // Header of postprocessing library
-#include <gidpost.h>
+#include "DataInOut/SimInOut/GiD/gidpost/gidpost.h"
 
 namespace CoupledField
 {

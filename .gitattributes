@@ -239,6 +239,7 @@ cmake_modules/FindARPACK.cmake -text
 cmake_modules/FindBLAS.cmake -text
 cmake_modules/FindBoostForCFS.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
+cmake_modules/FindCGAL.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
 cmake_modules/FindHDF5.cmake -text
@@ -373,6 +374,16 @@ source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/gidpost.cpp svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/gidpost.h svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/gidpostInt.cpp svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/gidpostInt.h svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/gidpostfor.c svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/zlib.h svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/zlibint1.c svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/zlibint1.h svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/zlibint2.c svneol=native#text/plain
+source/DataInOut/SimInOut/GiD/gidpost/zlibint2.h svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/simOutGiD.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/GiD/simOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/TextOutput/CMakeLists.txt svneol=native#text/plain

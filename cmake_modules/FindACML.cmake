@@ -30,4 +30,34 @@ ELSE(USE_OPENMP)
   ENDIF(BLAS_ACML_SERIAL_LIB)
 ENDIF(USE_OPENMP)
 
+IF(ACML_FOUND)
+  IF(USE_OPENMP)
+    SET(ACML_HEADER_FILE "${BLAS_ACML_OPENMP_LIB}")
+  ELSE(USE_OPENMP)
+    SET(ACML_HEADER_FILE "${BLAS_ACML_SERIAL_LIB}")
+  ENDIF(USE_OPENMP)
 
+  STRING(REGEX REPLACE "/gfortran64.*" "/../include/acml.h"
+    ACML_HEADER_FILE
+    "${ACML_HEADER_FILE}")
+#  MESSAGE("ACML_HEADER_FILE ${ACML_HEADER_FILE} SERIAL")
+
+  #-----------------------------------------------------------------------------
+  # Determine version of ACML by reading its version header
+  #-----------------------------------------------------------------------------
+  FILE(READ
+    "${ACML_HEADER_FILE}"
+    ACML_HEADER
+    )
+
+#  MESSAGE("ACML_HEADER ${ACML_HEADER}")
+
+  STRING(REGEX MATCH " ACML version [0-9]+\\.[0-9]+\\.[0-9]+"
+    CFS_ACML_VERSION
+    "${ACML_HEADER}")
+  STRING(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+"
+    CFS_ACML_VERSION "${CFS_ACML_VERSION}")
+
+#  MESSAGE("CFS_ACML_VERSION ${CFS_ACML_VERSION}")
+  
+ENDIF(ACML_FOUND)

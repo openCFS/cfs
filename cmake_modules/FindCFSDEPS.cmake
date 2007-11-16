@@ -172,6 +172,13 @@ IF(USE_MPCCI)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMpCCI.cmake")    
 ENDIF(USE_MPCCI)
 
+#-----------------------------------------------------------------------------
+# Find CGAL
+#-----------------------------------------------------------------------------
+IF(USE_INTERPOLATION)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGAL.cmake")    
+ENDIF(USE_INTERPOLATION)
+
 
 #-------------------------------------------------------------------------------
 # Set BLAS_LIBRARY and LAPACK_LIBRARY according to architecture
