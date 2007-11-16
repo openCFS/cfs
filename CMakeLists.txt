@@ -240,10 +240,13 @@ ENDIF(NOT RETVAL STREQUAL 0)
 #-----------------------------------------------------------------------------
 INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIR} 
-#  ${CFSDEPS_INCLUDE_DIR} 
   ${CFS_BINARY_DIR}/include
   ${CFS_SOURCE_DIR}/source
   ${CFS_SOURCE_DIR}/source/OLAS)
+
+IF(USE_INTERPOLATION)
+  INCLUDE_DIRECTORIES(${CGAL_INCLUDE_DIR})
+ENDIF(USE_INTERPOLATION)
 
 #-----------------------------------------------------------------------------
 # Make sure the linker can find the CFS base libraries once it is built.
