@@ -124,6 +124,11 @@ size_in_mb = num_items*numsteps*8 / 1024 / 1024;
 numiter = ceil(size_in_mb / bufsize * 5); % scale by 5, because we need 5 times
                                           % bufsize for fft
 
+% Delete temp files from last run.
+[pathstr, name, ext, versn] = fileparts(outfile);
+exec(sprintf('rm -rf %s/TEMP_FFT', pathstr));
+exec(sprintf('mkdir %s/TEMP_FFT', pathstr));
+                                         
 % Number of scalars treated in one iteration (= chunk size)
 items_per_iter = ceil(num_items / numiter);
 
@@ -179,7 +184,7 @@ for iter=1:numiter
   clear MAT
 
   % write back harmonic datasets, one file for each chunk
-  outfile_iter = sprintf('%s_%d', outfile, iter);
+  outfile_iter = sprintf('%s/TEMP_FFT/%s_%d.h5', pathstr, name, iter);
 
   if numiter > 1
     disp(sprintf('\nBuffering result of chunk %d\n', iter))
@@ -230,8 +235,7 @@ for i=1:numharmsteps
 
   % store chunks into one dataset
   for iter=1:numiter
-
-    outfile_iter = sprintf('%s_%d', outfile, iter);
+    outfile_iter = sprintf('%s/TEMP_FFT/%s_%d.h5', pathstr, name, iter);
 
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
@@ -337,8 +341,5 @@ CopyTreeHDF5(infile, '/Mesh', outfile, '/Mesh');
 WriteFileInfoHDF5(outfile, [1 2]);
 
 % Delete temp files
-for iter=1:numiter
-  outfile_iter = sprintf('%s_%d', outfile, iter);
-  delete(outfile_iter);
-end
+exec(sprintf('rm -rf %s/TEMP_FFT', pathstr));
 delete(tmpfile);
