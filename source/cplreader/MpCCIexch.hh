@@ -1,8 +1,7 @@
 #ifndef FILE_MPCCIEXCH_2006
 #define FILE_MPCCIEXCH_2006
 
-#include <General/environment.hh>
-
+#include <cplreaderdefs.hh>
 #include "filereader.hh"
 
 namespace CoupledField

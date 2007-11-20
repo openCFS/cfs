@@ -10,12 +10,13 @@
 #include <boost/filesystem/operations.hpp>
 namespace bfs=boost::filesystem;
 
-#include <General/environment.hh>
-#include <General/exception.hh>
-
+#include <cplreaderdefs.hh>
 #include "settings.hh"
+
+#ifndef CPLREADER_STANDALONE
 #include "integlib.h"
 #include "integlib/elemIntegr.hh"
+#endif
 
 #include "MpCCIexch.hh"
 
@@ -313,7 +314,7 @@ namespace CoupledField
                           resultScriptFileName, resultDatFileName,
                           writeResultCmd, writeAuxCmd);
 
-    typedef boost::tokenizer<char_separator<char> > Tok;
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
     boost::char_separator<char> sep(";| ");
     Tok t(settings.GetString("outputfields"), sep);
     Tok::iterator it, end;
@@ -364,6 +365,7 @@ namespace CoupledField
         // flowdata [0]      [1]  [2]  [3]  [4]   [5]   [6]   [7]      [8] ... 
         //          acousrc1 vx1  vy1  vz1  usr11 usr21 usr31 acousrc2 vx2 ...
 
+#ifndef CPLREADER_STANDALONE
         if(calcSrc)
         {
           for (int inode=0; inode<numNodesPart; inode++)
@@ -373,6 +375,7 @@ namespace CoupledField
 
           CalculateAcouSrcs(actPart, flowdata);
         }
+#endif
 
         // Prepare vectors with Lighthill source, velocity and pressure. 
         std::map<UInt, UInt>::iterator it, end;
@@ -547,6 +550,7 @@ namespace CoupledField
   void MpCCIexch::CalculateAcouSrcs(const int partitionIdx,
                                     std::vector<double>& flowdata)
   {
+#ifndef CPLREADER_STANDALONE
     Settings& settings = Settings::Instance();
     int nElems = ptFileReader_->GetNumElems(partitionIdx);
 
@@ -681,6 +685,7 @@ namespace CoupledField
 
       k += numNodesPerElem_[partitionIdx][i];
     }
+#endif
   }
 
   void MpCCIexch::ClearMeshTempFiles(std::string& coordCfgFileName,

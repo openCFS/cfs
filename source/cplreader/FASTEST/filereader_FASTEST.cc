@@ -6,8 +6,6 @@
 #include <iomanip>
 #include <sstream> 
 
-#include <General/environment.hh>
-
 #include "../params.hh"
 #include "../settings.hh"
 #include "filereader_FASTEST.hh"
@@ -111,14 +109,14 @@ namespace CoupledField
         // Initialize mapping between columns in FASTEST result files and
         // internal variables.
         Integer dataCol;
-        StdVector<std::string> fastestDOFs;
-        fastestDOFs.Push_back("lhsrc");
-        fastestDOFs.Push_back("vx");
-        fastestDOFs.Push_back("vy");
-        fastestDOFs.Push_back("vz");
-        fastestDOFs.Push_back("pres");
+        std::vector<std::string> fastestDOFs;
+        fastestDOFs.push_back("lhsrc");
+        fastestDOFs.push_back("vx");
+        fastestDOFs.push_back("vy");
+        fastestDOFs.push_back("vz");
+        fastestDOFs.push_back("pres");
         
-        for(UInt i=0; i<fastestDOFs.GetSize(); i++)
+        for(UInt i=0; i<fastestDOFs.size(); i++)
         {
           std::string colStr = settings.GetString(fastestDOFs[i]);
           
@@ -137,11 +135,11 @@ namespace CoupledField
               exit(1);
             }
             
-            dataColumns_.Push_back(dataCol-1);
+            dataColumns_.push_back(dataCol-1);
           }
           else
           {
-            dataColumns_.Push_back(-1);            
+            dataColumns_.push_back(-1);            
           }
         }
         
@@ -418,8 +416,8 @@ namespace CoupledField
 
         flowdata.resize(7*MpCCInodes_[partitionIdx]);
 
-        StdVector<Double> tempVec;
-        tempVec.Resize(numResults_);
+        std::vector<Double> tempVec;
+        tempVec.resize(numResults_);
         
         for (UInt i=0; i < MpCCInodes_[partitionIdx]; i++)
         {
@@ -428,7 +426,7 @@ namespace CoupledField
           for(UInt j=0; j<numResults_; j++)
             infile >> tempVec[j];
 
-          for(UInt j=0; j<dataColumns_.GetSize(); j++)
+          for(UInt j=0; j<dataColumns_.size(); j++)
           {
             if(dataColumns_[j] > -1)
               flowdata[i*7+j] = tempVec[dataColumns_[j]];

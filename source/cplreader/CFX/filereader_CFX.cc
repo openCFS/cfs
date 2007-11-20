@@ -8,8 +8,6 @@
 // #include <pcrecpp.h>
 // #include <muParser.h>
 
-#include <General/environment.hh>
-
 #include "../params.hh"
 #include "../settings.hh"
 #include "../mpcci_defs.hh"

@@ -1,0 +1,166 @@
+#ifndef FILE_CPLREADERDEFS_2007
+#define FILE_CPLREADERDEFS_2007
+
+#cmakedefine CPLREADER_STANDALONE
+
+#cmakedefine CPLREADER_CFX
+#cmakedefine CPLREADER_FASTEST
+#cmakedefine CPLREADER_OPENFOAM
+
+#ifndef CPLREADER_STANDALONE
+#include <General/environment.hh>
+#include <General/exception.hh>
+#else
+
+#include <string>
+#include <sstream>
+#include <exception>
+
+#include <boost/cstdint.hpp>
+
+namespace CoupledField 
+{
+  class Exception : public std::exception
+  {
+  public:
+    Exception( const Exception* reason,
+               const char* const fileName = "NO_FILENAME", 
+               const unsigned int lineNum = 0,
+               const char* const message = "NO_MESSAGE") throw ()
+    {
+        std::ostringstream ostream;
+        
+        if( fileName != "" ) {
+            ostream << "\nIn file '" << fileName << "'";
+        }
+        
+        if( lineNum != 0 ) {
+            ostream << " at line " << lineNum << std::endl;
+        }
+        
+        ostream << "\n";
+        
+        ostream << message << std::endl;
+        
+        what_ = ostream.str();
+    }
+    
+    virtual ~Exception() throw() {};
+
+    virtual const char * what() const throw ()
+    {
+        return what_.c_str();
+    }
+
+  private:
+    std::string what_;
+  };
+
+#define EXCEPTION(STR){                                                 \
+    std::ostringstream ostr;                                            \
+    ostr << STR;                                                        \
+    Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str());  \
+    throw ex__;                                                         \
+  }
+
+  //! redeclaration of types
+  typedef int32_t Integer;
+  typedef uint32_t UInt;
+  typedef int16_t ShortInt;
+  typedef float Float;
+  typedef double Double;
+
+  typedef enum  
+  {
+    ET_UNDEF      = 0,
+    ET_POINT      = 1,
+    ET_LINE2      = 2,
+    ET_LINE3      = 3,
+    ET_TRIA3      = 4,
+    ET_TRIA6      = 5,
+    ET_QUAD4      = 6,
+    ET_QUAD8      = 7,
+    ET_QUAD9      = 8,
+    ET_TET4       = 9,
+    ET_TET10      = 10,
+    ET_HEXA8      = 11,
+    ET_HEXA20     = 12,
+    ET_HEXA27     = 13,
+    ET_PYRA5      = 14,
+    ET_PYRA13     = 15,
+    ET_WEDGE6     = 16,
+    ET_WEDGE15    = 17
+  } FEType;
+
+  const uint32_t NUM_ELEM_NODES[] = 
+  {
+    0,  // ET_UNDEF  
+    1,  // ET_POINT
+    2,  // ET_LINE2  
+    3,  // ET_LINE3  
+    3,  // ET_TRIA3  
+    6,  // ET_TRIA6  
+    4,  // ET_QUAD4  
+    8,  // ET_QUAD8  
+    9,  // ET_QUAD9  
+    4,  // ET_TET4   
+    10, // ET_TET10  
+    8,  // ET_HEXA8  
+    20, // ET_HEXA20 
+    27, // ET_HEXA27 
+    5,  // ET_PYRA5  
+    13, // ET_PYRA13 
+    6,  // ET_WEDGE6 
+    15  // ET_WEDGE15
+  };
+
+  const uint32_t ELEM_DIM[] = 
+  {
+    0,  // ET_UNDEF  
+    0,  // ET_POINT
+    1,  // ET_LINE2  
+    1,  // ET_LINE3  
+    2,  // ET_TRIA3  
+    2,  // ET_TRIA6  
+    2,  // ET_QUAD4  
+    2,  // ET_QUAD8  
+    2,  // ET_QUAD9  
+    3,  // ET_TET4   
+    3,  // ET_TET10  
+    3,  // ET_HEXA8  
+    3,  // ET_HEXA20 
+    3,  // ET_HEXA27 
+    3,  // ET_PYRA5  
+    3,  // ET_PYRA13 
+    3,  // ET_WEDGE6 
+    3   // ET_WEDGE15
+  };
+
+  const std::string ELEM_TYPE_NAMES[] = 
+  {
+    "ET_UNDEF",  
+    "ET_POINT",         
+    "ET_LINE2",         
+    "ET_LINE3",         
+    "ET_TRIA3",         
+    "ET_TRIA6",         
+    "ET_QUAD4",         
+    "ET_QUAD8",         
+    "ET_QUAD9",         
+    "ET_TET4",          
+    "ET_TET10",         
+    "ET_HEXA8",         
+    "ET_HEXA20",        
+    "ET_HEXA27",        
+    "ET_PYRA5",         
+    "ET_PYRA13",        
+    "ET_WEDGE6",        
+    "ET_WEDGE15"       
+  };
+
+};
+
+
+#endif
+
+#endif

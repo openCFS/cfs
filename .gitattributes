@@ -1178,9 +1178,12 @@ source/cplreader/FASTEST/filereader_FASTEST.cc svneol=native#text/plain
 source/cplreader/FASTEST/filereader_FASTEST.hh svneol=native#text/plain
 source/cplreader/MpCCIexch.cc svneol=native#text/plain
 source/cplreader/MpCCIexch.hh svneol=native#text/plain
+source/cplreader/OPENFOAM/filereader_OPENFOAM.cc svneol=native#text/plain
+source/cplreader/OPENFOAM/filereader_OPENFOAM.hh svneol=native#text/plain
 source/cplreader/Stanford/filereader_Stanford.cc svneol=native#text/plain
 source/cplreader/Stanford/filereader_Stanford.hh svneol=native#text/plain
 source/cplreader/cplreader.cc svneol=native#text/plain
+source/cplreader/cplreaderdefs.hh.in -text
 source/cplreader/filereader.cc svneol=native#text/plain
 source/cplreader/filereader.hh svneol=native#text/plain
 source/cplreader/integlib.h svneol=native#text/plain
