@@ -27,7 +27,7 @@
 #include <sstream>
 #include <memory>
 
-#include "General/exception.hh"
+#include <cplreaderdefs.hh>
 
 namespace CoupledField 
 {
@@ -93,7 +93,7 @@ namespace CoupledField
     {
       if(settingsMap_.find(key) == settingsMap_.end())
       {
-        EXCEPTION("Key not found in map.");
+        EXCEPTION("Key '" << key << "' not found in map.");
       }
       
       std::stringstream sstr;
@@ -120,7 +120,7 @@ namespace CoupledField
     {
       if(settingsMap_.find(key) == settingsMap_.end())
       {
-        EXCEPTION("Key not found in map.");
+        EXCEPTION("Key '" << key << "' not found in map.");
       }
       
       std::stringstream sstr;

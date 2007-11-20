@@ -6,12 +6,25 @@
 #include <sstream>
 #include <stdlib.h>
 
+#include <cplreaderdefs.hh>
+
 #include "params.hh"
 #include "settings.hh"
 #include "filereader.hh"
+
+#ifdef CPLREADER_FASTEST
 #include "FASTEST/filereader_FASTEST.hh"
-// #include "Stanford/filereader_Stanford.hh"
+#endif
+
+#ifdef CPLREADER_CFX
 #include "CFX/filereader_CFX.hh"
+#endif
+
+#ifdef CPLREADER_OPENFOAM
+#include "OPENFOAM/filereader_OPENFOAM.hh"
+#endif
+
+// #include "Stanford/filereader_Stanford.hh"
 #include "CFX/cfx_fortran_defs.h"
 #include "MpCCIexch.hh"
 
@@ -41,9 +54,13 @@ int main(int argc, char *argv[])
     
     if(type == "FASTEST")
     {
+#ifdef CPLREADER_FASTEST
       fileReader = new FileReader_FASTEST(settings.GetString("name"),
                                           settings.GetInt("dim"),
                                           settings.GetInt("numSteps"));
+#else
+      EXCEPTION("Reading of FASTEST files not supported!");
+#endif
     }
 
  #if 0
@@ -57,11 +74,25 @@ int main(int argc, char *argv[])
 
     if(type == "CFX")
     {
+#ifdef CPLREADER_CFX
       fileReader = new FileReader_CFX(settings.GetString("name"),
                                       settings.GetInt("dim"),
                                       settings.GetInt("numSteps"));
+#else
+      EXCEPTION("Reading of CFX files not supported!");
+#endif
     }
 
+    if(type == "OPENFOAM")
+    {
+#ifdef CPLREADER_OPENFOAM
+      fileReader = new FileReader_OPENFOAM(settings.GetString("name"),
+                                           settings.GetInt("dim"),
+                                           settings.GetInt("numSteps"));
+#else
+      EXCEPTION("Reading of OPENFOAM files not supported!");
+#endif
+    }
 
     if(!fileReader)
     {

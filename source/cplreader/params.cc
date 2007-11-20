@@ -51,8 +51,13 @@ namespace CoupledField
       std::string arg = argv[1];
       if(arg == "-?" || arg == "--help")
       {
+#ifndef CPLREADER_STANDALONE
         std::cout << std::endl
-                  << "cplreader - A fluid data reader for CFS++/MpCCI coupling"
+                  << "cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
+#else
+        std::cout << std::endl
+                  << "cplreader (STANDALONE) - A fluid data reader for CFS++/MpCCI coupling"
+#endif
                   << std::endl << std::endl
                   << "Compiled:" << std::endl << "  "
                   << __DATE__ << std::endl << std::endl;
@@ -98,7 +103,7 @@ namespace CoupledField
          "Name of dataset")
 
         ("type", po::value< std::string >(&param_type)->default_value("CFX"),
-         "Type of dataset (can be FASTEST|CFX)")
+         "Type of dataset (can be FASTEST|CFX|OPENFOAM)")
 
         ("coupling", po::value< std::string >(&param_coupling)->default_value("file"),
          "Specify kind of coupling MpCCI|file (not used!)")
@@ -118,8 +123,10 @@ namespace CoupledField
         ("deffile", po::value< std::string >(&param_deffile)->default_value(""),
          "Definition file name. Only for CFX!")
 
+#ifndef CPLREADER_STANDALONE
         ("calcsrc", po::value< bool >(&param_calcsrc)->default_value(false),
          "Calculate the acoustic sources from velocity")
+#endif
 
         ("floatds", po::value< bool >(&param_floatds)->default_value(true),
          "Do the CFX .trn files contain float or double values. ATTENTION!" 
@@ -195,7 +202,11 @@ namespace CoupledField
     settings.SetInt("dim", param_dim);
     settings.SetInt("numSteps", param_numsteps);
     settings.SetInt("stepIncr", param_stepincr);
+#ifndef CPLREADER_STANDALONE
     settings.SetInt("calcSrc", param_calcsrc);
+#else
+    settings.SetInt("calcSrc", 0);
+#endif
     settings.SetInt("floatDataset", param_floatds);
     settings.SetInt("deltemp", param_deltemp);
     settings.SetInt("verbose", param_verbose);

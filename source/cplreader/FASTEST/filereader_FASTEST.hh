@@ -1,8 +1,7 @@
 #ifndef FILE_FILEREADER_FASTEST_2006
 #define FILE_FILEREADER_FASTEST_2006
 
-#include <General/environment.hh>
-
+#include <cplreaderdefs.hh>
 #include "../filereader.hh"
 
 namespace CoupledField
@@ -40,7 +39,7 @@ namespace CoupledField
 
     protected:
 
-      StdVector<Integer> dataColumns_;
+      std::vector<Integer> dataColumns_;
     };
 
       
