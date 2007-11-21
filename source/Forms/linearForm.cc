@@ -1960,23 +1960,23 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       
       // calculate helper variables N1 and N2
       N1 = Complex(0.0, 0.0);
-      for (UInt k=0; k<spacedim; k++)
-        N1 += 0.5 * solD1GradAtIp[k] * std::conj( solGradAtIp[k] );
+//      for (UInt k=0; k<spacedim; k++)
+//        N1 += 0.5 * solD1GradAtIp[k] * std::conj( solGradAtIp[k] );
+      // --------------------------------------------------------------------
+//      std::cerr << "N1:\n" << "  abs = " << std::abs(N1) << "  angle = "
+//                << std::atan2( N1.imag(), N1.real() )*180/PI << "\n";
+      // --------------------------------------------------------------------
 
       for (UInt k=0; k<spacedim; k++)
         N2[k] = 0.5 * std::conj( solGradAtIp[k] ) * solD1AtIp;
-      
       // --------------------------------------------------------------------
-      std::cerr << "N1:\n" << "  abs = " << std::abs(N1) << "  angle = "
-                << std::atan2( N1.imag(), N1.real() )*180/PI << "\n";
-      std::cerr << "N2:\n";
-      for (UInt i=0; i<N2.GetSize(); i++)
-        std::cerr << "  abs = " << std::abs(N2[i]) << "  angle = "
-                  << std::atan2( N2[i].imag(), N2[i].real() )*180/PI << "\n";
+//      std::cerr << "N2:\n";
+//      for (UInt i=0; i<N2.GetSize(); i++)
+//        std::cerr << "  abs = " << std::abs(N2[i]) << "  angle = "
+//                  << std::atan2( N2[i].imag(), N2[i].real() )*180/PI << "\n";
       // --------------------------------------------------------------------
         
       factor = density_ * jacDet * intWeights[actIntPt-1];
-      // source element vector
       for (UInt i=0; i< numFncs; i++) {
         
         elemPower[i] += factor * ShpFncAtIp_[i] * N1.real();
@@ -1985,7 +1985,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
           elemPower[i] -= factor * xiDx_[i][j] * N2[j].real();
       }
     }
-    std::cerr << "elemPower:\n" << elemPower << "\n\n";
+    // std::cerr << "elemPower:\n" << elemPower << "\n\n";
   }
   
   // ====================================================================
