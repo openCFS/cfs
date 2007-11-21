@@ -403,6 +403,41 @@ namespace CFSTool {
            }
          }
 
+         Vector<Double> maxResVec2;
+         maxResVec2.Resize( inResults2.GetSize() );
+         
+         // For transient simulation find maximum amplitude over all timesteps
+         if( types[actMsStep] != HARMONIC ) {
+           
+           // iterate over all results
+           for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
+             
+             maxResVec2[iRes] = 0.0;
+             // iterate over all time steps
+             for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
+               
+               UInt actStepNum = iStep+1;
+               // check if current result is defined within this step
+               if( resultSteps[inResults2[iRes]->GetResultInfo()].find(actStepNum)
+                   == resultSteps[inResults2[iRes]->GetResultInfo()].end() ) {
+                 continue;
+               }
+               
+               input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
+               Vector<Double> & inVec2 = 
+                 dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
+               
+               for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
+                 if( std::abs(inVec2[i]) > maxResVec2[iRes] ) 
+                     maxResVec2[iRes] = std::abs(inVec2[i]);
+               }
+             }
+             std::cout << "For result '" << inResults2[iRes]->GetResultInfo()->resultName
+                       << "' maximum amplitude is: " << maxResVec2[iRes] << "\n";
+           }
+         }
+         
+
          // notify writer
          if( output) {  
            output->BeginMultiSequenceStep( actMsStep, types[actMsStep], 
@@ -436,7 +471,6 @@ namespace CFSTool {
              
              // get number of dofs of result
              UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
-             std::cout << "Found " << numDofs << " degrees of freedom.\n";
              
              // cast result objects, get vector and calculate difference vector
              if( types[actMsStep] != HARMONIC ) {
@@ -448,17 +482,16 @@ namespace CFSTool {
                  dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
                
-               // find maximum value of inResult2
-               Double maxRes2 = 0.0;
+               // find maximum amplitude of inResult2
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxRes2) 
-                   maxRes2 = std::abs(inVec2[i]);
+                 if( std::abs(inVec2[i]) > maxResVec2[iRes]) 
+                   maxResVec2[iRes] = std::abs(inVec2[i]);
                }
                
                // calculate difference entrywise 
                outVec = inVec1 - inVec2;
                if (normedtomax == true) {
-                 outVec /= maxRes2;
+                 outVec /= maxResVec2[iRes];
                }
                
                // find maximum entry in difference vector
@@ -467,7 +500,7 @@ namespace CFSTool {
                    maxDiff = std::abs(outVec[i]) ;
                  }
                }
-               
+                             
              } else {
                Vector<Complex> & inVec1 = 
                  dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
@@ -477,7 +510,7 @@ namespace CFSTool {
                  dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
 
-               // find maximum amplitude of inResult2
+               // find maximum amplitude of inResult2 in every frequency step
                Double maxRes2 = 0.0;
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
                  if( std::abs(inVec2[i]) > maxRes2) 
@@ -492,7 +525,7 @@ namespace CFSTool {
                  // iterate over number of entities
                  for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
                    
-                   // index to access entity 'x' with dof 'dof'
+                   // index to access entity 'i' of dof 'dof'
                    UInt actIndex = i * numDofs + dof;
                    
                    // amplitude difference
