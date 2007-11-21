@@ -60,7 +60,13 @@ namespace CoupledField {
     Enum2String(matClass,strMatClass);
     
     // first get the material element:  <material name="iron">
-    ParamNode* pn = parser_->Get("material", "name", matName);
+    ParamNode* pn = NULL;
+    pn = parser_->Get("material", "name", matName);
+    
+    if( !pn ) {
+      EXCEPTION( "Material with name '" << matName 
+                 << "' could not be found in material file!" );
+    }
     // the the requested material class: <mechanical>
     pn = pn->Get(strMatClass);  
    
@@ -101,7 +107,7 @@ namespace CoupledField {
       ReadThermoelastic( material, pn );
     }
     else {
-      EXCEPTION( "material type:" << matClass << " not defined " );
+      EXCEPTION( "material type:" << matClass << " not defined" );
     }
     // Finalize setup of material
     material->Finalize();
