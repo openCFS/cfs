@@ -1721,9 +1721,11 @@ namespace CoupledField {
         }
         
       } catch (Exception& ex ) {
+        std::string matClassString;
+        Enum2String( pdematerialclass_, matClassString );
         RETHROW_EXCEPTION(ex, "Could not assign material '"
                           << material << "' of materialClass '"
-                          << pdematerialclass_ << "'to region '" 
+                          << matClassString << "' to region '" 
                           << region << "' within pde '" 
                           << pdename_ << "'");
       }

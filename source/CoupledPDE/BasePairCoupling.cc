@@ -309,9 +309,11 @@ namespace CoupledField {
 
         
       } catch (Exception& ex ) {
+        std::string matClassString;
+        Enum2String( materialClass_, matClassString );
         RETHROW_EXCEPTION(ex, "Could not assign material '"
                           << material << "' of materialClass '"
-                          << materialClass_ << "'to region '" 
+                          << matClassString << "' to region '" 
                           << region << "' within coupling '"
                           << couplingName_ << "'");
       }
