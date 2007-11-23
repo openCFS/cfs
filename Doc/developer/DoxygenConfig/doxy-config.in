@@ -132,6 +132,7 @@ INPUT                  = @CMAKE_SOURCE_DIR@/source/CoupledPDE \
                          @CMAKE_SOURCE_DIR@/source/OLAS/solver \
                          @CMAKE_SOURCE_DIR@/source/OLAS/utils \
                          @CMAKE_SOURCE_DIR@/source/OLAS/utils/math \
+                         @CMAKE_SOURCE_DIR@/source/Optimization \
                          @CMAKE_SOURCE_DIR@/source/PDE \
                          @CMAKE_SOURCE_DIR@/source/ParamIdent \
                          @CMAKE_SOURCE_DIR@/source/Utils \
