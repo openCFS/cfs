@@ -224,6 +224,7 @@ STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/]+" CFS_SUBVERSION_REPOS "${SVNSTR}"
 #-----------------------------------------------------------------------------
 # Determine global revision of working copy
 #-----------------------------------------------------------------------------
+IF(SVNVERSION)
 EXEC_PROGRAM(${SVNVERSION}
   ARGS ${CFS_SOURCE_DIR}
   OUTPUT_VARIABLE CFS_SUBVERSION_REV
@@ -232,7 +233,9 @@ EXEC_PROGRAM(${SVNVERSION}
 IF(NOT RETVAL STREQUAL 0)
   SET(CFS_SUBVERSION_REV "N/A")
 ENDIF(NOT RETVAL STREQUAL 0)
-
+ELSE(SVNVERSION)
+  SET(CFS_SUBVERSION_REV "N/A")
+ENDIF(SVNVERSION)
 
 
 #-----------------------------------------------------------------------------

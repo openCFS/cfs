@@ -1,7 +1,57 @@
+SET(Boost_FOUND 1)
+
 #-------------------------------------------------------------------------------
-# Try to find Boost using CMake standard package.
+# Determine paths of Boost libraries.
 #-------------------------------------------------------------------------------
-FIND_PACKAGE(Boost)
+SET (Boost_POSSIBLE_LIB_PATHS
+  ${CFSDEPS_LIBRARY_DIR}
+  /usr/lib64
+  /usr/lib
+  /usr/local/lib64
+  /usr/local/lib
+)
+
+FIND_LIBRARY(BOOST_DATE_TIME_LIB
+  NAMES boost_date_time
+  PATHS ${Boost_POSSIBLE_LIB_PATHS}
+  NO_DEFAULT_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH
+  )
+
+#-------------------------------------------------------------------------------
+# Mark paths of Boost libraries as advanced.
+#-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(BOOST_DATE_TIME_LIB)
+
+
+#-------------------------------------------------------------------------------
+# Look for Boost header.
+#-------------------------------------------------------------------------------
+SET (Boost_POSSIBLE_INCLUDE_PATHS
+  ${CFSDEPS_INCLUDE_DIR}
+  /usr/include
+  /usr/local/include
+  )
+
+FIND_PATH(Boost_INCLUDE_DIR
+  NAMES boost/version.hpp 
+  PATHS ${Boost_POSSIBLE_INCLUDE_PATHS}
+  )
+
+MARK_AS_ADVANCED(Boost_INCLUDE_DIR)
+
+
+IF(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
+  SET(Boost_FOUND 1)
+ELSE(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
+  #-----------------------------------------------------------------------------
+  # Try to find Boost using CMake standard package.
+  #-----------------------------------------------------------------------------
+  FIND_PACKAGE(Boost)
+ENDIF(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
 
 #-------------------------------------------------------------------------------
 # If standard algorithm could not find Boost use our own one.
@@ -128,7 +178,7 @@ IF(Boost_FOUND)
       CFS_BOOST_VERSION "${BOOST_VERSION}")
 #    MESSAGE("CFS_BOOST_VERSION ${CFS_BOOST_VERSION}")
 
-    SET(BOOST_LIB_SUFFIX ".so")
+    SET(BOOST_LIB_SUFFIX ".a")
     SET(BOOST_LIB_PREFIX "${Boost_LIBRARY_DIR}/lib")
   ENDIF(Boost_FOUND)
 

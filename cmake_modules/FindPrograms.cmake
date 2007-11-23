@@ -15,9 +15,11 @@ IF(NOT SVN OR
  SET(MSG "Subversion executable (svn) could not be found!")
  FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log
    ${MSG})
- MESSAGE(FATAL_ERROR ${MSG})
-ENDIF(NOT SVN OR
-      NOT SVNVERSION)
+
+ SET(NACS_SUBVERSION_VER "N/A")
+
+ELSE(NOT SVN OR
+     NOT SVNVERSION)
 
 EXEC_PROGRAM("${SVN} --version"
     ARGS
@@ -33,20 +35,21 @@ IF(NOT NACS_SUBVERSION_VER MATCHES "1\\.[4-9]+\\.[0-9]+")
   MESSAGE(STATUS "You should upgrade subversion to at least 1.4.x!")
 ENDIF(NOT NACS_SUBVERSION_VER MATCHES "1\\.[4-9]+\\.[0-9]+")
 
+ENDIF(NOT SVN OR
+      NOT SVNVERSION)
+
 FIND_PACKAGE(Doxygen)
 
 IF(NOT DOXYGEN OR
    NOT DOT)
-  MESSAGE("Doxygen could not be found! Note that you cannot build documentation!")
-  SUGGEST_INSTALL_PCKG()
+  MESSAGE("Warning: Doxygen could not be found! Note that you cannot build documentation!")
 ENDIF(NOT DOXYGEN OR
       NOT DOT)
 
 FIND_PACKAGE(LATEX)
 
 IF(NOT LATEX_COMPILER)
-  MESSAGE("LaTex could not be found! Note that you cannot build documentation!")
-  SUGGEST_INSTALL_PCKG()
+  MESSAGE("Warning: LaTex could not be found! Note that you cannot build documentation!")
 ENDIF(NOT LATEX_COMPILER)
 
 MARK_AS_ADVANCED(

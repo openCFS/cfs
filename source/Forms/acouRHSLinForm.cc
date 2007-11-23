@@ -109,56 +109,6 @@ namespace CoupledField {
     step_ = mParser_->Eval(mHandle_);
     factor = mParser_->Eval( mHandle2_ );
     
-    
-    /*
-    source = domain->GetGrid("interpolGrid");
-    dest = domain->GetGrid("default");
-    dest->ComputeConservativeInterpolationWeights(source, consInterpWeights);
-    
-    std::map<UInt, double>::const_iterator it, end;
-
-    acouRHSVal = resultHandler->GetResult( "intval",
-                                           1,
-                                           1,
-                                           ACOU_RHS_LOAD,
-                                           "partition1" );
-    
-    StdVector<UInt> regionNodes;
-    dest->GetNodesByRegion( regionNodes, dest->RegionNameToId(fluid));
-    rhsValues_.resize(regionNodes.GetSize());
-
-    std::cout << "Number of nodes in fluid region: " << regionNodes.GetSize() << std::endl;
-
-    for(UInt i=0; i<consInterpWeights.size(); i++)
-    {
-      it = consInterpWeights[i].begin();
-      end = consInterpWeights[i].end();
-      
-      for(; it != end; it++)
-      {
-        std::cout << "Node: " << (i+1) << " -> " << it->first
-                  << ": " << it->second << std::endl;
-      }
-      
-    }
-    */
-
-
-    /*
-    shared_ptr<SimInput> simInput
-
-    std::stringstream stream;
-    InFiles &inf = InFiles::Instance();
-    boost::shared_ptr<CoupledField::SimInput> inFile;
-    SimInputXMDF* inXMDF;
-    hid_t status;
-    Integer numInt;
-    Double factor;
-
-    step_ = mParser_->Eval(mHandle_);
-    factor = mParser_->Eval( mHandle2_ );
-
-    */
     // Determine if values for a new step have to be read.
     if(step_ != lastStep_)
     {
@@ -199,7 +149,7 @@ namespace CoupledField {
             // open a character archive for input
             std::ostringstream fNameStr;
             fNameStr << "cons_interpol_weights_" << srcRegions_[i] << ".dat"; 
-            std::ifstream ifs(fNameStr.str().c_str());
+            std::ifstream ifs(fNameStr.str().c_str(), std::ios::binary);
             boost::archive::binary_iarchive ia(ifs);
             
             // read conservative interpolation weights from archive
@@ -219,7 +169,7 @@ namespace CoupledField {
             // create and open a character archive for output
             std::ostringstream fNameStr;
             fNameStr << "cons_interpol_weights_" << srcRegions_[i] << ".dat"; 
-            std::ofstream ofs(fNameStr.str().c_str());
+            std::ofstream ofs(fNameStr.str().c_str(), std::ios::binary);
             boost::archive::binary_oarchive oa(ofs);
             
             // write class instance to archive
