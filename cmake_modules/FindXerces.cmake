@@ -16,6 +16,7 @@ SET(XERCES_FOUND 0)
 # Determine paths of XERCES libraries.
 #-------------------------------------------------------------------------------
 SET (XERCES_POSSIBLE_LIB_PATHS
+  ${CFSDEPS_LIBRARY_DIR}/xercesc_2.8.0
   ${CFSDEPS_LIBRARY_DIR}
   /usr/lib64
   /usr/lib
@@ -43,6 +44,7 @@ MARK_AS_ADVANCED(XERCES_LIBRARY)
 # Look for Xerces header.
 #-------------------------------------------------------------------------------
 SET (XERCES_POSSIBLE_INCLUDE_PATHS
+  ${CFSDEPS_INCLUDE_DIR}/xercesc_2.8.0
   ${CFSDEPS_INCLUDE_DIR}
   /usr/include
   /usr/local/include
