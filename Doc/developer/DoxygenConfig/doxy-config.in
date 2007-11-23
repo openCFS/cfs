@@ -99,7 +99,6 @@ INPUT                  = @CMAKE_SOURCE_DIR@/source/CoupledPDE \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/AnsysFile \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/gmv \
-                         @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/xmdf \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/GiD \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/TextOutput \
                          @CMAKE_SOURCE_DIR@/source/DataInOut/SimInOut/Unverg \
