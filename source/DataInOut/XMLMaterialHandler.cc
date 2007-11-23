@@ -143,7 +143,9 @@ namespace CoupledField {
     //read nonlinearity of a coupling coefficient
     if(pn->Has("piezoCouplingCoefficient", "nonlinear", "function"))
     {
-      ParamNode* pcc = pn->Get("piezoCouplingCoefficient", "nonlinear", "function");
+      ParamNode* pcc = pn->Get("piezoCouplingCoefficient", 
+                               std::string("nonlinear"), 
+                               "function");
       if(pcc->Has("entry"))
         material->SetScalar(pcc->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
       
@@ -197,7 +199,7 @@ namespace CoupledField {
 
       if(elast->Has("tensor", "dim1", "6"))
       {
-        ParamNode* tens = elast->Get("tensor", "dim1", "6");
+        ParamNode* tens = elast->Get("tensor", std::string("dim1"), "6");
         Matrix<Double> elasticityTensor(6,6);
 
         //read real elasticity tensor   
@@ -371,7 +373,9 @@ namespace CoupledField {
     // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
     if(mech->Has("elasticityCoefficient", "nonlinear", "function"))
     {
-      ParamNode* ec = mech->Get("elasticityCoefficient", "nonlinear", "function");
+      ParamNode* ec = mech->Get("elasticityCoefficient", 
+                                std::string("nonlinear"),
+                                "function");
       if(ec->Has("entry")) 
         material->SetScalar(ec->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
 
@@ -533,17 +537,21 @@ namespace CoupledField {
         Matrix<Double> permittivityTensor(3,3);
 
         // read real permittivity tensor 
-        if(p->Get("tensor", "dim1", "3")->Has("real"))
+        if(p->Get("tensor", std::string("dim1"), "3")->Has("real"))
         {
-          ParamNode* tensor =  p->Get("tensor", "dim1", "3")->Get("real");        
+          ParamNode* tensor =  p->Get("tensor",
+                                      std::string("dim1"),
+                                      "3")->Get("real");        
           ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
           material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, REAL);
         }
 
         // read imaginary permittivity tensor
-        if(p->Get("tensor", "dim1", "3")->Has("imag"))
+        if(p->Get("tensor", std::string("dim1"), "3")->Has("imag"))
         {
-          ParamNode* tensor =  p->Get("tensor", "dim1", "3")->Get("imag");        
+          ParamNode* tensor =  p->Get("tensor",
+                                      std::string("dim1"),
+                                      "3")->Get("imag");
           ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
           material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, IMAG);
         }
@@ -556,7 +564,9 @@ namespace CoupledField {
     // check for <permittivityCoefficient nonlinear="function">
     if(elec->Has("permittivityCoefficient", "nonlinear", "function"))
     {
-      ParamNode* pc = elec->Get("permittivityCoefficient", "nonlinear", "function");
+      ParamNode* pc = elec->Get("permittivityCoefficient", 
+                                std::string("nonlinear"),
+                                "function");
       
       // read nonlinearity of a permittivity coefficient
       if(pc->Has("entry"))
@@ -789,7 +799,9 @@ namespace CoupledField {
           {
             // can only be a real 3x3 tensor
             Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = thc->Get("tensor", "dim1", "3")->Get("real");
+            ParamNode* tens_pn = thc->Get("tensor",
+                                          std::string("dim1"),
+                                          "3")->Get("real");
 
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
             material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, REAL);
@@ -828,7 +840,9 @@ namespace CoupledField {
           {
             // can only be a real 3x3 tensor
             Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = py->Get("tensor", "dim1", "3")->Get("real");
+            ParamNode* tens_pn = py->Get("tensor",
+                                         std::string("dim1"),
+                                         "3")->Get("real");
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
             material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,REAL);
           }
@@ -848,7 +862,9 @@ namespace CoupledField {
           {
             // can only be a real 3x3 tensor
             Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = te->Get("tensor", "dim1", "3")->Get("real");
+            ParamNode* tens_pn = te->Get("tensor",
+                                         std::string("dim1"),
+                                         "3")->Get("real");
             ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
             material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,REAL);
           }

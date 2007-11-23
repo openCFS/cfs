@@ -3,7 +3,56 @@
 #-------------------------------------------------------------------------------
 SET(TCL_FOUND 0)
 
-FIND_PACKAGE(TCL)
+#-------------------------------------------------------------------------------
+# Determine paths of TCL libraries.
+#-------------------------------------------------------------------------------
+SET (TCL_POSSIBLE_LIB_PATHS
+  ${CFSDEPS_LIBRARY_DIR}
+  /usr/lib64
+  /usr/lib
+  /usr/local/lib64
+  /usr/local/lib
+)
+
+FIND_LIBRARY(TCL_LIBRARY
+  NAMES tcl8.4
+  PATHS ${TCL_POSSIBLE_LIB_PATHS}
+  NO_DEFAULT_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_CMAKE_PATH
+  NO_SYSTEM_ENVIRONMENT_PATH
+  NO_CMAKE_SYSTEM_PATH
+  )
+
+#-------------------------------------------------------------------------------
+# Mark paths of TCL libraries as advanced.
+#-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(TCL_LIBRARY)
+
+
+#-------------------------------------------------------------------------------
+# Look for TCL header.
+#-------------------------------------------------------------------------------
+SET (TCL_POSSIBLE_INCLUDE_PATHS
+  ${CFSDEPS_INCLUDE_DIR}
+  /usr/include
+  /usr/local/include
+  )
+
+FIND_PATH(TCL_INCLUDE_PATH
+  NAMES tcl.h
+  PATHS ${TCL_POSSIBLE_INCLUDE_PATHS}
+  )
+
+MARK_AS_ADVANCED(TCL_INCLUDE_PATH)
+
+
+IF(TCL_LIBRARY AND XERCES_INCLUDE_PATH)
+  SET(TCL_FOUND 1)
+ELSE(TCL_LIBRARY AND XERCES_INCLUDE_PATH)
+  FIND_PACKAGE(TCL)
+ENDIF(TCL_LIBRARY AND XERCES_INCLUDE_PATH)
+
 
 MARK_AS_ADVANCED(
   TCL_INCLUDE_PATH

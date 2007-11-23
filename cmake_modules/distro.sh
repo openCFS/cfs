@@ -5,7 +5,7 @@
 OS=`uname -s`
 REV=`uname -r`
 MACH=`uname -m`
-ARCH=`echo $MACH | sed "s/i./i3/"`
+ARCH=`echo $MACH | sed "s/i[3-6]./i3/"`
 
 LOWER='abcdefghijklmnopqrstuvwxyz'
 UPPER='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
