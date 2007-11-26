@@ -599,7 +599,11 @@ namespace CoupledField
                     &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
                     strlen(what), strlen(where), 0);
 
-        CHECK_CFX_IO(nerr);
+        if(nerr)                                                  
+        {                                                         
+          std::cerr << "WARNING: CFX dataset does not contain velocity!"
+                    << std::endl;                           
+        }
 
         if(flowdata.size() != nvx*7)
             flowdata.resize(nvx*7);
@@ -645,8 +649,12 @@ namespace CoupledField
           readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
                     &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
                     strlen(what), strlen(where), 0);
-
-        CHECK_CFX_IO(nerr);
+        
+        if(nerr)                                                  
+        {                                                         
+          std::cerr << "WARNING: CFX dataset does not contain pressure!"
+                    << std::endl;                           
+        }
         
         //-----------------------------------------------------------------------
         //     Close INPUT file
