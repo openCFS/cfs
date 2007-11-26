@@ -1,3 +1,7 @@
+IF(USE_XERCES)
+  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+ENDIF(USE_XERCES)
+
 IF(USE_MPCCI)
   INCLUDE_DIRECTORIES(${MPCCI_INCLUDE_DIR})
 ENDIF(USE_MPCCI)
@@ -30,10 +34,18 @@ SET(TARGET_LL
   domain
   )
 
+
 # Target link libraries for CFS++ executable target.
 TARGET_LINK_LIBRARIES(cfs 
   ${TARGET_LL}
   )
+
+IF(USE_XERCES)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${XERCES_LIBRARY}
+  )
+ENDIF(USE_XERCES)
 
 
 # Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.

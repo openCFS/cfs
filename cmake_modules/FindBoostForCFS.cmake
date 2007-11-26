@@ -11,7 +11,7 @@ SET (Boost_POSSIBLE_LIB_PATHS
   /usr/local/lib
 )
 
-FIND_LIBRARY(BOOST_DATE_TIME_LIB
+FIND_LIBRARY(BOOST_DATE_TIME_LIB_TEST
   NAMES boost_date_time
   PATHS ${Boost_POSSIBLE_LIB_PATHS}
   NO_DEFAULT_PATH
@@ -21,11 +21,8 @@ FIND_LIBRARY(BOOST_DATE_TIME_LIB
   NO_CMAKE_SYSTEM_PATH
   )
 
-#-------------------------------------------------------------------------------
-# Mark paths of Boost libraries as advanced.
-#-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(BOOST_DATE_TIME_LIB)
-
+SET(BOOST_DATE_TIME_LIB_TEST "${BOOST_DATE_TIME_LIB_TEST}"
+  CACHE INTERNAL "BOOST_DATE_TIME_LIB_TEST")
 
 #-------------------------------------------------------------------------------
 # Look for Boost header.
@@ -44,145 +41,117 @@ FIND_PATH(Boost_INCLUDE_DIR
 MARK_AS_ADVANCED(Boost_INCLUDE_DIR)
 
 
-IF(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
+IF(BOOST_DATE_TIME_LIB_TEST AND Boost_INCLUDE_DIR)
   SET(Boost_FOUND 1)
-ELSE(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
+
+  STRING(REGEX REPLACE "/libboost.*" ""
+    Boost_LIBRARY_DIR "${BOOST_DATE_TIME_LIB_TEST}")
+
+  SET (Boost_LIBRARY_DIR "${Boost_LIBRARY_DIR}" CACHE STRING
+    "The directory containing the Boost libraries." FORCE)
+
+  MESSAGE("Boost_LIBRARY_DIR ${Boost_LIBRARY_DIR}")
+ELSE(BOOST_DATE_TIME_LIB_TEST AND Boost_INCLUDE_DIR)
   #-----------------------------------------------------------------------------
   # Try to find Boost using CMake standard package.
   #-----------------------------------------------------------------------------
   FIND_PACKAGE(Boost)
-ENDIF(BOOST_DATE_TIME_LIB AND Boost_INCLUDE_DIR)
 
-#-------------------------------------------------------------------------------
-# If standard algorithm could not find Boost use our own one.
-#-------------------------------------------------------------------------------
-IF(NOT Boost_FOUND)
-  SET(Boost_FOUND 1)
-
-  #-----------------------------------------------------------------------------
-  # Search for Boost in ${CFSDEPS_INCLUDE_DIR}, C:/dev/boost, and the paths
-  # specified in the registry by the Boost installer
-  #-----------------------------------------------------------------------------
-  SET (BOOST_POSSIBLE_INCLUDE_PATHS
-    ${CFSDEPS_INCLUDE_DIR}
-    )
-
-  #-----------------------------------------------------------------------------
-  # Look for boost/version.hpp in the possible Boost include paths.
-  #-----------------------------------------------------------------------------
-  FIND_FILE(Boost_INCLUDE_DIR
-    NAMES boost/version.hpp
-    PATHS ${BOOST_POSSIBLE_INCLUDE_PATHS}
-    )
-
-  IF(NOT Boost_INCLUDE_DIR)
-    SET(Boost_FOUND 0)
-  ELSE(NOT Boost_INCLUDE_DIR)
-    #---------------------------------------------------------------------------
-    # Remove boost/version.hpp from Boost_INCLUDE_DIR and set cache value.
-    #---------------------------------------------------------------------------
-    STRING(REPLACE "/boost/version.hpp"
-      ""
-      MY_BOOST_INCLUDE_DIR
-      ${Boost_INCLUDE_DIR})
-    SET(Boost_INCLUDE_DIR ${MY_BOOST_INCLUDE_DIR} CACHE STRING
-      "The directory containing the Boost include files." FORCE)
-
-  ENDIF(NOT Boost_INCLUDE_DIR)
-ENDIF(NOT Boost_FOUND)
-
-#-------------------------------------------------------------------------------
-# On Windows we have to determine the correct suffix for 
-# the Boost libraries according to our compiler and build type.
-#-------------------------------------------------------------------------------
-IF(Boost_FOUND)
-
-  SET(Boost_FOUND 0)
   #---------------------------------------------------------------------------
   # Try to find the Boost library directory and set cache value.
   #---------------------------------------------------------------------------
-  IF(EXISTS "${Boost_INCLUDE_DIR}/lib64")
-    SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/lib64 CACHE STRING
-      "The directory containing the Boost libraries." FORCE)
-    SET(Boost_FOUND 1)
-  ENDIF(EXISTS "${Boost_INCLUDE_DIR}/lib64")
+  IF(NOT Boost_LIBRARY_DIR)
+    IF(CFS_ARCH STREQUAL "X86_64")
+      IF(EXISTS "${Boost_INCLUDE_DIR}/lib64")
+	SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/lib64 CACHE STRING
+	  "The directory containing the Boost libraries." FORCE)
+	SET(Boost_FOUND 1)
+      ENDIF(EXISTS "${Boost_INCLUDE_DIR}/lib64")
+    ENDIF(CFS_ARCH STREQUAL "X86_64")
 
-  IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/lib")
-    SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/lib CACHE STRING
-      "The directory containing the Boost libraries." FORCE)
-    SET(Boost_FOUND 1)
-  ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/lib")
+    IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/lib")
+      SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/lib CACHE STRING
+	"The directory containing the Boost libraries." FORCE)
+      SET(Boost_FOUND 1)
+    ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/lib")
 
-  IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib64")
-    SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/../lib64 CACHE STRING
-      "The directory containing the Boost libraries." FORCE)
-    SET(Boost_FOUND 1)
-  ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib64")
+    IF(CFS_ARCH STREQUAL "X86_64")
+      IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib64")
+	SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/../lib64 CACHE STRING
+	  "The directory containing the Boost libraries." FORCE)
+	SET(Boost_FOUND 1)
+      ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib64")
+    ENDIF(CFS_ARCH STREQUAL "X86_64")
 
-  IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib")
-    SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/../lib CACHE STRING
-      "The directory containing the Boost libraries." FORCE)
-    SET(Boost_FOUND 1)
-  ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib")
+    IF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib")
+      SET (Boost_LIBRARY_DIR ${Boost_INCLUDE_DIR}/../lib CACHE STRING
+	"The directory containing the Boost libraries." FORCE)
+      SET(Boost_FOUND 1)
+    ENDIF(NOT Boost_FOUND AND EXISTS "${Boost_INCLUDE_DIR}/../lib")
+  ENDIF(NOT Boost_LIBRARY_DIR)
 
-  IF(Boost_FOUND)
-
-    #-----------------------------------------------------------------------------
-    # Specify path to header which has to be preprocessed to get some infos
-    # about Boost.
-    #-----------------------------------------------------------------------------
-    SET(BOOST_TEST_FILE "${CFS_BINARY_DIR}/include/get_boost_infos.hh")
-    
-    FILE(WRITE ${BOOST_TEST_FILE}
-      "#include <boost/config/auto_link.hpp>\n"
-      "#include <boost/version.hpp>\n\n"
-      "<CFS_MSC_VER>_MSC_VER</CFS_MSC_VER>\n"
-      "<CFS_BOOST_VERSION>BOOST_LIB_VERSION</CFS_BOOST_VERSION>"
-      )
-
-    #-----------------------------------------------------------------------------
-    # Build command line for preprocessing the Boost info header
-    #-----------------------------------------------------------------------------
-    SET(BOOST_INFO_CMD "${CMAKE_CXX_COMPILER} ${CMAKE_CXX_FLAGS}")
-
-    SET(BOOST_INFO_CMD "${BOOST_INFO_CMD} -I${Boost_INCLUDE_DIR} -DBOOST_LIB_NAME=boost_regex -E ${BOOST_TEST_FILE}")
-
-    # MESSAGE("CFS_CXX_COMPILER ${CFS_CXX_COMPILER}")
-    # MESSAGE("BOOST_INFO_CMD ${BOOST_INFO_CMD}")
-
-    #-----------------------------------------------------------------------------
-    # Preprocess the Boost info header
-    #-----------------------------------------------------------------------------
-    EXEC_PROGRAM(${BOOST_INFO_CMD}
-      ARGS
-      OUTPUT_VARIABLE BOOST_INFO_STR
-      RETURN_VALUE RETVAL)
-
-    FILE(REMOVE ${BOOST_TEST_FILE})
-    #    MESSAGE("BOOST_INFO_STR ${BOOST_INFO_STR}")
+ENDIF(BOOST_DATE_TIME_LIB_TEST AND Boost_INCLUDE_DIR)
 
 
-    #-----------------------------------------------------------------------------
-    # Obtain Boost version.
-    #-----------------------------------------------------------------------------
-    STRING(REGEX MATCH "<CFS_BOOST_VERSION>.*</CFS_BOOST_VERSION>"
-      BOOST_VERSION "${BOOST_INFO_STR}")
 
-    STRING(REGEX REPLACE "\"" ""
-      BOOST_VERSION "${BOOST_VERSION}")
-    STRING(REGEX MATCH "[0-9]+\\_[0-9]+"
-      BOOST_VERSION
-      "${BOOST_VERSION}")
+IF(Boost_FOUND)
 
-    STRING(REGEX REPLACE "_" "."
-      CFS_BOOST_VERSION "${BOOST_VERSION}")
-#    MESSAGE("CFS_BOOST_VERSION ${CFS_BOOST_VERSION}")
+  #-----------------------------------------------------------------------------
+  # Specify path to header which has to be preprocessed to get some infos
+  # about Boost.
+  #-----------------------------------------------------------------------------
+  SET(BOOST_TEST_FILE "${CFS_BINARY_DIR}/include/get_boost_infos.hh")
+  
+  FILE(WRITE ${BOOST_TEST_FILE}
+    "#include <boost/config/auto_link.hpp>\n"
+    "#include <boost/version.hpp>\n\n"
+    "<CFS_MSC_VER>_MSC_VER</CFS_MSC_VER>\n"
+    "<CFS_BOOST_VERSION>BOOST_LIB_VERSION</CFS_BOOST_VERSION>"
+    )
 
-    SET(BOOST_LIB_SUFFIX ".a")
-    SET(BOOST_LIB_PREFIX "${Boost_LIBRARY_DIR}/lib")
-  ENDIF(Boost_FOUND)
+  #-----------------------------------------------------------------------------
+  # Build command line for preprocessing the Boost info header
+  #-----------------------------------------------------------------------------
+  SET(BOOST_INFO_CMD "${CMAKE_CXX_COMPILER} ${CMAKE_CXX_FLAGS}")
 
+  SET(BOOST_INFO_CMD "${BOOST_INFO_CMD} -I${Boost_INCLUDE_DIR} -DBOOST_LIB_NAME=boost_regex -E ${BOOST_TEST_FILE}")
+
+  # MESSAGE("CFS_CXX_COMPILER ${CFS_CXX_COMPILER}")
+  # MESSAGE("BOOST_INFO_CMD ${BOOST_INFO_CMD}")
+
+  #-----------------------------------------------------------------------------
+  # Preprocess the Boost info header
+  #-----------------------------------------------------------------------------
+  EXEC_PROGRAM(${BOOST_INFO_CMD}
+    ARGS
+    OUTPUT_VARIABLE BOOST_INFO_STR
+    RETURN_VALUE RETVAL)
+
+  FILE(REMOVE ${BOOST_TEST_FILE})
+  #    MESSAGE("BOOST_INFO_STR ${BOOST_INFO_STR}")
+
+
+  #-----------------------------------------------------------------------------
+  # Obtain Boost version.
+  #-----------------------------------------------------------------------------
+  STRING(REGEX MATCH "<CFS_BOOST_VERSION>.*</CFS_BOOST_VERSION>"
+    BOOST_VERSION "${BOOST_INFO_STR}")
+
+  STRING(REGEX REPLACE "\"" ""
+    BOOST_VERSION "${BOOST_VERSION}")
+  STRING(REGEX MATCH "[0-9]+\\_[0-9]+"
+    BOOST_VERSION
+    "${BOOST_VERSION}")
+
+  STRING(REGEX REPLACE "_" "."
+    CFS_BOOST_VERSION "${BOOST_VERSION}")
+  #    MESSAGE("CFS_BOOST_VERSION ${CFS_BOOST_VERSION}")
+
+  SET(BOOST_LIB_SUFFIX ".a")
+  SET(BOOST_LIB_PREFIX "${Boost_LIBRARY_DIR}/lib")
 ENDIF(Boost_FOUND)
+
+MESSAGE("BOOST_LIB_PREFIX ${BOOST_LIB_PREFIX}")
 
 #-----------------------------------------------------------------------------
 # Set Boost library paths in cache.
