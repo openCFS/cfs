@@ -43,8 +43,16 @@ FIND_PACKAGE(Doxygen)
 IF(NOT DOXYGEN OR
    NOT DOT)
   MESSAGE("Warning: Doxygen could not be found! Note that you cannot build documentation!")
+ELSE(NOT DOXYGEN OR
+      NOT DOT)
+      
+  IF(NOT DOXYGEN_EXECUTABLE)
+    SET(DOXYGEN_EXECUTABLE DOXYGEN)
+  ENDIF(NOT DOXYGEN_EXECUTABLE)
+
 ENDIF(NOT DOXYGEN OR
       NOT DOT)
+      
 
 FIND_PACKAGE(LATEX)
 
