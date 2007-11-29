@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
 #ifdef CPLREADER_FASTEST
       fileReader = new FileReader_FASTEST(settings.GetString("name"),
                                           settings.GetInt("dim"),
-                                          settings.GetInt("numSteps"));
+                                          settings.GetInt("numSteps"),
+                                          settings.GetInt("firstStep"));
 #else
       EXCEPTION("Reading of FASTEST files not supported!");
 #endif
@@ -66,9 +67,9 @@ int main(int argc, char *argv[])
  #if 0
     if(type == "Stanford")
     {
-      fileReader = new FileReader_Stanford(params->GetName(),
-                                           params->GetDim(),
-                                           params->GetNumSteps());
+      fileReader = new FileReader_Stanford(settings.GetString("name"),
+                                           settings.GetInt("dim"),
+                                           settings.GetInt("numSteps"));
     }
  #endif
 
