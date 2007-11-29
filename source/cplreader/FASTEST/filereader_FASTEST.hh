@@ -14,7 +14,8 @@ namespace CoupledField
         //! Constructor
         FileReader_FASTEST(const std::string& name,
                            const UInt dim,
-                           const UInt numFiles);
+                           const UInt numFiles,
+                           const UInt startIndex);
     
         //! Deconstructor
         virtual ~FileReader_FASTEST();
@@ -39,6 +40,9 @@ namespace CoupledField
 
     protected:
 
+      UInt startIndex_;
+      std::string partFmtStr_;
+      std::string timeFmtStr_;
       std::vector<Integer> dataColumns_;
     };
 

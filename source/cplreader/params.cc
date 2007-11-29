@@ -28,6 +28,7 @@ namespace CoupledField
     std::string param_coupling;
     uint32_t param_dim;
     uint32_t param_numsteps;
+    uint32_t param_firststep;
     uint32_t param_stepincr;
     std::string param_type;
     bool param_calcsrc;
@@ -113,6 +114,9 @@ namespace CoupledField
 
         ("numsteps", po::value< uint32_t >(&param_numsteps)->default_value(1),
          "Number N of timesteps to read")
+
+        ("firststep", po::value< uint32_t >(&param_firststep)->default_value(1),
+         "Index of first time step (only for FASTEST)")
 
         ("stepincr", po::value< uint32_t >(&param_stepincr)->default_value(1),
          "Step increment for reading the files")
@@ -201,6 +205,7 @@ namespace CoupledField
     settings.SetString("coupling", param_coupling);
     settings.SetInt("dim", param_dim);
     settings.SetInt("numSteps", param_numsteps);
+    settings.SetInt("firstStep", param_firststep);
     settings.SetInt("stepIncr", param_stepincr);
 #ifndef CPLREADER_STANDALONE
     settings.SetInt("calcSrc", param_calcsrc);

@@ -16,9 +16,13 @@ namespace CoupledField
 
     FileReader_FASTEST::FileReader_FASTEST(const std::string& name,
                            const UInt dim,
-                           const UInt numFiles) :
-        FileReader(name, dim, numFiles)
+                           const UInt numFiles,
+                           const UInt startIndex) :
+        FileReader(name, dim, numFiles),
+        startIndex_(startIndex)
     {
+      partFmtStr_ = "";
+      timeFmtStr_ = "";
     }
 
     FileReader_FASTEST::~FileReader_FASTEST()
@@ -37,7 +41,7 @@ namespace CoupledField
         if(settings.GetDouble("timeStep") < 0)
           EXCEPTION("No proper time step has been specified! Use --timestep X.");
         
-        // Let's first determine the format if filenames        
+        // Let's first determine the format of filenames        
         std::stringstream sstr;
         std::string regionFormatStr;
         std::string timeStepFormatStr;
@@ -59,8 +63,10 @@ namespace CoupledField
           if (!infile) {
             std::cerr << "Can't open " << filename << std::endl;
           }
-          else
+          else {
+            partFmtStr_ = regionFormatStr;
             break;
+          }
         }
         
         if( i == 10 )
@@ -85,7 +91,7 @@ namespace CoupledField
           sstr.str("");
           sstr << "%0" << i << "i";
           timeStepFormatStr = sstr.str();
-          sprintf(buf, timeStepFormatStr.c_str(), 1);
+          sprintf(buf, timeStepFormatStr.c_str(), startIndex_);
           filename+= buf;
           filename+= ".dat";
 
@@ -94,8 +100,10 @@ namespace CoupledField
           if (!infile) {
             std::cerr << "Can't open " << filename << std::endl;
           }
-          else
+          else {
+            timeFmtStr_ = timeStepFormatStr;
             break;
+          }
         }
         
         if( i == 10 )
@@ -226,7 +234,7 @@ namespace CoupledField
         UInt dummy;
         
         filename = basename_;
-        sprintf(buf, "%02i", partitionIdx+1);
+        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
         filename+= buf;
         filename+= ".coord";
 
@@ -293,7 +301,7 @@ namespace CoupledField
         UInt dummy, numNodes, elemType;
         
         filename = basename_;
-        sprintf(buf, "%02i", partitionIdx+1);
+        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
         filename+= buf;
         filename+= ".topo";
 
@@ -393,10 +401,10 @@ namespace CoupledField
 
         
         filename = basename_;
-        sprintf(buf, "%02i", partitionIdx+1);
+        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
         filename+= buf;
         filename+= "_";
-        sprintf(buf, "%04i", timeStepIdx+1);
+        sprintf(buf, timeFmtStr_.c_str(), timeStepIdx+startIndex_);
         filename+= buf;
         filename+= ".dat";
 
