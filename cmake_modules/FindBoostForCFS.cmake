@@ -50,7 +50,6 @@ IF(BOOST_DATE_TIME_LIB_TEST AND Boost_INCLUDE_DIR)
   SET (Boost_LIBRARY_DIR "${Boost_LIBRARY_DIR}" CACHE STRING
     "The directory containing the Boost libraries." FORCE)
 
-  MESSAGE("Boost_LIBRARY_DIR ${Boost_LIBRARY_DIR}")
 ELSE(BOOST_DATE_TIME_LIB_TEST AND Boost_INCLUDE_DIR)
   #-----------------------------------------------------------------------------
   # Try to find Boost using CMake standard package.
@@ -150,8 +149,6 @@ IF(Boost_FOUND)
   SET(BOOST_LIB_SUFFIX ".a")
   SET(BOOST_LIB_PREFIX "${Boost_LIBRARY_DIR}/lib")
 ENDIF(Boost_FOUND)
-
-MESSAGE("BOOST_LIB_PREFIX ${BOOST_LIB_PREFIX}")
 
 #-----------------------------------------------------------------------------
 # Set Boost library paths in cache.
