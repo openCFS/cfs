@@ -47,7 +47,7 @@ namespace CoupledField
         std::string timeStepFormatStr;
         
         std::cout << "Trying to determine file name format for "
-                  << ".coord/.node files..." << std::endl;
+                  << ".coord/.node files... ";
         for(i=1; i<10; i++)
         {
           filename = basename_;
@@ -61,7 +61,7 @@ namespace CoupledField
           infile.clear();
           infile.open(filename.c_str());  
           if (!infile) {
-            std::cerr << "Can't open " << filename << std::endl;
+            //std::cerr << "Can't open " << filename << std::endl;
           }
           else {
             partFmtStr_ = regionFormatStr;
@@ -69,8 +69,12 @@ namespace CoupledField
           }
         }
         
-        if( i == 10 )
+        if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .coord/.node files");
+        }
+        else {
+          std::cout << "OK" << std::endl;
+        }
         
         infile >> dummy;
         infile >> numPartitions_;
@@ -80,9 +84,12 @@ namespace CoupledField
         infile.close();
         infile.clear();
 
-        std::cout << "Trying to determine file name format for .dat files..."
-                  << std::endl;
-        for(i=1; i<10; i++)
+        std::cout<<"Trying to determine file name format for .dat files... ";
+        
+        sstr.str("");
+        sstr << startIndex_;
+        
+        for(i=sstr.str().length(); i<=10; i++)
         {
           filename = basename_;
           sprintf(buf, regionFormatStr.c_str(), 1);
@@ -98,7 +105,7 @@ namespace CoupledField
           infile.clear();
           infile.open(filename.c_str());  
           if (!infile) {
-            std::cerr << "Can't open " << filename << std::endl;
+            //std::cerr << "Can't open " << filename << std::endl;
           }
           else {
             timeFmtStr_ = timeStepFormatStr;
@@ -106,8 +113,12 @@ namespace CoupledField
           }
         }
         
-        if( i == 10 )
+        if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .dat files");
+        }
+        else {
+          std::cout << "OK" << std::endl;
+        }
 
         infile >> numResults_;
 

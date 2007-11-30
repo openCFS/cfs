@@ -54,7 +54,7 @@ fi
 # echo "Input type: $INPUTTYPE"
 # rm -f $H5FILE;
 
-echo "Writing additinal datasets..."
+echo "Writing additional datasets..."
 
 CMDSTR="group\ncreate\n$H5FILE\n/\nFileInfo\nignore\n"
 printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
