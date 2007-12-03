@@ -819,7 +819,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
       // === Vectorial entries ===
       
       // --- First component ---
-      GiD_BeginResultHeader( outName1.c_str(), "harmonic", freq,
+      GiD_BeginResultHeader( outName1.c_str(), analysisName.c_str(), freq,
                              GiD_Vector, loc, dummy );
       const char *names[] = {"___", "__", "_"};
       for( UInt i = 0; i < numDofs; i++ ) {
