@@ -10,6 +10,7 @@
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
+#include "General/Enum.hh"
 
 namespace CoupledField
 {
@@ -51,9 +52,6 @@ namespace CoupledField
     //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
     virtual void ReadRestart(UInt &startStep ) = 0;
 
-    //! perform cleanup and do last computations
-    virtual void Finalize() {};
-
     // ======================================================
     // POSTPROC SECTION
     // ======================================================
@@ -79,7 +77,21 @@ namespace CoupledField
     virtual std::string GetName() {return pdename_;}
     //@}
 
-   
+    /** do string/enum conversion via BasePDE::analysisType */
+    typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, 
+                  MULTI_SEQUENCE } AnalysisType;
+    
+    /** Helper method which determines if an AnalyisType is complex. */
+    static bool IsComplex(AnalysisType type);
+                  
+    /** This enum is for the string/enum conversion of AnalysisType.
+     * Don't be confused with the actual analysis type in  analysis_.
+     * BasePDE::SetEnums() has to be called once before! */              
+    static Enum<AnalysisType> analysisType;
+
+    /** Sets up the Enums */
+    static void SetEnums();
+
   protected:
     
     //! define the SolutionStep-Driver

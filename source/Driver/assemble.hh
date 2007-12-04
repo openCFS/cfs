@@ -25,7 +25,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( BaseSystem* algsys, AnalysisType analysis, UInt maxTimeDerivOrder );
+    Assemble( BaseSystem* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
 
     //! Destructor
     ~Assemble();
@@ -55,10 +55,12 @@ namespace CoupledField {
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS( Double actTimeFreq );
-
+    
     //! Trigger assenbly of all non-linear right hand side terms
     void AssembleNonLinRHS( Double actTimeFreq );
 
+    //! Assemble nodal load values of right hand side
+    void AssembleRHSLoads( Double actTimeFreq);
 
     // ======================================================
     //  MISCELLANEOUS METHODS
@@ -79,28 +81,32 @@ namespace CoupledField {
      * assemble class.</p>
      * <p>The query needs to define a unique form.</p>
      * @param regionId guess what!
-     * @param pde1 this is the first pde - might be NULL
-     * @param pde2 the second pde, note the order -> see debug file. Might be NULL
+     * @param pde1 this is the first pde
+     * @param pde2 the second pde, note the order -> see debug file. 
+     * @param integ the integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
-    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1 = NULL, StdPDE* pde2 = NULL);
+    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
  
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }
 
+    /** Overwrites the loads to implmented the adjoint solution for SIMP 
+     * mechanism optimization */
+    void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
+    
+    /** Returns the algebraic system 
+     * TODO check if really used */
+    BaseSystem* GetAlgSys() { return algsys_; }
+
+    
     /** Returns the linear forms list for external modification */
     std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }
-
-    /** a short dump */
-    void Dump();
 
   protected:
 
     //! Assemb2le linearForms of right hand side
     void AssembleRHSLinForms( Double actTimeFreq, bool nonLin );
-
-    //! Assemble noda load values of right hand side
-    void AssembleRHSLoads( Double actTimeFreq);
 
     //! Transform real-valued element matrix to harmonic representation
     void Matrix2Harmonic( Vector<Double>& harmMat,
@@ -143,7 +149,7 @@ namespace CoupledField {
     BaseSystem* algsys_;
 
     //! Analysistype
-    AnalysisType analysisType_;
+    BasePDE::AnalysisType analysisType_;
 
     //! Flag indicating if system was already assembled
     bool isFirstTime_;

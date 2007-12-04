@@ -41,8 +41,11 @@ namespace CoupledField
     void Init();
     
     //! Main method, where harmonic analysis is implemented.
-    void SolveProblem();
-
+    void SolveProblem(bool write_results = true, const std::string& comment = "");
+    
+    /** This StoreResults meant for Optimization only */
+    void StoreResults(double step_val);    
+    
   protected:
 
     //! Method for computing the actual frequency for a given frequency number
@@ -52,7 +55,7 @@ namespace CoupledField
     //! reverse logarithmic sampling.
     //! \param freqIndex index of the frequency that shall be computed, i.e.
     //!                  an integral value from [1:numFreq_]
-    Double ComputeNextFrequency( UInt freqIndex );
+    Double ComputeNextFrequency( UInt freqIndex ) const;
 
     //! Current frequency value
     Double actFreq_;

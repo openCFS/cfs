@@ -62,13 +62,6 @@ namespace CoupledField
       
       Error( "Not implemented here", __FILE__, __LINE__ );}
     
-    //! Virtual function, implemented in derived classes
-    virtual void CalcComplexElementMatrix( Matrix<Complex> & StiffMat,
-                                           EntityIterator& ent1, 
-                                           EntityIterator& ent2,
-                                           Double & beta, Double & omega) {
-      Error( "Not implemented here", __FILE__, __LINE__ );}
-
 #endif
 
     //! define diagonal mass matrix

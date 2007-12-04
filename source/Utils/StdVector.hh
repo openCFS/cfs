@@ -9,7 +9,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <vector>
 #include "General/exception.hh"
-
+#include <def_build_type_options.hh>
 
 namespace CoupledField {
 
@@ -205,13 +205,14 @@ namespace CoupledField {
     //! Get the length of the vector
     inline unsigned int GetSize() const {return size_;}
 
-    //! Set the lenght of the vector
-    /*!
-      \param size (input) Lengh of vector
-    */
-    //! \note the entries are set to zero afterwards!
+    /** Set the length of the vector.
+     * @note The vector is NOT initialized, use the Resize with init parameter for this purpose */
     void Resize(const unsigned int size);
- 
+
+    /** Set the length of the vector and initilize
+     * @note init Init() is called with this value */
+    void Resize(const unsigned int size, TYPE entry);
+    
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
 
@@ -241,6 +242,10 @@ namespace CoupledField {
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
+    /** Imports data from extern, adjusts internal size and capacity.
+     * Any existing data is overwritten. */
+    void Import(const TYPE* source, unsigned int size);
+    
     //! Add element of the same type at position pos
     void Insert(const TYPE & y, unsigned int pos);
 
@@ -266,7 +271,11 @@ namespace CoupledField {
 
     //! Overloading of operation equal for Vector
     bool operator== (const StdVector &) const;
-  
+
+    //! Overloading of operation equal for data array
+    bool operator== (const TYPE* other) const;
+    
+    
     //! Overloading of operation not equal for Vector
     bool operator!= (const StdVector &) const;
   
@@ -284,14 +293,15 @@ namespace CoupledField {
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
 
-     /** Lists the content comma seperated */ 
-     std::string ToString() const;
-
-     /** Lists the content comma seperated */
-     void ToString(std::string& out) const;     
-
-     /** Dumps the content for debugging purpose */
-     void Dump() const;
+   
+     /** Lists the content comma seperated.
+      * @param level 0=all data, 1 is summary, the higher, the less 
+      * @param stride on level=0 every element(1), every second (2), ...*/ 
+     std::string ToString(int level=0, int stride=1) const;
+     
+     /** List the content or summary of an external source 
+      * @see ToString(int)*/
+     static std::string ToString(int size, const TYPE* data, int level=0, int stride=1);
 
   protected:
 
@@ -399,10 +409,8 @@ namespace CoupledField {
   template<class TYPE>
   TYPE* StdVector<TYPE>::GetPointer() const
   {
-#ifdef CHECK_MEMORY
     if (!data_)
       EXCEPTION("Vector: undefined Vector" );
-#endif
     return data_;
   }
 

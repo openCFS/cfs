@@ -31,10 +31,6 @@
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
-
 namespace CoupledField {
 
   DECLARE_LOG(acoupde)

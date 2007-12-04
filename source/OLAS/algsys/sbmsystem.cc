@@ -168,8 +168,6 @@ namespace OLAS {
   // ****************
   void SBM_System::CreateLinSys() {
 
-
-    BaseGraph *graph = NULL;
     std::set<FEMatrixType>::iterator fIt;
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
 
@@ -510,7 +508,6 @@ namespace OLAS {
 
     std::set<FEMatrixType>::iterator fIt;
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
-    SBM_Matrix *auxMat = NULL;
 
     // If a matrix is specified only initialise that one
     if ( matrixID != NOTYPE ) {
@@ -731,7 +728,7 @@ namespace OLAS {
   // *********
   //   Solve
   // *********
-  void SBM_System::Solve(int step) {
+  void SBM_System::Solve(const std::string&) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
@@ -768,18 +765,9 @@ namespace OLAS {
     // Now modifiy the right-hand side vector
     idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    // Export linear system
-    if ( myParams_.GetBoolValue( "exportLinSys" ) ) {
-      std::string baseName = myParams_.GetStringValue("exportLinSysBaseName");
-
-      sysMat_[SYSTEM]->Export( baseName.c_str() );
-      (*cla) << "Exported system matrix to " << baseName
-             << "_i_j.mtx" << std::endl;
-
-      rhs_->Export( baseName.c_str() );
-      (*cla) << "Exported system right hand side to " << baseName
-             << "_i.vec" << std::endl;
-    }
+    // Remove the export linear system stuff, it has changed in standardsys.cc an as below 
+    // the solve part is commentet out, I see no reason to export linsys also here, it would
+    // require a generalization anyway. Fabian 16.11.07
 
     // Trigger solution
     // solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );

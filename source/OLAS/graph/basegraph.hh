@@ -228,6 +228,13 @@ namespace OLAS {
     //@{
     //! \name Methods for debugging
 
+    std::string ToString() const
+    {
+      std::ostringstream os;
+      Print(os);
+      return os.str();
+    }
+    
     //! prints the complete Graph for Debugging
     void Print(std::ostream &os) const;
   

@@ -144,41 +144,25 @@ namespace CoupledField {
     return *this;
   }
 
-  std::string Point::ToString() const
-  {
-     std::ostringstream os;
-     os << "(" << p[0] << ";" << p[1] << ";" << p[2] << ")";
-     return os.str();
-  }
-
-  Double Sin(const Double x) {
-    return sin(x);
-  }
-
-  Double Cos(const Double x) {
-    return cos(x);
-  }
-
-  pfn1var FncReader(const std::string namefnc) {
-    if (namefnc == "sin") return Sin;
-    else {
-      if (namefnc == "cos") {
-        return Cos;
-      }
-      else {
-        (*error) << "Function '" << namefnc
-                 << "' is not predefined in CFS++";
-        Error( __FILE__, __LINE__ );
-      }
-    }
-  }
-
-  Double dist(Point a,Point b) {
+  Double Point::dist(const Point& a, const Point& b) {
     Double preSqrt=0;
     UInt i;
     for (i=0; i<3; i++)
       preSqrt+=sqr(a[i]-b[i]);
     return sqrt(preSqrt);
+  }
+
+
+  Double Point::dist(const Point& other) const {
+    return Point::dist(*this, other);
+  }
+
+  
+  std::string Point::ToString() const
+  {
+     std::ostringstream os;
+     os << "(" << p[0] << ";" << p[1] << ";" << p[2] << ")";
+     return os.str();
   }
 
   Double dist_Mat(Matrix<Double> a) {
@@ -190,10 +174,19 @@ namespace CoupledField {
       preSqrt+=sqr(a[i][0]-a[i][1]);
     return sqrt(preSqrt);
   }
+  
+  
+  Double Sin(const Double x) {
+    return sin(x);
+  }
+
+  Double Cos(const Double x) {
+    return cos(x);
+  }
 
   /// a-->b
   void calcNormal2Line(Vector<Double> & normal,Point a,Point b) {
-    Double distance=dist(a,b);
+    Double distance=Point::dist(a,b);
     normal[0]=(b[1]-a[1])/distance;
     normal[1]=(a[0]-b[0])/distance;
   }
@@ -245,13 +238,6 @@ namespace CoupledField {
     normal[0]=normal[0]/L2_normal;
     normal[1]=normal[1]/L2_normal;
     normal[2]=normal[2]/L2_normal;  
-  }
-
-  char * c_string(const std::string & s) {
-    char * p = new char[s.length()+1];
-    s.copy(p, std::string::npos);
-    p[s.length()]=0;
-    return p;
   }
 
   UInt defineRefinements(const Double tolElem, const Double tolTotal,

@@ -23,6 +23,7 @@ namespace OLAS
   class BaseMatrix;  
   class BaseVector;
   class BasePrecond;
+  class Flags;
 
   template<typename T>
   class Ilupack : public BaseIterativeSolver 
@@ -108,22 +109,19 @@ namespace OLAS
     std::string SolverError(int result);     
 
     /** This enum holds the string representation of the ILUPACK solver types */ 
-    Enum solver; 
+    Enum<Solver> solver; 
  
     /** The ilupack reordering functions */
-    Enum ordering;
+    Enum<Ordering> ordering;
     
     /** The ilupack matching */
-    Enum matching;
+    Enum<Matching> matching;
     
     /** The ilupack matrix types */
-    Enum matrix; 
-    
-    /** The Ilupack flags */
-    Enum flags;
+    Enum<Matrix> matrix; 
     
     /** The permutation roles (initial, ...) */
-    Enum permutationRole;
+    Enum<PermutationRole> permutationRole;
     
     /** This is the ilupack signature of a real permutation function.
      * ILUPACK needs one for the inital, regular and final step */
@@ -269,8 +267,8 @@ namespace OLAS
     
     /** See ipar_Index 
      * SCHUR_DROP_TOL = drop tolerance for the approximate Schur complement<br>
-     * REL_ERROR_TOL = relative error tolerance -> param.fpar[20]=restol; <br>
-     * ABS_ERROR_TOL = absolute error tolerance -> param.fpar[21]=0;<br>
+     * REL_ERROR_TOL = relative error tolerance -> param.fpar[20]=restol; - to set <br>
+     * ABS_ERROR_TOL = absolute error tolerance -> param.fpar[21]=0;      - to set <br>
      *   */
     enum { SCHUR_DROP_TOL = 8, REL_ERROR_TOL = 20, ABS_ERROR_TOL = 21, INITIAL_RESIDUAL_NORM = 22,  
            TARGET_RESIDUAL_NORM = 23, CURRENT_RESIDUAL_NORM = 25, CONVERGENCE_RATE = 26} RealIndex;
@@ -314,6 +312,10 @@ namespace OLAS
           FL_PREPROCESS_INITIAL_SYSTEM = 1024, FL_PREPROCESS_SUBSYSTEMS = 2048, FL_MULTI_PILUC = 4096, FL_RE_FACTOR = 8192, 
           FL_AGGRESSIVE_DROPPING = 16384, FL_DISCARD_MATRIX = 32768, FL_SYMMETRIC_STRUCTURE = 65536} Flags;    
 
+    /** The Ilupack flags */
+    Enum<Flags> flags;
+          
+          
    //typedef enum { PREPROCESS_INITIAL_SYSTEM = 1024, PREPROCESS_SUBSYSTEMS = 2048, MULTI_PILUC = 4096, RE_FACTOR = 8192} Flags;
    //typedef enum {PREPROCESS_INITIAL_SYSTE = 1} Flags;
     

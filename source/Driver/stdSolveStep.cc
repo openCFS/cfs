@@ -95,18 +95,18 @@ namespace CoupledField {
   }
 
   
-  void StdSolveStep::SolveStepStatic() {
+  void StdSolveStep::SolveStepStatic(const std::string& comment) {
     
     if (nonLin_) {
       StepStaticNonLin();
     }
     else {
-      StepStaticLin();
+      StepStaticLin(comment);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin() {
+  void StdSolveStep::StepStaticLin(const std::string& comment) {
     
     assemble_->AssembleMatrices();
     
@@ -143,7 +143,7 @@ namespace CoupledField {
     }
     
     // Solve problem
-    algsys_->Solve();
+    algsys_->Solve(comment);
     SETPROFILE("After Solve");
     
     // Get the solution and store it
@@ -151,7 +151,6 @@ namespace CoupledField {
     UInt size = algsys_->GetSolutionVal(ptSol);
 
     PDE_.SaveSolution(ptSol,size);
-
   }
 
 
@@ -356,7 +355,7 @@ namespace CoupledField {
       SETPROFILE("After SetupSolver / Before Solve");  
     }
 
-    algsys_->Solve(actStep_);
+    algsys_->Solve();
     SETPROFILE("After Solve");
 
     Double* ptsol;
@@ -554,7 +553,7 @@ namespace CoupledField {
       // compute u_{n+1}^0
 
       // to incorporate loads 
-      Double RhsLinL2Norm = SetLinRHS(loadFactor); 
+      SetLinRHS(loadFactor); 
 
       assemble_->AssembleMatrices();
       if (assemble_->IsMatrixUpdated() ) {
@@ -917,19 +916,17 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic() {
-
-
+  void StdSolveStep::SolveStepHarmonic(const std::string& comment) {
     if ( nonLin_ ) {
       StepHarmonicNonLin();
     }
     else {
-      StepHarmonicLin();
+      StepHarmonicLin(comment);
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin() {
+  void StdSolveStep::StepHarmonicLin(const std::string& comment) {
 
 
     //this has to be done each frequency!
@@ -960,7 +957,7 @@ namespace CoupledField {
       algsys_->SetupSolver();
     }
 
-    algsys_->Solve();
+    algsys_->Solve(comment);
 
     Complex* ptSol = NULL;
     length    =  algsys_->GetSolutionVal(ptSol);
@@ -1161,8 +1158,7 @@ namespace CoupledField {
     //    const Double eta[nrEtas] = {0.1, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0};
     Double etaOpt;
     Double residualL2NormOpt = 1e15;
-    Double incrementalErrOpt = 1e+15;
-
+    
     Double *solPtr;
 
     UInt length = algsys_->GetSolutionVal( solPtr );

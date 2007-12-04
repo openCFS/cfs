@@ -5,7 +5,8 @@
 #ifndef FILE_ITERSOLVESTEP
 #define FILE_ITERSOLVESTEP
 
-#include "baseSolveStep.hh"
+#include "PDE/basePDE.hh"
+#include "Driver/baseSolveStep.hh"
 #include "Utils/cfsvector.hh"
 
 namespace CoupledField
@@ -32,8 +33,9 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic()  {;};
  
-    //! base method for solving one static step 
-    virtual void SolveStepStatic();
+    /** base method for solving one static step
+     * @partam step is an optinal information for exoport linsys only */
+    virtual void SolveStepStatic(const std::string& comment = "");
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -58,7 +60,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(  );
+    virtual void SolveStepHarmonic(const std::string& comment = "");
 
 
     //!  routine for actions after the SolveStep-method
@@ -110,7 +112,7 @@ namespace CoupledField
     StdVector<PDECoupling*> & rCouplings_;
 
     //! analysis type of all iteratively coupled PDEs is retrieved
-    AnalysisType actAnalysisType_;
+    BasePDE::AnalysisType actAnalysisType_;
 
   };
 

@@ -78,10 +78,8 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpDumpStats_          =
   "dump information about the CFS++ executable";
 
-#ifdef DEBUG
   const std::string BaseCommandLineHandler::helpForceSegFault_      =
     "force a segmentation fault instead of throwing an exception";
-#endif
 
   // Short forms of markers
   const std::string BaseCommandLineHandler::markerParamFile_       = "-p";
@@ -96,9 +94,7 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerDoProfile_       = "-d";
   const std::string BaseCommandLineHandler::markerRestart_         = "-r";
   const std::string BaseCommandLineHandler::markerDumpStats_       = "-u";
-#ifdef DEBUG
   const std::string BaseCommandLineHandler::markerForceSegFault_   = "-f";
-#endif
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -125,10 +121,8 @@ namespace CoupledField {
   "--restart";
   const std::string BaseCommandLineHandler::markerLongDumpStats_     =
   "--dumpStats";
-#ifdef DEBUG
   const std::string BaseCommandLineHandler::markerLongForceSegFault_ =
   "--forceSegFault";
-#endif
 
 
   // ---------------------------------------------------------------
@@ -221,16 +215,14 @@ namespace CoupledField {
        << '\n'
        << " " << helpHelp_ << "\n\n"
 
-#ifdef DEBUG
-
       // --forceSegFault
        << " " << COLOR_INIT
        << markerForceSegFault_ << ", " << markerLongForceSegFault_
        << COLOR_STOP
        << '\n'
        << " " << helpForceSegFault_ << "\n\n"
-#endif
-      // --dumpStats
+
+       // --dumpStats
        << " " << COLOR_INIT
        << markerDumpStats_ << ", " << markerLongDumpStats_
        << COLOR_STOP
@@ -317,13 +309,11 @@ namespace CoupledField {
         << ( GetWriteSkeleton() == true )
         << colorStop << "\n"
 
-#ifdef DEBUG
         << ' ' << markerLongForceSegFault_ << " = "
         << colorInit
         << std::boolalpha
         << ( GetForceSegFault() == true )
         << colorStop << "\n"
-#endif
 
         << ' ' << markerLongDumpStats_ << " = "
         << colorInit

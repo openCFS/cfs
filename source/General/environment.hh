@@ -17,7 +17,7 @@
 #else
 #include "pstdint.h"
 #endif
-#include <float.h>
+#include <cfloat>
 
 #include "General/defs.hh"
 #include "boost/shared_ptr.hpp"
@@ -115,15 +115,6 @@ namespace CoupledField {
   const Double PI = acos(-1.0);
   const Double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
-
-
-  //! declaration sof functions. it is used in parsing functions from conf-file
-  typedef Double (*pfn1var)(const Double);
-  typedef Double (*pfn2var)(const Double, const Double);
-  typedef Double (*pfn3var)(const Double, const Double, const Double);
-
-  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, 
-                MULTI_SEQUENCE } AnalysisType;
 
   //! specifications of Lapack routines for different types of system matrices in 
   //! matrix.solveWithLapack

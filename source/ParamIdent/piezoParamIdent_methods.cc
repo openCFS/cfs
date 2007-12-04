@@ -988,9 +988,7 @@ namespace CoupledField
     while(allMeasuredData->getline(mDataRow, 1024)){
       if (mDataRow[0]=='1')
         {i=2;j=0;k=0;
-          while(mDataRow){
-            if (mDataRow[i]=='/')
-              break;
+          while(mDataRow[i]=='/'){
             if(mDataRow[i]!=','){
               helpChar[k]=mDataRow[i];
               k++; i++;
@@ -1006,9 +1004,7 @@ namespace CoupledField
         }
       else if (mDataRow[0]=='2'){
         i=2;j=0;k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1024,9 +1020,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='3'){
         i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1041,9 +1035,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='4'){
         i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1058,9 +1050,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='i'){
         i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1075,9 +1065,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='P'){
         i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1092,9 +1080,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='Q'){
         i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1109,9 +1095,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='5'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1121,9 +1105,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='6'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1133,9 +1115,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='I'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1146,9 +1126,7 @@ namespace CoupledField
      
       else if (mDataRow[0]=='M'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1158,9 +1136,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='N'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1170,9 +1146,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='r'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1182,9 +1156,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='7'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
+        while(mDataRow[i]=='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1194,8 +1166,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='8'){
         i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
+        while(mDataRow[i]=='/'){
             break;
           helpChar[k]=mDataRow[i];
           k++; i++;

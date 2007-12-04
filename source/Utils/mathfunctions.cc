@@ -87,7 +87,7 @@ namespace CoupledField {
     Matrix<Double> b(ndim,ndim);
     
     Double a2, max_a2;
-    Integer i, j, k, p, q;
+    Integer i, j, p, q;
     Double z, t, c, s, u;
   
     max_a2 = 0.0;

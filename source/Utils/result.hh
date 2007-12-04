@@ -46,6 +46,9 @@ namespace CoupledField {
     
     //! Return vector containing data
     virtual CFSVector* GetCFSVector() = 0 ;
+
+    /** Set all result values to the null value. Used, if one cannot compute */
+    virtual void Init() = 0;
     
     /** Gives back some information for debug output */
     std::string ToString() const;
@@ -87,6 +90,16 @@ namespace CoupledField {
     //! Return specific data vector
     Vector<TYPE>& GetVector() {return values_; }
 
+    void Init()
+    {
+      // set the result as we need it
+      values_.Resize(0);
+
+      EntityIterator it = entities_->GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) 
+        values_.Push_back(0);
+    }
+    
   protected:
     
     //! data vector

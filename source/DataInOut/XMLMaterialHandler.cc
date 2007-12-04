@@ -59,6 +59,9 @@ namespace CoupledField {
 
     Enum2String(matClass,strMatClass);
     
+    if(!parser_->Has("material", "name", matName))
+      EXCEPTION("Cannot find material '" << matName << "'");
+    
     // first get the material element:  <material name="iron">
     ParamNode* pn = NULL;
     pn = parser_->Get("material", "name", matName);

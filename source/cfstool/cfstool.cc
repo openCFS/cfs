@@ -177,7 +177,7 @@ namespace CFSTool {
      if( !printGridOnly ) {
 
        // obtain number of multiSequenceSteps and get analysis types
-       std::map<UInt, AnalysisType> types;
+       std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
        input->GetNumMultiSequenceSteps( types, numSteps );
        std::cout << "\nFound " << types.size() << " sequence step(s)\n";
@@ -220,7 +220,7 @@ namespace CFSTool {
            for( UInt iEntity = 0; iEntity < resEntities.GetSize(); iEntity++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > result;
-             if( types[actMsStep] != HARMONIC ) {
+             if( types[actMsStep] != BasePDE::HARMONIC ) {
                result = shared_ptr<BaseResult>( new Result<Double>() );
              } else {
                result = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -322,7 +322,7 @@ namespace CFSTool {
        }
        
        // obtain number of Sequence Steps and get analysis types
-       std::map<UInt, AnalysisType> types;
+       std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
        input1->GetNumMultiSequenceSteps( types, numSteps, isHistory );
        
@@ -370,7 +370,7 @@ namespace CFSTool {
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
              shared_ptr<BaseResult > inResult1, inResult2, outResult;
-             if( types[actMsStep] != HARMONIC ) {
+             if( types[actMsStep] != BasePDE::HARMONIC ) {
                inResult1 = shared_ptr<BaseResult>( new Result<Double>() );
                inResult2 = shared_ptr<BaseResult>( new Result<Double>() );
                outResult = shared_ptr<BaseResult>( new Result<Double>() );
@@ -407,7 +407,7 @@ namespace CFSTool {
          maxResVec2.Resize( inResults2.GetSize() );
          
          // For transient simulation find maximum amplitude over all timesteps
-         if( types[actMsStep] != HARMONIC ) {
+         if( types[actMsStep] != BasePDE::HARMONIC ) {
            
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
@@ -473,7 +473,7 @@ namespace CFSTool {
              UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
              
              // cast result objects, get vector and calculate difference vector
-             if( types[actMsStep] != HARMONIC ) {
+             if( types[actMsStep] != BasePDE::HARMONIC ) {
                Vector<Double> & inVec1 = 
                  dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
                Vector<Double> & inVec2 = 
@@ -606,6 +606,14 @@ namespace CFSTool {
        
   } //Diff
   
+  /** Initialize static Enums. 
+   * todo: do better once - Fabian */
+  void InitEnums()
+  {
+    BasePDE::SetEnums();
+  }
+  
+  
 } //Namespace CFSTool
 
 
@@ -613,6 +621,9 @@ int main(int argc, char** argv) {
   
   // Switch this flag to true for debugging
   Exception::segfault_ = false;
+
+  // todo: do better once! - Fabian
+  CFSTool::InitEnums(); 
   
   try {
     if( argc < 2) {

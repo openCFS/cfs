@@ -52,6 +52,9 @@ namespace CoupledField
                                   RegionIdType regionId,
                                   bool reducedInt=false);
   
+    /** Returns the protected damping list - don't alter! */
+    const std::map<RegionIdType,DampingType>& GetDampingList() { return dampingList_; }
+    
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -68,9 +71,9 @@ namespace CoupledField
     /// setup source term
     void SetupRHS( );
 
-	//! Turn on thermo-elastic coupling
-  	void SetHeatCoupling() {
-       isHeatCoupled_ = true;
+    //! Turn on thermo-elastic coupling
+    void SetHeatCoupling() {
+      isHeatCoupled_ = true;
     }  
 
     // ======================================================

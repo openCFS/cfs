@@ -604,6 +604,8 @@ source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PMLTransXYZInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLTransXYZInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/SurfaceNormalInt.cc svneol=native#text/x-c%2B%2Bsrc
+source/Forms/SurfaceNormalInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/abcInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouMechInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -728,7 +730,6 @@ source/Forms/stokesFluidInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/stokesFluidPlaneInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/stokesFluidPlaneInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/CMakeLists.txt svneol=native#text/plain
-source/General/Enum.cc -text
 source/General/Enum.hh -text
 source/General/defs.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/environment.cc svneol=native#text/x-c%2B%2Bsrc
@@ -991,6 +992,8 @@ source/OLAS/utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/tools-olas.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/utils.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/BaseOptimizer.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
@@ -998,9 +1001,14 @@ source/Optimization/DesignElement.cc -text
 source/Optimization/DesignElement.hh -text
 source/Optimization/DesignSpace.cc -text
 source/Optimization/DesignSpace.hh -text
+source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
 source/Optimization/IPOPT.hh -text
+source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Makefile svneol=native#text/plain
+source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
 source/Optimization/Optimization.hh svneol=native#text/plain
 source/Optimization/PiezoSIMP.cc -text
@@ -1088,8 +1096,6 @@ source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/VecStat.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/VecStat.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1197,4 +1203,3 @@ source/cplreader/settings.hh svneol=native#text/plain
 source/main/CMakeLists.txt svneol=native#text/plain
 source/main/cfs.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/cfshyst.cc svneol=native#text/x-c%2B%2Bsrc
-source/main/toDoList.txt svneol=native#text/plain

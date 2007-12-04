@@ -28,22 +28,11 @@ namespace CoupledField {
     //! Initialization method
     void Init();
 
-    /** Main method solution method. 
-     * This method constitutes the actual driving method which controls the
-     * solution process for the problem. The results are not implicitley written.
-     * @param optimizationIteration to be called frequently by the optimizer */
-    void SolveProblem(int optimizationIteration);
-    
-    void SolveProblem()
-    {
-        SolveProblem(1);
-    }
-    
-    /** SolveProblem() does not write the results - used for optimization */ 
-    void StoreResults(double step_val = -1.0);
-    
-  private:
-    
+    /** @see BaseDriver::SolveProblem(double) */  
+    void SolveProblem(bool write_results = true, const std::string& comment = "");
+        
+    /** @see BaseDriver::StoreResults(double) */  
+    void StoreResults(double step_val);
     
   };
 

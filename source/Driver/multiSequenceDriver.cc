@@ -25,7 +25,7 @@ namespace CoupledField {
   MultiSequenceDriver::MultiSequenceDriver( ) 
     : BaseDriver() {
 
-    analysis_ = MULTI_SEQUENCE;
+    analysis_ = BasePDE::MULTI_SEQUENCE;
     
     numSteps_ = 0;
     actStep_ = 0;
@@ -41,10 +41,11 @@ namespace CoupledField {
   }
 
 
-  // *****************
-  //   Solve problem
-  // *****************
-  void MultiSequenceDriver::SolveProblem() {
+  void MultiSequenceDriver::SolveProblem(bool write_results, const std::string& comment) {
+    // options not implemented
+    assert(write_results == true);
+    assert(comment == "");
+
 
     // vector containing pointer to current set of PDEs
     StdVector<SinglePDE *> ptPDEs;
@@ -71,13 +72,13 @@ namespace CoupledField {
       // Since per time step only one type of 
       // analysis is allowed, we simple access
       // the first entry fo analysisPerStep_
-      if (analysisPerStep_[iStep] == STATIC) {
+      if (analysisPerStep_[iStep] == BasePDE::STATIC) {
         actDriver_ = new StaticDriver( iStep+1, true );
       }
-      else if (analysisPerStep_[iStep] == TRANSIENT) {      
+      else if (analysisPerStep_[iStep] == BasePDE::TRANSIENT) {      
         actDriver_ = new TransientDriver( iStep+1,true );
       }
-      else if (analysisPerStep_[iStep] == HARMONIC) {
+      else if (analysisPerStep_[iStep] == BasePDE::HARMONIC) {
         actDriver_ = new HarmonicDriver( iStep+1, true );
       }
     
@@ -115,7 +116,6 @@ namespace CoupledField {
     
       // Solve Problem
       actDriver_->SolveProblem();
-      actDriver_->StoreResults();
 
       // Get solution for next step and delete
       // all PDEs
@@ -211,7 +211,7 @@ namespace CoupledField {
       std::string analysisString;
       analysisString = 
         actStepNode->Get("analysis")->GetChild()->GetName();
-      String2Enum( analysisString, analysisPerStep_[iStep] );
+      analysisPerStep_[iStep] = BasePDE::analysisType.Parse(analysisString);
       
       // get all pde-nodes in current sequence step
       StdVector<ParamNode*> pdeNodes;

@@ -219,5 +219,14 @@ void StdMatrix::ExportHarwellBoeing(const std::string& file, const BaseVector& r
     
 }
 
+std::string StdMatrix::ToString()
+{
+  std::ostringstream os;
+  os << "name=" << name;
+  os << " rows/cols=" << nrows_ << "/" << ncols_;
+  os << " nnz=" << GetNnz();
+  return os.str();
+}
+
 
 } // namespace

@@ -118,7 +118,7 @@ namespace OLAS {
 
 #pragma omp parallel for 
 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( unsigned int i = 1; i <= size_; i++ ) {
       data_[i] += idvec[i];
     }
     CATCH_CAST
@@ -139,7 +139,7 @@ namespace OLAS {
 
 #pragma omp parallel for 
 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( unsigned int i = 1; i <= size_; i++ ) {
       data_[i] = a * idvec1[i] + b * idvec2[i];	
     }
     CATCH_CAST	
@@ -158,7 +158,7 @@ namespace OLAS {
 
 #pragma omp parallel for 
 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( unsigned int i = 1; i <= size_; i++ ) {
       data_[i] += a * idvec[i];
     }
     CATCH_CAST
@@ -192,7 +192,7 @@ namespace OLAS {
 
 #pragma omp parallel for 
 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( unsigned int i = 1; i <= size_; i++ ) {
       // data_[i] = T_Vtype();
       data_[i] = 0.0;
     }
@@ -209,7 +209,7 @@ namespace OLAS {
 
 #pragma omp parallel for reduction(+:sum)
 
-    for ( Integer i = 1; i <= size_; i++ ){
+    for ( unsigned int i = 1; i <= size_; i++ ){
       sum += opType<T_Vtype>::zConjz(data_[i]);
     }
     return sqrt(sum);
@@ -227,7 +227,7 @@ namespace OLAS {
 
 #pragma omp parallel for 
 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( unsigned int i = 1; i <= size_; i++ ) {
       data_[i] = alpha * data_[i] + vec[i];
     }
     CATCH_CAST
@@ -270,6 +270,19 @@ namespace OLAS {
   }
 
 
+  template<typename T>
+  std::string Vector<T>::ToString() const
+  {
+    std::ostringstream os;
+    for(unsigned int i = 1; i <= size_; i++)
+    {
+      os << data_[i];
+      if(i < size_) os << ", ";
+    }
+    
+    return os.str();
+  }
+  
   // ****************
   //   Print vector
   // ****************
@@ -296,7 +309,7 @@ namespace OLAS {
     }
 
     // Print dimension and entries
-    fprintf( fp, "%d\n", size_ * dof_ );
+    fprintf( fp, "%s%d\n", "%", size_ * dof_ );
     for ( UInt k = 1; k <= size_; k++ ) {
       for ( UInt j = 0; j < dof_; j++ ) {
 	opType<T_Vtype>::ExportEntry( data_[k], j, fp );

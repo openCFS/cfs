@@ -64,11 +64,6 @@ namespace CoupledField {
     fileU_               = NULL;
     flowCoordSys_        = NULL;
 
-    // Construct vectors for restricted parameter search
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
     // **************************
     //   Determine type of coil
     // **************************

@@ -23,15 +23,9 @@ namespace CoupledField {
   void CFSOLASParams::SetParams( std::string pdename,
                                  ParamNode *cfs,
                                  OLAS_Params *olas, 
-                                 AnalysisType analysisType,
+                                 BasePDE::AnalysisType analysisType,
                                  Assemble * assemble,
                                  bool overrideExpert ) {
-
-
-    // We need three vectors for our parameter queries
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
 
     // Fetch setup node
     ParamNode * setupNode = NULL;
@@ -83,7 +77,7 @@ namespace CoupledField {
     std::string esTypeString = "expertsChoice";
     OLAS::EigenSolverType esType = OLAS::NOEIGENSOLVER;
     
-    if ( analysisType == EIGENFREQUENCY ) {
+    if ( analysisType == BasePDE::EIGENFREQUENCY ) {
       if( cfs) {
         ParamNode * eigenSolverNode = cfs->Get("eigenSolver", false );
         if( eigenSolverNode ) 
@@ -203,72 +197,6 @@ namespace CoupledField {
     // olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
     // olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
     // olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
-    
-    // Output Matrix
-    if( cfs ) {
-      ParamNode * exportNode = cfs->Get("exportLinSys", false);
-      if( exportNode ) {
-        std::string baseName, format, exportSolVec;
-        
-        olas->SetValue( "exportLinSys", true );
-        
-        // get baseName
-        exportNode->Get("baseName", baseName);
-        olas->SetValue( "exportLinSysBaseName", baseName );
-        
-        // getFormat
-        exportNode->Get("format", format);
-        olas->SetValue( "exportLinSysFormat", format);
-        
-        // optinal also the solution      
-        exportNode->Get("solution", exportSolVec );
-        olas->SetValue( "exportLinSysSolution", exportSolVec);
-      } else {
-        olas->SetValue( "exportLinSys", false );
-      }
-    }
-    
-
-    // --> This consistency test makes no sense in this section
-    // as this should be determined in each PDE itself.
-    // Anyway, we also check in the assemble class, if the
-    // 'DataType' of an integrator descriptor is complex and if
-    // this does not match with the current type of analysis,
-    // an error is thrown
-    
-    //
-    // Consistency test
-    //
-    // Currently only harmonic and paramIdent analysis can deal with 
-    // complex material parameters.
-    // For static and transient this will lead to a seg fault.
-    // So we check this to avoid this unclear problem
-    //  StdVector<std::string> matType;
-    //     keyVec = "sequenceStep", pdename, "materialDataType", "type";
-    //     attrVec = "index" , "", "";
-    //     valVec = GenStr(seqStep), "", "";
-    //     cfs->GetList( keyVec, attrVec, valVec, matType );
-    //     if ( matType.GetSize() > 0 ) {
-    //       if ( matType.GetSize() != 1 ) {
-    //         EXCEPTION( "materialDataType not unique, GetList returned "
-    //                    << matType.GetSize() << " values" );
-    //       }
-    //       keyVec = "sequenceStep", "analysis";
-    //       attrVec = "index";
-    //       valVec = GenStr(seqStep);
-      
-      
-    //    std::string analysisString;
-    //       cfs->Get( keyVec, attrVec, valVec, analysisString );
-    //       if ( matType[0] == "imagMaterialParameter" &&
-    //            analysisString != "harmonic" && analysisString != "paramIdent") {
-    //         EXCEPTION( "XML-file specifies material parameters with imaginary "
-    //                    << "part for an analysis\n of type '" << analysisString << "'.\n\n"
-    //                    << " Complex parameters are currently only implemented for "
-    //                    << "a 'harmonic' or 'paramIdent' "
-    //                    << "analysis, however." );
-    //       }
-    //     }
   }
 
 
@@ -729,7 +657,7 @@ namespace CoupledField {
                               OLAS::MatrixStorageType &mType,
                               OLAS::MatrixEntryType &eType,
                               OLAS::ReorderingType &rType,
-                              AnalysisType analysisType,
+                              BasePDE::AnalysisType analysisType,
                               Assemble * assemble,
                               bool allowChangeOfReordering ) {
 
@@ -911,7 +839,7 @@ namespace CoupledField {
      
     // In case of a harmonic analysis or parameter identification
     // we assume complex matrix entries by default
-    if ( analysisType == HARMONIC
+    if ( analysisType == BasePDE::HARMONIC
          && eType != OLAS::COMPLEX ) {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
@@ -932,7 +860,7 @@ namespace CoupledField {
     
     // If an eigenvalue problem is solved, the entrytype of the matrices has
     // always to be DOUBLE
-    if ( analysisType == EIGENFREQUENCY && eType != OLAS::DOUBLE ) {
+    if ( analysisType == BasePDE::EIGENFREQUENCY && eType != OLAS::DOUBLE ) {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using DOUBLE as matrix entry type "
                     "for eigenFrequency simulation\n" );

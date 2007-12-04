@@ -85,7 +85,7 @@ namespace CoupledField {
     name.Push_back( "setLogLevel" );
 
     // Now register all functions with scripting 
-    for (UInt i = 0; i < pt.GetSize(); i++ ) {
+    for (unsigned int i = 0; i < pt.GetSize(); i++ ) {
       Script_RegisterFct(name[i], pt[i], a[i] );
     }
 

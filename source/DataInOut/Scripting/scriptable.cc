@@ -3,7 +3,8 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "scriptable.hh"
-
+#include "General/environment.hh"
+#include "Utils/tools.hh"
 #include <cstdio>
 
 namespace CoupledField
@@ -235,7 +236,8 @@ namespace CoupledField
         SplitStringList( params[i], help, ' ' );
         String2Int( STDVEC_INTpool_[name], help );
         break;
-      case VEC_UINT:
+        // killme - TODO: Fabian
+      /*case VEC_UINT:
         SplitStringList( params[i], help, ' ' );
         String2UInt( VEC_UINTpool_[name], help );
         break;
@@ -246,7 +248,7 @@ namespace CoupledField
       case VEC_DOUBLE:
         SplitStringList( params[i], help, ' ' );
         String2Double( VEC_DOUBLEpool_[name], help );
-        break;
+        break;*/
       } // end case
     } // end for
   }
@@ -280,6 +282,7 @@ namespace CoupledField
     case STDVEC_INT:
       out = "vector<int>";
       break;
+    /* killme - TODO: Fabian
     case VEC_UINT:
       out = "vector<unsigned int>";
       break;
@@ -288,7 +291,7 @@ namespace CoupledField
       break;
     case VEC_DOUBLE:
       out = "vectr<double>";
-      break;
+      break; */
     default:
       EXCEPTION( "No conversion found for given ParamType" );
     }

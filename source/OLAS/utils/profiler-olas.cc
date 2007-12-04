@@ -45,12 +45,8 @@ namespace OLAS {
       ncalls = i->second.ncalls_;
       nops = (double)(i->second.nops_)*1e-6;
 
-#ifdef PARALLEL
-      OLAS_MPI_Allreduce( &nops, &NOPS, 1, OLAS_MPI_DOUBLE, OLAS_MPI_SUM,
-			  OLAS_MPI_COMM_WORLD );
-#else
       NOPS=nops;
-#endif
+
       totaltime = i->second.time_;
       perf = (double)NOPS;
       perf *= ncalls;

@@ -60,7 +60,7 @@ namespace CoupledField
       if( level_ < 0 ) 
         EXCEPTION( "Level must not be < 0 ");
       
-      for(UInt i=0; i<level_; i++) help+= "  ";
+      for(Integer i=0; i<level_; i++) help+= "  ";
       return help;
     }
 

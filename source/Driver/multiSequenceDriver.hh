@@ -40,7 +40,7 @@ namespace CoupledField
   
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
-    void SolveProblem();
+    void SolveProblem(bool write_results = true, const std::string& comment = "");
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename );
@@ -75,7 +75,7 @@ namespace CoupledField
     StdVector<PDEMemento::ValueUsageType > valueUsagePerStep_;
 
     //! stores for each step the analisystype of each pde
-    StdVector<AnalysisType > analysisPerStep_;
+    StdVector<BasePDE::AnalysisType > analysisPerStep_;
 
   };
 

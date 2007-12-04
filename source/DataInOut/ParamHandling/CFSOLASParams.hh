@@ -48,7 +48,7 @@ namespace CoupledField
     //!                       improve the solution parameters or set those
     //!                       no specified by the user
     static void SetParams( std::string pdename, ParamNode *cfs,
-                           OLAS_Params *olas, AnalysisType analysistype,
+                           OLAS_Params *olas, BasePDE::AnalysisType analysistype,
                            Assemble * assemble,
                            bool overrideExpert = false );
 
@@ -117,7 +117,7 @@ namespace CoupledField
                         OLAS::MatrixStorageType &mType,
                         OLAS::MatrixEntryType &eType, 
                         OLAS::ReorderingType &rType,
-                        AnalysisType analysisType,
+                        BasePDE::AnalysisType analysisType,
                         Assemble * assemble,
                         bool allowChangeOfReordering );
 

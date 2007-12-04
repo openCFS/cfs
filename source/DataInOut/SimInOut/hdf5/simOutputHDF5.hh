@@ -47,7 +47,7 @@ namespace CoupledField {
 
     //! Begin multisequence step
     virtual void BeginMultiSequenceStep( UInt step,
-                                         AnalysisType type,
+                                         BasePDE::AnalysisType type,
                                          UInt numSteps  );
     
     //! Register result (within one multisequence step)
@@ -201,7 +201,7 @@ namespace CoupledField {
     Double currStepValue_;
 
     //! Type of current analysis type
-    AnalysisType currAnalysisType_;
+    BasePDE::AnalysisType currAnalysisType_;
 
     //! Type definition for registered results
     typedef std::map< std::string, std::vector< 

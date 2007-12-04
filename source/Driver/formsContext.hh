@@ -189,8 +189,8 @@ namespace CoupledField
 		return setOfFlags_;
 	}
 
-    /** Dump what we have */
-    void Dump();
+    /** create human readable debug output */
+    std::string ToString();
 
   protected:
 

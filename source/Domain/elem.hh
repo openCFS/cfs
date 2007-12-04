@@ -122,7 +122,7 @@ namespace CoupledField
     Point b=ptArrayOfNodes[connect[2]];
     Point c=ptArrayOfNodes[connect[3]];
 
-    return std::max(dist(a,b),dist(b,c));
+    return std::max(Point::dist(a,b), Point::dist(b,c));
   }
 
 } // end of namespace

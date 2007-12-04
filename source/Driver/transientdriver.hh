@@ -26,7 +26,7 @@ namespace CoupledField {
     void Init();
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem();
+    void SolveProblem(bool write_results = true, const std::string& comment = "");
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}

@@ -30,80 +30,6 @@
   <xsd:element name="PrecondBasic" type="DT_PrecondBasic" abstract="true"/>
 
 
-  <!-- ==================================================================== -->
-  <!-- ==                                                                == -->
-  <!-- ==               HYPRE_ILU / Euclid Preconditioner                == -->
-  <!-- ==                                                                == -->
-  <!-- ==================================================================== -->
-
-
-  <!-- ******************************************************************** -->
-  <!-- Definition of element for HYPRE_ILU Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="hypreILU" type="DT_PrecondEuclid"
-    substitutionGroup="PrecondBasic"/>
-
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_ILU Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_PrecondEuclid">
-    <xsd:complexContent>
-      <xsd:extension base="DT_PrecondBasic">
-        <xsd:sequence>
-          <xsd:element name="level"       type="xsd:nonNegativeInteger"
-            minOccurs="0"/>
-          <xsd:element name="stats"       type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="memory"      type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="saveFacFile" type="xsd:token"  minOccurs="0"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-
-  <!-- ==================================================================== -->
-  <!-- ==                                                                == -->
-  <!-- ==              HYPRE_SPAI / ParaSails Preconditioner             == -->
-  <!-- ==                                                                == -->
-  <!-- ==================================================================== -->
-
-
-  <!-- ******************************************************************** -->
-  <!-- Definition of element for HYPRE_SPAI Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="hypreSPAI" type="DT_PrecondParaSails"
-    substitutionGroup="PrecondBasic"/>
-
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_SPAI Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_PrecondParaSails">
-    <xsd:complexContent>
-      <xsd:extension base="DT_PrecondBasic">
-        <xsd:sequence>
-          <xsd:element name="thresh" type="DT_PrecondSPAIInterval"
-            minOccurs="0"/>
-          <xsd:element name="levels" type="xsd:positiveInteger" minOccurs="0"/>
-          <xsd:element name="filter" type="DT_PrecondSPAIInterval"
-            minOccurs="0"/>
-          <xsd:element name="symmetry" minOccurs="0">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:integer">
-                <xsd:enumeration value="0"/>
-                <xsd:enumeration value="1"/>
-                <xsd:enumeration value="2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-          <xsd:element name="loadBalance" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="reuse" type="DT_CFSBool" minOccurs="0"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
   <!-- Data type for specifying value in the interval [-1,1] -->
   <xsd:simpleType name="DT_PrecondSPAIInterval">
     <xsd:restriction base="xsd:float">
@@ -111,46 +37,6 @@
       <xsd:maxInclusive value="1"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-
-  <!-- ==================================================================== -->
-  <!-- ==                                                                == -->
-  <!-- ==               HYPRE_AMG / BoomerAMG Preconditioner             == -->
-  <!-- ==                                                                == -->
-  <!-- ==================================================================== -->
-
-
-  <!-- ******************************************************************** -->
-  <!-- Definition of element for HYPRE_AMG Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:element name="hypreAMG" type="DT_PrecondBoomerAMG"
-    substitutionGroup="PrecondBasic"/>
-
-
-  <!-- ******************************************************************** -->
-  <!--   Definition of data type for HYPRE_AMG Preconditioner -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_PrecondBoomerAMG">
-    <xsd:complexContent>
-      <xsd:extension base="DT_PrecondBasic">
-        <xsd:sequence>
-          <xsd:element name="maxLevels" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="alpha" type="DT_FloatUnitInterval" minOccurs="0"/>
-          <xsd:element name="numSweeps" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="cycleType" minOccurs="0">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="V-cycle"/>
-                <xsd:enumeration value="W-cycle"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
 
   <!-- ==================================================================== -->

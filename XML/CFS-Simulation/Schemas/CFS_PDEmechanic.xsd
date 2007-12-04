@@ -433,6 +433,8 @@
         <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
         <xsd:attribute name="stiffnessValue" type="xsd:double"
           use="required"/>
+        <xsd:attribute name="relStiffness" type="xsd:boolean" use="optional" 
+          default="false" />        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -534,28 +536,9 @@
   <!-- Definition of region result types of mechanic PDE -->
   <xsd:simpleType name="DT_MechSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="volumeAbovDefSurf"/>
+      <xsd:enumeration value="volumeAboveDefSurf"/>
     </xsd:restriction>
   </xsd:simpleType>
-
- 
-  <!-- Data type for computing the volume over a surface -->
-  <xsd:complexType name="DT_MechSurfVolume">
-    <xsd:complexContent>
-      <xsd:extension base="DT_SurfRegionResult">
-        <xsd:attribute name="dof" use="required">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="ux"/>
-              <xsd:enumeration value="uy"/>
-              <xsd:enumeration value="urad"/>
-              <xsd:enumeration value="uax"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType> 
   
  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_MechStoreResults">
@@ -600,7 +583,15 @@
         
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0"
-          maxOccurs="unbounded" type="DT_MechSurfVolume">
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_MechSurfRegionResult"/>
+                <xsd:attribute name="dof" type="DT_MechDOF"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
         </xsd:element>
 
       </xsd:choice>

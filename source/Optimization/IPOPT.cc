@@ -3,9 +3,9 @@
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/BaseOptimizer.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/VecStat.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "ipopt/IpSolveStatistics.hpp"
@@ -19,32 +19,50 @@ DECLARE_LOG(ipopt)
 DEFINE_LOG(ipopt, "ipopt")
 
 
-IPOPT::IPOPT(Optimization* optimization, ParamNode* pn)
+IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, ParamNode* pn)
 {
   LOG_TRACE(ipopt) << "Initialize IPOPT";
   this->optimization_ = optimization;
+  this->base_ = base;
+  this->optimizer_pn_ = pn;
+  // reduce to our actual ParamNode
+  ParamNode* pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
+  
+  double manual_scaling = pn_ipopt != NULL && pn_ipopt->Has("option", "name", "obj_scaling_factor") ?
+      pn_ipopt->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
+  base->PostInit(manual_scaling);
+  Init();
+}
+
+void IPOPT::Init()
+{
+  LOG_TRACE(ipopt) << "Init: restart=" << base_->restart_requested;
   
   // smart pointer!
   app = new IpoptApplication();
   // Initialize the IpoptApplication and process the options
   app->Initialize();
 
-  app->Options()->SetIntegerValue("max_iter", optimization_->GetMaxIterations());
+  app->Options()->SetIntegerValue("max_iter", optimization_->GetMaxIterations() - optimization_->GetCurrentIteration());
+  LOG_TRACE2(ipopt) << "set max_iter to " << optimization_->GetMaxIterations() << " - " 
+                    << optimization_->GetCurrentIteration();
   
   // up to now we don't have hessian  
   app->Options()->SetStringValue("hessian_approximation", "limited-memory");
 
-  // save the obj scaling for get_scaling_parameters() -> is 1.0 if not set
-  obj_scaling_factor_ = pn != NULL && pn->Has("option", "name", "obj_scaling_factor") ?
-    pn->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
-  // handle maximation  
-  obj_scaling_factor_ *= optimization_->GetObjective()->task == Optimization::MAXIMIZE ? -1.0 : 1.0;  
+  // handle restart case!
+  if(base_->restart_requested)
+  {
+    base_->objective->CalcAutoscale();
+    
+  }
+  std::cout << base_->objective->ToString() << std::endl;
   
   // do scaling via get_scaling_parameters() only if we do constraint scaling 
   // otherwise IPOPT is strange
   bool g_scale = false;
-  for(unsigned int i = 0; i < optimization->constraints.GetSize(); i++)
-    if(optimization->constraints[i].scaling != 1.0) g_scale = true;    
+  for(unsigned int i = 0; i < optimization_->constraints.GetSize(); i++)
+    if(optimization_->constraints[i].scaling != 1.0) g_scale = true;    
 
   if(g_scale)
   {
@@ -54,22 +72,25 @@ IPOPT::IPOPT(Optimization* optimization, ParamNode* pn)
   else
   {
     // no constraint scaling - hence better no get_scaling_parameters() to be called
-    if(obj_scaling_factor_ != 1.0)
-      app->Options()->SetNumericValue("obj_scaling_factor", obj_scaling_factor_);
+    if(base_->objective->scaling.value != 1.0)
+      app->Options()->SetNumericValue("obj_scaling_factor", base_->objective->scaling.value);
   }
+
+  // reduce to our actual ParamNode
+  ParamNode* pn_ipopt = optimizer_pn_->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), false);
   
   // check for optional paramters
-  if(pn != NULL)
+  if(pn_ipopt != NULL)
   {
-    StdVector<ParamNode*> list = pn->GetList("option", "type", "string");
+    StdVector<ParamNode*> list = pn_ipopt->GetList("option", "type", "string");
     for(unsigned int i = 0; i < list.GetSize(); i++)
       app->Options()->SetStringValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsString());
 
-    list = pn->GetList("option", "type", "integer");
+    list = pn_ipopt->GetList("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
       app->Options()->SetIntegerValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsInt());
 
-    list = pn->GetList("option", "type", "real");
+    list = pn_ipopt->GetList("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
       // do not set obj_scaling_factor -> it is set via get_scaling_parameters() or before with maximation factor
@@ -77,12 +98,6 @@ IPOPT::IPOPT(Optimization* optimization, ParamNode* pn)
         app->Options()->SetNumericValue(list[i]->Get("name")->AsString(), list[i]->Get("value")->AsDouble());
     }
   }
-  
-  // initialize the VecStat where we store the initial and current gradients statistics
-  // the 0-element is for the function, then for the gradients
-  initial_.Resize(optimization->constraints.GetSize()+1); 
-  current_.Resize(optimization->constraints.GetSize()+1);
-  
 }
 
 IPOPT::~IPOPT()
@@ -113,6 +128,9 @@ void IPOPT::SolveProblem()
          
     case Insufficient_Memory:
          throw Exception("IPOPT reports insufficient memory.");
+    
+    case Invalid_Number_Detected:
+         if(base_->restart_requested) return; 
          
      default:
         // positive is warning
@@ -206,16 +224,12 @@ bool IPOPT::get_starting_point(Index n, bool init_x, Number* x,
 
 bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
 {
-  LOG_DBG(ipopt) << "eval_grad_f: nex_x = " << new_x << " NeedObjectiveEval = " 
-                 << optimization_->NeedObjectiveEval(x) << " x_avg = " << Average(x, n) 
-                 << " std_dev = " << StandardDeviation(x, n);;
+  int old_design = base_->objective->scaling.design_id;
   
   // return the value of the objective function.
   try
   {
-    optimization_->GetDesign()->ReadDesignFromExtern(x);
-    optimization_->SolveStateProblem();
-    obj_value = optimization_->CalcObjective();
+    obj_value = base_->EvalObjective(n, x);
   }
   catch(Exception& e)
   {
@@ -223,43 +237,24 @@ bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
     throw IpoptException(e.what(), __FILE__, __LINE__); 
   }
   
-  LOG_TRACE2(ipopt) << "eval_f: new_x = " << new_x << " x_avg = " << Average(x, n)
-                    << " x_std_dev = " << StandardDeviation(x, n) << " -> obj_value = " << obj_value;  
+  LOG_TRACE2(ipopt) << "eval_f: new_x = " << new_x << " design=" << base_->objective->scaling.design_id
+                    << " needed_eval=" << (base_->objective->scaling.design_id != old_design)
+                    << " -> obj_value = " << obj_value;  
   return true;
 }
 
 bool IPOPT::eval_grad_f(Index n, const Number* x, bool new_x, Number* grad_f)
 {
+  int old_design = base_->objective->scaling.design_id;
   // return the gradient of the objective function grad_{x} f(x)
-  LOG_TRACE2(ipopt) << "eval_grad_f-1: n = " << n << "; new_x = " << new_x
-                    << " x_avg = " << Average(x, n) << " std_dev = " 
-                    << StandardDeviation(x, n);;
 
-  LOG_DBG(ipopt) << "eval_grad_f: nex_x = " << new_x << " NeedObjectiveEval = " 
-                 << optimization_->NeedObjectiveEval(x) << " x_avg = " << Average(x, n) 
-                 << " std_dev = " << StandardDeviation(x, n);;
+  bool ok = base_->EvalGradObjective(n, x, grad_f);           
 
-  // check if we have to eval f first!
-  if(optimization_->NeedObjectiveEval(x))
-  { 
-      LOG_TRACE2(ipopt) << "eval_grad_f-1.1:IPOPT design space is not equal! -> eval_f";
-      Number obj_value;
-      eval_f(n, x, new_x, obj_value);
-  }    
-
-  optimization_->CalcObjectiveGradient(grad_f);
-  LOG_TRACE2(ipopt) << "eval_grad_f-2: -> avg = " << Average(grad_f, n) << " std_dev = " 
+  LOG_TRACE2(ipopt) << "eval_grad_f: new_x = " << new_x << " design=" << base_->objective->scaling.design_id
+                    << " needed_eval=" << (base_->objective->scaling.design_id != old_design)
+                    << " good=" << ok << " -> avg = " << Average(grad_f, n) << " std_dev = " 
                     << StandardDeviation(grad_f, n);
-  
-  // store the current gradient statistics
-  if(!initial_[0].IsInitialized())
-  { 
-    initial_[0].Calc(grad_f, n);
-    std::cout << "Initial grad_f is " << initial_[0].ToString() << std::endl;
-  }
-  current_[0].Calc(grad_f, n);
-                       
-  return true;
+  return ok;
 }
 
 bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
@@ -318,14 +313,6 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
       LOG_TRACE2(ipopt) << "eval_jac_g-" << c << ": new_x=" << new_x << " x_avg= " 
                         << Average(x, n) << " std_dev = " << StandardDeviation(x, n)
                         << " -> avg = " << Average(ptr, n) << " std_dev = " << StandardDeviation(ptr, n);
- 
-      // pos 0 is for objective, then the constraints
-      if(!initial_[c+1].IsInitialized()) 
-      {
-        initial_[c+1].Calc(ptr, n);
-        std::cout << "Initial jac_g[" << c << "] -> " << initial_[c+1].ToString() << std::endl;
-      }
-      current_[c+1].Calc(ptr, n);
     }
   }
   return true;
@@ -349,9 +336,9 @@ void IPOPT::finalize_solution(SolverReturn status,
   std::cout << std::endl;  
 
   // write the last gradients
-  std::cout << "Objective gradient -> " << current_[0].ToString() << std::endl;
-  for(int i = 0; i < m; i++)
-    std::cout << "jac_g[" << i << "] -> " << current_[i+1].ToString() << std::endl;
+ // std::cout << "Objective gradient -> " << current_[0].ToString() << std::endl;
+  //for(int i = 0; i < m; i++)
+  //  std::cout << "jac_g[" << i << "] -> " << current_[i+1].ToString() << std::endl;
   
   // we do not sture final x as we stored the history already ?! 
 }
@@ -375,7 +362,7 @@ bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling,
   // this method is only called if nlp_scaling_method is set to user-scaling!
 
   // scaling from the xml file
-  obj_scaling = obj_scaling_factor_;
+  obj_scaling = base_->objective->scaling.value;
 
   // we don't do x_scaling
   use_x_scaling = false;

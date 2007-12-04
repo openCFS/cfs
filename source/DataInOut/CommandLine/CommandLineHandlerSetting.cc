@@ -150,7 +150,6 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY,
                   helpRestart_.c_str() ),
 
-#ifdef DEBUG
       // --forceSegFault
       SettingDef( markerLongForceSegFault_.c_str(),
                   markerForceSegFault_.c_str(),
@@ -159,7 +158,6 @@ namespace CoupledField {
                   1,
                   Setting::COMMAND_LINE_ONLY,
                   helpForceSegFault_.c_str() ),
-#endif
 
       // --help
       // SettingDef( markerHelp_.c_str(),

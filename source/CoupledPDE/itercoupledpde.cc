@@ -191,12 +191,6 @@ namespace CoupledField
       CouplingRegionType regionTypeAux;
       SolutionType quantityAux;
 
-      // Construct vectors for restricted search parameter
-      StdVector<std::string> keyVec;
-      StdVector<std::string> attrVec;
-      StdVector<std::string> valVec;
-      attrVec = "", "", "quantity";
-
       // Get list for all quantities, which are listed
       // in section "nonLinear" and have a stopping
       // criterion

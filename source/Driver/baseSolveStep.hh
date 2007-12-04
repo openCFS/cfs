@@ -30,8 +30,9 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic( ) = 0;
     
-    //! base method for solving one static step 
-    virtual void SolveStepStatic( ) = 0;
+    /** base method for solving one static step
+     * @param comment will be used for filenames if export linear systems */
+    virtual void SolveStepStatic(const std::string& comment = "") = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -56,8 +57,9 @@ namespace CoupledField
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepHarmonic() = 0;
 
-    //!  base method for solving one harmonic step
-    virtual void SolveStepHarmonic() = 0;
+    /** base method for solving one harmonic step
+     * @param comment - see SolveStepStatic() */
+    virtual void SolveStepHarmonic(const std::string& comment = "") = 0;
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;

@@ -106,13 +106,11 @@ namespace CoupledField {
 
 
   void SimOutputGMV::BeginMultiSequenceStep( UInt step,
-                                             AnalysisType type,
+                                             BasePDE::AnalysisType type,
                                              UInt numSteps )
   {
-
     currAnalysis_ = type;
     currMsStep_ = step;
-
   }
   
   void SimOutputGMV::RegisterResult( shared_ptr<BaseResult> sol,
@@ -138,8 +136,8 @@ namespace CoupledField {
     
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-    if( currAnalysis_ == TRANSIENT ||
-        currAnalysis_ == STATIC  ) { 
+    if( currAnalysis_ == BasePDE::TRANSIENT ||
+        currAnalysis_ == BasePDE::STATIC  ) { 
       actStep_ += stepNumOffset_;
       actStepVal_ += stepValOffset_;
     }
@@ -174,9 +172,8 @@ namespace CoupledField {
     // Open new file
     // ----------------------
     std::ostringstream strBuffer;
-    std::string analysisString;
-    Enum2String( currAnalysis_, analysisString );
-    strBuffer <<  fileName_ << "-" << analysisString
+    strBuffer <<  fileName_ << "-" 
+              << BasePDE::analysisType.ToString(currAnalysis_)
               << "-" << currMsStep_ << ".gmv";
     if ( actStep_ < 10 ) strBuffer << "000";
     else if ( actStep_ < 100 ) strBuffer << "00";
@@ -258,8 +255,8 @@ namespace CoupledField {
   //! End multisequence step
   void SimOutputGMV::FinishMultiSequenceStep( ) {
     // set offset for step value and number to last values
-    if( currAnalysis_ == TRANSIENT ||
-          currAnalysis_ == STATIC ) {
+    if( currAnalysis_ == BasePDE::TRANSIENT ||
+          currAnalysis_ == BasePDE::STATIC ) {
       stepNumOffset_ = actStep_;
       stepValOffset_ = actStepVal_;
     }

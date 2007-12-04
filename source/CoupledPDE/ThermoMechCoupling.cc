@@ -95,7 +95,7 @@ namespace CoupledField {
 		// Determine which analysis is performed.
 		// Flag to calculate the damping matrix
 		bool dampFlag=false;
-		if (pde2_->GetAnalysisType() == TRANSIENT) 
+		if (pde2_->GetAnalysisType() == BasePDE::TRANSIENT) 
 		{
 			// create the damp thermo-mechanic block matrix
 			dampFlag = true;

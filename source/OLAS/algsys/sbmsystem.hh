@@ -155,7 +155,7 @@ namespace OLAS {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(int step = -1);
+    void Solve(const std::string& comment = "");
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 

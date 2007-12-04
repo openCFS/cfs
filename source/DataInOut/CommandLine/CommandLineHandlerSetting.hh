@@ -205,7 +205,6 @@ namespace CoupledField {
       return retVal;
     };
 
-#ifdef DEBUG
     bool GetForceSegFault() const {
       bool retVal = DefaultForceSegFault();
       Setting *aux = commandLine_.getSetting( markerLongForceSegFault_.c_str() );
@@ -214,7 +213,6 @@ namespace CoupledField {
       }
       return retVal;
     };
-#endif
 
 
     //@}

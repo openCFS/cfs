@@ -19,25 +19,37 @@ namespace CoupledField
     class DesignElement
     {     
         public:
-           /** the constructor sets the default values */
-           DesignElement();
-        
+          /** The empty constructor is only for the StdVector */
+          DesignElement();
+
+          /** This sets the DesignElement with the values from the XML file.
+            * Is slow as it does the same evaluation often but is only O(n) */
+           DesignElement(ParamNode* pn);
+           
            /** This defines how to acces variables (design, objective_gradient, ...),
             *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
            typedef enum { PLAIN, SMART } Access;
 
-           /** Filter types we have */
-           typedef enum { RADIUS, NEIGHBOURS} Filter;
+           /** Filter types we have
+            * <ul>
+            *   <li>RADIUS: this is the implementation following Sigmund in the 99lines paper.
+            *               The drawback is the discretization dependency.</li>
+            *   <li>VOLUME_RADIUS: The radius is *value* times square/cube edge length where the
+            *               square/cube has the volume of the element</li>
+            * </ul> */
+           typedef enum { RADIUS, VOLUME_RADIUS, MAX_EDGE } Filter;
 
            /** The type of this design element, influences the Get*Bound() methods.
             * By definition the design elements are stored in the ordering of the type!! */
            typedef enum { DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1} Type;
 
            /** types for GetFilteredValue() */
-           typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE} ValueSpecifier;
+           typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, 
+                          WEIGHT, OBJECTIVE, NUM_NEIGHBOURS} ValueSpecifier;
 
-           /** This specifies result! details for value = COST_GRADIENT or OBJECTICE in the PiezoSIMP case */
-           typedef enum { NONE, UKU, UKP, PKU, PKP } Detail;
+           /** This specifies result! details for value = COST_GRADIENT or OBJECTICE in the PiezoSIMP case
+            * or it does the very special purpose symmetry for the ValueSpecifier */
+           typedef enum { NONE, UKU, UKP, PKU, PKP, SYMMETRY } Detail;
 
            /** Initialized filtering. Sets the locations and neighbours and enables the flag 
             * @param data the region, we substitue a seperate container class by this static method
@@ -49,17 +61,17 @@ namespace CoupledField
 
            /** Gets the design element
             * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
-           double GetDesign(Access access);
+           double GetDesign(Access access) const;
 
            /** Checks out specialResult[]! */
-           double GetValue(ResultDescription* rd);
+           double GetValue(ResultDescription* rd) const;
 
            /** This is a generic getter. <p>
             * <p>Note, that GetObjectiveGradient(SMART) gives different values than 
             * GetValue(COST_GRADIENT, SMART)!!! because of an necessary multiplication by
             * the densities of the element in the filter.!</p>
             * </p>Not that this works no to CONSTRAINT_GRADIENT as there is also and index required! */
-           double GetValue(ValueSpecifier vs, Access access);   
+           double GetValue(ValueSpecifier vs, Access access) const;   
 
            /** Allows to set the gradient of the cost element. Does it PLAIN */
            void SetObjectiveGradient(double value) { this->cost_gradient = value; } 
@@ -71,27 +83,25 @@ namespace CoupledField
             *     <li>GetObjectiveGradient(SMART) = GetValue(DESIGN_COST_GRADIENT, SMART)</li></ul>
             * </p>
             * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
-           double GetObjectiveGradient(Access access);
+           double GetObjectiveGradient(Access access) const;
 
            /** @param condition contains a unique index! */
            void SetConstraintGradient(const Condition* condition, double value); 
 
            /** @see SetConstraintGradient() */
-           double GetConstraintGradient(const Condition* condition); 
+           double GetConstraintGradient(const Condition* condition) const; 
 
            /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
            void static SetEnums();
 
-           Type GetType() { return type_; } const
+           Type GetType() const { return type_; } 
            
-           void SetType(Type value) { this->type_ = value; }
-
            /**  Gets the lower bound of the desing variable - 
             * up to now this are defaults by type */
-           double GetLowerBound() const;  
+           double GetLowerBound() const { return lower_; }  
            
            /** The upper bound of the desing variable for the optimizer */
-           double GetUpperBound() const;
+           double GetUpperBound() const { return upper_; }
 
            /** for debugging. Summs the weights of all neighbours, ... */
            void Dump();
@@ -112,24 +122,33 @@ namespace CoupledField
             * <result id="optResult_3" design="density" access="plain" value="objective" detail="pKp" /></pre> */                  
            double specialResult[3];
 
-           static Enum filter;
+           static Enum<Filter> filter;
            
-           static Enum type;
+           static Enum<Type> type;
  
-           static Enum valueSpecifier;
+           static Enum<ValueSpecifier> valueSpecifier;
 
-           static Enum access;
+           static Enum<Access> access;
            
-           static Enum detail;
+           static Enum<Detail> detail;
 
         private:           
-
+        
+          /** internal helper to get the value by type */
+          double GetValue(ValueSpecifier valueSpecifier) const;
+          
+          /** does the core for GetDesign(). GetObjectiveGradient(), ... */
+          double GetFilteredValue(ValueSpecifier valueSpecifier, bool design_weighted) const;
+          
            /** The scalar value. Public access only via getter to handle filtering. */
            double design;
 
            /** The gradient of the cost function w.r.t. this element of the design space */
            double cost_gradient;
 
+           /** The weight of THIS element to be summed to 1.0 with all neighbour weights */
+           double weight; 
+           
            /** Neigbourhood is element and precalculated distance */
            struct NeighbourElement
            {
@@ -143,20 +162,17 @@ namespace CoupledField
                 /** the distance in domain dimensions! */
                 double          distance;
            };
-           
-           /** The weight of THIS element to be summed to 1.0 with all neighbour weights */
-           double weight; 
+
            
            /** The neighbours if filter otherwise emtpy. Set by InitFilter().
             * The element itself is NOT part of the neighbourhood! */
            StdVector<NeighbourElement> neighbourhood;
 
-           /** internal helper to get the value by type */
-           double GetValue(ValueSpecifier valueSpecifier);
+           /** The lower bound of this design variable. Redundant but such faster than look it up */
+           double lower_;
            
-           /** does the core for GetDesign(). GetObjectiveGradient(), ... */
-           double GetFilteredValue(ValueSpecifier valueSpecifier);
-        
+           double upper_;
+           
            /** Do filtering? */
            bool filter_;     
            

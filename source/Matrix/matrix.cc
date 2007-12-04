@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <time.h>
+#include <ctime>
 #include <string>
 #include <iomanip>
 
@@ -12,6 +12,7 @@
 #include "Utils/vector.hh"
 
 #include "Utils/boost-serialization.hh"
+#include <def_build_type_options.hh>
 
 namespace CoupledField
 {      
@@ -115,18 +116,46 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void Matrix<TYPE>::Dump()
+  std::string Matrix<TYPE>::ToString(int level)
   {
-     std::cout << "Matrix: rows=" << size_row_ << " cols=" << size_col_ << std::endl;
-     for(UInt j = 0; j < size_row_; j++) 
-     {
+    std::ostringstream os;
+
+    switch(level)
+    {
+    case 0:
+
+      for(UInt j = 0; j < size_row_; j++) 
+      {
+        os << j << " : [";
+
         for(UInt i = 0; i < size_col_; i++)
-        {
-            std::cout << j << ":" << i << "=" << data_[j][i];
-            if(i < size_col_-1) std::cout << "\t";
-        }
-        std::cout << std::endl;
-     } 
+          os << data_[j][i] << (i < size_col_-1 ? " " : "");
+
+        os << "] ";
+      }
+      break;
+
+    default:
+    
+      os << "size_row=" << size_row_ << " size_col=" << size_col_;
+      if(size_row_ > 0 && size_col_ > 0)
+      {
+        // the min/max for complex is the real part
+        TYPE min = data_[0][0];
+        TYPE max = data_[0][0];
+
+        for(UInt j = 0; j < size_row_; j++) 
+          for(UInt i = 0; i < size_col_; i++)
+          {
+            min = std::min(((Complex) min).real(), ((Complex) data_[j][i]).real());
+            max = std::max(((Complex) max).real(), ((Complex) data_[j][i]).real());
+          }
+        os << " min=" << min << " max=" << max;
+      }
+      break;
+    }
+
+    return os.str();
   }
 
 
@@ -676,7 +705,7 @@ namespace CoupledField
     char lp_matType;
     lp_matType='L';
     
-    Integer lp_nrRHS, lp_loadDim, lp_loadDimRHS, lp_info, lp_lwork,lp_dim;
+    Integer lp_nrRHS, lp_info, lp_lwork,lp_dim;
     Integer lp_lda, lp_ldb;
     lp_nrRHS=b1.GetSizeCol();
     lp_dim=size_row_;

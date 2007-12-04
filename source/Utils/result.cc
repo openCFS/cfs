@@ -10,12 +10,9 @@ namespace CoupledField {
 
   
   BaseResult::BaseResult() {
-
-
   }
 
   BaseResult::~BaseResult() {
-
   }
 
   std::string BaseResult::ToString() const

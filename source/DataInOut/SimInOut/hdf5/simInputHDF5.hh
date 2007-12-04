@@ -103,7 +103,7 @@ namespace CoupledField {
     //@{ \name General Solution Information
 
     //! Return multisequence steps and their analysistypes
-    void GetNumMultiSequenceSteps( std::map<UInt, AnalysisType>& analysis,
+    void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
                                    std::map<UInt, UInt>& numSteps,
                                    bool isHistory = false );
 

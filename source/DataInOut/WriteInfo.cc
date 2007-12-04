@@ -170,11 +170,9 @@ namespace CoupledField {
 
 
   void WriteInfo::WriteMultiSequenceStep(const UInt sequenceStep, 
-                                         const AnalysisType analysis)
+                                         const BasePDE::AnalysisType analysis)
   {
-    std::string analysisString;
-
-    Enum2String(analysis, analysisString);
+    std::string analysisString = BasePDE::analysisType.ToString(analysis);
 
  
     // write std::out info 
@@ -329,7 +327,7 @@ namespace CoupledField {
   }
 
 
-  void WriteInfo::PrintCoil( Coil &coil, AnalysisType &analysistype ) {
+  void WriteInfo::PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype ) {
 
 
     if (!cfsInfo)
@@ -358,7 +356,7 @@ namespace CoupledField {
       *cfsInfo << "Voltage value = " << coil.value_      << std::endl;
       *cfsInfo << "Resistance    = " << coil.resistance_ << std::endl;
 
-      if ( analysistype == HARMONIC) {
+      if ( analysistype == BasePDE::HARMONIC) {
         *cfsInfo << "Voltage phase = " << coil.phase_ << std::endl;
       }
     }
@@ -369,7 +367,7 @@ namespace CoupledField {
 
       *cfsInfo << "Current value = " << coil.value_      << std::endl;
 
-      if ( analysistype == HARMONIC || analysistype == HARMONIC) {
+      if ( analysistype == BasePDE::HARMONIC) {
         *cfsInfo << "Current phase = " << coil.phase_ << std::endl;
       }
 

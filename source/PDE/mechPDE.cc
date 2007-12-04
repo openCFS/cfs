@@ -20,6 +20,8 @@
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/resultHandler.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
@@ -27,6 +29,7 @@
 #include "Driver/stdSolveStep.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Optimization/DesignSpace.hh"
+#include "Optimization/SIMP.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -34,7 +37,11 @@
 
 namespace CoupledField {
 
-  MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
+DECLARE_LOG(mechpde)
+DEFINE_LOG(mechpde, "mechpde")
+
+
+MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
     pdename_          = "mechanic";
@@ -284,6 +291,7 @@ namespace CoupledField {
     // Iterate over all springs
     std::string name, dofName;
     Double massVal, dampVal, stiffVal;
+    bool relStiff; // relative stiffness
     for( UInt i = 0; i < springNodes.GetSize(); i++ ) {
 
       // get data from node
@@ -292,15 +300,28 @@ namespace CoupledField {
       springNodes[i]->Get( "massValue", massVal );
       springNodes[i]->Get( "dampingValue", dampVal );
       springNodes[i]->Get( "stiffnessValue", stiffVal );
+      relStiff = springNodes[i]->Get("relStiffness")->AsBool(); // other Get is ambiguous
 
       UInt dof = results_[0]->GetDofIndex( dofName );
 
-      
+      LOG_DBG2(mechpde) << "Spring: name=" << name << " dof=" << dofName << " massVal=" 
+                    << massVal << "dampingValue=" << dampVal << "stiffnessValue=" 
+                    << stiffVal << " relStiffness=" << relStiff;
       shared_ptr<NodeList> spNode (new NodeList(ptgrid_) );
       spNode->SetNamedNodes( name );
       
       // stiffness value
       if( stiffVal > EPS ) {
+        // check for relative stiffness which is used for mechanism optimization
+        if(relStiff) {
+          double matStiffness = 0.0;
+          
+          if(materials_.size() != 1) 
+            EXCEPTION("relative springstiffness only for one region implemented");
+          materials_.begin()->second->GetScalar(matStiffness, MECH_EMODULUS, REAL );
+          LOG_DBG2(mechpde) << "Set relative spring stiffness  to " << stiffVal << "*" << matStiffness; 
+          stiffVal *= matStiffness;
+        }
         SingleEntryInt * stiffInt = 
           new SingleEntryInt( GenStr(stiffVal),  dof, dim_ );
         BiLinFormContext * stiffIntContext = 
@@ -542,9 +563,7 @@ namespace CoupledField {
       // get current region name and get grip of paramNode
       std::string actRegionName;
       actRegionName = ptgrid_->RegionIdToName( actRegion );
-      ParamNode * actRegionNode = 
-        myParam_->Get( "region", "name", actRegionName );
-      
+     
 
       //================= Check for Perfectly matchec layers ====================//
       if ( dampingList_[actRegion] == PML ) {
@@ -819,6 +838,9 @@ namespace CoupledField {
           FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat);
           
           // Obtain thickness and penalty dof
+          ParamNode * actRegionNode = 
+            myParam_->Get( "region", "name", actRegionName );
+          
           Double thickness = actRegionNode->Get("thickenss")->AsDouble();
           bilinearMass->SetThickness( thickness );
           
@@ -1035,7 +1057,13 @@ namespace CoupledField {
 
     // Define Springs
     DefineSprings();
-
+    
+    // Conditionally add a SurfaceNormalMatrix BiLinForm which is assembled into a
+    // own AUXILIARY matrix.
+    // Note, that here, in DefineIntegrators() the Optimization stuff is not constructed
+    // yet and OLAS is currently not that flexible to allow a later addition of the Matrix.
+    BiLinFormContext* snmi = SIMP::CreateSurfaceNormalMatrix(this, actSDMat, results_[0]);
+    if(snmi != NULL) assemble_->AddBiLinearForm(snmi);
   }
 
 
@@ -1047,10 +1075,6 @@ namespace CoupledField {
     
     // Get region name
     std::string regionName = ptgrid_->RegionIdToName( regionId );
-
-    // Get region node
-    ParamNode * actRegionNode = 
-      myParam_->Get( "region", "name", regionName );
     
     BaseForm * bilinearStiff = NULL;
      
@@ -1059,7 +1083,10 @@ namespace CoupledField {
     if (subType_ == "flatShell" ) {
       FlatShellStiffInt * myInt = new FlatShellStiffInt(actSDMat);
       
-       
+      // Get region node
+      ParamNode * actRegionNode = 
+        myParam_->Get( "region", "name", regionName );
+      
       // Get thickness of region
       Double thickness = actRegionNode->Get("thickness")->AsDouble();
       myInt->SetThickness( thickness );
@@ -1383,36 +1410,46 @@ namespace CoupledField {
      // ---------------------------
     //  Determine special results
     // ---------------------------
-    ParamNode * bcNode = myParam_->Get("bcsAndLoads", false );
-    if ( !bcNode ) return;
+    ParamNode * resultsNode = myParam_->Get("storeResults", false );
+    if ( !resultsNode ) return;
     ParamNode * volNode = 
-      bcNode->Get("surfRegionResult", "type",  "volumeAboveDefSurf", false );
+      resultsNode->Get("surfRegionResult", "type", "volumeAboveDefSurf", false );
     if( !volNode ) return;
     StdVector<ParamNode*> volListNodes = 
       volNode->Get("surfRegionList")->GetList( "surfRegion" );
-     
+
+    UInt saveBegin, saveEnd, saveInc;
+    volNode->Get("surfRegionList")->Get("saveBegin", saveBegin );
+    volNode->Get("surfRegionList")->Get("saveEnd", saveEnd );
+    volNode->Get("surfRegionList")->Get("saveInc", saveInc );
+    
     if( volListNodes.GetSize() > 0 ) {
+      ResultHandler * resHandler = domain->GetResultHandler();
       
+      std::string dirName;  
+      volNode->Get( "dof", dirName );
       shared_ptr<ResultInfo> vol(new ResultInfo);
       vol->resultType = MECH_DEF_VOLUME;
       vol->dofNames = "";
       vol->unit = "m^3";
-      vol->definedOn = ResultInfo::REGION;
+      vol->definedOn = ResultInfo::SURF_REGION;
       vol->entryType = ResultInfo::SCALAR;
       vol->fctType = shared_ptr<ConstFct>(new ConstFct() );
       
       std::string quantity;
       Enum2String( MECH_DEF_VOLUME, quantity );
-      Info->PrintF( pdename_, " Computing '%s' for elements:\n", quantity.c_str() );   
+      Info->PrintF( pdename_, " Computing '%s' for surface region:\n", quantity.c_str() );   
       shared_ptr<EntityList> actList;
 
       for( UInt i = 0; i < volListNodes.GetSize(); i++ ) {
 
         // get data from node
-        std::string regionName, dirName;
-        volListNodes[i]->Get( "name", regionName );
-        volListNodes[i]->Get( "dof", dirName );
-
+        std::string regionName, outputIdString;
+        StdVector<std::string> outputIds;
+        volListNodes[i]->Get( "name", regionName ); 
+        volListNodes[i]->Get("outputIds", outputIdString );
+        SplitStringList( outputIdString, outputIds, ',' );
+        
         Info->PrintF( pdename_, " %s\n", regionName.c_str() );
         actList = ptgrid_->GetEntityList( EntityList::REGION_LIST,
                                           regionName, EntityList::REGION );
@@ -1426,10 +1463,13 @@ namespace CoupledField {
         actSol->SetEntityList( actList );
         resultLists_[vol].Push_back( actSol );
         volAboveDefSurfDir_[actList] = dirName;
+        //! the result will be written to.
+        resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+                                    outputIds, "", true, false );
       }
     }
   }
-
+  
   void MechPDE::DefineAvailResults() {
     
     // Check for subType
@@ -1622,10 +1662,13 @@ namespace CoupledField {
       break;
 
     case MECH_PSEUDO_DENSITY:
+      //if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+      //  EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
+      //            << " or appropriate optimiziation");
       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
-        EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
-                  << " or appropriate optimiziation");
-      domain->GetErsatzMaterial()->ExtractResults(result);
+        result->Init();
+      else     
+        domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
 
     // the actual case is given in the result info in result
@@ -1633,7 +1676,7 @@ namespace CoupledField {
     case OPT_RESULT_2:
     case OPT_RESULT_3:
       // design should work, this is checked in AvailabeResults()
-      domain->GetErsatzMaterial()->ExtractResults(result);
+      domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
 
 
@@ -1860,54 +1903,6 @@ namespace CoupledField {
       preStressVal_[actRegion] = stress;
 
     }
-
-    //     StdVector<std::string> regionNames;
-
-    //     keyVec = pdename_, "preStressing", "preStress", "name";
-    //     attrVec = "", "", "tag";
-    //     valVec  = "", "", "anyTag";
-
-    //     params->GetList(keyVec, attrVec, valVec, regionNames );
-    //     ptgrid_->RegionNameToId( preStressDomain_, regionNames );
-
-    //     if ( preStressDomain_.GetSize() > 0 ) {
-
-    //       Info->PrintF( pdename_,
-    //                     " Found prestressing in the following regions:\n" );
-
-    //       Double tmpDir;
-
-    //       // Construct vectors for restricted search parameter
-    //       StdVector<std::string> keyVec;
-    //       StdVector<std::string> attrVec;
-    //       StdVector<std::string> valVec;
-    //       attrVec = "", "", "name";
-
-    //       // for each prestress domain ...
-    //       for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
-
-    //         // ... read direction of magnetisation
-    //         valVec = "", "", regionNames[k];
-
-    //         keyVec  = pdename_, "preStressing", "preStress", "orientX";
-    //         params->Get( keyVec, attrVec, valVec, tmpDir);
-    //         preStressValX_.Push_back( tmpDir);
-
-    //         keyVec  = pdename_, "preStressing", "preStress", "orientY";
-    //         params->Get( keyVec, attrVec, valVec, tmpDir );
-    //         preStressValY_.Push_back( tmpDir );
-
-    //         keyVec  = pdename_, "preStressing", "preStress", "orientZ";
-    //         params->Get( keyVec, attrVec, valVec, tmpDir );
-    //         preStressValZ_.Push_back( tmpDir );
-
-    //         // ... report name to logfile
-    //         Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
-    //       }
-
-    //    }
-
-
   }
 
   void MechPDE::ReadSurfStress() {

@@ -83,52 +83,6 @@ namespace CoupledField {
     EXCEPTION("Not implemented");
   }
   
-  // AnalysisType
-  template<>
-  void String2Enum<AnalysisType>(const std::string &in, AnalysisType &out) {
-
-    if (in == "static")
-      out = STATIC;
-    else if (in == "transient")
-      out = TRANSIENT;
-    else if (in == "harmonic")
-      out = HARMONIC;
-    else if (in == "eigenFrequency")
-      out = EIGENFREQUENCY;
-    else if(in == "multiSequence")
-      out = MULTI_SEQUENCE;
-    else if (in == "paramIdent")
-      // since the parameter identification process lives in frequency domain
-      out = HARMONIC;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'AnalysisType'!" );
-    } 
-  }
-
-  template<> 
-  void Enum2String<AnalysisType>(const AnalysisType &in, std::string &out) {
-    switch(in) {
-    case STATIC:
-      out = "static";
-      break; 
-    case TRANSIENT:
-      out = "transient";
-      break;
-    case HARMONIC:
-      out = "harmonic";
-      break;
-    case EIGENFREQUENCY:
-      out = "eigenFrequency";
-      break;
-    case MULTI_SEQUENCE:
-      out = "multiSequence";
-      break;
-    default:  
-      EXCEPTION("No conversion found for your 'AnalysisType'");
-    }
-  }
-
   // CouplingInputType
   template<>
   void String2Enum<CouplingInputType>( const std::string &in, 
@@ -451,7 +405,7 @@ namespace CoupledField {
       out = MECH_STRAIN_IRR;
     else if (in == "mechEnergy")
       out = MECH_ENERGY;
-    else if (in == "mechDeformedVolume" ) 
+    else if (in == "volumeAboveDefSurf" ) 
       out = MECH_DEF_VOLUME;
     else if (in == "mechRhsLoad" ) 
       out = MECH_RHS_LOAD;

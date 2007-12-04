@@ -49,19 +49,19 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic();
  
-    //! base method for solving one static step 
-    virtual void SolveStepStatic();
+    /** base method for solving one static step
+     * @param comment if export linear system is defined in xml this is part 
+     *        of the name */  
+    virtual void SolveStepStatic(const std::string& comment = "");
 
-    //! solves for one linear static step 
-    virtual void StepStaticLin();
+    /** @see SolveStepStatic(const std::string&) */ 
+    virtual void StepStaticLin(const std::string& comment = "");
 
     //! solves for one nonlinear static step 
     virtual void StepStaticNonLin();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
-
-
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
@@ -92,10 +92,10 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic();
+    virtual void SolveStepHarmonic(const std::string& comment = "");
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin();
+    virtual void StepHarmonicLin(const std::string& comment = "");
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin()

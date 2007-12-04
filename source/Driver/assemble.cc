@@ -23,7 +23,7 @@ namespace CoupledField {
   DEFINE_LOG(assemble, "assemble")
 
   Assemble::Assemble( BaseSystem* algsys,
-                      AnalysisType analysis,
+                      BasePDE::AnalysisType analysis,
                       UInt maxTimeDerivOrder ) {
     
     // init general params
@@ -45,6 +45,7 @@ namespace CoupledField {
     matReassemble_[STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
     matReassemble_[MASS] = true;
+    matReassemble_[AUXILIARY] = true;
 
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
@@ -69,7 +70,7 @@ namespace CoupledField {
     }
   }
  
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2)
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator)
   {
      // the EntityList has the region name as name but not the id
      std::string region = domain->GetGrid()->RegionIdToName(regionId);
@@ -85,6 +86,7 @@ namespace CoupledField {
        // when pde1 is given we compare it by name and continue if the names are different
        if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
        if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
+       if((*iter)->GetIntegrator()->GetName() != integrator) continue;
 
        // we come here because we had no contradiction - check for uniqueness       
        if(result != NULL) throw Exception("parameters not unique!");
@@ -93,7 +95,8 @@ namespace CoupledField {
        result = *iter;
      }
      
-     if(result == NULL) throw Exception("specified BiLinFormContext not found");
+     if(result == NULL) 
+       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found");
      return result;
   }
 
@@ -110,7 +113,7 @@ namespace CoupledField {
     // assert that Integrator is set
     assert( biLinContext->GetIntegrator() != NULL );
 
-    // assert that some entites are set
+    // assert that some entities are set
     assert( biLinContext->GetFirstEntities() != NULL );
     assert( biLinContext->GetSecondEntities() != NULL );
 
@@ -123,7 +126,7 @@ namespace CoupledField {
     // Otherwise we issue an error
     if( (biLinContext->GetEntryType() == IMAG ||
          biLinContext->GetEntryType() == COMPLEX )
-        && analysisType_ != HARMONIC ) {
+        && analysisType_ != BasePDE::HARMONIC ) {
       EXCEPTION( "Can not add integrator '" 
                  << biLinContext->GetIntegrator()->GetName() 
                  << "' with complex/imaginary entries for a "
@@ -247,6 +250,7 @@ namespace CoupledField {
     std::map<FEMatrixType, bool>::iterator it;
     for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
       if( it->second == true ) {
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
         algsys_->InitMatrix( matrixMap_[it->first] );
       }
     }
@@ -258,9 +262,11 @@ namespace CoupledField {
     std::set<BiLinFormContext*>::iterator formsIt;
     for ( formsIt = biLinForms_.begin(); 
           formsIt != biLinForms_.end(); formsIt++ ) {
-      
       // get integrator
       BiLinFormContext & actContext = **formsIt;
+
+      LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();  
+      LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
       
       // get matrix destinations
       FEMatrixType destMat = actContext.GetDestMat(); 
@@ -283,7 +289,6 @@ namespace CoupledField {
       BaseForm * form = actContext.GetIntegrator();
 
       try {
-
         // get entity iterators
         EntityIterator  it1 = actContext.GetFirstEntities()->GetIterator();
         EntityIterator  it2 = actContext.GetSecondEntities()->GetIterator();
@@ -293,43 +298,41 @@ namespace CoupledField {
 
         // iterate over all entities
         for ( UInt i=0; i<size; i++ ) {
-          
+
           // Calc element matrix
           if ( form->IsComplex() ) 
             form->CalcElementMatrix( elemMatrixC, it1, it2 );
           else
             form->CalcElementMatrix( elemMatrix, it1, it2 );
 
-          
-	      //std::cerr << "Element matrix of " << elemMatrix.GetSizeRow()<< " X " <<elemMatrix.GetSizeCol() << std::endl;
-	      //std::cerr << "Element matrix is \n" << elemMatrix << std::endl;
-	      
-	      
-	      if(actContext.IsSetNegate()== true){
-	    	  elemMatrix*= (-1);
-	    	  //std::cerr << "Negated element matrix is \n" << elemMatrix << std::endl;
-	      }
+          if(actContext.IsSetNegate()== true){
+            assert(!form->IsComplex());
+            elemMatrix*= (-1);
+            //std::cerr << "Negated element matrix is \n" << elemMatrix << std::endl;
+          }
 
-	      
+          LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> " 
+                             << (form->IsComplex() ? elemMatrixC.ToString(0) : elemMatrix.ToString(0));
+
+          LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> " 
+                             << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
+          
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
 
-          //std::cerr << "Assembling into: " << matrixMap_[destMat] << std::endl; 
-	      //std::cerr << "eqns1 (rows)= " << eqnVec1.Serialize() << std::endl;
-          //std::cerr << "eqns2 (cols)= " << eqnVec2.Serialize() << std::endl;
+          LOG_DBG3(assemble) << "map " << destMat << " equations for it1/2=" << it1.GetElem()->elemNum 
+                             << "/" << it2.GetElem()->elemNum << " -> eqnVec1/2 = "
+                             << eqnVec1.GetSize() << "/" << eqnVec2.GetSize();
 
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() ) 
-            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
-                          pdeId1, pdeId2);
+            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, pdeId1, pdeId2);
           else 
-            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
-                          pdeId1, pdeId2);
-
+            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
 
           // Check for secondary matrix type
           if (secDestMat != NOTYPE ) {
-          
+
             Double dampFactor = 1.0;
             if ( actContext.getPtDamplayer() != NULL ) {
               actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
@@ -339,21 +342,21 @@ namespace CoupledField {
             if ( form->IsComplex() ) {
               // Rayleigh damping
               elemMatrixC *= secMatFac * dampFactor;
-              
+
               // Pass secondary matrix part to algebraic system
               InsertMatrix( secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2,
-                            pdeId1, pdeId2);
+                  pdeId1, pdeId2);
             }
             else {
               // Rayleigh damping
               elemMatrix *= secMatFac * dampFactor;
-              
+
               // Pass secondary matrix part to algebraic system
               InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,
-                            pdeId1, pdeId2);
+                  pdeId1, pdeId2);
             }
 
-          }
+          } // handle secDestMat != NOTYPE
 
           // increment iterators
           it1++;
@@ -407,7 +410,7 @@ namespace CoupledField {
         // get entity iterator
         EntityIterator  entIt = actContext.GetEntities()->GetIterator();
 
-        if ( analysisType_ == HARMONIC ) {
+        if ( analysisType_ == BasePDE::HARMONIC ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -474,7 +477,6 @@ namespace CoupledField {
   void Assemble::AssembleRHSLoads( Double actTimeFreq ) {
 
     Vector<Double> globCoord;
-    Integer eqnNr = 0;
     Double phase = 0.0;
     Double val = 0.0;
 
@@ -524,7 +526,7 @@ namespace CoupledField {
             // check, if RHS of current eqn was already set
             if( usedEqns.find( eqns[iEqn] ) == usedEqns.end() ) {
               usedEqns.insert( eqns[iEqn] );
-              if (analysisType_ == HARMONIC) {
+              if (analysisType_ == BasePDE::HARMONIC) {
                 parser->SetExpr( mHandle_, actLoad.phase  );
                 phase = parser->Eval( mHandle_ );
                 Complex complexValue( val * cos( phase / 180 * PI ),
@@ -642,41 +644,37 @@ namespace CoupledField {
   }
 
   void Assemble::CheckNonLinearities() {
-
     // Clear reassemble mat
     matReassemble_.clear();
 
     // iterate over all bilinearforms
     std::set<BiLinFormContext*>::iterator it;
 
-    for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
-			BiLinFormContext & actContext = **it;
+    for( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) 
+    {
+      BiLinFormContext & actContext = **it;
 
-			if( actContext.IsNonLin() == true
-					|| analysisType_ == HARMONIC ) {
-				matReassemble_[actContext.GetDestMat()] = true;
-				if ( actContext.GetSecDestMat() != NOTYPE ) {
-					matReassemble_[actContext.GetSecDestMat()] = true;
-				}
-			}
-			//std::cerr << "\nCheckNonLinearities on: " << actContext.GetIntegrator()->GetName() << "... ";
-			if ( actContext.GetIntegrator()->GetName()=="LinThermoElecDampInt") {
-				//std::cerr << "set re-asembling on " << std::endl;
-				matReassemble_[actContext.GetDestMat()] = true;
-				if ( actContext.GetSecDestMat() != NOTYPE ) {
-					matReassemble_[actContext.GetSecDestMat()] = true;
-				}
-			}
-			if ( actContext.GetIntegrator()->GetName()=="LinThermoMechDampInt") {
-							//std::cerr << "set re-asembling on " << std::endl;
-							matReassemble_[actContext.GetDestMat()] = true;
-							if ( actContext.GetSecDestMat() != NOTYPE ) {
-								matReassemble_[actContext.GetSecDestMat()] = true;
-							}
-						}
-			
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC) 
+      {
+        matReassemble_[actContext.GetDestMat()] = true;
+        if ( actContext.GetSecDestMat() != NOTYPE ) 
+          matReassemble_[actContext.GetSecDestMat()] = true; 
+      }
+      // todo let the integrators be nonlin!
+      if (actContext.GetIntegrator()->GetName()=="LinThermoElecDampInt") 
+      {
+        matReassemble_[actContext.GetDestMat()] = true;
+        if ( actContext.GetSecDestMat() != NOTYPE ) 
+          matReassemble_[actContext.GetSecDestMat()] = true;
+      }
 
-	}
+      if ( actContext.GetIntegrator()->GetName()=="LinThermoMechDampInt") 
+      {
+        matReassemble_[actContext.GetDestMat()] = true;
+        if ( actContext.GetSecDestMat() != NOTYPE ) 
+          matReassemble_[actContext.GetSecDestMat()] = true;
+      }
+    }
   }
   
   void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
@@ -690,31 +688,38 @@ namespace CoupledField {
     harmMat.Resize(2*numRow*numCol);
     harmMat.Init();
     Integer k=0;
+    Double factor;
 
-    if (entryType == REAL) {
+    assert(entryType == REAL || entryType == IMAG);
 
-      if (matrixType == STIFFNESS) {
+    if (entryType == REAL) 
+    {
+      switch(matrixType)
+      {
+      case STIFFNESS:
+      case AUXILIARY:
+
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = origMat[row][col];
             k++;
           }
-      }
-    
-      else if (matrixType == MASS) {
+        break;
+
+      case MASS:
 
         // NOTE: here we have to distinguish, if the
         //  mass matrix is associated with first
         // or second order time derivative
         if( maxTimeDerivOrder_ == 2 ) {
-          Double factor = -omega*omega;
+          factor = -omega*omega;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
               harmMat[k] = factor*origMat[row][col];
               k++;
             }
         } else {
-          Double factor = omega;
+          factor = omega;
           k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -722,38 +727,43 @@ namespace CoupledField {
               k++;
             }
         }
-      }
-      
-      else if (matrixType == DAMPING) {       
-        Double factor = omega;
-        
+        break;
+
+      case DAMPING:
+
+        factor = omega;
+
         k=numRow*numCol;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = factor*origMat[row][col];
             k++;
           }
-      }
-    } // end, if matatType == real...
+        break;
 
-    else if(entryType == IMAG){  // the "imaginary parts"
-   
-      if (matrixType == STIFFNESS) {
+      default: EXCEPTION("case " << matrixType << " not implemented");        
+      }// end switch
+    } // end, if matatType == real...
+    else 
+    {  // the "imaginary parts"
+      switch(matrixType)
+      {
+      case STIFFNESS:
+
         k=numRow*numCol;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = origMat[row][col];
             k++;
           }
-      }
-      
-    
-      else if (matrixType == MASS) {
+        break;
+
+      case MASS:
         // NOTE: here we have to distinguish, if the
         //  mass matrix is associated with first
         // or second order time derivative
         if( maxTimeDerivOrder_ == 2 ) {
-          Double factor = -omega*omega;
+          factor = -omega*omega;
           k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -761,7 +771,7 @@ namespace CoupledField {
               k++;
             }
         } else {
-          Double factor = omega;
+          factor = omega;
           k=0;  
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -769,26 +779,21 @@ namespace CoupledField {
               k++;
             }
         }
-      }
-      
-      else if (matrixType == DAMPING) {
-        Double factor = omega;
+        break;
+
+      case DAMPING:
+        factor = omega;
         k=0;  
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = -factor*origMat[row][col];
             k++;
           }
-      }
-      
+        break;
+
+      default: EXCEPTION("case " << matrixType << " not implemented");      
+      }// end switch
     } // end if matType == imag
-    
-    else {
-      (*error) <<"\n DataType" << entryType
-               << "not specified "<<std::endl;
-      Error( __FILE__, __LINE__ );
-    }
-    
   }
     
 
@@ -803,23 +808,29 @@ namespace CoupledField {
     harmMat.Resize(2*numRow*numCol);
     harmMat.Init();
     Integer k=0;
+    Double factor;
 
     UInt offset = numRow*numCol;
-    if (matrixType == STIFFNESS) {
+
+    switch(matrixType)
+    {
+    case STIFFNESS:
+
       for (Integer row=0; row<numRow; row++)
         for (Integer col=0; col<numCol; col++) {
           harmMat[k] = origMat[row][col].real();
           harmMat[k+offset] = origMat[row][col].imag();
           k++;
         }
-    }
-    
-    else if (matrixType == MASS) {
+      break;
+
+    case MASS:
+
       // NOTE: here we have to distinguish, if the
       //  mass matrix is associated with first
       // or second order time derivative
       if( maxTimeDerivOrder_ == 2 ) {
-        Double factor = -omega*omega;
+        factor = -omega*omega;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = factor*origMat[row][col].real();
@@ -827,7 +838,7 @@ namespace CoupledField {
             k++;
           }
       } else {
-        Double factor = omega;
+        factor = omega;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = -factor*origMat[row][col].imag();
@@ -835,58 +846,65 @@ namespace CoupledField {
             k++;
           }
       }
-    }
-      
-    else if (matrixType == DAMPING) {       
-      Double factor = omega;
+      break;
+
+    case DAMPING:
+
+      factor = omega;
       for (Integer row=0; row<numRow; row++)
         for (Integer col=0; col<numCol; col++) {
           harmMat[k] = -factor*origMat[row][col].imag();
           harmMat[k+offset] = factor*origMat[row][col].real();
           k++;
         }
-    }
+      break;
+
+    default: EXCEPTION("case " << matrixType << " not implemented");
+    } // end switch
   } 
 
 
-  void Assemble::CreateMatrixMap() {
+  void Assemble::CreateMatrixMap() 
+  {
 
     // Dependent on the type of analysis, only certain matrix types
-    // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION) are present.
-
-    if( analysisType_ == STATIC ) {
-
+    // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION, ...) are present.
+    switch(analysisType_)
+    {
+    case BasePDE::STATIC:
       matrixMap_[SYSTEM]    = SYSTEM;
       matrixMap_[STIFFNESS] = SYSTEM;
       matrixMap_[DAMPING]   = NOTYPE;
       matrixMap_[MASS]      = NOTYPE;
+      matrixMap_[AUXILIARY] = NOTYPE;
+      break;
 
-    } else if( analysisType_ == TRANSIENT ) {
+    case BasePDE::TRANSIENT:
       matrixMap_[SYSTEM]    = SYSTEM;
       matrixMap_[STIFFNESS] = STIFFNESS;
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
-      
-    } else if( analysisType_ == HARMONIC ) {
+      matrixMap_[AUXILIARY] = NOTYPE;
+      break;
+
+    case BasePDE::HARMONIC:
       matrixMap_[SYSTEM]    = SYSTEM; 
       matrixMap_[STIFFNESS] = SYSTEM;
       matrixMap_[DAMPING]   = SYSTEM;
       matrixMap_[MASS]      = SYSTEM;
-      
-    } else if( analysisType_ == EIGENFREQUENCY) {
+      matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+      break;
+
+    case BasePDE::EIGENFREQUENCY:
       matrixMap_[SYSTEM]    = NOTYPE;
       matrixMap_[STIFFNESS] = STIFFNESS;
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
-      
-    } else {
-      
-      std::string analysisString;
-      Enum2String( analysisType_, analysisString );
-      (*error) << "Analysistype '" << analysisString << "' not known!";
-      Error( __FILE__, __LINE__ );
+      matrixMap_[AUXILIARY] = NOTYPE;
+      break;
+
+    default: EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_) << "' not known!");
     }
-     
   }
 
  //  void Assemble::AdjustDamping( BiLinFormContext& context ) {
@@ -985,47 +1003,40 @@ namespace CoupledField {
                                Matrix<Double>& elemMat, 
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               PdeIdType pdeId1, PdeIdType pdeId2) {
-
-    Vector<Double> harmMat;
-
+                               PdeIdType pdeId1, PdeIdType pdeId2) 
+  {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest]; 
     
-    if( mappedDest == NOTYPE ) {
-      return;
-    }
-    
-    if( analysisType_ == TRANSIENT 
-        || analysisType_ == STATIC
-        || analysisType_ == EIGENFREQUENCY) {
+    assert(mappedDest != NOTYPE);    
 
-      algsys_->
-        SetElementMatrix( mappedDest, elemMat.GetDataPointer(), 
-                          pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
-                          pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.getBiLinFormContextFlags() );
+    Vector<Double> harmMat;    
+    Double* dat_ptr = NULL;
+    
+    if( analysisType_ == BasePDE::TRANSIENT 
+        || analysisType_ == BasePDE::STATIC
+        || analysisType_ == BasePDE::EIGENFREQUENCY) {
+
+      dat_ptr = elemMat.GetDataPointer();
     } else {
+      assert(analysisType_ == BasePDE::HARMONIC);
+      
       Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
       Double omega = freq * 2 * PI;
-      Matrix2Harmonic( harmMat, elemMat, dest,
-                       context.GetEntryType(), omega );
-      algsys_->
-        SetElementMatrix( mappedDest, harmMat.GetPointer(), 
-                          pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
-                          pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.getBiLinFormContextFlags() );
+      
+      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+
+      dat_ptr = harmMat.GetPointer();
     }
+
+    LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=[" 
+                       << StdVector<Double>::ToString(elemMat.GetSizeCol() * elemMat.GetSizeRow(), dat_ptr, 1)
+                       << "] eqnVec1=" << eqnVec1.ToString() << " flags=" << context.getBiLinFormContextFlags().ToString();
     
-  }
-  
-  void Assemble::Dump()
-  {
-      // iterate over all descriptors
-      std::set<BiLinFormContext*>::iterator formsIt;
-      for ( formsIt = biLinForms_.begin(); formsIt != biLinForms_.end(); formsIt++ ) {
-         (*formsIt)->Dump();  
-      }
+    algsys_->SetElementMatrix( mappedDest, dat_ptr, 
+                               pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
+                               pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
+                               context.getBiLinFormContextFlags() );
   }
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -1038,23 +1049,17 @@ namespace CoupledField {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest]; 
     
-    if( mappedDest == NOTYPE ) {
-      return;
-    }
+    assert(mappedDest != NOTYPE);
+    assert(analysisType_ == BasePDE::HARMONIC);
+
+    Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
+    Double omega = freq * 2 * PI;
     
-    if( analysisType_ == HARMONIC ) {
-      Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
-      Double omega = freq * 2 * PI;
-      Matrix2Harmonic( harmMat, elemMat, dest,
-                       context.GetEntryType(), omega );
-      algsys_->
-        SetElementMatrix( mappedDest, harmMat.GetPointer(), 
-                          pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
-                          pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                          context.getBiLinFormContextFlags() );
-    }
-    else {
-      EXCEPTION("Currently complex element matrices are just allowed for harmonic analysis");
-    }
+    Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+    
+    algsys_->SetElementMatrix( mappedDest, harmMat.GetPointer(), 
+                               pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
+                               pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
+                               context.getBiLinFormContextFlags() );
   }
 }

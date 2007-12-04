@@ -49,11 +49,12 @@ namespace OLAS {
 
     //@{
     //! Perform a matrix-vector multiplication rvec = this*mvec
-    void Mult( const SparseVector& mvec, SparseVector& rvec ) const {
+    void Mult( const SparseVector& mvec, SparseVector& rvec ) const 
+    {
       TRY_CAST {
-	ConstRefCast( mvec, Vector<T>, tmvec );
-	RefCast     ( rvec, Vector<T>, trvec );
-	Mult( tmvec, trvec );
+        ConstRefCast( mvec, Vector<T>, tmvec );
+        RefCast     ( rvec, Vector<T>, trvec );
+        Mult( tmvec, trvec );
       } CATCH_CAST;
     }
 
@@ -64,9 +65,9 @@ namespace OLAS {
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SparseVector& mvec, SparseVector& rvec ) const {
       TRY_CAST {
-	ConstRefCast( mvec, Vector<T>, tmvec );
-	RefCast     ( rvec, Vector<T>, trvec );
-	MultT( tmvec, trvec );
+        ConstRefCast( mvec, Vector<T>, tmvec );
+        RefCast     ( rvec, Vector<T>, trvec );
+        MultT( tmvec, trvec );
       } CATCH_CAST;
     }
 

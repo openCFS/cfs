@@ -39,7 +39,7 @@ namespace CoupledField {
 
     //! Begin multisequence step
     void BeginMultiSequenceStep( UInt step,
-                                 AnalysisType type,
+                                 BasePDE::AnalysisType type,
                                  UInt numSteps);
     
     //! Begin single analysis step
@@ -119,7 +119,7 @@ namespace CoupledField {
     CoordSystem * coordSys_;
 
     //! Type of analysis in current multisequence step
-    AnalysisType actAnalysis_;
+    BasePDE::AnalysisType actAnalysis_;
     
     //! Offset for step number in case of multisequence analysis
     Integer stepNumOffset_;

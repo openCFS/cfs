@@ -61,7 +61,7 @@ namespace CoupledField
     bool isSet_;
     
     //! Contains analysistype of PDE
-    AnalysisType analysisType_;
+    BasePDE::AnalysisType analysisType_;
 
     //! Name of the related grid 
     std::string gridFileName_;

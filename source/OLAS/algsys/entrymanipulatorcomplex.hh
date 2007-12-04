@@ -142,6 +142,7 @@ namespace OLAS {
     //!
 
     void InitRHS( SparseVector *rhs, const Double *newRHS);
+    void InitRHS( SparseVector *rhs, const Vector<Complex>* newRHS );    
 
     //! 
     void InitSol( SparseVector *sol, const Double *newSol);

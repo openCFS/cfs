@@ -65,6 +65,7 @@ SET(FORMS_SRCS
   stokesFluidAxiInt.cc
   stokesFluidInt.cc
   stokesFluidPlaneInt.cc
+  SurfaceNormalInt.cc
   nLinMagHystInt2D.cc
   mixedInt.cc
   )

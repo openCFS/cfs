@@ -330,7 +330,7 @@ namespace CoupledField
     //! compute length of edge with maximal/minimal size
     virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ) 
     { 
-      Error("GetMaxMinEdgeLength not implemented", __FILE__, __LINE__);
+      EXCEPTION("GetMaxMinEdgeLength not implemented");
     }
 
     //! Return FE-Type
@@ -509,6 +509,9 @@ namespace CoupledField
     virtual void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
                                bool setIntPoints = true ) {
     }
+    
+    /** Get the ansatz function we use */
+    shared_ptr<AnsatzFct> GetAnsatzFct() const { return actFct_; }
 
   protected:
     //! Define variables of this class

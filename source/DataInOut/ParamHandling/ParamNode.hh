@@ -7,6 +7,8 @@
 
 #include <string>
 #include "Utils/StdVector.hh"
+#include "boost/lexical_cast.hpp"
+#include "General/exception.hh"
 
 namespace CoupledField
 {
@@ -83,7 +85,7 @@ namespace CoupledField
      * Otherwise the function will return silently and the original value in ret will be kept.
      * example: "optimization" is a complex element which is a direct child of the root: param.Get("optimization") 
      * @throws exception if there is not such a direct child, e.g. if this is a leaf node OR if there more than only
-     * one of such elements (e.g. simple xml elements). */     
+     * one of such elements (e.g. simple xml elements). */
     void Get(const std::string& name, std::string& ret, const bool throwException = true);
 
     void Get(const std::string& name, int& ret, const bool throwException = true);
@@ -104,6 +106,14 @@ namespace CoupledField
      * @return true if there is at least one direct child (leaf or "complex") with the given name */
     bool Has(const std::string& name) const;  
 
+    /** Checks if a direct child (e.g. attribute) exists and has a special value
+     * @see Has(const std::string&) const */
+    bool Has(const std::string& name, const std::string& value) const;
+
+    /** Checks if a direct child (e.g. attribute) exists and is set to "true"/"false", "yes"/"no", "on"/"off"
+    * @see Has(const std::string&) const */
+    bool Has(const std::string& name, bool value) const;
+    
     /** Checks if there is at least one direct child with the given name and an attribute with the given value.<br>
      * Note, that even when not specified in the XML file, the value might come from the default value in the
      * XML schema definition.<br>
@@ -136,38 +146,31 @@ namespace CoupledField
     ParamNode* Get( const std::string& parent, 
                     const std::string& child, 
                     const std::string& value,
-                    const bool throwException = false );
+                    const bool throwException = true );
 
-    //@{
-    /** Get the direct child which has an attribute with a given value and store it in the
-     *  retrn variable or in other words:
+
+    /** This Get() version overwrites with throwException=false a preset value and does nothing if the
+     *  value does not exist. So you do not need to check with Has() first.<br>
+     *  Get the direct child which has an attribute with a given value and store it in the
+     *  return variable or in other words:
      *  Get the direct child where the grandchildren are as specified.<br>
-     *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").Get("dirichletInHom", "name", "fixed") */
-    void Get( const std::string& parent, const std::string& child, const std::string& value,
-              std::string& ret,
-              const bool throwException = false );
+     *  example: 
+     *  <pre>
+        // instead of:
+        double manual_scaling = node->Has("option", "name", "obj_scaling_factor") ?
+               node->Get("option", "name", "obj_scaling_factor")->Get("value")->AsDouble() : 1.0;
+        // you can do
+        double manual_scaling = 1.0;
+        node->Get<double>("option", "name", "obj_scaling_factor", manual_scaling, "value", false);
+        </pre> 
+     */
+    template <class TYPE>
+    void Get(const std::string& parent, const std::string& child, const std::string& value, 
+             TYPE& ret, const std::string& value_node, bool throwException = true);
 
-    void Get( const std::string& parent, const std::string& child, const std::string& value,
-              int& ret,
-              const bool throwException = false );
-
-    void Get( const std::string& parent, const std::string& child, const std::string& value,
-              unsigned int& ret,
-              const bool throwException = false );
-
-    void Get( const std::string& parent, const std::string& child, const std::string& value,
-              double& ret,
-              const bool throwException = false );
-
-    void Get( const std::string& parent, const std::string& child, const std::string& value,
-              bool& ret,
-              const bool throwException = false );
-    //@}
-    
-    
     /** Returns the number of entries, the corresponding GetList() would return.
      * @See GetList(const std::string&, const std::string&, const std::string&) */
-    unsigned int Count( const std::string& name, const std::string& child, const std::string& value ); 
+    unsigned int Count( const std::string& name, const std::string& child, const std::string& value ) const; 
 
     /** Returns all children which are attributes and simple xml elements (cannot be differentiated) or in
      * other words leaf nodes - and without any sorting complex ParamNodes which habe children by themself. 
@@ -210,6 +213,27 @@ namespace CoupledField
     bool attribute_;  
   }; 
 
+  
+  template <class TYPE>
+  void ParamNode::Get(const std::string& parent, const std::string& child, const std::string& value, 
+           TYPE& ret, const std::string& value_node, bool throwException)
+  {
+    ParamNode * base = Get(parent, child, value, throwException);
+    if(base != NULL) 
+    {
+      try
+      {
+        ret = boost::lexical_cast<TYPE>(base->Get(value_node)->AsString());
+      }
+      catch(boost::bad_lexical_cast &)
+      {
+        EXCEPTION("cannot cast value '" << value_ << "' in XML node " << parent << "/" 
+                  << child << "=" << value);
+      }
+    }// else do nothing
+  }
+  
+  
 } // end of namespace
 
 

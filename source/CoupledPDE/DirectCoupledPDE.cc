@@ -215,7 +215,7 @@ namespace CoupledField {
     assemble_ = new Assemble( algsys_, analysistype_, 2 );
 
     // Initialize timestepping
-    if ( analysistype_ == TRANSIENT ) {
+    if ( analysistype_ == BasePDE::TRANSIENT ) {
       InitTimeStepping();
     }
 
@@ -246,7 +246,7 @@ namespace CoupledField {
       totalUnknowns_ += eqn->GetNumEqns();
     }
     
-    if ( analysistype_ == TRANSIENT ) {
+    if ( analysistype_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
@@ -255,7 +255,7 @@ namespace CoupledField {
 
 
     // Set correct size of direct solution value
-    if ( analysistype_ == HARMONIC  ) {
+    if ( analysistype_ == BasePDE::HARMONIC  ) {
       solVec_ = new Vector<Complex>;
       rhsVec_ = new Vector<Complex>;
     }
@@ -273,7 +273,7 @@ namespace CoupledField {
     // TEMPORARY CHANGE CHANGE CHANGE
     BaseNodeStoreSol *ptNodeSol, *ptNodeSolPrev;
 
-    if ( analysistype_ == HARMONIC  ) {
+    if ( analysistype_ == BasePDE::HARMONIC  ) {
       solVec_->Init( Complex(0.0, 0.0 ) );
       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -699,17 +699,6 @@ namespace CoupledField {
 
   }
 
-  void DirectCoupledPDE::Finalize() {
-
-    for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
-      singlePDEs_[i]->Finalize();
-    }
-    
-    for( UInt i=0; i<couplings_.GetSize(); i++ ) {
-      couplings_[i]->Finalize();
-    }
-    
-  }
   
   // ======================================================
   // COUPLING SECTION

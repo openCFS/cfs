@@ -96,9 +96,18 @@ namespace OLAS {
   //! - DAMPING
   //! - CONVECTION
   //! - MASS
-  typedef enum {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS}
+  //! - AUXILIARY - e.g. for radiation optimization used in SurfaceNormalInt               
+  typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY}
   FEMatrixType;
 
+  //! Maximal number of different FE matrix types
+
+  //! This macro specifies the maximal number
+  //! of different types of Finite-Element matrices that can occur in a
+  //! CFS++/OLAS run, i.e. the number of possible choices from FEMatrixType
+  //! besides the NOTYPE value.
+#define MAX_NUM_FE_MATRICES 6  
+  
   //! class for flags of the FE matrix
 	class FEMatrix_Flags {
 		public:
@@ -126,6 +135,12 @@ namespace OLAS {
 			//! To negate the FEMatrix
 			bool setNegate;
 		
+			std::string ToString() {
+			  std::ostringstream os;
+			  os << "coutnerPart=" << setCounterPart << " transposeInt=" << setTransposeInt
+			     << " onlyCounterPart=" << setOnlyCounterPart << " negate=" << setNegate;
+			  return os.str();
+			}
 	}; 
 	//extern FEMatrix_Flags setOfFlags_;
   
@@ -141,13 +156,7 @@ namespace OLAS {
   //! - STANDARD_SYSTEM
   typedef enum { NOALGSYSTYPE, SBM_SYSTEM, STANDARD_SYSTEM } AlgSysType;
 
-  //! Maximal number of different FE matrix types
 
-  //! This macro specifies the maximal number
-  //! of different types of Finite-Element matrices that can occur in a
-  //! CFS++/OLAS run, i.e. the number of possible choices from FEMatrixType
-  //! besides the NOTYPE value.
-#define MAX_NUM_FE_MATRICES 5
 
 
   //! Type of preconditioner

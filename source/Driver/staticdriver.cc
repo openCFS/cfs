@@ -21,11 +21,8 @@ namespace CoupledField {
   StaticDriver::StaticDriver( UInt sequenceStep,
                               bool isPartOfSequence ) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {
-    
 
-    analysis_ = STATIC;
-
-    consecutiveRun_ = false; 
+    analysis_ = BasePDE::STATIC;
   }
 
   void StaticDriver::Init() {
@@ -44,11 +41,8 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(int optimizationIteration) {
- 
-    lastOptimizationIteration_ = optimizationIteration;
-    ResultHandler * resHandler = domain->GetResultHandler();
-
+  void StaticDriver::SolveProblem(bool write_results, const std::string& comment)
+  {
     // Set curent value of timestep and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", 0.0 );
@@ -57,39 +51,36 @@ namespace CoupledField {
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "step", 0 );        
 
-    // notify resultHandler about beginning of new sequence step 
-    resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, 1 );
-    
     // 'TimeStepping' is here the optimization iteration
-    ptPDE_->GetSolveStep()->SetActTime(optimizationIteration);
-    ptPDE_->GetSolveStep()->SetActStep(optimizationIteration);
-    ptPDE_->WriteGeneralPDEdefines();
+    ptPDE_->GetSolveStep()->SetActTime(0.0);
+    ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic();
+    ptPDE_->GetSolveStep()->SolveStepStatic(comment);
     ptPDE_->GetSolveStep()->PostStepStatic();
+
+    // in optimization we write the results via StoreResults() because
+    // we don't write every forward step. 
+    if(write_results)
+    {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);      
+      StoreResults(1);
+      handler_->FinishMultiSequenceStep();
+
+      if(!isPartOfSequence_)
+        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    }
+    
+    SETPROFILE("After Static Step");    
   }
 
   void StaticDriver::StoreResults(double step_val)
   {
-    // post process ??
-    int loi = lastOptimizationIteration_;
+    assert(analysis_ == BasePDE::STATIC);
 
-    ResultHandler * resHandler = domain->GetResultHandler();
-
-    // resHandler->BeginStep( nstep+stepOffset_, timeOffset_ + steptime );
-    resHandler->BeginStep( loi, step_val > 0 ? step_val : (loi-1) );
-    // actually the parameters seem to be not used :(
-    ptPDE_->WriteResultsInFile(loi , loi-1 );
-    resHandler->FinishStep();
-    ptPDE_->Finalize();
-    
-    // notify resultHandler about finishing of current sequence step
-    if(!optimization_ && !isPartOfSequence_ ) {
-      resHandler->FinishMultiSequenceStep();
-      resHandler->Finalize();
-    }
-    SETPROFILE("After Static Step");
-    
+    handler_->BeginStep((unsigned int) step_val, step_val);
+    ptPDE_->WriteResultsInFile((unsigned int) step_val, step_val);
+    ptPDE_->WriteGeneralPDEdefines();
+    handler_->FinishStep();
   }
 
 } // end of namespace

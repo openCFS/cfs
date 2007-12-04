@@ -3,8 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/exception.hh"
-#include "boost/lexical_cast.hpp"
+
 
 namespace CoupledField
 {
@@ -148,7 +147,23 @@ namespace CoupledField
     return false;
   }
 
-     
+  bool ParamNode::Has(const std::string& name, const std::string& value) const
+  {
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
+      if(children_[i]->name_ == name && children_[i]->value_ == value) return true;
+
+    return false;
+  }
+
+  bool ParamNode::Has(const std::string& name, bool value) const
+  {
+    for(unsigned int i = 0; i < children_.GetSize(); i++)
+      if(children_[i]->name_ == name && children_[i]->AsBool() == value) return true;
+
+    return false;
+  }
+  
+  
   StdVector<ParamNode*> ParamNode::GetList(const std::string& name)
   {
     StdVector<ParamNode*> result;
@@ -180,8 +195,8 @@ namespace CoupledField
       }
     return children_[0];
   }
-
-
+  
+  
   StdVector<ParamNode*> ParamNode::GetList(const std::string& parent, const std::string& child, const std::string& value)
   {
     StdVector<ParamNode*> result;
@@ -211,66 +226,48 @@ namespace CoupledField
   ParamNode* ParamNode::Get(const std::string& parent, const std::string& child, 
                             const std::string& value, const bool throwException)
   {
-    ParamNode * result = NULL;
+    StdVector<ParamNode*> result = GetList(parent, child, value);
     
-    for(unsigned int p = 0; p < children_.GetSize(); p++)
-      {
-        // do we have parent name? 
-        if(children_[p]->name_ == parent) 
-          {
-            // children_[i] has zero, one or more child matching child elements, 
-            // we loop by hand to handle the "more" case
-            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
-              {
-                if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
-                  { 
-                    // parent, child and value matches. Now check, if value was already set or
-                    // throw exception
-                    if( result != NULL && throwException == true) {
-                      EXCEPTION( "More than one match found" );
-                    }
-                    result = children_[p];
-                    break;
-                  }
-              }
-          }
-      }
-       
-    if( result == NULL && throwException == true) {
-      EXCEPTION( "No match found" );
+    if(result.GetSize() == 1)
+      return result[0];
+    
+    if(result.GetSize() > 1)
+    {
+      if(!throwException)
+        return result[0];
+      else
+        EXCEPTION("element '" << parent << "' has more than one (" << result.GetSize() 
+                   << ") childs '" << child << "' with value '" << value << "'");
     }
-    return result;
+    
+    // reslt size = 0!
+    if(throwException)
+      EXCEPTION("element '" << parent << "' has no child '" << child
+                << "' with value '" << value << "'");
+    return NULL;
   }
+  
 
   bool ParamNode::Has(const std::string& parent, const std::string& child, 
                       const std::string& value ) const
   {
-    for(unsigned int p = 0; p < children_.GetSize(); p++)
-      {
-        // do we have parent name? 
-        if(children_[p]->name_ == parent) 
-          {
-            // children_[i] has zero, one or more child matching child elements, 
-            // we loop by hand to handle the "more" case
-            for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
-              {
-                if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
-                  { 
-                    return true;
-                  }
-              }
-          }
-      }
-    
-    return false;
+    return Count(parent, child, value) > 0;
   }
   
 
-  unsigned int ParamNode::Count(const std::string& parent, const std::string& child, const std::string& value)  
+  unsigned int ParamNode::Count(const std::string& parent, const std::string& child, const std::string& value) const  
   {
-    // better slow than copy-paste
-    StdVector<ParamNode*> result = GetList(parent, child, value);
-    return result.GetSize();
+    // cannot use GetList() because of const stuff
+    unsigned int count = 0;
+
+    // see GetList() for comments
+    for(unsigned int p = 0; p < children_.GetSize(); p++)
+      if(children_[p]->name_ == parent) 
+        for(unsigned int c = 0; c < children_[p]->children_.GetSize(); c++)
+          if(children_[p]->children_[c]->GetName() == child && children_[p]->children_[c]->AsString() == value)
+            count++;
+    
+    return count;
   }
 
   void ParamNode::ToXML(std::ostream& os) const

@@ -48,7 +48,7 @@ OPTION(USE_TECPLOT "Use Tecplot format for simulation output (mesh only)." OFF)
 OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
   OFF)
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
-OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
+OPTION(USE_SCPIP "Use the external SCPIP optimizer." ON)
 
 #-----------------------------------------------------------------------------
 # Only switch on ILUPACK at lse per default.

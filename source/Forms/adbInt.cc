@@ -7,6 +7,10 @@
 
 #include "adbInt.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(adb)
+DEFINE_LOG(adb, "adbInt")
 
 namespace CoupledField {
 
@@ -47,6 +51,7 @@ namespace CoupledField {
     calcDMat( dMat );
     
     Double val = GetErsatzMaterialFactor(ent1.GetElem());
+    LOG_DBG3(adb) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << val;
     if(val != 1.0) {
        dMat *= val;
     }   
