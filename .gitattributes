@@ -250,6 +250,7 @@ cmake_modules/FindMetis.cmake -text
 cmake_modules/FindMpCCI.cmake -text
 cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
+cmake_modules/FindSCPIP.cmake -text
 cmake_modules/FindTCLForCFS.cmake -text
 cmake_modules/FindXerces.cmake -text
 cmake_modules/compiler.cmake -text
