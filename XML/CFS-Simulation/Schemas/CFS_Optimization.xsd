@@ -29,6 +29,10 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="compliance"/>
                 <xsd:enumeration value="transduction"/>
+                <xsd:enumeration value="output"/>                
+                <xsd:enumeration value="radiation"/>
+                <xsd:enumeration value="conjugateOutput"/>
+                <xsd:enumeration value="globalDynamicCompliance"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -112,6 +116,15 @@
         <xsd:complexType>
           <!-- It is optional to define the optimizer in more detail. -->
           <xsd:sequence>
+            <!-- This describes the optional autoscale setting 
+              <autoscale target="10" tolerance="0.5" />-->
+            <xsd:element name="autoscale" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="target" use="required" type="xsd:float"/>
+                <xsd:attribute name="tolerance" use="optional" default="0.0" type="xsd:float"/>  
+              </xsd:complexType>
+            </xsd:element>
+            
             <!-- This is an ipopt element which has * child elements with options -->
             <xsd:element name="ipopt" minOccurs="0" type="DT_ExternalOptimizer"/>
 
@@ -123,14 +136,44 @@
                  (this are also the code defaults! -->
             <xsd:element name="optimalityCondition" minOccurs="0">
               <xsd:complexType>
-                 <xsd:attribute name="damping" use="optional" default="0.5" type="xsd:float" />
-                 <xsd:attribute name="move_limit" use="optional" default="0.2" type="xsd:float" />
-               </xsd:complexType>
+                <xsd:sequence>
+                  <!-- <framed upper="1200" lower="0" enlarge_upper="2" enlarge_lower="0.5" alwaysEnlarge="true" /> -->
+                  <xsd:element name="framed" minOccurs="0" maxOccurs="1" >
+                    <xsd:complexType>
+                      <xsd:attribute name="upper" type="xsd:float" default="1200"/>
+                      <xsd:attribute name="lower" type="xsd:float" default="0"/>
+                      <xsd:attribute name="enlargeUpper" type="xsd:float" default="2"/>
+                      <xsd:attribute name="enlargeLower" type="xsd:float" default="0.5"/>
+                      <xsd:attribute name="alwaysEnlarge" type="xsd:boolean" default="true"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <!-- <fumble start="10" step="1" contract="0.49" expand="1.9" /> -->
+                  <xsd:element name="fumble" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="start" type="xsd:double" default="10"/>
+                      <xsd:attribute name="step" type="xsd:double" default="1"/>
+                      <xsd:attribute name="contract" type="xsd:double" default="0.49"/>
+                      <xsd:attribute name="expand" type="xsd:double" default="1.99"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="type" use="optional" default="framed" >
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="framed"/>
+                      <xsd:enumeration value="fumble"/>
+                      <xsd:enumeration value="trajectory"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="err_eps" use="optional" default="1e-3" type="xsd:float" />
+                <xsd:attribute name="damping" use="optional" default="0.5" type="xsd:float" />
+                <xsd:attribute name="move_limit" use="optional" default="0.2" type="xsd:float" />
+                <xsd:attribute name="lambda_min" use="optional" default="1e-30" type="xsd:float" />
+                <xsd:attribute name="max_lambda_iters" use="optional" default="100" type="xsd:positiveInteger" />
+              </xsd:complexType>
             </xsd:element>
-          
-           </xsd:sequence>
-          
-               
+          </xsd:sequence>
           <!-- mandatory to give the name. The type is one of a list of types -->
           <xsd:attribute name="type" use="required">
             <xsd:simpleType>
@@ -158,6 +201,9 @@
              <xsd:complexType>
                <xsd:attribute name="name" use="required" type="DT_Design"/>
                <xsd:attribute name="initial" use="required" type="xsd:float"/>
+               <!-- for the lower and upper limits we have to default as it depends on the name -->
+               <xsd:attribute name="lower" use="optional" type="xsd:float"/>
+               <xsd:attribute name="upper" use="optional" type="xsd:float"/>
               </xsd:complexType>
             </xsd:element>
                 
@@ -200,6 +246,7 @@
 	                <xsd:enumeration value="costGradient"/>				  
 	                <xsd:enumeration value="constraintGradient"/>				                                      
 	                <xsd:enumeration value="weight"/>				        
+                  <xsd:enumeration value="neighbours"/>
 	                <xsd:enumeration value="objective"/>				                                
 	              </xsd:restriction>
 	            </xsd:simpleType>
@@ -214,6 +261,7 @@
 	                <xsd:enumeration value="uKp"/>				  
 	                <xsd:enumeration value="pKu"/>				                                      
 	                <xsd:enumeration value="pKp"/>				        
+                  <xsd:enumeration value="symmetry"/>                  
 	              </xsd:restriction>
 	            </xsd:simpleType>
 	          </xsd:attribute>
@@ -225,7 +273,7 @@
 	            
 	           <!-- Optional regulariation in SIMP 
                  <regularization type="filter" >
-                <filter type="neighbours" value="8"/>
+                <filter type="volumeRadius" value="1.1"/>
               </regularization> -->
             <xsd:element name="regularization" minOccurs="0">
               <xsd:complexType>
@@ -237,8 +285,9 @@
                        <xsd:attribute name="type" use="required">
                          <xsd:simpleType>  
                            <xsd:restriction base="xsd:token">
-                             <xsd:enumeration value="neighbours"/>
                              <xsd:enumeration value="radius"/>
+                             <xsd:enumeration value="volumeRadius"/>
+                             <xsd:enumeration value="maxEdge"/>
                            </xsd:restriction>
                          </xsd:simpleType>
                        </xsd:attribute>
@@ -274,7 +323,7 @@
 
             <!-- We have to define transfer functions 
                  <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
-            <xsd:element name="transferFunction" minOccurs="1" maxOccurs="5" type="DT_TransferFunction"/>
+            <xsd:element name="transferFunction" minOccurs="1" maxOccurs="8" type="DT_TransferFunction"/>
             
             
             <!-- In the piezo SIMP case there is a pizeo block.
@@ -315,8 +364,25 @@
                       </xsd:element>
                   </xsd:sequence>
               </xsd:complexType> 
-            </xsd:element>  
-     
+            </xsd:element>
+            <xsd:element name="output" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="nodes" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+                  <xsd:element name="loads" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>                  
+                </xsd:sequence>                                  
+              </xsd:complexType>
+           </xsd:element>
+           <xsd:element name="radiation" minOccurs="0" maxOccurs="1">
+             <xsd:complexType>
+               <xsd:sequence>
+                 <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded" type="DT_DomainSurface"/>
+               </xsd:sequence>       
+               <!-- soundSpeed="343" specificMass="1.293" -->    
+               <xsd:attribute name="soundSpeed" use="optional" default="343" type="xsd:float" />
+               <xsd:attribute name="specificMass" use="optional" default="1.293" type="xsd:float" />                         
+             </xsd:complexType>
+           </xsd:element>
          </xsd:sequence>  
          <!-- attribute like  system="piezo" -->
          <xsd:attribute name="system" use="required">
@@ -378,6 +444,7 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
+    <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
   </xsd:complexType>
 
 
@@ -390,6 +457,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="identity"/>
           <xsd:enumeration value="simp"/>
+          <xsd:enumeration value="ramp"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -399,6 +467,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="elec"/>
           <xsd:enumeration value="mech"/>
+          <xsd:enumeration value="mass"/>
           <xsd:enumeration value="piezoCoupling"/>
           <xsd:enumeration value="pressure"/>          
           <xsd:enumeration value="chargeDensity"/>                    

@@ -269,12 +269,9 @@ namespace CoupledField {
     
     // PostInit needs to be called in advance!
     if(GetOptimization() != NULL) 
-       GetOptimization()->SolveProblem(); // would crash for MultiSequcenceDriver!
+       GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
     else
-    {
        driver->SolveProblem();
-       driver->StoreResults();
-    }
   }
 
 
@@ -840,7 +837,7 @@ namespace CoupledField {
   // *************
   void Domain::SetDriver( BaseDriver * driver ) 
   {
-    if( driver->GetAnalysisType() == MULTI_SEQUENCE ) {
+    if( driver->GetAnalysisType() == BasePDE::MULTI_SEQUENCE ) {
       multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*>(driver);
       ptSingleDriver_ = multiSequenceDriver_->GetSingleDriver(); // NULL before Init()!!
     } else {

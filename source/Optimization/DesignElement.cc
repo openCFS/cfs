@@ -1,62 +1,61 @@
 #include "General/exception.hh"
 #include "Optimization/DesignElement.hh"
 #include "Optimization/Condition.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 using namespace CoupledField;
 
-// the static enum
-Enum DesignElement::filter;
-Enum DesignElement::type;
-Enum DesignElement::valueSpecifier;
-Enum DesignElement::access;
-Enum DesignElement::detail;
+DECLARE_LOG(filterLog)
+DEFINE_LOG(filterLog, "filter")
 
+// the static enum
+Enum<DesignElement::Filter>         DesignElement::filter;
+Enum<DesignElement::Type>           DesignElement::type;
+Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
+Enum<DesignElement::Access>         DesignElement::access;
+Enum<DesignElement::Detail>         DesignElement::detail;
+
+/** The default constructor is only for the StdVector */
 DesignElement::DesignElement()
 {
-    filter_         = false;
-    design          = 0.0;
-    weight          = 1.0;
-    cost_gradient   = -1.0;
+  // dont' use this empty constructor!
 }
 
-
-double DesignElement::GetLowerBound() const
+DesignElement::DesignElement(ParamNode* pn)
 {
-  switch(type_)
-  {
-    // this is the default in literature - playing with it
-    // might be worse - especially when doing penalization!
-    case DENSITY: return 1.0e-3;
-    case POLARIZATION: return -1.0;
-    default: throw Exception("type not implemented");
-  }
-} 
+  filter_         = false;
+  design          = 0.0;
+  weight          = 1.0;
+  cost_gradient   = -1.0;
 
-double DesignElement::GetUpperBound() const
-{
-  switch(type_)
-  {
-    case DENSITY: return 1.0;
-    case POLARIZATION: return 1.0;
-    default: throw Exception("type not implemented");
-  }
-} 
+  // it is a little slow to perform this code for every DesignElement but the
+  // implementations are rater fast and it should be not measurable in the end
+  type_ = type.Parse(pn->Get("name"));  
+
+  upper_ = 1.0;
+  // eventually overwrite
+  pn->Get("upper", upper_, false);
+  
+  lower_ = type_ == POLARIZATION ? -1.0 : 0.001;
+  pn->Get("lower", lower_, false);
+}
+
 
 void DesignElement::SetConstraintGradient(const Condition* condition, double value) 
 { 
   this->constraintGradient[condition->GetIndex()] = value; 
 }
 
-double DesignElement::GetConstraintGradient(const Condition* condition) 
+double DesignElement::GetConstraintGradient(const Condition* condition) const
 { 
   return this->constraintGradient[condition->GetIndex()]; 
 }
 
 
-double DesignElement::GetValue(ResultDescription* rd)
+double DesignElement::GetValue(ResultDescription* rd) const
 {
   // check for special result
   if(rd->value == OBJECTIVE || (rd->value == COST_GRADIENT && rd->detail != NONE))
@@ -73,15 +72,44 @@ double DesignElement::GetValue(ResultDescription* rd)
   return GetValue(rd->value, rd->access); 
 }
 
-double DesignElement::GetValue(ValueSpecifier vs, Access access)
+double DesignElement::GetValue(ValueSpecifier vs, Access access) const
 {
-  if(access == PLAIN || !filter_) 
-     return GetValue(vs);
+  double val = 0.0;
+  if(access == PLAIN || !filter_)
+    val = GetValue(vs);
   else 
-     return GetFilteredValue(vs);
+    val = GetFilteredValue(vs, false);
+  
+  LOG_DBG2(filterLog) << elem->elemNum << " GetValue(" << valueSpecifier.ToString(vs) << ", " 
+                      << access << " -> " << val;
+  return val;
 }
 
-double DesignElement::GetValue(ValueSpecifier sp)
+double DesignElement::GetObjectiveGradient(Access access) const
+{
+  double val = 0;
+  if(access == PLAIN || !filter_) 
+    val = GetValue(COST_GRADIENT);
+  else
+    // see the filter definition for gradients in the
+    // 99-lines paper why we use here "design TIMES cost_gradient" 
+    val = GetFilteredValue(COST_GRADIENT, true);
+  
+  LOG_DBG2(filterLog) << elem->elemNum << " GetObjectiveGradient() -> " << val;
+  return val;
+}
+
+double DesignElement::GetDesign(Access access) const
+{
+    if(access == PLAIN || !filter_) 
+       return design;
+    else 
+       return GetFilteredValue(DESIGN, false);
+}
+
+
+
+double DesignElement::GetValue(ValueSpecifier sp) const
 {
    switch(sp)
    {
@@ -89,14 +117,15 @@ double DesignElement::GetValue(ValueSpecifier sp)
        case DESIGN_COST_GRADIENT: return design * cost_gradient;
        case COST_GRADIENT:        return cost_gradient;
        case WEIGHT:               return weight;
+       case NUM_NEIGHBOURS:       return neighbourhood.GetSize();
        case CONSTRAINT_GRADIENT:  
             throw Exception("for constraint gradient we need an index!");
             
-       default: throw Exception("value specifier not implemented"); 
+       default: throw Exception(valueSpecifier.ToString(sp) + " not stored in design element"); 
    }
 }
 
-double DesignElement::GetFilteredValue(ValueSpecifier sp)
+double DesignElement::GetFilteredValue(ValueSpecifier sp, bool design_weighted) const
 {
     // We filter over this element and the neighbours. 
      
@@ -106,40 +135,32 @@ double DesignElement::GetFilteredValue(ValueSpecifier sp)
     for(UInt i = 0; i < neighbourhood.GetSize(); i++) 
     {
         const NeighbourElement& ne = neighbourhood[i];
-        double factor = ne.weight * ne.neighbour->GetValue(sp);
+        double des_weight = design_weighted ?  ne.neighbour->design : 1.0;
+        double factor = ne.weight * ne.neighbour->GetValue(sp) * des_weight;
         factor_sum += factor;
         weight_sum += ne.weight;
+        LOG_DBG3(filterLog) << this->elem->elemNum << ": neighbour " << ne.neighbour->elem->elemNum 
+                            << " weight = " << ne.weight
+                            << " des_weight " << des_weight
+                            << " value = " << ne.neighbour->GetValue(sp);
     }
-    
     // add our part :)
-    factor_sum += GetValue(sp);
-    weight_sum += 1.0;
+    double des_weight = design_weighted ? this->design : 1.0;
+
+    LOG_DBG2(filterLog) << this->elem->elemNum << ": factor_sum = " << factor_sum << " + " << GetValue(sp)
+                        << " weight_sum = " << weight_sum << " + " << weight << " -> " 
+                        << ((factor_sum+(GetValue(sp)*des_weight))/((weight_sum+weight)*des_weight)) << " instead of " << GetValue(sp);
+    
+    factor_sum += GetValue(sp) * des_weight;
+    weight_sum += this->weight;
     
     // in the 99-lines paper this is inverse of this_value
-    double result = factor_sum / weight_sum;
+    double result = factor_sum / (weight_sum * des_weight);
 
-    // std::cout << "return " << result << " instead of " << GetValue(sp) << std::endl;
     return result;      
 }
 
 
-double DesignElement::GetDesign(Access access)
-{
-    if(access == PLAIN || !filter_) 
-       return design;
-    else 
-       return GetFilteredValue(DESIGN);
-}
-
-double DesignElement::GetObjectiveGradient(Access access)
-{
-    if(access == PLAIN || !filter_) 
-       return GetValue(COST_GRADIENT);
-    else
-       // see the filter definition for gradients in the
-       // 99-lines paper why we use here "design TIMES cost_gradient" 
-       return GetFilteredValue(DESIGN_COST_GRADIENT);
-}
 
 void DesignElement::Dump()
 {
@@ -163,7 +184,8 @@ void DesignElement::SetEnums()
 {
    filter.SetName("DesignElement::Filter");
    filter.Add(RADIUS, "radius");
-   filter.Add(NEIGHBOURS, "neighbours");
+   filter.Add(VOLUME_RADIUS, "volumeRadius");
+   filter.Add(MAX_EDGE, "maxEdge");
    
    type.SetName("DesignElement::Type");
    type.Add(DEFAULT, "default");
@@ -181,27 +203,31 @@ void DesignElement::SetEnums()
    valueSpecifier.Add(CONSTRAINT_GRADIENT, "constraintGradient");
    valueSpecifier.Add(WEIGHT, "weight");
    valueSpecifier.Add(OBJECTIVE, "objective");
+   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
    
    detail.SetName("DesignElement::Detail");
    detail.Add(NONE, "none");
    detail.Add(UKU, "uKu");
    detail.Add(UKP, "uKp");
    detail.Add(PKU, "pKu");
-   detail.Add(PKP, "pKp");      
+   detail.Add(PKP, "pKp");
+   detail.Add(SYMMETRY, "symmetry");
 }
   
 
 void DesignElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
 {
-    Type   type   = (Type) DesignElement::type.Parse(pn->Get("design")->AsString());
-    Filter filter = (Filter) DesignElement::filter.Parse(pn->Get("type")->AsString());
+    Type   type   = DesignElement::type.Parse(pn->Get("design"));
+    Filter filter = DesignElement::filter.Parse(pn->Get("type"));
     double value  = pn->Get("value")->AsDouble();
-    if(filter == NEIGHBOURS && ((int) value) == 0) 
-      throw Exception("Filtering with 0 neighbours not possible");
- 
+
+    double avg_radius = 0;
+    double avg_neighbours = 0;
+    
     // set the positions
     Matrix<double>  coords;
     Grid* grid = domain->GetGrid();
+    double dim = (double) grid->GetDim();
     
     for(UInt i = 0; i < data.GetSize(); i++)
     {
@@ -226,14 +252,30 @@ void DesignElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
         de->filter_ = true;
         Point& loc = de->location_;
         
+        double radius = value;
+        if(filter == VOLUME_RADIUS)
+        {
+          // TODO really check for axis symmetry off
+          double volume = de->elem->ptElem->CalcVolume(coords, false);
+          // The radius is <value> times square/cube edge length where the
+          // square/cube has the volume of the element
+          radius = value * std::pow(volume, 1.0/dim);
+          LOG_DBG3(filterLog) << "from volume " << volume << " to radius " << radius;
+        }
+        if(filter == MAX_EDGE)
+        {
+          double min;
+          de->elem->ptElem->GetMaxMinEdgeLength(coords, radius, min);
+          LOG_DBG3(filterLog) << "Element " << de->elem->elemNum << " edge max=" << radius << " min=" << min; 
+        }
         
         for(UInt n = 0; n < data.GetSize(); n++)
         {
             // an element is not a neighbour of itself!
             if(de->elem->elemNum == data[n].elem->elemNum) continue;
               
-            double distance = dist(loc, data[n].location_);
-            if(filter == RADIUS && distance < value)
+            double distance = Point::dist(loc, data[n].location_);
+            if(distance < radius)
             {
                 // value is here a double radius
                 // this is the implementation from Bendsoe/ Sigmund
@@ -247,54 +289,7 @@ void DesignElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
                 //          << data[n].elem->elemNum << " " <<  data[n].location_.ToString()
                 //          << " distance= " << distance << " weight=" << ne.weight << std::endl; 
             }
-            // with neighbours we don't know the weight a priori as we don't know the furthest distance
-            if(filter == NEIGHBOURS)
-            {
-                unsigned int size = (int) value; // value is here a int size
-                // if neighbourhood smaller size we are in
-                if(de->neighbourhood.GetSize() < size) 
-                {
-                    NeighbourElement ne;
-                    ne.neighbour = &data[n];
-                    ne.distance  = distance;
-                    de->neighbourhood.Push_back(ne);
-                } 
-                else 
-                {
-                   // check if we can replace any of the neighbours. search biggest
-                   NeighbourElement* biggest = &de->neighbourhood[0];
-                   // first search smallest
-                   for(unsigned int e = 1; e < de->neighbourhood.GetSize(); e++) 
-                   {
-                      if(de->neighbourhood[e].distance > biggest->distance) biggest = &de->neighbourhood[e]; 
-                   }
-                   // compare our value with smallest and replace - dont't set the weight yet
-                   if(distance < biggest->distance) 
-                   {
-                      // replace the attributes
-                      biggest->neighbour = &data[n];
-                      biggest->distance  = distance;
-                   }
-                }
-            } // end filter == NEIGHBOURS
         } // here the element is calculated
-        
-        // in the NEIGHBOURS case the weights were not set. We cannot use the furthest distance
-        if(filter == NEIGHBOURS)
-        {
-           // search largest distance
-           double max_distance = 0.0;
-           for(unsigned int e = 0; e < de->neighbourhood.GetSize(); e++)
-              max_distance = std::max(de->neighbourhood[e].distance, max_distance);  
-
-           // to what we did with radius but the 0-line is 1.2 * max_distance
-           for(unsigned int e = 0; e < de->neighbourhood.GetSize(); e++)
-           { 
-              de->neighbourhood[e].weight = (max_distance * 1.2) - de->neighbourhood[e].distance;
-              if(de->neighbourhood[e].weight < 0.0)
-                throw Exception("we have a negative weight!");
-           }  
-        }
         
         // now normalize the weights. The weight of this element is by definition 1.0
         double sum = 1.0;  
@@ -306,23 +301,13 @@ void DesignElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
         for(unsigned int e = 0; e < de->neighbourhood.GetSize(); e++) 
            de->neighbourhood[e].weight /= sum;  
                  
-        // de->Dump();
+        avg_radius += radius;
+        avg_neighbours += de->neighbourhood.GetSize();
     }
     
     // for direct debug output: determin neighbourhood statistics
-    UInt max_neighbours = 0;
-    UInt min_neighbours = 0xffffff;
-    UInt avg_neighbours = 0;
-    for(UInt i = 0; i < data.GetSize(); i++) {
-       UInt s = data[i].neighbourhood.GetSize();
-       max_neighbours = std::max(max_neighbours, s);
-       min_neighbours = std::min(min_neighbours, s);
-       avg_neighbours += s;
-
-    }
-    avg_neighbours /= data.GetSize();
-    
-    std::cout << "Neighbourhoods: min = " << min_neighbours << " max = " << max_neighbours << " avg = " << avg_neighbours << std::endl;  
+    std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize()) 
+              << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
 
 
@@ -343,13 +328,13 @@ ResultDescription::ResultDescription(ParamNode* pn)
 
    design = DesignElement::DEFAULT;
    if(pn->Has("design"))
-     design = (DesignElement::Type) DesignElement::type.Parse(pn->Get("design"));
+     design = DesignElement::type.Parse(pn->Get("design"));
  
-   access = (DesignElement::Access) DesignElement::access.Parse(pn->Get("access"));
+   access = DesignElement::access.Parse(pn->Get("access"));
    
-   value = (DesignElement::ValueSpecifier) DesignElement::valueSpecifier.Parse(pn->Get("value"));
+   value = DesignElement::valueSpecifier.Parse(pn->Get("value"));
    
-   detail = (DesignElement::Detail) DesignElement::detail.Parse(pn->Get("detail")); 
+   detail = DesignElement::detail.Parse(pn->Get("detail")); 
 }
 
 std::string ResultDescription::ToString()

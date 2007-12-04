@@ -420,10 +420,6 @@ namespace CoupledField {
     }
   }
 
-  CFSVector *  StdPDE::GetSolutionVector() {
-    return solVec_;
-  }
-
   CFSVector *  StdPDE::GetPrevSolutionVector() {
     return solVecPrev_;
   }

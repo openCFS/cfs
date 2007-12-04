@@ -17,6 +17,7 @@
 #include <sstream>
 #include <ostream>
 #include <fstream>
+#include "PDE/basePDE.hh"
 #include "Domain/bcs.hh"
 #include "General/environment.hh"
 #include "Matrix/matrix.hh"
@@ -87,7 +88,7 @@ namespace CoupledField {
     void PrintMaterial(BaseMaterial* material);
     
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
-    void PrintCoil( Coil &coil, AnalysisType &analysistype );
+    void PrintCoil( Coil &coil, BasePDE::AnalysisType &analysistype );
 
     /// for combustion noise
     void WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
@@ -101,7 +102,7 @@ namespace CoupledField {
 
     /// prints the process of a mulitSequence Analysis
     void WriteMultiSequenceStep(const UInt sequenceStep, 
-                                const AnalysisType analysis);
+                                const BasePDE::AnalysisType analysis);
 
     /// prints the process of a transient analysis
     void WriteTimeStep(const std::string& pdeName, const UInt timeStep,    

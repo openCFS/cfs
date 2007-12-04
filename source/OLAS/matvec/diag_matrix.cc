@@ -83,13 +83,6 @@ namespace OLAS {
 
     Integer i;
 
-    // since this function is mainly used for the off-diagonal entries
-    // in the parallel case we disable profiling to avoid inconsistent data
-#ifndef PARALLEL
-    PROFILE( "Diag_Matrix::MultAdd", (2*this->nnz_*BlockSize<T>::size +
-                                       this->nrows_)*BlockSize<T>::size);
-#endif
-
 #pragma omp parallel for
     for ( i = 1; i <= this->nrows_; i++ ) {
       rvec[i] += data_[i] * mvec[i];
@@ -106,13 +99,6 @@ namespace OLAS {
 
 
     Integer i;
-
-    // since this function is mainly used for the off-diagonal entries
-    // in the parallel case we disable profiling to avoid inconsistent data
-#ifndef PARALLEL
-    PROFILE( "Diag_Matrix::MultAdd", (2*this->nnz_*BlockSize<T>::size +
-                                       this->nrows_)*BlockSize<T>::size);
-#endif
 
 #pragma omp parallel for
     for ( i = 1; i <= this->nrows_; i++ ) {

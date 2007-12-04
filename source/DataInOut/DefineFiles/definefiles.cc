@@ -76,16 +76,6 @@
 // i.e. the length of the extension after the basename
 #define MAXPOSTFIX 15
 
-#ifdef PARALLEL
-#define MAXRANK 4
-#else
-#define MAXRANK 0
-#endif
-
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
-
 namespace CoupledField
 {
 
@@ -101,19 +91,6 @@ namespace CoupledField
   //   Constructor
   // ===============
   DefineInOutFiles::DefineInOutFiles( const Char *name ) {
-
-#ifdef PARALLEL
-    // find out who I am and write to seperate files:
-    int commrank;
-    MPI_Comm comm = MPI_COMM_WORLD;
-    MPI_Comm_rank(comm,&commrank);
-    char *rank = new char[5];
-    sprintf(rank,"_%d",commrank);
-#endif
-
-#ifdef PARALLEL
-    // strcat( basename, rank );
-#endif
 
     // Initialise internal pointers
     simInput_ = NULL;

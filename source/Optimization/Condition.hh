@@ -54,8 +54,8 @@ namespace CoupledField
        /** The scaling is evaluated in the Optimizer IPOPT only. Not in OC! */
        double scaling;
        
-       static Enum name;              
-       static Enum type;
+       static Enum<Name> name;              
+       static Enum<Type> type;
 
     private:   
        /** this index is the position in the Optimization list and is used to

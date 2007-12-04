@@ -29,12 +29,6 @@ namespace CoupledField{
   
   }
 
-  void SingleDriver::SolveProblem()
-  {
-    BaseDriver::SolveProblem();
-  }
-   
-
   void SingleDriver::InitializePDEs() {
    
        // read in pde data 

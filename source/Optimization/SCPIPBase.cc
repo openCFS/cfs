@@ -1,15 +1,38 @@
-#include "Optimization/scpip30.hh"
-#include "Optimization/SCPIPBase.hh"
-#include "General/exception.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Utils/StdVector.hh"
-#include "Utils/VecStat.hh"
-#include <iostream>
+#include <cassert>
 
-using namespace CoupledField;
+#ifdef USE_4_CFS
+  #include "Optimization/scpip30.hh"
+  #include "Optimization/SCPIPBase.hh"
+  #include "General/exception.hh"
+  #include "DataInOut/Logging/cfslog.hh"
 
-DECLARE_LOG(scpip_base)
-DEFINE_LOG(scpip_base, "scpip_base")
+  using namespace CoupledField;
+
+  DECLARE_LOG(scpip_base)
+  DEFINE_LOG(scpip_base, "scpip_base")
+#else
+  #include "scpip30.hh"
+  #include "SCPIPBase.hh"
+  #include "BasicException.hh"
+  #include "BasicEnum.hh"
+  #include "BasicStdVector.hh"
+  
+  // in CFS++ we use a wrapped version of the unofficial 
+  // Boost Logging Template library by John Torjo.
+  // For C++SCPIP this is simply disabled.
+  struct nullstream:
+    std::ostream {
+    nullstream(): std::ios(0), std::ostream(0) {}
+  }; 
+  
+  nullstream nil;
+  
+  #define LOG_TRACE(log_name)   std::cout // ((void)0)
+  #define LOG_TRACE2(log_name)  std::cout
+  #define LOG_DBG(log_name)     nil
+  #define LOG_DBG2(log_name)    nil
+  #define LOG_DBG3(log_name)    nil
+#endif
 
 SCPIPBase::SCPIPBase()
 {
@@ -28,7 +51,7 @@ SCPIPBase::SCPIPBase()
   // we do inverse communication
   mode = 2;
   
-  // form the example
+  // from the example
   spstrat = 1;
 
   // set to defined values so we can check if nothing is forgotten */
@@ -50,7 +73,7 @@ SCPIPBase::SCPIPBase()
 
 SCPIPBase::~SCPIPBase()
 {
-  if(statistic_ == NULL) { delete statistic_; statistic_ = NULL; }
+  if(statistic_ != NULL) { delete statistic_; statistic_ = NULL; }
 }
 
 void SCPIPBase::Initialize()
@@ -60,9 +83,7 @@ void SCPIPBase::Initialize()
 
   // define dense constraint gradient structure
   SetDenseConstraintGradient();
-  
-  // set start parameters
-  get_starting_point(n, x.GetPointer());
+ 
 }
 
 void SCPIPBase::SetDefaultParameters()
@@ -84,12 +105,17 @@ void SCPIPBase::SetDefaultParameters()
   rcntl[5-1] = 0.01;  // for relaxed convergence: absolut objective value change
   rcntl[6-1] = 0.01;  // for relaxed convergence: relative iteration move
 
-  ierr = 0;
   nout = 7;
 }
 
-int SCPIPBase::SolveProblem()
+int SCPIPBase::SolveProblem(bool fromWarmstart)
 {
+  // set start parameters here to allow restarted SolveProblem()
+  get_starting_point(n, x.GetPointer());
+
+  // do we start from a warmstart file?
+  ierr = fromWarmstart ? -4 : 0;
+  
   // scpip counts its iteration in info[20-1].
   int last_iter = -1;
   
@@ -130,6 +156,7 @@ int SCPIPBase::SolveProblem()
       shift[i].shift *= g_scaling[i];
     }
   }
+  
 
   for(;;) // we break out in success and error
   {
@@ -147,29 +174,44 @@ int SCPIPBase::SolveProblem()
              eqrn.GetPointer(), eqcn.GetPointer(), eqcoef.GetPointer(), &eqlpar, &eqleng, 
              &mactiv, spiw.GetPointer(), &spiwdim, spdw.GetPointer(), &spdwdim, &spstrat, &linsys);
 
+    LOG_TRACE(scpip_base) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
+    
     // call callback for iteration. This might cause an user break!
     if(!intermediate_callback(info[20-1], info[20-1] != last_iter)) 
       ierr = User_Requested_Stop;
     last_iter = info[20-1];   
       
-    if (ierr == 0) 
+    if(ierr == 0) 
     {
       CallFinalizeSolution();
       break;
     } 
-    if (ierr == -1) 
+    if(ierr == -1) 
     {
+      LOG_DBG2(scpip_base) << "x: " << x.ToString();
       EvaluateFunctionValues();
     } 
-    if (ierr == -2) 
+    if(ierr == -2) 
     {
-      EvaluateGradients();
+      LOG_DBG2(scpip_base) << "x: " << x.ToString();
+      if(!EvaluateGradients())
+      {
+        ierr = Gradients_Return_False;
+        CallFinalizeSolution(); // allow comit of the last iteration to reuse it
+        break; // no output for resart!
+      }
+      LOG_DBG2(scpip_base) << "df: " << df.ToString();
     } 
-    if (ierr == -3) 
+    if(ierr == -3) 
     {
       AllocateDynamic();
     }
-    if(ierr < -3 || ierr > 0) 
+    if(ierr == -4) 
+    {
+      // we came from a warmstart file run an continue with -5
+      ierr = -5;
+    }
+    if(ierr < -5 || ierr > 0) 
     {
       std::cerr << ToString(ierr) << std::endl;
       CallFinalizeSolution();
@@ -215,10 +257,10 @@ void SCPIPBase::SetDenseConstraintGradient()
 void SCPIPBase::AllocateFixed()
 {
   // these are constant arrays. We use StdVector() to have index checks
-  icntl.Resize(13);
-  rcntl.Resize(6);
-  info.Resize(23);
-  rinfo.Resize(5);
+  icntl.Resize(13, 0);
+  rcntl.Resize(6, 0.0);
+  info.Resize(23, 0);
+  rinfo.Resize(5, 0.0);
 }
 
 void SCPIPBase::AllocateProblem()
@@ -227,20 +269,20 @@ void SCPIPBase::AllocateProblem()
   get_nlp_info(n, m, nnz_jac_g);
   
   // design space
-  x.Resize(n);
+  x.Resize(n, 0.0);
 
   // lower and upper bound of design space
-  x_l.Resize(n);
-  x_u.Resize(n);
+  x_l.Resize(n, 0.0);
+  x_u.Resize(n, 0.0);
 
   // initialize the constraint stuff 
   assert(n != -1);
   assert(m != -1);
   
   // find mie and meq which is sorted in SCPIP but not in IPOPT interface
-  g.Resize(m);
-  g_unscaled.Resize(m);
-  y_g.Resize(m);
+  g.Resize(m, 0.0);
+  g_unscaled.Resize(m, 0.0);
+  y_g.Resize(m, 0.0);
   
   // this are our constraint scalings, the initial value is replaced  
   // via get_scaling_parameters()
@@ -248,7 +290,7 @@ void SCPIPBase::AllocateProblem()
   for(int i = 0; i < m; i++) g_scaling[i] = 1.0;
   
   assert(nnz_jac_g == m * n); // dense!!
-  jac_g.Resize(nnz_jac_g);
+  jac_g.Resize(nnz_jac_g, 0.0);
    
   // temporary only
   StdVector<double> g_l(m);
@@ -276,7 +318,6 @@ void SCPIPBase::AllocateProblem()
       meq++;      
       cs->shift = cs->lower;
       LOG_TRACE2(scpip_base) << "constraint " << i << " becomes equality constraint " << meq << " with shift " << cs->shift;
-                   // std::cout << "constraint " << i << " becomes equality constraint " << meq << " with shift " << cs->shift << std::endl;
     }
     else
     {
@@ -284,17 +325,16 @@ void SCPIPBase::AllocateProblem()
       mie++;
       
       // one value will be +/- infinity -> search the smaller abs-value
-      if(std::abs(cs->lower) < std::abs(cs->upper))
+      if(abs(cs->lower) < abs(cs->upper))
       {
-        cs->shift = std::abs(cs->lower); // x < c -> x - c < 0
+        cs->shift = abs(cs->lower); // x < c -> x - c < 0
         cs->factor = -1.0;
       }
       else
       {
-        cs->shift = std::abs(cs->upper);
+        cs->shift = abs(cs->upper);
       }
       LOG_TRACE2(scpip_base) << "constraint " << i << " becomes inequality constraint " << meq << " with shift " << cs->shift << " and factor " << cs->factor;
-                   // std::cout << "constraint " << i << " becomes inequality constraint " << meq << " with shift " << cs->shift << " and factor " << cs->factor << std::endl;
     }
   }  
   assert(meq + mie == m);
@@ -304,49 +344,49 @@ void SCPIPBase::AllocateProblem()
   eqmax = meq > 1 ? meq : 1;
   
   // the constraint values
-  h_org.Resize(iemax);
-  g_org.Resize(eqmax);
+  h_org.Resize(iemax, 0.0);
+  g_org.Resize(eqmax, 0.0);
 
   // inequality constraints considered active
-  active.Resize(iemax);
+  active.Resize(iemax, 0);
   // starting value 
   mactiv = m;
 
   // objective constraint
-  df.Resize(n);
+  df.Resize(n, 0.0);
   
   // diverse lagrange multipliers
-  y_ie.Resize(iemax);
-  y_eq.Resize(eqmax);
-  y_l.Resize(n);
-  y_u.Resize(n);
+  y_ie.Resize(iemax, 0.0);
+  y_eq.Resize(eqmax, 0.0);
+  y_l.Resize(n, 0.0);
+  y_u.Resize(n, 0.0);
   
   // we have only dense gradients
   // there is no NULL pointer, hence the minimal size is 1
   int ielpar = std::max(n * mie, 1);
-  iern.Resize(ielpar);
-  iecn.Resize(ielpar);
-  iederv.Resize(ielpar);
+  iern.Resize(ielpar, 0);
+  iecn.Resize(ielpar, 0);
+  iederv.Resize(ielpar, 0);
   
   int eqlpar = std::max(n * meq, 1);
-  eqrn.Resize(eqlpar);
-  eqcn.Resize(eqlpar);
-  eqcoef.Resize(eqlpar);
+  eqrn.Resize(eqlpar, 0);
+  eqcn.Resize(eqlpar, 0);
+  eqcoef.Resize(eqlpar, 0);
   
   // "fixed" Working arrays
   //           30*N+11*IEMAX+8+10*EQMAX
-  r_scp.Resize(30*n+11*iemax+8+10*eqmax);
+  r_scp.Resize(30*n+11*iemax+8+10*eqmax, 0.0);
   //           22*N+41*IEMAX+27*EQMAX+2*IELPAR+EQLPAR
-  r_sub.Resize(22*n+41*iemax+27*eqmax+2*ielpar+eqlpar);
+  r_sub.Resize(22*n+41*iemax+27*eqmax+2*ielpar+eqlpar, 0.0);
   //           5*N+5*IEMAX+2*EQMAX+3
-  i_scp.Resize(5*n+5*iemax+2*eqmax+3);
+  i_scp.Resize(5*n+5*iemax+2*eqmax+3, 0);
   //           2*N+3*IEMAX+2*EQMAX+IELPAR
-  i_sub.Resize(2*n+3*iemax+2*eqmax+ielpar);
+  i_sub.Resize(2*n+3*iemax+2*eqmax+ielpar, 0);
 
   // "dynamic" working arrays. We assume linsys=1
   assert(linsys == 1);
   int spiwdim = 1; 
-  spiw.Resize(spiwdim);
+  spiw.Resize(spiwdim, 0);
   
   int spdwdim = -1;
   switch(spstrat)
@@ -357,35 +397,21 @@ void SCPIPBase::AllocateProblem()
             break;
     default: throw Exception("spstrat not handled");        
   }
-  spdw.Resize(spdwdim);  
+  spdw.Resize(spdwdim, 0.0);  
 }
 
 void SCPIPBase::AllocateDynamic()
 {
-  if((int) r_scp.GetSize() != info[3-1])
-    std::cout << "scpip wants rdim to be " << info[3-1] << " instead of " << r_scp.GetSize() << std::endl; 
-
-  if((int) r_sub.GetSize() != info[4-1])
-    std::cout << "scpip wants rsubdim to be " << info[4-1] << " instead of " << r_sub.GetSize() << std::endl;  
-
-  if((int) i_scp.GetSize() != info[5-1])     
-    std::cout << "scpip wants idim to be " << info[5-1] << " instead of " << r_scp.GetSize() << std::endl;
-    
   if((int) spiw.GetSize() != info[6-1])
   {
     std::cout << "request to change spiwdim from " << spiw.GetSize() << " to " << info[6-1] << std::endl;
-    spiw.Resize(info[6-1]);
+    spiw.Resize(info[6-1], 0);
   }
   if((int) spdw.GetSize() != info[7-1])
   { 
     std::cout << "request to change spdwdim from " << spdw.GetSize() << " to " << info[7-1] << std::endl;
-    spdw.Resize(info[7-1]);
+    spdw.Resize(info[7-1], 0.0);
   }
-
-  if((int) i_sub.GetSize() != info[8-1])     
-    std::cout << "scpip wants isubdim to be " << info[8-1] << " instead of " << i_sub.GetSize() << std::endl;
-
-      
 }
 
 bool SCPIPBase::intermediate_callback(int iter, bool next_iter)
@@ -451,10 +477,11 @@ void SCPIPBase::EvaluateFunctionValues()
   assert(ie + eq == m);
 } 
 
-void SCPIPBase::EvaluateGradients()
+bool SCPIPBase::EvaluateGradients()
 {
   assert(n == (int) x.GetSize() && n == (int) df.GetSize()); 
-  eval_grad_f(n, x.GetPointer(), df.GetPointer());
+  bool ok = eval_grad_f(n, x.GetPointer(), df.GetPointer());
+  if(!ok) return false; // could not evaluate, maybe because scaling out of range
 
   if(use_obj_scaling)
     for(int i = 0; i < n; i++) df[i] *= obj_scaling;
@@ -462,7 +489,10 @@ void SCPIPBase::EvaluateGradients()
   // evaluate the grad g temporarily unsorted
   assert(nnz_jac_g == m * n && (int) jac_g.GetSize() == nnz_jac_g);
   if(m > 0)
-    eval_jac_g(n, x.GetPointer(), m, nnz_jac_g, jac_g.GetPointer());
+  {
+    ok = eval_jac_g(n, x.GetPointer(), m, nnz_jac_g, jac_g.GetPointer());
+    if(!ok) return false; // might be scaling violation for autoscale stuff
+  }
 
   // the constraint scaling has nothing to do with the normalization 
   if(use_g_scaling)
@@ -495,7 +525,7 @@ void SCPIPBase::EvaluateGradients()
     }
   }
   assert(ie + eq == m);
- 
+  return true;
 }
 
 void SCPIPBase::CopyConstraintGradient(const double* ipopt, double* scpip, ConstraintShift& cs)
@@ -507,7 +537,6 @@ void SCPIPBase::CopyConstraintGradient(const double* ipopt, double* scpip, Const
     val *= cs.factor;
     scpip[i] = val;
     LOG_DBG3(scpip_base) << "grad_g[" << cs.number << "]:" << i << " " << ipopt[i] << " -> " << scpip[i];
-    //std::cout << "grad_g[" << cs.number << "]:" << i << " " << ipopt[i] << " -> " << scpip[i] << std::endl;    
   }
 } 
 
@@ -518,11 +547,12 @@ void SCPIPBase::CallFinalizeSolution()
   int eq = 0;
   for(unsigned int i = 0; i < shift.GetSize(); i++)
     y_g[i] = shift[i].equal ? y_eq[eq++] : y_ie[ie++];
-  assert(m = ie + eq);
+  assert(m == ie + eq);
 
   // call virtual method
-  finalize_solution(ierr, n, x.GetPointer(), y_l.GetPointer(), y_u.GetPointer(),
-                    m, g_unscaled.GetPointer(), y_g.GetPointer(), f_org_unscaled); 
+  finalize_solution(ierr, n, x.GetPointer(), y_l.GetPointer(), y_u.GetPointer(), m,
+                    g_unscaled.IsEmpty() ? NULL : g_unscaled.GetPointer(), 
+                    y_g.IsEmpty() ? NULL : y_g.GetPointer(), f_org_unscaled); 
                     
 }
 
@@ -548,7 +578,7 @@ std::string SCPIPBase::ToString(int ierr)
               break;          
     
     case Maximum_Iterations_Exceeded:   
-              os << "maximum number of iterations reached (" << info[20-1] << ")";
+              os << "maximum number of iterations reached (" << (info[20-1]+1) << ")";
               break;
     
     case 9:   os << "rsubdim (" << r_sub.GetSize() << ") too small. Required: " << info[4-1];
@@ -584,6 +614,10 @@ std::string SCPIPBase::ToString(int ierr)
               os << "User Requested Stop: not by SCPIP but own code";
               break;          
               
+    case Gradients_Return_False:
+              os << "Evaluation of the gradients failed";
+              break;
+              
     default:  os << "error: " << ierr;
   }
   
@@ -605,7 +639,7 @@ void SCPIPBase::PrintInfo(std::ostream& os)
   os << "number of evaluations of lagrangian gradients: " << info[2-1] << std::endl;
   os << "number of iterations for the solution of the last subproblem: " << info[21-1] << std::endl;
   os << "actually chosen spstrat: " << info[22-1] << std::endl;
-  os << "actually chosen linsys: " << info[22-1] << std::endl;
+  os << "actually chosen linsys: " << info[23-1] << std::endl;
   os << "residual of the subproblem of the last main iteration: " << rinfo[1-1] << std::endl;
   os << "maximum violation of constraints: " << rinfo[2-1] << std::endl;
   os << "stepsize in last main iteration: " << rinfo[3-1] << std::endl;
@@ -653,6 +687,12 @@ void SCPIPBase::SetStringValue(const std::string& key, const std::string& value)
  
 void SCPIPBase::SetIntegerValue(const std::string& key, int value)
 {
+  if(key == "spstrat")
+  {
+    spstrat = value;
+    return;
+  }
+
   // icntl has the index of the parameter in C-style
   int idx = icntl_.Parse(key);
   icntl[idx] = value;
@@ -683,6 +723,7 @@ void SCPIPBase::SetEnums()
   icntl_.Add(4-1, "output_level");
   icntl_.Add(5-1, "maximum_linesearch_function_calls");
   icntl_.Add(6-1, "convergence_criteria");
+  icntl_.Add(11-1, "warmstart");
   
   rcntl_.SetName("RCNTL");
   rcntl_.Add(1-1, "max_kuhn_tucker_constraint_violation");

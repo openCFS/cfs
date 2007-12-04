@@ -68,9 +68,6 @@ namespace OLAS {
     // Create some space before the user prompt re-appears
     std::cerr << "\n\n";
 
-#ifdef PARALLEL
-    OLAS_MPI_Abort(OLAS_MPI_COMM_WORLD,-1);
-#endif
 
     exit(-1);
   }

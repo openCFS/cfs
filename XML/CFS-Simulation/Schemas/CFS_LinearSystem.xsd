@@ -49,6 +49,9 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
+          <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
+          <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
         </xsd:complexType>
       </xsd:element>
 
@@ -124,7 +127,7 @@
       </xsd:element>
 
       <!-- Parameters for solver (optional) -->
-      <xsd:element ref="SolverBasic" minOccurs="0"/>
+      <xsd:element ref="SolverBasic" minOccurs="0" maxOccurs="unbounded"/>
 
       <!-- Parameters for preconditioner (optional) -->
       <xsd:element ref="PrecondBasic" minOccurs="0"/>
@@ -143,10 +146,6 @@
           <xsd:enumeration value="minres"/>
           <xsd:enumeration value="symmlq"/>
           <xsd:enumeration value="qmr"/>
-          <xsd:enumeration value="hyprePCG"/>
-          <xsd:enumeration value="hypreAMG"/>
-          <xsd:enumeration value="hypreGMRES"/>
-          <xsd:enumeration value="hypreBICGSTAB"/>
           <xsd:enumeration value="lapackLU"/>
           <xsd:enumeration value="lapackLL"/>
           <xsd:enumeration value="directLU"/>
@@ -171,12 +170,6 @@
           <xsd:enumeration value="ILUK"/>
           <xsd:enumeration value="ILDLK"/>
           <xsd:enumeration value="ILDL0"/>
-          <!--xsd:enumeration value="ILDLTP"/-->
-          <!--xsd:enumeration value="ILDLCN"/-->
-          <xsd:enumeration value="hypreJacobi"/>
-          <xsd:enumeration value="hypreAMG"/>
-          <xsd:enumeration value="hypreILU"/>
-          <xsd:enumeration value="hypreSPAI"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -248,7 +241,6 @@
           <xsd:enumeration value="sparseNonSym"/>
           <xsd:enumeration value="skylineSym"/>
           <xsd:enumeration value="skylineNonSym"/>
-          <xsd:enumeration value="hypreMatrix"/>
           <xsd:enumeration value="lapackGBMatrix"/>
           <xsd:enumeration value="expertsChoice"/>
         </xsd:restriction>

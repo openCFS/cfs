@@ -172,8 +172,11 @@ namespace CoupledField {
     virtual void SaveRHS( const Complex * ptSol, UInt size ) = 0;
     //@}
 
-    //! get the data vector of the current solution of a PDE.
-    virtual CFSVector * GetSolutionVector();
+    /** Get the data vector of the current solution of the algebraic system */
+    virtual CFSVector* GetSolutionVector() { return solVec_;} 
+
+    /** Get the data vector of the current rhs of the algebraic system. */
+    CFSVector* GetRHSVector() { return rhsVec_;}
 
     //! get the data vector of the previous solution of a PDE.
     virtual CFSVector * GetPrevSolutionVector();
@@ -183,6 +186,7 @@ namespace CoupledField {
                              shared_ptr<ResultInfo> res );
     void GetSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
                              shared_ptr<ResultInfo> res );
+   
     
     /// returns the vector of time derivative of the solution belonging 
     /// to all nodes of the actual element
@@ -298,7 +302,7 @@ namespace CoupledField {
       return idBcs_;};
 
     //@}
-
+      
   protected:
   
     //! Constructor

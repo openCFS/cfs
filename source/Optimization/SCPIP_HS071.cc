@@ -1,10 +1,13 @@
 #include <iostream>
-#include <math.h>
+#include <cmath>
+#include <cassert>
 
-#include "Optimization/SCPIP_HS071.hh"
-#include <assert.h>
-
-using namespace CoupledField;
+#ifdef USE_4_CFS
+  #include "Optimization/SCPIP_HS071.hh"
+  using namespace CoupledField;
+#else
+  #include "SCPIP_HS071.hh"
+#endif
 
 SCPIP_HS071::SCPIP_HS071()
 {
@@ -135,8 +138,6 @@ bool SCPIP_HS071::eval_jac_g(int n, const double* x,
   std::cout << "eval_jac_g(" << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << ") -> " 
                              << values[0] << ", " << values[1] << ", " << values[2] << ", " << values[3] 
                              << " -> " << values[4] << ", " << values[5] << ", " << values[6] << ", " << values[7] << std::endl;
-
-
   return true;
 }                        
 

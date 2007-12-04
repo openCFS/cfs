@@ -219,7 +219,6 @@ namespace CoupledField
     // set neighbouring region name(s)
     // if only entry is "all", then add all regions
     UInt numAllOccured = 0;
-    StdVector<std::string> keyVec, attrVec, valVec;
 
     if (neighRegions.GetSize() != 0){
       for (UInt iRegion=0; iRegion<neighRegions.GetSize(); iRegion++) {

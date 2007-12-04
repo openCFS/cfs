@@ -56,9 +56,7 @@ namespace CoupledField {
   using OLAS::DAMPING;
   using OLAS::CONVECTION;
   using OLAS::MASS;
-
-
-
+  using OLAS::AUXILIARY;
 }
 
 #endif

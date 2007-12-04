@@ -5,6 +5,7 @@
 #ifndef FILE_BASEDRIVER_2001
 #define FILE_BASEDRIVER_2001
 
+#include "PDE/basePDE.hh"
 #include "General/environment.hh"
 
 namespace CoupledField
@@ -13,6 +14,7 @@ namespace CoupledField
   // forward class declarations
   class Domain;
   class WriteResults;
+  class ResultHandler;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -26,36 +28,35 @@ namespace CoupledField
     //! Destructor
     virtual ~BaseDriver();
 
-    /** Main method for solving the driver problem, in optimization terms, the
-     * state problem. The childs MUST either implement SolveProblem() or 
-     * SolveProblem(int), there is just no compiler constraint possible! */        
-    virtual void SolveProblem();
-    
     //! Initialization method
     virtual void Init() = 0;
 
-    /** In optimization case the problem gets the iteration counter for proper
-     * writing the results. Repeatedly called in the optimization case.
-     * @see SingleDriver */
-    virtual void SolveProblem(int optimizationIteration);
-
-    /** <p>For doing optimization we might solve state problems but not to write
-     * the results always. Therefore some drivers will move the result writing
-     * to an implementation of this method. Drivers not subject to optimization
-     * will write the results in SolveProblem() and leave this method blank.</p>
-     * <p>SolveProblem() has clearly to be executed in advance.</p> 
-     * @param setp_val this names the "transient" step. If -1 this is same ase
-     * the internal integer counter. */
-    virtual void StoreResults(double step_val = -1.0)
-    {
-      // intentionally the default behaviour is that SolveProblem() did the job
-    };
-
+    /** This solved the analysis problem and involved generation the global
+     * system and solving. 
+     * <p>The different analysis types might include multiple harmonic or 
+     * transient steps.</p>
+     * <p>For optimization this defines a single forward problem, therefore
+     * one might skip the writing of the results and call StoreResults()
+     * explicitly</p>
+     * @param write_results if false nothing is written to the output files
+     * @param comment if ony uses export linear system in the xml file,
+     *        this becomes part of the base filename. E.g. for naming the
+     *        adjoint PDEs in optimization
+     * @see StoreResults(double) */
+    virtual void SolveProblem(bool write_results = true, const std::string& comment = "") = 0;
+    
+    /** Only of interest for optimization, where one might not want to generate
+     * output (gid, hdf5, gmv, ...) for every forward solution. 
+     * <p>E.g. because this are linesearch steps of IPOPT. For non-optimization SolveProblem()
+     * will have been called with write_results = true.<p>
+     * <p>Note that you have to Wrap within a Multisequencestep and finalize the result handler explicitly, 
+     * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
+    virtual void StoreResults(double step_val = -1.0) { assert(false); }
 
     //! Return current analysistype
 
     //! Returns the current analysistype. 
-    virtual AnalysisType GetAnalysisType( ) { 
+    virtual BasePDE::AnalysisType GetAnalysisType( ) { 
       return analysis_; }
     
     //! Return current (multi)sequenceStep
@@ -75,13 +76,10 @@ namespace CoupledField
     /** Identification of the driver */
     virtual DriverClass GetDriverClass() = 0;
  
-    /** Tells the driver that we run in an optimization context */
-    void SetOptimization(bool value) { optimization_ = value; } 
-  
   protected:
     
     //! type of analysis
-    AnalysisType analysis_;
+    BasePDE::AnalysisType analysis_;
 
     //! --------------------- stuff for computation with adaptivity
     //! for printing a sequence of files in dir meshes in gmv-format
@@ -91,22 +89,17 @@ namespace CoupledField
 
     //! current analysis step in a multiSequence analysis
     UInt actSequenceStep_;
-
+ 
+    /** a shortcut to domain->GetResultHandler() */
+    ResultHandler* handler_;
+    
     //! print mesh in special file. this method is used in adaptive procedure for space.
     void PrintSeqMeshes();
 
     /** auxiliary function for computation with adaptivity: open files for
      *  printing sequence of refined meshes with error map */ 
     bool printMeshesOrNot();
-  
-    /** Here we store the last optimationIteration attribute of SolveProblem() to be
-     * used in StoreResults() */
-    int lastOptimizationIteration_;
     
-    /** Tells the driver that we are in an optimization context. 
-     * This is similar but still essentially different from a multi sequence in 
-     * the sense that the (often static) state problem will be solved multiple times */
-    bool optimization_;  
   };
 
 }

@@ -197,7 +197,7 @@ namespace CoupledField
     std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
    
     //! Type of current analysis
-    AnalysisType analysisType_;
+    BasePDE::AnalysisType analysisType_;
 
     //! Flag indicating use of complex values
     bool isComplex_;

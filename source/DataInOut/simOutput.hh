@@ -45,7 +45,7 @@ namespace CoupledField {
 
     //! Begin multisequence step
     virtual void BeginMultiSequenceStep( UInt step,
-                                         AnalysisType type,
+                                         BasePDE::AnalysisType type,
                                          UInt numSteps) {};
     
     //! Register result (within one multisequence step)

@@ -242,8 +242,12 @@ namespace OLAS {
     //! \name Methods for I/O operations
 
     //@{
-
-    //! Print vector to output stream os
+    /** Prints the content for Logging
+     * @return comma seperated list from index 1 to <= size! */
+    std::string ToString() const;
+    
+    /** Print vector to output stream os
+     * @depreciated to be replaces by ToString and logging */
     void Print(std::ostream &os) const;
 
     //! Export vector to file

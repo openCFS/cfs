@@ -31,7 +31,7 @@ namespace CoupledField {
 
     //! This method constitutes the actual driving method which controls the
     //! solution process for the problem.
-    void SolveProblem();
+    void SolveProblem(bool write_results = true, const std::string& comment = "");
     
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) { return 1;}

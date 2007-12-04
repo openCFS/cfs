@@ -20,9 +20,7 @@
 
 using namespace CoupledField; 
 
-// declare class specific logging stream
-DECLARE_LOG(piezoSimp)
-DEFINE_LOG(piezoSimp, "piezoSimp")
+DECLARE_LOG(simp)
 
 
 PiezoSIMP::Transduction::Transduction()
@@ -44,20 +42,17 @@ PiezoSIMP::PiezoSIMP()
 {
    elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
 
-   // here we store the results of the two mean transduction cases      
-   mech_sol_1.Resize(design->GetNumberOfElements());
-   mech_sol_2.Resize(design->GetNumberOfElements());
-   elec_sol_1.Resize(design->GetNumberOfElements());
-   elec_sol_2.Resize(design->GetNumberOfElements());
+   case_elec_ = cost->type == TRANSDUCTION ? new Solution(this) : NULL;
+   case_mech_ = cost->type == TRANSDUCTION ? new Solution(this) : NULL;
    
-   // set the stiffness matrices. mechStiffnes is set in SIMP                    
-   SetElementStiffness(elec, elec, elecStiffness);
-   SetElementStiffness(mech, elec, coupledStiffness);    
+   // set the stiffness matrices. mechStiffnes is set in SIMP.
+   GetElementMatrix(GetForm(elec, elec, "linElecInt"), elecStiffness);
+   GetElementMatrix(GetForm(mech, elec, "linPiezoCoupling"), coupledStiffness);    
    coupledStiffness.Transpose(coupledStiffnessTransposed);
 
    // set the corresponding systems to nonlinear -> mech, mech was done in SIMP
-   mech->getPDE_assemble()->GetBiLinForm(regionId, mech, elec)->GetIntegrator()->SetSolDependent(true);      
-   elec->getPDE_assemble()->GetBiLinForm(regionId, elec, elec)->GetIntegrator()->SetSolDependent(true);
+   GetForm(mech, elec, "linPiezoCoupling")->SetSolDependent(true);      
+   GetForm(elec, elec, "linElecInt")->SetSolDependent(true);
    
    // validate the transfer functions
    if(design->design.Find(DesignElement::DENSITY) >= 0)
@@ -95,7 +90,7 @@ PiezoSIMP::PiezoSIMP()
    
    // the storage is optional
    if(pn->Get("piezo")->Has("storage"))
-     storage_ = (Storage) storage.Parse(pn->Get("piezo")->Get("storage")->Get("save")->AsString());
+     storage_ = storage.Parse(pn->Get("piezo")->Get("storage")->Get("save"));
    else
      storage_ = COMMIT;  
    
@@ -107,9 +102,13 @@ PiezoSIMP::PiezoSIMP()
    {
      logFileHeader += "\ttransd_coupl\ttc_simp\ttransd_elec\tte_simp";
    }
-   
-   
 } 
+
+PiezoSIMP::~PiezoSIMP()
+{
+  if(case_elec_ != NULL) { delete case_elec_; case_elec_ = NULL; }
+  if(case_mech_ != NULL) { delete case_mech_; case_mech_ = NULL; }
+}
 
 double PiezoSIMP::CalcObjective()
 {
@@ -117,15 +116,12 @@ double PiezoSIMP::CalcObjective()
    
    switch(cost->type)
    {
-      case COMPLIANCE:
-           cost->SetValue(CalcCompliance());
-           break;
-           
       case TRANSDUCTION:        
            cost->SetValue(CalcTransduction());
            break;
           
-      default: throw Exception("objective no handled");
+      default: 
+           SIMP::CalcObjective();
    }         
    return cost->GetValue(); 
 }
@@ -133,30 +129,115 @@ double PiezoSIMP::CalcObjective()
 
 void PiezoSIMP::CalcObjectiveGradient(double* grad_out)
 {
-   switch(cost->type)
-   {
-      case COMPLIANCE:
-           CalcComplianceGradient(grad_out);
-           break;
-           
-      case TRANSDUCTION:        
-           CalcTransductionGradient(grad_out); 
-           break;
-          
-      default: throw Exception("objective no handled");
-   }         
+  switch(cost->type)
+  {
+  case OUTPUT:
+    // we calculate lambda^T K sol where 
+    // sol = displacement and potential and K = K_uu, K_up, K_up^T, K_pp
+    // we calcualate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
+    for(unsigned int i = 0; i < design->design.GetSize(); i++)
+    {
+      DesignElement::Type dt = design->design[i];
+      TransferFunction*   tf = NULL;
+
+      // reset as we sum up with CalcU1KU2() 
+      design->Reset(dt, DesignElement::COST_GRADIENT);
+
+      // we allow NULL for the transfer functions, 
+      // then the gradient is 0 what is done via Reset! 
+      // lambda_u * K_uu' * u
+      tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
+      if(tf != NULL)
+        CalcU1KU2(tf, adjoint_->elem[MECH], MECH, forward_->elem[MECH], true, true);
+        // CalcU1KU2(tf, MECH, adjoint_, mechStiffness, MECH, forward_, true, true); 
+     
+      // lambda_u * K_up' * p
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false); 
+      if(tf != NULL)
+        CalcU1KU2(tf, adjoint_->elem[MECH], PIEZO_COUPLING, forward_->elem[ELEC], true, true);
+        //CalcU1KU2(tf, MECH, adjoint_, coupledStiffness, ELEC, forward_, true, true); 
+      
+      // lambda_p * (K_up^T)' * u
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false); 
+      if(tf != NULL)
+        CalcU1KU2(tf, adjoint_->elem[ELEC], PIEZO_COUPLING, forward_->elem[MECH], true, true);
+        //CalcU1KU2(tf, ELEC, adjoint_, coupledStiffnessTransposed, MECH, forward_, true, true); 
+      
+      // lambda_p * K_pp' * p
+      tf = design->GetTransferFunction(dt, ELEC, false); 
+      if(tf != NULL)
+        CalcU1KU2(tf, adjoint_->elem[ELEC], ELEC, forward_->elem[ELEC], true, true);
+        //CalcU1KU2(tf, ELEC, adjoint_, elecStiffness, ELEC, forward_, true, true);
+    }
+    break;
+    
+  case TRANSDUCTION:        
+    CalcTransductionGradient(grad_out); 
+    break;
+
+  default:
+    SIMP::CalcObjectiveGradient(grad_out);
+  }  
+  
+  if(grad_out != NULL) design->WriteGradientToExtern(grad_out, DesignElement::NO_TYPE, 
+                               DesignElement::COST_GRADIENT, DesignElement::SMART);
+  
+}
+
+
+template <class T>
+void PiezoSIMP::CalcElementKU2(const CFSVector* cfs_in, Application app, DesignElement* de, bool derivative, CFSVector* cfs_out)
+{
+  const Vector<T>& in  = dynamic_cast<const Vector<T>& >(*cfs_in);
+  Vector<T>& out = dynamic_cast<Vector<T>& >(*cfs_out);
+  
+  // all cases a are a multiplication with an Matrix<double>
+  Matrix<double>* stiff = NULL;
+  switch(app)
+  {
+  case ELEC:
+    stiff = &elecStiffness;
+    break;
+    
+  case PIEZO_COUPLING:
+    // we see on the size of in if we cave to be transposed!
+    if(in.GetSize() == coupledStiffness.GetSizeCol())
+      stiff = &coupledStiffness;
+    else
+      stiff = &coupledStiffnessTransposed;
+    break;
+    
+  default: 
+    // mech and surface normal matrix are handled in SIMP
+    SIMP::CalcElementKU2(cfs_in, app, de, derivative, cfs_out);
+    return; // all calculation done there (or assert!)
+  }
+  
+  assert(in.GetSize() == stiff->GetSizeCol());  
+  
+  TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
+  double factor = derivative ? tf->Derivative(de) : tf->Transform(de);
+
+  out = *stiff * in;
+  out *= factor;
+  
+  LOG_DBG3(simp) << "PiezoSIMP::CalcElementKU2 MECH: " << factor << "*K*u -> " << out.ToString();
 }
 
 double PiezoSIMP::CalcTransduction()
 {
   double result = 0.0;
-  
+
   log_coupled_ = log_coupled_simp_ = log_elec_ = log_elec_simp_ = 0.0;
   
   // two temporary vectors as they have different size
-  Vector<double> tmp1;
-  Vector<double> tmp2;
+  CFSVector* tmp1 = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
+  CFSVector* tmp2 = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
 
+  StdVector<CFSVector*>& mech_sol_1 = case_elec_->elem[MECH];           
+  StdVector<CFSVector*>& elec_sol_1 = case_elec_->elem[ELEC]; 
+  StdVector<CFSVector*>& elec_sol_2 = case_mech_->elem[ELEC];
+  
   // for the case of special results, here are the indices. -1 is not registered
   int objective_idx = design->GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::OBJECTIVE, DesignElement::NONE);
   int pKu_idx = design->GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::OBJECTIVE, DesignElement::PKU);
@@ -170,23 +251,27 @@ double PiezoSIMP::CalcTransduction()
     // note, that GetErsatzMaterialFactor() is able to multiply the design and polarization 
     // transfer functions!
     double factor = design->GetErsatzMaterialFactor(i, PIEZO_COUPLING);
-    tmp1 = coupledStiffnessTransposed * mech_sol_1[i];
-    double pKu = elec_sol_2[i] * tmp1;
+    // tmp1 = coupledStiffnessTransposed * mech_sol_1[i];
+    coupledStiffnessTransposed.Mult(*mech_sol_1[i], *tmp1);
+    double pKu; // = elec_sol_2[i] * tmp1;
+    elec_sol_2[i]->Inner(*tmp1, pKu);
     
     log_coupled_ += pKu;
     log_coupled_simp_ += factor * pKu;
 
-    LOG_DBG3(piezoSimp) << "calcTransduction elem " << design->data[i].elem->elemNum << " coupling: factors " << pKu << " with " << factor;
+    LOG_DBG3(simp) << "calcTransduction elem " << design->data[i].elem->elemNum << " coupling: factors " << pKu << " with " << factor;
     pKu *= factor;
 
     factor = design->GetErsatzMaterialFactor(i, ELEC);
-    tmp2 = elecStiffness * elec_sol_1[i];
-    double pKp = elec_sol_2[i] * tmp2;
+    // tmp2 = elecStiffness * elec_sol_1[i];
+    elecStiffness.Mult(*elec_sol_1[i], *tmp2);
+    double pKp; // = elec_sol_2[i] * tmp2;
+    elec_sol_2[i]->Inner(*tmp2, pKp);
     
     log_elec_ += pKp;
     log_elec_simp_ += factor * pKp;
 
-    LOG_DBG3(piezoSimp) << "calcTransduction elem " << design->data[i].elem->elemNum << " elec: factors " << pKp << " with " << factor;
+    LOG_DBG3(simp) << "calcTransduction elem " << design->data[i].elem->elemNum << " elec: factors " << pKp << " with " << factor;
     pKp *= factor;
     
     // see if we have stuff special registered -> is normally not the case and can hence be slow
@@ -198,12 +283,14 @@ double PiezoSIMP::CalcTransduction()
     result += pKu + pKp;
   }
   
+  delete tmp1;
+  delete tmp2;
   return result;
 }
 
 void PiezoSIMP::LogFileLine(std::ofstream* out)
 {
-  SIMP::LogFileLine(out);
+  Optimization::LogFileLine(out);
   
   if(cost->type == TRANSDUCTION)
   {
@@ -225,11 +312,17 @@ void PiezoSIMP::CalcTransductionGradient(double* grad_out)
   // here we split this in four terms of the form
   // $-p_c \rho^{p-1} u_1^T K_{uu} u_2, u_1^T K_{uu}$, here as
   // variabe uKu. p is here used as $\phi$   
-  Vector<double> tmp_uKu;
-  Vector<double> tmp_uKp;
-  Vector<double> tmp_pKu;
-  Vector<double> tmp_pKp;
+  CFSVector* tmp_uKu = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
+  CFSVector* tmp_uKp = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
+  CFSVector* tmp_pKu = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
+  CFSVector* tmp_pKp = harmonic ? (CFSVector*) new Vector<std::complex<double> > : (CFSVector*) new Vector<double>;
     
+  StdVector<CFSVector*>& mech_sol_1 = case_elec_->elem[MECH];           
+  StdVector<CFSVector*>& mech_sol_2 = case_mech_->elem[MECH];           
+  StdVector<CFSVector*>& elec_sol_1 = case_elec_->elem[ELEC]; 
+  StdVector<CFSVector*>& elec_sol_2 = case_mech_->elem[ELEC];
+  
+  
   // the element contributions.    
   double uKu, uKp, pKu, pKp;
 
@@ -264,33 +357,41 @@ void PiezoSIMP::CalcTransductionGradient(double* grad_out)
       
       if(tf_u != NULL)
       {
-        tmp_uKu = mechStiffness * mech_sol_2[e];
-        uKu = mech_sol_1[e] * tmp_uKu;
-        LOG_DBG3(piezoSimp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " uKu = " 
+        // tmp_uKu = mechStiffness * mech_sol_2[e];
+        mechStiffness.Mult(*mech_sol_2[e], *tmp_uKu);
+        // uKu = mech_sol_1[e] * tmp_uKu;
+        mech_sol_1[e]->Inner(*tmp_uKu, uKu);
+        LOG_DBG3(simp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " uKu = " 
                             << uKu << " * (-1) " << tf_u->Derivative(de) << " = " << uKu * -1.0 * tf_u->Derivative(de);   
         uKu *= -1.0 * tf_u->Derivative(de);
       }  
   
       if(tf_up != NULL)
       {
-        tmp_uKp = coupledStiffness * elec_sol_2[e];
-        uKp = mech_sol_1[e] * tmp_uKp;
-        LOG_DBG3(piezoSimp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " uKp = " 
+        // tmp_uKp = coupledStiffness * elec_sol_2[e];
+        coupledStiffness.Mult(*elec_sol_2[e], *tmp_uKp);
+        // uKp = mech_sol_1[e] * tmp_uKp;
+        mech_sol_1[e]->Inner(*tmp_uKp, uKp);
+        LOG_DBG3(simp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " uKp = " 
                             << uKp << " * (-1)" << tf_up->Derivative(de) << " = " << uKp * -1.0 * tf_up->Derivative(de);   
         uKp *= -1.0 * tf_up->Derivative(de);
           
-        tmp_pKu = coupledStiffnessTransposed * mech_sol_2[e];
-        pKu = elec_sol_1[e] * tmp_pKu;
-        LOG_DBG3(piezoSimp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " pKu = "
+        // tmp_pKu = coupledStiffnessTransposed * mech_sol_2[e];
+        coupledStiffnessTransposed.Mult(*mech_sol_2[e], *tmp_pKu);
+        // pKu = elec_sol_1[e] * tmp_pKu;
+        elec_sol_1[e]->Inner(*tmp_pKu, pKu);
+        LOG_DBG3(simp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " pKu = "
                             << pKu << " * (-1)" << tf_up->Derivative(de) << " = " << pKu * -1.0 * tf_up->Derivative(de);
         pKu *= -1.0 * tf_up->Derivative(de);
       }      
       
       if(tf_p != NULL)
       {
-        tmp_pKp = elecStiffness * elec_sol_2[e];
-        pKp = elec_sol_1[e] * tmp_pKp;
-        LOG_DBG3(piezoSimp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " pKp = " 
+        // tmp_pKp = elecStiffness * elec_sol_2[e];
+        elecStiffness.Mult(*elec_sol_2[e], *tmp_pKp);
+        // pKp = elec_sol_1[e] * tmp_pKp;
+        elec_sol_1[e]->Inner(*tmp_pKp, pKp);
+        LOG_DBG3(simp) << "calcTransductionGradient elem [" << idx << "]=" << de->elem->elemNum << " pKp = " 
                             << pKp << " * (-1)" << tf_p->Derivative(de) << " = " << pKp * -1.0 * tf_p->Derivative(de);
         pKp *= -1.0 * tf_p->Derivative(de);
       }
@@ -308,12 +409,12 @@ void PiezoSIMP::CalcTransductionGradient(double* grad_out)
     }
   }
  
-    // give the output for the external optimizer most probably filtered   
-  for(unsigned int i = 0; grad_out != NULL && i < design->data.GetSize(); i++)
-  {
-    // see the documentation of GetObjectiveGradient() to understand design times gradient!
-    grad_out[i] = design->data[i].GetObjectiveGradient(DesignElement::SMART);
-  }    
+  delete tmp_uKu;
+  delete tmp_uKp;
+  delete tmp_pKu;
+  delete tmp_pKp;  
+  
+  design->WriteGradientToExtern(grad_out, DesignElement::NO_TYPE, DesignElement::COST_GRADIENT, DesignElement::SMART);
 } 
 
 void PiezoSIMP::SolveTransductionSubProblem(Application subProblem)
@@ -382,26 +483,17 @@ void PiezoSIMP::SolveTransductionSubProblem(Application subProblem)
   ElemList elemList(domain->GetGrid());
 
   // store the results in our own structure
-  for(unsigned int i = 0; i < design->GetNumberOfElements(); i++)
+  if(subProblem == ELEC)
   {
-    DesignElement* de = &design->data[i];
- 
-    elemList.SetElement(de->elem);
-    const EntityIterator& it = elemList.GetIterator();
-
-    if(subProblem == ELEC)
-    {
-      // ELEC is by definition the first case 
-      mech->GetSolVecOfElement(mech_sol_1[i], it, mech->GetResultInfo(MECH_DISPLACEMENT));
-      elec->GetSolVecOfElement(elec_sol_1[i], it, elec->GetResultInfo(ELEC_POTENTIAL));
-    }
-    else
-    {
-      mech->GetSolVecOfElement(mech_sol_2[i], it, mech->GetResultInfo(MECH_DISPLACEMENT));
-      elec->GetSolVecOfElement(elec_sol_2[i], it, elec->GetResultInfo(ELEC_POTENTIAL));
-    }
+    // ELEC is by definition the first case
+    case_elec_->ReadSolution(Solution::ELEMENT_VECTORS, mech, MECH);
+    case_elec_->ReadSolution(Solution::ELEMENT_VECTORS, elec, ELEC);
   }
-
+  else
+  {
+    case_mech_->ReadSolution(Solution::ELEMENT_VECTORS, mech, MECH);
+    case_mech_->ReadSolution(Solution::ELEMENT_VECTORS, elec, ELEC);
+  }
 }
 
 void PiezoSIMP::StoreResults(double step_val)
@@ -418,6 +510,11 @@ void PiezoSIMP::SolveStateProblem()
   // when our objective is tranasduction we have to calculate 2 cases
   switch(cost->type)
   {
+    // when our objective is output we have to solve also the adjoint problem
+    case OUTPUT:
+      SolveAdjointProblem(mech, elec);
+      break;
+
     case TRANSDUCTION:
     {
       // the resuls are stored in <mech/elec>_sol_<1/2>
@@ -439,7 +536,7 @@ void PiezoSIMP::SolveStateProblem()
       break;   
     }
     default: // compliance
-      Optimization::SolveStateProblem();
+      SIMP::SolveStateProblem();
       break;
   }
 }

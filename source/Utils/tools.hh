@@ -199,14 +199,8 @@ namespace CoupledField {
   // =========================================================================
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================
+ 
 
-  
-  //! Reader of Fnc from conf-file
-  /*!
-    \param namefnc name of the reading function
-  */
-  pfn1var FncReader(const std::string namefnc);
-  
   //! Absolute value of number
   template<class T>
   T abs(T x) { return (x>0 ? x: -x); } 
@@ -235,10 +229,10 @@ namespace CoupledField {
 
   public:
     //! constructor
-    Point(){
+    Point() { 
       for(UInt i=0; i<3; i++)
         p[i]=0.0;
-    }
+    } 
 
     //!destructor
     ~Point(){;}
@@ -259,11 +253,23 @@ namespace CoupledField {
     Point  operator-(const Point & t); 
 
     //! return coordinate number i
-    Double &operator[](UInt i){return p[i];} 
+    Double &operator[](UInt i) {
+      assert(i < 3);
+      return p[i];
+    } 
 
     //! return coordinate number i
-    Double operator[](UInt i) const {return p[i];} 
+    Double operator[](UInt i) const {
+      assert(i < 3);
+      return p[i];
+    } 
+    
+    //! calculate distance between two points
+    static Double dist(const Point& a, const Point& b);
 
+    //! calculate distance to another point
+    Double dist(const Point& other) const;
+    
     /** Lists the content 
      * @return the form "(0.3;4.3;0.0)" but no digit control */ 
     std::string ToString() const;
@@ -272,8 +278,6 @@ namespace CoupledField {
     Double p[3];
   };
 
-  //! calculate distance between two points
-  Double dist(Point a, Point b);
 
   //! calculate distance between two points embedded in matrix
 
@@ -317,9 +321,6 @@ namespace CoupledField {
     \param ptCoord matrix containing vertices of surface element
   */
   void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord);
-
-
-  char * c_string(const std::string & s);
 
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);

@@ -40,10 +40,6 @@
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
-
 namespace CoupledField {
 
   DECLARE_LOG(elecpde)
@@ -633,7 +629,7 @@ namespace CoupledField {
        if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
          EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
                    << " or appropriate optimiziation");
-       domain->GetErsatzMaterial()->ExtractResults(res);
+       domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
        break;
        
      default:

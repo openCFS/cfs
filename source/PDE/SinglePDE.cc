@@ -41,10 +41,6 @@
 // header for resultHandling
 #include "DataInOut/resultHandler.hh"
 
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
-
 #include "DataInOut/postProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
@@ -157,30 +153,7 @@ namespace CoupledField {
       analysistype_ = STATIC;
     }
 
-    switch( analysistype_ ) {
-    case STATIC:
-      isComplex_ = false;
-      break;
-
-    case TRANSIENT:
-      isComplex_ = false;
-      break;
-      
-    case HARMONIC:
-      isComplex_ = true;
-      break;
-      
-    case EIGENFREQUENCY:
-      isComplex_ = false;
-      break;
-
-      break;
-      
-    default:
-      
-      EXCEPTION( "SinglePDE::Init: AnalysisType '" << analysistype_
-                 << "' is not supported" );
-    }
+    isComplex_ = IsComplex(analysistype_);
 
     // =====================================================================
     // trigger definition of available results
@@ -980,13 +953,6 @@ namespace CoupledField {
   }
 
 
-
-  void SinglePDE::Finalize() {
-
-    // nothing to be done anymore here
-  }
-  
-
   // **********
   //   SetBCs
   // **********
@@ -1111,11 +1077,6 @@ namespace CoupledField {
 
   void SinglePDE::ReadBCs() {
 
-
-    // vectors for parameter handling
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
 
     // fetch "bcdAndLoads" parameter node, if present.
     // otherwise leave
@@ -1440,8 +1401,20 @@ namespace CoupledField {
     // =====================================================================
     
     // fetch paramnodes for loads
-    StdVector<ParamNode*> loadNodes = bcsNode->GetList("load");
+    ReadLoads(bcsNode->GetList("load"), loads_);
+    assemble_->AddLoads( loads_ ); 
+  }
 
+  
+  void SinglePDE::ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list)
+  {
+    
+    std::string name, resultName, dof, entType, value, phase;
+    EntityList::DefineType defineType;
+    SolutionType solType;
+    shared_ptr<ResultInfo> actResultInfo;
+    
+    
     // iterate over all parameter nodes
     for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
       try {
@@ -1481,16 +1454,13 @@ namespace CoupledField {
         }
         actLoad->value = value;
         actLoad->phase = phase;
-        loads_.Push_back( actLoad);
-      }  catch (Exception & ex ) {
+        out_list.Push_back( actLoad);
+      }  
+      catch (Exception & ex ) 
         RETHROW_EXCEPTION( ex, "Can not create load condition on '"
                            << name << "'" );
-      }
     }
-    assemble_->AddLoads( loads_ ); 
-    
   }
-  
   
   void SinglePDE::ReadRegionLoads( ) {
     

@@ -72,7 +72,7 @@ namespace CoupledField {
 
 
     //! Begin new multisequence step
-    void BeginMultiSequenceStep( UInt step, AnalysisType type, UInt numSteps );
+    void BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps );
 
     //! Begin new step in analyisis
     void BeginStep( UInt stepNum, Double stepVal );
@@ -105,7 +105,7 @@ namespace CoupledField {
     
     //! Return number of multisequence steps for a givne inpute read
     void GetNumMultiSequenceSteps( const std::string& readerId,
-                                   std::map<UInt, AnalysisType>& analysis,
+                                   std::map<UInt, BasePDE::AnalysisType>& analysis,
                                    std::map<UInt, UInt>& numSteps,
                                    bool isHistory = false );
 
@@ -250,7 +250,7 @@ namespace CoupledField {
     bool finalResultExists_;
 
     //! Current analysistype
-    AnalysisType analysisType_;
+    BasePDE::AnalysisType analysisType_;
     
     // =======================================================================
     // METHODS FOR INPUT FUNCTIONALITY

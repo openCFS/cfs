@@ -515,7 +515,7 @@ namespace CoupledField {
 
 
   void SimOutputGiD::BeginMultiSequenceStep( UInt step, 
-                                             AnalysisType type,
+                                             BasePDE::AnalysisType type,
                                              UInt numSteps ) {
     
     actAnalysis_ = type;
@@ -541,8 +541,8 @@ namespace CoupledField {
     actStepVal_ = stepVal;
     
     // add  offset to step value to account for multisequence steps
-    if( actAnalysis_ == TRANSIENT ||
-        actAnalysis_ == STATIC  ) { 
+    if( actAnalysis_ == BasePDE::TRANSIENT ||
+        actAnalysis_ == BasePDE::STATIC  ) { 
      actStepVal_ += stepValueOffset_;
     }
     
@@ -612,8 +612,8 @@ namespace CoupledField {
   
   void SimOutputGiD::
   FinishMultiSequenceStep( ) {
-    if( actAnalysis_ == TRANSIENT ||
-        actAnalysis_ == STATIC ) {
+    if( actAnalysis_ == BasePDE::TRANSIENT ||
+        actAnalysis_ == BasePDE::STATIC ) {
       stepValueOffset_ = actStepVal_;
     }
   }

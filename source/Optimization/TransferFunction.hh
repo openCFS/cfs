@@ -6,12 +6,6 @@
 
 namespace CoupledField
 {
-  class Enum;
-  class DesignElement;
-  class DesignSpace;
-  class Optimization;
-  class ParamNode;
-  
   /** This defines a transfer function, where the standard SIMP is a variant */
   class TransferFunction
   {
@@ -39,22 +33,25 @@ namespace CoupledField
       /** sets the disable stuff */
       void Enable(bool enable) 
       { 
+        // try to handle to much toggling cases
         if(enable) 
         {
           type_ = orgType_;
-          orgType_ = NO_TYPE;
+          assert(type_ != NO_TYPE);
         } 
         else
-        {
+        {  
+           // only disable if we are enabled
+           assert(type_ != NO_TYPE);
           orgType_ = type_;
-          type_ = IDENTITY;
+          type_ = NO_TYPE;
         }
       }
      
       /** gives debug information */
       std::string ToString();
       
-      static Enum type;
+      static Enum<Type> type;
 
     private:
       /** our design type (DENSITY, POLARIZATION)  */

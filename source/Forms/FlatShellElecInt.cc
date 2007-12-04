@@ -6,7 +6,7 @@
 #include <fstream>
 
 #include "FlatShellElecInt.hh"
-#define PI 3.141592654
+#include <math.h>
 
 namespace CoupledField {
 
@@ -78,7 +78,7 @@ namespace CoupledField {
     
     for(UInt i=1; i <= nrLayers; i++) {
     	z_[i] = z_[i-1] + composite_->thickness[i-1];
-        orAngle_[i] = composite_->orientation[i-1]*PI/180;
+        orAngle_[i] = composite_->orientation[i-1]*M_PI/180;
         }
      
      //std::cout << "z coordinates are \n" << z_ << std::endl;

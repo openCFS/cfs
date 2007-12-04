@@ -1,0 +1,416 @@
+#include "Optimization/OptimalityCondition.hh"
+#include "Optimization/DesignSpace.hh"
+#include "Optimization/DesignElement.hh"
+#include "General/exception.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+#include <string>
+
+using namespace CoupledField;
+using std::abs;
+
+DECLARE_LOG(oc)
+DEFINE_LOG(oc, "optimalityCondition")
+
+OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* pn)
+ : BaseOptimizer(optimization, pn)
+{
+  type.SetName("OptimalityCondition::Type");
+  type.Add(FRAMED, "framed");
+  type.Add(FUMBLE, "fumble");
+  type.Add(TRAJECTORY, "trajectory");
+  
+  this->lambda_ = 1000; // just to set a value
+
+  // the following values are standard in mech SIMP -> see e.g. the 99 lines paper
+  this->move_limit_ = 0.2;
+  this->oc_damping_ = 0.5;
+  this->lambda_min_ = 1e-30;
+  this->max_lambda_iters_ = 70;
+  this->err_eps_    = 1e-3;
+  this->type_       = optimization->GetObjective()->type == Optimization::COMPLIANCE ? FRAMED : FUMBLE;
+
+  // framed
+  this->upper_ = 0.0;
+  this->lower_ = 0.0;
+  this->start_lower_ = 0;
+  this->start_upper_ = 1000;
+  this->enlarge_lower_ = 0.5;
+  this->enlarge_upper_ = 2.0;
+  this->always_enlarge_ = true;
+  
+  // fumble
+  this->step_ = 10;
+  this->contract_ = 0.49;
+  this->expand_ = 1.99;
+
+  // some plausibility about optimality condition
+  if(optimization->constraints.GetSize() != 1)
+    throw Exception("optimality condition is only possible with exactly one constraint");
+  
+  // reduce to our actual ParamNode
+  pn = pn->Get(Optimization::optimizer.ToString(Optimization::OPTIMALITY_CONDITION), false);
+  
+  // read the xml values
+  if(pn != NULL)
+  {
+    type_       = type.Parse(pn->Get("type"));
+    move_limit_ = pn->Get("move_limit")->AsDouble();
+    oc_damping_ = pn->Get("damping")->AsDouble();
+    lambda_min_ = pn->Get("lambda_min")->AsDouble();
+    err_eps_    = pn->Get("err_eps")->AsDouble();
+
+    // it doesn't harm to read the parameters for all types!
+    if(pn->Has(type.ToString(FRAMED)))
+    {
+      ParamNode* t = pn->Get(type.ToString(FRAMED));
+      // there are defaults in XML
+      always_enlarge_ = t->Get("alwaysEnlarge")->AsBool();
+      start_lower_    = t->Get("lower")->AsDouble();
+      start_upper_    = t->Get("upper")->AsDouble();
+      enlarge_lower_  = t->Get("enlargeLower")->AsDouble();
+      enlarge_upper_  = t->Get("enlargeUpper")->AsDouble();
+
+      if(start_lower_ < 0)
+        throw Exception("no negative lower bound frame allowed in current implementation");
+      if(enlarge_lower_ > 1.0 || enlarge_lower_ < 0.0 ) 
+        throw Exception("the 'frame' value 'enlargeLower' shall be in [0;1]");
+      if(enlarge_upper_ < 1.0) 
+        throw Exception("the 'frame' value 'enlargeUpper' shall be in >= 1.0");
+    }
+    if(pn->Has(type.ToString(FUMBLE)))    
+    {
+      ParamNode* t = pn->Get(type.ToString(FUMBLE));
+      
+      step_     = t->Get("step")->AsDouble();
+      contract_ = t->Get("contract")->AsDouble();
+      expand_   = t->Get("expand")->AsDouble();
+      
+      if(expand_ <= 1.0)
+        throw Exception("expand shall be > 1.0, e.g. 1.99");
+      if(contract_ >= 1.0 )
+        throw Exception("contract shall be < 1.0, e.g. 0.49");
+    }
+  }
+  
+  LOG_TRACE(oc) << "OptimalityCondition of type " << type.ToString(type_);
+
+  vault_.Resize(optimization->GetDesign()->data.GetSize());
+  evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
+}
+
+void OptimalityCondition::SolveProblem()
+{
+  // solve the state problem first
+  optimization->SolveStateProblem();
+  
+  int iter = 1;
+  int max_iter = optimization->GetMaxIterations();
+  
+  while(!optimization->IsMinimumReached() && iter <= max_iter)
+  {
+    // adjust the design parameters but not if first iteration 
+    // calc gradients to store the results in data[element]...
+    optimization->CalcObjectiveGradient(NULL);
+    optimization->CalcConstraintGradient(NULL);
+    
+    // do a SIMP Optimality Condition step
+    switch(type_)
+    {
+    case FRAMED: CalcNextFramedIteration();
+                 break;
+
+    case FUMBLE: CalcNextFumbleIteration();
+                 break;
+
+    case TRAJECTORY: CalcNextTrajectoryIteration();
+                     break;
+
+    default: assert(false); 
+    }
+    
+    // calc the objective for the logging in CommitIteration(),
+    // for the optimality condition it is not required.
+    optimization->CalcObjective();
+
+    // solve the state problem
+    optimization->SolveStateProblem();
+
+    // every state problem is an iteration
+    optimization->CommitIteration();
+    iter++;
+  }
+  
+  if(iter >= max_iter-1) {
+     std::cout << " max iterations reached" << std::endl;
+  }
+} 
+
+
+void OptimalityCondition::CalcNextFramedIteration()
+{
+  // we store the current densities in the temp variable. Otherwise we cannot
+  // find the proper lambda
+  optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
+
+  // set the frame borders, first iteration when lower_ == upper_
+  lower_ = lower_ == upper_ ? start_lower_ : lambda_ * (always_enlarge_ ? enlarge_lower_ : 1.0);
+  upper_ = lower_ == upper_ ? start_upper_ : lambda_ * (always_enlarge_ ? enlarge_upper_ : 1.0);
+  
+  // we count lambda iterations to handle the problem of comming too close to a boundary
+  lambda_iters_ = 0;
+  int count = 0;
+  double err;
+   
+  do
+  {
+    // check if we have to enlarge
+    if(++count > max_lambda_iters_)
+    {
+      // enlarge only where we need to 
+      if(abs(upper_ - lambda_) < abs(lambda_ - lower_))
+        upper_ = lower_ == upper_ ? start_upper_ : lambda_ * enlarge_upper_;
+      else
+        lower_ = lower_ == upper_ ? start_lower_ : lambda_ * enlarge_lower_;
+      
+      LOG_DBG(oc) << "enlarge after " << count << " iterations: lower=" << lower_ << " upper=" << upper_;
+      count = 0;
+    }
+
+    // calc next lambda
+    lambda_ = 0.5 * (upper_ + lower_);
+
+    // evaluate with new lambda 
+    // restore original density from temp so we always start the calculation 
+    // on the same base but with different lambda
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
+
+    err = Evaluate(lambda_);
+    // move frames according to new lambda
+    if(err > 0) upper_ = lambda_; // = center
+           else lower_ = lambda_;
+    
+    lambda_iters_++;
+
+    LOG_DBG2(oc) << "lambda_iter/lambda/err/lower/upper = " <<  lambda_iters_ << "\t" 
+                 << lambda_ << "\t" << err << "\t" << lower_ << "\t" << upper_; 
+   }
+   while(abs(err) > err_eps_  && lambda_iters_ < max_lambda_iters_);
+  
+   if(lambda_iters_ >= max_lambda_iters_)
+     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
+}
+
+void OptimalityCondition::CalcNextFumbleIteration()
+{
+  assert(step_ > 0);  
+  
+  // we store the current densities in the temp variable. Otherwise we cannot
+  // find the proper lambda
+  optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
+  
+  // we have a lambda_ and a step_ which is by definition > 0.
+  // the we evaluate at lambda_k + 0.5 * step_, lambda_k + 2.0 * step_,  lambda_k - 0.5 * step_, lambda_k - 2.0 * step_,
+  // the least error becomes the new lambda_k+1 and step_ becomes |lambda_k+1 - lambda_k|
+
+  lambda_iters_ = 0;
+  double min_err;
+  
+  do
+  {
+    // if the initial lambda is far away all evaluations are limited and give 
+    // the same error. Therefore we assume the initial lambda to be too large
+    // and start with the lambda - expand * step check.
+    
+    // restore original density from temp so we always start the calculation 
+    // on the same base but with different lambda
+    // start with check lambda_ - expand_ * step_
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
+    min_err = Evaluate(lambda_ - expand_ * step_);
+    double fumble = -1.0 * expand_;
+
+    // check with lambda_ - contract_ * step_
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
+    double t = Evaluate(lambda_ - contract_ * step_);
+    if(t < min_err) {
+//    if(abs(t) < abs(min_err)) {
+      fumble = -1.0 * contract_;
+      min_err = t;
+    }
+
+    // check with lambda_ + contract_ * step_
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
+    t = Evaluate(lambda_ + contract_ * step_);
+    if(t < min_err) {    
+    //if(abs(t) < abs(min_err)) {
+      fumble = contract_;
+      min_err = t;
+    }
+
+    // check lambda_ + expand_ * step_
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());    
+    t = Evaluate(lambda_ + expand_ * step_);
+    if(t < min_err) {
+    //if(abs(t) < abs(min_err)) {
+      fumble = expand_;
+      min_err = t;
+    }
+    
+    // new lambda:
+    lambda_ += fumble * step_;
+    step_ = abs(fumble * step_);
+    
+    lambda_iters_++;
+
+    LOG_DBG2(oc) << "lambda_iter/lambda/err/step/fumble/-ext/-cont/+con/+ext = " <<  lambda_iters_ << "\t" 
+                 << lambda_ << "\t" << min_err << "\t" << (fumble < 0 ? -1.0 * step_ : step_) << "\t" << fumble << "\t"
+                 << Evaluate(lambda_ - expand_ * step_) << "\t" << Evaluate(lambda_ - contract_ * step_) << "\t"
+                 << Evaluate(lambda_ + contract_ * step_) << "\t" <<  Evaluate(lambda_ + expand_ * step_);
+  }
+  while(abs(min_err) > err_eps_ && lambda_iters_ < max_lambda_iters_);
+
+  if(lambda_iters_ >= max_lambda_iters_)
+    std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << min_err << std::endl;
+}
+
+
+
+void OptimalityCondition::CalcNextTrajectoryIteration()
+{
+  // we store the current densities in the temp variable. Otherwise we cannot
+  // find the proper lambda
+  optimization->GetDesign()->WriteDesignToExtern(vault_.GetPointer());
+  
+  double err = Evaluate(lambda_);
+
+  LOG_DBG(oc) << "CalcNextIteration: lambda= " << lambda_ << " -> err=" << err;
+  
+  int    last_dir = 0;
+  double factor;
+  lambda_iters_ = 0;
+
+  while(abs(err) > err_eps_ && lambda_iters_ < max_lambda_iters_)
+  {
+    // we have to support to step over zero!
+    if(abs(lambda_) < lambda_min_)
+    {
+      std::cout << "switch lamba from " << lambda_ << " to " << (lambda_ > 0 ? -1.0 : 1.0) << std::endl; 
+      lambda_ = lambda_ > 0 ? -1.0 : 1.0;
+      LOG_DBG(oc) << "swap lambda sign to " << lambda_ << " at iter/err: " 
+                   << lambda_iters_ << "\t" << "\t" << err;
+    }
+    else    
+    {
+      // normal operation, not too close to zero
+      if(err > 0)
+      {
+        factor = last_dir > 0 ? 0.5 : 0.75;
+        lambda_ *= factor;
+        last_dir = 1;
+      } 
+      else
+      {
+        factor = last_dir < 0 ? 2.0 : 1.5;
+        lambda_ *= factor;
+        last_dir = -1;                   
+      }
+      LOG_DBG2(oc) << "lambda/err/l_iter = " <<  lambda_<< "\t" << err << "\t" << lambda_iters_ 
+                   << " factor = " << factor << " last_dir = " << last_dir;
+    }
+    // restore original density from temp so we always start the calculation 
+    // on the same base but with different lambda
+    optimization->GetDesign()->ReadDesignFromExtern(vault_.GetPointer());
+
+    err = Evaluate(lambda_);
+    
+    lambda_iters_++;
+  }
+  
+  if(lambda_iters_ >= max_lambda_iters_)
+    std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
+}
+
+double OptimalityCondition::Evaluate(double lambda)
+{
+   // we assume DensityElement.objective_gradient to be set
+   // we assume DensityElement.constraint_gradient to be set
+  
+   if(abs(lambda) < abs(lambda_min_))
+   {
+     double org_lambda = lambda;
+     lambda = lambda < 0 ? -1.0 * lambda_min_ : lambda_min_;
+     std::cout << "Optimality Condition evaluates with too small lambda " 
+               << org_lambda << " adjust to " << lambda << std::endl;
+     LOG_DBG(oc) << "Evaluate: adjust " << org_lambda << " to " << lambda;
+   }
+    
+   Condition& condition = optimization->GetConstraint(Condition::VOLUME);
+   StdVector<DesignElement>& data = optimization->GetDesign()->data;
+
+   // we cannot set the design directly otherwise the filter does not 
+   // work (it becomes unsymmetrically for symmetric problems) as all 
+   // elements but the first have old and new elements in their filter
+   // stencil. Hence we store in evaluate_tmp_
+   
+   for(unsigned int i = 0; i < data.GetSize(); i++)    
+   {
+     DesignElement* de = &data[i];
+     // rho_e is the old rho
+     double rho_e = de->GetDesign(DesignElement::PLAIN);   
+    
+     // if filter is enabled we use the filtered value otherwise the plain one
+     double smart_obj_grad = de->GetObjectiveGradient(DesignElement::SMART);
+     double b_e = -1.0 * smart_obj_grad;
+
+     // ill posed problems have a problem here!  
+     if(isnan(b_e)) EXCEPTION("b_e is nan");
+     
+     // for compliant mechanism the gradient can be positive, this is cut
+     // -> Bendsoe/Sigmund. p 97
+     // for piezo we might become negative lambdas -> cut the positive!
+     b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
+     
+     b_e /= (lambda * de->GetConstraintGradient(&condition)); 
+     
+     // next is density times b_e which is compared with box constraints and move limit
+     double next = rho_e * std::pow(b_e, oc_damping_);        
+                     
+     double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
+     double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
+
+     // we cannot set the design directly - otherwise the filter stencil get violated 
+     evaluate_tmp_[i] = next;
+     if(next <= lower) evaluate_tmp_[i] =lower;
+     if(upper <= next) evaluate_tmp_[i] =upper;
+     
+     LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum << " obj_grad=" << smart_obj_grad
+                  << "(" << de->GetObjectiveGradient(DesignElement::PLAIN) << ")" << " const_grad="
+                  << de->GetConstraintGradient(&condition) << " old= " << rho_e << " next=" << next
+                  << " lower=" << lower << " upper=" << upper << " new=" << evaluate_tmp_[i];
+   }
+   
+   // store the new values in the design variables
+   optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
+   
+   double vol = optimization->CalcConstraint();
+   double err = optimization->GetConstraint(Condition::VOLUME).value - vol;
+   return err;
+}
+
+std::string OptimalityCondition::LogFileHeader()
+{
+  std::ostringstream os;
+  os << "\tlambda\tlambda_iters";
+  if(type_ == FRAMED) os << "\tlower\tupper";
+  if(type_ == FUMBLE) os << "\tstep";
+  return os.str();
+}
+
+
+void OptimalityCondition::LogFileLine(std::ofstream* out)
+{
+  *out << "\t" << lambda_ << "\t" << lambda_iters_;
+  if(type_ == FRAMED) *out << "\t" << lower_ << "\t" << upper_; 
+  if(type_ == FUMBLE) *out << "\t" << step_;
+}

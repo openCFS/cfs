@@ -152,10 +152,9 @@ namespace CoupledField {
   
 
   void SimOutputHDF5::BeginMultiSequenceStep( UInt step,
-                                              AnalysisType type,
+                                              BasePDE::AnalysisType type,
                                               UInt numSteps  ) {
     std::stringstream msName;
-    std::string analysisType;
     H5::Group resultDescGroup;
 
    
@@ -167,7 +166,7 @@ namespace CoupledField {
     } H5_CATCH( "Could open group for results" );
       
     // Map analysistype
-    Enum2String(type, analysisType);
+    std::string analysisType = BasePDE::analysisType.ToString(type);
     currAnalysisType_ = type;
     
     // Assemble name of multistep

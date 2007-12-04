@@ -22,7 +22,7 @@ namespace CoupledField {
     : SingleDriver( sequenceStep, isPartOfSequence ) {
 
     // set correct analysistype
-    analysis_ = EIGENFREQUENCY;
+    analysis_ = BasePDE::EIGENFREQUENCY;
 
     numFreq_ = 0;
     freqShift_ = 0.0;
@@ -58,8 +58,11 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem() {
-
+  void EigenFrequencyDriver::SolveProblem(bool write_results, const std::string& comment) {
+    // options not implemented
+    assert(write_results == true);
+    assert(comment == "");
+    
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // ------------------------------
@@ -113,7 +116,6 @@ namespace CoupledField {
           resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
           ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
           resHandler->FinishStep( );
-          ptPDE_->Finalize();
         }
       }
     } else {
@@ -165,7 +167,6 @@ namespace CoupledField {
           resHandler->FinishStep( );
           
         }
-        ptPDE_->Finalize();
       }
     }
 

@@ -131,7 +131,13 @@ namespace CoupledField
                   const std::string &dofString, 
                   const std::string &value, 
                   const std::string &phase );
-  
+
+    /** Helper method for ReadBCs() which reads the loads. It is also called
+     * by the SIMP mechanism design optimization to read the outputs
+     * @param loadNodes the potential empty array from the xml file
+     * @param either the loads_ of StdPDE or for optimization */
+    void ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list);
+    
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
@@ -171,9 +177,6 @@ namespace CoupledField
     //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
     void ReadRestart(UInt &startStep );
 
-    //! perform cleanup and do last computations
-    void Finalize();
-
     //! Map containing the result types and the results
     ResultMap& GetResults() { return resultLists_; }
     
@@ -185,12 +188,8 @@ namespace CoupledField
      * @param candidate normally an element of the (mathematical) set availResults_
      * @return true if in xml and added */
     bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
-    
-    // ======================================================
-    // METHODS & MEMBERS FOR POST PROCESSING
-    // ======================================================
 
-  protected:
+   protected:
 
   
     //! Constructor
@@ -262,8 +261,10 @@ namespace CoupledField
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
     void SaveSolution( const Double * ptSol, UInt size );
-    void SavePrevSolution( const Double * ptSol, UInt size );
     void SaveSolution( const Complex * ptSol, UInt size );
+    
+    void SavePrevSolution( const Double * ptSol, UInt size );
+
     //@}
 
     //@{
@@ -439,6 +440,8 @@ namespace CoupledField
     std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
 
     //@}
+    
+  private:
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

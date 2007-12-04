@@ -179,6 +179,20 @@ IF(USE_INTERPOLATION)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGAL.cmake")    
 ENDIF(USE_INTERPOLATION)
 
+#-----------------------------------------------------------------------------
+# Find IPOPT
+#-----------------------------------------------------------------------------
+IF(USE_IPOPT)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIPOPT.cmake")    
+ENDIF(USE_IPOPT)
+
+#-----------------------------------------------------------------------------
+# Find SCPIP
+#-----------------------------------------------------------------------------
+IF(USE_SCPIP)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSCPIP.cmake")    
+ENDIF(USE_SCPIP)
+
 
 #-------------------------------------------------------------------------------
 # Set BLAS_LIBRARY and LAPACK_LIBRARY according to architecture

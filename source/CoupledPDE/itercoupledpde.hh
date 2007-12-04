@@ -94,7 +94,7 @@ namespace CoupledField
     bool nonLinLogging_;
   
     // general PDE parameters
-    AnalysisType analysistype_;         //!< type of analysis
+    BasePDE::AnalysisType analysistype_;         //!< type of analysis
     StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
     StdVector<SinglePDE*> singlePDEs_;
     StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects

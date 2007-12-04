@@ -4,9 +4,9 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
+#include <cstdlib>
+#include <cmath>
+#include <ctime>
 #include <string>
 
 #include "vector.hh"
@@ -378,7 +378,7 @@ namespace CoupledField
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      EXCEPTION("Vector: incompatible dimension for operator Add(T,Basevector)" );
+      EXCEPTION("Vector: incompatible dimension for operator Inner(T,Basevector)" );
 #endif
 
     result = 0;
@@ -647,7 +647,16 @@ namespace CoupledField
   }
 
 
-
+  template<class TYPE> 
+  void Vector<TYPE>::FillVector(const TYPE* data, unsigned int size)
+  {
+    Resize(size);
+    
+    for(unsigned int i = 0; i < size; i++)
+      data_[i] = data[i];
+  }
+  
+  
   template<class TYPE>
   void  Vector<TYPE>:: AddElement (const TYPE & y, UInt pos)
   {
@@ -803,7 +812,7 @@ namespace CoupledField
   }
 
   template<class TYPE> 
-  std::string Vector<TYPE>::ToString()
+  std::string Vector<TYPE>::ToString() const
   {
      std::ostringstream os;
      os << "[";

@@ -6,8 +6,13 @@
 #include <fstream>
 
 #include "massInt.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
+
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(mass)
+DEFINE_LOG(mass, "massInt")
+
+
 
 namespace CoupledField {
 
@@ -35,14 +40,14 @@ namespace CoupledField {
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
                                    EntityIterator& ent2  )  {
-  
+
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    
+
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -54,45 +59,44 @@ namespace CoupledField {
     //    partElemMat.Resize(numFncs);
     elemMat.Resize(numFncs);
     elemMat.Init();
-    
+
     Double factor = mParser_->Eval( mHandle_ );
 
     if (diagMass_ ) {
       Double mass = 0.0;
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
         jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
-        
-	if (isaxi_) {
-	  ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-	  CoordAtIP = ptCoord_ * shapeFncAtIp;
-	  mass += 2 * PI * intWeights[actIntPt-1] * density_ 
-            * factor * jacDet * CoordAtIP[0];
-	}
-	else 
-	  mass += intWeights[actIntPt-1] * density_ * factor * jacDet;
+
+        if (isaxi_) {
+          ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+          CoordAtIP = ptCoord_ * shapeFncAtIp;
+          mass += 2 * PI * intWeights[actIntPt-1] * density_ 
+                 * factor * jacDet * CoordAtIP[0];
+        }
+        else 
+          mass += intWeights[actIntPt-1] * density_ * factor * jacDet;
       }
 
       for ( UInt i=0; i<numFncs; i++ ) 
-	elemMat[i][i] = mass / (Double)numFncs;
-   
+        elemMat[i][i] = mass / (Double)numFncs;
     }
     else {
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
 
         ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-        
-	partElemMat.DyadicMult(shapeFncAtIp);
-        
-	if (isaxi_) {
-	  CoordAtIP = ptCoord_ * shapeFncAtIp;
-	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor* jacDet * CoordAtIP[0];
-	}
-	else 
-	  partElemMat *= intWeights[actIntPt-1] * density_ * factor * jacDet;
-        
-	elemMat += partElemMat;
+
+        partElemMat.DyadicMult(shapeFncAtIp);
+
+        if (isaxi_) {
+          CoordAtIP = ptCoord_ * shapeFncAtIp;
+          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor* jacDet * CoordAtIP[0];
+        }
+        else 
+          partElemMat *= intWeights[actIntPt-1] * density_ * factor * jacDet;
+
+        elemMat += partElemMat;
       }
     }
 
@@ -101,6 +105,11 @@ namespace CoupledField {
       MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);       
       elemMat = multDofMass;
     }
+
+    // for the harmonic topology optimzation case (or load ersatz material)
+    double density = GetErsatzMaterialFactor(ent1.GetElem());
+    LOG_DBG3(mass) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density;
+    if(density != 1.0) elemMat *= density;
     
     //     std::cout << "ElemMatMass:\n" << elemMat << std::endl;
   }

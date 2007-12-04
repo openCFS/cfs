@@ -21,6 +21,8 @@ namespace CoupledField
     public:
       PiezoSIMP();
         
+      ~PiezoSIMP();
+      
       /** We solve in each iteration three state problems and store the results. */
       void SolveStateProblem(); 
         
@@ -46,27 +48,37 @@ namespace CoupledField
       typedef enum { COMMIT, ELEC_CASE, MECH_CASE, BOTH_CASES } Storage;
 
       /** Storage translation */
-      static Enum storage;
-     
-     Storage GetStorage() const { return storage_; };
-     
-    protected:
+      static Enum<Storage> storage;
+
+      Storage GetStorage() const { return storage_; };
+
+    private:
       /** This is called every Optimization::CommitIteration(). When we have special storing
        *  rules (-> gid, gmv, ...) this does nothing as we store in SolveStateProblem then */ 
       void StoreResults(double step_val = -1.0); 
-     
-    private:
-     /** Solves a subproblem of the transduction, only then we can call CalcTransduction().
-      * Has to be call first for ELEC, then for MECH!*/
-     void SolveTransductionSubProblem(Application subProblem);
-        
-     /** The transduction (to be maximized) gives the coupling between the electical and mechanical forces based
-      * on the reciprocal theorem. Two state problems are to be calculated as shown in [1], A good introduction
-      * to the reciprocal theorem is in [2]. */
-     double CalcTransduction();
-        
-     /** Implementation according to Kögl and Silva in [1]
-      *  @see CalcObjectiveGradient() */   
+
+      /** <p>Overload the method in SIMP handling app = ELEC and PIEZO_COUPLED. The rest is
+       * done via the SIMP implementation.</p>
+       * <p>C++ does not allow virtual template methods :( */
+      virtual void CalcElementKU2(const CFSVector* in, Application app, DesignElement* de, bool derivative, CFSVector* out) {
+        if(harmonic) CalcElementKU2<std::complex<double> >(in, app, de, derivative, out);
+        else CalcElementKU2<double>(in, app, de, derivative, out);
+      }
+
+      template <class T>
+      void CalcElementKU2(const CFSVector* in, Application app, DesignElement* de, bool derivative, CFSVector* out);
+
+      /** Solves a subproblem of the transduction, only then we can call CalcTransduction().
+       * Has to be call first for ELEC, then for MECH!*/
+      void SolveTransductionSubProblem(Application subProblem);
+
+      /** The transduction (to be maximized) gives the coupling between the electical and mechanical forces based
+       * on the reciprocal theorem. Two state problems are to be calculated as shown in [1], A good introduction
+       * to the reciprocal theorem is in [2]. */
+      double CalcTransduction();
+
+      /** Implementation according to Kögl and Silva in [1]
+       *  @see CalcObjectiveGradient() */   
      void CalcTransductionGradient(double* grad_out);  
         
      /** We have for the direct coupled piezo the MechPDE which is in SIMP.hh and 
@@ -74,11 +86,9 @@ namespace CoupledField
      ElecPDE* elec;
 
      /** For the evaluation of the mean transduction cost function two state problems have to
-      * be solved in each iterations. The results are copied to the <mech|elec>_sol_<1|2> vectors */            
-     StdVector<Vector<double> > mech_sol_1;           
-     StdVector<Vector<double> > mech_sol_2;
-     StdVector<Vector<double> > elec_sol_1; 
-     StdVector<Vector<double> > elec_sol_2;
+      * be solved in each iterations. The MECH and ELEC results are copied case_<1/2>_  */   
+     Solution* case_elec_;
+     Solution* case_mech_;
      
      /** The elec stiffness matrix $K_{\phi \phi}$. $K_{uu}$ is already as mechStiffness in SIMP.hh */
      Matrix<double> elecStiffness;

@@ -130,7 +130,7 @@ namespace CoupledField {
   }
   
   void ResultHandler::BeginMultiSequenceStep( UInt step,
-                                              AnalysisType type,
+                                              BasePDE::AnalysisType type,
                                               UInt numSteps ) {
         
     // store current sequencestep
@@ -741,7 +741,7 @@ namespace CoupledField {
 
   void ResultHandler::
   GetNumMultiSequenceSteps( const std::string& readerId,
-                            std::map<UInt, AnalysisType>& analysis,
+                            std::map<UInt, BasePDE::AnalysisType>& analysis,
                             std::map<UInt, UInt>& numSteps,
                             bool isHistory ) { 
     
@@ -875,13 +875,13 @@ namespace CoupledField {
       }
       
     // determine analysistype of current multi sequence step
-    std::map<UInt, AnalysisType> analysis;
+    std::map<UInt, BasePDE::AnalysisType> analysis;
     std::map<UInt, UInt> numSteps;
     GetNumMultiSequenceSteps( readerId, analysis, numSteps, false );
     
     // create new result object, fill it and return it
     shared_ptr<BaseResult> result;
-    if( analysis[sequenceStep] != HARMONIC ) {
+    if( analysis[sequenceStep] != BasePDE::HARMONIC ) {
       result = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       result = shared_ptr<BaseResult>(new Result<Complex>() );

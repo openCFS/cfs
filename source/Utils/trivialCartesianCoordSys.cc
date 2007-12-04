@@ -177,7 +177,6 @@ namespace CoupledField{
     
   void TrivialCartesianCoordSystem::CalcRotationMatrix() {
     Vector<Double> x(3), y(3), z(3), ytemp(3);
-    Double fac;
     
     x[axisMap_[0]] = axisFactors_[0];
 

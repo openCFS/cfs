@@ -1,32 +1,49 @@
+#include <def_use_ipopt.hh>
+#include <def_use_scpip.hh>
+
 #include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/DesignElement.hh"
 #include "Optimization/DesignSpace.hh"
+#include "Optimization/OptimalityCondition.hh"
+#include "Optimization/EvaluateOnly.hh"
 #include "Driver/basedriver.hh"
 #include "Driver/singleDriver.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/resultHandler.hh"
 #include "General/exception.hh"
 
+// IPOPT and SCPIP are not necessarily linked
+#ifdef USE_IPOPT
+  #include "Optimization/IPOPTHolder.hh"
+#endif
+#ifdef USE_SCPIP
+  #include "Optimization/SCPIP.hh"
+#endif
 
 using namespace CoupledField;
 
+DECLARE_LOG(opt)
+DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
-Enum Optimization::optimizationType;
-Enum Optimization::objectiveType;
-Enum Optimization::optimizerType;
-Enum Optimization::application;
-Enum PiezoSIMP::storage;
+Enum<Optimization::OptimizationType> Optimization::optimizationType;
+Enum<Optimization::ObjectiveType>    Optimization::objectiveType;
+Enum<Optimization::Optimizer>        Optimization::optimizer;
+Enum<Optimization::Application>      Optimization::application;
+Enum<PiezoSIMP::Storage>             PiezoSIMP::storage;
 
 
 Optimization::Objective::Objective(ParamNode* pn)
 {
   // the current value -> check <Get/Set>Value() when altering the presets!
   this->value_ = -1.0;
-  type = static_cast<ObjectiveType>(objectiveType.Parse(pn->Get("type")->AsString()));
+  
+  type = objectiveType.Parse(pn->Get("type"));
 
   if(pn->Get("stoppingRule")->AsString() != "relative")
       throw Exception("stopping rule not implemented yet");
@@ -53,10 +70,11 @@ void Optimization::Objective::SetValue(double val)
 
 Optimization::Optimization()
 {
-  this->scpip_ = NULL;
   this->logFile_ = NULL;
   this->design = NULL;
-  this->currentIteration = 1;
+  this->baseOptimizer_ = NULL;
+  this->harmonic = false;
+  this->currentIteration = 1; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->logFileHeader = "iteration\tcost\tchange\tproblems"; // constraints to be added later
@@ -65,28 +83,16 @@ Optimization::Optimization()
   BaseDriver* driver = domain->GetDriver();
   if(driver->GetDriverClass() != BaseDriver::SINGLE_DRIVER) 
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
-  driver->SetOptimization(true);
 
   ParamNode* pn = param->Get("optimization");       
 
   // the optimization problem
-  optimization = (OptimizationType) optimizationType.Parse(pn->Get("type")->AsString());
+  optimization = optimizationType.Parse(pn->Get("type"));
  
   // the tool to solve the optimization problem 
-  optimizer = (OptimizerType) optimizerType.Parse(pn->Get("optimizer")->Get("type")->AsString());
+  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type"));
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->AsInt();
 
-  // if optimalityCondition is in XML we read and don't care if this is 
-  // our optimizer
-  if(pn->Has("optimalityCondition")) {
-    this->move_limit = pn->Get("optimalityCondition")->Get("move_limit")->AsDouble();
-    this->oc_damping = pn->Get("optimalityCondition")->Get("damping")->AsDouble();
-  } else {
-    // the following values are standard in mech SIMP -> see e.g. the 99 lines paper
-    this->move_limit = 0.2;
-    this->oc_damping = 0.5;
-  }
-  
   // the cost function is mandatory     
   cost = new Objective(pn->Get("costFunction"));
   
@@ -126,31 +132,45 @@ Optimization::~Optimization()
     }
   
     if(cost != NULL) { delete cost; cost = NULL; }
-    
     if(design != NULL) { delete design; design = NULL; }
+    if(baseOptimizer_ != NULL) { delete baseOptimizer_; baseOptimizer_ = NULL; }
     
-    if(scpip_ != NULL) { delete scpip_; scpip_ = NULL; }
 }  
 
 void Optimization::PostInit()
 {
-   // construct IPOPT
-   if(optimizer == IPOPT_SOLVER) 
-   {
-     #ifdef USE_IPOPT  
-       ipopt_ = new IPOPT(this, param->Get("optimization")->Get("optimizer")->Get("ipopt", false));
-     #else
-       throw Exception("CFS++ was compiled w/o IPOPT!");
-     #endif      
-   }
-   if(optimizer == SCPIP_SOLVER)
-   {
-     #ifdef USE_SCPIP
-       scpip_ = new SCPIP(this, param->Get("optimization")->Get("optimizer")->Get("scpip", false));
-     #else
-       throw Exception("CFS++ was compiled w/o SCPIP");
-     #endif  
-   }
+  ParamNode* opt = param->Get("optimization")->Get("optimizer");
+  
+  switch(optimizer_)
+  {
+    case IPOPT_SOLVER:
+         #ifdef USE_IPOPT  
+           baseOptimizer_ = new IPOPTHolder(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o IPOPT!");
+         #endif
+         break;
+         
+    case SCPIP_SOLVER:
+         #ifdef USE_SCPIP
+           baseOptimizer_ = new SCPIP(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o SCPIP");
+         #endif
+         break;  
+    
+    case OPTIMALITY_CONDITION:
+         baseOptimizer_ = new OptimalityCondition(this, opt);
+         break; 
+         
+    case EVALUATE_INITIAL_DESIGN:
+         baseOptimizer_ = new EvaluateOnly(this, opt);
+         break;
+         
+    default: throw Exception("optimizer not implemented");     
+  }
+  // add plot logging of the optimizer
+  this->logFileHeader += baseOptimizer_->LogFileHeader();
 }
 
 void Optimization::SetEnums()
@@ -161,6 +181,10 @@ void Optimization::SetEnums()
   objectiveType.SetName("Optimization::ObjectiveType");
   objectiveType.Add(COMPLIANCE, "compliance");
   objectiveType.Add(TRANSDUCTION, "transduction");
+  objectiveType.Add(OUTPUT, "output");
+  objectiveType.Add(CONJUGATE_OUTPUT, "conjugateOutput");
+  objectiveType.Add(GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
+  objectiveType.Add(RADIATION, "radiation");
   
   Condition::name.SetName("Contraint::Name");
   Condition::name.Add(Condition::VOLUME, "volume");
@@ -172,11 +196,11 @@ void Optimization::SetEnums()
   Condition::type.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::type.Add(Condition::UPPER_BOUND, "upperBound");
   
-  optimizerType.SetName("Optimization::OptimizerType");
-  optimizerType.Add(OPTIMALITY_CONDITION, "optimalityCondition");
-  optimizerType.Add(IPOPT_SOLVER, "ipopt");
-  optimizerType.Add(SCPIP_SOLVER, "scpip");  
-  optimizerType.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");  
+  optimizer.SetName("Optimization::Optimizer");
+  optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
+  optimizer.Add(IPOPT_SOLVER, "ipopt");
+  optimizer.Add(SCPIP_SOLVER, "scpip");  
+  optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");  
   
   SIMP::system.SetName("SIMP::System");
   SIMP::system.Add(SIMP::PIEZO, "piezo");
@@ -184,10 +208,12 @@ void Optimization::SetEnums()
   
   application.SetName("Optimization::Application");
   application.Add(MECH, "mech");
+  application.Add(MASS, "mass");
   application.Add(ELEC, "elec");
   application.Add(PIEZO_COUPLING, "piezoCoupling");
   application.Add(PRESSURE, "pressure");  
-  application.Add(CHARGE_DENSITY, "chargeDensity");  
+  application.Add(CHARGE_DENSITY, "chargeDensity");
+  application.Add(SURFACE_NORMAL, "surfaceNormal");
   
   
   PiezoSIMP::storage.SetName("PiezoSIMP::Storage");
@@ -230,13 +256,13 @@ Optimization* Optimization::CreateInstance()
   std::string string = param->Get("optimization")->Get("type")->AsString();
 
   // the actual parameters are read in the constructors
-  switch(static_cast<OptimizationType>(optimizationType.Parse(string)))
+  switch(optimizationType.Parse(string))
   {
     case SIMP_TYPE: 
     {
       string = param->Get("optimization")->Get("SIMP")->Get("system")->AsString();
       // determine subtype - this is again done in the constructor
-      SIMP::System system = (SIMP::System) SIMP::system.Parse(string);
+      SIMP::System system = SIMP::system.Parse(string);
       SIMP* simp = (system == SIMP::MECHANIC) ? new SIMP(): new PiezoSIMP();
       simp->PostInit();
       return simp;
@@ -248,102 +274,89 @@ Optimization* Optimization::CreateInstance()
 
 void Optimization::SolveProblem()
 {
-   switch(optimizer)
-   {
-      case OPTIMALITY_CONDITION: 
-           SolveProblemManually();
-           break;
-      
-      case IPOPT_SOLVER:
-           SolveStateProblem(); // ipopt starts with the gradient ...
-           #ifdef USE_IPOPT
-             ipopt_->SolveProblem();
-           #else
-             throw Exception("CFS++ was compiled w/o IPOPT");
-           #endif
-           break;
-
-      case SCPIP_SOLVER:
-           // scpip starts with the function evaluation
-           #ifdef USE_SCPIP 
-             scpip_->SolveProblem();
-           #else
-             throw Exception("CFS++ was compiled w/o SCPIP");
-           #endif  
-           break;
-           
-      case EVALUATE_INITIAL_DESIGN:
-           // no iterations but only the evaluation of the initial guesses.
-           EvaluateInitialDesign();
-           break;     
-
-           
-      default: throw Exception("optimizer not implemented");     
-   }
+  // one driver is one multisequence step. We do this stuff here
+  // and call the driver->StoreResults() multiple times f
+  
+  ResultHandler* rh = domain->GetResultHandler();
+  unsigned int mss = domain->GetDriver()->GetActSequenceStep();
+  rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999); // max steps is high
+  baseOptimizer_->SolveProblem();
+  rh->FinishMultiSequenceStep();
+  rh->Finalize();
 }
 
-
-void Optimization::EvaluateInitialDesign()
+std::string Optimization::GetSolveComment()
 {
-  // solve the state problem with the initial guess.
-  std::cout << "Evaluate state problem for initial guess ..." << std::endl;
-  // note that when PiezoSIMP and storage is not PiezoSIMP::COMMIT we might have wrong 
-  // special results before CalcObjective()
-  SolveStateProblem();
-  std::cout << "objective: " << CalcObjective() << std::endl;
-  // see note above!
-  if(optimization == SIMP_TYPE 
-     && (dynamic_cast<SIMP*>(this))->GetSystem() == SIMP::PIEZO
-     && (dynamic_cast<PiezoSIMP*>(this))->GetStorage() != PiezoSIMP::COMMIT)
-    SolveStateProblem();
-  
-  
-  // calc gradients, they might be sored in store results!
-  CalcObjectiveGradient(NULL);
-
-  for(unsigned int i = 0; i < constraints.GetSize(); i++)
-  { 
-     std::cout << "constraint " << constraints[i].ToString() << ": " 
-               << CalcConstraint(&constraints[i]) << std::endl;
-     CalcConstraintGradient(&constraints[i], NULL);          
-  }
-
-  for(unsigned int i = 0; i < outputs.GetSize(); i++)
-  { 
-     std::cout << "observation " << outputs[i].ToString() << ": "
-               << CalcConstraint(&outputs[i]) << std::endl;
-  }
-  CommitIteration();
+  std::ostringstream os;
+  os << "iter"<< currentIteration;
+  if(problemWithinIteration > 0) os << "_cnt" << problemWithinIteration;
+  return os.str();
 }
-
 
 void Optimization::SolveStateProblem()
 {
     BaseDriver* driver = domain->GetDriver();
 
-    // we alter the driver in a way that SolveProblem() can behave unique in the first
-    // call - if we are a single driver!
-    if(problemSolvedCounter > 0) {
-       SingleDriver* sd = dynamic_cast<SingleDriver*>(driver);
-       sd->SetConsecutiveRun(true);
-    }
-
-    driver->SolveProblem(currentIteration);
+    // we solve, give a part of the filename in case we use export linear system
+    // but do not store the results. This is to be done in CommitIteration
+    driver->SolveProblem(false, GetSolveComment());
       
     problemSolvedCounter++;  
     problemWithinIteration++;
 } 
 
-bool Optimization::NeedObjectiveEval(const double* space_in)
-{
-   if(design->data.GetSize() != last_evaluation.GetSize())
-     throw Exception("index mixed up");
-     
-   for(unsigned int i = 0; i < last_evaluation.GetSize(); i++)
-     if(space_in[i] != last_evaluation[i]) return true;
 
-   return false; // same same   
-} 
+double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
+{
+  // the symmetry works only for squared models with a horizontal symmetry axis
+  
+  // our special result index
+  int res_idx = design->GetSpecialResultIndex(de, vs, DesignElement::SYMMETRY, access);
+  
+  // plausibility check for squared
+  int edge = (int) std::sqrt(design->data.GetSize());
+  if(edge * edge != (int) design->data.GetSize()) 
+    throw Exception("Symmetry not possible as models seems to be not squared");
+  
+  int max = (int) design->data.GetSize();
+  double sum = 0;
+  // we assume the first element (1) be in the lower left corner and then a lexicaly
+  // ordering to right and then the rows up.
+  for(int i = 0; i < edge/2; i++)
+  {
+    for(int j = 0; j < edge; j++)
+    {
+      // our data index
+      int idx = i*edge + j;
+      double idx_val = design->data[idx].GetValue(vs, access);
+      
+      // our counterpart
+      int cntr = max - (i*edge)-(edge-j);
+      double cntr_val = design->data[cntr].GetValue(vs, access);
+      
+      double err = (idx_val-cntr_val) / idx_val;
+      LOG_DBG3(opt) << "Symmetry " << DesignElement::valueSpecifier.ToString(vs) 
+                    << "(" << DesignElement::access.ToString(access) << "): "
+                    << idx << " (" << idx_val << ") : " << cntr << " (" << cntr_val << ") -> " << err;
+
+      if(res_idx >= 0) design->data[idx].specialResult[res_idx] = err;
+      sum += err;
+    }
+  }
+  
+  return sum / (double) max;
+}
+
+void Optimization::EvaluateSpecialResults()
+{
+  for(unsigned int i = 0; i < design->resultDescriptions.GetSize(); i++)
+  {
+    const ResultDescription& rd = design->resultDescriptions[i];
+
+    if(rd.detail == DesignElement::SYMMETRY)
+      CalcSymmetry(rd.design, rd.value, rd.access);
+  }
+}
 
 void Optimization::StoreResults(double step_val)
 {
@@ -351,36 +364,42 @@ void Optimization::StoreResults(double step_val)
   // and might do nothing
   
   // this will write the CFS result and history file
-  domain->GetDriver()->StoreResults(step_val);
+  domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
 }
 
 void Optimization::CommitIteration()
 {
-    // store the real cost -> not a scaled one
-    cost->history.Push_back(cost->GetValue());
+  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << cost->GetValue();
 
-    // this writes the most corrent solved forward problem
-    // via the driver to gid or whatever  
-    StoreResults();
+  // store the real cost -> not a scaled one
+  cost->history.Push_back(cost->GetValue());
 
-    // save this iteration
-    design->WriteDesignToExtern(last_iteration.GetPointer());
+  // eventually set special result
+  EvaluateSpecialResults();
 
-    currentIteration++;
-    problemWithinIteration = 0;
-    
-    if(logFile_)
-    {
-      // write the header only once. Note that we start with one!
-        if(currentIteration == 2) *logFile_ << logFileHeader << std::endl; 
-        LogFileLine(logFile_);
-        *logFile_ << std::endl;
-      } 
- 
-      // IPOPT does own logging -> otherwise show the user we are alive    
-    if(optimizer != IPOPT_SOLVER)
-      std::cout << "iteration " << (currentIteration-1) << " -> cost = " 
-                << cost->history.Last() << std::endl;
+  // this writes the most corrent solved forward problem
+  // via the driver to gid or whatever  
+  StoreResults();
+
+  // save this iteration
+  design->WriteDesignToExtern(last_iteration.GetPointer());
+
+  currentIteration++;
+  problemWithinIteration = 0;
+
+  if(logFile_)
+  {
+    // write the header only once. Note that we start with one!
+    if(currentIteration == 2) *logFile_ << logFileHeader << std::endl; 
+    LogFileLine(logFile_);
+    baseOptimizer_->LogFileLine(logFile_);
+    *logFile_ << std::endl;
+  } 
+
+  // IPOPT does own logging -> otherwise show the user we are alive    
+  if(optimizer_ != IPOPT_SOLVER)
+    std::cout << "iteration " << (currentIteration-1) << " -> cost = " 
+    << cost->history.Last() << std::endl;
 }
 
 void Optimization::LogFileLine(std::ofstream* out)
@@ -401,28 +420,6 @@ void Optimization::LogFileLine(std::ofstream* out)
   out->flush();
 }
 
-
-void Optimization::SolveProblemManually()
-{
-  bool first = true; 
-  
-  while(!IsMinimumReached() && currentIteration <= maxIterations)
-  {
-      // adjust the design parameters but not if first iteration 
-      if(!first) ExecuteOptimizationStep();
-
-      // solve the state problem
-      SolveStateProblem();
-      
-      // every state problem is an iteration
-      if(!first) CommitIteration();
-      first = false; 
-  }
-  
-  if(currentIteration >= maxIterations-1) {
-     std::cout << " max iterations reached" << std::endl;
-  }
-} 
 
 Condition& Optimization::GetConstraint(Condition::Name name, DesignElement::Type design)
 {

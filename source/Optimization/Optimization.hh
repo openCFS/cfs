@@ -1,27 +1,18 @@
 #ifndef OPTIMIZATION_HH_
 #define OPTIMIZATION_HH_
 
-#include <def_use_ipopt.hh>
-#include <def_use_scpip.hh>
-
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
 #include "Optimization/DesignElement.hh"
 #include "Optimization/Condition.hh"
-
-#ifdef USE_IPOPT
-#include "Optimization/IPOPT.hh"
-#endif
-#ifdef USE_SCPIP
-#include "Optimization/SCPIP.hh"
-#endif
-
 
 namespace CoupledField
 {
    class Elem;
    class ParamNode;
    class DesignSpace;
+   class OptimalityCondition;
+   class BaseOptimizer;
     
   /** This is a general optimization object. The optimiziation loop is around
    *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
@@ -46,7 +37,7 @@ namespace CoupledField
          void SolveProblem(); 
 
          /** Where we apply the transformation */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, SURFACE_NORMAL} Application;
 
          /** The taks for a cost function either to minimize or maximize */ 
          typedef enum { MINIMIZE, MAXIMIZE } ObjectiveTask;
@@ -55,21 +46,21 @@ namespace CoupledField
          typedef enum { SIMP_TYPE} OptimizationType; 
         
          /** Known types of cost functions */ 
-         typedef enum { COMPLIANCE, TRANSDUCTION } ObjectiveType;
+         typedef enum { COMPLIANCE, TRANSDUCTION, OUTPUT, CONJUGATE_OUTPUT, GLOBAL_DYNAMIC_COMPLIANCE, RADIATION } ObjectiveType;
        
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, EVALUATE_INITIAL_DESIGN } OptimizerType; 
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, EVALUATE_INITIAL_DESIGN } Optimizer; 
 
          /** to convert string/enum for this type */           
-         static Enum optimizationType;
+         static Enum<OptimizationType> optimizationType;
 
          /** to convert string/enum for this type */         
-         static Enum objectiveType;
+         static Enum<ObjectiveType> objectiveType;
 
          /** to convert string/enum for this type */           
-         static Enum optimizerType;
+         static Enum<Optimizer> optimizer;
 
-         static Enum application;
+         static Enum<Application> application;
                
          /** The type of optimization we are (the child of this class!) */
          OptimizationType GetOptimizationType() { return optimization; }      
@@ -95,7 +86,7 @@ namespace CoupledField
              
              /** @param val set an unscaled value here -> it is scaled in the return */
              void SetValue(double val);
-            
+
              /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */ 
              class StoppingRule
              {
@@ -142,11 +133,26 @@ namespace CoupledField
          * @see CalcObjectiveGradient() for parameter description */
         virtual void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL) = 0;
 
+        /** This is brute force debug method which calculates the symmetry of a sqared
+         * model with horizontal symmetry axis with lexicographic order (at least works for gid).
+         * If there is a special result index for vs, access the relative element symmetry errors
+         * are written there.
+         * @return the average relative symmetry error. */
+        double CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access);
+        
+        /** This method checks if special results requiring special evaluation are there.
+         * Some special results as in the transduction case are written there. This works for
+         * now only for CalcSymmetry() */
+        void EvaluateSpecialResults();
+        
         /** Evaluates the state problem, increments the iteration counter. */
         virtual void SolveStateProblem();
         
         /** The maximal number of iterations */
         int GetMaxIterations() { return maxIterations; }
+        
+        /** The current iteration */
+        int GetCurrentIteration() { return currentIteration; }
 
         /** <p>External optimizers will solve more state problems than doing 
          * iterations -> e.g. for doing a line search. With this it is signalled,
@@ -166,13 +172,11 @@ namespace CoupledField
         StdVector<Condition> outputs;   
       
         /** Searches in active and output only constrints!
+         * TODO: make name default for only one constraint
          *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
          *                this purpose as it is a valid value
          * @return check active flag!  */
         Condition& GetConstraint(Condition::Name name, DesignElement::Type design = DesignElement::NO_TYPE);
-
-        /** Compares the external with the internal design space */
-        bool NeedObjectiveEval(const double* space_in);       
 
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
@@ -183,6 +187,10 @@ namespace CoupledField
          * excusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
         Optimization();
 
+        /** This is the comment for Driver::SolveProblem() which becomes part of the
+         * filenames when expoiting the linear system. */
+        std::string GetSolveComment();
+        
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
          * is overwritten and might do nothing.
@@ -192,16 +200,13 @@ namespace CoupledField
         /** called by CommitIteration(), to be overwritten if additional data should be
          * written, then logFileHeader should also be set. Don't add a new-line here!! */
         virtual void LogFileLine(std::ofstream* out);
+
+        /** PostInit is to be called after the constructor. This is required for the
+         * optional IPOPT which expects the Optimization during construction. PostInit
+         * does not really solve something. */
+        virtual void PostInit(); 
+
         
-         /** <p>Solves the problem by looping over driver->SolveProblem() up to 
-          * minimum or max iterations is reached. Overwrite on demand.</p>
-          * This is a own implementation when no external optimizer (like IPOPT) is used. */
-         void SolveProblemManually(); 
-
-         /** Calculates the next iteration after the state problem is solved. This is form
-          * manual optimization, when no external optimizer is used. */
-         virtual void ExecuteOptimizationStep() = 0;
-
          /** The current iteration, 0 is the first run. Note that the state problem might be
           * executed more often (-> line search).  
           * @see problemSolvedCounter. */
@@ -221,8 +226,8 @@ namespace CoupledField
          /** The actual kind of optimization. */
          OptimizationType optimization;
          
-         /** The actual kind of optimizer. This might be the "implicit" OptimalityCondition or ipopt */
-         OptimizerType optimizer;
+         /** The actual kind of optimizer.  */
+         Optimizer optimizer_;
 
          /** Up to now we have only one cost function */
          Objective* cost;
@@ -235,43 +240,23 @@ namespace CoupledField
           * writes this string to logFile_ a the first execution */
           std::string logFileHeader;
           
-         /** this is the damping factor of the objective gradient for the optimality condtion.
-          * The power is taken - default is 0.5 which is the square root */
-         double oc_damping;
-         
-         /** minimal densitiy variation (see book (1.12)) = move limit for optimality condition */
-         double move_limit; 
+
          
          /** Here we keep the last iterations design space */
          Vector<double>  last_iteration;
          
          /** Here we keep the last evaluation design space */
          Vector<double>  last_evaluation;
+         
+         /** are we harmonic or static? */
+         bool harmonic;
      private:
-        /** PostInit is to be called after the constructor. This is required for the
-         * optional IPOPT which expects the Optimization during construction. PostInit
-         * does not really solve something. */
-        void PostInit(); 
         
-        /** Evaluates the objective function and it's gradient. Same for all constraints
-         * and their gradients and the outputs functions once with the inital guess..
-         * This is e.g. to test hand made designs and is nicer than max_iterations = 1 */
-         void EvaluateInitialDesign();
-        
-
         /** optional log the iterations and cost value to a file to gnuplot it */
         std::ofstream*     logFile_;    
 
-         /** The optimizer instance might be a IPOPT class. We use the IPOPT smart pointer  */
-         #ifdef USE_IPOPT         
-           SmartPtr<IPOPT> ipopt_;
-         #endif 
-
-         #ifdef USE_SCPIP
-           SCPIP* scpip_;
-         #else
-           double* scpip_; // constructor sets NULL, descructor deletes. Not NULL 'cause of delete  
-         #endif
+        /** This holds our optimer instance. */
+        BaseOptimizer* baseOptimizer_;
   }; 
   
 } // namespace

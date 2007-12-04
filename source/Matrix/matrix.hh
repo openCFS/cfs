@@ -527,8 +527,9 @@ namespace CoupledField
     //! Converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols( CFSVector& vec ) const;
  
-    /** Dumps for developers */
-    void Dump();
+    /** Dumps for developers
+     * @param level 0=all data, 1=summary info */
+    std::string ToString(int level=0);
 
 
     //@}

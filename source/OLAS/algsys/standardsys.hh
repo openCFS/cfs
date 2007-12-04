@@ -10,10 +10,8 @@
 
 #include "algsys/basesystem.hh"
 
-
-namespace OLAS {
-
-
+namespace OLAS 
+{
   // Forward Declarations of classes
   class BaseStdPrecond;
   class StdMatrix;
@@ -141,7 +139,7 @@ namespace OLAS {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(int step = -1);
+    void Solve(const std::string& comment = "");
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -230,6 +228,9 @@ namespace OLAS {
     //! \note The values of newRHS are copied, so the pointer to newRHS
     //! can be changed afterwards!
     void InitRHS(const Double *  newRHS);
+    
+    /** @see BaseSystem::InitRHS(const Vector<Complex>*) */
+    void InitRHS( const Vector<Complex>* newRHS );
     
     //! Set the solution vector of the specified PDE to zero
     
@@ -572,13 +573,10 @@ namespace OLAS {
     //! \param matrix_id specifies matrix to be exported
     void Print(FEMatrixType matrix_id) const;
 
-    //! Returns full complex valued system matrix as a vector
-    void GetFullSystemMatrixAsVec(Complex* &vec) const;
-
     //! removes IDBS Information from algebraic system
     void RemoveIDBCInfoFromMatrix() const; 
 
-    StdMatrix *GetSysMat()const {return sysmat_[1];}
+    StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_[type];}
     SparseVector *GetSolVec(){return sol_;}
     SparseVector *GetRhsVec(){return rhs_;}
 
@@ -592,7 +590,7 @@ namespace OLAS {
 
     //! Pointer to the systemmatrix (sysmat[1])
     //! and the partial matrices (mass, stiffnes, ...)
-    StdMatrix **sysmat_;
+    StdMatrix** sysmat_;
 
     //! Pointer to solution vector
     SparseVector *sol_;
@@ -624,7 +622,6 @@ namespace OLAS {
 
     //! Pointer to a pool for sharing sparsity patterns between matrices
     PatternPool *patternPool_;
-
   };
 
 }

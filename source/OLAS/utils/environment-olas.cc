@@ -388,6 +388,9 @@ namespace OLAS {
     case MASS:
       out = "mass";
       break;
+    case AUXILIARY:
+      out = "auxiliary";
+      break;
     default:
       (*error) << "No string value found for the specified value of the "
                << "enumeration datatype FEMatrixTypeType.\n"

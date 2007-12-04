@@ -79,10 +79,8 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Reserve(unsigned int capacity)
   {
-#ifdef CHECK_INDEX
     if (capacity < 0)
       EXCEPTION( "Invalid value for StdVector::Reserve" );
-#endif
   
     if (capacity > capacity_)
       {
@@ -101,34 +99,34 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Resize(const unsigned int size)
   {
-#ifdef CHECK_INDEX
     if (size < 0) 
       EXCEPTION( "Invalid dimension for Resize" );
-#endif  
   
     if (size != size_ ||  capacity_ < size)
       {
 
         TYPE* help = new TYPE[size];
         
-        if(size > size_) {
-          for( unsigned int i = 0; i < size_; i++ ) 
-            help[i] = data_[i];
-        } else {
-          for( unsigned int i = 0; i < size; i++ ) 
-            help[i] = data_[i];
-        }
+        unsigned int limit = std::min(size, size_);   
+
+        for( unsigned int i = 0; i < limit; i++ ) 
+          help[i] = data_[i];
         
         delete[] data_;
         data_ = help;
         size_ = size;
         capacity_ = size;
       }
-  
-
   }
 
+  template<class TYPE>
+  void StdVector<TYPE>::Resize(const unsigned int size, TYPE entry)
+  {
+    Resize(size);
+    Init(entry);
+  }
 
+  
   // *************
   //   operator=
   // *************
@@ -190,6 +188,23 @@ namespace CoupledField {
     return *this;
   
   }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Import(const TYPE* source, unsigned int size)
+  {
+    if(size < 0)       EXCEPTION("invalid dimension to import: " << size);
+    if(source == NULL) EXCEPTION("cannot import NULL");
+
+    // Reserve and Resize do stuff we don't need
+    if(data_ != NULL) delete[] data_;
+    data_ = new TYPE[size];
+    size_ = size;
+    capacity_ = size;
+    
+    for(unsigned int i = 0; i < size; i++)
+      data_[i] = source[i];
+  }
+  
   
   template<class TYPE>
   void StdVector<TYPE>::Insert(const TYPE & y, unsigned int pos)
@@ -363,11 +378,6 @@ namespace CoupledField {
   template<class TYPE>
   bool StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
   {
-    // #ifdef CHECK_INITIALIZED 
-    //   if ((size_ == 0) || (vec.size_ == 0))
-    //     Warning("Vector: undefined Vector in operator==",__FILE__,__LINE__);
-    // #endif
-
     if (size_ == 0 && vec.size_ == 0)
       return true;
   
@@ -378,7 +388,27 @@ namespace CoupledField {
     return true;
   }
   
+  template<class TYPE>
+  bool StdVector<TYPE>::operator== (const TYPE* other) const
+  {
+    if (size_ == 0 && other == NULL)
+      return true;
+  
+    if(other == NULL)
+      EXCEPTION("cannot compare non-emoty StdVector with NULL");
+    
+    if(size_ == 0)
+      return false;
+    
+    for (unsigned int i = 0; i < size_; i++)
+      if (data_[i] != other[i])
+        return false;
+  
+    return true;
+  }
 
+  
+  
   template<class TYPE>
   bool StdVector<TYPE>::operator!= (const StdVector<TYPE> & vec) const
   {
@@ -397,38 +427,49 @@ namespace CoupledField {
     }
     return out.str();
   }
-        
   
   template<class TYPE>
-  void StdVector<TYPE>::ToString(std::string& out) const
+  std::string StdVector<TYPE>::ToString(int size, const TYPE* data, int level, int stride)
   {
-     std::stringstream ss;
-     for(unsigned int i = 0; i < GetSize(); i++) {
-        ss << (*this)[i];
-        if(i < GetSize() -1) ss << ", ";
-     } 
-     
-     out.assign(ss.str());
+    std::ostringstream os;
+
+    switch(level)
+    {
+    case 0:
+
+      for(int i = 0; i < size; i += stride)
+      {
+        os << data[i];
+        if(i < size-1) os << ", ";
+      }
+      break;
+
+    default:
+      
+      os << "size=" << size;
+      if(size > 0)
+      {
+        TYPE min = data[0];
+        TYPE max = data[0];
+
+        for(int i = 0; i < size; i++)
+        {
+          min = std::min(min, data[i]);
+          max = std::max(max, data[i]);
+        }
+        os << " min=" << min << " max=" << max;        
+      }
+      break;
+    }
+
+    return os.str();
   }
 
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString() const
+  std::string StdVector<TYPE>::ToString(int level, int stride) const
   {
-      std::string result;
-      ToString(result);
-      return result; // that's kind of magic :)
+    return StdVector<TYPE>::ToString(size_, data_, level, stride);
   }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Dump() const
-  {
-     std::cout << "StdVector<TYPE> with " << GetSize() << " elements" << std::endl;
-     
-     // for(unsigned int i = 0; i < GetSize(); i++) 
-     //   std::cout << i << ": " (*this)[i] << std::endl;
-  }
-
-
   
   template <class S> 
   void Sort(S* v, unsigned int n)

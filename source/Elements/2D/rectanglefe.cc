@@ -346,7 +346,7 @@ namespace CoupledField
         Error(errMsg.c_str(), __FILE__, __LINE__);
       }
   }
-
+  
   void RectangleFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const

@@ -252,13 +252,13 @@ namespace CoupledField {
   // =========================================================================
 
   void SimInputHDF5::
-  GetNumMultiSequenceSteps( std::map<UInt,AnalysisType>& analysis,
+  GetNumMultiSequenceSteps( std::map<UInt,BasePDE::AnalysisType>& analysis,
                             std::map<UInt, UInt>& numSteps,
                             bool isHistory ) {
 
     H5::Group resultGroup, actMsGroup;
     std::string actAnalysisString;
-    AnalysisType actAnalysis;
+    BasePDE::AnalysisType actAnalysis;
     analysis.clear();
     numSteps.clear();
     UInt actMsNumSteps = 0;
@@ -294,7 +294,7 @@ namespace CoupledField {
       // get analyisstring
       H5IO::ReadAttribute( actMsGroup, "AnalysisType", actAnalysisString );
       H5IO::ReadAttribute( actMsGroup, "LastStepNum", actMsNumSteps );
-      String2Enum( actAnalysisString, actAnalysis );
+      actAnalysis = BasePDE::analysisType.Parse(actAnalysisString);
       analysis[*it] = actAnalysis;
       numSteps[*it] = actMsNumSteps;
       

@@ -36,7 +36,6 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="sparseSym"/>
                 <xsd:enumeration value="sparseNonSym"/>
-                <xsd:enumeration value="hypreMatrix"/>
                 <xsd:enumeration value="lapackGBMatrix"/>
               </xsd:restriction>
             </xsd:simpleType>

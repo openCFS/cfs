@@ -23,6 +23,13 @@
 
 #include "General/exception.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+using CoupledField::Exception;
+
+DECLARE_LOG(stdSys)
+DEFINE_LOG(stdSys, "stdSys")
+
 namespace OLAS {
  
 
@@ -102,7 +109,7 @@ namespace OLAS {
                                          bool isQuadratic ) {
 
     // Determine if a generalized or a quadratic eigenvalue 
-    // problem has to be solved.
+    // problem has to be solved
     // In the latter case, a damping matrix has to be present, 
     // otherwise we issue a warning
     bool dampPresent = (matrixTypes_.find( DAMPING) != matrixTypes_.end());
@@ -152,7 +159,7 @@ namespace OLAS {
   // ***********************
   //   Solve linear system
   // ***********************
-  void StandardSystem::Solve(int step) {
+  void StandardSystem::Solve(const std::string& comment) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
@@ -161,6 +168,7 @@ namespace OLAS {
     if ( numDirichletValues_ > 0 &&
          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
       myParams_.SetValue( "RHSwithPenalty", true );
+      LOG_DBG(stdSys) << "Solve: rhs with penalty";
     }
 
 #ifdef DEBUG_STANDARDSYSTEM
@@ -181,6 +189,7 @@ namespace OLAS {
       idbcHandler_->SetDofsToIDBC( sol_ );
       (*cla) << " Inserted Dirichlet values into initial guess"
              << std::endl;
+      LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver"; 
     }
 
     // Perform a simple sanity check
@@ -194,73 +203,70 @@ namespace OLAS {
     myReport_.SetValue( "solutionIsOkay", true );
 
     // Now modifiy the right-hand side vector
+    LOG_DBG(stdSys) << "Solve: add idbc to rhs";
     idbcHandler_->AddIDBCToRHS( rhs_ );
     
-    // Export linear system
-    bool doExport = myParams_.GetBoolValue( "exportLinSys" );
+    // check if we do export stuff
+    ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
     std::string file;
     std::string base;
 
     // need it common even when exclusive solution
-    if(doExport) {
+    if(els) {
       std::ostringstream os;
-      os << myParams_.GetStringValue("exportLinSysBaseName");
-      if(step != -1) os << "_" << step;
+      os << els->Get("baseName")->AsString();
+      if(comment != "") os << "_" << comment;
       base = os.str();  
     }
 
-    if (doExport && myParams_.GetStringValue("exportLinSysSolution") != "exclusive") 
+    // check if we do not only want the solution
+    if(els && els->Get("solution")->AsString() != "exclusive")
     {
-      // two formats
-      if(myParams_.GetStringValue("exportLinSysFormat") == "harwell-boeing") 
+      // two formats. The harwell-boing format includes the rhs!
+      if(els->Get("format")->AsString()  == "harwell-boeing") 
       {
-          file = base +  ".hb";
-          sysmat_[SYSTEM]->ExportHarwellBoeing(file, *rhs_);
-          (*cla) << " Export system matrix and RHS to " << file << std::endl;
+        sysmat_[SYSTEM]->ExportHarwellBoeing(base+".hb", *rhs_);
+
+        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+          sysmat_[DAMPING]->ExportHarwellBoeing(base+"_damping.hb", *rhs_);
+        
+        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+          sysmat_[AUXILIARY]->ExportHarwellBoeing(base+"_aux.hb", *rhs_);
       } 
       else // classical (default) matrix-market 
       {
-          file = base + ".mtx";
-          sysmat_[SYSTEM]->Export( file.c_str() );
-          (*cla) << " Export system matrix to " << file << std::endl;
-          
-          //-------- somehow printing the damping matrix ---------------------
-          // to print the damping matrix
-          if(sysmat_[DAMPING] != NULL){
-  			file = base + "_damping.mtx";
-  			sysmat_[DAMPING]->Export( file.c_str() );
-  			(*cla) << " Export damping matrix to " << file << std::endl;
-          }
-          //------------------------------------------------------------------
-          
-    
-          file = base + ".vec";
-          rhs_->Export( file.c_str() );
-          (*cla) << " Export system right hand side to " << file << " euclidian norm=" << rhs_->NormEuclid() << std::endl;
+        sysmat_[SYSTEM]->Export((base+".mtx").c_str() );
+
+        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+          sysmat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
+        
+        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+          sysmat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
+
+        // rhs is only in harwell-boing included    
+        rhs_->Export((base+".vec").c_str() );
       }    
     }
 
-    //------------------------------------------------------------------
-    //temp...only to check the initial sol_ .....erase
-    //std::cout << "\n exporting the initial solution vector ..... " << std::endl;
-    //sol_->Export("initialSolution.vec");
-    //------------------------------------------------------------------
-    // Trigger solution
+    if(els && els->Has("initialGuess", true))
+      sol_->Export((base+"_intial_guess.vec").c_str());
+    
+    LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormEuclid(); 
+    LOG_DBG(stdSys) << "euclidian norm of rhs = " << rhs_->NormEuclid();
+    
+    // ---------------------------
+    // This is the expensize part! solve the system
     solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
     
+    LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormEuclid();
 
-    if (doExport && myParams_.GetStringValue("exportLinSysSolution") != "no") {
-      file = base + ".sol.vec";
-      sol_->Export(file.c_str());
-      (*cla) << " Export system solution to " << file << " euclidian norm=" << sol_->NormEuclid() << std::endl;
-      
-      
-      
-      
-    }
+    if(els && els->Get("solution")->AsString() != "no")
+      sol_->Export((base+".sol.vec").c_str());
 
+    LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
     // Now de-modifiy the right-hand side vector
     idbcHandler_->RemoveIDBCFromRHS( rhs_ );
+    
 
     // Check that solution went fine, if not issue a warning
     if ( myReport_.GetBoolValue( "solutionIsOkay" ) == false ) {
@@ -276,6 +282,7 @@ namespace OLAS {
     Profiler::WriteReport();
 #endif
 
+    LOG_DBG(stdSys) << "Solve invalidate flag for solution buffer, why not also fro rhs?";
     // Set invaldiation flag for assembling routine
     assemble_->InvalidateSolBuffer();
   }
@@ -376,13 +383,8 @@ namespace OLAS {
       totalSize_ += sizePerPDE_[i];
     }
 
-#ifdef DEBUG_STANDARDSYSTEM  
-    (*debug) << "size " << size_ << std::endl;
-    (*debug) << "nne  " << nne_ << std::endl;
-    (*debug) << "Matrix Graph: " << std::endl;
-    graph->Print(*debug);
-#endif
-
+    LOG_DBG(stdSys)  << "CreateLinSys() size=" << size_ << " nne=" << nne_ << " totalSize=" << totalSize_; 
+    LOG_DBG3(stdSys) << " Matrix Graph=" << graph->ToString();
 
     // ------------------------
     //  Re-set numLastFreeDof
@@ -391,11 +393,7 @@ namespace OLAS {
     NewArray( numLastFreeDof_, UInt, 1 );
     numLastFreeDof_[1] = graph->GetSize();
 
-#ifdef DEBUG_STANDARDSYSTEM
-    (*debug) << " StandardSystem::CreateLinSys:"
-             << " Re-set numLastFreeDof to " << numLastFreeDof_[1]
-             << std::endl;
-#endif
+    LOG_DBG(stdSys) << " CreateLinSys(): Re-set numLastFreeDof to " << numLastFreeDof_[1];
 
     // --------------------------------------------
     //  Treatment of Dirichlet Boundary Conditions
@@ -421,11 +419,6 @@ namespace OLAS {
     // ------------------------
     //  Generation of matrices
     // ------------------------
-
-#ifdef DEBUG_STANDARDSYSTEM
-    (*debug) << "+++ CreateLinSys +++" << std::endl;
-#endif
-
     std::set<FEMatrixType>::iterator it;
     
     // Print information about matrix types to .las file
@@ -450,59 +443,49 @@ namespace OLAS {
     }
 
     // actual matrix generation
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) 
+    {
       MatrixStorageType actStorageType;
 
-#ifdef DEBUG_STANDARDSYSTEM
-      (*debug) << "Generating matrix[" << *it << "]"
-               << "\nMatrixEntryType     = " << entryType
-               << "\nMatrixStorageType   = " << storageType
-               << "\nDegrees of freedom  = " << blockSize_
-               << "\nNumber of rows      = " << size_
-               << "\nNumber of columns   = " << size_
-               << "\nNumber of non-zeros = " << nne_
-               << std::endl;
-#endif
+      LOG_DBG(stdSys) << "Generating matrix[" << *it << "]" << " MatrixEntryType=" << entryType
+      << " MatrixStorageType= " << storageType << " dofs= " << blockSize_
+      << " rows/cols= " << size_ << " nnz=" << nne_;
 
       actStorageType = storageType;
       if ( solver == DIAGSOLVER ) {
-	if ( *it == SYSTEM || *it == MASS ) {
-	  // just allocate a diagonal matrix
-	  actStorageType = DIAG;
-	}
+        if ( *it == SYSTEM || *it == MASS ) {
+          // just allocate a diagonal matrix
+          actStorageType = DIAG;
+        }
       }
 
-#ifdef DEBUG_STANDARDSYSTEM
-        (*debug) << "calling GenerateStdMatrixObject" << std::endl;
-#endif
+      LOG_DBG(stdSys) << "calling GenerateStdMatrixObject" << std::endl;
 
-        sysmat_[*it] = GenerateStdMatrixObject( entryType, actStorageType,
-                                                blockSize_, size_, size_,
-                                                nne_ );
-	// }
+      sysmat_[*it] = GenerateStdMatrixObject( entryType, actStorageType,
+          blockSize_, size_, size_,
+          nne_ );
+      
+      assert(sysmat_[*it] != NULL);
+      sysmat_[*it]->name = Enum2String(*it);
 
-#ifdef DEBUG_STANDARDSYSTEM
-      if ( sysmat_[*it] == NULL ) {
-        Error( "Matrix generation failed!", __FILE__, __LINE__ );
-      }
-#endif
-
+      LOG_DBG(stdSys) << "created matrix " << sysmat_[*it]->ToString(); 
+      
       // Generate sparsity pattern once, but share it afterwards
       // if this is possible
-      if ( sharePattern == false ) {
+      if ( sharePattern == false ) 
+      {
         sysmat_[*it]->SetSparsityPattern( (*graph) );
-        if ( sharePatternPossible == true ) {
+        if ( sharePatternPossible == true ) 
+        {
           sharePattern = true;
           patternID = sysmat_[*it]->TransferPatternToPool( patternPool_ );
         }
       }
-      else {
+      else 
         sysmat_[*it]->SetSparsityPattern( patternPool_, patternID );
-      }
     }
 
-   
+
     // ---------------------------------
     //  Generation of remaining objects
     // ---------------------------------
@@ -514,15 +497,14 @@ namespace OLAS {
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
 
     // Generate communication buffers
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) 
       GenerateCFSTransferBuffers();
-    }
 
     if ( rhs_ == NULL || sol_ == NULL ) {
       Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
     }
 
-#ifdef DEBUG_STANDARDSYSTEM
+    #ifdef DEBUG_STANDARDSYSTEM
     // Seens to be somehow buggy, as I got an Segemtation fault
     // when running it with block-matrices
     //(*debug) << "System Matrix connectivity: " << std::endl;
@@ -547,7 +529,6 @@ namespace OLAS {
     graph = NULL;
     delete graphManager_;
     graphManager_ = NULL;
-
   }
 
 
@@ -603,11 +584,11 @@ namespace OLAS {
   // *******************
   void StandardSystem::SetFEMatrixType(const FEMatrixType matType,
                                        const PdeIdType identifier1, 
-                                       const PdeIdType identifier2) {
-
-    if( matType != NOTYPE ) {
-      matrixTypes_.insert( matType );
-    }
+                                       const PdeIdType identifier2) 
+  {
+    LOG_DBG2(stdSys) << "SetFEMatrixType matType=" << matType << " pde1=" 
+                     << identifier1 << " pde2=" << identifier2;
+    if(matType != NOTYPE) matrixTypes_.insert(matType);
   }
 
 
@@ -631,11 +612,15 @@ namespace OLAS {
   //   InitMatrix
   // **************
   void StandardSystem::InitMatrix( FEMatrixType matrixID,
-                                   const PdeIdType identifierPDE ) {
+                                   const PdeIdType identifierPDE ) 
+  {
 
-
+    LOG_TRACE2(stdSys) << "InitMatrix matrixID=" << matrixID << " identifierPDE=" << identifierPDE;
+    
     // If matrix specified init this one
-    if ( matrixID != NOTYPE ) {
+    if ( matrixID != NOTYPE ) 
+    {
+      assert(sysmat_[matrixID] != NULL);
       sysmat_[matrixID]->Init();
       idbcHandler_->InitMatrix(matrixID);
     }
@@ -675,6 +660,10 @@ namespace OLAS {
     assemble_->InitRHS( rhs_, newRHS );
   }
 
+  void StandardSystem::InitRHS( const Vector<Complex>* newRHS ) {
+    assemble_->InitRHS( rhs_, newRHS );
+  }
+  
 
   // **********************
   //   InitSol (Version1)
@@ -733,32 +722,6 @@ namespace OLAS {
                                          Integer elemSize2,
                                          FEMatrix_Flags pFlags ) {
 
-    
-    
-    // The following section is obsolete alltogether, as
-    // in CFS++ the flag 'setCounterPart' is really only
-    // set for non-diagonal matrices, where the transposed
-    // has to be set as well. Previously the default for
-    // 'setCounterPart' was by default 'true', even for
-    // on-diagonal matrices.
-
-    // // Set flag for setting the symmetric counter-part of
-//     // the element matrix
-//     if ( setCounterPart == true ) {
-//       if ( idPDE1 == idPDE2 ) {
-
-//         // NOTE: Changed the default to true, since we have no way to handle
-//         //       it in CFS++ now. Thus, warning was commented out
-//         // (*warning) << "StandardSystem::SetElementMatrix: Refusing to set "
-//         //            << "symmetric counterpart for PDE with ID = "
-//         //            << identifierPDE1;
-//         // Warning( __FILE__, __LINE__ );
-//         setCounterPart = false;
-//       }
-//     }
-
-    // Delegate remaining work to assemble
-    
     // check which kind of assembly
     if(pFlags.setOnlyCounterPart == false )
     {
@@ -980,21 +943,26 @@ namespace OLAS {
   // ****************************
   //   ConstructEffectiveMatrix
   // ****************************
-  void StandardSystem::
-  ConstructEffectiveMatrix( const factorMap &matFactors ) {
-
+  void StandardSystem::ConstructEffectiveMatrix( const factorMap &matFactors ) 
+  {
+    LOG_DBG(stdSys) << "ConstructEffectiveMatrix() matFactors = " << matFactors.size()
+                    << " matrixTypes: " << matrixTypes_.size();
 
     factorMap::const_iterator it;
     StdMatrix *sys = sysmat_[SYSTEM];
 
     // It's okay, if there are no factors, if there is only a system
-    // matrix and no other ones
-    if ( matFactors.empty() == true ) {
-      if ( matrixTypes_.size() == 1 && sys != NULL ) {
-#ifdef DEBUG_STANDARDSYSTEM
-        (*debug) << " ConstructEffectiveMatrix: Nothing to be done, since"
-                 << " there is only one FE = system matrix\n\n";
-#endif
+    // matrix and no other non auxiliary ones
+    if(matFactors.empty() == true) 
+    {
+      // one element is auxiliary
+      bool has_aux = std::find(matrixTypes_.begin(), matrixTypes_.end(), AUXILIARY) != matrixTypes_.end();
+
+      if(sys != NULL && (matrixTypes_.size() == 1 || (matrixTypes_.size() == 2 && has_aux)))
+      {
+
+        LOG_TRACE(stdSys) << "ConstructEffectiveMatrix: Nothing to be done, "
+                          << "since there is only one (non auxiliary) FE matrix";
 
         // Also assemble the effective auxilliary system matrix for moving
         // IDBCs to the right-hand side
@@ -1011,29 +979,17 @@ namespace OLAS {
       }
     }
 
-#ifdef DEBUG_STANDARDSYSTEM
-    (*debug) << "ConstructEffectiveMatrix with factors: " << std::endl;
-    
-    for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-      (*debug) << Enum2String((*it).first) << ":" 
-               << (*it).second << std::endl;
-    }
-#endif
-
     // Intialize system matrix before adding the weighted
     // matrices to it
     this->InitMatrix( SYSTEM );
 
-    for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-      if ( sysmat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        sys->Add( (*it).second, *sysmat_[(*it).first] );
-      }
+    for ( it = matFactors.begin(); it != matFactors.end(); it++ )
+    {
+      LOG_DBG(stdSys) << " matFactor: " << Enum2String((*it).first) << ":" << (*it).second;      
+      if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 ) 
+        sys->Add((*it).second, *sysmat_[(*it).first] );
     }
-    
-#ifdef DEBUG_STANDARDSYSTEM
-    (*debug) << "effective Matrix: " << std::endl;
-    sys->Print(*debug);
-#endif
+    LOG_DBG3(stdSys) << "effective Matrix: " << sys->ToString();
 
     // Also assemble the effective auxilliary system matrix for moving
     // IDBCs to the right-hand side
@@ -1159,19 +1115,6 @@ namespace OLAS {
   void StandardSystem::Print( FEMatrixType matrix_id) const {
     sysmat_[matrix_id]->Print(*cla);
   }
-
-  // ********
-  //  returns system matrix (if stored in scrs!) as a vector
-  //  containing all upper triangle entries 
-  // ********
-  void StandardSystem::GetFullSystemMatrixAsVec(Complex*  &vec ) const {
-     
-    sysmat_[1]->CopySCRSMatrix2Vec(vec);
-
-    // needs further programming for crs, ... matrices                         
-  }
-
-
 
   // **********
   //   Export

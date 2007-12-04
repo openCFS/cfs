@@ -30,6 +30,7 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
   last_find_index_ = 0;
   
   regionId_ = regionId;
+  design_id = 0;
 
   // only temporary 
   StdVector<Elem*> elems;
@@ -39,7 +40,9 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
   applicationForm.Add(Optimization::MECH, "linElastInt");
   applicationForm.Add(Optimization::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
-  applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");  
+  applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
+  applicationForm.Add(Optimization::MASS, "MassInt");
+  applicationForm.Add(Optimization::SURFACE_NORMAL, "SurfaceNormalInt");
 
   // read the elements
   domain->GetGrid()->GetElems(elems, regionId);
@@ -48,26 +51,28 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
 
   // set our own structure with is element times design parameters
   data.Reserve(elements_ * pn_design.GetSize());
-  LOG_DBG(designSpace) << "data size: " << elements_ << "*" << pn_design.GetSize() << "=" << elements_ * pn_design.GetSize(); 
-   
+  
   // initialize for all designs for all elements with type, inital and element
   design.Resize(pn_design.GetSize());
   for(unsigned int d = 0; d < pn_design.GetSize(); d++)
   { 
-    DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(pn_design[d]->Get("name")->AsString());
-    double initial = pn_design[d]->Get("initial")->AsDouble();
+    DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name"));
     design[d]=dt;
-    LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt);
+    double initial = pn_design[d]->Get("initial")->AsDouble();
+    LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)
+                          << " initial=" << initial;
     
     for(unsigned int e = 0; e < elements_; e++) 
     {
-      DesignElement de;
+      DesignElement de(pn_design[d]);
+      de.elem = elems[e];
+      de.SetDesign(initial);
       data.Push_back(de);
-      data.Last().SetType(dt);
-      data.Last().elem = elems[e];
-      data.Last().SetDesign(initial);
     }
   } 
+
+  LOG_DBG(designSpace) << "data size: " << elements_ << "*" << pn_design.GetSize() << "=" << data.GetSize(); 
+  
   
   // now read the transfer functions
   transfer.Reserve(trans_in.GetSize());
@@ -80,9 +85,9 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
   }
   
   // set the result descriptions which identify the solution types
-  resultDescriptions_.Reserve(result.GetSize());
+  resultDescriptions.Reserve(result.GetSize());
   for(unsigned int i = 0; i < result.GetSize(); i++)
-    resultDescriptions_.Push_back(ResultDescription(result[i]));
+    resultDescriptions.Push_back(ResultDescription(result[i]));
 }
 
 void DesignSpace::PostInit(int constraints)
@@ -94,9 +99,9 @@ void DesignSpace::PostInit(int constraints)
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
 {
   // set the result descriptions which identify the solution types
-  for(unsigned int i = 0; i < resultDescriptions_.GetSize(); i++)
+  for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
-	ResultDescription& rd = resultDescriptions_[i];
+	  ResultDescription& rd = resultDescriptions[i];
     ResultInfo* ri = GetResultInfo(rd);
     shared_ptr<ResultInfo> opt_res(ri);    
     bool added = pde->CheckStoreResult(opt_res);
@@ -109,6 +114,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     }		     
   }
 }
+
 
 ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
 {
@@ -133,12 +139,13 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   return ri;
 }
 
-int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value, DesignElement::Detail detail)
+int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value, 
+                                       DesignElement::Detail detail, DesignElement::Access access)
 {
-  for(unsigned int i = 0; i < resultDescriptions_.GetSize(); i++)
+  for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
-    const ResultDescription& rd = resultDescriptions_[i];
-    if(rd.design != design || rd.value != value || rd.detail != detail) continue;
+    const ResultDescription& rd = resultDescriptions[i];
+    if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
     
     // we are right. 
     switch(rd.solutionType)
@@ -153,59 +160,6 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
   return -1; // the specified tripel was not specified such in xml
 }
 
-void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
-{
-  // our results are up to now scalar!
-  Result<double>& result = dynamic_cast<Result<double>&>(*base_result);
-  Vector<double>& result_data = result.GetVector();
-  
-  // set the result as we need it
-  result_data.Resize(elements_);
-  
-  // the description of the result
-  shared_ptr<ResultInfo> ri = result.GetResultInfo();
-    
-  // Work with a result description. This is either a result description from the
-  // xml file or when using the "predefined" *_PSEUDO_* we set it here.
-  ResultDescription def;
-  // set the defaults to be maybe replaced by a resultDescription
-  def.solutionType = ri->resultType;
-  // this is clearly nonsense if the result/solution tyoe is OPT_RESULT_1/2/3
-  def.design = ri->resultType == MECH_PSEUDO_DENSITY ? DesignElement::DENSITY : DesignElement::POLARIZATION;
-  def.access = DesignElement::PLAIN;
-  def.value  = DesignElement::DESIGN;
-  
-  ResultDescription& descr = def;
-  // ignore defaults if there is a result description for the OPT_RESULT_1/2/3 case  
-  for(unsigned int i = 0; i < resultDescriptions_.GetSize(); i++)
-    if(resultDescriptions_[i].solutionType == ri->resultType) 
-      descr = resultDescriptions_[i];
-  
-  // search where in data we are
-  int base = FindDesign(descr.design);
-
-  // loop over elements from result. We have to do it this way as the the connection
-  // of design element and result element is the element(->elemeNum) but we cannot
-  // search in the result for an element.
-  EntityIterator it = result.GetEntityList()->GetIterator();
-  for ( it.Begin(); !it.IsEnd(); it++ ) 
-  {
-    // note that the index is from the first design set!
-    unsigned int base_index = Find(it.GetElem()->elemNum);
-    // base=0 is first!
-    unsigned int data_index = (base * elements_) + base_index; 
-    DesignElement& de = data[data_index];
-  
-    #ifdef CHECK_INDEX
-    if(de.elem->elemNum != it.GetElem()->elemNum) {
-      EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
-                << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
-    }
-    #endif    
-    
-    result_data[it.GetPos()] = de.GetValue(&descr);
-  }
-}
 
 int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
 {
@@ -230,7 +184,6 @@ double DesignSpace::GetErsatzMaterialFactor(const Elem* elem, const BaseForm* fo
   // are we in the relevant region at all?
   if(elem->regionId != regionId_) 
     throw Exception("the element has the wrong region id");
-  
 
   // the application we have (MECH, ELEC, PIEZO_COUPLING)
   Optimization::Application applic = (Optimization::Application) applicationForm.Parse(form->GetName());
@@ -291,20 +244,68 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
-void DesignSpace::ReadDesignFromExtern(const double* space)
+int DesignSpace::ReadDesignFromExtern(const double* space)
 {
-   for(unsigned int i = 0; i < data.GetSize(); i++) 
-       data[i].SetDesign(space[i]);
+  bool new_design = false;
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+  {
+    // set new_design -> save some time if already new
+    if(!new_design && data[i].GetDesign(DesignElement::PLAIN) != space[i]) 
+      new_design = true;
+    data[i].SetDesign(space[i]);
+  }
+  if(new_design) design_id++;
+  return design_id;
 }  
 
-void DesignSpace::WriteDesignToExtern(double* space)
+int DesignSpace::WriteDesignToExtern(double* space) const
 {
     // must be set in the constructor! might be trivial volume fraction or from file!!
     for(unsigned int i = 0; i < data.GetSize(); i++)
        space[i] = data[i].GetDesign(DesignElement::PLAIN);
+    
+    return design_id;
 }  
 
+void DesignSpace::WriteGradientToExtern(double* out, DesignElement::Type det,
+                 DesignElement::ValueSpecifier vs, DesignElement::Access access) const
+{
+  // must be set in the constructor! might be trivial volume fraction or from file!!
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+  {
+    const DesignElement& de = data[i];
+    
+    bool relevant = det == DesignElement::DEFAULT 
+                 || det == DesignElement::NO_TYPE
+                 || det == de.GetType();
 
+    out[i] = relevant ? data[i].GetValue(vs, access) : 0.0;
+  }
+}
+  
+void DesignSpace::Reset(DesignElement::Type design, DesignElement::ValueSpecifier vs)
+{
+  unsigned int base = FindDesign(design) * elements_;
+
+  for(unsigned int i = 0; i < elements_; i++)
+  {
+    DesignElement& de = data[base + i];
+    if(de.GetType() != design) continue;
+
+    switch(vs)
+    {
+      case DesignElement::DESIGN: 
+           de.SetDesign(0.0);
+           break;
+      
+      case DesignElement::COST_GRADIENT: 
+           de.SetObjectiveGradient(0.0);
+           break;
+           
+      default: throw Exception("design not handled");     
+    }
+  }
+}
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt)
 {
   unsigned int idx = Find(elemNum);

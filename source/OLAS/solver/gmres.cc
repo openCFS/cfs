@@ -8,6 +8,8 @@
 #include "algsys/algsys.hh"
 
 #include "solver/gmres.hh"
+#include <cassert>
+
 #include "General/exception.hh"
 using CoupledField::Exception;
 
@@ -95,8 +97,7 @@ namespace OLAS {
     UInt newKrylovDim = (UInt)myParams_->GetIntValue( "GMRES_maxKrylovDim" );
 
     // Check that matrix is square
-    if ( nCols != nRows ) 
-      EXCEPTION("system matrix is not square but " << nRows << " x " << nCols);
+    assert(nCols == nRows); 
 
     // Check that the maximal dimension of the Krylov subspace is not
     // larger than the dimension of the problem

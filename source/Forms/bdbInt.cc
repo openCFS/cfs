@@ -6,8 +6,10 @@
 #include <fstream>
 
 #include "bdbInt.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(bdb)
+DEFINE_LOG(bdb, "bdbInt")
 
 namespace CoupledField {
 
@@ -64,6 +66,7 @@ namespace CoupledField {
         calcDMat( dMat );
         
         double density = GetErsatzMaterialFactor(ent1.GetElem());
+        LOG_DBG3(bdb) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density; 
         if(density != 1.0) dMat *= density;
       }
       // Loop over all integration points
@@ -80,6 +83,7 @@ namespace CoupledField {
           ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
           calcDMat( dMat );
           double density = GetErsatzMaterialFactor(ent1.GetElem());
+          LOG_DBG3(bdb) << "CalcElementMatrix: (1) rotated ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density;
           if(density != 1.0) dMat *= density;
         }
         
@@ -108,6 +112,8 @@ namespace CoupledField {
         }
 
         // Compute the matrix product D * B and store as intermediate matrix
+        // resize dbMat to handle SurfaceNortmalInt
+        dbMat.Resize(bMat.GetSizeRow(), bMat.GetSizeCol());
         dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
@@ -128,7 +134,6 @@ namespace CoupledField {
 
     }
 
-
     // **********************************************
     //  Material matrix depends on integration point
     // **********************************************
@@ -140,6 +145,7 @@ namespace CoupledField {
         // Setup material matrix for current integration point
         calcDMat( dMat, actIntPt, ptCoord_ );
         double density = GetErsatzMaterialFactor(ent1.GetElem());
+        LOG_DBG3(bdb) << "CalcElementMatrix: (2) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density; 
         if(density != 1.0) dMat *= density;
 
         // Setup the B matrix for current integration point
@@ -315,8 +321,6 @@ namespace CoupledField {
     dbMat = temp1*temp2;
     UnsetIntPoint();
   }
-
-
 
   // ***************
   //   Constructor

@@ -49,12 +49,6 @@
 
 using namespace CoupledField;
 
-#ifdef PARALLEL
-#define STDOUT if (!commrank) std::cout
-#else
-#define STDOUT std::cout
-#endif
-
 int main( int argc, const char **argv ) {
 
 
@@ -63,6 +57,8 @@ int main( int argc, const char **argv ) {
   try 
   {
         
+  BasePDE::SetEnums();  
+    
   // =========================================================================
   // TIMING
   // =========================================================================
@@ -84,10 +80,8 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   commandLine = new CommandLineHandlerSetting( argc, argv );
 
-# ifdef DEBUG
   // Get information about exception handling
   Exception::segfault_ = commandLine->GetForceSegFault();
-#endif
 
   // =========================================================================
   // GENERATE OBJECT FOR HANDLING FILE-IO
@@ -308,7 +302,7 @@ int main( int argc, const char **argv ) {
   // Only output of grid
   // =========================================================================
   if ( commandLine->GetPrintGrid() == true ) {
-    STDOUT << "Printing grid to file " << myEndl << myEndl;
+    std::cout << "Printing grid to file " << myEndl << myEndl;
     domain->PrintGrid();
     delete domain;
     delete Info;

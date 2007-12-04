@@ -9,7 +9,7 @@
 #include <string>
 
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+// #include "Utils/vector.hh"
 
 namespace CoupledField
 {
@@ -17,7 +17,6 @@ namespace CoupledField
   //! Forward class declaration
   class BaseFctPointer;
   class ArgList;
-  
   // Base class for implementing an interface to a central scripting instance.
   class Scriptable {
 
@@ -71,7 +70,7 @@ namespace CoupledField
     //! \param retVal Vector of return values in string format
     //! \return true, if evaluation was successful
     bool Script_Eval( const StdVector<std::string> & args,
-                         UInt & argOffset,
+                         unsigned int & argOffset,
                          StdVector<std::string> & retVal);
 
     //! Get list of all available commands of this object
@@ -138,9 +137,9 @@ namespace CoupledField
   public:
 
     //! Define type of arguments
-    typedef enum { STRING, DOUBLE, UINT, INT, STDVEC_STR, STDVEC_DOUBLE, 
-                   STDVEC_UINT, STDVEC_INT, VEC_UINT, 
-                   VEC_INT, VEC_DOUBLE } ParamType;
+    typedef enum { STRING, DOUBLE, UINT, INT,  
+                   //VEC_UINT, VEC_INT, VEC_DOUBLE, -- killme TODO: Fabian 
+                   STDVEC_STR, STDVEC_DOUBLE, STDVEC_UINT, STDVEC_INT } ParamType;
 
     //! Register a new paramter, which can be later set/get
     void RegisterParam( const std::string name, 
@@ -153,7 +152,7 @@ namespace CoupledField
     StdVector<std::string> & GetRetVal();
 
     //! Return number of mandatory arguments
-    UInt GetNumParams();
+    unsigned int GetNumParams();
 
     //! Get Signature of argument list
     void GetSignature( std::string & signature );
@@ -195,16 +194,17 @@ namespace CoupledField
 
     
     DEFINE_PARAM(STRING,std::string);
-    DEFINE_PARAM(DOUBLE,Double);
-    DEFINE_PARAM(UINT,UInt);
-    DEFINE_PARAM(INT,Integer);
+    DEFINE_PARAM(DOUBLE,double);
+    DEFINE_PARAM(UINT,unsigned int);
+    DEFINE_PARAM(INT,int);
     DEFINE_PARAM(STDVEC_STR,StdVector<std::string>);
-    DEFINE_PARAM(STDVEC_DOUBLE,StdVector<Double>);
-    DEFINE_PARAM(STDVEC_UINT,StdVector<UInt>);
-    DEFINE_PARAM(STDVEC_INT,StdVector<Integer>);
-    DEFINE_PARAM(VEC_UINT,Vector<UInt>);
-    DEFINE_PARAM(VEC_INT,Vector<Integer>);
-    DEFINE_PARAM(VEC_DOUBLE,Vector<Double>);
+    DEFINE_PARAM(STDVEC_DOUBLE,StdVector<double>);
+    DEFINE_PARAM(STDVEC_UINT,StdVector<unsigned int>);
+    DEFINE_PARAM(STDVEC_INT,StdVector<int>);
+    // killme - TODO Fabian
+    //DEFINE_PARAM(VEC_UINT,Vector<unsigned int>);
+    //DEFINE_PARAM(VEC_INT,Vector<int>);
+    // DEFINE_PARAM(VEC_DOUBLE,Vector<double>);
     
 #undef DEFINE_PARAM
 

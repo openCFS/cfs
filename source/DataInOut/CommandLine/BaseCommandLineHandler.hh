@@ -257,7 +257,6 @@ namespace CoupledField {
     //! The execution stops after the printout.
     virtual bool GetDumpStats() const = 0;
 
-#ifdef DEBUG
     //! Return forceSegfault flag
 
     //! This method can be used to query the status of the forceSegFault flag.
@@ -265,7 +264,6 @@ namespace CoupledField {
     //! fault will be forced instead, which enables one to use a debugger
     //! to get a stack trace.
     virtual bool GetForceSegFault() const = 0;
-#endif
 
     //@}
 
@@ -293,9 +291,7 @@ namespace CoupledField {
     const static std::string helpDoProfile_;
     const static std::string helpRestart_;
     const static std::string helpDumpStats_;
-#ifdef DEBUG
     const static std::string helpForceSegFault_;
-#endif
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -314,9 +310,7 @@ namespace CoupledField {
     const static std::string markerDoProfile_;
     const static std::string markerRestart_;
     const static std::string markerDumpStats_;
-#ifdef DEBUG
     const static std::string markerForceSegFault_;
-#endif
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -336,9 +330,7 @@ namespace CoupledField {
     const static std::string markerLongDoProfile_;
     const static std::string markerLongRestart_;
     const static std::string markerLongDumpStats_;
-#ifdef DEBUG
     const static std::string markerLongForceSegFault_;
-#endif
     //@}
 
 

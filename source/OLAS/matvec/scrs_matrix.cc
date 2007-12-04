@@ -2,6 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <cassert>
+
 #include "matvec/scrs_matrix.hh"
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class
@@ -460,6 +462,9 @@ namespace OLAS {
   inline void SCRS_Matrix<T>::Mult( const Vector<T> &mvec,
 				    Vector<T> &rvec ) const {
 
+    assert(mvec.GetSize() == rvec.GetSize());
+    assert(this->ncols_ == (int) mvec.GetSize());
+     
 
     register Integer k, rs;
     register Integer c;
@@ -473,10 +478,10 @@ namespace OLAS {
       rvec[i] += this->data_[k] * mvec[i];
       k++;
       for ( j = 2; j <= rs; j++ ){
-	c = colInd_[k];
-	rvec[i] += this->data_[k] * mvec[c];
-	rvec[c] += opType<T>::multT( this->data_[k], mvec[i] );
-	k++;
+        c = colInd_[k];
+        rvec[i] += this->data_[k] * mvec[c];
+        rvec[c] += opType<T>::multT( this->data_[k], mvec[i] );
+        k++;
       }
     }
   }

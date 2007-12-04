@@ -9,9 +9,17 @@
 #include "algsys/baseidbchandler.hh"
 #include "algsys/standardsys.hh"
 #include "matvec/matvec.hh"
-
 #include "matvec/vector.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "Utils/StdVector.hh"
+#include "General/exception.hh"
+
+using CoupledField::Exception;
+using CoupledField::StdVector;
+
+DECLARE_LOG(entryManip)
+DEFINE_LOG(entryManip, "entryManip")
 
 namespace OLAS {
 
@@ -78,51 +86,21 @@ namespace OLAS {
         }
       }
     }
-
-#ifdef DEBUG_ASSEMBLE
+    
     // output original connectivity
-    (*debug) << "\n ------------------------------------------------------"
-             << "\n EntryManipulatorComplex::SetElementMatrix\n"
-             << " limit1 = " << limit1 << '\n'
-             << " limit2 = " << limit2 << '\n';
-    (*debug) << " connect1 ";
-    for ( UInt i = 0; i < length1; i++ ) {
-      (*debug) << connect1[i] << " ";
-    }
-    (*debug) << std::endl;
-    (*debug) << " connect2 ";
-    for ( UInt i = 0; i < length2; i++ ) {
-      (*debug) << connect2[i] << " ";
-    }
-    (*debug) << std::endl;
-
-    // output new connectivity
-    (*debug) << " rowIndList_: ";
-    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
-      (*debug) << rowIndList_[i] << " ";
-    }
-    (*debug) << std::endl;
-    (*debug) << " colIndList1_: ";
-    for ( UInt i = 0; i < colIndList1_.size(); i += 2 ) {
-      (*debug) << colIndList1_[i] << " ";
-    }
-    (*debug) << std::endl;
-    (*debug) << " colIndList2_: ";
-    for ( UInt i = 0; i < colIndList2_.size(); i += 2 ) {
-      (*debug) << colIndList2_[i] << " ";
-    }
-    (*debug) << std::endl;
-#endif
-
+    LOG_DBG(entryManip) << "limit1=" << limit1 << " limit2 << " << limit2;
+    LOG_DBG3(entryManip) << "connect1=" << StdVector<int>::ToString(length1, connect1);
+    LOG_DBG3(entryManip) << "connect2=" << StdVector<int>::ToString(length2, connect2);
+    // LOG_DBG3(entryManip) << "rowIndList_=" << StdVector<unsigned int>::ToString(rowIndList_.size(), rowIndList_[0], 0, 2);
+    LOG_DBG3(entryManip) << "colIndList1_=" << StdVector<unsigned int>::ToString(colIndList1_.size(), &colIndList1_[0], 0, 2);
+    LOG_DBG3(entryManip) << "colIndList2_=" << StdVector<unsigned int>::ToString(colIndList2_.size(), &colIndList2_[0], 0, 2);
 
     // STEP 3a: Insert values into matrix for complex dofs
     UInt rowInd;
     UInt colInd;
     Double real;
     Double imag;
-#ifdef DEBUG_ASSEMBLE
-    (*debug) << "\n free <-> free matrix:\n";
-#endif
+
     for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
       rowInd = rowIndList_[i+1];
       for ( UInt j = 0; j < colIndList1_.size(); j += 2 ) {
@@ -131,10 +109,8 @@ namespace OLAS {
         imag = elemMat[ rowInd * length2 + colInd + length1 * length2 ];
         Complex cVal( real, imag );
 
-#ifdef DEBUG_ASSEMBLE
-        (*debug) << "mat(" << rowIndList_[i] << ", "
-                 << colIndList1_[j] << ") += " << cVal << std::endl;
-#endif
+        LOG_DBG3(entryManip) << "mat[" << rowIndList_[i] << "][" << colIndList1_[j] 
+                             << "] += (" << cVal;
         stdMat->AddToMatrixEntry( rowIndList_[i], colIndList1_[j], cVal );
 
       }
@@ -142,10 +118,6 @@ namespace OLAS {
 
     // STEP 3b: Insert values of transposed counter part into matrix
     if ( setCounterPart == true ) {
-
-#ifdef DEBUG_ASSEMBLE
-      (*debug) << "\n free <-> free matrix (counterpart):\n";
-#endif
       for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
         rowInd = rowIndList_[i+1];
         for ( UInt j = 0; j < colIndList1_.size(); j += 2 ) {
@@ -154,10 +126,8 @@ namespace OLAS {
           imag = elemMat[ rowInd * length2 + colInd + length1 * length2 ];
           Complex cVal( real, imag );
 
-#ifdef DEBUG_ASSEMBLE
-          (*debug) << "mat(" << colIndList1_[j] << ", "
-                   << rowIndList_[j] << ") += " << cVal << std::endl;
-#endif
+          LOG_DBG2(entryManip) << "counterpart: mat[" << colIndList1_[j] << "][" << colIndList1_[i] 
+                               << "] += (" << cVal;
 
           counterPart->AddToMatrixEntry( colIndList1_[j], rowIndList_[i],
                                          cVal );
@@ -166,29 +136,19 @@ namespace OLAS {
     }
 
     // STEP 4: Insert values for fixed dofs into IDBC_Handler object
-#ifdef DEBUG_ASSEMBLE
-    (*debug) << "\n free <-> fixed matrix:\n";
-#endif
     for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
       rowInd = rowIndList_[i+1];
       for ( UInt j = 0; j < colIndList2_.size(); j += 2 ) {
         colInd = colIndList2_[j+1];
 
-#ifdef DEBUG_ASSEMBLE
-        (*debug) << " mat(" << rowIndList_[i] << ", "
-                 << colIndList2_[j] << ") += "
-                 << elemMat[ rowInd * length2 + colInd ]
-                 << ", "
-                 << elemMat[ rowInd * length2 + colInd + length1 * length2]
-                 << std::endl;
-#endif
-        idbcHandler->SetWeightFixedToFree( matrixID, pdeID1, pdeID2,
-                                           rowIndList_[i], colIndList2_[j],
-                                           elemMat[ rowInd * length2
-                                                    + colInd ],
-                                           elemMat[ rowInd * length2
-                                                    + colInd
-                                                    + length1 * length2 ]);
+        LOG_DBG2(entryManip) << "idbcHandler->SetWeightFixedToFree mat[" << rowIndList_[i]
+                             << ", " << colIndList2_[j] << "] += "
+                             << elemMat[ rowInd * length2 + colInd ] << ", "
+                             << elemMat[ rowInd * length2 + colInd + length1 * length2];
+
+        idbcHandler->SetWeightFixedToFree( matrixID, pdeID1, pdeID2, rowIndList_[i], colIndList2_[j],
+                                           elemMat[ rowInd * length2 + colInd ],
+                                           elemMat[ rowInd * length2 + colInd  + length1 * length2 ]);
       }
     }
   }
@@ -664,12 +624,9 @@ namespace OLAS {
 
     Complex aux = Complex(0.0, 0.0);
 
-    Warning ( "EntryManipulatorComplex::InitRHS() has not been tested yet",
-              __FILE__, __LINE__ );
-
     // For the standard vector class we use fast access
     if ( Vector<Complex> *myRHS = dynamic_cast<Vector<Complex>*>(rhs) ) {
-      for ( Integer i = 1; i <= size; i++ ) {
+      for ( unsigned int i = 1; i <= size; i++ ) {
         aux = Complex( (newRHS-1)[i], (newRHS-1)[i+size] );
         (*myRHS)[i] = aux;
       }
@@ -681,7 +638,7 @@ namespace OLAS {
     //
     // What makes you think this is slower than the above?
     else {
-      for ( Integer i = 1; i <= size; i++ ) {
+      for (unsigned int i = 1; i <= size; i++ ) {
         aux = Complex( (newRHS-1)[i], (newRHS-1)[i+size] );
         rhs->SetVectorEntry(i, aux);
       }
@@ -692,6 +649,25 @@ namespace OLAS {
   }
 
 
+  // ***********
+  //   InitRHS
+  // ***********
+  void EntryManipulatorComplex::InitRHS( SparseVector *rhs, const Vector<Complex>* newRHS ) 
+  {
+    assert(rhs->GetSize() == newRHS->GetSize());
+    
+    // we assuse our rhs is complex
+    Vector<Complex> *myRHS = dynamic_cast<Vector<Complex>*>(rhs);
+    assert(myRHS != NULL);
+
+    for ( unsigned int i = 1; i <= rhs->GetSize(); i++ ) 
+      (*myRHS)[i] = (*newRHS)[i];
+
+    // Set flag for rhsBuffer invaldiation
+    rhsBufferIsValid_ = false;
+  }
+  
+  
   // *******************************
   //   UpdateRHS (f = f + A * fup)
   // *******************************
@@ -782,9 +758,9 @@ namespace OLAS {
   //   GetRHSVal
   // *************
   void EntryManipulatorComplex::GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
-                                           const PdeIdType identifierPDE ) {
-    (*error) << "GetRHSVal(Double) not defined for complex entries";
-    Error( __FILE__, __LINE__ );
+                                           const PdeIdType identifierPDE ) 
+  {
+    EXCEPTION("GetRHSVal(Double) not defined for complex entries");
   }
 
   void EntryManipulatorComplex::GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 

@@ -1622,10 +1622,10 @@ namespace CoupledField
     Lmin = Lmax; 
     for ( UInt i=1; i<12; i++ ) {
       if ( L[i] > Lmax ) {
-	Lmax = L[i];
+        Lmax = L[i];
       }
       if ( L[i] < Lmin ) {
-	Lmin = L[i];
+        Lmin = L[i];
       }
     }
   }

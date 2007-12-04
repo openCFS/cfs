@@ -32,7 +32,7 @@ namespace CoupledField
 
 
     // Set analysistype
-    analysis_ = HARMONIC;
+    analysis_ = BasePDE::HARMONIC;
     ptMyPDE_ = NULL;
     residuumParIdent_=1.0;
     resonanceFrequency_=0;
@@ -223,25 +223,12 @@ namespace CoupledField
       inMess_.close();
     if(inMechMess_)
       inMechMess_.close();
-
-
-#ifdef USE_LAPACK
-   //  if(lp_af77)
-//       DeleteArray(lp_af77);
-//     std::cout<<"delete wf77 in destructor ..."<<std::endl;
-//     if(&lp_wf77)
-//       DeleteArray(lp_wf77);
-//     std::cout<<"delete workf77"<<std::endl;
-//     if(lp_workf77)
-//       DeleteArray(lp_workf77);
-//     std::cout<<"delete rwork77"<<std::endl;
-//     if(lp_rworkf77)
-//       DeleteArray(lp_rworkf77);
-#endif
   }
 
-  void piezoParamIdent :: SolveProblem() {
-
+  void piezoParamIdent::SolveProblem(bool write_results, const std::string& comment) {
+    assert(write_results = true);
+    assert(comment == "");
+    
     UInt highestAssumableNrOfMeasData=100;
 
     // notify resultHandler about beginning of new sequence step 

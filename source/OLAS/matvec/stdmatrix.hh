@@ -449,6 +449,12 @@ Error("StdMatrix::GetDiagEntry(): Not implemented here",__FILE__,__LINE__);}
 
 DECL_STDMATRIX_FCN(Complex);
 
+
+     /** for debugging purpose it is cool to have a name to identify the matrix */
+     std::string name;
+     
+     /** Do some debug output */
+     std::string ToString();
   protected:
 
     //! Number of matrix rows

@@ -30,7 +30,7 @@ namespace CoupledField {
     
     
     // Set correct analysistype
-    analysis_ = HARMONIC;
+    analysis_ = BasePDE::HARMONIC;
 
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
@@ -137,19 +137,21 @@ namespace CoupledField {
   }
 
 
+  
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem() {
-
-
-    // notify resultHandler about beginning of new sequence step 
-    ResultHandler * resHandler = domain->GetResultHandler();
-    resHandler->BeginMultiSequenceStep( sequenceStep_,
-                                        analysis_,
-                                        numFreq_ );
-
-    ptPDE_->WriteGeneralPDEdefines();
+  void HarmonicDriver::SolveProblem(bool write_results, const std::string& comment) 
+  {
+    // in harmonics one cannot extraxt the result writing to StoreResults() as
+    // we have multiple frequencies. (exceptions is optimization)
+    
+    // be 'silent' and don't do output only for optimization  
+    if(write_results) {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
+      // info stuff
+      ptPDE_->WriteGeneralPDEdefines();
+    }
 
     //---------------------------------------------------------------------------
     // to save the initial state
@@ -159,49 +161,57 @@ namespace CoupledField {
     //---------------------------------------------------------------------------
     
     // Perform one simulation for each desired frequency
-    for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ ) {
-
+    for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ ) 
+    {
       // Determine next frequency value
       actFreq_ = ComputeNextFrequency( actFreqStep_ );
 
       // Set curent frequency value in the mathParser
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", actFreqStep_ );        
-
-
-      // Log info for this frequency
-      Info->WriteHarmonicStep( ptPDE_->GetName(), actFreqStep_, actFreq_ );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );        
 
       // Perform steps for the solution
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
       ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
       ptPDE_->GetSolveStep()->PreStepHarmonic();
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(comment);
       ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-      // Write results into output-file(s)
-      resHandler->BeginStep( actFreqStep_, actFreq_ );
-      ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
-      resHandler->FinishStep( );
-
+      // Write results into output-file(s) if we don't do optimization
+      if(write_results) {
+        // Log info for this frequency - suppress in Optimization due to search steps
+        Info->WriteHarmonicStep( ptPDE_->GetName(), actFreqStep_, actFreq_ );
+        handler_->BeginStep( actFreqStep_, actFreq_ );
+        ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
+        handler_->FinishStep( );
+      }
     }
 
-    ptPDE_->Finalize();
-
-    // notify resultHandler about finishing of current sequence step
-    if( !isPartOfSequence_ ) {
-      resHandler->FinishMultiSequenceStep();
-      resHandler->Finalize();
+    if(write_results) {
+      handler_->FinishMultiSequenceStep();    
+      // notify resultHandler about finishing of current sequence step
+      if(!isPartOfSequence_) handler_->Finalize();
     }
   }
 
+  void HarmonicDriver::StoreResults(double step_val)
+  {
+    // works in optimization only for one frequency up to now!
+    assert(numFreq_ == 1);
+    assert(analysis_ == BasePDE::HARMONIC);
+
+    // Write results into output-file(s)
+    handler_->BeginStep((unsigned int) step_val, step_val);
+    ptPDE_->WriteResultsInFile((unsigned int) step_val, step_val);
+    handler_->FinishStep( );
+  }
+  
+  
 
   // ************************
   //   ComputeNextFrequency
   // ************************
-  Double HarmonicDriver::ComputeNextFrequency( UInt freqIndex ) {
+  Double HarmonicDriver::ComputeNextFrequency( UInt freqIndex ) const {
 
 
     Double retFreq = 0.0;

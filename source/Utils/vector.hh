@@ -10,6 +10,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "promote.hh"
 #include "General/exception.hh"
+#include <def_build_type_options.hh>
 
 #ifdef EXPR_TEMPLATES
 #include "exprt/xpr1.hh"
@@ -109,7 +110,7 @@ namespace CoupledField {
     UInt Memory() const;
 
     /** Dumps the vector to a string - is slow, use only for debugging! */
-    std::string ToString();
+    std::string ToString() const;
 
     //@}
     
@@ -136,6 +137,10 @@ namespace CoupledField {
       
     //! Return pointer p to plain c-array 
     inline TYPE* GetPointer() const;
+    
+    /** gives the the pointer to the plain c array */
+    virtual void GetPointer(TYPE* &ptr_out) const;
+    
 
     //! Add a new element at position \a pos
 
@@ -188,7 +193,10 @@ namespace CoupledField {
     //! Set special part ( real, imag, amplitude, phase) of a vector
     void SetPart( DataType part, const Vector<Double> & partVector );
 
-  
+    /** Fills the vector by the external content. Adjustes 
+     * the size to confirm by the content! */
+    void FillVector(const TYPE* data, unsigned int size);
+
     //! Add s to i-th vector entry (x[i] += s)
 
     //! Add s to i-th vector entry (x[i] += s)
@@ -568,14 +576,22 @@ namespace CoupledField {
   }
 
   template <class TYPE> 
-  inline TYPE * Vector<TYPE>::GetPointer() const {
-#ifdef CHECK_MEMORY
+  inline TYPE * Vector<TYPE>::GetPointer() const 
+  {
     if (!data_)
       EXCEPTION( "Vector: undefined Vector" );
-#endif
     return data_;
   }
 
+  template <class TYPE> 
+  void Vector<TYPE>::GetPointer(TYPE* &ptr_out) const 
+  {
+    if (!data_)
+      EXCEPTION( "Vector: undefined Vector" );
+
+    ptr_out = data_;
+  }
+  
 
   // ************************************************************
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE

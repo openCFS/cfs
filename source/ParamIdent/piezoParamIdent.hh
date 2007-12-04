@@ -99,7 +99,7 @@ namespace CoupledField
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem();
+    void SolveProblem(bool write_results, const std::string& comment);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k

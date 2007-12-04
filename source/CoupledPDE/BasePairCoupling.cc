@@ -80,28 +80,7 @@ namespace CoupledField {
     // Determine analysistype and use of complex values
     analysisType_ = pde1_->GetAnalysisType();
  
-    switch( analysisType_ ) {
-    case STATIC:
-      isComplex_ = false;
-      break;
-
-    case TRANSIENT:
-      isComplex_ = false;
-      break;
-      
-    case HARMONIC:
-      isComplex_ = true;
-      break;
-      
-    case EIGENFREQUENCY:
-      isComplex_ = false;
-      break;
-
-    default:
-      
-      EXCEPTION( "AnalysisType '" << analysisType_
-                 << "' is not supported" );
-    }
+    isComplex_ = BasePDE::IsComplex(analysisType_);
 
     // get "region" list of current coupling object
     ParamNode * regionListNode = myParam_->Get("regionList", false );
@@ -188,8 +167,7 @@ namespace CoupledField {
     // Get type of analysis and create according 
     // assemble object
     // -> copy simply from first pde
-    std::string help;
-    Enum2String((*pde1_).analysistype_ , help);
+    std::string help = BasePDE::analysisType.ToString((*pde1_).analysistype_);
     //std::cerr << "Analysis of PDE is " 
     //<< help << std::endl;
 

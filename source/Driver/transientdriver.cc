@@ -43,7 +43,7 @@ namespace CoupledField {
                             << " sequenceStep: " << sequenceStep
                             << " isPartOfSequence: " << isPartOfSequence;
     // Set analysistype
-    analysis_ = TRANSIENT;
+    analysis_ = BasePDE::TRANSIENT;
 
     actTimeStep_ = 0;
     firstdt_ = 0.0;
@@ -91,12 +91,10 @@ namespace CoupledField {
 
   }
     
-
-  // =================
-  //   Solve Problem
-  // =================
-  void TransientDriver::SolveProblem()
-  {
+  void TransientDriver::SolveProblem(bool write_results, const std::string& comment) {
+    // options not implemented
+    assert(write_results == true);
+    assert(comment == "");
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -206,10 +204,8 @@ namespace CoupledField {
       SETPROFILE("After Transient Step");
     }
 
-    ptPDE_->Finalize();
-
     // notify resultHandler about finishing of current sequence step
-    if( !isPartOfSequence_ ) {
+    if(!isPartOfSequence_ ) {
       resHandler->FinishMultiSequenceStep();
       resHandler->Finalize();
     }

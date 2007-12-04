@@ -140,9 +140,6 @@ namespace OLAS {
     SetValue( "ARPACK_which"    , std::string("LM") );
     SetValue( "ARPACK_logging"  , false);
     
-    // By default we do not export the linear system to a file
-    SetValue( "exportLinSys", false );
-
     // By default we use a relative stopping criterion based
     // on the norm of the right-hand side of the problem
     SetValue( "StoppingCriterion", RELNORM_RHS );

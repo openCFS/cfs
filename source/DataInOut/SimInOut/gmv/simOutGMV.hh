@@ -32,8 +32,8 @@ namespace CoupledField
     
     //! Begin multisequence step
     void BeginMultiSequenceStep( UInt step,
-                                  AnalysisType type,
-                                  UInt numSteps );
+                                 BasePDE::AnalysisType type,
+                                 UInt numSteps );
     
     //! Register result (within one multisequence step)
     void RegisterResult( shared_ptr<BaseResult> sol,
@@ -73,7 +73,7 @@ namespace CoupledField
     Integer currMsStep_;
     
     //! current analysis type
-    AnalysisType currAnalysis_;
+    BasePDE::AnalysisType currAnalysis_;
 
     //! indicator of type for data
     bool ascii_;

@@ -1,17 +1,18 @@
 #ifndef SCPIP_HH_
 #define SCPIP_HH_
 
-#include "Utils/VecStat.hh"
 #include "Optimization/SCPIPBase.hh"
+#include "Optimization/BaseOptimizer.hh"
 
 namespace CoupledField
 {
-  class Optimization;
-  class ParamNode;
-  
+class Optimization;
+class ParamNode;
+
+
   /** This is an implementation of the C++ wrapper SCPIPBase of the
    * MAA implementation SCPIP by Ch. Zillober */
-  class SCPIP : public SCPIPBase
+  class SCPIP : public BaseOptimizer, public SCPIPBase
   {
     public:
       /** @param optimization the problem we optimize
@@ -74,23 +75,7 @@ namespace CoupledField
       /** This method is called every time SCPIP returns. It is more common
        * to IPOPT when next_iter is true! */
       bool intermediate_callback(int iter, bool next_iter);
-
-      /** Reference to the problem. We could get it globally but this way it is more explicit */
-      Optimization* optimization_;
-      
-      /** set in the constructor and read in get_scaling_parameters() */
-      double obj_scaling_factor_;
-      
-      /** Here we hold the initial gradient scaling. The 0 element is for the function,
-       * then the gradients */
-      StdVector<VecStat> initial_;
-      
-      /** Here we hold the current gradient scaling what we interpret as final! */
-      StdVector<VecStat> current_;
-      
   };
-
-
 
 } // end of namespace
 

@@ -31,7 +31,7 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic()
+  void IterSolveStep::SolveStepStatic(const std::string& comment)
   {
   
     CFSVector *val, *oldVal;
@@ -239,7 +239,7 @@ namespace CoupledField
 
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
       // definition of startStep_ in constuctor
-      if ( actAnalysisType_ == TRANSIENT )
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
         rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
     }
 
@@ -271,7 +271,7 @@ namespace CoupledField
         std::string mypdename;
         mypdename = rPDE_.PDEs_[i]->GetName();
         
-        if ( actAnalysisType_ == TRANSIENT ) {
+        if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
           
           rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
           rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
@@ -280,7 +280,7 @@ namespace CoupledField
           rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
           rPDE_.PDEs_[i]->CalcOutputCoupling();
         }
-        else if ( actAnalysisType_ == HARMONIC ) {
+        else if ( actAnalysisType_ == BasePDE::HARMONIC ) {
           
           rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq( actFreq_ );
           rPDE_.PDEs_[i]->GetSolveStep()->SetActStep( 1 );
@@ -326,10 +326,10 @@ namespace CoupledField
     // now we are converged and can compute any postprocessing-quantities
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
-      if ( actAnalysisType_ == TRANSIENT ) {
+      if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       }
-      else if ( actAnalysisType_ == HARMONIC ) {
+      else if ( actAnalysisType_ == BasePDE::HARMONIC ) {
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic();
       }
     }
@@ -339,11 +339,9 @@ namespace CoupledField
 
   
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic()
+  void IterSolveStep::SolveStepHarmonic(const std::string& comment)
   {
-    
-    Error( "Harmonic iterative coupling is not yet implemented", 
-           __FILE__, __LINE__);
+    EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }
 
 
@@ -355,7 +353,7 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == TRANSIENT )
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime);
     }
   }
@@ -368,7 +366,7 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == HARMONIC )
+      if ( actAnalysisType_ == BasePDE::HARMONIC )
         rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq);
     }
   }
@@ -381,10 +379,10 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == TRANSIENT )
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep);
       // Dirty Hack!!
-      else if ( actAnalysisType_ == HARMONIC )
+      else if ( actAnalysisType_ == BasePDE::HARMONIC )
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(1);
     }
   }
@@ -396,7 +394,7 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == TRANSIENT ) {
+      if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
         rPDE_.PDEs_[i]->GetSolveStep()->SetNumTimeSteps(numTimeStep);
         numTimeStep_=numTimeStep;
       }
@@ -409,7 +407,7 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == TRANSIENT )
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
         rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep);
     }
   }

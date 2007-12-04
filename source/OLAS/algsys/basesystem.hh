@@ -8,15 +8,15 @@
 #include <map>
 #include <set>
 
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-
 #include "olasparams.hh"
 #include "utils/defs.hh"
 #include "utils/environment.hh"
 
-using CoupledField::ParamNode;
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/exception.hh"
 
+using CoupledField::ParamNode;
+using CoupledField::Exception;
 
 namespace OLAS {
 
@@ -28,6 +28,7 @@ namespace OLAS {
   class BaseIDBC_Handler;
   class BaseEntryManipulator;
   class StdMatrix;
+  template <class TYPE> class Vector;
 
   //! Base class for linear algebraic system
   //! Only used as interface.
@@ -65,6 +66,12 @@ namespace OLAS {
       return &myReport_;
     }
 
+    /**  killme! check if really used in SIMP optimization */
+    BaseEntryManipulator* GetEntryManipulator() 
+    {
+      return assemble_;    
+    }
+    
     //! Obtain the dimension of the linear system
 
     //! This method can be used to query the dimension of the linear system.
@@ -167,8 +174,8 @@ namespace OLAS {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    //! \param step the step info is only for the optinal logging 
-    virtual void Solve(int step = -1) = 0;
+    //! \param comment the comment is added to the name for exporting files
+    virtual void Solve(const std::string& comment = "") = 0;
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -402,6 +409,17 @@ namespace OLAS {
     //! can be changed afterwards!
     virtual void InitRHS( const Double * newRHS ) = 0;
 
+    /** Sets the global rhs to given complex values.
+     * We use OLAS::Vector<> as the pointer stuff has the convention of
+     * first all real and then the imaginary parts and this is f* messy stuff.
+     * Is only implemented for StandardSystem. */
+    virtual void InitRHS( const Vector<Complex>* newRHS )
+    {
+      EXCEPTION("Only implemented in StandardSystem");
+    }
+    
+
+
     //! Set the solution vector of the specified PDE to zero
 
     //! This method sets the part of the solution vector associated with the
@@ -597,7 +615,7 @@ namespace OLAS {
     //! Constructs the effective system matrix
 
     //! Constructs the effective system matrix by multiplying the individual
-    //! matrices with factors and adding them to one system matrix
+    //! matrices (expect AUXILIARY!) with factors and adding them to one system matrix
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
     virtual void ConstructEffectiveMatrix( const std::map<FEMatrixType,Double> 
@@ -779,8 +797,9 @@ namespace OLAS {
     //! \param log any kind of filestrean (normally .las-file)
     virtual void PrintRegistrationInfo( std::ostream *log ) const;
 
-    //! The method returns a pointer to system matrix
-    virtual StdMatrix *GetSysMat() const { return NULL;}
+    /** This method gives back global matrix. For almost all cases you want
+     * the SYSTEM matrix */
+    virtual StdMatrix* GetSysMat(FEMatrixType type = SYSTEM) const { return NULL;}
 
     //! returns system matrix (if stored in scrs!) as a vector
     //! containing all upper triangle entries

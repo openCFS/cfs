@@ -2,7 +2,6 @@
 #define IPOPT_HH_
 
 #include "Utils/StdVector.hh"
-#include "Utils/VecStat.hh"
 
 // references to the lib
 #include "ipopt/IpTNLP.hpp"
@@ -13,6 +12,7 @@ namespace CoupledField
   
     
 class Optimization;
+class BaseOptimizer;
 class ParamNode;
 
 using namespace Ipopt;
@@ -31,15 +31,18 @@ class IPOPT : public TNLP
 public:
   /** @param optimization the problem we optimize
    * @param pn here we can have options - might be NULL! */
-  IPOPT(Optimization* optimization, ParamNode* pn);
+  IPOPT(Optimization* optimization, BaseOptimizer* base, ParamNode* pn);
   
   virtual ~IPOPT();
+
+  /** This is the actual initialzation. Might be called multiple times for restart */
+  void Init();
 
   /** Solves the problem. All stuff, including evaluations of the state problem is done
    * within this method. ipopt calls via the overloaded TNLP method the corresponding methods
    * in optimization.
    * @throws exception when not ok! */ 
-   void SolveProblem();
+  void SolveProblem();
 
   /** Method to return some info about the nlp */
   bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
@@ -108,20 +111,16 @@ public:
 private:
   /** Reference to the problem. We could get it globally but this way it is more explicit */
   Optimization* optimization_;
+
+  /** our BaseOptimizer from which we would also inherit it there wouldn't be that SmartPtr stuff */
+  BaseOptimizer* base_;
+  
+  /** The optimizer ParamNode - away from the constructor to support restart */
+  ParamNode* optimizer_pn_;
   
   /** We handle the ipopt framework within this class */
   SmartPtr<IpoptApplication> app;
 
-  /** the scaling factor in the xml file which is set in the constructor. This includes
-   * the maximation factor (-1)!. If nothing is set in xml it is 1.0 */
-  double obj_scaling_factor_;
-  
-  /** Here we hold the initial gradient scaling. The 0 element is for the function,
-   * then the gradients */
-  StdVector<VecStat> initial_;
-  
-  /** Here we hold the current gradient scaling what we interpret as final! */
-  StdVector<VecStat> current_;
 };
 
 
