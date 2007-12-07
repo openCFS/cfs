@@ -945,13 +945,13 @@ namespace CoupledField
     Grid* sourceGrid_;
     Grid* destGrid_;
     const std::vector< Vector<Double> >& nodeCoords_;
+    Double localEpsilon_;
     std::vector< std::map<UInt, Double> >& consInterpWeights_;
     std::vector<UInt> connect_;
     UInt nodeCounter_;
     UInt numSourceNodes_;
     UInt percentage_;
     UInt oldPercentage_;
-    Double localEpsilon_;
     std::map<UInt, UInt> destNodeNumToPosMap_;
     
     ConsInterpReportFunctor(const ElemList& destElemList,

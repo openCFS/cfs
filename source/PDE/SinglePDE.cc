@@ -1146,7 +1146,7 @@ namespace CoupledField {
     // inhomogeneous Dirichlet BC
     // =====================================================================
 
-    // fetch paramnodes for hdbc
+    // fetch paramnodes for idbc
     StdVector<ParamNode*> idbcNodes = bcsNode->GetList("dirichletInhom");
 
     // iterate over all parameter nodes
@@ -2929,7 +2929,7 @@ namespace CoupledField {
 //     outer[0][1] = 0;
 //     outer[1][1] = 2;
 
-    std::cout << "outer:\n" << outer << std::endl;
+    //std::cout << "outer:\n" << outer << std::endl;
     
     out << "PML layer coordinates:\n" 
         << "   xmin = " << outer[0][0] << std::endl

@@ -934,6 +934,7 @@ namespace CoupledField {
     std::string restartFileMode = "";
     Double globalEpsilon = 0.0;
     Double localEpsilon = 0.0;
+    std::string asynchSteps = "no";
 
     bcsNode = myParam_->Get("bcsAndLoads", false );
     if( bcsNode )
@@ -944,8 +945,7 @@ namespace CoupledField {
     try
     {
       rhsRegion = rhsValuesNode->Get("region")->AsString();
-//      rhsFileId = rhsValuesNode->Get("inputId")->AsString();
-      rhsFileId = "default";
+      rhsFileId = rhsValuesNode->Get("inputId")->AsString();
       rhsValuesNode->Get("factor", factor, false);
       rhsValuesNode->Get("interpolate", interpolate, false);
       if(interpolate)
@@ -958,6 +958,7 @@ namespace CoupledField {
         rhsValuesNode->Get("justInterpolate", justInterpolate_, false);
         rhsValuesNode->Get("restartFileMode", restartFileMode, false);
       }
+      asynchSteps = rhsValuesNode->Get("asynchSteps")->AsString();
       
     } catch (Exception& ex) 
     {
@@ -977,7 +978,8 @@ namespace CoupledField {
                                                       coordSysId,
                                                       globalEpsilon,
                                                       localEpsilon,
-                                                      restartFileMode);
+                                                      restartFileMode,
+                                                      asynchSteps);
 
       LinearFormContext * acouRHSContext = 
         new LinearFormContext( acouRHSInt );
