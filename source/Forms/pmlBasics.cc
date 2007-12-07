@@ -301,7 +301,7 @@ namespace CoupledField
       layerThickness_[1][i] = abs(outer[1][i] - inner[1][i]);
     }
 
-    std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
+    //std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
 
   }
 

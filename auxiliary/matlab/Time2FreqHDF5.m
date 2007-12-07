@@ -35,7 +35,7 @@
 %    ABOUT
 %
 %      -Created:     Jan 2006
-%      -Last update: 15 Nov 2007
+%      -Last update: 5 Dec 2007
 %      -Revision:    0.5
 %      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
 %
@@ -45,10 +45,10 @@
 function [] =  Time2FreqHDF5(infile, outfile, quantity, region, bufsize, nullstep)
 
 
-multistep = 1;
-step = 1;
-fileinfo = hdf5info(infile);
-toplevel = fileinfo.GroupHierarchy;
+if exist(infile, 'file') ~= 2
+  errstr = sprintf('File not found: %s', infile);
+  error(errstr);
+end
 
 % construct cfg filename for h5tool
 tmpfile = strcat(infile, '.cfg');
@@ -61,6 +61,11 @@ if exec(sprintf('h5tool < %s > /dev/null', tmpfile))
   delete(tmpfile);
   error('h5tool not found! Make sure h5tool is in PATH.');
 end
+
+multistep = 1;
+step = 1;
+fileinfo = hdf5info(infile);
+toplevel = fileinfo.GroupHierarchy;
 
 % check that requested result is really present in input file
 [found resgroup restype msgroup datafile] = FindPathHDF5(toplevel, multistep, step, quantity, region);
@@ -126,8 +131,13 @@ numiter = ceil(size_in_mb / bufsize * 5); % scale by 5, because we need 5 times
 
 % Delete temp files from last run.
 [pathstr, name, ext, versn] = fileparts(outfile);
-exec(sprintf('rm -rf %s/TEMP_FFT', pathstr));
-exec(sprintf('mkdir %s/TEMP_FFT', pathstr));
+if length(pathstr) == 0
+  tempdir = './TEMP_FFT';
+else
+  tempdir = sprintf('%s/TEMP_FFT', pathstr);
+end
+exec(sprintf('rm -rf %s', tempdir));
+exec(sprintf('mkdir %s', tempdir));
                                          
 % Number of scalars treated in one iteration (= chunk size)
 items_per_iter = ceil(num_items / numiter);
@@ -176,18 +186,19 @@ for iter=1:numiter
   end
 
   % perform FFT
+  disp(sprintf('\nPerforming FFT\n'))
   MAT = fft(mat);
   
   % split result into real and imaginary part
-  real_MAT = real(MAT);
-  imag_MAT = imag(MAT);
+  real_MAT = 2.*real(MAT)./numsteps;
+  imag_MAT = 2.*imag(MAT)./numsteps;
   clear MAT
 
   % write back harmonic datasets, one file for each chunk
-  outfile_iter = sprintf('%s/TEMP_FFT/%s_%d.h5', pathstr, name, iter);
+  outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
 
   if numiter > 1
-    disp(sprintf('\nBuffering result of chunk %d\n', iter))
+    disp(sprintf('Buffering result of chunk %d\n', iter))
   end
 
   for i=1:numharmsteps
@@ -235,7 +246,7 @@ for i=1:numharmsteps
 
   % store chunks into one dataset
   for iter=1:numiter
-    outfile_iter = sprintf('%s/TEMP_FFT/%s_%d.h5', pathstr, name, iter);
+    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
 
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
@@ -275,7 +286,7 @@ end
 
 clear ds_real ds_imag
 
-disp(sprintf('\nFinalizing output file ...\n'))
+disp(sprintf('\nFinalizing output file\n'))
 
 % set required attributes of results
 attr_details.AttachedTo = basepath;
@@ -341,5 +352,5 @@ CopyTreeHDF5(infile, '/Mesh', outfile, '/Mesh');
 WriteFileInfoHDF5(outfile, [1 2]);
 
 % Delete temp files
-exec(sprintf('rm -rf %s/TEMP_FFT', pathstr));
+exec(sprintf('rm -rf %s', tempdir));
 delete(tmpfile);

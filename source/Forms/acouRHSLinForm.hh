@@ -33,7 +33,8 @@ namespace CoupledField
                    std::string coordSysId,
                    Double globalEpsilon,
                    Double localEpsilon,
-                   std::string restartFileMode);
+                   std::string restartFileMode,
+                   std::string asynchSteps);
 
     ///
     virtual ~AcouRHSLinForm();
@@ -48,8 +49,8 @@ namespace CoupledField
 
   private:
 
-    std::string regionName_;
     std::string id_;
+    std::string regionName_;
     bool interpolate_;
     std::string srcInputId_;
     StdVector<std::string> srcRegions_;
@@ -57,19 +58,24 @@ namespace CoupledField
     std::string coordSysId_;
     Double globalEpsilon_;
     Double localEpsilon_;
+    std::string asynchSteps_;
     StdVector<NodeList*> sourceNodeLists_;
     NodeList* destNodeList_;
     ElemList* destElemList_;
+    BasePDE::AnalysisType analysistype_;
     
-    std::vector<Double> rhsValues_;
-    std::vector<Complex> rhsValuesComplex_;
+    StdVector<Double> rhsValues_;
+    StdVector<Double> rhsValues2_;
+    StdVector<Complex> rhsValuesComplex_;
     UInt step_;
     UInt lastStep_;
 
     typedef std::vector< std::map<UInt, Double> > ConsInterpWeightsType;
     StdVector< ConsInterpWeightsType > consInterpWeights_;
+    std::map<UInt, Double> timeValues_;
 
     MathParser::HandleType mHandle2_;
+    MathParser::HandleType mph_t;
   };
 
 } // end of namespace

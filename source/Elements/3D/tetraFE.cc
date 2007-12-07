@@ -312,7 +312,6 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
   switch(indexProduct)
     {
     case 8:
-      std::cerr << "surface [1,2,4] is common" << std::endl;
       // Surface[1,2,4] is common
       volIntPoint[0] = surfIntPoint[0];
       volIntPoint[1] = 0.0;
@@ -320,7 +319,6 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
       break;
 
     case 24:
-      std::cerr << "surface [2,3,4] is common" << std::endl;
       // Surface[2,3,4] is common
       volIntPoint[0] = surfIntPoint[0];
       volIntPoint[1] = surfIntPoint[1];
@@ -328,7 +326,6 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
       break;
 
     case 12:
-      std::cerr << "surface [1,3,4] is common" << std::endl;
       // Surface[1,3,4] is common
       volIntPoint[0] = 0.0;
       volIntPoint[1] = surfIntPoint[0];
@@ -336,7 +333,6 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
       break;
       
     case 6:
-      std::cerr << "surface [1,2,3] is common" << std::endl;
       // Surface[1,2,3] is common
       volIntPoint[0] = surfIntPoint[0];
       volIntPoint[1] = surfIntPoint[1];

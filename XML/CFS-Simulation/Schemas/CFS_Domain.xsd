@@ -70,9 +70,16 @@
     <xsd:attribute name="masterSide" type="xsd:token" use="required"/>
     <xsd:attribute name="slaveSide" type="xsd:token" use="required"/>
     <xsd:attribute name="lagrangeMultType" type="xsd:token" use="optional"/>
-    <xsd:attribute name="isecCalculation" type="xsd:token" use="optional"/>
-    <xsd:attribute name="tolAbs" type="xsd:token" use="optional"/>
-    <xsd:attribute name="tolRel" type="xsd:token" use="optional"/>
+    <xsd:attribute name="isecCalculation" use="optional">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:normalizedString">
+          <xsd:enumeration value="coaxi"/>
+          <xsd:enumeration value="polygon"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="tolAbs" type="xsd:double" use="optional"/>
+    <xsd:attribute name="tolRel" type="xsd:double" use="optional"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
