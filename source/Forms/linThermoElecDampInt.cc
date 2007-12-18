@@ -18,7 +18,12 @@ namespace CoupledField
   {
     
     baseType_ = DAMPING;
+
     name_ = "LinThermoElecDampInt";
+
+    pn_ =  param->Get("sequenceStep")->Get("pdeList")->
+      Get("heatConduction");
+
     //Set that the integrator is solution dependen with respect to 
     //heat conduction pde
     isSolDependent_ = true;
@@ -68,6 +73,7 @@ namespace CoupledField
 	  // =====================
 	void LinThermoElecDampInt::CalcElementMatrix(Matrix<Double>& elemMat,
 		EntityIterator& ent1, EntityIterator& ent2) {
+
 	
 		try {
 			// Extract pointer to reference element and get coordinates
@@ -90,10 +96,17 @@ namespace CoupledField
 			elemMat.Resize( numFncs1 * getNumDofsA(), numFncs2 * getNumDofsB() );
 			elemMat.Init();
 	
-			// Get the temperature nodal values
-			sol2_->GetElemSolution( teta_, ent2);
-			//std::cout << "\n teta = " << teta_.Serialize() << std::endl;
-	
+			// Get the temperature nodal values from the previous time step
+
+            std::string analysis;
+            if(param->Has("transient") ){
+              sol2_->GetElemSolution( teta_, ent2);
+            }
+            else{
+              teta_.Resize(numDofsA_);
+              teta_.Init();
+            }
+            	
 			// **************************************************
 	
 			// Setup material matrix once and for all
@@ -113,7 +126,7 @@ namespace CoupledField
 							ptCoord_, ent1.GetElem() );
 					ptMaterial->RotateTensorByPointCoord( globIntPoint, getDMaterialType() );
 					calcDMat( dMat );
-					//std::cerr << "dMat = \n" << dMat << std::endl;
+                    //					std::cerr << "dMat = \n" << dMat << std::endl;
 				}
 	
 				//std::cerr << "*** Calculating A ****\n";
@@ -193,8 +206,11 @@ namespace CoupledField
 	void LinThermoElecDampInt::calcAMat(Matrix<Double> &aMat, UInt ip,
 		const Matrix<Double> &ptCoord) {
 
-	
 		try {
+
+          Double refTemp = pn_->Has("referenceTemperature") ?
+            pn_->Get("referenceTemperature")->AsDouble() : 0.0;
+
 	
 			// Set type of ansatz function , but do not recalculate
 			// integration points (=false)
@@ -227,12 +243,13 @@ namespace CoupledField
 	
 			//multiply the last matrix by the last temperature
 			for(UInt i=0; i < lN_tetaXN_teta.GetSizeCol(); i++ ) {
-				for(UInt j=0; j < teta_.GetSize(); j++ ) {
-					aMat[i][0] += lN_tetaXN_teta[i][j]*teta_[j];
-				}
+              for(UInt j=0; j < numDofsA_; j++ ) {
+                //				for(UInt j=0; j < teta_.GetSize(); j++ ) {
+                aMat[i][0] += lN_tetaXN_teta[i][j]*(teta_[j]+refTemp);
+              }
 			}
-	
-			//std::cerr << "LinThermoElectricDampInt: aMat = \n" << aMat << std::endl;
+            
+            //			std::cerr << "LinThermoElectricDampInt: aMat = \n" << aMat << std::endl;
 		}
 		catch (Exception& e) {
 			RETHROW_EXCEPTION(e, "Could not calculate A"
@@ -262,7 +279,7 @@ namespace CoupledField
 			dMat.Init(0.0);
 			p_auxMat.Transpose(dMat);
 	
-			//std::cerr << "LinThermoElectricDampInt: dMat = \n" << dMat << std::endl;	
+            //			std::cerr << "LinThermoElectricDampInt: dMat = \n" << dMat << std::endl;	
 		}
 		catch (Exception& e) {
 			RETHROW_EXCEPTION(e, "Could not calculate D"
