@@ -99,8 +99,7 @@ namespace CoupledField
 		dMat.Resize(matDimRow_, matDimCol_);
 		p_auxMat.GetDiagInMatrix(dMat);
 
-		//std::cerr << "LinThermoElectricInt: dMat = \n" << dMat << std::endl;
-		}
+        }
 		catch (Exception& e) {
 			RETHROW_EXCEPTION(e, "Could not calculate D in LinThermoElectricInt" );
 		}

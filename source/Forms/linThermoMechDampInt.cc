@@ -16,6 +16,9 @@ namespace CoupledField
     name_ = "LinThermoMechDampInt";
 	
     baseType_ = DAMPING;
+
+    pn_ =  param->Get("sequenceStep")->Get("pdeList")->
+      Get("heatConduction");
 	
     //Set that the integrator is solution dependen with respect to 
     //heat conduction pde
@@ -46,15 +49,15 @@ namespace CoupledField
 	
       matDataMech->GetTensor(cMatrix_,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
       //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
-	
+      
     }
     catch (Exception& e) {
       RETHROW_EXCEPTION(e, "Could not get the MECH_STIFFNESS_TENSOR"
                         <<" in LinThermoMechDampInt" );
     }
-
+    
   }
-
+  
 
  
   LinThermoMechDampInt::~LinThermoMechDampInt()
@@ -93,9 +96,15 @@ namespace CoupledField
       elemMat.Resize( numFncs1 * getNumDofsA(), numFncs2 * getNumDofsB() );
       elemMat.Init();
 	
-      // Get the temperature nodal values
-      sol2_->GetElemSolution( teta_, ent2);
-      //std::cout << "\n teta = " << teta_.Serialize() << std::endl;
+      // Get the temperature nodal values from the previous time step
+      std::string analysis;
+      if(param->Has("transient") )
+        sol2_->GetElemSolution( teta_, ent2);
+      else{
+        teta_.Resize(numDofsA_);
+        teta_.Init();
+      }
+    
 	
       // **************************************************
 	
@@ -199,7 +208,12 @@ namespace CoupledField
 
 	
     try {
-	
+
+
+      Double refTemp = pn_->Has("referenceTemperature") ?
+        pn_->Get("referenceTemperature")->AsDouble() : 0.0;
+
+      
       // Set type of ansatz function , but do not recalculate
       // integration points (=false)
       ptelem->SetAnsatzFct( ansatzFct2_, false );
@@ -229,20 +243,21 @@ namespace CoupledField
       aMat.Resize(numFncs, numDofsA_);
       aMat.Init();
 	
+      
       //multiply the last matrix by the last temperature
       for(UInt i=0; i < lN_tetaXN_teta.GetSizeCol(); i++ ) {
-        for(UInt j=0; j < teta_.GetSize(); j++ ) {
-          aMat[i][0] += lN_tetaXN_teta[i][j]*teta_[j];
+        //        for(UInt j=0; j < teta_.GetSize(); j++ ) {
+        for(UInt j=0; j < numDofsA_; j++ ) {
+          aMat[i][0] += lN_tetaXN_teta[i][j]*(teta_[j]+refTemp);
         }
       }
-	
-      //std::cerr << "aMat = \n" << aMat << std::endl;
+      
     }
     catch (Exception& e) {
       RETHROW_EXCEPTION(e, "Could not get the A"
                         <<" in LinThermoMechDampInt" );
     }
-
+    
   }
 
   //  Compute matrix  D  at given integration point.
@@ -305,16 +320,16 @@ namespace CoupledField
 	
       aux.Transpose(dMat);
 	
-      //std::cerr << "dMat' = \n" << dMat << std::endl;
     }
     catch (Exception& e) {
       RETHROW_EXCEPTION(e, "Could not get the D"
                         <<" in LinThermoMechDampInt" );
     }
-
+    
+    
   }
-
-	
+  
+  
   //  Compute matrix  B  at given integration point.
   void LinThermoMechDampInt::calcBMat(Matrix<Double> &bMat, UInt ip,
                                       const Matrix<Double> &ptCoord) {
@@ -426,14 +441,13 @@ namespace CoupledField
       else if ( subTensorType_ == PLANE_STRESS) {
         EXCEPTION ("calcBMat: PLANE_STRESS Type not supported" );
       }
-	
-      //std::cerr << "bMat = \n" << bMat << std::endl;
+      
     }
     catch (Exception& e) {
       RETHROW_EXCEPTION(e, "Could not get the B"
                         <<" in LinThermoMechDampInt" );
     }
-
+    
   }
 
 
