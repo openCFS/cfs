@@ -61,6 +61,7 @@
                 <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
+                <xsd:element name="cauchy"         type="DT_HeatC"    />
                 <xsd:element name="load"           type="DT_HeatLoad" />
                 <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
               </xsd:choice>
@@ -126,20 +127,27 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Element type for specifying inhomogeneous neumann boundary conditions -->
   <xsd:complexType name="DT_HeatIN">
     <xsd:complexContent>
       <xsd:extension base="DT_HeatHD">
         <xsd:attribute name="value" type="xsd:double" use="optional"
           default="0.0"/>
-        <xsd:attribute name="heatTransferCoefficient" type="xsd:token"
-          use="optional"
-          default="0.0"/>
-        <xsd:attribute name="tempSolid" type="xsd:token" use="optional"
-          default="0.0"/>
-        <xsd:attribute name="tempFluid" type="xsd:token" use="optional"
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
       </xsd:extension>    
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for specifying cauchy boundary condition -->
+  <xsd:complexType name="DT_HeatC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_HeatHD">
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:token"
+           use="required"/>
+        <xsd:attribute name="bulkTemperature" type="xsd:token" use="optional"
+           default="0.0"/>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
