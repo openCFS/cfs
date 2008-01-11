@@ -529,6 +529,8 @@
       <xsd:restriction base="DT_AcousticID">
         <xsd:attribute name="entityType" type="DT_EntityType"
           use="optional" default="surfElemList"/>
+        <xsd:attribute name="quantity" type="DT_AcousticUnknownType"
+                       default="acouPotential"/>
         </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

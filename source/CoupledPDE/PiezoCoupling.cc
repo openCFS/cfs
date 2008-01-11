@@ -592,8 +592,7 @@ namespace CoupledField {
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
-      return;
+   
 
     // --------------------------------------
     // @Tom:
@@ -602,33 +601,35 @@ namespace CoupledField {
     // Currently the non-linearity type is only determined by the first entry
     // --------------------------------------
 
-    
-    nonLin_ = false;
+   
+    if( nonLinListNode) { 
+      nonLin_ = false;
 
-    // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-      
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      // Get nonlinear types
+      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-      nonLinIdType_[actId] = actType;
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->AsString();
 
-      // check type
-      if( actType == HYSTERESIS ) {
-        nonLin_ = true;
-        nonLinHysteresis_ = true;
-      }
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+        nonLinIdType_[actId] = actType;
 
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
+        // check type
+        if( actType == HYSTERESIS ) {
+          nonLin_ = true;
+          nonLinHysteresis_ = true;
+        }
 
-      if( actType == GEOMETRIC ) {
-        nonLin_ = true;
+        if( actType == MATERIAL ) {
+          nonLin_ = true;
+          nonLinMaterial_ = true;
+        }
+
+        if( actType == GEOMETRIC ) {
+          nonLin_ = true;
+        }
       }
     }
 

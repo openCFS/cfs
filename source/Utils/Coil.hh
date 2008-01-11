@@ -98,6 +98,9 @@ namespace CoupledField {
 
     //! File stream for storing voltage
     std::ofstream *fileU_;
+    
+    //! Last step for saving L/U
+    Integer lastSaveStep_;
 
     //! Identifier for windings in 2D coils
     Integer id_;

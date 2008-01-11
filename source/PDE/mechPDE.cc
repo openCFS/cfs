@@ -115,75 +115,76 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     fracMemory_ = 0;
     bool identical = true; // i.e. same type of damping for all regions
     Integer firstFrac=-1;
-
     
-    // try to get dampingList
-    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
-    if( !dampListNode) return;
-    
-    // get specific damping nodes
-    StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
     std::map<std::string, DampingType> idDampType;
     std::map<std::string, Double>      idDampFreq;
     std::map<std::string, Double>      idDampRatioDeltaF;
-    for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
-      
-      std::string dampString = dampNodes[i]->GetName();
-      std::string actId = dampNodes[i]->Get("id")->AsString();
 
-      // determine type of damping
-      DampingType actType;
-      String2Enum( dampString, actType );
-      
-      // make special things for fractional damping
-      if( actType == FRACTIONAL ) {
+    // try to get dampingList
+    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    if( dampListNode ) { 
 
-        fracDamping_ = true;
-        // Find first region containing fractional damping
-        if ( firstFrac < 0 )
-          firstFrac = i;
-        
-        // Gather additional information for fractional damping model
-        std::string fracAlg = "gl";
-        dampNodes[i]->Get( "fracAlg", fracAlg, false );
-        
-        std::string interpol = "no";
-        dampNodes[i]->Get( "interpolation", interpol, false );
-        UInt fracMem = 1;
-        dampNodes[i]->Get( "fracMemory", fracMem, false );
-        
-        if  ( fracAlg == "gl" ) {
-          
-          // Include fracAlg and interpolation info in dampingList
-          if (interpol == "no" )
-            actType = FRACTIONAL_GL;
-          else {
-            EXCEPTION("Till now no interpolation is allowed in "
-                      << "mechanics fractional damnping!" );
+      // get specific damping nodes
+      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
+ 
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->AsString();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // make special things for fractional damping
+        if( actType == FRACTIONAL ) {
+
+          fracDamping_ = true;
+          // Find first region containing fractional damping
+          if ( firstFrac < 0 )
+            firstFrac = i;
+
+          // Gather additional information for fractional damping model
+          std::string fracAlg = "gl";
+          dampNodes[i]->Get( "fracAlg", fracAlg, false );
+
+          std::string interpol = "no";
+          dampNodes[i]->Get( "interpolation", interpol, false );
+          UInt fracMem = 1;
+          dampNodes[i]->Get( "fracMemory", fracMem, false );
+
+          if  ( fracAlg == "gl" ) {
+
+            // Include fracAlg and interpolation info in dampingList
+            if (interpol == "no" )
+              actType = FRACTIONAL_GL;
+            else {
+              EXCEPTION("Till now no interpolation is allowed in "
+                        << "mechanics fractional damnping!" );
+            }
+          }
+
+          // up to now take maximum of fracMemory
+          if ( fracMem > fracMemory_ )
+            fracMemory_ = fracMem;
+        }
+
+        else if( actType == RAYLEIGH ) {
+          Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
+
+          if( dampNodes[i]->Has("freq") ) {
+            dampNodes[i]->Get( "freq", rayleighDampingFreq);
+            idDampFreq[actId] = rayleighDampingFreq;
+          }
+          if( dampNodes[i]->Has("RatioDeltaF") ) {
+            dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
+            idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
           }
         }
-        
-        // up to now take maximum of fracMemory
-        if ( fracMem > fracMemory_ )
-          fracMemory_ = fracMem;
+
+        // store damping type string
+        idDampType[actId] = actType;
       }
-
-      else if( actType == RAYLEIGH ) {
-        Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
-
-        if( dampNodes[i]->Has("freq") ) {
-          dampNodes[i]->Get( "freq", rayleighDampingFreq);
-          idDampFreq[actId] = rayleighDampingFreq;
-        }
-        if( dampNodes[i]->Has("RatioDeltaF") ) {
-          dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
-          idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
-        }
-      }
-
-      // store damping type string
-      idDampType[actId] = actType;
-      
     }
     
     // Run over all region and set entry in "regionNonLinId"
@@ -361,21 +362,22 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   void MechPDE::ReadSoftening() {
 
     // Check if softeningList node is present
-    ParamNode * softListNode = myParam_->Get("softeningList", false );
-    if( !softListNode ) return;
-
-    // Get child elements and read data
-    StdVector<ParamNode*> softNodes = softListNode->GetChildren();
-    std::map<std::string, std::string> idSoftTypeMap;
     std::string type, id;
-    for( UInt i = 0; i < softNodes.GetSize(); i++ ) {
-      type = softNodes[i]->GetName();
-      softNodes[i]->Get( "id", id );
-      idSoftTypeMap[id] = type;
-    }
-    
-    if( softNodes.GetSize() ) {
-      Info->PrintF( pdename_, "Applying softening for regions:\n" );
+    std::map<std::string, std::string> idSoftTypeMap;
+    ParamNode * softListNode = myParam_->Get("softeningList", false );
+    if( softListNode ) {
+
+      // Get child elements and read data
+      StdVector<ParamNode*> softNodes = softListNode->GetChildren();
+      for( UInt i = 0; i < softNodes.GetSize(); i++ ) {
+        type = softNodes[i]->GetName();
+        softNodes[i]->Get( "id", id );
+        idSoftTypeMap[id] = type;
+      }
+
+      if( softNodes.GetSize() ) {
+        Info->PrintF( pdename_, "Applying softening for regions:\n" );
+      }
     }
 
     // Now iterate over all regions and check for softening type
@@ -419,20 +421,19 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
-      return;
+    if( nonLinListNode) { 
 
-    // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-      
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      // Get nonlinear types
+      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-      nonLinIdType_[actId] = actType;
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->AsString();
 
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+        nonLinIdType_[actId] = actType;
+      }
     }
     
     // Run over all regions and get entry in "regionNonLinId"
