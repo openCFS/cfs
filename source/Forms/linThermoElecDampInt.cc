@@ -243,7 +243,7 @@ namespace CoupledField
 	
 			//multiply the last matrix by the last temperature
 			for(UInt i=0; i < lN_tetaXN_teta.GetSizeCol(); i++ ) {
-              for(UInt j=0; j < numDofsA_; j++ ) {
+              for(UInt j=0; j <teta_.GetSize(); j++ ) {
                 //				for(UInt j=0; j < teta_.GetSize(); j++ ) {
                 aMat[i][0] += lN_tetaXN_teta[i][j]*(teta_[j]+refTemp);
               }
