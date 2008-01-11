@@ -17,7 +17,9 @@ namespace CoupledField {
   // ------------------------------------
   //   Default Constructor (disallowed)
   // ------------------------------------
-  Coil::Coil() {}
+  Coil::Coil() {
+  lastSaveStep_ = -1;
+  }
 
 
   // ---------------------------------
@@ -189,7 +191,10 @@ namespace CoupledField {
     // *******************************************
     //   Open results files for measurement coil
     // *******************************************
-    if ( coilType_ == CURRENT2D || coilType_ == CURRENT3D ) {
+    if ( coilType_ == CURRENT2D 
+        || coilType_ == MEASUREMENT2D
+        || coilType_ == MEASUREMENT3D
+        || coilType_ == CURRENT3D ) {
 
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {

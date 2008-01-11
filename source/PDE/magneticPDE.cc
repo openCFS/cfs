@@ -20,6 +20,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -84,27 +85,27 @@ namespace CoupledField {
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
-      return;
+    if( nonLinListNode ) { 
 
-    // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-      
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      // Get nonlinear types
+      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-      
-      // check type
-      if( actType == PERMEABILITY ) {
-        nonLin_ = true;
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        // check type
+        if( actType == PERMEABILITY ) {
+          nonLin_ = true;
+        }
+        if( actType == HYSTERESIS ) {
+          isHysteresis_ = true;
+        }
+        nonLinIdType_[actId] = actType;
       }
-      if( actType == HYSTERESIS ) {
-        isHysteresis_ = true;
-      }
-      nonLinIdType_[actId] = actType;
     }
 
     // Run over all region and set entry in "regionNonLinId"
@@ -903,36 +904,65 @@ namespace CoupledField {
   // ***************************************************
   //   Store currents/voltages and inductivity in file
   // ***************************************************
+  template<typename T>
+  std::string TypeToString( const T& s ) {
+    return boost::lexical_cast<std::string>(s);
+  }
+  
+  template<>
+  std::string TypeToString( const Complex& s) {
+    return lexical_cast<std::string>(std::abs(s)) + std::string("\t") +
+    lexical_cast<std::string>(
+    (std::abs(s.imag()) > 1e-16) ?                   
+                                  std::atan2(s.imag(),s.real() )*180/PI : 0.0);
+  }
+  
   template<class TYPE>
   void MagPDE::WriteUI2File( ) {
 
 
-    // Check analysis type
-    if( analysistype_ == TRANSIENT ||
-        analysistype_ == HARMONIC ) {
-      
-      // iterate over all coils
-      for( UInt iCoil = 0; iCoil < coilDef_.GetSize(); iCoil++ ) {
-        
-        shared_ptr<Coil> actCoil = coilDef_[iCoil];
+    // get current time / frequency step
+    
+    MathParser * parser = domain->GetMathParser();
+    MathParser::HandleType mHandle =  parser->GetNewHandle();
+    parser->SetExpr( mHandle, "step" );
+    UInt actStep = (UInt) parser->Eval(mHandle);
+    parser->ReleaseHandle( mHandle );
+
+
+    // iterate over all coils
+    for( UInt iCoil = 0; iCoil < coilDef_.GetSize(); iCoil++ ) {
+
+      shared_ptr<Coil> actCoil = coilDef_[iCoil];
+
+      // check if results was already written out for this step
+      if (actStep == (UInt) actCoil->lastSaveStep_ ) { 
+          continue;
+      } else {
+        actCoil->lastSaveStep_ = (UInt) actStep;
+      }
+
 
         // if coil needs to compuet U, trigger calculation
-        TYPE voltage = 0.0;
-        if( actCoil->fileU_ ) {
-          CalcFlux<TYPE>( actCoil, voltage, true );
-          std::ofstream * uOut = actCoil->fileU_;
-          *uOut << solveStep_->GetActStep() << " \t";
-          *uOut << voltage * actCoil->windingCrossSection_ << " \n";
+        if( analysistype_ == TRANSIENT ||
+            analysistype_ == HARMONIC ) {
+          TYPE voltage = 0.0;
+          if( actCoil->fileU_ ) {
+            CalcFlux<TYPE>( actCoil, voltage, true );
+            std::ofstream * uOut = actCoil->fileU_;
+            *uOut << solveStep_->GetActStep() << " \t";
+            *uOut << TypeToString (voltage / actCoil->windingCrossSection_) << " \n";
+          }
         }
 
-        // if coil needs to comput L, trigger calculation
-        TYPE induct = 0.0;
-        if( actCoil->fileL_ ) {
-          CalcFlux<TYPE>( actCoil, induct, false );
-          std::ofstream * lOut = actCoil->fileL_;
-          *lOut << solveStep_->GetActStep() << " \t";
-          *lOut << induct * actCoil->windingCrossSection_ << " \n";
-        }
+      // if coil needs to comput L, trigger calculation
+      TYPE induct = 0.0;
+      if( actCoil->fileL_ ) {
+        CalcFlux<TYPE>( actCoil, induct, false );
+        std::ofstream * lOut = actCoil->fileL_;
+        *lOut << solveStep_->GetActStep() << " \t";
+        *lOut << TypeToString( induct / actCoil->windingCrossSection_) << " \n";
+
       }
     }
 

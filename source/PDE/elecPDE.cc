@@ -76,19 +76,19 @@ namespace CoupledField {
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
-      return;
+    if( nonLinListNode ) { 
 
-    // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-      
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      // Get nonlinear types
+      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-      nonLinIdType_[actId] = actType;
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+        nonLinIdType_[actId] = actType;
+      }
     }
     
     // Run over all region and set entry in "regionNonLinId"

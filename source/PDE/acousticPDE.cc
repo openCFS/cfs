@@ -81,84 +81,85 @@ namespace CoupledField {
 
     fracMemory_ = 0;
     Integer firstFrac=-1;
-
-    // try to get dampingList
-    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
-    if( !dampListNode) return;
-    
-    // get specific damping nodes
-    StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
     std::map<std::string, DampingType> idDampType;
     std::map<std::string, Double>      idDampFreq;
     std::map<std::string, Double>      idDampRatioDeltaF;
+    
+    // try to get dampingList
+    ParamNode * dampListNode = myParam_->Get( "dampingList", false );
+    if( dampListNode ) {
 
-    for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+      // get specific damping nodes
+      StdVector<ParamNode*> dampNodes = dampListNode->GetChildren();
 
-      std::string dampString = dampNodes[i]->GetName();
-      std::string actId = dampNodes[i]->Get("id")->AsString();
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
 
-      // determine type of damping
-      DampingType actType;
-      String2Enum( dampString, actType );
-      
-      // make special things for fractional damping
-      if( actType == FRACTIONAL ) {
-        fracDamping_ = true;
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->AsString();
 
-        // Find first region containing fractional damping
-        if ( firstFrac < 0 )
-          firstFrac = i;
-        
-        // Gather additional information for fractional damping model
-        std::string fracAlg = "gl";
-        dampNodes[i]->Get( "fracAlg", fracAlg, false );
-        
-        std::string interpol = "no";
-        dampNodes[i]->Get( "interpolation", interpol, false );
-        
-        UInt fracMem = 1;
-        dampNodes[i]->Get( "fracMemory", fracMem, false );
-        
-        if  ( fracAlg == "gl" ) {
-          if (interpol == "no" )
-            actType = FRACTIONAL_GL;
-          else {
-            actType= FRACTIONAL_GL_INT;
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // make special things for fractional damping
+        if( actType == FRACTIONAL ) {
+          fracDamping_ = true;
+
+          // Find first region containing fractional damping
+          if ( firstFrac < 0 )
+            firstFrac = i;
+
+          // Gather additional information for fractional damping model
+          std::string fracAlg = "gl";
+          dampNodes[i]->Get( "fracAlg", fracAlg, false );
+
+          std::string interpol = "no";
+          dampNodes[i]->Get( "interpolation", interpol, false );
+
+          UInt fracMem = 1;
+          dampNodes[i]->Get( "fracMemory", fracMem, false );
+
+          if  ( fracAlg == "gl" ) {
+            if (interpol == "no" )
+              actType = FRACTIONAL_GL;
+            else {
+              actType= FRACTIONAL_GL_INT;
+            }
+          }
+          else if ( fracAlg == "blank" ) {
+            if (interpol == "no" )
+              actType = FRACTIONAL_BLANK;
+            else {
+              actType= FRACTIONAL_BLANK_INT;
+            }
+          }
+
+          // up to now take maximum of specified fracMemory values
+          if ( fracMem > fracMemory_ )
+            fracMemory_ = fracMem;
+        }
+
+        else if( actType == RAYLEIGH ) {
+          Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
+
+          if( dampNodes[i]->Has("freq") ) {
+            dampNodes[i]->Get( "freq", rayleighDampingFreq);
+            idDampFreq[actId] = rayleighDampingFreq;
+          }
+          if( dampNodes[i]->Has("RatioDeltaF") ) {
+            dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
+            idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
           }
         }
-        else if ( fracAlg == "blank" ) {
-          if (interpol == "no" )
-            actType = FRACTIONAL_BLANK;
-          else {
-            actType= FRACTIONAL_BLANK_INT;
-          }
-        }
-        
-        // up to now take maximum of specified fracMemory values
-        if ( fracMem > fracMemory_ )
-          fracMemory_ = fracMem;
+
+        // store damping type string
+        idDampType[actId] = actType;
+
       }
-
-      else if( actType == RAYLEIGH ) {
-        Double rayleighDampingFreq, rayleighDampingRatioDeltaF;
-
-        if( dampNodes[i]->Has("freq") ) {
-          dampNodes[i]->Get( "freq", rayleighDampingFreq);
-          idDampFreq[actId] = rayleighDampingFreq;
-        }
-        if( dampNodes[i]->Has("RatioDeltaF") ) {
-          dampNodes[i]->Get( "RatioDeltaF", rayleighDampingRatioDeltaF);
-          idDampRatioDeltaF[actId] = rayleighDampingRatioDeltaF;
-        }
+      if ( fracDamping_== true ) {
+        Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
+                     fracMemory_ );
       }
-
-      // store damping type string
-      idDampType[actId] = actType;
-      
-    }
-    if ( fracDamping_== true ) {
-      Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
-                   fracMemory_ );
     }
     
     // Run over all region and set entry in "regionNonLinId"
@@ -258,19 +259,19 @@ namespace CoupledField {
     nonLin_ = false; 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
-      return;
-    
-    // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
+    if( nonLinListNode ) { 
 
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      // Get nonlinear types
+      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-      nonLinIdType_[actId] = actType;
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+        nonLinIdType_[actId] = actType;
+      }
     }
     
     // Run over all region and set entry in "regionNonLinId"
@@ -566,12 +567,12 @@ namespace CoupledField {
         if ( dampingList_.size() > 0 ) {
 	  
           // We check, if damping has been specified for all regions.
-          if ( dampingList_.size() != subdoms_.GetSize() ) {
-            (*warning) << "Mismatch between dampingList_ and subdoms_!"
-                       << "Size(dampingList_): " << dampingList_.size()
-                       << "Size(subdoms_): " << subdoms_.GetSize();
-            Warning(__FILE__, __LINE__);  
-          }
+//          if ( dampingList_.size() != subdoms_.GetSize() ) {
+//            (*warning) << "Mismatch between dampingList_ and subdoms_!"
+//                       << "Size(dampingList_): " << dampingList_.size()
+//                       << "Size(subdoms_): " << subdoms_.GetSize();
+//            Warning(__FILE__, __LINE__);  
+//}
 	  
           if (dampingList_[actRegion] == RAYLEIGH) {
             // This works even after assemble_->AddIntegrator() is executed

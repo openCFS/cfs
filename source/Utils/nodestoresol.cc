@@ -497,7 +497,7 @@ namespace CoupledField {
 
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) {
-      EXCEPTION( "NodeStoreSol::Get(): Use of uninitialized object!" );
+      EXCEPTION( "NodeStoreSol::s): Use of uninitialized object!" );
     }
 #endif
 
@@ -513,7 +513,7 @@ namespace CoupledField {
       ret = data_[ abs(eqnNr)- 1];
     }
     else {
-      ret =  TYPE();
+      ret =  TYPE(0.0);
     }
   }
 
@@ -538,7 +538,7 @@ namespace CoupledField {
     if (eqnNr != 0)
       ret = data_[abs(eqnNr)-1];
     else
-      ret =  TYPE();
+      ret =  TYPE(0.0);
   }
 
   template<class TYPE>
