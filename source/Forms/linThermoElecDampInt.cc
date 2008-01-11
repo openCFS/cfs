@@ -99,8 +99,8 @@ namespace CoupledField
 			// Get the temperature nodal values from the previous time step
 
             std::string analysis;
-            if(param->Has("transient") ){
-              sol2_->GetElemSolution( teta_, ent2);
+            if(param->Get("sequenceStep")->Get("analysis")->Has("transient") ){
+                 sol2_->GetElemSolution( teta_, ent2);
             }
             else{
               teta_.Resize(numDofsA_);
