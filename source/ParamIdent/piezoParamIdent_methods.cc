@@ -380,7 +380,13 @@ namespace CoupledField
     F_hat_.Resize(nrMeasuredData);
     F_hat_.Init();
 
+    
     ResultHandler * resHandler = domain->GetResultHandler();
+
+
+//     resHandler->BeginMultiSequenceStep( sequenceStep_,
+//                                         HARMONIC,
+//                                         freqsElec_.GetSize() );
 
     for (UInt fstep = 0; fstep < nrMeasuredDataElec_; fstep++) { 
 
@@ -391,6 +397,10 @@ namespace CoupledField
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", freqsElec_[fstep]);
+
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "step", fstep );        
+
 
       ptPDE_->GetSolveStep()->SetActFreq(freqsElec_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
@@ -539,6 +549,8 @@ namespace CoupledField
         std::cout<<"F("<<i<<")="<<F_hat_[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
      }
+
+
 
   
   } // end createF
@@ -988,7 +1000,7 @@ namespace CoupledField
     while(allMeasuredData->getline(mDataRow, 1024)){
       if (mDataRow[0]=='1')
         {i=2;j=0;k=0;
-          while(mDataRow[i]=='/'){
+          while(mDataRow[i]!='/'){
             if(mDataRow[i]!=','){
               helpChar[k]=mDataRow[i];
               k++; i++;
@@ -1004,7 +1016,7 @@ namespace CoupledField
         }
       else if (mDataRow[0]=='2'){
         i=2;j=0;k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1020,7 +1032,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='3'){
         i=2; k=0; j=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1035,7 +1047,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='4'){
         i=2; k=0; j=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1050,7 +1062,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='i'){
         i=2; k=0; j=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1065,7 +1077,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='P'){
         i=2; k=0; j=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1080,7 +1092,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='Q'){
         i=2; k=0; j=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           if(mDataRow[i]!=','){
             helpChar[k]=mDataRow[i];
             k++; i++;
@@ -1095,7 +1107,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='5'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1105,7 +1117,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='6'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1115,7 +1127,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='I'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1126,7 +1138,7 @@ namespace CoupledField
      
       else if (mDataRow[0]=='M'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1136,7 +1148,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='N'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1146,7 +1158,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='r'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1156,7 +1168,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='7'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
@@ -1166,7 +1178,7 @@ namespace CoupledField
       }
       else if (mDataRow[0]=='8'){
         i=2; k=0;
-        while(mDataRow[i]=='/'){
+        while(mDataRow[i]!='/'){
             break;
           helpChar[k]=mDataRow[i];
           k++; i++;
