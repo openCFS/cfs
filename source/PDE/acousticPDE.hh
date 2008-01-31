@@ -134,8 +134,12 @@ namespace CoupledField {
     //! Calculate acoustic power
     template <class TYPE>
     void CalcAcouPower( shared_ptr<BaseResult> vals );
+
+    //! Calculate Kaltenbacher's intensity projected on a surface
+    template <class TYPE>
+    void CalcAcouSurfIntensity( shared_ptr<BaseResult> vals );
     
-    //! Calclulate acoustic intensity
+    //! Calculate acoustic intensity
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
 

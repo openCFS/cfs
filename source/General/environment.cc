@@ -472,6 +472,8 @@ namespace CoupledField {
       out = ACOU_POWER;
     else if (in == "acouIntensity")
       out = ACOU_INTENSITY;
+    else if (in == "acouSurfIntensity")
+      out = ACOU_SURFINTENSITY;
       
     //magnetics
     else if (in == "magPotential")
@@ -683,6 +685,9 @@ namespace CoupledField {
         break;
       case ACOU_INTENSITY:
         out = "acouIntensity";
+        break;
+      case ACOU_SURFINTENSITY:
+        out = "acouSurfIntensity";
         break;
  
         //magnetics  

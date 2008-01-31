@@ -91,46 +91,46 @@ void HeatCondPDE::ReadSpecialBCs() {
   // First, delete all of the Neumann boundary conditions object
   //inBcs_.Clear();
 
-  // fetch paramnodes for cauchy bc
-  StdVector<ParamNode*> cbcNodes = 
-    myParam_->Get("bcsAndLoads")->GetList("cauchy");
+  // fetch paramnodes for Robin boundary condition
+  StdVector<ParamNode*> rbcNodes = 
+    myParam_->Get("bcsAndLoads")->GetList("robin");
 
-  std::string cDof, cName, cType, cHTC, cBulkTemp;
+  std::string myDof, myName, myType, myHTC, myBulkTemp;
 
   // iterate over all parameter nodes
-  for( UInt i = 0; i < cbcNodes.GetSize(); i++ ) {
+  for( UInt i = 0; i < rbcNodes.GetSize(); i++ ) {
     try {
-      cDof = "";
-      cbcNodes[i]->Get( "name", cName );
-      cbcNodes[i]->Get( "entityType", cType );
-      cbcNodes[i]->Get( "heatTransferCoefficient", cHTC );
-      cbcNodes[i]->Get( "bulkTemperature", cBulkTemp );
+      myDof = "";
+      rbcNodes[i]->Get( "name", myName );
+      rbcNodes[i]->Get( "entityType", myType );
+      rbcNodes[i]->Get( "heatTransferCoefficient", myHTC );
+      rbcNodes[i]->Get( "bulkTemperature", myBulkTemp );
 
-      // Create cauchy boundary condition
-      shared_ptr<CauchyBc> actBc ( new CauchyBc );
+      // Create robin boundary condition
+      shared_ptr<RobinBc> actBc ( new RobinBc );
       
       EntityList::ListType listType;
-      EntityList::String2Enum( cType, listType );
+      EntityList::String2Enum( myType, listType );
       shared_ptr<EntityList> actList =
-        ptgrid_->GetEntityList( listType, cName, EntityList::REGION );
+        ptgrid_->GetEntityList( listType, myName, EntityList::REGION );
       
       actBc->entities = actList;
       actBc->result = results_[0];
       actBc->eqnMap = eqnMap_;
-      if( cDof  == "" ) {
+      if( myDof  == "" ) {
         actBc->dof = 1;
       } else {
-        actBc->dof = results_[0]->GetDofIndex( cDof );
+        actBc->dof = results_[0]->GetDofIndex( myDof );
       }
-      actBc->HTC = cHTC;
-      actBc->bulkTemp = cBulkTemp;
+      actBc->HTC = myHTC;
+      actBc->bulkTemp = myBulkTemp;
 
       // add definition boundary condition list
-      cauchyBcs_.Push_back( actBc );
+      robinBcs_.Push_back( actBc );
 
     } catch (Exception & ex ) {
       RETHROW_EXCEPTION( ex, "Can not create Cauchy boundary condition on '"
-          << cName << "'!" );
+          << myName << "'!" );
     }
   }
 }
@@ -182,7 +182,7 @@ void HeatCondPDE::DefineIntegrators() {
       bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
 
       Info->PrintF( pdename_, 
-          "Assemble Laplace integrator with multiplicative factor %6.1f\n", coeffstiff );
+          "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
 
     } else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
 
@@ -218,7 +218,7 @@ void HeatCondPDE::DefineIntegrators() {
       assemble_->AddBiLinearForm(massContext );
 
       Info->PrintF( pdename_, 
-          "Assemble Mass integrator with multiplicative factor %6.1f\n", coeffmass );
+          "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
     } else {
       // damping integrator
       BaseForm * bilinearDamp = new MassInt(coeffmass, 1, isaxi_, true );
@@ -267,13 +267,13 @@ void HeatCondPDE::DefineIntegrators() {
   }
   
   // ======================================================================
-  // Cauchy boundary condition
+  // Robin boundary condition
   // ====================================================================== 
   try{
-    for( UInt iBc = 0; iBc < cauchyBcs_.GetSize(); iBc++ ) {
+    for( UInt iBc = 0; iBc < robinBcs_.GetSize(); iBc++ ) {
 
       // get current Bc
-      CauchyBc const & actBc = *cauchyBcs_[iBc];
+      RobinBc const & actBc = *robinBcs_[iBc];
 
       // integrator due to bulk temperature in the surrounding fluid
       //   i.e. convection surface heat flow vector
@@ -286,10 +286,17 @@ void HeatCondPDE::DefineIntegrators() {
         bulkTempContext->SetPtPde( this );
         bulkTempContext->SetResult( actBc.result, actBc.entities );
         assemble_->AddLinearForm( bulkTempContext );
+        
+        Info->PrintF( pdename_, 
+            "Assemble RHS integrator with bulk temperature %6.1f.\n", bTemp );
+      } else {
+        Info->PrintF( pdename_, 
+            "Bulk temperature is zero, no linear form on RHS!\n" );
       }
 
       // integrator due to temperature of the solid, where there is only heat conduction
       //   i.e. convection surface conductivity matrix
+      Double hTC = boost::lexical_cast<Double>( actBc.HTC );
       HeatFluxInt *fluxInt = new HeatFluxInt( actBc.HTC, isaxi_ );
 
       BiLinFormContext * fluxContext = new BiLinFormContext( fluxInt, STIFFNESS );
@@ -300,6 +307,9 @@ void HeatCondPDE::DefineIntegrators() {
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *actBc.result, actBc.entities );
+      
+      Info->PrintF( pdename_, 
+          "Assemble additional integrator for stiffness matrix with HTC %6.1f.\n", hTC );
     }
   } catch(Exception & ex){
     RETHROW_EXCEPTION(ex, "Could not assemble Cauchy boundary condition"
@@ -329,6 +339,11 @@ void HeatCondPDE::DefineIntegrators() {
         Info->PrintF( pdename_, 
             "Use same RHS source vector for region '%s' for all timesteps.\n\n", 
             rhsRegion.c_str() );
+      } else {
+        Info->PrintF( pdename_, 
+            "Use RHS source vector for region '%s' from acoustic results.\n\n", 
+            rhsRegion.c_str() );
+        
       }
 
       // get material density

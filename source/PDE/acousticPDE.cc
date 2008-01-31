@@ -1834,13 +1834,22 @@ namespace CoupledField {
         ExtractRhsResult<Double>( result, results_[0] );
       }
       break;
-
+      
     case ACOU_INTENSITY:
       if( isComplex_ ) {
         CalcAcouIntensity<Complex>( result );
       } else {
         EXCEPTION( "Acoustic intensity only computable for harmonic "
-                   << "analysis!" );
+            << "analysis!" );
+      }
+      break;
+
+    case ACOU_SURFINTENSITY:
+      if( isComplex_ ) {
+        CalcAcouSurfIntensity<Complex>( result );
+      } else {
+        EXCEPTION( "Kaltenbacher's intensity only computable for harmonic "
+            << "analysis!" );
       }
       break;
 
@@ -1849,7 +1858,7 @@ namespace CoupledField {
         CalcAcouPower<Complex>( result );
       } else {
         EXCEPTION( "Acoustic power only computable for harmonic "
-                   << "analysis!" );
+            << "analysis!" );
       }
       break;
       
@@ -1863,7 +1872,7 @@ namespace CoupledField {
            
     default:
       Warning( "Resulttype not computable by acoustic PDE",
-               __FILE__, __LINE__ );
+          __FILE__, __LINE__ );
     }
   }
   
@@ -2011,9 +2020,90 @@ namespace CoupledField {
     }
   }
   
-
   template <class TYPE>
   void AcousticPDE::CalcAcouIntensity( shared_ptr<BaseResult> vals ) {
+    
+    //get frequency
+    MathParser * parser = domain->GetMathParser();
+    parser->SetExpr( mHandle_, "f" );
+    Double actFreq = parser->Eval( mHandle_ );
+
+    // factor 0.5 is due to the fact, that the values are peak values
+    Complex multVal = 0;
+    if ( formulation_ == ACOU_PRESSURE ) {
+      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
+    } else {
+      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
+    }
+    
+    // Create operator for gradient computation of solution
+    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);    
+    GradientFieldOp<TYPE> * gradOp = 
+      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+                                formulation_, results_[0], isaxi_);
+    
+    // get data from result object and resize its vector
+    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
+    EntityIterator it = actRes.GetEntityList()->GetIterator();
+    Vector<TYPE> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_  );
+    
+    
+    Double density = 0.0;
+    TYPE elemSol = 0.0;
+    Vector<TYPE> gradElemSol(dim_),  elemIntensity(dim_);
+    
+    // loop over all volume elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      
+      // density of element
+      BaseFE * ptElem = it.GetElem()->ptElem;
+      RegionIdType actRegion = it.GetElem()->regionId;
+      materials_[actRegion]->GetScalar(density,DENSITY,REAL);
+      
+      // get element coordinates
+      StdVector<UInt> const & connect = it.GetElem()->connect;
+      Matrix<Double> ptCoord;
+      ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
+      
+      // get shape function at center of the element
+      Vector<Double> shapeFnc;
+      Vector<Double> LCoord;
+      ptElem->GetCoordMidPoint(LCoord);
+      ptElem->GetShFnc(shapeFnc,LCoord,it.GetElem());
+      
+      // solution at center of element
+      Vector<TYPE> valueElem;
+      GetSolVecOfElement(valueElem, it, results_[0]);
+      elemSol = valueElem * shapeFnc;
+      
+      // get the conjugate complex value
+      elemSol = std::conj(elemSol);
+      
+      // calculate gradient at center of element
+      gradOp->CalcElemGradField(gradElemSol, it, LCoord, 1.0);
+    
+      TYPE factorI;  
+      if ( formulation_ == ACOU_PRESSURE ) {
+        factorI   = multVal * elemSol / density;
+        elemIntensity = gradElemSol * factorI;
+      } else {
+        factorI   = multVal * elemSol * density;
+        elemIntensity = gradElemSol * factorI;
+      }
+      
+      // loop over dofs
+      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+        actVal[it.GetPos()*dim_ + iDim] = elemIntensity[iDim];
+      }
+    }
+    
+    delete gradOp;
+  }
+  
+
+  template <class TYPE>
+  void AcousticPDE::CalcAcouSurfIntensity( shared_ptr<BaseResult> vals ) {
 
     // currently we just support harmonic analysis: complex data
 
@@ -2035,18 +2125,12 @@ namespace CoupledField {
       multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
     }
 
-    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
-
     //some help variables
     Vector<Double> lCoordSurf, lCoordVol, normal;
     Vector<TYPE> gradVal(dim_);
     Vector<TYPE> elemIntensity(dim_);
-
     Elem * ptVolElem;
     BaseFE * ptSurfElemFE, * ptVolElemFE;
-
-    TYPE gradNormal = 0.0;
-    Double normSign = 0;
     Double density  = 0.0;
 
     // Create vector with interpolation coordinate.
@@ -2056,22 +2140,20 @@ namespace CoupledField {
     lCoordSurf.Init(0);
 
     // Create operator for gradient computation of solution
+    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
     GradientFieldOp<TYPE> * gradOp = 
       new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
                                 solType, results_[0], isaxi_);
 
     TYPE factorI;  
-    Result<TYPE> &  actRes = 
-      dynamic_cast<Result<TYPE>&>(*vals);
+    Result<TYPE> & actRes = dynamic_cast<Result<TYPE>&>(*vals);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
     
     Vector<TYPE> & actVal = actRes.GetVector();
-    //std::cerr << "size of entityList is " << 
     actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
     
     // loop over all surface elements
-    UInt counterElems = 0;
-    for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
       
       const SurfElem * actSurfElem = it.GetSurfElem();
       // Determine, which volume element is the right neighbour for the 
@@ -2080,14 +2162,10 @@ namespace CoupledField {
       if ( surfNeighborRegions_[vals] ==
            actSurfElem->ptVolElem1->regionId ) {
         ptVolElem = actSurfElem->ptVolElem1;
-        normSign = 1.0;
       } 
       else {
         ptVolElem = actSurfElem->ptVolElem2;
-        normSign = -1.0;
       }
-      
-      normSign *= (Double) actSurfElem->normalSign;
       
       ptSurfElemFE = actSurfElem->ptElem; 
       ptVolElemFE = ptVolElem->ptElem;
@@ -2114,11 +2192,6 @@ namespace CoupledField {
       EntityIterator it2 = elList.GetIterator();
       gradOp->CalcElemGradField(gradVal, it2, 
                                 lCoordVol,1.0);
-      // Calc global normal
-      ptgrid_->CalcSurfNormal(normal, *actSurfElem);
-      
-      normal    *= normSign;
-      gradNormal = normal * gradVal;
       
       //get average solution
       TYPE elemSol = 0;
@@ -2567,9 +2640,9 @@ namespace CoupledField {
     availResults_.insert( rhs );
 
 
-    // === ACOU_INTENSITY ===
+    // === ACOU_SURFINTENSITY ===
     shared_ptr<ResultInfo> intens(new ResultInfo);
-    intens->resultType = ACOU_INTENSITY;
+    intens->resultType = ACOU_SURFINTENSITY;
     if( dim_ == 3 ) { 
       intens->dofNames = "x", "y", "z";
     } else {
@@ -2584,6 +2657,25 @@ namespace CoupledField {
     intens->definedOn = ResultInfo::SURF_ELEM;
     intens->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( intens );
+    
+    // === ACOU_INTENSITY ===
+    shared_ptr<ResultInfo> intensity(new ResultInfo);
+    intensity->resultType = ACOU_INTENSITY;
+    if( dim_ == 3 ) { 
+      intensity->dofNames = "x", "y", "z";
+    } else {
+      if (isaxi_ ) {
+        intensity->dofNames = "r", "z";
+      } else {
+        intensity->dofNames = "x", "y";
+      }
+    }
+    intensity->unit = "W/m^2"; 
+    intensity->entryType = ResultInfo::VECTOR;
+    intensity->definedOn = ResultInfo::ELEMENT;
+    intensity->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( intensity );
+    
     
     // === ACOU_POWER ===
     shared_ptr<ResultInfo> power(new ResultInfo);
