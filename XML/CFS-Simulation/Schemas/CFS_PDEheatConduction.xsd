@@ -61,7 +61,7 @@
                 <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
-                <xsd:element name="cauchy"         type="DT_HeatC"    />
+                <xsd:element name="robin"         type="DT_HeatR"    />
                 <xsd:element name="load"           type="DT_HeatLoad" />
                 <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
               </xsd:choice>
@@ -140,7 +140,7 @@
   </xsd:complexType>
   
   <!-- Element type for specifying cauchy boundary condition -->
-  <xsd:complexType name="DT_HeatC">
+  <xsd:complexType name="DT_HeatR">
     <xsd:complexContent>
       <xsd:extension base="DT_HeatHD">
         <xsd:attribute name="heatTransferCoefficient" type="xsd:token"

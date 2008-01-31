@@ -90,7 +90,7 @@ namespace CoupledField {
 
     //! Extend public class of inhom. Neumann boundary condition in order
     //! account for special temperature coefficients
-    struct CauchyBc : public HomDirichletBc {
+    struct RobinBc : public HomDirichletBc {
 
       //! Heat transfer coefficient
       std::string HTC;
@@ -99,10 +99,10 @@ namespace CoupledField {
       std::string bulkTemp;
     };
 
-    typedef  StdVector<shared_ptr<CauchyBc> > CauchyBcList;
+    typedef  StdVector<shared_ptr<RobinBc> > RobinBcList;
 
     //! special neumann boundary conditions
-    CauchyBcList cauchyBcs_;
+    RobinBcList robinBcs_;
     
     //! flag for thermoelectro-coupling
     bool isElectroCoupled_;
