@@ -263,25 +263,10 @@ namespace CoupledField {
       level_++;
       for (UInt i=0; i<surfRegionNames.GetSize(); i++) {
         WL( Indent() 
-            << "<surface name=\"" << surfRegionNames[i] 
+            << "<surfRegion name=\"" << surfRegionNames[i] 
             << "\"/>" );
       }
       WL( Indent(-1) << "</surfRegionList>" );
-    }
-    
-
-    // === print named nodes ===
-    if (simInput_->GetNumNamedNodes() != 0) {
-      simInput_->GetNodeNames(nodeNames);
-      WL( "" );
-      WL( Quote("List of named nodes" ) );
-      WL( Indent() << "<nodeList>" );
-      level_++;
-      for (UInt i=0; i<nodeNames.GetSize(); i++) {
-        WL( Indent() << "<nodes name=\"" << nodeNames[i] 
-            << "\"/>" );
-      }
-      WL( Indent(-1) << "</nodeList>" );
     }
 
     // === print named elements ===
@@ -297,6 +282,20 @@ namespace CoupledField {
       }
       WL( Indent(-1) << "</elemList>" );
     }
+    
+    // === print named nodes ===
+     if (simInput_->GetNumNamedNodes() != 0) {
+       simInput_->GetNodeNames(nodeNames);
+       WL( "" );
+       WL( Quote("List of named nodes" ) );
+       WL( Indent() << "<nodeList>" );
+       level_++;
+       for (UInt i=0; i<nodeNames.GetSize(); i++) {
+         WL( Indent() << "<nodes name=\"" << nodeNames[i] 
+             << "\"/>" );
+       }
+       WL( Indent(-1) << "</nodeList>" );
+     }
   }
 
   
