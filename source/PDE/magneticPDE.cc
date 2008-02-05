@@ -878,8 +878,6 @@ namespace CoupledField {
                                            it.GetElem());    
         ptEl -> GetShFncAtIp(shapeFnc, actIntPt, it.GetElem() );
         
-        uiElem += shapeFnc * magVecDeriv1Elem;
-        
         if (isaxi_) {
           Vector<Double> coordAtIP;
           coordAtIP = ptCoord * shapeFnc;
