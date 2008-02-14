@@ -831,7 +831,7 @@ namespace CoupledField {
 
         // In the case of acou-mech coupling we have to multiply the 
         // abc-Integrator matrix with -1
-        if ( isMechCoupled_ == true ) {
+        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
           bilinear_damp->SetFactor("-1.0");
         }
         // In the case of acou-nrbc coupling we have to multiply the 
