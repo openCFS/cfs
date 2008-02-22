@@ -147,9 +147,9 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBoostForCFS.cmake")
 #-------------------------------------------------------------------------------
 # If USE_PYTHON option is defined find Python library
 #-------------------------------------------------------------------------------
-#IF(USE_PYTHON)
-#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPythonForNACS.cmake")
-#ENDIF(USE_PYTHON)
+IF(USE_PYTHON)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPythonForCFS.cmake")
+ENDIF(USE_PYTHON)
 
 #-------------------------------------------------------------------------------
 # If USE_TCL option is defined find TCL library
