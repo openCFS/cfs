@@ -7,6 +7,8 @@
 
 #include "utils/environment.hh"
 #include "utils/defs.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+using CoupledField::ParamNode;
 
 //! \file generateEigenSolver.hh
 //! This module handles generation of Eigen solver objects. It is also
@@ -26,12 +28,14 @@ namespace OLAS {
   //! to the input matrix and return a pointer to that object.
   //! \param mat    %Matrix that is preconditioned
   //! \param solver Type of desired solver
+  //! \param xml    Pointer to ParamNode of <solver> section
   //! \param params Pointer to a parameter object with steering parameters
   //!               for the solver that is to be generated
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
   BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
                                                EigenSolverType solver,
+                                               ParamNode * xml,
                                                OLAS_Params *params, 
                                                OLAS_Report *report );
 

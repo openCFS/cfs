@@ -21,6 +21,7 @@ namespace OLAS {
   // *********************************
   BaseEigenSolver* GenerateEigenSolverObject( BaseMatrix &mat, 
                                               EigenSolverType solver,
+                                              ParamNode* xml,
                                               OLAS_Params *params, 
                                               OLAS_Report *report ) {
     
@@ -33,7 +34,7 @@ namespace OLAS {
 
 #ifdef USE_ARPACK
     case ARPACK:
-      retSolver = New ArpackEigenSolver( params, report );
+      retSolver = New ArpackEigenSolver( xml, params, report );
       (*cla) << " GenerateEigenSolver: Generated ARPACK Eigensolver"
              << std::endl;
       break;
