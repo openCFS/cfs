@@ -22,7 +22,9 @@ namespace OLAS {
   public:
     
     //! Default Constructor
-    ArpackEigenSolver( OLAS_Params *myParams, OLAS_Report *myReport );
+    ArpackEigenSolver( ParamNode* xml, 
+                       OLAS_Params *myParams, 
+                       OLAS_Report *myReport );
     
     //! Default Destructor
     virtual ~ArpackEigenSolver();
@@ -97,6 +99,9 @@ namespace OLAS {
     //! Pointer to precond object
     BasePrecond * precond_;
 
+    //! Attribute for xml paramnode of <solver> section
+    ParamNode * xml_;
+    
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
 

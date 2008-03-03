@@ -568,6 +568,7 @@ namespace OLAS {
     EigenSolverType egSolver;
     myParams_.GetEnumValue("EigenSolver", egSolver);
     eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), egSolver,
+                                              xml, 
                                               &myParams_, &myReport_ );
 
   }

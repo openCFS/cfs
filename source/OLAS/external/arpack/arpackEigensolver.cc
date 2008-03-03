@@ -12,7 +12,9 @@
 
 namespace OLAS {
 
-  ArpackEigenSolver::ArpackEigenSolver( OLAS_Params *myParams, OLAS_Report *myReport ) 
+  ArpackEigenSolver::ArpackEigenSolver( ParamNode * xml, 
+                                        OLAS_Params *myParams, 
+                                        OLAS_Report *myReport ) 
     : BaseEigenSolver( myParams, myReport ){
 
     interface_    = NULL;
@@ -23,6 +25,7 @@ namespace OLAS {
     solver_       = NULL;
     precond_      = NULL;    
     which_        = NULL;
+    xml_          = xml;
     
     shiftAndInvert_ = FALSE;
   }
@@ -107,7 +110,7 @@ namespace OLAS {
     SolverType solver;
     myParams_->GetEnumValue( "Solver", solver );
     // killme! check the ParamNode parameter
-    solver_ = GenerateSolverObject( *matrixB_, solver, NULL, myParams_,
+    solver_ = GenerateSolverObject( *matrixB_, solver, xml_, myParams_,
                                     myReport_ );
 
     // Create preconditioner
@@ -125,7 +128,7 @@ namespace OLAS {
     }
     
     // Setup matrixinterface
-    interface_->Setup( solver_, precond_ );
+    interface_->Setup( solver_, precond_ ); 
 
   }
 
