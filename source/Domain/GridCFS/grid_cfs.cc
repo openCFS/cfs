@@ -731,8 +731,8 @@ namespace CoupledField {
       } else  {
         volRegionElems[el->regionId].Push_back(el);
 
-        volRegionNodes[el->regionId].insert(&el->connect[0],
-                                            (&el->connect[0])+numNodes);
+        volRegionNodes[el->regionId].insert( el->connect.Begin(),
+                                             el->connect.End() );
       }
     }
 
@@ -781,8 +781,8 @@ namespace CoupledField {
                          << " to list of surface elements"; 
       if( surfEl->regionId != NO_REGION_ID ) {
         surfRegionElems[surfEl->regionId].Push_back( surfEl );
-        surfRegionNodes[surfEl->regionId].insert( &surfEl->connect[0],
-                                                  (&surfEl->connect[0]) + numNodes );
+        surfRegionNodes[surfEl->regionId].insert( surfEl->connect.Begin(),
+                                                  surfEl->connect.End() );
       }
     }
     numSurfRegions = surfRegionElems.size();
@@ -2550,14 +2550,14 @@ namespace CoupledField {
                                  StdVector< UInt > & elemids)
   {
     UInt i, n;    
-    Integer index = 0;
+    //Integer index = 0;
     UInt *ptConn;
     UInt numNodes;
     
     if(!isInitialized_)
       EXCEPTION("Cannot add surface elements to uninitialized grid!");
 
-    UInt regionIdx = surfRegionIds_.Find(regionid);
+    Integer regionIdx = surfRegionIds_.Find(regionid);
       
     if(regionIdx == -1)
       EXCEPTION("Surface regionid not found!");
@@ -2595,7 +2595,7 @@ namespace CoupledField {
     if(!isInitialized_)
       EXCEPTION("Cannot add volume elements to uninitialized grid!");
 
-    UInt regionIdx = volRegionIds_.Find(regionid);
+    Integer regionIdx = volRegionIds_.Find(regionid);
       
     if(regionIdx == -1)
       EXCEPTION("Volume regionid not found!");
@@ -2690,7 +2690,7 @@ namespace CoupledField {
     UInt i, n;
     
     // look in volume regions
-    UInt index = volRegionIds_.Find(regionid);
+    Integer index = volRegionIds_.Find(regionid);
     if ( index != -1 ) {
       n = volElems_[index].GetSize();
 
