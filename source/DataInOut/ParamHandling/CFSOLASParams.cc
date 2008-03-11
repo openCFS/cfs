@@ -569,6 +569,10 @@ namespace CoupledField {
       }
       break;
       
+      case OLAS::ILDL0:
+        break;
+        
+      
       // If this point is reached, it indicates that something is broken.
       // Probably not all preconditioners that SetParams allows are yet
       // implemented here?
