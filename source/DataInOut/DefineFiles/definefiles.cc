@@ -16,6 +16,7 @@
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
+#include <def_use_ensight.hh>
 #include <def_use_scripting.hh>
 #include <def_use_tcl.hh>
 #include <def_use_python.hh>
@@ -51,6 +52,10 @@
 
 #ifdef USE_ANSYSRST
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
+#endif
+
+#ifdef USE_ENSIGHT
+#include "DataInOut/SimInOut/Ensight/simOutputEnsightGold.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
@@ -322,7 +327,17 @@ namespace CoupledField
 #endif
       }
 
-
+      if ( actFormat == "case" ) {
+#ifdef USE_ENSIGHT
+    	  out[actId] = 
+    		  shared_ptr<SimOutput>( new SimOutputEnsightGold( simName, actNode ) );
+    	  continue;
+#else
+    	  EXCEPTION( "No support for Ensight (Ensight/Tecplot/Paraview)" \
+    			  << " output file format." );
+#endif
+      }
+       
       if ( actFormat == "text" ) {
         out[actId] = 
           shared_ptr<SimOutput>( new SimOutputText( simName, actNode ) );

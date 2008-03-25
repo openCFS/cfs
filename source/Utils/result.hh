@@ -6,10 +6,8 @@
 #define FILE_CFS_RESULT_HH
 
 #include "Domain/entityList.hh"
-#include "vector.hh"
 #include "General/environment.hh"
 #include "Utils/vector.hh"
-#include "Domain/entityList.hh"
 
 
 namespace CoupledField {
