@@ -3,6 +3,7 @@
 Doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+Doc/developer/AddDoc/Ensight_Dataformats.pdf -text svneol=unset#unset
 Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 Doc/developer/AddDoc/element_types/elementtypes.doc -text
@@ -263,6 +264,7 @@ include/def_cfs_stats.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
+include/def_use_ensight.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
@@ -375,6 +377,9 @@ source/DataInOut/SimInOut/AnsysRST/bintst.F -text
 source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/Ensight/CMakeLists.txt -text
+source/DataInOut/SimInOut/Ensight/simOutputEnsightGold.cc -text
+source/DataInOut/SimInOut/Ensight/simOutputEnsightGold.hh -text
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/gidpost/gidpost.cpp svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/gidpost/gidpost.h svneol=native#text/plain

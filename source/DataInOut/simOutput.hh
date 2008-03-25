@@ -102,6 +102,9 @@ namespace CoupledField {
     //! Parameter node for current output class
     ParamNode * myParam_;
 
+    //! Current multisequence step in analysis
+    UInt actMSStep_;
+    
     //! Current step in analysis (time/frequency step)
     UInt actStep_;
 

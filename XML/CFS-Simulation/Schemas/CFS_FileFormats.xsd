@@ -145,6 +145,8 @@
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="rst" type="DT_OutputRST"
 		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="case" type="DT_OutputCASE"
+           minOccurs="0" maxOccurs="1"/>      
       <xsd:element name="text" type="DT_OutputText"
 		   minOccurs="0" maxOccurs="1"/>
     </xsd:choice>
@@ -219,6 +221,15 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for Ensight output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputCASE">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
   <!-- ******************************************************************** -->
   <!--   Definition of data type for text output -->
   <!-- ******************************************************************** -->
