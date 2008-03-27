@@ -159,29 +159,50 @@ namespace CoupledField {
     GiD_ElementType eType;
     numElemNodes = 0;
     eType = GiD_NoElement;
-
+    
     // determine element type and number of nodes
     if ( elemVec[0]->ptElem->GetDim() == 1 ) {
+      
       eType = GiD_Linear;
-      if ( ptGrid_->IsQuadratic() == true ) {
-        numElemNodes = 3;
-      } else {
-        numElemNodes = 2;
-      }
+      numElemNodes = elemVec[0]->connect.GetSize();
+
     } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
+
       eType = GiD_Quadrilateral;
-      if ( ptGrid_->IsQuadratic() == true ) {
-        numElemNodes = 8;
-      } else {
+      numElemNodes = elemVec[0]->connect.GetSize();
+      
+      switch(numElemNodes) {
+      case 3:
+      case 4:
         numElemNodes = 4;
-      }
-    } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
-      eType = GiD_Hexahedra;
-      if ( ptGrid_->IsQuadratic() == true ) {
-        numElemNodes = 20;
-      } else {
+        break;
+      case 6:
+      case 8:
         numElemNodes = 8;
+        break;
       }
+      
+    } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
+      
+      eType = GiD_Hexahedra;
+      numElemNodes = elemVec[0]->connect.GetSize();
+      
+      switch(numElemNodes) {
+      case 4:
+      case 5:
+      case 6:
+      case 8:
+        numElemNodes = 8;
+        break;
+      case 10:
+      case 13:
+      case 15:
+      case 20:
+      case 27:
+        numElemNodes = 20;
+        break;
+      }
+
     }
 
     GiD_BeginMesh( name.c_str(), dim_, eType, numElemNodes );
@@ -215,7 +236,6 @@ namespace CoupledField {
     // =================
     ptGrid_->GetRegionIds(regionIds);
     for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
-
       // get region name and elements
       std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
       ptGrid_->GetElems(elemVec,regionIds[iReg]);
@@ -314,7 +334,7 @@ namespace CoupledField {
     {
     default:
       std::copy(connectDummy.GetPointer(),
-                connectDummy.GetPointer()+connectDummy.GetSize(),
+                connectDummy.GetPointer()+numNodes,
                 connect.GetPointer());
       //      memcpy(&connect[0],
       //             (const void*) &connectDummy[0],
