@@ -237,7 +237,9 @@ namespace CoupledField
         StdVector<std::string> nodeNames;
         GetListNodeNames( nodeNames );
         nodeList->SetNamedNodes( name );
-      } else if( entityType == EntityList::REGION ) {
+        } else if( entityType == EntityList::NAMED_ELEMS ) {
+          nodeList->SetNamedNodes( name );
+        } else if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         nodeList->SetNodesOfRegion( regionId );
       } else {
@@ -853,7 +855,7 @@ namespace CoupledField
       }
     }
 
-    ncElem->ptElem = ifaceElem1->ptElem;
+    ncElem->ptElem = ptL1;
     ncElem->ptLagrangeParent = ifaceElem2;
     ncElem->ptSurfParent = ifaceElem1;
 

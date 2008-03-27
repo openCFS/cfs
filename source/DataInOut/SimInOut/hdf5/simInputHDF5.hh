@@ -157,6 +157,11 @@ namespace CoupledField {
     //! Read history result
     void GetHistResult( UInt sequenceStep, UInt stepNum,
                            shared_ptr<BaseResult> result );
+    
+    void LinearizeElems(const StdVector<UInt>& readElems,
+                        StdVector<Integer>& elemTypes, 
+                        StdVector<UInt>& globConnect, 
+                        StdVector<UInt>& readNodes);
     //@}
 
     // =======================================================================
@@ -191,6 +196,9 @@ namespace CoupledField {
     //! List of entities (regions & named nodes/elems) to be read in from the file
     std::set< std::string > readEntities_;
 
+    //! List of entities (regions & named elems) to be linearized (quadr -> lin)
+    std::set< std::string > linearizeEntities_;
+
     //! List with names of regions
     StdVector< std::string > regionNames_;
 
@@ -210,10 +218,19 @@ namespace CoupledField {
     StdVector<Double> nodeCoords_;
     
     // Map from mesh file node numbers to grid node numbers
-    std::map<UInt, UInt> nodeNumMap_;
+    std::map<UInt, UInt> f2GNodeNumMap_;
 
+    // Map from grid node numbers to mesh file numbers
+    std::map<UInt, UInt> g2FNodeNumMap_;
+    
     // Map from mesh file elem numbers to grid elem numbers
-    std::map<UInt, UInt> elemNumMap_;
+    std::map<UInt, UInt> f2GElemNumMap_;
+
+    // Map from grid elem numbers to mesh file elem numbers
+    std::map<UInt, UInt> g2FElemNumMap_;
+    
+    // Map from grid entity nodes to indices of mesh entity nodes
+    std::map<std::string, StdVector<UInt> > entityNodeMap_;    
   };
 
 } // end of namespace
