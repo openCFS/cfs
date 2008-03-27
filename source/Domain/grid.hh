@@ -594,8 +594,19 @@ namespace CoupledField
      * @param name the name to check - case sensitive */
     bool HasRegion(const std::string & regionName)
     {
-        return regionNames_.Find(regionName) != -1; 
-    }  
+        return regionNames_.Find(regionName) != -1;
+    }
+    
+    //! Computes the surface region between two volume regions (2D only)
+    virtual void SurfRegionFromVolRegions(
+        const std::string& surfRegionName,
+        const std::string& region1,
+        const std::string& region2);
+
+    //! Computes the surface region around one volume region (outline, 2D only)
+    virtual void SurfRegionFromSingleVolRegion(
+        const std::string& surfRegionName,
+        const std::string& region);    
     //@}
   
 

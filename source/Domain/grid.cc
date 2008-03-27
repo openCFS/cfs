@@ -1872,6 +1872,196 @@ namespace CoupledField
     return firstNo;
   }
 
+  void Grid::SurfRegionFromVolRegions(
+    const std::string& surfRegionName,
+    const std::string& region1,
+    const std::string& region2) {
+      
+    StdVector<SurfElem*> newSurfaceElems;
+    StdVector<Elem*> region1Elems;
+    StdVector<UInt> region2Nodes;
+    StdVector<UInt> surfElemIds;
+    RegionIdType region1Id;
+    RegionIdType region2Id;
+    RegionIdType surfRegionId;
+    Elem* el;
+    SurfElem* surfEl;
+      
+    if(GetDim() != 2)
+      EXCEPTION("SurfRegionFromVolRegions is only implemented for 2D!");
+      
+    if(region2 == "NO_REGION") {
+      SurfRegionFromSingleVolRegion(surfRegionName, region1);
+      return;
+    }
+  
+    region1Id = RegionNameToId(region1);
+    region2Id = RegionNameToId(region2);
+      
+    this->GetElems(region1Elems, region1Id);
+    this->GetNodesByRegion(region2Nodes, region2Id);      
+      
+    UInt nElemsRegion1 = region1Elems.GetSize();
+    UInt numCorners;
+    UInt lastCornerInRegion2;
+      
+    for(UInt i=0; i<nElemsRegion1; i++) {
+      el = region1Elems[i];
+      numCorners = el->ptElem->GetNumCorners();
+      lastCornerInRegion2 = 0;
+      for(UInt n=0; n<numCorners; ) {
+        if(region2Nodes.Find(el->connect[n]) < 0) {
+          n++;
+          continue;
+        }
+  
+        if(region2Nodes.Find(el->connect[(n+1) % numCorners]) < 0) {
+          n+=2;
+          continue;
+        }
+          
+        surfEl = new SurfElem();
+        surfEl->connect.Resize(3);
+        surfEl->connect[0] = el->connect[n];
+        surfEl->connect[1] = el->connect[(n+1) % numCorners];
+        surfEl->ptElem = ptL1;
+          
+        switch(el->ptElem->feType()) {
+        case ET_TRIA6:
+        case ET_QUAD8:
+        case ET_QUAD9:
+          surfEl->connect[2] = el->connect[n+numCorners];
+          surfEl->ptElem = ptL2;
+          break;
+        default:
+          break;
+        }
+          
+        newSurfaceElems.Push_back(surfEl);
+  
+        n++;
+      }
+    }
+      
+    if(newSurfaceElems.GetSize() != 0)
+    {
+      AddSurfaceRegion(surfRegionName, surfRegionId);
+      AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
+    }
+      
+  }
+    
+  void Grid::SurfRegionFromSingleVolRegion(
+    const std::string& surfRegionName,
+    const std::string& region)
+  {
+    StdVector<SurfElem*> newSurfaceElems;
+    StdVector<Elem*> regionElems;
+    StdVector<UInt> regionNodes;
+    StdVector<UInt> surfElemIds;
+    std::map<UInt, UInt> edgeCounts;
+    RegionIdType regionId;
+    RegionIdType surfRegionId;
+    Elem* el;
+    SurfElem* surfEl;
+      
+    regionId = RegionNameToId(region);
+  
+    this->GetElems(regionElems, regionId);
+    this->GetNodesByRegion(regionNodes, regionId);      
+      
+    UInt nElemsRegion = regionElems.GetSize();
+    UInt numEdges;
+    //    UInt lastCornerOnBnd;
+      
+    for(UInt i=0; i<nElemsRegion; i++) {
+      el = regionElems[i];
+      // get number of edges
+      numEdges = el->ptElem->GetNumEdges();
+      for(UInt n=0; n<numEdges; n++) {
+        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        edgeCounts[edgeNum]++;
+      }
+    }
+      
+    for(UInt i=0; i<nElemsRegion; i++) {
+      el = regionElems[i];
+      // get number of edges
+      numEdges = el->ptElem->GetNumEdges();
+      for(UInt n=0; n<numEdges; n++) {
+        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        if(edgeCounts[edgeNum] != 1)
+        {
+          n++;
+          continue;
+        }
+            
+          
+        /*        
+                  UInt cornerCount1 = cornerCounts[el->connect[n]];
+                  UInt cornerCount2 = cornerCounts[el->connect[(n+1) % numCorners]];
+          
+                  switch(cornerCount1) {
+                  case 1:
+                  case 2:
+                  if(cornerCount2 > 3) {
+                  n+=2;
+                  continue;                      
+                  }
+                  break;
+                  case 3:
+                  if(cornerCount2 > 2) {
+                  n+=2;
+                  continue;                      
+                  }
+                  break;
+                  default:
+                  n++;
+                  continue;          
+                  }
+                  /*        
+                  if(cornerCount1 > 2) {
+                  n++;
+                  continue;
+                  }
+  
+                  if(cornerCount1 > 2) {
+                  n+=2;
+                  continue;
+                  }
+        */
+          
+        surfEl = new SurfElem();
+        surfEl->connect.Resize(3);
+        surfEl->connect[0] = el->connect[n];
+        surfEl->connect[1] = el->connect[(n+1) % numEdges];
+        surfEl->ptElem = ptL1;
+          
+        switch(el->ptElem->feType()) {
+        case ET_TRIA6:
+        case ET_QUAD8:
+        case ET_QUAD9:
+          surfEl->connect[2] = el->connect[n+numEdges];
+          surfEl->ptElem = ptL2;
+          break;
+        default:
+          break;
+        }
+          
+        newSurfaceElems.Push_back(surfEl);
+  
+        n++;
+      }
+    }
+  
+    if(newSurfaceElems.GetSize() != 0)
+    {
+      AddSurfaceRegion(surfRegionName, surfRegionId);
+      AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
+    }
+      
+  }
+    
   // =======================================================================
   // Method wrappers for scripting
   // =======================================================================
