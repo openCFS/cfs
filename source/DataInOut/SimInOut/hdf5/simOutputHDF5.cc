@@ -822,8 +822,9 @@ namespace CoupledField {
     StdVector< StdVector<UInt> > regionNodes;
     StdVector<Elem*> elems;
     StdVector<RegionIdType> surfRegionIds, volRegionIds;
-    UInt dim, idx, numRegions;
-
+    UInt dim, numRegions;
+    Integer idx;
+    
     // create region group
     try{
       regionListGroup = meshGroup.createGroup("Regions");
@@ -843,13 +844,14 @@ namespace CoupledField {
     regionDims.Resize(numRegions);
 
     // obtain nodes and elements per surface region
-    for(UInt i=0; i<surfRegionIds.GetSize(); i++) {
+    for(UInt i=0, n=surfRegionIds.GetSize(); i<n; i++) {
       idx = surfRegionIds[i];
       regionDims[idx] = dim-1;
       
       ptGrid_->GetElems(elems, idx);
-      regionElems[idx].resize(elems.GetSize());
-      for(UInt j=0; j<elems.GetSize(); j++) {
+      UInt nElems = elems.GetSize();
+      regionElems[idx].resize(nElems);
+      for(UInt j=0; j<nElems; j++) {
         regionElems[idx][j] = elems[j]->elemNum;
       }
       
@@ -865,13 +867,14 @@ namespace CoupledField {
     }
 
     // obtain nodes and elements per volume region
-    for(UInt i=0; i<volRegionIds.GetSize(); i++) {
+    for(UInt i=0, n=volRegionIds.GetSize(); i<n; i++) {
       idx = volRegionIds[i];
       regionDims[idx] = dim;
 
       ptGrid_->GetElems(elems, idx);
-      regionElems[idx].resize(elems.GetSize());
-      for(UInt j=0; j<elems.GetSize(); j++) {
+      UInt nElems = elems.GetSize();
+      regionElems[idx].resize(nElems);
+      for(UInt j=0; j<nElems; j++) {
         regionElems[idx][j] = elems[j]->elemNum;
       }
       

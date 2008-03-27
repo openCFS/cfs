@@ -43,18 +43,18 @@ namespace CoupledField {
     hasExternalFiles_ = false;
     fileName_ = fileName;
     genRegionNodes_ = false;
-    ParamNode *readRegionNode = NULL;
+    ParamNode *pNode = NULL;
     
     // Change defaults according to XML file
-    readRegionNode = myParam_->Get("generateRegionNodes", false);
-    if( readRegionNode ) {
-      genRegionNodes_ = readRegionNode->AsBool();
+    pNode = myParam_->Get("generateRegionNodes", false);
+    if( pNode ) {
+      genRegionNodes_ = pNode->AsBool();
     }
     
-    readRegionNode = myParam_->Get("readRegions", false);
-    if(readRegionNode) {
+    pNode = myParam_->Get("readEntities", false);
+    if(pNode) {
       std::string readRegions = 
-        myParam_->Get("readRegions", false)->AsString();
+        myParam_->Get("readEntities", false)->AsString();
 
       typedef boost::tokenizer<char_separator<char> > Tok;
       boost::char_separator<char> sep(";| ");
@@ -64,9 +64,9 @@ namespace CoupledField {
       end = t.end();
       
       for( ; it != end; it++)
-        readRegions_.Push_back(*it);
+        readEntities_.insert(*it);
     } else {
-      readRegions_.Push_back("all");
+      readEntities_.insert("all");
     }
 
     // Do not print HDF5 exceptions by default
@@ -144,18 +144,39 @@ namespace CoupledField {
       ReadMeshStats(mGroup);
 
     // If all regions are to be read set list of readRegions accordingly.
-    if(readRegions_[0] == "all") {
-      readRegions_ = regionNames_;
+    std::set< std::string >::iterator it, end;
+    if(*readEntities_.begin() == "all") {
+      readEntities_.clear();
+      readEntities_.insert(regionNames_.Begin(), regionNames_.End());
+      readEntities_.insert(nodeNames_.Begin(), nodeNames_.End());
+      readEntities_.insert(elemNames_.Begin(), elemNames_.End());
+      LOG_DBG(simInputHdf5) << "The following entities will be read:";
+      std::stringstream sstr;
+      it=readEntities_.begin();
+      end=readEntities_.end();
+      for( ; it != end; it++)
+        sstr << (*it) << " ";
+      LOG_DBG(simInputHdf5) << sstr.str();
     }
     
-    // Check if all readRegions_ can be found in file.
-     for(UInt i=0; i<readRegions_.GetSize(); i++) {
-       if(std::find(regionNames_.Begin(),
-                    regionNames_.End(),
-                    readRegions_[i]) == regionNames_.End())
-         EXCEPTION("Region " << readRegions_[i] << " specified for"
-                   " reading does not exist." );
-     }
+    // Check if all readEntities_ can be found in file.
+    it=readEntities_.begin();
+    end=readEntities_.end();
+    for( ; it != end; it++) {
+      StdVector<std::string>::iterator findIt;
+      
+      findIt = std::find(regionNames_.Begin(), regionNames_.End(), *it); 
+      if( findIt != regionNames_.End()) continue;
+       
+      findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it); 
+      if( findIt != nodeNames_.End()) continue;
+       
+      findIt = std::find(elemNames_.Begin(), elemNames_.End(), *it); 
+      if( findIt != elemNames_.End()) continue;
+
+      EXCEPTION("Entity " << (*it) << " specified for"
+                " reading does not exist." );
+   }
     
      // ========================
      //  READ NODAL INFORMATION
@@ -685,6 +706,8 @@ namespace CoupledField {
     // ensure, that region names are already read in
     if( !statsRead_ )
       ReadMeshStats( meshGroup );
+
+    std::set<std::string>::iterator findIt;
     
     // ================================
     //  Add Elements Per Element Group
@@ -699,7 +722,11 @@ namespace CoupledField {
         return;
       }
 
-      for( UInt i = 0; i < elemNames_.GetSize(); i++ ) {
+      for( UInt i = 0, n=elemNames_.GetSize(); i < n; i++ ) {
+        findIt = readEntities_.find(elemNames_[i]);
+        if(findIt == readEntities_.end())
+          continue;
+        
         // open entitygroup with given name
         try {
           actEntityGroup = entityGroup.openGroup( elemNames_[i] );
@@ -709,7 +736,7 @@ namespace CoupledField {
         // read elems from grid
         StdVector<UInt> readElems;
         H5IO::ReadArray( actEntityGroup, "Elements", readElems );
-        for( UInt j = 0; j < readElems.GetSize(); j++ ) {
+        for( UInt j = 0, n2=readElems.GetSize(); j < n2; j++ ) {
           readElemSet.insert( readElems[j] );
           elemRegionMap[readElems[j]] = NO_REGION_ID;
         }
@@ -731,24 +758,29 @@ namespace CoupledField {
     H5::Group regionGroup, actRegion;
     try {
       regionGroup = meshGroup.openGroup( "Regions" );
-          } H5_CATCH( "Could not open 'Regions' group" );
+    } H5_CATCH( "Could not open 'Regions' group" );
 
-    // pass region names to grid and obtain RegionIds
-    StdVector<RegionIdType> regionIds;
-    mi_->AddRegions(readRegions_, regionIds);
 
     // Read all nodes from regions and initialize mapping from mesh node
     // numbers to grid node numbers accordingly.
     UInt baseNodeNum = mi_->GetNumNodes() + 1;
     UInt baseElemNum = mi_->GetNumElems() + 1;
 
-    for( UInt i = 0; i < readRegions_.GetSize(); i++ ) {
+    for( UInt i = 0, n=regionNames_.GetSize(); i < n; i++ ) {
+      std::string regionName = regionNames_[i];
+      findIt = readEntities_.find(regionName);
+      if(findIt == readEntities_.end())
+        continue;
+      
       try {
-        actRegion = regionGroup.openGroup( readRegions_[i] );
+        actRegion = regionGroup.openGroup( regionName );
       } H5_CATCH( "Could not open group for region '" <<
                   regionNames_[i] << "'" );
+
       
-      RegionIdType actRegionId = regionIds[i];
+      // pass region names to grid and obtain RegionIds
+      RegionIdType actRegionId;
+      mi_->AddRegion(regionName, actRegionId);
       
       // read node numbers for this region
       StdVector<UInt> regionNodes;
@@ -809,10 +841,11 @@ namespace CoupledField {
     for( it = readElemSet.begin(), end = readElemSet.end();
          it != end;
          it++ ) {
-      FEType type = (FEType) elemTypes[(*it)-1];
-      UInt * connect = &globConnect[numNodesPerElem*((*it)-1)];
-      RegionIdType actRegionId = elemRegionMap[*it];
-      mi_->SetElemData( elemNumMap_[*it], type, actRegionId, connect );
+      UInt elemNum=(*it);
+      FEType type = (FEType) elemTypes[elemNum-1];
+      UInt * connect = &globConnect[numNodesPerElem*(elemNum-1)];
+      RegionIdType actRegionId = elemRegionMap[elemNum];
+      mi_->SetElemData( elemNumMap_[elemNum], type, actRegionId, connect );
     }
     
     // ======================================
@@ -822,12 +855,12 @@ namespace CoupledField {
     // check, if nodes nodes of region should be additionally added
     // to list of named nodes
     if( genRegionNodes_) {    
-
+#if 0      
       // iterate over all regions
-      for( UInt i = 0; i < readRegions_.GetSize(); i++ ) {
+      for( UInt i = 0; i < readEntities_.GetSize(); i++ ) {
 
         try {
-          actRegion = regionGroup.openGroup( readRegions_[i] );
+          actRegion = regionGroup.openGroup( readEntities_[i] );
         } H5_CATCH( "Could not open group for region '" <<
                     regionNames_[i] << "'" );
 
@@ -841,10 +874,13 @@ namespace CoupledField {
           regionNodes[j] = nodeNumMap_[regionNodes[j]];
         }
         // add nodes as named nodes
-        mi_->AddNamedNodes( readRegions_[i]+"_Nodes", regionNodes );
+        mi_->AddNamedNodes( readEntities_[i]+"_Nodes", regionNodes );
         
         regionGroup.close();
       }
+#else
+      EXCEPTION("Generation of nodes per region temporarily not supported!");
+#endif
     }
 
   }
@@ -861,7 +897,12 @@ namespace CoupledField {
       return;
     }
 
+    std::set<std::string>::iterator findIt;
+
     for( UInt i = 0; i < nodeNames_.GetSize(); i++ ) {
+      findIt = readEntities_.find(nodeNames_[i]);
+      if(findIt == readEntities_.end())
+        continue;
 
       // open entitygroup with given name
       try {
@@ -902,7 +943,13 @@ namespace CoupledField {
        return;
      }
 
+     std::set<std::string>::iterator findIt;
+
      for( UInt i = 0; i < elemNames_.GetSize(); i++ ) {
+       findIt = readEntities_.find(elemNames_[i]);
+       if(findIt == readEntities_.end())
+         continue;
+
        // open entitygroup with given name
        try {
          actEntityGroup = entityGroup.openGroup( elemNames_[i] );
@@ -966,9 +1013,6 @@ namespace CoupledField {
     //  Read Named Nodes Description
     // ==============================
     H5::Group entityGroup;
-
-    nodeNames_.Clear();
-
     try {
       entityGroup = meshGroup.openGroup("Groups");
     } catch (H5::Exception& h5ex) {

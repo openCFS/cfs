@@ -100,7 +100,7 @@
         <xsd:attribute name="generateRegionNodes"
 		       type="DT_CFSBool"
 		       default="no"/>
-        <xsd:attribute name="readRegions"
+        <xsd:attribute name="readEntities"
 		       type="xsd:token"
 		       default="all"/>
         <xsd:attribute name="fileName"
