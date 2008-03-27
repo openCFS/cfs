@@ -69,6 +69,24 @@ namespace CoupledField {
       readEntities_.insert("all");
     }
 
+    pNode = myParam_->Get("linearizeEntities", false);
+    if(pNode) {
+      std::string readRegions = 
+        myParam_->Get("linearizeEntities", false)->AsString();
+
+      typedef boost::tokenizer<char_separator<char> > Tok;
+      boost::char_separator<char> sep(";| ");
+      Tok t(readRegions, sep);
+      Tok::iterator it, end;
+      it = t.begin();
+      end = t.end();
+      
+      for( ; it != end; it++)
+        linearizeEntities_.insert(*it);
+    } else {
+      linearizeEntities_.insert("none");
+    }
+    
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
   }
@@ -144,7 +162,7 @@ namespace CoupledField {
       ReadMeshStats(mGroup);
 
     // If all regions are to be read set list of readRegions accordingly.
-    std::set< std::string >::iterator it, end;
+    std::set< std::string >::iterator it, end, erase;
     if(*readEntities_.begin() == "all") {
       readEntities_.clear();
       readEntities_.insert(regionNames_.Begin(), regionNames_.End());
@@ -177,7 +195,49 @@ namespace CoupledField {
       EXCEPTION("Entity " << (*it) << " specified for"
                 " reading does not exist." );
    }
-    
+
+    // Make sure we have only entities in linearizeEntities_ which are
+    // also part of readEntities_
+    if(*linearizeEntities_.begin() == "none") {
+      linearizeEntities_.clear();
+    } else if(*linearizeEntities_.begin() == "all") {
+      linearizeEntities_.insert(readEntities_.begin(), readEntities_.end());
+    } else {
+      it=linearizeEntities_.begin();
+      end=linearizeEntities_.end();
+      for( ; it != end; ) {
+        if(readEntities_.find(*it) == readEntities_.end()) {
+          erase = it; it++;
+//          std::cout << "Erasing nonexistant entity " << (*erase) << std::endl;
+          linearizeEntities_.erase(erase);
+        }
+        it++;
+      }      
+    }
+
+    // Remove nodal entities from linearizeEntities_
+    it=linearizeEntities_.begin();
+    end=linearizeEntities_.end();
+    for( ; it != end; ) {
+      StdVector<std::string>::iterator findIt;
+      
+      findIt = std::find(nodeNames_.Begin(), nodeNames_.End(), *it); 
+      if( findIt != nodeNames_.End()) {
+        erase = it; it++;
+//        std::cout << "Erasing nodal entity " << (*erase) << std::endl;
+        linearizeEntities_.erase(erase);
+      }
+      it++;
+    }      
+
+//  TODO: strieben - Remove these lines!   
+//    std::cout << "linearizeEntities" << std::endl;
+//    typedef std::ostream_iterator<std::string> string_os_iter;
+//    std::copy (linearizeEntities_.begin(),
+//               linearizeEntities_.end(),
+//               string_os_iter (std::cout, " "));
+//    std::cout << std::endl;
+   
      // ========================
      //  READ NODAL INFORMATION
      // ========================
@@ -567,21 +627,35 @@ namespace CoupledField {
     StdVector<Double> realVals;
     H5IO::ReadArray( resGroup, "Real", realVals );
 
+    StdVector<UInt> idx;
+    UInt resVecSize = result->GetEntityList()->GetSize();
+    std::cout << "resVecSize " << resVecSize << std::endl;
+    
+    if(entString == "Nodes") {
+      idx = entityNodeMap_[regionName];
+      std::cout << "entityNodeMap_[" << regionName << "] Size " << entityNodeMap_[regionName].GetSize() << std::endl;
+    } else {
+      idx.Resize( realVals.GetSize() );
+      for( UInt i = 0, n=realVals.GetSize(); i <n ; i++ )
+        idx[i] = i;
+    }
+    
+    
     // copy data array to result object
     if( result->GetEntryType() == EntryType::DOUBLE ) {
       Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
-      resVec.Resize( realVals.GetSize() );
-      for( UInt i = 0; i < realVals.GetSize(); i++ ) {
-        resVec[i] = realVals[i];
+      resVec.Resize( resVecSize );
+      for( UInt i = 0; i < resVecSize; i++ ) {
+        resVec[i] = realVals[idx[i]];
       } 
     } else {
       Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
       StdVector<Double> imagVals;
       H5IO::ReadArray( resGroup, "Imag", imagVals );
       
-      resVec.Resize( realVals.GetSize() );
-      for( UInt i = 0; i < realVals.GetSize(); i++ ) {
-        resVec[i] = Complex( realVals[i], imagVals[i] );
+      resVec.Resize( resVecSize );
+      for( UInt i = 0; i < resVecSize; i++ ) {
+        resVec[i] = Complex( realVals[idx[i]], imagVals[idx[i]] );
       } 
     }
     resGroup.close();
@@ -621,9 +695,27 @@ namespace CoupledField {
         dynamic_cast<Result<Double>&>(*result).GetVector();
       resVec.Resize( list->GetSize() * numDofs );
       for( it.Begin(); !it.IsEnd(); it++ ) {
-        // open for each entity the specific subgroup
-        H5::Group actEntGroup = 
-          entityGroup.openGroup(it.GetIdString() );
+        
+        H5::Group actEntGroup;
+        
+        if(entityTypeString == "Nodes") {
+          // Find node number in HDF5 file which corresponds to mesh node number
+          UInt meshNodeNum = it.GetNode();
+          UInt fileNodeNum = g2FNodeNumMap_[meshNodeNum];
+          std::stringstream sstr;
+          sstr << fileNodeNum;
+          actEntGroup = entityGroup.openGroup(sstr.str());
+        } else if(entityTypeString == "Elements") {
+          // Find element number in HDF5 file which corresponds to mesh elem number
+          UInt meshElemNum = it.GetElem()->elemNum;
+          UInt fileElemNum = g2FElemNumMap_[meshElemNum];
+          std::stringstream sstr;
+          sstr << fileElemNum;
+          actEntGroup = entityGroup.openGroup(sstr.str());
+        } else {
+          // open for each entity the specific subgroup
+          actEntGroup = entityGroup.openGroup(it.GetIdString() );
+        }
 
         // read single part of array and set it in the result vector
         StdVector<Double> vals;
@@ -733,6 +825,10 @@ namespace CoupledField {
         } H5_CATCH( "Could not open definition of element group '"
                     << nodeNames_[i] << "'" );
 
+        // Check if entity needs to be linearized
+        bool linearizeEntity;
+        linearizeEntity = linearizeEntities_.find(elemNames_[i]) != linearizeEntities_.end();
+        
         // read elems from grid
         StdVector<UInt> readElems;
         H5IO::ReadArray( actEntityGroup, "Elements", readElems );
@@ -741,10 +837,27 @@ namespace CoupledField {
           elemRegionMap[readElems[j]] = NO_REGION_ID;
         }
 
-        // read nodes from grid
         StdVector<UInt> readNodes;
+        StdVector<UInt> actualNodes;
+        StdVector<UInt> nodeIndices;
+        // read nodes from grid
         H5IO::ReadArray( actEntityGroup, "Nodes", readNodes );
-        readNodeSet.insert( readNodes.Begin(), readNodes.End( ));
+        actualNodes=readNodes;
+        
+        // Extract nodes needed for linear elements
+        if(linearizeEntity) {
+          LinearizeElems(readElems, elemTypes, globConnect, actualNodes);
+        }
+        
+        // To be able to read results for linearized grids we need an index
+        // map for each entity (nodes of named elems and regions)
+        nodeIndices.Resize(actualNodes.GetSize());
+        for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
+          nodeIndices[j] = readNodes.Find(actualNodes[j]);
+        }
+        entityNodeMap_[elemNames_[i]] = nodeIndices;
+        
+        readNodeSet.insert( actualNodes.Begin(), actualNodes.End( ));
 
         actEntityGroup.close();
       }
@@ -781,12 +894,10 @@ namespace CoupledField {
       // pass region names to grid and obtain RegionIds
       RegionIdType actRegionId;
       mi_->AddRegion(regionName, actRegionId);
-      
-      // read node numbers for this region
-      StdVector<UInt> regionNodes;
-      H5IO::ReadArray( actRegion, "Nodes", regionNodes );
-      
-      readNodeSet.insert( regionNodes.Begin(), regionNodes.End());
+
+      // Check if entity needs to be linearized
+      bool linearizeEntity;
+      linearizeEntity = linearizeEntities_.find(regionName) != linearizeEntities_.end();
 
       // read elem numbers for this region
       StdVector<UInt> regionElems;
@@ -795,6 +906,27 @@ namespace CoupledField {
         readElemSet.insert( regionElems[j] );
         elemRegionMap[regionElems[j]] = actRegionId;
       }
+      
+      StdVector<UInt> regionNodes;
+      StdVector<UInt> actualNodes;
+      StdVector<UInt> nodeIndices;
+
+      H5IO::ReadArray( actRegion, "Nodes", regionNodes );
+      actualNodes=regionNodes;
+
+      if(linearizeEntity) {
+        LinearizeElems(regionElems, elemTypes, globConnect, actualNodes);
+      }
+
+      // To be able to read results for linearized grids we need an index
+      // map for each entity (nodes of named elems and regions)
+      nodeIndices.Resize(actualNodes.GetSize());
+      for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
+        nodeIndices[j] = regionNodes.Find(actualNodes[j]);
+      }
+      entityNodeMap_[regionName] = nodeIndices;
+      
+      readNodeSet.insert( regionNodes.Begin(), regionNodes.End());
     }
     
     // ===================
@@ -815,7 +947,8 @@ namespace CoupledField {
       p[2] = nodeCoords_[idx + 2];
       mi_->SetNodeCoordinate( baseNodeNum, p );
 
-      nodeNumMap_[*it] = baseNodeNum++;
+      g2FNodeNumMap_[baseNodeNum] = *it;
+      f2GNodeNumMap_[*it] = baseNodeNum++;
     }
 
     // ======================
@@ -827,14 +960,15 @@ namespace CoupledField {
     for( it=readElemSet.begin(), end=readElemSet.end();
          it != end;
          it++ ) {
-      elemNumMap_[*it] = idx++;
+      g2FElemNumMap_[idx] = *it;
+      f2GElemNumMap_[*it] = idx++;
     }
 
     // Remap global connectivity from mesh nodes to grid node numbers
     for( UInt i = 0, n=globConnect.GetSize();
          i < n;
          i++ ) {
-      globConnect[i] = nodeNumMap_[globConnect[i]];
+      globConnect[i] = f2GNodeNumMap_[globConnect[i]];
     }
 
     // iterate over all elements
@@ -845,7 +979,7 @@ namespace CoupledField {
       FEType type = (FEType) elemTypes[elemNum-1];
       UInt * connect = &globConnect[numNodesPerElem*(elemNum-1)];
       RegionIdType actRegionId = elemRegionMap[elemNum];
-      mi_->SetElemData( elemNumMap_[elemNum], type, actRegionId, connect );
+      mi_->SetElemData( f2GElemNumMap_[elemNum], type, actRegionId, connect );
     }
     
     // ======================================
@@ -871,7 +1005,7 @@ namespace CoupledField {
         for( UInt j = 0, n=regionNodes.GetSize();
         j < n;
         j++ ) {
-          regionNodes[j] = nodeNumMap_[regionNodes[j]];
+          regionNodes[j] = f2GNodeNumMap_[regionNodes[j]];
         }
         // add nodes as named nodes
         mi_->AddNamedNodes( readEntities_[i]+"_Nodes", regionNodes );
@@ -918,8 +1052,8 @@ namespace CoupledField {
       for( UInt j = 0, n=readNodes.GetSize();
            j < n;
            j++ ) {
-        if(nodeNumMap_[readNodes[j]] != 0)
-          nodes.Push_back(nodeNumMap_[readNodes[j]]);
+        if(f2GNodeNumMap_[readNodes[j]] != 0)
+          nodes.Push_back(f2GNodeNumMap_[readNodes[j]]);
       }
 
       // add nodes to grid
@@ -964,8 +1098,8 @@ namespace CoupledField {
        for( UInt j = 0, n=readElems.GetSize();
             j < n;
             j++ ) {
-         if(elemNumMap_[readElems[j]] != 0)
-           elems.Push_back(elemNumMap_[readElems[j]]);
+         if(f2GElemNumMap_[readElems[j]] != 0)
+           elems.Push_back(f2GElemNumMap_[readElems[j]]);
        }
 
        actEntityGroup.close();
@@ -1063,4 +1197,44 @@ namespace CoupledField {
     statsRead_ = true;
   }
 
+  void SimInputHDF5::LinearizeElems(const StdVector<UInt>& readElems,
+                                    StdVector<Integer>& elemTypes, 
+                                    StdVector<UInt>& globConnect, 
+                                    StdVector<UInt>& readNodes) {
+    static std::map<FEType, FEType> elemTypeMap;
+    UInt elemIncr = globConnect.GetSize() / elemTypes.GetSize();
+    UInt numElems = readElems.GetSize();
+    std::set<UInt> readNodeSet;
+    
+    if(!elemTypeMap.size()) {
+      elemTypeMap[ET_LINE2] = ET_LINE2;
+      elemTypeMap[ET_LINE3] = ET_LINE2;
+      elemTypeMap[ET_TRIA3] = ET_TRIA3;
+      elemTypeMap[ET_TRIA6] = ET_TRIA3;
+      elemTypeMap[ET_QUAD4] = ET_QUAD4;
+      elemTypeMap[ET_QUAD8] = ET_QUAD4;
+      elemTypeMap[ET_TET4] = ET_TET4;
+      elemTypeMap[ET_TET10] = ET_TET4;
+      elemTypeMap[ET_HEXA8] = ET_HEXA8;
+      elemTypeMap[ET_HEXA20] = ET_HEXA8;
+      elemTypeMap[ET_PYRA5] = ET_PYRA5;
+      elemTypeMap[ET_PYRA13] = ET_PYRA5;
+      elemTypeMap[ET_WEDGE6] = ET_WEDGE6;
+      elemTypeMap[ET_WEDGE15] = ET_WEDGE6;
+    }
+
+    for(UInt i=0; i<numElems; i++) {
+      UInt elemIdx=readElems[i]-1;
+      FEType newType = elemTypeMap[(FEType)elemTypes[elemIdx]];
+      UInt numNodes = NUM_ELEM_NODES[newType];
+        
+      elemTypes[elemIdx] = newType;
+      readNodeSet.insert(&globConnect[elemIdx*elemIncr],
+                         &globConnect[elemIdx*elemIncr+numNodes]);
+    }
+    
+    readNodes.Resize(readNodeSet.size());
+    std::copy(readNodeSet.begin(), readNodeSet.end(), readNodes.Begin());
+  }
+  
 }

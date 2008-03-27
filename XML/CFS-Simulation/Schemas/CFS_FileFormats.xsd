@@ -103,6 +103,9 @@
         <xsd:attribute name="readEntities"
 		       type="xsd:token"
 		       default="all"/>
+        <xsd:attribute name="linearizeEntities"
+          type="xsd:token"
+          default="none"/>
         <xsd:attribute name="fileName"
 		       type="xsd:token"
 		       default="default"/>

@@ -354,6 +354,7 @@ namespace CoupledField {
 
       // Create new step group.
       try {
+        // TODO: strieben - Creation of step groups fails when converting from h5 to h5 (see cube2d). Do something about it!
         currMeshStepGroup_= currMSMeshGroup_.createGroup(stepName.str());
         H5IO::WriteAttribute( currMeshStepGroup_, "StepValue", currStepValue_ );
 
