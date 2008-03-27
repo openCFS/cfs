@@ -188,8 +188,8 @@ namespace CoupledField {
     //! Native directory path to hdf5 file
     std::string baseDir_;
 
-    //! List of regions to be read in from the file
-    StdVector< std::string > readRegions_;
+    //! List of entities (regions & named nodes/elems) to be read in from the file
+    std::set< std::string > readEntities_;
 
     //! List with names of regions
     StdVector< std::string > regionNames_;
