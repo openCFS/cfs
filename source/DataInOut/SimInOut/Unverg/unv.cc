@@ -56,7 +56,7 @@ int unv::find_delimiter(int* status) {
   char *p_c;
 
   while (in_stream->getline(buffer, 81).good()) {
-    if ((p_c=strtok(buffer, " "))==buffer+4 && strcmp(p_c, "-1")==0
+    if ((p_c=strtok(buffer, " "))==buffer+4 && strncmp(p_c, "-1", 2)==0
         && strtok(NULL, " ")==NULL) {
       odd_delimiter=!odd_delimiter;
    #ifdef DEBUG

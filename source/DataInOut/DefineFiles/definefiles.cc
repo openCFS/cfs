@@ -226,6 +226,16 @@ namespace CoupledField
           EXCEPTION( "No support for GMV input file format." );
        #endif // USE_GMV_INPUT
       }
+      else if ( informat == "unv" ) {
+       #ifdef USE_UNV
+          if(meshFile == "")
+              meshFile = simName + ".unv";
+          inFiles[actId] = shared_ptr<SimInput>(new SimInputUnv(meshFile,
+                                                           actNode));
+       #else
+          EXCEPTION( "No support for UNV input file format." );
+       #endif // USE_UNV
+      }
       else {
           EXCEPTION( "Wrong format for input file. Please, check your data!" );
       }

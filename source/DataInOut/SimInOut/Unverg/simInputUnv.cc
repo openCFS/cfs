@@ -25,6 +25,38 @@ namespace CoupledField {
     : SimInput(fileName, inputNode) {
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
+
+    std::vector<std::string> axisMapTemp;
+    axisMapTemp.push_back("x");
+    axisMapTemp.push_back("y");
+    axisMapTemp.push_back("z");
+
+    myParam_->Get("mapXTo", axisMapTemp[0], false);
+    myParam_->Get("mapYTo", axisMapTemp[1], false);
+    myParam_->Get("mapZTo", axisMapTemp[2], false);
+
+    // Prepare mapping of coordinates
+    axisMap_.Resize(3);
+    for(UInt i=0; i<3; i++)
+    {
+      const std::string axis = axisMapTemp[i];
+      
+      if(axis == "x")
+      {
+        axisMap_[i] = 0;
+      } else if(axis == "y")
+      {
+        axisMap_[i] = 1;
+      } else if(axis == "z")
+      {
+        axisMap_[i] = 2;
+      } else if(axis == "zero")
+      {
+        axisMap_[i] = 3;
+      }
+    }
+    
+    // std::cout << "UNV axis map: " << axisMap_[0] << " " << axisMap_[1] << " "  << axisMap_[2] << std::endl;
   }
   
   void SimInputUnv::InitModule()
@@ -146,36 +178,36 @@ namespace CoupledField {
     // get coordinates
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
-    Point  p;
+    Point  p, pTemp;
     long   node,elem;
     bool   isDimPlausible = false;
     //    ocs::Vec3d oldNormal;
 
-    // Check if dim is really sane!
-    for (node=1; node<=nnodes; node++) {
-      capaInterface.GetPos(node, &p[0]);
+    mi_->AddNodes(nnodes);
 
-      if(p[0] != 0)
+    for (node=1; node<=nnodes; node++) {
+      capaInterface.GetPos(node, &pTemp[0]);
+      Double d;
+      // In the 2D case CFS++ writes the 3D coordinates in the
+      // following form: 0 x y
+      // if(dim == 2)
+      // {
+      //  p[0] = p[1];
+      //  p[1] = p[2];
+      //  p[2] = 0;
+      // }
+
+      p[0] = axisMap_[0] == 3 ? 0.0 : pTemp[axisMap_[0]];
+      p[1] = axisMap_[1] == 3 ? 0.0 : pTemp[axisMap_[1]];
+      p[2] = axisMap_[2] == 3 ? 0.0 : pTemp[axisMap_[2]];
+      
+      // Check if dim is really sane!
+      if(p[2] != 0)
       {
         dim = 3;
         break;
       }
-    }
-
-    mi_->AddNodes(nnodes);
-
-    for (node=1; node<=nnodes; node++) {
-      capaInterface.GetPos(node, &p[0]);
-
-      // In the 2D case CFS++ writes the 3D coordinates in the
-      // following form: 0 x y
-      if(dim == 2)
-      {
-        p[0] = p[1];
-        p[1] = p[2];
-        p[2] = 0;
-      }
-
+               
       mi_->SetNodeCoordinate(node, p);
     }
 
@@ -199,7 +231,6 @@ namespace CoupledField {
       capaInterface.GetElemColor(n+1, elemColor);
       capaInterface.GetElemType(n+1, unvElemType);
       capaInterface.GetElemNodes(n+1, numElemNodes, elemNodes);
-      std::copy(elemNodes, elemNodes+32, elemNodesUInt);
 
       eType = UnvType2ElemType(unvElemType);
 
@@ -227,10 +258,15 @@ namespace CoupledField {
         }
       }        
 
+      for (UInt i=0; i<32; i++) {
+        elemNodesUInt[i] = (UInt) elemNodes[i];
+      }
+
       mi_->SetElemData(n+1, eType, elemColor-1,
                        elemNodesUInt);
 
       partitions.insert(elemColor);
+
     }
 
     StdVector<std::string> regionNames;

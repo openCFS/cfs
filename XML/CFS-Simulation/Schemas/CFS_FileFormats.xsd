@@ -121,10 +121,30 @@
   <xsd:complexType name="DT_InputUNV">
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="mapXTo"
+          type="DT_InputUNVCoordMap"
+          default="x"/>
+        <xsd:attribute name="mapYTo"
+          type="DT_InputUNVCoordMap"
+          default="y"/>
+        <xsd:attribute name="mapZTo"
+          type="DT_InputUNVCoordMap"
+          default="z"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
+  <xsd:simpleType name="DT_InputUNVCoordMap">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="zero"/>
+    </xsd:restriction>
+  </xsd:simpleType>  
 
   <!-- ******************************************************************** -->
   <!--   Definition of basic data output type -->

@@ -845,8 +845,9 @@ namespace CoupledField {
         
     if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
       EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
-                  << "But you wanted to set a 3D coordinate for"
-                  << "node number " << inode );
+                  << "But you wanted to set the 3D coordinate " << "("
+                  << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
+                  << ") for node number " << inode);
     }
 
     coords_[inode-1] = rfPoint;
@@ -861,9 +862,10 @@ namespace CoupledField {
     }
         
     if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
-      EXCEPTION( "GridCFS: Dimension of grid is 2D. "
-                 << "But you wanted to set a 3D coordinate for"
-                 << "node number " << inode );
+      EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
+                  << "But you wanted to set the 3D coordinate " << "("
+                  << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
+                  << ") for node number " << inode);
     }
         
     UInt idx = inode-1;
