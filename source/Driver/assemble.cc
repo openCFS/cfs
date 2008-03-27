@@ -432,11 +432,15 @@ namespace CoupledField {
             //real part
             for (Integer i=0; i<size; i++) {
               harmVec[k] = elemVec[i].real();
+              if( std::isnan(harmVec[k]) || std::isinf(harmVec[k]) )
+                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
               k++;
             }
             //imaginary part
             for (Integer i=0; i<size; i++) {
               harmVec[k] = elemVec[i].imag();
+              if( std::isnan(harmVec[k]) || std::isinf(harmVec[k]) )
+                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
               k++;
             }
           
@@ -458,7 +462,12 @@ namespace CoupledField {
           
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, pdeId );
-          
+
+            for (Integer i=0, size = elemVec.GetSize(); i<size; i++) {
+              if( std::isnan(elemVec[i]) || std::isinf(elemVec[i]) )
+                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
+            }
+            
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec.GetPointer(), 
                                      pdeId, eqnVec.GetPointer(),
@@ -529,12 +538,21 @@ namespace CoupledField {
               if (analysisType_ == BasePDE::HARMONIC) {
                 parser->SetExpr( mHandle_, actLoad.phase  );
                 phase = parser->Eval( mHandle_ );
+                
+                if( std::isnan(val) || std::isinf(val) ||
+                    std::isnan(phase) || std::isinf(phase))
+                  EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
+                
                 Complex complexValue( val * cos( phase / 180 * PI ),
                                       val * sin( phase / 180 * PI ) );
                 
                 algsys_->SetNodeRHS(complexValue, eqnMap.GetPdeId(), 
                                     eqns[iEqn] );    
               } else {
+
+                if( std::isnan(val) || std::isinf(val))
+                  EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
+                
                 algsys_->SetNodeRHS(val, eqnMap.GetPdeId(), 
                                     eqns[iEqn] );    
               } // analysis
@@ -1012,6 +1030,12 @@ namespace CoupledField {
 
     Vector<Double> harmMat;    
     Double* dat_ptr = NULL;
+
+    dat_ptr = elemMat.GetDataPointer();
+    for(UInt i=0, n=elemMat.GetSizeCol() * elemMat.GetSizeRow(); i<n; i++) {
+      if( std::isnan(dat_ptr[i]) || std::isinf(dat_ptr[i]) )
+        EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
+    }
     
     if( analysisType_ == BasePDE::TRANSIENT 
         || analysisType_ == BasePDE::STATIC
@@ -1052,6 +1076,16 @@ namespace CoupledField {
     assert(mappedDest != NOTYPE);
     assert(analysisType_ == BasePDE::HARMONIC);
 
+    for(UInt i=0, m=elemMat.GetSizeRow(); i<m; i++) {
+      for(UInt j=0, n=elemMat.GetSizeCol(); j<n; j++) {
+        if( std::isnan(elemMat[i][j].real()) ||
+            std::isinf(elemMat[i][j].real()) || 
+            std::isnan(elemMat[i][j].imag()) ||
+            std::isinf(elemMat[i][j].imag()))
+          EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
+      }
+    }
+    
     Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
     Double omega = freq * 2 * PI;
     
