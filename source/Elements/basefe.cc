@@ -105,7 +105,7 @@ namespace CoupledField
     UInt globDim = globalCoords.GetSizeRow(); // determine global dimension
     UInt numPoints = globalCoords.GetSizeCol(); // number of global points
     UInt locDim = LCornerCoords_.GetSizeRow(); // dimension of current element
-    UInt numCorners = LCornerCoords_.GetSizeCol(); // number of element corners
+    //    UInt numCorners = LCornerCoords_.GetSizeCol(); // number of element corners
 
     Vector<Double> xi_start; // local start point for Newton-Raphson method
     Vector<Double> xi_k; // local point at iteration k
@@ -146,7 +146,7 @@ namespace CoupledField
 
       // Find good startpoint xi_k among local corner coordinates
       f_min = 999e5; // really big value!
-      for(UInt k = 0; k < numCorners; k++)
+      for(UInt k = 0; k < NumCorners_; k++)
       {
         for(UInt l = 0; l < locDim; l++)
         {
@@ -190,8 +190,11 @@ namespace CoupledField
         // locDim should never be 1 since line elements will
         // be handled differently
         if(locDim == 1)
+        {
+          EXCEPTION("Line elements should not use the Newton-Raphson method!");
           return;
-
+        }
+        
         if(globDim == 2)
         {
           // Find new local search direction for 2D -> 2D mapping using

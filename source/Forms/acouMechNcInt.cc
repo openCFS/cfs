@@ -1,9 +1,14 @@
-#include "acouMechNcInt.hh"
 #include "Domain/ncElem.hh"
 #include "Domain/grid.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+#include "acouMechNcInt.hh"
 
 namespace CoupledField {
+
+  DECLARE_LOG(acoumechncint)
+  DEFINE_LOG(acoumechncint, "forms.acoumechncint")
 
   AcouMechNcInt::AcouMechNcInt(UInt dofsPerNode, bool isAxi) {
     name_ = "AcouMechNcInt";
@@ -60,14 +65,29 @@ namespace CoupledField {
     ptGrid->CalcSurfNormal(normal_, *elemSlave);
     normal_ *= (Double) elemSlave->normalSign;
 
+    LOG_DBG3(acoumechncint) << "On NC-elem #" << actNCElem->elemNum 
+                            << " with connect = " << actNCElem->connect.Serialize()
+                            << " with coordinates \n"
+                            << ptCoord_
+                            << " belonging to region "
+                            << ptGrid->RegionIdToName(actNCElem->regionId);
+    
+    
+    UInt slaveElemNum = elemSlave->elemNum;
+    UInt masterElemNum = elemMaster->elemNum;
+    UInt ncElemNum = actNCElem->elemNum;
+    
     // is our interface coplanar?
     isCoplanar = ptGrid->IsNcInterfaceCoplanar(actElem_->regionId);
 
+    LOG_DBG3(acoumechncint) << "IsNcInterfaceCoplanar " << isCoplanar;
+    
     // get pointer to materials of acoustic pde
     if (firstPDEName_ == "acoustic")
       acouMaterials = &firstMaterials_;
     else
       acouMaterials = &secondMaterials_;
+
     // does slave element belong to acoustic domain?
     itMat = acouMaterials->find(elemSlave->ptVolElem1->regionId);
     if (itMat == acouMaterials->end()) { // no
@@ -78,6 +98,9 @@ namespace CoupledField {
       normal_ *= -1.0;
       fluidOnSlaveSide = true;
     }
+
+    LOG_DBG3(acoumechncint) << "fluidOnSlaveSide " << fluidOnSlaveSide;
+    
     // get the density of the fluid
     itMat->second->GetScalar(fluidDensity, DENSITY, REAL);
     if (formulation_ == ACOU_PRESSURE) {
@@ -109,14 +132,21 @@ namespace CoupledField {
     for (i = 0; i < noIntPoints; ++i) {
       actNCElem->ptElem->Local2GlobalCoord(point, intPoints[i],
           ptCoord_, NULL);
+
       for (j = 0; j < dim; ++j)
+      {
         globalIP[j][i] = point[j];
+        LOG_DBG3(acoumechncint) << "Global ip "<< i << ": " << point[j];        
+      }
     }
 
     // transform global to local coordinates of slave element
     ptGrid->GetElemNodesCoord(matNodeCoord, elemSlave->connect);
     elemSlave->ptElem->Global2LocalCoords(localSlaveIP, globalIP,
         matNodeCoord);
+    
+    LOG_DBG3(acoumechncint) << "Local ip Slave: " << elemSlave->elemNum
+                    << ": " << std::endl << localSlaveIP;
 
     // transform global to local coordinates of master element
     ptGrid->GetElemNodesCoord(matNodeCoord, elemMaster->connect);
@@ -143,6 +173,14 @@ namespace CoupledField {
         // calculate distance of int. point to master element
         normal.Inner(line, dist);
 
+        LOG_DBG3(acoumechncint) << "dist: " << dist;
+
+        // integration point may already be on master element by chance!
+        if(dist == 0.0)
+          continue;
+
+        LOG_DBG3(acoumechncint) << "Need to map global ip to master element!";
+        
         // determine orientation of normal on slave element
         normal_.Inner(line, sign);
         sign /= fabs(sign);
@@ -158,6 +196,8 @@ namespace CoupledField {
     }
     elemMaster->ptElem->Global2LocalCoords(localMasterIP, globalIP,
         matNodeCoord);
+    LOG_DBG3(acoumechncint) << "Local ip Master: " << elemMaster->elemNum
+                    << ": " << std::endl << localMasterIP;
 
     // resize matrix according to master/slave config
     if (fluidOnSlaveSide)
@@ -219,6 +259,8 @@ namespace CoupledField {
       helpMat += partHelpMat;
     }
 
+    LOG_DBG3(acoumechncint) << "single DOF matrix: " << helpMat;
+    
     // generate multi-dof matrix (scalar product with surface normal)
     if (firstPDEName_ == "acoustic") {
       elemMat.Resize( numMasterShpFncs, numSlaveShpFncs * dofs_ );
@@ -241,6 +283,9 @@ namespace CoupledField {
         }
       }
     }
+    
+    LOG_DBG3(acoumechncint) << "multi DOF matrix: " << elemMat;    
   }
 
+  
 } // namespace CoupledField

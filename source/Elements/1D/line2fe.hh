@@ -71,6 +71,14 @@ namespace CoupledField
         IntegOrder  = 1; 
     }
 
+    //! Get the local coordinates for given global ones
+    //! \param localCoords (output) local coordinates
+    //! \param globalCoords (input) global coordinates
+    //! \param coordMat (input) global corner coordinates of element
+    //!                         (spaceDim \f$\times\f$ nrNodes)
+    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+                                    const Matrix<Double> & globalCoords,
+                                    const Matrix<Double> & coordMat);
 
   private:
   };
