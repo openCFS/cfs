@@ -87,6 +87,7 @@ namespace CoupledField {
       // iterate over entity-lists of this result type
       for (UInt iList=0; iList<lists.GetSize(); iList++) {
         if (lists[iList]->GetType() == EntityList::ELEM_LIST ||  
+            lists[iList]->GetType() == EntityList::SURF_ELEM_LIST ||
             lists[iList]->GetType() == EntityList::NODE_LIST ) {
           // Add element list to list of mapped regions
           locEntities_.Push_back( lists[iList] );
@@ -1151,7 +1152,7 @@ namespace CoupledField {
       
       
       //  // iterate over all element lists
-      for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
+      for ( UInt iList = 0, n = locEntities_.GetSize(); iList < n; iList++ ) {
 
         // Get iterator of current element list
         EntityIterator it = locEntities_[iList]->GetIterator();

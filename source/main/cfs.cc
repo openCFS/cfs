@@ -109,6 +109,12 @@ int main( int argc, const char **argv ) {
 
     // Create new central messenger object (up to now only tcl available)
     messenger->ReadScriptFile(scriptFileName );
+
+    // Call initialization procedure
+    StdVector<std::string> context;
+    context.Push_back( commandLine->GetSimName() );
+    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
+
     Info->FinishProgress();    
   }
 

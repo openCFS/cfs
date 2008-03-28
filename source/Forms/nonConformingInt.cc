@@ -186,13 +186,15 @@ namespace CoupledField {
       {
         for(UInt l=0; l < shapeFuncsLGSize; l++)
         {
-          stiffMat[s][l] += jacDet * intWeights[i] * 
-                            shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
-                            shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
+          // stiffMat[s][l] += jacDet * intWeights[i] * 
+          //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
+          //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
 
-//          stiffMat[s][l] += jacDet * intWeights[i] * 
-//          shapeFuncsSurf[s] *
-//          shapeFuncsLG[l];
+          // This destroyed the circular pattern for the l2d example.
+          // TODO: strieben - Take a closer look!
+          stiffMat[s][l] += jacDet * intWeights[i] * 
+                            shapeFuncsSurf[s] *
+                            shapeFuncsLG[l];
         }
       }
     }

@@ -701,8 +701,9 @@ namespace CoupledField
     Vector<Double> s, t;
     Vector<Double> normal;
     StdVector<UInt> connect2;
-    Double dist, dist1, fac;
+    Double dist, dist1, dist2, fac;
     UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
+    Double relativeElemVol;
     
     s.Resize(2);
     t.Resize(2);
@@ -781,7 +782,7 @@ namespace CoupledField
     // Compute x2 coordinate of line2 in respect
     // to line1.
     diff0 = d1 - c0;
-    dist1 = diff0.NormL2();
+    dist2 = diff0.NormL2();
     diff0.Inner(diff1, s[1]);
     s[1] *= fac;
 
@@ -809,10 +810,11 @@ namespace CoupledField
     if(t[1] <= 0.0)
       return false;
 
-
     NCElem* ncElem = new NCElem;
     ncElem->connect.Resize(2);
 
+    relativeElemVol = t[1] - t[0];
+    
     // If an intersection exists, we must distinguish
     // 4 different cases.
     if(t[0] <= 0)
@@ -824,6 +826,7 @@ namespace CoupledField
         // connect2[0] x--------|--------------------|-----x connect2[1]
         //                   c0 x--------------------x c1
 
+        relativeElemVol = 1;
         ncElem->connect[1] = nodenum_c1;
       }      
       else
@@ -831,6 +834,7 @@ namespace CoupledField
         // connect2[0] x--------|---------x connect2[1]
         //                   c0 x---------|-----------x c1
 
+        relativeElemVol = t[1];
         ncElem->connect[1] = connect2[1];
       }
       
@@ -845,16 +849,30 @@ namespace CoupledField
         //      c0 x---|----------------x c1
         
         ncElem->connect[1] = nodenum_c1;
+        relativeElemVol = 1-t[0];
       }
       else
       {
         // connect2[0] x------------x connect2[1]
         //      c0 x---|------------|---x c1
 
-        ncElem->connect[1] = connect2[1];              
+        ncElem->connect[1] = connect2[1];
       }
     }
 
+    if(relativeElemVol < 1e-3) {
+      std::stringstream sstr;
+      sstr << "Rejecting ncElem due to a relative volume of " << relativeElemVol;
+      sstr << std::endl;
+      sstr << "  for intersection of elements " << ifaceElem1->elemNum;
+      sstr << " (" << RegionIdToName(ifaceElem1->regionId) << ") ";
+      sstr << "and " << ifaceElem2->elemNum;
+      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";      
+      Warning(sstr.str().c_str(), __FILE__, __LINE__);
+      delete ncElem;
+      return false;
+    }
+    
     ncElem->ptElem = ptL1;
     ncElem->ptLagrangeParent = ifaceElem2;
     ncElem->ptSurfParent = ifaceElem1;

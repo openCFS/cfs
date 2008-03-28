@@ -404,16 +404,6 @@ namespace CoupledField {
   }
 
   void Domain::InitPDEs( UInt sequenceStep ) {
-
-
-#ifdef USE_SCRIPTING
-
-    // Call initialization procedure
-    StdVector<std::string> context;
-    context.Push_back( commandLine->GetSimName() );
-    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
-#endif
-
     // intialize single pde(s)
 
     // Initialize those PDEs which are not

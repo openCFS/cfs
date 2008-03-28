@@ -227,8 +227,23 @@ namespace CoupledField {
     masterIt = masterSide.GetIterator();
     slaveIt = slaveSide.GetIterator();
 
-    map1_->GetEqns( eqnVec1, *result1_, masterIt );
-    map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+    if (ptPde1_ == ptPde2_) {
+      map1_->GetEqns( eqnVec1, *result1_, masterIt );
+      map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+    } else {
+      // check which pde is on master side (via materials)
+      std::map<RegionIdType, BaseMaterial*> pdeMat = 
+        ptPde1_->getPDEMaterialData();
+      std::map<RegionIdType, BaseMaterial*>::iterator itMat =
+        pdeMat.find(elem->ptSurfParent->ptVolElem1->regionId);
+      if (itMat != pdeMat.end()) { // pde1 is master
+        map1_->GetEqns( eqnVec1, *result1_, masterIt );
+        map2_->GetEqns( eqnVec2, *result2_, slaveIt );
+      } else {
+        map1_->GetEqns( eqnVec1, *result1_, slaveIt );
+        map2_->GetEqns( eqnVec2, *result2_, masterIt );
+      }
+    }
     
     // Get PDE IDs
     id1 = ptPde1_->GetPDEId();

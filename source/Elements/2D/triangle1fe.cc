@@ -27,6 +27,7 @@ namespace CoupledField
     NumNodes_ = 3;
 
     CommonInit(method, order);
+    SetEdgeIndices();
   }
 
   void Triangle1FE :: SetCornerCoords()
