@@ -72,24 +72,24 @@ sub rtrim($);
 # Perl trim function to remove whitespace from the start and end of the string
 sub trim($)
 {
-	my $string = shift;
-	$string =~ s/^\s+//;
-	$string =~ s/\s+$//;
-	return $string;
+    my $string = shift;
+    $string =~ s/^\s+//;
+    $string =~ s/\s+$//;
+    return $string;
 }
 # Left trim function to remove leading whitespace
 sub ltrim($)
 {
-	my $string = shift;
-	$string =~ s/^\s+//;
-	return $string;
+    my $string = shift;
+    $string =~ s/^\s+//;
+    return $string;
 }
 # Right trim function to remove trailing whitespace
 sub rtrim($)
 {
-	my $string = shift;
-	$string =~ s/\s+$//;
-	return $string;
+    my $string = shift;
+    $string =~ s/\s+$//;
+    return $string;
 }
 
 %proc_map_begin = ();
@@ -103,7 +103,7 @@ opendir (DIR , ".") || die "Can not open dir." ;
 
 $numparti = 0;
 
-if ($mode eq "fix") {
+if ($mode eq "fix" || $mode eq "hdf5") {
     foreach $filename (sort readdir(DIR)) {
 	if( $filename =~ /$datasetname\_[0-9]{2}\_[0-9]{4}.dat/ )
 	{
@@ -220,20 +220,14 @@ print "$numparti $timestep_max\n";
 #printf "timestep_min, timestep_max: %d %d\n", $timestep_min, $timestep_max;
 
 
-if($mode eq "fix") {
-    open( FILE, "> Types.cfg" ) or die "Can't open Types.cfg : $!";
-    close FILE;
-    open( FILE, "> Connectivity.cfg" ) or die "Can't open Connectivity.cfg : $!";
-    close FILE;
-    open( FILE, "> Coordinates.cfg" ) or die "Can't open Coordinates.cfg : $!";
-    close FILE;
-
-    open( FILE, "> Types.dat" ) or die "Can't open Types.dat : $!";
-    close FILE;
-    open( FILE, "> Connectivity.dat" ) or die "Can't open Connectivity.dat : $!";
-    close FILE;
-    open( FILE, "> Coordinates.dat" ) or die "Can't open Coordinates.dat : $!";
-    close FILE;
+if($mode eq "fix" || $mode eq "hdf5") {
+    if( $mode eq "hdf5") {
+	system("rm -f Types.cfg");
+	system("rm -f Connectivity.cfg");
+	system("rm -f Coordinates.cfg");
+	system("rm -f StepNumbers.dat");
+	system("rm -f StepValues.dat");
+    }
 
     $numnodes=0;
     $numelems=0;
@@ -257,18 +251,24 @@ if($mode eq "fix") {
 	$numnodes+=$linecount;
 
 
-#	open( DEST, "> $filename" ) or die "Can't open $filename : $!";
-	open( COORDFILE, ">> Coordinates.dat" ) or die "Can't open Coordinates.dat : $!";
+	if( $mode eq "fix") {
+	    open( DEST, "> $filename" ) or die "Can't open $filename : $!";
+	    print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\n";
 
-#	print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\n";
+	    foreach $line ( @data ) {
+		print DEST $line;
+	    }
+	    close DEST;
+	} else {
+	    open( COORDFILE, ">> Coordinates.dat" ) or die "Can't open Coordinates.dat : $!";
 
-	foreach $line ( @data ) {
-#	    print DEST $line;
-	    print COORDFILE $line;
+	    foreach $line ( @data ) {
+		print COORDFILE $line;
+	    }
+	    close COORDFILE;
 	}
 
-	close COORDFILE;
-#	close DEST;
+
 
 	print "Fixing elements...\n";
 
@@ -283,33 +283,37 @@ if($mode eq "fix") {
 	$numelems+=$linecount;
 
 
-#	open( DEST, "> $filename" ) or die "Can't open $filename : $!";
-#	print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\t4\n";
+	if( $mode eq "fix") {
+	    open( DEST, "> $filename" ) or die "Can't open $filename : $!";
+	    print DEST "\t$k\t$numparti\t$timestep_max\t$linecount\t4\n";
+	    foreach $line ( @data ) {
+		print DEST $line;
+	    }
+	    close DEST;
+	} else {
+	    open( CONNFILE, ">> Connectivity.dat" ) or die "Can't open Connectivity.dat : $!";
+	    open( TYPEFILE, ">> Types.dat" ) or die "Can't open Types.dat : $!";
+	    open( REGIONNODEFILE, "> RegionNodes_partition$k.dat" ) or die "Can't open RegionNodes_partition$k.dat : $!";
+	    open( REGIONELEMFILE, "> RegionElems_partition$k.dat" ) or die "Can't open RegionElems_partition$k.dat : $!";
+	    open( REGIONDIMFILE, "> RegionDim_partition$k.dat" ) or die "Can't open RegionDim_partition$k.dat : $!";
 
-	open( CONNFILE, ">> Connectivity.dat" ) or die "Can't open Connectivity.dat : $!";
-	open( TYPEFILE, ">> Types.dat" ) or die "Can't open Types.dat : $!";
-	open( REGIONNODEFILE, "> RegionNodes_partition$k.dat" ) or die "Can't open RegionNodes_partition$k.dat : $!";
-	open( REGIONELEMFILE, "> RegionElems_partition$k.dat" ) or die "Can't open RegionElems_partition$k.dat : $!";
-	open( REGIONDIMFILE, "> RegionDim_partition$k.dat" ) or die "Can't open RegionDim_partition$k.dat : $!";
+	    foreach $line ( @data ) {
+		print CONNFILE $line;
+		print TYPEFILE "6\n";
 
-	foreach $line ( @data ) {
-#	    print DEST $line;
-	    print CONNFILE $line;
-	    print TYPEFILE "6\n";
+		print REGIONNODEFILE $line;
+		print REGIONELEMFILE "$elem\n";
+		$elem++;
+	    }
 
-	    print REGIONNODEFILE $line;
-	    print REGIONELEMFILE "$elem\n";
-	    $elem++;
+	    print REGIONDIMFILE "2\n";
+
+	    close REGIONDIMFILE;
+	    close REGIONNODEFILE;
+	    close REGIONELEMFILE;
+	    close CONNFILE;
+	    close TYPEFILE;
 	}
-
-	print REGIONDIMFILE "2\n";
-
-	close REGIONDIMFILE;
-	close REGIONNODEFILE;
-	close REGIONELEMFILE;
-	close CONNFILE;
-	close TYPEFILE;
-#	close DEST;
 
 	print "Fixing data...\n";
 
@@ -332,87 +336,112 @@ if($mode eq "fix") {
 	    }
 
 	    $linecount = scalar @data;
-	    open( DEST, "> Result.dat" ) or die "Can't open Result.dat : $!";
-#	    print DEST "\t$numscalars\n";
-	    foreach $line ( @data ) {
-		print DEST $line;
-	    }
-	    close DEST;
+	    if( $mode eq "fix") {
 
-	    open( CFGSHFILE, "> Result.sh" ) or die "Can't open Result.sh : $!";
+		open( DEST, "> $filename" ) or die "Can't open $filename : $!";
+		print DEST "\t$numscalars\n";
 
-	    print CFGSHFILE "RESULT_TYPE=Grid\n";
-	    print CFGSHFILE "MULTISTEP=1\n";
-	    print CFGSHFILE "ANALYSIS_TYPE=transient\n";
-	    print CFGSHFILE "RESULT_NAME=acouRhsLoad\n";
-	    print CFGSHFILE "RESULT_REGION=partition$k\n";
+		foreach $line ( @data ) {
+		    print DEST $line;
+		}
+		close DEST;
+	    } else {
+		open( DEST, "> Result.dat" ) or die "Can't open Result.dat : $!";
+		foreach $line ( @data ) {
+		    print DEST $line;
+		}
+		close DEST;
 
-	    print CFGSHFILE "DESC_DOFNAMES=-\n";
-	    print CFGSHFILE "DESC_DEFINEDON=1\n";
-	    print CFGSHFILE "DESC_ENTRYTYPE=1\n";
-	    print CFGSHFILE "DESC_NUMDOFS=1\n";
-	    print CFGSHFILE "DESC_REGIONS=partition$k\n";
-	    print CFGSHFILE "DESC_UNIT=unknown\n";
+		open( CFGSHFILE, "> Result.sh" ) or die "Can't open Result.sh : $!";
 
-	    print CFGSHFILE "STEP_NUM=$t\n";
-	    print CFGSHFILE "STEP_VALUE=0.0\n";
+		print CFGSHFILE "RESULT_TYPE=Mesh\n";
+		print CFGSHFILE "MULTISTEP=1\n";
+		print CFGSHFILE "ANALYSIS_TYPE=transient\n";
+		print CFGSHFILE "RESULT_NAME=acouRhsLoad\n";
+		print CFGSHFILE "RESULT_REGION=partition$k\n";
 
-	    print CFGSHFILE "RESULT_ON=Nodes\n";
-	    print CFGSHFILE "COMPLEX_TYPE=Real\n";
-	    print CFGSHFILE "RESULT_DATAFILE=Result.dat\n";
-	    print CFGSHFILE "RESULT_RANK=1\n";
-	    print CFGSHFILE "RESULT_DIMENSION_SIZES=$linecount\n";
-	    close CFGSHFILE;
+		print CFGSHFILE "DESC_DOFNAMES=-\n";
+		print CFGSHFILE "DESC_DEFINEDON=1\n";
+		print CFGSHFILE "DESC_ENTRYTYPE=1\n";
+		print CFGSHFILE "DESC_NUMDOFS=1\n";
+		print CFGSHFILE "DESC_REGIONS=partition$k\n";
+		print CFGSHFILE "DESC_UNIT=unknown\n";
 
-	    $cmd = "sh @CFS_BINARY_DIR@/bin/hdf5_import_dataset.sh $basedir $datasetname.h5";
-	    if (system($cmd)) {
-		print "ERROR: Running of h5import failed!\n";
-		exit 1;
+		print CFGSHFILE "STEP_NUM=$t\n";
+		print CFGSHFILE "STEP_VALUE=0.0\n";
+
+		print CFGSHFILE "RESULT_ON=Nodes\n";
+		print CFGSHFILE "COMPLEX_TYPE=Real\n";
+		print CFGSHFILE "RESULT_DATAFILE=Result.dat\n";
+		print CFGSHFILE "RESULT_RANK=1\n";
+		print CFGSHFILE "RESULT_DIMENSION_SIZES=$linecount\n";
+		close CFGSHFILE;
+
+		$cmd = "sh /home/local/lse/strieben/CFS_BUILD/TRUNK_RELEASE_GCC/bin/hdf5_import_dataset.sh $basedir $datasetname.h5 FASTEST 1 0";
+		if (system($cmd)) {
+		    print "ERROR: Running of h5import failed!\n";
+		    exit 1;
+		}
+
+		open( STEPNUMFILE, "> StepNumbers.dat" ) or die "Can't open StepNums.dat : $!";
+		print STEPNUMFILE "$t\n";
+		close STEPNUMFILE;
+		open( STEPVALFILE, "> StepValues.dat" ) or die "Can't open StepValues.dat : $!";
+		print STEPVALFILE "$t\n";
+		close STEPVALFILE;
 	    }
 
 	}
     }
 
-    open( CFGFILE, "> Coordinates.cfg" ) or die "Can't open Coordinates.cfg : $!";
-    print CFGFILE "PATH /Mesh/Nodes/Coordinates\n";
-    print CFGFILE "INPUT-CLASS TEXTFP\n";
-    print CFGFILE "INPUT-SIZE 64\n";
-    print CFGFILE "RANK 2\n";
-    print CFGFILE "DIMENSION-SIZES $numnodes 3\n";
-    print CFGFILE "OUTPUT-CLASS FP\n";
-    print CFGFILE "OUTPUT-SIZE 64\n";
-    print CFGFILE "OUTPUT-ARCHITECTURE IEEE\n";
-    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
-    close CFGFILE;
+    if( $mode eq "hdf5") {
+	open( CFGFILE, "> Coordinates.cfg" ) or die "Can't open Coordinates.cfg : $!";
+	print CFGFILE "PATH /Mesh/Nodes/Coordinates\n";
+	print CFGFILE "INPUT-CLASS TEXTFP\n";
+	print CFGFILE "INPUT-SIZE 64\n";
+	print CFGFILE "RANK 2\n";
+	print CFGFILE "DIMENSION-SIZES $numnodes 3\n";
+	print CFGFILE "OUTPUT-CLASS FP\n";
+	print CFGFILE "OUTPUT-SIZE 64\n";
+	print CFGFILE "OUTPUT-ARCHITECTURE IEEE\n";
+	print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+	close CFGFILE;
 
-    open( CFGFILE, "> Types.cfg" ) or die "Can't open Types.cfg : $!";
-    print CFGFILE "PATH /Mesh/Elements/Types\n";
-    print CFGFILE "INPUT-CLASS TEXTUIN\n";
-    print CFGFILE "INPUT-SIZE 32\n";
-    print CFGFILE "RANK 1\n";
-    print CFGFILE "DIMENSION-SIZES $numelems\n";
-    print CFGFILE "OUTPUT-CLASS UIN\n";
-    print CFGFILE "OUTPUT-SIZE 32\n";
-    print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
-    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
-    close CFGFILE;
-    
-    open( CFGFILE, "> Connectivity.cfg" ) or die "Can't open Connectivity.cfg : $!";
-    print CFGFILE "PATH /Mesh/Elements/Connectivity\n";
-    print CFGFILE "INPUT-CLASS TEXTUIN\n";
-    print CFGFILE "INPUT-SIZE 32\n";
-    print CFGFILE "RANK 2\n";
-    print CFGFILE "DIMENSION-SIZES $numelems 4\n";
-    print CFGFILE "OUTPUT-CLASS UIN\n";
-    print CFGFILE "OUTPUT-SIZE 32\n";
-    print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
-    print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
-    close CFGFILE;
+	open( CFGFILE, "> Types.cfg" ) or die "Can't open Types.cfg : $!";
+	print CFGFILE "PATH /Mesh/Elements/Types\n";
+	print CFGFILE "INPUT-CLASS TEXTUIN\n";
+	print CFGFILE "INPUT-SIZE 32\n";
+	print CFGFILE "RANK 1\n";
+	print CFGFILE "DIMENSION-SIZES $numelems\n";
+	print CFGFILE "OUTPUT-CLASS UIN\n";
+	print CFGFILE "OUTPUT-SIZE 32\n";
+	print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
+	print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+	close CFGFILE;
+	
+	open( CFGFILE, "> Connectivity.cfg" ) or die "Can't open Connectivity.cfg : $!";
+	print CFGFILE "PATH /Mesh/Elements/Connectivity\n";
+	print CFGFILE "INPUT-CLASS TEXTUIN\n";
+	print CFGFILE "INPUT-SIZE 32\n";
+	print CFGFILE "RANK 2\n";
+	print CFGFILE "DIMENSION-SIZES $numelems 4\n";
+	print CFGFILE "OUTPUT-CLASS UIN\n";
+	print CFGFILE "OUTPUT-SIZE 32\n";
+	print CFGFILE "OUTPUT-ARCHITECTURE STD\n";
+	print CFGFILE "OUTPUT-BYTE-ORDER LE\n";
+	close CFGFILE;
 
-    $cmd = "sh @CFS_BINARY_DIR@/bin/hdf5_import_mesh.sh $basedir $datasetname.h5";
-    if (system($cmd)) {
-        print "ERROR: Running of h5import failed!\n";
-        exit 1;
+	$cmd = "sh /home/local/lse/strieben/CFS_BUILD/TRUNK_RELEASE_GCC/bin/hdf5_import_mesh.sh $basedir $datasetname.h5";
+	if (system($cmd)) {
+	    print "ERROR: Running of h5import failed!\n";
+	    exit 1;
+	}
+
+	$cmd = "sh /home/local/lse/strieben/CFS_BUILD/TRUNK_RELEASE_GCC/bin/hdf5_aux.sh $basedir $datasetname.h5 FASTEST 1";
+	if (system($cmd)) {
+	    print "ERROR: Running of h5import failed!\n";
+	    exit 1;
+	}
     }
 }
 else {
