@@ -2,6 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+
 #include "interpolate.hh"
 
 namespace CoupledField {
@@ -109,7 +113,7 @@ namespace CoupledField {
     
     // open file
     std::ifstream sampleData;
-    sampleData.open( fileName );
+    sampleData.open( fileName, std::ios::binary );
 
 
     // check if file 'fileName' exists
@@ -121,51 +125,63 @@ namespace CoupledField {
 
     // we don't trust .eof()
     sampleData.seekg(0,std::ios::end);
-    std::string::size_type pos = 0, pos_end = sampleData.tellg(),
-      line_end_pos , line_start_pos = 0;
+    std::string::size_type pos_end = sampleData.tellg();
 
     // start from the beginning
     sampleData.seekg(0,std::ios::beg);
-    std::string buf;
+    char* buf;
     Double      x, y;
     // initialize vectors xVals,yVals
     xVals.Resize(0);
     yVals.Resize(0);
     
-    // loop over all lines and split it up in (x,y) values
-    while( pos <= pos_end ) {
-      buf = "";
-      line_start_pos = sampleData.tellg();
-      std::getline(sampleData,buf,'\n');
-      line_end_pos = sampleData.tellg();
-        
-      // big choice of signs for comment's
-      if (buf.length() != 0 &&
-          buf[0] != '#' &&
-          buf[0] != '%' && 
-          buf[0] != '!') {
-
-        sampleData.seekg(line_start_pos); // rewind
-        sampleData >> x >> y;                    
-
-        // store values in vectors xVals and yVals
-        xVals.Push_back(x);
-        yVals.Push_back(y);
-
-        sampleData.ignore(100,'\n');
-      }
-
-      pos = sampleData.tellg();  // and, where we are ?    
-
-      std::string errMsg;          
-      if( pos != line_end_pos) {
-        EXCEPTION( "The sample data file '" << fileName
-                   << "' is not correctly formatted.\n"
-                   << "Please correct it!" );
-      }
-    }
-
+    buf = new char[pos_end+1];
+    sampleData.read(buf, pos_end);
     sampleData.close();
+    buf[pos_end]=0;
+    std::string data(buf);
+    delete[] buf;
+    
+    typedef boost::tokenizer<char_separator<char> > Tok;
+    boost::char_separator<char> sep("\n\r");
+    Tok t(data, sep);
+    Tok::iterator it, end;
+    it = t.begin();
+    end = t.end();
+
+    std::string line;
+    std::stringstream sstr;
+    
+    for(UInt lineNum=1; it != end; it++, lineNum++) {
+      line = *it;
+      
+      // strip whitespaces
+      boost::trim(line);
+      
+      // big choice of signs for comment's
+      if (line.length() == 0 || line[0] == '#' ||
+          line[0] == '%' || line[0] == '!')
+        continue;
+
+      // put line into a string stream
+      sstr.str(line);
+      
+      // read x value from string stream
+      sstr >> x;
+      if(!sstr)
+        EXCEPTION("A problem occured while reading from '" << fileName
+                  << "'.\nInvalid entry: '" << line <<"'");
+      
+      // read y value from string stream
+      sstr >> y;
+      if(!sstr)
+        EXCEPTION("A problem occured while reading from '" << fileName
+                  << "'.\nInvalid entry: '" << line <<"'");
+      
+      // store values in vectors xVals and yVals
+      xVals.Push_back(x);
+      yVals.Push_back(y);
+    }
   }
 
 
@@ -180,7 +196,7 @@ namespace CoupledField {
     // ypn for the first derivative of the interpolating function at 
     // points 0 and n, respectively, this routine returns an array y2[0..n] 
     // that contains the second derivatives of the interpolating function 
-    // at the tabulated points xi. If yp0 and/or ypn are equal to 1 × 10^30 
+    // at the tabulated points xi. If yp0 and/or ypn are equal to 1 ï¿½ 10^30 
     // or larger, the routine is signaled to set the corresponding boundary
     // condition for a natural spline, with zero second derivative on that
     // boundary.
