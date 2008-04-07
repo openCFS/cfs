@@ -164,6 +164,7 @@ namespace CoupledField {
         continue;
 
       // put line into a string stream
+      sstr.clear();
       sstr.str(line);
       
       // read x value from string stream
