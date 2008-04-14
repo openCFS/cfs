@@ -169,8 +169,9 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-      resHandler->BeginStep( fstep,freqs_[fstep] );
-      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep] );
+      resHandler->BeginStep( freqs_[fstep],fstep );
+      ptPDE_->WriteResultsInFile( freqs_[fstep],fstep );
+
       resHandler->FinishStep( );
       
       Vector<Complex> chargeVec;
@@ -417,6 +418,7 @@ namespace CoupledField
       // the piezoCoupling object
       resHandler->BeginStep( freqsElec_[fstep], fstep );
       ptPDE_->WriteResultsInFile( freqsElec_[fstep], fstep );
+
       resHandler->FinishStep( );
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
