@@ -35,6 +35,7 @@ namespace CoupledField
     y_hat_.Resize(nrMeasuredData);
     y_hat_.Init();
 
+    
     Vector<Complex> rand(nrMeasuredData);
     for (UInt i=0; i<nrMeasuredDataElec_; i++){
       x=absZ[i]*cos(PI/180*phi[i]);
@@ -85,8 +86,12 @@ namespace CoupledField
         //          y_hat[i+nrMeasuredDataElec_]=log(mechDisplMess_[i][j].real());
       }
 
+    myParam_->Get( "artDataNoise", delta_ );
    
-    if (false){ // generates synthetically created radom noise
+    if (delta_!=0.0){ // generates synthetically created radom noise
+      std::cout<<"\n Create random noise with data error delta_ = "<< delta_<<std::endl;
+      getchar();
+
       for (UInt i=0;i<nrMeasuredData;i++){
         rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
         if (randFactor<std::abs(rand[i]))
@@ -132,8 +137,8 @@ namespace CoupledField
   void piezoParamIdent::calcImpedanceCurve(){
 
 
-    std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
-    std::cout<<"++ Results are written in file imped.dat " <<std::endl;
+    std::cout<<"++ Compute impedance curve with " << freqs_.GetSize()  <<" steps ... " <<std::endl;
+    std::cout<<"++ Results are written in file imped.dat ..." <<std::endl;
 
     ResultHandler * resHandler = domain->GetResultHandler();
      
@@ -164,8 +169,8 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-      resHandler->BeginStep( freqs_[fstep], fstep );
-      ptPDE_->WriteResultsInFile( freqs_[fstep], fstep );
+      resHandler->BeginStep( fstep,freqs_[fstep] );
+      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep] );
       resHandler->FinishStep( );
       
       Vector<Complex> chargeVec;
@@ -183,7 +188,7 @@ namespace CoupledField
         std::cout<<" Impedance cannot be calculated"<<std::endl;
         std::cout<<" please check your xml and mesh file for surface charges"<<std::endl;
         std::cout<<" press any key to continue"<<std::endl;
-        getchar();
+        //        getchar();
       }
     
       Double imped, phase;
@@ -197,7 +202,7 @@ namespace CoupledField
       phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
 
       std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
-                << ";\t Phase: " << phase <<";\t Current = "<<voltage_<<";\t Charge = "<< charge<< std::endl;
+                << ";\t Phase: " << phase <<";\t Voltage = "<<voltage_<<";\t Charge = "<< charge<< std::endl;
     
       *impedCurve <<"\n" << freqs_[fstep] << " " << imped << "  " << phase << "  " 
                   << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()
@@ -290,11 +295,11 @@ namespace CoupledField
       
     } //  end loop over freqs
 
-    std::cout<<"++ Resonance lies at " << resonanceFrequency_ 
+    std::cout<<"\nResonance lies at " << resonanceFrequency_ 
              <<" Hz with |Z| = " << minImpedance<<std::endl;
-    std::cout<<"++ Antiresonance lies at " << antiResonanceFrequency_ 
+    std::cout<<"Antiresonance lies at " << antiResonanceFrequency_ 
              <<" Hz with |Z| = " << maxImpedance<<std::endl;
-    std::cout<<"++ Piezoelectric coupling k_t^2 = " 
+    std::cout<<"Piezoelectric coupling k_t ~(fa-fr)/fa = " 
              << (antiResonanceFrequency_ -  resonanceFrequency_)/antiResonanceFrequency_ <<std::endl;
     
   } // end calcImpedance Curve
@@ -1198,8 +1203,8 @@ namespace CoupledField
       getchar();
     }
 
-    std::cout<<"readMeasuredData - nrMeasuredDataElec = " <<  nrMeasuredDataElec_ <<std::endl;
-    std::cout<<"readMeasuredData - nrMeasuredDataMech = " <<  nrMeasuredDataMech_ <<std::endl;
+    std::cout<<"\nNumber of electrical Measurements = " <<  nrMeasuredDataElec_ <<std::endl;
+    std::cout<<"Number of mechanical measurements = " <<  nrMeasuredDataMech_ <<std::endl;
   } // end read MeasuredData
 
 

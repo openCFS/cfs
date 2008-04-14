@@ -43,7 +43,7 @@ namespace CoupledField
     // omega für piezo:
     //    Double omega = 0.1;
     // omega für ninas transducer
-    Double omega = 0.0005;
+    Double omega = 0.1; //7.812500e-03;
     Double normFy, maxres, normFy0,normFy1;
     Integer indPar=0;
     Integer indParC=0;
@@ -60,6 +60,8 @@ namespace CoupledField
       if( imagMaterialParam_ ) {
         updateComplexMaterialData(parameterC_);
       }
+
+
       
       createF(F_hat_, FALSE);
 
@@ -73,6 +75,21 @@ namespace CoupledField
       std::cout<<"||F(p)-y|| = " << normFy0<<std::endl;
       std::cout<< "--------------------------------\n"<<std::endl;
 
+      *parLog<<normFy0<<"  ";
+
+      for (UInt par=0;par<nrParameter_;par++)
+        if (whichParameterToUpdate_[par]==1){
+          *parLog<<parameter_[par]<<"  ";
+        }
+
+
+      for (UInt par=0;par<nrParameter_;par++)
+        if (whichParameterToUpdateC_[par]==1){
+          *parLog<<parameterC_[par]<<"  ";
+        }
+
+      *parLog<<std::endl;
+      
       std::cout<<"\n"<< iterIndex << " - Landweber step " <<std::endl;
 
       if( imagMaterialParam_ ) 
@@ -84,25 +101,29 @@ namespace CoupledField
    
       JacobiMatrix_=approxJacobiMatrix_;
 
-//       std::cout<<"JacobiMatrix_"<<std::endl;
-//       std::cout<<JacobiMatrix_<<std::endl;
+      std::cout<<"JacobiMatrix_"<<std::endl;
+      std::cout<<JacobiMatrix_<<std::endl;
 
       for (UInt i=0;i<nrMeasuredData;i++)
         for (UInt j=0;j<nrMeasuredData;j++)
           if (i==j)
-            ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],imag_[i])));
-      //ImgSpaceScaling_Mat[i][j] = 1.0/std::log(Complex(real_[i],imag_[i]));
+            if(whichNormCriteria_==2)
+              ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],imag_[i])));
+            else if(whichNormCriteria_==5)
+              ImgSpaceScaling_Mat[i][j] = 1.0; ///(180.0/PI*std::atan2(imag_[i],real_[i]));
       
 
       createAdjointJacobiMatrix(JacobiMatrix_,adjJacobiMatrix_);
+
 
       adjJacobiTemp = adjJacobiMatrix_*ImgSpaceScaling_Mat;
       adjJacobiMatrix_ = adjJacobiTemp;
 
       parUpdate=adjJacobiMatrix_*act_res;
 
-//       std::cout<<"parUpdate"<<std::endl;
-//       std::cout<<parUpdate<<std::endl;
+      std::cout<<"parUpdate"<<std::endl;
+      std::cout<<parUpdate<<std::endl;
+
 
       // make Landwebers iteration a steepest descent method
        if (true){
@@ -125,7 +146,7 @@ namespace CoupledField
 //          std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
 //          std::cout<<"normalResidual Norm (relative) = " << normNormalResidual<< std::endl;
 //          std::cout<<"omega = " << normAdjResidual/normNormalResidual<< std::endl;
-         omega = 50*normAdjResidual/normNormalResidual;
+         omega = normAdjResidual/normNormalResidual;
          *piezoLog<<omega;
       }
 
@@ -142,7 +163,7 @@ namespace CoupledField
          std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
          std::cout<<"normFy0= " << normFy0 << std::endl;
          std::cout<<"omega = " << normFy0/normAdjResidual<< std::endl;
-         omega =0.0001*normFy0/normAdjResidual;
+         omega =4.0*normFy0/normAdjResidual;
          *piezoLog<<omega;
       }
 
@@ -158,7 +179,7 @@ namespace CoupledField
       indParC=0;
       for (UInt par=0;par<nrParameter_;par++)
         if (whichParameterToUpdateC_[par]==1){
-          parameterCNew[par]=parameterC_[par]+1.0e+7*omega*parUpdate[indParC+actNrParameter].real()/scalingC_[par];
+          parameterCNew[par]=parameterC_[par]-10.0*omega*parUpdate[indParC+actNrParameter].real()/scalingC_[par];
           indParC++;
         }
 
@@ -178,17 +199,30 @@ namespace CoupledField
 
       Integer lineSearchCount=0;
 
+      for (UInt par=0;par<nrParameter_;par++)
+        if (parameterNew[par]<0.0&&par!=6){
+          //  parameter[par]=parameter_old[par];
+          std::cout<<"parameter( " << par << " ) was negative " <<std::endl;
+          negFlag=true;
+        }
+      
+      for (UInt par=0;par<parameterCNew.GetSize();par++)
+         if (parameterCNew[par]<0.0){
+           std::cout<<"im parameter( " << par << " ) was negative " <<std::endl;
+           negFlag=true;
+         }
+
       while (normFy1>normFy0||negFlag==true){
         if (negFlag==true)
           std::cout<< "reduce omega due to negative parameters  "<<std::endl;
 
-        omega=0.5*omega;
+        omega=0.8*omega;
         std::cout<<"Linesearch - Step = " << lineSearchCount << "\t omega = " << omega << "\t norm = " << normFy1 << std::endl;
         negFlag=false;
 
         //avoids that programm stagnates!
         lineSearchCount++;
-        if (lineSearchCount>20)
+        if (lineSearchCount>=25)
           break;
         
         indPar=0;
@@ -201,7 +235,7 @@ namespace CoupledField
         indParC=0;
         for (UInt par=0;par<nrParameter_;par++)
           if (whichParameterToUpdateC_[par]==1){
-            parameterCNew[par]=parameterC_[par]+1.0e+7*omega*parUpdate[indParC+actNrParameter].real()/scalingC_[par];
+            parameterCNew[par]=parameterC_[par]-10.0*omega*parUpdate[indParC+actNrParameter].real()/scalingC_[par];
             indParC++;
           }
         
@@ -224,29 +258,25 @@ namespace CoupledField
             std::cout<<"parameter( " << par << " ) was negative " <<std::endl;
             negFlag=true;
           }
+
+        for (UInt par=0;par<nrParameter_;par++)
+          if (parameterCNew[par]<0.0){
+            std::cout<<"im parameter( " << par << " ) was negative " <<std::endl;
+            negFlag=true;
+          }
+
       }
 
       std::cout<<"omega after linesearch = " << omega <<std::endl;
       *piezoLog<<",   "<<omega<<std::endl;
 
 
-      *parLog<<normFy0<<"  ";
+      //      *parLog<<normFy0<<"  ";
       
       normFy0=normFy1;
       
       parameter_=parameterNew;
       parameterC_=parameterCNew;
-      
-      for (UInt par=0;par<nrParameter_;par++)
-        if (whichParameterToUpdate_[par]==1){
-          *parLog<<parameter_[par]<<"  ";
-        }
-      for (UInt par=0;par<nrParameter_;par++)
-        if (whichParameterToUpdateC_[par]==1){
-          *parLog<<parameterC_[par]<<"  ";
-        }
-      
-      *parLog<<std::endl;
       
       
       std::cout<<"New parameter:"<<std::endl;
@@ -263,6 +293,7 @@ namespace CoupledField
         *parFinal<<parameterC_[i]<<", ";
 
       *parFinal<<std::endl;
+
 
       // computes impedance curve after each 10 iteration steps
       if ((iterIndex+1)%11==0){
