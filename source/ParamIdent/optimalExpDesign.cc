@@ -6,6 +6,7 @@
 #include "PDE/SinglePDE.hh" 
 #include "Driver/stdSolveStep.hh"
 #include "piezoParamIdent.hh"
+#include "DataInOut/resultHandler.hh"
 
 
 
@@ -29,16 +30,16 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-    nrMeasuredData=14;
-    Vector<Double> freqs5;
-    freqs5.Resize(14);
-    freqs_.Resize(14);
+//     nrMeasuredData=14;
+     Vector<Double> freqs5;
+     freqs5.Resize(nrMeasuredData);
+//     freqs_.Resize(14);
    
   
    
     //initial guesses suggested by optExpDesignVarNr ...for thickness mode
     // Thicknes = 0.1mm
-    if (true){
+    if (false){
       freqs5[0]=1.1e+06;
       freqs5[1]=1.3e+06;
       freqs5[2]=1.4e+06;
@@ -146,7 +147,7 @@ namespace CoupledField
     //     freqs5[13]=3.8e+06;
     //     freqs5[14]=3.95e+06;
 
-    freqs_=freqs5;
+    // freqs_=freqs5;
 
     //Writes out initial guesses of optimalFreqs
 
@@ -176,6 +177,8 @@ namespace CoupledField
     //     freqs_[0]=freqs_[1];
     std::cout<<"++ Frequencies taken from file mess.dat:"<<std::endl;
     std::cout<<newFreqs<<std::endl;
+
+    //getchar();
 
 //     for(UInt fr=0;fr<nrMeasuredData;fr++)
 //       *impedCurve<< freqs_[fr]<<"  ";
@@ -615,9 +618,9 @@ namespace CoupledField
        
       for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
         for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
-          //           ovTemp[i][j]=jacobiH[i]*jacobi[j]/(delta_*delta_*std::abs(y_hat_[actFreq])*std::abs(y_hat_[actFreq]));
-          covTemp[i][j]= stepWidth*jacobiH[i]*jacobi[j]/
-            ((deltaLocal)*(deltaLocal)*std::abs(y_hat_[actFreq])*std::abs(y_hat_[actFreq]));
+          covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta_*delta_*std::abs(y_hat_[actFreq])*std::abs(y_hat_[actFreq]));
+          //covTemp[i][j]= stepWidth*jacobiH[i]*jacobi[j]/
+          // ((deltaLocal)*(deltaLocal)*std::abs(y_hat_[actFreq])*std::abs(y_hat_[actFreq]));
            
           //    if (i==j)
           //    covTemp[i][i]=covTemp[i][i]+covTemp[i][i];// *1.0e-10;
@@ -641,15 +644,19 @@ namespace CoupledField
     //     data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
     data1=data=cov;     
 
-    //      std::cout<<"cov:"<<std::endl;
-    //      std::cout<<cov<<std::endl;
+    std::cout<<"cov before inversion:"<<std::endl;
+    std::cout<<cov<<std::endl;
     //      getchar();
 
     invert(cov);
 
-    // std::cout<<"cov:"<<std::endl;
-    //     std::cout<<cov<<std::endl;
-    //     getchar();
+    std::cout<<"cov after inversion:"<<std::endl;
+    std::cout<<cov<<std::endl;
+
+    for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+      std::cout<<std::sqrt(cov[i][i].real()*8.2)<<std::endl;
+
+    getchar();
 
    
     data1=data*cov;
@@ -657,7 +664,7 @@ namespace CoupledField
     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
       diagC+=data1[i][i];
     diagC/=Complex(actNrParameter+actNrParameterC,0.0);
-    //     std::cout<<"Trace of inv(cov)*cov = "<< diagC <<std::endl;
+    //    std::cout<<"Trace of inv(cov)*cov = "<< diagC <<std::endl;
     if (std::abs(diagC)>1.5)
       std::cout<<" ! Inversion of Cov failed!!"<<std::endl;
 
@@ -960,6 +967,7 @@ namespace CoupledField
     jacobi.Init();
 
 
+
 //     if(directCoupling_==true)
 //       ptMaterial_=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
 //     else
@@ -968,11 +976,11 @@ namespace CoupledField
     for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
       if (whichParameterToUpdate_[ind_param]==1){
         
-        parIncr1[ind_param]=1.001*parameter_[ind_param];
+        parIncr1[ind_param]=1.1*parameter_[ind_param];
         updateMaterialData(parIncr1);
         createFVec(F_hat__incr1,false,omega);
         
-        parIncr2[ind_param]=0.999*parameter_[ind_param];  
+        parIncr2[ind_param]=0.9*parameter_[ind_param];  
         updateMaterialData(parIncr2);
         createFVec(F_hat__incr2,false,omega);
 
@@ -1009,11 +1017,23 @@ namespace CoupledField
       }
     }
 
+//     std::cout<<"Jacobian"<<std::endl;
+//     std::cout<<jacobi<<std::endl;
+
   } // end create Jacobian
 
   void piezoParamIdent::createFVec(Complex & F_hat_, bool typeOut,
                                    Double frequency){
     //    std::cout<<"createFVec ...."<<std::endl;
+
+
+    ResultHandler * resHandler = domain->GetResultHandler();
+
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "f", UInt(frequency));
+    
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "step", 0 );        
       
 
     if(directCoupling_==true){
@@ -1030,8 +1050,8 @@ namespace CoupledField
       ptAlgsys_->InitRHS();
     }
 
-    Error( "SetReassemble not present anymore -> contact Andreas!",
-           __FILE__, __LINE__ );
+//     Error( "SetReassemble not present anymore -> contact Andreas!",
+//            __FILE__, __LINE__ );
 
     //ptAssemble_->SetReassemble();
    
@@ -1048,35 +1068,64 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       ptPDE_->GetSolveStep()->PostStepHarmonic();
 
+      // Call WriteResults in order to calculate the charges of
+      // the piezoCoupling object
+      //      resHandler->BeginStep(0,frequency );
+      //      ptPDE_->WriteResultsInFile(0,UInt(frequency));
+      ptPDE_->WriteResultsInFile(UInt(frequency),0);
+      //      resHandler->FinishStep();
+      
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
-
+        
         Vector<Complex> chargeVec;
-        if(directCoupling_==true)      
-          chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
-        else
-          chargeVec = ptMyPDE_->getPDE_complexValuedCharge();
-
+        
+        chargeVec = ptPDE2_->getPDE_complexValuedCharge(); 
+                
         Complex charge=Complex(0.0,0.0);
+        Complex im=Complex(0.0,1.0);
          
         for (UInt i=0;i<chargeVec.GetSize();i++){
           charge+=chargeVec[i];
         }
+        
+        Complex Z=voltage_/(2*PI*charge*frequency*im);
 
-        Integer fstep=0;
-        Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
-        Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
-        Complex Z=Complex(x,y);
 
-        // Logarithmic value of F
-        F_hat_=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...
+        if (whichNormCriteria_==1)
+          F_hat_=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
+        
+        else  if (whichNormCriteria_==2)         // logarithmic value of impedance
+          F_hat_=std::log(std::abs(voltage_/(2*PI*charge*frequency*im)));
+        
+        else if (whichNormCriteria_==3)
+          F_hat_=voltage_/(2*PI*charge*frequency*im);
+        
+        else if (whichNormCriteria_==4)
+          F_hat_=std::log(voltage_/(2*PI*charge*frequency*im));
+        
+        // consider just the phase
+        else if (whichNormCriteria_==5)
+          F_hat_ = 180.0/PI * std::atan2(Z.imag(),Z.real());
+        
+        // Integer fstep=0;
+//         Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
+//         Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
+//         Complex Z=Complex(x,y);
+
+//         // Logarithmic value of F
+//         F_hat_=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...
     
         if (typeOut==true){
           std::cout<<"F(p)="<<F_hat_<<"; \t";
           std::cout<<"\n ------------------------------- " <<std::endl;
                
         }
+
+//          std::cout<<"F_hat_"<<std::endl;
+//          std::cout<<F_hat_<<std::endl;
+//          getchar();
 
   } // end createF
  

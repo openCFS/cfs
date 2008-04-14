@@ -41,7 +41,7 @@ namespace CoupledField
     act_res = y_hat_-F_hat_;
     norm(act_res,new_res_outer,maxres_inner,y_hat_);
 
-    std::cout<<"Norm of residual " << new_res_outer <<std::endl;
+    std::cout<<"\n Norm of residual ||F(p)-y|| = " << new_res_outer <<std::endl;
     res_outer=new_res_outer;
 
     *parLog<< new_res_outer; 

@@ -42,6 +42,7 @@ namespace CoupledField
     whichNormCriteria_=1;
     nrMeasuredDataElec_=0;
     nrMeasuredDataMech_=0;
+    isPartOfSequence_ = isPartOfSequence;
 
     // get parameter node
     std::string name = "sequenceStep";
@@ -61,7 +62,7 @@ namespace CoupledField
       imagMaterialParam_ = 
         matNode->Get("type")->AsString() == "imagMaterialParameter";
     }
-    
+
   }
   
   void piezoParamIdent :: Init() {
@@ -291,14 +292,11 @@ namespace CoupledField
     nrMeasuredDataElec_=0;
     nrMeasuredDataMech_=0;
 
-    std::cout<<"before readMeasuredData " <<std::endl; 
    
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs_, real_, imag_, parameter_, voltage_, 
                      nrMeasuredData, thickness_, radius_, delta_);
-
-    std::cout<<"after readMeasuredData " <<std::endl; 
 
     Vector<Double> freqsTemp;
     freqsTemp = freqs_;
@@ -317,9 +315,9 @@ namespace CoupledField
 
     nrMeasuredData = nrMeasuredDataElec_ + nrMeasuredDataMech_;
     
-     std::cout<<"Frequencies from which electrical measurements are taken:" <<std::endl;
+     std::cout<<"\nSampling points for impedance:" <<std::endl;
      std::cout<<freqs_<<std::endl;
-     std::cout<<"Frequencies from which mechanical measurements are taken:" <<std::endl;
+     std::cout<<"Sampling points for mechanical measurements:" <<std::endl;
      std::cout<<freqsMech_<<std::endl;
 
 
@@ -429,9 +427,6 @@ namespace CoupledField
        ptMaterialMech_[actId]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
        ptMaterialElec_[actId]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
 
-       std::cout<<"piezoMat"<<std::endl;
-       std::cout<<piezoMat<<std::endl;
-
        //       getchar();
      }
 
@@ -442,9 +437,9 @@ namespace CoupledField
 
     updateMaterialData(parameter_);
 
-    std::cout<<"parameter"<<std::endl;
+    std::cout<<"Real parts of material parameters (initial values):"<<std::endl;
     std::cout<<parameter_<<std::endl;
-    std::cout<<"parameterC"<<std::endl;
+    std::cout<<"Imaginary parts of material parameters (initial values):"<<std::endl;
     std::cout<<parameterC_<<std::endl;
 
     parameterIncrement_=parameter_;
@@ -472,7 +467,7 @@ namespace CoupledField
     // <<<<<<<<<<<<<< calc impedance curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      
     if (CalcImpedanceCurve_ == true){
-      std::cout<<"calc Impedance curve ..."<<std::endl;
+      //      std::cout<<"++ Computing impedance curve ..."<<std::endl;
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
       Double startFreqTemp;
@@ -485,7 +480,7 @@ namespace CoupledField
       calcImpedanceCurve();
       freqs_ = freqsTemp;
       std::cout<<"\n Press any key to continue ... "<<std::endl;
-      //      getchar();
+      getchar();
     }
    
 
@@ -529,6 +524,33 @@ namespace CoupledField
  
         nuMethods();
         nrNuMethods++;
+
+        if (nrNuMethods%10==0){
+          Integer nrfreqTemp=100;
+          Vector<Double> freqsTemp = freqs_;
+          freqs_.Resize(nrfreqTemp);
+          Double startFreqTemp;
+          startFreqTemp=startfreq_;
+          Double freqincr=(stopfreq_-startfreq_)/nrfreqTemp;
+          for(UInt i=0;i<nrfreqTemp;i++){
+            startFreqTemp+=freqincr;
+            freqs_[i]=startFreqTemp;
+          }
+          if (impedCurve)
+            impedCurve->close();
+          if(mechDispl)
+            mechDispl->close();
+          
+          std::string filename= "imped";
+          filename.append(".dat");
+          impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+          filename="mechDispl.dat";
+          mechDispl = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+          
+          calcImpedanceCurve();
+          freqs_ = freqsTemp;
+        }
+        
 
         for (UInt i=0; i<parameter_.GetSize(); i++)
           *parFinal<<parameter_[i]<<", ";
@@ -610,7 +632,7 @@ namespace CoupledField
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
     if ( maxNumberNewtonLoops_!=0){
-      std::cout<<"\n\n *** FINALLY CALCULATED PARAMETER *** " <<std::endl;
+      std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** " <<std::endl;
       
       *parFinal<<"4) "<<std::endl;
       for (UInt i=0;i<parameter_.GetSize();i++){
@@ -618,6 +640,7 @@ namespace CoupledField
         *parFinal<<parameter_[i]<<", ";
       }
       *parFinal<<"/"<<std::endl;
+      std::cout<<"\n ****************************************** \n " <<std::endl;
     }
 
 
@@ -632,8 +655,20 @@ namespace CoupledField
         startfreq_+=freqincr;
         freqs_[i]=startfreq_;
       }
+
+      if (impedCurve)
+        impedCurve->close();
+      if(mechDispl)
+        mechDispl->close();
+      
+      std::string filename= "imped";
+      filename.append(".dat");
+      impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+      filename="mechDispl.dat";
+      mechDispl = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+      
       calcImpedanceCurve();
-      std::cout<<"\n Press any key to continue ... "<<std::endl;
+      
       freqs_ = freqsTemp;
     }
 
@@ -839,134 +874,154 @@ namespace CoupledField
 
  void piezoParamIdent::computeScaling(){
 
-    Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat, stiffMatSchraube;
-    Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC, stiffMatSchraubeC;
+//     Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat, stiffMatSchraube;
+//     Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC, stiffMatSchraubeC;
 
-    stiffMat.Resize(6,6);
-    stiffMat.Init();
+//     stiffMat.Resize(6,6);
+//     stiffMat.Init();
     
-    piezoMat.Resize(3,6);
-    piezoMat.Init();
+//     piezoMat.Resize(3,6);
+//     piezoMat.Init();
     
-    permMat.Resize(3,3);
-    permMat.Init();
+//     permMat.Resize(3,3);
+//     permMat.Init();
 
-    stiffMatC.Resize(6,6);
-    stiffMatC.Init();
+//     stiffMatC.Resize(6,6);
+//     stiffMatC.Init();
     
-    piezoMatC.Resize(3,6);
-    piezoMatC.Init();
+//     piezoMatC.Resize(3,6);
+//     piezoMatC.Init();
     
-    permMatC.Resize(3,3);
-    permMatC.Init();
+//     permMatC.Resize(3,3);
+//     permMatC.Init();
 
-    // Get first regionId of mechanic pde
-    RegionIdType actId = subdomsMech_[0];
+//     // Get first regionId of mechanic pde
+//     RegionIdType actId = subdomsMech_[0];
     
-    if (subdomsMech_.GetSize()==1){
-      ptMaterialPiezo_[actId]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-      ptMaterialMech_[actId]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialElec_[actId]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+//     if (subdomsMech_.GetSize()==1){
+//       ptMaterialPiezo_[actId]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+//       ptMaterialMech_[actId]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialElec_[actId]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
 
-      scaling_.Resize(nrParameter_);
-      scaling_.Init();
+//       scaling_.Resize(nrParameter_);
+//       scaling_.Init();
 
-      scaling_[0]=1.0/(stiffMat[0][0]); 
-      scaling_[1]=1.0/(stiffMat[2][2]);
-      scaling_[2]=1.0/(stiffMat[1][0]);
-      scaling_[3]=1.0/(stiffMat[0][2]);
-      scaling_[4]=1.0/(stiffMat[3][3]); 
-      scaling_[5]=1.0/(piezoMat[1][3]);
-      scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-      scaling_[7]=1.0/((piezoMat)[2][2]);
-      scaling_[8]=1.0/((permMat)[0][0]); 
-      scaling_[9]=1.0/((permMat)[2][2]);
+//       scaling_[0]=1.0/(stiffMat[0][0]); 
+//       scaling_[1]=1.0/(stiffMat[1][1]);
+//       scaling_[2]=1.0/(stiffMat[1][0]);
+//       scaling_[3]=1.0/(stiffMat[0][2]);
+//       scaling_[4]=1.0/(stiffMat[3][3]); 
+//       scaling_[5]=1.0/(piezoMat[1][3]);
+//       scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
+//       scaling_[7]=1.0/((piezoMat)[2][2]);
+//       scaling_[8]=1.0/((permMat)[0][0]); 
+//       scaling_[9]=1.0/((permMat)[2][2]);
 
 
-      if( imagMaterialParam_ ) {
-        ptMaterialPiezo_[actId]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-        ptMaterialMech_[actId]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-        ptMaterialElec_[actId]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+//       if( imagMaterialParam_ ) {
+//         ptMaterialPiezo_[actId]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
+//         ptMaterialMech_[actId]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+//         ptMaterialElec_[actId]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
 
-        scalingC_.Resize(nrParameter_);
-        scalingC_.Init();
+//  //        std::cout<<"piezoMatC"<<std::endl;
+// //         std::cout<<piezoMatC<<std::endl;
 
-        scalingC_[0]=1.0/(stiffMatC[0][0]); 
-        scalingC_[1]=1.0/(stiffMatC[2][2]);
-        scalingC_[2]=1.0/(stiffMatC[1][0]);
-        scalingC_[3]=1.0/(stiffMatC[0][2]);
-        scalingC_[4]=1.0/(stiffMatC[3][3]); 
-        scalingC_[5]=1.0/(piezoMatC[1][3]);
-        scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
-        scalingC_[7]=1.0/((piezoMatC)[2][2]);
-        scalingC_[8]=1.0/((permMatC)[0][0]); 
-        scalingC_[9]=1.0/((permMatC)[2][2]);
-      }
-    }
+// //         std::cout<<"stiffMatC"<<std::endl;
+// //         std::cout<<stiffMatC<<std::endl;
 
-    else{
+// //         std::cout<<"permMatC"<<std::endl;
+// //         std::cout<<permMatC<<std::endl;
+
+//         scalingC_.Resize(nrParameter_);
+//         scalingC_.Init();
+
+//         scalingC_[0]=1.0/(stiffMatC[0][0]); 
+//         scalingC_[1]=1.0/(stiffMatC[1][1]);
+//         scalingC_[2]=1.0/(stiffMatC[1][0]);
+//         scalingC_[3]=1.0/(stiffMatC[0][2]);
+//         scalingC_[4]=1.0/(stiffMatC[3][3]); 
+//         scalingC_[5]=1.0/(piezoMatC[1][3]);
+//         scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
+//         scalingC_[7]=1.0/((piezoMatC)[2][2]);
+//         scalingC_[8]=1.0/((permMatC)[0][0]); 
+//         scalingC_[9]=1.0/((permMatC)[2][2]);
+//       }
+//     }
+
+//     else{
   
-      ptMaterialMech_[1]->GetTensor(stiffMatAlu,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialPiezo_[2]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-      ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-      // ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialMech_[5]->GetTensor(stiffMatSchraube,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialMech_[1]->GetTensor(stiffMatAlu,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialPiezo_[2]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+//       ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+//       // ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialMech_[5]->GetTensor(stiffMatSchraube,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
-      scaling_[0]=1.0/(stiffMat[0][0]); 
-      scaling_[1]=1.0/(stiffMat[2][2]);
-      scaling_[2]=1.0/(stiffMat[1][0]);
-      scaling_[3]=1.0/(stiffMat[0][2]);
-      scaling_[4]=1.0/(stiffMat[3][3]); 
-      scaling_[5]=1.0/(piezoMat[1][3]);
-      scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-      scaling_[7]=1.0/((piezoMat)[2][2]);
-      scaling_[8]=1.0/((permMat)[0][0]); 
-      scaling_[9]=1.0/((permMat)[2][2]);
+//       scaling_[0]=1.0/(stiffMat[0][0]); 
+//       scaling_[1]=1.0/(stiffMat[2][2]);
+//       scaling_[2]=1.0/(stiffMat[1][0]);
+//       scaling_[3]=1.0/(stiffMat[0][2]);
+//       scaling_[4]=1.0/(stiffMat[3][3]); 
+//       scaling_[5]=1.0/(piezoMat[1][3]);
+//       scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
+//       scaling_[7]=1.0/((piezoMat)[2][2]);
+//       scaling_[8]=1.0/((permMat)[0][0]); 
+//       scaling_[9]=1.0/((permMat)[2][2]);
 
-      scaling_[10]=1.0/(stiffMatSteel[3][3]); 
-      scaling_[11]=1.0/(stiffMatSteel[0][1]); 
+//       scaling_[10]=1.0/(stiffMatSteel[3][3]); 
+//       scaling_[11]=1.0/(stiffMatSteel[0][1]); 
 
-      scaling_[12]=1.0/(stiffMatAlu[3][3]); 
-      scaling_[13]=1.0/(stiffMatAlu[0][1]);
+//       scaling_[12]=1.0/(stiffMatAlu[3][3]); 
+//       scaling_[13]=1.0/(stiffMatAlu[0][1]);
 
-      scaling_[14]=1.0/(stiffMatSchraube[3][3]); 
-      scaling_[15]=1.0/(stiffMatSchraube[0][1]);
+//       scaling_[14]=1.0/(stiffMatSchraube[3][3]); 
+//       scaling_[15]=1.0/(stiffMatSchraube[0][1]);
 
         
-      if( imagMaterialParam_ ) {
+//       if( imagMaterialParam_ ) {
 
-        ptMaterialMech_[1]->GetTensor(stiffMatAluC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-        ptMaterialPiezo_[2]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-        ptMaterialMech_[2]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-        ptMaterialElec_[2]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-        ptMaterialMech_[4]->GetTensor(stiffMatSteelC,MECH_STIFFNESS_TENSOR, IMAG,FULL);
-        ptMaterialMech_[5]->GetTensor(stiffMatSchraubeC,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//         ptMaterialMech_[1]->GetTensor(stiffMatAluC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+//         ptMaterialPiezo_[2]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
+//         ptMaterialMech_[2]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+//         ptMaterialElec_[2]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+//         ptMaterialMech_[4]->GetTensor(stiffMatSteelC,MECH_STIFFNESS_TENSOR, IMAG,FULL);
+//         ptMaterialMech_[5]->GetTensor(stiffMatSchraubeC,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
-        scalingC_[0]=1.0/(stiffMatC[0][0]); 
-        scalingC_[1]=1.0/(stiffMatC[2][2]);
-        scalingC_[2]=1.0/(stiffMatC[1][0]);
-        scalingC_[3]=1.0/(stiffMatC[0][2]);
-        scalingC_[4]=1.0/(stiffMatC[3][3]); 
-        scalingC_[5]=1.0/(piezoMatC[1][3]);
-        scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
-        scalingC_[7]=1.0/((piezoMatC)[2][2]);
-        scalingC_[8]=1.0/((permMatC)[0][0]); 
-        scalingC_[9]=1.0/((permMatC)[2][2]);
+//         scalingC_[0]=1.0/(stiffMatC[0][0]); 
+//         scalingC_[1]=1.0/(stiffMatC[2][2]);
+//         scalingC_[2]=1.0/(stiffMatC[1][0]);
+//         scalingC_[3]=1.0/(stiffMatC[0][2]);
+//         scalingC_[4]=1.0/(stiffMatC[3][3]); 
+//         scalingC_[5]=1.0/(piezoMatC[1][3]);
+//         scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
+//         scalingC_[7]=1.0/((piezoMatC)[2][2]);
+//         scalingC_[8]=1.0/((permMatC)[0][0]); 
+//         scalingC_[9]=1.0/((permMatC)[2][2]);
           
-        scalingC_[10]=1.0/(stiffMatSteelC[3][3]); 
-        scalingC_[11]=1.0/(stiffMatSteelC[0][1]); 
+//         scalingC_[10]=1.0/(stiffMatSteelC[3][3]); 
+//         scalingC_[11]=1.0/(stiffMatSteelC[0][1]); 
           
-        scalingC_[12]=1.0/(stiffMatAluC[3][3]); 
-        scalingC_[13]=1.0/(stiffMatAluC[0][1]);                
+//         scalingC_[12]=1.0/(stiffMatAluC[3][3]); 
+//         scalingC_[13]=1.0/(stiffMatAluC[0][1]);                
 
-        scalingC_[14]=1.0/(stiffMatSchraubeC[3][3]); 
-        scalingC_[15]=1.0/(stiffMatSchraubeC[0][1]);        
+//         scalingC_[14]=1.0/(stiffMatSchraubeC[3][3]); 
+//         scalingC_[15]=1.0/(stiffMatSchraubeC[0][1]);        
 
 
-      }
-    }
+//       }
+
+      for (UInt i=0;i<parameter_.GetSize(); i++)
+        if (parameter_[i]!=0.0)
+          scaling_[i]= std::abs(1.0/parameter_[i]);
+        else scaling_[i]=1.0;
+
+      for (UInt i=0;i<parameterC_.GetSize(); i++)
+        if (parameterC_[i]!=0.0)
+          scalingC_[i]= std::abs(1.0/parameterC_[i]);
+        else scalingC_[i]=1.0;
+
+      // }
 
  }//end compute scaling
 

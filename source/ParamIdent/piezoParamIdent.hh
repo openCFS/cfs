@@ -307,6 +307,7 @@ namespace CoupledField
     bool CalcImpedanceCurve_;
     bool CalcMechDisplCurve_;
     bool directCoupling_;
+    bool isPartOfSequence_;
     UInt whichNewtonCG_;
     UInt maxNumberInnerLoops_;
     UInt maxNumberNewtonLoops_;
