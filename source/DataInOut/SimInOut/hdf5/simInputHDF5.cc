@@ -855,14 +855,22 @@ namespace CoupledField {
         // Extract nodes needed for linear elements
         if(linearizeEntity) {
           LinearizeElems(readElems, elemTypes, globConnect, actualNodes);
+          
+          // To be able to read results for linearized grids we need an index
+          // map for each entity (nodes of named elems and regions)
+          nodeIndices.Resize(actualNodes.GetSize());
+          for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
+            nodeIndices[j] = readNodes.Find(actualNodes[j]);
+          }          
         }
         
-        // To be able to read results for linearized grids we need an index
-        // map for each entity (nodes of named elems and regions)
+        // For element lists which need not be linearized we simply use
+        // ascending node indices.
         nodeIndices.Resize(actualNodes.GetSize());
         for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
-          nodeIndices[j] = readNodes.Find(actualNodes[j]);
+          nodeIndices[j] = j;
         }
+        
         entityNodeMap_[elemNames_[i]] = nodeIndices;
         
         readNodeSet.insert( actualNodes.Begin(), actualNodes.End( ));
@@ -924,14 +932,22 @@ namespace CoupledField {
 
       if(linearizeEntity) {
         LinearizeElems(regionElems, elemTypes, globConnect, actualNodes);
+        
+        // To be able to read results for linearized grids we need an index
+        // map for each entity (nodes of named elems and regions)
+        nodeIndices.Resize(actualNodes.GetSize());
+        for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
+          nodeIndices[j] = regionNodes.Find(actualNodes[j]);
+        }
       }
 
-      // To be able to read results for linearized grids we need an index
-      // map for each entity (nodes of named elems and regions)
+      // For element list which need not be linearized we simply use
+      // ascending node indices.
       nodeIndices.Resize(actualNodes.GetSize());
       for( UInt j = 0, n2=actualNodes.GetSize(); j < n2; j++ ) {
-        nodeIndices[j] = regionNodes.Find(actualNodes[j]);
+        nodeIndices[j] = j;
       }
+      
       entityNodeMap_[regionName] = nodeIndices;
       
       readNodeSet.insert( regionNodes.Begin(), regionNodes.End());
