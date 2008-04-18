@@ -628,15 +628,18 @@ namespace CoupledField {
     H5IO::ReadArray( resGroup, "Real", realVals );
 
     StdVector<UInt> idx;
-    UInt resVecSize = result->GetEntityList()->GetSize();
-    std::cout << "resVecSize " << resVecSize << std::endl;
+    UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+    UInt numEntities = result->GetEntityList()->GetSize(); 
+    UInt resVecSize =  numEntities * numDofs;
+    
+    //std::cout << "resVecSize " << resVecSize << std::endl;
     
     if(entString == "Nodes") {
       idx = entityNodeMap_[regionName];
-      std::cout << "entityNodeMap_[" << regionName << "] Size " << entityNodeMap_[regionName].GetSize() << std::endl;
+      //std::cout << "entityNodeMap_[" << regionName << "] Size " << entityNodeMap_[regionName].GetSize() << std::endl;
     } else {
-      idx.Resize( realVals.GetSize() );
-      for( UInt i = 0, n=realVals.GetSize(); i <n ; i++ )
+      idx.Resize( numEntities );
+      for( UInt i = 0; i < numEntities ; i++ )
         idx[i] = i;
     }
     
@@ -645,18 +648,23 @@ namespace CoupledField {
     if( result->GetEntryType() == EntryType::DOUBLE ) {
       Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
       resVec.Resize( resVecSize );
-      for( UInt i = 0; i < resVecSize; i++ ) {
-        resVec[i] = realVals[idx[i]];
+      for( UInt i = 0; i < numEntities; i++ ) {
+        for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+          resVec[i*numDofs+iDof] = realVals[idx[i]*numDofs+iDof];
+        }
       } 
     } else {
       Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
       StdVector<Double> imagVals;
       H5IO::ReadArray( resGroup, "Imag", imagVals );
-      
+
       resVec.Resize( resVecSize );
-      for( UInt i = 0; i < resVecSize; i++ ) {
-        resVec[i] = Complex( realVals[idx[i]], imagVals[idx[i]] );
-      } 
+      for( UInt i = 0; i < numEntities; i++ ) {
+        for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+          resVec[i*numDofs+iDof] = Complex( realVals[idx[i]*numDofs+iDof], 
+                                            imagVals[idx[i]*numDofs+iDof] );
+        } 
+      }
     }
     resGroup.close();
     stepGroup.close();
