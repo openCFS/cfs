@@ -49,32 +49,48 @@ namespace CoupledField {
     //! returns G - matrix for GDG (incompatible modes)
     virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord ) {
-      Error( "BDBInt::calcGMat not implemented!",
-             __FILE__, __LINE__);
+      EXCEPTION("not correctly overwritten!");
     };
+
+    /** Implement this in your form to return your actual physical tensor.
+     * Note, BDBInt and ADBInt use calcDMat(Matrix<Double>, const Elem*) 
+     * which calls overwritten methods of this method but linElastInt, 
+     * linElecInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
+     * implementations. This means, that all direct childs of these three
+     * classes must provive a own version of calcDMat with the elem parameter!
+     * @see calcDMat(Matrix<Double>, Elem*, Double&) */
+    virtual void calcDMat(Matrix<Double> &dMat) 
+    {
+      EXCEPTION("not correctly overwritten!");
+    };
+    
+    
+    /** This is the SIMP version, where the physical tensor [c], [\epsilon], ... is
+     * multiplied with the design variable (pseudo density, pseudo polarization).
+     * This could be implemented in CalcElementMatrix but this way we handle read
+     * and complex case as easy as the mechanical softening implementations.
+     * Note, if you want to do SIMP you have to properly implement this method!
+     * This is tricky - you are warned!
+     * @see linElastInt::calcDMat(Matrix<Double>, const Elem*)
+     * @param dMat the output variable 
+     * @param elem only relevant for SIMP, the D-Mat is in general no element specific! */
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+    {
+      calcDMat(dMat); 
+    };
+    
 
     //! returns D - matrix for BDB
-    virtual void calcDMat( Matrix<Double> &dMat ) {
-      Error( "BDBInt::calcDMat(Matrix<Double>&) not correctly overwritten!",
-             __FILE__, __LINE__);
+    virtual void calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat, Double &beta, Double &omega )
+    {
+      EXCEPTION("not correctly overwritten!");
     };
 
-    //! returns D - matrix for BDB
-    virtual void calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat,
-                                                     Double &beta,
-                                                     Double &omega ) {
-      (*error) << "BDBInt::calcDMaterialMatWithComplexDamping"
-               << "(Matrix<Complex> &dMat, Double &beta, Double &omega) "
-               << "not correctly overwritten!";
-      Error( __FILE__, __LINE__ );
-    };
-
-    //! returns D - matrix for BDB, changes in every integration point
+    /** returns D - matrix for BDB, changes in every integration point
+     * @see calcDMat(Matrix<Double>, EntityIterator*) */ 
     virtual void calcDMat( Matrix<Double> &dMat, UInt ip,
-                           Matrix<Double> &ptCoord ) {
-      (*error) << "BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
-               << "not correct overwritten!";
-      Error( __FILE__, __LINE__ );
+                           Matrix<Double> &ptCoord) {
+      EXCEPTION("not correctly overwritten!");
     };
 
     //! returns dimension of D matrix

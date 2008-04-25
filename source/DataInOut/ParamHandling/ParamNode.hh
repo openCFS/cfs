@@ -196,7 +196,7 @@ namespace CoupledField
     void Dump(int level = 0) const;
 
 
-  private:
+  protected:
 
     /** The real content (attribute or simple type content */
     std::string value_;

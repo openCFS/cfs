@@ -145,69 +145,21 @@ namespace CoupledField {
   
   //! Converts a string into an unsigned integer value
   UInt String2UInt( const std::string & val);
-  
-  //! Converts a string StdVector into a double StdVector
-  void String2Double( StdVector<Double> & retVal, 
-                      const StdVector<std::string> & val ); 
-
-  //! Converts a string StdVector into a double vector
-  void String2Double( Vector<Double> & retVal, 
-                      const StdVector<std::string> & val ); 
-  
-  //! Converts a double StdVector into a string StdVector
-  void Double2String( StdVector<std::string> & retVal, 
-                      const StdVector<Double> & val );
-
-  //! Converts a double Vector into a string StdVector
-  void Double2String( StdVector<std::string> & retVal, 
-                      const Vector<Double> & val );
-
-  //! Converts a string StdVector into an integer StdVector
-  void String2Int( StdVector<Integer> & retVal, 
-                   const StdVector<std::string> & val );
-
-  //! Converts a string StdVector into an integer Vector
-  void String2Int( Vector<Integer> & retVal, 
-                   const StdVector<std::string> & val );
-
-  //! Converts an integer StdVector into a string StdVector
-  void Int2String( StdVector<std::string> & retVal, 
-                   const StdVector<Integer> & val );
-  
-  //! Converts an integer Vector into a string StdVector
-  void Int2String( StdVector<std::string> & retVal, 
-                   const Vector<Integer> & val );
-  
-  //! Converts a string vector into an unsigned integer vector
-  void String2UInt( StdVector<UInt> & retVal, 
-                    const StdVector<std::string> & val );
-
-  //! Converts a string StdVector into an unsigned integer StdVector
-  void String2UInt( Vector<UInt> & retVal, 
-                    const StdVector<std::string> & val );
-  
-  //! Converts an unsigned integer StdVector into a string StdVector
-  void UInt2String( StdVector<std::string> & retVal, 
-                    const StdVector<UInt> & val );
-  
-  //! Converts an unsigned integer Vector into a string StdVector
-  void UInt2String( StdVector<std::string> & retVal, 
-                    const Vector<UInt> & val );
-
-  //@}
+    //@}
 
   // =========================================================================
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================
+
+  /** Compares if two doubles are close to each other */
+  bool close(Double d1, Double d2);
  
+  /** Compared if two complex are close (if both the real and imaginary part are close) */
+  bool close(Complex c1, Complex c2);
 
   //! Absolute value of number
   template<class T>
   T abs(T x) { return (x>0 ? x: -x); } 
-
-  //! square of value
-  template<class T>
-  T sqr(T x) { return x*x;}
 
   //! power of value
   template<class T>
@@ -322,11 +274,17 @@ namespace CoupledField {
   */
   void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord);
 
+  /** Assigns the multiple of a matrix to another matrix. The target is resized.
+   * This is silly copy & pase code. And is for the non-mixed variants already
+   * in Matrix::Assign(). Anybody knows how to do the mixed variant in Matrix? */
+  void Assign(Matrix<Double>& target,  const Matrix<Double>&  other, Double factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, Complex factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Complex factor);
+  void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Double factor);
+
+  
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
-
-  Double Sin(const Double x);
-  Double Cos(const Double x);
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */ 

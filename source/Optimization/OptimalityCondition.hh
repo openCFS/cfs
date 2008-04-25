@@ -32,7 +32,7 @@ namespace CoupledField
     private:
       /** This are our both bisection types. Framed is what Sigmund did, Trajectory is own breed but
        * most likely not unique */
-      typedef enum { FRAMED, FUMBLE, TRAJECTORY } Type;
+      typedef enum { FRAMED, FUMBLE, TRAJECTORY, EXTREMIZE } Type;
       
       /** Determins the next rho by finding the proper lambda with the framed bisection */
       void CalcNextFramedIteration();
@@ -48,6 +48,11 @@ namespace CoupledField
       
       /** Do a bisection iteration with a free moving lambda */
       void CalcNextTrajectoryIteration();
+      
+      
+      /** For simple plate problems with mixed signed gradiens w/o constraints. Follows the
+       * gradient by move_limit w/o any sorting! */
+      void CalcNextExtremizeIteration();
       
       /** Calculates ans sets the temporary densities according to (2) in the
        * "99-lines paper".

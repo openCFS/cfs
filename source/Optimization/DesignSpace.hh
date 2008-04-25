@@ -3,6 +3,7 @@
 
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/DesignElement.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "Forms/baseForm.hh"
 #include "General/Enum.hh"
 
@@ -27,21 +28,28 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which containts also n# elements
       * @param result the result description list  */
-     DesignSpace(int regionId, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result);
+     DesignSpace(int regionId, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
+         ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
     
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param constraints the number of constraints to initialize constraintGradients */
      void PostInit(int constraints); 
 
-     /** This gives the ersatz material factor for an element. 
-      * This fulfills the trick, that there might be more transfer function for
-      * a single element -> as in the coupling term of Piezo SIMP. */
-     double GetErsatzMaterialFactor(const Elem* elem, const BaseForm* form);
-
-     /** This is just a variant.
-      * @see GetErsatzMaterialFactor(const Elem*, const BaseForm*) for documentation. 
-      * @param design_index must be not bigger than elements. */
+     /** This gives the ersatz material factor for an element.
+      *  This fulfills the trick, that there might be more transfer function for
+      *  a single element -> as in the coupling term of Piezo SIMP.
+      * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
+      * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
+      * @return a good factor or an exception is thrown */
      double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic);
+
+     /** Convenience version  
+      * @see  GetErsatzMaterialFactor(unsinged int, Optimization::Application) */
+     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form)
+     {
+       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName())); 
+     }
+     
      
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found! */
@@ -104,6 +112,13 @@ namespace CoupledField
      /** Service method to find a specific design element by element number and design type */
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt); 
 
+     /** Searches for the elment idx.
+      * @param elem checks region of elem or region of vol elemens if elem is a SurfElem
+      * @param throw_region_exception if no region matches returns -1 or throws exception
+      * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
+      * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
+     int Find(const Elem* elem, bool throw_region_exception);     
+     
      /** When we have more design types this is a divisor of data.GetSieze() */
      unsigned int GetNumberOfElements() { return elements_; }
      
@@ -123,12 +138,8 @@ namespace CoupledField
      int GetRegionId() { return regionId_; }
      
      /** We can fine define results in the optimization part: <pre>
-      * <result id="optResult_2" design="density" access="plain" value="costGradient" detail="pKu" />            
-      * <result id="optResult_3" design="density" access="plain" value="objective" detail="pKp" /></pre>                  
-      * In the above example the design parameter for objective makes no sense. One shall choose the first.
-      * This is for PiezoSIMP to allow to make the transduction (objective, detail=none) and optionally 
-      * the intermediate steps (objective, detail=uKp, pKp). Same details are for the transduction
-      * 'costGradient, with the details uKu, uKp, pKu, pKp.
+      * <result id="optResult_2" design="density" access="plain" value="costGradient"  />            
+      * <result id="optResult_3" design="density" access="plain" value="objective" /></pre>                  
       * @return 0, 1, 2 is the index (optResult_x+1) for DesignElement::specialResult_[]. -1 if no
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value, 

@@ -41,7 +41,7 @@ namespace CoupledField {
     }
 
     // get solution of last time step
-    UInt length = algsys_->GetSolutionVal( solPtr );      
+    algsys_->GetSolutionVal( solPtr );      
     StoreAlgsysToVec(prevSol, solPtr );
 
     //get previous 1st order derivative of solution
@@ -58,7 +58,7 @@ namespace CoupledField {
     }
 
     //! account for Dirichlet BCs
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
 
     // handle loads
@@ -251,7 +251,7 @@ namespace CoupledField {
     }
 
     //! account for Dirichlet BCs
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
 
     // handle loads

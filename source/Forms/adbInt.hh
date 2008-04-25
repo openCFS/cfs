@@ -82,8 +82,20 @@ namespace CoupledField {
     virtual void calcAMat( Matrix<Double> &aMat, UInt ip,
                            const Matrix<Double> &ptCoord ) = 0;
 
-    //!  Compute matrix \f$ D \f$ at given integration point.
-    virtual void calcDMat( Matrix<Double> &dMat ) = 0;
+
+    /** @see BDBInt::calcDMat(Matrix<Double>) */
+    virtual void calcDMat(Matrix<Double> &dMat) 
+    {
+      EXCEPTION("not correctly overwritten!");
+    };
+
+    
+    /** The Implement this with your SIMP variant! 
+     * @see BDBInt::calcDMat(Matrix<Double>, Elem*, Double&) */
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+    {
+      calcDMat(dMat);
+    };
 
     //!  Compute matrix \f$ B \f$ at given integration point.
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,

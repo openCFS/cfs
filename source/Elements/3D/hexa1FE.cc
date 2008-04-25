@@ -206,7 +206,7 @@ namespace CoupledField
   }
 
 
-  void Hexa1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Hexa1FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & actCoord,
                                const Elem* elem, UInt dof,
                                AnsatzFct::FctEntityType fcnType )
@@ -261,7 +261,6 @@ namespace CoupledField
       // Obtain order of element
       Integer order_psi;
       Double val, factor, deriv;
-      Integer old = offset;
 #define HEX_EDGE_FCN(edgeNum,  sign1, dir1, sign2, dir2, psi_dir)       \
       order_psi = legFct->GetMaxOrderLocDir(psi_dir);                   \
       factor = elem->edges[edgeNum-1] < 0 ? -1.0 : 1.0;                 \
@@ -471,7 +470,6 @@ namespace CoupledField
       // Obtain order of element
       Integer order_1, order_2, order_3;
       Double val, deriv, factor;
-      UInt old = offset;
 
 #define HEX_EDGE_DERIV( edgeNum, sgn_1, dir_1, sgn_2, dir_2, dir_3)     \
       order_3 = legFct->GetMaxOrderLocDir(dir_3);                       \
@@ -531,7 +529,7 @@ namespace CoupledField
       //  c) face functions
       // -------------------
        
-       Double val_1, deriv_1, val_2, deriv_2, val_3, deriv_3;
+       Double val_2, deriv_2, val_3, deriv_3;
       Double sFlag2, sFlag3;
       UInt d2, d3;
 
@@ -797,7 +795,7 @@ namespace CoupledField
           for( Integer i = 2; i<= (Integer)order[0][dof]-4; i++ ) {
             for( Integer j = 2; j<= (Integer)order[1][dof]-4; j++ ) {
               for( Integer k = 2; k<= (Integer)order[2][dof]-4; k++ ) {
-                if( (i+j+k) <= max) {
+                if( (i+j+k) <= (Integer) max) {
                   total++;
                 }
               }

@@ -160,6 +160,9 @@ namespace CoupledField {
 
   void Assemble::AddLinearForm( LinearFormContext* linContext ) {
 
+   LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString()
+                     << " on " << linContext->GetEntities()->GetName();
+    
     // assert that Integrator is set
     assert( linContext->GetIntegrator() != NULL );
 
@@ -319,10 +322,6 @@ namespace CoupledField {
           
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
-
-          LOG_DBG3(assemble) << "map " << destMat << " equations for it1/2=" << it1.GetElem()->elemNum 
-                             << "/" << it2.GetElem()->elemNum << " -> eqnVec1/2 = "
-                             << eqnVec1.GetSize() << "/" << eqnVec2.GetSize();
 
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() ) 

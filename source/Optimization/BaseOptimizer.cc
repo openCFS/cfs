@@ -16,7 +16,7 @@ DECLARE_LOG(optimizer)
 DEFINE_LOG(optimizer, "optimizer")
 
 
-BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale)
+BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale)
 {
   this->base_ = base;
   this->target = 0.0;
@@ -32,7 +32,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double ma
   this->current.value     = 0.0;
 
   // the vectors are zero size by default!
-  if(autoscale != NULL)
+  if(autoscale != NULL && !no_autoscale)
   {
     target = autoscale->Get("target")->AsDouble();
     
@@ -185,10 +185,10 @@ BaseOptimizer::~BaseOptimizer()
   if(objective != NULL) { delete objective; objective = NULL; }
 }
 
-void BaseOptimizer::PostInit(double manual_scaling)
+void BaseOptimizer::PostInit(double manual_scaling, bool no_autoscale)
 {
   ParamNode* as = optimizer_pn_ != NULL ? optimizer_pn_->Get("autoscale", false) : NULL;
-  objective = new Scale(this, as, manual_scaling);
+  objective = new Scale(this, as, manual_scaling, no_autoscale);
   objective->PostInit();
 }
 

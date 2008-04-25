@@ -6,6 +6,7 @@
 #define FILE_STDVECTOR_IMPLEMENTATION_2004
 
 #include <iostream>
+#include <boost/lexical_cast.hpp>
 
 namespace CoupledField {
 
@@ -469,6 +470,23 @@ namespace CoupledField {
   std::string StdVector<TYPE>::ToString(int level, int stride) const
   {
     return StdVector<TYPE>::ToString(size_, data_, level, stride);
+  }
+  
+  template<class TYPE>  
+  void StdVector<TYPE>::ToString(StdVector<std::string>& out) const
+  {
+    out.Resize(size_);
+    for(unsigned int i = 0; i < size_; i++)
+      out[i] = boost::lexical_cast<std::string>(data_[i]);
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Parse(const StdVector<std::string>& in)
+  {
+    Resize(in.GetSize());
+
+    for(unsigned int i = 0; i < in.GetSize(); i++)
+      data_[i] = boost::lexical_cast<TYPE>(in[i]);
   }
   
   template <class S> 

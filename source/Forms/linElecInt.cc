@@ -7,6 +7,9 @@
 
 #include "General/environment.hh"
 #include "linElecInt.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
 
 namespace CoupledField {
 
@@ -69,12 +72,15 @@ namespace CoupledField {
   // ============
   //   calcDMat
   // ============
-  void linElecInt::calcDMat( Matrix<Double> &dMat ) {
-
+  void linElecInt::calcDMat( Matrix<Double> &dMat, const Elem* elem) 
+  {
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat *= mParser_->Eval( mHandle_ );
-    
-    //  std::cerr << "linElecInt: dMat = \n" << dMat << std::endl;
+
+    Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+    if(density != 1.0) dMat *= density;  
+    LOG_DBG3(forms) << GetName() << "::calcDMat("
+                    << (elem != NULL ? elem->elemNum : -1) << ") -> density=" << density;
   }
 
 

@@ -226,15 +226,15 @@ namespace CoupledField
         break;
       case STDVEC_DOUBLE:
         SplitStringList( params[i], help, ' ' );
-        String2Double( STDVEC_DOUBLEpool_[name], help );
+        STDVEC_DOUBLEpool_[name].Parse(help);
         break;
       case STDVEC_UINT:
         SplitStringList( params[i], help, ' ' );
-        String2UInt( STDVEC_UINTpool_[name], help );
+        STDVEC_UINTpool_[name].Parse(help);
         break;
       case STDVEC_INT:
         SplitStringList( params[i], help, ' ' );
-        String2Int( STDVEC_INTpool_[name], help );
+        STDVEC_INTpool_[name].Parse(help);
         break;
         // killme - TODO: Fabian
       /*case VEC_UINT:

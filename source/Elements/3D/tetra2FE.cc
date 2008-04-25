@@ -83,7 +83,7 @@ void Tetra2FE::SetCornerCoords()
 }
 
 /// defines the connection between nodes with "their" edge
-void Tetra2FE :: SetEdgeVertices()
+void Tetra2FE::SetEdgeVertices()
 {
   const UInt nrNodesPerEdge = 3;
 
@@ -124,7 +124,7 @@ void Tetra2FE :: SetEdgeVertices()
 // }
 
 
-void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
+void Tetra2FE::CalcShapeFnc(Vector<Double> & Shape,
                               const Vector<Double> & LCoord,
                               const Elem*, UInt dof, 
                               AnsatzFct::FctEntityType fctEntityType )
@@ -160,7 +160,7 @@ void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
 }
 
 
-void Tetra2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
+void Tetra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                         const Vector<Double> & LCoord,
                                         const Elem*, UInt dof,
                                         AnsatzFct::FctEntityType fctEntityType )
@@ -217,7 +217,7 @@ void Tetra2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
 // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators"
 //  p. 25 calculates the edge shape function of a tetrahedral of first order.
-void Tetra2FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
+void Tetra2FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 				  const Vector<Double> & LCoord,
 				  const Matrix<Double> & cornernodes)
 {

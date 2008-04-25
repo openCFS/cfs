@@ -16,7 +16,15 @@ namespace CoupledField
       /** @param pn The pointer to a transfer function */
       TransferFunction(ParamNode* pn);
      
-      typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP } Type;
+      /** The transfer functions for a design-variable x:
+       * <ul>
+       * <li>SIMP_TPYE: tf(x) = x^param, tf'(x)=param*x^(param-1)</li>
+       * <li>IDENTIT: tf(x) = x, tf'(x)=1</li>
+       * <li>RAMP: ... very slow :(</li>
+       * <li>FIXED: tf(x) = param == 0 ? 1.0 : param, tf'(x)=0</li>
+       * <li>FULL:  td(x) = 1, tf'(x)=0</li>
+       * </ul> */
+      typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL } Type;
     
       /** applies the transformation */
       double Transform(DesignElement* de); 

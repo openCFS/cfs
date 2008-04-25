@@ -11,7 +11,7 @@
 
 namespace CoupledField
 { 
-  SmoothSpline :: SmoothSpline( std::string nlFileName,  ApproxCurveType curveType )
+  SmoothSpline::SmoothSpline( std::string nlFileName,  ApproxCurveType curveType )
     : ApproxData( nlFileName, curveType )
   {
 
@@ -40,7 +40,7 @@ namespace CoupledField
     }
   }
 
-  SmoothSpline :: ~SmoothSpline()
+  SmoothSpline::~SmoothSpline()
   {
   }
 
@@ -676,7 +676,7 @@ namespace CoupledField
 
     delta_ = 0.01;
 
-    std:: ifstream infile;
+    std::ifstream infile;
   
     infile.open("bhorig.fnc");
   

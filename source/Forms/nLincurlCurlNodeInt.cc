@@ -41,7 +41,7 @@ namespace CoupledField
   }
 
 
-  void nLinCurlCurlNode2DInt:: CalcElementMatrix( Matrix<Double>& elemMat,
+  void nLinCurlCurlNode2DInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                                   EntityIterator& ent1, 
                                                   EntityIterator& ent2 )
   {
@@ -212,7 +212,7 @@ namespace CoupledField
   }
 
 
-  void nLinCurlCurlNode3DInt:: CalcElementMatrix( Matrix<Double>& elemMat,
+  void nLinCurlCurlNode3DInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                                   EntityIterator& ent1, 
                                                   EntityIterator& ent2 )
   {

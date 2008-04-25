@@ -95,6 +95,13 @@ namespace CoupledField
     //! calculation of diameter of element
     Double diameter(const Point * const ptArrayOfNodes);
     //@}
+    
+    std::string ToString() const
+    {
+      std::ostringstream os;
+      os << "elemNum=" << elemNum << " region=" << regionId;
+      return os.str();
+    }
   };
 
 

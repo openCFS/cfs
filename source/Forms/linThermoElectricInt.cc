@@ -86,24 +86,23 @@ namespace CoupledField
 	}
 
 	//!  Compute matrix \f$ D \f$ at given integration point.
-	void LinThermoElectricInt::calcDMat( Matrix<Double> &dMat ){
+	void LinThermoElectricInt::calcDMat( Matrix<Double> &dMat)
+	{
+	  try
+	  {
+	    //std::cout << "\nworking on the thermo-electrostatics integral ..... calcDMat" << std::endl; 	
 
+	    // get the thermal expansion coefficient tensor
+	    Matrix<Double>  p_auxMat(matDimRow_, matDimRow_);
+	    ptMaterial->GetTensor(p_auxMat,PYROCOEFFICIENT_TENSOR,matDataType_,subTensorType_);
 
-		try{
-		//std::cout << "\nworking on the thermo-electrostatics integral ..... calcDMat" << std::endl; 	
+	    dMat.Resize(matDimRow_, matDimCol_);
+	    p_auxMat.GetDiagInMatrix(dMat);
 
-		// get the thermal expansion coefficient tensor
-		Matrix<Double>  p_auxMat(matDimRow_, matDimRow_);
-		ptMaterial->GetTensor(p_auxMat,PYROCOEFFICIENT_TENSOR,matDataType_,subTensorType_);
-
-		dMat.Resize(matDimRow_, matDimCol_);
-		p_auxMat.GetDiagInMatrix(dMat);
-
-        }
-		catch (Exception& e) {
-			RETHROW_EXCEPTION(e, "Could not calculate D in LinThermoElectricInt" );
-		}
-
+	  }
+	  catch (Exception& e) {
+	    RETHROW_EXCEPTION(e, "Could not calculate D in LinThermoElectricInt" );
+	  }
 	}
 
 	//!  Compute matrix \f$ B \f$ at given integration point.

@@ -95,42 +95,57 @@ is needed.
 \subsection{Transient Analysis}
 % ----------------------------------------------------------------------------
 %
-To be able to define the transient analysis in more detail, several
-additional parameters have to be used:
-
+For a transient analysis the following block is mandatory:
 \begin{verbatim}
 <transient>
-   <numSteps>    20    </numSteps>
-   <firstDt>     5e-5  </firstDt>
-   <stepSaveBeg> 1     </stepSaveBeg>
-   <stepSaveEnd> 20    </stepSaveEnd>
-   <stepSaveInc> 1     </stepSaveInc>
-   <timeDataFile name="sin1kHz.dat"/>
-   <writeRestartInc> 5 </writeRestartInc>
+  <numSteps>20</numSteps>
+  <deltaT>1e-3</deltaT>
 </transient>
 \end{verbatim}
-
+Optional parameters are:
+\begin{verbatim}
+<timeDataFile name="sin1kHz.dat"/>
+<writeRestartInc>5</writeRestartInc>
+\end{verbatim}
 \noindent
 Herein, the different tags have the following meaning:\\
 \begin{tabular}{lll} 
 $\circ$ & {\bf numSteps}    &  number of time steps\\
-$\circ$ & {\bf firstDt }    &  time step size\\
-$\circ$ & {\bf stepSaveBeg}  &  number of first step for saving results\\
-$\circ$ & {\bf stepSaveEnd}  &  number of last step for saving results\\
-$\circ$ & {\bf stepSaveIncr} & increment in steps for saving results\\
-$\circ$ & {\bf timeDataFile} & file which holds the varying time values\\
+$\circ$ & {\bf deltaT }     &  time step size in seconds\\
+$\circ$ & {\bf timeDataFile}&  file which holds the time values, see below\\
 $\circ$ & {\bf writeRestartInc} & step increment for writing a restart
 file (currently only for mechanic PDE)
 \end{tabular}
 \bigskip
 
 \noindent
-Additionally, an input time-file must be provided:
+For simple excitations (ramps, dirac impulse, sine, \ldots) one might
+consider using a mathematical expression in a boundary condition as
+shown in the following example: A mechanical system is excitated with a rectangle aproximating a dirac impuls.   
+\begin{displaymath}
+z = \left\{ \begin{array}{ll}
+1 & \textrm{if $t \in [0.001; 0.002]$}\\
+0 & \textrm{else}\\
+\end{array} \right.
+\end{displaymath}
 \begin{verbatim} 
-<timeDataFile name="sin1kHz.dat"/>
-\end{verbatim} 
-Therein, you have to define the time values in a column oriented
-manner:
+<analysis>
+  <transient>
+    <numSteps>30</numSteps>
+    <deltaT>1e-4</deltaT>
+  </transient>
+</analysis>
+<pdeList>
+  <mechanic ..>
+  <bcsAndLoads>
+     ..
+     <load name="load" dof="z" value="if(t lt 0.001 or t gt 0.002,0.0,1.0)"/>
+     ..
+\end{verbatim}
+
+\noindent
+For more complex time signals use \textbf{timeDataFile} with the following column oriented
+structure:
 \begin{verbatim}
 timeVal1          funcVal1
 timeVal2          funcVal2
@@ -645,7 +660,7 @@ triangle & 1 & 2 & 3 \\
          & 2 & 3 & 4 \\
 \hline
 rectangle & 1 & 2=3 & 4 \\
-          & 2 & 2=3 & 4 \\
+          & 2 & 4=5 & 8 \\
 \hline
 tetrahedron & 1 & 1 & 1 \\
          & 2 & 2 & 4 \\
@@ -666,9 +681,9 @@ One can optionally define a different integration rule in the following way:
 </integRules>
 \end{verbatim}
 
-The setting is applied on all element types, even if they are not used in the simulation. If the requested integration rule is not known for an element, CFS uses a default setting and prints a warning message stating all available integration rules for that element.
+The setting is applied on all element types, even if they are not used in the simulation. If the requested integration rule is not known for an element, CFS uses a default setting and prints a warning message stating all available integration rules for that element. A typical usage is for rectangualar elements with quadratic ansatz functions, here second order integration is in most cases sufficient.
 
-\begin{center}[ht]
+\begin{center}
 \begin{tabular}{l|l}
 integration type & description \\
 \hline

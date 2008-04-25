@@ -12,7 +12,7 @@
 namespace CoupledField
 { 
 
-  ApproxData :: ApproxData(std::string nlFileName, ApproxCurveType curveType )
+  ApproxData::ApproxData(std::string nlFileName, ApproxCurveType curveType )
   {
     curveType_ = curveType;
  
@@ -20,7 +20,7 @@ namespace CoupledField
   }
 
 
-  void ApproxData ::ReadNlinFunc(std::string fncName)
+  void ApproxData::ReadNlinFunc(std::string fncName)
   {
   
     std::ifstream datafile;

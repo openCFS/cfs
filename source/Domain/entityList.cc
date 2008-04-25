@@ -357,10 +357,15 @@ namespace CoupledField {
   }
   
   const Elem* EntityIterator::GetElem() const{
-    if( type_ == EntityList::ELEM_LIST ) {
+    switch(type_)
+    {
+    case EntityList::ELEM_LIST:
       return elemList_->GetElem( pos_ );
-    } else if( type_ == EntityList::SURF_ELEM_LIST ) {
+      
+    case EntityList::SURF_ELEM_LIST:
       return surfElemList_->GetSurfElem( pos_ );
+      
+    default: EXCEPTION("type " << type_ << " not implemented");
     }
   }
   

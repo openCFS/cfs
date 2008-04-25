@@ -218,6 +218,41 @@ namespace OLAS {
     void InitMatrix( FEMatrixType matrixID ) {
     };
 
+    /** Our penalty term */
+    Double GetPenalty() const {
+      return penaltyTerm_;
+    }
+    
+    void Dump()
+    {
+      std::map<PdeIdType, std::map<Integer, UInt> >::iterator i;
+      for(i = bcIndices_.begin(); i != bcIndices_.end(); i++)
+      {
+        std::cout << " pde_type = " << i->first << std::endl;
+        std::map<Integer, UInt>::iterator j;
+        for(j = i->second.begin(); j != i->second.end(); j++)
+          std::cout << " " << j->second;
+        std::cout << std::endl;
+      }
+    }
+
+    /** Get for a equation number the penalty dirichlet value.
+     * @param equation if invalid we return false
+     * @param dirichlet_value because it can be double/complex as paramter. Unset if return false
+     * @return true if equation is valid, then dirichlet_value ist set. */
+    bool GetIDBC(PdeIdType pde_type, int equation, T& dirichlet_value) 
+    {
+      // search for the equation and check 
+      std::map<Integer, UInt>::iterator iter = bcIndices_[pde_type].find(equation);
+      if(iter == bcIndices_[pde_type].end()) return false;
+
+      // set dirichlet value
+      dirichletValue_->GetVectorEntry(iter->second, dirichlet_value);
+
+      return true;
+    }
+    
+    
     //@}
 
 

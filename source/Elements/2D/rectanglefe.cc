@@ -29,7 +29,7 @@ namespace CoupledField
 
 
 
-  RectangleFE :: ~RectangleFE()
+  RectangleFE::~RectangleFE()
   {
   }
 
@@ -347,7 +347,7 @@ namespace CoupledField
       }
   }
   
-  void RectangleFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void RectangleFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {
@@ -369,4 +369,20 @@ namespace CoupledField
     
   }
 
+  void RectangleFE::GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &max, Double &min )
+  {
+    max = 1e-100;
+    min = 1e+100;
+
+    for (UInt i=0; i<4; i++ )
+    {
+      UInt other = i < 3 ? i+1 : 0; // wrap around for last edge
+      Double dx = ptCoord[0][i] - ptCoord[0][other];
+      Double dy = ptCoord[1][i] - ptCoord[1][other];
+      Double l  = sqrt(dx*dx + dy*dy);
+      max = max > l ? max : l;
+      min = min < l ? min : l;
+    } 
+  }  
+  
 } // end of namespace

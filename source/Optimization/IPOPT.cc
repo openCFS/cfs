@@ -8,7 +8,7 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "ipopt/IpSolveStatistics.hpp"
+#include "coin/IpSolveStatistics.hpp"
 
 #include "boost/lexical_cast.hpp"
 
@@ -321,7 +321,7 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
 void IPOPT::finalize_solution(SolverReturn status,
                               Index n, const Number* x, const Number* z_L, const Number* z_U,
                               Index m, const Number* g, const Number* lambda,
-                              Number obj_value)
+                              Number obj_value, const IpoptData* ip_data, IpoptCalculatedQuantities* ip_cq)
 {
   LOG_TRACE(ipopt) << "finalize_solution: status = " << status << "; n = " << n << "; m = " << m 
                     << " obj_value = " << obj_value << " x_avg = " << Average(x, n) << " x_std_dev = " 

@@ -278,7 +278,7 @@ namespace CoupledField {
   // ***************
   //   WriteResult
   // ***************
-  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
+  void WriteInfo::WriteResult(std::string pdename, std::string resulttype,
                                StdVector<std::string> & subdoms,
                                Vector<Double> & results,
                                std::string unit,
@@ -302,7 +302,7 @@ namespace CoupledField {
     }
   }
 
-  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
+  void WriteInfo::WriteResult(std::string pdename, std::string resulttype,
                                StdVector<std::string> & subdoms,
                                Vector<Complex> & results,
                                std::string unit,
@@ -413,7 +413,7 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  void WriteInfo:: WriteAcouPower(std::string pdename, 
+  void WriteInfo::WriteAcouPower(std::string pdename, 
 					   StdVector<std::string> & subdoms,
 					   Vector<TYPE>& power)
   {

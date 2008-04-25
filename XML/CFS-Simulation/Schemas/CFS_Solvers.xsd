@@ -429,9 +429,7 @@
             </xsd:complexType> 
           </xsd:element>  <!-- end of flag -->
         
-        
         </xsd:sequence>
-        
         <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />
       </xsd:extension>
     </xsd:complexContent>

@@ -46,8 +46,6 @@ namespace CoupledField
       elemDisp_ = disp;};
 
   protected:  
-    /// returns D - matrix (material matrix)
-    //  virtual void calcDMat(Matrix<Double> & dMat);
   
     /// returns B 
     virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 

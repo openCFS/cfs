@@ -54,7 +54,7 @@ namespace CoupledField
       
   }
 
-  void PyraFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void PyraFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                   const Double tolerance,
                                   StdVector<bool> & coordsInside) const
   {

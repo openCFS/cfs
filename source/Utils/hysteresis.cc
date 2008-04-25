@@ -11,13 +11,13 @@
 namespace CoupledField
 { 
 
-  Hysteresis :: Hysteresis(Integer numElem)
+  Hysteresis::Hysteresis(Integer numElem)
   {
 
     numElements_ = numElem;
   }
 
-  Hysteresis :: ~Hysteresis()
+  Hysteresis::~Hysteresis()
   {
   }
 

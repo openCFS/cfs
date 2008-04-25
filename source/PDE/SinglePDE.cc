@@ -956,9 +956,7 @@ namespace CoupledField {
   // **********
   //   SetBCs
   // **********
-  void SinglePDE::SetBCs( const Double time ) {
-    
-  
+  void SinglePDE::SetBCs() {
 
      // Trigger setting of BC from script file
  #ifdef USE_SCRIPTING
@@ -1668,7 +1666,7 @@ namespace CoupledField {
         
         Vector<Double> rotVec (3);
         rotVec.Init();
-        
+               
         // NOTE: If no rotation is specified and the dimension is
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
@@ -1764,7 +1762,7 @@ namespace CoupledField {
           // Print information
           out << " --- Lamina " << j+1 << ": thickness = " 
               << lamThickness
-              << " m, orientation = " << lamOrientation << "° ---\n";
+              << " m, orientation = " << lamOrientation << "---\n";
           Info->PrintF( pdename_, out.str().c_str());
           out.str("");
 
@@ -2298,6 +2296,9 @@ namespace CoupledField {
         shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
         actSDList->SetNodesOfRegion( subdoms_[iRegion] );
 
+
+
+   
         // create new vector
         Vector<Complex> * values = new Vector<Complex>;
         values->Resize( actSDList->GetSize() * numDofs );

@@ -11,17 +11,17 @@ namespace CoupledField
 {
 
 
-  Line1FE :: Line1FE(IntegrationMethod method, int order) : LineFE()
+  Line1FE::Line1FE(IntegrationMethod method, int order) : LineFE()
   {
 
     Init(method, order);
   }
   
-  Line1FE :: ~Line1FE()
+  Line1FE::~Line1FE()
   {
   }
 
-  void Line1FE :: Init(IntegrationMethod method, int order)
+  void Line1FE::Init(IntegrationMethod method, int order)
   {
     NumNodes_ = 2;
 
@@ -29,7 +29,7 @@ namespace CoupledField
     SetEdgeIndices();
   }
 
-  void Line1FE :: SetCornerCoords()
+  void Line1FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
@@ -39,7 +39,7 @@ namespace CoupledField
 
   }
 
-  void Line1FE :: SetEdgeIndices () {
+  void Line1FE::SetEdgeIndices () {
 
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     edgeIndices_[0].Resize(2);
@@ -51,7 +51,7 @@ namespace CoupledField
   }
     
 
-  void Line1FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Line1FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & LCoord,
                                const Elem* elem, UInt dof,
                                AnsatzFct::FctEntityType )
@@ -64,7 +64,7 @@ namespace CoupledField
 
   }
 
-  void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Line1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                          const Vector<Double> & LCoord,
                                          const Elem* elem, UInt dof,
                                          AnsatzFct::FctEntityType )
@@ -80,7 +80,7 @@ namespace CoupledField
   
   }
 
-  void Line1FE :: Global2LocalCoords(Matrix<Double> & localCoords,
+  void Line1FE::Global2LocalCoords(Matrix<Double> & localCoords,
                                      const Matrix<Double> & globalCoords,
                                      const Matrix<Double> & coordMat)
   {

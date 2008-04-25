@@ -22,8 +22,6 @@ namespace CoupledField {
 
   class PiezoCoupling;
   class LinElastInt;
-  //  class linElecInt;
-
 
   class nLinPiezoHystCouple : public linPiezoCoupling {
 
@@ -51,6 +49,13 @@ namespace CoupledField {
    //! Compute the nonlinear data-matrix \f$D\f$
     void calcDMat(Matrix<Double> & dMat );
 
+    /** We do not provide a SIMP variant!
+     * @see linElastInt::calcDMat(Matrix<Double>, const Elem*) */
+    void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+    {
+      calcDMat(dMat); 
+    }; 
+    
    //! set objects for computation of E-field
    void Set4NonLinMaterial( Grid* ptGrid, 
                             StdPDE* ptPDE2Elec,
@@ -160,6 +165,14 @@ namespace CoupledField {
    //! Compute the nonlinear data-matrix \f$D\f$
     void calcDMat(Matrix<Double> & dMat );
 
+    /** We do not provide a SIMP variant!
+     * @see linElastInt::calcDMat(Matrix<Double>, const Elem*) */
+    void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+    {
+      calcDMat(dMat); 
+    }; 
+    
+    
    //! set objects for computation of E-field
    void Set4NonLinMaterial(Grid* ptGrid, 
                            StdPDE* ptPDE2Elec,

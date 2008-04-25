@@ -27,6 +27,7 @@ Doc/developer/AddDoc/element_types/tria3.dia -text
 Doc/developer/AddDoc/element_types/tria6.dia -text
 Doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
+Doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
 Doc/developer/CMakeLists.txt svneol=native#text/plain
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
@@ -148,15 +149,20 @@ Doc/user/xmlFile/coupledfields.tex svneol=native#text/plain
 Doc/user/xmlFile/general.tex svneol=native#text/plain
 Doc/user/xmlFile/mathExpressions.tex svneol=native#text/plain
 Doc/user/xmlFile/mycommands.tex svneol=native#text/plain
+Doc/user/xmlFile/optimization.tex svneol=native#text/plain
 Doc/user/xmlFile/paramIdent.tex svneol=native#text/plain
 Doc/user/xmlFile/pics/cartesian.png -text svneol=unset#image/png
+Doc/user/xmlFile/pics/checkerboard.jpg -text svneol=unset#image/jpeg
 Doc/user/xmlFile/pics/coordSystems.cdr -text svneol=unset#application/coreldraw
 Doc/user/xmlFile/pics/cyl.png -text svneol=unset#image/png
 Doc/user/xmlFile/pics/cylExample.png -text svneol=unset#image/png
+Doc/user/xmlFile/pics/half_mbb.jpg -text svneol=unset#image/jpeg
+Doc/user/xmlFile/pics/large_filter.jpg -text svneol=unset#image/jpeg
 Doc/user/xmlFile/pics/matCoord.png -text svneol=unset#image/png
 Doc/user/xmlFile/pics/polar.png -text svneol=unset#image/png
 Doc/user/xmlFile/pics/rot1.png -text svneol=unset#image/png
 Doc/user/xmlFile/pics/rot2.png -text svneol=unset#image/png
+Doc/user/xmlFile/pics/small_filter.jpg -text svneol=unset#image/jpeg
 Doc/user/xmlFile/singlefields.tex svneol=native#text/plain
 Doc/user/xmlFile/solverParams.tex svneol=native#text/plain
 Doc/user/xmlFile/special.tex svneol=native#text/plain
@@ -347,6 +353,8 @@ source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CFSOLASParams.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/CFSOLASParams.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamTools.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1003,6 +1011,8 @@ source/Optimization/DesignElement.cc -text
 source/Optimization/DesignElement.hh -text
 source/Optimization/DesignSpace.cc -text
 source/Optimization/DesignSpace.hh -text
+source/Optimization/ErsatzMaterial.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/ErsatzMaterial.hh svneol=native#text/plain
 source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
@@ -1021,8 +1031,10 @@ source/Optimization/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/SCPIP_HS071.cc -text
 source/Optimization/SCPIP_HS071.hh -text
-source/Optimization/SIMP.cc svneol=native#text/plain
-source/Optimization/SIMP.hh svneol=native#text/plain
+source/Optimization/SIMP.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/SIMP.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/ShapeGrad.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/ShapeGrad.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
 source/Optimization/scpip30.hh svneol=native#text/x-c%2B%2Bhdr

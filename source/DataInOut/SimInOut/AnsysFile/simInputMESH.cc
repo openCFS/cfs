@@ -182,10 +182,10 @@ namespace CoupledField {
     GetNamedNodes( indices, nodeNames );
 
     names.Resize(0);
-    for(int i = 0; i<nodeNames.size(); i++)
+    for(UInt i = 0; i<nodeNames.size(); i++)
       names.Push_back(nodeNames[i]);
 
-    for(int i = 0; i<nodeNames.size(); i++)
+    for(UInt i = 0; i<nodeNames.size(); i++)
       mi_->AddNamedNodes(names[i], indices[i]);
 
     // Get Named Elements
@@ -196,10 +196,10 @@ namespace CoupledField {
     GetNamedElems( indices, elemNames );
 
     names.Resize(0);
-    for(int i = 0; i<elemNames.size(); i++)
+    for(UInt i = 0; i<elemNames.size(); i++)
       names.Push_back(elemNames[i]);
 
-    for(int i = 0; i<elemNames.size(); i++) {
+    for(UInt i = 0; i<elemNames.size(); i++) {
       mi_->AddNamedElems(names[i], indices[i]);
     }
 

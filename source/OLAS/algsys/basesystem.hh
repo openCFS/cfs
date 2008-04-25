@@ -87,7 +87,12 @@ namespace OLAS {
     UInt GetDimension() {
       return (UInt)size_;
     }
-
+    
+    /** Obtain our IDBC-Handler */
+    BaseIDBC_Handler* GetIdbcHandler() {
+      return idbcHandler_; 
+     }
+    
     // ***********************************************************************
     //   Methods for creating and initalizing the algebraic system
     // ***********************************************************************

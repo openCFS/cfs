@@ -148,7 +148,7 @@ namespace CoupledField {
     Double preSqrt=0;
     UInt i;
     for (i=0; i<3; i++)
-      preSqrt+=sqr(a[i]-b[i]);
+      preSqrt+= (a[i]-b[i]) * (a[i]-b[i]);
     return sqrt(preSqrt);
   }
 
@@ -171,17 +171,8 @@ namespace CoupledField {
     UInt k=a.GetSizeRow();
     // std::cout<<"tools.cc:size of matrix: "<<k<<std::endl;
     for (i=0; i<k; i++)
-      preSqrt+=sqr(a[i][0]-a[i][1]);
+      preSqrt+= (a[i][0]-a[i][1]) * (a[i][0]-a[i][1]);
     return sqrt(preSqrt);
-  }
-  
-  
-  Double Sin(const Double x) {
-    return sin(x);
-  }
-
-  Double Cos(const Double x) {
-    return cos(x);
   }
 
   /// a-->b
@@ -212,7 +203,7 @@ namespace CoupledField {
     normal[0]=t[1]*s[2]-t[2]*s[1];
     normal[1]=t[2]*s[0]-t[0]*s[2];  
     normal[2]=t[0]*s[1]-t[1]*s[0];
-    L2_normal=sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+    L2_normal=sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
     normal[0]=normal[0]/L2_normal;
     normal[1]=normal[1]/L2_normal;
     normal[2]=normal[2]/L2_normal;  
@@ -234,7 +225,7 @@ namespace CoupledField {
     normal[0]=t[1]*s[2]-t[2]*s[1];
     normal[1]=t[2]*s[0]-t[0]*s[2];  
     normal[2]=t[0]*s[1]-t[1]*s[0];
-    L2_normal=sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+    L2_normal=sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
     normal[0]=normal[0]/L2_normal;
     normal[1]=normal[1]/L2_normal;
     normal[2]=normal[2]/L2_normal;  
@@ -301,82 +292,7 @@ namespace CoupledField {
 
     return retVal;
   }
-#undef DEF_VEC_CONVERSION
-#define DEF_VEC_CONVERSION(VECTYPE)                                     \
-  void String2Double( VECTYPE<Double> & retVal,                         \
-                      const StdVector<std::string> & val ) {            \
-    retVal.Resize( val.GetSize() );                                     \
-                                                                        \
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {                        \
-      if ( std::sscanf ( val[i].c_str(), "%lf", &retVal[i]) != 1 ) {    \
-        EXCEPTION("Could not convert '" << val                          \
-                  << "' into a double!" );                              \
-      }                                                                 \
-                                                                        \
-    }                                                                   \
-  }                                                                     \
-  void Double2String( StdVector<std::string> & retVal,                  \
-                      const VECTYPE<Double> & val ) {                   \
-                                                                        \
-    retVal.Resize( val.GetSize() );                                     \
-    std::ostringstream mystream;                                        \
-                                                                        \
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {                        \
-      mystream << val[i];                                               \
-      retVal[i] = mystream.str();                                       \
-      mystream.str("");                                                 \
-    }                                                                   \
-  }                                                                     \
-                                                                        \
-    void String2Int( VECTYPE<Integer> & retVal,                         \
-                     const StdVector<std::string> & val ) {             \
-      retVal.Resize( val.GetSize() );                                   \
-                                                                        \
-      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
-        if ( std::sscanf ( val[i].c_str(), "%d", &retVal[i]) != 1 ) {   \
-          EXCEPTION( "Could not convert '" << val                       \
-                     << "' into an integer!" );                         \
-        }                                                               \
-      }                                                                 \
-    }                                                                   \
-                                                                        \
-    void Int2String( StdVector<std::string> & retVal,                   \
-                     const VECTYPE<Integer> & val ) {                   \
-                                                                        \
-      retVal.Resize( val.GetSize() );                                   \
-      std::ostringstream mystream;                                      \
-                                                                        \
-      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
-        mystream << val[i];                                             \
-        retVal[i] = mystream.str();                                     \
-        mystream.str("");                                               \
-      }                                                                 \
-    }                                                                   \
-                                                                        \
-    void String2UInt( VECTYPE<UInt> & retVal,                           \
-                      const StdVector<std::string> & val ) {            \
-      retVal.Resize( val.GetSize() );                                   \
-                                                                        \
-      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
-        if ( std::sscanf ( val[i].c_str(), "%u", &retVal[i]) != 1 ) {   \
-          EXCEPTION( "Could not convert '" << val                       \
-                     << "' into an unsigned integer!" );                \
-        }                                                               \
-      }                                                                 \
-    }                                                                   \
-                                                                        \
-    void UInt2String( StdVector<std::string> & retVal,                  \
-                      const VECTYPE<UInt> & val ) {                     \
-      retVal.Resize( val.GetSize() );                                   \
-      std::ostringstream mystream;                                      \
-                                                                        \
-      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
-        mystream << val[i];                                             \
-        retVal[i] = mystream.str();                                     \
-        mystream.str("");                                               \
-      }                                                                 \
-    }
-  
+
   double NormL2(const double* data, unsigned int size)
   {
     double result = 0.0;
@@ -385,6 +301,22 @@ namespace CoupledField {
       
     return result;  
   }
+  
+
+  /** Compares if two doubles are close to each other */
+  bool close(Double d1, Double d2)
+  {
+    return std::abs(d1-d2) < 1e-6;
+  }
+ 
+  /** Compared if two complex are close (if both the real and imaginary part are close) */
+  bool close(Complex c1, Complex c2)
+  {
+    return std::abs(c1.real()-c2.real()) < 1e-6 
+        && std::abs(c1.imag()-c2.imag()) < 1e-6;
+  }
+    
+  
   
   double Average(const double* data, unsigned int size)
   {
@@ -410,8 +342,39 @@ namespace CoupledField {
     return sqrt(v);
   }  
   
-  DEF_VEC_CONVERSION(Vector)
-  DEF_VEC_CONVERSION(StdVector)
+  void Assign(Matrix<Double>& target, const Matrix<Double>& other, Double factor)
+  {
+    target.Resize(other);
+    for(UInt r = 0; r < other.GetSizeRow(); r++)
+      for(UInt c = 0; c < other.GetSizeCol(); c++)
+        target[r][c] = factor * other[r][c];
+  }
 
+  void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, Complex factor)
+  {
+    target.Resize(other);
+    for(UInt r = 0; r < other.GetSizeRow(); r++)
+      for(UInt c = 0; c < other.GetSizeCol(); c++)
+        target[r][c] = factor * other[r][c];
+  }
 
+  void Assign(Matrix<Complex>& target, const Matrix<Double>& other, Complex factor)
+  {
+    target.Resize(other.GetSizeRow(), other.GetSizeCol());
+    for(UInt r = 0; r < other.GetSizeRow(); r++)
+      for(UInt c = 0; c < other.GetSizeCol(); c++)
+        target[r][c] = factor * other[r][c];
+  }
+  
+  void Assign(Matrix<Complex>& target, const Matrix<Double>& other, Double factor)
+  {
+    target.Resize(other.GetSizeRow(), other.GetSizeCol());
+    for(UInt r = 0; r < other.GetSizeRow(); r++)
+      for(UInt c = 0; c < other.GetSizeCol(); c++)
+        target[r][c] = factor * other[r][c];
+  }
+  
+
+  
+  
 }// namespace CoupledField

@@ -26,7 +26,7 @@ namespace CoupledField
   //constructor
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
-  piezoParamIdent :: piezoParamIdent( UInt sequenceStep,
+  piezoParamIdent::piezoParamIdent( UInt sequenceStep,
                                       bool isPartOfSequence )
     :SingleDriver( sequenceStep, isPartOfSequence ){
 
@@ -65,7 +65,7 @@ namespace CoupledField
 
   }
   
-  void piezoParamIdent :: Init() {
+  void piezoParamIdent::Init() {
     
     // Note: directCoupling_ is always true, as we de no
     // longer have the old structure with a SinglePDE as PiezoPDE
@@ -197,7 +197,7 @@ namespace CoupledField
   } // end of constructor
 
   // destructor
-  piezoParamIdent :: ~piezoParamIdent()
+  piezoParamIdent::~piezoParamIdent()
   {
     if (allMeasuredData)
       allMeasuredData->close();

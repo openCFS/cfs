@@ -276,7 +276,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  TYPE  NodeStoreSol<TYPE>:: operator()(UInt node, UInt dof) const
+  TYPE  NodeStoreSol<TYPE>::operator()(UInt node, UInt dof) const
   {
   
 #ifdef CHECK_INITIALIZED

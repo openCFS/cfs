@@ -24,12 +24,14 @@ namespace CoupledField {
     //! Destructor
     virtual ~linElastInt();
 
-    //! Function for calculation bdb matrix 
+    /** Function for calculation bdb matrix. 
+     * In ersatz material optimization we the form \int B D B where D is [c] (lin elast in)
+     * D might be multiplied with an ersatz-Material factor. This is handled in the by calcDMat() */
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
-    //! Function for calculation bdb matrix using incompatible modes 
+    /** Function for calculation bdb matrix using incompatible modes. Uses */ 
     void CalcElementMatrixICM( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
@@ -49,11 +51,16 @@ namespace CoupledField {
 
   protected:    
 
-     //! calculates the material data 
-    void calcDMat( Matrix<Double> &dMat );
+    /** Calculates the Material data in the SIMP version! 
+     * Note, that most forms implement this method in the non-SIMP variant with no
+     * elem parameter but the BDBInt uses calcDMat with the elem parameter.
+     * Therefore all direct childs of this class should either give calcDMat(dMat, elem)
+     * or provide a a variant that class the non-elem version.
+     * Take care! This is error prone!! */ 
+    virtual void calcDMat( Matrix<Double> &dMat, const Elem* elem);
 
-     //! calculates the material data 
-    void calcDMat( Matrix<Complex> &dMat );
+    /** see calcDMat(Matrix<Double>, const Elem*) */
+    virtual void calcDMat( Matrix<Complex> &dMat, const Elem* elem);
 
     //! returns B - matrix for BDB
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,

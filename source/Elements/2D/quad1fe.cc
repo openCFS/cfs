@@ -12,18 +12,18 @@ namespace CoupledField
 {
 
 
-  Quad1FE :: Quad1FE() : RectangleFE()
+  Quad1FE::Quad1FE() : RectangleFE()
   {
 
     UseICModes();
     Init();
   }
   
-  Quad1FE :: ~Quad1FE()
+  Quad1FE::~Quad1FE()
   {
   }
 
-  void Quad1FE :: Init()
+  void Quad1FE::Init()
   {
     NumNodes_ = 4;
     
@@ -32,7 +32,7 @@ namespace CoupledField
     SetFaceIndices();
   }
 
-  void Quad1FE :: SetCornerCoords()
+  void Quad1FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
@@ -49,7 +49,7 @@ namespace CoupledField
 
   }
 
-  void Quad1FE :: SetFaceIndices() {
+  void Quad1FE::SetFaceIndices() {
 
     faceIndices_ = new StdVector<UInt>[NumFaces_];
     for (UInt i = 0; i < NumFaces_; i++) {
@@ -63,7 +63,7 @@ namespace CoupledField
     faceIndices_[0][3] = 4;
   }
 
-  void Quad1FE :: SetEdgeIndices() {
+  void Quad1FE::SetEdgeIndices() {
     
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
@@ -92,7 +92,7 @@ namespace CoupledField
         
   }
 
-  void Quad1FE :: CalcShapeFnc( Vector<Double> & Shape, 
+  void Quad1FE::CalcShapeFnc( Vector<Double> & Shape, 
                                 const Vector<Double> & actCoord,
                                 const Elem* elem,
                                 UInt dof, AnsatzFct::FctEntityType type )
@@ -182,7 +182,7 @@ namespace CoupledField
   }
 
 
-  void Quad1FE ::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Quad1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
                                          const Vector<Double> & actCoord,
                                          const Elem* elem,
                                          UInt dof,
@@ -283,7 +283,7 @@ namespace CoupledField
   }
 
 
-  void Quad1FE ::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Quad1FE::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
 						const Vector<Double> & actCoord,
 						const Elem* elem,
 						UInt dof, AnsatzFct::FctEntityType type )

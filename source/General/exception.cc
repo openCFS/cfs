@@ -45,7 +45,7 @@ namespace CoupledField {
         
         ostream << msg_;
 
-        if( fileName_ != "" ) {
+        if( fileName_ != "" && fileName_ != "NO_FILENAME") {
             ostream << "\nIn file '" << fileName_ << "'";
         }
         

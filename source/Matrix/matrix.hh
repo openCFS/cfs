@@ -102,6 +102,9 @@ namespace CoupledField
     //! \param size (input) Number of rows / columns
     void Resize( const UInt size );
 
+    /** Resize if necessary to the other matrix */
+    void Resize(const Matrix<TYPE>& other);
+    
     //@}
     
     // =======================================================================
@@ -213,6 +216,12 @@ namespace CoupledField
     void Add( const TYPE fac, const CFSMatrix & mat) {
       EXCEPTION( "Not implemented yet!" );
     }
+    
+    /** Set this matrix with a multiple of another matric.
+     * This and a mixed varian is also a sandalone method in tools. 
+     * Anybody knows how to do the mixed form (complex <- double * complex) here? 
+     * this = factor * other_mat */
+    void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
     
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const;

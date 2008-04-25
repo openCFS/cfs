@@ -142,16 +142,18 @@ namespace CoupledField
 
     /** For some optimization (SIMP) or normal simulation with external
      * ersatz material file the forms get the density value by this
-     * function. Any penaltisation (SIMP) is applied!
-     * @param from eleme elemNum and regionId are used
+     * function. Any transfer function (e.g. x^3 in SIMP) is applied!
+     * @param elem elemNum and regionId are used. Note that it is checked,
+     *        if for surface elements the neighbour region applies!
      * @param form the actual bilinearform, this is used to find the power for SIMP
-     * @return -1.0 if nothing available for the elment, otherwise density^power */
-    Double GetErsatzMaterial(const Elem* elem, const BaseForm* form);
+     * @param result we return the result in the parameter, to indicate clearly if it is valid
+     * @return true if result was set,.false if there is no ersatz materal for the input params */
+    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
 
     /** This is set by optimization which holds the data (in a derved form). It
      * is also reset here by the optimization destructor.
      * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
-     * @param regionId the region for the ersatMaterial */
+     * @param regionId the region for the ersatz material */
      void SetErsatzMaterial(DesignSpace* data)
      {
          ersatzMaterial = data;

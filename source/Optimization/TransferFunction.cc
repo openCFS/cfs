@@ -29,10 +29,19 @@ TransferFunction::TransferFunction(ParamNode* pn)
   this->application_ = Optimization::application.Parse(pn->Get("application"));
   this->design_ = DesignElement::type.Parse(pn->Get("design"));
   this->param_ = pn->Has("param") ? pn->Get("param")->AsDouble() : 1.0;
+  
+  // validate param
   if(type_ == IDENTITY && pn->Has("param"))
     throw Exception("it makes no sense to give a parameter for an identity transfer function");  
-  if(type_ != IDENTITY && !pn->Has("param"))  
-    throw Exception("Non identity transfer functions need a parameter");
+  if(type_ == FULL && pn->Has("param"))
+    throw Exception("it makes no sense to give a parameter for the 'full' = 1 transfer function");  
+  if(!pn->Has("param") && (type_ != IDENTITY && type_ != FULL))  
+    throw Exception("transfer function '" + type.ToString(type_) + "' requires a parameter");
+  
+  // validate design/application
+  if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
+    throw Exception("transfer functions for 'polarization' can only be '" 
+        + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
 }
 
 std::string TransferFunction::ToString()
@@ -61,7 +70,6 @@ double TransferFunction::Transform(DesignElement* de)
     break;
 
   case SIMP_TYPE:
-    assert(value >= 0);
     assert(param_ >= 0);
     result = std::pow(value, param_);
     break;
@@ -71,6 +79,15 @@ double TransferFunction::Transform(DesignElement* de)
     result = value / (1.0 + param_ * (1.0 - value));
     break;
 
+  case FIXED:
+    result = param_;
+    break;
+    
+  case FULL:
+    assert(param_ == 0.0);
+    result = 1.0;
+    break;
+    
   default: throw Exception("type not implemented");
   }          
   
@@ -95,7 +112,16 @@ double TransferFunction::Derivative(DesignElement* de)
       return param_ * std::pow(value, param_ - 1.0);
 
     case RAMP: 
-      return (1.0 / (1.0 + param_ * (1.0 - value))) - (value / param_);
+    {
+      double p2 = param_ * param_;
+      double p = param_;
+      double x = value;
+      return (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);
+    } 
+      
+    case FIXED:  
+    case FULL:  
+      return 0.0; // the derivative of a constant is 0 
       
     default: throw Exception("type not implemented");
   }            
@@ -108,4 +134,6 @@ void TransferFunction::SetEnums()
   type.Add(SIMP_TYPE, "simp");
   type.Add(IDENTITY, "identity");
   type.Add(RAMP, "ramp");
+  type.Add(FIXED, "fixed");
+  type.Add(FULL, "full");
 }     

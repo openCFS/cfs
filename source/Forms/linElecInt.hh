@@ -50,7 +50,7 @@ namespace CoupledField {
                    Matrix<Double> &ptCoord );
     
     //! Compute the data-matrix \f$D\f$
-    void calcDMat( Matrix<Double> &dMat );
+    void calcDMat( Matrix<Double> &dMat, const Elem* elem);
     
     //! Returns dimension of D matrix
     UInt getDimD() {

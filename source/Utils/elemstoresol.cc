@@ -191,7 +191,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  TYPE  ElemStoreSol<TYPE>:: operator()(UInt node, UInt dof) const
+  TYPE  ElemStoreSol<TYPE>::operator()(UInt node, UInt dof) const
   {
   
 #ifdef CHECK_INITIALIZED
@@ -388,7 +388,7 @@ namespace CoupledField{
   template<class TYPE>
   ElemStoreSol<TYPE> & ElemStoreSol<TYPE>::operator= (const ElemStoreSol & x)
   {
-    Error("Not implemented here", __FILE__,__LINE__); 
+    EXCEPTION("Not implemented here"); 
   }
 
   template<class TYPE>

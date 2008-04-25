@@ -99,7 +99,7 @@ namespace CoupledField
   }
 
 
-  void Wedge2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Wedge2FE::CalcShapeFnc(Vector<Double> & Shape, 
                                 const Vector<Double> & LCoord,
                                 const Elem*, UInt dof,
                                 AnsatzFct::FctEntityType fctEntityType )
@@ -131,7 +131,7 @@ namespace CoupledField
   }
 
 
-  void Wedge2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Wedge2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                           const Vector<Double> & LCoord,
                                           const Elem*, UInt dof,
                                           AnsatzFct::FctEntityType fctEntityType )

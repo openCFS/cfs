@@ -1426,12 +1426,6 @@ namespace CoupledField
     };
     AddIntegrationPoints(SPECIAL, 1, 3, (Double*) a2);
     
-    
-    // The original values from SetIntPoints() - no source given
-    // There are different values for Hexa1FE and Hexa2FE - only for first order! (?!) - Fabian
-    static Double c1_1FE[][4] = { 
-      { 0.000000000000000,  0.000000000000000,  0.000000000000000,  1.000000000000000 }
-    };
 
     static Double c1_2FE[][4] = { 
       { -0.57735026919,  -0.57735026919,  -0.57735026919,  1.000000000000000 },
@@ -1444,10 +1438,7 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,   0.57735026919,  1.000000000000000 },
     };
       
-//     if (NumNodes_ ==8 )
-//       AddIntegrationPoints(CLASSICAL, 1, 1, (Double*) c1_1FE);
-//     else
-      AddIntegrationPoints(CLASSICAL, 1, 8, (Double*) c1_2FE);         
+    AddIntegrationPoints(CLASSICAL, 1, 8, (Double*) c1_2FE);         
       
     static Double c2[][4] = { 
       { -0.7745966692415,  -0.7745966692415,  -0.7745966692415,  0.171467764060357},
@@ -1630,7 +1621,7 @@ namespace CoupledField
     }
   }
 
-  void HexaFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void HexaFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                   const Double tolerance,
                                   StdVector<bool> & coordsInside) const
   {

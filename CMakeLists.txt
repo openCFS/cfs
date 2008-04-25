@@ -48,7 +48,7 @@ OPTION(USE_ENSIGHT "Use Ensight Gold format format for output (Paraview/Tecplot/
 OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
   OFF)
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
-OPTION(USE_SCPIP "Use the external SCPIP optimizer." ON)
+OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
 
 #-----------------------------------------------------------------------------
 # Only switch on ILUPACK at lse per default.

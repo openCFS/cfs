@@ -56,8 +56,7 @@ namespace CoupledField
     
   }
 
-  void LinearSurfForm:: 
-  RegisterSurfElemMidPoint( MathParser::HandleType handle,
+  void LinearSurfForm::RegisterSurfElemMidPoint( MathParser::HandleType handle,
                             const SurfElem * ptSurfElem,
                             const Elem * ptVolElem ) {
 

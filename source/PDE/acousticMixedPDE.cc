@@ -213,7 +213,7 @@ namespace CoupledField
   // ======================================================
 
 
-  void AcousticMixedPDE :: InitTimeStepping()
+  void AcousticMixedPDE::InitTimeStepping()
   {
     if ( effectiveMass_ == true ) {
       TS_alg_ = new TrapezoidalEffMass( algsys_ );

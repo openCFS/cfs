@@ -944,21 +944,23 @@ namespace CoupledField {
     }
   }
 
-  double Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form)
+  bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
   {
     // is the stuff active at all? 
-    if(ersatzMaterial == NULL) return -1.0;
-    
-    // are we in the relevant region at all?
-    if(elem->regionId != ersatzMaterial->GetRegionId()) return -1.0;
+    if(ersatzMaterial == NULL) return false;
 
+    // we cannot check for the region here, if form is a linear form (e.g.
+    // pressure) but the design variable comes from elemens one dimension higher.
+    int idx = ersatzMaterial->Find(elem, false);
+    if(idx == -1) return false;
+    
     // The desing space does the magic stuff. 
     // In the SIMP case we get density of element power param
     // all identified by the form and in piezo coupling case it
     // might even be the product of the transfer funcitons of
     // density and polarization
-    double val = ersatzMaterial->GetErsatzMaterialFactor(elem, form);
-    return val;
+    result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
+    return true;
   }
 
   DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)

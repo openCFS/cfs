@@ -11,14 +11,14 @@
 
 namespace CoupledField
 { 
-  LinInterpolate :: LinInterpolate(std::string nlFileName, ApproxCurveType curveType )
+  LinInterpolate::LinInterpolate(std::string nlFileName, ApproxCurveType curveType )
     : ApproxData(nlFileName,curveType)
   {
 
 
   }
 
-  LinInterpolate :: ~LinInterpolate()
+  LinInterpolate::~LinInterpolate()
   {
 
   }

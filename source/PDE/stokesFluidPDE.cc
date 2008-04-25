@@ -675,7 +675,7 @@ namespace CoupledField
   // ======================================================
 
 
-  void StokesFluidPDE :: InitTimeStepping()
+  void StokesFluidPDE::InitTimeStepping()
   {
   }
 

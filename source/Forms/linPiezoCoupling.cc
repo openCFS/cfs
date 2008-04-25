@@ -8,6 +8,9 @@
 #include "General/environment.hh"
 #include "linPiezoCoupling.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
 
 namespace CoupledField {
 
@@ -180,14 +183,16 @@ namespace CoupledField {
   // ============
   //   calcDMat
   // ============
-  void linPiezoCoupling::calcDMat( Matrix<Double> &dMat ) {
-
+  void linPiezoCoupling::calcDMat(Matrix<Double> &dMat, const Elem* elem)
+  {
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
-    
-    //std::cerr << "e = \n" << dMat << std::endl;
-    
+ 
+    Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
+    if(density != 1.0) dMat *= density;  
+    LOG_DBG3(forms) << GetName() << "::calcDMat("
+                    << (elem != NULL ? elem->elemNum : -1) << ") -> density=" << density;
   }
 
 

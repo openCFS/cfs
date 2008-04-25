@@ -4,6 +4,12 @@
 
 #include "linPressureInt.hh"
 
+
+
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
+
 namespace CoupledField {
 
   // =================================================================
@@ -52,9 +58,12 @@ namespace CoupledField {
     double density = GetErsatzMaterialFactor(ptVolElem);
     factor *= density;
     
+    LOG_DBG3(forms) << "PressureLinForm::CalcElemVector<double> elem=" 
+                    << actElem_->elemNum << " peseudo density=" << density
+                    << " factor=" << factor; 
+    
     // multiply element vector with factor
     elemVec *= factor;
-    
   }
 
   void PressureLinForm::CalcElemVector( Vector<Complex> & elemVec,

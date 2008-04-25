@@ -10,6 +10,7 @@
 #include "Optimization/EvaluateOnly.hh"
 #include "Driver/basedriver.hh"
 #include "Driver/singleDriver.hh"
+#include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -31,11 +32,9 @@ DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
-Enum<Optimization::OptimizationType> Optimization::optimizationType;
 Enum<Optimization::ObjectiveType>    Optimization::objectiveType;
 Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
-Enum<PiezoSIMP::Storage>             PiezoSIMP::storage;
 
 
 Optimization::Objective::Objective(ParamNode* pn)
@@ -86,9 +85,6 @@ Optimization::Optimization()
 
   ParamNode* pn = param->Get("optimization");       
 
-  // the optimization problem
-  optimization = optimizationType.Parse(pn->Get("type"));
- 
   // the tool to solve the optimization problem 
   optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type"));
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->AsInt();
@@ -173,14 +169,11 @@ void Optimization::PostInit()
   this->logFileHeader += baseOptimizer_->LogFileHeader();
 }
 
+
 void Optimization::SetEnums()
 {
-  optimizationType.SetName("Optimization::OptimizationType");
-  optimizationType.Add(SIMP_TYPE, "SIMP");
-  
   objectiveType.SetName("Optimization::ObjectiveType");
   objectiveType.Add(COMPLIANCE, "compliance");
-  objectiveType.Add(TRANSDUCTION, "transduction");
   objectiveType.Add(OUTPUT, "output");
   objectiveType.Add(CONJUGATE_OUTPUT, "conjugateOutput");
   objectiveType.Add(GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
@@ -201,12 +194,18 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");  
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");  
+
+  ErsatzMaterial::method.SetName("ErsatzMaterial::Method");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SIMP_METHOD, "simp");
+  ErsatzMaterial::method.Add(ErsatzMaterial::FREE_MAT, "freeMat");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_GRAD, "shapeGrad");
   
   SIMP::system.SetName("SIMP::System");
   SIMP::system.Add(SIMP::PIEZO, "piezo");
   SIMP::system.Add(SIMP::MECHANIC, "mechanic");
   
   application.SetName("Optimization::Application");
+  application.Add(NO_APP, "no_app");
   application.Add(MECH, "mech");
   application.Add(MASS, "mass");
   application.Add(ELEC, "elec");
@@ -214,13 +213,6 @@ void Optimization::SetEnums()
   application.Add(PRESSURE, "pressure");  
   application.Add(CHARGE_DENSITY, "chargeDensity");
   application.Add(SURFACE_NORMAL, "surfaceNormal");
-  
-  
-  PiezoSIMP::storage.SetName("PiezoSIMP::Storage");
-  PiezoSIMP::storage.Add(PiezoSIMP::COMMIT, "commit");
-  PiezoSIMP::storage.Add(PiezoSIMP::ELEC_CASE, "elec_case");
-  PiezoSIMP::storage.Add(PiezoSIMP::MECH_CASE, "mech_case");
-  PiezoSIMP::storage.Add(PiezoSIMP::BOTH_CASES, "both_cases");
 }    
 
 
@@ -248,27 +240,27 @@ bool Optimization::IsMinimumReached()
 Optimization* Optimization::CreateInstance()
 {
   // set the enums we need
-  Optimization::SetEnums();
+  Optimization::SetEnums(); // sets also ErsatzMaterial::Method
   DesignElement::SetEnums();
 
   if(!param->Has("optimization")) return NULL;
-
-  std::string string = param->Get("optimization")->Get("type")->AsString();
-
-  // the actual parameters are read in the constructors
-  switch(optimizationType.Parse(string))
+  
+  // we assume ersatz material, currently there is nothing else.
+  // note, we read method again in the ersat material constructor.
+  ParamNode* em = param->Get("optimization")->Get("ersatzMaterial"); 
+  ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method"));
+  switch(method)
   {
-    case SIMP_TYPE: 
-    {
-      string = param->Get("optimization")->Get("SIMP")->Get("system")->AsString();
-      // determine subtype - this is again done in the constructor
-      SIMP::System system = SIMP::system.Parse(string);
-      SIMP* simp = (system == SIMP::MECHANIC) ? new SIMP(): new PiezoSIMP();
-      simp->PostInit();
-      return simp;
-    }   
-    
-    default: throw Exception("Optimization " + string + " not implemented");
+  case ErsatzMaterial::SIMP_METHOD:
+  {
+    // which simp type?
+    SIMP::System system = SIMP::system.Parse(em->Get("SIMP")->Get("system"));
+    SIMP* simp = (system == SIMP::MECHANIC) ? new SIMP(): new PiezoSIMP();
+    simp->PostInit();
+    return simp;
+  }
+  // FreeMat, ShapeGrad, ...
+  default: throw Exception("Optimization not implemented");
   }
 } 
 
@@ -377,7 +369,7 @@ void Optimization::CommitIteration()
   // eventually set special result
   EvaluateSpecialResults();
 
-  // this writes the most corrent solved forward problem
+  // this writes the most current solved forward problem
   // via the driver to gid or whatever  
   StoreResults();
 

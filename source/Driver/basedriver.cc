@@ -18,14 +18,14 @@
 
 using namespace CoupledField;
 
-BaseDriver :: BaseDriver( )
+BaseDriver::BaseDriver( )
 {
   actSequenceStep_ = 1;
   nummeshes_=0;
   handler_ = domain->GetResultHandler();
 }
 
-BaseDriver :: ~BaseDriver()
+BaseDriver::~BaseDriver()
 {
   //delete ptdomain_;
 }
@@ -45,7 +45,7 @@ bool BaseDriver::printMeshesOrNot() {
   return meshesInfo;
 }
 
-void BaseDriver :: PrintSeqMeshes()
+void BaseDriver::PrintSeqMeshes()
 {
   Warning( "Not implemented anymore", __FILE__, __LINE__ );
 }

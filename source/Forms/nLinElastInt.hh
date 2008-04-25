@@ -43,6 +43,18 @@ namespace CoupledField
                        EntityIterator ent2 );
 
 protected:    
+  
+  virtual void calcDMat(Matrix<Double> & dMat)
+  {
+    EXCEPTION("child implementation missing");
+  }
+  
+  /** We do not provide a SIMP variant!
+   * @see linElastInt::calcDMat(Matrix<Double>, const Elem*) */
+  void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+  {
+    calcDMat(dMat); 
+  };
 
 
     
@@ -309,9 +321,10 @@ protected:
     virtual ~nLinMechAxiInt_BNonLin();  
   
   protected:  
+    
     /// returns D - matrix for BDB
     virtual void calcDMat(Matrix<Double> & dMat);
-
+    
     /// returns dimension of D matrix
     virtual UInt getDimD(){return 4;};
   
