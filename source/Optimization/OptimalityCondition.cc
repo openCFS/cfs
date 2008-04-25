@@ -20,6 +20,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
   type.Add(FRAMED, "framed");
   type.Add(FUMBLE, "fumble");
   type.Add(TRAJECTORY, "trajectory");
+  type.Add(EXTREMIZE, "extremize");
   
   this->lambda_ = 1000; // just to set a value
 
@@ -45,10 +46,6 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
   this->contract_ = 0.49;
   this->expand_ = 1.99;
 
-  // some plausibility about optimality condition
-  if(optimization->constraints.GetSize() != 1)
-    throw Exception("optimality condition is only possible with exactly one constraint");
-  
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::OPTIMALITY_CONDITION), false);
   
@@ -93,11 +90,19 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
         throw Exception("contract shall be < 1.0, e.g. 0.49");
     }
   }
-  
+
+  // some plausibility about optimality condition
+  if(type_ != EXTREMIZE && optimization->constraints.GetSize() != 1)
+    throw Exception("optimality condition is only possible with exactly one constraint");
+  if(type_ == EXTREMIZE && optimization->constraints.GetSize() > 0)
+    throw Exception("Optimality Condition 'extremize' is not implemented for constraints");
+
   LOG_TRACE(oc) << "OptimalityCondition of type " << type.ToString(type_);
 
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
+  
+  PostInit(1.0, true);
 }
 
 void OptimalityCondition::SolveProblem()
@@ -113,20 +118,24 @@ void OptimalityCondition::SolveProblem()
     // adjust the design parameters but not if first iteration 
     // calc gradients to store the results in data[element]...
     optimization->CalcObjectiveGradient(NULL);
-    optimization->CalcConstraintGradient(NULL);
+    if(optimization->constraints.GetSize() > 0)
+      optimization->CalcConstraintGradient(NULL);
     
     // do a SIMP Optimality Condition step
     switch(type_)
     {
-    case FRAMED: CalcNextFramedIteration();
-                 break;
+    case FRAMED:     CalcNextFramedIteration();
+                     break;
 
-    case FUMBLE: CalcNextFumbleIteration();
-                 break;
+    case FUMBLE:     CalcNextFumbleIteration();
+                     break;
 
     case TRAJECTORY: CalcNextTrajectoryIteration();
                      break;
 
+    case EXTREMIZE:  CalcNextExtremizeIteration();
+                     break;
+                     
     default: assert(false); 
     }
     
@@ -330,6 +339,43 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
   if(lambda_iters_ >= max_lambda_iters_)
     std::cout << "Iteration fails to find valid lagrangian: " << lambda_ << " err: " << err << std::endl;
 }
+
+void OptimalityCondition::CalcNextExtremizeIteration()
+{
+  StdVector<DesignElement>& data = optimization->GetDesign()->data;
+
+  // we cannot set the design directly otherwise the filter does not 
+  // work (it becomes unsymmetrically for symmetric problems) as all 
+  // elements but the first have old and new elements in their filter
+  // stencil. Hence we store in evaluate_tmp_
+  
+  for(unsigned int i = 0; i < data.GetSize(); i++)    
+  {
+    DesignElement* de = &data[i];
+    // rho_e is the old rho
+    double rho_e = de->GetDesign(DesignElement::PLAIN);   
+    double obj_grad = de->GetObjectiveGradient(DesignElement::SMART);
+    
+    // next is density times b_e which is compared with box constraints and move limit
+    double next = rho_e + (obj_grad > 0 ? move_limit_ : -1.0 * move_limit_);        
+                    
+    double lower = std::max(de->GetLowerBound(), rho_e - move_limit_);
+    double upper = std::min(de->GetUpperBound(), rho_e + move_limit_);            
+
+    // we cannot set the design directly - otherwise the filter stencil get violated 
+    evaluate_tmp_[i] = next;
+    if(next <= lower) evaluate_tmp_[i] =lower;
+    if(upper <= next) evaluate_tmp_[i] =upper;
+    
+    LOG_DBG3(oc) << "CalcNextExtremizeIteration:" << de->elem->elemNum << " obj_grad=" << obj_grad
+                 << "(" << de->GetObjectiveGradient(DesignElement::PLAIN) << ")" << " old= " << rho_e 
+                 << " next=" << next << " lower=" << lower << " upper=" << upper << " new=" << evaluate_tmp_[i];
+  }
+  
+  // store the new values in the design variables
+  optimization->GetDesign()->ReadDesignFromExtern(evaluate_tmp_.GetPointer());
+}
+
 
 double OptimalityCondition::Evaluate(double lambda)
 {

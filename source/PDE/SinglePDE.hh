@@ -123,8 +123,7 @@ namespace CoupledField
     UInt GetNumRestraints( );
  
     //! set boundary condition
-    //! \param atimestep         time step of claculation
-    void SetBCs(const Double atimestep);
+    void SetBCs();
 
     //! Method for modifying an inhomogeneous boundary condition
     void SetIDBC( const std::string &name,
@@ -189,7 +188,18 @@ namespace CoupledField
      * @return true if in xml and added */
     bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
 
-   protected:
+    //@{
+    //! store the new solution returned by the algebraic system
+    //! \param ptSol pointer to solution array
+    //! \param size legnth of solution array
+    void SaveSolution( const Double * ptSol, UInt size );
+    void SaveSolution( const Complex * ptSol, UInt size );
+    
+    void SavePrevSolution( const Double * ptSol, UInt size );
+
+    //@}
+
+  protected:
 
   
     //! Constructor
@@ -256,16 +266,6 @@ namespace CoupledField
     //! Initialize NonLinearities
     virtual void InitNonLin(){};
 
-    //@{
-    //! store the new solution returned by the algebraic system
-    //! \param ptSol pointer to solution array
-    //! \param size legnth of solution array
-    void SaveSolution( const Double * ptSol, UInt size );
-    void SaveSolution( const Complex * ptSol, UInt size );
-    
-    void SavePrevSolution( const Double * ptSol, UInt size );
-
-    //@}
 
     //@{
     //! Save load part of RHS to private variable

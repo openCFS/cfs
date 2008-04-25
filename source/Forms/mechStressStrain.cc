@@ -16,12 +16,9 @@ namespace CoupledField
 
   // base class for calculation of mechanical stresses
   template <class TYPE>
-  MechStressStrain<TYPE>::MechStressStrain(BaseMaterial* matData,
-					   SubTensorType type) 
+  MechStressStrain<TYPE>::MechStressStrain(BaseMaterial* matData, SubTensorType type) 
     : linElastInt(matData, type)
-
   {
-
     name_ = "MechStressStrain";
   }
 
@@ -38,14 +35,13 @@ namespace CoupledField
   // see Habil. M. Kaltenbacher 
 
   template <class TYPE>
-  void MechStressStrain<TYPE>::
-  CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent) {
-
+  void MechStressStrain<TYPE>::CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent) 
+  {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
     
     Matrix<TYPE> dMat;
-    linElastInt::calcDMat(dMat);
+    linElastInt::calcDMat(dMat, ent.GetElem()); 
 
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
@@ -62,21 +58,19 @@ namespace CoupledField
     //Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
     linStrain = linBMat * displVec;
     stressVec = dMat * linStrain;
-
   }
 
   /// calculates green-lagrangian strains (linear part, vector notation)
   // see Habil. M. Kaltenbacher 
 
   template <class TYPE>
-  void MechStressStrain<TYPE>::
-  CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) {
-
+  void MechStressStrain<TYPE>::CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) 
+  {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
     Matrix<Double> dMat;
-    linElastInt::calcDMat(dMat);
+    linElastInt::calcDMat(dMat, ent.GetElem());
     
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
@@ -98,12 +92,9 @@ namespace CoupledField
   void MechStressStrain<TYPE>::
   calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
-
     // linear differential operator B_lin
     linElastInt::calcBMat(bMat, ip, ptCoord);
   }
-
-
 
 
 #ifdef __GNUC__

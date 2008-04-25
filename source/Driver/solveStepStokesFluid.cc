@@ -40,11 +40,11 @@ namespace CoupledField {
     newSol.Resize( numEqns_ );
     solIncrement.Resize( numEqns_ );
 
-    PDE_.SetBCs(0);
+    PDE_.SetBCs();
 
     // store linear part of RHS
     Double loadFactor = 1.0;
-    Double extForcesL2Norm = SetLinRHS(loadFactor); 
+    SetLinRHS(loadFactor); 
 
     //PDE_.AssembleNLRHS();
 

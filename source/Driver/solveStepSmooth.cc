@@ -34,7 +34,7 @@ namespace CoupledField {
     assemble_->AssembleMatrices();
     assemble_->AssembleLinRHS( actTime_ );
   
-    PDE_.SetBCs( 0.0 );
+    PDE_.SetBCs();
     
     algsys_->ConstructEffectiveMatrix(matrix_factor_);
     algsys_->BuildInDirichlet();

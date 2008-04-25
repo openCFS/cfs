@@ -21,7 +21,7 @@
 namespace CoupledField
 {
 
-  BaseFE :: BaseFE()
+  BaseFE::BaseFE()
   {
   
     // initializing dynamic objects
@@ -41,7 +41,7 @@ namespace CoupledField
     faceIndices_ = NULL; 
   }
  
-  BaseFE :: ~BaseFE()
+  BaseFE::~BaseFE()
   {
  
     if( ShFncAtIp_ ) delete[] ShFncAtIp_;
@@ -71,7 +71,7 @@ namespace CoupledField
     
   }
   
-  void BaseFE :: GetShFnc(Vector<double> & S, 
+  void BaseFE::GetShFnc(Vector<double> & S, 
                           const Vector<Double> & LCoord,
                           const Elem* elem,
                           UInt dof  )
@@ -81,7 +81,7 @@ namespace CoupledField
 
   }
   
-  void BaseFE :: Local2GlobalCoord(Vector<Double> & globCoord,
+  void BaseFE::Local2GlobalCoord(Vector<Double> & globCoord,
                                    const Vector<Double> & locCoord, 
                                    const Matrix<Double> & coordMat,
                                    const Elem* elem ) {
@@ -96,7 +96,7 @@ namespace CoupledField
     coordMat.Mult(shFnc,globCoord);    
   }
 
-  void BaseFE :: Global2LocalCoords(Matrix<Double> & localCoords,
+  void BaseFE::Global2LocalCoords(Matrix<Double> & localCoords,
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat ) {
     
@@ -353,7 +353,7 @@ namespace CoupledField
   }
 
 
-  void BaseFE :: GetShFncAtIp(Vector<Double> & S, const UInt ip,
+  void BaseFE::GetShFncAtIp(Vector<Double> & S, const UInt ip,
                               const Elem * elem, UInt dof )
   {
     
@@ -365,7 +365,7 @@ namespace CoupledField
     }
   }
 
-  void BaseFE :: GetGlobDerivShFnc(Matrix<Double>  &Deriv, 
+  void BaseFE::GetGlobDerivShFnc(Matrix<Double>  &Deriv, 
                                    const Vector<Double> & LCoord,
                                    const Matrix<Double> & CornerCoords,
                                    const Elem * elem, 
@@ -378,7 +378,7 @@ namespace CoupledField
     Deriv = LDeriv * JInv;
   }
 
-  void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
+  void BaseFE::GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,
                                        const Matrix<Double> & CornerCoords,
                                        Double & jacDet,
@@ -414,7 +414,7 @@ namespace CoupledField
   }
 
 
-  void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
+  void BaseFE::GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,
                                        const Matrix<Double> & CornerCoords,
                                        const Elem* elem,
@@ -448,7 +448,7 @@ namespace CoupledField
 
 
 
-  void BaseFE :: CalcJacobian(Matrix<Double> & J, 
+  void BaseFE::CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
                               const Matrix<Double> & CornerCoords,
                               const Elem* elem )
@@ -461,7 +461,7 @@ namespace CoupledField
   }
 
 
-  void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J, 
+  void BaseFE::CalcJacobianAtIp(Matrix<Double> & J, 
                                   const UInt ip, 
                                   const Matrix<Double> & CornerCoords,
                                   const Elem* elem)
@@ -473,7 +473,7 @@ namespace CoupledField
     J = CornerCoords * ShFncDerivAtIp_[ip-1];
   }
 
-  Double BaseFE :: CalcJacobianDet(const Vector<Double> & LCoord,
+  Double BaseFE::CalcJacobianDet(const Vector<Double> & LCoord,
                                    const Matrix<Double> & CornerCoords,
                                    const Elem* elem )
   {
@@ -492,7 +492,7 @@ namespace CoupledField
       normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
-      jacDet = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      jacDet = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
     }
     else  {
       J.Determinant(jacDet);
@@ -508,7 +508,7 @@ namespace CoupledField
   }
 
 
-  Double BaseFE :: CalcJacobianDetAtIp(const UInt ip, 
+  Double BaseFE::CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoords,
                                        const Elem* elem)
   {
@@ -525,7 +525,7 @@ namespace CoupledField
       normal[1]=J[2][0]*J[0][1]- J[0][0]* J[2][1];  
       normal[2]= J[0][0]* J[1][1]- J[1][0]*J[0][1];
 
-      Double detJ = sqrt(sqr(normal[0])+sqr(normal[1])+sqr(normal[2]));
+      Double detJ = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
 
       if ( detJ < 0.0 ){
         EXCEPTION("BaseFE::CalcJacobianDetAtIp: Negative Jacobian Determinant "
@@ -550,7 +550,7 @@ namespace CoupledField
 
 
 
-  void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
+  void BaseFE::CalcInvJacobian(Matrix<Double> & JInv,
                                  const Vector<Double> & LCoord,
                                  const Matrix<Double> & CornerCoords,
                                  const Elem* elem )
@@ -576,7 +576,7 @@ namespace CoupledField
 
 
  
-  void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
+  void BaseFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
                                      const UInt ip,
                                      const Matrix<Double> & CornerCoords,
                                      const Elem* elem)
@@ -592,7 +592,7 @@ namespace CoupledField
   }
 
 
-  void BaseFE :: SetShapeFncAtIp()
+  void BaseFE::SetShapeFncAtIp()
   {
   
     if (!ShFncAtIp_) {
@@ -610,7 +610,7 @@ namespace CoupledField
     }
   }
   
-  void BaseFE :: SetShapeFncDerivAtIp()
+  void BaseFE::SetShapeFncDerivAtIp()
   {
 
     if( !ShFncDerivAtIp_) {
@@ -717,7 +717,7 @@ namespace CoupledField
   }
 
 
-  Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, 
+  Double BaseFE::CalcVolume(const Matrix<Double> & CornerCoords, 
                               const bool isaxi)
   {
 

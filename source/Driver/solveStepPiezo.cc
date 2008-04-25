@@ -34,7 +34,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepPiezo:: PreStepTrans()
+  void SolveStepPiezo::PreStepTrans()
   {
 
 
@@ -117,7 +117,7 @@ namespace CoupledField {
     }
 
     //! account for Dirichlet BCs
-    PDE_.SetBCs( actTime_ );    //clear RHS
+    PDE_.SetBCs();    //clear RHS
 
     do {
       iterationCounter++;
@@ -251,7 +251,7 @@ namespace CoupledField {
       pdeElec->getPDEMaterialData();
 
     Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, Dval, dE, dD, eps;
+    Double Ecomp;
     UInt pdeElem;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;

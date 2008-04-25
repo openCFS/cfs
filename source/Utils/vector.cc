@@ -8,6 +8,7 @@
 #include <cmath>
 #include <ctime>
 #include <string>
+#include <boost/lexical_cast.hpp>
 
 #include "vector.hh"
 #include "Matrix/matrix.hh"
@@ -658,7 +659,7 @@ namespace CoupledField
   
   
   template<class TYPE>
-  void  Vector<TYPE>:: AddElement (const TYPE & y, UInt pos)
+  void  Vector<TYPE>::AddElement (const TYPE & y, UInt pos)
   {
 #ifdef CHECK_INDEX
     if (pos < 0 || pos > size_)
@@ -725,7 +726,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void  Vector<TYPE>:: Cut (const UInt pos)
+  void  Vector<TYPE>::Cut (const UInt pos)
   {
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
@@ -755,7 +756,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void  Vector<TYPE>:: Cut (const UInt pos1, const UInt pos2)
+  void  Vector<TYPE>::Cut (const UInt pos1, const UInt pos2)
   {
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
@@ -824,6 +825,14 @@ namespace CoupledField
      return os.str();
   }
      
+  template<class TYPE>  
+  void Vector<TYPE>::ToString(StdVector<std::string>& out) const
+  {
+    out.Resize(size_);
+    for(UInt i = 0; i < size_; i++)
+      out[i] = boost::lexical_cast<std::string>(data_[i]);
+  }
+  
 
   template<class TYPE> 
   void Vector<TYPE>::Sort()

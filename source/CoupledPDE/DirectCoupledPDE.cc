@@ -378,11 +378,11 @@ namespace CoupledField {
   // **********
   //   SetBCs
   // **********
-  void DirectCoupledPDE::SetBCs( const Double atimestep ) {
+  void DirectCoupledPDE::SetBCs() {
 
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-      singlePDEs_[i]->SetBCs( atimestep );
+      singlePDEs_[i]->SetBCs();
     }
   }
 

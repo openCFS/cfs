@@ -27,7 +27,7 @@ namespace CoupledField {
     
   }
 
-  void FreqFunc :: ReadFreqFuncs(UInt nodeNumber)
+  void FreqFunc::ReadFreqFuncs(UInt nodeNumber)
   {
 
     maxnumFF_ =  fnc_names_.GetSize();
@@ -188,7 +188,7 @@ namespace CoupledField {
 
   }
 
-  FreqFunc :: ~FreqFunc()
+  FreqFunc::~FreqFunc()
   {
  
     if (maxnumFF_) 

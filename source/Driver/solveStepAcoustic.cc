@@ -60,7 +60,7 @@ namespace CoupledField {
 
     // set BCs, if effective mass matrix formulation, values of BCs depend on 
     //  predictors, so predictors have to be computed beforehand
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
     // set old solution  
     newSol = solhelp->GetAlgSysVector();

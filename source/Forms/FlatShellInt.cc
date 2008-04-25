@@ -183,13 +183,8 @@ namespace CoupledField {
 
 void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Double> &TransMat )
   {
-
-    //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
-
-    int i, j;
     const Integer row = ElemMat.GetSizeRow(); //equals to nrDofs*nrNodes for linear quadrilateral is 24
     const Integer col = ElemMat.GetSizeCol(); //equals to the number of piezoelectric Layers
-
 
     Matrix<Double> TransMatInv, ElemMatLocal;
         

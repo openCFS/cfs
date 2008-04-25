@@ -393,7 +393,7 @@ namespace CoupledField
       } // if
   }
 
-  void WedgeFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void WedgeFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {

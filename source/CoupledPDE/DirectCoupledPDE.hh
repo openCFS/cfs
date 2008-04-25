@@ -55,8 +55,7 @@ namespace CoupledField {
     void WriteGeneralPDEdefines();
   
     //! set boundary condition
-    //! \param atimestep         time step of claculation
-    void SetBCs(const Double atimestep);
+    void SetBCs();
 
     //! compute norm of RHS removing IDBCs
     //! \param sctRHS

@@ -45,18 +45,10 @@ namespace CoupledField {
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
   void SolveStepElec::SolveStepStatic( ) {
-
-  
-    bool nonLin = false;
-
-    //  bool nonLin = true;
-    if ( isHyst_ ) {
+    if ( isHyst_ ) 
       StepStaticNonLinEpsDiff();
-    }
-    else {
+    else 
       StepStaticLin();
-    }
-
   }
 
 
@@ -87,7 +79,7 @@ namespace CoupledField {
     algsys_->InitRHS();
 
     //set BCs
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
     // stores this as linear part of RHS
     algsys_->GetRHSVal( actRHS );
@@ -218,7 +210,7 @@ namespace CoupledField {
                                   results_[0], isaxi_);
 
     Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, Dval, dE, dD, eps;
+    Double Ecomp;
     UInt pdeElem;
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
@@ -226,30 +218,30 @@ namespace CoupledField {
       RegionIdType actRegion = subdoms_[actSD];
       Hysteresis* hyst = materialData_[actRegion]->getHysteresis();
       if ( hyst!= NULL ) {
-	//get direction of polarization
-	std::string str;
-	materialData_[actRegion]->GetScalar(str, P_DIRECTION);
-	Directions dirP;
-	String2Enum(str,dirP);
+        //get direction of polarization
+        std::string str;
+        materialData_[actRegion]->GetScalar(str, P_DIRECTION);
+        Directions dirP;
+        String2Enum(str,dirP);
 
-	ElemList actSDList(ptgrid_ );
-	actSDList.SetRegion( actRegion );
-	
-	EntityIterator it = actSDList.GetIterator();
-	UInt iel = 0;
-	for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	  
-	  //compute the electric field intensity
-	  it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-	  
-	  //get correct component of electric field for scalar Preisach model
-	  Ecomp   = Efield[dirP]; 	  
-	  pdeElem = it.GetElem()->elemNum;
-	  
-	  //set the values
-	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, Ecomp );
-	}  
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( actRegion );
+
+        EntityIterator it = actSDList.GetIterator();
+        UInt iel = 0;
+        for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+
+          //compute the electric field intensity
+          it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+          FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+
+          //get correct component of electric field for scalar Preisach model
+          Ecomp   = Efield[dirP]; 	  
+          pdeElem = it.GetElem()->elemNum;
+
+          //set the values
+          materialData_[actRegion]->SetPreviousHystVal( pdeElem, Ecomp );
+        }  
       }
     }
   }

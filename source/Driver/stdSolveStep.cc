@@ -113,7 +113,7 @@ namespace CoupledField {
     // The RHS-sources and boundary conditions 
     // have to be reassembled each time
     assemble_->AssembleLinRHS( actTime_ );
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
     UInt length = 0;
     
@@ -167,7 +167,7 @@ namespace CoupledField {
     
 
     // set the boundary conditions
-    PDE_.SetBCs(0);
+    PDE_.SetBCs();
 
     //perform the load-steps
     Double loadFactor = 0.0;
@@ -344,7 +344,7 @@ namespace CoupledField {
     TS_alg_->UpdateRHS();
 
     // set boundary conditions
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
     algsys_->BuildInDirichlet();
 
     if (assemble_->IsMatrixUpdated() ) {
@@ -399,7 +399,7 @@ namespace CoupledField {
     }
 
     //! account for Dirichlet BCs
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
     // currently just for testing!!
     // loop over load factor
@@ -557,7 +557,7 @@ namespace CoupledField {
       assemble_->AssembleMatrices();
 
       // account for Dirichlet BCs
-      PDE_.SetBCs( actTime_ );
+      PDE_.SetBCs();
 
       //   algsys_->RemoveIDBCInfoFromMatrix();      
 
@@ -684,7 +684,7 @@ namespace CoupledField {
     }
 
     //! account for Dirichlet BCs
-    PDE_.SetBCs( actTime_ );
+    PDE_.SetBCs();
 
     // currently just for testing!!
     // loop over load factor
@@ -870,7 +870,7 @@ namespace CoupledField {
 
     assemble_->AssembleMatrices( );
     
-    PDE_.SetBCs( actFreq_ );
+    PDE_.SetBCs();
 
     // store rhs vector back to PDE
     Complex * rhsPt;
@@ -1115,7 +1115,7 @@ namespace CoupledField {
       assemble_->AssembleMatrices();
 
       // account for Dirichlet BCs
-      PDE_.SetBCs( actTime_ );
+      PDE_.SetBCs();
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 

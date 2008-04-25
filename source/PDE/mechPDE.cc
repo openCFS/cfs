@@ -1347,7 +1347,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
   // ======================================================
 
 
-  void MechPDE :: InitTimeStepping()
+  void MechPDE::InitTimeStepping()
   {
 
     // timestepping formulation
@@ -1663,9 +1663,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       break;
 
     case MECH_PSEUDO_DENSITY:
-      //if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
-      //  EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
-      //            << " or appropriate optimiziation");
       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
         result->Init();
       else     

@@ -384,7 +384,7 @@ namespace CoupledField {
          // Find correct material for volume element
        regionIndex = subdoms_.Find( ptVolElem->regionId );
        if ( regionIndex == -1 ) {
-         EXCEPTION( "PiezoPDE:CalcCharges:: The region with Name " 
+         EXCEPTION( "PiezoPDE:CalcCharges The region with Name " 
                     << ptGrid_->RegionIdToName(ptVolElem->regionId)
                     << " of surface element Nr. " << ptSurfElem->elemNum
                     << "is not contained in my set of regions!." );
@@ -1284,7 +1284,9 @@ namespace CoupledField {
     diffE    = actE - prevE;
     diffSirr = actSirr - prevSirr;
 
-    if ( subTensorType = PLANE_STRAIN ) {
+    switch(subTensorType)
+    {
+    case PLANE_STRAIN:
       if ( abs( diffE[0]) > 1 ) {
         if ( dirP == X ) 
           dMat[dirP][dirP] += diffSirr[0] / diffE[0];
@@ -1293,9 +1295,9 @@ namespace CoupledField {
         if ( dirP == Y ) 
           dMat[dirP][dirP] += diffSirr[1] / diffE[1];
       }
+      break;
       
-    }
-    else if ( subTensorType = FULL ) {
+    case FULL:  
       if ( abs( diffE[0]) > 1 ) {
         if ( dirP == X ) 
           dMat[dirP][dirP] += diffSirr[0] / diffE[0];
@@ -1308,12 +1310,10 @@ namespace CoupledField {
         if ( dirP == Z ) 
           dMat[dirP][dirP] += diffSirr[2] / diffE[2];
       }
+      break;
+      
+    default: EXCEPTION("Problems in ComputeDiffElasticitytensor");
     }
-    else 
-      Error( "Problems in ComputeDiffElasticitytensor", __FILE__, __LINE__ );
-
-    //    std::cout << "dMatEff:\n" << dMat << std::endl;
-
   }
 
 }

@@ -7,11 +7,6 @@
 
 #include "adbInt.hh"
 
-#include "DataInOut/Logging/cfslog.hh"
-
-DECLARE_LOG(adb)
-DEFINE_LOG(adb, "adbInt")
-
 namespace CoupledField {
 
 
@@ -48,13 +43,7 @@ namespace CoupledField {
     // **************************************************
 
     // Setup material matrix once and for all
-    calcDMat( dMat );
-    
-    Double val = GetErsatzMaterialFactor(ent1.GetElem());
-    LOG_DBG3(adb) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << val;
-    if(val != 1.0) {
-       dMat *= val;
-    }   
+    calcDMat(dMat, ent1.GetElem());
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
@@ -68,19 +57,14 @@ namespace CoupledField {
         ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
                                   ptCoord_, ent1.GetElem() );
         ptMaterial->RotateTensorByPointCoord( globIntPoint, getDMaterialType() );
-        calcDMat( dMat );
-		//std::cerr << "dMat = \n" << dMat << std::endl;
+        calcDMat( dMat, ent1.GetElem());
       }
       
-      //std::cerr << "*** Calculating A ****\n";
       // Setup the A matrix for current integration point
       calcAMat( aMat, actIntPt, ptCoord_ );
-		//std::cerr << "aMat = \n" << aMat << std::endl;
 
-      //std::cerr << "*** Calculating B ****\n";
       // Setup the B matrix for current integration point
       calcBMat( bMat, actIntPt, ptCoord_ );
-		//std::cerr << "bMat = \n" << bMat << std::endl;
 
       // Compute Jacobian for integration point
       jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, 
@@ -134,10 +118,5 @@ namespace CoupledField {
         }
       }
     }
-
-
-    //std::cerr << "elemMat = \n" << elemMat << std::endl;
-
   }
-
 }

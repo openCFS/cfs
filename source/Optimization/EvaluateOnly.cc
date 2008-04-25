@@ -11,22 +11,16 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, ParamNode* pn)
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), false);
   
-  PostInit(false);  
+  PostInit(1.0, true);  
 }
 
 void EvaluateOnly::SolveProblem()
 {
   // solve the state problem with the initial guess.
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
-  // note that when PiezoSIMP and storage is not PiezoSIMP::COMMIT we might have wrong 
-  // special results before CalcObjective()
+
   optimization->SolveStateProblem();
   std::cout << "objective: " << optimization->CalcObjective() << std::endl;
-  // see note above!
-  if(optimization->GetOptimizationType() == Optimization::SIMP_TYPE 
-     && (dynamic_cast<SIMP*>(optimization))->GetSystem() == SIMP::PIEZO
-     && (dynamic_cast<PiezoSIMP*>(optimization))->GetStorage() != PiezoSIMP::COMMIT)
-    optimization->SolveStateProblem();
   
   // calc gradients, they might be stored in store results!
   optimization->CalcObjectiveGradient(NULL);

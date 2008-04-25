@@ -336,7 +336,7 @@ namespace CoupledField {
   // TIME-STEPPING SECTION
   // ======================================================
 
-  void MagEdgePDE :: InitTimeStepping() {
+  void MagEdgePDE::InitTimeStepping() {
     TS_alg_ = new Trapezoidal( algsys_ );
   }
 
@@ -719,8 +719,6 @@ namespace CoupledField {
       quantity = ptCoupling_->GetOutputQuantity(actCoupling);
       ptCoupling_->GetOutputValues(actCoupling, values);
 
-      Vector<Double> *temp = dynamic_cast<Vector<Double> *>(values);
-      
       switch(ptCoupling_->GetOutputType(actCoupling)) {
           
       case NODE:

@@ -200,68 +200,66 @@ namespace CoupledField
 	//	calculated for anisotropic materials
 	//	lambda(i,j) = c(i,j,k,l) * alpha(k,l)
 	//----------------------------------------------------------------
-    void LinThermoMechInt::calcDMat(Matrix<Double> &dMat) {
+    void LinThermoMechInt::calcDMat(Matrix<Double> &dMat) 
+    {
+      try {
+        //std::cout << "\nworking on the thermomechanics integral ..... calcDMat" << std::endl; 	
 
-	
-		try {
-			//std::cout << "\nworking on the thermomechanics integral ..... calcDMat" << std::endl; 	
-	
-			// get the thermal expansion coefficient tensor
-			Matrix<Double> p_alphaMatrix;
-			ptMaterial->GetTensor(p_alphaMatrix,THERMAL_EXPANSION_TENSOR,matDataType_,subTensorType_);
-	
-			//std::cerr << "THERMAL_EXPANSION_TENSOR = \n" << p_alphaMatrix << std::endl;
-			
-			//std::cerr << "matDimRow_ = " << matDimRow_ << "matDimCol_ ="<<matDimCol_<< std::endl;
-	
-			dMat.Resize(matDimRow_, matDimCol_);
-			dMat.Init();
-	
-			// transforming p_alphaMatrix to Voigt Notation
-			Matrix<Double> l_alphaMatrix(matDimRow_, matDimCol_);
-	
-			if ( subTensorType_ == FULL ) {
-	
-				l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
-				l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
-				l_alphaMatrix(2,0) = p_alphaMatrix(2,2);
-				l_alphaMatrix(3,0) = 2 * p_alphaMatrix(1,2);
-				l_alphaMatrix(4,0) = 2 * p_alphaMatrix(0,2);
-				l_alphaMatrix(5,0) = 2 * p_alphaMatrix(0,1);
-	
-			}
-			// on the plane yz
-			else if ( subTensorType_ == PLANE_STRAIN ) {
-	
-				l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
-				l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
-				l_alphaMatrix(2,0) = 2 * p_alphaMatrix(0,1);
-	
-			}
-			else if ( subTensorType_ == PLANE_STRESS ) {
-	
-				EXCEPTION ("LinThermoMechInt: PLANE_STRESS Type not supported" );
-			}
-			else if ( subTensorType_ == AXI ) {
-				
-				l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
-				l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
-				l_alphaMatrix(2,0) = 2 * p_alphaMatrix(0,1);
-				l_alphaMatrix(3,0) = p_alphaMatrix(2,2);
-				
-			}
-	
-			//std::cerr << "l_alphaMatrix = \n" << l_alphaMatrix << std::endl;
-	
-			cMatrix_.Mult(l_alphaMatrix, dMat);
-	
-			//std::cerr << "dMat = \n" << dMat << std::endl;
-		}
-		catch (Exception& e) {
-			RETHROW_EXCEPTION(e, "Could not calculate D in LinThermoMechInt" );
-		}
+        // get the thermal expansion coefficient tensor
+        Matrix<Double> p_alphaMatrix;
+        ptMaterial->GetTensor(p_alphaMatrix,THERMAL_EXPANSION_TENSOR,matDataType_,subTensorType_);
 
-}
+        //std::cerr << "THERMAL_EXPANSION_TENSOR = \n" << p_alphaMatrix << std::endl;
+
+        //std::cerr << "matDimRow_ = " << matDimRow_ << "matDimCol_ ="<<matDimCol_<< std::endl;
+
+        dMat.Resize(matDimRow_, matDimCol_);
+        dMat.Init();
+
+        // transforming p_alphaMatrix to Voigt Notation
+        Matrix<Double> l_alphaMatrix(matDimRow_, matDimCol_);
+
+        if ( subTensorType_ == FULL ) {
+
+          l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
+          l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
+          l_alphaMatrix(2,0) = p_alphaMatrix(2,2);
+          l_alphaMatrix(3,0) = 2 * p_alphaMatrix(1,2);
+          l_alphaMatrix(4,0) = 2 * p_alphaMatrix(0,2);
+          l_alphaMatrix(5,0) = 2 * p_alphaMatrix(0,1);
+
+        }
+        // on the plane yz
+        else if ( subTensorType_ == PLANE_STRAIN ) {
+
+          l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
+          l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
+          l_alphaMatrix(2,0) = 2 * p_alphaMatrix(0,1);
+
+        }
+        else if ( subTensorType_ == PLANE_STRESS ) {
+
+          EXCEPTION ("LinThermoMechInt: PLANE_STRESS Type not supported" );
+        }
+        else if ( subTensorType_ == AXI ) {
+
+          l_alphaMatrix(0,0) = p_alphaMatrix(0,0);
+          l_alphaMatrix(1,0) = p_alphaMatrix(1,1);
+          l_alphaMatrix(2,0) = 2 * p_alphaMatrix(0,1);
+          l_alphaMatrix(3,0) = p_alphaMatrix(2,2);
+
+        }
+
+        //std::cerr << "l_alphaMatrix = \n" << l_alphaMatrix << std::endl;
+
+        cMatrix_.Mult(l_alphaMatrix, dMat);
+
+        //std::cerr << "dMat = \n" << dMat << std::endl;
+      }
+      catch (Exception& e) {
+        RETHROW_EXCEPTION(e, "Could not calculate D in LinThermoMechInt" );
+      }
+    }
     
     
 	//----------------------------------------------------------------

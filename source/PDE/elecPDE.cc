@@ -627,9 +627,9 @@ namespace CoupledField {
        
      case ELEC_PSEUDO_POLARIZATION:
        if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
-         EXCEPTION("cannot determine pseudo density. No 'loadErsatzMaterial'"
-                   << " or appropriate optimiziation");
-       domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
+         res->Init();
+       else     
+         domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
        break;
        
      default:

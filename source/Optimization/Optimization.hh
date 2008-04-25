@@ -13,6 +13,7 @@ namespace CoupledField
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;
+   class SinglePDE;
     
   /** This is a general optimization object. The optimiziation loop is around
    *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
@@ -37,22 +38,16 @@ namespace CoupledField
          void SolveProblem(); 
 
          /** Where we apply the transformation */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, SURFACE_NORMAL} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, SURFACE_NORMAL, NO_APP} Application;
 
          /** The taks for a cost function either to minimize or maximize */ 
          typedef enum { MINIMIZE, MAXIMIZE } ObjectiveTask;
-
-         /** Which kind of optimization do we do? This is NOT the solver! */
-         typedef enum { SIMP_TYPE} OptimizationType; 
         
          /** Known types of cost functions */ 
-         typedef enum { COMPLIANCE, TRANSDUCTION, OUTPUT, CONJUGATE_OUTPUT, GLOBAL_DYNAMIC_COMPLIANCE, RADIATION } ObjectiveType;
+         typedef enum { COMPLIANCE, OUTPUT, CONJUGATE_OUTPUT, GLOBAL_DYNAMIC_COMPLIANCE, RADIATION } ObjectiveType;
        
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, EVALUATE_INITIAL_DESIGN } Optimizer; 
-
-         /** to convert string/enum for this type */           
-         static Enum<OptimizationType> optimizationType;
 
          /** to convert string/enum for this type */         
          static Enum<ObjectiveType> objectiveType;
@@ -61,9 +56,6 @@ namespace CoupledField
          static Enum<Optimizer> optimizer;
 
          static Enum<Application> application;
-               
-         /** The type of optimization we are (the child of this class!) */
-         OptimizationType GetOptimizationType() { return optimization; }      
                
          /** We combine the cost function in a set to handle multiple of it.
           * It contains static const elements (and  working stuff)*/
@@ -141,8 +133,7 @@ namespace CoupledField
         double CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access);
         
         /** This method checks if special results requiring special evaluation are there.
-         * Some special results as in the transduction case are written there. This works for
-         * now only for CalcSymmetry() */
+         * This works for now only for CalcSymmetry() */
         void EvaluateSpecialResults();
         
         /** Evaluates the state problem, increments the iteration counter. */
@@ -206,7 +197,6 @@ namespace CoupledField
          * does not really solve something. */
         virtual void PostInit(); 
 
-        
          /** The current iteration, 0 is the first run. Note that the state problem might be
           * executed more often (-> line search).  
           * @see problemSolvedCounter. */
@@ -222,9 +212,6 @@ namespace CoupledField
          
          /** the maximum number of iterations, have a default */
          int maxIterations;
-         
-         /** The actual kind of optimization. */
-         OptimizationType optimization;
          
          /** The actual kind of optimizer.  */
          Optimizer optimizer_;

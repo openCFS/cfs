@@ -10,7 +10,7 @@
 namespace CoupledField
 { 
 
-  Preisach :: Preisach(Integer numElem, Double xSat, Double ySat, 
+  Preisach::Preisach(Integer numElem, Double xSat, Double ySat, 
 		       Matrix<Double>& preisachWeight, bool isVirgin) 
     : Hysteresis(numElem)
   {
@@ -58,20 +58,20 @@ namespace CoupledField
     //    computePreisachWeights();
   }
 
-  Preisach :: ~Preisach()
+  Preisach::~Preisach()
   {
     delete [] strings_;
     delete [] helpStrings_;
 
   }
 
-  Double Preisach :: getValue( Integer idx ) 
+  Double Preisach::getValue( Integer idx ) 
   {
 
     return ( preisachSum_[idx]*YSaturated_ );
   }
 
-  Double Preisach :: computeValue(Double Xin, Integer idx, bool overwrite) 
+  Double Preisach::computeValue(Double Xin, Integer idx, bool overwrite) 
   {
 
     Vector<Double> &stringEl     = strings_[idx];
@@ -120,7 +120,7 @@ namespace CoupledField
   }
 
 
-  Double Preisach :: computeValueAndUpdate( Double Xin, Integer idx,
+  Double Preisach::computeValueAndUpdate( Double Xin, Integer idx,
                                             bool overwrite )  
   {
 
@@ -131,7 +131,7 @@ namespace CoupledField
   }
 
 
-  Double Preisach :: updateMinMaxList(Double Xin, Integer idx, 
+  Double Preisach::updateMinMaxList(Double Xin, Integer idx, 
                                       bool overwrite )
   {
 
@@ -250,7 +250,7 @@ namespace CoupledField
 
 
 
-  Double Preisach :: EvalEverett(Double xVal1, Double xVal2, Integer idx)
+  Double Preisach::EvalEverett(Double xVal1, Double xVal2, Integer idx)
   {
 
     //normalize input
@@ -275,7 +275,7 @@ namespace CoupledField
   }
 
 
-  Double Preisach :: everett(Double X1, Double X2)
+  Double Preisach::everett(Double X1, Double X2)
   {
 
 //     Double newY;
@@ -294,7 +294,7 @@ namespace CoupledField
   }
 
 
-  Double Preisach :: everettPixel(Double val1, Double val2)
+  Double Preisach::everettPixel(Double val1, Double val2)
   {
 
     Double X1 = std::max(val1,val2);
@@ -403,7 +403,7 @@ namespace CoupledField
   }
 
 
-  void Preisach :: computePreisachWeights()
+  void Preisach::computePreisachWeights()
   {
 
     UInt dim = 6;
@@ -415,7 +415,7 @@ namespace CoupledField
     }
   }
 
-  Double Preisach :: normalizeInput(Double Xin)
+  Double Preisach::normalizeInput(Double Xin)
   {
 
     Double Xout;

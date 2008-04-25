@@ -39,7 +39,7 @@ namespace CoupledField {
       return isHistory_;
     }
 
-  void PostProc:: GetReducedList( shared_ptr<EntityList>& outList,
+  void PostProc::GetReducedList( shared_ptr<EntityList>& outList,
                                   ResultInfo::EntityUnknownType& outType,
                                   const shared_ptr<EntityList> inList,
                                   const ResultInfo::EntityUnknownType inType,

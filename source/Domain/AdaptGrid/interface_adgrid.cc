@@ -191,11 +191,11 @@ namespace CoupledField
   }
 
   template<Integer dim>
-  void  InterfaceAdaptGrid<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect,
+  void  InterfaceAdaptGrid<dim>::GetCoordNodesElemMat(const Vector<Integer> connect,
                                                         Matrix<Double>& coordMat, const Integer level)
   {
 #ifdef TRACE
-    (*trace) << "entering InterfaceAdaptGrid :: GetCoordinateNodesElemMat" << std::endl;
+    (*trace) << "entering InterfaceAdaptGrid::GetCoordinateNodesElemMat" << std::endl;
 #endif
 
     ptgridcfs_->GetCoordNodesElemMat(connect, coordMat, level);

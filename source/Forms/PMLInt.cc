@@ -188,7 +188,7 @@ namespace CoupledField
   }
 
 
-  void PMLInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
 
     pmlFnc_-> SetPosPML( inner, outer );
@@ -252,7 +252,7 @@ namespace CoupledField
     const Vector<Double> * intPoints = ptelem->GetIntPoints();
 
     // get material tensor
-    calcDMat( dMat );
+    calcDMat( dMat, ent1.GetElem());
     dMatC =  dMat * Complex(1.0,0);
 
     // Loop over all integration points
@@ -353,7 +353,7 @@ namespace CoupledField
   }
 
 
-  void MechPMLInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void MechPMLInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
 
     pmlFnc_-> SetPosPML( inner, outer );

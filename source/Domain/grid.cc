@@ -2088,22 +2088,23 @@ namespace CoupledField
     SCRIPT_GET(std::string, name);
     StdVector<UInt> nodeNrs;
     GetNodesByName( nodeNrs, name);
-    UInt2String(SCRIPT_RETVAL, nodeNrs); 
+    nodeNrs.ToString(SCRIPT_RETVAL);
   }
   
   void Grid::Wrap_GetNodeCoordinate() {
     SCRIPT_GET(UInt, nodeNr);
     Vector<Double> coord;
     GetNodeCoordinate(coord, nodeNr );
-    Double2String(SCRIPT_RETVAL, coord);
+    coord.ToString(SCRIPT_RETVAL);
   }
 
   void Grid::Wrap_GetNodesByRegion() {
     SCRIPT_GET(std::string, name);
     StdVector<UInt> nodeNrs;
     GetNodesByRegion(nodeNrs, RegionNameToId(name) );
-    UInt2String(SCRIPT_RETVAL, nodeNrs);
+    nodeNrs.ToString(SCRIPT_RETVAL);
   }
+  
   void Grid::Wrap_GetListNodeNames() {
     GetListNodeNames( SCRIPT_RETVAL );
   }

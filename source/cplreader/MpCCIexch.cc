@@ -515,19 +515,19 @@ namespace CoupledField
           }
         }
         
+        outFile.open(stepNumsFileName.c_str(),
+                     std::ofstream::out | std::ofstream::app);
+        outFile << (counter+1) << std::endl;
+        outFile.close(); outFile.clear();
+
+        outFile.open(stepValuesFileName.c_str(),
+                     std::ofstream::out | std::ofstream::app);
+        outFile << stepVal << std::endl;
+        outFile.close(); outFile.clear();
+
         nodeOffset += numNodesPart;
 
       }//end of for
-
-      outFile.open(stepNumsFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      outFile << (counter+1) << std::endl;
-      outFile.close(); outFile.clear();
-
-      outFile.open(stepValuesFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      outFile << stepVal << std::endl;
-      outFile.close(); outFile.clear();
 
       counter++;
     }//end of while

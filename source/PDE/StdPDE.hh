@@ -150,7 +150,7 @@ namespace CoupledField {
   
     //! set boundary condition
     //! \param atimestep         time step of claculation
-    virtual  void SetBCs( const Double atimestep ) = 0;
+    virtual  void SetBCs() = 0;
     
     //! Initialize all/some the nodes by this value
     virtual void SetInitialCondition(){;};

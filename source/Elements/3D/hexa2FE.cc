@@ -123,14 +123,14 @@ namespace CoupledField
 
 
 
-  void Hexa2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Hexa2FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType fctEntityType )
   {
 
 #ifdef Hexa2Old
-    //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
+    //shape function according to Bathe(deutsche ï¿½berstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
     //helping variables
     Double  rgauss,sgauss,tgauss;
     Double  onehalf,one,two;
@@ -240,7 +240,7 @@ namespace CoupledField
                                        AnsatzFct::FctEntityType fctEntityType )
   {
 #ifdef Hexa2Old
-    //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
+    //shape function according to Bathe(deutsche ï¿½berstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
     //helper variables
     Double  rgauss,sgauss,tgauss;
     Double  onehalf,one,two;

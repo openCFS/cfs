@@ -2552,7 +2552,6 @@ namespace CoupledField {
                                  StdVector< UInt > & elemids)
   {
     UInt i, n;    
-    //Integer index = 0;
     UInt *ptConn;
     UInt numNodes;
     

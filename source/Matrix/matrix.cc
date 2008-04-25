@@ -140,15 +140,15 @@ namespace CoupledField
       os << "size_row=" << size_row_ << " size_col=" << size_col_;
       if(size_row_ > 0 && size_col_ > 0)
       {
-        // the min/max for complex is the real part
-        TYPE min = data_[0][0];
-        TYPE max = data_[0][0];
+        // the min/max for complex is the real part and we cannot compare complex numbers anyway
+        Double min = static_cast<Complex>(data_[0][0]).real();
+        Double max = static_cast<Complex>(data_[0][0]).real();
 
         for(UInt j = 0; j < size_row_; j++) 
           for(UInt i = 0; i < size_col_; i++)
           {
-            min = std::min(((Complex) min).real(), ((Complex) data_[j][i]).real());
-            max = std::max(((Complex) max).real(), ((Complex) data_[j][i]).real());
+            min = std::min(min, static_cast<Complex>(data_[j][i]).real());
+            max = std::max(max, static_cast<Complex>(data_[j][i]).real());
           }
         os << " min=" << min << " max=" << max;
       }
@@ -160,7 +160,7 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols )
+  void Matrix<TYPE>::Resize(const UInt nRows, const UInt nCols )
   {
   
     UInt k;
@@ -198,6 +198,11 @@ namespace CoupledField
     Resize(col,col);  
   }
 
+  template<class TYPE>
+  void Matrix<TYPE>::Resize(const Matrix<TYPE>& other)
+  {
+    Resize(other.size_row_,other.size_col_);  
+  }
 
 #ifndef EXPR_TEMPLATES
 
@@ -429,8 +434,18 @@ namespace CoupledField
     return true;
   }
 
- 
-
+  /** Assigns a mutliple of another matrix */
+  template<class TYPE>
+  void Matrix<TYPE>::Assign(const Matrix<TYPE>& other_mat, TYPE factor)
+  {
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_) 
+      EXCEPTION("matrices do not match");
+    
+    for(UInt r = 0; r < size_row_; r++)
+      for(UInt c = 0; c < size_col_; c++)
+        data_[r][c] = factor * other_mat[r][c];
+  }
+  
   // Perform a matrix-vector multiplication rvec = this*mvec
   template<class TYPE>
   void Matrix<TYPE>::Mult(const CFSVector & mvec, CFSVector & rvec) const
@@ -958,7 +973,7 @@ namespace CoupledField
         break;
 
       case 3:
-        // see St�cker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
+        // see Stoecker: "Taschenbuch Mathematischer Formeln und Moderner Verfahren" p.418
         inv.Resize(3,3);
 
         // === Old, recursive version ===

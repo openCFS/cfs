@@ -2,6 +2,7 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/mkl/9.1.021
   /home/data/programs/intel/mkl/9.1.021
   /opt/intel/mkl/9.1.023
+  /space/fwein/packages/mkl/9.1.021
   )
 
 FIND_FILE(MKL_ROOT_DIR

@@ -303,6 +303,12 @@ namespace CoupledField {
       * @see ToString(int)*/
      static std::string ToString(int size, const TYPE* data, int level=0, int stride=1);
 
+     /** converts the content to a string vector */
+     void ToString(StdVector<std::string>& out) const;
+
+     /** Reas the content from a string list */
+     void Parse(const StdVector<std::string>& in);
+     
   protected:
 
     //! Length of the vector

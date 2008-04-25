@@ -164,7 +164,7 @@ An even easier way to define a time dependent variable than using the
 simply write:
 \begin{verbatim}
 <bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e-3 * t)"/>
+  <dirichletInhom name="bcNode" value="10 * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{verbatim}
 The variable \verb#t# reflects the current time value in a transient
@@ -172,10 +172,10 @@ simulation.
 Of couse one can also combine space- and time dependency:
 \begin{verbatim}
 <bcsAndLoads>
-  <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e-3 * t)"/>
+  <dirichletInhom name="bcNode" value="10 * x * sin(2 * pi * 1e3 * t)"/>
 <bcsAndLoads>
 \end{verbatim}
-The usage of the \verb#if#-statement is as follows:
+A ramp signal, which goes from $0 \ldots 1 s$ linear from $0 \ldots 1$ and then stays at 1 is written via the \verb#if#-statement as follows:
 \begin{verbatim}
 <bcsAndLoads>
   <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>

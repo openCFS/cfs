@@ -11,24 +11,24 @@ namespace CoupledField
 {
 
 
-  Quad2FE :: Quad2FE() : RectangleFE()
+  Quad2FE::Quad2FE() : RectangleFE()
   {
 
     Init();
   }
   
-  Quad2FE :: ~Quad2FE()
+  Quad2FE::~Quad2FE()
   {
   }
 
-  void Quad2FE :: Init()
+  void Quad2FE::Init()
   {
     NumNodes_ = 8;
 
     CommonInit();   
   }
   // Should be called SetNodalCoords!!
-  void Quad2FE :: SetCornerCoords()
+  void Quad2FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
@@ -53,7 +53,7 @@ namespace CoupledField
 
   }
 
-  void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Quad2FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
@@ -78,7 +78,7 @@ namespace CoupledField
   }
 
 
-  void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Quad2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                          const Vector<Double> & LCoord,
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )

@@ -72,7 +72,7 @@ namespace CoupledField
   }
 
   /// defines the connection between nodes with "their" edge 
-  void Tetra1FE :: SetEdgeVertices()
+  void Tetra1FE::SetEdgeVertices()
   {
     const UInt nrNodesPerEdge = 2;
   
@@ -125,7 +125,7 @@ namespace CoupledField
   // }
 
 
-  void Tetra1FE :: CalcShapeFnc( Vector<Double> & Shape, 
+  void Tetra1FE::CalcShapeFnc( Vector<Double> & Shape, 
                                  const Vector<Double> & LCoord,
                                  const Elem*, UInt dof,
                                  AnsatzFct::FctEntityType fctEntityType )
@@ -147,7 +147,7 @@ namespace CoupledField
   }
 
 
-  void Tetra1FE :: CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Tetra1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
                                            const Vector<Double> & LCoord,
                                            const Elem*, UInt dof,
                                            AnsatzFct::FctEntityType fctEntityType )
@@ -166,7 +166,7 @@ namespace CoupledField
 
   // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators" p. 25
   // calculates the edge shape function of a tetrahedral of first order.
-  void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
+  void Tetra1FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
                                     const Vector<Double> & LCoord, 
                                     const Matrix<Double> & cornernodes)
   {
@@ -199,7 +199,7 @@ namespace CoupledField
 
 
   // calculated the Nedelec shape function in an arbitrary point
-  void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(Vector< Matrix<Double>* > & shapeDeriv, 
+  void Tetra1FE::GetEdgeGlobalDerivShapeFnc(Vector< Matrix<Double>* > & shapeDeriv, 
                                               const Vector<Double> & lCoord,
                                               const Matrix<Double> & cornerCoords)
   {

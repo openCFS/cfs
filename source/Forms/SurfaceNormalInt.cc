@@ -8,8 +8,8 @@
 using namespace CoupledField;
 
 #include "DataInOut/Logging/cfslog.hh"
+
 DECLARE_LOG(forms)
-DEFINE_LOG(forms, "forms")
 
 SurfaceNormalInt::SurfaceNormalInt( BaseMaterial* matData, SubTensorType type) : BDBInt(matData,type) 
 {

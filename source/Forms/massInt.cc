@@ -9,9 +9,7 @@
 
 #include "DataInOut/Logging/cfslog.hh"
 
-DECLARE_LOG(mass)
-DEFINE_LOG(mass, "massInt")
-
+DECLARE_LOG(forms)
 
 
 namespace CoupledField {
@@ -108,7 +106,7 @@ namespace CoupledField {
 
     // for the harmonic topology optimzation case (or load ersatz material)
     double density = GetErsatzMaterialFactor(ent1.GetElem());
-    LOG_DBG3(mass) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density;
+    LOG_DBG3(forms) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density;
     if(density != 1.0) elemMat *= density;
     
     //     std::cout << "ElemMatMass:\n" << elemMat << std::endl;

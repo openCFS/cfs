@@ -451,7 +451,7 @@ namespace CoupledField {
   // TIME-STEPPING SECTION
   // ======================================================
 
-  void MagPDE :: InitTimeStepping() {
+  void MagPDE::InitTimeStepping() {
 
     TS_alg_ = new Trapezoidal( algsys_ );
   }

@@ -41,7 +41,7 @@ ELSE(WIN32_STYLE_FIND)
 
   SET (IPOPT_POSSIBLE_ROOT_PATHS
     $ENV{IPOPT_ROOT}
-    "/space/fwein/packages/ipopt/${CFS_ARCH}"
+    "/space/fwein/packages/ipopt_3.3_stable/build"
     )
   
   FIND_PATH(IPOPT_ROOT_DIR include/config_ipopt.h

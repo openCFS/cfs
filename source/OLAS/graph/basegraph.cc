@@ -188,7 +188,7 @@ namespace OLAS {
   // ***********************************
   //   Print graph to an output stream
   // ***********************************
-  void BaseGraph :: Print(std::ostream &os) const {
+  void BaseGraph::Print(std::ostream &os) const {
     Integer i;
     NodeListIterator j;
         

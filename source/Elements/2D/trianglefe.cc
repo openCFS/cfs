@@ -28,7 +28,7 @@ namespace CoupledField
     
   }
 
-  TriangleFE :: ~TriangleFE()
+  TriangleFE::~TriangleFE()
   {
   }
   
@@ -363,7 +363,7 @@ namespace CoupledField
       }
   }
 
-  void TriangleFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void TriangleFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                       const Double tolerance,
                                       StdVector<bool> & coordsInside) const
   {

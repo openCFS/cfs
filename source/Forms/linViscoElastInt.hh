@@ -28,6 +28,14 @@ protected:
   /// returns D - matrix for linViscoElastInt
   virtual void calcDMat(Matrix<Double> & dMat);
 
+  /** We do not provide a SIMP variant!
+   * @see linElastInt::calcDMat(Matrix<Double>, const Elem*) */
+  void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+  {
+    calcDMat(dMat); 
+  };
+
+  
   //! set dimensions
   virtual void SetDimensions(SubTensorType type);
   

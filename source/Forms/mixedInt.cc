@@ -133,31 +133,31 @@ namespace CoupledField {
        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
        
        ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-       
+
        partElemMat.DyadicMult(shapeFncAtIp);
-       
+
        if (isaxi_) {
-	 CoordAtIP = ptCoord_ * shapeFncAtIp;
-	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-	   * jacDet * CoordAtIP[0];
+         CoordAtIP = ptCoord_ * shapeFncAtIp;
+         partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+         * jacDet * CoordAtIP[0];
        }
        else
-	 partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
-       
+         partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+
        tempElemMat += partElemMat;
      }
-     
+
 
 
      const UInt singleDofSize = tempElemMat.GetSizeRow();
-     UInt i, j, actDof;
+
      //    std::cout << "Part Element Mass Matrix, MPP:\n" << tempElemMat << std::endl;
      //Blowing up the element matrix to number of velocity components 
-     for (i=0; i < singleDofSize; i++)
-       for ( j=0; j < singleDofSize; j++)
-	 for (actDof=0; actDof < 2 ; actDof++)
-	   elemMat[i*2 + actDof][j*2 + actDof] = tempElemMat[i][j]; 
-     
+     for (UInt i=0; i < singleDofSize; i++)
+       for (UInt j=0; j < singleDofSize; j++)
+         for (UInt actDof = 0; actDof < 2 ; actDof++)
+           elemMat[i*2 + actDof][j*2 + actDof] = tempElemMat[i][j]; 
+
      //std::cout << "ElemMatMass:\n" << elemMat << std::endl;
 
    }
@@ -207,9 +207,6 @@ namespace CoupledField {
     Matrix<Double> xiDx;
     Matrix<Double> xiDxTransp;
 
-    UInt  dim = ptelem->GetDim()+1;
-    int i, j, actDof;
-
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
     xiDxTransp.Init();
@@ -224,46 +221,43 @@ namespace CoupledField {
     K_x_Temp.Init();
     K_y_Temp.Init();
 
-
-
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) 
-      {
-	//	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+    {
+      //	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
 
-	//Get the traspose	matrix
-        ptelem->SetAnsatzFct( ansatzFct2_ , false);
-	xiDx.Transpose(xiDxTransp);
-	//Get the shape functions vector
+      //Get the traspose	matrix
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
+      xiDx.Transpose(xiDxTransp);
+      //Get the shape functions vector
 
-	ptelem->SetAnsatzFct( ansatzFct1_ , false);
-        ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-	for(i = 0; i < numFncs1; i++ )
-	  for(j = 0; j < numFncs2; j++ )
-	    {
-	      // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
-	      // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
-	      K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
-	      K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
-	    }
-	K_x += K_x_Temp;
-	K_y += K_y_Temp;
-      }
-		
-//     std::cout << "K_x = "<< std::endl << K_x << std::endl;
-//     std::cout << "K_y = "<< std::endl << K_y << std::endl;
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+      for(UInt i = 0; i < numFncs1; i++ )
+        for(UInt j = 0; j < numFncs2; j++ )
+        {
+          // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
+          // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
+          K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
+          K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
+        }
+      K_x += K_x_Temp;
+      K_y += K_y_Temp;
+    }
 
-    const UInt singleDofSize = K_x.GetSizeRow();
+    //     std::cout << "K_x = "<< std::endl << K_x << std::endl;
+    //     std::cout << "K_y = "<< std::endl << K_y << std::endl;
+
     elemMat.Resize(numFncs1*2, numFncs2);
     elemMat.Init();
 
     //Here the solution vector is (U,V)-vector, the element matrix is of dimension (numFncs X numFncs*2) 
-    for (i = 0; i < numFncs1; i++) 
-      for (j = 0; j < numFncs2; j++)
-	  {
-		elemMat[i*2][j] = K_x[i][j] ;
-		elemMat[i*2+1][j] = K_y[i][j] ;
-	  }
+    for (UInt i = 0; i < numFncs1; i++) 
+      for (UInt j = 0; j < numFncs2; j++)
+      {
+        elemMat[i*2][j] = K_x[i][j] ;
+        elemMat[i*2+1][j] = K_y[i][j] ;
+      }
 
     //  std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
 
@@ -316,9 +310,6 @@ namespace CoupledField {
     Matrix<Double> xiDx;
     Matrix<Double> xiDxTransp;
 
-    UInt  dim = ptelem->GetDim()+1;
-    int i, j, actDof;
-
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
     xiDxTransp.Init();
@@ -336,43 +327,41 @@ namespace CoupledField {
 
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) 
-      {
-	//	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
-	ptelem->SetAnsatzFct( ansatzFct2_ , false);
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+    {
+      //	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
 
-	//Get the traspose	matrix
-	xiDx.Transpose(xiDxTransp);
-	//Get the shape functions vector
+      //Get the traspose	matrix
+      xiDx.Transpose(xiDxTransp);
+      //Get the shape functions vector
 
-        ptelem->SetAnsatzFct( ansatzFct1_ , false);
-	ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-	for(i = 0; i < numFncs1; i++ )
-	  for(j = 0; j < numFncs2; j++ )
-	    {
-	      // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
-	      // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
-	      K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
-	      K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
-	    }
-	K_x += K_x_Temp;
-	K_y += K_y_Temp;
-      }
-		
-//     std::cout << "K_x = "<< std::endl << K_x << std::endl;
-//     std::cout << "K_y = "<< std::endl << K_y << std::endl;
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+      for(UInt i = 0; i < numFncs1; i++ )
+        for(UInt j = 0; j < numFncs2; j++ )
+        {
+          // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
+          // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
+          K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
+          K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
+        }
+      K_x += K_x_Temp;
+      K_y += K_y_Temp;
+    }
 
-    const UInt singleDofSize = K_x.GetSizeRow();
+    //     std::cout << "K_x = "<< std::endl << K_x << std::endl;
+    //     std::cout << "K_y = "<< std::endl << K_y << std::endl;
     elemMat.Resize(numFncs1, numFncs2*2);
     elemMat.Init();
 
     //Here the solution vector is P-vector, the element matrix is of dimension (numFncs1 X numFncs2) 
-    for (i = 0; i < numFncs1; i++) 
-      for (j = 0; j < numFncs2; j++)
-	  {
-		elemMat[i][j*2] = K_x[i][j] ;
-		elemMat[i][j*2+1] = K_y[i][j] ;
-	  }
+    for (UInt i = 0; i < numFncs1; i++) 
+      for (UInt j = 0; j < numFncs2; j++)
+      {
+        elemMat[i][j*2] = K_x[i][j] ;
+        elemMat[i][j*2+1] = K_y[i][j] ;
+      }
 
     //  std::cout << "ElemeMatStiff KVP:\n" << elemMat << std::endl;
 }
@@ -380,44 +369,4 @@ namespace CoupledField {
 
 
 } // end namespace CoupledField
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

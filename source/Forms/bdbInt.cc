@@ -8,8 +8,6 @@
 #include "bdbInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
-DECLARE_LOG(bdb)
-DEFINE_LOG(bdb, "bdbInt")
 
 namespace CoupledField {
 
@@ -62,13 +60,9 @@ namespace CoupledField {
       
 
       // // Check if material has to be rotated
-      if( ptMaterial->GetCoordSys() == NULL ) {
-        calcDMat( dMat );
-        
-        double density = GetErsatzMaterialFactor(ent1.GetElem());
-        LOG_DBG3(bdb) << "CalcElementMatrix: (1) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density; 
-        if(density != 1.0) dMat *= density;
-      }
+      if( ptMaterial->GetCoordSys() == NULL ) 
+        calcDMat(dMat, ent1.GetElem());
+      
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
@@ -81,10 +75,7 @@ namespace CoupledField {
           ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
                                     ptCoord_, ent1.GetElem() );
           ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
-          calcDMat( dMat );
-          double density = GetErsatzMaterialFactor(ent1.GetElem());
-          LOG_DBG3(bdb) << "CalcElementMatrix: (1) rotated ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density;
-          if(density != 1.0) dMat *= density;
+          calcDMat(dMat, ent1.GetElem());
         }
         
 
@@ -95,11 +86,8 @@ namespace CoupledField {
         jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
 
         // Perform a safety check
-        if ( jacDet < 0.0 ) {
-          (*error) << "BDBInt::CalcElementMatrix: Encountered "
-                   << "negative Jacobian determinant!";
-          Error( __FILE__, __LINE__ );
-        }
+        if ( jacDet < 0.0 ) 
+          EXCEPTION("CalcElementMatrix: Encountered negative Jacobian determinant!");
 
         // Special things must be done in the axi-symmetric case
         if ( isaxi_ ) {
@@ -143,10 +131,7 @@ namespace CoupledField {
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Setup material matrix for current integration point
-        calcDMat( dMat, actIntPt, ptCoord_ );
-        double density = GetErsatzMaterialFactor(ent1.GetElem());
-        LOG_DBG3(bdb) << "CalcElementMatrix: (2) ent1=" << ent1.GetElem()->elemNum << " pesudo density=" << density; 
-        if(density != 1.0) dMat *= density;
+        calcDMat(dMat, actIntPt, ptCoord_);
 
         // Setup the B matrix for current integration point
         calcBMat( bMat, actIntPt, ptCoord_ );
@@ -203,7 +188,7 @@ namespace CoupledField {
   // ****************************
   //   CalcComplexElementMatrix
   // ****************************
-  void BDBInt:: CalcComplexElementMatrix( Matrix<Complex> & elemMat,
+  void BDBInt::CalcComplexElementMatrix( Matrix<Complex> & elemMat,
                                           EntityIterator& ent1, 
                                           EntityIterator& ent2,
                                           Double & beta, Double & omega) {

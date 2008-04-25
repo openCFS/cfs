@@ -11,7 +11,7 @@
 namespace CoupledField
 { 
 
-  Jiles :: Jiles(Integer numElem, Double ysat, Double a, 
+  Jiles::Jiles(Integer numElem, Double ysat, Double a, 
                  Double alpha, Double k, Double c)
     : Hysteresis(numElem)
   {
@@ -36,11 +36,11 @@ namespace CoupledField
     err_     = 1e-10;
   }
 
-  Jiles :: ~Jiles()
+  Jiles::~Jiles()
   {
   }
 
-  Double Jiles :: computeValue(Double Xin, Integer idxElem) 
+  Double Jiles::computeValue(Double Xin, Integer idxElem) 
   {
 
     Integer idx = idxElem - 1;
@@ -133,7 +133,7 @@ namespace CoupledField
   }
 
 
-  void Jiles :: updateMinMaxList(Double Xin, Integer nrEl)
+  void Jiles::updateMinMaxList(Double Xin, Integer nrEl)
   {
 
     Integer idx = nrEl-1;

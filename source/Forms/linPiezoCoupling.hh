@@ -124,7 +124,6 @@ namespace CoupledField {
                    const Matrix<Double> &ptCoord );
 
     /*!   Compute the data-matrix \f$ D \f$
-
       The method computes the matrix \f$ D \f$  of the piezoelectric coupling
       properties of the element's material. In the 3D setting the latter
       is given by
@@ -132,7 +131,7 @@ namespace CoupledField {
       D = \left( e^T \right) \in \mathcal{R}^{6\times 3}.
       \f$]
       where \f$ e^T \f$ is the local tensor of piezoelectric coupling.*/
-    void calcDMat( Matrix<Double> &dMat );
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem);
 
     /*!   Query dimension of the matrix \f$ D \f$
 

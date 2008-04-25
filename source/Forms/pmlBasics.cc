@@ -278,7 +278,7 @@ namespace CoupledField
   }
 
 
-  void PMLBasics:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLBasics::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
 
     // inner/outer:   xmin  ymin  zmin

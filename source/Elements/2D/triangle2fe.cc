@@ -10,24 +10,24 @@
 namespace CoupledField
 {
 
-  Triangle2FE :: Triangle2FE() : TriangleFE()
+  Triangle2FE::Triangle2FE() : TriangleFE()
   {
 
     Init();
   }
   
-  Triangle2FE :: ~Triangle2FE()
+  Triangle2FE::~Triangle2FE()
   {
   }
 
-  void Triangle2FE :: Init()
+  void Triangle2FE::Init()
   {
     NumNodes_ = 6;
   
     CommonInit(); 
   }
 
-  void Triangle2FE :: SetCornerCoords()
+  void Triangle2FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
@@ -47,7 +47,7 @@ namespace CoupledField
     LCornerCoords_[1][5] = 0.5;
   }
 
-  void Triangle2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Triangle2FE::CalcShapeFnc(Vector<Double> & Shape, 
                                    const Vector<Double> & LCoord,
                                    const Elem*, UInt dof,
                                    AnsatzFct::FctEntityType )
@@ -77,7 +77,7 @@ namespace CoupledField
   }
 
 
-  void Triangle2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Triangle2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                              const Vector<Double> & LCoord,
                                              const Elem*, UInt dof,
                                              AnsatzFct::FctEntityType )

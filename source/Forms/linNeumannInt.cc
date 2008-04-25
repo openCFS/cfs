@@ -7,6 +7,11 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 
+
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
+
 namespace CoupledField 
 {
 
@@ -24,19 +29,11 @@ namespace CoupledField
     amplitude_ = amplitudeStr;
     phase_ = phaseStr;
     materialParam_ = materialParam;
-
-#ifdef DEBUG
-    (*debug) << "In LinNeumannInt::CalcElemVector output " << std::endl
-             << " coordinate     amplitude    phase " << std::endl;
-#endif
-
   }
 
 
   LinNeumannInt::~LinNeumannInt() {
-
     actElem_ = NULL;
-
   }
 
   void LinNeumannInt::PrepareElemVector( Vector<Double> & elemVec,
@@ -63,11 +60,9 @@ namespace CoupledField
       ptVolElem_ = actElem_->ptVolElem2;
     } 
     
-    if( it == materials_.end() ) {
-      (*error) << "LinNeumannInt: Surface element number " << actElem_->elemNum
-               << " has no corresponding volume element neighbour!";
-      Error( __FILE__, __LINE__ );
-    }
+    if(it == materials_.end()) 
+      EXCEPTION("LinNeumannInt: Surface element number " << actElem_->elemNum
+               << " has no corresponding volume element neighbour!");
 
     Double factor;
     switch(materialParam_)
@@ -138,6 +133,10 @@ namespace CoupledField
     //  but we want to take deflections into the domain positive
     factor *= -1.0;
 
+    LOG_DBG3(forms) << "LinNeumannInt::CalcElemVector<double> elem=" 
+                    << actElem_->elemNum << " pseudo density=" << density
+                    << " factor=" << factor; 
+    
     // multiply element vector with factor
     elemVec *= factor;
   }
@@ -173,7 +172,6 @@ namespace CoupledField
     // multiply element vector with complex factor
     Complex factor(realPart, imagPart);
     elemVec = helpVec * factor;
-
   }
 
 

@@ -21,9 +21,9 @@ DEFINE_LOG(designSpace, "designSpace")
 
 // declare class specific logging stream
 DECLARE_LOG(ersatz)
-DEFINE_LOG(ersatz, "ersatzMaterial")
+DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
-DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVector<ParamNode*>& trans_in, StdVector<ParamNode*>& result)
+DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVector<ParamNode*>& trans_in, StdVector<ParamNode*>& result, ErsatzMaterial::Method method)
 {
   LOG_TRACE(designSpace) << "DesignSpace for region=" << regionId << " #designs=" << pn_design.GetSize() 
                          << " #transferFunctions=" << trans_in.GetSize() << " #results=" << result.GetSize();
@@ -38,6 +38,8 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
   applicationForm.SetName("DesignSpace::ApplicationForm");
   applicationForm.Add(Optimization::ELEC, "linElecInt");
   applicationForm.Add(Optimization::MECH, "linElastInt");
+  // We follow for the stress, strain calculation the transfer functions of mech
+  applicationForm.Add(Optimization::MECH, "MechStressStrain", false);
   applicationForm.Add(Optimization::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
@@ -68,6 +70,15 @@ DesignSpace::DesignSpace(int regionId, StdVector<ParamNode*>& pn_design, StdVect
       de.elem = elems[e];
       de.SetDesign(initial);
       data.Push_back(de);
+      switch(method)
+      {
+      case ErsatzMaterial::SIMP_METHOD:
+        data.Last().simp = new SIMPElement(&data.Last());
+        break;
+      case ErsatzMaterial::NO_METHOD:
+        break;
+      default: assert(false);
+      }
     }
   } 
 
@@ -179,20 +190,6 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
 } 
 
 
-double DesignSpace::GetErsatzMaterialFactor(const Elem* elem, const BaseForm* form)
-{
-  // are we in the relevant region at all?
-  if(elem->regionId != regionId_) 
-    throw Exception("the element has the wrong region id");
-
-  // the application we have (MECH, ELEC, PIEZO_COUPLING)
-  Optimization::Application applic = (Optimization::Application) applicationForm.Parse(form->GetName());
-  // Start with finding the base DE
-  unsigned int design_index = Find(elem->elemNum);
-  
-  return GetErsatzMaterialFactor(design_index, applic);
-}
-
 double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
@@ -228,6 +225,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
   
   return result;
 }
+
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception)
 {
@@ -322,6 +320,7 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt)
   throw Exception("design type not in design");
 }
 
+
 unsigned int DesignSpace::Find(unsigned int elemNum)
 {
   // to easy find optimizing. Check if we are at the same element as
@@ -343,9 +342,35 @@ unsigned int DesignSpace::Find(unsigned int elemNum)
       return i;
     }
   }  
-    
-  throw Exception("could not find element in our design space");  
+ 
+  EXCEPTION("could not find element " << elemNum << " in our design space");
 }
+
+int DesignSpace::Find(const Elem* elem, bool throw_exception)
+{
+  if(elem->regionId == regionId_) return Find(elem->elemNum);
+  
+  // we might have surface element and it is pointing to a design element
+  const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
+
+  // no chance, we are wrong
+  if(se == NULL) 
+  {
+    if(!throw_exception) return -1;
+    EXCEPTION("element " << elem->ToString() << " not in design region " << regionId_);
+  }
+
+  if(se->ptVolElem1 != NULL && se->ptVolElem1->regionId == regionId_)
+    return Find(se->ptVolElem1->elemNum); 
+
+  if(se->ptVolElem2 != NULL && se->ptVolElem2->regionId == regionId_)
+    return Find(se->ptVolElem2->elemNum);     
+
+  if(!throw_exception) return -1;
+  
+  EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
+}
+
 
 void DesignSpace::DisableTransferFunctions()
 {

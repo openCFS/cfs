@@ -14,7 +14,7 @@ namespace CoupledField
 {
 
 
-  LineFE :: LineFE()
+  LineFE::LineFE()
   {
 
     Dim_ = 1;
@@ -28,7 +28,7 @@ namespace CoupledField
   }
 
 
-  LineFE :: ~LineFE()
+  LineFE::~LineFE()
   {
   }
 
@@ -381,7 +381,7 @@ namespace CoupledField
   
   }
 
-  void LineFE:: CalcJacobian(Matrix<Double> & J, 
+  void LineFE::CalcJacobian(Matrix<Double> & J, 
                              const Vector<Double> & LCoord, 
                              const Matrix<Double> & CornerCoords,
                              const Elem* elem )
@@ -448,7 +448,7 @@ namespace CoupledField
     JInv[0][0] = 1 / J[0][0];
   }
 
-  void LineFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void LineFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {

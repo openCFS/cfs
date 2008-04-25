@@ -45,8 +45,7 @@ namespace CoupledField {
     //@}
 
    //! Compute the nonlinear data-matrix \f$D\f$
-   void calcDMat(Matrix<Double> & dMat, UInt ip, 
-                          Matrix<Double> & ptCoord);
+   void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
 
    //! set objects for computation of E-field
    void Set4NonLinMaterial(Grid* ptGrid, 

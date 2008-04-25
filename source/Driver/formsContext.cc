@@ -193,6 +193,16 @@ namespace CoupledField {
     }
   }
 
+
+  std::string LinearFormContext::ToString() const
+  {
+    std::ostringstream os;
+    os << "integrator: " << integrator_->GetName() 
+       << " pde: " << ptPde_->GetName();
+
+    return os.str(); 
+  }
+  
   // -------------------------------------------------------------------------
   NcBiLinFormContext::NcBiLinFormContext( BaseForm* biLinForm, 
                                           FEMatrixType destMat ) 
@@ -252,5 +262,4 @@ namespace CoupledField {
   }
   
 
- 
 }

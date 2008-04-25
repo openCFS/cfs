@@ -11,7 +11,7 @@
 namespace CoupledField
 {
 
-  Trapezoidal :: Trapezoidal( BaseSystem * algebraicsystem)
+  Trapezoidal::Trapezoidal( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
 
@@ -25,7 +25,7 @@ namespace CoupledField
 
   }
 
-  Trapezoidal :: ~Trapezoidal()
+  Trapezoidal::~Trapezoidal()
   {
 
   }
@@ -90,7 +90,7 @@ namespace CoupledField
     solderiv1_ = (solnew - solpred_)*a1_;
   }
 
-  void Trapezoidal :: CalcParameters(Double dt)
+  void Trapezoidal::CalcParameters(Double dt)
   {
 
     //for predictors
@@ -106,7 +106,7 @@ namespace CoupledField
   //---------------------------- Effective Mass ------------------
   //====================================================================
 
-  TrapezoidalEffMass :: TrapezoidalEffMass( BaseSystem * algebraicsystem)
+  TrapezoidalEffMass::TrapezoidalEffMass( BaseSystem * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
 
@@ -114,7 +114,7 @@ namespace CoupledField
 
   }
 
-  TrapezoidalEffMass :: ~TrapezoidalEffMass()
+  TrapezoidalEffMass::~TrapezoidalEffMass()
   {
 
   }
@@ -180,7 +180,7 @@ namespace CoupledField
     vNew = sol_;
   }
 
-  void TrapezoidalEffMass :: CalcParameters(Double dt)
+  void TrapezoidalEffMass::CalcParameters(Double dt)
   {
 
     //for predictors

@@ -298,6 +298,8 @@ namespace CoupledField
     //! returns pointer to first pde
     SinglePDE * GetPde () { return ptPde_; }
 
+    std::string ToString() const;
+    
   protected:
 
     //! Pointer to bilinearform

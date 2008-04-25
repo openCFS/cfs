@@ -345,7 +345,7 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
     }
 }
 
-  void TetraFE :: CoordsInsideElem(const Matrix<Double> & localCoords,
+  void TetraFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {

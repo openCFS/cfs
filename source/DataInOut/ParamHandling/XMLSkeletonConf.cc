@@ -145,7 +145,7 @@ namespace CoupledField {
   // *******************
   //   WriteSubdomains
   // *******************
-  void SkeletonConf:: WriteSubdomains() {
+  void SkeletonConf::WriteSubdomains() {
 
 
     // Close the skeleton-config-file

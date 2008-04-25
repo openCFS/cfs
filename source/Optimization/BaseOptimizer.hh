@@ -39,7 +39,7 @@ namespace CoupledField
     
   protected:
     /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInit(double manual_scaling);
+    void PostInit(double manual_scaling, bool no_autoscale = false);
 
     /** Evaluates the objective. In the autoscale case checks for old value. 
      * @return the objective */
@@ -71,7 +71,7 @@ namespace CoupledField
     {
     public:
       /** This sets all value and prepares everything. Note that you have to do PostInit()! */
-      Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale);
+      Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale);
       
       void PostInit();
       

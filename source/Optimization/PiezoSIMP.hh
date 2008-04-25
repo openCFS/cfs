@@ -5,130 +5,62 @@
 
 namespace CoupledField
 {
-  class ElecPDE;
-    
-  /** <p>Extends the (mechanical, compliance minimization) SIMP to the Piezo SIMP as described
-   *  by [1]: Kögl M., Silva E.; Topology optmization of smart structures: design of 
-   *  piezoelectric plate and shell actuators; 2005 Smart Mater. Struct. 14 387-399</p>
-   * <p>The reciprocal theroem is described in [2]: Silva E., Nishiwaki S., Kikuchi N.; 
-   * Topology Optimization Design of Fextensional Actuators; 2000 IEEE Transactions on Ultrasonics,
-   * Ferroelectrics, And Frequency Control, Vol. 47, No. 3</p>
-   * <p>The basic idea is, that there is for each iteration a direct and indirect piezo
-   * simulation to compute the transduction and another iteration for the mean compliance.
-   * Therefore the activate tag in the bcs and loads is used.</p> */
-  class PiezoSIMP : public SIMP
+class ElecPDE;
+
+/** Extension from lin elast SIMP to the piezoelectric case */
+class PiezoSIMP : public SIMP
+{
+public:
+  PiezoSIMP();
+
+  ~PiezoSIMP();
+
+  /** e.g. stuff that needs a this pointer of the optimization problem */
+  void PostInit();
+  
+  
+  /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient  
+   * @param grad_out if not NULL copy write the (design space size) results. 
+   * If filtering is enabled, this is automatically filtered. */
+  void CalcObjectiveGradient(double* grad_out);
+
+private:
+
+  /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
+   * PIEZO_COUPLING ( + transposed) */
+  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
   {
-    public:
-      PiezoSIMP();
-        
-      ~PiezoSIMP();
-      
-      /** We solve in each iteration three state problems and store the results. */
-      void SolveStateProblem(); 
-        
-      /** compute the value of the cost function */
-      double CalcObjective();
-     
-      /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient  
-       * @param grad_out if not NULL copy write the (design space size) results. 
-       * If filtering is enabled, this is automatically filtered. */
-      void CalcObjectiveGradient(double* grad_out);
-     
-      /** In the case of transduction we write the transduction in more detail */
-      void LogFileLine(std::ofstream* out);
-     
-      /** storage settings for piezo 
-       * COMMIT: then Optimization::CommitIteration() does all which is after commit and
-       * not after each problem the case2 (mech_case) is stored.
-       * All other cases do a storage in each problem solving case. This is for SCPIP
-       * mostly equal to the iteration, in IPOPT there can be much more line searches = 
-       * problems within one iteration. The iteration counter is increased after
-       * each storage and 
-       * ELCE_*/
-      typedef enum { COMMIT, ELEC_CASE, MECH_CASE, BOTH_CASES } Storage;
+    if(harmonic) SetElementK<std::complex<double> >(de, app, out);
+            else SetElementK<double>(de, app, out);  
+  }
+  
+  template <class T>
+  void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
+  
 
-      /** Storage translation */
-      static Enum<Storage> storage;
+  /** We have for the direct coupled piezo the corresponding ElecPDE, is also in SIMP::pde */
+  ElecPDE* elec;
+  
 
-      Storage GetStorage() const { return storage_; };
+  /** The elec stiffness matrix $K_{\phi \phi}$. $K_{uu}$ is already as mechStiffness in SIMP.hh */
+  Matrix<double> elecStiffness;
 
-    private:
-      /** This is called every Optimization::CommitIteration(). When we have special storing
-       *  rules (-> gid, gmv, ...) this does nothing as we store in SolveStateProblem then */ 
-      void StoreResults(double step_val = -1.0); 
+  /** The coupling stiffness matrix $K_{u \phi}$ */
+  Matrix<double> coupledStiffness;
 
-      /** <p>Overload the method in SIMP handling app = ELEC and PIEZO_COUPLED. The rest is
-       * done via the SIMP implementation.</p>
-       * <p>C++ does not allow virtual template methods :( */
-      virtual void CalcElementKU2(const CFSVector* in, Application app, DesignElement* de, bool derivative, CFSVector* out) {
-        if(harmonic) CalcElementKU2<std::complex<double> >(in, app, de, derivative, out);
-        else CalcElementKU2<double>(in, app, de, derivative, out);
-      }
+  /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */         
+  Matrix<double> coupledStiffnessTransposed;
 
-      template <class T>
-      void CalcElementKU2(const CFSVector* in, Application app, DesignElement* de, bool derivative, CFSVector* out);
+  /** The electric rhs, real or complex */
+  SurfaceRef elecRHS;
 
-      /** Solves a subproblem of the transduction, only then we can call CalcTransduction().
-       * Has to be call first for ELEC, then for MECH!*/
-      void SolveTransductionSubProblem(Application subProblem);
+  /** This are logging variables for LogFileLine */
+  double log_coupled_;
+  double log_coupled_simp_;
+  double log_elec_;
+  double log_elec_simp_;
 
-      /** The transduction (to be maximized) gives the coupling between the electical and mechanical forces based
-       * on the reciprocal theorem. Two state problems are to be calculated as shown in [1], A good introduction
-       * to the reciprocal theorem is in [2]. */
-      double CalcTransduction();
-
-      /** Implementation according to Kögl and Silva in [1]
-       *  @see CalcObjectiveGradient() */   
-     void CalcTransductionGradient(double* grad_out);  
-        
-     /** We have for the direct coupled piezo the MechPDE which is in SIMP.hh and 
-     * here the corresponding ElecPDE */
-     ElecPDE* elec;
-
-     /** For the evaluation of the mean transduction cost function two state problems have to
-      * be solved in each iterations. The MECH and ELEC results are copied case_<1/2>_  */   
-     Solution* case_elec_;
-     Solution* case_mech_;
-     
-     /** The elec stiffness matrix $K_{\phi \phi}$. $K_{uu}$ is already as mechStiffness in SIMP.hh */
-     Matrix<double> elecStiffness;
-
-     /** The coupling stiffness matrix $K_{u \phi}$ */
-     Matrix<double> coupledStiffness;
-     
-     /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */         
-     Matrix<double> coupledStiffnessTransposed;
-
-     /** This is a simple class for setting the transduction values */
-     class Transduction
-     {
-       public:
-         Transduction();
-       
-         void Set(ParamNode* pn);
-      
-         double value;
-         /** either load or pressure or surface density */
-         bool isLoad;
-         /** internal use to validate if the property is given in the PDE description */
-         bool found; 
-     };
- 
-     /** This is the load or integrator for the electrical part of the transduction */
-     Transduction elec_;
-     
-     /** This is the load or integrator for the mechanical part of the transduction */
-     Transduction mech_;
-     
-     /** This are logging variables for LogFileLine */
-     double log_coupled_;
-     double log_coupled_simp_;
-     double log_elec_;
-     double log_elec_simp_;
-     
-     /** the actual storage setting */
-     Storage storage_;
-  };
+};
 
 } // end of namespace
 

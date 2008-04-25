@@ -269,7 +269,7 @@ namespace CoupledField
 
 
 
-  Double PMLTransXYZInt:: ComputeDampingFactor(Vector<Double>& pos, Directions dir)
+  Double PMLTransXYZInt::ComputeDampingFactor(Vector<Double>& pos, Directions dir)
   {
 
     Double factor, maxPos, delta, diffCoord;
@@ -366,7 +366,7 @@ namespace CoupledField
   }
 
 
-  void PMLTransXYZInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
+  void PMLTransXYZInt::SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
 
     // inner/outer:   xmin  ymin  zmin

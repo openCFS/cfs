@@ -258,8 +258,8 @@ namespace CoupledField
 
         for (idm = 0; idm<dim; idm++)
           {
-            diffGradL2norm+=sqr(gradSPR[idm]-gradFEM[idm]);
-            SPRGradL2norm+=sqr(gradSPR[idm]);
+            diffGradL2norm+= (gradSPR[idm]-gradFEM[idm]) * (gradSPR[idm]-gradFEM[idm]);
+            SPRGradL2norm+= gradSPR[idm] * gradSPR[idm];
           }
      
         diffGradL2norm=sqrt(diffGradL2norm);
@@ -692,10 +692,10 @@ namespace CoupledField
 
         for (idm = 0; idm<dim; idm++)
           {
-            diffGradL2norm+=sqr(gradSPR[idm]-gradFEM[idm]);
-            diffGradL2normIm+=sqr(gradSPRIm[idm]-gradFEMIm[idm]);
-            SPRGradL2norm+=sqr(gradSPR[idm]);
-            SPRGradL2normIm+=sqr(gradSPRIm[idm]);   
+            diffGradL2norm+= (gradSPR[idm]-gradFEM[idm]) * (gradSPR[idm]-gradFEM[idm]);
+            diffGradL2normIm+= (gradSPRIm[idm]-gradFEMIm[idm]) * (gradSPRIm[idm]-gradFEMIm[idm]);
+            SPRGradL2norm+= gradSPR[idm] * gradSPR[idm];
+            SPRGradL2normIm+= gradSPRIm[idm] * gradSPRIm[idm];   
           }
      
         diffGradL2norm=sqrt(diffGradL2norm+diffGradL2normIm);

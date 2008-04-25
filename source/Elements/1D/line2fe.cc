@@ -15,25 +15,24 @@ namespace CoupledField
   DECLARE_LOG(line2fe)
   DEFINE_LOG(line2fe, "line2fe")
 
-
-  Line2FE :: Line2FE() : LineFE()
+  Line2FE::Line2FE() : LineFE()
   {
 
     Init();
   }
   
-  Line2FE :: ~Line2FE()
+  Line2FE::~Line2FE()
   {
   }
 
-  void Line2FE :: Init()
+  void Line2FE::Init()
   {
      NumNodes_ = 3;
      
      CommonInit();
   }
 
-  void Line2FE :: SetCornerCoords()
+  void Line2FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
@@ -44,7 +43,7 @@ namespace CoupledField
 
   }
 
-  void Line2FE :: CalcShapeFnc(Vector<Double> & Shape, 
+  void Line2FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
@@ -61,7 +60,7 @@ namespace CoupledField
   }
 
 
-  void Line2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Line2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                          const Vector<Double> & LCoord,
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )

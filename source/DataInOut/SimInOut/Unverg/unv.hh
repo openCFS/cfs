@@ -59,6 +59,7 @@ protected:
   int set_end(int* is_end) const { return u->is_set_end(is_end); }
 public:
   dataset() { u=NULL, set_num=0; }
+  virtual ~dataset() { }
   enum SetFlagType {
     SETEOF=-1,
     SETEmpty=0,

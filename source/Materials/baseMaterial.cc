@@ -79,8 +79,8 @@ namespace CoupledField
     }
     else {
       if ( dataType == INTEGER ) {	
-	std::string msg = "GetScalar-Integer";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Integer";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
       Integer val = pos->second;
       param = val;

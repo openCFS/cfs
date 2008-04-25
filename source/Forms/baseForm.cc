@@ -59,7 +59,7 @@ namespace CoupledField
     }
     else
     {
-      mHandle_ = NULL;
+      mHandle_ = 0;
     }
     
 #endif
@@ -120,8 +120,9 @@ namespace CoupledField
    /** for ersatz material w and w/o SIMP. */
   Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
   {
-      Double factor = domain->GetErsatzMaterial(elem, this);
-      return factor > 0 ? factor : 1.0;
+    Double factor;
+    bool ok = domain->GetErsatzMaterial(elem, this, factor);
+    return ok ? factor : 1.0;
   }
   
 #ifndef INTEGLIB
