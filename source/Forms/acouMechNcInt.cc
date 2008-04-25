@@ -242,14 +242,25 @@ namespace CoupledField {
           ptCoord_, actNCElem);
 
       if (isaxi_) {
-        for (j = 0; j < dim - 1; ++j)
-          point[j] = intPoints[i][j];
-        actNCElem->ptElem->GetShFnc(shpFncNCElem, point, actNCElem);
+/*        
         coordAtIp = 0.0;
-        for (j = 0; j < noIntPoints; ++j)
-          coordAtIp += ptCoord_[0][j] * shpFncNCElem[j];
+        
+        for (j = 0; j < noIntPoints; ++j) {
+          for (UInt d = 0; d < dim - 1; ++d)
+            point[d] = intPoints[j][d];
+          
+          actNCElem->ptElem->GetShFnc(shpFncNCElem, point, actNCElem);
+          
+          for (UInt d = 0; d < shpFncNCElem.GetSize(); ++d) {
+            coordAtIp += ptCoord_[0][d] * shpFncNCElem[d];
+          }
+        }
+*/
+        
+        // radius is globalIP[0][i]
+
         partHelpMat *= 2 * PI * intWeights[i] * fluidDensity *
-            std::fabs(jacDet) * coordAtIp;
+            std::fabs(jacDet) * globalIP[0][i];
       }
       else 
       { // multiply matrix by density of fluid
@@ -267,8 +278,12 @@ namespace CoupledField {
       for ( UInt iRow = 0; iRow < numMasterShpFncs; iRow++ ) {
         for ( UInt iCol = 0; iCol < numSlaveShpFncs; iCol++ ) {
           for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-            elemMat[iRow][iCol * dofs_ + iDof] =
-              normal_[iDof] * helpMat[iCol][iRow];
+            if (fluidOnSlaveSide)            
+              elemMat[iRow][iCol * dofs_ + iDof] =
+                normal_[iDof] * helpMat[iRow][iCol];
+            else
+              elemMat[iRow][iCol * dofs_ + iDof] =
+                normal_[iDof] * helpMat[iCol][iRow];              
           }
         }
       }
@@ -277,8 +292,12 @@ namespace CoupledField {
       for ( UInt iRow = 0; iRow < numMasterShpFncs; iRow++ ) {
         for ( UInt iCol = 0; iCol < numSlaveShpFncs; iCol++ ) {
           for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-            elemMat[iRow * dofs_ + iDof][iCol] =
-              normal_[iDof] * helpMat[iRow][iCol];
+            if (fluidOnSlaveSide)            
+              elemMat[iRow * dofs_ + iDof][iCol] =
+                normal_[iDof] * helpMat[iRow][iCol];
+            else            
+              elemMat[iRow * dofs_ + iDof][iCol] =
+                normal_[iDof] * helpMat[iCol][iRow];
           }
         }
       }
