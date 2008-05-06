@@ -323,7 +323,7 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
       
-      FlatShellElecInt * compElecInt = new FlatShellElecInt( composite );
+      FlatShellElecInt * compElecInt = new FlatShellElecInt( composite, false );
       BiLinFormContext * stiffContext = 
         new BiLinFormContext( compElecInt, STIFFNESS);
       stiffContext->SetPtPdes( this, this );

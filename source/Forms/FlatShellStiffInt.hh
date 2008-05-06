@@ -15,10 +15,10 @@ namespace CoupledField
     public:
     
     //! Constructor with pointer to normal material
-    FlatShellStiffInt(BaseMaterial *matData);
+   FlatShellStiffInt(BaseMaterial *matData, bool hasDrillDof);
     
     //! Constructor with pointer to composite material
-    FlatShellStiffInt( Composite *composite);
+   FlatShellStiffInt( Composite *composite, bool hasDrillDof);
     
     //!  Destructor
     virtual ~FlatShellStiffInt();
@@ -27,7 +27,13 @@ namespace CoupledField
     virtual Integer getDimD(){return 8;};
   
     //!returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 6;};
+    virtual Integer getNrDofs(){
+      if ( hasDrillDof_) {
+        return 6;
+      } else {
+        return 5;
+      }
+    }
    				    
    //! Enumeration for differentiation of the three mechanical parts Membrane, Bending, Shear
    typedef enum {MEMBRANE,BENDING,SHEAR,COUPLED1,COUPLED2,PIEZO} SubPartType;
@@ -55,6 +61,7 @@ namespace CoupledField
     //Parametres of the lamina structures
     Vector<Double> z_;
     Vector<Double> orAngle_;
+
        
  };
 

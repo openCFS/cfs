@@ -1023,9 +1023,11 @@ namespace CoupledField {
                                PdeIdType pdeId1, PdeIdType pdeId2) 
   {
     // map original matrix destination to analysis-dependent one
-    FEMatrixType mappedDest = matrixMap_[dest]; 
+    FEMatrixType mappedDest = matrixMap_[dest];     
     
-    assert(mappedDest != NOTYPE);    
+    // if destination matrix is NOTYPE -> leave
+    if( mappedDest == NOTYPE )
+      return;
 
     Vector<Double> harmMat;    
     Double* dat_ptr = NULL;

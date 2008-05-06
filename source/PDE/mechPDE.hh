@@ -281,6 +281,9 @@ namespace CoupledField
     
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
+    
+    //! Flag indicating use of penalty dof for plate formulation
+    bool usePlatePenaltyDof_;
 
   };
 

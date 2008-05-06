@@ -20,9 +20,6 @@ namespace CoupledField {
     //! Name of Composite Material
     std::string name;
 		
-    //! Relative start height of the first lamina layer
-    Double zStart;
-		
     //----Definition of Layers----
    
     //! Thickness of individual lamina

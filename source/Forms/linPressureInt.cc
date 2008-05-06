@@ -19,6 +19,7 @@ namespace CoupledField {
 
   PressureLinForm::PressureLinForm( const std::string& value,
                                     const std::string& phase,
+                                    const std::string& subType,
                                     bool isAxi )
     : LinearSurfForm() {
 
@@ -26,8 +27,9 @@ namespace CoupledField {
     isaxi_ = isAxi;
 
     // store value and phase string
-    value_ = value;
-    phase_ = phase;
+    value_   = value;
+    phase_   = phase;
+    subType_ = subType;
       
   }
 
@@ -125,9 +127,14 @@ namespace CoupledField {
     //       Error( __FILE__, __LINE__ );
     //     };
 
-    elemVec.Resize(numFncs*dim);
+    UInt numDofs;
+    if( subType_ == "flatShell")
+      numDofs = 5;
+    else
+       numDofs = dim;
+    elemVec.Resize(numFncs*numDofs);
     elemVec.Init(0);
-
+    
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         ptelem->GetShFncAtIp(shapeFnc, actIntPt, ent.GetElem() );
@@ -152,7 +159,7 @@ namespace CoupledField {
             //to get the x-,y-,z-component
             helpVec = shapeFnc * normal_[i];
             for (UInt j=0; j<helpVec.GetSize(); j++) {
-              idx = j*(dim) +i;
+              idx = j*(numDofs) +i;
               elemVec[idx] -= helpVec[j];
             }
           }

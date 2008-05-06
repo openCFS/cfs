@@ -87,7 +87,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       Info->PrintF("", "=== PLANE STRESS PROBLEM\n");
     }
 
-    else if ( subType_ == "flatShell" && probGeo == "3d" ) {
+    else if ( subType_ == "flatShell" ) {
       stressDim_ = 3;
       Info->PrintF("", "=== FLAT SHELL PROBLEM\n");
     }
@@ -836,13 +836,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           
         } else {
           
-          FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat);
+          FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat, false);
           
           // Obtain thickness and penalty dof
           ParamNode * actRegionNode = 
             myParam_->Get( "region", "name", actRegionName );
           
-          Double thickness = actRegionNode->Get("thickenss")->AsDouble();
+          Double thickness = actRegionNode->Get("thickness")->AsDouble();
           bilinearMass->SetThickness( thickness );
           
           // Get penalty value for drilling dof of region
@@ -922,7 +922,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       std::string actRegionName;
       actRegionName = ptgrid_->RegionIdToName( actRegion );
       ParamNode * actRegionNode = 
-        myParam_->Get( "region", "name", actRegionName );      
+        myParam_->Get("regionList")->Get( "region", "name", actRegionName );      
 
 
       // create new entity list
@@ -937,7 +937,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // ==============  add stiffness ===========================================
 
       // Now define integrator for this region
-      FlatShellStiffInt * myInt = new FlatShellStiffInt(&composite);
+      FlatShellStiffInt * myInt = new FlatShellStiffInt(&composite, false);
       myInt->SetPenaltyDof( penaltyDof );
       BiLinFormContext * actIntDescrStiff =
         new BiLinFormContext( myInt, STIFFNESS);
@@ -965,7 +965,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       eqnMap_->AddResult( *results_[0], actSDList );
       
       // ==============  add mass ===========================================
-      FlatShellMassInt * bilinearMass = new FlatShellMassInt(&composite);
+      FlatShellMassInt * bilinearMass = new FlatShellMassInt(&composite, false);
       bilinearMass->SetPenaltyDof( penaltyDof );
       BiLinFormContext * actIntDescrMass = new BiLinFormContext(bilinearMass, MASS);
             
@@ -997,7 +997,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
 
       LinearSurfForm * rhsSrcSurf = 
-        new PressureLinForm(pressVals_[actSF], pressPhase_[actSF], isaxi_ );
+        new PressureLinForm(pressVals_[actSF], pressPhase_[actSF], 
+                            subType_, isaxi_ );
       rhsSrcSurf->SetVoluInfo( materials_ );
 
       LinearFormContext * pressRhs = 
@@ -1082,7 +1083,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     // Check for FlatShellIntegrator, as this one is a special sub-type,
     // not handled by the SubTensorType
     if (subType_ == "flatShell" ) {
-      FlatShellStiffInt * myInt = new FlatShellStiffInt(actSDMat);
+      FlatShellStiffInt * myInt = new FlatShellStiffInt(actSDMat, false);
       
       // Get region node
       ParamNode * actRegionNode = 
@@ -1475,6 +1476,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     
     // Check for subType
     StdVector<std::string> dispDofNames, stressDofNames;
+    usePlatePenaltyDof_ = false;
+    
     if( subType_ == "3d" ) {
       dispDofNames = "x", "y", "z";
       stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
@@ -1492,8 +1495,22 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       stressDofNames = "rr", "zz", "rz", "phiphi";
 
     } else if( subType_ == "flatShell" ) {
-      dispDofNames = "x", "y", "z", "tx", "ty", "tz";
-      Warning( "Not yet implemented" );
+      
+      // Job to do: check, if penalty dof is used
+      StdVector<ParamNode*> regionNodes = myParam_->Get("regionList")->GetChildren();
+      
+      for(UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+        Double val = regionNodes[i]->Get("penaltyDof")->AsDouble();
+        if( val != 0.0 ) {
+          usePlatePenaltyDof_ = true;
+          break;
+        }
+      }
+      
+      dispDofNames = "x", "y", "z", "tx", "ty";
+      if( usePlatePenaltyDof_ ) {
+        dispDofNames.Push_back( "tz" );
+      }
     }
 
     // === MECHANIC DISPLACEMENT ===
@@ -1501,7 +1518,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     disp->resultType = MECH_DISPLACEMENT;
     disp->dofNames = dispDofNames;
     disp->unit = "m";
+    if( subType_ != "flatShell" ) {
     disp->entryType = ResultInfo::VECTOR;
+    } else {
+      disp->entryType = ResultInfo::TENSOR;
+    }
 
     // check if problem is lagrange or legendre
     std::string approxType = myParam_->Get("type")->AsString();

@@ -1677,6 +1677,10 @@ namespace CoupledField {
     // Big outer loop over all nodal mapped element lists
     ResultEntityMap::iterator listIt;
     
+    // MAGIC number, which gets assignetd to all nodes,
+    // which have not yet an equation number
+    const Integer NO_EQN = -333;
+    
     for( listIt = elemConstMappedList_.begin(); 
     listIt != elemConstMappedList_.end(); 
     listIt++ ) {
@@ -1703,16 +1707,21 @@ namespace CoupledField {
       // Idea of the algorithm:
       //
       // -- PHASE 1 --
-      // Step 1:  Initialize actMap with 1
+      // Step 1:  Initialize actMap with NO_EQN
       // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
       // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
-      //          entry in pdeNode2eqn_ to 0
+      //          entry in pdeNode2eqn_ to -1
       // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
       //          entry in pdeNode2eqn_ to 0
-      // Step 4:  Loop over all entries in pde2Meshnode
+      // Step b:  Loop over all entries in pde2Meshnode
       //          and assign each non-zero entry an equation number
 
+      // Step 4:  Loop over all nodes of given entity lists
+      //          and assign each non-zero entry an equation number
+
+      // Step 5:  Loop over the whole map and set all entries with NO_EQN to 0
+      
       // -- PHASE 2 --
       // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
       //          and set the corresponding entry in pdeNode2EQN_ to the
@@ -1721,7 +1730,6 @@ namespace CoupledField {
       //          dof an equation number after the hightest equation number of
       //          the free dofs
       //
-      // Note:    Steps 2b and 5b are only performed, if sortEQNs = true
       
       if( phase == 1 ) {
 
@@ -1736,7 +1744,7 @@ namespace CoupledField {
         actMap.Resize( numLocElems_);
         for( UInt i = 0; i < actMap.GetSize(); i++) {
           actMap[i].Resize( dofsPerElem );
-          actMap[i].Init( 1 );
+          actMap[i].Init( NO_EQN );
         }
 
         // -------
@@ -1776,7 +1784,7 @@ namespace CoupledField {
                 Warning( __FILE__, __LINE__ );
               }
               else {
-                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = 0;
+                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
                 countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
                 // In any case we have to increment the number of idBC-conditions
                 numIdBcs_++;
@@ -1810,7 +1818,7 @@ namespace CoupledField {
             }
 
             for ( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
-              if ( actMap[locElem-1][iDof] != 0 &&
+              if ( actMap[locElem-1][iDof] != NO_EQN &&
                   countElems[locElem-1][iDof] == 0) {
                 numEqns_++;
                 actMap[locElem-1][iDof] = numEqns_;
@@ -1819,11 +1827,37 @@ namespace CoupledField {
             }
           }
         }
+        
 
       } else if( phase == 2 ) {
 
+        // ------
+        // STEP 5
+        // ------
+        // Check if any inhom. boundary condition is defined for the current
+        // result
+        Integer locElem = 0;
+        if( idBcIt != idBcs_.end() ) {
+          IdBcList const & actIdBcList = idBcIt->second;
 
+          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdBcList[i]->entities->GetIterator();
 
+            UInt actDof = actIdBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              locElem = mesh2PdeElem_[actElem-1];
+              if( locElem > 0 ) { 
+                if(  actMap[locElem-1] [actDof-1] == -1  ) {
+                  numEqns_++;
+                  actMap[locElem-1] [actDof-1] = numEqns_;
+                }
+                }
+            }
+          }
+        }
       } else {
         EXCEPTION( "Phase '" << phase << "' does not exist!" );
       }
