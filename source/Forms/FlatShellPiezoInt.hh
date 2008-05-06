@@ -17,16 +17,19 @@ namespace CoupledField
   public:
     
     //! Constructor with pointer to composite material
-    FlatShellPiezoInt( Composite *composite);
+    FlatShellPiezoInt( Composite *composite, bool hasDrillDof );
    
     //!  Destructor
     virtual ~FlatShellPiezoInt();
 
-    //!returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 6;};
-    
     //!returns dimension of D matrix of bending stiffness
-    virtual Integer getDimD(){return 8;};
+    virtual Integer getDimD() {
+      if ( hasDrillDof_) {
+        return 6;
+      } else {
+        return 5;
+      }
+    }
    				    
     //!Function for calculation BE matrix 
     void CalcElementMatrix( Matrix<Double>& elemMat,

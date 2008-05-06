@@ -17,10 +17,10 @@ namespace CoupledField
   public:
     
     //!Constructor for normal Material
-    FlatShellMassInt(BaseMaterial * matData);
+    FlatShellMassInt(BaseMaterial * matData, bool hasDrillDof );
         
     //Constructor for composite material
-    FlatShellMassInt(Composite * composite);
+    FlatShellMassInt(Composite * composite, bool hasDrillDof );
     
     // Destructor
     virtual ~FlatShellMassInt();
@@ -31,7 +31,13 @@ namespace CoupledField
 			    EntityIterator& ent2 );
      
      //!returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 6;};    
+    virtual Integer getNrDofs(){
+      if ( hasDrillDof_) {
+        return 6;
+      } else {
+        return 5;
+      }    
+    }
     
   protected:
     

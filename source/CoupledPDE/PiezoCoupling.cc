@@ -1010,7 +1010,7 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
       
-      FlatShellPiezoInt * compPiezoInt = new FlatShellPiezoInt( composite );
+      FlatShellPiezoInt * compPiezoInt = new FlatShellPiezoInt( composite, false);
       BiLinFormContext * stiffContext = 
         new BiLinFormContext( compPiezoInt, STIFFNESS);
 
@@ -1045,7 +1045,7 @@ namespace CoupledField {
       stressDofNames = "rr", "zz", "rz", "phiphi";
 
     } else if( subType_ == "flatShell" ) {
-      Warning( "Not yet implemented" );
+      stressDofNames = "";
     }
 
     // === MECHANIC STRESS ===

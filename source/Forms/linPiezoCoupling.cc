@@ -189,6 +189,7 @@ namespace CoupledField {
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
  
+    std::cerr << "dMat is " << dMat << std::endl;
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
     if(density != 1.0) dMat *= density;  
     LOG_DBG3(forms) << GetName() << "::calcDMat("

@@ -13,7 +13,7 @@ namespace CoupledField {
   ResultInfo::ResultInfo() {
 
     resultType = NO_SOLUTION_TYPE;
-    dofNames = "";
+    dofNames.Clear();
     unit = "";
     complexFormat = AMPLITUDE_PHASE;
     entryType = UNKNOWN;

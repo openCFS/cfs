@@ -19,7 +19,6 @@ namespace CoupledField {
     //std::cout << "FlatShellInt::CoordTrans\n" << std::endl;
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrNodes = ptelem->GetNumFncs( ansatzFct1_ );
-    //const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();
     const UInt lambdaDim = 3; //dimension of the submatrix lambda, part of the transformation matrix
     const UInt TMatDim = getNrDofs(); //dimension of the nodal transformation matrix
@@ -54,7 +53,6 @@ namespace CoupledField {
     Vx[0]= ptCoord[0][1] - ptCoord[0][0] ;
     Vx[1]= ptCoord[1][1] - ptCoord[1][0] ;
     Vx[2]= ptCoord[2][1] - ptCoord[2][0] ;
-
 
     // 1/Length of the vector Vx
     length = 1.0 / sqrt( Vx[0] * Vx[0] + Vx[1] * Vx[1] + Vx[2] * Vx[2] );
@@ -115,13 +113,17 @@ namespace CoupledField {
         ShellCoord[i][j] = NewCoord[i][j];//ptCoord[i][j];
 
     //The Transformation nodal T matrix is 6x6
-    for(UInt k=0;k < TMatDim; k+=3)
-      for ( i=0; i < lambdaDim; i++ )
-        for ( j=0; j< lambdaDim; j++ )
-          TMat[i+k][j+k]=lambdaMat[i][j];
+    for ( i=0; i < lambdaDim; i++ )
+      for ( j=0; j< lambdaDim; j++ )
+        TMat[i+k][j+k]=lambdaMat[i][j];
+
+    k = 3;
+    for ( i=0; i < TMatDim-lambdaDim; i++ )
+      for ( j=0; j< TMatDim-lambdaDim; j++ )
+        TMat[i+k][j+k]=lambdaMat[i][j];
      
     //The transformation Element matrix which is 24x24
-    for( k=0;k < ElementTransMatDim ; k+=6)
+    for( k=0;k < ElementTransMatDim ; k+=nrDofs)
       for ( i=0; i < TMatDim; i++ )
         for ( j=0; j< TMatDim; j++ )
           TransMat[i+k][j+k]=TMat[i][j];
@@ -155,16 +157,17 @@ namespace CoupledField {
 
     //adding the Drilling degree of freedom,which can be defined in the beginning of the file
     const Double K = penaltyDof_;
-    UInt dofspernode_=6;
-    std::cerr << "penaltyDof = " <<  penaltyDof_ << std::endl;
-
-    for( i = dofspernode_ - 1; i < row; i+= dofspernode_ )
-      for( j = dofspernode_ - 1; j < row; j+= dofspernode_ )
-        ElemMat[i][j] = K /*0.001 * Max*/;
+    UInt dofspernode_ = getNrDofs();
+    
+    if ( hasDrillDof_ == true ) {
+      for( i = dofspernode_ - 1; i < row;
+           i+= dofspernode_ )
+        for( j = dofspernode_ - 1; j < row; j+= dofspernode_ )
+          ElemMat[i][j] = K /*0.001 * Max*/;
+    }
 
     //Multiplying the stiffness Matrix with the Transformation matrix
     
-
     KTF = ElemMat * StiffTrans;
 
     //Calculates the transpose of the Transformation Matrix
@@ -174,17 +177,21 @@ namespace CoupledField {
     //Calculates the global stiffness matrix 
 
     ElemMat = TFTrans * KTF;
-    
-   
+
     // to check if the transform matrix is orthogonal
     //    KTF = TFTrans * StiffTrans;
-
+    //std::cerr << "ElemMat = \n" << ElemMat << std::endl;
   }
 
 void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Double> &TransMat )
   {
+
+    //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
+
+    int i, j;
     const Integer row = ElemMat.GetSizeRow(); //equals to nrDofs*nrNodes for linear quadrilateral is 24
     const Integer col = ElemMat.GetSizeCol(); //equals to the number of piezoelectric Layers
+
 
     Matrix<Double> TransMatInv, ElemMatLocal;
         
@@ -220,10 +227,11 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
    // *************************************
   //   Constructor for Composite Material
   // *************************************
-  FlatShellInt::FlatShellInt( Composite * composite ) 
+  FlatShellInt::FlatShellInt( Composite * composite, bool hasDrillDof ) 
     : BaseForm(NULL) {
 
     name_ = "FlatShellInt";
+    hasDrillDof_ = hasDrillDof;
 
     // Set flag
     isComposite_ = true;
@@ -246,9 +254,11 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
   //   Constructor for Normal Material
   // **********************************
   
-  FlatShellInt::FlatShellInt( BaseMaterial * matData ) 
+  FlatShellInt::FlatShellInt( BaseMaterial * matData, bool hasDrillDof ) 
     : BaseForm(matData) {
     
+    hasDrillDof_ = hasDrillDof;
+
     // Set flag
     isComposite_ = false;
   } 

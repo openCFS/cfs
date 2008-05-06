@@ -159,7 +159,6 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainComposite">
     <xsd:sequence>
-      <xsd:element name="startHeight" type="xsd:double" minOccurs="1" maxOccurs="1"/>
       <xsd:sequence>
         <xsd:element name="lamina" maxOccurs="unbounded">
           <xsd:complexType>

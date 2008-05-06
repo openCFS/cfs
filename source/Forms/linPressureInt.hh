@@ -17,6 +17,7 @@ namespace CoupledField {
     //! Standard constructor
     PressureLinForm( const std::string& value, 
                      const std::string& phase,
+                     const std::string& subType,
                      bool isaxi );
     
     //! Destructor
@@ -45,6 +46,10 @@ namespace CoupledField {
 
     //! phase string
     std::string phase_;
+    
+    //! subtype of integrator
+    std::string subType_;
+
 
   };
 

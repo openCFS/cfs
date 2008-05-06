@@ -15,7 +15,7 @@ namespace CoupledField
     public:
     
    //! Constructor with pointer to composite material
-   FlatShellElecInt( Composite *composite);
+   FlatShellElecInt( Composite *composite,  bool hasDrillDof );
    
    //! Destructor
    virtual ~FlatShellElecInt();

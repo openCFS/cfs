@@ -18,10 +18,10 @@ namespace CoupledField
     public:
 
     //! Constructor with pointer to BaseMaterial
-    FlatShellInt(BaseMaterial *matData);
+    FlatShellInt(BaseMaterial *matData, bool hasDrillDof );
    
    //!Constructor with pointer to Composite
-    FlatShellInt(Composite * composite);
+    FlatShellInt(Composite * composite, bool hasDrillDof );
        
     //!  Destructor
     virtual ~FlatShellInt();
@@ -33,7 +33,13 @@ namespace CoupledField
     void SetPenaltyDof( Double penaltyDof ) { penaltyDof_ = penaltyDof; }
    
     //!returns nr. of degrees of freedom
-    UInt getNrDofs(){return 6;};
+    virtual Integer  getNrDofs(){
+      if ( hasDrillDof_) {
+        return 6;
+      } else {
+        return 5;
+      }
+    };
     
 
   protected:
@@ -59,6 +65,9 @@ namespace CoupledField
     
     //! Pointer to composite material
     Composite * composite_;
+
+   // flag indicating if drilling dof is needed
+   bool hasDrillDof_;
  };
 
 }//end of namespace

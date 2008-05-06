@@ -336,16 +336,12 @@ namespace CoupledField {
                              << composite << "'" );
         }
 
-        Double startHeight = compNode->Get("startHeight")->AsDouble();
-        
         // get laminaNodes
         StdVector<ParamNode*> laminaNodes = compNode->GetList("lamina");
         
         // Create new lamina and fill ine materials and thicknesses
         Composite & myMat = compositeMaterials_[actRegionId];
         myMat.name = composite;
-        myMat.zStart = startHeight;
-
         // iterate over all single laminas
         for( UInt j = 0; j < laminaNodes.GetSize(); j++ ) {
 
