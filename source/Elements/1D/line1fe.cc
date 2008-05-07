@@ -6,10 +6,15 @@
 #include <fstream>
 
 #include "line1fe.hh"
+#include "Domain/elem.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField
 {
 
+  // declare class specific logging stream
+  DECLARE_LOG(line1fe)
+  DEFINE_LOG(line1fe,"line1fe")
 
   Line1FE::Line1FE(IntegrationMethod method, int order) : LineFE()
   {
@@ -54,30 +59,107 @@ namespace CoupledField
   void Line1FE::CalcShapeFnc(Vector<Double> & Shape, 
                                const Vector<Double> & LCoord,
                                const Elem* elem, UInt dof,
-                               AnsatzFct::FctEntityType )
+                               AnsatzFct::FctEntityType type)
   {
 
-    Shape.Resize(NumNodes_);
+    if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
+         type == AnsatzFct::NODE ) {
+      Shape.Resize(NumNodes_);
   
-    for( UInt i=0; i<NumNodes_; i++)
-      Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
+      for( UInt i=0; i<NumNodes_; i++)
+        Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
+    }else{
+      // Get number of ansatz functions
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
+
+      // ===============
+      //  LEGENDRE PART
+      // ===============
+
+      // Get number of ansatz functions
+      UInt totalFcns = GetNumFncs( actFct_ );
+
+      Shape.Resize( totalFcns );
+
+      // --------------------
+      //  a) nodal functions
+      // --------------------
+         // Offset for different functions
+      UInt offset = 0;
+      
+      // First of all, calculate all nodal function derivatives
+      for( UInt i=0; i<NumNodes_; i++)
+        Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
+
+      offset = NumNodes_;
+      // --------------------
+      //  b) edge functions
+      // --------------------
+      // Obtain order of element
+      Integer order = dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
+      Double val, factor, deriv;      
+
+      factor = elem->edges[0] < 0 ? -1.0 : 1.0;                 
+      for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {        
+        EvalPolynom( val, deriv, iDof, lCoeff_[iDof],                   
+                     factor*LCoord[0] );                          
+        Shape[offset] = val;       
+      }
+    }
+
 
   }
 
   void Line1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                          const Vector<Double> & LCoord,
                                          const Elem* elem, UInt dof,
-                                         AnsatzFct::FctEntityType )
+                                         AnsatzFct::FctEntityType type)
   {
+    if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
+         type == AnsatzFct::NODE ) {
+      LDeriv.Resize(NumNodes_,Dim_);
 
-    LDeriv.Resize(NumNodes_,Dim_);
+      for( UInt i=0; i<NumNodes_; i++) {
+          LDeriv[i][0] = 0.5*LCornerCoords_[0][i]; 
+        }
+    }else{
+      // ===============
+      //  LEGENDRE PART
+      // ===============
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
 
-    for( UInt i=0; i<NumNodes_; i++)
-      {
-        LDeriv[i][0] = 0.5*LCornerCoords_[0][i];
+      // Get number of ansatz functions
+      UInt totalFcns = GetNumFncs( actFct_ );
+      LDeriv.Resize( totalFcns, Dim_ );
 
+      // --------------------
+      //  a) nodal functions
+      // --------------------
+      UInt offset = 0;
+      
+      // First of all, calculate all nodal function derivatives
+      for( UInt i=0; i<NumNodes_; i++) {
+          LDeriv[i][0] = 0.5*LCornerCoords_[0][i]; 
+        }
+
+      // -------------------
+      //  b) edge functions
+      // -------------------
+      
+      offset = NumNodes_;
+      Double val, deriv, factor;
+      // Obtain order of element
+      Integer order = dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
+      
+      factor = elem->edges[0] < 0 ? -1.0 : 1.0;                 
+      for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {
+        EvalPolynom( val, deriv, iDof, lCoeff_[iDof],
+                     factor*LCoord[0] );          
+        LDeriv[offset][0] =  deriv * factor;      
       }
-  
+    }
   }
 
   void Line1FE::Global2LocalCoords(Matrix<Double> & localCoords,
@@ -137,5 +219,165 @@ namespace CoupledField
     }
   }
 
+  void  Line1FE::GetNumFncs( Vector<UInt>& numFcns,  
+                             const shared_ptr<AnsatzFct>& fcnType, 
+                             AnsatzFct::FctEntityType fctEntityType, 
+                             UInt dof ) {
+
+    // Check ansatzFctType
+    if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
+      numFcns.Resize( NumNodes_ );
+      numFcns.Init(1);
+    } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
+      
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+        (fcnType)->GetIsoOrder();
+      if( fcnType->IsIsotropic() == true ) {
+        // Check for subentity-type
+        if( fctEntityType == AnsatzFct::NODE ) {
+          numFcns.Resize( NumNodes_ );
+          numFcns.Init( 1 );
+          
+        } else if( fctEntityType == AnsatzFct::EDGE ) {
+          numFcns.Resize( NumEdges_ );
+          numFcns.Init( order - 1 );
+        } 
+        else if( fctEntityType == AnsatzFct::INTERIOR ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        } else if( fctEntityType == AnsatzFct::FACE ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        } else {
+          Error( "Not yet implemented!", __FILE__, __LINE__ );
+        }
+      }else {
+         // *** anisotropic case ***
+        // Remember approximation order
+        shared_ptr<LegendreFct> const & legFct = 
+          dynamic_pointer_cast<LegendreFct, AnsatzFct> (fcnType);
+        Matrix<UInt> const & order =  legFct->GetAnisoOrder();
+        
+        // Check for subentity-type
+        if( fctEntityType == AnsatzFct::NODE ) {
+          numFcns.Resize( NumNodes_ );
+          numFcns.Init( 1 );
+          
+        } else if( fctEntityType == AnsatzFct::EDGE ) {
+          numFcns.Resize( NumEdges_ );
+          numFcns.Init(0);
+          // xi-direction
+          numFcns[0]  = order[0][dof]-1;
+        } else if( fctEntityType == AnsatzFct::FACE ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        }else if( fctEntityType == AnsatzFct::INTERIOR ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        }
+
+      } 
+    } else {
+      *error << "AnsatzFcnType '" << fcnType->GetType() 
+             << "' is not known!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+  
+  UInt Line1FE::GetNumFncs( const shared_ptr<AnsatzFct>& type ) {
+    
+    // TODO: FOr anisotropic functions we have
+    // to incorporate the dof in the determination
+    // Check ansatzFctType
+    if( type->GetType() == AnsatzFct::LAGRANGE ) {
+      return NumNodes_;
+    } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
+      if( type->IsIsotropic() == true ) {
+        
+        Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+          (type)->GetIsoOrder();
+        
+        // edge functions
+        UInt numEdgeFncs = NumEdges_* (order-1);
+        
+        LOG_DBG3(line1fe) << "total number of unknowns: "
+                          <<  NumNodes_ + numEdgeFncs 
+                          << std::endl;
+        
+        actNumFcns_ = (NumNodes_ + numEdgeFncs);
+        return actNumFcns_;
+        
+      } else {
+        // *** anisotropic case ***
+        Integer max_1;
+        shared_ptr<LegendreFct> legFct = 
+          dynamic_pointer_cast<LegendreFct, AnsatzFct>(type);
+
+        max_1 = legFct->GetMaxOrderLocDir( 0 );
+        
+        // a) nodes
+        UInt numNodeModes = 2;
+        
+        // b) edges
+        UInt numEdgeModes = 0;
+        numEdgeModes += max_1 > 0 ? (max_1-1)*2 : 0;
+               
+        actNumFcns_ = numNodeModes + numEdgeModes ;
+        return actNumFcns_;
+
+      }
+    }
+    return 0;
+  }
+
+  void Line1FE::SetAnsatzFct( shared_ptr<AnsatzFct>& actFct, 
+                              bool setIntPoints ) {
+
+    // Check if this ansatz fct was already set
+    if( actFct_ == actFct ) {
+      return;
+    }
+    actFct_ = actFct;
+
+    if( actFct->GetType() == AnsatzFct::LEGENDRE
+        && setIntPoints == true ) {
+      
+      // If not, get order of functions
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct);
+      
+      // check if isotropic order is present
+      if( legFct->IsIsotropic() ) {
+        
+        // Prevent integration of first order, as this may
+        // cause non-reasonable results
+        //if( legFct->GetIsoOrder() > 1 ) {
+        IntegMethod = CARTESIAN;
+        //IntegOrder = legFct->GetIsoOrder() *2;
+        IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() *2,
+                                            legFct->GetIsoOrder() *2,
+                                            legFct->GetIsoOrder() *2);
+          // } else {
+          //IntegOrder = 2;
+          //} 
+      } else {
+        IntegMethod = CARTESIAN;
+        IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() * 2,
+                                            legFct->GetMaxOrder() * 2,
+                                            legFct->GetMaxOrder() * 2);
+      }
+      
+      
+      // get the values by IntegMethod and IntegOrder
+      SetIntPoints();
+      
+      // ... then calc shape function values at integration points
+      // for subsequent calls to CalcJacobian() ....
+      SetShapeFncAtIp();
+      SetShapeFncDerivAtIp();
+      
+    }
+  }
 
 } // end of namespace

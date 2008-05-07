@@ -7,10 +7,14 @@
 
 #include "quad1fe.hh"
 #include "Domain/elem.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField
 {
 
+  // declare class specific logging stream
+  DECLARE_LOG(quad1fe)
+  DEFINE_LOG(quad1fe,"quad1fe")
 
   Quad1FE::Quad1FE() : RectangleFE()
   {
@@ -112,7 +116,10 @@ namespace CoupledField
         Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0])
           * (1 + LCornerCoords_[1][i] * actCoord[1]);
     } else {
-      
+      // Get number of ansatz functions
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
+
       // ===============
       //  LEGENDRE PART
       // ===============
@@ -162,21 +169,42 @@ namespace CoupledField
       //  EDGE #4
       QUAD_EDGE_FCN( 4, -, 0, 1 );
  
+      // --------------------
+      //  c) face functions
+      // --------------------
 
-      // ----------------------
-      //  c) bubble functions
-      // ----------------------
-      Double val_i, val_j;
-      for( Integer i = 2; i <= order-2; i++ ) {
-        for( Integer j = 2; j <= order-2; j++ ) {
-          
-          // Condition for trunk space: i+j in [2..max{order_i,order_j}]
-          if ( (i+j) > order ) {continue;}
-          EvalPolynom( val_i, deriv, i, lCoeff_[i], actCoord[0] );
-          EvalPolynom( val_j, deriv, j, lCoeff_[j], actCoord[1] );
-
-          Shape[offset++] = val_i * val_j;
-        }
+      Double val_1, deriv_1, val_2, deriv_2, val_3, deriv_3;
+      Double sFlag2, sFlag3;
+      Integer order_1, order_2, order_3;
+      UInt d2, d3;
+  
+      order_2 = legFct->GetMaxOrderLocDir(0);                        
+      order_3 = legFct->GetMaxOrderLocDir(1);                        
+      if( elem->faceFlags[0].test(0) == true) {              
+        sFlag2 = (elem->faceFlags[0].                        
+                  test(2) == true) ? 1.0 : -1.0;                     
+        sFlag3 = (elem->faceFlags[0].                        
+                  test(1) == true) ? 1.0 : -1.0;                     
+        d2 = 0;                                                   
+        d3 = 1;                                                   
+      } else {                                                       
+        sFlag3 = (elem->faceFlags[0].test(2) == true) ? 1.0 : -1.0; 
+        sFlag2 = (elem->faceFlags[0].test(1) == true) ? 1.0 : -1.0; 
+        d3 = 0;                                                      
+        d2 = 1;                                                      
+      }                                                                 
+      for( Integer i = 2; i <= (order_2)-2; i++ ) {                     
+        for( Integer j = 2; j <= (order_3)-2; j++ ) {                   
+          if( (i + j) > std::max(order_2, order_3) ) { 
+            continue; 
+          }      
+          EvalPolynom( val_2, deriv_2, i, lCoeff_[i],                   
+                       sFlag2* actCoord[d2] );                          
+          EvalPolynom( val_3, deriv_3, j, lCoeff_[j],                   
+                       sFlag3*actCoord[d3] );                           
+          Shape[offset] = val_2  * val_3;                         
+          offset++;                                                     
+        } 
       }
     }
   }
@@ -211,7 +239,9 @@ namespace CoupledField
       // ===============
       //  LEGENDRE PART
       // ===============
-      
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
+
       // Get number of ansatz functions
       UInt totalFcns = GetNumFncs( actFct_ );
       LDeriv.Resize( totalFcns, Dim_ );
@@ -236,6 +266,7 @@ namespace CoupledField
       // -------------------
       
       // Obtain order of element
+      Integer order_1, order_2, order_3;
       Double val, deriv, factor;
       Integer order = 
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
@@ -262,22 +293,51 @@ namespace CoupledField
       // EDGE #4
       QUAD_EDGE_DERIV( 4, -, 0, 1 );
 
-      // ---------------------
-      //  c) bubble functions
-      // ---------------------
-      Double val_i, deriv_i, val_j, deriv_j;
-      for( Integer i = 2; i <= order-2; i++ ) {
-        for( Integer j = 2; j <= order-2; j++ ) {
-    
-          // Condition for trunk space: i+j in [2..max{order_i,order_j}]
-          if ( (i+j) > order ) {continue;}
-          EvalPolynom( val_i, deriv_i, i, lCoeff_[i], actCoord[0] );
-          EvalPolynom( val_j, deriv_j, j, lCoeff_[j], actCoord[1] );
+      // -------------------
+      //  c) face functions
+      // -------------------
+       
+       Double val_2, deriv_2, val_3, deriv_3;
+      Double sFlag2, sFlag3;
+      UInt d2, d3;
 
-          LDeriv[offset][0] = deriv_i * val_j;
-          LDeriv[offset][1] =   val_i * deriv_j;
-          offset++;
-        }
+      order_2 = legFct->GetMaxOrderLocDir(0);                       
+      order_3 = legFct->GetMaxOrderLocDir(1);                       
+      LOG_DBG3(quad1fe) << "Treating face " << elem->faces[0];  
+      LOG_DBG3(quad1fe) << "bitset: " << elem->faceFlags[0];    
+      if( elem->faceFlags[0].test(0) == true) {                 
+        sFlag2 = (elem->faceFlags[0].                           
+                  test(2) == true) ? 1.0 : -1.0;                        
+        sFlag3 = (elem->faceFlags[0].                           
+                  test(1) == true) ? 1.0 : -1.0;                        
+        d2 = 0;                                                     
+        d3 = 1;                                                     
+      } else {                                                          
+        sFlag3 = (elem->faceFlags[0].test(2) == true) ? 1.0 : -1.0; 
+        sFlag2 = (elem->faceFlags[0].test(1) == true) ? 1.0 : -1.0; 
+        d3 = 0;                                                     
+        d2 = 1;                                                     
+                                                                        
+      }                                                                 
+      LOG_DBG3(quad1fe) << "I-Flag: " << sFlag2                         
+                        << ", II-Flag: " << sFlag3;                     
+      LOG_DBG3(quad1fe) << "I-direction: " << d2                        
+                        << ", II-direction: " << d3;                    
+      for( Integer i = 2; i <= (order_2) - 2; i++ ) {                   
+        for( Integer j = 2; j <= (order_3) - 2; j++ ) {                 
+          if( (i + j) > std::max(order_2,order_3) ) { continue; }       
+          EvalPolynom( val_2, deriv_2, i, lCoeff_[i],                   
+                       sFlag2* actCoord[d2] );                          
+          EvalPolynom( val_3, deriv_3, j, lCoeff_[j],                   
+                       sFlag3*actCoord[d3] );                           
+          LOG_DBG3(quad1fe) << "deriv_2 = " << deriv_2                  
+                            << ", deriv_3 = " << deriv_3;               
+          LOG_DBG3(quad1fe) << "val_2 = " << val_2                      
+                            << ", val_3 = " << val_3 << std::endl;      
+          LDeriv[offset][d2] = deriv_2 * sFlag2 * val_3;
+          LDeriv[offset][d3] = val_2 * deriv_3 * sFlag3;
+          offset++;                                                     
+        } 
       }
     }
   }
@@ -367,30 +427,75 @@ namespace CoupledField
       // Remember approximation order
       Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
         (fcnType)->GetIsoOrder();
-      // Check for subentity-type
-      if( fctEntityType == AnsatzFct::NODE ) {
-        numFcns.Resize( NumNodes_ );
-        numFcns.Init( 1 );
-        
-      } else if( fctEntityType == AnsatzFct::EDGE ) {
-        numFcns.Resize( NumEdges_ );
-        numFcns.Init( order - 1 );
-      } 
-      else if( fctEntityType == AnsatzFct::INTERIOR ) {
-        numFcns.Resize(1);
-        
-        UInt inc = 1;
-        UInt total = 0;
-        for (Integer i = 4; i<=order; i++ ) {
-          total += inc++;
+      if( fcnType->IsIsotropic() == true ) {
+        // Check for subentity-type
+        if( fctEntityType == AnsatzFct::NODE ) {
+          numFcns.Resize( NumNodes_ );
+          numFcns.Init( 1 );
+          
+        } else if( fctEntityType == AnsatzFct::EDGE ) {
+          numFcns.Resize( NumEdges_ );
+          numFcns.Init( order - 1 );
+        } 
+        else if( fctEntityType == AnsatzFct::INTERIOR ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        } else if( fctEntityType == AnsatzFct::FACE ) {
+          numFcns.Resize(1);
+          
+          UInt inc = 1;
+          UInt total = 0;
+          for (Integer i = 4; i<=order; i++ ) {
+            total += inc++;
+          }
+          numFcns.Init(total);
+        } else {
+          Error( "Not yet implemented!", __FILE__, __LINE__ );
         }
-        numFcns.Init(total);
-      } else if( fctEntityType == AnsatzFct::FACE ) {
-        numFcns.Clear();
-      } else {
-        Error( "Not yet implemented!", __FILE__, __LINE__ );
-      }
-      
+      }else {
+         // *** anisotropic case ***
+        // Remember approximation order
+        shared_ptr<LegendreFct> const & legFct = 
+          dynamic_pointer_cast<LegendreFct, AnsatzFct> (fcnType);
+        Matrix<UInt> const & order =  legFct->GetAnisoOrder();
+        
+        // Check for subentity-type
+        if( fctEntityType == AnsatzFct::NODE ) {
+          numFcns.Resize( NumNodes_ );
+          numFcns.Init( 1 );
+          
+        } else if( fctEntityType == AnsatzFct::EDGE ) {
+          numFcns.Resize( NumEdges_ );
+          numFcns.Init(0);
+          // xi-direction
+          numFcns[0]  = order[0][dof]-1;
+          numFcns[2]  = numFcns[0];
+         
+          // eta-direction
+          numFcns[1]  = order[1][dof]-1;
+          numFcns[3]  = numFcns[1];
+                   
+        } else if( fctEntityType == AnsatzFct::FACE ) {
+          numFcns.Resize( NumFaces_ );
+          
+          UInt numFaceFncs = 0;
+          Integer max = 0;
+           // Face #1
+           // max = std::max( order[0][dof], order[1][dof] );
+          for( Integer i = 2; i<= (Integer)order[0][dof]-2; i++ ) {
+            for( Integer j = 2; j<= (Integer)order[1][dof]-2; j++ ) {
+              if( i+j <= max) {
+                numFaceFncs++;
+              }
+            }
+          }
+          numFcns[0] = numFaceFncs;
+        }else if( fctEntityType == AnsatzFct::INTERIOR ) {
+          numFcns.Resize(1);
+          numFcns.Init(0);
+        }
+
+      } 
     } else {
       *error << "AnsatzFcnType '" << fcnType->GetType() 
              << "' is not known!";
@@ -406,15 +511,71 @@ namespace CoupledField
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
       return NumNodes_;
     } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
-      Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
-        (type)->GetIsoOrder();
-      UInt numBubbles = 0;
-      UInt inc = 1;
-      for (Integer i = 4; i<=order; i++ ) {
-        numBubbles += inc++;
+      if( type->IsIsotropic() == true ) {
+        
+        Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+          (type)->GetIsoOrder();
+        
+        // edge functions
+        UInt numEdgeFncs = NumEdges_* (order-1);
+        
+        // faces
+        UInt numFaceFncs = 0;
+        for( Integer i = 2; i<= order-2; i++ ) {
+          for( Integer j = 2; j<= order-2; j++ ) {
+            if( i+j <= order) {
+              numFaceFncs++;
+            }
+          }
+        }
+        numFaceFncs *= NumFaces_;
+        
+        LOG_DBG3(quad1fe) << "numFaceFncs = " << numFaceFncs << std::endl;
+                
+        LOG_DBG3(quad1fe) << "total number of unknowns: "
+                          <<  NumNodes_ + numFaceFncs + numEdgeFncs 
+                          << std::endl;
+        
+        actNumFcns_ = (NumNodes_ + numFaceFncs + numEdgeFncs);
+        return actNumFcns_;
+        
+      } else {
+        // *** anisotropic case ***
+        Integer max_1, max_2;
+        shared_ptr<LegendreFct> legFct = 
+          dynamic_pointer_cast<LegendreFct, AnsatzFct>(type);
+
+        max_1 = legFct->GetMaxOrderLocDir( 0 );
+        max_2 = legFct->GetMaxOrderLocDir( 1 );
+        
+        // a) nodes
+        UInt numNodeModes = 4;
+        
+        // b) edges
+        UInt numEdgeModes = 0;
+        numEdgeModes += max_1 > 0 ? (max_1-1)*2 : 0;
+        numEdgeModes += max_2 > 0 ? (max_2-1)*2 : 0;
+               
+        Matrix<UInt> const & order = legFct->GetAnisoOrder();
+
+        // c) faces
+        UInt numFaceModes = 0;
+        Integer max = 0;
+        // Face #1 and #6
+        max = std::max( max_1, max_2 );
+        for( Integer i = 2; i<= max_1 - 2; i++ ) {
+          for( Integer j = 2; j<= max_2 - 2; j++ ) {
+            if( i+j <= max) {
+              numFaceModes++;
+            }
+          }
+        }
+           
+        UInt actNumFcns = numNodeModes + numEdgeModes 
+          + numFaceModes;
+        return actNumFcns;
+
       }
-      return (NumNodes_ + (NumEdges_*(order-1)) + numBubbles);
-      
     }
     return 0;
   }
@@ -452,9 +613,9 @@ namespace CoupledField
           //} 
       } else {
         IntegMethod = CARTESIAN;
-        IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() + 2,
-                                            legFct->GetMaxOrder() + 2,
-                                            legFct->GetMaxOrder() + 2);
+        IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() * 2,
+                                            legFct->GetMaxOrder() * 2,
+                                            legFct->GetMaxOrder() * 2);
       }
       
       

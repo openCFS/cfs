@@ -165,15 +165,13 @@ namespace CoupledField {
     //   c) face <-> eqnNr (only in 3D)
     //   -------------------------------
 
-    if( ptGrid_->GetDim() == 3 ) {
-      // iterate over all resultDofs
-      for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-        // check if resultDof is mapped onto nodes
-        if( it->first.definedOn == ResultInfo::FACE ||
-            it->first.definedOn == ResultInfo::PFEM ) {
-          for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-            faceMappedList_[it->first].Push_back( it->second[iList] );
-          }
+    // iterate over all resultDofs
+    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
+      // check if resultDof is mapped onto nodes
+      if( it->first.definedOn == ResultInfo::FACE ||
+          it->first.definedOn == ResultInfo::PFEM ) {
+        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
+          faceMappedList_[it->first].Push_back( it->second[iList] );
         }
       }
     }
@@ -351,6 +349,7 @@ namespace CoupledField {
     // first of all, delete eqns-array
     eqns.Clear();
     
+    UInt numDofs = result.dofNames.GetSize();
     // ============
     //  NODAL PART 
     // ============
@@ -423,7 +422,10 @@ namespace CoupledField {
         // get local edge number
         Integer locEdge = mesh2PdeEdge_[ std::abs(edges[iEdge]) -1 ];
 
-        eqns.Push_back( map[locEdge-1][dof-1] );
+        // for now, all equation number associated with this edge will be
+        // returned
+        for( UInt iDof = dof-1 ; iDof < map[locEdge-1].GetSize(); iDof+=numDofs ) 
+          eqns.Push_back( map[locEdge-1][iDof] );
       }
     }
 
@@ -454,7 +456,9 @@ namespace CoupledField {
         // get local face number
         Integer locFace = mesh2PdeFace_[ faces[iFace] -1 ];
 
-        eqns.Push_back( map[locFace-1][dof-1] );
+        for( UInt iDof = dof-1 ; iDof < map[locFace-1].GetSize(); iDof+=numDofs ) 
+          eqns.Push_back( map[locFace-1][iDof] );
+        //eqns.Push_back( map[locFace-1][dof-1] );
       }
     }
       
@@ -466,8 +470,10 @@ namespace CoupledField {
     if( result.definedOn == ResultInfo::ELEMENT  ||
         result.definedOn == ResultInfo::PFEM ) {
       StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
-      UInt localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
-      if (localElem < 1 ) {
+      Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
+      if( localElem < 0){
+        //nothing to do here
+      }else if (localElem < 1 ) {
         eqns.Push_back(0);
       } else {
         eqns.Push_back( elemMap[localElem-1][dof-1] );
@@ -578,6 +584,8 @@ namespace CoupledField {
         Integer locEdge = mesh2PdeEdge_[ std::abs(edges[iEdge]) -1 ];
 
         // iterate over all dofs of this edge
+        // for now, all equation number associated with this edge will be
+        // returned
         for( UInt iDof = 0; iDof < map[locEdge-1].GetSize(); iDof++ ) {
           eqns.Push_back( map[locEdge-1][iDof] );
         }
@@ -626,9 +634,11 @@ namespace CoupledField {
     if( result.definedOn == ResultInfo::ELEMENT  ||
         result.definedOn == ResultInfo::PFEM ) {
       StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
-      UInt localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
+      Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
       for (UInt iDof = 0; iDof < elemMap[localElem-1].GetSize(); iDof++ ) {
-        if (localElem < 1 ) {
+        if( localElem < 0){
+          //nothing to do here
+        }else if (localElem < 1 ) {
           eqns.Push_back(0);
         } else {
           eqns.Push_back( elemMap[localElem-1][iDof] );

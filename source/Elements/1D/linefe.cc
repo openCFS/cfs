@@ -19,7 +19,7 @@ namespace CoupledField
 
     Dim_ = 1;
     NumEdges_   = 1;
-    NumFaces_   = 1;
+    NumFaces_   = 0;
     NumCorners_ = 2;
     numChilds_  = 1;
     MidPoint_.Resize(2);
@@ -299,26 +299,48 @@ namespace CoupledField
 
   void LineFE::SetShapeFncAtIp()
   {
-
-    if (!ShFncAtIp_)
+    if (!ShFncAtIp_) {
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
-  
-    for( UInt i=0; i<NumIntPoints_; i++ )
-      CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], NULL, 
-                    1, AnsatzFct::ALL );
-  
+    } else{ 
+      delete[] ShFncAtIp_ ;
+      ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
+    }
+
+    for( UInt i=0; i<NumIntPoints_; i++ ) {
+      CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], 
+                    NULL, 1, AnsatzFct::NODE );
+    }
   }
 
 
   void LineFE::SetShapeFncDerivAtIp()
   {
-
-    if( !ShFncDerivAtIp_)
+    if( !ShFncDerivAtIp_) {
+      ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+    } 
+    else{ 
+      delete[] ShFncDerivAtIp_ ;
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
-  
+    }
+
     for( UInt i=0; i<NumIntPoints_; i++ )
       CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i], 
-                              NULL, 1, AnsatzFct::ALL );
+                              NULL, 1, AnsatzFct::NODE );
+
+    // check, if incompatible modes are used
+    if ( ICModes_ ) {
+      if( !ShFncICModesDerivAtIp_ ) {
+        ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+      } 
+      else{ 
+        delete[]  ShFncICModesDerivAtIp_ ;
+        ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+      }
+      for( UInt i=0; i<NumIntPoints_; i++ ) {
+	CalcLocalICModesDerivShapeFnc(  ShFncICModesDerivAtIp_[i], IntPoints_[i], 
+					NULL, 1, AnsatzFct::NODE );
+      }
+    }
   }
 
 
