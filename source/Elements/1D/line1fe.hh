@@ -84,6 +84,17 @@ namespace CoupledField
     virtual void Global2LocalCoords(Matrix<Double> & localCoords,
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat);
+
+    virtual void GetNumFncs(Vector<UInt>& numFcns, 
+                    const shared_ptr<AnsatzFct>& fcnType, 
+                    AnsatzFct::FctEntityType fctEntityType, 
+                    UInt dof = 1);
+
+
+    virtual UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
+
+    virtual void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct, bool setIntPoints ) ;
+
   private:
   };
 

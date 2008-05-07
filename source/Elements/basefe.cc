@@ -928,26 +928,27 @@ namespace CoupledField
     if(order1 > 99 || order2 > 99 || order3 > 99) 
       EXCEPTION("Cartesian product numerical integration only with orders < 99");
         
-    return order1 + 100 * order2 + (order3 > 0 && Dim_ == 3 ? 10000 : 0) * order3;
+    return order1 + (order2 > 0 && Dim_ >= 2 ? 100 : 0) * order2 + (order3 > 0 && Dim_ == 3 ? 10000 : 0) * order3;
   }
 
   /** private order decoder */
   void BaseFE::DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3)
   {
-    if(encoded_order <= 11 || encoded_order > 999999) 
+    if(encoded_order > 999999) 
       EXCEPTION("Invalid encoded cartesian integration order");
            
            
     *order3 = (encoded_order >= 10000) ? encoded_order/10000 : 0;   
     encoded_order -= 10000 * (*order3);
         
-    *order2 = encoded_order/100;
+    *order2 = (encoded_order >= 100) ? encoded_order/100 : 0;
     encoded_order -= 100 * (*order2);        
         
     *order1 = encoded_order;
         
     // we cannot set it to 0 before as order2 needs to be < 19
     if(Dim_ != 3) *order3 = 0;
+    if(Dim_ < 2) *order2 = 0;
   }
 
 
@@ -1153,7 +1154,7 @@ namespace CoupledField
     {
       // doesn't exist -> create
       Line1FE* line1 = new Line1FE(ECONOMICAL, order1);
-      Line1FE* line2 = new Line1FE(ECONOMICAL, order2);
+      Line1FE* line2 = Dim_ >= 2 ? new Line1FE(ECONOMICAL, order2) : NULL;
       Line1FE* line3 = Dim_ == 3 ? new Line1FE(ECONOMICAL, order3) : NULL;
           
       // store in map 
@@ -1161,7 +1162,7 @@ namespace CoupledField
           
       // destroy temp objects
       if(line3) delete line3;
-      delete line2;
+      if(line2) delete line2;
       delete line1;
     }   
       
@@ -1181,10 +1182,10 @@ namespace CoupledField
   void BaseFE::CreateCartesianIntegration(BaseFE* line1, BaseFE* line2, BaseFE* line3)
   {
     // we store in map format, as such we have dim corrdinates + weight
-    int rows = line1->NumIntPoints_ * line2->NumIntPoints_ * (Dim_ == 3 ? line3->NumIntPoints_ : 1);
+    int rows = line1->NumIntPoints_ * (Dim_ >= 2 ? line2->NumIntPoints_ : 1) * (Dim_ == 3 ? line3->NumIntPoints_ : 1);
 
     std::string key;
-    MakeKey(line1->IntegOrder, line2->IntegOrder, line3 != NULL ? line3->IntegOrder : 0, key);
+    MakeKey(line1->IntegOrder, line2 != NULL ? line2->IntegOrder : 0, line3 != NULL ? line3->IntegOrder : 0, key);
         
     // check the key for uniqueness
     if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
@@ -1199,7 +1200,7 @@ namespace CoupledField
     int counter = 0;
     for(UInt i = 0; i < line1->NumIntPoints_; i++)
     {
-      for(UInt j = 0; j < line2->NumIntPoints_; j++)
+      for(UInt j = 0; j < (Dim_ >= 2 ? line2->NumIntPoints_ : 1); j++)
       {
         // in 2D run the k loop one time for every i,j iteration
         for(UInt k = 0; k < (Dim_ == 3 ? line3->NumIntPoints_ : 1); k++)
@@ -1211,9 +1212,9 @@ namespace CoupledField
                 
           // store the coordinates and the weight
           *(row + 0)= line1->IntPoints_[i][0];
-          *(row + 1)= line2->IntPoints_[j][0];                
+          if(Dim_ >= 2) *(row + 1)= line2->IntPoints_[j][0];                
           if(Dim_ == 3) *(row + 2)= line3->IntPoints_[k][0];                
-          *(row + Dim_)= line1->IntWeights_[i] * line2->IntWeights_[j] * (Dim_  == 3 ? line3->IntWeights_[k] : 1.);
+          *(row + Dim_)= line1->IntWeights_[i] * (Dim_  >= 2 ? line2->IntWeights_[j] : 1.) * (Dim_  == 3 ? line3->IntWeights_[k] : 1.);
         }
       }
     }
@@ -1244,7 +1245,8 @@ namespace CoupledField
     // the fallback will work
     if(IntegMethod == CARTESIAN 
        && (strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_HEXA8].c_str()) == 0  
-           || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_QUAD4].c_str()) == 0))
+           || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_QUAD4].c_str()) == 0
+           || strcmp(GetShapeName(), ELEM_TYPE_NAMES[ET_LINE2].c_str()) == 0))
     {        
       // create the map entry on the fly
       int order1, order2, order3;
