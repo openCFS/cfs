@@ -7,6 +7,8 @@
 
 #include <Elements/basefe.hh>
 #include <Elements/1D/linefe.hh>
+#include <Domain/elem.hh>
+#include "Utils/vector.hh"
 
 namespace CoupledField
 {
@@ -96,6 +98,22 @@ namespace CoupledField
     virtual void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct, bool setIntPoints ) ;
 
   private:
+    void CalcSpectralShFct( Vector<Double> & Shape, 
+                            const Vector<Double> & LCoord,
+                            const Elem* elem, UInt dof,
+                            AnsatzFct::FctEntityType type );
+
+    void CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                       const Vector<Double> & LCoord,
+                                       const Elem* elem, UInt dof,
+                                       AnsatzFct::FctEntityType type);
+
+    //! 1D Lagrange functions at IPs for spectral mode
+    Vector<Double> * sShFcnAtIp_;
+
+    //! 1D derivatives of Lagrange fncs at ips for spectral Mode
+    Vector<Double> * sDerivAtIp_;
+
   };
 
 } // end of namespace

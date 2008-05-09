@@ -2571,6 +2571,13 @@ namespace CoupledField {
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
       res1->definedOn = ResultInfo::NODE;
       res1->fctType = fct;
+    }else if(  approxType == "spectral" ) {
+      UInt order = myParam_->Get("order")->AsUInt();
+      shared_ptr<SpectralFct> fct(new SpectralFct);
+      res1->definedOn = ResultInfo::PFEM;
+      fct->SetOrder(order);
+      res1->fctType = fct;
+
     } else {
       UInt order = myParam_->Get("order")->AsUInt();
       

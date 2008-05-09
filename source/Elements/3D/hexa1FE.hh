@@ -108,6 +108,17 @@ namespace CoupledField
     UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
   private:
+
+    virtual void CalcSpectralShFct( Vector<Double> & Shape, 
+                                    const Vector<Double> & LCoord,
+                                    const Elem* elem, UInt dof,
+                                    AnsatzFct::FctEntityType type );
+
+    virtual void CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                       const Vector<Double> & LCoord,
+                                       const Elem* elem, UInt dof,
+                                       AnsatzFct::FctEntityType type);
+
    
   };
 

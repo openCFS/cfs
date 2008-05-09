@@ -114,6 +114,21 @@ namespace CoupledField
     UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
   private:
+    virtual void CalcSpectralShFct( Vector<Double> & Shape, 
+                                    const Vector<Double> & LCoord,
+                                    const Elem* elem, UInt dof,
+                                    AnsatzFct::FctEntityType type );
+
+    virtual void CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                       const Vector<Double> & LCoord,
+                                       const Elem* elem, UInt dof,
+                                       AnsatzFct::FctEntityType type);
+
+    //! 1D Lagrange functions at IPs for spectral mode
+    Vector<Double> * sShFcnAtIp_;
+
+    //! 1D derivatives of Lagrange fncs at ips for spectral Mode
+    Vector<Double> * sDerivAtIp_;
 
     //! 1D Legendre functions at IPs
     Vector<Double> * lShFcnAtIp_;

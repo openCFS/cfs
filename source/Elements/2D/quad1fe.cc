@@ -34,6 +34,9 @@ namespace CoupledField
     CommonInit();
     SetEdgeIndices();
     SetFaceIndices();
+    sDerivAtIp_ = new Vector<Double>[2];
+    sShFcnAtIp_ = new Vector<Double>[2];
+
   }
 
   void Quad1FE::SetCornerCoords()
@@ -115,6 +118,12 @@ namespace CoupledField
       for( UInt i=0; i<NumNodes_; i++)
         Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0])
           * (1 + LCornerCoords_[1][i] * actCoord[1]);
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralShFct(Shape,actCoord,elem,dof,type);
+
     } else {
       // Get number of ansatz functions
       shared_ptr<LegendreFct> legFct = 
@@ -173,9 +182,9 @@ namespace CoupledField
       //  c) face functions
       // --------------------
 
-      Double val_1, deriv_1, val_2, deriv_2, val_3, deriv_3;
+      Double val_2, deriv_2, val_3, deriv_3;
       Double sFlag2, sFlag3;
-      Integer order_1, order_2, order_3;
+      Integer order_2, order_3;
       UInt d2, d3;
   
       order_2 = legFct->GetMaxOrderLocDir(0);                        
@@ -216,9 +225,6 @@ namespace CoupledField
                                          UInt dof,
                                          AnsatzFct::FctEntityType type )
   {
-
-
-
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
         type == AnsatzFct::NODE ) {
 
@@ -227,13 +233,20 @@ namespace CoupledField
       // ===============
       LDeriv.Resize(NumNodes_,Dim_);
       for( UInt i=0; i<NumNodes_; i++)
-	{
-	  LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
-	    * (1 + LCornerCoords_[1][i] * actCoord[1] );
-	  LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0] )
-	    * LCornerCoords_[1][i];
-	}
+	      {
+	        LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
+	                            * (1 + LCornerCoords_[1][i] * actCoord[1] );
+	        LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0] )
+	                            * LCornerCoords_[1][i];
+	      }
     
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralDerivFct(LDeriv,actCoord,elem,dof,type);
+      return;
+
     } else {
 
       // ===============
@@ -266,7 +279,7 @@ namespace CoupledField
       // -------------------
       
       // Obtain order of element
-      Integer order_1, order_2, order_3;
+      Integer order_2, order_3;
       Double val, deriv, factor;
       Integer order = 
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
@@ -422,6 +435,54 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
+    }else if(fcnType->GetType() == AnsatzFct::SPECTRAL)
+    {
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (fcnType)->GetOrder();
+
+      if( fctEntityType == AnsatzFct::NODE ) {
+        numFcns.Resize( NumNodes_ );
+        numFcns.Init( 1 );
+        
+      } else if( fctEntityType == AnsatzFct::EDGE ) {
+        numFcns.Resize( NumEdges_ );
+        numFcns.Init( order - 1 );
+      } 
+      else if( fctEntityType == AnsatzFct::INTERIOR ) {
+        numFcns.Resize(1);
+        numFcns.Init(0);
+      } 
+      else if( fctEntityType == AnsatzFct::FACE ) {
+        numFcns.Resize(1);
+        numFcns.Init((order -1)*(order -1));  
+      } else {
+        Error( "Not yet implemented!", __FILE__, __LINE__ );
+      }
+
+    }else if(fcnType->GetType() == AnsatzFct::SPECTRAL){
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (fcnType)->GetOrder();
+
+      if( fctEntityType == AnsatzFct::NODE ) {
+        numFcns.Resize( NumNodes_ );
+        numFcns.Init( 1 );
+        
+      } else if( fctEntityType == AnsatzFct::EDGE ) {
+        numFcns.Resize( NumEdges_ );
+        numFcns.Init( order - 1 );
+      } 
+      else if( fctEntityType == AnsatzFct::INTERIOR ) {
+        numFcns.Resize(1);
+        numFcns.Init(0);
+      } 
+      else if( fctEntityType == AnsatzFct::FACE ) {
+        numFcns.Resize(1);
+        numFcns.Init((order -1)*(order -1));  
+      } else {
+        Error( "Not yet implemented!", __FILE__, __LINE__ );
+      }
+      return;
+
     } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
       
       // Remember approximation order
@@ -510,6 +571,10 @@ namespace CoupledField
     // Check ansatzFctType
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
       return NumNodes_;
+    }else if(type->GetType() == AnsatzFct::SPECTRAL){
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (type)->GetOrder();
+      return (order+1)*(order+1);
+
     } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
       if( type->IsIsotropic() == true ) {
         
@@ -556,7 +621,7 @@ namespace CoupledField
         numEdgeModes += max_1 > 0 ? (max_1-1)*2 : 0;
         numEdgeModes += max_2 > 0 ? (max_2-1)*2 : 0;
                
-        Matrix<UInt> const & order = legFct->GetAnisoOrder();
+        //Matrix<UInt> const & order = legFct->GetAnisoOrder();
 
         // c) faces
         UInt numFaceModes = 0;
@@ -589,8 +654,28 @@ namespace CoupledField
       return;
     }
     actFct_ = actFct;
-    
-    if( actFct->GetType() == AnsatzFct::LEGENDRE
+    if( actFct->GetType() == AnsatzFct::SPECTRAL ) 
+    {
+      // If not, get order of functions
+      shared_ptr<SpectralFct> specFct = 
+        dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct);
+      
+      IntegMethod = LOBATTO;
+      IntegOrder = 2 * specFct->GetOrder() - 1;
+      sShFcnAtIp_[0].Resize(specFct->GetOrder()+1);
+      sShFcnAtIp_[1].Resize(specFct->GetOrder()+1);
+      sDerivAtIp_[0].Resize(specFct->GetOrder()+1);
+      sDerivAtIp_[1].Resize(specFct->GetOrder()+1);
+
+      // get the values by IntegMethod and IntegOrder
+      SetIntPoints();
+      
+      // ... then calc shape function values at integration points
+      // for subsequent calls to CalcJacobian() ....
+      SetShapeFncAtIp();
+      SetShapeFncDerivAtIp();
+
+    } else if( actFct->GetType() == AnsatzFct::LEGENDRE
         && setIntPoints == true ) {
       
       // If not, get order of functions
@@ -630,6 +715,149 @@ namespace CoupledField
     }
   }
 
+  void Quad1FE::CalcSpectralShFct( Vector<Double> & Shape, 
+                                  const Vector<Double> & LCoord,
+                                  const Elem* elem, UInt dof,
+                                  AnsatzFct::FctEntityType type ) {
+     shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+      UInt order = myFct->GetOrder();
+      
+      Shape.Resize( (order+1) * (order+1) );
+      Shape.Init(0.0);
+      //now get the shape functions and the derivatives for the given coordinates
+      sShFcnAtIp_[0].Init(0.0);
+      sShFcnAtIp_[1].Init(0.0);
+      myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
+      myFct->EvaluatePolynomial( sShFcnAtIp_[1], LCoord[1] );
+
+      UInt offset = 0;
+      for(UInt i = 0; i<=order;i+=order)
+      {
+        Shape[offset]= sShFcnAtIp_[0][i] * sShFcnAtIp_[1][0];
+        Shape[NumNodes_-1-offset++] = sShFcnAtIp_[0][i] * sShFcnAtIp_[1][order];
+      }
+      offset = NumNodes_;
+
+      //Define two switch vaiables in order to determine the order in which the faces have to be filled
+#define FILL_SPECTRAL_EDGE(numEdge, shape, p){        \
+      Integer factor = elem->edges[numEdge-1]; \
+      if(factor < 0){        \
+        for ( UInt i= 1 ; i< order  ;i++ )    \
+          Shape[offset++] = shape[order - i] * p;  \
+      }else{                                  \
+        for ( UInt i= 1; i< order ;i++ )  \
+          Shape[offset++] = shape[i] * p;  \
+      }                                      \
+    }
+      FILL_SPECTRAL_EDGE(1, sShFcnAtIp_[0], sShFcnAtIp_[1][0]);
+      FILL_SPECTRAL_EDGE(2, sShFcnAtIp_[1], sShFcnAtIp_[0][order]);
+      FILL_SPECTRAL_EDGE(3, sShFcnAtIp_[0], sShFcnAtIp_[1][order]);
+      FILL_SPECTRAL_EDGE(4, sShFcnAtIp_[1], sShFcnAtIp_[0][0]);
+
+#define FILL_SPECTRAL_FACE( numFace, shape1, shape2)                                  \
+      {                                                                            \
+        Integer s1,s2;                                                                \
+        if(! elem->faceFlags[numFace-1].test(0)){                                  \
+          std::swap(shape1,shape2);                                                \
+          s1 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                    \
+          s2 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                    \
+        }else {                                                                    \
+          s1 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                    \
+          s2 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                    \
+        }                                                                           \
+        for ( Integer j= 1;j< (Integer)order ;j++ )                              \
+        {                                                                          \
+          for ( Integer i = 1; i< (Integer)order ;i++ )                              \
+          {                                                                        \
+            Shape[offset++] = shape1[abs(s1-i)] * shape2[abs(s2-j)];                   \
+          }                                                                        \
+        }                                                                          \
+        if(! elem->faceFlags[numFace-1].test(0))                                  \
+          std::swap(shape1,shape2);                                                \
+      }                                                                                  
+      //std::cerr << "Elem# "<< elem->elemNum<< std::endl;
+      //std::cerr << "Flag0: " << elem->faceFlags[0].test(0) << std::endl;
+      //std::cerr << "Flag1: " << elem->faceFlags[0].test(1) << std::endl;
+      //std::cerr << "Flag2: " << elem->faceFlags[0].test(2) << std::endl;
+      FILL_SPECTRAL_FACE(1,sShFcnAtIp_[0],sShFcnAtIp_[1]);
+      return;
+  }
+
+  void Quad1FE::CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                     const Vector<Double> & LCoord,
+                                     const Elem* elem, UInt dof,
+                                     AnsatzFct::FctEntityType type){
+      shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+      UInt order = myFct->GetOrder();
+      
+      sShFcnAtIp_[0].Init(0.0);
+      sShFcnAtIp_[1].Init(0.0);
+      sDerivAtIp_[0].Init(0.0);
+      sDerivAtIp_[1].Init(0.0);
+
+      LDeriv.Resize( (order+1) * (order+1), Dim_ );
+      //now get the shape functions and the derivatives for the given coordinates
+      myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
+      myFct->EvaluatePolynomial( sShFcnAtIp_[1], LCoord[1] );
+      myFct->EvaluateDerivPolynomial( sDerivAtIp_[0], LCoord[0] );
+      myFct->EvaluateDerivPolynomial( sDerivAtIp_[1], LCoord[1] );
+
+      //now fill the node derivatives
+      UInt offset = 0;
+      for(UInt i = 0; i<=order;i+=order,offset++)
+      {
+        LDeriv[offset][0]= sDerivAtIp_[0][i] * sShFcnAtIp_[1][0];
+        LDeriv[offset][1]= sShFcnAtIp_[0][i] * sDerivAtIp_[1][0];
+        LDeriv[NumNodes_-1-offset][0] = sDerivAtIp_[0][i] * sShFcnAtIp_[1][order];
+        LDeriv[NumNodes_-1-offset][1] = sShFcnAtIp_[0][i] * sDerivAtIp_[1][order];
+      }
+      offset = NumNodes_;
+
+      //Define two switch vaiables in order to determine the order in which the faces have to be filled
+      //now for the edge derivatives
+#define FILL_EDGE_DERIV(numEdge, Shape, ShapeDeriv, p, pDeriv){   \
+      if(elem->edges[numEdge-1] < 0){                             \
+        for ( UInt run= 1; run< order ;run++ ){                  \
+          LDeriv[offset][0] = ShapeDeriv[order - run] * p;       \
+          LDeriv[offset++][1] = Shape[order - run] * pDeriv;     \
+        }                                                         \
+      }else{                                                      \
+        for ( UInt run= 1; run< order ;run++ ){                  \
+          LDeriv[offset][0] = ShapeDeriv[run] * p;                \
+          LDeriv[offset++][1] = Shape[run] * pDeriv;              \
+        }                                                         \
+      }                                                           \
+    }
+
+      FILL_EDGE_DERIV(1, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1][0], sDerivAtIp_[1][0]);
+      FILL_EDGE_DERIV(2, sDerivAtIp_[1], sShFcnAtIp_[1], sDerivAtIp_[0][order], sShFcnAtIp_[0][order]);
+      FILL_EDGE_DERIV(3, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1][order], sDerivAtIp_[1][order]);
+      FILL_EDGE_DERIV(4, sDerivAtIp_[1], sShFcnAtIp_[1], sDerivAtIp_[0][0], sShFcnAtIp_[0][0]);
+      
+      Integer s1,s2;
+      if( elem->faceFlags[0].test(0))                                                  
+      {                                                                                  
+        s1 = (elem->faceFlags[0].test(2)) ? 0 : order;                                    
+        s2 = (elem->faceFlags[0].test(1)) ? 0 : order;                                    
+        for ( Integer j= 1;j< (Integer)order ;j++ )                                         
+        {                                                                                   
+          for ( Integer i = 1; i< (Integer)order ;i++ )                                     
+          {                                                                                 
+            LDeriv[offset][0] = sDerivAtIp_[0][abs(s1-i)] * sShFcnAtIp_[1][abs(s2-j)];
+            LDeriv[offset++][1] = sShFcnAtIp_[0][abs(s1-i)] * sDerivAtIp_[1][abs(s2-j)]; 
+          }                                                                                 
+        }                                                                                   
+      }else{                                                                                
+        s1 = (elem->faceFlags[0].test(1)) ? 0 : order;                                    
+        s2 = (elem->faceFlags[0].test(2)) ? 0 : order;                                    
+        for ( Integer i= 1;i< (Integer)order ;i++ ){                                                                                   
+          for ( Integer j = 1; j< (Integer)order ;j++ ){                                                                                 
+            LDeriv[offset][0] = sDerivAtIp_[0][abs(s1-i)] * sShFcnAtIp_[1][abs(s2-j)];
+            LDeriv[offset++][1] = sShFcnAtIp_[0][abs(s1-i)] * sDerivAtIp_[1][abs(s2-j)];
+          }                                                                                   
+        }
+      }
+   }
 } // end of namespace
 
 

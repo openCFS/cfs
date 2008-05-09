@@ -143,17 +143,26 @@ namespace CoupledField
     };
     AddIntegrationPoints(CLASSICAL, 2, 2, (Double*) c2);
 
+    // n+1 -> number of int points
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=1
+    // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
+    static Double l1[][2] = { 
+      {1.000000000000000000000000,  1.0000000000000000000000000},
+      {-1.000000000000000000000000,  1.0000000000000000000000000}
+    };
+    AddIntegrationPoints(LOBATTO, 1, 2, (Double*) l1);
 
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=3
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=3
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l3[][2] = { 
       {1.000000000000000000000000,  0.3333333333333333333333333},
       {0.000000000000000000000000,  1.3333333333333333333333333},
       {-1.000000000000000000000000,  0.3333333333333333333333333}
     };
+    AddIntegrationPoints(LOBATTO, 2, 3, (Double*) l3);
     AddIntegrationPoints(LOBATTO, 3, 3, (Double*) l3);
 
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=5
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=5
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l5[][2] = { 
       {1.000000000000000000000000,  0.1666666666666666666666667},
@@ -161,9 +170,10 @@ namespace CoupledField
       {-0.4472135954999579392818347,  0.8333333333333333333333333},                
       {-1.000000000000000000000000,  0.1666666666666666666666667}
     };
+    AddIntegrationPoints(LOBATTO, 4, 4, (Double*) l5);
     AddIntegrationPoints(LOBATTO, 5, 4, (Double*) l5);
       
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=7
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=7
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l7[][2] = { 
       {1.000000000000000000000000,  0.1000000000000000000000000},
@@ -172,9 +182,10 @@ namespace CoupledField
       {-0.6546536707079771437982925,  0.5444444444444444444444444},
       {-1.000000000000000000000000,  0.1000000000000000000000000}
     };
+    AddIntegrationPoints(LOBATTO, 6, 5, (Double*) l7);
     AddIntegrationPoints(LOBATTO, 7, 5, (Double*) l7);
 
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=9
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=9
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l9[][2] = { 
       {1.000000000000000000000000,  0.0666666666666666666666667},
@@ -184,9 +195,10 @@ namespace CoupledField
       {-1.7650553239294646928510030,  0.3784749562978469803166128},
       {-1.000000000000000000000000,  0.0666666666666666666666667}        
     };
+    AddIntegrationPoints(LOBATTO, 8, 6, (Double*) l9);
     AddIntegrationPoints(LOBATTO, 9, 6, (Double*) l9);
 
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=11
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=11
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l11[][2] = { 
       {1.000000000000000000000000,  0.0476190476190476190476190},
@@ -197,9 +209,10 @@ namespace CoupledField
       {-0.8302238962785669298720322,  0.2768260473615659480107004},
       {-1.000000000000000000000000,  0.0476190476190476190476190}        
     };
+    AddIntegrationPoints(LOBATTO, 10, 7, (Double*) l11);
     AddIntegrationPoints(LOBATTO, 11, 7, (Double*) l11);
 
-    // Lobatto  (Radau)  quadrature  constants  order  2n-3=13
+    // Lobatto  (Radau)  quadrature  constants  order  2n-1=13
     // Solin, Segeth, Dolezel, Higher-Order Finit Element Methods, p. 224
     static Double l13[][2] = { 
       {1.000000000000000000000000,  0.0357142857142857142857143},
@@ -211,6 +224,7 @@ namespace CoupledField
       {-0.8717401485096066153374457,  0.2107042271435060393829921},        
       {-1.000000000000000000000000,  0.0357142857142857142857143}        
     };
+    AddIntegrationPoints(LOBATTO, 12, 8, (Double*) l13);
     AddIntegrationPoints(LOBATTO, 13, 8, (Double*) l13);
       
     // Chebyshev  quadrature  constants  order  n+1=3
