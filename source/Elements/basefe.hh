@@ -96,6 +96,15 @@ namespace CoupledField
                               const Elem * elem, 
                               UInt dof = 1);
     
+    //! Get value of all shape fnc for incompatible modes at integration point ip
+    /*! 
+      \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+      \param ip (input) Integration point
+    */
+    virtual void GetShFncICModesAtIp(Vector<Double> & S, 
+                                     const UInt ip, 
+                                     const Elem * elem, 
+                                     UInt dof = 1);
 
     //! Get global derivatives of all shape fnc at arbitrary local point
     /*! 
@@ -152,6 +161,23 @@ namespace CoupledField
                                         const Matrix<Double> & CornerCoords,
                                         const Elem * elem, 
                                         UInt dof = 1 );
+
+   //! Get global derivatives of incompatible modes
+    /*! 
+      \param S (output) Matrix with global derivatives of all shape functions
+      \f[ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+      N_{2,dx} & N_{2,dy} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \param ip(input) Integration point
+      \param CornerCoords (input) Coordinates of element corners
+      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right) \f]
+    */
+    virtual void GetGlobDerivShFncICModesAtIp(Matrix<Double> & Deriv, 
+                                              const UInt ip,
+                                              const Matrix<Double> & CornerCoords,
+                                              const Elem* elem,
+                                              UInt dof=1 );
 
     //! Calculates the Jacobian Matrix at an arbitrary local point
     /*!
@@ -546,6 +572,16 @@ namespace CoupledField
                                         const Elem* elem, UInt dof,
                                         AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
 
+   //! Calculates the shape functions of incompatible modes at an arbitrary local point
+    /*!
+      \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+      \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcShapeFncICModes(Vector<Double> & Shape, 
+                                     const Vector<Double> & LCoord,
+                                     const Elem* elem , UInt dof,
+                                     AnsatzFct::FctEntityType = AnsatzFct::ALL ) {;};
+
     //! Calculates the local derivatives of incompatible mode shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
@@ -646,6 +682,7 @@ namespace CoupledField
     Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
     Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
     Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
+    Vector<Double> * ShFncICModesAtIp_;   //!< Array of vectors of function values at IPs for incomp. modes(x:local Dim, y:Number)
     Matrix<Double> * ShFncICModesDerivAtIp_; //!< Array of local derivatives of incomp. modes in each integration point
     Vector<Double> * IntPoints_;      //!< integration points
     Vector<Double> IntWeights_;       //!< integration weights

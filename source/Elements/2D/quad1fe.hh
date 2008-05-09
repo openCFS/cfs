@@ -52,6 +52,16 @@ namespace CoupledField
                               UInt dof,
                               AnsatzFct::FctEntityType );
   
+   //! Calculates the shape functions of incompatible modes at an arbitrary local point
+    /*!
+      \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+      \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcShapeFncICModes(Vector<Double> & Shape, 
+                                     const Vector<Double> & LCoord,
+                                     const Elem* elem , UInt dof,
+                                     AnsatzFct::FctEntityType = AnsatzFct::ALL );
+
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions

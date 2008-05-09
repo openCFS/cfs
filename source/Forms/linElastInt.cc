@@ -306,17 +306,14 @@ void linElastInt::calcDMat(Matrix<Complex> & dMat, const Elem* elem)
 
 // returns G - matrix for GDG (incompatible modes)
 void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
-    Matrix<Double> &ptCoord ) {
+                            Matrix<Double> &ptCoord ) {
 
 
   const UInt spaceDim = ptelem->GetDim();  
   const UInt nrDofs   = getNrDofs();  
 
   UInt actDim, actNode, j, k;
-
-  Vector<Double> LCoord (getDimD());
-  LCoord.Init();
-
+    
   gMat.Resize(getDimD(), nrICModes_ * nrDofs);
   gMat.Init();
 
@@ -325,9 +322,7 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
   Matrix<Double> xiDx;
   ptelem->SetAnsatzFct( ansatzFct1_ );
 
-  ptelem->SetCalcICModes();
-  ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem());
-  ptelem->ResetCalcICModes();
+  ptelem->GetGlobDerivShFncICModesAtIp(xiDx, ip, ptCoord, it1_.GetElem());
 
   for(actDim=0; actDim < spaceDim; actDim++)
     for(actNode=0; actNode < nrICModes_; actNode++)
@@ -338,7 +333,7 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
   case 2:
     j = 1;
     k = 0;
-
+        
     for (actNode = 0; actNode < nrICModes_; actNode++)
     {
       gMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
@@ -351,13 +346,15 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
       Vector<Double> ShpFncAtIp;
       Vector<Double> CoordAtIP;
 
-      if (isSetIntPoint_) 
-        ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
-      else
-        ptelem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
-
+      //compute coordinates at integration point with standad 
+      //shape functions
+      ptelem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
       CoordAtIP = ptCoord * ShpFncAtIp;
 
+      //get incompatible modes hape function
+      ptelem->GetShFncICModesAtIp(ShpFncAtIp,ip, it1_.GetElem() );
+
+      // std::cout << "N=" <<   ShpFncAtIp[actNode] / CoordAtIP[0] << std::endl;
       for (actNode = 0; actNode < nrICModes_; actNode++)          
         gMat[idxtheta-1][actNode * spaceDim] =
           ShpFncAtIp[actNode] / CoordAtIP[0];
@@ -390,10 +387,7 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
     break;
 
   }
-  //    std::cout << "GOperator:\n" << gMat << std::endl;
 }
-
-
 
 void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
     EntityIterator& ent1, 
@@ -475,25 +469,37 @@ void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
 
     // Compute Jacobian for integration point
     jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
-
+      
     // Perform a safety check
-    if ( jacDet < 0.0 ) 
-      EXCEPTION("BDBInt::CalcElementMatrix: Encountered negative Jacobian determinant!");
+    if ( jacDet < 0.0 )
+      EXCEPTION("BDBInt::CalcElementMatrixICM: Encountered "
+                << "negative Jacobian determinant!");
+      
+    Double jacDetInv = 1.0 / jacDet;
+    if ( isaxi_ ) {
+      for ( UInt i=0; i<gMat.GetSizeCol(); i++)
+        for ( UInt j=0; j<gMat.GetSizeRow()-1; j++ ) 
+          gMat[j][i] *=  jacDetInv;
+    }
+    else 
+      gMat *=   jacDetInv;
+
+    //      std::cout << "gMat:\n" << gMat << std::endl;
 
     // Special things must be done in the axi-symmetric case
     if ( isaxi_ ) {
       Vector<Double> ShpFncAtIp;
       Vector<Double> CoordAtIP;
       ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-
+  
       CoordAtIP = ptCoord_ * ShpFncAtIp;
       jacDet *= 2 * PI * CoordAtIP[0];
     }
 
-    // now we devide by the actuall determinant, so that by the later multiplication
+    // now we devide by the actual determinant, so that by the later multiplication
     // the determinant cancles out; with this trick, the element passes the patch test
     // see paper Taylor
-    gMat /=  sqrt(jacDet);
+    // gMat /=  sqrt(jacDet);
 
     // Compute the matrix product D * B and store as intermediate matrix
     dMat.Mult( bMat, dbMat );
@@ -536,7 +542,6 @@ void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
     // We now compute G^T * D * B and scale it by the determinant
     // of the Jacobian and the weight of the current integration
     // point. The result is added to the element matrix.
-    fac = jacDet * intWeights[actIntPt-1];
     for ( UInt k = 0; k < gMat.GetSizeRow(); k++ ) {
       ptr1 =  gMat[k];
       ptr2 = dbMat[k];
@@ -575,7 +580,6 @@ void linElastInt::CalcElementMatrixICM( Matrix<Double>& elemMat,
   //    std::cout << "softedMat:\n" << elemMat << std::endl;
 
 }
-
 
 void linElastInt::CalcElementMatrixShearBK1( Matrix<Double>& elemMat,
     EntityIterator& ent1, 
