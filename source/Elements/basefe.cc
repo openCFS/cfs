@@ -27,6 +27,7 @@ namespace CoupledField
     // initializing dynamic objects
     ShFncAtIp_             = NULL;
     ShFncDerivAtIp_        = NULL; 
+    ShFncICModesAtIp_      = NULL; 
     ShFncICModesDerivAtIp_ = NULL; 
     IntPoints_             = NULL; 
 
@@ -50,6 +51,7 @@ namespace CoupledField
 
     if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; } 
     if(faceIndices_ != NULL) { delete[] faceIndices_; faceIndices_ = NULL; } 
+    if(ShFncICModesAtIp_) { delete[]  ShFncICModesAtIp_ ; ShFncICModesAtIp_ = NULL; }
     if(ShFncICModesDerivAtIp_) { delete[]  ShFncICModesDerivAtIp_ ; ShFncICModesDerivAtIp_ = NULL; }    
     
     // delete our map. The content of normal integration rules are static array
@@ -365,6 +367,18 @@ namespace CoupledField
     }
   }
 
+  void BaseFE :: GetShFncICModesAtIp(Vector<Double> & S, const UInt ip,
+                                     const Elem * elem, UInt dof )
+  {
+    
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      S = ShFncICModesAtIp_[ip-1];
+    } 
+    else {
+      Error("GetShapeFncICModes just for Lagrange elements",__FILE__,__LINE__);
+    }
+  }
+
   void BaseFE::GetGlobDerivShFnc(Matrix<Double>  &Deriv, 
                                    const Vector<Double> & LCoord,
                                    const Matrix<Double> & CornerCoords,
@@ -420,32 +434,51 @@ namespace CoupledField
                                        const Elem* elem,
                                        UInt dof )
   {
-  
     //  Deriv.Resize(NumNodes_,Dim_);
 
-    if ( CalcICModes_ && ICModes_ ) {
-      //incompatible modes
-      Vector<Double> LCoord( CornerCoords.GetSizeRow());
-      LCoord.Init();
-      CalcInvJacobian(JInv, LCoord, CornerCoords, elem);
-      Deriv = ShFncICModesDerivAtIp_[ip-1] * JInv;
-    }
-    else {
-      CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
+    CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
 
-      if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
-        Deriv = ShFncDerivAtIp_[ip-1] * JInv;
-      } 
-      else {
-        CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
-                                elem, dof, AnsatzFct::ALL );
-        Deriv = LDeriv * JInv;
-      }
-      //std::cerr << "Deriv = \n" << Deriv << std::endl;
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+    } 
+    else {
+      CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
+                              elem, dof, AnsatzFct::ALL );
+      Deriv = LDeriv * JInv;
     }
+    //std::cerr << "Deriv = \n" << Deriv << std::endl;
   }
 
 
+  void BaseFE :: GetGlobDerivShFncICModesAtIp(Matrix<Double> & Deriv, 
+                                              const UInt ip,
+                                              const Matrix<Double> & CornerCoords,
+                                              const Elem* elem,
+                                              UInt dof )
+  {
+  
+    Double det;
+
+    Vector<Double> LCoord( CornerCoords.GetSizeRow());
+    LCoord.Init();
+
+    // calc inverse jacobian
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1,AnsatzFct::NODE);
+
+    J = CornerCoords * LDeriv;
+
+    // modified inverse: do not devide by the determinant!!
+    J.Determinant( det );
+
+    //     Matrix<Double> Jt( J.GetSizeRow(), J.GetSizeRow() );
+    //     J.Transpose(Jt);
+    //     Jt.Invert(JInv);
+
+    J.Invert(JInv);
+    JInv *= det;
+
+    Deriv = ShFncICModesDerivAtIp_[ip-1] * JInv;
+  }
 
 
   void BaseFE::CalcJacobian(Matrix<Double> & J, 
@@ -563,14 +596,7 @@ namespace CoupledField
 
     J = CornerCoords * LDeriv;
 
-    if ( CalcICModes_ && ICModes_ ) {
-      // modified inverse: do not divide by the determinant!!
-      J.Determinant( det );
-      J.Invert(JInv);
-      JInv *= det;
-    }
-    else 
-      J.Invert(JInv);
+    J.Invert(JInv);
   }
 
 
@@ -607,6 +633,22 @@ namespace CoupledField
     {
       CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], 
                     NULL, 1, AnsatzFct::NODE );
+    }
+
+    // check, if incompatible modes are used
+    if ( ICModes_ ) {
+      if ( !ShFncICModesAtIp_ ) {
+        ShFncICModesAtIp_ = new Vector<Double>[NumIntPoints_];
+      } 
+      else { 
+        delete[] ShFncICModesAtIp_ ;
+        ShFncICModesAtIp_ = new Vector<Double>[NumIntPoints_];
+      }
+      
+      for( UInt i=0; i<NumIntPoints_; i++ ) {
+        CalcShapeFncICModes( ShFncICModesAtIp_[i], IntPoints_[i], 
+                             NULL, 1, AnsatzFct::NODE );
+      }
     }
   }
   

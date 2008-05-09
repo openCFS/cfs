@@ -218,6 +218,27 @@ namespace CoupledField
     }
   }
 
+  void Quad1FE :: CalcShapeFncICModes( Vector<Double> & Shape, 
+                                       const Vector<Double> & actCoord,
+                                       const Elem* elem,
+                                       UInt dof, AnsatzFct::FctEntityType type )
+  {
+
+
+    // Check ansatzFctType
+    if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
+         type == AnsatzFct::NODE ) {
+
+      // ===============
+      //  LAGRANGE PART
+      // ===============
+      Shape.Resize(Dim_);
+      
+      Shape[0] = 1.0 -  actCoord[0] * actCoord[0];
+      Shape[1] = 1.0 -  actCoord[1] * actCoord[1];
+    }
+  }
+
 
   void Quad1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
                                          const Vector<Double> & actCoord,
