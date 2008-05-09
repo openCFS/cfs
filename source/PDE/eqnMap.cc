@@ -1950,6 +1950,7 @@ namespace CoupledField {
               
               // iterate over all edge functions
               UInt pos = 0;
+              UInt counter = 0;
               for( UInt iFcn = 0; iFcn < max; iFcn++ ) {
                 if( actMap[locEdge-1].GetSize() == 0 ) {
                   actMap[locEdge-1].Resize( dofsPerEdge * max );
@@ -1958,20 +1959,39 @@ namespace CoupledField {
                 
                 // iterate over all dofs
                 for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
-                  
-                  // Check if the related nodes have a 0 equations number
-                  // (= are (in-)hom. Dirichlet nodes)
-                  // of if the edge with this dof has a smaller order
-                  // than the maximum for this edge -> assign 0 equation number
-                  if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] > 0
-                        || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] > 0)
-                       && (iFcn < numFcns[iDof][iEdge]) ) {
-                    actMap[locEdge-1][pos++] = ++numEqns_;
-                  } else {
-                    actMap[locEdge-1][pos++] = 0;
-                  }// check if edge has one non-zero node
+                  //spectral and legendre functions have to be treated
+                  //differently in the case of inhomognious BCs due to the
+                  //non-hirarchical structure of sprectral approximations
+                  if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
+                    // Check if the related nodes have a 0 equations number
+                    // (= are (in-)hom. Dirichlet nodes)
+                    // of if the edge with this dof has a smaller order
+                    // than the maximum for this edge -> assign 0 equation number
+                    if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] != 0  || 
+                          actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] != 0) &&
+                          (iFcn < numFcns[iDof][iEdge]) ) 
+                    {
+                        actMap[locEdge-1][pos++] = numEqns_ + counter + 1;
+                        if( actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] < 0  && 
+                            actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] < 0)
+                          numIdBcs_++;
+
+                        counter++;
+                      }else
+                        actMap[locEdge-1][pos++] = 0;
+                  } else{
+                    if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] > 0
+                          || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] > 0)
+                         && (iFcn < numFcns[iDof][iEdge]) ) {
+                      actMap[locEdge-1][pos++] = ++numEqns_;
+                    } else {
+                      actMap[locEdge-1][pos++] = 0;
+                    }// check if edge has one non-zero node
+                  }
                 } // loop over dofs
               } // loop over functions
+              numEqns_ += counter;
+              counter = 0;
             } // check if edge was already mapped
           } // loop over all edges
         } // looop over all elements
@@ -2073,22 +2093,46 @@ namespace CoupledField {
                 for( UInt iDof = 0; iDof < dofsPerFace; iDof++ ) {
                   
                   // Check if the related nodes have an equation number =< 0
-                  // (= are (in-)hom. Dirichlet nodes)
                   bool allFixed = true;
-                  for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
-                    if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
-                      allFixed = false;
-                      break;
+                  bool isInHomBoundaryFace = true;
+                  // (= are (in-)hom. Dirichlet nodes)
+                  if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
+                    for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
+                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] != 0) {
+                        allFixed = false;
+                      }
+                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
+                        isInHomBoundaryFace = false;
+                      }
                     }
-                  }
-                  if( !allFixed && (iFcn < numFcns[iDof][iFace]) ) {
-                    actMap[locFace-1][pos++] = ++numEqns_;
-                    LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
-                                     << " got equation number " << numEqns_-1;
-                  } else {
-                    actMap[locFace-1][pos++] = 0;
-                    LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
-                  } // check for zero nodes
+                    if( !allFixed  && (iFcn < numFcns[iDof][iFace]) ) 
+                    {
+                      actMap[locFace-1][pos++] = ++numEqns_;
+                      LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
+                                       << " got equation number " << numEqns_-1 << "For Discontinuous Element #" << actEl.elemNum;
+                      if( isInHomBoundaryFace )
+                        numIdBcs_++;
+
+                    }else{
+                      actMap[locFace-1][pos++] = 0;
+                      LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
+                    } // check for zero nodes
+                  } else{
+                    for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
+                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
+                        allFixed = false;
+                        break;
+                      }
+                    }
+                    if( !allFixed && (iFcn < numFcns[iDof][iFace]) ) {
+                      actMap[locFace-1][pos++] = ++numEqns_;
+                      LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
+                                       << " got equation number " << numEqns_-1;
+                    } else {
+                      actMap[locFace-1][pos++] = 0;
+                      LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
+                    } // check for zero nodes
+                  }// spectral or not
                 } // loop over dofs
               }  // loop over functions
             } else {

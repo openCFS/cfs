@@ -227,6 +227,12 @@ namespace CoupledField
           * (1 + LCornerCoords_[0][i] * actCoord[0])
           * (1 + LCornerCoords_[1][i] * actCoord[1]) 
           * (1 + LCornerCoords_[2][i] * actCoord[2]);
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralShFct(Shape,actCoord,elem,dof,fcnType);
+
     } else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
       
       // ===============
@@ -428,6 +434,14 @@ namespace CoupledField
           * (1 + LCornerCoords_[1][i] * actCoord[1]) 
           * LCornerCoords_[2][i];
       }
+
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralDerivFct(LDeriv,actCoord,elem,dof,fctType);
+      return;
+
     } else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
       
       // ===============
@@ -661,6 +675,28 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
+    
+    } else if ( fcnType->GetType() == AnsatzFct::SPECTRAL ) {
+       Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (fcnType)->GetOrder();
+      if( fctEntityType == AnsatzFct::NODE ) {
+        numFcns.Resize( NumNodes_ );
+        numFcns.Init( 1 );
+        
+      } else if( fctEntityType == AnsatzFct::EDGE ) {
+        numFcns.Resize( NumEdges_ );
+        numFcns.Init( order - 1 );
+      } 
+      else if( fctEntityType == AnsatzFct::INTERIOR ) {
+        numFcns.Resize(1);
+        numFcns.Init((order-1)*(order-1)*(order-1));  
+      } 
+      else if( fctEntityType == AnsatzFct::FACE ) {
+        numFcns.Resize( NumFaces_ );
+        numFcns.Init((order-1)*(order-1));  
+      } else {
+        Error( "Not yet implemented!", __FILE__, __LINE__ );
+      }
+
     } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
 
       if( fcnType->IsIsotropic() == true ) {
@@ -820,6 +856,11 @@ namespace CoupledField
     // Check ansatzFctType
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
       return NumNodes_;
+    
+    } else if ( type->GetType() == AnsatzFct::SPECTRAL ) {
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (type)->GetOrder();
+      return (order+1)*(order+1)*(order+1);
+
     } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
       
       // Cache check: if ansatz function type is the same as
@@ -961,8 +1002,25 @@ namespace CoupledField
     actNumFcns_ = GetNumFncs( actFct );
 
     actFct_ = actFct;
+   if( actFct->GetType() == AnsatzFct::SPECTRAL ) {
+      // If not, get order of functions
+      shared_ptr<SpectralFct> lagFct = 
+        dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct);
+      
+      //check for higher order lagrange functions
+      //right now: higher order lagrange => Spectral Elements
+      IntegMethod = LOBATTO;
+      IntegOrder = 2 * lagFct->GetOrder() - 1;
+      
+      // get the values by IntegMethod and IntegOrder
+      SetIntPoints();
+      
+      // ... then calc shape function values at integration points
+      // for subsequent calls to CalcJacobian() ....
+      SetShapeFncAtIp();
+      SetShapeFncDerivAtIp();
     
-    if( actFct->GetType() == AnsatzFct::LEGENDRE 
+    } else if( actFct->GetType() == AnsatzFct::LEGENDRE 
         && setIntPoints == true ) {
       
       // If not, get order of functions
@@ -1007,6 +1065,348 @@ namespace CoupledField
 
   }
   
+  void Hexa1FE::CalcSpectralShFct( Vector<Double> & Shape, 
+                                  const Vector<Double> & LCoord,
+                                  const Elem* elem, UInt dof,
+                                  AnsatzFct::FctEntityType type ){
+    shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+    UInt order = myFct->GetOrder();
+    
+    Shape.Resize( (order+1) * (order+1) * (order+1) );
+    Shape.Init(0.0);
+
+    //! 1D Lagrange functions at IPs for spectral mode
+    Vector<Double> * sShFcnAtIp_ = new Vector<Double>[3];
+    sShFcnAtIp_[0].Init(0.0);
+    sShFcnAtIp_[1].Init(0.0);
+    sShFcnAtIp_[2].Init(0.0);
+    myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
+    myFct->EvaluatePolynomial( sShFcnAtIp_[1], LCoord[1] );
+    myFct->EvaluatePolynomial( sShFcnAtIp_[2], LCoord[2] );
+
+    UInt c = 0;
+
+    Shape[c++]= sShFcnAtIp_[0][0]      *  sShFcnAtIp_[1][0]       * sShFcnAtIp_[2][0];
+    Shape[c++]= sShFcnAtIp_[0][order] *  sShFcnAtIp_[1][0]       * sShFcnAtIp_[2][0];
+    Shape[c++]= sShFcnAtIp_[0][order] *  sShFcnAtIp_[1][order]  * sShFcnAtIp_[2][0];
+    Shape[c++]= sShFcnAtIp_[0][0]      *  sShFcnAtIp_[1][order]  * sShFcnAtIp_[2][0];
+    
+    Shape[c++]= sShFcnAtIp_[0][0]      * sShFcnAtIp_[1][0]        * sShFcnAtIp_[2][order];
+    Shape[c++]= sShFcnAtIp_[0][order] * sShFcnAtIp_[1][0]        * sShFcnAtIp_[2][order];
+    Shape[c++]= sShFcnAtIp_[0][order] * sShFcnAtIp_[1][order]   * sShFcnAtIp_[2][order];
+    Shape[c++]= sShFcnAtIp_[0][0]      * sShFcnAtIp_[1][order]   * sShFcnAtIp_[2][order];
+  
+
+    // --------------------
+    //  b) edge functions
+    // --------------------
+#define FILL_EDGE( numEdge, shape, p1, p2)      \
+    {                                          \
+      if(elem->edges[numEdge-1] < 0){          \
+        for ( UInt i= order-1; i>0 ;i-- )    \
+          Shape[c++] = shape[i] * p1 * p2;    \
+      }else                                    \
+      {                                        \
+        for ( UInt i= 1; i< order ;i++ )      \
+          Shape[c++] = shape[i] * p1 * p2;    \
+      }                                        \
+    }
+
+    FILL_EDGE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][0] );      
+    FILL_EDGE( 2, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][0] );      
+    FILL_EDGE( 3, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][0] );      
+    FILL_EDGE( 4, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][0] );      
+    FILL_EDGE( 5, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][0] );      
+    FILL_EDGE( 6, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][0] );      
+    FILL_EDGE( 7, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][order] );      
+    FILL_EDGE( 8, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][order] );      
+    FILL_EDGE( 9, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][order] );      
+    FILL_EDGE(10, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][order] );      
+    FILL_EDGE(11, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][order] );      
+    FILL_EDGE(12, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][order] );      
+    
+    // --------------------
+    //  c) face functions
+    // --------------------
+
+#define FILL_FACE( numFace, shape1, shape2, fac)                                  \
+      {                                                                            \
+        Integer s1,s2;                                                                \
+        if(! elem->faceFlags[numFace-1].test(0)){                                  \
+          std::swap(shape1,shape2);                                                \
+          s1 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                    \
+          s2 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                    \
+        }else {                                                                    \
+          s1 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                    \
+          s2 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                    \
+        }                                                                           \
+                                                                                  \
+        for ( Integer j= 1;j< (Integer)order ;j++ )                              \
+        {                                                                          \
+          for ( Integer i = 1; i< (Integer)order ;i++ )                              \
+          {                                                                        \
+            Shape[c++] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * fac;              \
+          }                                                                        \
+        }                                                                          \
+        if(! elem->faceFlags[numFace-1].test(0))                                  \
+          std::swap(shape1,shape2);                                                \
+      }                                                                                  
+      
+    FILL_FACE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][0] );      
+    FILL_FACE( 2, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][0] );      
+    FILL_FACE( 3, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][order] );      
+    FILL_FACE( 4, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][order] );      
+    FILL_FACE( 5, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][0] );      
+    FILL_FACE( 6, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][order] );      
+      
+
+    // ----------------------
+    //  d) bubble functions
+    // ----------------------
+    for( UInt i = 1; i < order ; i++ ) {
+      for( UInt j = 1; j < order ; j++ ) {
+        for( UInt k = 1; k < order ; k++ ) {
+          Shape[c++] = sShFcnAtIp_[0][k] * sShFcnAtIp_[1][j] * sShFcnAtIp_[2][i];
+        }
+      }
+    }
+  }
+
+  void Hexa1FE::CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                     const Vector<Double> & LCoord,
+                                     const Elem* elem, UInt dof,
+                                     AnsatzFct::FctEntityType type){
+    shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+    UInt order = myFct->GetOrder();
+
+    UInt totalFcns = GetNumFncs(actFct_);
+    LDeriv.Resize( totalFcns, Dim_ );
+    LDeriv.Init();
+
+    //! 1D Lagrange functions at IPs for spectral mode
+    Vector<Double> * sShFcnAtIp_ = new Vector<Double>[3];
+    Vector<Double> * sDerivAtIp_ = new Vector<Double>[3];
+    sShFcnAtIp_[0].Init(0.0);
+    sShFcnAtIp_[1].Init(0.0);
+    sShFcnAtIp_[2].Init(0.0);
+    sDerivAtIp_[0].Init(0.0);
+    sDerivAtIp_[1].Init(0.0);
+    sDerivAtIp_[2].Init(0.0);
+
+    LDeriv.Resize( (order+1) * (order+1) * (order+1), Dim_ );
+
+    myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
+    myFct->EvaluatePolynomial( sShFcnAtIp_[1], LCoord[1] );
+    myFct->EvaluatePolynomial( sShFcnAtIp_[2], LCoord[2] );
+    myFct->EvaluateDerivPolynomial( sDerivAtIp_[0], LCoord[0] );
+    myFct->EvaluateDerivPolynomial( sDerivAtIp_[1], LCoord[1] );
+    myFct->EvaluateDerivPolynomial( sDerivAtIp_[2], LCoord[2] );
+
+    UInt c = 0;
+    UInt swamping1 = 0;
+    UInt swamping2 = 0;
+    for ( UInt k = 0; k<= order ; k+=order)
+    {    
+      for(UInt i = 0; i<= 3 ; i++)  
+      {
+        LDeriv[c][0]=   sDerivAtIp_[0][swamping1] * sShFcnAtIp_[1][swamping2] * sShFcnAtIp_[2][k];
+        LDeriv[c][1]=   sShFcnAtIp_[0][swamping1] * sDerivAtIp_[1][swamping2] * sShFcnAtIp_[2][k];
+        LDeriv[c++][2]= sShFcnAtIp_[0][swamping1] * sShFcnAtIp_[1][swamping2] * sDerivAtIp_[2][k];
+        swamping2 = swamping1;
+        swamping1 += order * (i-1) * -1;
+      }
+      swamping1 = 0;
+      swamping2 = 0;
+    }
+  
+    // -------------------
+    //  b) edge functions
+    // -------------------
+#define HEX_E_DERIV(numEdge,idx1,idx2,idx3,dim)                                 \
+      {                                                                            \
+        UInt start = 1;                                                              \
+        Integer inc = 1;                                                            \
+        UInt end = order;                                                          \
+        if(elem->edges[numEdge-1] < 0){                                                \
+          start = order-1;                                                            \
+          inc = -1;                                                                  \
+          end = 0;                                                                  \
+        }                                                                            \
+        switch(dim){                                                                \
+        case 1:                                                                      \
+          while( start != end)                                                      \
+          {                                                                          \
+            LDeriv[c][0]=   sDerivAtIp_[0][start] * sShFcnAtIp_[1][idx2] * sShFcnAtIp_[2][idx3];          \
+            LDeriv[c][1]=   sShFcnAtIp_[0][start] * sDerivAtIp_[1][idx2] * sShFcnAtIp_[2][idx3];          \
+            LDeriv[c++][2]= sShFcnAtIp_[0][start] * sShFcnAtIp_[1][idx2] * sDerivAtIp_[2][idx3];        \
+            start += inc;                                                            \
+          }                                                                          \
+          break;                                                                    \
+        case 2:                                                                      \
+          while( start != end)                                                      \
+          {                                                                          \
+            LDeriv[c][0]=   sDerivAtIp_[0][idx1] * sShFcnAtIp_[1][start] * sShFcnAtIp_[2][idx3];          \
+            LDeriv[c][1]=   sShFcnAtIp_[0][idx1] * sDerivAtIp_[1][start] * sShFcnAtIp_[2][idx3];          \
+            LDeriv[c++][2]= sShFcnAtIp_[0][idx1] * sShFcnAtIp_[1][start] * sDerivAtIp_[2][idx3];        \
+            start += inc;                                                            \
+          }                                                                          \
+          break;                                                                    \
+        case 3:                                                                      \
+          while( start != end)                                                      \
+          {                                                                          \
+            LDeriv[c][0]  = sDerivAtIp_[0][idx1] * sShFcnAtIp_[1][idx2] * sShFcnAtIp_[2][start];          \
+            LDeriv[c][1]  = sShFcnAtIp_[0][idx1] * sDerivAtIp_[1][idx2] * sShFcnAtIp_[2][start];          \
+            LDeriv[c++][2]= sShFcnAtIp_[0][idx1] * sShFcnAtIp_[1][idx2] * sDerivAtIp_[2][start];        \
+            start += inc;                                                            \
+          }                                                                          \
+          break;                                                                    \
+        }                                                                            \
+      }                                                                    
+
+    // EDGE #1
+    HEX_E_DERIV(1, 0, 0, 0, 1);
+    // EDGE #2
+    HEX_E_DERIV(2, order, 0, 0, 2);
+     // EDGE #3
+    HEX_E_DERIV(3, 0, order, 0, 1 );
+     // EDGE #4
+    HEX_E_DERIV(4, 0, 0, 0, 2);
+     // EDGE #5
+    HEX_E_DERIV(5, 0, 0, 0, 3);
+     // EDGE #6
+    HEX_E_DERIV(6, order, 0, 0, 3);
+     // EDGE #7
+    HEX_E_DERIV(7, order, order, 0, 3);
+     // EDGE #8
+    HEX_E_DERIV(8, 0, order, 0, 3);
+     // EDGE #9
+    HEX_E_DERIV(9, 0, 0, order, 1);
+     // EDGE #10
+    HEX_E_DERIV(10, order, 0, order, 2);
+     // EDGE #11
+    HEX_E_DERIV(11, 0, order, order, 1);
+    // EDGE #12
+    HEX_E_DERIV(12, 0, 0, order, 2);
+
+    // -------------------
+    //  c) face functions
+    // -------------------
+#define HEX_F_DERIV( numFace, shape1, shape1Deriv, shape2, shape2Deriv,                     \
+                        fac, facDeriv, dim)                                                    \
+  {                                                                                            \
+    Integer s1,s2;                                                                            \
+                                                                                              \
+    switch(dim){                                                                              \
+      case 3:                                                                                  \
+        if( elem->faceFlags[numFace-1].test(0))                                                  \
+        {                                                                                        \
+          s1 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          for ( Integer j= 1;j< (Integer)order ;j++ )                                                      \
+          {                                                                                      \
+            for ( Integer i = 1; i< (Integer)order ;i++ )                                                  \
+            {                                                                                    \
+              LDeriv[c][0] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                  \
+              LDeriv[c++][2] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                \
+            }                                                                                    \
+          }                                                                                      \
+        }else{                                                                                  \
+          s1 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          for ( Integer i= 1;i< (Integer)order ;i++ )                                          \
+          {                                                                                      \
+            for ( Integer j = 1; j< (Integer)order ;j++ )                                      \
+            {                                                                                    \
+              LDeriv[c][0] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                  \
+              LDeriv[c++][2] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                \
+            }                                                                                    \
+          }                                                                                      \
+        }                                                                                        \
+        break;                                                                                \
+      case 2:                                                                                  \
+        if( elem->faceFlags[numFace-1].test(0))                                                  \
+        {                                                                                        \
+          s1 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          for ( Integer j= 1;j< (Integer)order ;j++ )                                                      \
+          {                                                                                      \
+            for ( Integer i = 1; i< (Integer)order ;i++ )                                                  \
+            {                                                                                    \
+              LDeriv[c][0] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                  \
+              LDeriv[c++][2] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                \
+            }                                                                                    \
+          }                                                                                      \
+        }else{                                                                                  \
+          s1 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          for ( Integer i= 1;i< (Integer)order ;i++ )                                                      \
+          {                                                                                      \
+            for ( Integer j = 1; j< (Integer)order ;j++ )                                                  \
+            {                                                                                    \
+              LDeriv[c][0] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                  \
+              LDeriv[c++][2] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                \
+            }                                                                                    \
+          }                                                                                      \
+        }                                                                                        \
+        break;                                                                                \
+      case 1:                                                                                  \
+        if( elem->faceFlags[numFace-1].test(0))                                                  \
+        {                                                                                        \
+          s1 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          for ( Integer j= 1;j< (Integer)order ;j++ )                                                      \
+          {                                                                                      \
+            for ( Integer i = 1; i< (Integer)order ;i++ )                                                  \
+            {                                                                                    \
+              LDeriv[c][0] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                  \
+              LDeriv[c++][2] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                \
+            }                                                                                    \
+          }                                                                                      \
+        }else{                                                                                  \
+          s1 = (elem->faceFlags[numFace-1].test(1)) ? 0 : order;                                    \
+          s2 = (elem->faceFlags[numFace-1].test(2)) ? 0 : order;                                    \
+          for ( Integer i= 1;i< (Integer)order ;i++ )                                                      \
+          {                                                                                      \
+            for ( Integer j = 1; j< (Integer)order ;j++ )                                                  \
+            {                                                                                    \
+              LDeriv[c][0] = shape1[abs(s1-i)] * shape2[abs(s2-j)] * facDeriv;                  \
+              LDeriv[c][1] = shape1[abs(s1-i)] * shape2Deriv[abs(s2-j)] * fac;                  \
+              LDeriv[c++][2] = shape1Deriv[abs(s1-i)] * shape2[abs(s2-j)] * fac;                \
+            }                                                                                    \
+          }                                                                                      \
+        }                                                                                        \
+        break;                                                                                \
+    }                                                                                          \
+  }                                                                                            \
+       
+    HEX_F_DERIV( 1, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][0],      sDerivAtIp_[2][0], 3 );      
+    HEX_F_DERIV( 2, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][0],      sDerivAtIp_[1][0], 2 );      
+    HEX_F_DERIV( 3, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][order], sDerivAtIp_[0][order], 1 );      
+    HEX_F_DERIV( 4, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][order], sDerivAtIp_[1][order], 2 );      
+    HEX_F_DERIV( 5, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][0],      sDerivAtIp_[0][0], 1 );      
+    HEX_F_DERIV( 6, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][order], sDerivAtIp_[2][order], 3 );      
+    
+    // ---------------------
+    //  d) bubble functions
+    // ---------------------
+    for(UInt k = 1; k< order ; k++)  
+    {
+      for(UInt j = 1; j< order ; j++)  
+      {
+        for(UInt i = 1; i< order ; i++)  
+        {
+          LDeriv[c][0]  = sDerivAtIp_[0][i] * sShFcnAtIp_[1][j] * sShFcnAtIp_[2][k];
+          LDeriv[c][1]  = sShFcnAtIp_[0][i] * sDerivAtIp_[1][j] * sShFcnAtIp_[2][k];
+          LDeriv[c++][2]= sShFcnAtIp_[0][i] * sShFcnAtIp_[1][j] * sDerivAtIp_[2][k];
+        }
+      }
+    }
+  }
 
 } // end of namespace
 

@@ -8,6 +8,7 @@
 #include "General/environment.hh"
 #include "Matrix/matrix.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/vector.hh"
 
 namespace CoupledField {
 
@@ -16,7 +17,7 @@ namespace CoupledField {
   class AnsatzFct {
 
   public:
-    typedef enum {CONST, LAGRANGE, LEGENDRE, NEDELEC} AnsatzFctType;
+    typedef enum {CONST, LAGRANGE, LEGENDRE, NEDELEC, SPECTRAL} AnsatzFctType;
 
     typedef enum {NONE, ALL, NODE, EDGE, FACE, INTERIOR} FctEntityType;
 
@@ -78,6 +79,60 @@ namespace CoupledField {
     
   };
 
+  //! Class for Spectral Element Ansatz functions 
+  class SpectralFct : public AnsatzFct {
+
+  public:
+
+    //! Constructor
+    SpectralFct();
+
+    //! Set order of lagrange polinomial
+    void SetOrder( UInt order );
+    
+    //! Get order of lagrange polinomial
+    UInt GetOrder( ) const;
+
+    //! Calculate the derivatives for each supporting point for the given coordinate
+    //@param deriv the vector for the resulting derivatives
+    //@param coord is the given coordinate
+    void EvaluateDerivPolynomial( Vector<Double> & deriv, Double coord );
+
+    //! Calculate the value of the lagrange function for the given coordinates
+    //@param shape vector of shape functions
+    //@param coord the coordinate to be evaluated
+    void EvaluatePolynomial( Vector<Double> & shape, Double coord );
+
+  protected:
+
+    //! Order of Polynomial 
+    UInt Order_;
+
+    Vector< Double > supportingPoints_;
+
+   	// Gauss Lobatto Integration Points Order: 1 
+    static Double l1[][1]; 
+    
+    //  Gauss-Lobatto  quadrature  points  and  weights  order  2
+    static Double l2[][1]; 
+    
+    //  Gauss-Lobatto  quadrature  points  and  weights  order  3
+    static Double l3[][1]; 
+    
+     //  Gauss-Lobatto  quadrature  points  and  weights  order 4
+    static Double l4[][1]; 
+    
+    //  Gauss-Lobatto  quadrature  points  and  weights  order 5
+    static Double l5[][1]; 
+
+    //  Gauss-Lobatto  quadrature  points  and  weights  order 6
+    static Double l6[][1]; 
+
+    //  Gauss-Lobatto  quadrature  points  and  weights  order 7
+    static Double l7[][1]; 
+  };
+
+
   //! Class for hierarchic Legendre ansatz functions
   class LegendreFct : public AnsatzFct{ 
 
@@ -90,10 +145,10 @@ namespace CoupledField {
     LegendreFct();
     
     //! Set isotropic order
-    void SetIsoOrder( UInt order );
+    virtual void SetIsoOrder( UInt order );
 
     //! Return isotropic order
-    UInt GetIsoOrder() const;
+    virtual UInt GetIsoOrder() const;
 
     //! Set anisotropic order matrix
     void SetAnisoOrder( Matrix<UInt>& order );

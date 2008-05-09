@@ -25,6 +25,168 @@ namespace CoupledField {
     type_ = LAGRANGE;
   }
 
+//======================================
+//Spectral Ansatz function
+//======================================
+// Define supporting points for the polinomial
+    Double SpectralFct::l1[][1]  = { 
+      {-1},
+      {1}
+    };
+    
+    Double SpectralFct::l2[][1] = { 
+      {-1.000000000000000e+00},
+      { 0.000000000000000e+00},
+      { 1.000000000000000e+00}
+    }; 
+    
+    Double SpectralFct::l3[][1] = { 
+      {-1.000000000000000e+00},
+      {-4.472135954999579e-01},        
+      { 4.472135954999579e-01},                
+      { 1.000000000000000e+00}
+    };
+    
+    Double SpectralFct::l4[][1] = { 
+      {-1.000000000000000e+00},
+      {-6.546536707079771e-01},        
+      { 0.000000000000000e+00},
+      { 6.546536707079771e-01},                
+      { 1.000000000000000e+00}
+    };
+    
+    Double SpectralFct::l5[][1] = { 
+      {-1.000000000000000e+00},
+      {-7.650553239294647e-01},        
+      {-2.852315164806451e-01},                
+      { 2.852315164806451e-01},
+      { 7.650553239294647e-01},
+      { 1.000000000000000e+00}        
+    };
+
+    Double SpectralFct::l6[][1] = { 
+      {-1.000000000000000e+00},
+      {-8.302238962785670e-01},        
+      {-4.688487934707142e-01},                
+      { 0.0000000000000000000},                        
+      { 4.688487934707142e-01},
+      { 8.302238962785670e-01},
+      { 1.000000000000000e+00}        
+    };
+    Double SpectralFct::l7[][1] = { 
+      {-1.000000000000000e+00},
+      {-8.717401485096066e-01},        
+      {-5.917001814331423e-01},                
+      {-2.092992179024789e-01},                        
+      { 2.092992179024789e-01},
+      { 5.917001814331423e-01},
+      { 8.717401485096066e-01},        
+      { 1.000000000000000e+00}        
+    };
+
+  SpectralFct::SpectralFct() {
+    type_ = SPECTRAL;
+    Order_ = 1;
+    //unlike for hirarchical functions...
+    isIsotropic_ = false;
+  }
+
+  void SpectralFct::SetOrder( UInt order ){
+    Order_ = order;
+    supportingPoints_.Resize(Order_+1);
+    switch(Order_){
+      case 1:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l1[i][0];
+        break;
+      case 2:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l2[i][0];
+        break;
+      case 3:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l3[i][0];
+        break;
+      case 4:
+         for ( UInt i = 0;i<=Order_ ;i++ )
+           supportingPoints_[i] = l4[i][0];
+        break;
+      case 5:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l5[i][0];
+        break;
+      case 6:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l6[i][0];
+        break;
+      case 7:
+        for ( UInt i = 0;i<=Order_ ;i++ )
+          supportingPoints_[i] = l7[i][0];
+        break;
+      default:
+        Error("Supplied Order of approximation not supported",__FILE__,__LINE__);
+        break;
+    }
+
+        
+  }
+
+  void SpectralFct::EvaluatePolynomial( Vector<Double> & shape, Double coord )
+  {
+    shape.Resize(Order_+1);
+    shape.Init(0.0);
+    //get iutegration Pointes
+    // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
+    // corner nodes
+     for( UInt i=0; i<Order_+1; i++)
+     {
+      shape[i] = 1.0;
+      for( UInt p = 0;p< Order_ + 1; p++)
+      {
+        if(p==i)
+          continue;
+        else  
+          shape[i] *= (coord - supportingPoints_[p]) / (supportingPoints_[i] - supportingPoints_[p]);
+      }
+    }
+  }
+
+  void SpectralFct::EvaluateDerivPolynomial( Vector<Double> & deriv, Double coord )
+  {
+    deriv.Resize(Order_+1);
+    deriv.Init(0.0);
+    for ( UInt i = 0; i<=Order_  ; i++)
+    {
+      Double sum = 1.0;
+      for ( UInt k=0;k<=Order_ ; k++ )
+      {
+        if ( k != i )
+        {
+          sum=1.0;
+          for ( UInt l=0;l<=Order_ ; l++)
+            if ( (l!=i) && (l != k))
+              sum *= (coord - supportingPoints_[l]);
+          deriv[i] += sum;
+        }
+      }
+    }
+    for( UInt i=0; i< Order_+1; i++)
+    {
+      for( UInt p = 0;p< Order_+1; p++)
+      {
+        if(p==i)
+          continue;
+        else  
+          deriv[i] *= 1.0 / (supportingPoints_[i] - supportingPoints_[p]);
+      }
+    }
+  }
+
+  UInt SpectralFct::GetOrder( ) const{
+    return Order_;
+  }
+  
+
   NedelcFct::NedelcFct() {
     type_ = NEDELEC;
   }

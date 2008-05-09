@@ -1530,6 +1530,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
       disp->fctType = fct;
       disp->definedOn = ResultInfo::NODE;
+    }else if(  approxType == "spectral" ) {
+      UInt order = myParam_->Get("order")->AsUInt();
+      shared_ptr<SpectralFct> fct(new SpectralFct);
+      disp->definedOn = ResultInfo::PFEM;
+      fct->SetOrder(order);
+      disp->fctType = fct;
     } else {
       
        // define Legendre type

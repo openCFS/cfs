@@ -32,6 +32,8 @@ namespace CoupledField
 
     CommonInit(method, order);
     SetEdgeIndices();
+    sDerivAtIp_ = new Vector<Double>[1];
+    sShFcnAtIp_ = new Vector<Double>[1];
   }
 
   void Line1FE::SetCornerCoords()
@@ -68,6 +70,12 @@ namespace CoupledField
   
       for( UInt i=0; i<NumNodes_; i++)
         Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralShFct(Shape,LCoord,elem,dof,type);
+
     }else{
       // Get number of ansatz functions
       shared_ptr<LegendreFct> legFct = 
@@ -123,6 +131,15 @@ namespace CoupledField
       for( UInt i=0; i<NumNodes_; i++) {
           LDeriv[i][0] = 0.5*LCornerCoords_[0][i]; 
         }
+      return;  
+
+    }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
+      // ===============
+      //  Spectral PART
+      // ===============
+      CalcSpectralDerivFct(LDeriv,LCoord,elem,dof,type);
+      return;
+
     }else{
       // ===============
       //  LEGENDRE PART
@@ -228,11 +245,36 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
+    }else if(fcnType->GetType() == AnsatzFct::SPECTRAL){
+
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (fcnType)->GetOrder();
+
+      if( fctEntityType == AnsatzFct::NODE ) {
+        numFcns.Resize( NumNodes_ );
+        numFcns.Init( 1 );
+        
+      } else if( fctEntityType == AnsatzFct::EDGE ) {
+        numFcns.Resize( NumEdges_ );
+        numFcns.Init( order - 1 );
+      } 
+      else if( fctEntityType == AnsatzFct::INTERIOR ) {
+        numFcns.Resize(1);
+        numFcns.Init(0);
+      } 
+      else if( fctEntityType == AnsatzFct::FACE ) {
+        numFcns.Resize(1);
+        numFcns.Init(0);
+      } else {
+        Error( "Not yet implemented!", __FILE__, __LINE__ );
+      }
+
     } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
       
       // Remember approximation order
       Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
         (fcnType)->GetIsoOrder();
+
       if( fcnType->IsIsotropic() == true ) {
         // Check for subentity-type
         if( fctEntityType == AnsatzFct::NODE ) {
@@ -292,11 +334,17 @@ namespace CoupledField
     // Check ansatzFctType
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
       return NumNodes_;
-    } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
+
+    }else if(type->GetType() == AnsatzFct::SPECTRAL){
+      Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (type)->GetOrder();
+      return (order+1);
+
+    } else if ( type->GetType() == AnsatzFct::LEGENDRE) {
       if( type->IsIsotropic() == true ) {
-        
-        Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
-          (type)->GetIsoOrder();
+      
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+        (type)->GetIsoOrder();
         
         // edge functions
         UInt numEdgeFncs = NumEdges_* (order-1);
@@ -340,16 +388,29 @@ namespace CoupledField
     }
     actFct_ = actFct;
 
-    if( actFct->GetType() == AnsatzFct::LEGENDRE
-        && setIntPoints == true ) {
+    if( actFct->GetType() == AnsatzFct::SPECTRAL ) {
+      // If not, get order of functions
+      shared_ptr<SpectralFct> sFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct);
+      IntegMethod = LOBATTO;
+      IntegOrder = 2* sFct->GetOrder() - 1;
+      sShFcnAtIp_[0].Resize(sFct->GetOrder()+1);
+      sDerivAtIp_[0].Resize(sFct->GetOrder()+1);
+
+      // get the values by IntegMethod and IntegOrder
+      SetIntPoints();
       
+      // ... then calc shape function values at integration points
+      // for subsequent calls to CalcJacobian() ....
+      SetShapeFncAtIp();
+      SetShapeFncDerivAtIp();
+
+    }else if( actFct->GetType() == AnsatzFct::LEGENDRE
+              && setIntPoints == true ) {
       // If not, get order of functions
       shared_ptr<LegendreFct> legFct = 
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct);
-      
       // check if isotropic order is present
       if( legFct->IsIsotropic() ) {
-        
         // Prevent integration of first order, as this may
         // cause non-reasonable results
         //if( legFct->GetIsoOrder() > 1 ) {
@@ -358,26 +419,81 @@ namespace CoupledField
         IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() *2,
                                             legFct->GetIsoOrder() *2,
                                             legFct->GetIsoOrder() *2);
-          // } else {
-          //IntegOrder = 2;
-          //} 
       } else {
         IntegMethod = CARTESIAN;
         IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() * 2,
                                             legFct->GetMaxOrder() * 2,
                                             legFct->GetMaxOrder() * 2);
       }
-      
-      
       // get the values by IntegMethod and IntegOrder
       SetIntPoints();
-      
       // ... then calc shape function values at integration points
       // for subsequent calls to CalcJacobian() ....
       SetShapeFncAtIp();
       SetShapeFncDerivAtIp();
-      
     }
   }
+
+  void Line1FE::CalcSpectralShFct(Vector<Double> & Shape, 
+                                  const Vector<Double> & LCoord,
+                                  const Elem* elem, UInt dof,
+                                  AnsatzFct::FctEntityType type ){
+      shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+      UInt order = myFct->GetOrder();
+      
+      Shape.Resize( (order+1) );
+      Shape.Init(0.0);
+      //now get the shape functions and the derivatives for the given coordinates
+      sShFcnAtIp_[0].Init(0.0);
+      myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
+
+      UInt counter = 0;
+      Shape[counter++] = sShFcnAtIp_[0][0];
+      Shape[counter++] = sShFcnAtIp_[0][order];
+
+      Integer factor = elem->edges[0]; 
+      if(factor < 0){        
+        for ( UInt i= 1 ; i< order  ;i++ )    
+          Shape[counter++] = sShFcnAtIp_[0][order - i];  
+      }else{                                  
+        for ( UInt i= 1; i< order ;i++ )  
+          Shape[counter++] = sShFcnAtIp_[0][i];  
+      }                                      
+      return;
+  }
+
+  void Line1FE::CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+                                       const Vector<Double> & LCoord,
+                                       const Elem* elem, UInt dof,
+                                       AnsatzFct::FctEntityType type){
+      // ===============
+      //  SPECTRAL PART
+      // ===============
+      
+      //Check if we are only interested in the nodal values
+      //now do the calculations for the spectral fem
+      shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
+      UInt order = myFct->GetOrder();
+      
+      sDerivAtIp_[0].Init(0.0);
+
+      LDeriv.Resize( (order+1), Dim_ );
+      //now get the shape functions and the derivatives for the given coordinates
+      myFct->EvaluateDerivPolynomial( sDerivAtIp_[0],LCoord[0] );
+      LDeriv[0][0] = sDerivAtIp_[0][0];
+      LDeriv[1][0] = sDerivAtIp_[0][order];
+
+      LDeriv.Resize(NumNodes_,Dim_);
+      UInt counter = 2;
+      if(elem->edges[0] < 0){
+        for ( UInt i=1;i<order;i++ )
+          LDeriv[counter++][0] = sDerivAtIp_[0][order - i];
+      }else{
+        for ( UInt i=1;i<order ;i++ )
+          LDeriv[counter++][0] = sDerivAtIp_[0][i];
+      }
+      return;
+
+    }
 
 } // end of namespace
