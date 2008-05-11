@@ -323,6 +323,23 @@ namespace CoupledField {
           // Map equation numbers
           actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
 
+#ifdef CHECK_INDEX
+          if (form->IsComplex()) {
+            if ((eqnVec1.GetSize() != elemMatrixC.GetSizeRow())
+                || (eqnVec2.GetSize() != elemMatrixC.GetSizeCol())) {
+              EXCEPTION("An element matrix returned by integrator '"
+                        << form->GetName() << "' has the wrong size.");
+            }
+          }
+          else {
+            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
+                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
+              EXCEPTION("An element matrix returned by integrator '"
+                        << form->GetName() << "' has the wrong size.");
+            }
+          }
+#endif
+          
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() ) 
             InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, pdeId1, pdeId2);

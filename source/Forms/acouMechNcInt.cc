@@ -46,7 +46,7 @@ namespace CoupledField {
       EXCEPTION(name_ << " can only handle NCElems.");
 
     bool fluidOnSlaveSide, isCoplanar;
-    Double fluidDensity, jacDet, coordAtIp;
+    Double fluidDensity, jacDet/*, coordAtIp*/;
     Grid *ptGrid = domain->GetGrid();
     Matrix<Double> helpMat, partHelpMat, globalIP, localMasterIP,
       localSlaveIP, matNodeCoord;
@@ -71,11 +71,6 @@ namespace CoupledField {
                             << ptCoord_
                             << " belonging to region "
                             << ptGrid->RegionIdToName(actNCElem->regionId);
-    
-    
-    UInt slaveElemNum = elemSlave->elemNum;
-    UInt masterElemNum = elemMaster->elemNum;
-    UInt ncElemNum = actNCElem->elemNum;
     
     // is our interface coplanar?
     isCoplanar = ptGrid->IsNcInterfaceCoplanar(actElem_->regionId);
@@ -136,7 +131,7 @@ namespace CoupledField {
       for (j = 0; j < dim; ++j)
       {
         globalIP[j][i] = point[j];
-        LOG_DBG3(acoumechncint) << "Global ip "<< i << ": " << point[j];        
+        LOG_DBG3(acoumechncint) << "Global ip "<< i << ": " << point[j];
       }
     }
 
@@ -270,40 +265,60 @@ namespace CoupledField {
       helpMat += partHelpMat;
     }
 
-    LOG_DBG3(acoumechncint) << "single DOF matrix: " << helpMat;
+    LOG_DBG3(acoumechncint) << "single DOF matrix:\n" << helpMat;
+    LOG_DBG3(acoumechncint) << "normal vector:\n" << normal_[0] << "\t"
+                            << normal_[1] << "\t" << normal_[2];
     
     // generate multi-dof matrix (scalar product with surface normal)
     if (firstPDEName_ == "acoustic") {
-      elemMat.Resize( numMasterShpFncs, numSlaveShpFncs * dofs_ );
-      for ( UInt iRow = 0; iRow < numMasterShpFncs; iRow++ ) {
-        for ( UInt iCol = 0; iCol < numSlaveShpFncs; iCol++ ) {
-          for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-            if (fluidOnSlaveSide)            
+      if (fluidOnSlaveSide) {
+        elemMat.Resize( numSlaveShpFncs, numMasterShpFncs * dofs_ );
+        for ( UInt iRow = 0; iRow < numSlaveShpFncs; ++iRow ) {
+          for ( UInt iCol = 0; iCol < numMasterShpFncs; ++iCol ) {
+            for ( UInt iDof = 0; iDof < dofs_; ++iDof ) {
               elemMat[iRow][iCol * dofs_ + iDof] =
-                normal_[iDof] * helpMat[iRow][iCol];
-            else
+                normal_[iDof] * helpMat[iCol][iRow];
+            }
+          }
+        }
+      }
+      else {
+        elemMat.Resize( numMasterShpFncs, numSlaveShpFncs * dofs_ );
+        for ( UInt iRow = 0; iRow < numMasterShpFncs; ++iRow ) {
+          for ( UInt iCol = 0; iCol < numSlaveShpFncs; ++iCol ) {
+            for ( UInt iDof = 0; iDof < dofs_; ++iDof ) {
               elemMat[iRow][iCol * dofs_ + iDof] =
                 normal_[iDof] * helpMat[iCol][iRow];              
+            }
           }
         }
       }
     } else {
-      elemMat.Resize( numMasterShpFncs * dofs_, numSlaveShpFncs );
-      for ( UInt iRow = 0; iRow < numMasterShpFncs; iRow++ ) {
-        for ( UInt iCol = 0; iCol < numSlaveShpFncs; iCol++ ) {
-          for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-            if (fluidOnSlaveSide)            
+      if (fluidOnSlaveSide) {
+        elemMat.Resize( numMasterShpFncs * dofs_, numSlaveShpFncs );
+        for ( UInt iRow = 0; iRow < numMasterShpFncs; ++iRow ) {
+          for ( UInt iCol = 0; iCol < numSlaveShpFncs; ++iCol ) {
+            for ( UInt iDof = 0; iDof < dofs_; ++iDof ) {
               elemMat[iRow * dofs_ + iDof][iCol] =
                 normal_[iDof] * helpMat[iRow][iCol];
-            else            
+            }
+          }
+        }
+      }
+      else {
+        elemMat.Resize( numSlaveShpFncs * dofs_, numMasterShpFncs );
+        for ( UInt iRow = 0; iRow < numSlaveShpFncs; ++iRow ) {
+          for ( UInt iCol = 0; iCol < numMasterShpFncs; ++iCol ) {
+            for ( UInt iDof = 0; iDof < dofs_; ++iDof ) {
               elemMat[iRow * dofs_ + iDof][iCol] =
-                normal_[iDof] * helpMat[iCol][iRow];
+                normal_[iDof] * helpMat[iRow][iCol];
+            }
           }
         }
       }
     }
     
-    LOG_DBG3(acoumechncint) << "multi DOF matrix: " << elemMat;    
+    LOG_DBG3(acoumechncint) << "multi DOF matrix:\n" << elemMat;    
   }
 
   
