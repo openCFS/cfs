@@ -72,10 +72,10 @@ namespace CoupledField
 
     typedef std::vector< std::map<UInt, Double> > ConsInterpWeightsType;
     StdVector< ConsInterpWeightsType > consInterpWeights_;
-    std::map<UInt, Double> timeValues_;
+    std::map<UInt, Double> stepValues_;
 
     MathParser::HandleType mHandle2_;
-    MathParser::HandleType mph_t;
+    MathParser::HandleType mph_tf_;
   };
 
 } // end of namespace
