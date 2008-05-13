@@ -63,34 +63,43 @@ namespace CoupledField {
     
     // For asynchronous steps we need the time values
     if (asynchSteps_ != "no") {
+      mph_tf_ = mParser_->GetNewHandle();
       if (analysistype_ == BasePDE::TRANSIENT) {
         // Get a handle to math parser's time variable
-        mph_t = mParser_->GetNewHandle();
-        mParser_->SetExpr(mph_t, "t");
-        
-        // Find the ResultInfo for acouRhsValues
-        shared_ptr<SimInput> inputReader = domain->GetResultHandler()
-            ->GetInputReader(interpolate_ ? srcInputId_ : id_);
-        StdVector< shared_ptr<ResultInfo> > resInfos;
-        inputReader->GetResultTypes(1, resInfos);
-        UInt numResults = resInfos.GetSize();
-        UInt iRes;
-        for (iRes = 0; iRes < numResults; ++iRes) {
-          if (resInfos[iRes]->resultName == "acouRhsLoad") {
-            break;
-          }
-        }
-        if (iRes >= resInfos.GetSize()) {
-          EXCEPTION("acouRhsLoad not found in input file (id=" << id_ << ")");
-        }
-        
-        // Retrieve the time values of the stored acouRhsValues
-        inputReader->GetStepValues(1, resInfos[iRes], timeValues_);
-      } else {
-        Warning("Asynchronous steps are not supported for this analysis type.",
-            __FILE__, __LINE__);
-        asynchSteps_ = "no";
+        mParser_->SetExpr(mph_tf_, "t");
       }
+      else {
+        // Get a handle to math parser's frequency variable
+        mParser_->SetExpr(mph_tf_, "f");
+        
+        // linear interpolation does not make sense here
+        if (asynchSteps_ == "interpolate") {
+          *warning << "For a harmonic analysis it makes no sense to use "
+            << "linear frequency step interpolation; switching to nearest "
+            << "neighbor.";
+          Warning(__FILE__, __LINE__);
+          asynchSteps_ = "nearest";
+        }
+      }
+        
+      // Find the ResultInfo for acouRhsValues
+      shared_ptr<SimInput> inputReader = domain->GetResultHandler()
+          ->GetInputReader(interpolate_ ? srcInputId_ : id_);
+      StdVector< shared_ptr<ResultInfo> > resInfos;
+      inputReader->GetResultTypes(1, resInfos);
+      UInt numResults = resInfos.GetSize();
+      UInt iRes;
+      for (iRes = 0; iRes < numResults; ++iRes) {
+        if (resInfos[iRes]->resultName == "acouRhsLoad") {
+          break;
+        }
+      }
+      if (iRes >= resInfos.GetSize()) {
+        EXCEPTION("acouRhsLoad not found in input file (id=" << id_ << ")");
+      }
+      
+      // Retrieve the time values of the stored acouRhsValues
+      inputReader->GetStepValues(1, resInfos[iRes], stepValues_);
     }
     
     // Set Expressions for math parser
@@ -101,7 +110,7 @@ namespace CoupledField {
     // Specify the ramping factor function for the RHS to the parser.
     mHandle2_ =  mParser_->GetNewHandle();
     mParser_->SetExpr( mHandle2_, factor );
-    std::cout << "********** factor is: " << factor << std::endl;
+    //std::cout << "********** factor is: " << factor << std::endl;
 
     typedef boost::tokenizer<char_separator<char> > Tok;
     boost::char_separator<char> sep(";| ");
@@ -136,7 +145,7 @@ namespace CoupledField {
   {
     mParser_->ReleaseHandle( mHandle2_ );
     if (asynchSteps_ != "no")
-      mParser_->ReleaseHandle(mph_t);
+      mParser_->ReleaseHandle(mph_tf_);
   }
 
   void AcouRHSLinForm::CalcElemVector( Vector<Double> & elemVec,
@@ -146,9 +155,10 @@ namespace CoupledField {
     Grid* source;
     Grid* dest;
     shared_ptr<BaseResult> acouRHSVal, acouRHSVal2;
+    bool timeInterp = (asynchSteps_ == "interpolate");
     Double factor;
     Double intFactor = 1.0;
-    Double t;
+    Double t = 0.0;
     const Double timeTol = 0.001;
     UInt prevStep = 0;
     
@@ -158,20 +168,21 @@ namespace CoupledField {
     // Determine asynchronous time step
     if (asynchSteps_ != "no") {
       // get the current time
-      t = mParser_->Eval(mph_t);
+      t = mParser_->Eval(mph_tf_);
+      
       // we have to use an iterator in order to tackle non-contiguous step
       // numbering (saveInc>1)
-      std::map< UInt, Double >::iterator it = timeValues_.lower_bound(lastStep_);
+      std::map< UInt, Double >::iterator it = stepValues_.lower_bound(lastStep_);
       step_ = it->first;
       
       // find first step with a larger time value than the current time
-      while (it != timeValues_.end()) {
+      while (it != stepValues_.end()) {
         if (it->second >= t)
           break;
         step_ = (++it)->first;
       }
    
-      if (it == timeValues_.end()) {
+      if (it == stepValues_.end()) {
         step_ = (--it)->first;
       }
 
@@ -183,7 +194,7 @@ namespace CoupledField {
       }
       else { // compute factor for linear interpolation
         Double t2 = it->second;
-        if (it == timeValues_.begin()) {
+        if (it == stepValues_.begin()) {
           intFactor = 1.0; // no interpolation before first time step
         }
         else {
@@ -198,6 +209,11 @@ namespace CoupledField {
           }
           else if (intFactor > 1.0) {
             intFactor = 1.0;
+            if (intFactor > 1.0 + timeTol) {
+              *warning << "Current time/frequency step is beyond the last "
+                       << "step of input file (id='" << srcInputId_ << "')";
+              Warning(__FILE__, __LINE__);
+            }
           }
         }
       }
@@ -206,17 +222,36 @@ namespace CoupledField {
     
     // Determine if values for a new step have to be read.
     
-    if(step_ != lastStep_)
+    if (step_ != lastStep_)
     {
-      if(interpolate_)
+      if (interpolate_)
       {
 #ifdef USE_INTERPOLATION
         UInt numSourceRegions = srcRegions_.GetSize();
         StdVector<UInt> regionNodes;
+
+        // do we need data of previous time step for interpolation?
+        if (timeInterp) {
+          // are the data still in memory?
+          if (prevStep == lastStep_) {
+            // only if previous step gives a significant contribution
+            if (fabs(1.0-intFactor) > timeTol) {
+              rhsValues2_.Resize(rhsValues_.GetSize());
+              rhsValues2_ = rhsValues_; // just copy it
+            }
+          }
+        }
+        
+        // initialize vector for current time step
         dest = domain->GetGrid();
         dest->GetNodesByRegion( regionNodes, dest->RegionNameToId(regionName_));
         rhsValues_.Resize(regionNodes.GetSize());
         std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
+        
+        if (timeInterp) {
+          rhsValues2_.Resize(regionNodes.GetSize());
+          std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
+        }
         
         for(UInt i=0; i<numSourceRegions; i++)
         {
@@ -275,28 +310,24 @@ namespace CoupledField {
           
           // Get data of previous time step for asynchronous time stepping
           // with interpolation
-          if (asynchSteps_ == "interpolate") {
-            // only if previous step gives a significant contribution
-            if (fabs(1.0-intFactor) > timeTol) {
-              // are the data still in memory?
-              if (prevStep == lastStep_) {
-                rhsValues2_.Resize(rhsValues_.GetSize());
-                rhsValues2_ = rhsValues_; // just copy it
-              }
-              else { // load data from file
+          if (timeInterp) {
+            // do we need to load the data?
+            if (prevStep != lastStep_) {
+              // only if previous step gives a significant contribution
+              if (fabs(1.0-intFactor) > timeTol) {
+                // load data from file
                 acouRHSVal2 = resultHandler->GetResult(srcInputId_, 1,
                     prevStep, ACOU_RHS_LOAD, srcRegions_[i]);
                 
                 Vector<Double>& resVec2 =
                   dynamic_cast<Result<Double>&>(*acouRHSVal2).GetVector();
                 
-                rhsValues2_.Resize(regionNodes.GetSize());
                 std::map<UInt, Double>::const_iterator it, end;
                 
                 for (UInt j=0; j < consInterpWeights_[i].size(); ++j) {
                   it = consInterpWeights_[i][j].begin();
                   end = consInterpWeights_[i][j].end();
-
+  
                   if(!std::distance(it, end))
                     continue;
                   
@@ -304,9 +335,9 @@ namespace CoupledField {
                     rhsValues2_[it->first] += it->second * resVec2[j];
                   }
                 }
-              }
-            }
-          }
+              } // fabs(1.0-intFactor) > timeTol
+            } // prevStep != lastStep_
+          } // timeInterp
 
           std::map<UInt, Double>::const_iterator it, end;
           Vector<Double>& resVec =
@@ -337,11 +368,11 @@ namespace CoupledField {
         EXCEPTION("This executable does not support interpolation!");
 #endif // USE_INTERPOLATION
       }
-      else
+      else // if (interpolate_)
       {
         // Get data of previous time step for asynchronous time stepping
         // with interpolation
-        if (asynchSteps_ == "interpolate") {
+        if (timeInterp) {
           // only if previous step gives a significant contribution
           if (fabs(1.0-intFactor) > timeTol) {
             // are the data still in memory?
@@ -363,7 +394,7 @@ namespace CoupledField {
               }
             }
           }
-        }
+        } // if (timeInterp)
 
         // Get reference result
         acouRHSVal = resultHandler->GetResult( id_,
@@ -379,14 +410,14 @@ namespace CoupledField {
             i < n;
             i++)
           rhsValues_[i] = resVec[i];
-      }
+      } // if (interpolate_)
 
       lastStep_ = step_;
     }
 
     elemVec.Resize(1);
     // do we use asynchronous time stepping with interpolation?
-    if ((asynchSteps_ == "interpolate") && (fabs(1.0-intFactor) > timeTol)) {
+    if (timeInterp && (fabs(1.0-intFactor) > timeTol)) {
       UInt iEnt = ent.GetNode() - 1;
       // linear interpolation
       elemVec[0] = factor*(intFactor*rhsValues_[iEnt]
@@ -395,7 +426,8 @@ namespace CoupledField {
     else {
       elemVec[0] = rhsValues_[ent.GetNode()-1]*factor;
     }
-  }
+    
+  } // if (step_ != lastStep_)
 
   void AcouRHSLinForm::CalcElemVector( Vector<Complex> & elemVec,
                                        EntityIterator& ent ) 
@@ -403,10 +435,37 @@ namespace CoupledField {
     ResultHandler* resultHandler = domain->GetResultHandler();
     shared_ptr<BaseResult> acouRHSVal;
     Double factor;
+    Double f = 0.0;
 
     step_ = (UInt) mParser_->Eval(mHandle_);
     factor = mParser_->Eval( mHandle2_ );
     
+    if (asynchSteps_ != "no") {
+      // get current frequency
+      f = mParser_->Eval(mph_tf_);
+      
+      // we have to use an iterator in order to tackle non-contiguous step
+      // numbering (saveInc>1)
+      std::map< UInt, Double >::iterator it = stepValues_.lower_bound(lastStep_);
+      step_ = it->first;
+      
+      // find first step with a larger time value than the current time
+      while (it != stepValues_.end()) {
+        if (it->second >= f)
+          break;
+        step_ = (++it)->first;
+      }
+   
+      if (it == stepValues_.end()) {
+        step_ = (--it)->first;
+      }
+
+      // check if the previous step is closer to the current frequency
+      // (nearest neighbor interpolation)
+      Double df = fabs(it->second - f); 
+      if (df > fabs(f - (--it)->second))
+        step_ = it->first;
+    }
     
     if(step_ != lastStep_)
     {
