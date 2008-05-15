@@ -319,8 +319,13 @@ namespace CoupledField {
                 acouRHSVal2 = resultHandler->GetResult(srcInputId_, 1,
                     prevStep, ACOU_RHS_LOAD, srcRegions_[i]);
                 
-                Vector<Double>& resVec2 =
-                  dynamic_cast<Result<Double>&>(*acouRHSVal2).GetVector();
+                Result<Double> *result2 =
+                  dynamic_cast<Result<Double>*>(&(*acouRHSVal2));
+                if (result2 == NULL) {
+                  EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                      << id_ << "'");
+                }
+                Vector<Double>& resVec2 = result2->GetVector();
                 
                 std::map<UInt, Double>::const_iterator it, end;
                 
@@ -340,8 +345,13 @@ namespace CoupledField {
           } // timeInterp
 
           std::map<UInt, Double>::const_iterator it, end;
-          Vector<Double>& resVec =
-            dynamic_cast<Result<Double>&>(*acouRHSVal).GetVector();
+          Result<Double> *result =
+            dynamic_cast<Result<Double>*>(&(*acouRHSVal)); 
+          if (result == NULL) {
+              EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                  << id_ << "'");
+            }
+          Vector<Double>& resVec = result->GetVector();
 
           //Integer pos;
           for(UInt j=0; j<consInterpWeights_[i].size(); j++)
@@ -384,8 +394,13 @@ namespace CoupledField {
               acouRHSVal2 = resultHandler->GetResult(id_, 1, prevStep,
                   ACOU_RHS_LOAD, regionName_);
               
-              Vector<Double>& resVec2 =
-                dynamic_cast<Result<Double>&>(*acouRHSVal2).GetVector();
+              Result<Double> *result2 =
+                dynamic_cast<Result<Double>*>(&(*acouRHSVal2));
+              if (result2 == NULL) {
+                EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                    << id_ << "'");
+              }
+              Vector<Double>& resVec2 = result2->GetVector();
               UInt numValues = resVec2.GetSize();
               
               rhsValues2_.Resize(numValues);
@@ -402,8 +417,14 @@ namespace CoupledField {
                                                step_,
                                                ACOU_RHS_LOAD,
                                                regionName_ );
-        Vector<Double>& resVec =
-          dynamic_cast<Result<Double>&>(*acouRHSVal).GetVector();
+
+        Result<Double> *result =
+          dynamic_cast<Result<Double>*>(&(*acouRHSVal));
+        if (result == NULL) {
+          EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+              << id_ << "'");
+        }
+        Vector<Double>& resVec = result->GetVector();
 
         rhsValues_.Resize(resVec.GetSize());
         for(UInt i=0, n=resVec.GetSize();
@@ -418,13 +439,13 @@ namespace CoupledField {
     elemVec.Resize(1);
     // do we use asynchronous time stepping with interpolation?
     if (timeInterp && (fabs(1.0-intFactor) > timeTol)) {
-      UInt iEnt = ent.GetNode() - 1;
+      UInt iEnt = ent.GetPos();
       // linear interpolation
       elemVec[0] = factor*(intFactor*rhsValues_[iEnt]
                    + (1.0-intFactor)*rhsValues2_[iEnt]);
     }
     else {
-      elemVec[0] = rhsValues_[ent.GetNode()-1]*factor;
+      elemVec[0] = rhsValues_[ent.GetPos()]*factor;
     }
     
   } // if (step_ != lastStep_)
@@ -474,8 +495,12 @@ namespace CoupledField {
                                              step_,
                                              ACOU_RHS_LOAD,
                                              regionName_ );
-      
-      Vector<Complex> &resVec = dynamic_cast<Result<Complex>&>(*acouRHSVal).GetVector();
+      Result<Complex> *result = dynamic_cast<Result<Complex>*>(&(*acouRHSVal));
+      if (result == NULL) {
+        EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
+                  << id_ << "'");
+      }
+      Vector<Complex> &resVec = result->GetVector();
       
       rhsValuesComplex_.Resize(resVec.GetSize());
       for(UInt i=0, n=resVec.GetSize();
@@ -486,8 +511,8 @@ namespace CoupledField {
       lastStep_ = step_;
     }
     
-    Complex complexValue( rhsValuesComplex_[ent.GetNode()-1].real() * factor,
-                          rhsValuesComplex_[ent.GetNode()-1].imag() * factor );
+    Complex complexValue( rhsValuesComplex_[ent.GetPos()].real() * factor,
+                          rhsValuesComplex_[ent.GetPos()].imag() * factor );
 
     elemVec.Resize(1);
     elemVec[0] = complexValue;
