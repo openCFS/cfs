@@ -484,6 +484,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouPotential"/>
+      <xsd:enumeration value="LagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
 
