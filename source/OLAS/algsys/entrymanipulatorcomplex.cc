@@ -157,244 +157,154 @@ namespace OLAS {
   // **********************
   //   SetCounterPartOnly
   // **********************
-  void EntryManipulatorComplex::SetCounterPartOnly(FEMatrixType matrixID,
-		const PdeIdType pdeID1, const PdeIdType pdeID2, StdMatrix *stdMat,
-		StdMatrix *counterPart, BaseIDBC_Handler *idbcHandler, Double *elemMat,
-		Integer *connect1, UInt length1, Integer *connect2, UInt length2,
-		UInt limit1, UInt limit2, bool setTransposeInt) {
+  void EntryManipulatorComplex::
+  SetCounterPartOnly( FEMatrixType matrixID,
+                      const PdeIdType pdeID1,
+                      const PdeIdType pdeID2,
+                      StdMatrix *stdMat,
+                      StdMatrix *counterPart,
+                      BaseIDBC_Handler *idbcHandler,
+                      Double *elemMat,
+                      Integer *connect1, UInt length1,
+                      Integer *connect2, UInt length2,
+                      UInt limit1, UInt limit2 ) {
 
 
-	// Clear the arrays
-	rowIndList_.clear();
-	colIndList1_.clear();
-	colIndList2_.clear();
+    // Clear the arrays
+    rowIndList_.clear();
+    colIndList1_.clear();
+    colIndList2_.clear();
 
-	UInt aux = 0;
+    UInt aux = 0;
 
-	// STEP 1: Generate row index list from first connect array, dropping
-	//         equation numbers for dofs fixed by (in)homogeneous Dirichlet
-	//         boundary conditions and changing the sign of those fixed by
-	//         constraints.
-	for (UInt i = 0; i < length1; i++) {
-		aux = (UInt)std::abs(connect1[i]);
-		if (aux <= limit1 && aux > 0) {
+    // STEP 1: Generate row index list from first connect array, dropping
+    //         equation numbers for dofs fixed by (in)homogeneous Dirichlet
+    //         boundary conditions and changing the sign of those fixed by
+    //         constraints.
+    for ( UInt i = 0; i < length1; i++ ) {
+      aux = (UInt)std::abs( connect1[i] );
+      if ( aux <= limit1 && aux > 0 ) {
 
-			// Store equation number
-			rowIndList_.push_back(aux );
+        // Store equation number
+        rowIndList_.push_back( aux );
 
-			// Store row index into local element matrix
-			rowIndList_.push_back(i );
-		}
-	}
+        // Store row index into local element matrix
+        rowIndList_.push_back( i );
+      }
+    }
 
-	// STEP 2: Split the second connect array into two edge lists, one for
-	//         the graph and one for the IDBCgraph (which handles the dofs
-	//         fixed by inhomogeneous Dirichlet boundary conditions)
-	for (UInt i = 0; i < length2; i++) {
-		aux = (UInt)std::abs(connect2[i]);
-		if (aux > 0) {
-			if (aux > limit2 ) {
+    // STEP 2: Split the second connect array into two edge lists, one for
+    //         the graph and one for the IDBCgraph (which handles the dofs
+    //         fixed by inhomogeneous Dirichlet boundary conditions)
+    for ( UInt i = 0; i < length2; i++ ) {
+      aux = (UInt)std::abs( connect2[i] );
+      if ( aux > 0 ) {
+        if ( aux > limit2 ) {
 
-				// Store equation number and column index into
-				// local element matrix
-				colIndList2_.push_back(aux - limit2 );
-				colIndList2_.push_back(i );
-			} else {
+          // Store equation number and column index into
+          // local element matrix
+          colIndList2_.push_back( aux - limit2 );
+          colIndList2_.push_back(  i  );
+        }
+        else {
 
-				// Store equation number and column index into
-				// local element matrix
-				colIndList1_.push_back(aux );
-				colIndList1_.push_back(i );
-			}
-		}
-	}
-
-#ifdef DEBUG_ASSEMBLE
-	// output original connectivity
-	(*debug) << "\n ------------------------------------------------------"
-	<< "\n EntryManipulatorComplex::SetCounterPartOnly\n"
-	<< " limit1 = " << limit1 << '\n'
-	<< " limit2 = " << limit2 << '\n';
-	(*debug) << " connect1 ";
-	for ( UInt i = 0; i < length1; i++ ) {
-		(*debug) << connect1[i] << " ";
-	}
-	(*debug) << std::endl;
-	(*debug) << " connect2 ";
-	for ( UInt i = 0; i < length2; i++ ) {
-		(*debug) << connect2[i] << " ";
-	}
-	(*debug) << std::endl;
-
-	// output new connectivity
-	(*debug) << " rowIndList_: ";
-	for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
-		(*debug) << rowIndList_[i] << " ";
-	}
-	(*debug) << std::endl;
-	(*debug) << " colIndList1_: ";
-	for ( UInt i = 0; i < colIndList1_.size(); i += 2 ) {
-		(*debug) << colIndList1_[i] << " ";
-	}
-	(*debug) << std::endl;
-	(*debug) << " colIndList2_: ";
-	for ( UInt i = 0; i < colIndList2_.size(); i += 2 ) {
-		(*debug) << colIndList2_[i] << " ";
-	}
-	(*debug) << std::endl;
-#endif
-
-	// STEP 3: Insert values into matrix
-	UInt rowInd;
-	UInt colInd;
-	Double real;
-	Double imag;
-
-	// STEP 3a: Insert values of the transpose of the element matrix 
-	//          into the counterpart matrix
-	if (setTransposeInt == true) {
+          // Store equation number and column index into
+          // local element matrix
+          colIndList1_.push_back( aux );
+          colIndList1_.push_back(  i  );
+        }
+      }
+    }
 
 #ifdef DEBUG_ASSEMBLE
-		(*debug) << "\n free <-> free matrix (counterpart):\n";
+    // output original connectivity
+    (*debug) << "\n ------------------------------------------------------"
+             << "\n EntryManipulatorComplex::SetCounterPartOnly\n"
+             << " limit1 = " << limit1 << '\n'
+             << " limit2 = " << limit2 << '\n';
+    (*debug) << " connect1 ";
+    for ( UInt i = 0; i < length1; i++ ) {
+      (*debug) << connect1[i] << " ";
+    }
+    (*debug) << std::endl;
+    (*debug) << " connect2 ";
+    for ( UInt i = 0; i < length2; i++ ) {
+      (*debug) << connect2[i] << " ";
+    }
+    (*debug) << std::endl;
+
+    // output new connectivity
+    (*debug) << " rowIndList_: ";
+    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
+      (*debug) << rowIndList_[i] << " ";
+    }
+    (*debug) << std::endl;
+    (*debug) << " colIndList1_: ";
+    for ( UInt i = 0; i < colIndList1_.size(); i += 2 ) {
+      (*debug) << colIndList1_[i] << " ";
+    }
+    (*debug) << std::endl;
+    (*debug) << " colIndList2_: ";
+    for ( UInt i = 0; i < colIndList2_.size(); i += 2 ) {
+      (*debug) << colIndList2_[i] << " ";
+    }
+    (*debug) << std::endl;
 #endif
-		for (UInt i = 0; i < rowIndList_.size(); i += 2) {
-			rowInd = rowIndList_[i+1];
-			for (UInt j = 0; j < colIndList1_.size(); j += 2) {
-				colInd = colIndList1_[j+1];
-				real = elemMat[ rowInd * length2 + colInd ];
-				imag = elemMat[ rowInd * length2 + colInd + length1 * length2 ];
-				Complex cVal(real, imag );
+
+    // STEP 3: Insert values of transposed counter part into matrix
+    UInt rowInd;
+    UInt colInd;
+    Double real;
+    Double imag;
 
 #ifdef DEBUG_ASSEMBLE
-				(*debug) << "mat(" << colIndList1_[j] << ", "
-				<< rowIndList_[j] << ") += " << cVal << std::endl;
+    (*debug) << "\n free <-> free matrix (counterpart):\n";
 #endif
-
-				// this means that is going to insert the transpose of the local
-				// matrix under the lower part of the main diagonal of the global 
-				// matrix.
-				counterPart->AddToMatrixEntry(colIndList1_[j], rowIndList_[i],
-						cVal );
-
-			}
-		}
-
-		// STEP 4a: Insert values for fixed dofs into IDBC_Handler object
-#ifdef DEBUG_ASSEMBLE
-		(*debug) << "\n free <-> fixed matrix:\n";
-#endif
-		for (UInt i = 0; i < rowIndList_.size(); i += 2) {
-			rowInd = rowIndList_[i+1];
-			for (UInt j = 0; j < colIndList2_.size(); j += 2) {
-				colInd = colIndList2_[j+1];
+    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
+      rowInd = rowIndList_[i+1];
+      for ( UInt j = 0; j < colIndList1_.size(); j += 2 ) {
+        colInd = colIndList1_[j+1];
+        real = elemMat[ rowInd * length2 + colInd ];
+        imag = elemMat[ rowInd * length2 + colInd + length1 * length2 ];
+        Complex cVal( real, imag );
 
 #ifdef DEBUG_ASSEMBLE
-				(*debug) << " mat(" << rowIndList_[i] << ", "
-				<< colIndList2_[j] << ") += "
-				<< elemMat[ rowInd * length2 + colInd ]
-				<< ", "
-				<< elemMat[ rowInd * length2 + colInd + length1 * length2]
-				<< std::endl;
+        (*debug) << "mat(" << colIndList1_[j] << ", "
+                 << rowIndList_[j] << ") += " << cVal << std::endl;
 #endif
-				idbcHandler->SetWeightFixedToFree(matrixID, pdeID1, pdeID2,
-						rowIndList_[i], colIndList2_[j],
-						elemMat[ rowInd * length2 + colInd ],
-						elemMat[ rowInd * length2 + colInd + length1 * length2 ]);
-			}
-		}
 
-	}
-	// STEP 3b: Insert values of the element matrix into 
-	//          the counterpart of the global matrix
-	else {
+        counterPart->AddToMatrixEntry( colIndList1_[j], rowIndList_[i],
+                                       cVal );
+      }
+    }
+
+    // STEP 4: Insert values for fixed dofs into IDBC_Handler object
+#ifdef DEBUG_ASSEMBLE
+    (*debug) << "\n free <-> fixed matrix:\n";
+#endif
+    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
+      rowInd = rowIndList_[i+1];
+      for ( UInt j = 0; j < colIndList2_.size(); j += 2 ) {
+        colInd = colIndList2_[j+1];
 
 #ifdef DEBUG_ASSEMBLE
-		(*debug) << "\n free <-> free matrix (counterpart):\n";
+        (*debug) << " mat(" << rowIndList_[i] << ", "
+                 << colIndList2_[j] << ") += "
+                 << elemMat[ rowInd * length2 + colInd ]
+                 << ", "
+                 << elemMat[ rowInd * length2 + colInd + length1 * length2]
+                 << std::endl;
 #endif
-		//		for (UInt i = 0; i < rowIndList_.size(); i += 2) {
-		//			rowInd = rowIndList_[i+1];
-		//			for (UInt j = 0; j < colIndList1_.size(); j += 2) {
-		//				colInd = colIndList1_[j+1];
-
-		for (UInt j = 0; j < colIndList1_.size(); j += 2) {
-			colInd = colIndList1_[j+1];
-			for (UInt i = 0; i < rowIndList_.size(); i += 2) {
-				rowInd = rowIndList_[i+1];
-
-				real = elemMat[ colInd * length1 + rowInd];
-				imag = elemMat[ colInd * length1 + rowInd + length1 * length2 ];
-				Complex cVal(real, imag );
-
-#ifdef DEBUG_ASSEMBLE
-				(*debug) << "mat(" << colIndList1_[j] << ", "
-				<< rowIndList_[j] << ") + = " << cVal << std::endl;
-#endif
-
-				// this means that is going to insert the local matrix in the lower 
-				// part under the main diagonal of the global matrix
-				stdMat->AddToMatrixEntry(colIndList1_[j], rowIndList_[i], cVal );
-
-			}
-		}
-
-		// STEP 4b: Insert values for fixed dofs into IDBC_Handler object
-#ifdef DEBUG_ASSEMBLE
-		(*debug) << "\n free <-> fixed matrix:\n";
-#endif
-		//	    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
-		//	      rowInd = rowIndList_[i+1];
-		//	      for ( UInt j = 0; j < colIndList2_.size(); j += 2 ) {
-		//	        colInd = colIndList2_[j+1];
-
-		for (UInt j = 0; j < colIndList2_.size(); j += 2) {
-			colInd = colIndList2_[j+1];
-			for (UInt i = 0; i < rowIndList_.size(); i += 2) {
-				rowInd = rowIndList_[i+1];
-
-#ifdef DEBUG_ASSEMBLE
-				(*debug) << " mat(" << colIndList2_[j] << ", "
-				<< rowIndList_[i] << ") += "
-				<< elemMat[ colInd * length1 + rowInd ]
-				<< ", "
-				<< elemMat[ colInd * length1 + rowInd + length1 * length2]
-				<< std::endl;
-#endif
-				idbcHandler->SetWeightFixedToFree(matrixID, pdeID1, pdeID2,
-						colIndList2_[j], rowIndList_[i],
-						elemMat[ colInd * length1 + rowInd ],
-						elemMat[ colInd * length1 + rowInd + length1 * length2 ]);
-			}
-		}
-
-	}
-
-	//    // STEP 4: Insert values for fixed dofs into IDBC_Handler object
-	//#ifdef DEBUG_ASSEMBLE
-	//    (*debug) << "\n free <-> fixed matrix:\n";
-	//#endif
-	//    for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
-	//      rowInd = rowIndList_[i+1];
-	//      for ( UInt j = 0; j < colIndList2_.size(); j += 2 ) {
-	//        colInd = colIndList2_[j+1];
-	//
-	//#ifdef DEBUG_ASSEMBLE
-	//        (*debug) << " mat(" << rowIndList_[i] << ", "
-	//                 << colIndList2_[j] << ") += "
-	//                 << elemMat[ rowInd * length2 + colInd ]
-	//                 << ", "
-	//                 << elemMat[ rowInd * length2 + colInd + length1 * length2]
-	//                 << std::endl;
-	//#endif
-	//        idbcHandler->SetWeightFixedToFree( matrixID, pdeID1, pdeID2,
-	//                                           rowIndList_[i], colIndList2_[j],
-	//                                           elemMat[ rowInd * length2
-	//                                                    + colInd ],
-	//                                           elemMat[ rowInd * length2
-	//                                                    + colInd
-	//                                                    + length1 * length2 ]);
-	//      }
-	//    }
-}
+        idbcHandler->SetWeightFixedToFree( matrixID, pdeID1, pdeID2,
+                                           rowIndList_[i], colIndList2_[j],
+                                           elemMat[ rowInd * length2
+                                                    + colInd ],
+                                           elemMat[ rowInd * length2
+                                                    + colInd
+                                                    + length1 * length2 ]);
+      }
+    }
+  }
 
 
   // *****************

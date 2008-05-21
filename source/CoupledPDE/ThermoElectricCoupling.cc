@@ -135,11 +135,6 @@ namespace CoupledField {
 			//		one coupling, here thermal to elec but not elec to 
 			//		thermal, the other coupling is zero. 
 			actContextStiff->SetCounterPart( false);
-			// 		Do not aseembly the transpose of the stiffness integrator.
-			actContextStiff->SetTransposeInt(false);
-			// 		Do not assembly only the counter part of the stiffness 
-			//		integrator on the global damp matrix
-			actContextStiff->SetOnlyCounterPart(false);
 			
 			assemble_->AddBiLinearForm(actContextStiff );
 
@@ -181,20 +176,16 @@ namespace CoupledField {
 
 				// now the parameters pde2_ and pde1_ are exchanged in order
 				// to assembly in the row block of heat conduction pde
-				actContextDamping->SetPtPdes(pde1_, pde2_ );
-				actContextDamping->SetResults(results1_[0], results2_[0],
+				actContextDamping->SetPtPdes(pde2_, pde1_ );
+				actContextDamping->SetResults(results2_[0], results1_[0],
 						actSDList, actSDList );
 
 				//		We don't need to set the transposed of the coupling
 				//		matrix to the lower diagonal side since there is only 
 				//		one coupling, here thermal to elec but not elec to 
 				//		thermal, the other coupling is zero. 
-				actContextDamping->SetCounterPart( true);
-				// 		Do not aseembly the transpose of the damping integrator.
-				actContextDamping->SetTransposeInt(false);
-				// 		Assembly only the counter part of the damping integrator
-				//		on the global damp matrix
-				actContextDamping->SetOnlyCounterPart(true);
+				actContextDamping->SetCounterPart( false);
+		
 				//		Negate the result stiffness matrix
 				actContextDamping->SetNegate(true);
 

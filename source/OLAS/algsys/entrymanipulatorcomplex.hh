@@ -84,8 +84,7 @@ namespace OLAS {
                              Double *elemMat,
                              Integer *connect1, UInt length1,
                              Integer *connect2, UInt length2,
-                             UInt limit1, UInt limit2,
-                             bool setTransposeInt);
+                             UInt limit1, UInt limit2 );
 
     //!
     void SetElementRHS( SparseVector *rhs, Double *elemRHS,

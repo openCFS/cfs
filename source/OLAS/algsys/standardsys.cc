@@ -721,46 +721,25 @@ namespace OLAS {
                                          PdeIdType idPDE2,
                                          Integer *connect2,
                                          Integer elemSize2,
-                                         FEMatrix_Flags pFlags ) {
+                                         bool setCounterPart ) {
 
-    // check which kind of assembly
-    if(pFlags.setOnlyCounterPart == false )
-    {
-    	// then normal assembly:
-    	// element matrix and its transposed on the counter  
-    	// part of the global matrix when setCounterPart is 
-    	// true (upper and lower global assembly).
-    	// Note: setTransposeInt is always true by default
-	    assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
-							sysmat_[matrixID],
-							sysmat_[matrixID],
-							idbcHandler_, elemMat,
-							connect1, (UInt)elemSize1,
-							connect2, (UInt)elemSize2,
-							numLastFreeDof_[1],
-							numLastFreeDof_[1],
-							pFlags.setCounterPart );
-	    
-    }
-    else{
-    	// then special assembly: 
-    	// assemble the element matrix when setTransposeInt is false.
-    	// (lower global assembly).
-    	// Note: setTransposeInt is set to false in thermo-mechanical
-    	// coupling and in thermo-electrical coupling class.
-        assemble_->SetCounterPartOnly( matrixID, idPDE1, idPDE2,
-                             sysmat_[matrixID],
-                             sysmat_[matrixID],
-                             idbcHandler_, elemMat,
-                             connect1, (UInt)elemSize1,
-                             connect2, (UInt)elemSize2,
-                             numLastFreeDof_[1],
-                             numLastFreeDof_[1],
-                             pFlags.setTransposeInt );
-        
-        
-    }
-    
+
+    // then normal assembly:
+    // element matrix and its transposed on the counter  
+    // part of the global matrix when setCounterPart is 
+    // true (upper and lower global assembly).
+    assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
+                                 sysmat_[matrixID],
+                                 sysmat_[matrixID],
+                                 idbcHandler_, elemMat,
+                                 connect1, (UInt)elemSize1,
+                                 connect2, (UInt)elemSize2,
+                                 numLastFreeDof_[1],
+                                 numLastFreeDof_[1],
+                                 setCounterPart );
+
+
+
   }
 
 

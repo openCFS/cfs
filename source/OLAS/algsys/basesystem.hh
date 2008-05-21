@@ -484,7 +484,7 @@ namespace OLAS {
                                     PdeIdType identifierPDE2,
                                     Integer *eqnNrs2,
                                     Integer numEqn2,
-                                    FEMatrix_Flags pFlags ) = 0;
+                                    bool setCounterPart ) = 0;
 
     //! Assemble the local rhs vector to the global one
 
