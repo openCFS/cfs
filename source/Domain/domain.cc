@@ -675,9 +675,9 @@ namespace CoupledField {
         // in the case of piezo coupling, the electrotstatic
         // entries have to be multiplied by -1
         dynamic_cast<ElecPDE*>(pde2)->SetPiezoCoupling();
-        
+
         coupling = new PiezoCoupling( pde1, pde2, pairNodes[i] );
-        
+
       } 
       // *** ACOU-MECH Coupling ***
       else if ( couplingName == "acouMechDirect" ) {
@@ -692,17 +692,17 @@ namespace CoupledField {
         coupling = new AcouMechCoupling( pde1, pde2, pairNodes[i] );
       }
 
-// ------------------------------------------------------------------------
+      // ------------------------------------------------------------------------
       // *** THERMO-MECH Coupling ***
       else if ( couplingName == "thermoMechDirect" ) {
 
-         pde1 = GetSinglePDE( "mechanic" );
-         pde2 = GetSinglePDE( "heatConduction" );
+        pde1 = GetSinglePDE( "mechanic" );
+        pde2 = GetSinglePDE( "heatConduction" );
 
 
- 		//turn the coupling on in heat-conduction pde
- 		//in order to create the heat-conduction damp matrix
- 		dynamic_cast<HeatCondPDE*>(pde2)->SetMechCoupling();
+        //turn the coupling on in heat-conduction pde
+        //in order to create the heat-conduction damp matrix
+        dynamic_cast<HeatCondPDE*>(pde2)->SetMechCoupling();
 
 
         coupling = new ThermoMechCoupling( pde1, pde2, pairNodes[i] );
@@ -712,11 +712,11 @@ namespace CoupledField {
 
         pde1 = GetSinglePDE( "electrostatic" );
         pde2 = GetSinglePDE( "heatConduction" );
-		
-		//turn the coupling on in heat-conduction pde
-		//in order to create the heat-conduction damp matrix
-		dynamic_cast<HeatCondPDE*>(pde2)->SetElectroCoupling();
-		
+
+        //turn the coupling on in heat-conduction pde
+        //in order to create the heat-conduction damp matrix
+        dynamic_cast<HeatCondPDE*>(pde2)->SetElectroCoupling();
+
         // in the case of thermo coupling, the electrotstatic
         // entries have to be multiplied by -1
         dynamic_cast<ElecPDE*>(pde1)->SetThermoCoupling();

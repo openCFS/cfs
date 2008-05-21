@@ -142,54 +142,27 @@ namespace CoupledField
       return dampingLayer_;}
       
     //! Set function for SetCounterPart
-    void SetCounterPart( bool pSetCounterPart ) { 
-    	//setCounterPart_ = setCounterPart;
-    	setOfFlags_.setCounterPart = pSetCounterPart;
+    void SetCounterPart( bool setCounterPart ) { 
+      setCounterPart_ = setCounterPart;
     }
 
-    //! Set function for setOnlyCounterPart
-	void SetOnlyCounterPart( bool pSetOnlyCounterPart ) { 
-    	setOfFlags_.setOnlyCounterPart = pSetOnlyCounterPart;
-    }
-	
-    //! Set function for setTransposeInt_
-	void SetTransposeInt(bool pSetTransposeInt) {
-		setOfFlags_.setTransposeInt = pSetTransposeInt;
-	}
-	
     //! Set function for setNegate
-	void SetNegate(bool pSetNegate) {
-		setOfFlags_.setNegate = pSetNegate;
-	}
+    void SetNegate(bool setNegate) {
+      negateEntries_ = setNegate;
+    }
 	
     //! Check, if element matrix has to be assembled to 
     //! upper and lower part of global matrix
     bool IsSetCounterPart() const {
-    	//return setCounterPart_;
-    	return setOfFlags_.setCounterPart;
+    	return setCounterPart_;
     }
     
-    bool IsSetOnlyCounterPart() const {
-    	return setOfFlags_.setOnlyCounterPart;
-    }
-    
-	//! Check, if element matrix has to be assembled 
-	//! transposing it into the global matrix
-	bool IsSetTransposeInt() const {
-		//return setTransposeInt_;
-		return setOfFlags_.setTransposeInt;
-	}
-	//! to check if we need to negate the integrator
-	bool IsSetNegate() const {
-		return setOfFlags_.setNegate;
-	} 
+    //! to check if we need to negate the integrator
+    bool IsSetNegate() const {
+      return negateEntries_;
+    } 
 	
-	OLAS::FEMatrix_Flags getBiLinFormContextFlags() const {
-		//return setTransposeInt_;
-		return setOfFlags_;
-	}
-
-    /** create human readable debug output */
+    //! create human readable debug output */
     std::string ToString();
 
   protected:
@@ -215,11 +188,10 @@ namespace CoupledField
     
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location
-    //bool setCounterPart_;
+    bool setCounterPart_;
     
-    //! Set of flags for the FE matrix for assembly caracteristics
-    //! This contains setCounterPart_
-    OLAS::FEMatrix_Flags setOfFlags_;
+    // Flag indicating negating the entries of the element matrix
+    bool negateEntries_;
     
     // ======================================================
     //  MAPPING DATA

@@ -279,9 +279,7 @@ namespace OLAS
     //!                row and column indices derived from the equation
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
-    //!                with different PDE identifiers.
-    //! \param setTransposeInt if this flag is true, then the method will
-    //!                insert the transpose of the element matrix \f$E^T\f$. 
+    //!                with different PDE identifiers. 
     //! \note We currently use setCounterPart = true as default, since we
     //!       have no clear concept how to administer this information within
     //!       CFS++ up to now. In the case of a diagonal matrix block, we
@@ -293,7 +291,7 @@ namespace OLAS
                            PdeIdType identifierPDE2,
                            Integer *eqnNrs2,
                            Integer numEqn2,
-                           FEMatrix_Flags pFlags );
+                           bool setCounterPart );
     
     //! Assemble the local rhs vector to the global one
 

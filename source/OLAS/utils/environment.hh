@@ -107,42 +107,7 @@ namespace OLAS {
   //! CFS++/OLAS run, i.e. the number of possible choices from FEMatrixType
   //! besides the NOTYPE value.
 #define MAX_NUM_FE_MATRICES 6  
-  
-  //! class for flags of the FE matrix
-	class FEMatrix_Flags {
-		public:
-			FEMatrix_Flags() {
-				setCounterPart=false;
-				setTransposeInt = true;
-				setOnlyCounterPart = false;
-				setNegate = false;
-			}
-	
-			//! Flag indicating assembling of the integrator
-			//! in the counterpart of the pde location
-			bool setCounterPart;
-			//! Flag indicating the assembling of the integrator.
-			//! in the counter part of the pde transposing it.
-			//! Note: By default, we set the transpose of a matrix 
-			//! true when assembling the counter part of the 
-			//! matrix, i.e. the case of piezoelectric coupling.
-			//! if we want set the counter part without transposing
-			//! the integrator within the global FE-matrix, this 
-			//! flag must be changed through 'SetTransposeInt()'
-			bool setTransposeInt;
-			//! Flag to set only the counter part of the element matrix.
-			bool setOnlyCounterPart;
-			//! To negate the FEMatrix
-			bool setNegate;
-		
-			std::string ToString() {
-			  std::ostringstream os;
-			  os << "coutnerPart=" << setCounterPart << " transposeInt=" << setTransposeInt
-			     << " onlyCounterPart=" << setOnlyCounterPart << " negate=" << setNegate;
-			  return os.str();
-			}
-	}; 
-	//extern FEMatrix_Flags setOfFlags_;
+
   
   //! Type of algebraic system
 
@@ -155,8 +120,6 @@ namespace OLAS {
   //! - SBM_SYSTEM
   //! - STANDARD_SYSTEM
   typedef enum { NOALGSYSTYPE, SBM_SYSTEM, STANDARD_SYSTEM } AlgSysType;
-
-
 
 
   //! Type of preconditioner

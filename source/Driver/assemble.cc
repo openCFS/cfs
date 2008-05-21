@@ -310,8 +310,7 @@ namespace CoupledField {
 
           if(actContext.IsSetNegate()== true){
             assert(!form->IsComplex());
-            elemMatrix*= (-1);
-            //std::cerr << "Negated element matrix is \n" << elemMatrix << std::endl;
+            elemMatrix*= (-1.0);
           }
 
           LOG_DBG3(assemble) << "CalcElemMatrix " << i << " -> " 
@@ -334,6 +333,11 @@ namespace CoupledField {
           else {
             if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
                 || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
+              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x " 
+              << elemMatrix.GetSizeCol() << "):\n";
+              std::cerr << elemMatrix << std::endl;
+              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
+              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
               EXCEPTION("An element matrix returned by integrator '"
                         << form->GetName() << "' has the wrong size.");
             }
@@ -694,20 +698,6 @@ namespace CoupledField {
         if ( actContext.GetSecDestMat() != NOTYPE ) 
           matReassemble_[actContext.GetSecDestMat()] = true; 
       }
-      // todo let the integrators be nonlin!
-      if (actContext.GetIntegrator()->GetName()=="LinThermoElecDampInt") 
-      {
-        matReassemble_[actContext.GetDestMat()] = true;
-        if ( actContext.GetSecDestMat() != NOTYPE ) 
-          matReassemble_[actContext.GetSecDestMat()] = true;
-      }
-
-      if ( actContext.GetIntegrator()->GetName()=="LinThermoMechDampInt") 
-      {
-        matReassemble_[actContext.GetDestMat()] = true;
-        if ( actContext.GetSecDestMat() != NOTYPE ) 
-          matReassemble_[actContext.GetSecDestMat()] = true;
-      }
     }
   }
   
@@ -941,47 +931,7 @@ namespace CoupledField {
     }
   }
 
- //  void Assemble::AdjustDamping( BiLinFormContext& context ) {
-    
-//     // Check, if damping matrix is present
-//     if( matReassemble_.find( DAMPING) == matReassemble_.end() )
-//       return;
-
-//     if( analysisType_ == HARMONIC ) {
-      
-//       // obtain current frequency
-//       MathParser * parser = domain->GetMathParser();
-//       parser->SetExpr( mHandle_, "f" );
-//       Double actFreq = parser->Eval( mHandle_ );
-//       Double actOmega = actFreq * 2.0 * PI;
-      
-//       // obtain matData-freq
-//       // NOTE: This mechanism should be changed in a way, that the damping
-//       // is part of the xml-material file, where tanDelta and the
-//       // related frequecy are specified
-      
-//       HarmonicDriver * harmDriver = 
-//         dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver() );
-
-//       Double matDataOmega = harmDriver->GetMatDataFreq() * 2.0 * PI;
-
-//       // get multiplicative pre factor depending on frequency
-//       if ( matDataOmega > 0 && actOmega > 0 ) {
-        
-//         if ( context.GetDestMat() == STIFFNESS ) {
-//           raylDampFactor_ = matDataOmega / actOmega;
-//           Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
-//                         raylDampFactor_ );
-//         }
-//         else if ( context.GetDestMat() == MASS ) {
-//           raylDampFactor_ = actOmega / matDataOmega;
-//           Info->PrintF( "", " dampTransform for MASS ........ %e\n",
-//                         raylDampFactor_ );
-//         }
-//       }
-      
-//     }
-//   }
+ 
 
   bool Assemble::IsFEMatSymmetric( FEMatrixType feType ) {
     
@@ -1001,7 +951,7 @@ namespace CoupledField {
 
       BiLinFormContext & actCt = (**it);
       
-      // Check, where bilinearform gets assembled to
+      // Check, where bilinearform gets assembled to diagonal block
       if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
           && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
           && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
@@ -1073,12 +1023,12 @@ namespace CoupledField {
 
     LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=[" 
                        << StdVector<Double>::ToString(elemMat.GetSizeCol() * elemMat.GetSizeRow(), dat_ptr, 1)
-                       << "] eqnVec1=" << eqnVec1.ToString() << " flags=" << context.getBiLinFormContextFlags().ToString();
+                       << "] eqnVec1=" << eqnVec1.ToString();
     
     algsys_->SetElementMatrix( mappedDest, dat_ptr, 
                                pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                                pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                               context.getBiLinFormContextFlags() );
+                               context.IsSetCounterPart() );
   }
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -1112,6 +1062,6 @@ namespace CoupledField {
     algsys_->SetElementMatrix( mappedDest, harmMat.GetPointer(), 
                                pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
                                pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                               context.getBiLinFormContextFlags() );
+                               context.IsSetCounterPart() );
   }
 }

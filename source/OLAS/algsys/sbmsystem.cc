@@ -429,12 +429,8 @@ namespace OLAS {
                                      PdeIdType idPDE1, Integer *eqnNrs1,
                                      Integer numEqn1, PdeIdType idPDE2,
                                      Integer *eqnNrs2, Integer numEqn2,
-                                     FEMatrix_Flags pFlags ) {
+                                     bool setCounterPart ) {
 
-
-    bool setCounterPart = pFlags.setCounterPart;
-    bool setTransposeInt = pFlags.setTransposeInt;
-    
     // Set flag for setting the symmetric counter-part of
     // the element matrix
     if ( setCounterPart == true && idPDE1 == idPDE2 ) {
@@ -493,8 +489,7 @@ namespace OLAS {
                                      eqnNrs1, (UInt)numEqn1,
                                      eqnNrs2, (UInt)numEqn2,
                                      numLastFreeDof_[idPDE1],
-                                     numLastFreeDof_[idPDE2],
-                                     setTransposeInt );
+                                     numLastFreeDof_[idPDE2] );
     }
   }
 
