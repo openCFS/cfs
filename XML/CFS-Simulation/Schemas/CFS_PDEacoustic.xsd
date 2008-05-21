@@ -186,13 +186,13 @@
           </xsd:element>
 
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_AcousticHD"  />
                 <xsd:element name="dirichletInhom" type="DT_AcousticID"  />
                 <xsd:element name="neumannInhom"   type="DT_AcousticIN"  />
-                <xsd:element name="load"           type="DT_AcousticLoad"      />
+                <xsd:element name="load"           type="DT_AcousticLoad"/>
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
                 <xsd:element name="rhsValues"      type="DT_AcousticRHS"/>
