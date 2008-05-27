@@ -28,6 +28,7 @@
 %      region    - region the quantity is defined on
 %      bufsize   - maximum memory consumption (in megabytes)
 %      nullstep  - set to true, if values at f=0 are desired
+%      freqbnd   - highest frequency to be stored
 %        
 %    OUTPUT/S
 %
@@ -35,14 +36,14 @@
 %    ABOUT
 %
 %      -Created:     Jan 2006
-%      -Last update: 5 Dec 2007
+%      -Last update: 27 Mar 2008
 %      -Revision:    0.5
 %      -Authors:     Max Escobar, Simon Triebenbacher, Jens Grabinger
 %
 % =======================================================================
 
 
-function [] =  Time2FreqHDF5(infile, outfile, quantity, region, bufsize, nullstep)
+function [] =  Time2FreqHDF5(infile, outfile, quantity, region, bufsize, nullstep, freqbnd)
 
 
 if exist(infile, 'file') ~= 2
@@ -84,8 +85,6 @@ basepath = msgroup.Name;
 % calculate no of time and frequency steps
 numsteps = size(msgroup.Groups,2)-1;
 numharmsteps = floor(numsteps / 2)+1;
-disp(sprintf('No. of time steps:      %d', numsteps))
-disp(sprintf('No. of frequency steps: %d\n', numharmsteps))
 
 % store result type of quantity
 switch restype
@@ -113,6 +112,26 @@ end
 time_step1 = hdf5read(infile, strcat(basepath, '/Step_1/StepValue'));
 time_step2 = hdf5read(infile, strcat(basepath, '/Step_2/StepValue'));
 dt = time_step2 - time_step1;
+
+% adapt no. of frequency steps according to maximum frequency
+if freqbnd > 0
+  harmstepbnd = floor(freqbnd*numsteps*dt)+1;
+  if (harmstepbnd > 0) && (harmstepbnd < numharmsteps)
+    numharmsteps = harmstepbnd;
+  end
+end
+
+% adapt numharmsteps if f=0 is omitted
+if nullstep
+  firstharmstep = 0;
+else
+  firstharmstep = 1;
+  numharmsteps = numharmsteps-1;
+end
+
+% display info on no. of steps
+disp(sprintf('No. of time steps:      %d', numsteps))
+disp(sprintf('No. of frequency steps: %d\n', numharmsteps))
 
 % read first time step
 dataset = sprintf('%s/Real', resgroup.Name);
@@ -206,7 +225,7 @@ for iter=1:numiter
     outpath = sprintf('%s/Step_%d/%s/%s/%s', basepath, i, quantity, region, restypestr);
     dataset = sprintf('%s/Real', outpath);
 
-    ds = real_MAT(i,:);
+    ds = real_MAT(i+firstharmstep,:);
     if exist(outfile_iter, 'file') ~= 2
       hdf5write(outfile_iter, dataset, ds, 'WriteMode', 'overwrite');
     else
@@ -215,7 +234,7 @@ for iter=1:numiter
 
     dataset = sprintf('%s/Imag', outpath);
 
-    ds = imag_MAT(i,:);
+    ds = imag_MAT(i+firstharmstep,:);
     hdf5write(outfile_iter, dataset, ds, 'WriteMode', 'append');
 
   end
@@ -227,13 +246,6 @@ end
 ds_real = zeros(1, num_items);
 ds_imag = zeros(1, num_items);
 
-if nullstep
-  firstharmstep = 0;
-else
-  firstharmstep = 1;
-  numharmsteps = numharmsteps-1;
-end
-
 % calculate frequency steps
 f = double((firstharmstep:numharmsteps-1+firstharmstep)/(numsteps*dt));
 
@@ -242,7 +254,6 @@ for i=1:numharmsteps
 
   steppath = sprintf('%s/Step_%d', basepath, i);
   outpath = sprintf('%s/%s/%s/%s', steppath, quantity, region, restypestr);
-  tmppath = sprintf('%s/Step_%d/%s/%s/%s', basepath, i+firstharmstep, quantity, region, restypestr);
 
   % store chunks into one dataset
   for iter=1:numiter
@@ -251,11 +262,11 @@ for i=1:numharmsteps
     idx = (iter-1)*items_per_iter;
     idxend = idx+items_per_iter;
   
-    dataset = sprintf('%s/Real', tmppath);
+    dataset = sprintf('%s/Real', outpath);
     ds = hdf5read(outfile_iter, dataset);
     ds_real(idx+1:idxend) = ds;
 
-    dataset = sprintf('%s/Imag', tmppath);
+    dataset = sprintf('%s/Imag', outpath);
     ds = hdf5read(outfile_iter, dataset);
     ds_imag(idx+1:idxend) = ds;
 
