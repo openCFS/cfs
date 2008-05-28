@@ -361,8 +361,8 @@ void  calccombustionsrctij_( double coordMat_fortran[24], double Nodal_Vel_fortr
 #endif
 
     int elemType = elemType_fortran[0];
-    int ELEMNUMNOD;
-    int DIM;
+    int ELEMNUMNOD = 0;
+    int DIM = 0;
 
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
@@ -411,8 +411,8 @@ void  calccombustionsrcvector_( double coordMat_fortran[24], double Nodal_Vec_fo
     //
 
     int elemType = elemType_fortran[0];
-    int ELEMNUMNOD;
-    int DIM;
+    int ELEMNUMNOD = 0;
+    int DIM = 0;
 
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
@@ -457,8 +457,8 @@ void  calccombustionsrcscalar_( double coordMat_fortran[24], double Nodal_Scalar
     //
 
     int elemType = elemType_fortran[0];
-    int ELEMNUMNOD;
-    int DIM;
+    int ELEMNUMNOD = 0;
+    int DIM = 0;
 
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
@@ -504,8 +504,8 @@ void  calccombustionsrcvectorsurf_( double coordMat_fortran[12], double Nodal_Ve
     //
 
     int elemType = elemType_fortran[0];
-    int ELEMNUMNOD;
-    int DIM;
+    int ELEMNUMNOD = 0;
+    int DIM = 0;
 
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
@@ -556,8 +556,8 @@ void  calccombustionsrctijsurf_( double coordMat_fortran[12], double Nodal_Vel_f
 #endif
 
     int elemType = elemType_fortran[0];
-    int ELEMNUMNOD;
-    int DIM;
+    int ELEMNUMNOD = 0;
+    int DIM = 0;
 
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 

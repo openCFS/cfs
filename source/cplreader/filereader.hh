@@ -69,12 +69,12 @@ namespace CoupledField
             return elsize_[partitionIdx];
         }
 
-        //! return size of element
+        //! return number of result quantities
         virtual UInt GetNumResults() { 
             return numResults_;
         }
 
-        //! return size of element
+        //! return time step
         virtual double GetTimeStep();
 
     protected:

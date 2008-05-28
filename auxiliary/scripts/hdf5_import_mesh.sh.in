@@ -52,7 +52,7 @@ fi
 
 # rm -f $H5FILE;
 
-echo "Writing point coordinates..."
+echo "Writing node coordinates..."
 NUM_NODES=`fgrep DIMENSION-SIZES $WORKDIR/Coordinates.cfg | cut -d' ' -f2`
 
 $H5IMPORT $WORKDIR/Coordinates.dat -c $WORKDIR/Coordinates.cfg -o $H5FILE

@@ -54,8 +54,8 @@ namespace CoupledField
 
   protected:
 
-    Elem *ptElem_;
     LinearFlowNoiseInt * linearLoad_;
+    Elem *ptElem_;
 
   };
 }
