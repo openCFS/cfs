@@ -1206,6 +1206,8 @@ source/cplreader/CFX/glibchack.cc svneol=native#text/plain
 source/cplreader/CFX/iocntf_wrap.F -text
 source/cplreader/CFX/minmax.F -text
 source/cplreader/CFX/tools.F -text
+source/cplreader/CFXexport/FileReader_CFXexport.cc -text
+source/cplreader/CFXexport/FileReader_CFXexport.hh -text
 source/cplreader/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FASTEST/FASTEST-FileRenamer.pl.in -text
 source/cplreader/FASTEST/filereader_FASTEST.cc svneol=native#text/plain
