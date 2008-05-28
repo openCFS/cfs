@@ -12,16 +12,16 @@ namespace CoupledField
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
   */
 
-  class MpCCIexch
+  class MpCCIExchangeCPLR
   {
   public:
 
     //!
-    MpCCIexch(int argc, char *argv[], FileReader * ptFileReader);
+    MpCCIExchangeCPLR(int argc, char *argv[], FileReader * ptFileReader);
 
 
     //!
-    virtual ~MpCCIexch();
+    virtual ~MpCCIExchangeCPLR();
 
     //! Reorganizing grid info for MpCCi and hand over to MpCCI
     void PutExchangeGrid2MpCCI();
@@ -49,7 +49,8 @@ namespace CoupledField
                                std::string& writeResultCmd,
                                std::string& writeAuxCmd);
 
-    
+    int ElemTypes2MpCCI(FEType et);
+
     FileReader *  ptFileReader_;
     std::map<UInt, std::vector<Double> > NodalCoords_;
     std::map<UInt, std::vector<UInt> > Topology_;
@@ -58,7 +59,16 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > elemTypes_;
 
     std::map<UInt, std::map<UInt, UInt> > nodesInPartition_;
-  
+
+    //!MpCCI
+    int meshId_;
+    int GlobalDim_;
+    int MpCCIprocess_;
+    int quantityId1_;
+    int quantityDim1_;
+    int quantityId2_;
+    int quantityDim2_;
+
   };
 
 } // end of namespace

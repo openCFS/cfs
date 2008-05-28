@@ -156,7 +156,7 @@ namespace CoupledField
             
         }
 
-        numFiles_ = numFiles_ > settings.GetInt("numSteps") ? settings.GetInt("numSteps") : numFiles_;
+        numFiles_ = numFiles_ > (UInt) settings.GetInt("numSteps") ? settings.GetInt("numSteps") : numFiles_;
         
 
         //-----------------------------------------------------------------------
@@ -205,7 +205,7 @@ namespace CoupledField
         defFileNames.push_back(basename_ + name_ + ".def");
         defFile = "";
 
-        for(int i=0; i<defFileNames.size(); i++)
+        for(UInt i=0; i<defFileNames.size(); i++)
         {
           if(settings.GetInt("verbose"))
             {    
@@ -341,7 +341,7 @@ namespace CoupledField
 
         for(int ies = 1; ies <= nes; ies++)
         {
-            int nvxel;
+            int nvxel = 0;
         
             //
             //---- number of nodes per element
@@ -408,7 +408,7 @@ namespace CoupledField
 
         if(settings.GetInt("verbose"))
         {
-            printf("Successfully openend %\n", defFile.c_str());
+            printf("Successfully openend %s\n", defFile.c_str());
         }
 
         //-----------------------------------------------------------------------
@@ -450,7 +450,7 @@ namespace CoupledField
         Settings& settings = Settings::Instance();
         int numNodes = elsize_[partitionIdx];
         int numElems = MpCCIelems_[partitionIdx];
-        int elemType;
+        int elemType = ET_UNDEF;
 
         snprintf(fn, sizeof(fn),"%s", defFile.c_str());
         whatfile = __io_open_primaryfile__;
@@ -526,7 +526,7 @@ namespace CoupledField
             if(elemType == ET_HEXA8)
             {
                 baseIdx = i*8;
-                // Reihenfolge f�r MpCCI
+                // Reihenfolge für MpCCI
                 TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 4];
                 TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 6];
                 TOPOLOGYDATA[baseIdx + 2] = intvec[baseIdx + 7];
@@ -536,7 +536,7 @@ namespace CoupledField
                 TOPOLOGYDATA[baseIdx + 6] = intvec[baseIdx + 3];
                 TOPOLOGYDATA[baseIdx + 7] = intvec[baseIdx + 1];
 
-                // Reihenfolge f�r HDF5
+                // Reihenfolge für HDF5
                 /*
                 TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 0]; // 1
                 TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 2]; // 22
@@ -605,7 +605,7 @@ namespace CoupledField
                     << std::endl;                           
         }
 
-        if(flowdata.size() != nvx*7)
+        if(flowdata.size() != (UInt) nvx*7)
             flowdata.resize(nvx*7);
 
         for(int n=0; n<nvx; n++)
@@ -679,7 +679,7 @@ namespace CoupledField
 
     double FileReader_CFX::GetTimeStep()
     {
-        double ts;
+        double ts = 0.0;
         /*
         mu::Parser parser;
 
@@ -950,7 +950,6 @@ namespace CoupledField
     {
         Settings& settings = Settings::Instance();
         int actPos = pos;
-        int lastSpacePos;
 
         while( isprint((int)cmdstr[actPos]) )
         {

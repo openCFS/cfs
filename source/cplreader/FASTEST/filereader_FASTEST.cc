@@ -46,8 +46,11 @@ namespace CoupledField
         std::string regionFormatStr;
         std::string timeStepFormatStr;
         
-        std::cout << "Trying to determine file name format for "
-                  << ".coord/.node files... ";
+        if (settings.GetInt("verbose")) {
+          std::cout << "Trying to determine file name format for "
+                    << ".coord/.node files... ";
+        }
+        
         for(i=1; i<10; i++)
         {
           filename = basename_;
@@ -72,7 +75,7 @@ namespace CoupledField
         if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .coord/.node files");
         }
-        else {
+        else if (settings.GetInt("verbose")) {
           std::cout << "OK" << std::endl;
         }
         
@@ -84,7 +87,9 @@ namespace CoupledField
         infile.close();
         infile.clear();
 
-        std::cout<<"Trying to determine file name format for .dat files... ";
+        if (settings.GetInt("verbose")) {
+          std::cout << "Trying to determine file name format for .dat files... ";
+        }
         
         sstr.str("");
         sstr << startIndex_;
@@ -116,7 +121,7 @@ namespace CoupledField
         if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .dat files");
         }
-        else {
+        else if (settings.GetInt("verbose")) {
           std::cout << "OK" << std::endl;
         }
 
@@ -162,17 +167,17 @@ namespace CoupledField
           }
         }
         
-        std::cout << " Name: " << name_ << std::endl
-                  << " Dim: " << dim_ << std::endl
-                  << " numfiles: " << numFiles_ << std::endl
-                  << " numPartitions: " << numPartitions_ << std::endl
-                  << " numResults: " << numResults_ << std::endl
-                  << " timeStep: " << settings.GetDouble("timeStep") << std::endl
-                  << " Lighthill source term column: " << dataColumns_[0]+1 << std::endl
-                  << " vx column: " << dataColumns_[1]+1 << std::endl
-                  << " vy column: " << dataColumns_[2]+1 << std::endl
-                  << " vz column: " << dataColumns_[3]+1 << std::endl
-                  << " pressure column: " << dataColumns_[4]+1 << std::endl;
+        std::cout << "\n Name:\t\t\t\t" << name_ << std::endl
+                  << " Dimension:\t\t\t" << dim_ << std::endl
+                  << " Files:\t\t\t\t" << numFiles_ << std::endl
+                  << " Partitions:\t\t\t" << numPartitions_ << std::endl
+                  << " Results:\t\t\t" << numResults_ << std::endl
+                  << " timeStep:\t\t\t" << settings.GetDouble("timeStep") << std::endl
+                  << " Lighthill source term column:\t" << dataColumns_[0]+1 << std::endl
+                  << " vx column:\t\t\t" << dataColumns_[1]+1 << std::endl
+                  << " vy column:\t\t\t" << dataColumns_[2]+1 << std::endl
+                  << " vz column:\t\t\t" << dataColumns_[3]+1 << std::endl
+                  << " pressure column:\t\t" << dataColumns_[4]+1 << std::endl << std::endl;
 
         elsize_.resize(numPartitions_);
         MpCCInodes_.resize(numPartitions_);
@@ -223,11 +228,13 @@ namespace CoupledField
             infile.close();
             infile.clear();
 
-            std::cout << "Partition " << (i+1)
-                      << " nodes: " << MpCCInodes_[i]
-                      << " elems: " << MpCCIelems_[i]
-                      << " elsize: " << elsize_[i]
-                      <<std::endl;
+            /*if (settings.GetInt("verbose")) {
+              std::cout << "Partition " << (i+1)
+                        << " nodes: " << MpCCInodes_[i]
+                        << " elems: " << MpCCIelems_[i]
+                        << " elsize: " << elsize_[i]
+                        << std::endl;
+            }*/
 
         }
     }
@@ -236,9 +243,9 @@ namespace CoupledField
     void FileReader_FASTEST::ReadNodalCoords(std::vector<Double> & NODECOORD,
                                              const UInt partitionIdx)
     {
-     #ifdef TRACE
+#ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadNodalCoords" << std::endl;
-     #endif
+#endif
 
         std::string filename;
         char buf[128];
@@ -290,8 +297,10 @@ namespace CoupledField
             }
         }
 
-        std::cout << "MAX COORD: ( "<< max[0] << ", " << max[1] << ", "<< max[2] << ")"<< std::endl;
-        std::cout << "MIN COORD: ( "<< min[0] << ", " << min[1] << ", "<< min[2] << ")"<< std::endl;
+        /*if (settings.GetInt("verbose")) {
+          std::cout << "MAX COORD: ( "<< max[0] << ", " << max[1] << ", "<< max[2] << ")"<< std::endl;
+          std::cout << "MIN COORD: ( "<< min[0] << ", " << min[1] << ", "<< min[2] << ")"<< std::endl;
+        }*/
   
 
         infile.close();
@@ -302,14 +311,14 @@ namespace CoupledField
                                           std::vector<UInt> & elemTypes,
                                           const UInt partitionIdx)
     {
-     #ifdef TRACE
+#ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadTopology" << std::endl;
-     #endif
+#endif
         //        std::cout<<"in FileReader_FASTEST::ReadTopology"<<std::endl;  
 
         std::string filename;
         char buf[128];
-        UInt dummy, numNodes, elemType;
+        UInt dummy, numNodes, elemType = ET_UNDEF;
         
         filename = basename_;
         sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
@@ -333,45 +342,33 @@ namespace CoupledField
         numNodes = elsize_[partitionIdx];
         switch(numNodes)
         {
-	case 2:
-	  {
-	    elemType = ET_LINE2;
-	    break;
-	  }
-        case 3:
-          {
+          case 2:
+      	    elemType = ET_LINE2;
+      	    break;
+          case 3:
             elemType = ET_TRIA3;
             break;
-          }
-        case 4:
-          {
+          case 4:
             if(dim_ == 3)
               elemType = ET_TET4;
             else
               elemType = ET_QUAD4;
             break;
-          }
-	case 8:
-	  {
-	    if (dim_ == 3)
-	      elemType = ET_HEXA8;
-	    else
-	      elemType = ET_QUAD8;
-	    break;
-          }
-        case 5:
-	  {
-	    elemType = ET_PYRA5;
-	    break;
-	  }
-	case 6:
-	  {
-	    if (dim_ == 3)
-	      elemType = ET_WEDGE6;
-	    else
-	      elemType = ET_TRIA6;
-	    break;
-	  }
+          case 8:
+      	    if (dim_ == 3)
+      	      elemType = ET_HEXA8;
+      	    else
+      	      elemType = ET_QUAD8;
+      	    break;
+          case 5:
+      	    elemType = ET_PYRA5;
+      	    break;
+          case 6:
+      	    if (dim_ == 3)
+      	      elemType = ET_WEDGE6;
+      	    else
+      	      elemType = ET_TRIA6;
+      	    break;
         }
 
         TOPOLOGYDATA.resize(elsize_[partitionIdx]*MpCCIelems_[partitionIdx]);
@@ -401,9 +398,9 @@ namespace CoupledField
                                              const UInt partitionIdx,
                                              const UInt timeStepIdx)
     {
-     #ifdef TRACE
+#ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadNodalValues" << std::endl;
-     #endif
+#endif
 
 
         std::string filename;

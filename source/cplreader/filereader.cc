@@ -35,8 +35,8 @@ namespace CoupledField
 
     double FileReader::GetTimeStep()
     {
-        double ts;
-/*        
+        double ts = 0.0;
+        /*        
         mu::Parser parser;
 
         parser.SetExpr(params->GetTimeStep());
@@ -57,7 +57,7 @@ namespace CoupledField
                       << std::endl;
             exit(1);
         }
-*/
+        */
         return ts;
     }
       

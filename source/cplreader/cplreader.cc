@@ -6,6 +6,12 @@
 #include <sstream>
 #include <stdlib.h>
 
+#include <def_use_mpcci.hh>
+
+#if (MpCCI_RELEASE == 305)
+#include <mpcci.h>
+#endif
+
 #include <cplreaderdefs.hh>
 
 #include "params.hh"
@@ -18,6 +24,7 @@
 
 #ifdef CPLREADER_CFX
 #include "CFX/filereader_CFX.hh"
+#include "CFXexport/FileReader_CFXexport.hh"
 #endif
 
 #ifdef CPLREADER_OPENFOAM
@@ -42,7 +49,7 @@ int main(int argc, char *argv[])
     ParamsInit(argc, argv);
     std::string type = settings.GetString("type");
 
-    std::cout << "Name: " << settings.GetString("name")
+    /*std::cout << "Name: " << settings.GetString("name")
               << " Type: " << settings.GetString("type")
               << " Dim: " << settings.GetInt("dim")
               << " CalcSrc: " << settings.GetInt("calcSrc")
@@ -50,7 +57,7 @@ int main(int argc, char *argv[])
               << " numfiles: " << settings.GetInt("numSteps")
       //              << " LD_LIBRARY_PATH: " << getenv("LD_LIBRARY_PATH")
               << " PWD: " << getenv("PWD")
-              <<std::endl;
+              <<std::endl;*/
     
     if(type == "FASTEST")
     {
@@ -84,6 +91,18 @@ int main(int argc, char *argv[])
 #endif
     }
 
+    if(type == "CFX_EXPORT")
+    {
+#ifdef CPLREADER_CFX
+      fileReader = new FileReader_CFXexport(settings.GetString("name"),
+                                            settings.GetInt("dim"),
+                                            settings.GetInt("numSteps"),
+                                            settings.GetInt("firstStep"));
+#else
+      EXCEPTION("Reading of CFX files not supported!");
+#endif
+    }
+
     if(type == "OPENFOAM")
     {
 #ifdef CPLREADER_OPENFOAM
@@ -102,7 +121,7 @@ int main(int argc, char *argv[])
       return 0;
     }
     
-    MpCCIexch mpCCIexch(argc, argv, fileReader);
+    MpCCIExchangeCPLR mpCCIexch(argc, argv, fileReader);
     mpCCIexch.PutExchangeGrid2MpCCI();
     mpCCIexch.Couple();
 

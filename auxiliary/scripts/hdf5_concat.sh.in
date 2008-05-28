@@ -64,27 +64,29 @@ fi
 
 export LANG=en_US.UTF-8
 
-AVAIL_RESULTS=`$H5DUMP --group=/Results/Mesh/MultiStep_1/ResultDescription $H5FILE2 | grep '   GROUP "' | sed -e 's/   GROUP "//g' | sed -e 's/" {//g'`
+$H5DUMP --group=/Results/Mesh/MultiStep_1/ResultDescription $H5FILE2 > out.txt
+ErrorCheck
+AVAIL_RESULTS=`cat out.txt | grep '   GROUP "' | sed -e 's/   GROUP "//g' | sed -e 's/" {//g'`
 RESULT=`echo $AVAIL_RESULTS | cut -d' ' -f1`
 
-$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepNumbers" -y --output=out.txt $H5FILE1 > /dev/null;
+$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepNumbers" -y --output=out.txt $H5FILE1 > /dev/null; ErrorCheck
 STEP_NUMBERS1=`cat out.txt | sed -e 's/,//g'`
-$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" -y --output=out.txt $H5FILE1 > /dev/null;
+$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" -y --output=out.txt $H5FILE1 > /dev/null; ErrorCheck
 STEP_VALUES1=`cat out.txt | sed -e 's/,//g'`
 NUM_STEPS1=`echo $STEP_NUMBERS1 | wc -w`
 echo "NUM_STEPS1: $NUM_STEPS1"
 LAST_STEP_VALUE=`echo $STEP_VALUES1 | cut -d' ' -f$NUM_STEPS1`
 echo "LAST_STEP_VALUE: $LAST_STEP_VALUE"
 
-$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepNumbers" -y --output=out.txt $H5FILE2 > /dev/null;
+$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepNumbers" -y --output=out.txt $H5FILE2 > /dev/null; ErrorCheck
 STEP_NUMBERS2=`cat out.txt | sed -e 's/,//g'`
-$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" -y --output=out.txt $H5FILE2 > /dev/null;
+$H5DUMP --dataset="/Results/Mesh/MultiStep_1/ResultDescription/$RESULT/StepValues" -y --output=out.txt $H5FILE2 > /dev/null; ErrorCheck
 STEP_VALUES2=`cat out.txt | sed -e 's/,//g'`
 T1=`echo $STEP_VALUES2 | cut -d' ' -f1`
 T1=`echo $T1 | awk -F"e" 'BEGIN{OFMT="%20.12f"} {print $1 * (10 ^ $2)}'`
 T2=`echo $STEP_VALUES2 | cut -d' ' -f2`
 T2=`echo $T2 | awk -F"e" 'BEGIN{OFMT="%20.12f"} {print $1 * (10 ^ $2)}'`
-DT=`echo "$T2 - $T1" | bc`
+DT=`echo "$T2 - $T1" | bc`; ErrorCheck
 echo "DT: $DT"
 
 echo $STEP_NUMBERS1 | sed -e 's/\x20/\x0a/g' > StepNumbers.dat
@@ -101,12 +103,10 @@ for STEP_NUM in $STEP_NUMBERS2; do
 
     if [ "$MODE" = "mv" ]; then
 	echo "Moving $OLD_PATH -> $NEW_PATH...";
-	mv $OLD_PATH $NEW_PATH
-	ErrorCheck
+	mv $OLD_PATH $NEW_PATH; ErrorCheck
     else
 	echo "Copying $OLD_PATH -> $NEW_PATH...";
-	cp $OLD_PATH $NEW_PATH
-	ErrorCheck
+	cp $OLD_PATH $NEW_PATH; ErrorCheck
     fi
 
     CMDSTR="attribute\ncreate\n$NEW_PATH\n/\nstring\nMasterHDF5FileName\noverwrite\n$MASTERFILENAME\n"
@@ -117,8 +117,7 @@ for STEP_NUM in $STEP_NUMBERS2; do
     printf $CMDSTR | $H5CFSHELPER > /dev/null; ErrorCheck
 
     echo $STEP_NUM_NEW >> StepNumbers.dat
-    echo "$LAST_STEP_VALUE + ($i * $DT)" | bc >> StepValues.dat
-    ErrorCheck
+    echo "$LAST_STEP_VALUE + ($i * $DT)" | bc >> StepValues.dat; ErrorCheck
 
     i=$(( i + 1 ))
 done
@@ -146,8 +145,7 @@ for RESULT in $AVAIL_RESULTS; do
     echo "OUTPUT-SIZE 32" >> $CFGFILE
     echo "OUTPUT-ARCHITECTURE STD" >> $CFGFILE
     echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
-    $H5IMPORT StepNumbers.dat -c $CFGFILE -o $H5FILE1
-    ErrorCheck
+    $H5IMPORT StepNumbers.dat -c $CFGFILE -o $H5FILE1; ErrorCheck
 
     echo "Writing step values for result $RESULT..."
 
@@ -164,8 +162,7 @@ for RESULT in $AVAIL_RESULTS; do
     echo "OUTPUT-SIZE 64" >> $CFGFILE
     echo "OUTPUT-ARCHITECTURE IEEE" >> $CFGFILE
     echo "OUTPUT-BYTE-ORDER LE" >> $CFGFILE
-    $H5IMPORT StepValues.dat -c $CFGFILE -o $H5FILE1
-    ErrorCheck
+    $H5IMPORT StepValues.dat -c $CFGFILE -o $H5FILE1; ErrorCheck
 
 done
 

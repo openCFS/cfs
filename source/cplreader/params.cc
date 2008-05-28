@@ -104,10 +104,10 @@ namespace CoupledField
          "Name of dataset")
 
         ("type", po::value< std::string >(&param_type)->default_value("CFX"),
-         "Type of dataset (can be FASTEST|CFX|OPENFOAM)")
+         "Type of dataset (can be CFX | CFX_EXPORT | FASTEST | OPENFOAM)")
 
         ("coupling", po::value< std::string >(&param_coupling)->default_value("file"),
-         "Specify kind of coupling MpCCI|file (not used!)")
+         "Specify kind of coupling MpCCI | file")
 
         ("dim", po::value< uint32_t >(&param_dim)->default_value(3),
          "Dimension of fluid data. (can be 2|3)")
@@ -116,7 +116,7 @@ namespace CoupledField
          "Number N of timesteps to read")
 
         ("firststep", po::value< uint32_t >(&param_firststep)->default_value(1),
-         "Index of first time step (only for FASTEST)")
+         "Index of first time step (only for CFX_EXPORT, FASTEST)")
 
         ("stepincr", po::value< uint32_t >(&param_stepincr)->default_value(1),
          "Step increment for reading the files")
@@ -166,7 +166,7 @@ namespace CoupledField
 
         ("outputfields", po::value< std::string >(&param_outputfields)->default_value("acouRhsLoad"),
          "Which physical fields should be output "
-         "([acouRhsLoad | fluidMechPressure | fluidMechVelocity]). "
+         "([acouRhsLoad | fluidMechDensity | fluidMechPressure | fluidMechVelocity]). "
          "Values may be separated by SPACE or ; or |")
         ;
 
