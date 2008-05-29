@@ -4,6 +4,8 @@
 #include <cplreaderdefs.hh>
 #include "../filereader.hh"
 
+class vtkOpenFOAMReader;
+
 namespace CoupledField
 {
 
@@ -37,7 +39,12 @@ namespace CoupledField
                                  const UInt partitionIdx,
                                  const UInt timeStepIdx);
 
+    virtual double GetTimeStep(UInt t);
+    virtual std::string GetPartitionName(const UInt partitionIdx);
+
   protected:
+      std::vector<Integer> dataColumns_;
+      vtkOpenFOAMReader* reader_;
   };
 
       

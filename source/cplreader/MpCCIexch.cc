@@ -204,9 +204,17 @@ namespace CoupledField
       int nElems = ptFileReader_->GetNumElems(actPart);
 
       // Collect all nodal coordinates for writing to HDF5
-      std::copy(NodalCoords_[actPart].begin(),
-                NodalCoords_[actPart].end(),
-                std::back_inserter(nodalCoords));
+      if(settings.GetString("type") == "OPENFOAM" && !actPart)
+      {
+        // Just collect coordinates for first partition  for OPENFOAM
+        std::copy(NodalCoords_[actPart].begin(),
+                  NodalCoords_[actPart].end(),
+                  std::back_inserter(nodalCoords));
+      } else {
+        std::copy(NodalCoords_[actPart].begin(),
+                  NodalCoords_[actPart].end(),
+                  std::back_inserter(nodalCoords));
+      }
       
       // Replace old node numbers in connectivity with new ones 
       it = elemTypes_[actPart].begin();
@@ -224,7 +232,12 @@ namespace CoupledField
         for(int i=0; i<numElemNodes; i++)
         {
           *(it3+i) = nodesInPartition_[actPart][*(it2+i)];
-          elConnect[i] = nodesInPartition_[actPart][*(it2+i)];
+          if(settings.GetString("type") == "OPENFOAM")
+          {
+            elConnect[i] = *(it2+i);
+          } else {
+            elConnect[i] = nodesInPartition_[actPart][*(it2+i)];
+          }
         }
 
         // insert element type
@@ -411,7 +424,6 @@ namespace CoupledField
     std::cout << "========================================"
               << "========================================"
               << std::endl;
-
   }
 
   void MpCCIExchangeCPLR::InitHDF5() {
@@ -532,6 +544,7 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcSrc");
     UInt counter = 0;
+    Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
     UInt numPartitions = ptFileReader_->GetNumPartitions();
     std::ostringstream sstr;
@@ -546,7 +559,6 @@ namespace CoupledField
     std::vector<UInt> timeStepNumbers;
     UInt nodeOffset;
     UInt actPart;
-    double stepVal = counter*settings.GetDouble("timeStep");
     UInt stepNum = 0;
     UInt numNodesInPartition;
     std::vector<std::string> outputFields;
@@ -603,7 +615,7 @@ namespace CoupledField
     while ( counter < numFiles ) 
     {
       nodeOffset = 0;
-      stepVal = counter*settings.GetDouble("timeStep");
+      stepVal = ptFileReader_->GetTimeStep(counter);
       stepNum = counter + 1;
       timeStepValues.push_back(stepVal);
       timeStepNumbers.push_back(stepNum);

@@ -1,4 +1,3 @@
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -10,13 +9,26 @@
 #include "../settings.hh"
 #include "filereader_OPENFOAM.hh"
 
+// This is due to the fucking OLAS New operator!!!
+#undef New 
+#include <vtkOpenFOAMReader.h>
+#include <vtkMultiBlockDataSet.h>
+#include <vtkCompositeDataIterator.h>
+#include <vtkCellDataToPointData.h>
+#include <vtkDataSet.h>
+#include <vtkCell.h>
+#include <vtkDataArray.h>
+#include <vtkPointData.h>
+#include <vtkCellDataToPointData.h>
+
 namespace CoupledField
 {
 
   FileReader_OPENFOAM::FileReader_OPENFOAM(const std::string& name,
                                            const UInt dim,
                                            const UInt numFiles) :
-    FileReader(name, dim, numFiles)
+    FileReader(name, dim, numFiles),
+    reader_(NULL)
   {
   }
 
@@ -28,14 +40,145 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::Init" << std::endl;
+    std::stringstream sstr;
+    UInt numPoints;
+    UInt numElems;
+    std::stringstream controlDictName;
+
+    /* TODO: check if file even exists, otherwise vtkOpenFOAMReader will hang */
+    controlDictName << name_.c_str() << "/system/controlDict";
+    reader_ = vtkOpenFOAMReader::New();
+    reader_->SetFileName(controlDictName.str().c_str());
+    reader_->Update();
+    numFiles_ = reader_->GetNumberOfTimeSteps();
+    numResults_ = reader_->GetNumberOfCellArrays();
+
+    vtkMultiBlockDataSet* readOuput = reader_->GetOutput();
+
+    Integer dataCol;
+    std::vector<std::string> openFoamDOFs;
+    openFoamDOFs.push_back("lhsrc");
+    openFoamDOFs.push_back("vx");
+    openFoamDOFs.push_back("vy");
+    openFoamDOFs.push_back("vz");
+    openFoamDOFs.push_back("pres");
+    for (UInt i = 0; i < openFoamDOFs.size(); i++)
+    {
+      std::string colStr = settings.GetString(openFoamDOFs[i]);
+
+      if (colStr != "")
+      {
+        sstr.str("");
+        sstr.clear();
+        colStr = colStr.substr(3);
+        sstr << colStr;
+        sstr >> dataCol;
+
+        if (sstr.fail())
+        {
+          std::cerr << "Error while trying to init OPENFOAM column mapping"
+            << std::endl;
+          exit(1);
+        }
+
+        dataColumns_.push_back(dataCol-1);
+      } else {
+        dataColumns_.push_back(-1);            
+      }
+    }
+
+    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
+    iter->GoToFirstItem();
+    /* find out the number of partitions */
+    numPartitions_ = 0;
+    while (! iter->IsDoneWithTraversal())
+    {
+      ++numPartitions_;
+      iter->GoToNextItem();
+    }
+
+    std::cout << " Name: " << name_ << std::endl
+      << " Dim: " << dim_ << std::endl
+      << " numfiles: " << numFiles_ << std::endl
+      << " numPartitions: " << numPartitions_ << std::endl
+      << " numResults: " << numResults_ << std::endl
+      << " timeStep: " << settings.GetDouble("timeStep") << std::endl
+      << " Lighthill source term column: " << dataColumns_[0] + 1 << std::endl
+      << " vx column: " << dataColumns_[1] + 1 << std::endl
+      << " vy column: " << dataColumns_[2] + 1 << std::endl
+      << " vz column: " << dataColumns_[3] + 1 << std::endl
+      << " pressure column: " << dataColumns_[4] + 1 << std::endl;
+
+    elsize_.resize(numPartitions_);
+    MpCCInodes_.resize(numPartitions_);
+    MpCCIelems_.resize(numPartitions_);
+
+
+    UInt p_cnt = 0;
+    iter->GoToFirstItem();
+    vtkDataSet* ds;
+    while (! iter->IsDoneWithTraversal())
+    {
+      ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+      numPoints = ds->GetNumberOfPoints();
+      MpCCInodes_[p_cnt] = numPoints;
+      /* cell values will be interpolated to element values */
+      numElems = ds->GetNumberOfCells();
+      MpCCIelems_[p_cnt] = numElems;
+
+      /* jsut get the first cell, the number of points per element has to stay
+       * the same*/
+      /* FIXME: is this correct? */
+      vtkCell* cell = ds->GetCell(0);
+      numPoints = cell->GetNumberOfPoints();
+      elsize_[p_cnt] = numPoints;
+
+      std::cout << "Partition " << (p_cnt+1)
+        << " nodes: " << MpCCInodes_[p_cnt]
+        << " elems: " << MpCCIelems_[p_cnt]
+        << " elsize: " << elsize_[p_cnt]
+        <<std::endl;
+      ++p_cnt;
+      iter->GoToNextItem();
+    }
+    iter->Delete();
+    std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
   }
 
 
-  void FileReader_OPENFOAM::ReadNodalCoords(std::vector<Double> & NODECOORD,
+  void FileReader_OPENFOAM::ReadNodalCoords(std::vector<Double>& NODECOORD,
                                             const UInt partitionIdx)
   {
     Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::ReadNodalCoords" << std::endl;
+    /* number of coordinates. One Tupel of 3D coordinate (x,y,z) */
+    const UInt numCoords = dim_;
+
+    const UInt& numPoints = MpCCInodes_[partitionIdx];
+    NODECOORD.resize(numCoords * numPoints);
+
+    /* goto to the desired partition */
+    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
+    iter->GoToFirstItem();
+    for (UInt i = 0; i < partitionIdx; ++i)
+    {
+        iter->GoToNextItem();
+    }
+    vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+
+    /* get the tupels and write them into NODECOORD */
+    UInt tmp_ij = 0;
+    double* point_coords;
+    for (UInt i = 0; i < numPoints; ++i)
+    {
+      point_coords = ds->GetPoint(i);
+      /* tmp_ij = numCoords * i; */
+      for (UInt j = 0; j < numCoords; ++j)
+      {
+        NODECOORD[tmp_ij] = point_coords[j];
+        ++tmp_ij;
+      }
+    }
 
     // Hier werden die Koordinaten für eine Partition/Subdomain eingelesen.
     // partitionIdx kann hierbei von 0 ... n-1 gehen.
@@ -51,13 +194,59 @@ namespace CoupledField
     // eingelesen werden.
   }
 
-  void FileReader_OPENFOAM::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                         std::vector<UInt> & numNodesPerElem,
-                                         std::vector<UInt> & elemTypes,
+  void FileReader_OPENFOAM::ReadTopology(std::vector<UInt>& TOPOLOGYDATA,
+                                         std::vector<UInt>& numNodesPerElem,
+                                         std::vector<UInt>& elemTypes,
                                          const UInt partitionIdx)
   {
     Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::ReadTopology" << std::endl;
+    UInt numPoints;
+    UInt numCells;
+    UInt topo_size = 0;
+    std::map<UInt, FEType> elemTypeMap;
+    elemTypeMap[VTK_HEXAHEDRON] = ET_HEXA8;
+    elemTypeMap[VTK_QUAD] = ET_QUAD4;  
+
+    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
+    iter->GoToFirstItem();
+    /* goto to the desired partition */
+    for (UInt i = 0; i < partitionIdx; ++i)
+    {
+        iter->GoToNextItem();
+    }
+
+    vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+    iter->Delete();
+    vtkCell* cell;
+    numCells = ds->GetNumberOfCells();
+    numNodesPerElem.resize(numCells);
+    elemTypes.resize(numCells);
+    for (UInt i = 0; i < numCells; ++i)
+    {
+      cell = ds->GetCell(i);
+      numPoints = cell->GetNumberOfPoints();
+      topo_size += numPoints;
+      numNodesPerElem[i] = numPoints;
+      /* TODO: a map should be made which reads the type from vtk and maps it to
+       * the CFS type */
+      elemTypes[i] = elemTypeMap[cell->GetCellType()];
+    }
+
+    TOPOLOGYDATA.resize(topo_size);
+    UInt cnt = 0;
+    for (UInt i = 0; i < numCells; ++i)
+    {
+      cell = ds->GetCell(i);
+      numPoints = cell->GetNumberOfPoints();
+        
+      for (UInt j = 0; j < numPoints; ++j)
+      {
+        TOPOLOGYDATA[cnt] = cell->GetPointId(j)+1;
+        ++cnt;
+      }
+    }
+
 
     // Hier werden die Elemente für eine Partition/Subdomain eingelesen.
     // partitionIdx kann hierbei von 0 ... n-1 gehen.
@@ -78,13 +267,63 @@ namespace CoupledField
     //...
   }
 
-  void FileReader_OPENFOAM::ReadNodalValues(std::vector<double> & flowdata,
+  void FileReader_OPENFOAM::ReadNodalValues(std::vector<double>& flowdata,
                                             const UInt partitionIdx,
                                             const UInt timeStepIdx)
   {
     Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
+    reader_->SetTimeStep(timeStepIdx);
+    reader_->Update();
+
+    flowdata.resize(7 * MpCCInodes_[partitionIdx]);
+
+    char u_char = 'U';
+    char p_char = 'p';
+
+    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
+    iter->GoToFirstItem();
+    /* goto to the desired partition */
+    for (UInt i = 0; i < partitionIdx; ++i)
+    {
+        iter->GoToNextItem();
+    }
     
+    vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
+    vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+    c2p->SetInput(ds);
+    c2p->Update();
+    vtkDataSet* ds_point = c2p->GetOutput();
+    vtkPointData* pointData = ds_point->GetPointData();
+
+    vtkDataArray* tupel_vel;
+    vtkDataArray* scalar_pres;
+    double* velo_vals;
+    std::vector<Double> tempVec;
+    tempVec.resize(numResults_);
+    UInt tmp_ij;
+    for (UInt i = 0; i < MpCCInodes_[partitionIdx]; ++i)
+    {
+      tmp_ij = 7 * i;
+      std::fill(&flowdata[tmp_ij + 0], &flowdata[tmp_ij + 7], 0.0);
+
+      tupel_vel = pointData->GetScalars(&u_char);
+      velo_vals = tupel_vel->GetTuple3(i);
+      tempVec[dataColumns_[1]] = velo_vals[1];
+      tempVec[dataColumns_[2]] = velo_vals[2];
+      tempVec[dataColumns_[3]] = velo_vals[3];
+      scalar_pres = pointData->GetScalars(&p_char);
+      tempVec[dataColumns_[4]] = scalar_pres->GetTuple1(i);
+
+      for (UInt j = 0; j < dataColumns_.size(); ++j)
+      {
+        if (dataColumns_[j] > -1)
+        {
+            flowdata[tmp_ij] = tempVec[dataColumns_[j]];
+        }
+        ++tmp_ij;
+      }
+    }
 
     // flowdata layout:
     // flowdata[0] = Lighthill Quellterm 1
@@ -102,6 +341,24 @@ namespace CoupledField
     // flowdata[11] = Druck2
     // ...
 
+    iter->Delete();
   }
+
+  double FileReader_OPENFOAM::GetTimeStep(UInt t)
+  {
+    double ts;
+
+    ts = reader_->GetTimeStepValue(t);
+    return ts;
+  }
+
+  std::string FileReader_OPENFOAM::GetPartitionName(const UInt partitionIdx)
+  {
+    if(partitionIdx == 0)
+      return "fluid";
+    else
+      return reader_->GetBoundaryName(partitionIdx-1);
+  }
+
 
 } // end of namespace
