@@ -204,9 +204,6 @@ namespace CoupledField
     UInt numPoints;
     UInt numCells;
     UInt topo_size = 0;
-    std::map<UInt, FEType> elemTypeMap;
-    elemTypeMap[VTK_HEXAHEDRON] = ET_HEXA8;
-    elemTypeMap[VTK_QUAD] = ET_QUAD4;  
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
@@ -230,7 +227,7 @@ namespace CoupledField
       numNodesPerElem[i] = numPoints;
       /* TODO: a map should be made which reads the type from vtk and maps it to
        * the CFS type */
-      elemTypes[i] = elemTypeMap[cell->GetCellType()];
+      elemTypes[i] = VTKCellTypeToFEType(cell->GetCellType());
     }
 
     TOPOLOGYDATA.resize(topo_size);
@@ -360,5 +357,26 @@ namespace CoupledField
       return reader_->GetBoundaryName(partitionIdx-1);
   }
 
+  FEType FileReader_OPENFOAM::VTKCellTypeToFEType(UInt cellType)
+  {
+    static std::map<UInt, FEType> elemTypeMap;
+
+    if(elemTypeMap.empty()) 
+    {
+      elemTypeMap[VTK_LINE] = ET_LINE2;
+      elemTypeMap[VTK_TRIANGLE] = ET_TRIA3;
+      elemTypeMap[VTK_QUAD] = ET_QUAD4;
+      elemTypeMap[VTK_TETRA] = ET_TET4;
+      elemTypeMap[VTK_HEXAHEDRON] = ET_HEXA8;
+      elemTypeMap[VTK_WEDGE] = ET_WEDGE6;
+      elemTypeMap[VTK_PYRAMID] = ET_PYRA5;
+    }
+    
+    if(elemTypeMap.find(cellType) == elemTypeMap.end())
+      return ET_UNDEF;
+    else
+      return elemTypeMap[cellType];
+  }
+  
 
 } // end of namespace

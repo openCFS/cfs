@@ -43,6 +43,8 @@ namespace CoupledField
     virtual std::string GetPartitionName(const UInt partitionIdx);
 
   protected:
+      FEType VTKCellTypeToFEType(UInt cellType);
+
       std::vector<Integer> dataColumns_;
       vtkOpenFOAMReader* reader_;
   };
