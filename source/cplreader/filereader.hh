@@ -51,7 +51,7 @@ namespace CoupledField
                                  const UInt timeStepIdx)
     {
       std::cerr << "ReadNodalValues (FlowDataType& nodalFlowData, const UInt timeStepIdx) " <<
-        "not implemented!";
+        "not implemented!\n\n";
 
       exit(1);
     }
