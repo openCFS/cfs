@@ -116,13 +116,58 @@ namespace CoupledField
   }
 
   void MpCCIExchangeCPLR::CheckOpenObjects() {
+    std::vector<UInt> types;
+    std::vector<std::string> typeNames;
+    hid_t* ids;
+
+    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
+    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
+    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
+    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
+
     // check for open groups, datasets etc.
     std::cerr << "Number of open objects:\n"
-              << "--------------------------";
-    std::cerr << "Datasets: "<<  mainFile_.getObjCount( H5F_OBJ_DATASET) << std::endl;
-    std::cerr << "Groups: "<<  mainFile_.getObjCount( H5F_OBJ_GROUP ) << std::endl;
-    std::cerr << "DataTypes: "<<  mainFile_.getObjCount( H5F_OBJ_DATATYPE) << std::endl;
-    std::cerr << "Attributes: "<<  mainFile_.getObjCount( H5F_OBJ_ATTR) << std::endl;
+              << "--------------------------\n";
+
+    for(UInt t=0; t<types.size(); t++) 
+    {
+      UInt numObjs = mainFile_.getObjCount(types[t]);
+      std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
+
+      ids = new hid_t[numObjs];
+      mainFile_.getObjIDs(types[t], numObjs, ids);
+    
+      for(UInt i=0; i<numObjs; i++)
+      {
+        H5::DataSet ds;
+        H5::Group group;
+        H5::DataType dt;
+        H5::Attribute attr;
+
+        switch(types[t])
+        {
+        case H5F_OBJ_DATASET:
+          ds.setId((ids[i]));
+          std::cerr << "  " << ds.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_GROUP:
+          group.setId((ids[i]));
+          for(UInt idx=0; idx < group.getNumObjs(); idx++)
+            std::cerr << "  subgroup " << group.getObjnameByIdx(idx) << std::endl;
+          break;
+        case H5F_OBJ_DATATYPE:
+          dt.setId((ids[i]));
+          std::cerr << "  " << dt.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_ATTR:
+          attr.setId((ids[i]));
+          std::cerr << "  " << attr.fromClass() << std::endl;
+          break;
+        }
+      }
+
+      delete[] ids;
+    }
   }
 
   void MpCCIExchangeCPLR::PutExchangeGrid2MpCCI()
@@ -147,7 +192,6 @@ namespace CoupledField
     int localNodeNum = 1;
     std::set<UInt> regionNodeSet;
     UInt maxNumElemNodes = 0;
-    std::ostringstream sstr;
     std::vector<Double> nodalCoords; // collect all nodal coordinates
     std::vector<UInt> connect; // connect array for all elements (maxNumNodes*numElems)
     std::vector<UInt> elConnect; // connect array for a single element
@@ -547,30 +591,20 @@ namespace CoupledField
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
     UInt numPartitions = ptFileReader_->GetNumPartitions();
-    std::ostringstream sstr;
-    std::vector<double> acouSrc;
-    std::vector<double> velocity;
-    std::vector<double> flowdata;
-    std::vector<double> tmpDatLHSrc;
-    std::vector<double> tmpDatFluidVel;
-    std::vector<double> tmpDatFluidPres;
-    std::vector<double> tmpDatFluidDens;
-    std::vector<double> timeStepValues;
     std::vector<UInt> timeStepNumbers;
-    UInt nodeOffset;
+    std::vector<Double> timeStepValues;
     UInt actPart;
     UInt stepNum = 0;
-    UInt numNodesInPartition;
     std::vector<std::string> outputFields;
     std::vector<std::string> regionNames;
     bool externalFiles = settings.GetInt("extfiles");
     std::vector<FlowDataType> flowData(numPartitions);
 
- #ifdef MpCCI
+#ifdef MpCCI
     // MpCCI status variables
     int globalConvergence = CCI_CONTINUE;
     int myConvergence     = CCI_CONTINUE;
- #endif // MpCCI
+#endif // MpCCI
   
 
     std::cout << "========================================"
@@ -590,23 +624,6 @@ namespace CoupledField
     typedef boost::tokenizer< boost::char_separator<char> > Tok;
     boost::char_separator<char> sep(";| ");
     Tok t(settings.GetString("outputfields"), sep);
-    Tok::iterator it, end;
-    it = t.begin();
-    end = t.end();
-
-    // Determine which fields will be output.
-    outputFields.resize(4);
-    for( ; it != end; it++)
-    {
-      if(*it == "acouRhsLoad")
-        outputFields[0] = "acouRhsLoad";
-      if(*it == "fluidMechVelocity")
-        outputFields[1] = "fluidMechVelocity"; 
-      if(*it == "fluidMechPressure")
-        outputFields[2] = "fluidMechPressure";
-      if(*it == "fluidMechDensity")
-        outputFields[3] = "fluidMechDensity";
-    }
 
     // Fill vector with region names
     for (actPart = 0; actPart<numPartitions; actPart++)
@@ -614,7 +631,6 @@ namespace CoupledField
       
     while ( counter < numFiles ) 
     {
-      nodeOffset = 0;
       stepVal = ptFileReader_->GetTimeStep(counter);
       stepNum = counter + 1;
       timeStepValues.push_back(stepVal);
@@ -646,74 +662,20 @@ namespace CoupledField
         } H5_CATCH( "Can not create dataset for step " << stepNum );
       }
 
-      // Create groups for each result type in current step
-      it = t.begin();
-      end = t.end();
-      for( ; it != end; it++)
-      {
-        try {
-          resultsGroup_ = currMeshStepGroup_.createGroup( *it );
-          resultsGroup_.close();
-        } H5_CATCH("Failed to create result group " << *it
-                   << " in step " << stepNum);
-      }
+      // Read nodal values for all partitions
+      ptFileReader_->ReadNodalValues(flowData, counter);
     
       for (actPart = 0; actPart<numPartitions; actPart++)
       {
-        int numNodesPart = ptFileReader_->GetNumNodes(actPart);
-        numNodesInPartition = nodesInPartition_[actPart].size();
-        //              int numResults = ptFileReader_->GetNumResults();
-
-        // Read acou source, velocity and pressure. 
-        ptFileReader_->ReadNodalValues(flowdata,
-                                       actPart,
-                                       counter);
-
-
-        // by convention the flowdata array has to have
-        // the following structure:
-        // flowdata [0]      [1]  [2]  [3]  [4]   [5]   [6]   [7]      [8] ... 
-        //          acousrc1 vx1  vy1  vz1  p1    rho1  usr1  acousrc2 vx2 ...
-
-     #ifndef CPLREADER_STANDALONE
+#ifndef CPLREADER_STANDALONE
         if(calcSrc)
         {
-          for (int inode=0; inode<numNodesPart; inode++)
-          {
-            flowdata[inode*7] = 0.0;
-          }
-
-          CalculateAcouSrcs(actPart, flowdata);
+          CalculateAcouSrcs(actPart, flowData[actPart]);
         }
-     #endif
+#endif
 
 
-        // Prepare vectors with Lighthill source, velocity and pressure. 
-        std::map<UInt, UInt>::iterator it, end;
-        it = nodesInPartition_[actPart].begin();
-        end = nodesInPartition_[actPart].end();
-
-        tmpDatLHSrc.resize(numNodesInPartition);
-        tmpDatFluidVel.resize(numNodesInPartition*3);
-        tmpDatFluidPres.resize(numNodesInPartition);
-        tmpDatFluidDens.resize(numNodesInPartition);
-        int newNodeIdx = 0;
-        for( ; it != end; it++ ) {
-          int oldNodeIdx = it->first-1;
-          tmpDatLHSrc[newNodeIdx] = flowdata[oldNodeIdx*7+0];
-
-          tmpDatFluidVel[newNodeIdx*3+0] = flowdata[oldNodeIdx*7+1];
-          tmpDatFluidVel[newNodeIdx*3+1] = flowdata[oldNodeIdx*7+2];
-          tmpDatFluidVel[newNodeIdx*3+2] = flowdata[oldNodeIdx*7+3];
-
-          tmpDatFluidPres[newNodeIdx] = flowdata[oldNodeIdx*7+4];
-
-          tmpDatFluidDens[newNodeIdx] = flowdata[oldNodeIdx*7+5];
-
-          newNodeIdx++;                           
-        }
-
-     #ifdef MpCCI
+#ifdef MpCCI
         if(settings.GetString("coupling") == "MpCCI") {
           // Send fields for current partition to MpCCI
           // acouSrc scalar
@@ -726,52 +688,59 @@ namespace CoupledField
                          quantityDim2_, numNodesPart, 0, NULL,
                          CCI_DOUBLE, &tmpDatFluidVel[0]);
         }
-     #endif // MpCCI
+#endif // MpCCI
         
         std::string groupName;
         H5::Group currResultGroup;
-        Tok::iterator tit, tend;
-        tit = t.begin();
-        tend = t.end();
-        for( ; tit != tend; tit++)
-        {
-          groupName = regionNames[actPart];
+        
+        FlowDataType::iterator fdIt, fdEnd;
+        fdIt = flowData[actPart].begin();
+        fdEnd = flowData[actPart].end();
+        
+        UInt numDOFs;
 
+        for( ; fdIt != fdEnd; fdIt++) 
+        {
+          FlowDataPartStruct& fdps = fdIt->second;
+          SolutionType st = fdIt->first;
+
+          // Check if we should write out this result
+          std::string firstReqRes = *t.begin();
+          std::cout << "First requested result is: " << firstReqRes << std::endl;
+          
+          if(firstReqRes != "all")
+          {
+            if(std::find(t.begin(), t.end(), fdps.resultName) == t.end()) 
+              continue;
+          }
+
+          // Determine which fields will be output.
+          if(std::find(outputFields.begin(),
+                       outputFields.end(),
+                       fdps.resultName) == outputFields.end())
+          {
+            outputFields.push_back(fdps.resultName);
+            std::cout << "Writing result: " << fdps.resultName << std::endl;
+          }
+
+          // Create result groups in HDF5 file and write result.
+          groupName = regionNames[actPart];
+          
           try {
-            currResultGroup = currMeshStepGroup_.openGroup( *tit );
+            currResultGroup = currMeshStepGroup_.createGroup( fdps.resultName );
             currResultGroup = currResultGroup.createGroup(groupName);
             
             groupName = "Nodes";
             currResultGroup = currResultGroup.createGroup(groupName);
 
-            if(*tit == "acouRhsLoad") 
-            {
-              WriteResults(currResultGroup, tmpDatLHSrc, 1, false);
-            }
-            
-            if(*tit == "fluidMechPressure") 
-            {
-              WriteResults(currResultGroup, tmpDatFluidPres, 1, false);
-            }
-
-            if(*tit == "fluidMechVelocity") 
-            {
-              WriteResults(currResultGroup, tmpDatFluidVel, 3, false);
-            }
-
-            if(*tit == "fluidMechDensity") 
-            {
-              WriteResults(currResultGroup, tmpDatFluidDens, 1, false);
-            }
-
+            numDOFs = fdps.dofNames.size();
+            WriteResults(currResultGroup, fdps.data, numDOFs, false);
+          
             currResultGroup.close();
-          } H5_CATCH("Failed to write results in step " << stepNum);
-        }      
-
-        typedef std::ostream_iterator<double> double_os_iter;
-
-        nodeOffset += numNodesPart;
-
+          } H5_CATCH("Failed to write result '" << fdps.resultName
+                     << "' in step " << stepNum);
+        }
+        
       }//end of for
 
     
@@ -797,8 +766,11 @@ namespace CoupledField
    #endif // MpCCI
 
       // Close current step group in HDF5 file
-      currMeshStepGroup_.close();
+      try {
+        currMeshStepGroup_.close();
+      } H5_CATCH( "Could close current step group" );
       
+      // increment time step counter
       counter++;
     }//end of while
 
@@ -806,6 +778,10 @@ namespace CoupledField
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, outputFields, timeStepNumbers,
                              timeStepValues, regionNames );
+
+    try {
+      mainGroup_.close();
+    } H5_CATCH( "Could close main group after writing temporal data" );
 
     std::cout << "========================================"
               << "========================================"
@@ -1021,9 +997,30 @@ namespace CoupledField
 
 
   void MpCCIExchangeCPLR::CalculateAcouSrcs(const int partitionIdx,
-                                            std::vector<double>& flowdata)
+                                            FlowDataType& flowData)
   {
  #ifndef CPLREADER_STANDALONE
+    if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()) 
+    {
+      std::cerr << "Cannot calculate Lighthill sources since "
+                << "no velocity field is available!" << std::endl;
+      return;
+    }
+
+    // Acquire reference to velocity field
+    FlowDataPartStruct& fdps = flowData[FLUIDMECH_VELOCITY];
+    std::vector<Double>& velField = fdps.data;
+
+    // Init Lighthill structures
+    fdps = flowData[ACOU_RHS_LOAD];
+    fdps.isActive = true; // all partitions have results
+    fdps.definedOn = ResultInfo::NODE; // nodes
+    fdps.dofNames.push_back("-");
+    fdps.unit = "kg m^-3 s^-2";
+    fdps.resultName = "acouRhsLoad";
+    fdps.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
+    std::vector<Double>& acouRhsField = fdps.data;
+
     Settings& settings = Settings::Instance();
     int nElems = ptFileReader_->GetNumElems(partitionIdx);
 
@@ -1066,13 +1063,13 @@ namespace CoupledField
 
         for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
         {
-          UInt idx = (Topology_[partitionIdx][k+n]-1)*7;
+          UInt idx = (Topology_[partitionIdx][k+n]-1)*2;
 
           coordMatQuad[0][n] = NodalCoords_[partitionIdx][(Topology_[partitionIdx][k+n]-1)*3+0];
           coordMatQuad[1][n] = NodalCoords_[partitionIdx][(Topology_[partitionIdx][k+n]-1)*3+1];
 
-          nodalVelQuad[0][n] = flowdata[idx+1];
-          nodalVelQuad[1][n] = flowdata[idx+2];
+          nodalVelQuad[0][n] = velField[idx+0];
+          nodalVelQuad[1][n] = velField[idx+1];
         }
 
         try {
@@ -1108,9 +1105,9 @@ namespace CoupledField
 
         for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
         {
-          UInt idx = (Topology_[partitionIdx][k+n]-1)*7;
+          UInt idx = Topology_[partitionIdx][k+n]-1;
 
-          flowdata[idx+0] -= elemVecQuad[n];
+          acouRhsField[idx] -= elemVecQuad[n];
         }
         break;
 
@@ -1129,16 +1126,16 @@ namespace CoupledField
 
         for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
         {
-          int idx = (Topology_[partitionIdx][k+n]-1)*7;
+          int idx = (Topology_[partitionIdx][k+n]-1)*3;
           int idx2 = (Topology_[partitionIdx][k+n]-1)*3;
 
           coordMatHex[0][n] = NodalCoords_[partitionIdx][idx2+0];
           coordMatHex[1][n] = NodalCoords_[partitionIdx][idx2+1];
           coordMatHex[2][n] = NodalCoords_[partitionIdx][idx2+2];
 
-          nodalVelHex[0][n] = flowdata[idx+1];
-          nodalVelHex[1][n] = flowdata[idx+2];
-          nodalVelHex[2][n] = flowdata[idx+3];
+          nodalVelHex[0][n] = velField[idx+0];
+          nodalVelHex[1][n] = velField[idx+1];
+          nodalVelHex[2][n] = velField[idx+2];
         }
 
         try {
@@ -1160,9 +1157,9 @@ namespace CoupledField
 
         for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
         {
-          int idx = (Topology_[partitionIdx][k+n]-1)*7;
+          int idx = Topology_[partitionIdx][k+n]-1;
 
-          flowdata[idx+0] -= elemVecHex[n];
+          acouRhsField[idx] -= elemVecHex[n];
         }
         break;
 

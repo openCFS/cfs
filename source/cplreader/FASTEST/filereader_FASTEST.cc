@@ -139,7 +139,19 @@ namespace CoupledField
         fastestDOFs.push_back("vy");
         fastestDOFs.push_back("vz");
         fastestDOFs.push_back("pres");
+
+        solutionTypes_.push_back(ACOU_RHS_LOAD);
+        solutionTypes_.push_back(FLUIDMECH_VELOCITY);
+        solutionTypes_.push_back(FLUIDMECH_VELOCITY);
+        solutionTypes_.push_back(FLUIDMECH_VELOCITY);
+        solutionTypes_.push_back(FLUIDMECH_PRESSURE);
         
+        dofIndices_.push_back(0);
+        dofIndices_.push_back(0);
+        dofIndices_.push_back(1);
+        dofIndices_.push_back(2);
+        dofIndices_.push_back(0);
+
         for(UInt i=0; i<fastestDOFs.size(); i++)
         {
           std::string colStr = settings.GetString(fastestDOFs[i]);
@@ -394,9 +406,118 @@ namespace CoupledField
         infile.close();
     }
 
-    void FileReader_FASTEST::ReadNodalValues(std::vector<double> & flowdata,
-                                             const UInt partitionIdx,
-                                             const UInt timeStepIdx)
+    //! get nodal values from the corresponding fluid datafile the new way
+  void FileReader_FASTEST::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                           const UInt timeStepIdx)
+  {
+    std::string filename;
+    char buf[128];
+    UInt dummy;
+    UInt numDOFs;
+    static std::vector<Double> tempVec;
+
+    tempVec.resize(numResults_);
+    
+    for(UInt actPart=0; actPart < numPartitions_; actPart++)
+    {
+      //      std::cout << "FASTEST: actPart " << actPart << std::endl;
+      
+      // Initialize flow data structures if necessary
+      FlowDataType& fd = nodalFlowData[actPart];
+
+      for(UInt j=0; j<dataColumns_.size(); j++)
+      {
+        if(dataColumns_[j] > -1) 
+        {
+          if(fd.find(solutionTypes_[j]) == fd.end()) 
+          {
+            FlowDataPartStruct& fdps = fd[solutionTypes_[j]];
+            fdps.isActive = true; // all partitions have results
+            fdps.definedOn = ResultInfo::NODE; // nodes
+            
+            switch(solutionTypes_[j]) 
+            {
+            case ACOU_RHS_LOAD:
+              fdps.dofNames.push_back("-");
+              fdps.unit = "kg m^-3 s^-2";
+              fdps.resultName = "acouRhsLoad";
+              break;
+            case FLUIDMECH_VELOCITY:
+              fdps.dofNames.push_back("x");
+              fdps.dofNames.push_back("y");
+              if(dim_ == 3) 
+                fdps.dofNames.push_back("z");
+              fdps.unit = "m s^-1";
+              fdps.resultName = "fluidMechVelocity";
+              break;
+            case FLUIDMECH_PRESSURE:
+              fdps.dofNames.push_back("-");
+              fdps.unit = "Pa";
+              fdps.resultName = "fluidMechPressure";
+              break;
+            default:
+              break;
+            }
+
+            numDOFs = fdps.dofNames.size();
+            fdps.data.resize(numDOFs * MpCCInodes_[actPart]);
+
+            //            std::cout << "FASTEST: fdps.resultName " << fdps.resultName << std::endl;
+            //            std::cout << "FASTEST: fdps.unit " << fdps.unit << std::endl;
+            //            std::cout << "FASTEST: numDOFs " << numDOFs << std::endl;
+
+          }
+        }
+      }
+
+      // Open data file
+      filename = basename_;
+      sprintf(buf, partFmtStr_.c_str(), actPart+1);
+      filename+= buf;
+      filename+= "_";
+      sprintf(buf, timeFmtStr_.c_str(), timeStepIdx+startIndex_);
+      filename+= buf;
+      filename+= ".dat";
+    
+      infile.clear();
+      infile.open(filename.c_str());
+      if (!infile) {
+        std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
+                  << ") Can't open " << filename << std::endl;
+        exit(1);
+      }
+
+      /* Set pointer to beginning of file: */
+      std::string::size_type pos=0;
+      infile.seekg(pos, std::ios::beg);
+    
+      infile >> dummy;
+
+      for (UInt i=0; i < MpCCInodes_[actPart]; i++)
+      {
+        // read all data columns from input file
+        for(UInt j=0; j<numResults_; j++)
+          infile >> tempVec[j];
+        
+        for(UInt j=0; j<dataColumns_.size(); j++)
+        {
+          if(dataColumns_[j] > -1) 
+          {
+            numDOFs = nodalFlowData[actPart][solutionTypes_[j]].dofNames.size();
+            std::vector<Double>& data = nodalFlowData[actPart][solutionTypes_[j]].data;
+
+            data[i*numDOFs+dofIndices_[j]] = tempVec[dataColumns_[j]];
+          }
+        }
+      }
+      
+      infile.close();
+    }
+  }
+
+  void FileReader_FASTEST::ReadNodalValues(std::vector<double> & flowdata,
+                                           const UInt partitionIdx,
+                                           const UInt timeStepIdx)
     {
 #ifdef TRACE
         (*trace) << "entering FileReader_FASTEST::ReadNodalValues" << std::endl;

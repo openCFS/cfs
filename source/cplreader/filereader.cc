@@ -36,7 +36,7 @@ namespace CoupledField
   double FileReader::GetTimeStep(UInt stepNumber)
   {
     Settings& settings = Settings::Instance();
-    Double timestep = settings.GetDouble("timestep");
+    Double timestep = settings.GetDouble("timeStep");
     
     double ts = timestep * stepNumber;
 

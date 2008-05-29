@@ -12,6 +12,12 @@ namespace CoupledField
     // E.g. we do not need to know the field on some boundaries.
     // This saves disc space!
     bool isActive;
+
+    // Names of DOFs
+    std::vector<std::string> dofNames;
+
+    // Unit
+    std::string unit;
     
     // Vector for actually saving data
     std::vector<Double> data;
