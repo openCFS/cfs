@@ -121,6 +121,13 @@ IF(CPLREADER_FASTEST)
 ENDIF(CPLREADER_FASTEST)
 
 IF(CPLREADER_OPENFOAM)
+#  INCLUDE(/home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/lib/vtk-5.3/VTKConfig.cmake)
+#  INCLUDE(${VTK_USE_FILE})
+
+#  MESSAGE("VTK_INSTALL_PREFIX ${VTK_INSTALL_PREFIX}")
+#  MESSAGE("VTK_LIBRARY_DIRS ${VTK_LIBRARY_DIRS}")
+  INCLUDE_DIRECTORIES(/home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/include/vtk-5.3)
+
   SET(CPPSRC
     ${CPPSRC}
     OPENFOAM/filereader_OPENFOAM.cc
@@ -146,6 +153,16 @@ IF(CPLREADER_CFX)
     io # CFX I/O library
     )
 ENDIF(CPLREADER_CFX)
+
+IF(CPLREADER_OPENFOAM)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    /home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/lib/vtk-5.3/libvtkCommon.so
+    /home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/lib/vtk-5.3/libvtkIO.so
+    /home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/lib/vtk-5.3/libvtkFiltering.so
+    /home/local/lse/szoerner/vtk_freiberg_nightly_230508_x86_64/lib/vtk-5.3/libvtkGraphics.so
+  )
+ENDIF(CPLREADER_OPENFOAM)
 
 IF(NOT CPLREADER_STANDALONE)
   SET(TARGET_LL ${TARGET_LL}
