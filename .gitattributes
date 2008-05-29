@@ -1222,6 +1222,7 @@ source/cplreader/cplreader.cc svneol=native#text/plain
 source/cplreader/cplreaderdefs.hh.in -text
 source/cplreader/filereader.cc svneol=native#text/plain
 source/cplreader/filereader.hh svneol=native#text/plain
+source/cplreader/flowDataTypes.hh svneol=native#text/plain
 source/cplreader/integlib.h svneol=native#text/plain
 source/cplreader/integlib/elemIntegr.cc svneol=native#text/plain
 source/cplreader/integlib/elemIntegr.hh svneol=native#text/plain
