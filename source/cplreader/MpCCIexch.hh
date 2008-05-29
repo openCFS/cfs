@@ -40,21 +40,8 @@ namespace CoupledField
     void CalculateAcouSrcs(const int partitionIdx,
                            std::vector<double>& flowdata);
     
-    void ClearMeshTempFiles(std::string& coordCfgFileName,
-                            std::string& coordDatFileName,
-                            std::string& connCfgFileName,
-                            std::string& connDatFileName,
-                            std::string& typesCfgFileName,
-                            std::string& typesDatFileName,
-                            std::string& importMeshCmd);
 
-    void ClearDatasetTempFiles(std::string& stepNumsFileName,
-                               std::string& stepValuesFileName,
-                               std::string& resultScriptFileName,
-                               std::string& resultDatFileName,
-                               std::string& writeResultCmd,
-                               std::string& writeAuxCmd);
-
+    // MpCCI specific member functions
     int ElemTypes2MpCCI(FEType et);
 
     // HDF5 specific member functions
@@ -79,8 +66,6 @@ namespace CoupledField
     void CreateExternalFile(UInt timeStep);
     
 
-
-
     FileReader *  ptFileReader_;
     std::map<UInt, std::vector<Double> > NodalCoords_;
     std::map<UInt, std::vector<UInt> > Topology_;
@@ -89,6 +74,9 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > elemTypes_;
 
     std::map<UInt, std::map<UInt, UInt> > nodesInPartition_;
+
+    // Directory name for storing HDF5 files
+    std::string hdf5DirName_;
 
     // HDF5 specific members
     //! Dataset property list (used for chunking and compression )

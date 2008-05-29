@@ -26,7 +26,6 @@ namespace fs=boost::filesystem;
 #include "settings.hh"
 #include "General/environment.hh"
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
-#include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 
 #ifndef CPLREADER_STANDALONE
 #include "integlib.h"
@@ -65,6 +64,8 @@ namespace CoupledField
     dPropList_.setDeflate( compressionLevel );
     H5IO::SetMaxChunkSize( maxChunkSize );
 
+    // Do not print HDF5 exceptions by default
+    H5::Exception::dontPrint();
 
  #ifdef MpCCI
     Settings& settings = Settings::Instance();
@@ -145,11 +146,7 @@ namespace CoupledField
     int localNodeNum = 1;
     std::set<UInt> regionNodeSet;
     UInt maxNumElemNodes = 0;
-    std::string coordCfgFileName, coordDatFileName, connCfgFileName;
-    std::string connDatFileName, typesCfgFileName, typesDatFileName;
-    std::string fileName, importMeshCmd;
     std::ostringstream sstr;
-    std::ofstream outFile;
     std::vector<Double> nodalCoords; // collect all nodal coordinates
     std::vector<UInt> connect; // connect array for all elements (maxNumNodes*numElems)
     std::vector<UInt> elConnect; // connect array for a single element
@@ -157,10 +154,6 @@ namespace CoupledField
     std::vector< UInt > numElemsOfDim ( 3 );
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
-
-    ClearMeshTempFiles(coordCfgFileName, coordDatFileName, connCfgFileName,
-                       connDatFileName, typesCfgFileName, typesDatFileName,
-                       importMeshCmd);
 
     InitHDF5();
     WriteFileInfoHeader();
@@ -205,22 +198,6 @@ namespace CoupledField
       int nNodes = nodesInPartition_[actPart].size();
       int nElems = ptFileReader_->GetNumElems(actPart);
 
-      // Write node coordinates
-      outFile.open(coordDatFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      outFile.precision(12);
-
-      regSetIt = regionNodeSet.begin(); 
-      regSetEnd = regionNodeSet.end(); 
-      for( ; regSetIt != regSetEnd; regSetIt++ )
-      {
-        int idx = *regSetIt - 1;
-        outFile << NodalCoords_[actPart][idx*3+0] << " "
-                << NodalCoords_[actPart][idx*3+1] << " "
-                << NodalCoords_[actPart][idx*3+2] << std::endl;
-      }
-      outFile.close();
-
       // Collect all nodal coordinates for writing to HDF5
       std::copy(NodalCoords_[actPart].begin(),
                 NodalCoords_[actPart].end(),
@@ -260,64 +237,23 @@ namespace CoupledField
         it2 += numElemNodes;
       }        
 
-      // Write out element connectivity
-      outFile.open(connDatFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      typedef std::ostream_iterator<int> int_os_iter;
-      std::copy (newTopo.begin (), newTopo.end (), int_os_iter (outFile, "\n"));
-      outFile.close();
-
-
-      // Write out element types
-      outFile.open(typesDatFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      std::copy (elemTypes_[actPart].begin (), elemTypes_[actPart].end (), int_os_iter (outFile, "\n"));
-      outFile.close();
-
-
-      // Write out nodes of region
-      sstr.str("");
-      sstr << settings.GetString("name") << "_data/RegionNodes_partition" << (actPart+1) << ".dat";
-      fileName = sstr.str();
-      outFile.open(fileName.c_str(),
-                   std::ofstream::out | std::ofstream::trunc);
-
+      // Collect nodes of region
       regSetIt = regionNodeSet.begin(); 
       regSetEnd = regionNodeSet.end(); 
       std::vector<UInt> regionNodes;
       for( ; regSetIt != regSetEnd; regSetIt++ )
       {
         int nodeNum = *regSetIt;
-
-        outFile << nodesInPartition_[actPart][nodeNum] << std::endl;
         regionNodes.push_back(nodesInPartition_[actPart][nodeNum]);
       }
       regionNodeSet.clear();
-      outFile.close();
 
-      // Write out elements of region
-      sstr.str("");
-      sstr << settings.GetString("name") << "_data/RegionElems_partition" << (actPart+1) << ".dat";
-      fileName = sstr.str();
-      outFile.open(fileName.c_str(),
-                   std::ofstream::out | std::ofstream::trunc);
+      // Collect elements of region
       std::vector<UInt> regionElems;
-
       for(int i=1; i<=nElems; i++)
       {
-        outFile << (elemOffset + i) << std::endl;
         regionElems.push_back(elemOffset + i);
       }
-      outFile.close();
-
-      // Write out dimension of region      
-      sstr.str("");
-      sstr << settings.GetString("name") << "_data/RegionDim_partition" << (actPart+1) << ".dat";
-      fileName = sstr.str();
-      outFile.open(fileName.c_str(),
-                   std::ofstream::out | std::ofstream::trunc);
-      outFile << dim << std::endl;
-      outFile.close();
 
       elemOffset += nElems;
       nodeOffset += nNodes;
@@ -442,66 +378,6 @@ namespace CoupledField
     // close meshGroup
     meshGroup_.close();
 
-    outFile.open(coordCfgFileName.c_str(),
-                 std::ofstream::out | std::ofstream::trunc);
-    outFile << "PATH /Mesh/Nodes/Coordinates" << std::endl;
-    outFile << "INPUT-CLASS TEXTFP" << std::endl;
-    outFile << "INPUT-SIZE 64" << std::endl;
-    outFile << "RANK 2" << std::endl;
-    outFile << "DIMENSION-SIZES " << nodeOffset << " " << 3 << std::endl;
-    outFile << "OUTPUT-CLASS FP" << std::endl;
-    outFile << "OUTPUT-SIZE 64" << std::endl;
-    outFile << "OUTPUT-ARCHITECTURE IEEE" << std::endl;
-    outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES "
-            << (nodeOffset < 1000 ? nodeOffset : 1000)
-            << " 3" << std::endl;
-    outFile << "COMPRESSION-TYPE GZIP" << std::endl;
-    outFile << "COMPRESSION-PARAM 9" << std::endl;
-
-    outFile.close();
-
-    outFile.open(connCfgFileName.c_str(),
-                 std::ofstream::out | std::ofstream::trunc);
-    outFile << "PATH /Mesh/Elements/Connectivity" << std::endl;
-    outFile << "INPUT-CLASS TEXTIN" << std::endl;
-    outFile << "INPUT-SIZE 32" << std::endl;
-    outFile << "RANK 2" << std::endl;
-    outFile << "DIMENSION-SIZES " << elemOffset << " "
-            << maxNumElemNodes << std::endl;
-    outFile << "OUTPUT-CLASS UIN" << std::endl;
-    outFile << "OUTPUT-SIZE 32" << std::endl;
-    outFile << "OUTPUT-ARCHITECTURE STD" << std::endl;
-    outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES " 
-            << (elemOffset < 1000 ? elemOffset : 1000)
-            << " " << maxNumElemNodes << std::endl;
-    outFile << "COMPRESSION-TYPE GZIP" << std::endl;
-    outFile << "COMPRESSION-PARAM 9" << std::endl;
-    outFile.close();
-
-    outFile.open(typesCfgFileName.c_str(),
-                 std::ofstream::out | std::ofstream::trunc);
-    outFile << "PATH /Mesh/Elements/Types" << std::endl;
-    outFile << "INPUT-CLASS TEXTIN" << std::endl;
-    outFile << "INPUT-SIZE 32" << std::endl;
-    outFile << "RANK 1" << std::endl;
-    outFile << "DIMENSION-SIZES " << elemOffset << std::endl;
-    outFile << "OUTPUT-CLASS UIN" << std::endl;
-    outFile << "OUTPUT-SIZE 32" << std::endl;
-    outFile << "OUTPUT-ARCHITECTURE STD" << std::endl;
-    outFile << "OUTPUT-BYTE-ORDER LE" << std::endl;
-    outFile << "CHUNKED-DIMENSION-SIZES "
-            << (elemOffset < 1000 ? elemOffset : 1000) << std::endl;
-    outFile << "COMPRESSION-TYPE GZIP" << std::endl;
-    outFile << "COMPRESSION-PARAM 9" << std::endl;
-    outFile.close();
-
-    if(std::system(importMeshCmd.c_str()))
-    {
-      EXCEPTION("Import of mesh into HDF5 file failed!");
-    }
-
  #ifdef MpCCI
     if(settings.GetString("coupling") == "MpCCI") {
       //Close the definition phase; contact detection.
@@ -527,18 +403,22 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     std::string pathsep;
     std::string fileName  = settings.GetString("name");
-    std::string dirName = "cplreader_hdf5";
     std::ostringstream strBuffer;
+
+    strBuffer << "cplreader_hdf5_" << fileName;
+    hdf5DirName_ = strBuffer.str();
 
     // concatenate output file name
     try {
-      fs::create_directory( dirName );
+      fs::create_directory( hdf5DirName_ );
       pathsep = fs::path("/").native_directory_string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }    
 
-    strBuffer << dirName << pathsep << fileName << ".h5";
+    strBuffer.clear();
+    strBuffer.str("");
+    strBuffer << hdf5DirName_ << pathsep << fileName << ".h5";
     fileName = strBuffer.str();
     
     // create main file and obtain main group
@@ -635,12 +515,6 @@ namespace CoupledField
     UInt numFiles = ptFileReader_->GetNumFiles();
     UInt numPartitions = ptFileReader_->GetNumPartitions();
     std::ostringstream sstr;
-    std::string writeResultCmd;
-    std::string writeAuxCmd;        
-    std::string stepNumsFileName;
-    std::string stepValuesFileName;
-    std::string resultScriptFileName;
-    std::string resultDatFileName;
     std::vector<double> acouSrc;
     std::vector<double> velocity;
     std::vector<double> flowdata;
@@ -653,8 +527,8 @@ namespace CoupledField
     UInt nodeOffset;
     UInt actPart;
     double stepVal = counter*settings.GetDouble("timeStep");
+    UInt stepNum = 0;
     UInt numNodesInPartition;
-    std::ofstream outFile;
     std::vector<std::string> outputFields;
     std::vector<std::string> regionNames;
     bool externalFiles = settings.GetInt("extfiles");
@@ -676,10 +550,6 @@ namespace CoupledField
     std::cout << "========================================"
               << "========================================"
               << std::endl;
-
-    ClearDatasetTempFiles(stepNumsFileName, stepValuesFileName,
-                          resultScriptFileName, resultDatFileName,
-                          writeResultCmd, writeAuxCmd);
 
     // Initialize results tree in HDF5 file
     InitResultsGroup();
@@ -718,24 +588,25 @@ namespace CoupledField
     {
       nodeOffset = 0;
       stepVal = counter*settings.GetDouble("timeStep");
+      stepNum = counter + 1;
       timeStepValues.push_back(stepVal);
-      timeStepNumbers.push_back(counter+1);
+      timeStepNumbers.push_back(stepNum);
 
       std::cout << "----------------------------------------"
                 << "----------------------------------------"
                 << std::endl;
       std::cout << "                        "
-                << "Step Number: " << (counter+1) << "; ";
+                << "Step Number: " << stepNum << "; ";
       std::cout << " Time Step: " << stepVal << std::endl;
       std::cout << "----------------------------------------"
                 << "----------------------------------------"
                 << std::endl;
 
 
-      // check, if step group is already open
+      // Check, if step group is already open and create it if not
       if( currMeshStepGroup_.getId() <= 0 ) {
         std::stringstream stepName;
-        stepName << "/Results/Mesh/MultiStep_1/Step_" << (counter+1);
+        stepName << "/Results/Mesh/MultiStep_1/Step_" << stepNum;
           
         // Create new step group.
         try {
@@ -743,11 +614,11 @@ namespace CoupledField
           H5IO::WriteAttribute( currMeshStepGroup_, "StepValue", stepVal );
             
           if(externalFiles)
-            CreateExternalFile(counter+1);
-        } H5_CATCH( "Can not create dataset for step " << (counter+1) );
+            CreateExternalFile(stepNum);
+        } H5_CATCH( "Can not create dataset for step " << stepNum );
       }
 
-      // check, if result was already written
+      // Create groups for each result type in current step
       it = t.begin();
       end = t.end();
       for( ; it != end; it++)
@@ -756,7 +627,7 @@ namespace CoupledField
           resultsGroup_ = currMeshStepGroup_.createGroup( *it );
           resultsGroup_.close();
         } H5_CATCH("Failed to create result group " << *it
-                   << " in step " << (counter+1));
+                   << " in step " << stepNum);
       }
     
       for (actPart = 0; actPart<numPartitions; actPart++)
@@ -871,166 +742,10 @@ namespace CoupledField
             }
 
             currResultGroup.close();
-          } H5_CATCH("Failed to write results in step " << (counter+1));
+          } H5_CATCH("Failed to write results in step " << stepNum);
         }      
 
         typedef std::ostream_iterator<double> double_os_iter;
-
-        // Write Lighthill source term              
-        if(outputFields[0] == "acouRhsLoad") 
-        {
-          outFile.open(resultScriptFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile << "RESULT_TYPE=Mesh" << std::endl;
-          outFile << "MULTISTEP=1" << std::endl;
-          outFile << "ANALYSIS_TYPE=transient" << std::endl;
-          outFile << "RESULT_NAME=acouRhsLoad" << std::endl;
-          outFile << "RESULT_REGION=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_DOFNAMES=-" << std::endl;
-          outFile << "DESC_DEFINEDON=1" << std::endl;
-          outFile << "DESC_ENTRYTYPE=1" << std::endl;
-          outFile << "DESC_NUMDOFS=1" << std::endl;
-          outFile << "DESC_REGIONS=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_UNIT=\"kg m^-3 s^-2\"" << std::endl;
-          outFile << "STEP_NUM=" << (counter+1) << std::endl;
-          outFile << "STEP_VALUE=" << stepVal << std::endl;
-          outFile << "RESULT_ON=Nodes" << std::endl;
-          outFile << "COMPLEX_TYPE=Real" << std::endl;
-          outFile << "RESULT_DATAFILE=Result.dat" << std::endl;
-          outFile << "RESULT_RANK=1" << std::endl;
-          outFile << "RESULT_DIMENSION_SIZES=" << numNodesInPartition << std::endl;
-          outFile.close(); outFile.clear();
-
-          outFile.open(resultDatFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile.precision(12);
-        
-          std::copy (tmpDatLHSrc.begin (), tmpDatLHSrc.end (), double_os_iter (outFile, "\n"));
-          outFile.close(); outFile.clear();
-
-          if(std::system(writeResultCmd.c_str()))
-          {
-            EXCEPTION("Import of Lighthill dataset into HDF5 file failed!");
-          }
-        }
-
-        // Write fluid velocities
-        if(outputFields[1] == "fluidMechVelocity") 
-        {
-          outFile.open(resultScriptFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile << "RESULT_TYPE=Mesh" << std::endl;
-          outFile << "MULTISTEP=1" << std::endl;
-          outFile << "ANALYSIS_TYPE=transient" << std::endl;
-          outFile << "RESULT_NAME=fluidMechVelocity" << std::endl;
-          outFile << "RESULT_REGION=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_DOFNAMES=\"x;y;z\"" << std::endl;
-          outFile << "DESC_DEFINEDON=1" << std::endl;
-          outFile << "DESC_ENTRYTYPE=3" << std::endl;
-          outFile << "DESC_NUMDOFS=3" << std::endl;
-          outFile << "DESC_REGIONS=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_UNIT=\"m s^-1\"" << std::endl;
-          outFile << "STEP_NUM=" << (counter+1) << std::endl;
-          outFile << "STEP_VALUE=" << stepVal << std::endl;
-          outFile << "RESULT_ON=Nodes" << std::endl;
-          outFile << "COMPLEX_TYPE=Real" << std::endl;
-          outFile << "RESULT_DATAFILE=Result.dat" << std::endl;
-          outFile << "RESULT_RANK=2" << std::endl;
-          outFile << "RESULT_DIMENSION_SIZES=\"" << numNodesInPartition 
-                  << " 3\"" << std::endl;
-          outFile.close(); outFile.clear();
-
-          outFile.open(resultDatFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile.precision(12);
-
-          std::copy (tmpDatFluidVel.begin (), tmpDatFluidVel.end (),
-                     double_os_iter (outFile, "\n"));
-          outFile.close(); outFile.clear();
-
-          if(std::system(writeResultCmd.c_str()))
-          {
-            EXCEPTION("Import of velocity into HDF5 file failed");
-          }
-        }
-
-        // Write fluid pressure
-        if(outputFields[2] == "fluidMechPressure") 
-        {
-          outFile.open(resultScriptFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile << "RESULT_TYPE=Mesh" << std::endl;
-          outFile << "MULTISTEP=1" << std::endl;
-          outFile << "ANALYSIS_TYPE=transient" << std::endl;
-          outFile << "RESULT_NAME=fluidMechPressure" << std::endl;
-          outFile << "RESULT_REGION=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_DOFNAMES=-" << std::endl;
-          outFile << "DESC_DEFINEDON=1" << std::endl;
-          outFile << "DESC_ENTRYTYPE=1" << std::endl;
-          outFile << "DESC_NUMDOFS=1" << std::endl;
-          outFile << "DESC_REGIONS=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_UNIT=Pa" << std::endl;
-          outFile << "STEP_NUM=" << (counter+1) << std::endl;
-          outFile << "STEP_VALUE=" << stepVal << std::endl;
-          outFile << "RESULT_ON=Nodes" << std::endl;
-          outFile << "COMPLEX_TYPE=Real" << std::endl;
-          outFile << "RESULT_DATAFILE=Result.dat" << std::endl;
-          outFile << "RESULT_RANK=1" << std::endl;
-          outFile << "RESULT_DIMENSION_SIZES=" << numNodesInPartition << std::endl;
-          outFile.close(); outFile.clear();
-
-          outFile.open(resultDatFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile.precision(12);
-
-          std::copy (tmpDatFluidPres.begin (), tmpDatFluidPres.end (),
-                     double_os_iter (outFile, "\n"));
-          outFile.close(); outFile.clear();
-
-          if(std::system(writeResultCmd.c_str()))
-          {
-            EXCEPTION("Import of pressure into HDF5 file failed");
-          }
-        }
-
-        // Write fluid density
-        if(outputFields[3] == "fluidMechDensity")
-        {
-          outFile.open(resultScriptFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile << "RESULT_TYPE=Mesh" << std::endl;
-          outFile << "MULTISTEP=1" << std::endl;
-          outFile << "ANALYSIS_TYPE=transient" << std::endl;
-          outFile << "RESULT_NAME=fluidMechDensity" << std::endl;
-          outFile << "RESULT_REGION=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_DOFNAMES=-" << std::endl;
-          outFile << "DESC_DEFINEDON=1" << std::endl;
-          outFile << "DESC_ENTRYTYPE=1" << std::endl;
-          outFile << "DESC_NUMDOFS=1" << std::endl;
-          outFile << "DESC_REGIONS=partition" << (actPart+1) << std::endl;
-          outFile << "DESC_UNIT=kg/m^3" << std::endl;
-          outFile << "STEP_NUM=" << (counter+1) << std::endl;
-          outFile << "STEP_VALUE=" << stepVal << std::endl;
-          outFile << "RESULT_ON=Nodes" << std::endl;
-          outFile << "COMPLEX_TYPE=Real" << std::endl;
-          outFile << "RESULT_DATAFILE=Result.dat" << std::endl;
-          outFile << "RESULT_RANK=1" << std::endl;
-          outFile << "RESULT_DIMENSION_SIZES=" << numNodesInPartition << std::endl;
-          outFile.close(); outFile.clear();
-
-          outFile.open(resultDatFileName.c_str(),
-                       std::ofstream::out | std::ofstream::trunc);
-          outFile.precision(12);
-
-          std::copy (tmpDatFluidDens.begin (), tmpDatFluidDens.end (),
-                     double_os_iter (outFile, "\n"));
-          outFile.close(); outFile.clear();
-
-          if(std::system(writeResultCmd.c_str()))
-          {
-            EXCEPTION("Import of pressure into HDF5 file failed");
-          }        
-        }
 
         nodeOffset += numNodesPart;
 
@@ -1058,29 +773,14 @@ namespace CoupledField
       }
    #endif // MpCCI
 
-
-      outFile.open(stepNumsFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      outFile << (counter+1) << std::endl;
-      outFile.close(); outFile.clear();
-
-      outFile.open(stepValuesFileName.c_str(),
-                   std::ofstream::out | std::ofstream::app);
-      outFile.precision(12);
-      outFile << stepVal << std::endl;
-      outFile.close(); outFile.clear();
-
-
+      // Close current step group in HDF5 file
       currMeshStepGroup_.close();
       
       counter++;
     }//end of while
 
-    if(std::system(writeAuxCmd.c_str()))
-    {
-      EXCEPTION("Import of additional data into HDF5 file failed");
-    }
-
+    // Finally write out result descriptions. This must be done in
+    // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, outputFields, timeStepNumbers,
                              timeStepValues, regionNames );
 
@@ -1258,7 +958,7 @@ namespace CoupledField
             << timeStep << ".h5";
       fn = fName.str();
       fName.str("");
-      fName << "cplreader_hdf5" << pathsep << fn;
+      fName << hdf5DirName_ << pathsep << fn;
       currStepFile_ = H5::H5File(fName.str(), H5F_ACC_TRUNC);
 
       // Write reference to external file to main file
@@ -1435,113 +1135,6 @@ namespace CoupledField
       k += numNodesPerElem_[partitionIdx][i];
     }
  #endif
-  }
-
-  void MpCCIExchangeCPLR::ClearMeshTempFiles(std::string& coordCfgFileName,
-                                             std::string& coordDatFileName,
-                                             std::string& connCfgFileName,
-                                             std::string& connDatFileName,
-                                             std::string& typesCfgFileName,
-                                             std::string& typesDatFileName,
-                                             std::string& importMeshCmd)
-  {
-    Settings& settings = Settings::Instance();
-    std::ostringstream sstr;
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Coordinates.cfg";
-    coordCfgFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Coordinates.dat";
-    coordDatFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Connectivity.cfg";
-    connCfgFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Connectivity.dat";
-    connDatFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Types.cfg";
-    typesCfgFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Types.dat";
-    typesDatFileName = sstr.str();
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/"
-         << settings.GetString("name") << ".h5";
-    fs::remove(fs::path(sstr.str()));
-
-    sstr.str("");
-    sstr << settings.GetString("baseExeDir") << "/hdf5_import_mesh.sh "
-         << settings.GetString("name") << "_data "
-         << settings.GetString("name") << ".h5";
-    importMeshCmd = sstr.str();
-  }
-
-  void MpCCIExchangeCPLR::ClearDatasetTempFiles(std::string& stepNumsFileName,
-                                                std::string& stepValuesFileName,
-                                                std::string& resultScriptFileName,
-                                                std::string& resultDatFileName,
-                                                std::string& writeResultCmd,
-                                                std::string& writeAuxCmd)
-  {
-    Settings& settings = Settings::Instance();
-    std::ostringstream sstr;
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/StepNumbers.dat";
-    stepNumsFileName = sstr.str();
-    fs::remove(fs::path(stepNumsFileName));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/StepValues.dat";
-    stepValuesFileName = sstr.str();
-    fs::remove(fs::path(stepValuesFileName));
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Result.sh";
-    resultScriptFileName = sstr.str();
-
-    sstr.str("");
-    sstr << settings.GetString("name") << "_data/Result.dat";
-    resultDatFileName = sstr.str();
-
-    sstr.str("");
-    sstr << settings.GetString("baseExeDir") << "/hdf5_import_dataset.sh "
-         << settings.GetString("name") << "_data "
-         << settings.GetString("name") << ".h5 "
-         << settings.GetString("type") << " "
-         << settings.GetString("floatDataset") << " "
-         << settings.GetInt("extfiles"); 
-
-    writeResultCmd = sstr.str();
-
-    sstr.str("");
-    sstr << settings.GetString("baseExeDir") << "/hdf5_aux.sh "
-         << settings.GetString("name") << "_data "
-         << settings.GetString("name") << ".h5 "
-         << settings.GetString("type") << " "
-         << settings.GetString("deltemp");
-    writeAuxCmd = sstr.str();
-
-    sstr.str("");
-    sstr << "rm -f " << settings.GetString("name") << "_data/TimeStep_*;\n";
-    if(std::system(sstr.str().c_str()))
-    {
-      EXCEPTION("Having trouble to clean up HDF5 time step files.");
-    }
   }
 
   int MpCCIExchangeCPLR::ElemTypes2MpCCI(FEType et)
