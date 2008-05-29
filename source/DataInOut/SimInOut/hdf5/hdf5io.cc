@@ -50,6 +50,10 @@ hsize_t H5IO::maxChunkSize_= 100;
                       H5::PredType::NATIVE_DOUBLE,
                       H5::PredType::IEEE_F64LE );
   
+  DECL_HDF_ATOM_TYPE( Float,
+                      H5::PredType::NATIVE_FLOAT,
+                      H5::PredType::IEEE_F32LE );
+
 #undef DECL_HDF_ATOM_TYPE
   
   // ========================================
@@ -132,6 +136,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_HDF_ATOM_TYPE_CONV(Integer);
   DECL_HDF_ATOM_TYPE_CONV(UInt);
   DECL_HDF_ATOM_TYPE_CONV(Double);
+  DECL_HDF_ATOM_TYPE_CONV(Float);
   
 #undef DECL_HDF_ATOM_TYPE_CONV
   
@@ -464,6 +469,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_STL_VECTOR_CONVERSION( Integer );
   DECL_STL_VECTOR_CONVERSION( UInt );
   DECL_STL_VECTOR_CONVERSION( Double );
+  DECL_STL_VECTOR_CONVERSION( Float );
     
 #undef DECL_ST_VECTOR_CONVERSION
     
@@ -1084,10 +1090,12 @@ hsize_t H5IO::maxChunkSize_= 100;
     ANY_CONVERSION( UInt );
     ANY_CONVERSION( Integer );
     ANY_CONVERSION( Double );
+    ANY_CONVERSION( Float );
     ANY_CONVERSION( std::string );
     ANY_CONVERSION( StdVector<UInt> );
     ANY_CONVERSION( StdVector<Integer> );
     ANY_CONVERSION( StdVector<Double> );
+    ANY_CONVERSION( StdVector<Float> );
     ANY_CONVERSION( StdVector<std::string> );
 
 #undef ANY_CONVERSION
@@ -1165,10 +1173,12 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_IO_METHODS( Integer );
   DECL_IO_METHODS( UInt );
   DECL_IO_METHODS( Double );
+  DECL_IO_METHODS( Float );
   DECL_IO_METHODS( std::string );
   DECL_IO_METHODS( StdVector<Integer> );
   DECL_IO_METHODS( StdVector<UInt> );
   DECL_IO_METHODS( StdVector<Double> );
+  DECL_IO_METHODS( StdVector<Float> );
   DECL_IO_METHODS( StdVector<std::string> );
 
 #undef DECL_IO_METHODS

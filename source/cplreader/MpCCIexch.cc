@@ -137,7 +137,7 @@ namespace CoupledField
 
 
     Settings& settings = Settings::Instance();
-    std::cout << "Reading " << settings.GetString("type") << " mesh... ";
+    std::cout << "Reading " << settings.GetString("type") << " mesh...\n";
     uint32_t dim = settings.GetInt("dim");
     int nodeOffset = 0;
     int elemOffset = 0;
@@ -177,7 +177,7 @@ namespace CoupledField
     }
     elConnect.resize(maxNumElemNodes);
     
-    std::cout << "done.\nConverting mesh... ";
+    std::cout << "Reading mesh done.\nConverting mesh...\n";
 
     for (int actPart=0; actPart<numPartitions; actPart++)
     {
@@ -261,7 +261,9 @@ namespace CoupledField
       sstr.str("");
       sstr << "partition" << (actPart+1);
 
+      std::cout << "Writing region " << sstr.str() << "... ";
       WriteRegion(meshGroup_, regionNodes, regionElems, regionDim, sstr.str());
+      std::cout << "done.\n";
       
    #ifdef MpCCI
       if(settings.GetString("coupling") == "MpCCI") {
@@ -309,7 +311,8 @@ namespace CoupledField
    #endif // MpCCI
 
     }
-    std::cout << "done.\n";
+
+    std::cout << "Writing nodal coords... ";
 
     // write the dimension of the grid.
     H5IO::WriteAttribute( meshGroup_, "Dimension", dim );
@@ -330,6 +333,8 @@ namespace CoupledField
 
     nodeGroup.close();
 
+    std::cout << "done.\nWriting element connectivity... ";
+
     // =====================
     //  Element definitions
     // =====================
@@ -348,6 +353,8 @@ namespace CoupledField
     H5IO::Write1DArray( elemGroup, "Types", nElems,
                         &feTypes[0], dPropList_ );
   
+    std::cout << "done.\nWriting grid meta info... ";
+
     // ==========================
     //  Grid Meta Information
     // ==========================
@@ -372,6 +379,8 @@ namespace CoupledField
                             numElemsOfType[(FEType)i] );
     }
 
+    std::cout << "done.\n";
+
     // close element group
     elemGroup.close();
 
@@ -387,6 +396,8 @@ namespace CoupledField
       CCI_Close_setup(MpCCIprocess_);
     }
  #endif // MpCCI
+
+    std::cout << "Converting mesh done.\n";
   
     std::cout << "========================================"
               << "========================================"
@@ -477,7 +488,7 @@ namespace CoupledField
     
     // Try to open Regions group. If it does not exist try to create it.
     try{
-      meshGroup.openGroup("Regions");
+      regionListGroup = meshGroup.openGroup("Regions");
     } catch(H5::GroupIException& ex) {;
       // create region group
       try{
@@ -505,6 +516,11 @@ namespace CoupledField
                         elems.size(),
                         (const Integer*)&elems[0],
                         dPropList_);
+
+    try{
+      actRegionGroup.close();
+      regionListGroup.close();
+    } H5_CATCH( "Could not close region group" );
   }
 
   void MpCCIExchangeCPLR::Couple()
@@ -733,7 +749,7 @@ namespace CoupledField
 
             if(*tit == "fluidMechVelocity") 
             {
-              WriteResults(currResultGroup, tmpDatFluidVel, 1, false);
+              WriteResults(currResultGroup, tmpDatFluidVel, 3, false);
             }
 
             if(*tit == "fluidMechDensity") 
@@ -798,7 +814,6 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     UInt externalFiles = settings.GetInt("extfiles");
-    std::string floatDataset = settings.GetString("floatDataset");
     std::string analysisType = "transient";
     
     try {
@@ -850,10 +865,10 @@ namespace CoupledField
 
     for( ; it != end; it++ ) {
       resultName = *it;
-      
       if(resultName == "")
         continue;
 
+      dofNames.clear();
       definedOn = 1;
       
       // Write Lighthill source term              
@@ -928,6 +943,8 @@ namespace CoupledField
                                         std::vector<Double>& resultVals,
                                         const UInt numDOFs,
                                         const bool isImag ) {
+    Settings& settings = Settings::Instance();
+    bool floatDataset = settings.GetInt("floatDataset");
 
     // create dataset with related name
     std::string name;
@@ -938,9 +955,23 @@ namespace CoupledField
 
     UInt numEntities = (UInt) resultVals.size() / numDOFs;
 
-    H5IO::Write2DArray( resultGroup, name, 
-                        numEntities, numDOFs, &resultVals[0],
-                        dPropList_ );
+    if(!floatDataset) 
+    {
+      H5IO::Write2DArray( resultGroup, name, 
+                          numEntities, numDOFs, &resultVals[0],
+                          dPropList_ );
+    }
+    else
+    {
+      std::vector<Float> floatResultVals(resultVals.size());
+
+      std::copy(resultVals.begin(), resultVals.end(),
+                floatResultVals.begin());
+
+      H5IO::Write2DArray( resultGroup, name, 
+                          numEntities, numDOFs, &floatResultVals[0],
+                          dPropList_ );      
+    }
   }
 
   void MpCCIExchangeCPLR::CreateExternalFile(UInt timeStep) {
