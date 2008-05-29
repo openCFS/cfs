@@ -55,38 +55,6 @@ namespace CoupledField
 
     vtkMultiBlockDataSet* readOuput = reader_->GetOutput();
 
-    Integer dataCol;
-    std::vector<std::string> openFoamDOFs;
-    openFoamDOFs.push_back("lhsrc");
-    openFoamDOFs.push_back("vx");
-    openFoamDOFs.push_back("vy");
-    openFoamDOFs.push_back("vz");
-    openFoamDOFs.push_back("pres");
-    for (UInt i = 0; i < openFoamDOFs.size(); i++)
-    {
-      std::string colStr = settings.GetString(openFoamDOFs[i]);
-
-      if (colStr != "")
-      {
-        sstr.str("");
-        sstr.clear();
-        colStr = colStr.substr(3);
-        sstr << colStr;
-        sstr >> dataCol;
-
-        if (sstr.fail())
-        {
-          std::cerr << "Error while trying to init OPENFOAM column mapping"
-            << std::endl;
-          exit(1);
-        }
-
-        dataColumns_.push_back(dataCol-1);
-      } else {
-        dataColumns_.push_back(-1);            
-      }
-    }
-
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
     /* find out the number of partitions */
@@ -98,16 +66,12 @@ namespace CoupledField
     }
 
     std::cout << " Name: " << name_ << std::endl
-      << " Dim: " << dim_ << std::endl
-      << " numfiles: " << numFiles_ << std::endl
-      << " numPartitions: " << numPartitions_ << std::endl
-      << " numResults: " << numResults_ << std::endl
-      << " timeStep: " << settings.GetDouble("timeStep") << std::endl
-      << " Lighthill source term column: " << dataColumns_[0] + 1 << std::endl
-      << " vx column: " << dataColumns_[1] + 1 << std::endl
-      << " vy column: " << dataColumns_[2] + 1 << std::endl
-      << " vz column: " << dataColumns_[3] + 1 << std::endl
-      << " pressure column: " << dataColumns_[4] + 1 << std::endl;
+              << " Dim: " << dim_ << std::endl
+              << " numfiles: " << numFiles_ << std::endl
+              << " numPartitions: " << numPartitions_ << std::endl
+              << " numResults: " << numResults_ << std::endl
+              << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
+    
 
     elsize_.resize(numPartitions_);
     MpCCInodes_.resize(numPartitions_);
