@@ -74,8 +74,8 @@ namespace CoupledField
       return numResults_;
     }
 
-    //! return time step
-    virtual double GetTimeStep();
+    //! return time step value in seconds
+    double GetTimeStep(UInt stepNumber);
 
     //! return name of partition
     virtual std::string GetPartitionName(const UInt partitionIdx);

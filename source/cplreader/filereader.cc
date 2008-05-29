@@ -8,7 +8,7 @@
 
 #include "params.hh"
 #include "filereader.hh"
-
+#include "settings.hh"
 
 namespace CoupledField
 {
@@ -33,9 +33,13 @@ namespace CoupledField
   {
   }
 
-  double FileReader::GetTimeStep()
+  double FileReader::GetTimeStep(UInt stepNumber)
   {
-    double ts = 0.0;
+    Settings& settings = Settings::Instance();
+    Double timestep = settings.GetDouble("timestep");
+    
+    double ts = timestep * stepNumber;
+
     /*        
               mu::Parser parser;
 
