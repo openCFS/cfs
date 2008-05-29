@@ -33,6 +33,7 @@ namespace fs=boost::filesystem;
 #endif
 
 #include "MpCCIexch.hh"
+#include "flowDataTypes.hh"
 
 #define H5_EXCEPTION(STR, EX)                   \
   EXCEPTION( STR, EX.getCDetailMsg() );
@@ -154,6 +155,7 @@ namespace CoupledField
     std::vector< UInt > numElemsOfDim ( 3 );
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
+    std::vector<std::string> regionNames;
 
     InitHDF5();
     WriteFileInfoHeader();
@@ -174,6 +176,9 @@ namespace CoupledField
       {
         maxNumElemNodes = NUM_ELEM_NODES[*it] > maxNumElemNodes ? NUM_ELEM_NODES[*it] : maxNumElemNodes;
       }
+
+      // Fill vector with region names
+      regionNames.push_back(ptFileReader_->GetPartitionName(actPart));
     }
     elConnect.resize(maxNumElemNodes);
     
@@ -258,11 +263,10 @@ namespace CoupledField
       elemOffset += nElems;
       nodeOffset += nNodes;
 
-      sstr.str("");
-      sstr << "partition" << (actPart+1);
-
-      std::cout << "Writing region " << sstr.str() << "... ";
-      WriteRegion(meshGroup_, regionNodes, regionElems, regionDim, sstr.str());
+      std::cout << "Writing region " << ptFileReader_->GetPartitionName(actPart)
+                << "... ";
+      WriteRegion(meshGroup_, regionNodes, regionElems, regionDim,
+                  regionNames[actPart]);
       std::cout << "done.\n";
       
    #ifdef MpCCI
@@ -548,6 +552,7 @@ namespace CoupledField
     std::vector<std::string> outputFields;
     std::vector<std::string> regionNames;
     bool externalFiles = settings.GetInt("extfiles");
+    std::vector<FlowDataType> flowData(numPartitions);
 
  #ifdef MpCCI
     // MpCCI status variables
@@ -593,12 +598,7 @@ namespace CoupledField
 
     // Fill vector with region names
     for (actPart = 0; actPart<numPartitions; actPart++)
-    {
-      sstr.clear();
-      sstr.str("");
-      sstr << "partition" << (actPart+1);
-      regionNames.push_back(sstr.str());
-    }
+      regionNames.push_back(ptFileReader_->GetPartitionName(actPart));
       
     while ( counter < numFiles ) 
     {
@@ -723,12 +723,7 @@ namespace CoupledField
         tend = t.end();
         for( ; tit != tend; tit++)
         {
-          
-          sstr.clear();
-          sstr.str("");
-          sstr << "partition" << (actPart+1);
-          groupName = sstr.str();
-          
+          groupName = regionNames[actPart];
 
           try {
             currResultGroup = currMeshStepGroup_.openGroup( *tit );
