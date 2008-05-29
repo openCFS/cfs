@@ -38,7 +38,7 @@ namespace CoupledField
   private:
 
     void CalculateAcouSrcs(const int partitionIdx,
-                           std::vector<double>& flowdata);
+                           FlowDataType& flowData);
     
 
     // MpCCI specific member functions

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "cplreaderdefs.hh"
+#include "flowDataTypes.hh"
 
 //! Base class for reading topology and nodal data from results of fluid computations 
 /*!
@@ -44,6 +45,16 @@ namespace CoupledField
     virtual void ReadNodalValues(std::vector<Double> & flowdata,
                                  const UInt partitionIdx,
                                  const UInt timeStepIdx) = 0;
+
+    //! get nodal values from the corresponding fluid datafile the new way
+    virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                 const UInt timeStepIdx)
+    {
+      std::cerr << "ReadNodalValues (FlowDataType& nodalFlowData, const UInt timeStepIdx) " <<
+        "not implemented!";
+
+      exit(1);
+    }
 
     //! Return number of partitions
     virtual UInt GetNumPartitions() { return numPartitions_;}

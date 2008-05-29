@@ -7,44 +7,50 @@
 namespace CoupledField
 {
 
-    class FileReader_FASTEST : public FileReader
-    {
-    public:
+  class FileReader_FASTEST : public FileReader
+  {
+  public:
 
-        //! Constructor
-        FileReader_FASTEST(const std::string& name,
-                           const UInt dim,
-                           const UInt numFiles,
-                           const UInt startIndex);
+    //! Constructor
+    FileReader_FASTEST(const std::string& name,
+                       const UInt dim,
+                       const UInt numFiles,
+                       const UInt startIndex);
     
-        //! Deconstructor
-        virtual ~FileReader_FASTEST();
+    //! Deconstructor
+    virtual ~FileReader_FASTEST();
 
-        virtual void Init();
+    virtual void Init();
 
-        //! get node coordinates from the corresponding file
-        virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
-                             const UInt partitionIdx);
+    //! get node coordinates from the corresponding file
+    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
+                                 const UInt partitionIdx);
 
 
-        //! get topology information from the corresponding topology file
-        virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                  std::vector<UInt> & numNodesPerElem,
-                                  std::vector<UInt> & elemTypes,
-                                  const UInt partitionIdx);
+    //! get topology information from the corresponding topology file
+    virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                              std::vector<UInt> & numNodesPerElem,
+                              std::vector<UInt> & elemTypes,
+                              const UInt partitionIdx);
 
-        //! get nodal values from the corresponding fluid datafile
-        virtual void ReadNodalValues(std::vector<double> & flowdata,
-                             const UInt partitionIdx,
-                             const UInt timeStepIdx);
+    //! get nodal values from the corresponding fluid datafile
+    virtual void ReadNodalValues(std::vector<double> & flowdata,
+                                 const UInt partitionIdx,
+                                 const UInt timeStepIdx);
 
-    protected:
+    //! get nodal values from the corresponding fluid datafile the new way
+    virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                 const UInt timeStepIdx);
 
-      UInt startIndex_;
-      std::string partFmtStr_;
-      std::string timeFmtStr_;
-      std::vector<Integer> dataColumns_;
-    };
+  protected:
+
+    UInt startIndex_;
+    std::string partFmtStr_;
+    std::string timeFmtStr_;
+    std::vector<Integer> dataColumns_;
+    std::vector<SolutionType> solutionTypes_;
+    std::vector<UInt> dofIndices_;
+  };
 
       
 } // end of namespace
