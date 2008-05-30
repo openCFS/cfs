@@ -12,7 +12,7 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
 namespace fs=boost::filesystem;
 
 #include <def_use_mpcci.hh>
@@ -47,26 +47,44 @@ namespace fs=boost::filesystem;
 namespace CoupledField
 {
 
-  MpCCIExchangeCPLR::MpCCIExchangeCPLR(int argc, char *argv[],
-                                       FileReader * ptFileReader)
+  MpCCIExchangeCPLR::MpCCIExchangeCPLR(FileReader * ptFileReader)
   {
     ptFileReader_ = ptFileReader;
 
     if(!ptFileReader_)
       EXCEPTION("Invalid pointer to file reader!");
+  }
 
+  MpCCIExchangeCPLR::~MpCCIExchangeCPLR() 
+  {
+    
+    if( mainGroup_.getLocId() <= 0 ) 
+      return;
+    
+    // check for open groups, datasets etc.
+    if (mainFile_.getObjCount( H5F_OBJ_DATASET | 
+                               H5F_OBJ_GROUP | 
+                               H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+      std::cerr << "There are still objects open in the hdf5 file\n\n";
+      CheckOpenObjects();
+    }
+    
+    mainFile_.close();
+
+#ifdef MpCCI
+    Settings& settings = Settings::Instance();
+    if(settings.GetString("coupling") == "MpCCI") {
+      CCI_Finalize();
+    }
+#endif // MpCCI
+  }
+
+  void MpCCIExchangeCPLR::Init(int argc, char *argv[])
+  {
     ptFileReader_->Init();
 
-    // Set compression and chunk size parameters for HDF5
-    UInt compressionLevel = 9;
-    UInt maxChunkSize = 100;
-    dPropList_ = H5::DSetCreatPropList::DEFAULT;
-    dPropList_.setLayout( H5D_CHUNKED );
-    dPropList_.setDeflate( compressionLevel );
-    H5IO::SetMaxChunkSize( maxChunkSize );
-
-    // Do not print HDF5 exceptions by default
-    H5::Exception::dontPrint();
+    InitHDF5();
+    WriteFileInfoHeader();
 
 #ifdef MpCCI
     Settings& settings = Settings::Instance();
@@ -86,35 +104,24 @@ namespace CoupledField
     }
 #endif // MpCCI
   }
-
-  MpCCIExchangeCPLR::~MpCCIExchangeCPLR() 
+  
+  void MpCCIExchangeCPLR::Finish()
   {
-    
-    if( mainGroup_.getLocId() <= 0 ) 
-      return;
-    
-    
+    // Fetch custom data from file reader and write it to the UserData
+    // section of the HDF5 file.
+    std::map<std::string, std::string> userData;
+    std::map<std::string, std::string>::const_iterator udIt, udEnd;
+
+    ptFileReader_->GetUserData(userData);
+    udIt = userData.begin();
+    udEnd = userData.end();
+    for( ; udIt != udEnd; udIt++ ) 
+      WriteStringToUserData(udIt->first, udIt->second);
+
     // close groups
     mainGroup_.close();
-
-    // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET | 
-                               H5F_OBJ_GROUP | 
-                               H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-      std::cerr << "There are still objects open in the hdf5 file\n\n";
-      CheckOpenObjects();
-    }
-    
-    mainFile_.close();
-
-#ifdef MpCCI
-    Settings& settings = Settings::Instance();
-    if(settings.GetString("coupling") == "MpCCI") {
-      CCI_Finalize();
-    }
-#endif // MpCCI
   }
-
+  
   void MpCCIExchangeCPLR::CheckOpenObjects() {
     std::vector<UInt> types;
     std::vector<std::string> typeNames;
@@ -200,9 +207,6 @@ namespace CoupledField
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
     std::vector<std::string> regionNames;
-
-    InitHDF5();
-    WriteFileInfoHeader();
 
     // First read everything into internal buffers
     for (int actPart=0; actPart<numPartitions; ++actPart)
@@ -476,6 +480,17 @@ namespace CoupledField
     std::string fileName  = settings.GetString("name");
     std::ostringstream strBuffer;
 
+    // Set compression and chunk size parameters for HDF5
+    UInt compressionLevel = 9;
+    UInt maxChunkSize = 100;
+    dPropList_ = H5::DSetCreatPropList::DEFAULT;
+    dPropList_.setLayout( H5D_CHUNKED );
+    dPropList_.setDeflate( compressionLevel );
+    H5IO::SetMaxChunkSize( maxChunkSize );
+
+    // Do not print HDF5 exceptions by default
+    H5::Exception::dontPrint();
+
     strBuffer << "cplreader_hdf5_" << fileName;
     hdf5DirName_ = strBuffer.str();
 
@@ -506,6 +521,7 @@ namespace CoupledField
   }
 
   void MpCCIExchangeCPLR::WriteFileInfoHeader() {
+    Settings& settings = Settings::Instance();
     H5::Group infoGroup;
     try {
       infoGroup = mainGroup_.openGroup( "FileInfo" );
@@ -531,8 +547,10 @@ namespace CoupledField
     
     // create group for content
     StdVector<Integer> content;
-    content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
-    content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
+    if(!settings.GetInt("justinit"))
+      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
+    if(!settings.GetInt("justmesh"))
+      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
     H5IO::Write1DArray( infoGroup, "Content", content.GetSize(), 
                         &content[0], dPropList_ );
     
@@ -830,17 +848,6 @@ namespace CoupledField
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, outputFields, timeStepNumbers,
                              timeStepValues, regionNames );
-
-    // Fetch custom data from file reader and write it to the UserData
-    // section of the HDF5 file.
-    std::map<std::string, std::string> userData;
-    std::map<std::string, std::string>::const_iterator udIt, udEnd;
-
-    ptFileReader_->GetUserData(userData);
-    udIt = userData.begin();
-    udEnd = userData.end();
-    for( ; udIt != udEnd; udIt++ ) 
-      WriteStringToUserData(udIt->first, udIt->second);
 
     // Close main HDF5 group and finish
     try {

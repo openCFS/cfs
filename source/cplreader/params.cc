@@ -34,7 +34,8 @@ namespace CoupledField
     bool param_calcsrc;
     bool param_verbose;
     bool param_floatds;
-    bool param_deltemp;
+    bool param_justinit;
+    bool param_justmesh;
     std::string param_deffile;
     double param_timestep;
     std::string param_dump;
@@ -137,8 +138,11 @@ namespace CoupledField
          " If this flag is set all data will be written as floats! "
          "This is also true for FASTEST data!")
 
-        ("deltemp", po::value< bool >(&param_deltemp)->default_value(true),
-         "Delete temporary files created during conversion.")
+        ("justinit", po::value< bool >(&param_justinit)->default_value(false),
+         "Just perform initialization step.")
+
+        ("justmesh", po::value< bool >(&param_justmesh)->default_value(false),
+         "Just convert the mesh.")
 
         ("extfiles", po::value< bool >(&param_extfiles)->default_value(true),
          "Use external time step files (just like CFX .trn files).")
@@ -213,7 +217,8 @@ namespace CoupledField
     settings.SetInt("calcSrc", 0);
 #endif
     settings.SetInt("floatDataset", param_floatds);
-    settings.SetInt("deltemp", param_deltemp);
+    settings.SetInt("justinit", param_justinit);
+    settings.SetInt("justmesh", param_justmesh);
     settings.SetInt("verbose", param_verbose);
     settings.SetString("defFile", param_deffile);
     settings.SetDouble("timeStep", param_timestep);

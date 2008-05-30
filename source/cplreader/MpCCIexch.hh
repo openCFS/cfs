@@ -23,17 +23,22 @@ namespace CoupledField
   public:
 
     //!
-    MpCCIExchangeCPLR(int argc, char *argv[], FileReader * ptFileReader);
-
+    MpCCIExchangeCPLR(FileReader * ptFileReader);
 
     //!
     virtual ~MpCCIExchangeCPLR();
 
+    // Perform initialization
+    void Init(int argc, char *argv[]);
+    
     //! Reorganizing grid info for MpCCi and hand over to MpCCI
     void PutExchangeGrid2MpCCI();
 
     //! Performs the coupled computation phase
     void Couple();
+
+    // Perform last operations
+    void Finish();
 
   private:
 

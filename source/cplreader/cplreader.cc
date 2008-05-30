@@ -121,9 +121,18 @@ int main(int argc, char *argv[])
       return 0;
     }
     
-    MpCCIExchangeCPLR mpCCIexch(argc, argv, fileReader);
-    mpCCIexch.PutExchangeGrid2MpCCI();
-    mpCCIexch.Couple();
+    MpCCIExchangeCPLR mpCCIexch(fileReader);
+    mpCCIexch.Init(argc, argv);
+    if(!settings.GetInt("justinit")) 
+    {
+      mpCCIexch.PutExchangeGrid2MpCCI();
+
+      if(!settings.GetInt("justmesh")) 
+      {
+        mpCCIexch.Couple();
+      }
+    }
+    mpCCIexch.Finish();
 
   } catch (std::exception& ex)
   {
