@@ -42,6 +42,9 @@ namespace CoupledField
     virtual double GetTimeStep(UInt t);
     virtual std::string GetPartitionName(const UInt partitionIdx);
 
+    //! get user data from file reader
+    virtual void GetUserData(std::map<std::string, std::string>& userData);
+
   protected:
       FEType VTKCellTypeToFEType(UInt cellType);
 

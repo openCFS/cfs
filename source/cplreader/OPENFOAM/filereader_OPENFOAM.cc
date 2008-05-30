@@ -5,6 +5,12 @@
 #include <iomanip>
 #include <sstream> 
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+namespace fs=boost::filesystem;
+
 #include "../params.hh"
 #include "../settings.hh"
 #include "filereader_OPENFOAM.hh"
@@ -76,7 +82,6 @@ namespace CoupledField
     elsize_.resize(numPartitions_);
     MpCCInodes_.resize(numPartitions_);
     MpCCIelems_.resize(numPartitions_);
-
 
     UInt p_cnt = 0;
     iter->GoToFirstItem();
@@ -342,5 +347,139 @@ namespace CoupledField
       return elemTypeMap[cellType];
   }
   
+    //! get user data from file reader
+  void FileReader_OPENFOAM::GetUserData(std::map<std::string, std::string>& userData)
+  {
+    std::vector<std::string> fileNames;
+    std::vector<std::string> dataSetNames;
+    std::ifstream fin;
+    std::stringstream sstr;
+
+    fs::path foamDir( name_.c_str() );
+    fs::directory_iterator end_iter;
+    for ( fs::directory_iterator dir_itr( foamDir );
+          dir_itr != end_iter;
+          ++dir_itr ) 
+    {
+       if ( !fs::is_directory( *dir_itr ) )
+       {
+         std::string fn = dir_itr->leaf();
+         if(fn.substr(0, 4) == "log.")
+         {
+           sstr.clear(); sstr.str("");
+           sstr << name_.c_str() << "/" << fn;
+           fileNames.push_back(sstr.str());
+
+           sstr.clear(); sstr.str("");
+           sstr << name_.c_str() << "_" << fn;
+           dataSetNames.push_back(sstr.str());
+         }
+       }
+    }
+
+    sstr.clear(); sstr.str("");
+    sstr << name_.c_str() << "/" << 0;
+    foamDir = sstr.str();
+
+    for ( fs::directory_iterator dir_itr( foamDir );
+          dir_itr != end_iter;
+          ++dir_itr ) 
+    {
+       if ( !fs::is_directory( *dir_itr ) )
+       {
+         std::string fn = dir_itr->leaf();
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "/0/" << fn;
+         fileNames.push_back(sstr.str());
+
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "_0_" << fn;
+         dataSetNames.push_back(sstr.str());
+       }
+    }
+
+    sstr.clear(); sstr.str("");
+    sstr << name_.c_str() << "/constant";
+    foamDir = sstr.str();
+
+    for ( fs::directory_iterator dir_itr( foamDir );
+          dir_itr != end_iter;
+          ++dir_itr ) 
+    {
+       if ( !fs::is_directory( *dir_itr ) )
+       {
+         std::string fn = dir_itr->leaf();
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "/constant/" << fn;
+         fileNames.push_back(sstr.str());
+
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "_constant_" << fn;
+         dataSetNames.push_back(sstr.str());
+       }
+    }
+
+    sstr.clear(); sstr.str("");
+    sstr << name_.c_str() << "/constant/polyMesh";
+    foamDir = sstr.str();
+
+    for ( fs::directory_iterator dir_itr( foamDir );
+          dir_itr != end_iter;
+          ++dir_itr ) 
+    {
+       if ( !fs::is_directory( *dir_itr ) )
+       {
+         std::string fn = dir_itr->leaf();
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "/constant/polyMesh/" << fn;
+         fileNames.push_back(sstr.str());
+
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "_constant_polyMesh_" << fn;
+         dataSetNames.push_back(sstr.str());
+       }
+    }
+
+    sstr.clear(); sstr.str("");
+    sstr << name_.c_str() << "/system";
+    foamDir = sstr.str();
+
+    for ( fs::directory_iterator dir_itr( foamDir );
+          dir_itr != end_iter;
+          ++dir_itr ) 
+    {
+       if ( !fs::is_directory( *dir_itr ) )
+       {
+         std::string fn = dir_itr->leaf();
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "/system/" << fn;
+         fileNames.push_back(sstr.str());
+
+         sstr.clear(); sstr.str("");
+         sstr << name_.c_str() << "_system_" << fn;
+         dataSetNames.push_back(sstr.str());
+       }
+    }
+
+    for(UInt i=0; i<fileNames.size(); i++)
+    {
+      fin.open( fileNames[i].c_str(), std::ios::binary );
+    
+      if(fin.fail())
+        EXCEPTION("Cannot open file '" << fileNames[i]
+                  <<"' to dump into HDF5!");
+
+      // seek to the end of the file
+      fin.seekg (0, std::ios::end);
+      UInt numBytes = fin.tellg();
+      fin.seekg (0, std::ios::beg);
+
+      std::string str;
+      str.resize(numBytes);
+      fin.read(&str[0], numBytes);
+      userData[dataSetNames[i]] = str;
+      fin.close();
+    }
+  }
 
 } // end of namespace
