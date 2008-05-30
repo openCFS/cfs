@@ -547,9 +547,10 @@ namespace CoupledField
     
     // create group for content
     StdVector<Integer> content;
+    content.Push_back( H5IO::MapCapabilityType( SimOutput::USERDATA ) );
     if(!settings.GetInt("justinit"))
       content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
-    if(!settings.GetInt("justmesh"))
+    if(!settings.GetInt("justmesh") && !settings.GetInt("justinit"))
       content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
     H5IO::Write1DArray( infoGroup, "Content", content.GetSize(), 
                         &content[0], dPropList_ );

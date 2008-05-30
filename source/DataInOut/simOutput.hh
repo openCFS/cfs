@@ -24,7 +24,7 @@ namespace CoupledField {
                      StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
     //! Define capabilities of writing out certain information
-    typedef enum {NONE, MESH, MESH_RESULTS, HISTORY} Capability;
+    typedef enum {NONE, MESH, MESH_RESULTS, HISTORY, USERDATA} Capability;
 
     //! Constructor
     SimOutput( const std::string& fileName, ParamNode * outputNode );
