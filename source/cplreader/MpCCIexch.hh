@@ -64,7 +64,8 @@ namespace CoupledField
                        const UInt numDOFs,
                        const bool isImag );
     void CreateExternalFile(UInt timeStep);
-    
+    void WriteStringToUserData(const std::string& dSetName, 
+                               const std::string& str);
 
     FileReader *  ptFileReader_;
     std::map<UInt, std::vector<Double> > NodalCoords_;
