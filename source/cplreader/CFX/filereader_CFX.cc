@@ -695,30 +695,6 @@ namespace CoupledField
     CHECK_CFX_IO(nerr);
   }
 
-  double FileReader_CFX::GetTimeStep()
-  {
-    double ts = 0.0;
-    /*
-      mu::Parser parser;
-
-      parser.SetExpr(params->GetTimeStep());
-      try
-      {
-      ts = parser.Eval();
-      }
-      catch (mu::Parser::exception_type &e)
-      {
-      std::cerr << e.GetMsg() << std::endl;
-      exit(1);
-      }
-
-      if(ts < 0)
-      ts = timeStep;
-    */
-    return ts;
-  }
-
-    
   void FileReader_CFX::GetInfosFromCommand()
   {
     std::string cmd, attrib;
@@ -734,7 +710,7 @@ namespace CoupledField
 
     userDataCFX_COMMANDS = sstr.str();
     
- #if 0
+#if 0
     if(solTimeUnit != "[s]")
     {
       std::cerr << "Unrecognized time unit found: "
@@ -770,7 +746,9 @@ namespace CoupledField
         it++)
     {
       bool match;// = pcrecpp::RE(it->first).GlobalReplace(it->second, &s);
-                
+      
+      boost::regex e1(my_expression);
+
       if(match)
       {
         exprMap.erase(it);
@@ -778,8 +756,6 @@ namespace CoupledField
         end = exprMap.end();
       }
     }
-
-    std::string regexp = " \\" + solTimeUnit;
 
     if(settings.GetInt("verbose"))
     {
@@ -828,7 +804,7 @@ namespace CoupledField
       std::cout << "Timestep: " << timeStep << std::endl;
       }        
     */
- #endif
+#endif
   }
 
   void FileReader_CFX::ParseCommand(std::vector<char>& cmdstr,

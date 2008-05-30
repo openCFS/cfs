@@ -38,8 +38,6 @@ namespace CoupledField
     virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                  const UInt timeStepIdx);
 
-    virtual double GetTimeStep();
-
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
 
@@ -99,9 +97,6 @@ namespace CoupledField
     static std::vector<float> floatvec;
     static std::vector<char> charvec;
 
-
   };
-
-      
 } // end of namespace
 #endif
