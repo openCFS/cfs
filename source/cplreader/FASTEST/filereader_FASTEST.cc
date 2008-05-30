@@ -406,7 +406,7 @@ namespace CoupledField
         infile.close();
     }
 
-    //! get nodal values from the corresponding fluid datafile the new way
+  //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_FASTEST::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                            const UInt timeStepIdx)
   {
@@ -514,65 +514,5 @@ namespace CoupledField
       infile.close();
     }
   }
-
-  void FileReader_FASTEST::ReadNodalValues(std::vector<double> & flowdata,
-                                           const UInt partitionIdx,
-                                           const UInt timeStepIdx)
-    {
-#ifdef TRACE
-        (*trace) << "entering FileReader_FASTEST::ReadNodalValues" << std::endl;
-#endif
-
-
-        std::string filename;
-        char buf[128];
-        UInt dummy;
-
-        
-        filename = basename_;
-        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
-        filename+= buf;
-        filename+= "_";
-        sprintf(buf, timeFmtStr_.c_str(), timeStepIdx+startIndex_);
-        filename+= buf;
-        filename+= ".dat";
-
-        infile.clear();
-        infile.open(filename.c_str());
-        if (!infile) {
-            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                      << ") Can't open " << filename << std::endl;
-            exit(1);
-        }
-
-        /* Set pointer to beginning of file: */
-        std::string::size_type pos=0;
-        infile.seekg(pos, std::ios::beg);
-
-        infile >> dummy;
-
-        flowdata.resize(7*MpCCInodes_[partitionIdx]);
-
-        std::vector<Double> tempVec;
-        tempVec.resize(numResults_);
-        
-        for (UInt i=0; i < MpCCInodes_[partitionIdx]; i++)
-        {
-          std::fill(&flowdata[i*7+0], &flowdata[i*7+7], 0.0);
-          
-          for(UInt j=0; j<numResults_; j++)
-            infile >> tempVec[j];
-
-          for(UInt j=0; j<dataColumns_.size(); j++)
-          {
-            if(dataColumns_[j] > -1)
-              flowdata[i*7+j] = tempVec[dataColumns_[j]];
-          }
-        }
-
-        infile.close();
-
-        
-    }
 
 } // end of namespace
