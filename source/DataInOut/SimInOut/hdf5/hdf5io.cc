@@ -1253,6 +1253,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     case SimOutput::HISTORY:
       ret = 3;
       break;
+    case SimOutput::USERDATA:
+      ret = 4;
+      break;
     default:
       EXCEPTION( "Could not map capability '" << c 
                  << "' to hdf5 representation" );
@@ -1274,6 +1277,9 @@ hsize_t H5IO::maxChunkSize_= 100;
       break;
     case 3:
       ret = SimOutput::HISTORY;
+      break;
+    case 4:
+      ret = SimOutput::USERDATA;
       break;
     default:
       break;
