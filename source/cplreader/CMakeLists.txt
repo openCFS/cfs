@@ -127,7 +127,7 @@ IF(CPLREADER_OPENFOAM)
 #  MESSAGE("VTK_INSTALL_PREFIX ${VTK_INSTALL_PREFIX}")
 #  MESSAGE("VTK_LIBRARY_DIRS ${VTK_LIBRARY_DIRS}")
   SET(VTK_ROOT_DIR
-    "/home/local/lse/strieben/vtk_freiberg_nightly_230508_x86_64"
+    "/home/lse24/lse/strieben/packages/vtk_freiberg_static_nightly_230508_${CFS_ARCH}"
     CACHE
     PATH
     "Path to VTK 5.3 directory.")
@@ -164,10 +164,12 @@ ENDIF(CPLREADER_CFX)
 IF(CPLREADER_OPENFOAM)
   SET(TARGET_LL
     ${TARGET_LL}
-    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkCommon.so
-    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkIO.so
-    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkFiltering.so
-    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkGraphics.so
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkIO.a
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkFiltering.a
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkGraphics.a
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkCommon.a
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtksys.a
+    dl
   )
 ENDIF(CPLREADER_OPENFOAM)
 
