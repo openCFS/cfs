@@ -110,20 +110,20 @@ namespace CoupledField {
           ++numResults_;
         }
       }
-      else if (sColName == " Velocity in Stn Frame u [ m s^-1 ]") {
+      else if (sColName == " Velocity u [ m s^-1 ]") {
         if (colVelX_ == 0) {
           colVelX_ = curCol;
           col2Quan_[curCol] = VELOCITY_X;
           ++numResults_;
         }
       }
-      else if (sColName == " Velocity in Stn Frame v [ m s^-1 ]") {
+      else if (sColName == " Velocity v [ m s^-1 ]") {
         if (colVelY_ == 0) {
           colVelY_ = curCol;
           col2Quan_[curCol] = VELOCITY_Y;
         }
       }
-      else if (sColName == " Velocity in Stn Frame w [ m s^-1 ]") {
+      else if (sColName == " Velocity w [ m s^-1 ]") {
         if (colVelZ_ == 0) {
           colVelZ_ = curCol;
           col2Quan_[curCol] = VELOCITY_Z;
@@ -350,14 +350,10 @@ namespace CoupledField {
     MpCCIelems_[partitionIdx] = lineNum;
   }
 
-  void FileReader_CFXexport::ReadNodalValues(std::vector<Double> & flowdata,
-                                             const UInt partitionIdx,
+  void FileReader_CFXexport::ReadNodalValues(std::vector<FlowDataType>
+                                               &nodalFlowdata,
                                              const UInt timeStepIdx)
   {
-    if (partitionIdx >= numPartitions_) {
-      EXCEPTION("Invalid partition index: " << partitionIdx);
-    }
-
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
@@ -391,14 +387,52 @@ namespace CoupledField {
         break;
     }
 
-    flowdata.assign(7*MpCCInodes_[partitionIdx], 0.0);
-
-    UInt lineNum = 0, fieldNum;
+    UInt lineNum = 0, fieldNum, numVelDofs = (colVelZ_ > 0 ? 3 : 2);
     std::istringstream strLine;
     std::string fieldBuf;
     std::map<UInt, Quantity>::const_iterator itQuan;
     std::map<UInt, Quantity>::const_iterator itEnd = col2Quan_.end();
-
+    FlowDataType &flowdata = nodalFlowdata[0];
+    
+    // set up flow data struct
+    for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
+      FlowDataPartStruct *fdps;
+      switch (itQuan->second) {
+      case DENSITY:
+        fdps = &flowdata[FLUIDMECH_DENSITY];
+        fdps->isActive = true;
+        fdps->definedOn = ResultInfo::NODE;
+        fdps->dofNames.push_back("-");
+        fdps->unit = "kg m^-3";
+        fdps->resultName = "fluidMechDensity";
+        fdps->data.resize(MpCCInodes_[0]);
+        break;
+      case PRESSURE:
+        fdps = &flowdata[FLUIDMECH_PRESSURE];
+        fdps->isActive = true;
+        fdps->definedOn = ResultInfo::NODE;
+        fdps->dofNames.push_back("-");
+        fdps->unit = "Pa";
+        fdps->resultName = "fluidMechPressure";
+        fdps->data.resize(MpCCInodes_[0]);
+        break;
+      case VELOCITY_X:
+        fdps = &flowdata[FLUIDMECH_VELOCITY];
+        fdps->isActive = true;
+        fdps->definedOn = ResultInfo::NODE;
+        fdps->dofNames.push_back("x");
+        fdps->dofNames.push_back("y");
+        if (numVelDofs == 3)
+          fdps->dofNames.push_back("z");
+        fdps->unit = "m s^-1";
+        fdps->resultName = "fluidMechVelocity";
+        fdps->data.resize(numVelDofs * MpCCInodes_[0]);
+        break;
+      default:
+        break;
+      }
+    }
+    
     // cycle through all data lines
     while (infile.good()) {
       std::getline(infile, lineBuf);
@@ -417,21 +451,27 @@ namespace CoupledField {
             std::getline(strLine, fieldBuf, ',');
 
             if (fieldNum == itQuan->first) {
+              FlowDataPartStruct *fdps;
               switch (itQuan->second) {
               case DENSITY:
-                flowdata[lineNum*7+5] = atof(fieldBuf.c_str());
+                fdps = &flowdata[FLUIDMECH_DENSITY];
+                fdps->data[lineNum] = atof(fieldBuf.c_str());
                 break;
               case PRESSURE:
-                flowdata[lineNum*7+4] = atof(fieldBuf.c_str());
+                fdps = &flowdata[FLUIDMECH_PRESSURE];
+                fdps->data[lineNum] = atof(fieldBuf.c_str());
                 break;
               case VELOCITY_X:
-                flowdata[lineNum*7+1] = atof(fieldBuf.c_str());
+                fdps = &flowdata[FLUIDMECH_VELOCITY];
+                fdps->data[lineNum*numVelDofs] = atof(fieldBuf.c_str());
                 break;
               case VELOCITY_Y:
-                flowdata[lineNum*7+2] = atof(fieldBuf.c_str());
+                fdps = &flowdata[FLUIDMECH_VELOCITY];
+                fdps->data[lineNum*numVelDofs+1] = atof(fieldBuf.c_str());
                 break;
               case VELOCITY_Z:
-                flowdata[lineNum*7+3] = atof(fieldBuf.c_str());
+                fdps = &flowdata[FLUIDMECH_VELOCITY];
+               fdps->data[lineNum*numVelDofs+2] = atof(fieldBuf.c_str());
                 break;
               }
               ++itQuan;

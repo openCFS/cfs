@@ -25,19 +25,18 @@ namespace CoupledField {
 
       //! get node coordinates from the corresponding file
       virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
-          const UInt partitionIdx);
+                                   const UInt partitionIdx);
 
 
       //! get topology information from the corresponding topology file
       virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-          std::vector<UInt> & numNodesPerElem,
-          std::vector<UInt> & elemTypes,
-          const UInt partitionIdx);
+                                std::vector<UInt> & numNodesPerElem,
+                                std::vector<UInt> & elemTypes,
+                                const UInt partitionIdx);
 
       //! get nodal values from the corresponding fluid datafile
-      virtual void ReadNodalValues(std::vector<Double> & flowdata,
-          const UInt partitionIdx,
-          const UInt timeStepIdx);
+      virtual void ReadNodalValues(std::vector<FlowDataType > &nodalFlowdata,
+                                   const UInt timeStepIdx);
 
     protected:
       
