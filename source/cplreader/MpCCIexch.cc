@@ -118,8 +118,10 @@ namespace CoupledField
     for( ; udIt != udEnd; udIt++ ) 
       WriteStringToUserData(udIt->first, udIt->second);
 
-    // close groups
-    mainGroup_.close();
+    // Close main HDF5 group and finish
+    try {
+      mainGroup_.close();
+    } H5_CATCH( "Could not close main group" );
   }
   
   void MpCCIExchangeCPLR::CheckOpenObjects() {
@@ -849,11 +851,6 @@ namespace CoupledField
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, outputFields, timeStepNumbers,
                              timeStepValues, regionNames );
-
-    // Close main HDF5 group and finish
-    try {
-      mainGroup_.close();
-    } H5_CATCH( "Could close main group after writing temporal data" );
 
     std::cout << "========================================"
               << "========================================"
