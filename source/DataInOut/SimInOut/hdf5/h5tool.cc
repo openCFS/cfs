@@ -50,7 +50,7 @@ Integer CreateAttribute(H5::H5File& file,
   {
     H5::Attribute attr = object->openAttribute(i);
     
-    std::cout << "PATH: " << path << "/" << attr.getName() << std::endl;
+    //std::cout << "PATH: " << path << "/" << attr.getName() << std::endl;
     if(attr.getName() == attr_name)
     {
       switch(mode) {
@@ -243,7 +243,7 @@ Integer CreateGroup(H5::H5File& file,
   for(UInt i=0; i<numObjs; i++)
   {
     std::string objName = H5IO::GetObjNameByIdx( base_group, i );
-    std::cout << "PATH: " << path << "/" << objName << std::endl;
+    //std::cout << "PATH: " << path << "/" << objName << std::endl;
     
     if(objName == group_name)
     {
@@ -348,7 +348,7 @@ Integer CreateStringArrayDataset(H5::H5File& file,
       return 1;
     }
     
-    std::cout << "PATH: " << path << "/" << objName << std::endl;
+    //std::cout << "PATH: " << path << "/" << objName << std::endl;
     
     if(objName == ds_name)
     {

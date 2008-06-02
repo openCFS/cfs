@@ -99,6 +99,7 @@ variable would create a new one, initialized with zero.
 \end{table}
 \clearpage
 \section{CFS custom functions}
+\subsection{\texttt{sample1D}}
 We can subscribe boundary conditions with values read in from sample files.
 The notation is as follows:
 \begin{verbatim}
@@ -115,13 +116,45 @@ Please note the type of quotes used!!!!
 x specifies the direction, where the sample data is applied.
 2 means cubic spline interpolation between sample values. 
 Could also be 0=nearest neighbour, or 1=linear interpolation.
-\begin{table}[ht]
+
+\subsection{\texttt{input}}
+The \texttt{input} function can be used to read in data on a whole region from
+hdf5 files (of a previous simulation run). It takes as arguments the input ID
+and the number of the multisequence step (which should be 1 in almost any
+case). It is used in the following way:
+\begin{verbatim}
+<fileFormats>
+  <input>
+    <hdf5 fileName="filename.h5" id="inhom"/>
+  </input>
+  ...
+</fileFormats>
+...
+<pdename>
+  <bcsAndLoads>
+    <dirichletInhom name="region1" dof="x" value="input('inhom',1)"
+                    phase="input('inhom',1)"/>
+    <dirichletInhom name="region2" dof="y" value="input('inhom',1)"
+                    phase="input('inhom',1)"/>
+  </bcsAndLoads>
+</pdename>
+\end{verbatim}
+The region name, quantity, and time/frequency step (if applicable) are
+determined automatically and not passed as arguments. Therefore it is required
+to use exactly same the same mesh as for the previous simulation, i.e.\
+interpolation onto a different mesh is not supported.
+
+The \texttt{input} function is currently available only for inhomogeneous
+Dirichlet conditions, but may be supported for other BCs in the future.
+
+\begin{table}[htb]
   \begin{longtable}{c|c|c}
     \hline\noalign{\smallskip}
     name & \# of args. & description \\
-    \noalign{\smallskip}\hline\noalign{\smallskip} 
-    \verb#sample1D#     & 3 & interpolation of boundary condition values from 
- sample data files \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \texttt{input}      & 2 & read data for a whole region from a hdf5 file \\
+    \texttt{sample1D}   & 3 & interpolation of boundary condition values
+    from sample data files \\
   \end{longtable}
  \caption{CFS specific functions}
 \end{table}

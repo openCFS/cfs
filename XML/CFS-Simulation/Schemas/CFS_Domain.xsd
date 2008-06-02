@@ -78,8 +78,8 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="tolAbs" type="xsd:double" use="optional"/>
-    <xsd:attribute name="tolRel" type="xsd:double" use="optional"/>
+    <xsd:attribute name="tolAbs" type="DT_NonNegFloat" use="optional" default="1e-12"/>
+    <xsd:attribute name="tolRel" type="DT_FloatUnitInterval" use="optional" default="1e-4"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

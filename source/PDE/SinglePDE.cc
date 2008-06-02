@@ -40,6 +40,7 @@
 
 // header for resultHandling
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/ResultCache.hh"
 
 #include "DataInOut/postProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -1001,6 +1002,13 @@ namespace CoupledField {
        
        // Get EntityIterator
        EntityIterator it = actBc.entities->GetIterator();
+       
+       // set info for input function
+       ResultCache::SetInfo(ResultCache::OUT_REAL,
+                            dof,
+                            actBc.entities->GetName(),
+                            actBc.result->resultType,
+                            solveStep_->GetActTime());
 
        for ( it.Begin(); !it.IsEnd(); it++ ) {
          
@@ -1022,12 +1030,14 @@ namespace CoupledField {
                // Get node coordinate
                ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
                parser->SetCoordinates( mHandle_, *coosy, globCoord );
-             } else {
-               
+               ResultCache::SetIndex(it.GetPos());
+             }
+             else {
                // this case needs to be implemented ...
              }
              
              // Now evaluate value of IDBC
+             ResultCache::SetOutputType(ResultCache::OUT_AMPL);
              parser->SetExpr( mHandle_, actBc.value );
              val = parser->Eval( mHandle_ );
              
@@ -1051,6 +1061,7 @@ namespace CoupledField {
              // Case of complex-valued entries
              if (analysistype_ == HARMONIC ) {
                
+               ResultCache::SetOutputType(ResultCache::OUT_PHASE);
                parser->SetExpr( mHandle_, actBc.phase );
                phase = parser->Eval( mHandle_ );
                Complex complexValue( val * cos( phase / 180 * PI ),
@@ -1076,7 +1087,7 @@ namespace CoupledField {
   void SinglePDE::ReadBCs() {
 
 
-    // fetch "bcdAndLoads" parameter node, if present.
+    // fetch "bcsAndLoads" parameter node, if present.
     // otherwise leave
     ParamNode * bcsNode = myParam_->Get("bcsAndLoads", false );
     if( !bcsNode )
@@ -1185,7 +1196,7 @@ namespace CoupledField {
           actBc->dof = actResultInfo->GetDofIndex( dof );
         }
         actBc->value = value;
-        actBc->phase = phase;;
+        actBc->phase = phase;
         
         // add definition
         idBcs_.Push_back( actBc );
@@ -1665,7 +1676,7 @@ namespace CoupledField {
         
         Vector<Double> rotVec (3);
         rotVec.Init();
-               
+        
         // NOTE: If no rotation is specified and the dimension is
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
@@ -2292,9 +2303,6 @@ namespace CoupledField {
         shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
         actSDList->SetNodesOfRegion( subdoms_[iRegion] );
 
-
-
-   
         // create new vector
         Vector<Complex> * values = new Vector<Complex>;
         values->Resize( actSDList->GetSize() * numDofs );

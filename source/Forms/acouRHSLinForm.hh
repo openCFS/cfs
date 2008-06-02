@@ -34,7 +34,8 @@ namespace CoupledField
                    Double globalEpsilon,
                    Double localEpsilon,
                    std::string restartFileMode,
-                   std::string asynchSteps);
+                   std::string asynchSteps,
+                   bool node_warnings);
 
     ///
     virtual ~AcouRHSLinForm();
@@ -59,6 +60,7 @@ namespace CoupledField
     Double globalEpsilon_;
     Double localEpsilon_;
     std::string asynchSteps_;
+    bool node_warnings_;
     StdVector<NodeList*> sourceNodeLists_;
     NodeList* destNodeList_;
     ElemList* destElemList_;

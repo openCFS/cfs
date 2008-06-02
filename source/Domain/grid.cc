@@ -2,6 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <cmath>
 #include <string>
 #include <fstream>
 
@@ -237,9 +238,9 @@ namespace CoupledField
         StdVector<std::string> nodeNames;
         GetListNodeNames( nodeNames );
         nodeList->SetNamedNodes( name );
-        } else if( entityType == EntityList::NAMED_ELEMS ) {
+      } else if( entityType == EntityList::NAMED_ELEMS ) {
           nodeList->SetNamedNodes( name );
-        } else if( entityType == EntityList::REGION ) {
+      } else if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
         nodeList->SetNodesOfRegion( regionId );
       } else {
@@ -268,7 +269,7 @@ namespace CoupledField
 
    void Grid::Dump()
    {
-     StdVector<Elem*>   elems;;
+     StdVector<Elem*>   elems;
     
      std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;             
 
@@ -285,220 +286,180 @@ namespace CoupledField
 
 
   bool Grid::InitNonmatchingInterfaces() {
-    StdVector<SurfElem*> slaveElems;
+    UInt numIfaces;
+    StdVector<SurfElem*> ifaceElems;
     StdVector<SurfElem*> masterElems;
-    StdVector<std::string> ncRegionNames;
-    StdVector<std::string> ncSlaveIfaceRegionNames;
-    StdVector<std::string> ncMasterIfaceRegionNames;
-    std::string slaveName;
-    std::string masterName;
+    StdVector<SurfElem*> slaveElems;
     std::string ncRegionName;
     RegionIdType slaveId;
     RegionIdType masterId;
-    UInt n;
-    bool coPlanarInterface;
-
-    StdVector<SurfElem*> ifaceElems;
-
     ParamNode* pNode;
     StdVector<ParamNode*> ncIfaceNodes;
+    
     pNode = param->Get("domain");
     pNode = pNode->Get("ncInterfaceList",false);
     if(!pNode)
     {
       Info->PrintF("","\nNo non-conforming interfaces found!\n");
-      LOG_DBG2(grid) << "NonMatching: No non-conforming interfaces found!"
-                     << slaveName;
+      LOG_DBG2(grid) << "NonMatching: No non-conforming interfaces found!";
       return true;
     }
 
     ncIfaceNodes = pNode->GetList("ncInterface");
+    numIfaces = ncIfaceNodes.GetSize();
 
-    for( UInt i = 0; i < ncIfaceNodes.GetSize(); i++ ) {
+    ncInterfaces_.Resize(numIfaces);
+
+    for (UInt i = 0; i < numIfaces; ++i) {
       ParamNode* ncIfaceNode = ncIfaceNodes[i];
-        
-      pNode = ncIfaceNode->Get("name");
-      ncRegionNames.Push_back( pNode->AsString() );
-      pNode = ncIfaceNode->Get("slaveSide");
-      ncSlaveIfaceRegionNames.Push_back( pNode->AsString() );
-      pNode = ncIfaceNode->Get("masterSide");
-      ncMasterIfaceRegionNames.Push_back( pNode->AsString() );
-    }
+      ParamNode* rotNode = ncIfaceNode->Get("rotation", false);
 
-    n = ncRegionNames.GetSize();
-    for(UInt i=0; i<n; i++)
-    {
-      slaveName = ncSlaveIfaceRegionNames[i];
-      masterName = ncMasterIfaceRegionNames[i];
-      ncRegionName = ncRegionNames[i];
-      
-      slaveId = RegionNameToId(slaveName);
-      masterId = RegionNameToId(masterName);
+      ncInterfaces_[i].name = ncIfaceNode->Get("name")->AsString();
 
-      if((slaveId == -1) ||
-         (masterId == -1))
-      {
-        EXCEPTION( "Could not find region id(s) for master/slave interface!");
+      masterId = RegionNameToId(ncIfaceNode->Get("masterSide")->AsString());
+      slaveId = RegionNameToId(ncIfaceNode->Get("slaveSide")->AsString());
+      if ((masterId == -1) || (slaveId == -1)) {
+        EXCEPTION("Cannot find master/slave regions of ncInterface '"
+            << ncInterfaces_[i].name << "'.");
+      }
+      ncInterfaces_[i].masterRegion = masterId;
+      ncInterfaces_[i].slaveRegion = slaveId;
+
+      if (GetDim() == 2) {
+        ncInterfaces_[i].intersectAlgo = LINE_INTERSECT;
+      }
+      else {
+        std::string isecCalc;
+        ncIfaceNode->Get("isecCalculation", isecCalc, false);
+        if (isecCalc == "coaxi")
+          ncInterfaces_[i].intersectAlgo = RECT_INTERSECT;
+        else
+          ncInterfaces_[i].intersectAlgo = POLYGON_INTERSECT;
       }
       
-      LOG_DBG2(grid) << "Trying to get SLAVE Elems: " << slaveName << std::endl;
-      GetSurfElems(slaveElems, slaveId);
-      LOG_DBG2(grid) << "Trying to get MASTER Elems: " << masterName << std::endl;
-      GetSurfElems(masterElems, masterId);
+      ncIfaceNode->Get("tolAbs", ncInterfaces_[i].tolAbs, false);
+      ncIfaceNode->Get("tolRel", ncInterfaces_[i].tolRel, false);
 
-
-      if((slaveElems.GetSize() == 0) ||
-         (masterElems.GetSize() == 0))
-      {
-        EXCEPTION( "Could not find elements on master/slave interface!");
+      if (rotNode) {
+        rotNode->Get("coordSysId", ncInterfaces_[i].coordSysId, false);
+        rotNode->Get("angleStep", ncInterfaces_[i].rotationAngle, false);
       }
-
-      
-      LOG_DBG3(grid) << "NonMatching: Slave Element numbers:";
-      for(UInt i=0; i<slaveElems.GetSize(); i++)
-      {
-        LOG_DBG3(grid) << "NonMatching: " << slaveElems[i]->elemNum;
-        ifaceElems.Push_back(slaveElems[i]);
-      }
-
-      LOG_DBG3(grid) << "NonMatching: Master Element numbers:";
-      for(UInt i=0; i<masterElems.GetSize(); i++)
-      {
-        LOG_DBG3(grid) << "NonMatching: " << masterElems[i]->elemNum;
-        ifaceElems.Push_back(masterElems[i]);
+      else {
+        ncInterfaces_[i].rotationAngle = 0.0;
       }
       
-      coPlanarInterface = AreInterfacesCoplanar(ifaceElems);
+      if (ncInterfaces_[i].rotationAngle > 0.0) {
+        ncInterfaces_[i].coplanar = false;
+      }
+      else {
+        UInt numElems;
+        GetSurfElems(masterElems, masterId);
+        GetSurfElems(slaveElems, slaveId);
 
-      ifaceElems.Clear();
-      slaveElems.Clear();
-      masterElems.Clear();
+        if ((masterElems.GetSize() == 0) || (slaveElems.GetSize() == 0)) {
+          EXCEPTION("Cannot find surface elements in master/slave regions of "
+              << "ncInterface '" << ncInterfaces_[i].name << "'.");
+        }
 
-      
-      InitMasterInterface(ncRegionName, slaveName, masterName, coPlanarInterface);
+        numElems = masterElems.GetSize();
+        ifaceElems.Reserve(numElems + slaveElems.GetSize());
+        for (UInt j = 0; j < numElems; ++j) {
+          ifaceElems.Push_back(masterElems[j]);
+        }
+        masterElems.Clear();
+
+        numElems = slaveElems.GetSize();
+        for (UInt j = 0; j < numElems; ++j) {
+          ifaceElems.Push_back(slaveElems[j]);
+        }
+        slaveElems.Clear();
+
+        ncInterfaces_[i].coplanar = IsSurfacePlanar(ifaceElems);
+        ifaceElems.Clear();
+      }
+
+      AddSurfaceRegion(ncInterfaces_[i].name, ncInterfaces_[i].region);
+
+      //if (ncInterfaces_[i].rotationAngle == 0.0)
+      UpdateNcIntersection(ncInterfaces_[i]);
     }
     
     return true;
   }
 
 
-  bool Grid::InitMasterInterface(const std::string & ncRegionBaseName,
-                                 const std::string & slaveInterfaceName,
-                                 const std::string & masterInterfaceName,
-                                 const bool coPlanarIface)
-  {
+  void Grid::UpdateNcIntersection(const ncInterface& ncIf) {
     StdVector<SurfElem*> masterElems;
     StdVector<SurfElem*> slaveElems;
     StdVector<NCElem*> ncElems;
     StdVector<SurfElem*> ncElemsHelper;
-    RegionIdType masterId = RegionNameToId(masterInterfaceName);
-    RegionIdType slaveId = RegionNameToId(slaveInterfaceName);
-    RegionIdType ncRegionId;
     StdVector<UInt> masterNodes;
-    StdVector< UInt > ncElemIds;
+    StdVector<UInt> ncElemIds;
     std::string isecCalc;
 
-    GetSurfElems(masterElems, masterId);
-    GetSurfElems(slaveElems, slaveId);
+    GetSurfElems(masterElems, ncIf.masterRegion);
+    GetSurfElems(slaveElems, ncIf.slaveRegion);
 
-    ParamNode* ncIfaceNode;
-    ncIfaceNode = param->Get("domain")->Get("ncInterfaceList");
-    ncIfaceNode = ncIfaceNode->Get("ncInterface", "name", ncRegionBaseName);
-    isecCalc = "polygon";
-    ncIfaceNode->Get("isecCalculation", isecCalc, false);
-    
-    if(GetDim() == 2)
-    {
-      for(UInt i=0; i<masterElems.GetSize(); i++)
-      {
-        for(UInt j=0; j<slaveElems.GetSize(); j++)
-        {
-          SideOnSide(masterElems[i], slaveElems[j],
-                     coPlanarIface, ncElems);
+    switch (ncIf.intersectAlgo) {
+      case LINE_INTERSECT:
+        LOG_DBG3(grid) << "\ncomputing integration grid of ncInterfaces...";
+        for (UInt i = 0; i < masterElems.GetSize(); ++i) {
+          for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
+            SideOnSide(masterElems[i], slaveElems[j], ncIf.coplanar, 
+                       ncIf.rotationAngle != 0.0, ncElems);
+          }
         }
-      }
-    }
-    else //GetDim == 2
-    {
-      if((isecCalc == "dirty"))
-      {
-        EXCEPTION("ISNMG: Dirty Intersection not implemented anymore!");
-      }
-      if((isecCalc == "coaxi"))
-      {
-        if (!coPlanarIface) {
-          EXCEPTION("Only coplanar interfaces are supported with coaxi algorithm!");
+        break;
+      case RECT_INTERSECT:
+        if (!ncIf.coplanar) {
+          EXCEPTION("Only coplanar interfaces are supported with coaxial "
+                    << "rectangle algorithm.");
         }
-        for(UInt i=0; i<masterElems.GetSize(); i++)
-        {
-          for(UInt j=0; j<slaveElems.GetSize(); j++)
-          {
+        for (UInt i = 0; i < masterElems.GetSize(); ++i) {
+          for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
             if((masterElems[i]->ptElem != ptQ1) ||
                 (slaveElems[j]->ptElem != ptQ1))
             {
-              EXCEPTION("Only linear Quads can be intersected with coaxi algorithm!");
+              EXCEPTION("Only quadrilaterals can be intersected with coaxial "
+                        << "rectangle algorithm.");
             }
 
             if(RectangleOnRectangle(masterElems[i], slaveElems[j],
-                  coPlanarIface, ncElems))
+                ncIf.coplanar, ncElems))
+            {
               LOG_DBG3(grid) << "Intersection between "
-                << masterElems[i]->elemNum << " and "
-                << slaveElems[j]->elemNum << std::endl;
+                             << masterElems[i]->elemNum << " and "
+                             << slaveElems[j]->elemNum << std::endl;
+            }
           }
         }
-      }
-      else if (isecCalc == "polygon")
-      {
-
-        // set tolerance values
-        tolAbs_ = 1e-12;
-        tolRel_ = 1e-4;
-        try {
-          ncIfaceNode->Get("tolAbs", tolAbs_, false);
-          ncIfaceNode->Get("tolRel", tolRel_, false);
-        } catch (Exception &ex) {
-          RETHROW_EXCEPTION(ex, "ncInterface '" << ncRegionBaseName
-              << "': cannot interpret tolerance value.");
-        }
-        
-        for(UInt i=0; i<masterElems.GetSize(); i++)
-        {
-          for(UInt j=0; j<slaveElems.GetSize(); j++)
-          {
-            if (((masterElems[i]->ptElem != ptTr1) &&
-                  (masterElems[i]->ptElem != ptQ1)) ||
-                ((slaveElems[j]->ptElem != ptTr1) &&
-                 (slaveElems[j]->ptElem != ptQ1)))
+        break;
+      case POLYGON_INTERSECT:
+        for (UInt i = 0; i < masterElems.GetSize(); ++i) {
+          for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
+            if (((masterElems[i]->ptElem != ptTr1)
+                  && (masterElems[i]->ptElem != ptQ1))
+                || ((slaveElems[j]->ptElem != ptTr1)
+                  && (slaveElems[j]->ptElem != ptQ1)))
             {
-              EXCEPTION("Only linear triangles and quads can be intersected with polygon algorithm.");
+              EXCEPTION("Only triangles and quadrilaterals can be intersected"
+                        << " with polygon algorithm.");
             }
 
-            if (PolygonOnPolygon(masterElems[i], slaveElems[j], coPlanarIface,
-                  ncElems))
+            if (PolygonOnPolygon(masterElems[i], slaveElems[j], ncIf.coplanar,
+                                 ncIf.rotationAngle != 0.0, ncElems))
+            {
               LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
                 << slaveElems[j]->elemNum << std::endl;
+            }
           }
         }
-      }
-      else
-      {
-        EXCEPTION("Non-conforming grid interfaces: unknown intersection algorithm '"
-            << isecCalc << "'");
-      }
     }
 
-    if(ncElems.GetSize() != 0)
+    if(ncElems.GetSize() > 0)
     {
-      if(regionNames_.Find(ncRegionBaseName) != -1)
-      {
-        ncRegionId = RegionNameToId(ncRegionBaseName);
-        ClearRegion(ncRegionId);
-      }
-      else
-        AddSurfaceRegion(ncRegionBaseName, ncRegionId);
-
-      isNcIfaceCoplanar_.insert(std::make_pair(ncRegionId, coPlanarIface));
+      ClearRegion(ncIf.region);
 
       ncElemsHelper.Resize(ncElems.GetSize());
       
@@ -507,20 +468,18 @@ namespace CoupledField
         ncElemsHelper[i] = ncElems[i];
       }
 
-      AddSurfaceElems( ncRegionId, ncElemsHelper, ncElemIds);
+      AddSurfaceElems(ncIf.region, ncElemsHelper, ncElemIds);
     }
-    
-    return true;
   }
 
   
-  bool Grid::AreInterfacesCoplanar(const StdVector<SurfElem*>& ifaceElems)
+  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
   {
     std::set<Integer> ifaceNodes;
     std::set<Integer>::iterator it,end;
     Vector<Double> pv1, pv2, pv3;
     Vector<Double> v1, v2, normal, n;
-    Double innerProd, norm1, norm2;
+    Double innerProd = 0.0, norm1 = 0.0, norm2 = 0.0;
     Double eps = 1e-15;
     UInt pnum=0; // number of point in ifaceNodes
     UInt dim = GetDim();
@@ -643,41 +602,35 @@ namespace CoupledField
   }
 
   bool Grid::IsNcInterfaceCoplanar(const std::string &ncIfaceName) {
-    std::map<RegionIdType, bool>::const_iterator it =
-      isNcIfaceCoplanar_.find(RegionNameToId(ncIfaceName));
-    if (it != isNcIfaceCoplanar_.end())
-      return it->second;
-    else
-      EXCEPTION("Non-matching grid interface does not exist: "
-          << ncIfaceName);
+    return IsNcInterfaceCoplanar(RegionNameToId(ncIfaceName));
   }
 
-  bool Grid::IsNcInterfaceCoplanar(const RegionIdType regionId) {
-    std::map<RegionIdType, bool>::const_iterator it =
-      isNcIfaceCoplanar_.find(regionId);
-    if (it != isNcIfaceCoplanar_.end())
-      return it->second;
-    else
-      EXCEPTION("Non-matching grid interface does not exist: "
-          << RegionIdToName(regionId));
+  bool Grid::IsNcInterfaceCoplanar(RegionIdType regionId) {
+    UInt numIfaces = ncInterfaces_.GetSize();
+    
+    for (UInt i = 0; i < numIfaces; ++i) {
+      if (ncInterfaces_[i].region == regionId)
+        return ncInterfaces_[i].coplanar;
+    }
+
+    EXCEPTION("Non-matching grid interface does not exist: "
+              << RegionIdToName(regionId));
   }
 
   /****************************************************************************
    ** 
    ** SideOnSide
    **
-   **   computes the local coordinates of the overlap of the master
-   **   and slave element with respect to the master side in the 
-   **   order of the orientation of the slave side element
-   **   without projection to any hyperplane. It pushes back the
-   **           intersection element to elemList.
-   **           This functions assumes a coplanar interface!
+   **   computes the local coordinates of the overlap of the master and slave
+   **   element with respect to the master side in the order of the
+   **   orientation of the slave side element. It pushes back the intersection
+   **   element to elemList.
    **
    ** Input Parameters:   
    **   ifaceElemM:  Master Side
-   **   ifaceElemS: Slave Side
-   **   coPlanarIface: this parameter indicates wether interface is
-   **                          coplanar
+   **   ifaceElemS:  Slave Side
+   **   collinear:   indicates if the interface is coplanar or not
+   **   coordUpdate: indicates if updated coordinates should be used
    **
    ** Output Parameters:
    **   elemList: the found intersection NCElems will be pushed
@@ -686,9 +639,8 @@ namespace CoupledField
    */
 
 
-  bool Grid::SideOnSide (SurfElem *ifaceElem1,
-                         SurfElem *ifaceElem2,
-                         const bool coPlanarIface,
+  bool Grid::SideOnSide (SurfElem *ifaceElem1, SurfElem *ifaceElem2,
+                         bool collinear, bool coordUpdate,
                          StdVector<NCElem*>& elemList)
   {
     // c0, c1, d0 and d1 are the endpoints of the two line elements
@@ -720,7 +672,7 @@ namespace CoupledField
     GetNodeCoordinate(d1, nodenum_d1);
 
     // Project master nodes onto slave element, if interface is not coplanar
-    if (!coPlanarIface) {
+    if (!collinear) {
       UInt node_num;
       Vector<Double> new_node;
       // compute maximal allowed distance as sum of lengths of both lines
@@ -882,31 +834,30 @@ namespace CoupledField
     return true;
   }
   
-  bool Grid::RectangleOnRectangle(SurfElem *ifaceElem1,
-                                  SurfElem *ifaceElem2,
-                                  const bool coPlanarIface,
-                                  StdVector<NCElem*>& elemList)
+  bool Grid::RectangleOnRectangle(SurfElem *ifaceElem1, SurfElem *ifaceElem2,
+                                  bool coplanar, StdVector<NCElem*>& elemList)
   {
-    Vector<Double> c0, c1, c2, d0, d1;
-    Vector<Double> diffS, diffX, diffY;
+    Vector<Double> c0, c1, c2, d0, d1, d2;
+    Vector<Double> diffS, diffX, diffY, diffX2;
     Vector<Double> s, t;
     StdVector<UInt> connect2;
-    Double distX, distY, facX, facY;
+    Double distX, distY, facX, facY, r;
     UInt nodeNr;
+    const Double tol_r = 1e-5;
     
     s.Resize(4);
     t.Resize(4);
     connect2.Resize(4);
 
-    // The meaning of the points c0, c1, c2, d0 and d1
+    // The meaning of the points c0, c1, c2, d0 and d2
     // is as follows:
-    //                x------------------x d1
+    //                x------------------x d2
     //                |                  |
     //                |                  |
     // c2 x-----------+----------x       |
     //    |           |          |       |
     //    |           |          |       |
-    //    |        d0 x----------+-------x
+    //    |        d0 x----------+-------x d1
     //    |                      |
     //    |                      |
     // c0 x----------------------x c1
@@ -917,7 +868,8 @@ namespace CoupledField
     GetNodeCoordinate(c1, ifaceElem1->connect[1]);
     GetNodeCoordinate(c2, ifaceElem1->connect[3]);
     GetNodeCoordinate(d0, ifaceElem2->connect[0]);
-    GetNodeCoordinate(d1, ifaceElem2->connect[2]);
+    GetNodeCoordinate(d1, ifaceElem2->connect[1]);
+    GetNodeCoordinate(d2, ifaceElem2->connect[2]);
 
     // Compute and normalize vector from c0 to c1.
     // This becomes the new x-unit vector.
@@ -941,14 +893,18 @@ namespace CoupledField
     s[0] *= facX;
     s[1] *= facY;
     
-    // Now compute vector from c0 to d1 and project
+    // Now compute vector from c0 to d2 and project
     // the result onto the new x- and y-axis.
-    diffS = d1 - c0;
+    diffS = d2 - c0;
     diffS.Inner(diffX, s[2]);
     diffS.Inner(diffY, s[3]);
     s[2] *= facX;
     s[3] *= facY;
 
+    // Determine the orientation of the second rectangle
+    diffX2 = d1 - d0;
+    diffX.Inner(diffX2, r);
+    
     // Bring the x- and y-coordinates of the intersection
     // into an order, where the smaller coordinates come
     // first.
@@ -962,18 +918,30 @@ namespace CoupledField
         t[1] = s[3];
         t[3] = s[1];
         connect2[0] = ifaceElem2->connect[2];
-        connect2[1] = ifaceElem2->connect[3];
         connect2[2] = ifaceElem2->connect[0];
-        connect2[3] = ifaceElem2->connect[1];        
+        if (fabs(r) < tol_r) {
+          connect2[1] = ifaceElem2->connect[1];
+          connect2[3] = ifaceElem2->connect[3];
+        }
+        else {
+          connect2[1] = ifaceElem2->connect[3];
+          connect2[3] = ifaceElem2->connect[1];
+        }
       }
       else
       {
         t[1] = s[1];
         t[3] = s[3];
-        connect2[0] = ifaceElem2->connect[1];
         connect2[1] = ifaceElem2->connect[0];
-        connect2[2] = ifaceElem2->connect[3];
-        connect2[3] = ifaceElem2->connect[2];        
+        connect2[3] = ifaceElem2->connect[2];
+        if (fabs(r) < tol_r) {
+          connect2[0] = ifaceElem2->connect[3];
+          connect2[2] = ifaceElem2->connect[1];
+        }
+        else {
+          connect2[0] = ifaceElem2->connect[1];
+          connect2[2] = ifaceElem2->connect[3];
+        }
       }
       
     }
@@ -986,25 +954,31 @@ namespace CoupledField
       {
         t[1] = s[3];
         t[3] = s[1];
-        connect2[0] = ifaceElem2->connect[1];
         connect2[1] = ifaceElem2->connect[2];
-        connect2[2] = ifaceElem2->connect[3];
         connect2[3] = ifaceElem2->connect[0];
-        /*
-        connect2[0] = ifaceElem2->connect[3];
-        connect2[1] = ifaceElem2->connect[2];
-        connect2[2] = ifaceElem2->connect[1];
-        connect2[3] = ifaceElem2->connect[0];
-        */
+        if (fabs(r) < tol_r) {
+          connect2[0] = ifaceElem2->connect[1];
+          connect2[2] = ifaceElem2->connect[3];
+        }
+        else {
+          connect2[0] = ifaceElem2->connect[3];
+          connect2[2] = ifaceElem2->connect[1];
+        }
       }
       else
       {
         t[1] = s[1];
         t[3] = s[3];
         connect2[0] = ifaceElem2->connect[0];
-        connect2[1] = ifaceElem2->connect[1];
         connect2[2] = ifaceElem2->connect[2];
-        connect2[3] = ifaceElem2->connect[3];        
+        if (fabs(r) < tol_r) {
+          connect2[1] = ifaceElem2->connect[3];
+          connect2[3] = ifaceElem2->connect[1];        
+        }
+        else {
+          connect2[1] = ifaceElem2->connect[1];
+          connect2[3] = ifaceElem2->connect[3];        
+        }
       }
     }
     
@@ -1267,20 +1241,25 @@ namespace CoupledField
   }
 
   bool Grid::PolygonOnPolygon(SurfElem *ifElem1, SurfElem *ifElem2,
-                              const bool coPlanarIface, StdVector<NCElem*> &elemList)
+                              bool coplanar, bool coordUpdate,
+                              StdVector<NCElem*> &elemList,
+                              Double absTol, Double relTol)
   {
     UInt i;
     StdVector< Vector<Double> > p1, p2, r;
+
+    polysectAbsTol_ = absTol;
+    polysectRelTol_ = relTol;
       
     p1.Resize(ifElem1->connect.GetSize());
     for (i = 0; i < p1.GetSize(); ++i)
-      GetNodeCoordinate(p1[i], ifElem1->connect[i]);
+      GetNodeCoordinate(p1[i], ifElem1->connect[i], coordUpdate);
       
     p2.Resize(ifElem2->connect.GetSize());
     for (i = 0; i < p2.GetSize(); ++i)
-      GetNodeCoordinate(p2[i], ifElem2->connect[i]);
+      GetNodeCoordinate(p2[i], ifElem2->connect[i], coordUpdate);
 
-    if (CutPolys(p1, p2, coPlanarIface, r))
+    if (CutPolys(p1, p2, coplanar, r))
     {
       UInt start = TriangulatePoly(r, elemList);
 
@@ -1296,7 +1275,7 @@ namespace CoupledField
     return false;
   }
 
-  Grid::IntersectType Grid::CutLines(const Vector<Double> &a,
+  Grid::LineIntersectType Grid::CutLines(const Vector<Double> &a,
                                      const Vector<Double> &b, const Vector<Double> &c,
                                      const Vector<Double> &d, Vector<Double> &e) const
   {
@@ -1340,23 +1319,23 @@ namespace CoupledField
         temp = (d - b);
         l_bd = temp.NormL2();
 
-        if (fabs(l_ac + l_ad - l2) < tolAbs_) {
+        if (fabs(l_ac + l_ad - l2) < polysectAbsTol_) {
           e = a;
-          if (l_ac < tolAbs_)
+          if (l_ac < polysectAbsTol_)
             return INTERSECT_A_EQ_C;
-          if (l_ad < tolAbs_)
+          if (l_ad < polysectAbsTol_)
             return INTERSECT_IN_D;
           return INTERSECT_IN_A;
         }
-        if (fabs(l_bc + l_bd - l2) < tolAbs_) {
+        if (fabs(l_bc + l_bd - l2) < polysectAbsTol_) {
           e = b;
           return INTERSECT_IN_B;
         }
-        if (fabs(l_ac + l_bc - l1) < tolAbs_) {
+        if (fabs(l_ac + l_bc - l1) < polysectAbsTol_) {
           e = c;
           return INTERSECT_IN_C;
         }
-        if (fabs(l_ad + l_bd - l1) < tolAbs_) {
+        if (fabs(l_ad + l_bd - l1) < polysectAbsTol_) {
           e = d;
           return INTERSECT_IN_D;
         }
@@ -1376,51 +1355,51 @@ namespace CoupledField
     }
 
     // lines are not parallel, so compute intersection
-    Double h, k, k1, k2, denom1, denom2;
+    Double h, k, k1 = 0.0, k2 = 0.0, denom1, denom2;
 
     /* a + h * v1 = c + k * v2
      * This is a system with 2 unknowns and 3 equations. Compute k1 from
      * equations 1 and 2, k2 from equations 1 and 3.
      */
     denom1 = v1[1] * v2[0] - v1[0] * v2[1];
-    if (fabs(denom1) > tolAbs_)
+    if (fabs(denom1) > polysectAbsTol_)
       k1 = (v1[0] * (c[1] - a[1]) + v1[1] * (a[0] - c[0])) / denom1;
     denom2 = v1[2] * v2[0] - v1[0] * v2[2];
-    if (fabs(denom2) > tolAbs_)
+    if (fabs(denom2) > polysectAbsTol_)
       k2 = (v1[0] * (c[2] - a[2]) + v1[2] * (a[0] - c[0])) / denom2;
     // If this system has no solution, lines do not intersect.
-    if ((fabs(denom1) <= tolAbs_) && (fabs(denom2) <= tolAbs_))
+    if ((fabs(denom1) <= polysectAbsTol_) && (fabs(denom2) <= polysectAbsTol_))
       return INTERSECT_NONE;
-    if ((fabs(denom1) > tolAbs_) && (fabs(denom2) > tolAbs_)) {
-      if (fabs(k1 - k2) > tolRel_)
+    if ((fabs(denom1) > polysectAbsTol_) && (fabs(denom2) > polysectAbsTol_)) {
+      if (fabs(k1 - k2) > polysectRelTol_)
         return INTERSECT_NONE;
     }
 
     // compute second unknown
-    if (fabs(denom1) > tolAbs_) k = k1; else k = k2;
-    if (fabs(v1[0]) > tolAbs_)
+    if (fabs(denom1) > polysectAbsTol_) k = k1; else k = k2;
+    if (fabs(v1[0]) > polysectAbsTol_)
       h = (c[0] - a[0] + v2[0] * k) / v1[0];
-    else if (fabs(v1[1]) > tolAbs_)
+    else if (fabs(v1[1]) > polysectAbsTol_)
       h = (c[1] - a[1] + v2[1] * k) / v1[1];
     else
       h = (c[2] - a[2] + v2[2] * k) / v1[2];
 
     e = a + v1 * h; // compute point of intersection
 
-    if (h > -tolRel_) { // we consider only [a,inf)
-      if ((k > -tolRel_) && (k < 1.0 + tolRel_)) { // intersection on [c,d]?
-        if (h < 1.0 + tolRel_) { // intersection on [a,b]?
+    if (h > -polysectRelTol_) { // we consider only [a,inf)
+      if ((k > -polysectRelTol_) && (k < 1.0 + polysectRelTol_)) { // intersection on [c,d]?
+        if (h < 1.0 + polysectRelTol_) { // intersection on [a,b]?
           // treat special cases
-          if (fabs(h - 1.0) < tolRel_) // h=1 means intersection in b
+          if (fabs(h - 1.0) < polysectRelTol_) // h=1 means intersection in b
             return INTERSECT_IN_B;
-          if (fabs(k - 1.0) < tolRel_) // k=1 means intersection in d
+          if (fabs(k - 1.0) < polysectRelTol_) // k=1 means intersection in d
             return INTERSECT_IN_D;
-          if (fabs(k) < tolRel_) { // k=0 means intersection in c
-            if (fabs(h) < tolRel_) // h=0 means intersection in a
+          if (fabs(k) < polysectRelTol_) { // k=0 means intersection in c
+            if (fabs(h) < polysectRelTol_) // h=0 means intersection in a
               return INTERSECT_A_EQ_C;
             return INTERSECT_IN_C;
           }
-          if (fabs(h) < tolRel_) // h=0 means intersection in a
+          if (fabs(h) < polysectRelTol_) // h=0 means intersection in a
             return INTERSECT_IN_A;
           return INTERSECT_CROSS; // X intersection
         }
@@ -1433,7 +1412,7 @@ namespace CoupledField
   }
 
   bool Grid::CutPolys(StdVector< Vector<Double> > &p1,
-                      StdVector< Vector<Double> > &p2, const bool coPlanarIface,
+                      StdVector< Vector<Double> > &p2, const bool coplanar,
                       StdVector< Vector<Double> > &r) const
   {
     Double r1, r2;
@@ -1468,7 +1447,7 @@ namespace CoupledField
       return false;
 
     // if interface is not coplanar then project p1 onto p2
-    if (!coPlanarIface) {
+    if (!coplanar) {
       Double scale;
       Vector<Double> n;
       
@@ -1529,7 +1508,7 @@ namespace CoupledField
     // find the first cut of two edges of the polygons
     do {
       do {
-        IntersectType cuttype
+        LineIntersectType cuttype
           = CutLines(*pi1, pi1.Next(), *pi2, pi2.Next(), e);
         Intersection cut = {pi2.GetPos(), cuttype, false, e};
         // See what kind of cut we have found.
@@ -1602,7 +1581,7 @@ namespace CoupledField
     if (nCuts == 2) { // two cuts
       // make sure we do not treat a duplicate cut
       temp1 = (cuts[1].loc - cuts[0].loc);
-      if (temp1.NormL2() < tolAbs_) {
+      if (temp1.NormL2() < polysectAbsTol_) {
         nCuts = 1;
       } else {
         // Here we can assume that we have found two "real" cuts. In
@@ -1721,7 +1700,7 @@ namespace CoupledField
                              const Vector<Double> *const c) const
   {
     bool result = false;
-    IntersectType s;
+    LineIntersectType s;
     Vector<Double> center, e, temp;
     ConstPolygonIterator pi(poly);
 
@@ -1734,7 +1713,7 @@ namespace CoupledField
     // Test if p is the centroid of the polygon (should always lie inside of a
     // convex polygon). In this case the algorithm below will not work.
     temp = (p - center);
-    if ( temp.NormL2() < tolAbs_)
+    if ( temp.NormL2() < polysectAbsTol_)
       return TRUE;
 
     // try intersecting [c,p] with each edge of the polygon
@@ -2352,7 +2331,7 @@ namespace CoupledField
                                          Vector<double>& localCoords)
   {
     double xmin, ymin, xmax, ymax, zmin, zmax;
-    UInt dim = GetDim();
+    //UInt dim = GetDim();
     std::vector<HandleBox> elemBoxes2;
     
     // If we haven't initialized the grid bounding boxes yet, do so now!
@@ -2419,7 +2398,8 @@ namespace CoupledField
                                                      std::string coordSysId,
                                                      Double globalEpsilon,
                                                      Double localEpsilon,
-                                                     std::vector< std::map<UInt, Double> >& consInterpWeights)
+                                                     std::vector< std::map<UInt, Double> >& consInterpWeights,
+                                                     const bool warnings)
   {
     double xmin, ymin, xmax, ymax, zmin, zmax;
     UInt i;
@@ -2565,7 +2545,7 @@ namespace CoupledField
     
     // run the intersection algorithm and store results in a vector
     
-    std::cout << "Calculating conservative interpolation weights..." << std::endl;
+    //std::cout << "Calculating conservative interpolation weights..." << std::endl;
     CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
                               elemBoxes2.begin(), elemBoxes2.end(),
                               GenConsInterpReportFunctor(destElemList,
@@ -2574,21 +2554,22 @@ namespace CoupledField
                                                          localEpsilon,
                                                          consInterpWeights));
 
-    std::map<UInt, double>::const_iterator cIWit, cIWend;
-    for(UInt i=0; i<numActualSourceNodes; i++)
-    {
-      cIWit = consInterpWeights[sourceNodeIndices[i]].begin();
-      cIWend = consInterpWeights[sourceNodeIndices[i]].end();
-      
-      if(!std::distance(cIWit, cIWend))
+    if (warnings)  {
+      std::map<UInt, double>::const_iterator cIWit, cIWend;
+      for(UInt i=0; i<numActualSourceNodes; i++)
       {
-        std::stringstream sstr;
-        sstr << "Node " << sourceNodeNumbers[i] << " from source grid does not get mapped to destination grid!";
-        Warning(sstr.str().c_str(), __FILE__, __LINE__);
-        continue;
+        cIWit = consInterpWeights[sourceNodeIndices[i]].begin();
+        cIWend = consInterpWeights[sourceNodeIndices[i]].end();
+
+        if(!std::distance(cIWit, cIWend))
+        {
+          std::stringstream sstr;
+          sstr << "Node " << sourceNodeNumbers[i] << " from source grid does not get mapped to destination grid!";
+          Warning(sstr.str().c_str(), __FILE__, __LINE__);
+          continue;
+        }
       }
     }
-    
 
   }
 

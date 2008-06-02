@@ -367,6 +367,7 @@ namespace CoupledField {
       
     default: EXCEPTION("type " << type_ << " not implemented");
     }
+    return NULL;
   }
   
   const SurfElem* EntityIterator::GetSurfElem() const {
