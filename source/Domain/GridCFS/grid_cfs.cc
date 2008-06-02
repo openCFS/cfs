@@ -407,7 +407,7 @@ namespace CoupledField {
       for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
         
         // calculate distance and store it in vector
-        GetNodeCoordinate( actEntCoord, iNode+1, false );          
+        GetNodeCoordinate( actEntCoord, iNode+1, false );
         temp = (actEntCoord-coord);
         entityDist[iNode] = temp.NormL2();
       } // nodes
@@ -862,7 +862,7 @@ namespace CoupledField {
     }
         
     if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
-      EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
+      EXCEPTION( "GridCFS: Dimension of grid is 2D. "
                   << "But you wanted to set the 3D coordinate " << "("
                   << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
                   << ") for node number " << inode);
@@ -1143,7 +1143,7 @@ namespace CoupledField {
 
     rfPoint = coords_[inode-1];
 
-    if( updated == true && deltCoords_.GetSize() != 0 ) {
+    if( updated && deltCoords_.GetSize() > 0 ) {
       rfPoint += deltCoords_[inode-1];
     }
 
@@ -1169,6 +1169,12 @@ namespace CoupledField {
       rfPoint[2] = coords_[idx][2];
     }
 
+    if (updated && deltCoords_.GetSize() > 0) {
+      rfPoint[0] += deltCoords_[idx][0];
+      rfPoint[1] += deltCoords_[idx][1];
+      if (dim_ == 3)
+        rfPoint[2] += deltCoords_[idx][2];
+    }
   }
     
   // ======================================================
@@ -2508,6 +2514,12 @@ namespace CoupledField {
 
     coords_.Push_back(coord);
     inode = ++numNodes_;
+    
+    if (deltCoords_.GetSize() > 0) {
+      Point zero;
+      zero.SetZero();
+      deltCoords_.Push_back(zero);
+    }
   }
   
   void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
@@ -2525,6 +2537,12 @@ namespace CoupledField {
         
     coords_.Push_back(p);
     inode = ++numNodes_;
+    
+    if (deltCoords_.GetSize() > 0) {
+      Point zero;
+      zero.SetZero();
+      deltCoords_.Push_back(zero);
+    }
   }
   
   void GridCFS::AddNodes( const StdVector< Point > & coords,
@@ -2544,6 +2562,13 @@ namespace CoupledField {
       coords_.Push_back(coords[i]);
       numNodes_++;
       inodes[i] = numNodes_;
+    }
+
+    if (deltCoords_.GetSize() > 0) {
+      Point zero;
+      zero.SetZero();
+      for (i = 0; i < n; ++i)
+        deltCoords_.Push_back(zero);
     }
   }
 

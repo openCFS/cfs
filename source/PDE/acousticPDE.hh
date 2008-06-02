@@ -87,6 +87,7 @@ namespace CoupledField {
     SolutionType GetFormulation() {
       return formulation_;
     }
+    
 
   protected:
 
@@ -238,7 +239,7 @@ namespace CoupledField {
     //! read flow data
     void ReadFlowData();
 
-    //! information for damoing layer
+    //! information for damping layer
     void ReadDataDampLayer(std::string& dampingTypePML, 
 			   Vector<Double>& mPoint, 
 			   Double& dampFactor, 
@@ -246,8 +247,6 @@ namespace CoupledField {
 			   Double& startRadius, 
 			   Double& endRadius, 
 			   ParamNode * actNode );
-
-    
 
     //! 
 

@@ -744,7 +744,7 @@ namespace CoupledField {
           
           
           //get paramters and starting values for the computation of coefficients
-          Double sonicVel, densityforbubble, viscosity, bubbleDensity, frequency;
+          Double sonicVel, densityforbubble = 0.0, viscosity, bubbleDensity, frequency;
           bubbleNode->Get("bubbleDynamic")->Get("density", density );
           bubbleNode->Get("bubbleDynamic")->Get("sonicVel", sonicVel );
           bubbleNode->Get("bubbleDynamic")->Get( "viscosity", viscosity );
@@ -854,6 +854,9 @@ namespace CoupledField {
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
+    ParamNode* ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", false);
+    
     for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
       
       // get regionId of Lagrangian surface
@@ -861,12 +864,13 @@ namespace CoupledField {
       std::string slaveSide;
       std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
 
-      ParamNode* ncIfaceListNode;
-      ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
-      slaveSide = ncIfaceListNode->Get("ncInterface",
-                                       "name",
-                                       ncIfaceName)->Get("slaveSide")->AsString();
-
+      if (!ncIfaceListNode) {
+        EXCEPTION("No ncInterfaces defined in domain section.");
+      }
+      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+                                                   ncIfaceName);
+      slaveSide = curNciNode->Get("slaveSide")->AsString();
+      
       // Part 1: Define integrator M(Psi, Lambda) on
       //         non-conforming interface
       LOG_DBG2(acoupde) << "NonMatching: Defining nonconforming integrator"
@@ -929,6 +933,7 @@ namespace CoupledField {
     ParamNode* bcsNode = NULL;
     std::string factor = "1.0";
     bool interpolate = false;
+    bool node_warnings = true;
     std::string srcInputId;
     std::string srcRegions;
     std::string coordSysId = "default";
@@ -960,6 +965,7 @@ namespace CoupledField {
         rhsValuesNode->Get("restartFileMode", restartFileMode, false);
       }
       asynchSteps = rhsValuesNode->Get("asynchSteps")->AsString();
+      rhsValuesNode->Get("warnings", node_warnings, false);
       
     } catch (Exception& ex) 
     {
@@ -980,7 +986,8 @@ namespace CoupledField {
                                                       globalEpsilon,
                                                       localEpsilon,
                                                       restartFileMode,
-                                                      asynchSteps);
+                                                      asynchSteps,
+                                                      node_warnings);
 
       LinearFormContext * acouRHSContext = 
         new LinearFormContext( acouRHSInt );
@@ -1742,7 +1749,7 @@ namespace CoupledField {
         //  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
         //  	if( locElemNum == 2 ){
         //  	  pressureOut[2]= pressureDeriv;
-        //  	  //	  std::cout<<"    "<<pressureOut[2]<<std::endl;; 
+        //  	  //	  std::cout<<"    "<<pressureOut[2]<<std::endl;
 
         //  	}
 	  
@@ -1834,13 +1841,13 @@ namespace CoupledField {
         ExtractRhsResult<Double>( result, results_[0] );
       }
       break;
-      
+
     case ACOU_INTENSITY:
       if( isComplex_ ) {
         CalcAcouIntensity<Complex>( result );
       } else {
         EXCEPTION( "Acoustic intensity only computable for harmonic "
-            << "analysis!" );
+                   << "analysis!" );
       }
       break;
 
@@ -1858,7 +1865,7 @@ namespace CoupledField {
         CalcAcouPower<Complex>( result );
       } else {
         EXCEPTION( "Acoustic power only computable for harmonic "
-            << "analysis!" );
+                   << "analysis!" );
       }
       break;
       
@@ -1872,7 +1879,7 @@ namespace CoupledField {
            
     default:
       Warning( "Resulttype not computable by acoustic PDE",
-          __FILE__, __LINE__ );
+               __FILE__, __LINE__ );
     }
   }
   
@@ -2020,9 +2027,10 @@ namespace CoupledField {
     }
   }
   
+
   template <class TYPE>
   void AcousticPDE::CalcAcouIntensity( shared_ptr<BaseResult> vals ) {
-    
+
     //get frequency
     MathParser * parser = domain->GetMathParser();
     parser->SetExpr( mHandle_, "f" );

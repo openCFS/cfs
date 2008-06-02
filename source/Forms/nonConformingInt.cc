@@ -13,10 +13,10 @@
 namespace CoupledField {
   
   DECLARE_LOG(ncint)
-    DEFINE_LOG(ncint, "forms.nonconformingint")
-  
-    NonConformingInt::NonConformingInt( UInt dofsPerNode, bool isAxi,
-                                        bool coordUpdate ) {
+  DEFINE_LOG(ncint, "forms.nonconformingint")
+
+  NonConformingInt::NonConformingInt( UInt dofsPerNode, bool isAxi,
+                                      bool coordUpdate ) {
 
     name_ = "NonConformingInt";
     isaxi_ = isAxi;
@@ -45,11 +45,11 @@ namespace CoupledField {
     UInt shapeFuncsSurfSize, shapeFuncsLGSize, numIntPoints;
 
     Grid* ptGrid = domain->GetGrid();
-     
+    
     const NCElem *elem = dynamic_cast< const NCElem* >(ent1.GetElem());
     if(elem == NULL)
     {
-      Error("NonConformingInt can only handle NCElems!",__FILE__,__LINE__);
+      EXCEPTION(name_ << " can only handle NCElems!");
     }
 
     ptGrid->GetElemNodesCoord( ptCoord_, 
@@ -65,7 +65,11 @@ namespace CoupledField {
     surfElem[1] = elem->ptLagrangeParent;
      
     dim = ptGrid->GetDim();
-
+    
+    // calculate surface normal
+    ptGrid->CalcSurfNormal(normal_, *surfElem[1]);
+    normal_ *= (Double) surfElem[1]->normalSign;
+        
     surfElem[0]->ptElem->SetAnsatzFct(ansatzFct1_);
     shapeFuncsSurfSize = surfElem[0]->ptElem->GetNumFncs(ansatzFct1_);
     surfElem[1]->ptElem->SetAnsatzFct(ansatzFct2_);
@@ -123,21 +127,57 @@ namespace CoupledField {
       }
     }
 
-    ptGrid->GetElemNodesCoord( coordMat, surfElem[0]->connect);
-    surfElem[0]->ptElem->Global2LocalCoords(localIntPointsSurf,
-                                            globalIntPoints,
-                                            coordMat);
-    
-    LOG_DBG3(ncint) << "Local ip Surf: " << surfElem[0]->elemNum
-                    << ": " << std::endl << localIntPointsSurf;
-
-    ptGrid->GetElemNodesCoord( coordMat, surfElem[1]->connect);
+    ptGrid->GetElemNodesCoord( coordMat, surfElem[1]->connect, coordUpdate_);
     surfElem[1]->ptElem->Global2LocalCoords(localIntPointsLG,
                                             globalIntPoints,
                                             coordMat);
 
     LOG_DBG3(ncint) << "Local ip Lagrange: " << surfElem[1]->elemNum
                     << ": " << std::endl << localIntPointsLG;
+
+    ptGrid->GetElemNodesCoord( coordMat, surfElem[0]->connect, coordUpdate_);
+    if (!ptGrid->IsNcInterfaceCoplanar(elem->regionId)) { // projection is necessary
+      Double scale, dist, sign;
+      Vector<Double> normal, p0, line;
+
+      // calculate surface normal of master element
+      ptGrid->CalcSurfNormal(normal, *surfElem[0], coordUpdate_);
+
+      // get first node of master element
+      p0.Resize(dim);
+      for (UInt i = 0; i < dim; ++i)
+        p0[i] = coordMat[i][0];
+
+      // project integration points onto master element
+      for (UInt i = 0; i < numIntPoints; ++i) {
+        // get global coordinates of i-th integration point
+        for (UInt j = 0; j < dim; ++j)
+          point[j] = globalIntPoints[j][i];
+
+        line = point - p0;
+        
+        // calculate distance of int. point to master element
+        normal.Inner(line, dist);
+
+        // determine orientation of normal on slave element
+        normal_.Inner(line, sign);
+        sign /= fabs(sign);
+        
+        // scale the distance for the normal projection
+        normal_.Inner(normal, scale);
+        
+        // do the projection
+        for (UInt j = 0; j < dim; ++j) {
+          globalIntPoints[j][i] -= sign * normal_[j] * fabs(dist) * fabs(scale);
+        }
+      }
+    }
+    surfElem[0]->ptElem->Global2LocalCoords(localIntPointsSurf,
+                                            globalIntPoints,
+                                            coordMat);
+    
+    LOG_DBG3(ncint) << "Local ip Surf: " << surfElem[0]->elemNum
+                    << ": " << std::endl << localIntPointsSurf;
 
     point.Resize(dim-1);
 
@@ -181,23 +221,36 @@ namespace CoupledField {
                                                        ptCoord_, elem));
 
       jacDet = -jacDet;
-        
-      for(UInt s=0; s < shapeFuncsSurfSize; s++)
-      {
-        for(UInt l=0; l < shapeFuncsLGSize; l++)
-        {
-          // stiffMat[s][l] += jacDet * intWeights[i] * 
-          //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
-          //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
 
-          // This destroyed the circular pattern for the l2d example.
-          // TODO: strieben - Take a closer look!
-          stiffMat[s][l] += jacDet * intWeights[i] * 
-                            shapeFuncsSurf[s] *
-                            shapeFuncsLG[l];
+      if (isaxi_) {
+        for(UInt s=0; s < shapeFuncsSurfSize; s++) {
+          for(UInt l=0; l < shapeFuncsLGSize; l++) {
+            // TODO: strieben - Take a closer look!
+            stiffMat[s][l] += 2.0 * PI * globalIntPoints[0][i]
+                              * jacDet * intWeights[i]
+                              * shapeFuncsSurf[s] * shapeFuncsLG[l];
+          }
+        }
+      }
+      else {
+        for(UInt s=0; s < shapeFuncsSurfSize; s++) {
+          for(UInt l=0; l < shapeFuncsLGSize; l++) {
+            // stiffMat[s][l] += jacDet * intWeights[i] * 
+            //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
+            //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
+
+            // This destroyed the circular pattern for the l2d example.
+            // TODO: strieben - Take a closer look!
+            stiffMat[s][l] += jacDet * intWeights[i] * 
+              shapeFuncsSurf[s] *
+              shapeFuncsLG[l];
+          }
         }
       }
     }
+    
+    LOG_DBG2(ncint) << "element matrix of NCElem #" << elem->elemNum
+                    << ": " << stiffMat << std::endl;
   }
       
 

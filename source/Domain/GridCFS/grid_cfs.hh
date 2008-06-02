@@ -30,7 +30,7 @@ namespace CoupledField
   //! Implementation of a simple, one level grid.
 
   //! This class implements the base class Grid. Is is a simple
-  //! grid class, which is able to handle one level of geomatry without
+  //! grid class, which is able to handle one level of geometry without
   //! mesh refinement and multilevel elements.
   class GridCFS : public Grid
   {

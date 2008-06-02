@@ -381,6 +381,8 @@ source/DataInOut/ParamHandling/SkeletonConf.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/XMLSkeletonConf.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/Xerces.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/DataInOut/ResultCache.cc -text
+source/DataInOut/ResultCache.hh -text
 source/DataInOut/Scripting/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/Scripting/cfsmessenger.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/Scripting/cfsmessenger.hh svneol=native#text/x-c%2B%2Bhdr

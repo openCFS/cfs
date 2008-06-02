@@ -10,13 +10,14 @@ namespace CoupledField {
   DECLARE_LOG(acoumechncint)
   DEFINE_LOG(acoumechncint, "forms.acoumechncint")
 
-  AcouMechNcInt::AcouMechNcInt(UInt dofsPerNode, bool isAxi) {
-    name_ = "AcouMechNcInt";
-    dofs_ = dofsPerNode;
-    isaxi_ = isAxi;
-    isSymmetric_ = false;
-    formulation_ = NO_SOLUTION_TYPE;
-  }
+  AcouMechNcInt::AcouMechNcInt(UInt dofsPerNode, bool isAxi, bool coordUpdate) {
+      name_ = "AcouMechNcInt";
+      coordUpdate_ = coordUpdate;
+      dofs_ = dofsPerNode;
+      isaxi_ = isAxi;
+      isSymmetric_ = false;
+      formulation_ = NO_SOLUTION_TYPE;
+    }
 
   AcouMechNcInt::~AcouMechNcInt() {
   }
@@ -29,7 +30,7 @@ namespace CoupledField {
 
     formulation_ = aformulation;
   }
-    
+
   void AcouMechNcInt::CalcElementMatrix(Matrix<Double> &elemMat,
       EntityIterator &ent1,
       EntityIterator &ent2)
@@ -71,12 +72,12 @@ namespace CoupledField {
                             << ptCoord_
                             << " belonging to region "
                             << ptGrid->RegionIdToName(actNCElem->regionId);
-    
+
     // is our interface coplanar?
     isCoplanar = ptGrid->IsNcInterfaceCoplanar(actElem_->regionId);
 
     LOG_DBG3(acoumechncint) << "IsNcInterfaceCoplanar " << isCoplanar;
-    
+
     // get pointer to materials of acoustic pde
     if (firstPDEName_ == "acoustic")
       acouMaterials = &firstMaterials_;
@@ -95,7 +96,7 @@ namespace CoupledField {
     }
 
     LOG_DBG3(acoumechncint) << "fluidOnSlaveSide " << fluidOnSlaveSide;
-    
+
     // get the density of the fluid
     itMat->second->GetScalar(fluidDensity, DENSITY, REAL);
     if (formulation_ == ACOU_PRESSURE) {
@@ -139,9 +140,9 @@ namespace CoupledField {
     ptGrid->GetElemNodesCoord(matNodeCoord, elemSlave->connect);
     elemSlave->ptElem->Global2LocalCoords(localSlaveIP, globalIP,
         matNodeCoord);
-    
+
     LOG_DBG3(acoumechncint) << "Local ip Slave: " << elemSlave->elemNum
-                    << ": " << std::endl << localSlaveIP;
+                            << ": " << std::endl << localSlaveIP;
 
     // transform global to local coordinates of master element
     ptGrid->GetElemNodesCoord(matNodeCoord, elemMaster->connect);
@@ -164,7 +165,7 @@ namespace CoupledField {
           point[j] = globalIP[j][i];
 
         line = point - p0;
-        
+
         // calculate distance of int. point to master element
         normal.Inner(line, dist);
 
@@ -175,14 +176,14 @@ namespace CoupledField {
           continue;
 
         LOG_DBG3(acoumechncint) << "Need to map global ip to master element!";
-        
+
         // determine orientation of normal on slave element
         normal_.Inner(line, sign);
         sign /= fabs(sign);
-        
+
         // scale the distance for the normal projection
         normal_.Inner(normal, scale);
-        
+
         // do the projection
         for (j = 0; j < dim; ++j) {
           globalIP[j][i] -= sign * normal_[j] * fabs(dist) * fabs(scale);
@@ -192,7 +193,7 @@ namespace CoupledField {
     elemMaster->ptElem->Global2LocalCoords(localMasterIP, globalIP,
         matNodeCoord);
     LOG_DBG3(acoumechncint) << "Local ip Master: " << elemMaster->elemNum
-                    << ": " << std::endl << localMasterIP;
+                            << ": " << std::endl << localMasterIP;
 
     // resize matrix according to master/slave config
     if (fluidOnSlaveSide)
@@ -237,38 +238,36 @@ namespace CoupledField {
           ptCoord_, actNCElem);
 
       if (isaxi_) {
-/*        
+/*
         coordAtIp = 0.0;
-        
+
         for (j = 0; j < noIntPoints; ++j) {
           for (UInt d = 0; d < dim - 1; ++d)
             point[d] = intPoints[j][d];
-          
+
           actNCElem->ptElem->GetShFnc(shpFncNCElem, point, actNCElem);
-          
+
           for (UInt d = 0; d < shpFncNCElem.GetSize(); ++d) {
             coordAtIp += ptCoord_[0][d] * shpFncNCElem[d];
           }
         }
 */
-        
+
         // radius is globalIP[0][i]
 
         partHelpMat *= 2 * PI * intWeights[i] * fluidDensity *
-            std::fabs(jacDet) * globalIP[0][i];
+                      std::fabs(jacDet) * globalIP[0][i];
       }
       else 
       { // multiply matrix by density of fluid
         partHelpMat *= intWeights[i] * fluidDensity * std::fabs(jacDet);
       }
-      
+
       helpMat += partHelpMat;
     }
 
     LOG_DBG3(acoumechncint) << "single DOF matrix:\n" << helpMat;
-    LOG_DBG3(acoumechncint) << "normal vector:\n" << normal_[0] << "\t"
-                            << normal_[1] << "\t" << normal_[2];
-    
+
     // generate multi-dof matrix (scalar product with surface normal)
     if (firstPDEName_ == "acoustic") {
       if (fluidOnSlaveSide) {
@@ -288,7 +287,7 @@ namespace CoupledField {
           for ( UInt iCol = 0; iCol < numSlaveShpFncs; ++iCol ) {
             for ( UInt iDof = 0; iDof < dofs_; ++iDof ) {
               elemMat[iRow][iCol * dofs_ + iDof] =
-                normal_[iDof] * helpMat[iCol][iRow];              
+                normal_[iDof] * helpMat[iCol][iRow];
             }
           }
         }
@@ -317,9 +316,9 @@ namespace CoupledField {
         }
       }
     }
-    
+
     LOG_DBG3(acoumechncint) << "multi DOF matrix:\n" << elemMat;    
   }
 
-  
+
 } // namespace CoupledField

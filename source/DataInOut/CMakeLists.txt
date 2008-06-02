@@ -9,13 +9,14 @@ SET(DATAINOUT_SRCS
   WriteInfo.cc
   resultHandler.cc
   simOutput.cc
-  postProc.cc)
+  postProc.cc
+  ResultCache.cc)
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
 SET(TARGET_LL
   materials
-  simouttext  
+  simouttext
 )
 
 IF(USE_XERCES)

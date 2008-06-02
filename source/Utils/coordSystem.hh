@@ -73,7 +73,7 @@ namespace CoupledField {
     //! Transform local vector into global one for a given global model point
 
     //! This method transforms a vector with a local coordinate representation
-    //! and a given global model point (german: "Aufpunkg") into a vector with 
+    //! and a given global model point (german: "Aufpunkt") into a vector with 
     //! a representation in global cartesian coordinates.
     //! This method can be used for example to get for a global element 
     //! mid-point and a given local load vector the global representation of

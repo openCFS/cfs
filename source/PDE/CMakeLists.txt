@@ -22,6 +22,7 @@ SET(PDE_SRCS basePDE.cc StdPDE.cc SinglePDE.cc elecPDE.cc mechPDE.cc
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
 
 SET(TARGET_LL
+  datainout
   domain
   algsys-olas
   forms

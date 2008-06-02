@@ -40,7 +40,8 @@ namespace CoupledField {
                                  Double globalEpsilon,
                                  Double localEpsilon,
                                  std::string restartFileMode,
-                                 std::string asynchSteps)
+                                 std::string asynchSteps,
+                                 bool node_warnings)
     : LinearForm(),
       id_(id),
       regionName_(regionName),
@@ -51,6 +52,7 @@ namespace CoupledField {
       globalEpsilon_(globalEpsilon),
       localEpsilon_(localEpsilon),
       asynchSteps_(asynchSteps),
+      node_warnings_(node_warnings),
       destNodeList_(NULL),
       destElemList_(NULL),
       step_(0),
@@ -293,7 +295,8 @@ namespace CoupledField {
               coordSysId_,
               globalEpsilon_,
               localEpsilon_,
-              consInterpWeights_[i]);
+              consInterpWeights_[i],
+              node_warnings_);
 
           // save data to archive
           if(restartFileMode_ == "w" || restartFileMode_ == "rw") {

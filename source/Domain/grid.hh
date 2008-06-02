@@ -594,8 +594,8 @@ namespace CoupledField
      * @param name the name to check - case sensitive */
     bool HasRegion(const std::string & regionName)
     {
-        return regionNames_.Find(regionName) != -1;
-    }
+        return regionNames_.Find(regionName) != -1; 
+    }  
     
     //! Computes the surface region between two volume regions (2D only)
     virtual void SurfRegionFromVolRegions(
@@ -630,32 +630,22 @@ namespace CoupledField
 
     //! NC_SIMON: check if NC interface is coplanar
     bool IsNcInterfaceCoplanar(const std::string &ncIfaceName);
-    bool IsNcInterfaceCoplanar(const RegionIdType regionId);
-
-    //! NC_SIMON: Initialization method for master interface
-    bool InitMasterInterface(const std::string & ncRegionBaseName,
-                             const std::string & slaveIfaceName,
-                             const std::string & masterIfaceName,
-                             const bool coPlanarIface);
-  
-    //! NC_SIMON: check if interfaces are coplanar
-    bool AreInterfacesCoplanar(const StdVector<SurfElem*>& ifaceElems);
+    bool IsNcInterfaceCoplanar(RegionIdType regionId);
 
     //! NC_SIMON: intersect two line elements
-    bool SideOnSide (SurfElem *ifaceElem1,
-                     SurfElem *ifaceElem2,
-                     const bool coPlanarIface,
+    bool SideOnSide (SurfElem *ifaceElem1, SurfElem *ifaceElem2,
+                     bool coplanar, bool coordUpdate,
                      StdVector<NCElem*>& elemList);
 
     //! NC_SIMON: intersect two axiparallel quads
-    bool RectangleOnRectangle(SurfElem *ifaceElem1,
-                              SurfElem *ifaceElem2,
-                              const bool coPlanarIface,
-                              StdVector<NCElem*>& elemList);
+    bool RectangleOnRectangle(SurfElem *ifaceElem1, SurfElem *ifaceElem2,
+                              bool coplanar, StdVector<NCElem*>& elemList);
 
     //! intersect two elements of arbitrary type
     bool PolygonOnPolygon(SurfElem *ifElem1, SurfElem *ifElem2,
-	    const bool coPlanarIface, StdVector<NCElem*> &elemList);
+                          bool coplanar, bool coordUpdate,
+                          StdVector<NCElem*> &elemList,
+                          Double absTol = 1e-12, Double relTol = 1e-4);
 
     //! NC_SIMON: add a node to the grid
     //! \param coord (in) coordinates of point
@@ -762,9 +752,6 @@ namespace CoupledField
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
     
-    //! mapping from non-matching grid interface name to a flag if the
-    //! interface is coplanar
-    std::map<RegionIdType, bool> isNcIfaceCoplanar_;
 
     // =======================================================================
     // Non-matching grid interface calculation
@@ -772,18 +759,41 @@ namespace CoupledField
     
     //@{ \name Non-matching grid helper functions
 
+    //! type of intersection calculation for ncInterfaces
+    enum IntersectType { LINE_INTERSECT, RECT_INTERSECT, POLYGON_INTERSECT };
+    
     //! return codes of function CutLines
-    enum IntersectType {
-	INTERSECT_NONE,
-	INTERSECT_OUTSIDE,
-	INTERSECT_ON_LINE2,
-	INTERSECT_CROSS,
-	INTERSECT_IN_A,
-	INTERSECT_IN_B,
-	INTERSECT_IN_C,
-	INTERSECT_IN_D,
-	INTERSECT_A_EQ_C
+    enum LineIntersectType {
+      INTERSECT_NONE,
+      INTERSECT_OUTSIDE,
+      INTERSECT_ON_LINE2,
+      INTERSECT_CROSS,
+      INTERSECT_IN_A,
+      INTERSECT_IN_B,
+      INTERSECT_IN_C,
+      INTERSECT_IN_D,
+      INTERSECT_A_EQ_C
     };
+    
+    //! struct for keeping all information of an ncInterface
+    struct ncInterface {
+      std::string name;
+      RegionIdType region;
+      RegionIdType masterRegion;
+      RegionIdType slaveRegion;
+      IntersectType intersectAlgo;
+      Double tolAbs;
+      Double tolRel;
+      Double rotationAngle;
+      std::string coordSysId;
+      bool coplanar;
+    };
+    
+    //! returns if a list of surface elements are all coplanar
+    bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
+    
+    //! updates the intersection mesh of a ncInterface
+    void UpdateNcIntersection(const ncInterface& ncIf);
     
     //! Calculates the intersection of two lines [a,b] and [c,d] and stores
     //! the intersection point (if any) in e.
@@ -802,9 +812,9 @@ namespace CoupledField
     //! \param c (in) starting point of line 2
     //! \param d (in) end point of line 2
     //! \param e (out) intersection point
-    IntersectType CutLines(const Vector<Double> &a, const Vector<Double> &b,
-	    const Vector<Double> &c, const Vector<Double> &d,
-	    Vector<Double> &e) const;
+    LineIntersectType CutLines(const Vector<Double> &a,
+        const Vector<Double> &b, const Vector<Double> &c,
+        const Vector<Double> &d, Vector<Double> &e) const;
 
     //! Calculates the intersection between two polygons
     //! \param p1 (in) first polygon to be intersected
@@ -837,13 +847,16 @@ namespace CoupledField
     UInt TriangulatePoly(const StdVector< Vector<Double> > &p,
 	    StdVector<NCElem*> &tri);
 
+    //! vector of all ncInterfaces defined
+    StdVector<ncInterface> ncInterfaces_;
+    
     //! variable for tolerance of absolute values (used in polygonal
     //! intersection algorithm)
-    double tolAbs_;
+    double polysectAbsTol_;
 
     //! variable for tolerance of relative values (used in polygonal
     //! intersection algorithm)
-    double tolRel_;
+    double polysectRelTol_;
 
     //@}
 
@@ -899,7 +912,7 @@ namespace CoupledField
       for(UInt i=0; i<numElemNodes; i++)
       {
         grid.GetNodeCoordinate(point, connect[i], true);
-        // coordMat auffüllen!
+        // coordMat auffÃ¼llen!
         for(UInt j=0; j<dim; j++)
         {
           coordMat[j][i] = point[j];
@@ -1034,7 +1047,7 @@ namespace CoupledField
       for(UInt i=0; i<numElemNodes; i++)
       {
         destGrid_->GetNodeCoordinate(point, connect_[i], true);
-        // coordMat auffüllen!
+        // coordMat auffÃ¼llen!
         for(UInt j=0; j<dim; j++)
         {
           coordMat[j][i] = point[j];
@@ -1095,10 +1108,10 @@ namespace CoupledField
         nodeCounter_++;
         
         percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
-        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
+        /*if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
         {
           std::cout << percentage_ << "% done... " << std::endl;
-        }
+        }*/
         oldPercentage_ = percentage_;
       }
 #if 0
@@ -1138,7 +1151,8 @@ namespace CoupledField
                                                  std::string coordSysId,
                                                  Double globalEpsilon,
                                                  Double localEpsilon,
-                                                 std::vector< std::map<UInt, Double> >& consInterpWeights);
+                                                 std::vector< std::map<UInt, Double> >& consInterpWeights,
+                                                 const bool warnings = true);
 
 #endif
     
