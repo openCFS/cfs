@@ -377,7 +377,6 @@ namespace CoupledField
       fdps_vel.data.resize(numDOFs * nvx);
 
       tuple_vel = pointData->GetScalars(&u_char);
-      range = tuple_vel->GetRange();
       const double* velo_vals = tuple_vel->GetTuple(0);
       std::copy(velo_vals, velo_vals + (numDOFs * nvx), fdps_vel.data.begin());
 
