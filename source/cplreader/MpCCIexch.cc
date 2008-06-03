@@ -245,21 +245,33 @@ namespace CoupledField
       regSetIt = regionNodeSet.begin(); 
       regSetEnd = regionNodeSet.end(); 
 
-      for( ; regSetIt != regSetEnd; regSetIt++ )
+      if(settings.GetString("type") == "OPENFOAM")
       {
-        nodesInPartition_[actPart][*regSetIt] = localNodeNum;
-        localNodeNum++;
-      }
+        for( ; regSetIt != regSetEnd; regSetIt++ )
+        {
+          nodesInPartition_[actPart][*regSetIt] = *regSetIt;
+        }
+      } else  {
+        for( ; regSetIt != regSetEnd; regSetIt++ )
+        {
+          nodesInPartition_[actPart][*regSetIt] = localNodeNum;
+          localNodeNum++;
+        }
+      } 
+
       int nNodes = nodesInPartition_[actPart].size();
       int nElems = ptFileReader_->GetNumElems(actPart);
 
       // Collect all nodal coordinates for writing to HDF5
-      if(settings.GetString("type") == "OPENFOAM" && !actPart)
+      if(settings.GetString("type") == "OPENFOAM")
       {
         // Just collect coordinates for first partition  for OPENFOAM
-        std::copy(NodalCoords_[actPart].begin(),
-                  NodalCoords_[actPart].end(),
-                  std::back_inserter(nodalCoords));
+        if(!actPart)
+        {
+          std::copy(NodalCoords_[actPart].begin(),
+                    NodalCoords_[actPart].end(),
+                    std::back_inserter(nodalCoords));
+        }
       } else {
         std::copy(NodalCoords_[actPart].begin(),
                   NodalCoords_[actPart].end(),
