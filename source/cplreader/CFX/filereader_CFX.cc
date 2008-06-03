@@ -620,7 +620,7 @@ namespace CoupledField
         if(dim_ == 3) 
           fdps.dofNames.push_back("z");
         fdps.unit = "m s^-1";
-        fdps.resultName = "fluidMechVelocity";
+        Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);
         
