@@ -1,14 +1,15 @@
 % ==============================================================
 %
-%    Time2FreqHDF5
+%    TimeFilterHDF5
 %
 %
 %    GENERAL
-%      Fourier transform for CFS++ HDF5 data.
+%      Frequency filter tool for CFS++ HDF5 data.
 %
-%      This script reads transient results from HDF5 files and performs a
-%      FFT on them. Afterwards the harmonic data is written to a (different)
-%      HDF5 file.
+%      This script reads transient results from HDF5 files and performs a FFT
+%      on them. Then unwanted frequencies are set to zero and an inverse FFT
+%      is applied to obtain the filtered signal in the time domain. Afterwards
+%      the data is written to a (different) HDF5 file.
 %
 %      ATTENTION: PATH must include h5tool for this script to work correctly.
 %
@@ -16,7 +17,7 @@
 %    INPUT/S
 %      infile    - path of input HDF5 file
 %      outfile   - path of output HDF5 file
-%      quantity  - which quantity to convert
+%      quantity  - which quantity to filter
 %      region    - region the quantity is defined on
 %      lowfreq   - lowest frequency to be stored (0 for unlimited)
 %      highfreq  - highest frequency to be stored (0 for unlimited)
@@ -35,6 +36,6 @@
 % =======================================================================
 
 
-function [] =  Time2FreqHDF5(infile, outfile, quantity, region, lowfreq, highfreq, bufsize)
+function [] =  TimeFilterHDF5(infile, outfile, quantity, region, lowfreq, highfreq, bufsize)
 
-FftHdf5Core(1, infile, outfile, quantity, region, lowfreq, highfreq, bufsize);
+FftHdf5Core(2, infile, outfile, quantity, region, lowfreq, highfreq, bufsize);
