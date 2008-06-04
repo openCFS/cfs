@@ -197,7 +197,7 @@ namespace CoupledField
     int nodeOffset = 0;
     int elemOffset = 0;
     int numPartitions = ptFileReader_->GetNumPartitions();
-    std::vector<UInt>::iterator it, it2, it3, end;
+    std::vector<UInt>::iterator it, it2, end;
     int localNodeNum = 1;
     std::set<UInt> regionNodeSet;
     UInt maxNumElemNodes = 0;
@@ -209,7 +209,14 @@ namespace CoupledField
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
     std::vector<std::string> regionNames;
+    bool justUse1stPartNodes = false;
 
+    // We know that the CFX and openFOAM reader will define
+    // connectivity in respect to only the first partition
+    if((settings.GetString("type") == "OPENFOAM") || 
+       (settings.GetString("type") == "CFX"))
+      justUse1stPartNodes = true;
+    
     // First read everything into internal buffers
     for (int actPart=0; actPart<numPartitions; ++actPart)
     {
@@ -245,7 +252,10 @@ namespace CoupledField
       regSetIt = regionNodeSet.begin(); 
       regSetEnd = regionNodeSet.end(); 
 
-      if(settings.GetString("type") == "OPENFOAM")
+      if(!(*regSetIt))
+        EXCEPTION("Zero detected in connectivity!");
+      
+      if(justUse1stPartNodes)
       {
         for( ; regSetIt != regSetEnd; regSetIt++ )
         {
@@ -263,9 +273,9 @@ namespace CoupledField
       int nElems = ptFileReader_->GetNumElems(actPart);
 
       // Collect all nodal coordinates for writing to HDF5
-      if(settings.GetString("type") == "OPENFOAM")
+      if(justUse1stPartNodes)
       {
-        // Just collect coordinates for first partition  for OPENFOAM
+        // Just collect coordinates for first partition  for OPENFOAM and CFX
         if(!actPart)
         {
           std::copy(NodalCoords_[actPart].begin(),
@@ -273,19 +283,23 @@ namespace CoupledField
                     std::back_inserter(nodalCoords));
         }
       } else {
-        std::copy(NodalCoords_[actPart].begin(),
-                  NodalCoords_[actPart].end(),
-                  std::back_inserter(nodalCoords));
+        // Only the nodes actually present in the partition/region will be used
+        regSetIt = regionNodeSet.begin(); 
+        for( ; regSetIt != regSetEnd; regSetIt++ )
+        {
+          UInt baseIdx = (*regSetIt - 1)*3;
+          
+          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+0]);
+          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+1]);
+          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+2]);
+        }
       }
       
       // Replace old node numbers in connectivity with new ones 
       it = elemTypes_[actPart].begin();
       end = elemTypes_[actPart].end();
       it2 = Topology_[actPart].begin();
-      std::vector<UInt> newTopo;
       UInt regionDim = dim;
-      newTopo.resize(maxNumElemNodes * elemTypes_[actPart].size());
-      it3 = newTopo.begin();
       for( ; it != end; it++ )
       {
         int numElemNodes = NUM_ELEM_NODES[*it];
@@ -293,7 +307,6 @@ namespace CoupledField
 
         for(int i=0; i<numElemNodes; i++)
         {
-          *(it3+i) = nodesInPartition_[actPart][*(it2+i)];
           if(settings.GetString("type") == "OPENFOAM")
           {
             elConnect[i] = *(it2+i);
@@ -313,7 +326,6 @@ namespace CoupledField
                   elConnect.end(),
                   std::back_inserter(connect));
 
-        it3 += maxNumElemNodes;
         it2 += numElemNodes;
       }        
 
@@ -861,7 +873,7 @@ namespace CoupledField
 
     // Finally write out result descriptions. This must be done in
     // the end since we do not know how many steps there are in advance.
-    WriteResultDescriptions( counter, outputFields, timeStepNumbers,
+    WriteResultDescriptions( counter, flowData, timeStepNumbers,
                              timeStepValues, regionNames );
 
     std::cout << "========================================"
@@ -900,7 +912,7 @@ namespace CoupledField
   }
 
   void MpCCIExchangeCPLR::WriteResultDescriptions(UInt numSteps,
-                                                  const std::vector<std::string>& outputFields,
+                                                  const std::vector<FlowDataType>& outputFields,
                                                   const std::vector<UInt> stepNumbers,
                                                   const std::vector<Double> stepValues,
                                                   const std::vector<std::string> regions)
@@ -908,7 +920,7 @@ namespace CoupledField
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
-    std::vector<std::string>::const_iterator it, end;
+    FlowDataType::const_iterator it, end;
     H5::Group resultDescGroup;
     H5::Group msGroup;
     
@@ -924,54 +936,16 @@ namespace CoupledField
     } H5_CATCH( "Could not open result description group" );
     
 
-    it = outputFields.begin();
-    end = outputFields.end();
+    it = outputFields[0].begin();
+    end = outputFields[0].end();
 
     for( ; it != end; it++ ) {
-      resultName = *it;
-      if(resultName == "")
-        continue;
-
-      dofNames.clear();
-      definedOn = 1;
-      
-      // Write Lighthill source term              
-      if(resultName == "acouRhsLoad") 
-      {
-        unit = "kg m^-3 s^-2";
-        entryType = 1;
-        numDofs = 1;
-        dofNames.push_back("-");
-      }
-
-      // Write fluid velocities
-      if(resultName == "fluidMechVelocity") 
-      {
-        unit = "m s^-1";
-        entryType = 3;
-        numDofs = 3;
-        dofNames.push_back("x");
-        dofNames.push_back("y");
-        dofNames.push_back("z");
-      }
-
-      // Write fluid pressure
-      if(resultName == "fluidMechPressure") 
-      {
-        unit = "Pa";
-        entryType = 1;
-        numDofs = 1;
-        dofNames.push_back("-");
-      }
-
-      // Write fluid density
-      if(resultName == "fluidMechDensity")
-      {
-        unit = "kg/m^3";
-        entryType = 1;
-        numDofs = 1;
-        dofNames.push_back("-");
-      }
+      resultName = it->second.resultName;
+      definedOn = it->second.definedOn;
+      dofNames = it->second.dofNames;
+      unit = it->second.unit;
+      numDofs = dofNames.size();
+      entryType = it->second.entryType;
 
       try {
         // === Second version: Separate datasets for each entry
@@ -1111,6 +1085,7 @@ namespace CoupledField
     fdps2.unit = "kg m^-3 s^-2";
     fdps2.resultName = "acouRhsLoad";
     fdps2.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
+    fdps2.entryType = ResultInfo::SCALAR;
     std::vector<Double>& acouRhsField = fdps2.data;
 
     Settings& settings = Settings::Instance();

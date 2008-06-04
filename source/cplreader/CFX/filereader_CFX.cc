@@ -380,7 +380,9 @@ namespace CoupledField
 
       if(settings.GetInt("verbose"))
       {
-        printf("ES: %d\nNumber of Elements: %d\n", ies, nsize);
+        printf("ES: %d\nNumber of Elements: %d\nElem type: %d\n",
+               ies, nsize, ielem[ies-1]);
+
 
         std::cout << "Partition " << (ies)
                   << " nodes: " << MpCCInodes_[ies-1]
@@ -512,6 +514,7 @@ namespace CoupledField
     }
 
     TOPOLOGYDATA.resize(numElems*numNodes);
+    std::fill(TOPOLOGYDATA.begin(), TOPOLOGYDATA.end(), 0);
     numNodesPerElem.resize(numElems);
     elemTypes.resize(numElems);
 
@@ -520,13 +523,13 @@ namespace CoupledField
     for(int i=0; i<numElems; i++) 
     {
       numNodesPerElem[i] = numNodes;
+      baseIdx = i*numNodes;
       elemTypes[i] = elemType;
 
 
       if(elemType == ET_HEXA8)
       {
-        baseIdx = i*8;
-        // Reihenfolge für MpCCI
+        // Reihenfolge f�r MpCCI
         TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 4];
         TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 6];
         TOPOLOGYDATA[baseIdx + 2] = intvec[baseIdx + 7];
@@ -535,18 +538,12 @@ namespace CoupledField
         TOPOLOGYDATA[baseIdx + 5] = intvec[baseIdx + 2];
         TOPOLOGYDATA[baseIdx + 6] = intvec[baseIdx + 3];
         TOPOLOGYDATA[baseIdx + 7] = intvec[baseIdx + 1];
-
-        // Reihenfolge für HDF5
-        /*
-          TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 0]; // 1
-          TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 2]; // 22
-          TOPOLOGYDATA[baseIdx + 2] = intvec[baseIdx + 3]; // 23
-          TOPOLOGYDATA[baseIdx + 3] = intvec[baseIdx + 1]; // 2
-          TOPOLOGYDATA[baseIdx + 4] = intvec[baseIdx + 4]; // 1072
-          TOPOLOGYDATA[baseIdx + 5] = intvec[baseIdx + 6]; // 1093
-          TOPOLOGYDATA[baseIdx + 6] = intvec[baseIdx + 7]; // 1094
-          TOPOLOGYDATA[baseIdx + 7] = intvec[baseIdx + 5]; // 1073
-        */
+      }
+      else 
+      {
+        std::copy(&intvec[baseIdx],
+                  &intvec[baseIdx+numNodes],
+                  &TOPOLOGYDATA[baseIdx]);
       }
     }
   }
@@ -607,8 +604,9 @@ namespace CoupledField
 
       if(nerr)                                                  
       {                                                         
-        std::cerr << "WARNING: CFX dataset does not contain velocity!"
-                  << std::endl;                           
+        if(settings.GetInt("verbose"))
+          std::cerr << "WARNING: CFX dataset does not contain velocity!"
+                    << std::endl;                           
       }
       else 
       {
@@ -623,6 +621,7 @@ namespace CoupledField
         Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);
+        fdps.entryType = ResultInfo::VECTOR;
         
         if(floatDS)
           std::copy(floatvec.begin(),
@@ -662,8 +661,9 @@ namespace CoupledField
         
       if(nerr)                                                  
       {                                                         
-        std::cerr << "WARNING: CFX dataset does not contain pressure!"
-                  << std::endl;                           
+        if(settings.GetInt("verbose"))
+          std::cerr << "WARNING: CFX dataset does not contain pressure!"
+                    << std::endl;                           
       }
       else 
       {
@@ -672,9 +672,10 @@ namespace CoupledField
         fdps.definedOn = ResultInfo::NODE; // nodes
         fdps.dofNames.push_back("-");
         fdps.unit = "Pa";
-        fdps.resultName = "fluidMechPressure";
+        Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);
+        fdps.entryType = ResultInfo::SCALAR;
         
         if(floatDS)
           std::copy(floatvec.begin(),
@@ -685,6 +686,84 @@ namespace CoupledField
                     doublevec.begin() + (numDOFs * nvx),
                     fdps.data.begin());
       }
+
+
+      //-----------------------------------------------------------------------
+      //     Reading turbulent kinetic energy from input file
+      //-----------------------------------------------------------------------
+
+      sprintf(what, "G/TKE_FL1");
+      sprintf(where, "ZN1/VX");
+      when  = timeStepNumbers_[timeStepIdx];
+
+      if(floatDS)
+        dattyp = __real_data_type__;
+      else
+        dattyp = __double_data_type__;
+
+      length = 1;
+      nsize  = nvx;
+      iopt   = __stop_if_failed__;
+        
+      if(floatDS)
+        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+                  &floatvec[0],iarr,carr,larr,darr,sarr,
+                  strlen(what), strlen(where), 0);
+      else
+        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+                  &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+                  strlen(what), strlen(where), 0);
+        
+      if(nerr)                                                  
+      {     
+        if(settings.GetInt("verbose"))
+          std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!"
+                    << std::endl;                           
+      }
+      else 
+      {
+        FlowDataPartStruct& fdps = fd[FLUIDMECH_TKE];
+        fdps.isActive = true; // all partitions have results
+        fdps.definedOn = ResultInfo::NODE; // nodes
+        fdps.dofNames.push_back("-");
+        fdps.unit = "J";
+        Enum2String(FLUIDMECH_TKE, fdps.resultName);
+        numDOFs = fdps.dofNames.size();
+        fdps.data.resize(numDOFs * nvx);
+        fdps.entryType = ResultInfo::SCALAR;
+        
+        if(floatDS)
+          std::copy(floatvec.begin(),
+                    floatvec.begin() + (numDOFs * nvx),
+                    fdps.data.begin());
+        else
+          std::copy(doublevec.begin(), 
+                    doublevec.begin() + (numDOFs * nvx),
+                    fdps.data.begin());
+      }
+
+      // TEMP_FL1
+      // DENSITY
+      // DENSITY_FL1
+      // TKE_FL1
+      // TED_FL1
+      // VISCTRB_FL1
+      // CONDUCT_FL1
+      // SPHEATP_FL1
+      // SPHEATV_FL1
+      // PTOT
+      // PTOTS
+      // TTOT_FL1
+      // TTOTS_FL1
+      // TAUWVEC_FL1
+      // YPLUS_FL1
+      // QWALL_FL1
+      // PRES
+      // PSTAT
+      // MACH_FL1
+      // MACHS_FL1
+      // TOTAL_ENTHALPY
+      // ENTHTOT_FL1
     }
 
     //-----------------------------------------------------------------------

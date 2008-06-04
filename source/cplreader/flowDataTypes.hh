@@ -25,6 +25,9 @@ namespace CoupledField
     // On what kind of entity the result is stored (nodes, elems...)
     ResultInfo::EntityUnknownType definedOn;
 
+    // What kind of entry is result? Scalar, vector, tensor...
+    ResultInfo::EntryType entryType;
+
     // If CFS has no SolutionType store external result name
     std::string resultName;
   } FlowDataPartStruct;

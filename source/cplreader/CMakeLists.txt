@@ -169,6 +169,7 @@ IF(CPLREADER_OPENFOAM)
     ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkGraphics.a
     ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkCommon.a
     ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtksys.a
+    ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkzlib.a
     dl
   )
 ENDIF(CPLREADER_OPENFOAM)

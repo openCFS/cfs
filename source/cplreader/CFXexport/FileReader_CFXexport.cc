@@ -396,7 +396,8 @@ namespace CoupledField {
     
     // set up flow data struct
     for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
-      FlowDataPartStruct *fdps;
+      FlowDataPartStruct *fdps = NULL;
+
       switch (itQuan->second) {
       case DENSITY:
         fdps = &flowdata[FLUIDMECH_DENSITY];
@@ -404,8 +405,8 @@ namespace CoupledField {
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
         fdps->unit = "kg m^-3";
-        fdps->resultName = "fluidMechDensity";
         fdps->data.resize(MpCCInodes_[0]);
+        Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
         break;
       case PRESSURE:
         fdps = &flowdata[FLUIDMECH_PRESSURE];
@@ -413,7 +414,7 @@ namespace CoupledField {
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
         fdps->unit = "Pa";
-        fdps->resultName = "fluidMechPressure";
+        Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
         fdps->data.resize(MpCCInodes_[0]);
         break;
       case VELOCITY_X:
@@ -425,7 +426,7 @@ namespace CoupledField {
         if (numVelDofs == 3)
           fdps->dofNames.push_back("z");
         fdps->unit = "m s^-1";
-        fdps->resultName = "fluidMechVelocity";
+        Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
         fdps->data.resize(numVelDofs * MpCCInodes_[0]);
         break;
       default:
