@@ -526,6 +526,8 @@ namespace CoupledField {
       out = FLUIDMECH_FORCE;
     else if (in == "fluidMechDensity")
       out = FLUIDMECH_DENSITY;
+    else if (in == "fluidMechTKE")
+      out = FLUIDMECH_TKE;
     else if (in == "lambda_k")
       out = LAMBDA_K;
     
@@ -764,6 +766,9 @@ namespace CoupledField {
         break;
       case FLUIDMECH_DENSITY:
         out = "fluidMechDensity";
+        break;
+      case FLUIDMECH_TKE:
+        out = "fluidMechTKE";
         break;
       case LAMBDA_K:
         out = "lambda_k";

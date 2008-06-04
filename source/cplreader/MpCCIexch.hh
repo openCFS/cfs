@@ -60,7 +60,7 @@ namespace CoupledField
                      const std::string name);
     void InitResultsGroup();
     void WriteResultDescriptions(UInt numSteps,
-                                 const std::vector<std::string>& outputFields,
+                                 const std::vector<FlowDataType>& outputFields,
                                  const std::vector<UInt> stepNumbers,
                                  const std::vector<Double> stepValues,
                                  const std::vector<std::string> regions);

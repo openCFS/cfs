@@ -434,13 +434,14 @@ namespace CoupledField
             FlowDataPartStruct& fdps = fd[solutionTypes_[j]];
             fdps.isActive = true; // all partitions have results
             fdps.definedOn = ResultInfo::NODE; // nodes
+            Enum2String(solutionTypes_[j], fdps.resultName);
             
             switch(solutionTypes_[j]) 
             {
             case ACOU_RHS_LOAD:
               fdps.dofNames.push_back("-");
               fdps.unit = "kg m^-3 s^-2";
-              fdps.resultName = "acouRhsLoad";
+              fdps.entryType = ResultInfo::SCALAR;
               break;
             case FLUIDMECH_VELOCITY:
               fdps.dofNames.push_back("x");
@@ -448,12 +449,12 @@ namespace CoupledField
               if(dim_ == 3) 
                 fdps.dofNames.push_back("z");
               fdps.unit = "m s^-1";
-              fdps.resultName = "fluidMechVelocity";
+              fdps.entryType = ResultInfo::VECTOR;
               break;
             case FLUIDMECH_PRESSURE:
               fdps.dofNames.push_back("-");
               fdps.unit = "Pa";
-              fdps.resultName = "fluidMechPressure";
+              fdps.entryType = ResultInfo::SCALAR;
               break;
             default:
               break;
