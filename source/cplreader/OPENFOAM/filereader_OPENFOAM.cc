@@ -337,9 +337,13 @@ namespace CoupledField
 
     reader_->SetTimeStep(timeStepIdx);
     reader_->Update();
+#if 0 /* helps to debug, can be used for other vtk classes */
+    std::cerr << "------------------- VTK INFO: " << std::endl;
+    reader_->PrintSelf(std::cerr, vtkIndent());
+    std::cerr << "------------------- VTK INFO: " << std::endl;
 
-    const char u_char = 'U';
-    const char p_char = 'p';
+    std::cerr << "here: this->GetTimeStep(timeStepIdx): " << __LINE__ << " => " << this->GetTimeStep(timeStepIdx) << std::endl;
+#endif
 
     /* store gap to jump over pointZones and faceZones */
     const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
@@ -347,15 +351,14 @@ namespace CoupledField
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
     vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
-    vtkDataArray* tuple_vel;
-    vtkDataArray* scalar_pres;
-    for (UInt actPart=0; actPart < numPartitions_; ++actPart, iter->GoToNextItem())
+    vtkDataArray* fluidVel_array;
+    vtkDataArray* pres_array;
+    for (UInt actPart=0; actPart < 1; ++actPart, iter->GoToNextItem())
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       c2p->SetInput(ds);
       c2p->Update();
       vtkDataSet* ds_point = c2p->GetOutput();
-      vtkPointData* pointData = ds_point->GetPointData();
 
       int nvx = MpCCInodes_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
@@ -363,36 +366,66 @@ namespace CoupledField
 
       /* copy the fluid velocity values */
       FlowDataPartStruct& fdps_vel = fd[FLUIDMECH_VELOCITY];
-      fdps_vel.isActive = true; // all partitions have results
-      fdps_vel.definedOn = ResultInfo::NODE; // nodes
-      fdps_vel.dofNames.push_back("x");
-      fdps_vel.dofNames.push_back("y");
-      if(dim_ == 3) 
+      if (!timeStepIdx)
       {
-        fdps_vel.dofNames.push_back("z");
+        fdps_vel.isActive = true; // all partitions have results
+        fdps_vel.definedOn = ResultInfo::NODE; // nodes
+        fdps_vel.dofNames.push_back("x");
+        fdps_vel.dofNames.push_back("y");
+        if(dim_ == 3) 
+        {
+          fdps_vel.dofNames.push_back("z");
+        }
+        fdps_vel.unit = "m s^-1";
+        Enum2String(FLUIDMECH_VELOCITY, fdps_vel.resultName);
       }
-      fdps_vel.unit = "m s^-1";
-      Enum2String(FLUIDMECH_VELOCITY, fdps_vel.resultName);
       numDOFs = fdps_vel.dofNames.size();
       fdps_vel.data.resize(numDOFs * nvx);
 
-      tuple_vel = pointData->GetScalars(&u_char);
-      const double* velo_vals = tuple_vel->GetTuple(0);
-      std::copy(velo_vals, velo_vals + (numDOFs * nvx), fdps_vel.data.begin());
+      vtkPointData* pointData = ds_point->GetPointData();
+      if (pointData->GetNumberOfArrays() > 2)
+      {
+        std::cerr << "WARNING: OPENFOAM contains more than 2 data arrays"
+                  << std::endl;                           
+      }
+      /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
+       * because the data is stored inside the array-variable not inside the
+       * scalar- or vector-variable of the vtk class. */
+      /* Get access to the fluid velocity data */
+
+      /* check if the first array is fluid velocity data */
+      if (*(pointData->GetArrayName(0)) != 'U')
+      {                                                         
+        std::cerr << "WARNING: OPENFOAM does not contain velocity! Fluid velocity must be first Array"
+                  << std::endl;                           
+      } else {
+        fluidVel_array = pointData->GetArray(0);
+        /* this copies the values into fdps.data via memcpy */
+        fluidVel_array->ExportToVoidPointer((void*)&fdps_vel.data.front());
+      }
 
       /* copy the fluid pressure values */
       FlowDataPartStruct& fdps_pres = fd[FLUIDMECH_PRESSURE];
-      fdps_pres.isActive = true; // all partitions have results
-      fdps_pres.definedOn = ResultInfo::NODE; // nodes
-      fdps_pres.dofNames.push_back("-");
-      fdps_pres.unit = "Pa";
-      fdps_pres.resultName = "fluidMechPressure";
+      if (!timeStepIdx)
+      {
+        fdps_pres.isActive = true; // all partitions have results
+        fdps_pres.definedOn = ResultInfo::NODE; // nodes
+        fdps_pres.dofNames.push_back("-");
+        fdps_pres.unit = "Pa";
+        Enum2String(FLUIDMECH_PRESSURE, fdps_vel.resultName);
+      }
       numDOFs = fdps_pres.dofNames.size();
+      std::cerr << "here: numDOFs: " << __LINE__ << " => " << numDOFs << std::endl;
       fdps_pres.data.resize(numDOFs * nvx);
-      scalar_pres = pointData->GetScalars(&p_char);
-      const double* pres_vals = scalar_pres->GetTuple(0);
-      std::copy(pres_vals, pres_vals + (numDOFs * nvx), fdps_pres.data.begin());
 
+      if (*(pointData->GetArrayName(1)) != 'p')
+      {                                                         
+        std::cerr << "WARNING: OPENFOAM does not contain pressure values! Fluid pressure must be second Array"
+                  << std::endl;                           
+      } else {
+        pres_array = pointData->GetArray(1);
+        pres_array->ExportToVoidPointer((void*)&fdps_pres.data.front());
+      }
 
       if (actPart == (UInt)reader_->GetNumBoundaries())
       {
