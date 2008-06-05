@@ -617,7 +617,7 @@ namespace CoupledField
         fdps.dofNames.push_back("y");
         if(dim_ == 3) 
           fdps.dofNames.push_back("z");
-        fdps.unit = "m s^-1";
+        fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
         Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);
@@ -671,7 +671,7 @@ namespace CoupledField
         fdps.isActive = true; // all partitions have results
         fdps.definedOn = ResultInfo::NODE; // nodes
         fdps.dofNames.push_back("-");
-        fdps.unit = "Pa";
+        fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
         Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);
@@ -726,7 +726,7 @@ namespace CoupledField
         fdps.isActive = true; // all partitions have results
         fdps.definedOn = ResultInfo::NODE; // nodes
         fdps.dofNames.push_back("-");
-        fdps.unit = "J";
+        fdps.unit = MapSolTypeToUnit(FLUIDMECH_TKE);
         Enum2String(FLUIDMECH_TKE, fdps.resultName);
         numDOFs = fdps.dofNames.size();
         fdps.data.resize(numDOFs * nvx);

@@ -807,6 +807,198 @@ namespace CoupledField {
       }
   } 
 
+  std::string MapSolTypeToUnit(SolutionType solType) 
+  {
+    switch(solType) 
+    {
+
+    case ACOU_FORCE:
+      return "N";
+      break;
+
+    case ACOU_INTENSITY:
+      return "W/m^2";
+      break;
+
+    case ACOU_POTENTIAL:
+      return "m^2/s";
+      break;
+
+    case ACOU_POTENTIAL_DERIV_1:
+      return "m^2/s^2";
+      break;
+
+    case ACOU_POTENTIAL_DERIV_2:
+      return "m^2/s^3";
+      break;
+
+    case ACOU_POWER:
+      return "W";
+      break;
+
+    case ACOU_PRESSURE:
+      return "Pa";
+      break;
+
+    case ACOU_PRESSURE_DERIV_1:
+      return "Pa/s";
+      break;
+
+    case ACOU_PRESSURE_DERIV_2:
+      return "Pa/s^2";
+      break;
+
+    case ACOU_PRESSUREXYZ:
+      return "Pa";
+      break;
+
+    case ACOU_RHS_LOAD:
+      return "kg m^-3 s^-2";
+      break;
+
+    case ACOU_SURFINTENSITY:
+      return "W/m^2";
+      break;
+
+    case ACOU_VELOCITY:
+      return "m/s";
+      break;
+
+
+    case ELEC_CHARGE:
+      return "C";
+      break;
+
+    case ELEC_ENERGY:
+      return "Ws";
+      break;
+
+    case ELEC_POLARIZATION:
+      return "C/m^2";
+      break;
+
+    case ELEC_PSEUDO_POLARIZATION:
+      return "";
+      break;
+
+    case ELEC_FIELD_INTENSITY:
+      return "V/m";
+      break;
+
+    case ELEC_POTENTIAL:
+      return "V";
+      break;
+
+    case ELEC_RHS_LOAD:
+      return "C";
+      break;
+
+    case FLUIDMECH_VELOCITY:
+      return "m/s";
+      break;
+
+    case FLUIDMECH_PRESSURE:
+      return "Pa";
+      break;
+
+    case FLUIDMECH_DENSITY:
+      return "kg/m^3";
+      break;
+
+    case FLUIDMECH_TKE:
+      return "J";
+      break;
+
+    case HEAT_TEMPERATURE:
+      return "K";
+      break;
+
+    case HEAT_RHS_LOAD:
+      return "?";
+      break;
+
+    case MAG_FLUX_DENSITY:
+      return "Vs/m^2";
+      break;
+
+    case MAG_HFIELD:
+      return "A/m";
+      break;
+
+    case MAG_EDDY_CURRENT:
+      return "A/m^2";
+      break;
+
+    case MAG_POTENTIAL:
+      return "Vs/m";
+      break;
+
+    case MAG_RHS_LOAD:
+      return "Am";
+      break;
+
+    case MAG_EDDY_POWER:
+      return "W";
+      break;
+
+    case MAG_ENERGY:
+      return "Ws";
+      break;
+
+    case MAG_FORCE_VWP:
+      return "N";
+      break;
+
+    case MECH_DEF_VOLUME:
+      return "m^3";
+      break;
+
+    case MECH_DISPLACEMENT:
+      return "m";
+      break;
+
+    case MECH_VELOCITY:
+      return "m/s";
+      break;
+
+    case MECH_ACCELERATION:
+      return "m/s^2";
+      break;
+
+    case MECH_RHS_LOAD:
+      return "N";
+      break;
+
+    case MECH_ENERGY:
+      return "Ws";
+      break;
+
+    case MECH_PSEUDO_DENSITY:
+      return "";
+      break;
+
+    case MECH_STRESS:
+      return "N/m^2";
+      break;
+
+    case MECH_STRAIN:
+      return "";
+      break;
+
+    case MECH_STRAIN_IRR:
+      return "N/m^2";
+      break;
+
+    case SMOOTH_DISPLACEMENT:
+      return "m";
+      break;
+
+    default:
+      return "unknown";
+      break;
+    }
+  }
+
   // FEType
   template<>
   void Enum2String<FEType>( const FEType &in, std::string &out ) {

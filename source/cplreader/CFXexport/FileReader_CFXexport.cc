@@ -404,7 +404,7 @@ namespace CoupledField {
         fdps->isActive = true;
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
-        fdps->unit = "kg m^-3";
+        fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
         fdps->data.resize(MpCCInodes_[0]);
         Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
         break;
@@ -413,7 +413,7 @@ namespace CoupledField {
         fdps->isActive = true;
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
-        fdps->unit = "Pa";
+        fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
         Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
         fdps->data.resize(MpCCInodes_[0]);
         break;
@@ -425,7 +425,7 @@ namespace CoupledField {
         fdps->dofNames.push_back("y");
         if (numVelDofs == 3)
           fdps->dofNames.push_back("z");
-        fdps->unit = "m s^-1";
+        fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
         Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
         fdps->data.resize(numVelDofs * MpCCInodes_[0]);
         break;
