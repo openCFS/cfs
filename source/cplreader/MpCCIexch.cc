@@ -124,87 +124,6 @@ namespace CoupledField
     ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
     ptElemIntegr_[ET_HEXA8]  = new ElemIntegr(ET_HEXA8);
   }
-  
-  void MpCCIExchangeCPLR::Finish()
-  {
-    // Fetch custom data from file reader and write it to the UserData
-    // section of the HDF5 file.
-    std::map<std::string, std::string> userData;
-    std::map<std::string, std::string>::const_iterator udIt, udEnd;
-
-    ptFileReader_->GetUserData(userData);
-    udIt = userData.begin();
-    udEnd = userData.end();
-    for( ; udIt != udEnd; udIt++ ) 
-      WriteStringToUserData(udIt->first, udIt->second);
-
-    // Close main HDF5 group and finish
-    try {
-      mainGroup_.close();
-    } H5_CATCH( "Could not close main group" );
-
-    // Delete element integrators
-    std::map<UInt, ElemIntegr *>::iterator it, end;
-    it = ptElemIntegr_.begin();
-    end = ptElemIntegr_.end();
-    for( ; it != end; it++)
-      delete it->second;
-  }
-  
-  void MpCCIExchangeCPLR::CheckOpenObjects() {
-    std::vector<UInt> types;
-    std::vector<std::string> typeNames;
-    hid_t* ids;
-
-    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
-    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
-    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
-    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
-
-    // check for open groups, datasets etc.
-    std::cerr << "Number of open objects:\n"
-              << "--------------------------\n";
-
-    for(UInt t=0; t<types.size(); t++) 
-    {
-      UInt numObjs = mainFile_.getObjCount(types[t]);
-      std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
-
-      ids = new hid_t[numObjs];
-      mainFile_.getObjIDs(types[t], numObjs, ids);
-    
-      for(UInt i=0; i<numObjs; i++)
-      {
-        H5::DataSet ds;
-        H5::Group group;
-        H5::DataType dt;
-        H5::Attribute attr;
-
-        switch(types[t])
-        {
-        case H5F_OBJ_DATASET:
-          ds.setId((ids[i]));
-          std::cerr << "  " << ds.fromClass() << std::endl;
-          break;
-        case H5F_OBJ_GROUP:
-          group.setId((ids[i]));
-          for(UInt idx=0; idx < group.getNumObjs(); idx++)
-            std::cerr << "  subgroup " << group.getObjnameByIdx(idx) << std::endl;
-          break;
-        case H5F_OBJ_DATATYPE:
-          dt.setId((ids[i]));
-          std::cerr << "  " << dt.fromClass() << std::endl;
-          break;
-        case H5F_OBJ_ATTR:
-          attr.setId((ids[i]));
-          std::cerr << "  " << attr.fromClass() << std::endl;
-          break;
-        }
-      }
-
-      delete[] ids;
-    }
-  }
 
   void MpCCIExchangeCPLR::PutExchangeGrid2MpCCI()
   {
@@ -527,134 +446,6 @@ namespace CoupledField
               << std::endl;
   }
 
-  void MpCCIExchangeCPLR::InitHDF5() {
-    Settings& settings = Settings::Instance();
-    std::string pathsep;
-    std::string fileName  = settings.GetString("name");
-    std::ostringstream strBuffer;
-
-    // Set compression and chunk size parameters for HDF5
-    UInt compressionLevel = 9;
-    UInt maxChunkSize = 100;
-    dPropList_ = H5::DSetCreatPropList::DEFAULT;
-    dPropList_.setLayout( H5D_CHUNKED );
-    dPropList_.setDeflate( compressionLevel );
-    H5IO::SetMaxChunkSize( maxChunkSize );
-
-    // Do not print HDF5 exceptions by default
-    H5::Exception::dontPrint();
-
-    strBuffer << "cplreader_hdf5_" << fileName;
-    hdf5DirName_ = strBuffer.str();
-
-    // concatenate output file name
-    try {
-      fs::create_directory( hdf5DirName_ );
-      pathsep = fs::path("/").native_directory_string();
-    } catch (std::exception &ex) {
-      EXCEPTION(ex.what());
-    }    
-
-    strBuffer.clear();
-    strBuffer.str("");
-    strBuffer << hdf5DirName_ << pathsep << fileName << ".h5";
-    fileName = strBuffer.str();
-    
-    // create main file and obtain main group
-    try {
-      mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
-    } H5_CATCH( "Could not create hdf5 file '" << fileName << "' : " );
-
-    mainGroup_ = mainFile_.openGroup( "/" );
-    meshGroup_ = mainGroup_.createGroup( "Mesh" );
-    mainGroup_.createGroup( "FileInfo" ).close();
-    
-    mainGroup_.createGroup( "UserData" );
-    mainGroup_.createGroup( "Results" );
-  }
-
-  void MpCCIExchangeCPLR::WriteFileInfoHeader() {
-    Settings& settings = Settings::Instance();
-    H5::Group infoGroup;
-    try {
-      infoGroup = mainGroup_.openGroup( "FileInfo" );
-    } H5_CATCH( "Could not open group for FileInfo" );
-    
-    // write file version
-    std::stringstream version;
-    version << CFS_HDF5_FORMAT_MAJOR << "." << CFS_HDF5_FORMAT_MINOR;
-    std::string versionString = version.str();
-    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ ); 
-    
-    // write date / time information
-    using namespace boost::posix_time;
-    using namespace boost::gregorian;
-    std::string now = to_simple_string( second_clock::local_time() );
-    H5IO::Write1DArray( infoGroup, "Date", 1, &now, dPropList_ );
-    
-    // write creator
-    std::stringstream creator;
-    creator << "cplreader " << CFS_VERSION << " ( r" << CFS_SUBVERSION_REV << " )";
-    std::string creatorString = creator.str();
-    H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ ); 
-    
-    // create group for content
-    StdVector<Integer> content;
-    content.Push_back( H5IO::MapCapabilityType( SimOutput::USERDATA ) );
-    if(!settings.GetInt("justinit"))
-      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
-    if(!settings.GetInt("justmesh") && !settings.GetInt("justinit"))
-      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
-    H5IO::Write1DArray( infoGroup, "Content", content.GetSize(), 
-                        &content[0], dPropList_ );
-    
-  }
-
-  void MpCCIExchangeCPLR::WriteRegion(const H5::Group& meshGroup,
-                                      const std::vector<UInt>& nodes,
-                                      const std::vector<UInt>& elems,
-                                      const UInt dim,
-                                      const std::string name) 
-  {
-    H5::Group regionListGroup;
-    
-    // Try to open Regions group. If it does not exist try to create it.
-    try{
-      regionListGroup = meshGroup.openGroup("Regions");
-    } catch(H5::GroupIException& ex) {;
-      // create region group
-      try{
-        regionListGroup = meshGroup.createGroup("Regions");
-      } H5_CATCH( "Could not create region group" );
-    }
-    
-    // create new region group 
-    H5::Group actRegionGroup;
-    try {
-      actRegionGroup = regionListGroup.createGroup(name);
-    } H5_CATCH( "Could not create region group for region '" 
-                << name << "'" );
-    H5IO::WriteAttribute( actRegionGroup, "Dimension", 
-                          dim );
-    
-    // create new node group 
-    H5IO::Write1DArray<UInt>( actRegionGroup, "Nodes",
-                              nodes.size(),
-                              (const UInt*)&nodes[0], dPropList_ );
-    
-    // create new element group
-    H5IO::Write1DArray( actRegionGroup,
-                        "Elements",
-                        elems.size(),
-                        (const Integer*)&elems[0],
-                        dPropList_);
-
-    try{
-      actRegionGroup.close();
-      regionListGroup.close();
-    } H5_CATCH( "Could not close region group" );
-  }
-
   void MpCCIExchangeCPLR::Couple()
   {
     Settings& settings = Settings::Instance();
@@ -911,6 +702,216 @@ namespace CoupledField
               << "========================================"
               << std::endl;
   }
+  
+  void MpCCIExchangeCPLR::Finish()
+  {
+    // Fetch custom data from file reader and write it to the UserData
+    // section of the HDF5 file.
+    std::map<std::string, std::string> userData;
+    std::map<std::string, std::string>::const_iterator udIt, udEnd;
+
+    ptFileReader_->GetUserData(userData);
+    udIt = userData.begin();
+    udEnd = userData.end();
+    for( ; udIt != udEnd; udIt++ ) 
+      WriteStringToUserData(udIt->first, udIt->second);
+
+    // Close main HDF5 group and finish
+    try {
+      mainGroup_.close();
+    } H5_CATCH( "Could not close main group" );
+
+    // Delete element integrators
+    std::map<UInt, ElemIntegr *>::iterator it, end;
+    it = ptElemIntegr_.begin();
+    end = ptElemIntegr_.end();
+    for( ; it != end; it++)
+      delete it->second;
+  }
+  
+  void MpCCIExchangeCPLR::CheckOpenObjects() {
+    std::vector<UInt> types;
+    std::vector<std::string> typeNames;
+    hid_t* ids;
+
+    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
+    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
+    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
+    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
+
+    // check for open groups, datasets etc.
+    std::cerr << "Number of open objects:\n"
+              << "--------------------------\n";
+
+    for(UInt t=0; t<types.size(); t++) 
+    {
+      UInt numObjs = mainFile_.getObjCount(types[t]);
+      std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
+
+      ids = new hid_t[numObjs];
+      mainFile_.getObjIDs(types[t], numObjs, ids);
+    
+      for(UInt i=0; i<numObjs; i++)
+      {
+        H5::DataSet ds;
+        H5::Group group;
+        H5::DataType dt;
+        H5::Attribute attr;
+
+        switch(types[t])
+        {
+        case H5F_OBJ_DATASET:
+          ds.setId((ids[i]));
+          std::cerr << "  " << ds.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_GROUP:
+          group.setId((ids[i]));
+          for(UInt idx=0; idx < group.getNumObjs(); idx++)
+            std::cerr << "  subgroup " << group.getObjnameByIdx(idx) << std::endl;
+          break;
+        case H5F_OBJ_DATATYPE:
+          dt.setId((ids[i]));
+          std::cerr << "  " << dt.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_ATTR:
+          attr.setId((ids[i]));
+          std::cerr << "  " << attr.fromClass() << std::endl;
+          break;
+        }
+      }
+
+      delete[] ids;
+    }
+  }
+
+  void MpCCIExchangeCPLR::InitHDF5() {
+    Settings& settings = Settings::Instance();
+    std::string pathsep;
+    std::string fileName  = settings.GetString("name");
+    std::ostringstream strBuffer;
+
+    // Set compression and chunk size parameters for HDF5
+    UInt compressionLevel = 9;
+    UInt maxChunkSize = 100;
+    dPropList_ = H5::DSetCreatPropList::DEFAULT;
+    dPropList_.setLayout( H5D_CHUNKED );
+    dPropList_.setDeflate( compressionLevel );
+    H5IO::SetMaxChunkSize( maxChunkSize );
+
+    // Do not print HDF5 exceptions by default
+    H5::Exception::dontPrint();
+
+    strBuffer << "cplreader_hdf5_" << fileName;
+    hdf5DirName_ = strBuffer.str();
+
+    // concatenate output file name
+    try {
+      fs::create_directory( hdf5DirName_ );
+      pathsep = fs::path("/").native_directory_string();
+    } catch (std::exception &ex) {
+      EXCEPTION(ex.what());
+    }    
+
+    strBuffer.clear();
+    strBuffer.str("");
+    strBuffer << hdf5DirName_ << pathsep << fileName << ".h5";
+    fileName = strBuffer.str();
+    
+    // create main file and obtain main group
+    try {
+      mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
+    } H5_CATCH( "Could not create hdf5 file '" << fileName << "' : " );
+
+    mainGroup_ = mainFile_.openGroup( "/" );
+    meshGroup_ = mainGroup_.createGroup( "Mesh" );
+    mainGroup_.createGroup( "FileInfo" ).close();
+    
+    mainGroup_.createGroup( "UserData" );
+    mainGroup_.createGroup( "Results" );
+  }
+
+  void MpCCIExchangeCPLR::WriteFileInfoHeader() {
+    Settings& settings = Settings::Instance();
+    H5::Group infoGroup;
+    try {
+      infoGroup = mainGroup_.openGroup( "FileInfo" );
+    } H5_CATCH( "Could not open group for FileInfo" );
+    
+    // write file version
+    std::stringstream version;
+    version << CFS_HDF5_FORMAT_MAJOR << "." << CFS_HDF5_FORMAT_MINOR;
+    std::string versionString = version.str();
+    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ ); 
+    
+    // write date / time information
+    using namespace boost::posix_time;
+    using namespace boost::gregorian;
+    std::string now = to_simple_string( second_clock::local_time() );
+    H5IO::Write1DArray( infoGroup, "Date", 1, &now, dPropList_ );
+    
+    // write creator
+    std::stringstream creator;
+    creator << "cplreader " << CFS_VERSION << " ( r" << CFS_SUBVERSION_REV << " )";
+    std::string creatorString = creator.str();
+    H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ ); 
+    
+    // create group for content
+    StdVector<Integer> content;
+    content.Push_back( H5IO::MapCapabilityType( SimOutput::USERDATA ) );
+    if(!settings.GetInt("justinit"))
+      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
+    if(!settings.GetInt("justmesh") && !settings.GetInt("justinit"))
+      content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
+    H5IO::Write1DArray( infoGroup, "Content", content.GetSize(), 
+                        &content[0], dPropList_ );
+    
+  }
+
+  void MpCCIExchangeCPLR::WriteRegion(const H5::Group& meshGroup,
+                                      const std::vector<UInt>& nodes,
+                                      const std::vector<UInt>& elems,
+                                      const UInt dim,
+                                      const std::string name) 
+  {
+    H5::Group regionListGroup;
+    
+    // Try to open Regions group. If it does not exist try to create it.
+    try{
+      regionListGroup = meshGroup.openGroup("Regions");
+    } catch(H5::GroupIException& ex) {;
+      // create region group
+      try{
+        regionListGroup = meshGroup.createGroup("Regions");
+      } H5_CATCH( "Could not create region group" );
+    }
+    
+    // create new region group 
+    H5::Group actRegionGroup;
+    try {
+      actRegionGroup = regionListGroup.createGroup(name);
+    } H5_CATCH( "Could not create region group for region '" 
+                << name << "'" );
+    H5IO::WriteAttribute( actRegionGroup, "Dimension", 
+                          dim );
+    
+    // create new node group 
+    H5IO::Write1DArray<UInt>( actRegionGroup, "Nodes",
+                              nodes.size(),
+                              (const UInt*)&nodes[0], dPropList_ );
+    
+    // create new element group
+    H5IO::Write1DArray( actRegionGroup,
+                        "Elements",
+                        elems.size(),
+                        (const Integer*)&elems[0],
+                        dPropList_);
+
+    try{
+      actRegionGroup.close();
+      regionListGroup.close();
+    } H5_CATCH( "Could not close region group" );
+  }
+
 
   void MpCCIExchangeCPLR::InitResultsGroup() 
   {
@@ -979,6 +980,14 @@ namespace CoupledField
           resultRegions.push_back(ptFileReader_->GetPartitionName(i));
       }
     }
+
+    // Maybe the user made some wrong specifications...
+    if(resultRegions.empty())
+    {
+      std::cerr << "No result description has been written!" << std::endl;
+      return;
+    }
+    
     
     // Write result descriptions
     it = outputFields[0].begin();
@@ -1138,6 +1147,9 @@ namespace CoupledField
     fdps2.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
     fdps2.entryType = ResultInfo::SCALAR;
     std::vector<Double>& acouRhsField = fdps2.data;
+
+    // Fill acouRhsLoad field with zeros
+    std::fill(acouRhsField.begin(), acouRhsField.end(), 0);
 
     int nElems = ptFileReader_->GetNumElems(partitionIdx);
 
