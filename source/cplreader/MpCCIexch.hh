@@ -64,8 +64,7 @@ namespace CoupledField
     void WriteResultDescriptions(UInt numSteps,
                                  const std::vector<FlowDataType>& outputFields,
                                  const std::vector<UInt> stepNumbers,
-                                 const std::vector<Double> stepValues,
-                                 const std::vector<std::string> regions);
+                                 const std::vector<Double> stepValues);
     void WriteResults( H5::Group& resultGroup,
                        std::vector<Double>& resultVals,
                        const UInt numDOFs,
@@ -124,6 +123,7 @@ namespace CoupledField
     int quantityDim2_;
 
     std::map<UInt, ElemIntegr *> ptElemIntegr_;
+    std::vector<std::string> requiredResults_;
   };
 
 } // end of namespace

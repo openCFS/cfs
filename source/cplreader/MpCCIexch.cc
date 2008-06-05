@@ -81,6 +81,8 @@ namespace CoupledField
 
   void MpCCIExchangeCPLR::Init(int argc, char *argv[])
   {
+    Settings& settings = Settings::Instance();
+
     ptFileReader_->Init();
 
     InitHDF5();
@@ -104,6 +106,15 @@ namespace CoupledField
     }
 #endif // MpCCI
 
+    // Initialize vector with required results
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";| ");
+    Tok t(settings.GetString("outputfields"), sep);
+    std::copy(t.begin(),
+              t.end(),
+              std::back_inserter(requiredResults_));
+
+    // Initialize element integrators for source term calculation
     ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
     ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
     ptElemIntegr_[ET_QUAD4]  = new ElemIntegr(ET_QUAD4);
@@ -682,9 +693,6 @@ namespace CoupledField
     // Initialize results tree in HDF5 file
     InitResultsGroup();
 
-    typedef boost::tokenizer< boost::char_separator<char> > Tok;
-    boost::char_separator<char> sep(";| ");
-    Tok t(settings.GetString("outputfields"), sep);
 
     // Fill vector with region names
     for (actPart = 0; actPart<numPartitions; actPart++)
@@ -808,10 +816,12 @@ namespace CoupledField
             continue;
 
           // Check if we should write out this result
-          std::string firstReqRes = *t.begin();
+          std::string firstReqRes = *requiredResults_.begin();
           if(firstReqRes != "all")
           {
-            if(std::find(t.begin(), t.end(), fdps.resultName) == t.end()) 
+            if(std::find(requiredResults_.begin(),
+                         requiredResults_.end(),
+                         fdps.resultName) == requiredResults_.end()) 
               continue;
           }
 
@@ -890,7 +900,7 @@ namespace CoupledField
     // Finally write out result descriptions. This must be done in
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, flowData, timeStepNumbers,
-                             timeStepValues, regionNames );
+                             timeStepValues );
 
     std::cout << "========================================"
               << "========================================"
@@ -930,8 +940,7 @@ namespace CoupledField
   void MpCCIExchangeCPLR::WriteResultDescriptions(UInt numSteps,
                                                   const std::vector<FlowDataType>& outputFields,
                                                   const std::vector<UInt> stepNumbers,
-                                                  const std::vector<Double> stepValues,
-                                                  const std::vector<std::string> regions)
+                                                  const std::vector<Double> stepValues)
  {
     Settings& settings = Settings::Instance();
     std::string resultName, unit;
@@ -961,7 +970,12 @@ namespace CoupledField
       end = outputFields[i].end();
       
       for( ; it != end; it++ ) {
-        if(it->second.isActive)
+        if(it->second.isActive && 
+           (std::find(requiredResults_.begin(),
+                      requiredResults_.end(),
+                      it->second.resultName) != requiredResults_.end() ||
+            *requiredResults_.begin() == "all" )
+          )
           resultRegions.push_back(ptFileReader_->GetPartitionName(i));
       }
     }
