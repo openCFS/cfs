@@ -493,6 +493,8 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(DampingType)
 #endif
 
+  std::string MapSolTypeToUnit(SolutionType solType);
+
 #ifdef INTEGLIB
   typedef enum {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS}
   FEMatrixType;

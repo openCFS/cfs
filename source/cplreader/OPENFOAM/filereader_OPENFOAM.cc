@@ -346,7 +346,7 @@ namespace CoupledField
             }
           }
 
-          fdps->unit = "m s^-1";
+          fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
           Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
           numDOFs = fdps->dofNames.size();
           fdps->data.resize(numDOFs * nvx);
@@ -361,7 +361,7 @@ namespace CoupledField
           fdps->entryType = ResultInfo::SCALAR;
           if (!fdps->dofNames.size())
             fdps->dofNames.push_back("-");
-          fdps->unit = "Pa";
+          fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
           Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
           numDOFs = fdps->dofNames.size();
           fdps->data.resize(numDOFs * nvx);

@@ -440,7 +440,7 @@ namespace CoupledField
             {
             case ACOU_RHS_LOAD:
               fdps.dofNames.push_back("-");
-              fdps.unit = "kg m^-3 s^-2";
+              fdps.unit = MapSolTypeToUnit(ACOU_RHS_LOAD);
               fdps.entryType = ResultInfo::SCALAR;
               break;
             case FLUIDMECH_VELOCITY:
@@ -448,12 +448,12 @@ namespace CoupledField
               fdps.dofNames.push_back("y");
               if(dim_ == 3) 
                 fdps.dofNames.push_back("z");
-              fdps.unit = "m s^-1";
+              fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
               fdps.entryType = ResultInfo::VECTOR;
               break;
             case FLUIDMECH_PRESSURE:
               fdps.dofNames.push_back("-");
-              fdps.unit = "Pa";
+              fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
               fdps.entryType = ResultInfo::SCALAR;
               break;
             default:

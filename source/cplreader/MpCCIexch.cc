@@ -44,6 +44,8 @@ namespace fs=boost::filesystem;
   }
 
 
+
+
 namespace CoupledField
 {
 
@@ -118,7 +120,6 @@ namespace CoupledField
     ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
     ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
     ptElemIntegr_[ET_QUAD4]  = new ElemIntegr(ET_QUAD4);
-    ptElemIntegr_[ET_QUAD8]  = new ElemIntegr(ET_QUAD8);
     ptElemIntegr_[ET_TET4]   = new ElemIntegr(ET_TET4);
     ptElemIntegr_[ET_WEDGE6] = new ElemIntegr(ET_WEDGE6);
     ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
@@ -1142,7 +1143,7 @@ namespace CoupledField
     fdps2.definedOn = ResultInfo::NODE; // nodes
     if(fdps2.dofNames.empty())
       fdps2.dofNames.push_back("-");
-    fdps2.unit = "kg m^-3 s^-2";
+    fdps2.unit = MapSolTypeToUnit(ACOU_RHS_LOAD);
     fdps2.resultName = "acouRhsLoad";
     fdps2.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
     fdps2.entryType = ResultInfo::SCALAR;
