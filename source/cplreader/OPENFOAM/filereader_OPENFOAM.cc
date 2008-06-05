@@ -233,11 +233,25 @@ namespace CoupledField
       cell = ds->GetCell(i);
       numPoints = cell->GetNumberOfPoints();
       
-      for (UInt j = 0; j < numPoints; ++j)
+      if(elemTypes[i] == ET_WEDGE6) 
       {
-        TOPOLOGYDATA[cnt] = nodeMap[cell->GetPointId(j)];
-        ++cnt;
+        TOPOLOGYDATA[cnt+0] = nodeMap[cell->GetPointId(3)];
+        TOPOLOGYDATA[cnt+1] = nodeMap[cell->GetPointId(4)];
+        TOPOLOGYDATA[cnt+2] = nodeMap[cell->GetPointId(5)];
+        TOPOLOGYDATA[cnt+3] = nodeMap[cell->GetPointId(0)];
+        TOPOLOGYDATA[cnt+4] = nodeMap[cell->GetPointId(1)];
+        TOPOLOGYDATA[cnt+5] = nodeMap[cell->GetPointId(2)];
+        cnt += 6;
       }
+      else 
+      {
+        for (UInt j = 0; j < numPoints; ++j)
+        {
+          TOPOLOGYDATA[cnt] = nodeMap[cell->GetPointId(j)];
+          ++cnt;
+        }
+      }
+      
     }
 
 
