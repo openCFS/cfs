@@ -917,12 +917,14 @@ namespace CoupledField
                                                   const std::vector<Double> stepValues,
                                                   const std::vector<std::string> regions)
  {
+    Settings& settings = Settings::Instance();
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
     FlowDataType::const_iterator it, end;
     H5::Group resultDescGroup;
     H5::Group msGroup;
+    std::vector<std::string> dummy;
     
     try {
       // open the group for the result description datasets.
@@ -936,24 +938,34 @@ namespace CoupledField
     } H5_CATCH( "Could not open result description group" );
     
 
+    if(settings.GetString("type") == "OPENFOAM")
+    {
+      dummy.push_back(regions[0]);
+    }
+    else 
+      dummy = regions;
+    
+
     it = outputFields[0].begin();
     end = outputFields[0].end();
 
     for( ; it != end; it++ ) {
       resultName = it->second.resultName;
-      definedOn = it->second.definedOn;
+      definedOn = H5IO::MapUnknownType(it->second.definedOn);
       dofNames = it->second.dofNames;
       unit = it->second.unit;
       numDofs = dofNames.size();
-      entryType = it->second.entryType;
+      entryType = H5IO::MapEntryType(it->second.entryType);
+
+      std::cout << "definedOn " << definedOn << " for " << resultName << std::endl;
 
       try {
         // === Second version: Separate datasets for each entry
         H5::Group actGroup = resultDescGroup.createGroup(resultName);
         
         H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
-        H5IO::Write1DArray( actGroup, "EntityNames", regions.size(), 
-                            &regions[0], dPropList_ );
+        H5IO::Write1DArray( actGroup, "EntityNames", dummy.size(), 
+                            &dummy[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
         H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(), 
                             &dofNames[0], dPropList_ );
