@@ -22,13 +22,17 @@ namespace CoupledField
 
     CreatePt2Elems(elemType);
 
+    if(!ptElem_)
+      return;
+
     linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
   }
   
   ElemIntegr::~ElemIntegr()
   {
     delete linearLoad_;
-    delete ptElem_->ptElem;
+    if(ptElem_)
+      delete ptElem_->ptElem;
     delete ptElem_;
   }
 
@@ -92,12 +96,18 @@ namespace CoupledField
       break;
 
     default:
-      Error("Element-Type not defined!",__FILE__,__LINE__);
+      std::cerr << "Element-Type not defined!" << std::endl;
+      delete ptElem_;
+      ptElem_ = NULL;
+      break;
     }
 
-    ptElem_->regionId = 1;  
-    ptElem_->elemNum = 1;  
-  
+    if(ptElem_)
+    {
+      ptElem_->regionId = 1;  
+      ptElem_->elemNum = 1;  
+    }
+    
   }
   
   void ElemIntegr::PerformIntegration(const Matrix<Double> & coordMat,
@@ -109,14 +119,10 @@ namespace CoupledField
     (*trace) << " entering ElemIntegr::PerformIntegration" << std::endl;
 #endif
 
-//     if (NodalVal.GetSizeRow()>1)
-//       {
-//         std::cout<<"AQUI"<<std::endl;
+    if(!ptElem_)
+      return;
+
     linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, ptElem_);
-//       }
-    
-//     else
-//      linear_load->CalcElemVec4QuadwithPress(coordMat,  NodalVal, elemvec);      
   }
 
 
