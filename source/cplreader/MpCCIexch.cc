@@ -103,6 +103,15 @@ namespace CoupledField
       CCI_Init_with_id_string(&argc, &argv, "simulationcode1");
     }
 #endif // MpCCI
+
+    ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
+    ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
+    ptElemIntegr_[ET_QUAD4]  = new ElemIntegr(ET_QUAD4);
+    ptElemIntegr_[ET_QUAD8]  = new ElemIntegr(ET_QUAD8);
+    ptElemIntegr_[ET_TET4]   = new ElemIntegr(ET_TET4);
+    ptElemIntegr_[ET_WEDGE6] = new ElemIntegr(ET_WEDGE6);
+    ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
+    ptElemIntegr_[ET_HEXA8]  = new ElemIntegr(ET_HEXA8);
   }
   
   void MpCCIExchangeCPLR::Finish()
@@ -122,6 +131,13 @@ namespace CoupledField
     try {
       mainGroup_.close();
     } H5_CATCH( "Could not close main group" );
+
+    // Delete element integrators
+    std::map<UInt, ElemIntegr *>::iterator it, end;
+    it = ptElemIntegr_.begin();
+    end = ptElemIntegr_.end();
+    for( ; it != end; it++)
+      delete it->second;
   }
   
   void MpCCIExchangeCPLR::CheckOpenObjects() {
@@ -822,7 +838,7 @@ namespace CoupledField
             currResultGroup = currResultGroup.createGroup(groupName);
             
             // Create subgroup for Nodes
-            groupName = "Nodes";
+            groupName = H5IO::MapUnknownTypeAsString(fdps.definedOn);
             currResultGroup = currResultGroup.createGroup(groupName);
 
             // Write result dataset
@@ -924,7 +940,7 @@ namespace CoupledField
     FlowDataType::const_iterator it, end;
     H5::Group resultDescGroup;
     H5::Group msGroup;
-    std::vector<std::string> dummy;
+    std::vector<std::string> resultRegions;
     
     try {
       // open the group for the result description datasets.
@@ -937,19 +953,27 @@ namespace CoupledField
       
     } H5_CATCH( "Could not open result description group" );
     
-
-    if(settings.GetString("type") == "OPENFOAM")
+    // Extract active regions (OpenFOAM)
+    int numPartitions = ptFileReader_->GetNumPartitions();
+    for(UInt i=0; i<numPartitions; i++) 
     {
-      dummy.push_back(regions[0]);
+      it = outputFields[i].begin();
+      end = outputFields[i].end();
+      
+      for( ; it != end; it++ ) {
+        if(it->second.isActive)
+          resultRegions.push_back(ptFileReader_->GetPartitionName(i));
+      }
     }
-    else 
-      dummy = regions;
     
-
+    // Write result descriptions
     it = outputFields[0].begin();
     end = outputFields[0].end();
 
     for( ; it != end; it++ ) {
+      if(!it->second.isActive)
+        continue;
+      
       resultName = it->second.resultName;
       definedOn = H5IO::MapUnknownType(it->second.definedOn);
       dofNames = it->second.dofNames;
@@ -957,15 +981,13 @@ namespace CoupledField
       numDofs = dofNames.size();
       entryType = H5IO::MapEntryType(it->second.entryType);
 
-      std::cout << "definedOn " << definedOn << " for " << resultName << std::endl;
-
       try {
         // === Second version: Separate datasets for each entry
         H5::Group actGroup = resultDescGroup.createGroup(resultName);
         
         H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
-        H5IO::Write1DArray( actGroup, "EntityNames", dummy.size(), 
-                            &dummy[0], dPropList_ );
+        H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(), 
+                            &resultRegions[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
         H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(), 
                             &dofNames[0], dPropList_ );
@@ -1066,6 +1088,8 @@ namespace CoupledField
   void MpCCIExchangeCPLR::CalculateAcouSrcs(const int partitionIdx,
                                             FlowDataType& flowData)
   {
+    Settings& settings = Settings::Instance();
+
  #ifndef CPLREADER_STANDALONE
     std::string regionName = ptFileReader_->GetPartitionName(partitionIdx);
 
@@ -1093,160 +1117,90 @@ namespace CoupledField
     FlowDataPartStruct& fdps2 = flowData[ACOU_RHS_LOAD];
     fdps2.isActive = true; // all partitions have results
     fdps2.definedOn = ResultInfo::NODE; // nodes
-    fdps2.dofNames.push_back("-");
+    if(fdps2.dofNames.empty())
+      fdps2.dofNames.push_back("-");
     fdps2.unit = "kg m^-3 s^-2";
     fdps2.resultName = "acouRhsLoad";
     fdps2.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
     fdps2.entryType = ResultInfo::SCALAR;
     std::vector<Double>& acouRhsField = fdps2.data;
 
-    Settings& settings = Settings::Instance();
     int nElems = ptFileReader_->GetNumElems(partitionIdx);
 
-    Matrix<Double> coordMatQuad;
-    Matrix<Double> nodaldTijdxjQuad;
-    Matrix<Double> nodalVelQuad;
+    Matrix<Double> coordMat;
+    Matrix<Double> nodaldTijdxj;
+    Matrix<Double> nodalVel;
+    Vector<Double> elemVec;
 
-    coordMatQuad.Resize(2, 4);
-    nodaldTijdxjQuad.Resize(2, 4);
-    nodalVelQuad.Resize(2, 4);
-    Vector<Double> elemVecQuad;
-
-    Matrix<Double> coordMatHex;
-    Matrix<Double> nodaldTijdxjHex;
-    Matrix<Double> nodalVelHex;
-
-    coordMatHex.Resize(3, 8);
-    nodaldTijdxjHex.Resize(3, 8);
-    nodalVelHex.Resize(3, 8);
-    Vector<Double> elemVecHex;
-
+    FEType elemType;
+    UInt numElemNodes;
+    UInt elemDim;
+    
     int k=0;
-
-    std::map<UInt, ElemIntegr *> ptElemIntegr;
-
-
+    
     for( int i=0; i<nElems; i++)
     {
-      switch(elemTypes_[partitionIdx][i])
+      numElemNodes = numNodesPerElem_[partitionIdx][i];
+      elemType = (FEType) elemTypes_[partitionIdx][i];
+      elemDim = ELEM_DIM[elemType];
+
+      coordMat.Resize(elemDim, numElemNodes);
+      nodaldTijdxj.Resize(elemDim, numElemNodes);
+      nodalVel.Resize(elemDim, numElemNodes);
+
+      for( UInt n=0; n<numElemNodes; n++)
       {
-      case ET_LINE2:
-        break;
-
-      case ET_TRIA3:
-        break;
-
-      case ET_QUAD4:
-        if(!ptElemIntegr[ET_QUAD4])
-          ptElemIntegr[ET_QUAD4]=new ElemIntegr(ET_QUAD4);
-
-        for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
+        UInt idx = (Topology_[partitionIdx][k+n]-1)*elemDim;
+        
+        for( UInt d=0; d<elemDim; d++)
         {
-          UInt idx = (Topology_[partitionIdx][k+n]-1)*2;
-
-          coordMatQuad[0][n] = NodalCoords_[partitionIdx][(Topology_[partitionIdx][k+n]-1)*3+0];
-          coordMatQuad[1][n] = NodalCoords_[partitionIdx][(Topology_[partitionIdx][k+n]-1)*3+1];
-
-          nodalVelQuad[0][n] = velField[idx+0];
-          nodalVelQuad[1][n] = velField[idx+1];
+          coordMat[d][n] = NodalCoords_[partitionIdx][idx+d];
+          nodalVel[d][n] = velField[idx+d];
         }
-
-        try {
-          ptElemIntegr[ET_QUAD4]->PerformIntegration( coordMatQuad, nodaldTijdxjQuad,
-                                                      nodalVelQuad, elemVecQuad);
-        } catch (CoupledField::Exception &ex)
-        {
-          std::cerr << "Warning: An Exception occurred during source term "
-                    << "computation:\nElement " << i+1 << " of partition "
-                    << partitionIdx+1 << std::endl;
-
-          if(settings.GetInt("verbose")) {
-            UInt oldPrec = std::cerr.precision(8);
-          
-            std::cerr << "Corner coords:\n";
-            for (UInt iCol = 0, numCols = coordMatQuad.GetSizeCol();
-                 iCol < numCols; ++iCol) {
-              for (UInt iRow = 0, numRows = coordMatQuad.GetSizeRow();
-                   iRow < numRows; ++iRow) {
-                std::cerr << "\t" << coordMatQuad[iRow][iCol];
-              }
-              std::cerr << std::endl;
-            }
-          
-            std::cerr.precision(oldPrec);
-            std::cerr << ex.what();
-          }
-
-          std::cerr << "Setting contribution to acousrc to zero!\n\n";
-          elemVecQuad.Resize(4);
-          elemVecQuad.Init(0.0);
-        }
-
-        for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
-        {
-          UInt idx = Topology_[partitionIdx][k+n]-1;
-
-          acouRhsField[idx] -= elemVecQuad[n];
-        }
-        break;
-
-      case ET_QUAD8:
-        break;
-
-      case ET_TET4:
-        break;
-
-      case ET_WEDGE6:
-        break;
-
-      case ET_HEXA8:
-        if(!ptElemIntegr[ET_HEXA8])
-          ptElemIntegr[ET_HEXA8]=new ElemIntegr(ET_HEXA8);
-
-        for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
-        {
-          int idx = (Topology_[partitionIdx][k+n]-1)*3;
-          int idx2 = (Topology_[partitionIdx][k+n]-1)*3;
-
-          coordMatHex[0][n] = NodalCoords_[partitionIdx][idx2+0];
-          coordMatHex[1][n] = NodalCoords_[partitionIdx][idx2+1];
-          coordMatHex[2][n] = NodalCoords_[partitionIdx][idx2+2];
-
-          nodalVelHex[0][n] = velField[idx+0];
-          nodalVelHex[1][n] = velField[idx+1];
-          nodalVelHex[2][n] = velField[idx+2];
-        }
-
-        try {
-          ptElemIntegr[ET_HEXA8]->PerformIntegration( coordMatHex, nodaldTijdxjHex,
-                                                      nodalVelHex, elemVecHex);
-        } catch (CoupledField::Exception &ex)
-        {
-          std::cerr << "Warning: An Exception occurred during source term "
-                    << "computation!" << std::endl;
-          std::cerr << "Corner coords: " << coordMatHex << std::endl;
-
-          if(settings.GetInt("verbose"))
-            std::cerr << ex.what();
-
-          std::cerr << "Setting contribution to acousrc to zero!" << std::endl;
-          elemVecHex.Resize(8);
-          elemVecHex.Init(0.0);
-        }
-
-        for( UInt n=0; n<numNodesPerElem_[partitionIdx][i]; n++)
-        {
-          int idx = Topology_[partitionIdx][k+n]-1;
-
-          acouRhsField[idx] -= elemVecHex[n];
-        }
-        break;
-
-      case ET_PYRA5:
-        break;
       }
 
-      k += numNodesPerElem_[partitionIdx][i];
+      try {
+        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj,
+                                                     nodalVel, elemVec);
+      } catch (CoupledField::Exception &ex)
+      {
+        std::cerr << "Warning: An Exception occurred during source term "
+                  << "computation:\nElement " << i+1 << " of partition "
+                  << partitionIdx+1 << std::endl;
+
+        std::cerr << ex.what()<< std::endl;
+
+        if(settings.GetInt("verbose")) {
+          UInt oldPrec = std::cerr.precision(8);
+          
+          std::cerr << "Corner coords:\n";
+          for (UInt iCol = 0, numCols = coordMat.GetSizeCol();
+               iCol < numCols; ++iCol) {
+            for (UInt iRow = 0, numRows = coordMat.GetSizeRow();
+                 iRow < numRows; ++iRow) {
+              std::cerr << "\t" << coordMat[iRow][iCol];
+            }
+            std::cerr << std::endl;
+          }
+          
+          std::cerr.precision(oldPrec);
+          std::cerr << ex.what();
+        }
+
+        std::cerr << "Setting contribution to acousrc to zero!\n\n";
+        elemVec.Resize(numElemNodes);
+        elemVec.Init(0.0);
+      }
+
+      // Add contributions of all element nodes
+      for( UInt n=0; n<numElemNodes; n++)
+      {
+        UInt idx = Topology_[partitionIdx][k+n]-1;
+
+        acouRhsField[idx] -= elemVec[n];
+      }
+
+      k += numElemNodes;
     }
 
     std::cout << "done." << std::endl;

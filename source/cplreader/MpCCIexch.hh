@@ -13,6 +13,8 @@ namespace CoupledField
 #define CFS_HDF5_FORMAT_MAJOR 0
 #define CFS_HDF5_FORMAT_MINOR 9
 
+  class ElemIntegr;
+
   //! Class for mesh coupling
   /*! 
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
@@ -121,6 +123,7 @@ namespace CoupledField
     int quantityId2_;
     int quantityDim2_;
 
+    std::map<UInt, ElemIntegr *> ptElemIntegr_;
   };
 
 } // end of namespace
