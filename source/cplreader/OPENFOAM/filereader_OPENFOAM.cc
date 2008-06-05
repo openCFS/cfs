@@ -11,9 +11,12 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
+#include "Domain/resultInfo.hh"
+
 #include "../params.hh"
 #include "../settings.hh"
 #include "filereader_OPENFOAM.hh"
+
 
 // This is due to the fucking OLAS New operator!!!
 #undef New 
@@ -26,6 +29,7 @@ namespace fs=boost::filesystem;
 #include <vtkDataArray.h>
 #include <vtkPointData.h>
 #include <vtkCellDataToPointData.h>
+#include <vtkArrayIteratorTemplate.h>
 
 namespace CoupledField
 {
@@ -54,9 +58,16 @@ namespace CoupledField
     /* TODO: check if file even exists, otherwise vtkOpenFOAMReader will hang */
     controlDictName << name_.c_str() << "/system/controlDict";
     reader_ = vtkOpenFOAMReader::New();
+    if(settings.GetInt("verbose"))
+      reader_->DebugOn();
+    
     reader_->SetFileName(controlDictName.str().c_str());
     reader_->Update();
-    numFiles_ = reader_->GetNumberOfTimeSteps();
+
+    if(settings.GetInt("verbose"))
+      reader_->PrintSelf(std::cout, (vtkIndent)0);
+
+    numFiles_ = reader_->GetNumberOfTimeSteps()-1;
     numResults_ = reader_->GetNumberOfCellArrays();
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
@@ -69,14 +80,16 @@ namespace CoupledField
       iter->GoToNextItem();
     }
 
-    std::cout << " Name: " << name_ << std::endl
-              << " Dim: " << dim_ << std::endl
-              << " numfiles: " << numFiles_ << std::endl
-              << " numPartitions: " << numPartitions_ << std::endl
-              << " numResults: " << numResults_ << std::endl
-              << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
+    if(settings.GetInt("verbose")) 
+    {
+      std::cout << " Name: " << name_ << std::endl
+                << " Dim: " << dim_ << std::endl
+                << " numfiles: " << numFiles_ << std::endl
+                << " numPartitions: " << numPartitions_ << std::endl
+                << " numResults: " << numResults_ << std::endl
+                << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
+    }
     
-
     elsize_.resize(numPartitions_);
     MpCCInodes_.resize(numPartitions_);
     MpCCIelems_.resize(numPartitions_);
@@ -93,21 +106,38 @@ namespace CoupledField
       numElems = ds->GetNumberOfCells();
       MpCCIelems_[p_cnt] = numElems;
 
-      /* jsut get the first cell, the number of points per element has to stay
+      /* just get the first cell, the number of points per element has to stay
        * the same inside a partition */
       vtkCell* cell = ds->GetCell(0);
       numPoints = cell->GetNumberOfPoints();
       elsize_[p_cnt] = numPoints;
 
-      std::cout << "Partition " << (p_cnt+1)
-        << " nodes: " << MpCCInodes_[p_cnt]
-        << " elems: " << MpCCIelems_[p_cnt]
-        << " elsize: " << elsize_[p_cnt]
-        <<std::endl;
+      if(settings.GetInt("verbose"))
+      {
+        std::cout << "Partition " << (p_cnt+1)
+                  << " nodes: " << MpCCInodes_[p_cnt]
+                  << " elems: " << MpCCIelems_[p_cnt]
+                  << " elsize: " << elsize_[p_cnt]
+                  <<std::endl;
+      }
+      
       ++p_cnt;
       iter->GoToNextItem();
     }
     iter->Delete();
+
+    if(settings.GetInt("verbose")) 
+    {
+      std::cout << "Number of boundaries: "
+                << reader_->GetNumBoundaries() << std::endl;
+      std::cout << "Number of point zones: "
+                << reader_->GetNumPointZones() << std::endl;
+      std::cout << "Number of face zones: "
+                << reader_->GetNumFaceZones() << std::endl;
+      std::cout << "Number of cell zones: "
+                << reader_->GetNumCellZones() << std::endl;
+    }
+    
     std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
   }
 
@@ -119,24 +149,16 @@ namespace CoupledField
     /* number of coordinates. One Tupel of 3D coordinate (x,y,z) */
     const UInt numCoords = dim_;
 
-    /* disregard pointZones and faceZones */
-    const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
-    UInt partitionIdx_loc = partitionIdx;
-    if (partitionIdx_loc > (UInt)reader_->GetNumBoundaries())
-    {
-      partitionIdx_loc += idx_gap;
-    }
-
-    const UInt& numPoints = MpCCInodes_[partitionIdx_loc];
+    const UInt& numPoints = MpCCInodes_[partitionIdx];
     NODECOORD.resize(numCoords * numPoints);
 
-    /* goto to the desired partition */
+    /* just read coords for internal mesh partitionIdx = 0 */
+    if(partitionIdx)
+      return;
+
+    /* Goto first dataset (internal mesh) */
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
-    for (UInt i = 0; i < partitionIdx_loc; ++i)
-    {
-        iter->GoToNextItem();
-    }
     vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
 
     /* get the tuples and write them into NODECOORD */
@@ -152,19 +174,6 @@ namespace CoupledField
         ++tmp_ij;
       }
     }
-
-    // Hier werden die Koordinaten für eine Partition/Subdomain eingelesen.
-    // partitionIdx kann hierbei von 0 ... n-1 gehen.
-    // NODECOORD[0] = x1
-    // NODECOORD[1] = y1
-    // NODECOORD[2] = z1
-
-    // NODECOORD[3] = x2
-    // NODECOORD[4] = y2
-    // NODECOORD[5] = z2
-
-    // In ReadNodalValues müssen die Werte in der gleichen Reihenfolge
-    // eingelesen werden.
   }
 
   void FileReader_OPENFOAM::ReadTopology(std::vector<UInt>& TOPOLOGYDATA,
@@ -176,19 +185,16 @@ namespace CoupledField
     UInt numPoints;
     UInt numCells;
     UInt topo_size = 0;
+    double pt[3];
+    std::map<UInt, UInt> nodeMap;
 
     /* disregard pointZones and faceZones */
-    const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
-    UInt partitionIdx_loc = partitionIdx;
-    if (partitionIdx_loc > (UInt)reader_->GetNumBoundaries())
-    {
-      partitionIdx_loc += idx_gap;
-    }
-
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
+    vtkDataSet* ds1 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+
     /* goto to the desired partition */
-    for (UInt i = 0; i < partitionIdx_loc; ++i)
+    for (UInt i = 0; i < partitionIdx; ++i)
     {
         iter->GoToNextItem();
     }
@@ -197,6 +203,18 @@ namespace CoupledField
     iter->Delete();
     vtkCell* cell;
     numCells = ds->GetNumberOfCells();
+    numPoints = ds->GetNumberOfPoints();
+
+    // Map all points to nodes in the inner mesh (partitionIdx=0 -> ds1)
+    for (UInt i = 0; i < numPoints; ++i)
+    {
+      ds->GetPoint(i, pt);
+
+      vtkIdType ptId = ds1->FindPoint(pt);
+
+      nodeMap[i] = ptId+1;
+    }
+    
     numNodesPerElem.resize(numCells);
     elemTypes.resize(numCells);
     for (UInt i = 0; i < numCells; ++i)
@@ -205,8 +223,6 @@ namespace CoupledField
       numPoints = cell->GetNumberOfPoints();
       topo_size += numPoints;
       numNodesPerElem[i] = numPoints;
-      /* TODO: a map should be made which reads the type from vtk and maps it to
-       * the CFS type */
       elemTypes[i] = VTKCellTypeToFEType(cell->GetCellType());
     }
 
@@ -216,10 +232,10 @@ namespace CoupledField
     {
       cell = ds->GetCell(i);
       numPoints = cell->GetNumberOfPoints();
-        
+      
       for (UInt j = 0; j < numPoints; ++j)
       {
-        TOPOLOGYDATA[cnt] = cell->GetPointId(j)+1;
+        TOPOLOGYDATA[cnt] = nodeMap[cell->GetPointId(j)];
         ++cnt;
       }
     }
@@ -244,213 +260,130 @@ namespace CoupledField
     //...
   }
 
-  void FileReader_OPENFOAM::ReadNodalValues(std::vector<double>& flowdata,
-                                            const UInt partitionIdx,
-                                            const UInt timeStepIdx)
-  {
-    std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
-    reader_->SetTimeStep(timeStepIdx);
-    reader_->Update();
-
-    /* disregard pointZones and faceZones */
-    const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
-    UInt partitionIdx_loc = partitionIdx;
-    if (partitionIdx_loc > (UInt)reader_->GetNumBoundaries())
-    {
-      partitionIdx_loc += idx_gap;
-    }
-
-    flowdata.resize(7 * MpCCInodes_[partitionIdx]);
-
-    char u_char = 'U';
-    char p_char = 'p';
-
-    vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
-    iter->GoToFirstItem();
-    /* goto to the desired partition */
-    for (UInt i = 0; i < partitionIdx; ++i)
-    {
-        iter->GoToNextItem();
-    }
-    
-    vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
-    vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-    c2p->SetInput(ds);
-    c2p->Update();
-    vtkDataSet* ds_point = c2p->GetOutput();
-    vtkPointData* pointData = ds_point->GetPointData();
-
-    vtkDataArray* tuple_vel;
-    vtkDataArray* scalar_pres;
-    double* velo_vals;
-    std::vector<Double> tempVec;
-    tempVec.resize(numResults_);
-    UInt tmp_ij;
-    for (UInt i = 0; i < MpCCInodes_[partitionIdx]; ++i)
-    {
-      tmp_ij = 7 * i;
-      std::fill(&flowdata[tmp_ij + 0], &flowdata[tmp_ij + 7], 0.0);
-
-      tuple_vel = pointData->GetScalars(&u_char);
-      velo_vals = tuple_vel->GetTuple3(i);
-      tempVec[dataColumns_[1]] = velo_vals[1];
-      tempVec[dataColumns_[2]] = velo_vals[2];
-      tempVec[dataColumns_[3]] = velo_vals[3];
-      scalar_pres = pointData->GetScalars(&p_char);
-      tempVec[dataColumns_[4]] = scalar_pres->GetTuple1(i);
-
-      for (UInt j = 0; j < dataColumns_.size(); ++j)
-      {
-        if (dataColumns_[j] > -1)
-        {
-            flowdata[tmp_ij] = tempVec[dataColumns_[j]];
-        }
-        ++tmp_ij;
-      }
-    }
-
-    // flowdata layout:
-    // flowdata[0] = Lighthill Quellterm 1
-    // flowdata[1] = u1
-    // flowdata[2] = v1 
-    // flowdata[3] = w1
-    // flowdata[4] = Druck1
-    // flowdata[5] = N/A
-    // flowdata[6] = N/A
-
-    // flowdata[7] = Lighthill Quellterm 2
-    // flowdata[8] = u2
-    // flowdata[9] = v2
-    // flowdata[10] = w2
-    // flowdata[11] = Druck2
-    // ...
-
-    iter->Delete();
-  }
-
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_OPENFOAM::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                             const UInt timeStepIdx)
   {
-    /* Settings& settings = Settings::Instance(); <--- define but not used */
+    Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
 
-    reader_->SetTimeStep(timeStepIdx);
+    reader_->SetTimeStep(timeStepIdx+1);
     reader_->Update();
-#if 0 /* helps to debug, can be used for other vtk classes */
-    std::cerr << "------------------- VTK INFO: " << std::endl;
-    reader_->PrintSelf(std::cerr, vtkIndent());
-    std::cerr << "------------------- VTK INFO: " << std::endl;
 
-    std::cerr << "here: this->GetTimeStep(timeStepIdx): " << __LINE__ << " => " << this->GetTimeStep(timeStepIdx) << std::endl;
-#endif
+    if(settings.GetInt("verbose"))
+      reader_->PrintSelf(std::cerr, vtkIndent());
 
     /* store gap to jump over pointZones and faceZones */
     const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
-    iter->GoToFirstItem();
     vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
-    vtkDataArray* fluidVel_array;
-    vtkDataArray* pres_array;
-    for (UInt actPart=0; actPart < 1; ++actPart, iter->GoToNextItem())
+    
+    iter->GoToFirstItem();
+
+    for (UInt actPart=0; actPart < 1; actPart++)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       c2p->SetInput(ds);
       c2p->Update();
+
       vtkDataSet* ds_point = c2p->GetOutput();
 
-      int nvx = MpCCInodes_[actPart];
+      int nvx = ds_point->GetNumberOfPoints();
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
-
-      /* copy the fluid velocity values */
-      FlowDataPartStruct& fdps_vel = fd[FLUIDMECH_VELOCITY];
-      if (!timeStepIdx)
-      {
-        fdps_vel.isActive = true; // all partitions have results
-        fdps_vel.definedOn = ResultInfo::NODE; // nodes
-        fdps_vel.dofNames.push_back("x");
-        fdps_vel.dofNames.push_back("y");
-        if(dim_ == 3) 
-        {
-          fdps_vel.dofNames.push_back("z");
-        }
-        fdps_vel.unit = "m s^-1";
-        Enum2String(FLUIDMECH_VELOCITY, fdps_vel.resultName);
-      }
-      numDOFs = fdps_vel.dofNames.size();
-      fdps_vel.data.resize(numDOFs * nvx);
-
       vtkPointData* pointData = ds_point->GetPointData();
-      if (pointData->GetNumberOfArrays() > 2)
+      UInt numArrays = pointData->GetNumberOfArrays();
+
+
+      for (UInt array=0; array < numArrays; array++)
       {
-        std::cerr << "WARNING: OPENFOAM contains more than 2 data arrays"
-                  << std::endl;                           
-      }
-      /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
-       * because the data is stored inside the array-variable not inside the
-       * scalar- or vector-variable of the vtk class. */
-      /* Get access to the fluid velocity data */
 
-      /* check if the first array is fluid velocity data */
-      if (*(pointData->GetArrayName(0)) != 'U')
-      {                                                         
-        std::cerr << "WARNING: OPENFOAM does not contain velocity! Fluid velocity must be first Array"
-                  << std::endl;                           
-      } else {
-        fluidVel_array = pointData->GetArray(0);
-        /* this copies the values into fdps.data via memcpy */
-        fluidVel_array->ExportToVoidPointer((void*)&fdps_vel.data.front());
+        //        std::cout << "Array name: " << pointData->GetArrayName(array) << std::endl;
+        vtkDataArray* data = pointData->GetArray(array);
+        vtkArrayIterator* dataIt = data->NewIterator();
+        vtkArrayIteratorTemplate<float>* floatIt = NULL;
+        vtkArrayIteratorTemplate<float>* doubleIt = NULL;
+        std::string dsName = pointData->GetArrayName(array);
+        UInt numComps = data->GetNumberOfComponents();
+        UInt numTuples = data->GetNumberOfTuples();
+        FlowDataPartStruct* fdps;
+        
+        /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
+         * because the data is stored inside the array-variable not inside the
+         * scalar- or vector-variable of the vtk class. */
+        /* Get access to the fluid velocity data */
+        /* check if the first array is fluid velocity data */
+        if (dsName == "U")
+        {
+          /* copy the fluid velocity values */
+          fdps = &fd[FLUIDMECH_VELOCITY];
+          fdps->isActive = !actPart; // all partitions have results
+          fdps->definedOn = ResultInfo::NODE; // nodes
+          fdps->entryType = ResultInfo::VECTOR;
+
+          if (fdps->dofNames.empty())
+          {
+            fdps->dofNames.push_back("x");
+            fdps->dofNames.push_back("y");
+            if(dim_ == 3) 
+            {
+              fdps->dofNames.push_back("z");
+            }
+          }
+
+          fdps->unit = "m s^-1";
+          Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
+          numDOFs = fdps->dofNames.size();
+          fdps->data.resize(numDOFs * nvx);
+        }
+
+        /* check if the array is fluid pressure data */
+        if (dsName == "p")
+        {
+          fdps = &fd[FLUIDMECH_PRESSURE];
+          fdps->isActive = !actPart; // all partitions have results
+          fdps->definedOn = ResultInfo::NODE; // nodes
+          fdps->entryType = ResultInfo::SCALAR;
+          if (!fdps->dofNames.size())
+            fdps->dofNames.push_back("-");
+          fdps->unit = "Pa";
+          Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
+          numDOFs = fdps->dofNames.size();
+          fdps->data.resize(numDOFs * nvx);
+        }
+
+        if (dsName == "U" || dsName == "p") 
+        {
+          /* copy the fluid velocity values */
+          for(UInt i=0; i<numTuples; i++)
+          {
+            switch(data->GetDataType())
+            {
+            case VTK_FLOAT:
+              floatIt = static_cast< vtkArrayIteratorTemplate<float>* >(dataIt);
+              for(UInt j=0; j<numComps; j++)
+                fdps->data[i*numDOFs+j] = floatIt->GetValue(i*numComps+j);
+              break;
+              
+            case VTK_DOUBLE:
+              vtkArrayIteratorTemplate<double>* doubleIt;
+              doubleIt = static_cast< vtkArrayIteratorTemplate<double>* >(dataIt);
+              for(UInt j=0; j<numComps; j++)
+                fdps->data[i*numDOFs+j] = doubleIt->GetValue(i*numComps+j);
+              break;
+            }
+          }
+
+          dataIt->Delete();
+        }
       }
 
-      /* copy the fluid pressure values */
-      FlowDataPartStruct& fdps_pres = fd[FLUIDMECH_PRESSURE];
-      if (!timeStepIdx)
-      {
-        fdps_pres.isActive = true; // all partitions have results
-        fdps_pres.definedOn = ResultInfo::NODE; // nodes
-        fdps_pres.dofNames.push_back("-");
-        fdps_pres.unit = "Pa";
-        Enum2String(FLUIDMECH_PRESSURE, fdps_vel.resultName);
-      }
-      numDOFs = fdps_pres.dofNames.size();
-      std::cerr << "here: numDOFs: " << __LINE__ << " => " << numDOFs << std::endl;
-      fdps_pres.data.resize(numDOFs * nvx);
-
-      if (*(pointData->GetArrayName(1)) != 'p')
-      {                                                         
-        std::cerr << "WARNING: OPENFOAM does not contain pressure values! Fluid pressure must be second Array"
-                  << std::endl;                           
-      } else {
-        pres_array = pointData->GetArray(1);
-        pres_array->ExportToVoidPointer((void*)&fdps_pres.data.front());
-      }
-
-      if (actPart == (UInt)reader_->GetNumBoundaries())
-      {
-        actPart += idx_gap;
-      }
+      iter->GoToNextItem();
     }
 
-
-    // flowdata layout:
-    // flowdata[0] = Lighthill Quellterm 1
-    // flowdata[1] = u1
-    // flowdata[2] = v1 
-    // flowdata[3] = w1
-    // flowdata[4] = Druck1
-    // flowdata[5] = N/A
-    // flowdata[6] = N/A
-
-    // flowdata[7] = Lighthill Quellterm 2
-    // flowdata[8] = u2
-    // flowdata[9] = v2
-    // flowdata[10] = w2
-    // flowdata[11] = Druck2
-    // ...
-
     iter->Delete();
+    c2p->Delete();
   }
 
   double FileReader_OPENFOAM::GetTimeStep(UInt t)
