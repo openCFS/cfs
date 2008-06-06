@@ -36,7 +36,8 @@ namespace CoupledField
 
     /* get nodal values from the corresponding fluid datafile the new way */
     void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
-        const UInt timeStepIdx);
+                         const std::vector<bool>& activeParts,
+                         const UInt timeStepIdx);
 
     virtual double GetTimeStep(UInt t);
     virtual std::string GetPartitionName(const UInt partitionIdx);

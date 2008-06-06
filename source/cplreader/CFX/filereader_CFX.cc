@@ -5,6 +5,14 @@
 #include <stdio.h>
 #include <iomanip>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+namespace fs=boost::filesystem;
+#include <boost/algorithm/string/predicate.hpp>
+namespace algo=boost::algorithm;
+
 // #include <pcrecpp.h>
 // #include <muParser.h>
 
@@ -55,105 +63,191 @@ namespace CoupledField
     if(settings.GetDouble("timeStep") < 0)
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
         
-    //-----------------------------------------------------------------------
-    //     Open RESULTS file
-    //-----------------------------------------------------------------------
-
-    snprintf(fn, sizeof(fn), "%s%s.res", basename_.c_str(), name_.c_str());
-    whatfile = __io_open_primaryfile__;
-    if(settings.GetInt("verbose"))
-    {
-      std::cout << "Trying to open CFX results file " << fn
-                << "." << std::endl; 
-    }
-    
-    openfile_(&nerr, fn, &whatfile, strlen(fn)); 
-    CHECK_CFX_IO(nerr);
+    std::stringstream sstr;
+    sstr << basename_ << name_ << ".res";
+    std::string resFileName = sstr.str();
+    std::cout << "resFileName: " << resFileName << std::endl;
 
     intvec.resize(BIGMEM*3);
     floatvec.resize(BIGMEM);
 
-    //-----------------------------------------------------------------------
-    //     Read the latest time step number
-    //-----------------------------------------------------------------------
-
-    sprintf(what, "G/TRANSIENT");
-    sprintf(where, "ZN1");
-
-    when  = -1;
-    length= 6;
-    nsize = 1;
-    iopt   = __not_stop_if_failed__;
-    ioptar = 0;
-    intvec.resize(BIGMEM*3);
-    floatvec.resize(BIGMEM);
-    int its;
-    
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            &floatvec[0],&intvec[0],carr,larr,darr,sarr,
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    its = intvec[2];
-
-    //-----------------------------------------------------------------------
-    //     Read the trninfo data set
-    //-----------------------------------------------------------------------
-    sprintf(what, "G/TRN_INFO");
-    sprintf(where, "EVERY");
-    when  = its;
-
-    dattyp    = -3;
-    length    = 3;
-    nsize     = 10000;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-    int ntrn, dummy;
-    charvec.resize(BIGMEM*3);
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            &floatvec[0],&intvec[0],carr,&dummy,&doublevec[0],&charvec[0],
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    ntrn = nsize;
-
-    //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
-    
-    numFiles_ = 0;
-    transientFNs_.clear();
-    timeStepNumbers_.clear();
-        
-    for(int i = 0; i< ntrn; i++)
+    if(fs::exists(resFileName))
     {
-      int its  = intvec[i];
         
-      char* trnnam = &charvec[i*80];
-      int n;
-      for(n = 0; n< 80; n++)
+      //-----------------------------------------------------------------------
+      //     Open RESULTS file
+      //-----------------------------------------------------------------------
+
+      snprintf(fn, sizeof(fn), "%s", resFileName.c_str());
+      whatfile = __io_open_primaryfile__;
+      if(settings.GetInt("verbose"))
       {
-        if(isblank((int)trnnam[n]))
+        std::cout << "Trying to open CFX results file " << fn
+                  << "." << std::endl; 
+      }
+    
+      openfile_(&nerr, fn, &whatfile, strlen(fn)); 
+      CHECK_CFX_IO(nerr);
+
+      //-----------------------------------------------------------------------
+      //     Read the latest time step number
+      //-----------------------------------------------------------------------
+
+      sprintf(what, "G/TRANSIENT");
+      sprintf(where, "ZN1");
+
+      when  = -1;
+      length= 6;
+      nsize = 1;
+      iopt   = __not_stop_if_failed__;
+      ioptar = 0;
+      intvec.resize(BIGMEM*3);
+      floatvec.resize(BIGMEM);
+      int its;
+    
+      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+              &iopt, &ioptar,
+              &floatvec[0],&intvec[0],carr,larr,darr,sarr,
+              strlen(what), strlen(where), 0);
+      CHECK_CFX_IO(nerr);
+
+      its = intvec[2];
+
+      //-----------------------------------------------------------------------
+      //     Read the trninfo data set
+      //-----------------------------------------------------------------------
+      sprintf(what, "G/TRN_INFO");
+      sprintf(where, "EVERY");
+      when  = its;
+
+      dattyp    = -3;
+      length    = 3;
+      nsize     = 10000;
+      iopt   = __stop_if_failed__;
+      ioptar = 0;
+      int ntrn, dummy;
+      charvec.resize(BIGMEM*3);
+
+      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+              &iopt, &ioptar,
+              &floatvec[0],&intvec[0],carr,&dummy,&doublevec[0],&charvec[0],
+              strlen(what), strlen(where), 0);
+      CHECK_CFX_IO(nerr);
+
+      ntrn = nsize;
+
+      //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
+    
+      numFiles_ = 0;
+      transientFNs_.clear();
+      timeStepNumbers_.clear();
+        
+      for(int i = 0; i< ntrn; i++)
+      {
+        int its  = intvec[i];
+        
+        char* trnnam = &charvec[i*80];
+        int n;
+        for(n = 0; n< 80; n++)
         {
-          trnnam[n] = 0;
-          break;
+          if(isblank((int)trnnam[n]))
+          {
+            trnnam[n] = 0;
+            break;
+          }
+        }
+        
+        snprintf(fn, sizeof(fn), "%s%s/%s", basename_.c_str(), name_.c_str(), trnnam);
+            
+        infile.clear();
+        infile.open(fn);
+        if (infile)
+        {
+          infile.close();
+
+          numFiles_++;
+          transientFNs_.push_back(fn);
+          timeStepNumbers_.push_back(its);
+        }
+            
+      }
+
+      //-----------------------------------------------------------------------
+      //     read the G/COMMANDS string from the res file
+      //     to get the name of the def file and the time step
+      //-----------------------------------------------------------------------
+
+      sprintf(what, "G/COMMANDS");
+      sprintf(where, "EVERY");
+
+
+      dattyp = __string_data_type__;
+      when  = its;
+      length= BIGMEM;
+      nsize = 1;
+      iopt   = __stop_if_failed__;
+      ioptar = 0;
+
+      redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+              &iopt, &ioptar,
+              rarr,iarr,carr,larr,darr,&charvec[0],
+              strlen(what), strlen(where), 0);
+      CHECK_CFX_IO(nerr);
+
+      whatfile = __io_close_primaryfile__;
+      closefile_(&nerr, &whatfile); 
+      CHECK_CFX_IO(nerr);
+        
+      //-----------------------------------------------------------------------
+      //     Parse the command string from the CFX results file and
+      //     get infos about definition file, time unit and timestep
+      //-----------------------------------------------------------------------
+
+      GetInfosFromCommand();
+    }
+    else 
+    {
+      fs::path trnDir( basename_ +  name_);
+      fs::directory_iterator end_iter;
+      UInt its = 1;
+      std::set<UInt> stepNumSet;
+      std::set<UInt>::const_iterator it, end;
+      UInt stepNum;
+      std::string fn;
+      
+      for ( fs::directory_iterator dir_itr( trnDir );
+            dir_itr != end_iter;
+            ++dir_itr ) 
+      {
+        if ( !fs::is_directory( *dir_itr ) )
+        {
+          fn = dir_itr->leaf();
+
+          //          if(fn.rfind(".trn") == (fn.length() - 4)) // endswith
+          if(algo::ends_with(fn, ".trn"))
+          {
+            sstr.clear(); sstr.str("");
+            sstr << fn;
+            sstr >> stepNum;
+            stepNumSet.insert(stepNum);
+          }
         }
       }
-        
-      snprintf(fn, sizeof(fn), "%s%s/%s", basename_.c_str(), name_.c_str(), trnnam);
-            
-      infile.clear();
-      infile.open(fn);
-      if (infile)
-      {
-        infile.close();
 
+      it = stepNumSet.begin();
+      end = stepNumSet.end();
+      for( ; it != end; it++ )
+      {
+        stepNum = *it;
+        sstr.clear(); sstr.str("");
+        sstr << basename_ << name_ << "/" << stepNum << ".trn";
+        
+        fn = sstr.str();
+        
         numFiles_++;
         transientFNs_.push_back(fn);
-        timeStepNumbers_.push_back(its);
+        timeStepNumbers_.push_back(stepNum);
       }
-            
     }
 
     if (settings.GetInt("numSteps"))
@@ -162,43 +256,9 @@ namespace CoupledField
       /* only take argument if tmo does not exceed the maximal number of timesteps possible */
       if (tmp < numFiles_)
       {
-          numFiles_ = tmp;
+        numFiles_ = tmp;
       }
     }
-
-    //-----------------------------------------------------------------------
-    //     read the G/COMMANDS string from the res file
-    //     to get the name of the def file and the time step
-    //-----------------------------------------------------------------------
-
-    sprintf(what, "G/COMMANDS");
-    sprintf(where, "EVERY");
-
-
-    dattyp = __string_data_type__;
-    when  = its;
-    length= BIGMEM;
-    nsize = 1;
-    iopt   = __stop_if_failed__;
-    ioptar = 0;
-
-    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
-            &iopt, &ioptar,
-            rarr,iarr,carr,larr,darr,&charvec[0],
-            strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
-
-    whatfile = __io_close_primaryfile__;
-    closefile_(&nerr, &whatfile); 
-    CHECK_CFX_IO(nerr);
-        
-    //-----------------------------------------------------------------------
-    //     Parse the command string from the CFX results file and
-    //     get infos about definition file, time unit and timestep
-    //-----------------------------------------------------------------------
-
-    GetInfosFromCommand();
-
         
     //-----------------------------------------------------------------------
     //     Open DEFINITION file
@@ -556,6 +616,7 @@ namespace CoupledField
     
   //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_CFX::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                       const std::vector<bool>& activeParts,
                                        const UInt timeStepIdx)
   {
     Settings& settings = Settings::Instance();
@@ -581,6 +642,15 @@ namespace CoupledField
       int nvx = MpCCInodes_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
+      
+      if(!activeParts[actPart])
+        continue;
+
+      if(settings.GetInt("verbose"))
+      {
+        std::cout << "Reading data on " << GetPartitionName(actPart)
+                  << std::endl;
+      }
       
       //-----------------------------------------------------------------------
       //     Reading velocity from input file
@@ -1079,7 +1149,21 @@ namespace CoupledField
     
   void FileReader_CFX::GetUserData(std::map<std::string, std::string>& userData)
   {
+    if(userDataCFX_COMMANDS == "")
+    {
+      userDataCFX_COMMANDS = "ATTENTION: The COMMANDS dataset has not been read.\n"
+                             "           This may be due to a missing .res file!";
+    }
     userData["CFX_COMMANDS"] = userDataCFX_COMMANDS;
+
+    std::ostringstream sstr;
+    
+    for(UInt i=0, n=timeStepNumbers_.size(); i<n; i++)
+    {
+      sstr << timeStepNumbers_[i] << ".trn -> step " << (i+1) << std::endl;
+    }
+    
+    userData["TRN_TO_STEP_MAP"] = sstr.str();
   }
 
   void FileReader_CFX::IOErrorToString(int ioerr, std::string& errStr)

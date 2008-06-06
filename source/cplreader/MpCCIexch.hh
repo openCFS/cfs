@@ -124,6 +124,7 @@ namespace CoupledField
 
     std::map<UInt, ElemIntegr *> ptElemIntegr_;
     std::vector<std::string> requiredResults_;
+    std::vector<bool> activeParts_;
   };
 
 } // end of namespace
