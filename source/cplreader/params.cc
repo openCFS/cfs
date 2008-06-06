@@ -113,7 +113,7 @@ namespace CoupledField
         ("dim", po::value< uint32_t >(&param_dim)->default_value(3),
          "Dimension of fluid data. (can be 2|3)")
 
-        ("numsteps", po::value< uint32_t >(&param_numsteps)->default_value(1),
+        ("numsteps", po::value< uint32_t >(&param_numsteps)->default_value(0),
          "Number N of timesteps to read")
 
         ("firststep", po::value< uint32_t >(&param_firststep)->default_value(1),

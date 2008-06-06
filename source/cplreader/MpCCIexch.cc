@@ -614,7 +614,9 @@ namespace CoupledField
             if(std::find(requiredResults_.begin(),
                          requiredResults_.end(),
                          fdps.resultName) == requiredResults_.end()) 
-              continue;
+            {
+                continue;
+            }
           }
 
           // Determine which fields will be output.

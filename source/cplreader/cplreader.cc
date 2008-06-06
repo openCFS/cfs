@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #include <def_use_mpcci.hh>
 
@@ -121,6 +122,16 @@ int main(int argc, char *argv[])
       return 0;
     }
     
+
+    /* check if file even exists */
+    struct stat st;
+    const char* const tmp_fileName = settings.GetString("name").c_str();
+    if(lstat(tmp_fileName, &st) == -1 )
+    {
+      EXCEPTION("the file doesn't exist: " << tmp_fileName << std::endl);
+    }
+
+
     MpCCIExchangeCPLR mpCCIexch(fileReader);
     mpCCIexch.Init(argc, argv);
     if(!settings.GetInt("justinit")) 
