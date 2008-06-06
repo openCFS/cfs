@@ -48,7 +48,17 @@ namespace CoupledField
       FEType VTKCellTypeToFEType(UInt cellType);
 
       std::vector<Integer> dataColumns_;
+      /* nodalCoords_ should store the original mesh, which may be needed if we have
+       * a moving mesh*/
+      std::vector<double> nodalCoords_;
       vtkOpenFOAMReader* reader_;
+
+      /* calculates the mechDisplacement and writes them into newCoords
+       * \param origin A vector which has the original position of each node
+       * \param newCoords A vector which has the new position of each node and
+       * which will store the mechDisplacement after the method call */
+      void calcMechDisplacement(const std::vector<double>& origin, \
+          std::vector<double>& newCoords) const;
   };
 
       

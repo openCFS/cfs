@@ -156,8 +156,15 @@ namespace CoupledField
             
     }
 
-    numFiles_ = numFiles_ > (UInt) settings.GetInt("numSteps") ? settings.GetInt("numSteps") : numFiles_;
-        
+    if (settings.GetInt("numSteps"))
+    {
+      UInt tmp = (UInt) settings.GetInt("numSteps");
+      /* only take argument if tmo does not exceed the maximal number of timesteps possible */
+      if (tmp < numFiles_)
+      {
+          numFiles_ = tmp;
+      }
+    }
 
     //-----------------------------------------------------------------------
     //     read the G/COMMANDS string from the res file

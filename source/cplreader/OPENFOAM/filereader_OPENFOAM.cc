@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <iomanip>
 #include <sstream> 
+#include <sys/stat.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -62,12 +63,25 @@ namespace CoupledField
       reader_->DebugOn();
     
     reader_->SetFileName(controlDictName.str().c_str());
+    reader_->SetTimeStep(0);
     reader_->Update();
 
-    if(settings.GetInt("verbose"))
-      reader_->PrintSelf(std::cout, (vtkIndent)0);
+    if (settings.GetInt("verbose"))
+    {
+        reader_->PrintSelf(std::cout, (vtkIndent)0);
+    }
 
-    numFiles_ = reader_->GetNumberOfTimeSteps()-1;
+    if (settings.GetInt("numSteps"))
+    {
+      numFiles_ = (UInt) settings.GetInt("numSteps");
+      /* don not exceed the maximal number of timesteps possible */
+      if (numFiles_ >= (UInt) reader_->GetNumberOfTimeSteps())
+      {
+          numFiles_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
+      }
+    } else {
+      numFiles_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
+    }
     numResults_ = reader_->GetNumberOfCellArrays();
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
@@ -139,6 +153,7 @@ namespace CoupledField
     }
     
     std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
+    this->ReadNodalCoords(nodalCoords_, 0);
   }
 
 
@@ -153,8 +168,10 @@ namespace CoupledField
     NODECOORD.resize(numCoords * numPoints);
 
     /* just read coords for internal mesh partitionIdx = 0 */
-    if(partitionIdx)
+    if (partitionIdx)
+    {
       return;
+    }
 
     /* Goto first dataset (internal mesh) */
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
@@ -281,14 +298,14 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     std::cout << "Entering FileReader_OPENFOAM::ReadNodalValues..." << std::endl;
 
-    reader_->SetTimeStep(timeStepIdx+1);
+    reader_->SetTimeStep(timeStepIdx + 1);
     reader_->Update();
 
     if(settings.GetInt("verbose"))
       reader_->PrintSelf(std::cerr, vtkIndent());
 
     /* store gap to jump over pointZones and faceZones */
-    const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();
+    /* const UInt idx_gap = reader_->GetNumPointZones() + reader_->GetNumFaceZones();*/
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
@@ -309,19 +326,55 @@ namespace CoupledField
       vtkPointData* pointData = ds_point->GetPointData();
       UInt numArrays = pointData->GetNumberOfArrays();
 
+      FlowDataPartStruct* fdps;
+      vtkArrayIteratorTemplate<float>* floatIt = NULL;
 
+      /* Check if in the timestep folders a polyMesh folder exists.
+       * This would indicate a moving mesh which will be stored in
+       * mechDisplacement */
+      struct stat st;
+      std::stringstream path_mechDispl;
+      path_mechDispl << settings.GetString("name") << "/" << \
+        reader_->GetTimeStepValue(timeStepIdx) <<"/polyMesh";
+      const char* const tmp_fileName = path_mechDispl.str().c_str();
+      /* if a new mesh for this timestep exists, get it an store the
+       * mechDisplacement */
+      if(lstat(tmp_fileName, &st) != -1  && !actPart)
+      {
+        fdps = &fd[MECH_DISPLACEMENT];
+        fdps->isActive = !actPart; // all partitions have results
+        fdps->definedOn = ResultInfo::NODE; // nodes
+        fdps->entryType = ResultInfo::VECTOR;
+
+        if (fdps->dofNames.empty())
+        {
+          fdps->dofNames.push_back("x");
+          fdps->dofNames.push_back("y");
+          if(dim_ == 3) 
+          {
+            fdps->dofNames.push_back("z");
+          }
+        }
+
+        fdps->unit = "m";
+        Enum2String(MECH_DISPLACEMENT, fdps->resultName);
+        numDOFs = fdps->dofNames.size();
+        fdps->data.resize(numDOFs * nvx);
+        this->ReadNodalCoords(fdps->data, actPart);
+        this->calcMechDisplacement(nodalCoords_, fdps->data);
+      }
+
+      /* go through the solutions and store them in nodalFlowData */
       for (UInt array=0; array < numArrays; array++)
       {
 
         //        std::cout << "Array name: " << pointData->GetArrayName(array) << std::endl;
         vtkDataArray* data = pointData->GetArray(array);
         vtkArrayIterator* dataIt = data->NewIterator();
-        vtkArrayIteratorTemplate<float>* floatIt = NULL;
-        vtkArrayIteratorTemplate<float>* doubleIt = NULL;
+        /*vtkArrayIteratorTemplate<float>* doubleIt = NULL;*/
         std::string dsName = pointData->GetArrayName(array);
         UInt numComps = data->GetNumberOfComponents();
         UInt numTuples = data->GetNumberOfTuples();
-        FlowDataPartStruct* fdps;
         
         /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
          * because the data is stored inside the array-variable not inside the
@@ -578,6 +631,16 @@ namespace CoupledField
       fin.read(&str[0], numBytes);
       userData[dataSetNames[i]] = str;
       fin.close();
+    }
+  }
+
+  void FileReader_OPENFOAM::calcMechDisplacement(const std::vector<double>& origin, \
+      std::vector<double>& newCoords) const
+  {
+    const UInt sizeVec = newCoords.size();
+    for (UInt i = 0; i < sizeVec; ++i)
+    {
+      newCoords[i] -= origin[i];
     }
   }
 
