@@ -124,6 +124,10 @@ namespace CoupledField
     ptElemIntegr_[ET_WEDGE6] = new ElemIntegr(ET_WEDGE6);
     ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
     ptElemIntegr_[ET_HEXA8]  = new ElemIntegr(ET_HEXA8);
+
+    // Override the setting of --outprec for CFX
+    if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
+      settings.SetString("outprec", "single");
   }
 
   void MpCCIExchangeCPLR::PutExchangeGrid2MpCCI()
@@ -1042,7 +1046,7 @@ namespace CoupledField
                                         const UInt numDOFs,
                                         const bool isImag ) {
     Settings& settings = Settings::Instance();
-    bool floatDataset = settings.GetInt("floatDataset");
+    std::string outputPrecision = settings.GetString("outprec");
 
     // create dataset with related name
     std::string name;
@@ -1053,7 +1057,7 @@ namespace CoupledField
 
     UInt numEntities = (UInt) resultVals.size() / numDOFs;
 
-    if(!floatDataset) 
+    if(outputPrecision == "double") 
     {
       H5IO::Write2DArray( resultGroup, name, 
                           numEntities, numDOFs, &resultVals[0],
