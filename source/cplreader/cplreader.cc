@@ -7,6 +7,12 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+namespace fs=boost::filesystem;
+
 #include <def_use_mpcci.hh>
 
 #if (MpCCI_RELEASE == 305)
@@ -48,18 +54,16 @@ int main(int argc, char *argv[])
     Settings& settings = Settings::Instance();
 
     ParamsInit(argc, argv);
+
+    /* check if directory even exists */
+    if(!fs::exists(settings.GetString("name")) ||
+       !fs::is_directory(settings.GetString("name")))
+      EXCEPTION("The directory '" << settings.GetString("name")
+                << "' doesn't exist!");
+
+    // Create new file reader
     std::string type = settings.GetString("type");
 
-    /*std::cout << "Name: " << settings.GetString("name")
-              << " Type: " << settings.GetString("type")
-              << " Dim: " << settings.GetInt("dim")
-              << " CalcSrc: " << settings.GetInt("calcSrc")
-              << " Verbose: " << settings.GetInt("verbose")
-              << " numfiles: " << settings.GetInt("numSteps")
-      //              << " LD_LIBRARY_PATH: " << getenv("LD_LIBRARY_PATH")
-              << " PWD: " << getenv("PWD")
-              <<std::endl;*/
-    
     if(type == "FASTEST")
     {
 #ifdef CPLREADER_FASTEST
@@ -121,17 +125,8 @@ int main(int argc, char *argv[])
                 << " filereader." << std::endl;
       return 0;
     }
-    
 
-    /* check if file even exists */
-    struct stat st;
-    const char* const tmp_fileName = settings.GetString("name").c_str();
-    if(lstat(tmp_fileName, &st) == -1 )
-    {
-      EXCEPTION("the file doesn't exist: " << tmp_fileName << std::endl);
-    }
-
-
+    // Initialize and perform coupling
     MpCCIExchangeCPLR mpCCIexch(fileReader);
     mpCCIexch.Init(argc, argv);
     if(!settings.GetInt("justinit")) 

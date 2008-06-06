@@ -24,7 +24,7 @@ namespace CoupledField
     name_ = name;
     basename_ = "./";
     basename_+= name_;
-    basename_+= "_data/";
+    basename_+= "/";
     basename_+= name_;
     basename_+= "_";
   }

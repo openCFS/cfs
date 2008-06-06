@@ -175,9 +175,7 @@ namespace CoupledField
             
             if(sstr.fail())
             {
-              std::cerr << "Error while trying to init FASTEST column mapping"
-              << std::endl;
-              exit(1);
+              EXCEPTION("Error while trying to init FASTEST column mapping");
             }
             
             dataColumns_.push_back(dataCol-1);
@@ -214,9 +212,7 @@ namespace CoupledField
             infile.clear();
             infile.open(filename.c_str());  
             if (!infile) {
-                std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                          << ") Can't open " << filename << std::endl;
-                exit(1);
+              EXCEPTION("Can't open " << filename);
             }
 
             infile >> dummy;
@@ -235,9 +231,7 @@ namespace CoupledField
 
             infile.open(filename.c_str());  
             if (!infile) {
-                std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                          << ") Can't open " << filename << std::endl;
-                exit(1);
+              EXCEPTION("Can't open " << filename);
             }
 
             infile >> dummy;
@@ -280,9 +274,7 @@ namespace CoupledField
         infile.clear();
         infile.open(filename.c_str());  
         if (!infile) {
-            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                      << ") Can't open " << filename << std::endl;
-            exit(1);
+          EXCEPTION("Can't open " << filename);
         }
 
         /* Set pointer to beginning of file: */
@@ -349,9 +341,7 @@ namespace CoupledField
         infile.clear();
         infile.open(filename.c_str());  
         if (!infile) {
-            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                      << ") Can't open " << filename << std::endl;
-            exit(1);
+          EXCEPTION("Can't open " << filename);
         }
 
         /* Set pointer to beginning of file: */
@@ -492,9 +482,7 @@ namespace CoupledField
       infile.clear();
       infile.open(filename.c_str());
       if (!infile) {
-        std::cerr << "ERROR(" << __FILE__ << " " << __LINE__
-                  << ") Can't open " << filename << std::endl;
-        exit(1);
+        EXCEPTION("Can't open " << filename);
       }
 
       /* Set pointer to beginning of file: */

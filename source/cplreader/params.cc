@@ -46,6 +46,7 @@ namespace CoupledField
     std::string param_vz;
     std::string param_pres;
     std::string param_outputfields;
+    std::string param_outprec;
     bool param_extfiles;
 
 
@@ -96,13 +97,12 @@ namespace CoupledField
 
     try 
     {
-    
       // Declare the supported options.
       po::options_description desc("Allowed options");
       desc.add_options()
         ("help", "Produce help message")
         ("name", po::value< std::string >(&param_name)->default_value("dataset"),
-         "Name of dataset")
+         "Name of dataset as well as of the directory containing the dataset")
 
         ("type", po::value< std::string >(&param_type)->default_value("CFX"),
          "Type of dataset (can be CFX | CFX_EXPORT | FASTEST | OPENFOAM)")
@@ -134,9 +134,12 @@ namespace CoupledField
 #endif
 
         ("floatds", po::value< bool >(&param_floatds)->default_value(true),
-         "Do the CFX .trn files contain float or double values. ATTENTION!" 
-         " If this flag is set all data will be written as floats! "
-         "This is also true for FASTEST data!")
+         "Do the transient files contain float or double values." 
+         "ATTENTION: If this flag is true, it overrides the setting of"
+         "--outprec for CFX!")
+
+        ("outprec", po::value< std::string >(&param_outprec)->default_value("double"),
+         "Write data as single or as double precision (can be single|double)")
 
         ("justinit", po::value< bool >(&param_justinit)->default_value(false),
          "Just perform initialization step.")
@@ -217,6 +220,7 @@ namespace CoupledField
     settings.SetInt("calcSrc", 0);
 #endif
     settings.SetInt("floatDataset", param_floatds);
+    settings.SetString("outprec", param_outprec);
     settings.SetInt("justinit", param_justinit);
     settings.SetInt("justmesh", param_justmesh);
     settings.SetInt("verbose", param_verbose);

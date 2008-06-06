@@ -41,7 +41,7 @@ namespace CoupledField
     name_ = name;
     basename_ = "./";
     basename_+= name_;
-    basename_+= "_data/";
+    basename_+= "/";
   }
 
   FileReader_CFX::~FileReader_CFX()
@@ -241,8 +241,7 @@ namespace CoupledField
         
     if(defFile == "")
     {
-      std::cerr << "Can not find definition file." << std::endl;
-      exit(1);
+      EXCEPTION("Can not find definition file.");
     }
         
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
@@ -799,9 +798,8 @@ namespace CoupledField
 #if 0
     if(solTimeUnit != "[s]")
     {
-      std::cerr << "Unrecognized time unit found: "
-                << solTimeUnit << std::endl;
-      exit(1);
+      EXCEPTION("Unrecognized time unit found: "
+                << solTimeUnit);
     }
 
     std::map< std::string, std::string >::iterator it, end;
