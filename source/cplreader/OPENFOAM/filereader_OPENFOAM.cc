@@ -295,6 +295,7 @@ namespace CoupledField
 
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_OPENFOAM::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                            const std::vector<bool>& activeParts,
                                             const UInt timeStepIdx)
   {
     Settings& settings = Settings::Instance();

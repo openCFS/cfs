@@ -47,6 +47,7 @@ namespace CoupledField
     std::string param_pres;
     std::string param_outputfields;
     std::string param_outprec;
+    std::string param_activeparts;
     bool param_extfiles;
 
 
@@ -171,10 +172,16 @@ namespace CoupledField
         ("pres", po::value< std::string >(&param_pres)->default_value(""),
          "Column of pressure in FASTEST result files (e.g. col5).")
 
+        ("activeparts", po::value< std::string >(&param_activeparts)->default_value("all"),
+         "Values will only be output on partitions specified by activeparts"
+         "(all | numbers seperated by SPACE or ; or |). ")
+
         ("outputfields", po::value< std::string >(&param_outputfields)->default_value("acouRhsLoad"),
          "Which physical fields should be output "
-         "([acouRhsLoad | fluidMechDensity | fluidMechPressure | fluidMechVelocity]). "
+         "([acouRhsLoad | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE]). "
          "Values may be separated by SPACE or ; or |")
+
+
         ;
 
       po::variables_map vm;
@@ -234,6 +241,7 @@ namespace CoupledField
     settings.SetString("vy", param_vy);
     settings.SetString("vz", param_vz);
     settings.SetString("pres", param_pres);
+    settings.SetString("activeparts", param_activeparts);
     settings.SetString("outputfields", param_outputfields);
     settings.SetInt("extfiles", param_extfiles);
   }

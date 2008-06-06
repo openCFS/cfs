@@ -116,6 +116,38 @@ namespace CoupledField
               t.end(),
               std::back_inserter(requiredResults_));
 
+    // Initialize vector with active regions
+    Tok actp(settings.GetString("activeparts"), sep);
+    Tok::iterator tit, tend;
+    tit = actp.begin();
+    tend = actp.end();
+    
+    activeParts_.resize(ptFileReader_->GetNumPartitions());
+    if(*tit == "all")
+      std::fill(activeParts_.begin(), activeParts_.end(), true);
+    else
+    {
+      std::stringstream sstr;
+      UInt partIdx;
+      
+      for( ; tit != tend; tit++) 
+      {
+        sstr.clear(); sstr.str("");
+        sstr << *tit;
+        sstr >> partIdx;
+        
+        if(partIdx > 0 && partIdx <= activeParts_.size())
+          activeParts_[partIdx-1] = true;
+      }
+    }
+
+    if(settings.GetInt("verbose"))
+    {
+      for(UInt i=0; i < activeParts_.size(); i++)
+        std::cout << "Partition " << (i+1) << " active: "
+                  << activeParts_[i] << std::endl;
+    }
+    
     // Initialize element integrators for source term calculation
     ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
     ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
@@ -463,7 +495,6 @@ namespace CoupledField
     std::vector<Double> timeStepValues;
     UInt actPart;
     UInt stepNum = 0;
-    std::vector<std::string> outputFields;
     std::vector<std::string> regionNames;
     bool externalFiles = settings.GetInt("extfiles");
     std::vector<FlowDataType> flowData(numPartitions);
@@ -528,7 +559,7 @@ namespace CoupledField
       }
 
       // Read nodal values for all partitions
-      ptFileReader_->ReadNodalValues(flowData, counter);
+      ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
     
       for (actPart = 0; actPart<numPartitions; actPart++)
       {
@@ -536,7 +567,20 @@ namespace CoupledField
         H5::Group currResultGroup;
         FlowDataType::iterator fdIt, fdEnd;
         UInt numDOFs;
+        
+        if(!activeParts_[actPart])
+        {
+          FlowDataType::iterator fIt, fEnd;
+          fIt = flowData[actPart].begin();
+          fEnd = flowData[actPart].end();
+      
+          for( ; fIt != fEnd; fIt++ ) {
+            fIt->second.isActive = false;
+          }
 
+          continue;
+        }
+        
         // If the user requests the calculation of the Lighthill
         // source term, follow his order!
 #ifndef CPLREADER_STANDALONE
@@ -619,16 +663,9 @@ namespace CoupledField
                          requiredResults_.end(),
                          fdps.resultName) == requiredResults_.end()) 
             {
-                continue;
+              fdps.isActive = false;
+              continue;
             }
-          }
-
-          // Determine which fields will be output.
-          if(std::find(outputFields.begin(),
-                       outputFields.end(),
-                       fdps.resultName) == outputFields.end())
-          {
-            outputFields.push_back(fdps.resultName);
           }
 
           // Create result groups in HDF5 file and write result.
@@ -799,7 +836,7 @@ namespace CoupledField
 
     // Set compression and chunk size parameters for HDF5
     UInt compressionLevel = 9;
-    UInt maxChunkSize = 100;
+    UInt maxChunkSize = 4096;
     dPropList_ = H5::DSetCreatPropList::DEFAULT;
     dPropList_.setLayout( H5D_CHUNKED );
     dPropList_.setDeflate( compressionLevel );

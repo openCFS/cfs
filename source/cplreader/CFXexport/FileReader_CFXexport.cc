@@ -352,6 +352,7 @@ namespace CoupledField {
 
   void FileReader_CFXexport::ReadNodalValues(std::vector<FlowDataType>
                                                &nodalFlowdata,
+                                             const std::vector<bool>& activeParts,
                                              const UInt timeStepIdx)
   {
     // put filename together
