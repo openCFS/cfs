@@ -153,6 +153,8 @@ namespace CoupledField
     }
     
     std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
+    /* nodalCoords_ should store the first mesh, which may be needed if we have
+     * a moving mesh*/
     this->ReadNodalCoords(nodalCoords_, 0);
   }
 
@@ -312,7 +314,7 @@ namespace CoupledField
     
     iter->GoToFirstItem();
 
-    for (UInt actPart=0; actPart < 1; actPart++)
+    for (UInt actPart=0; actPart < 1; ++actPart)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       c2p->SetInput(ds);
@@ -323,23 +325,19 @@ namespace CoupledField
       int nvx = ds_point->GetNumberOfPoints();
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
-      vtkPointData* pointData = ds_point->GetPointData();
-      UInt numArrays = pointData->GetNumberOfArrays();
 
       FlowDataPartStruct* fdps;
       vtkArrayIteratorTemplate<float>* floatIt = NULL;
 
-      /* Check if in the timestep folders a polyMesh folder exists.
-       * This would indicate a moving mesh which will be stored in
-       * mechDisplacement */
-      struct stat st;
+      /*  Helper string which should help check if a seperate polyMesh in each timestep exists.
+       *  This would indicate moving mesh */
       std::stringstream path_mechDispl;
       path_mechDispl << settings.GetString("name") << "/" << \
-        reader_->GetTimeStepValue(timeStepIdx) <<"/polyMesh";
-      const char* const tmp_fileName = path_mechDispl.str().c_str();
+        reader_->GetTimeStepValue(timeStepIdx + 1) <<"/polyMesh";
       /* if a new mesh for this timestep exists, get it an store the
        * mechDisplacement */
-      if(lstat(tmp_fileName, &st) != -1  && !actPart)
+      if (fs::exists(path_mechDispl.str()) &&
+          fs::is_directory(path_mechDispl.str()))
       {
         fdps = &fd[MECH_DISPLACEMENT];
         fdps->isActive = !actPart; // all partitions have results
@@ -360,10 +358,15 @@ namespace CoupledField
         Enum2String(MECH_DISPLACEMENT, fdps->resultName);
         numDOFs = fdps->dofNames.size();
         fdps->data.resize(numDOFs * nvx);
-        this->ReadNodalCoords(fdps->data, actPart);
-        this->calcMechDisplacement(nodalCoords_, fdps->data);
+        if (!actPart)
+        {
+          this->ReadNodalCoords(fdps->data, actPart);
+          this->calcMechDisplacement(nodalCoords_, fdps->data);
+        }
       }
 
+      vtkPointData* pointData = ds_point->GetPointData();
+      UInt numArrays = pointData->GetNumberOfArrays();
       /* go through the solutions and store them in nodalFlowData */
       for (UInt array=0; array < numArrays; array++)
       {
@@ -375,7 +378,7 @@ namespace CoupledField
         std::string dsName = pointData->GetArrayName(array);
         UInt numComps = data->GetNumberOfComponents();
         UInt numTuples = data->GetNumberOfTuples();
-        
+
         /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
          * because the data is stored inside the array-variable not inside the
          * scalar- or vector-variable of the vtk class. */
@@ -445,8 +448,6 @@ namespace CoupledField
           dataIt->Delete();
         }
       }
-
-      iter->GoToNextItem();
     }
 
     iter->Delete();
