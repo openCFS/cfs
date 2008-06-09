@@ -3,6 +3,10 @@
 #-------------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4.3 FATAL_ERROR)
 
+IF(COMMAND cmake_policy)
+  CMAKE_POLICY(SET CMP0003 NEW)
+ENDIF(COMMAND cmake_policy)
+
 #-------------------------------------------------------------------------------
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
