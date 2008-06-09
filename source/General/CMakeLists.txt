@@ -1,5 +1,5 @@
 SET(GENERAL_SRCS environment.cc exception.cc)
 
-ADD_LIBRARY(general STATIC ${GENERAL_SRCS})
+ADD_LIBRARY(cfsgeneral STATIC ${GENERAL_SRCS})
 
 

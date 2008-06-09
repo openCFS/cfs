@@ -17,4 +17,4 @@ TARGET_LINK_LIBRARIES(siminouthdf5
 
 ADD_EXECUTABLE(h5tool h5tool.cc)
 
-TARGET_LINK_LIBRARIES(h5tool siminouthdf5 general)
+TARGET_LINK_LIBRARIES(h5tool siminouthdf5 cfsgeneral)

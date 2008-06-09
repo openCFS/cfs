@@ -78,7 +78,7 @@ SET(TARGET_LL ${TARGET_LL}
   driver
   utils
   matrix
-  general
+  cfsgeneral
   odesolver
   odedescr
   paramident

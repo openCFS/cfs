@@ -60,6 +60,11 @@ IF(USE_ENSIGHT)
   SET(TARGET_LL ${TARGET_LL} simoutensight)
 ENDIF(USE_ENSIGHT)
 
+SET(TARGET_LL
+  ${TARGET_LL}
+  datainout
+)
+
 TARGET_LINK_LIBRARIES(definefiles
   ${TARGET_LL}
   )

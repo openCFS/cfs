@@ -30,7 +30,7 @@ ADD_EXECUTABLE(cfs ${CFS_SRCS})
 #ENDIF(USE_MPCCI)
 
 SET(TARGET_LL
-  general
+  cfsgeneral
   utils
   cmdline
   definefiles
