@@ -24,7 +24,11 @@ namespace CoupledField {
     colVelY_ = 0;
     colVelZ_ = 0;
     
-    basename_ = "./" + name_ + "_data/results_";
+    basename_ = "./" + name_ + "/results_";
+    
+    if (numFiles == 0) {
+      EXCEPTION("Please specify number of time steps.");
+    }
   }
   
   FileReader_CFXexport::~FileReader_CFXexport()
@@ -124,7 +128,7 @@ namespace CoupledField {
         }
       }
       else if (sColName == " Velocity w [ m s^-1 ]") {
-        if (colVelZ_ == 0) {
+        if ((colVelZ_ == 0) && (dim_ == 3)) {
           colVelZ_ = curCol;
           col2Quan_[curCol] = VELOCITY_Z;
         }
@@ -405,6 +409,7 @@ namespace CoupledField {
         fdps->isActive = true;
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
+        fdps->entryType=ResultInfo::SCALAR;
         fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
         fdps->data.resize(MpCCInodes_[0]);
         Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
@@ -414,6 +419,7 @@ namespace CoupledField {
         fdps->isActive = true;
         fdps->definedOn = ResultInfo::NODE;
         fdps->dofNames.push_back("-");
+        fdps->entryType=ResultInfo::SCALAR;
         fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
         Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
         fdps->data.resize(MpCCInodes_[0]);
@@ -426,6 +432,7 @@ namespace CoupledField {
         fdps->dofNames.push_back("y");
         if (numVelDofs == 3)
           fdps->dofNames.push_back("z");
+        fdps->entryType=ResultInfo::VECTOR;
         fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
         Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
         fdps->data.resize(numVelDofs * MpCCInodes_[0]);

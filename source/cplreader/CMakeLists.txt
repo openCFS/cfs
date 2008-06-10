@@ -150,7 +150,7 @@ IF(NOT CPLREADER_STANDALONE)
     elements
     matrix
     utils
-    general
+    cfsgeneral
     )
 ENDIF(NOT CPLREADER_STANDALONE)
 
