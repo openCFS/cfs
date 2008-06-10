@@ -481,7 +481,24 @@ namespace CoupledField {
       ptInfo->complexFormat = REAL_IMAG;
       ptInfo->entryType = H5IO::MapEntryType( entryType );
       ptInfo->definedOn = H5IO::MapUnknownType( definedOn );
-
+      
+      // perform consistency check
+      if( ptInfo->entryType == ResultInfo::UNKNOWN ) {
+        EXCEPTION( "Result '" << actResultName 
+                   << "' has no proper EntryType!" );
+      }
+      
+      if( ptInfo->dofNames.GetSize() == 0 ) {
+        EXCEPTION( "Result '" << actResultName 
+                   << "' has no degrees of freedoms!");
+      }
+      
+      if( ptInfo->resultName == "" &&
+          ptInfo->resultType == NO_SOLUTION_TYPE ) {
+        EXCEPTION( "Result has neither a name nor a "
+                   << "proper result type!" );
+      }
+      
       infos.Push_back( ptInfo );
     }
     
