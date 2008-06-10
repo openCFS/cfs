@@ -1008,7 +1008,7 @@ namespace CoupledField
     } H5_CATCH( "Could not open result description group" );
     
     // Extract active regions (OpenFOAM)
-    int numPartitions = ptFileReader_->GetNumPartitions();
+    UInt numPartitions = ptFileReader_->GetNumPartitions();
     for(UInt i=0; i<numPartitions; i++) 
     {
       it = outputFields[i].begin();
@@ -1021,7 +1021,10 @@ namespace CoupledField
                       it->second.resultName) != requiredResults_.end() ||
             *requiredResults_.begin() == "all" )
           )
+        {
           resultRegions.push_back(ptFileReader_->GetPartitionName(i));
+          break;
+        }
       }
     }
 
@@ -1220,12 +1223,15 @@ namespace CoupledField
 
       for( UInt n=0; n<numElemNodes; n++)
       {
-        UInt idx = (Topology_[partitionIdx][k+n]-1)*elemDim;
+        UInt idxCoord = Topology_[partitionIdx][k+n] - 1;
+        UInt idxVel = idxCoord*elemDim;
+        
+        idxCoord *= 3; // NodalCoords_ vector always stores x,y,z
         
         for( UInt d=0; d<elemDim; d++)
         {
-          coordMat[d][n] = NodalCoords_[partitionIdx][idx+d];
-          nodalVel[d][n] = velField[idx+d];
+          coordMat[d][n] = NodalCoords_[partitionIdx][idxCoord+d];
+          nodalVel[d][n] = velField[idxVel+d];
         }
       }
 
@@ -1237,7 +1243,7 @@ namespace CoupledField
         std::cerr << "Warning: An Exception occurred during source term "
                   << "computation:\nElement " << i+1 << " of partition "
                   << partitionIdx+1 << std::endl;
-
+        
         std::cerr << ex.what()<< std::endl;
 
         if(settings.GetInt("verbose")) {
