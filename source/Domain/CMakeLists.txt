@@ -26,7 +26,7 @@ ADD_LIBRARY(domain STATIC ${DOMAIN_SRCS})
 SET(TARGET_LL
   elements
   optimization
-  general
+  cfsgeneral
   driver
   utils
   pde
