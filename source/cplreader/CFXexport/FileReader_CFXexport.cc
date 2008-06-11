@@ -359,6 +359,8 @@ namespace CoupledField {
                                              const std::vector<bool>& activeParts,
                                              const UInt timeStepIdx)
   {
+    Settings& settings = Settings::Instance();
+    
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
@@ -400,45 +402,47 @@ namespace CoupledField {
     FlowDataType &flowdata = nodalFlowdata[0];
     
     // set up flow data struct
-    for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
-      FlowDataPartStruct *fdps = NULL;
-
-      switch (itQuan->second) {
-      case DENSITY:
-        fdps = &flowdata[FLUIDMECH_DENSITY];
-        fdps->isActive = true;
-        fdps->definedOn = ResultInfo::NODE;
-        fdps->dofNames.push_back("-");
-        fdps->entryType=ResultInfo::SCALAR;
-        fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
-        fdps->data.resize(MpCCInodes_[0]);
-        Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
-        break;
-      case PRESSURE:
-        fdps = &flowdata[FLUIDMECH_PRESSURE];
-        fdps->isActive = true;
-        fdps->definedOn = ResultInfo::NODE;
-        fdps->dofNames.push_back("-");
-        fdps->entryType=ResultInfo::SCALAR;
-        fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-        Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
-        fdps->data.resize(MpCCInodes_[0]);
-        break;
-      case VELOCITY_X:
-        fdps = &flowdata[FLUIDMECH_VELOCITY];
-        fdps->isActive = true;
-        fdps->definedOn = ResultInfo::NODE;
-        fdps->dofNames.push_back("x");
-        fdps->dofNames.push_back("y");
-        if (numVelDofs == 3)
-          fdps->dofNames.push_back("z");
-        fdps->entryType=ResultInfo::VECTOR;
-        fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-        Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
-        fdps->data.resize(numVelDofs * MpCCInodes_[0]);
-        break;
-      default:
-        break;
+    if (timeStepIdx == settings.GetInt("firstStep")) {
+      for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
+        FlowDataPartStruct *fdps = NULL;
+    
+        switch (itQuan->second) {
+        case DENSITY:
+          fdps = &flowdata[FLUIDMECH_DENSITY];
+          fdps->isActive = true;
+          fdps->definedOn = ResultInfo::NODE;
+          fdps->dofNames.push_back("-");
+          fdps->entryType=ResultInfo::SCALAR;
+          fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
+          fdps->data.resize(MpCCInodes_[0]);
+          Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
+          break;
+        case PRESSURE:
+          fdps = &flowdata[FLUIDMECH_PRESSURE];
+          fdps->isActive = true;
+          fdps->definedOn = ResultInfo::NODE;
+          fdps->dofNames.push_back("-");
+          fdps->entryType=ResultInfo::SCALAR;
+          fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
+          Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
+          fdps->data.resize(MpCCInodes_[0]);
+          break;
+        case VELOCITY_X:
+          fdps = &flowdata[FLUIDMECH_VELOCITY];
+          fdps->isActive = true;
+          fdps->definedOn = ResultInfo::NODE;
+          fdps->dofNames.push_back("x");
+          fdps->dofNames.push_back("y");
+          if (numVelDofs == 3)
+            fdps->dofNames.push_back("z");
+          fdps->entryType=ResultInfo::VECTOR;
+          fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
+          Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
+          fdps->data.resize(numVelDofs * MpCCInodes_[0]);
+          break;
+        default:
+          break;
+        }
       }
     }
     

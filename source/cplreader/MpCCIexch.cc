@@ -3,7 +3,7 @@
 #include <iterator>
 #include <set>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <unistd.h>
 
 #include <boost/tokenizer.hpp>
@@ -1160,7 +1160,7 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
 
- #ifndef CPLREADER_STANDALONE
+#ifndef CPLREADER_STANDALONE
     std::string regionName = ptFileReader_->GetPartitionName(partitionIdx);
 
     if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()) 
@@ -1273,6 +1273,13 @@ namespace CoupledField
       {
         UInt idx = Topology_[partitionIdx][k+n]-1;
 
+#ifdef DEBUG
+        if (std::isnan(elemVec[n]) || std::isinf(elemVec[n])) {
+          EXCEPTION("Source term calculated on element " << i+1
+                    << " is Inf or Nan.");
+        }
+#endif
+        
         acouRhsField[idx] -= elemVec[n];
       }
 
@@ -1280,7 +1287,7 @@ namespace CoupledField
     }
 
     std::cout << "done." << std::endl;
- #endif
+#endif
   }
 
   void MpCCIExchangeCPLR::WriteStringToUserData(const std::string& dSetName, 
