@@ -253,6 +253,28 @@ namespace CoupledField {
     "ET_WEDGE15"       
   };
 
+  const bool ELEM_QUADRATIC[] = 
+  {
+    false,  // ET_UNDEF  
+    false,  // ET_POINT
+    false,  // ET_LINE2  
+    true,   // ET_LINE3  
+    false,  // ET_TRIA3  
+    true,   // ET_TRIA6  
+    false,  // ET_QUAD4  
+    true,   // ET_QUAD8  
+    true,   // ET_QUAD9  
+    false,  // ET_TET4   
+    true,   // ET_TET10  
+    false,  // ET_HEXA8  
+    true,   // ET_HEXA20 
+    true,   // ET_HEXA27 
+    false,  // ET_PYRA5  
+    true,   // ET_PYRA13 
+    false,  // ET_WEDGE6 
+    true    // ET_WEDGE15
+  };
+
 
   /** enumeration with integration types - to be renamed into IntegrationType
    * ECONOMICAL are the "efficient" gaussian quadrature weights

@@ -1,0 +1,739 @@
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <iomanip>
+#include <sstream> 
+
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
+#include "../settings.hh"
+#include "filereader_ANSYS.hh"
+
+
+namespace CoupledField
+{
+
+  FileReader_ANSYS::FileReader_ANSYS(const std::string& name,
+                                     const UInt dim,
+                                     const UInt numFiles,
+                                     const UInt startIndex) :
+    FileReader(name, dim, numFiles),
+    maxOrigElemNum_(0),
+    strict_(false),
+    degen_(false)
+  {
+    // Set chunk size to 10MB
+    chunkSize_ = 10 * 1024 * 1024;
+    lineIt_ = lineEnd_;
+    preferedOutputPath_ = ".";
+  }
+
+  FileReader_ANSYS::~FileReader_ANSYS()
+  {
+  }
+
+  void FileReader_ANSYS::Init()
+  {
+    Settings& settings = Settings::Instance();
+    std::stringstream sstr;
+    std::string line;
+    std::ostringstream errMsg;
+    double x, y, z;
+    UInt nodeNum;
+    UInt maxNodeNum = 0;
+    UInt numNodes = 0;
+
+    strict_ = (bool) settings.GetInt("strict");
+    degen_ = (bool) settings.GetInt("degen");
+    
+    OpenFile("nodes");
+    
+    while(GetNextLine(line)) {
+      x = y = z = 0;
+      
+      // strip whitespaces
+      boost::trim(line);
+
+      if(line == "")
+        continue;
+      
+      sstr.clear(); sstr.str("");
+      sstr << line;
+      
+      sstr >> nodeNum >> x >> y >> z;
+      
+      // Hier abfragen, ob die Knotennummern konsekutiv sind
+      if(!nodeNumsMap_.empty() && 
+         (nodeNumsMap_.rbegin()->first + 1) != nodeNum)
+      {
+        errMsg << "Nodes are not consecutive: " << nodeNumsMap_.rbegin()->first
+               << " -> " << nodeNum;
+        if(strict_)
+        {
+          EXCEPTION(errMsg.str());
+        }
+        else
+        {
+          if(settings.GetInt("verbose"))
+            std::cerr << errMsg.str() << std::endl;
+        }
+        errMsg.clear(); errMsg.str("");
+      }
+      
+      // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
+      if(nodeNumsMap_[nodeNum] != 0)
+        EXCEPTION("Node " << nodeNum << " has been referenced before!\n");
+
+      nodalCoords_.push_back(x);
+      nodalCoords_.push_back(y);
+      nodalCoords_.push_back(z);
+      
+      maxNodeNum = maxNodeNum < nodeNum ? nodeNum : maxNodeNum;
+      numNodes++;
+      nodeNumsMap_[nodeNum] = numNodes;
+    }
+
+    errMsg << "Node array written by ANSYS seems to have gaps!";
+    if(maxNodeNum != numNodes && strict_)
+    {
+      EXCEPTION(errMsg.str());
+    }
+    else
+    {
+      if(settings.GetInt("verbose"))
+        std::cerr << errMsg.str() << std::endl;
+    }
+    
+    std::string regionName;
+    UInt regionIdx = 0;
+    bool readAnotherLine = false;
+    FEType prelimElemType, actualElemType;
+    UInt ansysElemType;
+    UInt mat, real, secnum, esys;
+    UInt elemNum;
+    UInt numRegionElems = 0;
+    UInt numTotalElems = 0;
+    UInt numElemNodes;
+    UInt elemDim;
+    std::vector<UInt> elemNodes(40);
+    std::set<UInt> elemNodeSet;
+    UInt dim = 0;
+    
+    OpenFile("elements");
+    
+    while(GetNextLine(line)) {
+      std::fill(elemNodes.begin(), elemNodes.end(), 0);
+      elemNodeSet.clear();
+      
+      // strip whitespaces
+      boost::trim(line);
+
+      if(line.length() == 0)
+        continue;
+
+      if(line[0] == '[')
+      {
+        regionName = line.substr(1, line.length()-2);
+        boost::trim( regionName );
+        regionIdx = regionNames_.size();
+        regionNames_.push_back( regionName );
+        std::cout << regionName << std::endl;
+        numRegions_++;
+        numNodesPerRegion_.push_back(numNodes);
+        if(regionIdx)
+          numElemsPerRegion_.push_back(numRegionElems);
+        numRegionElems = 0;
+
+        continue;
+      }
+      
+      sstr.clear(); sstr.str("");
+      sstr << line;
+      sstr >> elemNodes[0] >> elemNodes[1] >> elemNodes[2] >> elemNodes[3] 
+           >> elemNodes[4] >> elemNodes[5] >> elemNodes[6] >> elemNodes[7];
+      sstr >> mat >> ansysElemType >> real >> secnum >> esys >> elemNum;
+      // Im Fall von NACS files bekommen wir den Elementtyp aus einer extra Datei
+
+      prelimElemType = ANSYSTypeToFEType(ansysElemType, 0, readAnotherLine);
+      
+      if(readAnotherLine)
+      {
+        if(!GetNextLine(line))
+          EXCEPTION("Error while trying to read second half of elem record.")
+
+        sstr.clear(); sstr.str("");
+        sstr << line;
+
+        sstr >> elemNodes[8] >> elemNodes[9] >> elemNodes[10] >> elemNodes[11] 
+             >> elemNodes[12] >> elemNodes[13] >> elemNodes[14] >> elemNodes[15]          
+             >> elemNodes[16] >> elemNodes[17] >> elemNodes[18] >> elemNodes[19];          
+      }
+  
+      // Determine number of element nodes by inserting nodes into a set.
+      elemNodeSet.insert(elemNodes.begin(), elemNodes.end());
+      elemNodeSet.erase((UInt) 0);
+      //      std::copy(elemNodeSet.begin(), elemNodeSet.end(),
+      //                std::ostream_iterator< UInt >(std::cout, " "));
+      //      std::cout << std::endl;
+      numElemNodes = elemNodeSet.size();
+      
+      actualElemType = ANSYSTypeToFEType(ansysElemType,
+                                         numElemNodes,
+                                         readAnotherLine);
+      if(actualElemType == ET_UNDEF)
+        EXCEPTION("Found undefined element type for elem " << elemNum 
+                  << " (region: " << (*regionNames_.rbegin())
+                  << ", type: " << ELEM_TYPE_NAMES[prelimElemType]
+                  << ", num. nodes: " << numElemNodes
+                  << ")");
+
+      if(!degen_ && prelimElemType != actualElemType)
+        ResortNodes(elemNodes);
+
+      if(degen_)
+      {
+        DegenerateElement(prelimElemType, actualElemType, elemNodes);
+        numElemNodes = NUM_ELEM_NODES[actualElemType];
+      }
+      
+      // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
+      if(elemTypes_[elemNum] != 0)
+      {
+        // Check if element has really been referenced before
+        if( CompareElements(elemNodes, topology_[elemNum]) )
+          EXCEPTION("Element " << elemNum << " has been referenced before in region '"
+                    << regionNames_[elemRegionMap_[elemNum]] << "' !\n"
+                    << "Active region is '" << (*regionNames_.rbegin()) << "'.");
+
+        // Add a really big number to elemNum and try to find a unique element number.
+        elemNum += 2000000000;
+        while(elemTypes_.find(elemNum) != elemTypes_.end())
+          elemNum++;
+      }
+      
+      std::copy(elemNodes.begin(),
+                elemNodes.begin()+numElemNodes,
+                std::back_inserter(topology_[elemNum]));
+      elemTypes_[elemNum] = actualElemType;
+      // This is just for debugging output
+      elemRegionMap_[elemNum] = regionIdx;
+
+      // Noch irgendwie die Regionen ordnen
+      // - elemente in ein konsekutives array einfügen
+      // - Elementnummern pro Region speichern
+      // - MaxNumElemNodes von Filereadern herausfinden lassen
+      // - Elementconnectivity wird immer in arrays mit n*MaxNumElemNodes behandelt
+      // - Elementnummern pro Region dem MpCCIExch object zugänglich machen.
+      elemNumsOrig_[regionIdx].push_back(elemNum);
+
+      maxOrigElemNum_ = maxOrigElemNum_ < elemNum ? elemNum : maxOrigElemNum_;
+      maxNumElemNodes_ = maxNumElemNodes_ < numElemNodes ? numElemNodes : maxNumElemNodes_;
+      elemDim = ELEM_DIM[actualElemType];
+      dim = dim < elemDim ? elemDim : dim;
+
+      numRegionElems++;
+      numTotalElems++;
+    }
+    numElemsPerRegion_.push_back(numRegionElems);
+    settings.SetInt("dim", dim);
+
+    std::map<UInt, UInt>::const_iterator it, end;
+    UInt lastElemNum;
+    UInt newElemNum = 1;
+
+    it = elemTypes_.begin();
+    end = elemTypes_.end();
+    lastElemNum = it->first;
+    elemNumsMap_[lastElemNum] = newElemNum;
+    it++;
+
+    // Check where exactly gaps are in the element array
+    // and assign correct values to elemNumsMap_.
+    for( ; it != end; it++ ) 
+    {
+      if(settings.GetInt("verbose") && (lastElemNum+1) != it->first)
+        std::cerr << "Gap detected between elements " << lastElemNum
+        << " and " << it->first << std::endl;
+      lastElemNum = it->first;
+      elemNumsMap_[lastElemNum] = ++newElemNum;
+    }
+    
+    UInt topoSize = topology_.size();
+
+    if(maxOrigElemNum_ != topoSize)
+    {
+      errMsg.clear(); errMsg.str("");
+      errMsg << "Element array written by ANSYS seems to have gaps!\n"
+             << "Maybe issuing:\n"
+             << "allsel,all,elem\n"
+             << "numcmp,elem\n"
+             << "before writing elemens will help!";
+      if(strict_)
+      {
+        EXCEPTION(errMsg.str());
+      }
+      else
+        if(settings.GetInt("verbose"))
+          std::cerr << errMsg.str() << std::endl;
+    }
+    
+  }
+
+
+  void FileReader_ANSYS::ReadNodalCoords(std::vector<Double> & NODECOORD)
+  {
+    NODECOORD = nodalCoords_;
+  }
+
+  void FileReader_ANSYS::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                                      std::vector<UInt> & elemTypes)
+  {
+    TOPOLOGYDATA.resize(maxNumElemNodes_ * elemNumsMap_.size());
+    elemTypes.resize(elemNumsMap_.size());
+    
+    std::map<UInt, UInt>::const_iterator it, end;
+    UInt numElemNodes;
+    UInt elemNum;
+    UInt baseIdx=0;
+    UInt idx=0;
+    UInt nodeNum;
+    UInt origNodeNum;
+    
+    it = elemNumsMap_.begin();
+    end = elemNumsMap_.end();
+
+    for( ; it != end; it++ ) 
+    {
+      elemNum = it->first;
+      numElemNodes = NUM_ELEM_NODES[elemTypes_[elemNum]];
+      elemTypes[idx] = elemTypes_[elemNum];
+      
+      for(UInt i=0; i<numElemNodes; i++)
+      {
+        origNodeNum = topology_[elemNum][i];
+        nodeNum = nodeNumsMap_[origNodeNum];
+
+        if(!nodeNum)
+          EXCEPTION("Node " << origNodeNum << " referenced by element "
+                    << elemNum << " cannot by found in nodes array.");
+
+        TOPOLOGYDATA[baseIdx+i] = nodeNum;
+      }
+
+      baseIdx += maxNumElemNodes_;
+      idx++;
+    }
+
+  }
+
+  void FileReader_ANSYS::GetRegionElements(std::vector<UInt> & regionElements,
+                                           const UInt regionIdx)
+  {
+    UInt numRegionElems = elemNumsOrig_[regionIdx].size();
+    UInt elemNum;
+    
+    regionElements.resize(numRegionElems);
+
+    for(UInt i=0; i<numRegionElems; i++)
+    {
+      elemNum = elemNumsOrig_[regionIdx][i];
+      regionElements[i] = elemNumsMap_[elemNum];
+    }
+  }
+
+  void FileReader_ANSYS::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                         const std::vector<bool>& activeParts,
+                                         const UInt timeStepIdx)
+  {
+    std::cerr << "File reader for ANSYS output files is not supposed to "
+      "handle nodal values!" << std::endl;
+  }
+
+  std::string FileReader_ANSYS::GetRegionName(const UInt regionIdx)
+  {
+    return regionNames_[regionIdx];
+  }
+  
+  void FileReader_ANSYS::OpenFile(std::string extension)
+  {
+    std::string filename;
+    std::stringstream sstr;
+    
+    sstr << name_ << "." << extension;
+    filename = sstr.str();
+    
+    inFile_.clear();
+    inFile_.open(filename.c_str(), std::ios::binary); 
+
+    if (!inFile_) {
+      EXCEPTION("Can't open " << filename);
+    }
+
+    // Determine size of file
+    inFile_.seekg(0,std::ios::end);
+    fSize_ = inFile_.tellg();
+    
+    // start from the beginning
+    inFile_.seekg(0,std::ios::beg);
+  }
+
+  bool FileReader_ANSYS::ReadChunk()
+  {
+    UInt pos = inFile_.tellg();
+
+    if(pos >= fSize_)
+      return false;
+    
+    char* buf;
+    buf = new char[fSize_+1];
+    inFile_.read(buf, fSize_);
+    inFile_.close();
+    buf[fSize_] = 0;
+    
+    std::string data(buf);
+    delete[] buf;
+    
+    typedef boost::tokenizer<char_separator<char> > Tok;
+    boost::char_separator<char> sep("\n\r");
+    Tok t(data, sep);
+    Tok::iterator it, end;
+    it = t.begin();
+    end = t.end();    
+
+    lines_.resize(std::distance(it, end));
+    std::copy(it, end, lines_.begin());
+    
+    lineIt_ = lines_.begin();
+    lineEnd_ = lines_.end();
+    
+    return true;
+  }
+
+  bool FileReader_ANSYS::GetNextLine(std::string& line)
+  {
+    if(lineIt_ == lineEnd_)
+    {
+      if(!ReadChunk())
+      {
+        lines_.clear();
+        return false;
+      }
+    }
+
+    line = *lineIt_;
+    lineIt_++;
+    return true;   
+  }
+
+  void FileReader_ANSYS::DegenerateElement(const FEType elemTypeIn,
+                                           FEType& elemTypeOut,
+                                           std::vector<UInt>& elemNodes)
+  {
+    static std::vector<UInt> newElemNodes;
+    static std::map<FEType, std::vector<UInt> > idxMap;
+    elemTypeOut = elemTypeIn;
+    
+    switch(elemTypeIn)
+    {
+    case ET_TRIA3:
+      elemTypeOut = ET_QUAD4;
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2};
+        std::copy(elemIdxMap, elemIdxMap+4, std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+      
+    case ET_TRIA6:
+      elemTypeOut = ET_QUAD8;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2, 3, 4, 2, 5};
+        std::copy(elemIdxMap, elemIdxMap+8, std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+    
+    case ET_TET4:
+      elemTypeOut = ET_HEXA8;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2, 3, 3, 3, 3};
+        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+      
+    case ET_TET10:
+      elemTypeOut = ET_HEXA20;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2,
+                             3, 3, 3, 3,
+                             4, 5, 2, 6,
+                             3, 3, 3, 3,
+                             7, 8, 9, 9};
+        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+
+    case ET_PYRA5:
+      elemTypeOut = ET_HEXA8;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 3,
+                             4, 4, 4, 4};
+        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+
+    case ET_PYRA13:
+      elemTypeOut = ET_HEXA20;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 3,
+                             4, 4, 4, 4,
+                             5, 6, 7, 8,
+                             4, 4, 4, 4,
+                             9, 10, 11, 12};
+        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+      
+    case ET_WEDGE6:
+      elemTypeOut = ET_HEXA8;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2,
+                             3, 4, 5, 5};
+        std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+
+    case ET_WEDGE15:
+      elemTypeOut = ET_HEXA20;
+
+      if(idxMap[elemTypeIn].empty())
+      {
+        UInt elemIdxMap[] = {0, 1, 2, 2,
+                             3, 4, 5, 5,
+                             6, 7, 2, 8,
+                             9, 10, 5, 11,
+                             12, 13, 14, 14};
+        std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
+      }
+      break;
+
+    default:
+      return;
+    }
+
+    newElemNodes.resize(NUM_ELEM_NODES[elemTypeOut]);
+    std::vector<UInt>::const_iterator it, end;
+    it = idxMap[elemTypeIn].begin();
+    end = idxMap[elemTypeIn].end();
+
+    for(UInt i=0 ; it != end; it++, i++) 
+    {
+      newElemNodes[i] = elemNodes[*it];
+    }
+
+    std::copy(newElemNodes.begin(), newElemNodes.end(), elemNodes.begin());
+  }
+
+  FEType FileReader_ANSYS::ANSYSTypeToFEType(UInt type, UInt numNodes,
+                                             bool& readAnotherLine)
+  {
+    FEType ret = ET_UNDEF;
+    readAnotherLine = false;
+    
+    switch(type)
+    {
+    case 2:
+    case 100:
+      if(numNodes == 2 || numNodes == 0)
+        ret = ET_LINE2;
+      break;
+
+    case 3:
+    case 101:
+      if(numNodes == 3 || numNodes == 0)
+        ret = ET_LINE3;
+      break;
+
+    case 4:
+      if(numNodes == 3 || numNodes == 0)
+        ret = ET_TRIA3;
+      break;
+      
+    case 5:
+      if(numNodes == 6 || numNodes == 0)
+        ret = ET_TRIA6;
+      break;
+    
+    case 6: // rectangle
+      if(numNodes == 0)
+        ret = ET_QUAD4;
+
+      switch(numNodes)
+      {
+      case 3:
+        ret = ET_TRIA3;
+        break;
+        
+      case 4:
+        ret = ET_QUAD4;
+        break;
+      }
+      break;
+      
+    case 7: // quad. rectangle
+      if(numNodes == 0)
+        ret = ET_QUAD8;
+
+      switch(numNodes)
+      {
+      case 6:
+        ret = ET_TRIA6;
+        break;
+
+      case 8:
+        ret = ET_QUAD8;
+        break;
+      }
+      break;
+
+    case 8:
+      if(numNodes == 4 || numNodes == 0)
+        ret = ET_TET4;
+      break;
+      
+    case 9:
+      if(numNodes == 10 || numNodes == 0)
+        ret = ET_TET10;
+      readAnotherLine = true;
+      break;
+
+    case 10: // hexa
+      if(numNodes == 0)
+        ret = ET_HEXA8;
+
+      switch(numNodes)
+      {
+      case 4:
+        ret = ET_TET4;
+        break;
+        
+      case 5:
+        ret = ET_PYRA5;
+        break;
+        
+      case 6:
+        ret = ET_WEDGE6;
+        break;
+        
+      case 8:
+        ret = ET_HEXA8;
+        break;
+      }
+      break;
+      
+    case 11: // quad. hexa
+      if(numNodes == 0)
+        ret = ET_HEXA20;
+      
+      switch(numNodes)
+      {
+      case 10:
+      ret = ET_TET10;
+      break;
+
+      case 13:
+      ret = ET_PYRA13;
+      break;
+
+      case 15:
+      ret = ET_WEDGE15;
+      break;
+
+      case 20:
+      ret = ET_HEXA20;
+      break;
+      }
+      
+      readAnotherLine = true;
+      break;
+
+    case 12:
+      if(numNodes == 5 || numNodes == 0)
+        ret = ET_PYRA5;
+      break;
+
+    case 13:
+      if(numNodes == 13 || numNodes == 0)
+        ret = ET_PYRA13;
+      readAnotherLine = true;
+      break;
+      
+    case 14:
+      if(numNodes == 6 || numNodes == 0)
+        ret = ET_WEDGE6;
+      break;
+
+    case 15:
+      if(numNodes == 15 || numNodes == 0)
+        ret = ET_WEDGE15;
+      readAnotherLine = true;
+      break;      
+    }
+    
+    return ret;
+  }
+  
+  bool FileReader_ANSYS::CompareElements(const std::vector<UInt>& elemNodes1,
+                                         const std::vector<UInt>& elemNodes2)
+  {
+    std::vector<UInt>::const_iterator it1, it2, end1, end2;
+    it1 = elemNodes1.begin();
+    end1 = elemNodes1.end();
+    it2 = elemNodes2.begin();
+    end2 = elemNodes2.end();
+    
+    for(; it1 != end1 && it2 != end2; it1++, it2++)
+    {
+      if(!(*it1))
+        return true;
+    
+      if(*it1 != *it2)
+        return false;
+    }
+    
+    return true;
+  }
+
+  void FileReader_ANSYS::ResortNodes(std::vector<UInt>& elemNodes)
+  {
+     std::set<UInt> nodeSet;
+     UInt pos;
+     
+     nodeSet.insert(elemNodes[0]);
+     pos = 1;
+     
+     for(UInt i=1, n=elemNodes.size(); i<n; i++) {
+       if(nodeSet.find(elemNodes[i]) != nodeSet.end()) {
+         continue;
+       } 
+
+       elemNodes[pos++] = elemNodes[i];
+       nodeSet.insert(elemNodes[i]);
+     }
+  }
+  
+} // end of namespace

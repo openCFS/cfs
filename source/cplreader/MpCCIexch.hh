@@ -74,13 +74,14 @@ namespace CoupledField
                                const std::string& str);
 
     FileReader *  ptFileReader_;
-    std::map<UInt, std::vector<Double> > NodalCoords_;
-    std::map<UInt, std::vector<UInt> > Topology_;
+    std::vector<Double> nodalCoords_;
+    std::vector<UInt> topology_;
+    std::vector<UInt> elemTypes_;
 
-    std::map<UInt, std::vector<UInt> > numNodesPerElem_;
-    std::map<UInt, std::vector<UInt> > elemTypes_;
-
-    std::map<UInt, std::map<UInt, UInt> > nodesInPartition_;
+    std::map<UInt, std::vector<UInt> > regionElems_;
+    std::map<UInt, std::map<UInt, UInt> > regionNodeIndices_;
+    
+    UInt dim_;
 
     // Directory name for storing HDF5 files
     std::string hdf5DirName_;

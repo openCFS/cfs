@@ -24,7 +24,7 @@ namespace CoupledField {
     colVelY_ = 0;
     colVelZ_ = 0;
     
-    basename_ = "./" + name_ + "/results_";
+    baseName_ = "./" + name_ + "/results_";
     
     if (numFiles == 0) {
       EXCEPTION("Please specify number of time steps.");
@@ -45,47 +45,47 @@ namespace CoupledField {
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
-    sFilename << basename_ << startIndex_ << ".csv"; 
+    sFilename << baseName_ << startIndex_ << ".csv"; 
     
     // try to open file
-    infile.clear();
-    infile.open(sFilename.str().c_str(), std::ios::in);
-    if (!infile) {
+    inFile_.clear();
+    inFile_.open(sFilename.str().c_str(), std::ios::in);
+    if (!inFile_) {
       EXCEPTION("Cannot open file '" << sFilename.str() << "'.");
     }
-    infile.seekg(0, std::ios::beg);
+    inFile_.seekg(0, std::ios::beg);
     
-    numPartitions_ = 1;
-    elsize_.clear(); elsize_.push_back(4);
-    MpCCInodes_.resize(1);
-    MpCCIelems_.resize(1);
+    numRegions_ = 1;
+    numNodesPerRegion_.resize(1);
+    numElemsPerRegion_.resize(1);
+    maxNumElemNodes_ = 4;
     
     // find [Data] section
     std::string lineBuf;
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf == "[Data]")
           break;
     }
 
-    if ( infile.bad() || infile.eof() ) {
+    if ( inFile_.bad() || inFile_.eof() ) {
       EXCEPTION("Cannot find [Data] section in file '" << sFilename.str()
                 << "'.");
     }
     
     // get line with column headers
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf.length() >0 && lineBuf[0] != '#')
         break;
     }
-    infile.close();
+    inFile_.close();
 
     UInt curCol = 1;
+    UInt numResults = 0;
     std::string sColName;
     std::istringstream strLine;
     strLine.str(lineBuf);
-    numResults_ = 0;
 
     while (std::getline(strLine, sColName, ',')) {
       if (sColName == " X [ m ]") {
@@ -104,21 +104,21 @@ namespace CoupledField {
         if (colDens_ == 0) {
           colDens_ = curCol;
           col2Quan_[curCol] = DENSITY;
-          ++numResults_;
+          ++numResults;
         }
       }
       else if (sColName == " Pressure [ Pa ]") {
         if (colPres_ == 0) {
           colPres_ = curCol;
           col2Quan_[curCol] = PRESSURE;
-          ++numResults_;
+          ++numResults;
         }
       }
       else if (sColName == " Velocity u [ m s^-1 ]") {
         if (colVelX_ == 0) {
           colVelX_ = curCol;
           col2Quan_[curCol] = VELOCITY_X;
-          ++numResults_;
+          ++numResults;
         }
       }
       else if (sColName == " Velocity v [ m s^-1 ]") {
@@ -149,17 +149,17 @@ namespace CoupledField {
       }
     }
 
-    if (numResults_ == 0) {
+    if (numResults == 0) {
       EXCEPTION("No known quantities found in file '"
                 << sFilename.str() << "'.");
     }
 
     std::cout << " Name:      \t" << name_ << std::endl
               << " Dimension: \t" << dim_ << std::endl
-              << " Files:     \t" << numFiles_ << std::endl
-              << " Partitions:\t" << numPartitions_ << std::endl
+              << " Files:     \t" << numSteps_ << std::endl
+              << " Partitions:\t" << numRegions_ << std::endl
               << " Time step: \t" << settings.GetDouble("timeStep") << std::endl
-              << " Results:   \t" << numResults_ << std::endl;
+              << " Results:   \t" << numResults << std::endl;
     if (colDens_ > 0)
       std::cout << "   Density: \tcolumn " << colDens_ << std::endl;
     if (colPres_ > 0)
@@ -173,42 +173,37 @@ namespace CoupledField {
     std::cout << std::endl;
   }
   
-  void FileReader_CFXexport::ReadNodalCoords(std::vector<Double> & NODECOORD,
-                                             const UInt partitionIdx)
+  void FileReader_CFXexport::ReadNodalCoords(std::vector<Double> & NODECOORD)
   {
-    if (partitionIdx >= numPartitions_) {
-      EXCEPTION("Invalid partition index: " << partitionIdx);
-    }
-
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
-    sFilename << basename_ << startIndex_ << ".csv"; 
+    sFilename << baseName_ << startIndex_ << ".csv"; 
     
     // try to open file
-    infile.clear();
-    infile.open(sFilename.str().c_str(), std::ios::in);
-    if (!infile) {
+    inFile_.clear();
+    inFile_.open(sFilename.str().c_str(), std::ios::in);
+    if (!inFile_) {
       EXCEPTION("Cannot open file '" << sFilename.str() << "'.");
     }
-    infile.seekg(0, std::ios::beg);
+    inFile_.seekg(0, std::ios::beg);
     
     // find [Data] section
     std::string lineBuf;
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf == "[Data]")
           break;
     }
 
-    if ( infile.bad() || infile.eof() ) {
+    if ( inFile_.bad() || inFile_.eof() ) {
       EXCEPTION("Cannot find [Data] section in file '" << sFilename.str()
                 << "'.");
     }
     
     // get line with column headers
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf.length() > 0 && lineBuf[0] != '#')
         break;
     }
@@ -219,10 +214,10 @@ namespace CoupledField {
     NODECOORD.clear();
 
     // cycle through all data lines
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
 
-      if (lineBuf.length() > 0 && !infile.eof()) {
+      if (lineBuf.length() > 0 && !inFile_.eof()) {
         if (lineBuf[0] == '[') {
           break;
         }
@@ -254,43 +249,36 @@ namespace CoupledField {
       }
     }
 
-    infile.close();
+    inFile_.close();
 
-    MpCCInodes_[partitionIdx] = lineNum;
+    numNodesPerRegion_[0] = lineNum;
   }
 
   void FileReader_CFXexport::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                          std::vector<UInt> & numNodesPerElem,
-                                          std::vector<UInt> & elemTypes,
-                                          const UInt partitionIdx)
+                                               std::vector<UInt> & elemTypes)
   {
-    if (partitionIdx >= numPartitions_) {
-      EXCEPTION("Invalid partition index: " << partitionIdx);
-    }
-
-    
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
-    sFilename << basename_ << startIndex_ << ".csv"; 
+    sFilename << baseName_ << startIndex_ << ".csv"; 
     
     // try to open file
-    infile.clear();
-    infile.open(sFilename.str().c_str(), std::ios::in);
-    if (!infile) {
+    inFile_.clear();
+    inFile_.open(sFilename.str().c_str(), std::ios::in);
+    if (!inFile_) {
       EXCEPTION("Cannot open file '" << sFilename.str() << "'.");
     }
-    infile.seekg(0, std::ios::beg);
+    inFile_.seekg(0, std::ios::beg);
     
     // find [Faces] section
     std::string lineBuf;
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf == "[Faces]")
           break;
     }
 
-    if ( infile.bad() || infile.eof() ) {
+    if ( inFile_.bad() || inFile_.eof() ) {
       EXCEPTION("Cannot find [Faces] section in file '" << sFilename.str()
                 << "'.");
     }
@@ -301,14 +289,13 @@ namespace CoupledField {
     std::vector<UInt> connect;
     
     TOPOLOGYDATA.clear();
-    numNodesPerElem.clear();
     elemTypes.clear();
 
     // cycle through all data lines
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
 
-      if (lineBuf.length() > 0 && !infile.eof()) {
+      if (lineBuf.length() > 0 && !inFile_.eof()) {
         if (lineBuf[0] == '[') {
           break;
         }
@@ -324,34 +311,75 @@ namespace CoupledField {
 
           switch (connect.size()) {
             case 4:
-              numNodesPerElem.push_back(4);
               elemTypes.push_back(ET_QUAD4);
+              TOPOLOGYDATA.push_back(connect[2]);
+              TOPOLOGYDATA.push_back(connect[3]);
+              TOPOLOGYDATA.push_back(connect[0]);
+              TOPOLOGYDATA.push_back(connect[1]);
+              numElemsPerRegion_[0]++;
+
               ++lineNum;
               break;
             case 3:
-              numNodesPerElem.push_back(3);
               elemTypes.push_back(ET_TRIA3);
+              TOPOLOGYDATA.push_back(connect[0]);
+              TOPOLOGYDATA.push_back(connect[1]);
+              TOPOLOGYDATA.push_back(connect[2]);
+              TOPOLOGYDATA.push_back(0);
+              numElemsPerRegion_[0]++;
+
+              ++lineNum;
+              break;
+              
+            case 5:
+              elemTypes.push_back(ET_TRIA3);
+              TOPOLOGYDATA.push_back(connect[0]);
+              TOPOLOGYDATA.push_back(connect[1]);
+              TOPOLOGYDATA.push_back(connect[2]);
+              TOPOLOGYDATA.push_back(0);
+
+              elemTypes.push_back(ET_TRIA3);
+              TOPOLOGYDATA.push_back(connect[0]);
+              TOPOLOGYDATA.push_back(connect[2]);
+              TOPOLOGYDATA.push_back(connect[4]);
+              TOPOLOGYDATA.push_back(0);
+
+              elemTypes.push_back(ET_TRIA3);
+              TOPOLOGYDATA.push_back(connect[4]);
+              TOPOLOGYDATA.push_back(connect[2]);
+              TOPOLOGYDATA.push_back(connect[3]);
+              TOPOLOGYDATA.push_back(0);
+              
+              numElemsPerRegion_[0] +=3;
+
               ++lineNum;
               break;
             case 0:
-              break;
             default:
               std::cerr << "WARNING: Element with " << connect.size()
                         << " nodes was not converted.\n";
               connect.clear();
+              continue;
               break;
           }
-          
-          for (UInt i = 0, iEnd = connect.size(); i < iEnd; ++i) {
-            TOPOLOGYDATA.push_back(connect[i]);
-          }
+
         }
       }
     }
 
-    infile.close();
+    inFile_.close();
 
-    MpCCIelems_[partitionIdx] = lineNum;
+  }
+
+  void FileReader_CFXexport::GetRegionElements(std::vector<UInt> & regionElements,
+                                                     const UInt regionIdx)
+  {
+    UInt numRegionElems = numElemsPerRegion_[regionIdx];
+    
+    regionElements.resize(numRegionElems);
+
+    for(UInt i=0; i<numRegionElems; i++)
+      regionElements[i] = i+1;
   }
 
   void FileReader_CFXexport::ReadNodalValues(std::vector<FlowDataType>
@@ -364,32 +392,32 @@ namespace CoupledField {
     // put filename together
     std::ostringstream sFilename;
     sFilename.str("");
-    sFilename << basename_ << timeStepIdx << ".csv"; 
+    sFilename << baseName_ << timeStepIdx << ".csv"; 
     
     // try to open file
-    infile.clear();
-    infile.open(sFilename.str().c_str(), std::ios::in);
-    if (!infile) {
+    inFile_.clear();
+    inFile_.open(sFilename.str().c_str(), std::ios::in);
+    if (!inFile_) {
       EXCEPTION("Cannot open file '" << sFilename.str() << "'.");
     }
-    infile.seekg(0, std::ios::beg);
+    inFile_.seekg(0, std::ios::beg);
     
     // find [Data] section
     std::string lineBuf;
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf == "[Data]")
           break;
     }
 
-    if ( infile.bad() || infile.eof() ) {
+    if ( inFile_.bad() || inFile_.eof() ) {
       EXCEPTION("Cannot find [Data] section in file '"
                 << sFilename.str() << "'.");
     }
     
     // get line with column headers
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
       if (lineBuf.length() > 0 && lineBuf[0] != '#')
         break;
     }
@@ -414,7 +442,7 @@ namespace CoupledField {
           fdps->dofNames.push_back("-");
           fdps->entryType=ResultInfo::SCALAR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
-          fdps->data.resize(MpCCInodes_[0]);
+          fdps->data.resize(numNodesPerRegion_[0]);
           Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
           break;
         case PRESSURE:
@@ -425,7 +453,7 @@ namespace CoupledField {
           fdps->entryType=ResultInfo::SCALAR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
           Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
-          fdps->data.resize(MpCCInodes_[0]);
+          fdps->data.resize(numNodesPerRegion_[0]);
           break;
         case VELOCITY_X:
           fdps = &flowdata[FLUIDMECH_VELOCITY];
@@ -438,7 +466,7 @@ namespace CoupledField {
           fdps->entryType=ResultInfo::VECTOR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
           Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
-          fdps->data.resize(numVelDofs * MpCCInodes_[0]);
+          fdps->data.resize(numVelDofs * numNodesPerRegion_[0]);
           break;
         default:
           break;
@@ -447,10 +475,10 @@ namespace CoupledField {
     }
     
     // cycle through all data lines
-    while (infile.good()) {
-      std::getline(infile, lineBuf);
+    while (inFile_.good()) {
+      std::getline(inFile_, lineBuf);
 
-      if (lineBuf.length() > 0 && !infile.eof()) {
+      if (lineBuf.length() > 0 && !inFile_.eof()) {
         if (lineBuf[0] == '[') {
           break;
         }
@@ -501,7 +529,7 @@ namespace CoupledField {
       }
     }
 
-    infile.close();
+    inFile_.close();
   }
 
   

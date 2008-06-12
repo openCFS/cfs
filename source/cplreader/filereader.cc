@@ -16,17 +16,20 @@ namespace CoupledField
   FileReader::FileReader(const std::string& name,
                          const UInt dim,
                          const UInt numFiles) :
-    numPartitions_(0), 
+    numRegions_(0), 
     dim_(dim),
-    numResults_(1),
-    numFiles_(numFiles)
+    numSteps_(numFiles),
+    maxNumElemNodes_(0)
   {
     name_ = name;
-    basename_ = "./";
-    basename_+= name_;
-    basename_+= "/";
-    basename_+= name_;
-    basename_+= "_";
+    baseName_ = "./";
+    baseName_+= name_;
+    baseName_+= "/";
+    baseName_+= name_;
+    baseName_+= "_";
+    
+    preferedOutputPath_ = "cplreader_hdf5_";
+    preferedOutputPath_ += name_; 
   }
 
   FileReader::~FileReader()
@@ -40,36 +43,14 @@ namespace CoupledField
     
     double ts = timestep * stepNumber;
 
-    /*        
-              mu::Parser parser;
-
-              parser.SetExpr(params->GetTimeStep());
-              try
-              {
-              ts = parser.Eval();
-              }
-              catch (mu::Parser::exception_type &e)
-              {
-              std::cerr << e.GetMsg() << std::endl;
-              exit(1);
-              }
-
-              if(ts < 0)
-              {
-              std::cerr << "Negative timestep!"
-              << "You must specify timestep with -p or --timestep parameters."
-              << std::endl;
-              exit(1);
-              }
-    */
     return ts;
   }
 
-  std::string FileReader::GetPartitionName(const UInt partitionIdx)
+  std::string FileReader::GetRegionName(const UInt regionIdx)
   {
     std::ostringstream sstr;
     
-    sstr << "partition" << (partitionIdx+1);
+    sstr << "partition" << (regionIdx+1);
     return sstr.str();
   }
       

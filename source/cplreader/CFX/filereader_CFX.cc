@@ -47,9 +47,9 @@ namespace CoupledField
     FileReader(name, dim, numFiles)
   {
     name_ = name;
-    basename_ = "./";
-    basename_+= name_;
-    basename_+= "/";
+    baseName_ = "./";
+    baseName_+= name_;
+    baseName_+= "/";
   }
 
   FileReader_CFX::~FileReader_CFX()
@@ -64,7 +64,7 @@ namespace CoupledField
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
         
     std::stringstream sstr;
-    sstr << basename_ << name_ << ".res";
+    sstr << baseName_ << name_ << ".res";
     std::string resFileName = sstr.str();
     std::cout << "resFileName: " << resFileName << std::endl;
 
@@ -138,7 +138,7 @@ namespace CoupledField
 
       //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
     
-      numFiles_ = 0;
+      numSteps_ = 0;
       transientFNs_.clear();
       timeStepNumbers_.clear();
         
@@ -157,15 +157,15 @@ namespace CoupledField
           }
         }
         
-        snprintf(fn, sizeof(fn), "%s%s/%s", basename_.c_str(), name_.c_str(), trnnam);
+        snprintf(fn, sizeof(fn), "%s%s/%s", baseName_.c_str(), name_.c_str(), trnnam);
             
-        infile.clear();
-        infile.open(fn);
-        if (infile)
+        inFile_.clear();
+        inFile_.open(fn);
+        if (inFile_)
         {
-          infile.close();
+          inFile_.close();
 
-          numFiles_++;
+          numSteps_++;
           transientFNs_.push_back(fn);
           timeStepNumbers_.push_back(its);
         }
@@ -207,7 +207,7 @@ namespace CoupledField
     }
     else 
     {
-      fs::path trnDir( basename_ +  name_);
+      fs::path trnDir( baseName_ +  name_);
       fs::directory_iterator end_iter;
       UInt its = 1;
       std::set<UInt> stepNumSet;
@@ -240,11 +240,11 @@ namespace CoupledField
       {
         stepNum = *it;
         sstr.clear(); sstr.str("");
-        sstr << basename_ << name_ << "/" << stepNum << ".trn";
+        sstr << baseName_ << name_ << "/" << stepNum << ".trn";
         
         fn = sstr.str();
         
-        numFiles_++;
+        numSteps_++;
         transientFNs_.push_back(fn);
         timeStepNumbers_.push_back(stepNum);
       }
@@ -254,9 +254,9 @@ namespace CoupledField
     {
       UInt tmp = (UInt) settings.GetInt("numSteps");
       /* only take argument if tmo does not exceed the maximal number of timesteps possible */
-      if (tmp < numFiles_)
+      if (tmp < numSteps_)
       {
-        numFiles_ = tmp;
+        numSteps_ = tmp;
       }
     }
         
@@ -266,10 +266,10 @@ namespace CoupledField
 
     std::vector< std::string > defFileNames;
     if(settings.GetString("defFile") != "")
-      defFileNames.push_back(basename_ + settings.GetString("defFile").c_str());
+      defFileNames.push_back(baseName_ + settings.GetString("defFile").c_str());
     if(defFile != "")
-      defFileNames.push_back(basename_ + defFile);
-    defFileNames.push_back(basename_ + name_ + ".def");
+      defFileNames.push_back(baseName_ + defFile);
+    defFileNames.push_back(baseName_ + name_ + ".def");
     defFile = "";
 
     for(UInt i=0; i<defFileNames.size(); i++)
@@ -279,12 +279,12 @@ namespace CoupledField
         std::cerr << "Trying to open deffile: " << defFileNames[i] << " ";
       }
 
-      infile.clear();
-      infile.open(defFileNames[i].c_str());
-      if (infile)
+      inFile_.clear();
+      inFile_.open(defFileNames[i].c_str());
+      if (inFile_)
       {
         defFile = defFileNames[i];
-        infile.close();
+        inFile_.close();
         if(settings.GetInt("verbose"))
         {
           std::cerr << "-> OK!" << std::endl;
@@ -370,10 +370,9 @@ namespace CoupledField
       printf("Number of element sets, NES= %d\n", nes);
     }
         
-    numPartitions_ = nes;
-    elsize_.resize(numPartitions_);
-    MpCCInodes_.resize(numPartitions_);
-    MpCCIelems_.resize(numPartitions_);
+    numRegions_ = nes;
+    numNodesPerRegion_.resize(numRegions_);
+    numElemsPerRegion_.resize(numRegions_);
         
     //---- Element type per element set
     //---   elem type = 4: tet  , 4 nodes
@@ -407,18 +406,17 @@ namespace CoupledField
 
     for(int ies = 1; ies <= nes; ies++)
     {
-      int nvxel = 0;
-        
       //
       //---- number of nodes per element
       //
-      if (ielem[ies-1] == 4) nvxel = 4;
-      if (ielem[ies-1] == 5) nvxel = 6;
-      if (ielem[ies-1] == 6) nvxel = 8;
-      if (ielem[ies-1] == 7) nvxel = 5;
-          
-      elsize_[ies-1] = nvxel;
-            
+      if (ielem[ies-1] == 4) regionElemTypes_.push_back(ET_TET4);
+      if (ielem[ies-1] == 5) regionElemTypes_.push_back(ET_WEDGE6);
+      if (ielem[ies-1] == 6) regionElemTypes_.push_back(ET_HEXA8);
+      if (ielem[ies-1] == 7) regionElemTypes_.push_back(ET_PYRA5);
+
+      UInt nENod = NUM_ELEM_NODES[*regionElemTypes_.rbegin()];
+      maxNumElemNodes_ = nENod > maxNumElemNodes_ ? nENod : maxNumElemNodes_;
+      
       //
       //---- reading element numbers for each element set
       //
@@ -441,8 +439,8 @@ namespace CoupledField
       CHECK_CFX_IO(nerr);
 
 
-      MpCCIelems_[ies-1] = nsize;
-      MpCCInodes_[ies-1] = nvx;
+      numElemsPerRegion_[ies-1] = nsize;
+      numNodesPerRegion_[ies-1] = nvx;
 
       if(settings.GetInt("verbose"))
       {
@@ -451,9 +449,8 @@ namespace CoupledField
 
 
         std::cout << "Partition " << (ies)
-                  << " nodes: " << MpCCInodes_[ies-1]
-                  << " elems: " << MpCCIelems_[ies-1]
-                  << " elsize: " << elsize_[ies-1]
+                  << " nodes: " << numNodesPerRegion_[ies-1]
+                  << " elems: " << numElemsPerRegion_[ies-1]
                   << std::endl;
       }
     }
@@ -463,11 +460,10 @@ namespace CoupledField
     CHECK_CFX_IO(nerr);
   }
     
-  void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD,
-                                       const UInt partitionIdx)
+  void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD)
   {
     Settings& settings = Settings::Instance();
-    NODECOORD.resize(MpCCInodes_[partitionIdx]*3);
+    NODECOORD.resize(numNodesPerRegion_[0]*3);
         
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
@@ -489,9 +485,9 @@ namespace CoupledField
 
     dattyp = __double_data_type__;
     length = 3;
-    nsize  = MpCCInodes_[partitionIdx];
+    nsize  = numNodesPerRegion_[0];
     iopt = __stop_if_failed__;
-    doublevec.resize(MpCCInodes_[partitionIdx]*3);
+    doublevec.resize(numNodesPerRegion_[0]*3);
     
     readlong_(&dattyp, &nerr, what,where,&when,&nsize,&iopt,
               rarr,iarr,carr,larr,&doublevec[0],sarr,
@@ -511,109 +507,108 @@ namespace CoupledField
   }
     
   void FileReader_CFX::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                    std::vector<UInt> & numNodesPerElem,
-                                    std::vector<UInt> & elemTypes,
-                                    const UInt partitionIdx)
+                                        std::vector<UInt> & elemTypes)
   {
     Settings& settings = Settings::Instance();
-    int numNodes = elsize_[partitionIdx];
-    int numElems = MpCCIelems_[partitionIdx];
+    UInt elem=0;
+    int numElems=0;
+    int numElemNodes;
     int elemType = ET_UNDEF;
+    std::vector<UInt> elConnect(maxNumElemNodes_);
 
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
     openfile_(&nerr, fn, &whatfile, strlen(fn)); 
     CHECK_CFX_IO(nerr);
 
-    switch(numNodes)
-    {
-    case 4:
-      elemType = ET_TET4;
-      break;
-        
-    case 6:
-      elemType = ET_WEDGE6;
-      break;
-
-    case 8:
-      elemType = ET_HEXA8;
-      break;
-
-    case 5:
-      elemType = ET_PYRA5;
-      break;
+    // Determine total number of elements
+    for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
+      numElems += numElemsPerRegion_[actRegion];
     }
-        
-    //---- reading connectivity for each element set
-    //     outer loop:  i_element
-    //     inner loop:  i_vx per element (1 ... nelvx)
-        
-    sprintf(what,"G/KVXPE");
-        
-    //
-    //---- where = ZN1/ESn where n is integer from 1 to nes
-    //
-        
-    sprintf(where, "ZN1/ES%d", partitionIdx+1);
-    when  = 0;
     
-    dattyp = __int_data_type__;
-    length = numNodes;
-    nsize  = BIGMEM;
-    iopt   = __stop_if_failed__;
-        
-        
-    readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-              rarr,&intvec[0],carr,larr,darr,sarr,
-              strlen(what), strlen(where), 0);
-    CHECK_CFX_IO(nerr);
+    TOPOLOGYDATA.resize(numElems * maxNumElemNodes_);
 
-    std::cout  << "read connectivity from def file" << std::endl;
+    for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
+      elemType = regionElemTypes_[actRegion];
+      numElems = numElemsPerRegion_[actRegion];
+      numElemNodes = NUM_ELEM_NODES[elemType];
+
+      //---- reading connectivity for each element set
+      //     outer loop:  i_element
+      //     inner loop:  i_vx per element (1 ... nelvx)
+
+      sprintf(what,"G/KVXPE");
+
+      //
+      //---- where = ZN1/ESn where n is integer from 1 to nes
+      //
+
+      sprintf(where, "ZN1/ES%d", actRegion+1);
+      when  = 0;
+
+      dattyp = __int_data_type__;
+      length = numElemNodes;
+      nsize  = BIGMEM;
+      iopt   = __stop_if_failed__;
+
+
+      readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+          rarr,&intvec[0],carr,larr,darr,sarr,
+          strlen(what), strlen(where), 0);
+      CHECK_CFX_IO(nerr);
+
+      std::cout  << "read connectivity from def file" << std::endl;
+
+      if(settings.GetInt("verbose"))
+      {
+        printf("Length of Connectivity array: %d\n", nsize);
+      }
+
+      UInt baseIdx=0;
+      for(int i=0; i<numElems; i++, baseIdx += numElemNodes) 
+      {
+        elemTypes.push_back(elemType);
+        std::fill(elConnect.begin(), elConnect.end(), 0);
+
+        if(elemType == ET_HEXA8)
+        {
+          elConnect[0] = intvec[baseIdx + 4];
+          elConnect[1] = intvec[baseIdx + 6];
+          elConnect[2] = intvec[baseIdx + 7];
+          elConnect[3] = intvec[baseIdx + 5];
+          elConnect[4] = intvec[baseIdx + 0];
+          elConnect[5] = intvec[baseIdx + 2];
+          elConnect[6] = intvec[baseIdx + 3];
+          elConnect[7] = intvec[baseIdx + 1];
+        }
+        else 
+        {
+          std::copy(&intvec[baseIdx],
+              &intvec[baseIdx+numElemNodes],
+              &elConnect[0]);
+        }
+
+        regionElems_[actRegion].push_back(elem+1);
+
+        std::copy(elConnect.begin(), elConnect.end(),
+                  TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
+        elem++;
+        
+      }
+      
+    }
 
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
-
-    if(settings.GetInt("verbose"))
-    {
-      printf("Length of Connectivity array: %d\n", nsize);
-    }
-
-    TOPOLOGYDATA.resize(numElems*numNodes);
-    std::fill(TOPOLOGYDATA.begin(), TOPOLOGYDATA.end(), 0);
-    numNodesPerElem.resize(numElems);
-    elemTypes.resize(numElems);
-
-    int baseIdx;
-        
-    for(int i=0; i<numElems; i++) 
-    {
-      numNodesPerElem[i] = numNodes;
-      baseIdx = i*numNodes;
-      elemTypes[i] = elemType;
-
-
-      if(elemType == ET_HEXA8)
-      {
-        // Reihenfolge für MpCCI
-        TOPOLOGYDATA[baseIdx + 0] = intvec[baseIdx + 4];
-        TOPOLOGYDATA[baseIdx + 1] = intvec[baseIdx + 6];
-        TOPOLOGYDATA[baseIdx + 2] = intvec[baseIdx + 7];
-        TOPOLOGYDATA[baseIdx + 3] = intvec[baseIdx + 5];
-        TOPOLOGYDATA[baseIdx + 4] = intvec[baseIdx + 0];
-        TOPOLOGYDATA[baseIdx + 5] = intvec[baseIdx + 2];
-        TOPOLOGYDATA[baseIdx + 6] = intvec[baseIdx + 3];
-        TOPOLOGYDATA[baseIdx + 7] = intvec[baseIdx + 1];
-      }
-      else 
-      {
-        std::copy(&intvec[baseIdx],
-                  &intvec[baseIdx+numNodes],
-                  &TOPOLOGYDATA[baseIdx]);
-      }
-    }
   }
     
+  void FileReader_CFX::GetRegionElements(std::vector<UInt> & regionElements,
+                                              const UInt regionIdx)
+  {
+    regionElements = regionElems_[regionIdx];
+  }
+
   //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_CFX::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                        const std::vector<bool>& activeParts,
@@ -637,9 +632,9 @@ namespace CoupledField
     openfile_(&nerr, fn, &whatfile, strlen(fn)); 
     CHECK_CFX_IO(nerr);
 
-    for(UInt actPart=0; actPart < numPartitions_; actPart++)
+    for(UInt actPart=0; actPart < numRegions_; actPart++)
     {
-      int nvx = MpCCInodes_[actPart];
+      int nvx = numNodesPerRegion_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
       
@@ -648,7 +643,7 @@ namespace CoupledField
 
       if(settings.GetInt("verbose"))
       {
-        std::cout << "Reading data on " << GetPartitionName(actPart)
+        std::cout << "Reading data on " << GetRegionName(actPart)
                   << std::endl;
       }
       

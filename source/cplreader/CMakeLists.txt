@@ -9,6 +9,11 @@
 #-------------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4.3 FATAL_ERROR)
 
+IF(COMMAND cmake_policy)
+  CMAKE_POLICY(SET CMP0003 NEW)
+ENDIF(COMMAND cmake_policy)
+
+
 #-------------------------------------------------------------------------------
 # This is project cplreader
 #-------------------------------------------------------------------------------
@@ -23,6 +28,8 @@ ELSE(CFS_VERSION)
   SET(CPLREADER_STANDALONE 1)
 ENDIF(CFS_VERSION)
 
+OPTION(CPLREADER_ANSYS "" ON)  
+
 IF(CPLREADER_STANDALONE)
   OPTION(CPLREADER_CFX "" OFF)
 ELSE(CPLREADER_STANDALONE)
@@ -33,6 +40,7 @@ OPTION(CPLREADER_FASTEST "" ON)
 OPTION(CPLREADER_OPENFOAM "" ON)  
 
 IF(NOT CPLREADER_STANDALONE)
+  MARK_AS_ADVANCED(CPLREADER_ANSYS)
   MARK_AS_ADVANCED(CPLREADER_CFX)
   MARK_AS_ADVANCED(CPLREADER_FASTEST)
   MARK_AS_ADVANCED(CPLREADER_OPENFOAM)
@@ -91,6 +99,13 @@ IF(NOT CPLREADER_STANDALONE)
     integlib/integr.cc
     )
 ENDIF(NOT CPLREADER_STANDALONE)
+
+IF(CPLREADER_ANSYS)
+  SET(CPPSRC
+    ${CPPSRC}
+    ANSYS/filereader_ANSYS.cc
+    )
+ENDIF(CPLREADER_ANSYS)
 
 IF(CPLREADER_CFX)
   SET(CPPSRC

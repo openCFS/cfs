@@ -3,6 +3,7 @@
 
 #cmakedefine CPLREADER_STANDALONE
 
+#cmakedefine CPLREADER_ANSYS
 #cmakedefine CPLREADER_CFX
 #cmakedefine CPLREADER_FASTEST
 #cmakedefine CPLREADER_OPENFOAM

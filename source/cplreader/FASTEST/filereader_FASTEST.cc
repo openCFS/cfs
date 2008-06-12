@@ -19,7 +19,8 @@ namespace CoupledField
                            const UInt numFiles,
                            const UInt startIndex) :
         FileReader(name, dim, numFiles),
-        startIndex_(startIndex)
+        startIndex_(startIndex),
+        numResults_(0)
     {
       partFmtStr_ = "";
       timeFmtStr_ = "";
@@ -53,7 +54,7 @@ namespace CoupledField
         
         for(i=1; i<10; i++)
         {
-          filename = basename_;
+          filename = baseName_;
           sstr.str("");
           sstr << "%0" << i << "i";
           regionFormatStr = sstr.str();
@@ -61,9 +62,9 @@ namespace CoupledField
           filename+= buf;
           filename+= ".coord";
 
-          infile.clear();
-          infile.open(filename.c_str());  
-          if (!infile) {
+          inFile_.clear();
+          inFile_.open(filename.c_str());  
+          if (!inFile_) {
             //std::cerr << "Can't open " << filename << std::endl;
           }
           else {
@@ -79,22 +80,22 @@ namespace CoupledField
           std::cout << "OK" << std::endl;
         }
         
-        infile >> dummy;
-        infile >> numPartitions_;
-        infile >> dummy;
-        numFiles_ = dummy < numFiles_ ? dummy : numFiles_;
+        inFile_ >> dummy;
+        inFile_ >> numRegions_;
+        inFile_ >> dummy;
+        numSteps_ = dummy < numSteps_ ? dummy : numSteps_;
         if (settings.GetInt("numSteps"))
         {
           const UInt tmp = (UInt) settings.GetInt("numSteps");
           /* only take argument if tmo does not exceed the maximal number of timesteps possible */
-          if (tmp < numFiles_)
+          if (tmp < numSteps_)
           {
-            numFiles_ = tmp;
+            numSteps_ = tmp;
           }
         }
 
-        infile.close();
-        infile.clear();
+        inFile_.close();
+        inFile_.clear();
 
         if (settings.GetInt("verbose")) {
           std::cout << "Trying to determine file name format for .dat files... ";
@@ -105,7 +106,7 @@ namespace CoupledField
         
         for(i=sstr.str().length(); i<=10; i++)
         {
-          filename = basename_;
+          filename = baseName_;
           sprintf(buf, regionFormatStr.c_str(), 1);
           filename+= buf;
           filename+= "_";
@@ -116,9 +117,9 @@ namespace CoupledField
           filename+= buf;
           filename+= ".dat";
 
-          infile.clear();
-          infile.open(filename.c_str());  
-          if (!infile) {
+          inFile_.clear();
+          inFile_.open(filename.c_str());  
+          if (!inFile_) {
             //std::cerr << "Can't open " << filename << std::endl;
           }
           else {
@@ -134,10 +135,10 @@ namespace CoupledField
           std::cout << "OK" << std::endl;
         }
 
-        infile >> numResults_;
+        inFile_ >> numResults_;
 
-        infile.close();
-        infile.clear();
+        inFile_.close();
+        inFile_.clear();
 
         // Initialize mapping between columns in FASTEST result files and
         // internal variables.
@@ -188,8 +189,8 @@ namespace CoupledField
         
         std::cout << "\n Name:\t\t\t\t" << name_ << std::endl
                   << " Dimension:\t\t\t" << dim_ << std::endl
-                  << " Files:\t\t\t\t" << numFiles_ << std::endl
-                  << " Partitions:\t\t\t" << numPartitions_ << std::endl
+                  << " Files:\t\t\t\t" << numSteps_ << std::endl
+                  << " Partitions:\t\t\t" << numRegions_ << std::endl
                   << " Results:\t\t\t" << numResults_ << std::endl
                   << " timeStep:\t\t\t" << settings.GetDouble("timeStep") << std::endl
                   << " Lighthill source term column:\t" << dataColumns_[0]+1 << std::endl
@@ -198,55 +199,56 @@ namespace CoupledField
                   << " vz column:\t\t\t" << dataColumns_[3]+1 << std::endl
                   << " pressure column:\t\t" << dataColumns_[4]+1 << std::endl << std::endl;
 
-        elsize_.resize(numPartitions_);
-        MpCCInodes_.resize(numPartitions_);
-        MpCCIelems_.resize(numPartitions_);
+        elsize_.resize(numRegions_);
+        numNodesPerRegion_.resize(numRegions_);
+        numElemsPerRegion_.resize(numRegions_);
 
-        for(UInt i=0; i<numPartitions_; i++)
+        for(UInt i=0; i<numRegions_; i++)
         {
-            filename = basename_;
+            filename = baseName_;
             sprintf(buf, "%02i", i+1);
             filename+= buf;
             filename+= ".coord";
 
-            infile.clear();
-            infile.open(filename.c_str());  
-            if (!infile) {
+            inFile_.clear();
+            inFile_.open(filename.c_str());  
+            if (!inFile_) {
               EXCEPTION("Can't open " << filename);
             }
 
-            infile >> dummy;
-            infile >> dummy;
-            infile >> dummy;
-            infile >> MpCCInodes_[i];
+            inFile_ >> dummy;
+            inFile_ >> dummy;
+            inFile_ >> dummy;
+            inFile_ >> numNodesPerRegion_[i];
 
-            infile.close();
-            infile.clear();
+            inFile_.close();
+            inFile_.clear();
 
 
-            filename = basename_;
+            filename = baseName_;
             sprintf(buf, "%02i", i+1);
             filename+= buf;
             filename+= ".topo";
 
-            infile.open(filename.c_str());  
-            if (!infile) {
+            inFile_.open(filename.c_str());  
+            if (!inFile_) {
               EXCEPTION("Can't open " << filename);
             }
 
-            infile >> dummy;
-            infile >> dummy;
-            infile >> dummy;
-            infile >> MpCCIelems_[i];
-            infile >> elsize_[i];
+            inFile_ >> dummy;
+            inFile_ >> dummy;
+            inFile_ >> dummy;
+            inFile_ >> numElemsPerRegion_[i];
+            inFile_ >> elsize_[i];
 
-            infile.close();
-            infile.clear();
+            inFile_.close();
+            inFile_.clear();
 
+            maxNumElemNodes_ = elsize_[i] > maxNumElemNodes_ ? elsize_[i] : maxNumElemNodes_;
             /*if (settings.GetInt("verbose")) {
               std::cout << "Partition " << (i+1)
-                        << " nodes: " << MpCCInodes_[i]
-                        << " elems: " << MpCCIelems_[i]
+                        << " nodes: " << numNodesPerRegion_[i]
+                        << " elems: " << numElemsPerRegion_[i]
                         << " elsize: " << elsize_[i]
                         << std::endl;
             }*/
@@ -255,156 +257,178 @@ namespace CoupledField
     }
 
 
-    void FileReader_FASTEST::ReadNodalCoords(std::vector<Double> & NODECOORD,
-                                             const UInt partitionIdx)
+    void FileReader_FASTEST::ReadNodalCoords(std::vector<Double> & NODECOORD)
     {
-#ifdef TRACE
-        (*trace) << "entering FileReader_FASTEST::ReadNodalCoords" << std::endl;
-#endif
-
         std::string filename;
         char buf[128];
         UInt dummy;
+        UInt regionIdx;
+        UInt numNodes = 0;
+        UInt nodeOffset = 0;
+        UInt nodeIdx = 0;
+
+        for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
+          numNodes += numNodesPerRegion_[regionIdx];
         
-        filename = basename_;
-        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
-        filename+= buf;
-        filename+= ".coord";
-
-        infile.clear();
-        infile.open(filename.c_str());  
-        if (!infile) {
-          EXCEPTION("Can't open " << filename);
-        }
-
-        /* Set pointer to beginning of file: */
-        std::string::size_type pos=0;
-        infile.seekg(pos, std::ios::beg);
-
-        infile >> dummy; 
-        infile >> dummy; 
-        infile >> dummy; 
-        infile >> dummy; 
-
-        NODECOORD.resize(3*MpCCInodes_[partitionIdx]);
-
-        std::vector<double> max, min;
-        max.resize(3);
-        min.resize(3);
-
-        infile >> NODECOORD[0] >> NODECOORD[1] >> NODECOORD[2];
-        min[0] = max[0] = NODECOORD[0];
-        min[1] = max[1] = NODECOORD[1];  
-        min[2] = max[2] = NODECOORD[2];
-
-        for (UInt i=1; i < MpCCInodes_[partitionIdx]; i++)
+        NODECOORD.resize(3 * numNodes);
+        
+        for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
         {
+          filename = baseName_;
+          sprintf(buf, partFmtStr_.c_str(), regionIdx+1);
+          filename+= buf;
+          filename+= ".coord";
+
+          inFile_.clear();
+          inFile_.open(filename.c_str());  
+          if (!inFile_) {
+            EXCEPTION("Can't open " << filename);
+          }
+
+          /* Set pointer to beginning of file: */
+          std::string::size_type pos=0;
+          inFile_.seekg(pos, std::ios::beg);
+
+          inFile_ >> dummy; 
+          inFile_ >> dummy; 
+          inFile_ >> dummy; 
+          inFile_ >> dummy; 
+
+          std::vector<double> max, min;
+          max.resize(3);
+          min.resize(3);
+
+          nodeIdx = nodeOffset * 3;
+          inFile_ >> NODECOORD[nodeIdx + 0]
+                  >> NODECOORD[nodeIdx + 1]
+                  >> NODECOORD[nodeIdx + 2];
+          min[0] = max[0] = NODECOORD[nodeIdx + 0];
+          min[1] = max[1] = NODECOORD[nodeIdx + 1];  
+          min[2] = max[2] = NODECOORD[nodeIdx + 2];
+
+          for (UInt i=1; i < numNodesPerRegion_[regionIdx]; i++)
+          {
+            nodeIdx += 3;
+            
             for (UInt j=0; j < 3; j++)
             {
-                infile >> NODECOORD[3*i+j];
-                if(NODECOORD[3*i+j] > max[j])
-                    max[j] = NODECOORD[3*i+j];
-                if(NODECOORD[3*i+j] < min[j])
-                    min[j] = NODECOORD[3*i+j];
-                //                if (i<=10) std::cout<<"NODECOORD["<<3*i+j<<"]: "<<NODECOORD[3*i+j]<<std::endl;
+              inFile_ >> NODECOORD[nodeIdx + j];
+              if(NODECOORD[nodeIdx + j] > max[j])
+                max[j] = NODECOORD[nodeIdx + j];
+              if(NODECOORD[nodeIdx + j] < min[j])
+                min[j] = NODECOORD[nodeIdx + j];
+              //                if (i<=10) std::cout<<"NODECOORD["<<3*i+j<<"]: "<<NODECOORD[3*i+j]<<std::endl;
             }
-        }
+          }
 
-        /*if (settings.GetInt("verbose")) {
+          /*if (settings.GetInt("verbose")) {
           std::cout << "MAX COORD: ( "<< max[0] << ", " << max[1] << ", "<< max[2] << ")"<< std::endl;
           std::cout << "MIN COORD: ( "<< min[0] << ", " << min[1] << ", "<< min[2] << ")"<< std::endl;
         }*/
-  
 
-        infile.close();
+
+          inFile_.close();
+          nodeOffset += numNodesPerRegion_[regionIdx];
+        }
     }
 
     void FileReader_FASTEST::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                          std::vector<UInt> & numNodesPerElem,
-                                          std::vector<UInt> & elemTypes,
-                                          const UInt partitionIdx)
+                                               std::vector<UInt> & elemTypes)
     {
-#ifdef TRACE
-        (*trace) << "entering FileReader_FASTEST::ReadTopology" << std::endl;
-#endif
-        //        std::cout<<"in FileReader_FASTEST::ReadTopology"<<std::endl;  
+      std::string filename;
+      char buf[128];
+      UInt dummy, numNodes, elemType = ET_UNDEF;
+      UInt regionIdx;
+      UInt numElems = 0;
+      UInt elemIdx = 0;
+      UInt nodeOffset = 0;
+      
+      for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
+        numElems += numElemsPerRegion_[regionIdx];
 
-        std::string filename;
-        char buf[128];
-        UInt dummy, numNodes, elemType = ET_UNDEF;
-        
-        filename = basename_;
-        sprintf(buf, partFmtStr_.c_str(), partitionIdx+1);
+      TOPOLOGYDATA.resize(maxNumElemNodes_ * numElems);
+      elemTypes.resize(numElems);
+
+      for(regionIdx = 0; regionIdx < numRegions_; regionIdx++) {
+        filename = baseName_;
+        sprintf(buf, partFmtStr_.c_str(), regionIdx+1);
         filename+= buf;
         filename+= ".topo";
 
-        infile.clear();
-        infile.open(filename.c_str());  
-        if (!infile) {
+        inFile_.clear();
+        inFile_.open(filename.c_str());  
+        if (!inFile_) {
           EXCEPTION("Can't open " << filename);
         }
 
         /* Set pointer to beginning of file: */
         std::string::size_type pos=0;
-        infile.seekg(pos, std::ios::beg);
+        inFile_.seekg(pos, std::ios::beg);
 
-        infile >> dummy >> dummy >> dummy >> dummy >> dummy;
+        inFile_ >> dummy >> dummy >> dummy >> dummy >> dummy;
 
-        numNodes = elsize_[partitionIdx];
+        numNodes = elsize_[regionIdx];
         switch(numNodes)
         {
-          case 2:
-      	    elemType = ET_LINE2;
-      	    break;
-          case 3:
-            elemType = ET_TRIA3;
-            break;
-          case 4:
-            if(dim_ == 3)
-              elemType = ET_TET4;
-            else
-              elemType = ET_QUAD4;
-            break;
-          case 8:
-      	    if (dim_ == 3)
-      	      elemType = ET_HEXA8;
-      	    else
-      	      elemType = ET_QUAD8;
-      	    break;
-          case 5:
-      	    elemType = ET_PYRA5;
-      	    break;
-          case 6:
-      	    if (dim_ == 3)
-      	      elemType = ET_WEDGE6;
-      	    else
-      	      elemType = ET_TRIA6;
-      	    break;
+        case 2:
+          elemType = ET_LINE2;
+          break;
+        case 3:
+          elemType = ET_TRIA3;
+          break;
+        case 4:
+          if(dim_ == 3)
+            elemType = ET_TET4;
+          else
+            elemType = ET_QUAD4;
+          break;
+        case 8:
+          if (dim_ == 3)
+            elemType = ET_HEXA8;
+          else
+            elemType = ET_QUAD8;
+          break;
+        case 5:
+          elemType = ET_PYRA5;
+          break;
+        case 6:
+          if (dim_ == 3)
+            elemType = ET_WEDGE6;
+          else
+            elemType = ET_TRIA6;
+          break;
         }
 
-        TOPOLOGYDATA.resize(elsize_[partitionIdx]*MpCCIelems_[partitionIdx]);
-        numNodesPerElem.resize(MpCCIelems_[partitionIdx]);
-        elemTypes.resize(MpCCIelems_[partitionIdx]);
-
-        for (UInt i=0; i < MpCCIelems_[partitionIdx]; i++)
+        for (UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
         {
-            for (UInt j=0; j < elsize_[partitionIdx]; j++)
-            {
-                infile >> TOPOLOGYDATA[elsize_[partitionIdx]*i+j];
-            }
+          for (UInt j=0; j < elsize_[regionIdx]; j++)
+          {
+            inFile_ >> TOPOLOGYDATA[(elemIdx * maxNumElemNodes_) + j];
+            TOPOLOGYDATA[(elemIdx * maxNumElemNodes_) + j] += nodeOffset;
+          }
 
-            numNodesPerElem[i] = numNodes;
-            elemTypes[i] = elemType;
-            
-            //            if (i<=10) std::cout<<"topology["<<i<<"] :"<<TOPOLOGYDATA[elsize_[partitionIdx]*i+0]
-            //                                <<" "<<TOPOLOGYDATA[elsize_[partitionIdx]*i+1]<<" "
-            //                                <<TOPOLOGYDATA[elsize_[partitionIdx]*i+2]<<std::endl;
-
+          elemTypes[elemIdx++] = elemType;
         }
 
-        infile.close();
+        inFile_.close();
+        nodeOffset += numNodesPerRegion_[regionIdx];
+      }
     }
 
+  void FileReader_FASTEST::GetRegionElements(std::vector<UInt> & regionElements,
+                                   const UInt regionIdx)
+  {
+    UInt elemOffset = 0;
+    
+    for(UInt i=0; i < regionIdx; i++)
+      elemOffset += numElemsPerRegion_[i];
+    
+    regionElements.resize(numElemsPerRegion_[regionIdx]);
+    
+    for(UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
+      regionElements[i] = elemOffset + i + 1;
+  }
+  
   //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_FASTEST::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                            const std::vector<bool>& activeParts,
@@ -418,12 +442,12 @@ namespace CoupledField
 
     tempVec.resize(numResults_);
     
-    for(UInt actPart=0; actPart < numPartitions_; actPart++)
+    for(UInt actRegion=0; actRegion < numRegions_; actRegion++)
     {
-      //      std::cout << "FASTEST: actPart " << actPart << std::endl;
+      //      std::cout << "FASTEST: actRegion " << actRegion << std::endl;
       
       // Initialize flow data structures if necessary
-      FlowDataType& fd = nodalFlowData[actPart];
+      FlowDataType& fd = nodalFlowData[actRegion];
 
       for(UInt j=0; j<dataColumns_.size(); j++)
       {
@@ -461,7 +485,7 @@ namespace CoupledField
             }
 
             numDOFs = fdps.dofNames.size();
-            fdps.data.resize(numDOFs * MpCCInodes_[actPart]);
+            fdps.data.resize(numDOFs * numNodesPerRegion_[actRegion]);
 
             //            std::cout << "FASTEST: fdps.resultName " << fdps.resultName << std::endl;
             //            std::cout << "FASTEST: fdps.unit " << fdps.unit << std::endl;
@@ -472,45 +496,45 @@ namespace CoupledField
       }
 
       // Open data file
-      filename = basename_;
-      sprintf(buf, partFmtStr_.c_str(), actPart+1);
+      filename = baseName_;
+      sprintf(buf, partFmtStr_.c_str(), actRegion+1);
       filename+= buf;
       filename+= "_";
       sprintf(buf, timeFmtStr_.c_str(), timeStepIdx+startIndex_);
       filename+= buf;
       filename+= ".dat";
     
-      infile.clear();
-      infile.open(filename.c_str());
-      if (!infile) {
+      inFile_.clear();
+      inFile_.open(filename.c_str());
+      if (!inFile_) {
         EXCEPTION("Can't open " << filename);
       }
 
       /* Set pointer to beginning of file: */
       std::string::size_type pos=0;
-      infile.seekg(pos, std::ios::beg);
+      inFile_.seekg(pos, std::ios::beg);
     
-      infile >> dummy;
+      inFile_ >> dummy;
 
-      for (UInt i=0; i < MpCCInodes_[actPart]; i++)
+      for (UInt i=0; i < numNodesPerRegion_[actRegion]; i++)
       {
         // read all data columns from input file
         for(UInt j=0; j<numResults_; j++)
-          infile >> tempVec[j];
+          inFile_ >> tempVec[j];
         
         for(UInt j=0; j<dataColumns_.size(); j++)
         {
           if(dataColumns_[j] > -1) 
           {
-            numDOFs = nodalFlowData[actPart][solutionTypes_[j]].dofNames.size();
-            std::vector<Double>& data = nodalFlowData[actPart][solutionTypes_[j]].data;
+            numDOFs = nodalFlowData[actRegion][solutionTypes_[j]].dofNames.size();
+            std::vector<Double>& data = nodalFlowData[actRegion][solutionTypes_[j]].data;
 
             data[i*numDOFs+dofIndices_[j]] = tempVec[dataColumns_[j]];
           }
         }
       }
       
-      infile.close();
+      inFile_.close();
     }
   }
 

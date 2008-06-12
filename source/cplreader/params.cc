@@ -36,6 +36,8 @@ namespace CoupledField
     bool param_floatds;
     bool param_justinit;
     bool param_justmesh;
+    bool param_degen;
+    bool param_strict;
     std::string param_deffile;
     double param_timestep;
     std::string param_dump;
@@ -148,6 +150,12 @@ namespace CoupledField
         ("justmesh", po::value< bool >(&param_justmesh)->default_value(false),
          "Just convert the mesh.")
 
+        ("degen", po::value< bool >(&param_degen)->default_value(false),
+         "Allow degenerated element shapes.")
+
+        ("strict", po::value< bool >(&param_strict)->default_value(false),
+         "Be strict about holes in node list and connectivity.")
+
         ("extfiles", po::value< bool >(&param_extfiles)->default_value(true),
          "Use external time step files (just like CFX .trn files).")
 /*
@@ -230,6 +238,8 @@ namespace CoupledField
     settings.SetString("outprec", param_outprec);
     settings.SetInt("justinit", param_justinit);
     settings.SetInt("justmesh", param_justmesh);
+    settings.SetInt("degen", param_degen);
+    settings.SetInt("strict", param_strict);
     settings.SetInt("verbose", param_verbose);
     settings.SetString("defFile", param_deffile);
     settings.SetDouble("timeStep", param_timestep);

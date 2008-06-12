@@ -3,8 +3,8 @@
 #include <iterator>
 #include <set>
 #include <string>
+#include <algorithm>
 #include <cmath>
-#include <unistd.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -87,12 +87,12 @@ namespace CoupledField
 
     ptFileReader_->Init();
 
+    dim_ = settings.GetInt("dim");
+    
     InitHDF5();
     WriteFileInfoHeader();
 
 #ifdef MpCCI
-    Settings& settings = Settings::Instance();
-  
     if(settings.GetString("coupling") == "MpCCI") {
       quantityId1_ = 7;
       quantityDim1_ = 1;
@@ -122,7 +122,7 @@ namespace CoupledField
     tit = actp.begin();
     tend = actp.end();
     
-    activeParts_.resize(ptFileReader_->GetNumPartitions());
+    activeParts_.resize(ptFileReader_->GetNumRegions());
     if(*tit == "all")
       std::fill(activeParts_.begin(), activeParts_.end(), true);
     else
@@ -177,16 +177,11 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     std::cout << "Reading " << settings.GetString("type") << " mesh...\n";
     uint32_t dim = settings.GetInt("dim");
-    int nodeOffset = 0;
-    int elemOffset = 0;
-    int numPartitions = ptFileReader_->GetNumPartitions();
+    int numRegions = ptFileReader_->GetNumRegions();
     std::vector<UInt>::iterator it, it2, end;
-    int localNodeNum = 1;
     std::set<UInt> regionNodeSet;
+    std::vector<UInt> regionNodes;
     UInt maxNumElemNodes = 0;
-    std::vector<Double> nodalCoords; // collect all nodal coordinates
-    std::vector<UInt> connect; // connect array for all elements (maxNumNodes*numElems)
-    std::vector<UInt> elConnect; // connect array for a single element
     std::vector<Integer> feTypes; // type array for all elements (numElems)
     std::vector< UInt > numElemsOfDim ( 3 );
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
@@ -196,195 +191,18 @@ namespace CoupledField
 
     // We know that the CFX and openFOAM reader will define
     // connectivity in respect to only the first partition
-    if((settings.GetString("type") == "OPENFOAM") || 
+    if((settings.GetString("type") == "ANSYS") ||
+       (settings.GetString("type") == "OPENFOAM") || 
        (settings.GetString("type") == "CFX"))
       justUse1stPartNodes = true;
     
     // First read everything into internal buffers
-    for (int actPart=0; actPart<numPartitions; ++actPart)
-    {
-      ptFileReader_->ReadNodalCoords(NodalCoords_[actPart], actPart);
-      ptFileReader_->ReadTopology(Topology_[actPart],
-                                  numNodesPerElem_[actPart],
-                                  elemTypes_[actPart],
-                                  actPart);
+    ptFileReader_->ReadNodalCoords(nodalCoords_);
+    ptFileReader_->ReadTopology(topology_,
+                                elemTypes_);
 
-      // Determine the maximum number of element nodes
-      it = elemTypes_[actPart].begin();
-      end = elemTypes_[actPart].end();
-      for( ; it != end; ++it )
-      {
-        maxNumElemNodes = NUM_ELEM_NODES[*it] > maxNumElemNodes ? NUM_ELEM_NODES[*it] : maxNumElemNodes;
-      }
-
-      // Fill vector with region names
-      regionNames.push_back(ptFileReader_->GetPartitionName(actPart));
-    }
-    elConnect.resize(maxNumElemNodes);
-    
-    std::cout << "Reading mesh done.\nConverting mesh...\n";
-
-    for (int actPart=0; actPart<numPartitions; actPart++)
-    {
-      // Put all nodes in a partition into a set to get an ordered list
-      it = Topology_[actPart].begin();
-      end = Topology_[actPart].end();
-      std::set<UInt>::iterator regSetIt, regSetEnd;
-      regionNodeSet.clear();
-      regionNodeSet.insert(it, end);
-      regSetIt = regionNodeSet.begin(); 
-      regSetEnd = regionNodeSet.end(); 
-
-      if(!(*regSetIt))
-        EXCEPTION("Zero detected in connectivity!");
-      
-      if(justUse1stPartNodes)
-      {
-        for( ; regSetIt != regSetEnd; regSetIt++ )
-        {
-          nodesInPartition_[actPart][*regSetIt] = *regSetIt;
-        }
-      } else  {
-        for( ; regSetIt != regSetEnd; regSetIt++ )
-        {
-          nodesInPartition_[actPart][*regSetIt] = localNodeNum;
-          localNodeNum++;
-        }
-      } 
-
-      int nNodes = nodesInPartition_[actPart].size();
-      int nElems = ptFileReader_->GetNumElems(actPart);
-
-      // Collect all nodal coordinates for writing to HDF5
-      if(justUse1stPartNodes)
-      {
-        // Just collect coordinates for first partition  for OPENFOAM and CFX
-        if(!actPart)
-        {
-          std::copy(NodalCoords_[actPart].begin(),
-                    NodalCoords_[actPart].end(),
-                    std::back_inserter(nodalCoords));
-        }
-      } else {
-        // Only the nodes actually present in the partition/region will be used
-        regSetIt = regionNodeSet.begin(); 
-        for( ; regSetIt != regSetEnd; regSetIt++ )
-        {
-          UInt baseIdx = (*regSetIt - 1)*3;
-          
-          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+0]);
-          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+1]);
-          nodalCoords.push_back(NodalCoords_[actPart][baseIdx+2]);
-        }
-      }
-      
-      // Replace old node numbers in connectivity with new ones 
-      it = elemTypes_[actPart].begin();
-      end = elemTypes_[actPart].end();
-      it2 = Topology_[actPart].begin();
-      UInt regionDim = dim;
-      for( ; it != end; it++ )
-      {
-        int numElemNodes = NUM_ELEM_NODES[*it];
-        std::fill(elConnect.begin(), elConnect.end(), 0);
-
-        for(int i=0; i<numElemNodes; i++)
-        {
-          if(settings.GetString("type") == "OPENFOAM")
-          {
-            elConnect[i] = *(it2+i);
-          } else {
-            elConnect[i] = nodesInPartition_[actPart][*(it2+i)];
-          }
-        }
-
-        // insert element type
-        feTypes.push_back(*it);
-        numElemsOfType[(FEType)*it]++;
-        // insert element dimension
-        numElemsOfDim[ELEM_DIM[*it]-1]++;
-        regionDim = ELEM_DIM[*it];
-        // insert connectivity into global array
-        std::copy(elConnect.begin(),
-                  elConnect.end(),
-                  std::back_inserter(connect));
-
-        it2 += numElemNodes;
-      }        
-
-      // Collect nodes of region
-      regSetIt = regionNodeSet.begin(); 
-      regSetEnd = regionNodeSet.end(); 
-      std::vector<UInt> regionNodes;
-      for( ; regSetIt != regSetEnd; regSetIt++ )
-      {
-        int nodeNum = *regSetIt;
-        regionNodes.push_back(nodesInPartition_[actPart][nodeNum]);
-      }
-      regionNodeSet.clear();
-
-      // Collect elements of region
-      std::vector<UInt> regionElems;
-      for(int i=1; i<=nElems; i++)
-      {
-        regionElems.push_back(elemOffset + i);
-      }
-
-      elemOffset += nElems;
-      nodeOffset += nNodes;
-
-      std::cout << "Writing region " << ptFileReader_->GetPartitionName(actPart)
-                << "... ";
-      WriteRegion(meshGroup_, regionNodes, regionElems, regionDim,
-                  regionNames[actPart]);
-      std::cout << "done.\n";
-      
-#ifdef MpCCI
-      if(settings.GetString("coupling") == "MpCCI") {
-        // MpCCI part
-        CCI_Def_partition(meshId_, actPart+1);
-        std::cout << "Define nodes" << std::endl;
-
-        /*	
-                Uint numNodes = ptFileReader_->GetNumNodes(actPart);
-                std::vector<Double> mpcciCoords;
-                mpcciCoords.resize(dim*numNodes);
-                for(Uint i=0; i<numNodes; i++) {
-		for(Uint d=0; d<dim; d++) {
-                mpcciCoords[i*dim+d] = NodalCoords_[actPart][i*3+d];
-		}
-                }
-        */
-
-        //define the nodes
-        CCI_Def_nodes(meshId_, actPart+1, 3,
-                      (int)ptFileReader_->GetNumNodes(actPart), 0, NULL,
-                      CCI_DOUBLE, &NodalCoords_[actPart][0]);
-
-        std::cout << "Define elements" << std::endl;
-
-        // Convert CFS++ element types to MpCCI element types
-        std::vector<int> mpcciElemTypes;
-        std::vector<int>::iterator etIt, etEnd;
-        mpcciElemTypes.resize(elemTypes_[actPart].size());
-        std::copy(elemTypes_[actPart].begin(),
-                  elemTypes_[actPart].end(),
-                  mpcciElemTypes.begin());
-        etIt = mpcciElemTypes.begin();
-        etEnd = mpcciElemTypes.end();
-        for( ; etIt != etEnd; etIt++)
-        {
-          *etIt = ElemTypes2MpCCI((FEType) *etIt);
-        }
-
-        //define the elements
-        CCI_Def_elems(meshId_, actPart+1, nElems, 0, NULL, 
-                      nElems, (int*) &mpcciElemTypes[0], (int*) &numNodesPerElem_[actPart][0],
-                      (int*) &Topology_[actPart][0]);
-      }
-#endif // MpCCI
-
-    }
+    // Determine the maximum number of element nodes
+    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
 
     std::cout << "Writing nodal coords... ";
 
@@ -394,7 +212,7 @@ namespace CoupledField
     // ================
     //  Node Locations
     // ================
-    UInt nNodes = nodalCoords.size()/3;
+    UInt nNodes = nodalCoords_.size()/3;
     H5::Group nodeGroup;
     try {
       nodeGroup = meshGroup_.createGroup( "Nodes" );
@@ -403,7 +221,7 @@ namespace CoupledField
     H5IO::WriteAttribute( nodeGroup, "NumNodes", nNodes );
     
     H5IO::Write2DArray( nodeGroup, "Coordinates", nNodes, 
-                        3, &nodalCoords[0], dPropList_ );
+                        3, &nodalCoords_[0], dPropList_ );
 
     nodeGroup.close();
 
@@ -412,7 +230,7 @@ namespace CoupledField
     // =====================
     //  Element definitions
     // =====================
-    UInt nElems = connect.size() / maxNumElemNodes;
+    UInt nElems = elemTypes_.size();
 
     H5::Group elemGroup;
     try{
@@ -421,11 +239,11 @@ namespace CoupledField
     
     // write connectivity
     H5IO::Write2DArray( elemGroup, "Connectivity", nElems, 
-                        maxNumElemNodes, &connect[0], dPropList_ );
+                        maxNumElemNodes, &topology_[0], dPropList_ );
 
     // write element types
     H5IO::Write1DArray( elemGroup, "Types", nElems,
-                        &feTypes[0], dPropList_ );
+                        &elemTypes_[0], dPropList_ );
   
     std::cout << "done.\nWriting grid meta info... ";
 
@@ -434,9 +252,21 @@ namespace CoupledField
     // ==========================
 
     H5IO::WriteAttribute( elemGroup, "NumElems", nElems );
+
+    it = elemTypes_.begin();
+    end = elemTypes_.end();
+    UInt quadrElems = 0;
     
+    for( ; it != end; it++ ) 
+    {
+      numElemsOfDim[ ELEM_DIM[*it]-1 ]++;
+      quadrElems &= ELEM_QUADRATIC[*it];
+      numElemsOfType[(FEType)*it]++;
+    }
+
+    // This has still to to be checked    
     H5IO::WriteAttribute( elemGroup, "QuadraticElems", 
-                          false );
+                          quadrElems );
 
     // number of elements per dimension
     for(UInt i=0; i<3; i++) {
@@ -457,6 +287,105 @@ namespace CoupledField
 
     // close element group
     elemGroup.close();
+
+    std::cout << "Reading mesh done.\nConverting mesh...\n";
+
+    for (int actRegion=0; actRegion<numRegions; actRegion++)
+    {
+      // Fill vector with region names
+      regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
+
+      std::cout << "Writing region " << (*regionNames.rbegin())
+                << "... ";
+
+      // Get all element numbers in current region and order them
+      ptFileReader_->GetRegionElements(regionElems_[actRegion], actRegion);
+      std::sort(regionElems_[actRegion].begin(), regionElems_[actRegion].end());
+
+      // Put all nodes in a partition into a set to get an ordered list
+      it = regionElems_[actRegion].begin();
+      end = regionElems_[actRegion].end();
+      UInt topoIdx = 0;
+      UInt idx = 0;
+      UInt numElemNodes;
+      UInt regionDim = 0;
+      FEType et;
+
+      for ( ; it != end; it++ )
+      {
+        idx = (*it-1);
+        topoIdx = idx * maxNumElemNodes;
+        et = (FEType) elemTypes_[idx];
+        numElemNodes = NUM_ELEM_NODES[ et ];
+        
+        regionNodeSet.insert(&topology_[topoIdx],
+                             &topology_[topoIdx+numElemNodes]);
+        
+        regionDim = regionDim < ELEM_DIM[et] ? ELEM_DIM[et] : regionDim; 
+      }
+
+      std::copy(regionNodeSet.begin(), regionNodeSet.end(),
+                std::back_inserter(regionNodes));
+      
+      WriteRegion(meshGroup_, regionNodes, regionElems_[actRegion], regionDim,
+                  regionNames[actRegion]);
+
+      it = regionNodes.begin();
+      end = regionNodes.end();
+
+      for ( idx=0; it != end; it++, idx++ )
+      {
+        regionNodeIndices_[actRegion][*it] = idx;
+      }
+      
+#ifdef MpCCI
+      if(settings.GetString("coupling") == "MpCCI") {
+        // MpCCI part
+        CCI_Def_partition(meshId_, actRegion+1);
+        std::cout << "Define nodes" << std::endl;
+
+        /*	
+                Uint numNodes = ptFileReader_->GetNumNodes(actRegion);
+                std::vector<Double> mpcciCoords;
+                mpcciCoords.resize(dim*numNodes);
+                for(Uint i=0; i<numNodes; i++) {
+		for(Uint d=0; d<dim; d++) {
+                mpcciCoords[i*dim+d] = nodalCoords_[actRegion][i*3+d];
+		}
+                }
+        */
+
+        //define the nodes
+        CCI_Def_nodes(meshId_, actRegion+1, 3,
+                      (int)ptFileReader_->GetNumNodes(actRegion), 0, NULL,
+                      CCI_DOUBLE, &nodalCoords_[actRegion][0]);
+
+        std::cout << "Define elements" << std::endl;
+
+        // Convert CFS++ element types to MpCCI element types
+        std::vector<int> mpcciElemTypes;
+        std::vector<int>::iterator etIt, etEnd;
+        mpcciElemTypes.resize(elemTypes_[actRegion].size());
+        std::copy(elemTypes_[actRegion].begin(),
+                  elemTypes_[actRegion].end(),
+                  mpcciElemTypes.begin());
+        etIt = mpcciElemTypes.begin();
+        etEnd = mpcciElemTypes.end();
+        for( ; etIt != etEnd; etIt++)
+        {
+          *etIt = ElemTypes2MpCCI((FEType) *etIt);
+        }
+
+        //define the elements
+        CCI_Def_elems(meshId_, actRegion+1, nElems, 0, NULL, 
+                      nElems, (int*) &mpcciElemTypes[0], (int*) &numNodesPerElem_[actRegion][0],
+                      (int*) &topology_[actRegion][0]);
+      }
+#endif // MpCCI
+
+      std::cout << "done.\n";
+
+    }
 
     // close meshGroup
     meshGroup_.close();
@@ -490,14 +419,14 @@ namespace CoupledField
     UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
-    UInt numPartitions = ptFileReader_->GetNumPartitions();
+    UInt numRegions = ptFileReader_->GetNumRegions();
     std::vector<UInt> timeStepNumbers;
     std::vector<Double> timeStepValues;
-    UInt actPart;
+    UInt actRegion;
     UInt stepNum = 0;
     std::vector<std::string> regionNames;
     bool externalFiles = settings.GetInt("extfiles");
-    std::vector<FlowDataType> flowData(numPartitions);
+    std::vector<FlowDataType> flowData(numRegions);
 
 #ifdef MpCCI
     // MpCCI status variables
@@ -522,8 +451,8 @@ namespace CoupledField
 
 
     // Fill vector with region names
-    for (actPart = 0; actPart<numPartitions; actPart++)
-      regionNames.push_back(ptFileReader_->GetPartitionName(actPart));
+    for (actRegion = 0; actRegion<numRegions; actRegion++)
+      regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
     while ( counter < numFiles ) 
     {
@@ -561,18 +490,18 @@ namespace CoupledField
       // Read nodal values for all partitions
       ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
     
-      for (actPart = 0; actPart<numPartitions; actPart++)
+      for (actRegion = 0; actRegion<numRegions; actRegion++)
       {
         std::string groupName;
         H5::Group currResultGroup;
         FlowDataType::iterator fdIt, fdEnd;
         UInt numDOFs;
         
-        if(!activeParts_[actPart])
+        if(!activeParts_[actRegion])
         {
           FlowDataType::iterator fIt, fEnd;
-          fIt = flowData[actPart].begin();
-          fEnd = flowData[actPart].end();
+          fIt = flowData[actRegion].begin();
+          fEnd = flowData[actRegion].end();
       
           for( ; fIt != fEnd; fIt++ ) {
             fIt->second.isActive = false;
@@ -586,14 +515,14 @@ namespace CoupledField
 #ifndef CPLREADER_STANDALONE
         if(calcSrc)
         {
-          CalculateAcouSrcs(actPart, flowData[actPart]);
+          CalculateAcouSrcs(actRegion, flowData[actRegion]);
         }
 #endif
 
         // Send fields for current partition to MpCCI
 #ifdef MpCCI
         if(settings.GetString("coupling") == "MpCCI") {
-          UInt numNodesPart = ptFileReader_->GetNumNodes(actPart);
+          UInt numNodesPart = ptFileReader_->GetNumNodes(actRegion);
           UInt numDOFs;
           static std::vector<Double> acouRhsField;
           static std::vector<Double> velField;
@@ -601,29 +530,29 @@ namespace CoupledField
           // acouSrc scalar
           acouRhsField.resize(numNodesPart * quantityDim1_);
 
-          fdIt = flowData[actPart].find(ACOU_RHS_LOAD);
+          fdIt = flowData[actRegion].find(ACOU_RHS_LOAD);
 
           // Copy data from partition struct to a dummy vector.
-          if(fdIt != flowData[actPart].end())
+          if(fdIt != flowData[actRegion].end())
           {
-            FlowDataPartStruct& fdps = flowData[actPart][ACOU_RHS_LOAD];
+            FlowDataPartStruct& fdps = flowData[actRegion][ACOU_RHS_LOAD];
             std::copy(fdps.data.begin(), fdps.data.end(),
                       acouRhsField.begin());
           }
           
-          CCI_Put_nodes( meshId_, actPart+1, quantityId1_,
+          CCI_Put_nodes( meshId_, actRegion+1, quantityId1_,
                          quantityDim1_, numNodesPart, 0, NULL,
                          CCI_DOUBLE, &acouRhsField[0]);
 
           // velocity u, v, w
           velField.resize(numNodesPart * quantityDim2_);
           
-          fdIt = flowData[actPart].find(FLUIDMECH_VELOCITY);
+          fdIt = flowData[actRegion].find(FLUIDMECH_VELOCITY);
 
           // Copy data from partition struct to a dummy vector.
-          if(fdIt != flowData[actPart].end())
+          if(fdIt != flowData[actRegion].end())
           {
-            FlowDataPartStruct& fdps = flowData[actPart][FLUIDMECH_VELOCITY];
+            FlowDataPartStruct& fdps = flowData[actRegion][FLUIDMECH_VELOCITY];
             numDOFs = fdps.dofNames.size();
 
             for(UInt i=0; i<numNodesPart; i++)
@@ -636,7 +565,7 @@ namespace CoupledField
             }
           }
 
-          CCI_Put_nodes( meshId_, actPart+1, quantityId2_,
+          CCI_Put_nodes( meshId_, actRegion+1, quantityId2_,
                          quantityDim2_, numNodesPart, 0, NULL,
                          CCI_DOUBLE, &velField[0]);
         }
@@ -644,8 +573,8 @@ namespace CoupledField
         
         // Iterate over all flow datasets for this partition
         // and write them to HDF5
-        fdIt = flowData[actPart].begin();
-        fdEnd = flowData[actPart].end();
+        fdIt = flowData[actRegion].begin();
+        fdEnd = flowData[actRegion].end();
         for( ; fdIt != fdEnd; fdIt++) 
         {
           FlowDataPartStruct& fdps = fdIt->second;
@@ -679,7 +608,7 @@ namespace CoupledField
             }
 
             // Create subgroup for region
-            groupName = regionNames[actPart];
+            groupName = regionNames[actRegion];
             currResultGroup = currResultGroup.createGroup(groupName);
             
             // Create subgroup for Nodes
@@ -689,7 +618,7 @@ namespace CoupledField
             // Write result dataset
             numDOFs = fdps.dofNames.size();
             std::cout << "Writing result: " << fdps.resultName
-                      << " on region " << regionNames[actPart] << "... ";
+                      << " on region " << regionNames[actRegion] << "... ";
             WriteResults(currResultGroup, fdps.data, numDOFs, false);
             std::cout << "done." << std::endl;
           
@@ -845,8 +774,7 @@ namespace CoupledField
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
 
-    strBuffer << "cplreader_hdf5_" << fileName;
-    hdf5DirName_ = strBuffer.str();
+    hdf5DirName_ = ptFileReader_->GetPreferredOutputPath();
 
     // concatenate output file name
     try {
@@ -983,11 +911,10 @@ namespace CoupledField
   }
 
   void MpCCIExchangeCPLR::WriteResultDescriptions(UInt numSteps,
-                                                  const std::vector<FlowDataType>& outputFields,
-                                                  const std::vector<UInt> stepNumbers,
-                                                  const std::vector<Double> stepValues)
- {
-    Settings& settings = Settings::Instance();
+      const std::vector<FlowDataType>& outputFields,
+      const std::vector<UInt> stepNumbers,
+      const std::vector<Double> stepValues)
+  {
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
@@ -995,36 +922,34 @@ namespace CoupledField
     H5::Group resultDescGroup;
     H5::Group msGroup;
     std::vector<std::string> resultRegions;
-    
+
     try {
       // open the group for the result description datasets.
       msGroup = mainGroup_.openGroup("/Results/Mesh/MultiStep_1");
       resultDescGroup = msGroup.openGroup("ResultDescription");
-      
+
       H5IO::WriteAttribute( msGroup, "LastStepNum", *stepNumbers.rbegin() );
       H5IO::WriteAttribute( msGroup, "LastStepValue", *stepValues.rbegin() );
       msGroup.close();
-      
+
     } H5_CATCH( "Could not open result description group" );
-    
+
     // Extract active regions (OpenFOAM)
-    UInt numPartitions = ptFileReader_->GetNumPartitions();
-    for(UInt i=0; i<numPartitions; i++) 
+    UInt numRegions = ptFileReader_->GetNumRegions();
+    for(UInt i=0; i<numRegions; i++) 
     {
       it = outputFields[i].begin();
       end = outputFields[i].end();
-      
+
       for( ; it != end; it++ ) {
         if(it->second.isActive && 
-           (std::find(requiredResults_.begin(),
-                      requiredResults_.end(),
-                      it->second.resultName) != requiredResults_.end() ||
-            *requiredResults_.begin() == "all" )
-          )
-        {
-          resultRegions.push_back(ptFileReader_->GetPartitionName(i));
-          break;
-        }
+            (std::find(requiredResults_.begin(),
+                requiredResults_.end(),
+                it->second.resultName) != requiredResults_.end() ||
+                *requiredResults_.begin() == "all" )
+        )
+          resultRegions.push_back(ptFileReader_->GetRegionName(i));
+        break;
       }
     }
 
@@ -1034,8 +959,7 @@ namespace CoupledField
       std::cerr << "No result description has been written!" << std::endl;
       return;
     }
-    
-    
+
     // Write result descriptions
     it = outputFields[0].begin();
     end = outputFields[0].end();
@@ -1043,7 +967,7 @@ namespace CoupledField
     for( ; it != end; it++ ) {
       if(!it->second.isActive)
         continue;
-      
+
       resultName = it->second.resultName;
       definedOn = H5IO::MapUnknownType(it->second.definedOn);
       dofNames = it->second.dofNames;
@@ -1054,31 +978,31 @@ namespace CoupledField
       try {
         // === Second version: Separate datasets for each entry
         H5::Group actGroup = resultDescGroup.createGroup(resultName);
-        
+
         H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
         H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(), 
-                            &resultRegions[0], dPropList_ );
+            &resultRegions[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
         H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(), 
-                            &dofNames[0], dPropList_ );
+            &dofNames[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
         H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
-        
+
         H5IO::Write1DArray<Double>( actGroup, "StepValues",
-                                    stepValues.size(), &stepValues[0], dPropList_ );
+            stepValues.size(), &stepValues[0], dPropList_ );
         H5IO::Write1DArray<UInt>( actGroup, "StepNumbers",
-                                  stepNumbers.size(), &stepNumbers[0], dPropList_ );
-        
+            stepNumbers.size(), &stepNumbers[0], dPropList_ );
+
         actGroup.close();
 
       } H5_CATCH( "Could not write result description for result '"
-                  << resultName << "'" );
+          << resultName << "'" );
     }
 
     try {
       resultDescGroup.close();
     } H5_CATCH( "Could not close result description group" );
-    
+
   }
 
   void MpCCIExchangeCPLR::WriteResults( H5::Group& resultGroup,
@@ -1155,13 +1079,13 @@ namespace CoupledField
   }
 
 
-  void MpCCIExchangeCPLR::CalculateAcouSrcs(const int partitionIdx,
+  void MpCCIExchangeCPLR::CalculateAcouSrcs(const int regionIdx,
                                             FlowDataType& flowData)
   {
     Settings& settings = Settings::Instance();
 
 #ifndef CPLREADER_STANDALONE
-    std::string regionName = ptFileReader_->GetPartitionName(partitionIdx);
+    std::string regionName = ptFileReader_->GetRegionName(regionIdx);
 
     if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()) 
     {
@@ -1191,14 +1115,14 @@ namespace CoupledField
       fdps2.dofNames.push_back("-");
     fdps2.unit = MapSolTypeToUnit(ACOU_RHS_LOAD);
     fdps2.resultName = "acouRhsLoad";
-    fdps2.data.resize(ptFileReader_->GetNumNodes(partitionIdx));
+    fdps2.data.resize(ptFileReader_->GetNumNodes(regionIdx));
     fdps2.entryType = ResultInfo::SCALAR;
     std::vector<Double>& acouRhsField = fdps2.data;
 
     // Fill acouRhsLoad field with zeros
     std::fill(acouRhsField.begin(), acouRhsField.end(), 0);
 
-    int nElems = ptFileReader_->GetNumElems(partitionIdx);
+    int nElems = ptFileReader_->GetNumElems(regionIdx);
 
     Matrix<Double> coordMat;
     Matrix<Double> nodaldTijdxj;
@@ -1208,30 +1132,35 @@ namespace CoupledField
     FEType elemType;
     UInt numElemNodes;
     UInt elemDim;
-    
-    int k=0;
+    UInt elemIdx;
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    UInt nodeNum;
     
     for( int i=0; i<nElems; i++)
     {
-      numElemNodes = numNodesPerElem_[partitionIdx][i];
-      elemType = (FEType) elemTypes_[partitionIdx][i];
+      elemIdx = regionElems_[regionIdx][i] - 1;
+      elemType = (FEType) elemTypes_[elemIdx];
+      numElemNodes = NUM_ELEM_NODES[elemType];
       elemDim = ELEM_DIM[elemType];
-
+      
+      // Just calculate sources for volume elements!
+      if(elemDim < dim_)
+        continue;
+  
       coordMat.Resize(elemDim, numElemNodes);
       nodaldTijdxj.Resize(elemDim, numElemNodes);
       nodalVel.Resize(elemDim, numElemNodes);
 
       for( UInt n=0; n<numElemNodes; n++)
       {
-        UInt idxCoord = Topology_[partitionIdx][k+n] - 1;
-        UInt idxVel = idxCoord*elemDim;
-        
-        idxCoord *= 3; // NodalCoords_ vector always stores x,y,z
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        UInt topoIdx = (nodeNum - 1) * 3;
+        UInt velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
         
         for( UInt d=0; d<elemDim; d++)
         {
-          coordMat[d][n] = NodalCoords_[partitionIdx][idxCoord+d];
-          nodalVel[d][n] = velField[idxVel+d];
+          coordMat[d][n] = nodalCoords_[topoIdx+d];
+          nodalVel[d][n] = velField[velIdx+d];
         }
       }
 
@@ -1242,7 +1171,7 @@ namespace CoupledField
       {
         std::cerr << "Warning: An Exception occurred during source term "
                   << "computation:\nElement " << i+1 << " of partition "
-                  << partitionIdx+1 << std::endl;
+                  << ptFileReader_->GetRegionName(regionIdx) << std::endl;
         
         std::cerr << ex.what()<< std::endl;
 
@@ -1271,7 +1200,9 @@ namespace CoupledField
       // Add contributions of all element nodes
       for( UInt n=0; n<numElemNodes; n++)
       {
-        UInt idx = Topology_[partitionIdx][k+n]-1;
+        UInt idx;
+        nodeNum = topology_[elemIdx * maxNENodes + n];
+        idx = regionNodeIndices_[regionIdx][nodeNum];
 
 #ifdef DEBUG
         if (std::isnan(elemVec[n]) || std::isinf(elemVec[n])) {
@@ -1282,8 +1213,6 @@ namespace CoupledField
         
         acouRhsField[idx] -= elemVec[n];
       }
-
-      k += numElemNodes;
     }
 
     std::cout << "done." << std::endl;
