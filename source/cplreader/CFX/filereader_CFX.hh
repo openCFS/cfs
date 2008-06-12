@@ -24,15 +24,12 @@ namespace CoupledField
     virtual void Init();
 
     //! get node coordinates from the corresponding file
-    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
-                                 const UInt partitionIdx);
+    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
 
 
     //! get topology information from the corresponding topology file
     virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                              std::vector<UInt> & numNodesPerElem,
-                              std::vector<UInt> & elemTypes,
-                              const UInt partitionIdx);
+                                 std::vector<UInt> & elemTypes);
 
     //! get nodal values from the corresponding fluid datafile the new way
     virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -41,6 +38,9 @@ namespace CoupledField
 
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
+    
+    virtual void GetRegionElements(std::vector<UInt> & regionElements,
+                                       const UInt regionIdx);
 
   protected:
 
@@ -72,6 +72,12 @@ namespace CoupledField
     std::map<std::string, std::string> exprMap;
     std::vector< std::string > transientFNs_;
     std::vector< int > timeStepNumbers_;
+    std::vector< FEType > regionElemTypes_;
+    std::ifstream inFile_;
+    
+    // Vector of element numbers per region
+    std::map<UInt, std::vector<UInt> > regionElems_; 
+
 
     char fn[80];
     int nerr;

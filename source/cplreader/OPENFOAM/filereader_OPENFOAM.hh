@@ -24,15 +24,12 @@ namespace CoupledField
     virtual void Init();
 
     //! get node coordinates from the corresponding file
-    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD,
-                                 const UInt partitionIdx);
+    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
 
 
     //! get topology information from the corresponding topology file
     virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                              std::vector<UInt> & numNodesPerElem,
-                              std::vector<UInt> & elemTypes,
-                              const UInt partitionIdx);
+                              std::vector<UInt> & elemTypes);
 
     /* get nodal values from the corresponding fluid datafile the new way */
     void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
@@ -40,26 +37,30 @@ namespace CoupledField
                          const UInt timeStepIdx);
 
     virtual double GetTimeStep(UInt t);
-    virtual std::string GetPartitionName(const UInt partitionIdx);
+    virtual std::string GetRegionName(const UInt partitionIdx);
 
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
 
+    virtual void GetRegionElements(std::vector<UInt> & regionElements,
+                                   const UInt regionIdx);
+    
   protected:
       FEType VTKCellTypeToFEType(UInt cellType);
-
-      std::vector<Integer> dataColumns_;
-      /* nodalCoords_ should store the original mesh, which may be needed if we have
-       * a moving mesh*/
-      std::vector<double> nodalCoords_;
-      vtkOpenFOAMReader* reader_;
-
+      
       /* calculates the mechDisplacement and writes them into newCoords
        * \param origin A vector which has the original position of each node
        * \param newCoords A vector which has the new position of each node and
        * which will store the mechDisplacement after the method call */
       void calcMechDisplacement(const std::vector<double>& origin, \
           std::vector<double>& newCoords) const;
+
+      std::vector<Integer> dataColumns_;
+      /* nodalCoords_ should store the original mesh, which may be needed if we have
+       * a moving mesh*/
+      std::vector<double> nodalCoords_;
+      vtkOpenFOAMReader* reader_;
+      UInt numElems_;
   };
 
       

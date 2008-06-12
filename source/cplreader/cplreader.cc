@@ -25,6 +25,10 @@ namespace fs=boost::filesystem;
 #include "settings.hh"
 #include "filereader.hh"
 
+#ifdef CPLREADER_ANSYS
+#include "ANSYS/filereader_ANSYS.hh"
+#endif
+
 #ifdef CPLREADER_FASTEST
 #include "FASTEST/filereader_FASTEST.hh"
 #endif
@@ -49,20 +53,40 @@ int main(int argc, char *argv[])
   int ret = 0;
   FileReader* fileReader = NULL;
 
+  // Switch this flag to true for debugging
+#ifdef DEBUG
+  Exception::segfault_ = true;
+#else
+  Exception::segfault_ = false;
+#endif
+  
   try 
   {
     Settings& settings = Settings::Instance();
 
     ParamsInit(argc, argv);
 
-    /* check if directory even exists */
-    if(!fs::exists(settings.GetString("name")) ||
-       !fs::is_directory(settings.GetString("name")))
-      EXCEPTION("The directory '" << settings.GetString("name")
-                << "' doesn't exist!");
+    std::string type = settings.GetString("type");
+    
+    if(type != "ANSYS")
+    {
+      /* check if directory even exists */
+      if(!fs::exists(settings.GetString("name")) ||
+          !fs::is_directory(settings.GetString("name")))
+        EXCEPTION("The directory '" << settings.GetString("name")
+            << "' doesn't exist!");
+    }
 
     // Create new file reader
-    std::string type = settings.GetString("type");
+    if(type == "ANSYS")
+    {
+#ifdef CPLREADER_ANSYS
+      fileReader = new FileReader_ANSYS(settings.GetString("name"),
+                                        settings.GetInt("dim"), 0, 0);
+#else
+      EXCEPTION("Reading of ANSYS files not supported!");
+#endif
+    }
 
     if(type == "FASTEST")
     {

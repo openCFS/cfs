@@ -39,7 +39,8 @@ namespace CoupledField
                                            const UInt dim,
                                            const UInt numFiles) :
     FileReader(name, dim, numFiles),
-    reader_(NULL)
+    reader_(NULL),
+    numElems_(0)
   {
   }
 
@@ -54,6 +55,7 @@ namespace CoupledField
     std::stringstream sstr;
     UInt numPoints;
     UInt numElems;
+    UInt numResults;
     std::stringstream controlDictName;
 
     /* TODO: check if file even exists, otherwise vtkOpenFOAMReader will hang */
@@ -73,24 +75,24 @@ namespace CoupledField
 
     if (settings.GetInt("numSteps"))
     {
-      numFiles_ = (UInt) settings.GetInt("numSteps");
+      numSteps_ = (UInt) settings.GetInt("numSteps");
       /* don not exceed the maximal number of timesteps possible */
-      if (numFiles_ >= (UInt) reader_->GetNumberOfTimeSteps())
+      if (numSteps_ >= (UInt) reader_->GetNumberOfTimeSteps())
       {
-          numFiles_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
+          numSteps_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
       }
     } else {
-      numFiles_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
+      numSteps_ = (UInt) reader_->GetNumberOfTimeSteps()-1;
     }
-    numResults_ = reader_->GetNumberOfCellArrays();
+    numResults = reader_->GetNumberOfCellArrays();
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
     /* find out the number of partitions */
-    numPartitions_ = 0;
+    numRegions_ = 0;
     while (! iter->IsDoneWithTraversal())
     {
-      ++numPartitions_;
+      ++numRegions_;
       iter->GoToNextItem();
     }
 
@@ -98,15 +100,14 @@ namespace CoupledField
     {
       std::cout << " Name: " << name_ << std::endl
                 << " Dim: " << dim_ << std::endl
-                << " numfiles: " << numFiles_ << std::endl
-                << " numPartitions: " << numPartitions_ << std::endl
-                << " numResults: " << numResults_ << std::endl
+                << " numfiles: " << numSteps_ << std::endl
+                << " numPartitions: " << numRegions_ << std::endl
+                << " numResults: " << numResults << std::endl
                 << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
     }
     
-    elsize_.resize(numPartitions_);
-    MpCCInodes_.resize(numPartitions_);
-    MpCCIelems_.resize(numPartitions_);
+    numNodesPerRegion_.resize(numRegions_);
+    numElemsPerRegion_.resize(numRegions_);
 
     UInt p_cnt = 0;
     iter->GoToFirstItem();
@@ -115,23 +116,23 @@ namespace CoupledField
     {
       ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       numPoints = ds->GetNumberOfPoints();
-      MpCCInodes_[p_cnt] = numPoints;
+      numNodesPerRegion_[p_cnt] = numPoints;
       /* cell values will be interpolated to element values */
       numElems = ds->GetNumberOfCells();
-      MpCCIelems_[p_cnt] = numElems;
+      numElemsPerRegion_[p_cnt] = numElems;
+      numElems_ += numElems;
 
       /* just get the first cell, the number of points per element has to stay
        * the same inside a partition */
       vtkCell* cell = ds->GetCell(0);
       numPoints = cell->GetNumberOfPoints();
-      elsize_[p_cnt] = numPoints;
-
+      maxNumElemNodes_ = numPoints > maxNumElemNodes_ ? numPoints : maxNumElemNodes_;
+      
       if(settings.GetInt("verbose"))
       {
         std::cout << "Partition " << (p_cnt+1)
-                  << " nodes: " << MpCCInodes_[p_cnt]
-                  << " elems: " << MpCCIelems_[p_cnt]
-                  << " elsize: " << elsize_[p_cnt]
+                  << " nodes: " << numNodesPerRegion_[p_cnt]
+                  << " elems: " << numElemsPerRegion_[p_cnt]
                   <<std::endl;
       }
       
@@ -139,7 +140,7 @@ namespace CoupledField
       iter->GoToNextItem();
     }
     iter->Delete();
-
+    
     if(settings.GetInt("verbose")) 
     {
       std::cout << "Number of boundaries: "
@@ -155,25 +156,19 @@ namespace CoupledField
     std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
     /* nodalCoords_ should store the first mesh, which may be needed if we have
      * a moving mesh*/
-    this->ReadNodalCoords(nodalCoords_, 0);
+    this->ReadNodalCoords(nodalCoords_);
   }
 
 
-  void FileReader_OPENFOAM::ReadNodalCoords(std::vector<Double>& NODECOORD,
-                                            const UInt partitionIdx)
+  void FileReader_OPENFOAM::ReadNodalCoords(std::vector<Double>& NODECOORD)
   {
     std::cout << "Entering FileReader_OPENFOAM::ReadNodalCoords" << std::endl;
     /* number of coordinates. One Tupel of 3D coordinate (x,y,z) */
-    const UInt numCoords = dim_;
-
-    const UInt& numPoints = MpCCInodes_[partitionIdx];
-    NODECOORD.resize(numCoords * numPoints);
+    const UInt numCoords = 3;
 
     /* just read coords for internal mesh partitionIdx = 0 */
-    if (partitionIdx)
-    {
-      return;
-    }
+    const UInt& numPoints = numNodesPerRegion_[0];
+    NODECOORD.resize(numCoords * numPoints);
 
     /* Goto first dataset (internal mesh) */
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
@@ -196,103 +191,98 @@ namespace CoupledField
   }
 
   void FileReader_OPENFOAM::ReadTopology(std::vector<UInt>& TOPOLOGYDATA,
-                                         std::vector<UInt>& numNodesPerElem,
-                                         std::vector<UInt>& elemTypes,
-                                         const UInt partitionIdx)
+                                         std::vector<UInt>& elemTypes)
   {
     std::cout << "Entering FileReader_OPENFOAM::ReadTopology" << std::endl;
     UInt numPoints;
     UInt numCells;
-    UInt topo_size = 0;
+    UInt elemIdx = 0;
+    UInt topoIdx = 0;
     double pt[3];
     std::map<UInt, UInt> nodeMap;
 
+    elemTypes.resize(numElems_);
+    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
+    
     /* disregard pointZones and faceZones */
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
     vtkDataSet* ds1 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
 
     /* goto to the desired partition */
-    for (UInt i = 0; i < partitionIdx; ++i)
+    for (UInt i = 0; i < numRegions_; ++i)
     {
-        iter->GoToNextItem();
-    }
+      vtkCell* cell;
+      vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+      numCells = ds->GetNumberOfCells();
+      numPoints = ds->GetNumberOfPoints();
 
-    vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-    iter->Delete();
-    vtkCell* cell;
-    numCells = ds->GetNumberOfCells();
-    numPoints = ds->GetNumberOfPoints();
-
-    // Map all points to nodes in the inner mesh (partitionIdx=0 -> ds1)
-    for (UInt i = 0; i < numPoints; ++i)
-    {
-      ds->GetPoint(i, pt);
-
-      vtkIdType ptId = ds1->FindPoint(pt);
-
-      nodeMap[i] = ptId+1;
-    }
-    
-    numNodesPerElem.resize(numCells);
-    elemTypes.resize(numCells);
-    for (UInt i = 0; i < numCells; ++i)
-    {
-      cell = ds->GetCell(i);
-      numPoints = cell->GetNumberOfPoints();
-      topo_size += numPoints;
-      numNodesPerElem[i] = numPoints;
-      elemTypes[i] = VTKCellTypeToFEType(cell->GetCellType());
-    }
-
-    TOPOLOGYDATA.resize(topo_size);
-    UInt cnt = 0;
-    for (UInt i = 0; i < numCells; ++i)
-    {
-      cell = ds->GetCell(i);
-      numPoints = cell->GetNumberOfPoints();
-      
-      if(elemTypes[i] == ET_WEDGE6) 
+      // Map all points to nodes in the inner mesh (partitionIdx=0 -> ds1)
+      for (UInt j = 0; j < numPoints; ++j)
       {
-        TOPOLOGYDATA[cnt+0] = nodeMap[cell->GetPointId(3)];
-        TOPOLOGYDATA[cnt+1] = nodeMap[cell->GetPointId(4)];
-        TOPOLOGYDATA[cnt+2] = nodeMap[cell->GetPointId(5)];
-        TOPOLOGYDATA[cnt+3] = nodeMap[cell->GetPointId(0)];
-        TOPOLOGYDATA[cnt+4] = nodeMap[cell->GetPointId(1)];
-        TOPOLOGYDATA[cnt+5] = nodeMap[cell->GetPointId(2)];
-        cnt += 6;
+        ds->GetPoint(j, pt);
+
+        vtkIdType ptId = ds1->FindPoint(pt);
+
+        nodeMap[j] = ptId+1;
       }
-      else 
+      
+      for (UInt j = 0; j < numCells; ++j)
       {
-        for (UInt j = 0; j < numPoints; ++j)
+        cell = ds->GetCell(j);
+        numPoints = cell->GetNumberOfPoints();
+        elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
+
+        switch(elemTypes[elemIdx])
         {
-          TOPOLOGYDATA[cnt] = nodeMap[cell->GetPointId(j)];
-          ++cnt;
+        case ET_WEDGE6: 
+          TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(3)];
+          TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(4)];
+          TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(5)];
+          TOPOLOGYDATA[topoIdx+3] = nodeMap[cell->GetPointId(0)];
+          TOPOLOGYDATA[topoIdx+4] = nodeMap[cell->GetPointId(1)];
+          TOPOLOGYDATA[topoIdx+5] = nodeMap[cell->GetPointId(2)];
+          break;
+        case ET_HEXA8: 
+          TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(4)];
+          TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(5)];
+          TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(6)];
+          TOPOLOGYDATA[topoIdx+3] = nodeMap[cell->GetPointId(7)];
+          TOPOLOGYDATA[topoIdx+4] = nodeMap[cell->GetPointId(0)];
+          TOPOLOGYDATA[topoIdx+5] = nodeMap[cell->GetPointId(1)];
+          TOPOLOGYDATA[topoIdx+6] = nodeMap[cell->GetPointId(2)];
+          TOPOLOGYDATA[topoIdx+7] = nodeMap[cell->GetPointId(3)];
+          break;
+        default:
+          for (UInt k = 0; k < numPoints; ++k)
+            TOPOLOGYDATA[topoIdx + k] = nodeMap[cell->GetPointId(k)];
+          break;
         }
+        
+        elemIdx++;
+        topoIdx += maxNumElemNodes_;
       }
       
+      iter->GoToNextItem();
     }
 
-
-    // Hier werden die Elemente für eine Partition/Subdomain eingelesen.
-    // partitionIdx kann hierbei von 0 ... n-1 gehen.
-    // Für eine Übersicht über die Elementtypen siehe elementtypes.pdf
-
-    // elemTypes[0] = ET_QUAD4
-    // numNodesPerElem[0] = 4
-    // TOPOLOGYDATA[0] = 1
-    // TOPOLOGYDATA[1] = 2
-    // TOPOLOGYDATA[2] = 3
-    // TOPOLOGYDATA[3] = 4
-
-    // elemTypes[1] = ET_TRIA3
-    // numNodesPerElem[0] = 3
-    // TOPOLOGYDATA[4] = 3
-    // TOPOLOGYDATA[5] = 4
-    // TOPOLOGYDATA[6] = 5
-    //...
+    iter->Delete();
   }
 
+  void FileReader_OPENFOAM::GetRegionElements(std::vector<UInt> & regionElements,
+                                   const UInt regionIdx)
+  {
+    UInt elemOffset = 0;
+    
+    for(UInt i=0; i < regionIdx; i++)
+      elemOffset += numElemsPerRegion_[i];
+    
+    regionElements.resize(numElemsPerRegion_[regionIdx]);
+    
+    for(UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
+      regionElements[i] = elemOffset + i + 1;
+  }
+  
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_OPENFOAM::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                             const std::vector<bool>& activeParts,
@@ -315,7 +305,7 @@ namespace CoupledField
     
     iter->GoToFirstItem();
 
-    for (UInt actPart=0; actPart < 1; ++actPart)
+    for (UInt actRegion=0; actRegion < 1; ++actRegion)
     {
       vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
       c2p->SetInput(ds);
@@ -324,7 +314,7 @@ namespace CoupledField
       vtkDataSet* ds_point = c2p->GetOutput();
 
       int nvx = ds_point->GetNumberOfPoints();
-      FlowDataType& fd = nodalFlowData[actPart];
+      FlowDataType& fd = nodalFlowData[actRegion];
       UInt numDOFs;
 
       FlowDataPartStruct* fdps;
@@ -341,7 +331,7 @@ namespace CoupledField
           fs::is_directory(path_mechDispl.str()))
       {
         fdps = &fd[MECH_DISPLACEMENT];
-        fdps->isActive = !actPart; // all partitions have results
+        fdps->isActive = !actRegion; // all partitions have results
         fdps->definedOn = ResultInfo::NODE; // nodes
         fdps->entryType = ResultInfo::VECTOR;
 
@@ -359,9 +349,9 @@ namespace CoupledField
         Enum2String(MECH_DISPLACEMENT, fdps->resultName);
         numDOFs = fdps->dofNames.size();
         fdps->data.resize(numDOFs * nvx);
-        if (!actPart)
+        if (!actRegion)
         {
-          this->ReadNodalCoords(fdps->data, actPart);
+          this->ReadNodalCoords(fdps->data);
           this->calcMechDisplacement(nodalCoords_, fdps->data);
         }
       }
@@ -389,7 +379,7 @@ namespace CoupledField
         {
           /* copy the fluid velocity values */
           fdps = &fd[FLUIDMECH_VELOCITY];
-          fdps->isActive = !actPart; // all partitions have results
+          fdps->isActive = !actRegion; // all partitions have results
           fdps->definedOn = ResultInfo::NODE; // nodes
           fdps->entryType = ResultInfo::VECTOR;
 
@@ -413,7 +403,7 @@ namespace CoupledField
         if (dsName == "p")
         {
           fdps = &fd[FLUIDMECH_PRESSURE];
-          fdps->isActive = !actPart; // all partitions have results
+          fdps->isActive = !actRegion; // all partitions have results
           fdps->definedOn = ResultInfo::NODE; // nodes
           fdps->entryType = ResultInfo::SCALAR;
           if (!fdps->dofNames.size())
@@ -460,7 +450,7 @@ namespace CoupledField
     return reader_->GetTimeStepValue(t);
   }
 
-  std::string FileReader_OPENFOAM::GetPartitionName(const UInt partitionIdx)
+  std::string FileReader_OPENFOAM::GetRegionName(const UInt partitionIdx)
   {
     std::ostringstream sstr;
     const UInt idx_tmp = reader_->GetNumBoundaries();
