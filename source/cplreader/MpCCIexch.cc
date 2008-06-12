@@ -187,14 +187,6 @@ namespace CoupledField
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
     std::vector<std::string> regionNames;
-    bool justUse1stPartNodes = false;
-
-    // We know that the CFX and openFOAM reader will define
-    // connectivity in respect to only the first partition
-    if((settings.GetString("type") == "ANSYS") ||
-       (settings.GetString("type") == "OPENFOAM") || 
-       (settings.GetString("type") == "CFX"))
-      justUse1stPartNodes = true;
     
     // First read everything into internal buffers
     ptFileReader_->ReadNodalCoords(nodalCoords_);
