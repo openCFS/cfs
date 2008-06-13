@@ -15,6 +15,8 @@ namespace CoupledField {
                                              const UInt startIndex) :
     FileReader(name, dim, numFiles), startIndex_(startIndex)
   {
+    Settings& settings = Settings::Instance();
+    
     colX_ = 0;
     colY_ = 0;
     colZ_ = 0;
@@ -24,7 +26,7 @@ namespace CoupledField {
     colVelY_ = 0;
     colVelZ_ = 0;
     
-    baseName_ = "./" + name_ + "/results_";
+    baseName_ = settings.GetString("basedir") + "/" + name_ + "/results_";
     
     if (numFiles == 0) {
       EXCEPTION("Please specify number of time steps.");

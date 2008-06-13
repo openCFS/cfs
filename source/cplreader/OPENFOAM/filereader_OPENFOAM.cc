@@ -59,7 +59,8 @@ namespace CoupledField
     std::stringstream controlDictName;
 
     /* TODO: check if file even exists, otherwise vtkOpenFOAMReader will hang */
-    controlDictName << name_.c_str() << "/system/controlDict";
+    controlDictName << settings.GetString("basedir") << "/"
+                    << name_.c_str() << "/system/controlDict";
     reader_ = vtkOpenFOAMReader::New();
     if(settings.GetInt("verbose"))
       reader_->DebugOn();
@@ -323,8 +324,9 @@ namespace CoupledField
       /*  Helper string which should help check if a seperate polyMesh in each timestep exists.
        *  This would indicate moving mesh */
       std::stringstream path_mechDispl;
-      path_mechDispl << settings.GetString("name") << "/" << \
-        reader_->GetTimeStepValue(timeStepIdx + 1) <<"/polyMesh";
+      path_mechDispl << settings.GetString("basedir") << "/"
+                     << settings.GetString("name") << "/"
+                     << reader_->GetTimeStepValue(timeStepIdx + 1) <<"/polyMesh";
       /* if a new mesh for this timestep exists, get it an store the
        * mechDisplacement */
       if (fs::exists(path_mechDispl.str()) &&
@@ -504,12 +506,16 @@ namespace CoupledField
     //! get user data from file reader
   void FileReader_OPENFOAM::GetUserData(std::map<std::string, std::string>& userData)
   {
+    Settings& settings = Settings::Instance();    
     std::vector<std::string> fileNames;
     std::vector<std::string> dataSetNames;
     std::ifstream fin;
     std::stringstream sstr;
-
-    fs::path foamDir( name_.c_str() );
+    
+    
+    
+    sstr << settings.GetString("basedir") << "/" << name_.c_str();
+    fs::path foamDir = sstr.str();
     fs::directory_iterator end_iter;
     for ( fs::directory_iterator dir_itr( foamDir );
           dir_itr != end_iter;
@@ -521,7 +527,7 @@ namespace CoupledField
          if(fn.substr(0, 4) == "log.")
          {
            sstr.clear(); sstr.str("");
-           sstr << name_.c_str() << "/" << fn;
+           sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/" << fn;
            fileNames.push_back(sstr.str());
 
            sstr.clear(); sstr.str("");
@@ -532,7 +538,7 @@ namespace CoupledField
     }
 
     sstr.clear(); sstr.str("");
-    sstr << name_.c_str() << "/" << 0;
+    sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/0";
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
@@ -543,7 +549,7 @@ namespace CoupledField
        {
          std::string fn = dir_itr->leaf();
          sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "/0/" << fn;
+         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/0/" << fn;
          fileNames.push_back(sstr.str());
 
          sstr.clear(); sstr.str("");
@@ -553,7 +559,7 @@ namespace CoupledField
     }
 
     sstr.clear(); sstr.str("");
-    sstr << name_.c_str() << "/constant";
+    sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant";
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
@@ -564,7 +570,7 @@ namespace CoupledField
        {
          std::string fn = dir_itr->leaf();
          sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "/constant/" << fn;
+         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/" << fn;
          fileNames.push_back(sstr.str());
 
          sstr.clear(); sstr.str("");
@@ -574,7 +580,7 @@ namespace CoupledField
     }
 
     sstr.clear(); sstr.str("");
-    sstr << name_.c_str() << "/constant/polyMesh";
+    sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/polyMesh";
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
@@ -585,7 +591,7 @@ namespace CoupledField
        {
          std::string fn = dir_itr->leaf();
          sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "/constant/polyMesh/" << fn;
+         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/polyMesh/" << fn;
          fileNames.push_back(sstr.str());
 
          sstr.clear(); sstr.str("");
@@ -595,7 +601,7 @@ namespace CoupledField
     }
 
     sstr.clear(); sstr.str("");
-    sstr << name_.c_str() << "/system";
+    sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/system";
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
@@ -606,7 +612,7 @@ namespace CoupledField
        {
          std::string fn = dir_itr->leaf();
          sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "/system/" << fn;
+         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/system/" << fn;
          fileNames.push_back(sstr.str());
 
          sstr.clear(); sstr.str("");

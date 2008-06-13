@@ -50,6 +50,7 @@ namespace CoupledField
     std::string param_outputfields;
     std::string param_outprec;
     std::string param_activeparts;
+    std::string param_basedir;
     bool param_extfiles;
 
 
@@ -156,6 +157,9 @@ namespace CoupledField
         ("strict", po::value< bool >(&param_strict)->default_value(false),
          "Be strict about holes in node list and connectivity.")
 
+        ("basedir", po::value< std::string >(&param_basedir)->default_value("."),
+         "Base directory where subdirectories are searched.")
+
         ("extfiles", po::value< bool >(&param_extfiles)->default_value(true),
          "Use external time step files (just like CFX .trn files).")
 /*
@@ -246,6 +250,7 @@ namespace CoupledField
     settings.SetString("dump", param_dump);
     settings.SetString("exename", baseName);
     settings.SetString("baseExeDir", baseDir);
+    settings.SetString("basedir", param_basedir);
     settings.SetString("lhsrc", param_lhsrc);
     settings.SetString("vx", param_vx);
     settings.SetString("vy", param_vy);

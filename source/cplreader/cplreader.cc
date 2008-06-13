@@ -68,14 +68,21 @@ int main(int argc, char *argv[])
 
     std::string type = settings.GetString("type");
     
+    std::ostringstream sstr;
     if(type != "ANSYS")
     {
-      /* check if directory even exists */
-      if(!fs::exists(settings.GetString("name")) ||
-          !fs::is_directory(settings.GetString("name")))
-        EXCEPTION("The directory '" << settings.GetString("name")
-            << "' doesn't exist!");
+      sstr << settings.GetString("basedir") << "/" << settings.GetString("name");
     }
+    else
+    {
+      sstr << settings.GetString("basedir");
+    }
+    
+    /* check if directory even exists */
+    if(!fs::exists(sstr.str()) ||
+        !fs::is_directory(sstr.str()))
+      EXCEPTION("The directory '" << sstr.str()
+          << "' doesn't exist!");
 
     // Create new file reader
     if(type == "ANSYS")

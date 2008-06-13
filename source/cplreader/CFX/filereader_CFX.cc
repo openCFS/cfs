@@ -46,8 +46,11 @@ namespace CoupledField
                                  const UInt numFiles) :
     FileReader(name, dim, numFiles)
   {
+    Settings& settings = Settings::Instance();
+    
     name_ = name;
-    baseName_ = "./";
+    baseName_ = settings.GetString("basedir");
+    baseName_+= "/";
     baseName_+= name_;
     baseName_+= "/";
   }
