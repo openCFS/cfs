@@ -2435,7 +2435,8 @@ namespace CoupledField
             source->GetNodeCoordinate(point, it.GetNode(), true);
             coordSys->Global2LocalCoord(globPoint, point);
 
-            if( globPoint[2] == 0.0 )
+            // TODO: jens: make tolerance accessible via XML file
+            if( std::fabs(globPoint[2]) < 1e-10 )
             {
               sourceNodeNumbers.Push_back(it.GetNode());
               sourceNodeIndices.Push_back(it.GetPos());
@@ -2455,7 +2456,8 @@ namespace CoupledField
           source->GetNodeCoordinate(point, it.GetNode(), true);
           coordSys->Global2LocalCoord(globPoint, point);
 
-          if( globPoint[2] == 0.0 )
+          // TODO: jens: make tolerance accessible via XML file
+          if( std::fabs(globPoint[2]) < 1e-10 )
           {
             sourceNodeNumbers.Push_back(it.GetNode());
             sourceNodeIndices.Push_back(it.GetPos());
