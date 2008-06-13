@@ -133,6 +133,7 @@ namespace CoupledField
     // Preferred path for output of HDF5 files.
     std::string  preferedOutputPath_;
     
+    std::map<SolutionType, bool> requiredResults_;
   };
 
       

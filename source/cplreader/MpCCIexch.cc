@@ -108,13 +108,13 @@ namespace CoupledField
     }
 #endif // MpCCI
 
-    // Initialize vector with required results
     typedef boost::tokenizer< boost::char_separator<char> > Tok;
     boost::char_separator<char> sep(";| ");
-    Tok t(settings.GetString("outputfields"), sep);
-    std::copy(t.begin(),
-              t.end(),
-              std::back_inserter(requiredResults_));
+
+    // Initialize vector with output fields
+    Tok tokenizer(settings.GetString("outputfields"), sep);
+    std::copy(tokenizer.begin(), tokenizer.end(),
+              std::back_inserter(outputFields_));
 
     // Initialize vector with active regions
     Tok actp(settings.GetString("activeparts"), sep);
@@ -576,19 +576,17 @@ namespace CoupledField
           if(!fdps.isActive)
             continue;
 
-          // Check if we should write out this result
-          std::string firstReqRes = *requiredResults_.begin();
-          if(firstReqRes != "all")
+          if(*outputFields_.begin() != "all")
           {
-            if(std::find(requiredResults_.begin(),
-                         requiredResults_.end(),
-                         fdps.resultName) == requiredResults_.end()) 
+            if(std::find(outputFields_.begin(),
+                         outputFields_.end(),
+                         fdps.resultName) == outputFields_.end())
             {
               fdps.isActive = false;
               continue;
             }
           }
-
+          
           // Create result groups in HDF5 file and write result.
           try {
             // Open or create subgroup for result
@@ -934,12 +932,7 @@ namespace CoupledField
       end = outputFields[i].end();
 
       for( ; it != end; it++ ) {
-        if(it->second.isActive && 
-            (std::find(requiredResults_.begin(),
-                requiredResults_.end(),
-                it->second.resultName) != requiredResults_.end() ||
-                *requiredResults_.begin() == "all" )
-        )
+        if(it->second.isActive)
           resultRegions.push_back(ptFileReader_->GetRegionName(i));
         break;
       }

@@ -124,7 +124,7 @@ namespace CoupledField
     int quantityDim2_;
 
     std::map<UInt, ElemIntegr *> ptElemIntegr_;
-    std::vector<std::string> requiredResults_;
+    std::vector<std::string> outputFields_;
     std::vector<bool> activeParts_;
   };
 
