@@ -375,47 +375,57 @@ namespace CoupledField
          * scalar- or vector-variable of the vtk class. */
         /* Get access to the fluid velocity data */
         /* check if the first array is fluid velocity data */
-        if (dsName == "U")
+        if (dsName == "U" && 
+            (requiredResults_[FLUIDMECH_VELOCITY] ||
+             requiredResults_[NO_SOLUTION_TYPE]) )
         {
+          
           /* copy the fluid velocity values */
           fdps = &fd[FLUIDMECH_VELOCITY];
           fdps->isActive = !actRegion; // all partitions have results
-          fdps->definedOn = ResultInfo::NODE; // nodes
-          fdps->entryType = ResultInfo::VECTOR;
 
           if (fdps->dofNames.empty())
           {
+            fdps->definedOn = ResultInfo::NODE; // nodes
+            fdps->entryType = ResultInfo::VECTOR;
             fdps->dofNames.push_back("x");
             fdps->dofNames.push_back("y");
             if(dim_ == 3) 
             {
               fdps->dofNames.push_back("z");
             }
-          }
 
-          fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-          Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
-          numDOFs = fdps->dofNames.size();
-          fdps->data.resize(numDOFs * nvx);
+            fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
+            Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
+          }
         }
 
         /* check if the array is fluid pressure data */
-        if (dsName == "p")
+        if (dsName == "p" && 
+            (requiredResults_[FLUIDMECH_PRESSURE] ||
+             requiredResults_[NO_SOLUTION_TYPE]))
         {
           fdps = &fd[FLUIDMECH_PRESSURE];
           fdps->isActive = !actRegion; // all partitions have results
-          fdps->definedOn = ResultInfo::NODE; // nodes
-          fdps->entryType = ResultInfo::SCALAR;
-          if (!fdps->dofNames.size())
+          if (fdps->dofNames.empty())
+          {
+            fdps->definedOn = ResultInfo::NODE; // nodes
+            fdps->entryType = ResultInfo::SCALAR;
             fdps->dofNames.push_back("-");
-          fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-          Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
-          numDOFs = fdps->dofNames.size();
-          fdps->data.resize(numDOFs * nvx);
+            fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
+            Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
+            fdps->data.resize(numDOFs * nvx);
+          }
         }
 
-        if (dsName == "U" || dsName == "p") 
+        if (dsName == "U" || dsName == "p" && 
+            (requiredResults_[FLUIDMECH_PRESSURE] ||
+             requiredResults_[FLUIDMECH_VELOCITY] ||
+             requiredResults_[NO_SOLUTION_TYPE]))
         {
+          numDOFs = fdps->dofNames.size();
+          fdps->data.resize(numDOFs * nvx);
+
           /* copy the fluid velocity values */
           for(UInt i=0; i<numTuples; i++)
           {
@@ -435,9 +445,9 @@ namespace CoupledField
               break;
             }
           }
-
-          dataIt->Delete();
         }
+
+        dataIt->Delete();
       }
     }
 

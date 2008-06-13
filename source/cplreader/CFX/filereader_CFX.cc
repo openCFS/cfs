@@ -696,10 +696,10 @@ namespace CoupledField
 
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
             Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
-            numDOFs = fdps.dofNames.size();
-            fdps.data.resize(numDOFs * nvx);
             fdps.entryType = ResultInfo::VECTOR;
           }
+          numDOFs = fdps.dofNames.size();
+          fdps.data.resize(numDOFs * nvx);
 
           if(floatDS)
             std::copy(floatvec.begin(),
@@ -756,10 +756,10 @@ namespace CoupledField
             fdps.dofNames.push_back("-");
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
             Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
-            numDOFs = fdps.dofNames.size();
-            fdps.data.resize(numDOFs * nvx);
             fdps.entryType = ResultInfo::SCALAR;
           }
+          numDOFs = fdps.dofNames.size();
+          fdps.data.resize(numDOFs * nvx);
 
           if(floatDS)
             std::copy(floatvec.begin(),
@@ -816,10 +816,10 @@ namespace CoupledField
             fdps.dofNames.push_back("-");
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_TKE);
             Enum2String(FLUIDMECH_TKE, fdps.resultName);
-            numDOFs = fdps.dofNames.size();
-            fdps.data.resize(numDOFs * nvx);
             fdps.entryType = ResultInfo::SCALAR;
           }
+          numDOFs = fdps.dofNames.size();
+          fdps.data.resize(numDOFs * nvx);
 
           if(floatDS)
             std::copy(floatvec.begin(),
