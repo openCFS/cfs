@@ -26,7 +26,8 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
     
     name_ = name;
-    baseName_ = "./";
+    baseName_ = settings.GetString("basedir");
+    baseName_+= "/";
     baseName_+= name_;
     baseName_+= "/";
     baseName_+= name_;

@@ -359,10 +359,11 @@ namespace CoupledField
   
   void FileReader_ANSYS::OpenFile(std::string extension)
   {
+    Settings& settings = Settings::Instance();    
     std::string filename;
     std::stringstream sstr;
     
-    sstr << name_ << "." << extension;
+    sstr << settings.GetString("basedir") << "/" << name_ << "." << extension;
     filename = sstr.str();
     
     inFile_.clear();
