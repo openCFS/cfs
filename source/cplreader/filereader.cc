@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <iomanip>
 
+#include <boost/tokenizer.hpp>
+
 // #include <muParser.h>
 
 #include "params.hh"
@@ -21,6 +23,8 @@ namespace CoupledField
     numSteps_(numFiles),
     maxNumElemNodes_(0)
   {
+    Settings& settings = Settings::Instance();
+    
     name_ = name;
     baseName_ = "./";
     baseName_+= name_;
@@ -29,7 +33,34 @@ namespace CoupledField
     baseName_+= "_";
     
     preferedOutputPath_ = "cplreader_hdf5_";
-    preferedOutputPath_ += name_; 
+    preferedOutputPath_ += name_;
+    
+    // Initialize vector with required results
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";| ");
+    Tok t(settings.GetString("outputfields"), sep);
+    
+    if(*t.begin() == "all")
+    {
+      requiredResults_[NO_SOLUTION_TYPE] = true;
+    }
+    else
+    {
+      Tok::const_iterator it, end;
+      SolutionType st;
+      
+      it = t.begin();
+      end = t.end();
+      
+      for( ; it != end; it++)
+      {
+        String2Enum(*it, st);
+        requiredResults_[st] = true;
+      }
+    }
+    
+    if(requiredResults_[ACOU_RHS_LOAD] || settings.GetInt("calcSrc"))
+      requiredResults_[FLUIDMECH_VELOCITY] = true;
   }
 
   FileReader::~FileReader()

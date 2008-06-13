@@ -650,169 +650,187 @@ namespace CoupledField
       //-----------------------------------------------------------------------
       //     Reading velocity from input file
       //-----------------------------------------------------------------------
+      if(requiredResults_[FLUIDMECH_VELOCITY] ||
+         requiredResults_[NO_SOLUTION_TYPE]) 
+      {                     
+        sprintf(what, "G/VEL_FL1");
+        sprintf(where, "ZN1/VX");
+        when  = timeStepNumbers_[timeStepIdx];
 
-      sprintf(what, "G/VEL_FL1");
-      sprintf(where, "ZN1/VX");
-      when  = timeStepNumbers_[timeStepIdx];
-
-      if(floatDS)
-        dattyp = __real_data_type__;
-      else
-        dattyp = __double_data_type__;
-
-      length = 3;
-      nsize  = nvx;
-      iopt   = __stop_if_failed__;
-        
-      if(floatDS)
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,darr,sarr,
-                  strlen(what), strlen(where), 0);
-      else
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
-                  strlen(what), strlen(where), 0);
-
-      if(nerr)                                                  
-      {                                                         
-        if(settings.GetInt("verbose"))
-          std::cerr << "WARNING: CFX dataset does not contain velocity!"
-                    << std::endl;                           
-      }
-      else 
-      {
-        FlowDataPartStruct& fdps = fd[FLUIDMECH_VELOCITY];
-        fdps.isActive = true; // all partitions have results
-        fdps.definedOn = ResultInfo::NODE; // nodes
-        fdps.dofNames.push_back("x");
-        fdps.dofNames.push_back("y");
-        if(dim_ == 3) 
-          fdps.dofNames.push_back("z");
-        fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-        Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
-        numDOFs = fdps.dofNames.size();
-        fdps.data.resize(numDOFs * nvx);
-        fdps.entryType = ResultInfo::VECTOR;
-        
         if(floatDS)
-          std::copy(floatvec.begin(),
-                    floatvec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
+          dattyp = __real_data_type__;
         else
-          std::copy(doublevec.begin(), 
-                    doublevec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
+          dattyp = __double_data_type__;
+
+        length = 3;
+        nsize  = nvx;
+        iopt   = __stop_if_failed__;
+
+        if(floatDS)
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,darr,sarr,
+              strlen(what), strlen(where), 0);
+        else
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              strlen(what), strlen(where), 0);
+
+        if(nerr)                                                  
+        {                                                         
+          if(settings.GetInt("verbose"))
+            std::cerr << "WARNING: CFX dataset does not contain velocity!"
+            << std::endl;                           
+        }
+        else 
+        {
+          FlowDataPartStruct& fdps = fd[FLUIDMECH_VELOCITY];
+          fdps.isActive = true; // all partitions have results
+          if(fdps.dofNames.empty()) 
+          {
+
+            fdps.definedOn = ResultInfo::NODE; // nodes
+            fdps.dofNames.push_back("x");
+            fdps.dofNames.push_back("y");
+            if(dim_ == 3) 
+              fdps.dofNames.push_back("z");
+
+            fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
+            Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
+            numDOFs = fdps.dofNames.size();
+            fdps.data.resize(numDOFs * nvx);
+            fdps.entryType = ResultInfo::VECTOR;
+          }
+
+          if(floatDS)
+            std::copy(floatvec.begin(),
+                floatvec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+          else
+            std::copy(doublevec.begin(), 
+                doublevec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+        }
       }
-      
+    
       //-----------------------------------------------------------------------
       //     Reading pressure from input file
       //-----------------------------------------------------------------------
+      if(requiredResults_[FLUIDMECH_PRESSURE] ||
+         requiredResults_[NO_SOLUTION_TYPE]) 
+      {                     
+        sprintf(what, "G/PRES");
+        sprintf(where, "ZN1/VX");
+        when  = timeStepNumbers_[timeStepIdx];
 
-      sprintf(what, "G/PRES");
-      sprintf(where, "ZN1/VX");
-      when  = timeStepNumbers_[timeStepIdx];
-
-      if(floatDS)
-        dattyp = __real_data_type__;
-      else
-        dattyp = __double_data_type__;
-
-      length = 1;
-      nsize  = nvx;
-      iopt   = __stop_if_failed__;
-        
-      if(floatDS)
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,darr,sarr,
-                  strlen(what), strlen(where), 0);
-      else
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
-                  strlen(what), strlen(where), 0);
-        
-      if(nerr)                                                  
-      {                                                         
-        if(settings.GetInt("verbose"))
-          std::cerr << "WARNING: CFX dataset does not contain pressure!"
-                    << std::endl;                           
-      }
-      else 
-      {
-        FlowDataPartStruct& fdps = fd[FLUIDMECH_PRESSURE];
-        fdps.isActive = true; // all partitions have results
-        fdps.definedOn = ResultInfo::NODE; // nodes
-        fdps.dofNames.push_back("-");
-        fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-        Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
-        numDOFs = fdps.dofNames.size();
-        fdps.data.resize(numDOFs * nvx);
-        fdps.entryType = ResultInfo::SCALAR;
-        
         if(floatDS)
-          std::copy(floatvec.begin(),
-                    floatvec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
+          dattyp = __real_data_type__;
         else
-          std::copy(doublevec.begin(), 
-                    doublevec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
-      }
+          dattyp = __double_data_type__;
 
+        length = 1;
+        nsize  = nvx;
+        iopt   = __stop_if_failed__;
+
+        if(floatDS)
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,darr,sarr,
+              strlen(what), strlen(where), 0);
+        else
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              strlen(what), strlen(where), 0);
+
+        if(nerr)                                                  
+        {                                                         
+          if(settings.GetInt("verbose"))
+            std::cerr << "WARNING: CFX dataset does not contain pressure!"
+            << std::endl;                           
+        }
+        else 
+        {
+          FlowDataPartStruct& fdps = fd[FLUIDMECH_PRESSURE];
+          fdps.isActive = true; // all partitions have results
+          if(fdps.dofNames.empty()) 
+          {        
+            fdps.definedOn = ResultInfo::NODE; // nodes
+            fdps.dofNames.push_back("-");
+            fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
+            Enum2String(FLUIDMECH_PRESSURE, fdps.resultName);
+            numDOFs = fdps.dofNames.size();
+            fdps.data.resize(numDOFs * nvx);
+            fdps.entryType = ResultInfo::SCALAR;
+          }
+
+          if(floatDS)
+            std::copy(floatvec.begin(),
+                floatvec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+          else
+            std::copy(doublevec.begin(), 
+                doublevec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+        }
+      }
 
       //-----------------------------------------------------------------------
       //     Reading turbulent kinetic energy from input file
       //-----------------------------------------------------------------------
+      if(requiredResults_[FLUIDMECH_TKE] ||
+         requiredResults_[NO_SOLUTION_TYPE]) 
+      {                     
+        sprintf(what, "G/TKE_FL1");
+        sprintf(where, "ZN1/VX");
+        when  = timeStepNumbers_[timeStepIdx];
 
-      sprintf(what, "G/TKE_FL1");
-      sprintf(where, "ZN1/VX");
-      when  = timeStepNumbers_[timeStepIdx];
-
-      if(floatDS)
-        dattyp = __real_data_type__;
-      else
-        dattyp = __double_data_type__;
-
-      length = 1;
-      nsize  = nvx;
-      iopt   = __stop_if_failed__;
-        
-      if(floatDS)
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,darr,sarr,
-                  strlen(what), strlen(where), 0);
-      else
-        readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
-                  &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
-                  strlen(what), strlen(where), 0);
-        
-      if(nerr)                                                  
-      {     
-        if(settings.GetInt("verbose"))
-          std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!"
-                    << std::endl;                           
-      }
-      else 
-      {
-        FlowDataPartStruct& fdps = fd[FLUIDMECH_TKE];
-        fdps.isActive = true; // all partitions have results
-        fdps.definedOn = ResultInfo::NODE; // nodes
-        fdps.dofNames.push_back("-");
-        fdps.unit = MapSolTypeToUnit(FLUIDMECH_TKE);
-        Enum2String(FLUIDMECH_TKE, fdps.resultName);
-        numDOFs = fdps.dofNames.size();
-        fdps.data.resize(numDOFs * nvx);
-        fdps.entryType = ResultInfo::SCALAR;
-        
         if(floatDS)
-          std::copy(floatvec.begin(),
-                    floatvec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
+          dattyp = __real_data_type__;
         else
-          std::copy(doublevec.begin(), 
-                    doublevec.begin() + (numDOFs * nvx),
-                    fdps.data.begin());
-      }
+          dattyp = __double_data_type__;
 
+        length = 1;
+        nsize  = nvx;
+        iopt   = __stop_if_failed__;
+
+        if(floatDS)
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,darr,sarr,
+              strlen(what), strlen(where), 0);
+        else
+          readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+              &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+              strlen(what), strlen(where), 0);
+
+        if(nerr)                                                  
+        {     
+          if(settings.GetInt("verbose"))
+            std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!"
+            << std::endl;                           
+        }
+        else 
+        {
+          FlowDataPartStruct& fdps = fd[FLUIDMECH_TKE];
+          fdps.isActive = true; // all partitions have results
+          if(fdps.dofNames.empty())
+          {
+            fdps.definedOn = ResultInfo::NODE; // nodes
+            fdps.dofNames.push_back("-");
+            fdps.unit = MapSolTypeToUnit(FLUIDMECH_TKE);
+            Enum2String(FLUIDMECH_TKE, fdps.resultName);
+            numDOFs = fdps.dofNames.size();
+            fdps.data.resize(numDOFs * nvx);
+            fdps.entryType = ResultInfo::SCALAR;
+          }
+
+          if(floatDS)
+            std::copy(floatvec.begin(),
+                floatvec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+          else
+            std::copy(doublevec.begin(), 
+                doublevec.begin() + (numDOFs * nvx),
+                fdps.data.begin());
+        }
+      }
       // TEMP_FL1
       // DENSITY
       // DENSITY_FL1
