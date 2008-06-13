@@ -79,7 +79,7 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > regionElems_; 
 
 
-    char fn[80];
+    char fn[4096];
     int nerr;
     int whatfile;
     char what[80];
