@@ -420,34 +420,42 @@ namespace CoupledField
           }
         }
 
-        if (dsName == "U" || dsName == "p" && 
+#if 0
+        if ((dsName == "U" || dsName == "p") && 
             (requiredResults_[FLUIDMECH_PRESSURE] ||
              requiredResults_[FLUIDMECH_VELOCITY] ||
              requiredResults_[NO_SOLUTION_TYPE]))
-        {
-          numDOFs = fdps->dofNames.size();
-          fdps->data.resize(numDOFs * nvx);
-
-          /* copy the fluid velocity values */
-          for(UInt i=0; i<numTuples; i++)
+#endif
+          if ((dsName == "U" &&
+                (requiredResults_[FLUIDMECH_VELOCITY] ||
+                 requiredResults_[NO_SOLUTION_TYPE])) ||
+              (dsName == "p" &&
+               (requiredResults_[FLUIDMECH_PRESSURE] ||
+                requiredResults_[NO_SOLUTION_TYPE])))
           {
-            switch(data->GetDataType())
+            numDOFs = fdps->dofNames.size();
+            fdps->data.resize(numDOFs * nvx);
+
+            /* copy the fluid velocity values */
+            for(UInt i=0; i<numTuples; i++)
             {
-            case VTK_FLOAT:
-              floatIt = static_cast< vtkArrayIteratorTemplate<float>* >(dataIt);
-              for(UInt j=0; j<numComps; j++)
-                fdps->data[i*numDOFs+j] = floatIt->GetValue(i*numComps+j);
-              break;
-              
-            case VTK_DOUBLE:
-              vtkArrayIteratorTemplate<double>* doubleIt;
-              doubleIt = static_cast< vtkArrayIteratorTemplate<double>* >(dataIt);
-              for(UInt j=0; j<numComps; j++)
-                fdps->data[i*numDOFs+j] = doubleIt->GetValue(i*numComps+j);
-              break;
+              switch(data->GetDataType())
+              {
+                case VTK_FLOAT:
+                  floatIt = static_cast< vtkArrayIteratorTemplate<float>* >(dataIt);
+                  for(UInt j=0; j<numComps; j++)
+                    fdps->data[i*numDOFs+j] = floatIt->GetValue(i*numComps+j);
+                  break;
+
+                case VTK_DOUBLE:
+                  vtkArrayIteratorTemplate<double>* doubleIt;
+                  doubleIt = static_cast< vtkArrayIteratorTemplate<double>* >(dataIt);
+                  for(UInt j=0; j<numComps; j++)
+                    fdps->data[i*numDOFs+j] = doubleIt->GetValue(i*numComps+j);
+                  break;
+              }
             }
           }
-        }
 
         dataIt->Delete();
       }
@@ -469,7 +477,7 @@ namespace CoupledField
 
     if (partitionIdx == 0)
     {
-        sstr << "InternalMesh";
+      sstr << "InternalMesh";
     } else {
       if (partitionIdx <= idx_tmp)
       {
@@ -496,14 +504,14 @@ namespace CoupledField
       elemTypeMap[VTK_WEDGE] = ET_WEDGE6;
       elemTypeMap[VTK_PYRAMID] = ET_PYRA5;
     }
-    
+
     if(elemTypeMap.find(cellType) == elemTypeMap.end())
       return ET_UNDEF;
     else
       return elemTypeMap[cellType];
   }
-  
-    //! get user data from file reader
+
+  //! get user data from file reader
   void FileReader_OPENFOAM::GetUserData(std::map<std::string, std::string>& userData)
   {
     Settings& settings = Settings::Instance();    
@@ -511,30 +519,30 @@ namespace CoupledField
     std::vector<std::string> dataSetNames;
     std::ifstream fin;
     std::stringstream sstr;
-    
-    
-    
+
+
+
     sstr << settings.GetString("basedir") << "/" << name_.c_str();
     fs::path foamDir = sstr.str();
     fs::directory_iterator end_iter;
     for ( fs::directory_iterator dir_itr( foamDir );
-          dir_itr != end_iter;
-          ++dir_itr ) 
+        dir_itr != end_iter;
+        ++dir_itr ) 
     {
-       if ( !fs::is_directory( *dir_itr ) )
-       {
-         std::string fn = dir_itr->leaf();
-         if(fn.substr(0, 4) == "log.")
-         {
-           sstr.clear(); sstr.str("");
-           sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/" << fn;
-           fileNames.push_back(sstr.str());
+      if ( !fs::is_directory( *dir_itr ) )
+      {
+        std::string fn = dir_itr->leaf();
+        if(fn.substr(0, 4) == "log.")
+        {
+          sstr.clear(); sstr.str("");
+          sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/" << fn;
+          fileNames.push_back(sstr.str());
 
-           sstr.clear(); sstr.str("");
-           sstr << name_.c_str() << "_" << fn;
-           dataSetNames.push_back(sstr.str());
-         }
-       }
+          sstr.clear(); sstr.str("");
+          sstr << name_.c_str() << "_" << fn;
+          dataSetNames.push_back(sstr.str());
+        }
+      }
     }
 
     sstr.clear(); sstr.str("");
@@ -542,20 +550,20 @@ namespace CoupledField
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
-          dir_itr != end_iter;
-          ++dir_itr ) 
+        dir_itr != end_iter;
+        ++dir_itr ) 
     {
-       if ( !fs::is_directory( *dir_itr ) )
-       {
-         std::string fn = dir_itr->leaf();
-         sstr.clear(); sstr.str("");
-         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/0/" << fn;
-         fileNames.push_back(sstr.str());
+      if ( !fs::is_directory( *dir_itr ) )
+      {
+        std::string fn = dir_itr->leaf();
+        sstr.clear(); sstr.str("");
+        sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/0/" << fn;
+        fileNames.push_back(sstr.str());
 
-         sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "_0_" << fn;
-         dataSetNames.push_back(sstr.str());
-       }
+        sstr.clear(); sstr.str("");
+        sstr << name_.c_str() << "_0_" << fn;
+        dataSetNames.push_back(sstr.str());
+      }
     }
 
     sstr.clear(); sstr.str("");
@@ -563,20 +571,20 @@ namespace CoupledField
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
-          dir_itr != end_iter;
-          ++dir_itr ) 
+        dir_itr != end_iter;
+        ++dir_itr ) 
     {
-       if ( !fs::is_directory( *dir_itr ) )
-       {
-         std::string fn = dir_itr->leaf();
-         sstr.clear(); sstr.str("");
-         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/" << fn;
-         fileNames.push_back(sstr.str());
+      if ( !fs::is_directory( *dir_itr ) )
+      {
+        std::string fn = dir_itr->leaf();
+        sstr.clear(); sstr.str("");
+        sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/" << fn;
+        fileNames.push_back(sstr.str());
 
-         sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "_constant_" << fn;
-         dataSetNames.push_back(sstr.str());
-       }
+        sstr.clear(); sstr.str("");
+        sstr << name_.c_str() << "_constant_" << fn;
+        dataSetNames.push_back(sstr.str());
+      }
     }
 
     sstr.clear(); sstr.str("");
@@ -584,20 +592,20 @@ namespace CoupledField
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
-          dir_itr != end_iter;
-          ++dir_itr ) 
+        dir_itr != end_iter;
+        ++dir_itr ) 
     {
-       if ( !fs::is_directory( *dir_itr ) )
-       {
-         std::string fn = dir_itr->leaf();
-         sstr.clear(); sstr.str("");
-         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/polyMesh/" << fn;
-         fileNames.push_back(sstr.str());
+      if ( !fs::is_directory( *dir_itr ) )
+      {
+        std::string fn = dir_itr->leaf();
+        sstr.clear(); sstr.str("");
+        sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/polyMesh/" << fn;
+        fileNames.push_back(sstr.str());
 
-         sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "_constant_polyMesh_" << fn;
-         dataSetNames.push_back(sstr.str());
-       }
+        sstr.clear(); sstr.str("");
+        sstr << name_.c_str() << "_constant_polyMesh_" << fn;
+        dataSetNames.push_back(sstr.str());
+      }
     }
 
     sstr.clear(); sstr.str("");
@@ -605,29 +613,29 @@ namespace CoupledField
     foamDir = sstr.str();
 
     for ( fs::directory_iterator dir_itr( foamDir );
-          dir_itr != end_iter;
-          ++dir_itr ) 
+        dir_itr != end_iter;
+        ++dir_itr ) 
     {
-       if ( !fs::is_directory( *dir_itr ) )
-       {
-         std::string fn = dir_itr->leaf();
-         sstr.clear(); sstr.str("");
-         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/system/" << fn;
-         fileNames.push_back(sstr.str());
+      if ( !fs::is_directory( *dir_itr ) )
+      {
+        std::string fn = dir_itr->leaf();
+        sstr.clear(); sstr.str("");
+        sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/system/" << fn;
+        fileNames.push_back(sstr.str());
 
-         sstr.clear(); sstr.str("");
-         sstr << name_.c_str() << "_system_" << fn;
-         dataSetNames.push_back(sstr.str());
-       }
+        sstr.clear(); sstr.str("");
+        sstr << name_.c_str() << "_system_" << fn;
+        dataSetNames.push_back(sstr.str());
+      }
     }
 
     for(UInt i=0; i<fileNames.size(); i++)
     {
       fin.open( fileNames[i].c_str(), std::ios::binary );
-    
+
       if(fin.fail())
         EXCEPTION("Cannot open file '" << fileNames[i]
-                  <<"' to dump into HDF5!");
+            <<"' to dump into HDF5!");
 
       // seek to the end of the file
       fin.seekg (0, std::ios::end);
