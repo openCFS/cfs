@@ -147,6 +147,7 @@
             </xsd:sequence>
           </xsd:sequence>
           <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+          <xsd:attribute name="gridId" type="xsd:token" default="default"></xsd:attribute>
         </xsd:complexType>
       </xsd:element>
     </xsd:choice>
