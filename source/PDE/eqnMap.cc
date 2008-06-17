@@ -2151,7 +2151,7 @@ namespace CoupledField {
       shared_ptr<EntityList> ent ) {
     
     // Get type of entries of the particular entity list
-    EntityList::ListType type = ent->GetType();
+    //EntityList::ListType type = ent->GetType();
     
     shared_ptr<ElemList> elemList;
     shared_ptr<SurfElemList> sElemList;

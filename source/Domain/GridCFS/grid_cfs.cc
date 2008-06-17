@@ -207,7 +207,7 @@ namespace CoupledField {
             coordNode->Get( "x", coord[0] );
             coordNode->Get( "y", coord[1] );
             if( dim_ == 3 )
-              coordNode->Get( "z", coord[2] );
+            coordNode->Get( "z", coord[2] );
             StdVector<UInt> entityNum(1);
             entityNum[0] = FindEntityMinDistance( isNode, coord );
             
@@ -224,8 +224,12 @@ namespace CoupledField {
           ParamNode * listNode = nodes[i]->Get("list", false );
           if( listNode ) {
             
-            std::string coordSysId;
+            std::string gridId, coordSysId;
 
+            // make sure, that this is the correct grid
+            listNode->Get("gridId", gridId);
+            if (domain->GetGrid(gridId) != this) return;
+            
             // get coordinate system
             listNode->Get( "coordSysId", coordSysId );
 
@@ -408,6 +412,8 @@ namespace CoupledField {
         
         // calculate distance and store it in vector
         GetNodeCoordinate( actEntCoord, iNode+1, false );
+        if (actEntCoord.GetSize() == 2)
+          actEntCoord.Push_back(0.0);
         temp = (actEntCoord-coord);
         entityDist[iNode] = temp.NormL2();
       } // nodes
@@ -425,9 +431,9 @@ namespace CoupledField {
         // Check, if element has same dimension as grid
         // -> We want to find only volume elements
         if( orderedElems_[iElem]->ptElem->GetDim() == dim_ ) { 
-          GetGlobalElemMidPoint( iElem+1, actEntCoord );
-          temp = (actEntCoord-coord );
-          entityDist[iElem] = temp.NormL2();
+        GetGlobalElemMidPoint( iElem+1, actEntCoord );
+        temp = (actEntCoord-coord );
+        entityDist[iElem] = temp.NormL2();
         } else {
           entityDist[iElem] = 1e16;
         }
