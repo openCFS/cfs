@@ -20,7 +20,8 @@ namespace CoupledField
     //! Deconstructor
     virtual ~FileReader_ANSYS();
 
-    virtual void Init();
+    // Determine type of reader necessary for reading given files.
+    static std::string GetReaderType();
 
     //! get node coordinates from the corresponding file
     virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
@@ -39,26 +40,17 @@ namespace CoupledField
     
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
-
-    //! Get node groups
-    virtual void GetNodeGroups(std::map<std::string,
-                                        std::vector<UInt> >& nodeGroups);
-
-    //! Get element groups
-    virtual void GetElemGroups(std::map<std::string,
-                                        std::vector<UInt> >& elemGroups);
-
+    
   protected:
 
-    void OpenFile(std::string extension);
+    void OpenFile(std::string fn);
     bool ReadChunk();
     bool GetNextLine(std::string& line);
 
-    FEType ANSYSTypeToFEType(UInt type, UInt numNodes, bool& readAnotherLine);
-    void ResortNodes(std::vector<UInt>& elemNodes);
-    void DegenerateElement(const FEType elemTypeIn,
-                           FEType& elemTypeOut,
-                           std::vector<UInt>& elemNodes);
+    virtual void ResortNodes(std::vector<UInt>& elemNodes);
+    virtual void DegenerateElement(const FEType elemTypeIn,
+                                   FEType& elemTypeOut,
+                                   std::vector<UInt>& elemNodes);
 
     // Checks if connectivities of two elements match.
     bool CompareElements(const std::vector<UInt>& elemNodes1,
@@ -66,9 +58,9 @@ namespace CoupledField
     
     UInt chunkSize_;
     UInt fSize_;
-    UInt maxOrigElemNum_;
     bool strict_;
     bool degen_;
+    bool everyThingRead_;
     
     std::ifstream inFile_;
     
