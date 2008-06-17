@@ -26,7 +26,8 @@ namespace fs=boost::filesystem;
 #include "filereader.hh"
 
 #ifdef CPLREADER_ANSYS
-#include "ANSYS/filereader_ANSYS.hh"
+#include "ANSYS/FileReader_MKHDF5.hh"
+#include "ANSYS/FileReader_NACS.hh"
 #endif
 
 #ifdef CPLREADER_FASTEST
@@ -84,8 +85,22 @@ int main(int argc, char *argv[])
     if(type == "ANSYS")
     {
 #ifdef CPLREADER_ANSYS
-      fileReader = new FileReader_ANSYS(settings.GetString("name"),
-                                        settings.GetInt("dim"), 0, 0);
+      std::string readerType = FileReader_ANSYS::GetReaderType();
+
+      if(readerType == "MKHDF5") 
+      {
+        fileReader = new FileReader_MKHDF5(settings.GetString("name"),
+                                           settings.GetInt("dim"), 0, 0);
+      }
+      else if(readerType == "NACS")
+      {
+        fileReader = new FileReader_NACS(settings.GetString("name"),
+                                           settings.GetInt("dim"), 0, 0);
+      }
+      else
+      {
+        EXCEPTION("Could not find any suitable input files!");
+      }
 #else
       EXCEPTION("Reading of ANSYS files not supported!");
 #endif
