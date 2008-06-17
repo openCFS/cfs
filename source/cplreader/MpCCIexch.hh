@@ -47,6 +47,15 @@ namespace CoupledField
     void CalculateAcouSrcs(const int partitionIdx,
                            FlowDataType& flowData);
     
+    // Throw away unneccessary entries in vectors
+    void ShrinkNodalVector(const UInt partitionIdx,
+                           const UInt numDOFs,
+                           const std::vector<Double>& input,
+                           std::vector<Double>& output);
+
+    void CollectElementNodes(const std::vector<UInt>& elems,
+                             std::vector<UInt>& nodes,
+                             UInt& dim);
 
     // MpCCI specific member functions
     int ElemTypes2MpCCI(FEType et);
@@ -73,6 +82,9 @@ namespace CoupledField
     void WriteStringToUserData(const std::string& dSetName, 
                                const std::string& str);
 
+    void WriteNodeGroups(const H5::Group& meshGroup);
+    void WriteElemGroups(const H5::Group& meshGroup);
+
     FileReader *  ptFileReader_;
     std::vector<Double> nodalCoords_;
     std::vector<UInt> topology_;
@@ -80,8 +92,12 @@ namespace CoupledField
 
     std::map<UInt, std::vector<UInt> > regionElems_;
     std::map<UInt, std::map<UInt, UInt> > regionNodeIndices_;
+    std::vector<UInt> numRegionNodes_;
     
     UInt dim_;
+
+    std::map<std::string, std::vector<UInt> > nodeGroups_;
+    std::map<std::string, std::vector<UInt> > elemGroups_;
 
     // Directory name for storing HDF5 files
     std::string hdf5DirName_;

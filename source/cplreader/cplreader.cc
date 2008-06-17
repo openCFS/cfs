@@ -53,18 +53,14 @@ int main(int argc, char *argv[])
   int ret = 0;
   FileReader* fileReader = NULL;
 
-  // Switch this flag to true for debugging
-#ifdef DEBUG
-  Exception::segfault_ = true;
-#else
-  Exception::segfault_ = false;
-#endif
-  
   try 
   {
     Settings& settings = Settings::Instance();
 
     ParamsInit(argc, argv);
+
+    // Set user defined exception behaviour
+    Exception::segfault_ = (bool) settings.GetInt("segfault");
 
     std::string type = settings.GetString("type");
     
