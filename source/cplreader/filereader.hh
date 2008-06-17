@@ -75,15 +75,13 @@ namespace CoupledField
     //! return dimension of grid
     virtual UInt GetDim() { return dim_;}
 
-    //! return size of element
-//    virtual UInt GetElemSize(const UInt regionIdx) {
-//      return elsize_[regionIdx];
-//    }
+    //! Get node groups
+    virtual void GetNodeGroups(std::map<std::string,
+                                        std::vector<UInt> >& nodeGroups);
 
-    //! return number of result quantities
-//    virtual UInt GetNumResults() { 
-//      return numResults_;
-//    }
+    //! Get element groups
+    virtual void GetElemGroups(std::map<std::string,
+                                        std::vector<UInt> >& elemGroups);
 
     //! return time step value in seconds
     virtual double GetTimeStep(UInt stepNumber);

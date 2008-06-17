@@ -38,6 +38,8 @@ namespace CoupledField
     bool param_justmesh;
     bool param_degen;
     bool param_strict;
+    bool param_deltemp;
+    bool param_segfault;
     std::string param_deffile;
     double param_timestep;
     std::string param_dump;
@@ -137,6 +139,13 @@ namespace CoupledField
          "Calculate the acoustic sources from velocity")
 #endif
 
+#ifdef DEBUG
+        ("segfault", po::value< bool >(&param_segfault)->default_value(true),
+         "Cause program to segfault when an exception is encountered.")
+#endif
+        ("deltemp", po::value< bool >(&param_deltemp)->default_value(true),
+         "Delete temporary files.")
+
         ("floatds", po::value< bool >(&param_floatds)->default_value(true),
          "Do the transient files contain float or double values." 
          "ATTENTION: If this flag is true, it overrides the setting of"
@@ -225,6 +234,9 @@ namespace CoupledField
       return;
     }
 
+#ifndef DEBUG
+    param_segfault = false;
+#endif
   
     settings.SetString("name", param_name);
     settings.SetString("type", param_type);
@@ -244,6 +256,8 @@ namespace CoupledField
     settings.SetInt("justmesh", param_justmesh);
     settings.SetInt("degen", param_degen);
     settings.SetInt("strict", param_strict);
+    settings.SetInt("segfault", param_segfault);
+    settings.SetInt("deltemp", param_deltemp);
     settings.SetInt("verbose", param_verbose);
     settings.SetString("defFile", param_deffile);
     settings.SetDouble("timeStep", param_timestep);

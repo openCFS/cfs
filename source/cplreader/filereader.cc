@@ -85,5 +85,22 @@ namespace CoupledField
     sstr << "partition" << (regionIdx+1);
     return sstr.str();
   }
+
+  void FileReader::GetNodeGroups(std::map<std::string,
+                                 std::vector<UInt> >& nodeGroups)
+  {
+    Settings& settings = Settings::Instance();
+    if(settings.GetInt("verbose"))
+      std::cerr << "GetNodeGroups() not implemented!" << std::endl;
+  }
+
+  void FileReader::GetElemGroups(std::map<std::string,
+                                 std::vector<UInt> >& elemGroups)
+  {
+    Settings& settings = Settings::Instance();
+    if(settings.GetInt("verbose"))
+      std::cerr << "GetElemGroups() not implemented!" << std::endl;
+
+  }
       
 } // end of namespace

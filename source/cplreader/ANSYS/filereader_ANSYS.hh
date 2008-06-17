@@ -40,6 +40,14 @@ namespace CoupledField
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
 
+    //! Get node groups
+    virtual void GetNodeGroups(std::map<std::string,
+                                        std::vector<UInt> >& nodeGroups);
+
+    //! Get element groups
+    virtual void GetElemGroups(std::map<std::string,
+                                        std::vector<UInt> >& elemGroups);
+
   protected:
 
     void OpenFile(std::string extension);
@@ -88,6 +96,10 @@ namespace CoupledField
     
     // Map from original element number to region index
     std::map<UInt, UInt > elemRegionMap_;
+
+    // Topology for per "original" element number
+    std::vector<std::string> fileNames_;
+
   };
 
       

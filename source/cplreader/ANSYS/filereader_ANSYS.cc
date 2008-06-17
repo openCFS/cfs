@@ -8,6 +8,9 @@
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+namespace fs=boost::filesystem;
 
 #include "../settings.hh"
 #include "filereader_ANSYS.hh"
@@ -33,6 +36,24 @@ namespace CoupledField
 
   FileReader_ANSYS::~FileReader_ANSYS()
   {
+    Settings& settings = Settings::Instance();
+    std::vector<std::string>::const_iterator it, end;
+    
+
+    if(settings.GetInt("deltemp")) 
+    {
+      it = fileNames_.begin();
+      end = fileNames_.end();
+
+      for( ; it != end; it++ )
+      {
+        if(settings.GetInt("verbose"))
+          std::cout << "Removing " << (*it) << std::endl;
+
+        fs::remove(*it);
+      }
+      
+    }
   }
 
   void FileReader_ANSYS::Init()
@@ -140,7 +161,7 @@ namespace CoupledField
         boost::trim( regionName );
         regionIdx = regionNames_.size();
         regionNames_.push_back( regionName );
-        std::cout << regionName << std::endl;
+        //        std::cout << regionName << std::endl;
         numRegions_++;
         numNodesPerRegion_.push_back(numNodes);
         if(regionIdx)
@@ -344,6 +365,159 @@ namespace CoupledField
     }
   }
 
+  void FileReader_ANSYS::GetNodeGroups(std::map<std::string,
+                                 std::vector<UInt> >& nodeGroups)
+  {
+    Settings& settings = Settings::Instance();
+    std::vector<std::string> nodeFileSuffices;
+    std::string line;
+    std::string groupName;
+    UInt nodeNum, newNodeNum;
+    Double x,y,z;
+    std::stringstream sstr;
+    std::set<UInt> nodeSet;
+    bool readOK;
+    
+    nodeFileSuffices.push_back("nodebc");
+    nodeFileSuffices.push_back("savenode");
+    
+    for(UInt i=0, n=nodeFileSuffices.size(); i < n; i++)
+    {
+      try 
+      {
+        OpenFile(nodeFileSuffices[i]);
+        readOK = true;
+      } catch (std::exception& ex) 
+      {
+        readOK = false;
+        continue;
+      }
+      
+      
+      while(GetNextLine(line)) {
+        // strip whitespaces
+        boost::trim(line);
+
+        if(line.length() == 0)
+          continue;
+
+        if(line[0] == '[')
+        {
+          if(!nodeSet.empty())
+          {
+            std::copy(nodeSet.begin(), nodeSet.end(),
+                      std::back_inserter(nodeGroups[groupName]));
+
+            nodeSet.clear();
+          }
+        
+          groupName = line.substr(1, line.length()-2);
+          boost::trim( groupName );
+          //          std::cout << groupName << std::endl;
+          continue;
+        }
+      
+        sstr.clear(); sstr.str("");
+        sstr << line;
+        sstr >> nodeNum >> x >> y >> z;
+
+        newNodeNum = nodeNumsMap_[nodeNum];
+
+        if(!newNodeNum)
+          EXCEPTION("Node number " << nodeNum << " from node group '"
+                    << groupName << "' has not been defined before!");
+
+        nodeSet.insert(newNodeNum);
+      }
+
+      std::copy(nodeSet.begin(), nodeSet.end(),
+                std::back_inserter(nodeGroups[groupName]));
+    }
+  }
+
+  void FileReader_ANSYS::GetElemGroups(std::map<std::string,
+                                 std::vector<UInt> >& elemGroups)
+  {
+    Settings& settings = Settings::Instance();
+
+    std::vector<std::string> elemFileSuffices;
+    std::string line;
+    std::string groupName;
+    UInt elemNum, newElemNum;
+    UInt dummy, elemType;
+    std::stringstream sstr;
+    std::set<UInt> elemSet;
+    FEType prelimElemType;
+    bool readAnotherLine;
+    bool readOK;
+    
+    elemFileSuffices.push_back("saveelem");
+    
+    for(UInt i=0, n=elemFileSuffices.size(); i < n; i++)
+    {
+      try 
+      {
+        OpenFile(elemFileSuffices[i]);
+        readOK = true;
+      } catch (std::exception& ex) 
+      {
+        readOK = false;
+        continue;
+      }
+    
+      while(GetNextLine(line)) {
+        // strip whitespaces
+        boost::trim(line);
+
+        if(line.length() == 0)
+          continue;
+
+        if(line[0] == '[')
+        {
+          if(!elemSet.empty())
+          {
+            std::copy(elemSet.begin(), elemSet.end(),
+                      std::back_inserter(elemGroups[groupName]));
+
+            elemSet.clear();
+          }
+        
+          groupName = line.substr(1, line.length()-2);
+          boost::trim( groupName );
+          //          std::cout << groupName << std::endl;
+          continue;
+        }
+      
+        sstr.clear(); sstr.str("");
+        sstr << line;
+        sstr >> dummy >> dummy >> dummy >> dummy 
+             >> dummy >> dummy >> dummy >> dummy;
+        sstr >> dummy >> elemType >> dummy >> dummy >> dummy >> elemNum;
+        // Im Fall von NACS files bekommen wir den Elementtyp aus einer extra Datei
+
+        prelimElemType = ANSYSTypeToFEType(elemType, 0, readAnotherLine);
+      
+        if(readAnotherLine)
+        {
+          if(!GetNextLine(line))
+            EXCEPTION("Error while trying to read second half of elem record.");
+        }
+        
+
+        newElemNum = elemNumsMap_[elemNum];
+
+        if(!newElemNum)
+          EXCEPTION("Element number " << elemNum << " from element group '"
+                    << groupName << "' has not been defined before!");
+
+        elemSet.insert(newElemNum);
+      }
+
+      std::copy(elemSet.begin(), elemSet.end(),
+                std::back_inserter(elemGroups[groupName]));
+    }
+  }
+
   void FileReader_ANSYS::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                          const std::vector<bool>& activeParts,
                                          const UInt timeStepIdx)
@@ -373,6 +547,9 @@ namespace CoupledField
       EXCEPTION("Can't open " << filename);
     }
 
+    // Let's remember which files we opened, so that we can delete them in the end.
+    fileNames_.push_back(sstr.str());
+    
     // Determine size of file
     inFile_.seekg(0,std::ios::end);
     fSize_ = inFile_.tellg();
