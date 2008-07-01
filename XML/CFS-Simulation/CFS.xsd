@@ -49,6 +49,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MpCCI.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_Optimization.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_ParamIdent.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Definition of enclosing main element -->
