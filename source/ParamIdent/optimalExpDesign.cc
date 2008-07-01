@@ -1093,20 +1093,20 @@ namespace CoupledField
         Complex Z=voltage_/(2*PI*charge*frequency*im);
 
 
-        if (whichNormCriteria_==1)
+        if (whichNormCriteria_=="...")
           F_hat_=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
         
-        else  if (whichNormCriteria_==2)         // logarithmic value of impedance
+        else  if (whichNormCriteria_=="...")         // logarithmic value of impedance
           F_hat_=std::log(std::abs(voltage_/(2*PI*charge*frequency*im)));
         
-        else if (whichNormCriteria_==3)
+        else if (whichNormCriteria_=="...")
           F_hat_=voltage_/(2*PI*charge*frequency*im);
         
-        else if (whichNormCriteria_==4)
+        else if (whichNormCriteria_=="...")
           F_hat_=std::log(voltage_/(2*PI*charge*frequency*im));
         
         // consider just the phase
-        else if (whichNormCriteria_==5)
+        else if (whichNormCriteria_=="...")
           F_hat_ = 180.0/PI * std::atan2(Z.imag(),Z.real());
         
         // Integer fstep=0;
