@@ -230,6 +230,7 @@ XML/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEstokesFluid.xsd svneol=native#text/xml
+XML/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 XML/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml

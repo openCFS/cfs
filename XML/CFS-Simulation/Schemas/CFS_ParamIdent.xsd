@@ -1,0 +1,54 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things related to piezoelectric parameter identification
+    </xsd:documentation>
+  </xsd:annotation>
+ 
+  <xsd:complexType name="DT_ParameterFittingMethod">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="Newton"/>
+              <xsd:enumeration value="NewtonComplex"/>
+              <xsd:enumeration value="Landweber"/>
+              <xsd:enumeration value="steepestDescent"/>
+              <xsd:enumeration value="minimalError"/>
+              <xsd:enumeration value="leastSquares"/>
+              <xsd:enumeration value="confidenceIntervals"/>
+           </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_ParameterFittingQuantity">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+           <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="logImpedance"/>
+              <xsd:enumeration value="logAmplitude"/>
+              <xsd:enumeration value="amplitude"/>
+              <xsd:enumeration value="phase"/>
+              <xsd:enumeration value="logAmplitudeMech"/>
+              <xsd:enumeration value="amplitudeMech"/>
+              <xsd:enumeration value="displacementMech"/>
+              <xsd:enumeration value="phaseMech"/>                    
+           </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+ </xsd:schema>

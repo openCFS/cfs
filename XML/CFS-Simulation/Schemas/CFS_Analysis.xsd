@@ -172,46 +172,43 @@
   <xsd:complexType name="DT_AnalysisParamIdent">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
+        <xsd:sequence>        
+          <xsd:element name="fittingMethod" type="DT_ParameterFittingMethod"/>
+          <xsd:element name="fittingQuantity" type="DT_ParameterFittingQuantity"/>                          
+          
           <xsd:element name="calcImpedanceCurve" type="DT_CFSBool"
-            minOccurs="0" maxOccurs="1" default="no"/>
-          <xsd:element name="calcMechDisplCurve" type="DT_CFSBool"
-            minOccurs="0" maxOccurs="1" default="no"/>
+            minOccurs="0" maxOccurs="1" default="no"/>                 
+          <xsd:element name="calcMechDisplacementCurve" type="DT_CFSBool"
+            minOccurs="0" maxOccurs="1" default="no"/>            
           
-          <xsd:element name="mechDisplAtNode0" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="mechDisplAtNode1" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="mechDisplAtNode2" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="mechDisplAtNode3" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="mechDisplAtNode4" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="mechDisplAtNode5" type="xsd:nonNegativeInteger"/>
-          
-          <xsd:element name="dofOfMechDispl0" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="dofOfMechDispl1" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="dofOfMechDispl2" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="dofOfMechDispl3" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="dofOfMechDispl4" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="dofOfMechDispl5" type="xsd:nonNegativeInteger"/>
-
-          <xsd:element name="numMechMeasurements" type="xsd:nonNegativeInteger"/>
-
+          <xsd:element name="computeCurveAfterIterationStep" type="xsd:nonNegativeInteger"/>
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
-          <xsd:element name="maxNrInnerIterations"
+          <xsd:element name="maxNrIterations"
             type="xsd:nonNegativeInteger"/>
-          <xsd:element name="maxNrOuterIterations"
-            type="xsd:nonNegativeInteger"/>
+          
+          <xsd:element name="stopRes" type="DT_NonNegFloat" minOccurs="0"/>        
+          <xsd:element name="excitationVoltage" type="DT_PosFloat"/>
           <xsd:element name="artDataNoise" type="DT_NonNegFloat"/>
+          
+          <xsd:element name="mechDisplAtNode0" type="xsd:nonNegativeInteger" minOccurs="0" />
+          <xsd:element name="mechDisplAtOppositeNode0" type="xsd:nonNegativeInteger" minOccurs="0" />
+          <xsd:element name="dofOfMechDispl0" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          
+          <xsd:element name="mechDisplAtNode1" type="xsd:nonNegativeInteger" minOccurs="0" />
+          <xsd:element name="mechDisplAtOppositeNode1" type="xsd:nonNegativeInteger" minOccurs="0" />
+          <xsd:element name="dofOfMechDispl1" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          
+          <xsd:element name="mechDisplAtNode2" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="mechDisplAtOppositeNode2" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="dofOfMechDispl2" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
-
-
-  <!-- Data type for inverse Problem of parameter identification in
-       piezoelectric systems, i.e. parameters required for  performing a
-       piezoParamIdent analysis -->
-  <!--<xsd:simpleType name="DT_PiezoParamIdent"/>-->
+  
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for global non-linear parameters -->
