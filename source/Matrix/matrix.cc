@@ -750,8 +750,7 @@ namespace CoupledField
       for (UInt j=0;j<b1.GetSizeCol();j++){
         lp_rhsVec[i+j*b1.GetSizeRow()]=b1[i][j];
       }
-    std::cout<<lp_rhsVec<<std::endl;
-
+    
     lp_rhsVecf77 = new F77complex16[size_row_*lp_nrRHS];
     lp_interchanges = new int[size_row_*size_row_];
     lp_workf77 = new F77complex16[size_row_*size_row_];
@@ -820,12 +819,10 @@ namespace CoupledField
      //reconvert Fortran77 -> CFS ++ datatypes
     for ( UInt count = 0; count < size_row_*b1.GetSizeCol(); count++ ) 
       F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
-    std::cout<<lp_rhsVec<<std::endl;
-      
+          
     for ( UInt count = 0; count < size_row_*size_row_; count++ ) 
       F772CC( lp_sysVecf77[count], lp_sysVec[count]);
-    std::cout<<lp_sysVec<<std::endl;
-      
+          
     for (UInt count=0; count < lp_work.GetSize();count++)
       F772CC(lp_workf77[count], lp_work[count]);
       
