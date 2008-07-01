@@ -13,618 +13,532 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
-
-namespace CoupledField
-{
+namespace CoupledField {
 
   // ========================================================================
   // ========================= piezoParamIdent - Part ===========================
   // ========================================================================
 
-  
-  void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs_, 
-                                            Vector<Double> & absZ, 
-                                            Vector<Double> & phi, 
-                                            Vector<Complex> & y_hat){
-    Complex Z,j;
+
+  void piezoParamIdent::evaluateMeasuredData(Vector<Double> freqs_,
+      Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat) {
+    Complex Z, j;
     Double x, y;
-    j=Complex(0,1);
+    j=Complex(0, 1);
     Double phase;
     Double randFactor=0.0;
 
-    y_hat_.Resize(nrMeasuredData);
+    y_hat_.Resize(nrMeasuredData_);
     y_hat_.Init();
 
-    
-    Vector<Complex> rand(nrMeasuredData);
-    for (UInt i=0; i<nrMeasuredDataElec_; i++){
+    for (UInt i=0; i<nrMeasuredData_; i++) {
       x=absZ[i]*cos(PI/180*phi[i]);
       y=absZ[i]*sin(PI/180*phi[i]);
-      Z=Complex(x,y);
-      phase = 180.0/PI * std::atan2(Z.imag(),Z.real());
-    
-      // two criteria .. either charge
-      if(whichNormCriteria_==1)
-        y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
-      
-      else if(whichNormCriteria_==2)
-        y_hat_[i]=std::log(std::abs(Z));      // or log abs |impedance ...|
+      Z=Complex(x, y);
+      phase = 180.0/PI * std::atan2(Z.imag(), Z.real());
 
-      else if(whichNormCriteria_==3)
-        y_hat_[i]=Z;      // or  imedance ...
+      if (whichNormCriteria_=="logAmplitude")
+      y_hat_[i]=std::log(std::abs(Z)); // or log abs |impedance ...|
 
-      else if(whichNormCriteria_==4)
-        y_hat_[i]=std::log(Z);      // or log impedance ...
+      else if (whichNormCriteria_=="logImpedance")
+      y_hat_[i]=std::log(Z); // or  imedance ...
 
-     // consider just the phase
-      else if(whichNormCriteria_==5)
-        y_hat_[i]=phase;      
+      else if (whichNormCriteria_=="amplitude")
+      y_hat_[i]=std::abs(Z); // or log impedance ...
+
+      // consider just the phase
+      else if (whichNormCriteria_=="phase")
+      y_hat_[i]=phase;
+
+      else if (whichNormCriteria_=="zeros")
+      y_hat_[i]=0.0;
+
+      Complex u;
+      u= Complex(realMech_[i],imagMech_[i]);
+
+      if (whichNormCriteria_=="amplitudeMech")
+      y_hat_ [i]=Complex(std::abs(u), 0.0);
+
+      else if (whichNormCriteria_=="logAmplitudeMech")
+      y_hat_[i]=Complex(std::log(std::abs(u)), 0.0);
+
+      else if (whichNormCriteria_=="displacementMech")
+      y_hat_[i]=u;
+
+      else if (whichNormCriteria_=="phaseMech")
+      y_hat_[i]=Complex(180.0/PI * std::atan2(u.imag(), u.real()), 0.0);
 
     }
 
-    for (UInt i=0; i<nrMeasuredDataMech_; i++)
-      for (UInt j=0; j<numMechMeasurements_; j++) {
-        //         y_hat[i+nrMeasuredDataElec_] =
-        //           Complex(abs(mechDisplMess_[i][j].real())*cos(PI/180*mechDisplMess_[i][j].imag()),
-        //                   abs(mechDisplMess_[i][j].real())*sin(PI/180*mechDisplMess_[i][j].imag())  );
+    myParam_->Get("artDataNoise", delta_ );
 
-        if (whichNormCriteria_==1)
-          y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
-                                               mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag()));
-
-        if (whichNormCriteria_==2)
-          y_hat[i+nrMeasuredDataElec_]=std::log(std::abs(mechDisplMess_[i][j].real()));
-        
-        if (whichNormCriteria_==3)
-          y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
-                                               mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag()));
-       
-        if (whichNormCriteria_==4)
-
-          y_hat[i+nrMeasuredDataElec_]=std::log(Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
-                                                        mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag())));
-        //          y_hat[i+nrMeasuredDataElec_]=log(mechDisplMess_[i][j].real());
-      }
-
-    myParam_->Get( "artDataNoise", delta_ );
-   
-    if (delta_!=0.0){ // generates synthetically created radom noise
-      std::cout<<"\n Create random noise with data error delta_ = "<< delta_<<std::endl;
+    if (delta_!=0.0) { // generates synthetically created radom noise
+      std::cout<<"\n Create random noise with data error delta_ = "<< delta_
+      <<std::endl;
       getchar();
+      Vector<Complex> rand(nrMeasuredData_);
 
-      for (UInt i=0;i<nrMeasuredData;i++){
+      for (UInt i=0; i<nrMeasuredData_; i++) {
         rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
         if (randFactor<std::abs(rand[i]))
-          randFactor = delta_/std::abs(rand[i]);
+        randFactor = delta_/std::abs(rand[i]);
       }
-      for (UInt i=0;i<nrMeasuredData;i++)
-        rand[i]=Complex(randFactor*rand[i])*y_hat_[i];
-      if(delta_!=0.0)
-        std::cout<<"\n Random noise with data error delta_ = "<< delta_<<std::endl;
-      //    std::cout<<rand<<std::endl;
-      //       std::cout<<y_hat_<<std::endl;
-     
-      for (UInt i=0;i<nrMeasuredData;i++)
-        y_hat_[i]=y_hat_[i]+rand[i];
-    
+      for (UInt i=0; i<nrMeasuredData_; i++)
+      rand[i]=Complex(randFactor*rand[i])*y_hat_[i];
+      if (delta_!=0.0)
+      std::cout<<"\n Random noise with data error delta_ = "<< delta_
+      <<std::endl;
+
+      for (UInt i=0; i<nrMeasuredData_; i++)
+      y_hat_[i]=y_hat_[i]+rand[i];
+
       Double average_error=0.0;
-      for (UInt i=0;i<nrMeasuredData;i++)
-        average_error+=std::abs((y_hat_[i]-rand[i])/y_hat_[i]);
-      average_error/=nrMeasuredData;
-      if(delta_!=0.0){
-        std::cout<<"\n The average data error is about ~ " << 
-          std::abs(average_error-1.0)*100<<" % " << std::endl;
+      for (UInt i=0; i<nrMeasuredData_; i++)
+      average_error+=std::abs((y_hat_[i]-rand[i])/y_hat_[i]);
+      average_error/=nrMeasuredData_;
+      if (delta_!=0.0) {
+        std::cout<<"\n The average data error is about ~ "
+        <<std::abs(average_error-1.0)*100<<" % "<< std::endl;
       }
-      
+
     }
 
-  }// end calc_measuredCharge()
+  }
 
+  void piezoParamIdent::calcImpedanceCurve() {
 
-  void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat_){
-      
-    createF(y_hat_,true); // calculates only forward problems over all omegas_
-
-    for (UInt i=0;i<y_hat_.GetSize();i++){
-      if (i%2==0)
-        y_hat_[i]*=1.01;
-      else
-        y_hat_[i]*=0.99;
+    if( CalcImpedanceCurve_ == true) {
+      std::cout<<"++ Compute impedance curve with "<< freqs_.GetSize()
+      <<" steps ... "<<std::endl;
+      std::cout<<"++ Results are written in file imped.dat ...\n"<<std::endl;
     }
-  }// end calcSyntheticData
-
-
-  void piezoParamIdent::calcImpedanceCurve(){
-
-
-    std::cout<<"++ Compute impedance curve with " << freqs_.GetSize()  <<" steps ... " <<std::endl;
-    std::cout<<"++ Results are written in file imped.dat ..." <<std::endl;
+    if(CalcMechDisplCurve_ == true) {
+      std::cout<<"++ Compute mechanical displacement curve with "<< freqs_.GetSize()
+      <<" steps ... "<<std::endl;
+      std::cout<<"++ Results are written in file mechDispl.dat ...\n"<<std::endl;
+    }
 
     ResultHandler * resHandler = domain->GetResultHandler();
-     
-    if( imagMaterialParam_ ) {
+
+    if (imagMaterialParam_ ) {
       updateComplexMaterialData(parameterC_);
     }
-    
+
     updateMaterialData(parameter_);
 
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
-    Integer freqAtMaxImpedance=0;
-    Integer freqAtMinImpedance=0;
 
-    for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) { 
-          
+    for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {
+
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
       // Set curent frequency value in the mathParser
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", freqs_[fstep] );
+      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
+      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
 
-      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
-      ptPDE_->GetSolveStep()->SetActStep(fstep); 
-      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
+      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]);
+      ptPDE_->GetSolveStep()->SetActStep(fstep);
+      ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      ptPDE_->GetSolveStep()->PostStepHarmonic();
+      //ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-      resHandler->BeginStep( freqs_[fstep],fstep );
-      ptPDE_->WriteResultsInFile( freqs_[fstep],fstep );
+      resHandler->BeginStep(fstep+1, freqs_[fstep] );
+      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
 
-      resHandler->FinishStep( );
-      
-      Vector<Complex> chargeVec;
-      chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
-     
-      Complex charge=Complex(0.0,0.0);
-	
-      for (UInt i=0;i<chargeVec.GetSize();i++){
-        charge+=chargeVec[i];
-      }
+      resHandler->FinishStep();
 
-
-      if (std::abs(charge)==0){
-        std::cout<<"! WARNING: Calculated charge equals zero."<<std::endl;
-        std::cout<<" Impedance cannot be calculated"<<std::endl;
-        std::cout<<" please check your xml and mesh file for surface charges"<<std::endl;
-        std::cout<<" press any key to continue"<<std::endl;
-        //        getchar();
-      }
-    
-      Double imped, phase;
-      Complex impedC;
-
-	
-      Complex im=Complex(0.0,1);
-      impedC=voltage_/(2.0*PI*charge*freqs_[fstep]*im);
-      imped = std::abs(voltage_/(2.0*PI*charge*freqs_[fstep]*im)); 
-  
-      phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
-
-      std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
-                << ";\t Phase: " << phase <<";\t Voltage = "<<voltage_<<";\t Charge = "<< charge<< std::endl;
-    
-      *impedCurve <<"\n" << freqs_[fstep] << " " << imped << "  " << phase << "  " 
-                  << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()
-                  << "  " << charge.imag()<< std::endl;
-
-      // output should by in fixed point numbers,
-      // i.e. 100.23 instead of 1.0023e+2   
-      synMess->setf(std::ios::fixed);
-      *synMess <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
-
-
-      // determine resonance and antiresonance frequency
-      if (imped>maxImpedance){
-        maxImpedance=imped;
-        antiResonanceFrequency_=freqs_[fstep];
-      }
-
-      if (imped<minImpedance){
-        minImpedance=imped;
-        resonanceFrequency_=freqs_[fstep];
-      }
-
-
-      //compute mechanical displacement at nodes specified in xml - Scheme
-
-      BaseNodeStoreSol * ptSol;
-      ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);           
-      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);      
-      Vector<Complex> nodeSol;
-      Vector<Complex> nodeResult(6);
-      
-      UInt node0, node1, node2, node3, node4, node5;
-      Vector<UInt> dof(6);
-      dof.Init();
-      
-      myParam_->Get( "mechDisplAtNode0", node0 );
-      myParam_->Get( "mechDisplAtNode1", node1 );
-      myParam_->Get( "mechDisplAtNode2", node2 );
-      myParam_->Get( "mechDisplAtNode3", node3 );
-      myParam_->Get( "mechDisplAtNode4", node4 );
-      myParam_->Get( "mechDisplAtNode5", node5 );
-
-      myParam_->Get( "dofOfMechDispl0", dof[0] );
-      myParam_->Get( "dofOfMechDispl1", dof[1] );
-      myParam_->Get( "dofOfMechDispl2", dof[2] );
-      myParam_->Get( "dofOfMechDispl3", dof[3] );
-      myParam_->Get( "dofOfMechDispl4", dof[4] );
-      myParam_->Get( "dofOfMechDispl5", dof[5] );
-      
-      ptNodeStoreSol->Get(node0,dof[0],nodeResult[0]);	
-      ptNodeStoreSol->Get(node1,dof[1],nodeResult[1]);	
-      ptNodeStoreSol->Get(node2,dof[2],nodeResult[2]);	
-      ptNodeStoreSol->Get(node3,dof[3],nodeResult[3]);	
-      ptNodeStoreSol->Get(node4,dof[4],nodeResult[4]);	
-      ptNodeStoreSol->Get(node5,dof[5],nodeResult[5]);	
-
-      //   std::cout<<"nodeResult"<<std::endl;      
-
-      //       std::cout<<numMechMeasurements_<<std::endl;
-      
-      //      mechDispl->setf(std::ios::fixed);
-      *mechDispl<<freqs_[fstep];
-      //      for(UInt imech=0;imech<numMechMeasurements_;imech++){
-      //        *mechDispl<<" "<<std::abs(nodeResult[imech]);
-
-      //  for(UInt imech=0;imech<numMechMeasurements_;imech+=2)
-      //        F_hat_[fstep+nrMeasuredDataElec_]+=std::abs(nodeResult[imech]);
-
-      UInt imech=0;
-      // Betrag und phase sollen ausgegeben werden:
-
-      Complex z = nodeResult[imech]+nodeResult[imech+1];
-      Complex zz = nodeResult[imech]-nodeResult[imech+1];
-      //       *mechDispl<<"\t"<<std::abs(z)<<"\t"
-      //                 <<std::atan2(z.imag(),z.real() ) ;
-
-      //       *mechDispl<<"\t"<< std::abs(nodeResult[imech]) <<"\t"<< std::abs(nodeResult[imech+1]) << "\t" << std::abs(z) << "\t" << std::abs(zz);
-      //       *mechDispl<<"\t" << std::atan2(nodeResult[imech].imag(),nodeResult[imech].real())<< "\t" << std::atan2(nodeResult[imech+1].imag(),nodeResult[imech+1].real());
-
-      *mechDispl<<"\t"<<  std::abs(z) << "\t" << std::abs(zz);
-      *mechDispl<<"\t" << std::atan2(z.imag(),z.real())<< "\t" << std::atan2(zz.imag(),zz.real());
-
-      //*mechDispl<<"\t"<<nodeResult[imech].real()+node<<"\t"<<nodeResult[imech].imag();
-      //        st::cout<<std::abs(nodeResult[imech])<<std::endl;
-    
-      *mechDispl<<std::endl;
-           
-      
-    } //  end loop over freqs
-
-    std::cout<<"\nResonance lies at " << resonanceFrequency_ 
-             <<" Hz with |Z| = " << minImpedance<<std::endl;
-    std::cout<<"Antiresonance lies at " << antiResonanceFrequency_ 
-             <<" Hz with |Z| = " << maxImpedance<<std::endl;
-    std::cout<<"Piezoelectric coupling k_t ~(fa-fr)/fa = " 
-             << (antiResonanceFrequency_ -  resonanceFrequency_)/antiResonanceFrequency_ <<std::endl;
-    
-  } // end calcImpedance Curve
-
-    void piezoParamIdent::calcMechDisplCurve(){
-
-    
-      
-    ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
-      
-    updateComplexMaterialData(parameterC_);
-    updateMaterialData(parameter_);
-      
-    for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
-        
-      ////////////////////////////////////////////////////////
-      //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
-
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", freqs_[fstep] );
-        
-      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
-      ptPDE_->GetSolveStep()->SetActStep(fstep); 
-      ptPDE_->GetSolveStep()->PreStepHarmonic();         
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();        
-      ptPDE_->GetSolveStep()->PostStepHarmonic();
-        
-      //ptMyPDE_->WriteResultsInFile();
-        
-      BaseNodeStoreSol * ptSol;
-       
-      ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
-       
-
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
-        
-      //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot_);
-      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
-        
-      Vector<Complex> nodeSol;
-      Vector<Complex> nodeResult(12);
-        
-      StdVector<std::string> keyVec, attrVec, valVec;
-      attrVec = "tag";
-      valVec = "paramIdent";
-      UInt node1, node2, node3, node4;
-        
-      myParam_->Get( "mechDisplAtNode1", node1 );
-      myParam_->Get( "mechDisplAtNode2", node2 );
-      myParam_->Get( "mechDisplAtNode3", node3 );
-      myParam_->Get( "mechDisplAtNode4", node4 );
-        
-      ptNodeStoreSol->Get(node1,1,nodeResult[0]);	
-      ptNodeStoreSol->Get(node1,2,nodeResult[1]);	
-      ptNodeStoreSol->Get(node1,3,nodeResult[2]);	
-      ptNodeStoreSol->Get(node2,1,nodeResult[3]);	
-      ptNodeStoreSol->Get(node2,2,nodeResult[4]);	
-      ptNodeStoreSol->Get(node2,3,nodeResult[5]);	
-      ptNodeStoreSol->Get(node3,1,nodeResult[6]);	
-      ptNodeStoreSol->Get(node3,2,nodeResult[7]);	
-      ptNodeStoreSol->Get(node3,3,nodeResult[8]);	
-      ptNodeStoreSol->Get(node4,1,nodeResult[9]);	
-      ptNodeStoreSol->Get(node4,2,nodeResult[10]);	
-      ptNodeStoreSol->Get(node4,3,nodeResult[11]);	
-
-      std::cout<<"Mechanical displacement al selected nodes at frequency "
-               <<freqs_[fstep]<< std::endl;   
-
-      *mechDispl<<freqs_[fstep];
-      for(UInt imech=0;imech<nodeResult.GetSize();imech++)
-        *mechDispl<<", "<<nodeResult[imech].real();
-      *mechDispl<<std::endl;
-
-    } //  end loop over freqs
-  }
-
-
-
-  void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut){
-   
-    F_hat_.Resize(nrMeasuredData);
-    F_hat_.Init();
-
-    
-    ResultHandler * resHandler = domain->GetResultHandler();
-
-
-//     resHandler->BeginMultiSequenceStep( sequenceStep_,
-//                                         HARMONIC,
-//                                         freqsElec_.GetSize() );
-
-    for (UInt fstep = 0; fstep < nrMeasuredDataElec_; fstep++) { 
-
-      ////////////////////////////////////////////////////////
-      //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
-
-
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", freqsElec_[fstep]);
-
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", fstep );        
-
-
-      ptPDE_->GetSolveStep()->SetActFreq(freqsElec_[fstep]); 
-      ptPDE_->GetSolveStep()->SetActStep(fstep);       
-      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      ptPDE_->GetSolveStep()->PostStepHarmonic();
-
-      // Call WriteResults in order to calculate the charges of
-      // the piezoCoupling object
-      resHandler->BeginStep( freqsElec_[fstep], fstep );
-      ptPDE_->WriteResultsInFile( freqsElec_[fstep], fstep );
-
-      resHandler->FinishStep( );
-      //////////////////////////////////////////////////////////
-      //Retrieves & stores Solution for further calculations  //
-      /////////////////////////////////////////////////////////
-        
+      if (CalcImpedanceCurve_==true) {
         Vector<Complex> chargeVec;
-      
-        chargeVec = ptPDE2_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-             
-        Complex charge=Complex(0.0,0.0);
-        Complex im=Complex(0.0,1.0);
-         
-        for (UInt i=0;i<chargeVec.GetSize();i++){
+        chargeVec = ptPDE1_->getPDE_complexValuedCharge();
+
+        Complex charge=Complex(0.0, 0.0);
+
+        for (UInt i=0; i<chargeVec.GetSize(); i++) {
           charge+=chargeVec[i];
         }
 
-//         Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
-//         Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
-//         Complex Z=Complex(x,y);
+        if (std::abs(charge)==0) {
+          std::cout<<"! WARNING: Calculated charge equals zero."<<std::endl;
+          std::cout<<" Impedance cannot be calculated"<<std::endl;
+          std::cout<<" please check your xml and mesh file for surface charges"
+          <<std::endl;
+          std::cout<<" press any key to continue"<<std::endl;
+          //        getchar();
+        }
 
-        Complex Z=voltage_/(2*PI*charge*freqs_[fstep]*im);
+        Double imped, phase;
+        Complex impedC;
 
-        //F_hat_[fstep]=charge;
+        Complex im=Complex(0.0, 1);
+        impedC=voltage_/(2.0*PI*charge*freqs_[fstep]*im);
+        imped = std::abs(voltage_/(2.0*PI*charge*freqs_[fstep]*im));
+
+        phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
+
+        std::cout << fstep <<"):\t Frequency: "<< freqs_[fstep]
+        << ";\t Impedance: "<< imped<< ";\t Phase: "<< phase<< std::endl;
+
+        *impedCurve_ <<"\n"<< freqs_[fstep]<< " "<< imped << "  "<< phase << "  "
+        << impedC.real()<<"  "<< impedC.imag() << "  "<< charge.real()<< "  "
+        << charge.imag()<< std::endl;
+
+        // output should by in fixed point numbers,
+        // i.e. 100.23 instead of 1.0023e+2   
+        // synMess_->setf(std::ios::fixed);
+        // *synMess_ <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep
+        //    <<std::endl;
+
+        // determine resonance and antiresonance frequency
+        if (imped>maxImpedance) {
+          maxImpedance=imped;
+          antiResonanceFrequency_=freqs_[fstep];
+        }
+
+        if (imped<minImpedance) {
+          minImpedance=imped;
+          resonanceFrequency_=freqs_[fstep];
+        }
+
+      }
+
+      //compute mechanical displacement at nodes specified in xml - Scheme
+
+      if (CalcMechDisplCurve_==true) {
+
+        BaseNodeStoreSol * ptSol;
+        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
+        NodeStoreSol<Complex> * ptNodeStoreSol;
+        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
+        Vector<Complex> nodeSol;
+        Vector<Complex> nodeResult(6);
+
+        UInt node0, node1, node2, node3, node4, node5;
+        Vector<UInt> dof(6);
+        dof.Init();
+
+        if (myParam_->Has("mechDisplAtNode0")) {
+          myParam_->Get("mechDisplAtNode0", node0 );
+          myParam_->Get("dofOfMechDispl0", dof[0]);
+          ptNodeStoreSol->Get(node0, dof[0], nodeResult[0]);
+        }
+
+        if (myParam_->Has("mechDisplAtOppositeNode0")) {
+          myParam_->Get("mechDisplAtOppositeNode0", node1 );
+          ptNodeStoreSol->Get(node1, dof[0], nodeResult[1]);
+        }
+
+        if (myParam_->Has("mechDisplAtNode1")) {
+          myParam_->Get("mechDisplAtNode1", node2 );
+          myParam_->Get("dofOfMechDispl1", dof[1]);
+          ptNodeStoreSol->Get(node2, dof[1], nodeResult[2]);
+        }
+
+        if (myParam_->Has("mechDisplAtOppositeNode1")) {
+          myParam_->Get("mechDisplAtOppositeNode1", node3 );
+          ptNodeStoreSol->Get(node3, dof[1], nodeResult[3]);
+        }
+
+        if (myParam_->Has("mechDisplAtNode2")) {
+          myParam_->Get("mechDisplAtNode2", node4 );
+          myParam_->Get("dofOfMechDispl2", dof[2]);
+          ptNodeStoreSol->Get(node4, dof[2], nodeResult[4]);
+        }
+
+        if (myParam_->Has("mechDisplAtOppositeNode2")) {
+          myParam_->Get("mechDisplAtOppositeNode2", node5 );
+          ptNodeStoreSol->Get(node5, dof[2], nodeResult[5]);
+        }
+
+        Complex u;
+
+        u=(nodeResult[0]-nodeResult[1]) + (nodeResult[2]-nodeResult[3])
+        + (nodeResult[4]-nodeResult[5]);
+
+        std::cout << fstep <<");\t Frequency: "<< freqs_[fstep]
+        << ";\t Mechanical displacement" << u << std::endl;
+
+        *mechDispl_<<freqs_[fstep];
+
+        *mechDispl_<<"\t"<< u.real() << "\t"<< u.imag() << "\t"<< std::abs(u)
+        << "\t"<< std::atan2(u.imag(), u.real());
+
+        *mechDispl_<<std::endl;
+      }
+
+    } //  end loop over freqs
+
+    if( CalcImpedanceCurve_ == true) {
+      std::cout<<"\nResonance lies at "<< resonanceFrequency_<<" Hz with |Z| = "
+      << minImpedance<<std::endl;
+      std::cout<<"Antiresonance lies at "<< antiResonanceFrequency_
+      <<" Hz with |Z| = "<< maxImpedance<<std::endl;
+      std::cout<<"Piezoelectric coupling k_t ~(fa-fr)/fa = "
+      << (antiResonanceFrequency_ - resonanceFrequency_)
+      /antiResonanceFrequency_ <<std::endl;
+    }
+
+  } // end calcImpedance Curve
 
 
-        // Logarithmic value of charge
+  void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut) {
 
-        if (whichNormCriteria_==1)
-          F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
-        
-        else  if (whichNormCriteria_==2)         // logarithmic value of impedance
-          F_hat_[fstep]=std::log(std::abs(voltage_/(2*PI*charge*freqs_[fstep]*im)));
+    // In case that we only consider electrical measurements the solution (F_hat) contains as 
+    // many entries as we consider frequencies to evaluate.
+    // If additionally mechanical measurements are to be considered F_hat is
+    // twice the number of measurements
 
-        else if (whichNormCriteria_==3)
-          F_hat_[fstep]=voltage_/(2*PI*charge*freqs_[fstep]*im);
+    F_hat_.Resize(nrMeasuredData_);
+    F_hat_.Init();
 
-        else if (whichNormCriteria_==4)
-          F_hat_[fstep]=std::log(voltage_/(2*PI*charge*freqs_[fstep]*im));
+    ResultHandler * resHandler = domain->GetResultHandler();
 
-        // consider just the phase
-        else if (whichNormCriteria_==5)
-          F_hat_[fstep] = 180.0/PI * std::atan2(Z.imag(),Z.real());
-          
-
-    } // end of loop over all frequencies
-
-
-    for (UInt fstep = 0; fstep < nrMeasuredDataMech_; fstep++) { 
+    for (UInt fstep = 0; fstep < nrMeasuredData_; fstep++) {
 
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
+      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
+      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
 
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", freqsMech_[fstep] );
-      ptPDE_->GetSolveStep()->SetActFreq(freqsMech_[fstep]); 
-      ptPDE_->GetSolveStep()->SetActStep(fstep);       
-      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
+      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]);
+      ptPDE_->GetSolveStep()->SetActStep(fstep);
+      ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      ptPDE_->GetSolveStep()->PostStepHarmonic();
- 
+      //ptPDE_->GetSolveStep()->PostStepHarmonic();
 
+      resHandler->BeginStep(fstep+1, freqs_[fstep]);
+      ptPDE_->WriteResultsInFile(fstep+1, freqs_[fstep]);
+
+      resHandler->FinishStep();
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
+
+      Vector<Complex> chargeVec;
+
+      chargeVec = ptPDE2_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+
+      Complex charge=Complex(0.0, 0.0);
+      Complex im=Complex(0.0, 1.0);
+
+      for (UInt i=0; i<chargeVec.GetSize(); i++) {
+        charge+=chargeVec[i];
+      }
+
+      Complex Z=voltage_/(2*PI*charge*freqs_[fstep]*im);
+
+      if (whichNormCriteria_=="logAmplitude") // logarithmic value of impedance
+      F_hat_[fstep]=std::log(std::abs(voltage_/(2*PI*charge*freqs_[fstep]*im)));
+
+      else if (whichNormCriteria_=="logImpedance")
+      F_hat_[fstep]=std::log(voltage_/(2*PI*charge*freqs_[fstep]*im));
+
+      else if (whichNormCriteria_=="amplitude")
+      F_hat_[fstep]=std::abs(voltage_/(2*PI*charge*freqs_[fstep]*im));
+
+      // consider just the phase
+      else if (whichNormCriteria_=="phase")
+      F_hat_[fstep] = 180.0/PI * std::atan2(Z.imag(), Z.real());
+
+      else if (whichNormCriteria_=="zeros")
+      F_hat_[fstep] = 0.0;
+
+      //} // end of loop over all frequencies
+
+
+      if (whichNormCriteria_=="amplitudeMech"|| whichNormCriteria_
+          =="logAmplitudeMech"|| whichNormCriteria_=="phaseMech"
+          ||whichNormCriteria_=="displacementMech") {
+
+        //////////////////////////////////////////////////////////
+        //Retrieves & stores mechanical solution for further calculations  //
+        /////////////////////////////////////////////////////////
 
 
         // write mechanical deformation at second part of F_hat:
         BaseNodeStoreSol * ptSol;
         ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
         NodeStoreSol<Complex> * ptNodeStoreSol;
-        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);           
-        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);      
+        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
         Vector<Complex> nodeSol;
         Vector<Complex> nodeResult(6);
-      
+        nodeResult.Init();
+
         UInt node0, node1, node2, node3, node4, node5;
         Vector<UInt> dof(6);
         dof.Init();
-      
-        myParam_->Get( "mechDisplAtNode0", node0 );
-        myParam_->Get( "mechDisplAtNode1", node1 );
-        myParam_->Get( "mechDisplAtNode2", node2 );
-        myParam_->Get( "mechDisplAtNode3", node3 );
-        myParam_->Get( "mechDisplAtNode4", node4 );
-        myParam_->Get( "mechDisplAtNode5", node5 );
-        
-        myParam_->Get( "dofOfMechDispl0", dof[0] );
-        myParam_->Get( "dofOfMechDispl1", dof[1] );
-        myParam_->Get( "dofOfMechDispl2", dof[2] );
-        myParam_->Get( "dofOfMechDispl3", dof[3] );
-        myParam_->Get( "dofOfMechDispl4", dof[4] );
-        myParam_->Get( "dofOfMechDispl5", dof[5] );
 
-        ptNodeStoreSol->Get(node0,dof[0],nodeResult[0]);	
-        ptNodeStoreSol->Get(node1,dof[1],nodeResult[1]);	
-        ptNodeStoreSol->Get(node2,dof[2],nodeResult[2]);	
-        ptNodeStoreSol->Get(node3,dof[3],nodeResult[3]);	
-        ptNodeStoreSol->Get(node4,dof[4],nodeResult[4]);	
-        ptNodeStoreSol->Get(node5,dof[5],nodeResult[5]);	
-      
-        //         std::cout<<"Mechanical displacement al selected nodes at frequency "
-        //                  <<freqs_[fstep]<< std::endl;   
-      
-        Complex z;
-        UInt imech=0;
-        //      for(UInt imech=0;imech<numMechMeasurements_;imech+=2)
-        //        F_hat_[fstep+nrMeasuredDataElec_]+=std::abs(nodeResult[imech]);
+        if (myParam_->Has("mechDisplAtNode0")) {
+          myParam_->Get("mechDisplAtNode0", node0 );
+          myParam_->Get("dofOfMechDispl0", dof[0]);
+          ptNodeStoreSol->Get(node0, dof[0], nodeResult[0]);
+        }
 
-        z=(nodeResult[imech]+nodeResult[imech+1]);
+        if (myParam_->Has("mechDisplAtOppositeNode0")) {
+          myParam_->Get("mechDisplAtOppositeNode0", node1 );
+          ptNodeStoreSol->Get(node1, dof[0], nodeResult[1]);
+        }
 
-        if (whichNormCriteria_==1)
-          F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
-      
-        else if (whichNormCriteria_==2)
-          F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::log(std::abs(z.real())),0.0);
-      
-        else if (whichNormCriteria_==3)
-          F_hat_[fstep+nrMeasuredDataElec_]=z;
+        if (myParam_->Has("mechDisplAtNode1")) {
+          myParam_->Get("mechDisplAtNode1", node2 );
+          myParam_->Get("dofOfMechDispl1", dof[1]);
+          ptNodeStoreSol->Get(node2, dof[1], nodeResult[2]);
+        }
 
-        //Complex(z.real()*std::cos(z.imag()), 
-        //                                            z.real()*std::sin(z.imag()));
-        //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
+        if (myParam_->Has("mechDisplAtOppositeNode1")) {
+          myParam_->Get("mechDisplAtOppositeNode1", node3 );
+          ptNodeStoreSol->Get(node3, dof[1], nodeResult[3]);
+        }
 
-        else if (whichNormCriteria_==4)
-          F_hat_[fstep+nrMeasuredDataElec_]=std::log(z);
-        //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(log(std::abs(z.real())),0.0);
-        //   F_hat_[fstep+nrMeasuredDataElec_]=Complex(abs(z.real()), z.imag());
-        // Complex(std::abs(z), std::atan2(z.imag(),z.real()));
-    }
+        if (myParam_->Has("mechDisplAtNode2")) {
+          myParam_->Get("mechDisplAtNode2", node4 );
+          myParam_->Get("dofOfMechDispl2", dof[2]);
+          ptNodeStoreSol->Get(node4, dof[2], nodeResult[4]);
+        }
 
-    if (typeOut==true){
-      for (UInt i=0;i<F_hat_.GetSize();i++)
+        if (myParam_->Has("mechDisplAtOppositeNode2")) {
+          myParam_->Get("mechDisplAtOppositeNode2", node5 );
+          ptNodeStoreSol->Get(node5, dof[2], nodeResult[5]);
+        }
+
+        Complex u;
+
+        u=(nodeResult[0]-nodeResult[1]) + (nodeResult[2]-nodeResult[3])
+        + (nodeResult[4]-nodeResult[5]);
+
+        if (whichNormCriteria_=="amplitudeMech")
+        F_hat_[fstep]=Complex(std::abs(u), 0.0);
+
+        else if (whichNormCriteria_=="logAmplitudeMech")
+        F_hat_[fstep]=Complex(std::log(std::abs(u)), 0.0);
+
+        else if (whichNormCriteria_=="displacementMech")
+        F_hat_[fstep]=u;
+
+        else if (whichNormCriteria_=="phaseMech")
+        F_hat_[fstep]=Complex(180.0/PI * std::atan2(u.imag(), u.real()), 0.0);
+
+        else {
+          std::cout
+          <<"! your selected fitting quanitity is not supperted -> see documentation"
+          <<std::endl;
+          getchar();
+        }
+
+      }
+
+      if (typeOut==true) {
+        for (UInt i=0; i<F_hat_.GetSize(); i++)
         std::cout<<"F("<<i<<")="<<F_hat_[i]<<"; \t";
-      std::cout<<"\n ------------------------------- " <<std::endl;
-     }
+        std::cout<<"\n ------------------------------- "<<std::endl;
+      }
 
+    }
 
-
-  
   } // end createF
-  // ___________________________________________________________________________________________
-  //
-  /////////////////////// JacobiMatrix for complex - valued parameter ///////////////////////////////
-  // ___________________________________________________________________________________________
 
+  void piezoParamIdent::createFVec(Complex & F_hat_, bool typeOut,
+      Double frequency) {
 
-  void piezoParamIdent::testJacobiMatrix(Vector<Complex> & F_hat_, 
-                                         Matrix<Complex> & JacobiMatrix_, 
-                                         Vector<Double> & parameter_,
-                                         Vector<Double> & parameterIncrement_, 
-                                         Vector<Complex>& solElecPot_,
-                                         Vector<Complex> &solMechDispl_){
+    ResultHandler * resHandler = domain->GetResultHandler();
 
-    Vector<Complex> F_hat__incr(F_hat_.GetSize());
-    approxJacobiMatrix_.Resize(JacobiMatrix_.GetSizeRow(), JacobiMatrix_.GetSizeCol());
-    approxJacobiMatrix_.Init();
-    Vector<Double> parameter_incr(parameter_.GetSize());
-    parameter_incr=parameter_;
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+        "f", UInt(frequency));
 
-    updateComplexMaterialData(parameterC_);
-    updateMaterialData(parameter_);
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+        "step", 0 );
 
-    if(directCoupling_==true){
-      updateMaterialData(parameter_);
-      updateMaterialData(parameter_);
+    domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", UInt(frequency));
+    ptPDE_->GetSolveStep()->SetActFreq(frequency);
+    ptPDE_->GetSolveStep()->SetActStep(0);
+    ptPDE_->GetSolveStep()->PreStepHarmonic();
+    ptPDE_->GetSolveStep()->SolveStepHarmonic();
+    ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    resHandler->BeginStep(UInt(frequency), 0 );
+
+    ptPDE_->WriteResultsInFile(UInt(frequency),0);
+    resHandler->FinishStep();
+    //////////////////////////////////////////////////////////
+    //Retrieves & stores Solution for further calculations  //
+    /////////////////////////////////////////////////////////
+
+    Vector<Complex> chargeVec;
+
+    chargeVec = ptPDE2_->getPDE_complexValuedCharge();
+
+    Complex charge=Complex(0.0,0.0);
+    Complex im=Complex(0.0,1.0);
+
+    for (UInt i=0;i<chargeVec.GetSize();i++) {
+      charge+=chargeVec[i];
     }
-    
-    createF(F_hat_, false);
 
-    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){
+    Complex Z=voltage_/(2*PI*charge*frequency*im);
 
-      parameter_incr[ind_param]=1.0001*parameter_[ind_param];
-      //  std::cout<<parameter_incr[ind_param]<<std::endl;
-      updateMaterialData(parameter_incr);
+    if (whichNormCriteria_=="logAmplitude") // logarithmic value of impedance
+    F_hat_=std::log(std::abs(voltage_/(2*PI*charge*frequency*im)));
 
-      createF(F_hat__incr,false);
+    else if (whichNormCriteria_=="logImpedance")
+    F_hat_=std::log(voltage_/(2*PI*charge*frequency*im));
 
-      for (UInt j=0;j<nrMeasuredData;j++)
-        approxJacobiMatrix_[j][ind_param]=
-          -(F_hat_[j]-F_hat__incr[j])/
-          ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
+    else if (whichNormCriteria_=="amplitude")
+    F_hat_=std::abs(voltage_/(2*PI*charge*frequency*im));
 
-      parameter_incr[ind_param]=parameter_[ind_param];
+    // consider just the phase
+    else if (whichNormCriteria_=="phase")
+    F_hat_= 180.0/PI * std::atan2(Z.imag(), Z.real());
+
+    else {
+      std::cout<<"The fitting quantity "<< whichNormCriteria_ << "is not supported for the computation of confidence intervals" << std::endl;
     }
-    //     std::cout<<"\n Here we see the approx. Jacobian 
-    //     and the created Jacobian Matrix:"<<std::endl;
-    //     std::cout<<approxJacobiMatrix_<<std::endl;
-    //     std::cout<<JacobiMatrix_<<std::endl;
-    // getchar();   
 
-  }// end testJacobiMatrix
+  } // end createFVec
 
-  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat_,
-                                          Matrix<Complex> & JacobiMatrix_,
-                                          Vector<Double> & parameter_,
-                                          Vector<Double> & parameterIncrement_, 
-                                          Vector<Complex>& solElecPot_,
-                                          Vector<Complex> &solMechDispl_){
+  void piezoParamIdent::invert(Matrix<Complex> & data) {
+
+    Matrix<Complex> dataTemp;
+    dataTemp.Resize(actNrParameter_+actNrParameterC_,actNrParameter_+actNrParameterC_);
+    dataTemp=data;
+
+    Vector<Complex> e;
+    Vector<Complex> x;
+    e.Resize(actNrParameter_+actNrParameterC_);
+    e.Init();
+    x.Resize(actNrParameter_+actNrParameterC_);
+    x.Init();
+    Matrix<Complex> inverse;
+    inverse.Resize(actNrParameter_+actNrParameterC_, actNrParameter_+actNrParameterC_);
+    inverse.Init();
+
+    for (UInt ind=0;ind<data.GetSizeRow();ind++) {
+      e[ind]=1.0;
+
+      dataTemp.DirectSolve(x,e);
+      dataTemp=data;
+      for (UInt indC=0;indC<data.GetSizeCol();indC++)
+      inverse[indC][ind]=x[indC];
+      x.Resize(actNrParameter_+actNrParameterC_);
+      x.Init();
+      e[ind]=0.0;
+    }
+    data=inverse;
+
+  }
+
+  void piezoParamIdent::computeJacobiMatrix() {
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
     Vector<Complex> F_hat__incr3(F_hat_.GetSize());
     Vector<Complex> F_hat__incr4(F_hat_.GetSize());
-    approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter);
+    approxJacobiMatrix_.Resize(nrMeasuredData_, actNrParameter_);
     approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
@@ -638,24 +552,24 @@ namespace CoupledField
     updateMaterialData(parameter_);
     createF(F_hat_, false);
 
-    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
-      if (whichParameterToUpdate_[ind_param]==1){
+    for (UInt ind_param=0; ind_param<nrParameter_; ind_param++) {
+      if (whichParameterToUpdate_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.00001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
         updateMaterialData(parameter_incr);
-        createF(F_hat__incr,false);
+        createF(F_hat__incr, false);
 
-
-        parameter_incr2[ind_param]=0.99999*parameter_[ind_param];  
+        parameter_incr2[ind_param]=0.99999*parameter_[ind_param];
         //      std::cout<<parameter_incr2<<std::endl;
         updateMaterialData(parameter_incr2);
-        createF(F_hat__incr2,false);
+        createF(F_hat__incr2, false);
 
         // second order FD approximation
-        for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
-            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
+        for (UInt j=0; j<nrMeasuredData_; j++)
+        approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])
+        /((parameter_incr[ind_param]-parameter_[ind_param])
+            *scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
@@ -670,14 +584,13 @@ namespace CoupledField
   }// end testJacobiMatrix
 
 
-  void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat_, Matrix<Complex> & JacobiMatrix_, 
-                                          Vector<Double> & parameter_){
+  void piezoParamIdent::computeJacobiMatrixC() {
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
     Vector<Complex> F_hat__incr3(F_hat_.GetSize());
     Vector<Complex> F_hat__incr4(F_hat_.GetSize());
-    approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
+    approxJacobiMatrix_.Resize(nrMeasuredData_, actNrParameter_+actNrParameterC_);
     approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
@@ -693,26 +606,27 @@ namespace CoupledField
 
     createF(F_hat_, false);
 
-    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
-      if (whichParameterToUpdate_[ind_param]==1){
+    for (UInt ind_param=0; ind_param<nrParameter_; ind_param++) {
+      if (whichParameterToUpdate_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
         updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr);
-        createF(F_hat__incr,false);
+        createF(F_hat__incr, false);
 
-        parameter_incr2[ind_param]=0.999*parameter_[ind_param];  
+        parameter_incr2[ind_param]=0.999*parameter_[ind_param];
         //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr2);
-        createF(F_hat__incr2,false);
+        createF(F_hat__incr2, false);
 
         // second order FD approximation
 
-        for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
-            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
+        for (UInt j=0; j<nrMeasuredData_; j++)
+        approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])
+        /((parameter_incr[ind_param]-parameter_[ind_param])
+            *scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
@@ -725,26 +639,28 @@ namespace CoupledField
     }
 
     parInd=0;
-    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
-      if (whichParameterToUpdateC_[ind_param]==1){
+    for (UInt ind_param=0; ind_param<nrParameter_; ind_param++) {
+      if (whichParameterToUpdateC_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.001*parameterC_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
 
         updateComplexMaterialData(parameter_incr);
         updateMaterialData(parameter_);
-        createF(F_hat__incr,false);
+        createF(F_hat__incr, false);
 
-        parameter_incr2[ind_param]=0.999*parameterC_[ind_param]; 
+        parameter_incr2[ind_param]=0.999*parameterC_[ind_param];
         //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameter_incr2);
         updateMaterialData(parameter_);
-        createF(F_hat__incr2,false);
+        createF(F_hat__incr2, false);
 
         // second order FD approximation
-        for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix_[j][actNrParameter+parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
-            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
+        for (UInt j=0; j<nrMeasuredData_; j++)
+        approxJacobiMatrix_[j][actNrParameter_+parInd]=0.5*(F_hat__incr[j]
+            -F_hat__incr2[j])
+        /((parameter_incr[ind_param]-parameter_[ind_param])
+            *scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
@@ -755,547 +671,550 @@ namespace CoupledField
 
       }
     }
-        
+
   } // end testJacobiMatrix
 
 
-
-  void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix_,
-                                                  Matrix<Complex> & adjJacobiMatrix_){
+  void piezoParamIdent::createAdjointJacobiMatrix() {
     //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
-    adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),JacobiMatrix_.GetSizeRow());
+    adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),
+        JacobiMatrix_.GetSizeRow());
     adjJacobiMatrix_.Init();
-    for (UInt i=0;i<JacobiMatrix_.GetSizeCol();i++)
-      for (UInt j=0;j<JacobiMatrix_.GetSizeRow();j++){
-        //adjJacobiMatrix_[i][j] = JacobiMatrix_[j][i];
-        adjJacobiMatrix_[i][j] = std::conj(JacobiMatrix_[j][i]);
-        //std::cout<<"F*("<<i<<")("<<j<<")= "<< adjJacobiMatrix_[i][j]<<";\t ";
-      }
+    for (UInt i=0; i<JacobiMatrix_.GetSizeCol(); i++)
+    for (UInt j=0; j<JacobiMatrix_.GetSizeRow(); j++) {
+      //adjJacobiMatrix_[i][j] = JacobiMatrix_[j][i];
+      adjJacobiMatrix_[i][j] = std::conj(JacobiMatrix_[j][i]);
+      //std::cout<<"F*("<<i<<")("<<j<<")= "<< adjJacobiMatrix_[i][j]<<";\t ";
+    }
   } // end createAdjointJacobiMatrix
 
 
+  void piezoParamIdent::computeVecOfSingleDeriv(Vector<Complex> & jacobi, Double omega) {
 
+    Vector<Double>parIncr1, parIncr2;
+    parIncr1.Resize(nrParameter_);
+    parIncr1.Init();
+    parIncr2.Resize(nrParameter_);
+    parIncr2.Init();
+    Vector<Double>parIncrC1, parIncrC2;
+    parIncrC1.Resize(nrParameter_);
+    parIncrC1.Init();
+    parIncrC2.Resize(nrParameter_);
+    parIncrC2.Init();
+    parIncr1=parameter_;
+    parIncr2=parameter_;
+    parIncrC1=parameterC_;
+    parIncrC2=parameterC_;
+    Complex F_hat_incr1,F_hat_incr2;
+    Complex F_hat_incrC1,F_hat_incrC2;
+    Integer parInd=0;
+    jacobi.Resize(actNrParameter_+actNrParameterC_);
+    jacobi.Init();
 
-  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, UInt & fstep, bool typeOut){
-    Double imped, phase;
-    Complex impedC;
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++) {
+      if (whichParameterToUpdate_[ind_param]==1) {
 
-    if (!impedCurve)
-      std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
+        parIncr1[ind_param]=1.1*parameter_[ind_param];
+        updateMaterialData(parIncr1);
+        createFVec(F_hat_incr1,false,omega);
 
-    Complex im=Complex(0.0,1);
-    impedC=voltage_/(charge*2.0*PI*freq*im);
-    // We need the following line for a comparison with CAPA
-    //    imped = std::abs(voltage_/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::atan2(charge));
-    // This line makes sense in this routine!
+        parIncr2[ind_param]=0.9*parameter_[ind_param];
+        updateMaterialData(parIncr2);
+        createFVec(F_hat_incr2,false,omega);
 
-    imped = std::abs(voltage_/(charge*2.0*PI*freq*im));
-    phase = 180/PI*(std::atan2(impedC.imag(), impedC.real()));
+        jacobi[parInd]=0.5*(F_hat_incr1-F_hat_incr2)/
+        ((parIncr1[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
+        parIncr1[ind_param]=parameter_[ind_param];
+        parIncr2[ind_param]=parameter_[ind_param];
+        parInd++;
 
-    if(typeOut==true){
-      std::cout<<std::setprecision(10);
-      //    std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
-      std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
-      *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
-    }
-
-
-
-  }  // end calcAbsImped 
-
-  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
-
-    Vector<Complex> y_comp(nrParameter_);
-    Vector<Complex> y_temp(nrParameter_);
-
-    switch (whichNorm_){
-
-    case 1:
-      norm = a2norm(vec);
-      //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
-      break;
-    case 2:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-      break;
-    case 3:
-      maxAndEuclNorm(vec,norm,norm2);
-      //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
-      break;
-    case 4:
-      //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
-      for(UInt i=0;i<nrParameter_;i++){
-        y_comp[i]=q_meas[i] - vec[i];
-        y_comp[i]=std::log(y_comp[i]);
-        y_temp[i]=std::log(q_meas[i]);
-        vec[i]= std::abs(y_comp[i]-y_temp[i]);
       }
-      //       norm=std::sqrt(a2norm(vec));
-      maxAndWeightedResNorm(vec,norm2,norm,y_temp);
-      // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
-      break;
-
-    case 5:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-      break;
-    case 6:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-
-    case 7:
-      logNorm(vec, norm);
-      break;
-
-    default:
-      norm=a2norm(vec);
-
+      updateMaterialData(parameter_);
     }
-  } // end norm
-  
-  
+    parInd=0;
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++) {
+      if (whichParameterToUpdateC_[ind_param]==1) {
 
-  Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
+        parIncrC1[ind_param]=1.000001*parameterC_[ind_param];
+        //      std::cout<<parameter_incr<<std::endl
+        updateComplexMaterialData(parIncrC1);
+        createFVec(F_hat_incrC1,false,omega);
+
+        parIncrC2[ind_param]=0.999999*parameterC_[ind_param];
+
+        updateComplexMaterialData(parIncrC2);
+        createFVec(F_hat_incrC2,false,omega);
+
+        jacobi[actNrParameter_+parInd]=0.5*(F_hat_incrC1-F_hat_incrC2)/
+        ((parIncrC1[ind_param]-parIncrC2[ind_param])*scalingC_[ind_param]);
+
+        parIncrC1[ind_param]=parameterC_[ind_param];
+        parIncrC2[ind_param]=parameterC_[ind_param];
+        parInd++;
+
+      }
+      updateComplexMaterialData(parameterC_);
+    }
+  } // end create Jacobian
+
+
+  void piezoParamIdent::norm(Vector<Complex> & vec, Double & norm,
+      Double & norm2, Vector<Complex> & q_meas) {
+
+    maxAndWeightedResNorm(vec, norm2, norm, q_meas); // for real -  valued driver suitable
+
+  } // end norm
+
+
+  Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat) {
 
     Double norm=0.0;
-    for (UInt i=0;i<mat.GetSizeRow();i++)
-      for (UInt j=0;j<mat.GetSizeCol();j++)
-        norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
+    for (UInt i=0; i<mat.GetSizeRow(); i++)
+    for (UInt j=0; j<mat.GetSizeCol(); j++)
+    norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
     norm=sqrt(norm);
     return norm;
 
   } // end calcEuclidianMatrixNorm
 
-  void piezoParamIdent::maxAndEuclNorm(Vector<Complex> & vec,
-                                       Double & maxNorm, Double & euclNorm){
-    Double maxNormTemp = 0.0;
-    maxNorm=0.0;
-    euclNorm=0.0;
-
-    for (UInt i=0;i<vec.GetSize();i++){
-      maxNormTemp=std::abs(vec[i]);
-      euclNorm += maxNormTemp*maxNormTemp;
-      if (maxNormTemp>maxNorm)
-        maxNorm=maxNormTemp;
-    }
-    //    euclNorm=std::sqrt(euclNorm);
-
-  } // end maxAndEuclNorm
-
-  void piezoParamIdent::logNorm(Vector<Complex> & vec, Double & logNorm){
-    logNorm=0.0;
-    for (UInt i=0;i<vec.GetSize();i++){
-      logNorm = logNorm + std::pow(std::log(std::abs(std::abs(vec[i]))),2);
-    }
-    //    euclNorm=std::sqrt(euclNorm);
-  } // end logNorm
-
-
 
   void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec,
-                                              Double & maxNorm, Double & wNorm,
-                                              Vector<Complex> & q_meas){
+      Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas) {
     Double maxNormTemp = 0.0;
     maxNorm=0.0;
     wNorm=0.0;
     Double Denominator=0.0;
 
-    for (UInt i=0;i<vec.GetSize();i++){
+    for (UInt i=0; i<vec.GetSize(); i++) {
       maxNormTemp=std::abs(vec[i]);
       Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
-      if (whichNorm_==2){
-        //      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); 
-        // this is a good running version!
-        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
-        //      std::cout<<wNorm<<std::endl;
-      }
-      else if (whichNorm_==5)
-        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-      else if (whichNorm_==6){
-        if (whichNewtonCG_!=11){
-          std::cout<<"This choice of norm is not valid for your case "<<std::endl;
-          std::cout<<"Set Norm in measuredData.dat = 2"<<std::endl;
-          getchar();
-        }
-        Double stepWidth=0.0;
-        stepWidth=0.5*std::abs(freqs_[std::min(i+1,freqs_.GetSize())]-
-                               freqs_[std::max((Integer)i-1,0)]);
-        stepWidth/=1.0e+06;
-        //wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        wNorm = wNorm + 
-          omegaDiffVec_[i]*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //      getchar();
-      }
-      
-      if (maxNormTemp>maxNorm)
-        maxNorm=maxNormTemp;
+      wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
     }
-
-    //wNorm=std::sqrt(wNorm);
+    wNorm=std::sqrt(wNorm);
   } // end maxAndWeightedNorm
 
 
-  void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res,
-                                       Double & anorm_, 
-                                       UInt nrMeasuredData){
-    anorm_=0.0;
-    for (UInt i=0;i<2*nrMeasuredData;i++){
-      anorm_+=res[i].real()*res[i].real()+ res[i].imag()*res[i].imag();
-      anorm_=sqrt(anorm_);
-    }
-  } // end calcNorm2Resid
-
-  Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
-    Double result=0.0; 
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=vec[i].real()*vec[i].real();
-    result=sqrt(result);
-    return result;
-  }
-
-  Double piezoParamIdent::realA2norm(Vector<Complex> &vec){
-    Double result=0.0; 
-    Complex resultC = Complex(0.0,0.0);
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      resultC+=vec[i]*vec[i];
-    result=resultC.real();
-    //    std::cout <<" \n Result in realA2norm = " << result << std::endl;
-    //    result=sqrt(result);
-    return result;
-  }
-
-  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
+  Double piezoParamIdent::a2norm(Vector<Complex> &vec) {
     Double result=0.0; //Complex(0.0,0.0);
     //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=std::abs(vec[i])*std::abs(vec[i]);
+    for (UInt i=0; i<vec.GetSize(); i++)
+    result+=std::abs(vec[i])*std::abs(vec[i]);
     result=sqrt(result);
     return result;
   }
 
-  Double piezoParamIdent::a2norm(Vector<Double> &vec){
+  Double piezoParamIdent::a2norm(Vector<Double> &vec) {
     Double result=0.0; //Complex(0.0,0.0);
     //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=std::abs(vec[i])*std::abs(vec[i]);
+    for (UInt i=0; i<vec.GetSize(); i++)
+    result+=std::abs(vec[i])*std::abs(vec[i]);
     result=sqrt(result);
     return result;
   }
 
-
-
-  void piezoParamIdent::readMeasuredData(Vector<Double> & freqs_, 
-                                         Vector<Double> & real_,
-                                         Vector<Double> & imag_ ,
-                                         Vector<Double> & parameter_, 
-                                         Double & voltage_,
-                                         UInt & nrMeasuredData, 
-                                         Double & thickness_, Double & radius_,
-                                         Double & delta_){
+  void piezoParamIdent::readMeasuredData() {
     char mDataRow[1024], helpChar[128];
     UInt i=0, j=0, k=0;
-    nrMeasuredDataElec_=0;
-    //Initialize helpChar
-    for (UInt ii=0;ii<64;ii++)
-      helpChar[ii]=0;
-    
-    while(allMeasuredData->getline(mDataRow, 1024)){
-      if (mDataRow[0]=='1')
-        {i=2;j=0;k=0;
-          while(mDataRow[i]!='/'){
-            if(mDataRow[i]!=','){
-              helpChar[k]=mDataRow[i];
-              k++; i++;
-            }
-            else{
-              freqs_[j]=std::atof(helpChar);
-              for(UInt l=0;l<=k;l++)
-                helpChar[l]=0;
-              j++; i++; k=0;
-            }
-          }
-          nrMeasuredDataElec_ = j;
-        }
-      else if (mDataRow[0]=='2'){
-        i=2;j=0;k=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
+    for (UInt ii=0; ii<64; ii++)
+    helpChar[ii]=0;
+
+    UInt additionalParameters1=0;
+    UInt additionalParametersC1=0;
+
+    UInt additionalParameters2=0;
+    UInt additionalParametersC2=0;
+
+    Vector<Double> parameterAddMaterialReal1(2);
+    Vector<Double> parameterAddMaterialImag1(2);
+
+    Vector<Double> parameterAddMaterialReal2(2);
+    Vector<Double> parameterAddMaterialImag2(2);
+
+    Vector<UInt> whichParameterToUpdateAdd1(2);
+    Vector<UInt> whichParameterToUpdateAddC1(2);
+
+    Vector<UInt> whichParameterToUpdateAdd2(2);
+    Vector<UInt> whichParameterToUpdateAddC2(2);
+
+    while (allMeasuredData_->getline(mDataRow, 1024)) {
+      if (mDataRow[0]=='f') {
+        i=2;
+        j=0;
+        k=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
             helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            freqsMech_[j]=std::atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
+            k++;
+            i++;
+          } else {
+            freqs_[j]=std::atof(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
         }
-        nrMeasuredDataMech_=j;
+        nrMeasuredData_ = j;
       }
-      else if (mDataRow[0]=='3'){
-        i=2; k=0; j=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
+      else if (mDataRow[0]=='r') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
             helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            imag_[j]=std::atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='4'){
-        i=2; k=0; j=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
+            k++;
+            i++;
+          } else {
             parameter_[j]=std::atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
         }
-      }
-      else if (mDataRow[0]=='i'){
-        i=2; k=0; j=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
+      } else if (mDataRow[0]=='i') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
             helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
+            k++;
+            i++;
+          } else {
             parameterC_[j]=std::atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
         }
       }
-      else if (mDataRow[0]=='P'){
-        i=2; k=0; j=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
+      else if (mDataRow[0]=='a') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
             helpChar[k]=mDataRow[i];
-            k++; i++;
+            k++;
+            i++;
+          } else {
+            parameterAddMaterialReal1[j]=std::atof(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
-          else{
+        }
+        additionalParameters1+=j;
+      }
+      else if (mDataRow[0]=='b') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            parameterAddMaterialImag1[j]=std::atof(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
+        }
+        additionalParametersC1+=j;
+      }
+      else if (mDataRow[0]=='c') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            parameterAddMaterialReal2[j]=std::atof(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
+        }
+        additionalParameters2+=j;
+      }
+      else if (mDataRow[0]=='d') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            parameterAddMaterialImag2[j]=std::atof(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
+        }
+        additionalParametersC2 += j;
+      }
+
+      else if (mDataRow[0]=='R') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
             whichParameterToUpdate_[j]=std::atoi(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
         }
       }
-      else if (mDataRow[0]=='Q'){
-        i=2; k=0; j=0;
-        while(mDataRow[i]!='/'){
-          if(mDataRow[i]!=','){
+      else if (mDataRow[0]=='A') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
             helpChar[k]=mDataRow[i];
-            k++; i++;
+            k++;
+            i++;
+          } else {
+            whichParameterToUpdateAdd1[j]=std::atoi(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
-          else{
+        }
+      }
+      else if (mDataRow[0]=='B') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            whichParameterToUpdateAddC1[j]=std::atoi(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
+        }
+      } else if (mDataRow[0]=='I') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
             whichParameterToUpdateC_[j]=std::atoi(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
           }
         }
       }
-      else if (mDataRow[0]=='5'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        voltage_=atof(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='6'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        whichNormCriteria_=std::atoi(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='I'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        CalcImpedanceCurve_=std::atoi(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-     
-      else if (mDataRow[0]=='M'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        whichNewtonCG_=std::atoi(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='N'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        whichNorm_=atoi(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='r'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        relaxParameter=std::atof(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='7'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        radius_=atof(helpChar);  
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='8'){
-        i=2; k=0;
-        while(mDataRow[i]!='/'){
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        delta_=atof(helpChar); // delta - Fehlerniveau
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-    }
-
-    if (whichNormCriteria_!=1 && whichNormCriteria_!=2 
-        && whichNormCriteria_ != 3  && whichNormCriteria_ != 4 && whichNormCriteria_ != 5  ){
-      std::cout<<" Check your norm criteria selected in measuredData.dat!!" <<std::endl;
-      std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(|Z|)" <<std::endl;
-      std::cout<< "3 for Z and 4 for log(Z)" <<std::endl;
-      std::cout<<"Now it is " << whichNormCriteria_<<std::endl;
-      getchar();
-    }
-
-    std::cout<<"\nNumber of electrical Measurements = " <<  nrMeasuredDataElec_ <<std::endl;
-    std::cout<<"Number of mechanical measurements = " <<  nrMeasuredDataMech_ <<std::endl;
-  } // end read MeasuredData
-
-
-  void piezoParamIdent::readInMeasurement(Vector<Double> & frequenciesElec, Vector<Double> & frequenciesMech){
-
-
-    std::cout<<"++ Open and read file mess.dat ... " <<std::endl;    
-
-    frequenciesElec.Resize(nrMeasuredDataElec_);
-    frequenciesElec.Init();
-    real_.Resize(nrMeasuredDataElec_);
-    real_.Init();
-    imag_.Resize(nrMeasuredDataElec_);
-    imag_.Init();
-
-
-    Double newFreq, amplitude, phase;
-
-    inMess_.open("mess.dat");
-    std::string line;
-
-    while (!inMess_.eof()){
-      std::getline(inMess_, line,'\n');
-      
-      inMess_ >> newFreq >> amplitude >> phase;
-      
-      for(UInt mInd=0;mInd<nrMeasuredDataElec_;mInd++){
-        if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequenciesElec[mInd])){
-          frequenciesElec[mInd]=newFreq;
-          real_[mInd]=amplitude;
-          imag_[mInd]=phase;
+      else if (mDataRow[0]=='C') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            whichParameterToUpdateAdd2[j]=std::atoi(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
         }
       }
-    }// end while mess
-
-  //   std::cout<<"frequenciesElec"<<std::endl;
-//     std::cout<<frequenciesElec<<std::endl;
-//     std::cout<<"real_"<<std::endl;
-//     std::cout<<real_<<std::endl;
-
-//     std::cout<<"imag_"<<std::endl;
-//     std::cout<<imag_<<std::endl;
-
-    // ####### READ IN MECHANICAL MEASUREMETS
-
-
-    Double absMech, phaseMech;
-    
-    freqsElec_=frequenciesElec;
-    freqs_=frequenciesElec; 
-
-    if (nrMeasuredDataMech_>0){
-      mechDisplMess_.Resize(nrMeasuredDataMech_,numMechMeasurements_);
-      mechDisplMess_.Init();
-    }
-
-    Vector<Double>mechDisplPerFreq(2*numMechMeasurements_);
-    mechDisplPerFreq.Init();
-
-    frequenciesMech.Resize(nrMeasuredDataMech_);
-    frequenciesMech.Init();
-
-    inMechMess_.open("messMech.dat");
-
-    while (nrMeasuredDataMech_>0&&!inMechMess_.eof()){
-      std::getline(inMechMess_, line,'\n');
-      
-      inMechMess_ >> newFreq >> absMech >> phaseMech;
-      
-      for(UInt mInd=0;mInd<nrMeasuredDataMech_;mInd++){
-        //      std::cout<<freqsMech_[mInd]<<std::endl;
-        //         std::cout<<"std::abs(freqsMech_[mInd]-newFreq)"<<std::endl;
-        //         std::cout<<std::abs(freqsMech_[mInd]-newFreq)<<std::endl;
-        //         getchar();
-        if(std::abs(freqsMech_[mInd]-newFreq)<std::abs(freqsMech_[mInd]-frequenciesMech[mInd])){
-          frequenciesMech[mInd]=newFreq;
-          mechDisplMess_[mInd][0]=Complex(absMech,phaseMech);
+      else if (mDataRow[0]=='D') {
+        i=2;
+        k=0;
+        j=0;
+        while (mDataRow[i]!='/') {
+          if (mDataRow[i]!=',') {
+            helpChar[k]=mDataRow[i];
+            k++;
+            i++;
+          } else {
+            whichParameterToUpdateAddC2[j]=std::atoi(helpChar);
+            for (UInt l=0; l<=k; l++)
+            helpChar[l]=0;
+            j++;
+            i++;
+            k=0;
+          }
         }
       }
     }
-   
-    
-    freqsMech_=frequenciesMech;
-    
-   //  std::cout<<"Mechanical measurements " <<std::endl;
-//     std::cout<<freqsMech_<<std::endl;
-//     std::cout<<mechDisplMess_<<std::endl;
-    
-  }// end readInMeasurements
 
-  
-} // end namespace
+      // Append additional material parameters (Lame coefficients of adaption layers)
+      // to parameter vector
+
+      Vector <Double> parTemp = parameter_;
+      Vector <Double> parTempC = parameterC_;
+      Vector <UInt> whichParTemp = whichParameterToUpdate_;
+      Vector <UInt> whichParTempC = whichParameterToUpdateC_;
+      
+      parameter_.Resize(10+additionalParameters1 + additionalParameters2);
+      parameterC_.Resize(10+additionalParametersC1 + additionalParametersC2);
+      whichParameterToUpdate_.Resize(10+additionalParameters1 + additionalParameters2);
+      whichParameterToUpdateC_.Resize(10+additionalParametersC1 + additionalParametersC2);
+
+      for (UInt i=0;i<10;i++) {
+        parameter_[i] = parTemp[i];
+        parameterC_[i] = parTempC[i];
+        whichParameterToUpdate_[i] = whichParTemp[i];
+        whichParameterToUpdateC_[i] = whichParTempC[i];        
+      }
+
+      for (UInt i=0;i<additionalParameters1;i++){
+        parameter_[i+10] = parameterAddMaterialReal1[i];
+        whichParameterToUpdate_[i+10] = whichParameterToUpdateAdd1[i];
+      }
+      for (UInt i=0;i<additionalParameters2;i++){
+        parameter_[i+10+additionalParameters1] = parameterAddMaterialReal2[i];
+        whichParameterToUpdate_[i+10+additionalParameters1] = whichParameterToUpdateAdd2[i];
+      }
+      
+
+      for (UInt i=0;i<additionalParametersC1;i++){
+        parameterC_[i+10] = parameterAddMaterialImag1[i];
+        whichParameterToUpdateC_[i+10] = whichParameterToUpdateAddC1[i];
+      }
+      for (UInt i=0;i<additionalParametersC2;i++){
+        parameterC_[i+10+additionalParametersC1] = parameterAddMaterialImag2[i];
+        whichParameterToUpdateC_[i+10+additionalParametersC1] = whichParameterToUpdateAddC2[i];
+      }
+
+      std::cout<<"\nParameter vector, real parts:" <<std::endl;
+      std::cout<<parameter_<<std::endl;
+      std::cout<<"Parameter vector, imaginary parts:" <<std::endl;
+      std::cout<<parameterC_<<std::endl;
+      
+
+    } // end read MeasuredData
+
+
+    void piezoParamIdent::readInMeasurement(Vector<Double> & frequenciesElec) {
+
+      if (whichNormCriteria_=="logAmplitudeMech"|| whichNormCriteria_
+          =="amplitudeMech"|| whichNormCriteria_=="phaseMech"||whichNormCriteria_
+          =="displacementMech")
+      std::cout<<"++ Reading file messMech.dat ... "<<std::endl;
+      else
+      std::cout<<"++ Reading file mess.dat ... "<<std::endl;
+
+      frequenciesElec.Resize(nrMeasuredData_);
+      frequenciesElec.Init();
+      real_.Resize(nrMeasuredData_);
+      real_.Init();
+      imag_.Resize(nrMeasuredData_);
+      imag_.Init();
+
+      realMech_.Resize(nrMeasuredData_);
+      realMech_.Init();
+      imagMech_.Resize(nrMeasuredData_);
+      imagMech_.Init();
+
+      Double newFreq, amplitude, phase;
+
+      inMess_.open("mess.dat");
+      std::string line;
+
+      while (!inMess_.eof()) {
+        std::getline(inMess_, line, '\n');
+
+        inMess_ >> newFreq >> amplitude >> phase;
+
+        for (UInt mInd=0; mInd<nrMeasuredData_; mInd++) {
+          if (std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]
+                  -frequenciesElec[mInd])) {
+            frequenciesElec[mInd]=newFreq;
+            real_[mInd]=amplitude;
+            imag_[mInd]=phase;
+          }
+        }
+      }// end while mess
+
+      //    Double absMech, phaseMech;
+
+      if (whichNormCriteria_=="logAmplitudeMech"|| whichNormCriteria_
+          =="amplitudeMech"|| whichNormCriteria_=="phaseMech"||whichNormCriteria_
+          =="displacementMech") {
+
+        frequenciesElec.Resize(nrMeasuredData_);
+        frequenciesElec.Init();
+        realMech_.Resize(nrMeasuredData_);
+        realMech_.Init();
+        imagMech_.Resize(nrMeasuredData_);
+        imagMech_.Init();
+
+        Double newFreq, amplitude, phase;
+
+        inMechMess_.open("messMech.dat");
+        std::string line;
+
+        while (!inMechMess_.eof()) {
+          std::getline(inMechMess_, line, '\n');
+
+          inMechMess_ >> newFreq >> amplitude >> phase;
+
+          for (UInt mInd=0; mInd<nrMeasuredData_; mInd++) {
+            if (std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]
+                    -frequenciesElec[mInd])) {
+              frequenciesElec[mInd]=newFreq;
+              realMech_[mInd]=amplitude;
+              imagMech_[mInd]=phase;
+            }
+          }
+        }// end while mess
+
+
+      }// end readInMeasurements
+    }
+
+  } // end namespace
