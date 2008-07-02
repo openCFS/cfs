@@ -67,7 +67,7 @@ The following analysis section needs to be included in your xml-file:
 \hline Newton & Newton's method with inexact inner iterations & fast, good convergence properties provided that initial guess is close to solution. Otherwise risk of divergence \\ 
 \hline NewtonComplex & inexact Newton method. & similar as Newton's method, adapted for simultaneous determination of real and imaginary parts \\
 \hline leastSquares & simple least-squares error minimizer & converges globally, may become slow after a view steps. It is always a good choice if the initial guess is poor\\
-\hline confidenceIntervals & computes upper bounds of confidence intervals& provides information about the reliability of the identified parameters. Does not identify anything.\\
+\hline confidenceIntervals & computes upper bounds of confidence intervals& provides information about the reliability of the identified parameters (only real parts!). Does not identify anything.\\
 \hline 
 \end{tabular} 
 \caption{Implemented parameter identification methods.}
