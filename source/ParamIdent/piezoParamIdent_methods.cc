@@ -11,6 +11,7 @@
 #include "Domain/domain.hh"
 #include "Driver/stdSolveStep.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "CoupledPDE/PiezoCoupling.hh"
 #include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
@@ -133,7 +134,7 @@ namespace CoupledField {
 
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
+      ///////////////////////////////////////////////////////
 
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
@@ -145,15 +146,15 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       //ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-      resHandler->BeginStep(fstep+1, freqs_[fstep] );
-      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
+      // the writing of the results has to be performed in a later step
+//      resHandler->BeginStep(fstep+1, freqs_[fstep] );
+//      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
 
       resHandler->FinishStep();
 
       if (CalcImpedanceCurve_==true) {
-        Vector<Complex> chargeVec;
-        chargeVec = ptPDE1_->getPDE_complexValuedCharge();
-
+        piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
+        Vector<Complex> & chargeVec = charges_->GetVector();
         Complex charge=Complex(0.0, 0.0);
 
         for (UInt i=0; i<chargeVec.GetSize(); i++) {
@@ -186,7 +187,7 @@ namespace CoupledField {
         << charge.imag()<< std::endl;
 
         // output should by in fixed point numbers,
-        // i.e. 100.23 instead of 1.0023e+2   
+        // i.e. 100.23 instead of 1.0023e+2
         // synMess_->setf(std::ios::fixed);
         // *synMess_ <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep
         //    <<std::endl;
@@ -209,7 +210,7 @@ namespace CoupledField {
       if (CalcMechDisplCurve_==true) {
 
         BaseNodeStoreSol * ptSol;
-        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
+        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
         ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
@@ -286,7 +287,7 @@ namespace CoupledField {
 
   void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut) {
 
-    // In case that we only consider electrical measurements the solution (F_hat) contains as 
+    // In case that we only consider electrical measurements the solution (F_hat) contains as
     // many entries as we consider frequencies to evaluate.
     // If additionally mechanical measurements are to be considered F_hat is
     // twice the number of measurements
@@ -300,7 +301,7 @@ namespace CoupledField {
 
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
+      ///////////////////////////////////////////////////////
 
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
@@ -362,7 +363,7 @@ namespace CoupledField {
 
         // write mechanical deformation at second part of F_hat:
         BaseNodeStoreSol * ptSol;
-        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
+        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
         ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
@@ -1098,7 +1099,7 @@ namespace CoupledField {
       Vector <Double> parTempC = parameterC_;
       Vector <UInt> whichParTemp = whichParameterToUpdate_;
       Vector <UInt> whichParTempC = whichParameterToUpdateC_;
-      
+
       parameter_.Resize(10+additionalParameters1 + additionalParameters2);
       parameterC_.Resize(10+additionalParametersC1 + additionalParametersC2);
       whichParameterToUpdate_.Resize(10+additionalParameters1 + additionalParameters2);
@@ -1108,7 +1109,7 @@ namespace CoupledField {
         parameter_[i] = parTemp[i];
         parameterC_[i] = parTempC[i];
         whichParameterToUpdate_[i] = whichParTemp[i];
-        whichParameterToUpdateC_[i] = whichParTempC[i];        
+        whichParameterToUpdateC_[i] = whichParTempC[i];
       }
 
       for (UInt i=0;i<additionalParameters1;i++){
@@ -1119,7 +1120,7 @@ namespace CoupledField {
         parameter_[i+10+additionalParameters1] = parameterAddMaterialReal2[i];
         whichParameterToUpdate_[i+10+additionalParameters1] = whichParameterToUpdateAdd2[i];
       }
-      
+
 
       for (UInt i=0;i<additionalParametersC1;i++){
         parameterC_[i+10] = parameterAddMaterialImag1[i];
@@ -1134,7 +1135,7 @@ namespace CoupledField {
       std::cout<<parameter_<<std::endl;
       std::cout<<"Parameter vector, imaginary parts:" <<std::endl;
       std::cout<<parameterC_<<std::endl;
-      
+
 
     } // end read MeasuredData
 

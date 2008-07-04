@@ -37,19 +37,24 @@ namespace CoupledField
     void CalcResults( shared_ptr<BaseResult> result );
 
 //     template <class TYPE>
-//     void calcMaterialMatrices(Matrix<TYPE> &sMat, 
+//     void calcMaterialMatrices(Matrix<TYPE> &sMat,
 //                               Matrix<TYPE>&cMat,
 //                               Matrix<TYPE> &pMat,
 //                               Matrix<Double> *matDat,
 //                               Matrix<Complex> *complexMatDat);
 
- 
+
 
     //! Gathers all information concerning nonlinear computations
     void ReadPiezoNonLin();
 
+    //! calculate Charges
+    template <class TYPE>
+    void CalcCharges( shared_ptr<BaseResult> result,
+                      RegionIdType neighborRegion );
+
     //!
-    void GetNonlinMaterialTensor( Matrix<Double>& matTensor, 
+    void GetNonlinMaterialTensor( Matrix<Double>& matTensor,
                                   Vector<Double>& elecD,
                                   std::string matTensorType,
                                   BaseMaterial* matMech,
@@ -61,20 +66,20 @@ namespace CoupledField
                                   Vector<Double>& elecFieldPrev,
                                   Vector<Double>& mechStrainPrev,
                                   EntityIterator& ent );
-    
+
   protected:
 
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
-   
+
     //! Define available results
     void DefineAvailResults();
 
- 
+
     // Data section
     bool hasOutput_;
 
-    //! flag, which is true if piezo coupling is nonlinear, i.e. 
+    //! flag, which is true if piezo coupling is nonlinear, i.e.
     //! if we have a nonlinear piezoelectric coupling form
     //! it is not the same as nonLin_ which is already set true if one of the
     //! singlePDEs is nonlinear
@@ -84,11 +89,11 @@ namespace CoupledField
 
     //! compute normalized irreversible strain
     void ComputeSirr( Vector<Double>& VecSirr, SubTensorType type,
-                      UInt dirP, Double ctP, 
+                      UInt dirP, Double ctP,
                       BaseMaterial* matMech );
 
     //!
-    void ComputeDiffCouplingTensor( Matrix<Double>& dMat, 
+    void ComputeDiffCouplingTensor( Matrix<Double>& dMat,
                                     Vector<Double>& actE,
                                     Vector<Double>& prevE,
                                     Vector<Double>& actSirr,
@@ -104,10 +109,6 @@ namespace CoupledField
     //! computes irreversibel strain
     void CalcStrainIrr( shared_ptr<BaseResult> result );
 
-    //! calculate Charges
-    template <class TYPE>
-    void CalcCharges( shared_ptr<BaseResult> result );
-
     //! calculate DField
     template <class TYPE>
     void CalcDField( shared_ptr<BaseResult> result );
@@ -122,23 +123,23 @@ namespace CoupledField
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
 
   //! \class PiezoCoupling
-  //! 
-  //! \purpose 
-  //! 
-  //! \collab 
-  //! 
-  //! \implement 
-  //! 
+  //!
+  //! \purpose
+  //!
+  //! \collab
+  //!
+  //! \implement
+  //!
   //! \status In use
-  //! 
-  //! \unused 
-  //! 
+  //!
+  //! \unused
+  //!
   //! \improve
-  //! 
+  //!
 
 #endif
 

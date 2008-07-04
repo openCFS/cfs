@@ -177,7 +177,13 @@
           <xsd:element name="fittingQuantity" type="DT_ParameterFittingQuantity"/>                          
           
           <xsd:element name="calcImpedanceCurve" type="DT_CFSBool"
-            minOccurs="0" maxOccurs="1" default="no"/>                 
+          minOccurs="0" maxOccurs="1" default="no"/>               
+          <xsd:element name="calcCharge">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
           <xsd:element name="calcMechDisplacementCurve" type="DT_CFSBool"
             minOccurs="0" maxOccurs="1" default="no"/>            
           

@@ -25,7 +25,7 @@ namespace CoupledField
   class BaseNodeStoreSol;
   class Composite;
   class ParamNode;
-  
+
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
   {
@@ -36,14 +36,14 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
     typedef StdVector<shared_ptr<ResultInfo> > ResultInfoList;
-    
-    
+
+
     //! Destructor
     virtual ~BasePairCoupling();
-    
+
     //! Initialization method
     virtual void Init( UInt sequenceStep );
-            
+
     //! Trigger calculation of postprocessing results
     virtual void CalcResults( shared_ptr<BaseResult> result ) {};
 
@@ -53,24 +53,29 @@ namespace CoupledField
 
     //! initialize nonlinearities
     virtual void InitNonLin() {};
-    
+
     //! Do last caluclation step and cleanup
     virtual void Finalize() {};
-    
+
     // ======================================================
     // GET / SET METHODS
     // ======================================================
-    
+
     //! Return coupling name
-    std::string GetName() 
+    std::string GetName()
     { return couplingName_; }
 
     //! Set pointer to algsys
     void SetAlgSys( BaseSystem *algSys)
     { algsys_ = algSys;}
 
+    //! Get available results
+    ResultSet GetAvailResults() const {
+      return availResults_;
+    }
+
     //! Set pointer to assemble class
-    void SetAssemble( Assemble* assemble ) 
+    void SetAssemble( Assemble* assemble )
     { assemble_ = assemble; }
 
     //! Return pointer to first PDE
@@ -100,10 +105,10 @@ namespace CoupledField
     bool nonLin_;             //!< flag for nonlinear calculations
     bool nonLinMaterial_;     //!< flag for nonlinear material calculations
     bool nonLinHysteresis_;   //!< flag for hysteresis calculations
-    
+
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
-    
+
     void SetMaterialNonLinearity(bool nonLin){
       nonLinMaterial_=nonLin;};
 
@@ -111,14 +116,14 @@ namespace CoupledField
   protected:
 
     //! Constructor
-    BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2, 
+    BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2,
                       ParamNode * paramNode );
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;
 
     //! define all computable results
-    virtual void DefineAvailResults() {};  
+    virtual void DefineAvailResults() {};
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -128,7 +133,7 @@ namespace CoupledField
 
     //! Read special store results information
     virtual void ReadSpecialResults(){};
-    
+
     //! read material data
     virtual void ReadMaterialData();
 
@@ -175,7 +180,7 @@ namespace CoupledField
 
 
     // --- Boundary Conditions ---
-    
+
     //@{
     //! \name Attributes connected to the handling of boundary conditions
 
@@ -195,20 +200,20 @@ namespace CoupledField
 
     //! map with neighboring volume regions for surface results
     std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
-   
+
     //! Type of current analysis
     BasePDE::AnalysisType analysisType_;
 
     //! Flag indicating use of complex values
     bool isComplex_;
 
-    //! contains element results of complex valued charge 
+    //! contains element results of complex valued charge
     Vector<Complex> complexValuedCharge_;
 
-    //! contains element results of complex valued Efield 
+    //! contains element results of complex valued Efield
     Vector<Complex> complexValuedEfield_;
 
-    CFSVector * solVec_;        //! needed in iterative coupled computation 
+    CFSVector * solVec_;        //! needed in iterative coupled computation
 
     //! Parameter node of direct coupling section
     ParamNode * myParam_;
@@ -216,21 +221,21 @@ namespace CoupledField
     // -----------------------------------------------------------------------
     // Material data
     // -----------------------------------------------------------------------
-  
+
     //@{
     //! \name Attributes handling info on material data
 
     //! Maps regions and (simple) materials
-    std::map<RegionIdType, BaseMaterial*> materials_;    
+    std::map<RegionIdType, BaseMaterial*> materials_;
 
     //! Maps regions and composite materials
     std::map<RegionIdType, Composite> compositeMaterials_;
 
     //! material class
     MaterialClass materialClass_;
-  
+
     //@}
-    
+
     //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;
 
@@ -248,10 +253,10 @@ namespace CoupledField
 
     //! Pointer to first pde
     SinglePDE *pde1_;
-    
+
     //! Pointer to second pde
     SinglePDE *pde2_;
-    
+
     //! Pointer to assemble object
     Assemble *assemble_;
 
@@ -276,14 +281,14 @@ namespace CoupledField
     // -----------------------------------------------------------------------
     // Geometry & node numbering
     // -----------------------------------------------------------------------
-  
+
     //@{
     //! \name Attributes related to geometry and node numbering
     UInt dofspernode_;  //!< number of unknowns per node
     UInt numPDENodes_;  //!< number of nodes in subdomains
     UInt numElems_;     //!< number of elements in subdomains
     UInt dim_;                  //!< space dimension of pde
-  
+
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
     std::string subType_;
     //@}
@@ -294,30 +299,30 @@ namespace CoupledField
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
 
   //! \class BasePairCoupling
-  //! 
+  //!
   //! \purpose This class serves as base class for all pair-wise coupling
   //! objects, like piezo- or mech-acoustic coupling. This class and its
   //! derived classes have to perform similar tasks like a SinglePDE, e.g.
   //! - getting the region for the object
   //! - defining couple integrators
   //! - creating an assemble object
-  //! 
+  //!
   //! \collab Objects of this class are instantiated by the class Domain.
-  //! Afterwards they are passed to an instance of DirectCoupldPDE, which 
+  //! Afterwards they are passed to an instance of DirectCoupldPDE, which
   //! can have arbitrarely many of them.
-  //! 
-  //! \implement 
-  //! 
+  //!
+  //! \implement
+  //!
   //! \status In use
-  //! 
+  //!
   //! \unused
-  //! 
-  //! \improve 
-  //! - There should be only one assemble object for all direct-coupled 
+  //!
+  //! \improve
+  //! - There should be only one assemble object for all direct-coupled
   //!   SinglePDEs, so that this class won't have to create an own
   //!
 
