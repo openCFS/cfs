@@ -32,14 +32,16 @@ void piezoParamIdent::nonlinLandweber() {
 
   
   Double omega = 0.1; //7.812500e-03;
-  Double normFy, maxres, normFy0, normFy1;
+  Double maxres, normFy0, normFy1;
   Integer indPar=0;
-  Integer indParC=0;
+  Integer indParC=0; 
   parameterNew = parameter_;
   parameterCNew = parameterC_;
 
   
   for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_; iterIndex++) {
+    
+    globalIterationNr_ = iterIndex;
 
     updateMaterialData(parameter_);
     if (imagMaterialParam_ ) {

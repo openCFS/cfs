@@ -13,9 +13,6 @@ namespace CoupledField
 
   void piezoParamIdent::leastSquare(){ 
 
-    //ptMaterial_=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-
-
     Vector<Complex> F_y(nrMeasuredData_);
     Vector <Double> parameter_old(nrParameter_);
     Vector <Double> parameter_oldC(nrParameter_);
@@ -37,6 +34,8 @@ namespace CoupledField
 
     for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_;iterIndex++){
       
+      globalIterationNr_ = iterIndex;
+      
       std::cout<<"\nLeast-Squares step " << iterIndex << std::endl;
 
       if( imagMaterialParam_ ) {
@@ -46,13 +45,10 @@ namespace CoupledField
 
       // forward simulation, computes F(p) ...
       createF(F_hat_, false);
-      
-      // std::cout<<F_hat_<<std::endl;
-      // std::cout<<y_hat_<<std::endl;
-
+     
       // compute impedance or mechanical displacement curve after every computeImpedanceCurveAfterStep_ step  
       if ((iterIndex+1)%computeImpedanceCurveAfterStep_==0){
-        Integer nrfreqTemp=nrfreq_;
+        UInt nrfreqTemp=nrfreq_;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
         Double startFreqTemp;
@@ -173,8 +169,6 @@ namespace CoupledField
       lambda=5*lambda;
       for (UInt par=0;par<nrParameter_;par++)
         if (whichParameterToUpdate_[par]==1){
-          Integer innerLoopCount2=0;
-          Double lambdaLocal=lambda;
           parameter_[par]+=lambda*gradP[indPar]/scaling_[par];
           indPar++;
         }
@@ -223,8 +217,6 @@ namespace CoupledField
         indPar=0;
         for (UInt par=0;par<nrParameter_;par++)
           if (whichParameterToUpdate_[par]==1){
-            Integer innerLoopCount=0;
-            Double lambdaLocal=lambda;
             parameter_[par]+=lambda*gradP[indPar]/scaling_[par];
             indPar++;
           }
@@ -257,7 +249,6 @@ namespace CoupledField
       
       std::cout<<"New parameter:"<<std::endl;
 
-      //std::cout<<parameter_<<std::endl;
       for (UInt i=0; i<parameter_.GetSize(); i++){
         std::cout<<i<<") "<< parameter_[i] << " + "<< parameterC_[i] <<"i "<<std::endl;
         *parFinal_<<parameter_[i]<<", ";

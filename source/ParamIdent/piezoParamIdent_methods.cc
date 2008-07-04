@@ -120,11 +120,14 @@ namespace CoupledField {
     }
 
     ResultHandler * resHandler = domain->GetResultHandler();
+    
+    // we only write results during the final computation of the impedance/mechDispl curve
+    if (writeResults_==true)
+      resHandler->BeginMultiSequenceStep( 1, analysis_, freqs_.GetSize() );
 
     if (imagMaterialParam_ ) {
       updateComplexMaterialData(parameterC_);
     }
-
     updateMaterialData(parameter_);
 
     Double maxImpedance=0.0;
@@ -144,15 +147,15 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      //ptPDE_->GetSolveStep()->PostStepHarmonic();
-
-      // the writing of the results has to be performed in a later step
-//      resHandler->BeginStep(fstep+1, freqs_[fstep] );
-//      ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
-
+     
+      if(writeResults_==true){
+        resHandler->BeginStep(fstep+1, freqs_[fstep] );
+        ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
+      }
       resHandler->FinishStep();
 
       if (CalcImpedanceCurve_==true) {
+        
         piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
         Vector<Complex> & chargeVec = charges_->GetVector();
         Complex charge=Complex(0.0, 0.0);
@@ -167,7 +170,6 @@ namespace CoupledField {
           std::cout<<" please check your xml and mesh file for surface charges"
           <<std::endl;
           std::cout<<" press any key to continue"<<std::endl;
-          //        getchar();
         }
 
         Double imped, phase;
@@ -186,11 +188,6 @@ namespace CoupledField {
         << impedC.real()<<"  "<< impedC.imag() << "  "<< charge.real()<< "  "
         << charge.imag()<< std::endl;
 
-        // output should by in fixed point numbers,
-        // i.e. 100.23 instead of 1.0023e+2
-        // synMess_->setf(std::ios::fixed);
-        // *synMess_ <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep
-        //    <<std::endl;
 
         // determine resonance and antiresonance frequency
         if (imped>maxImpedance) {
@@ -310,20 +307,14 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      //ptPDE_->GetSolveStep()->PostStepHarmonic();
-
-      resHandler->BeginStep(fstep+1, freqs_[fstep]);
-      ptPDE_->WriteResultsInFile(fstep+1, freqs_[fstep]);
-
       resHandler->FinishStep();
+  
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
-
-      Vector<Complex> chargeVec;
-
-      chargeVec = ptPDE2_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-
+      
+      piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
+      Vector<Complex> & chargeVec = charges_->GetVector();
       Complex charge=Complex(0.0, 0.0);
       Complex im=Complex(0.0, 1.0);
 
@@ -462,21 +453,17 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SolveStepHarmonic();
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-    resHandler->BeginStep(UInt(frequency), 0 );
-
-    ptPDE_->WriteResultsInFile(UInt(frequency),0);
     resHandler->FinishStep();
+
     //////////////////////////////////////////////////////////
     //Retrieves & stores Solution for further calculations  //
     /////////////////////////////////////////////////////////
-
-    Vector<Complex> chargeVec;
-
-    chargeVec = ptPDE2_->getPDE_complexValuedCharge();
-
-    Complex charge=Complex(0.0,0.0);
-    Complex im=Complex(0.0,1.0);
-
+    
+    piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
+    Vector<Complex> & chargeVec = charges_->GetVector();
+    Complex charge=Complex(0.0, 0.0);
+    Complex im=Complex(0.0, 1.0);     
+    
     for (UInt i=0;i<chargeVec.GetSize();i++) {
       charge+=chargeVec[i];
     }
@@ -1162,27 +1149,31 @@ namespace CoupledField {
       imagMech_.Init();
 
       Double newFreq, amplitude, phase;
+      
+      // read only file mess.dat if we have one of the following fitting quantities
+      if (whichNormCriteria_=="logImpedance"|| whichNormCriteria_=="logAmplitude"
+        || whichNormCriteria_=="amplitude"||whichNormCriteria_=="phase") {
 
-      inMess_.open("mess.dat");
-      std::string line;
+        inMess_.open("mess.dat");
+        std::string line;
 
-      while (!inMess_.eof()) {
-        std::getline(inMess_, line, '\n');
+        while (!inMess_.eof()) {
+          std::getline(inMess_, line, '\n');
 
-        inMess_ >> newFreq >> amplitude >> phase;
+          inMess_ >> newFreq >> amplitude >> phase;
 
-        for (UInt mInd=0; mInd<nrMeasuredData_; mInd++) {
-          if (std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]
-                  -frequenciesElec[mInd])) {
-            frequenciesElec[mInd]=newFreq;
-            real_[mInd]=amplitude;
-            imag_[mInd]=phase;
-          }
-        }
-      }// end while mess
+          for (UInt mInd=0; mInd<nrMeasuredData_; mInd++) {
+            if (std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]
+                                                               -frequenciesElec[mInd])) {
+              frequenciesElec[mInd]=newFreq;
+              real_[mInd]=amplitude;
+              imag_[mInd]=phase;
+            }
+          } 
+        }// end while mess
+      }
 
-      //    Double absMech, phaseMech;
-
+      // read only file messMech.dat if we have one of the following fitting quantities
       if (whichNormCriteria_=="logAmplitudeMech"|| whichNormCriteria_
           =="amplitudeMech"|| whichNormCriteria_=="phaseMech"||whichNormCriteria_
           =="displacementMech") {
