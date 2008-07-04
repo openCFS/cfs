@@ -34,6 +34,7 @@ piezoParamIdent::piezoParamIdent(UInt sequenceStep, bool isPartOfSequence) :
   residuumParIdent_=1.0e+10;
   resonanceFrequency_=0;
   antiResonanceFrequency_=0;
+  globalIterationNr_=0;
 
   whichNormCriteria_="notSpecified";
   isPartOfSequence_ = isPartOfSequence;
@@ -47,6 +48,7 @@ piezoParamIdent::piezoParamIdent(UInt sequenceStep, bool isPartOfSequence) :
 void piezoParamIdent::Init() {
 
   directCoupling_ = true;
+  writeResults_=false;
 
   Info->StartProgress("Opening in and output files ... ");
 
@@ -154,11 +156,6 @@ void piezoParamIdent::Init() {
 
   std::cout<< "++ Starting "<< whichMethod_ << " method ..."<< std::endl;
 
-
-
-
-
-
 } // end of constructor
 
 // destructor
@@ -184,16 +181,11 @@ piezoParamIdent::~piezoParamIdent() {
 
 void piezoParamIdent::SolveProblem(bool write_results,
     const std::string& comment) {
-  assert(write_results = true);
-  assert(comment == "");
+  
 
-  // notify resultHandler about beginning of new sequence step
   ResultHandler * resHandler = domain->GetResultHandler();
-  resHandler->BeginMultiSequenceStep( 1, analysis_, 1);
-
   InitializePDEs();
-
-  //domain->PrintGrid();
+  
   DirectCoupledPDE* ptCoupledPDE = domain->GetDirectCoupledPDE();
 
   // Section added by ahauck July 4th
@@ -247,10 +239,9 @@ void piezoParamIdent::SolveProblem(bool write_results,
     charges_->SetEntityList( chargeSurf );
   }
 
-  // ===== end of section for initializin charge computation ====
+  // ===== end of section for initializing charge computation ====
 
-
-
+  // get PDEs
   ptPDE1_=domain-> GetSinglePDE("mechanic");
   ptPDE2_=domain-> GetSinglePDE("electrostatic");
 
@@ -404,9 +395,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
       std::cout
           <<"->Impedance curve (before fitting) is written into file 'imped.dat'. "
           <<std::endl;
-    std::cout<<"\n Press any key to continue ... "<<std::endl;
-    getchar();
-  }
+      }
 
   // xxxxxxxxxxxxxxxxxxxxxxx Choose different regularizing solvers here xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
@@ -434,7 +423,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
           <<std::endl;
       std::cerr<<" Choose either nuMethods=8 in your input file or "<<std::endl;
       std::cerr<<" use only real - valued parameters "<<std::endl;
-      //        getchar();
+      
     }
     std::cout<<"++ Newton - nu Methods "<<std::endl;
     UInt nrNuMethods=0;
@@ -459,7 +448,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
       nrNuMethods++;
 
       if (nrNuMethods%computeImpedanceCurveAfterStep_==0) {
-        Integer nrfreqTemp=nrfreq_;
+        UInt nrfreqTemp=nrfreq_;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
         Double startFreqTemp;
@@ -518,7 +507,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
       nuMethodsC2();
 
       if ((nrNuMethodsC+1)%computeImpedanceCurveAfterStep_==0) {
-        Integer nrfreqTemp=nrfreq_;
+        UInt nrfreqTemp=nrfreq_;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
         Double startFreqTemp;
@@ -601,9 +590,6 @@ void piezoParamIdent::SolveProblem(bool write_results,
 
     invert(covWithOutWeight);
 
-    // Matrix<Complex> testId;
-    // testId=globalCov_*covWithOutWeight;
-
     globalCov_=covWithOutWeight;
 
     Double chi=0.0;
@@ -667,7 +653,6 @@ void piezoParamIdent::SolveProblem(bool write_results,
 
   }
 
-  //}
 
   else if (whichMethod_=="leastSquares") {
 
@@ -711,8 +696,9 @@ void piezoParamIdent::SolveProblem(bool write_results,
 
   // <<<<<<<<<<<<<< for a hopefully nicely fitted curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-  if ((CalcImpedanceCurve_ == true|| CalcMechDisplCurve_ == true)
+  if ((CalcImpedanceCurve_ == true || CalcMechDisplCurve_ == true)
       && maxNumberNewtonLoops_!=0) {
+    writeResults_=true;
     Vector<Double> freqsTemp = freqs_;
     freqs_.Resize(nrfreq_);
     Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
@@ -734,6 +720,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
 
     calcImpedanceCurve();
 
+    writeResults_=false;
     freqs_ = freqsTemp;
   }
 
@@ -757,7 +744,11 @@ void piezoParamIdent::SolveProblem(bool write_results,
     std::cout<<"-> Upper bounds of confidence interval sizes are written into file 'confInterval.dat'. " <<std::endl;
 
   // notify resultHandler about finishing of current sequence step
-  resHandler->FinishMultiSequenceStep();
+  if (CalcImpedanceCurve_ == true|| CalcMechDisplCurve_ == true) {
+    resHandler->FinishMultiSequenceStep();  
+    resHandler->Finalize();
+  }
+  
 }// End solveProblem
 
 
@@ -773,23 +764,6 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
   Matrix<Double> stiffTensor;
   Matrix<Double> piezoTensor;
   Matrix<Double> permTensor;
-
-
- /*   ptMaterialMech_[1]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, FULL);
-    std::cout<<stiffTensor<<std::endl;
-    ptMaterialMech_[2]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, FULL);
-    std::cout<<stiffTensor<<std::endl;
-    ptMaterialMech_[3]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, FULL);
-    std::cout<<stiffTensor<<std::endl;
-
-
-    ptMaterialMech_[1]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, AXI);
-    std::cout<<stiffTensor<<std::endl;
-    ptMaterialMech_[2]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, AXI);
-    std::cout<<stiffTensor<<std::endl;
-    ptMaterialMech_[3]->GetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL, AXI);
-    std::cout<<stiffTensor<<std::endl;
-  */
 
   stiffTensor.Resize(6, 6);
   piezoTensor.Resize(3, 6);
@@ -1067,16 +1041,6 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
       permTensor[1][1] = parameter_[9]; //eps_33
     }
 
-
- /*   std::cout<<"stiffTensor:"<<std::endl;
-    std::cout<<stiffTensor<<std::endl;
-
-    std::cout<<"stiffTensorAdaption:"<<std::endl;
-    std::cout<<stiffTensorAdaption<<std::endl;
-
-    std::cout<<"stiffTensorBacking:"<<std::endl;
-    std::cout<<stiffTensorBacking<<std::endl;
-    getchar();*/
 
     ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, REAL);
     ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL);
@@ -1391,6 +1355,7 @@ void piezoParamIdent::setNewParameterSet(Vector<Double> & par,
 
 void piezoParamIdent::computeScaling() {
 
+  // for most of the methods we scale the sought-for quantities
   for (UInt i=0; i<parameter_.GetSize(); i++)
     if (parameter_[i]!=0.0)
       scaling_[i]= std::abs(1.0/parameter_[i]);

@@ -228,12 +228,14 @@ class DirectCoupledPDE;
         bool directCoupling_;
         bool isPartOfSequence_;
         bool imagMaterialParam_;
+        bool writeResults_;
 
         UInt maxNumberInnerLoops_;
         UInt maxNumberNewtonLoops_;
         UInt mechDisplAtNode_;
         UInt dofOfMechDispl_;
         UInt computeImpedanceCurveAfterStep_;
+        UInt globalIterationNr_;
 
         std::string whichMethod_;
 
