@@ -3,7 +3,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <iomanip>
-#include <sstream> 
+#include <sstream>
 #include <sys/stat.h>
 
 #include <boost/filesystem/operations.hpp>
@@ -14,13 +14,12 @@ namespace fs=boost::filesystem;
 
 #include "Domain/resultInfo.hh"
 
-#include "../params.hh"
-#include "../settings.hh"
-#include "filereader_OPENFOAM.hh"
+#include "Settings.hh"
+#include "FileReader_OPENFOAM.hh"
 
 
 // This is due to the fucking OLAS New operator!!!
-#undef New 
+#undef New
 #include <vtkOpenFOAMReader.h>
 #include <vtkMultiBlockDataSet.h>
 #include <vtkCompositeDataIterator.h>
@@ -64,7 +63,7 @@ namespace CoupledField
     reader_ = vtkOpenFOAMReader::New();
     if(settings.GetInt("verbose"))
       reader_->DebugOn();
-    
+
     reader_->SetFileName(controlDictName.str().c_str());
     reader_->SetTimeStep(0);
     reader_->Update();
@@ -97,7 +96,7 @@ namespace CoupledField
       iter->GoToNextItem();
     }
 
-    if(settings.GetInt("verbose")) 
+    if(settings.GetInt("verbose"))
     {
       std::cout << " Name: " << name_ << std::endl
                 << " Dim: " << dim_ << std::endl
@@ -106,7 +105,7 @@ namespace CoupledField
                 << " numResults: " << numResults << std::endl
                 << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
     }
-    
+
     numNodesPerRegion_.resize(numRegions_);
     numElemsPerRegion_.resize(numRegions_);
 
@@ -128,7 +127,7 @@ namespace CoupledField
       vtkCell* cell = ds->GetCell(0);
       numPoints = cell->GetNumberOfPoints();
       maxNumElemNodes_ = numPoints > maxNumElemNodes_ ? numPoints : maxNumElemNodes_;
-      
+
       if(settings.GetInt("verbose"))
       {
         std::cout << "Partition " << (p_cnt+1)
@@ -136,13 +135,13 @@ namespace CoupledField
                   << " elems: " << numElemsPerRegion_[p_cnt]
                   <<std::endl;
       }
-      
+
       ++p_cnt;
       iter->GoToNextItem();
     }
     iter->Delete();
-    
-    if(settings.GetInt("verbose")) 
+
+    if(settings.GetInt("verbose"))
     {
       std::cout << "Number of boundaries: "
                 << reader_->GetNumBoundaries() << std::endl;
@@ -153,7 +152,7 @@ namespace CoupledField
       std::cout << "Number of cell zones: "
                 << reader_->GetNumCellZones() << std::endl;
     }
-    
+
     std::cout << "Exiting FileReader_OPENFOAM::Init" << std::endl;
     /* nodalCoords_ should store the first mesh, which may be needed if we have
      * a moving mesh*/
@@ -204,7 +203,7 @@ namespace CoupledField
 
     elemTypes.resize(numElems_);
     TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
-    
+
     /* disregard pointZones and faceZones */
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     iter->GoToFirstItem();
@@ -227,7 +226,7 @@ namespace CoupledField
 
         nodeMap[j] = ptId+1;
       }
-      
+
       for (UInt j = 0; j < numCells; ++j)
       {
         cell = ds->GetCell(j);
@@ -236,7 +235,7 @@ namespace CoupledField
 
         switch(elemTypes[elemIdx])
         {
-        case ET_WEDGE6: 
+        case ET_WEDGE6:
           TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(3)];
           TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(4)];
           TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(5)];
@@ -244,7 +243,7 @@ namespace CoupledField
           TOPOLOGYDATA[topoIdx+4] = nodeMap[cell->GetPointId(1)];
           TOPOLOGYDATA[topoIdx+5] = nodeMap[cell->GetPointId(2)];
           break;
-        case ET_HEXA8: 
+        case ET_HEXA8:
           TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(4)];
           TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(5)];
           TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(6)];
@@ -259,11 +258,11 @@ namespace CoupledField
             TOPOLOGYDATA[topoIdx + k] = nodeMap[cell->GetPointId(k)];
           break;
         }
-        
+
         elemIdx++;
         topoIdx += maxNumElemNodes_;
       }
-      
+
       iter->GoToNextItem();
     }
 
@@ -274,16 +273,16 @@ namespace CoupledField
                                    const UInt regionIdx)
   {
     UInt elemOffset = 0;
-    
+
     for(UInt i=0; i < regionIdx; i++)
       elemOffset += numElemsPerRegion_[i];
-    
+
     regionElements.resize(numElemsPerRegion_[regionIdx]);
-    
+
     for(UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
       regionElements[i] = elemOffset + i + 1;
   }
-  
+
   /* get nodal values from the corresponding fluid datafile the new way */
   void FileReader_OPENFOAM::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                             const std::vector<bool>& activeParts,
@@ -303,7 +302,7 @@ namespace CoupledField
 
     vtkCompositeDataIterator* iter = reader_->GetOutput()->NewIterator();
     vtkCellDataToPointData* c2p = vtkCellDataToPointData::New();
-    
+
     iter->GoToFirstItem();
 
     for (UInt actRegion=0; actRegion < 1; ++actRegion)
@@ -341,7 +340,7 @@ namespace CoupledField
         {
           fdps->dofNames.push_back("x");
           fdps->dofNames.push_back("y");
-          if(dim_ == 3) 
+          if(dim_ == 3)
           {
             fdps->dofNames.push_back("z");
           }
@@ -372,16 +371,16 @@ namespace CoupledField
         UInt numComps = data->GetNumberOfComponents();
         UInt numTuples = data->GetNumberOfTuples();
 
-        /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work 
+        /* fluidVel_array = pointData->GetScalars(&u_char); <-- does not work
          * because the data is stored inside the array-variable not inside the
          * scalar- or vector-variable of the vtk class. */
         /* Get access to the fluid velocity data */
         /* check if the first array is fluid velocity data */
-        if (dsName == "U" && 
+        if (dsName == "U" &&
             (requiredResults_[FLUIDMECH_VELOCITY] ||
              requiredResults_[NO_SOLUTION_TYPE]) )
         {
-          
+
           /* copy the fluid velocity values */
           fdps = &fd[FLUIDMECH_VELOCITY];
           fdps->isActive = !actRegion; // all partitions have results
@@ -392,7 +391,7 @@ namespace CoupledField
             fdps->entryType = ResultInfo::VECTOR;
             fdps->dofNames.push_back("x");
             fdps->dofNames.push_back("y");
-            if(dim_ == 3) 
+            if(dim_ == 3)
             {
               fdps->dofNames.push_back("z");
             }
@@ -403,7 +402,7 @@ namespace CoupledField
         }
 
         /* check if the array is fluid pressure data */
-        if (dsName == "p" && 
+        if (dsName == "p" &&
             (requiredResults_[FLUIDMECH_PRESSURE] ||
              requiredResults_[NO_SOLUTION_TYPE]))
         {
@@ -421,7 +420,7 @@ namespace CoupledField
         }
 
 #if 0
-        if ((dsName == "U" || dsName == "p") && 
+        if ((dsName == "U" || dsName == "p") &&
             (requiredResults_[FLUIDMECH_PRESSURE] ||
              requiredResults_[FLUIDMECH_VELOCITY] ||
              requiredResults_[NO_SOLUTION_TYPE]))
@@ -494,7 +493,7 @@ namespace CoupledField
   {
     static std::map<UInt, FEType> elemTypeMap;
 
-    if(elemTypeMap.empty()) 
+    if(elemTypeMap.empty())
     {
       elemTypeMap[VTK_LINE] = ET_LINE2;
       elemTypeMap[VTK_TRIANGLE] = ET_TRIA3;
@@ -514,7 +513,7 @@ namespace CoupledField
   //! get user data from file reader
   void FileReader_OPENFOAM::GetUserData(std::map<std::string, std::string>& userData)
   {
-    Settings& settings = Settings::Instance();    
+    Settings& settings = Settings::Instance();
     std::vector<std::string> fileNames;
     std::vector<std::string> dataSetNames;
     std::ifstream fin;
@@ -527,7 +526,7 @@ namespace CoupledField
     fs::directory_iterator end_iter;
     for ( fs::directory_iterator dir_itr( foamDir );
         dir_itr != end_iter;
-        ++dir_itr ) 
+        ++dir_itr )
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
@@ -551,7 +550,7 @@ namespace CoupledField
 
     for ( fs::directory_iterator dir_itr( foamDir );
         dir_itr != end_iter;
-        ++dir_itr ) 
+        ++dir_itr )
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
@@ -572,7 +571,7 @@ namespace CoupledField
 
     for ( fs::directory_iterator dir_itr( foamDir );
         dir_itr != end_iter;
-        ++dir_itr ) 
+        ++dir_itr )
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
@@ -593,7 +592,7 @@ namespace CoupledField
 
     for ( fs::directory_iterator dir_itr( foamDir );
         dir_itr != end_iter;
-        ++dir_itr ) 
+        ++dir_itr )
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
@@ -614,7 +613,7 @@ namespace CoupledField
 
     for ( fs::directory_iterator dir_itr( foamDir );
         dir_itr != end_iter;
-        ++dir_itr ) 
+        ++dir_itr )
     {
       if ( !fs::is_directory( *dir_itr ) )
       {

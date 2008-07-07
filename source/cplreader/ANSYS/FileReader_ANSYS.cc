@@ -4,7 +4,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <iomanip>
-#include <sstream> 
+#include <sstream>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -12,8 +12,9 @@
 #include <boost/filesystem/path.hpp>
 namespace fs=boost::filesystem;
 
-#include "../settings.hh"
-#include "filereader_ANSYS.hh"
+#include "General/exception.hh"
+#include "Settings.hh"
+#include "FileReader_ANSYS.hh"
 
 
 namespace CoupledField
@@ -38,9 +39,9 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     std::vector<std::string>::const_iterator it, end;
-    
 
-    if(settings.GetInt("deltemp") && everyThingRead_) 
+
+    if(settings.GetInt("deltemp") && everyThingRead_)
     {
       it = fileNames_.begin();
       end = fileNames_.end();
@@ -52,7 +53,7 @@ namespace CoupledField
 
         fs::remove(*it);
       }
-      
+
     }
   }
 
@@ -64,7 +65,7 @@ namespace CoupledField
     bool isNACS = false;
     std::string basedir = settings.GetString("basedir");
     std::string name = settings.GetString("name");
-    
+
     sstr << basedir << "/" << name << ".nodes";
     isMKHDF5  = fs::exists(sstr.str());
     sstr.clear(); sstr.str("");
@@ -86,7 +87,7 @@ namespace CoupledField
 
     if(isNACS)
       return "NACS";
-    
+
     return "FAILED";
   }
 
@@ -100,7 +101,7 @@ namespace CoupledField
   {
     TOPOLOGYDATA.resize(maxNumElemNodes_ * elemNumsMap_.size());
     elemTypes.resize(elemNumsMap_.size());
-    
+
     std::map<UInt, UInt>::const_iterator it, end;
     UInt numElemNodes;
     UInt elemNum;
@@ -108,16 +109,16 @@ namespace CoupledField
     UInt idx=0;
     UInt nodeNum;
     UInt origNodeNum;
-    
+
     it = elemNumsMap_.begin();
     end = elemNumsMap_.end();
 
-    for( ; it != end; it++ ) 
+    for( ; it != end; it++ )
     {
       elemNum = it->first;
       numElemNodes = NUM_ELEM_NODES[elemTypes_[elemNum]];
       elemTypes[idx] = elemTypes_[elemNum];
-      
+
       for(UInt i=0; i<numElemNodes; i++)
       {
         origNodeNum = topology_[elemNum][i];
@@ -141,7 +142,7 @@ namespace CoupledField
   {
     UInt numRegionElems = elemNumsOrig_[regionIdx].size();
     UInt elemNum;
-    
+
     regionElements.resize(numRegionElems);
 
     for(UInt i=0; i<numRegionElems; i++)
@@ -163,14 +164,14 @@ namespace CoupledField
   {
     return regionNames_[regionIdx];
   }
-  
+
   void FileReader_ANSYS::OpenFile(std::string fn)
   {
-    Settings& settings = Settings::Instance();    
+    Settings& settings = Settings::Instance();
     std::string filename;
-    
+
     inFile_.clear();
-    inFile_.open(fn.c_str(), std::ios::binary); 
+    inFile_.open(fn.c_str(), std::ios::binary);
 
     if (!inFile_) {
       EXCEPTION("Can't open " << filename);
@@ -178,11 +179,11 @@ namespace CoupledField
 
     // Let's remember which files we opened, so that we can delete them in the end.
     fileNames_.push_back(fn);
-    
+
     // Determine size of file
     inFile_.seekg(0,std::ios::end);
     fSize_ = inFile_.tellg();
-    
+
     // start from the beginning
     inFile_.seekg(0,std::ios::beg);
   }
@@ -193,29 +194,29 @@ namespace CoupledField
 
     if(pos >= fSize_)
       return false;
-    
+
     char* buf;
     buf = new char[fSize_+1];
     inFile_.read(buf, fSize_);
     inFile_.close();
     buf[fSize_] = 0;
-    
+
     std::string data(buf);
     delete[] buf;
-    
+
     typedef boost::tokenizer<char_separator<char> > Tok;
     boost::char_separator<char> sep("\n\r");
     Tok t(data, sep);
     Tok::iterator it, end;
     it = t.begin();
-    end = t.end();    
+    end = t.end();
 
     lines_.resize(std::distance(it, end));
     std::copy(it, end, lines_.begin());
-    
+
     lineIt_ = lines_.begin();
     lineEnd_ = lines_.end();
-    
+
     return true;
   }
 
@@ -232,7 +233,7 @@ namespace CoupledField
 
     line = *lineIt_;
     lineIt_++;
-    return true;   
+    return true;
   }
 
   void FileReader_ANSYS::DegenerateElement(const FEType elemTypeIn,
@@ -242,7 +243,7 @@ namespace CoupledField
     static std::vector<UInt> newElemNodes;
     static std::map<FEType, std::vector<UInt> > idxMap;
     elemTypeOut = elemTypeIn;
-    
+
     switch(elemTypeIn)
     {
     case ET_TRIA3:
@@ -253,7 +254,7 @@ namespace CoupledField
         std::copy(elemIdxMap, elemIdxMap+4, std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
-      
+
     case ET_TRIA6:
       elemTypeOut = ET_QUAD8;
 
@@ -263,7 +264,7 @@ namespace CoupledField
         std::copy(elemIdxMap, elemIdxMap+8, std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
-    
+
     case ET_TET4:
       elemTypeOut = ET_HEXA8;
 
@@ -273,7 +274,7 @@ namespace CoupledField
         std::copy(elemIdxMap, elemIdxMap+8,  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
-      
+
     case ET_TET10:
       elemTypeOut = ET_HEXA20;
 
@@ -312,7 +313,7 @@ namespace CoupledField
         std::copy(elemIdxMap, elemIdxMap+20,  std::back_inserter(idxMap[elemTypeIn]));
       }
       break;
-      
+
     case ET_WEDGE6:
       elemTypeOut = ET_HEXA8;
 
@@ -347,7 +348,7 @@ namespace CoupledField
     it = idxMap[elemTypeIn].begin();
     end = idxMap[elemTypeIn].end();
 
-    for(UInt i=0 ; it != end; it++, i++) 
+    for(UInt i=0 ; it != end; it++, i++)
     {
       newElemNodes[i] = elemNodes[*it];
     }
@@ -363,16 +364,16 @@ namespace CoupledField
     end1 = elemNodes1.end();
     it2 = elemNodes2.begin();
     end2 = elemNodes2.end();
-    
+
     for(; it1 != end1 && it2 != end2; it1++, it2++)
     {
       if(!(*it1))
         return true;
-    
+
       if(*it1 != *it2)
         return false;
     }
-    
+
     return true;
   }
 
@@ -380,18 +381,18 @@ namespace CoupledField
   {
      std::set<UInt> nodeSet;
      UInt pos;
-     
+
      nodeSet.insert(elemNodes[0]);
      pos = 1;
-     
+
      for(UInt i=1, n=elemNodes.size(); i<n; i++) {
        if(nodeSet.find(elemNodes[i]) != nodeSet.end()) {
          continue;
-       } 
+       }
 
        elemNodes[pos++] = elemNodes[i];
        nodeSet.insert(elemNodes[i]);
      }
   }
-  
+
 } // end of namespace

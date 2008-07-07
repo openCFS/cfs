@@ -23,17 +23,17 @@ namespace fs=boost::filesystem;
 #endif
 
 #include <cplreaderdefs.hh>
-#include "settings.hh"
+#include "General/exception.hh"
+#include "Settings.hh"
 #include "General/environment.hh"
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 
 #ifndef CPLREADER_STANDALONE
-#include "integlib.h"
 #include "integlib/elemIntegr.hh"
 #endif
 
 #include "MpCCIexch.hh"
-#include "flowDataTypes.hh"
+#include "FlowDataTypes.hh"
 
 #define H5_EXCEPTION(STR, EX)                   \
   EXCEPTION( STR, EX.getCDetailMsg() );
@@ -57,20 +57,20 @@ namespace CoupledField
       EXCEPTION("Invalid pointer to file reader!");
   }
 
-  MpCCIExchangeCPLR::~MpCCIExchangeCPLR() 
+  MpCCIExchangeCPLR::~MpCCIExchangeCPLR()
   {
-    
-    if( mainGroup_.getLocId() <= 0 ) 
+
+    if( mainGroup_.getLocId() <= 0 )
       return;
-    
+
     // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET | 
-                               H5F_OBJ_GROUP | 
+    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
+                               H5F_OBJ_GROUP |
                                H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
       std::cerr << "There are still objects open in the hdf5 file\n\n";
       CheckOpenObjects();
     }
-    
+
     mainFile_.close();
 
 #ifdef MpCCI
@@ -88,7 +88,7 @@ namespace CoupledField
     ptFileReader_->Init();
 
     dim_ = settings.GetInt("dim");
-    
+
     InitHDF5();
     WriteFileInfoHeader();
 
@@ -121,7 +121,7 @@ namespace CoupledField
     Tok::iterator tit, tend;
     tit = actp.begin();
     tend = actp.end();
-    
+
     activeParts_.resize(ptFileReader_->GetNumRegions());
     if(*tit == "all")
       std::fill(activeParts_.begin(), activeParts_.end(), true);
@@ -129,13 +129,13 @@ namespace CoupledField
     {
       std::stringstream sstr;
       UInt partIdx;
-      
-      for( ; tit != tend; tit++) 
+
+      for( ; tit != tend; tit++)
       {
         sstr.clear(); sstr.str("");
         sstr << *tit;
         sstr >> partIdx;
-        
+
         if(partIdx > 0 && partIdx <= activeParts_.size())
           activeParts_[partIdx-1] = true;
       }
@@ -147,7 +147,7 @@ namespace CoupledField
         std::cout << "Partition " << (i+1) << " active: "
                   << activeParts_[i] << std::endl;
     }
-    
+
     // Initialize element integrators for source term calculation
     ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
     ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
@@ -187,7 +187,7 @@ namespace CoupledField
     UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
     std::map<FEType, UInt> numElemsOfType;
     std::vector<std::string> regionNames;
-    
+
     numRegionNodes_.resize(numRegions);
 
     // First read everything into internal buffers
@@ -202,7 +202,7 @@ namespace CoupledField
 
     // write the dimension of the grid.
     H5IO::WriteAttribute( meshGroup_, "Dimension", dim );
-    
+
     // ================
     //  Node Locations
     // ================
@@ -211,10 +211,10 @@ namespace CoupledField
     try {
       nodeGroup = meshGroup_.createGroup( "Nodes" );
     } H5_CATCH( "Could not create node group" );
-    
+
     H5IO::WriteAttribute( nodeGroup, "NumNodes", nNodes );
-    
-    H5IO::Write2DArray( nodeGroup, "Coordinates", nNodes, 
+
+    H5IO::Write2DArray( nodeGroup, "Coordinates", nNodes,
                         3, &nodalCoords_[0], dPropList_ );
 
     nodeGroup.close();
@@ -230,15 +230,15 @@ namespace CoupledField
     try{
       elemGroup = meshGroup_.createGroup("Elements");
     } H5_CATCH( "Could not create element group" );
-    
+
     // write connectivity
-    H5IO::Write2DArray( elemGroup, "Connectivity", nElems, 
+    H5IO::Write2DArray( elemGroup, "Connectivity", nElems,
                         maxNumElemNodes, &topology_[0], dPropList_ );
 
     // write element types
     H5IO::Write1DArray( elemGroup, "Types", nElems,
                         &elemTypes_[0], dPropList_ );
-  
+
     std::cout << "done.\nWriting grid meta info... ";
 
     // ==========================
@@ -250,16 +250,16 @@ namespace CoupledField
     it = elemTypes_.begin();
     end = elemTypes_.end();
     UInt quadrElems = 0;
-    
-    for( ; it != end; it++ ) 
+
+    for( ; it != end; it++ )
     {
       numElemsOfDim[ ELEM_DIM[*it]-1 ]++;
       quadrElems &= ELEM_QUADRATIC[*it];
       numElemsOfType[(FEType)*it]++;
     }
 
-    // This has still to to be checked    
-    H5IO::WriteAttribute( elemGroup, "QuadraticElems", 
+    // This has still to to be checked
+    H5IO::WriteAttribute( elemGroup, "QuadraticElems",
                           quadrElems );
 
     // number of elements per dimension
@@ -268,7 +268,7 @@ namespace CoupledField
       attrName << "Num" << (i+1) << "DElems";
       H5IO::WriteAttribute( elemGroup, attrName.str(), numElemsOfDim[i] );
     }
-    
+
     // number of elements per type
     for(UInt i=0; i<numElemTypes; i++) {
       std::stringstream attrName;
@@ -292,7 +292,7 @@ namespace CoupledField
       // Clear temporary containers
       regionNodeSet.clear();
       regionNodes.clear();
-      
+
       std::cout << "Writing region " << (*regionNames.rbegin())
                 << "... ";
 
@@ -305,7 +305,7 @@ namespace CoupledField
       UInt regionDim = 0;
 
       CollectElementNodes(regionElems_[actRegion], regionNodes, regionDim);
-      
+
       WriteRegion(meshGroup_, regionNodes, regionElems_[actRegion], regionDim,
                   regionNames[actRegion]);
 
@@ -313,20 +313,20 @@ namespace CoupledField
       end = regionNodes.end();
 
       numRegionNodes_[actRegion] = std::distance(it, end);
-      
+
       for ( idx=0; it != end; it++, idx++ )
       {
         regionNodeIndices_[actRegion][*it] = idx;
       }
-      
-      
+
+
 #ifdef MpCCI
       if(settings.GetString("coupling") == "MpCCI") {
         // MpCCI part
         CCI_Def_partition(meshId_, actRegion+1);
         std::cout << "Define nodes" << std::endl;
 
-        /*	
+        /*
                 Uint numNodes = ptFileReader_->GetNumNodes(actRegion);
                 std::vector<Double> mpcciCoords;
                 mpcciCoords.resize(dim*numNodes);
@@ -359,7 +359,7 @@ namespace CoupledField
         }
 
         //define the elements
-        CCI_Def_elems(meshId_, actRegion+1, nElems, 0, NULL, 
+        CCI_Def_elems(meshId_, actRegion+1, nElems, 0, NULL,
                       nElems, (int*) &mpcciElemTypes[0], (int*) &numNodesPerElem_[actRegion][0],
                       (int*) &topology_[actRegion][0]);
       }
@@ -381,7 +381,7 @@ namespace CoupledField
     try{
       groupsGroup = meshGroup_.createGroup("Groups");
     } H5_CATCH( "Could not create 'Groups' group." );
-    
+
     WriteNodeGroups( groupsGroup );
     WriteElemGroups( groupsGroup );
     groupsGroup.close();
@@ -400,7 +400,7 @@ namespace CoupledField
 #endif // MpCCI
 
     std::cout << "Converting mesh done.\n";
-  
+
     std::cout << "========================================"
               << "========================================"
               << std::endl;
@@ -433,7 +433,7 @@ namespace CoupledField
     int globalConvergence = CCI_CONTINUE;
     int myConvergence     = CCI_CONTINUE;
 #endif // MpCCI
-  
+
 
     std::cout << "========================================"
               << "========================================"
@@ -453,8 +453,8 @@ namespace CoupledField
     // Fill vector with region names
     for (actRegion = 0; actRegion<numRegions; actRegion++)
       regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
-      
-    while ( ( counter < numFiles ) && readOK) 
+
+    while ( ( counter < numFiles ) && readOK)
     {
       stepVal = ptFileReader_->GetTimeStep(counter);
       stepNum = counter + 1;
@@ -476,23 +476,23 @@ namespace CoupledField
       if( currMeshStepGroup_.getId() <= 0 ) {
         std::stringstream stepName;
         stepName << "/Results/Mesh/MultiStep_1/Step_" << stepNum;
-          
+
         // Create new step group.
         try {
           currMeshStepGroup_= mainGroup_.createGroup(stepName.str());
           H5IO::WriteAttribute( currMeshStepGroup_, "StepValue", stepVal );
-            
+
           if(externalFiles)
             CreateExternalFile(stepNum);
         } H5_CATCH( "Can not create dataset for step " << stepNum );
       }
 
       // Read nodal values for all partitions
-      try 
+      try
       {
         ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
         readOK = true;
-      } catch (std::exception& ex) 
+      } catch (std::exception& ex)
       {
         std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
                   << std::endl << ex.what() << std::endl
@@ -501,28 +501,28 @@ namespace CoupledField
         readOK = false;
         continue;
       }
-      
-      
+
+
       for (actRegion = 0; actRegion<numRegions && readOK; actRegion++)
       {
         std::string groupName;
         H5::Group currResultGroup;
         FlowDataType::iterator fdIt, fdEnd;
         UInt numDOFs;
-        
+
         if(!activeParts_[actRegion])
         {
           FlowDataType::iterator fIt, fEnd;
           fIt = flowData[actRegion].begin();
           fEnd = flowData[actRegion].end();
-      
+
           for( ; fIt != fEnd; fIt++ ) {
             fIt->second.isActive = false;
           }
 
           continue;
         }
-        
+
         // If the user requests the calculation of the Lighthill
         // source term, follow his order!
 #ifndef CPLREADER_STANDALONE
@@ -539,7 +539,7 @@ namespace CoupledField
           UInt numDOFs;
           static std::vector<Double> acouRhsField;
           static std::vector<Double> velField;
-          
+
           // acouSrc scalar
           acouRhsField.resize(numNodesPart * quantityDim1_);
 
@@ -552,14 +552,14 @@ namespace CoupledField
             std::copy(fdps.data.begin(), fdps.data.end(),
                       acouRhsField.begin());
           }
-          
+
           CCI_Put_nodes( meshId_, actRegion+1, quantityId1_,
                          quantityDim1_, numNodesPart, 0, NULL,
                          CCI_DOUBLE, &acouRhsField[0]);
 
           // velocity u, v, w
           velField.resize(numNodesPart * quantityDim2_);
-          
+
           fdIt = flowData[actRegion].find(FLUIDMECH_VELOCITY);
 
           // Copy data from partition struct to a dummy vector.
@@ -573,7 +573,7 @@ namespace CoupledField
               UInt idx1 = numNodesPart * numDOFs;
               UInt idx2 = numNodesPart * quantityDim2_;
 
-              for(UInt j=0; j<numDOFs; j++) 
+              for(UInt j=0; j<numDOFs; j++)
                 velField[idx2 + j] = fdps.data[idx1 + j];
             }
           }
@@ -583,12 +583,12 @@ namespace CoupledField
                          CCI_DOUBLE, &velField[0]);
         }
 #endif // MpCCI
-        
+
         // Iterate over all flow datasets for this partition
         // and write them to HDF5
         fdIt = flowData[actRegion].begin();
         fdEnd = flowData[actRegion].end();
-        for( ; fdIt != fdEnd; fdIt++) 
+        for( ; fdIt != fdEnd; fdIt++)
         {
           FlowDataPartStruct& fdps = fdIt->second;
           // SolutionType st = fdIt->first;
@@ -607,13 +607,13 @@ namespace CoupledField
               continue;
             }
           }
-          
+
           // Create result groups in HDF5 file and write result.
           try {
             // Open or create subgroup for result
             try {
               currResultGroup = currMeshStepGroup_.openGroup( fdps.resultName );
-            } catch (H5::GroupIException& ex) 
+            } catch (H5::GroupIException& ex)
             {
               currResultGroup = currMeshStepGroup_.createGroup( fdps.resultName );
             }
@@ -621,7 +621,7 @@ namespace CoupledField
             // Create subgroup for region
             groupName = regionNames[actRegion];
             currResultGroup = currResultGroup.createGroup(groupName);
-            
+
             // Create subgroup for Nodes
             groupName = H5IO::MapUnknownTypeAsString(fdps.definedOn);
             currResultGroup = currResultGroup.createGroup(groupName);
@@ -633,19 +633,19 @@ namespace CoupledField
 
             std::vector<Double> output;
             ShrinkNodalVector(actRegion, numDOFs, fdps.data, output);
-            
+
             WriteResults(currResultGroup, output, numDOFs, false);
             std::cout << "done." << std::endl;
-          
+
             // Close nodes subgroup
             currResultGroup.close();
           } H5_CATCH("Failed to write result '" << fdps.resultName
                      << "' in step " << stepNum);
         }
-        
+
       }//end of for
 
-    
+
 #ifdef MpCCI
       if(settings.GetString("coupling") == "MpCCI") {
         //Send values via MpCCI
@@ -671,7 +671,7 @@ namespace CoupledField
       try {
         currMeshStepGroup_.close();
       } H5_CATCH( "Could close current step group" );
-      
+
       // increment time step counter
       counter++;
     }//end of while
@@ -690,7 +690,7 @@ namespace CoupledField
               << "========================================"
               << std::endl;
   }
-  
+
   void MpCCIExchangeCPLR::Finish()
   {
     // Fetch custom data from file reader and write it to the UserData
@@ -701,7 +701,7 @@ namespace CoupledField
     ptFileReader_->GetUserData(userData);
     udIt = userData.begin();
     udEnd = userData.end();
-    for( ; udIt != udEnd; udIt++ ) 
+    for( ; udIt != udEnd; udIt++ )
       WriteStringToUserData(udIt->first, udIt->second);
 
     // Close main HDF5 group and finish
@@ -716,7 +716,7 @@ namespace CoupledField
     for( ; it != end; it++)
       delete it->second;
   }
-  
+
   void MpCCIExchangeCPLR::CheckOpenObjects() {
     std::vector<UInt> types;
     std::vector<std::string> typeNames;
@@ -731,14 +731,14 @@ namespace CoupledField
     std::cerr << "Number of open objects:\n"
               << "--------------------------\n";
 
-    for(UInt t=0; t<types.size(); t++) 
+    for(UInt t=0; t<types.size(); t++)
     {
       UInt numObjs = mainFile_.getObjCount(types[t]);
       std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
 
       ids = new hid_t[numObjs];
       mainFile_.getObjIDs(types[t], numObjs, ids);
-    
+
       for(UInt i=0; i<numObjs; i++)
       {
         H5::DataSet ds;
@@ -778,7 +778,7 @@ namespace CoupledField
   {
     std::vector<UInt>::const_iterator it, end;
     std::set<UInt> nodeSet;
-    
+
     UInt topoIdx = 0;
     UInt idx = 0;
     UInt numElemNodes;
@@ -796,11 +796,11 @@ namespace CoupledField
       topoIdx = idx * maxNumElemNodes;
       et = (FEType) elemTypes_[idx];
       numElemNodes = NUM_ELEM_NODES[ et ];
-        
+
       nodeSet.insert(&topology_[topoIdx],
                      &topology_[topoIdx+numElemNodes]);
-        
-      dim = dim < ELEM_DIM[et] ? ELEM_DIM[et] : dim; 
+
+      dim = dim < ELEM_DIM[et] ? ELEM_DIM[et] : dim;
     }
 
     std::copy(nodeSet.begin(), nodeSet.end(),
@@ -832,13 +832,13 @@ namespace CoupledField
       pathsep = fs::path("/").native_directory_string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
-    }    
+    }
 
     strBuffer.clear();
     strBuffer.str("");
     strBuffer << hdf5DirName_ << pathsep << fileName << ".h5";
     fileName = strBuffer.str();
-    
+
     // create main file and obtain main group
     try {
       mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
@@ -847,7 +847,7 @@ namespace CoupledField
     mainGroup_ = mainFile_.openGroup( "/" );
     meshGroup_ = mainGroup_.createGroup( "Mesh" );
     mainGroup_.createGroup( "FileInfo" ).close();
-    
+
     mainGroup_.createGroup( "UserData" );
     mainGroup_.createGroup( "Results" );
   }
@@ -858,19 +858,19 @@ namespace CoupledField
     try {
       infoGroup = mainGroup_.openGroup( "FileInfo" );
     } H5_CATCH( "Could not open group for FileInfo" );
-    
+
     // write file version
     std::stringstream version;
     version << CFS_HDF5_FORMAT_MAJOR << "." << CFS_HDF5_FORMAT_MINOR;
     std::string versionString = version.str();
-    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ ); 
-    
+    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ );
+
     // write date / time information
     using namespace boost::posix_time;
     using namespace boost::gregorian;
     std::string now = to_simple_string( second_clock::local_time() );
     H5IO::Write1DArray( infoGroup, "Date", 1, &now, dPropList_ );
-    
+
     // write creator
     std::stringstream creator;
     creator << "cplreader " << CFS_VERSION << " ( "
@@ -879,8 +879,8 @@ namespace CoupledField
             << ", date " << CFS_CONF_DATE
             << " )";
     std::string creatorString = creator.str();
-    H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ ); 
-    
+    H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ );
+
     // create group for content
     StdVector<Integer> content;
     content.Push_back( H5IO::MapCapabilityType( SimOutput::USERDATA ) );
@@ -888,19 +888,19 @@ namespace CoupledField
       content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH ) );
     if(!settings.GetInt("justmesh") && !settings.GetInt("justinit"))
       content.Push_back( H5IO::MapCapabilityType( SimOutput::MESH_RESULTS ) );
-    H5IO::Write1DArray( infoGroup, "Content", content.GetSize(), 
+    H5IO::Write1DArray( infoGroup, "Content", content.GetSize(),
                         &content[0], dPropList_ );
-    
+
   }
 
   void MpCCIExchangeCPLR::WriteRegion(const H5::Group& meshGroup,
                                       const std::vector<UInt>& nodes,
                                       const std::vector<UInt>& elems,
                                       const UInt dim,
-                                      const std::string name) 
+                                      const std::string name)
   {
     H5::Group regionListGroup;
-    
+
     // Try to open Regions group. If it does not exist try to create it.
     try{
       regionListGroup = meshGroup.openGroup("Regions");
@@ -910,21 +910,21 @@ namespace CoupledField
         regionListGroup = meshGroup.createGroup("Regions");
       } H5_CATCH( "Could not create region group" );
     }
-    
-    // create new region group 
+
+    // create new region group
     H5::Group actRegionGroup;
     try {
       actRegionGroup = regionListGroup.createGroup(name);
-    } H5_CATCH( "Could not create region group for region '" 
+    } H5_CATCH( "Could not create region group for region '"
                 << name << "'" );
-    H5IO::WriteAttribute( actRegionGroup, "Dimension", 
+    H5IO::WriteAttribute( actRegionGroup, "Dimension",
                           dim );
-    
-    // create new node group 
+
+    // create new node group
     H5IO::Write1DArray<UInt>( actRegionGroup, "Nodes",
                               nodes.size(),
                               (const UInt*)&nodes[0], dPropList_ );
-    
+
     // create new element group
     H5IO::Write1DArray( actRegionGroup,
                         "Elements",
@@ -944,16 +944,16 @@ namespace CoupledField
     std::map<std::string, std::vector<UInt> >::const_iterator it, end;
     it = nodeGroups_.begin();
     end = nodeGroups_.end();
-    
+
     for(; it != end; it++ ) {
       nodesName = it->first;
 
       std::cout << "Writing node group " << nodesName << "... ";
-      
+
       // try to open group with given name
       try {
         myGroup = meshGroup.openGroup( nodesName );
-      } catch (H5::Exception& h5Ex ) {   
+      } catch (H5::Exception& h5Ex ) {
         myGroup = meshGroup.createGroup( nodesName );
       }
       H5IO::WriteAttribute( myGroup, "Dimension", 0 );
@@ -975,16 +975,16 @@ namespace CoupledField
     std::map<std::string, std::vector<UInt> >::const_iterator it, end;
     it = elemGroups_.begin();
     end = elemGroups_.end();
-    
+
     for(; it != end; it++ ) {
       elemsName = it->first;
       std::cout << "Writing element group " << elemsName << "... ";
 
       CollectElementNodes(it->second, elemNodes, dim);
-      
+
       try {
         myGroup = meshGroup.openGroup( elemsName );
-      } catch (H5::Exception& h5Ex ) {   
+      } catch (H5::Exception& h5Ex ) {
         myGroup = meshGroup.createGroup( elemsName );
       }
       H5IO::WriteAttribute( myGroup, "Dimension", dim );
@@ -996,7 +996,7 @@ namespace CoupledField
       H5IO::Write1DArray( myGroup, "Nodes",
                           elemNodes.size(), &elemNodes[0],
                           dPropList_);
-      
+
       // close nodes array of current group
       myGroup.close();
 
@@ -1004,12 +1004,12 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::InitResultsGroup() 
+  void MpCCIExchangeCPLR::InitResultsGroup()
   {
     Settings& settings = Settings::Instance();
     UInt externalFiles = settings.GetInt("extfiles");
     std::string analysisType = "transient";
-    
+
     try {
       resultsGroup_ = mainGroup_.openGroup("Results");
     } H5_CATCH( "Could open group for results" );
@@ -1055,7 +1055,7 @@ namespace CoupledField
 
     // Extract active regionsc
     UInt numRegions = ptFileReader_->GetNumRegions();
-    for(UInt i=0; i<numRegions; i++) 
+    for(UInt i=0; i<numRegions; i++)
     {
       it = outputFields[i].begin();
       end = outputFields[i].end();
@@ -1094,10 +1094,10 @@ namespace CoupledField
         H5::Group actGroup = resultDescGroup.createGroup(resultName);
 
         H5IO::Write1DArray( actGroup, "DefinedOn", 1, &definedOn, dPropList_ );
-        H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(), 
+        H5IO::Write1DArray( actGroup, "EntityNames", resultRegions.size(),
             &resultRegions[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "NumDOFs", 1, &numDofs, dPropList_ );
-        H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(), 
+        H5IO::Write1DArray( actGroup, "DOFNames", dofNames.size(),
             &dofNames[0], dPropList_ );
         H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
         H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
@@ -1135,9 +1135,9 @@ namespace CoupledField
 
     UInt numEntities = (UInt) resultVals.size() / numDOFs;
 
-    if(outputPrecision == "double") 
+    if(outputPrecision == "double")
     {
-      H5IO::Write2DArray( resultGroup, name, 
+      H5IO::Write2DArray( resultGroup, name,
                           numEntities, numDOFs, &resultVals[0],
                           dPropList_ );
     }
@@ -1148,9 +1148,9 @@ namespace CoupledField
       std::copy(resultVals.begin(), resultVals.end(),
                 floatResultVals.begin());
 
-      H5IO::Write2DArray( resultGroup, name, 
+      H5IO::Write2DArray( resultGroup, name,
                           numEntities, numDOFs, &floatResultVals[0],
-                          dPropList_ );      
+                          dPropList_ );
     }
   }
 
@@ -1164,7 +1164,7 @@ namespace CoupledField
 
       // open external file
       pathsep = fs::path("/").native_directory_string();
-      
+
       fName << fileName << "_ms" << 1 << "_step"
             << timeStep << ".h5";
       fn = fName.str();
@@ -1178,13 +1178,13 @@ namespace CoupledField
       // set current step group to external file
       currMeshStepGroup_.close();
       currMeshStepGroup_ = currStepFile_.openGroup("/");
-      
+
       // Store reference to master file in external file
       fName.str("");
       fName << fileName << ".h5";
       fn = fName.str();
       H5IO::WriteAttribute( currMeshStepGroup_, "MasterHDF5FileName", fn );
-      
+
       // Store reference to main group in external file
       masterGroup << "/Results/Mesh/MultiStep_" << 1
                   << "/Step_" << timeStep;
@@ -1201,20 +1201,20 @@ namespace CoupledField
 #ifndef CPLREADER_STANDALONE
     std::string regionName = ptFileReader_->GetRegionName(regionIdx);
 
-    if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end()) 
+    if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end())
     {
-      std::cerr << "Cannot calculate Lighthill sources on " << regionName 
+      std::cerr << "Cannot calculate Lighthill sources on " << regionName
                 << " since no velocity field is available!" << std::endl;
       return;
     }
-    
+
     // Acquire reference to velocity field
     FlowDataPartStruct& fdps = flowData[FLUIDMECH_VELOCITY];
     std::vector<Double>& velField = fdps.data;
 
-    if(!fdps.isActive) 
+    if(!fdps.isActive)
     {
-      std::cerr << "Will not calculate Lighthill sources on " << regionName 
+      std::cerr << "Will not calculate Lighthill sources on " << regionName
                 << " since velocity field is not active!" << std::endl;
       return;
     }
@@ -1249,18 +1249,18 @@ namespace CoupledField
     UInt elemIdx;
     UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
     UInt nodeNum;
-    
+
     for( int i=0; i<nElems; i++)
     {
       elemIdx = regionElems_[regionIdx][i] - 1;
       elemType = (FEType) elemTypes_[elemIdx];
       numElemNodes = NUM_ELEM_NODES[elemType];
       elemDim = ELEM_DIM[elemType];
-      
+
       // Just calculate sources for volume elements!
       if(elemDim < dim_)
         continue;
-  
+
       coordMat.Resize(elemDim, numElemNodes);
       nodaldTijdxj.Resize(elemDim, numElemNodes);
       nodalVel.Resize(elemDim, numElemNodes);
@@ -1270,7 +1270,7 @@ namespace CoupledField
         nodeNum = topology_[elemIdx * maxNENodes + n];
         UInt topoIdx = (nodeNum - 1) * 3;
         UInt velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
-        
+
         for( UInt d=0; d<elemDim; d++)
         {
           coordMat[d][n] = nodalCoords_[topoIdx+d];
@@ -1286,12 +1286,12 @@ namespace CoupledField
         std::cerr << "Warning: An Exception occurred during source term "
                   << "computation:\nElement " << i+1 << " of partition "
                   << ptFileReader_->GetRegionName(regionIdx) << std::endl;
-        
+
         std::cerr << ex.what()<< std::endl;
 
         if(settings.GetInt("verbose")) {
           UInt oldPrec = std::cerr.precision(8);
-          
+
           std::cerr << "Corner coords:\n";
           for (UInt iCol = 0, numCols = coordMat.GetSizeCol();
                iCol < numCols; ++iCol) {
@@ -1301,7 +1301,7 @@ namespace CoupledField
             }
             std::cerr << std::endl;
           }
-          
+
           std::cerr.precision(oldPrec);
           std::cerr << ex.what();
         }
@@ -1324,7 +1324,7 @@ namespace CoupledField
                     << " is Inf or Nan.");
         }
 #endif
-        
+
         acouRhsField[idx] -= elemVec[n];
       }
     }
@@ -1343,36 +1343,36 @@ namespace CoupledField
     std::map<UInt, UInt>::const_iterator it, end;
     UInt idxInput = 0;
     UInt idxOutput = 0;
-    
-    if(numInputNodes == numNodes) 
+
+    if(numInputNodes == numNodes)
     {
       output = input;
       return;
     }
-    
+
     it = regionNodeIndices_[partitionIdx].begin();
     end = regionNodeIndices_[partitionIdx].end();
     output.resize(numNodes * numDOFs);
-    
-    for( ; it != end; it++ ) 
+
+    for( ; it != end; it++ )
     {
       idxInput = (it->first - 1) * numDOFs;
       idxOutput = it->second * numDOFs;
-      
-      for(UInt dof=0; dof < numDOFs; dof++ ) 
+
+      for(UInt dof=0; dof < numDOFs; dof++ )
         output[idxOutput+dof] = input[idxInput+dof];
     }
   }
 
-  void MpCCIExchangeCPLR::WriteStringToUserData(const std::string& dSetName, 
+  void MpCCIExchangeCPLR::WriteStringToUserData(const std::string& dSetName,
                                                 const std::string& str) {
     H5::Group userDataGroup;
-    
+
     // If it does not exist, create Group for Data.
     try {
       userDataGroup = mainGroup_.openGroup("UserData");
     } H5_CATCH( "Can not write meta information to hdf5 file" );
-    
+
     H5IO::Write1DArray( userDataGroup, dSetName, 1, &str, dPropList_ );
     userDataGroup.close();
   }
@@ -1414,7 +1414,7 @@ namespace CoupledField
     case ET_PYRA5:
       return CCI_ELEM_PYRAMID;
       break;
-    
+
     default:
       Enum2String(et, elemTypeName);
       EXCEPTION("Element type " << elemTypeName

@@ -2,7 +2,7 @@
 #define FILE_FILEREADER_ANSYS_2008
 
 #include <cplreaderdefs.hh>
-#include "../filereader.hh"
+#include "FileReader.hh"
 
 namespace CoupledField
 {
@@ -16,7 +16,7 @@ namespace CoupledField
                      const UInt dim,
                      const UInt numFiles,
                      const UInt startIndex);
-    
+
     //! Deconstructor
     virtual ~FileReader_ANSYS();
 
@@ -37,10 +37,10 @@ namespace CoupledField
                                  const UInt timeStepIdx);
 
     virtual std::string GetRegionName(const UInt regionIdx);
-    
+
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
-    
+
   protected:
 
     void OpenFile(std::string fn);
@@ -55,37 +55,37 @@ namespace CoupledField
     // Checks if connectivities of two elements match.
     bool CompareElements(const std::vector<UInt>& elemNodes1,
                          const std::vector<UInt>& elemNodes2);
-    
+
     UInt chunkSize_;
     UInt fSize_;
     bool strict_;
     bool degen_;
     bool everyThingRead_;
-    
+
     std::ifstream inFile_;
-    
+
     std::vector<std::string> regionNames_;
     std::vector<std::string> lines_;
     std::vector<std::string>::iterator lineIt_, lineEnd_;
-    
+
     // Nodal coordinates for all nodes
     std::vector<Double> nodalCoords_;
-    
+
     // Topology for per "original" element number
     std::map<UInt, std::vector<UInt> > topology_;
-    
+
     // Element type per "original" element number
     std::map<UInt, UInt > elemTypes_;
-    
+
     // Vector of "original" element numbers per region
-    std::map<UInt, std::vector<UInt> > elemNumsOrig_; 
-    
+    std::map<UInt, std::vector<UInt> > elemNumsOrig_;
+
     // Map from original node number to new node number
-    std::map<UInt, UInt > nodeNumsMap_;    
+    std::map<UInt, UInt > nodeNumsMap_;
 
     // Map from original element number to new element number
     std::map<UInt, UInt > elemNumsMap_;
-    
+
     // Map from original element number to region index
     std::map<UInt, UInt > elemRegionMap_;
 
@@ -94,6 +94,6 @@ namespace CoupledField
 
   };
 
-      
+
 } // end of namespace
 #endif

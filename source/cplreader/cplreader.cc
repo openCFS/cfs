@@ -21,9 +21,10 @@ namespace fs=boost::filesystem;
 
 #include <cplreaderdefs.hh>
 
-#include "params.hh"
-#include "settings.hh"
-#include "filereader.hh"
+#include "General/exception.hh"
+#include "ParamsInit.hh"
+#include "Settings.hh"
+#include "FileReader.hh"
 
 #ifdef CPLREADER_ANSYS
 #include "ANSYS/FileReader_MKHDF5.hh"
@@ -31,20 +32,20 @@ namespace fs=boost::filesystem;
 #endif
 
 #ifdef CPLREADER_FASTEST
-#include "FASTEST/filereader_FASTEST.hh"
+#include "FASTEST/FileReader_FASTEST.hh"
 #endif
 
 #ifdef CPLREADER_CFX
-#include "CFX/filereader_CFX.hh"
+#include "CFX/FileReader_CFX.hh"
 #include "CFXexport/FileReader_CFXexport.hh"
 #endif
 
 #ifdef CPLREADER_OPENFOAM
-#include "OPENFOAM/filereader_OPENFOAM.hh"
+#include "OPENFOAM/FileReader_OPENFOAM.hh"
 #endif
 
 // #include "Stanford/filereader_Stanford.hh"
-#include "CFX/cfx_fortran_defs.h"
+// #include "CFX/cfx_fortran_defs.h"
 #include "MpCCIexch.hh"
 
 using namespace CoupledField;
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
   int ret = 0;
   FileReader* fileReader = NULL;
 
-  try 
+  try
   {
     Settings& settings = Settings::Instance();
 
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
     Exception::segfault_ = (bool) settings.GetInt("segfault");
 
     std::string type = settings.GetString("type");
-    
+
     std::ostringstream sstr;
     if(type != "ANSYS")
     {
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
     {
       sstr << settings.GetString("basedir");
     }
-    
+
     /* check if directory even exists */
     if(!fs::exists(sstr.str()) ||
         !fs::is_directory(sstr.str()))
@@ -87,7 +88,7 @@ int main(int argc, char *argv[])
 #ifdef CPLREADER_ANSYS
       std::string readerType = FileReader_ANSYS::GetReaderType();
 
-      if(readerType == "MKHDF5") 
+      if(readerType == "MKHDF5")
       {
         fileReader = new FileReader_MKHDF5(settings.GetString("name"),
                                            settings.GetInt("dim"), 0, 0);
@@ -171,11 +172,11 @@ int main(int argc, char *argv[])
     // Initialize and perform coupling
     MpCCIExchangeCPLR mpCCIexch(fileReader);
     mpCCIexch.Init(argc, argv);
-    if(!settings.GetInt("justinit")) 
+    if(!settings.GetInt("justinit"))
     {
       mpCCIexch.PutExchangeGrid2MpCCI();
 
-      if(!settings.GetInt("justmesh")) 
+      if(!settings.GetInt("justmesh"))
       {
         mpCCIexch.Couple();
       }
@@ -184,15 +185,15 @@ int main(int argc, char *argv[])
 
   } catch (std::exception& ex)
   {
-    std::cerr << "CAUGHT EXCEPTION:" << std::endl 
+    std::cerr << "CAUGHT EXCEPTION:" << std::endl
               << std::endl
               << ex.what()
               << std::endl;
     ret = 1;
   }
-    
+
   delete fileReader;
-    
+
   return ret;
 }
-      
+

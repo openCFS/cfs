@@ -16,10 +16,10 @@ namespace algo=boost::algorithm;
 // #include <pcrecpp.h>
 // #include <muParser.h>
 
-#include "../params.hh"
-#include "../settings.hh"
+#include "General/exception.hh"
+#include "Settings.hh"
 #include "../mpcci_defs.hh"
-#include "filereader_CFX.hh"
+#include "FileReader_CFX.hh"
 #include "cfx_fortran_defs.h"
 
 #define CHECK_CFX_IO(NERR)                      \
@@ -47,7 +47,7 @@ namespace CoupledField
     FileReader(name, dim, numFiles)
   {
     Settings& settings = Settings::Instance();
-    
+
     name_ = name;
     baseName_ = settings.GetString("basedir");
     baseName_+= "/";
@@ -65,7 +65,7 @@ namespace CoupledField
 
     if(settings.GetDouble("timeStep") < 0)
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
-        
+
     std::stringstream sstr;
     sstr << baseName_ << name_ << ".res";
     std::string resFileName = sstr.str();
@@ -76,7 +76,7 @@ namespace CoupledField
 
     if(fs::exists(resFileName))
     {
-        
+
       //-----------------------------------------------------------------------
       //     Open RESULTS file
       //-----------------------------------------------------------------------
@@ -86,10 +86,10 @@ namespace CoupledField
       if(settings.GetInt("verbose"))
       {
         std::cout << "Trying to open CFX results file " << fn
-                  << "." << std::endl; 
+                  << "." << std::endl;
       }
-    
-      openfile_(&nerr, fn, &whatfile, strlen(fn)); 
+
+      openfile_(&nerr, fn, &whatfile, strlen(fn));
       CHECK_CFX_IO(nerr);
 
       //-----------------------------------------------------------------------
@@ -107,7 +107,7 @@ namespace CoupledField
       intvec.resize(BIGMEM*3);
       floatvec.resize(BIGMEM);
       int its;
-    
+
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
               &iopt, &ioptar,
               &floatvec[0],&intvec[0],carr,larr,darr,sarr,
@@ -140,15 +140,15 @@ namespace CoupledField
       ntrn = nsize;
 
       //    printf("sarrt %s, ntrn %d\n", sarrt, ntrn);
-    
+
       numSteps_ = 0;
       transientFNs_.clear();
       timeStepNumbers_.clear();
-        
+
       for(int i = 0; i< ntrn; i++)
       {
         int its  = intvec[i];
-        
+
         char* trnnam = &charvec[i*80];
         int n;
         for(n = 0; n< 80; n++)
@@ -159,9 +159,9 @@ namespace CoupledField
             break;
           }
         }
-        
+
         snprintf(fn, sizeof(fn), "%s%s/%s", baseName_.c_str(), name_.c_str(), trnnam);
-            
+
         inFile_.clear();
         inFile_.open(fn);
         if (inFile_)
@@ -172,7 +172,7 @@ namespace CoupledField
           transientFNs_.push_back(fn);
           timeStepNumbers_.push_back(its);
         }
-            
+
       }
 
       //-----------------------------------------------------------------------
@@ -198,9 +198,9 @@ namespace CoupledField
       CHECK_CFX_IO(nerr);
 
       whatfile = __io_close_primaryfile__;
-      closefile_(&nerr, &whatfile); 
+      closefile_(&nerr, &whatfile);
       CHECK_CFX_IO(nerr);
-        
+
       //-----------------------------------------------------------------------
       //     Parse the command string from the CFX results file and
       //     get infos about definition file, time unit and timestep
@@ -208,7 +208,7 @@ namespace CoupledField
 
       GetInfosFromCommand();
     }
-    else 
+    else
     {
       fs::path trnDir( baseName_ +  name_);
       fs::directory_iterator end_iter;
@@ -217,10 +217,10 @@ namespace CoupledField
       std::set<UInt>::const_iterator it, end;
       UInt stepNum;
       std::string fn;
-      
+
       for ( fs::directory_iterator dir_itr( trnDir );
             dir_itr != end_iter;
-            ++dir_itr ) 
+            ++dir_itr )
       {
         if ( !fs::is_directory( *dir_itr ) )
         {
@@ -244,9 +244,9 @@ namespace CoupledField
         stepNum = *it;
         sstr.clear(); sstr.str("");
         sstr << baseName_ << name_ << "/" << stepNum << ".trn";
-        
+
         fn = sstr.str();
-        
+
         numSteps_++;
         transientFNs_.push_back(fn);
         timeStepNumbers_.push_back(stepNum);
@@ -262,7 +262,7 @@ namespace CoupledField
         numSteps_ = tmp;
       }
     }
-        
+
     //-----------------------------------------------------------------------
     //     Open DEFINITION file
     //-----------------------------------------------------------------------
@@ -278,7 +278,7 @@ namespace CoupledField
     for(UInt i=0; i<defFileNames.size(); i++)
     {
       if(settings.GetInt("verbose"))
-      {    
+      {
         std::cerr << "Trying to open deffile: " << defFileNames[i] << " ";
       }
 
@@ -292,7 +292,7 @@ namespace CoupledField
         {
           std::cerr << "-> OK!" << std::endl;
         }
-                    
+
         break;
       }
 
@@ -301,18 +301,18 @@ namespace CoupledField
         std::cerr << "-> failed!" << std::endl;
       }
     }
-        
+
     if(defFile == "")
     {
       EXCEPTION("Can not find definition file.");
     }
-        
+
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
     openfile_(&nerr,
               fn,
               &whatfile,
-              strlen(fn)); 
+              strlen(fn));
     CHECK_CFX_IO(nerr);
 
     //-----------------------------------------------------------------------
@@ -328,7 +328,7 @@ namespace CoupledField
     nsize  = 1;
     iopt   = __stop_if_failed__;
     ioptar = 0;
-    
+
     nvx = 0;
 
     redsht_(&dattyp, &length, &nerr,
@@ -344,7 +344,7 @@ namespace CoupledField
     {
       printf("Number of vertices: %d\n", nvx);
     }
-        
+
 
     //-----------------------------------------------------------------------
     //     Reading element connectivity
@@ -372,11 +372,11 @@ namespace CoupledField
     {
       printf("Number of element sets, NES= %d\n", nes);
     }
-        
+
     numRegions_ = nes;
     numNodesPerRegion_.resize(numRegions_);
     numElemsPerRegion_.resize(numRegions_);
-        
+
     //---- Element type per element set
     //---   elem type = 4: tet  , 4 nodes
     //---             = 5: wedge, 6 nodes
@@ -386,7 +386,7 @@ namespace CoupledField
     sprintf(what, "G/ILTPES");
     sprintf(where, "ZN1");
     when  = 0;
-    
+
     dattyp = __int_data_type__;
     length = 1;
     nsize  = nes;
@@ -419,12 +419,12 @@ namespace CoupledField
 
       UInt nENod = NUM_ELEM_NODES[*regionElemTypes_.rbegin()];
       maxNumElemNodes_ = nENod > maxNumElemNodes_ ? nENod : maxNumElemNodes_;
-      
+
       //
       //---- reading element numbers for each element set
       //
       sprintf(what,"G/KELPE");
-    
+
       //
       //---- where = ZN1/ESn where n is integer from 1 to nes
       //
@@ -435,7 +435,7 @@ namespace CoupledField
       length = 1;
       nsize  = BIGMEM;
       iopt   = __stop_if_failed__;
-        
+
       readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
                 rarr,&intvec[0],carr,larr,darr,sarr,
                 strlen(what), strlen(where), 0);
@@ -462,15 +462,15 @@ namespace CoupledField
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
   }
-    
+
   void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD)
   {
     Settings& settings = Settings::Instance();
     NODECOORD.resize(numNodesPerRegion_[0]*3);
-        
+
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
-    openfile_(&nerr, fn, &whatfile, strlen(fn)); 
+    openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
     if(settings.GetInt("verbose"))
@@ -491,7 +491,7 @@ namespace CoupledField
     nsize  = numNodesPerRegion_[0];
     iopt = __stop_if_failed__;
     doublevec.resize(numNodesPerRegion_[0]*3);
-    
+
     readlong_(&dattyp, &nerr, what,where,&when,&nsize,&iopt,
               rarr,iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
@@ -503,12 +503,12 @@ namespace CoupledField
     {
       printf("Coordinate size = %d\n", nsize);
     }
-        
+
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
   }
-    
+
   void FileReader_CFX::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
                                         std::vector<UInt> & elemTypes)
   {
@@ -521,14 +521,14 @@ namespace CoupledField
 
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
-    openfile_(&nerr, fn, &whatfile, strlen(fn)); 
+    openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
     // Determine total number of elements
     for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
       numElems += numElemsPerRegion_[actRegion];
     }
-    
+
     TOPOLOGYDATA.resize(numElems * maxNumElemNodes_);
 
     for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
@@ -568,7 +568,7 @@ namespace CoupledField
       }
 
       UInt baseIdx=0;
-      for(int i=0; i<numElems; i++, baseIdx += numElemNodes) 
+      for(int i=0; i<numElems; i++, baseIdx += numElemNodes)
       {
         elemTypes.push_back(elemType);
         std::fill(elConnect.begin(), elConnect.end(), 0);
@@ -584,7 +584,7 @@ namespace CoupledField
           elConnect[6] = intvec[baseIdx + 3];
           elConnect[7] = intvec[baseIdx + 1];
         }
-        else 
+        else
         {
           std::copy(&intvec[baseIdx],
               &intvec[baseIdx+numElemNodes],
@@ -596,16 +596,16 @@ namespace CoupledField
         std::copy(elConnect.begin(), elConnect.end(),
                   TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
         elem++;
-        
+
       }
-      
+
     }
 
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
   }
-    
+
   void FileReader_CFX::GetRegionElements(std::vector<UInt> & regionElements,
                                               const UInt regionIdx)
   {
@@ -619,9 +619,9 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     bool floatDS = settings.GetInt("floatDataset");
-    
+
     // Open input file
-    snprintf(fn, 
+    snprintf(fn,
              sizeof(fn),
              "%s",
              transientFNs_[timeStepIdx].c_str());
@@ -631,8 +631,8 @@ namespace CoupledField
     {
       std::cout << "Opening file "<< fn << std::endl;
     }
-    
-    openfile_(&nerr, fn, &whatfile, strlen(fn)); 
+
+    openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
     for(UInt actPart=0; actPart < numRegions_; actPart++)
@@ -640,7 +640,7 @@ namespace CoupledField
       int nvx = numNodesPerRegion_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
       UInt numDOFs;
-      
+
       if(!activeParts[actPart])
         continue;
 
@@ -649,13 +649,13 @@ namespace CoupledField
         std::cout << "Reading data on " << GetRegionName(actPart)
                   << std::endl;
       }
-      
+
       //-----------------------------------------------------------------------
       //     Reading velocity from input file
       //-----------------------------------------------------------------------
       if(requiredResults_[FLUIDMECH_VELOCITY] ||
-         requiredResults_[NO_SOLUTION_TYPE]) 
-      {                     
+         requiredResults_[NO_SOLUTION_TYPE])
+      {
         sprintf(what, "G/VEL_FL1");
         sprintf(where, "ZN1/VX");
         when  = timeStepNumbers_[timeStepIdx];
@@ -678,23 +678,23 @@ namespace CoupledField
               &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
-        if(nerr)                                                  
-        {                                                         
+        if(nerr)
+        {
           if(settings.GetInt("verbose"))
             std::cerr << "WARNING: CFX dataset does not contain velocity!"
-            << std::endl;                           
+            << std::endl;
         }
-        else 
+        else
         {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_VELOCITY];
           fdps.isActive = true; // all partitions have results
-          if(fdps.dofNames.empty()) 
+          if(fdps.dofNames.empty())
           {
 
             fdps.definedOn = ResultInfo::NODE; // nodes
             fdps.dofNames.push_back("x");
             fdps.dofNames.push_back("y");
-            if(dim_ == 3) 
+            if(dim_ == 3)
               fdps.dofNames.push_back("z");
 
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
@@ -709,18 +709,18 @@ namespace CoupledField
                 floatvec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
           else
-            std::copy(doublevec.begin(), 
+            std::copy(doublevec.begin(),
                 doublevec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
         }
       }
-    
+
       //-----------------------------------------------------------------------
       //     Reading pressure from input file
       //-----------------------------------------------------------------------
       if(requiredResults_[FLUIDMECH_PRESSURE] ||
-         requiredResults_[NO_SOLUTION_TYPE]) 
-      {                     
+         requiredResults_[NO_SOLUTION_TYPE])
+      {
         sprintf(what, "G/PRES");
         sprintf(where, "ZN1/VX");
         when  = timeStepNumbers_[timeStepIdx];
@@ -743,18 +743,18 @@ namespace CoupledField
               &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
-        if(nerr)                                                  
-        {                                                         
+        if(nerr)
+        {
           if(settings.GetInt("verbose"))
             std::cerr << "WARNING: CFX dataset does not contain pressure!"
-            << std::endl;                           
+            << std::endl;
         }
-        else 
+        else
         {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_PRESSURE];
           fdps.isActive = true; // all partitions have results
-          if(fdps.dofNames.empty()) 
-          {        
+          if(fdps.dofNames.empty())
+          {
             fdps.definedOn = ResultInfo::NODE; // nodes
             fdps.dofNames.push_back("-");
             fdps.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
@@ -769,7 +769,7 @@ namespace CoupledField
                 floatvec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
           else
-            std::copy(doublevec.begin(), 
+            std::copy(doublevec.begin(),
                 doublevec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
         }
@@ -779,8 +779,8 @@ namespace CoupledField
       //     Reading turbulent kinetic energy from input file
       //-----------------------------------------------------------------------
       if(requiredResults_[FLUIDMECH_TKE] ||
-         requiredResults_[NO_SOLUTION_TYPE]) 
-      {                     
+         requiredResults_[NO_SOLUTION_TYPE])
+      {
         sprintf(what, "G/TKE_FL1");
         sprintf(where, "ZN1/VX");
         when  = timeStepNumbers_[timeStepIdx];
@@ -803,13 +803,13 @@ namespace CoupledField
               &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
               strlen(what), strlen(where), 0);
 
-        if(nerr)                                                  
-        {     
+        if(nerr)
+        {
           if(settings.GetInt("verbose"))
             std::cerr << "WARNING: CFX dataset does not contain turb. kin. energy!"
-            << std::endl;                           
+            << std::endl;
         }
-        else 
+        else
         {
           FlowDataPartStruct& fdps = fd[FLUIDMECH_TKE];
           fdps.isActive = true; // all partitions have results
@@ -829,7 +829,7 @@ namespace CoupledField
                 floatvec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
           else
-            std::copy(doublevec.begin(), 
+            std::copy(doublevec.begin(),
                 doublevec.begin() + (numDOFs * nvx),
                 fdps.data.begin());
         }
@@ -872,7 +872,7 @@ namespace CoupledField
     int pos=0;
     Settings& settings = Settings::Instance();
     std::ostringstream sstr;
-        
+
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
@@ -880,7 +880,7 @@ namespace CoupledField
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
 
     userDataCFX_COMMANDS = sstr.str();
-    
+
 #if 0
     if(solTimeUnit != "[s]")
     {
@@ -916,7 +916,7 @@ namespace CoupledField
         it++)
     {
       bool match;// = pcrecpp::RE(it->first).GlobalReplace(it->second, &s);
-      
+
       boost::regex e1(my_expression);
 
       if(match)
@@ -929,12 +929,12 @@ namespace CoupledField
 
     if(settings.GetInt("verbose"))
     {
-      std::cout << "===================================" << std::endl;      
+      std::cout << "===================================" << std::endl;
       std::cout << "regexp: " << regexp << std::endl;
     }
-    
-            
-    //        if(!pcrecpp::RE(regexp).Replace("", &s)) 
+
+
+    //        if(!pcrecpp::RE(regexp).Replace("", &s))
     //        {
     //            std::cerr << "Error when replacing time unit in timestep string" << std::endl;
     //            exit(1);
@@ -967,12 +967,12 @@ namespace CoupledField
       exit(1);
       }
       }
-        
+
       if(settings.GetInt("verbose"))
       {
       std::cout << "Timestep string after substitution: " << s << std::endl;
       std::cout << "Timestep: " << timeStep << std::endl;
-      }        
+      }
     */
 #endif
   }
@@ -1014,7 +1014,7 @@ namespace CoupledField
           cmdstr[actPos] = 0;
           attrib = &cmdstr[pos];
         }
-                
+
         break;
       }
       actPos++;
@@ -1027,15 +1027,15 @@ namespace CoupledField
     outFile << indent << cmd << " " << attrib << std::endl;
 
 
-    do 
+    do
     {
       actPos++;
     }
     while( isspace((int) cmdstr[actPos]) );
-        
-        
+
+
     nextTokenPos = actPos;
-        
+
     while( isprint((int)cmdstr[actPos]) )
     {
       if (cmdstr[actPos] == ':')
@@ -1069,7 +1069,7 @@ namespace CoupledField
         {
           exprMap[option] = value;
         }
-                
+
       }
       else
       {
@@ -1079,13 +1079,13 @@ namespace CoupledField
         if(std::string(endTest) == "END")
         {
           actPos +=3;
-                    
+
           if(settings.GetInt("verbose"))
           {
             std::cout << indent << "END" << std::endl;
           }
           outFile << indent << cmd << " " << attrib << std::endl;
-                    
+
           while( isspace((int)cmdstr[actPos]) )
           {
             actPos++;
@@ -1097,13 +1097,13 @@ namespace CoupledField
 
         actPos++;
       }
-            
+
     }
 
     pos = actPos;
   }
-    
-        
+
+
   void FileReader_CFX::ParseOption(std::vector<char>& cmdstr,
                                    int& pos,
                                    std::string& option,
@@ -1141,10 +1141,10 @@ namespace CoupledField
       {
         break;
       }
-            
+
       actPos++;
     }
-        
+
     cmdstr[actPos] = 0;
     value = &cmdstr[pos];
 
@@ -1153,16 +1153,16 @@ namespace CoupledField
       std::cout << indent << option << " = " << value << std::endl;
     }
     outFile << indent << option << " = " << value << std::endl;
-        
-    do 
+
+    do
     {
       actPos++;
     }
     while( isspace((int)cmdstr[actPos]) );
-        
+
     pos = actPos;
   }
-    
+
   void FileReader_CFX::GetUserData(std::map<std::string, std::string>& userData)
   {
     if(userDataCFX_COMMANDS == "")
@@ -1173,12 +1173,12 @@ namespace CoupledField
     userData["CFX_COMMANDS"] = userDataCFX_COMMANDS;
 
     std::ostringstream sstr;
-    
+
     for(UInt i=0, n=timeStepNumbers_.size(); i<n; i++)
     {
       sstr << timeStepNumbers_[i] << ".trn -> step " << (i+1) << std::endl;
     }
-    
+
     userData["TRN_TO_STEP_MAP"] = sstr.str();
   }
 
@@ -1189,19 +1189,19 @@ namespace CoupledField
     case __io_ok__:
       errStr = "I/O Operation was OK.";
       break;
-            
+
     case __io_open_err__:
       errStr = "Failed to open file.";
       break;
-            
+
     case __io_file_not_open__:
       errStr = "File not open.";
       break;
-            
+
     case __io_file_not_found__:
       errStr = "File not found.";
       break;
-            
+
     case __io_disk_full__:
       errStr = "Disk full.";
       break;
@@ -1232,7 +1232,7 @@ namespace CoupledField
 
     case __io_write_err__:
       errStr = "Write error.";
-      break; 
+      break;
 
     case __io_parse_err__:
       errStr = "Parse error.";
@@ -1301,11 +1301,11 @@ namespace CoupledField
     case __io_memalloc_err__:
       errStr = "Memory allocation error.";
       break;
-            
+
     default:
       errStr = "Unknown CFX I/O error.";
       break;
     }
-        
+
   }
 }

@@ -4,11 +4,11 @@
 #include <fstream>
 #include <stdio.h>
 #include <iomanip>
-#include <sstream> 
+#include <sstream>
 
-#include "../params.hh"
-#include "../settings.hh"
-#include "filereader_FASTEST.hh"
+#include "General/exception.hh"
+#include "Settings.hh"
+#include "FileReader_FASTEST.hh"
 
 
 namespace CoupledField
@@ -37,21 +37,21 @@ namespace CoupledField
         char buf[128];
         UInt dummy;
         UInt i;
-        
-        
+
+
         if(settings.GetDouble("timeStep") < 0)
           EXCEPTION("No proper time step has been specified! Use --timestep X.");
-        
-        // Let's first determine the format of filenames        
+
+        // Let's first determine the format of filenames
         std::stringstream sstr;
         std::string regionFormatStr;
         std::string timeStepFormatStr;
-        
+
         if (settings.GetInt("verbose")) {
           std::cout << "Trying to determine file name format for "
                     << ".coord/.node files... ";
         }
-        
+
         for(i=1; i<10; i++)
         {
           filename = baseName_;
@@ -63,7 +63,7 @@ namespace CoupledField
           filename+= ".coord";
 
           inFile_.clear();
-          inFile_.open(filename.c_str());  
+          inFile_.open(filename.c_str());
           if (!inFile_) {
             //std::cerr << "Can't open " << filename << std::endl;
           }
@@ -72,14 +72,14 @@ namespace CoupledField
             break;
           }
         }
-        
+
         if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .coord/.node files");
         }
         else if (settings.GetInt("verbose")) {
           std::cout << "OK" << std::endl;
         }
-        
+
         inFile_ >> dummy;
         inFile_ >> numRegions_;
         inFile_ >> dummy;
@@ -100,10 +100,10 @@ namespace CoupledField
         if (settings.GetInt("verbose")) {
           std::cout << "Trying to determine file name format for .dat files... ";
         }
-        
+
         sstr.str("");
         sstr << startIndex_;
-        
+
         for(i=sstr.str().length(); i<=10; i++)
         {
           filename = baseName_;
@@ -118,7 +118,7 @@ namespace CoupledField
           filename+= ".dat";
 
           inFile_.clear();
-          inFile_.open(filename.c_str());  
+          inFile_.open(filename.c_str());
           if (!inFile_) {
             //std::cerr << "Can't open " << filename << std::endl;
           }
@@ -127,7 +127,7 @@ namespace CoupledField
             break;
           }
         }
-        
+
         if( i == 10 ) {
           EXCEPTION("Could not determine file name format for .dat files");
         }
@@ -155,7 +155,7 @@ namespace CoupledField
         solutionTypes_.push_back(FLUIDMECH_VELOCITY);
         solutionTypes_.push_back(FLUIDMECH_VELOCITY);
         solutionTypes_.push_back(FLUIDMECH_PRESSURE);
-        
+
         dofIndices_.push_back(0);
         dofIndices_.push_back(0);
         dofIndices_.push_back(1);
@@ -165,7 +165,7 @@ namespace CoupledField
         for(UInt i=0; i<fastestDOFs.size(); i++)
         {
           std::string colStr = settings.GetString(fastestDOFs[i]);
-          
+
           if(colStr != "")
           {
             sstr.str("");
@@ -173,20 +173,20 @@ namespace CoupledField
             colStr = colStr.substr(3);
             sstr << colStr;
             sstr >> dataCol;
-            
+
             if(sstr.fail())
             {
               EXCEPTION("Error while trying to init FASTEST column mapping");
             }
-            
+
             dataColumns_.push_back(dataCol-1);
           }
           else
           {
-            dataColumns_.push_back(-1);            
+            dataColumns_.push_back(-1);
           }
         }
-        
+
         std::cout << "\n Name:\t\t\t\t" << name_ << std::endl
                   << " Dimension:\t\t\t" << dim_ << std::endl
                   << " Files:\t\t\t\t" << numSteps_ << std::endl
@@ -211,7 +211,7 @@ namespace CoupledField
             filename+= ".coord";
 
             inFile_.clear();
-            inFile_.open(filename.c_str());  
+            inFile_.open(filename.c_str());
             if (!inFile_) {
               EXCEPTION("Can't open " << filename);
             }
@@ -230,7 +230,7 @@ namespace CoupledField
             filename+= buf;
             filename+= ".topo";
 
-            inFile_.open(filename.c_str());  
+            inFile_.open(filename.c_str());
             if (!inFile_) {
               EXCEPTION("Can't open " << filename);
             }
@@ -269,9 +269,9 @@ namespace CoupledField
 
         for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
           numNodes += numNodesPerRegion_[regionIdx];
-        
+
         NODECOORD.resize(3 * numNodes);
-        
+
         for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
         {
           filename = baseName_;
@@ -280,7 +280,7 @@ namespace CoupledField
           filename+= ".coord";
 
           inFile_.clear();
-          inFile_.open(filename.c_str());  
+          inFile_.open(filename.c_str());
           if (!inFile_) {
             EXCEPTION("Can't open " << filename);
           }
@@ -289,10 +289,10 @@ namespace CoupledField
           std::string::size_type pos=0;
           inFile_.seekg(pos, std::ios::beg);
 
-          inFile_ >> dummy; 
-          inFile_ >> dummy; 
-          inFile_ >> dummy; 
-          inFile_ >> dummy; 
+          inFile_ >> dummy;
+          inFile_ >> dummy;
+          inFile_ >> dummy;
+          inFile_ >> dummy;
 
           std::vector<double> max, min;
           max.resize(3);
@@ -303,13 +303,13 @@ namespace CoupledField
                   >> NODECOORD[nodeIdx + 1]
                   >> NODECOORD[nodeIdx + 2];
           min[0] = max[0] = NODECOORD[nodeIdx + 0];
-          min[1] = max[1] = NODECOORD[nodeIdx + 1];  
+          min[1] = max[1] = NODECOORD[nodeIdx + 1];
           min[2] = max[2] = NODECOORD[nodeIdx + 2];
 
           for (UInt i=1; i < numNodesPerRegion_[regionIdx]; i++)
           {
             nodeIdx += 3;
-            
+
             for (UInt j=0; j < 3; j++)
             {
               inFile_ >> NODECOORD[nodeIdx + j];
@@ -342,7 +342,7 @@ namespace CoupledField
       UInt numElems = 0;
       UInt elemIdx = 0;
       UInt nodeOffset = 0;
-      
+
       for(regionIdx=0; regionIdx < numRegions_; regionIdx++)
         numElems += numElemsPerRegion_[regionIdx];
 
@@ -356,7 +356,7 @@ namespace CoupledField
         filename+= ".topo";
 
         inFile_.clear();
-        inFile_.open(filename.c_str());  
+        inFile_.open(filename.c_str());
         if (!inFile_) {
           EXCEPTION("Can't open " << filename);
         }
@@ -419,16 +419,16 @@ namespace CoupledField
                                    const UInt regionIdx)
   {
     UInt elemOffset = 0;
-    
+
     for(UInt i=0; i < regionIdx; i++)
       elemOffset += numElemsPerRegion_[i];
-    
+
     regionElements.resize(numElemsPerRegion_[regionIdx]);
-    
+
     for(UInt i=0; i < numElemsPerRegion_[regionIdx]; i++)
       regionElements[i] = elemOffset + i + 1;
   }
-  
+
   //! get nodal values from the corresponding fluid datafile the new way
   void FileReader_FASTEST::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                            const std::vector<bool>& activeParts,
@@ -441,26 +441,26 @@ namespace CoupledField
     static std::vector<Double> tempVec;
 
     tempVec.resize(numResults_);
-    
+
     for(UInt actRegion=0; actRegion < numRegions_; actRegion++)
     {
       //      std::cout << "FASTEST: actRegion " << actRegion << std::endl;
-      
+
       // Initialize flow data structures if necessary
       FlowDataType& fd = nodalFlowData[actRegion];
 
       for(UInt j=0; j<dataColumns_.size(); j++)
       {
-        if(dataColumns_[j] > -1) 
+        if(dataColumns_[j] > -1)
         {
-          if(fd.find(solutionTypes_[j]) == fd.end()) 
+          if(fd.find(solutionTypes_[j]) == fd.end())
           {
             FlowDataPartStruct& fdps = fd[solutionTypes_[j]];
             fdps.isActive = true; // all partitions have results
             fdps.definedOn = ResultInfo::NODE; // nodes
             Enum2String(solutionTypes_[j], fdps.resultName);
-            
-            switch(solutionTypes_[j]) 
+
+            switch(solutionTypes_[j])
             {
             case ACOU_RHS_LOAD:
               fdps.dofNames.push_back("-");
@@ -470,7 +470,7 @@ namespace CoupledField
             case FLUIDMECH_VELOCITY:
               fdps.dofNames.push_back("x");
               fdps.dofNames.push_back("y");
-              if(dim_ == 3) 
+              if(dim_ == 3)
                 fdps.dofNames.push_back("z");
               fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
               fdps.entryType = ResultInfo::VECTOR;
@@ -503,7 +503,7 @@ namespace CoupledField
       sprintf(buf, timeFmtStr_.c_str(), timeStepIdx+startIndex_);
       filename+= buf;
       filename+= ".dat";
-    
+
       inFile_.clear();
       inFile_.open(filename.c_str());
       if (!inFile_) {
@@ -513,7 +513,7 @@ namespace CoupledField
       /* Set pointer to beginning of file: */
       std::string::size_type pos=0;
       inFile_.seekg(pos, std::ios::beg);
-    
+
       inFile_ >> dummy;
 
       for (UInt i=0; i < numNodesPerRegion_[actRegion]; i++)
@@ -521,10 +521,10 @@ namespace CoupledField
         // read all data columns from input file
         for(UInt j=0; j<numResults_; j++)
           inFile_ >> tempVec[j];
-        
+
         for(UInt j=0; j<dataColumns_.size(); j++)
         {
-          if(dataColumns_[j] > -1) 
+          if(dataColumns_[j] > -1)
           {
             numDOFs = nodalFlowData[actRegion][solutionTypes_[j]].dofNames.size();
             std::vector<Double>& data = nodalFlowData[actRegion][solutionTypes_[j]].data;
@@ -533,7 +533,7 @@ namespace CoupledField
           }
         }
       }
-      
+
       inFile_.close();
     }
   }

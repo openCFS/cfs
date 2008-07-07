@@ -2,7 +2,7 @@
 #define FILE_FILEREADER_NACS_2008
 
 #include <cplreaderdefs.hh>
-#include "filereader_ANSYS.hh"
+#include "FileReader_ANSYS.hh"
 
 namespace CoupledField
 {
@@ -16,7 +16,7 @@ namespace CoupledField
                      const UInt dim,
                      const UInt numFiles,
                      const UInt startIndex);
-    
+
     //! Deconstructor
     virtual ~FileReader_NACS();
 
@@ -34,11 +34,11 @@ namespace CoupledField
 
     FEType DegenTypeToNativeType(UInt type, UInt numNodes);
     void GetRegionAndGroupNames();
-    
+
     std::vector<std::string> nodeGroupNames_;
-    std::vector<std::string> elemGroupNames_;    
+    std::vector<std::string> elemGroupNames_;
   };
 
-      
+
 } // end of namespace
 #endif

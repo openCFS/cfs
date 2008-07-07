@@ -2,7 +2,7 @@
 #define FILE_FILEREADER_MKHDF5_2008
 
 #include <cplreaderdefs.hh>
-#include "filereader_ANSYS.hh"
+#include "FileReader_ANSYS.hh"
 
 namespace CoupledField
 {
@@ -16,7 +16,7 @@ namespace CoupledField
                      const UInt dim,
                      const UInt numFiles,
                      const UInt startIndex);
-    
+
     //! Deconstructor
     virtual ~FileReader_MKHDF5();
 
@@ -36,6 +36,6 @@ namespace CoupledField
     UInt maxOrigElemNum_;
   };
 
-      
+
 } // end of namespace
 #endif

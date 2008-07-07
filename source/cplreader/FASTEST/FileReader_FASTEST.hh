@@ -2,7 +2,7 @@
 #define FILE_FILEREADER_FASTEST_2006
 
 #include <cplreaderdefs.hh>
-#include "../filereader.hh"
+#include "FileReader.hh"
 
 namespace CoupledField
 {
@@ -16,7 +16,7 @@ namespace CoupledField
                        const UInt dim,
                        const UInt numFiles,
                        const UInt startIndex);
-    
+
     //! Deconstructor
     virtual ~FileReader_FASTEST();
 
@@ -37,7 +37,7 @@ namespace CoupledField
 
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
-    
+
   protected:
 
     UInt startIndex_;
@@ -48,11 +48,11 @@ namespace CoupledField
     std::vector<UInt> dofIndices_;
     std::vector<UInt> elsize_;
     UInt numResults_;
-    
+
     std::ifstream inFile_;
-    
+
   };
 
-      
+
 } // end of namespace
 #endif
