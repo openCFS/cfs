@@ -20,21 +20,21 @@ namespace CoupledField
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
   */
 
-  class MpCCIExchangeCPLR
+  class CouplingHandler
   {
   public:
 
     //!
-    MpCCIExchangeCPLR(FileReader * ptFileReader);
+    CouplingHandler(FileReader * ptFileReader);
 
     //!
-    virtual ~MpCCIExchangeCPLR();
+    virtual ~CouplingHandler();
 
     // Perform initialization
     void Init(int argc, char *argv[]);
 
-    //! Reorganizing grid info for MpCCi and hand over to MpCCI
-    void PutExchangeGrid2MpCCI();
+    //! Hand over mesh from reader to writer
+    void ConvertMesh();
 
     //! Performs the coupled computation phase
     void Couple();

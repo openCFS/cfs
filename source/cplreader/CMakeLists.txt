@@ -35,9 +35,9 @@ IF(CPLREADER_OPENFOAM)
 ENDIF(CPLREADER_OPENFOAM)
 
 SET(CPLREADER_SRCS 
+  CouplingHandler.cc
   cplreader.cc
   FileReader.cc
-  MpCCIexch.cc
   ParamsInit.cc
   integlib/elemIntegr.cc
   integlib/integr.cc

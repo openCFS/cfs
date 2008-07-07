@@ -26,12 +26,9 @@ namespace fs=boost::filesystem;
 #include "Settings.hh"
 #include "General/environment.hh"
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
-
-#ifndef CPLREADER_STANDALONE
 #include "integlib/elemIntegr.hh"
-#endif
 
-#include "MpCCIexch.hh"
+#include "CouplingHandler.hh"
 #include "FlowDataTypes.hh"
 
 #define H5_EXCEPTION(STR, EX)                   \
@@ -48,7 +45,7 @@ namespace fs=boost::filesystem;
 namespace CoupledField
 {
 
-  MpCCIExchangeCPLR::MpCCIExchangeCPLR(FileReader * ptFileReader)
+  CouplingHandler::CouplingHandler(FileReader * ptFileReader)
   {
     ptFileReader_ = ptFileReader;
 
@@ -56,7 +53,7 @@ namespace CoupledField
       EXCEPTION("Invalid pointer to file reader!");
   }
 
-  MpCCIExchangeCPLR::~MpCCIExchangeCPLR()
+  CouplingHandler::~CouplingHandler()
   {
 
     if( mainGroup_.getLocId() <= 0 )
@@ -80,7 +77,7 @@ namespace CoupledField
 #endif // MpCCI
   }
 
-  void MpCCIExchangeCPLR::Init(int argc, char *argv[])
+  void CouplingHandler::Init(int argc, char *argv[])
   {
     Settings& settings = Settings::Instance();
 
@@ -161,7 +158,7 @@ namespace CoupledField
       settings.SetString("outprec", "single");
   }
 
-  void MpCCIExchangeCPLR::PutExchangeGrid2MpCCI()
+  void CouplingHandler::ConvertMesh()
   {
     std::cout << "========================================"
               << "========================================"
@@ -410,7 +407,7 @@ namespace CoupledField
               << std::endl;
   }
 
-  void MpCCIExchangeCPLR::Couple()
+  void CouplingHandler::Couple()
   {
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcSrc");
@@ -690,7 +687,7 @@ namespace CoupledField
               << std::endl;
   }
 
-  void MpCCIExchangeCPLR::Finish()
+  void CouplingHandler::Finish()
   {
     // Fetch custom data from file reader and write it to the UserData
     // section of the HDF5 file.
@@ -716,7 +713,7 @@ namespace CoupledField
       delete it->second;
   }
 
-  void MpCCIExchangeCPLR::CheckOpenObjects() {
+  void CouplingHandler::CheckOpenObjects() {
     std::vector<UInt> types;
     std::vector<std::string> typeNames;
     hid_t* ids;
@@ -771,7 +768,7 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::CollectElementNodes(const std::vector<UInt>& elems,
+  void CouplingHandler::CollectElementNodes(const std::vector<UInt>& elems,
                                               std::vector<UInt>& nodes,
                                               UInt& dim)
   {
@@ -806,7 +803,7 @@ namespace CoupledField
               std::back_inserter(nodes));
   }
 
-  void MpCCIExchangeCPLR::InitHDF5() {
+  void CouplingHandler::InitHDF5() {
     Settings& settings = Settings::Instance();
     std::string pathsep;
     std::string fileName  = settings.GetString("name");
@@ -851,7 +848,7 @@ namespace CoupledField
     mainGroup_.createGroup( "Results" );
   }
 
-  void MpCCIExchangeCPLR::WriteFileInfoHeader() {
+  void CouplingHandler::WriteFileInfoHeader() {
     Settings& settings = Settings::Instance();
     H5::Group infoGroup;
     try {
@@ -892,7 +889,7 @@ namespace CoupledField
 
   }
 
-  void MpCCIExchangeCPLR::WriteRegion(const H5::Group& meshGroup,
+  void CouplingHandler::WriteRegion(const H5::Group& meshGroup,
                                       const std::vector<UInt>& nodes,
                                       const std::vector<UInt>& elems,
                                       const UInt dim,
@@ -937,7 +934,7 @@ namespace CoupledField
     } H5_CATCH( "Could not close region group" );
   }
 
-  void MpCCIExchangeCPLR::WriteNodeGroups(const H5::Group& meshGroup) {
+  void CouplingHandler::WriteNodeGroups(const H5::Group& meshGroup) {
     H5::Group myGroup;
     std::string nodesName;
     std::map<std::string, std::vector<UInt> >::const_iterator it, end;
@@ -966,7 +963,7 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::WriteElemGroups(const H5::Group& meshGroup) {
+  void CouplingHandler::WriteElemGroups(const H5::Group& meshGroup) {
     H5::Group myGroup;
     std::vector< UInt > elemNodes;
     std::string elemsName;
@@ -1003,7 +1000,7 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::InitResultsGroup()
+  void CouplingHandler::InitResultsGroup()
   {
     Settings& settings = Settings::Instance();
     UInt externalFiles = settings.GetInt("extfiles");
@@ -1028,7 +1025,7 @@ namespace CoupledField
 
   }
 
-  void MpCCIExchangeCPLR::WriteResultDescriptions(UInt numSteps,
+  void CouplingHandler::WriteResultDescriptions(UInt numSteps,
       const std::vector<FlowDataType>& outputFields,
       const std::vector<UInt> stepNumbers,
       const std::vector<Double> stepValues)
@@ -1118,7 +1115,7 @@ namespace CoupledField
 
   }
 
-  void MpCCIExchangeCPLR::WriteResults( H5::Group& resultGroup,
+  void CouplingHandler::WriteResults( H5::Group& resultGroup,
                                         std::vector<Double>& resultVals,
                                         const UInt numDOFs,
                                         const bool isImag ) {
@@ -1153,7 +1150,7 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::CreateExternalFile(UInt timeStep) {
+  void CouplingHandler::CreateExternalFile(UInt timeStep) {
     Settings& settings = Settings::Instance();
     std::string fileName = settings.GetString("name");
     std::stringstream fName, masterGroup;
@@ -1192,7 +1189,7 @@ namespace CoupledField
   }
 
 
-  void MpCCIExchangeCPLR::CalculateAcouSrcs(const int regionIdx,
+  void CouplingHandler::CalculateAcouSrcs(const int regionIdx,
                                             FlowDataType& flowData)
   {
     Settings& settings = Settings::Instance();
@@ -1332,7 +1329,7 @@ namespace CoupledField
 #endif
   }
 
-  void MpCCIExchangeCPLR::ShrinkNodalVector(const UInt partitionIdx,
+  void CouplingHandler::ShrinkNodalVector(const UInt partitionIdx,
                                             const UInt numDOFs,
                                             const std::vector<Double>& input,
                                             std::vector<Double>& output)
@@ -1363,7 +1360,7 @@ namespace CoupledField
     }
   }
 
-  void MpCCIExchangeCPLR::WriteStringToUserData(const std::string& dSetName,
+  void CouplingHandler::WriteStringToUserData(const std::string& dSetName,
                                                 const std::string& str) {
     H5::Group userDataGroup;
 
@@ -1376,7 +1373,7 @@ namespace CoupledField
     userDataGroup.close();
   }
 
-  int MpCCIExchangeCPLR::ElemTypes2MpCCI(FEType et)
+  int CouplingHandler::ElemTypes2MpCCI(FEType et)
   {
 #ifdef MpCCI
     std::string elemTypeName;

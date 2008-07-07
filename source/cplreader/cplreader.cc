@@ -13,12 +13,6 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
-#include <def_use_mpcci.hh>
-
-#if (MpCCI_RELEASE == 305)
-#include <mpcci.h>
-#endif
-
 #include <def_cplreader.hh>
 
 #include "General/exception.hh"
@@ -44,25 +38,14 @@ namespace fs=boost::filesystem;
 #include "FileReaders/OPENFOAM/FileReader_OPENFOAM.hh"
 #endif
 
-// #include "Stanford/filereader_Stanford.hh"
-// #include "CFX/cfx_fortran_defs.h"
-#include "MpCCIexch.hh"
+#include "CouplingHandler.hh"
 
-using namespace CoupledField;
 
-int main(int argc, char *argv[])
+namespace CoupledField
 {
-  int ret = 0;
-  FileReader* fileReader = NULL;
-
-  try
-  {
+  FileReader* FileReaderFactory() {
+    FileReader* fileReader;
     Settings& settings = Settings::Instance();
-
-    ParamsInit(argc, argv);
-
-    // Set user defined exception behaviour
-    Exception::segfault_ = (bool) settings.GetInt("segfault");
 
     std::string type = settings.GetString("type");
 
@@ -169,19 +152,44 @@ int main(int argc, char *argv[])
       return 0;
     }
 
+    return fileReader;
+  }
+}
+
+
+using namespace CoupledField;
+
+int main(int argc, char *argv[])
+{
+  int ret = 0;
+  FileReader* fileReader = NULL;
+
+  try
+  {
+    Settings& settings = Settings::Instance();
+
+    // Initialize settings singleton with command line parameters
+    ParamsInit(argc, argv);
+
+    // Set user defined exception behaviour
+    Exception::segfault_ = (bool) settings.GetInt("segfault");
+
+    // Generate a file reader
+    fileReader = FileReaderFactory();
+
     // Initialize and perform coupling
-    MpCCIExchangeCPLR mpCCIexch(fileReader);
-    mpCCIexch.Init(argc, argv);
+    CouplingHandler cplHandler(fileReader);
+    cplHandler.Init(argc, argv);
     if(!settings.GetInt("justinit"))
     {
-      mpCCIexch.PutExchangeGrid2MpCCI();
+      cplHandler.ConvertMesh();
 
       if(!settings.GetInt("justmesh"))
       {
-        mpCCIexch.Couple();
+        cplHandler.Couple();
       }
     }
-    mpCCIexch.Finish();
+    cplHandler.Finish();
 
   } catch (std::exception& ex)
   {
