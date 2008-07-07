@@ -75,3 +75,6 @@ ENDIF(USE_MPCCI)
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpcci.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mpcci.hh")
+  
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cplreader.hh.in"
+  "${CFS_BINARY_DIR}/include/def_cplreader.hh")
