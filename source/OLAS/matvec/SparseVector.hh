@@ -124,8 +124,8 @@ namespace OLAS {
     //! the implementation for standard vectors.
     virtual BaseVector &operator= ( const BaseVector &bvec ) {
       TRY_CAST {
-	ConstRefCast( bvec, SparseVector, svec );
-	*this = svec;
+        ConstRefCast( bvec, SparseVector, svec );
+        *this = svec;
       } CATCH_CAST;
       return *this;
     }

@@ -15,7 +15,7 @@ namespace OLAS {
 
     Error( "This method should _never_ be called!", __FILE__, __LINE__ );
 
-    BasePrecond *dummyPrecond = new IdPrecond;
+    BasePrecond *dummyPrecond = new IdPrecondStd;
     BaseVector *dummyVec = GenerateVectorObject( sysMat );
 
     Setup( sysMat );
@@ -83,14 +83,15 @@ namespace OLAS {
   //   ComputeThreshold
   // ********************
   Double BaseIterativeSolver::ComputeThreshold( Double eps,
-						const BaseVector &rhs,
-						const BaseVector &res,
-						Double &resNorm,
-						bool beVerbose ) {
+                                                const BaseVector &rhs,
+                                                const BaseVector &res,
+                                                Double &resNorm,
+                                                bool beVerbose ) {
 
 
     // Compute norm of initial residual
     resNorm = res.NormEuclid();
+    std::cerr << "euclid norm of residual is " << resNorm << std::endl;
 
     // Test for the unlikely event, that the inital
     // guess already satisfies the linear system
@@ -103,20 +104,20 @@ namespace OLAS {
     StopCritType stopCrit = NOSTOPCRITTYPE;
     myParams_->GetEnumValue( "StoppingCriterion", stopCrit );
 
-    
+
     // Report this to log file, if required
     if ( beVerbose == true ) {
       (*cla) << "\n Checking stopping rule:\n"
-             << " ----------------------\n"
-             << " User specified '" << Enum2String( stopCrit ) << "'\n"
-	     << std::scientific << " User supplied epsilon = " << eps << '\n';
+      << " ----------------------\n"
+      << " User specified '" << Enum2String( stopCrit ) << "'\n"
+      << std::scientific << " User supplied epsilon = " << eps << '\n';
     }
 
     switch( stopCrit ) {
 
-      // Now, if the user desires to use an absolute threshold on the
-      // Euclidean norm of the residual, we do not modify the tolerance
-      // he/she supplied.
+    // Now, if the user desires to use an absolute threshold on the
+    // Euclidean norm of the residual, we do not modify the tolerance
+    // he/she supplied.
     case ABSNORM:
       scalFac_ = 1.0;
       break;
@@ -128,32 +129,32 @@ namespace OLAS {
     case RELNORM_RHS:
 
       if ( myParams_->GetBoolValue( "RHSwithPenalty" ) == true ) {
-	(*cla) << " --> Detected Penalty Formulation\n"
-	       << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
-	       << std::endl;
-	scalFac_ = resNorm;
-	myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
-	if ( beVerbose == true ) {
-	  (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
-	}
+        (*cla) << " --> Detected Penalty Formulation\n"
+        << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
+        << std::endl;
+        scalFac_ = resNorm;
+        myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
+        if ( beVerbose == true ) {
+          (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
+        }
       }
       else {
-	scalFac_ = rhs.NormEuclid();
-	if ( scalFac_ == 0 ) {
-	  (*cla) << " --> Norm of right-hand side is zero\n"
-		 << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
-		 << std::endl;
-	  scalFac_ = resNorm;
-	  myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
-	  if ( beVerbose == true ) {
-	    (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
-	  }
-	}
-	else {
-	  if ( beVerbose == true ) {
-	    (*cla) << " Using || b ||_2 = " << scalFac_ << " for scaling\n";
-	  }
-	}
+        scalFac_ = rhs.NormEuclid();
+        if ( scalFac_ == 0 ) {
+          (*cla) << " --> Norm of right-hand side is zero\n"
+          << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
+          << std::endl;
+          scalFac_ = resNorm;
+          myParams_->SetValue( "StoppingCriterion", RELNORM_RES0 );
+          if ( beVerbose == true ) {
+            (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
+          }
+        }
+        else {
+          if ( beVerbose == true ) {
+            (*cla) << " Using || b ||_2 = " << scalFac_ << " for scaling\n";
+          }
+        }
       }
       break;
 
@@ -163,7 +164,7 @@ namespace OLAS {
     case RELNORM_RES0:
       scalFac_ = resNorm;
       if ( beVerbose == true ) {
-	(*cla) << " Using || r_0 ||_2 = " << scalFac_ << '\n';
+        (*cla) << " Using || r_0 ||_2 = " << scalFac_ << '\n';
       }
       break;
 

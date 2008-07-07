@@ -32,8 +32,8 @@ namespace OLAS {
                     UInt limit1, UInt limit2,
                     bool setCounterPart) {
 
-    
-    
+
+
     // Clear the arrays
     rowIndList_.clear();
     colIndList1_.clear();
@@ -353,7 +353,7 @@ namespace OLAS {
   // *****************
   void EntryManipulatorDouble::SetElementRHS( SparseVector *rhs,
                                               Double *elemRHS,
-                                              Integer *connect, 
+                                              Integer *connect,
                                               UInt elemSize,
                                               UInt limit ) {
 
@@ -384,7 +384,7 @@ namespace OLAS {
     // Set flag for rhsBuffer invaldiation
     rhsBufferIsValid_ = false;
   }
-  
+
   // ***************************
   //   GetMatrixEntry (Double)
   // ***************************
@@ -392,32 +392,32 @@ namespace OLAS {
   GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Double & entry, Integer eqnNr1, 
-                  Integer eqnNr2, 
+                  Double & entry, Integer eqnNr1,
+                  Integer eqnNr2,
                   UInt limit1, UInt limit2 ) {
-    
+
     Double dummy = 0.0;
 
     // Calculate absolute value of equation numbers (for constraints)
     UInt aux1 = abs(eqnNr1);
     UInt aux2 = abs(eqnNr2);
-    
+
     // Check if entry is for a free or a fixed dof
     if ( eqnNr1 <= limit1 && aux1 > 0 ) {
-      
+
       // check if entry depends on a free or a fixed dof
       if ( eqnNr2 <= limit2 && aux2 > 0 ) {
         stdMat->GetMatrixEntry( eqnNr1, eqnNr2, entry );
       } else {
         idbcHandler->GetWeightFixedToFree( matrix_id, pdeID1, pdeID2,
-                                           eqnNr1, aux2 - limit2, 
+                                           eqnNr1, aux2 - limit2,
                                            entry, dummy );
-      } 
+      }
     }else {
       entry = 0.0;
     }
   }
-  
+
   // ***************************
   //   GetMatrixEntry (Complex)
   // ***************************
@@ -425,8 +425,8 @@ namespace OLAS {
   GetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Complex & entry, Integer eqnNr1, 
-                  Integer eqnNr2, 
+                  Complex & entry, Integer eqnNr1,
+                  Integer eqnNr2,
                   UInt limit1, UInt limit2 ) {
     (*error) << "EntryManipulatorDouble::GetMatrixEntry: "
              << "Interface for complex not implemented, since this "
@@ -442,17 +442,17 @@ namespace OLAS {
   SetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Double  entry, Integer eqnNr1, 
-                  Integer eqnNr2, 
+                  Double  entry, Integer eqnNr1,
+                  Integer eqnNr2,
                   UInt limit1, UInt limit2, bool setCounterPart ) {
 
     Double dummy = 0.0;
-    
+
     // Calculate absolute value of equation numbers (for constraints)
     UInt aux1 = abs(eqnNr1);
     UInt aux2 = abs(eqnNr2);
 
-    // Check if entry is for a free or a fixed dof 
+    // Check if entry is for a free or a fixed dof
     if ( eqnNr1 <= limit1 && aux1 > 0 ) {
 
       // check if entry depends on a free or a fixed dof
@@ -460,9 +460,9 @@ namespace OLAS {
         stdMat->SetMatrixEntry( eqnNr1, eqnNr2, entry, setCounterPart );
       } else {
         idbcHandler->SetWeightFixedToFree( matrix_id, pdeID1, pdeID2,
-                                           eqnNr1, aux2 - limit2, 
+                                           eqnNr1, aux2 - limit2,
                                            entry, dummy );
-      } 
+      }
     }else {
       (*error) << "Can not set an matrix entry for position eqnNr1 = "
                << eqnNr1 << ", eqnNr2 = " << eqnNr2 << " for pdeID = "
@@ -479,8 +479,8 @@ namespace OLAS {
   SetMatrixEntry( FEMatrixType matrix_id, const PdeIdType pdeID1,
                   const PdeIdType pdeID2, StdMatrix *stdMat,
                   BaseIDBC_Handler *idbcHandler,
-                  Complex entry, Integer eqnNr1, 
-                  Integer eqnNr2, 
+                  Complex entry, Integer eqnNr1,
+                  Integer eqnNr2,
                   UInt limit1, UInt limit2,bool setCounterPart ) {
     (*error) << "EntryManipulatorDouble::SetMatrixEntry: "
              << "Interface for complex not implemented, since this "
@@ -558,7 +558,7 @@ namespace OLAS {
         sol->SetVectorEntry(i, (newSol-1)[i]);
       }
     }
-      
+
     // Set flag for rhsBuffer invaldiation
     //rhsBufferIsValid_ = false;
   }
@@ -587,7 +587,7 @@ namespace OLAS {
         rhs->SetVectorEntry(i, (newRHS-1)[i]);
       }
     }
-      
+
     // Set flag for rhsBuffer invaldiation
     rhsBufferIsValid_ = false;
   }
@@ -597,7 +597,7 @@ namespace OLAS {
   //   UpdateRHS (f = f + A * fup)
   // *******************************
   void EntryManipulatorDouble::UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
-                                          Double* fup ) { 
+                                          Double* fup ) {
 
 
 
@@ -658,7 +658,7 @@ namespace OLAS {
 
 
     Double entry;
-      
+
     for( UInt i = 1; i <= numIDBC; i++ ) {
       dirichletValue.GetVectorEntry( i, entry );
       entry *= penaltyTerm;
@@ -680,7 +680,7 @@ namespace OLAS {
       solBuffer_ = *sol;
       // set validation flag
       solBufferIsValid_ = true;
-    } 
+    }
 
     // Adapt 1-based array to 0-based array
     // for CFS++
@@ -711,9 +711,9 @@ namespace OLAS {
     if ( rhsBufferIsValid_ == false ) {
 
       rhsBuffer_ = *rhs;
-    
+
       // set validation flag
-      rhsBufferIsValid_ = true;    
+      rhsBufferIsValid_ = true;
     }
 
     // Adapt 1-based array to 0-based array
@@ -722,7 +722,7 @@ namespace OLAS {
     ptRhs++;
   }
 
-  void EntryManipulatorDouble::GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
+  void EntryManipulatorDouble::GetRHSVal( SparseVector *rhs, Complex* &ptRhs,
                                              const PdeIdType identifierPDE ){
     (*error) << "GetRHSVal(Complex) not defined for real entries";
     Error( __FILE__, __LINE__ );

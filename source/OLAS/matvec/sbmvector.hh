@@ -36,6 +36,16 @@ namespace OLAS {
     //! allocated memory.
     virtual ~SBM_Vector();
 
+    //! Return the Entry type of the vector
+
+    //! The method returns the entry type of the vector on the scalar level.
+    //! This is encoded as a value of the enumeration data type
+    //! MatrixEntryType. If no sub-vector has yet been set, NOENTRYTYPE is
+    //! returned.
+    MatrixEntryType GetEntryType() const {
+      return myEntryType_;
+    }
+    
     //! Set number of vector entries
 
     //! This sets the length of the vector and allocates memory accordingly.
@@ -55,8 +65,21 @@ namespace OLAS {
     void SetSubVector( SparseVector *subvec, Integer i ) {
       delete subVec_[i];
       subVec_[i] = subvec;
+      myEntryType_ = subvec->GetEntryType();
     }
 
+    //! Overload assignment operator
+    virtual BaseVector& operator= ( const BaseVector &bVec ) {
+      TRY_CAST {
+        ConstRefCast( bVec, SBM_Vector, sVec );
+        *this = sVec;
+      } CATCH_CAST;
+      return *this;
+    }
+    
+    //! Overload assignment operator
+    virtual SBM_Vector& operator= ( const SBM_Vector &bVec );
+    
     //! Add to sub-vector
 
     //! A call to this method will add the given standard vector to the i-th
@@ -84,9 +107,7 @@ namespace OLAS {
     void Add( const BaseVector &vec );
 
     //! Print vector to output stream os
-    void Print ( std::ostream &os ) const {
-      Warning( "Print not implemented for SBM_Vector", __FILE__, __LINE__ );
-    }
+    void Print ( std::ostream &os ) const;
 
     //! Export vector to file
 
@@ -206,6 +227,14 @@ namespace OLAS {
 
     //! Number of sub-vectors
     UInt size_;
+    
+    //! Attrribute storing the entry type of the vector
+
+    //! Currently the %SBM_Vector class only allows for storing sub-matrices
+    //! that share a common entry type. This attribute stores the entry type
+    //! of the first sub-vector that is set and uses this as the over-all
+    //! entry type of the %SBM_Vector object.
+    MatrixEntryType myEntryType_;
 
   };
 

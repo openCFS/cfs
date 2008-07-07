@@ -123,13 +123,13 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
   // **************************************************
   //   Dynamic generation of vector of specified type
   // **************************************************
-  BaseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
-                                       const MatrixEntryType eType,
-                                       const Integer blockSize,
-                                       const Integer length ) {
+  SparseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
+                                            const MatrixEntryType eType,
+                                            const Integer blockSize,
+                                            const Integer length ) {
 
 
-    BaseVector *retVector = NULL;
+    SparseVector *retVector = NULL;
 
     // real valued vectors
     CREATE_VECTOR( DOUBLE, 1, Vector<Double>      );
@@ -170,6 +170,46 @@ if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) {\
     return retVector;  
   }
 
+  // *********************************************
+  //   Macro for generation of templated vectors
+  // *********************************************
+#define COPY_VECTOR( MATRIX_ENTRY, MATRIX_DOF, VECTORCLASS )      \
+if ( ( eType == MATRIX_ENTRY ) && ( blockSize == MATRIX_DOF ) ) { \
+   ConstRefCast( origVec, VECTORCLASS, auxVec );                  \
+   retVector = New VECTORCLASS( auxVec );                         \
+   AssertMem( retVector, sizeof( VECTORCLASS ) );                 \
+   (*cla) << " GenerateSparseVectorObject: Generated copy of"     \
+          << MACRO2STRING(VECTORCLASS) << std::endl;              \
+}
+  SparseVector* CopySparseVectorObject( const SparseVector& origVec ) {
+
+    SparseVector *retVector = NULL;
+
+    // Determine vector information
+    MatrixEntryType eType = origVec.GetEntryType();
+    Integer blockSize = 1;
+
+    // real valued vectors
+    COPY_VECTOR( DOUBLE, 1, Vector<Double>      );
+
+    // complex valued vectors
+    COPY_VECTOR( COMPLEX, 1, Vector<Complex>     );
+    
+    // scalar vectors to go together with LAPACK matrices
+#ifdef USE_LAPACK
+    COPY_VECTOR( F77REAL8    , 1, Vector<Double>  );
+    COPY_VECTOR( F77COMPLEX16, 1, Vector<Complex> );
+#endif
+    
+    // Check, if we were able to generate a vector object. If not, complain.
+    if ( retVector == NULL ) {
+      Error( "GenerateVectorObject: Failed to generate vector object",
+             __FILE__, __LINE__ );
+    }
+    
+    // Return vector
+    return retVector;
+  }
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>> MATRIX PART <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

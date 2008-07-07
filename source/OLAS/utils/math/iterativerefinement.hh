@@ -56,7 +56,7 @@ namespace OLAS {
     IterativeRefinement() {
       residual_     = NULL;
       update_       = NULL;
-      dummyPrecond_ = new IdPrecond();
+      dummyPrecond_ = new IdPrecondStd();
     }
 
     // Destructor

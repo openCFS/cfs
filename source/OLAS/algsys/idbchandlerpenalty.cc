@@ -327,10 +327,18 @@ namespace OLAS {
 
     // SBM_Matrix case
     else {
+      if( bcIndices_[pdeID].find( eqnNo ) ==
+               bcIndices_[pdeID].end() ) {
+        index = bcIndices_[pdeID].size()+1;
+        bcIndices_[pdeID][eqnNo] = index;
+      } else  {
+        index = bcIndices_[pdeID][eqnNo];
+      }
+
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( dirichletValue_ );
       SparseVector *stdVec = sbmVec->GetPointer( pdeID );
       stdVec->SetVectorEntry( index, val );
-      dirichletEQN_      [ index ] = eqnNo;
+      dirichletEQN_      [ index+offset_[pdeID] ] = eqnNo;
     }
   }
 

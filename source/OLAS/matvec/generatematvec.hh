@@ -53,10 +53,17 @@ namespace OLAS {
   //!   cannot be generated via this method.
   //! - The vector is initialised so that the entries on the scalar level are
   //!   all identical to zero.
-  BaseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
-				       const MatrixEntryType eType,
-				       const Integer blockSize,
-				       const Integer length );
+  SparseVector* GenerateSparseVectorObject( const MatrixStorageType sType,
+                                            const MatrixEntryType eType,
+                                            const Integer blockSize,
+                                            const Integer length );
+
+  //! Craeate a vector by copy
+  
+  //! This functions will generate a copy of a sparse olas vector and
+  //! return the pointer to the copy.
+  SparseVector* CopySparseVectorObject( const SparseVector& origVec );
+  
 
   //! Creates a StdMatrix object
 

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include "matvec/sbmvector.hh"
+#include "generatematvec.hh"
 
 
 namespace OLAS {
@@ -14,6 +15,7 @@ namespace OLAS {
   // *****************************************************
   SBM_Vector::SBM_Vector( UInt size ) {
     size_ = size;
+    myEntryType_ = NOENTRYTYPE;
     NewArray( subVec_, SparseVector*, size );
     for ( UInt i = 1; i <= size_; i++ ) {
       subVec_[i] = NULL;
@@ -51,6 +53,31 @@ namespace OLAS {
     }
   }
 
+  // **********************
+  //   Assignment operator
+  // **********************
+  SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
+
+    // first, delete sub-vectors
+    if ( subVec_ != NULL ) {
+      for ( UInt i = 1; i <= size_; i++ ) {
+        delete subVec_[i];
+      }
+      DeleteArray( subVec_ );
+    }
+    size_ = 0;
+
+    // then, copy sub-vectors from original vector class
+    size_ = bVec.size_;
+    NewArray( subVec_, SparseVector*, size_ );
+    for ( UInt i =  1; i <= size_; i++ ) {
+      // determine entrytype
+      subVec_[i] = CopySparseVectorObject( *bVec.subVec_[i]);
+    }
+
+  }
+  
+  
 
   // *********
   //   Inner
@@ -104,6 +131,20 @@ namespace OLAS {
     }
   }
 
+  
+  // ***************
+  //   Print vector
+  // ***************
+  void SBM_Vector::Print( std::ostream& os ) const {
+    
+    for( Integer i = 1; i <= size_; i++ ) {
+      if( subVec_[i] != NULL ) {
+        os << "sub-Vector #" << i  
+           << "\n--------------\n";
+        subVec_[i]->Print(os);
+      }
+    }
+  }
 
   // ************************************
   //   Add vector to this vector object

@@ -834,9 +834,16 @@ namespace CoupledField {
 
     // If no storage type was yet assigned use plain SCRS
     if ( mType == OLAS::NOSTORAGETYPE ) {
-      mType = OLAS::SPARSE_SYM;
-      Info->PrintF( pdename, "Expert: Using SPARSE_SYM as matrix "
-                    "storage type\n" );
+      if ( symmetricMat ) {
+        mType = OLAS::SPARSE_SYM;
+        Info->PrintF( pdename, "Expert: Using SPARSE_SYM as matrix "
+                      "storage type\n" );
+      }
+      else {
+        mType = OLAS::SPARSE_NONSYM;
+        Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as matrix "
+                      "storage type\n" );
+      }
     }
 
     // Check, if any entries

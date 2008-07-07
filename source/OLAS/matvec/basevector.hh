@@ -39,6 +39,14 @@ namespace OLAS {
       Print(*cla);
     }
 
+    //! Return the Entry type of the vector
+
+    //! The method returns the entry type of the vector on the scalar level.
+    //! This is encoded as a value of the enumeration data type
+    //! MatrixEntryType.
+    virtual MatrixEntryType GetEntryType() const = 0;
+
+    
     //! Export vector to file
 
     //! This method can be used to export the vector to an ascii file. The
