@@ -60,7 +60,7 @@ namespace CoupledField {
     delete solVec_;
     delete rhsVec_;
     if ( needSolPrev_ )
-    	delete solVecPrev_;
+      delete solVecPrev_;
   }
 
 
@@ -71,7 +71,7 @@ namespace CoupledField {
 
 
     singlePDEs_ = pdes;
-    
+
     // create pdename
     for ( UInt i = 0; i < singlePDEs_.GetSize()-1; i++ ) {
       pdename_ += singlePDEs_[i]->GetName();
@@ -86,7 +86,7 @@ namespace CoupledField {
   //   SetCouplings
   // ****************
   void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*>
-                                       &couplings ) {
+  &couplings ) {
     couplings_ = couplings;
   }
 
@@ -94,95 +94,101 @@ namespace CoupledField {
   //   SetInitial conditions
   //   from the pde members
   // ****************
-  
+
   void DirectCoupledPDE::SetInitialCondition() {
 
-	Vector< Double > aux;
-	aux.Init(0.0);
+    Vector< Double > aux;
+    aux.Init(0.0);
 
-	// Construct the initial solution vector
-	shared_ptr<EqnMap> eqn;
-	UInt singleUnknowns=0;
-	UInt lastIndex=0;
-	
+    // Construct the initial solution vector
+    shared_ptr<EqnMap> eqn;
+    UInt singleUnknowns=0;
+    UInt lastIndex=0;
 
-	for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
 
-		//------------------------------------------------
-		// get the id of the this pde
-		//pdeId = singlePDEs_[i]->GetPDEId();
-		//------------------------------------------------
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
 
-		// the PDEs members haven't set up their initial conditions yet
-		// -> set the initial conditions of this pde
-		singlePDEs_[i]->SetInitialCondition();
-		if(singlePDEs_[i]->IsSetInitialCondition()==true){
-			this->isSetInitialCondition_=true;
-		}
-		
-		
-		//------------------------------------------------
-		// get the number of unknowns of this pde
-		eqn = singlePDEs_[i]->GetEqnMap();
-		singleUnknowns = eqn->GetNumEqns();
+      //------------------------------------------------
+      // get the id of the this pde
+      //pdeId = singlePDEs_[i]->GetPDEId();
+      //------------------------------------------------
 
-		// check setup of linear system
-		if(singlePDEs_[i]->usePenalty_==false){
-			// uses elimination of Inhomogeneous DBC	
-			//std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-				singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
-		}
-		//------------------------------------------------	
-		
-		// init the aux vector
-		// **** it is supoussed that i=pdeID ****
-		// -> the order of the solution vector is the same as ordering of pdeID
-		for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
-			//aux[ii]=singlePDEs_[i]->getInitialCondition();
-			aux.Push_back(singlePDEs_[i]->getInitialCondition());
-		}
+      // the PDEs members haven't set up their initial conditions yet
+      // -> set the initial conditions of this pde
+      singlePDEs_[i]->SetInitialCondition();
+      if(singlePDEs_[i]->IsSetInitialCondition()==true){
+        this->isSetInitialCondition_=true;
+      }
 
-		lastIndex+=singleUnknowns;
-		
-	}
 
-	// now we have our solution vector initialized
-	//std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
+      //------------------------------------------------
+      // get the number of unknowns of this pde
+      eqn = singlePDEs_[i]->GetEqnMap();
+      singleUnknowns = eqn->GetNumEqns();
 
-	if(this->IsSetInitialCondition()==true){
-		// save the initial vector in each pde solution vector 
-		SaveSolution(aux.GetPointer(), aux.GetSize());
+      // check setup of linear system
+      if(singlePDEs_[i]->usePenalty_==false){
+        // uses elimination of Inhomogeneous DBC
+        //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
+        singleUnknowns-=eqn->GetNumInHomDirichletEqns ();
+      }
+      //------------------------------------------------
 
-		// save the initial solution vector into algsys
-		algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
-	}
+      // init the aux vector
+      // **** it is supoussed that i=pdeID ****
+      // -> the order of the solution vector is the same as ordering of pdeID
+      for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
+        //aux[ii]=singlePDEs_[i]->getInitialCondition();
+        aux.Push_back(singlePDEs_[i]->getInitialCondition());
+      }
+
+      lastIndex+=singleUnknowns;
+
+    }
+
+    // now we have our solution vector initialized
+    //std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
+
+    if(this->IsSetInitialCondition()==true){
+
+
+      // save the initial solution vector into algsys
+      algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
+
+      // save the initial vector in each pde solution vector
+      SaveSolution(aux.GetPointer(), aux.GetSize());
+
+      // save the initial solution vector into algsys
+      algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
+
+    }
 
   }
 
-  
-    
-  
+
+
+
   // ********
   //   Init
   // ********
   void DirectCoupledPDE::Init( UInt sequenceStep ) {
 
-  
+
     sequenceStep_ = sequenceStep;
 
     // Check, whether we shall generate an SBM_System
     bool genSBMSys = false;
-    ParamNode * linSysNode = 
+    ParamNode * linSysNode =
       param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
       ->Get("linearSystems", false );
     if( linSysNode ) {
       ParamNode * specSysNode = linSysNode
         ->Get("system","name","direct", false);
       if( specSysNode ) {
-        ParamNode * matrixNode = specSysNode->Get("matrix", false );
-        if( matrixNode ) {
-          genSBMSys = matrixNode->Has("sbmMatrix");
+        if( specSysNode->Has("sbmMatrix") ) {
+          genSBMSys = true;
         }
+
       }
     }
 
@@ -197,7 +203,7 @@ namespace CoupledField {
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
-  
+
     // ----------------------------
     //  Detection of analysis type
     // ----------------------------
@@ -231,13 +237,13 @@ namespace CoupledField {
       singlePDEs_[i]->Init( sequenceStep );
 
       // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() ) 
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
         needSolPrev_ = true;
     }
 
     // Get information about number of dirichlet values,
     // dofs, constraints and needed matrices
-  
+
     // Iterate over all single PDEs and collect data about
     // included boundary conditions
     shared_ptr<EqnMap> eqn;
@@ -245,7 +251,7 @@ namespace CoupledField {
       eqn = singlePDEs_[i]->GetEqnMap();
       totalUnknowns_ += eqn->GetNumEqns();
     }
-    
+
     if ( analysistype_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
@@ -267,7 +273,7 @@ namespace CoupledField {
         solVecPrev_->Resize(totalUnknowns_);
       }
     }
-    
+
     solVec_->Resize(totalUnknowns_);
 
     // TEMPORARY CHANGE CHANGE CHANGE
@@ -301,8 +307,8 @@ namespace CoupledField {
       }
     }
 
-    
-   
+
+
     //! Augment nonlinearity information
     //! from PiezoCoupling, mechPDE and elecPDE
 
@@ -316,7 +322,7 @@ namespace CoupledField {
       if(singlePDEs_[i]->IsNonLinMaterial())
         globalNonLinMaterial=true;
     }
-    
+
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       //      Is NonLin()
       if(couplings_[i]->nonLin_==true)
@@ -329,9 +335,9 @@ namespace CoupledField {
         isHysteresis_ = true;
       }
     }
-    
-    nonLin_=globalNonLin;    
-    nonLinMaterial_=globalNonLinMaterial;    
+
+    nonLin_=globalNonLin;
+    nonLinMaterial_=globalNonLinMaterial;
 
     if ( !globalNonLinHysteresis ) {
       // copy nonlinearity information to singlePDEs
@@ -339,14 +345,14 @@ namespace CoupledField {
         singlePDEs_[i]->SetNonLinearity(globalNonLin);
         singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
       }
-      
-      // copy nonlinearity information to couplings   
+
+      // copy nonlinearity information to couplings
       for (UInt i=0; i<couplings_.GetSize(); i++) {
-        couplings_[i]->SetNonLinearity(globalNonLin);    
+        couplings_[i]->SetNonLinearity(globalNonLin);
         couplings_[i]->SetMaterialNonLinearity(globalNonLin);
       }
     }
-    
+
     // define solveStep-driver
     DefineSolveStep();
 
@@ -354,7 +360,7 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->solveStep_ = solveStep_;
     }
-    // Initialize all Coupling Objects 
+    // Initialize all Coupling Objects
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->SetAssemble( assemble_ );
@@ -388,7 +394,7 @@ namespace CoupledField {
 
 
 
-  // calculates L2-norm of RHS regarding dirichlet entries due to penalty 
+  // calculates L2-norm of RHS regarding dirichlet entries due to penalty
   // formulation by setting them 0
   Double DirectCoupledPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
@@ -401,23 +407,23 @@ namespace CoupledField {
 
       // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
       for ( UInt i = 0; i < idbcList.GetSize(); i++ ) {
-        
+
         // Get grip of current idBC
         InhomDirichletBc const & actBc = *idbcList[i];
 
         // Get entity iterator
         EntityIterator it = actBc.entities->GetIterator();
 
-        
+
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           eqnNr = singlePDEs_[j]->GetEqnMap()->GetEqn( *actBc.result, it, actBc.dof );
           if ( eqnNr != 0 ) {
             actRHS[(eqnNr-1)] = 0.0;
           }
         }
-      } 
+      }
     }
-    
+
     return actRHS.NormL2();
   }
 
@@ -427,12 +433,12 @@ namespace CoupledField {
   // ****************
   void DirectCoupledPDE::DefineAlgSys() {
 
- 
-    
+
+
     std::string pdeName;
     PdeIdType pdeId;
     shared_ptr<EqnMap> eqn;
-    
+
     // Set linear system parameters for OLAS
     //
     // NOTE: Using current naming conventions in the XML Schema definitions
@@ -462,11 +468,11 @@ namespace CoupledField {
     //
     // // iterate over all coupling objects and register them
     // for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
-    // 
+    //
     //   // register forward coupling
     //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId1(),
     //                              couplings_[i]->GetPdeId2() );
-    // 
+    //
     //   // register backward coupling
     //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId2(),
     //                              couplings_[i]->GetPdeId1() );
@@ -489,18 +495,18 @@ namespace CoupledField {
 
     // Setup matrix graph of coupling objects
     for (UInt i=0; i<couplings_.GetSize(); i++) {
-      PdeIdType id1 = couplings_[i]->GetPdeId1();     
+      PdeIdType id1 = couplings_[i]->GetPdeId1();
       PdeIdType id2 = couplings_[i]->GetPdeId2();
 
-      // setup matrix graph
-      algsys_->AssembleInit( id1, id2, true );
+      // setup matrix graph for upper diagonal(s)
+      algsys_->AssembleInit( id1, id2, false );
       assemble_->SetupMatrixGraph( id1, id2 );
-      algsys_->AssembleDone( id1, id2, true );
+      algsys_->AssembleDone( id1, id2, false );
 
-      // Note: also the second part has to be assembled!
-      algsys_->AssembleInit( id2, id1, true );
+      // setup matrix graph for lower diagonal(s)
+      algsys_->AssembleInit( id2, id1, false );
       assemble_->SetupMatrixGraph( id2, id1 );
-      algsys_->AssembleDone( id2, id1, true );
+      algsys_->AssembleDone( id2, id1, false );
     }
 
     // Finish assembly of the matrix graph
@@ -519,14 +525,14 @@ namespace CoupledField {
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
-    
+
     // =====================================================================
     // Set the initial conditions
     // =====================================================================
     if ( analysistype_ == TRANSIENT ){
-    	SetInitialCondition();
+      SetInitialCondition();
     }
-    
+
 
     for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       if (singlePDEs_[i]->memento_ != NULL &&
@@ -534,7 +540,7 @@ namespace CoupledField {
         singlePDEs_[i]->IncorporateMemento();
       }
     }
-        
+
   }
 
   CFSVector* DirectCoupledPDE::GetSolutionVector() {
@@ -550,17 +556,17 @@ namespace CoupledField {
     BaseNodeStoreSol *ptNodeSol;
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
     solHelp.Resize(size);
-    
+
     for ( UInt i = 0; i < size; i++ ) {
       solHelp[i] = ptSol[i];
     }
-    
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
       singlePDEs_[i]->solVec_  = solVec_;
-      
+
     }
   }
 
@@ -569,68 +575,68 @@ namespace CoupledField {
     BaseNodeStoreSol *ptNodeSol;
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
     solHelp.Resize(size);
-    
+
     for ( UInt i = 0; i < size; i++ ) {
       solHelp[i] = ptSol[i];
     }
-    
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-      
+
     }
   }
 
-   void DirectCoupledPDE::SaveRHS( const Double * ptSol, UInt size) {
+  void DirectCoupledPDE::SaveRHS( const Double * ptSol, UInt size) {
 
     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
     solHelp.Resize(size);
-    
+
     for ( UInt i = 0; i < size; i++ ) {
       solHelp[i] = ptSol[i];
     }
-    
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       // set pointer to solution object of the PDE
       singlePDEs_[i]->rhsVec_  = rhsVec_;
-      
+
     }
   }
+
   void DirectCoupledPDE::SaveRHS( const Complex * ptSol, UInt size) {
 
     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
     solHelp.Resize(size);
-    
+
     for ( UInt i = 0; i < size; i++ ) {
       solHelp[i] = ptSol[i];
     }
-    
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       // set pointer to solution object of the PDE
       singlePDEs_[i]->rhsVec_  = rhsVec_;
-      
+
     }
-  }
-  
+ }
   void DirectCoupledPDE::SavePrevSolution( const Double * ptSolPrev, UInt size) {
 
-  	if ( needSolPrev_ ) {
-  		BaseNodeStoreSol *ptNodeSol;
-  		Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-  		solHelp.Resize(size);
-    
-  		for ( UInt i = 0; i < size; i++ ) {
-  			solHelp[i] = ptSolPrev[i];
-  		}
-    
-  		for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-  			// set pointer to solution object of the PDE
-  			ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
-  			ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-  			singlePDEs_[i]->solVecPrev_  = solVecPrev_;
-  		}
-  	}
+    if ( needSolPrev_ ) {
+      BaseNodeStoreSol *ptNodeSol;
+      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
+      solHelp.Resize(size);
+
+      for ( UInt i = 0; i < size; i++ ) {
+        solHelp[i] = ptSolPrev[i];
+      }
+
+      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+        // set pointer to solution object of the PDE
+        ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
+        ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+        singlePDEs_[i]->solVecPrev_  = solVecPrev_;
+      }
+    }
   }
 
   // ********************
@@ -654,7 +660,7 @@ namespace CoupledField {
   // ======================================================
 
 
-  void DirectCoupledPDE::WriteRestart( ) 
+  void DirectCoupledPDE::WriteRestart( )
   {
 
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -662,15 +668,15 @@ namespace CoupledField {
     }
   }
 
-  void DirectCoupledPDE::ReadRestart( UInt &startStep ) 
+  void DirectCoupledPDE::ReadRestart( UInt &startStep )
   {
 
     StdVector<UInt> startSteps( singlePDEs_.GetSize() );
-     
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->ReadRestart(startSteps[i]);
     }
-     
+
     for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
       if( startSteps[i] != startSteps[0] ) {
         std::stringstream errMsg;
@@ -682,10 +688,10 @@ namespace CoupledField {
         }
         EXCEPTION( errMsg.str().c_str() );
       }
-       
+
     }
   }
-  
+
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
                                             const Double asteptime ) {
@@ -699,7 +705,7 @@ namespace CoupledField {
 
   }
 
-  
+
   // ======================================================
   // COUPLING SECTION
   // ======================================================
@@ -712,15 +718,15 @@ namespace CoupledField {
   {
 
     iterCoupledCounter_ = 0;
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
       {
         singlePDEs_[i]->ResetCoupling();
       }
   }
-           
+
   void DirectCoupledPDE::CalcInputCoupling()
   {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
       {
         singlePDEs_[i]->CalcInputCoupling();
       }
@@ -728,7 +734,7 @@ namespace CoupledField {
 
   void DirectCoupledPDE::CalcOutputCoupling()
   {
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++)
       {
         singlePDEs_[i]->CalcOutputCoupling();
       }
@@ -738,18 +744,18 @@ namespace CoupledField {
 
 
   void DirectCoupledPDE::DefineSolveStep() {
-  
+
     bool isPiezoHyst = false;
 
     // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() ) 
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
         isPiezoHyst = true;
     }
 
-    if ( isPiezoHyst ) 
+    if ( isPiezoHyst )
       solveStep_ = new SolveStepPiezo(*this);
     else
       solveStep_ = new StdSolveStep(*this);
@@ -772,7 +778,7 @@ namespace CoupledField {
 //       if( newOrder == NULL ) {
 //         std::cerr << "performing no reordering!";
 //       }
-      
+
       eqn->ReorderMapping( &newOrder );
     }
   }

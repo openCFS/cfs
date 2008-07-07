@@ -52,10 +52,10 @@ namespace OLAS {
 
     //! Default Constructor
     BaseSystem(ParamNode* pn = NULL);
-    
+
     //! Default Destructor
     virtual ~BaseSystem();
- 
+
     //! Obtain a pointer to the parameter object
     OLAS_Params* GetOLASParams() {
       return &myParams_;
@@ -67,11 +67,11 @@ namespace OLAS {
     }
 
     /**  killme! check if really used in SIMP optimization */
-    BaseEntryManipulator* GetEntryManipulator() 
+    BaseEntryManipulator* GetEntryManipulator()
     {
-      return assemble_;    
+      return assemble_;
     }
-    
+
     //! Obtain the dimension of the linear system
 
     //! This method can be used to query the dimension of the linear system.
@@ -87,16 +87,16 @@ namespace OLAS {
     UInt GetDimension() {
       return (UInt)size_;
     }
-    
+
     /** Obtain our IDBC-Handler */
     BaseIDBC_Handler* GetIdbcHandler() {
-      return idbcHandler_; 
+      return idbcHandler_;
      }
-    
+
     // ***********************************************************************
     //   Methods for creating and initalizing the algebraic system
     // ***********************************************************************
-   
+
     //@{
     //! \name Creation and Initialization
 
@@ -125,11 +125,11 @@ namespace OLAS {
 
     //! Generate EigenSolver object
 
-    //! Calling this method triggers the generation of an EigenSolver object 
+    //! Calling this method triggers the generation of an EigenSolver object
     //! which ist used to calculate a generalized eigenvalue problem of the
-    //! form M(du^2/dt^2)=Ku or of the quadratic eigenvalue problem, if 
+    //! form M(du^2/dt^2)=Ku or of the quadratic eigenvalue problem, if
     //! a damping matrix is present.
-    //! Before this object can be used the SetupEigenSolver() method should 
+    //! Before this object can be used the SetupEigenSolver() method should
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
@@ -141,10 +141,10 @@ namespace OLAS {
     //! preconditioner. The setup is performed using the system matrix of the
     //! linear system.
     //! \note This method must not be called if an eigenfrequency analysis
-    //! is performed, since this method creates only a preconditioner 
+    //! is performed, since this method creates only a preconditioner
     //! to solver which solves a system Ax=b.
     virtual void SetupPrecond() = 0;
-    
+
     //! Trigger setup of solution method
 
     //! Calling this method will trigger the setup phase of the solver. This
@@ -155,13 +155,13 @@ namespace OLAS {
 
     //! Trigger setup of eigenvalue solver
 
-    //! Calling this method will trigger the setup phase of the eigensolver. 
+    //! Calling this method will trigger the setup phase of the eigensolver.
     //! The setup is performed using the system matrix of the linear system.
     //! \param numFreq Number of eigenfrequencies to be calculated
     //! \param shift Frequency shift applied to the system
     //! \param quadratic Flag indicating if a quadratic eigenvalue problem
     //! (true) or a generalized problem (false) is to be solved
-    virtual void SetupEigenSolver( UInt numFreq, Double shift, 
+    virtual void SetupEigenSolver( UInt numFreq, Double shift,
                                    bool quadratic ) = 0;
 
 
@@ -171,7 +171,7 @@ namespace OLAS {
     //! defined by the Finite-Element system matrix, i.e. sysMat_[SYSTEM],
     //! and the given right-hand side vector, i.e. #rhs_. The computed
     //! (approximat) solution is stored in #sol_.
-    //! The method used for solving the system depends on the solver and 
+    //! The method used for solving the system depends on the solver and
     //! preconditioner constructed and the parameters in myParams_.
     //! For iterative solvers an initial guess is created by inserting the
     //! Dirichlet values in the correct positions of the solution vector in
@@ -215,29 +215,29 @@ namespace OLAS {
     //!       was called previously.
     virtual UInt CalcEigenFrequencies( const Complex* &frequencies,
                                        const Double* &err ) = 0;
-    
+
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
-    //! Calling this method triggers the calculation of the n-th eigenmode  
+    //! Calling this method triggers the calculation of the n-th eigenmode
     //! corresponding to the n-th eigenvalue.
     //! This method may only be called after CalcEigenfrequencies(), as
     //! the eigenmodes are only a postprocessing result.
     //! The calculated mode can be accessed by GetSolutionVal().
-    //! \param numMode Mode number corresponding to the numMode-th 
+    //! \param numMode Mode number corresponding to the numMode-th
     //!                eigenfrequency
     //! \note This method may only ba called if SetupEigenfrequencySolver()
     //!       and CalcEigenfrequencies was called previously.
     virtual void CalcEigenMode( UInt numMode ) = 0;
 
     //@}
-    
+
     // ***********************************************************************
     //   Methods for creating and assembling the matrix graph
     // ***********************************************************************
 
     //@{
     //! \name Matrix Graph Methods
-  
+
     //! Prepares graph manager for generation of sub-graphs
 
     //! This method must be called after construction of the graph manager
@@ -248,13 +248,13 @@ namespace OLAS {
     void GraphSetupInit( UInt numPDEs );
 
     //! Finalises setup of the graph manager
-    
+
     //! This method must be called after the assembly of all sub-graphs was
     //! done, i.e. once all PDEs a coupling objects have conveyed their
     //! connectivity information to the graph manager.
     void GraphSetupDone();
-    
-    //! Obtain a unique PDE identifier 
+
+    //! Obtain a unique PDE identifier
 
     //! Return a unique PDE identifier for each PDE, which will be used
     //! for all subsequent communication with the algebraic system.
@@ -267,7 +267,7 @@ namespace OLAS {
     //! A PDE must call this method to register itself with the PDE manager.
     //! In the case of CFS++ this method is not called
     //! directly, but via the algebraic system interface.
-    
+
     //! \param pdeId       unique identifier for the PDE
     //! \param numEqns     number of unknowns in the linear system associated
     //!                    with the PDE (i.e. number of equation numbers from
@@ -295,9 +295,9 @@ namespace OLAS {
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
     void AssembleInit( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose );
-    
+
     //! Finalise assembly of a sub-graph
 
     //! Once the assembly phase of a sub-graph associated with a PDE or the
@@ -314,11 +314,11 @@ namespace OLAS {
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
     void AssembleDone( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Insert connectivity of a finite element into the matrix graph
-    
+
     //! This method is used to insert the connectivity of the unknowns
     //! attached to a finite element into the sub-graph representing the
     //! structure of the matrix associated to a single PDE or the coupling
@@ -343,11 +343,11 @@ namespace OLAS {
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
     void SetElementPos( const PdeIdType identifierPDE1,
-			Integer *eqnNrs1,
-			Integer elemSize1,
-			const PdeIdType identifierPDE2,
-			Integer *eqnNrs2,
-			Integer elemSize2,
+                        Integer *eqnNrs1,
+                        Integer elemSize1,
+                        const PdeIdType identifierPDE2,
+                        Integer *eqnNrs2,
+                        Integer elemSize2,
                         bool setCounterPart );
 
     //! Obtain the permutation/re-ordering vector for a graph
@@ -367,14 +367,14 @@ namespace OLAS {
     //!       memory once it no longer needs the array.
     Integer *GetReordering( const PdeIdType identifier );
     //@}
-    
+
     // ***********************************************************************
     //   Methods for assembling the matrices, rhs and bc
     // ***********************************************************************
- 
+
     //@{
     //! \name Assembling Routines
-    
+
     //! Initialize specified matrix with zeros
 
     //! Calling this method initialises the Finite-Element matrix designated
@@ -391,7 +391,7 @@ namespace OLAS {
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
     virtual void InitMatrix( FEMatrixType matrixID = NOTYPE,
-			     const PdeIdType identifierPDE = NO_PDE_ID ) = 0;
+                             const PdeIdType identifierPDE = NO_PDE_ID ) = 0;
 
     //! Set right hand side vector to zero
 
@@ -422,7 +422,7 @@ namespace OLAS {
     {
       EXCEPTION("Only implemented in StandardSystem");
     }
-    
+
 
 
     //! Set the solution vector of the specified PDE to zero
@@ -436,7 +436,7 @@ namespace OLAS {
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
     virtual void InitSol( const PdeIdType identifierPDE = NO_PDE_ID ) = 0;
-    
+
     //! Set the global solution vector to given initial values
 
     //! Set the solution vector to the values specified in the array
@@ -445,30 +445,30 @@ namespace OLAS {
     //! \note The values of newSol are copied, so the pointer to newSol
     //! can be changed afterwards!
     virtual void InitSol( const Double * newSol, const UInt size ) = 0;
-    
-    
+
+
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
-    //! global one (MASS, STIFFNESS, etc.), i.e. adds the entries to the. 
+    //! global one (MASS, STIFFNESS, etc.), i.e. adds the entries to the.
     //! global matrix. For element matrices which are associated
     //! only with one PDE, only one identifier, the eqn numbers of the matrix
-    //! and the number of eqnNrs have to be specified. 
+    //! and the number of eqnNrs have to be specified.
     //! For matrices which are associated with two different pde identifiers,
     //! the matrix will be assembled into the upper off-diagonal matrix-block
     //! and the lower transposed one.
-    //! \param matrix_id type of finite element destination matrix 
+    //! \param matrix_id type of finite element destination matrix
     //!                  (STIFFNESS, MASS, ...)
     //! \param elemmat entries of the element matrix in sequential array
     //! \param identifierPDE1 identifier for first PDE related to sub-graph
     //! \param eqnNrs1 equation numbers (1-based) of the element matrix
     //!                w.r.t. sub-graph associated with identifierPDE1
-    //! \param numEqn1 number of equations related to sub-graph of 
+    //! \param numEqn1 number of equations related to sub-graph of
     //!                identifierPDE1
     //! \param identifierPDE2 identifier for first PDE related to sub-graph
     //! \param eqnNrs2 equation numbers (1-based) of the element matrix
     //!                w.r.t. sub-graph associated with identifierPDE2
-    //! \param numEqn2 number of equations related to sub-graph of 
+    //! \param numEqn2 number of equations related to sub-graph of
     //!                identifierPDE2
     //! \param setCounterPart if this flag is true, then the method will
     //!                not only insert the element matrix    \f$  E  \f$ , but also
@@ -477,7 +477,7 @@ namespace OLAS {
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different PDE identifiers.
-    virtual void SetElementMatrix( FEMatrixType matrix_id, Double * elemmat, 
+    virtual void SetElementMatrix( FEMatrixType matrix_id, Double * elemmat,
                                     PdeIdType identifierPDE1,
                                     Integer *eqnNrs1,
                                     Integer numEqn1,
@@ -505,22 +505,22 @@ namespace OLAS {
     //! Adds a value to a given global rhs entry
 
     //! This method adds a given value to the global right hand side vector.
-    //! Therefore a pde identifier, the related equation number and a 
+    //! Therefore a pde identifier, the related equation number and a
     //! degree of freedom has to be specified.
     //! \param val value to be added
     //! \param identifierPDE identifier of the PDE related to sub-graph
     //! \param eqnNr equation number of the node to be set
     virtual void SetNodeRHS(Double val, PdeIdType identifierPDE,
-			    Integer eqnNr) = 0;
+                            Integer eqnNr) = 0;
 
     virtual void SetNodeRHS(Complex val, PdeIdType identifierPDE,
-			    Integer eqnNr) = 0;
+                            Integer eqnNr) = 0;
     //@}
-    
+
     //! Performs a matrix-vector multiplication and ads the vector to the rhs
 
-    //! This method multiplies a specified global matrix (STIFFNES, MASS, 
-    //! etc.) with a given vector and adds the result vector to the global 
+    //! This method multiplies a specified global matrix (STIFFNES, MASS,
+    //! etc.) with a given vector and adds the result vector to the global
     //! rhs.
     //! \f[ rhs = rhs + \mathbf A_{matrix_id} \cdot fup \f]
     //! This method is mainly used in a time step scheme to adapt the rhs.
@@ -547,13 +547,13 @@ namespace OLAS {
     //!                 real and the second as imaginary part
     virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType pdeID,
-				       Integer eqnNum, 
+                                       Integer eqnNum,
                                        Double *val ) = 0;
     //@{
     //! Get value of specific matrix entry
 
     //! This method allows to directly get the value of a specific matrix
-    //! entry of a given problem matrix. If the given index pair is not 
+    //! entry of a given problem matrix. If the given index pair is not
     //! contained in the matrix, an error is thrown.
     //! \param matrixID  specifies which matrix is to be queried
     //! \param rowPdeID  identifier for PDE related to row sub-graph
@@ -570,7 +570,7 @@ namespace OLAS {
                                  const PdeIdType colPdeID,
                                  Integer eqnNum2,
                                  Double & val ) = 0;
-    
+
     virtual void GetMatrixEntry( FEMatrixType matrixID,
                                  const PdeIdType rowPdeID,
                                  Integer rowEqnNum,
@@ -583,7 +583,7 @@ namespace OLAS {
   //! Set value of specific matrix entry
 
     //! This method allows to directly set the value of a specific matrix
-    //! entry of a given problem matrix. If the given index pair is not 
+    //! entry of a given problem matrix. If the given index pair is not
     //! contained in the matrix, an error is thrown.
     //! \param matrixID  specifies which matrix is to be manipulated
     //! \param rowPdeID  identifier for PDE related to row sub-graph
@@ -595,7 +595,7 @@ namespace OLAS {
     //!                not only set the value on position (eqnNum1, eqnNum2)
     //!                but also on its transposed position (eqnNum2, eqnNum1).
     //!                If the entry is located on an off-diagonal entry (i.e.
-    //!                different pdeIDs) the counterpart in the related 
+    //!                different pdeIDs) the counterpart in the related
     //!                transposed block is inserted.
     //! \note For sparse matrices this method may be very costly and slow,
     //!       as the given index pair has to be searched for and may not
@@ -605,44 +605,44 @@ namespace OLAS {
                                  Integer rowEqnNum,
                                  const PdeIdType colPdeID,
                                  Integer colEqnNum,
-                                 Double val,                         
+                                 Double val,
                                  bool setCounterPart ) = 0;
-    
+
     virtual void SetMatrixEntry( FEMatrixType matrixID,
                                  const PdeIdType rowPdeID,
                                  Integer rowEqnNum,
                                  const PdeIdType colPdeID,
                                  Integer colEqnNum,
-                                 Complex val, 
+                                 Complex val,
                                  bool setCounterPart ) = 0;
     //@}
-    
+
     //! Constructs the effective system matrix
 
     //! Constructs the effective system matrix by multiplying the individual
     //! matrices (expect AUXILIARY!) with factors and adding them to one system matrix
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
-    virtual void ConstructEffectiveMatrix( const std::map<FEMatrixType,Double> 
+    virtual void ConstructEffectiveMatrix( const std::map<FEMatrixType,Double>
                                            &matFactors ) = 0;
 
     //@{
     //! Pass a Dirichlet value to %OLAS
 
     //! This method passes the value of a given inhomogeneous Dirichlet
-    //! equation number to %OLAS. 
+    //! equation number to %OLAS.
     //! \param pdeID  identifier for PDE related to sub-graph
     //! \param eqnNr  equation number of the dirichlet restraint
     //! \param val    value of the dirichlet restraint
     //!
     //! \note This method is only used to give the information of the current
-    //! values to %OLAS. This method does NOT assemble them into the matrix. 
+    //! values to %OLAS. This method does NOT assemble them into the matrix.
     //! This is done by the method BuildInDirichlet.
     virtual void SetDirichlet( const PdeIdType pdeID,
-			       Integer eqnNr, const Double &val ) = 0;
+                               Integer eqnNr, const Double &val ) = 0;
 
     virtual void SetDirichlet( const PdeIdType pdeID,
-			       Integer eqnNr, const Complex &val ) = 0;
+                               Integer eqnNr, const Complex &val ) = 0;
     //@}
 
     //! Assemble the previously defined Dirichlet values into the algsys
@@ -658,27 +658,27 @@ namespace OLAS {
     //! Return the pointer to the current solution of a PDE
 
     //! This method passes the current solution of one given PDE
-    //! as a pointer to a buffer containing the solution entries. 
+    //! as a pointer to a buffer containing the solution entries.
     //! If no identifier is given, the pointer to the beginning of the
     //! complete solution array is passed.
     //!
     //! \param ptSol pointer (0-based) to the solution buffer
     //! \param identifierPDE identifier for PDE related to sub-graph
     //! \return number of array entries
-    //! 
+    //!
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    virtual Integer GetSolutionVal( Double* &ptSol, 
-				    const PdeIdType identifierPDE 
-				    = NO_PDE_ID ) = 0;
-    virtual Integer GetSolutionVal( Complex* &ptSol, 
-				    const PdeIdType identifierPDE 
-				    = NO_PDE_ID ) = 0;
+    virtual Integer GetSolutionVal( Double* &ptSol,
+                                    const PdeIdType identifierPDE
+                                    = NO_PDE_ID ) = 0;
+    virtual Integer GetSolutionVal( Complex* &ptSol,
+                                    const PdeIdType identifierPDE
+                                    = NO_PDE_ID ) = 0;
     //@}
-    
+
     //@{
     //! Return the pointer to the current rhs value of a PDE
-    
+
     //! This method passes the current rhs as a pointer to buffer with
     //! right hand side entries.
     //!
@@ -688,12 +688,12 @@ namespace OLAS {
     //!
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
-    virtual Integer GetRHSVal( Double* &ptRhs, 
-			       const PdeIdType identifierPDE 
-			       = NO_PDE_ID) = 0;
-    virtual Integer GetRHSVal( Complex* &ptRhs, 
-			       const PdeIdType identifierPDE 
-			       = NO_PDE_ID) = 0;
+    virtual Integer GetRHSVal( Double* &ptRhs,
+                               const PdeIdType identifierPDE
+                               = NO_PDE_ID) = 0;
+    virtual Integer GetRHSVal( Complex* &ptRhs,
+                               const PdeIdType identifierPDE
+                               = NO_PDE_ID) = 0;
     //@}
 
 
@@ -704,7 +704,7 @@ namespace OLAS {
 
     //@{
     //! \name General Data Management
-    
+
     //! Set type of needed matrix (STIFFNESS, MASS, ...)
 
     //! This method must be called to inform the algebraic system that a
@@ -721,12 +721,12 @@ namespace OLAS {
     //!                        graph manager
     virtual void SetFEMatrixType( const FEMatrixType matType,
                                   const PdeIdType identifierPDE1,
-                                  const PdeIdType identifierPDE2 
+                                  const PdeIdType identifierPDE2
                                   = NO_PDE_ID) = 0;
-    
+
     //! Get types of used matrices (STIFFNESS, MASS, ...)
 
-    //! Get the types of the matrices, which were created by OLAS, 
+    //! Get the types of the matrices, which were created by OLAS,
     //! for example STIFFNESS, MASS...
     //! \param matTypes set of enums of global matrices
     virtual void GetFEMatrixTypes( std::set<FEMatrixType> &matTypes ) const;
@@ -746,7 +746,7 @@ namespace OLAS {
     virtual void SetBlockSize( const PdeIdType identifier,
                                const UInt bs ) = 0;
 
-    //! Set the number of inhomogeneous Dirichlet boundary conditions    
+    //! Set the number of inhomogeneous Dirichlet boundary conditions
 
     //! This method must be called by each PDE in order to inform the
     //! algebraic system on the number of CFS++ equation numbers that
@@ -766,12 +766,12 @@ namespace OLAS {
     }
     //@}
 
-  
+
 
     // ***********************************************************************
-    //   Various methods 
+    //   Various methods
     // ***********************************************************************
-    
+
     //@{
     //! \name Miscellaneous
 
@@ -796,7 +796,7 @@ namespace OLAS {
     virtual void Print( FEMatrixType matrixID ) const = 0;
 
     //! Print information about registered PDEs
-    
+
     //! The method prints the name of the PDEs, their associated identifiers
     //! and the number of unkonwns per PDE into a specified ostream.
     //! \param log any kind of filestrean (normally .las-file)
@@ -812,7 +812,7 @@ namespace OLAS {
 
     //! Removes the IDBC Information from algebraic system
 
-    //! This method is needed in nonlinear computations 
+    //! This method is needed in nonlinear computations
     //! while computing solution updates
     virtual void RemoveIDBCInfoFromMatrix() const {;};
     //@}
@@ -824,7 +824,7 @@ namespace OLAS {
 
     //! Pointer to solver
     BaseSolver *solver_;
-    
+
     //! Pointer to eigenvalue solver
     BaseEigenSolver *eigenSolver_;
 
@@ -857,7 +857,7 @@ namespace OLAS {
     Integer nne_;
 
     //! Degree of freedom (= blocksize in blocksystems)
-    Integer blockSize_; 
+    Integer blockSize_;
 
     //! Parameter object
 
@@ -889,7 +889,7 @@ namespace OLAS {
     UInt *numLastFreeDof_;
 
     //! Array containing offsets for managing inhomogeneous Dirichlet BCs
-    
+
     //! This array contains the offsets for the consecutive numbers
     //! for the inhomogenous Dirichlet boundary conditions.  The array is
     //! enlarged by one entry to be able to compute from it the number of
@@ -897,7 +897,7 @@ namespace OLAS {
     UInt *bcOffsets_;
 
     //! Status of system matrix w.r.t. penalty terms
-    
+
     //! This flag is used to keep track on whether we must insert penalty
     //! terms into the system matrix or not. The latter can be the case if
     //! either the penalty formulation is not employed, or the insertion
@@ -919,7 +919,7 @@ namespace OLAS {
 
     /** Here we store the complete ParamNode descripton of our liner system
      * - As given in the XML - hence it might be NULL! */
-    ParamNode* xml;   
+    ParamNode* xml;
   };
 
 } // namespace

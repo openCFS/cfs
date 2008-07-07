@@ -66,8 +66,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
   // **********************
   BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat, 
                                             PrecondType ptype,
-					    OLAS_Params *myParams,
-					    OLAS_Report *myReport ) {
+                                            OLAS_Params *myParams,
+                                            OLAS_Report *myReport ) {
 
 
     BaseStdPrecond *retVal = NULL;
@@ -88,7 +88,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       //       generate an identity preconditioner to remain consistent.
     case NOPRECOND:
     case ID:
-      retVal = new IdPrecond;
+      retVal = new IdPrecondStd;
       (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
 	     << std::endl;
       break;
@@ -276,5 +276,46 @@ retVal = new precondObjType( mat, myParams, myReport );\
 
     // Finished
     return retVal;
+  }
+  
+  BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat, 
+                                            PrecondType ptype,
+                                            OLAS_Params *myParams,
+                                            OLAS_Report *myReport ) {
+
+    BaseSBMPrecond *retVal = NULL;
+
+    // Obtain matrix type information
+    MatrixEntryType entryType = mat.GetEntryType();
+
+    // Branch depending on desired preconditioner
+    switch( ptype ) {
+
+    // ==============================
+    //   Not really preconditioners
+    // ==============================
+
+    // Note: If no preconditioner was demanded we will currently also
+    //       generate an identity preconditioner to remain consistent.
+    case NOPRECOND:
+    case ID:
+      retVal = new IdPrecondSBM;
+      (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
+      << std::endl;
+      break;
+    default:
+      Error( "GeneratePrecondObject failed: Preconditioner type unknown",
+             __FILE__, __LINE__ );
+    }
+
+    // test, if preconditioner object could be generated
+    if ( retVal == NULL ) {
+      (*error) << "Something's broke. No preconditioner was generated!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Finished
+    return retVal;
+      
   }
 }

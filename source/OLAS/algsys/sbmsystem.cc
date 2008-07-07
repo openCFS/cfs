@@ -23,7 +23,7 @@
 
 
 namespace OLAS {
- 
+
 
   // ***********************
   //   Default Constructor
@@ -76,10 +76,6 @@ namespace OLAS {
     }
     DeleteArray( sysMat_ );
     DeleteArray( feSubMatrices_ );
-
-    // Delete global string streams
-    delete error;
-    delete warning;
   }
 
 
@@ -87,8 +83,7 @@ namespace OLAS {
   //   SetupPrecond
   // ****************
   void SBM_System::SetupPrecond() {
-    (*warning) << "SBM_System::SetupPrecond not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+    precond_->Setup( *sysMat_[SYSTEM] );
   }
 
 
@@ -111,6 +106,76 @@ namespace OLAS {
   }
 
 
+  Integer SBM_System::GetSolutionVal( Double* &ptSol,
+                                      const PdeIdType identifierPDE ) {
+
+    // iteratve over all rhs-vectors and copy entries
+    Integer actPos = 1;
+    Vector<Double> & bufVec = dynamic_cast<Vector<Double>&>(*solBuffer_);
+    bufVec.Resize( size_ );
+    bufVec.Init();
+    for( Integer i = 1; i <= numPDEs_; i++ ) {
+      Vector<Double> & actVec = dynamic_cast<Vector<Double>&>
+      ( *(sol_->GetPointer( i )) );
+
+      for( Integer iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
+        bufVec[actPos] = actVec[iEqn];
+      }
+    }
+    Double * ptr  = (dynamic_cast<Vector<Double>& >
+    (*solBuffer_)).GetPointer();
+    ptr++;
+    ptSol = ptr;
+    Warning( "The ordering of results in the result file will not be correct!");
+    return size_;
+  }
+
+  Integer SBM_System::GetSolutionVal( Complex* &ptSol,
+                                      const PdeIdType identifierPDE ) {
+
+    // iteratve over all rhs-vectors and copy entries
+     Integer actPos = 1;
+     Vector<Complex> & bufVec = dynamic_cast<Vector<Complex>&>(*solBuffer_);
+     bufVec.Resize( size_ );
+     bufVec.Init();
+     for( Integer i = 1; i <= numPDEs_; i++ ) {
+       Vector<Complex> & actVec = dynamic_cast<Vector<Complex>&>
+       ( *(sol_->GetPointer( i )) );
+
+       for( Integer iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
+         bufVec[actPos] = actVec[iEqn];
+       }
+     }
+     Complex * ptr  = (dynamic_cast<Vector<Complex>& >
+     (*solBuffer_)).GetPointer();
+     ptr++;
+     ptSol = ptr;
+     Warning( "The ordering of results in the result file will not be correct!");
+     return size_;
+  }
+
+  Integer SBM_System::GetRHSVal( Double* &ptRhs,
+                                 const PdeIdType identifierPDE ) {
+    Double * ptr  = (dynamic_cast<Vector<Double>& >
+      (*rhsBuffer_)).GetPointer();
+     ptr++;
+     ptRhs = ptr;
+     Warning( "The ordering of results in the result file will not be correct!");
+     return size_;
+
+  }
+
+  Integer SBM_System::GetRHSVal( Complex* &ptRhs,
+                                 const PdeIdType identifierPDE ) {
+    Complex * ptr  = (dynamic_cast<Vector<Complex>& >
+    (*rhsBuffer_)).GetPointer();
+    ptr++;
+    ptRhs = ptr;
+    Warning( "The ordering of results in the result file will not be correct!");
+    return size_;
+  }
+
+
   // *******************
   //   SetFEMatrixType
   // *******************
@@ -118,13 +183,6 @@ namespace OLAS {
                                     const PdeIdType pdeID1,
                                     const PdeIdType pdeID2 ) {
 
-
-    std::cerr << " Setting FE matrix type:"
-              << "\n matType = " << Enum2String( matType )
-              << " / " << matType
-              << "\n pdeID1 = " << pdeID1
-              << "\n pdeID2 = " << pdeID2
-              << std::endl;
 
     // Determine row and column index of sub-matrix
     UInt rowInd = pdeID1;
@@ -158,8 +216,6 @@ namespace OLAS {
       // -----------------------------------------------------------
 
     }
-
-    std::cerr << " done!" << std::endl << std::endl;
   }
 
 
@@ -205,6 +261,12 @@ namespace OLAS {
       }
     }
 
+
+    // determine overall number of unknowns
+    size_ = 0;
+    for( Integer i = 1; i <= numPDEs_; i++ ) {
+      size_ += numLastFreeDof_[i];
+    }
 
     // ------------------------------
     //  Generation of matrix objects
@@ -289,6 +351,13 @@ namespace OLAS {
     // Create the assemble object
     assemble_ = GenerateEntryManipulatorObject( entryType, 1 );
 
+    // Generate sparsevectors
+
+    MatrixStorageType sType = stdMat->GetStorageType();
+    solBuffer_ = dynamic_cast<SparseVector*>
+        ( GenerateSparseVectorObject( sType, entryType, 1, size_ ) );
+    rhsBuffer_ = dynamic_cast<SparseVector*>
+        ( GenerateSparseVectorObject( sType, entryType, 1, size_ ) );
 
     // -----------------
     //  Memory clean-up
@@ -592,7 +661,7 @@ namespace OLAS {
 #ifdef DEBUG_SBM_SYSTEM
     (*debug) << "ConstructEffectiveMatrix with factors: " << std::endl;
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-      (*debug) << Enum2String((*it).first) << ":" 
+      (*debug) << Enum2String((*it).first) << ":"
                << (*it).second << std::endl;
     }
 #endif
@@ -612,7 +681,7 @@ namespace OLAS {
   // *****************
   //   SetElementRHS
   // *****************
-  void SBM_System::SetElementRHS( Double *elemRHS, 
+  void SBM_System::SetElementRHS( Double *elemRHS,
                                   const PdeIdType idPDE,
                                   Integer *connect,
                                   UInt length ) {
@@ -723,7 +792,7 @@ namespace OLAS {
   // *********
   //   Solve
   // *********
-  void SBM_System::Solve(const std::string&) {
+  void SBM_System::Solve(const std::string& comment) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
@@ -760,12 +829,50 @@ namespace OLAS {
     // Now modifiy the right-hand side vector
     idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below 
+    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
     // the solve part is commentet out, I see no reason to export linsys also here, it would
     // require a generalization anyway. Fabian 16.11.07
+    // check if we do export stuff
+     ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
+     std::string file;
+     std::string base;
+
+     // need it common even when exclusive solution
+     if(els) {
+       std::ostringstream os;
+       os << els->Get("baseName")->AsString();
+       if(comment != "") os << "_" << comment;
+       base = os.str();
+     }
+
+     // check if we do not only want the solution
+     if(els && els->Get("solution")->AsString() != "exclusive")
+     {
+       // two formats. The harwell-boing format includes the rhs!
+       if(els->Get("format")->AsString()  == "harwell-boeing")
+       {
+         Error( "Harwell-Boeing Format not implemented for SBM-case",
+                __FILE__, __LINE__ );
+       }
+       else // classical (default) matrix-market
+       {
+         sysMat_[SYSTEM]->Export((base+".mtx").c_str() );
+
+         if(els->Has("damping", true) && sysMat_[DAMPING] != NULL)
+           sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
+
+         if(els->Has("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
+           sysMat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
+
+         // rhs is only in harwell-boing included
+         rhs_->Export((base+".vec").c_str() );
+       }
+     }
+     if(els && els->Has("initialGuess", true))
+           sol_->Export((base+"_intial_guess.vec").c_str());
 
     // Trigger solution
-    // solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
+    solver_->Solve( *sysMat_[SYSTEM], *precond_, *rhs_, *sol_ );
 
     // Now de-modifiy the right-hand side vector
     idbcHandler_->RemoveIDBCFromRHS( rhs_ );
@@ -777,7 +884,7 @@ namespace OLAS {
       Warning( __FILE__, __LINE__ );
     }
 
-#ifdef PROFILING    
+#ifdef PROFILING
     Double t2 = Profiler::GetRealTime();
     (*cla)  << "solution time: " << t2-t1 << " seconds " << std::endl;
     Profiler::WriteReport();
@@ -816,16 +923,16 @@ namespace OLAS {
 
 
     Error( "Not implemented", __FILE__, __LINE__ );
-    
+
   }
-  
+
   void SBM_System::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, 
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum2,
                                        Complex & val ) {
-    
+
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
@@ -835,16 +942,16 @@ namespace OLAS {
 
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
                                    const PdeIdType rowPdeID,
-                                   Integer rowEqnNum, 
+                                   Integer rowEqnNum,
                                    const PdeIdType colPdeID,
-                                   Integer colEqnNum, 
+                                   Integer colEqnNum,
                                    Double val, bool setCounterPart ) {
     Error( "Not implemented", __FILE__, __LINE__ );
   }
-  
+
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
                                    const PdeIdType rowPdeID,
-                                   Integer rowEqnNum, 
+                                   Integer rowEqnNum,
                                    const PdeIdType colPdeID,
                                    Integer colEqnNum,
                                    Complex val, bool setCounterPart ) {
@@ -899,11 +1006,21 @@ namespace OLAS {
   // ****************
   void SBM_System::CreateSolver(){
 
-    
-    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), GMRES, xml,
+
+    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml,
                                     &myParams_, &myReport_ );
   }
 
+
+  // ****************
+    //   CreateSolver
+    // ****************
+    void SBM_System::CreatePrecond(){
+      PrecondType precond;
+      myParams_.GetEnumValue("Precond", precond);
+      precond_ = GenerateSBMPrecondObject( *(sysMat_[SYSTEM]), precond,
+                                           &myParams_, &myReport_ );
+    }
 
   // ***************
   //   SetupSolver

@@ -24,6 +24,7 @@ namespace OLAS {
   class BaseEntryManipulator;
   class BaseIDBC_Handler;
   class SBM_Matrix;
+  class SparseVector;
 
 
   //! Linear algebraic system for normal scalar- and blocksystems
@@ -91,10 +92,7 @@ namespace OLAS {
     void CreateSolver();
 
     //! Generate preconditioner
-    void CreatePrecond() {
-      (*warning) << "SBM_System::CreatePrecond not yet implemented!";
-      Warning( __FILE__, __LINE__ );
-    }
+    void CreatePrecond();
 
     //! Generate EigenSolver object
 
@@ -556,19 +554,11 @@ namespace OLAS {
     //! until the next call of this method (after solving the next step)!
     Integer GetSolutionVal( Double* &ptSol, 
                             const PdeIdType identifierPDE 
-                            = NO_PDE_ID ) {
-      (*error) << "Method not yet implemented!";
-      Error( __FILE__, __LINE__ );
-      return 0;
-    }
+                            = NO_PDE_ID );
 
     Integer GetSolutionVal( Complex* &ptSol, 
                             const PdeIdType identifierPDE 
-                            = NO_PDE_ID ) {
-      (*error) << "Method not yet implemented!";
-      Error( __FILE__, __LINE__ );
-      return 0;
-    }
+                            = NO_PDE_ID );
     //@}
 
     //@{
@@ -585,19 +575,11 @@ namespace OLAS {
     //! until the next call of this method!
     Integer GetRHSVal( Double* &ptRhs, 
                        const PdeIdType identifierPDE 
-                       = NO_PDE_ID) {
-      (*error) << "Method not yet implemented!";
-      Error( __FILE__, __LINE__ );
-      return 0;
-    }
+                       = NO_PDE_ID );
   
     Integer GetRHSVal( Complex* &ptRhs, 
                        const PdeIdType identifierPDE 
-                       = NO_PDE_ID) {
-      (*error) << "Method not yet implemented!";
-      Error( __FILE__, __LINE__ );
-      return 0;
-    }
+                       = NO_PDE_ID );
     //@}
 
 
@@ -715,6 +697,12 @@ namespace OLAS {
 
     //! Pointer to the preconditioner object
     BaseSBMPrecond *precond_; 
+    
+    //! Return buffer for solution values 
+    SparseVector * solBuffer_;
+    
+    //! Return buffer for rhs values
+    SparseVector * rhsBuffer_;
 
     //! Binary predicate used as comparision operator for SubMatrixID sets
 

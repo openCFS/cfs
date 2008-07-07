@@ -19,16 +19,16 @@ namespace OLAS {
   //! does not really do anything and the Apply routine simply returns the rhs
   //! vector unchanged as sol vector. The class is provided in order to render
   //! constant case distinctions unneccessary.
-  class IdPrecond : public BaseStdPrecond {
+  class IdPrecondStd : public BaseStdPrecond {
 
   public:
 
     //! Default Constructor
-    IdPrecond() {
+    IdPrecondStd() {
     };
 
     //! Default Destructor
-    ~IdPrecond() {
+    ~IdPrecondStd() {
     };
 
     //! Application of preconditioner
@@ -37,7 +37,7 @@ namespace OLAS {
     //! for sol. As a consequence it simply copies the rhs entries into the sol
     //! vector.
     void Apply( const StdMatrix &sysmat, const SparseVector &rhs,
-		SparseVector &sol ) const {
+                SparseVector &sol ) const {
       sol = rhs;
     }
 
@@ -45,7 +45,6 @@ namespace OLAS {
 
     //! Since the application of the identity precondtioner requires nothing
     //! but to copy some vector entries, the setup method does not do anything.
-    /// diagonal entries of the system matrix
     void Setup( StdMatrix &sysmat ) {
     }
 
@@ -54,7 +53,54 @@ namespace OLAS {
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is ID.
     PrecondType GetPrecondType() const {
-    return ID;
+      return ID;
+    }
+
+  };
+  
+  //! Identity Preconditioner for SBM Matrices
+
+  //! This class implements an identity preconditioner for problems involving
+  //! SBM matrices. Since preconditioning with the identity matrix does
+  //! not really change anything this is a quite simple task. The Setup routine
+  //! does not really do anything and the Apply routine simply returns the rhs
+  //! vector unchanged as sol vector. The class is provided in order to render
+  //! constant case distinctions unneccessary.
+  class IdPrecondSBM : public BaseSBMPrecond {
+
+  public:
+
+    //! Default Constructor
+    IdPrecondSBM() {
+    };
+
+    //! Default Destructor
+    ~IdPrecondSBM() {
+    };
+
+    //! Application of preconditioner
+
+    //! This method applies the identity preconditioner to solve Id * sol = rhs
+    //! for sol. As a consequence it simply copies the rhs entries into the sol
+    //! vector.
+    void Apply( const SBM_Matrix &sysmat, const SBM_Vector &rhs,
+                SBM_Vector &sol ) const {
+      sol = rhs;
+    }
+
+    //! Triggers setup of the identity preconditioner
+
+    //! Since the application of the identity precondtioner requires nothing
+    //! but to copy some vector entries, the setup method does not do anything.
+    void Setup( SBM_Matrix &sysmat ) {
+    }
+
+    //! Query type of preconditioner object
+
+    //! When called this method returns the type of the preconditioner object.
+    //! In the case of an object of this class the return value is ID.
+    PrecondType GetPrecondType() const {
+      return ID;
     }
 
   };

@@ -207,8 +207,8 @@ namespace OLAS {
           }
 
           // Both submatrices are not NULL so do a simple scaled addition
-	  subMat_[k]->Add( fac, *auxMat );
-	}
+          subMat_[k]->Add( fac, *auxMat );
+        }
       }
 
     }
@@ -225,7 +225,7 @@ namespace OLAS {
   //   Perform a residual computation
   // **********************************
   void SBM_Matrix::CompRes( BaseVector &r, const BaseVector &x,
-			    const BaseVector& b ) const {
+                            const BaseVector& b ) const {
 
 
     // Downcast BaseVectors to SBM_Vectors
@@ -252,12 +252,13 @@ namespace OLAS {
             // Compute i-th component of A*x
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
               subMat_[ComputeIndex(i,j)]->MultAdd( sbm_x(j), sbm_r(i) );
+            std::cerr << "Ax  for part (" << i << "," << j<< ") is \n";
+            sbm_r(i).Print( std::cerr );
             }
           }
-
-          // Subtract A*x from b
-          sbm_r.Axpy( -1.0, sbm_b );
         }
+          // Subtract A*x from b
+        sbm_r.Axpy( -1.0, sbm_b );
       }
 
       // -----------------
@@ -274,25 +275,31 @@ namespace OLAS {
           // of A * x using S(i,j) * x = S(j,i)^T * x
           for ( Integer j = 1; j < i; j++ ) {
             if ( subMat_[ComputeIndex(j,i)] != NULL ) {
+              std::cerr << "Multiplying A(" << j << "," << i
+                        << "^T with sbm_x(" << j << ")\n";
               subMat_[ComputeIndex(j,i)]->MultTAdd( sbm_x(j), sbm_r(i) );
             }
           }
 
           // Add contribution of diagonal block
           if ( subMat_[ComputeIndex(i,i)] != NULL ) {
+            std::cerr << "Multiplying A(" << i << "," << i
+                      << " with sbm_x(" << i << ")\n";
             subMat_[ComputeIndex(i,i)]->MultAdd( sbm_x(i), sbm_r(i) );
           }
 
           // Add contribution of super-diagonal blocks
           for ( Integer j = i+1; j <= ncols_; j++ ) {
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
+              std::cerr << "Multiplying A(" << i << "," << i
+                        << " with sbm_x(" << j << ")\n";
               subMat_[ComputeIndex(i,j)]->MultAdd( sbm_x(j), sbm_r(i) );
             }
           }
-
-          // Subtract A*x from b
-          sbm_r.Axpy( -1.0, sbm_b );
         }
+
+        // Subtract A*x from b
+        sbm_r.Axpy( -1.0, sbm_b );
       }
     }
 
@@ -402,7 +409,7 @@ namespace OLAS {
     try {
       const SBM_Vector& vec_m = dynamic_cast<const SBM_Vector&>(mvec);
       SBM_Vector& vec_r = dynamic_cast      <SBM_Vector&>(rvec);
-	    
+
       // ---------------------
       //  Non-symmetric case:
       // ---------------------

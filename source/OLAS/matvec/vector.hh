@@ -94,6 +94,15 @@ namespace OLAS {
     //! The default destructor must be deep, i.e. it must free all dynamically
     //! allocated memory.
     ~Vector();
+    
+    //! Return the Entry type of the vector
+      
+    //! The method returns the entry type of the vector (i.e. Double, Complex,
+    //! or whatever it is). This is encoded as a value of the enumeration data
+    //! type MatrixEntryType.
+    MatrixEntryType GetEntryType() const {
+      return  EntryType<T>::M_EntryType;
+    }
 
     //! Re-size the vector
 

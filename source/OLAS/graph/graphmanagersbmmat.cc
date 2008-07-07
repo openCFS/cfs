@@ -43,11 +43,11 @@ namespace OLAS {
     // responsibility to delete then now.
     for ( UInt i = 1; i <= numPDEs_; i++ ) {
       if ( newOrdering_[i] != NULL ) {
-	(*error) << "GraphManagerSBMMat::~GraphManagerSBMMat: "
+        (*error) << "GraphManagerSBMMat::~GraphManagerSBMMat: "
                  << "Nobody ever claimed the permutation vector for the "
                  << "PDE with identifier '" << i
                  << "'! Assuming it's my task to de-allocate the memory!";
-	Error( __FILE__, __LINE__ );
+        Error( __FILE__, __LINE__ );
       }
       else {
         DeleteArray( newOrdering_[i] );
@@ -137,7 +137,7 @@ namespace OLAS {
   void GraphManagerSBMMat::RegisterPDE( const PdeIdType identifierPDE,
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
-					const ReorderingType reorder ) {
+                                        const ReorderingType reorder ) {
 
 
     // Be cautious
@@ -196,7 +196,7 @@ namespace OLAS {
   //   AssembleInit
   // ================
   void GraphManagerSBMMat::AssembleInit( const PdeIdType idPDE1,
-					 const PdeIdType idPDE2,
+                                         const PdeIdType idPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -236,7 +236,7 @@ namespace OLAS {
   //   AssembleDone
   // ================
   void GraphManagerSBMMat::AssembleDone( const PdeIdType idPDE1,
-					 const PdeIdType idPDE2,
+                                         const PdeIdType idPDE2,
                                          bool assemblingTranspose ) {
 
 
@@ -252,7 +252,7 @@ namespace OLAS {
     if ( graph_[idx] == NULL ) {
       (*error) << "GraphManagerSBMMat::AssembleInit: "
                << "Pointer to graph object = NULL! "
-	       << "Did you call RegisterPDE() for all " << numPDEs_
+               << "Did you call RegisterPDE() for all " << numPDEs_
                << " PDEs?";
       Error( __FILE__, __LINE__ );
     }
@@ -325,11 +325,11 @@ namespace OLAS {
   //   SetElementPos
   // =================
   void GraphManagerSBMMat::SetElementPos( const PdeIdType pdeID1,
-					  Integer *connect1,
-					  Integer length1,
-					  const PdeIdType pdeID2,
-					  Integer *connect2,
-					  Integer length2,
+                                          Integer *connect1,
+                                          Integer length1,
+                                          const PdeIdType pdeID2,
+                                          Integer *connect2,
+                                          Integer length2,
                                           bool setCounterPart ) {
 
 
@@ -354,7 +354,7 @@ namespace OLAS {
     if ( graph_[idx] == NULL ) {
       (*error) << "GraphManagerSBMMat::SetElementPos: "
                << "Pointer to graph object = NULL! "
-	       << "Did you call RegisterPDE() for all " << numPDEs_
+               << "Did you call RegisterPDE() for all " << numPDEs_
                << " PDEs?";
       Error( __FILE__, __LINE__ );
     }
@@ -503,7 +503,7 @@ namespace OLAS {
   //   GetGraph
   // ============
   BaseGraph* GraphManagerSBMMat::GetGraph( const PdeIdType identifierPDE1,
-					   const PdeIdType identifierPDE2 ) {
+                                           const PdeIdType identifierPDE2 ) {
 
 
     // Check consisteny
@@ -563,7 +563,7 @@ namespace OLAS {
   //   SubGraphExists
   // ==================
   bool GraphManagerSBMMat::SubGraphExists( const PdeIdType idPDE1,
-					   const PdeIdType idPDE2 ) const {
+                                           const PdeIdType idPDE2 ) const {
     return graph_[ ComputeIndex( idPDE1, idPDE2 ) ] != NULL;
   }
 
@@ -685,7 +685,7 @@ namespace OLAS {
         }
       }
     }
-    
+
 
     // Close report block
     (*log) << ' ' << std::setw(tw) << std::setfill( '=' ) << '=' << "\n"
