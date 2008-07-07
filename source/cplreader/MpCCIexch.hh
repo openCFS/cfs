@@ -3,7 +3,7 @@
 
 #include "H5Cpp.h"
 
-#include <cplreaderdefs.hh>
+#include <def_cplreader.hh>
 #include "FileReader.hh"
 
 namespace CoupledField

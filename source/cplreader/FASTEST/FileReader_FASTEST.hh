@@ -1,8 +1,8 @@
 #ifndef FILE_FILEREADER_FASTEST_2006
 #define FILE_FILEREADER_FASTEST_2006
 
-#include <cplreaderdefs.hh>
-#include "FileReader.hh"
+#include <def_cplreader.hh>
+#include "cplreader/FileReader.hh"
 
 namespace CoupledField
 {

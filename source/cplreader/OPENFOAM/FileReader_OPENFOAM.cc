@@ -14,7 +14,7 @@ namespace fs=boost::filesystem;
 
 #include "Domain/resultInfo.hh"
 
-#include "Settings.hh"
+#include "cplreader/Settings.hh"
 #include "FileReader_OPENFOAM.hh"
 
 

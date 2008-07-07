@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#include "cplreaderdefs.hh"
+#include <def_cplreader.hh>
 #include "FlowDataTypes.hh"
 
 //! Base class for reading topology and nodal data from results of fluid computations

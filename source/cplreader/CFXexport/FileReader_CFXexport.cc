@@ -4,7 +4,7 @@
 #include <string>
 
 #include "General/exception.hh"
-#include "Settings.hh"
+#include "cplreader/Settings.hh"
 #include "FileReader_CFXexport.hh"
 
 namespace CoupledField {

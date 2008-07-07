@@ -1,22 +1,22 @@
 // =============================================================================
-//                                                                              
+//
 //  Special Topics in Scientific Computing Exercises (STISCEX)
-//                                                                              
+//
 //  University Erlangen-Nuremberg (UEN)
 //
 //  Department of Sensor Technology
 //  Paul-Gordan-Strasse 3/5
 //  91052 Erlangen
 //  Germany
-//  
+//
 //  Department of System Simulation
-//  Cauerstraße 6
+//  Cauerstraï¿½e 6
 //  91058 Erlangen
 //  Germany
-//                                                                              
-//  Oct 2006 skeleton code provided by 
+//
+//  Oct 2006 skeleton code provided by
 //  Simon Triebenbacher, simon.triebenbacher@lse.eei.uni-erlangen.de
-//                                                                              
+//
 // =============================================================================
 
 #ifndef FILE_SETTINGS_2006
@@ -27,9 +27,9 @@
 #include <sstream>
 #include <memory>
 
-#include <cplreaderdefs.hh>
+#include <def_cplreader.hh>
 
-namespace CoupledField 
+namespace CoupledField
 {
 
   //! \class Settings settings.hh "settings.hh"
@@ -39,7 +39,7 @@ namespace CoupledField
   //! associated with a name. The settings can be accessed from
   //! everywhere by taking advantage of the singleton concept.
 
-  class Settings 
+  class Settings
   {
   public:
     // ========================================================================
@@ -48,14 +48,14 @@ namespace CoupledField
 
     //! Map type for storing settings
     typedef std::map<std::string, std::string> Map;
-    
+
   public:
 
     //! Get the instance
     //!
     //! Due to the fact that this class uses private
     //! constructors this method is the only means of
-    //! creating/getting the only instance of the 
+    //! creating/getting the only instance of the
     //! Settings class.
     static Settings& Instance()
     {
@@ -66,7 +66,7 @@ namespace CoupledField
 
       return *settingsInstance_;
     }
-    
+
     //! Get string
     //!
     //! This method gets the string with the name
@@ -80,7 +80,7 @@ namespace CoupledField
 
         EXCEPTION("Key '" << key << "' not found in map.");
       }
-      
+
       return settingsMap_[key];
     }
 
@@ -95,11 +95,11 @@ namespace CoupledField
       {
         EXCEPTION("Key '" << key << "' not found in map.");
       }
-      
+
       std::stringstream sstr;
       int32_t value;
       bool failed;
-      
+
       sstr << settingsMap_[key];
       failed = !(( sstr >> value ) && ( sstr.eof() ));
 
@@ -107,10 +107,10 @@ namespace CoupledField
       {
         EXCEPTION("Conversion to int32_t failed.");
       }
-      
+
       return value;
     }
-    
+
     //! Get double
     //!
     //! This method gets the double with the name
@@ -122,11 +122,11 @@ namespace CoupledField
       {
         EXCEPTION("Key '" << key << "' not found in map.");
       }
-      
+
       std::stringstream sstr;
       double value;
       bool failed;
-      
+
       sstr << settingsMap_[key];
       failed = !(( sstr >> value ) && ( sstr.eof() ));
 
@@ -134,8 +134,8 @@ namespace CoupledField
       {
         EXCEPTION("Conversion to double failed.");
       }
-      
-      return value;      
+
+      return value;
     }
 
     //! Set string
@@ -158,12 +158,12 @@ namespace CoupledField
     void SetInt(const std::string& key, int32_t value)
     {
       std::stringstream sstr;
-      
+
       sstr << value;
-      
-      settingsMap_[key] = sstr.str(); 
+
+      settingsMap_[key] = sstr.str();
     }
-    
+
     //! Set double
     //!
     //! This method associates the double val with
@@ -173,12 +173,12 @@ namespace CoupledField
     void SetDouble(const std::string& key, double value)
     {
       std::stringstream sstr;
-      
+
       sstr << value;
-      
-      settingsMap_[key] = sstr.str();      
+
+      settingsMap_[key] = sstr.str();
     }
-    
+
   private:
 
     //! Private constructor.
@@ -187,7 +187,7 @@ namespace CoupledField
     //! The only way to instantiate a Settings object is
     //! by using Instance().
     Settings() {};
-    
+
     //! Private copy constructor.
     //!
     //! This one can never be called from outside.

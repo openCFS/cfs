@@ -1239,7 +1239,6 @@ source/cplreader/Settings.hh svneol=native#text/plain
 source/cplreader/Stanford/filereader_Stanford.cc svneol=native#text/plain
 source/cplreader/Stanford/filereader_Stanford.hh svneol=native#text/plain
 source/cplreader/cplreader.cc svneol=native#text/plain
-source/cplreader/cplreaderdefs.hh.in -text
 source/cplreader/integlib/elemIntegr.cc svneol=native#text/plain
 source/cplreader/integlib/elemIntegr.hh svneol=native#text/plain
 source/cplreader/integlib/integr.cc svneol=native#text/plain

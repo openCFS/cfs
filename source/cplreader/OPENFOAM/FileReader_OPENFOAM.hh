@@ -1,8 +1,8 @@
 #ifndef FILE_FILEREADER_OPENFOAM_2007
 #define FILE_FILEREADER_OPENFOAM_2007
 
-#include <cplreaderdefs.hh>
-#include "FileReader.hh"
+#include <def_cplreader.hh>
+#include "cplreader/FileReader.hh"
 
 class vtkOpenFOAMReader;
 

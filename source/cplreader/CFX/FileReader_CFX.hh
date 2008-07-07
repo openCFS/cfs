@@ -3,8 +3,8 @@
 
 #include <map>
 
-#include <cplreaderdefs.hh>
-#include "FileReader.hh"
+#include <def_cplreader.hh>
+#include "cplreader/FileReader.hh"
 
 namespace CoupledField
 {
