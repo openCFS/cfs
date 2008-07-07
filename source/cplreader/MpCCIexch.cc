@@ -22,7 +22,6 @@ namespace fs=boost::filesystem;
 #include <mpcci.h>
 #endif
 
-#include <cplreaderdefs.hh>
 #include "General/exception.hh"
 #include "Settings.hh"
 #include "General/environment.hh"

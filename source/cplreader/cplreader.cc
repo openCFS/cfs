@@ -19,7 +19,7 @@ namespace fs=boost::filesystem;
 #include <mpcci.h>
 #endif
 
-#include <cplreaderdefs.hh>
+#include <def_cplreader.hh>
 
 #include "General/exception.hh"
 #include "ParamsInit.hh"

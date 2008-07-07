@@ -1,7 +1,7 @@
 #ifndef FILE_FILEREADER_NACS_2008
 #define FILE_FILEREADER_NACS_2008
 
-#include <cplreaderdefs.hh>
+#include <def_cplreader.hh>
 #include "FileReader_ANSYS.hh"
 
 namespace CoupledField

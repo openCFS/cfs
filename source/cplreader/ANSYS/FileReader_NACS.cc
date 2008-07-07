@@ -12,7 +12,7 @@
 namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
-#include "Settings.hh"
+#include "cplreader/Settings.hh"
 #include "FileReader_NACS.hh"
 
 

@@ -7,7 +7,7 @@
 #include <sstream>
 
 #include "General/exception.hh"
-#include "Settings.hh"
+#include "cplreader/Settings.hh"
 #include "FileReader_FASTEST.hh"
 
 

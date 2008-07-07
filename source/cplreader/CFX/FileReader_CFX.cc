@@ -17,8 +17,8 @@ namespace algo=boost::algorithm;
 // #include <muParser.h>
 
 #include "General/exception.hh"
-#include "Settings.hh"
-#include "../mpcci_defs.hh"
+#include "cplreader/Settings.hh"
+#include "cplreader/mpcci_defs.hh"
 #include "FileReader_CFX.hh"
 #include "cfx_fortran_defs.h"
 
