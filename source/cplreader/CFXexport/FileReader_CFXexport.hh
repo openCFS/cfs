@@ -4,7 +4,7 @@
 #include <map>
 
 #include <cplreaderdefs.hh>
-#include "../filereader.hh"
+#include "FileReader.hh"
 
 namespace CoupledField {
 
@@ -35,19 +35,19 @@ namespace CoupledField {
       virtual void ReadNodalValues(std::vector<FlowDataType > &nodalFlowdata,
                                    const std::vector<bool>& activeParts,
                                    const UInt timeStepIdx);
-      
+
       virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                      const UInt regionIdx);
 
     protected:
-      
+
       enum Quantity { DENSITY, PRESSURE, VELOCITY_X, VELOCITY_Y, VELOCITY_Z };
 
       UInt startIndex_;
       UInt colX_, colY_, colZ_;
       UInt colDens_, colPres_, colVelX_, colVelY_, colVelZ_;
       std::map<UInt, Quantity> col2Quan_;
-      
+
       std::ifstream inFile_;
 
   };

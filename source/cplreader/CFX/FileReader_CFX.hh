@@ -4,7 +4,7 @@
 #include <map>
 
 #include <cplreaderdefs.hh>
-#include "filereader.hh"
+#include "FileReader.hh"
 
 namespace CoupledField
 {
@@ -17,7 +17,7 @@ namespace CoupledField
     FileReader_CFX(const std::string& name,
                    const UInt dim,
                    const UInt numFiles);
-    
+
     //! Deconstructor
     virtual ~FileReader_CFX();
 
@@ -38,7 +38,7 @@ namespace CoupledField
 
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
-    
+
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                        const UInt regionIdx);
 
@@ -52,7 +52,7 @@ namespace CoupledField
                       std::string& attrib,
                       std::string indent,
                       std::ostream& outFile);
-        
+
     void ParseOption(std::vector<char>& cmdstr,
                      int& pos,
                      std::string& option,
@@ -74,9 +74,9 @@ namespace CoupledField
     std::vector< int > timeStepNumbers_;
     std::vector< FEType > regionElemTypes_;
     std::ifstream inFile_;
-    
+
     // Vector of element numbers per region
-    std::map<UInt, std::vector<UInt> > regionElems_; 
+    std::map<UInt, std::vector<UInt> > regionElems_;
 
 
     char fn[4096];

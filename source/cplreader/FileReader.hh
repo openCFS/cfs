@@ -5,16 +5,16 @@
 #include <vector>
 
 #include "cplreaderdefs.hh"
-#include "flowDataTypes.hh"
+#include "FlowDataTypes.hh"
 
-//! Base class for reading topology and nodal data from results of fluid computations 
+//! Base class for reading topology and nodal data from results of fluid computations
 /*!
-  This class contains methods for the reading information 
-  from a fluid topology file and from the fluid results files. 
+  This class contains methods for the reading information
+  from a fluid topology file and from the fluid results files.
   It reads and couples flow results from a set of files (or set of
   region files coming from a blocked structured fluid computation).
 */
- 
+
 namespace CoupledField
 {
 
@@ -24,7 +24,7 @@ namespace CoupledField
 
     //! Constructor
     FileReader(const std::string& name, const UInt dim, const UInt numFiles);
-    
+
     //! Deconstructor
     virtual ~FileReader();
 
@@ -63,12 +63,12 @@ namespace CoupledField
     virtual UInt GetNumFiles() { return numSteps_;}
 
     //! Return maximum number of nodes
-    virtual UInt GetNumNodes(const UInt regionIdx) { 
+    virtual UInt GetNumNodes(const UInt regionIdx) {
       return numNodesPerRegion_[regionIdx];
     }
 
     //! Return maximum number of nodes
-    virtual UInt GetNumElems(const UInt regionIdx) { 
+    virtual UInt GetNumElems(const UInt regionIdx) {
       return numElemsPerRegion_[regionIdx];
     }
 
@@ -107,33 +107,33 @@ namespace CoupledField
 //    std::ifstream flowdatafile;
     std::string name_;
     std::string baseName_;
-    
+
     //! Number of regions
-    UInt numRegions_; 
-    
+    UInt numRegions_;
+
     //! dimension of grid
     UInt dim_;
-    
+
     //! Number of nodes per region
     std::vector<UInt> numNodesPerRegion_;
-    
+
     //! Number of elements per Region
     std::vector<UInt> numElemsPerRegion_;
-    
+
 //    UInt numResults_;
-    
+
     //! Number of time steps
     UInt numSteps_;
 
     // Maximum number of nodes per element
     UInt maxNumElemNodes_;
-    
+
     // Preferred path for output of HDF5 files.
     std::string  preferedOutputPath_;
-    
+
     std::map<SolutionType, bool> requiredResults_;
   };
 
-      
+
 } // end of namespace
 #endif

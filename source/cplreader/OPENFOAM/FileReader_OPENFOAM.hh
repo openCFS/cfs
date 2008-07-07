@@ -2,7 +2,7 @@
 #define FILE_FILEREADER_OPENFOAM_2007
 
 #include <cplreaderdefs.hh>
-#include "../filereader.hh"
+#include "FileReader.hh"
 
 class vtkOpenFOAMReader;
 
@@ -17,7 +17,7 @@ namespace CoupledField
     FileReader_OPENFOAM(const std::string& name,
                         const UInt dim,
                         const UInt numFiles);
-    
+
     //! Deconstructor
     virtual ~FileReader_OPENFOAM();
 
@@ -44,10 +44,10 @@ namespace CoupledField
 
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
-    
+
   protected:
       FEType VTKCellTypeToFEType(UInt cellType);
-      
+
       /* calculates the mechDisplacement and writes them into newCoords
        * \param origin A vector which has the original position of each node
        * \param newCoords A vector which has the new position of each node and
@@ -63,6 +63,6 @@ namespace CoupledField
       UInt numElems_;
   };
 
-      
+
 } // end of namespace
 #endif

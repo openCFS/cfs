@@ -11,10 +11,11 @@
 
 namespace fs = boost::filesystem;
 
-#include "params.hh"
-#include "settings.hh"
+#include "General/exception.hh"
+#include "ParamsInit.hh"
+#include "Settings.hh"
 
-namespace CoupledField 
+namespace CoupledField
 {
 
   namespace po = boost::program_options;
@@ -72,7 +73,7 @@ namespace CoupledField
                   << __DATE__ << std::endl << std::endl;
       }
     }
-    
+
     int myargc = argc;
     char** myargv = argv;
     char* dummy[32];
@@ -82,7 +83,7 @@ namespace CoupledField
       std::string arg = argv[n];
 
       if(arg == "-p4amslave" ||
-         arg == "-p4yourname" || 
+         arg == "-p4yourname" ||
          arg == "-p4rmrank")
       {
         myargc = argc - 8;
@@ -95,13 +96,13 @@ namespace CoupledField
 
         myargv = dummy;
         myargc++;
-                
+
         break;
-                
+
       }
     }
 
-    try 
+    try
     {
       // Declare the supported options.
       po::options_description desc("Allowed options");
@@ -147,7 +148,7 @@ namespace CoupledField
          "Delete temporary files.")
 
         ("floatds", po::value< bool >(&param_floatds)->default_value(true),
-         "Do the transient files contain float or double values." 
+         "Do the transient files contain float or double values."
          "ATTENTION: If this flag is true, it overrides the setting of"
          "--outprec for CFX!")
 
@@ -189,7 +190,7 @@ namespace CoupledField
 
         ("vz", po::value< std::string >(&param_vz)->default_value(""),
          "Column of z-velocity in FASTEST result files (e.g. col4).")
-         
+
         ("pres", po::value< std::string >(&param_pres)->default_value(""),
          "Column of pressure in FASTEST result files (e.g. col5).")
 
@@ -207,7 +208,7 @@ namespace CoupledField
 
       po::variables_map vm;
       po::store(po::parse_command_line(argc, argv, desc), vm);
-      po::notify(vm);    
+      po::notify(vm);
 
       if (vm.count("help")) {
         std::cout << desc << "\n";
@@ -222,7 +223,7 @@ namespace CoupledField
     std::string baseDir;
     std::string baseName;
 
-    try 
+    try
     {
       fs::path fn = fs::system_complete(argv[0]);
       fn.normalize();
@@ -237,7 +238,7 @@ namespace CoupledField
 #ifndef DEBUG
     param_segfault = false;
 #endif
-  
+
     settings.SetString("name", param_name);
     settings.SetString("type", param_type);
     settings.SetString("coupling", param_coupling);
@@ -275,5 +276,5 @@ namespace CoupledField
     settings.SetInt("extfiles", param_extfiles);
   }
 
-    
+
 }

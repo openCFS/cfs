@@ -4,7 +4,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <iomanip>
-#include <sstream> 
+#include <sstream>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -12,7 +12,8 @@
 #include <boost/filesystem/path.hpp>
 namespace fs=boost::filesystem;
 
-#include "../settings.hh"
+#include "General/exception.hh"
+#include "Settings.hh"
 #include "FileReader_MKHDF5.hh"
 
 
@@ -45,28 +46,28 @@ namespace CoupledField
 
     strict_ = (bool) settings.GetInt("strict");
     degen_ = (bool) settings.GetInt("degen");
-    
+
     sstr.clear(); sstr.str("");
     sstr << settings.GetString("basedir") << "/" << name_ << ".nodes";
 
     OpenFile(sstr.str());
-    
+
     while(GetNextLine(line)) {
       x = y = z = 0;
-      
+
       // strip whitespaces
       boost::trim(line);
 
       if(line == "")
         continue;
-      
+
       sstr.clear(); sstr.str("");
       sstr << line;
-      
+
       sstr >> nodeNum >> x >> y >> z;
-      
+
       // Hier abfragen, ob die Knotennummern konsekutiv sind
-      if(!nodeNumsMap_.empty() && 
+      if(!nodeNumsMap_.empty() &&
          (nodeNumsMap_.rbegin()->first + 1) != nodeNum)
       {
         errMsg << "Nodes are not consecutive: " << nodeNumsMap_.rbegin()->first
@@ -82,7 +83,7 @@ namespace CoupledField
         }
         errMsg.clear(); errMsg.str("");
       }
-      
+
       // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
       if(nodeNumsMap_[nodeNum] != 0)
         EXCEPTION("Node " << nodeNum << " has been referenced before!\n");
@@ -90,7 +91,7 @@ namespace CoupledField
       nodalCoords_.push_back(x);
       nodalCoords_.push_back(y);
       nodalCoords_.push_back(z);
-      
+
       maxNodeNum = maxNodeNum < nodeNum ? nodeNum : maxNodeNum;
       numNodes++;
       nodeNumsMap_[nodeNum] = numNodes;
@@ -106,7 +107,7 @@ namespace CoupledField
       if(settings.GetInt("verbose"))
         std::cerr << errMsg.str() << std::endl;
     }
-    
+
     std::string regionName;
     UInt regionIdx = 0;
     bool readAnotherLine = false;
@@ -121,16 +122,16 @@ namespace CoupledField
     std::vector<UInt> elemNodes(40);
     std::set<UInt> elemNodeSet;
     UInt dim = 0;
-    
+
     sstr.clear(); sstr.str("");
     sstr << settings.GetString("basedir") << "/" << name_ << ".elements";
 
     OpenFile(sstr.str());
-    
+
     while(GetNextLine(line)) {
       std::fill(elemNodes.begin(), elemNodes.end(), 0);
       elemNodeSet.clear();
-      
+
       // strip whitespaces
       boost::trim(line);
 
@@ -152,16 +153,16 @@ namespace CoupledField
 
         continue;
       }
-      
+
       sstr.clear(); sstr.str("");
       sstr << line;
-      sstr >> elemNodes[0] >> elemNodes[1] >> elemNodes[2] >> elemNodes[3] 
+      sstr >> elemNodes[0] >> elemNodes[1] >> elemNodes[2] >> elemNodes[3]
            >> elemNodes[4] >> elemNodes[5] >> elemNodes[6] >> elemNodes[7];
       sstr >> mat >> ansysElemType >> real >> secnum >> esys >> elemNum;
       // Im Fall von NACS files bekommen wir den Elementtyp aus einer extra Datei
 
       prelimElemType = ANSYSTypeToFEType(ansysElemType, 0, readAnotherLine);
-      
+
       if(readAnotherLine)
       {
         if(!GetNextLine(line))
@@ -170,11 +171,11 @@ namespace CoupledField
         sstr.clear(); sstr.str("");
         sstr << line;
 
-        sstr >> elemNodes[8] >> elemNodes[9] >> elemNodes[10] >> elemNodes[11] 
-             >> elemNodes[12] >> elemNodes[13] >> elemNodes[14] >> elemNodes[15]          
-             >> elemNodes[16] >> elemNodes[17] >> elemNodes[18] >> elemNodes[19];          
+        sstr >> elemNodes[8] >> elemNodes[9] >> elemNodes[10] >> elemNodes[11]
+             >> elemNodes[12] >> elemNodes[13] >> elemNodes[14] >> elemNodes[15]
+             >> elemNodes[16] >> elemNodes[17] >> elemNodes[18] >> elemNodes[19];
       }
-  
+
       // Determine number of element nodes by inserting nodes into a set.
       elemNodeSet.insert(elemNodes.begin(), elemNodes.end());
       elemNodeSet.erase((UInt) 0);
@@ -182,12 +183,12 @@ namespace CoupledField
       //                std::ostream_iterator< UInt >(std::cout, " "));
       //      std::cout << std::endl;
       numElemNodes = elemNodeSet.size();
-      
+
       actualElemType = ANSYSTypeToFEType(ansysElemType,
                                          numElemNodes,
                                          readAnotherLine);
       if(actualElemType == ET_UNDEF)
-        EXCEPTION("Found undefined element type for elem " << elemNum 
+        EXCEPTION("Found undefined element type for elem " << elemNum
                   << " (region: " << (*regionNames_.rbegin())
                   << ", type: " << ELEM_TYPE_NAMES[prelimElemType]
                   << ", num. nodes: " << numElemNodes
@@ -201,7 +202,7 @@ namespace CoupledField
         DegenerateElement(prelimElemType, actualElemType, elemNodes);
         numElemNodes = NUM_ELEM_NODES[actualElemType];
       }
-      
+
       // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
       if(elemTypes_[elemNum] != 0)
       {
@@ -216,7 +217,7 @@ namespace CoupledField
         while(elemTypes_.find(elemNum) != elemTypes_.end())
           elemNum++;
       }
-      
+
       std::copy(elemNodes.begin(),
                 elemNodes.begin()+numElemNodes,
                 std::back_inserter(topology_[elemNum]));
@@ -255,7 +256,7 @@ namespace CoupledField
 
     // Check where exactly gaps are in the element array
     // and assign correct values to elemNumsMap_.
-    for( ; it != end; it++ ) 
+    for( ; it != end; it++ )
     {
       if(settings.GetInt("verbose") && (lastElemNum+1) != it->first)
         std::cerr << "Gap detected between elements " << lastElemNum
@@ -263,7 +264,7 @@ namespace CoupledField
       lastElemNum = it->first;
       elemNumsMap_[lastElemNum] = ++newElemNum;
     }
-    
+
     UInt topoSize = topology_.size();
 
     if(maxOrigElemNum_ != topoSize)
@@ -282,7 +283,7 @@ namespace CoupledField
         if(settings.GetInt("verbose"))
           std::cerr << errMsg.str() << std::endl;
     }
-    
+
   }
 
   void FileReader_MKHDF5::GetNodeGroups(std::map<std::string,
@@ -297,7 +298,7 @@ namespace CoupledField
     std::stringstream sstr;
     std::set<UInt> nodeSet;
     bool readOK;
-    
+
     sstr.clear(); sstr.str("");
     sstr << settings.GetString("basedir") << "/" << name_ << ".nodebc";
     nodeFiles.push_back(sstr.str());
@@ -307,17 +308,17 @@ namespace CoupledField
 
     for(UInt i=0, n=nodeFiles.size(); i < n; i++)
     {
-      try 
+      try
       {
         OpenFile(nodeFiles[i]);
         readOK = true;
-      } catch (std::exception& ex) 
+      } catch (std::exception& ex)
       {
         readOK = false;
         continue;
       }
-      
-      
+
+
       while(GetNextLine(line)) {
         // strip whitespaces
         boost::trim(line);
@@ -334,13 +335,13 @@ namespace CoupledField
 
             nodeSet.clear();
           }
-        
+
           groupName = line.substr(1, line.length()-2);
           boost::trim( groupName );
           //          std::cout << groupName << std::endl;
           continue;
         }
-      
+
         sstr.clear(); sstr.str("");
         sstr << line;
         sstr >> nodeNum >> x >> y >> z;
@@ -374,23 +375,23 @@ namespace CoupledField
     FEType prelimElemType;
     bool readAnotherLine;
     bool readOK;
-    
+
     sstr.clear(); sstr.str("");
     sstr << settings.GetString("basedir") << "/" << name_ << ".saveelem";
     elemFiles.push_back(sstr.str());
-    
+
     for(UInt i=0, n=elemFiles.size(); i < n; i++)
     {
-      try 
+      try
       {
         OpenFile(elemFiles[i]);
         readOK = true;
-      } catch (std::exception& ex) 
+      } catch (std::exception& ex)
       {
         readOK = false;
         continue;
       }
-    
+
       while(GetNextLine(line)) {
         // strip whitespaces
         boost::trim(line);
@@ -407,28 +408,28 @@ namespace CoupledField
 
             elemSet.clear();
           }
-        
+
           groupName = line.substr(1, line.length()-2);
           boost::trim( groupName );
           //          std::cout << groupName << std::endl;
           continue;
         }
-      
+
         sstr.clear(); sstr.str("");
         sstr << line;
-        sstr >> dummy >> dummy >> dummy >> dummy 
+        sstr >> dummy >> dummy >> dummy >> dummy
              >> dummy >> dummy >> dummy >> dummy;
         sstr >> dummy >> elemType >> dummy >> dummy >> dummy >> elemNum;
         // Im Fall von NACS files bekommen wir den Elementtyp aus einer extra Datei
 
         prelimElemType = ANSYSTypeToFEType(elemType, 0, readAnotherLine);
-      
+
         if(readAnotherLine)
         {
           if(!GetNextLine(line))
             EXCEPTION("Error while trying to read second half of elem record.");
         }
-        
+
 
         newElemNum = elemNumsMap_[elemNum];
 
@@ -451,7 +452,7 @@ namespace CoupledField
   {
     FEType ret = ET_UNDEF;
     readAnotherLine = false;
-    
+
     switch(type)
     {
     case 2:
@@ -470,12 +471,12 @@ namespace CoupledField
       if(numNodes == 3 || numNodes == 0)
         ret = ET_TRIA3;
       break;
-      
+
     case 5:
       if(numNodes == 6 || numNodes == 0)
         ret = ET_TRIA6;
       break;
-    
+
     case 6: // rectangle
       if(numNodes == 0)
         ret = ET_QUAD4;
@@ -485,13 +486,13 @@ namespace CoupledField
       case 3:
         ret = ET_TRIA3;
         break;
-        
+
       case 4:
         ret = ET_QUAD4;
         break;
       }
       break;
-      
+
     case 7: // quad. rectangle
       if(numNodes == 0)
         ret = ET_QUAD8;
@@ -512,7 +513,7 @@ namespace CoupledField
       if(numNodes == 4 || numNodes == 0)
         ret = ET_TET4;
       break;
-      
+
     case 9:
       if(numNodes == 10 || numNodes == 0)
         ret = ET_TET10;
@@ -528,25 +529,25 @@ namespace CoupledField
       case 4:
         ret = ET_TET4;
         break;
-        
+
       case 5:
         ret = ET_PYRA5;
         break;
-        
+
       case 6:
         ret = ET_WEDGE6;
         break;
-        
+
       case 8:
         ret = ET_HEXA8;
         break;
       }
       break;
-      
+
     case 11: // quad. hexa
       if(numNodes == 0)
         ret = ET_HEXA20;
-      
+
       switch(numNodes)
       {
       case 10:
@@ -565,7 +566,7 @@ namespace CoupledField
       ret = ET_HEXA20;
       break;
       }
-      
+
       readAnotherLine = true;
       break;
 
@@ -579,7 +580,7 @@ namespace CoupledField
         ret = ET_PYRA13;
       readAnotherLine = true;
       break;
-      
+
     case 14:
       if(numNodes == 6 || numNodes == 0)
         ret = ET_WEDGE6;
@@ -589,9 +590,9 @@ namespace CoupledField
       if(numNodes == 15 || numNodes == 0)
         ret = ET_WEDGE15;
       readAnotherLine = true;
-      break;      
+      break;
     }
-    
+
     return ret;
   }
 

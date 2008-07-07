@@ -4,7 +4,7 @@
 #include "H5Cpp.h"
 
 #include <cplreaderdefs.hh>
-#include "filereader.hh"
+#include "FileReader.hh"
 
 namespace CoupledField
 {
@@ -16,7 +16,7 @@ namespace CoupledField
   class ElemIntegr;
 
   //! Class for mesh coupling
-  /*! 
+  /*!
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
   */
 
@@ -32,7 +32,7 @@ namespace CoupledField
 
     // Perform initialization
     void Init(int argc, char *argv[]);
-    
+
     //! Reorganizing grid info for MpCCi and hand over to MpCCI
     void PutExchangeGrid2MpCCI();
 
@@ -46,7 +46,7 @@ namespace CoupledField
 
     void CalculateAcouSrcs(const int partitionIdx,
                            FlowDataType& flowData);
-    
+
     // Throw away unneccessary entries in vectors
     void ShrinkNodalVector(const UInt partitionIdx,
                            const UInt numDOFs,
@@ -79,7 +79,7 @@ namespace CoupledField
                        const UInt numDOFs,
                        const bool isImag );
     void CreateExternalFile(UInt timeStep);
-    void WriteStringToUserData(const std::string& dSetName, 
+    void WriteStringToUserData(const std::string& dSetName,
                                const std::string& str);
 
     void WriteNodeGroups(const H5::Group& meshGroup);
@@ -93,7 +93,7 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > regionElems_;
     std::map<UInt, std::map<UInt, UInt> > regionNodeIndices_;
     std::vector<UInt> numRegionNodes_;
-    
+
     UInt dim_;
 
     std::map<std::string, std::vector<UInt> > nodeGroups_;
@@ -105,7 +105,7 @@ namespace CoupledField
     // HDF5 specific members
     //! Dataset property list (used for chunking and compression )
     H5::DSetCreatPropList dPropList_;
-    
+
     //! Main file containing grid and meta information
     H5::H5File mainFile_;
 
@@ -126,7 +126,7 @@ namespace CoupledField
 
     //! Group for mesh results
     H5::Group meshResultsGroup_;
-    
+
     //! Group for current analysis step for mesh results
     H5::Group currMeshStepGroup_;
 
