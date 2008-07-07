@@ -27,21 +27,21 @@ namespace fs=boost::filesystem;
 #include "FileReader.hh"
 
 #ifdef CPLREADER_ANSYS
-#include "ANSYS/FileReader_MKHDF5.hh"
-#include "ANSYS/FileReader_NACS.hh"
+#include "FileReaders/ANSYS/FileReader_MKHDF5.hh"
+#include "FileReaders/ANSYS/FileReader_NACS.hh"
 #endif
 
 #ifdef CPLREADER_FASTEST
-#include "FASTEST/FileReader_FASTEST.hh"
+#include "FileReaders/FASTEST/FileReader_FASTEST.hh"
 #endif
 
 #ifdef CPLREADER_CFX
-#include "CFX/FileReader_CFX.hh"
-#include "CFXexport/FileReader_CFXexport.hh"
+#include "FileReaders/CFX/FileReader_CFX.hh"
+#include "FileReaders/CFXexport/FileReader_CFXexport.hh"
 #endif
 
 #ifdef CPLREADER_OPENFOAM
-#include "OPENFOAM/FileReader_OPENFOAM.hh"
+#include "FileReaders/OPENFOAM/FileReader_OPENFOAM.hh"
 #endif
 
 // #include "Stanford/filereader_Stanford.hh"
