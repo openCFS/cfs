@@ -1230,6 +1230,11 @@ source/cplreader/FileReaders/FASTEST/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FASTEST-FileRenamer.pl.in -text
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.cc svneol=native#text/plain
 source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
+source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/OPENFOAM/CMakeLists.txt svneol=native#text/plain
 source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
 source/cplreader/FileReaders/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
