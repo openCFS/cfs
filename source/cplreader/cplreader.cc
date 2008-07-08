@@ -38,13 +38,17 @@ namespace fs=boost::filesystem;
 #include "FileReaders/OPENFOAM/FileReader_OPENFOAM.hh"
 #endif
 
+#include "FileReaders/GENGRIDS/FileReader_GENGRIDS.hh"
+
+
+#include "OutputWriters/hdf5/OutputWriter_HDF5.hh"
+
 #include "CouplingHandler.hh"
 
 
 namespace CoupledField
 {
-  FileReader* FileReaderFactory() {
-    FileReader* fileReader;
+  void FileReaderFactory(shared_ptr<FileReader>& fileReader) {
     Settings& settings = Settings::Instance();
 
     std::string type = settings.GetString("type");
@@ -73,13 +77,13 @@ namespace CoupledField
 
       if(readerType == "MKHDF5")
       {
-        fileReader = new FileReader_MKHDF5(settings.GetString("name"),
-                                           settings.GetInt("dim"), 0, 0);
+        fileReader.reset(new FileReader_MKHDF5(settings.GetString("name"),
+                                           settings.GetInt("dim"), 0, 0));
       }
       else if(readerType == "NACS")
       {
-        fileReader = new FileReader_NACS(settings.GetString("name"),
-                                           settings.GetInt("dim"), 0, 0);
+        fileReader.reset(new FileReader_NACS(settings.GetString("name"),
+                                           settings.GetInt("dim"), 0, 0));
       }
       else
       {
@@ -93,30 +97,38 @@ namespace CoupledField
     if(type == "FASTEST")
     {
 #ifdef CPLREADER_FASTEST
-      fileReader = new FileReader_FASTEST(settings.GetString("name"),
+      fileReader.reset(new FileReader_FASTEST(settings.GetString("name"),
                                           settings.GetInt("dim"),
                                           settings.GetInt("numSteps"),
-                                          settings.GetInt("firstStep"));
+                                          settings.GetInt("firstStep")));
 #else
       EXCEPTION("Reading of FASTEST files not supported!");
 #endif
     }
 
+    if(type == "GENGRIDS")
+    {
+      fileReader.reset(new FileReader_GENGRIDS(settings.GetString("name"),
+                                               settings.GetInt("dim"),
+                                               settings.GetInt("numSteps"),
+                                               settings.GetInt("firstStep")));
+    }
+
  #if 0
     if(type == "Stanford")
     {
-      fileReader = new FileReader_Stanford(settings.GetString("name"),
+      fileReader.reset(new FileReader_Stanford(settings.GetString("name"),
                                            settings.GetInt("dim"),
-                                           settings.GetInt("numSteps"));
+                                           settings.GetInt("numSteps")));
     }
  #endif
 
     if(type == "CFX")
     {
 #ifdef CPLREADER_CFX
-      fileReader = new FileReader_CFX(settings.GetString("name"),
+      fileReader.reset(new FileReader_CFX(settings.GetString("name"),
                                       settings.GetInt("dim"),
-                                      settings.GetInt("numSteps"));
+                                      settings.GetInt("numSteps")));
 #else
       EXCEPTION("Reading of CFX files not supported!");
 #endif
@@ -125,10 +137,10 @@ namespace CoupledField
     if(type == "CFX_EXPORT")
     {
 #ifdef CPLREADER_CFX
-      fileReader = new FileReader_CFXexport(settings.GetString("name"),
+      fileReader.reset(new FileReader_CFXexport(settings.GetString("name"),
                                             settings.GetInt("dim"),
                                             settings.GetInt("numSteps"),
-                                            settings.GetInt("firstStep"));
+                                            settings.GetInt("firstStep")));
 #else
       EXCEPTION("Reading of CFX files not supported!");
 #endif
@@ -137,9 +149,9 @@ namespace CoupledField
     if(type == "OPENFOAM")
     {
 #ifdef CPLREADER_OPENFOAM
-      fileReader = new FileReader_OPENFOAM(settings.GetString("name"),
+      fileReader.reset(new FileReader_OPENFOAM(settings.GetString("name"),
                                            settings.GetInt("dim"),
-                                           settings.GetInt("numSteps"));
+                                           settings.GetInt("numSteps")));
 #else
       EXCEPTION("Reading of OPENFOAM files not supported!");
 #endif
@@ -147,12 +159,14 @@ namespace CoupledField
 
     if(!fileReader)
     {
-      std::cerr << "ERROR: Could not initialize " << type
-                << " filereader." << std::endl;
-      return 0;
+      EXCEPTION("ERROR: Could not initialize " << type
+                << " filereader.");
     }
+  }
 
-    return fileReader;
+  void OutputWriterFactory(std::vector< shared_ptr<OutputWriter> >& outputWriters) {
+    shared_ptr<OutputWriter> p(new OutputWriter_HDF5());
+    outputWriters.push_back(p);
   }
 }
 
@@ -162,7 +176,8 @@ using namespace CoupledField;
 int main(int argc, char *argv[])
 {
   int ret = 0;
-  FileReader* fileReader = NULL;
+  shared_ptr<FileReader> fileReader;
+  std::vector< shared_ptr<OutputWriter> > outputWriters;
 
   try
   {
@@ -175,10 +190,13 @@ int main(int argc, char *argv[])
     Exception::segfault_ = (bool) settings.GetInt("segfault");
 
     // Generate a file reader
-    fileReader = FileReaderFactory();
+    FileReaderFactory(fileReader);
+
+    // Generate output writers
+    OutputWriterFactory(outputWriters);
 
     // Initialize and perform coupling
-    CouplingHandler cplHandler(fileReader);
+    CouplingHandler cplHandler(fileReader, outputWriters);
     cplHandler.Init(argc, argv);
     if(!settings.GetInt("justinit"))
     {
@@ -199,8 +217,6 @@ int main(int argc, char *argv[])
               << std::endl;
     ret = 1;
   }
-
-  delete fileReader;
 
   return ret;
 }
