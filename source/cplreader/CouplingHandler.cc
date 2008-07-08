@@ -28,8 +28,9 @@ namespace fs=boost::filesystem;
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 #include "integlib/elemIntegr.hh"
 
-#include "CouplingHandler.hh"
 #include "FlowDataTypes.hh"
+#include "OutputWriter.hh"
+#include "CouplingHandler.hh"
 
 #define H5_EXCEPTION(STR, EX)                   \
   EXCEPTION( STR, EX.getCDetailMsg() );
@@ -45,9 +46,11 @@ namespace fs=boost::filesystem;
 namespace CoupledField
 {
 
-  CouplingHandler::CouplingHandler(FileReader * ptFileReader)
+  CouplingHandler::CouplingHandler(shared_ptr<FileReader> ptFileReader,
+                                       std::vector< shared_ptr<OutputWriter> >& outputWriters)
   {
     ptFileReader_ = ptFileReader;
+    outputWriters_ = outputWriters;
 
     if(!ptFileReader_)
       EXCEPTION("Invalid pointer to file reader!");
@@ -521,12 +524,10 @@ namespace CoupledField
 
         // If the user requests the calculation of the Lighthill
         // source term, follow his order!
-#ifndef CPLREADER_STANDALONE
         if(calcSrc)
         {
           CalculateAcouSrcs(actRegion, flowData[actRegion]);
         }
-#endif
 
         // Send fields for current partition to MpCCI
 #ifdef MpCCI
@@ -1194,7 +1195,6 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
 
-#ifndef CPLREADER_STANDALONE
     std::string regionName = ptFileReader_->GetRegionName(regionIdx);
 
     if(flowData.find(FLUIDMECH_VELOCITY) == flowData.end())
@@ -1326,7 +1326,6 @@ namespace CoupledField
     }
 
     std::cout << "done." << std::endl;
-#endif
   }
 
   void CouplingHandler::ShrinkNodalVector(const UInt partitionIdx,

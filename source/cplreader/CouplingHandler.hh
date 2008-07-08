@@ -1,10 +1,11 @@
-#ifndef FILE_MPCCIEXCH_2006
-#define FILE_MPCCIEXCH_2006
+#ifndef FILE_COUPLINGHANDLER_2006
+#define FILE_COUPLINGHANDLER_2006
 
 #include "H5Cpp.h"
 
 #include <def_cplreader.hh>
 #include "FileReader.hh"
+#include "OutputWriter.hh"
 
 namespace CoupledField
 {
@@ -25,7 +26,8 @@ namespace CoupledField
   public:
 
     //!
-    CouplingHandler(FileReader * ptFileReader);
+    CouplingHandler(shared_ptr<FileReader> ptFileReader,
+                      std::vector< shared_ptr<OutputWriter> >& outputWriters);
 
     //!
     virtual ~CouplingHandler();
@@ -85,7 +87,7 @@ namespace CoupledField
     void WriteNodeGroups(const H5::Group& meshGroup);
     void WriteElemGroups(const H5::Group& meshGroup);
 
-    FileReader *  ptFileReader_;
+    shared_ptr<FileReader>  ptFileReader_;
     std::vector<Double> nodalCoords_;
     std::vector<UInt> topology_;
     std::vector<UInt> elemTypes_;
@@ -142,6 +144,8 @@ namespace CoupledField
     std::map<UInt, ElemIntegr *> ptElemIntegr_;
     std::vector<std::string> outputFields_;
     std::vector<bool> activeParts_;
+
+    std::vector< shared_ptr<OutputWriter> > outputWriters_;
   };
 
 } // end of namespace

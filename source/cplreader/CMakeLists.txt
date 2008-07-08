@@ -34,10 +34,15 @@ IF(CPLREADER_OPENFOAM)
   SUBDIRS(FileReaders/OPENFOAM)
 ENDIF(CPLREADER_OPENFOAM)
 
+SUBDIRS(FileReaders/GENGRIDS)
+
+SUBDIRS(OutputWriters/hdf5)
+
 SET(CPLREADER_SRCS 
   CouplingHandler.cc
   cplreader.cc
   FileReader.cc
+  OutputWriter.cc
   ParamsInit.cc
   integlib/elemIntegr.cc
   integlib/integr.cc
@@ -74,6 +79,8 @@ IF(CPLREADER_OPENFOAM)
 ENDIF(CPLREADER_OPENFOAM)
 
 SET(TARGET_LL ${TARGET_LL}
+  cplreader_gengrids
+  cplreader_hdf5
   ${BOOST_PROGRAM_OPTIONS_LIB}
   # DIRTY, DIRTYYYY HACK!
   datainout
