@@ -43,6 +43,14 @@ namespace CoupledField
       docFile.close();
     }
 
+    std::cout << "Documentation for cplreader has been written to:" << std::endl
+              << std::endl
+              <<     docDir
+              << std::endl
+              << std::endl;
+    
+    
+
   }
   
 } // end of namespace
