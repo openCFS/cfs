@@ -40,6 +40,10 @@ namespace CoupledField
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
 
+    //! Get node groups
+    virtual void GetNodeGroups(std::map<std::string,
+                                        std::vector<UInt> >& nodeGroups);
+
   protected:
 
     // Nodal coordinates for all nodes
@@ -52,6 +56,8 @@ namespace CoupledField
     std::vector< UInt > elemTypes_;
 
     std::map<std::string, std::vector<UInt> > regionElems_;
+    
+    std::map<std::string, std::vector<UInt> > nodeGroups_;
     
   };
 
