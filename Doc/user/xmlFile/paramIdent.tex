@@ -29,6 +29,8 @@ The following analysis section needs to be included in your xml-file:
 \> \verb!<fittingQuantity>! physical quantity \verb!</fittingQuantity>!\\ \\
 
 \> \verb!<calcImpedanceCurve>! yes/no \verb!</calcImpedanceCurve>!\\
+\> \verb!<calcCharge name="surf" neighborRegion="piezo_axi"/>!\\
+
 \> \verb!<calcMechDisplacementCurve>! yes/no \verb!</calcMechDisplacementCurve>!\\ \\
 
 \> \verb!<computeCurveAfterIterationStep>! positive integer \verb!</computeCurveAfterIterationStep>!\\
@@ -44,13 +46,13 @@ The following analysis section needs to be included in your xml-file:
 \> \verb!<mechDisplAtNode1> ! positive integer \verb! </mechDisplAtNode1>! (optional)\\
 \> \verb!<mechDisplAtOppositeNode1> ! positive integer \verb! </mechDisplAtOppositeNode1>! (optional)\\
 \> \verb!<dofOfMechDispl1>! positive integer \verb! </dofOfMechDispl1>! (optional) \\
-\> \verb!<mechDisplAtNode2> ! positive integer \verb! </mechDisplAtNode2>! (optional)\\
-\> \verb!<mechDisplAtOppositeNode2> ! positive integer \verb! </mechDisplAtOppositeNode2>! (optional)\\
-\> \verb!<dofOfMechDispl2>! positive integer \verb! </dofOfMechDispl2>! (optional)\\ 
-\> \verb!<mechDisplAtNode3> ! positive integer \verb! </mechDisplAtNode3>! (optional)\\
-\> \verb!<mechDisplAtOppositeNode3> ! positive integer \verb! </mechDisplAtOppositeNode3>! (optional)\\
-\> \verb!<dofOfMechDispl3>! positive integer \verb! </dofOfMechDispl3>! (optional)\\ 
 
+%\> \verb!<mechDisplAtNode2> ! positive integer \verb! </mechDisplAtNode2>! (optional)\\
+%\> \verb!<mechDisplAtOppositeNode2> ! positive integer \verb! </mechDisplAtOppositeNode2>! (optional)\\
+%\> \verb!<dofOfMechDispl2>! positive integer \verb! </dofOfMechDispl2>! (optional)\\ 
+%\> \verb!<mechDisplAtNode3> ! positive integer \verb! </mechDisplAtNode3>! (optional)\\
+%\> \verb!<mechDisplAtOppositeNode3> ! positive integer \verb! </mechDisplAtOppositeNode3>! (optional)\\
+%\> \verb!<dofOfMechDispl3>! positive integer \verb! </dofOfMechDispl3>! (optional)\\ 
 \verb!</paramIdent>!\\
 \end{tabbing}
 \end{minipage}
@@ -94,7 +96,9 @@ phaseMech & ${\rm arg}(u)$ & helps to identify imaginary parts \\  \hline
 \end{center}
 \end{table} 
 
-The best way to check the quality of your parameters is the comparison of your simulated impedance curve (or mechanical displacement curve) with your measurements. Setting \\ \verb!<calcImpedanceCurve>! yes \verb!</calcImpedanceCurve>! \\ (\verb!<calcMechDisplacemetCurve>!yes\verb!</calcMechDisplacementCurve>!) leads to a calculation of such a curve in the interval $[startFreq,stopFreq]$ with {\em numFreq} evaluation points. The output will be a file called {\em imped.dat} ({\em mechDispl.dat}) which can be evaluated with MATLAB/GNUPlot, ... . The file {\em imped.dat} contains the frequency, the computed amplitude, phase, real and imaginary part of the impedance at the surface of the ceramic.  The calculation will be done before and during the parameter identification process (after each  \verb!<computeCurveAfterIterationStep>! iteration step). Comparing the results with the measurements gives hints whether your identification proceeds successfully or not.  Note, parameter values are not taken from the material file {\em e.g. mat.xml}. You have to set them in the file {\em measuredData.dat}, see below.
+The best way to check the quality of your parameters is the comparison of your simulated impedance curve (or mechanical displacement curve) with your measurements. Setting \\ \verb!<calcImpedanceCurve>! yes \verb!</calcImpedanceCurve>! \\ (\verb!<calcMechDisplacemetCurve>!yes\verb!</calcMechDisplacementCurve>!) leads to a calculation of such a curve in the interval $[startFreq,stopFreq]$ with {\em numFreq} evaluation points. The output will be a file called {\em imped.dat} ({\em mechDispl.dat}) which can be evaluated with MATLAB/GNUPlot, ... . The file {\em imped.dat} contains the frequency, the computed amplitude, phase, real and imaginary part of the impedance at the surface of the ceramic.  The calculation will be done before and during the parameter identification process (after each  \verb!<computeCurveAfterIterationStep>! iteration step). Comparing the results with the measurements gives hints whether your identification proceeds successfully or not.
+Since the computation of the impedance requires the computed surface charges we alway need to provide the tag 
+  \verb!<calcCharge name="surf" neighborRegion="piezo_axi"/>! which says on which surface the electric charges are computed. Note, parameter values (except density!) are not taken from the material file {\em e.g. mat.xml}. You have to set them in the file {\em measuredData.dat}, see below.
 \\ 
 
 \noindent Further settings: \\
