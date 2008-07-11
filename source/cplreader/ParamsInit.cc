@@ -56,6 +56,7 @@ namespace CoupledField
     std::string param_basedir;
     bool param_extfiles;
 
+    settings.SetInt("html-help", 0);
 
     if(argc == 2) {
       std::string arg = argv[1];
@@ -72,7 +73,6 @@ namespace CoupledField
       {
         settings.SetInt("html-help", 1);
       }
-
     }
 
     int myargc = argc;
