@@ -96,8 +96,13 @@ i=1
 
 for STEP_NUM in $STEP_NUMBERS2; do
     STEP_NUM_NEW=$((NUM_STEPS1 + STEP_NUM))
-    OLD_FILENAME="TimeStep_$STEP_NUM.h5"
-    NEW_FILENAME="TimeStep_$STEP_NUM_NEW.h5"
+
+    CMDSTR="attribute\nread\n$H5FILE2\n/Results/Mesh/MultiStep_1/Step_$STEP_NUM\nExtHDF5FileName\nstring\n"
+    printf $CMDSTR | $H5CFSHELPER > out.txt; ErrorCheck
+    OLD_FILENAME=`tail -1 out.txt`
+
+    NEW_FILENAME="`basename $H5FILE1 .h5`_ms1_step$STEP_NUM_NEW.h5"
+    
     OLD_PATH="$DIR2/$OLD_FILENAME"
     NEW_PATH="$DIR1/$NEW_FILENAME"
 
