@@ -43,6 +43,8 @@ namespace fs=boost::filesystem;
 
 #include "OutputWriters/hdf5/OutputWriter_HDF5.hh"
 
+#include "Documentation/WriteDocumentation.hh"
+
 #include "CouplingHandler.hh"
 
 
@@ -188,6 +190,13 @@ int main(int argc, char *argv[])
 
     // Set user defined exception behaviour
     Exception::segfault_ = (bool) settings.GetInt("segfault");
+
+    // Write HTML help
+    if(settings.GetInt("html-help"))
+    {
+      WriteDocumentation();
+      return 0;
+    }
 
     // Generate a file reader
     FileReaderFactory(fileReader);

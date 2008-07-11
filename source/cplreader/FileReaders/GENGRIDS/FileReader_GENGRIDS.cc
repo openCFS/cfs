@@ -25,7 +25,8 @@ namespace CoupledField
                                topology_,
                                elemTypes_,
                                maxNumElemNodes_,
-                               regionElems_);
+                               regionElems_,
+                               nodeGroups_);
     numRegions_ = regionElems_.size();
     dim_ = 3;
     numNodesPerRegion_.resize(numRegions_);
@@ -69,6 +70,12 @@ namespace CoupledField
     for(UInt i=0; i<regionIdx; i++, it++);
 
     return it->first;    
+  }
+
+  void FileReader_GENGRIDS::GetNodeGroups(std::map<std::string,
+                                          std::vector<UInt> >& nodeGroups) 
+  {
+    nodeGroups = nodeGroups_;
   }
 }
 

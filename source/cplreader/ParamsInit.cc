@@ -67,6 +67,12 @@ namespace CoupledField
                   << "Compiled:" << std::endl << "  "
                   << __DATE__ << std::endl << std::endl;
       }
+
+      if(arg == "--html-help")
+      {
+        settings.SetInt("html-help", 1);
+      }
+
     }
 
     int myargc = argc;
@@ -103,6 +109,7 @@ namespace CoupledField
       po::options_description desc("Allowed options");
       desc.add_options()
         ("help", "Produce help message")
+        ("html-help", "Create directory with in-depth HTML help")
         ("name", po::value< std::string >(&param_name)->default_value("dataset"),
          "Name of dataset as well as of the directory containing the dataset")
 

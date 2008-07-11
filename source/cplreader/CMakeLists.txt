@@ -38,6 +38,8 @@ SUBDIRS(FileReaders/GENGRIDS)
 
 SUBDIRS(OutputWriters/hdf5)
 
+SUBDIRS(Documentation)
+
 SET(CPLREADER_SRCS 
   CouplingHandler.cc
   cplreader.cc
@@ -81,6 +83,7 @@ ENDIF(CPLREADER_OPENFOAM)
 SET(TARGET_LL ${TARGET_LL}
   cplreader_gengrids
   cplreader_hdf5
+  cplreader_doc
   ${BOOST_PROGRAM_OPTIONS_LIB}
   # DIRTY, DIRTYYYY HACK!
   datainout
