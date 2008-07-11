@@ -1,3 +1,4 @@
+#include <iostream>
 #include <fstream>
 
 #include <boost/filesystem/operations.hpp>
@@ -43,14 +44,14 @@ namespace CoupledField
       docFile.close();
     }
 
-    std::cout << "Documentation for cplreader has been written to:" << std::endl
-              << std::endl
-              <<     docDir
-              << std::endl
-              << std::endl;
-    
-    
-
+    std::cout << "Documentation for cplreader has been written to:"
+              << std::endl << std::endl
+              << "   " << docDir
+              << std::endl << std::endl
+              << "The URL of the main document is:"
+              << std::endl << std::endl
+              << "   " << docDir << pathsep << "index.html"
+              << std::endl << std::endl;
   }
   
 } // end of namespace
