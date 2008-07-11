@@ -62,6 +62,8 @@ namespace CoupledField
 
     void IOErrorToString(int ioerr, std::string& errStr);
 
+    void CheckTransientFiles();
+
   private:
 
     double timeStep;

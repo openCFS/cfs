@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <iomanip>
 
+#include <boost/regex.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -62,6 +63,9 @@ namespace CoupledField
   void FileReader_CFX::Init()
   {
     Settings& settings = Settings::Instance();
+    
+    // Use strict settings for CFX reader by default
+    settings.SetInt("strict", 1);
 
     if(settings.GetDouble("timeStep") < 0)
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
@@ -252,6 +256,8 @@ namespace CoupledField
         timeStepNumbers_.push_back(stepNum);
       }
     }
+
+    CheckTransientFiles();
 
     if (settings.GetInt("numSteps"))
     {
@@ -1308,4 +1314,105 @@ namespace CoupledField
     }
 
   }
+
+  void FileReader_CFX::CheckTransientFiles() 
+  {
+    Settings& settings = Settings::Instance();
+    std::vector< std::string > goodTRNs;
+    std::vector< std::string > corruptTRNs;
+    std::string lastGoodTRN;
+    bool everyThingFine = true;
+    uintmax_t meanFileSize = 0;
+    uintmax_t actFileSize;
+    double fsRatio;
+    std::string s, sre;
+    boost::regex re;
+
+    std::vector< std::string >::const_iterator it, end;
+
+    it = transientFNs_.begin();
+    end = transientFNs_.end();
+
+    // Check a few .trn files to determine the mean file size
+    actFileSize = fs::file_size(*it);
+    meanFileSize = actFileSize;
+    meanFileSize = meanFileSize < fs::file_size(*(it+1)) ? fs::file_size(*(it+1)) : meanFileSize;
+    meanFileSize = meanFileSize < fs::file_size(*(it+2)) ? fs::file_size(*(it+2)) : meanFileSize;
+    meanFileSize = meanFileSize < fs::file_size(*(it+3)) ? fs::file_size(*(it+3)) : meanFileSize;
+    
+    // Regular expression for matching transient files
+    sre = "[0-9]*\\.trn$";
+    try
+    {
+      // Set up the regular expression for case-insensitivity
+      re.assign(sre, boost::regex_constants::icase);
+    }
+    catch (boost::regex_error& e) {}
+
+    for( ; it != end; it++ ) 
+    {
+      // Check the format of the .trn file names
+      s = fs::basename(*it) + fs::extension(*it);
+      
+      if (!boost::regex_match(s, re))
+      {
+        corruptTRNs.push_back(*it);
+        everyThingFine = false;
+
+        continue;
+      }
+      
+
+      actFileSize = fs::file_size(*it);
+      fsRatio = actFileSize / (double) meanFileSize;
+
+      // If the file size diverges by more than 1%
+      if(std::fabs(fsRatio - 1.0) > 0.01) 
+      {
+        corruptTRNs.push_back(*it);
+        everyThingFine = false;
+
+        // If we want to be fault tolerant we just add the last good .trn
+        if(!settings.GetInt("strict"))
+        {
+          if(lastGoodTRN == "")
+            EXCEPTION("Could not find last good .trn file for replacing a corrupt one!");
+
+          goodTRNs.push_back(lastGoodTRN);
+        }
+      }
+      else
+      {
+        // Check if we really have a .trn file and some .bak or other one
+        goodTRNs.push_back(*it);
+        lastGoodTRN = *it;
+      }
+    }
+
+    if(!everyThingFine) 
+    {
+      std::stringstream sstr;
+      
+      sstr << "The following .trn files seem to be corrupt:" << std::endl;
+      it = corruptTRNs.begin();
+      end = corruptTRNs.end();
+
+      for( ; it != end; it++ ) 
+      {
+        sstr << (*it) << std::endl;
+      }
+
+      if(settings.GetInt("strict"))
+      {
+        EXCEPTION(sstr.str());
+      }
+      else
+      {
+        std::cerr << sstr.str() << std::endl;
+      }
+    }
+
+    transientFNs_ = goodTRNs;
+  }
+  
 }
