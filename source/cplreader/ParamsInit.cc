@@ -40,7 +40,7 @@ namespace CoupledField
     bool param_degen;
     bool param_strict;
     bool param_deltemp;
-    bool param_segfault;
+    bool param_segfault = false;
     std::string param_deffile;
     double param_timestep;
     std::string param_dump;
@@ -54,26 +54,10 @@ namespace CoupledField
     std::string param_outprec;
     std::string param_activeparts;
     std::string param_basedir;
+    std::string param_docu;
     bool param_extfiles;
 
-    settings.SetInt("html-help", 0);
-
-    if(argc == 2) {
-      std::string arg = argv[1];
-      if(arg == "-?" || arg == "--help")
-      {
-        std::cout << std::endl
-                  << "cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
-                  << std::endl << std::endl
-                  << "Compiled:" << std::endl << "  "
-                  << __DATE__ << std::endl << std::endl;
-      }
-
-      if(arg == "--html-help")
-      {
-        settings.SetInt("html-help", 1);
-      }
-    }
+    settings.SetInt("segfault", param_segfault);
 
     int myargc = argc;
     char** myargv = argv;
@@ -109,7 +93,8 @@ namespace CoupledField
       po::options_description desc("Allowed options");
       desc.add_options()
         ("help", "Produce help message")
-        ("html-help", "Create directory with in-depth HTML help")
+        ("docu", po::value< std::string >(&param_docu)->default_value(""),
+         "Create directory with detailed documentation (can be HTML | PDF)")
         ("name", po::value< std::string >(&param_name)->default_value("dataset"),
          "Name of dataset as well as of the directory containing the dataset")
 
@@ -211,6 +196,12 @@ namespace CoupledField
       po::notify(vm);
 
       if (vm.count("help")) {
+        std::cout << std::endl
+                  << "cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
+                  << std::endl << std::endl
+                  << "Compiled:" << std::endl << "  "
+                  << __DATE__ << std::endl << std::endl;
+
         std::cout << desc << "\n";
         exit(0);
       }
@@ -239,6 +230,7 @@ namespace CoupledField
     param_segfault = false;
 #endif
 
+    settings.SetString("docu", param_docu);
     settings.SetString("name", param_name);
     settings.SetString("type", param_type);
     settings.SetString("coupling", param_coupling);

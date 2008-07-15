@@ -1,5 +1,5 @@
-#ifndef FILE_GETDOCUMENTATION_2008
-#define FILE_GETDOCUMENTATION_2008
+#ifndef FILE_GETHTMLDOCUMENTATION_2008
+#define FILE_GETHTMLDOCUMENTATION_2008
 
 #include <map>
 #include <vector>
@@ -7,7 +7,7 @@
 
 namespace CoupledField
 {
-  void GetDocumentation(std::map<std::string, std::vector<unsigned char> >& doc);
+  void GetHTMLDocumentation(std::map<std::string, std::vector<unsigned char> >& doc);
 
   // XML data could also be saved in C++ like this:
   //
