@@ -6,9 +6,9 @@
 
 SET(DOC_DEPS index.html logo.png)
 
-ADD_CUSTOM_COMMAND(OUTPUT GetDocumentation.cc
-  COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.sh ${CMAKE_CURRENT_BINARY_DIR}/GetDocumentation.cc
-  MAIN_DEPENDENCY docfilestocpp.sh
+ADD_CUSTOM_COMMAND(OUTPUT GetHTMLDocumentation.cc
+  COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.pl ${CMAKE_CURRENT_BINARY_DIR}/GetHTMLDocumentation.cc GetHTMLDocumentation '*.html *.png'
+  MAIN_DEPENDENCY docfilestocpp.pl
   DEPENDENCIES ${DOC_DEPS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Generating C++ source from cplreader docs...")
@@ -16,7 +16,7 @@ ADD_CUSTOM_COMMAND(OUTPUT GetDocumentation.cc
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 SET(CPLREADER_DOC_SRCS 
-  ${CMAKE_CURRENT_BINARY_DIR}/GetDocumentation.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/GetHTMLDocumentation.cc
   WriteDocumentation.cc
 )
 

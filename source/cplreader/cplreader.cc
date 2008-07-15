@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
     Exception::segfault_ = (bool) settings.GetInt("segfault");
 
     // Write HTML help
-    if(settings.GetInt("html-help"))
+    if(settings.GetString("docu") != "")
     {
       WriteDocumentation();
       return 0;
