@@ -6,7 +6,7 @@
 
 SET(DOC_DEPS index.html logo.png)
 
-ADD_CUSTOM_COMMAND(OUTPUT GetHTMLDocumentation.cc
+ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GetHTMLDocumentation.cc
   COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.pl ${CMAKE_CURRENT_BINARY_DIR}/GetHTMLDocumentation.cc GetHTMLDocumentation '*.html *.png'
   MAIN_DEPENDENCY docfilestocpp.pl
   DEPENDENCIES ${DOC_DEPS}
