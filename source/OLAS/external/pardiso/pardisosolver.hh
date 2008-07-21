@@ -5,6 +5,8 @@
 #ifndef PARDISO_SOLVER_HH
 #define PARDISO_SOLVER_HH
 
+#include <string>
+
 #include "matvec/matvec.hh"
 #include "solver/solver.hh"
 
@@ -141,6 +143,22 @@ namespace OLAS {
     //! instantiation.
     PardisoSolver();
 
+    //! enum of PARIDO's error codes
+    typedef enum {
+      NO_ERROR = 0,
+      INPUT_INCONSISTENT = -1,
+      NOT_ENOUGH_MEMORY = -2,
+      REORDERING_PROBLEM = -3,
+      ZERO_PIVOT = -4,
+      INTERNAL_ERROR = -5,
+      PREORDERING_FAILED = -6,
+      DIAGONAL_MATRIX = -7,
+      INT_OVERFLOW = -8
+    } PardisoError;
+
+    //! Returns a string describing the given error code
+    std::string GetErrorString(int err_code);
+
     //@{
     //! Vectors containing the information about the CRS- or SCRS-matrix
 
@@ -185,8 +203,8 @@ namespace OLAS {
 
     //! Dimension of the linear system
     int probDim_;
-    
-    //! The number of right hand sides Pardiso should solve the system for 
+
+    //! The number of right hand sides Pardiso should solve the system for
     //! at one pass
     int nrhs;
 
