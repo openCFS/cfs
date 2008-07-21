@@ -12,17 +12,17 @@ namespace OLAS {
 #define F77_FUNC(func)   func ## _
 
   extern "C" {
-     
+
     int F77_FUNC(pardisoinit) (int *, int *, int *);
-     
+
     int F77_FUNC(pardiso) (int *, int *, int *, int *, int *, int *,
                            const Double *, const int *, const int *, int *,
-                           int *, int *, int *, const Double *, 
+                           int *, int *, int *, const Double *,
                            Double *, int *);
   }
 
 
-  // *********************** 
+  // ***********************
   //   Default Constructor
   // ***********************
   template<typename T>
@@ -31,6 +31,30 @@ namespace OLAS {
            __FILE__, __LINE__ );
   }
 
+
+  template<typename T>
+  std::string PardisoSolver<T>::GetErrorString(int err_code) {
+    switch (err_code) {
+      case NO_ERROR:
+        return "No error.";
+      case INPUT_INCONSISTENT:
+        return "Input inconsistent.";
+      case NOT_ENOUGH_MEMORY:
+        return "Not enough memory.";
+      case REORDERING_PROBLEM:
+        return "Reordering problem.";
+      case ZERO_PIVOT:
+        return "Zero pivot, numerical factorization or iterative refinement problem.";
+      case PREORDERING_FAILED:
+        return "Preordering failed.";
+      case DIAGONAL_MATRIX:
+        return "Diagonal matrix problem.";
+      case INT_OVERFLOW:
+        return "32-bit integer overflow problem.";
+      default:
+        return "Unclassified (internal) error.";
+    }
+  }
 
   // ***************
   //   Constructor
@@ -81,10 +105,10 @@ namespace OLAS {
                           &probDim_, theMatrix_, rowPtr_, colPtr_,
                           (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, &zeroDBL_,
                           &zeroDBL_, &errorFlag );
-      
-      if ( errorFlag != 0) {
-        (*error) << "Pardiso: Error " << errorFlag
-                 << " occured during cleanup";
+
+      if ( errorFlag != NO_ERROR) {
+        (*error) << "Pardiso: Error occured during cleanup: "
+                 << GetErrorString(errorFlag);
         Error( __FILE__, __LINE__ );
       }
     }
@@ -324,15 +348,15 @@ namespace OLAS {
     // Setting pivoting strategy for indefinit problems
     iparm_[21] = myParams_->GetIntValue( "PARDISO_pivoting" );
 
-    // In case we have no positive definite system (especially piezo) 
-    // we perform additional scaling to enhance the condition for very 
-    // small off-diagonal entries (iparm_[11]). In addition we enable 
-    // the method of 'symmetric weighted matchings' (iparam_[13]). 
-    // For further information, refer to the pardiso user manual. 
-    if( !defPard ) { 
-      iparm_[11] = 1; 
-      iparm_[13] = 1; 
-    } 
+    // In case we have no positive definite system (especially piezo)
+    // we perform additional scaling to enhance the condition for very
+    // small off-diagonal entries (iparm_[11]). In addition we enable
+    // the method of 'symmetric weighted matchings' (iparam_[13]).
+    // For further information, refer to the pardiso user manual.
+    if( !defPard ) {
+      iparm_[11] = 1;
+      iparm_[13] = 1;
+    }
 
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)
@@ -370,10 +394,10 @@ namespace OLAS {
                          &zeroDBL_, &errorFlag );
 
       // Check return status
-      if ( errorFlag != 0 ) {
-        (*error) << "Pardiso: Error " << errorFlag << " occured during "
-                 << "symbolic factorization";
-        Error( __FILE__, __LINE__ ); 
+      if ( errorFlag != NO_ERROR ) {
+        (*error) << "Pardiso: Error occured during symbolic factorization: "
+                 << GetErrorString(errorFlag);
+        Error( __FILE__, __LINE__ );
       }
       else {
         if ( logging == true ) {
@@ -402,12 +426,12 @@ namespace OLAS {
                          &probDim_, theMatrix_, rowPtr_, colPtr_,
                          (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, &zeroDBL_,
                          &zeroDBL_, &errorFlag );
-        
+
       // Check return status
-      if ( errorFlag != 0 ) {
-        (*error) << "Pardiso: Error " << errorFlag << " occured during "
-                 << "numerical factorization";
-        Error( __FILE__, __LINE__ ); 
+      if ( errorFlag != NO_ERROR ) {
+        (*error) << "Pardiso: Error occured during numerical factorization: "
+                 << GetErrorString(errorFlag);
+        Error( __FILE__, __LINE__ );
       }
       else {
         if ( logging == true ) {
@@ -450,8 +474,8 @@ namespace OLAS {
                << "Call Setup() first";
       Error( __FILE__, __LINE__ );
     }
-    
- 
+
+
     // Check that we have the correct vector types and
     // obtain data pointers
     const T *rhsArray;
@@ -486,10 +510,10 @@ namespace OLAS {
                        theSol, &errorFlag );
 
     // Check return status
-    if ( errorFlag != 0 ) {
-      (*error) << "Pardiso: Error " << errorFlag << " occured during "
-               << "solution of linear system";
-      Error( __FILE__, __LINE__ ); 
+    if ( errorFlag != NO_ERROR ) {
+      (*error) << "Pardiso: Error occured during solution of linear system: "
+               << GetErrorString(errorFlag);
+      Error( __FILE__, __LINE__ );
     }
     else {
       if ( logging == true ) {
