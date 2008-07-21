@@ -121,7 +121,15 @@ void piezoParamIdent::Init() {
   myParam_->Get("computeCurveAfterIterationStep",
       computeImpedanceCurveAfterStep_);
   myParam_->Get("startFreq", startfreq_ );
+  startFreq_ = startfreq_;
   myParam_->Get("stopFreq", stopfreq_ );
+  stopFreq_ = stopfreq_;
+
+  std::string sampling = "linear";
+  myParam_->Get("sampling",sampling, false);
+  std::cout << "\n Sampling: " << sampling << std::endl;
+  String2Enum( sampling, samplingType_ );
+
   myParam_->Get("numFreq", nrfreq_ );
   // myParam_->Get("numMechMeasurements", numMechMeasurements_ );
   numMechMeasurements_=3;
@@ -1446,6 +1454,63 @@ void piezoParamIdent::writeTensorsInFile() {
   *allTensors_<<epsT<<std::endl;
 
 }
+
+
+  // ************************
+  //   ComputeNextFrequency
+  // ************************
+  Double piezoParamIdent::ComputeNextFrequency( UInt freqIndex ) const {
+
+
+    Double retFreq = 0.0;
+
+    // Check for single step
+    if ( nrfreq_ == 1 ) {
+      retFreq = startFreq_;
+    }
+    else {
+
+      switch( samplingType_ ) {
+
+        // Linear sampling
+      case LINEAR_SAMPLING:
+        retFreq = (freqIndex - 1) * (stopFreq_ - startFreq_) /
+          (Double)( nrfreq_ - 1 ) + startFreq_;
+        break;
+
+        // Logarithmic sampling
+      case LOG_SAMPLING:
+        {
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(freqIndex - 1) / (nrfreq_ - 1) );
+          retFreq = startFreq_ * fac;
+        }
+        break;
+
+        // Reverse logarithmic sampling
+      case REVERSE_LOG_SAMPLING:
+        {
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(nrfreq_ - freqIndex)
+                          / (nrfreq_ - 1));
+          retFreq = stopFreq_ + startFreq_ * ( 1.0 - fac );
+        }
+        break;
+
+        // Something's wrong
+      default:
+        std::string damp;
+        Enum2String( samplingType_, damp );
+        (*error) << "HarmonicDriver::ComputeNextFrequency: '"
+                 << damp
+                 << "' is not supported as sampling type";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+
+    return retFreq;
+  }
+
 
 } // end namespace CoupledField
 

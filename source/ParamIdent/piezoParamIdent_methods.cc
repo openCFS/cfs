@@ -138,19 +138,21 @@ namespace CoupledField {
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////
+      
+      Double actFreq = ComputeNextFrequency( fstep+1 );
 
       // Set curent frequency value in the mathParser
-      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", freqs_[fstep]);
+      domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", actFreq);
       domain->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "step", fstep );
 
-      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]);
+      ptPDE_->GetSolveStep()->SetActFreq(actFreq);
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
      
       if(writeResults_==true){
-        resHandler->BeginStep(fstep+1, freqs_[fstep] );
-        ptPDE_->WriteResultsInFile(fstep, freqs_[fstep]);
+        resHandler->BeginStep(fstep+1, actFreq );
+        ptPDE_->WriteResultsInFile(fstep, actFreq);
       }
       resHandler->FinishStep();
 
@@ -176,15 +178,15 @@ namespace CoupledField {
         Complex impedC;
 
         Complex im=Complex(0.0, 1);
-        impedC=voltage_/(2.0*PI*charge*freqs_[fstep]*im);
-        imped = std::abs(voltage_/(2.0*PI*charge*freqs_[fstep]*im));
+        impedC=voltage_/(2.0*PI*charge*actFreq*im);
+        imped = std::abs(voltage_/(2.0*PI*charge*actFreq*im));
 
         phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
 
-        std::cout << fstep <<"):\t Frequency: "<< freqs_[fstep]
+        std::cout << fstep <<"):\t Frequency: "<< actFreq
         << ";\t Impedance: "<< imped<< ";\t Phase: "<< phase<< std::endl;
 
-        *impedCurve_ <<"\n"<< freqs_[fstep]<< " "<< imped << "  "<< phase << "  "
+        *impedCurve_ << actFreq << " "<< imped << "  "<< phase << "  "
         << impedC.real()<<"  "<< impedC.imag() << "  "<< charge.real()<< "  "
         << charge.imag()<< std::endl;
 
@@ -192,12 +194,12 @@ namespace CoupledField {
         // determine resonance and antiresonance frequency
         if (imped>maxImpedance) {
           maxImpedance=imped;
-          antiResonanceFrequency_=freqs_[fstep];
+          antiResonanceFrequency_=actFreq;
         }
 
         if (imped<minImpedance) {
           minImpedance=imped;
-          resonanceFrequency_=freqs_[fstep];
+          resonanceFrequency_=actFreq;
         }
 
       }
@@ -256,10 +258,10 @@ namespace CoupledField {
         u=(nodeResult[0]-nodeResult[1]) + (nodeResult[2]-nodeResult[3])
         + (nodeResult[4]-nodeResult[5]);
 
-        std::cout << fstep <<");\t Frequency: "<< freqs_[fstep]
+        std::cout << fstep <<");\t Frequency: "<< actFreq
         << ";\t Mechanical displacement" << u << std::endl;
 
-        *mechDispl_<<freqs_[fstep];
+        *mechDispl_<<actFreq;
 
         *mechDispl_<<"\t"<< u.real() << "\t"<< u.imag() << "\t"<< std::abs(u)
         << "\t"<< std::atan2(u.imag(), u.real());

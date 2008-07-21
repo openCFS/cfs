@@ -191,6 +191,16 @@
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
+          <xsd:element name="sampling" minOccurs="0" maxOccurs="1"
+            default="linear">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="linear"/>
+                <xsd:enumeration value="log"/>
+                <xsd:enumeration value="reverseLog"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
           <xsd:element name="maxNrIterations"
             type="xsd:nonNegativeInteger"/>
           

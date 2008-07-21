@@ -182,6 +182,13 @@ class DirectCoupledPDE;
     //! approximates Jacobian by a second order FDM for real and complex values
     void computeJacobiMatrixC();
 
+    //! This method implements the different sampling variants for the
+    //! frequency domain. We currently support linear, logarithmic and
+    //! reverse logarithmic sampling.
+    //! \param freqIndex index of the frequency that shall be computed, i.e.
+    //!                  an integral value from [1:numFreq_]
+    Double ComputeNextFrequency( UInt freqIndex ) const;
+
 
 #ifdef USE_LAPACK
     //! Fortran f77 variables
@@ -276,9 +283,11 @@ class DirectCoupledPDE;
 
         Double startfreq_;
         Double stopfreq_;
+        Double startFreq_;
+        Double stopFreq_;
         UInt nrfreq_;
+        FreqSamplingType samplingType_;
         UInt newtonCounter_;
-      //  Double inner_eta_;
         Double stopRes_;
 
         // confidence interval computation:
