@@ -987,8 +987,14 @@ namespace CoupledField {
      // INHOMOGENEOUS DIRICHLET BC
      // ---------------------------
 
-     Double phase = 0.0;
+     Double stepVal, phase = 0.0;
      StdVector<Double>  val_tfunc_vec, dirVal_vec;
+
+     // get step value according to type of analysis
+     if (analysistype_ == HARMONIC)
+       stepVal = solveStep_->GetActFreq();
+     else
+       stepVal = solveStep_->GetActTime();
 
      for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
 
@@ -1006,7 +1012,7 @@ namespace CoupledField {
                             dof,
                             actBc.entities->GetName(),
                             actBc.result->resultType,
-                            solveStep_->GetActTime());
+                            stepVal);
 
        for ( it.Begin(); !it.IsEnd(); it++ ) {
 

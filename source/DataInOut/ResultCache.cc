@@ -75,7 +75,7 @@ void ResultCache::SetInfo(OutputType outType,
   solType_ = solType;
   if (stepValue != curStepVal_)
     resultValid_ = false;
-  curStepVal_ = stepValue;  
+  curStepVal_ = stepValue;
 }
 
 void ResultCache::SetSolution(SolutionType solType) {
@@ -95,7 +95,7 @@ void ResultCache::SetStepValue(Double stepValue) {
 Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
   ResultHandler* resHandler = domain->GetResultHandler();
   std::string readerId(inputId);
-  
+
   // do we need to load a new result?
   if (!resultValid_ || (readerId != readerId_)
       || (sequenceStep != sequenceStep_)) {
@@ -104,12 +104,12 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
       stepsValid_ = true;
       lastStepNum_ = 0;
     }
-    
+
     std::map<UInt, Double>::const_iterator it
       = stepValues_.lower_bound(lastStepNum_);
     std::map<UInt, Double>::const_iterator itEnd = stepValues_.end();
     UInt curStepNum = it->first;
-    
+
     while (it != itEnd) {
       if (it->second >= curStepVal_)
         break;
@@ -123,7 +123,7 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     else {
         curStepNum = (--it)->first;
     }
-    
+
     shared_ptr<BaseResult> tmpRes = resHandler->GetResult(readerId,
                                                           (UInt) sequenceStep,
                                                           curStepNum,
@@ -141,16 +141,16 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     resultValid_ = true;
   }
 
-/*#ifdef DEBUG
-  if (index_*numDofs_ + dof_ - 1 >= resCache_.GetSize()) {
-    std::string resultName;
-    Enum2String(solType_, resultName);
-    EXCEPTION("Index of '" << resultName << "' from input file (id="
-        << readerId_ << ") out of bounds.");
-  }
-#endif*/
-  
   if (entryType_ == EntryType::COMPLEX) {
+#ifdef DEBUG
+    if (index_*numDofs_ + dof_ - 1 >= resCacheComplex_.GetSize()) {
+      std::string resultName;
+      Enum2String(solType_, resultName);
+      EXCEPTION("Index of '" << resultName << "' from input file (id="
+          << readerId_ << ") out of bounds.");
+    }
+#endif
+
     switch (outType_) {
     case OUT_REAL:
       return resCacheComplex_[index_*numDofs_ + dof_ -1].real();
@@ -159,13 +159,24 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     case OUT_AMPL:
       return std::abs(resCacheComplex_[index_*numDofs_ + dof_ -1]);
     case OUT_PHASE:
-      return std::arg(resCacheComplex_[index_*numDofs_ + dof_ -1]);
+      // we need to convert radians to degrees, because this goes through
+      // the math parser!!!
+      return std::arg(resCacheComplex_[index_*numDofs_ + dof_ -1])*180.0/PI;
     }
   }
   else {
+#ifdef DEBUG
+    if (index_*numDofs_ + dof_ - 1 >= resCacheDouble_.GetSize()) {
+      std::string resultName;
+      Enum2String(solType_, resultName);
+      EXCEPTION("Index of '" << resultName << "' from input file (id="
+          << readerId_ << ") out of bounds.");
+    }
+#endif
+
     return resCacheDouble_[index_*numDofs_ + dof_ - 1];
   }
-  
+
   return 0.0;
 }
 
@@ -174,7 +185,7 @@ void ResultCache::LoadStepValues(const std::string& readerId,
   shared_ptr<SimInput> inputReader = domain->GetResultHandler()
       ->GetInputReader(readerId);
   StdVector< shared_ptr<ResultInfo> > resInfos;
-  
+
   try {
     inputReader->GetResultTypes(sequenceStep, resInfos);
   }
@@ -194,10 +205,10 @@ void ResultCache::LoadStepValues(const std::string& readerId,
     EXCEPTION("Result '" << resultName << "' not found in input file (id="
         << readerId << ")");
   }
-  
+
   numDofs_ = resInfos[iRes]->dofNames.GetSize();
   inputReader->GetStepValues(sequenceStep, resInfos[iRes], stepValues_);
-  
+
 }
 
 } // namespace CoupledField
