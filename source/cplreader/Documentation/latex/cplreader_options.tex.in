@@ -1,0 +1,24 @@
+\begin{center}
+  \begin{longtable}{llp{120mm}}
+    \caption[Command line options of \cplreader]
+            {Command line options of \cplreader.}
+            \label{tab:cplreader-opts} \\
+
+    \hline \textbf{Parameter} & \textbf{Default Value} & \textbf{Short Description} \\
+    \hline 
+    \endfirsthead
+
+    \multicolumn{3}{c}
+                {{\bfseries \tablename\ \thetable{} -- continued from previous page}} \\
+                \hline
+                \textbf{Time (s)} & \textbf{Default Value} & \textbf{Short Description} \\
+                \hline 
+                \endhead
+
+                \hline \multicolumn{3}{r}{{Continued on next page}} \\
+                \endfoot
+
+                \endlastfoot
+@LATEX_OPTIONS@
+  \end{longtable}
+\end{center}

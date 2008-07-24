@@ -13,10 +13,14 @@ MARK_AS_ADVANCED(CPLREADER_ANSYS)
 MARK_AS_ADVANCED(CPLREADER_CFX)
 MARK_AS_ADVANCED(CPLREADER_FASTEST)
 MARK_AS_ADVANCED(CPLREADER_OPENFOAM)
+
+INCLUDE(cplreader_options.cmake)
   
 INCLUDE_DIRECTORIES(
   ${MPCCI_INCLUDE_DIR}
-  ${HDF5_INCLUDE_DIR})
+  ${HDF5_INCLUDE_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR})
 
 IF(CPLREADER_ANSYS)
   SUBDIRS(FileReaders/ANSYS)
@@ -45,9 +49,9 @@ SET(CPLREADER_SRCS
   cplreader.cc
   FileReader.cc
   OutputWriter.cc
-  ParamsInit.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc
   integlib/elemIntegr.cc
-  integlib/integr.cc
+#  integlib/integr.cc
 )
 
 ADD_EXECUTABLE(cplreader ${CPLREADER_SRCS})
@@ -83,7 +87,7 @@ ENDIF(CPLREADER_OPENFOAM)
 SET(TARGET_LL ${TARGET_LL}
   cplreader_gengrids
   cplreader_hdf5
-  cplreader_doc
+  cplreader_docu
   ${BOOST_PROGRAM_OPTIONS_LIB}
   # DIRTY, DIRTYYYY HACK!
   datainout

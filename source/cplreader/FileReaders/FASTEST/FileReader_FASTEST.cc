@@ -39,7 +39,7 @@ namespace CoupledField
         UInt i;
 
 
-        if(settings.GetDouble("timeStep") < 0)
+        if(settings.GetDouble("timestep") < 0)
           EXCEPTION("No proper time step has been specified! Use --timestep X.");
 
         // Let's first determine the format of filenames
@@ -84,9 +84,9 @@ namespace CoupledField
         inFile_ >> numRegions_;
         inFile_ >> dummy;
         numSteps_ = dummy < numSteps_ ? dummy : numSteps_;
-        if (settings.GetInt("numSteps"))
+        if (settings.GetInt("numsteps"))
         {
-          const UInt tmp = (UInt) settings.GetInt("numSteps");
+          const UInt tmp = (UInt) settings.GetInt("numsteps");
           /* only take argument if tmo does not exceed the maximal number of timesteps possible */
           if (tmp < numSteps_)
           {
@@ -192,7 +192,7 @@ namespace CoupledField
                   << " Files:\t\t\t\t" << numSteps_ << std::endl
                   << " Partitions:\t\t\t" << numRegions_ << std::endl
                   << " Results:\t\t\t" << numResults_ << std::endl
-                  << " timeStep:\t\t\t" << settings.GetDouble("timeStep") << std::endl
+                  << " timeStep:\t\t\t" << settings.GetDouble("timestep") << std::endl
                   << " Lighthill source term column:\t" << dataColumns_[0]+1 << std::endl
                   << " vx column:\t\t\t" << dataColumns_[1]+1 << std::endl
                   << " vy column:\t\t\t" << dataColumns_[2]+1 << std::endl

@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="734.3139"
+   height="448.07419"
+   id="svg3384"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/home/lse24/lse/strieben/dev/CFS_TRUNK/source/cplreader/Documentation/latex/pics"
+   sodipodi:docname="couplingscheme.svg"
+   version="1.0">
+  <defs
+     id="defs3386">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient3976">
+      <stop
+         style="stop-color:#f06;stop-opacity:1;"
+         offset="0"
+         id="stop3978" />
+      <stop
+         style="stop-color:#f06;stop-opacity:0;"
+         offset="1"
+         id="stop3980" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient3968">
+      <stop
+         style="stop-color:#008066;stop-opacity:1;"
+         offset="0"
+         id="stop3970" />
+      <stop
+         style="stop-color:#008066;stop-opacity:0;"
+         offset="1"
+         id="stop3972" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient3960">
+      <stop
+         style="stop-color:#f06;stop-opacity:1;"
+         offset="0"
+         id="stop3962" />
+      <stop
+         style="stop-color:#f06;stop-opacity:0;"
+         offset="1"
+         id="stop3964" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient3952">
+      <stop
+         style="stop-color:#008066;stop-opacity:1;"
+         offset="0"
+         id="stop3954" />
+      <stop
+         style="stop-color:#008066;stop-opacity:0;"
+         offset="1"
+         id="stop3956" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient3936">
+      <stop
+         style="stop-color:#008066;stop-opacity:1;"
+         offset="0"
+         id="stop3938" />
+      <stop
+         style="stop-color:#008066;stop-opacity:0;"
+         offset="1"
+         id="stop3940" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3410">
+      <stop
+         style="stop-color:#2c5aa0;stop-opacity:1;"
+         offset="0"
+         id="stop3412" />
+      <stop
+         style="stop-color:#2c5aa0;stop-opacity:0;"
+         offset="1"
+         id="stop3414" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3410"
+       id="linearGradient9637"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.071943,0,0,1.169491,488.1327,241.0351)"
+       x1="315.44431"
+       y1="218.92"
+       x2="315.44431"
+       y2="325.09088" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3410"
+       id="linearGradient9681"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.071943,0,0,1.169491,-418.1213,184.1713)"
+       x1="315.44431"
+       y1="218.92"
+       x2="315.44431"
+       y2="325.09088" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3410"
+       id="linearGradient1969"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.071943,0,0,1.169491,-253.6702,473.3703)"
+       x1="315.44431"
+       y1="218.92"
+       x2="315.44431"
+       y2="325.09088" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3936"
+       id="linearGradient3942"
+       x1="268.07377"
+       y1="597.05569"
+       x2="367.97042"
+       y2="597.05569"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3952"
+       id="linearGradient3958"
+       x1="233.94333"
+       y1="806.84074"
+       x2="333.83998"
+       y2="806.84074"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3960"
+       id="linearGradient3966"
+       x1="333.83997"
+       y1="846.55835"
+       x2="233.94333"
+       y2="846.55835"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3968"
+       id="linearGradient3974"
+       x1="532.35503"
+       y1="556.54114"
+       x2="632.25168"
+       y2="556.54114"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3976"
+       id="linearGradient3982"
+       x1="632.25165"
+       y1="596.25873"
+       x2="532.35504"
+       y2="596.25873"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.6668621"
+     inkscape:cx="367.15695"
+     inkscape:cy="224.03709"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="1280"
+     inkscape:window-height="961"
+     inkscape:window-x="1280"
+     inkscape:window-y="0" />
+  <metadata
+     id="metadata3389">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(247.7165,-440.3464)">
+    <g
+       id="g9703">
+      <rect
+         y="441.23224"
+         x="-211.97124"
+         height="122.24409"
+         width="263.97644"
+         id="rect3392"
+         style="fill:url(#linearGradient9681);fill-opacity:1;stroke:black;stroke-width:1.77165353;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         y="476.66525"
+         x="-246.83066"
+         height="121.67044"
+         width="263.40265"
+         id="rect3396"
+         style="fill:white;fill-opacity:1;stroke:black;stroke-width:1.77165341;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         id="text3418"
+         y="501.5051"
+         x="-193.90169"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="501.5051"
+           x="-193.90169"
+           id="tspan3420"
+           sodipodi:role="line">Flow Computation</tspan></text>
+      <text
+         id="text3426"
+         y="463.95557"
+         x="-197.20958"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:white;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:16px;font-weight:bold;fill:white;fill-opacity:1"
+           y="463.95557"
+           x="-197.20958"
+           id="tspan3428"
+           sodipodi:role="line">CFX, FASTEST-3D, OpenFOAM</tspan></text>
+      <text
+         id="text3430"
+         y="533.38409"
+         x="-229.40179"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="533.38409"
+           x="-229.40179"
+           id="tspan3432"
+           sodipodi:role="line">• Large Eddy Simulation</tspan><tspan
+           id="tspan3434"
+           style="font-size:20px;font-weight:bold"
+           y="558.38409"
+           x="-229.40179"
+           sodipodi:role="line">• Finite Volume Method</tspan><tspan
+           id="tspan3436"
+           style="font-size:20px;font-weight:bold"
+           y="583.38409"
+           x="-229.40179"
+           sodipodi:role="line">• SAS Model</tspan></text>
+    </g>
+    <g
+       id="g1947"
+       transform="translate(-164.4512,0)">
+      <rect
+         y="730.43127"
+         x="-47.520084"
+         height="122.24409"
+         width="263.97644"
+         id="rect9379"
+         style="fill:url(#linearGradient1969);fill-opacity:1;stroke:black;stroke-width:1.77165353;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         y="765.86432"
+         x="-82.379501"
+         height="121.67044"
+         width="263.40265"
+         id="rect9381"
+         style="fill:white;fill-opacity:1;stroke:black;stroke-width:1.77165341;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         id="text9383"
+         y="790.7041"
+         x="6.1528897"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="790.7041"
+           x="6.1528897"
+           id="tspan9385"
+           sodipodi:role="line">Coupling</tspan></text>
+      <text
+         id="text9387"
+         y="753.1546"
+         x="-9.7232704"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:white;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:16px;font-weight:bold;fill:white;fill-opacity:1"
+           y="753.1546"
+           x="-9.7232704"
+           id="tspan9389"
+           sodipodi:role="line">cplreader (HDF5, MpCCI)</tspan></text>
+      <text
+         id="text9391"
+         y="822.58313"
+         x="-64.950638"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="822.58313"
+           x="-64.950638"
+           id="tspan9393"
+           sodipodi:role="line">• <tspan
+   style="fill:#008066"
+   id="tspan9429">Nodal Acoustic Loads</tspan></tspan><tspan
+           id="tspan9395"
+           style="font-size:20px;font-weight:bold"
+           y="847.58313"
+           x="-64.950638"
+           sodipodi:role="line">• <tspan
+   style="fill:#f06"
+   id="tspan9431">Displacements</tspan></tspan><tspan
+           id="tspan9397"
+           style="font-size:20px;font-weight:bold"
+           y="872.58313"
+           x="-64.950638"
+           sodipodi:role="line">• <tspan
+   style="fill:#008066"
+   id="tspan9427">Forces</tspan></tspan></text>
+    </g>
+    <g
+       transform="translate(-472.5477,232.3351)"
+       id="g9476">
+      <rect
+         y="498.09616"
+         x="694.28278"
+         height="122.24409"
+         width="263.97644"
+         id="rect9433"
+         style="fill:url(#linearGradient9637);fill-opacity:1;stroke:black;stroke-width:1.77165353;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         y="533.52917"
+         x="659.42334"
+         height="121.67044"
+         width="263.40265"
+         id="rect9435"
+         style="fill:white;fill-opacity:1;stroke:black;stroke-width:1.77165341;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         id="text9437"
+         y="558.36896"
+         x="689.83557"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="558.36896"
+           x="689.83557"
+           id="tspan9439"
+           sodipodi:role="line">Acoustic / Mechanics</tspan></text>
+      <text
+         id="text9441"
+         y="520.81946"
+         x="798.6499"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:white;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:16px;font-weight:bold;fill:white;fill-opacity:1"
+           y="520.81946"
+           x="798.6499"
+           id="tspan9443"
+           sodipodi:role="line">CFS ++</tspan></text>
+      <text
+         id="text9445"
+         y="590.24799"
+         x="676.85223"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+         xml:space="preserve"><tspan
+           style="font-size:20px;font-weight:bold"
+           y="590.24799"
+           x="676.85223"
+           id="tspan9447"
+           sodipodi:role="line">• Time Domain</tspan><tspan
+           id="tspan9451"
+           style="font-size:20px;font-weight:bold"
+           y="615.24799"
+           x="676.85223"
+           sodipodi:role="line">• Frequency Domain</tspan><tspan
+           id="tspan9455"
+           style="font-size:20px;font-weight:bold"
+           y="640.24799"
+           x="676.85223"
+           sodipodi:role="line">• Finite Element Method</tspan></text>
+    </g>
+    <g
+       id="g1965"
+       transform="translate(-164.4512,0)">
+      <path
+         style="fill:url(#linearGradient3958);fill-opacity:1.0;fill-rule:evenodd;stroke:black;stroke-width:1.77165353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="M 234.82916,815.63538 L 234.82916,798.31395 L 311.4363,798.31395 L 311.4363,785.27824 L 332.95415,806.7961 L 311.34701,828.40324 L 311.34701,815.63538 L 234.82916,815.63538 z "
+         id="path9554" />
+      <path
+         style="fill:url(#linearGradient3966);fill-opacity:1.0;fill-rule:evenodd;stroke:black;stroke-width:1.77165353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="M 332.95415,855.35297 L 332.95415,838.03154 L 256.34701,838.03154 L 256.34701,824.99583 L 234.82916,846.51369 L 256.4363,868.12083 L 256.4363,855.35297 L 332.95415,855.35297 z "
+         id="path9558" />
+    </g>
+    <path
+       id="path1926"
+       d="M 268.9596,605.85033 L 268.9596,588.5289 L 345.56674,588.5289 L 345.56674,575.49319 L 367.08459,597.01105 L 345.47745,618.61819 L 345.47745,605.85033 L 268.9596,605.85033 z "
+       style="fill:url(#linearGradient3942);fill-opacity:1.0;fill-rule:evenodd;stroke:black;stroke-width:1.77165353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <g
+       transform="matrix(0,1,-1,0,461.2706,82.77178)"
+       id="g9565">
+      <path
+         style="fill:url(#linearGradient3974);fill-opacity:1.0;fill-rule:evenodd;stroke:black;stroke-width:1.77165353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="M 533.24086,565.33578 L 533.24086,548.01435 L 609.848,548.01435 L 609.848,534.97864 L 631.36585,556.4965 L 609.75871,578.10364 L 609.75871,565.33578 L 533.24086,565.33578 z "
+         id="path9567" />
+      <path
+         style="fill:url(#linearGradient3982);fill-opacity:1.0;fill-rule:evenodd;stroke:black;stroke-width:1.77165353;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="M 631.36585,605.05337 L 631.36585,587.73194 L 554.75871,587.73194 L 554.75871,574.69623 L 533.24086,596.21409 L 554.848,617.82123 L 554.848,605.05337 L 631.36585,605.05337 z "
+         id="path9569" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
+       x="200.47815"
+       y="507.69742"
+       id="text1918"><tspan
+         sodipodi:role="line"
+         id="tspan1920"
+         x="200.47815"
+         y="507.69742"
+         style="font-size:20px;font-weight:bold;text-align:justify;text-anchor:start">At the moment cplreader</tspan><tspan
+         sodipodi:role="line"
+         x="200.47815"
+         y="532.69742"
+         style="font-size:20px;font-weight:bold;text-align:justify;text-anchor:start"
+         id="tspan1922">just covers the direction</tspan><tspan
+         sodipodi:role="line"
+         x="200.47815"
+         y="557.69742"
+         style="font-size:20px;font-weight:bold;text-align:justify;text-anchor:start"
+         id="tspan1924">from CFD code to CFS++</tspan></text>
+  </g>
+</svg>

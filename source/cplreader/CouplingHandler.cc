@@ -156,9 +156,6 @@ namespace CoupledField
     ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
     ptElemIntegr_[ET_HEXA8]  = new ElemIntegr(ET_HEXA8);
 
-    // Override the setting of --outprec for CFX
-    if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
-      settings.SetString("outprec", "single");
   }
 
   void CouplingHandler::ConvertMesh()
@@ -413,7 +410,7 @@ namespace CoupledField
   void CouplingHandler::Couple()
   {
     Settings& settings = Settings::Instance();
-    bool calcSrc = settings.GetInt("calcSrc");
+    bool calcSrc = settings.GetInt("calcsrc");
     UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
@@ -490,6 +487,11 @@ namespace CoupledField
       try
       {
         ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+
+        // Override the setting of --outprec for CFX
+        if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
+          settings.SetString("outprec", "single");
+
         readOK = true;
       } catch (std::exception& ex)
       {
@@ -690,12 +692,15 @@ namespace CoupledField
 
   void CouplingHandler::Finish()
   {
+    Settings& settings = Settings::Instance();
+
     // Fetch custom data from file reader and write it to the UserData
     // section of the HDF5 file.
     std::map<std::string, std::string> userData;
     std::map<std::string, std::string>::const_iterator udIt, udEnd;
 
     ptFileReader_->GetUserData(userData);
+    settings.DumpXML(userData["settings"]);
     udIt = userData.begin();
     udEnd = userData.end();
     for( ; udIt != udEnd; udIt++ )
@@ -1216,6 +1221,8 @@ namespace CoupledField
     }
 
     std::cout << "Calculating Lighthill sources on " << regionName << " ";
+    Double density = settings.GetDouble("density");
+
 
     // Init Lighthill structures
     FlowDataPartStruct& fdps2 = flowData[ACOU_RHS_LOAD];
@@ -1276,7 +1283,7 @@ namespace CoupledField
 
       try {
         ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj,
-                                                     nodalVel, elemVec);
+                                                     nodalVel, elemVec, density);
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "Warning: An Exception occurred during source term "

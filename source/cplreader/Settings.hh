@@ -179,6 +179,31 @@ namespace CoupledField
       settingsMap_[key] = sstr.str();
     }
 
+    void DumpXML(std::string& dump)
+    {
+      std::stringstream sstr;
+      Map::iterator it, end;
+       
+      sstr << "<?xml version=\"1.0\"?>" << std::endl;
+
+      sstr << "<cplreaderSettings>" << std::endl;
+
+      it = settingsMap_.begin();
+      end = settingsMap_.end();
+      
+      for( ; it != end; it++ )
+      {
+        sstr << "  <" << it->first << "> "
+             << it->second
+             << " </" << it->first << ">"
+             << std::endl;
+      }
+      
+      sstr << "</cplreaderSettings>" << std::endl;
+
+      dump = sstr.str();
+    }
+
   private:
 
     //! Private constructor.

@@ -1,0 +1,29 @@
+PROJECT(cplreader_docu)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+
+INCLUDE(UseLATEX.cmake)
+
+ADD_LATEX_DOCUMENT(cplreader_docu.tex
+  INPUTS cplreader_docu.tex cplreader_defs.tex cplreader_options.tex mycommands.tex Title.tex FigElementTypes.tex
+  BIBFILES cplreader_docu.bib
+  IMAGE_DIRS pics
+#  USE_INDEX
+  MANGLE_TARGET_NAMES
+  DEFAULT_PDF
+  )
+
+# Hide some variables introduced by UseLATEX.cmake
+MARK_AS_ADVANCED(
+  BIBTEX_COMPILER
+  DVIPS_CONVERTER
+  IMAGEMAGICK_CONVERT
+  LATEX2HTML_CONVERTER
+  LATEX_COMPILER
+  LATEX_OUTPUT_PATH
+  LATEX_SMALL_IMAGES
+  MAKEGLOSSARIES_COMPILER
+  MAKEINDEX_COMPILER
+  PDFLATEX_COMPILER
+  PS2PDF_CONVERTER
+  )

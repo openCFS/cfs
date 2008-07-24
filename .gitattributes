@@ -1203,11 +1203,32 @@ source/cplreader/CouplingHandler.cc svneol=native#text/plain
 source/cplreader/CouplingHandler.hh svneol=native#text/plain
 source/cplreader/Documentation/CMakeLists.txt svneol=native#text/plain
 source/cplreader/Documentation/GetHTMLDocumentation.hh svneol=native#text/plain
+source/cplreader/Documentation/GetPDFDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.cc svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/docfilestocpp.pl svneol=native#text/plain
-source/cplreader/Documentation/index.html svneol=native#text/html
-source/cplreader/Documentation/logo.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/CMakeLists.txt svneol=native#text/plain
+source/cplreader/Documentation/latex/FigElementTypes.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/Title.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/UseLATEX.cmake -text
+source/cplreader/Documentation/latex/cplreader_defs.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/cplreader_docu.bib svneol=native#text/plain
+source/cplreader/Documentation/latex/cplreader_docu.pdf -text svneol=unset#application/pdf
+source/cplreader/Documentation/latex/cplreader_docu.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/cplreader_options.tex.in -text
+source/cplreader/Documentation/latex/mycommands.tex svneol=native#text/plain
+source/cplreader/Documentation/latex/pics/FASTESTexample.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/FASTESTexample.svg -text
+source/cplreader/Documentation/latex/pics/acousticfluidregions.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/acousticfluidregions.svg -text
+source/cplreader/Documentation/latex/pics/colorbar.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/cons_interpolation.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/cons_interpolation.svg -text
+source/cplreader/Documentation/latex/pics/couplingscheme.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/couplingscheme.svg -text
+source/cplreader/Documentation/latex/pics/fastest.png -text svneol=unset#image/png
+source/cplreader/Documentation/latex/pics/klu.eps -text svneol=unset#application/postscript
+source/cplreader/Documentation/latex/pics/lse.eps -text svneol=unset#application/postscript
 source/cplreader/FileReader.cc svneol=native#text/plain
 source/cplreader/FileReader.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/CMakeLists.txt svneol=native#text/plain
@@ -1253,10 +1274,11 @@ source/cplreader/OutputWriter.hh svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/CMakeLists.txt svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.cc svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.hh svneol=native#text/plain
-source/cplreader/ParamsInit.cc svneol=native#text/plain
+source/cplreader/ParamsInit.cc.in svneol=native#text/plain
 source/cplreader/ParamsInit.hh svneol=native#text/plain
 source/cplreader/Settings.hh svneol=native#text/plain
 source/cplreader/cplreader.cc svneol=native#text/plain
+source/cplreader/cplreader_options.cmake -text
 source/cplreader/integlib/elemIntegr.cc svneol=native#text/plain
 source/cplreader/integlib/elemIntegr.hh svneol=native#text/plain
 source/cplreader/integlib/integr.cc svneol=native#text/plain

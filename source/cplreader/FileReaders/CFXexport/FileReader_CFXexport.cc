@@ -41,7 +41,7 @@ namespace CoupledField {
 
     Settings& settings = Settings::Instance();
 
-    if(settings.GetDouble("timeStep") < 0)
+    if(settings.GetDouble("timestep") < 0)
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
 
     // put filename together
@@ -160,7 +160,7 @@ namespace CoupledField {
               << " Dimension: \t" << dim_ << std::endl
               << " Files:     \t" << numSteps_ << std::endl
               << " Partitions:\t" << numRegions_ << std::endl
-              << " Time step: \t" << settings.GetDouble("timeStep") << std::endl
+              << " Time step: \t" << settings.GetDouble("timestep") << std::endl
               << " Results:   \t" << numResults << std::endl;
     if (colDens_ > 0)
       std::cout << "   Density: \tcolumn " << colDens_ << std::endl;
@@ -432,7 +432,7 @@ namespace CoupledField {
     FlowDataType &flowdata = nodalFlowdata[0];
 
     // set up flow data struct
-    if (timeStepIdx == settings.GetInt("firstStep")) {
+    if (timeStepIdx == settings.GetInt("firststep")) {
       for (itQuan = col2Quan_.begin(); itQuan != itEnd; ++itQuan) {
         FlowDataPartStruct *fdps = NULL;
 

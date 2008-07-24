@@ -113,7 +113,8 @@ namespace CoupledField
   void ElemIntegr::PerformIntegration(const Matrix<Double> & coordMat,
                                       const Matrix<Double>& NodaldTijdxj,
                                       const Matrix<Double>& NodalVal,
-                                      Vector<Double>& elemvec)
+                                      Vector<Double>& elemvec,
+                                      Double density)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformIntegration" << std::endl;
@@ -122,7 +123,7 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, ptElem_);
+    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, ptElem_, density);
   }
 
 
