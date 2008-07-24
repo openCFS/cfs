@@ -1202,7 +1202,6 @@ source/cplreader/CMakeLists.txt svneol=native#text/plain
 source/cplreader/CouplingHandler.cc svneol=native#text/plain
 source/cplreader/CouplingHandler.hh svneol=native#text/plain
 source/cplreader/Documentation/CMakeLists.txt svneol=native#text/plain
-source/cplreader/Documentation/GetHTMLDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/GetPDFDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.cc svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.hh svneol=native#text/plain
