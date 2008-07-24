@@ -1140,7 +1140,8 @@ namespace CoupledField {
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVel(const Matrix<Double>& ptCoord,
                                                    const Matrix<Double> & NodalVel,
                                                    Vector<Double> & Result,
-                                                   const Elem* elem)
+                                                   const Elem* elem,
+                                                   Double density)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
@@ -1166,7 +1167,7 @@ namespace CoupledField {
     Vector<double> intWeights = ptelem->GetIntWeights();
 
     Double jacDet;
-    Double density=1.0;
+    //    Double density=1.0;
 
     Result.Resize(n);
     for (Integer i=0; i<n; i++)
