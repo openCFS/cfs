@@ -62,9 +62,9 @@ namespace CoupledField
         infile >> numPartitions_;
         infile >> dummy;
         numFiles_ = dummy < numFiles_ ? dummy : numFiles_;
-        if (settings.GetInt("numSteps"))
+        if (settings.GetInt("numsteps"))
         {
-          const UInt tmp = (UInt) settings.GetInt("numSteps");
+          const UInt tmp = (UInt) settings.GetInt("numsteps");
           /* only take argument if tmo does not exceed the maximal number of timesteps possible */
           if (tmp < numFiles_)
           {

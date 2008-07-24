@@ -73,9 +73,9 @@ namespace CoupledField
         reader_->PrintSelf(std::cout, (vtkIndent)0);
     }
 
-    if (settings.GetInt("numSteps"))
+    if (settings.GetInt("numsteps"))
     {
-      numSteps_ = (UInt) settings.GetInt("numSteps");
+      numSteps_ = (UInt) settings.GetInt("numsteps");
       /* don not exceed the maximal number of timesteps possible */
       if (numSteps_ >= (UInt) reader_->GetNumberOfTimeSteps())
       {
@@ -103,7 +103,7 @@ namespace CoupledField
                 << " numfiles: " << numSteps_ << std::endl
                 << " numPartitions: " << numRegions_ << std::endl
                 << " numResults: " << numResults << std::endl
-                << " timeStep: " << settings.GetDouble("timeStep") << std::endl;
+                << " timeStep: " << settings.GetDouble("timestep") << std::endl;
     }
 
     numNodesPerRegion_.resize(numRegions_);

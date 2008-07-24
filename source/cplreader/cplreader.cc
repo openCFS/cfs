@@ -101,8 +101,8 @@ namespace CoupledField
 #ifdef CPLREADER_FASTEST
       fileReader.reset(new FileReader_FASTEST(settings.GetString("name"),
                                           settings.GetInt("dim"),
-                                          settings.GetInt("numSteps"),
-                                          settings.GetInt("firstStep")));
+                                          settings.GetInt("numsteps"),
+                                          settings.GetInt("firststep")));
 #else
       EXCEPTION("Reading of FASTEST files not supported!");
 #endif
@@ -112,8 +112,8 @@ namespace CoupledField
     {
       fileReader.reset(new FileReader_GENGRIDS(settings.GetString("name"),
                                                settings.GetInt("dim"),
-                                               settings.GetInt("numSteps"),
-                                               settings.GetInt("firstStep")));
+                                               settings.GetInt("numsteps"),
+                                               settings.GetInt("firststep")));
     }
 
  #if 0
@@ -121,7 +121,7 @@ namespace CoupledField
     {
       fileReader.reset(new FileReader_Stanford(settings.GetString("name"),
                                            settings.GetInt("dim"),
-                                           settings.GetInt("numSteps")));
+                                           settings.GetInt("numsteps")));
     }
  #endif
 
@@ -130,7 +130,7 @@ namespace CoupledField
 #ifdef CPLREADER_CFX
       fileReader.reset(new FileReader_CFX(settings.GetString("name"),
                                       settings.GetInt("dim"),
-                                      settings.GetInt("numSteps")));
+                                      settings.GetInt("numsteps")));
 #else
       EXCEPTION("Reading of CFX files not supported!");
 #endif
@@ -141,8 +141,8 @@ namespace CoupledField
 #ifdef CPLREADER_CFX
       fileReader.reset(new FileReader_CFXexport(settings.GetString("name"),
                                             settings.GetInt("dim"),
-                                            settings.GetInt("numSteps"),
-                                            settings.GetInt("firstStep")));
+                                            settings.GetInt("numsteps"),
+                                            settings.GetInt("firststep")));
 #else
       EXCEPTION("Reading of CFX files not supported!");
 #endif
@@ -153,7 +153,7 @@ namespace CoupledField
 #ifdef CPLREADER_OPENFOAM
       fileReader.reset(new FileReader_OPENFOAM(settings.GetString("name"),
                                            settings.GetInt("dim"),
-                                           settings.GetInt("numSteps")));
+                                           settings.GetInt("numsteps")));
 #else
       EXCEPTION("Reading of OPENFOAM files not supported!");
 #endif

@@ -10,7 +10,7 @@ namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
 #include "cplreader/Settings.hh"
-#include "GetHTMLDocumentation.hh"
+#include "GetPDFDocumentation.hh"
 #include "WriteDocumentation.hh"
 
 namespace CoupledField
@@ -27,8 +27,8 @@ namespace CoupledField
     std::string fn;
     static const std::string docDir = "cplreader_docs";
 
-    if(settings.GetString("docu") == "HTML")
-      GetHTMLDocumentation(doc);
+    if(settings.GetString("docu") == "PDF")
+      GetPDFDocumentation(doc);
 
     if(!doc.size())
       return;
@@ -54,13 +54,10 @@ namespace CoupledField
 
     std::cout << "Documentation for cplreader has been written to:"
               << std::endl << std::endl
-              << "   " << docDir
-              << std::endl << std::endl;
-    if(settings.GetString("docu") == "HTML")
-      std::cout  << "The URL of the main document is:"
-                 << std::endl << std::endl
-                 << "   " << docDir << pathsep << "index.html"
-                 << std::endl << std::endl;
+              << "   " << docDir;
+    if(settings.GetString("docu") == "PDF")
+      std::cout << pathsep<< doc.begin()->first
+                << std::endl << std::endl;
   }
   
 } // end of namespace

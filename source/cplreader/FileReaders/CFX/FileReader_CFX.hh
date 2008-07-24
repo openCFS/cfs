@@ -76,6 +76,7 @@ namespace CoupledField
     std::vector< int > timeStepNumbers_;
     std::vector< FEType > regionElemTypes_;
     std::ifstream inFile_;
+    bool determineFloatDS_;
 
     // Vector of element numbers per region
     std::map<UInt, std::vector<UInt> > regionElems_;

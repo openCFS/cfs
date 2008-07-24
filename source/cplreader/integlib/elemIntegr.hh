@@ -27,7 +27,8 @@ namespace CoupledField
     void PerformIntegration(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodaldTijdxj,
                             const Matrix<Double>& NodalVal,
-                            Vector<Double>& elemvec);
+                            Vector<Double>& elemvec,
+                            Double density);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,
                                   const Matrix<Double>& NodalVel, 

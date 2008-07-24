@@ -45,7 +45,8 @@ namespace CoupledField
   FileReader_CFX::FileReader_CFX(const std::string& name,
                                  const UInt dim,
                                  const UInt numFiles) :
-    FileReader(name, dim, numFiles)
+    FileReader(name, dim, numFiles),
+    determineFloatDS_(true)
   {
     Settings& settings = Settings::Instance();
 
@@ -64,10 +65,7 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     
-    // Use strict settings for CFX reader by default
-    settings.SetInt("strict", 1);
-
-    if(settings.GetDouble("timeStep") < 0)
+    if(settings.GetDouble("timestep") < 0)
       EXCEPTION("No proper time step has been specified! Use --timestep X.");
 
     std::stringstream sstr;
@@ -259,9 +257,9 @@ namespace CoupledField
 
     CheckTransientFiles();
 
-    if (settings.GetInt("numSteps"))
+    if (settings.GetInt("numsteps"))
     {
-      UInt tmp = (UInt) settings.GetInt("numSteps");
+      UInt tmp = (UInt) settings.GetInt("numsteps");
       /* only take argument if tmo does not exceed the maximal number of timesteps possible */
       if (tmp < numSteps_)
       {
@@ -274,8 +272,8 @@ namespace CoupledField
     //-----------------------------------------------------------------------
 
     std::vector< std::string > defFileNames;
-    if(settings.GetString("defFile") != "")
-      defFileNames.push_back(baseName_ + settings.GetString("defFile").c_str());
+    if(settings.GetString("deffile") != "")
+      defFileNames.push_back(baseName_ + settings.GetString("deffile").c_str());
     if(defFile != "")
       defFileNames.push_back(baseName_ + defFile);
     defFileNames.push_back(baseName_ + name_ + ".def");
@@ -624,8 +622,16 @@ namespace CoupledField
                                        const UInt timeStepIdx)
   {
     Settings& settings = Settings::Instance();
-    bool floatDS = settings.GetInt("floatDataset");
-
+    bool floatDS;
+    
+    if(determineFloatDS_) 
+    {
+      floatDS = true;
+    } 
+    else {
+      floatDS = settings.GetInt("floatDataset");
+    }
+    
     // Open input file
     snprintf(fn,
              sizeof(fn),
@@ -686,39 +692,65 @@ namespace CoupledField
 
         if(nerr)
         {
+          if(determineFloatDS_) 
+          {
+            dattyp = __double_data_type__;
+
+            readlong_(&dattyp,&nerr,what,where,&when,&nsize,&iopt,
+                      &floatvec[0],iarr,carr,larr,&doublevec[0],sarr,
+                      strlen(what), strlen(where), 0);
+
+            if(nerr)
+            {
+              EXCEPTION("Could not determine if CFX datasets are single"
+                        " or double precision");
+            }
+
+            settings.SetInt("floatDataset", 0);
+            floatDS = false;
+            determineFloatDS_ = false;
+          }
+          
+
           if(settings.GetInt("verbose"))
             std::cerr << "WARNING: CFX dataset does not contain velocity!"
             << std::endl;
         }
-        else
+        else 
         {
-          FlowDataPartStruct& fdps = fd[FLUIDMECH_VELOCITY];
-          fdps.isActive = true; // all partitions have results
-          if(fdps.dofNames.empty())
+          if(determineFloatDS_) 
           {
-
-            fdps.definedOn = ResultInfo::NODE; // nodes
-            fdps.dofNames.push_back("x");
-            fdps.dofNames.push_back("y");
-            if(dim_ == 3)
-              fdps.dofNames.push_back("z");
-
-            fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-            Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
-            fdps.entryType = ResultInfo::VECTOR;
+            settings.SetInt("floatDataset", 1);
+            determineFloatDS_ = false;
           }
-          numDOFs = fdps.dofNames.size();
-          fdps.data.resize(numDOFs * nvx);
-
-          if(floatDS)
-            std::copy(floatvec.begin(),
-                floatvec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
-          else
-            std::copy(doublevec.begin(),
-                doublevec.begin() + (numDOFs * nvx),
-                fdps.data.begin());
         }
+      
+        FlowDataPartStruct& fdps = fd[FLUIDMECH_VELOCITY];
+        fdps.isActive = true; // all partitions have results
+        if(fdps.dofNames.empty())
+        {
+
+          fdps.definedOn = ResultInfo::NODE; // nodes
+          fdps.dofNames.push_back("x");
+          fdps.dofNames.push_back("y");
+          if(dim_ == 3)
+            fdps.dofNames.push_back("z");
+
+          fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
+          Enum2String(FLUIDMECH_VELOCITY, fdps.resultName);
+          fdps.entryType = ResultInfo::VECTOR;
+        }
+        numDOFs = fdps.dofNames.size();
+        fdps.data.resize(numDOFs * nvx);
+
+        if(floatDS)
+          std::copy(floatvec.begin(),
+                    floatvec.begin() + (numDOFs * nvx),
+                    fdps.data.begin());
+        else
+          std::copy(doublevec.begin(),
+                    doublevec.begin() + (numDOFs * nvx),
+                    fdps.data.begin());
       }
 
       //-----------------------------------------------------------------------
@@ -1330,15 +1362,17 @@ namespace CoupledField
 
     std::vector< std::string >::const_iterator it, end;
 
+    /// **************************timeStepNumbers_[timeStepIdx]; ************************
+
     it = transientFNs_.begin();
     end = transientFNs_.end();
 
     // Check a few .trn files to determine the mean file size
-    actFileSize = fs::file_size(*it);
-    meanFileSize = actFileSize;
-    meanFileSize = meanFileSize < fs::file_size(*(it+1)) ? fs::file_size(*(it+1)) : meanFileSize;
-    meanFileSize = meanFileSize < fs::file_size(*(it+2)) ? fs::file_size(*(it+2)) : meanFileSize;
-    meanFileSize = meanFileSize < fs::file_size(*(it+3)) ? fs::file_size(*(it+3)) : meanFileSize;
+    for( ; it != end; it++ ) 
+    {
+      actFileSize = fs::file_size(*it);
+      meanFileSize = meanFileSize < actFileSize ? actFileSize : meanFileSize;
+    }
     
     // Regular expression for matching transient files
     sre = "[0-9]*\\.trn$";
@@ -1348,6 +1382,9 @@ namespace CoupledField
       re.assign(sre, boost::regex_constants::icase);
     }
     catch (boost::regex_error& e) {}
+
+    it = transientFNs_.begin();
+    end = transientFNs_.end();
 
     for( ; it != end; it++ ) 
     {
@@ -1413,6 +1450,38 @@ namespace CoupledField
     }
 
     transientFNs_ = goodTRNs;
+
+    it = transientFNs_.begin();
+    end = transientFNs_.end();
+
+    timeStepNumbers_.clear();
+    
+    for( ; it != end; it++ ) 
+    {
+      std::stringstream sstr;
+      UInt stepnum;
+      
+      sstr << fs::basename(*it);
+      sstr >> stepnum;
+      
+      timeStepNumbers_.push_back(stepnum);
+    }
+
+    numSteps_ = timeStepNumbers_.size();
+    
+    /// **************************timeStepNumbers_[timeStepIdx]; ************************
+
+    /*    std::vector<FlowDataType> nodalFlowData;
+    std::vector<bool> activeParts;
+    activeParts.push_back(1);
+
+    numRegions_ = 1;
+    numNodesPerRegion_.resize(numRegions_);
+    numNodesPerRegion_[0] = 1;
+
+    ReadNodalValues(nodalFlowData, activeParts, 0);
+    determineFloatDS_ = false;
+    */
   }
   
 }

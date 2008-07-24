@@ -60,7 +60,7 @@ namespace CoupledField
       }
     }
 
-    if(requiredResults_[ACOU_RHS_LOAD] || settings.GetInt("calcSrc"))
+    if(requiredResults_[ACOU_RHS_LOAD] || settings.GetInt("calcsrc"))
       requiredResults_[FLUIDMECH_VELOCITY] = true;
   }
 
@@ -71,7 +71,7 @@ namespace CoupledField
   double FileReader::GetTimeStep(UInt stepNumber)
   {
     Settings& settings = Settings::Instance();
-    Double timestep = settings.GetDouble("timeStep");
+    Double timestep = settings.GetDouble("timestep");
 
     double ts = timestep * stepNumber;
 
