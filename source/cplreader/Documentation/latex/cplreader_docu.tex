@@ -13,7 +13,7 @@
 \usepackage{longtable}
 \usepackage[center]{caption}
 \usepackage{geometry}
-\usepackage[active]{srcltx}
+%\usepackage[active]{srcltx}
 \usepackage{color}
 \definecolor{darkblue}{rgb}{0,0,.5}
 \usepackage[colorlinks=true, breaklinks=true, linkcolor=darkblue, 
@@ -504,7 +504,7 @@ x_j} \delta(f) \right) \nonumber \\
 &&+
  \frac{\partial}{\partial t} \left(  \left(\rho(v_i - v^{\rm B}_i) + \rho_0
     v^{\rm B}_i \right) \frac{\partial f}{\partial x_i} \delta(f) \right)\,.
-\eea
+\end{eqnarray}
 
 \noindent
 Since the  extended form of  Lighthill's equation is valid  throughout the
@@ -756,10 +756,9 @@ are supported for the calculation of acoustic sources.
 \begin{table}[htb]
 \centering
 \begin{tabular}{lcrrrl}
-  \hline
-  Element type & \multicolumn{4}{c}{Reference points} & Nodal basis functions\\
-  & Node i & $\xi$ & $\eta$ & $\zeta$ &\\
-  \hline
+  \textbf{Element type} & \multicolumn{4}{c}{\textbf{Reference points}} &
+  \textbf{Nodal basis functions}\\ & \textbf{Node i} & $\boldsymbol{\xi}$ &
+  $\boldsymbol{\eta}$ & $\boldsymbol{\zeta}$ &\\ \hline\hline
   \multirow{3}{14mm}{Triangle} & 1 & 0 & 0 & 0 & $N_1 = 1 - \xi - \eta$\\
                                & 2 & 1 & 0 & 0 & $N_2 =\xi$\\
                                & 3 & 0 & 1 & 0 & $N_3 = \eta$\\
@@ -795,7 +794,7 @@ are supported for the calculation of acoustic sources.
                                  & 6 &  1 & -1 &  1 & \\
                                  & 7 &  1 &  1 &  1 & \\
                                  & 8 & -1 &  1 &  1 & \\
-  \hline
+  \hline\hline
 \end{tabular}
 \caption{Element types with their corresponding node coordinates and nodal basis functions}
 \label{basis-functions}
@@ -1009,11 +1008,81 @@ acoustic simulations independent of the flow computation.
 \label{sec:cfx-export}
 \subsubsection{Required File Layout}
 \begin{verbatim}
-To be entered
+./name/
+|--result_1.csv
+`--result_2.csv
 \end{verbatim}
 
-\subsubsection{Special Options}
+\subsubsection{Required File Format}
+Data is stored in \emph{groups}, that must begin with a line like
+\texttt{[Name]}. Group names are case sensitive. Groups not mentioned here
+are ignored. Lines that begin with \texttt{\#} are ignored.
+
+\paragraph{\texttt{Data} group}
+This group contains the coordinates of nodes as well as the flow data per node.
+The first line contains the column headers separated by comma. Each column
+header consists of a name of a field followed by its unit enclosed in brackets,
+e.g.\ ``\texttt{Pressure [ Pa ]}''. Table~\ref{tab:csv_fields} shows the
+recognized column headers. All following lines up to the next group (or end of
+file) provide the data using one line per node and values separated by comma.
+
+\begin{table}[htb]
+\centering
+\caption{Data fields supported by CFX\_EXPORT reader}
+\label{tab:csv_fields}
+\begin{tabular}{lll}
+	\textbf{Field name} & \textbf{Unit} & \textbf{Description} \\
+	\hline\hline
+	\texttt{Node Number} & & non-negative unique integer number identifying the
+	node \\
+	\hline
+	\texttt{X} & \texttt{m} & x coordinate of the node (required) \\
+	\hline
+	\texttt{Y} & \texttt{m} & y coordinate of the node (required) \\
+	\hline
+	\texttt{Z} & \texttt{m} & z coordinate of the node \\
+	\hline
+	\texttt{Density} & \verb|kg m^-3| \\
+	\hline
+	\texttt{Pressure} & \texttt{Pa} \\
+	\hline
+	\texttt{Velocity u} & \verb|m s^-1| & x component of velocity in computational
+	frame \\
+	\hline
+	\texttt{Velocity v} & \verb|m s^-1| & y component of velocity in computational
+	frame
+	\\
+	\hline
+	\texttt{Velocity w} & \verb|m s^-1| & z component of velocity in computational
+	frame \\
+	\hline\hline
+\end{tabular}
+\end{table}
+
+\paragraph{\texttt{Faces} group}
+This group contains the connectivity of nodes. There must be no column header
+line. Each line provides the node numbers (as defined in the \texttt{Data}
+group) of one finite element, separated by comma. Elements with 3, 4, 5, or 6
+nodes are allowed. Elements with 5 or 6 nodes will be split into triangles.
+
+Although every data file may contain different node coordinates and different
+connectivity, the mesh is only read from the first data file.
+
 \subsubsection{Examples}
+\begin{verbatim}
+[Data]
+Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
+0, 0.000e+00, 0.000e+00, 4.200e+01, 1.000e+01 
+1, 0.000e+00, 3.125e-02, 4.200e+01, 1.200e+01
+2, 0.000e+00, 9.375e-02, 4.200e+01, 1.100e+01
+3, 3.125e-02, 0.000e+00, 4.200e+01, 0.000e+00
+4, 3.125e-02, 3.125e-02, 4.200e+01, 2.000e+00
+5, 3.125e-02, 9.375e-02, 4.200e+01, 1.000e+00
+
+[Faces]
+3, 4, 1, 0
+4, 5, 2, 1
+\end{verbatim}
 
 \subsection{OpenFOAM}
 \label{sec:openfoam}
