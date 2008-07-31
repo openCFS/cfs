@@ -38,4 +38,5 @@ SET_TARGET_PROPERTIES(cplreader_cfx
 
 TARGET_LINK_LIBRARIES(cplreader_cfx
   ${CFX_IO_LIB} # CFX I/O library
+  ${BOOST_REGEX_LIB}
 )
