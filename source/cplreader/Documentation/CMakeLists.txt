@@ -16,16 +16,12 @@ ELSE(BUILD_CPLREADER_DOCU)
   SET(WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/latex")
 ENDIF(BUILD_CPLREADER_DOCU)
 
-ADD_CUSTOM_TARGET(cplreader_docu_filestocpp
-  COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.pl ${CMAKE_CURRENT_BINARY_DIR}/GetPDFDocumentation.cc GetPDFDocumentation '*.pdf'
-  DEPENDS docfilestocpp.pl ${PDF_FILE}
-  WORKING_DIRECTORY ${WORK_DIR}
-  COMMENT "Generating C++ source from cplreader docs...")
-
-IF(BUILD_CPLREADER_DOCU)
-  ADD_DEPENDENCIES(cplreader_docu_filestocpp cplreader_docu_pdf)
-ENDIF(BUILD_CPLREADER_DOCU)
-
+ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GetPDFDocumentation.cc
+                   COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.pl ${CMAKE_CURRENT_BINARY_DIR}/GetPDFDocumentation.cc GetPDFDocumentation '*.pdf'
+                   DEPENDS docfilestocpp.pl ${PDF_FILE}
+                   WORKING_DIRECTORY ${WORK_DIR}
+                   COMMENT "Generating C++ source from cplreader docs...")
+                     
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 SET(CPLREADER_DOC_SRCS 
@@ -35,4 +31,6 @@ SET(CPLREADER_DOC_SRCS
 
 ADD_LIBRARY(cplreader_docu STATIC ${CPLREADER_DOC_SRCS})
 
-ADD_DEPENDENCIES(cplreader_docu cplreader_docu_filestocpp)
+IF(BUILD_CPLREADER_DOCU)
+  ADD_DEPENDENCIES(cplreader_docu cplreader_docu_pdf)
+ENDIF(BUILD_CPLREADER_DOCU)
