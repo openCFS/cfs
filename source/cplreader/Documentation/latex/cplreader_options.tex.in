@@ -9,7 +9,7 @@
     \endfirsthead
 
     \multicolumn{3}{c}
-                {{\bfseries \tablename\ \thetable{} -- continued from previous page}} \\
+                {{\bfseries \tablename\ \thetable{}} -- continued from previous page} \\
                 \textbf{Parameter} & \textbf{Default Value} & \textbf{Short Description} \\
                 \hline\hline
                 \endhead
