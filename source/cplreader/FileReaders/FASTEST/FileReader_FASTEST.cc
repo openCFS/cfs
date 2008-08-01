@@ -470,7 +470,7 @@ namespace CoupledField
             case FLUIDMECH_VELOCITY:
               fdps.dofNames.push_back("x");
               fdps.dofNames.push_back("y");
-              if(dim_ == 3)
+              if (dataColumns_[3] != -1)
                 fdps.dofNames.push_back("z");
               fdps.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
               fdps.entryType = ResultInfo::VECTOR;

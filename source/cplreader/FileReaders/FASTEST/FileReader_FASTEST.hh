@@ -38,6 +38,16 @@ namespace CoupledField
     virtual void GetRegionElements(std::vector<UInt> & regionElements,
                                    const UInt regionIdx);
 
+    //! Get node groups
+    inline virtual void GetNodeGroups(std::map<std::string,
+                                        std::vector<UInt> >& nodeGroups)
+    { /* not implemented */ ; };
+
+    //! Get element groups
+    inline virtual void GetElemGroups(std::map<std::string,
+                                        std::vector<UInt> >& elemGroups)
+    { /* not implemented */ ; };
+
   protected:
 
     UInt startIndex_;
