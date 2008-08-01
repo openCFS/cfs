@@ -43,18 +43,18 @@ namespace CoupledField {
   ProgramOptions * progOpts = NULL;
 
   ProgramOptions::ProgramOptions( Integer argc,
-                                  const char **argv ) 
+                                  const char **argv )
   {
-    
+
     // copy command line into vector
     args_.resize( argc-1 );
     for( Integer i = 1; i < argc; i++ ) {
       args_[i-1] = std::string( argv[i] );
     }
-      
+
   }
-  
-  ProgramOptions::~ProgramOptions() 
+
+  ProgramOptions::~ProgramOptions()
   {
   }
 
@@ -63,48 +63,49 @@ namespace CoupledField {
     // define header string
     std::stringstream os;
     os << fg_blue << "\n Usage: " << fg_reset
-       << "./nacs [param] <name of simulation run>\n\n"
+       << "cfs [param] <name of simulation run>\n\n"
        << " where [param] is one or more of the following parameters";
-    
-    
+
+
     // 1) Define "visible" commandLine options
     // -----------------------------------------
     po::options_description cmdVisible( os.str() );
-    
+
     cmdVisible.add_options()
-      ( "help,h", 
+      ( "help,h",
         "print this usage information" )
-      
-      ( "printGrid,g", 
+
+      ( "printGrid,g",
         "only read grid from mesh-file and write it to output file" )
 
-      ( "paramFile,p", po::value<std::string>(), 
+      ( "paramFile,p", po::value<std::string>(),
         "name of XML parameter file for the simulation" )
-      
+
       ( "meshFile,m", po::value<std::string>(),
         "name of mesh file for the simulation" )
-      
+
 #ifdef USE_SCRIPTING
-      ( "scriptFile,e", po::value<std::string>(), 
+      ( "scriptFile,e", po::value<std::string>(),
         "name of script file to be evaluated" )
 #endif
 
-#ifdef DEBUG
-      ( "traceDepth,t", po::value<UInt>(),
-        "depth of function tracing" )
-#endif
-      
-      ( "doProfile,d", 
+      ( "doProfile,d",
         "turns on generation of profiling information" )
-      
-      ( "restart,r", 
+
+      ( "restart,r",
         "read restart file of previous simulation run" )
-      
+
       ( "dumpStats,u",
         "dump information about the CFS++ executable and license" )
+
+      ( "forceSegFault,f",
+        "force a segmentation fault instead of throwing an exception")
+
+      ( "writeSkeleton,w",
+        "write skeleton of XML file for subsequent simulation" )
       ;
 
-    
+
     // Store help description in variable
     std::stringstream helpStream;
     helpStream << cmdVisible << std::endl;
@@ -114,15 +115,10 @@ namespace CoupledField {
     // 2) Define "invisible" commandLine options
     // -----------------------------------------
     po::options_description cmdInvisible( os.str() );
-    
+
     cmdInvisible.add_options()
-      ("forceSegFault","force a segmentation fault instead of throwing an exception")
-
-      ("simName", po::value<std::string>(), 
+      ("simName", po::value<std::string>(),
        "simulation name")
-
-      ( "writeSkeleton,w",
-        "write skeleton of XML file for subsequent simulation" )
       ;
 
     // make the input file the only allowed positional parameter
@@ -134,14 +130,8 @@ namespace CoupledField {
     // -----------------------------------------
     po::options_description envOptions("" );
     envOptions.add_options()
-      ("root",po::value<std::string>(), 
-       "Path to base directory of CFS++ installation")
-      
       ("schemaRoot", po::value<std::string>(),
        "Path to schema definitions of CFS++ installation")
-       
-      ("ompNumThreads", po::value<int>(),
-       "Number of processors/threads for OpenMP")
       ;
 
     // 4) Combine visible and invisble options to commandLine options
@@ -149,18 +139,19 @@ namespace CoupledField {
     po::options_description cmdLineOptions;
     cmdLineOptions.add(cmdVisible).add(cmdInvisible);
 
-    
+
     // 5) Parse command line
     // -----------------------------------------
     po::store( po::command_line_parser( args_ ).
-               options( cmdLineOptions ).positional( p ).run(), 
+               options( cmdLineOptions ).positional( p ).run(),
                varMap_ );
-    
+
     // 6) Parse environment
     // -----------------------------------------
 
     // first, define function pointer, which maps environment variables
-    // (e.g. CFS_ROOT) to local string paramter representation (e.g. root)
+    // (e.g. CFS_SCHEMA_ROOT) to local string paramter representation
+    // (e.g. schemaRoot)
     boost::function1<std::string, std::string> name_mapper;
     name_mapper = boost::bind(&ProgramOptions::EnvironmentNameMapper, *this, _1);
     po::store( po::parse_environment( envOptions, name_mapper ),
@@ -179,7 +170,7 @@ namespace CoupledField {
       std::cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
-    
+
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 ) {
       std::cout << "\nPlease specify a simulation file (without extension)\n\n\n";
@@ -193,59 +184,52 @@ namespace CoupledField {
 //       try {
 //         std::cerr << ", value: " << any_cast<std::string>((it->second).value()) << std::endl;
 //       } catch( std::exception& ex ) {}
-      
+
 //     }
   }
-    
+
   std::string ProgramOptions::EnvironmentNameMapper( std::string envVarName )  {
     std::string ret;
-    
-    if( envVarName == "CFS_ROOT" )  {
-      ret = "root";
-    }
+
     if( envVarName == "CFS_SCHEMA_ROOT" ) {
       ret = "schemaRoot";
-    }
-    
-    if( envVarName == "OMP_NUM_THREADS" ) {
-      ret = "ompNumThreads";
     }
 
     return ret;
   }
-  
-  
-  bool ProgramOptions::GetPrintHelp() 
-  { 
+
+
+  bool ProgramOptions::GetPrintHelp()
+  {
     return (varMap_.count("help") > 0);
   }
-  
+
 
   std::string ProgramOptions::GetSimName() const
   {
     if( varMap_.count( "simName") != 0 ) {
-      
+
       // get complete path
-      fs::path simPath = fs::path( varMap_["simName"].as<std::string>(), 
+      fs::path simPath = fs::path( varMap_["simName"].as<std::string>(),
                                   fs::native );
-      
+
       // return only file name without path information
       return simPath.leaf();
     } else {
       return "";
     }
   }
-  
+
   fs::path ProgramOptions::GetSimPath() const
    {
      if( varMap_.count( "simName") != 0 ) {
-       
+
        // get complete path
-       fs::path simPath ( varMap_["simName"].as<std::string>(), 
+       fs::path simPath ( varMap_["simName"].as<std::string>(),
                           fs::native );
-       
+
        fs::complete( simPath.branch_path()).native_directory_string();
-       
+
        // return path to simulation
        return fs::complete( simPath.branch_path());
      } else {
@@ -257,11 +241,11 @@ namespace CoupledField {
    {
      // get complete path
      fs::path simPath = GetSimPath();
-       
+
      return simPath.native_directory_string();
    }
-  
-  fs::path ProgramOptions::GetParamFile() const 
+
+  fs::path ProgramOptions::GetParamFile() const
   {
     if( varMap_.count( "paramFile" ) == 0 ) {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
@@ -272,15 +256,15 @@ namespace CoupledField {
     }
   }
 
-  std::string ProgramOptions::GetParamFileStr() const 
+  std::string ProgramOptions::GetParamFileStr() const
   {
     fs::path paramPath = GetParamFile();
-    
+
     return paramPath.native_file_string();
   }
-  
+
 #ifdef USE_SCRIPTING
-  fs::path ProgramOptions::GetScriptFile() const 
+  fs::path ProgramOptions::GetScriptFile() const
   {
     if( varMap_.count("scriptFile") > 0 ) {
       fs::path scriptPath( varMap_["scriptFile"].as<std::string>() );
@@ -290,18 +274,18 @@ namespace CoupledField {
     }
   }
 
-  std::string ProgramOptions::GetScriptFileStr() const 
+  std::string ProgramOptions::GetScriptFileStr() const
   {
     fs::path scriptPath = GetScriptFile();
 
     return scriptPath.native_file_string();
   }
-#endif    
-  
-  fs::path ProgramOptions::GetSchemaPath() const 
+#endif
+
+  fs::path ProgramOptions::GetSchemaPath() const
   {
     std::string schema;
-    
+
 
     if( varMap_.count( "schemaRoot" ) ) {
       schema = varMap_[ "schemaRoot" ].as<std::string>();
@@ -316,8 +300,8 @@ namespace CoupledField {
     }
     else
       schema = XMLSCHEMA;
-      
-    try 
+
+    try
     {
       fs::path schemaPath = fs::system_complete(schema);
       schemaPath.normalize();
@@ -325,19 +309,19 @@ namespace CoupledField {
     } catch (fs::filesystem_error& ex)
     {
       EXCEPTION(ex.what());
-    }    
+    }
   }
 
-  std::string ProgramOptions::GetSchemaPathStr() const 
+  std::string ProgramOptions::GetSchemaPathStr() const
   {
     fs::path schemaPath = GetSchemaPath();
 
     return schemaPath.native_directory_string();
   }
-  
-  fs::path ProgramOptions::GetMeshFile() const 
+
+  fs::path ProgramOptions::GetMeshFile() const
   {
-    
+
     if( varMap_.count( "meshFile") != 0 ) {
       fs::path meshPath( varMap_["meshFile"].as<std::string>(),
                          fs::native );
@@ -347,73 +331,61 @@ namespace CoupledField {
     }
   }
 
-  std::string ProgramOptions::GetMeshFileStr() const 
+  std::string ProgramOptions::GetMeshFileStr() const
   {
     fs::path meshFile = GetMeshFile();
 
     return meshFile.native_file_string();
   }
-  
-  bool ProgramOptions::GetPrintGrid() const 
+
+  bool ProgramOptions::GetPrintGrid() const
   {
 
     return (varMap_.count( "printGrid") > 0);
   }
 
-  bool ProgramOptions::GetDoProfile() const 
+  bool ProgramOptions::GetDoProfile() const
   {
 
     return (varMap_.count( "doProfile") > 0);
   }
-  
-  
-  bool ProgramOptions::GetRestart() const 
+
+
+  bool ProgramOptions::GetRestart() const
   {
 
     return (varMap_.count( "restart") > 0);
   }
 
-  
-  bool ProgramOptions::GetWriteSkeleton() const 
+
+  bool ProgramOptions::GetWriteSkeleton() const
   {
 
     return (varMap_.count( "writeSkeleton") > 0);
   }
-  
-   
-  UInt ProgramOptions::GetTraceDepth() const 
-  {
 
-    if( varMap_.count( "traceDepth" ) > 0 ) {
-      return varMap_["traceDepth"].as<UInt>();
-    } else {
-      return 0;
-    }
-  }
-
-  
-  bool ProgramOptions::GetDumpStats() const 
+  bool ProgramOptions::GetDumpStats() const
   {
 
     return (varMap_.count( "dumpStats") > 0);
   }
-  
+
 
 #ifdef DEBUG
-  
-  bool ProgramOptions::GetForceSegFault() const 
+
+  bool ProgramOptions::GetForceSegFault() const
   {
 
     return (varMap_.count( "forceSegFault") > 0);
   }
 #endif
-   
-  void ProgramOptions::PrintHelp( std::ostream& out ) 
+
+  void ProgramOptions::PrintHelp( std::ostream& out )
   {
 
     out << helpMsg_;
   }
-  
+
   void ProgramOptions::PrintParams( std::ostream &out, bool colorise) {
     bool colTmp = ColoredConsole::colorise;
     ColoredConsole::colorise = colorise;
@@ -438,7 +410,7 @@ namespace CoupledField {
         << fg_blue
         << GetSchemaPath().string()
         << fg_reset << '\n'
-      
+
         << " mesh file = "
         << fg_blue
         << GetMeshFile().string()
@@ -450,11 +422,6 @@ namespace CoupledField {
         << GetScriptFile().string()
         << fg_reset << '\n'
 #endif
-
-        << " function trace depth = "
-        << fg_blue
-        << GetTraceDepth()
-        << fg_reset << '\n'
 
         << " print grid only = "
         << fg_blue
@@ -474,7 +441,7 @@ namespace CoupledField {
         << ( GetRestart() == true )
         << fg_reset << '\n'
 
-     
+
 
 #ifdef DEBUG
         << " force creation of segfault = "
@@ -505,53 +472,53 @@ namespace CoupledField {
 
     std::string build_type = CMAKE_BUILD_TYPE;
 
-    outstr << "CFS_VERSION:           " 
+    outstr << "CFS_VERSION:           "
            << fg_blue << CFS_VERSION << fg_reset << std::endl
 
-           << "CFS_BUILD_HOST:        " 
+           << "CFS_BUILD_HOST:        "
            << fg_blue << CFS_BUILD_HOST << fg_reset << std::endl
 
-           << "CFS_SUBVERSION_REV:    " 
+           << "CFS_SUBVERSION_REV:    "
            << fg_blue << CFS_SUBVERSION_REV << fg_reset << std::endl
-      
-           << "CFS_SUBVERSION_REPOS:  " 
-           << fg_blue << CFS_SUBVERSION_REPOS 
+
+           << "CFS_SUBVERSION_REPOS:  "
+           << fg_blue << CFS_SUBVERSION_REPOS
            << fg_reset << std::endl << std::endl
 
-           << "CFS_CXX_COMPILER_NAME: " 
+           << "CFS_CXX_COMPILER_NAME: "
            << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << std::endl
 
-           << "CFS_CXX_COMPILER_VER:  " 
-           << fg_blue << CFS_CXX_COMPILER_VER << fg_reset 
+           << "CFS_CXX_COMPILER_VER:  "
+           << fg_blue << CFS_CXX_COMPILER_VER << fg_reset
            << std::endl << std::endl
-      
-           << "CFS_FORTRAN_COMPILER_NAME: " 
+
+           << "CFS_FORTRAN_COMPILER_NAME: "
            << fg_blue << CFS_FORTRAN_COMPILER_NAME << fg_reset<< std::endl
-      
-           << "CFS_FORTRAN_COMPILER_VER:  " 
-           << fg_blue << CFS_FORTRAN_COMPILER_VER 
+
+           << "CFS_FORTRAN_COMPILER_VER:  "
+           << fg_blue << CFS_FORTRAN_COMPILER_VER
            << fg_reset<< std::endl << std::endl
 
-           << "CFS_DISTRO:            " 
+           << "CFS_DISTRO:            "
            << fg_blue << CFS_DISTRO << fg_reset << std::endl
 
-           << "CFS_DISTRO_VER:        " 
+           << "CFS_DISTRO_VER:        "
            << fg_blue << CFS_DISTRO_VER << fg_reset << std::endl
 
-           << "CFS_ARCH:              " 
-           << fg_blue << CFS_ARCH 
+           << "CFS_ARCH:              "
+           << fg_blue << CFS_ARCH
            << fg_reset << std::endl << std::endl
-      
-           << "CMAKE_BUILD_TYPE:      " 
+
+           << "CMAKE_BUILD_TYPE:      "
            << fg_blue  << build_type << fg_reset << std::endl;
-    
-    if(build_type == "DEBUG") 
+
+    if(build_type == "DEBUG")
     {
-      outstr << "COMPILE_FLAGS:       " 
+      outstr << "COMPILE_FLAGS:       "
              << fg_blue  << CMAKE_CXX_FLAGS
              << " " << CMAKE_CXX_FLAGS_DEBUG << fg_reset << std::endl;
-      
-      outstr << "LINK_FLAGS:          " 
+
+      outstr << "LINK_FLAGS:          "
              << fg_blue  << CMAKE_EXE_LINKER_FLAGS
              << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
              << fg_reset
@@ -559,11 +526,11 @@ namespace CoupledField {
     }
     else
     {
-      outstr << "COMPILE_FLAGS:       " 
+      outstr << "COMPILE_FLAGS:       "
              << fg_blue  << CMAKE_CXX_FLAGS
              << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << std::endl;
 
-      outstr << "LINK_FLAGS:          " 
+      outstr << "LINK_FLAGS:          "
              << fg_blue << CMAKE_EXE_LINKER_FLAGS
              << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
              << fg_reset << std::endl << std::endl;
@@ -617,7 +584,7 @@ namespace CoupledField {
     MKLVersion ver;
 
     MKLGetVersion(&ver);
-    
+
     outstr << "MKL_VERSION:           " << fg_blue
            << ver.MajorVersion << "."
            << ver.MinorVersion << "."
@@ -629,7 +596,7 @@ namespace CoupledField {
     outstr << "MKL_BUILD:             " << fg_blue
            << ver.Build << fg_reset
            << std::endl;
-    
+
     MKL_FreeBuffers();
  #else
     outstr << std::endl
@@ -645,24 +612,24 @@ namespace CoupledField {
     outstr << "USE_METIS:             "
            << fg_blue << "NO" << fg_reset<< std::endl;
 #endif
-    
+
 #ifdef MpCCI
     outstr << "MpCCI:                 "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "MpCCI_RELEASE:         " 
+    outstr << "MpCCI_RELEASE:         "
            << fg_blue << MpCCI_RELEASE
            << fg_reset << std::endl;
 #else
     outstr << "MpCCI:                 "
            << fg_blue << "NO" << fg_reset << std::endl;
  #endif
-    
+
     outstr << std::endl;
 
  #ifdef USE_SCRIPTING_TCL
     outstr << "USE_SCRIPTING_TCL:     "
            << fg_blue  << "YES" << fg_reset << std::endl;
-    outstr << "CFS_TCL_VERSION:      " 
+    outstr << "CFS_TCL_VERSION:      "
            << fg_blue << CFS_TCL_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_SCRIPTING_TCL:     "
@@ -672,7 +639,7 @@ namespace CoupledField {
  #ifdef USE_SCRIPTING_PYTHON
     outstr << "USE_SCRIPTING_PYTHON:  "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_PYTHON_VERSION:   " 
+    outstr << "CFS_PYTHON_VERSION:   "
            << fg_blue << CFS_PYTHON_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_SCRIPTING_PYTHON:  "
@@ -680,11 +647,11 @@ namespace CoupledField {
 #endif
 
     outstr << std::endl;
-    
+
  #ifdef USE_GIDPOST
     outstr << "USE_GIDPOST:           "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_GIDPOST_VERSION:  " 
+    outstr << "CFS_GIDPOST_VERSION:  "
            << fg_blue << CFS_GIDPOST_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_GIDPOST:           "
@@ -706,13 +673,13 @@ namespace CoupledField {
     outstr << "USE_GMV_OUTPUT:        "
            << fg_blue << "NO" << fg_reset << std::endl;
 #endif
-    
+
  #ifdef USE_HDF5
     outstr << "USE_HDF5:              "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_HDF5_VERSION:     " 
+    outstr << "CFS_HDF5_VERSION:     "
            << fg_blue << CFS_HDF5_VERSION << fg_reset << std::endl;
-    outstr << "CFS_ZLIB_VERSION:     " 
+    outstr << "CFS_ZLIB_VERSION:     "
            << fg_blue << CFS_ZLIB_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_HDF5:              "
@@ -736,20 +703,20 @@ namespace CoupledField {
 #endif
 
     outstr << std::endl;
-    outstr << "CFS_BOOST_VERSION:    " 
+    outstr << "CFS_BOOST_VERSION:    "
            << fg_blue << CFS_BOOST_VERSION << fg_reset << std::endl;
     outstr << std::endl;
-    outstr << "CFS_METIS_VERSION:    " 
+    outstr << "CFS_METIS_VERSION:    "
            << fg_blue << CFS_METIS_VERSION << fg_reset << std::endl;
     outstr << std::endl;
 
-    
+
 #ifdef USE_XERCES
     outstr << "USE_XERCES:            "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_XERCES_VERSION:   " 
+    outstr << "CFS_XERCES_VERSION:   "
            << fg_blue << CFS_XERCES_VERSION << fg_reset << std::endl;
-    outstr << "XMLSCHEMA:             " 
+    outstr << "XMLSCHEMA:             "
            << fg_blue << XMLSCHEMA << fg_reset << std::endl;
     outstr << "USE_XERCES:            "
            << fg_blue << "NO" << fg_reset << std::endl;
@@ -757,11 +724,11 @@ namespace CoupledField {
 
     outstr << "USE_ANSYSRST:          "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_ANSYS_VERSION:    " 
+    outstr << "CFS_ANSYS_VERSION:    "
            << fg_blue << CFS_ANSYS_VERSION << fg_reset << std::endl;
-    
+
   ColoredConsole::colorise = colTmp;
   }
-  
+
 
 }
