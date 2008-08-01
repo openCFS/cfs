@@ -13,7 +13,7 @@ namespace CoupledField
  * map key is not an enum but an large negative number which cannot be
  * retrieved. Therfore we store the real enum key in the value part.
  * As the Enum is Templated we cannot define this struct inside Enum<T> :( */
-typedef struct EnumTupel
+struct EnumTupel
 {
   std::string string;
   int key; // this is always an enum key!
