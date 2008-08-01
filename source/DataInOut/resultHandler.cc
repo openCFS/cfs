@@ -4,7 +4,7 @@
 
 #include "resultHandler.hh"
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Domain/domain.hh"
@@ -710,7 +710,7 @@ namespace CoupledField {
       // -> Create default text output (a.k.a. standard history-writer)
       
       if( neededCap == SimOutput::HISTORY ) {
-        std::string simName = commandLine->GetSimName();
+        std::string simName = progOpts->GetSimName();
         shared_ptr<SimOutput> textOut 
           = shared_ptr<SimOutput>(new SimOutputText( simName, NULL ) );
         textOut->Init(  domain->GetGrid(), false );

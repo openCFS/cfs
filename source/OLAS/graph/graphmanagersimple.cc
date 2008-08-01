@@ -261,7 +261,7 @@ namespace OLAS {
     //         constraints
     UInt aux;
     for ( UInt i = 1; i <= length1; i++ ) {
-      aux = std::abs( connect1[i] );
+      aux = std::abs( (double) connect1[i] );
       if ( aux <= numLastFreeDof_ && aux > 0 ) {
         vertexList1_.push_back( aux );
       } else {
@@ -273,7 +273,7 @@ namespace OLAS {
     //         the graph and one for the IDBCgraph (which handles the dofs
     //         fixed by inhomogeneous Dirichlet boundary conditions)
     for ( UInt i = 1; i <= length2; i++ ) {
-      aux = std::abs( connect2[i] );
+      aux = std::abs( (double) connect2[i] );
       if ( aux > 0 ) {
         if ( aux > numLastFreeDof_ ) {
           edgeList2_.push_back( aux - numLastFreeDof_ );

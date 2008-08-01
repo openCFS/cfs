@@ -294,7 +294,6 @@ ENDIF(USE_PARDISO)
 
 SUBDIRS(source/CoupledPDE)
 SUBDIRS(source/DataInOut)
-SUBDIRS(source/DataInOut/CommandLine)
 SUBDIRS(source/DataInOut/DefineFiles)
 SUBDIRS(source/DataInOut/Logging)
 SUBDIRS(source/DataInOut/ParamHandling)

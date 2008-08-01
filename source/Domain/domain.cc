@@ -16,7 +16,7 @@
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
 #include "General/exception.hh"
 #include "Utils/coordSystem.hh"
@@ -170,7 +170,7 @@ namespace CoupledField {
     Info->PrintF("","=========================\n\n");
     Info->FinishProgress();
 
-    if ( !commandLine->GetPrintGrid() == true ) {
+    if ( !progOpts->GetPrintGrid() == true ) {
       // Initialize resultHandler
       resultHandler_->Init( gridMap_["default"], false );
     }   

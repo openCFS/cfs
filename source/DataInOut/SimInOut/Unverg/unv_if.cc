@@ -1,6 +1,8 @@
 #include <cstdio>
-#include <string>
 #include <cstdlib>
+#include <cstring>
+
+#include <string>
 #include <iostream>
 
 #include "unv_if.hh"
@@ -129,13 +131,13 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
     
   for (i=0; i<nNodeDataSets ; i++) {
     nodeDataSetsNumData[i] = SETS55[i].header.n_data_val_per_node;
-    if (strstr(SETS55[i].header.id[0],"time"))
+    if (std::strstr(SETS55[i].header.id[0],"time"))
       dataType = TimeData;
-    else if (strstr(SETS55[i].header.id[0],"mode no"))
+    else if (std::strstr(SETS55[i].header.id[0],"mode no"))
       dataType = ModalData;
-    else if (strstr(SETS55[i].header.id[0],"cw"))
+    else if (std::strstr(SETS55[i].header.id[0],"cw"))
       dataType = CwData;
-    else if (strstr(SETS55[i].header.id[0],"complex"))
+    else if (std::strstr(SETS55[i].header.id[0],"complex"))
       dataType = ComplexCwData;
 
     nodeXData[i]=0.0;
@@ -144,7 +146,7 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
     case NoData:
       break;
     case TimeData:
-      cp=strstr(SETS55[i].header.id[0],"time");
+      cp=std::strstr(SETS55[i].header.id[0],"time");
       if (cp) {
         cp+=4;
         nodeXData[i]=atof(cp);
@@ -153,7 +155,7 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
     case ModalData:
     case ComplexCwData:
     case CwData:
-      cp=strstr(SETS55[i].header.id[0],"frequency");
+      cp=std::strstr(SETS55[i].header.id[0],"frequency");
       if (cp) {
         cp+=9;
         nodeXData[i]=atof(cp);
@@ -162,61 +164,61 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
 
     char *setdata=SETS55[i].header.id[0];
 
-    if (strstr(setdata,"displacement"))
+    if (std::strstr(setdata,"displacement"))
       nodeDataSets[i]=Displacements;
-    else if (strstr(setdata,"velocities"))
+    else if (std::strstr(setdata,"velocities"))
       nodeDataSets[i]=Velocities;
-    else if (strstr(setdata,"accelerations"))
+    else if (std::strstr(setdata,"accelerations"))
       nodeDataSets[i]=Accelerations;
-    else if (strstr(setdata,"electric potential")) {
-      if (strstr(setdata,"1st deriv"))
+    else if (std::strstr(setdata,"electric potential")) {
+      if (std::strstr(setdata,"1st deriv"))
         nodeDataSets[i]=ElectricPotDeriv1;
-      else if (strstr(setdata,"2nd deriv"))
+      else if (std::strstr(setdata,"2nd deriv"))
         nodeDataSets[i]=ElectricPotDeriv2;
       else 
         nodeDataSets[i]=ElectricPot;
     }
-    else if (strstr(setdata,"fluid potential")) {
-      if (strstr(setdata,"1st deriv"))
+    else if (std::strstr(setdata,"fluid potential")) {
+      if (std::strstr(setdata,"1st deriv"))
         nodeDataSets[i]=VelocityPotDeriv1;
-      else if (strstr(setdata,"2nd deriv"))
+      else if (std::strstr(setdata,"2nd deriv"))
         nodeDataSets[i]=VelocityPotDeriv2;
-      else if (strstr(setdata,"norm."))
+      else if (std::strstr(setdata,"norm."))
         nodeDataSets[i]=NormalVelocity;
       else 
         nodeDataSets[i]=VelocityPot;
     }
-    else if (strstr(setdata,"mag. vector potential")) {
-      if (strstr(setdata,"1st deriv"))
+    else if (std::strstr(setdata,"mag. vector potential")) {
+      if (std::strstr(setdata,"1st deriv"))
         nodeDataSets[i]=MagVectorPotDeriv1;
-      else if (strstr(setdata,"2nd deriv"))
+      else if (std::strstr(setdata,"2nd deriv"))
         nodeDataSets[i]=MagVectorPotDeriv2;
       else 
         nodeDataSets[i]=MagVectorPot;
     }
-    else if (strstr(setdata,"electric scalar potential")) {
-      if (strstr(setdata,"1st deriv"))
+    else if (std::strstr(setdata,"electric scalar potential")) {
+      if (std::strstr(setdata,"1st deriv"))
         nodeDataSets[i]=ElectricSPotDeriv1;
-      else if (strstr(setdata,"2nd deriv"))
+      else if (std::strstr(setdata,"2nd deriv"))
         nodeDataSets[i]=ElectricSPotDeriv2;
       else 
         nodeDataSets[i]=ElectricSPot;
     }
-    else if (strstr(setdata,"mag. scalar potential")) {
-      if (strstr(setdata,"1st deriv"))
+    else if (std::strstr(setdata,"mag. scalar potential")) {
+      if (std::strstr(setdata,"1st deriv"))
         nodeDataSets[i]=MagScalarPotDeriv1;
-      else if (strstr(setdata,"2nd deriv"))
+      else if (std::strstr(setdata,"2nd deriv"))
         nodeDataSets[i]=MagScalarPotDeriv2;
       else 
         nodeDataSets[i]=MagScalarPot;
     }
-    else if (strstr(setdata,"electric charge"))
+    else if (std::strstr(setdata,"electric charge"))
       nodeDataSets[i]=ElectricCharge;
-    else if (strstr(setdata,"single layer potential"))
+    else if (std::strstr(setdata,"single layer potential"))
       nodeDataSets[i]=SingleLayerPot;
-    else if (strstr(setdata,"double layer potential"))
+    else if (std::strstr(setdata,"double layer potential"))
       nodeDataSets[i]=MultiLayerPot;
-    else if (strstr(setdata,"temperature"))
+    else if (std::strstr(setdata,"temperature"))
       nodeDataSets[i]=Temperature;
     else
       nodeDataSets[i] = NoNodeData;
@@ -232,13 +234,13 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
 
   for (i=0; i<nElemDataSets ; i++) {
 
-    if (strstr(SETS56[i].header.id[0],"time"))
+    if (std::strstr(SETS56[i].header.id[0],"time"))
       dataType = TimeData;
-    else if (strstr(SETS56[i].header.id[0],"mode no"))
+    else if (std::strstr(SETS56[i].header.id[0],"mode no"))
       dataType = ModalData;
-    else if (strstr(SETS56[i].header.id[0],"cw"))
+    else if (std::strstr(SETS56[i].header.id[0],"cw"))
       dataType = CwData;
-    else if (strstr(SETS56[i].header.id[0],"complex"))
+    else if (std::strstr(SETS56[i].header.id[0],"complex"))
       dataType = ComplexCwData;
 
     elemDataSetsNumData[i] = SETS56[i].header.n_data_val_per_element_pos;
@@ -248,7 +250,7 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
     case NoData:
       break;
     case TimeData:
-      cp=strstr(SETS56[i].header.id[0],"at time");
+      cp=std::strstr(SETS56[i].header.id[0],"at time");
       if (cp) {
         cp+=7;
         elemXData[i]=atof(cp);
@@ -257,7 +259,7 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
     case ModalData:
     case ComplexCwData:
     case CwData:
-      cp=strstr(SETS56[i].header.id[0],"frequency");
+      cp=std::strstr(SETS56[i].header.id[0],"frequency");
       if (cp) {
         cp+=9;
         elemXData[i]=atof(cp);
@@ -266,17 +268,17 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
 
     char *setdata=SETS56[i].header.id[0];
 
-    if (strstr(setdata,"stress"))
+    if (std::strstr(setdata,"stress"))
       elemDataSets[i]=Stresses;
-    else if (strstr(setdata,"strain"))
+    else if (std::strstr(setdata,"strain"))
       elemDataSets[i]=Strains;
-    else if (strstr(setdata,"electric field"))
+    else if (std::strstr(setdata,"electric field"))
       elemDataSets[i]=ElectricField;
-    else if (strstr(setdata,"velocity-gradient"))
+    else if (std::strstr(setdata,"velocity-gradient"))
       elemDataSets[i]=VelocityField;
-    else if (strstr(setdata,"mag. flux density"))
+    else if (std::strstr(setdata,"mag. flux density"))
       elemDataSets[i]=MagneticField;
-    else if (strstr(setdata,"eddy current"))
+    else if (std::strstr(setdata,"eddy current"))
       elemDataSets[i]=EddyCurrent;
 
     //      printf("iElemData=%d, dataType=%s, type=%s, x=%e,\n\t header='%s'\n",

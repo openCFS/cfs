@@ -4,6 +4,8 @@
 
 /* $Id$ */
 
+#include <string.h>
+
 #include "multigrid/depgraph.hh"
 
 /**********************************************************/

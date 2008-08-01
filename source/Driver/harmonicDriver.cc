@@ -10,7 +10,6 @@
 #include "stdSolveStep.hh"
 #include "assemble.hh"
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/StdPDE.hh"

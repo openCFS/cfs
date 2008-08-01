@@ -167,7 +167,6 @@ namespace CoupledField
 
   void FileReader_ANSYS::OpenFile(std::string fn)
   {
-    Settings& settings = Settings::Instance();
     std::string filename;
 
     inFile_.clear();

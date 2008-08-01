@@ -385,7 +385,7 @@ namespace OLAS {
       //         boundary conditions and changing the sign of those fixed by
       //         constraints
       for ( UInt i = 1; i <= length1; i++ ) {
-        aux = std::abs( connect1[i] );
+        aux = std::abs( (double) connect1[i] );
         if ( aux <= limit && aux > 0 ) {
           vertexList.push_back( aux + offsetVertexList );
         }
@@ -395,7 +395,7 @@ namespace OLAS {
       //         the graph and one for the IDBCgraph (which handles the dofs
       //         fixed by inhomogeneous Dirichlet boundary conditions)
       for ( UInt i = 1; i <= length2; i++ ) {
-        aux = std::abs( connect2[i] );
+        aux = std::abs( (double) connect2[i] );
         if ( aux > 0 ) {
           if ( aux > limit ) {
             edgeList2.push_back( UInt(aux + offsetEdgeList2) );
