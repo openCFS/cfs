@@ -95,6 +95,9 @@ namespace CoupledField {
       ( "restart,r",
         "read restart file of previous simulation run" )
 
+      ("schemaRoot,s", po::value<std::string>(),
+        "Path to schema definitions of CFS++ installation")
+
       ( "dumpStats,u",
         "dump information about the CFS++ executable and license" )
 
@@ -126,13 +129,15 @@ namespace CoupledField {
     p.add( "simName", 1 );
 
 
-    // 3) Define environment options
-    // -----------------------------------------
-    po::options_description envOptions("" );
-    envOptions.add_options()
-      ("schemaRoot", po::value<std::string>(),
-       "Path to schema definitions of CFS++ installation")
-      ;
+    // Explicit definition of environment options is not necessary
+    // as we are using a mapping function anyway
+//    // 3) Define environment options
+//    // -----------------------------------------
+//    po::options_description envOptions("" );
+//    envOptions.add_options()
+//      ("schemaRoot", po::value<std::string>(),
+//       "Path to schema definitions of CFS++ installation")
+//      ;
 
     // 4) Combine visible and invisble options to commandLine options
     // -----------------------------------------
@@ -154,7 +159,7 @@ namespace CoupledField {
     // (e.g. schemaRoot)
     boost::function1<std::string, std::string> name_mapper;
     name_mapper = boost::bind(&ProgramOptions::EnvironmentNameMapper, *this, _1);
-    po::store( po::parse_environment( envOptions, name_mapper ),
+    po::store( po::parse_environment( cmdLineOptions, name_mapper ),
                varMap_ );
 
     po::notify( varMap_ );

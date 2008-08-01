@@ -21,43 +21,43 @@
 using namespace xercesc;
 namespace fs = boost::filesystem;
 
-namespace CoupledField 
+namespace CoupledField
 {
 
   Xerces::Xerces(const std::string& file, const std::string& schema)
   {
     parser_  = NULL;
     root_    = NULL;
- 
-    // create canonical path from native-representation of the 
+
+    // create canonical path from native-representation of the
     // file and the schema path
     fs::path filePath = fs::path( file, fs::native );
     fs::path schemaPath = fs::path( schema, fs::native );
 
-    if(!fs::exists(filePath)) 
-        EXCEPTION("xml file " << file << " doesn't exist"); 
+    if(!fs::exists(filePath))
+        EXCEPTION("xml file " << file << " doesn't exist");
 
-    if(schema != "" && !fs::exists(schemaPath)) 
-        EXCEPTION("schema file " << file << " doesn't exist");
-    
+    if(schema != "" && !fs::exists(schemaPath))
+        EXCEPTION("schema file " << schema << " doesn't exist");
+
     this->file_   = file;
     this->schema_ = schema;
-  } 
+  }
 
   /** this cannot be done in the constructor as the error handler takes "this" */
   void Xerces::Parse()
   {
      // Initialise the XML4C2 system
-    try 
+    try
     {
        XMLPlatformUtils::Initialize();
     }
-    catch(const XMLException &event ) 
+    catch(const XMLException &event )
     {
         EXCEPTION("Error initializing xerces-c"
                   << XMLString::transcode(event.getMessage()));
     }
-       
+
     parser_ = new XercesDOMParser();
     // skip whitespaces
     parser_->setIncludeIgnorableWhitespace(false);
@@ -65,7 +65,7 @@ namespace CoupledField
     parser_->setDoNamespaces(true);
 
     //  Check if validation is desired and a schema file was provided
-    if(schema_ != "") 
+    if(schema_ != "")
     {
       parser_->setValidationScheme(XercesDOMParser::Val_Always);
       parser_->setDoSchema(true);
@@ -74,13 +74,13 @@ namespace CoupledField
       completeSchema = "http://www.cfs++.org ";
       completeSchema += schema_;
       parser_->setExternalSchemaLocation(completeSchema.c_str());
-    } 
-    else 
+    }
+    else
     {
       parser_->setDoSchema(false);
-      parser_->setValidationSchemaFullChecking(false);      
+      parser_->setValidationSchemaFullChecking(false);
     }
-    
+
     // Have not yet understood what an entity reference node is,
     // but it seems we do not need them
     parser_->setCreateEntityReferenceNodes(false);
@@ -88,19 +88,19 @@ namespace CoupledField
     // Attach our own error handler to the parser
     parser_->setErrorHandler(new EventHandler(this));
 
-    try 
+    try
     {
        // Parse and validate the XML file. This will generate the DOM tree.
        // Catch all exceptions that the parser could not pass to our error
        // handler.
        parser_->parse(file_.c_str());
     }
-    catch(const XMLException &event) 
+    catch(const XMLException &event)
     {
         EXCEPTION("Error parsing '" << file_ << "' -> '"
                   << event.getMessage() << "'");
     }
-    catch(const DOMException &event ) 
+    catch(const DOMException &event )
     {
         const unsigned int maxChars = 2047;
         XMLCh errText[maxChars + 1];
@@ -108,7 +108,7 @@ namespace CoupledField
         std::stringstream ss;
         ss << "DOM error in '" << file_ << "': DOMException.code = " << event.code;
 
-        if(DOMImplementation::loadDOMExceptionMsg(event.code, errText, maxChars)) 
+        if(DOMImplementation::loadDOMExceptionMsg(event.code, errText, maxChars))
           ss << " Message is: " << errText;
 
         EXCEPTION(ss.str());
@@ -117,11 +117,11 @@ namespace CoupledField
     // Obtain and validate root element of document tree
     DOMDocument* doc = parser_->getDocument();
     DOMNodeList* children = doc->getChildNodes();
-    
+
     // some final checking, cannot imagine a problem here
-    if(children->getLength() != 1) 
+    if(children->getLength() != 1)
         EXCEPTION("document root has " << children->getLength()
-                  << " childs, expceted 1"); 
+                  << " childs, expceted 1");
 
     if(children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE)
         EXCEPTION("root node type is " <<  children->item(0)->getNodeType());
@@ -129,7 +129,7 @@ namespace CoupledField
     root_ = children->item(0);
 
   }
-  
+
   Xerces::~Xerces()
   {
 
@@ -137,21 +137,21 @@ namespace CoupledField
      {
         delete parser_->getErrorHandler();
      }
-     
-     if(parser_ != NULL) 
-     { 
-        delete parser_; 
-        parser_ = NULL; 
+
+     if(parser_ != NULL)
+     {
+        delete parser_;
+        parser_ = NULL;
      }
 
 
-     
+
     // Shutdown platform dependend utilities
     XMLPlatformUtils::Terminate();
-     
+
   }
-  
-  
+
+
   ParamNode* Xerces::CreateParamNodeInstance()
   {
      // read the file, this cannot be done in the constructor as the error handler takes this object
@@ -160,19 +160,19 @@ namespace CoupledField
      ParamNode* out = new ParamNode();
      Fill(root_, out);
      return out;
-  }  
-  
+  }
+
   void Xerces::Fill(DOMNode* node, ParamNode* parent)
   {
       // determine if this is a valid node
       // std::cout << "node " << XMLString::transcode(node->getNodeName()) << " has type " << node->getNodeType();
-      // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl; 
+      // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl;
 
     std::string temp = "";
     char * auxString = NULL;
       switch(node->getNodeType())
       {
-              
+
          case DOMNode::TEXT_NODE:
            // if we are a text node, we "are" the value of our parent.
            auxString = XMLString::transcode( node->getNodeValue() );
@@ -181,20 +181,20 @@ namespace CoupledField
            parent->SetValue( temp );
            XMLString::release( &auxString );
            return; // nothing else to do, we don not create a new ParamNode
-              
+
          case DOMNode::ELEMENT_NODE:
          case DOMNode::ATTRIBUTE_NODE:
               // this is the typical situation, we create a new ParamNode
               break;
-              
+
          default:
               // comment type or something alike, don't do anything
               return;
-      }                           
+      }
       // normally we create here a new element and add it to parent.
       // This is not the case when node is root_, then we set the properties of parent directly
       ParamNode* pn = NULL;
-      if(node != root_) 
+      if(node != root_)
       {
          // create a new param node and set it as a new child at the father
          parent->GetChildren().Push_back(new ParamNode(node->getNodeType() == DOMNode::ATTRIBUTE_NODE));
@@ -219,7 +219,7 @@ namespace CoupledField
          // recursive call
          Fill(map->item(i), pn);
       }
-      
+
       // process childs (if there are any)
       DOMNodeList* childs = node->getChildNodes();
       for(unsigned int i = 0; childs != NULL && i < childs->getLength(); i++)
@@ -227,27 +227,27 @@ namespace CoupledField
          // recursive call
          Fill(childs->item(i), pn);
       }
-  } 
-  
+  }
+
   Xerces::EventHandler::EventHandler(const Xerces* xerces)
   {
      this->xerces_ = xerces;
   }
-  
 
-  void Xerces::EventHandler::warning(const SAXParseException &event ) 
+
+  void Xerces::EventHandler::warning(const SAXParseException &event )
   {
     std::stringstream os;
-    os << "Warning parsing the xml file'" << xerces_->file_ << "' in line " 
+    os << "Warning parsing the xml file'" << xerces_->file_ << "' in line "
        << event.getLineNumber() << ", column " << event.getColumnNumber() << std::endl
        << "-> '" << XMLString::transcode(event.getMessage()) << "'" << std::endl
-       << " schema: '" << (xerces_->schema_ != "" ? xerces_->schema_ : "<no-schema>") << "'";       
+       << " schema: '" << (xerces_->schema_ != "" ? xerces_->schema_ : "<no-schema>") << "'";
     // killme use the new log stuff from Andi
-    std::cerr << os.str() << std::endl;   
+    std::cerr << os.str() << std::endl;
   }
 
 
-  void Xerces::EventHandler::error(const SAXParseException &event) 
+  void Xerces::EventHandler::error(const SAXParseException &event)
   {
     EXCEPTION("Error parsing the xml file'" << xerces_->file_
               << "' in line " << event.getLineNumber() << ", column "
@@ -255,21 +255,21 @@ namespace CoupledField
               << XMLString::transcode(event.getMessage()) << "'"
               << std::endl << " schema: '"
               << (xerces_->schema_ != "" ? xerces_->schema_ : "<no-schema>") << "'");
-    
+
   }
 
 
-  void Xerces::EventHandler::fatalError(const SAXParseException &event) 
+  void Xerces::EventHandler::fatalError(const SAXParseException &event)
   {
      error(event);
   }
 
-  void Xerces::EventHandler::resetErrors() 
+  void Xerces::EventHandler::resetErrors()
   {
   }
 
 
-  
+
 } // end of namespace
 
 #endif
