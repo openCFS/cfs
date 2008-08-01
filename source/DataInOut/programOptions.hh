@@ -105,14 +105,6 @@ namespace CoupledField {
   //!     </tr>
   //!
   //!     <tr>
-  //!       <td align="center">-t / --traceDepth = \<traceDepth\></td>
-  //!       <td align="center">non-negative integer</td>
-  //!       <td><em>depth of function tracing</em></td>
-  //!       <td align="center">0</td>
-  //!       <td align="center">%GetTraceDepth()</td>
-  //!     </tr>
-  //!
-  //!     <tr>
   //!       <td align="center">-g / --printGrid</td>
   //!       <td align="center">flag / boolean</td>
   //!       <td><em>only read grid from mesh-file and write it to
@@ -162,13 +154,13 @@ namespace CoupledField {
     //! The destructor is made virtual
     //! for inheritance purposes.
     virtual ~ProgramOptions();
-      
+
     //! Gather information from commandline and environment
 
     //! This method triggers the reading of information from the command line
     //! and the environment.
     void ParseData();
-    
+
     // =======================================================================
     // QUERY METHODS FOR PARAMETERS
     // =======================================================================
@@ -189,9 +181,9 @@ namespace CoupledField {
     //! NACS internally as basename for the generation of several (default)
     //! names for input and output files.
     virtual std::string GetSimName() const;
-    
-    //! Return path to simulation files 
-    
+
+    //! Return path to simulation files
+
     //! This method can be used to query the directory of the current,
     //! i.e. where the output files will be created.
     virtual fs::path GetSimPath() const;
@@ -213,7 +205,7 @@ namespace CoupledField {
     //! empty string is returned.
     virtual fs::path GetScriptFile() const;
     virtual std::string GetScriptFileStr() const;
-#endif    
+#endif
 
     //! Return path to XML schema file
 
@@ -270,19 +262,6 @@ namespace CoupledField {
     //! filled out by the user for a subsequent simulation run.
     virtual bool GetWriteSkeleton() const;
 
-    //! Return depth of function tracing
-
-    //! This method can be used to query the depth desired for generating
-    //! function trace information.
-    //! \note Function tracing is a time-consuming process that can easily
-    //!       lead to the generation of a tremendously large output file
-    //!       containing the trace information. Thus, tracing must explicitely
-    //!       be compiled into the executable by turning on the respective
-    //!       option in <em>Makefile.option</em>. Specifying a trace depth of
-    //!       zero avoids generation of the trace file, but does not remove
-    //!       the work associated with function tracing.
-    virtual UInt GetTraceDepth() const;
-
     //! Return getDumpStats flag
 
     //! This method can be used to query the status of the getDumpStats flag.
@@ -291,20 +270,20 @@ namespace CoupledField {
     //! it was built on, the compiler it was built with and so on.
     //! The execution stops after the printout.
     virtual bool GetDumpStats() const;
-    
+
     //! Returns license path
-    
+
 #ifdef DEBUG
     //! Return forceSegfault flag
 
     //! This method can be used to query the status of the forceSegFault flag.
-    //! If this flag is set now exception will be thrown, but a segmentation 
+    //! If this flag is set now exception will be thrown, but a segmentation
     //! fault will be forced instead, which enables one to use a debugger
     //! to get a stack trace.
     virtual bool GetForceSegFault() const;
 #endif
     //@}
-    
+
 
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
@@ -314,15 +293,15 @@ namespace CoupledField {
 
     //! Print help information to command line
     void PrintHelp( std::ostream &out );
-    
+
     //! Print a summary of the values of the command line parameters
-    
+
     //! Calling this method will print a summary of the values of the command
     //! line parameters to the specified output stream. The values include
     //! the parameters supplied on the command line and the default values for
     //! those parameters where no value was supplied.
     void PrintParams( std::ostream &out, bool colorise = true );
-    
+
     //! Print information about NACSexecutable
 
     //! Calling this method will print a number of valuable infos about
@@ -332,17 +311,17 @@ namespace CoupledField {
     //! Helper method for DumpStats()
     void GetDumpString( std::ostream & outstr, bool colorise);
     // @}
-    
+
  private:
     // =======================================================================
     // INTERNAL HELPER METHODS
     // =======================================================================
 
     //@{ \name Additional internal helper methods
-    
+
     //! Helper function for mapping environment variables to internal names
     std::string EnvironmentNameMapper( std::string envVarName );
-    
+
     //@}
 
     // =======================================================================

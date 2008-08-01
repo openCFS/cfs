@@ -7,6 +7,7 @@
 
 #include <def_use_xerces.hh>
 #include <def_use_mpcci.hh>
+#include <boost/version.hpp>
 
 #include "Utils/myclock.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
@@ -51,13 +52,22 @@ using namespace CoupledField;
 int main( int argc, const char **argv ) {
 
 
+  // Check if the boost version is >= 1.34, as the boost::filesystem::path
+  // interface has changed heavily.
+  // In version < 1.34 there is a name checking mechanism activated, which
+  // doest not allow file/directory names containing characters like '+','§'.
+  // Therefore we need to replace this standard name checker.
+#if ( BOOST_VERSION < 103400)
+  boost::filesystem::path::default_name_check( boost::filesystem::native);
+#endif
+
   // Set segfault to false
   Exception::segfault_ = false;
-  try 
+  try
   {
-        
-  BasePDE::SetEnums();  
-    
+
+  BasePDE::SetEnums();
+
   // =========================================================================
   // TIMING
   // =========================================================================
@@ -92,7 +102,7 @@ int main( int argc, const char **argv ) {
   Info->StartProgress( "Generating object for handling file-IO" );
   DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
   Info->FinishProgress();
-  
+
 
   // =========================================================================
   // GENERATE CENTRAL MESSENGER OBJECT
@@ -101,9 +111,9 @@ int main( int argc, const char **argv ) {
 
   // Try to determine (optional) script file name
   std::string scriptFileName = progOpts->GetScriptFileStr();
-  
+
   messenger = FileHandler.CreateScriptMessenger( scriptFileName );
-  
+
   // Check if script file was provided
   if ( scriptFileName != "" ) {
     std::stringstream msg;
@@ -118,7 +128,7 @@ int main( int argc, const char **argv ) {
     context.Push_back( progOpts->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
 
-    Info->FinishProgress();    
+    Info->FinishProgress();
   }
 
 #endif
@@ -161,7 +171,7 @@ int main( int argc, const char **argv ) {
 #ifdef MpCCI
   Info->StartProgress( "Setting up MpCCI interface" );
 
-  CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );  
+  CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );
   //  CCI_Init( &argc, const_cast<char***>(&argv));
 
   Info->FinishProgress();
@@ -178,7 +188,7 @@ int main( int argc, const char **argv ) {
   // be used, since it would try to open other files also, that need not be
   // present????
   if ( progOpts->GetWriteSkeleton() == true ) {
- 
+
 #ifdef DEBUG
     FileHandler.OpenFile( DEBUG_FILE );
 #endif
@@ -196,7 +206,7 @@ int main( int argc, const char **argv ) {
     delete ptskel;
     delete ptInputfile;
     delete Info;
-    
+
     return 0;
   }
 
@@ -212,10 +222,10 @@ int main( int argc, const char **argv ) {
   std::stringstream msg;
   msg << "Reading parameters from file '" << xmlFile << "'";
   Info->StartProgress( msg.str() );
-  
+
 #ifdef USE_XERCES
   // this is the new param staff which replaces the old params - delete this comment finally
-  param = NULL;           
+  param = NULL;
 
   std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
@@ -228,7 +238,7 @@ int main( int argc, const char **argv ) {
 
   // release the xerces ressources, param is not affected
   delete xerces;
-  
+
 #else
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
@@ -255,14 +265,14 @@ int main( int argc, const char **argv ) {
     Info->FinishProgress();
   }
 
- 
+
 
   // generate material handler
   MaterialHandler * ptMatHandler;
   Info->StartProgress( "Generating material reader");
   ptMatHandler = FileHandler.CreateMaterialHandler();
   Info->FinishProgress();
-  
+
   Info->StartProgress( "Generating remaining output files" );
 
   // Open file for status reports by CFS++
@@ -271,9 +281,9 @@ int main( int argc, const char **argv ) {
   // Create simulation output writer
   std::map<std::string, shared_ptr<SimOutput> > outFiles;
   FileHandler.CreateSimOutputFiles( outFiles );
-  
+
   // Create resulthandler and pass the output files
-  ResultHandler * ptHandler = 
+  ResultHandler * ptHandler =
     new ResultHandler( ResultHandler::EMBEDDED );
   std::map<std::string, shared_ptr<SimOutput> >::iterator outputIt;
   std::map<std::string, shared_ptr<SimInput> >::iterator inputIt;
@@ -285,8 +295,8 @@ int main( int argc, const char **argv ) {
   for( ; inputIt != inFiles.end(); inputIt++ ) {
     ptHandler->AddInputReader( inputIt->second, inputIt->first );
   }
-  
-  
+
+
   // Log command line parameters
   std::ostream *myInfo = Info->GetInfoStreamPointer();
   progOpts->PrintParams( *myInfo, false );
@@ -315,17 +325,17 @@ int main( int argc, const char **argv ) {
     domain->PrintGrid();
     delete domain;
     delete Info;
-    delete progOpts; 
+    delete progOpts;
     delete ptHandler;
     return 0;
   }
 
    // Set up Problem
   domain->PostInit();
-    
+
   // Solves the driver or optimization problem
   domain->SolveProblem();
-    
+
   std::cout << std::endl;
   Info->StartProgress( "Finished solving the problem" );
   Info->FinishProgress();
@@ -346,7 +356,7 @@ int main( int argc, const char **argv ) {
   std::cout << std::setw(70) << std::setfill('=') << "" << std::endl;
   std::cout << "TOTAL TIME:\t\t Wall clock: " << wTime
             << " s\t CPU: " << cTime << " s" << std::endl;
-  std::cout << std::setw(70) << std::setfill('=') << "" 
+  std::cout << std::setw(70) << std::setfill('=') << ""
             << std::endl << std::endl;
 
 
@@ -373,9 +383,9 @@ int main( int argc, const char **argv ) {
   delete profiler;
   profiler = NULL;
 #endif
-  
-  }  
-  catch(std::exception& ex) 
+
+  }
+  catch(std::exception& ex)
   {
     Error(ex.what(), __FILE__, __LINE__);
   }
