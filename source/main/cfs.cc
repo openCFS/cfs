@@ -12,8 +12,7 @@
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
-#include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
+#include "DataInOut/programOptions.hh"
 #include "Domain/domain.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
@@ -78,16 +77,20 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
   // =========================================================================
-  commandLine = new CommandLineHandlerSetting( argc, argv );
 
+  progOpts = new ProgramOptions(argc, argv);
+  progOpts->ParseData();
+
+#ifdef DEBUG
   // Get information about exception handling
-  Exception::segfault_ = commandLine->GetForceSegFault();
+  Exception::segfault_ = progOpts->GetForceSegFault();
+#endif
 
   // =========================================================================
   // GENERATE OBJECT FOR HANDLING FILE-IO
   // =========================================================================
   Info->StartProgress( "Generating object for handling file-IO" );
-  DefineInOutFiles FileHandler( commandLine->GetSimName().c_str() );
+  DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
   Info->FinishProgress();
   
 
@@ -97,7 +100,7 @@ int main( int argc, const char **argv ) {
 #ifdef USE_SCRIPTING
 
   // Try to determine (optional) script file name
-  std::string scriptFileName = commandLine->GetScriptFileName();
+  std::string scriptFileName = progOpts->GetScriptFileStr();
   
   messenger = FileHandler.CreateScriptMessenger( scriptFileName );
   
@@ -112,7 +115,7 @@ int main( int argc, const char **argv ) {
 
     // Call initialization procedure
     StdVector<std::string> context;
-    context.Push_back( commandLine->GetSimName() );
+    context.Push_back( progOpts->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
 
     Info->FinishProgress();    
@@ -140,7 +143,7 @@ int main( int argc, const char **argv ) {
 #endif
 
 #ifdef PROFILING
-  if ( commandLine->GetDoProfile() == true ) {
+  if ( progOpts->GetDoProfile() == true ) {
     Info->StartProgress( "Opening file for profiling output" );
   }
   else {
@@ -174,15 +177,15 @@ int main( int argc, const char **argv ) {
   // the debug and trace file are opened separately here. Definefiles cannot
   // be used, since it would try to open other files also, that need not be
   // present????
-  if ( commandLine->GetWriteSkeleton() == true ) {
+  if ( progOpts->GetWriteSkeleton() == true ) {
  
 #ifdef DEBUG
     FileHandler.OpenFile( DEBUG_FILE );
 #endif
 
     // Hardcoded: Read mesh file
-    std::string meshFile = commandLine->GetMeshFile();
-    std::string simName = commandLine->GetSimName();
+    std::string meshFile = progOpts->GetMeshFileStr();
+    std::string simName = progOpts->GetSimName();
     if(meshFile == "")
       meshFile = simName + ".mesh";
     SimInput * ptInputfile = new SimInputMESH(meshFile, NULL);
@@ -203,7 +206,7 @@ int main( int argc, const char **argv ) {
   // =========================================================================
 
   // Generate parameter handler and pass address to global pointer
-  std::string xmlFile = commandLine->GetParamFile();
+  std::string xmlFile = progOpts->GetParamFileStr();
 
   // Write information to command line
   std::stringstream msg;
@@ -214,7 +217,7 @@ int main( int argc, const char **argv ) {
   // this is the new param staff which replaces the old params - delete this comment finally
   param = NULL;           
 
-  std::string schema = commandLine->GetSchemaPath();
+  std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
   // Initialize our xerces dom parser to handle the cfs xml file
@@ -286,7 +289,7 @@ int main( int argc, const char **argv ) {
   
   // Log command line parameters
   std::ostream *myInfo = Info->GetInfoStreamPointer();
-  commandLine->PrintParams( *myInfo, false );
+  progOpts->PrintParams( *myInfo, false );
 
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
@@ -307,12 +310,12 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   // Only output of grid
   // =========================================================================
-  if ( commandLine->GetPrintGrid() == true ) {
+  if ( progOpts->GetPrintGrid() == true ) {
     std::cout << "Printing grid to file " << myEndl << myEndl;
     domain->PrintGrid();
     delete domain;
     delete Info;
-    delete commandLine; 
+    delete progOpts; 
     delete ptHandler;
     return 0;
   }
@@ -334,7 +337,7 @@ int main( int argc, const char **argv ) {
 
     // Call intialization procedure
     StdVector<std::string> context;
-    context.Push_back( commandLine->GetSimName() );
+    context.Push_back( progOpts->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
 #endif
 
@@ -358,7 +361,7 @@ int main( int argc, const char **argv ) {
   // Delete objects
   delete domain;
   delete Info;
-  delete commandLine;
+  delete progOpts;
   delete ptHandler;
 
 #ifdef USE_SCRIPTING

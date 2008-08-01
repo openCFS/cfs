@@ -15,7 +15,7 @@
 #include "General/environment.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "Elements/elements_header.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 
@@ -35,7 +35,7 @@ namespace CoupledField {
     
     level_ = 0;
 
-    std::string xmlFile = commandLine->GetParamFile();
+    std::string xmlFile = progOpts->GetParamFileStr();
 
     // just test, if config-file already exists  
     std::ifstream testfile( xmlFile.c_str() );
@@ -152,10 +152,10 @@ namespace CoupledField {
     out_->close();
 
     // Generate parser and parse XML defaults file
-    std::string cfsSchema = commandLine->GetSchemaPath();
+    std::string cfsSchema = progOpts->GetSchemaPathStr();
     cfsSchema += "/CFS-Simulation/CFS.xsd";
     
-    std::string cfsDefaults = commandLine->GetSchemaPath();
+    std::string cfsDefaults = progOpts->GetSchemaPathStr();
     cfsDefaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
 
     // Generate dummy parameter node
@@ -183,7 +183,7 @@ namespace CoupledField {
     delete param;
 
     // Reopen skeleton-conf file
-    std::string xmlFile = commandLine->GetSimName() + ".xml";
+    std::string xmlFile = progOpts->GetSimName() + ".xml";
     out_->clear();
     out_->open( xmlFile.c_str(), std::ios_base::app );
 

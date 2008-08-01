@@ -8,7 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 
 // header for materials
 #include "Materials/electroMagneticMaterial.hh"
@@ -32,7 +32,7 @@ namespace CoupledField {
     parser_ = NULL;
 
     // Create a ParamNode and parse the material file
-    std::string schema = commandLine->GetSchemaPath();
+    std::string schema = progOpts->GetSchemaPathStr();
     schema += "/CFS-Material/CFS_Material.xsd";
   
     // Initialize our xerces dom parser to handle the  xml file

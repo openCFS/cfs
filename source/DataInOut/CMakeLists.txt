@@ -4,20 +4,32 @@ ENDIF(USE_XERCES)
 
 
 SET(DATAINOUT_SRCS 
+  coloredConsole.cc
   freqfunc.cc
-  XMLMaterialHandler.cc
-  WriteInfo.cc
+  postProc.cc
+  programOptions.cc
+  ResultCache.cc
   resultHandler.cc
   simOutput.cc
-  postProc.cc
-  ResultCache.cc)
+  WriteInfo.cc
+  XMLMaterialHandler.cc
+)
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
 SET(TARGET_LL
   materials
   simouttext
+  ${BOOST_PROGRAM_OPTIONS_LIB}
+  ${BOOST_FILESYSTEM_LIB}
 )
+
+IF(CFS_BOOST_VERSION GREATER 1.34)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${BOOST_SYSTEM_LIB}
+  )
+ENDIF(CFS_BOOST_VERSION GREATER 1.34)
 
 IF(USE_XERCES)
   SET(TARGET_LL

@@ -11,7 +11,7 @@
 
 // header for Paramhandling
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 
 
 // header for scripting
@@ -366,11 +366,6 @@ namespace CoupledField {
      // Report results to logfile
     Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
                   eqnMap_->GetNumEqns() );
-
-    // Check if eqnmap should be printed onto screen
-    if ( commandLine->GetShowEqnMap() == true ) {
-      eqnMap_->Print( (*cla) );
-    }
 
 #ifdef DEBUG
     eqnMap_->Print(*debug);
@@ -2168,7 +2163,7 @@ namespace CoupledField {
  void SinglePDE::WriteRestart( ) {
 
    if (pdename_=="mechanic" || pdename_=="acoustic") {
-     std::string simName = commandLine->GetSimName();
+     std::string simName = progOpts->GetSimName();
 
      // create name of output file
      std::string restartFileName = simName+"_"+pdename_+".restart";
@@ -2195,7 +2190,7 @@ namespace CoupledField {
   void SinglePDE::ReadRestart(UInt &startStep ) {
 
     if (pdename_=="mechanic" || pdename_=="acoustic") {
-      std::string simName = commandLine->GetSimName();
+      std::string simName = progOpts->GetSimName();
       std::string restartFileName = simName+"_"+pdename_+".restart";
 
       std::ifstream readRestart(restartFileName.c_str(), std::ios_base::in );
@@ -2231,7 +2226,7 @@ namespace CoupledField {
 
     // then write own data to PDEMemento
     myMemento->analysisType_ = analysistype_;
-    myMemento->gridFileName_ = commandLine->GetMeshFile();
+    myMemento->gridFileName_ = progOpts->GetMeshFileStr();
     myMemento->stepNum_ = domain->GetSingleDriver()->GetActStep(pdename_);
 
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
@@ -2363,11 +2358,11 @@ namespace CoupledField {
     }
 
     // check that memento is bases on the same grid file
-    if( memento_->gridFileName_ != commandLine->GetMeshFile() ) {
+    if( memento_->gridFileName_ != progOpts->GetMeshFileStr() ) {
       EXCEPTION( "Error in reading in memento: Memento is based on grid '"
                  << memento_->gridFileName_
                  << ", whereas the current simulation is based on grid '"
-                 << commandLine->GetMeshFile() );
+                 << progOpts->GetMeshFileStr() );
     }
 
     UInt numDofs = results_[0]->dofNames.GetSize();

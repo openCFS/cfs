@@ -32,7 +32,6 @@ ADD_EXECUTABLE(cfs ${CFS_SRCS})
 SET(TARGET_LL
   cfsgeneral
   utils
-  cmdline
   definefiles
   paramh
   domain

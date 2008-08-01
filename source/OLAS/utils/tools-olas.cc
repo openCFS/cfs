@@ -9,6 +9,7 @@
 // C-includes
 #include <cstdio>
 #include <cstdarg>
+#include <cstdlib>
 
 #include "utils/tools.hh"
 #include "utils/output.hh"
@@ -69,7 +70,7 @@ namespace OLAS {
     std::cerr << "\n\n";
 
 
-    exit(-1);
+    std::exit(-1);
   }
 
 

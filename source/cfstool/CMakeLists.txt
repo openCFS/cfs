@@ -68,7 +68,6 @@ ENDIF(USE_PYTHON)
 
 # Target link libraries for cfstool target.
 SET(TARGET_LL ${TARGET_LL}  
-  cmdline
   domain
   elements
   domain

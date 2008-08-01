@@ -10,6 +10,7 @@
 #define OLAS_ENVIRONMENT_HH
 
 #include <sstream>
+#include <limits.h>
 
 // Include build type options header containing the #defines
 #include <def_build_type_options.hh>

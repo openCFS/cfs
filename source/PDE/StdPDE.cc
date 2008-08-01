@@ -13,7 +13,6 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 

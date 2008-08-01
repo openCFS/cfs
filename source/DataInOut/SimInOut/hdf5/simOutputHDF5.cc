@@ -17,7 +17,7 @@
 
 #include <def_cfs_stats.hh>
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "simOutputHDF5.hh"
@@ -609,15 +609,15 @@ namespace CoupledField {
     
     // return, if no commandLine handler or
     // global root ParaemNode are present
-    if( !commandLine || !param )
+    if( !progOpts || !param )
       return;
 
     std::vector<std::string> fileNames;
     std::vector<std::string> dataSetNames;
     std::ifstream fin;
-    std::string dumpStr;
+    std::ostringstream dumpStr;
 
-    fileNames.push_back(commandLine->GetParamFile());
+    fileNames.push_back(progOpts->GetParamFileStr());
     fileNames.push_back(param->Get("fileFormats")
                         ->Get("materialData")
                         ->Get("file")->AsString());
@@ -645,8 +645,8 @@ namespace CoupledField {
       fin.close();
     }
 
-    commandLine->GetDumpString(dumpStr);
-    WriteStringToUserData("ProgramStats", dumpStr);
+    progOpts->GetDumpString(dumpStr, false);
+    WriteStringToUserData("ProgramStats", dumpStr.str());
   }
 
   void SimOutputHDF5::InitModule() {

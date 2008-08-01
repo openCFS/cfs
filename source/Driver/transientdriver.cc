@@ -18,7 +18,7 @@
 #include "transientdriver.hh"
 #include "stdSolveStep.hh"
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/pdememento.hh"
@@ -214,7 +214,7 @@ namespace CoupledField {
   
   void TransientDriver::ReadRestart() {
     
-    if ( commandLine->GetRestart() ){
+    if ( progOpts->GetRestart() ){
       ptPDE_->ReadRestart( restartStep_ );
       //startStep = restartStep_ + 1;
       //stepsave=startStep;

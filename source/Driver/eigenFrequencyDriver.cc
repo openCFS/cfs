@@ -8,7 +8,6 @@
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 

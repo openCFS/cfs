@@ -19,7 +19,7 @@
 #include "Materials/baseMaterial.hh"
 #ifndef INTEGLIB
 #include "PDE/pdes_header.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #endif
 #include "Utils/vector.hh"
 
@@ -66,7 +66,7 @@ namespace CoupledField {
       CoupledField::Error( __FILE__, __LINE__ );
     }
 
-    std::string filename = commandLine->GetSimName() + ".info";
+    std::string filename = progOpts->GetSimName() + ".info";
     cfsInfo = new std::ofstream(filename.c_str());
 
     // Check if everything went fine

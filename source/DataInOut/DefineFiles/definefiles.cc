@@ -62,7 +62,7 @@
 
 #include "DataInOut/XMLMaterialHandler.hh"
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 #ifdef USE_SCRIPTING
@@ -142,8 +142,8 @@ namespace CoupledField
                       StdVector<shared_ptr<SimInput> > >& gridInputs ) {
 
 
-    std::string meshFile = commandLine->GetMeshFile();
-    std::string simName = commandLine->GetSimName();
+    std::string meshFile = progOpts->GetMeshFileStr();
+    std::string simName = progOpts->GetSimName();
     std::string fileName = "default";
     std::string actId, actGridId;
     
@@ -256,7 +256,7 @@ namespace CoupledField
     // resest map
     out.clear();
     
-    std::string simName = commandLine->GetSimName();
+    std::string simName = progOpts->GetSimName();
 
     // get list of output formats
     ParamNode * outNode = param->Get("fileFormats")->Get("output", false);
@@ -404,7 +404,7 @@ namespace CoupledField
       // -------------
     case DEBUG_FILE:
 
-      fileName = commandLine->GetSimName() + ".deb";
+      fileName = progOpts->GetSimName() + ".deb";
 
 #ifdef DEBUG
       debug = new std::ofstream( fileName.c_str() );
@@ -425,7 +425,7 @@ namespace CoupledField
       // ---------------
     case MEMTRACE_FILE:
 
-      fileName = commandLine->GetSimName() + ".mem";
+      fileName = progOpts->GetSimName() + ".mem";
 
 #ifdef MEMTRACE
       memtrace = new std::ofstream( fileName.c_str() );
@@ -447,7 +447,7 @@ namespace CoupledField
       // ------------
     case OLAS_FILE:
 
-      fileName = commandLine->GetSimName() + ".las";
+      fileName = progOpts->GetSimName() + ".las";
       cla = new std::ofstream( fileName.c_str() );
       if ( cla == NULL ) {
         EXCEPTION( "Failed to open file '" << fileName << "' for "

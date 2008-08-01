@@ -16,8 +16,6 @@
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
-
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
@@ -25,9 +23,6 @@ namespace fs = boost::filesystem;
 
 namespace CoupledField 
 {
-  class BaseCommandLineHandler;
-  extern BaseCommandLineHandler* commandLine;
-
 
   Xerces::Xerces(const std::string& file, const std::string& schema)
   {

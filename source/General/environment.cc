@@ -64,8 +64,6 @@ namespace CoupledField {
 
   // Initialisation of some global pointers
   WriteInfo *Info = NULL;
-  BaseCommandLineHandler *commandLine = NULL;
-
 
   // --------------------------------------------
   //  Implementation of enum conversion routines 

@@ -1,3 +1,5 @@
 // Define used to check if GiDPost output is used
 
 #cmakedefine USE_GIDPOST
+
+#define CFS_GIDPOST_VERSION "@CFS_GIDPOST_VERSION@"

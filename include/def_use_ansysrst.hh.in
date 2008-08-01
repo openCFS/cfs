@@ -2,4 +2,4 @@
 
 #cmakedefine USE_ANSYSRST
 
-#define ANSYS_VERSION "@ANSYS_VERSION@"
+#define CFS_ANSYS_VERSION "@ANSYS_VERSION@"

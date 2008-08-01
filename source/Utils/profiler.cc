@@ -9,7 +9,7 @@
 #include <sys/resource.h>
 #include <iomanip>
 
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "myclock.hh"
 
 namespace CoupledField {
@@ -21,7 +21,7 @@ namespace CoupledField {
   Profiler::Profiler() {
 
     // Determine whether profiling should be performed
-    doProfiling_ = commandLine->GetDoProfile() == true;
+    doProfiling_ = progOpts->GetDoProfile() == true;
 
     if ( doProfiling_ == true ) {
 
@@ -29,7 +29,7 @@ namespace CoupledField {
       myPid_ = getpid();
 
       // intialize profile file
-      fileName_ = commandLine->GetSimName() + ".profile";
+      fileName_ = progOpts->GetSimName() + ".profile";
       memOut_ = new std::ofstream(fileName_.c_str());
 
       (*memOut_).setf(std::ios::fixed,std::ios::floatfield);

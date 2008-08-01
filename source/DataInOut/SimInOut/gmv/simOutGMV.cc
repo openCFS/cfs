@@ -19,7 +19,6 @@ namespace fs = boost::filesystem;
 #include <DataInOut/simInput.hh>
 #include <DataInOut/Logging/cfslog.hh>
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 #include "simOutGMV.hh"
 
