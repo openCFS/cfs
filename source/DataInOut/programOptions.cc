@@ -1,4 +1,4 @@
-ﬁ// include general defines
+// include general defines
 #include <def_cfs_stats.hh>
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
