@@ -2,3 +2,5 @@
 
 #cmakedefine USE_SCRIPTING_PYTHON
 
+#define CFS_PYTHON_VERSION "@CFS_PYTHON_VERSION@"
+
