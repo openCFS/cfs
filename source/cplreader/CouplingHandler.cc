@@ -528,6 +528,14 @@ namespace CoupledField
         // source term, follow his order!
         if(calcSrc)
         {
+          // We need fluidMechVelocity for Lighthill source term.
+          // This must be adapted for other source term formulations!!
+          if ( flowData[actRegion].find(FLUIDMECH_VELOCITY)
+               != flowData[actRegion].end() )
+          {
+            flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
+          }
+
           CalculateAcouSrcs(actRegion, flowData[actRegion]);
         }
 
