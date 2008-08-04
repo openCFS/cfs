@@ -535,8 +535,10 @@ namespace CoupledField {
     std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
 #else
 #ifdef USE_SCRIPTING
-    if ( messenger->IsEvaluating() ) {
-      messenger->Warning( Text.c_str(), filename, numline );
+    if ( messenger ) {
+      if ( messenger->IsEvaluating() ) {
+        messenger->Warning( Text.c_str(), filename, numline );
+      }
     }
 #endif
 
@@ -594,8 +596,10 @@ namespace CoupledField {
     std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
 #else
 #ifdef USE_SCRIPTING
-    if ( messenger->IsEvaluating() ) {
-      messenger->Error( Text.c_str(), filename, numline );
+    if ( messenger ) {
+      if ( messenger->IsEvaluating() ) {
+        messenger->Error( Text.c_str(), filename, numline );
+      }
     }
 #endif
     
