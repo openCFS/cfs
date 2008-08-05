@@ -21,6 +21,9 @@ SET_TARGET_PROPERTIES(simoutansysrst PROPERTIES LINKER_LANGUAGE CXX)
 IF(CFS_ARCH STREQUAL "I386")
   TARGET_LINK_LIBRARIES(simoutansysrst
     ${ANSYS_ROOT_DIR}/ansys/customize/misc/linia32/libbin.so
+    ${ANSYS_ROOT_DIR}/ansys/syslib/linia32/libcxa.so.5
+    ${ANSYS_ROOT_DIR}/ansys/syslib/linia32/libunwind.so.5
+    -ldl
     ${GFORTRAN_LIBRARY})
 ENDIF(CFS_ARCH STREQUAL "I386")
 
@@ -34,6 +37,12 @@ ENDIF(CFS_ARCH STREQUAL "X86_64")
 # Add the ANSYS ResWrDemo program for test purposes
 ADD_EXECUTABLE(ResWrDemo ResWrDemo.F)
 TARGET_LINK_LIBRARIES(ResWrDemo simoutansysrst)
+
+ADD_EXECUTABLE(ResWrHeadTestCC ResWrHeadTest.cc ResWrTest.F)
+TARGET_LINK_LIBRARIES(ResWrHeadTestCC
+  simoutansysrst
+  ${BOOST_FILESYSTEM_LIB}
+  )
 
 ADD_EXECUTABLE(bintst bintst.F bintrd.F bintwr.F)
 TARGET_LINK_LIBRARIES(bintst simoutansysrst)

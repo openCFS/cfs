@@ -107,6 +107,8 @@ c   /exit,nosave
       parameter (NUMDOF=2, NFIXED=4,   NFORCE=1)
       integer    MAXTYPE,  MAXREAL,    MAXCSYS,   NRCON,     NPEREL
       parameter (MAXTYPE=1,MAXREAL=0,  MAXCSYS=0, NRCON=1,   NPEREL=4)
+      integer    KAN
+      parameter (KAN=0)
 
       integer  LSET(NSETS), ielc(150),
      x         DOF(NUMDOF), SUBST(NSETS), NCUM(NSETS),
@@ -278,7 +280,7 @@ c======================== End Example Data =====================================
       kerr = ResWrBegin (Nunit,Lunit,Fname,ncFname,Title(1),JobName,
      x                   Units,NUMDOF,DOF(1),UserCode,
      x                   MAXNODE,NUMNODE,MAXELEM,NUMELEM,
-     x                   MaxResultSet)
+     x                   MaxResultSet, KAN)
       if (kerr .ne. 0) go to 999
 
 
