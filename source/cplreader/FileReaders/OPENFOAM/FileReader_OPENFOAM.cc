@@ -177,7 +177,7 @@ namespace CoupledField
 
     /* get the tuples and write them into NODECOORD */
     UInt tmp_ij = 0;
-    double* point_coords;
+    Double* point_coords;
     for (UInt i = 0; i < numPoints; ++i)
     {
       point_coords = ds->GetPoint(i);
@@ -198,7 +198,7 @@ namespace CoupledField
     UInt numCells;
     UInt elemIdx = 0;
     UInt topoIdx = 0;
-    double pt[3];
+    Double pt[3];
     std::map<UInt, UInt> nodeMap;
 
     elemTypes.resize(numElems_);
@@ -447,8 +447,8 @@ namespace CoupledField
                   break;
 
                 case VTK_DOUBLE:
-                  vtkArrayIteratorTemplate<double>* doubleIt;
-                  doubleIt = static_cast< vtkArrayIteratorTemplate<double>* >(dataIt);
+                  vtkArrayIteratorTemplate<Double>* doubleIt;
+                  doubleIt = static_cast< vtkArrayIteratorTemplate<Double>* >(dataIt);
                   for(UInt j=0; j<numComps; j++)
                     fdps->data[i*numDOFs+j] = doubleIt->GetValue(i*numComps+j);
                   break;
@@ -464,9 +464,17 @@ namespace CoupledField
     c2p->Delete();
   }
 
-  double FileReader_OPENFOAM::GetTimeStep(UInt t)
+  Double FileReader_OPENFOAM::GetTimeStep(UInt stepNumber)
   {
-    return reader_->GetTimeStepValue(t);
+    Settings& settings = Settings::Instance();
+    Double timestep = settings.GetDouble("timestep");
+    // check if timestep has been set as an argument
+    if (timestep != -1)
+    {
+      return timestep * stepNumber;
+    }
+
+    return reader_->GetTimeStepValue(stepNumber);
   }
 
   std::string FileReader_OPENFOAM::GetRegionName(const UInt partitionIdx)
@@ -649,8 +657,8 @@ namespace CoupledField
     }
   }
 
-  void FileReader_OPENFOAM::calcMechDisplacement(const std::vector<double>& origin, \
-      std::vector<double>& newCoords) const
+  void FileReader_OPENFOAM::calcMechDisplacement(const std::vector<Double>& origin, \
+      std::vector<Double>& newCoords) const
   {
     const UInt sizeVec = newCoords.size();
     for (UInt i = 0; i < sizeVec; ++i)
