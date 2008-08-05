@@ -36,7 +36,7 @@ namespace CoupledField
                          const std::vector<bool>& activeParts,
                          const UInt timeStepIdx);
 
-    virtual double GetTimeStep(UInt t);
+    virtual Double GetTimeStep(UInt stepNumber);
     virtual std::string GetRegionName(const UInt partitionIdx);
 
     //! get user data from file reader
@@ -52,13 +52,13 @@ namespace CoupledField
        * \param origin A vector which has the original position of each node
        * \param newCoords A vector which has the new position of each node and
        * which will store the mechDisplacement after the method call */
-      void calcMechDisplacement(const std::vector<double>& origin, \
-          std::vector<double>& newCoords) const;
+      void calcMechDisplacement(const std::vector<Double>& origin, \
+          std::vector<Double>& newCoords) const;
 
       std::vector<Integer> dataColumns_;
       /* nodalCoords_ should store the original mesh, which may be needed if we have
        * a moving mesh*/
-      std::vector<double> nodalCoords_;
+      std::vector<Double> nodalCoords_;
       vtkOpenFOAMReader* reader_;
       UInt numElems_;
   };

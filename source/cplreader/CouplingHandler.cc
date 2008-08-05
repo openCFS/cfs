@@ -188,6 +188,40 @@ namespace CoupledField
 
     // First read everything into internal buffers
     ptFileReader_->ReadNodalCoords(nodalCoords_);
+    // scale the nodal coordinates
+    const UInt sizeNodCoords = nodalCoords_.size();
+    std::stringstream geomstr;
+    geomstr << settings.GetString("geomscale");
+    Double geomScaleX, geomScaleY, geomScaleZ;
+    geomstr >> geomScaleX >> geomScaleY >> geomScaleZ;
+    if (geomScaleX != 1.0)
+    {
+      UInt i = 0;
+      while (i < sizeNodCoords)
+      {
+        nodalCoords_[i] *= geomScaleX;
+        i += 3;
+      }
+    }
+    if (geomScaleY != 1.0)
+    {
+      UInt i = 1;
+      while (i < sizeNodCoords)
+      {
+        nodalCoords_[i] *= geomScaleY;
+        i += 3;
+      }
+    }
+    if (geomScaleZ != 1.0)
+    {
+      UInt i = 2;
+      while (i < sizeNodCoords)
+      {
+        nodalCoords_[i] *= geomScaleZ;
+        i += 3;
+      }
+    }
+    // <-- end scaling
     ptFileReader_->ReadTopology(topology_,
                                 elemTypes_);
 
@@ -487,6 +521,25 @@ namespace CoupledField
       try
       {
         ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+        // scale the nodal values
+        const UInt sizeFlowData = flowData.size();
+        std::stringstream velstr;
+        velstr << settings.GetString("velscale");
+        Double velScaleX, velScaleY, velScaleZ;
+        velstr >> velScaleX >> velScaleY >> velScaleZ;
+        if (velScaleX != 1.0)
+        {
+          velScale_(flowData, velScaleX, 0);
+        }
+        if (velScaleY != 1.0)
+        {
+          velScale_(flowData, velScaleY, 1);
+        }
+        if (velScaleZ != 1.0)
+        {
+          velScale_(flowData, velScaleZ, 2);
+        }
+        // <-- end scaling velocity
 
         // Override the setting of --outprec for CFX
         if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))

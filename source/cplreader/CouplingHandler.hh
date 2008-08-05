@@ -146,6 +146,36 @@ namespace CoupledField
     std::vector<bool> activeParts_;
 
     std::vector< shared_ptr<OutputWriter> > outputWriters_;
+
+    /** scales the FLUIDMECH_VELOCITY vector by the factor scaleFac.
+     * @param nodalFlowData the data in which the reults are stored and which
+     * should be scaled
+     * @param scaleFac the factor by which it should be scaled
+     * @param dof_idx the dof which should be scaled (x=0, y=1, z=2)
+     */
+    inline void velScale_(std::vector<FlowDataType>& nodalFlowData,
+                   const Double scaleFac, const UInt dof_idx) const
+    {
+      Settings& settings = Settings::Instance();
+      UInt numRegions = nodalFlowData.size();
+      if (settings.GetString("type") == "OPENFOAM")
+      {
+        numRegions = 1;
+      }
+      for (UInt actRegion=0; actRegion < numRegions; ++actRegion)
+      {
+        FlowDataType& fd = nodalFlowData[actRegion];
+        FlowDataPartStruct* fdps = &fd[FLUIDMECH_VELOCITY];
+        const UInt sizeFdps = fdps->data.size();
+        const UInt numDofs = fdps->dofNames.size();
+        UInt i = dof_idx;
+        while (i < sizeFdps)
+        {
+          fdps->data[i] *= scaleFac;
+          i += numDofs;
+        }
+      }
+    }
   };
 
 } // end of namespace
