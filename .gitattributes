@@ -397,6 +397,7 @@ source/DataInOut/SimInOut/AnsysFile/simInputMESH.hh svneol=native#text/x-c%2B%2B
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResWr.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrDemo.F -text svneol=unset#text/x-fortran
+source/DataInOut/SimInOut/AnsysRST/ResWrHeadTest.cc svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResWrProtos.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/AnsysRST/bintrd.F -text
 source/DataInOut/SimInOut/AnsysRST/bintst.F -text

@@ -290,6 +290,9 @@ namespace CoupledField
 
     // primary function:    Close result file
     extern void reswrend_();
+
+    // Write just a .rst header for determining binlib version
+    int reswrtest_(char* FName, int* ncFName, int lenFName);
   
 #if defined (__cplusplus)
 }

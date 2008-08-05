@@ -14,7 +14,7 @@ namespace fs = boost::filesystem;
 #include "Utils/StdVector.hh"
 #include "Domain/elem.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "DataInOut/programOptions.hh"
 
 #include "simOutputRST.hh"
 #include "ResWrProtos.hh"
@@ -52,7 +52,11 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
 
-    printGrid_ = commandLine->GetPrintGrid();
+    if( progOpts ) {
+      printGrid_ = progOpts->GetPrintGrid();
+    } else {
+      printGrid_ = false;
+    }
     printNow_ = false;
 
     // Initialize element data array.
@@ -69,20 +73,26 @@ namespace CoupledField {
 
     // Map RST elem type id to Ansys element types.
     // linear element types
+    ansysType2TypeId_[LINE002] = 0;
     ansysType2TypeId_[PLANE42] = 1;
     ansysType2TypeId_[SOLID45] = 2;
 
     // quadratic element types
+    ansysType2TypeId_[LINE003] = 0;
     ansysType2TypeId_[PLANE82] = 1;
     ansysType2TypeId_[SOLID95] = 2;
 
     // Store the number of nodes of the used elem types in a map.
+    ansysType2NumNodes_[LINE002] = 0;
+    ansysType2NumNodes_[LINE003] = 0;
     ansysType2NumNodes_[PLANE42] = 4;
     ansysType2NumNodes_[SOLID45] = 8;
     ansysType2NumNodes_[PLANE82] = 8;
     ansysType2NumNodes_[SOLID95] = 20;
 
     // Map internal element types to ANSYS element types.
+    elemType2AnsysType_[ET_LINE2]   = LINE002;
+    elemType2AnsysType_[ET_LINE3]   = LINE003;
     elemType2AnsysType_[ET_TRIA3]   = PLANE42;
     elemType2AnsysType_[ET_TRIA6]   = PLANE82;
     elemType2AnsysType_[ET_QUAD4]   = PLANE42;
@@ -133,11 +143,11 @@ namespace CoupledField {
     dofLabels_.push_back("SP06");
 
     // Number of DOFs for Ansys element results
-    numAnsysElemDOFs_[ENS] = 11;
-    numAnsysElemDOFs_[EEL] = 7;
-    numAnsysElemDOFs_[EPL] = 7;
-    numAnsysElemDOFs_[ECR] = 7;
-    numAnsysElemDOFs_[ETH] = 7;    
+    numAnsysElemDOFs_[EDENS] = 11;
+    numAnsysElemDOFs_[EDEEL] = 7;
+    numAnsysElemDOFs_[EDEPL] = 7;
+    numAnsysElemDOFs_[EDECR] = 7;
+    numAnsysElemDOFs_[EDETH] = 8;    
   }
 
 
@@ -201,7 +211,7 @@ namespace CoupledField {
         }
 
       // For some reason writing the grid needs one DOF.
-      if(printGrid_)
+      if(printGrid_ || numNodeDOFs_==0)
       {
         numNodeDOFs_ = 1;
         DOF.push_back(SP01);
@@ -261,25 +271,25 @@ namespace CoupledField {
       // and set ANSYS analysis type according to internal analysis type. 
       switch(analysisType_)
       {
-      case STATIC:
+      case BasePDE::STATIC:
         MaxResultSet = ((numSteps_/100)+1)*100;
         complexResults_ = false;
         timeFreq_ = "time";
         kan = 0;
         break;
-      case TRANSIENT:
+      case BasePDE::TRANSIENT:
         MaxResultSet = ((numSteps_/100)+1)*100;
         complexResults_ = false;
         timeFreq_ = "time";
         kan = 4;
         break;
-      case HARMONIC:
+      case BasePDE::HARMONIC:
         MaxResultSet = ((2*numSteps_/100)+1)*100;
         complexResults_ = true;
         timeFreq_ = "frequency";
         kan = 3;
         break;
-      case EIGENFREQUENCY:
+      case BasePDE::EIGENFREQUENCY:
         MaxResultSet = ((numSteps_/100)+1)*100;
         complexResults_ = false;
         timeFreq_ = "frequency";
@@ -372,17 +382,17 @@ namespace CoupledField {
       else
       {
         // Initialize temporary element result arrays.
-        tmpElemResultVecsReal_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
-        tmpElemResultVecsReal_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
-        tmpElemResultVecsReal_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
-        tmpElemResultVecsReal_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
-        tmpElemResultVecsReal_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
+        tmpElemResultVecsReal_[EDENS].resize(NumElem*numAnsysElemDOFs_[EDENS]);
+        tmpElemResultVecsReal_[EDEEL].resize(NumElem*numAnsysElemDOFs_[EDEEL]);
+        tmpElemResultVecsReal_[EDEPL].resize(NumElem*numAnsysElemDOFs_[EDEPL]);
+        tmpElemResultVecsReal_[EDECR].resize(NumElem*numAnsysElemDOFs_[EDECR]);
+        tmpElemResultVecsReal_[EDETH].resize(NumElem*numAnsysElemDOFs_[EDETH]);
 
-        tmpElemResultVecsImag_[ENS].resize(NumElem*numAnsysElemDOFs_[ENS]);
-        tmpElemResultVecsImag_[EEL].resize(NumElem*numAnsysElemDOFs_[EEL]);
-        tmpElemResultVecsImag_[EPL].resize(NumElem*numAnsysElemDOFs_[EPL]);
-        tmpElemResultVecsImag_[ECR].resize(NumElem*numAnsysElemDOFs_[ECR]);
-        tmpElemResultVecsImag_[ETH].resize(NumElem*numAnsysElemDOFs_[ETH]);
+        tmpElemResultVecsImag_[EDENS].resize(NumElem*numAnsysElemDOFs_[EDENS]);
+        tmpElemResultVecsImag_[EDEEL].resize(NumElem*numAnsysElemDOFs_[EDEEL]);
+        tmpElemResultVecsImag_[EDEPL].resize(NumElem*numAnsysElemDOFs_[EDEPL]);
+        tmpElemResultVecsImag_[EDECR].resize(NumElem*numAnsysElemDOFs_[EDECR]);
+        tmpElemResultVecsImag_[EDETH].resize(NumElem*numAnsysElemDOFs_[EDETH]);
       }
     }
   }
@@ -423,9 +433,7 @@ namespace CoupledField {
     LOG_TRACE(simOutputRST) << "Writing elements";
     
     // iterate over all regions
-    StdVector<RegionIdType> regionIds;
-    StdVector<Elem*> elemVec;
-    Elem * ptEl;
+    const Elem * ptEl;
     Integer ansysElemMaterial;
     Integer ansysElemType;
     Integer elemNum;
@@ -433,41 +441,39 @@ namespace CoupledField {
     UInt iElem;
     FEType eType;
 
-    ptGrid_->GetRegionIds( regionIds );
-    
     reswrelembegin_();
     elemNum = 1;
+
+    UInt numElems = ptGrid_->GetNumElems();
     
-    for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
+    // write all element declarations
+    for ( iElem = 0; iElem < numElems; iElem++) {
 
-      // get region id which serves as ANSYS element material
-      ansysElemMaterial = regionIds[iReg]+1;
+      // Get element from grid and determine element type.
+      ptEl = ptGrid_->GetElem( iElem+1 );
+      eType = ptEl->ptElem->feType();
+      
+      // Note: we have to increment the regionId by two, as our
+      // internal "neutral" regionId is -1 and ANSYS counts
+      // 1-based, so we ensure, that the lowest material number
+      // occuring is 1.
+      ansysElemMaterial = ptEl->regionId+2; 
 
-      ptGrid_->GetElems(elemVec,regionIds[iReg]);
+      // Degenerate ANSYS mechanical elements and get ANSYS element type.
+      ansysElemType = ReorderConnect4Ansys(eType,
+                                           ptEl->connect,
+                                           connectANSYS_);
+      numElemNodes = ansysType2NumNodes_[ansysElemType];
 
-      // write all element declarations
-      for ( iElem = 0; iElem < elemVec.GetSize(); iElem++) {
+      // Set element data (region -> material number & type id)
+      elemData_[0] = ansysElemMaterial;
+      elemData_[1] = ansysType2TypeId_[ansysElemType];
 
-        // Get element from grid and determine element type.
-        ptEl = elemVec[iElem];
-        eType = ptEl->ptElem->feType();
+      reswrelem_(&elemNum, &numElemNodes,
+          connectANSYS_,
+          elemData_);
 
-        // Degenerate ANSYS mechanical elements and get ANSYS element type.
-        ansysElemType = ReorderConnect4Ansys(eType,
-                                             ptEl->connect,
-                                             connectANSYS_);
-        numElemNodes = ansysType2NumNodes_[ansysElemType];
-
-        // Set element data (region -> material number & type id)
-        elemData_[0] = ansysElemMaterial;
-        elemData_[1] = ansysType2TypeId_[ansysElemType];
-        
-        reswrelem_(&elemNum, &numElemNodes,
-                   connectANSYS_,
-                   elemData_);
-
-        elemNum++;
-      }
+      elemNum++;
 
     }
 
@@ -475,7 +481,7 @@ namespace CoupledField {
   }
 
   void SimOutputRST::BeginMultiSequenceStep( UInt step,
-                                             AnalysisType type,
+                                             BasePDE::AnalysisType type,
                                              UInt numSteps)
   {
 
@@ -486,10 +492,12 @@ namespace CoupledField {
     msStep_ = step;
   }
 
+  //! Register result (within one multisequence step)
   void SimOutputRST::RegisterResult( shared_ptr<BaseResult> sol,
                                      UInt saveBegin, UInt saveInc,
-                                     UInt saveEnd ) {
-    
+                                     UInt saveEnd,
+                                     bool isHistory )
+  {
     ResultInfo & resInfo = *sol->GetResultInfo();
 
     MapInternal2ANSYSNodeDof(resInfo.resultType);
@@ -636,10 +644,17 @@ namespace CoupledField {
     }
 
     Integer kcmplx = 0;
-    Integer subStep = stepNum_;
-    reswrsolbegin_((Integer*) &stepNum_,
+    Integer solveStep = stepNum_;
+    Integer subStep   = 1;
+    Integer cumIterat = stepNum_;
+    if (analysisType_==BasePDE::EIGENFREQUENCY) {
+        solveStep = 1;
+        subStep   = stepNum_;
+    }
+
+    reswrsolbegin_((Integer*) &solveStep,
                    &subStep,
-                   (Integer*) &stepNum_,
+                   (Integer*) &cumIterat,
                    &stepVal_,
                    &kcmplx,
                    &steptitle[0], &dofLab[0], dofLab.length());
@@ -671,21 +686,24 @@ namespace CoupledField {
 
       for ( ; eResIt != eResEnd; eResIt++ ) {
         AnsysElemDof ansysDOF = eResIt->second;
-        std::vector<Double>& resVec = tmpElemResultVecsReal_[ansysDOF];
-        UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
-        UInt idx = (elem-1)*numAnsysElemDofs;
+        if (ansysDOF==EDENS || ansysDOF==EDEEL || ansysDOF==EDEPL || ansysDOF==EDECR || ansysDOF==EDETH) {
+          std::vector<Double>& resVec = tmpElemResultVecsReal_[ansysDOF];
+          UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
+          UInt idx = (elem-1)*numAnsysElemDofs;
 
-        for ( UInt i = 0; i <numNodes; i++ ) {
-          std::copy(&resVec[idx],
-                    &resVec[idx+numAnsysElemDofs],
+          for ( UInt i = 0; i <numNodes; i++ ) {
+              std::copy(&resVec[idx],
+                    &resVec[idx+numAnsysElemDofs-1],
                     &elemValuesReal[i*numAnsysElemDofs]);
-        }
+          }
 
-        numAnsysElemDofs *=numNodes;
-        reswrestrbegin_(&elem);
-        Integer tmp = ansysDOF;
-        reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValuesReal[0]);
-        reswrestrend_();
+          numAnsysElemDofs *=numNodes;
+          reswrestrbegin_(&elem);
+          Integer tmp = ansysDOF;
+          reswrestr_(&tmp, (Integer*)&numAnsysElemDofs,
+                     &elemValuesReal[0]);
+          reswrestrend_();
+        }
       }
     }
 
@@ -729,21 +747,25 @@ namespace CoupledField {
 
         for ( ; eResIt != eResEnd; eResIt++ ) {
           AnsysElemDof ansysDOF = eResIt->second;
-          std::vector<Double>& resVec = tmpElemResultVecsImag_[ansysDOF];
-          UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
-          UInt idx = (elem-1)*numAnsysElemDofs;
+          if (ansysDOF==EDENS || ansysDOF==EDEEL || ansysDOF==EDEPL || ansysDOF==EDECR || ansysDOF==EDETH) {
+            std::vector<Double>& resVec = tmpElemResultVecsImag_[ansysDOF];
+            UInt numAnsysElemDofs = numAnsysElemDOFs_[ansysDOF];
+            UInt idx = (elem-1)*numAnsysElemDofs;
 
-          for ( UInt i = 0; i <numNodes; i++ ) {
-            std::copy(&resVec[idx],
-                      &resVec[idx+numAnsysElemDofs],
+            for ( UInt i = 0; i <numNodes; i++ ) {
+                  std::copy(&resVec[idx],
+                      &resVec[idx+numAnsysElemDofs-1],
                       &elemValuesImag[i*numAnsysElemDofs]);
-          }
+            }
 
-          numAnsysElemDofs *=numNodes;
-          reswrestrbegin_(&elem);
-          Integer tmp = ansysDOF;
-          reswrestr_(&tmp, (Integer*)&numAnsysElemDofs, &elemValuesReal[0]);
-          reswrestrend_();
+            numAnsysElemDofs *=numNodes;
+            reswrestrbegin_(&elem);
+            Integer tmp = ansysDOF;
+            reswrestr_(&tmp,
+                       (Integer*)&numAnsysElemDofs,
+                       &elemValuesReal[0]);
+            reswrestrend_();
+          }
         }
       }
       reswreresend_();
@@ -887,7 +909,7 @@ namespace CoupledField {
 
   // change node order for right access in ANSYS
   Integer SimOutputRST::ReorderConnect4Ansys(FEType eType,
-                                             StdVector<UInt>& connect,
+                                             const StdVector<UInt>& connect,
                                              Integer* connectANSYS)
   {
     UInt numElemNodes = NUM_ELEM_NODES[eType];
@@ -1037,6 +1059,14 @@ namespace CoupledField {
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
+    case ET_LINE2:
+      //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      break;
+
+    case ET_LINE3:
+      //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      break;
+
     default:
       ansysElemType = -1;
       break;
@@ -1045,6 +1075,17 @@ namespace CoupledField {
     return ansysElemType;
   }
 
+  void SimOutputRST::SetElementType00(AnsysElementType& eltype,
+                                      Integer TypeNumber)
+  {
+    eltype.elementtypid = TypeNumber;
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = 0;
+
+  }
 
   void SimOutputRST::SetElementType42(AnsysElementType& eltype,
                                       Integer TypeNumber)
@@ -1384,29 +1425,24 @@ namespace CoupledField {
     switch(solType)
     {
     case MECH_STRESS:
-      internal2AnsysElemDofMap_[MECH_STRESS] = ENS;
+      internal2AnsysElemDofMap_[MECH_STRESS] = EDENS;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to stresses (ENS).";
+                              << " to stresses (EDENS).";
       break;
     case MECH_STRAIN:
-      internal2AnsysElemDofMap_[MECH_STRAIN] = EEL;
+      internal2AnsysElemDofMap_[MECH_STRAIN] = EDEEL;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to elastic strains (EEL).";
+                              << " to elastic strains (EDEEL).";
       break;
     case ELEC_FIELD_INTENSITY:
-      internal2AnsysElemDofMap_[ELEC_FIELD_INTENSITY] = EPL;
+      internal2AnsysElemDofMap_[ELEC_FIELD_INTENSITY] = EDEPL;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to plastic strains (EPL).";
+                              << " to plastic strains (EDEPL).";
       break;
     case MAG_FLUX_DENSITY:
-      internal2AnsysElemDofMap_[MAG_FLUX_DENSITY] = ECR;
+      internal2AnsysElemDofMap_[MAG_FLUX_DENSITY] = EDECR;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to creep strains (ECR).";
-      break;
-    case MAG_EDDY_CURRENT:
-      internal2AnsysElemDofMap_[MAG_EDDY_CURRENT] = ETH;
-      LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to thermal strains (ETH).";
+                              << " to creep strains (EDECR).";
       break;
     default:
       LOG_TRACE(simOutputRST) << "Element result " << solName
