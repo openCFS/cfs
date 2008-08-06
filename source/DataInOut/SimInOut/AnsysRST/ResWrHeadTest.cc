@@ -11,6 +11,8 @@ namespace fs = boost::filesystem;
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include "sysparh.h"
+
 #include <def_use_ansysrst.hh>
 
 #include "General/environment.hh"

@@ -44,7 +44,7 @@
     <xsd:choice>
       <xsd:element name="gmv" type="DT_InputGMV"/>
       <xsd:element name="mesh" type="DT_InputMesh"/>
-      <xsd:element name="hdf5" type="DT_InputHDF5"/>
+      <xsd:element name="hdf5" type="DT_InputHDF5"/>      
       <xsd:element name="unv" type="DT_InputUNV"/>
     </xsd:choice>
   </xsd:group>
@@ -240,6 +240,14 @@
   <xsd:complexType name="DT_OutputRST">
     <xsd:complexContent>
       <xsd:extension base="DT_OutputBasic">
+        <xsd:attribute name="ansysRevision" default="10.0">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:float">
+              <xsd:minInclusive value="10.0"/>
+              <xsd:maxInclusive value="12.0"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

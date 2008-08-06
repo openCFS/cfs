@@ -69,14 +69,14 @@ namespace CoupledField {
     //! Finalize the output
     virtual void Finalize() {};
 
-  protected:
-    
     //! Fill global vector
     template <class TYPE>
-    void FillGlobalVec( Vector<TYPE>& gSol, 
-                        const StdVector<shared_ptr<BaseResult> > & solList,
-                        ResultInfo::EntityUnknownType entityType );
+    static void FillGlobalVec(Vector<TYPE>& gSol, 
+                              const StdVector<shared_ptr<BaseResult> > & solList,
+                              ResultInfo::EntityUnknownType entityType );
 
+  protected:
+    
     //! Get from complex number the angle in degree with lower limit
     inline Double CPhase( const Complex& c ) const {
       return (std::abs(c.imag()) > 1e-16) ?                   

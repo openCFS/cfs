@@ -12,7 +12,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
 #include <def_cfs_stats.hh>

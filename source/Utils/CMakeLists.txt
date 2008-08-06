@@ -1,9 +1,30 @@
-SET(UTILS_SRCS myclock.cc nodestoresol.cc elemstoresol.cc tools.cc vector.cc
-  Coil.cc ApproxData.cc SmoothSpline.cc mathfunctions.cc
-  hysteresis.cc preisach.cc LinInterpolate.cc jiles.cc profiler.cc
-  coordSystem.cc cylCoordSys.cc defaultCoordSys.cc dampLayer.cc
-  interpolate.cc result.cc polCoordSys.cc readCFDbinary.cc
-  cartesianCoordSys.cc trivialCartesianCoordSys.cc)
+SET(UTILS_SRCS
+  ApproxData.cc
+  cartesianCoordSys.cc
+  Coil.cc
+  coordSystem.cc
+  cylCoordSys.cc
+  dampLayer.cc
+  defaultCoordSys.cc
+  elemstoresol.cc
+  hysteresis.cc
+  interpolate.cc
+  jiles.cc
+  LinInterpolate.cc
+  mathfunctions.cc
+  myclock.cc
+  nodestoresol.cc
+  polCoordSys.cc
+  preisach.cc
+  profiler.cc
+  readCFDbinary.cc
+  result.cc
+  SmoothSpline.cc
+  tools.cc
+  trivialCartesianCoordSys.cc
+  vector.cc
+  )
+
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})
 
@@ -17,3 +38,9 @@ SET(TARGET_LL
 TARGET_LINK_LIBRARIES(utils
   ${TARGET_LL}
 )
+
+ADD_LIBRARY(CFSDynLd SHARED DynamicLibrary.cc)
+TARGET_LINK_LIBRARIES(CFSDynLd
+  -ldl
+)
+  
