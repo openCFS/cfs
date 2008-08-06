@@ -267,7 +267,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_MagneticNodeResult"/>
+                <xsd:attribute name="type" type="DT_MagneticNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -279,7 +280,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_MagneticElemResult"/>
+                <xsd:attribute name="type" type="DT_MagneticElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -291,7 +293,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
-                <xsd:attribute name="type" type="DT_MagneticRegionResult"/>
+                <xsd:attribute name="type" type="DT_MagneticRegionResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

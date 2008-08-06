@@ -1615,7 +1615,8 @@ namespace CoupledField {
 
 
   void SinglePDE::ReadMaterialData() {
-
+    UInt i, numRegions;
+    
     // get list of parameter nodes for region definitions
     StdVector<ParamNode*> regionNodes;
 
@@ -1623,6 +1624,8 @@ namespace CoupledField {
       Get("domain")->Get("regionList", false );
     if( regionListNode)
       regionNodes = regionListNode->GetList("region");
+
+    numRegions = regionNodes.GetSize();
 
     // obtain pointer to materialHandler
     MaterialHandler * matLoader = NULL;
@@ -1635,7 +1638,7 @@ namespace CoupledField {
     std::string region, material, composite, refCoordSys;
 
     // iterate over all regions
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+    for( i = 0; i < numRegions; ++i ) {
 
       try{
         // get data from node
@@ -1715,7 +1718,7 @@ namespace CoupledField {
     // -------------------
 
     // iterate over all regions
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+    for( i = 0; i < numRegions; ++i ) {
 
       try{
         // get data from node
@@ -1784,6 +1787,20 @@ namespace CoupledField {
                            << composite << "'");
       }
     } // over composite
+
+    // once again: loop over all regions and make sure that there is either
+    // a normal material or a composite material
+    for( i = 0; i < numRegions; ++i ) {
+      regionNodes[i]->Get( "name", region );
+      RegionIdType actRegionId = ptgrid_->RegionNameToId( region );
+      if (subdoms_.Find(actRegionId) < 0)
+        continue;
+      if ((materials_.find(actRegionId) == materials_.end())
+          && (compositeMaterials_.find(actRegionId) 
+              == compositeMaterials_.end())) {
+        EXCEPTION("Region '" << region << "' has no material assigned.");
+      }
+    }
   }
 
 

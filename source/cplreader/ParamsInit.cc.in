@@ -78,7 +78,7 @@ namespace CoupledField
 
       if (vm.count("help")) {
         std::cout << std::endl
-                  << "cplreadeer (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
+                  << "cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling"
                   << std::endl << std::endl
                   << "Compiled:" << std::endl << "  "
                   << __DATE__ << std::endl << std::endl;

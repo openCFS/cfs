@@ -241,7 +241,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_AcousticMixedNodeResult"/>
+                <xsd:attribute name="type" type="DT_AcousticMixedNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

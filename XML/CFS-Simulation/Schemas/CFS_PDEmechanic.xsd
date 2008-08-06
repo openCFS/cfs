@@ -552,7 +552,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_MechNodeResult"/>
+                <xsd:attribute name="type" type="DT_MechNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -564,7 +565,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_MechElemResult"/>
+                <xsd:attribute name="type" type="DT_MechElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -576,7 +578,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
-                <xsd:attribute name="type" type="DT_MechRegionResult"/>
+                <xsd:attribute name="type" type="DT_MechRegionResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -588,7 +591,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_MechSurfRegionResult"/>
+                <xsd:attribute name="type" type="DT_MechSurfRegionResult"
+                  use="required"/>
                 <xsd:attribute name="dof" type="DT_MechDOF"/>
               </xsd:extension>
             </xsd:complexContent>

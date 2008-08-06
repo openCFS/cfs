@@ -189,7 +189,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_HeatNodeResult"/>
+                <xsd:attribute name="type" type="DT_HeatNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

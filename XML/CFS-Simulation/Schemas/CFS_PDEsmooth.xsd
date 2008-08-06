@@ -187,7 +187,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_SmoothNodeResult"/>
+                <xsd:attribute name="type" type="DT_SmoothNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -199,7 +200,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_SmoothElemResult"/>
+                <xsd:attribute name="type" type="DT_SmoothElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

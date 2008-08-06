@@ -706,7 +706,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_AcousticNodeResult"/>
+                <xsd:attribute name="type" type="DT_AcousticNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -718,7 +719,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_AcousticElemResult"/>
+                <xsd:attribute name="type" type="DT_AcousticElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -742,7 +744,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_AcousticSurfElemResult"/>
+                <xsd:attribute name="type" type="DT_AcousticSurfElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -754,7 +757,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_AcousticSurfRegionResult"/>
+                <xsd:attribute name="type" type="DT_AcousticSurfRegionResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
