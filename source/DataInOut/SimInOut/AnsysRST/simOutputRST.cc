@@ -106,7 +106,8 @@ namespace CoupledField {
       DynamicLoader::loadObjectFile(sstr.str().c_str(), RTLD_NOW);
     if(dynLibrary_ == NULL) {
       EXCEPTION("Couldn't load the dynamic library '" << sstr.str() 
-                << "'.\n << Please make sure you have the necessary paths:\n"
+                << "'.\n"
+                << "Please make sure you have the necessary paths:\n"
                 << "'" << CFS_ANSYS_LD_PATH << "'\n and"
                 << "'ansys/vXXX/ansys/syslib/" << machineId << "' and\n"
                 << "'ansys/vXXX/ansys/customization/misc/" << machineId << "'\n"
