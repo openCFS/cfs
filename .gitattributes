@@ -394,11 +394,18 @@ source/DataInOut/Scripting/tcl/tcl-messenger.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/AnsysFile/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysFile/simInputMESH.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysFile/simInputMESH.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIface.cc svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIface.hh svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.cc svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.hh svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev100/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResWr.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrDemo.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrHeadTest.cc svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/ResWrProtos.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/AnsysRST/ResWrTest.F -text
 source/DataInOut/SimInOut/AnsysRST/bintrd.F -text
 source/DataInOut/SimInOut/AnsysRST/bintst.F -text
 source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
@@ -1120,6 +1127,9 @@ source/Utils/ApproxData.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/CMakeLists.txt svneol=native#text/plain
 source/Utils/Coil.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Coil.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/DynamicLibrary.cc svneol=native#text/plain
+source/Utils/DynamicLibrary.hh svneol=native#text/plain
+source/Utils/DynamicObject.hh svneol=native#text/plain
 source/Utils/LinInterpolate.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/LinInterpolate.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc

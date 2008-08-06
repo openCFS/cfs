@@ -26,10 +26,10 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void SimOutput::FillGlobalVec( Vector<TYPE>& gSol, 
-                                 const StdVector<shared_ptr<BaseResult> > & solList,
-                                 ResultInfo::EntityUnknownType entityType ) {
-    
+  void SimOutput::FillGlobalVec(Vector<TYPE>& gSol, 
+                                const StdVector<shared_ptr<BaseResult> > & solList,
+                                ResultInfo::EntityUnknownType entityType ) {
+    Grid* ptGrid = solList[0]->GetEntityList()->GetGrid();
     ResultInfo & actDof = *(solList[0]->GetResultInfo());
     UInt numDofs = actDof.dofNames.GetSize();
     LOG_DBG(simOutput) << "Filling global vector for result '" 
@@ -42,7 +42,7 @@ namespace CoupledField {
         entityType == ResultInfo::SURF_ELEM ) {
 
       // === Element Results ===
-      gSol.Resize( ptGrid_->GetNumElems()*numDofs );
+      gSol.Resize( ptGrid->GetNumElems()*numDofs );
       gSol.Init();
       for( UInt i = 0; i < solList.GetSize(); i++ ){
         EntityIterator it = solList[i]->GetEntityList()->GetIterator();
@@ -59,7 +59,7 @@ namespace CoupledField {
                 entityType == ResultInfo::PFEM ) {
 
       // === Nodal Results ===
-      gSol.Resize( ptGrid_->GetNumNodes()*numDofs );
+      gSol.Resize( ptGrid->GetNumNodes()*numDofs );
       gSol.Init();
       for( UInt i = 0; i < solList.GetSize(); i++ ){
         EntityIterator it = solList[i]->GetEntityList()->GetIterator();
@@ -84,12 +84,12 @@ namespace CoupledField {
   // explicit template instantiation
 #if defined(__GNUC__) 
   template void SimOutput::
-  FillGlobalVec<Double>( Vector<Double>& gSol, 
+  FillGlobalVec<Double>(Vector<Double>& gSol, 
+                        const StdVector<shared_ptr<BaseResult> > & solList,
+                        ResultInfo::EntityUnknownType entityType );
+  template void SimOutput::
+  FillGlobalVec<Complex>(Vector<Complex>& gSol, 
                          const StdVector<shared_ptr<BaseResult> > & solList,
                          ResultInfo::EntityUnknownType entityType );
-  template void SimOutput::
-  FillGlobalVec<Complex>( Vector<Complex>& gSol, 
-                          const StdVector<shared_ptr<BaseResult> > & solList,
-                          ResultInfo::EntityUnknownType entityType );
 #endif
 }

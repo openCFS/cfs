@@ -194,12 +194,17 @@ namespace CoupledField {
       case 8:
         numElemNodes = 8;
         break;
+      case 9:
+        numElemNodes = 9;
+        break;
       case 10:
       case 13:
       case 15:
       case 20:
-      case 27:
         numElemNodes = 20;
+        break;
+      case 27:
+        numElemNodes = 27;
         break;
       }
 
