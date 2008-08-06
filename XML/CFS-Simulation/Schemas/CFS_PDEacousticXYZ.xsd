@@ -299,7 +299,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_AcousticXYZNodeResult"/>
+                <xsd:attribute name="type" type="DT_AcousticXYZNodeResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -311,7 +312,8 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_AcousticXYZElemResult"/>
+                <xsd:attribute name="type" type="DT_AcousticXYZElemResult"
+                  use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

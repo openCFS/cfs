@@ -112,9 +112,16 @@ namespace CoupledField {
       ::const_iterator gridIt;
 
     // iterate over all grid ids
-    for( gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); gridIt++ ) {
+    for( gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt ) {
 
       std::string gridId = gridIt->first;
+      if (gridInputs_.size() == 1) {
+        (*warning) << "Grid '" << gridId << "' was renamed to 'default', as "
+                   << "it is the only one.";
+        Warning(__FILE__, __LINE__);
+        gridId = "default";
+      }
+
       StdVector<shared_ptr<SimInput> > const & inputs = gridIt->second;
 
       // iterate over all inputs for the current grid and init reader
@@ -154,6 +161,11 @@ namespace CoupledField {
       }
 
       actGrid->FinishInit();
+    }
+      
+    // make sure that there is a grid with ID "default"
+    if (gridMap_.find("default") == gridMap_.end()) {
+      EXCEPTION("There is no grid with ID 'default'.");
     }
       
     SETPROFILE("After Grid Creation");

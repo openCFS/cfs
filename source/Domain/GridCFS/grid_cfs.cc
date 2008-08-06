@@ -412,8 +412,6 @@ namespace CoupledField {
         
         // calculate distance and store it in vector
         GetNodeCoordinate( actEntCoord, iNode+1, false );
-        if (actEntCoord.GetSize() == 2)
-          actEntCoord.Push_back(0.0);
         temp = (actEntCoord-coord);
         entityDist[iNode] = temp.NormL2();
       } // nodes
