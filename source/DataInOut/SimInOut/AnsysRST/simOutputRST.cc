@@ -110,7 +110,7 @@ namespace CoupledField {
                 << "Please make sure you have the necessary paths:\n"
                 << "'" << CFS_ANSYS_LD_PATH << "'\n and"
                 << "'ansys/vXXX/ansys/syslib/" << machineId << "' and\n"
-                << "'ansys/vXXX/ansys/customization/misc/" << machineId << "'\n"
+                << "'ansys/vXXX/ansys/customize/misc/" << machineId << "'\n"
                 << "in your LD_LIBRARY_PATH variable!");
     }
     // Load a HighPassBinlibIface_ object
@@ -155,7 +155,7 @@ namespace CoupledField {
                 << ansysBinlibRev_ << ".\n"
                 << "Please set\n"
                 << "'ansys/vXXX/ansys/syslib/" << machineId << "' and\n"
-                << "'ansys/vXXX/ansys/customization/misc/" << machineId << "'\n"
+                << "'ansys/vXXX/ansys/customize/misc/" << machineId << "'\n"
                 << "in your LD_LIBRARY_PATH variable!");
     }
     
