@@ -115,7 +115,7 @@ namespace CoupledField {
     for( gridIt = gridInputs_.begin(); gridIt != gridInputs_.end(); ++gridIt ) {
 
       std::string gridId = gridIt->first;
-      if (gridInputs_.size() == 1) {
+      if ((gridId != "default") && (gridInputs_.size() == 1)) {
         (*warning) << "Grid '" << gridId << "' was renamed to 'default', as "
                    << "it is the only one.";
         Warning(__FILE__, __LINE__);
