@@ -145,7 +145,7 @@ namespace CoupledField
     std::vector<std::string> outputFields_;
     std::vector<bool> activeParts_;
 
-    std::vector< shared_ptr<OutputWriter> > outputWriters_;
+    OutputWriterVectorType outputWriters_;
 
     /** scales the FLUIDMECH_VELOCITY vector by the factor scaleFac.
      * @param nodalFlowData the data in which the reults are stored and which

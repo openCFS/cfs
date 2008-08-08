@@ -20,59 +20,61 @@ namespace CoupledField
     virtual ~OutputWriter_HDF5();
 
     // Init output writer
-    virtual void Init(int argc, char** argv);
+    virtual void Init(int argc, char** argv,
+                      const std::string& outputPath);
 
     // Write nodal coordinates
     virtual void WriteNodalCoords(const std::vector<Double>& coords);
 
     // Write element connectivity/topology
     virtual void WriteTopology(UInt maxNumElemNodes,
-                               const std::vector<FEType> elemTypes,
-                               const std::vector<UInt> elems);
+                               const std::vector<UInt>& elemTypes,
+                               const std::vector<UInt>& elems);
 
     // Write regions
     virtual void WriteRegion(std::string regionName,
-                             const std::vector<UInt> regionElems,
-                             const std::vector<UInt> regionNodes);
+                             const std::vector<UInt>& regionElems,
+                             const std::vector<UInt>& regionNodes,
+                             UInt regionDim);
 
     // Write node groups
-    virtual void WriteNodeGroups(const std::vector<std::string> groupNames,
-                                 const std::vector< std::vector<UInt> > groupNodes);
+    virtual void WriteNodeGroups(const std::map< std::string, std::vector<UInt> >&
+                                 nodeGroups);
 
-    virtual void WriteElemGroups(const std::vector<std::string> groupNames,
-                                 const std::vector< std::vector<UInt> > groupElems,
-                                 const std::vector< std::vector<UInt> > groupNodes);
+    virtual void WriteElemGroups(const std::map< std::string, std::vector<UInt> >&
+                                 elemGroups,
+                                 const std::map< std::string, std::vector<UInt> >&
+                                 groupNodes,
+                                 const std::map< std::string, UInt >&
+                                 groupDims);
+    
 
-    virtual void WriteFlowData(std::vector<FlowDataType> flowData,
-                               std::vector<bool> actParts);
+    virtual void WriteFlowData(UInt actRegion,
+                               const std::vector<std::string>& outputFields);
 
     virtual void WriteUserData(const std::map<std::string, std::string>& userData);
+
+    virtual void BeginResults(const std::vector<FlowDataType>* flowData);
+    
+    virtual void BeginStep(UInt stepNum, Double stepValue);
+    virtual void EndStep();
+
+    virtual void EndResults();
 
   private:
     // HDF5 specific member functions
     void CheckOpenObjects();
     void WriteFileInfoHeader();
     void InitHDF5();
-    void WriteRegion(const H5::Group& meshGroup,
-                     const std::vector<UInt>& nodes,
-                     const std::vector<UInt>& elems,
-                     const UInt dim,
-                     const std::string name);
     void InitResultsGroup();
-    void WriteResultDescriptions(UInt numSteps,
-                                 const std::vector<FlowDataType>& outputFields,
-                                 const std::vector<UInt> stepNumbers,
-                                 const std::vector<Double> stepValues);
+    void WriteResultDescriptions();
     void WriteResults( H5::Group& resultGroup,
-                       std::vector<Double>& resultVals,
+                       const std::vector<Double>& resultVals,
                        const UInt numDOFs,
                        const bool isImag );
     void CreateExternalFile(UInt timeStep);
     void WriteStringToUserData(const std::string& dSetName,
                                const std::string& str);
-
-    void WriteNodeGroups(const H5::Group& meshGroup);
-    void WriteElemGroups(const H5::Group& meshGroup);
 
   private:
     // Directory name for storing HDF5 files
@@ -106,6 +108,7 @@ namespace CoupledField
     //! Group for current analysis step for mesh results
     H5::Group currMeshStepGroup_;
 
+    std::vector< std::string > regionNames_;
   };
 
 } // end of namespace

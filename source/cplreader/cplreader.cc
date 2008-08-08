@@ -166,7 +166,7 @@ namespace CoupledField
     }
   }
 
-  void OutputWriterFactory(std::vector< shared_ptr<OutputWriter> >& outputWriters) {
+  void OutputWriterFactory(OutputWriterVectorType& outputWriters) {
     shared_ptr<OutputWriter> p(new OutputWriter_HDF5());
     outputWriters.push_back(p);
   }
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 {
   int ret = 0;
   shared_ptr<FileReader> fileReader;
-  std::vector< shared_ptr<OutputWriter> > outputWriters;
+  OutputWriterVectorType outputWriters;
 
   try
   {

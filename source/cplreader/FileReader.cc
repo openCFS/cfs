@@ -33,8 +33,8 @@ namespace CoupledField
     baseName_+= name_;
     baseName_+= "_";
 
-    preferedOutputPath_ = "cplreader_hdf5_";
-    preferedOutputPath_ += name_;
+    preferredOutputPath_ = "cplreader_hdf5_";
+    preferredOutputPath_ += name_;
 
     // Initialize vector with required results
     typedef boost::tokenizer< boost::char_separator<char> > Tok;

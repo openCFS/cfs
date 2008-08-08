@@ -47,7 +47,7 @@ namespace CoupledField
 {
 
   CouplingHandler::CouplingHandler(shared_ptr<FileReader> ptFileReader,
-                                       std::vector< shared_ptr<OutputWriter> >& outputWriters)
+                                   OutputWriterVectorType& outputWriters)
   {
     ptFileReader_ = ptFileReader;
     outputWriters_ = outputWriters;
@@ -88,6 +88,16 @@ namespace CoupledField
 
     dim_ = settings.GetInt("dim");
 
+    OutputWriterVectorType::iterator it, end;
+    it = outputWriters_.begin();
+    end = outputWriters_.end();
+
+    for( ; it != end; it++) 
+    {
+      (*it)->Init(argc, argv,
+                  ptFileReader_->GetPreferredOutputPath());
+    }
+    
     InitHDF5();
     WriteFileInfoHeader();
 
@@ -249,6 +259,16 @@ namespace CoupledField
 
     nodeGroup.close();
 
+    OutputWriterVectorType::iterator owIt, owEnd;
+    owIt = outputWriters_.begin();
+    owEnd = outputWriters_.end();
+
+    for( ; owIt != owEnd; owIt++) 
+    {
+      (*owIt)->SetDim(dim);
+      (*owIt)->WriteNodalCoords(nodalCoords_);
+    }
+
     std::cout << "done.\nWriting element connectivity... ";
 
     // =====================
@@ -268,6 +288,16 @@ namespace CoupledField
     // write element types
     H5IO::Write1DArray( elemGroup, "Types", nElems,
                         &elemTypes_[0], dPropList_ );
+
+    owIt = outputWriters_.begin();
+    owEnd = outputWriters_.end();
+
+    for( ; owIt != owEnd; owIt++) 
+    {
+      (*owIt)->WriteTopology(maxNumElemNodes,
+                             elemTypes_,
+                             topology_);
+    }
 
     std::cout << "done.\nWriting grid meta info... ";
 
@@ -339,6 +369,17 @@ namespace CoupledField
       WriteRegion(meshGroup_, regionNodes, regionElems_[actRegion], regionDim,
                   regionNames[actRegion]);
 
+      owIt = outputWriters_.begin();
+      owEnd = outputWriters_.end();
+      
+      for( ; owIt != owEnd; owIt++) 
+      {
+        (*owIt)->WriteRegion(regionNames[actRegion],
+                             regionElems_[actRegion],
+                             regionNodes,
+                             regionDim);
+      }
+      
       it = regionNodes.begin();
       end = regionNodes.end();
 
@@ -419,6 +460,32 @@ namespace CoupledField
     // close meshGroup
     meshGroup_.close();
 
+    std::string elemsName;
+    std::map<std::string, std::vector<UInt> >::const_iterator egIt, egEnd;
+    std::map<std::string, std::vector<UInt> > elemGroupNodes;
+    std::map<std::string, UInt > elemGroupDims;
+    egIt = elemGroups_.begin();
+    egEnd = elemGroups_.end();
+
+    for(; egIt != egEnd; egIt++ ) {
+      elemsName = egIt->first;
+      CollectElementNodes(egIt->second,
+                          elemGroupNodes[elemsName],
+                          elemGroupDims[elemsName]);
+    }
+    
+
+    owIt = outputWriters_.begin();
+    owEnd = outputWriters_.end();
+    
+    for( ; owIt != owEnd; owIt++) 
+    {
+      (*owIt)->WriteNodeGroups(nodeGroups_);
+      (*owIt)->WriteElemGroups(elemGroups_,
+                               elemGroupNodes,
+                               elemGroupDims);
+    }
+
 #ifdef MpCCI
     if(settings.GetString("coupling") == "MpCCI") {
       //Close the definition phase; contact detection.
@@ -479,6 +546,14 @@ namespace CoupledField
     // Initialize results tree in HDF5 file
     InitResultsGroup();
 
+    OutputWriterVectorType::iterator owIt, owEnd;
+    owIt = outputWriters_.begin();
+    owEnd = outputWriters_.end();
+
+    for( ; owIt != owEnd; owIt++) 
+    {
+      (*owIt)->BeginResults(&flowData);
+    }
 
     // Fill vector with region names
     for (actRegion = 0; actRegion<numRegions; actRegion++)
@@ -515,6 +590,14 @@ namespace CoupledField
           if(externalFiles)
             CreateExternalFile(stepNum);
         } H5_CATCH( "Can not create dataset for step " << stepNum );
+      }
+
+      owIt = outputWriters_.begin();
+      owEnd = outputWriters_.end();
+      
+      for( ; owIt != owEnd; owIt++) 
+      {
+        (*owIt)->BeginStep(stepNum, stepVal);
       }
 
       // Read nodal values for all partitions
@@ -703,6 +786,16 @@ namespace CoupledField
                      << "' in step " << stepNum);
         }
 
+        owIt = outputWriters_.begin();
+        owEnd = outputWriters_.end();
+        
+        for( ; owIt != owEnd; owIt++) 
+        {
+          (*owIt)->WriteFlowData(actRegion,
+                                 outputFields_);
+        }
+
+
       }//end of for
 
 
@@ -732,6 +825,14 @@ namespace CoupledField
         currMeshStepGroup_.close();
       } H5_CATCH( "Could close current step group" );
 
+      owIt = outputWriters_.begin();
+      owEnd = outputWriters_.end();
+      
+      for( ; owIt != owEnd; owIt++) 
+      {
+        (*owIt)->EndStep();
+      }
+
       // increment time step counter
       counter++;
     }//end of while
@@ -740,6 +841,14 @@ namespace CoupledField
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions( counter, flowData, timeStepNumbers,
                              timeStepValues );
+
+    owIt = outputWriters_.begin();
+    owEnd = outputWriters_.end();
+
+    for( ; owIt != owEnd; owIt++) 
+    {
+      (*owIt)->EndResults();
+    }
 
     std::cout << "========================================"
               << "========================================"
@@ -759,25 +868,35 @@ namespace CoupledField
     // section of the HDF5 file.
     std::map<std::string, std::string> userData;
     std::map<std::string, std::string>::const_iterator udIt, udEnd;
-
+    
     ptFileReader_->GetUserData(userData);
     settings.DumpXML(userData["settings"]);
     udIt = userData.begin();
     udEnd = userData.end();
     for( ; udIt != udEnd; udIt++ )
       WriteStringToUserData(udIt->first, udIt->second);
-
+    
     // Close main HDF5 group and finish
     try {
       mainGroup_.close();
     } H5_CATCH( "Could not close main group" );
+    
+    OutputWriterVectorType::iterator it, end;
+    it = outputWriters_.begin();
+    end = outputWriters_.end();
+    
+    for( ; it != end; it++) 
+    {
+      (*it)->WriteUserData(userData);
+    }
+    
 
     // Delete element integrators
-    std::map<UInt, ElemIntegr *>::iterator it, end;
-    it = ptElemIntegr_.begin();
-    end = ptElemIntegr_.end();
-    for( ; it != end; it++)
-      delete it->second;
+    std::map<UInt, ElemIntegr *>::iterator intIt, intEnd;
+    intIt = ptElemIntegr_.begin();
+    intEnd = ptElemIntegr_.end();
+    for( ; intIt != intEnd; intIt++)
+      delete intIt->second;
   }
 
   void CouplingHandler::CheckOpenObjects() {
@@ -836,8 +955,8 @@ namespace CoupledField
   }
 
   void CouplingHandler::CollectElementNodes(const std::vector<UInt>& elems,
-                                              std::vector<UInt>& nodes,
-                                              UInt& dim)
+                                            std::vector<UInt>& nodes,
+                                            UInt& dim)
   {
     std::vector<UInt>::const_iterator it, end;
     std::set<UInt> nodeSet;
@@ -1397,9 +1516,9 @@ namespace CoupledField
   }
 
   void CouplingHandler::ShrinkNodalVector(const UInt partitionIdx,
-                                            const UInt numDOFs,
-                                            const std::vector<Double>& input,
-                                            std::vector<Double>& output)
+                                          const UInt numDOFs,
+                                          const std::vector<Double>& input,
+                                          std::vector<Double>& output)
   {
     UInt numInputNodes = input.size() / numDOFs;
     UInt numNodes = numRegionNodes_[partitionIdx];
@@ -1428,7 +1547,7 @@ namespace CoupledField
   }
 
   void CouplingHandler::WriteStringToUserData(const std::string& dSetName,
-                                                const std::string& str) {
+                                              const std::string& str) {
     H5::Group userDataGroup;
 
     // If it does not exist, create Group for Data.

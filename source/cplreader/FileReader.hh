@@ -97,7 +97,7 @@ namespace CoupledField
     }
 
     std::string GetPreferredOutputPath() {
-      return preferedOutputPath_;
+      return preferredOutputPath_;
     }
 
   protected:
@@ -129,7 +129,7 @@ namespace CoupledField
     UInt maxNumElemNodes_;
 
     // Preferred path for output of HDF5 files.
-    std::string  preferedOutputPath_;
+    std::string  preferredOutputPath_;
 
     std::map<SolutionType, bool> requiredResults_;
   };
