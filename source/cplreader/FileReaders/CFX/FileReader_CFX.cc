@@ -19,7 +19,6 @@ namespace algo=boost::algorithm;
 
 #include "General/exception.hh"
 #include "cplreader/Settings.hh"
-#include "cplreader/mpcci_defs.hh"
 #include "FileReader_CFX.hh"
 #include "cfx_fortran_defs.h"
 
