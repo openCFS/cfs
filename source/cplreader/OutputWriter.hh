@@ -10,7 +10,8 @@
 
 namespace CoupledField
 {
-
+  class CouplingHandler;
+  
   class OutputWriter {
   public:
     OutputWriter();
@@ -46,7 +47,8 @@ namespace CoupledField
                                  const std::map< std::string, UInt >&
                                  groupDims) = 0;
 
-    virtual void WriteFlowData(UInt actRegion,
+    virtual void WriteFlowData(CouplingHandler* cplHandler,
+                               UInt actRegion,
                                const std::vector<std::string>& outputFields) = 0;
 
     virtual void WriteUserData(const std::map<std::string, std::string>& userData) = 0;

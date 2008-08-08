@@ -11,6 +11,7 @@ namespace fs=boost::filesystem;
 #include "Settings.hh"
 #include "General/environment.hh"
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
+#include "cplreader/CouplingHandler.hh"
 
 
 #include "OutputWriter_HDF5.hh"
@@ -272,7 +273,8 @@ namespace CoupledField
     }
   }
 
-  void OutputWriter_HDF5::WriteFlowData(UInt actRegion,
+  void OutputWriter_HDF5::WriteFlowData(CouplingHandler* cplHandler,
+                                        UInt actRegion,
                                         const std::vector<std::string>& outputFields)
   {
     // Iterate over all flow datasets for this partition
@@ -328,10 +330,10 @@ namespace CoupledField
         std::cout << "Writing result: " << fdps.resultName
                   << " on region " << regionNames_[actRegion] << "... ";
         
-        //        std::vector<Double> output;
-        //        ShrinkNodalVector(actRegion, numDOFs, fdps.data, output);
+        std::vector<Double> output;
+        cplHandler->ShrinkNodalVector(actRegion, numDOFs, fdps.data, output);
         
-        WriteResults(currResultGroup, fdps.data, numDOFs, false);
+        WriteResults(currResultGroup, output, numDOFs, false);
         std::cout << "done." << std::endl;
 
         // Close nodes subgroup
@@ -403,7 +405,58 @@ namespace CoupledField
   }
 
   void OutputWriter_HDF5::CheckOpenObjects() {
+    std::vector<UInt> types;
+    std::vector<std::string> typeNames;
+    hid_t* ids;
 
+    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
+    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
+    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
+    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
+
+    // check for open groups, datasets etc.
+    std::cerr << "Number of open objects:\n"
+              << "--------------------------\n";
+
+    for(UInt t=0; t<types.size(); t++)
+    {
+      UInt numObjs = mainFile_.getObjCount(types[t]);
+      std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
+
+      ids = new hid_t[numObjs];
+      mainFile_.getObjIDs(types[t], numObjs, ids);
+
+      for(UInt i=0; i<numObjs; i++)
+      {
+        H5::DataSet ds;
+        H5::Group group;
+        H5::DataType dt;
+        H5::Attribute attr;
+
+        switch(types[t])
+        {
+        case H5F_OBJ_DATASET:
+          ds.setId((ids[i]));
+          std::cerr << "  " << ds.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_GROUP:
+          group.setId((ids[i]));
+          for(UInt idx=0; idx < group.getNumObjs(); idx++)
+            std::cerr << "  subgroup " << group.getObjnameByIdx(idx) << std::endl;
+          break;
+        case H5F_OBJ_DATATYPE:
+          dt.setId((ids[i]));
+          std::cerr << "  " << dt.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_ATTR:
+          attr.setId((ids[i]));
+          std::cerr << "  " << attr.fromClass() << std::endl;
+          break;
+        }
+      }
+
+      delete[] ids;
+    }
   }
 
   void OutputWriter_HDF5::WriteFileInfoHeader() {
