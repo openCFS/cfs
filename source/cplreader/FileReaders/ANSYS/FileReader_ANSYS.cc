@@ -32,7 +32,7 @@ namespace CoupledField
     // Set chunk size to 10MB
     chunkSize_ = 10 * 1024 * 1024;
     lineIt_ = lineEnd_;
-    preferedOutputPath_ = ".";
+    preferredOutputPath_ = ".";
   }
 
   FileReader_ANSYS::~FileReader_ANSYS()
