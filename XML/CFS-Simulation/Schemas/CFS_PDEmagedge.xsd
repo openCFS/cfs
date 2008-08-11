@@ -15,7 +15,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for magnetics PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="magneticEdge" type="DT_PDEMagnetic"
+  <xsd:element name="magneticEdge" type="DT_PDEMagneticEdge"
     substitutionGroup="PDEBasic">
     <xsd:unique name="CS_MagneticEdgeRegion">
       <xsd:selector xpath="cfs:region"/>
@@ -222,6 +222,7 @@
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrent"/>
     </xsd:restriction>
   </xsd:simpleType>

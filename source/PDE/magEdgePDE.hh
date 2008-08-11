@@ -102,6 +102,10 @@ namespace CoupledField
     template<class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> result );
     
+    //! computes the divergence of the magnetic potential
+    template<class TYPE>
+    void CalcMagPotentialDiv( shared_ptr<BaseResult> result );
+    
     // ---- Magnetic Force variables ---
  
     //! map coupling node number to its position
