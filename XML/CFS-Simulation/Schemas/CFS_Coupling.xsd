@@ -559,6 +559,43 @@
       </xsd:complexContent>
     </xsd:complexType>
   </xsd:element>
+  
+  <!-- Magnetic-mechanic coupling -->
+  <xsd:element name="magEdgeMech" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="magneticEdge">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" minOccurs="0" type="DT_CouplingMag"
+                    maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="mechanic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingMech"
+                    maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smooth" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingSmooth"
+                    maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element>
 
 
   <!-- Acoustic-heatConduction coupling -->

@@ -494,7 +494,7 @@ namespace CoupledField {
           ptSinglePde_[i]=new AcouFlowNoise(defaultGrid, actPdeNode);
         else if  (acouSubType == "combustionNoise")
           ptSinglePde_[i]=new AcouCombustionNoise(defaultGrid, actPdeNode);
-	else
+        else
           ptSinglePde_[i]=new AcousticPDE(defaultGrid, actPdeNode );
       }
       
@@ -507,14 +507,11 @@ namespace CoupledField {
       else if (actPdeName == "smooth")
         ptSinglePde_[i]=new SmoothPDE(defaultGrid, actPdeNode );
 
-      else if (actPdeName == "magnetic") {
-        //        if (dim_ == 2)
+      else if (actPdeName == "magnetic") 
           ptSinglePde_[i]=new MagPDE(defaultGrid, actPdeNode );
-        // else if (dim_ == 3)
-        // ptSinglePde_[i]=new MagEdgePDE(ptgrid, actPdeNode); 
-          //        else
-          //          EXCEPTION( "Magnetic field calculation currently only possible in 2D!" );
-      }
+
+      else if ( actPdeName == "magneticEdge")
+        ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
       
       else if (actPdeName == "mpcci")
         ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );

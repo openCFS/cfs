@@ -48,41 +48,6 @@ namespace CoupledField
 
 
   // =============================================================================
-  // edge integration
-  // =============================================================================
-
-
-  /// class for calculation of right hand side of edge elements
-  class LinearEdgeInt : public LinearForm
-  {
-  public:
-    ///
-    LinearEdgeInt( const std::string& val, UInt direction, 
-                   Vector<Double> * coilMidPoint = NULL);
-
-    ///
-    virtual ~LinearEdgeInt();
-
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
-                         EntityIterator& ent );
-
-  private:
-
-  
-    /// direction of source
-    /*! 1: x-direction, 2: y-direction, 3: z-direction
-     */
-    UInt direction_;
-
-    /// midpoint of coil (needed for circular coils to calculate the current dirction)
-    Vector<Double> * coilMidPt_;  
-  };
-
-
-
-
-  // =============================================================================
   // volume source integration
   // =============================================================================
 
@@ -672,6 +637,39 @@ namespace CoupledField
     bool isUnitValue_;
     
   };
+  
+  // =============================================================================
+   // edge integration
+   // =============================================================================
+
+   /// class for calculation of right hand side of edge elements
+    class LinearEdgeSrcInt : public VolForceInt {
+
+    public:
+      ///
+      LinearEdgeSrcInt( UInt numDof, const std::string& phase, bool isaxi);
+
+      ///
+      virtual ~LinearEdgeSrcInt();
+
+      //! Calculation of vector of right hand side 
+      void CalcElemVector( Vector<Double> & result,
+                           EntityIterator& ent );
+
+      //! Calculation of vector of right hand side 
+      void CalcElemVector( Vector<Complex> & result,
+                           EntityIterator& ent );
+
+      /// Calculation of vector of right hand side 
+      template<class TYPE>
+      void CalcPartVector( Vector<TYPE>& elemVec, 
+                           Vector<TYPE>& loadVec,
+                           EntityIterator& ent );
+
+    private:
+
+    };
+
 
 } // end of namespace
 

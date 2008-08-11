@@ -132,7 +132,16 @@ namespace CoupledField {
     static Double l7[][1]; 
   };
 
+  //! Class for standard 1st and 2nd orer Lagrange functions
+   class NedelecFct : public AnsatzFct {
 
+   public:
+
+     //! Constructor
+     NedelecFct();
+     
+   };
+   
   //! Class for hierarchic Legendre ansatz functions
   class LegendreFct : public AnsatzFct{ 
 
