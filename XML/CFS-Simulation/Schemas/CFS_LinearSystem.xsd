@@ -88,6 +88,7 @@
           <xsd:enumeration value="direct"/>
           <xsd:enumeration value="electrostatic"/>
           <xsd:enumeration value="magnetic"/>
+          <xsd:enumeration value="magneticEdge"/>
           <xsd:enumeration value="mechanic"/>
           <xsd:enumeration value="mpcci"/>
           <xsd:enumeration value="piezo"/>

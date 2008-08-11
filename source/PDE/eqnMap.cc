@@ -229,7 +229,7 @@ namespace CoupledField {
     // Afterwards re-iterate and give dirichletDOFs highest
     // numbers
     CalcNodalEquations( 2 );
-    
+    CalcEdgeEquations( 2 );
     CalcElemConstEquations( 2 );
 
     // Calc number of 'real equations'
@@ -355,7 +355,7 @@ namespace CoupledField {
     // ============
 
     if ( result.definedOn == ResultInfo::NODE ||
-	 result.definedOn == ResultInfo::PFEM ) {
+        result.definedOn == ResultInfo::PFEM ) {
       
       // get related nodal equaiton map
       Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
@@ -1876,24 +1876,69 @@ namespace CoupledField {
   }
   
   void EqnMap::CalcEdgeEquations( UInt phase ) {
-
+    
+    // MAGIC number, which gets assignetd to all edges,
+    // which have not yet an equation number
+    const Integer NO_EQN = -333;
+     
     // Big outer loop over all edge mapped element lists
     ResultEntityMap::iterator listIt;
 
     for( listIt = edgeMappedList_.begin(); 
-    listIt != edgeMappedList_.end(); 
-    listIt++ ) {
+         listIt != edgeMappedList_.end(); 
+         listIt++ ) {
 
-      // Remeber current result and list of elementLists
+      // Remember current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
       StdVector<Vector<Integer> > & actMap = edgeEqns_[actRes];
       
-      UInt dofsPerEdge = actRes.dofNames.GetSize();
-      actMap.Resize( numLocEdges_  );
+      // Get grip of homogeneous and in-homogeneous boundary conditions
+      // for this tpye of result
+      ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
 
-      // Fetch also nodal map
-      Matrix<Integer> & actNodeMap = nodeEqns_[actRes];
+      if( phase == 1 ) {
+
+        UInt dofsPerEdge = actRes.dofNames.GetSize();
+        actMap.Resize( numLocEdges_  );
+
+        // Fetch also nodal map
+        Matrix<Integer> & actNodeMap = nodeEqns_[actRes];
+
+        // --------
+        //  Step 1
+        // --------
+        if( hdBcIt != hdBcs_.end() ) {
+          HdBcList const & actHdBcList = hdBcIt->second;
+          for ( UInt i = 0; i < actHdBcList.GetSize(); i++ ) {
+
+            // check, if entitylist consists of elements
+            if( actHdBcList[i]->entities->GetType() == EntityList::ELEM_LIST ||
+                actHdBcList[i]->entities->GetType() == EntityList::SURF_ELEM_LIST ) {
+              EntityIterator it = actHdBcList[i]->entities->GetIterator();
+
+              // iterate over all elements of this list
+              for( it.Begin(); !it.IsEnd(); it++ ) {
+
+                // obtain edges
+                StdVector<Integer> const & edges = it.GetElem()->edges;
+                UInt actDof = actHdBcList[i]->dof;
+
+                for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
+
+                  // check, if edge can be found
+                  Integer locEdge = mesh2PdeEdge_[std::abs(edges[iEdge]) - 1];
+
+                  if( locEdge > 0 ) {
+                    actMap[locEdge-1].Resize(dofsPerEdge);
+                    actMap[locEdge-1].Init( 0 );
+                  }
+                }
+              }
+            }
+          }
+        }
+
 
       Integer locEdge = 0;
 
@@ -1979,7 +2024,7 @@ namespace CoupledField {
                         counter++;
                       }else
                         actMap[locEdge-1][pos++] = 0;
-                  } else{
+                  } else if ( actRes.fctType->GetType() == AnsatzFct::LEGENDRE ) {
                     if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] > 0
                           || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] > 0)
                          && (iFcn < numFcns[iDof][iEdge]) ) {
@@ -1987,6 +2032,9 @@ namespace CoupledField {
                     } else {
                       actMap[locEdge-1][pos++] = 0;
                     }// check if edge has one non-zero node
+                  } else {
+                    // This here is the Nedelec case -> just number the edges
+                    actMap[locEdge-1][pos++] = ++numEqns_;
                   }
                 } // loop over dofs
               } // loop over functions
@@ -1996,6 +2044,9 @@ namespace CoupledField {
           } // loop over all edges
         } // looop over all elements
       } // loop over all entitylists
+      } else {
+        // === PHASE 2 ===  
+      } 
     } // loop over all results
 
   } 

@@ -675,7 +675,9 @@ namespace CoupledField
     if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
       numFcns.Resize( NumNodes_ );
       numFcns.Init(1);
-    
+    } else if( fcnType->GetType() == AnsatzFct::NEDELEC ) {
+      numFcns.Resize( NumEdges_ );
+      numFcns.Init(1);
     } else if ( fcnType->GetType() == AnsatzFct::SPECTRAL ) {
        Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (fcnType)->GetOrder();
       if( fctEntityType == AnsatzFct::NODE ) {
@@ -1407,6 +1409,183 @@ namespace CoupledField
       }
     }
   }
+  
+  //=================================Edge Element==================================
+
+   // see Ph.D. Sabine Zagelmayr
+   void Hexa1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
+                                     const Vector<Double> & LCoord, 
+                                     const Matrix<Double> & cornernodes,
+                                     const Elem* elem)
+   {
+
+     edgeShape.Resize(NumEdges_, Dim_);
+     edgeShape.Init();
+
+     // nodal shape functions of a tet
+     Vector<Double> nodeShape;
+     CalcShapeFnc2(nodeShape, LCoord);
+
+
+     // local derivates for special shape functions
+     Matrix<Double> xDxi;  
+     GetGlobDerivShFnc2(xDxi, LCoord, cornernodes, NULL, 1);    
+
+     Double factor;
+     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
+       {
+         UInt node1 = edgeIndices_[actEdge][0] - 1;
+         UInt node2 = edgeIndices_[actEdge][1] - 1;
+
+         factor  = elem->edges[actEdge] < 0 ? -1.0 : 1.0;
+         factor *= 0.5 * ( nodeShape[node1] + nodeShape[node2] );
+         for (UInt actDim=0; actDim<Dim_; actDim++)
+           for (UInt actDim=0; actDim<Dim_; actDim++)
+             edgeShape[actEdge][actDim] = 
+               ( xDxi[node2+NumNodes_][actDim] - xDxi[node1+NumNodes_][actDim] ) * factor;
+       }  
+   }
+
+
+   // calculated the Nedelec shape function in an arbitrary point
+   void Hexa1FE :: GetEdgeGlobalDerivShapeFnc(StdVector< Matrix<Double> > & shapeDeriv, 
+                                               const Vector<Double> & lCoord,
+                                               const Matrix<Double> & cornerCoords,
+                                               const Elem* elem)
+   {
+
+     shapeDeriv.Resize(NumEdges_);
+
+     Vector<Double> nodeShape;
+     CalcShapeFnc2(nodeShape, lCoord);
+
+     Matrix<Double> xDxi;  
+     GetGlobDerivShFnc2(xDxi, lCoord, cornerCoords, NULL, 1);
+
+     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++) {
+       shapeDeriv[actEdge].Resize(Dim_,Dim_);
+       
+       UInt node1 = edgeIndices_[actEdge][0] -1;
+       UInt node2 = edgeIndices_[actEdge][1] -1;
+       
+       Double factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;  
+       factor *= 0.5;
+
+       for (UInt dim1=0; dim1<Dim_; dim1++)
+         for (UInt dim2=0; dim2<Dim_; dim2++) {
+           (shapeDeriv[actEdge])[dim2][dim1] = 
+             ( ( xDxi[node1+NumNodes_][dim1] - xDxi[node2+NumNodes_][dim1] ) *
+               ( xDxi[node1][dim2] + xDxi[node2][dim2] ) ) * factor;
+         }
+     }
+   }
+
+
+   void Hexa1FE :: GetGlobDerivShFnc2(Matrix<Double> & Deriv, 
+                                       const Vector<Double> & LCoord,
+                                       const Matrix<Double> & CornerCoords,
+                                       const Elem * elem, 
+                                       UInt dof )
+   {
+
+     CalcInvJacobian(JInv, LCoord, CornerCoords, elem );
+
+     CalcLocalDerivShapeFnc2(LDeriv, LCoord, elem, dof); 
+
+     Deriv = LDeriv * JInv;
+   }
+
+
+   void Hexa1FE :: SetShapeFnc2AtIp()
+   {
+   
+     if (!ShFnc2AtIp_) {
+       ShFnc2AtIp_ = new Vector<Double>[NumIntPoints_];
+     } 
+     else { 
+       delete[] ShFnc2AtIp_ ;
+       ShFnc2AtIp_ = new Vector<Double>[NumIntPoints_];
+     }
+
+     for( UInt i=0; i<NumIntPoints_; i++ ) {
+       CalcShapeFnc2( ShFnc2AtIp_[i], IntPoints_[i]);
+     }
+
+   }
+
+   void Hexa1FE :: CalcShapeFnc2(Vector<Double> & Shape, 
+                                  const Vector<Double> & actCoord)
+   {
+
+     //"Hex Elements"
+     // from Ph.D. thesis of Sabine Zagelmayer
+     // 1-8: lambda_i, 9-16: sigma_i
+
+     Shape.Resize(NumNodes_*2);
+     Shape.Init();
+     for( UInt i=0; i<NumNodes_; i++)
+       Shape[i] = 0.125 
+         * (1 + LCornerCoords_[0][i] * actCoord[0])
+         * (1 + LCornerCoords_[1][i] * actCoord[1]) 
+         * (1 + LCornerCoords_[2][i] * actCoord[2]);
+
+     for( UInt i=0; i<NumNodes_; i++)
+       Shape[i+NumNodes_] = 0.5 * (1 + LCornerCoords_[0][i] * actCoord[0])
+         + 0.5 * (1 + LCornerCoords_[1][i] * actCoord[1]) 
+         + 0.5 * (1 + LCornerCoords_[2][i] * actCoord[2]);
+   }
+
+
+   void Hexa1FE :: SetShapeFnc2DerivAtIp()
+   {
+
+     if( !ShFnc2DerivAtIp_) {
+       ShFnc2DerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+     } 
+     else{ 
+       delete[] ShFnc2DerivAtIp_ ;
+       ShFnc2DerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+     }
+
+     for( UInt i=0; i<NumIntPoints_; i++ )
+       CalcLocalDerivShapeFnc2( ShFnc2DerivAtIp_[i], IntPoints_[i], 
+                                NULL, 1);
+   }
+
+   void Hexa1FE :: CalcLocalDerivShapeFnc2( Matrix<Double> & LDeriv, 
+                                             const Vector<Double> & actCoord,
+                                             const Elem*, UInt dof)
+   {
+
+       LDeriv.Resize(2*NumNodes_,Dim_);
+       LDeriv.Init();
+       
+       for( UInt i=0; i<NumNodes_; i++) {
+         LDeriv[i][0] = 0.125 
+           * LCornerCoords_[0][i] 
+           * (1 + LCornerCoords_[1][i] * actCoord[1] )
+           * (1 + LCornerCoords_[2][i] * actCoord[2]);
+         
+         LDeriv[i][1] = 0.125 
+           * (1 + LCornerCoords_[0][i] * actCoord[0] )
+           * LCornerCoords_[1][i] 
+           * (1 + LCornerCoords_[2][i] * actCoord[2]);
+         
+         LDeriv[i][2] = 0.125 
+           * (1 + LCornerCoords_[0][i] * actCoord[0])
+           * (1 + LCornerCoords_[1][i] * actCoord[1]) 
+           * LCornerCoords_[2][i];
+       }        
+
+       for( UInt i=0; i<NumNodes_; i++) {
+         LDeriv[i+NumNodes_][0] = 0.5 * LCornerCoords_[0][i];
+         LDeriv[i+NumNodes_][1] = 0.5 * LCornerCoords_[1][i]; 
+         LDeriv[i+NumNodes_][2] = 0.5 * LCornerCoords_[2][i];
+       }   
+   }
+  
+  
+  
 
 } // end of namespace
 

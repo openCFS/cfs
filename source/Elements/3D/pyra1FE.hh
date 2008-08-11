@@ -34,7 +34,14 @@ namespace CoupledField
     //! Set local corner coordinates
     virtual void SetCornerCoords();
 
+    //! Set local edge indices
+    void SetEdgeIndices();
 
+    //! return number of knowns
+    void GetNumFncs(Vector<UInt>& numFcns,  
+                    const shared_ptr<AnsatzFct>& fcnType, 
+                    AnsatzFct::FctEntityType fctEntityType, 
+                    UInt dof);
 
     //! calculates the shape functions at an arbitrary local point
     /*!
@@ -68,9 +75,37 @@ namespace CoupledField
     // ===============================================================================
 
 
+    //! calculates the vectorial shape functions at an arbitrary local point
+    /*!
+    \param shape (output) Matrix of shape function values 
+    \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
+    \left( \begin{array}{ccc} N_{1\xi} & N_{1\eta} & N_{1\zeta} \\
+    N_{2\xi} & N_{2\eta} & N_{2\zeta} \\
+    \cdots     & \cdots      & \cdots 
+    \end{array}\right) \f]
+    \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
+                                  const Vector<Double> & LCoord, 
+                                  const Matrix<Double> & CornerCoords,
+                                  const Elem* elem);
 
-  
-  
+    //! calculates the local derivatives of the edge shape functions at an arbitrary local point
+    /*!
+    \param deriv (output) Vector of matrices with local derivatives of all shape functions.
+    Every matrix stores a complete set of global derivations.
+    \f[ deriv[edge1] = \left( \begin{array}{ccc} N_{1\xi,d\xi} & N_{1\xi,d\eta} & N_{1\xi,d\zeta}\\
+    N_{1\eta,d\xi} & N_{1\eta,d\eta} & N_{1\eta,d\zeta}\\
+    N_{1\zeta,d\xi} & N_{1\zeta,d\eta} & N_{1\zeta,d\zeta}
+    \end{array}\right) \f]
+    \param lCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double> > & deriv, 
+                                            const Vector<Double> & lCoord,
+                                            const Matrix<Double> & CornerCoords,
+                                            const Elem* elem);
+
+
 
 
 

@@ -699,9 +699,10 @@ namespace CoupledField
 
 
   // calculate global derivates of edge shape functions in integration point ip
-  void BaseFE::GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double>* > & deriv, 
+  void BaseFE::GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> > & deriv, 
                                          const UInt ip,
-                                         const Matrix<Double> & cornerCoords)
+                                         const Matrix<Double> & cornerCoords,
+                                         const Elem * elem)
   {
 
     // vector of coordinates of the desired integration point
@@ -711,12 +712,13 @@ namespace CoupledField
     for (UInt i=0; i<Dim_; i++)
       lCoord[i] = IntPoints_[ip-1][i];
   
-    GetEdgeGlobalDerivShapeFnc(deriv, lCoord, cornerCoords);
+    GetEdgeGlobalDerivShapeFnc(deriv, lCoord, cornerCoords, elem);
   }
 
   void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
                                     const UInt ip,
-                                    const Matrix<Double> & cornerCoords)
+                                    const Matrix<Double> & cornerCoords,
+                                    const Elem * elem )
   {
 
     Vector<Double> lCoord;
@@ -725,7 +727,7 @@ namespace CoupledField
     for (UInt i=0; i<Dim_; i++)
       lCoord[i] = IntPoints_[ip-1][i];
   
-    CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
+    CalcEdgeShapeFnc(shape, lCoord, cornerCoords,elem);
   }
 
 
@@ -1351,7 +1353,28 @@ namespace CoupledField
 
     return ELEM_TYPE_NAMES[feType()].c_str();
   }
-  
+
+  void BaseFE::GetMaxMinEdgeLength( Matrix<Double> &ptCoord, 
+                                     Double &lMax, Double &lMin ) {
+     lMin = std::numeric_limits<int>::max();
+     lMax = std::numeric_limits<int>::min();
+     
+     // loop over all edges
+     Vector<Double> edgeVec( Dim_ );
+     Double norm;
+     for( UInt iEdge = 0; iEdge < NumEdges_; iEdge++ ) {
+
+       // calculate difference vector
+       for( UInt j = 0; j < Dim_; j ++ ) {
+       edgeVec[j] = ptCoord[j][edgeIndices_[iEdge][0]-1] - 
+                    ptCoord[j][edgeIndices_[iEdge][1]-1]; 
+       }
+       norm = edgeVec.NormL2();
+       lMin = norm < lMin ? norm : lMin;
+       lMax = norm > lMax ? norm : lMax;
+     }
+    
+   }
   // =======================================================================
   // L E G E N D R E    P A R T
   // =======================================================================

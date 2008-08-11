@@ -187,7 +187,7 @@ namespace CoupledField {
   }
   
 
-  NedelcFct::NedelcFct() {
+  NedelecFct::NedelecFct() {
     type_ = NEDELEC;
   }
 

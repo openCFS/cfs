@@ -15,7 +15,9 @@ class MassEdgeInt : public BaseForm
 {
 public:
   /// Constructor
-  MassEdgeInt( Double acond, bool coordUpdate = false );
+  MassEdgeInt( Double acond, 
+               bool scaleByEdgeSize,
+               bool coordUpdate = false );
 
   /// Destructor
   virtual ~MassEdgeInt();
@@ -30,6 +32,8 @@ private:
   // multiplicative value for mass integrator
   Double conductivity_;
   
+  // flag indicating use of scaling by edge size
+  bool scaleByEdgeSize_;
 };
 
 }

@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include <General/environment.hh>
+#include "Domain/elem.hh"
 #include "tetra1FE.hh"
 
 namespace CoupledField
@@ -30,6 +31,7 @@ namespace CoupledField
     NumEdges_ = 6;
     
     CommonInit();
+    SetEdgeIndices();
   }
 
 
@@ -71,58 +73,57 @@ namespace CoupledField
     //   LCornerCoords_[2][3] =  0;
   }
 
-  /// defines the connection between nodes with "their" edge 
-  void Tetra1FE::SetEdgeVertices()
-  {
-    const UInt nrNodesPerEdge = 2;
-  
-    edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
+  void Tetra1FE :: SetEdgeIndices() {
+    
+    edgeIndices_ = new StdVector<UInt>[NumEdges_];
+    for (UInt i=0; i<NumEdges_; i++) {
+      edgeIndices_[i].Resize(2);
+    }
 
-    edgeVertices_[0][0] = 0;
-    edgeVertices_[0][1] = 1;
+    // edge 1
+    edgeIndices_[0][0] = 1;
+    edgeIndices_[0][1] = 2;
 
-    edgeVertices_[1][0] = 0;
-    edgeVertices_[1][1] = 2;
+    // edge 2
+    edgeIndices_[1][0] = 1;
+    edgeIndices_[1][1] = 3;
 
-    edgeVertices_[2][0] = 0;
-    edgeVertices_[2][1] = 3;
+    // edge 3
+    edgeIndices_[2][0] = 1;
+    edgeIndices_[2][1] = 4;
 
-    edgeVertices_[3][0] = 1;
-    edgeVertices_[3][1] = 2;
+    // edge 4
+    edgeIndices_[3][0] = 2;
+    edgeIndices_[3][1] = 3;
 
-    edgeVertices_[4][0] = 1;
-    edgeVertices_[4][1] = 3;
+    // edge 5
+    edgeIndices_[4][0] = 2;
+    edgeIndices_[4][1] = 4;
 
-    edgeVertices_[5][0] = 2;
-    edgeVertices_[5][1] = 3;
-
-    //   edgeVertices_[0][0] = 3;
-    //   edgeVertices_[0][1] = 0;
-
-    //   edgeVertices_[1][0] = 3;
-    //   edgeVertices_[1][1] = 1;
-
-    //   edgeVertices_[2][0] = 3;
-    //   edgeVertices_[2][1] = 2;
-
-    //   edgeVertices_[3][0] = 0;
-    //   edgeVertices_[3][1] = 1;
-
-    //   edgeVertices_[4][0] = 0;
-    //   edgeVertices_[4][1] = 2;
-
-    //   edgeVertices_[5][0] = 1;
-    //   edgeVertices_[5][1] = 2;
+    // edge 6
+    edgeIndices_[5][0] = 3;
+    edgeIndices_[5][1] = 4;
+        
   }
+  
+  void Tetra1FE::GetNumFncs(Vector<UInt>& numFcns,  
+                            const shared_ptr<AnsatzFct>& fcnType, 
+                            AnsatzFct::FctEntityType fctEntityType, 
+                            UInt dof) {
 
 
-
-  // std::ostream& operator<< (std::ostream & outStr, Vector<Double> xOut)
-  // {
-  //   for (UInt i=0; i<xOut.size(); i++)
-  //     outStr <<  " " << xOut[i];
-  //   return outStr;
-  // }
+    // Check ansatzFctType
+    if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
+      numFcns.Resize( NumNodes_ );
+      numFcns.Init(1);
+    } else if( fcnType->GetType() == AnsatzFct::NEDELEC ) {
+      numFcns.Resize( NumEdges_ );
+      numFcns.Init(1);
+    }
+    else {
+      EXCEPTION("In base class only implemented for Lagrange functions!");
+    }
+  }
 
 
   void Tetra1FE::CalcShapeFnc( Vector<Double> & Shape, 
@@ -163,12 +164,13 @@ namespace CoupledField
     for( UInt i=1; i < NumNodes_; i++)
       LDeriv[i][i-1] = 1.0;
   }
-
+  
   // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators" p. 25
   // calculates the edge shape function of a tetrahedral of first order.
-  void Tetra1FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
+  void Tetra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
                                     const Vector<Double> & LCoord, 
-                                    const Matrix<Double> & cornernodes)
+                                    const Matrix<Double> & cornernodes,
+                                    const Elem* elem)
   {
 
     edgeShape.Resize(NumEdges_, Dim_);
@@ -184,24 +186,26 @@ namespace CoupledField
     //  CalcLocalDerivShapeFnc(xDxi, localcoord);
     GetGlobDerivShFnc(xDxi, LCoord, cornernodes, NULL, 1);    
 
+    Double factor;
     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
-      {
-        UInt node1 = edgeVertices_[actEdge][0];
-        UInt node2 = edgeVertices_[actEdge][1];
-      
-        for (UInt actDim=0; actDim<Dim_; actDim++)
-          edgeShape[actEdge][actDim] = 
-            nodeShape[node1] * xDxi[node2][actDim] - 
-            nodeShape[node2] * xDxi[node1][actDim];
-      }  
+    {
+      UInt node1 = edgeIndices_[actEdge][0] - 1;
+      UInt node2 = edgeIndices_[actEdge][1] - 1;
+
+      factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;  
+      for (UInt actDim=0; actDim<Dim_; actDim++)
+        edgeShape[actEdge][actDim] = 
+          ( nodeShape[node1] * xDxi[node2][actDim] - 
+              nodeShape[node2] * xDxi[node1][actDim] ) * factor;
+    }  
   }
 
 
-
   // calculated the Nedelec shape function in an arbitrary point
-  void Tetra1FE::GetEdgeGlobalDerivShapeFnc(Vector< Matrix<Double>* > & shapeDeriv, 
+  void Tetra1FE :: GetEdgeGlobalDerivShapeFnc(StdVector< Matrix<Double> > & shapeDeriv, 
                                               const Vector<Double> & lCoord,
-                                              const Matrix<Double> & cornerCoords)
+                                              const Matrix<Double> & cornerCoords,
+                                              const Elem* elem)
   {
 
     shapeDeriv.Resize(NumEdges_);
@@ -210,22 +214,23 @@ namespace CoupledField
     // local derivates of nodal tet, dimension: nrNodes x Dim_
     Matrix<Double> xDxi;  
     GetGlobDerivShFnc(xDxi, lCoord, cornerCoords, NULL);
-  
-  
+
     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
-      {
-        shapeDeriv[actEdge]->Resize(Dim_,Dim_);
+    {
+      shapeDeriv[actEdge].Resize(Dim_,Dim_);
 
-        UInt node1 = edgeVertices_[actEdge][0];
-        UInt node2 = edgeVertices_[actEdge][1];
+      UInt node1 = edgeIndices_[actEdge][0] -1;
+      UInt node2 = edgeIndices_[actEdge][1] -1;
 
-        for (UInt dim1=0; dim1<Dim_; dim1++)
-          for (UInt dim2=0; dim2<Dim_; dim2++)
-            (*shapeDeriv[actEdge]) [dim2][dim1] = 
-              xDxi[node1][dim1] * xDxi[node2][dim2] -
-              xDxi[node1][dim2] * xDxi[node2][dim1];
-      }
+      Double factor = elem->edges[actEdge] < 0 ? -1.0 : 1.0;  
+      for (UInt dim1=0; dim1<Dim_; dim1++)
+        for (UInt dim2=0; dim2<Dim_; dim2++)
+          (shapeDeriv[actEdge])[dim2][dim1] = 
+            ( xDxi[node1][dim1] * xDxi[node2][dim2] -
+                xDxi[node1][dim2] * xDxi[node2][dim1] ) * factor;
+    }
   }
+
 
 
 } // end of namespace

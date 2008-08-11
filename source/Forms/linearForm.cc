@@ -45,127 +45,154 @@ namespace CoupledField {
   // edge integration
   // ================================================================
 
-  LinearEdgeInt::LinearEdgeInt( const std::string&  aVal, 
-                               UInt aDirection,
-                               Vector<Double> * aCoilMidPt) 
-    : direction_(aDirection)
-  {
-    name_ = "LinearEdgeInt";
-  
-    if(aCoilMidPt)
-      coilMidPt_ = new Vector<Double>(*aCoilMidPt);
-    mParser_->SetExpr( mHandle_, aVal );
-  }
+  LinearEdgeSrcInt::LinearEdgeSrcInt( UInt numDof, 
+                                       const std::string& phase,
+                                       bool isaxi) 
+     :  VolForceInt( numDof, phase, isaxi )
+   {
+     name_ = "LinearEdgeSrcInt";
+   
+   }
 
-  LinearEdgeInt::~LinearEdgeInt()
-  {
-  }
+   LinearEdgeSrcInt::~LinearEdgeSrcInt()
+   {
+   }
 
-
-
-  void LinearEdgeInt::CalcElemVector( Vector<Double> & elemVec,
-                                      EntityIterator& ent ) 
-  {
-  
-    // Extract pointer to reference element and get coordinates
-    ExtractElemInfo( ent );
-
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrEdges  = ptelem->GetNumEdges();
-    const UInt dim      = ptelem->GetDim();
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    const UInt xDir = 0;
-    const UInt yDir = 1;
-    const UInt zDir = 2;
-  
-    Double jacDet;  
-  
-  
-    // derivation of shape functions after global coordinates 
-    Matrix<Double> shapeEdge;
-    Vector<Double> partElemVec;
-    partElemVec.Resize(nrEdges);
-    partElemVec.Init();
-  
-  
-    // set vector to desired size and set all elements to zero    
-    elemVec.Resize(nrEdges); 
-    elemVec.Init();
-
-    Vector<Double> currentVec(dim, 0);
-    // is needed, if coil is curved
-    Vector<Double> globCoord;
-    Double len;
-  
-    Double val = mParser_->Eval( mHandle_ );
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {    
-        // define direction of current
-        switch(direction_)
-          {       
-          case 1:
-          case 2:
-          case 3:
-            // if current direction goes parallel to a coordinate axis
-            currentVec[direction_-1] = val; 
-            break;
-          
-          case 4: // current in xy-plane ==> z=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
-            currentVec[xDir] = -(globCoord[yDir] - (*coilMidPt_)[yDir]);
-            currentVec[yDir] = globCoord[xDir] - (*coilMidPt_)[xDir];
-            currentVec[zDir] = 0;
-          
-            len = currentVec.NormL2();
-            currentVec *= val / len;
-            break;
-
-          case 5: // current in yz-plane ==> x=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
-            currentVec[xDir] = 0;
-            currentVec[yDir] = -(globCoord[zDir] - (*coilMidPt_)[zDir]);
-            currentVec[zDir] = globCoord[yDir] - (*coilMidPt_)[yDir];
-
-            len = currentVec.NormL2();
-            currentVec *= val / len;
-            break;
-
-          case 6: // current in xz-plane ==> y=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
-            currentVec[xDir] = globCoord[zDir] - (*coilMidPt_)[zDir];
-            currentVec[yDir] = 0;
-            currentVec[zDir] = -(globCoord[xDir] - (*coilMidPt_)[xDir]);
-
-            len = currentVec.NormL2();
-            currentVec *= val / len;
-
-            break;
-            
-          default:
-            std::string errMsg = "Selected current direction with num. ";
-            errMsg += direction_ + " not supported!";
-            Error(errMsg.c_str(),__FILE__,__LINE__);
-          }
-        
-        ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_);
-
-        partElemVec = shapeEdge * currentVec;
-
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem());
-
-        for(UInt i=0; i<partElemVec.GetSize(); i++)
-          elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
-      }
-  
-
-#ifdef DEBUG 
-    (*debug) << "CalcElemVector:  "  << std::endl
-             << partElemVec << std::endl
-             << "\n jacDet " << jacDet << std::endl;
-#endif
+   void LinearEdgeSrcInt::CalcElemVector( Vector<Double> & elemVec,
+                                          EntityIterator& ent ) {
 
 
-  }
+     // Extract pointer to reference element and get coordinates
+     ExtractElemInfo( ent );
+
+     // get global coordinate system and math parser
+     MathParser * parser = domain->GetMathParser();
+
+     // First, map force to global coordinate system
+     Vector<Double> globMidPoint, locMidPoint;
+
+     ptelem->GetCoordMidPoint(locMidPoint  );
+     ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, 
+                               ptCoord_, ent.GetElem() );
+
+     // Update variables for mathParser
+     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+     // Now evaluate each entry 
+     Vector<Double> locLoadVec( numDofs_ );
+     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+       parser->SetExpr( mHandle_, locForce_[i] );
+       locLoadVec[i] = parser->Eval( mHandle_ );
+     }
+
+     // If load is not unit load, divide by volume
+     if ( isUnitValue_ == false ) {
+       locLoadVec /= volume_;
+     }
+     
+     // Map local load vector to global one
+     Vector<Double> globVec;
+     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+     // Calculate vector
+     CalcPartVector( elemVec, globVec, ent );
+   }
+
+   void LinearEdgeSrcInt::CalcElemVector( Vector<Complex> & elemVec,
+                                          EntityIterator& ent ) {
+
+
+     // Extract pointer to reference element and get coordinates
+     ExtractElemInfo( ent );
+
+     // get global coordinate system and math parser
+     MathParser * parser = domain->GetMathParser();
+
+     // First, map force to global coordinate system
+     Vector<Double> globMidPoint, locMidPoint;
+
+     ptelem->GetCoordMidPoint(locMidPoint);
+     ptelem->Local2GlobalCoord( globMidPoint, locMidPoint, 
+                                ptCoord_, ent.GetElem() );
+
+     // Update variables for mathParser
+     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+     // Now evaluate each entry 
+     Vector<Complex> locLoadVec( numDofs_ );
+     Double amplitude, phase;
+
+     // -- phase --
+     parser->SetExpr( mHandle_, phase_ );
+     phase = parser->Eval( mHandle_ );
+
+     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+       parser->SetExpr( mHandle_, locForce_[i] );
+       amplitude = parser->Eval( mHandle_ );
+       locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
+                                amplitude * sin(phase/180*PI) );
+     }
+
+     // If load is not unit load, divide by volume
+     if ( isUnitValue_ == false ) {
+       locLoadVec /= volume_;
+     }
+     
+     // Map local load vector to global one
+     Vector<Complex> globVec;
+     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+      // Calculate vector
+     CalcPartVector( elemVec, globVec, ent );
+   }
+
+
+   template<class TYPE>
+   void LinearEdgeSrcInt::CalcPartVector( Vector<TYPE>& elemVec, 
+                                          Vector<TYPE>& loadVec,
+                                          EntityIterator& ent )
+   {
+   
+     // Extract pointer to reference element and get coordinates
+     ExtractElemInfo( ent );
+
+     const UInt nrIntPts = ptelem->GetNumIntPoints();
+     const UInt nrEdges  = ptelem->GetNumEdges();
+     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+   
+     Double jacDet;  
+     
+     // derivation of shape functions after global coordinates 
+     Matrix<Double> shapeEdge;
+     Vector<TYPE> partElemVec;
+     partElemVec.Resize(nrEdges);
+     partElemVec.Init();
+   
+   
+     // set vector to desired size and set all elements to zero    
+     elemVec.Resize(nrEdges); 
+     elemVec.Init();
+
+     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {    
+       ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_,
+                                    ent.GetElem());
+
+       partElemVec = shapeEdge * loadVec;
+       
+       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem());
+
+       for(UInt i=0; i<partElemVec.GetSize(); i++)
+         elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
+     }
+   
+
+ #ifdef DEBUG 
+     (*debug) << "CalcElemVector:  "  << std::endl
+              << partElemVec << std::endl
+              << "\n jacDet " << jacDet << std::endl;
+ #endif
+
+   }
 
 
   // ====================================================================

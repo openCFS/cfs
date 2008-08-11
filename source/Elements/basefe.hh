@@ -354,10 +354,7 @@ namespace CoupledField
     {coord = MidPoint_;};
 
     //! compute length of edge with maximal/minimal size
-    virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ) 
-    { 
-      EXCEPTION("GetMaxMinEdgeLength not implemented");
-    }
+    virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ); 
 
     //! Return FE-Type
     virtual FEType feType() = 0;
@@ -383,9 +380,10 @@ namespace CoupledField
       \end{array}\right)  \f$ ]
       \param LCoord (input) Local coordinates of evalutation point 
     */
-    virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>* > & deriv, 
+    virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double> > & deriv, 
                                             const Vector<Double> & LCoord,
-                                            const Matrix<Double> & CornerCoords)
+                                            const Matrix<Double> & CornerCoords,
+                                            const Elem* elem)
     { Error("GetEdgeGlobDerivShFnc called for non edge element! ",__FILE__,__LINE__);};
 
 
@@ -401,9 +399,10 @@ namespace CoupledField
        \f$ [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
       \cdots & \cdots & \cdots \end{array} \right)  \f$ ]
     */
-    virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> *> & deriv, 
+    virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> > & deriv, 
                                            const UInt ip,
-                                           const Matrix<Double> & cornerCoords);
+                                           const Matrix<Double> & cornerCoords,
+                                           const Elem* elem);
   
 
 
@@ -420,7 +419,8 @@ namespace CoupledField
     */
     virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
                                   const Vector<Double> & LCoord, 
-                                  const Matrix<Double> & CornerCoords)
+                                  const Matrix<Double> & CornerCoords,
+                                  const Elem * elem)
     { Error("CalcEdgeShapeFnc called for non edge element! ",__FILE__,__LINE__);};
   
   
@@ -438,7 +438,8 @@ namespace CoupledField
     */
     virtual void CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
                                       const UInt ip,
-                                      const Matrix<Double> & cornerCoords);
+                                      const Matrix<Double> & cornerCoords,
+                                      const Elem * elem);
   
 
     //! Get nodes belonging to one edge

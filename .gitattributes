@@ -225,6 +225,7 @@ XML/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEbubble.xsd -text svneol=unset#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
+XML/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml

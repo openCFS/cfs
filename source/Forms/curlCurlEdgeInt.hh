@@ -35,7 +35,7 @@ public:
     \param shapeDeriv (input) Vector of matrices holding global derivates of edge shape functions
   */
   void CalcEdgeCurl(Matrix<Double>& curl, 
-                    const StdVector< Matrix<Double>* >& shapeDeriv);
+                    const StdVector< Matrix<Double> >& shapeDeriv);
   
 
 private:

@@ -98,6 +98,10 @@ namespace CoupledField
     template<class TYPE>
     void CalcEddyCurrent( shared_ptr<BaseResult> result );
 
+    //! computes the magnetic energy
+    template<class TYPE>
+    void CalcEnergy( shared_ptr<BaseResult> result );
+    
     // ---- Magnetic Force variables ---
  
     //! map coupling node number to its position
@@ -128,6 +132,12 @@ namespace CoupledField
     void CalcEddyCurrentAtIP( EntityIterator it,
                               UInt ip,
                               Vector<TYPE>& field );
+                              
+    //! computation of Lorentz force
+    void CalcNodeForceLorentz( Vector<Double> & force, 
+                               std::map<UInt, UInt>& cplNodeNumPos,
+                               UInt actCoupling, 
+                               UInt numCouplingNodes );
     
 
     // =======================================================================
