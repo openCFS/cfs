@@ -258,7 +258,7 @@ namespace CoupledField {
        bool scaleByEdgeSize = false;
        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
        
-       if ( conductivity < 1e-10 ||  analysistype_ == STATIC ) {
+       if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
          Double regularizationFactor, perm;
          // get tensor of permeability and determine max. value
            materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, REAL );
@@ -386,6 +386,14 @@ namespace CoupledField {
           CalcFluxDensity<Complex>( res );
         } else {
           CalcFluxDensity<Double>( res );
+        }
+        break;
+      
+      case MAG_POTENTIAL_DIV:
+        if( isComplex_ ) {
+          CalcMagPotentialDiv<Complex>( res );
+        } else {
+          CalcMagPotentialDiv<Double>( res );
         }
         break;
       
@@ -631,6 +639,16 @@ namespace CoupledField {
     eddy->entryType = ResultInfo::VECTOR;
     eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( eddy ); 
+    
+    // === DIVERGENCE OF MAGNETIC POTENTIAL ===
+    shared_ptr<ResultInfo> div(new ResultInfo);
+    div->resultType = MAG_POTENTIAL_DIV;
+    div->dofNames = "";
+    div->unit = "Vs/m^3";
+    div->definedOn = ResultInfo::ELEMENT;
+    div->entryType = ResultInfo::SCALAR;
+    div->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( div );
 
     // === MAGNETIC ENERGY ===
      shared_ptr<ResultInfo> energy(new ResultInfo);
@@ -744,6 +762,47 @@ namespace CoupledField {
      jEddy *= -conductivity;
      
    }
+   
+  template<class TYPE>
+  void MagEdgePDE::CalcMagPotentialDiv( shared_ptr<BaseResult> result ) {
+    // fetch result object and convert data
+    Result<TYPE> &  actSol = 
+      dynamic_cast<Result<TYPE>&>(*result);
+    EntityIterator it = actSol.GetEntityList()->GetIterator();
+    Vector<TYPE> & actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize() );
+
+    StdVector<Matrix<Double> >  globDeriv;
+    Matrix<Double> cornerCoords;
+    Vector<Double> elemMidPoint;
+    Vector<TYPE> elemSol;
+    TYPE elemDiv;
+
+    for( it.Begin(); !it.IsEnd(); it++ ) {
+      const Elem * ptElem = it.GetElem();
+
+      // get coordinates of element
+      ptgrid_->GetElemNodesCoord( cornerCoords, ptElem->connect, true );
+
+      // fetch global gradient
+      ptElem->ptElem->GetCoordMidPoint( elemMidPoint );
+      ptElem->ptElem->GetEdgeGlobalDerivShapeFnc( globDeriv, elemMidPoint, 
+                                                  cornerCoords, ptElem );
+
+      // getch solution of element
+      sol_->GetElemSolution(elemSol, it);
+
+      // loop over shape functions
+      elemDiv = 0.0;
+      for( UInt i = 0; i < elemSol.GetSize(); i++ )  {
+
+        elemDiv += elemSol[i] * ( globDeriv[i][0][0] 
+                                + globDeriv[i][1][1] 
+                                + globDeriv[i][2][2] );
+      }
+      actVal[it.GetPos()] = elemDiv;
+    }
+  }
 
   // ======================================================
   // COUPLING SECTION

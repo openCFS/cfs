@@ -478,6 +478,8 @@ namespace CoupledField {
       out = MAG_POTENTIAL;
     else if (in == "magFluxDensity")
       out = MAG_FLUX_DENSITY;
+    else if (in == "magPotentialDiv")
+      out = MAG_POTENTIAL_DIV;
     else if (in == "magHfield")
       out = MAG_HFIELD;
     else if (in == "magEddyCurrent")
@@ -698,6 +700,9 @@ namespace CoupledField {
         break;
       case MAG_FLUX_DENSITY:
         out = "magFluxDensity";
+        break;
+      case MAG_POTENTIAL_DIV:
+        out =  "magPotentialDiv";
         break;
       case MAG_HFIELD:
         out = "magHfield";
