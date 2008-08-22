@@ -57,7 +57,6 @@ namespace CoupledField
                                const std::string& outputPath)
   {
     hdf5DirName_ = outputPath;
-    hdf5DirName_ = "yuppi";
 
     InitHDF5();
     WriteFileInfoHeader();
