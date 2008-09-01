@@ -283,11 +283,19 @@ namespace CoupledField {
             std::ostringstream fNameStr;
             fNameStr << "cons_interpol_weights_" << srcRegions_[i] << ".dat"; 
             std::ifstream ifs(fNameStr.str().c_str(), std::ios::binary);
-            boost::archive::binary_iarchive ia(ifs);
+            if ( ifs.good() ) {
+              boost::archive::binary_iarchive ia(ifs);
             
-            // read conservative interpolation weights from archive
-            ia >> consInterpWeights_[i];
-            // archive and stream closed when destructors are called
+              // read conservative interpolation weights from archive
+              ia >> consInterpWeights_[i];
+              // archive and stream closed when destructors are called
+            }
+            else {
+              (*warning) << "An error occured while reading the restart file "
+                         << "for conservative interpolation weights. All "
+                         << "weights will be recalculated.";
+              Warning(__FILE__, __LINE__);
+            }
           }
 
           dest->ComputeConservativeInterpolationWeights(*destElemList_,
