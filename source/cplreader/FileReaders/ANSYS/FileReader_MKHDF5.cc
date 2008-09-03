@@ -357,6 +357,8 @@ namespace CoupledField
 
       std::copy(nodeSet.begin(), nodeSet.end(),
                 std::back_inserter(nodeGroups[groupName]));
+
+      nodeSet.clear();
     }
   }
 
@@ -442,6 +444,8 @@ namespace CoupledField
 
       std::copy(elemSet.begin(), elemSet.end(),
                 std::back_inserter(elemGroups[groupName]));
+
+      elemSet.clear();
     }
 
     everyThingRead_ = true;
