@@ -301,7 +301,6 @@ namespace CoupledField
                      outputFields.end(),
                      fdps.resultName) == outputFields.end())
         {
-          // fdps.isActive = false;
           continue;
         }
       }
@@ -543,7 +542,6 @@ namespace CoupledField
   }
 
   void OutputWriter_HDF5::WriteResultDescriptions() {
-    UInt numSteps = stepNums_.size();
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType;
     std::vector<std::string> dofNames;
@@ -589,10 +587,17 @@ namespace CoupledField
     end = (*flowData_)[0].end();
 
     for( ; it != end; it++ ) {
-      if(!it->second.isActive)
+
+      if (!it->second.isActive)
         continue;
 
       resultName = it->second.resultName;
+      
+      // if stepNums_[resultName] is empty,
+      // then this result is no output field
+      if (stepNums_[resultName].empty())
+        continue;
+      
       definedOn = H5IO::MapUnknownType(it->second.definedOn);
       dofNames = it->second.dofNames;
       unit = it->second.unit;
