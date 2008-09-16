@@ -279,6 +279,92 @@ command
 </domain>
 \end{verbatim}
 
+\subsection{Aeroacoustics}
+In aeroacoustics, sound sources are computed from a CFD simulation. This is
+done by another tool, called \texttt{cplreader} (see the \texttt{cplreader}
+manual for details). The sound sources are then used as a load on the right
+hand side of the acoustic PDE. Therefore the corresponding XML element is
+called \texttt{rhsValues}. Here is an example:
+
+\begin{verbatim}
+<rhsValues region="fluid" inputId="acouGrid">
+  <factor>1.0</factor>
+  <asyncSteps>nearest</asyncSteps>
+  <interpolation justInterpolate="yes">
+    <srcRegions names="partition1" inputId="sourceGrid" coordSysId="default"/>
+    <xyPlane z="0.0" tol="1.0e-10"/>
+    <tolerances>
+      <global start="1e-4" end="1e-3" inc="9e-4"/>
+      <local start="1e-3" end="5.1e-2" inc="1e-2"/>
+    </tolerances>
+    <restartFileMode>rw</restartFileMode>
+    <nodeWarnings display="verbose" writeNodes="yes"/>
+  </interpolation>
+</rhsValues>
+\end{verbatim}
+
+The attribute \texttt{region} identifies the region on which the source term
+is to be applied; it is always required. If there is no sub-element
+\texttt{interpolation} then source terms are read from the file given through
+the attribute \texttt{inputId} (which defaults to \texttt{default}).
+
+Inside the \texttt{factor} element one can supply a mathematical expression
+(see chapter~\ref{chap:MathExpr}) which is multiplied with the source terms.
+The expression may depend on time or frequency, and space. This is especially
+useful in a transient simulation that begins after the flow field has had some
+time to develop turbulence. In this case, immediately switching on the full
+source term can lead to numerical errors. A ramp function has proven to give
+much better results. A commonly used ramp is
+\verb|if( t lt T; sin(2*pi*t/(4*T))^2; 1)|, where \texttt{T} must be replaced
+with the time duration of the ramp.
+
+The \texttt{asyncSteps} element tackles that fact that time steps in CFD are
+usually smaller than in computational acoustics. Setting this value to
+\texttt{nearest} selects source terms from the time step that is nearest to the
+one that is currently being computed. \texttt{interpolate} will result in a
+linear temporal interpolation of source terms between the two time steps that
+the current time lies in between. In order to use the default behavior of
+CFS++, selecting data by step number, use \texttt{no} here.
+
+The \texttt{interpolation} element tells CFS++ to interpolate source terms from
+a different grid. This is required, if a CFD grid is not suitable for
+acoustics. The attribute \texttt{justInterpolate} may be set to \texttt{yes} if
+just the interpolation should be computed, but not the acoustic field. The
+\texttt{srcRegions} element defines the CFD grid; \texttt{names} is the list
+of regions (separated by space, \verb|;| or \verb#|#) that contain
+source terms; \texttt{inputId} identifies the input file from which to read the
+CFD grid and source terms; optionally \texttt{coordSysId} may specify the
+coordinate system of the CFD grid if it is different from the acoustics grid.
+
+The \texttt{xyPlane} element is only relevant if the acoustics grid is
+two-dimensional, but the CFD grid is three-dimensional. Then one may specify
+the \texttt{z} coordinate of the x-y-plane (defaults to 0). Additionally
+\texttt{tol} gives the tolerance of \texttt{z} in meters, so that nodes in the
+CFD grid need not lie exactly on the plane.
+
+Inside the \texttt{tolerances} element one may specify a range for the global
+and local tolerances, which are used to determine the interpolation weights.
+The global tolerance (in meters) determines the space around a node in the CFD
+grid, when its surrounding element in the acoustics grid is searched for. The
+local tolerance is the space around an element (in the element's local
+coordinate system) where nodes are still accepted, although they lie outside of
+the element. These tolerance are most relevant for domains with curved
+boundaries, which are discretized very differently by CFD grid and acoustics
+grid. Tolerance ranges are swept in order to use small tolerances wherever
+possible and large tolerances only in places where it is necessary.
+
+\texttt{restartFileMode} determines if a restart file containing the
+interpolation weights is to be read (\texttt{r}), written (\texttt{w}) or both
+(\texttt{rw}). In this way the interpolation weights need to be computed only
+once and can be reused if a simulation is restarted.
+
+The \texttt{nodeWarnings} element defines how nodes are handled which could not
+be mapped during interpolation. Any message is suppressed if the attribute
+\texttt{display} is set to \texttt{no}. The total number of missed nodes is
+reported, when set to \texttt{yes}. A message for each single node is generated
+by a value of \texttt{verbose}. Optionally a text file containing the node
+numbers is written, if the attribute \texttt{writeNodes} is set to \texttt{yes}.
+
 \subsection{Example}
 
 {\footnotesize 
