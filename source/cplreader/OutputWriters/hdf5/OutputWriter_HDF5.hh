@@ -97,6 +97,9 @@ namespace CoupledField
     //! Mesh Group
     H5::Group meshGroup_;
 
+    //! Groups Group
+    H5::Group groupsGroup_;
+
     //! Group for results
     H5::Group resultsGroup_;
 
