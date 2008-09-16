@@ -15,6 +15,7 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
 #include "Domain/entityList.hh"
 #include "Driver/singleDriver.hh"
@@ -30,41 +31,113 @@ namespace CoupledField {
   // volume source integration
   // ====================================================================
 
-  AcouRHSLinForm::AcouRHSLinForm(std::string id,
-                                 std::string regionName,
-                                 std::string factor,
-                                 bool interpolate,
-                                 std::string srcInputId,
-                                 std::string srcRegions,
-                                 std::string coordSysId,
-                                 Double globalEpsilon,
-                                 Double localEpsilon,
-                                 std::string restartFileMode,
-                                 std::string asynchSteps,
-                                 bool node_warnings)
+  AcouRHSLinForm::AcouRHSLinForm(ParamNode* rhsValuesNode)
     : LinearForm(),
-      id_(id),
-      regionName_(regionName),
-      interpolate_(interpolate),
-      srcInputId_(srcInputId),
-      restartFileMode_(restartFileMode),
-      coordSysId_(coordSysId),
-      globalEpsilon_(globalEpsilon),
-      localEpsilon_(localEpsilon),
-      asynchSteps_(asynchSteps),
-      node_warnings_(node_warnings),
-      destNodeList_(NULL),
-      destElemList_(NULL),
-      step_(0),
-      lastStep_(0)
+      id_("default"),
+      interpolate_(false),
+      restartFileMode_("rw"),
+      coordSysId_("default"),
+      globalEpsilon_(1.0e-4, 0.0, 0.0),
+      localEpsilon_(1.0e-3, 0.0, 0.0),
+      asyncSteps_("no"),
+      node_warnings_(Grid::CI_WARN_YES),
+      destNodeList_(NULL), destElemList_(NULL),
+      z_(0.0), zEpsilon_(1.0e-10),
+      step_(0), lastStep_(0)
   {
     name_ = "AcouRHSLinForm";
+
+    std::string srcRegions, factor = "1.0";
+
+    // Read parameters from XML file
+    ParamNode* tmpNode = NULL;
+
+    try {
+      // destination region
+      rhsValuesNode->Get("region", regionName_);
+      // input ID of destination region
+      rhsValuesNode->Get("inputId", id_);
+      // factor (is multiplied with RHS)
+      tmpNode = rhsValuesNode->Get("factor", false);
+      if (tmpNode)
+        factor = tmpNode->AsString();
+      
+      // interpolation parameters (if any)
+      ParamNode* intNode = rhsValuesNode->Get("interpolation", false);
+      if (intNode) {
+        interpolate_ = true;
+        
+        tmpNode = intNode->Get("srcRegions", false);
+        if (tmpNode) {
+          // names of source regions
+          tmpNode->Get("names", srcRegions);
+          // input ID of source regions
+          tmpNode->Get("inputId", srcInputId_);
+          // coordinate system ID of source regions
+          tmpNode->Get("coordSysId", coordSysId_);
+        }
+        
+        // if 3D data are to be interpolated to a 2D grid,
+        // where should the xy-plane be?
+        tmpNode = intNode->Get("xyPlane", false);
+        if (tmpNode) {
+          tmpNode->Get("z", z_, false);
+          tmpNode->Get("tol", zEpsilon_, false);
+        }
+        
+        tmpNode = intNode->Get("tolerances", false);
+        if (tmpNode) {
+          // tolerance in global coordinates
+          ParamNode* tolNode = tmpNode->Get("global", false);
+          if (tolNode) {
+            tolNode->Get("start", globalEpsilon_.start, false);
+            tolNode->Get("end", globalEpsilon_.end, false);
+            tolNode->Get("inc", globalEpsilon_.inc, false);
+          }
+          
+          // tolerance in local coordinates
+          tolNode = tmpNode->Get("local", false);
+          if (tolNode) {
+            tolNode->Get("start", localEpsilon_.start, false);
+            tolNode->Get("end", localEpsilon_.end, false);
+            tolNode->Get("inc", localEpsilon_.inc, false);
+          }
+        }
+        
+        // restart file mode
+        intNode->Get("restartFileMode", restartFileMode_, false);
+        
+        // verbosity of warnings
+        tmpNode = intNode->Get("nodeWarnings", false);
+        if (tmpNode) {
+          std::string dispStr = tmpNode->Get("display")->AsString();
+          if (dispStr == "verbose")
+            node_warnings_ = Grid::CI_WARN_YES | Grid::CI_WARN_VERBOSE;
+          else if (dispStr == "yes")
+            node_warnings_ = Grid::CI_WARN_YES;
+          else
+            node_warnings_ = Grid::CI_WARN_NO;
+          
+          if (node_warnings_ & Grid::CI_WARN_YES
+              && tmpNode->Get("writeNodes")->AsBool()) {
+            node_warnings_ = node_warnings_ | Grid::CI_WARN_LIST;
+          }
+        }
+      }
+      
+      // do we use asynchronous time/frequency steps?
+      rhsValuesNode->Get("asyncSteps", asyncSteps_, false);
+      
+    } catch (Exception& ex) 
+    {
+      RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
+    }
     
     // Determine analysis type
     analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
     
     // For asynchronous steps we need the time values
-    if (asynchSteps_ != "no") {
+    if (asyncSteps_ != "no") {
       mph_tf_ = mParser_->GetNewHandle();
       if (analysistype_ == BasePDE::TRANSIENT) {
         // Get a handle to math parser's time variable
@@ -75,12 +148,12 @@ namespace CoupledField {
         mParser_->SetExpr(mph_tf_, "f");
         
         // linear interpolation does not make sense here
-        if (asynchSteps_ == "interpolate") {
+        if (asyncSteps_ == "interpolate") {
           *warning << "For a harmonic analysis it makes no sense to use "
             << "linear frequency step interpolation; switching to nearest "
             << "neighbor.";
           Warning(__FILE__, __LINE__);
-          asynchSteps_ = "nearest";
+          asyncSteps_ = "nearest";
         }
       }
         
@@ -146,7 +219,7 @@ namespace CoupledField {
   AcouRHSLinForm::~AcouRHSLinForm()
   {
     mParser_->ReleaseHandle( mHandle2_ );
-    if (asynchSteps_ != "no")
+    if (asyncSteps_ != "no")
       mParser_->ReleaseHandle(mph_tf_);
   }
 
@@ -157,7 +230,7 @@ namespace CoupledField {
     Grid* source;
     Grid* dest;
     shared_ptr<BaseResult> acouRHSVal, acouRHSVal2;
-    bool timeInterp = (asynchSteps_ == "interpolate");
+    bool timeInterp = (asyncSteps_ == "interpolate");
     Double factor;
     Double intFactor = 1.0;
     Double t = 0.0;
@@ -168,7 +241,7 @@ namespace CoupledField {
     factor = mParser_->Eval( mHandle2_ );
     
     // Determine asynchronous time step
-    if (asynchSteps_ != "no") {
+    if (asyncSteps_ != "no") {
       // get the current time
       t = mParser_->Eval(mph_tf_);
       
@@ -188,7 +261,7 @@ namespace CoupledField {
         step_ = (--it)->first;
       }
 
-      if (asynchSteps_ == "nearest") { // nearest neighbor interpolation
+      if (asyncSteps_ == "nearest") { // nearest neighbor interpolation
         // check if the previous step is closer to the current time
         Double dt = fabs(it->second - t); 
         if (dt > fabs(t - (--it)->second))
@@ -276,48 +349,52 @@ namespace CoupledField {
             RegionIdType srcRegionId = source->RegionNameToId(srcRegions_[i]);
             sourceNodeLists_[i]->SetNodesOfRegion(srcRegionId);
           }
-
-          // read data from archive
-          if(restartFileMode_ == "r" || restartFileMode_ == "rw") {
-            // open a character archive for input
+          
+          // compute interpolation weights only in first step
+          if (step_ == 1) {
             std::ostringstream fNameStr;
-            fNameStr << "cons_interpol_weights_" << srcRegions_[i] << ".dat"; 
-            std::ifstream ifs(fNameStr.str().c_str(), std::ios::binary);
-            if ( ifs.good() ) {
-              boost::archive::binary_iarchive ia(ifs);
-            
-              // read conservative interpolation weights from archive
-              ia >> consInterpWeights_[i];
+            fNameStr << progOpts->GetSimName() << "_ms"
+                     << domain->GetSingleDriver()->GetActSequenceStep()
+                     << "_" << srcRegions_[i] << "_ciw.dat";
+            // read data from archive
+            if(restartFileMode_ == "r" || restartFileMode_ == "rw") {
+              // open a character archive for input
+              std::ifstream ifs(fNameStr.str().c_str(), std::ios::binary);
+              if ( ifs.good() ) {
+                boost::archive::binary_iarchive ia(ifs);
+              
+                // read conservative interpolation weights from archive
+                ia >> consInterpWeights_[i];
+                // archive and stream closed when destructors are called
+              }
+              else {
+                (*warning) << "An error occured while reading the restart file "
+                           << "for conservative interpolation weights. All "
+                           << "weights will be recalculated.";
+                Warning(__FILE__, __LINE__);
+              }
+            }
+  
+            dest->ComputeConservativeInterpolationWeights(*destElemList_,
+                *sourceNodeLists_[i],
+                coordSysId_,
+                globalEpsilon_,
+                localEpsilon_,
+                z_, zEpsilon_,
+                (Grid::ciWarnFlags) node_warnings_,
+                consInterpWeights_[i]);
+  
+            // save data to archive
+            if(restartFileMode_ == "w" || restartFileMode_ == "rw") {
+              // create and open a character archive for output
+              std::ofstream ofs(fNameStr.str().c_str(), std::ios::binary);
+              boost::archive::binary_oarchive oa(ofs);
+              
+              // write class instance to archive
+              oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
               // archive and stream closed when destructors are called
             }
-            else {
-              (*warning) << "An error occured while reading the restart file "
-                         << "for conservative interpolation weights. All "
-                         << "weights will be recalculated.";
-              Warning(__FILE__, __LINE__);
-            }
-          }
-
-          dest->ComputeConservativeInterpolationWeights(*destElemList_,
-              *sourceNodeLists_[i],
-              coordSysId_,
-              globalEpsilon_,
-              localEpsilon_,
-              consInterpWeights_[i],
-              node_warnings_);
-
-          // save data to archive
-          if(restartFileMode_ == "w" || restartFileMode_ == "rw") {
-            // create and open a character archive for output
-            std::ostringstream fNameStr;
-            fNameStr << "cons_interpol_weights_" << srcRegions_[i] << ".dat"; 
-            std::ofstream ofs(fNameStr.str().c_str(), std::ios::binary);
-            boost::archive::binary_oarchive oa(ofs);
-            
-            // write class instance to archive
-            oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
-            // archive and stream closed when destructors are called
-          }
+          } // step_ == 1
           
           // Get data of previous time step for asynchronous time stepping
           // with interpolation
@@ -472,7 +549,7 @@ namespace CoupledField {
     step_ = (UInt) mParser_->Eval(mHandle_);
     factor = mParser_->Eval( mHandle2_ );
     
-    if (asynchSteps_ != "no") {
+    if (asyncSteps_ != "no") {
       // get current frequency
       f = mParser_->Eval(mph_tf_);
       

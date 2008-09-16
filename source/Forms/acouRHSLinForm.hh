@@ -24,18 +24,7 @@ namespace CoupledField
   {
   public:
     ///
-    AcouRHSLinForm(std::string id,
-                   std::string regionName,
-                   std::string factor,
-                   bool interpolate,
-                   std::string srcInputId,
-                   std::string srcRegion,
-                   std::string coordSysId,
-                   Double globalEpsilon,
-                   Double localEpsilon,
-                   std::string restartFileMode,
-                   std::string asynchSteps,
-                   bool node_warnings);
+    AcouRHSLinForm(ParamNode* rhsValuesNode);
 
     ///
     virtual ~AcouRHSLinForm();
@@ -57,14 +46,16 @@ namespace CoupledField
     StdVector<std::string> srcRegions_;
     std::string restartFileMode_;
     std::string coordSysId_;
-    Double globalEpsilon_;
-    Double localEpsilon_;
-    std::string asynchSteps_;
-    bool node_warnings_;
+    Grid::ciTolerance globalEpsilon_;
+    Grid::ciTolerance localEpsilon_;
+    std::string asyncSteps_;
+    UInt node_warnings_;
     StdVector<NodeList*> sourceNodeLists_;
     NodeList* destNodeList_;
     ElemList* destElemList_;
     BasePDE::AnalysisType analysistype_;
+    Double z_;
+    Double zEpsilon_;
     
     StdVector<Double> rhsValues_;
     StdVector<Double> rhsValues2_;

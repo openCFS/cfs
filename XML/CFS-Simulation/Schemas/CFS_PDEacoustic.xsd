@@ -576,38 +576,97 @@
 
 
   <xsd:complexType name="DT_AcousticRHS">
+    <xsd:all>
+      <xsd:element name="factor" type="xsd:double" minOccurs="0" maxOccurs="1"
+        default="1"/>
+      <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:all>
+            <xsd:element name="srcRegions">
+              <xsd:complexType>
+                <xsd:attribute name="names" type="xsd:token" use="required"/>
+                <xsd:attribute name="inputId" type="xsd:token" use="required"/>
+                <xsd:attribute name="coordSysId" type="xsd:token"
+                  use="optional" default="default"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="z" type="xsd:double" use="required"/>
+                <xsd:attribute name="tol" type="DT_PosFloat"
+                  use="optional" default="1.0e-10"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="tolerances" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="global" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="start" type="DT_PosFloat"
+                        use="required"/>
+                      <xsd:attribute name="end" type="DT_PosFloat"
+                        use="optional"/>
+                      <xsd:attribute name="inc" type="DT_PosFloat"
+                        use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="local" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="start" type="DT_PosFloat"
+                        use="required"/>
+                      <xsd:attribute name="end" type="DT_PosFloat"
+                        use="optional"/>
+                      <xsd:attribute name="inc" type="DT_PosFloat"
+                        use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="restartFileMode" minOccurs="0" maxOccurs="1"
+              default="rw">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:enumeration value="r"/>
+                  <xsd:enumeration value="w"/>
+                  <xsd:enumeration value="rw"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <xsd:element name="nodeWarnings" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="display" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:string">
+                      <xsd:enumeration value="yes"/>
+                      <xsd:enumeration value="no"/>
+                      <xsd:enumeration value="verbose"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="writeNodes" type="DT_CFSBool"
+                  use="optional" default="no"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:all>
+          <xsd:attribute name="justInterpolate" type="DT_CFSBool"
+            use="optional" default="no"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1"
+        default="no">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="no"/>
+            <xsd:enumeration value="nearest"/>
+            <xsd:enumeration value="interpolate"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:all>
     <xsd:attribute name="region" type="xsd:token" use="required"/>
     <xsd:attribute name="inputId" type="xsd:token" use="optional"
       default="default"/>
-    <xsd:attribute name="factor" type="xsd:token" use="optional" default="1"/>
-    <xsd:attribute name="interpolate" type="DT_CFSBool" use="optional"/>
-    <xsd:attribute name="srcInputId" type="xsd:token" use="optional"/>
-    <xsd:attribute name="srcRegions" type="xsd:token" use="optional"/>
-    <xsd:attribute name="coordSysId" type="xsd:token" use="optional"/>
-    <xsd:attribute name="globalEpsilon" type="xsd:double" use="optional"/>
-    <xsd:attribute name="localEpsilon" type="xsd:double" use="optional"/>
-    <xsd:attribute name="justInterpolate" type="DT_CFSBool" use="optional"
-      default="no"/>
-    <xsd:attribute name="restartFileMode" use="optional" default="w">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:normalizedString">
-          <xsd:enumeration value="r"/>
-          <xsd:enumeration value="w"/>
-          <xsd:enumeration value="rw"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute name="asynchSteps" use="optional" default="no">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:string">
-          <xsd:enumeration value="no"/>
-          <xsd:enumeration value="nearest"/>
-          <xsd:enumeration value="interpolate"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute name="warnings" type="DT_CFSBool" use="optional"
-      default="yes"/>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
