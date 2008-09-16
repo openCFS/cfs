@@ -214,9 +214,9 @@ namespace CoupledField
 
       // try to open group with given name
       try {
-        myGroup = meshGroup_.openGroup( nodesName );
+        myGroup = groupsGroup_.openGroup( nodesName );
       } catch (H5::Exception& h5Ex ) {
-        myGroup = meshGroup_.createGroup( nodesName );
+        myGroup = groupsGroup_.createGroup( nodesName );
       }
       H5IO::WriteAttribute( myGroup, "Dimension", 0 );
       H5IO::Write1DArray( myGroup, "Nodes",
@@ -250,9 +250,9 @@ namespace CoupledField
       std::cout << "Writing element group " << elemsName << "... ";
 
       try {
-        myGroup = meshGroup_.openGroup( elemsName );
+        myGroup = groupsGroup_.openGroup( elemsName );
       } catch (H5::Exception& h5Ex ) {
-        myGroup = meshGroup_.createGroup( elemsName );
+        myGroup = groupsGroup_.createGroup( elemsName );
       }
       H5IO::WriteAttribute( myGroup, "Dimension", dimsIt->second );
       H5IO::Write1DArray( myGroup, "Elements",
@@ -267,7 +267,8 @@ namespace CoupledField
 
       // close nodes array of current group
       myGroup.close();
-
+      groupsGroup_.close();
+      
       std::cout << "done." << std::endl;
     }
   }
@@ -535,6 +536,7 @@ namespace CoupledField
 
     mainGroup_ = mainFile_.openGroup( "/" );
     meshGroup_ = mainGroup_.createGroup( "Mesh" );
+    groupsGroup_ = meshGroup_.createGroup( "Groups" );
     mainGroup_.createGroup( "FileInfo" ).close();
 
     mainGroup_.createGroup( "UserData" );
