@@ -5,8 +5,10 @@
 #include <cmath>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Elements/elements_header.hh"
 #include "elem.hh"
@@ -2363,7 +2365,7 @@ namespace CoupledField
         }
 
         elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-                                 &elems[i]->elemNum);
+                                  &elems[i]->elemNum);
       
         //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
       
@@ -2395,181 +2397,241 @@ namespace CoupledField
 
   void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
                                                      const NodeList& sourceNodeList,
-                                                     std::string coordSysId,
-                                                     Double globalEpsilon,
-                                                     Double localEpsilon,
-                                                     std::vector< std::map<UInt, Double> >& consInterpWeights,
-                                                     const bool warnings)
+                                                     const std::string& coordSysId,
+                                                     ciTolerance& globalEpsilon,
+                                                     ciTolerance& localEpsilon,
+                                                     Double z,
+                                                     Double zEpsilon,
+                                                     ciWarnFlags warnings,
+                                                     std::vector< std::map<UInt, Double> >& consInterpWeights)
   {
-    double xmin, ymin, xmax, ymax, zmin, zmax;
+    Double xmin, ymin, xmax, ymax, zmin, zmax;
+    Double globEps, locEps;
     UInt i;
-    std::vector<HandleBox> elemBoxes2;
-    Point p;
-    Grid* source = sourceNodeList.GetGrid();
     UInt dim = GetDim();
-    UInt srcDim = source->GetDim();
-    CoordSystem* coordSys = domain->GetCoordSystem(coordSysId);
-    std::vector< Vector<Double> > nodeCoords;
     UInt numSourceNodes = sourceNodeList.GetSize(); // number of nodes in source region
-    UInt numActualSourceNodes; // actual number of nodes to be interpolated
-    
-    EntityIterator it = sourceNodeList.GetIterator();
+    UInt numActualSourceNodes = 0; // actual number of nodes to be interpolated
+    CoordSystem* coordSys = domain->GetCoordSystem(coordSysId);
+    Grid* source = sourceNodeList.GetGrid();
+    UInt srcDim = source->GetDim();
+    Point p;
     StdVector<UInt> sourceNodeNumbers, sourceNodeIndices;
-
     Vector<Double> point;
     Vector<Double> globPoint;
-
-    i=0;
-     while(!it.IsEnd())
-    {
-      if(!consInterpWeights.empty())
-      {
-        if(consInterpWeights[i].empty())
-        {
-          // If the source grid is 3D and the destination grid is 2D
-          // we have to map the global source coordinates into the
-          // local source coordinate sys and only use those nodes
-          // with z=0.
-          if( srcDim == 3 && dim == 2)
-          {
-            source->GetNodeCoordinate(point, it.GetNode(), true);
-            coordSys->Global2LocalCoord(globPoint, point);
-
-            // TODO: jens: make tolerance accessible via XML file
-            if( std::fabs(globPoint[2]) < 1e-10 )
-            {
-              sourceNodeNumbers.Push_back(it.GetNode());
-              sourceNodeIndices.Push_back(it.GetPos());
-            }
-          }
-          else
-          {
-            sourceNodeNumbers.Push_back(it.GetNode());
-            sourceNodeIndices.Push_back(it.GetPos());
-          }    
-        }
-      }
-      else
-      {
-        if( srcDim == 3 && dim == 2)
-        {
-          source->GetNodeCoordinate(point, it.GetNode(), true);
-          coordSys->Global2LocalCoord(globPoint, point);
-
-          // TODO: jens: make tolerance accessible via XML file
-          if( std::fabs(globPoint[2]) < 1e-10 )
-          {
-            sourceNodeNumbers.Push_back(it.GetNode());
-            sourceNodeIndices.Push_back(it.GetPos());
-          }
-        }
-        else
-        {
-          sourceNodeNumbers.Push_back(it.GetNode());
-          sourceNodeIndices.Push_back(it.GetPos());
-        }
-            
-      }
-        
-      it++;
-      i++;
-    }
-
-    numActualSourceNodes = sourceNodeNumbers.GetSize();
-
-    if(numActualSourceNodes == 0)
-      return;
+    std::vector< Vector<Double> > nodeCoords;
+    std::vector<HandleBox> elemBoxes2;
     
-    if(consInterpWeights.empty())
+    // initialize memory of interpolation weights, if necessary
+    if (consInterpWeights.empty())
       consInterpWeights.resize(numSourceNodes);
 
+    // initialize memory for coordinates of source nodes
     nodeCoords.resize(numSourceNodes);
-
-    for(UInt i=0; i<numSourceNodes; i++) {
+    for (UInt i=0; i<numSourceNodes; ++i) {
       nodeCoords[i].Resize(0);
     }
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
-    elemBoxes_.resize(destElemList.GetSize());
-    const Elem* elem = NULL;
-    
-    for(UInt i = 0, m=destElemList.GetSize(); i < m; i++)
-    {
-      elem = destElemList.GetElem(i);
-      GetNodeCoordinate(p, elem->connect[0]);
-      
-      xmin = xmax = p[0];
-      ymin = ymax = p[1];
-      zmin = zmax = p[2];
-      
-      for(UInt j = 1, n=elem->connect.GetSize(); j < n; j++)
+    if (elemBoxes_.empty()) {
+      elemBoxes_.resize(destElemList.GetSize());
+      const Elem* elem = NULL;
+  
+      for(UInt i = 0, m=destElemList.GetSize(); i < m; ++i)
       {
-        GetNodeCoordinate(p, elem->connect[j]);
-        xmin = p[0] < xmin ? p[0] : xmin;
-        xmax = p[0] > xmax ? p[0] : xmax;
-        ymin = p[1] < ymin ? p[1] : ymin;
-        ymax = p[1] > ymax ? p[1] : ymax;
-        zmin = p[2] < zmin ? p[2] : zmin;
-        zmax = p[2] > zmax ? p[2] : zmax;
+        elem = destElemList.GetElem(i);
+        GetNodeCoordinate(p, elem->connect[0]);
+  
+        xmin = xmax = p[0];
+        ymin = ymax = p[1];
+        zmin = zmax = p[2];
+  
+        for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
+        {
+          GetNodeCoordinate(p, elem->connect[j]);
+          xmin = p[0] < xmin ? p[0] : xmin;
+          xmax = p[0]> xmax ? p[0] : xmax;
+          ymin = p[1] < ymin ? p[1] : ymin;
+          ymax = p[1]> ymax ? p[1] : ymax;
+          zmin = p[2] < zmin ? p[2] : zmin;
+          zmax = p[2]> zmax ? p[2] : zmax;
+        }
+  
+        elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+                                  &elem->elemNum);
+  
+        //std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin
+        //          << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", "
+        //          << ymax << ", " << zmax << ")" << std::endl;
+  
+      }
+    }
+
+    // check that tolerances make sense
+    if (globalEpsilon.end < globalEpsilon.start)
+      globalEpsilon.end = globalEpsilon.start;
+    if (globalEpsilon.inc == 0.0)
+      globalEpsilon.inc = globalEpsilon.start;
+    if (localEpsilon.end < localEpsilon.start)
+      localEpsilon.end = localEpsilon.start;
+    if (localEpsilon.inc == 0.0)
+      localEpsilon.inc = localEpsilon.start;
+    
+    // loop over tolerance ranges
+    for (locEps = localEpsilon.start;
+         locEps <= localEpsilon.end;
+         locEps += localEpsilon.inc) {
+      
+      // global tolerance is inner loop, because
+      // it doesn't cause numerical errors
+      for (globEps = globalEpsilon.start;
+           globEps <= globalEpsilon.end;
+           globEps += localEpsilon.inc) {
+        
+        EntityIterator it = sourceNodeList.GetIterator();
+        sourceNodeNumbers.Clear();
+        sourceNodeIndices.Clear();
+        elemBoxes2.clear();
+        i=0;
+        
+        // create a list of nodes that still need to be interpolated
+        while (!it.IsEnd())
+        {
+          if (!consInterpWeights.empty())
+          {
+            if (consInterpWeights[i].empty())
+            {
+              // If the source grid is 3D and the destination grid is 2D
+              // we have to map the global source coordinates into the
+              // local source coordinate sys and only use those nodes
+              // with given z.
+              if ( srcDim == 3 && dim == 2)
+              {
+                source->GetNodeCoordinate(point, it.GetNode(), true);
+                coordSys->Global2LocalCoord(globPoint, point);
+    
+                if ( std::fabs(globPoint[2] - z) < zEpsilon )
+                {
+                  sourceNodeNumbers.Push_back(it.GetNode());
+                  sourceNodeIndices.Push_back(it.GetPos());
+                }
+              }
+              else
+              {
+                sourceNodeNumbers.Push_back(it.GetNode());
+                sourceNodeIndices.Push_back(it.GetPos());
+              }
+            }
+          }
+          else
+          {
+            if ( srcDim == 3 && dim == 2)
+            {
+              source->GetNodeCoordinate(point, it.GetNode(), true);
+              coordSys->Global2LocalCoord(globPoint, point);
+    
+              if ( std::fabs(globPoint[2] - z) < zEpsilon )
+              {
+                sourceNodeNumbers.Push_back(it.GetNode());
+                sourceNodeIndices.Push_back(it.GetPos());
+              }
+            }
+            else
+            {
+              sourceNodeNumbers.Push_back(it.GetNode());
+              sourceNodeIndices.Push_back(it.GetPos());
+            }
+    
+          }
+    
+          it++;
+          ++i;
+        }
+    
+        numActualSourceNodes = sourceNodeNumbers.GetSize();
+    
+        if (numActualSourceNodes == 0)
+          return;
+    
+        // add global tolerance to bounding boxes
+        for(UInt n=0; n<numActualSourceNodes; ++n)
+        {
+          source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
+          coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
+    
+          // subtract origin here!
+          if(dim == 3)
+            elemBoxes2.push_back(HandleBox(
+                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
+                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
+                       nodeCoords[sourceNodeIndices[n]][2]-globEps,
+                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
+                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
+                       nodeCoords[sourceNodeIndices[n]][2]+globEps),
+                  &sourceNodeIndices[n]));
+          else
+            elemBoxes2.push_back(HandleBox(
+                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
+                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
+                       0.0,
+                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
+                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
+                       0.0),
+                  &sourceNodeIndices[n]));
+        }
+    
+        // run the intersection algorithm and store results in a vector
+    
+        //std::cout << "Calculating conservative interpolation weights..."
+        //          << std::endl;
+        CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
+                                  elemBoxes2.begin(), elemBoxes2.end(),
+                                  GenConsInterpReportFunctor(destElemList,
+                                      sourceNodeList,
+                                      nodeCoords,
+                                      locEps,
+                                      consInterpWeights));
+      }
+    }
+
+    if (warnings & CI_WARN_YES)  {
+      std::ostringstream fNameStr;
+      std::ofstream badNodesFile;
+      UInt numBadNodes = 0;
+      
+      if (warnings & CI_WARN_LIST) {
+        fNameStr << progOpts->GetSimName() << "_ci_missed_nodes.txt";
+        badNodesFile.open(fNameStr.str().c_str(),
+                          std::ios_base::out | std::ios_base::trunc);
+        if (!badNodesFile)
+          EXCEPTION("Error writing to file " << fNameStr.str());
+        badNodesFile.width(1);
+        badNodesFile << std::ios_base::left;
       }
       
-      elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-                                &elem->elemNum);
-      
-      //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
-      
-    }
-
-    for(UInt n=0; n<numActualSourceNodes; n++)
-    {
-      Vector<Double> point;
-      source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
-      coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
-
-      // Hier den origin abziehen!
-      if(dim == 3)
-        elemBoxes2.push_back(HandleBox(BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][1]-globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][2]-globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][0]+globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][1]+globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][2]+globalEpsilon),
-                                       &sourceNodeIndices[n]));
-      else
-        elemBoxes2.push_back(HandleBox(BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][1]-globalEpsilon,
-                                              0.0,
-                                              nodeCoords[sourceNodeIndices[n]][0]+globalEpsilon,
-                                              nodeCoords[sourceNodeIndices[n]][1]+globalEpsilon,
-                                              0.0),
-                                       &sourceNodeIndices[n]));
-    }
-    
-    // run the intersection algorithm and store results in a vector
-    
-    //std::cout << "Calculating conservative interpolation weights..." << std::endl;
-    CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
-                              elemBoxes2.begin(), elemBoxes2.end(),
-                              GenConsInterpReportFunctor(destElemList,
-                                                         sourceNodeList,
-                                                         nodeCoords,
-                                                         localEpsilon,
-                                                         consInterpWeights));
-
-    if (warnings)  {
-      std::map<UInt, double>::const_iterator cIWit, cIWend;
-      for(UInt i=0; i<numActualSourceNodes; i++)
-      {
-        cIWit = consInterpWeights[sourceNodeIndices[i]].begin();
-        cIWend = consInterpWeights[sourceNodeIndices[i]].end();
-
-        if(!std::distance(cIWit, cIWend))
+      for(UInt i=0; i<numActualSourceNodes; ++i) {
+        if (consInterpWeights[sourceNodeIndices[i]].empty())
         {
-          std::stringstream sstr;
-          sstr << "Node " << sourceNodeNumbers[i] << " from source grid does not get mapped to destination grid!";
-          Warning(sstr.str().c_str(), __FILE__, __LINE__);
-          continue;
+          ++numBadNodes;
+          if (warnings & CI_WARN_VERBOSE) {
+            (*warning) << "Node " << sourceNodeNumbers[i]
+              << " from source grid could not be mapped to destination grid.";
+            Warning(__FILE__, __LINE__);
+          }
+          if ((warnings & CI_WARN_LIST) && badNodesFile) {
+            badNodesFile << sourceNodeNumbers[i] << std::endl;
+            if (!badNodesFile)
+              EXCEPTION("Error writing to file " << fNameStr.str());
+          }
         }
+      }
+      
+      if (numBadNodes > 0) {
+        (*warning) << "During conservative interpolation " << numBadNodes
+                   << " nodes in total were not mapped.";
+        Warning(__FILE__, __LINE__);
+      }
+      if (warnings & CI_WARN_LIST) {
+        badNodesFile.close();
       }
     }
 

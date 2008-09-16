@@ -869,7 +869,8 @@ namespace CoupledField
     //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
     //  typedef CGAL::Bbox_2                              BBox2D;
     typedef CGAL::Bbox_3                              BBox3D;
-    typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,const UInt*> HandleBox;
+    typedef CGAL::Box_intersection_d
+                ::Box_with_handle_d<double,3,const UInt*> HandleBox;
     
     typedef CGAL::Cartesian<double> K;
     typedef K::Point_2 Point2D;
@@ -1146,15 +1147,33 @@ namespace CoupledField
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      Vector<double>& localCoords);
 
+    typedef enum {
+      CI_WARN_NO = 0,
+      CI_WARN_YES = 1,
+      CI_WARN_VERBOSE = 2,
+      CI_WARN_LIST = 4
+    } ciWarnFlags;
+    
+    struct ciTolerance {
+      Double start;
+      Double end;
+      Double inc;
+      
+      ciTolerance(Double s, Double e, Double i) :
+        start(s), end(e), inc(i) {};
+    };
+    
     void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
                                                  const NodeList& sourceNodeList,
-                                                 std::string coordSysId,
-                                                 Double globalEpsilon,
-                                                 Double localEpsilon,
-                                                 std::vector< std::map<UInt, Double> >& consInterpWeights,
-                                                 const bool warnings = true);
+                                                 const std::string& coordSysId,
+                                                 ciTolerance& globalEpsilon,
+                                                 ciTolerance& localEpsilon,
+                                                 Double z,
+                                                 Double zEpsilon,
+                                                 ciWarnFlags warnings,
+                                                 std::vector< std::map<UInt, Double> >& consInterpWeights);
 
-#endif
+#endif // USE_INTERPOLATION
     
     ///
   };

@@ -928,19 +928,8 @@ namespace CoupledField {
     shared_ptr<NodeList> acouRHSRegionNodeList( new NodeList(ptgrid_ ) );
 
     std::string rhsRegion;
-    std::string rhsFileId;
     ParamNode* rhsValuesNode = NULL;
     ParamNode* bcsNode = NULL;
-    std::string factor = "1.0";
-    bool interpolate = false;
-    bool node_warnings = true;
-    std::string srcInputId;
-    std::string srcRegions;
-    std::string coordSysId = "default";
-    std::string restartFileMode = "";
-    Double globalEpsilon = 0.0;
-    Double localEpsilon = 0.0;
-    std::string asynchSteps = "no";
 
     bcsNode = myParam_->Get("bcsAndLoads", false );
     if( bcsNode )
@@ -951,22 +940,9 @@ namespace CoupledField {
     try
     {
       rhsRegion = rhsValuesNode->Get("region")->AsString();
-      rhsFileId = rhsValuesNode->Get("inputId")->AsString();
-      rhsValuesNode->Get("factor", factor, false);
-      rhsValuesNode->Get("interpolate", interpolate, false);
-      if(interpolate)
-      {
-        srcInputId = rhsValuesNode->Get("srcInputId")->AsString();
-        srcRegions = rhsValuesNode->Get("srcRegions")->AsString();
-        rhsValuesNode->Get("coordSysId", coordSysId, false);
-        rhsValuesNode->Get("globalEpsilon", globalEpsilon, false);
-        rhsValuesNode->Get("localEpsilon", localEpsilon, false);
-        rhsValuesNode->Get("justInterpolate", justInterpolate_, false);
-        rhsValuesNode->Get("restartFileMode", restartFileMode, false);
-      }
-      asynchSteps = rhsValuesNode->Get("asynchSteps")->AsString();
-      rhsValuesNode->Get("warnings", node_warnings, false);
-      
+      ParamNode* intNode = rhsValuesNode->Get("interpolation", false);
+      if (intNode)
+        intNode->Get("justInterpolate", justInterpolate_, false);
     } catch (Exception& ex) 
     {
       RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
@@ -976,18 +952,7 @@ namespace CoupledField {
     {
       acouRHSRegionNodeList->SetNodesOfRegion( ptgrid_->RegionNameToId(rhsRegion) );
       
-      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsFileId,
-                                                      rhsRegion,
-                                                      factor,
-                                                      interpolate,
-                                                      srcInputId,
-                                                      srcRegions,
-                                                      coordSysId,
-                                                      globalEpsilon,
-                                                      localEpsilon,
-                                                      restartFileMode,
-                                                      asynchSteps,
-                                                      node_warnings);
+      AcouRHSLinForm* acouRHSInt = new AcouRHSLinForm(rhsValuesNode);
 
       LinearFormContext * acouRHSContext = 
         new LinearFormContext( acouRHSInt );
