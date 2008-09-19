@@ -577,7 +577,7 @@
 
   <xsd:complexType name="DT_AcousticRHS">
     <xsd:all>
-      <xsd:element name="factor" type="xsd:double" minOccurs="0" maxOccurs="1"
+      <xsd:element name="factor" type="xsd:token" minOccurs="0" maxOccurs="1"
         default="1"/>
       <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
