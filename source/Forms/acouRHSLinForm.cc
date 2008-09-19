@@ -43,6 +43,7 @@ namespace CoupledField {
       node_warnings_(Grid::CI_WARN_YES),
       destNodeList_(NULL), destElemList_(NULL),
       z_(0.0), zEpsilon_(1.0e-10),
+      isFirstStep_(true),
       step_(0), lastStep_(0)
   {
     name_ = "AcouRHSLinForm";
@@ -351,7 +352,7 @@ namespace CoupledField {
           }
           
           // compute interpolation weights only in first step
-          if (step_ == 1) {
+          if (isFirstStep_) {
             std::ostringstream fNameStr;
             fNameStr << progOpts->GetSimName() << "_ms"
                      << domain->GetSingleDriver()->GetActSequenceStep()
@@ -394,7 +395,9 @@ namespace CoupledField {
               oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
               // archive and stream closed when destructors are called
             }
-          } // step_ == 1
+
+            isFirstStep_ = false;
+          } // if (isFirstStep_)
           
           // Get data of previous time step for asynchronous time stepping
           // with interpolation

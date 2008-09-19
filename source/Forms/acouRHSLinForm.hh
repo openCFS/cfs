@@ -60,6 +60,7 @@ namespace CoupledField
     StdVector<Double> rhsValues_;
     StdVector<Double> rhsValues2_;
     StdVector<Complex> rhsValuesComplex_;
+    bool isFirstStep_;
     UInt step_;
     UInt lastStep_;
 
