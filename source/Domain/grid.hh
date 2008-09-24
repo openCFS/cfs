@@ -859,6 +859,27 @@ namespace CoupledField
     double polysectRelTol_;
 
     //@}
+    
+    
+    // this is interpolation stuff, but it must be defined,
+    // even if you switch off interpolation
+  public:
+    
+    typedef enum {
+      CI_WARN_NO = 0,
+      CI_WARN_YES = 1,
+      CI_WARN_VERBOSE = 2,
+      CI_WARN_LIST = 4
+    } ciWarnFlags;
+    
+    struct ciTolerance {
+      Double start;
+      Double end;
+      Double inc;
+      
+      ciTolerance(Double s, Double e, Double i) :
+        start(s), end(e), inc(i) {};
+    };
 
   private:
 
@@ -1147,22 +1168,6 @@ namespace CoupledField
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      Vector<double>& localCoords);
 
-    typedef enum {
-      CI_WARN_NO = 0,
-      CI_WARN_YES = 1,
-      CI_WARN_VERBOSE = 2,
-      CI_WARN_LIST = 4
-    } ciWarnFlags;
-    
-    struct ciTolerance {
-      Double start;
-      Double end;
-      Double inc;
-      
-      ciTolerance(Double s, Double e, Double i) :
-        start(s), end(e), inc(i) {};
-    };
-    
     void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
                                                  const NodeList& sourceNodeList,
                                                  const std::string& coordSysId,
