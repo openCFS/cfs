@@ -29,47 +29,67 @@ namespace CoupledField
     ///
     virtual ~AcouRHSLinForm();
 
-    /// Calculation of vector of right hand side 
+    //! Calculation of vector of right hand side 
     void CalcElemVector( Vector<Double> & result,
                          EntityIterator& ent );
 
-    /// Calculation of RHS vector for double entries, i.e. harmonic 
+    //! Calculation of RHS vector for double entries, i.e. harmonic 
     virtual void CalcElemVector( Vector<Complex> & result,
                                  EntityIterator& ent );
 
   private:
 
-    std::string id_;
-    std::string regionName_;
-    bool interpolate_;
-    std::string srcInputId_;
-    StdVector<std::string> srcRegions_;
-    std::string restartFileMode_;
-    std::string coordSysId_;
-    Grid::ciTolerance globalEpsilon_;
-    Grid::ciTolerance localEpsilon_;
-    std::string asyncSteps_;
-    UInt node_warnings_;
-    StdVector<NodeList*> sourceNodeLists_;
-    NodeList* destNodeList_;
-    ElemList* destElemList_;
-    BasePDE::AnalysisType analysistype_;
-    Double z_;
-    Double zEpsilon_;
+    std::string id_; //!< input ID of destination grid
+    std::string regionName_; //!< name of destination region
+    bool interpolate_; //!< is interpolation performed or not?
+    std::string srcInputId_; //!< input ID of sources
+    StdVector<std::string> srcRegions_; //!< names of source regions
+    std::string restartFileMode_; //!< usage of restart file: r, w, or rw
+    std::string coordSysId_; //!< ID of coordinate system of source grid
+    Grid::ciTolerance globalEpsilon_; //!< absolute interpolation tolerance
+    Grid::ciTolerance localEpsilon_; //!< relative interpolation tolerance
+    Double z_; //!< z coordinate of xy plane in 2d simulations
+    Double zEpsilon_; //!< tolerance for interpolation from 3D to 2D
+    std::string asyncSteps_; //!< do we use asynchronous time steps?
+    UInt node_warnings_; //!< flags for verbosity of interpolation warnings
     
-    StdVector<Double> rhsValues_;
-    StdVector<Double> rhsValues2_;
-    StdVector<Complex> rhsValuesComplex_;
-    bool isFirstStep_;
+    //! pointer to destination grid
+    Grid* ptGrid_;
+    //! pointer to global coordinate system
+    CoordSystem* globCoSy_;
+    //! type of analysis (transient/harmonic)
+    BasePDE::AnalysisType analysistype_;
+    //! number of time/frequency step
     UInt step_;
+    //! number of previous time step
     UInt lastStep_;
 
+    //! node numbers of source regions 
+    StdVector<NodeList*> sourceNodeLists_;
+    //! list of destination nodes
+    NodeList* destNodeList_;
+    //! list of destination elements
+    ElemList* destElemList_;
+    //! vector of nodal sources
+    StdVector<Double> rhsValues_;
+    //! 2nd vector of nodal sources (for interpolation in time)
+    StdVector<Double> rhsValues2_;
+    //! vector of complex nodal sources (for harmonic analysis)
+    StdVector<Complex> rhsValuesComplex_;
+    
+    //! flag to remember if interpolation weights have been computed already
+    bool isFirstStep_;
+    //! type definition for storage of interpolation weights
     typedef std::vector< std::map<UInt, Double> > ConsInterpWeightsType;
+    //! vector of interpolation weights
     StdVector< ConsInterpWeightsType > consInterpWeights_;
+    //! mapping from step number to time/frequency
     std::map<UInt, Double> stepValues_;
 
-    MathParser::HandleType mHandle2_;
+    //! math parser handle to current time/frequency
     MathParser::HandleType mph_tf_;
+    //! math parser handle to factor
+    MathParser::HandleType mphFactor_;
   };
 
 } // end of namespace
