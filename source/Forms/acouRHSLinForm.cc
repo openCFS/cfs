@@ -39,12 +39,14 @@ namespace CoupledField {
       coordSysId_("default"),
       globalEpsilon_(1.0e-4, 0.0, 0.0),
       localEpsilon_(1.0e-3, 0.0, 0.0),
+      z_(0.0), zEpsilon_(1.0e-10),
       asyncSteps_("no"),
       node_warnings_(Grid::CI_WARN_YES),
+      ptGrid_(domain->GetGrid()),
+      globCoSy_(domain->GetCoordSystem()),
+      step_(0), lastStep_(0),
       destNodeList_(NULL), destElemList_(NULL),
-      z_(0.0), zEpsilon_(1.0e-10),
-      isFirstStep_(true),
-      step_(0), lastStep_(0)
+      isFirstStep_(true)
   {
     name_ = "AcouRHSLinForm";
 
@@ -184,10 +186,10 @@ namespace CoupledField {
     mParser_->SetExpr( mHandle_, "step" );
 
     // Specify the ramping factor function for the RHS to the parser.
-    mHandle2_ =  mParser_->GetNewHandle();
-    mParser_->SetExpr( mHandle2_, factor );
-    //std::cout << "********** factor is: " << factor << std::endl;
+    mphFactor_ =  mParser_->GetNewHandle();
+    mParser_->SetExpr( mphFactor_, factor );
 
+    // split the string given in srcRegions into region names
     typedef boost::tokenizer<char_separator<char> > Tok;
     boost::char_separator<char> sep(";| ");
     Tok t(srcRegions, sep);
@@ -204,22 +206,11 @@ namespace CoupledField {
     sourceNodeLists_.Init(NULL);
 
     consInterpWeights_.Resize(numSourceRegions);
-    
-    /*
-    std::cout << "id " <<              id_ << std::endl;
-    std::cout << "regionName " <<       regionName_ << std::endl;
-    std::cout << "interpolate " <<      interpolate_ << std::endl;
-    std::cout << "srcInputId " <<       srcInputId_ << std::endl;
-    std::cout << "srcRegion " <<        srcRegion_ << std::endl;
-    std::cout << "coordSysId " <<       coordSysId_ << std::endl;
-    std::cout << "globalEpsilon " <<    globalEpsilon_ << std::endl;
-    std::cout << "localEpsilon " <<     localEpsilon_ << std::endl;
-    */
   }
 
   AcouRHSLinForm::~AcouRHSLinForm()
   {
-    mParser_->ReleaseHandle( mHandle2_ );
+    mParser_->ReleaseHandle( mphFactor_ );
     if (asyncSteps_ != "no")
       mParser_->ReleaseHandle(mph_tf_);
   }
@@ -229,7 +220,6 @@ namespace CoupledField {
   {
     ResultHandler* resultHandler = domain->GetResultHandler();
     Grid* source;
-    Grid* dest;
     shared_ptr<BaseResult> acouRHSVal, acouRHSVal2;
     bool timeInterp = (asyncSteps_ == "interpolate");
     Double factor;
@@ -237,9 +227,13 @@ namespace CoupledField {
     Double t = 0.0;
     const Double timeTol = 0.001;
     UInt prevStep = 0;
+    Vector<Double> nodeCoord;
     
     step_ = (UInt) mParser_->Eval(mHandle_);
-    factor = mParser_->Eval( mHandle2_ );
+    
+    ptGrid_->GetNodeCoordinate(nodeCoord, ent.GetNode());
+    mParser_->SetCoordinates(mphFactor_, *globCoSy_, nodeCoord);
+    factor = mParser_->Eval( mphFactor_ );
     
     // Determine asynchronous time step
     if (asyncSteps_ != "no") {
@@ -319,8 +313,7 @@ namespace CoupledField {
         }
         
         // initialize vector for current time step
-        dest = domain->GetGrid();
-        dest->GetNodesByRegion( regionNodes, dest->RegionNameToId(regionName_));
+        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->RegionNameToId(regionName_));
         rhsValues_.Resize(regionNodes.GetSize());
         std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
         
@@ -339,8 +332,8 @@ namespace CoupledField {
 
           if(!destElemList_)
           {
-            destElemList_ = new ElemList(dest);
-            destElemList_->SetRegion(dest->RegionNameToId(regionName_));
+            destElemList_ = new ElemList(ptGrid_);
+            destElemList_->SetRegion(ptGrid_->RegionNameToId(regionName_));
           }
           
           if(!sourceNodeLists_[i])
@@ -376,7 +369,7 @@ namespace CoupledField {
               }
             }
   
-            dest->ComputeConservativeInterpolationWeights(*destElemList_,
+            ptGrid_->ComputeConservativeInterpolationWeights(*destElemList_,
                 *sourceNodeLists_[i],
                 coordSysId_,
                 globalEpsilon_,
@@ -548,9 +541,13 @@ namespace CoupledField {
     shared_ptr<BaseResult> acouRHSVal;
     Double factor;
     Double f = 0.0;
+    Vector<Double> nodeCoord;
 
     step_ = (UInt) mParser_->Eval(mHandle_);
-    factor = mParser_->Eval( mHandle2_ );
+    
+    ptGrid_->GetNodeCoordinate(nodeCoord, ent.GetNode());
+    mParser_->SetCoordinates(mphFactor_, *globCoSy_, nodeCoord);
+    factor = mParser_->Eval( mphFactor_ );
     
     if (asyncSteps_ != "no") {
       // get current frequency
@@ -609,16 +606,5 @@ namespace CoupledField {
     elemVec[0] = complexValue;
 
   }
-
-  /*
-    valAmpl = rhsValues_[ent.GetNode()-1] * factor;
-    valPhase = rhsValues2_[ent.GetNode()-1];
-    Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
-                          valAmpl * sin( valPhase / 180 * PI ) );
-
-    elemVec.Resize(1);
-    elemVec[0] = complexValue;
-  }
-  */
 
 } // end of namespace
