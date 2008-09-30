@@ -126,7 +126,7 @@ namespace CoupledField
 
       dattyp    = -3;
       length    = 3;
-      nsize     = 10000;
+      nsize     = 100000;
       iopt   = __stop_if_failed__;
       ioptar = 0;
       int ntrn, dummy;
@@ -709,11 +709,10 @@ namespace CoupledField
             floatDS = false;
             determineFloatDS_ = false;
           }
-          
-
-          if(settings.GetInt("verbose"))
+          else if(settings.GetInt("verbose")) {
             std::cerr << "WARNING: CFX dataset does not contain velocity!"
             << std::endl;
+          }
         }
         else 
         {
