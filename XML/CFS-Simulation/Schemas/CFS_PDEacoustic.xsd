@@ -593,7 +593,7 @@
             <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:attribute name="z" type="xsd:double" use="required"/>
-                <xsd:attribute name="tol" type="DT_PosFloat"
+                <xsd:attribute name="tol" type="DT_NonNegFloat"
                   use="optional" default="1.0e-10"/>
               </xsd:complexType>
             </xsd:element>
@@ -602,9 +602,9 @@
                 <xsd:all>
                   <xsd:element name="global" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
-                      <xsd:attribute name="start" type="DT_PosFloat"
+                      <xsd:attribute name="start" type="DT_NonNegFloat"
                         use="required"/>
-                      <xsd:attribute name="end" type="DT_PosFloat"
+                      <xsd:attribute name="end" type="DT_NonNegFloat"
                         use="optional"/>
                       <xsd:attribute name="inc" type="DT_PosFloat"
                         use="optional"/>
@@ -612,9 +612,9 @@
                   </xsd:element>
                   <xsd:element name="local" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
-                      <xsd:attribute name="start" type="DT_PosFloat"
+                      <xsd:attribute name="start" type="DT_NonNegFloat"
                         use="required"/>
-                      <xsd:attribute name="end" type="DT_PosFloat"
+                      <xsd:attribute name="end" type="DT_NonNegFloat"
                         use="optional"/>
                       <xsd:attribute name="inc" type="DT_PosFloat"
                         use="optional"/>
