@@ -259,17 +259,30 @@ namespace CoupledField {
             EntityIterator entIt = lists[iList]->GetEntityList()->GetIterator();
             UInt numDofs = lists[iList]->GetResultInfo()->dofNames.GetSize();
             for( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-             H5::Group entityGroup = 
-               entityTypeGroup.createGroup( entIt.GetIdString() );
+              H5::Group entityGroup; 
+              try {
+                entityGroup = entityTypeGroup.openGroup( entIt.GetIdString() );
+                std::ostringstream sstr;
+                sstr << "You are trying to add history entity '" << entIt.GetIdString()
+                     << "' under group '"
+                     << "History/" << msName.str() << "/" << it->first << "/" << entityString 
+                     << "'\nwhich already exists under a different name! Please check your mesh and XML files.";
+                Warning(sstr.str().c_str(), __FILE__, __LINE__);
+                entityGroup.close();
+
+                continue;
+              } catch( H5::Exception& h5Ex ) {
+                entityGroup = entityTypeGroup.createGroup( entIt.GetIdString() );
+              }
              
-             H5IO::Reserve2DArray<Double>(entityGroup, "Real", numRealSteps,
+              H5IO::Reserve2DArray<Double>(entityGroup, "Real", numRealSteps,
                                           numDofs, dPropList_ );
              
-             if( lists[iList]->GetEntryType() == EntryType::COMPLEX){
-               H5IO::Reserve2DArray<Double>(entityGroup, "Imag", numRealSteps,
+              if( lists[iList]->GetEntryType() == EntryType::COMPLEX){
+                H5IO::Reserve2DArray<Double>(entityGroup, "Imag", numRealSteps,
                                             numDofs, dPropList_ );
-             }
-             entityGroup.close();
+              }
+              entityGroup.close();
             }
           }
           entityTypeGroup.close();
