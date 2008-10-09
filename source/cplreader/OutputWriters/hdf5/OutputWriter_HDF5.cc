@@ -267,10 +267,11 @@ namespace CoupledField
 
       // close nodes array of current group
       myGroup.close();
-      groupsGroup_.close();
       
       std::cout << "done." << std::endl;
     }
+
+    groupsGroup_.close();
   }
 
   void OutputWriter_HDF5::WriteFlowData(CouplingHandler* cplHandler,

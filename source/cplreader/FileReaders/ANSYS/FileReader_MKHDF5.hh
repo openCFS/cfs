@@ -24,15 +24,24 @@ namespace CoupledField
 
     //! Get node groups
     virtual void GetNodeGroups(std::map<std::string,
-                                        std::vector<UInt> >& nodeGroups);
+                               std::vector<UInt> >& nodeGroups);
 
     //! Get element groups
     virtual void GetElemGroups(std::map<std::string,
-                                        std::vector<UInt> >& elemGroups);
+                               std::vector<UInt> >& elemGroups);
 
   protected:
     FEType ANSYSTypeToFEType(UInt type, UInt numNodes, bool& readAnotherLine);
 
+    void ReadEWRITEFile(std::string fileName,
+                        std::map< std::string, std::vector<UInt> >& elemSets);
+
+    void ReadNWRITEFile(std::string fileName,
+                        std::map< std::string, std::vector<UInt> >& nodeSets);
+
+    std::map<std::string, std::vector<UInt> > nodeGroups_;
+    std::map<std::string, std::vector<UInt> > elemGroups_;
+    
     UInt maxOrigElemNum_;
   };
 
