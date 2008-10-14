@@ -693,6 +693,13 @@ namespace CoupledField {
     {
       bool isSurfElem = false;
       Elem* el = orderedElems_[e];
+      
+      // Check if element exists at all
+      if( el->ptElem == NULL ) {
+        EXCEPTION( "Element with number " << e+1
+                   << " does not exist in grid. Please ensure that all elements "
+                       "from 1 to " << numElems << " are defined in the mesh!");
+      }
       FEType type = el->ptElem->feType();
       numNodes = NUM_ELEM_NODES[type];
 
@@ -758,10 +765,12 @@ namespace CoupledField {
       if( isSurfElem ) {
         surfElems.insert( el );
       } else  {
-        volRegionElems[el->regionId].Push_back(el);
-
-        volRegionNodes[el->regionId].insert( el->connect.Begin(),
-                                             el->connect.End() );
+        if( el->regionId != NO_REGION_ID ) {
+          volRegionElems[el->regionId].Push_back(el);
+          
+          volRegionNodes[el->regionId].insert( el->connect.Begin(),
+                                               el->connect.End() );
+        }
       }
     }
 
@@ -1318,7 +1327,17 @@ namespace CoupledField {
 
     el->regionId = region;
     el->connect.Resize(numNodes);
-    memcpy(&el->connect[0], connect, numNodes*sizeof(UInt));
+    bool hasError = false;
+    for( UInt i = 0; i < numNodes; i++ ) {
+      if( connect[i] > numNodes_ )
+        hasError = true;
+      el->connect[i] = connect[i];
+    }
+    if( hasError) {
+      EXCEPTION( "Element #" << el->elemNum << " with connectivity ("
+                 << el->connect.Serialize() << ") has node number(s) larger "
+                 << "than number of nodes in grid (" << numNodes_ << ")" );
+    }
   }
     
   void GridCFS::GetElemData(const UInt ielem,

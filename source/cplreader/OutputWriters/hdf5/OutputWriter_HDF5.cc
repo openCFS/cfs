@@ -32,44 +32,45 @@ namespace CoupledField
   }
 
   OutputWriter_HDF5::~OutputWriter_HDF5() {
+    Settings& settings = Settings::Instance();    
+    std::string mainFileName = mainFile_.getFileName();
 
-    // Close main HDF5 group and finish
-    try {
-      mainGroup_.close();
-    } H5_CATCH( "Could not close main group" );
-
-
-    if( mainGroup_.getLocId() <= 0 ) 
-    {
-      if(!doneWriting_) {
-        try {
-          fs::remove( mainFile_.getFileName() );
-        } catch (std::exception &ex) {
-          EXCEPTION("An error occured while trying to delete incomplete HDF5 file '"
-                  << mainFile_.getFileName() << "'\n"
-                  << ex.what());
-        }
+    // check for open groups, datasets etc. in current step file
+    if(currStepFile_.getLocId() > 0) {
+      if (currStepFile_.getObjCount( H5F_OBJ_DATASET |
+                                     H5F_OBJ_GROUP |
+                                     H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+        if(settings.GetInt("verbose"))
+          std::cerr << "There are still objects open in the hdf5 file "
+                    << currStepFile_.getFileName() << "\n\n";
+        H5IO::CheckOpenObjects(currStepFile_, settings.GetInt("verbose"));
       }
-    
-      return;
+      
+      currStepFile_.close();
     }
-    
+
+    // check, if any group is open at all
+    if( mainGroup_.getLocId() > 0 )
+      mainGroup_.close();
+
     // check for open groups, datasets etc.
     if (mainFile_.getObjCount( H5F_OBJ_DATASET |
                                H5F_OBJ_GROUP |
                                H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-      std::cerr << "There are still objects open in the hdf5 file\n\n";
-      CheckOpenObjects();
+      if(settings.GetInt("verbose"))
+        std::cerr << "There are still objects open in the hdf5 file "
+                  << mainFile_.getFileName() << "\n\n";
+      H5IO::CheckOpenObjects(mainFile_, settings.GetInt("verbose"));
     }
 
     mainFile_.close();
 
     if(!doneWriting_) {
       try {
-        fs::remove( mainFile_.getFileName() );
+        fs::remove( mainFileName );
       } catch (std::exception &ex) {
         EXCEPTION("An error occured while trying to delete incomplete HDF5 file '"
-                  << mainFile_.getFileName() << "'\n"
+                  << mainFileName << "'\n"
                   << ex.what());
       }
     }
@@ -238,9 +239,12 @@ namespace CoupledField
       try {
         myGroup = groupsGroup_.openGroup( nodesName );
       } catch (H5::Exception& h5Ex ) {
-        myGroup = groupsGroup_.createGroup( nodesName );
+        try {
+          myGroup = groupsGroup_.createGroup( nodesName );
+        }
+        H5_CATCH("Could not create node group '" << nodesName << "'");
       }
-      H5IO::WriteAttribute( myGroup, "Dimension", 0 );
+      H5IO::WriteAttribute( myGroup, "Dimension", (Integer)0 );
       H5IO::Write1DArray( myGroup, "Nodes",
                           it->second.size(), &it->second[0], dPropList_ );
 
@@ -276,7 +280,10 @@ namespace CoupledField
       try {
         myGroup = groupsGroup_.openGroup( elemsName );
       } catch (H5::Exception& h5Ex ) {
-        myGroup = groupsGroup_.createGroup( elemsName );
+        try {
+          myGroup = groupsGroup_.createGroup( elemsName );
+        }
+        H5_CATCH("Could not create element group '" << elemsName << "'");
       }
       H5IO::WriteAttribute( myGroup, "Dimension", dimsIt->second );
       H5IO::Write1DArray( myGroup, "Elements",
@@ -341,7 +348,11 @@ namespace CoupledField
           currResultGroup = currMeshStepGroup_.openGroup( fdps.resultName );
         } catch (H5::GroupIException& ex)
         {
-          currResultGroup = currMeshStepGroup_.createGroup( fdps.resultName );
+          try {
+            currResultGroup = currMeshStepGroup_.createGroup( fdps.resultName );
+          }
+          H5_CATCH("Could not create results group '"
+                   << fdps.resultName << "'");
         }
         
         // Create subgroup for region
@@ -431,61 +442,6 @@ namespace CoupledField
     WriteResultDescriptions();
     
     doneWriting_ = true;
-  }
-
-  void OutputWriter_HDF5::CheckOpenObjects() {
-    std::vector<UInt> types;
-    std::vector<std::string> typeNames;
-    hid_t* ids;
-
-    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
-    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
-    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
-    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
-
-    // check for open groups, datasets etc.
-    std::cerr << "Number of open objects:\n"
-              << "--------------------------\n";
-
-    for(UInt t=0; t<types.size(); t++)
-    {
-      UInt numObjs = mainFile_.getObjCount(types[t]);
-      std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
-
-      ids = new hid_t[numObjs];
-      mainFile_.getObjIDs(types[t], numObjs, ids);
-
-      for(UInt i=0; i<numObjs; i++)
-      {
-        H5::DataSet ds;
-        H5::Group group;
-        H5::DataType dt;
-        H5::Attribute attr;
-
-        switch(types[t])
-        {
-        case H5F_OBJ_DATASET:
-          ds.setId((ids[i]));
-          std::cerr << "  " << ds.fromClass() << std::endl;
-          break;
-        case H5F_OBJ_GROUP:
-          group.setId((ids[i]));
-          for(UInt idx=0; idx < group.getNumObjs(); idx++)
-            std::cerr << "  subgroup " << group.getObjnameByIdx(idx) << std::endl;
-          break;
-        case H5F_OBJ_DATATYPE:
-          dt.setId((ids[i]));
-          std::cerr << "  " << dt.fromClass() << std::endl;
-          break;
-        case H5F_OBJ_ATTR:
-          attr.setId((ids[i]));
-          std::cerr << "  " << attr.fromClass() << std::endl;
-          break;
-        }
-      }
-
-      delete[] ids;
-    }
   }
 
   void OutputWriter_HDF5::WriteFileInfoHeader() {

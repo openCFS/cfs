@@ -229,13 +229,17 @@ namespace CoupledField
       
       for( ; elemIt != elemEnd; elemIt++ ) 
       {        
-        if(!regionDims[actRegion]) 
+        UInt elemNum = *elemIt;
+        UInt regionDim = regionDims[actRegion];
+        FEType elemType = (FEType) elemTypes_[elemNum-1];
+        
+        if(!regionDim) 
         {
-          regionDims[actRegion] = ELEM_DIM[elemTypes_[*elemIt]];
+          regionDims[actRegion] = ELEM_DIM[elemType];
         }
         else
         {
-          if( regionDims[actRegion] != ELEM_DIM[elemTypes_[*elemIt]] )
+          if( regionDim != ELEM_DIM[elemType] )
           {
             EXCEPTION("Elements with different dimensions have been "
                       << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"

@@ -1463,6 +1463,81 @@ hsize_t H5IO::maxChunkSize_= 100;
     return entryType;
   }
 
+  void H5IO::CheckOpenObjects(H5::H5File& file, bool verbose) {
+    std::vector<UInt> types;
+    std::vector<std::string> typeNames;
+    hid_t* ids;
+
+    types.push_back(H5F_OBJ_DATASET); typeNames.push_back("Dataset");
+    types.push_back(H5F_OBJ_GROUP); typeNames.push_back("Group");
+    types.push_back(H5F_OBJ_DATATYPE); typeNames.push_back("DataType");
+    types.push_back(H5F_OBJ_ATTR); typeNames.push_back("Attribute");
+
+    // check for open groups, datasets etc.
+    if(verbose)
+      std::cerr << "Number of open objects: "
+                << "in file " << file.getFileName() << "\n"
+                << "--------------------------\n";
+
+    for(UInt t=0; t<types.size(); t++)
+    {
+      UInt numObjs = file.getObjCount(types[t]);
+
+      if(verbose)
+        std::cerr << typeNames[t] << "s: "<<  numObjs << std::endl;
+
+      ids = new hid_t[numObjs];
+      file.getObjIDs(types[t], numObjs, ids);
+
+      for(UInt i=0; i<numObjs; i++)
+      {
+        H5::DataSet ds;
+        H5::Group group;
+        H5::DataType dt;
+        H5::Attribute attr;
+        H5::IdComponent *idComp;
+
+        switch(types[t])
+        {
+        case H5F_OBJ_DATASET:
+          ds.setId((ids[i]));
+          idComp = &ds;
+          if(verbose)
+            std::cerr << "  " << ds.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_GROUP:
+          group.setId((ids[i]));
+          idComp = &group;
+          if(verbose)
+            std::cerr << "  " << group.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_DATATYPE:
+          dt.setId((ids[i]));
+          idComp = &dt;
+          if(verbose)
+            std::cerr << "  " << dt.fromClass() << std::endl;
+          break;
+        case H5F_OBJ_ATTR:
+          attr.setId((ids[i]));
+          idComp = &attr;
+          if(verbose)
+            std::cerr << "  " << attr.fromClass() << std::endl;
+          break;
+        }
+
+        while ( idComp->getCounter() > 0 )
+        {
+          if(verbose)
+            std::cerr << "  Trying to dec refcounter of HDF5 ID " << ids[i]
+                      << "..." << std::endl;            
+          idComp->decRefCount();
+        }
+
+      }
+
+      delete[] ids;
+    }
+  }
 
 
-} // end of namespace CoupledField
+} // end of namespace CoupledField 

@@ -77,36 +77,35 @@ namespace CoupledField {
 
 
   SimOutputHDF5::~SimOutputHDF5() {
-    
-    if( mainGroup_.getLocId() <= 0 ) 
-      return;
-    
-        
-    // close groups
-    mainGroup_.close();
+    // check for open groups, datasets etc. in current step file
+    if(currStepFile_.getLocId() > 0) {
+      if (currStepFile_.getObjCount( H5F_OBJ_DATASET |
+                                     H5F_OBJ_GROUP |
+                                     H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+        std::cerr << "There are still objects open in the hdf5 file "
+                  << currStepFile_.getFileName() << "\n\n";
+        H5IO::CheckOpenObjects(currStepFile_, true);
+      }
+      
+      currStepFile_.close();
+    }
+
+    // check, if any group is open at all
+    if( mainGroup_.getLocId() > 0 )
+      mainGroup_.close();
 
     // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET | 
-                               H5F_OBJ_GROUP | 
+    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
+                               H5F_OBJ_GROUP |
                                H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-      std::cerr << "There are still objects open in the hdf5 file\n\n";
-      CheckOpenObjects();
+      std::cerr << "There are still objects open in the hdf5 file "
+                << mainFile_.getFileName() << "\n\n";
+      H5IO::CheckOpenObjects(mainFile_, true);
     }
 
     mainFile_.close();
   }
 
-
-  void SimOutputHDF5::CheckOpenObjects() {
-    // check for open groups, datasets etc.
-    std::cerr << "Number of open objects:\n"
-              << "--------------------------";
-    std::cerr << "Datasets: "<<  mainFile_.getObjCount( H5F_OBJ_DATASET) << std::endl;
-    std::cerr << "Groups: "<<  mainFile_.getObjCount( H5F_OBJ_GROUP ) << std::endl;
-    std::cerr << "DataTypes: "<<  mainFile_.getObjCount( H5F_OBJ_DATATYPE) << std::endl;
-    std::cerr << "Attributes: "<<  mainFile_.getObjCount( H5F_OBJ_ATTR) << std::endl;
-  }
-  
   void SimOutputHDF5::Init( Grid* ptGrid, bool printGridOnly ) {
     ptGrid_ = ptGrid;
     printGridOnly_ = printGridOnly;

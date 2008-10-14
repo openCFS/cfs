@@ -14,6 +14,10 @@
 #include <def_use_ansysrst.hh>
 
 #include <iostream>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
+
 #include "General/environment.hh"
 #include "DataInOut/simInput.hh"
 #include "DataInOut/simOutput.hh"
@@ -61,6 +65,9 @@ namespace CFSTool {
     
     // determine suffix of fileName
     shared_ptr<SimInput> reader;
+
+    if ( !fs::exists( fileName ) )
+      EXCEPTION( "\nFile '" << fileName << "' does not exist!");
 
     if( fileName.find( ".mesh") != std::string::npos ) {
 #ifdef USE_MESH
@@ -149,38 +156,40 @@ namespace CFSTool {
   }
 
   void Convert( const std::string& inFile, const std::string& outFile ) {
-     
-     // obtain input reader for inFile
-     shared_ptr<SimInput> input = GetInputReader( inFile );
-     
-     // check capabilities of input class
-     bool printGridOnly = false;
-     if( std::find( input->GetCapabilities().begin(),
-                    input->GetCapabilities().end(),
-                    SimInput::MESH_RESULTS ) 
-         == input->GetCapabilities().end() ) {
-       printGridOnly = true;
-     }
-                     
-     // read in mesh
-     input->InitModule();
-     UInt dim = input->GetDim();
-     Grid * ptGrid = new GridCFS(dim);
-     input->ReadMesh(ptGrid);
-     ptGrid->FinishInit();
-     
-     // obtain output writer
-     shared_ptr<SimOutput> output = GetOutputWriter( outFile );
+    
+    // obtain input reader for inFile
+    shared_ptr<SimInput> input = GetInputReader( inFile );
+    
+    // read in mesh
+    input->InitModule();
+    UInt dim = input->GetDim();
+    Grid * ptGrid = new GridCFS(dim);
+    input->ReadMesh(ptGrid);
+    ptGrid->FinishInit();
+    
+    
+    
+    // obtain output writer
+    shared_ptr<SimOutput> output = GetOutputWriter( outFile );
+    
+    // obtain number of multiSequenceSteps and get analysis types
+    std::map<UInt, BasePDE::AnalysisType> types;
+    std::map<UInt, UInt> numSteps;
+    input->GetNumMultiSequenceSteps( types, numSteps );
+    std::cout << "\nFound " << types.size() << " sequence step(s)\n";
+    
+    // check if the input reader has results 
+    bool printGridOnly = false;
+    if( types.size() == 0) {
+      printGridOnly = true;
+      std::cerr << "Printing only grid\n";
+    }
+
      output->Init( ptGrid, printGridOnly);  
      
      // only iterate over results, if not only the mesh is converted
      if( !printGridOnly ) {
 
-       // obtain number of multiSequenceSteps and get analysis types
-       std::map<UInt, BasePDE::AnalysisType> types;
-       std::map<UInt, UInt> numSteps;
-       input->GetNumMultiSequenceSteps( types, numSteps );
-       std::cout << "\nFound " << types.size() << " sequence step(s)\n";
 
        // iterate over all multiSequenceSteps
        std::map<UInt,UInt>::iterator it;

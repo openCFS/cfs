@@ -203,6 +203,9 @@ namespace CoupledField {
     
     //! Set chunksize to be used for Array data
     static void SetMaxChunkSize( UInt chunkSize );
+
+    //! Check for open objects in the hdf5 file and close them
+    static void CheckOpenObjects(H5::H5File& file, bool verbose);
     
   private:
 
