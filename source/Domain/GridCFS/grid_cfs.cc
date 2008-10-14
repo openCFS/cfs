@@ -1238,7 +1238,7 @@ namespace CoupledField {
       isQuadratic_ = true;
       break;
     case ET_QUAD9:
-      el->ptElem = NULL;
+      el->ptElem = ptQ9;
       break;
     case ET_TET4:
       d=3;
@@ -1260,7 +1260,7 @@ namespace CoupledField {
       break;
     case ET_HEXA27:
       d=3;
-      el->ptElem = NULL;
+      el->ptElem = ptHexa27;
       break;
     case ET_PYRA5:
       d=3;
