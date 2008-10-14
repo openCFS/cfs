@@ -102,9 +102,6 @@ namespace CoupledField {
     void WriteStringToUserData(const std::string& dSetName, 
                                const std::string& str);
 
-    //! Check for open objects in the hdf5 file
-    void CheckOpenObjects();
-    
     //! Write file meta information
     void WriteFileInfoHeader(); 
     
