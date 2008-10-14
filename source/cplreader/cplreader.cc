@@ -220,7 +220,8 @@ int main(int argc, char *argv[])
 
   } catch (std::exception& ex)
   {
-    std::cerr << "CAUGHT EXCEPTION:" << std::endl
+    std::cerr << std::endl << std::endl
+              << "CAUGHT EXCEPTION:" << std::endl
               << std::endl
               << ex.what()
               << std::endl;

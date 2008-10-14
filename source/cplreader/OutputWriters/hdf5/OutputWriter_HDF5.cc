@@ -39,9 +39,21 @@ namespace CoupledField
     } H5_CATCH( "Could not close main group" );
 
 
-    if( mainGroup_.getLocId() <= 0 )
+    if( mainGroup_.getLocId() <= 0 ) 
+    {
+      if(!doneWriting_) {
+        try {
+          fs::remove( mainFile_.getFileName() );
+        } catch (std::exception &ex) {
+          EXCEPTION("An error occured while trying to delete incomplete HDF5 file '"
+                  << mainFile_.getFileName() << "'\n"
+                  << ex.what());
+        }
+      }
+    
       return;
-
+    }
+    
     // check for open groups, datasets etc.
     if (mainFile_.getObjCount( H5F_OBJ_DATASET |
                                H5F_OBJ_GROUP |
@@ -51,6 +63,16 @@ namespace CoupledField
     }
 
     mainFile_.close();
+
+    if(!doneWriting_) {
+      try {
+        fs::remove( mainFile_.getFileName() );
+      } catch (std::exception &ex) {
+        EXCEPTION("An error occured while trying to delete incomplete HDF5 file '"
+                  << mainFile_.getFileName() << "'\n"
+                  << ex.what());
+      }
+    }
   }
 
   void OutputWriter_HDF5::Init(int argc, char** argv,
@@ -236,6 +258,8 @@ namespace CoupledField
                                           const std::map< std::string, UInt >&
                                           groupDims)
   {
+    Settings& settings = Settings::Instance();
+
     H5::Group myGroup;
     UInt dim;
     std::map <std::string, std::vector<UInt> >::const_iterator it, end, nodesIt;
@@ -272,6 +296,9 @@ namespace CoupledField
     }
 
     groupsGroup_.close();
+
+    if(settings.GetInt("justmesh"))
+      doneWriting_ = true;
   }
 
   void OutputWriter_HDF5::WriteFlowData(CouplingHandler* cplHandler,
@@ -402,6 +429,8 @@ namespace CoupledField
     // Finally write out result descriptions. This must be done in
     // the end since we do not know how many steps there are in advance.
     WriteResultDescriptions();
+    
+    doneWriting_ = true;
   }
 
   void OutputWriter_HDF5::CheckOpenObjects() {

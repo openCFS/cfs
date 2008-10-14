@@ -3,7 +3,9 @@
 namespace CoupledField
 {
   OutputWriter::OutputWriter() :
-    dim_(3) {
+    dim_(3),
+    doneWriting_(false)
+  {
   }
 
   OutputWriter::~OutputWriter() {
