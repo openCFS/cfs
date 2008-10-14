@@ -685,6 +685,7 @@ namespace CoupledField {
 
     std::map<RegionIdType, StdVector<Elem*> > volRegionElems, surfRegionElems;
     std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
+    std::map<RegionIdType, UInt > regionDims;
 
     // set of elements, which get surface-mapped
     std::set<Elem*> surfElems;
@@ -697,6 +698,30 @@ namespace CoupledField {
 
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
                          numNodes : maxNumElemNodes_;
+
+      // Insert dimension of first element in region into regionDims map
+      // If elements with different dimension are encountered issue an exception
+      if(!regionDims[el->regionId]) 
+      {
+        regionDims[el->regionId] = ELEM_DIM[type];
+      }
+      else
+      {
+        // Elements in the region with id NO_REGION_ID may have arbitrary
+        // dimensions.
+        if( el->regionId != NO_REGION_ID &&
+            regionDims[el->regionId] != ELEM_DIM[type] )
+        {
+          UInt regionId = el->regionId;
+          std::string regionName = regionNames_[regionId];
+          
+          EXCEPTION("Elements with different dimensions have been "
+                    << "encountered in region '" << regionName << "'!\n"
+                    << "The error occured while examining element "
+                    << el->elemNum << ".\n"
+                    << "Please check your mesh file!");
+        }    
+      }
 
       switch(type)
       {

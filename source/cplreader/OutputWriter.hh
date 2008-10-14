@@ -72,6 +72,7 @@ namespace CoupledField
     std::vector<std::string> actStepResults_;
     UInt dim_;
     const std::vector<FlowDataType>* flowData_;
+    bool doneWriting_;
   };
 
   typedef std::vector< shared_ptr<OutputWriter> >

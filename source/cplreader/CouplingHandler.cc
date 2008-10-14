@@ -203,6 +203,7 @@ namespace CoupledField
 
 
     std::cout << "Reading mesh done.\nConverting mesh...\n";
+    std::map<RegionIdType, UInt > regionDims;
 
     for (int actRegion=0; actRegion<numRegions; actRegion++)
     {
@@ -220,6 +221,31 @@ namespace CoupledField
       ptFileReader_->GetRegionElements(regionElems_[actRegion], actRegion);
       std::sort(regionElems_[actRegion].begin(), regionElems_[actRegion].end());
 
+      // Iterate over all elements of region and check if all of them
+      // have the same dimension
+      std::vector<UInt>::const_iterator elemIt, elemEnd;
+      elemIt = regionElems_[actRegion].begin();
+      elemEnd = regionElems_[actRegion].end();
+      
+      for( ; elemIt != elemEnd; elemIt++ ) 
+      {        
+        if(!regionDims[actRegion]) 
+        {
+          regionDims[actRegion] = ELEM_DIM[elemTypes_[*elemIt]];
+        }
+        else
+        {
+          if( regionDims[actRegion] != ELEM_DIM[elemTypes_[*elemIt]] )
+          {
+            EXCEPTION("Elements with different dimensions have been "
+                      << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
+                      << "The error occured while examining element "
+                      << (*elemIt) << ".\n"
+                      << "Please check your mesh file!");
+          }    
+        }
+      }
+      
       // Put all nodes in a partition into a set to get an ordered list
       UInt idx = 0;
       UInt regionDim = 0;
