@@ -31,6 +31,7 @@ namespace CoupledField
 
     if (!ptQ1)     ptQ1     = new Quad1FE();
     if (!ptQ2)     ptQ2     = new Quad2FE();
+    if (!ptQ9)     ptQ9     = new Quad9FE();
     if (!ptTet1)   ptTet1   = new Tetra1FE();
     if (!ptTet2)   ptTet2   = new Tetra2FE();
     if (!ptL1)     ptL1     = new Line1FE();
@@ -39,6 +40,7 @@ namespace CoupledField
     if (!ptTr2)    ptTr2    = new Triangle2FE();
     if (!ptHexa1)  ptHexa1  = new Hexa1FE();
     if (!ptHexa2)  ptHexa2  = new Hexa2FE();
+    if (!ptHexa27) ptHexa27 = new Hexa27FE();
     if (!ptPyra1)  ptPyra1  = new Pyra1FE();
     if (!ptPyra2)  ptPyra2  = new Pyra2FE();
     if (!ptWedge1) ptWedge1 = new Wedge1FE();
@@ -57,6 +59,7 @@ namespace CoupledField
   {
     delete ptQ1;      ptQ1 = NULL;    
     delete ptQ2;      ptQ2 = NULL;    
+    delete ptQ9;      ptQ9 = NULL;    
     delete ptTet1;    ptTet1 = NULL;  
     delete ptTet2;    ptTet2 = NULL;  
     delete ptL1;      ptL1 = NULL;    
@@ -65,6 +68,7 @@ namespace CoupledField
     delete ptTr2;     ptTr2 = NULL;   
     delete ptHexa1;   ptHexa1 = NULL; 
     delete ptHexa2;   ptHexa2 = NULL; 
+    delete ptHexa27;  ptHexa27 = NULL; 
     delete ptPyra1;   ptPyra1 = NULL; 
     delete ptPyra2;   ptPyra2 = NULL; 
     delete ptWedge1;  ptWedge1 = NULL;

@@ -9,12 +9,14 @@
 #include <Elements/1D/line2fe.hh>
 #include <Elements/2D/quad1fe.hh>
 #include <Elements/2D/quad2fe.hh>
+#include <Elements/2D/quad9fe.hh>
 #include <Elements/2D/triangle1fe.hh>
 #include <Elements/2D/triangle2fe.hh>
 #include <Elements/3D/tetra1FE.hh>
 #include <Elements/3D/tetra2FE.hh>
 #include <Elements/3D/hexa1FE.hh>
 #include <Elements/3D/hexa2FE.hh>
+#include <Elements/3D/hexa27FE.hh>
 #include <Elements/3D/pyra1FE.hh>
 #include <Elements/3D/pyra2FE.hh>
 #include <Elements/3D/wedge1FE.hh>
