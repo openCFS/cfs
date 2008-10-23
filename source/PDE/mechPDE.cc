@@ -546,7 +546,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     }
       
                   
-    //voulme integrators
+    // volume integrators
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
@@ -566,7 +566,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       actRegionName = ptgrid_->RegionIdToName( actRegion );
      
 
-      //================= Check for Perfectly matchec layers ====================//
+      //================= Check for Perfectly matched layers ====================//
       if ( dampingList_[actRegion] == PML ) {
         if ( analysistype_ != HARMONIC ) {
           EXCEPTION( "PML just supported for Harmonic-Analysis" );

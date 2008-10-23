@@ -1234,53 +1234,59 @@ namespace CoupledField {
     LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
+    ParamNode* elecPDENCIfaceListNode;
+    elecPDENCIfaceListNode = param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+    ->Get("pdeList")->Get("electrostatic")->Get("ncInterfaceList", false);
+    
+    if(!elecPDENCIfaceListNode)
+      return;
+
     ParamNode* domainNCIfaceListNode;
     domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
 
-    if(domainNCIfaceListNode)
+    if(!domainNCIfaceListNode)
     {
-
-        StdVector<ParamNode*> pdeNCIfaceNodes = 
-            param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-            ->Get("pdeList")->Get("electrostatic")->Get("ncInterfaceList")
-            ->GetList("ncInterface");
-    
-        for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-            std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
-        
-            ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
-                                                                    "name",
-                                                                    pdeIfaceName,
-                                                                    false);
-            if(!domainIfaceNode)
-            {
-                LOG_DBG2(elecpde) << "NonMatching: Nonconforming "
-                                  << "interface '" << ncIfaceNames[i]
-                                  << "' does not exist in domain.";
-            
-                EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
-            }
-
-            ncIfaceNamesForPDE.Push_back(pdeIfaceName);
-        }
-        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
-    
-        for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
-            ncIFaces_.Push_back(ncIfaceIds[i]);
-        }
-    
-        // In the case of the presence of non-conforming interfaces,
-        // a second resultdof object has to be created, which describes the 
-        // Lagrange multiplier
-        if( ncIFaces_.GetSize() > 0 ) {
-            LOG_DBG2(elecpde) << "NonMatching: Defining new ResultDof Lagrange.";
-            shared_ptr<ResultInfo> lagr ( new ResultInfo );
-            lagr->resultType = LAGRANGE_MULT;
-            lagr->dofNames = "l";
-            lagr->fctType = results_[0]->fctType;
-            lagr->definedOn = results_[0]->definedOn;
-            results_.Push_back( lagr );
-        } 
+      EXCEPTION("No nonmatching interfaces have been specified in domain!");
     }
+
+    StdVector<ParamNode*> pdeNCIfaceNodes;
+    pdeNCIfaceNodes = elecPDENCIfaceListNode->GetList("ncInterface");
+
+    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+
+      ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+          "name",
+          pdeIfaceName,
+          false);
+      if(!domainIfaceNode)
+      {
+        LOG_DBG2(elecpde) << "NonMatching: Nonconforming "
+        << "interface '" << ncIfaceNames[i]
+                                         << "' does not exist in domain.";
+
+        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+      }
+
+      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+    }
+    ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+
+    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+      ncIFaces_.Push_back(ncIfaceIds[i]);
+    }
+
+    // In the case of the presence of non-conforming interfaces,
+    // a second resultdof object has to be created, which describes the 
+    // Lagrange multiplier
+    if( ncIFaces_.GetSize() > 0 ) {
+      LOG_DBG2(elecpde) << "NonMatching: Defining new ResultDof Lagrange.";
+      shared_ptr<ResultInfo> lagr ( new ResultInfo );
+      lagr->resultType = LAGRANGE_MULT;
+      lagr->dofNames = "l";
+      lagr->fctType = results_[0]->fctType;
+      lagr->definedOn = results_[0]->definedOn;
+      results_.Push_back( lagr );
+    } 
   }
 }
