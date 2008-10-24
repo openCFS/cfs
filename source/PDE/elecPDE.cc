@@ -1142,6 +1142,21 @@ namespace CoupledField {
       results_.Push_back( res1 );
       availResults_.insert( res1 );
       
+    }else if(  approxType == "spectral" ) {
+      shared_ptr<ResultInfo> res1( new ResultInfo);
+      UInt order = myParam_->Get("order")->AsUInt();
+      shared_ptr<SpectralFct> fct(new SpectralFct);
+      res1->definedOn = ResultInfo::PFEM;
+      fct->SetOrder(order);
+      res1->dofNames = "";
+      res1->unit = "V";
+      res1->fctType = fct;
+
+      res1->resultType = ELEC_POTENTIAL;
+    	res1->entryType = ResultInfo::SCALAR;
+      results_.Push_back( res1 );
+      availResults_.insert( res1 );
+
     } else {
       // Create new resultDof object
       shared_ptr<ResultInfo> res1( new ResultInfo);

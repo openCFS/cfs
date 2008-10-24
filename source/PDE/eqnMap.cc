@@ -95,6 +95,7 @@ namespace CoupledField {
       }
     }
 
+
     // 2.) Get all entity lists, for which edges/surfaces have to be mapped
     // Get information about which region need mapping of
     // edges / surface 
@@ -588,6 +589,9 @@ namespace CoupledField {
         // returned
         for( UInt iDof = 0; iDof < map[locEdge-1].GetSize(); iDof++ ) {
           eqns.Push_back( map[locEdge-1][iDof] );
+          LOG_DBG3(eqnMap) << "Pushin back edge #" << locEdge << " eqn " <<  map[locEdge-1][iDof]
+                           << " for interior of element #" 
+                           << it.GetElem()->elemNum << std::endl;
         }
       }
     }
@@ -622,6 +626,9 @@ namespace CoupledField {
         // iterate over all dofs of this face
         for( UInt iDof = 0; iDof < map[locFace-1].GetSize(); iDof++ ) {
           eqns.Push_back( map[locFace-1][iDof] );
+          LOG_DBG3(eqnMap) << "Pushin back face eqn " <<  map[locFace-1][iDof]
+                           << " for interior of element #" 
+                           << it.GetElem()->elemNum << std::endl;
         }
       }
     }
@@ -640,9 +647,12 @@ namespace CoupledField {
           //nothing to do here
         }else if (localElem < 1 ) {
           eqns.Push_back(0);
+          LOG_DBG3(eqnMap) << "Pushin back elem eqn " <<  elemMap[localElem-1][iDof]
+                           << " for interior of element #" 
+                           << it.GetElem()->elemNum << std::endl;
         } else {
           eqns.Push_back( elemMap[localElem-1][iDof] );
-          LOG_DBG3(eqnMap) << "Pushin back eqn " <<  elemMap[localElem-1][iDof]
+          LOG_DBG3(eqnMap) << "Pushin back elem eqn " <<  elemMap[localElem-1][iDof]
                            << " for interior of element #" 
                            << it.GetElem()->elemNum << std::endl;
         }
@@ -1922,7 +1932,6 @@ namespace CoupledField {
 
                 // obtain edges
                 StdVector<Integer> const & edges = it.GetElem()->edges;
-                UInt actDof = actHdBcList[i]->dof;
 
                 for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
 
