@@ -45,11 +45,11 @@ IF(CMAKE_COMPILER_IS_GNUCXX AND
 
   # Check for a parallel compiler
   IF(USE_OPENMP)
-    IF(CFS_CXX_COMPILER_VER MATCHES "4.2")
+    IF(CFS_CXX_COMPILER_VER GREATER "4.2")
       SET(CFS_C_FLAGS "-fopenmp")
-    ELSE(CFS_CXX_COMPILER_VER MATCHES "4.2")
+    ELSE(CFS_CXX_COMPILER_VER GREATER "4.2")
       MESSAGE("You chose to use OpenMP but your current GCC does not support it!")
-    ENDIF(CFS_CXX_COMPILER_VER MATCHES "4.2")
+    ENDIF(CFS_CXX_COMPILER_VER GREATER "4.2")
   ENDIF(USE_OPENMP)
 
   # Determine compiler/linker flags according to build type
