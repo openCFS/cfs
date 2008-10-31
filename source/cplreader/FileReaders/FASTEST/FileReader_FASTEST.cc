@@ -186,6 +186,8 @@ namespace CoupledField
             dataColumns_.push_back(-1);
           }
         }
+        if ((dataColumns_[3] > -1) && (dim_ == 2))
+          dataColumns_[3] = -1;
 
         std::cout << "\n Name:\t\t\t\t" << name_ << std::endl
                   << " Dimension:\t\t\t" << dim_ << std::endl
