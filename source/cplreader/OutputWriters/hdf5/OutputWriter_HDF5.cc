@@ -470,7 +470,7 @@ namespace CoupledField
             << CFS_SUBVERSION_REPOS
             << " rev. " << CFS_SUBVERSION_REV
             << ", date " << CFS_CONF_DATE
-            << " )"
+            << " )\n"
             << "Built on: " << CFS_BUILD_HOST << "\n"
             << "Platform: " << CFS_DISTRO << "_" << CFS_DISTRO_VER << "_" << CFS_ARCH << "\n"
             << "Built by: " << CFS_BUILD_USER << "\n"
