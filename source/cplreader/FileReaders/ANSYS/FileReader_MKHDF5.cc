@@ -682,14 +682,21 @@ namespace CoupledField
           {
             if(!elemSets[sectionName].empty()) 
             {
-              EXCEPTION("Element group " << sectionName << " from file "
-                        << fileName << " has already been defined!");
+              EXCEPTION("Element group '" << sectionName << "' from file '"
+                        << fileName << "' has already been defined!");
             }
             
             std::copy(elemSet.begin(), elemSet.end(),
                       std::back_inserter(elemSets[sectionName]));
 
             elemSet.clear();
+          } else 
+          {
+            if(settings.GetInt("strict"))
+            {
+              EXCEPTION("Element group '" << sectionName << "' from file '"
+                        << fileName << "' is empty!");
+            }
           }
         }
 
@@ -699,6 +706,28 @@ namespace CoupledField
 
         if(isElementsFile) 
         {  
+          if(!regionNames_.empty() && !numRegionElems)
+          {
+            std::ostringstream sstr;
+            
+            sstr << "Region '" << (*regionNames_.rbegin()) << "' from file '"
+                 << fileName << "' contains no elements!\n"
+                 << "Is this what you intended to do?\n\n";
+            
+            if(settings.GetInt("strict")) 
+            {
+              EXCEPTION(sstr.str());
+            }
+            else
+            {
+              std::cerr << sstr.str();
+              regionNames_.erase(regionNames_.begin()+regionNames_.size()-1);
+              numRegions_--;
+              numNodesPerRegion_.erase(numNodesPerRegion_.begin()+numNodesPerRegion_.size()-1);
+              numElemsPerRegion_.erase(numElemsPerRegion_.begin()+numElemsPerRegion_.size()-1);
+            }            
+          }
+
           regionIdx = regionNames_.size();
           regionNames_.push_back( sectionName );
 
@@ -828,12 +857,19 @@ namespace CoupledField
       {
         if(!elemSets[sectionName].empty()) 
         {
-          EXCEPTION("Element group " << sectionName << " from file "
-                    << fileName << " has already been defined!");
+          EXCEPTION("Element group '" << sectionName << "' from file '"
+                    << fileName << "' has already been defined!");
         }
         
         std::copy(elemSet.begin(), elemSet.end(),
                   std::back_inserter(elemSets[sectionName]));
+      } else
+      {
+        if(settings.GetInt("strict"))
+        {
+          EXCEPTION("Element group '" << sectionName << "' from file '"
+                    << fileName << "' is empty!");
+        }
       }
     }
     
@@ -891,14 +927,22 @@ namespace CoupledField
         {
           if(!nodeSets[sectionName].empty()) 
           {
-            EXCEPTION("Node group " << sectionName << " from file "
-                      << fileName << " has already been defined!");
+            EXCEPTION("Node group '" << sectionName << "' from file '"
+                      << fileName << "' has already been defined!");
           }
           
           std::copy(nodeSet.begin(), nodeSet.end(),
                     std::back_inserter(nodeSets[sectionName]));
           
           nodeSet.clear();
+        }
+        else
+        {
+          if(settings.GetInt("strict"))
+          {
+            EXCEPTION("Node group '" << sectionName << "' from file '"
+                      << fileName << "' is empty!");
+          }
         }
         
         sectionName = line.substr(1, line.length()-2);
@@ -979,8 +1023,14 @@ namespace CoupledField
                 std::back_inserter(nodeSets[sectionName]));
       
       nodeSet.clear();
+    } else 
+    {    
+      if(settings.GetInt("strict"))
+      {
+        EXCEPTION("Node group '" << sectionName << "' from file '"
+                  << fileName << "' is empty!");
+      }
     }
-    
   }
   
 } // end of namespace

@@ -6,6 +6,7 @@
 namespace fs=boost::filesystem;
 
 #include <def_cfs_stats.hh>
+#include <def_use_hdf5.hh>
 
 #include "General/exception.hh"
 #include "Settings.hh"
@@ -33,7 +34,6 @@ namespace CoupledField
 
   OutputWriter_HDF5::~OutputWriter_HDF5() {
     Settings& settings = Settings::Instance();    
-    std::string mainFileName = mainFile_.getFileName();
 
     // check for open groups, datasets etc. in current step file
     if(currStepFile_.getLocId() > 0) {
@@ -54,7 +54,8 @@ namespace CoupledField
       mainGroup_.close();
 
     // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
+    if (mainGroup_.getLocId() > 0 &&
+        mainFile_.getObjCount( H5F_OBJ_DATASET |
                                H5F_OBJ_GROUP |
                                H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
       if(settings.GetInt("verbose"))
@@ -67,10 +68,10 @@ namespace CoupledField
 
     if(!doneWriting_) {
       try {
-        fs::remove( mainFileName );
+        fs::remove( mainFileName_ );
       } catch (std::exception &ex) {
         EXCEPTION("An error occured while trying to delete incomplete HDF5 file '"
-                  << mainFileName << "'\n"
+                  << mainFileName_ << "'\n"
                   << ex.what());
       }
     }
@@ -465,11 +466,15 @@ namespace CoupledField
 
     // write creator
     std::stringstream creator;
-    creator << "cplreader " << CFS_VERSION << " ( "
+    creator << "cplreader-cfs " << CFS_VERSION << " ( "
             << CFS_SUBVERSION_REPOS
             << " rev. " << CFS_SUBVERSION_REV
             << ", date " << CFS_CONF_DATE
-            << " )";
+            << " )"
+            << "Built on: " << CFS_BUILD_HOST << "\n"
+            << "Platform: " << CFS_DISTRO << "_" << CFS_DISTRO_VER << "_" << CFS_ARCH << "\n"
+            << "Built by: " << CFS_BUILD_USER << "\n"
+            << "HDF5 library version: " << CFS_HDF5_VERSION;
     std::string creatorString = creator.str();
     H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ );
 
@@ -513,11 +518,11 @@ namespace CoupledField
     strBuffer.clear();
     strBuffer.str("");
     strBuffer << hdf5DirName_ << pathsep << fileName << ".h5";
-    fileName = strBuffer.str();
+    mainFileName_ = strBuffer.str();
 
     // create main file and obtain main group
     try {
-      mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
+      mainFile_ = H5::H5File (mainFileName_, H5F_ACC_TRUNC );
     } H5_CATCH( "Could not create hdf5 file '" << fileName << "' : " );
 
     mainGroup_ = mainFile_.openGroup( "/" );
@@ -672,7 +677,9 @@ namespace CoupledField
       fn = fName.str();
       fName.str("");
       fName << hdf5DirName_ << pathsep << fn;
-      currStepFile_ = H5::H5File(fName.str(), H5F_ACC_TRUNC);
+      currStepFileName_ = fName.str();
+      
+      currStepFile_ = H5::H5File(currStepFileName_, H5F_ACC_TRUNC);
 
       // Write reference to external file to main file
       H5IO::WriteAttribute( currMeshStepGroup_, "ExtHDF5FileName", fn );

@@ -483,6 +483,9 @@ namespace CoupledField {
            << "CFS_BUILD_HOST:        "
            << fg_blue << CFS_BUILD_HOST << fg_reset << std::endl
 
+           << "CFS_BUILD_USER:        "
+           << fg_blue << CFS_BUILD_USER << fg_reset << std::endl
+
            << "CFS_SUBVERSION_REV:    "
            << fg_blue << CFS_SUBVERSION_REV << fg_reset << std::endl
 

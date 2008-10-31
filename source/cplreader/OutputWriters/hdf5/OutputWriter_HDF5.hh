@@ -88,8 +88,14 @@ namespace CoupledField
     //! Main file containing grid and meta information
     H5::H5File mainFile_;
 
+    //! Name of main file
+    std::string mainFileName_;
+
     //! In case we use
     H5::H5File currStepFile_;
+
+    //! Name of current step file
+    std::string currStepFileName_;
 
     //! Main / Root Group
     H5::Group mainGroup_;
