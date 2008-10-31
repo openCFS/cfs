@@ -32,6 +32,12 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
+# Set user who builds CFS++
+#-----------------------------------------------------------------------------
+SET(CFS_BUILD_USER "$ENV{USER}"
+    CACHE INTERNAL "CFS_BUILD_USER")
+
+#-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
 OPTION(USE_LAPACK "Use the LAPACK linear algebra library." ON)

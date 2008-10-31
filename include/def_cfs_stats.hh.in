@@ -6,6 +6,8 @@
 
 // Hostname on which the source tree has been configured
 #define CFS_BUILD_HOST "@CFS_BUILD_HOST@"
+// User name who configured the build dir
+#define CFS_BUILD_USER "@CFS_BUILD_USER@"
 
 // Global version of SVN working copy
 #define CFS_SUBVERSION_REV "@CFS_SUBVERSION_REV@"
