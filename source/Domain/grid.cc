@@ -476,6 +476,11 @@ namespace CoupledField
 
       AddSurfaceElems(ncIf.region, ncElemsHelper, ncElemIds);
     }
+    else {
+      EXCEPTION("No intersection elements were computed for non-conforming"
+                << " interface '" << ncIf.name
+                << "'. Please check your mesh file.");
+    }
   }
 
   
@@ -1361,7 +1366,7 @@ namespace CoupledField
     }
 
     // lines are not parallel, so compute intersection
-    Double h, k, k1 = 0.0, k2 = 0.0, denom1, denom2;
+    Double h, k, k1 = 0.0, k2 = 0.0, k3 = 0.0, denom1, denom2, denom3;
 
     /* a + h * v1 = c + k * v2
      * This is a system with 2 unknowns and 3 equations. Compute k1 from
@@ -1373,16 +1378,29 @@ namespace CoupledField
     denom2 = v1[2] * v2[0] - v1[0] * v2[2];
     if (fabs(denom2) > polysectAbsTol_)
       k2 = (v1[0] * (c[2] - a[2]) + v1[2] * (a[0] - c[0])) / denom2;
+    denom3 = v1[2] * v2[1] - v1[1] * v2[2];
+    if (fabs(denom3) > polysectAbsTol_)
+      k3 = (v1[1] * (c[2] - a[2]) + v1[2] * (a[1] - c[1])) /denom3;
     // If this system has no solution, lines do not intersect.
-    if ((fabs(denom1) <= polysectAbsTol_) && (fabs(denom2) <= polysectAbsTol_))
+    if ((fabs(denom1) <= polysectAbsTol_)
+        && (fabs(denom2) <= polysectAbsTol_)
+        && (fabs(denom3) <= polysectAbsTol_))
       return INTERSECT_NONE;
-    if ((fabs(denom1) > polysectAbsTol_) && (fabs(denom2) > polysectAbsTol_)) {
+    /*if ((fabs(denom1) > polysectAbsTol_)
+        && (fabs(denom2) > polysectAbsTol_)) {
       if (fabs(k1 - k2) > polysectRelTol_)
         return INTERSECT_NONE;
-    }
+    }*/
+
+    // select the right one out of (k1,k2,k3)
+    if (fabs(denom1) > polysectAbsTol_)
+      k = k1;
+    else if (fabs(denom2) > polysectAbsTol_)
+      k = k2;
+    else
+      k = k3;
 
     // compute second unknown
-    if (fabs(denom1) > polysectAbsTol_) k = k1; else k = k2;
     if (fabs(v1[0]) > polysectAbsTol_)
       h = (c[0] - a[0] + v2[0] * k) / v1[0];
     else if (fabs(v1[1]) > polysectAbsTol_)
@@ -1390,7 +1408,9 @@ namespace CoupledField
     else
       h = (c[2] - a[2] + v2[2] * k) / v1[2];
 
-    e = a + v1 * h; // compute point of intersection
+    // compute point of intersection
+    e = c + v2 * k;
+    //e = a + v1 * h; // do not use h, because it was computed from k
 
     if (h > -polysectRelTol_) { // we consider only [a,inf)
       if ((k > -polysectRelTol_) && (k < 1.0 + polysectRelTol_)) { // intersection on [c,d]?
