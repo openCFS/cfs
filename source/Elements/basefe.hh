@@ -179,6 +179,34 @@ namespace CoupledField
                                               const Elem* elem,
                                               UInt dof=1 );
 
+    //! Get global 2nd derivatives of all shape fnc at integration point ip
+    /*! 
+      \param Deriv2nd (output) Matrix with global 2nd derivatives of all shape functions
+      \f[ \left( \begin{array}{ccc} N_{1,dxx} & N_{1,dyy} & \cdots \\
+      N_{2,dxx} & N_{2,dyy} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \param Deriv1st (input) Matrix with global 1st derivatives
+      \param ip(input) Integration point
+      \param CornerCoords (input) Coordinates of element corners
+      \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right) \f]
+    */
+    virtual void GetGlob2ndDerivShFncAtIp(Matrix<Double> & Deriv2nd,
+                                          const Matrix<Double> & Deriv1st, 
+                                          const UInt ip,
+                                          const Matrix<Double> & CornerCoords,
+                                          const Elem * elem, 
+                                          UInt dof = 1 );
+
+    virtual void CalcInvDMatAtIp(Matrix<Double> & DInv,
+                                 const Matrix<Double> & J,
+                                 const Elem* elem );
+
+    virtual void CalcEMatAtIp(Matrix<Double> & E, 
+                              const UInt ip, 
+                              const Matrix<Double> & CornerCoords,
+                              const Elem* elem );
+
     //! Calculates the Jacobian Matrix at an arbitrary local point
     /*!
       \param J (output) Jacobian Matrix
@@ -573,6 +601,21 @@ namespace CoupledField
                                         const Elem* elem, UInt dof,
                                         AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
 
+    //! Calculates the local 2nd derivatives of shape functions at an arbitrary local point
+    /*!
+      \param L2ndDeriv (output) Matrix with local 2nd derivatives of all shape functions
+      \f[ \left( \begin{array}{ccc} N_{1,d\xi\xi} & N_{1,d\eta\eta} & \cdots \\
+      N_{2,d\xi\xi} & N_{2,d\eta\eta} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcLocal2ndDerivShapeFnc(Matrix<Double> & L2ndDeriv, 
+                                           const Vector<Double> & LCoord,
+                                           const Elem* elem, UInt dof,
+                                           AnsatzFct::FctEntityType = AnsatzFct::ALL ) {
+      Error( "Not implemented in baseFE!", __FILE__, __LINE__ );
+    };
+
    //! Calculates the shape functions of incompatible modes at an arbitrary local point
     /*!
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
@@ -604,6 +647,9 @@ namespace CoupledField
   
     //! Set value of shape fnc derivatives at integration points
     virtual void SetShapeFncDerivAtIp();
+
+    //! Set value of shape fnc of 2nd derivatives at integration points
+    virtual void SetShapeFnc2ndDerivAtIp();
 
     //! Set local corner coordinates
     virtual void SetCornerCoords() = 0;
@@ -683,6 +729,7 @@ namespace CoupledField
     Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
     Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
     Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
+    Matrix<Double> * ShFnc2ndDerivAtIp_; //!< Array of local derivatives in each integration point
     Vector<Double> * ShFncICModesAtIp_;   //!< Array of vectors of function values at IPs for incomp. modes(x:local Dim, y:Number)
     Matrix<Double> * ShFncICModesDerivAtIp_; //!< Array of local derivatives of incomp. modes in each integration point
     Vector<Double> * IntPoints_;      //!< integration points

@@ -61,13 +61,13 @@ SET(FORMS_SRCS
   PMLTransXYZInt.cc
   singleEntryInt.cc
   smoothInt.cc
-  stokesFluid3DInt.cc
-  stokesFluidAxiInt.cc
-  stokesFluidInt.cc
-  stokesFluidPlaneInt.cc
   SurfaceNormalInt.cc
   nLinMagHystInt2D.cc
   mixedInt.cc
+  fluidMechInt.cc
+  fluidMechShearStress.cc
+  fluidMechMassInt.cc
+  fluidMechStiffInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

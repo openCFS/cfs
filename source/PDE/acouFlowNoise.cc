@@ -625,7 +625,7 @@ namespace CoupledField
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
       rhs_.SetSolutionType(ACOU_RHS_LOAD);
-      rhs_.SetResult( results_[0] );
+      rhs_.SetResults( results_ );
       rhs_.SetNumDofs(1);
       rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
       rhs_.SetRegions( subdoms_ );
@@ -768,9 +768,9 @@ namespace CoupledField
                rhs_.SetNumNodes(numPDENodes_);
                //             rhs_.SetNumNodes(elemssd.GetSize());
                rhs_.SetSolutionType(ACOU_RHS_LOAD);
-               rhs_.SetResult( results_[0] );
+               rhs_.SetResults( results_ );
                rhs_.SetNumDofs(1);
-               rhs_.SetResult( results_[0] );
+               rhs_.SetResults( results_ );
                rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
                rhs_.SetRegions( subdoms_ );
                rhs_.Init(0.0);
@@ -779,9 +779,9 @@ namespace CoupledField
                rhs2_.SetNumNodes(numPDENodes_);
                //               rhs2_.SetNumNodes(elemssd.GetSize());
                rhs2_.SetSolutionType(ACOU_POT_NRBC);
-               rhs2_.SetResult( results_[0] );
+               rhs2_.SetResults( results_ );
                rhs2_.SetNumDofs(1);
-               rhs2_.SetResult( results_[0] );
+               rhs2_.SetResults( results_ );
                rhs2_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
                rhs2_.SetRegions( subdoms_ );
                rhs2_.Init(0.0);

@@ -48,6 +48,7 @@ namespace CoupledField {
     solPrev_ = NULL;
     isSetInitialCondition_ = false;
     InitialCondition_=0.0;
+    isInstationary_ = false;
     
 
     // =====================================================================

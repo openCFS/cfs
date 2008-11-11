@@ -18,6 +18,7 @@ namespace CoupledField {
     rhsSize_ = 0 ;
     isDeriv1Set_ = false;
     isDeriv2Set_ = false;
+    isSolTN1Set_ = false;
   }
 
   const std::map<FEMatrixType,Double>  &

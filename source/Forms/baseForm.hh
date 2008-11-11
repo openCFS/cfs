@@ -97,6 +97,11 @@ namespace CoupledField
     void SetSolution( NodeStoreSol<Double>& sol ) {
       sol_ = &sol; }
 
+    //! Set solution class for non-linear integrators
+    void SetGridSolution( NodeStoreSol<Double>& gridSol ) {
+      gridSol_ = &gridSol; }
+
+
     // ! In case of coupled PDEs set sol1
    void SetSolution1(NodeStoreSol<Double> & sol){
      sol1_= &sol;
@@ -254,6 +259,9 @@ namespace CoupledField
 
     //! solution vector, sol1 and sol2 are solutions in case id direct couplings
     NodeStoreSol<Double>* sol_, *sol1_, *sol2_;
+
+    //! grid solution vector
+    NodeStoreSol<Double>* gridSol_;
 
     //! first derivative of solution
     NodeStoreSol<Double>* solDeriv1_;

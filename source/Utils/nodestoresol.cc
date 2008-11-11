@@ -307,23 +307,37 @@ namespace CoupledField {
     if (length_ == 0) 
       EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
-
-
-    UInt dof = (*solDofs_.find(type)).second;
-
-    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-
+    
     UInt globNumNodes = ptGrid_->GetNumNodes();
-
-    temp.Resize(globNumNodes *dof);
-    temp.Init();
-
-    UInt numDofs = result_->dofNames.GetSize();
     StdVector<Integer> eqns;
     
+
+    // Find related resultDof
+    shared_ptr<ResultInfo> actResult;
+    bool solFound = false;
+    for( UInt i = 0; i < results_.GetSize(); i++ ) {
+      if( results_[i]->resultType == type ) {
+        actResult = results_[i];
+        solFound = true;
+        break;
+      }
+    }
+    if( !solFound) {
+      std::string solName;
+      Enum2String( type, solName );
+      *error << "Solution type '" << solName
+             << "' is not contained in this solution object!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    UInt numDofs = actResult->dofNames.GetSize();
+    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+    temp.Resize(globNumNodes *numDofs);
+    temp.Init();
+
     // Iterate over all entities
     for( UInt i = 0; i < elems_.GetSize(); i++ ) {
-      
+
       // Get iterator
       EntityIterator it = elems_[i]->GetIterator();
 
@@ -334,15 +348,15 @@ namespace CoupledField {
 
         // Get related equation numbers
         //eqnMap_->GetEqns( eqns, *result_, it );
-        eqnMap_->GetNodeEqn( nodes, eqns );
 
         // Iterate over all nodes
         for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
           Integer globNode = nodes[iNode];
+
           // Iterate over all dofs
           for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
             
-            Integer eqnNr = eqns[iNode*numDofs+iDof];
+            Integer eqnNr = eqnMap_->GetNodeEqn( *actResult, globNode, iDof+1 );
 
             if( eqnNr != 0 ) {
               temp[(globNode-1)*numDofs + iDof] = data_[std::abs(eqnNr)-1];
@@ -351,8 +365,6 @@ namespace CoupledField {
             }
           }
         }
-        
-
       }
     }
     
@@ -377,7 +389,6 @@ namespace CoupledField {
 //       }
 //     } 
   }
-
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetNodalResult(const UInt nodeNr, const CFSVector &val)
@@ -528,18 +539,36 @@ namespace CoupledField {
                                TYPE & ret) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
+    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
 #endif
 
+    // Find related resultDof
+    shared_ptr<ResultInfo> actResult;
+    bool solFound = false;
+    for( UInt i = 0; i < results_.GetSize(); i++ ) {
+      if( results_[i]->resultType == type ) {
+        actResult = results_[i];
+        solFound = true;
+        break;
+      }
+    }
+    if( !solFound) {
+      std::string solName;
+      Enum2String( type, solName );
+      *error << "Solution type '" << solName
+             << "' is not contained in this solution object!";
+      Error( __FILE__, __LINE__ );
+    }  
+
     Integer eqnNr;
-  
-    eqnNr = eqnMap_->GetNodeEqn( *result_, nodeNr+1, dof+1);
+    eqnNr = eqnMap_->GetNodeEqn( *actResult, nodeNr+1, dof+1);
 
     if (eqnNr != 0)
       ret = data_[abs(eqnNr)-1];
     else
-      ret =  TYPE(0.0);
+      ret =  TYPE();
   }
+
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::Set(const SolutionType type, const UInt nodeNr, const UInt dof, const TYPE val)
@@ -559,6 +588,18 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  void NodeStoreSol<TYPE>::Set(const Integer eqnNr, 
+                               const TYPE val)
+  {
+#ifdef CHECK_INITIALIZED
+    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
+#endif
+
+    if (eqnNr != 0)
+      data_[abs(eqnNr-1)] = val;
+  }
+
+  template<class TYPE>
   void NodeStoreSol<TYPE>::Add(const SolutionType type, const UInt nodeNr, const UInt dof, const TYPE val) const
   {
 #ifdef CHECK_INITIALIZED
@@ -566,6 +607,18 @@ namespace CoupledField {
 #endif
     EXCEPTION("Not implemented here" );
   }
+
+  template<class TYPE>
+  void NodeStoreSol<TYPE>::Add(const Integer eqnNr, 
+                               const TYPE val)
+  {
+#ifdef CHECK_INITIALIZED
+    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
+#endif
+    if (eqnNr != 0)
+      data_[abs(eqnNr-1)] += val;
+  }
+
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
@@ -681,77 +734,80 @@ namespace CoupledField {
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetElemSolution(CFSVector & elemSol,
-                                           const EntityIterator& it) const
+                                           const EntityIterator& it, 
+                                           UInt solIndex ) const
   {
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(elemSol);
 
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *result_, it );
+    eqnMap_->GetEqns( eqns, *results_[solIndex], it );
     temp.Resize(eqns.GetSize());
     temp.Init();
 
      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
        if ( eqns[i] != 0 ) {
-         temp[i] = data_[abs(eqns[i])-1];
+         temp[i] = data_[(abs(eqns[i])-1)];
        } else {
          temp[i] = TYPE();
        }
      }
   }
 
-
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
-                                                   const EntityIterator& it) const
+                                                   const EntityIterator& it,
+                                                   UInt solIndex ) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
+    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
 #endif
   
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
     StdVector<Integer> eqns;
-    eqnMap_->GetEqns( eqns, *result_, it );
+    eqnMap_->GetEqns( eqns, *results_[solIndex], it );
 
-    UInt numFcns = (UInt) eqns.GetSize() / totalDofs_;    
-    temp.Resize(totalDofs_, numFcns);
+    UInt numDofs =  results_[solIndex]->dofNames.GetSize();
+    UInt numFcns = (UInt) eqns.GetSize() / numDofs;
+    temp.Resize( numDofs, numFcns);
 
-    for ( UInt iDof = 0; iDof < totalDofs_; iDof++ )
+    for ( UInt iDof = 0; iDof < numDofs; iDof++ )
       for ( UInt iFcn=0; iFcn < numFcns; iFcn++ ) {
-        Integer actEqn = eqns[iFcn * totalDofs_ + iDof];
+        Integer actEqn = eqns[iFcn * numDofs + iDof];
         if ( actEqn != 0){
-          temp[iDof][iFcn] = data_[abs(actEqn)-1];
+          temp[iDof][iFcn] = data_[(abs(actEqn)-1)];
         } else {
           temp[iDof][iFcn] = TYPE();
         }
       }
   }
 
-  
   template<class TYPE>
   void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
-                                                  const StdVector<UInt>& nodeNumbers) const
+                                                  const StdVector<UInt>& nodeNumbers,
+                                                  UInt solIndex  ) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
+    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
 #endif
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(couplingSol);
     Integer eqnNr;
 
-    temp.Resize(nodeNumbers.GetSize() * totalDofs_);
+    UInt numDofs =  results_[solIndex]->dofNames.GetSize();
+    temp.Resize(nodeNumbers.GetSize() * numDofs);
     for (UInt iNode=0; iNode<nodeNumbers.GetSize(); iNode++)
-      for (UInt iDof=0; iDof<totalDofs_; iDof++)
+      for (UInt iDof=0; iDof<numDofs; iDof++)
         {
-          eqnNr = eqnMap_->GetNodeEqn( nodeNumbers[iNode], iDof+1 );
+          eqnNr = eqnMap_->GetNodeEqn( *results_[solIndex], nodeNumbers[iNode], iDof+1 );
           if (eqnNr != 0)
             temp.data_[iNode*totalDofs_ + iDof] = data_[abs(eqnNr)-1];
           else
-            temp.data_[iNode*totalDofs_ + iDof] = TYPE();
+            temp.data_[iNode*numDofs + iDof] = TYPE();
         }
   }
 
-  
+
   //////////////////// Operators //////////////////
   template<class TYPE>
   NodeStoreSol<TYPE> & NodeStoreSol<TYPE>::operator= (const NodeStoreSol & x)

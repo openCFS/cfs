@@ -27,6 +27,7 @@ namespace CoupledField
     // initializing dynamic objects
     ShFncAtIp_             = NULL;
     ShFncDerivAtIp_        = NULL; 
+    ShFnc2ndDerivAtIp_     = NULL; 
     ShFncICModesAtIp_      = NULL; 
     ShFncICModesDerivAtIp_ = NULL; 
     IntPoints_             = NULL; 
@@ -47,6 +48,7 @@ namespace CoupledField
  
     if( ShFncAtIp_ ) delete[] ShFncAtIp_;
     if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
+    if( ShFnc2ndDerivAtIp_ ) delete[] ShFnc2ndDerivAtIp_;
     if( IntPoints_ ) delete[] IntPoints_;
 
     if(edgeIndices_ != NULL) { delete[] edgeIndices_; edgeIndices_ = NULL; } 
@@ -480,6 +482,137 @@ namespace CoupledField
     Deriv = ShFncICModesDerivAtIp_[ip-1] * JInv;
   }
 
+  // ++++++++++++++++++++ 2nd derivatives +++++++++++++++++++++
+  void BaseFE :: GetGlob2ndDerivShFncAtIp(Matrix<Double> & Deriv2nd,
+                                          const Matrix<Double> & Deriv1st, 
+                                          const UInt ip,
+                                          const Matrix<Double> & CornerCoords,
+                                          const Elem * elem, 
+                                          UInt dof ) {
+    if ( CalcICModes_ && ICModes_ ) {
+      //incompatible modes
+      Error("2nd derivs of incompatible modes needs to be implemented",__FILE__,__LINE__);
+    }
+
+    //  Deriv2nd.Resize(NumNodes_,Dim_+1);
+    if ( Dim_ == 2 ||  Dim_ == 3 ){
+      Matrix<Double> J, DInv, E, Aux1, Aux2, Aux3;
+      CalcJacobianAtIp(J, ip, CornerCoords,elem);
+      CalcInvDMatAtIp(DInv, J,elem);
+      CalcEMatAtIp(E, ip, CornerCoords,elem);
+
+      //Deriv2nd = ( ShFnc2ndDerivAtIp_[ip-1] - (Deriv1st * E) ) * DInv;
+      Aux1 = Deriv1st * E;
+      Aux2 = ShFnc2ndDerivAtIp_[ip-1] - Aux1;
+      Deriv2nd = Aux2 * DInv;
+    }
+    else {
+      *error << "currently not implemented"; 
+      Error( __FILE__, __LINE__ );     
+    }
+}
+
+
+  void BaseFE :: CalcInvDMatAtIp(Matrix<Double> & DInv,
+                                 const Matrix<Double> & J,
+                                 const Elem * elem) {
+    std::string errMsg;
+    if ( Dim_==2 ){
+      DInv.Resize(3,3);DInv.Init(0.0);
+      Matrix<Double> D;
+      D.Resize(3,3);D.Init(0.0);
+
+      D[0][0] =     J[0][0] * J[0][0];
+      D[1][0] =     J[1][0] * J[1][0];
+      D[2][0] = 2 * J[0][0] * J[1][0];
+
+      D[0][1] =     J[0][1] * J[0][1];
+      D[1][1] =     J[1][1] * J[1][1];
+      D[2][1] = 2 * J[0][1] * J[1][1];
+
+      D[0][2] =     J[0][0] * J[0][1];
+      D[1][2] =     J[1][0] * J[1][1];
+      D[2][2] = J[0][0] * J[1][1] + J[0][1] * J[1][0];
+    
+      D.Invert(DInv);
+    }
+    else if ( Dim_==3 ){
+      DInv.Resize(6,6);
+      DInv.Init(0.0);
+//       Matrix<Double> D;
+//       D.Resize(6,6);
+//       D.Init(0);
+
+      DInv[0][0] =     J[0][0] * J[0][0];
+      DInv[1][0] =     J[1][0] * J[1][0];
+      DInv[2][0] =     J[2][0] * J[2][0];
+      DInv[3][0] = 2 * J[0][0] * J[1][0];
+      DInv[4][0] = 2 * J[1][0] * J[2][0];
+      DInv[5][0] = 2 * J[0][0] * J[2][0];
+
+      DInv[0][1] =     J[0][1] * J[0][1];
+      DInv[1][1] =     J[1][1] * J[1][1];
+      DInv[2][1] =     J[2][1] * J[2][1];
+      DInv[3][1] = 2 * J[0][1] * J[1][1];
+      DInv[4][1] = 2 * J[1][1] * J[2][1];
+      DInv[5][1] = 2 * J[0][1] * J[2][1];
+
+      DInv[0][2] =     J[0][2] * J[0][2];
+      DInv[1][2] =     J[1][2] * J[1][2];
+      DInv[2][2] =     J[2][2] * J[2][2];
+      DInv[3][2] = 2 * J[0][2] * J[1][2];
+      DInv[4][2] = 2 * J[1][2] * J[2][2];
+      DInv[5][2] = 2 * J[0][2] * J[2][2];
+
+      DInv[0][3] =     J[0][0] * J[0][1];
+      DInv[1][3] =     J[1][0] * J[1][1];
+      DInv[2][3] =     J[2][0] * J[2][1];
+      DInv[3][3] = J[0][1] * J[1][0] + J[0][0] * J[1][1];
+      DInv[4][3] = J[1][1] * J[2][0] + J[1][0] * J[2][1];
+      DInv[5][3] = J[0][1] * J[2][0] + J[0][0] * J[2][1];
+
+      DInv[0][4] =     J[0][1] * J[0][2];
+      DInv[1][4] =     J[1][1] * J[1][2];
+      DInv[2][4] =     J[2][1] * J[2][2];
+      DInv[3][4] = J[0][2] * J[1][1] + J[0][1] * J[1][2];
+      DInv[4][4] = J[1][2] * J[2][1] + J[1][1] * J[2][2];
+      DInv[5][4] = J[0][2] * J[2][1] + J[0][1] * J[2][2];
+
+      DInv[0][5] =     J[0][0] * J[0][2];
+      DInv[1][5] =     J[1][0] * J[1][2];
+      DInv[2][5] =     J[2][0] * J[2][2];
+      DInv[3][5] = J[0][2] * J[1][0] + J[0][0] * J[1][2];
+      DInv[4][5] = J[1][2] * J[2][0] + J[1][0] * J[2][2];
+      DInv[5][5] = J[0][2] * J[2][0] + J[0][0] * J[2][2];
+
+      DInv.InvertDoubleMatrixWithLapack();
+    }
+    else {
+      errMsg = "currently not implemented";
+      Error(errMsg.c_str(), __FILE__, __LINE__ );     
+    }
+  }
+
+  void BaseFE :: CalcEMatAtIp(Matrix<Double> & E, 
+                              const UInt ip, 
+                              const Matrix<Double> & CornerCoords,
+                              const Elem * elem) {
+    std::string errMsg;
+    if (Dim_ == 2) {
+      E.Resize(2,3); E.Init(0.0);
+      E = CornerCoords * ShFnc2ndDerivAtIp_[ip-1];
+    }
+    else if (Dim_ == 3) {
+      E.Resize(3,6); E.Init(0.0);
+      E = CornerCoords * ShFnc2ndDerivAtIp_[ip-1];
+    }
+    else {
+      errMsg = "currently not implemented";
+      Error(errMsg.c_str(), __FILE__, __LINE__ );     
+    }
+  }
+
+
 
   void BaseFE::CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
@@ -680,6 +813,22 @@ namespace CoupledField
 	CalcLocalICModesDerivShapeFnc(  ShFncICModesDerivAtIp_[i], IntPoints_[i], 
 					NULL, 1, AnsatzFct::NODE );
       }
+    }
+  }
+
+  void BaseFE :: SetShapeFnc2ndDerivAtIp()
+  {
+    if( !ShFnc2ndDerivAtIp_){
+      ShFnc2ndDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+    }
+    else{ 
+      delete[] ShFnc2ndDerivAtIp_ ;
+      ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+    }
+    
+    for( UInt i=0; i<NumIntPoints_; i++ ) {
+      CalcLocal2ndDerivShapeFnc( ShFnc2ndDerivAtIp_[i], IntPoints_[i],
+                                 NULL, 1, AnsatzFct::NODE);
     }
   }
 

@@ -1,0 +1,288 @@
+ <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for a fluid mechanics PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for mechanic PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="fluidMech" type="DT_PDEFluidMech"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_FluidMechanicRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for fluid mechanical PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_PDEFluidMech">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+
+        <xsd:sequence>
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="convective" type="DT_FluidMechNonLinConv"/>
+                </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+
+              <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_FluidMechHD"        />
+                <xsd:element name="dirichletInhom" type="DT_FluidMechID"        />
+                <xsd:element name="pressure"       type="DT_FluidMechPressure"  />
+             <!--   <xsd:element name="regionLoad"     type="DT_FluidMechRegionLoad"/>
+                <xsd:element name="surfStress"     type="DT_FluidMechSurfStress"/>
+                <xsd:element name="constraint"     type="DT_FluidMechCS"   />
+                <xsd:element name="periodic"       type="DT_FluidMechPeriodic"   />  -->
+              </xsd:choice>
+
+            </xsd:complexType>
+
+          </xsd:element>
+
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults" type="DT_FluidMechStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subType" use="optional" default="plane">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="plane"/>
+              <xsd:enumeration value="3d"/>
+              <xsd:enumeration value="axi"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="type" use="optional" default="lagrange">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="lagrange"/>
+              <xsd:enumeration value="legendre"/>
+              <xsd:enumeration value="taylorHood"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="stabilizationType" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="supg"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of convective nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of convective nonlinearity type -->
+  <xsd:complexType name="DT_FluidMechNonLinConv">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the fluid mechanical unknown types -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_FluidMechUnknownType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="fluidMechPressure"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_FluidMechDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="tx"/>
+      <xsd:enumeration value="ty"/>
+      <xsd:enumeration value="tz"/>
+      <xsd:enumeration value="r"/>
+      <xsd:enumeration value="phi"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for mechanic -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_FluidMechHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_FluidMechDOF" use="required"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
+        <xsd:attribute name="quantity" default="fluidMechVelocity"
+        type="DT_FluidMechUnknownType"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_FluidMechID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FluidMechHD">
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_FluidMechIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FluidMechID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for pressure loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_FluidMechPressure">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+        default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of nodal result types of mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechNodeResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="fluidMechPressure"/>
+      <xsd:enumeration value="acouRhsLoad"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of element result types of mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="fluidMechStrain"/>
+      <xsd:enumeration value="fluidMechStress"/>
+      <xsd:enumeration value="stabilParam"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of surface region result types of mechanic PDE -->
+  <xsd:simpleType name="DT_FluidMechRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+ <!-- Global type for specifying desired electrostatic output quantities -->
+  <xsd:complexType name="DT_FluidMechStoreResults">
+    <xsd:sequence>
+      <xsd:choice maxOccurs="unbounded">
+
+        <!-- Nodal result definition -->
+        <xsd:element name="nodeResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+
+            <xsd:complexContent>
+              <xsd:extension base="DT_NodeResult">
+                <xsd:attribute name="type" type="DT_FluidMechNodeResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_FluidMechElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_FluidMechRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+    
+
+</xsd:schema>

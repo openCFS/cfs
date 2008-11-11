@@ -207,16 +207,6 @@ namespace CoupledField{
                             CFSVector & val) const;
 
 
-    //! Set vector with one solution type for all nodes
-    /*!
-      \param (input) Solution type (ref. enum SolutionType)
-      \param (input) Vector with given solution type)
-    */
-    //! \note The val-vector must match the internal layout
-    //! prescribed by the SetDof() and SetSolutionType() methods!
-    void SetAlgSysSolVector(const SolutionType solType, 
-                            const CFSVector & val) ;
-
 
     //! Set all solution types for one node
     /*!
@@ -296,6 +286,8 @@ namespace CoupledField{
              const UInt dof, 
              const TYPE val);
 
+    void Set(const Integer eqnNr, 
+             const TYPE val);
 
     //! Add value to a single entry of a given solution type and a given dof
     /*!
@@ -308,6 +300,9 @@ namespace CoupledField{
              const UInt nodeNr, 
              const UInt dof, 
              const TYPE val) const;
+    
+     void Add(const Integer eqnNr, 
+             const TYPE val);
 
 
     ///! Set the complete solution vector inside this object
@@ -390,20 +385,31 @@ namespace CoupledField{
     // Transformation routines for mapping //
     // pde to mesh solution and vice versa //
     /////////////////////////////////////////
+   //! Return the solution of all nodes of an element
 
-    void GetElemSolution(CFSVector & elemSol,
-                         const EntityIterator& it) const;
+    //! This method returns the solution of an element. 
+    //! \param elemSol Vector containing the element solution
+    //! \param it Entiyiterator containing the current element
+    //! \param solIndex Index for the desired solution type
+    void GetElemSolution( CFSVector & elemSol,
+                          const EntityIterator& it,
+                          UInt solIndex = 0 ) const;
+    
+    //! Return the solution of all nodes of an element as matrix
 
-
-    //!
-    void GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
-                                 const EntityIterator& it) const;
-
-
+    //! This method returns the solution of an element as matrix. 
+    //! \param elemSol Matrix containing the element solution
+    //! \param it Entiyiterator containing the current element
+    //! \param solIndex Index for the desired solution type
+    void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
+                                  const EntityIterator& it,
+                                  UInt solIndex = 0 ) const;
+    
     //! maps the local node solution to the coupling nodes
-    void NodeSolutionToCoupling(CFSVector & couplingSol,
-                                const StdVector<UInt>& nodeNumbers) const;
-                             
+    void NodeSolutionToCoupling( CFSVector & couplingSol,
+                                 const StdVector<UInt>& nodeNumbers,
+                                 UInt solIndex = 0 ) const;
+
 
     ///////////////
     // Operators //

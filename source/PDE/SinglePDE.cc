@@ -450,11 +450,11 @@ namespace CoupledField {
     ReadSpecialResults();
 
     // Set information at sol_ object
-    sol_->SetResult( results_[0] );
+    sol_->SetResults( results_ );
 
 
     if ( solPrev_ != NULL )
-      solPrev_->SetResult( results_[0] );
+      solPrev_->SetResults( results_ );
 
     PreparePDE4Computation();
 

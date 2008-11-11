@@ -16,9 +16,14 @@ namespace CoupledField
 #define LP_ZGESV zgesv_ // solves general type of matrices
 #define LP_ZHESV zhesv_ // solves  ZHESV computes the solution to a complex system of linear equations
   // A * X = B, where A is an N-by-N Hermitian matrix and X and B are N-by-NRHS matrices
+
+#define LP_DGESV dgesv_ // solves general type of Doubel matrices
+
 #define LP_DLAMCH dlamch_ // tests data types ...
 #define LP_ZHEEV zheev_ //ZHEEV computes all eigenvalues and, optionally, eigenvectors of a
   //  complex Hermitian matrix A.
+
+#define LP_DSYGST dsygst_ //reduce a real symmetric-definite generalized eigenproblem to standard form
 
   typedef double F77real8;
   
@@ -56,9 +61,12 @@ namespace CoupledField
     void LP_ZHESV( char*, int*, int*, F77complex16*, int*, int*, F77complex16*, int*, F77complex16*, int*, int*);
     //! solves general kind of problems with complex coefficients
     void LP_ZGESV( int*, int*, F77complex16*, int*, int*, F77complex16*, int*, int*);
+    //! solves general kind of problems with double coefficients
+    void LP_DGESV( int*, int*, F77real8*, int*, int*, F77real8*, int*, int*);
     //    double LP_DLAMCH (char *CMACHp); // DLAMCH - determine double precision machine parameters
     //! determines eigenvalues of a complex - valued matrix
     void LP_ZHEEV( char*, char*, int*, F77complex16*, int *, F77real8*, F77complex16*, int*, F77real8* ,int* ); 
+    void LP_DSYGST( int*, char*, int*, F77real8*, int*, F77real8*, int*, int* );
     // ! To be continued ...
 
   }

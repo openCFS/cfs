@@ -842,6 +842,102 @@ namespace CoupledField
 #ifdef USE_LAPACK
   // Compile OLAS and CFS++ with USE_LAPACK
   template<>
+  void Matrix<Double>::InvertDoubleMatrixWithLapack()
+  {
+
+    if(size_row_!=size_col_)
+      Error("Matrix is not quadratic, no inversion! ",__FILE__,__LINE__);
+
+    char lp_matType;
+    lp_matType='L';
+    
+    Integer lp_nrRHS, lp_loadDim, lp_loadDimRHS, lp_info, lp_lwork,lp_dim;
+    Integer lp_lda, lp_ldb;
+
+    lp_nrRHS=size_col_;
+    lp_dim=size_row_;
+    lp_lda=size_row_;
+    lp_ldb=size_row_;
+
+    Integer *lp_interchanges;
+    
+    F77real8 *lp_rhsVecf77;
+    F77real8 *lp_sysVecf77;
+    F77real8 *lp_workf77;
+    F77real8  auxVal2;
+    
+    Vector<Double> lp_sysVec, lp_work;
+    lp_sysVec.Resize(size_row_*size_row_);
+    
+      // copy values from system and RHS - Matrix into vector
+    for (UInt i=0;i<size_row_;i++)
+      for (UInt j=0;j<size_row_;j++){
+        lp_sysVec[i+j*size_row_]=data_[i][j];
+      }
+    
+    Vector<Double> lp_rhsVec;
+    lp_rhsVec.Resize(size_row_*size_col_);
+ 
+    for (UInt i=0;i<size_row_;i++)
+      for (UInt j=0;j<size_col_;j++){
+        if (i==j) lp_rhsVec[i+j*size_row_]=1.0;
+        else lp_rhsVec[i+j*size_row_]=0.0;
+      }
+    //std::cout<<lp_rhsVec<<std::endl;
+
+    lp_rhsVecf77 = new F77real8[size_row_*lp_nrRHS];
+    lp_interchanges = new int[size_row_*size_row_];
+    lp_workf77 = new F77real8[size_row_*size_row_];
+    lp_sysVecf77 = new F77real8[size_row_*size_row_];
+   
+
+    // Convert CFS++ Vector<Double> to Vector<F77real8>
+    for ( UInt count = 0; count < size_row_*size_col_; count++ ) {
+      CC2F77( lp_rhsVec[count], auxVal2 );
+      lp_rhsVecf77[count] = auxVal2;
+      }
+    
+    for (UInt count = 0; count < size_row_*size_row_; count++ ) {
+      CC2F77( lp_sysVec[count], auxVal2 );
+      lp_sysVecf77[count] = auxVal2;
+    }
+    
+    for (UInt count=0; count < lp_work.GetSize();count++){
+      CC2F77(lp_work[count], auxVal2);
+      lp_workf77[count] = auxVal2;
+    }
+    
+    // solves systems with general system matrix
+    dgesv_(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
+           lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
+//     DGESV(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
+//            lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
+    
+    if ( lp_info != 0 ) {
+      Error( "DGESV reports invalid input parameter", __FILE__, __LINE__ );
+    }    
+    
+    //reconvert Fortran77 -> CFS ++ datatypes
+    for ( UInt count = 0; count < size_row_*size_row_; count++ ) 
+      F772CC( lp_rhsVecf77[count], lp_rhsVec[count]);
+    
+    // Writes result into daa
+    for (UInt i=0;i<size_row_;i++)
+      for (UInt j=0;j<size_col_;j++)
+        data_[i][j]=lp_rhsVec[i+j*size_row_];
+    
+    delete lp_rhsVecf77;
+    delete lp_interchanges;
+    delete lp_sysVecf77;
+    delete lp_workf77;
+    
+  }
+#endif
+
+
+#ifdef USE_LAPACK
+  // Compile OLAS and CFS++ with USE_LAPACK
+  template<>
   void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
   {
     // computes all eigenvalues of a complex hermitian matrix
@@ -911,6 +1007,73 @@ namespace CoupledField
   }
 
 #endif
+
+
+#ifdef USE_LAPACK
+  // Compile OLAS and CFS++ with USE_LAPACK
+  template<>
+  void Matrix<Double>::transGeneralEigValProWithLapack(Matrix<Double> & B)
+  {
+    // computes all eigenvalues of a complex hermitian matrix
+
+    if (size_row_ != size_col_)
+      Error( " The matrix A is not quadratic", __FILE__, __LINE__ );
+    else if (B.size_row_!=B.size_col_)
+      Error( " The matrix B is not quadratic", __FILE__, __LINE__ );
+    else if ( size_row_ != B.size_row_ )
+      Error( " The matrix A and B are of different size", __FILE__, __LINE__ );
+
+    Integer lp_itype=1;
+    char lp_uplo='L';
+    Integer lp_N=size_row_;                
+    Integer lp_lda=size_row_;
+    Integer lp_ldb=size_row_;
+      
+    Integer lp_infof77;
+    F77real8 auxValA1, auxValB1;
+    Double auxValA2, auxValB2;
+
+    F77real8 * lp_af77 = new F77real8[size_row_*size_row_];
+    F77real8 * lp_bf77 = new F77real8[size_row_*size_row_];
+
+    Vector<Double> lpA_sysVec, lpB_sysVec;
+    lpA_sysVec.Resize(size_row_*size_row_);
+    lpB_sysVec.Resize(size_row_*size_row_);
+
+    lpA_sysVec.Init();
+    lpB_sysVec.Init();
+    
+    // copy values from system - Matrix into vector
+    for (UInt i=0;i<size_row_;i++){
+      for (UInt j=0;j<size_row_;j++){
+        CC2F77( data_[i][j], auxValA1 );
+        CC2F77( B.data_[i][j], auxValB1 );
+        lp_af77[i+j*size_row_] = auxValA1;
+        lp_bf77[i+j*size_row_] = auxValB1;
+      }
+    }
+    
+    dsygst_( &lp_itype, &lp_uplo, &lp_N, lp_af77, &lp_lda,
+             lp_bf77, &lp_ldb ,&lp_infof77); 
+//     DSYGST( &lp_itype, &lp_uplo, &lp_N, lp_af77, &lp_lda,
+//              lp_bf77, &lp_ldb ,&lp_infof77); 
+    
+    // reconvert f772C++
+    for (UInt i=0;i<size_row_;i++){
+      for (UInt j=0;j<size_row_;j++){
+        F772CC(lp_af77[i+j*size_row_], auxValA2);
+        data_[i][j]=auxValA2;
+        if (i!=j)
+          data_[j][i]=auxValA2;
+      }
+    }
+
+    
+    delete lp_af77;
+    delete lp_bf77;
+  }
+#endif
+
   
 
   template<class TYPE>

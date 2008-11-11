@@ -16,10 +16,10 @@
 #include "mpcciPDE.hh"
 #include "heatCondPDE.hh"
 #include "acousticXYZPDE.hh"
-#include "stokesFluidPDE.hh"
 #include "bubblePDE.hh"
 #include "acouCombustion.hh"
 #include "acousticMixedPDE.hh"
+#include "fluidMechPDE.hh"
 
 
 #endif

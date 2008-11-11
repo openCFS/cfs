@@ -76,6 +76,13 @@ namespace CoupledField
                                         UInt dof,
                                         AnsatzFct::FctEntityType);
   
+    virtual void CalcLocal2ndDerivShapeFnc(Matrix<Double> & L2ndDeriv, 
+                                           const Vector<Double> & LCoord,
+                                           const Elem* elem,
+                                           UInt dof,
+                                           AnsatzFct::FctEntityType);
+
+    
     //! Calculates the local derivatives of incompatible mode shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
