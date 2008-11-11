@@ -26,6 +26,7 @@ namespace CoupledField
     NumNodes_ = 8;
 
     CommonInit();   
+    SetShapeFnc2ndDerivAtIp();
   }
   // Should be called SetNodalCoords!!
   void Quad2FE::SetCornerCoords()
@@ -117,6 +118,53 @@ namespace CoupledField
       }
 
   }
+
+  void Quad2FE :: CalcLocal2ndDerivShapeFnc(Matrix<Double> & L2ndDeriv, 
+                                            const Vector<Double> & LCoord,
+                                            const Elem* elem,
+                                            UInt dof,
+                                            AnsatzFct::FctEntityType)
+  {
+
+    if (Dim_==2) {
+      L2ndDeriv.Resize(NumNodes_,Dim_+1);
+
+      // corner nodes
+      for( Integer i=0; i<(NumNodes_/2); i++)
+        {
+          L2ndDeriv[i][0] = 0.5 * LCornerCoords_[0][i] * LCornerCoords_[0][i] * 
+            ( 1 + LCornerCoords_[1][i] * LCoord[1] );
+
+          L2ndDeriv[i][1] = 0.5 * LCornerCoords_[1][i] * LCornerCoords_[1][i] * 
+            ( 1 + LCornerCoords_[0][i] * LCoord[0] );
+
+          L2ndDeriv[i][2] = 0.25 * LCornerCoords_[0][i] * LCornerCoords_[1][i] * 
+            ( (2 * LCornerCoords_[0][i] * LCoord[0]) + 
+              (2 * LCornerCoords_[1][i] * LCoord[1]) + 1);
+
+        }
+  
+      // midside node
+      for( Integer i=(NumNodes_/2); i<NumNodes_; i+=2)
+        {
+
+
+          L2ndDeriv[i][0]   = - (1 + LCornerCoords_[1][i] * LCoord[1]);
+
+          L2ndDeriv[i][1]   = 0.0;
+
+          L2ndDeriv[i][2]   = - LCornerCoords_[1][i] * LCoord[0];
+
+
+          L2ndDeriv[i+1][0] = 0.0;
+
+          L2ndDeriv[i+1][1] = - (1 + LCornerCoords_[0][i+1] * LCoord[0]);
+
+          L2ndDeriv[i+1][2] = - LCornerCoords_[0][i+1] * LCoord[1];
+        }
+    }
+  }
+
 
   Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
   {

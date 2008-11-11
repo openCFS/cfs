@@ -366,18 +366,18 @@ namespace CoupledField {
                         << form->GetName() << "' has the wrong size.");
             }
           }
-          else {
-            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
-                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
-              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x "
-              << elemMatrix.GetSizeCol() << "):\n";
-              std::cerr << elemMatrix << std::endl;
-              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
-              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
-              EXCEPTION("An element matrix returned by integrator '"
-                        << form->GetName() << "' has the wrong size.");
-            }
-          }
+//          else {
+//            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
+//                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
+//              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x "
+//              << elemMatrix.GetSizeCol() << "):\n";
+//              std::cerr << elemMatrix << std::endl;
+//              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
+//              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
+//              EXCEPTION("An element matrix returned by integrator '"
+//                        << form->GetName() << "' has the wrong size.");
+//            }
+//          }
 #endif
 
           // Pass element matrix to algebraic system (primary matrix)

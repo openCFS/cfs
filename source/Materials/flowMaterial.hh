@@ -24,7 +24,10 @@ namespace CoupledField {
     //! Destructor
     ~FlowMaterial();
 
+    //! Trigger finalization of flow material (calculation of kinematic viscosity)
+    void Finalize();
 
+    
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
 		    DataType dataType );
@@ -34,6 +37,8 @@ namespace CoupledField {
     void GetScalar( Double& param, MaterialType matType, 
 		    DataType dataType ) const;
 
+  private:
+    void ComputeAllViscosities();
   };
 
 } // end of namespace

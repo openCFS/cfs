@@ -507,18 +507,6 @@ namespace CoupledField {
     else if (in == "fluidForce")
       out = FLUID_FORCE;
 
-    //stokesFluid
-    else if (in == "stokesFluidVelPresVort")
-      out = STOKESFLUID_VEL_PRES_VORT;
-    else if (in == "stokesFluidVelocity")
-      out = STOKESFLUID_VELOCITY;
-    else if (in == "stokesFluidPressure")
-      out = STOKESFLUID_PRESSURE;
-    else if (in == "stokesFluidVorticity")
-      out = STOKESFLUID_VORTICITY;
-    else if (in == "stokesFluidForce")
-      out = STOKESFLUID_FORCE;
-
     //fluidMech
     else if (in == "fluidMechVelocity")
       out = FLUIDMECH_VELOCITY;
@@ -740,23 +728,6 @@ namespace CoupledField {
         //mpcci PDE  
       case FLUID_FORCE:
         out = "fluidForce";
-        break;
-
-        //stokesFluid
-      case STOKESFLUID_VEL_PRES_VORT:
-        out = "stokesFluidVelPresVort";
-        break;
-      case STOKESFLUID_VELOCITY:
-        out = "stokesFluidVelocity";
-        break;
-      case STOKESFLUID_PRESSURE:
-        out = "stokesFluidPressure";
-        break;
-      case STOKESFLUID_VORTICITY:
-        out = "stokesFluidVorticity";
-        break;
-      case STOKESFLUID_FORCE:
-        out = "stokesFluidForce";
         break;
 
         //fluidMech
@@ -1267,6 +1238,9 @@ namespace CoupledField {
     case DYNAMIC_VISCOSITY:
       out = "dynamicViscosity";
       break;
+    case KINEMATIC_VISCOSITY:
+      out = "kinematicViscosity";
+      break;
     case PIEZO_TENSOR:
       out = "PiezoTensor";
       break;
@@ -1459,6 +1433,9 @@ namespace CoupledField {
     }
     else if ( in == "dynamicViscosity" ) {
       out = DYNAMIC_VISCOSITY;
+    }
+    else if ( in == "kinematicViscosity" ) {
+      out = KINEMATIC_VISCOSITY;
     }
     else if ( in == "PiezoTensor" ) {
       out = PIEZO_TENSOR;

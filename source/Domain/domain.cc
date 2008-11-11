@@ -519,8 +519,8 @@ namespace CoupledField {
       else if (actPdeName == "heatConduction")
         ptSinglePde_[i]=new HeatCondPDE(defaultGrid, actPdeNode );
 
-      else if (actPdeName == "stokesFluid")
-        ptSinglePde_[i]=new StokesFluidPDE(defaultGrid, actPdeNode );
+      else if (actPdeName == "fluidMech")
+        ptSinglePde_[i]=new FluidMechPDE(defaultGrid, actPdeNode);
 
       else if (actPdeName == "bubble")
         ptSinglePde_[i]=new BubblePDE(defaultGrid, actPdeNode );

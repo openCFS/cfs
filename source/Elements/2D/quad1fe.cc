@@ -32,6 +32,8 @@ namespace CoupledField
     NumNodes_ = 4;
     
     CommonInit();
+    SetShapeFnc2ndDerivAtIp();
+
     SetEdgeIndices();
     SetFaceIndices();
     sDerivAtIp_ = new Vector<Double>[2];
@@ -376,6 +378,41 @@ namespace CoupledField
     }
   }
 
+  void Quad1FE::CalcLocal2ndDerivShapeFnc(Matrix<Double> & L2ndDeriv, 
+		  const Vector<Double> & LCoord, const Elem* elem,UInt dof,AnsatzFct::FctEntityType type)
+  {
+
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
+        type == AnsatzFct::NODE ) {
+
+      // ===============
+      //  LAGRANGE PART
+      // ===============
+
+      if (Dim_==2) {
+        L2ndDeriv.Resize(NumNodes_,Dim_+1);
+      
+        // corner nodes
+        for( Integer i=0; i<NumNodes_; i++)
+          {
+            L2ndDeriv[i][0] = 0.0;
+            
+            L2ndDeriv[i][1] = 0.0;
+          
+            L2ndDeriv[i][2] = 0.25 * LCornerCoords_[0][i] * LCornerCoords_[1][i];
+          
+          }
+      }
+    }
+    else {
+      // ===============
+      //  LEGENDRE PART
+      // ===============
+      Error("LEGENDRE needs to be implemented",__FILE__,__LINE__);
+    }
+  }
+  
+  
 
   void Quad1FE::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
 						const Vector<Double> & actCoord,

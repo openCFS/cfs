@@ -83,7 +83,11 @@ namespace CoupledField{
                                 Grid *ptGrid) = 0;
     
     virtual void SetResult( shared_ptr<ResultInfo>& result ) {
-      result_ = result; }
+    	results_.Resize(1);
+    	results_[0] = result; }
+    
+    virtual void SetResults( StdVector<shared_ptr<ResultInfo> >& results ) {
+      results_ = results; }
     
     virtual void SetRegions( StdVector<RegionIdType> regions ) {
       for( UInt i=0; i<regions.GetSize(); i++ ) {
@@ -209,7 +213,7 @@ namespace CoupledField{
     inline UInt GetNumSolutions() const;
 
   
-    //! Get vectot with one type of solution. The length
+    //! Get vector with one type of solution. The length
     //! of the vector will be (numer of nodes in mesh *
     //! degree of freedoms)
     //! 
@@ -413,17 +417,31 @@ namespace CoupledField{
     // pde to mesh solution and vice versa //
     /////////////////////////////////////////
 
-    virtual void GetElemSolution(CFSVector & elemSol,
-                                 const EntityIterator& it) const = 0;
+    //! Return the solution of all nodes of an element
 
-    //! 
-    virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
-                                         const EntityIterator& it) const = 0;
+    //! This method returns the solution of an element. 
+    //! \param elemSol Vector containing the element solution
+    //! \param it Entiyiterator containing the current element
+    //! \param solIndex Index for the desired solution type
+    virtual void GetElemSolution( CFSVector & elemSol,
+                                  const EntityIterator& it,
+                                  UInt solIndex = 0 ) const = 0;
+
+    //! Return the solution of all nodes of an element as matrix
+
+    //! This method returns the solution of an element as matrix. 
+    //! \param elemSol Matrix containing the element solution
+    //! \param it Entiyiterator containing the current element
+    //! \param solIndex Index for the desired solution type
+    virtual void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
+                                          const EntityIterator& it,
+                                          UInt solIndex = 0 ) const = 0;
   
     //! maps the local node solution to the coupling nodes
     virtual
-    void NodeSolutionToCoupling(CFSVector & couplingSol,
-                                const StdVector<UInt>& nodeNumbers) const = 0;
+    void NodeSolutionToCoupling( CFSVector & couplingSol,
+                                 const StdVector<UInt>& nodeNumbers,
+                                 UInt solIndex = 0 ) const = 0;
 
     // ==========================================================
     // DECLARATION OF INTERFACES FOR NON-DOUBLE STORESOL-CLASSES
@@ -465,8 +483,8 @@ namespace CoupledField{
     //! Pointer to equation map
     EqnMap * eqnMap_;
 
-    //! Type of result
-    shared_ptr<ResultInfo> result_;   
+    //! Type of results
+    StdVector<shared_ptr<ResultInfo> >results_;   
 
     //! Element list
     StdVector<shared_ptr<ElemList> >elems_;
@@ -491,6 +509,9 @@ namespace CoupledField{
     //! Contains order of solution types.
     //! Stores mapping SolutionType <-> position
     std::map<SolutionType,UInt> solTypes_;
+
+    //work around in order to write solDeriv1_, ... into gid file
+    std::map<SolutionType,UInt> solTypesName_;
 
     //! Stores offset of soltypes w.r.t. to beginning
 

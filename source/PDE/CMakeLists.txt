@@ -16,8 +16,8 @@ SET(PDE_SRCS basePDE.cc StdPDE.cc SinglePDE.cc elecPDE.cc mechPDE.cc
   acousticPDE.cc newmark.cc timestepping.cc smoothPDE.cc magneticPDE.cc
   trapezoidal.cc pdememento.cc acouFlowNoise.cc newmarkFracDamp.cc 
   newmarkFracDampMech.cc mpcciPDE.cc heatCondPDE.cc 
-  acousticXYZPDE.cc stokesFluidPDE.cc eqnMap.cc bubblePDE.cc 
-  acouCombustion.cc acousticMixedPDE.cc magEdgePDE.cc)
+  acousticXYZPDE.cc eqnMap.cc bubblePDE.cc 
+  acouCombustion.cc acousticMixedPDE.cc magEdgePDE.cc fluidMechPDE.cc bdf2.cc)
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
 

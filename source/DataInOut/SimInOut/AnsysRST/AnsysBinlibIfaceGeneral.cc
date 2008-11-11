@@ -1392,20 +1392,6 @@ namespace CoupledField
       LOG_TRACE(simOutputRST) << "Mapped " << solName
                               << " to TEMP";
       break;
-    case STOKESFLUID_VELOCITY:
-      internal2AnsysNodeDofMap_[STOKESFLUID_VELOCITY] = VX;
-      ansysNodeDof2Idx_[VX] = idx + 0;
-      ansysNodeDof2Idx_[VY] = idx + 1;
-      ansysNodeDof2Idx_[VZ] = idx + 2;
-      LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << " to VX VY VZ";
-      break;
-    case STOKESFLUID_PRESSURE:
-      internal2AnsysNodeDofMap_[STOKESFLUID_PRESSURE] = PRES;
-      ansysNodeDof2Idx_[PRES] = idx;
-      LOG_TRACE(simOutputRST) << "Mapped " << solName
-                              << "to PRES";
-      break;
     default:
       LOG_TRACE(simOutputRST) << "Nodal result " << solName
                               << " not mapped to ANSYS any result type.";

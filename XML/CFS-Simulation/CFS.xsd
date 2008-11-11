@@ -25,7 +25,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDEstokesFluid.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEbubble.xsd"/>
 
   <!-- ******************************************************************* -->

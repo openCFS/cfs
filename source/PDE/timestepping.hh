@@ -113,13 +113,16 @@ namespace CoupledField {
     std::map<FEMatrixType,Double> matrix_factors_;
 
     //! first and second time derivative of solution
-    Vector<Double> solderiv1_, solderiv2_;
+    Vector<Double> solderiv1_, solderiv2_, sol_tn_1_, sol_tn_2_;
 
     //! Flag indicating if 1st derivative was already set from outside
     bool isDeriv1Set_;
 
     //! Flag indicating if 2nd derivative was already set from outside
     bool isDeriv2Set_;
+
+    //! Flag indicating if soltution of last time step is already set due to a restart file
+    bool isSolTN1Set_;
 
   private:
    

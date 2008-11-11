@@ -58,6 +58,13 @@ namespace CoupledField
                                         const Elem*, UInt dof,
                                         AnsatzFct::FctEntityType );
   
+    virtual void CalcLocal2ndDerivShapeFnc(Matrix<Double> & L2ndDeriv, 
+                                           const Vector<Double> & LCoord,
+                                           const Elem* elem,
+                                           UInt dof,
+                                           AnsatzFct::FctEntityType);
+
+
     //! NOT YET IMPLEMENTED FOR QUADRATIC ELEMENTS!!!Calculates a measure for the geometric distortion of an element
     /*!
       \param cornerCoords (input) Corner coordinates of the element

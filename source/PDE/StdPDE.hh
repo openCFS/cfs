@@ -151,6 +151,10 @@ namespace CoupledField {
     //! set boundary condition
     //! \param atimestep         time step of claculation
     virtual  void SetBCs() = 0;
+
+    virtual  void InitStabParams( ) {
+      Error("Not Implemented, only needed for fluidMech and smooth",__FILE__,__LINE__);};
+
     
     //! Initialize all/some the nodes by this value
     virtual void SetInitialCondition(){;};
@@ -284,6 +288,10 @@ namespace CoupledField {
 
     bool IsComputeRHS4HarmSet()
     { return ComputeRHSforHarm_;};
+
+    bool IsInstationary()  
+    { return isInstationary_;};
+
 
     Double GetRhsL2Norm(Vector<Double>& actRHS) 
     { return RhsL2Norm(actRHS);};
@@ -472,6 +480,7 @@ namespace CoupledField {
     bool effectiveMass_;       //!< use effective mass formulation for transient analysis
     bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
     bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
+    bool isInstationary_;    //!< flag for stationary/instationary PDEs (like fluidMech)
 
     //@}
 

@@ -434,9 +434,13 @@ namespace CoupledField
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
     void solveWithLapack( Matrix<Complex> & b1,
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
+
+    void InvertDoubleMatrixWithLapack();
     
     //! Computes eigenvalues of an hermitian matrix
     void eigenvaluesWithLapack(Vector<Double> & b1);
+
+    void transGeneralEigValProWithLapack(Matrix<Double> & B);
 
     //! Converts a fortran 77 complex to a C++ complex
     void F772CC( const F77complex16 &v, std::complex<double> &val ) {

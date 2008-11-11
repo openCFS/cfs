@@ -27,6 +27,7 @@ namespace CoupledField
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( DYNAMIC_VISCOSITY );
+    isAllowed_.insert( KINEMATIC_VISCOSITY );
   }
 
   FlowMaterial::~FlowMaterial() {
@@ -34,7 +35,11 @@ namespace CoupledField
 
   }
 
-  
+  void FlowMaterial::Finalize() {
+  // Trigger calculation of kinematic or dynamic viscosity
+   ComputeAllViscosities();
+  }
+ 
   void FlowMaterial::SetScalar( Double param, MaterialType matType, 
 				DataType dataType ) {
 
@@ -90,5 +95,30 @@ namespace CoupledField
       }
     }
   }
+  
+  void FlowMaterial::ComputeAllViscosities(){
+
+    Double density, dynamicViscosity, kinematicViscosity;
+    if (IsSet(DENSITY))
+      GetScalar(density,DENSITY,REAL);
+    else
+      Error("No fluid density is specified in the material file!",__FILE__,__LINE__);
+    
+
+    if (IsSet(DYNAMIC_VISCOSITY)) {
+      GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+      kinematicViscosity=dynamicViscosity/density;
+      SetScalar( kinematicViscosity, KINEMATIC_VISCOSITY, REAL );
+
+    }
+    else if (IsSet(KINEMATIC_VISCOSITY)){
+      GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,REAL);
+      dynamicViscosity=kinematicViscosity*density;
+      SetScalar( dynamicViscosity, DYNAMIC_VISCOSITY, REAL );
+    }
+    else
+      Error("No fluid viscosity is specified in the material file!",__FILE__,__LINE__);
+  }
+
 
 }

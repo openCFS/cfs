@@ -825,7 +825,13 @@ namespace CoupledField {
       if(flow->Has("density"))
         material->SetScalar(flow->Get("density")->AsDouble(), DENSITY, REAL);
       
-      // dynamicViscosity is NOT set in r7562 
+      // read dynamicViscosity 
+      if(flow->Has("dynamicViscosity"))
+        material->SetScalar(flow->Get("dynamicViscosity")->AsDouble(), DYNAMIC_VISCOSITY, REAL);
+      
+      // read kinematicViscosity 
+      if(flow->Has("kinematicViscosity"))
+        material->SetScalar(flow->Get("kinematicViscosity")->AsDouble(), KINEMATIC_VISCOSITY, REAL);
       
       // Print information to info file
       Info->PrintMaterial( material );
