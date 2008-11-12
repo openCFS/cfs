@@ -29,6 +29,9 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~FluidMechPDE();
 
+    //! Read special boundary conditions
+    void ReadSpecialBCs();
+
     //! Initialize NonLinearities
     void InitNonLin();
 
