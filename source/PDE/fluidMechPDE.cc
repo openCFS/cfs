@@ -94,6 +94,13 @@ namespace CoupledField {
 
   }
 
+  void FluidMechPDE::ReadSpecialBCs() {
+    
+    // read pressure information
+    ReadPressureLoads();
+
+  }
+
   void FluidMechPDE::InitNonLin()
   {
    // ==============================================================
