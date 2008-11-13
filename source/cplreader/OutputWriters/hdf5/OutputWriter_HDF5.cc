@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -43,7 +47,7 @@ namespace CoupledField
         if(settings.GetInt("verbose"))
           std::cerr << "There are still objects open in the hdf5 file "
                     << currStepFile_.getFileName() << "\n\n";
-        H5IO::CheckOpenObjects(currStepFile_, settings.GetInt("verbose"));
+        H5IO::CheckOpenObjects(currStepFile_, settings.GetInt("verbose") != 0);
       }
       
       currStepFile_.close();
@@ -61,7 +65,7 @@ namespace CoupledField
       if(settings.GetInt("verbose"))
         std::cerr << "There are still objects open in the hdf5 file "
                   << mainFile_.getFileName() << "\n\n";
-      H5IO::CheckOpenObjects(mainFile_, settings.GetInt("verbose"));
+      H5IO::CheckOpenObjects(mainFile_, settings.GetInt("verbose") != 0);
     }
 
     mainFile_.close();
@@ -147,7 +151,7 @@ namespace CoupledField
     for( ; it != end; it++ )
     {
       numElemsOfDim[ ELEM_DIM[*it]-1 ]++;
-      quadrElems &= ELEM_QUADRATIC[*it];
+      quadrElems &= static_cast<UInt>(ELEM_QUADRATIC[*it]);
       numElemsOfType[(FEType)*it]++;
     }
 
@@ -189,7 +193,7 @@ namespace CoupledField
     // Try to open Regions group. If it does not exist try to create it.
     try{
       regionListGroup = meshGroup_.openGroup("Regions");
-    } catch(H5::GroupIException& ex) {;
+    } catch(H5::GroupIException&) {;
       // create region group
       try{
         regionListGroup = meshGroup_.createGroup("Regions");
@@ -239,7 +243,7 @@ namespace CoupledField
       // try to open group with given name
       try {
         myGroup = groupsGroup_.openGroup( nodesName );
-      } catch (H5::Exception& h5Ex ) {
+      } catch (H5::Exception&) {
         try {
           myGroup = groupsGroup_.createGroup( nodesName );
         }
@@ -266,7 +270,6 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
 
     H5::Group myGroup;
-    UInt dim;
     std::map <std::string, std::vector<UInt> >::const_iterator it, end, nodesIt;
     std::map <std::string, UInt >::const_iterator dimsIt;
     it = elemGroups.begin();
@@ -280,7 +283,7 @@ namespace CoupledField
 
       try {
         myGroup = groupsGroup_.openGroup( elemsName );
-      } catch (H5::Exception& h5Ex ) {
+      } catch (H5::Exception&) {
         try {
           myGroup = groupsGroup_.createGroup( elemsName );
         }
@@ -347,7 +350,7 @@ namespace CoupledField
         // Open or create subgroup for result
         try {
           currResultGroup = currMeshStepGroup_.openGroup( fdps.resultName );
-        } catch (H5::GroupIException& ex)
+        } catch (H5::GroupIException&)
         {
           try {
             currResultGroup = currMeshStepGroup_.createGroup( fdps.resultName );
@@ -580,8 +583,7 @@ namespace CoupledField
     end = (*flowData_)[0].end();
 
     for( ; it != end; it++ ) {
-
-      if (!it->second.isActive)
+      if(!it->second.isActive)
         continue;
 
       resultName = it->second.resultName;
@@ -652,8 +654,15 @@ namespace CoupledField
     {
       std::vector<Float> floatResultVals(resultVals.size());
 
-      std::copy(resultVals.begin(), resultVals.end(),
-                floatResultVals.begin());
+      std::vector<Double>::const_iterator it = resultVals.begin();
+      std::vector<Double>::const_iterator end = resultVals.end();
+      std::vector<Float>::iterator flIt = floatResultVals.begin();
+
+      for( ; it != end; it++ )
+      {
+        *flIt = static_cast<Float>(*it);
+        flIt++;
+      }
 
       H5IO::Write2DArray( resultGroup, name,
                           numEntities, numDOFs, &floatResultVals[0],

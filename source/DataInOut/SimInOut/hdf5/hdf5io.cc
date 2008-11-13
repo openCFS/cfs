@@ -470,7 +470,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_STL_VECTOR_CONVERSION( UInt );
   DECL_STL_VECTOR_CONVERSION( Double );
   DECL_STL_VECTOR_CONVERSION( Float );
-    
+  
 #undef DECL_ST_VECTOR_CONVERSION
     
   template<typename TYPE>
@@ -636,7 +636,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       H5::DataSpace memSpace( 1, &size, &maxDims );
       
       // fill conversion object
-      conv.SetNativeData( buffer, size );
+      conv.SetNativeData( buffer, static_cast<UInt>(size) );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for 1D array '"
                    << name << "' of type " << typeid(TYPE).name() );
@@ -798,7 +798,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         
         
         // fill conversion object
-        conv.SetNativeData( buffer, size[0]*size[1] );
+        conv.SetNativeData( buffer, static_cast<UInt>(size[0]*size[1]) );
         if( !conv.IsSet() ) {
           EXCEPTION( "Could not convert data for 1D array '"
                      << name << "' of type " << typeid(TYPE).name() );
@@ -965,7 +965,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     std::vector<UInt> dims( rank );
     for( UInt i = 0; i < (UInt) rank; i++ ) {
-      dims[i] = myDims[i];
+      dims[i] = static_cast<UInt>(myDims[i]);
     }
 
     delete[] myDims;
@@ -984,7 +984,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     UInt numEntries = 1;
     for( UInt i = 0; i < (UInt) rank; i++ ) {
-      numEntries *= myDims[i];
+      numEntries *= static_cast<UInt>(myDims[i]);
     }
 
     delete[] myDims;
@@ -1016,7 +1016,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       H5::DataSpace dataspace = dataset.getSpace();
 
       // calculate absolute number of entries
-      UInt size = dataspace.getSelectNpoints();
+      UInt size = static_cast<UInt>(dataspace.getSelectNpoints());
       
       // check, that standard hdf5 datatype is the same as the datatype
       // of the stored dataset
@@ -1071,6 +1071,33 @@ hsize_t H5IO::maxChunkSize_= 100;
     // delete buffer
     delete[] buffer;
   }
+
+  template<typename TYPE>
+  void H5IO::ReadArray( H5::CommonFG &loc,
+                        const std::string& name,
+                        std::vector<TYPE>& data ) {
+
+    // clear data
+    data.clear();
+
+    // obtain information about dimension of dataset
+    UInt numEntries = GetNumEntries( loc, name );
+
+    // create temporary buffer
+    TYPE * buffer = new TYPE[numEntries];
+
+    // read data into buffer
+    ReadArray( loc, name, buffer );
+
+    // copy buffer data to vector
+    data.resize( numEntries );
+    for( UInt i = 0; i < numEntries; i++ ) {
+      data[i] = buffer[i];
+    }
+
+    // delete buffer
+    delete[] buffer;
+  }
   
   
   void H5IO::GetAnyConversion( const boost::any& anyType,
@@ -1079,9 +1106,9 @@ hsize_t H5IO::maxChunkSize_= 100;
     // query type of any
 #define ANY_CONVERSION( TYPE )                          \
     if( anyType.type() == typeid(TYPE) ){               \
-      shared_ptr<HdfTypeConversion<TYPE> >              \
-        myConv ( new HdfTypeConversion<TYPE>() );       \
-      myConv->SetNativeData( any_cast<TYPE>(anyType) );       \
+      shared_ptr<HdfTypeConversion< TYPE > >              \
+        myConv ( new HdfTypeConversion< TYPE >() );       \
+      myConv->SetNativeData( any_cast< TYPE >(anyType) );       \
       conv = myConv;                                    \
       return;                                           \
     }
@@ -1168,7 +1195,6 @@ hsize_t H5IO::maxChunkSize_= 100;
     void H5IO::ReadArray<TYPE>( H5::CommonFG &loc,              \
                                 const std::string& name,        \
                                 TYPE* data )
-  
   DECL_IO_METHODS( bool );
   DECL_IO_METHODS( Integer );
   DECL_IO_METHODS( UInt );

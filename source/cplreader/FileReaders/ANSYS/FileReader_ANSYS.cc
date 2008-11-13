@@ -1,3 +1,6 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <string>
 #include <iostream>
@@ -27,7 +30,8 @@ namespace CoupledField
     FileReader(name, dim, numFiles),
     strict_(false),
     degen_(false),
-    everyThingRead_(false)
+    everyThingRead_(false),
+    anyThingRead_(false)
   {
     // Set chunk size to 10MB
     chunkSize_ = 10 * 1024 * 1024;
@@ -192,10 +196,14 @@ namespace CoupledField
     UInt pos = inFile_.tellg();
 
     if(pos >= fSize_)
+    {
+      anyThingRead_ = false;
       return false;
-
+    }
+    
     char* buf;
     buf = new char[fSize_+1];
+    std::fill(buf, &buf[fSize_+1], 0);
     inFile_.read(buf, fSize_);
     inFile_.close();
     buf[fSize_] = 0;
@@ -215,13 +223,14 @@ namespace CoupledField
 
     lineIt_ = lines_.begin();
     lineEnd_ = lines_.end();
+    anyThingRead_ = true;
 
     return true;
   }
 
   bool FileReader_ANSYS::GetNextLine(std::string& line)
   {
-    if(lineIt_ == lineEnd_)
+    if(!anyThingRead_ || lineIt_ == lineEnd_)
     {
       if(!ReadChunk())
       {

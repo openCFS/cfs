@@ -1,23 +1,6 @@
-// =============================================================================
-//
-//  Special Topics in Scientific Computing Exercises (STISCEX)
-//
-//  University Erlangen-Nuremberg (UEN)
-//
-//  Department of Sensor Technology
-//  Paul-Gordan-Strasse 3/5
-//  91052 Erlangen
-//  Germany
-//
-//  Department of System Simulation
-//  Cauerstra�e 6
-//  91058 Erlangen
-//  Germany
-//
-//  Oct 2006 skeleton code provided by
-//  Simon Triebenbacher, simon.triebenbacher@lse.eei.uni-erlangen.de
-//
-// =============================================================================
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #ifndef FILE_SETTINGS_2006
 #define FILE_SETTINGS_2006
