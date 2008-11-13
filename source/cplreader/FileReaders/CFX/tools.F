@@ -1,3 +1,7 @@
+C -*- mode: Fortran; coding: utf-8; indent-tabs-mode: nil; -*-
+C kate: space-indent on; indent-width 2; encoding utf-8;
+C kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
       SUBROUTINE CFXSTP(TEXT)
       CHARACTER*(*) TEXT
       PRINT*,TEXT

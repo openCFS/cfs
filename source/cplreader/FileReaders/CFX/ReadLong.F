@@ -1,3 +1,7 @@
+C -*- mode: Fortran; coding: utf-8; indent-tabs-mode: nil; -*-
+C kate: space-indent on; indent-width 2; encoding utf-8;
+C kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 C=======================================================================
 C @(#) $Id: ReadLong.F,v 1.9 2004/11/30 16:50:58 jcmorale Exp $
 C-----------------------------------------------------------------------

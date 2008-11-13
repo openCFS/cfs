@@ -77,14 +77,13 @@ namespace CoupledField {
         pos_ += (unsigned int) n; }
       
       //! measure distance
-      unsigned int distance_to( iterator const & other ) const {
-        return   (ptrdiff_t) other.pos_ - 
-                  (ptrdiff_t) (this->pos_);
+      ptrdiff_t distance_to( iterator const & other ) const {
+        return other.pos_ - this->pos_;
       }
       
       // references to StdVector
       StdVector<TYPE> * vec_;
-      unsigned int pos_;
+      size_t pos_;
     };
     
     //! Define CONST iterator class
@@ -132,14 +131,13 @@ namespace CoupledField {
         pos_ += (unsigned int) n; }
 
       //! measure distance
-      unsigned int distance_to( const_iterator const & other ) const {
-        return   (ptrdiff_t) other.pos_ - 
-        (ptrdiff_t) (this->pos_);
+      ptrdiff_t distance_to( const_iterator const & other ) const {
+        return other.pos_ - this->pos_;
       }
 
       // references to StdVector
       const StdVector<TYPE> * vec_;
-      unsigned int pos_;
+      size_t pos_;
     };
   
     //! Return iterator pointing to first element

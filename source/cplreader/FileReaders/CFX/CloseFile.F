@@ -1,3 +1,7 @@
+C -*- mode: Fortran; coding: utf-8; indent-tabs-mode: nil; -*-
+C kate: space-indent on; indent-width 2; encoding utf-8;
+C kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 C=======================================================================
 C @(#) $Id: CloseFile.F,v 1.6 1999/06/11 14:00:30 cfdirh Exp $
 C-----------------------------------------------------------------------

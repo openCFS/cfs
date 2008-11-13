@@ -61,6 +61,7 @@ namespace CoupledField
     bool strict_;
     bool degen_;
     bool everyThingRead_;
+    bool anyThingRead_;
 
     std::ifstream inFile_;
 

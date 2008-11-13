@@ -139,11 +139,17 @@ namespace CoupledField {
                            const std::string& name,
                            TYPE* data );
     
-    //! Read data from a dataset into a stl vector
+    //! Read data from a dataset into a CFS++ vector
     template<typename TYPE>
     static void ReadArray( H5::CommonFG &loc,
                            const std::string& name,
                            StdVector<TYPE>& data );
+
+    //! Read data from a dataset into a stl vector
+    template<typename TYPE>
+    static void ReadArray( H5::CommonFG &loc,
+                           const std::string& name,
+                           std::vector<TYPE>& data );
 
 //     //! Read data from a dataset into a vector
 //     template<typename TYPE>
@@ -164,8 +170,8 @@ namespace CoupledField {
 
     //! Obtain grid result group for specified multisequence step
     static H5::Group GetMultiStepGroup( H5::H5File& file, 
-                                            UInt msStep, 
-                                            bool isHistory );
+                                        UInt msStep, 
+                                        bool isHistory );
 
     //! Obtain grid result group for specified step in a given multistep
     static H5::Group GetStepGroup( H5::H5File& file, 

@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -189,7 +193,7 @@ int main(int argc, char *argv[])
     ParamsInit(argc, argv);
 
     // Set user defined exception behaviour
-    Exception::segfault_ = (bool) settings.GetInt("segfault");
+    Exception::segfault_ = settings.GetInt("segfault") != 0;
 
     // Write HTML help
     if(settings.GetString("docu") != "")

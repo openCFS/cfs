@@ -1,3 +1,7 @@
+C -*- mode: Fortran; coding: utf-8; indent-tabs-mode: nil; -*-
+C kate: space-indent on; indent-width 2; encoding utf-8;
+C kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 C=======================================================================
 C @(#) $Id: RedHdr.F,v 1.10 2002/05/22 15:09:15 cfdasm Exp $
 C-----------------------------------------------------------------------

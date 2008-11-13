@@ -1,3 +1,6 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <string>
 #include <iostream>
@@ -42,8 +45,8 @@ namespace CoupledField
     UInt maxNodeNum = 0;
     UInt numNodes = 0;
 
-    strict_ = (bool) settings.GetInt("strict");
-    degen_ = (bool) settings.GetInt("degen");
+    strict_ = settings.GetInt("strict") != 0;
+    degen_ = settings.GetInt("degen") != 0;
 
     sstr.clear(); sstr.str("");
     sstr << settings.GetString("basedir") << "/" << name_ << "_Coordinates.dat";
@@ -246,7 +249,7 @@ namespace CoupledField
       try
       {
         OpenFile(nodeFiles[i]);
-      } catch (std::exception& ex)
+      } catch (std::exception&)
       {
         continue;
       }
@@ -306,7 +309,7 @@ namespace CoupledField
       try
       {
         OpenFile(elemFiles[i]);
-      } catch (std::exception& ex)
+      } catch (std::exception&)
       {
         continue;
       }

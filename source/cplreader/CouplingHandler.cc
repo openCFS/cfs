@@ -1,3 +1,7 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -332,7 +336,7 @@ namespace CoupledField
   void CouplingHandler::Couple()
   {
     Settings& settings = Settings::Instance();
-    bool calcSrc = settings.GetInt("calcsrc");
+    bool calcSrc = settings.GetInt("calcsrc") != 0;
     UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();

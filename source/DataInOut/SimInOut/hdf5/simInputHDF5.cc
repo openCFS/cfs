@@ -141,7 +141,7 @@ namespace CoupledField {
       H5IO::ReadAttribute( meshResGroup, "ExternalFiles",
                            hasExternalFiles_ );
       meshResGroup.close();
-    } catch( H5::Exception& ex ) {
+    } catch( H5::Exception&) {
       hasExternalFiles_ = false;
     }
   }
@@ -352,7 +352,7 @@ namespace CoupledField {
       } else {
         resultGroup = mainRoot_.openGroup("Results").openGroup("History");
       }
-    } catch (H5::Exception& h5Ex ) {
+    } catch (H5::Exception&) {
      return;
     }
     
@@ -439,7 +439,7 @@ namespace CoupledField {
       resInfoGroup = actMsGroup.openGroup( "ResultDescription" );
     } H5_CATCH( "Could not open group 'ResultDescription'" );
 
-    UInt numResults = resInfoGroup.getNumObjs();
+    UInt numResults = static_cast<UInt>( resInfoGroup.getNumObjs() );
     
     // iterate over all entries and assemble the resultinfo object
     H5::Group actResInfoGroup;
@@ -470,7 +470,7 @@ namespace CoupledField {
       
       try{ 
         String2Enum( actResultName, actResultType );
-      }  catch (Exception& ex ) {
+      }  catch (Exception&) {
         actResultType = NO_SOLUTION_TYPE;
       }
       
@@ -834,7 +834,7 @@ namespace CoupledField {
 
       try{
         entityGroup = meshGroup.openGroup( "Groups" );
-      } catch (H5::Exception& h5ex) {
+      } catch (H5::Exception&) {
         LOG_TRACE(simInputHdf5) << "Could not open group for entity groups";
         return;
       }
@@ -1067,7 +1067,7 @@ namespace CoupledField {
     
     try{
       entityGroup = meshGroup.openGroup( "Groups" );
-    } catch (H5::Exception& h5ex) {
+    } catch (H5::Exception&) {
       LOG_TRACE(simInputHdf5) << "Could not open group for entity groups";
       return;
     }
@@ -1113,7 +1113,7 @@ namespace CoupledField {
      
      try{
        entityGroup = meshGroup.openGroup( "Groups" );
-     } catch (H5::Exception& h5ex) {
+     } catch (H5::Exception&) {
        LOG_TRACE(simInputHdf5) << "Could not open group for entity groups";
        return;
      }
@@ -1190,7 +1190,7 @@ namespace CoupledField {
     H5::Group entityGroup;
     try {
       entityGroup = meshGroup.openGroup("Groups");
-    } catch (H5::Exception& h5ex) {
+    } catch (H5::Exception&) {
       LOG_TRACE(simInputHdf5) << "No node / elem groups present";
       statsRead_ = true;
       return;

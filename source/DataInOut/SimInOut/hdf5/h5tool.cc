@@ -28,7 +28,7 @@ Integer CreateAttribute(H5::H5File& file,
     group = file.openGroup(path);
     object = &group;
   }
-  catch (H5::Exception& h5ex) { }
+  catch (H5::Exception&) { }
 
   if(!object)
   {
@@ -37,14 +37,14 @@ Integer CreateAttribute(H5::H5File& file,
       dataset = file.openDataSet(path);
       object = &dataset;
     }
-    catch (H5::Exception& h5ex)
+    catch (H5::Exception&)
     {
-      //    std::cerr << h5ex.getCDetailMsg() << std::endl;
       std::cerr << "CreateAttribute: Failed to open dataset or group!" << std::endl;
       return 1;
     }
   }
   
+
   UInt numAttrs = object->getNumAttrs();
   for(UInt i=0; i<numAttrs; i++)
   {
@@ -63,7 +63,7 @@ Integer CreateAttribute(H5::H5File& file,
           attr.close();
           object->removeAttr(attr_name);
         }
-        catch (H5::Exception& h5ex)
+        catch (H5::Exception&)
         {
           std::cerr << "CreateAttribute: Removal of old attribute failed!"
                     << std::endl;
@@ -232,13 +232,12 @@ Integer CreateGroup(H5::H5File& file,
   {
     base_group = file.openGroup(path);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
-    //    std::cerr << h5ex.getCDetailMsg() << std::endl;
     std::cerr << "CreateGroup: Failed to open base group!" << std::endl;
   }
 
-  UInt numObjs = base_group.getNumObjs();
+  UInt numObjs = static_cast<UInt>( base_group.getNumObjs() );
   
   for(UInt i=0; i<numObjs; i++)
   {
@@ -256,7 +255,7 @@ Integer CreateGroup(H5::H5File& file,
         try {
           base_group.unlink(group_name);
         }
-        catch (H5::Exception& h5ex)
+        catch (H5::Exception&)
         {
           std::cerr << "CreateGroup: Unlinking of old group failed!"
                     << std::endl;
@@ -276,9 +275,8 @@ Integer CreateGroup(H5::H5File& file,
   {
     group = base_group.createGroup(group_name);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
-    //    std::cerr << h5ex.getCDetailMsg() << std::endl;
     std::cerr << "CreateGroup: Failed to create group!" << std::endl;
     return 1;
   }
@@ -323,14 +321,13 @@ Integer CreateStringArrayDataset(H5::H5File& file,
   {
     base_group = file.openGroup(path);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
-    //    std::cerr << h5ex.getCDetailMsg() << std::endl;
     std::cerr << "CreateStringArrayDataset: Failed to open base group!" << std::endl;
   }
 
 
-  UInt numObjs = base_group.getNumObjs();
+  UInt numObjs = static_cast<UInt>( base_group.getNumObjs() );
   
   StdVector<std::string> dataset_vec;
 
@@ -361,7 +358,7 @@ Integer CreateStringArrayDataset(H5::H5File& file,
         try {
           base_group.unlink(ds_name);
         }
-        catch (H5::Exception& h5ex)
+        catch (H5::Exception&)
         {
           std::cerr << "CreateStringArrayDataset: Failed unlink old dataset"
                     << " while trying to overwrite it!" << std::endl;
@@ -374,7 +371,7 @@ Integer CreateStringArrayDataset(H5::H5File& file,
           H5IO::ReadArray( base_group, ds_name, dataset_vec );
           base_group.unlink(ds_name);
         }
-        catch (H5::Exception& h5ex)
+        catch (H5::Exception&)
         {
           std::cerr << "CreateStringArrayDataset: Error while trying to read"
                     << " old dataset for appending!" << std::endl;
@@ -442,14 +439,13 @@ Integer CreateStringDataset(H5::H5File& file,
   {
     base_group = file.openGroup(path);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
-    //    std::cerr << h5ex.getCDetailMsg() << std::endl;
     std::cerr << "CreateStringDataset: Failed to open base group!" << std::endl;
   }
 
 
-  UInt numObjs = base_group.getNumObjs();
+  UInt numObjs = static_cast<UInt>( base_group.getNumObjs() );
   
   for(UInt i=0; i<numObjs; i++)
   {
@@ -466,7 +462,7 @@ Integer CreateStringDataset(H5::H5File& file,
         try {
           base_group.unlink(ds_name);
         }
-        catch (H5::Exception& h5ex)
+        catch (H5::Exception&)
         {
           std::cerr << "CreateStringDataset: Failed unlink old dataset"
                     << " while trying to overwrite it!" << std::endl;
@@ -496,7 +492,7 @@ Integer CreateStringDataset(H5::H5File& file,
     
     base_group.close();
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
     return 1;
   }
@@ -523,14 +519,14 @@ Integer ExistsDataset(H5::H5File& file,
   {
     base_group = file.openGroup(path);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
     // std::cerr << "ExistsDataset: Failed to open base group!" << std::endl;
     return 1;
   }
 
 
-  UInt numObjs = base_group.getNumObjs();
+  UInt numObjs = static_cast<UInt>( base_group.getNumObjs() );
   
   for(UInt i=0; i<numObjs; i++)
   {
@@ -544,7 +540,7 @@ Integer ExistsDataset(H5::H5File& file,
       {
         ds = base_group.openDataSet(ds_name);
       }
-      catch (H5::Exception& h5ex)
+      catch (H5::Exception&)
       {
         return 1;
       }
@@ -568,14 +564,14 @@ Integer DeleteObj(H5::H5File& file,
   {
     base_group = file.openGroup(path);
   }
-  catch (H5::Exception& h5ex)
+  catch (H5::Exception&)
   {
     // std::cerr << "ExistsDataset: Failed to open base group!" << std::endl;
     return 0;
   }
 
 
-  UInt numObjs = base_group.getNumObjs();
+  UInt numObjs = static_cast<UInt>( base_group.getNumObjs() );
   
   for(UInt i=0; i<numObjs; i++)
   {
@@ -585,7 +581,7 @@ Integer DeleteObj(H5::H5File& file,
       try {
         base_group.unlink(ds_name);
       }
-      catch (H5::Exception& h5ex)
+      catch (H5::Exception&)
       {
         std::cerr << "DeleteObj: Unlinking of group/dataset '" << ds_name
                   << "' failed" << std::endl;
@@ -630,7 +626,7 @@ int main(int argc, char** argv)
   std::string path;
   int ret = 0;
   std::map<std::string, UInt> modeMap;
-  
+
   modeMap["fail"]      = 0;
   modeMap["ignore"]    = 1;
   modeMap["overwrite"] = 2;
@@ -657,7 +653,7 @@ int main(int argc, char** argv)
       try {
         file = new H5::H5File( file_name, H5F_ACC_TRUNC );  
       }
-      catch (H5::Exception& h5ex)
+      catch (H5::Exception&)
       {
         std::cerr << "New HDF5 File '" << file_name
                   << "' could not be openend!" << std::endl;
@@ -673,7 +669,7 @@ int main(int argc, char** argv)
     try {
     file = new H5::H5File( file_name, H5F_ACC_RDWR );
     }
-    catch (H5::Exception& h5ex)
+    catch (H5::Exception&)
     {
       std::cerr << "HDF5 File '" << file_name
                 << "' could not be openend!" << std::endl;
