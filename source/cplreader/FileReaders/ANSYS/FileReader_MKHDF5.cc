@@ -348,6 +348,7 @@ namespace CoupledField
     UInt newElemNum = elemNumsMap_.size() + 1;
     std::set<UInt> elemSet;
     std::string line;
+    bool firstSection = true;
 
     if(settings.GetInt("verbose"))
       std::cout << "Trying to read EWRITE file: " << fileName << std::endl;
@@ -395,7 +396,7 @@ namespace CoupledField
             elemSet.clear();
           } else 
           {
-            if(settings.GetInt("strict"))
+            if(settings.GetInt("strict") && !firstSection)
             {
               EXCEPTION("Element group '" << sectionName << "' from file '"
                         << fileName << "' is empty!");
@@ -405,6 +406,8 @@ namespace CoupledField
 
         sectionName = line.substr(1, line.length()-2);
         boost::trim( sectionName );
+        firstSection = false;
+        
         //        std::cout << sectionName << std::endl;
 
         if(isElementsFile) 
@@ -545,6 +548,10 @@ namespace CoupledField
         elemDim = ELEM_DIM[actualElemType];
         dim = dim < elemDim ? elemDim : dim;
       }
+      else 
+      {
+        elemSet.insert(elemNum);
+      }
     }
     
     UInt settingsDim = (UInt) settings.GetInt("dim");
@@ -569,7 +576,7 @@ namespace CoupledField
                   std::back_inserter(elemSets[sectionName]));
       } else
       {
-        if(settings.GetInt("strict"))
+        if(settings.GetInt("strict") && !firstSection)
         {
           EXCEPTION("Element group '" << sectionName << "' from file '"
                     << fileName << "' is empty!");
@@ -595,6 +602,7 @@ namespace CoupledField
     std::string sectionName;
     std::set<UInt> nodeSet;
     bool isNodesFile;
+    bool firstSection = true;
     
     if(settings.GetInt("verbose"))
       std::cout << "Reading NWRITE file: " << fileName << std::endl;
@@ -643,7 +651,7 @@ namespace CoupledField
         }
         else
         {
-          if(settings.GetInt("strict"))
+          if(settings.GetInt("strict") && !firstSection)
           {
             EXCEPTION("Node group '" << sectionName << "' from file '"
                       << fileName << "' is empty!");
@@ -652,6 +660,8 @@ namespace CoupledField
         
         sectionName = line.substr(1, line.length()-2);
         boost::trim( sectionName );
+        firstSection = false;
+
         //          std::cout << sectionName << std::endl;
         continue;
       }
@@ -730,7 +740,7 @@ namespace CoupledField
       nodeSet.clear();
     } else 
     {    
-      if(settings.GetInt("strict"))
+      if(settings.GetInt("strict") && !firstSection)
       {
         EXCEPTION("Node group '" << sectionName << "' from file '"
                   << fileName << "' is empty!");
