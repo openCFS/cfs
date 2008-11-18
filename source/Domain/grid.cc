@@ -1365,13 +1365,20 @@ namespace CoupledField
       return INTERSECT_NONE; // lines are parallel but do not intersect
     }
 
-    // lines are not parallel, so compute intersection
+    /* At this point we know that the lines are not parallel,
+     * so compute intersection.
+     * 
+     * a + h * v1 = c + k * v2
+     * 
+     * This is a system with 2 unknowns (h,k) and 3 equations. Compute k1
+     * from equations 1 and 2, k2 from equations 1 and 3, and k3 from
+     * equations 2 and 3. Depending on the orientation of the lines in 3D
+     * space, up to two values out of (k1,k2,k3) may be undefined, because
+     * the denominator is zero. Therefore we need to select the right k. 
+     */
+
     Double h, k, k1 = 0.0, k2 = 0.0, k3 = 0.0, denom1, denom2, denom3;
 
-    /* a + h * v1 = c + k * v2
-     * This is a system with 2 unknowns and 3 equations. Compute k1 from
-     * equations 1 and 2, k2 from equations 1 and 3.
-     */
     denom1 = v1[1] * v2[0] - v1[0] * v2[1];
     if (fabs(denom1) > polysectAbsTol_)
       k1 = (v1[0] * (c[1] - a[1]) + v1[1] * (a[0] - c[0])) / denom1;
@@ -1381,11 +1388,15 @@ namespace CoupledField
     denom3 = v1[2] * v2[1] - v1[1] * v2[2];
     if (fabs(denom3) > polysectAbsTol_)
       k3 = (v1[1] * (c[2] - a[2]) + v1[2] * (a[1] - c[1])) /denom3;
+    
     // If this system has no solution, lines do not intersect.
     if ((fabs(denom1) <= polysectAbsTol_)
         && (fabs(denom2) <= polysectAbsTol_)
         && (fabs(denom3) <= polysectAbsTol_))
       return INTERSECT_NONE;
+    
+    // This check makes no sense for 3 k's. Maybe add a check based on the
+    // standard deviation of k.
     /*if ((fabs(denom1) > polysectAbsTol_)
         && (fabs(denom2) > polysectAbsTol_)) {
       if (fabs(k1 - k2) > polysectRelTol_)
