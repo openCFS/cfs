@@ -5,7 +5,7 @@
 OS=`uname -s`
 REV=`uname -r`
 MACH=`uname -m`
-ARCH=`echo $MACH | sed "s/i[3-6]/i3/"`
+ARCH=`echo $MACH | sed "s/i./i3/"`
 
 LOWER='abcdefghijklmnopqrstuvwxyz'
 UPPER='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -44,7 +44,8 @@ elif [ "${OS}" = "Linux" ] ; then
                 # They all contain the same infos. I.e.
                 # Mandriva Linux release 2007.0 (Official) for i586
                 # Fedora Core release 6 (Zod)
-		DIST='RedHat'
+		# DIST='RedHat'
+	        DIST=`cat /etc/redhat-release | cut -d' ' -f1`
 		PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
 	elif [ -f /etc/SuSE-release ] ; then
@@ -63,10 +64,16 @@ elif [ "${OS}" = "Linux" ] ; then
 		DIST='Mandrake'
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//`
-	elif [ -f /etc/debian_version ] ; then
+	elif [ -f /etc/debian_version ] || [ -f /etc/debian-version] ; then
 		DIST="Debian"
-                BASE_VERSION=`dpkg -p base-files | grep Version | cut -d' ' -f2`
-		REV=`echo $BASE_VERSION | sed -e 's/.[^.]*$//'`
+                BASE_VERSION=`dpkg -p base-files 2> /dev/null | grep Version`
+		if [ ! $? -eq 0 ]; then
+                	BASE_VERSION=`apt-cache show base-files 2> /dev/null | grep Version`
+		fi
+                # echo $BASE_VERSION
+		REV=`echo $BASE_VERSION | cut -d' ' -f2 | sed 's/\([0-9]\)$/\1.0/'`
+# | sed -e 's/.[^.]*$//'`
+		# echo $REV
 		case "$REV" in
 		    "1.2") PSEUDONAME="rex";;
 		    "1.3") PSEUDONAME="bo";;
@@ -75,16 +82,26 @@ elif [ "${OS}" = "Linux" ] ; then
 		    "2.2") PSEUDONAME="potato";;
 		    "3.0") PSEUDONAME="woody";;
 		    "3.1") PSEUDONAME="sid";;
+		    "4.0") PSEUDONAME="etch";;
                 esac
-                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
+#                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 
-                SPINOFF=`echo $BASE_VERSION | cut -d'.' -f3 | sed -e 's/[0-9]*//g'`
+		if [ -f /etc/knoppix-version ]; then
+			SPINOFF=knoppix;
+		else
+                	SPINOFF=`echo $BASE_VERSION | cut -d'.' -f3 | sed -e 's/[0-9]*//g'`;
+		fi
+
 		case "$SPINOFF" in
 		    "ubuntu")
 			. /etc/lsb-release;
 			DIST=$DISTRIB_ID;
 			REV=$DISTRIB_RELEASE;
 			PSEUDONAME=$DISTRIB_CODENAME;;
+		    "knoppix")
+			DIST=Knoppix;
+			REV=`cat /etc/knoppix-version | cut -d' ' -f1`
+			PSEUDONAME="Knoppix";;
                 esac
 
 	fi
