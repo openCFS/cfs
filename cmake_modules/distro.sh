@@ -30,9 +30,9 @@ if [ -z "$1" ]; then
 fi
 
 if [ "${OS}" = "SunOS" ] ; then
-	OS=Solaris
-	ARCH=`uname -p`	
-	OSSTR="${OS} ${REV}(${ARCH} `uname -v`)"
+	ARCH=`uname -p`
+        DIST=`uname -n`
+	OSSTR="${OS} ${REV} (${DIST} ${ARCH} `uname -v`)"
 elif [ "${OS}" = "AIX" ] ; then
 	OSSTR="${OS} `oslevel` (`oslevel -r`)"
 elif [ "${OS}" = "Linux" ] ; then
@@ -71,17 +71,22 @@ elif [ "${OS}" = "Linux" ] ; then
                 	BASE_VERSION=`apt-cache show base-files 2> /dev/null | grep Version`
 		fi
                 # echo $BASE_VERSION
-		REV=`echo $BASE_VERSION | cut -d' ' -f2 | sed 's/\([0-9]\)$/\1.0/'`
-# | sed -e 's/.[^.]*$//'`
+		BASE_VERSION=`echo $BASE_VERSION.0. | cut -d' ' -f2`
+		MAJOR_VERSION=`echo $BASE_VERSION.0. | cut -d'.' -f1 | sed 's/^\([0-9]\)\(.*\)/\1/'`
+		MINOR_VERSION=`echo $BASE_VERSION.0. | cut -d'.' -f2 | sed 's/^\([0-9]\)\(.*\)/\1/'`
+		REV_VERSION=`echo $BASE_VERSION | cut -d'.' -f3 | sed 's/^\([0-9]\)\(.*\)/\1/'`
+		REV=`echo "$MAJOR_VERSION.$MINOR_VERSION.$REV_VERSION" | sed 's/\.\./\.0/' | sed 's/\.$//'`
 		# echo $REV
+		# See http://www.us.debian.org/doc/FAQ/ch-ftparchives.de.html
 		case "$REV" in
+		    "1.1") PSEUDONAME="buzz";;
 		    "1.2") PSEUDONAME="rex";;
 		    "1.3") PSEUDONAME="bo";;
 		    "2.0") PSEUDONAME="hamm";;
 		    "2.1") PSEUDONAME="slink";;
 		    "2.2") PSEUDONAME="potato";;
 		    "3.0") PSEUDONAME="woody";;
-		    "3.1") PSEUDONAME="sid";;
+		    "3.1") PSEUDONAME="sarge";;
 		    "4.0") PSEUDONAME="etch";;
                 esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
@@ -97,7 +102,18 @@ elif [ "${OS}" = "Linux" ] ; then
 			. /etc/lsb-release;
 			DIST=$DISTRIB_ID;
 			REV=$DISTRIB_RELEASE;
-			PSEUDONAME=$DISTRIB_CODENAME;;
+			PSEUDONAME=$DISTRIB_CODENAME;
+			case "$DISTRIB_CODENAME" in
+			    "warty") PSEUDONAME="Warty Warthog";; # 4.10
+			    "hoary") PSEUDONAME="Hoary Hedgehog";; # 5.04
+			    "breezy") PSEUDONAME="Breezy Badger";; # 5.10
+			    "dapper") PSEUDONAME="Dapper Drake";; # 6.06
+			    "edgy") PSEUDONAME="Edgy Eft";; # 6.10
+			    "feisty") PSEUDONAME="Feisty Fawn";; # 7.04
+			    "gutsy") PSEUDONAME="Gutsy Gibbon";; # 7.10
+			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04
+			    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
+	                esac;;
 		    "knoppix")
 			DIST=Knoppix;
 			REV=`cat /etc/knoppix-version | cut -d' ' -f1`
