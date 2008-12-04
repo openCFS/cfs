@@ -925,7 +925,7 @@ namespace CoupledField {
     MathParser::HandleType mHandle =  parser->GetNewHandle();
     parser->SetExpr( mHandle, "step" );
     UInt actStep = (UInt) parser->Eval(mHandle);
-    parser->ReleaseHandle( mHandle );
+
 
 
     // iterate over all coils
@@ -957,13 +957,16 @@ namespace CoupledField {
       TYPE induct = 0.0;
       if( actCoil->fileL_ ) {
         CalcFlux<TYPE>( actCoil, induct, false );
+        parser->SetExpr( mHandle, actCoil->value_);
+        std::cerr << "current is " << parser->Eval(mHandle) << std::endl;
+        induct /= (actCoil->windingCrossSection_ *  parser->Eval(mHandle));
         std::ofstream * lOut = actCoil->fileL_;
         *lOut << solveStep_->GetActStep() << " \t";
-        *lOut << TypeToString( induct / actCoil->windingCrossSection_) << " \n";
+        *lOut << TypeToString( induct ) << " \n";
 
       }
     }
-
+    parser->ReleaseHandle( mHandle );
   }
 
 
