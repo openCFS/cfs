@@ -31,6 +31,9 @@ namespace CoupledField
     ~MagPDE();
 
 
+    //! Initialize PDE
+    virtual void Init( UInt sequenceStep );
+
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
