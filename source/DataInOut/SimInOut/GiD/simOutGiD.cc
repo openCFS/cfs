@@ -919,29 +919,40 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
         
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, var[offset].imag(), 
-                             var[offset+1].imag(), 
-                             var[offset+2].imag() );
-          } else { 
-            GiD_WriteVector( iEnt, var[offset].imag(), 
-                             var[offset+1].imag(), 
-                             0.0 );
+          switch ( numDofs ) {
+            case 3:
+              GiD_WriteVector( iEnt, var[offset].imag(), 
+                               var[offset+1].imag(), 
+                               var[offset+2].imag() );
+              break;
+            case 2:
+              GiD_WriteVector( iEnt, var[offset].imag(), 
+                               var[offset+1].imag(), 
+                               0.0 );
+              break;
+            case 1:
+              GiD_WriteVector( iEnt, var[offset].imag(), 0.0, 0.0 );
+              break;
           }
         }
         GiD_EndResult(); 
       } else {
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           offset = (iEnt-1) * numDofs;
-          if ( numDofs == 3 ) {
-            GiD_WriteVector( iEnt, CPhase( var[offset] ), 
-                             CPhase( var[offset+1] ), 
-                             CPhase( var[offset+2] ) );
-            
-          } else { 
-            GiD_WriteVector( iEnt, CPhase( var[offset] ),
-                             CPhase( var[offset+1]),
-                             0.0 );
+          switch ( numDofs ) {
+            case 3:
+              GiD_WriteVector( iEnt, CPhase( var[offset] ), 
+                               CPhase( var[offset+1] ), 
+                               CPhase( var[offset+2] ) );
+              break;
+            case 2:
+              GiD_WriteVector( iEnt, CPhase( var[offset] ),
+                               CPhase( var[offset+1]),
+                               0.0 );
+              break;
+            case 1:
+              GiD_WriteVector( iEnt, CPhase( var[offset] ), 0.0, 0.0 );
+              break;
           }
         }
         GiD_EndResult(); 

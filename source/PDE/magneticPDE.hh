@@ -121,10 +121,14 @@ namespace CoupledField
     void CalcForceVWP( shared_ptr<BaseResult> result );
 
     //! computation of Lorentz force
-    void CalcNodeForceLorentz( Vector<Double> & force, 
-                               std::map<UInt, UInt>& cplNodeNumPos,
-                               UInt actCoupling, 
-                               UInt numCouplingNodes );
+    template<class TYPE>
+    void CalcForceLorentz( shared_ptr<BaseResult> result );
+    
+    //! computation of nodal Lorentz force
+    template<class TYPE>
+    void CalcNodeForceLorentz( Vector<TYPE> & force,
+                               const StdVector<RegionIdType> regionIds,
+                               const std::map<UInt, UInt>& cplNodeNumPos );
     
     // ---- Magnetic Force variables ---
  
@@ -137,6 +141,10 @@ namespace CoupledField
 
     //! force operator (for coupling as well as postprocessing)
     MagForceOp* ForceOpVWP_;
+    
+    //! regions on which the Lorentz force should be calculated
+    std::set<RegionIdType> regionsForceL_;
+    
 
     // =======================================================================
     //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 

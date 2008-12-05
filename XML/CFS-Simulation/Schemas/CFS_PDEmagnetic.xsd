@@ -235,6 +235,7 @@
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
