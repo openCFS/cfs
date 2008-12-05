@@ -65,6 +65,9 @@ namespace CoupledField {
     // =====================================================================
     assemble_   = NULL;
     algsys_     = NULL;
+    solVec_     = NULL;
+    rhsVec_     = NULL;
+    solPrev_    = NULL;
 
     // =====================================================================
     // set analysis parameters
@@ -103,28 +106,27 @@ namespace CoupledField {
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
-      if( needsAlgsys_ ) {
+      if ( needsAlgsys_ && (algsys_ != NULL))
         delete algsys_;
-      }
-      delete solveStep_;
-      delete TS_alg_;
-      delete assemble_;
+      if (solveStep_) delete solveStep_;
+      if (TS_alg_) delete TS_alg_;
+      if (assemble_) delete assemble_;
     }
 
 
-    delete sol_;
+    if (sol_) delete sol_;
     if( !isDirectCoupled_ ) {
-      delete solVec_;
-      delete rhsVec_;
+      if (solVec_) delete solVec_;
+      if (rhsVec_) delete rhsVec_;
     }
 
-    if ( needSolPrev_ )
+    if ( needSolPrev_ && (solPrev_ != NULL))
       delete solPrev_;
 
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      delete it->second;
+      if (it->second != NULL) delete it->second;
     }
     materials_.clear();
 
@@ -2138,9 +2140,11 @@ namespace CoupledField {
         break;
 
       case MAT:
-        //EXCEPTION( "Not implemented yet" );
         break;
 
+      default:
+        EXCEPTION( "Not implemented yet" );
+        break;
       }
     }
   }

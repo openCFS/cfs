@@ -45,6 +45,29 @@ namespace CoupledField {
     // check if we have a 3d setup
     is3d_ = false;
     is3d_ = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+    
+    // store regions on which the Lorentz force should be calculated
+    ParamNode *nodeStoreRes = paramNode->Get("storeResults", false);
+    if (nodeStoreRes) {
+      StdVector<ParamNode*> resForceL
+        = nodeStoreRes->GetList("nodeResult", "type", "magForceLorentz");
+      for (UInt i=0, n=resForceL.GetSize(); i<n; ++i) {
+        if (resForceL[i]->Has("allRegions")) {
+          regionsForceL_.insert(subdoms_.Begin(), subdoms_.End());
+        } else {
+          ParamNode *nodeRegionList = resForceL[i]->Get("regionList", false);
+          if (nodeRegionList) {
+            StdVector<ParamNode*> resultRegions
+              = nodeRegionList->GetList("region");
+            for (UInt iReg=0, nReg=resultRegions.GetSize(); iReg<nReg; ++iReg)
+            {
+              regionsForceL_.insert(aptgrid->RegionNameToId(
+                  resultRegions[iReg]->Get("name")->AsString()));
+            }
+          }
+        }
+      }
+    }
   }
 
 
@@ -536,6 +559,14 @@ namespace CoupledField {
       }
       break;
 
+    case MAG_FORCE_LORENTZ:
+      if (isComplex_) {
+        CalcForceLorentz<Complex>( res );
+      } else {
+        CalcForceLorentz<Double>( res );
+      }
+      break;
+      
     default:
       Warning( "Resulttype not computable by magnetic PDE",
                __FILE__, __LINE__ );
@@ -898,7 +929,31 @@ namespace CoupledField {
     parser->ReleaseHandle(h3);
   }
 
-
+  template<class TYPE>
+  void MagPDE::CalcForceLorentz( shared_ptr<BaseResult> result ) {
+    
+    Result<TYPE> &actSol = dynamic_cast<Result<TYPE>&>(*result);      
+    std::map<UInt, UInt> nodeNumPos;
+    Vector<TYPE> &actVal = actSol.GetVector();
+    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+    EntityIterator nodeIt = actSol.GetEntityList()->GetIterator();
+    StdVector<RegionIdType> regionsVec;
+    
+    for (nodeIt.Begin(); !nodeIt.IsEnd(); nodeIt++) {
+      nodeNumPos[nodeIt.GetNode()] = nodeIt.GetPos();
+    }
+    
+    std::set<RegionIdType>::iterator regIt = regionsForceL_.begin(),
+                                     regItEnd = regionsForceL_.end();
+    for ( ; regIt != regItEnd; ++regIt) {
+      if (subdoms_.Find(*regIt) >= -1)
+        regionsVec.Push_back(*regIt);
+    }
+    
+    CalcNodeForceLorentz(actVal, regionsVec, nodeNumPos);
+  }
+  
+  
   // ***************************************************
   //   Store currents/voltages and inductivity in file
   // ***************************************************
@@ -1165,6 +1220,16 @@ namespace CoupledField {
     energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( energy );            
     
+    // === LORENTZ FORCE ===
+    shared_ptr<ResultInfo> forceLorentz(new ResultInfo);
+    forceLorentz->resultType = MAG_FORCE_LORENTZ;
+    forceLorentz->dofNames = vecComponents;
+    forceLorentz->unit = "N";
+    forceLorentz->definedOn = ResultInfo::NODE;
+    forceLorentz->entryType = ResultInfo::VECTOR;
+    forceLorentz->fctType = shared_ptr<ConstFct>(new ConstFct());
+    availResults_.insert( forceLorentz );
+    
   }
 
   void MagPDE::ReadSpecialResults() {
@@ -1173,7 +1238,7 @@ namespace CoupledField {
     // The force itself is primarily calculated on nodes,
     // which makes it dependent on the discretization.
 
-    // Thereofore we sould choose between two approaches:
+    // Therefore we should choose between two approaches:
     // a) Either we calculate the force-density or
     // b) We calculate only the sum of the nodes. However
     //    since we have no possibility to associate a 
@@ -1582,8 +1647,14 @@ namespace CoupledField {
         ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
           
         if (quantity == MAG_FORCE_LORENTZ) {
-          CalcNodeForceLorentz( *temp, cplNodeNumPos_[forcesCount],
-                                actCoupling, couplingNodes->GetSize());
+          //get the coupling regions
+          StdVector<std::string> couplRegions;
+          StdVector<RegionIdType> regionIds;
+          ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+          ptgrid_->RegionNameToId( regionIds, couplRegions );
+
+          CalcNodeForceLorentz(*temp, regionIds, cplNodeNumPos_[forcesCount]);
+          
           forcesCount++;
         }
 
@@ -1595,140 +1666,134 @@ namespace CoupledField {
     }
   }
 
-  void MagPDE::
-  CalcNodeForceLorentz( Vector<Double> & force, 
-                        std::map<UInt, UInt> & cplNodeNumPos,
-                        UInt actCoupling, UInt numCouplingNodes) {
-    
-    
-    //get the coupling regions
-    StdVector<std::string> couplRegions;
-    StdVector<RegionIdType> regionIds;
-    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-    ptgrid_->RegionNameToId( regionIds, couplRegions );
-
-   
+  template<class TYPE> void MagPDE::
+  CalcNodeForceLorentz( Vector<TYPE> & force,
+                        const StdVector<RegionIdType> regionIds,
+                        const std::map<UInt, UInt> & nodeNumPos ) {
+       
     force.Init(0.0);
-    Vector<Double>  fluxAtIp(dim_), elemForce, fAtIp, jAtIp;
+    Vector<TYPE> fluxAtIp(dim_), elemForce, fAtIp, jAtIp;
     Matrix<Double> ptCoord;
+    std::map<UInt, UInt>::const_iterator itPosEnd = nodeNumPos.end();
+    
+    for (UInt reg=0, numRegs=regionIds.GetSize(); reg < numRegs; ++reg) {
 
-     for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
+      //find subdomain index
+      Integer sdIndex = subdoms_.Find( regionIds[reg] );
+      if( sdIndex == -1 ) {
+        EXCEPTION( "The region coupling region '" <<
+            ptgrid_->RegionIdToName( regionIds[reg] )
+            << "' was not found in magneticPDE" );
+      }
+
+      RegionIdType actRegionId = subdoms_[sdIndex] ;
+      Double conductivity;
+      materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+
+      // Check if this region is a coil
+      Integer coilIndex = coilRegionId_.Find(actRegionId);
+
+      ElemList actSDList(ptgrid_);
+      actSDList.SetRegion(actRegionId);
+
+      EntityIterator it = actSDList.GetIterator();
+      UInt actEl = 0;
+      // iterate over all elements of regions
+      for ( it.Begin(); !it.IsEnd(); it++, ++actEl ) {
+
+        BaseFE * ptElem = it.GetElem()->ptElem;
+        ptElem->SetAnsatzFct( results_[0]->fctType );
+        UInt numFncs = ptElem->GetNumFncs(results_[0]->fctType);
+        const UInt nrIntPts = ptElem->GetNumIntPoints();
+        const Vector<Double> & intWeights = ptElem->GetIntWeights();  
+
+        Vector<Double> shpFncAtIp;         
+        ptgrid_->GetElemNodesCoord( ptCoord, it.GetElem()->connect, true );
+
+        // iterate over all integration points
+        fAtIp.Resize( dim_ * numFncs );
+        elemForce.Resize( dim_ * numFncs );
+        elemForce.Init();
+        for( UInt ip = 1; ip <= nrIntPts; ++ip ) {
+          ptElem->GetShFncAtIp(shpFncAtIp, ip, it.GetElem() );
+
+          // CHECK: If this region is a current coil, we simply take the
+          // prescribed current density value
+          if( coilIndex != -1 ) {
+            MathParser * mParser =  domain->GetMathParser();
+            std::string factor = coilDef_[coilIndex]->value_ + "/" 
+            + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+            mParser->SetExpr( mHandle_, factor );
+            Double currDens = mParser->Eval(mHandle_);
+            if( is3d_ ) {
+              // take flow direction into account
+            } else {
+              jAtIp.Resize(1);
+              jAtIp[0] = currDens;
+            }
+          } else {
+            // calculate jEddy at integration point
+            CalcEddyCurrentAtIP( it, ip, jAtIp );
+          }
+
+          // calculate flux density at ip
+          CalcFluxDensityAtIP( it, ip, fluxAtIp );
+
+          // calculate cross product 
+          fAtIp.Init();
+          if( is3d_ ) {
+            Vector<TYPE> tempCross;
+            jAtIp.CrossProduct( fluxAtIp, tempCross );
+            for (UInt iFnc=0; iFnc<numFncs; ++iFnc) {
+              fAtIp[iFnc*3+0] = -tempCross[0] * shpFncAtIp[iFnc];
+              fAtIp[iFnc*3+1] = -tempCross[1] * shpFncAtIp[iFnc];
+              fAtIp[iFnc*3+2] = -tempCross[2] * shpFncAtIp[iFnc];
+            }
+          } else if (isaxi_ ) {
+
+            // calculate pseudo cross product for axi-symmetric case
+            for (UInt iFnc=0; iFnc<numFncs; ++iFnc) {
+              fAtIp[iFnc*2] -= jAtIp[0] * fluxAtIp[1] 
+                                                   * shpFncAtIp[iFnc];
+              fAtIp[iFnc*2+1] += jAtIp[0] * fluxAtIp[0]   
+                                                     * shpFncAtIp[iFnc];
+            } 
+          } else{
+            // calculate pseudo cross product
+            for (UInt iFnc=0; iFnc<numFncs; ++iFnc) {
+              fAtIp[iFnc*2] += jAtIp[0] * fluxAtIp[1] 
+                                                   * shpFncAtIp[iFnc];
+              fAtIp[iFnc*2+1] -= jAtIp[0] * fluxAtIp[0]   
+                                                     * shpFncAtIp[iFnc];
+            } 
+          }
+          Double jacDet = ptElem->CalcJacobianDetAtIp(ip, ptCoord, 
+              it.GetElem() );
+          if( isaxi_ ) {
+            Vector<Double> CoordAtIP;
+            CoordAtIP = ptCoord * shpFncAtIp;
+            jacDet *=  2 * PI * CoordAtIP[0];
+          }
+          elemForce -= fAtIp * (jacDet * intWeights[ip-1] );
+
+        }
+        StdVector<UInt> const & connecth = it.GetElem()->connect;
+
+        // Add the element force to the according coupling node
+        for (UInt ielemnode=0, n=connecth.GetSize(); ielemnode<n; ++ielemnode) {
+          std::map<UInt, UInt>::const_iterator itPos
+              = nodeNumPos.find(connecth[ielemnode]);
+          if (itPos != itPosEnd) {
+            UInt pos = itPos->second;
+            for( UInt idim=0; idim<dim_; ++idim) {
+              force[pos*dim_+idim] += elemForce[ielemnode*dim_+idim];
+            }
+          }
+        }
+      }
 
 
-       //find subdomain index
-       Integer sdIndex = subdoms_.Find( regionIds[reg] );
-       if( sdIndex == -1 ) {
-         EXCEPTION( "The region coupling region '" <<
-                    ptgrid_->RegionIdToName( regionIds[reg] )
-                    << "' was not found in magneticPDE" );
-       }
-
-       RegionIdType actRegionId = subdoms_[sdIndex] ;
-       Double conductivity;
-       materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-
-       // Check if this region is a coil
-       Integer coilIndex = coilRegionId_.Find(actRegionId);
-
-       ElemList actSDList(ptgrid_ );
-       actSDList.SetRegion(actRegionId );
-       
-       EntityIterator it = actSDList.GetIterator();
-       UInt actEl = 0;
-       // iterate over all elements of regions
-       for ( it.Begin(); !it.IsEnd(); it++, actEl++ ) {
-         
-         BaseFE * ptElem = it.GetElem()->ptElem;
-         ptElem->SetAnsatzFct( results_[0]->fctType );
-         UInt numFncs = ptElem->GetNumFncs(results_[0]->fctType);
-         const UInt nrIntPts = ptElem->GetNumIntPoints();
-         const Vector<Double> & intWeights = ptElem->GetIntWeights();  
-         
-         Vector<Double> shpFncAtIp;         
-         ptgrid_->GetElemNodesCoord( ptCoord, 
-                                     it.GetElem()->connect,
-                                     true );
-         
-         // iterate over all integration points
-         fAtIp.Resize( dim_ * numFncs );
-         elemForce.Resize( dim_ * numFncs );
-         elemForce.Init();
-         for( UInt ip = 1; ip <= nrIntPts; ip++ ) {
-           ptElem->GetShFncAtIp(shpFncAtIp, ip, it.GetElem() );
-
-           // CHECK: If this region is a current coil, we simply take the
-           // prescribed current density value
-           if( coilIndex != -1 ) {
-             MathParser * mParser =  domain->GetMathParser();
-             std::string factor = coilDef_[coilIndex]->value_ + "/" 
-               + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
-             mParser->SetExpr( mHandle_, factor );
-             Double currDens = mParser->Eval(mHandle_);
-             if( is3d_ ) {
-               // take flow direction into account
-             } else {
-               jAtIp.Resize(1);
-               jAtIp[0] = currDens;
-             }
-           } else {
-             // calculate jEddy at integraton point
-             CalcEddyCurrentAtIP( it, ip, jAtIp );
-           }
-           
-           // calculate flux density at ip
-           CalcFluxDensityAtIP( it, ip, fluxAtIp );
-           
-           // calculate cross product 
-           fAtIp.Init();
-           if( is3d_ ) {
-             Vector<Double> tempCross;
-             jAtIp.CrossProduct( fluxAtIp, tempCross );
-             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
-               fAtIp[iFnc*3+0] = -tempCross[0] * shpFncAtIp[iFnc];
-               fAtIp[iFnc*3+1] = -tempCross[1] * shpFncAtIp[iFnc];
-               fAtIp[iFnc*3+2] = -tempCross[2] * shpFncAtIp[iFnc];
-             }
-           } else if (isaxi_ ) {
-      
-             // calculate pseudo cross product for axi-symmetric case
-             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
-               fAtIp[iFnc*2] -= jAtIp[0] * fluxAtIp[1] 
-                 * shpFncAtIp[iFnc];
-               fAtIp[iFnc*2+1] += jAtIp[0] * fluxAtIp[0]   
-                 * shpFncAtIp[iFnc];
-             } 
-           } else{
-             // calculate pseudo cross product
-             for (UInt iFnc=0; iFnc<numFncs; iFnc++) {
-               fAtIp[iFnc*2] += jAtIp[0] * fluxAtIp[1] 
-                 * shpFncAtIp[iFnc];
-               fAtIp[iFnc*2+1] -= jAtIp[0] * fluxAtIp[0]   
-                 * shpFncAtIp[iFnc];
-             } 
-           }
-           Double jacDet = ptElem->CalcJacobianDetAtIp(ip, ptCoord, 
-                                                       it.GetElem() );
-           if( isaxi_ ) {
-             Vector<Double> CoordAtIP;
-             CoordAtIP = ptCoord * shpFncAtIp;
-             jacDet *=  2 * PI * CoordAtIP[0];
-           }
-           elemForce += -fAtIp * (jacDet * intWeights[ip-1] );
-
-         }
-         StdVector<UInt> const & connecth = it.GetElem()->connect;
-
-         // Add the element force to the according coupling node
-         for (UInt ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
-           UInt pos = cplNodeNumPos[connecth[ielemnode]];
-           for( UInt idim=0; idim<dim_; idim++) {
-             force[pos*dim_+idim] += elemForce[ielemnode*dim_+idim];
-           }
-         }
-       }
-       
- 
-     }
+    }
   }
 
 
