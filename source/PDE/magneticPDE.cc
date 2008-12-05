@@ -45,9 +45,24 @@ namespace CoupledField {
     // check if we have a 3d setup
     is3d_ = false;
     is3d_ = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+  }
+
+
+  // *************
+  //  Destructor
+  // *************
+  MagPDE::~MagPDE() {
+  }
+
+
+  //****************
+  // Initialize PDE
+  //****************
+  void MagPDE::Init(UInt sequenceStep) {
+    SinglePDE::Init(sequenceStep);
     
     // store regions on which the Lorentz force should be calculated
-    ParamNode *nodeStoreRes = paramNode->Get("storeResults", false);
+    ParamNode *nodeStoreRes = myParam_->Get("storeResults", false);
     if (nodeStoreRes) {
       StdVector<ParamNode*> resForceL
         = nodeStoreRes->GetList("nodeResult", "type", "magForceLorentz");
@@ -61,23 +76,18 @@ namespace CoupledField {
               = nodeRegionList->GetList("region");
             for (UInt iReg=0, nReg=resultRegions.GetSize(); iReg<nReg; ++iReg)
             {
-              regionsForceL_.insert(aptgrid->RegionNameToId(
-                  resultRegions[iReg]->Get("name")->AsString()));
+              RegionIdType curRegId = ptgrid_->RegionNameToId(
+                  resultRegions[iReg]->Get("name")->AsString());
+              if (subdoms_.Find(curRegId) >= -1)
+                regionsForceL_.insert(curRegId);
             }
           }
         }
       }
     }
   }
-
-
-  // *************
-  //  Destructor
-  // *************
-  MagPDE::~MagPDE() {
-  }
-
-
+  
+  
   // *********************************
   //  Read special boundary conitions
   // *********************************
@@ -946,7 +956,6 @@ namespace CoupledField {
     std::set<RegionIdType>::iterator regIt = regionsForceL_.begin(),
                                      regItEnd = regionsForceL_.end();
     for ( ; regIt != regItEnd; ++regIt) {
-      if (subdoms_.Find(*regIt) >= -1)
         regionsVec.Push_back(*regIt);
     }
     
