@@ -29,6 +29,9 @@ namespace CoupledField
     epsilon = 0.0;
     values = NULL;
     oldValues = NULL;
+    values_tn_1 = NULL;
+    values_tn_2 = NULL;
+    values_tn_3 = NULL;
     regions.Clear();
     nodes.Clear();
     elements.Clear();
@@ -52,9 +55,16 @@ namespace CoupledField
         EXCEPTION( "Sorry, wrong branch :) ");
         values = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values)));
         oldValues = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.oldValues)));
+        values_tn_1 = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values_tn_1)));
+        values_tn_2 = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values_tn_2)));
+        values_tn_3 = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values_tn_3)));
+
       } else {
         values = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values)));
         oldValues = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.oldValues)));
+        values_tn_1 = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values_tn_1)));
+        values_tn_2 = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values_tn_2)));
+        values_tn_3 = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values_tn_3)));
       }
     }  
 
@@ -98,6 +108,12 @@ namespace CoupledField
       delete values;
     if(oldValues != NULL)
       delete oldValues;
+    if(values_tn_1 != NULL)
+      delete values_tn_1;
+    if(values_tn_2 != NULL)
+      delete values_tn_2;
+    if(values_tn_3 != NULL)
+      delete values_tn_3;
   }
 
 
@@ -198,7 +214,9 @@ namespace CoupledField
     // then the number of dofs is equal to the
     // dimension of the grid, otherwise the number dofs
     // must be equal to that of my PDE
-    if (inputTypes_[myNum] == COORD)
+    if (inputTypes_[myNum] == COORD || 
+        inputTypes_[myNum] == ID_BC || 
+        inputTypes_[myNum] == GRID_VEL)
       myInterface->dof = myPDE_->dim_;
     else
       myInterface->dof = myPDE_->results_[0]->dofNames.GetSize();
@@ -638,8 +656,11 @@ namespace CoupledField
     UInt numElems = outputInterfaces_[i]->numElems;
     UInt dof =  outputInterfaces_[i]->dof;
 
-    if (outputInterfaces_[i]->values != NULL || \
-        outputInterfaces_[i]->oldValues != NULL)
+    if (outputInterfaces_[i]->values != NULL || 
+        outputInterfaces_[i]->oldValues != NULL ||
+        outputInterfaces_[i]->values_tn_1 != NULL ||
+        outputInterfaces_[i]->values_tn_2 != NULL ||
+        outputInterfaces_[i]->values_tn_3 != NULL)
       EXCEPTION("PDECoupling::CreateCouplingVector: This function may only\
            be called for Output-Coupling interfaces!" );
 
@@ -647,21 +668,27 @@ namespace CoupledField
       {
         outputInterfaces_[i]->values = new Vector<Complex>;
         outputInterfaces_[i]->oldValues = new Vector<Complex>;
+      outputInterfaces_[i]->values_tn_1 = new Vector<Complex>;
+      outputInterfaces_[i]->values_tn_2 = new Vector<Complex>;
+      outputInterfaces_[i]->values_tn_3 = new Vector<Complex>;
       } 
     else
       {
         outputInterfaces_[i]->values = new Vector<Double>;
         outputInterfaces_[i]->oldValues = new Vector<Double>;
+      outputInterfaces_[i]->values_tn_1 = new Vector<Double>;
+      outputInterfaces_[i]->values_tn_2 = new Vector<Double>;
+      outputInterfaces_[i]->values_tn_3 = new Vector<Double>;
       }
   
     // Determine size of vector
     UInt size = 0;
     
-    if ( numNodes != 0 ) {
-      size = numNodes;
-    }
     if ( numElems != 0 ) {
       size = numElems;
+    }
+    if ( numNodes != 0 ) {
+      size = numNodes;
     }
     if ( size == 0 ) {
       EXCEPTION( "Will not allocate a vector of size 0" );
@@ -670,13 +697,25 @@ namespace CoupledField
     // resize vector with coupling values
     outputInterfaces_[i]->values->Resize(dof*size);
     outputInterfaces_[i]->oldValues->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_1->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_2->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_3->Resize(dof*size);
+
 
     if( isComplex ) {
       outputInterfaces_[i]->values->Init(Complex(0.0,0.0));
       outputInterfaces_[i]->oldValues->Init(Complex(0.0,0.0));
-    } else {
+      outputInterfaces_[i]->values_tn_1->Init(Complex(0.0,0.0));
+      outputInterfaces_[i]->values_tn_2->Init(Complex(0.0,0.0));
+      outputInterfaces_[i]->values_tn_3->Init(Complex(0.0,0.0));
+
+    } 
+    else {
       outputInterfaces_[i]->values->Init(0.0);
       outputInterfaces_[i]->oldValues->Init( 0.0 );
+      outputInterfaces_[i]->values_tn_1->Init(0.0);
+      outputInterfaces_[i]->values_tn_2->Init(0.0);
+      outputInterfaces_[i]->values_tn_3->Init(0.0);
     }
     
   }
@@ -705,6 +744,11 @@ namespace CoupledField
       case MAT:
         // Material parameter coupling -> element values needed
         return ELEM;
+        break;
+
+      case GRID_VEL:
+        // Grid Velocity coupling -> node values needed
+        return NODE;
         break;
       }
 

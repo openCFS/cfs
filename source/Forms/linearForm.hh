@@ -311,6 +311,12 @@ namespace CoupledField
                                    const Matrix<Double> & NodalVel,
                                    Vector<Double> & Result);
     
+    /// Calculation of Lighthill tensor diverg. (dTijdi) using velocity values from the CFS-CFD solver
+    void CalcElemVec_withCFSVel(const Matrix<Double>& ptCoord,
+                                const Matrix<Double> & NodalVel,
+                                Vector<Double> & Result,
+                                Double density); 
+
     /// Calculation of vector of right hand side given from quadrupole contribution
     void CalcElemVector4Quad(Matrix<Double>& ptCoord, 
                              const StdVector<UInt> & connecth,

@@ -14,7 +14,7 @@ class FluidMechPlaneStiffInt_UV : public FluidMechInt
 {
 public:	
 
-  FluidMechPlaneStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams);
+  FluidMechPlaneStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
 
   virtual ~FluidMechPlaneStiffInt_UV();
   
@@ -30,7 +30,7 @@ class FluidMechPlaneStiffInt_PQ : public FluidMechInt
 {
 public:
 
-  FluidMechPlaneStiffInt_PQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams);
+  FluidMechPlaneStiffInt_PQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
 
   virtual ~FluidMechPlaneStiffInt_PQ();
 
@@ -46,7 +46,7 @@ class FluidMechPlaneStiffInt_UQ : public FluidMechInt
 {
 public:
 
-  FluidMechPlaneStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams);
+  FluidMechPlaneStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
   
   virtual ~FluidMechPlaneStiffInt_UQ();
 
@@ -60,7 +60,7 @@ protected:
 class FluidMechPlaneStiffInt_PV : public FluidMechInt
 {
 public:
-  FluidMechPlaneStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams);
+  FluidMechPlaneStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
   virtual ~FluidMechPlaneStiffInt_PV();
   void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 protected:    
@@ -75,7 +75,7 @@ class FluidMechPlaneMixedStiffInt_UV : public FluidMechInt
 {
 public:	
 
-  FluidMechPlaneMixedStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams);
+  FluidMechPlaneMixedStiffInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
 
   virtual ~FluidMechPlaneMixedStiffInt_UV();
   
@@ -91,7 +91,7 @@ class FluidMechPlaneMixedStiffInt_UQ : public FluidMechInt
 {
 public:
 
-  FluidMechPlaneMixedStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams);
+  FluidMechPlaneMixedStiffInt_UQ(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
   
   virtual ~FluidMechPlaneMixedStiffInt_UQ();
 
@@ -105,7 +105,7 @@ protected:
 class FluidMechPlaneMixedStiffInt_PV : public FluidMechInt
 {
 public:
-  FluidMechPlaneMixedStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams);
+  FluidMechPlaneMixedStiffInt_PV(Double density, Double kinematicViscosity, Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
   virtual ~FluidMechPlaneMixedStiffInt_PV();
   void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 protected:    

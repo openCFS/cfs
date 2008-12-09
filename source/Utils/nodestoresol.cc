@@ -216,6 +216,32 @@ namespace CoupledField {
     solTypes_[solType] = numSolution;
     length_ = 0;
   }
+  
+  
+
+  template<class TYPE>
+  void NodeStoreSol<TYPE>::SetSolutionTypeName( const SolutionType solType,
+                                                const SolutionType solTypeName,
+                                                const UInt numSolution ) {
+
+
+#ifdef CHECK_INDEX
+    if (numSolution >= numSolutions_) {
+      EXCEPTION("NodeStoreSol: Index out of Bounds");
+    }
+#endif
+
+    // Check, if the object contains only one entry and
+    // if this only entry is overwritten
+    if ( solTypes_.size() == 1 && numSolutions_ == 1 && numSolution == 0 ) {
+      solTypes_.clear();
+    }
+
+    solTypes_[solType] = numSolution;
+    solTypesName_[solTypeName] = numSolution;
+    length_ = 0;
+  }
+
 
 
   // **************
@@ -624,7 +650,7 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
+    if (length_ == 0) Warning ("NodeStoreSol: Use of uninitialized object!", __FILE__, __LINE__);
 #endif
 #ifdef CHECK_INDEX
    //  if (val.GetSize() !=  lengthVector_)

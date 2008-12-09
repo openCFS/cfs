@@ -57,12 +57,19 @@ namespace CoupledField
 
     // Calculate parameters and store it in matrix_factors
     dt_ = dt;
+    globalDeltaT_=dt;
+
     CalcParameters(dt_);
         
     matrix_factors_[STIFFNESS] = (1.0 + alpha_);
     matrix_factors_[MASS] = 1.0*a2_;   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*a4_;
+
+    if( !isSolTN1Set_){
+      sol_tn_1_.Resize(rhsSize_);
+      sol_tn_1_.Init();
+    }
 
     //get the memory
     if( !isDeriv1Set_ ) {
@@ -79,6 +86,34 @@ namespace CoupledField
     solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
 
+  }
+
+  void Newmark::setSubSteps(  UInt subSteps ) {
+
+    dt_ = globalDeltaT_/Double(subSteps);
+    CalcParameters(dt_);
+        
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[CONVECTION] = 0.0; 
+    matrix_factors_[DAMPING] = 1.0*a4_;
+
+    solpredSAVE_ = solpred_;
+    solderiv1predSAVE_ = solderiv1pred_;
+  }
+
+  void Newmark::resetDeltaT( ) {
+
+    dt_ = globalDeltaT_;
+    CalcParameters(dt_);
+        
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[CONVECTION] = 0.0; 
+    matrix_factors_[DAMPING] = 1.0*a4_;
+
+    solpred_ = solpredSAVE_;
+    solderiv1pred_ = solderiv1predSAVE_;
   }
 
   void Newmark::Predictor(Vector<Double>& solold)
@@ -155,6 +190,8 @@ namespace CoupledField
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+
+    sol_tn_1_=solnew;
   }
 
 

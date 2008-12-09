@@ -15,7 +15,7 @@ class FluidMechInt : public BaseForm
 {
 public:
   /// Constructor
-  FluidMechInt(Double density, Double kinematicViscosity);
+  FluidMechInt(Double density, Double kinematicViscosity, bool movingMesh, std::string stabilType="none");
 
   /// 
   virtual ~FluidMechInt();
@@ -90,12 +90,9 @@ protected:
 
   std::string stabParamEsti_; //, movingMeshStr_;
 
-  bool eigenValue_;
   bool movingMesh_;
   bool multAddOpt_;
   Double dt_;
-
-  bool resortedWay_;
 
   //! grid solution vector
   //NodeStoreSol<Double>* gridSol_;

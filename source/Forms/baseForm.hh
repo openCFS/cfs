@@ -64,6 +64,12 @@ namespace CoupledField
     
 #endif
 
+    virtual void CalcMinMaxStrain( EntityIterator& ent1, 
+                                   EntityIterator& ent2 ){;};
+
+    virtual void ResetMinMaxStrain(){;};
+
+    
     //! define diagonal mass matrix
     virtual void SetDiagMass() {
       Error( "Not implemented here", __FILE__, __LINE__ );

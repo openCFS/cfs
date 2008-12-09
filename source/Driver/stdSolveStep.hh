@@ -66,7 +66,11 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepTrans();
-    
+
+    //! routine for computing a predictor step
+    // neede in case of FSI-Iterative-Coupling
+    //virtual void PredictorStep(){;};
+
     //! base method for solving one transient step 
     virtual void SolveStepTrans();
 
@@ -133,6 +137,9 @@ namespace CoupledField
     //! computes linear part of RHS
     Double SetLinRHS(Double loadFactor);
 
+    //! computes ldelta inear part of RHS; in case of sub stepping
+    UInt SetDeltaLinRHS();
+
     //! stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
@@ -171,6 +178,12 @@ namespace CoupledField
 
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
+
+    //------------- storage vectors for nonlinear analysis --------------
+    //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
+    Vector<Double> oldRhsLinVal_; //!< external forces (for nonlin simulations)
+    Vector<Double> tmpOldRhsLinVal_; //!< external forces (for nonlin simulations)
+    Vector<Double> DeltaRhsLinVal_; //!< external forces (for nonlin simulations)
 
     //------------- storage vectors for nonlinear analysis --------------
     Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)

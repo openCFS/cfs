@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_SOLVESTEPSMOOTH
 #define FILE_SOLVESTEPSMOOTH
 
@@ -10,7 +6,7 @@
 namespace CoupledField
 {
 
-  //! Base class for solution of a single step
+  //! Base class for solution of a single step: Electrostatic-PDE
 
   class SolveStepSmooth : public StdSolveStep
   {
@@ -23,36 +19,25 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepSmooth();
 
-    //----------------------- STATIC---------------------------------------
 
-    //! solves for one nonlinear static step 
-    //! \param reset true: perfrom new assembly, etc
-    void StepStaticNonLin( const bool reset );
-
-    //----------------------- TRANSIENT---------------------------------------  
-    //! base method for solving one transient step 
-    //! \param reset true: perfrom new assembly, etc
-    void SolveStepTrans( const bool updatesysmat )
-    {SolveStepStatic(updatesysmat);};
-
+    //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset true: perfrom new assembly, etc
-    void PreStepTrans( const bool reset )
-    {PreStepStatic(reset);};
-  
-    //! routine for actions after the SolveStep-method
-    void PostStepTrans()
-    {PostStepStatic();};
-  
-    //! solves for one nonlinear transient step 
-    //! \param reset true: perfrom new assembly, etc
-    void StepTransNonLin( const bool reset )
-    {StepStaticNonLin(reset);};
+    //void PreStepTrans();
 
+    //! base method for solving one transient step 
+    //void SolveStepTrans();
+
+//     //! solves for one linear transient step 
+//     void StepTransLin( )
+//     {StepStaticLin();};
+
+    //! routine for actions after the SolveStep-method
+    //void PostStepTrans();
+
+    //! solves for one nonlinear transient step 
+    void StepTransNonLin();
 
   private:
-
-
   };
 
 } // end of namespace

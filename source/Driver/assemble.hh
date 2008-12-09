@@ -53,6 +53,8 @@ namespace CoupledField {
     //! Trigger assembly of the matrices
     void AssembleMatrices();
 
+    void CalcMinMaxStrain();
+    
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS( Double actTimeFreq );
     

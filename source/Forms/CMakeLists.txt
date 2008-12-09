@@ -61,6 +61,7 @@ SET(FORMS_SRCS
   PMLTransXYZInt.cc
   singleEntryInt.cc
   smoothInt.cc
+  smoothNLInt.cc
   SurfaceNormalInt.cc
   nLinMagHystInt2D.cc
   mixedInt.cc

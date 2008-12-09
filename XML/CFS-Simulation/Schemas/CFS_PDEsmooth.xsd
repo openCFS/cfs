@@ -40,9 +40,20 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="nonLinId" type="xsd:token"
+                    use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="strainStiffening" type="DT_SmoothNonLinStrain"/>
+                </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -59,6 +70,9 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_SmoothStoreResults"
             minOccurs="0" maxOccurs="1"/>
@@ -69,6 +83,18 @@
         <xsd:attribute name="subType" type="xsd:token" use="optional"
           default="planeStrain"/>
 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of strain stiffening nonlienarity -->
+  <!-- ******************************************************************* -->
+
+  <!-- Definition of strain stiffening nonlinearity type -->
+  <xsd:complexType name="DT_SmoothNonLinStrain">
+    <xsd:complexContent>
+      <xsd:extension base="DT_NonLinBasic">
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -126,6 +152,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SmoothHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
+          default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -166,6 +194,7 @@
   <xsd:simpleType name="DT_SmoothNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDisplacement"/>
+      <xsd:enumeration value="smoothVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

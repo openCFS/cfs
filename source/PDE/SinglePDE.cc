@@ -2183,19 +2183,23 @@ namespace CoupledField {
 
  void SinglePDE::WriteRestart( ) {
 
-   if (pdename_=="mechanic" || pdename_=="acoustic") {
+   if (pdename_=="mechanic" || pdename_=="acoustic"
+	   || pdename_=="fluidMech" || pdename_=="smooth") {
      std::string simName = progOpts->GetSimName();
 
      // create name of output file
      std::string restartFileName = simName+"_"+pdename_+".restart";
 
      std::ofstream writeTo(restartFileName.c_str(), std::ios::binary);
+     
      if( !writeTo.good() ) {
        EXCEPTION( "Could not write to restart file '" << restartFileName
                   << "'!" );
      }
 
+
      boost::archive::binary_oarchive outArchive(writeTo);
+
      GetMemento(memento_);
      PDEMemento const & temp = *memento_;
      outArchive << temp;
@@ -2210,7 +2214,8 @@ namespace CoupledField {
 
   void SinglePDE::ReadRestart(UInt &startStep ) {
 
-    if (pdename_=="mechanic" || pdename_=="acoustic") {
+    if (pdename_=="mechanic" || pdename_=="acoustic"
+ 	   || pdename_=="fluidMech" || pdename_=="smooth") {
       std::string simName = progOpts->GetSimName();
       std::string restartFileName = simName+"_"+pdename_+".restart";
 
@@ -2218,8 +2223,8 @@ namespace CoupledField {
       if( !readRestart.good() ) {
         EXCEPTION( "Could not open restart file '" << restartFileName << "'!" );
       }
-
       boost::archive::binary_iarchive inArchive( readRestart );
+
       shared_ptr<PDEMemento> myMemento (new PDEMemento );
       inArchive >> *myMemento;
       readRestart.close();
@@ -2265,13 +2270,14 @@ namespace CoupledField {
 
         // create new vector
         Vector<Double> * values = new Vector<Double>;
-        Vector<Double> deriv1, deriv2;
+        Vector<Double> deriv1, deriv2, tn_1;
 
         values->Resize( actSDList->GetSize() * numDofs );
         values->Init();
         if (analysistype_ == TRANSIENT ) {
           deriv1.Resize( actSDList->GetSize() * numDofs );
           deriv2.Resize( actSDList->GetSize() * numDofs );
+            tn_1.Resize( actSDList->GetSize() * numDofs );
         }
 
         EntityIterator it = actSDList->GetIterator();
@@ -2285,13 +2291,16 @@ namespace CoupledField {
                 deriv1[numDofs*pos+iDof] =
                   TS_alg_->GetDeriv1()[(abs(eqns[iDof])-1)];
                 deriv2[numDofs*pos+iDof] =
-                  TS_alg_->GetDeriv2()[(abs(eqns[iDof])-1)];
+                    TS_alg_->GetDeriv2()[(abs(eqns[iDof]-1))];
+                  tn_1[numDofs*pos+iDof] =
+                    TS_alg_->GetOld1()[(abs(eqns[iDof]-1))];
               }
             } else {
               (*values)[numDofs*pos+iDof] = 0.0;
               if ( analysistype_ == TRANSIENT ) {
                 deriv1[numDofs*pos+iDof] = 0.0;
                 deriv2[numDofs*pos+iDof] = 0.0;
+                  tn_1[numDofs*pos+iDof] = 0.0;
               }
             }
           }
@@ -2303,6 +2312,7 @@ namespace CoupledField {
         if ( analysistype_ == TRANSIENT ) {
           myMemento->solDeriv1_[regionName] = deriv1;
           myMemento->solDeriv2_[regionName] = deriv2;
+          myMemento->sol_tn_1_[regionName] = tn_1;
         }
       }
     } else {
@@ -2394,7 +2404,7 @@ namespace CoupledField {
         (dynamic_cast<NodeStoreSol<Double> &>(*sol_)).GetAlgSysVector();
 
 
-      Vector<Double> solDeriv1, solDeriv2;
+      Vector<Double> solDeriv1, solDeriv2, solTn_1;
       if( TS_alg_->GetDeriv1().GetSize() != 0 ) {
         solDeriv1 = TS_alg_->GetDeriv1();
       } else {
@@ -2409,6 +2419,14 @@ namespace CoupledField {
         solDeriv2.Init();
       }
 
+      if( TS_alg_->GetOld1().GetSize() != 0 ) {
+        solTn_1 = TS_alg_->GetOld1();
+      } else {
+        solTn_1.Resize( solVec.GetSize() );
+        solTn_1.Init();
+      }
+
+      
       if ( memento_->analysisType_ == HARMONIC ) {
 
         // -> perform complex-to-real adjustment
@@ -2477,6 +2495,7 @@ namespace CoupledField {
               dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
             Vector<Double> const & deriv1 = memento_->solDeriv1_[name];
             Vector<Double> const & deriv2 = memento_->solDeriv2_[name];
+            Vector<Double> const & tn_1 = memento_->sol_tn_1_[name];
 
             // create entitylist
             shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
@@ -2495,6 +2514,7 @@ namespace CoupledField {
                   if ( needDeriv ) {
                     solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];
                     solDeriv2[eqns[iDof]-1] = deriv2[numDofs*pos+iDof];
+                      solTn_1[eqns[iDof]-1] = tn_1[numDofs*pos+iDof];
                   }
                 }
               }
@@ -2506,6 +2526,7 @@ namespace CoupledField {
         if( needDeriv ) {
           TS_alg_->SetDeriv1( solDeriv1 );
           TS_alg_->SetDeriv2( solDeriv2 );
+          TS_alg_->SetOld1( solTn_1 );
         }
       }
     } else if ( analysistype_ == HARMONIC ) {

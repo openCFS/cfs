@@ -1,63 +1,128 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <fstream>
 #include <iostream>
 #include <string>
 
 #include "solveStepSmooth.hh"
 #include "assemble.hh"
-
-#include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
-
 
 namespace CoupledField {
 
-  SolveStepSmooth::SolveStepSmooth(StdPDE& apde) : StdSolveStep(apde)
-  {
-
+  SolveStepSmooth::SolveStepSmooth(StdPDE& apde) : StdSolveStep(apde) {
+  }
+  
+  
+  SolveStepSmooth::~SolveStepSmooth() {
   }
 
+//   void SolveStepSmooth::PreStepTrans() {
+//     PreStepStatic();
+//   }
+
+
+//   void SolveStepSmooth::SolveStepTrans() {
+
+//     ENTER_FCN( "SolveStepSmooth::SolveStepTrans" );
+
+//     if ( nonLin_ ) {
+//       StepStaticNonLin();
+//     }
+//     else {
+//       StepStaticLin();
+//     }
+//   }
   
-  // ======================================================
-  // Solve Step Static SECTION  
-  // ======================================================
+//   void SolveStepSmooth::PostStepTrans(){
+//     PostStepStatic();
+//   }
 
-  void SolveStepSmooth::StepStaticNonLin( const bool reset )
-  {
+  void SolveStepSmooth::StepTransNonLin() {
 
-    UInt job = 1;
-    Double * ptsol;
+	UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
+    bool isIterCoupled    = PDE_.IsIterCoupled();
 
-    assemble_->AssembleMatrices();
-    assemble_->AssembleLinRHS( actTime_ );
-  
-    PDE_.SetBCs();
-    
-    algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    algsys_->BuildInDirichlet();
+    std::string pdeNameLong(pdename_);
+    pdeNameLong += "-PDE: ";
 
-    if (job == 1) {
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
+    Double *solPtr;
+    Vector<Double> newSol;
+    newSol.Resize( numEqns_ );
+
+    UInt iterationCounter=0;
+    Double iterDeltaT=0.1;
+    Double iterDeltaT2=0.01;
+
+    bool performOneMoreStep;
+
+    if ( isIterCoupled == false || iterCoupledCounter == 0 ) {        
+      Vector<Double> & solHelp = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      TS_alg_->Predictor(solHelp);
     }
 
-    algsys_->Solve();
+    PDE_.InitStabParams();
 
-    algsys_->GetSolutionVal( ptsol );
+    do{
+      iterationCounter++;
+      
 
-    // save solution
-    sol_->CopyFromAlgSysDataPointer(ptsol);
-  }
+      assemble_->CalcMinMaxStrain();
+
+      assemble_->AssembleMatrices();
+
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+      // set boundary conditions
+      PDE_.SetBCs( );
+      algsys_->BuildInDirichlet();
+
+      algsys_->SetupPrecond( );
+      algsys_->SetupSolver( );
+      algsys_->Solve();
+      
+      algsys_->GetSolutionVal( solPtr );
+      StoreAlgsysToVec(newSol, solPtr);
+      sol_->SetAlgSysVector(newSol);
+
+      Double* ptsol;
+      UInt length = algsys_->GetSolutionVal(ptsol);
+      PDE_.SaveSolution(ptsol,length);
+
+      //if(iterationCounter < nonLinMaxIter_ ){
+      //  PDE_.PostProcess();
+      //  PDE_.WriteResultsInFile(iterationCounter, actTime_-((nonLinMaxIter_-iterationCounter)*iterDeltaT), 0, 0);
+      //}
+
+      Vector<Double> actRHS;
+      Double *rhsPtr;
+      Double RhsL2Norm;
+      algsys_->GetRHSVal( rhsPtr );
+      StoreAlgsysToVec( actRHS, rhsPtr );
+      RhsL2Norm = actRHS.NormL2();
+      if(RhsL2Norm<1e-9)
+        performOneMoreStep=false;
+      else
+        performOneMoreStep=true;
+
+      if ( nonLinLogging_ == true ) {
+        *(Info->GetInfoStreamPointer()) << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+                                        << iterationCounter << " of "
+                                        << pdeNameLong << " =============================== "
+                                        << " RhsL2Norm=" << RhsL2Norm
+                                        << std::endl;
+      }
+              
+    }while( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
 
 
-  //   Default Destructor
-  // **********************
-  SolveStepSmooth::~SolveStepSmooth() {
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+    TS_alg_->Corrector(solHelp);
 
- 
+    if ( isIterCoupled ) {
+      iterCoupledCounter++;
+    }
+
   }
 
 } // end of namespace

@@ -27,6 +27,12 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~SmoothPDE() {;};
 
+    void InitStabParams();
+
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
+
+
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators();
 
@@ -37,13 +43,14 @@ namespace CoupledField
     virtual void InitCoupling(PDECoupling * Coupling);
 
     //! initialize time stepping: nothing to do in smoother!
-    virtual void InitTimeStepping(){;};
+    void InitTimeStepping();
 
     //! set time step
     //! \param dt Current time step
     virtual void SetTimeStep(const Double dt){};
   
-
+    virtual void ReadSpecialResults();
+    
     //! calculate coupling terms
     virtual void CalcOutputCoupling();
 
@@ -52,7 +59,17 @@ namespace CoupledField
   
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output);
-  
+
+    //! Contains mechanic velocity
+    NodeStoreSol<Double> solDeriv1_;
+
+    
+    Matrix<Double> elastFactors_;
+    Matrix<Double> couplingNodes_;
+
+    
+    UInt stressDim_;
+    
   private:
 
     //! Define available result types
@@ -61,12 +78,16 @@ namespace CoupledField
     //! Method of smoothing
     std::string method_;
 
+    std::string elastWeight_;
+    
     //! Flag indicatingm if PDE is assembled for first time
     bool firstTurn_;
 
     //! Vector storing factors for adapted pseudo mechanic bulk modulus
     Vector<Double> factor_;
 
+    Double characteristicLength_;
+    Double exponent_;	
   };
 #ifdef DOXYGEN_DETAILED_DOC
 

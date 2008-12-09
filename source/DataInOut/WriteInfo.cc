@@ -168,6 +168,36 @@ namespace CoupledField {
       }
   }
 
+  void WriteInfo::WriteNonLinIter2(const std::string& pdeName,
+                                  const UInt iterationCounter,
+                                  const Double residualErr,
+                                  const Double incrementalErr,
+                                  const Double energyErr,
+                                  double etaLineSearch)
+  {
+
+    std::string pdeNameLong(pdeName);
+
+    pdeNameLong += "-PDE: ";
+
+    if (cfsInfo)
+      {
+        *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
+                 << iterationCounter
+                 << " ==========================================\n"
+                 << pdeNameLong << "=== Residual error          "
+                 << residualErr
+                 << std::endl
+                 << pdeNameLong << "=== Incremental error       "
+                 << incrementalErr << std::endl
+                 << pdeNameLong << "=== Energy error       "
+                 << energyErr << std::endl;
+
+        if (etaLineSearch)
+          *cfsInfo << pdeNameLong << "=== eta (line search)       "
+                   << etaLineSearch << std::endl;
+      }
+  }
 
   void WriteInfo::WriteMultiSequenceStep(const UInt sequenceStep, 
                                          const BasePDE::AnalysisType analysis)

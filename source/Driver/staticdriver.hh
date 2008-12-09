@@ -33,7 +33,11 @@ namespace CoupledField {
         
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(double step_val);
-    
+
+  protected:
+    //! Number of steps before a restart file is stored
+    UInt restartIncr_;
+
   };
 
 }

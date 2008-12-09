@@ -49,6 +49,10 @@ namespace CoupledField
       solderiv1_.Resize(rhsSize_);  
       solderiv1_.Init();
     }
+    if( !isDeriv2Set_ ) {
+      solderiv2_.Resize(rhsSize_);
+      solderiv2_.Init();
+    }
 
     solpred_.Resize(rhsSize_); 
     solpred_.Init();

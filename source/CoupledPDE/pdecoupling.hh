@@ -79,6 +79,15 @@ namespace CoupledField
       //! array containing coupling values of previous iteration step
       CFSVector * oldValues;
 
+      //! array containing coupling values of n-1 (previus) time step
+      CFSVector * values_tn_1;
+
+      //! array containing coupling values of n-2 (previus) time step
+      CFSVector * values_tn_2;
+
+      //! array containing coupling values of n-3 (previus) time step
+      CFSVector * values_tn_3;
+
       //! dof of coupling values
       UInt dof;
 
@@ -215,6 +224,18 @@ namespace CoupledField
     //! get input coupling values
     virtual void GetInputOldValues(UInt i, CFSVector* &values)
     { values = (inputInterfaces_[i]->oldValues);}
+
+    //! get input coupling values of step tn-1
+    virtual void GetInputValues_tn_1(UInt i, CFSVector* &values_tn_1)
+    { values_tn_1 = (inputInterfaces_[i]->values_tn_1);}
+
+    //! get input coupling values of step tn-2
+    virtual void GetInputValues_tn_2(UInt i, CFSVector* &values_tn_2)
+    { values_tn_2 = (inputInterfaces_[i]->values_tn_2);}
+
+    //! get input coupling values of step tn-3
+    virtual void GetInputValues_tn_3(UInt i, CFSVector* &values_tn_3)
+    { values_tn_3 = (inputInterfaces_[i]->values_tn_3);}
 
     //! get input coupling values dof
     virtual UInt GetInputDof(UInt i)

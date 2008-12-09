@@ -17,8 +17,8 @@
 namespace CoupledField {
 
   // declare logging stream
-  //DECLARE_LOG(solveStepFluidMech)
-  //  DEFINE_LOG(solveStepFluidMech, "solveStepFluidMech")
+  DECLARE_LOG(solvestepfluidmech)
+  DEFINE_LOG(solvestepfluidmech, "solvestepfluidmech")
 
     SolveStepFluidMech::SolveStepFluidMech(StdPDE& apde) : StdSolveStep(apde) 
   {
@@ -66,9 +66,9 @@ namespace CoupledField {
     sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,actVelo);
     sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,actPres);
 
-    //std::cout <<"actVelo\n" << actVelo << std::endl;
+    LOG_DBG2(solvestepfluidmech) << "actVelo\n" << actVelo << std::endl;
 
-    //std::cout <<"actPres\n" << actPres << std::endl;
+    LOG_DBG2(solvestepfluidmech) << "actPres\n" << actPres << std::endl;
 
     Vector<Double> newSol;
     Vector<Double> solIncrement, solVelocityInc, solPressureInc;
@@ -78,8 +78,7 @@ namespace CoupledField {
     // perform predictor step
     if ( isInstationary_ ) {
       if ( TS_alg_== NULL ) {
-        Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
-               __FILE__, __LINE__ );
+        EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin");
       }
       else {
         if ( isIterCoupled == false || iterCoupledCounter == 0 ) {        
@@ -129,26 +128,37 @@ namespace CoupledField {
         SETPROFILE("Before AssembleMatrices");
         if ( !isInstationary_ || iterationCounter != 1){
           assemble_->AssembleMatrices();
+          PDE_.PrintStabParams();
         }
         SETPROFILE("After AssembleMatrices");
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
+        std::string aIter, aStep;
+        
+        aIter=GenStr(iterationCounter);
+        aStep=GenStr(actStep_);
+        aStep+="_";
+        aStep+=aIter;
+        
         SETPROFILE("Before Solve");
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
-        algsys_->Solve();   
+        algsys_->Solve(aStep);   
         SETPROFILE("After Solve");
 
         // new solution is NOT only an increment of the full solution =============
         algsys_->GetSolutionVal( solPtr );
         StoreAlgsysToVec(newSol, solPtr);
-        //LOG_DBG2(solveStepFluidMech) << "newSol\n" << newSol << std::endl;
-
+        LOG_DBG(solvestepfluidmech) << "newSol\n" << newSol << std::endl;
+        
         sol_->SetAlgSysVector(newSol);
 
         sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,tmpVelo);
         sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,tmpPres);
+
+        LOG_DBG2(solvestepfluidmech) << "newVelo\n" << tmpVelo << std::endl;
+        LOG_DBG2(solvestepfluidmech) << "newPres\n" << tmpPres << std::endl;
 
         solVelocityInc=tmpVelo-actVelo;
         solPressureInc=tmpPres-actPres;
@@ -230,7 +240,7 @@ namespace CoupledField {
       }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
       
     if (incrementalErr > 50*incStopCrit_ || incrementalVeloErr > 50*incStopCrit_ || incrementalPresErr > 50*incStopCrit_)
-      Warning("FluidMech did not converged!!! Simulation SHOULD be aborted due to too high incremental errors",__FILE__,__LINE__);
+      Warning("FluidMech did not converged!!! Simulation SHOULD be aborted",__FILE__,__LINE__);
     else if (incrementalErr > incStopCrit_ || incrementalVeloErr > incStopCrit_ || incrementalPresErr > incStopCrit_){
       Warning("FluidMech did not converged!!!",__FILE__,__LINE__);
     }
@@ -239,7 +249,7 @@ namespace CoupledField {
       TS_alg_->Corrector(actSol);
     }
 
-    //LOG_DBG(solveStepFluidMech) << "actSol\n" << actSol << std::endl;
+    LOG_DBG(solvestepfluidmech) << "actSol\n" << actSol << std::endl;
 
     if ( isIterCoupled ) {
       iterCoupledCounter++;

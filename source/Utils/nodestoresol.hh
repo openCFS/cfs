@@ -154,7 +154,10 @@ namespace CoupledField{
     void SetSolutionType(const SolutionType solTypes, 
                          const UInt numSolution = 0);
 
-
+    void SetSolutionTypeName(const SolutionType solTypes, 
+                             const SolutionType solTypesName, 
+                             const UInt numSolution = 0);
+    
     //! Set the number of dofs for one solution type
 
     //! Set the number of dofs for one solution.

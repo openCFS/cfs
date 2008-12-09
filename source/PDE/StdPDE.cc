@@ -113,6 +113,19 @@ namespace CoupledField {
     }
   }
 
+  const Vector<Double>& StdPDE::getOld1() const {
+
+    if ( TS_alg_ != NULL ) {
+      return TS_alg_->GetOld1();
+    }
+    else {
+      EXCEPTION( pdename_ << ":getOld1: No timestepping defined for this PDE");
+
+      // Only a dummy line for compiler
+      return TS_alg_->GetOld1();
+    }
+  }
+  
   // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
