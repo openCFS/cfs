@@ -9,7 +9,9 @@
 #include "staticdriver.hh"
 #include "stdSolveStep.hh"
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/StdPDE.hh"
+//#include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 
@@ -23,6 +25,16 @@ namespace CoupledField {
     : SingleDriver( sequenceStep, isPartOfSequence ) {
 
     analysis_ = BasePDE::STATIC;
+    restartIncr_= 0;
+
+    // get parameter node
+    ParamNode * myNode = 
+      param->Get("sequenceStep", "index", GenStr( sequenceStep ) )
+      ->Get("analysis")->Get("static");
+    
+    // Get save increment for restart file (optional)
+    myNode->Get( "writeRestartInc", restartIncr_, false );
+
   }
 
   void StaticDriver::Init() {
@@ -68,6 +80,11 @@ namespace CoupledField {
 
       if(!isPartOfSequence_)
         handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    }
+    // writing current PDE-state into the restart-file
+    if (restartIncr_ >= 1){
+        std::cout << myEndl << " *** Write a restart file *** " << std::endl;      
+        ptPDE_->WriteRestart( );
     }
     
     SETPROFILE("After Static Step");    

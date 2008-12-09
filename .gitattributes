@@ -563,6 +563,8 @@ source/Driver/solveStepFluidMech.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepFluidMech.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepMagHyst.cc -text
 source/Driver/solveStepMagHyst.hh -text
+source/Driver/solveStepMech.cc svneol=native#text/x-c%2B%2Bsrc
+source/Driver/solveStepMech.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepMpCCI.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMpCCI.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepODE.cc svneol=native#text/x-c%2B%2Bsrc
@@ -774,6 +776,8 @@ source/Forms/singleEntryInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/singleEntryInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/smoothInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/smoothInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/smoothNLInt.cc svneol=native#text/x-c%2B%2Bsrc
+source/Forms/smoothNLInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/stokesFluid3DInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/stokesFluid3DInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/stokesFluidAxiInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1126,6 +1130,8 @@ source/PDE/newmarkFracDampMech.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/pdememento.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/pdememento.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/pdes_header.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/pseudoTS.cc svneol=native#text/x-c%2B%2Bsrc
+source/PDE/pseudoTS.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/smoothPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/smoothPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/stokesFluidPDE.cc svneol=native#text/x-c%2B%2Bsrc

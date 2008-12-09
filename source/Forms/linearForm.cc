@@ -978,6 +978,105 @@ namespace CoupledField {
     //    std::cout<<Result<<std::endl;
   } // end of method
 
+  void LinearFlowNoiseInt::CalcElemVec_withCFSVel(const Matrix<Double>& ptCoord,
+                                                  const Matrix<Double> & NodalVel,
+                                                  Vector<Double> & Result,
+                                                  Double density)
+ {
+
+
+   // This functions computes the element RHS vector by integrating 
+   // the gradient of the shape function times the divergence of the tensor T.
+ 
+   // Source term =  integral(grad[Sf].div[T])
+
+   Integer l = ptelem->GetNumIntPoints(); 
+   Integer n = ptelem->GetNumNodes();
+   Integer dimelem = ptCoord.GetSizeRow();
+
+   Matrix<Double> xiDx;      
+   Vector<Double>  Sf;
+
+   Vector<Double>  VelAtIP;
+   Matrix<Double> VelDerAtIP;
+
+   Double jacDet;
+   Integer actInt;
+
+   Result.Resize(n);
+   Result.Init();
+
+   Vector<Double> partResult;
+   partResult.Resize(n);
+   partResult.Init();
+   
+   Vector<Double> helpVec;
+   helpVec.Resize(dimelem);
+   helpVec.Init();
+
+   const Vector<Double> & intWeights = ptelem->GetIntWeights();
+   
+   // Loop over all integration points 
+   for (actInt=1; actInt<=l; actInt++)
+     {
+	ptelem->GetShFncAtIp(Sf, actInt, NULL  );
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord,jacDet, NULL );
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+      
+	//first derivative of velocity at integration point: (2x2)
+	//  vx,x   vx,y
+       //  vy,x   vy,y
+	//
+       VelDerAtIP = NodalVel * xiDx;
+       
+       
+       if(ptelem->GetDim() == 2)
+         { 
+           helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
+             + VelAtIP[1] *  VelDerAtIP[0][1] 
+             + VelAtIP[0] *  VelDerAtIP[1][1]; 
+           
+           helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
+             + VelAtIP[0] *  VelDerAtIP[1][0] 
+             + VelAtIP[1] *  VelDerAtIP[0][0]; 
+         }else if(ptelem->GetDim() == 3)
+         {
+           helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
+             + VelAtIP[1] *  VelDerAtIP[0][1] 
+             + VelAtIP[0] *  VelDerAtIP[1][1]
+             + VelAtIP[0] *  VelDerAtIP[2][2]
+             + VelAtIP[2] *  VelDerAtIP[0][2]; 
+           
+           helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
+             + VelAtIP[0] *  VelDerAtIP[1][0] 
+             + VelAtIP[1] *  VelDerAtIP[0][0]
+             + VelAtIP[1] *  VelDerAtIP[2][2]
+             + VelAtIP[2] *  VelDerAtIP[1][2]; 
+           
+           helpVec[1] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2] 
+             + VelAtIP[0] *  VelDerAtIP[2][0] 
+             + VelAtIP[2] *  VelDerAtIP[0][0]
+             + VelAtIP[2] *  VelDerAtIP[1][1]
+             + VelAtIP[1] *  VelDerAtIP[2][1]; 
+         }
+	  
+	helpVec *= density;
+
+       
+       //Since we do an integration here, we have to integrate with the 
+       //weighting factor here
+       //helpVec *= intWeights[actInt-1];
+
+       // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * helpVec;
+       partResult *=  intWeights[actInt-1] * jacDet;
+       Result += partResult;
+     }
+ } // end of method
+
+  
   void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
                                                const StdVector<UInt> & connecth,
                                                const Matrix<Double> & FlowData, 

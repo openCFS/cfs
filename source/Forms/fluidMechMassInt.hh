@@ -14,7 +14,7 @@ namespace CoupledField
   /// in 2D Plane
   class FluidMechPlaneMassInt_UV : public FluidMechInt {
 public:
-  FluidMechPlaneMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams);
+  FluidMechPlaneMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
   virtual ~FluidMechPlaneMassInt_UV();
   void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 protected:    
@@ -23,7 +23,7 @@ protected:
 //***************************************************
 class FluidMechPlaneMassInt_UQ : public FluidMechInt {
 public:
-  FluidMechPlaneMassInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams);
+  FluidMechPlaneMassInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType);
   virtual ~FluidMechPlaneMassInt_UQ();
   void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 protected:    
@@ -36,7 +36,7 @@ protected:
 //**************************************************************************************************************************
 class FluidMechPlaneMixedMassInt_UV : public FluidMechInt {
 public:
-FluidMechPlaneMixedMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams);
+FluidMechPlaneMixedMassInt_UV(Double density, Double kinematicViscosity,Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType="none");
 virtual ~FluidMechPlaneMixedMassInt_UV();
 void CalcElementMatrix( Matrix<Double>& elemMat, EntityIterator& ent1, EntityIterator& ent2 );
 protected:    

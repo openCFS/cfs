@@ -96,6 +96,8 @@ namespace CoupledField {
       out = ID_BC;
     else if (in == "materialParam")
       out = MAT;
+    else if (in == "gridVel")
+      out = GRID_VEL;
     else {
       EXCEPTION( "'" << in << "' cannot be converted into item of "
                  << "'CouplingInputType'!" );
@@ -119,6 +121,9 @@ namespace CoupledField {
       break;
     case MAT:
       out = "materialParam";
+      break;
+    case GRID_VEL:
+      out = "gridVel";
       break;
     default:  
       EXCEPTION("No conversion found for your 'CouplingInputType'" );
@@ -436,6 +441,12 @@ namespace CoupledField {
     //smoothing PDE
     else if (in == "smoothDisplacement")
       out = SMOOTH_DISPLACEMENT;
+    else if (in == "smoothVelocity")
+      out = SMOOTH_VELOCITY;
+    else if (in == "gridVelocity")
+      out = GRID_VELOCITY;
+    else if (in == "smoothStrain")
+      out = SMOOTH_STRAIN;
 
     //acoustics
     else if (in == "acouPressure")
@@ -456,6 +467,10 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_2;
     else if (in == "acouRhsLoad")
       out = ACOU_RHS_LOAD;
+    else if (in == "acouRHSval")
+      out = ACOU_RHSVAL;
+    else if (in == "acouSurfRHSval")
+      out = ACOUSURF_RHSVAL;
     else if (in == "acouSoundSpeed")
       out = ACOU_SOUND_SPEEED;
     else if (in == "acouBubbleRhsVal")
@@ -627,7 +642,16 @@ namespace CoupledField {
       case SMOOTH_DISPLACEMENT:
         out = "smoothDisplacement";
         break;
-      
+      case SMOOTH_VELOCITY:
+        out = "smoothVelocity";
+        break;
+      case GRID_VELOCITY:
+        out = "gridVelocity";
+        break;
+      case SMOOTH_STRAIN:
+        out = "smoothStrain";
+        break;
+  
         //acoustics
       case ACOU_POTENTIAL:
         out = "acouPotential";
@@ -655,6 +679,12 @@ namespace CoupledField {
         break;
       case ACOU_RHS_LOAD:
         out = "acouRhsLoad";
+        break;
+      case ACOU_RHSVAL:
+        out = "acouRHSval";
+        break;
+      case ACOUSURF_RHSVAL:
+        out = "acouSurfRHSval";
         break;
       case ACOU_SOUND_SPEEED:
         out = "acouSoundSpeed";
@@ -967,6 +997,10 @@ namespace CoupledField {
 
     case SMOOTH_DISPLACEMENT:
       return "m";
+      break;
+
+    case SMOOTH_VELOCITY:
+      return "m/s";
       break;
 
     default:
@@ -1506,6 +1540,9 @@ namespace CoupledField {
     case PLANE_STRESS:
       out = "planeStress";
       break;
+    case PLANE:
+      out = "plane";
+      break;
     case AXI:
       out = "axi";
       break;
@@ -1524,6 +1561,9 @@ namespace CoupledField {
     }
     else if ( in == "planeStress" ) {
       out = PLANE_STRESS;
+    }
+    else if ( in == "plane" ) {
+      out = PLANE;
     }
     else if ( in == "axi" ) {
       out = AXI;

@@ -8,55 +8,29 @@
 namespace CoupledField
 {
 
-  FluidMechInt::FluidMechInt(Double aVal, Double bVal  )
-    : BaseForm(NULL), density_ (aVal), kinematicViscosity_ (bVal)
+  FluidMechInt::FluidMechInt(Double aVal, Double bVal, bool movingMesh, std::string stabilType  )
+    : BaseForm(NULL), density_ (aVal), kinematicViscosity_ (bVal), movingMesh_(movingMesh), stabilType_(stabilType)
   {
     name_ = "fluidMechInt";
 
-    eigenValue_  = false;
-    resortedWay_ = true;
     multAddOpt_  = true;
-    coordUpdate_ = true;
-    movingMesh_  = false;
+    if(movingMesh){
+    	coordUpdate_ = true;
+    }
 
-//     params->Get( "firstDt",dt_,"transient" );
-    dt_=1e-2;
-//     params->Get( "type", movingMeshStr_, "fluidMech", "meshUpdate" );
-
-//     if( movingMeshStr_=="movingMesh"){
-//       movingMesh_ = true;
-//       Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=true\n\n");
-//     }
-//     else if( movingMeshStr_=="none"){
-//       movingMesh_ = false;
-//       Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=false\n\n");
-//     }
-//     else Error("Unknown mesh updating!",__FILE__,__LINE__);
+     if( movingMesh_ )
+       Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=true\n\n");
+     else
+       Info->PrintF( "MESH-UPDATE" , "strategy = movingMesh=false\n\n");
     
-//     params->Get( "type", stabParamEsti_, "fluidMech", "stabParamEsti" );
-
-//     if( stabParamEsti_=="FrancaEigVal" || stabParamEsti_=="BurdaEigVal" ){
-//       eigenValue_ = true;
-//     }
     stabParamEsti_="Wall";
-    stabilType_="SUPG";
-//     if (  params->ContainElem( keyVec,attrVec,valVec ) ) {
-//       params->Get( "vMin", velNormMin_, "fluidMech", "velNormBnds" );
-//       params->Get( "vMax", velNormMax_, "fluidMech", "velNormBnds" );
-//       if(velNormMin_>velNormMax_)
-//         Error( "The specified minimal velocity norm is larger than the maximal one! ",__FILE__,__LINE__);
-//     } 
-//     else {
-//       Warning( "Using default upper and lower bound for the velocity norm! ",__FILE__,__LINE__);
-//       velNormMin_ = 0.01;
-//       velNormMax_ = 10.0;
-//       std::cerr << "velNormMin_="<< velNormMin_ << "; velNormMax_="<< velNormMax_ << std::endl;
-//     }
-    velNormMin_ = 0.01;
-    velNormMax_ = 10.0;
+
+    velNormMin_ = 0.001;
+    velNormMax_ = 1.0;
+    
     Info->PrintF( "Velocity-Bounds", " VelNormMin = %e, VelNormMax = %e\n\n",velNormMin_, velNormMax_ );
       
-    if(stabilType_=="GLS"){
+    if(stabilType_=="gls"){
       convStabSign_=1.0;
       viscStabSign_=-1.0;   // =0 for SUPG
       presStabSign_=-1.0;
@@ -68,7 +42,7 @@ namespace CoupledField
       contiTermSign_=-1.0;
       penaltyTermSign_=1.0;
     }
-    else if(stabilType_=="SUPG"){
+    else if(stabilType_=="supg"){
       convStabSign_=1.0;
       viscStabSign_=0.0;     //=-1.0 for GLS
       presStabSign_=-1.0;
@@ -80,19 +54,7 @@ namespace CoupledField
       contiTermSign_=-1.0;
       penaltyTermSign_=1.0;
     }
-    else if(stabilType_=="SUPG2"){
-      convStabSign_=1.0;
-      viscStabSign_=0.0;     //=-1.0 for GLS
-      presStabSign_=-1.0;
-      contiStabSign_=1.0;
-
-      penaltyStabSign_=-1.0;
-
-      presTermSign_=1.0;
-      contiTermSign_=1.0;
-      penaltyTermSign_=1.0;
-    }
-    else if(stabilType_=="USFEM"){
+    else if(stabilType_=="usfem"){
       convStabSign_=1.0;
       viscStabSign_=1.0;
       presStabSign_=-1.0;
@@ -104,20 +66,22 @@ namespace CoupledField
       contiTermSign_=-1.0;
       penaltyTermSign_=1.0;
     }
+    else if(stabilType_=="none"){
+        convStabSign_=0.0;
+        viscStabSign_=0.0;
+        presStabSign_=0.0;
+        contiStabSign_=0.0;
 
-    else{
-      Error("stabilType not known",__FILE__,__LINE__);
+        penaltyStabSign_=0.0;
+
+        presTermSign_=-1.0;
+        contiTermSign_=-1.0;
+        penaltyTermSign_=1.0;
     }
 
-//     keyVec  = "fluidMech", "penalty";
-//     attrVec = "", "";  
-//     valVec  = "", "";  
-//     if (  params->ContainElem( keyVec,attrVec,valVec ) ) {
-//       params->Get( "value", penalty_, "fluidMech", "penalty" );
-//     }
-//     else 
-//       penalty_=1e-3;
-
+    else{
+      EXCEPTION("stabilType not known");
+    }
     penalty_=1e-3;
   }
   
@@ -323,9 +287,12 @@ namespace CoupledField
       //  tau_mp = dt_;
       //}
       tau_mu  = tau_mp;
-     }
+    
+      //tau_mu  = 1.0e-3; tau_mp  = 1.0e-3; tau_c = 1.0e-4;
+    }
 
     else if( stabParamEsti_=="Foerster" ){
+    	dt_=1e-2;
 
       //linear elements P1:
       if(nrFncs==3)

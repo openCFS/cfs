@@ -1008,6 +1008,46 @@ namespace CoupledField {
     return RhsLinL2Norm;
   }
 
+  UInt StdSolveStep::SetDeltaLinRHS()
+  {
+
+    // to incorporate loads
+    assemble_->AssembleLinRHS(actTime_); 
+
+    Double *solPtr;
+    algsys_->GetRHSVal( solPtr );
+    Vector<Double> newRhsLinVal; //!< external forces (for nonlin simulations)
+    StoreAlgsysToVec(newRhsLinVal, solPtr );
+
+    DeltaRhsLinVal_=newRhsLinVal-tmpOldRhsLinVal_;
+    
+    RhsLinVal_=tmpOldRhsLinVal_;
+
+    Double DeltaNorm=DeltaRhsLinVal_.NormL2();
+    Double oldNorm  =tmpOldRhsLinVal_.NormL2();
+    Double aux;
+    UInt nrLoadSteps;
+
+    UInt minNrLoadSteps = 1;
+    UInt maxNrLoadSteps = 1;
+
+    if(oldNorm<1e-13)
+      nrLoadSteps=maxNrLoadSteps;
+    else{
+      aux= Double(maxNrLoadSteps)*(DeltaNorm/oldNorm);
+      nrLoadSteps=UInt(aux);
+    }
+    if(nrLoadSteps<minNrLoadSteps)
+      nrLoadSteps=minNrLoadSteps;
+    else if (nrLoadSteps>maxNrLoadSteps)
+      nrLoadSteps=maxNrLoadSteps;
+
+    oldRhsLinVal_=tmpOldRhsLinVal_;
+    tmpOldRhsLinVal_=newRhsLinVal;
+
+    return nrLoadSteps;
+  }
+
 
   //stores an algsys_ vector into a StdVector and returns that L2-norm
   void StdSolveStep::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {

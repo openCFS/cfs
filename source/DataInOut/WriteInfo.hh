@@ -100,6 +100,11 @@ namespace CoupledField {
                          const Double residualErr, const Double incrementalErr,
                          double etaLineSearch=0);
 
+    /// prints the process of a nonlinear iteration
+    void WriteNonLinIter2(const std::string& pdeName, const UInt iterationCounter,
+                         const Double residualErr, const Double incrementalErr,
+                         const Double energyErr, double etaLineSearch=0);
+
     /// prints the process of a mulitSequence Analysis
     void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const BasePDE::AnalysisType analysis);

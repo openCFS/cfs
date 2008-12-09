@@ -19,6 +19,7 @@
 #include "massEdgeInt.hh"
 #include "nLinElastInt.hh"
 #include "smoothInt.hh"
+#include "smoothNLInt.hh"
 #include "curlCurlNodeInt.hh"
 #include "nLincurlCurlNodeInt.hh"
 #include "mechStressStrain.hh"

@@ -366,18 +366,18 @@ namespace CoupledField {
                         << form->GetName() << "' has the wrong size.");
             }
           }
-//          else {
-//            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
-//                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
-//              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x "
-//              << elemMatrix.GetSizeCol() << "):\n";
-//              std::cerr << elemMatrix << std::endl;
-//              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
-//              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
-//              EXCEPTION("An element matrix returned by integrator '"
-//                        << form->GetName() << "' has the wrong size.");
-//            }
-//          }
+          else {
+            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
+                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
+              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x "
+              << elemMatrix.GetSizeCol() << "):\n";
+              std::cerr << elemMatrix << std::endl;
+              std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
+              std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
+              EXCEPTION("An element matrix returned by integrator '"
+                        << form->GetName() << "' has the wrong size.");
+            }
+          }
 #endif
 
           // Pass element matrix to algebraic system (primary matrix)
@@ -430,6 +430,39 @@ namespace CoupledField {
     isFirstTime_ = false;
   }
 
+  void Assemble::CalcMinMaxStrain() {
+    // iterate over all descriptors
+    std::set<BiLinFormContext*>::iterator formsIt;
+    for ( formsIt = biLinForms_.begin(); 
+          formsIt != biLinForms_.end(); formsIt++ ) {
+      
+      // get integrator
+      BiLinFormContext & actContext = **formsIt;
+      
+      BaseForm * form = actContext.GetIntegrator();
+      
+      form->ResetMinMaxStrain();
+        
+      // get entity iterators
+      EntityIterator  it1 = actContext.GetFirstEntities()->GetIterator();
+      EntityIterator  it2 = actContext.GetSecondEntities()->GetIterator();
+      UInt size = actContext.GetFirstEntities()->GetSize();
+      it1.Begin();
+      it2.Begin();
+        
+      // iterate over all entities
+      for ( UInt i=0; i<size; i++ ) {
+          
+        form->CalcMinMaxStrain(it1, it2 );
+        
+        // increment iterators
+        it1++;
+        it2++;
+      }
+    }
+  }
+
+  
   void Assemble::AssembleLinRHS( Double actTimeFreq){
 
     AssembleRHSLinForms( actTimeFreq, false );

@@ -170,6 +170,14 @@ namespace CoupledField
     //! Init the time stepping
     void InitTimeStepping();
 
+    Double displFac_;
+    bool useAitken_;
+    Double aitkenOmega_, fixedOmega_;
+    Double aitkenMu_;
+    Vector<Double> actDelta_, oldDelta_;
+    bool firstTime_;
+    Vector<Double> gSolOld_;
+
   private:
 
     // calc rhs coupling to acoustic pde
@@ -275,6 +283,9 @@ namespace CoupledField
   
     //! Contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
+
+    //! Contains mechanic displacement of last time step
+    NodeStoreSol<Double> sol_tn_1_;
 
     //! Contains the directions for which the deformed volume is computed
     std::map<shared_ptr<EntityList>,std::string> volAboveDefSurfDir_;

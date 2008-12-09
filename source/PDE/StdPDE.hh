@@ -117,8 +117,12 @@ namespace CoupledField {
     //! return pointer to vector with first derivative of solution
     virtual const Vector<Double> & getS1() const;
   
-    //! return pointer to vector with first derivative of solution
+    //! return pointer to vector with second derivative of solution
     virtual const Vector<Double> & getS2() const;
+
+    //! return pointer to vector with last solution
+    virtual const Vector<Double> & getOld1() const;
+    
 
     //! Also for fractional damping model do obtain
     virtual UInt GetFracMemory() {
@@ -154,6 +158,8 @@ namespace CoupledField {
 
     virtual  void InitStabParams( ) {
       Error("Not Implemented, only needed for fluidMech and smooth",__FILE__,__LINE__);};
+    virtual  void PrintStabParams( ) {
+      Error("Not Implemented, only needed for fluidMech",__FILE__,__LINE__);};
 
     
     //! Initialize all/some the nodes by this value
@@ -208,8 +214,9 @@ namespace CoupledField {
 
     //! Init the time stepping
     virtual void InitTimeStepping()
-    {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
+    {EXCEPTION("InitTimeStepping not implemented");};
 
+    virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
     // ======================================================

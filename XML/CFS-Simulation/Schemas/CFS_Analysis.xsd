@@ -60,7 +60,12 @@
   <!-- Data type for static analysis -->
   <xsd:complexType name="DT_AnalysisStatic">
     <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic"/>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="writeRestartInc"
+            type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 

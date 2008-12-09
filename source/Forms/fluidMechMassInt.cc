@@ -14,22 +14,25 @@ namespace CoupledField
 //************************************************************************************************
 //constructors 
 //************************************************************************************************
-FluidMechPlaneMassInt_UV::FluidMechPlaneMassInt_UV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density,kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneMassInt_UV::FluidMechPlaneMassInt_UV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMassInt_UV";
 	baseType_ = MASS;
 }
-FluidMechPlaneMassInt_UQ::FluidMechPlaneMassInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density,kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneMassInt_UQ::FluidMechPlaneMassInt_UQ(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity, movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMassInt_UQ";
 	baseType_ = MASS;
 }
-FluidMechPlaneMixedMassInt_UV::FluidMechPlaneMixedMassInt_UV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density,kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneMixedMassInt_UV::FluidMechPlaneMixedMassInt_UV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMixedMassInt_UV";
@@ -196,7 +199,7 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	//elemMat.Resize(nrFncs*N); elemMat.Init(0.0);
 	locElemMat.Resize(nrFncs*N); locElemMat.Init(0.0);
 
-#pragma omp parallel for private(auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1)
+//#pragma omp parallel for private(auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1)
 	for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = 0;
@@ -256,7 +259,7 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		A1.DyadicMult(auxJ,xi);
 		// assemble element matrix
-#pragma omp critical
+//#pragma omp critical
 		{
 			locElemMat.AddSubMatrix(A1,0,      0);
 			locElemMat.AddSubMatrix(A1,nrFncs,nrFncs);
@@ -404,7 +407,7 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 
 	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init(0.0);
 	if(abs(presStabSign_)>1e-5){
-#pragma omp parallel for private(auxJ,jacDet,multAux,xiDxDy,xiDx,xiDy,xiDz,xi,D_ea,D_eb,D_ec)
+//#pragma omp parallel for private(auxJ,jacDet,multAux,xiDxDy,xiDx,xiDy,xiDz,xi,D_ea,D_eb,D_ec)
 		for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++){
 			jacDet = 0;
 
@@ -434,7 +437,7 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 				auxJ=xiDz*multAux;
 				D_ec.DyadicMult(auxJ,xi);
 			}
-#pragma omp critical
+//#pragma omp critical
 			{
 				locElemMat.AddSubMatrix(D_ea,0,0);
 				locElemMat.AddSubMatrix(D_eb,0,nrFncs);

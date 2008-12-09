@@ -32,6 +32,9 @@ namespace CoupledField
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
+    //! Read special results definition
+    void ReadSpecialResults();
+
     //! Initialize NonLinearities
     void InitNonLin();
 
@@ -43,6 +46,7 @@ namespace CoupledField
 
     //! Initialize staqbilization parameters
     void InitStabParams();
+    void PrintStabParams();
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
@@ -59,7 +63,9 @@ namespace CoupledField
     BaseForm * GetMassIntegrator_UV(Double density,Double kinematicViscosity);
     BaseForm * GetMassIntegrator_UQ(Double density,Double kinematicViscosity);
 
-    
+    //! Calculate the acoustic sources due to the flow
+    void AcouSourceCalc();
+
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -113,8 +119,6 @@ namespace CoupledField
     TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
                         Vector<TYPE> disp);
     
-    //! Calculate the acoustic sources due to the flow
-    void AcouSourceCalc();
 
     //! Nodestoresol for RHS
     BaseNodeStoreSol * rhs_;
@@ -170,7 +174,10 @@ namespace CoupledField
 
     //! Contains grid velocity
     NodeStoreSol<Double> * gridSol_;
-
+    NodeStoreSol<Double> acou_src_;
+  
+    Double forceFac_;
+    
   private:
 
     /// returns the vector of the fluid mechanical pressure solution
@@ -184,21 +191,21 @@ namespace CoupledField
     
     /// returns the vector of the time derivative of fluid mechanical velocities solution
     /// belonging to all nodes of the actual element
-    //void GetVeloDeriv1SolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
+    void GetVeloDeriv1SolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
     
 
     //! calculate the vector of coupling forces to the mechanical PDE
-    //void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
-    //                          StdVector<UInt> & couplingNodes,
-    //                          Vector<Double>& elemCouplingSols,
-    //                          UInt couplingdof );
+    void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+                              StdVector<UInt> & couplingNodes,
+                              Vector<Double>& elemCouplingSols,
+                              UInt couplingdof );
                               
     //! calculate the vector of coupling RHS for the acoustic PDE
     //! due to the moving fluid-structure inerface
-    //void CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingElems, 
-    //                                    StdVector<UInt> & couplingNodes,
-    //                                    Vector<Double>& elemCouplingSols,
-    //                                    UInt couplingdof );
+    void CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                        StdVector<UInt> & couplingNodes,
+                                        Vector<Double>& elemCouplingSols,
+                                        UInt couplingdof );
 
 
     /// Write nonlin iteration norms to the cla-file
@@ -225,6 +232,7 @@ namespace CoupledField
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
+    
     //! Number of dimension for stresses
     UInt stressDim_;
     
@@ -262,6 +270,19 @@ namespace CoupledField
 
     std::string approxType_;           // string to specify approximation type (Lagrange/Legendre/Taylor-Hood/)
     std::string stabilizationType_;    // stabilization type (none/SUPG)
+    
+    bool movingMesh_; // flag to indicate treatment of moving meshes (ALE) 
+
+    // ========================
+    // coupling
+    // ========================
+    //! assigns each coupling element node the according Coupling Node number
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
+
+    
+    bool saveAcouSrc_; //Calculate the acoustic sourceterms
+    bool saveAcouSrcInFile_; //Shall the source_terms be written in a save file?
+    bool coordUp_;
 
   };
 

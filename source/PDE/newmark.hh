@@ -26,6 +26,9 @@ namespace CoupledField
     //! \param rhsSize total number of entries in the rhs vector
     void Init( Double dt, UInt rhsSize );
 
+    void setSubSteps( UInt subSteps );
+    void resetDeltaT( );
+
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
 
@@ -46,7 +49,8 @@ namespace CoupledField
 
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
-
+    Double globalDeltaT_;
+    
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;  
@@ -58,10 +62,10 @@ namespace CoupledField
     //@}
 
     //! predictor for nodal solution
-    Vector<Double> solpred_;
+    Vector<Double> solpred_, solpredSAVE_;
 
     //! predictor for derivative of solution
-    Vector<Double> solderiv1pred_;
+    Vector<Double> solderiv1pred_, solderiv1predSAVE_;
 
   };
 
@@ -107,8 +111,8 @@ namespace CoupledField
     void CalcParameters(Double dt);
    
     //! time step
-    Double dt_; 
-
+    Double dt_;
+    
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;

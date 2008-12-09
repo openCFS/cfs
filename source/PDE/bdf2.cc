@@ -98,6 +98,7 @@ namespace CoupledField
     // mass part
     coeffMass = (sol_tn_1_*a0_) - (sol_tn_2_*a1_);
     algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    LOG_DBG(bdf2) << "\n coeffMass: \n" << coeffMass << std::endl;
   }
 
 

@@ -15,6 +15,7 @@
 #include "Forms/linSurfStressInt.hh"
 #include "Driver/assemble.hh"
 #include "bdf2.hh"
+#include "trapezoidal.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/resultHandler.hh"
@@ -34,14 +35,14 @@
 
 namespace CoupledField {
 
-//DECLARE_LOG(fluidmechpde);
-//DEFINE_LOG(fluidmechpde, "fluidmechpde");
+DECLARE_LOG(fluidmechpde)
+DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
 
     FluidMechPDE::FluidMechPDE(Grid * aptgrid, ParamNode* paramNode )
       :SinglePDE( aptgrid, paramNode ) {
 
-      pdename_          = "fluidMechanics";
+      pdename_          = "fluidMech";
       pdematerialclass_ = FLOW;
       maxTimeDerivOrder_ = 2;
 
@@ -49,6 +50,10 @@ namespace CoupledField {
 
       needSolPrev_ = true;
 
+      //set coordinate Update true to obtain the updated Lagrange formulation
+      coordUp_ = true;
+   
+      gridSol_ = new NodeStoreSol<Double>;
       // ****************************
       // DETERMINE GEOMETRY
       // ****************************
@@ -84,9 +89,13 @@ namespace CoupledField {
 
       approxType_ = myParam_->Get("type")->AsString();
       stabilizationType_ = myParam_->Get("stabilizationType")->AsString();
+      movingMesh_ = myParam_->Get("movingMesh")->AsBool();
 
+      forceFac_ = 1.0;
+      
       // Register functions for scripting
-      RegisterFunctions();
+      //RegisterFunctions();
+
     }
 
   FluidMechPDE::~FluidMechPDE()
@@ -154,7 +163,7 @@ namespace CoupledField {
       actStiffContext_UV->SetResults( results_[0],results_[0],actSDList, actSDList );
       assemble_->AddBiLinearForm( actStiffContext_UV );
       //******************************************************************************************************************
-      if( stabilizationType_ == "supg"){	
+      if( stabilizationType_ != "none"){	
     	  BaseForm * bilinearStiff_PQ = GetStiffIntegrator_PQ(density,kinematicViscosity);
     	  BiLinFormContext * actStiffContext_PQ = new BiLinFormContext(bilinearStiff_PQ, STIFFNESS );
     	  actStiffContext_PQ->SetPtPdes(this, this);
@@ -183,6 +192,7 @@ namespace CoupledField {
    	  
           // ==============  add mass matrix ====================
       if (analysistype_ == TRANSIENT) {
+    	  isInstationary_=true;
     	  //****************************************************************
     	  //******** stabilized ********************************************
     	  //****************************************************************
@@ -193,12 +203,12 @@ namespace CoupledField {
     	  actMassContext_UV->SetResults(results_[0],results_[0],actSDList, actSDList );
     	  assemble_->AddBiLinearForm( actMassContext_UV );
 
-    	  if(stabilizationType_ == "supg"){	
+    	  if(stabilizationType_ != "none"){	
     		  //****************************************************************
     		  BaseForm * bilinearMass_UQ = GetMassIntegrator_UQ(density,kinematicViscosity);
     		  BiLinFormContext * actMassContext_UQ = new BiLinFormContext(bilinearMass_UQ, MASS );
     		  actMassContext_UQ->SetPtPdes(this, this);
-    		  actMassContext_UQ->SetResults(results_[0],results_[1],actSDList,actSDList);
+    		  actMassContext_UQ->SetResults(results_[1],results_[0],actSDList,actSDList);
     		  assemble_->AddBiLinearForm( actMassContext_UQ );
     		  //****************************************************************
     	  }
@@ -251,10 +261,10 @@ namespace CoupledField {
                                                    Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
       if (subType_ == "plane" || subType_ == "3d"){
-    	  if( stabilizationType_ == "supg" && approxType_ == "lagrange" )
-    		  bilinearStiff = new FluidMechPlaneStiffInt_UV(density,kinematicViscosity,stabilParams_);
+    	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
+    		  bilinearStiff = new FluidMechPlaneStiffInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
-    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UV(density,kinematicViscosity,stabilParams_);
+    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
     		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
       }
@@ -268,7 +278,7 @@ namespace CoupledField {
     BaseForm * FluidMechPDE::GetStiffIntegrator_PQ(Double density,Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
       if ((subType_ == "plane" || subType_ == "3d") )
-        bilinearStiff = new FluidMechPlaneStiffInt_PQ(density,kinematicViscosity,stabilParams_);
+        bilinearStiff = new FluidMechPlaneStiffInt_PQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
       else
         Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
       bilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
@@ -279,10 +289,10 @@ namespace CoupledField {
     BaseForm * FluidMechPDE::GetStiffIntegrator_UQ(Double density,Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
       if (subType_ == "plane" || subType_ == "3d")
-    	  if( stabilizationType_ == "supg" && approxType_ == "lagrange" )
-    		  bilinearStiff = new FluidMechPlaneStiffInt_UQ(density,kinematicViscosity,stabilParams_);
+    	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
+    		  bilinearStiff = new FluidMechPlaneStiffInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
-    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UQ(density,kinematicViscosity,stabilParams_);
+    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
     		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
       else
@@ -295,10 +305,10 @@ namespace CoupledField {
     BaseForm * FluidMechPDE::GetStiffIntegrator_PV(Double density,Double kinematicViscosity) {
       BaseForm * bilinearStiff = NULL;
       if (subType_ == "plane" || subType_ == "3d")
-    	  if( stabilizationType_ == "supg" && approxType_ == "lagrange" )
-    		  bilinearStiff = new FluidMechPlaneStiffInt_PV(density, kinematicViscosity,stabilParams_);
+    	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
+    		  bilinearStiff = new FluidMechPlaneStiffInt_PV(density, kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
-    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_PV(density,kinematicViscosity,stabilParams_);
+    		  bilinearStiff = new FluidMechPlaneMixedStiffInt_PV(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
     		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
       else
@@ -313,10 +323,10 @@ namespace CoupledField {
       BaseForm * bilinearMass = NULL;
 
       if (subType_ == "plane" || subType_ == "3d") {
-    	  if( stabilizationType_ == "supg" && approxType_ == "lagrange" )
-    		  bilinearMass = new FluidMechPlaneMassInt_UV(density,kinematicViscosity,stabilParams_);
+    	  if( stabilizationType_ != "none" && approxType_ == "lagrange" )
+    		  bilinearMass = new FluidMechPlaneMassInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
     	  else if( stabilizationType_ == "none" && approxType_ == "taylorHood" )
-    		  bilinearMass = new FluidMechPlaneMixedMassInt_UV(density,kinematicViscosity,stabilParams_);
+    		  bilinearMass = new FluidMechPlaneMixedMassInt_UV(density,kinematicViscosity,stabilParams_,movingMesh_);
     	  else
     		  Info->Error("Unknown discretizationType in fluidMech PDE! ",__FILE__,__LINE__);
       }
@@ -333,7 +343,7 @@ namespace CoupledField {
       BaseForm * bilinearMass = NULL;
 
       if (subType_ == "plane" || subType_ == "3d") {
-        bilinearMass = new FluidMechPlaneMassInt_UQ(density,kinematicViscosity,stabilParams_);
+        bilinearMass = new FluidMechPlaneMassInt_UQ(density,kinematicViscosity,stabilParams_,movingMesh_,stabilizationType_);
       }
       else 
         Info->Error("Unknown subtype in fluidMech PDE! ",__FILE__,__LINE__);
@@ -360,34 +370,56 @@ namespace CoupledField {
 
     void FluidMechPDE::InitCoupling(PDECoupling * Coupling)
     {
-  
-      isIterCoupled_ = true;
-      ptCoupling_   = Coupling;
-  
-      for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-        {
-          if (ptCoupling_->GetOutputQuantity(i) == MECH_DISPLACEMENT)
-            {
-              // Intialize the memory of the coupling values
-              ptCoupling_->CreateCouplingVector(i,isComplex_);
-            }
+        isIterCoupled_ = true;
+        ptCoupling_   = Coupling;
 
-          if (ptCoupling_->GetOutputQuantity(i) == MECH_VELOCITY)
-            {
-              // Intialize the memory of the coupling values
-              ptCoupling_->CreateCouplingVector(i,isComplex_);
-            }
+        const UInt numOutputCouplings = ptCoupling_->GetNumOutputCouplings();
 
-          if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
-            {
-              // Intialize the memory of the coupling values
-              ptCoupling_->CreateCouplingVector(i,isComplex_); 
+        StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
+        elemNodeToCouplingNode_.Resize(numOutputCouplings);
+        elemNodeToCouplingNode_.Init();
 
-              //now since we need a incremental formulation, initialize some necessary vectors
-              isIncrFormulation_ = true;
-            }
+        // input couplings
+        for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
+//          // check for input mechanic velocity
+//          if (ptCoupling_->GetInputQuantity(i) == MECH_VELOCITY) {
+//            numCouplingBcs_ += (dim_ * ptCoupling_->GetInputNumNodes(i));
+//          }
+           // check for input smooth velocity
+          if (ptCoupling_->GetInputQuantity(i) == SMOOTH_VELOCITY) {
+            numCouplingBcs_ += (dim_ * ptCoupling_->GetInputNumNodes(i));
+          }
         }
 
+        for (UInt i = 0; i < numOutputCouplings; i++) {
+          if (ptCoupling_->GetOutputQuantity(i) == FLUIDMECH_FORCE) {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_);
+
+            // now since we need a incremental formulation, 
+            //  initialize some necessary vectors
+            isIncrFormulation_ = true;
+          }
+
+          else if (ptCoupling_->GetOutputQuantity(i) == ACOU_RHSVAL) {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_); 
+            
+            //now since we need a incremental formulation, initialize some necessary vectors
+            isIncrFormulation_ = true;
+          }
+          else if (ptCoupling_->GetOutputQuantity(i) == ACOUSURF_RHSVAL) {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_); 
+            
+            //now since we need a incremental formulation, initialize some necessary vectors
+            isIncrFormulation_ = true;
+          }
+          else {
+            EXCEPTION("unknown coupling quantitiy");
+          }
+          
+        }
     }
 
 
@@ -499,13 +531,12 @@ namespace CoupledField {
           Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
                         aux.c_str() );
           if ( usePenalty == false ) {
-            (*error) << "Cannot use inhom. Dirichlet coupling together with "
+            EXCEPTION("Cannot use inhom. Dirichlet coupling together with "
                      << "IDBC elimination, since the equation numbering "
                      << "object does currently not have the information "
                      << "required to put those values at the end of the "
                      << "equation number interval! Please set idbcHandling="
-                     << '"' << "penalty" << '"' << " in your xml-file";
-            Error( __FILE__, __LINE__ );
+                     << '"' << "penalty" << '"' << " in your xml-file");
           }
         }
 
@@ -562,58 +593,92 @@ namespace CoupledField {
 
     }
   }
-
-
-
-
-
+  
     void FluidMechPDE::CalcOutputCoupling()
     {
+        UInt dof;
+        SolutionType quantity;
+        StdVector<Elem*> * couplingElems = NULL;
+        StdVector<UInt> * couplingNodes = NULL;
+        CFSVector * temp_values = NULL;
+        CFSVector * temp_oldValues = NULL;
+        //UInt regionCount = 0;
 
-      SolutionType quantity;
-      StdVector<UInt> * couplingnodes = NULL;
-      CFSVector * temp_values = NULL;
-      Vector<Double> * values;
-      StdVector<std::string> outputRegions;
-  
-      // at first, check if this PDE is iterative coupled
-      if (isIterCoupled_ == false)
-        return;
+//        Info->PrintF( "FACTORIZATION", "The fluid mechanical forces will be factorized by forceFactor = %e\n",forceFac_);
+      
+        // at first, check if this PDE is iterative coupled
+        if (isIterCoupled_ == false)
+          return;
 
-      // loop over all output coupling quantities
-      for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
-        {
+        // loop over all output coupling quantities
+        for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+
+          //Welche Größe ist die Koppelgröße??
+          //gibt einen Solution Type zurück
           quantity = ptCoupling_->GetOutputQuantity(i);
           ptCoupling_->GetOutputValues(i, temp_values);
+          ptCoupling_->GetOutputOldValues(i, temp_oldValues);
 
-          values = dynamic_cast<Vector<Double>*>(temp_values);
-        
-          switch(ptCoupling_->GetOutputType(i))
-            {
-            case NODE:
-          
-              if (quantity == MECH_DISPLACEMENT)
-                {
-                  ptCoupling_->GetOutputNodes(i, couplingnodes);
-                      
-                  sol_->NodeSolutionToCoupling(*values, *couplingnodes);
-                }
-          
+          // hard coded cast, since coupling is only possible with
+          // real valued entries
+          Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
+          Vector<Double> * oldValues = dynamic_cast<Vector<Double>*>(temp_oldValues);
+          Vector<Double> auxValues;
+          auxValues.Resize(values->GetSize());
+          //Info->PrintF( pdename_, "Values_Size=%d\n", values->GetSize());
+          //for(UInt i=0; i< values->GetSize(); i++)
+          //Info->PrintF( pdename_, "Values[%d]=%d\n", i, (*values)[i]);
 
-              if (quantity == MECH_VELOCITY)
-                {
-                  ptCoupling_->GetOutputNodes(i, couplingnodes);
-                  solDeriv1_.SetAlgSysVector(getS1());     
-                  solDeriv1_.NodeSolutionToCoupling(*values, *couplingnodes);
-                }
-          
 
-              break;
+          switch(ptCoupling_->GetOutputType(i)) {
+          case NODE:
+            
+            ptCoupling_->GetOutputNodes(i, couplingNodes);
+    	//for (UInt ii=0; ii<(*couplingNodes).GetSize(); ii ++)
+    	//Info->PrintF( pdename_, "couplingNodes[%d]=%d\n", ii, (*couplingNodes)[ii]);
 
-            case ELEM:
-              EXCEPTION("No Element coupling output" );
+            if (quantity == FLUIDMECH_FORCE) {
+              ptCoupling_->GetOutputElements(i, couplingElems);
+              dof = ptCoupling_->GetOutputDof(i);
+              CalcMechCouplingRHS(couplingElems, *couplingNodes, auxValues, dof);
+              //(*values)=(auxValues*forceFac_) + ((*oldValues)*(1.0-forceFac_));
+              (*values)=(auxValues*forceFac_);
+              //std::cout << "Force:\n" << (*values) << std::endl;
+              Info->PrintF( pdename_, "Coupling Output Type=Force\n");
+//              LOG_DBG(fluidMechPDE) << "Output FLUIDMECH_FORCE\n"
+//                                    << "couplingnodes:\n" << (*couplingNodes)
+//                                    << "values:\n" << (*values) << std::endl;
+
             }
+            if (quantity == ACOU_RHSVAL) {
+                if(saveAcouSrc_ == true)
+                  {
+                    acou_src_.NodeSolutionToCoupling(*values, *couplingNodes, 1);
+                    Info->PrintF( pdename_, "Coupling Output Type=acouRHSval\n");
+//                    LOG_DBG(fluidMechPDE) << "Output ACOU_RHSVAL\n"
+//                                          << "couplingNodes:\n" << (*couplingNodes)
+//                                          << "values:\n" << (*values) << std::endl;
+                  }else
+                  Error("Sorry, but acouRHSval is not defined as a NodeResult in your XML, please do so", __FILE__,__LINE__);
+                  
+            } 
+            if (quantity == ACOUSURF_RHSVAL) {
+              ptCoupling_->GetOutputElements(i, couplingElems);
+              dof = ptCoupling_->GetOutputDof(i);
+              CalcAcouSurfSourceCouplingRHS(couplingElems, *couplingNodes, (*values), dof);
+
+              Info->PrintF( pdename_, "Coupling Output Type=acouSurfRHSVal\n");
+//              LOG_DBG(fluidMechPDE) << "Output FLUIDMECH_FORCE\n"
+//                                    << "couplingnodes:\n" << (*couplingNodes)
+//                                    << "values:\n" << (*values) << std::endl;
+            } 
+            break;
+
+          case ELEM:
+            EXCEPTION("No Element coupling output");
+          }
         }
+
     }
 
     void FluidMechPDE::GetPresSolVecOfElement( Vector<Double>& elemSol,
@@ -670,17 +735,429 @@ namespace CoupledField {
             elemSol[actDof][actNode] = 0.0;
           }
           else {
-            Error( "wrong equation Number", __FILE__, __LINE__ );
+            EXCEPTION( "wrong equation Number");
           }
         }
       }
     }
 
+    void FluidMechPDE::GetVeloDeriv1SolVecOfElement( Vector<Double>& sol,
+                                                     const EntityIterator& it) {
+      
+     
+      StdVector<Integer> eqns;
+      eqnMap_->GetEqns( eqns, *results_[0], it );
+      sol.Resize( eqns.GetSize() );
+      sol.Init( 0.0 ); 
+      
+      if (  analysistype_ == TRANSIENT) {
+        const Vector<Double> & sol_der1 = getS1();
+        
+        for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+          if ( eqns[i] != 0 ) {
+            sol[i] = sol_der1[abs(eqns[i])-1];
+          } else {
+            sol[i] = 0.0;
+          }
+        }
+      }
+    }
+
+    void FluidMechPDE::AcouSourceCalc()
+    {
+      /******************************************************************************************
+       * Hier die Akustik-Flow Kopplung
+       ******************************************************************************************/
+      //Hier die Funktion CalcElemVector4Quad aufrufen
+      
+      if(saveAcouSrc_==true){
+
+        UInt ii, elsize = 0;
+        Integer eqnNr;
+        
+        StdVector<Elem*> elemssd;
+        StdVector<UInt> connecth;
+        StdVector<Integer> connect_PDE;
+        Vector<Double>  Result;
+        
+        Matrix<Double> ptCoordNodes;
+        Matrix<Double> flowdata;
+        
+        BaseFE * ptEl;
+      
+        //Reset the values in nodestresol, due to the usage of the function "Add"
+        acou_src_.Init(0.0);
+        
+        // loop over all subdomains
+        for (UInt isd=0; isd<subdoms_.GetSize(); isd++)
+          {
+            //Get the density of the current subdomain
+            Double density;
+            BaseMaterial * actMat = materials_[subdoms_[isd]];
+            actMat->GetScalar(density,DENSITY,REAL);
+            
+            ElemList actSDList(ptgrid_ );
+            actSDList.SetRegion( subdoms_[isd] );
+            EntityIterator it = actSDList.GetIterator();
+            //           if(ptgrid_->RegionIdToName(subdoms_[isd]) == "fluid"){
+            // loop over all elements of subdomain
+            for ( it.Begin(); !it.IsEnd(); it++ ) {
+              //Pointer to the reference element
+              const Elem * actCoupleElem = it.GetElem();
+              ptEl = actCoupleElem->ptElem;
+              
+              //generate the object LinearFlowNoiseInt which
+              //is defined in linearForm.cc
+              LinearFlowNoiseInt * linear_load = new LinearFlowNoiseInt(ptEl);
+                
+              //Number of Nodes of the Element
+              elsize=(actCoupleElem->connect).GetSize();
+              //the length of the connecth is set to the number of nodes
+              //because it stores the nodesnumbers of the element
+              connecth.Resize(elsize);
+              for (ii=0; ii<elsize; ii++)
+                connecth[ii]=(actCoupleElem->connect)[ii];
+              
+              
+              //Schreibt die Koordinaten der Knoten des Elements in ptCoordNodes
+              Matrix<Double> ptCoordNodes;
+              ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);      
+                
+              //as sad as it is, but we have to bring the fluid calculation results
+              //in Matrix notation here :-(
+              GetVeloSolMatOfElement(flowdata, connecth);
+              //in case, that we really use the sorting funtionality, for the results, in CalcElemVector4Quad
+              //we have to add one row for the pressure!
+              //elem_data.AddRow(tmp,0);
+              //flowdata = elem_data;
+              
+              //Now we have all the stuff needed to calculate the quadrupole source term,
+              //CalcElemVector4Quad, gets the coordinates of the Nodes, the Node Numbers, the flowdata
+              //and returns Result
+//              LOG_DBG(fluidMechPDE) << "The current Element is:\n" << actCoupleElem->elemNum << std::endl;
+              linear_load->CalcElemVec_withCFSVel(ptCoordNodes, flowdata, Result, density);
+              // Now the results are written out as a gid result
+              for(ii = 0; ii< ptEl->GetNumNodes(); ii++)
+                { 
+                  eqnNr = eqnMap_->GetNodeEqn(*results_[1],connecth[ii],1);
+                  acou_src_.Add(eqnNr,Result[ii]);
+                }
+              delete linear_load;
+            }
+            //          }
+          }    
+      }
+    }
+
+    
+    void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                            StdVector<UInt> & couplingNodes,
+                                            Vector<Double>& elemCouplingSols,
+                                            UInt couplingdof ) {
+      Double density = 0.0;
+      Double dynamicViscosity = 0.0;
+      Double kinematicViscosity = 0.0;
+      Double sign = 0.0;
+      Double auxPres;
+      Integer matIndex = -1;
+      Elem * ptVolElem = NULL;
+      Matrix<Double> ptCoord, ptCoordVol, elemMat;
+      Vector<Double> presSol, pressureForceOnNode, normal;
+      Matrix<Double> veloSol;
+      Vector<Double> Eps_xx_ForceOnNode, Eps_yy_ForceOnNode, Eps_zz_ForceOnNode;
+      Vector<Double> Eps_xy_ForceOnNode, Eps_yz_ForceOnNode, Eps_xz_ForceOnNode;
+      Vector<Double> Eps_xx_Sol, Eps_yy_Sol, Eps_zz_Sol, Eps_xy_Sol, Eps_yz_Sol, Eps_xz_Sol;
+            
+      elemCouplingSols.Init(0.0);
+      for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+        
+        // Perform cast from volume element to surface element, since
+        // fluidMech-Mech coupling makes only sense on surface elements
+        SurfElem * actCoupleElem = 
+          dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+
+        if (actCoupleElem == NULL) {
+          EXCEPTION( "No elements found for coupling!");
+        }
+        
+        BaseFE * ptElem = actCoupleElem->ptElem;
+
+        StdVector<UInt> & connecth = actCoupleElem->connect;
+        ptgrid_->GetElemNodesCoord( ptCoord, connecth, true );
+
+        Double surfArea;
+        surfArea=ptElem->CalcVolume(ptCoord, isaxi_);
+
+        // Try to find according region for first neighbouring volume
+        // element of the surface element
+        matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+        
+        // If first volume element does not belong to fluidMech PDE, try the
+        // second one
+        if ( matIndex == -1 ) {
+          matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+          ptVolElem = actCoupleElem->ptVolElem2;
+          sign = actCoupleElem->normalSign;
+
+        } 
+        else {
+          ptVolElem = actCoupleElem->ptVolElem1;
+          sign = -1.0 * actCoupleElem->normalSign;
+        }
+        
+        if ( matIndex == -1) {
+          EXCEPTION("FluidMechPDE::CalcMechCouplingRHS: The two volume element neighbours of surface element Nr.actCoupleElem->elemNum do not belong to my regions!");
+        }
+
+        // Assign correct density, dynamic viscosity and kinematic viscosity
+        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,REAL);
+
+        std::auto_ptr<BaseForm> bilinear_mass = std::auto_ptr<BaseForm>(new MassInt(1.0,1,isaxi_,coordUp_ ));
+
+        ElemList temp( ptgrid_ );
+        temp.SetElement( actCoupleElem );
+        EntityIterator it = temp.GetIterator();
+        bilinear_mass->CalcElementMatrix(elemMat, it, it);
+        //delete bilinear_mass;     
+
+        //fluidMech      
+        GetPresSolVecOfElement(presSol, connecth);
+//        LOG_DBG2(fluidMechPDE) << "Pressure values for all nodes of the act. surface element\n" 
+//                               << "Pressure:\n"<< presSol << std::endl
+//                               << "Nodes:\n" << connecth << std::endl;
+
+        pressureForceOnNode = elemMat * presSol;
+        
+        // force has to be added on RHS with negative sign
+        pressureForceOnNode *= (-1.0 * density);
+//        LOG_DBG2(fluidMechPDE) << "Pressure force for all nodes of the act. surface element\n" 
+//                               << "pressureForceOnNode:\n"<< pressureForceOnNode << std::endl;
+        
+        // the normal vector points outwards of the MECHANICAL domain
+        // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+        ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
+        normal *= sign;
+
+        //***********************************************************************************************//
+//        LOG_DBG2(fluidMechPDE) << "surfaceElemNum=" << actCoupleElem->elemNum << ", surfArea=" << surfArea << std::endl
+//                               << "volNeughElemNum=" << ptVolElem->elemNum 
+//                               << ", neighRegionId=" << ptVolElem->regionId << std::endl
+//                               << "normal:\n" << normal << std::endl;
+
+        //transform the type
+        SubTensorType type;
+        String2Enum(subType_,type);
+        if (type == PLANE)
+        	type = PLANE_STRAIN;
+        
+        std::auto_ptr<FluidMechShearStress<Double> > shearStress =  
+          std::auto_ptr<FluidMechShearStress<Double> >(new FluidMechShearStress<Double>(materials_[subdoms_[matIndex]],type) );
+
+        BaseFE * ptVolFE = ptVolElem->ptElem;
+
+        ElemList temp2( ptgrid_ );
+        temp2.SetElement( ptVolElem );
+        EntityIterator it2 = temp2.GetIterator();
+
+        StdVector<UInt> & connecthVol = ptVolElem->connect;
+        ptgrid_->GetElemNodesCoord( ptCoordVol, connecthVol, true );
+
+        GetVeloSolMatOfElement(veloSol, connecthVol);
+//        LOG_DBG2(fluidMechPDE) << "Velocity solution for all nodes of the act. volume element\n" 
+//                               << "veloSol:\n"<< veloSol << std::endl
+//                               << "Nodes:\n" << connecthVol << std::endl;
+
+        shearStress->SetActElemSol(veloSol);
+
+        Vector<Double> intPoint;
+        ptVolFE -> GetCoordMidPoint(intPoint);
+        shearStress->SetIntPoint(intPoint);
+
+        Vector<Double> elemStress;
+        elemStress.Resize(stressDim_);
+        elemStress.Init(0);
+        
+        //calculates the stress
+        shearStress->CalcShearStressVec(elemStress,1,it2 );
+//        LOG_DBG2(fluidMechPDE) << "Shear stress within the neighbouring volume element\n" 
+//                               << "elemShearStress:\n" << elemStress << std::endl;
+
+        Matrix<Double> elemShearForce;
+        elemShearForce.Resize(connecth.GetSize(),dim_);
+        if(dim_==2){
+          Eps_xx_Sol.Resize(connecth.GetSize());
+          Eps_xx_Sol.Init(elemStress[0]);
+          Eps_xx_ForceOnNode = elemMat * Eps_xx_Sol;
+//          LOG_DBG2(fluidMechPDE) << "Eps_xx_So=\n"<< Eps_xx_Sol << std::endl
+//   			       << "Eps_xx_ForceOnNode=\n"<< Eps_xx_ForceOnNode;
+
+          Eps_yy_Sol.Resize(connecth.GetSize());
+          Eps_yy_Sol.Init(elemStress[1]);
+          Eps_yy_ForceOnNode = elemMat * Eps_yy_Sol;
+//          LOG_DBG2(fluidMechPDE) << "Eps_yy_So=\n"<< Eps_yy_Sol << std::endl
+//   			       << "Eps_yy_ForceOnNode=\n"<< Eps_yy_ForceOnNode;
+
+          Eps_xy_Sol.Resize(connecth.GetSize());
+          Eps_xy_Sol.Init(elemStress[2]);
+          Eps_xy_ForceOnNode = elemMat * Eps_xy_Sol;
+//          LOG_DBG2(fluidMechPDE) << "Eps_xy_So=\n"<< Eps_xy_Sol << std::endl
+//   			       << "Eps_xy_ForceOnNode=\n"<< Eps_xy_ForceOnNode;
+
+          for(UInt n=0; n<connecth.GetSize(); n++){
+            elemShearForce[n][0]=Eps_xx_ForceOnNode[n]*normal[0] + Eps_xy_ForceOnNode[n]*normal[1];
+            elemShearForce[n][1]=Eps_xy_ForceOnNode[n]*normal[0] + Eps_yy_ForceOnNode[n]*normal[1];
+          }
+        }
+        else if(dim_==3){
+          Eps_xx_Sol.Resize(connecth.GetSize());
+          Eps_xx_Sol.Init(elemStress[0]);
+          Eps_xx_ForceOnNode = elemMat * Eps_xx_Sol;
+
+          Eps_yy_Sol.Resize(connecth.GetSize());
+          Eps_yy_Sol.Init(elemStress[1]);
+          Eps_yy_ForceOnNode = elemMat * Eps_yy_Sol;
+
+          Eps_zz_Sol.Resize(connecth.GetSize());
+          Eps_zz_Sol.Init(elemStress[2]);
+          Eps_zz_ForceOnNode = elemMat * Eps_zz_Sol;
+
+          Eps_yz_Sol.Resize(connecth.GetSize());
+          Eps_yz_Sol.Init(elemStress[3]);
+          Eps_yz_ForceOnNode = elemMat * Eps_yz_Sol;
+
+          Eps_xz_Sol.Resize(connecth.GetSize());
+          Eps_xz_Sol.Init(elemStress[4]);
+          Eps_xz_ForceOnNode = elemMat * Eps_xz_Sol;
+
+          Eps_xy_Sol.Resize(connecth.GetSize());
+          Eps_xy_Sol.Init(elemStress[5]);
+          Eps_xy_ForceOnNode = elemMat * Eps_xy_Sol;
+
+          for(UInt n=0; n<connecth.GetSize(); n++){
+            elemShearForce[n][0]=Eps_xx_ForceOnNode[n]*normal[0] + Eps_xy_ForceOnNode[n]*normal[1] + Eps_xz_ForceOnNode[n]*normal[2];
+            elemShearForce[n][1]=Eps_xy_ForceOnNode[n]*normal[0] + Eps_yy_ForceOnNode[n]*normal[1] + Eps_yz_ForceOnNode[n]*normal[2];
+            elemShearForce[n][2]=Eps_xz_ForceOnNode[n]*normal[0] + Eps_yz_ForceOnNode[n]*normal[1] + Eps_zz_ForceOnNode[n]*normal[2];
+          }
+
+        }
+//        LOG_DBG2(fluidMechPDE) << "Shear stress force for all nodes of the act. surface element\n" 
+//                               << "elemShearForce:\n" << elemShearForce << std::endl;
+
+        //***********************************************************************************************//
+       
+        for (UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+        	UInt nodePos = 0;
+        	while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
+        		nodePos++;
+        	for (UInt actDof=0; actDof < couplingdof ; actDof++) 
+        		elemCouplingSols[nodePos*couplingdof +actDof] += (pressureForceOnNode[actNode] * normal[actDof] + elemShearForce[actNode][actDof]);
+        }
+
+//        LOG_DBG2(fluidMechPDE) << "Complete Force Vector of all coupling elements\n" 
+//                               << "elemCouplingSols:\n" << elemCouplingSols << std::endl;
+
+      }//end loop over elem
+    }
+
+    void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                                      StdVector<UInt> & couplingNodes,
+                                                      Vector<Double>& elemCouplingSols,
+                                                      UInt couplingdof ) {
+      Double density = 0.0;
+      Double sign = 0.0;
+      Integer matIndex = -1;
+      Elem * ptVolElem = NULL;
+      Matrix<Double> ptCoord, elemMat;
+      Vector<Double> normal, actElemAcouRHS;
+      Vector<Double> veloDerivSol, nveloDerivSol;
+            
+      elemCouplingSols.Init(0.0);
+      for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+        
+        // Perform cast from volume element to surface element, since
+        // acouSurfSource coupling makes only sense on surface elements
+        SurfElem * actCoupleElem = 
+          dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+
+        if (actCoupleElem == NULL) {
+          EXCEPTION( "No elements found for coupling!");
+        }
+        
+        BaseFE * ptElem = actCoupleElem->ptElem;
+
+        StdVector<UInt> & connecth = actCoupleElem->connect;
+        ptgrid_->GetElemNodesCoord( ptCoord, connecth, true );
+
+        //Double surfArea;
+        //surfArea=ptElem->CalcVolume(ptCoord, isaxi_);
+
+        // Try to find according region for first neighbouring volume
+        // element of the surface element
+        matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+        
+        // If first volume element does not belong to fluidMech PDE, try the
+        // second one
+        if ( matIndex == -1 ) {
+          matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+          ptVolElem = actCoupleElem->ptVolElem2;
+          sign = -1.0*actCoupleElem->normalSign;
+
+        } 
+        else {
+          ptVolElem = actCoupleElem->ptVolElem1;
+          sign = actCoupleElem->normalSign;
+        }
+        
+        if ( matIndex == -1) {
+        	EXCEPTION("FluidMechPDE::CalcAcouSurfSourceCouplingRHS: The two volume element neighbours of surface element do not belong to my regions!");
+        }
+
+        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
+        
+        std::auto_ptr<BaseForm> bilinear_mass = std::auto_ptr<BaseForm>(new MassInt(1.0,isaxi_,coordUp_ ));
+
+        ElemList temp( ptgrid_ );
+        temp.SetElement( actCoupleElem );
+        EntityIterator it = temp.GetIterator();
+        bilinear_mass->CalcElementMatrix(elemMat, it, it);
+        
+        GetVeloDeriv1SolVecOfElement(veloDerivSol, it);
+        nveloDerivSol.Resize(connecth.GetSize());
+
+        // the normal vector points outwards of the MECHANICAL domain
+        // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+        ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
+        normal *= sign;
+        for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
+          for (UInt actDof=0; actDof<dim_; actDof++)
+            nveloDerivSol[actNode] += veloDerivSol[actDof + actNode*dim_] * normal[actDof];
+
+
+        actElemAcouRHS = elemMat * nveloDerivSol;
+        
+        // force has to be added on RHS with negative sign
+        actElemAcouRHS *= (-1.0 * density);
+        
+
+
+        for (UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+          UInt nodePos = 0;
+            
+          while(connecth[actNode] != couplingNodes[nodePos] &&
+                nodePos < couplingNodes.GetSize()) {
+            nodePos++;
+          }
+          elemCouplingSols[nodePos] += actElemAcouRHS[actNode];
+        }
+      }//end loop over elem
+    }
 
     bool FluidMechPDE::HasOutput(SolutionType output)
     {
 
-      if (output == FLUIDMECH_VELOCITY || output == FLUIDMECH_PRESSURE || output == FLUIDMECH_FORCE)
+      if (output == FLUIDMECH_VELOCITY || output == FLUIDMECH_PRESSURE || output == FLUIDMECH_FORCE || output == ACOU_RHSVAL || output == ACOUSURF_RHSVAL)
         return true;
 
       return false;
@@ -695,20 +1172,45 @@ namespace CoupledField {
 
     void FluidMechPDE::InitTimeStepping()
     {
-      // timestepping formulation
-      TS_alg_ = new Bdf2( algsys_);
+    	// timestepping formulation
+    	TS_alg_ = new Bdf2( algsys_);
+//    	TS_alg_ = new Trapezoidal( algsys_);
     }
 
+    // ***********************************************************************
+    //   Obtain information on desired output quantities from parameter file
+    // ***********************************************************************
+    void FluidMechPDE::ReadSpecialResults() {
+
+        //gridSol_ = NULL;     
+        gridSol_->SetNumSolutions(1);
+        gridSol_->SetNumNodes(numPDENodes_);
+        gridSol_->SetSolutionTypeName(FLUIDMECH_VELOCITY,GRID_VELOCITY);
+        gridSol_->SetNumDofs(dim_);
+        gridSol_->SetResults( results_ );
+        gridSol_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+        gridSol_->SetRegions( subdoms_ );
+        gridSol_->Init();
+
+        if(saveAcouSrc_ == true){
+          acou_src_.SetNumSolutions(1);
+          acou_src_.SetSolutionTypeName(FLUIDMECH_PRESSURE,ACOU_RHSVAL);
+          acou_src_.SetNumNodes(numPDENodes_);
+          acou_src_.SetNumDofs(1);   //dim_);
+          acou_src_.SetResults(results_);
+          acou_src_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
+          acou_src_.SetRegions( subdoms_ );
+          acou_src_.Init();
+        }
+
+    }
 
     void FluidMechPDE::DefineAvailResults() {
 
-      Integer paramSize;
       //the size of the matrix with the stabilization parameters is currently
       //Num2DElements/Num3DElements long. 
       //Bec currently i have no idea how to access local elem numbers in the integrator
-      paramSize = ptgrid_->GetNumElems(); 
-
-      stabilParams_.Resize(paramSize+1,4);
+      stabilParams_.Resize(ptgrid_->GetNumElems()+1,4);
       stabilParams_.Init(-1.0);    	    	
     	
       // Check for subType
@@ -1174,15 +1676,21 @@ namespace CoupledField {
 
     void FluidMechPDE::InitStabParams(){
 
-    	if( stabilizationType_ == "supg"){
-    		Integer paramSize;
+    	if( stabilizationType_ != "none"){
     		//the size of the matrix with the stabilization parameters is currently
     		//Num2DElements/Num3DElements long. 
     		//Bec currently i have no idea how to access local elem numbers in the integrator
-    		paramSize = ptgrid_->GetNumElems(); 
     		//std::cerr << "init\n"; 
-    		for(Integer i=0; i<paramSize; i++) 
+    		for(Integer i=0; i<ptgrid_->GetNumElems(); i++) 
     			stabilParams_[i][3]=(-1.0);
+    	}
+    }
+
+    void FluidMechPDE::PrintStabParams(){
+
+    	if( stabilizationType_ != "none"){
+    		LOG_DBG(fluidmechpde) << "Stabilization parameters\n"
+    		<< stabilParams_ << std::endl;
     	}
     }
 

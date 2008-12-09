@@ -18,26 +18,30 @@ namespace CoupledField {
 //*******************************************************************************************************************************
 //****************** stabilized FEM *********************************************************************************************
 //*******************************************************************************************************************************
-FluidMechPlaneStiffInt_UV::FluidMechPlaneStiffInt_UV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density, kinematicViscosity), stabilParams_(stabilParams){
+FluidMechPlaneStiffInt_UV::FluidMechPlaneStiffInt_UV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density, kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams){
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneStiffInt_UV";
 }
-FluidMechPlaneStiffInt_PQ::FluidMechPlaneStiffInt_PQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density, kinematicViscosity), stabilParams_(stabilParams){
+FluidMechPlaneStiffInt_PQ::FluidMechPlaneStiffInt_PQ(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams){
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneStiffInt_PQ";
 }
-FluidMechPlaneStiffInt_UQ::FluidMechPlaneStiffInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density,kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneStiffInt_UQ::FluidMechPlaneStiffInt_UQ(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneStiffInt_UQ";
 }
-FluidMechPlaneStiffInt_PV::FluidMechPlaneStiffInt_PV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density, kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneStiffInt_PV::FluidMechPlaneStiffInt_PV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density, kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneStiffInt_PV";
@@ -45,20 +49,23 @@ FluidMechPlaneStiffInt_PV::FluidMechPlaneStiffInt_PV(Double density,Double kinem
 //*******************************************************************************************************************************
 //****************** mixed FEM **************************************************************************************************
 //*******************************************************************************************************************************
-FluidMechPlaneMixedStiffInt_UV::FluidMechPlaneMixedStiffInt_UV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density, kinematicViscosity), stabilParams_(stabilParams){
+FluidMechPlaneMixedStiffInt_UV::FluidMechPlaneMixedStiffInt_UV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density, kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams){
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMixedStiffInt_UV";
 }
-FluidMechPlaneMixedStiffInt_UQ::FluidMechPlaneMixedStiffInt_UQ(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density,kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneMixedStiffInt_UQ::FluidMechPlaneMixedStiffInt_UQ(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density,kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMixedStiffInt_UQ";
 }
-FluidMechPlaneMixedStiffInt_PV::FluidMechPlaneMixedStiffInt_PV(Double density,Double kinematicViscosity,Matrix<Double> & stabilParams)
-: FluidMechInt(density, kinematicViscosity), stabilParams_(stabilParams) {
+FluidMechPlaneMixedStiffInt_PV::FluidMechPlaneMixedStiffInt_PV(Double density,Double kinematicViscosity,
+		Matrix<Double> & stabilParams, bool movingMesh, std::string stabilType)
+: FluidMechInt(density, kinematicViscosity,movingMesh, stabilType), stabilParams_(stabilParams) {
 	isSolDependent_ = true;
 	isaxi_=false;
 	name_ = "FluidMechPlaneMixedStiffInt_PV";
@@ -161,7 +168,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 	const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 	Double jacDet, jacDet_intWeight, multAux;
-	UInt N=spaceDim;  // DOFs per Node (Ux, Uy)
+	//UInt N=spaceDim;  // DOFs per Node (Ux, Uy)
 
 	Double lambda_k;
 
@@ -248,10 +255,10 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 
 	// set matrix to desired size and set all elements to zero
-	locElemMat.Resize(nrFncs*N); locElemMat.Init(0.0);
+	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init(0.0);
 	//A_kAll.Resize(nrFncs); A_kAll.Init(0.0);
 
-#pragma omp parallel for private(auxJ,auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1,A2,A3,A_a,A_ba,A_ba1,A_ba2,A_ba3,A_cdef,A_ga,A_gb,A_gc,A_gd,A_ge,A_gf,A_gg,A_gh,A_gj)
+//#pragma omp parallel for private(auxJ,auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1,A2,A3,A_a,A_ba,A_ba1,A_ba2,A_ba3,A_cdef,A_ga,A_gb,A_gc,A_gd,A_ge,A_gf,A_gg,A_gh,A_gj)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = 0;
@@ -419,7 +426,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 				Error("Wrong spaceDim!",__FILE__,__LINE__);
 
 		}
-#pragma omp critical
+//#pragma omp critical
 {
 	locElemMat.AddSubMatrix(A1,  0,          0);
 	locElemMat.AddSubMatrix(A2,  nrFncs,    nrFncs);
@@ -443,7 +450,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	}
 }
 	}
-	ResortElementMatrix(elemMat, locElemMat, nrFncs, N);
+	ResortElementMatrix(elemMat, locElemMat, nrFncs, spaceDim);
 }
 
 void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
@@ -761,7 +768,7 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	// set matrix to desired size and set all elements to zero
 	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init(0.0);
 
-#pragma omp parallel for private(auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,D1,D2,D3,D_aa,D_ab,D_ac,D_bc1,D_bc2,D_bc3)
+//#pragma omp parallel for private(auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,D1,D2,D3,D_aa,D_ab,D_ac,D_bc1,D_bc2,D_bc3)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = 0;
@@ -842,7 +849,7 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 				D3 += D_bc3;
 		}
 
-#pragma omp critical
+//#pragma omp critical
 		{
 			locElemMat.AddSubMatrix(D1,  0,0);
 			locElemMat.AddSubMatrix(D2,  0,nrFncs);
@@ -989,7 +996,7 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 	//elemMat.Resize(nrFncs*N,nrFncs); elemMat.Init(0.0);
 	locElemMat.Resize(nrFncs*N,nrFncs); locElemMat.Init(0.0);
 
-#pragma omp parallel for private(auxI,auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,B1,B2,B3,B_aa,B_ab,B_ac,B_bc1,B_bc2,B_bc3)
+//#pragma omp parallel for private(auxI,auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,B1,B2,B3,B_aa,B_ab,B_ac,B_bc1,B_bc2,B_bc3)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = 0;
@@ -1071,7 +1078,7 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		}
 
-#pragma omp critical
+//#pragma omp critical
 		{
 			locElemMat.AddSubMatrix(B1,  0,     0);
 			locElemMat.AddSubMatrix(B2,  nrFncs,0);

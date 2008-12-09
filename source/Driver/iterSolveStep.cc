@@ -124,6 +124,11 @@ namespace CoupledField
       rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
     }
 
+    //in case of FSI the predictor of the mechanic time integration is called first
+//    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+//      rPDE_.PDEs_[i]->GetSolveStep()->PredictorStep();
+//    }
+
    
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
       

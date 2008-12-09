@@ -18,7 +18,7 @@ namespace CoupledField
   {
     name_="FluidMechShearStress";
 
-    coordUpdate_ =true;
+    coordUpdate_ = true;
     
     matData->GetScalar(density_,DENSITY,REAL);
     matData->GetScalar(dynamicViscosity_,DYNAMIC_VISCOSITY,REAL);

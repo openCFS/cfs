@@ -43,6 +43,10 @@ namespace CoupledField
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepTrans( ) = 0;
 
+    //! routine for computing a predictor step
+    // neede in case of FSI-Iterative-Coupling
+    //virtual void PredictorStep() = 0;
+
     //! base method for solving one transient step
     virtual void SolveStepTrans() = 0;
 

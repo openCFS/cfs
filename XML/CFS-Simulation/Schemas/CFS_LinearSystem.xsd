@@ -95,7 +95,7 @@
           <xsd:enumeration value="smooth"/>
           <xsd:enumeration value="nrbc"/>
           <xsd:enumeration value="heatConduction"/>
-          <xsd:enumeration value="fluidMechanics"/>
+          <xsd:enumeration value="fluidMech"/>
           <xsd:enumeration value="bubble"/>
         </xsd:restriction>
       </xsd:simpleType>

@@ -81,6 +81,9 @@ namespace CoupledField
     //! Contains second derivative of PDE solution for each region
     std::map<std::string, Vector<Double> > solDeriv2_;
 
+    //! Contains PDE solution of last step for each region
+    std::map<std::string, Vector<Double> > sol_tn_1_;
+
     //! Flag indicating iterative coupling
     bool isIterCoupled_;
 
@@ -144,6 +147,7 @@ namespace CoupledField
     ar & solution_;
     ar & solDeriv1_;
     ar & solDeriv2_;
+    ar & sol_tn_1_;
     ar & isIterCoupled_;
     if( isIterCoupled_ ) {
       ar & couplingMemento_;

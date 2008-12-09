@@ -33,6 +33,12 @@ namespace CoupledField {
     //! \param rhsSIze total number of entries in the rhs vector
     virtual void Init( Double dt, UInt rhsSize ) = 0;
 
+    virtual void setSubSteps( UInt subSteps )
+    {EXCEPTION("Error not implemented!");};
+
+    virtual void resetDeltaT( )
+    {EXCEPTION("Error not implemented!");};
+
     //! get matrix factors for effective systems matrix
     virtual const std::map<FEMatrixType,Double>  &
     GetEffSysMatFactors( ) const;
@@ -68,11 +74,18 @@ namespace CoupledField {
       solderiv2_ = deriv2;
       isDeriv2Set_ = true; }
 
+    //! set vector with second derivative
+    virtual void SetOld1(const Vector<Double> & tn_1) {
+      sol_tn_1_ = tn_1;
+      isSolTN1Set_ = true; }
+
     //!  return pointer to vector with first derivative of solution
     virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
   
     //! return pointer to vector with second derivative of solution
     virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
+
+    virtual const Vector<Double>& GetOld1() const { return sol_tn_1_;}
 
     //! set the time step
     void SetTimeStep(Double dt) 

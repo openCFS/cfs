@@ -81,6 +81,7 @@ namespace CoupledField
     //! calculates the norm of a vector
     //Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);
 
+    UInt miniter_;                        //!< minimum number of iterations per time step
     UInt maxiter_;                        //!< maximum number of iterations per time step
     StdVector<Double> norms_;              //!< norm of coupling values
 
