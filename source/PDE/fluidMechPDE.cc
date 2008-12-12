@@ -90,7 +90,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       approxType_ = myParam_->Get("type")->AsString();
       stabilizationType_ = myParam_->Get("stabilizationType")->AsString();
       movingMesh_ = myParam_->Get("movingMesh")->AsBool();
-
+      saveAcouSrc_= myParam_->Get("aeroAcoustics")->AsBool();
+      
       forceFac_ = 1.0;
       
       // Register functions for scripting

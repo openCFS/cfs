@@ -692,6 +692,31 @@
     </xsd:complexType>
   </xsd:element> 
   
+<!-- FluidMechanics-Acoustics coupling -->
+  <xsd:element name="fluidMechAcou" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="fluidMech">
+              <xsd:complexType>
+              <!-- dummy entry-->
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="acoustic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingAcou"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
 
   <!-- acoustic-bubble coupling -->
   <xsd:element name="acouBubble" substitutionGroup="PDEBasicIterCoupling">

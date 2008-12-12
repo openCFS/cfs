@@ -151,6 +151,7 @@
         <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
         <xsd:attribute name="anisotropic" type="DT_DoubleList"
         default="1" use="optional" />
+        <xsd:attribute name="fsiRelaxationParam" use="optional" type="xsd:token" default="0.5"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
