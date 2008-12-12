@@ -254,7 +254,7 @@ namespace CoupledField {
     if ( isIterCoupled ) {
       iterCoupledCounter++;
     }
-    //PDE_.AcouSourceCalc();
+    PDE_.AcouSourceCalc();
   }
 } // end of namespace
 

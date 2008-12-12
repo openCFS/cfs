@@ -59,7 +59,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     
     firstTime_   = true;
     useAitken_   = false;
-    displFac_    = 1.0;
+    //displFac_    = 0.3;
+    displFac_ = myParam_->Get("fsiRelaxationParam")->AsDouble();
     
     // ****************************
     // DETERMINE GEOMETRY

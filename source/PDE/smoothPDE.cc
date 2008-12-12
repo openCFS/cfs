@@ -65,9 +65,13 @@ namespace CoupledField {
     //nonLin_ = true;
     
     //elastWeight_="byArea";
-    elastWeight_="byStrain";
-    characteristicLength_ = 0.5;
-    exponent_ = -1.0;
+    elastWeight_          = myParam_->Get("smoothing")->AsString();
+    characteristicLength_ = myParam_->Get("size")->AsDouble();
+    exponent_             = myParam_->Get("exponent")->AsDouble();
+
+    //    elastWeight_="byStrain";
+//    characteristicLength_ = 1.0;
+//    exponent_ = -1.3;
     
   }
 
