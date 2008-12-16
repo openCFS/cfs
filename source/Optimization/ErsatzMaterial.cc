@@ -451,7 +451,15 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1
     double value = (harmonic ? 2 : 1) * ((complex<double>) sp).real() * factor;
 
     // do we have to sum up (-> piezo) or simply set?
-    if(add) value += de->GetObjectiveGradient(DesignElement::PLAIN);
+    if(add)
+    {
+      LOG_DBG3(em) << "CalcU1KU2():de=" << de->elem->elemNum << " (" << de->type.ToString(de->GetType()) << ") "
+                   << " app=" << tf->GetApplication()
+                   << " old=" << de->GetObjectiveGradient(DesignElement::PLAIN)
+                   << " new=" << de->GetObjectiveGradient(DesignElement::PLAIN) + value;
+
+      value += de->GetObjectiveGradient(DesignElement::PLAIN);
+    }
     de->SetObjectiveGradient(value);
 
     LOG_DBG3(em) << "<l,K'*u-f'> = " << sp << " -> " << value;
