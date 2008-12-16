@@ -7,10 +7,10 @@
 
 #include <def_use_lapack.hh>
 
-#include "Utils/boost-serialization.hh"
 #include "cfsmatrix.hh"
 #include "Utils/promote.hh"
 #include "General/exception.hh"
+#include "Utils/boost-serialization.hh"
 
 #ifdef USE_LAPACK
 #include "matrixLapackSupport.hh"
