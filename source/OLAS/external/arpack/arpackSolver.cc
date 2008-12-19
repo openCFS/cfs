@@ -19,7 +19,8 @@ namespace OLAS {
       maxIterations_ = 1000;
       numArnoldiVec_ = 0;
       interface_ = NULL;
-      which_ = "LM";
+			// cast to char* or receive compiler warning
+      which_ = (char*) "LM";
 
   }
   
@@ -130,7 +131,8 @@ namespace OLAS {
       UInt itNum;
       for (itNum=1; itNum<=maxIterations_; itNum++) {
 
-          ARPACK_DSAUPD(&ido, "G", (Integer*) &size_, which_, (Integer*) &numFreq_, 
+					// cast to char* or receive compiler warning
+          ARPACK_DSAUPD(&ido, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_, 
                 &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
                 (Integer*) &size_, iparams, ipntr,
                 workD, workL, &lenWorkL, &info);
@@ -221,8 +223,9 @@ namespace OLAS {
       Double *d = New Double [numArnoldiVec_*2];
       Double omgShift = pow(freqShift_*8.0*atan(1.0),2);
 
-      ARPACK_DSEUPD(&rvec, "A", select, d, eigenVectors_, (Integer*) &size_, 
-            &omgShift, "G", (Integer*) &size_, which_, (Integer*) &numFreq_,
+			// cast to char* or receive compiler warning
+      ARPACK_DSEUPD(&rvec, (char*) "A", select, d, eigenVectors_, (Integer*) &size_, 
+            &omgShift, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_,
             &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
             (Integer*) &size_, iparams, ipntr, workD, workL, &lenWorkL, &info);
 
@@ -236,7 +239,7 @@ namespace OLAS {
           vecY = workD;
           interface_->MultAV(vecX, vecY); 
           Double vNrm2 = 0.0;
-          for (Integer j=0; j<size_; j++) {
+          for (UInt j=0; j<size_; j++) {
               vecX[j] = vecY[j] - d[i]*vecY[j+size_];
               vNrm2 += vecX[j]*vecX[j];
           }
@@ -252,12 +255,12 @@ namespace OLAS {
 
 
       Integer i;
-      for (i=0; i < size_;i++) {
+      for (i=0; i < (int) size_;i++) {
            tempV[i] = 0.0;
            residual[i] = 0.0;
       }
 
-      for (i=0; i < 3*size_;i++)
+      for (i=0; i < 3*((int) size_);i++)
            workD[i] = 0.0;
 
       Integer len = numArnoldiVec_*(numArnoldiVec_+8);

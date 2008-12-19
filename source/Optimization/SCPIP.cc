@@ -7,6 +7,7 @@
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 using namespace CoupledField;
 
@@ -67,6 +68,10 @@ SCPIP::~SCPIP()
 
 void SCPIP::SolveProblem()
 {
+  // if we did autoscale, we can easily commit a calculated initial (iter-0) configuration
+  // otherwise we also try to make this
+  if(objective->DoAutoscale()) optimization->CommitIteration();
+  
   do
   {
     if(restart_requested)
@@ -75,6 +80,8 @@ void SCPIP::SolveProblem()
       objective->CalcAutoscale();
       LOG_TRACE(scpip) << "Restart SCPIP with scaling " << objective->scaling.value;
       std::cout << "Restart SCPIP with scaling " << objective->scaling.value << std::endl;
+      InfoNode* in = optimization->optInfoNode->Get(InfoNode::PROCESS)->Get("iteration");
+      in->Get("rescale")->SetValue(objective->scaling.value);
       
       // adjust the number of iterations
       int max_iter = std::max(optimization->GetMaxIterations() - optimization->GetCurrentIteration(), 0);
@@ -106,6 +113,7 @@ void SCPIP::SolveProblem()
     case Maximum_Iterations_Exceeded:
     case User_Requested_Stop:
       std::cout << std::endl << ToString(status) << std::endl;
+      optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("problem")->SetValue(ToString(status));
       break; 
     
     case Gradients_Return_False:
@@ -121,7 +129,7 @@ void SCPIP::SolveProblem()
 
 bool  SCPIP::get_nlp_info(int& n, int& m, int& nnz_jac_g)
 {
-  n = optimization->GetDesign()->data.GetSize();
+  n = optimization->GetDesign()->GetNumberOfVariables();
 
   // arbitrary constraints ,
   m = optimization->constraints.GetSize();
@@ -137,27 +145,7 @@ bool  SCPIP::get_nlp_info(int& n, int& m, int& nnz_jac_g)
 bool SCPIP::get_bounds_info(int n, double* x_l, double* x_u,
                             int m, double* g_l, double* g_u)
 {
-  const StdVector<DesignElement>* data = &optimization->GetDesign()->data;
-
-  for(int i = 0; i < n; i++)
-  {
-    x_l[i] = (*data)[i].GetLowerBound();
-    x_u[i] = (*data)[i].GetUpperBound();
-  }
-
-  assert(m == (int) optimization->constraints.GetSize());
-  assert(n == (int) optimization->GetDesign()->data.GetSize());
-    
-  // normalization to =0 and <=0 constraints is done SCPIPBase   
-    
-  for(int i = 0; i < m; i++)
-  {
-    Condition* g = &optimization->constraints[i];
-    // handle as in IPOPT 
-    g_l[i] = g_u[i] = g->value;    
-    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] = 1e19;
-    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -1e19;
-  }
+  GetBounds(n, x_l, x_u, m, g_l, g_u);
   return true;
 }
 
@@ -172,24 +160,25 @@ bool SCPIP::get_starting_point(int n, double* x)
 bool SCPIP::eval_f(int n, const double* x, double& obj_value)
 {
   obj_value = EvalObjective(n, x);
-
   return true;
 }
 
 bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
 {
+  
   // restart_requested handled in intermediate_callback
-  return EvalGradObjective(n, x, grad_f); 
+  bool result = EvalGradObjective(n, x, grad_f);
+
+  // do we have to write the initial iteration in the non-autoscale case?
+  // SCPIP first does eval_f and then eval_grad_f
+  if(optimization->GetCurrentIteration() == 0) optimization->CommitIteration();
+  
+  return result;
 }
 
 bool SCPIP::eval_g(int n, const double* x, int m, double* g)
 {
-  // we overwrite the design space, but we do this all the time - especially before eval_f
-  optimization->GetDesign()->ReadDesignFromExtern(x); 
-     
-  // iterate over all constraints
-  for(int i = 0; i < m; i++) 
-     g[i] = optimization->CalcConstraint(&optimization->constraints[i]);
+  EvalConstraints(n, x, m, g);
 
   return true;
 }
@@ -198,19 +187,9 @@ bool SCPIP::eval_jac_g(int n, const double* x, int m, int nele_jac, double* valu
 {
   // the gradients are dense in SCPIPBase
   assert(values != NULL);
+  
+  EvalGradConstraints(n, x, m, nele_jac, values);
 
-  // note, that we have dense gradient pointers!
-  // iterate over the gradients
-  for(int c = 0; c < m; c++)
-  {
-    double* ptr = values + (c*n);
-    optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
-    
-    LOG_TRACE2(scpip) << "eval_jac_g-" << c << ": x_avg= " << Average(x, n) 
-                      << " std_dev = " << StandardDeviation(x, n)
-                      << " -> avg = " << Average(ptr, n) << " std_dev = " 
-                      << StandardDeviation(ptr, n);
-  }
   return true;
 }
 

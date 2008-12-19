@@ -7,6 +7,7 @@
 #include "PDE/basePDE.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 namespace CoupledField{
 
@@ -21,7 +22,7 @@ namespace CoupledField{
     sequenceStep_ = sequenceStep;
     isPartOfSequence_ = isPartOfSequence;
     ptPDE_ = NULL;
-
+    infoNode_ = info->Get("analysis");
   }
   
   SingleDriver::~SingleDriver()

@@ -185,13 +185,11 @@ namespace CoupledField {
          elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
      }
    
-
- #ifdef DEBUG 
+/*
      (*debug) << "CalcElemVector:  "  << std::endl
               << partElemVec << std::endl
               << "\n jacDet " << jacDet << std::endl;
- #endif
-
+ */
    }
 
 

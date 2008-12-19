@@ -209,15 +209,8 @@ namespace CoupledField {
       ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
 
       // check if result is defined on nodes or elements
-      StdVector<std::string> & dofNames = actInfo.dofNames;  
-      if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::PFEM &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        Warning( "GMV can only write results on element and nodes",
-                 __FILE__, __LINE__ );
-        continue;
-      }
+      StdVector<std::string> & dofNames = actInfo.dofNames;
+      if(!ValidateNodesAndElements(actInfo)) continue;      
 
       StdVector<std::string> myDofNames;
       myDofNames.Resize(dofNames.GetSize());

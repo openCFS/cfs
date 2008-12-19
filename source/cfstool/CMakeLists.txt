@@ -1,3 +1,8 @@
+IF(USE_IPOPT)
+  INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
+  LINK_DIRECTORIES(${IPOPT_LINK_DIR})
+ENDIF(USE_IPOPT)
+
 # List of source codes for current target.
 SET(CFSTOOL_SRCS cfstool.cc)
 

@@ -6,6 +6,7 @@
 #define FILE_BDBINT
 
 #include "baseForm.hh" 
+#include "Optimization/DesignElement.hh" 
 
 namespace CoupledField {
 
@@ -24,8 +25,15 @@ namespace CoupledField {
     //! Compute element matrix associated to ADB form
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+                            EntityIterator& ent2 ){
+      CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
     
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2,
+                            const DesignElement::Type direction );
+
     //! \note This memorial is dedicated to the undocumented function
     void CalcComplexElementMatrix( Matrix<Complex> & elemMat,
                                    EntityIterator& ent1, 
@@ -79,6 +87,13 @@ namespace CoupledField {
       calcDMat(dMat); 
     };
     
+    /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor
+     * used in parametric material optimization. */
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction)
+    {
+      calcDMat(dMat, elem); 
+    };
+
 
     //! returns D - matrix for BDB
     virtual void calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat, Double &beta, Double &omega )

@@ -123,7 +123,7 @@ namespace OLAS {
                                        std::vector<UInt> neighbourList ) {
 
 
-    Integer i, j, nodeIndex;
+    UInt i, j;
 
 #ifdef DEBUG_BASEGRAPH
     (*debug) << "\n BaseGraph::AddVertexNeighbours:\n";
@@ -177,7 +177,7 @@ namespace OLAS {
   //   Count non-zeros
   // *******************
   void BaseGraph::CountNNE() {
-    Integer i;
+    UInt i;
     nne_ = 0;
     for ( i = 1; i <= numNodes_; i++ ) {
       nne_ += element_[i].size();
@@ -189,7 +189,7 @@ namespace OLAS {
   //   Print graph to an output stream
   // ***********************************
   void BaseGraph::Print(std::ostream &os) const {
-    Integer i;
+    UInt i;
     NodeListIterator j;
         
     os << "printing auxiliary graph" << std::endl;
@@ -251,7 +251,7 @@ namespace OLAS {
       // sort graph according to new ordering
       // step 1: re-number every list
       // step 2: re-arrange lists in vector
-      for ( Integer i = 1; i <= numNodes_; i++ ) {
+      for ( UInt i = 1; i <= numNodes_; i++ ) {
         for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ){
           *iter = order[ *iter ];
         }
@@ -260,7 +260,7 @@ namespace OLAS {
       NodeList *newElement;
       NewArray( newElement, NodeList, numNodes_ );
 
-      for ( Integer i=1; i<= numNodes_; i++ ) {
+      for ( UInt i=1; i<= numNodes_; i++ ) {
         newElement[ order[i] ] = element_[i];
       }
 
@@ -271,13 +271,13 @@ namespace OLAS {
       DeleteArray( tmpList );
 
       // Sort the list again (but no need to make unique)
-      for ( Integer i = 1; i <= numNodes_; i++ ) {
+      for ( UInt i = 1; i <= numNodes_; i++ ) {
         std::sort(element_[i].begin(), element_[i].end());
       }
 
 #ifdef DEBUG_BASEGRAPH
       (*debug) << "Reordering: New mapping" << std::endl;
-      for ( Integer i = 1; i <= numNodes_; i++ ) {
+      for ( UInt i = 1; i <= numNodes_; i++ ) {
         (*debug) << i << " -> " << order[i] << std::endl;
       }
 #endif
@@ -304,7 +304,7 @@ namespace OLAS {
 
 
     // Sort lists and remove duplicate entries 
-    for ( Integer i = 1; i <= numNodes_; i++ ) {
+    for ( UInt i = 1; i <= numNodes_; i++ ) {
       std::sort( element_[i].begin(), element_[i].end() );
 
       NodeList::iterator new_end = std::unique( element_[i].begin(), 
@@ -333,7 +333,7 @@ namespace OLAS {
     csNodes_[1] = 1;
 
     NodeListIterator iter;
-    UInt pos;
+    // unused variable UInt pos;
 
     for ( i = 1; i <= numNodes_; i++ ) {
 
@@ -380,7 +380,7 @@ namespace OLAS {
     (*rptr)[1] = 1;
 
     NodeListIterator iter;
-    Integer pos;
+    UInt pos;
 
     for ( i = 1; i <= numNodes_; i++ ) {
 
@@ -419,7 +419,7 @@ namespace OLAS {
   // *************************
   void BaseGraph::Reorder( ReorderingType newOrder, Integer *order ) {
 
-    Integer i;
+    UInt i;
     
     // Test, if there is memory available for storing new ordering
     if ( order == NULL ) {

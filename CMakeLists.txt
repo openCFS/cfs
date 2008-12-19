@@ -18,11 +18,16 @@ PROJECT(CFS C CXX Fortran)
 #-----------------------------------------------------------------------------
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
-SET(CFS_MAJOR_VERSION 0)
-SET(CFS_MINOR_VERSION 6)
-SET(CFS_BUILD_VERSION 0)
+SET(CFS_VERSION_YEAR "08")
+SET(CFS_VERSION_MONTH "12")
 SET(CFS_VERSION
-  "${CFS_MAJOR_VERSION}.${CFS_MINOR_VERSION}.${CFS_BUILD_VERSION}")
+  "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
+
+#-----------------------------------------------------------------------------
+# Version Name. Every major release gets a label/name
+#-----------------------------------------------------------------------------
+SET(CFS_NAME "(pre) Kerniger Kaernter")
+
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -54,19 +59,20 @@ OPTION(USE_HDF5 "Use HDF5 for simulation in/output." ON)
 OPTION(USE_GMV "Use General Mesh Viewer (GMV) for simulation in/output." ON)
 OPTION(USE_UNV "Use Universal File for simulation output." ON)
 OPTION(USE_ANSYSRST "Use ANSYS .RST format for simulation output." OFF)
-OPTION(USE_ENSIGHT "Use Ensight Gold format format for output (Paraview/Tecplot/Ensight)." OFF)
-OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface."
-  OFF)
+OPTION(USE_VTK "Use VTK format for native Paraview export." OFF)
+OPTION(USE_MPCCI "Enable support for the mesh parallel coupling interface." OFF)
 OPTION(USE_IPOPT "Use the external IPOPT optimizer." OFF)
-OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)
+
 
 #-----------------------------------------------------------------------------
-# Only switch on ILUPACK at lse per default.
+# Make the following default settings dependend on LSE or not LSE
 #-----------------------------------------------------------------------------
 IF(CFS_BUILD_HOST MATCHES "lse")
-  OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ON)
+  OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." OFF)
+  OPTION(USE_SCPIP "Use the external SCPIP optimizer." ON)  
 ELSE(CFS_BUILD_HOST MATCHES "lse")
   OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." OFF)
+  OPTION(USE_SCPIP "Use the external SCPIP optimizer." OFF)  
 ENDIF(CFS_BUILD_HOST MATCHES "lse")
 
 #-----------------------------------------------------------------------------
@@ -350,9 +356,9 @@ IF(USE_ANSYSRST)
   SUBDIRS(source/DataInOut/SimInOut/AnsysRST)
 ENDIF(USE_ANSYSRST)
 
-IF(USE_ENSIGHT)
-  SUBDIRS(source/DataInOut/SimInOut/Ensight)
-ENDIF(USE_ENSIGHT)
+IF(USE_VTK)
+  SUBDIRS(source/DataInOut/SimInOut/VTK)
+ENDIF(USE_VTK)
 
 SUBDIRS(source/DataInOut/SimInOut/TextOutput)
 SUBDIRS(source/Domain)

@@ -72,7 +72,7 @@ namespace OLAS {
     }
     else {
       if ( newPattern == false &&
-           this->sysMatDim_ != sysMat.GetNcols() ) {
+           (int) this->sysMatDim_ != sysMat.GetNcols() ) {
         (*error) << "ILDLKFactoriser::Factorise: Now I got you. "
                  << "newPattern = false, but matrix dimension changed "
                  << "from " << this->sysMatDim_ << " to "
@@ -781,7 +781,9 @@ namespace OLAS {
     // NOTE: Changed profile computation. We now do it as in Sloan class,
     //       i.e. we use UInt and represent the large number by modulo
     //       operation w.r.t. UINT_MAX
-    Integer i, j, bw, bwLocal;
+		UInt i, j = 1;
+		Integer k;
+    Integer bw, bwLocal;
     UInt profile, profAux, profileMult;
 
     // Shall we be verbose?
@@ -804,8 +806,8 @@ namespace OLAS {
     for ( i = this->sysMatDim_; i > 0; i-- ) {
 
       // For profile
-      for ( j = rptrA[i]; j < rptrA[i+1]; j++ ) {
-        auxVec[ cidxA[j] ] = i;
+      for ( k = rptrA[i]; k < rptrA[i+1]; k++ ) {
+        auxVec[ cidxA[k] ] = i;
       }
 
       // For bandwidth

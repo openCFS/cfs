@@ -112,7 +112,7 @@ namespace OLAS {
   template <typename T>
   void Vector<T>::Add(const SparseVector &vec) {
 
-    PROFILE("Vector::Add (1)",size_*BlockSize<T>::size);
+    PROFILE((char*)"Vector::Add (1)",size_*BlockSize<T>::size);
     TRY_CAST
     ConstRefCast(vec,Vector<T>,idvec);
 
@@ -132,7 +132,7 @@ namespace OLAS {
   void Vector<T>::Add(T_Stype a, const SparseVector &vec1, 
 		      T_Stype b, const SparseVector &vec2) {
 
-    PROFILE("Vector::Add (2)",3*size_*BlockSize<T>::size);
+    PROFILE((char*)"Vector::Add (2)",3*size_*BlockSize<T>::size);
     TRY_CAST
     ConstRefCast(vec1,Vector<T>,idvec1);
     ConstRefCast(vec2,Vector<T>,idvec2);
@@ -151,7 +151,7 @@ namespace OLAS {
   // **********************************************************
   template <typename T>
   void Vector<T>::Add(T_Stype a, const SparseVector &vec) {
-    PROFILE("Vector::Add (3)",2*size_*BlockSize<T>::size);
+    PROFILE((char*)"Vector::Add (3)",2*size_*BlockSize<T>::size);
 
     TRY_CAST
       ConstRefCast(vec,Vector<T>,idvec);
@@ -171,7 +171,7 @@ namespace OLAS {
   template <typename T>
   void Vector<T>::Inner( const SparseVector &vec, T_Stype &sum ) const {
 
-    PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
+    PROFILE( (char*)"Vector::Inner", size_ * 2 * BlockSize<T>::size );
 
     TRY_CAST {
       ConstRefCast( vec, Vector<T>, secVec );
@@ -204,7 +204,7 @@ namespace OLAS {
   // **************************
   template <typename T>
   Double Vector<T>::NormEuclid() const {				
-    PROFILE("Vector::NormEuclid",size_*2*BlockSize<T>::size);
+    PROFILE((char*)"Vector::NormEuclid",size_*2*BlockSize<T>::size);
     Double sum = 0.0;
 
 #pragma omp parallel for reduction(+:sum)
@@ -221,7 +221,7 @@ namespace OLAS {
   // *******************************************
   template <typename T>
   void Vector<T>::Axpy( const T_Stype alpha, const SparseVector &y ) {
-    PROFILE("Vector::Axpy",size_*2*BlockSize<T>::size);
+    PROFILE((char*)"Vector::Axpy",size_*2*BlockSize<T>::size);
     TRY_CAST
     ConstRefCast( y, Vector<T>, vec );
 

@@ -96,7 +96,7 @@ namespace OLAS {
 
     // Obtain and check dimensions of matrix
     this->sysMatDim_ = sysMat.GetNcols();
-    if ( this->sysMatDim_ != sysMat.GetNrows() ) {
+    if ( (Integer) this->sysMatDim_ != sysMat.GetNrows() ) {
       (*error) << "ILUK_Precond: Input matrix is "
 	       << sysMat.GetNrows() << " x " << sysMat.GetNcols()
 	       << ", but needs to be square";

@@ -621,4 +621,22 @@ namespace CoupledField
     } 
   }  
   
+  void RectangleFE::GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out) 
+  {
+    edges_out.Resize(2, 0.0);
+ 
+    // todo: works only for aligned elements!
+    
+    for (UInt i=0; i<4; i++ )
+    {
+      // add two times a value and two times 0
+      UInt other = i < 3 ? i+1 : 0; // wrap around for last edge
+      Double dx = ptCoord[0][i] - ptCoord[0][other];
+      Double dy = ptCoord[1][i] - ptCoord[1][other];
+      edges_out[0] += abs(dx) * 0.5; // do the averaging now, from 4, 2 are zero
+      edges_out[1] += abs(dy) * 0.5; 
+    }
+  }
+  
+  
 } // end of namespace

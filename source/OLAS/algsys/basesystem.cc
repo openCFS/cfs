@@ -50,13 +50,13 @@ namespace OLAS {
 
     algSysType_     = NOALGSYSTYPE;
 
-#ifdef DEBUG
+    /*
     if ( debug == NULL ) {
       (*error) << "DEBUG macro is set, but debug stream pointer is NULL!\n"
                << " Please check your settings in OLAS/main/Makefile.option";
       Error( __FILE__, __LINE__ );
     }
-#endif
+    */
 
 #ifdef MEMTRACE
     if ( memtrace == NULL ) {
@@ -112,9 +112,7 @@ namespace OLAS {
   PdeIdType BaseSystem::ObtainPDEId( const std::string &pdeType ) {
 
 
-#ifdef DEBUG_BASESYSTEM
-    (*debug) << "\n Obtain PDE Id for pde " << pdeType;
-#endif
+   // (*debug) << "\n Obtain PDE Id for pde " << pdeType;
 
     // Check if PDE is already registered
     std::map<PdeIdType,std::string>::iterator it;
@@ -130,9 +128,7 @@ namespace OLAS {
     PdeIdType id = pdeNames_.size() + 1;
     pdeNames_[id] = pdeType;
 
-#ifdef DEBUG_BASESYSTEM
-    (*debug) << "\n --> Id is " << id << std::endl;
-#endif
+    // (*debug) << "\n --> Id is " << id << std::endl;
 
     return id;
   }
@@ -145,14 +141,13 @@ namespace OLAS {
                                 UInt const numEqns,
                                 UInt const numLastFreeDof ) {
     
-    
-#ifdef DEBUG_BASESYSTEM
-    (*debug) << "\n RegisterPDE:"
+     
+   /* (*debug) << "\n RegisterPDE:"
              << "\n --> pdeId        = '" << pdeId << "'"
              << "\n --> numEqns        = " << numEqns
              << "\n --> numLastFreeDof = " << numLastFreeDof
              << std::endl;
-#endif
+   */
 
     // Remember number of equation numbers for each PDE
     sizePerPDE_[pdeId] = numEqns;

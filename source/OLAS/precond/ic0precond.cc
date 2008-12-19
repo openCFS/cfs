@@ -37,7 +37,7 @@ namespace OLAS {
   template<typename T>
   void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
 
-    PROFILE( "IC0Precond::Setup",
+    PROFILE( (char*)"IC0Precond::Setup",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
 
     Integer nnzA = (size_ + sysmat.GetNnz() ) / 2;
@@ -67,7 +67,7 @@ namespace OLAS {
       rptrU_[k] = rptrA[k];
     } 
 
-    for (UInt k=1; k<=nnzA; k++) {
+    for (Integer k=1; k<=nnzA; k++) {
       cidxU_[k] = cidxA[k];
     } 
 
@@ -97,8 +97,8 @@ namespace OLAS {
 
     while (nPD) {
       //set U = systemMatrix
-      for (UInt k=1; k<=nnzA; k++) {
-	dataU_[k] = diagScale*dataA[k];
+      for (Integer k=1; k<=nnzA; k++) {
+				dataU_[k] = diagScale*dataA[k];
       } 
 
       nPD = 0;
@@ -138,8 +138,8 @@ namespace OLAS {
 	for  ( UInt i=starti; i<k; i++ ) {
 	  Rik = (T) 0;
 	  Integer found = 0;
-	  for ( UInt j=rptrA[i]; j<rptrA[i+1]; j++) {
-	    if ( cidxA[j] == k) {
+	  for ( Integer j=rptrA[i]; j<rptrA[i+1]; j++) {
+	    if ( cidxA[j] == (Integer)k) {
 	      Rik = dataU_[j];
 	      found = 1;
 	      break;;
@@ -148,9 +148,9 @@ namespace OLAS {
 	  
 	  if ( found == 1) {
 	    Rkk = Rkk - Rik*Rik;
-	    for ( UInt j=rptrA[i]+1; j<rptrA[i+1]; j++ ) {
+	    for ( Integer j=rptrA[i]+1; j<rptrA[i+1]; j++ ) {
 	      idx = cidxA[j]; 
-	      if (idx > k) {
+	      if (idx > (Integer)k) {
 		Rk[idx] -= Rik * dataU_[j];
 	      }
 	    }
@@ -162,7 +162,7 @@ namespace OLAS {
 	  sqrRkk = sqrt(Rkk);
 	  dataU_[rptrA[k]] = sqrRkk;
 	  
-	  for (UInt i=rptrA[k]+1; i<rptrA[k+1]; i++) {
+	  for (Integer i=rptrA[k]+1; i<rptrA[k+1]; i++) {
 	    dataU_[i] = Rk[cidxA[i]] / sqrRkk;
 	  }
 	}
@@ -362,7 +362,7 @@ namespace OLAS {
 			     const Vector<T> &r, Vector<T> &z ) const {
 
 
-    PROFILE( "IC0Precond::Apply",
+    PROFILE( (char*)"IC0Precond::Apply",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
 
     //set values of solution to RHS

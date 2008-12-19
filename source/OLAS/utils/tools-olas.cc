@@ -35,11 +35,6 @@ namespace OLAS {
   void Error( const Char *const filename, const Integer numline ) {
 
     // Flush output streams
-#ifdef DEBUG
-    if ( debug != NULL ) {
-      (*debug).flush();
-    }
-#endif
     std::cout << std::flush;
     std::cerr << std::flush;
 

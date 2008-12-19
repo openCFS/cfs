@@ -9,6 +9,9 @@
 
 namespace CoupledField {
 
+template <class TYPE> class Vector;
+class CFSVector;
+  
 
   //! Driver class for calculating a general eigenvalue problem
   class EigenFrequencyDriver : public SingleDriver {
@@ -37,7 +40,11 @@ namespace CoupledField {
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
   private:
-
+    /** This is the templated form to handle the general and quadratic case */
+    template <class T>
+    void PrintResult(CFSVector* frequencies, Vector<Double> bounds, 
+                     ResultHandler* resHandler, UInt numConverged);
+    
     //! Flag indicating, if a quadratic eigenvalue problem is to
     //! be solved
     bool isQuadratic_;

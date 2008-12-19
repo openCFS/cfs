@@ -54,7 +54,6 @@ void IPOPT::Init()
   if(base_->restart_requested)
   {
     base_->objective->CalcAutoscale();
-    
   }
   std::cout << base_->objective->ToString() << std::endl;
   
@@ -128,7 +127,7 @@ void IPOPT::SolveProblem()
          
     case Insufficient_Memory:
          throw Exception("IPOPT reports insufficient memory.");
-    
+         
     case Invalid_Number_Detected:
          if(base_->restart_requested) return; 
          
@@ -146,7 +145,7 @@ void IPOPT::SolveProblem()
 bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                          Index& nnz_h_lag, IndexStyleEnum& index_style)
 {
-  n = optimization_->GetDesign()->data.GetSize();
+  n = optimization_->GetDesign()->GetNumberOfVariables();
 
   // arbitrary constraints ,
   m = optimization_->constraints.GetSize();
@@ -172,33 +171,9 @@ bool IPOPT::get_bounds_info(Index n, Number* x_l, Number* x_u,
                             Index m, Number* g_l, Number* g_u)
 {
   LOG_TRACE2(ipopt) << "get_bounds_info: n = " << n << "; m = " << m;
+  
+  base_->GetBounds(n, x_l, x_u, m, g_l, g_u);
 
-  const StdVector<DesignElement>* data = &optimization_->GetDesign()->data;
-  // we know only simp up to now!
-  for(int i = 0; i < n; i++)
-  {
-    x_l[i] = (*data)[i].GetLowerBound();
-    x_u[i] = (*data)[i].GetUpperBound();
-  }
-
-  if(m != (int) optimization_->constraints.GetSize()) 
-    throw Exception("mixed up number of constraints");
-
-  if(n != (int) optimization_->GetDesign()->data.GetSize())
-    throw Exception("mixed up design size");  
-    
-  for(int i = 0; i < m; i++)
-  {
-    Condition* g = &optimization_->constraints[i];
-    g_l[i] = g_u[i] = g->value;
-    // see ipopt documentation 
-    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] = 1e19;
-    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -1e19;
-    LOG_TRACE2(ipopt) << "set bounds: g[" << i << "]_u=" << g_u[i] << " g[" << i << "]_l="
-                      << g_l[i] << ": g: " << g->ToString() << " type: " 
-                      << Condition::type.ToString(g->GetType()) << " value: " << g->value
-                      << " parameter: " << g->parameter; 
-  }
   return true;
 }
 
@@ -236,7 +211,7 @@ bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
     std::cerr << "CFS exception occured within a call from IPOPT:" << std::endl << e.what() << std::endl;
     throw IpoptException(e.what(), __FILE__, __LINE__); 
   }
-  
+    
   LOG_TRACE2(ipopt) << "eval_f: new_x = " << new_x << " design=" << base_->objective->scaling.design_id
                     << " needed_eval=" << (base_->objective->scaling.design_id != old_design)
                     << " -> obj_value = " << obj_value;  
@@ -262,18 +237,9 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
   LOG_TRACE2(ipopt) << "eval_g: n = " << n << "; new_x = " << new_x << "; m = " << m;
 
   // we overwrite the design space, but we do this all the time - especially befor eval_f
-  optimization_->GetDesign()->ReadDesignFromExtern(x); 
-     
-  // iterate over all constraints
-  for(int i = 0; i < m; i++) 
-  {   
-     double value =  optimization_->CalcConstraint(&optimization_->constraints[i]);
-     g[i] = value;
-     LOG_TRACE2(ipopt) << "eval_g-" << i << ": new_x = " << new_x << " x_avg = "  
-                       << Average(x, n) << " std_dev = " << StandardDeviation(x, n)
-                       << " -> " << optimization_->constraints[i].ToString() << " = " 
-                       << value;
-  }
+  optimization_->GetDesign()->ReadDesignFromExtern(x);
+  
+  base_->EvalConstraints(n, x, m, g);
 
   return true;
 }
@@ -304,16 +270,7 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
   // do evaluation
   else
   {
-    // note, that we have dense gradient pointers!
-    // iterate over the gradients
-    for(int c = 0; c < m; c++)
-    {
-      double* ptr = values + (c*n);
-      optimization_->CalcConstraintGradient(&optimization_->constraints[c], ptr);
-      LOG_TRACE2(ipopt) << "eval_jac_g-" << c << ": new_x=" << new_x << " x_avg= " 
-                        << Average(x, n) << " std_dev = " << StandardDeviation(x, n)
-                        << " -> avg = " << Average(ptr, n) << " std_dev = " << StandardDeviation(ptr, n);
-    }
+    base_->EvalGradConstraints(n, x, m, nele_jac, values);
   }
   return true;
 }

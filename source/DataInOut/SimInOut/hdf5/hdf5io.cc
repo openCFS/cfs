@@ -1400,7 +1400,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   
   ResultInfo::EntityUnknownType H5IO::MapUnknownType( Integer t ) {
 
-    ResultInfo::EntityUnknownType definedOn;
+		// COMPWARNING: initialized to ResultInfo::NODE for no good reason
+    ResultInfo::EntityUnknownType definedOn = ResultInfo::NODE;
     switch(t) {
     case 1:
       definedOn = ResultInfo::NODE;
@@ -1467,7 +1468,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   
   ResultInfo::EntryType H5IO::MapEntryType( Integer t ) {
 
-    ResultInfo::EntryType entryType;
+		// COMPWARNING: initialized to ResultInfo::UNKNOWN for no good reason
+    ResultInfo::EntryType entryType = ResultInfo::UNKNOWN;
     
     switch(t) {
     case 0:

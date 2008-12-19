@@ -86,7 +86,7 @@
   
   <!-- Please but documentation here -->
   <xsd:complexType name="DT_ResultSavingType" abstract="true">
-    <xsd:attribute name="saveBegin" type="xsd:positiveInteger" default="1"/>
+    <xsd:attribute name="saveBegin" type="xsd:integer" default="0"/>
     <xsd:attribute name="saveEnd" type="xsd:positiveInteger" default="2147483647"/>
     <xsd:attribute name="saveInc" type="xsd:positiveInteger" default="1"/>
   </xsd:complexType>

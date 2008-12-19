@@ -61,7 +61,7 @@ namespace OLAS {
                                    Vector<T> &rvec ) const {
 
 
-    PROFILE( "Diag_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
+    PROFILE( (char*)"Diag_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
              BlockSize<T>::size );
 
     Integer i;
@@ -115,7 +115,7 @@ namespace OLAS {
                                       const Vector<T> &b ) const {
 
 
-    PROFILE("Diag_Matrix::CompRes",
+    PROFILE((char*)"Diag_Matrix::CompRes",
             (2*this->nnz_*BlockSize<T>::size + this->nrows_)
             *BlockSize<T>::size);
 
@@ -168,7 +168,7 @@ namespace OLAS {
   void Diag_Matrix<T>::Print( std::ostream& os ) const {
 
 
-    Integer i, j, k;
+    Integer i; // COMPWARNING: unused variables , j, k;
 
     for ( i = 1; i <= this->nrows_; i++ ) {
       os << std::scientific << i << "\t" << data_[i] << '\n';

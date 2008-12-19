@@ -130,7 +130,7 @@ namespace OLAS {
       }
       else {
         if ( myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
-             sysMatDim_ != scrsMat.GetNcols() ) {
+             (int) sysMatDim_ != scrsMat.GetNcols() ) {
           (*error) << "LDLSolver::Setup: newMatrixPattern = false, but "
                    << "matrix dimension changed from " << sysMatDim_ << " to "
                    << scrsMat.GetNcols();
@@ -179,7 +179,7 @@ namespace OLAS {
         Analyse( scrsMat );
 
         // If problem size has increased free old dense auxilliary vectors
-        if ( auxVecSize_ < scrsMat.GetNcols() ) {
+        if ( (int) auxVecSize_ < scrsMat.GetNcols() ) {
           DeleteArray( denseVec_ );
           DeleteArray( firstU_ );
 	  delete[] scanList_;
@@ -332,8 +332,8 @@ namespace OLAS {
   template<typename T>
   void LDLSolver<T>::Analyse( const SCRS_Matrix<T> &sysMat ) {
 
-
-    UInt i, j, k, nnzInRowOfU, nnzInRowOfA, colInd, succ, pred, lastNZ, tmp;
+		// COMPWARNING: unused variable UInt nnzInRowOfU
+    UInt i, j, k, nnzInRowOfA, colInd, succ, pred, lastNZ, tmp;
 
     // Get hold of column index array
     const Integer *cidxA = sysMat.GetColPointer();
@@ -886,7 +886,7 @@ namespace OLAS {
       }
 
       // Copy k-th row of A into dense vector (omitting diagonal)
-      for ( i = rptrA[k]+1; i < rptrA[k+1]; i++ ) {
+      for ( i = rptrA[k]+1; (int) i < rptrA[k+1]; i++ ) {
         denseVec_[ cidxA[i] ] = dataA[i];
       }
 
@@ -1267,8 +1267,8 @@ namespace OLAS {
     //   Write entries of D
     // ======================
     for ( i = 1; i <= sysMatDim_; i++ ) {
-      for ( j = 1; j <= dof; j++ ) {
-        for ( k = 1; k <= dof; k++ ) {
+      for ( j = 1; (int) j <= dof; j++ ) {
+        for ( k = 1; (int) k <= dof; k++ ) {
           fprintf( fp, "%6d\t%6d\t", (i-1) * dof + j, (i-1) * dof + k );
           if ( patternOnly == false ) {
             aux = opType<T>::invert( dataD_[i] );
@@ -1291,7 +1291,7 @@ namespace OLAS {
       nblocks = rptrU_[i+1] - rptrU_[i];
 
       // loop over all blocks in this row
-      for ( j = 1; j <= nblocks; j++ ) {
+      for ( j = 1; (int) j <= nblocks; j++ ) {
 
         // loop over block entries
         for ( ib = 0; ib < dof; ib++ ) {

@@ -469,7 +469,7 @@ namespace CoupledField
   Double SmoothSpline::HermiteFunc( Double t, Integer i )
   {
 
-    Double x;
+    Double x = 0.0;
 
     if ( i == 0 ) {
       x = (1-t)*(1-t)*(2*t+1);
@@ -491,7 +491,7 @@ namespace CoupledField
   Double SmoothSpline::HermitePrime( Double t, Integer i )
   {
 
-    Double x;
+    Double x = 0.0;
 
     if ( i == 0 ) {
       x = -6*t+6*t*t;

@@ -194,7 +194,7 @@ namespace OLAS {
         Error( __FILE__, __LINE__ );
       }
     }
-    PrintInternalState( *debug );
+//    PrintInternalState( *debug );
 #endif
 
     // StdMatrix case
@@ -389,13 +389,11 @@ namespace OLAS {
       UInt idx;
 
       for ( UInt i = 1; i <= sbmVec->GetSize(); i++ ) {
-
-#ifdef DEBUG_IDBCHANDLERPENALTY
+/*
         (*debug) << " IDBC_HandlerPenalty::SetDofsToIDBC:"
                  << " Setting " << offset_[i+1] - offset_[i]
                  << " IDBCs for PDE #" << i << std::endl;
-#endif
-
+*/
         stdVec = sbmVec->GetPointer( i );
         stdVal = sbmVal->GetPointer( i );
 

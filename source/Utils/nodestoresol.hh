@@ -404,9 +404,10 @@ namespace CoupledField{
     //! \param elemSol Matrix containing the element solution
     //! \param it Entiyiterator containing the current element
     //! \param solIndex Index for the desired solution type
+    //! \param ext_data if NULL the internal data is used, otherwise the supplied one
     void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
                                   const EntityIterator& it,
-                                  UInt solIndex = 0 ) const;
+                                  UInt solIndex = 0, const CFSVector* ext_data = NULL) const;
     
     //! maps the local node solution to the coupling nodes
     void NodeSolutionToCoupling( CFSVector & couplingSol,

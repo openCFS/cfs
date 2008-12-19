@@ -128,6 +128,8 @@ namespace OLAS {
     void InitSol( SparseVector *sol, const Double *newSol);
     
     void InitRHS( SparseVector *rhs, const Double *newRHS);
+    
+    void InitRHS( SparseVector *rhs, const Vector<Double>* newRHS );
                           
     void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                     Double *fup );

@@ -14,7 +14,7 @@
 unv::~unv() {
 
   if (num_connections>0)
-
+  {
     if (in_stream) {
       in_stream->close();
       delete in_stream;
@@ -23,13 +23,13 @@ unv::~unv() {
       out_stream->close();
       delete out_stream;
     }
-
+  }
 }
 
 
 int unv::goto_pos(const std::streampos pos) const {
 
-  if (in_stream) 
+  if (in_stream)
     return in_stream->seekg(pos).good();
   else if (out_stream)
     return out_stream->seekp(pos).good();
@@ -94,14 +94,14 @@ int unv::find_next_set(std::streampos* pos, int* status) {
 
   if (odd_delimiter)
     if (!find_delimiter(&stat)) return 0;
-    
+
   if (!find_delimiter(&stat)) return 0;
 
   if (stat==UNVEOF) {
     *status=UNVEOF;
     return 1;
   }
-    
+
   *in_stream >> *status;
 
 #ifdef DEBUG
@@ -116,7 +116,7 @@ int unv::find_next_set(std::streampos* pos, int* status) {
   *pos=in_stream->tellg();
   return 1;
 
-}  
+}
 
 
 int unv::is_set_end(int* is_end) {
@@ -218,7 +218,7 @@ int unv::close(void) {
     CoupledField::Warning("In Method unv::close: No stream is open!");
     return 0;
   }
-    
+
   return 1;
 
 }
@@ -319,7 +319,7 @@ int dataset::open_set(int *status) {
       if (!u->find_next_set(&pos, &stat)) return 0;
     }
     else {
-      do 
+      do
         if (!u->find_next_set(&pos, &stat)) return 0;
       while (stat!=unv::UNVEOF && stat!=set_num);
     }
@@ -499,7 +499,7 @@ int dataset_15::read_data(int* stat) {
   }
 
   out->form("%10i%10i%10i%10i\n", data.node_label, data.def_coord_sys_n, \
-  data.dis_coord_sys_n, data.color); 
+  data.dis_coord_sys_n, data.color);
   out->form("%13.5e%13.5e%13.5e\n", data.x, data.y, data.z);
 
   if (!out->good()) {
@@ -533,7 +533,7 @@ int dataset_55::read_header(void) {
     in->getline(&header.id[1][0], 81);
     strcpy(&header.id[0][0], &header.id[1][0]);
   } while (strtok(&header.id[1][0], " \n")==NULL);
-    
+
   for (i=1; i<5; ++i)
     in->getline(&header.id[i][0], 81);
 
@@ -590,7 +590,7 @@ int dataset_55::read_data(int* stat) {
     data.node_data=new double[n];
     curr_node_data_size=n;
   }
-  else if (n>curr_node_data_size) { 
+  else if (n>curr_node_data_size) {
     delete[] data.node_data;
     data.node_data=new double[n];
     curr_node_data_size=n;
@@ -636,7 +636,7 @@ int dataset_56::read_header(void) {
     in->getline(&header.id[1][0], 81);
     strcpy(&header.id[0][0], &header.id[1][0]);
   } while (strtok(&header.id[1][0], " \n")==NULL);
-    
+
   for (i=1; i<5; ++i)
     in->getline(&header.id[i][0], 81);
 
@@ -688,7 +688,7 @@ int dataset_56::read_data(int* stat) {
   if (data.element_num>0) {
 
     int type_size=2;
-        
+
     if (header.data_type==2) type_size=1;
 
     int n=data.n_val_on_element*type_size;
@@ -697,7 +697,7 @@ int dataset_56::read_data(int* stat) {
       data.element_data=new double[n];
       curr_element_data_size=n;
     }
-    else if (n>curr_element_data_size) { 
+    else if (n>curr_element_data_size) {
       delete[] data.element_data;
       data.element_data=new double[n];
       curr_element_data_size=n;
@@ -761,7 +761,7 @@ int dataset_752::read_data(int* stat) {
     data.entities=new entity[n];
     curr_entity_size=n;
   }
-  else if (n>curr_entity_size) { 
+  else if (n>curr_entity_size) {
     delete[] data.entities;
     data.entities=new entity[n];
     curr_entity_size=n;
@@ -791,55 +791,55 @@ int dataset_752::read_data(int* stat) {
 
 
 int dataset_780::read_data(int* stat) {
-    
+
   if (mode==SETWrite || mode==SETNot) {
     CoupledField::Warning("In Method dataset_780::read_data: Open mode is not READ!");
     return 0;
   }
-    
+
   std::ifstream* in;
-    
+
   if (!get_in_stream(&in)) {
     CoupledField::Warning("In Method dataset_780::read_data: Could not get std::ifstream!");
     return 0;
   }
-    
+
   *in >> data.element_label;
-    
+
   int is_end;
-    
+
   if (data.element_label>0) {
     *in >> data.fe_desc_id      >> data.phys_prob_tab_bin_n  \
         >> data.phys_prob_tab_n >> data.mat_prob_tab_bin_n \
         >> data.mat_prob_tab_n  >> data.color >> data.n_nodes;
-        
+
     int n=data.n_nodes;
-        
+
     if (data.node_labels==NULL) {
       data.node_labels=new int[n];
       curr_node_labels_size=n;
     }
-    else if (n>curr_node_labels_size) { 
+    else if (n>curr_node_labels_size) {
       delete[] data.node_labels;
       data.node_labels=new int[n];
       curr_node_labels_size=n;
     }
-        
+
     for (int i=0; i<data.n_nodes; ++i)
       *in >> data.node_labels[i];
-        
+
     if (!in->good()) {
       CoupledField::Warning("In Method dataset_780::read_data: Error by reading data!");
       return 0;
     }
-        
-        
+
+
     if (!set_end(&is_end)) return 0;
-        
+
     *stat=SETTrue;
     if (is_end==SETTrue)
       *stat=SETEmpty;
-        
+
     return 1;
   }
   else {
@@ -869,7 +869,7 @@ int dataset_781::read_data(int* stat) {
   }
 
   *in >> data.node_label >> data.def_coord_sys_n >> data.dis_coord_sys_n \
-      >> data.color >> data.x1 >> data.x2 >> data.x3; 
+      >> data.color >> data.x1 >> data.x2 >> data.x3;
 
   if (!in->good()) {
     CoupledField::Warning("In Method dataset_781::read_data: Error by reading data!");
@@ -904,7 +904,7 @@ int dataset_666::read_data(int* stat) {
   }
   /*
    *in >> data.node_label >> data.def_coord_sys_n >> data.dis_coord_sys_n \
-   >> data.color >> data.x1 >> data.x2 >> data.x3; 
+   >> data.color >> data.x1 >> data.x2 >> data.x3;
   */
   /*
     std::stringstream line;

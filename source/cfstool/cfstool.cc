@@ -55,6 +55,7 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh" 
 
 using namespace CoupledField;
 namespace CFSTool {
@@ -581,8 +582,8 @@ namespace CFSTool {
                    std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
                              << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
-                 std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  "°\n"
-                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  "°\n";        
+                 std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
+                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";        
                  
                  // return maxDiff for differences in real and imaginary part
                  if ( (rMax > iMax) && (rMax > maxDiff) )
@@ -662,7 +663,18 @@ int main(int argc, char** argv) {
     // 3) cfstool meshdiff <infile1> <infile2> <outfile>
     // 4) cfstool meshdiffnormed <infile1> <infile2> <outfile>
     std::string modus = argv[1];
-
+    
+    // we have to instantiate the global InfoNode object as some classes 
+    // assumes it for its logging. It might also be helpfull in providing more details 
+    // do this only if we have a change of valid command line 
+    if(argc >= 4) { 
+      info = new InfoNode(modus + "_" + argv[2] + ".info.xml", "<?xml version=\"1.0\"?>"); 
+      info->SetName("cfsInfo"); 
+    } else { 
+      info = NULL; 
+    } 
+    
+    
     if( modus == "convert" ) {
       if( argc != 4 ) {
         EXCEPTION( "Please provide <infFile> and <outFile>" );
@@ -717,11 +729,19 @@ int main(int argc, char** argv) {
     }
 
 
-  }  catch(std::exception& ex) {
-    std::cerr << "The following error occured during program execution:\n\n" 
-    << ex.what ();
+  }  
+  catch(std::exception& ex) 
+  { 
+    std::cerr << "The following error occured:\n" << ex.what(); 
+    if(info != NULL)  { 
+      info->Get(InfoNode::ERROR)->SetValue(ex.what()); 
+      info->ToFile(); 
+    } 
+    std::cerr << "The following error occured during program execution:\n\n" << ex.what();
     return -1;
   }
-
+  info->ToFile(); 
+  delete info;
+  
   return 0;
 }

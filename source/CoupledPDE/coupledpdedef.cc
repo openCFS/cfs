@@ -39,7 +39,7 @@ namespace CoupledField
 
 
     bool found = false;
-    UInt CoupledPDENumber;
+    UInt CoupledPDENumber = 0;
     StdVector<std::string> PDENames;
     OrderedPDEs.Clear();
 

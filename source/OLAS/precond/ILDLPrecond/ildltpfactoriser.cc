@@ -702,7 +702,7 @@ namespace OLAS {
                                          UInt maxFill ) {
 
 
-    UInt j;
+    // COMPWARNING: unused variable UInt j;
     UInt listEnd = this->sysMatDim_ + 1;
     UInt listNoElem = 0;
     UInt listElem, listPrevElem;
@@ -826,7 +826,7 @@ namespace OLAS {
 
         // Since there is a tie, there must be several elements with the
         // value threshold in the list. Remove the last excess occurences
-        if ( excess > numTie ) {
+        if ( excess > (int) numTie ) {
           (*error) << "Internal error. My master cannot program :(";
           Error( __FILE__, __LINE__ );
         }

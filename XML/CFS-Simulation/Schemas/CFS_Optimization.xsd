@@ -23,12 +23,57 @@
         <costFunction type="compliance" task="minimize" stoppingRule="relative" value="1e-3" queue="2"/> -->
       <xsd:element name="costFunction" minOccurs="1">
         <xsd:complexType>
-          <xsd:sequence>
+          <xsd:all>
+            <xsd:element name="factor" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="omega_omega" type="xsd:boolean" default="false" use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <!--   <multipleExcitation type="fixed_weights/meta_objective">
+                     <metaObjective type="best_value"/>
+                     <adjustWeights stride="1" max_gain="1e4"/>
+                   </multipleExcitation> -->        
+            <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="metaObjective">
+                    <xsd:complexType>
+                      <xsd:attribute name="type" default="best_objective" use="optional">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="best_objective"></xsd:enumeration>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="adjustWeights">
+                    <xsd:complexType>
+                      <xsd:attribute name="damping" use="optional" default="1.0" type="xsd:float"/>                      
+                      <xsd:attribute name="stride" use="optional" default="1" type="xsd:nonNegativeInteger"/>
+                      <xsd:attribute name="max_gain" use="optional" default="1e4" type="xsd:float"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+                <xsd:attribute name="type" default="fixed_weights" use="optional">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="fixed_weights"/>
+                      <xsd:enumeration value="meta_objective"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>  
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="output" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="nodes" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
-                  <xsd:element name="loads" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>                  
+                  <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+                  <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
+                  <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
+                  <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>                  
                 </xsd:sequence>                                  
               </xsd:complexType>
             </xsd:element>
@@ -43,7 +88,7 @@
               </xsd:complexType>
             </xsd:element>
             
-          </xsd:sequence>
+          </xsd:all>
           
           <!-- mandatory to give the type. The type is one of a list of types -->
           <xsd:attribute name="type" use="required">
@@ -51,9 +96,12 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="compliance"/>
                 <xsd:enumeration value="output"/>                
-                <xsd:enumeration value="radiation"/>
-                <xsd:enumeration value="conjugateOutput"/>
+                <xsd:enumeration value="conjugateCompliance"/>
                 <xsd:enumeration value="globalDynamicCompliance"/>
+                <xsd:enumeration value="dynamicOutput"/>
+                <xsd:enumeration value="radiation"/>
+                <xsd:enumeration value="volume"/>
+                <xsd:enumeration value="tracking"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -67,6 +115,11 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          
+          <!-- Define if we we shall calculate with multiple excitations. Defined for
+            mechanical/static loads and multiple harmonic frequencies. 
+            The corresponding element is optional -->
+          <xsd:attribute name="multiple_excitation" type="xsd:boolean" use="optional" default="false" />
           
           <!-- optional stopping rule.  -->
           <xsd:attribute name="stoppingRule" use="optional" default="relative">
@@ -94,8 +147,10 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="volume"/>
+                <xsd:enumeration value="compliance"/>
                 <xsd:enumeration value="greyness"/>
-                <xsd:enumeration value="gaussGreyness"/>                
+                <xsd:enumeration value="gaussGreyness"/>
+                <xsd:enumeration value="tracking"/>                
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -127,11 +182,13 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          <!-- constraints are integrated via penalty/lagrange multipliers in the level set method -->
+          <xsd:attribute name="penalty" use="optional" default="0.0" type="xsd:float"/>
+          <xsd:attribute name="region" use="optional" default="all" type="xsd:token"/>          
           
         </xsd:complexType>
       </xsd:element>
-      
-      
+
       <!-- optimizer: e.g. <optimizer type="optimialityCondition" maxIterations="20"/> mandatory -->
       <xsd:element name="optimizer" minOccurs="1">
         <xsd:complexType>
@@ -151,6 +208,38 @@
             
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_ExternalOptimizer"/>
+            
+            <xsd:element name="levelSet" minOccurs="0">
+              <xsd:complexType>
+                <xsd:all>
+                  <xsd:element name="actionList" minOccurs="1" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="action" minOccurs="0" maxOccurs="unbounded">
+                          <xsd:complexType>
+                            <xsd:attribute name="type" use="required">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="signedDistanceField"/>
+                                  <xsd:enumeration value="firstOrderFiniteDifferences"/>
+                                  <xsd:enumeration value="trivialHole"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <!-- how often to exectue -->
+                            <xsd:attribute name="modulus" type="xsd:positiveInteger" default="1" use="optional"/>
+                            <!-- ow oftern to perfom this actions -->
+                            <xsd:attribute name="perform" type="xsd:positiveInteger" default="1" use="optional"/>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:all>
+                <!-- For the signed distance field is this the element discretization -->
+                <xsd:attribute name="subLevelSpacing" type="xsd:float" default="2"/>
+              </xsd:complexType>
+            </xsd:element>
             
             <!-- the parameters of the optimality condition can be set
               <optimalityCondition damping="0.5" move_limit="0.2"/>
@@ -204,6 +293,7 @@
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
                 <xsd:enumeration value="evaluateInitialDesign"/>
+                <xsd:enumeration value="levelSet"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -217,6 +307,11 @@
       <xsd:element name="ersatzMaterial" minOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
+            <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="name" use="required" type="xsd:token"/>
+              </xsd:complexType>              
+            </xsd:element>
             <xsd:element name="SIMP" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -282,23 +377,21 @@
             
             <!-- The desing variables have to be specified explicitely, 
               <design name="density" initial="0.5"/> -->
-            
-            
-            
-            
-            <xsd:element name="design" minOccurs="1" maxOccurs="2">
+            <xsd:element name="design" minOccurs="1" maxOccurs="unbounded">
               <xsd:complexType>
                 <xsd:attribute name="name" use="required" type="DT_Design"/>
                 <xsd:attribute name="initial" use="required" type="xsd:float"/>
                 <!-- for the lower and upper limits we have to default as it depends on the name -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float"/>
                 <xsd:attribute name="upper" use="optional" type="xsd:float"/>
+                <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
+                <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>                
               </xsd:complexType>
             </xsd:element>
             
             <!-- We have to define transfer functions 
               <transferFunction type="SIMP" application="elast" design="density" param="3.0"/> -->
-            <xsd:element name="transferFunction" minOccurs="1" maxOccurs="8" type="DT_TransferFunction"/>
+            <xsd:element name="transferFunction" minOccurs="0" maxOccurs="8" type="DT_TransferFunction"/>
             <xsd:element name="result" minOccurs="0" maxOccurs="3">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
@@ -308,19 +401,6 @@
                       <xsd:enumeration value="optResult_1"/>
                       <xsd:enumeration value="optResult_2"/>
                       <xsd:enumeration value="optResult_3"/>                
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-                
-                <!-- The design element is optional if we have only one design in the optimization -->
-                <xsd:attribute name="design" use="optional" type="DT_Design"/>
-                
-                <!-- Access is either plan or smart which is plain or filtered depending on regularization -->
-                <xsd:attribute name="access" use="optional" default="smart">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="plain"/>
-                      <xsd:enumeration value="smart"/>                  
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -335,11 +415,30 @@
                       <xsd:enumeration value="constraintGradient"/>                                                     
                       <xsd:enumeration value="weight"/>                       
                       <xsd:enumeration value="neighbours"/>
-                      <xsd:enumeration value="objective"/>                                                
+                      <xsd:enumeration value="objective"/>
+                      <xsd:enumeration value="levelSetValue"/>                                                
+                      <xsd:enumeration value="levelSetCurvature"/>
+                      <xsd:enumeration value="levelSetNormal"/>
+                      <xsd:enumeration value="levelSetFirstGrad"/>
+                      <xsd:enumeration value="levelSetSecondGrad"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+
+                <!-- The design element is optional if we have only one design in the optimization -->
+                <xsd:attribute name="design" use="optional" type="DT_Design"/>
+                
+                <!-- Access is either plan or smart which is plain or filtered depending on regularization -->
+                <xsd:attribute name="access" use="optional" default="plain">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="plain"/>
+                      <xsd:enumeration value="smart"/>                  
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
                 
+                                                
                 <!-- These are optional parameters for value=objective -->
                 <xsd:attribute name="detail" use="optional" default="none">
                   <xsd:simpleType>
@@ -356,7 +455,7 @@
             
             <xsd:element name="export" minOccurs="0">
               <xsd:complexType>  
-                <xsd:attribute name="file" use="required" type="xsd:token" />
+                <xsd:attribute name="file" use="optional" default="[problem]" type="xsd:token" />
               </xsd:complexType>
             </xsd:element>                       
             
@@ -376,6 +475,36 @@
               </xsd:complexType>
             </xsd:element>
             
+            <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+            
+            <xsd:element name="paramMat" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="designMaterial" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="param" minOccurs="0" maxOccurs="unbounded">
+                          <xsd:complexType>
+                            <xsd:attribute name="name" use="required" type="DT_Design"/>                      
+                            <xsd:attribute name="value" use="required" type="xsd:float"/>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:sequence>                
+                      <xsd:attribute name="type" use="required">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="isotropic"/>
+                            <xsd:enumeration value="lame-isotropic"/>
+                            <xsd:enumeration value="transversal-isotropic"/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                    </xsd:complexType>              
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>              
+            </xsd:element>
+            
           </xsd:sequence>  
           <!-- attribute like  system="piezo" -->
           
@@ -384,15 +513,14 @@
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="simp"/>
-                <xsd:enumeration value="freeMat"/>
+                <xsd:enumeration value="paramMat"/>
                 <xsd:enumeration value="shapeGrad"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>         
           
-          
-          <xsd:attribute name="region" use="required" type="xsd:token" />
-          
+          <xsd:attribute name="region" use="optional" type="xsd:token" />
+          <xsd:attribute name="grid_regular" use="optional" type="xsd:boolean" default="true"/>         
         </xsd:complexType>
       </xsd:element>
       
@@ -400,8 +528,11 @@
       
     </xsd:sequence> <!-- end of optimization children -->
     
-    <!-- there is an optional log like log="gnuplot.dat" which gives the filename  -->
-    <xsd:attribute name="log" use="optional" type="xsd:token" />
+    <!-- this triggeres a gnuplot lot file. The same info as in info.xml.
+      With "false" this is disabled. 
+      With "[problem]" or "true" (default) this is the simulation problem name + "plot.dat"
+      Else: the name as file name  -->
+    <xsd:attribute name="log" use="optional" default="[problem]" type="xsd:token" />
     
   </xsd:complexType>
   
@@ -432,6 +563,7 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
+    <!-- this is for SCPIP only -->
     <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
   </xsd:complexType>
   
@@ -465,7 +597,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     
-    <xsd:attribute name="design" use="required" type="DT_Design"/>
+    <xsd:attribute name="design" use="optional" type="DT_Design"/>
     
     <xsd:attribute name="param" use="optional" type="xsd:float" />
   </xsd:complexType> 
@@ -475,6 +607,11 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="polarization"/>
+      <xsd:enumeration value="tensor_trace"/>
+      <xsd:enumeration value="emodul"/>
+      <xsd:enumeration value="poisson"/>
+      <xsd:enumeration value="lamelambda"/>
+      <xsd:enumeration value="lamemu"/>
     </xsd:restriction>
   </xsd:simpleType>
   

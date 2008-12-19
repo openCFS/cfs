@@ -348,10 +348,10 @@ namespace CoupledField
 
 
   void MechanicMaterial::GetTensor( Matrix<Double>& param, 
-				    MaterialType matType, 
-				    DataType dataType,
-				    SubTensorType subTensor ) const {
-    
+      MaterialType matType, 
+      DataType dataType,
+      SubTensorType subTensor ) const {
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
@@ -363,18 +363,18 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-	matTensor = pos->second;
+        matTensor = pos->second;
       }
       else {
-	ComputeSubTensor(matTensor, matType, subTensor);
+        ComputeSubTensor(matTensor, matType, subTensor);
       }
 
       if ( dataType == REAL || dataType == IMAG) {
-	param = matTensor.GetPart( dataType );
+        param = matTensor.GetPart( dataType );
       }
       else {
-	std::string msg = "GetTensor-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetTensor-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }

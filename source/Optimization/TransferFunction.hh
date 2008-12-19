@@ -6,6 +6,7 @@
 
 namespace CoupledField
 {
+
   /** This defines a transfer function, where the standard SIMP is a variant */
   class TransferFunction
   {
@@ -13,8 +14,9 @@ namespace CoupledField
       /** dummy function for StdVector */
       TransferFunction();
     
-      /** @param pn The pointer to a transfer function */
-      TransferFunction(ParamNode* pn);
+      /** @param pn The pointer to a transfer function
+       * @param default_type if no design is given in the xml file use the default_type but checks for NO_TYPE */
+      TransferFunction(ParamNode* pn, DesignElement::Type default_type = DesignElement::NO_TYPE);
      
       /** The transfer functions for a design-variable x:
        * <ul>
@@ -58,6 +60,9 @@ namespace CoupledField
      
       /** gives debug information */
       std::string ToString();
+
+      /** Writes the attributes, not the base element */
+      void ToInfo(InfoNode* in) const;
       
       static Enum<Type> type;
 

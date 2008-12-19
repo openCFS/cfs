@@ -100,12 +100,6 @@ namespace CoupledField
            }
          }
        }
-
- #ifdef DEBUG 
-     (*debug) << "CurCurlEdge Matrix:  "  << std::endl
-              << elemMat << std::endl << std::endl;
- #endif
-   
    }
 
 

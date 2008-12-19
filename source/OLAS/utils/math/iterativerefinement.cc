@@ -25,7 +25,7 @@ namespace OLAS {
       if ( residual_ == NULL ) {
         genNewVectors = true;
       }
-      else if ( residual_->GetSize() != stdMat.GetNcols() ) {
+      else if ( (Integer)residual_->GetSize() != stdMat.GetNcols() ) {
         genNewVectors = true;
       }
 

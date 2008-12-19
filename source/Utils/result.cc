@@ -4,12 +4,14 @@
 
 #include "result.hh"
 #include "Domain/resultInfo.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include <sstream>
 
 namespace CoupledField {
 
-  
+
   BaseResult::BaseResult() {
+    infoNode_ = NULL;
   }
 
   BaseResult::~BaseResult() {
@@ -33,16 +35,22 @@ namespace CoupledField {
   template<class TYPE>
   Result<TYPE>::Result() {
   }
-  
+
   template<class TYPE>
   Result<TYPE>::~Result() {
   }
 
+  template<class TYPE>
+  void Result<TYPE>::Init()
+  {
+    values_.Resize(entities_->GetSize());
+    values_.Init(0);
+  }
 
  // explicit template instantiation for GCC compiler
-#if defined(__GNUC__) 
+#if defined(__GNUC__)
   template class Result<Double>;
   template class Result<Complex>;
-#endif 
+#endif
 
 }

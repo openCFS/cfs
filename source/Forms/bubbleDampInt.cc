@@ -72,7 +72,8 @@ namespace CoupledField {
     // get value of radius und its derivative
     Double radius =  (*radius_)[indexMap_[ent1.GetElem()->elemNum]];
     Double radiusDeriv =  (*radiusDeriv_)[indexMap_[ent1.GetElem()->elemNum]];
-    Double factor;
+		// initialize or receive compiler warning
+    Double factor = 0.0;
 
 
     Double dampFact = 0.0;

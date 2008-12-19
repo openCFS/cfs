@@ -551,7 +551,7 @@ namespace CoupledField
 
   Double ElectroMagneticMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& valVec) {
 
-    Double matDiff, eps;
+    // COMPWARNING: unused variable Double matDiff, eps;
     Vector<Double> Ycurrent(dim_);
     Vector<Double> Xcurrent(dim_);
 
@@ -660,8 +660,8 @@ namespace CoupledField
 
     Error("ElectroMagneticMaterial::GetScalarHystVal makes no sense", __FILE__, __LINE__ );
 
-    UInt idx = globalElem2Local_[nrElem];
-    Double Yval; // = hyst_->getValue( idx );
+    // COMPWARNING: unused variable UInt idx = globalElem2Local_[nrElem];
+    Double Yval = 0.0; // = hyst_->getValue( idx );
 
     return Yval;
   }

@@ -3,10 +3,12 @@
 
 #include "Optimization/DesignElement.hh"
 #include "General/Enum.hh"
+#include "General/environment.hh"
 
 namespace CoupledField
 {
    class ParamNode;
+   class InfoNode;
 
    /** our constraint criteria. Can be filled directly from XML */
    class Condition 
@@ -21,7 +23,7 @@ namespace CoupledField
        Condition(ParamNode* pn, int index);
      
        /** Note the difference to the Type! See Name as equivalent of Kind! */
-       typedef enum { VOLUME = 0, GREYNESS = 1, GAUSS_GREYNESS = 2} Name;
+       typedef enum { VOLUME = 0, GREYNESS = 1, GAUSS_GREYNESS = 2, COMPLIANCE = 3, TRACKING = 4} Name;
 
        /** Genertal constraint types */             
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Type;
@@ -34,8 +36,14 @@ namespace CoupledField
        
        int GetIndex() const { return index_; }
        
+       /** Check whether condition should be calculated for given region */
+       bool IsForRegion(RegionIdType regionId);
+       
        /** This is a nice statement for output */
        std::string ToString() const; 
+
+       /** log to info.xml */
+       void ToInfo(InfoNode* in) const;
        
        /** This is DEFAULT (= applies always) if not defined */
        DesignElement::Type design;
@@ -53,6 +61,17 @@ namespace CoupledField
        
        /** The scaling is evaluated in the Optimizer IPOPT only. Not in OC! */
        double scaling;
+
+       /**The penalty formulation allows to add constraints via this penalty term to the objective.
+        * Actually a penelty method finds iteratively the right value, in practice it is a given
+        * parameter. Currently this is *only* implemented for the *Level-Set* method! */
+       double penalty;
+       
+       /** If condition supports constriction to one region */
+       RegionIdType region;
+       
+       /** Used for caching 1.0 / complete_volume per region */
+       double volume_fraction_;
        
        static Enum<Name> name;              
        static Enum<Type> type;

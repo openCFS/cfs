@@ -423,6 +423,10 @@ namespace OLAS {
       EXCEPTION("Only implemented in StandardSystem");
     }
 
+    virtual void InitRHS(const Vector<Double>* newRHS )
+    {
+      EXCEPTION("Only implemented in StandardSystem");
+    }
 
 
     //! Set the solution vector of the specified PDE to zero

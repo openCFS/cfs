@@ -254,11 +254,17 @@ namespace OLAS {
 
     //! Initialise right-hand side with given vector
     virtual void InitRHS( SparseVector *rhs, const Double *newRHS) = 0;
+    
     virtual void InitRHS( SparseVector *rhs, const Vector<Complex>* newRHS) 
     {
       EXCEPTION("Only implemented for complex entrymanipulators");
     }
-                          
+    
+    virtual void InitRHS( SparseVector *rhs, const Vector<Double>* newRHS) 
+    { 
+      EXCEPTION("Only implemented for complex entrymanipulators"); 
+    }
+    
     //! ...
     virtual void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
                             Double *fup ) = 0;

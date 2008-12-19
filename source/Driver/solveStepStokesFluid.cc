@@ -56,14 +56,13 @@ namespace CoupledField {
         std::cout << std::endl << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. " 
                   << iterationCounter << std::endl;      
 
-#ifdef DEBUG
+      /*  
         *debug << std::endl
                << "====================================================== "
                << std::endl
                << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. "
                << iterationCounter << std::endl;
-#endif
-
+       */
 
         // setup and solve new system (rhs is already set) =====================
         //InitNonLinMatrices();

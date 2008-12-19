@@ -11,6 +11,7 @@
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/entityList.hh"
+#include "Optimization/DesignElement.hh"
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
@@ -54,6 +55,17 @@ namespace CoupledField
                                     EntityIterator& ent2 ){
       
       Error( "Not implemented here", __FILE__, __LINE__ );}
+
+    //! Virtual function
+    /** this version is for convenience, it gets called from ErsatzMaterial, 
+     *  it is overwritten in linElastInt which does care about parametric material optimization
+     *  all other desccendents don't have it implemented, so they are called without direction */
+    virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
+                                    EntityIterator& ent1, 
+                                    EntityIterator& ent2,
+                                    const DesignElement::Type ){
+      CalcElementMatrix( stiffMat, ent1, ent2 );
+    }
 
     //! Virtual function
     virtual void CalcElementMatrix( Matrix<Complex>& stiffMat,

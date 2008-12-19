@@ -16,7 +16,7 @@
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
-#include <def_use_ensight.hh>
+#include <def_use_vtk.hh>
 #include <def_use_scripting.hh>
 #include <def_use_tcl.hh>
 #include <def_use_python.hh>
@@ -54,8 +54,8 @@
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
-#ifdef USE_ENSIGHT
-#include "DataInOut/SimInOut/Ensight/simOutputEnsightGold.hh"
+#ifdef USE_VTK
+#include "DataInOut/SimInOut/VTK/SimOutputVTK.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
@@ -85,408 +85,397 @@ namespace CoupledField
 {
 
 #ifdef MEMTRACE
-  Double sumdmem;
-  Double sumimem;
+Double sumdmem;
+Double sumimem;
 #endif
 
+// ===============
+//   Constructor
+// ===============
+DefineInOutFiles::DefineInOutFiles(const Char *name)
+{
 
+  // Initialise internal pointers
+  simInput_ = NULL;
+  ptMaterialHandler_ = NULL;
 
+}
 
-  // ===============
-  //   Constructor
-  // ===============
-  DefineInOutFiles::DefineInOutFiles( const Char *name ) {
-
-    // Initialise internal pointers
-    simInput_ = NULL;
-    ptMaterialHandler_ = NULL;
-
-  }
- 
-
-  // ==============
-  //   Destructor
-  // ==============
-  DefineInOutFiles::~DefineInOutFiles() {
-
-
-#ifdef DEBUG
-    delete debug;
-    debug = NULL;
-#endif
+// ==============
+//   Destructor
+// ==============
+DefineInOutFiles::~DefineInOutFiles()
+{
 
 #ifdef MEMTRACE
-    delete memtrace;
-    memtrace = NULL;
+  delete memtrace;
+  memtrace = NULL;
 #endif
 
-    // Delete pointer to OLAS report file
-    delete cla;
-    cla = NULL;
+  // Delete pointer to OLAS report file
+  delete cla;
+  cla = NULL;
 
-    delete simInput_;
-    simInput_ = NULL;
+  delete simInput_;
+  simInput_ = NULL;
 
-    delete ptMaterialHandler_;
-    ptMaterialHandler_ = NULL;
+  delete ptMaterialHandler_;
+  ptMaterialHandler_ = NULL;
 
+}
+
+// ==============================
+//   Generate mesh file pointer
+// ==============================
+void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
+    SimInput> >& inFiles, std::map<std::string,
+    StdVector<shared_ptr<SimInput> > >& gridInputs)
+{
+
+  std::string meshFile = progOpts->GetMeshFileStr();
+  std::string simName = progOpts->GetSimName();
+  std::string fileName = "default";
+  std::string actId, actGridId;
+
+  // resest map
+  inFiles.clear();
+  gridInputs.clear();
+
+  std::string informat = "mesh";
+  StdVector<ParamNode *> inputOptionNodes;
+  ParamNode * inputNode = param->Get("fileFormats") ->Get("input", false);
+
+  // if no reader is defined explictly, create implicit one
+  if (!inputNode)
+  {
+    actId = "default";
+    actGridId = "default";
+    if (meshFile == "")
+      meshFile = simName + ".mesh";
+    inFiles[actId] = shared_ptr<SimInput> (new SimInputMESH(meshFile, NULL ));
+    gridInputs[actGridId].Push_back(inFiles[actId]);
+    return;
   }
 
+  inputOptionNodes = inputNode->GetChildren();
 
-  // ==============================
-  //   Generate mesh file pointer
-  // ==============================
-  void DefineInOutFiles::
-  CreateSimInputFiles( std::map<std::string, shared_ptr<SimInput> >& inFiles,
-                       std::map<std::string, 
-                      StdVector<shared_ptr<SimInput> > >& gridInputs ) {
+  for (UInt i = 0; i < inputOptionNodes.GetSize(); i++)
+  {
 
+    // fetch format and id of output class
+    ParamNode * actNode = inputOptionNodes[i];
+    informat = actNode->GetName();
+    actId = actNode->Get("id")->AsString();
+    actNode->Get("fileName", fileName, false);
+    actNode->Get("gridId", actGridId, true);
 
-    std::string meshFile = progOpts->GetMeshFileStr();
-    std::string simName = progOpts->GetSimName();
-    std::string fileName = "default";
-    std::string actId, actGridId;
-    
-    // resest map
-    inFiles.clear();
-    gridInputs.clear();
-
-    std::string informat = "mesh";
-    StdVector<ParamNode *> inputOptionNodes;
-    ParamNode * inputNode = param->Get("fileFormats")
-      ->Get("input", false);
-
-    // if no reader is defined explictly, create implicit one
-    if( !inputNode ) {
-      actId = "default";
-      actGridId = "default";
-      if(meshFile == "")
-        meshFile = simName + ".mesh";
-      inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile,
-                                                             NULL ));
-      gridInputs[actGridId].Push_back(inFiles[actId]);          
-      return;
-    }
-
-    inputOptionNodes = inputNode->GetChildren();
-  
-    for( UInt i = 0; i < inputOptionNodes.GetSize(); i++ ) {
-      
-      // fetch format and id of output class
-      ParamNode * actNode = inputOptionNodes[i];
-      informat = actNode->GetName();
-      actId = actNode->Get("id")->AsString();
-      actNode->Get("fileName", fileName, false);
-      actNode->Get("gridId", actGridId, true );
-      
-      if(i == 0)
-        {
-          if((meshFile == "") && (fileName != "default"))
-            meshFile = fileName;
-        }
-      else
+    if (i == 0)
+    {
+      if ((meshFile == "") && (fileName != "default"))
         meshFile = fileName;
-      
-      // ensure, that id is unique
-      if( inFiles.find(actId) != inFiles.end() ) {
-        EXCEPTION( "Id '" << actId
-                   << "' for input format '"<< informat
-                   << "' was already found!\n"
-                   << "Please ensure, that the ids for the "
-                   << "input entries are unique!" );
-      }
-
-      if ( informat == "mesh" ) {
-       #ifdef USE_MESH
-          if(meshFile == "")
-              meshFile = simName + ".mesh";
-          inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile,
-                                                            actNode));
-       #else
-          EXCEPTION( "No support for MESH input file format." );
-       #endif // USE_MESH
-      }
-      else if ( informat == "hdf5" ) {
-       #ifdef USE_HDF5
-          if(meshFile == "")
-              meshFile = simName + ".h5";
-          inFiles[actId] = shared_ptr<SimInput>(new SimInputHDF5(meshFile,
-                                                            actNode));
-       #else
-          EXCEPTION( "No support for HDF5 input file format." );
-       #endif // USE_HDF5
-      }
-      else if ( informat == "gmv" ) {
-       #ifdef USE_GMV_INPUT
-          if(meshFile == "")
-              meshFile = simName + ".gmv";
-          inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
-                                                           actNode));
-       #else
-          EXCEPTION( "No support for GMV input file format." );
-       #endif // USE_GMV_INPUT
-      }
-      else if ( informat == "unv" ) {
-       #ifdef USE_UNV
-          if(meshFile == "")
-              meshFile = simName + ".unv";
-          inFiles[actId] = shared_ptr<SimInput>(new SimInputUnv(meshFile,
-                                                           actNode));
-       #else
-          EXCEPTION( "No support for UNV input file format." );
-       #endif // USE_UNV
-      }
-      else {
-          EXCEPTION( "Wrong format for input file. Please, check your data!" );
-      }
-
-      // relate gridId with input reader id
-      gridInputs[actGridId].Push_back(inFiles[actId]);
     }
-  }
+    else
+      meshFile = fileName;
 
-
-  // ================================
-  //   Generate output file pointer
-  // ================================
-  void DefineInOutFiles::
-  CreateSimOutputFiles( std::map<std::string, 
-                        shared_ptr<SimOutput> >&  out ) {
-    
-    // resest map
-    out.clear();
-    
-    std::string simName = progOpts->GetSimName();
-
-    // get list of output formats
-    ParamNode * outNode = param->Get("fileFormats")->Get("output", false);
-
-    if( !outNode ) {
-      Warning( "There was no output writer specified at all",
-               __FILE__, __LINE__ );
+    // ensure, that id is unique
+    if (inFiles.find(actId) != inFiles.end())
+    {
+      EXCEPTION( "Id '" << actId
+          << "' for input format '"<< informat
+          << "' was already found!\n"
+          << "Please ensure, that the ids for the "
+          << "input entries are unique!" );
     }
-    StdVector<ParamNode*> formatNodes = outNode->GetChildren();
 
-    // iterate over all found files
-    std::string actFormat, actId;
-    for( UInt i = 0; i < formatNodes.GetSize(); i++ ) {
-
-      // fetch format and id of output class
-      ParamNode * actNode = formatNodes[i];
-      actFormat = actNode->GetName();
-      actId = actNode->Get("id")->AsString();
-
-      // ensure, that id is unique
-      if( out.find(actId) != out.end() ) {
-        EXCEPTION( "Id '" << actId
-                   << "' for output format '"<< actFormat
-                   << "' was already found!\n"
-                   << "Please ensure, that the ids for the "
-                   << "output entries are unique!" );
-      }
-
-      
-
-      if( actFormat == "unv" ) {
-#ifdef USE_UNV
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputUnv( simName, actNode ) );
-        continue;
+    if (informat == "mesh")
+    {
+#ifdef USE_MESH
+      if (meshFile == "")
+        meshFile = simName + ".mesh";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputMESH(meshFile, actNode));
 #else
-        EXCEPTION( "No support for UNV output file format." );
-#endif
-      }
-
-      if ( actFormat == "gid" ) {
-#ifdef USE_GIDPOST
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputGiD( simName, actNode ) );
-        continue;
-#else
-        EXCEPTION( "No support for GiD output file format." );
-#endif
-      }
-
-      if ( actFormat == "gmv" ) {
-#ifdef USE_GMV_OUTPUT
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputGMV( simName, actNode ) );
-        continue;
-#else
-        EXCEPTION( "No support for GMV output file format." );
-#endif
-      }
-
-      if ( actFormat == "hdf5" ) {
+      EXCEPTION( "No support for MESH input file format." );
+#endif // USE_MESH
+    }
+    else if (informat == "hdf5")
+    {
 #ifdef USE_HDF5
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputHDF5( simName, actNode ) );
-        continue;
+      if (meshFile == "")
+        meshFile = simName + ".h5";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputHDF5(meshFile, actNode));
 #else
-        EXCEPTION( "No support for HDF5 output file format." );
-#endif
-      }
+      EXCEPTION( "No support for HDF5 input file format." );
+#endif // USE_HDF5
+    }
+    else if (informat == "gmv")
+    {
+#ifdef USE_GMV_INPUT
+      if(meshFile == "")
+      meshFile = simName + ".gmv";
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
+              actNode));
+#else
+      EXCEPTION( "No support for GMV input file format." );
+#endif // USE_GMV_INPUT
+    }
+    else if (informat == "unv")
+    {
+#ifdef USE_UNV
+      if (meshFile == "")
+        meshFile = simName + ".unv";
+      inFiles[actId]
+          = shared_ptr<SimInput> (new SimInputUnv(meshFile, actNode));
+#else
+      EXCEPTION( "No support for UNV input file format." );
+#endif // USE_UNV
+    }
+    else
+    {
+      EXCEPTION( "Wrong format for input file. Please, check your data!" );
+    }
 
-      if ( actFormat == "rst" ) {
+    // relate gridId with input reader id
+    gridInputs[actGridId].Push_back(inFiles[actId]);
+  }
+}
+
+// ================================
+//   Generate output file pointer
+// ================================
+void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
+    SimOutput> >& out)
+{
+
+  // resest map
+  out.clear();
+
+  std::string simName = progOpts->GetSimName();
+
+  // get list of output formats
+  ParamNode * outNode = param->Get("fileFormats")->Get("output", false);
+
+  if (!outNode)
+  {
+    Warning("There was no output writer specified at all", __FILE__, __LINE__ );
+  }
+  StdVector<ParamNode*> formatNodes = outNode->GetChildren();
+
+  // iterate over all found files
+  std::string actFormat, actId;
+  for (UInt i = 0; i < formatNodes.GetSize(); i++)
+  {
+
+    // fetch format and id of output class
+    ParamNode * actNode = formatNodes[i];
+    actFormat = actNode->GetName();
+    actId = actNode->Get("id")->AsString();
+
+    // ensure, that id is unique
+    if (out.find(actId) != out.end())
+    {
+      EXCEPTION( "Id '" << actId
+          << "' for output format '"<< actFormat
+          << "' was already found!\n"
+          << "Please ensure, that the ids for the "
+          << "output entries are unique!" );
+    }
+
+    if (actFormat == "unv")
+    {
+#ifdef USE_UNV
+      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for UNV output file format." );
+#endif
+    }
+
+    if (actFormat == "gid")
+    {
+#ifdef USE_GIDPOST
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for GiD output file format." );
+#endif
+    }
+
+    if (actFormat == "gmv")
+    {
+#ifdef USE_GMV_OUTPUT
+      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for GMV output file format." );
+#endif
+    }
+
+    if (actFormat == "hdf5")
+    {
+#ifdef USE_HDF5
+      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for HDF5 output file format." );
+#endif
+    }
+
+    if (actFormat == "rst")
+    {
 #ifdef USE_ANSYSRST
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
-        continue;
+      out[actId] =
+      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode ) );
+      continue;
 #else
-        EXCEPTION( "No support for ANSYS RST output file format." );
+      EXCEPTION( "No support for ANSYS RST output file format." );
 #endif
-      }
-
-      if ( actFormat == "case" ) {
-#ifdef USE_ENSIGHT
-    	  out[actId] = 
-    		  shared_ptr<SimOutput>( new SimOutputEnsightGold( simName, actNode ) );
-    	  continue;
-#else
-    	  EXCEPTION( "No support for Ensight (Ensight/Tecplot/Paraview)" \
-    			  << " output file format." );
-#endif
-      }
-       
-      if ( actFormat == "text" ) {
-        out[actId] = 
-          shared_ptr<SimOutput>( new SimOutputText( simName, actNode ) );
-        continue;
-      }
     }
 
+    if (actFormat == "vtk")
+    {
+#ifdef USE_VTK
+      out[actId] =
+      shared_ptr<SimOutput>( new SimOutputVTK( simName, actNode ) );
+      continue;
+#else
+      EXCEPTION( "No support for VTK (Paraview)"
+          << " output file format." );
+#endif
+    }
+
+    if (actFormat == "text")
+    {
+      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode));
+      continue;
+    }
   }
 
+}
 
-  // ==================================
-  //   Generate material file handler
-  // ==================================
-  MaterialHandler *
-  DefineInOutFiles::CreateMaterialHandler() {
+// ==================================
+//   Generate material file handler
+// ==================================
+MaterialHandler *
+DefineInOutFiles::CreateMaterialHandler()
+{
 
-    std::string fileName = "mat.dat";
-    std::string format = "dat";
+  std::string fileName = "mat.dat";
+  std::string format = "dat";
 
-    // Determine filename and format
-    ParamNode * matNode = param->Get("fileFormats")->Get("materialData",false);
-    if( matNode ) {
-      matNode->Get( "file", fileName );
-      matNode->Get( "format", format );
-    }
-    
-    if ( format == "dat" ) {
-      //ptMaterialHandler_ = new PlainMaterialHandler( fileName );
-      EXCEPTION("I am really sorry to tell you, but we have just "
-                << "abandoned the dat-format ... FOREVER!");
-    } else if ( format == "xml" ) {
-      ptMaterialHandler_ = new XMLMaterialHandler( fileName );
-    } else {
-      EXCEPTION( "CreateMaterialHandler: Format '" << format
-                 << "' is not recognized!" );
-    }
-    return ptMaterialHandler_;
-
+  // Determine filename and format
+  ParamNode * matNode = param->Get("fileFormats")->Get("materialData", false);
+  if (matNode)
+  {
+    matNode->Get("file", fileName);
+    matNode->Get("format", format);
   }
 
+  if (format == "dat")
+  {
+    //ptMaterialHandler_ = new PlainMaterialHandler( fileName );
+    EXCEPTION("I am really sorry to tell you, but we have just "
+        << "abandoned the dat-format ... FOREVER!");
+  }
+  else if (format == "xml")
+  {
+    ptMaterialHandler_ = new XMLMaterialHandler(fileName);
+  }
+  else
+  {
+    EXCEPTION( "CreateMaterialHandler: Format '" << format
+        << "' is not recognized!" );
+  }
+  return ptMaterialHandler_;
 
-  // ************
-  //   OpenFile
-  // ************
-  void DefineInOutFiles::OpenFile( AuxFileType fileType ) {
+}
 
+// ************
+//   OpenFile
+// ************
+void DefineInOutFiles::OpenFile(AuxFileType fileType)
+{
 
-    std::string fileName;
+  std::string fileName;
 
-    switch( fileType ) {
+  switch (fileType)
+  {
 
-      // -------------
-      //  DEBUG_FILE
-      // -------------
-    case DEBUG_FILE:
+  // ---------------
+  //  MEMTRACE_FILE
+  // ---------------
+  case MEMTRACE_FILE:
 
-      fileName = progOpts->GetSimName() + ".deb";
-
-#ifdef DEBUG
-      debug = new std::ofstream( fileName.c_str() );
-      if ( debug == NULL ) {
-        EXCEPTION( "Failed to open file '" << fileName << "' for "
-                   << "writing debug information!" );
-      }
-      break;
-#else
-      EXCEPTION( "Executable was compiled without debug support!"
-                 << "Refusing to open debug file '" << fileName << "'" );
-      break;
-#endif
-
-
-      // ---------------
-      //  MEMTRACE_FILE
-      // ---------------
-    case MEMTRACE_FILE:
-
-      fileName = progOpts->GetSimName() + ".mem";
+    fileName = progOpts->GetSimName() + ".mem";
 
 #ifdef MEMTRACE
-      memtrace = new std::ofstream( fileName.c_str() );
-      if ( memtrace == NULL ) {
-        EXCEPTION( "Failed to open file '" << fileName << "' for "
-                   << "writing memory trace information!" );
-      }
-      break;
+    memtrace = new std::ofstream(fileName.c_str());
+    if (memtrace == NULL)
+    {
+      EXCEPTION( "Failed to open file '" << fileName << "' for "
+          << "writing memory trace information!" );
+    }
+    break;
 #else
-      EXCEPTION( "Executable was compiled without support for memory "
-                 << "tracing! Refusing to open trace file '"
-                 << fileName << "'" );
-      break;
+    EXCEPTION( "Executable was compiled without support for memory "
+        << "tracing! Refusing to open trace file '"
+        << fileName << "'" );
+    break;
 #endif
 
+    // ------------
+    //  OLAS_FILE
+    // ------------
+  case OLAS_FILE:
 
-      // ------------
-      //  OLAS_FILE
-      // ------------
-    case OLAS_FILE:
-
-      fileName = progOpts->GetSimName() + ".las";
-      cla = new std::ofstream( fileName.c_str() );
-      if ( cla == NULL ) {
-        EXCEPTION( "Failed to open file '" << fileName << "' for "
-                   << "writing status reports of OLAS, the linear algebra "
-                   << "sub-system!" );
-      }
-      break;
-
+    fileName = progOpts->GetSimName() + ".las";
+    cla = new std::ofstream(fileName.c_str());
+    if (cla == NULL)
+    {
+      EXCEPTION( "Failed to open file '" << fileName << "' for "
+          << "writing status reports of OLAS, the linear algebra "
+          << "sub-system!" );
     }
-  }
+    break;
 
-  CFSMessenger* DefineInOutFiles::CreateScriptMessenger( const std::string& fileName) {
-    
-    CFSMessenger * messenger = NULL;
+  }
+}
+
+CFSMessenger* DefineInOutFiles::CreateScriptMessenger(
+    const std::string& fileName)
+{
+
+  CFSMessenger * messenger = NULL;
 
 #ifdef USE_SCRIPTING
-    // check filename, if it is not empty
-    if( fileName == "") {
-      messenger = new CFSMessenger();
-    }
+  // check filename, if it is not empty
+  if (fileName == "")
+  {
+    messenger = new CFSMessenger();
+  }
 
 #ifdef USE_SCRIPTING_TCL
-    else if( fileName.find( ".tcl") != std::string::npos ) {
-      messenger = new TCL_CFSMessenger();
-    }
+  else if (fileName.find(".tcl") != std::string::npos)
+  {
+    messenger = new TCL_CFSMessenger();
+  }
 #endif
 #ifdef USE_SCRIPTING_PYTHON
-    else if( fileName.find( ".py") != std::string::npos ) {
-      messenger = new PY_CFSMessenger();
-    }
-#endif
-    else {
-      EXCEPTION( "Could not determine script language of file '"
-                 << fileName << "'!" );
-    }
-#endif
-
-    return messenger;
-
+  else if( fileName.find( ".py") != std::string::npos )
+  {
+    messenger = new PY_CFSMessenger();
   }
+#endif
+  else
+  {
+    EXCEPTION( "Could not determine script language of file '"
+        << fileName << "'!" );
+  }
+#endif
+
+  return messenger;
+
+}
 
 } // end of namespace

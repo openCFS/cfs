@@ -1,6 +1,6 @@
 SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
                       TransferFunction.cc Condition.cc OptimalityCondition.cc EvaluateOnly.cc
-                      BaseOptimizer.cc)
+                      BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc)
 
 IF(USE_IPOPT)
    SET(TARGET_LL

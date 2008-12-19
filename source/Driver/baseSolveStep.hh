@@ -91,20 +91,6 @@ namespace CoupledField
       Error( "Not implemented her!", __FILE__, __LINE__ );
     }
 
-    //----------------------- TRANSIENTHARMONIC------------------------------
-    //! routine for initilizations before execution of the SolveStep-method
-    virtual void PreStepTransHarmonic( )
-    {Error("PreStepTransHarmonic not implemented!",__FILE__,__LINE__);};
-
-    //! base method for solving one transient-harmonic coupled step
-    virtual void SolveStepTransHarmonic()
-    {Error("SolveStepTransHarmonic not implemented!",__FILE__,__LINE__);};
-
-    //! routine for actions after the SolveStep-method
-    virtual void PostStepTransHarmonic()
-    {Error("PostStepTransHarmonic not implemented!",__FILE__,__LINE__);};
-
-
     //----------------------- SET/ GET METHODS--------------------------------
 
     //! Set actual time

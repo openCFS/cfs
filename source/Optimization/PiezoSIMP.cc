@@ -19,7 +19,7 @@
 
 #include "boost/lexical_cast.hpp"
 
-using namespace CoupledField; 
+using namespace CoupledField;
 
 using std::complex;
 
@@ -31,27 +31,26 @@ PiezoSIMP::PiezoSIMP()
    elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
    assert(pde.GetSize() == 1);
    pde.Push_back(elec);
-   
-   // set the stiffness matrices. mechStiffnes is set in SIMP.
-   GetElementMatrix(GetForm(elec, elec, "linElecInt"), elecStiffness);
-   GetElementMatrix(GetForm(mech, elec, "linPiezoCoupling"), coupledStiffness);    
-   coupledStiffness.Transpose(coupledStiffnessTransposed);
 
-   // set the corresponding systems to nonlinear -> mech, mech was done in SIMP
-   GetForm(mech, elec, "linPiezoCoupling")->SetSolDependent(true);      
-   GetForm(elec, elec, "linElecInt")->SetSolDependent(true);
+   for(unsigned int r = 0; r < regionIds.GetSize(); r++){
+     GetElementMatrix(GetForm(regionIds[r], elec, elec, "linElecInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0);
+     GetElementMatrix(GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
+     coupledStiffness_map[regionIds[r]].Transpose(coupledStiffnessTransposed_map[regionIds[r]]);
+     GetForm(regionIds[r], mech, elec, "linPiezoCoupling")->SetSolDependent(true);
+     GetForm(regionIds[r], elec, elec, "linElecInt")->SetSolDependent(true);
+   }
    // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
-   
+
    // validate the transfer functions
    if(design->design.Find(DesignElement::DENSITY) >= 0)
    {
       if(design->GetTransferFunction(DesignElement::DENSITY, MECH, false) == NULL)
         throw Exception("miss transfer function for densitiy and mechanic");
-        
+
       if(design->GetTransferFunction(DesignElement::DENSITY, ELEC, false) == NULL &&
          design->GetTransferFunction(DesignElement::POLARIZATION, ELEC, false) == NULL)
         throw Exception("miss transfer function for densitiy/polarization and electrostatic");
-        
+
       if(design->GetTransferFunction(DesignElement::DENSITY, PIEZO_COUPLING, false) == NULL)
         throw Exception("miss transfer function for densitiy and coupling");
    }
@@ -60,7 +59,7 @@ PiezoSIMP::PiezoSIMP()
       if(design->GetTransferFunction(DesignElement::POLARIZATION, PIEZO_COUPLING, false) == NULL)
         throw Exception("miss transfer function for polarization and coupling");
    }
-} 
+}
 
 PiezoSIMP::~PiezoSIMP()
 {
@@ -76,21 +75,30 @@ void PiezoSIMP::PostInit()
 }
 
 
-void PiezoSIMP::CalcObjectiveGradient(double* grad_out)
+void PiezoSIMP::CalcObjectiveGradient(Excitation& excite)
 {
   switch(cost->type)
   {
   case OUTPUT:
+  case DYNAMIC_OUTPUT:
+  case GLOBAL_DYNAMIC_COMPLIANCE:
   {
+    unsigned int idx = excite.index;
+
+    double factor = excite.normalized_weight;
+    if(cost->FactorOmegaOmega()) factor *= excite.GetOmegaOmega();
+    LOG_DBG2(simp) << "PS::CalcObjectiveGradient(idx=" << excite.index << ") factor = "
+                   << excite.normalized_weight << " * "
+                   << (cost->FactorOmegaOmega() ? excite.GetOmegaOmega() : 1.0) << " -> " << factor;
+
     // we see at mechRHS and elecRHS if we have such an excitation
     SurfaceRef* mech_rhs = mechRHS.valid ? &mechRHS : NULL;
     SurfaceRef* elec_rhs = elecRHS.valid ? &elecRHS : NULL;
-    
-    LOG_TRACE2(simp) << "CalcObjectiveGradient: output -> sensitive rhs's: "
+
+    LOG_TRACE2(simp) << "PS:CalcOutputGradient: output -> sensitive rhs's: "
                      << mechRHS.ToString(1) << ", " << elecRHS.ToString(1);
 
-    
-    // we calculate lambda^T K sol where 
+    // we calculate lambda^T K sol where
     // sol = displacement and potential and K = K_uu, K_up, K_up^T, K_pp
     // we calcualate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
     for(unsigned int i = 0; i < design->design.GetSize(); i++)
@@ -98,67 +106,62 @@ void PiezoSIMP::CalcObjectiveGradient(double* grad_out)
       DesignElement::Type dt = design->design[i];
       TransferFunction*   tf = NULL;
 
-      // reset as we sum up with CalcU1KU2() 
-      design->Reset(dt, DesignElement::COST_GRADIENT);
-
-      // we allow NULL for the transfer functions, 
-      // then the gradient is 0 what is done via Reset! 
+      // we allow NULL for the transfer functions,
+      // then the gradient is 0 what is done via Reset!
       // lambda_u * K_uu' * u
       tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint_->elem[MECH], MECH, forward_->elem[MECH], mech_rhs, true);
-     
+        CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], mech_rhs, true, factor);
+
       // lambda_u * K_up' * p
-      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false); 
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint_->elem[MECH], PIEZO_COUPLING, forward_->elem[ELEC], mech_rhs, true);
-      
+        CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], PIEZO_COUPLING, forward.data[idx]->elem[ELEC], mech_rhs, true, factor);
+
       // lambda_p * (K_up^T)' * u
-      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false); 
+      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint_->elem[ELEC], PIEZO_COUPLING, forward_->elem[MECH], elec_rhs, true);
-      
+        CalcU1KU2(tf, adjoint.data[idx]->elem[ELEC], PIEZO_COUPLING, forward.data[idx]->elem[MECH], elec_rhs, true, factor);
+
       // lambda_p * K_pp' * p
-      tf = design->GetTransferFunction(dt, ELEC, false); 
+      tf = design->GetTransferFunction(dt, ELEC, false);
       if(tf != NULL)
-        CalcU1KU2(tf, adjoint_->elem[ELEC], ELEC, forward_->elem[ELEC], elec_rhs, true);
+        CalcU1KU2(tf, adjoint.data[idx]->elem[ELEC], ELEC, forward.data[idx]->elem[ELEC], elec_rhs, true, factor);
     }
-    break;
   }
+  break;
 
   default:
-    SIMP::CalcObjectiveGradient(grad_out);
-  }  
-  
-  if(grad_out != NULL) design->WriteGradientToExtern(grad_out, DesignElement::NO_TYPE, 
-                               DesignElement::COST_GRADIENT, DesignElement::SMART);
-  
+    SIMP::CalcObjectiveGradient(excite);
+  }
 }
-
 
 template <class T>
 void PiezoSIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out)
 {
   TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
   double factor = tf->Derivative(de);
-  
+
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
-  
+
   switch(app)
   {
   case ELEC:
-    Assign(out, elecStiffness, factor);
+    Assign(out, ElecStiffness(de->elem), factor);
     break;
-    
+
   case PIEZO_COUPLING:
+  {
+    const Matrix<double>& coupledStiffness = CoupledStiffness(de->elem);
     // we see on the size of in if we cave to be transposed!
     if(out.GetSizeCol() == coupledStiffness.GetSizeCol())
       Assign(out, coupledStiffness, factor);
     else
-      Assign(out, coupledStiffnessTransposed, factor);      
+      Assign(out, CoupledStiffnessTransposed(de->elem), factor);
     break;
-    
-  default: 
+  }
+
+  default:
     // mech and surface normal matrix are handled in SIMP
     SIMP::SetElementK(de, app, mat_out);
     return; // all calculation done there (or assert!)
@@ -168,6 +171,17 @@ void PiezoSIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_o
 }
 
 
+const Matrix<double>& PiezoSIMP::ElecStiffness(Elem* elem){
+  return elecStiffness_map[elem->regionId];
+}
 
-  
-  
+const Matrix<double>& PiezoSIMP::CoupledStiffness(Elem* elem){
+  return coupledStiffness_map[elem->regionId];
+}
+
+const Matrix<double>& PiezoSIMP::CoupledStiffnessTransposed(Elem* elem){
+  return coupledStiffnessTransposed_map[elem->regionId];
+}
+
+
+

@@ -2,66 +2,132 @@
 #define INFONODE_HH_
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <complex>
 
 namespace CoupledField
 {
 
+/** Declare the global pointer info created in cfs.cc */
+class InfoNode;
+extern InfoNode* info;
+
 class InfoNode : public ParamNode
 {
 public:
-  
-  
-  /** Default constructor for StdVector */
-  InfoNode();
+  /** Default constructor for StdVector.
+   * @param filename if given one can do a easy (repeated) ToFile() w/p parameters.
+   * @param preamble is written at the beginning of the file */
+  InfoNode(const std::string& filename = "", const std::string& preamble = "");
 
   /** ParamNode handles the destructor stuff */
   ~InfoNode() {};
-  
-  typedef enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE, DEBUG, ALL};
-  
-  /** For main elements (PDE, Optimization, ...) there is a seperation into
-   * three parts. XSLT can make use of it! */ 
-  typedef enum Part { STARTUP, MAIN, FINALIZE, NO_PART };
-  
-  typedef enum Cardinality { USE_EXISTING, REPLACE, APPEND, UNIQUE};
-  
-  typedef enum ValueType { BOOL, INTEGER, REAL, COMPLEX, STRING, MATRIX, VECTOR, UNKNOWN };
-  
+
+  //typedef enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE, DEBUG, ALL};
+  enum LogLevel { NOT_SET, DISABLED, BRIEF, DETAILED, VERBOSE};
+
+  enum Cardinality { USE_EXISTING, REPLACE, APPEND, UNIQUE};
+
+  enum ValueType { BOOL, INTEGER, REAL, COMPLEX, STRING, MATRIX, VECTOR, UNKNOWN };
+
   /** Gives back The InfoNode, depending on the cardinality this is a old one.
-   * One has to give either name or caption or both. If name is not given, it
-   * is created out of caption via ToValidLabel()
+   * @param name a valid xml name
+   * @param comment if given a child element is created, one can doe by hand
    * @param name either a valid XML name (no spaces, brackets, ...) or "", then caption is used
    * @param caption the label for the output ('Number of iterations'). If "" then name is used */
-  InfoNode* Create(const std::string& name, const std::string& caption, 
-                   Cardinality card = USE_EXISTING, Part part = NO_PART
-                   LogLevel log = NOT_SET); 
-  
+  InfoNode* Get(const std::string& name, const std::string& comment, Cardinality card = USE_EXISTING)
+  {
+    return Get(name, comment, "", "", card);
+  }
+
+  /** Works like the Has(parent, child, value) in ParamNode */
+  InfoNode* Get(const std::string& name, const std::string& child,
+                const std::string& value, Cardinality card = USE_EXISTING)
+  {
+    return Get(name, "", child, value, card);
+  }
+
+  InfoNode* Get(const std::string& name, Cardinality card = USE_EXISTING)
+  {
+    return Get(name, "", "", "", card);
+  }
+
+
   /** The ParamNode::SetString() shall not be used, This SetValue() methods also set
    * valueType (explicit and implicit)
    * todo: implement CDATA stuff :)
    * @param string automatically checks if it has to become CDATA if conating &lt; , ... */
-  void SetValue(const std::string& string)
-  {
-    value_ = string;
-    valueType_ = STRING;
+  void SetValue(const std::string& string);
+
+  void SetValue(const char* c_str) {
+    SetValue(std::string(c_str));
   }
-  
+
+  void SetValue(bool param);
+
+  void SetValue(int param);
+
+  void SetValue(unsigned int param);
+
+  void SetValue(double param);
+
+  void SetValue(const std::complex<double>& param);
+
+  /** Creates a sub-node with the content */
+  void SetComment(const std::string& string);
+
+  /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
+   * called for an attribute
+   * @param depth number of ident steps, will be interpreted as one space */
+  void ToXML(std::ostream& os, int depth = 0) const;
+
+  /** Write the current state to the file. Uses existing filename and preabmle if given
+   * @param filename if not set the must be one given in the constructor,
+   *        if given overwrites an existing value
+   * @param preamble is written at the beginning of the file. Logic as for filename */
+  void ToFile(const std::string& filename = "", const std::string& preamble = "");
+
+  /** This string constant shall mark the header of a part - e.g. defaults and assumptions */
+  const static std::string HEADER;
+
+  /** This string constant shall mark the logging part which contains "dynamic" data, e.g. current iteration */
+  const static std::string PROCESS;
+  /** this string constann shall mark summary information, e.g. total number of iterations */
+  const static std::string SUMMARY;
+
+  const static std::string COMMENT;
+  const static std::string WARNING;
+  const static std::string ERROR;
+
 private:
-  
-  
-  
-  
+
+  InfoNode* Get(const std::string& name, const std::string& comment,
+                const std::string& child, const std::string& value,
+                Cardinality card = USE_EXISTING);
+
+  /** Init COMMENT, ... */
+  static void InitStatic();
+
+  /** limits the siginificant digits of real and complex */
+  std::string GetFormatedValue() const;
+
   /** Makes a valid XML name, e.g. removes spaces. Used to create
-   * automatically an ParamNode::name_ value out of caption_ 
+   * automatically an ParamNode::name_ value out of caption_
    * @param in might contain spaces, e.g. "Number of iterations"
    * @return for this example 'NumberOfIterations' */
   std::string ToValidLabel(const std::string& in) const;
-  
+
+  /** due to a strange compiler error, try to remove */
+  bool IsAttribute() const { return attribute_; }
+
+  /** Is the string value good for a attribute (length, quotation mark).
+   * To decide if comment and value are XML-elements or attributes */
+  bool IsGoodAttribute(const std::string& string) const;
+
   /** This is the label of the entry.
    * If a ParamNode::name_ is not explicit give, it correlates via ToValidLabel()
    * with capation_ */
   std::string caption_;
-  
+
   /** We have to know about out parent for parameter inheritance!
    *  NULL only for ROOT */
   InfoNode* parent_;
@@ -69,12 +135,16 @@ private:
   /** if NOT_SET the log level inherits from the first set parent */
   LogLevel log_;
 
-  /** which part/ sequence are we? */
-  Part part_;
-  
   Cardinality cardinality_;
-  
+
   ValueType type_;
+
+  // e.g. the root element can be given a filename for (intermedia) saves
+  std::string filename_;
+  // is written as preamble to files by WriteToFile();
+  std::string preamble_;
+
+
 };
 
 

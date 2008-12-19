@@ -931,8 +931,9 @@ namespace CoupledField {
     
     // finalize eqnMap
     eqnMap->Finalize();
-    if( debug )
-    eqnMap->Print(*debug);
+    
+    if(progOpts->DoListMapping()) 
+      eqnMap->ToInfo(info->Get(InfoNode::HEADER)->Get("mappings", InfoNode::APPEND));
     
     // create new vector with coefficients
     Vector<TYPE> solVec;

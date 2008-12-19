@@ -66,8 +66,8 @@ namespace CoupledField
 
   Double DampLayer::EvalDampFnc(Vector<Double>& pos)
   {
-
-    Double factor;
+		// initialize or receive compiler warning
+    Double factor = 0.0;
 
     if ( dampFncType_ == "linear" ) {
       factor = dampingFactor_;

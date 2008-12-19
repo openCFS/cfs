@@ -159,7 +159,7 @@ namespace OLAS {
       Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
     }
 
-    UInt size = matrixA_->GetNrows();
+    // COMPWARNING unused variable UInt size = matrixA_->GetNrows();
 
     // Now generate a new complex matrix 
     MatrixEntryType eType = COMPLEX;

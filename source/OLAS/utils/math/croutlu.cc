@@ -111,7 +111,7 @@ namespace OLAS {
 
     // Obtain size information of the matrix
     sysMatDim_ = sysMat.GetNrows();
-    if ( sysMatDim_ != sysMat.GetNcols() ) {
+    if ( (int) sysMatDim_ != sysMat.GetNcols() ) {
       (*error) << "CroutLU::Factorise encountered a "
                << sysMatDim_ << " x " << sysMat.GetNrows()
                << "system matrix. Should be square, however.";
@@ -829,7 +829,7 @@ namespace OLAS {
         // Copy the off-diagonal entries on the right
         UInt i;
         for ( i = rptrA[k] + 1; i < (UInt)rptrA[k+1]; i++ ) {
-          if ( cidxA[i] >= k ) {
+          if ( cidxA[i] >= (int) k ) {
             vecZ[ cidxA[i] ] = entryA[i];
           }
         }
@@ -847,7 +847,7 @@ namespace OLAS {
         // Copy the off-diagonal entries on the right
         UInt i;
         for ( i = rptrA[k] + 1; i < (UInt)rptrA[k+1]; i++ ) {
-          if ( cidxA[i] >= k ) {
+          if ( cidxA[i] >=  (int) k ) {
             vecZ[ cidxA[i] ] = entryA[i];
             vecZLevel_[ cidxA[i] ] = 0;
           }

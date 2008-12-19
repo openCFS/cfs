@@ -216,7 +216,7 @@ namespace OLAS {
       }
     }
 
-#ifdef DEBUG_ASSEMBLE
+    /*
     // output original connectivity
     (*debug) << "\n ------------------------------------------------------"
              << "\n EntryManipulatorComplex::SetCounterPartOnly\n"
@@ -249,7 +249,7 @@ namespace OLAS {
       (*debug) << colIndList2_[i] << " ";
     }
     (*debug) << std::endl;
-#endif
+    */
 
     // STEP 3: Insert values of transposed counter part into matrix
     UInt rowInd;
@@ -257,9 +257,7 @@ namespace OLAS {
     Double real;
     Double imag;
 
-#ifdef DEBUG_ASSEMBLE
-    (*debug) << "\n free <-> free matrix (counterpart):\n";
-#endif
+    // (*debug) << "\n free <-> free matrix (counterpart):\n";
     for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
       rowInd = rowIndList_[i+1];
       for ( UInt j = 0; j < colIndList1_.size(); j += 2 ) {
@@ -268,10 +266,8 @@ namespace OLAS {
         imag = elemMat[ rowInd * length2 + colInd + length1 * length2 ];
         Complex cVal( real, imag );
 
-#ifdef DEBUG_ASSEMBLE
-        (*debug) << "mat(" << colIndList1_[j] << ", "
-                 << rowIndList_[j] << ") += " << cVal << std::endl;
-#endif
+        //(*debug) << "mat(" << colIndList1_[j] << ", "
+        //         << rowIndList_[j] << ") += " << cVal << std::endl;
 
         counterPart->AddToMatrixEntry( colIndList1_[j], rowIndList_[i],
                                        cVal );
@@ -279,22 +275,20 @@ namespace OLAS {
     }
 
     // STEP 4: Insert values for fixed dofs into IDBC_Handler object
-#ifdef DEBUG_ASSEMBLE
-    (*debug) << "\n free <-> fixed matrix:\n";
-#endif
+    // (*debug) << "\n free <-> fixed matrix:\n";
     for ( UInt i = 0; i < rowIndList_.size(); i += 2 ) {
       rowInd = rowIndList_[i+1];
       for ( UInt j = 0; j < colIndList2_.size(); j += 2 ) {
         colInd = colIndList2_[j+1];
 
-#ifdef DEBUG_ASSEMBLE
+       /* 
         (*debug) << " mat(" << rowIndList_[i] << ", "
                  << colIndList2_[j] << ") += "
                  << elemMat[ rowInd * length2 + colInd ]
                  << ", "
                  << elemMat[ rowInd * length2 + colInd + length1 * length2]
                  << std::endl;
-#endif
+        */
         idbcHandler->SetWeightFixedToFree( matrixID, pdeID1, pdeID2,
                                            rowIndList_[i], colIndList2_[j],
                                            elemMat[ rowInd * length2
@@ -680,9 +674,7 @@ namespace OLAS {
     // only update the rhs buffer if it is invalid
     if ( rhsBufferIsValid_ == false ) {
 
-#ifdef DEBUG_ASSEMBLE
-      (*debug) << "GetRHSVal: case sequential OLAS" << std::endl;
-#endif
+      // (*debug) << "GetRHSVal: case sequential OLAS" << std::endl;
       // copy vector into buffer
       rhsBuffer_ = *rhs;
       

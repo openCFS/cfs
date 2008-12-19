@@ -225,14 +225,14 @@ beta and gamma!\n" );
           // map node numbers to equation numbers
           eqnMap_->GetEqns( eqnNumbers, *result_, it );
 
-#ifdef DEBUG
+         /*
           UInt elemNum = it.GetElem()->elemNum;
 		  
           // output matrix with which BDF is computed
           (*debug) << "Damping   matrix (fractional Damping) of Element " 
                    << elemNum << std::endl;
           (*debug) << elemmat << std::endl;
-#endif
+          */
 
           // compute BDF
           GetElemSolution( solpred_, elemsol, eqnNumbers );
@@ -246,10 +246,8 @@ beta and gamma!\n" );
 
           rhsAssemble = elemmat * rhsvec;
 
-#ifdef DEBUG
-          (*debug) << "BDF vector of timestep " << actStep_ << std::endl
-                   << rhsvec << std::endl;
-#endif
+         
+          // (*debug) << "BDF vector of timestep " << actStep_ << std::endl << rhsvec << std::endl;
           
           //assemble to RHS
           algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
@@ -428,7 +426,7 @@ beta and gamma!\n" );
     }
 
     // output weight factors vector 'coeff_'
-#ifdef DEBUG
+    /* 
     std::string mymessage;
     PrintSolMemoryVal(mymessage);
     (*debug) << mymessage << std::endl << std::endl;
@@ -440,7 +438,7 @@ beta and gamma!\n" );
     for(UInt i=0; i<newCoeff.size(); i++)
       (*debug) << newCoeff[i] << "  ";
     (*debug) << std::endl;
-#endif
+    */
 
     // assign compressed weight factors to coeff_
     coeff_ = newCoeff;

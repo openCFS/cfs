@@ -97,12 +97,12 @@ typedef struct {
 } SResultTypeInfo;
 
 static SResultTypeInfo _ResultTypeInfo[] = {
-  {"Scalar",                  1, 0, 0, 0},
-  {"Vector",                  2, 3, 4, 0},
-  {"Matrix",                  3, 6, 0, 0},
-  {"PlainDeformationMatrix",  4, 0, 0, 0},
-  {"MainMatrix",             12, 0, 0, 0},
-  {"LocalAxes",               3, 0, 0, 0}
+  {"Scalar",                { 1, 0, 0, 0}},
+  {"Vector",                { 2, 3, 4, 0}},
+  {"Matrix",                { 3, 6, 0, 0}},
+  {"PlainDeformationMatrix",{ 4, 0, 0, 0}},
+  {"MainMatrix",            {12, 0, 0, 0}},
+  {"LocalAxes",             { 3, 0, 0, 0}}
 };
 
 GP_CONST char * GetResultTypeName(GiD_ResultType type, size_t s)
@@ -119,9 +119,9 @@ GP_CONST char * GetResultTypeName(GiD_ResultType type, size_t s)
         break;
     }
     if (i == NMAX_DIMS)
-      printf("Invalid dimension %u for type %s\n", s, buffer);
+      printf("Invalid dimension %u for type %s\n", (unsigned int) s, buffer);
     else
-      sprintf(ptr, ":%u", s);
+      sprintf(ptr, ":%u", (unsigned int) s);
   }
   return buffer;
 }

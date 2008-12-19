@@ -99,7 +99,7 @@ namespace OLAS {
     if ( myBlockSize_ == 0 ) {
       myBlockSize_ = blockSize;
     }
-    else if ( blockSize != myBlockSize_ ) {
+    else if ( (UInt) blockSize != myBlockSize_ ) {
       (*error) << "SBM_Matrix::SetSubMatrix: Block size " << blockSize
                << " does not match block size " << myBlockSize_
                << " of other sub-matrices";
@@ -108,7 +108,7 @@ namespace OLAS {
 
     // Check that the dimensions of the new matrix fit to its neighbours
     // in the super-block matrix
-    UInt auxDim;
+    Integer auxDim;
 
     // left neighbour
     if ( j > 1 && subMat_[ComputeIndex(i,j-1)] != NULL ) {
@@ -191,7 +191,7 @@ namespace OLAS {
       StdMatrix *auxMat = NULL;
 
       // Loop over all sub-blocks and trigger addition
-      for ( UInt k = 1; k <= nrows_ * ncols_; k++ ) {
+      for ( Integer k = 1; k <= nrows_ * ncols_; k++ ) {
 
         // Get hold of submatrix
         auxMat = sbmMat.subMat_[k];
@@ -558,7 +558,7 @@ namespace OLAS {
     Integer sum = 0;
     StdMatrix *stdMat = NULL;
 
-    for ( UInt i = 1; i <= nrows_; i++ ) {
+    for ( Integer i = 1; i <= nrows_; i++ ) {
       stdMat =  subMat_[ ComputeIndex(i,i) ];
       if ( stdMat != NULL ) {
         sum += stdMat->GetNrowsScalar();
@@ -584,7 +584,7 @@ namespace OLAS {
     Integer sum = 0;
     StdMatrix *stdMat = NULL;
 
-    for ( UInt i = 1; i <= ncols_; i++ ) {
+    for ( Integer i = 1; i <= ncols_; i++ ) {
       stdMat =  subMat_[ ComputeIndex(i,i) ];
       if ( stdMat != NULL ) {
         sum += stdMat->GetNcolsScalar();

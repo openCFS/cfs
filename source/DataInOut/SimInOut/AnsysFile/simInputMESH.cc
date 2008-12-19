@@ -814,7 +814,7 @@ namespace CoupledField {
     std::string buf;
     pos=std::string::npos;
     bool found = false;
-    std::string::size_type hpos;
+    std::string::size_type hpos = 0;
 
     while ( found == false && !inFile_.eof() ) {
       hpos=inFile_.tellg();

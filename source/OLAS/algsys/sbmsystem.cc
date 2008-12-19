@@ -637,11 +637,8 @@ namespace OLAS {
     // matrix and no other ones
     if ( matFactors.empty() == true ) {
       if ( matrixTypes_.size() == 1 && sys != NULL ) {
-
-#ifdef DEBUG_SBM_SYSTEM
-        (*debug) << " ConstructEffectiveMatrix: Nothing to be done, since"
-                 << " there is only one FE = system matrix\n\n";
-#endif
+        //(*debug) << " ConstructEffectiveMatrix: Nothing to be done, since"
+        //         << " there is only one FE = system matrix\n\n";
 
         // Also assemble the effective auxilliary system matrix for moving
         // IDBCs to the right-hand side
@@ -658,13 +655,13 @@ namespace OLAS {
       }
     }
 
-#ifdef DEBUG_SBM_SYSTEM
+    /*
     (*debug) << "ConstructEffectiveMatrix with factors: " << std::endl;
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       (*debug) << Enum2String((*it).first) << ":"
                << (*it).second << std::endl;
     }
-#endif
+*/
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {

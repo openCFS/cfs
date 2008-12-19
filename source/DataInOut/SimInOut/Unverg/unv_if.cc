@@ -370,6 +370,9 @@ int CapaInterfaceC::GetNodeData(long iNode, long dataIndex,
     for (iData=0; iData<nData; iData++) {
       data1[iData]=SETS55[iDataSet].dat[iNode].data[iData];
     }
+		break;
+	case NoData:
+		break;
   }
   return 0;
 }
@@ -401,6 +404,9 @@ int CapaInterfaceC::GetElemData(long iElem, long dataIndex,
     for (iData=0; iData<nData; iData++) {
       data1[iData]=SETS56[iDataSet].dat[iElem].data[iData];
     }
+		break;
+	case NoData:
+		break;
   }
   return 0;
 }

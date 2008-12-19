@@ -56,9 +56,6 @@ BaseDriver* BaseDriver::CreateInstance()
   flags = new Flags();
 #endif
 
-  // Generate log message
-  Info->StartProgress( "Generating driver" );
-
   BaseDriver   *ptdriver = NULL;
   StdVector<std::string>  analysisTypes;
 
@@ -74,7 +71,7 @@ BaseDriver* BaseDriver::CreateInstance()
     std::string idx = "index";
     std::string one = "1";
 
-    analysisString = 
+    analysisString =
       param->Get(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
@@ -106,7 +103,7 @@ BaseDriver* BaseDriver::CreateInstance()
       EXCEPTION( "Could not create driver" );
     }
 
-    // b) create multiSequence driver    
+    // b) create multiSequence driver
   } else if( numSteps > 1 ) {
     ptdriver = new MultiSequenceDriver( );
   } else {

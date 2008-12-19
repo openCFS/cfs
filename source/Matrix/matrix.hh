@@ -21,39 +21,39 @@
 #endif
 
 namespace CoupledField
-{      
+{
 
   //! Forward class declaration
   template<class TYPE> class Vector;
-  
+
 
   //! Concrete implementation of a dense matrix
   template<class TYPE>
 #ifdef EXPR_TEMPLATES
   class Matrix: public CFSMatrix, public Dim2<TYPE, Matrix<TYPE> >
 #else
-  class Matrix: public CFSMatrix 
+  class Matrix: public CFSMatrix
 #endif
   {
   public:
-    
+
     //! Friend declaration for vector
     friend class Vector<TYPE>;
 
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION, INITIALIZATION, RESIZING
     // =======================================================================
-    
+
     //! \name Construction, Destruction, Initialization and Resizing
 
-    //@{ 
-    //! Default constructor 
-    
+    //@{
+    //! Default constructor
+
     //! Creates an empty matrix of size 0x0
     Matrix( );
-    
+
     //! Constructor for matrix with given size
-    
+
     //! Creates a matrix of size nRows x nCols, initialized
     //! with zeroes
     //! \param nRows (input) Number of rows
@@ -73,14 +73,14 @@ namespace CoupledField
 
     //! Templatized copy constructor
 
-    //! Generalized copy constructor. It is only implemented 
+    //! Generalized copy constructor. It is only implemented
     //! to create a complex-valued matrix from a given real-valued one.
-    //    template<class T2> 
+    //    template<class T2>
     //    Matrix( const Matrix<T2> &  );
 
       //! Destructor
     virtual ~Matrix( );
-      
+
     //! Initialize matrix with a given scalar entry.
 
     //! Initializes the matrix with a given scalar entry
@@ -91,28 +91,28 @@ namespace CoupledField
 
     //! Change the size of the matrix
 
-    //! Change size of general matrix 
+    //! Change size of general matrix
     //! \param nRows (input) Number of rows
     //! \param nCols (input) Number of columns
     void Resize(const UInt nRows, const UInt nCols );
 
     //! Changes the size so that the matrix gets quadratic
-    
+
     //! Changes the size of the matrix according to \a size.
     //! \param size (input) Number of rows / columns
     void Resize( const UInt size );
 
     /** Resize if necessary to the other matrix */
     void Resize(const Matrix<TYPE>& other);
-    
+
     //@}
-    
+
     // =======================================================================
     // GENERAL INFORMATION
     // =======================================================================
-    
+
     //! \name General Matrix Information
-    
+
     //@{
 
     //! Get entry type of matrix
@@ -128,7 +128,7 @@ namespace CoupledField
 
     //! Get the number of rows
     UInt GetSizeRow() const;
-    
+
     //! Get the number of columns
     UInt GetSizeCol() const;
 
@@ -137,7 +137,7 @@ namespace CoupledField
     // =======================================================================
     // OBTAIN / MANIPULATE MATRIX ENTRIES
     // =======================================================================
-    
+
     //! \name Obtain / Manipulate Matrix Entries
 
     //@{
@@ -158,7 +158,7 @@ namespace CoupledField
     inline TYPE operator()( UInt row, UInt col ) const {
       return data_[row][col];
     }
-    
+
     //! Returns pointer to row \a row
     inline TYPE * operator[]( const UInt row ) const;
 
@@ -169,20 +169,20 @@ namespace CoupledField
 
     //! Returns pointer to array of elements in matrix, row by row
     inline TYPE * GetDataPointer() const { return data_[0];}
-    
+
     //! Get the entry 'val' at position (row,col) in the matrix
-    
+
     //! Return entry at position (\a row, \a col) in the matrix
     //! \param row (input) row index of entry
     //! \param col (input) column index of entry
     //! \param val (output) on return contains value of entry
-    inline void GetEntry( const UInt row, const UInt col, 
+    inline void GetEntry( const UInt row, const UInt col,
                           TYPE & val ) const {
-      val = *( data_[0] + row * size_col_ + col ); 
+      val = *( data_[0] + row * size_col_ + col );
     }
-     
+
     //! Set the entry 'val' at position (\a row, \a col) in the matrix
-    
+
     //! Set the entry 'val' at position (\a row, \a col) in the matrix
     //! \param row (input) Row of entry
     //! \param col (input) Column of entry
@@ -192,14 +192,14 @@ namespace CoupledField
     }
 
     //! Add'val' to the matrix entry at position (row,col) in the matrix
-    
-    //! Add'val' to the matrix entry at position (\a row, \a col) in the 
+
+    //! Add'val' to the matrix entry at position (\a row, \a col) in the
     //! matrix
     //! \param row (input) Row of entry
     //! \param col (input) Column of entry
     //! \param val (input) Value to be added
     void AddToEntry( const UInt row, const UInt col, const TYPE val );
-    
+
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 
@@ -208,7 +208,7 @@ namespace CoupledField
     // =======================================================================
     // NAMED ARITHMETIC OPERATIONS
     // =======================================================================
-    
+
     //! \name Named Arithmetic Operations
     //@{
 
@@ -216,13 +216,13 @@ namespace CoupledField
     void Add( const TYPE fac, const CFSMatrix & mat) {
       EXCEPTION( "Not implemented yet!" );
     }
-    
+
     /** Set this matrix with a multiple of another matric.
-     * This and a mixed varian is also a sandalone method in tools. 
-     * Anybody knows how to do the mixed form (complex <- double * complex) here? 
+     * This and a mixed varian is also a sandalone method in tools.
+     * Anybody knows how to do the mixed form (complex <- double * complex) here?
      * this = factor * other_mat */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
-    
+
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const;
 
@@ -231,47 +231,47 @@ namespace CoupledField
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const CFSVector & mvec, CFSVector & rvec ) const {;};
-  
+
     //! Perform a matrix-vector multiplication rvec += this*mvec
     void MultAdd( const CFSVector & mvec, CFSVector & rvec ) const {;};
-  
+
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
     void MultTAdd( const CFSVector & mvec, CFSVector& rvec ) const {;};
-  
+
     //! Perform a matrix-vector multiplication rvec -= this*mvec
     void MultSub( const CFSVector & mvec, CFSVector & rvec ) const {;};
 
     //! Assign the matrix the dyadic product of a vector with itself
-    
-    //! Assigns the matrix itself the dyadic product of a vector vec1 
+
+    //! Assigns the matrix itself the dyadic product of a vector vec1
     //! with itself
     //!\param vec1 (input) Vector which gets multiplied with itself
-    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //!  m_{21} & m_{22} & \cdots \\
-    //!  \cdots & \cdots & \cdots 
-    //!  \end{array} \right) 
+    //!  \cdots & \cdots & \cdots
+    //!  \end{array} \right)
     //!  =
-    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right)
     //!  \cdot
     //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
     //!  \f]
-    void DyadicMult( const CFSVector & vec1 );  
-  
+    void DyadicMult( const CFSVector & vec1 );
+
     //! Assign the matrix the dyadic product of two vectors
 
-    //! Assigns the matrix itself the dyadic product of a vector vec1 
+    //! Assigns the matrix itself the dyadic product of a vector vec1
     //! with a vector vec2
     //! \param vec1 (input) Vector which gets multiplied with itself
-    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //! m_{21} & m_{22} & \cdots \\
-    //! \cdots & \cdots & \cdots 
-    //! \end{array} \right) 
+    //! \cdots & \cdots & \cdots
+    //! \end{array} \right)
     //!  =
-    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right)
     //!  \cdot
     //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
     //!  \f]
-    void DyadicMult( const CFSVector & vec1, const CFSVector & vec2 ); 
+    void DyadicMult( const CFSVector & vec1, const CFSVector & vec2 );
 
     //! Calculate the Determinant (up to size 3)
 
@@ -289,56 +289,56 @@ namespace CoupledField
     }
     void Invert ( Matrix <TYPE> & inv ) const;
     //@}
-    
+
     //@{
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
-    void Transpose( Matrix<TYPE> & transposedMat ) const;  
+    void Transpose( Matrix<TYPE> & transposedMat ) const;
     void Transpose( CFSMatrix & transposedMat ) const {
       EXCEPTION("!!! IMPLEMENT !!!" );
     }
     //@}
 
-    
+
 #ifdef EXPR_TEMPLATES
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
     // =======================================================================
-        
-    //@{ 
+
+    //@{
     //! \name Interface To Expression Template Headers
 
     //! Matrix assignment operator using expression templates
-    inline Matrix<TYPE>& operator=( const Matrix<TYPE>& rhs ) { 
-      return assignFrom( rhs ); 
+    inline Matrix<TYPE>& operator=( const Matrix<TYPE>& rhs ) {
+      return assignFrom( rhs );
     }
-    
+
     //! Scalar assignment operator using expression templates
-    inline Matrix<TYPE>& operator=( TYPE rhs ) { 
-      return assignFrom( rhs ); 
+    inline Matrix<TYPE>& operator=( TYPE rhs ) {
+      return assignFrom( rhs );
     }
-    
+
     //! Matrix-Expression assignment operator using expression templates
-    template <class X> inline Matrix<TYPE>& 
+    template <class X> inline Matrix<TYPE>&
     operator=( const Xpr2<TYPE,X>& rhs ) {
       return assignFrom( rhs );
     }
-    
+
     //! Abstract matrix assignment operator
-    template <class M> inline Matrix<TYPE>& 
+    template <class M> inline Matrix<TYPE>&
     operator=( const Dim2<TYPE,M>& rhs ) {
       return assignFrom(rhs);
     }
-    
-    
+
+
     //! Return number of rows
     inline unsigned int rows() const { return size_row_; }
-    
+
     //! Return number of columns
     inline unsigned int cols() const { return size_col_; }
-    
+
     //@}
 #else
     // =======================================================================
@@ -346,13 +346,13 @@ namespace CoupledField
     // =======================================================================
 
     //! \name Mathematical Operators
-    //! \note Due to problems in Doxygen the binary operators +,-,*,/ 
+    //! \note Due to problems in Doxygen the binary operators +,-,*,/
     //!       (which use type promotion) are not shown, although they exist!
     //@{
-    
+
     //! Assignment operator
     Matrix<TYPE> & operator=( const Matrix &y );
-    
+
     //! Unary plus operator (this = +this)
     Matrix<TYPE> operator+() const;
 
@@ -367,14 +367,14 @@ namespace CoupledField
     Matrix<TYPE> operator-() const;
 
     //! Create new matrix by subtraction (new = this - y) (type promotion)
-    template <class TYPE2> Matrix<PROMOTE(TYPE,TYPE2)> 
+    template <class TYPE2> Matrix<PROMOTE(TYPE,TYPE2)>
     operator-( const Matrix<TYPE2> &y ) const;
 
     //! Subtract a second matrix from own one (this -= y)
     Matrix<TYPE> & operator-=( const Matrix<TYPE> &y );
 
-    //! Create new matrix by multiplication with scalar value 
-    //!(type promotion)    
+    //! Create new matrix by multiplication with scalar value
+    //!(type promotion)
     template <class TYPE2>
     Matrix<PROMOTE(TYPE,TYPE2)> operator* ( const TYPE2 &y ) const;
 
@@ -398,7 +398,7 @@ namespace CoupledField
     //@}
 
 #endif // EXPR_TEMPLATES
-    
+
     // =======================================================================
     // BOOLEAN OPERATORS
     // =======================================================================
@@ -406,13 +406,13 @@ namespace CoupledField
     //! \name bool operators
 
     //@{
-    
+
     //! Returns true if \a mat has the same entries as own matrix
     bool operator ==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
     bool operator!=( const Matrix<TYPE> & mat ) const;
- 
+
     //@}
 
 #ifdef USE_LAPACK
@@ -426,17 +426,17 @@ namespace CoupledField
     //! Solves system of algebraic equation AX = B
 
     //! Solves system of algebraic equation AX=B
-    //! where A is a quadratic matrix, and B a collection of 
-    //! right hand side vectors which will be replaced by the 
+    //! where A is a quadratic matrix, and B a collection of
+    //! right hand side vectors which will be replaced by the
     //! solution vectors. The enumeration LAPACK_MATRIX_TYPE
-    //! describes the qualities of the system matrix A, 
+    //! describes the qualities of the system matrix A,
     //! like symmetric, hermitian or general
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
     void solveWithLapack( Matrix<Complex> & b1,
                           lapackSysMatType & LAPACK_MATRIX_TYPE );
 
     void InvertDoubleMatrixWithLapack();
-    
+
     //! Computes eigenvalues of an hermitian matrix
     void eigenvaluesWithLapack(Vector<Double> & b1);
 
@@ -453,7 +453,7 @@ namespace CoupledField
       val.real = (F77real8)v.real();
       val.imag = (F77real8)v.imag();
     }
-    
+
     //! Converts a fortran 77 double to a C++ double
     void F772CC( const F77real8 &v, double &val ) {
       val = (double)v;
@@ -464,7 +464,7 @@ namespace CoupledField
     }
     //@}
 #endif
-  
+
     // =======================================================================
     // MISCELLANEOUS METHODS
     // =======================================================================
@@ -477,22 +477,22 @@ namespace CoupledField
 
     //! Solves directly a small system of equations of the form Ax=b
     //! using LU - decomposition (without pivoting!)
-    //! \param x (output) solution vector      
+    //! \param x (output) solution vector
     //! \param b (input) right-hand-side vector
-    //! \note The Matrix A=LU contains afterwards the the values of L 
+    //! \note The Matrix A=LU contains afterwards the the values of L
     //! in the lower triangular, and the values of U in the upper part.
     void DirectSolve( CFSVector & x, CFSVector & b );
 
 
     //! scales the diagonal elements of a  matrix by a factor
     void ScaleDiagElems( const TYPE factor );
-    
+
     //! Add a row to Matrix at position i
     void AddRow( const Vector<TYPE> & x, const UInt pos );
-    
+
     //! Add a column to Matrix at position i
-    void AddColumn( const Vector<TYPE> & x, const UInt pos ); 
-    
+    void AddColumn( const Vector<TYPE> & x, const UInt pos );
+
     //! Return a special part ( real, imag, amplitude, phase) of a matrix
     Matrix<Double> GetPart(  DataType part ) const;
 
@@ -501,7 +501,7 @@ namespace CoupledField
 
     //! Return a sub-part of the own matrix
 
-    //! Copies a sub-matrix at the position (row, col) into subMat. 
+    //! Copies a sub-matrix at the position (row, col) into subMat.
     //! The amount of copied elements depends on the size of subMat.
     void GetSubMatrix( CFSMatrix &subMat, const UInt nRows,
                        const UInt nCols ) const {
@@ -509,13 +509,13 @@ namespace CoupledField
     };
 
     //! Return a sub-part of the own matrix
-    
-    //! Copies a sub-matrix at the position (row, col) into subMat, 
+
+    //! Copies a sub-matrix at the position (row, col) into subMat,
     //! the amount of copied elements depends on the size of subMat
     void GetSubMatrix( Matrix<TYPE>& subMat, UInt row, UInt col ) const;
-  
+
     //! Set a sub-part of the matrix
-    
+
     //! Overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way.
     void SetSubMatrix( const CFSMatrix & subMat, const UInt nRows,
@@ -525,7 +525,7 @@ namespace CoupledField
 
 
     //! Set a sub-part of the matrix
-    
+
     //! Overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
     void SetSubMatrix( const Matrix<TYPE>& subMat, UInt row, UInt col );
@@ -539,7 +539,7 @@ namespace CoupledField
 
     //! Converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols( CFSVector& vec ) const;
- 
+
     /** Dumps for developers
      * @param level 0=all data, 1=summary info */
     std::string ToString(int level=0);
@@ -552,9 +552,9 @@ namespace CoupledField
     //! Calculates the adjunct of the matrix at position (i,j)
     TYPE Adjunct (UInt i, UInt j) const;
 
-    //! Number of rows 
+    //! Number of rows
     UInt size_row_;
-  
+
     //! Number of columns
     UInt size_col_;
 
@@ -565,41 +565,41 @@ namespace CoupledField
     // SERIALIZATION FUNCTIONS
     // =======================================================================
     // These functions allow us to write a vector directly
-    // into an boost::archive, for saving on a disk or in a 
+    // into an boost::archive, for saving on a disk or in a
     // iostream object
 
     //! allow serialization class to access vector entries
     friend class boost::serialization::access;
-    
+
     //! Saving internal state into a boost::archive
     template<class Archive>
     void save(Archive & ar, const unsigned int version) const;
-    
+
     //! Reading internal state from a boost::archive
     template<class Archive>
     void load(Archive & ar, const unsigned int version);
-    
+
     //! The following statement is needed for boost
     BOOST_SERIALIZATION_SPLIT_MEMBER()
-    
+
 
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
   //! \class Matrix
-  //! 
-  //! \purpose This class implements a general, templatized dense matrix with 
+  //!
+  //! \purpose This class implements a general, templatized dense matrix with
   //! the following additional features:
   //! - If the macro USE_EXPR_TEMPLATES is defined, it utilizes an expression
-  //! template library, which evaluates mathematical expression at compile 
+  //! template library, which evaluates mathematical expression at compile
   //! time.
   //! In this case, the operators(+,-,*,/,-=,+=,...) do not have to be defined
   //! in this class, but are evaluated by the expression template library.
-  //! The used library is a modified version of the MET-library 
+  //! The used library is a modified version of the MET-library
   //! (<a href="http://met.sourceforge.net">met.sourceforge.net</a>).
   //! - In order to be able to handle mixed Double-Complex valued mathematical
   //! expressions, the concept of Type Promotion / Traits is utilized (see also
@@ -623,35 +623,35 @@ namespace CoupledField
   //! can be written and the conversion is done automatically.
   //! \note - Multiple Double <-> Complex conversion in one statement are
   //!       not possible!
-  //! 
+  //!
   //! \note -If expression templates are used, statements like
   //! \verbatim
   //! Matrix<Double> mat = mat1 * 5.0;
-  //! \endverbatim 
+  //! \endverbatim
   //! have to be replaced by
   //! \verbatim
   //! Matrix<Double> mat;
   //! Double factor = 5.0;
   //! mat = mat1 * factor;
-  //! \endverbatim 
-  //! 
+  //! \endverbatim
+  //!
   //! \collab The Matrix class can be used together with the templatized Vector
   //! class.
-  //! 
+  //!
   //! \implement This class uses the concept of type promotion / traits and
   //! can additionally utilize expression templates.
-  //! 
+  //!
   //! \status In use
-  //! 
-  //! \unused 
-  //! 
-  //! \improve 
+  //!
+  //! \unused
+  //!
+  //! \improve
   //! - Check 'const'-correctness of class!
   //! - Add safety checks for initialization
-  //! 
+  //!
 
 #endif
-  
+
 
 
   // =======================================================================
@@ -659,7 +659,7 @@ namespace CoupledField
   // =======================================================================
   //! \relates Matrix
   //! Output operator for std::ostream
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , 
+  template<class TYPE>  std::ostream& operator << ( std::ostream & ,
                                                     const Matrix<TYPE> &);
 
 
@@ -672,10 +672,10 @@ namespace CoupledField
   inline void Matrix<TYPE>::Init(const TYPE val)
   {
     UInt i;
-    for (i=0; i<size_row_*size_col_; i++) 
+    for (i=0; i<size_row_*size_col_; i++)
       data_[0][i]=val;
   }
-  
+
   template<class TYPE>
   inline void Matrix<TYPE>::AddToEntry ( const UInt i, const UInt j,
                                          const TYPE value ) {
@@ -685,18 +685,18 @@ namespace CoupledField
 
   template<class TYPE>
   inline TYPE *  Matrix<TYPE>::operator[] (const UInt i) const
-  { 
+  {
 
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
+    if (size_row_ == 0 || size_col_ == 0)
       EXCEPTION( "undefined Matrix" );
 #endif
 
 #ifdef CHECK_INDEX
-    if (i < 0 || i >= size_row_) 
+    if (i < 0 || i >= size_row_)
       EXCEPTION( "invalid index" );
 #endif
-  
+
     return data_[i];
   }
 
@@ -709,29 +709,29 @@ namespace CoupledField
 
   template<class TYPE>
   inline UInt Matrix<TYPE>::GetSizeRow() const
-  {       
+  {
     return size_row_;
   }
- 
+
   template<class TYPE>
   inline UInt Matrix<TYPE>::GetSizeCol () const
-  {       
+  {
     return size_col_;
   }
 
   template<class TYPE>
   inline void Matrix<TYPE>::Determinant (TYPE & ret) const
-  {       
+  {
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0|| size_col_ == 0) 
+    if (size_row_ == 0|| size_col_ == 0)
       EXCEPTION( "Undefined Matrix!" );
 #endif
 
 #ifdef CHECK_INDEX
-    if (size_row_ != size_col_ ) 
+    if (size_row_ != size_col_ )
       EXCEPTION( "No quadratic matrix!" );
 #endif
-  
+
     switch (size_row_)
       {
       case 1: ret =  data_[0][0];
@@ -745,7 +745,7 @@ namespace CoupledField
           data_[0][1]*data_[1][0]*data_[2][2] -
           data_[0][0]*data_[1][2]*data_[2][1];
         break;
-      default: 
+      default:
         EXCEPTION( "Dimension larger than 3!" );
       }
   }
@@ -754,13 +754,13 @@ namespace CoupledField
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
   template<class TYPE>
-  inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat, 
+  inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat,
                                  CFSMatrix & rMat) const {
 
 
     Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
     Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
-  
+
     UInt size_mMatRow = mMat1.GetSizeRow();
     UInt size_mMatCol = mMat1.GetSizeCol();
 
@@ -768,11 +768,11 @@ namespace CoupledField
     UInt size_rMatRow = rMat1.GetSizeRow();
     UInt size_rMatCol = rMat1.GetSizeCol();
 
-    if (size_row_ == 0 || size_col_ == 0) 
+    if (size_row_ == 0 || size_col_ == 0)
       EXCEPTION("undefined Matrix");
-    if (size_mMatRow == 0 || size_mMatCol==0) 
+    if (size_mMatRow == 0 || size_mMatCol==0)
       EXCEPTION("undefined Matrix");
-    if (size_rMatRow == 0||size_rMatCol==0) 
+    if (size_rMatRow == 0||size_rMatCol==0)
       EXCEPTION("undefined Matrix");
 #endif
 
@@ -787,7 +787,7 @@ namespace CoupledField
       EXCEPTION("incompatibel dimension while matrix-matrix multiplication" );
     }
 #endif
-   
+
     for (UInt i = 0; i < size_row_; i++ ) {
       for (UInt j = 0; j < size_mMatCol; j++ ) {
         rMat1[i][j] = data_[i][0] * mMat1[0][j];
@@ -810,67 +810,67 @@ namespace CoupledField
   operator+(const Matrix<TYPE2> &x) const
   {
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
+    if (size_row_ == 0 || size_col_ == 0)
       EXCEPTION("undefined Matrix");
-#endif 
-    
+#endif
+
 #ifdef CHECK_INDEX
     if (size_row_ != x.GetSizeRow() || size_col_ != x.GetSizeCol())
       EXCEPTION("incompatible dimension");
 #endif
-  
+
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
-  
+
     UInt k;
     for ( k = 0; k < size_row_*size_col_; k++)
       z [0][k] = x[0][k]+data_[0][k];
-  
+
     return z;
   }
 
-  
+
   template<class TYPE> template<class TYPE2>
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
   operator-(const Matrix<TYPE2> &x) const
   {
 
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0 || 
+    if (size_row_ == 0 || size_col_ == 0 ||
         x.GetSizeRow() == 0 || x.GetSizeCol() == 0)
       EXCEPTION("undefined Matrix");
 #endif
-  
-#ifdef CHECK_INDEX  
+
+#ifdef CHECK_INDEX
     if (size_row_ != x.GetSizeRow() || size_col_ != x.GetSizeCol())
-      EXCEPTION("incompatible dimension for +"); 
+      EXCEPTION("incompatible dimension for +");
 #endif
-  
+
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
-  
+
     UInt k;
     for ( k = 0; k < size_row_*size_col_; k++)
       z[0][k] = -x[0][k]+data_[0][k];
-  
+
     return z;
   }
 
   template<class TYPE> template<class TYPE2>
   Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
-  operator* (const TYPE2 &x) const 
-  { 
-  
+  operator* (const TYPE2 &x) const
+  {
+
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
+    if (size_row_ == 0 || size_col_ == 0)
       EXCEPTION("undefined Matrix");
 #endif
-  
+
     UInt k;
-  
+
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
-  
+
     for ( k = 0; k < size_row_*size_col_; k++)
       z [0][k] = data_[0][k]*x;
-  
+
     return z;
   }
 
@@ -880,7 +880,7 @@ namespace CoupledField
   {
 
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
+    if (size_row_ == 0 || size_col_ == 0)
       EXCEPTION("undefined Matrix");
     if (x.GetSize() == 0) EXCEPTION("undefined Vector");
 #endif
@@ -888,14 +888,14 @@ namespace CoupledField
 #ifdef CHECK_INDEX
     if (size_col_ != x.GetSize()) EXCEPTION("incompatible dimension");
 #endif
-  
+
     Vector<PROMOTE(TYPE,TYPE2)> z(size_row_);
-  
+
     UInt k,kk;
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         z[k] += data_[k][kk] * x[kk];
-  
+
     return z;
   }
 
@@ -905,54 +905,54 @@ namespace CoupledField
   {
 
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0 || 
+    if (size_row_ == 0 || size_col_ == 0 ||
         x.GetSizeRow() == 0 || x.GetSizeCol()== 0)
       EXCEPTION("undefined Matrix");
 #endif
 
-#ifdef CHECK_INDEX  
+#ifdef CHECK_INDEX
     if (size_col_ != x.GetSizeRow())
       EXCEPTION("incompatible dimension");
 #endif
- 
+
     PROMOTE(TYPE,TYPE2) a;
     Matrix<PROMOTE(TYPE,TYPE2)>  z (size_row_, x.GetSizeCol());
-  
-    UInt i,j; 
+
+    UInt i,j;
     for (i = 0; i < size_row_; i++)
       for (j = 0; j < x.GetSizeCol(); j++)
-        {       
+        {
           a = data_ [i] [0] * x[0][j];
           for (UInt k = 1; k < size_col_; k++)
             a += data_ [i] [k] * x[k][j];
           z(i,j) = a;
         }
-  
+
     return z;
   }
 #endif //EXPR_TEMPLATES
 
   template<class TYPE> template< class Archive>
   void Matrix<TYPE>::save(Archive & ar, const unsigned int version) const {
-    
-    // invoke serialization of the base class 
+
+    // invoke serialization of the base class
     ar & boost::serialization::base_object<CFSMatrix>(*this);
-    
+
     // save own members
     ar & size_row_;
     ar & size_col_;
-    
+
     for( UInt i = 0 ; i < size_row_; i++ ) {
       for( UInt j = 0; j < size_col_; j++ ) {
         ar & data_[i][j];
       }
     }
   }
-  
+
   template<class TYPE> template <class Archive>
   void Matrix<TYPE>::load(Archive & ar, const unsigned int version) {
 
-    // invoke serialization of the base class 
+    // invoke serialization of the base class
     ar & boost::serialization::base_object<CFSMatrix>(*this);
 
     // check if data is already present
@@ -962,7 +962,7 @@ namespace CoupledField
         delete[] data_;
       }
 
-    // invoke serialization of the base class 
+    // invoke serialization of the base class
     ar & boost::serialization::base_object<CFSMatrix>(*this);
 
     ar & size_row_;
@@ -971,7 +971,7 @@ namespace CoupledField
     // create storage for data to read in
     data_ = new TYPE* [size_row_];
     data_[0]=new TYPE[size_col_*size_row_];
-    for (UInt k=1; k < size_row_; k++) 
+    for (UInt k=1; k < size_row_; k++)
       data_[k]=data_[k-1]+size_col_;
 
     // copy data itself from archive

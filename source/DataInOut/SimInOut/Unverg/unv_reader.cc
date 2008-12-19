@@ -124,7 +124,8 @@ int ReadElementsUnivFile(int *nodeReverseLabels, Widget w, unv *unvf,
       ELEMENTS[N_ELEMENTS].label   = set780.data.element_label;
       ELEMENTS[N_ELEMENTS].color   = set780.data.color;
 
-      int triangle = 0, nn_nodes = set780.data.n_nodes;
+			// COMPWARNING: unused variable int triangle = 0;
+      int nn_nodes = set780.data.n_nodes;
       /*
         if (set780.data.n_nodes==3) {
         triangle = 1;
@@ -382,7 +383,7 @@ int ReadUniversalFile(Widget w) {
   unv     unvf;
   dataset set;
   char    buffer[255];
-  int     setid, maxNodeLabel,maxElemLabel;
+  int     setid, maxNodeLabel = 0,maxElemLabel;
   int     *nodeReverseLabels,*elemReverseLabels;
   int     n_blocks=10, e_blocks=10, stopReading=0, i55,i56;
 

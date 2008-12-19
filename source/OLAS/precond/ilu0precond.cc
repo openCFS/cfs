@@ -127,7 +127,7 @@ namespace OLAS {
       istart = ilu_rptr_[row];
       iend   = ilu_rptr_[row+1];
       for ( UInt k = istart; k < iend; k++) {
-        if ( a_cidx[k] == row ) {
+        if ( a_cidx[k] == (int) row ) {
           diagPos_[row] = counter;
         }
         counter++;
@@ -144,7 +144,7 @@ namespace OLAS {
     Integer *help;
     NewArray(help,Integer,a_size+1);
   
-    for (i=1; i<=a_size+1; i++)
+    for (i=1; i<=(int) a_size+1; i++)
       help[i] = 0;
 
     // ILU: see Saad book: pp. 296
@@ -155,7 +155,7 @@ namespace OLAS {
     Double  actDone;
 
     // k walks over all rows
-    for (k=1; k<=a_size; k++) {
+    for (k=1; k<=(int) a_size; k++) {
       // Keep user informed on progress
       actDone = (double)(k*100) / (double)size_;
       actDone = (UInt)(actDone/10.0)*10;
@@ -175,7 +175,7 @@ namespace OLAS {
       //we now simultaneously treat L and U:
       
       // walk over all nonzero values before diagonal
-      for (j=j1; j<diagPos_[k]; j++) {
+      for (j=j1; j<(int) diagPos_[k]; j++) {
          
 	// jrow keeps track of the column index of the
 	// column at position j we are treating.
@@ -188,7 +188,7 @@ namespace OLAS {
 	ilu_data_[j] = tl;
 	
 	// jj selects entries in the row of the pivot element in U
-	for (jj=diagPos_[jrow]+1; jj<ilu_rptr_[jrow+1]; jj++) {
+	for (jj=diagPos_[jrow]+1; jj<(int) ilu_rptr_[jrow+1]; jj++) {
             
 	  // find out if there is an entry in row k under jj
 	  // and if so, where it is

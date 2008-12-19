@@ -97,7 +97,7 @@ extern workData work;
 extern Boolean CheckForInterrupt(void);
 extern void TimeoutCursors(Boolean, Boolean);
 extern void wprint(workData work, char *buffer);
-extern void ErrorDialog(Widget w, char* error);
+extern void ErrorDialog(Widget w, const char* error);
 extern int ReadUniversalFile(Widget w);
 
 #endif

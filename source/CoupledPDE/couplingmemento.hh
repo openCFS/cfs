@@ -7,7 +7,6 @@
 
 #include "General/environment.hh"
 #include "pdecoupling.hh"
-#include "Utils/boost-serialization.hh"
 
 namespace CoupledField
 {

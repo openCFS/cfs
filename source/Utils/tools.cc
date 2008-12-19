@@ -16,7 +16,7 @@
 
 
 namespace CoupledField {
- 
+
   // =======================
   //   Issue Error Message
   // =======================
@@ -81,7 +81,7 @@ namespace CoupledField {
     UInt lastDelim = 0;
     strVec.Clear();
     UInt i=0;
-  
+
     // ignore all leading spaces
     while ( i < list.length() && list[i] == ' ' ) {
       i++;
@@ -116,7 +116,7 @@ namespace CoupledField {
   Point & Point::operator+=(const Point& t) {
     UInt i;
     for (i=0; i<3; i++)
-      p[i]+=t.p[i];     
+      data[i]+=t.data[i];
     return *this;
   }
 
@@ -125,7 +125,7 @@ namespace CoupledField {
     UInt i;
     Point ret;
     for (i=0; i<3; i++)
-      ret.p[i] = t.p[i] + p[i];     
+      ret.data[i] = t.data[i] + data[i];
     return ret;
   }
 
@@ -133,35 +133,47 @@ namespace CoupledField {
   Point & Point::operator=(const Point& t) {
     UInt i;
     for (i=0; i<3; i++)
-      p[i]=t.p[i];
+      data[i]=t.data[i];
     return *this;
   }
 
   Point Point::operator-(const Point& t) {
     UInt i;
     for (i=0; i<3; i++)
-      p[i]-=t.p[i];     
+      data[i]-=t.data[i];
     return *this;
   }
 
-  Double Point::dist(const Point& a, const Point& b) {
-    Double preSqrt=0;
-    UInt i;
-    for (i=0; i<3; i++)
-      preSqrt+= (a[i]-b[i]) * (a[i]-b[i]);
-    return sqrt(preSqrt);
+  Point Point::operator*(const Double factor) {
+    for (UInt i=0; i<3; i++)
+      data[i] *= factor;
+    return *this;
+  }
+
+  Point& Point::operator*=(const Double factor) {
+    for (UInt i=0; i<3; i++)
+      data[i] *= factor;
+    return *this;
   }
 
 
-  Double Point::dist(const Point& other) const {
-    return Point::dist(*this, other);
+  Point Point::operator/(const Double factor) {
+    for (UInt i=0; i<3; i++)
+      data[i] /= factor;
+    return *this;
   }
 
-  
+
+  Point& Point::operator/=(const Double factor) {
+    for (UInt i=0; i<3; i++)
+      data[i] /= factor;
+    return *this;
+  }
+
   std::string Point::ToString() const
   {
      std::ostringstream os;
-     os << "(" << p[0] << ";" << p[1] << ";" << p[2] << ")";
+     os << "(" << data[0] << ";" << data[1] << ";" << data[2] << ")";
      return os.str();
   }
 
@@ -187,7 +199,7 @@ namespace CoupledField {
   {
     Double distance=dist_Mat(a);
     // std::cout<<"distance :"<<distance<<std::endl;
-  
+
     normal[0]=(a[1][1]-a[1][0])/distance;
     normal[1]=(a[0][1]-a[0][0])/distance;
   }
@@ -197,16 +209,16 @@ namespace CoupledField {
   void calcNormal2Surface(Vector<Double> & normal,Point a,Point b,
                           Point c) {
     Point t,s;
-    Double L2_normal; 
+    Double L2_normal;
     s=(a-b);
     t=(c-b);
     normal[0]=t[1]*s[2]-t[2]*s[1];
-    normal[1]=t[2]*s[0]-t[0]*s[2];  
+    normal[1]=t[2]*s[0]-t[0]*s[2];
     normal[2]=t[0]*s[1]-t[1]*s[0];
     L2_normal=sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
     normal[0]=normal[0]/L2_normal;
     normal[1]=normal[1]/L2_normal;
-    normal[2]=normal[2]/L2_normal;  
+    normal[2]=normal[2]/L2_normal;
   }
 
   /// a-->b-->c. no fix orientation.
@@ -215,20 +227,20 @@ namespace CoupledField {
 
     for (UInt i=0;i<3;i++) {
       a[i]=ptCoord[i][0];
-      b[i]=ptCoord[i][1];      
+      b[i]=ptCoord[i][1];
       c[i]=ptCoord[i][2];
     }
-  
-    Double L2_normal; 
+
+    Double L2_normal;
     s=(a-b);
     t=(c-b);
     normal[0]=t[1]*s[2]-t[2]*s[1];
-    normal[1]=t[2]*s[0]-t[0]*s[2];  
+    normal[1]=t[2]*s[0]-t[0]*s[2];
     normal[2]=t[0]*s[1]-t[1]*s[0];
     L2_normal=sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
     normal[0]=normal[0]/L2_normal;
     normal[1]=normal[1]/L2_normal;
-    normal[2]=normal[2]/L2_normal;  
+    normal[2]=normal[2]/L2_normal;
   }
 
   UInt defineRefinements(const Double tolElem, const Double tolTotal,
@@ -243,7 +255,7 @@ namespace CoupledField {
     const StdVector<UInt> & connect = ptE->connect;
     Matrix<Double> ptCoord;
     UInt        nrIntPnts = ptelem->GetNumIntPoints();
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
     UInt        i;
     Double         jacDet;
 
@@ -259,10 +271,10 @@ namespace CoupledField {
 
 
   // **************** Conversion Function *****************
-  
+
   Double String2Double( const std::string & val) {
 
-   
+
     Double retVal = 0.0;
     char *endp;
     retVal = strtod(val.c_str(), &endp);
@@ -276,7 +288,7 @@ namespace CoupledField {
     Integer retVal = 0;
     char *endp;
     retVal = strtol(val.c_str(), &endp, 0);
-    if (! (val.c_str() != endp && *endp == '\0') ) 
+    if (! (val.c_str() != endp && *endp == '\0') )
         EXCEPTION("could not convert " << val << " into a integer");
 
     return retVal;
@@ -287,7 +299,7 @@ namespace CoupledField {
     UInt retVal=0;
     char *endp;
     retVal = strtoul(val.c_str(), &endp, 0);
-    if (! (val.c_str() != endp && *endp == '\0') ) 
+    if (! (val.c_str() != endp && *endp == '\0') )
         EXCEPTION("could not convert " << val << " into a unsigned integer");
 
     return retVal;
@@ -298,50 +310,50 @@ namespace CoupledField {
     double result = 0.0;
     for(unsigned int i = 0; i < size; i++)
       result += *(data + i) * *(data + i);
-      
-    return result;  
+
+    return result;
   }
-  
+
 
   /** Compares if two doubles are close to each other */
   bool close(Double d1, Double d2)
   {
     return std::abs(d1-d2) < 1e-6;
   }
- 
+
   /** Compared if two complex are close (if both the real and imaginary part are close) */
   bool close(Complex c1, Complex c2)
   {
-    return std::abs(c1.real()-c2.real()) < 1e-6 
+    return std::abs(c1.real()-c2.real()) < 1e-6
         && std::abs(c1.imag()-c2.imag()) < 1e-6;
   }
-    
-  
-  
+
+
+
   double Average(const double* data, unsigned int size)
   {
     double sum = 0.0;
     for(unsigned int i = 0; i < size; i++)
       sum += *(data + i);
-    
+
     return sum / size;
-  }  
-  
+  }
+
   double StandardDeviation(const double* data, unsigned int size)
   {
     // expected value
     double e = Average(data, size);
-    
+
     // variance
     double v = 0.0;
     for(unsigned int i = 0; i < size; i++)
       v += (*(data + i) - e) * (*(data + i) - e);
-    
+
     return v / size;
-    
+
     return sqrt(v);
-  }  
-  
+  }
+
   void Assign(Matrix<Double>& target, const Matrix<Double>& other, Double factor)
   {
     target.Resize(other);
@@ -365,7 +377,7 @@ namespace CoupledField {
       for(UInt c = 0; c < other.GetSizeCol(); c++)
         target[r][c] = factor * other[r][c];
   }
-  
+
   void Assign(Matrix<Complex>& target, const Matrix<Double>& other, Double factor)
   {
     target.Resize(other.GetSizeRow(), other.GetSizeCol());
@@ -373,8 +385,8 @@ namespace CoupledField {
       for(UInt c = 0; c < other.GetSizeCol(); c++)
         target[r][c] = factor * other[r][c];
   }
-  
 
-  
-  
+
+
+
 }// namespace CoupledField

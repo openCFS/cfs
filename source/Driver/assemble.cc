@@ -13,11 +13,10 @@
 #include "Driver/stdSolveStep.hh"
 #include "Driver/harmonicDriver.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
-
-namespace CoupledField {
-
-
+namespace CoupledField
+{
   // declare logging stream
   DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
@@ -463,17 +462,17 @@ namespace CoupledField {
   }
 
   
-  void Assemble::AssembleLinRHS( Double actTimeFreq){
-
-    AssembleRHSLinForms( actTimeFreq, false );
-    AssembleRHSLoads( actTimeFreq );
+  void Assemble::AssembleLinRHS()
+  {
+    AssembleRHSLinForms(false );
+    AssembleRHSLoads();
   }
 
-  void Assemble::AssembleNonLinRHS( Double actTimeFreq) {
-    AssembleRHSLinForms( actTimeFreq, true );
+  void Assemble::AssembleNonLinRHS() {
+    AssembleRHSLinForms(true );
   }
 
-  void Assemble::AssembleRHSLinForms( Double actTimeFreq, bool nonLin ) {
+  void Assemble::AssembleRHSLinForms(bool nonLin ) {
 
     StdVector<Integer> eqnVec;
     PdeIdType pdeId;
@@ -572,7 +571,7 @@ namespace CoupledField {
     }
   }
 
-  void Assemble::AssembleRHSLoads( Double actTimeFreq ) {
+  void Assemble::AssembleRHSLoads() {
 
     Vector<Double> globCoord;
     Double phase = 0.0;
@@ -658,97 +657,77 @@ namespace CoupledField {
 
   }
 
-  void Assemble::PrintInfo( std::ostream& out ) {
-
-    out << "=================================\n"
-        << "  Assemble: List of Integrators  \n"
-        << "=================================\n\n";
-
-    out << "I) Matrix BiLinearForms\n"
-        << "-----------------------\n\n";
-
-    out << std::setw(20) << "integrator name" << " | "
-        << std::setw(15) << "region" << " | "
-        << std::setw(10) << "matrix type" << "\n";
-    out << std::setw(51) << std::setfill('-') << ""
-        << std::setfill(' ') << std::endl;
+  void Assemble::ToInfo(InfoNode* in)
+  {
+    InfoNode* list = in->Get("matrixBiLinearForms");
 
     // iterate over all descriptors
     std::set<BiLinFormContext*>::iterator it;
-    for ( it = biLinForms_.begin(); it != biLinForms_.end(); it++ ) {
-
+    for ( it = biLinForms_.begin(); it != biLinForms_.end(); it++ )
+    {
       // get integrator
       BiLinFormContext & context = **it;
 
+      InfoNode* form = list->Get("bilinearForm", InfoNode::APPEND);
       // integrator name
-      out << std::setw(20) << context.GetIntegrator()->GetName() << " | ";
+      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
 
       // region name of entity list
       std::string regionName;
-      if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
+      if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
+      {
         shared_ptr<ElemList> list =
           boost::dynamic_pointer_cast<ElemList,EntityList>
           (context.GetFirstEntities());
-        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
         regionName = list->GetName();
-      } else if ( context.GetFirstEntities()->GetType()
-                  == EntityList::SURF_ELEM_LIST ) {
+      }
+      else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+      {
         shared_ptr<SurfElemList> list =
           boost::dynamic_pointer_cast<SurfElemList,EntityList>
           (context.GetFirstEntities());
-        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
         regionName = list->GetName();
       }
-      out << std::setw(15) << regionName << " | " ;
+      form->Get("region")->SetValue(regionName);
 
       // matrix type
-      out << std::setw(10) << OLAS::Enum2String(context.GetDestMat() );
-
-      out << std::endl;
+      form->Get("matrix")->SetValue(OLAS::Enum2String(context.GetDestMat()));
     }
 
-
-    out << "\n\nII) RHS LinearForms\n"
-        << "-----------------------\n\n";
-
-    out << std::setw(20) << "integrator name" << " | "
-        << std::setw(15) << "region" << "\n";
-    out << std::setw(38) << std::setfill('-') << ""
-        << std::setfill(' ') << std::endl;
+    list = in->Get("rhsLinearForms");
 
     // iterate over all descriptors
     std::set<LinearFormContext*>::iterator linIt;
-    for ( linIt = linForms_.begin(); linIt != linForms_.end(); linIt++ ) {
+    for (linIt = linForms_.begin(); linIt != linForms_.end(); linIt++)
+    {
+      InfoNode* form = list->Get("linearForm", InfoNode::APPEND);
 
       // get integrator
       LinearFormContext & context = **linIt;
 
-      // integrator name
-      out << std::setw(20) << context.GetIntegrator()->GetName() << " | ";
+      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
 
       // region name of entity list
       std::string regionName;
-      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
+      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
+      {
         shared_ptr<ElemList> list =
           boost::dynamic_pointer_cast<ElemList,EntityList>
           (context.GetEntities());
-        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
         regionName = list->GetName();
-      } else if ( context.GetEntities()->GetType()
-                  == EntityList::SURF_ELEM_LIST ) {
+      }
+      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+      {
         shared_ptr<SurfElemList> list =
           boost::dynamic_pointer_cast<SurfElemList,EntityList>
           (context.GetEntities());
-        //regionName = domain->GetGrid()->RegionIdToName( list->GetRegion() );
         regionName = list->GetName();
       }
-      out << std::setw(15) << regionName ;
 
-      out << std::endl;
+      form->Get("region")->SetValue(regionName);
     }
-    out << "\n\n";
-
   }
+
 
   void Assemble::CheckNonLinearities() {
     // Clear reassemble mat

@@ -16,7 +16,7 @@ namespace CoupledField
   class ParamNode;
   template <class TYPE> class Matrix;  
   extern ParamNode* param;
-
+  
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.
    * <ul>
@@ -38,7 +38,7 @@ namespace CoupledField
     ParamNode(bool attribute = false); 
 
     /** Recursively delete the child nodes */
-    ~ParamNode();
+    virtual ~ParamNode();
 
     /** @return the name of the attribute or XML element */
     const std::string& GetName() const { return name_;} 
@@ -184,16 +184,16 @@ namespace CoupledField
      * If this element is already a leaf node, the return value is NULL. */
     ParamNode* GetChild();
     
-    /** returns name and value, ans child summary information */
-    std::string ToString() const;
+    /** returns name and value, and child summary information */
+    virtual std::string ToString() const;
          
     /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
      * called for an attribute */
-    void ToXML(std::ostream& os) const;      
+    virtual void ToXML(std::ostream& os) const;      
          
     /** This is a recursive Dump of the tree to std::cout
      * @param level start with 0, is used for ident */
-    void Dump(int level = 0) const;
+    virtual void Dump(int level = 0) const;
 
 
   protected:

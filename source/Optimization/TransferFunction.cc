@@ -2,6 +2,7 @@
 #include "Optimization/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
@@ -18,16 +19,29 @@ Enum<TransferFunction::Type> TransferFunction::type;
 TransferFunction::TransferFunction()
 {
   // do nothing - is for StdVector only
+  // this constructor is also used for providing a identity transfer function during parametric material optimization
+  if(type.map.size() == 0) SetEnums();
+  type_ = IDENTITY;
+  orgType_ = NO_TYPE;
+  design_ = DesignElement::DEFAULT;
+  application_ = Optimization::NO_APP;
 }
 
-TransferFunction::TransferFunction(ParamNode* pn)
+TransferFunction::TransferFunction(ParamNode* pn, DesignElement::Type default_design)
 {
   // initialize the static Enum the first time
   if(type.map.size() == 0) SetEnums();
   this->type_ = type.Parse(pn->Get("type"));
   this->orgType_ = NO_TYPE;
   this->application_ = Optimization::application.Parse(pn->Get("application"));
-  this->design_ = DesignElement::type.Parse(pn->Get("design"));
+  if(pn->Has("design"))
+    this->design_ = DesignElement::type.Parse(pn->Get("design"));
+  else
+  {
+    if(default_design == DesignElement::NO_TYPE) 
+      throw Exception("Set the 'design' attribute for 'transferFunction' when using multiple design variables.");
+    this->design_ = default_design;
+  }
   this->param_ = pn->Has("param") ? pn->Get("param")->AsDouble() : 1.0;
   
   // validate param
@@ -42,6 +56,16 @@ TransferFunction::TransferFunction(ParamNode* pn)
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
+}
+
+void TransferFunction::ToInfo(InfoNode* in) const
+{
+  in->Get("type")->SetValue(type.ToString(type_));
+  in->Get("application")->SetValue(Optimization::application.ToString(application_));
+  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
+  if(type_ != IDENTITY && type_ != FULL)
+    in->Get("param")->SetValue(param_);
+  
 }
 
 std::string TransferFunction::ToString()
@@ -85,7 +109,7 @@ double TransferFunction::Transform(DesignElement* de)
     
   case FULL:
     assert(param_ == 0.0);
-    result = 1.0;
+    result = de->GetUpperBound();
     break;
     
   default: throw Exception("type not implemented");

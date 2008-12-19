@@ -80,6 +80,22 @@ namespace CoupledField {
       
   }
 
+  bool SimOutput::ValidateNodesAndElements(ResultInfo& actInfo)
+  {
+    if(actInfo.definedOn != ResultInfo::NODE &&
+       actInfo.definedOn != ResultInfo::PFEM &&
+       actInfo.definedOn != ResultInfo::ELEMENT &&
+       actInfo.definedOn != ResultInfo::SURF_ELEM ) 
+    {
+      std::string msg = formatName_ + " can only write results on element and nodes";
+      Warning(msg.c_str());
+      return false;
+    }
+    else 
+    {
+      return true;
+    }
+  }
 
   // explicit template instantiation
 #if defined(__GNUC__) 

@@ -435,7 +435,7 @@ namespace CoupledField{
     //! \param solIndex Index for the desired solution type
     virtual void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
                                           const EntityIterator& it,
-                                          UInt solIndex = 0 ) const = 0;
+                                          UInt solIndex = 0, const CFSVector* ext_data = NULL) const = 0;
   
     //! maps the local node solution to the coupling nodes
     virtual

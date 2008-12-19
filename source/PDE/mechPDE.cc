@@ -20,6 +20,7 @@
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh" 
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "CoupledPDE/pdecoupling.hh"
@@ -1633,7 +1634,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       
       std::string quantity;
       Enum2String( MECH_DEF_VOLUME, quantity );
-      Info->PrintF( pdename_, " Computing '%s' for surface region:\n", quantity.c_str() );   
+      InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("region_result", "data", quantity); 
       shared_ptr<EntityList> actList;
 
       for( UInt i = 0; i < volListNodes.GetSize(); i++ ) {
@@ -1645,7 +1646,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         volListNodes[i]->Get("outputIds", outputIdString );
         SplitStringList( outputIdString, outputIds, ',' );
         
-        Info->PrintF( pdename_, " %s\n", regionName.c_str() );
+        InfoNode* r = in_->Get("surface_region", InfoNode::APPEND);
+        r->Get("name")->SetValue(regionName);
+        
         actList = ptgrid_->GetEntityList( EntityList::REGION_LIST,
                                           regionName, EntityList::REGION );
         shared_ptr<BaseResult> actSol;
@@ -1654,6 +1657,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         } else {
           actSol = shared_ptr<BaseResult>(new Result<Double>);
         }
+        actSol->SetInfoNode(r); // now the actual results can be written 
         actSol->SetResultInfo( vol );
         actSol->SetEntityList( actList );
         resultLists_[vol].Push_back( actSol );
@@ -2057,6 +2061,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
                                            ptSurfCoord, elemDispDof );
         
       }
+      assert(actSol.GetInfoNode() != NULL); 
+      InfoNode* in_ = actSol.GetInfoNode()->Get("result", InfoNode::APPEND); 
+      in_->Get("region_pos")->SetValue(regionIt.GetPos()); // TODO: Add name 
+      in_->Get("value")->SetValue(actVolume); 
+      // TODO: somehow relate to iteration! 
       actVal[regionIt.GetPos()] = actVolume;
     }
     

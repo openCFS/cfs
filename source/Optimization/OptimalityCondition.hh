@@ -27,7 +27,7 @@ namespace CoupledField
       
       virtual std::string LogFileHeader();
       
-      virtual void LogFileLine(std::ofstream* out);
+      virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
     
     private:
       /** This are our both bisection types. Framed is what Sigmund did, Trajectory is own breed but

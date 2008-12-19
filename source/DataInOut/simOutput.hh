@@ -83,6 +83,10 @@ namespace CoupledField {
         std::atan2(c.imag(),c.real() )*180/PI : 
          ( c.real() < 0.0 ) ? 180 : 0 ; 
     }
+    
+    /** checks the result info for nodes and elements. if not such a Warning is printed!
+     * @return true if nodes and elements */
+    bool ValidateNodesAndElements(ResultInfo& actInfo);
 
     //! Name of output format
     std::string formatName_;

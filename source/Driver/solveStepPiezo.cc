@@ -129,14 +129,13 @@ namespace CoupledField {
 //         std::cout << "Iter:  " << iterationCounter << std::endl;
     
 
-#ifdef DEBUG
+      /*
       *debug << std::endl
              << "====================================================== "
              << std::endl
              <<   "Nonlinear Elecs: Perform internal loop no. "
              << iterationCounter << std::endl;      
-#endif
-        
+      */  
 
       // set solution of previous iteration
       if (iterationCounter == 1 ) {
@@ -150,7 +149,7 @@ namespace CoupledField {
       algsys_->InitRHS();
 
       // setup RHS to incorporate loads and linear-Forms
-      assemble_->AssembleLinRHS(actTime_); 
+      assemble_->AssembleLinRHS(); 
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS();

@@ -25,7 +25,8 @@ using namespace Ipopt;
  * <p>This class is a clone from the example MyNLP class</p>
  * <p>This is a complete optimizer. Calling SolveProblem() does all - the interface is
  * via the overloaded TMLP methods which finally leads to domain->SolveProblem() calls and
- * evaluation of SIMP methods or that like.</p> */ 
+ * evaluation of SIMP methods or that like.</p> 
+ * <p>This compiles with Ipopt version v4.3.3.</p>*/ 
 class IPOPT : public TNLP
 {
 public:
@@ -96,8 +97,8 @@ public:
                               const IpoptData* ip_data,
                               IpoptCalculatedQuantities* ip_cq);
 
-  /** This method is called when the algorithm is complete so the TNLP can store/write the solution */
-  void finalize_solution(SolverReturn status,
+   /** This method is called when the algorithm is complete so the TNLP can store/write the solution */
+   void finalize_solution(SolverReturn status,
                                  Index n, const Number* x, const Number* z_L, const Number* z_U,
                                  Index m, const Number* g, const Number* lambda,
                                  Number obj_value, const IpoptData* ip_data, IpoptCalculatedQuantities* ip_cq);

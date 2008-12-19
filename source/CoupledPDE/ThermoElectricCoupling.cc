@@ -83,7 +83,8 @@ namespace CoupledField {
 		param->Get("domain")->Get("geometryType", geometryType_ );
 
 		// convert to tensor type
-		SubTensorType tensorType;
+		// COMPWARNING: initialized to FULL (lacking intelligent alternatives...)
+		SubTensorType tensorType = FULL;
 		if (geometryType_ == "3d") {
 			tensorType = FULL;
 		} else if (geometryType_ == "plane") {
