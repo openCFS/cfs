@@ -56,11 +56,12 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     isHeatCoupled_ = false;
 
     needSolPrev_ = true;
-    
+
     firstTime_   = true;
     useAitken_   = false;
     //displFac_    = 0.3;
     displFac_ = myParam_->Get("fsiRelaxationParam")->AsDouble();
+    FSI_=myParam_->Get("fsi")->AsBool();
     
     // ****************************
     // DETERMINE GEOMETRY
@@ -1131,8 +1132,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
   void MechPDE::DefineSolveStep()
   {
-	  //solveStep_ = new StdSolveStep(*this);
-	  solveStep_ = new SolveStepMech(*this);
+	  if(FSI_)
+		  solveStep_ = new SolveStepMech(*this);
+	  else
+		  solveStep_ = new StdSolveStep(*this);
+		  
   }
 
 
@@ -1185,6 +1189,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  StdVector<UInt> * couplingnodes = NULL;
 	  StdVector<Elem*> * couplingElems = NULL;
 	  CFSVector * temp_values = NULL;
+	  Vector<Double> * values;
 	  CFSVector * temp_oldValues = NULL;
 	  CFSVector *tempDispValues=NULL;
 	  CFSVector *tempDispOldValues=NULL;
@@ -1200,178 +1205,229 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  // at first, check if this PDE is iterative coupled
 	  if (isIterCoupled_ == false)
 		  return;
+	  if(!FSI_){
+		  // loop over all output coupling quantities
+		  for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+		  {
+			  quantity = ptCoupling_->GetOutputQuantity(i);
+			  ptCoupling_->GetOutputValues(i, temp_values);
 
-	  // Outer loop over all OUTPUT coupling terms
-	  for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-		  quantity = ptCoupling_->GetOutputQuantity(i);
-		  if(quantity == MECH_DISPLACEMENT){
-			  interfaceDispCoupl=i;
-			  foundDisp=true;
-		  }
-		  else if(quantity == MECH_VELOCITY){
-			  interfaceVelCoupl=i;
-			  foundVel=true;
-		  }
-		  else if(quantity == MECH_FORCE){
-			  interfaceForceCoupl=i;
-			  foundForce=true;
-		  }
-		  else
-			  EXCEPTION("Could not handle coupling quantity: " << GenStr(quantity)); 
-	  }
+			  values = dynamic_cast<Vector<Double>*>(temp_values);
 
-	  if(foundDisp){
+			  switch(ptCoupling_->GetOutputType(i))
+			  {
+			  case NODE:
 
-		  if(ptCoupling_->GetOutputType(interfaceDispCoupl) != NODE)
-			  EXCEPTION("MECH_DISPLACEMENT must be of type NODE");
+				  if (quantity == MECH_DISPLACEMENT)
+				  {
+					  ptCoupling_->GetOutputNodes(i, couplingnodes);
 
-
-		  // OutPutCoupling for MechDisplacement
-		  quantity = ptCoupling_->GetOutputQuantity(interfaceDispCoupl);
-		  ptCoupling_->GetOutputValues(interfaceDispCoupl, tempDispValues);
-		  ptCoupling_->GetOutputOldValues(interfaceDispCoupl, tempDispOldValues);
-
-		  Vector<Double> DispValues    = dynamic_cast<Vector<Double>&>(*tempDispValues);
-		  Vector<Double> DispOldValues = dynamic_cast<Vector<Double>&>(*tempDispOldValues);
-
-		  ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
-		  sol_->NodeSolutionToCoupling(DispValues, *couplingnodes);
-
-		  if ( analysistype_ == TRANSIENT ){
-			  if(useAitken_){
-				  actDelta_ = DispOldValues-DispValues;
-
-				  if(actDelta_.GetSize() != oldDelta_.GetSize()){
-					  oldDelta_.Resize(actDelta_.GetSize());
-					  oldDelta_.Init();
+					  sol_->NodeSolutionToCoupling(*values, *couplingnodes);
 				  }
 
-				  Vector<Double> aux1;
-				  aux1 = (oldDelta_ - actDelta_);
 
-				  Double aux2=aux1*actDelta_; 
-				  Double aux3=aux1*aux1; 
-				  Double aux4 = aux2/aux3;
+				  if (quantity == MECH_VELOCITY)
+				  {
+					  ptCoupling_->GetOutputNodes(i, couplingnodes);
+					  solDeriv1_.SetAlgSysVector(getS1());     
+					  solDeriv1_.NodeSolutionToCoupling(*values, *couplingnodes);
+				  }
 
-				  aitkenMu_=(aitkenMu_)+((aitkenMu_-1.0)*aux4);
-				  if (aitkenMu_ > 1.0-displFac_)
-					  aitkenMu_=1.0-displFac_;
-				  aitkenOmega_ = 1.0-aitkenMu_;
-				  Info->PrintF( pdename_," unbounded relaxation Parameter according to Aitgken= %e\n",aitkenOmega_);
 
-				  Double omegaMax=0.3;
-				  if (iterCoupledCounter_>5)
-					  omegaMax=1.0;
-				  if (aitkenOmega_ > omegaMax)
-					  aitkenOmega_=omegaMax;
-				  oldDelta_ = actDelta_;
+				  if (quantity == MECH_FORCE)
+				  {
+					  ptCoupling_->GetOutputNodes(i, couplingnodes);
+					  ptCoupling_->GetOutputElements(i, couplingElems);
+					  ptCoupling_->GetOppositeMaterials(i, materials);
+					  dof = ptCoupling_->GetOutputDof(i);
+
+					  CalcAcousticCouplingRHS(couplingElems, 
+							  *materials,
+							  *couplingnodes, 
+							  *values, dof);           
+				  } 
+				  break;
+
+			  case ELEM:
+				  EXCEPTION("No Element coupling output" );
 			  }
-
-			  fixedOmega_ = displFac_;
-
-			  Info->PrintF( pdename_," Relaxation Parameter according to Aitken= %e\n",aitkenOmega_);
-			  Info->PrintF( pdename_," Fixed Relaxation Parameter= %e\n",fixedOmega_);
-
-
-			  ptCoupling_->GetOutputValues(interfaceDispCoupl, temp_values);
-
-			  Vector<Double> * values    = dynamic_cast<Vector<Double>*>(temp_values);
-			  Vector<Double> auxValues, auxOldValues;
-
-			  //ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
-			  sol_->NodeSolutionToCoupling(auxValues, *couplingnodes);
-
-			  Double auxValuesMax, auxValuesL1Norm;
-			  auxValuesMax=abs( auxValues[0]);
-			  auxValuesL1Norm=abs(auxValues[0]);
-			  for(UInt ii=1; ii<auxValues.GetSize(); ii++ ){
-				  auxValuesL1Norm+=abs(auxValues[ii]);
-				  if (abs(auxValues[ii])> auxValuesMax )
-					  auxValuesMax=abs(auxValues[ii]);
-			  }
-			  Info->PrintF( pdename_," Linf Norm of auxValues:= %e\n",auxValuesMax );
-			  Info->PrintF( pdename_," L1 Norm of auxValues:= %e\n",auxValuesL1Norm);
-			  Info->PrintF( pdename_," L2 Norm of auxValues:= %e\n",auxValues.NormL2());
-
-			  Vector<Double> gSol, naux1, naux2;
-			  sol_->GetAlgSysVector(gSol );
-
-			  if(firstTime_){
-				  sol_tn_1_.SetAlgSysVector(getOld1());
-				  sol_tn_1_.GetAlgSysVector(gSolOld_ );
-
-				  firstTime_=false;
-			  }
-			  if(useAitken_ == true ){
-				  naux1=gSol*aitkenOmega_;
-				  naux2=gSolOld_*(1.0-aitkenOmega_);
-				  gSol= naux1 + naux2;
-			  }
-			  else {
-				  naux1=gSol*fixedOmega_;
-				  naux2=gSolOld_*(1.0-fixedOmega_);
-				  gSol=naux1 + naux2;
-			  }
-			  sol_->SetAlgSysVector(gSol );
-
-			  gSolOld_= gSol;
-
-			  TS_alg_->Corrector(gSol);
-
-			  sol_->NodeSolutionToCoupling((*values), *couplingnodes);
-
-			  Double valuesMax, valuesL1Norm;
-			  valuesMax=abs((*values)[0]);
-			  valuesL1Norm=abs((*values)[0]);
-			  for(UInt ii=1; ii<(*values).GetSize(); ii++ ){
-				  valuesL1Norm+=abs((*values)[ii]);
-				  if (abs((*values)[ii])> valuesMax )
-					  valuesMax=abs((*values)[ii]);
-			  }
-			  Info->PrintF( pdename_,"\n Linf Norm of values:= %e\n",valuesMax );
-			  Info->PrintF( pdename_," L1 Norm of values:= %e\n",valuesL1Norm);
-			  Info->PrintF( pdename_," L2 Norm of values:= %e\n",(*values).NormL2());
-
 		  }
-	  }
-	  else {
-		  if ( analysistype_ == TRANSIENT ){ 
-			  Vector<Double> gSol;
-			  sol_->GetAlgSysVector(gSol );
 
-			  TS_alg_->Corrector(gSol);
+	  }
+	  else{
+
+		  // Outer loop over all OUTPUT coupling terms
+		  for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+			  quantity = ptCoupling_->GetOutputQuantity(i);
+			  if(quantity == MECH_DISPLACEMENT){
+				  interfaceDispCoupl=i;
+				  foundDisp=true;
+			  }
+			  else if(quantity == MECH_VELOCITY){
+				  interfaceVelCoupl=i;
+				  foundVel=true;
+			  }
+			  else if(quantity == MECH_FORCE){
+				  interfaceForceCoupl=i;
+				  foundForce=true;
+			  }
+			  else
+				  EXCEPTION("Could not handle coupling quantity: " << GenStr(quantity)); 
 		  }
+
+		  if(foundDisp){
+
+			  if(ptCoupling_->GetOutputType(interfaceDispCoupl) != NODE)
+				  EXCEPTION("MECH_DISPLACEMENT must be of type NODE");
+
+
+			  // OutPutCoupling for MechDisplacement
+			  quantity = ptCoupling_->GetOutputQuantity(interfaceDispCoupl);
+			  ptCoupling_->GetOutputValues(interfaceDispCoupl, tempDispValues);
+			  ptCoupling_->GetOutputOldValues(interfaceDispCoupl, tempDispOldValues);
+
+			  Vector<Double> DispValues    = dynamic_cast<Vector<Double>&>(*tempDispValues);
+			  Vector<Double> DispOldValues = dynamic_cast<Vector<Double>&>(*tempDispOldValues);
+
+			  ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
+			  sol_->NodeSolutionToCoupling(DispValues, *couplingnodes);
+
+			  if ( analysistype_ == TRANSIENT ){
+				  if(useAitken_){
+					  actDelta_ = DispOldValues-DispValues;
+
+					  if(actDelta_.GetSize() != oldDelta_.GetSize()){
+						  oldDelta_.Resize(actDelta_.GetSize());
+						  oldDelta_.Init();
+					  }
+
+					  Vector<Double> aux1;
+					  aux1 = (oldDelta_ - actDelta_);
+
+					  Double aux2=aux1*actDelta_; 
+					  Double aux3=aux1*aux1; 
+					  Double aux4 = aux2/aux3;
+
+					  aitkenMu_=(aitkenMu_)+((aitkenMu_-1.0)*aux4);
+					  if (aitkenMu_ > 1.0-displFac_)
+						  aitkenMu_=1.0-displFac_;
+					  aitkenOmega_ = 1.0-aitkenMu_;
+					  Info->PrintF( pdename_," unbounded relaxation Parameter according to Aitgken= %e\n",aitkenOmega_);
+
+					  Double omegaMax=0.3;
+					  if (iterCoupledCounter_>5)
+						  omegaMax=1.0;
+					  if (aitkenOmega_ > omegaMax)
+						  aitkenOmega_=omegaMax;
+					  oldDelta_ = actDelta_;
+				  }
+
+				  fixedOmega_ = displFac_;
+
+				  Info->PrintF( pdename_," Relaxation Parameter according to Aitken= %e\n",aitkenOmega_);
+				  Info->PrintF( pdename_," Fixed Relaxation Parameter= %e\n",fixedOmega_);
+
+
+				  ptCoupling_->GetOutputValues(interfaceDispCoupl, temp_values);
+
+				  Vector<Double> * values    = dynamic_cast<Vector<Double>*>(temp_values);
+				  Vector<Double> auxValues, auxOldValues;
+
+				  //ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
+				  sol_->NodeSolutionToCoupling(auxValues, *couplingnodes);
+
+				  Double auxValuesMax, auxValuesL1Norm;
+				  auxValuesMax=abs( auxValues[0]);
+				  auxValuesL1Norm=abs(auxValues[0]);
+				  for(UInt ii=1; ii<auxValues.GetSize(); ii++ ){
+					  auxValuesL1Norm+=abs(auxValues[ii]);
+					  if (abs(auxValues[ii])> auxValuesMax )
+						  auxValuesMax=abs(auxValues[ii]);
+				  }
+				  Info->PrintF( pdename_," Linf Norm of auxValues:= %e\n",auxValuesMax );
+				  Info->PrintF( pdename_," L1 Norm of auxValues:= %e\n",auxValuesL1Norm);
+				  Info->PrintF( pdename_," L2 Norm of auxValues:= %e\n",auxValues.NormL2());
+
+				  Vector<Double> gSol, naux1, naux2;
+				  sol_->GetAlgSysVector(gSol );
+
+				  if(firstTime_){
+					  sol_tn_1_.SetAlgSysVector(getOld1());
+					  sol_tn_1_.GetAlgSysVector(gSolOld_ );
+
+					  firstTime_=false;
+				  }
+				  if(useAitken_ == true ){
+					  naux1=gSol*aitkenOmega_;
+					  naux2=gSolOld_*(1.0-aitkenOmega_);
+					  gSol= naux1 + naux2;
+				  }
+				  else {
+					  naux1=gSol*fixedOmega_;
+					  naux2=gSolOld_*(1.0-fixedOmega_);
+					  gSol=naux1 + naux2;
+				  }
+				  sol_->SetAlgSysVector(gSol );
+
+				  gSolOld_= gSol;
+
+				  TS_alg_->Corrector(gSol);
+
+				  sol_->NodeSolutionToCoupling((*values), *couplingnodes);
+
+				  Double valuesMax, valuesL1Norm;
+				  valuesMax=abs((*values)[0]);
+				  valuesL1Norm=abs((*values)[0]);
+				  for(UInt ii=1; ii<(*values).GetSize(); ii++ ){
+					  valuesL1Norm+=abs((*values)[ii]);
+					  if (abs((*values)[ii])> valuesMax )
+						  valuesMax=abs((*values)[ii]);
+				  }
+				  Info->PrintF( pdename_,"\n Linf Norm of values:= %e\n",valuesMax );
+				  Info->PrintF( pdename_," L1 Norm of values:= %e\n",valuesL1Norm);
+				  Info->PrintF( pdename_," L2 Norm of values:= %e\n",(*values).NormL2());
+
+			  }
+		  }
+		  else {
+			  if ( analysistype_ == TRANSIENT ){ 
+				  Vector<Double> gSol;
+				  sol_->GetAlgSysVector(gSol );
+
+				  TS_alg_->Corrector(gSol);
+			  }
+		  }
+
+		  if(foundVel){
+			  ptCoupling_->GetOutputValues(interfaceVelCoupl, temp_values);
+
+			  Vector<Double> * velValues    = dynamic_cast<Vector<Double>*>(temp_values);
+
+			  if(ptCoupling_->GetOutputType(interfaceVelCoupl) != NODE)
+				  EXCEPTION("MECH_VELOCITY must be of type NODE");
+
+			  ptCoupling_->GetOutputNodes(interfaceVelCoupl, couplingnodes);
+			  solDeriv1_.SetAlgSysVector(getS1());     
+			  solDeriv1_.NodeSolutionToCoupling((*velValues), *couplingnodes);
+		  }
+
+
+
+		  if (foundForce) {
+			  ptCoupling_->GetOutputValues(interfaceForceCoupl, temp_values);
+
+			  Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
+
+			  if(ptCoupling_->GetOutputType(interfaceForceCoupl) != NODE)
+				  EXCEPTION("MECH_FORCE must be of type NODE");
+
+			  ptCoupling_->GetOutputNodes(interfaceForceCoupl, couplingnodes);
+			  ptCoupling_->GetOutputElements(interfaceForceCoupl, couplingElems);
+			  ptCoupling_->GetOppositeMaterials(interfaceForceCoupl, materials);
+			  dof = ptCoupling_->GetOutputDof(interfaceForceCoupl);
+			  CalcAcousticCouplingRHS(couplingElems,*materials,*couplingnodes,*values, dof);           
+		  } 
 	  }
-	  
-	  if(foundVel){
-		  ptCoupling_->GetOutputValues(interfaceVelCoupl, temp_values);
-
-		  Vector<Double> * velValues    = dynamic_cast<Vector<Double>*>(temp_values);
-
-		  if(ptCoupling_->GetOutputType(interfaceVelCoupl) != NODE)
-			  EXCEPTION("MECH_VELOCITY must be of type NODE");
-
-		  ptCoupling_->GetOutputNodes(interfaceVelCoupl, couplingnodes);
-		  solDeriv1_.SetAlgSysVector(getS1());     
-		  solDeriv1_.NodeSolutionToCoupling((*velValues), *couplingnodes);
-	  }
-
-
-	  
-	  if (foundForce) {
-		  ptCoupling_->GetOutputValues(interfaceForceCoupl, temp_values);
-
-		  Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
-
-		  if(ptCoupling_->GetOutputType(interfaceForceCoupl) != NODE)
-			  EXCEPTION("MECH_FORCE must be of type NODE");
-		  
-		  ptCoupling_->GetOutputNodes(interfaceForceCoupl, couplingnodes);
-		  ptCoupling_->GetOutputElements(interfaceForceCoupl, couplingElems);
-		  ptCoupling_->GetOppositeMaterials(interfaceForceCoupl, materials);
-		  dof = ptCoupling_->GetOutputDof(interfaceForceCoupl);
-		  CalcAcousticCouplingRHS(couplingElems,*materials,*couplingnodes,*values, dof);           
-	  } 
   }
 
 
