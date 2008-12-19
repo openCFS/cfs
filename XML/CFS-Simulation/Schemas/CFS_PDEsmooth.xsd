@@ -82,7 +82,7 @@
         <!-- Subtype of PDE -->
         <xsd:attribute name="subType" type="xsd:token" use="optional"
           default="planeStrain"/>
-        <xsd:attribute name="smoothing" use="optional" default="byStrain">
+        <xsd:attribute name="smoothing" use="optional" default="byArea">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="byStrain"/>

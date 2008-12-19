@@ -171,7 +171,7 @@ namespace CoupledField
     void InitTimeStepping();
 
     Double displFac_;
-    bool useAitken_;
+    bool useAitken_, FSI_;
     Double aitkenOmega_, fixedOmega_;
     Double aitkenMu_;
     Vector<Double> actDelta_, oldDelta_;
