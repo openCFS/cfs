@@ -66,18 +66,6 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic(  ) {;};
 
-    //----------------------- TRANSIENTHARMONIC------------------------------
-
-    //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepTransHarmonic() {;};
-
-
-    //! base method for solving one transient step 
-    virtual void SolveStepTransHarmonic();
-    
-    //! routine for actions after the SolveStep-method
-    virtual void PostStepTransHarmonic() {;};
-
 
     //----------------------- SET/GET METHODS--------------------------------
     

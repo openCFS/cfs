@@ -479,7 +479,8 @@ namespace CoupledField
         Integer eqnNr;
         StdVector<UInt> connect(1);
         Double srcVal;
-        Double pointX, pointY, pointZ;
+				// initialize or receive compiler warning
+        Double pointX, pointY, pointZ = 0.0;
         bool inBox; 
 
         valmult = -1.0;    
@@ -1162,9 +1163,9 @@ namespace CoupledField
                          
     std::complex<double> w_z(GammaZirkPhys*z/(PI*Im*zq_bq));
 
-    Double r_limit;
-    r_limit=0.15;
-    Double x_vort, y_vort;
+    Double r_limit = 0.15;
+		// initialize or receive compiler warning
+    Double x_vort = 0.0, y_vort = 0.0;
 
     //Vortex core model only in a region with rad=r_limit around the two votices
     if ( ( abs(z-b) <=r_limit ) || ( abs(z+b) <=r_limit ) )

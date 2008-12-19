@@ -73,9 +73,7 @@ namespace CoupledField
     // computation of SPR gradient
     if (conf->ifget("type_of_patch",type_patch) && type_patch=="nodebased")
       {
-#ifdef DEBUG
-        (*debug) << " step: error map : node based patches are used \n";
-#endif
+        // (*debug) << " step: error map : node based patches are used \n";
         Warning("Node based patch is working only for 1 subdomain",__FILE__,__LINE__);
 
         for (icmp=0; icmp<dim; icmp++)
@@ -102,9 +100,7 @@ namespace CoupledField
     // elementbased
     else
       {
-#ifdef DEBUG
-        (*debug) << " step: error map : element based patches are used \n";
-#endif  
+        // (*debug) << " step: error map : element based patches are used \n";
         for (icmp=0; icmp<dim; icmp++)
           { // loop over components of gradient     
             for (isd=0; isd< nrSubdoms; isd++) // loop over all subdomains
@@ -192,9 +188,7 @@ namespace CoupledField
                                              const Vector<Double>* SPRgrad,  Double & error, Double & normGradSPR,
                                              const Vector<Double> & sol, Grid * ptgrid, const Integer level)
   {
-#ifdef DEBUG
-    (*debug) << " step: error map \n";
-#endif
+    // (*debug) << " step: error map \n";
 
     BaseFE          * ptelem = elem->ptElem;
     Vector<Integer> connectVec = elem->connect;
@@ -244,12 +238,8 @@ namespace CoupledField
               gradSPR[idm]+=SPRgrad[idm][connectVec[iShFnc]-1]*shFnc[iShFnc];
             }
           
-#ifdef DEBUG
-#ifdef DEBUGFULL     
-        (*debug) << gradSPR[0] << " " << gradFEM[0] << " y: " << gradSPR[1] << " " << gradFEM[1] << std::endl;
-        if (dim==3) (*debug) << " z: " << gradSPR[2] << " " << gradFEM[2] << std::endl;
-#endif
-#endif
+        // (*debug) << gradSPR[0] << " " << gradFEM[0] << " y: " << gradSPR[1] << " " << gradFEM[1] << std::endl;
+        // if (dim==3) (*debug) << " z: " << gradSPR[2] << " " << gradFEM[2] << std::endl;
 
         // calculation of L2 norm for difference of SPR and FEM gradient,
         // and L2 norm of SPR gradient
@@ -486,9 +476,7 @@ namespace CoupledField
     // computation of SPR gradient
     if (conf->ifget("type_of_patch",type_patch) && type_patch=="nodebased")
       {
-#ifdef DEBUG
-        (*debug) << " step: error map : node based patches are used \n";
-#endif
+        // (*debug) << " step: error map : node based patches are used \n";
         Warning("Node based patch is working only for 1 subdomain",__FILE__,__LINE__);
 
         for (icmp=0; icmp<dim; icmp++)
@@ -521,9 +509,7 @@ namespace CoupledField
     // elementbased
     else
       {
-#ifdef DEBUG
-        (*debug) << " step: error map : element based patches are used \n";
-#endif  
+        // (*debug) << " step: error map : element based patches are used \n";
         for (icmp=0; icmp<dim; icmp++)
           { // loop over components of gradient     
             for (isd=0; isd< nrSubdoms; isd++) // loop over all subdomains
@@ -620,9 +606,7 @@ namespace CoupledField
                                                      const Vector<Double> & sol, const Vector<Double> & solIm,                                              
                                                      Grid * ptgrid, const Integer level)
   {
-#ifdef DEBUG
-    (*debug) << " step: error map \n";
-#endif
+    // (*debug) << " step: error map \n";
 
     BaseFE          * ptelem = elem->ptElem;
     Vector<Integer> connectVec = elem->connect;
@@ -676,12 +660,8 @@ namespace CoupledField
               gradSPRIm[idm]+=SPRgradIm[idm][connectVec[iShFnc]-1]*shFnc[iShFnc];
             }
           
-#ifdef DEBUG
-#ifdef DEBUGFULL     
-        (*debug) << gradSPR[0] << " " << gradFEM[0] << " y: " << gradSPR[1] << " " << gradFEM[1] << std::endl;
-        if (dim==3) (*debug) << " z: " << gradSPR[2] << " " << gradFEM[2] << std::endl;
-#endif
-#endif
+        // (*debug) << gradSPR[0] << " " << gradFEM[0] << " y: " << gradSPR[1] << " " << gradFEM[1] << std::endl;
+        // if (dim==3) (*debug) << " z: " << gradSPR[2] << " " << gradFEM[2] << std::endl;
 
         // calculation of L2 norm for difference of SPR and FEM gradient,
         // and L2 norm of SPR gradient

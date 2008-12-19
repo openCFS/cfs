@@ -58,7 +58,7 @@ namespace CoupledField {
   void SolveStepMech::StepTransLin() {
 
     //account for RHS
-    assemble_->AssembleLinRHS( actTime_ );
+    assemble_->AssembleLinRHS();
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();

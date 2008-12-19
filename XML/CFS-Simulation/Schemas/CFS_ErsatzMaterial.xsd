@@ -15,10 +15,20 @@
   <!--   Definition of an optimization problem at all                       -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_ErsatzMaterial">
-      <!-- Load the ersatz material e.g. from a SIMP optimization to do a
-           normal analysis on it (static, harmonic, ... -->
-      <!-- <loadErsatzMaterial region="piezo" file="pizeo_density.xml" set="last"/> -->
-    <xsd:attribute name="region" use="required" type="xsd:token" />
+    <!-- Load the ersatz material e.g. from a SIMP optimization to do a
+      normal analysis on it (static, harmonic, ... -->
+    <!-- <loadErsatzMaterial file="pizeo_density.xml" set="last">
+           <region name="mech"/>
+           <region name="piezo"/>
+         </loadErsatzMaterial> 
+    -->
+    <xsd:sequence>
+      <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" use="required" type="xsd:token"/>
+        </xsd:complexType>        
+      </xsd:element>
+    </xsd:sequence>
     <xsd:attribute name="file" use="required" type="xsd:token" />
     <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in 
          the ersatz material file -->

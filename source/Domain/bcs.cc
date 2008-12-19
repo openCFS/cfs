@@ -4,16 +4,29 @@
 
 #include "bcs.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 namespace CoupledField {
 
 
   HomDirichletBc::HomDirichletBc() {
-
     dof = 1;
   }
 
-  HomDirichletBc::~HomDirichletBc() 
+  void HomDirichletBc::ToInfo(InfoNode* in) const
+  {
+    in->Get("dof")->SetValue(dof);
+  }
+
+  std::string HomDirichletBc::ToString()
+  {
+    std::stringstream ss;
+    ss << "dof=" << dof;
+    return ss.str();
+  }
+
+
+  HomDirichletBc::~HomDirichletBc()
   {
      // we don't do anything in this (virtual) destructor, it's just there because
      // of the virtual Dump()
@@ -25,12 +38,44 @@ namespace CoupledField {
 
   InhomNeumannBc::InhomNeumannBc() {
   }
-  
+
+  void InhomDirichletBc::ToInfo(InfoNode* in) const
+  {
+    HomDirichletBc::ToInfo(in);
+    in->Get("value")->SetValue(value);
+    in->Get("phase")->SetValue(phase);
+  }
+
+
+  std::string InhomDirichletBc::ToString()
+  {
+    std::stringstream ss;
+    ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase;
+    return ss.str();
+  }
+
   LoadBc::LoadBc() {
   }
-  
-  Constraint::Constraint() {
 
+  void LoadBc::ToInfo(InfoNode* in) const
+  {
+    HomDirichletBc::ToInfo(in);
+    in->Get("value")->SetValue(value);
+    in->Get("phase")->SetValue(phase);
+    in->Get("weight")->SetValue(weight);
+  }
+
+
+  std::string LoadBc::ToString()
+  {
+    std::stringstream ss;
+    ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase
+       << ", weight=" << weight;
+    return ss.str();
+  }
+
+
+  Constraint::Constraint() {
     masterDof = 1;
     slaveDof = 1;
   }

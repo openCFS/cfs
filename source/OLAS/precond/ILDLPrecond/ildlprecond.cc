@@ -98,7 +98,7 @@ namespace OLAS {
       }
       else {
         if ( this->myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
-             this->sysMatDim_ != scrsMat.GetNcols() ) {
+             (int) this->sysMatDim_ != scrsMat.GetNcols() ) {
           (*error) << "ILDLPrecond::Setup: newMatrixPattern = false, but "
                    << "matrix dimension changed from " << this->sysMatDim_ << " to "
                    << scrsMat.GetNcols();

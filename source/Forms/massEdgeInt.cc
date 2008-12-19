@@ -53,13 +53,10 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
        elemMat += partElemMat;
      }
 
-
-#ifdef DEBUG 
+    /*
    (*debug) << "MassEdge Matrix:  "  << std::endl
             << elemMat << std::endl << std::endl;
-#endif
- 
- 
+    */
  }
 
 

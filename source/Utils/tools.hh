@@ -18,18 +18,18 @@
 
 namespace CoupledField {
 
-  template<class TYPE> class Matrix; 
+  template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
 
   // =========================================================================
   //     ERROR / WARNING HANDLING
   // =========================================================================
-  
-    
+
+
   //@{
-  //! \name Error / Warning Handling 
-  
+  //! \name Error / Warning Handling
+
   //! Function for issuing an error message and terminating program execution.
 
   //! This function can be used to issue an error message and terminate
@@ -136,13 +136,13 @@ namespace CoupledField {
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
                         const Char delimiter = ',' );
-  
+
   //! Converts a string into a double value
-  Double String2Double( const std::string & val); 
-  
+  Double String2Double( const std::string & val);
+
   //! Converts a string into an integer value
-  Integer String2Int( const std::string & val); 
-  
+  Integer String2Int( const std::string & val);
+
   //! Converts a string into an unsigned integer value
   UInt String2UInt( const std::string & val);
     //@}
@@ -153,27 +153,27 @@ namespace CoupledField {
 
   /** Compares if two doubles are close to each other */
   bool close(Double d1, Double d2);
- 
+
   /** Compared if two complex are close (if both the real and imaginary part are close) */
   bool close(Complex c1, Complex c2);
 
   //! Absolute value of number
   template<class T>
-  T abs(T x) { return (x>0 ? x: -x); } 
+  T abs(T x) { return (x>0 ? x: -x); }
 
   //! power of value
   template<class T>
-  T pow(T x, UInt power) 
+  T pow(T x, UInt power)
   { T p=x;
     if (!power)
       return 1;
- 
+
     for (UInt i=2; i<=power; i++)
       p*=x;
     return p;
   }
 
-  //! class for working with points. 
+  //! class for working with points.
   /*!
     \param dim dimension of the point. 2.. point in 2D, 3.. point in 3D
   */
@@ -181,10 +181,10 @@ namespace CoupledField {
 
   public:
     //! constructor
-    Point() { 
+    Point() {
       for(UInt i=0; i<3; i++)
-        p[i]=0.0;
-    } 
+        data[i]=0.0;
+    }
 
     //!destructor
     ~Point(){;}
@@ -192,8 +192,8 @@ namespace CoupledField {
     /** resets the values */
     void SetZero() {
       for(UInt i=0; i<3; i++)
-        p[i]=0.0;
-    } 
+        data[i]=0.0;
+    }
 
     //!
     Point & operator=(const Point & t);
@@ -202,32 +202,49 @@ namespace CoupledField {
     //!
     Point  operator+(const Point & t);
     //!
-    Point  operator-(const Point & t); 
+    Point  operator-(const Point & t);
+    /** scale the point */
+    Point  operator*(double factor);
+
+    Point& operator*=(double factor);
+
+    /** scale the point */
+    Point  operator/(double factor);
+
+    /** scale the point */
+    Point&  operator/=(double factor);
+
 
     //! return coordinate number i
     Double &operator[](UInt i) {
       assert(i < 3);
-      return p[i];
-    } 
+      return data[i];
+    }
 
     //! return coordinate number i
     Double operator[](UInt i) const {
       assert(i < 3);
-      return p[i];
-    } 
-    
+      return data[i];
+    }
+
     //! calculate distance between two points
-    static Double dist(const Point& a, const Point& b);
+    static Double dist(const Point& a, const Point& b) {
+      Double preSqrt = 0.0;
+      for(UInt i=0; i<3; i++)
+        preSqrt+= (a.data[i]-b.data[i]) * (a.data[i]-b.data[i]);
+      return sqrt(preSqrt);
+    }
 
     //! calculate distance to another point
-    Double dist(const Point& other) const;
-    
-    /** Lists the content 
-     * @return the form "(0.3;4.3;0.0)" but no digit control */ 
+    Double dist(const Point& other) const {
+      return Point::dist(*this, other);
+    }
+
+    /** Lists the content
+     * @return the form "(0.3;4.3;0.0)" but no digit control */
     std::string ToString() const;
 
-  private:
-    Double p[3];
+    Double data[3];
   };
 
 
@@ -282,26 +299,33 @@ namespace CoupledField {
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Complex factor);
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Double factor);
 
-  
+
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
   /** Calculates the L2 norm of a array. This is for cases where we
-   * don't use one of our vectors. E.g. with IPOPT */ 
+   * don't use one of our vectors. E.g. with IPOPT */
   double NormL2(const double* data, unsigned int size);
-  
+
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
-  
+
   /** Calculate the Standard Deviation of an array */
   double StandardDeviation(const double* data, unsigned int size);
 
+  /** Returns the sign of a value
+   * @return 0 if 0 or +/- 1 */
+  inline int Sign(int a) { return (a == 0) ? 0 : (a < 0 ? -1 : 1); }
+  inline int Sign(Double a) { return (a == 0.0) ? 0 : (a < 0.0 ? -1 : 1); }
+
+  /** Compares the sign for equality - note that we have three signs! -1, 0, 1 */
+  inline bool SameSign(Double a, Double b) { return (a < 0.0) == (b < 0.0); }
 
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
-  
-  
+
+
 } // end of CoupledField
 
 #endif

@@ -19,6 +19,7 @@ namespace CoupledField {
   class ElemList;
   class EntityIterator;
   class ResultInfo;
+  class InfoNode; 
   
   //! Class for mapping entities and ansatz functions to equation numbers
   class EqnMap {
@@ -208,16 +209,10 @@ namespace CoupledField {
 
     //@}
 
-    // ======================================================================
-    // MISCELLANEOUS
-    // ======================================================================
-    //@{
-    //! \name Miscellaneous
-
-    //! Print the mapping nodes <-> Eqns
-    void Print(std::ostream & out) const;
-
-    //@}
+    /** Give all details of the mapping to the info.xml file it triggered 
+     * such in the comman line. One can gain similar data via the loggin 
+     * (in the debug version) */ 
+    void ToInfo(InfoNode* in) const;
     
   private:
 

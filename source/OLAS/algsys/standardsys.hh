@@ -231,6 +231,10 @@ namespace OLAS
     
     /** @see BaseSystem::InitRHS(const Vector<Complex>*) */
     void InitRHS( const Vector<Complex>* newRHS );
+
+    /** @see BaseSystem::InitRHS(const Vector<Double>*) */
+    void InitRHS( const Vector<Double>* newRHS );
+
     
     //! Set the solution vector of the specified PDE to zero
     

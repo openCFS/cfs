@@ -384,6 +384,15 @@ namespace CoupledField
     //! compute length of edge with maximal/minimal size
     virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ); 
 
+    /** Compute the average side length for all dimenstions. Clearly works only for quadrilaterals ans hexahedrons.
+     * @param ptCoord input, from the element
+     * @param edges_out array with index 0 for x, ... */
+    virtual void GetEdgeLength(Matrix<Double> &ptCoord, StdVector<Double>& edges_out) 
+    { 
+      EXCEPTION("GetMaxMinEdgeLength not implemented");
+    }
+    
+    
     //! Return FE-Type
     virtual FEType feType() = 0;
 

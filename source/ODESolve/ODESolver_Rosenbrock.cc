@@ -23,7 +23,7 @@ namespace CoupledField
 				    Double &hInit,
 				    Double hMin,
 				    Double hMax ){
-    const Double tiny = 1.0e-30;
+    // COMPWARNING: unused variable const Double tiny = 1.0e-30;
     UInt i;
     UInt nstp;
     Double t;
@@ -60,7 +60,7 @@ namespace CoupledField
     }
     // *********************************************
 
-    for (nstp=0; nstp<maxSteps_; nstp++){
+    for (nstp=0; (int) nstp<maxSteps_; nstp++){
       myODE.CompDeriv(t,y,dydt);
       //Scaling to monitor accuracy.
       //Can be modified if different yscal is needed.
@@ -273,7 +273,7 @@ namespace CoupledField
 					     Double &d){
 
     const Double tiny = 1.0e-20;
-    UInt i, imax, j, k;
+    UInt i = 0, imax = 0, j = 0, k = 0;
     Double big, dum, sum, temp;
     StdVector<Double> v(n);
     d = 1.0;
@@ -341,7 +341,7 @@ namespace CoupledField
     Double sum;
     ii =0;
 
-    for(i=0; i<n; i++){
+    for(i=0; i<(int) n; i++){
 
       ip = indx[i];
       sum = b[ip];
@@ -361,7 +361,7 @@ namespace CoupledField
 
     for( i= n-1; i >= 0; i--){
       sum = b[i];
-      for( j= i+1; j< n; j++){
+      for( j= i+1; j<(int) n; j++){
 	sum -= a(i,j) *b[j];
       }
       b[i] = sum / a(i,i);

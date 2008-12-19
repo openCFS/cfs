@@ -8,6 +8,7 @@ namespace CoupledField
 {
   class Optimization;
   class ParamNode;
+  class InfoNode;
   
   /** This is the base class of the optimizer tools.
    * Note that for SCPIP we have multiple inheritance */
@@ -35,7 +36,7 @@ namespace CoupledField
     
     /** called by Optimization::CommitIteration(), to be overwritten to add optimizer
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
-    virtual void LogFileLine(std::ofstream* out);
+    virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
     
   protected:
     /** Call this in the optimizer constructor when you have manual_scaling. */
@@ -49,6 +50,15 @@ namespace CoupledField
      * Also does an EvalObjective() implicit!
      * @return true if within autoscale tolerance - false if restart necessary */
     bool EvalGradObjective(int n, const double* x, double* grad_f);
+    
+    /** Evaluates the constraints or rather passes them on to the optimization */
+    void EvalConstraints(int n, const double* x, int m, double* g);
+    
+    /** Evaluates the constraint gradients and does reordering if necessary */
+    void EvalGradConstraints(int n, const double* x, int m, int nentries, double* values);
+    
+    /** Provide Upper and Lower bounds to the optimizer */
+    void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
     /** Combines a design_in with an objective */
     struct DesignMemory
@@ -83,6 +93,12 @@ namespace CoupledField
        * Calculates opt_scaling if target is given!
        * @return true if not active or no tolerance or within tolerance */
       bool CheckScaling(int n, double* grad);
+
+      /** Did we do autoscale? Interesting for iteration-0 commit */
+      bool DoAutoscale() 
+      {
+        return autoscale_;
+      }
       
       std::string ToString();
       
@@ -91,7 +107,7 @@ namespace CoupledField
       
       /** The tolerance as fraction before we rescale. 0.0 is only initial autoscale or no autoscale  */
       double tol;
-       
+      
       /** The optimal scaling for the design */
       DesignMemory opt_scaling;
       
@@ -102,6 +118,8 @@ namespace CoupledField
       DesignMemory current;
       
     private:
+      
+      bool autoscale_;
       
       BaseOptimizer* base_;
     };

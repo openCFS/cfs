@@ -426,7 +426,7 @@ namespace OLAS {
     std::stringstream fileName;
     std::string outFile;
 
-    for ( Integer j = 1; j <= size_; j++ ) {
+    for ( UInt j = 1; j <= size_; j++ ) {
 
       // construct file name
       fileName.str( "" );

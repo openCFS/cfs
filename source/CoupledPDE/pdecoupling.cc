@@ -15,16 +15,15 @@
 #include "Utils/boost-serialization.hh"
 
 
-
 namespace CoupledField
 {
 
 
   PDECoupling::CouplingInterface::CouplingInterface()
   {
-  
+
     dof = 0;
-    numNodes = 0;    
+    numNodes = 0;
     numElems = 0;
     epsilon = 0.0;
     values = NULL;
@@ -66,28 +65,28 @@ namespace CoupledField
         values_tn_2 = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values_tn_2)));
         values_tn_3 = new Vector<Double>(dynamic_cast<Vector<Double>&>(*(x.values_tn_3)));
       }
-    }  
+    }
 
     dof = x.dof;
     numNodes = x.numNodes;
     numElems = x.numElems;
     normtype = x.normtype;
     epsilon = x.epsilon;
-    
+
     return *this;
 
   }
-  
-  
+
+
   template<class Archive>
-  void PDECoupling::CouplingInterface::serialize(Archive & ar, 
+  void PDECoupling::CouplingInterface::serialize(Archive & ar,
                                                  const unsigned int version) {
-    
+
     EXCEPTION( "Not implemented at the moment!" );
 
-    // The problem at this point is that between reading and writing a 
-    // restart file we can not keep the pointers contained in 
-    // elements. 
+    // The problem at this point is that between reading and writing a
+    // restart file we can not keep the pointers contained in
+    // elements.
     // Anyway, the whole mechanism has to be rewritten when we incorporate
     // the concept of p-fem, where we do not have only values associated
     // with nodes, but also edges surfaces and so on.
@@ -99,7 +98,7 @@ namespace CoupledField
   PDECoupling::CouplingInterface::
   CouplingInterface(const CouplingInterface &x ){
     *this = x;
- 
+
   }
 
   PDECoupling::CouplingInterface::~CouplingInterface()
@@ -119,96 +118,96 @@ namespace CoupledField
 
   PDECoupling::PDECoupling(Grid * aptgrid)
   {
-  
+
       ptGrid_ = aptgrid;
-  
+
     defaultEpsilon = 1e-5;
     defaultNormType = L2REL;
-  
+
   }
 
   PDECoupling::~PDECoupling()
   {
-  
+
     // NOTE: since each interface exists only one time
     // but is referenced two times (once as input and once
-    // as output), it must be deleted only once. In this 
+    // as output), it must be deleted only once. In this
     // case the input-interface pointer was used.
-  
+
     //for (UInt i=0; i<outputInterfaces_.GetSize(); i++)
-    //if (outputInterfaces_[i]) 
+    //if (outputInterfaces_[i])
     //  delete outputInterfaces_[i];
-  
+
     for (UInt i=0; i<inputInterfaces_.GetSize(); i++)
-      if (inputInterfaces_[i]) 
+      if (inputInterfaces_[i])
         delete inputInterfaces_[i];
-  
+
   }
 
   void PDECoupling::RegisterInput(CouplingInputType InType, SolutionType Quantity)
 
   {
-    
+
     inputTypes_.Push_back(InType);
-    inputQuantities_.Push_back(Quantity);  
+    inputQuantities_.Push_back(Quantity);
     inputInterfaces_.Push_back(NULL);
   }
 
 
-  void PDECoupling::AddInput(SolutionType quantity, 
-                             StdVector<std::string> &region, 
+  void PDECoupling::AddInput(SolutionType quantity,
+                             StdVector<std::string> &region,
                              CouplingRegionType regionType,
                              StdVector<std::string> &neighRegions,
                              Double epsilon,
                              NormType normtype,
                              StdVector<PDECoupling*> & couplings)
   {
-  
-  
-    CouplingInterface *myInterface = 0; 
+
+
+    CouplingInterface *myInterface = 0;
     Integer myNum = -1;
     std::string quantityConv;
-  
+
     // search matching  Quantity
     for (UInt i=0; i<inputQuantities_.GetSize(); i++)
       {
         if (inputQuantities_[i] == quantity)
-          myNum = i; 
+          myNum = i;
       }
-  
+
     if (myNum == -1)
       {
         Enum2String(quantity, quantityConv);
         EXCEPTION( "Quantity '" << quantityConv <<  "' not registered for PDE '"
                    << myPDE_->GetName() << "'" );
       }
-  
-  
+
+
     // Add coupling input as output to pde, which can calculate specified quantity
     CouplingOutputType myOutputType = Input2OutputType(inputTypes_[myNum]);
-  
+
     UInt i=0;
     while (myInterface == 0 && i<couplings.GetSize())
       {
-        myInterface = couplings[i++]->AddOutput(myOutputType, quantity, 
+        myInterface = couplings[i++]->AddOutput(myOutputType, quantity,
                                                 region, regionType);
       }
-  
+
     // If no pde has the specified quantity as output
     if (myInterface == NULL)
       {
         Enum2String(quantity, quantityConv);
-        EXCEPTION( "Qantity \'" << quantityConv 
+        EXCEPTION( "Qantity \'" << quantityConv
                    << "\' can not be calculated with current set of PDEs" );
       }
-  
+
     // i now contains the number of
     // the coupling object, which shares the data
     // of this coupling object
     i--;  // because i has been incremented before;
     StdPDE * oppositePDE = couplings[i]->myPDE_;
-  
-  
+
+
     // Set dof according to myPDE's dof
     // if the inputType is COORD (= moving geometry)
     // then the number of dofs is equal to the
@@ -220,16 +219,16 @@ namespace CoupledField
       myInterface->dof = myPDE_->dim_;
     else
       myInterface->dof = myPDE_->results_[0]->dofNames.GetSize();
-  
+
     // Initialize the values and oldValues arrays
     //myInterface->values->SetDof(myPDE_->dofspernode_);
     //myInterface->values->Init(0.0);
     //myInterface->oldValues->SetDof(myPDE_->dofspernode_);
     //myInterface->oldValues->Init(0.0);
-  
+
     // set normtype and epsilon
     //myInterface->epsilon = defaultEpsilon;
-    //conf->ifget(inputQuantities_[myNum], myInterface->epsilon, "coupling", "tolerance"); 
+    //conf->ifget(inputQuantities_[myNum], myInterface->epsilon, "coupling", "tolerance");
 
     myInterface->epsilon = epsilon;
     myInterface->normtype = normtype;
@@ -247,7 +246,7 @@ namespace CoupledField
         {
           neighRegions.Clear();
           // get paramnode of oppsite pde
-          StdVector<ParamNode*> regionNodes = 
+          StdVector<ParamNode*> regionNodes =
             oppositePDE->GetParamNode()->Get("regionList")->GetList("region");
           for( UInt iRegion = 0; iRegion < regionNodes.GetSize(); iRegion++ ) {
             neighRegions.Push_back( regionNodes[iRegion]->Get("name")->AsString() );
@@ -258,10 +257,10 @@ namespace CoupledField
           EXCEPTION( "AddInputCoupling: For 'neighbourRegion' either only 'all' "
                      << "or only region names are allowed!" );
         }
-    
+
     }
     myInterface->neighInputRegions = neighRegions;
-  
+
     if (myInterface->elements.GetSize() != 0
         && myInterface->regionType == SURFACE)
       {
@@ -269,100 +268,100 @@ namespace CoupledField
         // Since the Inputcoupling values are computed by another PDE
         // as Output values, it might need the material paramter
         // for some integrators.
-      
-        // 1. Step: get the neighbouring elements 
-      
+
+        // 1. Step: get the neighbouring elements
+
         StdVector<Elem*> & interfaceElems = myInterface->elements;
         StdVector<Elem*>  actSubdomain;
         StdVector<Elem*> possibleNeighbours, neighbours;
-    
-      
-      
+
+
+
         // for (UInt iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
         //      {GetVolNeighboursForSurf
         //        ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd]);
         //        for (UInt j=0; j<actSubdomain.GetSize(); j++)
         //          possibleNeighbours.Push_back(actSubdomain[j]);
         //      }
-      
+
         //  ptGrid_->GetElemsNextToSurface( myInterface->neighbours, *interfaceElems,
         //                                    myPDE_->subdoms_ );
 
         //       if (!myInterface->neighbours.GetSize())
         //      EXCEPTION("No neighbours for element coupling found!",  __FILE__,__LINE__);
-      
-      
-      
-      
+
+
+
+
         //       // 2. Step: For each interface element, set the
         //       //          material parameter according to its neighbour
-      
+
         //       for (UInt i=0; i<myInterface->neighbours.GetSize(); i++)
         //      {
         //        bool subdomFound = false;
         //        UInt subDomNr = 0;
-          
+
         //        for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
         //          if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->regionId)
         //            {
         //              subdomFound = true;
         //              break;
         //            }
-          
-          
+
+
         //        if (subdomFound == false)
         //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
-          
-        //        myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);           
+
+        //        myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);
         //      }
-      
-      
-      
+
+
+
         // Set the material of the neighbours elements of the "opposite" PDE
         // 1. Step: get the neighbouring elements
         //       possibleNeighbours.Clear();
-      
-      
+
+
         //       for (UInt iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
         //         {
         //           ptGrid_->GetVolElems(actSubdomain, oppositePDE->subdoms_[iSd]);
         //        for (UInt j=0; j<actSubdomain.GetSize(); j++)
         //          possibleNeighbours.Push_back(actSubdomain[j]);
         //      }
-      
+
         //       ptGrid_->GetElemsNextToSurface( neighbours,
         //                                       *interfaceElems,
         //                                       oppositePDE->subdoms_ );
-      
+
         //        if (!neighbours.GetSize())
         //      EXCEPTION("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
-      
+
         //       for (UInt i=0; i<neighbours.GetSize(); i++)
         //         {
         //           bool subdomFound = false;
         //           UInt subDomNr = 0;
-          
+
         //           for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
         //             if (oppositePDE->subdoms_[subDomNr] == neighbours[i]->regionId)
         //               {
         //                 subdomFound = true;
         //                 break;
         //               }
-                  
-          
+
+
         //        if (subdomFound == false)
         //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
-          
+
         //        myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
         //      }
-      
+
         Integer index = -1;
         myInterface->oppositePdeMaterials.Resize(interfaceElems.GetSize());
         myInterface->oppositePdeMaterials.Init(NULL);
 
         for ( UInt iElem = 0; iElem < interfaceElems.GetSize(); iElem++ ) {
-        
-          SurfElem const & myElem = 
+
+          SurfElem const & myElem =
             dynamic_cast<SurfElem &>(*interfaceElems[iElem]);
 
           index = myPDE_->subdoms_.Find(myElem.ptVolElem1->regionId);
@@ -370,53 +369,53 @@ namespace CoupledField
           if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
             index = myPDE_->subdoms_.Find(myElem.ptVolElem2->regionId);
           }
-        
+
           if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
-            EXCEPTION( "PDECoupling::AddOutput: For Surface element Nr. " 
+            EXCEPTION( "PDECoupling::AddOutput: For Surface element Nr. "
                        << " I found no according region in PDE '"
                        << myPDE_->GetName() << "'!" );
           }
           //In case we have only one volume elem neighbor we assume same mat index
           if ( index == -1 && (myElem.ptVolElem2==NULL)) {
-          myInterface->oppositePdeMaterials[iElem] = 
+          myInterface->oppositePdeMaterials[iElem] =
             (myPDE_->materials_.begin()->second);
           }
           else
-            myInterface->oppositePdeMaterials[iElem] = 
+            myInterface->oppositePdeMaterials[iElem] =
               (myPDE_->materials_[myPDE_->subdoms_[index]]);
-        
+
         }
-      
+
       } // end if
-  
+
     inputInterfaces_[myNum] = myInterface;
-  
-  
+
+
   }
 
-  PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType outputType, 
-                                                         SolutionType quantity, 
+  PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType outputType,
+                                                         SolutionType quantity,
                                                          StdVector<std::string> & regions,
                                                          CouplingRegionType regionType)
   {
-  
+
     // search if output exists already
     for (UInt i=0; i<outputTypes_.GetSize(); i++)
-      if (outputTypes_[i] == outputType 
+      if (outputTypes_[i] == outputType
           && outputQuantities_[i] == quantity
           && outputInterfaces_[i]->regions == regions)
         return outputInterfaces_[i];
-  
-  
+
+
     // if not find out if PDE can calculate desired output
     if (myPDE_->HasOutput(quantity) == false)
       return 0;
-  
+
     // create new Coupling Output
     outputTypes_.Push_back(outputType);
     outputQuantities_.Push_back(quantity);
 
-    CouplingInterface *myInterface = new CouplingInterface;  
+    CouplingInterface *myInterface = new CouplingInterface;
     myInterface->regions = regions;
     myInterface->regionType = regionType;
 
@@ -429,7 +428,7 @@ namespace CoupledField
     StdVector<Elem*> auxElems;
     std::string errMsg;
     StdVector<RegionIdType> regionIdVec;
-  
+
     // Get Elements/nodes of coupling region
     SD.Clear();
     switch (regionType)
@@ -441,8 +440,8 @@ namespace CoupledField
         if( outputType == NODE ) {
           numNodes = ptGrid_->GetNumNodes( regionIdVec );
           myInterface->nodes.Reserve(numNodes);
-          
-          
+
+
           for (UInt iSD=0; iSD<regions.GetSize(); iSD++)
             {
               ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
@@ -451,9 +450,9 @@ namespace CoupledField
                   myInterface->nodes.Push_back(nodes[iNode]);
               }
             }
-          
+
           myInterface->numNodes = myInterface->nodes.GetSize();
-          
+
           // Check if any nodes at all were found
           if ( myInterface->numNodes == 0){
             errMsg  = "Coupling::AddOutput: The region(s) ";
@@ -468,13 +467,13 @@ namespace CoupledField
             errMsg += "Please check you mesh file!";
             EXCEPTION(errMsg.c_str() );
           }
-      
+
           //myInterface->values.resize(myInterface->nodes.GetSize());
           //myInterface->oldValues.resize(myInterface->nodes.GetSize());
           //  myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
           //       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
         } else {
-          
+
           tempSD.Clear();
           for (UInt iSD=0; iSD<regions.GetSize(); iSD++) {
             ptGrid_->GetElems( tempSD, regionIdVec[iSD] );
@@ -483,15 +482,15 @@ namespace CoupledField
               myInterface->elements.Push_back( tempSD[iElem] );
               }
             }
-          
+
           myInterface->numElems = myInterface->elements.GetSize();
-        
+
         }
-        
+
         break;
 
       case NODES:
-      
+
 
         // count complete number of nodes
         for (UInt i=0; i<regions.GetSize(); i++)
@@ -499,14 +498,14 @@ namespace CoupledField
 
         myInterface->nodes.Resize(numNodes);
         myInterface->nodes.Init();
-      
+
         inode =0;
 
         // get for each nodeslist all nodes
         for (UInt i=0; i<regions.GetSize(); i++)
           {
             ptGrid_->GetNodesByName(nodesConverted, regions[i]);
-          
+
             for ( UInt k=0; k< nodesConverted.GetSize(); k++, inode++)
               myInterface->nodes[inode] = nodesConverted[k];
           }
@@ -541,21 +540,21 @@ namespace CoupledField
           ptGrid_->GetSurfElems( surfElems, regionIdVec[iSD] );
           for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
             SD.Push_back(surfElems[iElem]);
-        
+
           // then get the according coupling nodes
           ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
-        
+
           for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
             myInterface->nodes.Push_back(nodes[iNode]);
           }
-        
+
         }
-      
-      
+
+
         // Get the nodes from BCs
         //myInterface->elements = ptBCs_->getEdgesBC(region);
         myInterface->elements = SD;
-      
+
 
         myInterface->numNodes = myInterface->nodes.GetSize();
 
@@ -573,17 +572,17 @@ namespace CoupledField
           errMsg += "Please check you mesh file!";
           EXCEPTION(errMsg.c_str() );
         }
-      
+
         myInterface->numElems = myInterface->elements.GetSize();
         myInterface->materials.Resize(myInterface->elements.GetSize());
         myInterface->materials.Init( NULL );
-            
+
 
         break;
       }
 
     outputInterfaces_.Push_back(myInterface);
-  
+
     return myInterface;
   }
 
@@ -597,16 +596,16 @@ namespace CoupledField
 
   void PDECoupling::SetOutputNumNodes(UInt i, UInt nnodes)
   {
-  
+
     outputInterfaces_[i]->numNodes = nnodes;
-    
-  }  
+
+  }
 
   void PDECoupling::SetOutputNumElems(UInt i, UInt nelems)
   {
     outputInterfaces_[i]->numElems = nelems;
-  
-  }  
+
+  }
 
 
   void PDECoupling::SetOutputDof(UInt i, UInt dof)
@@ -622,23 +621,23 @@ namespace CoupledField
 
   UInt PDECoupling::GetNumInputCouplings()
   {
-    
+
     UInt numCouplings = 0;
-    
+
     for ( UInt i = 0; i < inputInterfaces_.GetSize(); i++ ) {
       if ( inputInterfaces_[i] != NULL )
         numCouplings++;
     }
-    
+
     return numCouplings;
-  
+
   }
 
 
   UInt PDECoupling::GetNumOutputCouplings()
   {
     UInt numCouplings = 0;
-    
+
     for ( UInt i = 0; i < outputInterfaces_.GetSize(); i++ ) {
       if ( outputInterfaces_[i] != NULL )
         numCouplings++;
@@ -665,25 +664,25 @@ namespace CoupledField
            be called for Output-Coupling interfaces!" );
 
     if (isComplex)
-      {
-        outputInterfaces_[i]->values = new Vector<Complex>;
-        outputInterfaces_[i]->oldValues = new Vector<Complex>;
+    {
+      outputInterfaces_[i]->values = new Vector<Complex>;
+      outputInterfaces_[i]->oldValues = new Vector<Complex>;
       outputInterfaces_[i]->values_tn_1 = new Vector<Complex>;
       outputInterfaces_[i]->values_tn_2 = new Vector<Complex>;
       outputInterfaces_[i]->values_tn_3 = new Vector<Complex>;
-      } 
+    } 
     else
-      {
-        outputInterfaces_[i]->values = new Vector<Double>;
-        outputInterfaces_[i]->oldValues = new Vector<Double>;
+    {
+      outputInterfaces_[i]->values = new Vector<Double>;
+      outputInterfaces_[i]->oldValues = new Vector<Double>;
       outputInterfaces_[i]->values_tn_1 = new Vector<Double>;
       outputInterfaces_[i]->values_tn_2 = new Vector<Double>;
       outputInterfaces_[i]->values_tn_3 = new Vector<Double>;
-      }
-  
+    }
+
     // Determine size of vector
     UInt size = 0;
-    
+
     if ( numElems != 0 ) {
       size = numElems;
     }
@@ -717,7 +716,7 @@ namespace CoupledField
       outputInterfaces_[i]->values_tn_2->Init(0.0);
       outputInterfaces_[i]->values_tn_3->Init(0.0);
     }
-    
+
   }
 
 
@@ -730,17 +729,17 @@ namespace CoupledField
         // Coordinate Coupling -> node values needed
         return NODE;
         break;
-      
+
       case RHS:
         // RHS coupling -> node values needed
         return NODE;
         break;
-      
+
       case ID_BC:
         // Inhomogeneous Dirichlet BC -> node values needed
         return NODE;
         break;
-      
+
       case MAT:
         // Material parameter coupling -> element values needed
         return ELEM;
@@ -753,13 +752,13 @@ namespace CoupledField
       }
 
     EXCEPTION( "No output found for input" );
-    
-    // 
+
+    //
 
   }
 
   void PDECoupling::GetMemento(CouplingMemento & memento) {
-  
+
     memento.inputTypes_ = inputTypes_;
     memento.inputQuantities_ = inputQuantities_;
     memento.inputInterfaces_.Resize(inputInterfaces_.GetSize());
@@ -772,13 +771,13 @@ namespace CoupledField
 
 
   void PDECoupling::SetMemento(CouplingMemento & memento) {
-  
+
     std::string errMsg, warnMsg, helper;
 
     // if there is no information in the memento just leave
     if (memento.isSet_ == false)
       return;
-  
+
     // Check if size of internal vectors
     if ((memento.inputTypes_.GetSize() != memento.inputQuantities_.GetSize()) ||
         (memento.inputTypes_.GetSize() != memento.inputInterfaces_.GetSize())) {
@@ -800,45 +799,45 @@ namespace CoupledField
 
       // loop over all own interfaces
       for (UInt iOwn=0; iOwn<inputTypes_.GetSize(); iOwn++) {
-        if ((memento.inputTypes_[iMem] == inputTypes_[iOwn]) && 
-          
+        if ((memento.inputTypes_[iMem] == inputTypes_[iOwn]) &&
+
             (memento.inputQuantities_[iMem] == inputQuantities_[iOwn]) &&
-          
-            (memento.inputInterfaces_[iMem].regions  == 
+
+            (memento.inputInterfaces_[iMem].regions  ==
              inputInterfaces_[iOwn]->regions) &&
-          
-            (memento.inputInterfaces_[iMem].regionType  == 
+
+            (memento.inputInterfaces_[iMem].regionType  ==
              inputInterfaces_[iOwn]->regionType) &&
-          
-            (memento.inputInterfaces_[iMem].nodes  == 
+
+            (memento.inputInterfaces_[iMem].nodes  ==
              inputInterfaces_[iOwn]->nodes) &&
-          
-            (memento.inputInterfaces_[iMem].elements  == 
+
+            (memento.inputInterfaces_[iMem].elements  ==
              inputInterfaces_[iOwn]->elements) &&
-          
-            (memento.inputInterfaces_[iMem].dof  == 
+
+            (memento.inputInterfaces_[iMem].dof  ==
              inputInterfaces_[iOwn]->dof) &&
-          
-            (memento.inputInterfaces_[iMem].numNodes  == 
+
+            (memento.inputInterfaces_[iMem].numNodes  ==
              inputInterfaces_[iOwn]->numNodes) &&
-          
-            (memento.inputInterfaces_[iMem].numElems  == 
+
+            (memento.inputInterfaces_[iMem].numElems  ==
              inputInterfaces_[iOwn]->numElems) &&
-          
-            (memento.inputInterfaces_[iMem].values->GetEntryType() == 
+
+            (memento.inputInterfaces_[iMem].values->GetEntryType() ==
              inputInterfaces_[iOwn]->values->GetEntryType()))
           {
-          
+
             // This section is reached, if the two couplings
             // are the same
             if (inputInterfaces_[iOwn]->values->GetEntryType()
                 == EntryType::COMPLEX){
-            
+
               // --- Complex values --
-              dynamic_cast<Vector<Complex>&> (*(inputInterfaces_[iOwn]->values)) 
+              dynamic_cast<Vector<Complex>&> (*(inputInterfaces_[iOwn]->values))
                 = dynamic_cast<Vector<Complex>&>
                 (*(memento.inputInterfaces_[iMem].values));
-            
+
             } else {
               // --- Real values --
 
@@ -846,11 +845,11 @@ namespace CoupledField
                 = dynamic_cast<Vector<Double>&>
                 (*(memento.inputInterfaces_[iMem].values));
             }
-            
+
             couplingFound = true;
             break;
           } // if statement
-      
+
         if (! couplingFound) {
           Enum2String(memento.inputQuantities_[iMem], helper);
           warnMsg  = "PDECoupling::SetMemento: The coupling quantitiy '";
@@ -869,12 +868,12 @@ namespace CoupledField
         } //if coupling not found
       } // loop over own couplings
     } // looop over memento couplings
-  
+
   }
 
   //   std::ostream& operator << ( std::ostream & out , const CouplingInterface & inter)
   //   {
-  //     out << myendl 
+  //     out << myendl
   //      << "Interface: coupling region: " << inter.region << myendl
   //      << "           nr. coupling nodes: " <<  inter.nodes.GetSize() << myendl
   //      << "           nr. coupling elements: " <<  inter.elements.GetSize() << myendl
@@ -882,7 +881,7 @@ namespace CoupledField
   //      << "           nr. neighbours elements: " <<  inter.neighbours.GetSize() << myendl
   //      << "           name of 1. neighbours element: " <<  inter.neighbours[0].namesd << myendl;
 
-  //   } 
+  //   }
 
 } // end of namespace
 

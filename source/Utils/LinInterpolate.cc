@@ -35,7 +35,8 @@ namespace CoupledField
       return x_[numMeas_-1];
 
     //loop over array 
-    Double yPrev, yAfter, xPrev, xAfter;
+		// initialize or receive compiler warning
+    Double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
 
     yAfter = y_[0];
     for ( UInt k=1; k<numMeas_; k++ ) {
@@ -79,7 +80,8 @@ namespace CoupledField
       return x_[numMeas_-1];
 
     //loop over array 
-    Double yPrev, yAfter, xPrev, xAfter;
+		// initialize or receive compiler warning
+    Double yPrev = 0.0, yAfter = 0.0, xPrev = 0.0, xAfter = 0.0;
 
     yAfter = y_[0];
     for ( UInt k=1; k<numMeas_; k++ ) {

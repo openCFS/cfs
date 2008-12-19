@@ -487,24 +487,9 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
                                    eqnNr);
             }
 
-#ifdef DEBUG
-            else if ( eqnNr > maxAllowedEqn ) {
-              (*debug) << "FluidMechPDE::CalcInputCoupling: "
-                       << "(" << pdename_ << ") "
-                       << "Refused to pass "
-                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
-                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
-                       << std::endl;
-            }
-            else if ( eqnNr == 0 ) {
-              (*debug) << "FluidMechPDE::CalcInputCoupling: "
-                       << "(" << pdename_ << ") "
-                       << "Refused to pass "
-                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
-                       << "it is fixed by hom. Dirichlet BC" << std::endl;
-            }
-#endif
-
+            LOG_DBG(fluidmechpde) << "CalcInputCoupling: " << "(" << pdename_ << ") "
+                                  << "Refused to pass " << "eqnNr=" << eqnNr << " to SetNodeRHS()."
+                                  << " numLastFreeDof=" << maxAllowedEqn;
           }
         }
         break;

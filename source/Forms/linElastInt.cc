@@ -7,6 +7,9 @@
 
 #include "linElastInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Optimization/DesignElement.hh"
+#include "Domain/domain.hh"
+#include "Optimization/DesignSpace.hh"
 
 using namespace CoupledField;
 
@@ -19,7 +22,8 @@ DEFINE_LOG(forms, "forms")
 // =====================
 void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
     EntityIterator& ent1, 
-    EntityIterator& ent2 ) {
+    EntityIterator& ent2,
+    const DesignElement::Type direction) {
 
   //  softeningModel_ = "ICM_Taylor";
 
@@ -60,12 +64,12 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
       CalcElementMatrixICM( elemMat, ent1, ent2);
     }
     else {
-      BDBInt::CalcElementMatrix( elemMat, ent1, ent2);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2, direction);
     }
   }
   else {
     // No softening
-    BDBInt::CalcElementMatrix( elemMat, ent1, ent2);
+    BDBInt::CalcElementMatrix( elemMat, ent1, ent2, direction);
   }
 }
 
@@ -167,9 +171,10 @@ void linElastInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
 }
 
 
-void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem)
+void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const DesignElement::Type direction)
 {
-  ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
+  GetErsatzMaterialTensor(dMat, elem, direction);
+  //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
 
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
   if(density != 1.0) dMat *= density;  
@@ -823,3 +828,10 @@ linElastInt::~linElastInt()
 {
 }
 
+void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+  if(elem != NULL && domain->HasErsatzMaterialTensor()){ // for stress calculation
+    domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction);
+  }else{
+    ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
+  }
+}

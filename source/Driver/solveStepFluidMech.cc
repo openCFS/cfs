@@ -40,7 +40,7 @@ namespace CoupledField {
   void SolveStepFluidMech::StepTransNonLin()
   {
 
-    assemble_->AssembleLinRHS( actTime_ );
+    assemble_->AssembleLinRHS();
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
 
@@ -107,22 +107,7 @@ namespace CoupledField {
         iterationCounter++;
         iterTime+=0.01;
 
-#ifdef DEBUG
-        if (!isNewton_) {
-          *debug << std::endl
-                 << "====================================================== "
-                 << std::endl << "Fluid Mechanics: Perform internal successive substitution loop nr. "
-                 << iterationCounter << std::endl;
-        }
-        else {
-          *debug << std::endl
-                 << "====================================================== "
-                 << std::endl << "Fluid Mechanics: Perform internal Newton loop nr. "
-                 << iterationCounter << std::endl;
-        }
-
-#endif
-
+        LOG_DBG(solvestepfluidmech) << "loop=" << iterationCounter << " newton=" << isNewton_;
 
         // setup and solve new system (rhs is already set) =====================
         SETPROFILE("Before AssembleMatrices");

@@ -24,6 +24,7 @@
 #include "General/exception.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 using CoupledField::Exception;
 
@@ -90,7 +91,9 @@ namespace OLAS {
   // *****************************************
   //   Trigger setup phase of preconditioner
   // *****************************************
-  void StandardSystem::SetupPrecond( ) {
+  void StandardSystem::SetupPrecond( ) 
+  {
+    CoupledField::info->ToFile();
     precond_->Setup( *sysmat_[SYSTEM] );
   }
 
@@ -159,9 +162,10 @@ namespace OLAS {
   // ***********************
   //   Solve linear system
   // ***********************
-  void StandardSystem::Solve(const std::string& comment) {
-
-
+  void StandardSystem::Solve(const std::string& comment) 
+  {
+    CoupledField::info->ToFile(); // write current info state
+    
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
     // "contaminated" with penalty terms
@@ -171,12 +175,12 @@ namespace OLAS {
       LOG_DBG(stdSys) << "Solve: rhs with penalty";
     }
 
-#ifdef DEBUG_STANDARDSYSTEM
+    /*
     (*debug) << "Systemmatrix:" << std::endl;
     sysmat_[SYSTEM]->Print(*debug);
     (*debug) << "RHS" << std::endl;
     rhs_->Print(*debug);
-#endif
+    */
 
 #ifdef PROFILING
     Double t1 = Profiler::GetRealTime();
@@ -504,7 +508,7 @@ namespace OLAS {
       Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
     }
 
-    #ifdef DEBUG_STANDARDSYSTEM
+    /*
     // Seens to be somehow buggy, as I got an Segemtation fault
     // when running it with block-matrices
     //(*debug) << "System Matrix connectivity: " << std::endl;
@@ -513,7 +517,7 @@ namespace OLAS {
     rhs_->Print(*debug);
     (*debug) << "sol_: " << std::endl;
     sol_->Print(*debug);
-#endif
+    */
 
     // Create the assemble object
     assemble_ = GenerateEntryManipulatorObject( entryType, blockSize_ );
@@ -665,6 +669,10 @@ namespace OLAS {
     assemble_->InitRHS( rhs_, newRHS );
   }
   
+  void StandardSystem::InitRHS( const Vector<Double>* newRHS ) {
+    assemble_->InitRHS(rhs_, newRHS);
+  }
+      
 
   // **********************
   //   InitSol (Version1)

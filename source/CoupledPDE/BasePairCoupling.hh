@@ -25,6 +25,7 @@ namespace CoupledField
   class BaseNodeStoreSol;
   class Composite;
   class ParamNode;
+  class InfoNode;
 
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
@@ -140,6 +141,8 @@ namespace CoupledField
     // =====================================================
     // Miscellaneous
     // =====================================================
+
+    InfoNode* infoNode_; // set only in Init()
 
     BaseNodeStoreSol * sol_;    //!< solution
 

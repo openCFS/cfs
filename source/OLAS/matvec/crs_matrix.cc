@@ -269,7 +269,7 @@ namespace OLAS {
                                    Vector<T> &rvec ) const {
 
 
-    PROFILE( "CRS_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
+    PROFILE( (char*)"CRS_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
              BlockSize<T>::size );
 
     Integer i, j, rs, k;
@@ -351,7 +351,7 @@ namespace OLAS {
                                       const Vector<T> &b ) const {
 
 
-    PROFILE("CRS_Matrix::CompRes",
+    PROFILE((char*)"CRS_Matrix::CompRes",
             (2*this->nnz_*BlockSize<T>::size + this->nrows_)
             *BlockSize<T>::size);
 
@@ -434,7 +434,7 @@ namespace OLAS {
      {
         for(int k = rowPtr_[i]; k < rowPtr_[i+1]; k++) 
         {
-           int j = colInd_[k];
+           // COMPWARNING: unused variable int j = colInd_[k];
            tmpInd[k] = i;
         }
      }

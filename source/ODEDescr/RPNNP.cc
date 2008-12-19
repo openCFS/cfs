@@ -80,7 +80,7 @@ namespace CoupledField
     // -------------------------------------------------------------
 
     // Backtransformation +++++++++++++++++
-    Double tdim;
+    // COMPWARNING: unused variable Double tdim;
     StdVector<Double> ydim(2);
 
     ydim[0] = y[0] * RadiusInit_ ;
@@ -92,7 +92,8 @@ namespace CoupledField
     dpdt = dpdt_ * pStatic_/RadiusInit_  * sqrt(pStatic_ / density_);
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    double temp1, temp2, temp3, temp4, temp5, temp6, temp7;
+    // COMPWARNING: unused variable double temp2, temp3, temp4, temp5, temp6, temp7;
+    double temp1;
 
     dydt[0] = ydim[1];
     //  std::cout<<dydt[0]<<std::endl;

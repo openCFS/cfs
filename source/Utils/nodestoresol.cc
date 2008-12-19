@@ -780,15 +780,27 @@ namespace CoupledField {
      }
   }
 
+  
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
                                                    const EntityIterator& it,
-                                                   UInt solIndex ) const
+                                                   UInt solIndex, const CFSVector* ext_data) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");
+    if(ext_data != NULL) 
+    { 
+      if(ext_data->GetSize() == 0) EXCEPTION("External data uninitialized"); 
+      if(ext_data->GetSize() != data_.GetSize()) EXCEPTION("External data does not match internal one"); 
+    } 
+    else 
+    {
+      if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );      
+    }
 #endif
   
+    // choose either external data or if not given use own one 
+    const Vector<TYPE>& data = ext_data == NULL ? const_cast<Vector<TYPE>&>(data_) : dynamic_cast<const Vector<TYPE>&>(*ext_data);  
+    
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
     StdVector<Integer> eqns;
     eqnMap_->GetEqns( eqns, *results_[solIndex], it );
@@ -801,7 +813,7 @@ namespace CoupledField {
       for ( UInt iFcn=0; iFcn < numFcns; iFcn++ ) {
         Integer actEqn = eqns[iFcn * numDofs + iDof];
         if ( actEqn != 0){
-          temp[iDof][iFcn] = data_[(abs(actEqn)-1)];
+          temp[iDof][iFcn] = data[(abs(actEqn)-1)];
         } else {
           temp[iDof][iFcn] = TYPE();
         }
@@ -811,7 +823,7 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
                                                   const StdVector<UInt>& nodeNumbers,
-                                                  UInt solIndex  ) const
+                                                  UInt solIndex) const
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!");

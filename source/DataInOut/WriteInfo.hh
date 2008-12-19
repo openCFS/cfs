@@ -81,9 +81,6 @@ namespace CoupledField {
     //!       refuse to open the file another time.
     void CreateFile();
 
-    /// Prints header for both info-file and standard out
-    void PrintHeader();
-
     /// prints full data of a material
     void PrintMaterial(BaseMaterial* material);
     

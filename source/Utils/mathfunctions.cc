@@ -45,7 +45,8 @@ namespace CoupledField {
   {
     Integer i, j;
     Integer k, kmax;
-    Integer l_conv;
+		// initialize or receive compiler warning
+    Integer l_conv = 0;
     Double a2, eps2, dkmax;
     Double n, n2;
     Integer l_sort=1;
@@ -87,7 +88,8 @@ namespace CoupledField {
     Matrix<Double> b(ndim,ndim);
     
     Double a2, max_a2;
-    Integer i, j, p, q;
+		// initialize or receive compiler warning
+    Integer i, j, p = 0, q = 0;
     Double z, t, c, s, u;
   
     max_a2 = 0.0;

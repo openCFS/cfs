@@ -121,11 +121,9 @@ namespace CoupledField {
 
     elemPD *=  density;
 
-#ifdef DEBUG
-    (*debug) << "Coupling vector acoustic-heat conduction is: " 
-             << std::endl << elemPD << std::endl << std::endl;
-#endif
-    
+   // (*debug) << "Coupling vector acoustic-heat conduction is: " 
+   //          << std::endl << elemPD << std::endl << std::endl;
+
   }
 
   template<class TYPE>  

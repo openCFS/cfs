@@ -267,7 +267,7 @@ namespace CoupledField
         rotRadiant[i] *= PI / 180.0;
       }
       // limit for angles used in special cases
-      Double eps = 1e-6;
+      // COMPWARNING: unused variable Double eps = 1e-6;
 
       //compute rotation matrix; check also for special cases 
       Matrix<Complex> RComplex;

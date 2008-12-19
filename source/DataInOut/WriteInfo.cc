@@ -23,7 +23,7 @@
 #endif
 #include "Utils/vector.hh"
 
-#ifdef USE_SCRIPTING 
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
@@ -73,60 +73,9 @@ namespace CoupledField {
     if ( cfsInfo == NULL ) {
       (*error) << "WriteInfo::CreateFile: Failed to open file '"
                << filename << "' for writing status messages\n";
-      CoupledField::Error( __FILE__, __LINE__ );  
+      CoupledField::Error( __FILE__, __LINE__ );
     }
   }
-
-
-  void WriteInfo::PrintHeader()
-  {
-   
-    std::stringstream header;
-    std::string compileDate = __DATE__;
-    std::string version = CFS_VERSION;
-    std::string build_type = CMAKE_BUILD_TYPE;
-    std::string svn_rev = CFS_SUBVERSION_REV;
-
-    header << "============================================================"
-           << "===========\n"
-           << "============================================================"
-           << "===========\n"
-           << "|                                                           "
-           << "          |\n"
-           << "|                                 CFS++                     "
-           << "          |\n"
-           << "|                     (Coupled Field Simulation ++)         "
-           << "          |\n"
-           << "|                                                           "
-           << "          |\n"
-           << "|                                                           "
-           << "          |\n"
-           << "|  Version:  " << version << " (rev. " << svn_rev << ")" 
-           << std::setw(70-19-version.length()-svn_rev.length()) << "|\n"
-           << "|  Compiled: " << compileDate
-           << "                                              |\n"
-           << "|  Build Type: " << build_type << std::setw(70-13-build_type.length())
-           << "|\n"
-           << "|                                                           "
-           << "          |\n"
-           << "|                                                           "
-           << "          |\n"
-           << "============================================================"
-           << "===========\n"
-           << "============================================================"
-           << "===========\n";
-
-    std::cout << std::endl << header.str() << std::endl;
-
-    if (cfsInfo) {
-      *cfsInfo << header.str();
-    }
-  }
-  
-
-
-
-
 
 
 
@@ -148,20 +97,20 @@ namespace CoupledField {
   {
 
     std::string pdeNameLong(pdeName);
-    
+
     pdeNameLong += "-PDE: ";
-    
-    if (cfsInfo) 
+
+    if (cfsInfo)
       {
         *cfsInfo << std::endl << pdeNameLong << "NONLINEAR ITERATION "
-                 << iterationCounter 
+                 << iterationCounter
                  << " ==========================================\n"
                  << pdeNameLong << "=== Residual error          "
                  << residualErr
                  << std::endl
                  << pdeNameLong << "=== Incremental error       "
                  << incrementalErr << std::endl;
-    
+
         if (etaLineSearch)
           *cfsInfo << pdeNameLong << "=== eta (line search)       "
                    << etaLineSearch << std::endl;
@@ -204,9 +153,9 @@ namespace CoupledField {
   {
     std::string analysisString = BasePDE::analysisType.ToString(analysis);
 
- 
-    // write std::out info 
-    std::cout << myEndl 
+
+    // write std::out info
+    std::cout << myEndl
               << " ***************************** " << myEndl
               << " MultiSequenceStep: " << sequenceStep << myEndl
               << " AnalysisType:      " << analysisString << myEndl
@@ -214,23 +163,23 @@ namespace CoupledField {
 
 
 
-    *cla <<  myEndl 
+    *cla <<  myEndl
          << " ***************************** " << myEndl
          << " MultiSequenceStep: " << sequenceStep << myEndl
          << " AnalysisType:      " << analysisString << myEndl
          << " ***************************** " << myEndl << myEndl;
-    
 
 
-    
+
+
     if (cfsInfo)
-      *cfsInfo << myEndl 
+      *cfsInfo << myEndl
                << myEndl<< " ***************************** " << myEndl
                << " MultiSequenceStep: " << sequenceStep << myEndl
                << " AnalysisType:      " << analysisString << myEndl
                << " ***************************** " << myEndl << myEndl;
   }
-  
+
 
 
   void WriteInfo::WriteTimeStep(const std::string& pdeName,
@@ -239,27 +188,27 @@ namespace CoupledField {
 
     std::string pdeNameLong(pdeName);
 
-    // write std::out info    
-    std::cout << myEndl << pdeName << ": Time step " 
-              << timeStep <<" ======================= " << std::endl;      
+    // write std::out info
+    std::cout << myEndl << pdeName << ": Time step "
+              << timeStep <<" ======================= " << std::endl;
 
 
-    *cla << myEndl << pdeName << ": Time step " 
+    *cla << myEndl << pdeName << ": Time step "
          << timeStep <<" ********************************************"
          << std::endl;
 
 
     // write to info-file
-    pdeNameLong += "-PDE: ";    
-    
+    pdeNameLong += "-PDE: ";
+
     if (cfsInfo)
-      *cfsInfo << std::endl << std::endl << std::endl 
+      *cfsInfo << std::endl << std::endl << std::endl
                << "**********************************************************"
-               << "**********************" 
-               << std::endl << pdeNameLong << "TIME STEP " << timeStep 
+               << "**********************"
+               << std::endl << pdeNameLong << "TIME STEP " << timeStep
                << ", time: " << time << std::endl;
   }
-  
+
 
 
   // *********************
@@ -282,8 +231,8 @@ namespace CoupledField {
     UInt fw = (Integer)std::log10( (float)freqStep ) + 1;
 
     // Report 1: Goes to standard output
-    std::cout << myEndl << pdeName << ": Harmonic step " 
-              << freqStep <<" ======================= " << std::endl;      
+    std::cout << myEndl << pdeName << ": Harmonic step "
+              << freqStep <<" ======================= " << std::endl;
 
     // Report 2: Goes into logfile for algebraic sub-system
     (*cla) << myEndl << ' '
@@ -299,7 +248,7 @@ namespace CoupledField {
     if ( cfsInfo != NULL ) {
       (*cfsInfo) << "\n\n"
                  << std::setw( 80 ) << std::setfill( '*' ) << "*\n"
-                 << pdeName << "-PDE: HARMONIC STEP " << freqStep 
+                 << pdeName << "-PDE: HARMONIC STEP " << freqStep
                  << ", frequency: " << frequency << std::endl;
     }
   }
@@ -318,15 +267,15 @@ namespace CoupledField {
 
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
- 
+
     if (cfsInfo) {
       *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
                << ": " << resulttype << " ==========" << std::endl;
 
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "        === " << analysis << " " << analysisVal 
-                 << "; " << subdoms[i] << ": " 
-                 << results[i] 
+        *cfsInfo << "        === " << analysis << " " << analysisVal
+                 << "; " << subdoms[i] << ": "
+                 << results[i]
                  << " "  << unit << std::endl << std::endl;
       }
     }
@@ -342,15 +291,15 @@ namespace CoupledField {
 
     if (subdoms.GetSize() != results.GetSize())
       Error("Problem in WriteResults",__FILE__,__LINE__);
- 
+
     if (cfsInfo) {
       *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
                << ": " << resulttype << " ==========" << std::endl;
 
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "        === " << analysis << " " << analysisVal 
+        *cfsInfo << "        === " << analysis << " " << analysisVal
                  << "; " << subdoms[i] << ": "
-                 << results[i] 
+                 << results[i]
                  << " "  << unit << std::endl << std::endl;
       }
     }
@@ -362,7 +311,7 @@ namespace CoupledField {
 
     if (!cfsInfo)
       return;
-    
+
     *cfsInfo << "COIL DESCRIPTION ======================================= "
              << myEndl;
 
@@ -434,7 +383,7 @@ namespace CoupledField {
       else {
         *cfsInfo << "Direction of current flow: ";
         *cfsInfo << coil.locFlowDir_.Serialize() << std::endl;
-        *cfsInfo << " in coordinate system " 
+        *cfsInfo << " in coordinate system "
                  << coil.flowCoordSys_->GetName();
       }
     }
@@ -443,17 +392,17 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  void WriteInfo::WriteAcouPower(std::string pdename, 
+  void WriteInfo::WriteAcouPower(std::string pdename,
 					   StdVector<std::string> & subdoms,
 					   Vector<TYPE>& power)
   {
- 
+
     if (cfsInfo) {
       *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
                << ": " << " ==========" << std::endl;
       *cfsInfo << "   Acoustic Power: \n";
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
-        *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i] 
+        *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i]
 		 << " W" << std::endl;
       }
     }
@@ -471,18 +420,18 @@ namespace CoupledField {
     if (cfsInfo)
       *cfsInfo << vec << std::endl;
   }
-  
+
 
   void WriteInfo::WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
-					   UInt sosIdx, UInt src1, UInt src2, UInt src3, 
+					   UInt sosIdx, UInt src1, UInt src2, UInt src3,
 					   UInt src4, UInt src5, UInt src6, UInt src7) {
 
 
-    *cfsInfo << "\nCombustion Noise Info:\n" 
-	     << " Name of file: " << filename  
+    *cfsInfo << "\nCombustion Noise Info:\n"
+	     << " Name of file: " << filename
 	     << "\n Coupling region: " << cplRegion <<  std::endl;
 
-    if ( sosIdx > 0 ) {      
+    if ( sosIdx > 0 ) {
       *cfsInfo << " Use variable speed of sound: yes" << std::endl;
     }
     else {
@@ -505,7 +454,7 @@ namespace CoupledField {
     }
     if ( src5 > 0 ) {
       *cfsInfo << "      Heat release " << std::endl;
-    }    
+    }
     if ( src6 > 0 ) {
       *cfsInfo << "      Gas Const. 2nd time derivative " << std::endl;
     }
@@ -522,7 +471,7 @@ namespace CoupledField {
     if (cfsInfo)
       *cfsInfo << vec << std::endl;
   }
-  
+
 
 
   void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
@@ -540,10 +489,10 @@ namespace CoupledField {
     if (cfsInfo)
       {
         *cfsInfo << comment << myEndl;
-        
+
         for (UInt i=0; i< vec.GetSize(); i++)
           *cfsInfo << vec[i] << std::endl;
-        
+
         *cfsInfo << std::endl;
       }
   }
@@ -599,14 +548,14 @@ namespace CoupledField {
                << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                << "!!!!!!!!!!!!!" << myEndl
                << "WARNING: " << Text;
-        
+
       if (filename) {
         *cfsInfo <<" (" << filename <<" ";
-        if (numline) 
+        if (numline)
           *cfsInfo << numline;
         *cfsInfo << ")";
       }
-    
+
       *cfsInfo << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                << "!!!!!!!!!!!!!!!" << myEndl
                << myEndl;
@@ -626,13 +575,12 @@ namespace CoupledField {
     std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
 #else
 #ifdef USE_SCRIPTING
-    if ( messenger ) {
-      if ( messenger->IsEvaluating() ) {
-        messenger->Error( Text.c_str(), filename, numline );
-      }
-    }
+    if (messenger != NULL && messenger->IsEvaluating() )
+      messenger->Error( Text.c_str(), filename, numline );
+    else
+
 #endif
-    
+
 
     // If a progress part is still there, then finish it with
     // a failure
@@ -656,7 +604,7 @@ namespace CoupledField {
     }
 
     std::cerr << std::endl << std::endl;
-    
+
     if (cfsInfo) {
       *cfsInfo << myEndl << myEndl << myEndl
                << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
@@ -668,11 +616,11 @@ namespace CoupledField {
 
       if (filename) {
         *cfsInfo <<" (" << filename <<" ";
-        if (numline) 
+        if (numline)
           *cfsInfo << numline;
         *cfsInfo << ")";
       }
-      *cfsInfo << std::endl;  
+      *cfsInfo << std::endl;
     }
 #endif // INTEGLIB
 
@@ -692,20 +640,20 @@ namespace CoupledField {
   // **************
   void WriteInfo::WriteHomDirBC( const std::string& pdeName,
                                  HdBcList& list ) {
-                                 
+
     std::string prefix = pdeName + "-PDE: ";
 
     if (cfsInfo && list.GetSize() > 0) {
       *cfsInfo << prefix << "Homogeneous Dirichlet BC defined on \n";
-      
+
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         HomDirichletBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
         std::string listType;
         EntityList::Enum2String( actList.GetType(), listType );
-        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' ("
                  <<  listType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.dof)
                  << std::endl;
       }
@@ -718,26 +666,26 @@ namespace CoupledField {
   // ****************
   //   WriteInHomBC
   // ****************
-  void WriteInfo::WriteInhomDirBC( const std::string& pdeName, 
+  void WriteInfo::WriteInhomDirBC( const std::string& pdeName,
                                    IdBcList& list ) {
-    
-    
+
+
     std::string prefix = pdeName + "-PDE: ";
 
     if (cfsInfo && list.GetSize() > 0 ) {
       *cfsInfo << prefix << "Inhomogeneous Dirichlet BC defined on \n";
-      
+
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         InhomDirichletBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
         std::string listType;
         EntityList::Enum2String( actList.GetType(), listType );
-        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' ("
                  << listType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
-                 << ", phase = " << actBc.phase 
+                 << ", phase = " << actBc.phase
                  << std::endl;
       }
 
@@ -748,25 +696,25 @@ namespace CoupledField {
   // *******************
   //   WriteInhomNeuBC
   // *******************
-  void WriteInfo::WriteInhomNeuBC( const std::string& pdeName, 
+  void WriteInfo::WriteInhomNeuBC( const std::string& pdeName,
                                    InBcList& list ) {
-    
+
     std::string prefix = pdeName + "-PDE: ";
-    
+
     if (cfsInfo && list.GetSize() > 0 ) {
       *cfsInfo << prefix << "Inhomogeneous Neumann BC defined on \n";
-      
+
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         InhomNeumannBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
         std::string listType;
         EntityList::Enum2String( actList.GetType(), listType );
-        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' ("
                  << listType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
-                 << ", phase = " << actBc.phase 
+                 << ", phase = " << actBc.phase
                  << std::endl;
       }
     }
@@ -777,14 +725,14 @@ namespace CoupledField {
   // ********************
   //   WriteConstraints
   // ********************
-  void WriteInfo::WriteConstraints(  const std::string& pdeName, 
+  void WriteInfo::WriteConstraints(  const std::string& pdeName,
                                      ConstraintList& list ) {
-    
+
    std::string prefix = pdeName + "-PDE: ";
-    
+
     if (cfsInfo && list.GetSize() > 0 ) {
       *cfsInfo << prefix << "Constraints defined on \n";
-      
+
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         Constraint const & actBc = *list[i];
         EntityList const & masterList = *actBc.masterEntities;
@@ -792,17 +740,17 @@ namespace CoupledField {
         std::string masterListType, slaveListType;
         EntityList::Enum2String( masterList.GetType(), masterListType );
         EntityList::Enum2String( slaveList.GetType(), slaveListType );
-        *cfsInfo << prefix << "\tMaster: '" << masterList.GetName() 
-                 << "' (" 
+        *cfsInfo << prefix << "\tMaster: '" << masterList.GetName()
+                 << "' ("
                  <<  masterListType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.masterDof)
-                 << "\tSlave: '"<< slaveList.GetName() 
-                 << "' (" 
+                 << "\tSlave: '"<< slaveList.GetName()
+                 << "' ("
                  <<  slaveListType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.slaveDof)
-          
+
                  << std::endl;
       }
     }
@@ -811,31 +759,31 @@ namespace CoupledField {
   }
 
 
-  void WriteInfo::WriteLoad(const std::string& pdeName, 
+  void WriteInfo::WriteLoad(const std::string& pdeName,
                             LoadList& list ) {
-    
+
     std::string prefix = pdeName + "-PDE: ";
-    
+
     if (cfsInfo && list.GetSize() > 0 ) {
       *cfsInfo << prefix << "Load defined on \n";
-      
+
       for( UInt i = 0; i < list.GetSize(); i++ ) {
         LoadBc const & actBc = *list[i];
         EntityList const & actList = *actBc.entities;
         std::string listType;
         EntityList::Enum2String( actList.GetType(), listType );
-        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' ("
                  << listType
-                 << "), dof = " 
+                 << "), dof = "
                  << actBc.result->GetDofName(actBc.dof)
                  << ", value = " << actBc.value
-                 << ", phase = " << actBc.phase 
+                 << ", phase = " << actBc.phase
                  << std::endl;
       }
     }
     *cfsInfo << myEndl;
   }
-  
+
 
 
 
@@ -852,27 +800,27 @@ namespace CoupledField {
     ST foundPos;
     char charOut[maxSize];
     std::string myStr;
-    
+
     // conversion to type string: more convenient!
     std::string formatStr(formatChar);
 
     // final output string
     std::string formatted;
-    
+
     // init the argument list
     std::va_list argList;
     va_start(argList, formatChar);
-    
+
     // for classes which are not a pde, this string is ""
     if ( pdeName.length() ) {
       *cfsInfo << pdeName << "-PDE: ";
     }
-    
+
     do {
 
       // search for actual position of %-sign
       foundPos = formatStr.find("%",actPos);
-        
+
       // write string before %-sign into formatted string
       formatted += formatStr.substr(actPos, foundPos-actPos);
 
@@ -884,30 +832,30 @@ namespace CoupledField {
 
         switch (formatChar) {
 
-        case 'i': 
-        case 'd': 
-        case 'u': 
+        case 'i':
+        case 'd':
+        case 'u':
           int myInt;
           myInt = va_arg(argList, int);
           sprintf(charOut, subFormatStr.c_str(), myInt);
           break;
 
-        case 'g': 
-        case 'G': 
-        case 'e': 
-        case 'E': 
-        case 'f': 
+        case 'g':
+        case 'G':
+        case 'e':
+        case 'E':
+        case 'f':
           double myDouble;
           myDouble = va_arg(argList, double);
           sprintf(charOut, subFormatStr.c_str(), myDouble);
           break;
-                
+
         case 's':
           myStr = va_arg(argList, char *);
           sprintf(charOut, subFormatStr.c_str(), myStr.c_str());
           break;
 
-        case 'c': 
+        case 'c':
           char myChar;
           myChar = va_arg(argList, int); // no char allowed!
           sprintf(charOut, subFormatStr.c_str(), myChar);
@@ -922,18 +870,18 @@ namespace CoupledField {
         }
 
         formatted += charOut;
-        
+
         // the percent character and the format character have to be "erased"
         actPos = foundPos+subFormatStr.length();
       }
-        
+
       //find() returns npos if nothing is found
     } while(foundPos != std::string::npos);
 
     if (cfsInfo)
       //*cfsInfo << formatted << std::endl << std::flush;
     *cfsInfo << formatted << std::flush;
-    
+
     va_end(argList);
   }
 
@@ -943,7 +891,7 @@ namespace CoupledField {
   // *****************
   void WriteInfo::StartProgress( const std::string &name, bool needAck ) {
 
-   
+
     std::string modifiedName = name + " ";
 
     needAck_ = needAck;
@@ -991,11 +939,11 @@ namespace CoupledField {
   // explicit template instantiation for GCC compiler
 #ifdef __GNUC__
   template
-  void  WriteInfo::WriteAcouPower<Double>(std::string pdename, 
+  void  WriteInfo::WriteAcouPower<Double>(std::string pdename,
 						   StdVector<std::string> & subdoms,
 						   Vector<Double>& power);
-  template 
-  void  WriteInfo::WriteAcouPower<Complex>(std::string pdename, 
+  template
+  void  WriteInfo::WriteAcouPower<Complex>(std::string pdename,
 						    StdVector<std::string> & subdoms,
 						    Vector<Complex>& power);
 #endif

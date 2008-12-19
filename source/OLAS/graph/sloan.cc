@@ -48,7 +48,7 @@ namespace OLAS {
     // loop while some nodes remain unnumbered
     Integer startnode, nc;
     Integer lstnum = 0;
-    while ( lstnum < size_ ) {
+    while ( lstnum < (int) size_ ) {
 
       // find end points of p-diameter for nodes in this component
       // compute distances of nodes from end node
@@ -81,10 +81,10 @@ namespace OLAS {
     // choose first guess for starting node by min degree
     // ( = min number of neighbors)
     // ignore nodes that are invisible (order .ne. 0)
-    Integer degree, depth, enode = 0;
+    Integer degree = 0, depth = 0, enode = 0;
     Integer minDegree = 10*size_;
 
-    for (Integer n=1; n<=size_; n++) {
+    for (UInt n=1; n<=size_; n++) {
       if (order_[n] == 0) {
         degree = graph_[n].size();
         if (degree < minDegree) {
@@ -411,7 +411,7 @@ namespace OLAS {
         }
       }
 
-      if ( order_[i] > newMin ) {
+      if ( order_[i] > (int) newMin ) {
         aux = profNew;
         profNew += order_[i] - newMin;
         if ( profNew < aux ) {

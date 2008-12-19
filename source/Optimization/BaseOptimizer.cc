@@ -2,6 +2,7 @@
 #include "Optimization/BaseOptimizer.hh"
 #include "Optimization/DesignSpace.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -19,6 +20,7 @@ DEFINE_LOG(optimizer, "optimizer")
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double manual_scale, bool no_autoscale)
 {
   this->base_ = base;
+  this->autoscale_ = false;
   this->target = 0.0;
   this->tol    = 0.0;
   
@@ -55,7 +57,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, ParamNode* autoscale, double ma
 
 void BaseOptimizer::Scale::PostInit()
 {
-  // calculate the autoscale values (more or less expensive, never cheep)
+  // calculate the autoscale values (more or less expensive, never cheap)
   CalcAutoscale();
 
   LOG_TRACE(optimizer) << "Scale::PostInit() target=" << target << " tol=" << tol << " -> scale=" << scaling.value;
@@ -74,7 +76,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
   // We need a double design and gradient array. We use temporay ones  
  
   // evalue with the current (initial) design. Use this temporary gradient space
-  StdVector<double> grad(base_->optimization->GetDesign()->data.GetSize());
+  StdVector<double> grad(base_->optimization->GetDesign()->GetNumberOfVariables());
   // make a temporary design as a copy from design space to copy it back there :)
   StdVector<double> data(grad.GetSize());
   // copy the design to our temporary space
@@ -91,7 +93,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
   
   // reset the tolerance
   tol = tol_save;
-  
+  autoscale_ = true;
   LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " desing=" 
                        << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
 }
@@ -198,18 +200,25 @@ std::string BaseOptimizer::LogFileHeader()
 }
 
 
-void BaseOptimizer::LogFileLine(std::ofstream* out)
+void BaseOptimizer::LogFileLine(std::ofstream* out, InfoNode* iteration)
 {
   *out << "\t" << objective->current.value;
+  
+  iteration->Get("max_f_grad")->SetValue(objective->current.value);
 
   if(objective->target != 0.0)
+  {
     *out << "\t" << objective->scaling.value 
          << "\t" << objective->opt_scaling.value;
+    
+    iteration->Get("scale")->SetValue(objective->scaling.value);
+    iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
+  }
 }
 
 double BaseOptimizer::EvalObjective(int n, const double* x)
 {
-  assert(optimization->GetDesign()->data.GetSize() == (unsigned int) n);
+  assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -244,7 +253,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x)
 
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
 {
-  assert(optimization->GetDesign()->data.GetSize() == (unsigned int) n);
+  assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
@@ -275,7 +284,12 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   
   LOG_DBG2(optimizer) << "EvalGradObjective: call CalcObjectiveGradient()";
   // calc our gradient - it is not stored anywhere
-  optimization->CalcObjectiveGradient(grad_f);
+  if(optimization->GetDesign()->needsReordering){ // if we need reordering, we calculate a temporary version and call Reorder
+    optimization->CalcObjectiveGradient(optimization->GetDesign()->grad.GetPointer());
+    optimization->GetDesign()->ReorderGradient(grad_f);
+  }else{
+    optimization->CalcObjectiveGradient(grad_f);    
+  }
 
   // check the scaling - harmless if not restarted autoscale
   restart_requested = false;
@@ -294,3 +308,48 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, double* grad_f)
   return !restart_requested;
 }
 
+void BaseOptimizer::EvalConstraints(int n, const double* x, int m, double* g){
+  // we overwrite the design space, but we do this all the time - especially before eval_f
+  optimization->GetDesign()->ReadDesignFromExtern(x); 
+     
+  // iterate over all constraints
+  for(int i = 0; i < m; i++) 
+     g[i] = optimization->CalcConstraint(&optimization->constraints[i]);
+  
+}
+
+void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, double* values){
+  // note, that we have dense gradient pointers!
+  // iterate over the gradients
+  for(int c = 0; c < m; c++)
+  {
+    double* ptr = values + (c*n);
+    if(optimization->GetDesign()->needsReordering){
+      optimization->CalcConstraintGradient(&optimization->constraints[c], optimization->GetDesign()->grad.GetPointer());
+      optimization->GetDesign()->ReorderGradient(ptr);
+    }else{
+      optimization->CalcConstraintGradient(&optimization->constraints[c], ptr);
+    }    
+  }
+}
+
+void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u){
+  
+  assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
+  
+  optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
+
+  assert(m == (int) optimization->constraints.GetSize());
+    
+  // normalization to =0 and <=0 constraints is done SCPIPBase   
+    
+  for(int i = 0; i < m; i++)
+  {
+    Condition* g = &optimization->constraints[i];
+    // handle as in IPOPT 
+    g_l[i] = g_u[i] = g->value;    
+    if(g->GetType() == Condition::LOWER_BOUND) g_u[i] = 1e19;
+    if(g->GetType() == Condition::UPPER_BOUND) g_l[i] = -1e19;
+  }
+  
+}

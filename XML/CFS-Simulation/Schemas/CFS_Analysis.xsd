@@ -22,7 +22,6 @@
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
-              <xsd:enumeration value="transientHarmonic"/>
               <xsd:enumeration value="paramIdent"/>
               <xsd:enumeration value="bubbleDynamic"/>
             </xsd:restriction>
@@ -116,11 +115,10 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="startFreq" type="DT_PosFloat"/>
-          <xsd:element name="stopFreq" type="DT_PosFloat"/>
-          <xsd:element name="sampling" minOccurs="0" maxOccurs="1"
-            default="linear">
+          <xsd:element name="numFreq" type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="startFreq" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="stopFreq" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="sampling" minOccurs="0" maxOccurs="1" default="linear">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="linear"/>
@@ -129,15 +127,25 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          <xsd:element name="freqDataFile" minOccurs="0"
-            maxOccurs="unbounded">
+          <xsd:element name="freqDataFile" minOccurs="0"  maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:complexContent>
                 <xsd:restriction base="xsd:anyType">
-                  <xsd:attribute name="name" type="xsd:string" use="optional"
-                    default="none"/>
+                  <xsd:attribute name="name" type="xsd:string" use="optional" default="none"/>
                 </xsd:restriction>
               </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="frequencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="freq" maxOccurs="unbounded" minOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="value" type="xsd:float" use="required"/>
+                    <xsd:attribute name="weight" type="xsd:float" default="1.0" use="optional"/> 
+                  </xsd:complexType>
+                </xsd:element>                
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
@@ -293,36 +301,5 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of element AnalysisTransientHarmonic -->
-  <!-- ******************************************************************* -->
-  <xsd:element name="transientHarmonic" type="DT_AnalysisTransientHarmonic"
-    substitutionGroup="AnalysisBasic"> 
-  </xsd:element>
-
-  <!-- Data type for transientHarmonic section, i.e. parameters required for
-       performing a transientHarmonic analysis -->
-  <xsd:complexType name="DT_AnalysisTransientHarmonic">
-    <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>       
-          <xsd:element name="analysisPart" minOccurs="2" maxOccurs="unbounded">
-            <xsd:complexType>  
-              <xsd:attribute name="type" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="harmonic"/>
-                    <xsd:enumeration value="transient"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-              <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType> 
 
 </xsd:schema>

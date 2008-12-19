@@ -457,8 +457,8 @@ namespace CoupledField
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     
-
-    UInt N; 
+		// initialize or receive compiler warning
+    UInt N = 0; 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     Vector<Double> partElemVec;

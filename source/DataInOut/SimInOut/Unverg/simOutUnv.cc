@@ -479,15 +479,7 @@ namespace CoupledField {
       const StdVector<shared_ptr<BaseResult> > actResults =
         it->second;
 
-      
-      if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::PFEM &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        Warning( "Unv can only write results on element and nodes",
-                 __FILE__, __LINE__ );
-        continue;
-      }
+      if(!ValidateNodesAndElements(actInfo)) continue;      
       
       ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
       std::string title =  SolutionTypeToString( actInfo.resultType );

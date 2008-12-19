@@ -78,7 +78,7 @@ namespace OLAS {
       }
     }
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /*
     (*debug) << " LapackGBMatrix: nrows    = " << nrows_      << std::endl
              << "                 ncols    = " << ncols_      << std::endl
              << "                 wlower   = " << wlower_     << std::endl
@@ -86,7 +86,7 @@ namespace OLAS {
              << "                 nrowsact = " << nrowsact_   << std::endl
              << "                 length   = " << length_     << std::endl
              << "                 enlarged = " << amEnlarged_ << std::endl;
-#endif
+    */
   }
 
 
@@ -115,7 +115,7 @@ namespace OLAS {
     // compute amount of storage for matrix
     length_ = nrowsact_ * ncols_;
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /*
     (*debug) << " LapackGBMatrix: nrows    = " << nrows_      << std::endl
              << "                 ncols    = " << ncols_      << std::endl
              << "                 wlower   = " << wlower_     << std::endl
@@ -123,8 +123,7 @@ namespace OLAS {
              << "                 nrowsact = " << nrowsact_   << std::endl
              << "                 length   = " << length_     << std::endl
              << "                 enlarged = " << amEnlarged_ << std::endl;
-#endif
-    
+    */    
     // allocate memory
     NewArray( data_, entryF, length_ );
 
@@ -165,7 +164,7 @@ namespace OLAS {
     length_ = nrowsact_ * ncols_;
     offset_ = wlower_;
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /*
     (*debug) << " LapackGBMatrix: nrows    = " << nrows_      << std::endl
 	     << "                 ncols    = " << ncols_      << std::endl
 	     << "                 wlower   = " << wlower_     << std::endl
@@ -173,7 +172,7 @@ namespace OLAS {
 	     << "                 nrowsact = " << nrowsact_   << std::endl
 	     << "                 length   = " << length_     << std::endl
 	     << "                 enlarged = " << amEnlarged_ << std::endl;
-#endif
+    */
 
     // allocate memory
     NewArray( data_, entryF, length_ );
@@ -217,7 +216,7 @@ namespace OLAS {
   void LapackGBMatrix<entryF,entryC>::SetMatrixEntry( Integer i, Integer j,
 						      entryC &v ) {
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /*
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
       (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
 	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
@@ -228,7 +227,7 @@ namespace OLAS {
 	       << "        wupper = " << wupper_ << std::endl
 	       << "        length = " << length_ << std::endl;
     }
-#endif
+    */
 
     entryF val;
     CC2F77( v, val );
@@ -243,7 +242,7 @@ namespace OLAS {
   void LapackGBMatrix<entryF,entryC>::AddToMatrixEntry( Integer i, Integer j,
 							entryC &v ) {
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /* 
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
       (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
 	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
@@ -254,7 +253,7 @@ namespace OLAS {
 	       << "        wupper = " << wupper_ << std::endl
 	       << "        length = " << length_ << std::endl;
     }
-#endif
+    */
     
     entryF val;
     CC2F77( v, val );
@@ -360,7 +359,7 @@ namespace OLAS {
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
 
-#ifdef DEBUG_LAPACKGBMATRIX
+    /*
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
       (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
 	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
@@ -371,7 +370,7 @@ namespace OLAS {
 	       << "        wupper = " << wupper_ << std::endl
 	       << "        length = " << length_ << std::endl;
     }
-#endif
+    */
 
 	val = data_[Index(i,j)];
 	if ( val != 0.0 ) {
@@ -576,10 +575,6 @@ namespace OLAS {
     const entryF *dummyArray2 = GetDataPointer0();
 
   }
-
-#ifdef __sgi
-#pragma do_not_instantiate LapackGBMatrix< F77complex16, std::complex<float> >
-#endif
 
 }
 

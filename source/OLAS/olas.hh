@@ -22,7 +22,6 @@ namespace OutInfo{
 
   // ------------------- Files for debug, trace and information -------------
   extern std::ostream * trace;     // basename.trace
-  extern std::ostream * debug;     // basename.deb
   extern std::ostream * cla;       // basename.las
   extern std::ostream * memtrace;  // basename.mem 
   extern std::ostream * data;      // basename.data

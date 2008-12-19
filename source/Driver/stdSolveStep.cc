@@ -112,7 +112,7 @@ namespace CoupledField {
     
     // The RHS-sources and boundary conditions 
     // have to be reassembled each time
-    assemble_->AssembleLinRHS( actTime_ );
+    assemble_->AssembleLinRHS();
     PDE_.SetBCs();
 
     UInt length = 0;
@@ -183,7 +183,7 @@ namespace CoupledField {
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       // assemble nonlinear pars to RHS
-      assemble_->AssembleNonLinRHS( actTime_ );
+      assemble_->AssembleNonLinRHS();
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -224,7 +224,7 @@ namespace CoupledField {
           if ( lineSearch_ == "none" ) {
             // recalculate RHS with new values to get new residual (f^(k+1))========
             algsys_->InitRHS(RhsLinVal_.GetPointer());
-            assemble_->AssembleNonLinRHS( actTime_ );  
+            assemble_->AssembleNonLinRHS();  
 
             // compute the norm of the residual
             Vector<Double> actRHS;
@@ -310,7 +310,7 @@ namespace CoupledField {
 
 
     //account for RHS
-    assemble_->AssembleLinRHS( actTime_ );
+    assemble_->AssembleLinRHS();
     PDE_.ComputeRHS( actTime_ );
 
     UInt length = 0;
@@ -414,7 +414,7 @@ namespace CoupledField {
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS( actTime_ );  
+      assemble_->AssembleNonLinRHS();  
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS(actSol);
@@ -440,7 +440,8 @@ namespace CoupledField {
         algsys_->GetSolutionVal( solPtr );
         StoreAlgsysToVec(solInc, solPtr );
 
-        Double residualL2Norm;
+				// initialize residualL2Norm or receive compiler warning
+        Double residualL2Norm = 0.0;
         Double etaLineSearch = 1.0;
 
         if ( lineSearch_ == "none" ) {
@@ -462,7 +463,7 @@ namespace CoupledField {
           TS_alg_->UpdateRHS(actSol);
 
           // inner forces due to nonlin formulation
-          assemble_->AssembleNonLinRHS( actTime_ );
+          assemble_->AssembleNonLinRHS();
 
           Vector<Double> actRHS;
           Double *rhsPtr;
@@ -551,15 +552,12 @@ namespace CoupledField {
       // re initialize RHS and system matrix
       algsys_->InitRHS();
 
-      assemble_->AssembleLinRHS( actFreq_ );
-      //    algsys_->InitMatrix();
+      assemble_->AssembleLinRHS();
 
       assemble_->AssembleMatrices();
 
       // account for Dirichlet BCs
       PDE_.SetBCs();
-
-      //   algsys_->RemoveIDBCInfoFromMatrix();      
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
            
@@ -567,8 +565,6 @@ namespace CoupledField {
 
       // put mass and damping on RHS
       TS_alg_->UpdateRHS(actSol);
-
-      //    algsys_->GetRHSVal( rhsPtr );
 
       algsys_->RemoveIDBCInfoFromMatrix();      
 
@@ -699,7 +695,7 @@ namespace CoupledField {
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS( actTime_ );  
+      assemble_->AssembleNonLinRHS();  
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS();
@@ -719,7 +715,7 @@ namespace CoupledField {
           algsys_->InitRHS(RhsLinVal_.GetPointer());
 
           // inner forces due to nonlin formulation
-          assemble_->AssembleNonLinRHS( actTime_ );  
+          assemble_->AssembleNonLinRHS();  
 
           //Update RHS (mass matrix on right hand side)
           TS_alg_->UpdateRHS();
@@ -861,7 +857,7 @@ namespace CoupledField {
 
 
     //this has to be done each frequency!
-    assemble_->AssembleLinRHS( actFreq_ );
+    assemble_->AssembleLinRHS();
 
     if ( PDE_.IsComputeRHS4HarmSet() ) {
       // Evaluating RHS with nodal srcs for harmonic flownoise problems
@@ -988,7 +984,7 @@ namespace CoupledField {
 
 
     // to incorporate loads
-    assemble_->AssembleLinRHS(actTime_); 
+    assemble_->AssembleLinRHS(); 
 
     // Stores rhs vector into extForces and returns that L2-norm
  
@@ -1012,7 +1008,7 @@ namespace CoupledField {
   {
 
     // to incorporate loads
-    assemble_->AssembleLinRHS(actTime_); 
+    assemble_->AssembleLinRHS(); 
 
     Double *solPtr;
     algsys_->GetRHSVal( solPtr );
@@ -1071,7 +1067,8 @@ namespace CoupledField {
     Vector<Double> solOld(actSol);
     const UInt nrEtas = 5;
     const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
-    Double etaOpt;
+		// initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
     
     for( UInt i=0; i<nrEtas; i++) {
@@ -1085,11 +1082,11 @@ namespace CoupledField {
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 
       if( trans ) {
-        assemble_->AssembleNonLinRHS( actTime_ );
+        assemble_->AssembleNonLinRHS();
         TS_alg_->UpdateRHS(actSol);
       }
       else {
-        assemble_->AssembleNonLinRHS( actTime_);
+        assemble_->AssembleNonLinRHS();
       }
 
 
@@ -1127,7 +1124,8 @@ namespace CoupledField {
     const UInt nrEtas = 3;
     const Double eta[nrEtas] = {0.9, 0.5, 0.3};
     //    const Double eta[nrEtas] = {0.1, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0};
-    Double etaOpt;
+		// initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
     
     Double *solPtr;
@@ -1149,7 +1147,7 @@ namespace CoupledField {
       // Recalculate residual, f-Cu-Mu-K*u
       algsys_->InitRHS();
 
-      assemble_->AssembleLinRHS( actFreq_ );
+      assemble_->AssembleLinRHS();
 
       // assemble!
       assemble_->AssembleMatrices();

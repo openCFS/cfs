@@ -128,7 +128,7 @@ namespace OLAS {
   void Lapack_LL::FactoriseReal( StdMatrix &stdMat ) {
 
 
-    UInt i, k;
+    int i, k;
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
@@ -153,7 +153,7 @@ namespace OLAS {
     const Double *data = scrsMat.GetDataPointer();
 
     // Compute number of stored matrix entries
-    Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
+    // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
 
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
@@ -238,7 +238,7 @@ namespace OLAS {
     }
 
     // Set all entries in band matrix to zero
-    for ( i = 1; i <= facMatEntries_; i++ ) {
+    for ( i = 1; i <= (int) facMatEntries_; i++ ) {
       facMat_[i] = 0.0;
     }
 
@@ -309,7 +309,7 @@ namespace OLAS {
     const Complex *data = scrsMat.GetDataPointer();
 
     // Compute number of stored matrix entries
-    Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
+    // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
 
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
@@ -344,7 +344,7 @@ namespace OLAS {
       // so no row is empty.
       UInt bwGlobal = 0;
       UInt bwLocal  = 0;
-      for ( i = 1; i <= lp_n; i++ ) {
+      for ( i = 1; (int) i <= lp_n; i++ ) {
 
 	// Determine bandwidth of this row
 	bwLocal = (UInt)(cidx[ rptr[i+1] - 1 ] - i);
@@ -406,8 +406,8 @@ namespace OLAS {
     // the matrix, which is fine for LAPACK and is hopefully more cache
     // efficient than converting the rows into FORTRAN format.
     UInt colInit = 0;
-    for ( i = 1; i <= lp_n; i++ ) {
-      for ( k = rptr[i]; k < rptr[i+1]; k++ ) {
+    for ( i = 1; (int) i <= lp_n; i++ ) {
+      for ( k = rptr[i]; (int) k < rptr[i+1]; k++ ) {
 	facMat_[ colInit + 2 * (cidx[k]-i+1) - 1 ] = data[k].real();
 	facMat_[ colInit + 2 * (cidx[k]-i+1)     ] = data[k].imag();
       }
@@ -522,7 +522,7 @@ namespace OLAS {
   void Lapack_LL::SolveReal( const BaseVector &rhs, BaseVector &sol ) {
 
 
-    UInt i;
+    int i;
 
     // Initialise parameters for ZPBTRS
     char lp_uplo = 'L';
@@ -545,7 +545,7 @@ namespace OLAS {
 
       // See, whether we need to allocate storage for the
       // right-hand side array
-      if ( lapackRHSCapacity_ < lp_n ) {
+      if ( (int) lapackRHSCapacity_ < lp_n ) {
 	DeleteArray( lapackRHS_ );
 	NewArray( lapackRHS_, Double, lp_n );
 	lapackRHSCapacity_ = lp_n;
@@ -583,7 +583,7 @@ namespace OLAS {
   void Lapack_LL::SolveComplex( const BaseVector &rhs, BaseVector &sol ) {
 
 
-    UInt i;
+    int i;
 
     // Initialise parameters for ZPBTRS
     char lp_uplo = 'L';
@@ -606,7 +606,7 @@ namespace OLAS {
 
       // See, whether we need to allocate storage for the
       // right-hand side array
-      if ( lapackRHSCapacity_ < 2 * lp_n ) {
+      if ( (int) lapackRHSCapacity_ < 2 * lp_n ) {
 	DeleteArray( lapackRHS_ );
 	NewArray( lapackRHS_, Double, 2 * lp_n );
 	lapackRHSCapacity_ = 2 * lp_n;

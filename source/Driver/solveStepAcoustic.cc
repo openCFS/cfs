@@ -69,7 +69,7 @@ namespace CoupledField {
     TS_alg_->UpdateRHS();
 
     //account for RHS-forms
-    assemble_->AssembleLinRHS( actTime_ );
+    assemble_->AssembleLinRHS();
 
     // stores this as linear part of RHS
     algsys_->GetRHSVal( solPtr );
@@ -86,13 +86,13 @@ namespace CoupledField {
           std::cout << "  " << iterationCounter;
       }
       
-#ifdef DEBUG
+    /*      
       *debug << std::endl
              << "====================================================== "
              << std::endl
              <<   "Nonlinear Acoustics: Perform internal loop no. "
-             << iterationCounter << std::endl;      
-#endif
+             << iterationCounter << std::endl;
+    */      
       
       // set solution of previous iteration
       oldSol = newSol;
@@ -123,10 +123,10 @@ namespace CoupledField {
       //   because newsol is second time derivative at first!
       TS_alg_->Corrector(newSol);
 
-#ifdef DEBUG
+      /*
       *debug << std::endl
              << "New Solution:" << std::endl << newSol << std::endl;
-#endif
+      */       
 
       //put new solution to sol_
       sol_->SetAlgSysVector(newSol);  
@@ -243,7 +243,7 @@ namespace CoupledField {
   void SolveStepAcoustic::StepTransLin() {
     if(justInterpolate_) {
       //account for RHS
-      assemble_->AssembleLinRHS( actTime_ );
+      assemble_->AssembleLinRHS();
       PDE_.ComputeRHS( actTime_ );
       
       UInt length = 0;

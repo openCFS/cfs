@@ -316,7 +316,7 @@ namespace CoupledField {
      TYPE charge = 0.0;
      Elem * ptVolElem;
      BaseFE * ptSurfElemFE, * ptVolElemFE;
-     SurfElem * ptSurfElem;
+     SurfElem * ptSurfElem = NULL;
 
      StdVector<Elem*> elemssd;
      StdVector<SurfElem*> surfElems;

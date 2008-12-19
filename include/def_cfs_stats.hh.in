@@ -1,5 +1,8 @@
-// Define version of CFS++
+// Define version of CFS++ (year and month)
 #define CFS_VERSION "@CFS_VERSION@"
+
+// Define verion name of CFS++
+#define CFS_NAME "@CFS_NAME@"
 
 // Date on which the source tree has been configured
 #define CFS_CONF_DATE "@CFS_CONF_DATE@"

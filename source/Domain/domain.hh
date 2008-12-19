@@ -30,6 +30,7 @@ namespace CoupledField
   class MaterialHandler;
   class Optimization;
   class DesignSpace;
+  class DesignElement;
   class SingleDriver;
   class MultiSequenceDriver;
   class SimInput;
@@ -106,8 +107,10 @@ namespace CoupledField
     //! Get pointer to StdPDE by name
     StdPDE * GetStdPDE(const std::string pdename);
 
-    //! Get pointer to SinglePDE by name
-    SinglePDE * GetSinglePDE(const std::string pdename);
+    /** Get pointer to SinglePDE by name.
+     * @param throw_exception shall an exception be thrown if the name does not exist
+     * @return the pde or NULL if !throw_exception */
+    SinglePDE * GetSinglePDE(const std::string pdename, bool throw_exception = true);
 
     //! Get driver object
     BaseDriver* GetDriver();
@@ -149,7 +152,7 @@ namespace CoupledField
      * @param result we return the result in the parameter, to indicate clearly if it is valid
      * @return true if result was set,.false if there is no ersatz materal for the input params */
     bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
-
+    
     /** This is set by optimization which holds the data (in a derved form). It
      * is also reset here by the optimization destructor.
      * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
@@ -164,6 +167,16 @@ namespace CoupledField
      DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
       
 
+     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
+      * Is called from optimization if used concurrently. */ 
+     void ReadErsatzMaterial(ParamNode* pn);
+     
+     /** Returns true, if optimization does provide a complete tensor */
+     bool HasErsatzMaterialTensor();
+     
+     /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
+//     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+     
     /** Returns the optimization
      *  @return null if there is none */
     Optimization* GetOptimization() { return optimization_; };
@@ -223,10 +236,6 @@ namespace CoupledField
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();
     //@}
-  
-    /** Reads the 'loadErsatzMaterial' node. Check before that it exists and does 
-     * not occur concurrently with an optimization */
-    void ReadErsatzMaterial(ParamNode* pn); 
   
     // ======================================================
     // DATA SECTION

@@ -117,9 +117,9 @@ namespace OLAS {
 
 
     Error( "ILUTP_Precond currently not operational", __FILE__, __LINE__ );
-    UInt i, j;
-    Double curTau;
-    Double norm = 0.0;
+    // COMPWARNING: unused variable UInt i, j;
+    // COMPWARNING: unused variable Double curTau;
+    // COMPWARNING: unused variable Double norm = 0.0;
 
     // ****************************
     //   Drop entries in row of U

@@ -27,7 +27,7 @@ namespace OLAS {
     
     BaseEigenSolver *retSolver = NULL;
     MatrixEntryType eType = mat.GetEntryType();
-    bool eTypeUnknown = false;
+    // COMPWARNING: unused variable bool eTypeUnknown = false;
     
     // Branch depending on desired EigenSolver
     switch( solver ) {

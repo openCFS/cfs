@@ -251,23 +251,22 @@ namespace CoupledField {
           StdVector<Integer> connect_PDE;
           eqnMap_->GetNodeEqn(connecth, connect_PDE);
 
-#ifdef DEBUG
+          /*
           // output matrix with which BDF is computed
           (*debug) << "fractional Damping matrix of Element" << std::endl;
           (*debug) << elemmat << std::endl;
           (*debug) << "actStep_=" << actStep_ << std::endl;
           (*debug) << "numValues_=" << numValues_ << std::endl;
-#endif
+           */
               
           for (UInt i=1; i<=numValues_; i++) {
             if ( solMemoryVal_[i-1] == trueVAL )
               {
                 GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
                 rhsvec += elemsol * coeff_[i];	     
-#ifdef DEBUG
-                (*debug) << "elemsolOld" << std::endl;
-                (*debug) << elemsol << std::endl;
-#endif
+
+                // (*debug) << "elemsolOld" << std::endl;
+                // (*debug) << elemsol << std::endl;
               }
             else { // see NewmarkFracDamp
             }		
@@ -303,22 +302,20 @@ namespace CoupledField {
           //                       t1 += rhsAssemble[i];
           //                       t2 += resultStressVector[i];
           //                     }
-              
-#ifdef DEBUG
+
+          /*
           (*debug) << "actStep_=" << actStep_ << std::endl 
                    << "rhsAssemble=" << std::endl << rhsAssemble << std::endl
                    << "resultStressVector=" << std::endl << resultStressVector << std::endl;
-#endif
+          */         
           if(model== "3param")
             rhsAssemble  = rhsAssemble +  resultStressVector;
           else if (model=="KelvinVoigt")
             rhsAssemble  = rhsAssemble; // +  resultStressVector;
           else
             std::cerr << "unknown model for fractional damping" << std::endl;
-#ifdef DEBUG
           //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;
           //(*debug) << rhsvec << std::endl;
-#endif
           //assemble to RHS
           algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, connect_PDE.GetPointer(),
                                  connect_PDE.GetSize());
@@ -422,17 +419,13 @@ namespace CoupledField {
     coeff_.resize(memory+1);
     coeff_[0] = 1.0; // Index 0
 
-#ifdef DEBUG
-    (*debug) << "coeff_" <<std::endl;
-    (*debug) << coeff_[0]<<std::endl;
-#endif
+    // (*debug) << "coeff_" <<std::endl;
+    // (*debug) << coeff_[0]<<std::endl;
 
     for (UInt i=1; i <= memory; i++) { // Index 1 .. memory 
       coeff_[i] = coeff_[i-1] * (i-1-y)/(i);
 
-#ifdef DEBUG
-      (*debug) << coeff_[i] << "   " << coeff_[i-1] * (i-1-y)/(i) <<std::endl;
-#endif
+      // (*debug) << coeff_[i] << "   " << coeff_[i-1] * (i-1-y)/(i) <<std::endl;
 
     }
   }

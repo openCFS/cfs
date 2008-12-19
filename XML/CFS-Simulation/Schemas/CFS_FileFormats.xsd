@@ -146,16 +146,6 @@
     </xsd:restriction>
   </xsd:simpleType>  
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of basic data output type -->
-  <!-- ******************************************************************** -->
-
-  <!-- This is an abstract basic type so that it cannot appear in an -->
-  <!-- instance document -->
-  <xsd:complexType name="DT_OutputBasic" abstract="true">
-    <xsd:attribute name="id" type="xsd:token" default="default"/>
-  </xsd:complexType>
-
   <xsd:group name="OutputGroup">
     <xsd:choice>
       <xsd:element name="gmv" type="DT_OutputGMV"
@@ -168,7 +158,7 @@
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="rst" type="DT_OutputRST"
 		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="case" type="DT_OutputCASE"
+      <xsd:element name="vtk" type="DT_OutputVTK"
            minOccurs="0" maxOccurs="1"/>      
       <xsd:element name="text" type="DT_OutputText"
 		   minOccurs="0" maxOccurs="1"/>
@@ -187,101 +177,92 @@
   <!--   Definition of data type for GMV output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputGMV">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
-        <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="id" type="xsd:token" default="gmv"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for UNV output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputUNV">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic"/>
-    </xsd:complexContent>
+    <xsd:attribute name="id" type="xsd:token" default="unv"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for GiD output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputGiD">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="id" type="xsd:token" default="gid"/>
   </xsd:complexType>
-
+  
   <!-- ******************************************************************** -->
   <!--   Definition of data type for HDF5 output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputHDF5">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
-        <xsd:attribute name="maxChunkSize" type="xsd:positiveInteger" default="100"/>
-        <xsd:attribute name="compressionLevel" default="6">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:nonNegativeInteger">
-              <xsd:maxInclusive value="9"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="maxChunkSize" type="xsd:positiveInteger" default="100"/>
+    <xsd:attribute name="compressionLevel" default="6">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:nonNegativeInteger">
+          <xsd:maxInclusive value="9"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for ANSYS RST output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputRST">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="ansysRevision" default="10.0">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:float">
-              <xsd:minInclusive value="10.0"/>
-              <xsd:maxInclusive value="12.0"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="ansysRevision" default="10.0">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:float">
+          <xsd:minInclusive value="10.0"/>
+          <xsd:maxInclusive value="12.0"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="rst"/>
   </xsd:complexType>
-
+  
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for Ensight output -->
+  <!--   Definition of data type for VTK output -->
   <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_OutputCASE">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic"/>
-    </xsd:complexContent>
+  <xsd:complexType name="DT_OutputVTK">
+    <xsd:attribute name="format" default="ascii">
+      <xsd:simpleType>
+        <!-- all but ascii is append mode! -->
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="ascii"/>
+          <xsd:enumeration value="base64"/>
+          <xsd:enumeration value="raw-binary"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <!-- compression applies only on non-ascii format -->
+    <xsd:attribute name="compression" type="xsd:int" default="9"/>
+    <xsd:attribute name="id" type="xsd:token" default="vtk"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for text output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputText">
-    <xsd:complexContent>
-      <xsd:extension base="DT_OutputBasic">
-        <xsd:attribute name="commentChar" type="DT_Character"
-          default="#"/>
-        <xsd:attribute name="coordSysId" type="xsd:token"
-          default="default"/>
-        <xsd:attribute name="fileCollect" default="entity">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="entity"/>
-              <xsd:enumeration value="timeFreq"/>
-              <xsd:enumeration value="altogether"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="commentChar" type="DT_Character" default="#"/>
+    <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+    <xsd:attribute name="fileCollect" default="entity">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="entity"/>
+          <xsd:enumeration value="timeFreq"/>
+          <xsd:enumeration value="altogether"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="txt"/>
   </xsd:complexType>
   
   

@@ -22,6 +22,7 @@ to find the minimum. The following optimizers are available
 \end{itemize}
 
 
+
 \section{Topology optimization}
 \label{sec:topology_optimization}
 Topology optimization is a material distribution method which tells us how to
@@ -311,35 +312,25 @@ param & real number & typically 3.0 \\
 \end{center} 
 
 \section{General Optimization parameters}
-The general optimization parameters define the parameters which are no
-specific for a given optimization problem only.
+The base element for all optimization tasks is the \verb#<optimization>#
+element. If present, optimization is enabled and the PDE problem defined in the
+\verb#<sequenceStep># will be evaluatated multiple times within the iterations
+of the optimization process.
 
-An interesting feature is to create a log file by: 
+\subsubsection{Logging}
+Key properties for the itations, like objective and constraint values are logged
+to the \textbf{.info.xml} file. Additionally the same information can be logged
+to a gnuplot compatible text file. This allows to plot graphs during
+the optimization process. Assign an arbitraty name by
 \begin{verbatim}
-<optimization type="SIMP" log="mech2d_plot.dat">
+<optimization log="myplot.plot.dat">.
 \end{verbatim}
-The values are given below. The file can be plotted via gnuplot, matlab, \ldots 
-and via 
-\begin{verbatim}
-tail -f mech2d_plot.dat
-\end{verbatim}
-you can follow the optimization process with more output than on the console only.
-\begin{itemize}
-  \item iteration
-  \item cost - the objective value
-  \item change - the relative change of the objective
-  \item problems - number of solved state problems (indiciates line search)
-  \item the (obeservance) constraints
-  \item details from the choosen optimizer
-\end{itemize}
+If the log name is \textbf{``[problem]''} or \textbf{``[true]''} (default), the
+actual problem name with the extension \textbf{``.plot.dat''} is chosen. Only
+the value \textbf{``false''} disables writing of the additional log file.
 
 \begin{center}
 \begin{longtable}{llp{0.6\textwidth}}
-\hline\noalign{\smallskip}
-\textbf{Attribute} & \textbf{Values} & \textbf{Description} \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-type     & ``SIMP''  & the only optimization problem by now \\
-log      & \{file\} & writes the iteration history for gnuplot/ matlab \\
 \hline\noalign{\smallskip}
 \textbf{Element} & \textbf{Occurence} & \textbf{Description} \\
 \noalign{\smallskip}\hline\noalign{\smallskip}

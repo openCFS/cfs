@@ -3,6 +3,7 @@
 #include "Optimization/DesignElement.hh"
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 #include <string>
@@ -109,19 +110,32 @@ void OptimalityCondition::SolveProblem()
 {
   // solve the state problem first
   optimization->SolveStateProblem();
-  
-  int iter = 1;
+
+  // start with iteration 0 which is the initial design
+  int iter = 0;
   int max_iter = optimization->GetMaxIterations();
   
   while(!optimization->IsMinimumReached() && iter <= max_iter)
   {
-    // adjust the design parameters but not if first iteration 
     // calc gradients to store the results in data[element]...
+    // the gradients are based for the calculation of the next iteration
     optimization->CalcObjectiveGradient(NULL);
     if(optimization->constraints.GetSize() > 0)
       optimization->CalcConstraintGradient(NULL);
     
-    // do a SIMP Optimality Condition step
+    // store iteration 0
+    if(iter == 0)
+    {
+      optimization->CalcObjective();   // for output
+      // the gradients are (here only! )pointing to the next design vector, 
+      // hence the gradients for iteration "0" and 1 are identical
+      optimization->CommitIteration(); 
+      iter++;
+      continue; // redo gradients and start optimization
+    }
+    
+    
+    // do a SIMP Optimality Condition step -> calc new design vector
     switch(type_)
     {
     case FRAMED:     CalcNextFramedIteration();
@@ -139,14 +153,15 @@ void OptimalityCondition::SolveProblem()
     default: assert(false); 
     }
     
+    // solve the state problem for the new design vector
+    optimization->SolveStateProblem();
+
     // calc the objective for the logging in CommitIteration(),
     // for the optimality condition it is not required.
     optimization->CalcObjective();
-
-    // solve the state problem
-    optimization->SolveStateProblem();
-
-    // every state problem is an iteration
+    
+    // every state problem is an iteration 
+    // The gradients "point" to this design vector. 
     optimization->CommitIteration();
     iter++;
   }
@@ -454,9 +469,22 @@ std::string OptimalityCondition::LogFileHeader()
 }
 
 
-void OptimalityCondition::LogFileLine(std::ofstream* out)
+void OptimalityCondition::LogFileLine(std::ofstream* out, InfoNode* iteration)
 {
   *out << "\t" << lambda_ << "\t" << lambda_iters_;
-  if(type_ == FRAMED) *out << "\t" << lower_ << "\t" << upper_; 
-  if(type_ == FUMBLE) *out << "\t" << step_;
+
+  iteration->Get("lambda")->SetValue(lambda_);
+  iteration->Get("lambda_iters")->SetValue(lambda_iters_);
+  
+  if(type_ == FRAMED)
+  { 
+    *out << "\t" << lower_ << "\t" << upper_;
+    iteration->Get("lower")->SetValue(lower_);
+    iteration->Get("upper")->SetValue(upper_);
+  }
+  if(type_ == FUMBLE)
+  { 
+    *out << "\t" << step_;
+    iteration->Get("step")->SetValue(step_);
+  }
 }

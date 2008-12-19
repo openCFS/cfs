@@ -27,7 +27,6 @@ namespace CoupledField
   //! - element subdomain identifier
   //! - refinement flag / number
   
-
   struct Elem
   {
   public:

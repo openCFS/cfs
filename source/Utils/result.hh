@@ -8,21 +8,20 @@
 #include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "Utils/vector.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
-
-namespace CoupledField {
-
+namespace CoupledField
+{
   //! Base class representing a result object
   class BaseResult {
-    
+
   public:
-    
-    //! constructor
+
     BaseResult();
-    
+
     //! destructor
     virtual ~BaseResult();
-    
+
     //! Get entry type of data
     virtual EntryType::ScalarType GetEntryType() const = 0;
 
@@ -41,39 +40,51 @@ namespace CoupledField {
 
     //! Return entitylist
     shared_ptr<EntityList> GetEntityList() const {return entities_;}
-    
+
     //! Return vector containing data
     virtual CFSVector* GetCFSVector() = 0 ;
 
     /** Set all result values to the null value. Used, if one cannot compute */
     virtual void Init() = 0;
-    
+
     /** Gives back some information for debug output */
     std::string ToString() const;
-    
+
+    /** Only some special region (integral) results have a InfoNode to
+     * write the data also to info.xml
+     * @return often NULL */
+    InfoNode* GetInfoNode() { return infoNode_; }
+
+    /** To leave the constructor clean, set an InfoNode from external if
+     * the result is of type region integral or such like */
+    void SetInfoNode(InfoNode* in) { this->infoNode_ = in; }
+
     /** Dumps a result list */
     static void Dump(StdVector<shared_ptr<BaseResult> >& resultList);
-    
+
   protected:
-    
+
     //! Object describing the type of result
     shared_ptr<ResultInfo> resultDof_;
 
     //! Entitylist the result is associated with
     shared_ptr<EntityList> entities_;
 
+    /** Some results, like region results with a single scalar, get here the InfoNode
+     * to write the data at the right position in info.xml */
+    InfoNode* infoNode_;
   };
 
 
   //! Class containing the simulation results
   template <class TYPE>
-  class Result : public BaseResult {
-
+  class Result : public BaseResult
+  {
   public:
 
     //! Constructor
     Result();
-    
+
     //! Destructor
     virtual ~Result();
 
@@ -88,18 +99,11 @@ namespace CoupledField {
     //! Return specific data vector
     Vector<TYPE>& GetVector() {return values_; }
 
-    void Init()
-    {
-      // set the result as we need it
-      values_.Resize(0);
+    /** Initialize data vector */
+    void Init();
 
-      EntityIterator it = entities_->GetIterator();
-      for ( it.Begin(); !it.IsEnd(); it++ ) 
-        values_.Push_back(0);
-    }
-    
   protected:
-    
+
     //! data vector
     Vector<TYPE> values_;
 

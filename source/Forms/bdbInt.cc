@@ -7,13 +7,15 @@
 
 #include "bdbInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "Optimization/DesignElement.hh"
 
 
 namespace CoupledField {
 
   void BDBInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                   EntityIterator& ent1, 
-                                  EntityIterator& ent2 ) {
+                                  EntityIterator& ent2,
+                                  DesignElement::Type direction ) {
 
 
     // Extract pointer to reference element and get coordinates
@@ -60,8 +62,13 @@ namespace CoupledField {
       
 
       // // Check if material has to be rotated
-      if( ptMaterial->GetCoordSys() == NULL ) 
-        calcDMat(dMat, ent1.GetElem());
+      if( ptMaterial->GetCoordSys() == NULL ) {
+        if(direction == DesignElement::NO_DERIVATIVE){
+          calcDMat(dMat, ent1.GetElem());
+        }else{
+          calcDMat(dMat, ent1.GetElem(), direction);
+        }
+      }
       
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
@@ -75,7 +82,11 @@ namespace CoupledField {
           ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
                                     ptCoord_, ent1.GetElem() );
           ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
-          calcDMat(dMat, ent1.GetElem());
+          if(direction == DesignElement::NO_DERIVATIVE){
+            calcDMat(dMat, ent1.GetElem());
+          }else{
+            calcDMat(dMat, ent1.GetElem(), direction);
+          }
         }
         
 

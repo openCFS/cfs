@@ -732,7 +732,7 @@ namespace OLAS {
   void SCRS_Matrix<Complex>::CopySCRSMatrix2Vec(Complex* &dataVec){
 
 
-    UInt k=0;
+    // COMPWARNING: unused variable UInt k=0;
 
     dataVec = new Complex[nrows_*nrows_];
 
@@ -929,7 +929,7 @@ namespace OLAS {
 
     const Integer* cInt1 = GetRowPointer();
     const Integer* cInt2 = GetColPointer();
-    const T* aux = GetDataPointer();
+    // COMPWARNING: unused variable const T* aux = GetDataPointer();
 
     // use the stuff to satisfy gcc
     std::cout << cInt1 << cInt2;

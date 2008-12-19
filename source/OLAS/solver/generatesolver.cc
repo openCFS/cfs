@@ -74,7 +74,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
   MatrixEntryType eType = mat.GetEntryType();
   bool eTypeUnknown = false;
 
-  // extract a solver node if there is one 
+  // extract a solver node if there is one
   ParamNode* solver_xml = NULL;
   if(xml != NULL && xml->Has("solver")) solver_xml = xml->Get("solver");
 
@@ -289,14 +289,14 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
   case ILUPACK_SOLVER:
 
 #ifdef USE_ILUPACK
-  {  
+  {
     // Check suitability of matrix
     if (mat.GetStructureType() != STDMATRIX)
       throw Exception("Ilupack only works with (S)CRS_Matrix class!");
 
     const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
     if(stdmat.GetStorageType() != SPARSE_NONSYM && stdmat.GetStorageType() != SPARSE_SYM  )
-      throw Exception("Ilupack only works with (S)CRS_Matrix class!"); 
+      throw Exception("Ilupack only works with (S)CRS_Matrix class!");
 
     if(eType == DOUBLE) {
       retSolver = new Ilupack<Double>(solver_xml, report, eType);
@@ -305,9 +305,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
     if(eType == COMPLEX) {
       retSolver = new Ilupack<Complex>(solver_xml, report, eType);
       (*cla) << " GenerateSolver: Generated complex ilupack solver" << std::endl;
-    }   
+    }
 
-  }   
+  }
 #else
   throw Exception("Compile with USE_ILUPACK to enable interface to ilupack");
 #endif
@@ -326,7 +326,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
   // akward if condition.
   bool neverTrue = (eType == NOENTRYTYPE);
   if ( neverTrue ) {
-    BaseMatrix * dummy;
+    BaseMatrix * dummy = NULL;
     retSolver->InstantiatePublicMethods( *dummy );
   }
 

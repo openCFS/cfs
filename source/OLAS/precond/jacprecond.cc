@@ -47,11 +47,11 @@ namespace OLAS {
 				       const Vector<T> &r,
 				       Vector<T> &z ) const {
 
-    PROFILE( "JacPrecond::Apply",
+    PROFILE( (char*)"JacPrecond::Apply",
              size_ * BlockSize<T>::size * BlockSize<T>::size );
 
 #pragma omp parallel for 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( UInt i = 1; i <= size_; i++ ) {
       z[i] = diagInv_[i] * r[i];
     }
   }
@@ -64,7 +64,7 @@ namespace OLAS {
   void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
 
 #pragma omp parallel for 
-    for ( Integer i = 1; i <= size_; i++ ) {
+    for ( UInt i = 1; i <= size_; i++ ) {
       diagInv_[i] = opType<T>::invert( sysmat.GetDiag(i) );
     }
 

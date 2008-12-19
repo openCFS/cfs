@@ -181,10 +181,10 @@ namespace CoupledField {
 
     isIterCoupled_ = true;
     ptCoupling_   = coupling; 
-
+    // StdVector<UInt> * nodes = NULL;
     Vector<Double> globCoord;
-
     StdVector<UInt> * nodes = NULL;
+
     UInt dofspernode  = results_[0]->dofNames.GetSize();
 
     // input couplings

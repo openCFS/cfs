@@ -17,12 +17,11 @@ public:
 
   /** e.g. stuff that needs a this pointer of the optimization problem */
   void PostInit();
-  
-  
-  /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient  
-   * @param grad_out if not NULL copy write the (design space size) results. 
-   * If filtering is enabled, this is automatically filtered. */
-  void CalcObjectiveGradient(double* grad_out);
+
+protected:
+
+  /** Calculates gradients in the form <l, Ku> */
+  void CalcObjectiveGradient(Excitation& excite);
 
 private:
 
@@ -31,28 +30,43 @@ private:
   virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
   {
     if(harmonic) SetElementK<std::complex<double> >(de, app, out);
-            else SetElementK<double>(de, app, out);  
+            else SetElementK<double>(de, app, out);
   }
-  
+
   template <class T>
   void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
-  
+
 
   /** We have for the direct coupled piezo the corresponding ElecPDE, is also in SIMP::pde */
   ElecPDE* elec;
-  
+
 
   /** The elec stiffness matrix $K_{\phi \phi}$. $K_{uu}$ is already as mechStiffness in SIMP.hh */
-  Matrix<double> elecStiffness;
+  std::map<RegionIdType, Matrix<double> > elecStiffness_map;
 
   /** The coupling stiffness matrix $K_{u \phi}$ */
-  Matrix<double> coupledStiffness;
+  std::map<RegionIdType, Matrix<double> > coupledStiffness_map;
 
-  /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */         
-  Matrix<double> coupledStiffnessTransposed;
+  /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */
+  std::map<RegionIdType, Matrix<double> > coupledStiffnessTransposed_map;
 
   /** The electric rhs, real or complex */
   SurfaceRef elecRHS;
+
+  /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @return a pointer to the Element Mass Matrix*/
+  const Matrix<double>& ElecStiffness(Elem* elem);
+
+  /** Get the coupling stiffness matrix $K_{u \phi}$ for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @return a pointer to the Element Mass Matrix*/
+  const Matrix<double>& CoupledStiffness(Elem* elem);
+
+  /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @return a pointer to the Element Mass Matrix*/
+  const Matrix<double>& CoupledStiffnessTransposed(Elem* elem);
 
   /** This are logging variables for LogFileLine */
   double log_coupled_;

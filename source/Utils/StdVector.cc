@@ -428,6 +428,8 @@ namespace CoupledField {
     }
     return out.str();
   }
+
+
   
   template<class TYPE>
   std::string StdVector<TYPE>::ToString(int size, const TYPE* data, int level, int stride)
@@ -450,6 +452,9 @@ namespace CoupledField {
       os << "size=" << size;
       if(size > 0)
       {
+        // todo: We have no min/max in the complex case!
+
+        /*
         TYPE min = data[0];
         TYPE max = data[0];
 
@@ -458,7 +463,8 @@ namespace CoupledField {
           min = std::min(min, data[i]);
           max = std::max(max, data[i]);
         }
-        os << " min=" << min << " max=" << max;        
+        os << " min=" << min << " max=" << max;
+        */        
       }
       break;
     }

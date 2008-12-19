@@ -47,7 +47,8 @@ namespace OLAS {
 			      const Vector<T> &r, Vector<T> &z ) const {
 
 
-    UInt i, j;
+    UInt i;
+		Integer j;
     T_Vtype sum;
 
     // Query relaxation parameter

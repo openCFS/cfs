@@ -18,6 +18,7 @@ namespace CoupledField {
   // Forward class declarations
   class TimeFunc;
   class StdPDE;
+  class InfoNode;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble {
@@ -32,8 +33,8 @@ namespace CoupledField {
 
     // ======================================================
     //  REGISTRATION METHODS
-    // ======================================================    
-    
+    // ======================================================
+
     //! Add a bilinearform, wrapped in a BilinFormContext
     void AddBiLinearForm( BiLinFormContext* biLinContext );
 
@@ -56,13 +57,13 @@ namespace CoupledField {
     void CalcMinMaxStrain();
     
     //! Trigger assembly of all linear right hand side terms
-    void AssembleLinRHS( Double actTimeFreq );
-    
+    void AssembleLinRHS();
+
     //! Trigger assenbly of all non-linear right hand side terms
-    void AssembleNonLinRHS( Double actTimeFreq );
+    void AssembleNonLinRHS();
 
     //! Assemble nodal load values of right hand side
-    void AssembleRHSLoads( Double actTimeFreq);
+    void AssembleRHSLoads();
 
     // ======================================================
     //  MISCELLANEOUS METHODS
@@ -74,41 +75,41 @@ namespace CoupledField {
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices
     bool IsMatrixUpdated(){ return matrixUpdated_;}
-    
-    //! Print information about registered (bi)linearforms and general data
-    void PrintInfo( std::ostream& out );
+
+    /** Append info about registered (bi)linearforms */
+    void ToInfo(InfoNode* in);
 
     /** <p>The PDEs don't know their own Integrators (the Element matrices K_{uu},
-     *  ...) but when one wants to use it, we have to get it back from the 
+     *  ...) but when one wants to use it, we have to get it back from the
      * assemble class.</p>
      * <p>The query needs to define a unique form.</p>
      * @param regionId guess what!
      * @param pde1 this is the first pde
-     * @param pde2 the second pde, note the order -> see debug file. 
+     * @param pde2 the second pde, note the order -> see debug file.
      * @param integ the integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
     BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
- 
+
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }
 
-    /** Overwrites the loads to implmented the adjoint solution for SIMP 
+    /** Overwrites the loads to implmented the adjoint solution for SIMP
      * mechanism optimization */
     void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
-    
-    /** Returns the algebraic system 
+
+    /** Returns the algebraic system
      * TODO check if really used */
     BaseSystem* GetAlgSys() { return algsys_; }
 
-    
+
     /** Returns the linear forms list for external modification */
     std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }
 
   protected:
 
     //! Assemb2le linearForms of right hand side
-    void AssembleRHSLinForms( Double actTimeFreq, bool nonLin );
+    void AssembleRHSLinForms(bool nonLin );
 
     //! Transform real-valued element matrix to harmonic representation
     void Matrix2Harmonic( Vector<Double>& harmMat,
@@ -123,7 +124,7 @@ namespace CoupledField {
                           FEMatrixType matrixType,
                           DataType matDataType,
                           Double omega );
-      
+
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
 
@@ -167,19 +168,19 @@ namespace CoupledField {
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
-    
+
     // ======================================================
     //  BOUNDARIES AND LOADS
     // ======================================================
-    
+
     //! List of right hand side nodal values
     LoadList loads_;
-    
+
     // ======================================================
     //  MISCELLANEOUS DATA
     // ======================================================
 
-    //! flag indicating if matrices have changed since 
+    //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;
 

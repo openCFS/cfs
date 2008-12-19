@@ -271,8 +271,8 @@ namespace CoupledField
 
   Double PMLTransXYZInt::ComputeDampingFactor(Vector<Double>& pos, Directions dir)
   {
-
-    Double factor, maxPos, delta, diffCoord;
+		// initialize or receive compiler warning
+    Double factor = 0.0, maxPos, delta, diffCoord;
     UInt idx;
 
     if ( dampingTypePML_ == "constant" ) {

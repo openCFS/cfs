@@ -232,116 +232,6 @@ namespace CoupledField
     
   } 
 
-  //----------------------- TRANSIENTHARMONIC---------------------------------
-  void IterSolveStep::SolveStepTransHarmonic()
-  {
-
-
-    // In the beginning of each time step the coupling data has to be reseted
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-      
-      rPDE_.PDEs_[i]->ResetCoupling();
-
-      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
-      // definition of startStep_ in constuctor
-      if ( actAnalysisType_ == BasePDE::TRANSIENT )
-        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
-    }
-
-    bool normsReached = false;
-    std::string quantityConv;
-
-    UInt iter = 0;   
-    while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
-      
-      if (rPDE_.nonLinLogging_) {
-        
-        Info->PrintF(rPDE_.pdename_,"\n"); 
-        Info->PrintF(rPDE_.pdename_,
-                     " COUPLED ITERATION %i =================================\n", 
-                     iter+1);
-      }
-
-      UInt counter = 0;
-      normsReached = true;
-
-      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-
-        actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
-        
-        if (rPDE_.nonLinLogging_)
-          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-                       (rPDE_.PDEs_[i]->GetName()).c_str());
-        
-        std::string mypdename;
-        mypdename = rPDE_.PDEs_[i]->GetName();
-        
-        if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
-          
-          rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
-          rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-          rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
-          rPDE_.PDEs_[i]->CalcInputCoupling();
-          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
-          rPDE_.PDEs_[i]->CalcOutputCoupling();
-        }
-        else if ( actAnalysisType_ == BasePDE::HARMONIC ) {
-          
-          rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq( actFreq_ );
-          rPDE_.PDEs_[i]->GetSolveStep()->SetActStep( 1 );
-          rPDE_.PDEs_[i]->GetSolveStep()->PreStepHarmonic();
-          rPDE_.PDEs_[i]->CalcInputCoupling();
-          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepHarmonic();
-          rPDE_.PDEs_[i]->CalcOutputCoupling();
-        }
-        
-        
-        // Calculate Norms
-        for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
-          
-          CFSVector *val, *oldVal;
-          rCouplings_[i]->GetOutputValues(k, val);
-          rCouplings_[i]->GetOutputOldValues(k, oldVal);
-          rPDE_.norms_[counter] = 
-            CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
-          
-            if (rPDE_.nonLinLogging_) {
-              
-              Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
-              Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                           (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                           quantityConv.c_str(), rPDE_.norms_[counter]);
-            }
-            if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-              normsReached = false;
-            
-            dynamic_cast<Vector<Double>&>(*oldVal) = 
-              dynamic_cast<Vector<Double>&>(*val);
-            //*oldVal = *val;
-            counter++;              
-        }
-      } // end of for-loop
-      
-      iter++;
-      if (rPDE_.nonLinLogging_)
-        Info->PrintF(rPDE_.pdename_, "\n"); 
-      
-    } // end of while-loop
-    
-    // now we are converged and can compute any postprocessing-quantities
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
-      if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
-        rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
-      }
-      else if ( actAnalysisType_ == BasePDE::HARMONIC ) {
-        rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic();
-      }
-    }
-    
-  } 
-
-
   
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::SolveStepHarmonic(const std::string& comment)
@@ -428,7 +318,8 @@ namespace CoupledField
 
     CFSVector * delta = NULL;
  
-    Double norm, valNorm2;
+		// initialize or receive compiler warning
+    Double norm = 0.0, valNorm2 = 0.0;
   
     // Distinguish complex and real case
     if ( val.GetEntryType() == EntryType::COMPLEX ) {

@@ -3,7 +3,6 @@
 Doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
-Doc/developer/AddDoc/Ensight_Dataformats.pdf -text svneol=unset#unset
 Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 Doc/developer/AddDoc/element_types/elementtypes.doc -text
@@ -236,16 +235,11 @@ XML/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 XML/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 XML/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/OLAS.xsd svneol=native#text/xml
-XML/TestParser/Doc/doxy.conf svneol=native#text/plain
-XML/TestParser/ErrorHandler.hh svneol=native#text/x-c%2B%2Bhdr
-XML/TestParser/Makefile -text
-XML/TestParser/SPHandler.cc svneol=native#text/x-c%2B%2Bsrc
-XML/TestParser/SPHandler.hh svneol=native#text/x-c%2B%2Bhdr
-XML/TestParser/TestParser.cc svneol=native#text/x-c%2B%2Bsrc
-XML/TestParser/tryStuff.cc svneol=native#text/x-c%2B%2Bsrc
 XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 auxiliary/MaterialFile/mat.xml svneol=native#text/xml
+auxiliary/XSL/extract_eigenvalues_line.xsl -text
+auxiliary/XSL/extract_last_design_line.xsl -text
+auxiliary/XSL/meta_optimization_subiterations.xsl -text
 auxiliary/matlab/CopyTreeHDF5.m -text
 auxiliary/matlab/FftHdf5Core.m -text
 auxiliary/matlab/FindPathHDF5.m -text
@@ -257,6 +251,7 @@ auxiliary/matlab/WriteFileInfoHDF5.m -text
 auxiliary/matlab/exec.m -text
 auxiliary/matlab/mminfo.m svneol=native#text/plain
 auxiliary/matlab/mmread.m svneol=native#text/plain
+auxiliary/matlab/opt_design_change.m -text
 auxiliary/matlab/sbmread.m svneol=native#text/plain
 auxiliary/scripts/CMakeLists.txt svneol=native#text/plain
 auxiliary/scripts/hdf5_aux.sh.in -text
@@ -295,7 +290,6 @@ include/def_cplreader.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
-include/def_use_ensight.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
@@ -312,6 +306,7 @@ include/def_use_scpip.hh.in -text
 include/def_use_scripting.hh.in -text
 include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
+include/def_use_vtk.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
@@ -413,9 +408,6 @@ source/DataInOut/SimInOut/AnsysRST/bintst.F -text
 source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/SimInOut/Ensight/CMakeLists.txt -text
-source/DataInOut/SimInOut/Ensight/simOutputEnsightGold.cc -text
-source/DataInOut/SimInOut/Ensight/simOutputEnsightGold.hh -text
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/gidpost/gidpost.cpp svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/gidpost/gidpost.h svneol=native#text/plain
@@ -439,6 +431,9 @@ source/DataInOut/SimInOut/Unverg/unv_dat.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_reader.cc svneol=native#text/plain
+source/DataInOut/SimInOut/VTK/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/VTK/SimOutputVTK.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/SimInOut/VTK/SimOutputVTK.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/gmv/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/gmv/gmvread.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/gmv/gmvread.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1055,6 +1050,8 @@ source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/DesignElement.cc -text
 source/Optimization/DesignElement.hh -text
+source/Optimization/DesignMaterial.cc -text
+source/Optimization/DesignMaterial.hh -text
 source/Optimization/DesignSpace.cc -text
 source/Optimization/DesignSpace.hh -text
 source/Optimization/ErsatzMaterial.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1064,10 +1061,14 @@ source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
 source/Optimization/IPOPT.hh -text
 source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/LevelSet.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/LevelSet.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
 source/Optimization/Optimization.hh svneol=native#text/plain
+source/Optimization/ParamMat.cc -text
+source/Optimization/ParamMat.hh -text
 source/Optimization/PiezoSIMP.cc -text
 source/Optimization/PiezoSIMP.hh -text
 source/Optimization/SCPIP.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1080,6 +1081,8 @@ source/Optimization/SIMP.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/SIMP.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/ShapeGrad.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ShapeGrad.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/TopGrad.cc -text
+source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
 source/Optimization/scpip30.hh svneol=native#text/x-c%2B%2Bhdr

@@ -14,6 +14,7 @@ namespace CoupledField {
   class EntityList;
   class EqnMap;
   class ResultInfo;
+  class InfoNode;
   template <class TYPE> class StdVector;
 
   //! Definition of a homogeneous Dirichlet boundary condition
@@ -21,7 +22,7 @@ namespace CoupledField {
 
     //! Constructor
     HomDirichletBc();
-    
+
     /** Add this virtual destructor because we hava a virtul Dump now */
     virtual ~HomDirichletBc();
 
@@ -37,12 +38,11 @@ namespace CoupledField {
     //! Degree of freedom index
     UInt dof;
 
-    /** Just a simple Dump() for developers */
-    virtual void Dump()
-    {
-      std::cout << "HomDirichletBc[dof=" << dof << "]" << std::endl;
-    }
+    /** Ouptut our content to info.xml */
+    virtual void ToInfo(InfoNode* in) const;
 
+    /** Just a simple Dump() for developers */
+    virtual std::string ToString();
   };
 
 
@@ -60,13 +60,10 @@ namespace CoupledField {
     //! Phase value of entities
     std::string phase;
 
-    
-    void Dump()
-    {
-      HomDirichletBc::Dump();
-      std::cout << "InhomDirichletBc[value=" << value << ";phase=" << phase << "]" << std::endl;
-    }
-    
+    /** Ouptut our content to info.xml */
+    virtual void ToInfo(InfoNode* in) const;
+
+    virtual std::string ToString();
   };
 
   // -------------------------------------------------------------------------
@@ -100,18 +97,19 @@ namespace CoupledField {
     //! Phase value of entities
     std::string phase;
 
-    
-    void Dump()
-    {
-      HomDirichletBc::Dump();
-      std::cout << "LoadBc[value=" << value << ";phase=" << phase << "]" << std::endl;
-    }
+    /** For multiple excitation optimization */
+    std::string weight;
+
+    /** Ouptut our content to info.xml */
+    virtual void ToInfo(InfoNode* in) const;
+
+    virtual std::string ToString();
   };
-    
+
 
   // -------------------------------------------------------------------------
   struct Constraint {
-    
+
     //! Constructor
     Constraint();
 
@@ -120,7 +118,7 @@ namespace CoupledField {
 
     //! Slave entityList
     shared_ptr<EntityList> slaveEntities;
-    
+
     //! Degree of freedom for master entities
     UInt masterDof;
 
@@ -133,7 +131,7 @@ namespace CoupledField {
     //! Equation map
     shared_ptr<EqnMap> eqnMap;
   };
-  
+
   // -------------------------------------------------------------------------
 
   // Public typedefs
@@ -142,7 +140,7 @@ namespace CoupledField {
   typedef StdVector<shared_ptr<InhomNeumannBc> > InBcList;
   typedef StdVector<shared_ptr<LoadBc> > LoadList;
   typedef StdVector<shared_ptr<Constraint> > ConstraintList;
-  
- 
+
+
 }
 #endif

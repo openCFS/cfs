@@ -66,7 +66,7 @@ namespace CoupledField {
     ptGrid->CalcSurfNormal(normal_, *elemSlave);
     normal_ *= (Double) elemSlave->normalSign;
 
-    LOG_DBG3(acoumechncint) << "On NC-elem #" << actNCElem->elemNum 
+    LOG_DBG3(acoumechncint) << "On NC-elem #" << actNCElem->elemNum
                             << " with connect = " << actNCElem->connect.Serialize()
                             << " with coordinates \n"
                             << ptCoord_
@@ -258,7 +258,7 @@ namespace CoupledField {
         partHelpMat *= 2 * PI * intWeights[i] * fluidDensity *
                       std::fabs(jacDet) * globalIP[0][i];
       }
-      else 
+      else
       { // multiply matrix by density of fluid
         partHelpMat *= intWeights[i] * fluidDensity * std::fabs(jacDet);
       }
@@ -317,7 +317,7 @@ namespace CoupledField {
       }
     }
 
-    LOG_DBG3(acoumechncint) << "multi DOF matrix:\n" << elemMat;    
+    LOG_DBG3(acoumechncint) << "multi DOF matrix:\n" << elemMat;
   }
 
 

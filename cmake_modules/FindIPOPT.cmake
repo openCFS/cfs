@@ -21,51 +21,33 @@
 # Simon Triebenbacher simon@ibtriebenbacher.de (07/2006)
 
 
-IF(WIN32)
-  SET(WIN32_STYLE_FIND 1)
-ENDIF(WIN32)
-IF(MINGW)
-  SET(WIN32_STYLE_FIND 0)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(MINGW)
-IF(UNIX)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(UNIX)
+SET(UNIX_STYLE_FIND 1)
 
 
-IF(WIN32_STYLE_FIND)
-# We do not use WIndows at all!
-ELSE(WIN32_STYLE_FIND)
+IF (UNIX_STYLE_FIND) 
 
-  IF (UNIX_STYLE_FIND) 
-
-  SET (IPOPT_POSSIBLE_ROOT_PATHS
+SET (IPOPT_POSSIBLE_ROOT_PATHS
     $ENV{IPOPT_ROOT}
     "/space/fwein/packages/ipopt_3.3_stable/build"
     )
   
-  FIND_PATH(IPOPT_ROOT_DIR include/config_ipopt.h
+FIND_PATH(IPOPT_ROOT_DIR include/config_ipopt.h
     ${IPOPT_POSSIBLE_ROOT_PATHS} )  
 
     
-    SET (IPOPT_POSSIBLE_LIB_PATHS
+SET (IPOPT_POSSIBLE_LIB_PATHS
       "${IPOPT_ROOT_DIR}/lib64"
       "${IPOPT_ROOT_DIR}/lib"
       ) 
     
-    FIND_LIBRARY(IPOPT_LIBRARY
+FIND_LIBRARY(IPOPT_LIBRARY
       NAMES ipopt
       PATHS ${IPOPT_POSSIBLE_LIB_PATHS}
       DOC "IPOPT library" ) 
 
-    STRING(REGEX REPLACE "/libipopt.*" #"[^/]*$"
+STRING(REGEX REPLACE "/libipopt.*" #"[^/]*$"
       "" IPOPT_LINK_DIR
       ${IPOPT_LIBRARY})
-
-  ELSE(UNIX_STYLE_FIND)
-    MESSAGE(FATAL_ERROR "FindIPOPT.cmake:  Platform unknown/unsupported by FindIPOPT.cmake. It's neither WIN32 nor UNIX")
-  ENDIF(UNIX_STYLE_FIND)
-ENDIF(WIN32_STYLE_FIND)
 
 
 IF(IPOPT_ROOT_DIR)

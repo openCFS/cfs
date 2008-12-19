@@ -2,7 +2,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
 #include <iomanip>
 
 #include <def_use_xerces.hh>
@@ -17,7 +16,7 @@
 #include "Domain/domain.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Utils/profiler.hh"
@@ -55,7 +54,7 @@ int main( int argc, const char **argv ) {
   // Check if the boost version is >= 1.34, as the boost::filesystem::path
   // interface has changed heavily.
   // In version < 1.34 there is a name checking mechanism activated, which
-  // doest not allow file/directory names containing characters like '+','§'.
+  // doest not allow file/directory names containing characters like '+', ..
   // Therefore we need to replace this standard name checker.
 #if ( BOOST_VERSION < 103400)
   boost::filesystem::path::default_name_check( boost::filesystem::native);
@@ -81,8 +80,6 @@ int main( int argc, const char **argv ) {
   // Create object for logging information
   Info = new WriteInfo();
 
-  // Log program startup
-  Info->PrintHeader();
 
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
@@ -91,17 +88,19 @@ int main( int argc, const char **argv ) {
   progOpts = new ProgramOptions(argc, argv);
   progOpts->ParseData();
 
-#ifdef DEBUG
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
-#endif
 
-  // =========================================================================
+  // the new xml logging derived from the ParamNode
+  info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
+  info->SetName("cfsInfo");
+
+  // Log program startup
+  ProgramOptions::GetHeaderString(std::cout);
+  
   // GENERATE OBJECT FOR HANDLING FILE-IO
-  // =========================================================================
-  Info->StartProgress( "Generating object for handling file-IO" );
   DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
-  Info->FinishProgress();
+
 
 
   // =========================================================================
@@ -117,7 +116,7 @@ int main( int argc, const char **argv ) {
   // Check if script file was provided
   if ( scriptFileName != "" ) {
     std::stringstream msg;
-    msg << "Activating Scripting using '" << scriptFileName << "'";
+    msg << "Script file: '" << scriptFileName << "'";
     Info->StartProgress( msg.str() );
 
     // Create new central messenger object (up to now only tcl available)
@@ -137,14 +136,6 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   // ACTIVATE DEBUGGING STUFF
   // =========================================================================
-
-
-  // Open file for debugging ouput
-#ifdef DEBUG
-  Info->StartProgress( "Opening file for writing debugging output" );
-  FileHandler.OpenFile( DEBUG_FILE );
-  Info->FinishProgress();
-#endif
 
 #ifdef MEMTRACE
   Info->StartProgress( "Opening file for tracing memory allocation" );
@@ -187,12 +178,8 @@ int main( int argc, const char **argv ) {
   // the debug and trace file are opened separately here. Definefiles cannot
   // be used, since it would try to open other files also, that need not be
   // present????
-  if ( progOpts->GetWriteSkeleton() == true ) {
-
-#ifdef DEBUG
-    FileHandler.OpenFile( DEBUG_FILE );
-#endif
-
+  if ( progOpts->GetWriteSkeleton() == true )
+  {
     // Hardcoded: Read mesh file
     std::string meshFile = progOpts->GetMeshFileStr();
     std::string simName = progOpts->GetSimName();
@@ -220,10 +207,13 @@ int main( int argc, const char **argv ) {
 
   // Write information to command line
   std::stringstream msg;
-  msg << "Reading parameters from file '" << xmlFile << "'";
+  msg << "Reading parameter file '" << xmlFile << "'";
   Info->StartProgress( msg.str() );
 
-#ifdef USE_XERCES
+#ifndef USE_XERCES
+  EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
+#endif
+
   // this is the new param staff which replaces the old params - delete this comment finally
   param = NULL;
 
@@ -235,13 +225,10 @@ int main( int argc, const char **argv ) {
 
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
-
+  // save us in the info stuff, with defaults but no comments
+  // todo: info->Get(InfoNode::HEADER)->Get("cfsSimulation")->SetValue(param);
   // release the xerces ressources, param is not affected
   delete xerces;
-
-#else
-  EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
-#endif
 
   Info->FinishProgress();
 
@@ -260,20 +247,14 @@ int main( int argc, const char **argv ) {
 
   if ( libmesh != "structGrid" ) {
     // Generate mesh reader
-    Info->StartProgress( "Generating mesh reader" );
     FileHandler.CreateSimInputFiles( inFiles, gridInputs );
-    Info->FinishProgress();
   }
 
 
 
   // generate material handler
   MaterialHandler * ptMatHandler;
-  Info->StartProgress( "Generating material reader");
   ptMatHandler = FileHandler.CreateMaterialHandler();
-  Info->FinishProgress();
-
-  Info->StartProgress( "Generating remaining output files" );
 
   // Open file for status reports by CFS++
   Info->CreateFile();
@@ -298,13 +279,10 @@ int main( int argc, const char **argv ) {
 
 
   // Log command line parameters
-  std::ostream *myInfo = Info->GetInfoStreamPointer();
-  progOpts->PrintParams( *myInfo, false );
+  progOpts->ToInfo(info->Get(InfoNode::HEADER)->Get("progOpts"));
 
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
-
-  Info->FinishProgress();
 
   // =========================================================================
   // GENERATION OF DOMAIN OBJECT
@@ -336,12 +314,8 @@ int main( int argc, const char **argv ) {
   // Solves the driver or optimization problem
   domain->SolveProblem();
 
-  std::cout << std::endl;
   Info->StartProgress( "Finished solving the problem" );
   Info->FinishProgress();
-
-  std::cout << std::endl;
-  std::cout << std::endl;
 
 #ifdef USE_SCRIPTING
 
@@ -353,12 +327,11 @@ int main( int argc, const char **argv ) {
 
   Double wTime, cTime;
   oClockTotal.GetTime(wTime, cTime);
-  std::cout << std::setw(70) << std::setfill('=') << "" << std::endl;
-  std::cout << "TOTAL TIME:\t\t Wall clock: " << wTime
-            << " s\t CPU: " << cTime << " s" << std::endl;
-  std::cout << std::setw(70) << std::setfill('=') << ""
-            << std::endl << std::endl;
-
+  std::cout << ">> Total time: wall clock: '" << wTime << "s' CPU time: '" << cTime << "s'\n";
+  InfoNode* in = info->Get(InfoNode::SUMMARY)->Get("runTime");
+  in->Get("wall")->SetValue(wTime);
+  in->Get("CPU")->SetValue(cTime);
+  in->SetComment("in seconds");
 
   // =========================================================================
   // CLEANUP PHASE
@@ -368,7 +341,13 @@ int main( int argc, const char **argv ) {
   CCI_Finalize();
 #endif
 
+  // write the info object
+  info->ToFile();
+  delete info;
+  info = NULL;
+
   // Delete objects
+  delete param;
   delete domain;
   delete Info;
   delete progOpts;
@@ -387,6 +366,11 @@ int main( int argc, const char **argv ) {
   }
   catch(std::exception& ex)
   {
+    if(info != NULL)
+    {
+      info->Get(InfoNode::ERROR)->SetValue(ex.what());
+      info->ToFile();
+    }
     Error(ex.what(), __FILE__, __LINE__);
   }
 

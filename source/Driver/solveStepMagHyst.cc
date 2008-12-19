@@ -64,7 +64,7 @@ namespace CoupledField {
     // handle loads
 
     // 1)  assemble to RHS loads for time step (n+1) and save it to RhsLinVal_ 
-    assemble_->AssembleLinRHS(actTime_); 
+    assemble_->AssembleLinRHS(); 
     algsys_->GetRHSVal( solPtr );
     StoreAlgsysToVec(RhsLinVal_, solPtr );
 //     std::cout << "new load:\n" << RhsLinVal_ << std::endl;
@@ -257,7 +257,7 @@ namespace CoupledField {
     // handle loads
 
     // 1)  assemble to RHS loads for time step (n+1) and save it to RhsLinVal_ 
-    assemble_->AssembleLinRHS(actTime_); 
+    assemble_->AssembleLinRHS(); 
   
     //2) update RHS according to time stepping
     TS_alg_->UpdateRHS();

@@ -9,10 +9,9 @@
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 
-// header for Paramhandling
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "DataInOut/programOptions.hh"
-
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 // header for scripting
 #include <def_use_scripting.hh>
@@ -94,6 +93,8 @@ namespace CoupledField {
 
     // Register functions for scripting
     RegisterFunctions();
+
+    infoNode_ = NULL; // to be overwritten in each PDE!
   }
 
 
@@ -136,9 +137,12 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void SinglePDE::Init( UInt sequenceStep ) {
+  void SinglePDE::Init( UInt sequenceStep, InfoNode* base ) {
 
     sequenceStep_ = sequenceStep;
+
+    infoNode_ = base == NULL ? info->Get("PDEs")->Get(pdename_) : base->Get(pdename_);
+    infoNode_->Get(InfoNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
     StdVector<RegionIdType> allIDs;
     LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
@@ -176,17 +180,17 @@ namespace CoupledField {
       myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
-                  pdename_.c_str());
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      std::string actRegionName = regionNodes[i]->Get("name")->AsString();
-      RegionIdType actRegionId = ptgrid_->RegionNameToId( actRegionName );
+    InfoNode* list = infoNode_->Get(InfoNode::HEADER)->Get("regions");
 
+    // output and set subdoms_
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ )
+    {
+      InfoNode* in_ = list->Get("region");
+      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->AsString());
+
+      RegionIdType actRegionId = ptgrid_->RegionNameToId(regionNodes[i]->Get("name")->AsString());
       subdoms_.Push_back( actRegionId );
-      Info->PrintF( pdename_, "%s, ID = %i\n", actRegionName.c_str(),
-                    actRegionId );
     }
-    Info->PrintF( "", "\n" );
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
@@ -285,8 +289,7 @@ namespace CoupledField {
         }
       }
       usePenalty_ = aux == "penalty" ? true : false;
-      Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
-                    aux.c_str() );
+      infoNode_->Get(InfoNode::HEADER)->Get("idbc", "handling of IDBCs")->SetValue(aux);
     }
 
     // Create a new equation map
@@ -343,11 +346,8 @@ namespace CoupledField {
     DefineIntegrators();
 
     // Print information about defined integrators
-#ifdef DEBUG
-    if( !isDirectCoupled_ && needsAlgsys_ == true ) {
-      assemble_->PrintInfo( *debug );
-    }
-#endif
+    if( !isDirectCoupled_ && needsAlgsys_ == true)
+      assemble_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("integrators"));
 
     // now we know about nonlinearities and we can trigger the
     // material objects to perform the approximations of the nonlinear
@@ -365,13 +365,12 @@ namespace CoupledField {
     eqnMap_->SetConstraints( constraints_ );
     eqnMap_->Finalize();
 
-     // Report results to logfile
-    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
-                  eqnMap_->GetNumEqns() );
+    infoNode_->Get(InfoNode::HEADER)->Get("equations", "number of equations in linear system")->SetValue(eqnMap_->GetNumEqns());
 
-#ifdef DEBUG
-    eqnMap_->Print(*debug);
-#endif
+    // writes numerous lists about mapping -> might be huge!
+    if(progOpts->DoListMapping())
+      eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
+
     numPDENodes_ = eqnMap_->GetNumLocalNodes();
     numElems_ = eqnMap_->GetNumLocalElems();
 
@@ -409,13 +408,8 @@ namespace CoupledField {
     if(!isDirectCoupled_ ) {
       solVec_->Resize( eqnMap_->GetNumEqns() );
       rhsVec_->Resize( eqnMap_->GetNumEqns() );
-      if( isComplex_ ) {
-        solVec_->Init( Complex(0.0,0.0) );
-        rhsVec_->Init( Complex(0.0,0.0) );
-      } else {
-        solVec_->Init( 0.0 );
-        rhsVec_->Init( 0.0 );
-      }
+      solVec_->SetToZero();
+      rhsVec_->SetToZero();
       SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {
         sol_->SetAlgSysDataPointer(solVec_->GetSize(),
@@ -738,11 +732,13 @@ namespace CoupledField {
         if( regionNames.GetSize() != 0 ) {
           candidate->complexFormat = complexFormat;
 
-          Info->PrintF( pdename_, " Computing '%s' for regions:\n",
-                        quantity.c_str() );
+          InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("export", "data", quantity);
+
           // iterate over all regions
-          for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ ) {
-            Info->PrintF( pdename_, " %s\n", regionNames[iRegion].c_str() );
+          for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ )
+          {
+            in_->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionNames[iRegion]);
+
             actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion],
                                               defineType );
             shared_ptr<BaseResult> actSol;
@@ -777,7 +773,6 @@ namespace CoupledField {
             }
 
           }
-          Info->PrintF( pdename_, "\n");
         }
 
 
@@ -841,15 +836,17 @@ namespace CoupledField {
           }
         }
 
-        if( histNames.GetSize() > 0 ) {
-
+        if( histNames.GetSize() > 0 )
+        {
           candidate->complexFormat = complexFormat;
 
-          Info->PrintF( pdename_, " Computing '%s' for history %s(s):\n",
-                        quantity.c_str(), entityTypeName.c_str() );
+          InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("history", "data", entityTypeName);
+
           // iterate over all entityNames
-          for( UInt i = 0; i < histNames.GetSize(); i++ ) {
-            Info->PrintF( pdename_, " %s\n", histNames[i].c_str() );
+          for( UInt i = 0; i < histNames.GetSize(); i++ )
+          {
+            in_->Get(entityTypeName, InfoNode::APPEND)->Get("name")->SetValue(histNames[i]);
+
             actList = ptgrid_->GetEntityList( entityType,
                                               histNames[i], defineType );
             shared_ptr<BaseResult> actSol;
@@ -882,7 +879,6 @@ namespace CoupledField {
             }
 
           }
-          Info->PrintF( pdename_, "\n");
         }
       } catch( Exception &ex ) {
         RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
@@ -1418,7 +1414,7 @@ namespace CoupledField {
   void SinglePDE::ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list)
   {
 
-    std::string name, resultName, dof, entType, value, phase;
+    std::string name, resultName, dof, entType, value, phase, weight;
     EntityList::DefineType defineType;
     SolutionType solType;
     shared_ptr<ResultInfo> actResultInfo;
@@ -1433,7 +1429,9 @@ namespace CoupledField {
         loadNodes[i]->Get( "dof", dof, false );
         loadNodes[i]->Get( "value", value );
         loadNodes[i]->Get( "phase", phase );
+        loadNodes[i]->Get( "weight", weight, false ); // only mechanical for optimization
         loadNodes[i]->Get( "entityType", entType );
+
 
         // fetch related resultInfo object
         String2Enum( resultName, solType );
@@ -1463,6 +1461,7 @@ namespace CoupledField {
         }
         actLoad->value = value;
         actLoad->phase = phase;
+        actLoad->weight = weight;
         out_list.Push_back( actLoad);
       }
       catch (Exception & ex )
@@ -2079,6 +2078,7 @@ namespace CoupledField {
             }
 
 #ifdef DEBUG
+            /*
             else if ( eqnNr > maxAllowedEqn ) {
               (*debug) << "SinglePDE::CalcInputCoupling: "
                        << "(" << pdename_ << ") "
@@ -2093,6 +2093,7 @@ namespace CoupledField {
                        << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
                        << "it is fixed by hom. Dirichlet BC" << std::endl;
             }
+            */
 #endif
 
           }

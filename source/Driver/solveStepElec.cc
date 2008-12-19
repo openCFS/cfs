@@ -93,14 +93,14 @@ namespace CoupledField {
                   << "  ,Iterations: " << iterationCounter << std::endl;
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
-    
-#ifdef DEBUG
+
+      /*
       *debug << std::endl
              << "====================================================== "
              << std::endl
              <<   "Nonlinear Elecs: Perform internal loop no. "
-             << iterationCounter << std::endl;      
-#endif
+             << iterationCounter << std::endl;
+      */                   
         
       // set solution of previous iteration
       if (iterationCounter == 1 ) {
@@ -143,13 +143,11 @@ namespace CoupledField {
       //    newSol = oldSol + incrSol * alpha;
       newSol = incrSol;
 
-      //    std::cout << "New Solution:\n" << newSol << std::endl;
-      //    std::cout << "Old Solution:\n" << oldSol << std::endl;
-#ifdef DEBUG
+      /*
       *debug << std::endl
              << "New Solution:" << std::endl << newSol << std::endl;
-#endif
-
+      */
+      
       //put new solution to sol_
       sol_->SetAlgSysVector(newSol);  
     

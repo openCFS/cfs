@@ -21,6 +21,7 @@ namespace OLAS {
     (*error) << "Enum2String not implemented for the desired type"
          << " of enumeration";
     Error( __FILE__, __LINE__ );
+		return "Error";
   }
 
   // Specialisation for SolverType

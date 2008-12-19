@@ -430,7 +430,7 @@ namespace CoupledField {
 
   //--------------------- Stuff for handling different IO files -------------
 
-  typedef enum {DEBUG_FILE, MEMTRACE_FILE, OLAS_FILE} AuxFileType;
+  typedef enum {MEMTRACE_FILE, OLAS_FILE} AuxFileType;
 
 
   //------------------------ Stuff for bubble simulation --------------------
@@ -448,7 +448,6 @@ namespace CoupledField {
   // different filestreams such as (*cla) etc. Therefore they are
   // explicitely imported into namespace CoupledField at this point
 #ifndef INTEGLIB
-  using OutInfo::debug;
   using OutInfo::cla;
   using OutInfo::memtrace;
 #endif

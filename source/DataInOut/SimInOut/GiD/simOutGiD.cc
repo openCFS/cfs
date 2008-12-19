@@ -609,15 +609,7 @@ namespace CoupledField {
 
       // check if result is defined on nodes or elements
       StdVector<std::string> & dofNames = actInfo.dofNames;  
-      if(  actInfo.definedOn != ResultInfo::NODE &&
-           actInfo.definedOn != ResultInfo::PFEM &&
-           actInfo.definedOn != ResultInfo::ELEMENT &&
-           actInfo.definedOn != ResultInfo::SURF_ELEM ) {
-        Warning( "GiD can only write results on element and nodes",
-                 __FILE__, __LINE__ );
-        continue;
-      }
-
+      if(!ValidateNodesAndElements(actInfo)) continue;
       LOG_DBG(simOutputGiD) << "Writing result '" << title << "'";
       
       if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
@@ -659,7 +651,7 @@ namespace CoupledField {
 
     // get number of entities
     UInt numEnt = 0;
-    char * dummy;
+    const char * dummy;
     GiD_ResultLocation loc;
     if ( entityType == ResultInfo::NODE ||
          entityType == ResultInfo::PFEM ) {
@@ -771,7 +763,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     
    // get number of entities
     UInt numEnt = 0;
-    char * dummy;
+    const char * dummy;
     GiD_ResultLocation loc;
     if ( entityType == ResultInfo::NODE ||
          entityType == ResultInfo::PFEM ) {

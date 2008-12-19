@@ -22,13 +22,13 @@ class TransferFunction;
 class SurfElem;
 
 template <class TYPE> class StdVector;
-template <class TYPE> class Vector;  
+template <class TYPE> class Vector;
 template <class TYPE> class Matrix;
 
 
-/** In SIMP many sensitivities are with a non-sensitive RHS. This is not 
+/** In SIMP many sensitivities are with a non-sensitive RHS. This is not
  * necessary true for PiezoSIMP when we excite with a charge density. But
- * even in pure mech SIMP we can excite with a pressure. 
+ * even in pure mech SIMP we can excite with a pressure.
  * Then in CalcU1KU2 for the grad case we actually calc \f$<l,K'u-f'>\f$.
  * This helper stores the information we need to calculate this. The tricky stuff
  * is, that in CalcU1KU2 we generally have volume elements as design elements
@@ -58,7 +58,7 @@ public:
   /** bool are we set? */
   bool valid;
 
-  /** This is one nodal result (scalar or displacement vector) (real/complex) */ 
+  /** This is one nodal result (scalar or displacement vector) (real/complex) */
   CFSVector* vec;
 
   /** This is out reference element */
@@ -73,7 +73,7 @@ public:
   /** give debug information#
    * @param level 0 is full detail, >0 less detail */
   std::string ToString(int level=0);
-}; 
+};
 
 
 /** Holds a SIMP (Solid Isotropic Material with Penaltization) optimization.
@@ -96,11 +96,6 @@ public:
     return cost->type == RADIATION ? CalcRadiation() : ErsatzMaterial::CalcObjective();
   }
 
-  /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient  
-   * @param grad_out if not NULL copy write the (design space size) results. 
-   * If filtering is enabled, this is automatically filtered. */
-  virtual void CalcObjectiveGradient(double* grad_out);
-
   /** The systems we can SIMP */
   typedef enum { PIEZO, MECHANIC } System;
 
@@ -112,41 +107,39 @@ public:
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
 
-  /** if we do radiation optimization this gives the bilinear form which is 
+  /** if we do radiation optimization this gives the bilinear form which is
    * added in DefineIntegrators of MechPDE early, before we construct Optimization.
    * It would clearly be nicer if one could add this stuff in SIMP::PostInit()
    * by making OLAS more flexible. Actually this is a low priority todo
-   * @return NULL if we do not do such "radiation" optimization stuff */ 
+   * @return NULL if we do not do such "radiation" optimization stuff */
   static BiLinFormContext* CreateSurfaceNormalMatrix(SinglePDE* pde, BaseMaterial* baseMat, shared_ptr<ResultInfo> result);
 
 protected:
 
-      
+  /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
+  virtual void CalcObjectiveGradient(Excitation& excite);
 
-  /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a 
+
+  /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
   {
     if(harmonic) SetElementK<std::complex<double> >(de, app, out);
-    else SetElementK<double>(de, app, out);  
+    else SetElementK<double>(de, app, out);
   }
 
-  
   /** calculates the radiation, an approximation to emitted sound (Du & Olhoff),
    * only harmomic. Is specific to SIMP, hence not in ErsatzMaterial.
    * Includes the assembly of the SurfaceNormalMatrix */
   double CalcRadiation();
 
+  /** values read from xml in case we optimize for radiation */
+  double radiation_c_;
+  double radiation_gamma_;
 
   /** The system we optimize. PIEZO or MECHANIC */
   System system_;
-
-  /** The mechanical element stiffness matrix is constant */
-  Matrix<double> mechStiffness;
-
-  /** The mechanical element mass matrix is also constant. Only for harmonic! */
-  Matrix<double> mechMass;
 
   /** The surface normal matrix following Du/Olhoff 2007. Note that this assumes a single plane surface */
   Matrix<double> surfaceNormal;
@@ -156,31 +149,23 @@ protected:
 
 private:
 
-  /** This private, as no virtual templates are possible with C++ */ 
+  /** This private, as no virtual templates are possible with C++ */
   template <class T>
-  void SetElementK(DesignElement* de, Application app, CFSMatrix* out);         
+  void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
 
   /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
-  void AddMassToStiffness(double m_factor, Matrix<std::complex<double> >& K_in_S_out);
+  void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);
 
-  /** Only for RADIATION we have a own implementation, the rest is in
-   * ErsatzMaterial */
-  void CalcAdjointRHS()
-  {
-    if(cost->type == RADIATION) CalcRadiationAdjointRHS();
-    else ErsatzMaterial::CalcAdjointRHS(); 
-  }
+  /** Specific implementation of for RADIATION, in the other cases calls ErsatzMaterial stuff */
+  void AdjustComplexAdjointRHS(Excitation& excite);
 
-  /** Specific implementation of ErsatzMaterial::CalcAdjointRHS() */
-  void CalcRadiationAdjointRHS();  
-  
-  
+
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .
    * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
    * It shall be cheap enough to calc here twice! */
   template <class T>
-  void CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod);         
+  void CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod, Excitation& excite);
 
 };
 

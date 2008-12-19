@@ -21,6 +21,7 @@
 #include "Driver/transientdriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 
@@ -171,10 +172,12 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void DirectCoupledPDE::Init( UInt sequenceStep ) {
-
-
+  void DirectCoupledPDE::Init( UInt sequenceStep )
+  {
     sequenceStep_ = sequenceStep;
+
+    infoNode_ = info->Get("PDEs")->Get("directCoupledPDE", InfoNode::APPEND);
+    infoNode_->Get(InfoNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     // Check, whether we shall generate an SBM_System
     bool genSBMSys = false;
@@ -234,7 +237,7 @@ namespace CoupledField {
       singlePDEs_[i]->assemble_ = assemble_;
       singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
-      singlePDEs_[i]->Init( sequenceStep );
+      singlePDEs_[i]->Init( sequenceStep, infoNode_);
 
       // check if single PDE really needs previous solution
       if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
@@ -518,10 +521,8 @@ namespace CoupledField {
       IncorporateReordering();
     }
 
-#ifdef DEBUG
     // Print information from assemble class
-    assemble_->PrintInfo( *debug );
-#endif
+    assemble_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("integrators"));
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();

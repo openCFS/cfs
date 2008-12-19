@@ -17,6 +17,7 @@ namespace CoupledField
   class SinglePDE;
   class PDECoupling;
   class ParamNode;
+  class InfoNode;
 
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
@@ -74,9 +75,8 @@ namespace CoupledField
 
   protected:
 
-    //! Write information about coupling interfaces
-    //! and coupling setup into ostream
-    void WriteCouplingInfo(std::ostream &out);
+    /** Write coupling info. TODO -> check for overloading! */ 
+    void ToInfo(InfoNode* in);
 
     //! calculates the norm of a vector
     //Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);

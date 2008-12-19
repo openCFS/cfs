@@ -408,7 +408,9 @@
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_MechLoad">
     <xsd:complexContent>
-      <xsd:extension base="DT_MechID"/>
+      <xsd:extension base="DT_MechID">
+        <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>  
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -514,6 +516,9 @@
       <xsd:enumeration value="mechVelocity"/>
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
     </xsd:restriction>
   </xsd:simpleType>
 

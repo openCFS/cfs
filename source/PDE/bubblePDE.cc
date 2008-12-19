@@ -611,7 +611,7 @@ namespace CoupledField {
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     
-    StdVector<std::string> * nRegions;
+    // unused variable StdVector<std::string> * nRegions;
     StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
 
@@ -621,7 +621,7 @@ namespace CoupledField {
 
     // Initialization of coupling helper arrays
     std::string quantity;
-    StdVector<UInt> * couplingnodes = NULL;
+    // unused variable StdVector<UInt> * couplingnodes = NULL;
 
     for (UInt i = 0; i < numCouplings; i++) {
       std::cerr << "First time in BubblePDE::InitCoupling\n";
@@ -659,7 +659,7 @@ namespace CoupledField {
     StdVector<Elem*> * couplingElems = NULL;
     StdVector<UInt> * couplingNodes     = NULL;
     CFSVector * values = 0;
-    UInt forcesCount = 0;
+    // unused variable UInt forcesCount = 0;
     StdVector<std::string> regions;
 
     // at first, check if this PDE is iterative coupled
@@ -724,7 +724,7 @@ namespace CoupledField {
       EntityIterator it = actSDList.GetIterator();
       for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-        BaseFE * ptEl = it.GetElem()->ptElem;
+        // unused variable BaseFE * ptEl = it.GetElem()->ptElem;
         StdVector<UInt> const & connecth = it.GetElem()->connect;
 
         // Find correct index for this element in vector couplElems_
@@ -744,7 +744,7 @@ namespace CoupledField {
           
 
         Double beta2 = 0.0;
-        Double beta2Com = 0.0;
+        // unused variable Double beta2Com = 0.0;
         Double Rpp = 0.0; 
 
 	//Hier Abfrage wegen Einschwingen

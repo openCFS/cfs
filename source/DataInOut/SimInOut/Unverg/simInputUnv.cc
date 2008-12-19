@@ -129,7 +129,8 @@ namespace CoupledField {
     
     LOG_TRACE(simInputUNV) << "reading base mesh from file " << fileName_ << ":";
     
-    long n,set;
+		// COMPWARNING: unused variable long set;
+    long n;
     CapaInterfaceC capaInterface;
     GDataInfo      datainfo;
     
@@ -141,7 +142,7 @@ namespace CoupledField {
     
     LOG_TRACE(simInputUNV) << "Finished reading";
     
-    int nnumtimesteps=0;
+    // COMPWARNING: unused variable int nnumtimesteps=0;
     int nnodes=capaInterface.GetNumOfNodes();
     int nelems=capaInterface.GetNumOfElements();
     int dim=capaInterface.GetDimension();
@@ -179,15 +180,15 @@ namespace CoupledField {
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
     Point  p, pTemp;
-    long   node,elem;
-    bool   isDimPlausible = false;
+    long   node; // COMPWARNING: unused variable long elem;
+    // COMPWARNING: unused variable bool   isDimPlausible = false;
     //    ocs::Vec3d oldNormal;
 
     mi_->AddNodes(nnodes);
 
     for (node=1; node<=nnodes; node++) {
       capaInterface.GetPos(node, &pTemp[0]);
-      Double d;
+      // unused variable Double d;
       // In the 2D case CFS++ writes the 3D coordinates in the
       // following form: 0 x y
       // if(dim == 2)
@@ -226,7 +227,7 @@ namespace CoupledField {
 
     mi_->AddElems(nelems);
 
-    long totalidxs = 0;
+    // COMPWARNING: unused variable long totalidxs = 0;
     for (n=0; n<nelems; ++n) {
       capaInterface.GetElemColor(n+1, elemColor);
       capaInterface.GetElemType(n+1, unvElemType);
@@ -255,6 +256,8 @@ namespace CoupledField {
           elemNodes[5] = elemNodes[4];
           elemNodes[4] = dummy;
           break;
+				default:
+					break;
         }
       }        
 
@@ -288,19 +291,19 @@ namespace CoupledField {
     std::string attrname;
     double data1[32], data2[32];
 
-    for(UInt k=0; k<datainfo.numtype55; k++)
+    for(UInt k=0; (int) k<datainfo.numtype55; k++)
     {
       attrname = nodeDataTypesStr[datainfo.types55[k]];
       std::cout << attrname;
 
-      for (UInt set=0; set<datainfo.n55[k]; set++)
+      for (UInt set=0; (int) set<datainfo.n55[k]; set++)
       {
         std::cout << " idx " << datainfo.Nsetinfo[k][set].idx
                   << " time " << datainfo.Nsetinfo[k][set].time
                   << " ndata " << datainfo.Nsetinfo[k][set].ndata << std::endl;
 
         long ndata = datainfo.Nsetinfo[k][set].ndata;
-        for (UInt node=1; node<=nnodes; node++) {
+        for (UInt node=1; (int) node<=nnodes; node++) {
           capaInterface.GetNodeData(node,
                                     datainfo.Nsetinfo[k][set].idx,
                                     data1,
@@ -315,19 +318,19 @@ namespace CoupledField {
       std::cout << std::endl;
     }
 
-    for(UInt k=0; k<datainfo.numtype56; k++)
+    for(UInt k=0; (int) k<datainfo.numtype56; k++)
     {
       attrname = elemDataTypesStr[datainfo.types56[k]];
       std::cout << attrname;
 
-      for (UInt set=0; set<datainfo.e56[k]; set++)
+      for (UInt set=0; (int) set<datainfo.e56[k]; set++)
       {
         std::cout << " idx " << datainfo.Esetinfo[k][set].idx
                   << " time " << datainfo.Esetinfo[k][set].time
                   << " edata " << datainfo.Esetinfo[k][set].ndata << std::endl;
 
         long edata=datainfo.Esetinfo[k][set].ndata;
-        for (UInt elem=1; elem<=nelems; elem++) {
+        for (UInt elem=1; (int) elem<=nelems; elem++) {
           capaInterface.GetElemData(elem, datainfo.Esetinfo[k][set].idx, data1, data2);
 
           for (UInt n=0; n<edata; n++) {
@@ -362,6 +365,7 @@ namespace CoupledField {
 
   bool SimInputUnv::ReadData()
   {
+		return false;
   }
   
 }

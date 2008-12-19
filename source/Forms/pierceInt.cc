@@ -256,7 +256,8 @@ namespace CoupledField {
 
 
     //help variables 
-    Double len1, len2, xa, pos, der, der2, omg, arg, factor, vel;
+		//initialize or receive compiler warning
+    Double len1, len2, xa = 0.0, pos = 0.0, der, der2, omg, arg, factor, vel;
 
     UInt dim = coord.GetSize();
     Double dx = coord[0] - flowCenter_[0];

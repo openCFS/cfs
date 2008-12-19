@@ -242,15 +242,14 @@ namespace CoupledField {
     Double beta = TS_alg_->GetNewmarkBeta();
     coeff *= 1.0 / (beta*dt*dt);
 
-#ifdef DEBUG
+    /*
     (*debug) << std::endl << "Parameters in GetFracDampMatrixCoeff are:"
              << std::endl << "regionId: " << regionId
              << std::endl << "y    = " << y
              << std::endl << "dt   = " << dt
              << std::endl << "beta = " << beta
              << std::endl << "coeff= " << coeff << std::endl << std::endl;
-#endif
-
+    */ 
     return coeff;
   }
   

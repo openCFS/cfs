@@ -80,7 +80,7 @@ namespace CoupledField
     // -------------------------------------------------------------
 
     // Backtransformation +++++++++++++++++
-    Double tdim;
+    // COMPWARNING: unused variable Double tdim;
     StdVector<Double> ydim(2);
 
     ydim[0] = y[0] * RadiusInit_ ;

@@ -98,7 +98,7 @@ namespace OLAS {
 
 
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    // COMPWARNING: unused variable bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
 
     // =================
     //  Get matrix data
@@ -108,7 +108,7 @@ namespace OLAS {
     const T *dataA = sysMat.GetDataPointer();
 
     //write out the system matrix
-    for (Integer k=1; k<=this->sysMatDim_; k++) {
+    for (UInt k=1; k<=this->sysMatDim_; k++) {
       Integer numCol = rptrA[k+1] - rptrA[k]; 
       Integer startIdx = rptrA[k];
       for (Integer j=0; j<numCol; j++) {
@@ -125,7 +125,8 @@ namespace OLAS {
     dataH.resize(nnzA - this->sysMatDim_+1);
     dataH.push_back( 0 );
 
-    Integer idx, idxK1, idxK2, idxI1, idxI2;
+		// COMPWARNING: unused variable Integer idx 
+    Integer idxK1, idxK2, idxI1, idxI2;
 
     //help vectors
     std::vector<Integer> colIdxRowK;
@@ -138,9 +139,9 @@ namespace OLAS {
 
     T val;
     //loop over all rows
-    for (Integer j=1; j<=this->sysMatDim_; j++) {
+    for (UInt j=1; j<=this->sysMatDim_; j++) {
       std::cout << "EQj: " << j << std::endl;
-      for (Integer i=1; i<=j-1; i++) {
+      for (UInt i=1; i<=j-1; i++) {
 	std::cout << "EQi: " << i << std::endl;
 	//get entry positions if row i
 	idxI1 = rptrA[i] + 1;
@@ -150,7 +151,7 @@ namespace OLAS {
 	  colIdxRowI[cidxA[l]] = l;
 	}
 
-	for (Integer pos=1; pos<=this->sysMatDim_; pos++) {
+	for (UInt pos=1; pos<=this->sysMatDim_; pos++) {
 	  std::cout <<  colIdxRowI[pos] << "  ";
 	}
 	std::cout << std::endl;
@@ -161,7 +162,7 @@ namespace OLAS {
 	  std::cout << "dataA=" <<  dataA[idxI1] << std::endl;
 
 	  val = 0.0;
-	  for (Integer k=1; k<=i-1; k++) {
+	  for (UInt k=1; k<=i-1; k++) {
 	    //get entry positions if row i
 	    idxK1 = rptrA[k] + 1;
 	    idxK2 = rptrA[k+1] - 1;

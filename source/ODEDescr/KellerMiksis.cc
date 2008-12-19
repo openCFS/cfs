@@ -78,7 +78,7 @@ namespace CoupledField
     // -------------------------------------------------------------
 
     // Backtransformation +++++++++++++++++
-    Double tdim;
+    // COMPWARNING: unused variable Double tdim;
     StdVector<Double> ydim(2);
 
     ydim[0] = y[0] * RadiusInit_ ;
@@ -205,7 +205,7 @@ namespace CoupledField
     // dydt[3] = y[1]-2.*y[2]-mu_str*y[1]/help1-MU*y[1]/help2;
  
     // Set initial condition in bubbledriver:
-    // Testanfangwerte für Dreikörperproblem
+    // Testanfangwerte fuer Dreoerperproblem
     // y_.Push_back(0.994);
     // y_.Push_back( 0.0);
     // y_.Push_back(0.0);

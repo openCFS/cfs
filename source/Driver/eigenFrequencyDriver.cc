@@ -9,6 +9,7 @@
 #include "Domain/domain.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
@@ -27,6 +28,8 @@ namespace CoupledField {
     freqShift_ = 0.0;
     writeModes_ = true;
     isQuadratic_ = false;
+    // replace with a concrete element
+    infoNode_ = infoNode_->Get("eigenFrequency");
   }
 
 
@@ -62,113 +65,33 @@ namespace CoupledField {
     assert(write_results == true);
     assert(comment == "");
     
-    ResultHandler * resHandler = domain->GetResultHandler();
+    ResultHandler* resHandler = domain->GetResultHandler();
 
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
     // ------------------------------
     
-    if ( isQuadratic_ ) {
+    // the eigenfrequencies are complex in the quadratic case
+    CFSVector* eigenFreqs = NULL;
+    if(isQuadratic_) eigenFreqs = new Vector<Complex>(numFreq_); 
+                else eigenFreqs = new Vector<Double>(numFreq_);
+    Vector<Double> errBounds( numFreq_ );
 
-      // === QUADRATIC CASE ===
-      // Create vector for eigenvalues and error bounds
-      Vector<Complex> eigenFreqs( numFreq_ );
-      Vector<Double> errBounds( numFreq_ );
-      
-      // Trigger calculation 
-      UInt numConverged = 0;
-      ptPDE_->WriteGeneralPDEdefines();
-      numConverged = ptPDE_->GetSolveStep()->
-        CalcEigenFrequencies( eigenFreqs, errBounds, 
-                              numFreq_, freqShift_ );
-      
-      // notify resultHandler about beginning of new sequence step
-      resHandler->BeginMultiSequenceStep( sequenceStep_,
-                                          analysis_,
-                                          numConverged );
-
-      // Print out eigenfrequencies
-      std::cout << std::endl << std::endl;
-      
-      std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
-      std::cout << std::setw(20) << "Errorbound";
-      std::cout << "\n";
-      std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
-      std::cout << "\n";
-      
-      for( UInt i=0; i<numConverged; i++ ) {
-        std::cout << std::setw(20) << eigenFreqs[i];
-        std::cout <<" | ";
-        std::cout << std::setw(20) << errBounds[i] <<  "\n";
-        
-      }
-      
-      // ------------------------------
-      // Phase 2: calculate eigenmodes
-      // ------------------------------
-      if ( writeModes_ == true ) {
-        
-        for ( UInt i = 0 ; i < numConverged; i++ ) {
-          ptPDE_->GetSolveStep()->SetActStep(i);
-          ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
-          ptPDE_->GetSolveStep()->CalcEigenMode( i );
-          resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
-          ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
-          resHandler->FinishStep( );
-        }
-      }
-    } else {
-
-      // === GENERALIZED CASE ===
-      // Create vector for eigenvalues and error bounds
-      Vector<Double> eigenFreqs( numFreq_ );
-      Vector<Double> errBounds( numFreq_ );
-      
-      // Trigger calculation 
-      UInt numConverged = 0;
-      ptPDE_->WriteGeneralPDEdefines();
-      numConverged = ptPDE_->GetSolveStep()->
-        CalcEigenFrequencies( eigenFreqs, errBounds, 
-                              numFreq_, freqShift_);
-      
-      // notify resultHandler about beginning of new sequence step
-      resHandler->BeginMultiSequenceStep( sequenceStep_,
-                                          analysis_,
-                                          numConverged );
-      
-      // Print out eigenfrequencies
-      std::cout << std::endl << std::endl;
-      
-      std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
-      std::cout << std::setw(20) << "Errorbound";
-      std::cout << "\n";
-      std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
-      std::cout << "\n";
-      
-      for( UInt i=0; i<numConverged; i++ ) {
-        std::cout << std::setw(20) << eigenFreqs[i];
-        std::cout <<" | ";
-        std::cout << std::setw(20) << errBounds[i] <<  "\n";
-        
-      }
-      
-      // ------------------------------
-      // Phase 2: calculate eigenmodes
-      // ------------------------------
-      if ( writeModes_ == true ) {
-        
-        for ( UInt i = 0 ; i < numConverged; i++ ) {
-          ptPDE_->GetSolveStep()->SetActStep(i);
-          ptPDE_->GetSolveStep()->SetActTime(eigenFreqs[i]);
-          ptPDE_->GetSolveStep()->CalcEigenMode( i );
-          resHandler->BeginStep( i+1, eigenFreqs[i] );
-          ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i] );
-          resHandler->FinishStep( );
-          
-        }
-      }
+    // Trigger calculation 
+    UInt numConverged = 0;
+    ptPDE_->WriteGeneralPDEdefines();
+    BaseSolveStep* step = ptPDE_->GetSolveStep();
+    if(isQuadratic_) {
+      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
+                                                 errBounds,numFreq_, freqShift_ );
+      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
     }
-
+    else  {
+      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
+                                                 errBounds,numFreq_, freqShift_ );
+      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+    }
+    
     // notify resultHandler about finishing of current sequence step
     if( !isPartOfSequence_ ) {
       resHandler->FinishMultiSequenceStep();
@@ -176,5 +99,55 @@ namespace CoupledField {
     }
   }
 
+  
+  template <class T>
+  void EigenFrequencyDriver::PrintResult(CFSVector* freq_ptr, Vector<Double> errBounds, 
+                                         ResultHandler* resHandler, UInt numConverged)
+  {
+    Vector<T>& eigenFreqs = dynamic_cast<Vector<T>&>(*freq_ptr);
+    
+    
+    // notify resultHandler about beginning of new sequence step
+    resHandler->BeginMultiSequenceStep( sequenceStep_,
+        analysis_,
+        numConverged );
 
+    // Print out eigenfrequencies
+    std::cout << std::endl << std::endl;
+
+    std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
+    std::cout << std::setw(20) << "Errorbound";
+    std::cout << "\n";
+    std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
+    std::cout << "\n";
+
+    for( UInt i=0; i<numConverged; i++ ) {
+      std::cout << std::setw(20) << eigenFreqs[i];
+      std::cout <<" | ";
+      std::cout << std::setw(20) << errBounds[i] <<  "\n";
+
+      // also log via info node
+      InfoNode* result = infoNode_->Get("result",InfoNode::APPEND);
+      result->Get("frequency")->SetValue(eigenFreqs[i]);
+      result->Get("errorbound")->SetValue(errBounds[i]);
+    }
+
+    
+    // ------------------------------
+    // Phase 2: calculate eigenmodes
+    // ------------------------------
+    if ( writeModes_ == true ) {
+
+      for ( UInt i = 0 ; i < numConverged; i++ ) {
+        ptPDE_->GetSolveStep()->SetActStep(i);
+        ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
+        ptPDE_->GetSolveStep()->CalcEigenMode( i );
+        resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
+        ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
+        resHandler->FinishStep( );
+      }
+    }
+  }
+  
+  
 } // end of namespace
