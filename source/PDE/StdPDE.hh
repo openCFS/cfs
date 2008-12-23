@@ -25,11 +25,11 @@ namespace CoupledField {
   class EqnMap;
   class ParamNode;
   class InfoNode;
-
+  
   //! Base class for all single-field and direct-coupled problems
 
   class StdPDE : public BasePDE {
-
+  
   public:
 
     // friend cStdlass declarations
@@ -41,21 +41,21 @@ namespace CoupledField {
 
     //! Virtual destructor
     virtual ~StdPDE();
-
+    
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)
     // ======================================================
-
-    //! Define the algebraic system
+  
+    //! Define the algebraic system 
     virtual void DefineAlgSys() = 0;
 
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
-
+    
     /** Finds the xml node of the linear system
      * @return might be NULL */
     ParamNode* FindLinearSystem(const std::string& sysName);
-
+    
     //! Transfer parameters from CFS++ to OLAS parameter object
 
     //! This method reads the parameters specified for the linear system
@@ -70,17 +70,17 @@ namespace CoupledField {
     // ======================================================
     // COUPLING SECTION
     // ======================================================
-
+  
     //! initalize PDE coupling (only done once)
     virtual void InitCoupling(PDECoupling * Coupling) = 0;
 
     //! reset coupling counters and data (done after each timestep)
     virtual void ResetCoupling() = 0;
-
+  
     //! Fill in input coupling terms
     virtual void CalcInputCoupling() = 0;
-
-
+  
+  
     //! calculate coupling terms
     virtual void CalcOutputCoupling() = 0;
 
@@ -107,17 +107,17 @@ namespace CoupledField {
     virtual AnalysisType GetAnalysisType() {
       return analysistype_;
     }
-
+  
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
     {
       Error("not implemented",__FILE__,__LINE__);
       return false;
     }
-
+  
     //! return pointer to vector with first derivative of solution
     virtual const Vector<Double> & getS1() const;
-
+  
     //! return pointer to vector with second derivative of solution
     virtual const Vector<Double> & getS2() const;
 
@@ -129,7 +129,7 @@ namespace CoupledField {
     virtual UInt GetFracMemory() {
       return fracMemory_;
     }
-
+    
     virtual bool GetFracDamping() {
       return fracDamping_;
     }
@@ -142,17 +142,17 @@ namespace CoupledField {
     ParamNode * GetParamNode() { return myParam_; }
 
     //!
-    //! \for computing and adding RHS to PDE in case of special sources
+    //! \for computing and adding RHS to PDE in case of special sources 
     virtual void ComputeRHS(const Double atime) {;};
 
     //!
-    //! \for computing vortex source both analytically and with complex
-    //! \potential function
+    //! \for computing vortex source both analytically and with complex 
+    //! \potential function 
     virtual  void VortexAnalytical(Double & press, Vector<Double>& dTij_di, const Double x,
-                                   const Double y, const Double t,
+                                   const Double y, const Double t, 
                                    const UInt outType){
       Error("VortexAnalytical is only implemented in acouFlowNoisePDE",__FILE__,__LINE__);};
-
+  
     //! set boundary condition
     //! \param atimestep         time step of claculation
     virtual  void SetBCs() = 0;
@@ -162,11 +162,12 @@ namespace CoupledField {
     virtual  void PrintStabParams( ) {
       Error("Not Implemented, only needed for fluidMech",__FILE__,__LINE__);};
 
+    
     //! Initialize all/some the nodes by this value
     virtual void SetInitialCondition(){;};
     bool IsSetInitialCondition() { return isSetInitialCondition_;};
-    double getInitialCondition(){return InitialCondition_;};
-
+    double getInitialCondition(){return InitialCondition_;}; 
+    
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
@@ -183,33 +184,33 @@ namespace CoupledField {
     //@}
 
     /** Get the data vector of the current solution of the algebraic system */
-    virtual CFSVector* GetSolutionVector() { return solVec_;}
+    virtual CFSVector* GetSolutionVector() { return solVec_;} 
 
     /** Get the data vector of the current rhs of the algebraic system. */
     CFSVector* GetRHSVector() { return rhsVec_;}
 
     //! get the data vector of the previous solution of a PDE.
     virtual CFSVector * GetPrevSolutionVector();
-
+    
     /// returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
+    void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
                              shared_ptr<ResultInfo> res );
     void GetSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
                              shared_ptr<ResultInfo> res );
-
-
-    /// returns the vector of time derivative of the solution belonging
+   
+    
+    /// returns the vector of time derivative of the solution belonging 
     /// to all nodes of the actual element
     void GetDerivSolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
                                   shared_ptr<ResultInfo> res );
     void GetDerivSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
                                   shared_ptr<ResultInfo> res );
-
-    /// returns the vector of 2nd time derivative of the solution belonging to all nodes
+    
+    /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
     /// of the actual element
     void GetDeriv2SolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
                                    shared_ptr<ResultInfo> res );
-    void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
+    void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
                                    shared_ptr<ResultInfo> res);
 
     //! Init the time stepping
@@ -223,38 +224,38 @@ namespace CoupledField {
 
     //@{
     //!  The following methods are used only durig parameter
-    //!  identification process! Maybe one day a more to CFS++ consistent
+    //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
 
     shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
 
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
-
+    
     BaseNodeStoreSol * getPDESolution() {return sol_;};
 
     BaseNodeStoreSol * getPDESolutionPrev() {return solPrev_;};
-
+    
     BaseSystem * getPDE_algsys(){return algsys_;};
-
+  
     UInt getPDE_numElems(){return numElems_;};
 
     UInt getPDE_numPDENodes(){return numPDENodes_;};
-
+  
     UInt getPDE_spaceDim(){return dim_;};
-
-    Grid * getPDE_grid(){return ptgrid_;};
-
+  
+    Grid * getPDE_grid(){return ptgrid_;};  
+  
     Assemble * getPDE_assemble(){return assemble_;}
-
+  
     StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
-
+   
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
-
+    
     void setPDE_MatDataType(DataType & pMatType){
       matDataType_ = pMatType;};
-
+  
     DataType getPDE_MatDataType()
     {return matDataType_;}
 
@@ -278,16 +279,16 @@ namespace CoupledField {
     //@{
     //!  Get functions concerning nonlinearity
 
-    bool IsNonLin()
+    bool IsNonLin() 
     { return nonLin_;};
 
-    bool IsNonLinMaterial()
+    bool IsNonLinMaterial() 
     { return nonLinMaterial_;};
 
-    bool IsHysteresis()
+    bool IsHysteresis() 
     { return isHysteresis_;};
 
-    bool IsIterCoupled()
+    bool IsIterCoupled() 
     { return isIterCoupled_;};
 
     bool& IsFirstTimeStepStatic()
@@ -299,13 +300,14 @@ namespace CoupledField {
     bool IsInstationary()  
     { return isInstationary_;};
 
+
     Double GetRhsL2Norm(Vector<Double>& actRHS) 
     { return RhsL2Norm(actRHS);};
 
-    std::map<RegionIdType, NonLinType>& GetNonLinRegionTypes()
+    std::map<RegionIdType, NonLinType>& GetNonLinRegionTypes() 
     { return regionNonLinType_;};
 
-    UInt& GetIterCoupledCounter()
+    UInt& GetIterCoupledCounter() 
     { return iterCoupledCounter_;};
 
     PDECoupling* GetCoupling()
@@ -316,15 +318,15 @@ namespace CoupledField {
       return idBcs_;};
 
     //@}
-
+      
   protected:
-
+  
     //! Constructor
     /*!
       \param aptgrid pointer to grid
     */
     StdPDE(Grid *aptgrid, ParamNode* paramNode );
-
+  
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {
       Error ("Not implemented", __FILE__, __LINE__);
@@ -332,7 +334,7 @@ namespace CoupledField {
       // The following line is only to satisfy the compiler
       return *this;
     };
-
+  
 
 
     //! stores an algsys_ vector into a StdVector
@@ -354,7 +356,7 @@ namespace CoupledField {
     // ======================================================
     // DATA SECTION
     // ======================================================
-
+  
     // -----------------------------------------------------------------------
     // Geometry & node numbering
     // -----------------------------------------------------------------------
@@ -365,29 +367,28 @@ namespace CoupledField {
 
     //! subdomain-levels belonging to PDE
     StdVector<RegionIdType> subdoms_;
-
+  
     //@}
 
-    /** This is our pde info node. To be set/overwritten in each PDE! */
-    InfoNode* infoNode_;
-
+    /** This is our pde info node. To be set/overwritten in each PDE! */ 
+    InfoNode* infoNode_; 
 
     // -----------------------------------------------------------------------
     // Geometry & node numbering
     // -----------------------------------------------------------------------
-
+  
     //@{
     //! \name Attributes related to geometry and node numbering
     UInt numPDENodes_;  //!< number of nodes in subdomains
     UInt numElems_;     //!< number of elements in subdomains
-
+  
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
     std::string subType_;
     //@}
 
       // -----------------------------------------------------------------------
     // Boundary conditions
-    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------    
 
     //@{
     //! \name boundary conitions
@@ -397,7 +398,7 @@ namespace CoupledField {
 
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
-
+    
     //! List of inhomogeneous Neumann boundary conditions
     InBcList inBcs_;
 
@@ -435,22 +436,22 @@ namespace CoupledField {
     // -----------------------------------------------------------------------
     // Material data
     // -----------------------------------------------------------------------
-
+  
     //@{
     //! \name Attributes handling info on material data
 
     //! Maps regions and (simple) materials
-    std::map<RegionIdType, BaseMaterial*> materials_;
-
+    std::map<RegionIdType, BaseMaterial*> materials_;    
+    
     //! Maps regions and composite materials
     std::map<RegionIdType, Composite> compositeMaterials_;
 
     //! material class
-    MaterialClass pdematerialclass_;
-
+    MaterialClass pdematerialclass_;   
+  
     //! Data Type which decides wheather material is real or complex
     DataType  matDataType_;
-    //! contains element results of complex valued charge
+    //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
     Vector<Complex> complexValuedEfield_;
     //@}
@@ -459,7 +460,7 @@ namespace CoupledField {
     // -----------------------------------------------------------------------
     // PDE coupling
     // -----------------------------------------------------------------------
-
+  
     //@{
     //! \name Attributes connected to handling PDE coupling
     bool isIterCoupled_;        //!< PDE couples with others
@@ -467,13 +468,13 @@ namespace CoupledField {
     bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
     UInt couplingBCsCounter_;  //!< counter for number of coupling BCs
     PDECoupling *ptCoupling_;     //!< pointer to coupling object
-
+  
     //! nodes at which coupling terms are calculated
-    std::list<UInt> couplingNodes;
-
+    std::list<UInt> couplingNodes;    
+  
     //! elements at which coupling terms are calculated
     StdVector<Elem*> couplingElements;
-
+  
     //! iteration counter for coupled PDE solution process
     UInt iterCoupledCounter_;
     //@}
@@ -482,7 +483,7 @@ namespace CoupledField {
     // -----------------------------------------------------------------------
     // Time stepping
     // -----------------------------------------------------------------------
-
+  
     //@{
     //! \name Attributes connected to time stepping
     TimeStepping * TS_alg_;       //!< handles the time stepping
@@ -516,44 +517,44 @@ namespace CoupledField {
     bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
     BaseNodeStoreSol * sol_;    //!< solution
-    CFSVector * solVec_;        //! needed in iterative coupled computation
+    CFSVector * solVec_;        //! needed in iterative coupled computation 
     CFSVector * rhsVec_;        //! needed when writing the RHS to file
     BaseNodeStoreSol * solPrev_;    //!< solution at time step n
-    CFSVector * solVecPrev_;        //! needed in coupled computation
+    CFSVector * solVecPrev_;        //! needed in coupled computation 
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
 
     bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
-
+    
 
 
     //! type of interpolation (for fractional damping)
     InterpolType inType_;
-
+    
     //! checks, if we have for the coupling a incremental solution
-    bool isIncrFormulation_;
-
+    bool isIncrFormulation_;    
+    
     //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
-    bool ComputeRHSforHarm_;
+    bool ComputeRHSforHarm_;    
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
 
     //! pointer to SolveStep classes
     StdSolveStep * solveStep_;
-
+    
     BaseSystem * algsys_;      //!< pointer to algebraic system
-
+  
     OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
     OLAS_Report * olasReport_; //!< pointer to report object of OLAS
-
+    
     //! flag to check if there are initial conditions in the set up
     bool isSetInitialCondition_;
     //! initial value.
     Double InitialCondition_;
-
+    
     //@}
 
   }; // class StdPDE
@@ -561,27 +562,27 @@ namespace CoupledField {
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class
+  //     Detailed description of the class 
   // =========================================================================
 
   //! \class StdPDE
-  //!
-  //! \purpose
-  //! This class serves as base class for all single-field and
+  //! 
+  //! \purpose 
+  //! This class serves as base class for all single-field and 
   //! direct coupled problems. The idea is, that an iterative coupled
   //! pde can have one or more objects of StdPDE, which are then
   //! solved iteratively.
-  //!
-  //! \collab
-  //!
-  //! \implement
-  //!
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
   //! \status In use
-  //!
-  //! \unused
-  //!
+  //! 
+  //! \unused 
+  //! 
   //! \improve
-  //!
+  //! 
 
 #endif
 

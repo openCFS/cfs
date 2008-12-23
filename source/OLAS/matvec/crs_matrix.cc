@@ -1251,4 +1251,8 @@ namespace OLAS {
     }
   }
 
+  // explicit template instanitation
+  template class CRS_Matrix<Double>;
+  template class CRS_Matrix<Complex>;
+  
 }

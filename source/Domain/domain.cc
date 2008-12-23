@@ -30,7 +30,6 @@
 #include "DataInOut/resultHandler.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/DesignSpace.hh"
-#include "Optimization/DesignElement.hh"
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
 #include "Utils/result.hh"
@@ -57,22 +56,20 @@
 
 namespace CoupledField {
 
-
+  
   // **************
   //   Construtor
   // **************
 
   Domain::Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
                   ResultHandler * handler,
-                  MaterialHandler * ptMat ) {
-
-
-
+                  MaterialHandler * ptMat ) 
+  {
     // initialize data
     numSinglePde_ = 0;
     numDirectCoupledPde_ = 0;
     numIterCoupledStdPde_ = 0;
-
+    
     // assign pointers
     gridInputs_ = gridInputs;
     ptMatHandler_ = ptMat;
@@ -83,29 +80,29 @@ namespace CoupledField {
     optimization_ = NULL;
     ersatzMaterial = NULL;
   }
-
+  
   void Domain::CreateGrid() {
-
+   
     // read type of mesh library
     std::string libmesh = "cfsGrid";
     ParamNode * inputNode = param->Get("input", false );
     if( inputNode )
       inputNode->Get("meshLibrary", libmesh );
-
+    
     std::string probGeo;
     param->Get("domain")->Get( "geometryType", probGeo );
     if ( probGeo == "3d") {
       dim_ = 3;
-    }
+    } 
     else if ( probGeo == "axi" || probGeo == "plane" ) {
       dim_ = 2;
     }
     else {
       EXCEPTION( "Wrong Dimension parameter in xml-File" );
     }
-
+    
     Info->StartProgress("Reading in the mesh");
-
+    
     std::map<std::string, StdVector<shared_ptr<SimInput> > >
       ::const_iterator gridIt;
 
@@ -141,7 +138,7 @@ namespace CoupledField {
         EXCEPTION( "Type of mesh_library should be one of "
                    << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'" );
       }
-
+      
       // add grid to internal map
       gridMap_[gridId] = actGrid;
 
@@ -151,7 +148,7 @@ namespace CoupledField {
       // systems
       if(gridId == "default")
         CreateCoordinateSystems();
-
+      
       // iterate over all inputs for the current grid and read mesh
       for( UInt iFile = 0; iFile < inputs.GetSize(); iFile++ ) {
         shared_ptr<SimInput> actInFile = inputs[iFile];
@@ -160,7 +157,7 @@ namespace CoupledField {
 
       actGrid->FinishInit();
     }
-
+      
     // make sure that there is a grid with ID "default"
     if (gridMap_.find("default") == gridMap_.end()) {
       EXCEPTION("There is no grid with ID 'default'.");
@@ -176,21 +173,21 @@ namespace CoupledField {
     if ( !progOpts->GetPrintGrid() == true ) {
       // Initialize resultHandler
       resultHandler_->Init( gridMap_["default"], false );
-    }
+    }   
 
   }
 
-  void Domain::PostInit()
+  void Domain::PostInit() 
   {
       // set up the driver first
       // SetDriver extracts the SingleDriver which is what CreateInstance returns
       // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
-
+      
       // we do not have to delete driver as it is due to SetDriver() deleted
       // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
-      BaseDriver* driver = BaseDriver::CreateInstance();
+      BaseDriver* driver = BaseDriver::CreateInstance();  
       SetDriver(driver); // see above!
-//      Info->FinishProgress();
+      Info->FinishProgress();
 
       // initialize the driver
       driver->Init();
@@ -201,14 +198,15 @@ namespace CoupledField {
         SetOptimization(Optimization::CreateInstance());
       }
       else
-      {
-        SetOptimization(NULL);
-        // check if we simulate with ersatz material - after driver and only if not used with optimization
-        // if used with optimization loadErsatzMaterial specifies the starting point for optimization
-        // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
-        if(param->Has("loadErsatzMaterial"))
-          ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
-      }
+      { 
+        SetOptimization(NULL); 
+        // check if we simulate with ersatz material - after driver and only if not used with optimization 
+        // if used with optimization loadErsatzMaterial specifies the starting point for optimization 
+        // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here 
+        if(param->Has("loadErsatzMaterial")) 
+          ReadErsatzMaterial(param->Get("loadErsatzMaterial")); 
+      }   
+
   }
 
 
@@ -249,28 +247,28 @@ namespace CoupledField {
     ptDirectCoupledPde_.Clear();
 
     // Destructor of IterCoupledPDE deletes couplings!
-
+    
     // stuff set up by PostInit at the end
-
+    
     // If our driver is a MultiSequenceDriver we don't delete ptSingleDriver_!
     if(multiSequenceDriver_ != NULL) { delete multiSequenceDriver_; multiSequenceDriver_ = NULL; }
     else if(ptSingleDriver_ != NULL) { delete ptSingleDriver_; ptSingleDriver_ = NULL; }
-
+    
     // the optimization is optional. Important, before ersatzMaterial!
     if(optimization_ != NULL) { delete optimization_; optimization_ = NULL; }
-
-    // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
-    if(ersatzMaterial != NULL) { delete ersatzMaterial; ersatzMaterial = NULL; }
+    
+    // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization 
+    if(ersatzMaterial != NULL) { delete ersatzMaterial; ersatzMaterial = NULL; }    
   }
 
 
-  void Domain::SolveProblem()
+  void Domain::SolveProblem() 
   {
     BaseDriver* driver = multiSequenceDriver_;
     if(driver == NULL) driver = ptSingleDriver_;
-
+    
     // PostInit needs to be called in advance!
-    if(GetOptimization() != NULL)
+    if(GetOptimization() != NULL) 
        GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
     else
        driver->SolveProblem();
@@ -292,20 +290,20 @@ namespace CoupledField {
 
     // search the single pdes
     std::map<SinglePDE*,bool>::iterator it;
-
+      
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
-
+      
       if (ptSinglePde_[i]->GetName() == pdeName) {
-
+        
         // check if SinglePDE is not coupled directly
         it = isDirectCoupled_.find( ptSinglePde_[i] );
-
+        
         if ( it == isDirectCoupled_.end() ) {
           EXCEPTION("It was impossible to determine, if the PDE "
                     << "with the name '" << pdeName << "' is directly "
                     << "coupled or not" );
         }
-
+        
         //         if ( (*it).second == false ) {
         //           pdeFound = true;
         //           break;
@@ -315,7 +313,7 @@ namespace CoupledField {
       }
     }
 
-
+    
     if (pdeFound == true)
       return ptSinglePde_[i];
     else {
@@ -323,26 +321,26 @@ namespace CoupledField {
                  << "' was not found/created!." );
     }
   }
-
+  
   SinglePDE * Domain::GetSinglePDE(const std::string pdeName, bool throw_exception)
   {
-    // check for the pede an return
-    for(UInt i=0; i<ptSinglePde_.GetSize(); i++) 
-    {
-      if(ptSinglePde_[i]->GetName() == pdeName) 
-        return ptSinglePde_[i];
-    }
+    // check for the pede an return 
+    for(UInt i=0; i<ptSinglePde_.GetSize(); i++)  
+    { 
+      if(ptSinglePde_[i]->GetName() == pdeName)  
+        return ptSinglePde_[i]; 
+    } 
 
-    // nothing found
-    if(throw_exception) {
-      EXCEPTION("PDE with name '" << pdeName << "' not found");
-    } else
-      return NULL;
+    // nothing found 
+    if(throw_exception) { 
+      EXCEPTION("PDE with name '" << pdeName << "' not found"); 
+    } else 
+      return NULL;  
   }
 
   BasePDE* Domain::GetBasePDE()
   {
-
+    
     // if only one SinglePDE exists
     if ( numSinglePde_ == 1)
       return ptSinglePde_[0];
@@ -354,22 +352,22 @@ namespace CoupledField {
 
     // one or more Single/DirectCoupledPDEs
     // are coupled in an iterative way
-    else
+    else 
       return ptIterCoupledPde_;
-
+    
   }
 
   Grid * Domain::GetGrid( const std::string& id ) {
     if( gridMap_.find( id ) == gridMap_.end() ) {
-      EXCEPTION( "Grid with id '" << id
+      EXCEPTION( "Grid with id '" << id 
                  << "' is not defined" );
     }
-    return gridMap_[id];
+    return gridMap_[id];    
   }
 
   CoordSystem * Domain::GetCoordSystem( const std::string & name ) {
-
-
+    
+    
     std::map<std::string, CoordSystem*>::iterator it;
 
     it = coordSys_.find(name);
@@ -380,7 +378,7 @@ namespace CoupledField {
     }
 
     return (*it).second;
-
+  
   }
 
 
@@ -391,8 +389,8 @@ namespace CoupledField {
 
 
     // create single pde(s)
-    CreateSinglePDEs( sequenceStep );
-
+    CreateSinglePDEs( sequenceStep );    
+    
     // create direct coupled pde(s)
     CreateDirectCoupledPDEs( sequenceStep );
 
@@ -423,7 +421,7 @@ namespace CoupledField {
       ptDirectCoupledPde_[i]->DefineAlgSys();
       Info->FinishProgress();
     }
-
+    
     // Initialize coupledPDE
     if (ptIterCoupledPde_ != NULL) {
       Info->StartProgress("Initializing iterative coupling");
@@ -432,7 +430,7 @@ namespace CoupledField {
     }
 
     // Initialize algebraic system of each SinglePDE
-    // Note: DefineAlgSys() triggers only the initialization
+    // Note: DefineAlgSys() triggers only the initialization 
     // of those SinglePDEs, which are not directly coupled
     for (UInt i = 0; i < numSinglePde_; i++ ) {
       it = isDirectCoupled_.find( ptSinglePde_[i] );
@@ -465,15 +463,15 @@ namespace CoupledField {
       std::string actPdeName = pdeNodes[i]->GetName();
       ParamNode * actPdeNode = pdeNodes[i];
       Info->StartProgress("Creating PDE '" + actPdeName + "'");
-
-      if (actPdeName == "electrostatic")
+      
+      if (actPdeName == "electrostatic") 
         ptSinglePde_[i]=new ElecPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "mechanic")
         ptSinglePde_[i]=new MechPDE(defaultGrid, actPdeNode );
 
       else if (actPdeName == "acoustic") {
-
+        
         std::string acouSubType = actPdeNode->Get("subType")->AsString();
         if (acouSubType == "flowNoise")
           ptSinglePde_[i]=new AcouFlowNoise(defaultGrid, actPdeNode);
@@ -482,10 +480,10 @@ namespace CoupledField {
         else
           ptSinglePde_[i]=new AcousticPDE(defaultGrid, actPdeNode );
       }
-
+      
       else if (actPdeName == "acousticXYZ")
         ptSinglePde_[i]=new AcousticXYZPDE(defaultGrid, actPdeNode );
-
+      
       else if (actPdeName == "acousticMixed")
         ptSinglePde_[i]=new AcousticMixedPDE(defaultGrid, actPdeNode );
 
@@ -497,7 +495,7 @@ namespace CoupledField {
 
       else if ( actPdeName == "magneticEdge")
         ptSinglePde_[i]=new MagEdgePDE(defaultGrid, actPdeNode );
-
+      
       else if (actPdeName == "mpcci")
         ptSinglePde_[i]=new MpcciPDE(defaultGrid, actPdeNode );
 
@@ -512,11 +510,11 @@ namespace CoupledField {
 
       else {
         EXCEPTION( actPdeName << " - this type of pdes is unknown" );
-      }
+      }     
 
       // by default, not single pde is directly coupled
       isDirectCoupled_[ptSinglePde_[i]] = false;
-
+      
       // Initialize current PDE
       // -> This step has now moved to method InitPDEs
       //ptSinglePde_[i]->Init();
@@ -528,7 +526,7 @@ namespace CoupledField {
 
 
   void Domain::CreateIterCoupledPDE( UInt sequenceStep ) {
-
+  
     std::string errMsg;
 
     // check if more than one PDEs are defined
@@ -536,15 +534,15 @@ namespace CoupledField {
       ptIterCoupledPde_ = NULL;
       return;
     }
-
+    
     Info->StartProgress("Creating coupling");
-
+    
     // ================================
     //   Check for iterative coupling
     // ================================
-
+    
     // check for presence of "couplingList" and "iterative" element
-    ParamNode * couplingNode =
+    ParamNode * couplingNode = 
       param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
       ->Get("couplingList", false );
     if( !couplingNode) return;
@@ -552,7 +550,7 @@ namespace CoupledField {
     if (!iterNode) return;
     StdVector<ParamNode*> iterCplNodes = iterNode->GetChildren();
 
-
+    
     // iterate over all pairwise iterative couplings
     StdVector<StdPDE*> iterCoupledPDEs;
     for( UInt i = 0; i < iterCplNodes.GetSize(); i++ ) {
@@ -561,47 +559,47 @@ namespace CoupledField {
       // do no only contain the two pdes, but also
       // the nonLinear node, we have to catch the latter case,
       // as we are only interested in the names of the pdes here
-      if( iterCplNodes[i]->GetName() == "nonLinear")
+      if( iterCplNodes[i]->GetName() == "nonLinear") 
         continue;
 
 
       // fetch names of related pdes
       StdVector<ParamNode*> pdeNodes = iterCplNodes[i]->GetChildren();
-
+      
       for(UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++ ) {
         std::string name = pdeNodes[iPde]->GetName();
         if( name!= "method") {
           SinglePDE * pde = GetSinglePDE( name );
           if( iterCoupledPDEs.Find( pde ) < 0 ) {
             iterCoupledPDEs.Push_back( pde );
-          }
+          } 
         }
       } // pde
     } // couplings
-
+    
     CoupledPDEDef * CouplingDef = new CoupledPDEDef(gridMap_["default"]);
-
-    // create coupling objects
+    
+    // create coupling objects 
     StdVector<StdPDE*> orderedPdes;
     CouplingDef->CreateCoupling(orderedPdes, couplings_, iterCoupledPDEs, iterNode );
-
+    
     // Sort the different orderedPDEs into the singlePDEs
     StdVector<SinglePDE*> iterSinglePDEs;
     for (UInt i = 0; i< orderedPdes.GetSize(); i++) {
       iterSinglePDEs.Push_back( (SinglePDE*) orderedPdes[i]);
     }
 
-
-    // Delete all of the singlePDEs, which are DirectCoupled and
+    
+    // Delete all of the singlePDEs, which are DirectCoupled and 
     // replace them by the direct-coupled ones. This is necessary,
     // since the iterCoupledPDE has to solve StdPDEs, whereas the
-    // pairwise iterative couplings are defined only for
+    // pairwise iterative couplings are defined only for 
     // SinglePDEs
 
     Integer index = 0; for (UInt i = 0; i<ptSinglePde_.GetSize(); i++ ) {
       if (isDirectCoupled_[ptSinglePde_[i]] == true ) {
         index = orderedPdes.Find(ptSinglePde_[i]);
-
+        
         if ( index != -1 ) {
           orderedPdes[index] = ptDirectCoupledPde_[0];
           ptDirectCoupledPde_[0]->InitCoupling(NULL);
@@ -609,16 +607,16 @@ namespace CoupledField {
       }
     }
 
-
+    
     // create new iterative coupeld PDE
     ptIterCoupledPde_ = new IterCoupledPDE(orderedPdes, iterSinglePDEs,
                                            couplings_, iterNode);
-
-    delete CouplingDef;
-
+    
+    delete CouplingDef; 
+    
     Info->FinishProgress();
   }
-
+    
 
   // ***************************
   //   CreateDirectCoupledPDEs
@@ -632,9 +630,9 @@ namespace CoupledField {
     if ( numSinglePde_ <= 1 ) {
       return;
     }
-
+    
     // get "couplingList" node (must exist)
-    ParamNode * couplingNode =
+    ParamNode * couplingNode = 
       param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
       ->Get("couplingList");
     ParamNode * directNode = couplingNode->Get("direct", false );
@@ -646,7 +644,7 @@ namespace CoupledField {
     SinglePDE *pde1 = NULL;
     SinglePDE *pde2 =  NULL;
     BasePairCoupling *coupling = NULL;
-
+      
 
     // HARD CODED: At the moment we allow only one direct coupled pde
     // with only on pairwise coupling
@@ -654,7 +652,7 @@ namespace CoupledField {
     StdVector<BasePairCoupling*> DirectCouplingPairs;
     std::set<std::string> setSinglePDEs;
     std::string couplingName;
-
+    
     for (UInt i=0; i<pairNodes.GetSize(); i++) {
 
       // get couplingName
@@ -672,7 +670,7 @@ namespace CoupledField {
 
         coupling = new PiezoCoupling( pde1, pde2, pairNodes[i] );
 
-      }
+      } 
       // *** ACOU-MECH Coupling ***
       else if ( couplingName == "acouMechDirect" ) {
 
@@ -724,7 +722,7 @@ namespace CoupledField {
         EXCEPTION( "The direct coupling '" << couplingName
                    << "' is not implemented!" << std::endl );
       }
-
+      
       // set flag for direct coupling
       isDirectCoupled_[pde1] = true;
       isDirectCoupled_[pde2] = true;
@@ -741,12 +739,12 @@ namespace CoupledField {
 
     // Transform set of PDEs into a vector
     std::set<std::string>::iterator itSet;
-
-    for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end();
+    
+    for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end(); 
          itSet++ ) {
       singlePdes.Push_back( GetSinglePDE(*itSet) );
     }
-
+    
     ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], NULL) );
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
     ptDirectCoupledPde_[0]->SetCouplings( DirectCouplingPairs );
@@ -765,8 +763,8 @@ namespace CoupledField {
         numIterCoupledStdPde_++;
       it++;
     }
-
-
+    
+    
   }
 
   void Domain::CreateCoordinateSystems() {
@@ -780,46 +778,46 @@ namespace CoupledField {
     ParamNode * coosyNode =
       param->Get("domain")->Get("coordSysList", false);
     if (!coosyNode) return;
-
+    
     StdVector<ParamNode*> coordNodes = coosyNode->GetChildren();
-
+    
     // iterate over all coordinate system nodes
     for( UInt i = 0; i < coordNodes.GetSize(); i++ ) {
-
+      
       // fetch coosy name and type
       std::string type = coordNodes[i]->GetName();
       std::string name = coordNodes[i]->Get( "id" )->AsString();
-
+      
       CoordSystem * actCoord = NULL;
       if( type == "polar") {
-        actCoord =  new PolarCoordSystem( name, gridMap_["default"],
+        actCoord =  new PolarCoordSystem( name, gridMap_["default"], 
                                           coordNodes[i] );
-      }
+      } 
       else if ( type == "cylindric" ) {
-        actCoord = new CylCoordSystem( name, gridMap_["default"],
+        actCoord = new CylCoordSystem( name, gridMap_["default"], 
                                        coordNodes[i] );
       }
       else if ( type == "cartesian" ) {
-        actCoord = new CartesianCoordSystem( name, gridMap_["default"],
+        actCoord = new CartesianCoordSystem( name, gridMap_["default"], 
                                              coordNodes[i] );
       }
       else if ( type == "trivialCartesian" ) {
-        actCoord = new TrivialCartesianCoordSystem( name, gridMap_["default"],
+        actCoord = new TrivialCartesianCoordSystem( name, gridMap_["default"], 
                                                     coordNodes[i] );
       } else {
-        EXCEPTION( "Coordinate system with type '" << type
+        EXCEPTION( "Coordinate system with type '" << type 
                    << "' not known!" );
       }
       coordSys_[name] = actCoord;
     }
   }
 
-
+  
 
   // *************
   //   SetDriver
   // *************
-  void Domain::SetDriver( BaseDriver * driver )
+  void Domain::SetDriver( BaseDriver * driver ) 
   {
     if( driver->GetAnalysisType() == BasePDE::MULTI_SEQUENCE ) {
       multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*>(driver);
@@ -828,12 +826,12 @@ namespace CoupledField {
       ptSingleDriver_ = dynamic_cast<SingleDriver*>(driver);
     }
   }
-
+  
   BaseDriver* Domain::GetDriver()
   {
   	return ptSingleDriver_;
   }
-
+  
   // *************
   //   ResetPDEs
   // *************
@@ -848,7 +846,7 @@ namespace CoupledField {
 
     // delete direct coupled pde(s)
     for (UInt iPDE=0; iPDE<numDirectCoupledPde_; iPDE++) {
-      delete ptDirectCoupledPde_[iPDE];
+      delete ptDirectCoupledPde_[iPDE]; 
     }
     ptDirectCoupledPde_.Clear();
 
@@ -873,10 +871,10 @@ namespace CoupledField {
 
   void Domain::ReadErsatzMaterial(ParamNode* pn)
   {
-    // perhaps Optimization has already called the SetEnums
-    if(DesignElement::filter.map.empty()) DesignElement::SetEnums();
+    // perhaps Optimization has already called the SetEnums 
+    if(DesignElement::filter.map.empty()) DesignElement::SetEnums(); 
     if(Optimization::objectiveType.map.empty()) Optimization::SetEnums();
-
+        
     // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
     // Initialize our xerces dom parser to handle the external xml file
     Xerces* xerces = new Xerces(pn->Get("file")->AsString());
@@ -885,45 +883,45 @@ namespace CoupledField {
     // release the xerces ressources, param is not affected
     delete xerces;
     // check this file
-    if(xml->Count("set") == 0)
+    if(xml->Count("set") == 0) 
       throw Exception("There are no design sets in the ersatz material file");
 
-    StdVector<ParamNode*> region_list = pn->GetList("region");
-    StdVector<RegionIdType> regionIds;
-    for(unsigned int i = 0; i < region_list.GetSize(); i++){
-      std::string reg = region_list[i]->Get("name")->AsString();
-      if(!GetGrid()->HasRegion(reg))
-        throw Exception("region given in loadErsatzMaterial is invalid");
-      regionIds.Push_back(GetGrid()->RegionNameToId(reg));
-    }
+    StdVector<ParamNode*> region_list = pn->GetList("region"); 
+    StdVector<RegionIdType> regionIds; 
+    for(unsigned int i = 0; i < region_list.GetSize(); i++){ 
+      std::string reg = region_list[i]->Get("name")->AsString(); 
+      if(!GetGrid()->HasRegion(reg)) 
+        throw Exception("region given in loadErsatzMaterial is invalid"); 
+      regionIds.Push_back(GetGrid()->RegionNameToId(reg)); 
+    } 
 
-    if(!ersatzMaterial){ // only if the designspace does not already exist (created by optimization)
-      // the header is like
-      // <header>
-      //   <design name="density" initial="1.0"/>
-      //   ...
-      //   <transferFunction type="simp" application="mech" design="density" param="1.0"/>
-      //   ..
-      // </header>
+    if(!ersatzMaterial){ // only if the designspace does not already exist (created by optimization) 
+      // the header is like 
+      // <header> 
+      //   <design name="density" initial="1.0"/> 
+      //   ... 
+      //   <transferFunction type="simp" application="mech" design="density" param="1.0"/> 
+      //   .. 
+      // </header> 
 
-      // the design set consists of entries like
-      // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/>
-      // only the combination nr and type is unique. E.g. in piezo we have types density and polarization
-      StdVector<ParamNode*> des = xml->Get("header")->GetList("design");
-      StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction");
-      StdVector<ParamNode*> res(0); // empty
+      // the design set consists of entries like 
+      // <element nr="401" type="density" design="0.886466" gradient="-7.56246e-09" filt_grad="-7.56246e-09"/> 
+      // only the combination nr and type is unique. E.g. in piezo we have types density and polarization 
+      StdVector<ParamNode*> des = xml->Get("header")->GetList("design"); 
+      StdVector<ParamNode*> tfs = xml->Get("header")->GetList("transferFunction"); 
+      StdVector<ParamNode*> res(0); // empty 
 
-      // create the design space -> data has initial values!
-      ersatzMaterial = new DesignSpace(regionIds, des, tfs, res);
+      // create the design space -> data has initial values! 
+      ersatzMaterial = new DesignSpace(regionIds, des, tfs, res); 
 
-      ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(InfoNode::HEADER));
-    }
+      ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(InfoNode::HEADER)); 
+    } 
 
     // find the proper design set. This is either 'first', 'last' or the * in <set id="*"> ...
     ParamNode* set = NULL;
     std::string key = pn->Get("set")->AsString();
     if(key == "first") set = xml->GetList("set")[0];
-    if(key == "last")  set = xml->GetList("set").Last();
+    if(key == "last")  set = xml->GetList("set").Last(); 
     if(set == NULL)    set = xml->Get("set", "id", key);
 
     // read the set and replace the initial values
@@ -939,31 +937,31 @@ namespace CoupledField {
       unsigned int nr = elems[e]->Get("nr")->AsInt();
       DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->AsString());
       double val = elems[e]->Get("design")->AsDouble();
-
+      
       // replace the value of the DesignElement
       DesignElement* de = ersatzMaterial->Find(nr, dt);
-      // it should be possible to specify less regions then specified during optimization and saving of results
-      // if the element can not be found (e.g. lying in a not specified region) it is not set
-      if(de!=NULL){
-        // and the region can be set in optimization, thus exist, but not specified here, we should not set as well
-        if(regionIds.Find(de->elem->regionId) >= 0){
-          de->SetDesign(val);
-        }
-      }
+      // it should be possible to specify less regions then specified during optimization and saving of results 
+      // if the element can not be found (e.g. lying in a not specified region) it is not set 
+      if(de!=NULL){ 
+        // and the region can be set in optimization, thus exist, but not specified here, we should not set as well 
+        if(regionIds.Find(de->elem->regionId) >= 0){ 
+          de->SetDesign(val); 
+        } 
+      } 
     }
   }
 
   bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
   {
-    // is the stuff active at all? and don't we use ParamMat
+    // is the stuff active at all? and don't we use ParamMat 
     if(ersatzMaterial == NULL || HasErsatzMaterialTensor()) return false;
 
     // we cannot check for the region here, if form is a linear form (e.g.
     // pressure) but the design variable comes from elemens one dimension higher.
     int idx = ersatzMaterial->Find(elem, false);
     if(idx == -1) return false;
-
-    // The desing space does the magic stuff.
+    
+    // The desing space does the magic stuff. 
     // In the SIMP case we get density of element power param
     // all identified by the form and in piezo coupling case it
     // might even be the product of the transfer funcitons of
@@ -974,41 +972,42 @@ namespace CoupledField {
 
   DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
   {
-    if(ersatzMaterial == NULL && throw_excpetion)
+    if(ersatzMaterial == NULL && throw_excpetion) 
       EXCEPTION("No ersatz material defined either via 'loadErsatzMaterial'"
                 << " or an appropriate optimization");
 
     return ersatzMaterial;
   }
 
-  bool Domain::HasErsatzMaterialTensor(){
-    return ersatzMaterial == NULL ? false : ersatzMaterial->HasErsatzMaterialTensor();
-  }
+  
+  bool Domain::HasErsatzMaterialTensor(){ 
+    return ersatzMaterial == NULL ? false : ersatzMaterial->HasErsatzMaterialTensor(); 
+  } 
 
   // *************
   //   PrintGrid
   // *************
   void Domain::PrintGrid() {
-
+    
 
     resultHandler_->Init( gridMap_["default"], true  );
     resultHandler_->Finalize();
   }
-
+  
   void Domain::Dump()
   {
       for(UInt i = 0; i < ptSinglePde_.GetSize(); i++) {
          std::cout << "  single pde: " << ptSinglePde_[i]->GetName() << std::endl;
-      }
+      }      
 
       for(UInt i = 0; i < couplings_.GetSize(); i++) {
          std::cout << "  coupled pde: " << couplings_[i]->GetPDE()->GetName() << std::endl;
       }
-
+      
       for(UInt i = 0; i < ptDirectCoupledPde_.GetSize(); i++) {
          std::cout << "  direct coupled pde: " << ptDirectCoupledPde_[i]->GetName() << std::endl;
       }
-
+      
   }
 
 }

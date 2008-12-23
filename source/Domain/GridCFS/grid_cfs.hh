@@ -42,32 +42,32 @@ namespace CoupledField
     // CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
     //@{ \name Constructor / Initialization
+  
+    //! Constructor 
 
-    //! Constructor
-
-    //! Standard Constructor
-    GridCFS(UInt dim);
-
+    //! Standard Constructor 
+    GridCFS(UInt dim); 
+  
     //! Destructor
     virtual ~GridCFS();
 
     //! Trigger mapping of elements' faces
 
-    //! This method calculates global surface numbers and
+    //! This method calculates global surface numbers and 
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
     void MapFaces();
-
+    
     //! Trigger mapping of edges
 
-    //! This method calculates global edge and surface numbers and
+    //! This method calculates global edge and surface numbers and 
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
     void MapEdges();
 
 
     virtual void FinishInit();
-
+    
     //@}
 
 
@@ -87,20 +87,20 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    UInt GetDim();
+    UInt GetDim();  
 
     //! Return maximum number of nodes
-
+  
     //! Returns the maximum node number in the finite element grid.
     UInt GetNumNodes();
 
     virtual void AddNodes(const UInt numNodes);
-
+      
 
     virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
-
+      
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
-
+      
 
     //! Returns the number of nodes contained in given region
     UInt GetNumNodes( const StdVector<RegionIdType> & regions );
@@ -111,7 +111,7 @@ namespace CoupledField
 
 
     virtual void AddElems(UInt nElems);
-
+      
     virtual void SetElemData(UInt ielem,
                              FEType type,
                              RegionIdType region,
@@ -124,24 +124,24 @@ namespace CoupledField
 
     //! Returns the total number of elements in the grid
     UInt GetNumElems();
-
-    //! Return maximum number of elements
-
+    
+    //! Return maximum number of elements 
+  
     //! Returns the total number of volume elements in the  grid
     UInt GetNumVolElems();
 
     //! Returns the total number of volume elements in the  grid
     UInt GetNumSurfElems();
-
+  
     //! Returns number of element contained in one region
 
     //! Returns the number of element, which belong to a list of given
     //! regions.
-    //! \param regions (in) contains the regionIds of
+    //! \param regions (in) contains the regionIds of 
     UInt GetNumElems( const StdVector<RegionIdType> & regions );
-
+  
     //! Get list with names of all named nodes
-
+    
     //! Get a list with names of all named nodes in the grid
     //! \param nodeNames list of names of nodes
     virtual void GetListNodeNames( StdVector<std::string> & nodeNames);
@@ -151,7 +151,7 @@ namespace CoupledField
     //! Get a list with names of all named elements in the grid
     //! \param elemNames list of names of elements
     virtual void GetListElemNames( StdVector<std::string> & elemNames);
-
+      
     //@}
 
 
@@ -172,13 +172,13 @@ namespace CoupledField
 
     //! Get list of nodes contained in a region
 
-    //! Returns a list of all nodes, which are contained in a
+    //! Returns a list of all nodes, which are contained in a 
     //! volume- or surface-region.
     //! \param nodeList (out) list with node numbers
     //! \param regionId (in) region identifier
     void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId );
-
+    
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
@@ -186,7 +186,7 @@ namespace CoupledField
     void GetNodeCoordinate( Point & rfPoint,
                             const UInt inode,
                             bool updated);
-
+  
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
@@ -203,7 +203,7 @@ namespace CoupledField
     //@{ \name Element Access Functions
 
     //! Get element with given element number
-
+    
     //! Returns a single element with the given element number
     //! \param elemNr element number
     const Elem * GetElem( UInt elemNr );
@@ -212,34 +212,34 @@ namespace CoupledField
     {
       return maxNumElemNodes_;
     }
-
+      
     virtual void SetElemRegion(UInt ielem, RegionIdType region);
 
 
     //! Get list of elements (surface / volumes)
-
-    //! Returns all elems for a given surface / volume region. If the desired
+    
+    //! Returns all elems for a given surface / volume region. If the desired 
     //! region consists of surface elements, they are up-casted into Elem*.
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
     void GetElems( StdVector<Elem*> & elems,
                    const RegionIdType regionId );
 
-
+    
     //! Get list of volume elements
 
     //! Returns all elements for a given volume region.
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
-    void GetVolElems( StdVector<Elem*> & elems,
+    void GetVolElems( StdVector<Elem*> & elems, 
                       const RegionIdType regionId );
 
     //! Get list of surface elements
-
-    //! Returns all elements for a given surface region
+  
+    //! Returns all elements for a given surface region 
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
-    void GetSurfElems( StdVector<SurfElem*> & elems,
+    void GetSurfElems( StdVector<SurfElem*> & elems, 
                        const RegionIdType regionId );
 
     //! Get list
@@ -247,69 +247,69 @@ namespace CoupledField
                          const std::string & elemsName );
 
     //! Get node numbers of given element
-
+  
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
-    void GetElemNodes( StdVector<UInt> & connect,
+    void GetElemNodes( StdVector<UInt> & connect, 
                        const UInt iElem );
 
 
     virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
-
+    
     virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
 
 
     //! Get coordinates of element nodes
 
     //! Returns the coordinates of all nodes of one element.
-    //! \param coordMat (out) coordinates of the element nodes
+    //! \param coordMat (out) coordinates of the element nodes 
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
     //! \param updated (in) flag indicating if updated geometry should be used
-    void GetElemNodesCoord( Matrix<Double> & coordMat,
+    void GetElemNodesCoord( Matrix<Double> & coordMat,  
                             const StdVector<UInt> & connect,
                             bool updated );
-
+  
     //! Get elements associated with given nodes
 
     //! Returns a list of elements, which have one or more of the given
     //! common. The elements are taken out of a given list of regions.
-    //! \param elemList (out) elements which have one or more nodes of
+    //! \param elemList (out) elements which have one or more nodes of 
     //!                          nodeList
-    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //! \param nodeList (in) list of nodes for which neighbouring elements 
     //!                         are needed
-    //! \param regionIds (in) identifiers for the regions, where the
+    //! \param regionIds (in) identifiers for the regions, where the 
     //!                          neihgbouring elements are searched in
-    void GetElemsNextToNodes( StdVector<Elem*> & elemList,
+    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
-                              const StdVector<RegionIdType>
+                              const StdVector<RegionIdType> 
                               & regionIds );
 
     //! Get volume elements lying next to given surface elements
-
-    //! Returns for a given list of surface elements those (volume) elements,
-    //! which are neighbouring / have a face in common and are within a given
+  
+    //! Returns for a given list of surface elements those (volume) elements, 
+    //! which are neighbouring / have a face in common and are within a given 
     //! listof regions. This can be used to determine interfaces.
     //!
     //! \note A surface element is considered to be a neighbour of a volume
-    //! element only, if all nodes of the surface element are common with
+    //! element only, if all nodes of the surface element are common with 
     //! a volume element
-    //!
+    //! 
     //! \param neighbours (out) vector of neighbouring elements
     //! \param surfElems (in) vector of surface elements
-    //! \param neighRegions (in) region ids, where the volume elems
+    //! \param neighRegions (in) region ids, where the volume elems 
     //!                             must lie in
     //!
     //! \note If not each surface element was assigned to EXACTLY ONE volume
     //! element, an error is thrown. If the search was successfull, the
     //! i-th entry in the surfElems-vector corresponds to the i-th
     //! entry in the volElems-vector
-    void GetElemsNextToSurface( StdVector<Elem*> & neighbours,
+    void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
                                 const StdVector<Elem*> & surfElems,
-                                const StdVector<RegionIdType>
+                                const StdVector<RegionIdType> 
                                 &neighRegions );
-
+    
     //@}
 
     // =======================================================================
@@ -329,10 +329,10 @@ namespace CoupledField
     // ELEMENT EDGE ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Edge Access Functions
-
+    
     //! Get number ofe edges
     UInt GetNumEdges();
-
+    
     //! Return edge with given number
     const Edge& GetEdge( UInt edgeNr );
 
@@ -342,9 +342,9 @@ namespace CoupledField
     // GEOMETRY CALCULATION
     // =======================================================================
     //@{ \name Geometry Calculation
-
+    
     //! Calculates area of a element
-
+    
     //! Calculates the are of an element
     //! \param elem (in) element object
     Double CalcElemArea( const Elem* elem );
@@ -353,13 +353,13 @@ namespace CoupledField
 
     //! This method calculates the normal of an surface element. The direction
     //! is unspecified and dependend on the order or nodes of the element.
-    //! However, each surface element stores a flag \a normalSign, which
+    //! However, each surface element stores a flag \a normalSign, which 
     //! indicates the direction of the resulting normal w.r.t. its first
     //! volume element pointer.
     //! \param n (out) vector containing surface normal
     //! \param surfElem (in) reference to surface element
     //! \param updated (in) flag indicating if updated geometry should be used
-    void CalcSurfNormal( Vector<Double> & n,
+    void CalcSurfNormal( Vector<Double> & n, 
                          const Elem & surfElem,
                          bool updated );
 
@@ -380,19 +380,19 @@ namespace CoupledField
     //! Returns the volume of a given region
 
     //! This method returns the volume of a given region by iterating over
-    //! all elements (volume / surface) and summing up their volume.
-    //! 'Volume' here means, that for 2D elements the third dimension is
+    //! all elements (volume / surface) and summing up their volume. 
+    //! 'Volume' here means, that for 2D elements the third dimension is 
     //! assumed to be 1m.
-    //! \param regionId (in) region identifier
+    //! \param regionId (in) region identifier 
     //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
     Double CalcVolumeOfRegion( const RegionIdType regionId ,
                                bool isaxi = false,
                                bool updated = false);
 
-
+    
     //! Returns the global midpoint of an element
-
+    
     //! This method return the global midpoint of an element
     void GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord );
 
@@ -402,8 +402,8 @@ namespace CoupledField
     // =======================================================================
     // MISCELLANEOUS
     // =======================================================================
-    //@{ \name Miscellaneous
-
+    //@{ \name Miscellaneous  
+ 
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
@@ -414,7 +414,7 @@ namespace CoupledField
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
 			     bool onlyLinNodes = false);
-
+    
 
     //! Returns the names of all regions
 
@@ -422,9 +422,9 @@ namespace CoupledField
     //! \param regionNames (out) vector containing all region Names
     virtual void GetRegionNames( StdVector<std::string> & regionNames );
 
-
+    
     //! Set offset for coordinates due to updated Lagrangian formulation
-    void SetNodeOffset( const StdVector<UInt>& nodes,
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
                         const Vector<Double>& offsets );
 
     //! Return status of presence of nodal coordinate offsets (up. Lagrange)
@@ -438,11 +438,11 @@ namespace CoupledField
     //@{ \name Adaptivity Section
 
     void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const UInt level);
-
+  
     void putElemsFromGrid_RG(grd::MultilevelGrid * grid, const UInt level);
-
+  
     void Refine(grd::MultilevelGrid& grid);
-
+  
     void ReRefine(grd::MultilevelGrid& grid);
 
     void RefineUniform(grd::MultilevelGrid& grid);
@@ -453,17 +453,17 @@ namespace CoupledField
 
     //! NC_SIMON: add node to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     virtual void AddNode( const Point & coord, UInt & inode);
 
     //! NC_SIMON: add node to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     virtual void AddNode( const Vector<Double> & coord, UInt & inode );
-
+    
     //! NC_SIMON: add multiple nodes to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param coords (in) coordinates of points
     //! \param inode (out) node numbers
     virtual void AddNodes( const StdVector< Point > & coords,
@@ -471,7 +471,7 @@ namespace CoupledField
 
     //! NC_SIMON: Add surface elements
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param regionId (in) elements will be added to region with this id
     //! \param surfelems (in) surface elements to be added
     //! \param elemids (out) element id numbers returned
@@ -479,9 +479,9 @@ namespace CoupledField
                                   const StdVector< SurfElem* > & surfelems,
                                   StdVector< UInt > & elemids);
 
-    //! NC_SIMON: Add volume elements
+    //! NC_SIMON: Add volume elements 
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param regionId (in) elements will be added to region with this id
     //! \param volelems (in) volume elements to be added
     //! \param elemids (out) element id numbers returned
@@ -491,7 +491,7 @@ namespace CoupledField
 
     //! NC_SIMON: Add a new Surface region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
     virtual void AddSurfaceRegion( const std::string name,
@@ -499,7 +499,7 @@ namespace CoupledField
 
     //! NC_SIMON: Add a new volume region to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
     virtual void AddVolumeRegion( const std::string name,
@@ -526,31 +526,31 @@ namespace CoupledField
 
     //! Creates the surface elements
 
-    //! This method creates the surface elements, by assigning each surface
+    //! This method creates the surface elements, by assigning each surface 
     //! element one or two volume neighbours. Also the flag for indicating
     //! the direction of the surface normal is calculated.
     //! \param elems (input) set containing surface elements which are not
     //!                      yet converted to \a SurfElem*
-    //! \param mappedElems (output) set containing mapped surface elements
+    //! \param mappedElems (output) set containing mapped surface elements 
     void CreateSurfaceElements( std::set<Elem*> & elems,
                                 std::map<UInt, SurfElem*> & mappedElems );
 
-    //! Prints information about the grid for the info.xml file
+    //! Prints information about the grid into the .info.xml file
     void ToInfo(InfoNode* in);
-
+    
     //! Create new nodes / elements, which are defined either by point coordinate
     //! or parametric description
     void CreateUserDefinedNodesElems();
 
     //! add new node / element given by parametric description
-    void AddEntityByParam( const std::string& name, bool isNode,
+    void AddEntityByParam( const std::string& name, bool isNode, 
                            const std::string& coordSysId,
                            StdVector<PointSelection>& coords );
 
     //! find entity with minimum distance
     UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
 
-
+    
     //@}
 
     // =======================================================================
@@ -581,7 +581,7 @@ namespace CoupledField
 
     //! Flag indicating if faces are already mapped
     bool facesMapped_;
-
+    
     //! Flag indicating use of quadratic elements
     bool isQuadratic_;
 
@@ -591,22 +591,22 @@ namespace CoupledField
     // Mesh attributes
     // =======================================================================
     //@{ \name Mesh Attributes
-
+  
     //! Vector with nodal coordinates
     StdVector<Point> coords_;
 
     //! Vector with nodal coordinate offsets
     StdVector<Point> deltCoords_;
-
+  
     //! Vector with elements (surface and volume), ordered by element number
     StdVector<Elem*> orderedElems_;
-
+  
     //! Map containing number elements of each type
     std::map<FEType, UInt> numElemTypes_;
 
     UInt maxNumElemNodes_;
     //@}
-
+  
     //! Map containing face number for each face
     std::map<Face,UInt> faceNums_;
 
@@ -618,7 +618,7 @@ namespace CoupledField
 
     //! Vector containing all edges
     StdVector<Edge> edges_;
-
+    
     // =======================================================================
     // Named Entities
     // =======================================================================
@@ -626,26 +626,26 @@ namespace CoupledField
 
     //! Vector with named Nodes
     StdVector<StdVector<UInt> > namedNodes_;
-
+  
     //! Vector with names of named nodes
     StdVector<std::string> namedNodeNames_;
 
     //! Vector with named elements
     StdVector<StdVector<UInt> > namedElems_;
-
+    
     //! Vector with nodes of named elements
     StdVector<StdVector<UInt> > namedElemNodes_;
-
+  
     //! Vector with names of named elements
     StdVector<std::string> namedElemNames_;
 
     //@}
 
-
-
-
+  
+ 
+    
  #ifdef ADAPTGRID
-
+    
     //@{ \name To We Need This ?
     //! procedure for forming list with neighbors
     void FormNeighborsLists();
@@ -661,7 +661,7 @@ namespace CoupledField
       int sd;
       StdVector<UInt> map;
     };
-
+  
     StdVector<ElementMap*> elemMap_; //!< mapping between GridRG and GridCFS
 
     //! only for test

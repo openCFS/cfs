@@ -33,67 +33,67 @@ namespace CoupledField {
     // facade concept.
 
     //! Define iterator class
-    class iterator
+    class iterator 
       :  public boost::iterator_facade
-      < iterator,
+      < iterator, 
         TYPE,
         boost::random_access_traversal_tag
         > {
-    public:
-
+    public: 
+      
       //! default constructor
       iterator() : vec_(NULL), pos_(0) {}
-
+      
     private:
 
       friend class boost::iterator_core_access;
       friend class StdVector<TYPE>;
 
       //! iterator with pointer to vector
-      iterator( StdVector<TYPE>* p, unsigned int pos = 0 )
+      iterator( StdVector<TYPE>* p, unsigned int pos = 0 ) 
         : vec_( p ), pos_( pos ) {}
-
+    
       //! dereferencing
-      TYPE& dereference() const {
-        return (*vec_)[pos_];
+      TYPE& dereference() const { 
+        return (*vec_)[pos_]; 
       }
-
+      
       //! check for equality
       bool equal( iterator const & other ) const {
         return ( this->vec_ == other.vec_ &&
                  this->pos_ == other.pos_ );
       }
-
+      
       //! increment position
-      void increment() {
+      void increment() { 
         pos_++;
       }
-
+      
       //! decrement position
       void decrement() { pos_--; }
-
+      
       //! advance position by n
-      void advance( ptrdiff_t n) {
+      void advance( ptrdiff_t n) { 
         pos_ += (unsigned int) n; }
-
+      
       //! measure distance
       ptrdiff_t distance_to( iterator const & other ) const {
         return other.pos_ - this->pos_;
       }
-
+      
       // references to StdVector
       StdVector<TYPE> * vec_;
       size_t pos_;
     };
-
+    
     //! Define CONST iterator class
-    class const_iterator
+    class const_iterator 
     :  public boost::iterator_facade
-    < const_iterator,
+    < const_iterator, 
     TYPE const,
     boost::random_access_traversal_tag
     > {
-    public:
+    public: 
 
       //! default constructor
       const_iterator() : vec_(NULL), pos_(0) {}
@@ -104,12 +104,12 @@ namespace CoupledField {
       friend class StdVector<TYPE>;
 
       //! iterator with pointer to vector
-      const_iterator( const StdVector<TYPE>* p, unsigned int pos = 0 )
+      const_iterator( const StdVector<TYPE>* p, unsigned int pos = 0 ) 
       : vec_( p ), pos_( pos ) {}
 
       //! dereferencing
-      const TYPE& dereference() const {
-        return (*vec_)[pos_];
+      const TYPE& dereference() const { 
+        return (*vec_)[pos_]; 
       }
 
       //! check for equality
@@ -119,7 +119,7 @@ namespace CoupledField {
       }
 
       //! increment position
-      void increment() {
+      void increment() { 
         pos_++;
       }
 
@@ -127,7 +127,7 @@ namespace CoupledField {
       void decrement() { pos_--; }
 
       //! advance position by n
-      void advance( ptrdiff_t n) {
+      void advance( ptrdiff_t n) { 
         pos_ += (unsigned int) n; }
 
       //! measure distance
@@ -139,27 +139,27 @@ namespace CoupledField {
       const StdVector<TYPE> * vec_;
       size_t pos_;
     };
-
+  
     //! Return iterator pointing to first element
     iterator Begin() {
         return iterator(this, 0);
     }
-
+       
     //! Return iterator pointing to first element
     const_iterator Begin() const {
       return const_iterator(this, 0);
     }
-
+    
     //! Return iterator pointing to last element
     iterator End() {
         return iterator(this, size_);
     }
-
+    
     //! Return iterator pointing to last element
     const_iterator End() const {
         return const_iterator( this, size_ );
     }
-
+    
     // =======================================================================
     //  VECTOR METHODS
     // =======================================================================
@@ -178,7 +178,7 @@ namespace CoupledField {
     StdVector(const std::vector<TYPE> & vec);
 
     //! Destructor
-    ~StdVector();
+    ~StdVector();  
 
     //! Deletes all entries in the vector
     //! and frees its memory
@@ -193,11 +193,11 @@ namespace CoupledField {
 
     //! True, if vector is empty
     inline bool IsEmpty() const {return (size_? false : true);}
-
+  
     //! Returns capacity of the vector
     inline unsigned int Capacity() const {return capacity_;}
 
-    //!
+    //! 
     void Reserve(unsigned int size);
 
     //! Get the length of the vector
@@ -210,7 +210,7 @@ namespace CoupledField {
     /** Set the length of the vector and initilize
      * @note init Init() is called with this value */
     void Resize(const unsigned int size, TYPE entry);
-
+    
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
 
@@ -223,13 +223,13 @@ namespace CoupledField {
 
     //! Build vector from std::vector
     StdVector & operator= (const std::vector<TYPE> & vec);
-
+  
     //! Returns las entry of vector
     inline TYPE & Last();
 
     //! Returns last entry of vector (read-only)
     inline TYPE Last() const;
-
+ 
 
     //! General access operator
     inline TYPE &operator[] (const unsigned int i);
@@ -237,13 +237,13 @@ namespace CoupledField {
     //! Read-Only access operator
     inline const TYPE & operator[] (const unsigned int i) const;
 
-    //! Return pointer p to array
+    //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
     /** Imports data from extern, adjusts internal size and capacity.
      * Any existing data is overwritten. */
     void Import(const TYPE* source, unsigned int size);
-
+    
     //! Add element of the same type at position pos
     void Insert(const TYPE & y, unsigned int pos);
 
@@ -263,46 +263,46 @@ namespace CoupledField {
 
     //! Return the position number of element x in the vector
 
-    //! Finds the element x in the vector and returns the Ha
+    //! Finds the element x in the vector and returns the 
     //! position. If no element was found, it returns -1.
     int Find(const TYPE &x) const;
 
-    /** Checks if an element exists */
-    bool Contains(const TYPE &x) const {
-      return Find(x) != -1;
-    }
-
+    /** Checks if an element exists */ 
+    bool Contains(const TYPE &x) const { 
+      return Find(x) != -1; 
+    } 
+    
     //! Overloading of operation equal for Vector
     bool operator== (const StdVector &) const;
 
     //! Overloading of operation equal for data array
     bool operator== (const TYPE* other) const;
-
-
+    
+    
     //! Overloading of operation not equal for Vector
     bool operator!= (const StdVector &) const;
-
+  
 
     // ******************************************************
     // MISCELANEOUS FUNCTIONS
     // ******************************************************
-
+  
     //! Sort of vector: v - vec.p, n - vec.size
     template <class S> void Sort(S* v, unsigned int n);
-
+  
     //! Swap 2 elements in vector Ex Swap(v[i],v[j])
     template<class T2> void Swap(T2& a, T2 & b);
 
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
 
-
+   
      /** Lists the content comma seperated.
-      * @param level 0=all data, 1 is summary, the higher, the less
-      * @param stride on level=0 every element(1), every second (2), ...*/
+      * @param level 0=all data, 1 is summary, the higher, the less 
+      * @param stride on level=0 every element(1), every second (2), ...*/ 
      std::string ToString(int level=0, int stride=1) const;
-
-     /** List the content or summary of an external source
+     
+     /** List the content or summary of an external source 
       * @see ToString(int)*/
      static std::string ToString(int size, const TYPE* data, int level=0, int stride=1);
 
@@ -311,15 +311,15 @@ namespace CoupledField {
 
      /** Reas the content from a string list */
      void Parse(const StdVector<std::string>& in);
-
+     
   protected:
 
     //! Length of the vector
     unsigned int size_;
-
+    
     //! Data of the vector
     TYPE* data_;
-
+  
     //! Capacity of the vector
     unsigned int capacity_;
 
@@ -327,28 +327,28 @@ namespace CoupledField {
     // SERIALIZATION FUNCTIONS
     // ******************************************************
     // These functions allow us to write a vector directly
-    // into an boost::archive, for saving on a disk or in a
+    // into an boost::archive, for saving on a disk or in a 
     // iostream object
 
     //! allow serialization class to access vector entries
     friend class boost::serialization::access;
-
+    
     //! Saving internal state into a boost::archive
     template<class Archive>
     void save(Archive & ar, const unsigned int version) const;
-
+    
     //! Reading internal state from a boost::archive
     template<class Archive>
     void load(Archive & ar, const unsigned int version);
-
+    
     //! The following statement is needed for boost
     BOOST_SERIALIZATION_SPLIT_MEMBER()
-
+      
   };
 
   // ******************************************************
   // HELPER CLASS FOR INITALIZING StdVector
-  // (ref. 'Techniques for Scientific C++'
+  // (ref. 'Techniques for Scientific C++' 
   // by Todd Veldhuizen, page. 43ff
   // ******************************************************
   template <class TYPE>
@@ -359,7 +359,7 @@ namespace CoupledField {
     //! Constructor
     StdVectorListInitializer(StdVector<TYPE> * vec)
       :vec_(vec) {};
-
+    
     //! Overloading of comma operator
     StdVectorListInitializer<TYPE> operator, (const TYPE x)
     {
@@ -375,11 +375,11 @@ namespace CoupledField {
   // ******************************************************
   // INLINE FUNCTION DECLARATION
   // ******************************************************
-
+  
   //! Element can be referred to as v[i]
   template<class TYPE>
   TYPE & StdVector<TYPE>::operator[] (const unsigned int i)
-  {
+  {     
     #ifdef CHECK_INDEX
     if (i >= size_){
       EXCEPTION( "Invalid access to element "
@@ -393,7 +393,7 @@ namespace CoupledField {
   //! Element can be referred to as v[i]
   template<class TYPE>
   const TYPE & StdVector<TYPE>::operator[] (const unsigned int i) const
-  {
+  {     
 #ifdef CHECK_INDEX
      if (i >= size_){
        EXCEPTION( "Invalid access to element "
@@ -403,9 +403,9 @@ namespace CoupledField {
 #endif
     return  data_[i];
   }
+  
 
-
-  //!
+  //! 
   template<class TYPE>
   StdVectorListInitializer<TYPE> StdVector<TYPE>::operator= (const TYPE x)
   {
@@ -414,7 +414,7 @@ namespace CoupledField {
     return StdVectorListInitializer<TYPE>(this);
   }
 
-  //! Return pointer p to array
+  //! Return pointer p to array 
   template<class TYPE>
   TYPE* StdVector<TYPE>::GetPointer() const
   {
@@ -431,7 +431,7 @@ namespace CoupledField {
 #endif
       return data_[size_-1] ;
   }
-
+  
   template<class TYPE>
   TYPE StdVector<TYPE>::Last() const {
 #ifdef CHECK_INITIALIZED
@@ -444,7 +444,7 @@ namespace CoupledField {
   // ******************************************************
   // * Additional functions related with handling vectors *
   // ******************************************************
-
+  
   //! Overloading << for class vector
   template<class TYPE>  std::ostream& operator << ( std::ostream & , const StdVector<TYPE> &);
 
