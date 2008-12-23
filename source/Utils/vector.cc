@@ -15,7 +15,7 @@
 #include "Utils/tools.hh"
 
 namespace CoupledField
-{
+{ 
 
   template<class TYPE>
   Vector<TYPE>::Vector()
@@ -27,7 +27,7 @@ namespace CoupledField
     memBelongsToMe_ = true;
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   Vector<TYPE>::Vector(UInt size, const TYPE entry)
     : CFSVector(size)
   {
@@ -40,26 +40,26 @@ namespace CoupledField
       data_ [i] = entry;
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   Vector<TYPE>::Vector(const Vector<TYPE> &vec)
   {
 
     size_ = vec.size_;
     capacity_ = size_;
-
+    
     if ( size_ > 0 ) {
       data_ = new TYPE [vec.size_];
     } else {
       data_ = NULL;
     }
-
+    
     memBelongsToMe_ = true;
-
+  
     for (UInt i = 0; i < size_; i++)
       data_ [i] =  vec.data_[i];
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   Vector<TYPE>::Vector(const Point & p)
   {
     size_ = 3;
@@ -70,7 +70,7 @@ namespace CoupledField
     data_[1] = (TYPE) p[1];
     data_[2] = (TYPE) p[2];
   }
-
+  
 
   template<class TYPE>
   Vector<TYPE>::~Vector()
@@ -83,12 +83,12 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Clear()
   {
-
+  
     if (memBelongsToMe_ == false ) {
-      EXCEPTION( "Refusing to clear vector, since memory does not "
+      EXCEPTION( "Refusing to clear vector, since memory does not " 
                  << "belong to me!" );
     }
-
+    
     size_ = 0;
     capacity_ = 0;
     if (data_)
@@ -99,21 +99,21 @@ namespace CoupledField
   template<class TYPE>
   void Vector<TYPE>::Init(const TYPE entry)
   {
-    for (UInt i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++) 
       data_[i]=entry;
   }
 
-  template<class TYPE>
-  void Vector<TYPE>::SetToZero()
-  {
-    for (UInt i=0; i<size_; i++)
-      data_[i] = TYPE();
-  }
+  template<class TYPE> 
+  void Vector<TYPE>::SetToZero() 
+  { 
+    for (UInt i=0; i<size_; i++) 
+      data_[i] = TYPE(); 
+  } 
 
-
+  
   template<class TYPE>
   void Vector<TYPE>::Replace( UInt length, TYPE* entries, bool transferMem ) {
-
+  
 
     // De-allocate old array, if required
     if ( memBelongsToMe_ == true ) {
@@ -124,20 +124,18 @@ namespace CoupledField
     data_           = entries;
     size_           = length;
     capacity_       = length;
-    memBelongsToMe_ = transferMem;
+    memBelongsToMe_ = transferMem;  
   }
 
 
 
-  template<class TYPE>
+  template<class TYPE> 
   bool Vector<TYPE>::Resize(const UInt size)
   {
-
 #ifdef CHECK_INDEX
-    if (size < 0)
+    if (size < 0) 
       EXCEPTION( "invalid dimension for Resize" );
-#endif
-
+#endif  
 
     if (size != size_)
     {
@@ -159,20 +157,20 @@ namespace CoupledField
   }
 
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::SetEntry(const UInt i, const TYPE &s)
   {
 
 #ifdef CHECK_INDEX
     if (i >= size_) {
-      EXCEPTION( "Vector: invalid access to element " << i
+      EXCEPTION( "Vector: invalid access to element " << i 
                  << "\n Length of vector: " << size_ );
     }
 #endif
     data_[i] = s;
   }
-
-  template<class TYPE>
+  
+  template<class TYPE> 
   void Vector<TYPE>::GetEntry(const UInt i, TYPE &ret) const
   {
 
@@ -188,16 +186,16 @@ namespace CoupledField
 
   template<class TYPE>
   Matrix<Double> Matrix<TYPE>::GetPart(  DataType part ) const {
-    EXCEPTION( "Matrix::GetPart: Only Implemented for Real and "
+    EXCEPTION( "Matrix::GetPart: Only Implemented for Real and " 
                << " Complex matrices!" );
     Matrix<Double> temp;
     return temp;
   }
 
-
+  
   template<>
   Vector<Double> Vector<Double>::GetPart(  DataType part ) const {
-
+    
     if ( part != REAL ) {
       EXCEPTION("Vector<Double>::GetPart: Only possible for REAL part." );
     }
@@ -206,41 +204,41 @@ namespace CoupledField
 
   template<>
   Vector<Double> Vector<Complex>::GetPart(  DataType part ) const {
-
+    
     Vector<Double> ret;
     if ( part == REAL ) {
       ret.Resize( size_ );
       for ( UInt i = 0; i < size_; i++ ) {
 	ret[i]  = data_[i].real();
       }
-    }
+    } 
     else if ( part == IMAG ) {
       ret.Resize( size_ );
       for ( UInt i = 0; i < size_; i++ ) {
 	ret[i]  = data_[i].imag();
       }
-    }
+    } 
     else {
       EXCEPTION("Vector<Complex>::GetPart: Only possible for REAL or IMAG part!" );
     }
-
+    
     return ret;
   }
 
 
   template<class TYPE>
   void Vector<TYPE>::SetPart( DataType part, const Vector<Double> & partVector ) {
-    EXCEPTION( "Vector::SetPart:" <<
+    EXCEPTION( "Vector::SetPart:" << 
                "Only Implemented for Real and Complex vectors!" );
   }
-
+  
   template<>
     void Vector<Double>::SetPart( DataType part, const Vector<Double> & partVector ) {
-
+    
     if ( size_ != partVector.GetSize() ) {
       EXCEPTION( "Vector<Double>::SetPart: Dimension of vectors do not match!" );
     }
-
+ 
     if ( part != REAL ) {
       EXCEPTION( "Vector<Double>::SetPart: Only possible for REAL part." );
     }
@@ -253,24 +251,24 @@ namespace CoupledField
     if ( size_ != partVector.GetSize() ) {
       EXCEPTION( "Vector<Complex>::SetPart: Dimension of vectors do not match!" );
     }
-
+        
     if ( part == REAL ) {
       for ( UInt i = 0; i < size_; i++ ) {
 	data_[i]  = Complex( partVector[i], data_[i].imag() );
       }
-    }
+    } 
     else if ( part == IMAG ) {
       for ( UInt i = 0; i < size_; i++ ) {
 	data_[i]  = Complex( data_[i].real(), partVector[i] );
       }
-    }
+    } 
     else {
       EXCEPTION( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!" );
     }
   }
+ 
 
-
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::AddEntry(const UInt i, const TYPE &s)
   {
 
@@ -280,11 +278,11 @@ namespace CoupledField
                  << i << "\n Length of vector: " << size_ );
     }
 #endif
-
+      
       data_[i]+=s;
     }
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::MultEntry(const UInt i, const TYPE &s)
   {
 
@@ -298,7 +296,7 @@ namespace CoupledField
     data_[i]+=s;
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::MultAddEntry(const UInt i, const TYPE &a, const TYPE &s)
   {
 
@@ -312,7 +310,7 @@ namespace CoupledField
     data_[i]=a*data_[i] + s;
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::Add(const CFSVector& y)
   {
 
@@ -327,7 +325,7 @@ namespace CoupledField
       data_[i]+=vec.data_[i];
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::Add(const TYPE a, const CFSVector &y)
   {
 
@@ -342,23 +340,24 @@ namespace CoupledField
       data_[i]+=a*vec.data_[i];
 
   }
+  
+  template<class TYPE> 
+  void Vector<TYPE>::Add(const double a, const CFSVector* y) 
+  { 
+    const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(*y); 
 
-  template<class TYPE>
-  void Vector<TYPE>::Add(const double a, const CFSVector* y)
-  {
-    const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(*y);
+#ifdef CHECK_INDEX 
+    if (size_ != vec.size_) 
+      EXCEPTION("Vector: incompatible dimension for operator Add(TYPE,Basevector)" ); 
+#endif 
 
-#ifdef CHECK_INDEX
-    if (size_ != vec.size_)
-      EXCEPTION("Vector: incompatible dimension for operator Add(TYPE,Basevector)" );
-#endif
+    for (UInt i=0; i<size_; i++) 
+      data_[i]+=a*vec.data_[i]; 
+  } 
 
-    for (UInt i=0; i<size_; i++)
-      data_[i]+=a*vec.data_[i];
-  }
+  
 
-
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::Add( const TYPE a, const CFSVector& y,
                           const TYPE b, const CFSVector& z )
   {
@@ -376,10 +375,10 @@ namespace CoupledField
       data_[i] = a*yvec.data_[i]+ b*zvec.data_[i];
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::Axpy(const TYPE a, const CFSVector &y)
   {
-
+    
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
 
 #ifdef CHECK_INDEX
@@ -390,52 +389,50 @@ namespace CoupledField
     for (UInt i=0; i<size_; i++)
       data_[i] = a*data_[i]+ vec.data_[i];
   }
-
-  template<class TYPE>
+ 
+  template<class TYPE> 
   void Vector<TYPE>::Inner(const CFSVector &y, TYPE &result) const
   {
+
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
-
-    #ifdef CHECK_INDEX
-      if (size_ != vec.size_)
-      EXCEPTION("Vector: incompatible dimension for Vector<>::Inner()");
-    #endif
+#ifdef CHECK_INDEX
+    if (size_ != vec.size_)
+      EXCEPTION("Vector: incompatible dimension for operator Vector<>::Inner()" );
+#endif
 
     result = 0;
-
     for (UInt i=0; i<size_; i++)
-     result += data_[i] * vec.data_[i];
+      result += data_[i] * vec.data_[i];
   }
 
+  template<> 
+  void Vector<Complex>::Inner(const CFSVector &y, Complex &result) const 
+  { 
+#ifdef CHECK_INDEX 
+    if (size_ != y.GetSize()) 
+      EXCEPTION("Vector: incompatible dimension for Vector<>::Inner()"); 
+#endif 
 
-  template<>
-  void Vector<Complex>::Inner(const CFSVector &y, Complex &result) const
-  {
-    #ifdef CHECK_INDEX
-      if (size_ != y.GetSize())
-      EXCEPTION("Vector: incompatible dimension for Vector<>::Inner()");
-    #endif
+    result = 0; 
+    // check, if the other vector is also complex 
+    const Vector<Complex>* cvec = dynamic_cast<const Vector<Complex>* >(&y); 
+    if(cvec != NULL) 
+    { 
+      for (UInt i=0; i<size_; i++) 
+        result += data_[i] * conj(cvec->data_[i]); 
+      return; 
+    } 
 
-    result = 0;
-    // check, if the other vector is also complex
-    const Vector<Complex>* cvec = dynamic_cast<const Vector<Complex>* >(&y);
-    if(cvec != NULL)
-    {
-      for (UInt i=0; i<size_; i++)
-        result += data_[i] * conj(cvec->data_[i]);
-      return;
-    }
+    const Vector<Double>* rvec = dynamic_cast<const Vector<Double>* >(&y); 
+    if(rvec != NULL) 
+    { 
+      for (UInt i=0; i<size_; i++) 
+        result += data_[i] * (*rvec)[i]; 
+      return; 
+    } 
 
-    const Vector<Double>* rvec = dynamic_cast<const Vector<Double>* >(&y);
-    if(rvec != NULL)
-    {
-      for (UInt i=0; i<size_; i++)
-        result += data_[i] * (*rvec)[i];
-      return;
-    }
-
-    EXCEPTION("Vector<>::Inner() only implemented for double and complex")
-  }
+    EXCEPTION("Vector<>::Inner() only implemented for double and complex") 
+  } 
 
 
 #ifndef EXPR_TEMPLATES
@@ -444,31 +441,31 @@ namespace CoupledField
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator=(const Vector<TYPE> &x)
   {
-
+  
     if (this == &x)
       return *this;
-
+  
     if (size_ != x.size_)
-      {
+      {   
         if (memBelongsToMe_ == false ) {
-          EXCEPTION( "Refusing to resize vector, since memory does not "
+          EXCEPTION( "Refusing to resize vector, since memory does not " 
                      << "belong to me!" );
         }
         if (data_)
           delete [] data_;
-
+      
         size_ = x.size_;
         capacity_ = size_;
         data_ = new TYPE [size_];
       }
-
+  
     for (UInt i = 0; i < size_; i++)
       data_ [i] = x.data_[i];
-
+  
     return *this;
   }
 
-
+ 
 
 
   template<class TYPE>
@@ -477,8 +474,8 @@ namespace CoupledField
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator +=(vector)" );
-#endif
-
+#endif  
+  
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
       EXCEPTION("Vector: incompatible dimension for operator +=(vector)" );
@@ -486,8 +483,8 @@ namespace CoupledField
 
     for (UInt i = 0; i < size_; i++)
       data_[i] += x.data_[i];
-
-    return *this;
+  
+    return *this; 
   }
 
   template<class TYPE>
@@ -499,10 +496,10 @@ namespace CoupledField
 #endif
 
     Vector ret(size_);
-
+  
     for (UInt i = 0; i < size_; i++)
       ret.data_ [i] = -data_ [i];
-
+  
     return ret;
   }
 
@@ -513,12 +510,12 @@ namespace CoupledField
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in oprator +()" );
 #endif
-
+    
     return *this;
-
+    
   }
 
-
+ 
 
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
@@ -526,8 +523,8 @@ namespace CoupledField
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator -=(vector)" );
-#endif
-
+#endif  
+  
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
       EXCEPTION("Vector: incompatible dimension for operator -=(vector)" );
@@ -535,12 +532,12 @@ namespace CoupledField
 
     for (UInt i = 0; i < size_; i++)
       data_[i] -= x.data_[i];
-
+  
     return *this;
   }
 
 
-
+ 
 
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
@@ -551,10 +548,10 @@ namespace CoupledField
 #endif
 
     TYPE y = x;
-
+  
     for (UInt i = 0; i < size_; i++)
       data_[i] /= y;
-
+  
     return *this;
   }
 
@@ -566,12 +563,12 @@ namespace CoupledField
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in operator*=" );
 #endif
-
+  
     TYPE y = x;
-
+  
     for (UInt i = 0; i < size_; i++)
       data_[i] *= y;
-
+  
     return *this;
   }
 
@@ -580,16 +577,16 @@ namespace CoupledField
 
   template<class TYPE>
   bool Vector<TYPE>::operator== (const Vector<TYPE> &x) const
-  {
-#ifdef CHECK_INITIALIZED
+  {       
+#ifdef CHECK_INITIALIZED 
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator==" );
 #endif
-
+  
     for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_ [i])
         return false;
-
+  
     return true;
   }
 
@@ -600,11 +597,11 @@ namespace CoupledField
     if ((size_ == 0) || (x.size_ == 0))
       EXCEPTION("Vector: undefined Vector in operator !=" );
 #endif
-
+  
     for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_[i])
         return false;
-
+  
     return true;
   }
 
@@ -615,35 +612,35 @@ namespace CoupledField
     if (size_ == 0)
       EXCEPTION( "Vector: undefined Vector" );
 #endif
-
+  
 #ifdef CHECK_INDEX
     if (i1 < 0 || i1 > i2 || i2 >= size_)
       std::cerr << "Vector: invalid index";
 #endif
-
+  
     Vector ret (i2 - i1 + 1);
-
+  
     for (UInt i = 0; i < ret.size_; i++)
       ret.data_[i] = data_[i1 + i];
-
+  
     return ret;
   }
 
   template<class TYPE>
   Vector<TYPE> Vector<TYPE>::Unit (const UInt n,const UInt i)
   {
-#ifdef CHECK_INDEX
+#ifdef CHECK_INDEX      
     if (n <= 0)
       std::cerr << "Vector::unit() invalid dimension";
-
+  
     if (i < 0 || i >= n)
       std::cerr << "Vector::unit() invalid index";
 #endif
-
+  
     Vector<TYPE> ret(n);
-
+  
     ret.data_[i] = 1;
-
+  
     return ret;
   }
 
@@ -658,24 +655,24 @@ namespace CoupledField
  template<>
   Double Vector<Double>::NormL2() const
   {
-    Double ret = 0.0;
-    this->Inner(*this, ret);
-    return std::sqrt(ret);
+    Double ret = 0.0; 
+    this->Inner(*this, ret); 
+    return std::sqrt(ret); 
   }
 
   template<>
   Double Vector<Complex>::NormL2() const
   {
-    Complex ret = 0.0;
-    this->Inner(*this, ret);
-    assert(ret.imag() == 0.0);
-    return sqrt(ret.real());
+    Complex ret = 0.0; 
+    this->Inner(*this, ret); 
+    assert(ret.imag() == 0.0); 
+    return sqrt(ret.real());    
   }
 
   template<class TYPE>
   std::string Vector<TYPE>::Serialize( Char separator ) const {
     std::stringstream out;
-
+    
     if( size_ > 0 ) {
       for( UInt i = 0; i < size_-1; i++ ) {
         out << data_[i] << separator << " ";
@@ -694,16 +691,16 @@ namespace CoupledField
   }
 
 
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::FillVector(const TYPE* data, unsigned int size)
   {
     Resize(size);
-
+    
     for(unsigned int i = 0; i < size; i++)
       data_[i] = data[i];
   }
-
-
+  
+  
   template<class TYPE>
   void  Vector<TYPE>::AddElement (const TYPE & y, UInt pos)
   {
@@ -711,23 +708,23 @@ namespace CoupledField
     if (pos < 0 || pos > size_)
       EXCEPTION("Vector::AddElemen(): Index out of bounds" );
 #endif
-
+  
     if (memBelongsToMe_ == false ) {
-      EXCEPTION( "Refusing to resize vector, since memory does not "
+      EXCEPTION( "Refusing to resize vector, since memory does not " 
                  << "belong to me!" );
     }
-
+  
     UInt i;
-
+  
     TYPE * help=new TYPE[size_+1];
-
-    for (i=0; i < pos; i++)
+  
+    for (i=0; i < pos; i++) 
       help[i]=data_[i];
-
+  
     help[pos]=y;
-    for (i=pos+1; i<size_+1; i++)
+    for (i=pos+1; i<size_+1; i++) 
       help[i]=data_[i-1];
-
+  
     delete [] data_;
     data_=help;
     size_++;
@@ -741,32 +738,32 @@ namespace CoupledField
     if (size_ == 0)
       EXCEPTION("Vector: undefined Vector in function InsertVector()" );
 #endif
-
+  
 #ifdef CHECK_INDEX
     if (pos < 0)
       EXCEPTION("Vector: index is smaller than zero in function InsertVector()" );
 #endif
-
+  
     if (memBelongsToMe_ == false ) {
-      EXCEPTION( "Refusing to resize vector, since memory does not "
+      EXCEPTION( "Refusing to resize vector, since memory does not " 
                  << "belong to me!" );
     }
-
+  
     UInt i;
-
+  
     UInt l=y.size_;
     TYPE * help=new TYPE[size_+l];
-
-    for (i=0; i < pos; i++)
+  
+    for (i=0; i < pos; i++) 
       help[i]=data_[i];
-
-    for (i=pos; i < pos+l; i++)
+  
+    for (i=pos; i < pos+l; i++) 
       help[i]=y.data_[i-pos];
-
-    for (i=pos+l; i < size_+l; i++)
+  
+    for (i=pos+l; i < size_+l; i++) 
       help[i]=data_[i-l];
-
-    delete [] data_;
+  
+    delete [] data_; 
     data_=help;
     size_+=l;
   }
@@ -780,23 +777,23 @@ namespace CoupledField
 #endif
 
 #ifdef CHECK_INDEX
-    if (pos<0 || pos >=size_)
+    if (pos<0 || pos >=size_) 
       EXCEPTION("Invalid index for cut");
 #endif
-
+   
     if (memBelongsToMe_ == false ) {
-      EXCEPTION( "Refusing to resize vector, since memory does not "
+      EXCEPTION( "Refusing to resize vector, since memory does not " 
                  << "belong to me!" );
     }
     UInt i;
-
+   
     TYPE * help=new TYPE[size_-1];
-    for (i=0; i < pos; i++)
+    for (i=0; i < pos; i++) 
       help[i]=data_[i];
-    for (i=pos+1; i < size_; i++)
+    for (i=pos+1; i < size_; i++) 
       help[i-1]=data_[i];
-
-    delete [] data_;
+ 
+    delete [] data_; 
     data_=help;
     size_--;
   }
@@ -810,29 +807,29 @@ namespace CoupledField
 #endif
 
 #ifdef CHECK_INDEX
-    if (pos1 < 0 || pos1 >= size_ || pos2 < 0 || pos2 >= size_)
+    if (pos1 < 0 || pos1 >= size_ || pos2 < 0 || pos2 >= size_) 
       EXCEPTION("Invalid index for cut");
     if (pos1 > pos2)
       EXCEPTION("First index is bigger than second one in function Cut()" );
 #endif
-
+ 
     if (memBelongsToMe_ == false ) {
-      EXCEPTION( "Refusing to resize vector, since memory does not "
+      EXCEPTION( "Refusing to resize vector, since memory does not " 
                  << "belong to me!" );
     }
-
+   
     UInt i;
-
+ 
     UInt l=pos2-pos1+1;
     TYPE * help=new TYPE[size_-l];
-    for (i=0; i < pos1; i++)
+    for (i=0; i < pos1; i++) 
       help[i]=data_[i];
-    for (i=size_-1; i > pos2 ; i--)
+    for (i=size_-1; i > pos2 ; i--) 
       help[i-pos2+pos1-1]=data_[i];
 
-    delete [] data_;
+    delete [] data_; 
     data_=help;
-
+   
     size_ = size_ - l;
     capacity_ = size_;
   }
@@ -844,7 +841,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void Swap(Vector<TYPE> & a, Vector<TYPE> & b)
+  void Swap(Vector<TYPE> & a, Vector<TYPE> & b) 
   {
     UInt tmp_size;
 
@@ -859,7 +856,7 @@ namespace CoupledField
     b.data_ = tmp_data;
   }
 
-  template<class TYPE>
+  template<class TYPE> 
   std::string Vector<TYPE>::ToString() const
   {
      std::ostringstream os;
@@ -871,25 +868,25 @@ namespace CoupledField
      os << "]";
      return os.str();
   }
-
-  template<class TYPE>
+     
+  template<class TYPE>  
   void Vector<TYPE>::ToString(StdVector<std::string>& out) const
   {
     out.Resize(size_);
     for(UInt i = 0; i < size_; i++)
       out[i] = boost::lexical_cast<std::string>(data_[i]);
   }
+  
 
-
-  template<class TYPE>
+  template<class TYPE> 
   void Vector<TYPE>::Sort()
   {
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       EXCEPTION("Vector::Sort: Use of uninitialized vector");
 #endif
-    TYPE temp;
-
+    TYPE temp; 
+ 
     for (UInt gap=size_/2; gap >0; gap/=2)
       for (UInt i=gap; i<size_; i++)
         for (UInt j=i-gap; j>=0; j-=gap)
@@ -902,7 +899,7 @@ namespace CoupledField
 
 
 
-  template<>
+  template<> 
   void Vector<Complex>::Sort(){
     EXCEPTION( "Vector<Complex>::Sort: Not defined for complex numbers" );
   }
@@ -917,12 +914,12 @@ namespace CoupledField
     return out;
   }
 
-
+  
 
 
 
 // explicit template instantiation for GCC compiler
-#if defined(__GNUC__)
+#if defined(__GNUC__) 
   template class Vector<Integer>;
   template class Vector<Double>;
   template class Vector<UInt>;

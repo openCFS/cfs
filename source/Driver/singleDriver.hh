@@ -11,52 +11,52 @@ namespace CoupledField {
 
   // forward class declaration
   class BasePDE;
-  class InfoNode;
-
+  class InfoNode; 
+  
   //! Abstract base class for sinlge driver (static, transient, harmonic)
   class SingleDriver : public BaseDriver {
-
+    
   public:
-
+    
     //! Constructor
     //! \param sequenceStep current step in multisequence simulation
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     SingleDriver( UInt sequenceStep, bool isPartOfSequence );
-
+    
     //! Default destructor
     virtual ~SingleDriver();
-
+    
     //! set the pdes, which gets to be solved
     void SetPDE(BasePDE * pde);
 
-    /** implement abstract identification class */
+    /** implement abstract identification class */ 
     DriverClass GetDriverClass() { return SINGLE_DRIVER; };
 
   protected:
-
+  
     //! Trigger reading of restart
     virtual void ReadRestart( ) {};
-
+    
     //! Initialize PDEs
     void InitializePDEs();
 
-    /** our report node */
-    InfoNode* infoNode_;
+    /** our report node */ 
+    InfoNode* infoNode_; 
 
-    /** This is the current step (InfoNode::PROCESS) to be filled with solver data, ... */
-    InfoNode* currentStepInfoNode_;
+    /** This is the current step (InfoNode::PROCESS) to be filled with solver data, ... */ 
+    InfoNode* currentStepInfoNode_; 
 
-    //! pointer to basePDE
+    //! pointer to basePDE 
     BasePDE * ptPDE_;
 
-    //! true, if driver is part of a multiSequence, false if first run or single run
+    //! true, if driver is part of a multiSequence, false if first run or single run 
     bool isPartOfSequence_;
 
     //! current sequences step in multiSequence simulation
     UInt sequenceStep_;
-
+    
   };
 
 }
 
-#endif
+#endif 

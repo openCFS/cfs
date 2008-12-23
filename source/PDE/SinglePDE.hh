@@ -28,17 +28,18 @@ namespace CoupledField
   class Assemble;
   class BaseForm;
 
+  
   //! Base class for all kinds of single field problems.
 
   class SinglePDE : public StdPDE, public Scriptable
   {
-
+  
   public:
 
     // friend declaration
     friend class BasePairCoupling;
     friend class DirectCoupledPDE;
-
+    
     //! typedefs for result handling
     typedef std::set<shared_ptr<ResultInfo> > ResultSet;
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
@@ -46,51 +47,51 @@ namespace CoupledField
 
 
     bool boolComplexMaterialData_;
-
-    /** Initialize PDEs
-     * @param base a coupled PDE case we do not choose our own base */
-    virtual void Init( UInt sequenceStep, InfoNode* base = NULL );
+    
+    /** Initialize PDEs 
+     * @param base a coupled PDE case we do not choose our own base */ 
+    virtual void Init( UInt sequenceStep, InfoNode* base = NULL ); 
 
     // ---------------------- ***** --------------------------------
 
     //! destructor
     virtual ~SinglePDE();
-
+  
     //! MpCCI gets the geometry
     virtual void PreparePDE4Computation() {;};
-
+  
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)
     // ======================================================
-
-    //! define algebraic system
+  
+    //! define algebraic system 
     virtual void DefineAlgSys();
-
-
+ 
+  
     // ======================================================
     // ADATPTIVITY SECTION
     // ======================================================
 #ifdef ADAPTGRID
     //@{
     //! \name Methods used for performing adaptivity
-
+  
     //! test error of calculation. return true, if it is more then tolerance
     virtual bool TestError(const Integer level);
-
+  
     //! refine mesh
     virtual void RefineMesh(const Integer level=0);
 
     // Does this method belong to postproc section?
     //! write information about relative error of calculation
     void WriteErrorInfo(WriteResults * ptmeshes);
-
+  
     //@}
 #endif
 
     // ======================================================
     // COUPLING SECTION
     // ======================================================
-
+  
     //! initalize PDE coupling (only done once)
     virtual void InitCoupling(PDECoupling * Coupling) = 0;
 
@@ -99,12 +100,12 @@ namespace CoupledField
 
     //! Fill in input coupling terms
     virtual void CalcInputCoupling();
-
-
+  
+  
     //! calculate coupling terms
     virtual void CalcOutputCoupling() = 0;
 
-
+  
     // ======================================================
     // GET /SET  METHODS
     // ======================================================
@@ -121,14 +122,14 @@ namespace CoupledField
 
     //! return number of restraints
     UInt GetNumRestraints( );
-
+ 
     //! set boundary condition
     void SetBCs();
 
     //! Method for modifying an inhomogeneous boundary condition
     void SetIDBC( const std::string &name,
-                  const std::string &dofString,
-                  const std::string &value,
+                  const std::string &dofString, 
+                  const std::string &value, 
                   const std::string &phase );
 
     /** Helper method for ReadBCs() which reads the loads. It is also called
@@ -136,39 +137,39 @@ namespace CoupledField
      * @param loadNodes the potential empty array from the xml file
      * @param either the loads_ of StdPDE or for optimization */
     void ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list);
-
+    
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
     //! get the encapsulated state of the PDE
-
+  
     //! returns the current state of the PDE (solution, derivative,
     //! coupling-objects) in an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to
-    //! another the solution, the derivative and perhaps coupling
-    //! values like geometry update have to be passed.
-    //! The PDEMemento object encapsulates this information.
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
     //! Later on the information can be given back to the PDE
     //! with the method SetMemento();
     //! \param memento (output) Object where the current state gets saved
     void GetMemento(shared_ptr<PDEMemento>& memento);
-
+  
     //! set the encapsulated state of the PDE
-
+  
     //! set the current state of this PDE (solution, derivative,
     //! coupling-objects) from an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to
-    //! another the solution, the derivative and perhaps coupling
-    //! values like geometry update have to be passed.
-    //! The PDEMemento object encapsulates this information.
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
     //! With this method the previous stored information can be set
     //! to the current PDE.
     //! \param memento (input) Previously saved state of the PDE
-    //! \param usage (input) Usage type of values (start-value /
+    //! \param usage (input) Usage type of values (start-value / 
     //!                      dirichlet value )
-    void SetMemento( shared_ptr<PDEMemento>&  memento,
+    void SetMemento( shared_ptr<PDEMemento>&  memento, 
                      PDEMemento::ValueUsageType usage );
-
+                   
 
     //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
     void WriteRestart( );
@@ -178,12 +179,12 @@ namespace CoupledField
 
     //! Map containing the result types and the results
     ResultMap& GetResults() { return resultLists_; }
-
+    
     /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
      * it is added to resultLists_.</p>
      * <p>This method is to be called by ReadStoreResults() for every element in
      * availResults_. Additionally an Otimization instance calls when there a
-     * result element defines one of the solution types optResult_1/2/3 in more detail
+     * result element defines one of the solution types optResult_1/2/3 in more detail  
      * @param candidate normally an element of the (mathematical) set availResults_
      * @return true if in xml and added */
     bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
@@ -194,14 +195,14 @@ namespace CoupledField
     //! \param size legnth of solution array
     void SaveSolution( const Double * ptSol, UInt size );
     void SaveSolution( const Complex * ptSol, UInt size );
-
+    
     void SavePrevSolution( const Double * ptSol, UInt size );
 
     //@}
 
   protected:
 
-
+  
     //! Constructor
     /*!
       \param aptgrid pointer to grid
@@ -211,18 +212,18 @@ namespace CoupledField
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
       Error( "Not implemented", __FILE__, __LINE__ );
-
+      
       // For compiler
       return *this;
       ;}
 
-
+   
     // ======================================================
     // INITIALIZATION METHODS
     // ======================================================
 
     //! define all computable results
-    virtual void DefineAvailResults() {};
+    virtual void DefineAvailResults() {};  
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -242,7 +243,7 @@ namespace CoupledField
     //! read damping information
     virtual void ReadDampingInformation( ){
     };
-
+    
     //! read material data
     virtual void ReadMaterialData();
 
@@ -252,14 +253,14 @@ namespace CoupledField
     // overloaded version of ReadBCs for special
     // boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
-
+    
     //! read in volume sources
     void ReadRegionLoads();
 
     //! write results in file
-    void WriteResultsInFile( const UInt kstep,
+    void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
-
+    
     //! incorporate information of memento object, if set
     virtual void IncorporateMemento();
 
@@ -271,7 +272,7 @@ namespace CoupledField
     //! Save load part of RHS to private variable
     void SaveRHS( const Double * ptSol, UInt size );
     void SaveRHS( const Complex * ptSol, UInt size );
-
+    
     //! Class defining data needed for region loads
     class RegionLoad {
 
@@ -282,17 +283,17 @@ namespace CoupledField
 
       //! Print region definition to info-file
       void Print( bool onlyHeader, std::string pdeName );
-
+      
       //! Returns the RHS-integrator
       VolForceInt *  GetIntegrator();
-
+      
       // ----------------------------
       //   Data members
       // ----------------------------
 
       //@{
       // \name Data members
-
+      
       //! Name of region
       std::string name;
 
@@ -316,10 +317,10 @@ namespace CoupledField
       //@}
 
     };
-
+    
     //! List of region loads
      std::map<RegionIdType, RegionLoad> regionLoads_;
-
+     
     //@}
 
     // ======================================================
@@ -327,7 +328,7 @@ namespace CoupledField
     // ======================================================
     //@{
     //! \name Scripting Methods
-
+    
     //! Register scriptable functions
     virtual void RegisterFunctions();
 
@@ -339,30 +340,30 @@ namespace CoupledField
 
     //! check if subdomain is a coupled piezo subdomain with hystersis
     bool IsRegionPiezoHyst( std::string regionName );
-
+    
     //! check if PDE is a coupled piezo subdomain with hystersis
-    bool BelongsPDE2PiezoHyst();
+    bool BelongsPDE2PiezoHyst();    
     //@}
-
+    
     // ======================================================
     // DATA SECTION
     // ======================================================
 
     // reads in the PML data
-    void ReadDataPML(std::string& typePML, Matrix<Double>& inner,
+    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
 		     Double& dampPML, ParamNode * actNode);
 
     //! computes the PML layer dimensions
     void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
 			 RegionIdType regionId );
-
+  
     // -----------------------------------------------------------------------
     // Storing information
     // -----------------------------------------------------------------------
-
+  
     //@{
     //! \name Attributes connected to storing information
-
+    
     //! Copy the solution from a nodeStoresolution object to a solution object
     template<class TYPE>
     void ExtractResult( shared_ptr<BaseResult> res,
@@ -375,7 +376,7 @@ namespace CoupledField
 
     //! Copy the linear rhs from the internal vector to a solution object
     template<class TYPE>
-    void ExtractRhsResult( shared_ptr<BaseResult> res,
+    void ExtractRhsResult( shared_ptr<BaseResult> res, 
                            shared_ptr<ResultInfo> eqnResultInfo );
 
     //! Set containing the types of possible results
@@ -387,7 +388,7 @@ namespace CoupledField
     //! map with neighboring volume regions for surface results
     std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
     //@}
-
+    
     // -----------------------------------------------------------------------
     // Adaptivity
     // -----------------------------------------------------------------------
@@ -414,7 +415,7 @@ namespace CoupledField
 
     //! Identifier of the PDE which is used in the algebraic system
     PdeIdType  pdeId_;
-
+  
     //! flag for direct coupling
     bool isDirectCoupled_;
 
@@ -440,32 +441,32 @@ namespace CoupledField
     std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
 
     //@}
-
+    
   private:
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class
+  //     Detailed description of the class 
   // =========================================================================
 
   //! \class SinglePDE
-  //!
-  //! \purpose
-  //! This class serves as base class for all single field problems,
+  //! 
+  //! \purpose 
+  //! This class serves as base class for all single field problems, 
   //! like electrostatic,  acoustic, mechanic and others.
-  //!
-  //! \collab
-  //!
-  //! \implement
-  //!
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
   //! \status In use
-  //!
-  //! \unused
-  //!
+  //! 
+  //! \unused 
+  //! 
   //! \improve
-  //!
+  //! 
 
 #endif
 

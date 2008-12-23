@@ -123,11 +123,7 @@ protected:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
-  {
-    if(harmonic) SetElementK<std::complex<double> >(de, app, out);
-    else SetElementK<double>(de, app, out);
-  }
+  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
 
   /** calculates the radiation, an approximation to emitted sound (Du & Olhoff),
    * only harmomic. Is specific to SIMP, hence not in ErsatzMaterial.

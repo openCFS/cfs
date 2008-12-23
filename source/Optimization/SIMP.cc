@@ -128,6 +128,12 @@ BiLinFormContext* SIMP::CreateSurfaceNormalMatrix(SinglePDE* pde, BaseMaterial* 
   return bilifc;
 }
 
+void SIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* out)
+{
+  if(harmonic) SetElementK<std::complex<double> >(de, app, out);
+  else SetElementK<double>(de, app, out);
+}
+
 template <class T>
 void SIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out)
 {
