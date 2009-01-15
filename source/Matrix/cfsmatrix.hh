@@ -6,8 +6,13 @@
 #define FILE_CFSMATRIX_2004
  
 #include <iostream>
+#include <boost/version.hpp>
 #include <boost/serialization/split_member.hpp>
-#include <boost/serialization/is_abstract.hpp>
+#if BOOST_VERSION < 103600
+# include <boost/serialization/is_abstract.hpp>
+#else
+# include <boost/serialization/assume_abstract.hpp>
+#endif
 
 #include "Utils/cfsvector.hh"
 #include "Utils/tools.hh"
@@ -245,6 +250,10 @@ namespace CoupledField{
 } // namespace
 
 //! Indicate that this is a pure virtual class
-BOOST_IS_ABSTRACT( CoupledField::CFSMatrix )
+#if BOOST_VERSION < 103600
+  BOOST_IS_ABSTRACT( CoupledField::CFSMatrix )
+#else
+  BOOST_SERIALIZATION_ASSUME_ABSTRACT( CoupledField::CFSMatrix )
+#endif
 
 #endif
