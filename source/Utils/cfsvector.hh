@@ -6,8 +6,13 @@
 #define FILE_CFSVECTOR_2004
 
 #include <iostream>
+#include <boost/version.hpp>
 #include <boost/serialization/split_member.hpp>
-#include <boost/serialization/is_abstract.hpp>
+#if BOOST_VERSION < 103600
+# include <boost/serialization/is_abstract.hpp>
+#else
+# include <boost/serialization/assume_abstract.hpp>
+#endif
 
 #include "tools.hh"
 #include <vector>
@@ -223,7 +228,10 @@ namespace CoupledField
 } // end of namespace
 
 //! Indicate that this is a pure virtual class
-BOOST_IS_ABSTRACT( CoupledField::CFSVector )
-#endif  
+#if BOOST_VERSION < 103600
+  BOOST_IS_ABSTRACT( CoupledField::CFSVector )
+#else
+  BOOST_SERIALIZATION_ASSUME_ABSTRACT( CoupledField::CFSVector )
+#endif
 
-
+#endif

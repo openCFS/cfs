@@ -15,6 +15,7 @@ SET(TARGET_LL
   matvec-olas
   solver-olas
   precond-olas
+  graph-olas
 )
 
 TARGET_LINK_LIBRARIES(algsys-olas ${TARGET_LL})

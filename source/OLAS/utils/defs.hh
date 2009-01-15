@@ -157,7 +157,7 @@ if (!name) Error("memory allocation for array failed",__FILE__,__LINE__);\
 try{\
 name = new type [(size)];\
 name--;\
-}catch (std::bad_alloc exception){\
+}catch (const std::bad_alloc &exception){\
 Error("memory allocation for array failed",__FILE__,__LINE__);}	\
 (*memtrace) << "allocated " << (size)*(sizeof(type))*1.0e-6 \
 << " MB in " << __FILE__ << ", line " << __LINE__ << std::endl; }
@@ -184,7 +184,7 @@ if (!name) Error("memory allocation failed",__FILE__,__LINE__);	\
 #define NewArray(name,type,size) {\
 try{\
 name = new type[(size)];\
-}catch (std::bad_alloc exception){\
+}catch (const std::bad_alloc &exception){\
 (*error) << "Memory allocation for array failed\n size = " << (size);\
 Error( __FILE__, __LINE__ );\
 }\
