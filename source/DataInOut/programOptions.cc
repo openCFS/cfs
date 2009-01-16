@@ -690,9 +690,12 @@ namespace CoupledField {
   
   void ProgramOptions::GetHeaderString(std::ostream & out)
   {
-    out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
-        << " Compiled: '" << __DATE__ << "'"
-        << " Build: '" << CMAKE_BUILD_TYPE << "'" << std::endl;
+    // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
+    
+    out << "CFS++ " << CFS_VERSION << " '" << CFS_NAME << "'"
+        << " rev " << CFS_SUBVERSION_REV 
+        << " compiled " << __DATE__ 
+        << " as " << CMAKE_BUILD_TYPE << std::endl;
   }
   
   
