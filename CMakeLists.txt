@@ -18,15 +18,15 @@ PROJECT(CFS C CXX Fortran)
 #-----------------------------------------------------------------------------
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "08")
-SET(CFS_VERSION_MONTH "12")
+SET(CFS_VERSION_YEAR "09")
+SET(CFS_VERSION_MONTH "01")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "(pre) Kerniger Kaernter")
+SET(CFS_NAME "(pre) Kerniger Kaerntner")
 
 
 #-----------------------------------------------------------------------------
