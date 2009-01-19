@@ -1196,7 +1196,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  CFSVector *tempDispOldValues=NULL;
 	  StdVector<BaseMaterial*> * materials = NULL;
 	  StdVector<std::string> outputRegions;
-	  UInt interfaceDispCoupl, interfaceVelCoupl, interfaceForceCoupl;
+	  UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
 	  bool foundDisp=false, foundVel=false, foundForce =false;
 	  Double omega;
 
@@ -2111,7 +2111,14 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     for (UInt k = 0; k < stressNodes.GetSize(); k++) {
 
       // get current name, 
-      std::string actRegionName;
+      std::string actRegionName, actType;
+      
+      stressNodes[k]->Get( "type", actType );
+      if ( actType != "RHS" ) {
+        EXCEPTION("Prestressing of type '" << actType 
+                  << "' is not supported at the moment.");
+      }
+      
       stressNodes[k]->Get( "region", actRegionName );
       RegionIdType actRegion = ptgrid_->RegionNameToId( actRegionName );
       
