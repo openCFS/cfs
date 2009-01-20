@@ -235,6 +235,19 @@
   </material>
   
   <material name="Glass">
+    <mechanical>
+      <!-- Data obtained from: http://www.baunetzwissen.de/dl/134762/eigenschaften.pdf
+           Reference: DIN EN 572-1 -->
+      <density> 2500 </density>
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus> 7.0e10 </elasticityModulus>
+            <poissonNumber> 0.22 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+    </mechanical>
     <electric>
       <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
            Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
