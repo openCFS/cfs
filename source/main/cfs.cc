@@ -20,6 +20,8 @@
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Utils/profiler.hh"
+#include <unistd.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <def_use_mesh.hh>
 
@@ -100,6 +102,20 @@ int main( int argc, const char **argv ) {
   
   // GENERATE OBJECT FOR HANDLING FILE-IO
   DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
+
+  // Print information about program start time and host
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+  std::string now = to_simple_string( second_clock::local_time() );
+  char host[256];
+  int ret = gethostname( host, 256 );
+  std::string out = "Simulation run started at " + now;
+  if (ret==0)
+    out += " on " + std::string( host ) + "\n";
+  else
+    out += "\n";
+  std::cout << out << std::endl;
+  Info->PrintF( "", out.c_str() );
 
 
 
@@ -327,7 +343,9 @@ int main( int argc, const char **argv ) {
 
   Double wTime, cTime;
   oClockTotal.GetTime(wTime, cTime);
-  std::cout << ">> Total time: wall clock: '" << wTime << "s' CPU time: '" << cTime << "s'\n";
+  std::cout << std::endl
+            << ">> Total time: wall clock: '" << wTime 
+            << "s' CPU time: '" << cTime << "s'\n";
   InfoNode* in = info->Get(InfoNode::SUMMARY)->Get("runTime");
   in->Get("wall")->SetValue(wTime);
   in->Get("CPU")->SetValue(cTime);

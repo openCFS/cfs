@@ -187,7 +187,7 @@ namespace CoupledField {
       // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
       BaseDriver* driver = BaseDriver::CreateInstance();  
       SetDriver(driver); // see above!
-      Info->FinishProgress();
+      //Info->FinishProgress();
 
       // initialize the driver
       driver->Init();
