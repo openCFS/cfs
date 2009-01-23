@@ -695,7 +695,7 @@ namespace CoupledField {
     out << "CFS++ " << CFS_VERSION << " '" << CFS_NAME << "'"
         << " rev " << CFS_SUBVERSION_REV 
         << " compiled " << __DATE__ 
-        << " as " << CMAKE_BUILD_TYPE << std::endl;
+        << " as " << CMAKE_BUILD_TYPE << std::endl << std::endl;
   }
   
   

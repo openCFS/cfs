@@ -50,6 +50,8 @@ namespace CoupledField {
               ParamNode * coilNode,
               Grid * ptGrid ) {
 
+    lastSaveStep_ = -1;
+    
     // We already know our name
     coilRegionId_ = coilRegionId;
 
