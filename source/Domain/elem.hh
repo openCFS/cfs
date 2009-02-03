@@ -34,7 +34,8 @@ namespace CoupledField
     //! Dummy constructor
     Elem() : 
       elemNum(0),
-      regionId( NO_REGION_ID )
+      regionId( NO_REGION_ID ),
+      ptElem(NULL)
       {;}
 
     //! Dummy destructor
