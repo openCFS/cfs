@@ -322,6 +322,11 @@ namespace CoupledField {
           std::fill(rhsValues2_.Begin(), rhsValues2_.End(), 0.0);
         }
         
+        if (isFirstStep_) {
+          std::cout << "Calculating conservative interpolation weights..."
+                    << std::endl;
+        }
+        
         for(UInt i=0; i<numSourceRegions; i++)
         {
           acouRHSVal = resultHandler->GetResult( srcInputId_,
@@ -346,6 +351,9 @@ namespace CoupledField {
           
           // compute interpolation weights only in first step
           if (isFirstStep_) {
+            // print name of current region
+            std::cout << srcRegions_[i] << " ";
+            
             std::ostringstream fNameStr;
             fNameStr << progOpts->GetSimName() << "_ms"
                      << domain->GetSingleDriver()->GetActSequenceStep()
@@ -388,8 +396,9 @@ namespace CoupledField {
               oa << ((const std::vector< std::map<UInt, Double> >&) consInterpWeights_[i]);
               // archive and stream closed when destructors are called
             }
-
-            isFirstStep_ = false;
+            
+            // print a newline for a proper status display
+            std::cout << std::endl;
           } // if (isFirstStep_)
           
           // Get data of previous time step for asynchronous time stepping
@@ -457,10 +466,17 @@ namespace CoupledField {
               rhsValues_[it->first] += it->second * resVec[j];
             }
           }
+          
         }
+
+        isFirstStep_ = false;
+        
 #else // USE_INTERPOLATION
+        
         EXCEPTION("This executable does not support interpolation!");
+        
 #endif // USE_INTERPOLATION
+        
       }
       else // if (interpolate_)
       {

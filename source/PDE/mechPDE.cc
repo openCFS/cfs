@@ -1191,14 +1191,14 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  StdVector<Elem*> * couplingElems = NULL;
 	  CFSVector * temp_values = NULL;
 	  Vector<Double> * values;
-	  CFSVector * temp_oldValues = NULL;
+	  //CFSVector * temp_oldValues = NULL; // unused variable
 	  CFSVector *tempDispValues=NULL;
 	  CFSVector *tempDispOldValues=NULL;
 	  StdVector<BaseMaterial*> * materials = NULL;
 	  StdVector<std::string> outputRegions;
 	  UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
 	  bool foundDisp=false, foundVel=false, foundForce =false;
-	  Double omega;
+	  //Double omega; // unused variable
 
 	  if(useAitken_==false)
 		  Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);

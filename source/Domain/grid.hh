@@ -1130,10 +1130,11 @@ namespace CoupledField
         nodeCounter_++;
         
         percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
-        /*if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
+        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
         {
-          std::cout << percentage_ << "% done... " << std::endl;
-        }*/
+          //std::cout << percentage_ << "% done... " << std::endl;
+          std::cout << "."; // use a short status display
+        }
         oldPercentage_ = percentage_;
       }
 #if 0
