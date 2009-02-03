@@ -239,10 +239,10 @@ namespace CoupledField {
 
           // calculate number of "real steps"
           UInt saveBegin, saveEnd, saveInc, numRealSteps;
-          saveBegin = histResultSaveBegin_[it->first];
+          saveBegin = std::max( (UInt) 1, histResultSaveBegin_[it->first] );
           saveEnd = std::min( currMSNumSteps_, histResultSaveEnd_[it->first] );
           saveInc = histResultSaveInc_[it->first];
-          numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc+1;
+          numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
 
           // create subgroup for entitytype
           ResultInfo::EntityUnknownType definedOn
@@ -1042,11 +1042,11 @@ namespace CoupledField {
       definedOn = H5IO::MapUnknownType( resInfo->definedOn );
       entryType = H5IO::MapEntryType( resInfo->entryType );
       if( !isHistory ) {
-        saveBegin = meshResultSaveBegin_[resultName];
+        saveBegin = std::max( (UInt)1, meshResultSaveBegin_[resultName]);
         saveEnd = std::min( currMSNumSteps_, meshResultSaveEnd_[resultName] );
         saveInc = meshResultSaveInc_[resultName];
       } else {
-        saveBegin = histResultSaveBegin_[resultName];
+        saveBegin = std::max( (UInt) 1, histResultSaveBegin_[resultName] );
         saveEnd = std::min( currMSNumSteps_, histResultSaveEnd_[resultName] );
         saveInc = histResultSaveInc_[resultName];
       }
@@ -1095,7 +1095,7 @@ namespace CoupledField {
 //        H5IO::Write1DArray( actGroup, "StepLast", 1, &saveEnd, dPropList_ );
 //        H5IO::Write1DArray( actGroup, "StepInc", 1, &saveInc, dPropList_ );
 
-        UInt numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc+1;
+        UInt numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
         H5IO::Reserve1DArray<Double>(actGroup, "StepValues", numRealSteps, dPropList_ );
         H5IO::Reserve1DArray<UInt>(actGroup, "StepNumbers", numRealSteps, dPropList_ );
 

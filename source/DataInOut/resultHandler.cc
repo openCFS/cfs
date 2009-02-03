@@ -449,11 +449,13 @@ namespace CoupledField {
         nextContext->outputs.Push_back( outFiles_[outDest[iOut]] );
       
         // register results also at the output writer class
-        outFiles_[outDest[iOut]]->
+        if( nextContext->writeResult ) {
+          outFiles_[outDest[iOut]]->
           RegisterResult(  postProcs[i]->GetOutputResult(),
                            nextContext->saveBegin, nextContext->saveInc,
                            nextContext->saveEnd,
                            nextContext->isHistory );
+        }
       }
       
       // store postproc and result in current context2
