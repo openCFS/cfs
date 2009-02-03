@@ -2504,12 +2504,20 @@ namespace CoupledField
     // check that tolerances make sense
     if (globalEpsilon.end < globalEpsilon.start)
       globalEpsilon.end = globalEpsilon.start;
-    if (globalEpsilon.inc == 0.0)
-      globalEpsilon.inc = globalEpsilon.start;
+    if (globalEpsilon.inc == 0.0) {
+      if (globalEpsilon.start == 0.0)
+        globalEpsilon.inc = 1.0e-6;
+      else
+        globalEpsilon.inc = globalEpsilon.start;
+    }
     if (localEpsilon.end < localEpsilon.start)
       localEpsilon.end = localEpsilon.start;
-    if (localEpsilon.inc == 0.0)
-      localEpsilon.inc = localEpsilon.start;
+    if (localEpsilon.inc == 0.0) {
+      if (localEpsilon.start == 0.0)
+        localEpsilon.inc = 1.0e-3;
+      else
+        localEpsilon.inc = localEpsilon.start;
+    }
     
     // loop over tolerance ranges
     for (locEps = localEpsilon.start;
@@ -2616,8 +2624,6 @@ namespace CoupledField
     
         // run the intersection algorithm and store results in a vector
     
-        //std::cout << "Calculating conservative interpolation weights..."
-        //          << std::endl;
         CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
                                   elemBoxes2.begin(), elemBoxes2.end(),
                                   GenConsInterpReportFunctor(destElemList,
