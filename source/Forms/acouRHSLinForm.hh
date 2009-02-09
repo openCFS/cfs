@@ -39,6 +39,13 @@ namespace CoupledField
 
   private:
 
+    typedef enum {
+      CI_WARN_NO = 0,
+      CI_WARN_YES = 1,
+      CI_WARN_VERBOSE = 2,
+      CI_WARN_LIST = 4
+    } ciWarnFlags;
+    
     std::string id_; //!< input ID of destination grid
     std::string regionName_; //!< name of destination region
     bool interpolate_; //!< is interpolation performed or not?
@@ -51,7 +58,7 @@ namespace CoupledField
     Double z_; //!< z coordinate of xy plane in 2d simulations
     Double zEpsilon_; //!< tolerance for interpolation from 3D to 2D
     std::string asyncSteps_; //!< do we use asynchronous time steps?
-    UInt node_warnings_; //!< flags for verbosity of interpolation warnings
+    ciWarnFlags node_warnings_; //!< flags for verbosity of interpolation warnings
     
     //! pointer to destination grid
     Grid* ptGrid_;
