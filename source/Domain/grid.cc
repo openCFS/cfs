@@ -4,8 +4,6 @@
 
 #include <cmath>
 #include <string>
-#include <fstream>
-#include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
@@ -2431,14 +2429,14 @@ namespace CoupledField
 
 
   void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
-                                                     const NodeList& sourceNodeList,
-                                                     const std::string& coordSysId,
-                                                     ciTolerance& globalEpsilon,
-                                                     ciTolerance& localEpsilon,
-                                                     Double z,
-                                                     Double zEpsilon,
-                                                     ciWarnFlags warnings,
-                                                     std::vector< std::map<UInt, Double> >& consInterpWeights)
+          const NodeList& sourceNodeList,
+          const std::string& coordSysId,
+          ciTolerance& globalEpsilon,
+          ciTolerance& localEpsilon,
+          Double z,
+          Double zEpsilon,
+          std::vector< std::map<UInt, Double> >& consInterpWeights,
+          StdVector<UInt> &unmapped_nodes)
   {
     Double xmin, ymin, xmax, ymax, zmin, zmax;
     Double globEps, locEps;
@@ -2634,45 +2632,12 @@ namespace CoupledField
       }
     }
 
-    if (warnings & CI_WARN_YES)  {
-      std::ostringstream fNameStr;
-      std::ofstream badNodesFile;
-      UInt numBadNodes = 0;
-      
-      if (warnings & CI_WARN_LIST) {
-        fNameStr << progOpts->GetSimName() << "_ci_missed_nodes.txt";
-        badNodesFile.open(fNameStr.str().c_str(),
-                          std::ios_base::out | std::ios_base::trunc);
-        if (!badNodesFile)
-          EXCEPTION("Error writing to file " << fNameStr.str());
-        badNodesFile.width(1);
-        badNodesFile << std::ios_base::left;
-      }
-      
-      for(UInt i=0; i<numActualSourceNodes; ++i) {
-        if (consInterpWeights[sourceNodeIndices[i]].empty())
-        {
-          ++numBadNodes;
-          if (warnings & CI_WARN_VERBOSE) {
-            (*warning) << "Node " << sourceNodeNumbers[i]
-              << " from source grid could not be mapped to destination grid.";
-            Warning(__FILE__, __LINE__);
-          }
-          if ((warnings & CI_WARN_LIST) && badNodesFile) {
-            badNodesFile << sourceNodeNumbers[i] << std::endl;
-            if (!badNodesFile)
-              EXCEPTION("Error writing to file " << fNameStr.str());
-          }
-        }
-      }
-      
-      if (numBadNodes > 0) {
-        (*warning) << "During conservative interpolation " << numBadNodes
-                   << " nodes in total were not mapped.";
-        Warning(__FILE__, __LINE__);
-      }
-      if (warnings & CI_WARN_LIST) {
-        badNodesFile.close();
+    for (UInt i=0; i<numActualSourceNodes; ++i) {
+      if (consInterpWeights[sourceNodeIndices[i]].empty()) {
+        // just add the number of the unmapped node.
+        // DO NOT CLEAR the vector before this loop,
+        // because this function is called several times.
+        unmapped_nodes.Push_back(sourceNodeNumbers[i]);
       }
     }
 

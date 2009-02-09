@@ -865,13 +865,6 @@ namespace CoupledField
     // even if you switch off interpolation
   public:
     
-    typedef enum {
-      CI_WARN_NO = 0,
-      CI_WARN_YES = 1,
-      CI_WARN_VERBOSE = 2,
-      CI_WARN_LIST = 4
-    } ciWarnFlags;
-    
     struct ciTolerance {
       Double start;
       Double end;
@@ -1170,14 +1163,14 @@ namespace CoupledField
                                      Vector<double>& localCoords);
 
     void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
-                                                 const NodeList& sourceNodeList,
-                                                 const std::string& coordSysId,
-                                                 ciTolerance& globalEpsilon,
-                                                 ciTolerance& localEpsilon,
-                                                 Double z,
-                                                 Double zEpsilon,
-                                                 ciWarnFlags warnings,
-                                                 std::vector< std::map<UInt, Double> >& consInterpWeights);
+            const NodeList& sourceNodeList,
+            const std::string& coordSysId,
+            ciTolerance& globalEpsilon,
+            ciTolerance& localEpsilon,
+            Double z,
+            Double zEpsilon,
+            std::vector< std::map<UInt, Double> >& consInterpWeights,
+            StdVector<UInt> &unmapped_nodes);
 
 #endif // USE_INTERPOLATION
     

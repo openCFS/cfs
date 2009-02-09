@@ -6,6 +6,7 @@
 #include <fstream>
 #include <map>
 #include <math.h>
+#include <sstream>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -41,7 +42,7 @@ namespace CoupledField {
       localEpsilon_(1.0e-3, 0.0, 0.0),
       z_(0.0), zEpsilon_(1.0e-10),
       asyncSteps_("no"),
-      node_warnings_(Grid::CI_WARN_YES),
+      node_warnings_(CI_WARN_YES),
       ptGrid_(domain->GetGrid()),
       globCoSy_(domain->GetCoordSystem()),
       step_(0), lastStep_(0),
@@ -115,15 +116,14 @@ namespace CoupledField {
         if (tmpNode) {
           std::string dispStr = tmpNode->Get("display")->AsString();
           if (dispStr == "verbose")
-            node_warnings_ = Grid::CI_WARN_YES | Grid::CI_WARN_VERBOSE;
+            node_warnings_ = (ciWarnFlags) (CI_WARN_YES | CI_WARN_VERBOSE);
           else if (dispStr == "yes")
-            node_warnings_ = Grid::CI_WARN_YES;
+            node_warnings_ = CI_WARN_YES;
           else
-            node_warnings_ = Grid::CI_WARN_NO;
+            node_warnings_ = CI_WARN_NO;
           
-          if (node_warnings_ & Grid::CI_WARN_YES
-              && tmpNode->Get("writeNodes")->AsBool()) {
-            node_warnings_ = node_warnings_ | Grid::CI_WARN_LIST;
+          if (tmpNode->Get("writeNodes")->AsBool()) {
+            node_warnings_ = (ciWarnFlags) (node_warnings_ | CI_WARN_LIST);
           }
         }
       }
@@ -299,6 +299,7 @@ namespace CoupledField {
 #ifdef USE_INTERPOLATION
         UInt numSourceRegions = srcRegions_.GetSize();
         StdVector<UInt> regionNodes;
+        StdVector<UInt> unmapped_nodes;
 
         // do we need data of previous time step for interpolation?
         if (timeInterp) {
@@ -383,8 +384,8 @@ namespace CoupledField {
                 globalEpsilon_,
                 localEpsilon_,
                 z_, zEpsilon_,
-                (Grid::ciWarnFlags) node_warnings_,
-                consInterpWeights_[i]);
+                consInterpWeights_[i],
+                unmapped_nodes);
   
             // save data to archive
             if(restartFileMode_ == "w" || restartFileMode_ == "rw") {
@@ -469,8 +470,51 @@ namespace CoupledField {
           
         }
 
+        // interpolation weights are calculated in the first time step only,
+        // so we need to check for unmapped nodes only in this case.
+        if (isFirstStep_) {
+          UInt numBadNodes = unmapped_nodes.GetSize();
+          if (numBadNodes > 0)  {
+            std::ostringstream fNameStr;
+            std::ofstream badNodesFile;
+
+            if (node_warnings_ & CI_WARN_YES) {
+              (*warning) << "During conservative interpolation " << numBadNodes
+              << " nodes in total were not mapped.";
+              Warning(__FILE__, __LINE__);
+            }
+
+            if (node_warnings_ & CI_WARN_LIST) {
+              fNameStr << progOpts->GetSimName() << "_ci_unmapped_nodes.txt";
+              badNodesFile.open(fNameStr.str().c_str(),
+                  std::ios_base::out | std::ios_base::trunc);
+              if (!badNodesFile)
+                EXCEPTION("Error writing to file " << fNameStr.str());
+              badNodesFile.width(1);
+              badNodesFile << std::ios_base::left;
+            }
+
+            for(UInt i=0; i<numBadNodes; ++i) {
+              if (node_warnings_ & CI_WARN_VERBOSE) {
+                (*warning) << "Node " << unmapped_nodes[i] << " from source "
+                           << "grid could not be mapped to destination grid.";
+                Warning(__FILE__, __LINE__);
+              }
+              if ((node_warnings_ & CI_WARN_LIST) && badNodesFile) {
+                badNodesFile << unmapped_nodes[i] << std::endl;
+                if (!badNodesFile)
+                  EXCEPTION("Error writing to file " << fNameStr.str());
+              }
+            }
+
+            if (node_warnings_ & CI_WARN_LIST) {
+              badNodesFile.close();
+            }
+          }
+        }
+
         isFirstStep_ = false;
-        
+
 #else // USE_INTERPOLATION
         
         EXCEPTION("This executable does not support interpolation!");
