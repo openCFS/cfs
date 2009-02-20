@@ -14,6 +14,7 @@
 #include "Utils/coordSystem.hh"
 #include "Driver/assemble.hh"
 #include "trapezoidal.hh"
+#include "bdf2.hh"
 #include "StdPDE.hh"
 #include "Driver/stdSolveStep.hh"
 
@@ -103,7 +104,7 @@ namespace CoupledField
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
     
-    Double density, bulkModulus, c0;
+    Double density, bulkModulus;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
@@ -114,33 +115,32 @@ namespace CoupledField
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
       actMat->GetScalar(density, DENSITY,REAL);
       actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,REAL);
-      c0 = sqrt(bulkModulus/density);
       
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "bulk modulus = %e\n", bulkModulus);
       
       // ==============  add stiffness ======================================
-      // ==============  add KVP ======================================
-      BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0, isaxi_);
-      BiLinFormContext * stiffContext_KVP =
-        new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
-
-      stiffContext_KVP->SetPtPdes(this, this);
-      stiffContext_KVP->SetResults( results_[0], results_[1],
-				    actSDList, actSDList );
-
-      assemble_->AddBiLinearForm( stiffContext_KVP );
-
-       // ==============  add KPV ======================================
-      BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( 1.0, isaxi_);
+      // ==============  add KPV ======================================
+      BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, isaxi_);
       BiLinFormContext * stiffContext_KPV =
         new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
 
       stiffContext_KPV->SetPtPdes(this, this);
-      stiffContext_KPV->SetResults( results_[1], results_[0],
-				actSDList, actSDList );
+      stiffContext_KPV->SetResults( results_[0], results_[1],
+				    actSDList, actSDList );
 
       assemble_->AddBiLinearForm( stiffContext_KPV );
+
+       // ==============  add KVP ======================================
+      BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, isaxi_);
+      BiLinFormContext * stiffContext_KVP =
+        new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
+
+      stiffContext_KVP->SetPtPdes(this, this);
+      stiffContext_KVP->SetResults( results_[1], results_[0],
+				    actSDList, actSDList );
+
+      assemble_->AddBiLinearForm( stiffContext_KVP );
 
       //==============  add MPP ======================================
       Double coeffMass = 1.0;
@@ -171,6 +171,44 @@ namespace CoupledField
       eqnMap_->AddResult( *results_[1], actSDList );
     }
     
+    // *******************************************************************************
+    //   inhom. Neumann boundary condition: acutually given normal surface velocity!!
+    // *******************************************************************************
+    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) {
+      
+      // get current Bc
+      InhomNeumannBc const & actBc = *inBcs_[iBc];
+      LinearSurfForm *neumannBC = new LinSurfVelocity( actBc.value, actBc.phase,
+                                                     bulkModulus, isaxi_ );
+      LinearFormContext * neumannContext = new LinearFormContext( neumannBC );
+      neumannContext->SetPtPde( this );
+      neumannContext->SetResult( results_[0], actBc.entities );
+      assemble_->AddLinearForm( neumannContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actBc.entities );
+    }
+
+
+    // **********************************************************************
+    //   surface-integration: Absorbing boundaries
+    // **********************************************************************
+    if ( absorbingBCs_ == true) { 
+      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+	Double c0 = sqrt(bulkModulus/density);
+        ABC_MixedInt * bilinear_abc = new ABC_MixedInt(c0,isaxi_);
+        BiLinFormContext * abcContext = 
+          new BiLinFormContext( bilinear_abc, STIFFNESS );
+        abcContext->SetPtPdes(this, this);     
+        abcContext->SetResults( results_[0], results_[0],
+                                absBCs_[actSD], absBCs_[actSD] );
+        assemble_->AddBiLinearForm( abcContext );
+
+        // Give result to equation numbering class
+        eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
+      }
+    }
+
     // Add integrators for region loads
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
@@ -199,6 +237,27 @@ namespace CoupledField
     // read volume force definition
     ReadRegionLoads();
 
+    // ***************************************************************
+    //   If no other damping type is specified and we have absorbing
+    //   boundary conditions, then use ABCDAMP
+    // ***************************************************************
+    StdVector<std::string> auxVec;
+    absorbingBCs_ = false;
+    ParamNode * bcNode = myParam_->Get( "bcsAndLoads", false );
+    if( bcNode ) {
+      StdVector<ParamNode*> abcNodes = bcNode->GetList( "absorbingBCs" );
+      
+      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+        std::string regionName = abcNodes[i]->Get("name")->AsString(); 
+        absBCs_.Push_back( ptgrid_
+          ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                           regionName, EntityList::REGION ) );
+        absorbingBCs_ = true;
+        Info->PrintF( pdename_, 
+                      "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
+                      regionName.c_str() );
+      }
+    }
   }
   
   void AcousticMixedPDE::DefineSolveStep()
@@ -220,6 +279,8 @@ namespace CoupledField
     }
     else {
       TS_alg_ = new Trapezoidal( algsys_ );
+      TS_alg_->SetTrapezoidalGamma(0.51);
+      //      TS_alg_ = new Bdf2( algsys_ );
     }
   }
 
@@ -260,8 +321,15 @@ namespace CoupledField
       fct->SetIsoOrder( 1 );
       res1->fctType = fct;
       res1->definedOn = ResultInfo::PFEM;
-    } else {
-     EXCEPTION( "approximation type '" << approxType << "' not allowd");
+    } 
+    else if (  approxType == "spectral" ) {
+      shared_ptr<SpectralFct> fct(new SpectralFct);
+      res1->definedOn = ResultInfo::PFEM;
+      fct->SetOrder( 1 );
+      res1->fctType = fct;
+    }
+    else {
+      EXCEPTION( "approximation type '" << approxType << "' not allowd");
     }
       
     results_.Push_back( res1 );
@@ -292,15 +360,23 @@ namespace CoupledField
       shared_ptr<AnsatzFct> fctV(new LagrangeFct);
       res2->fctType = fctV;
       res2->definedOn = ResultInfo::NODE;
-    } else if( approxType == "taylorHood" ) {
-     std::cerr << "Using taylorHood!\n";
+    } 
+    else if( approxType == "taylorHood" ) {
+      std::cerr << "Using taylorHood!\n";
       // define Legendre type
       shared_ptr<LegendreFct> fctV(new LegendreFct);
       fctV->SetIsoOrder( 2 );
       res2->fctType = fctV;
       res2->definedOn = ResultInfo::PFEM;
-    } else {
-       EXCEPTION( "approximation type '" << approxType << "' not allowd");
+    }
+    else if(  approxType == "spectral" ) {
+      shared_ptr<SpectralFct> fct(new SpectralFct);
+      res2->definedOn = ResultInfo::PFEM;
+      fct->SetOrder( 2 );
+      res2->fctType = fct;
+    }
+    else {
+      EXCEPTION( "approximation type '" << approxType << "' not allowd");
     }
 
     results_.Push_back( res2 );

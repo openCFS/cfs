@@ -3,6 +3,7 @@
 
 #include "baseForm.hh"
 #include "massInt.hh"
+#include "Forms/linSurfForm.hh"
 
 namespace CoupledField
 {
@@ -111,6 +112,69 @@ namespace CoupledField
   };
 
 
+  //! Class for calculation  of ABC in mixed formulation
+  class ABC_MixedInt : public BaseForm
+  {
+  public:
+
+    // Constructor
+    ABC_MixedInt(const Double aDactor, bool axi=false, bool coordUpdate = false );
+
+    // Destructor
+    virtual ~ABC_MixedInt();
+
+    // Calculation of element matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+      
+
+  protected:
+  
+  private:
+
+    Double factor_;          //!< multiplicative value for mass integrator
+    UInt nrDofsPerNode_;   //!< degrees of freedom per node
+  };
+
+
+  //! Class implementing an inhomogeneous Neumann integrator for acoustic field
+  class LinSurfVelocity : public LinearSurfForm {
+
+  public:
+    
+    //! Standard constructor
+    LinSurfVelocity( std::string amplitudeStr, std::string phaseStr,
+		     Double val, bool isaxi );
+    
+    //! Destructor
+    ~LinSurfVelocity();
+
+    /// Calculation of RHS vector for double entries, i.e. transient and static 
+    void CalcElemVector( Vector<Double> & elemVec,
+                         EntityIterator& ent );
+
+    /// Calculation of RHS vector for complex entries, i.e. harmonic
+    void CalcElemVector( Vector<Complex> & elemVec,
+                         EntityIterator& ent );
+    
+    void SetAmplitude(const std::string& value) { amplitude_ = value; }
+    
+  protected:
+
+    /// comprises part of CalcElemVector, which is equal for double and complex
+    void PrepareElemVector( Vector<Double> & elemVec,
+                            EntityIterator& ent );
+    
+    //! amplitude string
+    std::string amplitude_;
+    
+    //! phase string
+    std::string phase_;
+
+    //! material factor
+    Double matFactor_;
+  };
 
 
 }

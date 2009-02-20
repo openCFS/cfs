@@ -44,6 +44,11 @@ namespace CoupledField
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
     {;};
 
+    //! set gamma coefficient 
+    void SetTrapezoidalGamma(Double val) {
+      gamma_ = val; 
+    }
+
   private:
     
     //! compute parameters for multiplication

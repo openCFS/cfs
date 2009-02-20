@@ -44,6 +44,7 @@ namespace CoupledField
     //! Read special boundary conditions
     void ReadSpecialBCs();
     
+
     // ======================================================
     // POSTPROC SECTION
     // ======================================================
@@ -67,6 +68,12 @@ namespace CoupledField
  
     //! Init the time stepping
     void InitTimeStepping();
+    
+    //! surface elements with absorbing boundary conditions
+    StdVector<shared_ptr<EntityList> > absBCs_; 
+
+    bool absorbingBCs_; //!< switch for absorbing BCs     
+
 
   private:
 
