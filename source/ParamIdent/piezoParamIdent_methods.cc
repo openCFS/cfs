@@ -526,32 +526,25 @@ namespace CoupledField {
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
-    Vector<Complex> F_hat__incr3(F_hat_.GetSize());
-    Vector<Complex> F_hat__incr4(F_hat_.GetSize());
+
     approxJacobiMatrix_.Resize(nrMeasuredData_, actNrParameter_);
     approxJacobiMatrix_.Init();
+
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
-    Vector<Double> parameter_incr3(nrParameter_);
-    Vector<Double> parameter_incr4(nrParameter_);
 
     parameter_incr=parameter_;
     parameter_incr2=parameter_;
     UInt parInd=0;
 
-    updateMaterialData(parameter_);
-    createF(F_hat_, false);
-
     for (UInt ind_param=0; ind_param<nrParameter_; ind_param++) {
       if (whichParameterToUpdate_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.00001*parameter_[ind_param];
-        //      std::cout<<parameter_incr<<std::endl
         updateMaterialData(parameter_incr);
         createF(F_hat__incr, false);
 
         parameter_incr2[ind_param]=0.99999*parameter_[ind_param];
-        //      std::cout<<parameter_incr2<<std::endl;
         updateMaterialData(parameter_incr2);
         createF(F_hat__incr2, false);
 
@@ -562,69 +555,50 @@ namespace CoupledField {
             *scaling_[ind_param]);
 
         parInd++;
-        //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
         parameter_incr[ind_param]=parameter_[ind_param];
         parameter_incr2[ind_param]=parameter_[ind_param];
-        parameter_incr3[ind_param]=parameter_[ind_param];
-        parameter_incr4[ind_param]=parameter_[ind_param];
-
       }
     }
 
-  }// end testJacobiMatrix
+  }
 
 
   void piezoParamIdent::computeJacobiMatrixC() {
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     Vector<Complex> F_hat__incr2(F_hat_.GetSize());
-    Vector<Complex> F_hat__incr3(F_hat_.GetSize());
-    Vector<Complex> F_hat__incr4(F_hat_.GetSize());
+
     approxJacobiMatrix_.Resize(nrMeasuredData_, actNrParameter_+actNrParameterC_);
     approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
-    Vector<Double> parameter_incr3(nrParameter_);
-    Vector<Double> parameter_incr4(nrParameter_);
 
     parameter_incr=parameter_;
     parameter_incr2=parameter_;
     UInt parInd=0;
 
-    updateComplexMaterialData(parameterC_);
-    updateMaterialData(parameter_);
-
-    createF(F_hat_, false);
-
     for (UInt ind_param=0; ind_param<nrParameter_; ind_param++) {
       if (whichParameterToUpdate_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.001*parameter_[ind_param];
-        //      std::cout<<parameter_incr<<std::endl
         updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr);
         createF(F_hat__incr, false);
 
         parameter_incr2[ind_param]=0.999*parameter_[ind_param];
-        //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameterC_);
         updateMaterialData(parameter_incr2);
         createF(F_hat__incr2, false);
 
         // second order FD approximation
-
         for (UInt j=0; j<nrMeasuredData_; j++)
         approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])
         /((parameter_incr[ind_param]-parameter_[ind_param])
             *scaling_[ind_param]);
 
         parInd++;
-        //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
         parameter_incr[ind_param]=parameter_[ind_param];
         parameter_incr2[ind_param]=parameter_[ind_param];
-        parameter_incr3[ind_param]=parameter_[ind_param];
-        parameter_incr4[ind_param]=parameter_[ind_param];
-
       }
     }
 
@@ -633,14 +607,11 @@ namespace CoupledField {
       if (whichParameterToUpdateC_[ind_param]==1) {
 
         parameter_incr[ind_param]=1.001*parameterC_[ind_param];
-        //      std::cout<<parameter_incr<<std::endl
-
         updateComplexMaterialData(parameter_incr);
         updateMaterialData(parameter_);
         createF(F_hat__incr, false);
 
         parameter_incr2[ind_param]=0.999*parameterC_[ind_param];
-        //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameter_incr2);
         updateMaterialData(parameter_);
         createF(F_hat__incr2, false);
@@ -653,28 +624,21 @@ namespace CoupledField {
             *scaling_[ind_param]);
 
         parInd++;
-        //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
         parameter_incr[ind_param]=parameterC_[ind_param];
         parameter_incr2[ind_param]=parameterC_[ind_param];
-        parameter_incr3[ind_param]=parameterC_[ind_param];
-        parameter_incr4[ind_param]=parameterC_[ind_param];
-
       }
     }
 
-  } // end testJacobiMatrix
+  } 
 
 
   void piezoParamIdent::createAdjointJacobiMatrix() {
-    //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
     adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),
         JacobiMatrix_.GetSizeRow());
     adjJacobiMatrix_.Init();
     for (UInt i=0; i<JacobiMatrix_.GetSizeCol(); i++)
     for (UInt j=0; j<JacobiMatrix_.GetSizeRow(); j++) {
-      //adjJacobiMatrix_[i][j] = JacobiMatrix_[j][i];
       adjJacobiMatrix_[i][j] = std::conj(JacobiMatrix_[j][i]);
-      //std::cout<<"F*("<<i<<")("<<j<<")= "<< adjJacobiMatrix_[i][j]<<";\t ";
     }
   } // end createAdjointJacobiMatrix
 
@@ -727,12 +691,10 @@ namespace CoupledField {
       if (whichParameterToUpdateC_[ind_param]==1) {
 
         parIncrC1[ind_param]=1.000001*parameterC_[ind_param];
-        //      std::cout<<parameter_incr<<std::endl
         updateComplexMaterialData(parIncrC1);
         createFVec(F_hat_incrC1,false,omega);
 
         parIncrC2[ind_param]=0.999999*parameterC_[ind_param];
-
         updateComplexMaterialData(parIncrC2);
         createFVec(F_hat_incrC2,false,omega);
 

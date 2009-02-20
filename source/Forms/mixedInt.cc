@@ -130,10 +130,8 @@ namespace CoupledField {
 
      for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
        
-       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
-       
+       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );       
        ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-
        partElemMat.DyadicMult(shapeFncAtIp);
 
        if (isaxi_) {
@@ -141,18 +139,16 @@ namespace CoupledField {
          partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
          * jacDet * CoordAtIP[0];
        }
-       else
+       else {
          partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+       }
 
        tempElemMat += partElemMat;
      }
 
 
-
-     const UInt singleDofSize = tempElemMat.GetSizeRow();
-
-     //    std::cout << "Part Element Mass Matrix, MPP:\n" << tempElemMat << std::endl;
      //Blowing up the element matrix to number of velocity components 
+     const UInt singleDofSize = tempElemMat.GetSizeRow();
      for (UInt i=0; i < singleDofSize; i++)
        for (UInt j=0; j < singleDofSize; j++)
          for (UInt actDof = 0; actDof < 2 ; actDof++)
@@ -166,10 +162,8 @@ namespace CoupledField {
 
   //=========================== Stiff-KPV==========================//
   StiffMixedInt_KPV::StiffMixedInt_KPV(Double aVal, bool axi, bool coordUpdate )
-    : BaseForm(NULL), factor_ (aVal)
-  {
-
-
+    : BaseForm(NULL), factor_ (aVal)  {
+    
     name_ = "StiffMixed_KPV_Int";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
@@ -185,15 +179,11 @@ namespace CoupledField {
   void StiffMixedInt_KPV::CalcElementMatrix( Matrix<Double>& elemMat,
                                              EntityIterator& ent1,
                                              EntityIterator& ent2 ) {
-    
-
-  
-    
     //Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-
-    // ansatzFct1_ corresponds to functions of pressure V (Taylor Hood: 2nd order)
-    // ansatzFct2_ corresponds to functions of veloctity P (TaylorHood: 1st order )
+    
+    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
+    // ansatzFct2_ corresponds to functions of veloctity V (TaylorHood: 2nd order )
     UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
     UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
 
@@ -205,61 +195,46 @@ namespace CoupledField {
     Vector<Double> shapeFncAtIp;
     Vector<Double> CoordAtIP;
     Matrix<Double> xiDx;
-    Matrix<Double> xiDxTransp;
+    Matrix<Double> K_x, K_y;
 
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
-    xiDxTransp.Init();
     shapeFncAtIp.Init();
-    Matrix<Double> K_x, K_y, K_x_Temp, K_y_Temp;
     K_x.Resize(numFncs1, numFncs2);
     K_y.Resize(numFncs1, numFncs2);
-    K_x_Temp.Resize(numFncs1, numFncs2);
-    K_y_Temp.Resize(numFncs1, numFncs2);
     K_x.Init();
     K_y.Init();
-    K_x_Temp.Init();
-    K_y_Temp.Init();
 
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) 
-    {
-      //	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
 
-      //Get the traspose	matrix
-      ptelem->SetAnsatzFct( ansatzFct2_ , false);
-      xiDx.Transpose(xiDxTransp);
       //Get the shape functions vector
-
-      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-      for(UInt i = 0; i < numFncs1; i++ )
-        for(UInt j = 0; j < numFncs2; j++ )
-        {
-          // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
-          // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
-          K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
-          K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
+
+      Double val = jacDet * intWeights[actIntPt-1] * factor_;
+      for(UInt i=0; i<numFncs1; i++ ) {
+        for(UInt j=0; j<numFncs2; j++ ) {
+          K_x[i][j] += xiDx[i][0]*shapeFncAtIp[j] * val;
+          K_y[i][j] += xiDx[i][1]*shapeFncAtIp[j] * val;
         }
-      K_x += K_x_Temp;
-      K_y += K_y_Temp;
+      }
     }
 
-    //     std::cout << "K_x = "<< std::endl << K_x << std::endl;
-    //     std::cout << "K_y = "<< std::endl << K_y << std::endl;
-
-    elemMat.Resize(numFncs1*2, numFncs2);
+    elemMat.Resize(numFncs1, numFncs2*2);
     elemMat.Init();
 
-    //Here the solution vector is (U,V)-vector, the element matrix is of dimension (numFncs X numFncs*2) 
-    for (UInt i = 0; i < numFncs1; i++) 
-      for (UInt j = 0; j < numFncs2; j++)
-      {
-        elemMat[i*2][j] = K_x[i][j] ;
-        elemMat[i*2+1][j] = K_y[i][j] ;
+    //Here the solution vector is P-vector, the element matrix is of dimension (numFncs1 X dim*numFncs2) 
+    for (UInt i=0; i<numFncs1; i++) {
+      for (UInt j=0; j<numFncs2; j++) {
+        elemMat[i][j*2] = -K_x[i][j] ;
+        elemMat[i][j*2+1] = -K_y[i][j] ;
       }
+    }
 
-    //  std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
+    //    std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
 
 }
 
@@ -291,16 +266,16 @@ namespace CoupledField {
                                              EntityIterator& ent2 ) {
 
     
-   
+    
     //Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-    
-    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
-    // ansatzFct2_ corresponds to functions of veloctity V (TaylorHood: 2nd order )
+
+    // ansatzFct1_ corresponds to functions of velocity V (Taylor Hood: 2nd order)
+    // ansatzFct2_ corresponds to functions of pressure P (TaylorHood: 1st order )
     UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
     UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
 
-    ptelem->SetAnsatzFct( ansatzFct2_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
     Double jacDet;
@@ -308,64 +283,209 @@ namespace CoupledField {
     Vector<Double> shapeFncAtIp;
     Vector<Double> CoordAtIP;
     Matrix<Double> xiDx;
-    Matrix<Double> xiDxTransp;
+    Matrix<Double> K_x, K_y;
 
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
-    xiDxTransp.Init();
     shapeFncAtIp.Init();
-    Matrix<Double> K_x, K_y, K_x_Temp, K_y_Temp;
     K_x.Resize(numFncs1, numFncs2);
     K_y.Resize(numFncs1, numFncs2);
-    K_x_Temp.Resize(numFncs1, numFncs2);
-    K_y_Temp.Resize(numFncs1, numFncs2);
     K_x.Init();
     K_y.Init();
-    K_x_Temp.Init();
-    K_y_Temp.Init();
 
-
-
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) 
-    {
-      //	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       ptelem->SetAnsatzFct( ansatzFct2_ , false);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
 
-      //Get the traspose	matrix
-      xiDx.Transpose(xiDxTransp);
-      //Get the shape functions vector
-
+       //Get the shape functions vector
       ptelem->SetAnsatzFct( ansatzFct1_ , false);
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-      for(UInt i = 0; i < numFncs1; i++ )
-        for(UInt j = 0; j < numFncs2; j++ )
-        {
-          // 						K_x[i][j] += xiDxTransp[0][j]*shapeFncAtIp[i];
-          // 						K_y[i][j] += xiDxTransp[1][j]*shapeFncAtIp[i];
-          K_x_Temp[i][j] = xiDxTransp[0][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;
-          K_y_Temp[i][j] = xiDxTransp[1][j]*shapeFncAtIp[i] * jacDet * intWeights[actIntPt-1] * factor_;;
+
+      Double val = jacDet * intWeights[actIntPt-1] * factor_;
+      for(UInt i = 0; i < numFncs1; i++ ) {
+        for(UInt j = 0; j < numFncs2; j++ ) {
+	  K_x[i][j] += xiDx[j][0]*shapeFncAtIp[i] * val;
+          K_y[i][j] += xiDx[j][1]*shapeFncAtIp[i] * val;
         }
-      K_x += K_x_Temp;
-      K_y += K_y_Temp;
+      }
     }
 
-    //     std::cout << "K_x = "<< std::endl << K_x << std::endl;
-    //     std::cout << "K_y = "<< std::endl << K_y << std::endl;
-    elemMat.Resize(numFncs1, numFncs2*2);
+    elemMat.Resize(numFncs1*2, numFncs2);
     elemMat.Init();
 
-    //Here the solution vector is P-vector, the element matrix is of dimension (numFncs1 X numFncs2) 
-    for (UInt i = 0; i < numFncs1; i++) 
-      for (UInt j = 0; j < numFncs2; j++)
-      {
-        elemMat[i][j*2] = K_x[i][j] ;
-        elemMat[i][j*2+1] = K_y[i][j] ;
+    //Here the solution vector is (U,V)-vector, the element matrix is of dimension (numFncs1*2 X numFncs2) 
+    for (UInt i = 0; i < numFncs1; i++) {
+      for (UInt j = 0; j < numFncs2; j++) {
+        elemMat[i*2][j] = K_x[i][j] ;
+        elemMat[i*2+1][j] = K_y[i][j] ;
       }
-
-    //  std::cout << "ElemeMatStiff KVP:\n" << elemMat << std::endl;
+    }
+    //    std::cout << "ElemeMatStiff KVP:\n" << elemMat << std::endl;
 }
 
+
+  //=========================== Absorbing Boundaries 1st order==========================//
+
+
+  ABC_MixedInt:: ABC_MixedInt(Double aVal, bool axi, bool coordUpdate )
+    : BaseForm(NULL), factor_ (aVal) {
+    
+    name_ = "ABC_MixedInt";
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+  }
+
+
+ 
+  ABC_MixedInt::~ABC_MixedInt()
+  {
+
+  }
+
+
+  void ABC_MixedInt::CalcElementMatrix( Matrix<Double>& elemMat,
+					EntityIterator& ent1,
+					EntityIterator& ent2 ) {
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    Double jacDet, coordAtIp;
+    Vector<Double> shapeFncAtIp;
+    Matrix<Double> partElemMat;
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    
+    elemMat.Resize(numFncs);
+    elemMat.Init();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
+                                           ent1.GetElem() );
+        
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+        
+      partElemMat.DyadicMult(shapeFncAtIp);
+        
+      if (isaxi_) {
+        // For the entry 1/r things are more complicated
+        coordAtIp = 0.0;
+        for( UInt j = 0; j < numFncs; j++ ) {
+          coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
+        }
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] 
+          * factor_ * jacDet * coordAtIp;
+      }
+      else 
+        partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+        
+      elemMat += partElemMat;
+    }
+
+    //     std::cout << "ABC Mat:\n" << elemMat << std::endl;
+  }
+
+
+  //================== Neumann integrator for surface velocity =====================!
+
+  LinSurfVelocity::LinSurfVelocity( std::string amplitudeStr,
+				    std::string phaseStr,
+				    Double materialParam,
+				    bool isaxi ) 
+    : LinearSurfForm() {
+
+    name_ = "LinSurfVelocity";
+    isaxi_ = isaxi;
+
+    // store value and phase string
+    amplitude_ = amplitudeStr;
+    phase_ = phaseStr;
+    matFactor_ = materialParam;
+  }
+
+
+  LinSurfVelocity::~LinSurfVelocity() {
+
+  }
+
+  void LinSurfVelocity::PrepareElemVector( Vector<Double> & elemVec,
+					   EntityIterator& ent) {
+    
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    Vector<Double> shapeFnc, CoordAtIP;
+
+
+    // Calculate element vector  
+    elemVec.Resize(numFncs);
+    elemVec.Init(0.0);
+    Double value = 0.0;
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      
+      ptelem->GetShFncAtIp(shapeFnc,actIntPt,ent.GetElem() );
+      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
+        intWeights[actIntPt-1];
+      
+      if (isaxi_) {
+        CoordAtIP = ptCoord_ * shapeFnc;
+        value *=  2 * PI * CoordAtIP[0];
+      }
+      
+      shapeFnc *= value;
+      elemVec += shapeFnc;
+    }
+  }
+
+
+
+  void LinSurfVelocity::CalcElemVector( Vector<Double> & elemVec,
+					EntityIterator& ent) {
+    
+    // compute element vector
+    PrepareElemVector( elemVec, ent );
+
+    // evaluate value for current element
+    mParser_->SetExpr( mHandle_, amplitude_ );
+    Double factor = mParser_->Eval( mHandle_ );
+
+    // multiply element vector with factor
+    elemVec *= factor;
+
+  }
+
+  void LinSurfVelocity::CalcElemVector( Vector<Complex> & elemVec,
+					EntityIterator& ent) {
+
+    // compute element vector
+    Vector<Double> helpVec;
+    PrepareElemVector( helpVec, ent );
+
+    // evaluate value and phase for current element
+    mParser_->SetExpr( mHandle_, amplitude_ );
+    Double value = mParser_->Eval( mHandle_ );
+
+    mParser_->SetExpr( mHandle_, phase_ );
+    Double phase = mParser_->Eval( mHandle_ );
+
+    // Note: Since phase is in (grad), we have to transform it into
+    //        rad-value
+    Double realPart = value * cos( phase / 180 * PI );
+    Double imagPart = value * sin( phase / 180 * PI );
+
+    // multiply element vector with complex factor
+    Complex factor(realPart, imagPart);
+    elemVec = helpVec * factor;
+  }
 
 
 } // end namespace CoupledField

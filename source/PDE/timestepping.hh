@@ -101,6 +101,11 @@ namespace CoupledField {
       return -1.0;
     }
 
+    //! set gamma coefficient from Trapezoidal time stepping scheme
+    virtual void SetTrapezoidalGamma(Double val) { 
+      Error( "Not implemented here", __FILE__, __LINE__ );
+    }
+
     //! Dirichlet boundary condition has to be adapted
     virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
       Error( "DirichletBC4EffMassMatrix not implemented",

@@ -69,8 +69,9 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_AcousticMixedHD"  />
                 <xsd:element name="dirichletInhom" type="DT_AcousticMixedID"  />
-                <xsd:element name="neumannInhom"  type="DT_AcousticMixedIN"  />
-                <xsd:element name="regionLoad"  type="DT_AcouMixedRegionLoad"/>
+                <xsd:element name="neumannInhom"   type="DT_AcousticMixedIN"  />
+                <xsd:element name="regionLoad"     type="DT_AcouMixedRegionLoad"/>
+                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBCMixed" />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -100,6 +101,7 @@
               <xsd:enumeration value="lagrange"/>
               <xsd:enumeration value="legendre"/>
 	      <xsd:enumeration value="taylorHood"/>
+	      <xsd:enumeration value="spectral"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -178,11 +180,20 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+
   <!-- Element type for specifying loads -->
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_AcouMixedLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticMixedID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of homogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AbsorbingBCMixed">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedHD"/>
     </xsd:complexContent>
   </xsd:complexType>
 
