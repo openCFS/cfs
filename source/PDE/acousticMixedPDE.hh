@@ -74,6 +74,10 @@ namespace CoupledField
 
     bool absorbingBCs_; //!< switch for absorbing BCs     
 
+    //! surface elements with normal particle velocity
+    StdVector<shared_ptr<EntityList> > surfVelLHS_; 
+
+    bool isSurfVelLHS_; //!< switch for absorbing BCs    
 
   private:
 

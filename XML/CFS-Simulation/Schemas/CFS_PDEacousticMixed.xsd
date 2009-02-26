@@ -72,6 +72,7 @@
                 <xsd:element name="neumannInhom"   type="DT_AcousticMixedIN"  />
                 <xsd:element name="regionLoad"     type="DT_AcouMixedRegionLoad"/>
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBCMixed" />
+                <xsd:element name="surfVelLHS"     type="DT_SurfVelLHS" />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -122,6 +123,7 @@
       <xsd:enumeration value="x"/>
       <xsd:enumeration value="y"/>
       <xsd:enumeration value="z"/>
+      <xsd:enumeration value="r"/>
       <xsd:enumeration value=""/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -197,6 +199,13 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for specifying unknow surface particle velocity -->
+  <!-- in normal direction                                          -->
+  <xsd:complexType name="DT_SurfVelLHS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticMixedHD"/>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- Element type for region Loads -->
   <!-- We derive it by extending the base type -->

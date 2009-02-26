@@ -119,9 +119,12 @@ namespace CoupledField
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "bulk modulus = %e\n", bulkModulus);
       
+      std::cout << "dim: " << dim_ << std::endl;
+ 
       // ==============  add stiffness ======================================
       // ==============  add KPV ======================================
-      BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, isaxi_);
+      BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, 
+							   dim_, isaxi_);
       BiLinFormContext * stiffContext_KPV =
         new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
 
@@ -132,7 +135,8 @@ namespace CoupledField
       assemble_->AddBiLinearForm( stiffContext_KPV );
 
        // ==============  add KVP ======================================
-      BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, isaxi_);
+      BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, 
+							   dim_, isaxi_);
       BiLinFormContext * stiffContext_KVP =
         new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
 
@@ -156,7 +160,7 @@ namespace CoupledField
 
 
       //==============  add MVV ======================================	
-      BaseForm * bilinearMass_VV = new MassMixedInt_VV(coeffMass, isaxi_);
+      BaseForm * bilinearMass_VV = new MassMixedInt_VV(coeffMass, dim_, isaxi_);
 
       BiLinFormContext * massContext_VV =  
       	new BiLinFormContext( bilinearMass_VV, MASS );
@@ -209,6 +213,26 @@ namespace CoupledField
       }
     }
 
+    // **********************************************************************
+    //   surface-bilinear form for normal particle velocity
+    // **********************************************************************
+    if ( isSurfVelLHS_ == true) { 
+      for (UInt actSD = 0; actSD < surfVelLHS_.GetSize(); actSD++) {
+	Double c0 = sqrt(bulkModulus/density);
+        SurfVel_MixedInt * bilinear_surf = new SurfVel_MixedInt( bulkModulus,
+								 dim_, isaxi_);
+        BiLinFormContext * surfContext = 
+          new BiLinFormContext( bilinear_surf, STIFFNESS );
+        surfContext->SetPtPdes(this, this);     
+        surfContext->SetResults( results_[0], results_[0],
+				 surfVelLHS_[actSD], surfVelLHS_[actSD] );
+        assemble_->AddBiLinearForm( surfContext );
+
+        // Give result to equation numbering class
+        eqnMap_->AddResult( *results_[0], surfVelLHS_[actSD] );
+      }
+    }
+
     // Add integrators for region loads
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
@@ -238,8 +262,7 @@ namespace CoupledField
     ReadRegionLoads();
 
     // ***************************************************************
-    //   If no other damping type is specified and we have absorbing
-    //   boundary conditions, then use ABCDAMP
+    //   Abbsorbing BCs
     // ***************************************************************
     StdVector<std::string> auxVec;
     absorbingBCs_ = false;
@@ -255,6 +278,25 @@ namespace CoupledField
         absorbingBCs_ = true;
         Info->PrintF( pdename_, 
                       "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
+                      regionName.c_str() );
+      }
+    }
+
+    // ***************************************************************
+    //   Surface bilinear form for particle velocity in normal direction
+    // ***************************************************************
+    isSurfVelLHS_ = false;
+    ParamNode * bcNodeVel = myParam_->Get( "bcsAndLoads", false );
+    if( bcNodeVel ) {
+      StdVector<ParamNode*> surfNodes = bcNodeVel->GetList( "surfVelLHS" );
+      
+      for( UInt i = 0; i < surfNodes.GetSize(); i++ ) {
+        std::string regionName = surfNodes[i]->Get("name")->AsString(); 
+        surfVelLHS_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
+						       regionName, EntityList::REGION ) );
+        isSurfVelLHS_ = true;
+        Info->PrintF( pdename_, 
+                      "Apply Surface bilinear form for particle velocity in normal direction '%s'\n",
                       regionName.c_str() );
       }
     }
@@ -307,7 +349,6 @@ namespace CoupledField
     res1->unit = "Pa";
     res1->entryType = ResultInfo::SCALAR;
 
-    // check if problem is lagrange or legendre
     std::string approxType = myParam_->Get("type")->AsString();
     if ( approxType == "lagrange" ) {
       shared_ptr<AnsatzFct> fct(new LagrangeFct);
@@ -316,16 +357,17 @@ namespace CoupledField
     } 
     else if( approxType == "taylorHood" ) {
       std::cerr << "Using taylorHood!\n";
-      // define Legendre type
+      UInt order = myParam_->Get("order")->AsUInt();
       shared_ptr<LegendreFct> fct(new LegendreFct);
-      fct->SetIsoOrder( 1 );
+      fct->SetIsoOrder( order );
       res1->fctType = fct;
       res1->definedOn = ResultInfo::PFEM;
     } 
     else if (  approxType == "spectral" ) {
+      UInt order = myParam_->Get("order")->AsUInt();
       shared_ptr<SpectralFct> fct(new SpectralFct);
       res1->definedOn = ResultInfo::PFEM;
-      fct->SetOrder( 1 );
+      fct->SetOrder( order );
       res1->fctType = fct;
     }
     else {
@@ -354,7 +396,6 @@ namespace CoupledField
     res2->unit = "m/s";
     res2->entryType = ResultInfo::VECTOR;
 
-    // check if problem is lagrange or legendre
     std::string approxTypeV = myParam_->Get("type")->AsString();
     if ( approxTypeV == "lagrange" ) {
       shared_ptr<AnsatzFct> fctV(new LagrangeFct);
@@ -363,16 +404,17 @@ namespace CoupledField
     } 
     else if( approxType == "taylorHood" ) {
       std::cerr << "Using taylorHood!\n";
-      // define Legendre type
+      UInt order = myParam_->Get("order")->AsUInt();
       shared_ptr<LegendreFct> fctV(new LegendreFct);
-      fctV->SetIsoOrder( 2 );
+      fctV->SetIsoOrder( order+1 );
       res2->fctType = fctV;
       res2->definedOn = ResultInfo::PFEM;
     }
     else if(  approxType == "spectral" ) {
       shared_ptr<SpectralFct> fct(new SpectralFct);
+      UInt order = myParam_->Get("order")->AsUInt();
       res2->definedOn = ResultInfo::PFEM;
-      fct->SetOrder( 2 );
+      fct->SetOrder( order );
       res2->fctType = fct;
     }
     else {
