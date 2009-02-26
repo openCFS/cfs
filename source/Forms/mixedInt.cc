@@ -41,6 +41,8 @@ namespace CoupledField {
      UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
      const UInt nrIntPts= ptelem->GetNumIntPoints();    
      const Vector<Double> & intWeights = ptelem->GetIntWeights();
+     const Vector<Double> * intPoints = ptelem->GetIntPoints();
+
      Double jacDet;
      Vector<Double> shapeFncAtIp;
      Matrix<Double> partElemMat;
@@ -59,7 +61,8 @@ namespace CoupledField {
        partElemMat.DyadicMult(shapeFncAtIp);
        
        if (isaxi_) {
-	 CoordAtIP = ptCoord_ * shapeFncAtIp;
+	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+				    ptCoord_, it1_.GetElem() );
 	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
 	   * jacDet * CoordAtIP[0];
        }
@@ -69,7 +72,7 @@ namespace CoupledField {
        elemMat += partElemMat;
      }
      
-     //std::cout << "Part Element Mass Matrix, MPP:\n" << elemMat << std::endl;
+     //     std::cout << "Part Element Mass Matrix, MPP:\n" << elemMat << std::endl;
   }
 
 
@@ -77,15 +80,16 @@ namespace CoupledField {
 
 //=========================== Mass-MVV ==========================//
 
-  MassMixedInt_VV::MassMixedInt_VV(const Double aFactor, bool axi, bool coordUpdate )
+  MassMixedInt_VV::MassMixedInt_VV(const Double aFactor, UInt dim, bool axi, bool coordUpdate )
     : BaseForm(NULL), 
       factor_(aFactor)
   {
     name_ = "MassMixedVelocityInt";
 
     isaxi_ = axi;
+    dim_   = dim;
     coordUpdate_ = coordUpdate;
-    baseType_ = MASS;
+    baseType_    = MASS;
   }
 
  
@@ -104,19 +108,15 @@ namespace CoupledField {
      Vector<Double> CoordAtIP;
      Matrix<Double> tempElemMat;
 
-     // set matrix to desired size and set all elements to zero
-    //    partElemMat.Resize(numFncs);
-
-
-     //New additions
      ExtractElemInfo( ent1 );
      ptelem->SetAnsatzFct( ansatzFct1_ );
      UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
      const UInt nrIntPts= ptelem->GetNumIntPoints();    
      const Vector<Double> & intWeights = ptelem->GetIntWeights();
+     const Vector<Double> * intPoints = ptelem->GetIntPoints();
      Double jacDet;
 
-     elemMat.Resize(2*numFncs);
+     elemMat.Resize(dim_*numFncs);
      elemMat.Init();
 
      tempElemMat.Resize(numFncs);
@@ -135,9 +135,10 @@ namespace CoupledField {
        partElemMat.DyadicMult(shapeFncAtIp);
 
        if (isaxi_) {
-         CoordAtIP = ptCoord_ * shapeFncAtIp;
-         partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-         * jacDet * CoordAtIP[0];
+	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+				    ptCoord_, it1_.GetElem() );
+	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	   * jacDet * CoordAtIP[0];
        }
        else {
          partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
@@ -151,8 +152,8 @@ namespace CoupledField {
      const UInt singleDofSize = tempElemMat.GetSizeRow();
      for (UInt i=0; i < singleDofSize; i++)
        for (UInt j=0; j < singleDofSize; j++)
-         for (UInt actDof = 0; actDof < 2 ; actDof++)
-           elemMat[i*2 + actDof][j*2 + actDof] = tempElemMat[i][j]; 
+         for (UInt actDof = 0; actDof < dim_ ; actDof++)
+           elemMat[i*dim_ + actDof][j*dim_ + actDof] = tempElemMat[i][j]; 
 
      //std::cout << "ElemMatMass:\n" << elemMat << std::endl;
 
@@ -161,11 +162,12 @@ namespace CoupledField {
 
 
   //=========================== Stiff-KPV==========================//
-  StiffMixedInt_KPV::StiffMixedInt_KPV(Double aVal, bool axi, bool coordUpdate )
+  StiffMixedInt_KPV::StiffMixedInt_KPV(Double aVal, UInt dim, bool axi, bool coordUpdate )
     : BaseForm(NULL), factor_ (aVal)  {
     
     name_ = "StiffMixed_KPV_Int";
     isaxi_ = axi;
+    dim_   = dim;
     coordUpdate_ = coordUpdate;
   }
 
@@ -187,15 +189,16 @@ namespace CoupledField {
     UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
     UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
 
-    ptelem->SetAnsatzFct( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct2_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Double jacDet;
 
-    Vector<Double> shapeFncAtIp;
+    Vector<Double> shapeFncAtIp, ShpFncAtIp;
     Vector<Double> CoordAtIP;
     Matrix<Double> xiDx;
-    Matrix<Double> K_x, K_y;
+    Matrix<Double> K_x, K_y, K_z;
 
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
@@ -204,11 +207,21 @@ namespace CoupledField {
     K_y.Resize(numFncs1, numFncs2);
     K_x.Init();
     K_y.Init();
+    if ( dim_ ==3 ) {
+      K_z.Resize(numFncs1, numFncs2);
+      K_z.Init();
+    }
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       //get derivatives
       ptelem->SetAnsatzFct( ansatzFct1_ , false);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
 
       //Get the shape functions vector
       ptelem->SetAnsatzFct( ansatzFct2_ , false);
@@ -219,22 +232,26 @@ namespace CoupledField {
         for(UInt j=0; j<numFncs2; j++ ) {
           K_x[i][j] += xiDx[i][0]*shapeFncAtIp[j] * val;
           K_y[i][j] += xiDx[i][1]*shapeFncAtIp[j] * val;
+	  if ( dim_ == 3 )
+	    K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
         }
       }
     }
 
-    elemMat.Resize(numFncs1, numFncs2*2);
+    elemMat.Resize(numFncs1, numFncs2*dim_);
     elemMat.Init();
 
     //Here the solution vector is P-vector, the element matrix is of dimension (numFncs1 X dim*numFncs2) 
     for (UInt i=0; i<numFncs1; i++) {
       for (UInt j=0; j<numFncs2; j++) {
-        elemMat[i][j*2] = -K_x[i][j] ;
-        elemMat[i][j*2+1] = -K_y[i][j] ;
+        elemMat[i][j*dim_] = -K_x[i][j] ;
+        elemMat[i][j*dim_+1] = -K_y[i][j];
+	if ( dim_ == 3 )
+	  elemMat[i][j*dim_+2] = -K_z[i][j];
       }
     }
 
-    //    std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
+    //   std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
 
 }
 
@@ -242,13 +259,14 @@ namespace CoupledField {
 
 
   //=========================== Stiff-KVP==========================//
-  StiffMixedInt_KVP::StiffMixedInt_KVP(Double aVal, bool axi, bool coordUpdate )
+  StiffMixedInt_KVP::StiffMixedInt_KVP(Double aVal, UInt dim, bool axi, bool coordUpdate )
     : BaseForm(NULL), factor_ (aVal)
   {
 
 
     name_ = "StiffMixed_KVP_Int";
     isaxi_ = axi;
+    dim_   = dim;
     coordUpdate_ = coordUpdate;
   }
 
@@ -278,12 +296,13 @@ namespace CoupledField {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
     Double jacDet;
 
-    Vector<Double> shapeFncAtIp;
+    Vector<Double> shapeFncAtIp, ShpFncAtIp;
     Vector<Double> CoordAtIP;
     Matrix<Double> xiDx;
-    Matrix<Double> K_x, K_y;
+    Matrix<Double> K_x, K_y, K_z;
 
     //set matrix to desired size and set all elements to zero
     xiDx.Init();
@@ -292,10 +311,21 @@ namespace CoupledField {
     K_y.Resize(numFncs1, numFncs2);
     K_x.Init();
     K_y.Init();
+    if ( dim_ == 3 ) {
+      K_z.Resize(numFncs1, numFncs2);
+      K_z.Init();
+    }
+
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       ptelem->SetAnsatzFct( ansatzFct2_ , false);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
 
        //Get the shape functions vector
       ptelem->SetAnsatzFct( ansatzFct1_ , false);
@@ -306,18 +336,22 @@ namespace CoupledField {
         for(UInt j = 0; j < numFncs2; j++ ) {
 	  K_x[i][j] += xiDx[j][0]*shapeFncAtIp[i] * val;
           K_y[i][j] += xiDx[j][1]*shapeFncAtIp[i] * val;
+	  if ( dim_ == 3 ) 
+	    K_z[i][j] += xiDx[j][2]*shapeFncAtIp[i] * val;
         }
       }
     }
 
-    elemMat.Resize(numFncs1*2, numFncs2);
+    elemMat.Resize(numFncs1*dim_, numFncs2);
     elemMat.Init();
 
     //Here the solution vector is (U,V)-vector, the element matrix is of dimension (numFncs1*2 X numFncs2) 
     for (UInt i = 0; i < numFncs1; i++) {
       for (UInt j = 0; j < numFncs2; j++) {
-        elemMat[i*2][j] = K_x[i][j] ;
-        elemMat[i*2+1][j] = K_y[i][j] ;
+        elemMat[i*dim_][j] = K_x[i][j] ;
+        elemMat[i*dim_+1][j] = K_y[i][j] ;
+	if ( dim_ == 3 ) 
+	  elemMat[i*dim_+2][j] = K_z[i][j] ;
       }
     }
     //    std::cout << "ElemeMatStiff KVP:\n" << elemMat << std::endl;
@@ -350,15 +384,16 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
-    Double jacDet, coordAtIp;
-    Vector<Double> shapeFncAtIp;
+    Double jacDet;
+    Vector<Double> shapeFncAtIp, CoordAtIP;
     Matrix<Double> partElemMat;
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+
     elemMat.Resize(numFncs);
     elemMat.Init();
 
@@ -371,14 +406,11 @@ namespace CoupledField {
         
       partElemMat.DyadicMult(shapeFncAtIp);
         
-      if (isaxi_) {
-        // For the entry 1/r things are more complicated
-        coordAtIp = 0.0;
-        for( UInt j = 0; j < numFncs; j++ ) {
-          coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
-        }
+      if ( isaxi_ ) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
         partElemMat *= 2 * PI * intWeights[actIntPt-1] 
-          * factor_ * jacDet * coordAtIp;
+          * factor_ * jacDet * CoordAtIP[0];
       }
       else 
         partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
@@ -386,7 +418,95 @@ namespace CoupledField {
       elemMat += partElemMat;
     }
 
-    //     std::cout << "ABC Mat:\n" << elemMat << std::endl;
+    //    std::cout << "ABC Mat:\n" << elemMat << std::endl;
+  }
+
+
+  //=========================== surface bilinear form: normal particle velocity  ==============//
+
+
+  SurfVel_MixedInt:: SurfVel_MixedInt(Double aVal, UInt dim, bool axi, bool coordUpdate ) 
+  {    
+    name_ = "SurfVel_MixedInt";
+    isaxi_ = axi;
+    dim_   = dim;
+    coordUpdate_ = coordUpdate;
+    factor_ = aVal;
+  }
+
+
+ 
+  SurfVel_MixedInt::~SurfVel_MixedInt()
+  {
+
+  }
+
+
+  void SurfVel_MixedInt::CalcElementMatrix( Matrix<Double>& elemMat,
+					    EntityIterator& ent1,
+					    EntityIterator& ent2 ) {
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+    Double jacDet;
+    Vector<Double> shapeFncAtIp1, shapeFncAtIp2, CoordAtIP;
+    Matrix<Double> partMat, helpElemMat;
+
+    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
+    // ansatzFct2_ corresponds to functions of veloctity V (TaylorHood: 2nd order )
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+    UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
+
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
+
+    elemMat.Resize(numFncs1, dim_*numFncs2);
+    elemMat.Init();
+    helpElemMat.Resize(numFncs1, numFncs2);
+    helpElemMat.Init();
+    partMat.Resize(numFncs1, numFncs2);
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+
+      ptelem->SetAnsatzFct( ansatzFct1_ );
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
+                                           ent1.GetElem() );
+      ptelem->GetShFncAtIp(shapeFncAtIp1, actIntPt, ent1.GetElem() );
+
+      ptelem->SetAnsatzFct( ansatzFct2_ );
+      ptelem->GetShFncAtIp(shapeFncAtIp2, actIntPt, ent1.GetElem() );
+        
+      for ( UInt i=0; i<numFncs1; i++ )
+	for ( UInt j=0; j<numFncs2; j++ )
+	  partMat[i][j] = shapeFncAtIp1[i] * shapeFncAtIp2[j];
+   
+      if (isaxi_) {
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, it1_.GetElem() );
+        partMat *= 2 * PI * intWeights[actIntPt-1] 
+          * factor_ * jacDet * CoordAtIP[0];
+      }
+      else 
+        partMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+
+      helpElemMat += partMat;
+    }
+
+    // Create a multi-dof matrix, multiplied by normal vector
+    for ( UInt iRow = 0; iRow<numFncs1; iRow++ ) {
+      for ( UInt iCol = 0; iCol<numFncs2; iCol++ ) {
+	for ( UInt iDof = 0; iDof<dim_; iDof++ ) {
+	  elemMat[iRow][iCol*dim_+iDof] = 
+	    normal_[iDof] * helpElemMat[iCol][iRow];
+	}
+      }
+    }
+   
+    //    std::cout << "Surf Mat:\n" << elemMat << std::endl;
   }
 
 
@@ -421,6 +541,7 @@ namespace CoupledField {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const Vector<Double> * intPoints = ptelem->GetIntPoints();
 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> shapeFnc, CoordAtIP;
@@ -434,10 +555,11 @@ namespace CoupledField {
       
       ptelem->GetShFncAtIp(shapeFnc,actIntPt,ent.GetElem() );
       value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
-        intWeights[actIntPt-1];
+        intWeights[actIntPt-1] * matFactor_;
       
       if (isaxi_) {
-        CoordAtIP = ptCoord_ * shapeFnc;
+        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+                                   ptCoord_, ent.GetElem() );
         value *=  2 * PI * CoordAtIP[0];
       }
       

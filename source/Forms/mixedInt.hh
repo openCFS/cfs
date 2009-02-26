@@ -14,7 +14,8 @@ namespace CoupledField
   public:
 
     // Constructor
-    MassMixedInt_PP(const Double aDactor, bool axi=false, bool coordUpdate = false );
+    MassMixedInt_PP(const Double aDactor, bool axi=false, 
+		    bool coordUpdate = false );
 
     // Destructor
     virtual ~MassMixedInt_PP();
@@ -30,7 +31,6 @@ namespace CoupledField
   private:
 
     Double factor_;          //!< multiplicative value for mass integrator
-    UInt nrDofsPerNode_;   //!< degrees of freedom per node
   };
 
   //! Class for calculation  element mass matrix
@@ -39,7 +39,8 @@ namespace CoupledField
   public:
 
     // Constructor
-    MassMixedInt_VV(const Double aDactor, bool axi=false, bool coordUpdate = false );
+    MassMixedInt_VV(const Double aDactor, UInt dim, bool axi=false, 
+		    bool coordUpdate = false );
 
     // Destructor
     virtual ~MassMixedInt_VV();
@@ -55,7 +56,7 @@ namespace CoupledField
   private:
 
     Double factor_;          //!< multiplicative value for mass integrator
-    UInt nrDofsPerNode_;   //!< degrees of freedom per node
+    UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
 
@@ -66,7 +67,7 @@ namespace CoupledField
   public:
     
     /// Constructor
-    StiffMixedInt_KPV(Double laplVal, bool axi=false, 
+    StiffMixedInt_KPV(Double laplVal, UInt dim, bool axi=false, 
 		    bool coordUpdate = false );
     
     /// 
@@ -82,6 +83,7 @@ namespace CoupledField
   private:
     /// multiplicative value for laplace integration 
     Double factor_;
+    UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
 
@@ -93,7 +95,7 @@ namespace CoupledField
   public:
     
     /// Constructor
-    StiffMixedInt_KVP(Double laplVal, bool axi=false, 
+    StiffMixedInt_KVP(Double laplVal, UInt dim, bool axi=false, 
 		    bool coordUpdate = false );
     
     /// 
@@ -109,6 +111,7 @@ namespace CoupledField
   private:
     /// multiplicative value for laplace integration 
     Double factor_;
+    UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
 
@@ -134,7 +137,7 @@ namespace CoupledField
   private:
 
     Double factor_;          //!< multiplicative value for mass integrator
-    UInt nrDofsPerNode_;   //!< degrees of freedom per node
+    UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
 
@@ -176,6 +179,33 @@ namespace CoupledField
     Double matFactor_;
   };
 
+
+  //! Class for surface bilinear form: normal particle velocity
+
+  class SurfVel_MixedInt : public SurfForm
+  {
+  public:
+
+    // Constructor
+    SurfVel_MixedInt(const Double aDactor, UInt dim, bool axi=false, 
+		     bool coordUpdate = false );
+
+    // Destructor
+    virtual ~SurfVel_MixedInt();
+
+    // Calculation of element matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+      
+
+  protected:
+  
+  private:
+
+    Double factor_;          //!< multiplicative value for mass integrator
+    UInt dim_;               //!< dimension of the problem (2D/3D)
+  };
 
 }
 
