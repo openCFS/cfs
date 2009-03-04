@@ -11,10 +11,19 @@ namespace CoupledField {
   AnsatzFct::AnsatzFct() {
     
     isIsotropic_ = true;
+    isDiscontinuous_ = false;
 
   }
 
   AnsatzFct::~AnsatzFct() {
+  }
+
+  bool AnsatzFct::IsDiscontinuous() const { 
+    return isDiscontinuous_; 
+  }
+
+  void AnsatzFct::SetDiscontinuity(bool discontinuous){
+    isDiscontinuous_ = discontinuous;
   }
 
   ConstFct::ConstFct() {

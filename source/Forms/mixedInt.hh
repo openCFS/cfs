@@ -60,6 +60,32 @@ namespace CoupledField
   };
 
 
+  //! Class for calculation  element mass matrix
+  class MassPiolaMixedInt_VV : public BaseForm
+  {
+  public:
+
+    // Constructor
+    MassPiolaMixedInt_VV(const Double aDactor, bool axi=false, bool coordUpdate = false );
+
+    // Destructor
+    virtual ~MassPiolaMixedInt_VV();
+
+    // Calculation of element matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+      
+
+  protected:
+  
+  private:
+
+    Double factor_;          //!< multiplicative value for mass integrator
+    UInt nrDofsPerNode_;   //!< degrees of freedom per node
+  };
+
+
 
   //! Class for calculation  element stiffness matrix 
   class StiffMixedInt_KPV : public BaseForm
@@ -86,6 +112,30 @@ namespace CoupledField
     UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
+
+  //! Class for calculation  element stiffness matrix 
+  class StiffPiolaMixedInt_KPV : public BaseForm
+  {
+  public:
+    
+    /// Constructor
+    StiffPiolaMixedInt_KPV(Double laplVal, bool axi=false, 
+		    bool coordUpdate = false );
+    
+    /// 
+    virtual ~StiffPiolaMixedInt_KPV();
+    
+    /// Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+			    EntityIterator& ent1, 
+			    EntityIterator& ent2 );
+    
+    
+    
+  private:
+    /// multiplicative value for laplace integration 
+    Double factor_;
+  };
 
 
 
@@ -114,6 +164,29 @@ namespace CoupledField
     UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
+  //! Class for calculation  element stiffness matrix 
+  class StiffPiolaMixedInt_KVP : public BaseForm
+  {
+  public:
+    
+    /// Constructor
+    StiffPiolaMixedInt_KVP(Double laplVal, bool axi=false, 
+		    bool coordUpdate = false );
+    
+    /// 
+    virtual ~StiffPiolaMixedInt_KVP();
+    
+    /// Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+			    EntityIterator& ent1, 
+			    EntityIterator& ent2 );
+    
+    
+    
+  private:
+    /// multiplicative value for laplace integration 
+    Double factor_;
+  };
 
   //! Class for calculation  of ABC in mixed formulation
   class ABC_MixedInt : public BaseForm

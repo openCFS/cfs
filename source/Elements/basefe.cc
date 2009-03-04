@@ -394,6 +394,16 @@ namespace CoupledField
     Deriv = LDeriv * JInv;
   }
 
+  void BaseFE::GetLocDerivShFnc(Matrix<Double>  &Deriv, 
+                                   const Vector<Double> & LCoord,
+                                   const Matrix<Double> & CornerCoords,
+                                   const Elem * elem, 
+                                   UInt dof )
+  {
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, dof, AnsatzFct::ALL);
+    Deriv = LDeriv;
+  }
+
   void BaseFE::GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,
                                        const Matrix<Double> & CornerCoords,
@@ -429,6 +439,23 @@ namespace CoupledField
     
   }
 
+
+  void BaseFE::GetLocDerivShFncAtIp(Matrix<Double> & Deriv, 
+                                       const UInt ip,
+                                       const Matrix<Double> & CornerCoords,
+                                       Double & jacDet,
+                                       const Elem * elem, 
+                                       UInt dof )
+  {
+
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      Deriv = ShFncDerivAtIp_[ip-1];
+    } else {
+      CalcLocalDerivShapeFnc( LDeriv, IntPoints_[ip-1],
+                              elem, dof, AnsatzFct::ALL );
+      Deriv = LDeriv;
+    }
+  }
 
   void BaseFE::GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,

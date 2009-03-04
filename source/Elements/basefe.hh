@@ -124,6 +124,24 @@ namespace CoupledField
                                     UInt dof = 1);
 
 
+    //! Get local derivatives of all shape fnc at arbitrary local point
+    //! Local means here on the reference element
+    /*! 
+      \param S (output) Matrix with global derivatives of all shape functions
+      \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+      N_{2,dx} & N_{2,dy} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f ]
+      \param LCoord (input) Local Coordinates of evalutaion point
+      \param CornerCoords (input) Coordinates of element corners
+      \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right) \f ]       
+    */
+    virtual  void GetLocDerivShFnc(Matrix<Double> & Deriv, 
+                                    const Vector<Double> & LCoord,
+                                    const Matrix<Double> & CornerCoords,
+                                    const Elem * elem, 
+                                    UInt dof = 1);
+
     //! Get global derivatives of all shape fnc at integration point ip
     /*! 
       \param deriv (output) Matrix with global derivatives of all shape functions
@@ -144,6 +162,24 @@ namespace CoupledField
                                         UInt dof = 1);
 
 
+    //! Get local derivatives of all shape fnc at integration point ip
+    //! Local means here on the reference element
+    /*! 
+      \param S (output) Matrix with global derivatives of all shape functions
+      \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
+      N_{2,dx} & N_{2,dy} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f ]
+      \param LCoord (input) Local Coordinates of evalutaion point
+      \param CornerCoords (input) Coordinates of element corners
+      \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
+      \cdots & \cdots & \cdots \end{array} \right) \f ]       
+    */
+    virtual  void GetLocDerivShFncAtIp(Matrix<Double> & deriv, 
+                                       const UInt ip,
+                                       const Matrix<Double> & cornerCoords,
+                                       Double & jacDet,
+                                       const Elem * elem, 
+                                       UInt dof = 1);
 
     //! Get global derivatives of all shape fnc at integration point ip
     /*! 

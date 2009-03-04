@@ -1108,6 +1108,8 @@ source/PDE/bdf2.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/bdf2.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/bubblePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/bubblePDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/disContEqnMap.cc -text
+source/PDE/disContEqnMap.hh -text
 source/PDE/elecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/elecPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/eqnMap.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1122,6 +1124,8 @@ source/PDE/magneticPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/magneticPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/mechPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/mechPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/mixedEqnMap.cc -text
+source/PDE/mixedEqnMap.hh -text
 source/PDE/mpcciPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/mpcciPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/newmark.cc svneol=native#text/x-c%2B%2Bsrc

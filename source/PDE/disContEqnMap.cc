@@ -1,8 +1,4 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
-#include "eqnMap.hh"
+#include "disContEqnMap.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "Domain/domain.hh" 
@@ -18,12 +14,17 @@ using boost::lexical_cast;
 namespace CoupledField {
 
   // declare class specific logging stream
-  DECLARE_LOG(eqnMap)
-  DEFINE_LOG(eqnMap, "eqnMap")
+  DECLARE_LOG(disContEqnMap)
+  DEFINE_LOG(disContEqnMap, "disContEqnMap")
 
 
-    EqnMap::EqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty ) {
+  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty )//
+                      :EqnMap(grid,pdeId,usePenalty) {
 
+  }
+
+  DiscontinuousEqnMap::DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty,EqnMap* startMap) 
+                      :EqnMap(grid,pdeId,usePenalty) {
     ptGrid_ = grid;
 
     usePenalty_ = usePenalty;
@@ -31,227 +32,29 @@ namespace CoupledField {
     isFinalized_ = false;
 
 
-    numEqns_ = 0;
-    numIdBcs_ = 0;
-    numCs_ = 0;
+    numEqns_ = startMap->GetNumEqns();
+    numIdBcs_ = startMap->GetNumInHomDirichletEqns();
+    numCs_ = startMap->GetNumConstraintSlaveEqns();
     
     numLocNodes_ = 0;
     numLocElems_ = 0;
     numLocEdges_ = 0;
     numLocFaces_ = 0;
-
   }
 
-  EqnMap::~EqnMap() {
+  DiscontinuousEqnMap::~DiscontinuousEqnMap() {
 
   }
 
   //! ======================================================================
   //! SET AND INITIALIZATION METHODS
   //! ======================================================================
-  void EqnMap::AddResult( ResultInfo& result, 
-		          shared_ptr<EntityList> list ) {
-    resEntMap_[result].Push_back( list );
-  }
 
-  void EqnMap::SetHomoDirichletBCs(HdBcList& hdBcs) {
+  void DiscontinuousEqnMap::ReorderMapping( Integer **order ) {
 
-    for( UInt i = 0; i< hdBcs.GetSize(); i++ ) {
-      ResultInfo actResult = *(hdBcs[i]->result);
-      hdBcs_[actResult].Push_back(hdBcs[i]);
-    }
-  }
-  
-  void EqnMap::SetInhomDirichletBCs( IdBcList& idBcs ) {
-
-    for( UInt i = 0; i < idBcs.GetSize(); i++ ) {
-      ResultInfo actResult = *(idBcs[i]->result);
-      idBcs_[actResult].Push_back( idBcs[i] );
-    }
-  }
-  
-  void EqnMap::SetConstraints( ConstraintList& constraints ) {
-    
-    for( UInt i = 0; i < constraints.GetSize(); i++ ) {
-      ResultInfo actResult = *(constraints[i]->result);
-      constraints_[actResult].Push_back( constraints[i] );
-    }
-  }
-  
-  void EqnMap::Finalize() {
-
-    LOG_TRACE(eqnMap) << "Starting Initialization";
-    
-    // 1) Get all entity lists, which consist of elements. 
-    //    They are used lateron for global/local element/nodal number mapping    
-    ResultEntityMap::iterator it;
-    // iterate over all results
-    for (it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-      StdVector<shared_ptr<EntityList> > & lists = (*it).second;
-    
-      // iterate over entity-lists of this result type
-      for (UInt iList=0; iList<lists.GetSize(); iList++) {
-        if (lists[iList]->GetType() == EntityList::ELEM_LIST ||  
-            lists[iList]->GetType() == EntityList::SURF_ELEM_LIST ||
-            lists[iList]->GetType() == EntityList::NODE_LIST ) {
-          // Add element list to list of mapped regions
-          locEntities_.Push_back( lists[iList] );
-        }
-      }
-    }
-
-
-    // 2.) Get all entity lists, for which edges/surfaces have to be mapped
-    // Get information about which region need mapping of
-    // edges / surface 
-
-    // ... to be implemented ...
-
-    // 3.) Perform local<->global mapping of elements
-    LOG_TRACE(eqnMap) << "Performing NodeElem Mapping";
-    CalcNodeElemMapping();
-
-    // 4.) Perform global->local mapping of edges / surfaces
-
-    // ... to be implemented ...
-    
-    // ==== PHASE 1: Number all free equations ====
-    //
-
-    // Now iterate over all types of maps and assign equation
-    // numbers; 
-
-    //   a) node <-> eqnNr
-    //   -----------------
-
-    // iterate over all resultDofs
-    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-
-      // check if resultDof is mapped onto nodes
-      if( it->first.definedOn == ResultInfo::NODE ||
-          it->first.definedOn == ResultInfo::PFEM ) {
-        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-          nodeMappedList_[it->first].Push_back( it->second[iList] );
-        }
-      }
-    }
-    
-    // assign equation numbers to nodes
-    LOG_TRACE(eqnMap) << "Calculating Nodal equations";
-    CalcNodalEquations( 1 );
-
-    //   b) edge <-> eqnNr
-    //   -----------------
-
-    // iterate over all resultDofs
-    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-      // check if resultDof is mapped onto nodes
-      if( it->first.definedOn == ResultInfo::EDGE ||
-          it->first.definedOn == ResultInfo::PFEM ) {
-        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-          edgeMappedList_[it->first].Push_back( it->second[iList] );
-        }
-      }
-    }
-
-    // Only calc global->local mapping of edges, if at
-    // least on entry is present in edgeMappedList_
-    if( edgeMappedList_.size() > 0 ) {
-
-      // Trigger calculation of edges at grid class
-      ptGrid_->MapEdges();
-
-      // calc local<->global mapping of edges 
-      CalcEdgeMapping();
-
-      // calc edge / surface equations
-      CalcEdgeEquations(1);
-    }
-
-    //   c) face <-> eqnNr (only in 3D)
-    //   -------------------------------
-
-    // iterate over all resultDofs
-    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-      // check if resultDof is mapped onto nodes
-      if( it->first.definedOn == ResultInfo::FACE ||
-          it->first.definedOn == ResultInfo::PFEM ) {
-        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-          faceMappedList_[it->first].Push_back( it->second[iList] );
-        }
-      }
-    }
-
-    // Only calc global->local mapping of faces, if at
-    // least on entry is present in faceMappedList_
-    if( faceMappedList_.size() > 0 ) {
-    
-      // Trigger calculation of faces at grid class
-      ptGrid_->MapFaces();
-
-      // calc local<->global mapping of faces
-      CalcFaceMapping();
-
-      // calc face equations
-      CalcFaceEquations(1);
-    }
-
-
-
-    // d) elem <-> eqnNr ( 'bubble functions' )
-    // ----------------------------------------
-    
-    // iterate over all resultDofs
-    for( it = resEntMap_.begin(); it != resEntMap_.end(); it++ ) {
-      // check if resultDof is apprxomiated using PFEM
-      if( it->first.definedOn == ResultInfo::PFEM ) {
-        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-          elemIntMappedList_[it->first].Push_back( it->second[iList] );
-        }
-      }
-    }
-    
-    CalcElemInteriorEquations(1);
-
-    //   e) elem <-> eqnNr (only for constants)
-    //   -----------------
-
-    // iterate over all resultDofs
-    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
-
-      // check if resultDof is mapped onto nodes
-      if( it->first.definedOn == ResultInfo::ELEMENT ) {
-        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
-          elemConstMappedList_[it->first].Push_back( it->second[iList] );
-        }
-      }
-    }
-    
-    // assign equation numbers to nodes
-    CalcElemConstEquations( 1 );
-
-    // ==== PHASE 2: Renumber fixed-equations ====
-
-    // Afterwards re-iterate and give dirichletDOFs highest
-    // numbers
-    CalcNodalEquations( 2 );
-    CalcEdgeEquations( 2 );
-    CalcElemConstEquations( 2 );
-
-    // Calc number of 'real equations'
-    LOG_DBG(eqnMap) << "#equations: " << numEqns_;
-    LOG_DBG(eqnMap) << "#dirichletBcs: " << numIdBcs_;
-    LOG_DBG(eqnMap) << "#constraints: " << numCs_;
-
-    
-    // Now class is finalized
-    isFinalized_ = true;
-
-    LOG_TRACE(eqnMap) << "Finished Initialization\n";
-  }
-
-  void EqnMap::ReorderMapping( Integer **order ) {
-
+    LOG_DBG(disContEqnMap) << "WARNING: The ReorderMapping functionality has never \
+                         been tested for discontinuous equation numbering" 
+                     << std::endl;
     
     // Check if any reordering array was given
     if( (*order) == NULL ) {
@@ -346,9 +149,10 @@ namespace CoupledField {
 
 
   
-  void EqnMap::GetEqns( StdVector<Integer>& eqns,
+  void DiscontinuousEqnMap::GetEqns( StdVector<Integer>& eqns,
                         const ResultInfo& result, const EntityIterator& it,
-                        UInt dof ) const {
+                        UInt dof ) const 
+  {
 
     // Note: this is currently hard-coded
 
@@ -361,46 +165,58 @@ namespace CoupledField {
     // ============
 
     if ( result.definedOn == ResultInfo::NODE ||
-        result.definedOn == ResultInfo::PFEM ) {
+         result.definedOn == ResultInfo::PFEM  ) 
+    {
       
       // get related nodal equaiton map
       Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
 
-      // Distinguish the type the of the list
-      if ( it.GetType() == EntityList::ELEM_LIST
-          || it.GetType() == EntityList::SURF_ELEM_LIST ) {
-        StdVector<UInt> const & nodes = it.GetElem()->connect;
+        // Distinguish the type the of the list
+        if ( it.GetType() == EntityList::ELEM_LIST ||
+             it.GetType() == EntityList::SURF_ELEM_LIST ) 
+        {
+          StdVector<UInt> const & nodes = it.GetElem()->connect;
 
-        eqns.Resize( nodes.GetSize());
-        eqns.Init();
+          eqns.Resize( nodes.GetSize());
+          eqns.Init();
+          for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) 
+          {
+            Integer localNode = -999;
+              for (UInt i = 0 ;i < mesh2DisPdeNode_[ nodes[iNode]-1 ].GetSize() ; i++) {
+                if(static_cast<UInt>(mesh2DisPdeNode_[ nodes[iNode]-1 ][i][0]) == it.GetElem()->elemNum)
+                  localNode = mesh2DisPdeNode_[ nodes[iNode]-1 ][i][1];
+              }
 
-        for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-          Integer localNode = mesh2PdeNode_[ nodes[iNode]-1 ];
-
-          if (localNode < 1 ) {
-            eqns[iNode] = 0;
-          } else {
-            eqns[iNode] = map[localNode-1][dof-1];
+            if (localNode < 1 ) 
+              eqns[iNode] = 0;
+            else 
+              eqns[iNode] = map[localNode-1][dof-1];
           }
+        } else if ( it.GetType() == EntityList::NODE_LIST ) 
+        {
+          LOG_DBG3(disContEqnMap) << "WARNING: GetDisContEqn Called with nodelist. Its possible that this will return the wrong\
+                      equation number! " << std::endl;
+          UInt node = it.GetNode();
+          eqns.Resize( 0);
+          eqns.Init();
+          
+          Integer localNode = -999;
+          eqns.Resize(0);
+          for (UInt i = 0 ;i < mesh2DisPdeNode_[ node-1 ].GetSize() ; i++)
+          {
+            localNode = mesh2DisPdeNode_[ node-1 ][i][1];
+            if (localNode < 1 ) {
+              eqns.Push_back(0);
+            } else {
+              eqns.Push_back(map[localNode-1][dof-1]);
+            }
+          }
+        } else 
+        {
+          EXCEPTION( "This type of entity list is not defined for " 
+                       << "equation mapping!" );
         }
-      } else if ( it.GetType() == EntityList::NODE_LIST ) {
-        UInt node = it.GetNode();
-
-        eqns.Resize( 1);
-        eqns.Init();
-
-        Integer localNode = mesh2PdeNode_[ node-1 ];
-
-        if (localNode < 1 ) {
-          eqns[0] = 0;
-        } else {
-          eqns[0] = map[localNode-1][dof-1];
-        }
-      } else {
-        EXCEPTION( "This type of entity list is not defined for " 
-                   << "equation mapping!" );
       }
-    }
     // ===============
     //   EDGE PART 
     // ===============
@@ -417,21 +233,38 @@ namespace CoupledField {
       
       // get edge map of current result
       StdVector<Vector<Integer> > const & map = 
-        (edgeEqns_.find( result ) )->second;
+            (edgeEqns_.find( result ) )->second;
       
-      // get edges
+        // get edges
       StdVector<Integer> const & edges = it.GetElem()->edges;
       
       // iterate over all edges
-      for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
-
-        // get local edge number
-        Integer locEdge = mesh2PdeEdge_[ std::abs(edges[iEdge]) -1 ];
-
-        // for now, all equation number associated with this edge will be
-        // returned
-        for( UInt iDof = dof-1 ; iDof < map[locEdge-1].GetSize(); iDof+=numDofs ) 
+      // This seems for now to be quite sensless commented out for testing purpose
+      //if( it.GetType() == EntityList::SURF_ELEM_LIST && result.fctType->IsDiscontinuous()) 
+      //{
+      //  for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) 
+      //  {
+      //    Integer locEdge = -999;
+      //    for (UInt i = 0 ;i < mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ].GetSize() ; i++)
+      //    {
+      //      locEdge = mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][i][1];
+      //      for( UInt iDof = dof-1 ; iDof < map[locEdge-1].GetSize(); iDof+=numDofs ) 
+      //        eqns.Push_back( map[locEdge-1][iDof] );
+      //    }
+      //  }
+      //}else
+      for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) 
+      {
+        Integer locEdge = -999;
+        for (UInt i = 0 ;i < mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ].GetSize() ; i++)
+        {
+            if(static_cast<UInt>(mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][i][0]) == it.GetElem()->elemNum)
+              locEdge = mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][i][1];
+        }
+  
+        for( UInt iDof = dof-1 ; iDof < map[locEdge-1].GetSize(); iDof+=numDofs ){
           eqns.Push_back( map[locEdge-1][iDof] );
+        }
       }
     }
 
@@ -440,125 +273,129 @@ namespace CoupledField {
     // ===============
 
     if ( result.definedOn == ResultInfo::FACE ||
-        result.definedOn == ResultInfo::PFEM ) {
-      
+          result.definedOn == ResultInfo::PFEM  ) 
+    {
       // Check if entity is of type NODE:
       // In this case, we have to leave, as currently only nodal
       // boundary conditions can be assigned.
       if( it.GetType() == EntityList::NODE_LIST ) {
-	return;
+        return;
       }
       
       // get face map of current result
-      StdVector<Vector<Integer> > const & map = 
-	(faceEqns_.find( result ) )->second;
+      StdVector<Vector<Integer> > const & map = (faceEqns_.find( result ) )->second;
       
       // get faces
       StdVector<Integer> const & faces = it.GetElem()->faces;
       
       // iterate over all faces
-      for( UInt iFace = 0; iFace < faces.GetSize(); iFace++ ) {
-
+      for( UInt iFace = 0; iFace < faces.GetSize(); iFace++ ) 
+      {
         // get local face number
-        Integer locFace = mesh2PdeFace_[ faces[iFace] -1 ];
+        Integer locFace;
+        for (UInt i = 0 ;i < mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ].GetSize() ; i++)
+        {
+            if(static_cast<UInt>(mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ][i][0]) == it.GetElem()->elemNum)
+              locFace = mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ][i][1];
+        }
 
-        for( UInt iDof = dof-1 ; iDof < map[locFace-1].GetSize(); iDof+=numDofs ) 
+        for( UInt iDof = dof-1 ; iDof < map[locFace-1].GetSize(); iDof+=numDofs ){ 
           eqns.Push_back( map[locFace-1][iDof] );
-        //eqns.Push_back( map[locFace-1][dof-1] );
+        }
       }
     }
-      
-
-
+        
     // =============
     //  ELEM PART
     // =============
     if( result.definedOn == ResultInfo::ELEMENT  ||
-        result.definedOn == ResultInfo::PFEM ) {
+        result.definedOn == ResultInfo::PFEM ) 
+    {
       StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
+
       Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
-      if( localElem < 0){
-        //nothing to do here
-      }else if (localElem < 1 ) {
-        eqns.Push_back(0);
-      } else {
+      if (localElem < 1 ) {
+         //  nothin to do here 
+      } else 
+      {
         eqns.Push_back( elemMap[localElem-1][dof-1] );
-        LOG_DBG3(eqnMap) << "Pushin back contiuous eqn " <<  elemMap[localElem-1][dof-1]
+        LOG_DBG3(disContEqnMap) << "Pushin back eqn " <<  elemMap[localElem-1][dof-1]
                          << " for interior of element #" 
                          << it.GetElem()->elemNum << std::endl;
       }
     }
 
-    LOG_DBG3(eqnMap) << "Equations are: " << eqns.Serialize();
-    LOG_DBG3(eqnMap) << "Number of equations: " << eqns.GetSize() << std::endl;
+    LOG_DBG3(disContEqnMap) << "Equations are: " << eqns.Serialize();
+    LOG_DBG3(disContEqnMap) << "Number of equations: " << eqns.GetSize() << std::endl;
   }
   
-  //! ======================================================================
-  //! EQUATION MAPPING
-  //! ======================================================================
-  void EqnMap::GetEqns( StdVector<Integer> &eqns,
+  void DiscontinuousEqnMap::GetEqns( StdVector<Integer> &eqns,
       const ResultInfo& result, 
-      const EntityIterator& it ) const{
+      const EntityIterator& it) const{
 
     UInt numDofs = result.dofNames.GetSize();          
 
     // first of all, delete eqns-array
     eqns.Clear();
-    
-    // temporary
-    
-
     // ============
     //  NODAL PART 
     // ============
 
     if ( result.definedOn == ResultInfo::NODE ||
-        result.definedOn == ResultInfo::PFEM ) {
+          result.definedOn == ResultInfo::PFEM) {
       
       // get related nodal equaiton map
       Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
 
-      // Distinguish the type the of the list
-      if ( it.GetType() == EntityList::ELEM_LIST
-          || it.GetType() == EntityList::SURF_ELEM_LIST ) {
-        StdVector<UInt> const & nodes = it.GetElem()->connect;
-
-        eqns.Resize( nodes.GetSize() * numDofs );
-        eqns.Init();
-
-        for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-          Integer localNode = mesh2PdeNode_[ nodes[iNode]-1 ];
-
-          for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
-
-            if (localNode < 1 ) {
-              eqns[iNode*numDofs + iDof] = 0;
-            } else {
-              eqns[iNode*numDofs + iDof] = map[localNode-1][iDof];
+      if(map.GetSizeRow() !=0 && map.GetSizeCol()!=0)
+      {  
+        // Distinguish the type the of the list
+        if ( it.GetType() == EntityList::ELEM_LIST ||
+              it.GetType() == EntityList::SURF_ELEM_LIST ) 
+        {
+          StdVector<UInt> const & nodes = it.GetElem()->connect;
+          eqns.Resize( nodes.GetSize() * numDofs );
+          eqns.Init();
+  
+          for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+            Integer localNode = -999;
+            for (UInt i = 0 ;i < mesh2DisPdeNode_[ nodes[iNode]-1 ].GetSize() ; i++)
+            {
+              if(static_cast<UInt>(mesh2DisPdeNode_[ nodes[iNode]-1 ][i][0]) == it.GetElem()->elemNum)
+                localNode = mesh2DisPdeNode_[ nodes[iNode]-1 ][i][1];
             }
-
+    
+            for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
+      
+              if (localNode < 1 ) {
+                eqns[iNode*numDofs + iDof] = 0;
+              } else {
+                eqns[iNode*numDofs + iDof] = map[localNode-1][iDof];
+              }
+            }
           }
-        }
-      } else if ( it.GetType() == EntityList::NODE_LIST ) {
-        UInt node = it.GetNode();
-        UInt numDofs = result.dofNames.GetSize();
-        eqns.Resize( numDofs );
-        eqns.Init();
-
-        Integer localNode = mesh2PdeNode_[ node-1 ];
-
-        for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
-
-          if (localNode < 1 ) {
-            eqns[iDof] = 0;
-          } else {
-            eqns[iDof] = map[localNode-1][iDof];
-          }
-
-        }
-      } else {
-        EXCEPTION( "This type of entity list is not defined for " 
+        } else if ( it.GetType() == EntityList::NODE_LIST ) {
+          UInt node = it.GetNode();
+          UInt numDofs = result.dofNames.GetSize();
+  
+          Integer localNode = -999;
+            eqns.Resize( numDofs*mesh2DisPdeNode_[ node-1 ].GetSize() );
+            eqns.Init();
+            for (UInt i = 0 ;i < mesh2DisPdeNode_[ node-1 ].GetSize() ; i++)
+            {
+              localNode = mesh2DisPdeNode_[ node-1 ][i][1];
+              for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                if (localNode < 1 ) {
+                  eqns[i*numDofs + iDof] = 0;
+                } else {
+                  eqns[i*numDofs + iDof] = map[localNode-1][iDof];
+                }
+              }
+            }
+        } else {
+          EXCEPTION( "This type of entity list is not defined for " 
                    << "equation mapping!" );
+        }
       }
     }
 
@@ -567,8 +404,45 @@ namespace CoupledField {
     // ===============
     
     if ( result.definedOn == ResultInfo::EDGE ||
-        result.definedOn == ResultInfo::PFEM ) {
+         result.definedOn == ResultInfo::PFEM) {
+            
+      // Check if entity is of type NODE:
+      // In this case, we have to leave, as currently only nodal
+      // boundary conditions can be assigned.
+      if( it.GetType() == EntityList::NODE_LIST ) {
+        return;
+      }
+      // get edge map of current result
+      StdVector<Vector<Integer> > const & map = (edgeEqns_.find( result ) )->second;
+      
+      // get edges
+      StdVector<Integer> const & edges = it.GetElem()->edges;
+          
+      // iterate over all edges
+      for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
+      
+        // get local edge number
+        Integer locEdge = -999;
+        for (UInt i = 0 ;i < mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ].GetSize() ; i++)
+        {
+          if(static_cast<UInt>(mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][i][0]) == it.GetElem()->elemNum)
+            locEdge = mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][i][1];
+        }
+        
+        // iterate over all dofs of this edge
+        for( UInt iDof = 0; iDof < map[locEdge-1].GetSize(); iDof++ ) {
+          eqns.Push_back( map[locEdge-1][iDof] );
+        }
+      }
+    }  
 
+    // ===============
+    //   FACE PART 
+    // ===============
+
+    if ( result.definedOn == ResultInfo::FACE ||
+          result.definedOn == ResultInfo::PFEM ) {
+      
       // Check if entity is of type NODE:
       // In this case, we have to leave, as currently only nodal
       // boundary conditions can be assigned.
@@ -576,102 +450,62 @@ namespace CoupledField {
         return;
       }
       
-      // get edge map of current result
-      StdVector<Vector<Integer> > const & map = 
-        (edgeEqns_.find( result ) )->second;
-      
-      // get edges
-      StdVector<Integer> const & edges = it.GetElem()->edges;
-      
-      // iterate over all edges
-      for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
-
-        // get local edge number
-        Integer locEdge = mesh2PdeEdge_[ std::abs(edges[iEdge]) -1 ];
-
-        // iterate over all dofs of this edge
-        // for now, all equation number associated with this edge will be
-        // returned
-        for( UInt iDof = 0; iDof < map[locEdge-1].GetSize(); iDof++ ) {
-          eqns.Push_back( map[locEdge-1][iDof] );
-          LOG_DBG3(eqnMap) << "Pushin back contiuous edge #" << locEdge << " eqn " <<  map[locEdge-1][iDof]
-                           << " for interior of element #" 
-                           << it.GetElem()->elemNum << std::endl;
-        }
-      }
-    }
-
-    // ===============
-    //   FACE PART 
-    // ===============
-
-    if ( result.definedOn == ResultInfo::FACE ||
-	 result.definedOn == ResultInfo::PFEM ) {
-      
-      // Check if entity is of type NODE:
-      // In this case, we have to leave, as currently only nodal
-      // boundary conditions can be assigned.
-      if( it.GetType() == EntityList::NODE_LIST ) {
-	return;
-      }
-      
       // get face map of current result
-      StdVector<Vector<Integer> > const & map = 
-	(faceEqns_.find( result ) )->second;
+      StdVector<Vector<Integer> > const & map = (faceEqns_.find( result ) )->second;
       
       // get faces
       StdVector<Integer> const & faces = it.GetElem()->faces;
       
       // iterate over all faces
       for( UInt iFace = 0; iFace < faces.GetSize(); iFace++ ) {
-
+  
         // get local face number
-        Integer locFace = mesh2PdeFace_[ faces[iFace] -1 ];
-
+        Integer locFace = -999;
+        for (UInt i = 0 ;i < mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ].GetSize() ; i++)
+        {
+          if(static_cast<UInt>(mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ][i][0]) == it.GetElem()->elemNum)
+            locFace = mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ][i][1];
+        }
+    
         // iterate over all dofs of this face
         for( UInt iDof = 0; iDof < map[locFace-1].GetSize(); iDof++ ) {
           eqns.Push_back( map[locFace-1][iDof] );
-          LOG_DBG3(eqnMap) << "Pushin back contiuous face eqn " <<  map[locFace-1][iDof]
-                           << " for interior of element #" 
-                           << it.GetElem()->elemNum << std::endl;
         }
       }
     }
-      
-
 
     // =============
     //  ELEM PART
     // =============
     if( result.definedOn == ResultInfo::ELEMENT  ||
-        result.definedOn == ResultInfo::PFEM ) {
+        result.definedOn == ResultInfo::PFEM ) 
+    {
       StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
+      
       Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
       for (UInt iDof = 0; iDof < elemMap[localElem-1].GetSize(); iDof++ ) {
-        if( localElem < 0){
-          //nothing to do here
-        }else if (localElem < 1 ) {
+        if (localElem < 1 ) 
+        {
           eqns.Push_back(0);
-          LOG_DBG3(eqnMap) << "Pushin back contiuous elem eqn " <<  elemMap[localElem-1][iDof]
-                           << " for interior of element #" 
-                           << it.GetElem()->elemNum << std::endl;
-        } else {
+        } else 
+        {
           eqns.Push_back( elemMap[localElem-1][iDof] );
-          LOG_DBG3(eqnMap) << "Pushin back contiuous elem eqn " <<  elemMap[localElem-1][iDof]
+          LOG_DBG3(disContEqnMap) << "Pushin back eqn " <<  elemMap[localElem-1][iDof]
                            << " for interior of element #" 
                            << it.GetElem()->elemNum << std::endl;
         }
-
       }
     }
 
-    LOG_DBG3(eqnMap) << "Equations are: " << eqns.Serialize();
-    LOG_DBG3(eqnMap) << "Number of equations: " << eqns.GetSize() << std::endl;
+    LOG_DBG3(disContEqnMap) << "Equations are: " << eqns.Serialize();
+    LOG_DBG3(disContEqnMap) << "Number of equations: " << eqns.GetSize() << std::endl;
   }
     
-  Integer EqnMap::GetEqn( const ResultInfo& result, 
-      const EntityIterator& it,
-      UInt dof ) const{
+
+  Integer DiscontinuousEqnMap::GetEqn( const ResultInfo& result, 
+              const EntityIterator& it,
+              UInt dof ) const
+  {
     StdVector<Integer> eqns;
     GetEqns( eqns, result, it );
     return eqns[dof-1];
@@ -680,76 +514,91 @@ namespace CoupledField {
     
 
 
-  Integer EqnMap::GetNodeEqn( const ResultInfo& result,
+  Integer DiscontinuousEqnMap::GetNodeEqn( const ResultInfo& result,
       UInt nodeNr, UInt dof ) { 
     
-
-    if ( result.definedOn == ResultInfo::NODE
-        || result.definedOn == ResultInfo::PFEM ) {
-      
-      
-      Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
-      
-      
-      Integer localNode = mesh2PdeNode_[ nodeNr-1 ];
-      
-      if (localNode < 1 ) {
-        return 0; 
-      } else {
-        return map[localNode-1][dof-1];
-      }
-      
-    }    
-    return 0;
+    EXCEPTION( "EXEPTION: This call is not well suited for discontinuous elements.\
+                 USE:\n StdVector<Integer>  DiscontinuousEqnMap::GetNodeEqns( \
+                 const ResultInfo& result, UInt nodeNr, UInt dof ) \n \
+                 OR:\n \
+                 Integer DiscontinuousEqnMap::GetNodeEqn( const ResultInfo& result,\
+                 const ResultInfo& result, UInt ElemNum, UInt nodeNr, UInt dof )" );
+    //if ( result.definedOn == ResultInfo::NODE
+    //    || result.definedOn == ResultInfo::PFEM ) {
+    //  
+    //  Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
+    //  
+    //  Integer localNode = mesh2PdeNode_[ nodeNr-1 ];
+    //  
+    //  if (localNode < 1 ) {
+    //    return 0; 
+    //  } else {
+    //    return map[localNode-1][dof-1];
+    //  }
+    //  
+    //}    
+    //return 0;
   }
 
-  Integer EqnMap::GetNodeEqn( UInt nodeNr, UInt dof ) {
+  Integer DiscontinuousEqnMap::GetNodeEqn( UInt nodeNr, UInt dof ) {
 
-    // First check, if more than one type of results are defined
-    if ( nodeEqns_.size() != 1 ) {
-      EXCEPTION( "GetNodeEqn() can only be used if exactly "
-                 << "one nodal result is present!" );
-    }
+     EXCEPTION( "EXEPTION: This call is not well suited for discontinuous elements.\
+                  USE:\n StdVector<Integer>  DiscontinuousEqnMap::GetNodeEqns( \
+                  UInt nodeNr, UInt dof ) \n \
+                  OR:\n \
+                  Integer DiscontinuousEqnMap::GetNodeEqn( const ResultInfo& result,\
+                  UInt ElemNum, UInt nodeNr, UInt dof )" );
+    //// First check, if more than one type of results are defined
+    //if ( nodeEqns_.size() != 1 ) {
+    //  EXCEPTION( "GetNodeEqn() can only be used if exactly "
+    //             << "one nodal result is present!" );
+    //}
 
-    Matrix<Integer> const & map = (nodeEqns_.begin() )->second;
-    Integer localNode = mesh2PdeNode_[ nodeNr-1 ];
-    
-    if (localNode < 1 ) {
-      return 0; 
-    } else {
-      return map[localNode-1][dof-1];
-    }
+    //Matrix<Integer> const & map = (nodeEqns_.begin() )->second;
+    //Integer localNode = mesh2PdeNode_[ nodeNr-1 ];
+    //
+    //if (localNode < 1 ) {
+    //  return 0; 
+    //} else {
+    //  return map[localNode-1][dof-1];
+    //}
   }
 
   
-  void EqnMap::GetNodeEqn( const StdVector<UInt>& nodeNrs, 
+  void DiscontinuousEqnMap::GetNodeEqn( const StdVector<UInt>& nodeNrs, 
       StdVector<Integer>& eqnNrs ) {
-    // First check, if more than one type of results are defined
-    if ( nodeEqns_.size() != 1 ) {
-      EXCEPTION( "GetNodeEqn() can only be used if exactly "
-                 << "one nodal result is present!" );
-    }
-    Matrix<Integer> const & map = (nodeEqns_.begin() )->second;
-    UInt dofsPerNode =  (nodeEqns_.begin() )->first.dofNames.GetSize();
+     EXCEPTION( "EXEPTION: This call is not well suited for discontinuous elements.\
+                  USE:\n void  DiscontinuousEqnMap::GetNodeEqns( const StdVector<UInt>& nodeNrs,\
+                  StdVector< StdVector<Integer> >& eqnNrs ) \n \
+                  OR:\n \
+                  void DiscontinuousEqnMap::GetNodeEqn( UInt elemNum, const StdVector<UInt>& nodeNrs,\
+                  StdVector< StdVector<Integer> >& eqnNrs )" );
+    //// First check, if more than one type of results are defined
+    //if ( nodeEqns_.size() != 1 ) {
+    //  EXCEPTION( "GetNodeEqn() can only be used if exactly "
+    //             << "one nodal result is present!" );
+    //}
+    //Matrix<Integer> const & map = (nodeEqns_.begin() )->second;
+    //UInt dofsPerNode =  (nodeEqns_.begin() )->first.dofNames.GetSize();
 
-    eqnNrs.Resize( nodeNrs.GetSize() * dofsPerNode );
-    eqnNrs.Init();
-    
-    for( UInt iNode=0; iNode<nodeNrs.GetSize(); iNode++) {
-      Integer localNode = mesh2PdeNode_[ nodeNrs[iNode]-1 ];
-      
-      for (UInt iDof = 0; iDof < dofsPerNode; iDof++ ) {
+    //eqnNrs.Resize( nodeNrs.GetSize() * dofsPerNode );
+    //eqnNrs.Init();
+    //
+    //for( UInt iNode=0; iNode<nodeNrs.GetSize(); iNode++) {
+    //  Integer localNode = mesh2PdeNode_[ nodeNrs[iNode]-1 ];
+    //  
+    //  for (UInt iDof = 0; iDof < dofsPerNode; iDof++ ) {
 
-        if (localNode < 1 ) {
-          eqnNrs[iNode*dofsPerNode + iDof] = 0;
-        } else {
-          eqnNrs[iNode*dofsPerNode + iDof] = map[localNode-1][iDof];
-        }
-      }
-    }
+    //    if (localNode < 1 ) {
+    //      eqnNrs[iNode*dofsPerNode + iDof] = 0;
+    //    } else {
+    //      eqnNrs[iNode*dofsPerNode + iDof] = map[localNode-1][iDof];
+    //    }
+    //  }
+    //}
       
   }
-	 
+   
 
     
   
@@ -758,60 +607,42 @@ namespace CoupledField {
   //! LOCAL/GLOBAL MAPPING OF MESH ENTITIES
   //! ======================================================================
   
-  void EqnMap::Mesh2PdeNode(StdVector<UInt> & PdeNodes,
+  void DiscontinuousEqnMap::Mesh2PdeNode(StdVector<UInt> & PdeNodes,
       const StdVector<UInt> & MeshNodes) const {
+    LOG_DBG(disContEqnMap) << "Mesh2PdeNode: Warining, just returns all equation numbers for the PDE without any special ordering"
+             << std::endl;
 
-    PdeNodes.Resize(MeshNodes.GetSize());
+    PdeNodes.Resize(numLocNodes_);
     PdeNodes.Init();
    
-    for (UInt i=0; i<MeshNodes.GetSize(); i++) 
-      PdeNodes[i] = mesh2PdeNode_[MeshNodes[i]-1];
+    for (UInt i=0; i<MeshNodes.GetSize(); i++){ 
+      for (UInt i = 0 ;i < mesh2DisPdeNode_[ MeshNodes[i]-1 ].GetSize() ; i++) {
+        PdeNodes[i] = mesh2DisPdeNode_[ MeshNodes[i]-1 ][i][1];
+      }
+    }
   }
  
-  UInt EqnMap::Mesh2PdeNode(const UInt meshNode) const {
+  UInt DiscontinuousEqnMap::Mesh2PdeNode(const UInt meshNode) const {
 
-    if ( mesh2PdeNode_[meshNode-1] < 0 ) {
-      EXCEPTION(  "MeshNode Nr. " << meshNode 
-                  << " has no local node number!" );
-    }
+     EXCEPTION( "EXEPTION: This call is not well suited for discontinuous elements.\
+                  USE:\n StdVector<UInt>  DiscontinuousEqnMap::Mesh2PdeNode( const UInt meshNode ) \n \
+                  OR:\n \
+                  UInt DiscontinuousEqnMap::Mesh2PdeNode( UInt elemNum, const UInt meshNode )" );
+    //if ( mesh2PdeNode_[meshNode-1] < 0 ) {
+    //  EXCEPTION(  "MeshNode Nr. " << meshNode 
+    //              << " has no local node number!" );
+    //}
 
-    return abs(mesh2PdeNode_[meshNode-1]);
+    //return abs(mesh2PdeNode_[meshNode-1]);
   }
     
-  void EqnMap::Pde2MeshNode(StdVector<UInt> & meshNodes,
-      const StdVector<UInt> & pdeNodes) const {
-    meshNodes.Resize(pdeNodes.GetSize());
-    meshNodes.Init();
-   
-    for (UInt i=0; i<pdeNodes.GetSize(); i++) 
-      meshNodes[i] = pde2MeshNode_[pdeNodes[i]-1];
-  }
-  
-  UInt EqnMap::Pde2MeshNode(const UInt pdeNode) const {
-    return pde2MeshNode_[pdeNode-1];
-  }
-  
-  UInt EqnMap::Mesh2PdeElem(const UInt elemNumGlob) const {
-
-    if ( mesh2PdeElem_[elemNumGlob-1] < 0 ) {
-      EXCEPTION( "MeshElem Nr. " << elemNumGlob 
-                 << " has no local elem number!" );
-    }
-    
-    return abs(mesh2PdeElem_[elemNumGlob-1]);
-  }
-  
-  UInt EqnMap::Pde2MeshElem(const UInt elemNumLoc) const {
-    return pde2MeshElem_[elemNumLoc-1];
-  }
-  
   //! ======================================================================
   //! MISCELLANEOUS
   //! ======================================================================
   
-  void EqnMap::ToInfo(InfoNode* base) const
+  void DiscontinuousEqnMap::ToInfo(InfoNode* base) const
   {
-    InfoNode* lg = base->Get("localGlobal");
+    InfoNode* lg = base->Get("DiscontinuousLocalGlobal");
 
     // local <-> global mapping (nodes)
     InfoNode* root = lg->Get("nodes");
@@ -835,26 +666,32 @@ namespace CoupledField {
       in->Get("global")->SetValue(pde2MeshElem_[iElem]);
     }
 
-    // local <-> global mapping (faces)
-    root = lg->Get("faces");
-    for( UInt iFace = 0; iFace < mesh2PdeFace_.GetSize(); iFace++ )
-    {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
-      in->Get("local")->SetValue(iFace+1);
-      in->Get("global")->SetValue(mesh2PdeFace_[iFace]);
-    }
-
     // local <-> global mapping (edges)
     root = lg->Get("edges");
-    for( UInt iEdge = 0; iEdge < mesh2PdeEdge_.GetSize(); iEdge++ )
+    for( UInt iEdge = 0; iEdge < mesh2DisPdeEdge_.GetSize(); iEdge++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
-      in->Get("local")->SetValue(iEdge+1);
-      in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
+      for( UInt edgeIdx = 0; edgeIdx < mesh2DisPdeEdge_[iEdge].GetSize(); edgeIdx++)
+      {
+        InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+        in->Get("local")->SetValue(iEdge+1);
+        in->Get("global")->SetValue(mesh2DisPdeEdge_[iEdge][edgeIdx][1]);
+      }
+    }
+
+    // local <-> global mapping (faces)
+    root = lg->Get("faces");
+    for( UInt iFace = 0; iFace < mesh2DisPdeFace_.GetSize(); iFace++ )
+    {
+      for( UInt faceIdx = 0;faceIdx<  mesh2DisPdeFace_[iFace].GetSize(); faceIdx++)
+      {
+        InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+        in->Get("local")->SetValue(iFace+1);
+        in->Get("global")->SetValue(mesh2DisPdeFace_[iFace][faceIdx][1]);
+      }
     }
 
     // Nodal equation mapping
-    InfoNode* em = base->Get("equationMapping");
+    InfoNode* em = base->Get("DiscontinuousEquationMapping");
     InfoNode* rt = em->Get("nodal");
 
     // Loop over all nodal mapped results
@@ -900,19 +737,22 @@ namespace CoupledField {
 
       for ( UInt iEdge = 0; iEdge < ptGrid_->GetNumEdges(); iEdge++ )
       {
-        // local edge numger
-        Integer locEdge = mesh2PdeEdge_[iEdge];
-        // check if edge has any equations at all
-        if ( locEdge <= 0 ) break;
-
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
-        in->Get("local")->SetValue(iEdge+1);
-        in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
-
-        if(eqnMap[locEdge-1].GetSize() > 0)
+        for( UInt edgeIdx = 0; edgeIdx < mesh2DisPdeEdge_[iEdge].GetSize(); edgeIdx++)
         {
-          for (UInt iDof = 0; iDof < eqnMap[locEdge-1].GetSize(); iDof++ )
-            in->Get("eqnNr_dof" + lexical_cast<string>(iDof + 1))->SetValue(eqnMap[locEdge-1][iDof]);
+          // local edge numger
+          Integer locEdge = mesh2DisPdeEdge_[iEdge][edgeIdx][1];
+          // check if edge has any equations at all
+          if ( locEdge <= 0 ) break;
+
+          InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+          in->Get("local")->SetValue(iEdge+1);
+          in->Get("global")->SetValue(mesh2DisPdeEdge_[iEdge][edgeIdx][1]);
+
+          if(eqnMap[locEdge-1].GetSize() > 0)
+          {
+            for (UInt iDof = 0; iDof < eqnMap[locEdge-1].GetSize(); iDof++ )
+              in->Get("eqnNr_dof" + lexical_cast<string>(iDof + 1))->SetValue(eqnMap[locEdge-1][iDof]);
+          }
         }
       }
     }
@@ -935,20 +775,23 @@ namespace CoupledField {
 
       for ( UInt iFace = 0; iFace < ptGrid_->GetNumFaces(); iFace++ )
       {
-        // local face numer
-        Integer locFace = mesh2PdeFace_[iFace];
-
-        // check if face has any equations at all
-        if ( locFace <= 0 ) break;
-
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
-        in->Get("localFaceNr")->SetValue(iFace+1);
-        in->Get("globalFaceNr")->SetValue(mesh2PdeFace_[iFace]);
-
-        if(eqnMap[locFace-1].GetSize() > 0)
+        for( UInt faceIdx = 0; faceIdx < mesh2DisPdeFace_[iFace].GetSize(); faceIdx++)
         {
-          for (UInt iDof = 0; iDof < eqnMap[iFace].GetSize(); iDof++ )
-            in->Get("eqnNr_dof" + lexical_cast<string>(iDof+1))->SetValue(eqnMap[locFace-1][iDof]);
+          // local face numer
+          Integer locFace = mesh2DisPdeFace_[iFace][faceIdx][1];
+
+          // check if face has any equations at all
+          if ( locFace <= 0 ) break;
+
+          InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+          in->Get("localFaceNr")->SetValue(iFace+1);
+          in->Get("globalFaceNr")->SetValue(mesh2DisPdeFace_[iFace][faceIdx][1]);
+
+          if(eqnMap[locFace-1].GetSize() > 0)
+          {
+            for (UInt iDof = 0; iDof < eqnMap[iFace].GetSize(); iDof++ )
+              in->Get("eqnNr_dof" + lexical_cast<string>(iDof+1))->SetValue(eqnMap[locFace-1][iDof]);
+          }
         }
       }
     }
@@ -982,25 +825,18 @@ namespace CoupledField {
         }
         else in->Get("eqnNr_dof1")->SetValue(0);
       }
-    }
+    } 
   }
 
-  void EqnMap::CopyMapInfo(EqnMap* map){
-    numEqns_ = map->GetNumEqns();
-    //numIdBcs_ = map->GetNumInHomDirichletEqns();
-    //numCs_ = map->GetNumConstraintSlaveEqns();
-
-  }
 
   //! ======================================================================
   //! PRIVATE HELPER METHODS
   //! ======================================================================
 
   
-  void EqnMap::CalcNodeElemMapping() {
+  void DiscontinuousEqnMap::CalcNodeElemMapping() {
     
-    mesh2PdeNode_.Resize( ptGrid_->GetNumNodes() );
-    mesh2PdeNode_.Init( -1 );
+    mesh2DisPdeNode_.Resize( ptGrid_->GetNumNodes() );
     pde2MeshNode_.Clear( );
 
     mesh2PdeElem_.Resize( ptGrid_->GetNumElems() );
@@ -1011,7 +847,7 @@ namespace CoupledField {
     pde2MeshElem_.Clear( );
  
 
-    UInt nodeCounter = 0;
+    //UInt nodeCounter = 0;
     UInt elemCounter = 1;
     StdVector<Elem*> subdom;
  
@@ -1049,140 +885,161 @@ namespace CoupledField {
       
       
       //       nodeCounter=mesh2PdeNode_.GetSize();
-    } else {
+  } else 
+  {
       // Case 2: This pde is defined on a subset of all regions
       //         --> Perform normal node renumbering
       
       
       //  // iterate over all element lists
-      for ( UInt iList = 0, n = locEntities_.GetSize(); iList < n; iList++ ) {
-
-        // Get iterator of current element list
-        EntityIterator it = locEntities_[iList]->GetIterator();
-
-        // 1) Check, if entity list contains elements
-        if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
-            locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
-          // iterate over all elements in element list
-          for ( it.Begin(); !it.IsEnd(); it++ ) {
-            
-            // Store current element
-            const Elem* actEl = it.GetElem();
-            // *** Mapping of Elements ***
-            mesh2PdeElem_[actEl->elemNum - 1 ] = elemCounter;
+    for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) 
+    {
+      // Get iterator of current element list
+      EntityIterator it = locEntities_[iList]->GetIterator();
+     
+      // 1) Check, if entity list contains elements
+      if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
+          locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        // iterate over all elements in element list
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          
+          // Store current element
+          const Elem* actEl = it.GetElem();
+          // *** Mapping of Elements ***
+          mesh2PdeElem_[actEl->elemNum - 1 ] = elemCounter;
           pde2MeshElem_.Push_back( actEl->elemNum );
           elemCounter++;
+        }
+      }
+      
+      // 2) Perform nodal mapping in any case
+      it = locEntities_[iList]->GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) 
+      {
+        const Elem* actEl = it.GetElem();
+        
+        //this check should not be necessary happen anyway
+        for ( UInt iNode=0; iNode < actEl->connect.GetSize(); iNode++)
+        {
+          bool found = false;
+          for ( UInt i =0;i<mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize() ;i++ )
+          {
+            if(static_cast<UInt>(mesh2DisPdeNode_[actEl->connect[iNode]-1][i][0]) == actEl->elemNum)
+            {  
+              found = true;
+              EXCEPTION("found an already mapped entity, this should not happen!");
+              break;
+            }
+          }
+          if(!found)
+          {
+            mesh2DisPdeNode_[actEl->connect[iNode]-1].Push_back(new Integer[2]);
+            mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][0] = actEl->elemNum;
+            mesh2DisPdeNode_[actEl->connect[iNode]-1][mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize()-1][1] = ++numLocNodes_;
+            pde2MeshNode_.Push_back(actEl->connect[iNode]);
           }
         }
-          
-        // 2) Perform nodal mapping in any case
-        StdVector<UInt> nodes;
-        this->GetNodesOfEntities( nodes, locEntities_[iList] );
-
-        // iterate over all nodes in elem
-        for ( UInt iNode=0; iNode < nodes.GetSize(); iNode++)
-
-          // Check if node was already assigned
-          if (mesh2PdeNode_[nodes[iNode]-1] == -1) {
-            mesh2PdeNode_[nodes[iNode]-1] = ++nodeCounter;
-            pde2MeshNode_.Push_back(nodes[iNode]);
-          }
       }
     }
-
-    // remember number of local nodes and elements
-    numLocNodes_ = pde2MeshNode_.GetSize();
-    numLocElems_ = pde2MeshElem_.GetSize();
   }
+
+  // remember number of local nodes and elements
+  numLocNodes_ = pde2MeshNode_.GetSize();
+  numLocElems_ = pde2MeshElem_.GetSize();
+}
   
   
-  void EqnMap::CalcEdgeMapping()  {
+  void DiscontinuousEqnMap::CalcEdgeMapping()  {
 
-    mesh2PdeEdge_.Resize( ptGrid_->GetNumEdges() );
-    mesh2PdeEdge_.Init( -1 );
-
-    UInt edgeCounter = 0;
-
+    mesh2DisPdeEdge_.Resize( ptGrid_->GetNumEdges() );
+    
     // iterate over all element lists
     for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
       if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
           locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
-        // Get iterator of current element list
+        
         EntityIterator it = locEntities_[iList]->GetIterator();
-
         // iterate over all elements in element list
-        for ( it.Begin(); !it.IsEnd(); it++ ) {
-
+        for ( it.Begin(); !it.IsEnd(); it++ ) 
+        {
           // Store current element
           const Elem* actEl = it.GetElem();
-
           // iterate over all edges
-          for ( UInt iEdge=0; iEdge < actEl->edges.GetSize(); iEdge++) {
-
-            // Check if edge was already assigned
-            if( mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
-                              == -1 ) {
-              mesh2PdeEdge_[std::abs(actEl->edges[iEdge])-1] 
-                            = ++edgeCounter;
+          for ( UInt iEdge=0; iEdge < actEl->edges.GetSize(); iEdge++) 
+          {
+            bool found = false;
+            for ( UInt i =0;i<mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1].GetSize() ;i++ )
+            {
+              if(static_cast<UInt>(mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1][i][0]) == actEl->elemNum)
+              {  
+                found = true;
+                break;
+              }
+            }
+            if(!found)
+            {
+              mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1].Push_back(new Integer[2]);
+              mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1]
+                              [mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1].GetSize()-1][0] 
+                              = actEl->elemNum;
+              mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1]
+                              [mesh2DisPdeEdge_[std::abs(actEl->edges[iEdge])-1].GetSize()-1][1] 
+                              = ++numLocEdges_;
             }
           }
         }
       }
     }
-
-    // store number of local edges
-    numLocEdges_ = edgeCounter;
-
   }
   
 
-  void EqnMap::CalcFaceMapping()  {
+  void DiscontinuousEqnMap::CalcFaceMapping()  {
 
-    LOG_TRACE(eqnMap) << "Starting local<->global face mapping\n";
+    LOG_TRACE(disContEqnMap) << "Starting local<->global face mapping\n";
 
-    mesh2PdeFace_.Resize( ptGrid_->GetNumFaces() );
-    mesh2PdeFace_.Init( -1 );
+    mesh2DisPdeFace_.Resize( ptGrid_->GetNumFaces() );
 
-    UInt faceCounter = 0;
+    //UInt faceCounter = 0;
 
     // iterate over all element lists
     for ( UInt iList = 0; iList < locEntities_.GetSize(); iList++ ) {
       if( locEntities_[iList]->GetType() == EntityList::ELEM_LIST ||
           locEntities_[iList]->GetType() == EntityList::SURF_ELEM_LIST ) {
-
-        // Get iterator of current element list
         EntityIterator it = locEntities_[iList]->GetIterator();
-
         // iterate over all elements in element list
-        for ( it.Begin(); !it.IsEnd(); it++ ) {
-
+        for ( it.Begin(); !it.IsEnd(); it++ ) 
+        {
           // Store current element
           const Elem* actEl = it.GetElem();
-
-          // iterate over element faces
-          for ( UInt iFace=0; iFace < actEl->faces.GetSize(); iFace++) {
-
-            // Check if face was already assigned
-            if( mesh2PdeFace_[actEl->faces[iFace]-1] 
-                              == -1 ) {
-              mesh2PdeFace_[actEl->faces[iFace]-1] 
-                            = ++faceCounter;
+          // iterate over all faces
+          for ( UInt iFace=0; iFace < actEl->faces.GetSize(); iFace++) 
+          {
+            bool found = false;
+            for ( UInt i =0;i<mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1].GetSize() ;i++ )
+            {
+              if(static_cast<UInt>(mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1][i][0]) == actEl->elemNum)
+              {  
+                found = true;
+                break;
+              }
             }
-          }
-        }
-      }
-    }
+            if(!found)
+            {
+              mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1].Push_back(new Integer[2]);
+              mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1][mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1].GetSize()-1][0] = actEl->elemNum;
+              mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1][mesh2DisPdeFace_[std::abs(actEl->faces[iFace])-1].GetSize()-1][1] = ++numLocFaces_;
+            }//element not in list? 
+          }//over all faces (for-loop)
+        }//over all elements (for-loop)
+      }//if theres an element
+    }//over all element-lists (for-loop)
 
-    // store number of local faces
-    numLocFaces_ = faceCounter;
-
-    LOG_DBG(eqnMap) << "There are " << numLocFaces_ << " local faces";
-    LOG_TRACE(eqnMap) << "Finished local<->global face mapping\n";
+    LOG_DBG(disContEqnMap) << "There are " << numLocFaces_ << " local faces";
+    LOG_TRACE(disContEqnMap) << "Finished local<->global face mapping\n";
 
   }
   
-  void EqnMap::CalcNodalEquations( UInt phase ) {
-
+  void DiscontinuousEqnMap::CalcNodalEquations( UInt phase ) {
 
     // MAGIC number, which gets assignetd to all nodes,
     // which have not yet an equation number
@@ -1245,9 +1102,8 @@ namespace CoupledField {
         // ------
         //UInt multipleBCs = 0;
 
-        actMap.Resize( numLocNodes_, dofsPerNode );
+        actMap.Resize( numLocNodes_ , dofsPerNode);
         actMap.Init( NO_EQN );
-
 
         // ------
         // STEP 2
@@ -1267,7 +1123,8 @@ namespace CoupledField {
             // are the same, therefore we start with the second node
             // within the master / slave node array
             for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
+                for ( UInt i=0;i<mesh2DisPdeNode_[slaveNodes[iNode]-1].GetSize() ;i++ )
+                  actMap[mesh2DisPdeNode_[slaveNodes[iNode]-1][i][1]-1][slaveDof-1] = -1;
             }
           }
         }
@@ -1289,32 +1146,34 @@ namespace CoupledField {
 
             for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
               // Check if homDirichletNode belongs to one of my subdomains
-              if ( mesh2PdeNode_[nodes[iNode]-1]-1 < 0 ) {
-                (*warning) << "EqnMap::CalcNodalEquations: Homogen. Dirichlet node "
+              if ( mesh2DisPdeNode_[nodes[iNode]-1].GetSize() == 0 ) {
+                (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Homogen. Dirichlet node "
                 << "nr. " << nodes[iNode]
                                    << " is not contained in any of the regions for this PDE";
                 Warning( __FILE__, __LINE__ );
               }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 		(*warning) << "EqnMap::CalcNodalEquations: HomDirichletNode # "
-                // 		           << nodes[i]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this PDE!\n Please check, if this "
-                // 		           << "node is defined in more than one level of boundary "
-                // 		           << "nodes!";
-                // 		Warning( __FILE__, __LINE__ );
-              }
+              //else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] != 0 ) {
+              //  //     (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: HomDirichletNode # "
+              //  //                << nodes[i]
+              //  //                << "\nappeared already at least once in the list of "
+              //  //                << "boundary nodes for this PDE!\n Please check, if this "
+              //  //                << "node is defined in more than one level of boundary "
+              //  //                << "nodes!";
+              //  //     Warning( __FILE__, __LINE__ );
+              //}
               else {
-                actMap[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1] = 0;
-                countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+                for ( UInt i=0;i<mesh2DisPdeNode_[nodes[iNode]-1].GetSize() ;i++ )
+                {
+                  if ( countNodes[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1] != 0 )
+                    continue;
+
+                  actMap[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1] = 0;
+                  countNodes[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1]++;
+                }
               }
             }
           }
         }
-
-
-
 
         // -------
         // STEP 3b
@@ -1334,42 +1193,42 @@ namespace CoupledField {
 
             for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
-              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                (*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+              if ( mesh2DisPdeNode_[ nodes[iNode] - 1 ].GetSize() == 0 ) {
+                (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Inhom. Dirichlet "
                 << "node #" << nodes[iNode]
                                      << " is not contained in any of the regions for "
                                      << "this Pde";
                 Warning( __FILE__, __LINE__ );
               }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 	(*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                // 		           << "node #" << nodes[iNode]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this Pde!\n Please check, if "
-                // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!";
-                // 		Warning( __FILE__, __LINE__ );
-              }
+              //else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
+              //                     [actDof-1] != 0 ) {
+              //  //   (*warning) << "DiscontinuousEqnMap::CalcNodalEquations: Inhom. Dirichlet "
+              //  //                << "node #" << nodes[iNode]
+              //  //                << "\nappeared already at least once in the list of "
+              //  //                << "boundary nodes for this Pde!\n Please check, if "
+              //  //                << "this node is defined in more than one level of "
+              //  //                << "boundary nodes!";
+              //  //     Warning( __FILE__, __LINE__ );
+              //}
               else {
                 
                 // only set entry to -1, if entry is not yet an constraint
                 // slave entry or homogeneous dirichlet entry
-                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-
-                  // In any case we have to increment the number of idBC-conditions
-                  numIdBcs_++;
+                for ( UInt i=0;i<mesh2DisPdeNode_[nodes[iNode]-1].GetSize() ;i++ )
+                {
+                  if(  actMap[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1] [actDof-1] == NO_EQN ) {
+                    if ( countNodes[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1] != 0 )
+                      continue;
+                    actMap[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1] = -1;
+                    countNodes[mesh2DisPdeNode_[nodes[iNode]-1][i][1]-1][actDof-1]++;
+                    // In any case we have to increment the number of idBC-conditions
+                    numIdBcs_++;
+                  }
                 } 
               }
             }
           }
         }
-
-
-
-
 
         // ------
         // STEP 4
@@ -1384,22 +1243,34 @@ namespace CoupledField {
         for( UInt iList = 0; iList < actLists.GetSize(); iList++ ) {
 
           // Get nodes of current entityList
-          GetNodesOfEntities( nodes, actLists[iList] );
 
           Integer locNode = 0;
-          for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-            locNode = mesh2PdeNode_[nodes[iNode]-1];
-            for ( UInt iDof = 0; iDof < dofsPerNode; iDof++ ) {
-              if ( actMap[locNode-1][iDof] == NO_EQN &&
-                  countNodes[locNode-1][iDof] == 0) {
-                numEqns_++;
-                LOG_DBG3(eqnMap) << "Adding equation " << numEqns_ 
-                << " to contiuous local node " << locNode << std::endl;
-                actMap[locNode-1][iDof] = numEqns_;
-                countNodes[locNode-1][iDof] = 1;
-              }
-            }
-          }
+					//gehe über jedes element, hole knoten und nummeriere wenn elementNum in mesh2DisPdeNode_
+					EntityIterator entIt = actLists[iList]->GetIterator();
+					for(entIt.Begin(); !entIt.IsEnd(); entIt++)
+					{
+          	const Elem* actEl = entIt.GetElem();
+						for(UInt iNode = 0; iNode < actEl->connect.GetSize(); iNode++)
+						{
+          		for ( UInt i=0;i<mesh2DisPdeNode_[actEl->connect[iNode]-1].GetSize() ;i++ )
+          		{
+								if(static_cast<UInt>(mesh2DisPdeNode_[actEl->connect[iNode]-1][i][0]) == actEl->elemNum) {
+          		  	locNode = mesh2DisPdeNode_[actEl->connect[iNode]-1][i][1];
+          		  	for ( UInt iDof = 0; iDof < dofsPerNode; iDof++ ) 
+          		  	{
+          		  	  if ( actMap[locNode-1][iDof] == NO_EQN && countNodes[locNode-1][iDof] == 0 ) 
+          		  	  {
+          		  	    numEqns_++;
+          		  	    LOG_DBG3(disContEqnMap) << "Adding equation " << numEqns_ 
+          		  	                     << " to local node " << locNode << std::endl;
+          		  	    actMap[locNode-1][iDof] = numEqns_;
+          		  	    countNodes[locNode-1][iDof] = 1;
+          		  	  }
+          		  	}
+								}
+          		}
+						}
+					}
         }
 
         // ------
@@ -1414,11 +1285,12 @@ namespace CoupledField {
           }
         }
 
-        LOG_DBG2(eqnMap) << "Final equation map looks like: \n" 
+        LOG_DBG2(disContEqnMap) << "Final equation map looks like: \n" 
                          << actMap << std::endl;
         
       } else if( phase == 2 ) {
 
+        Integer locNode = 0;
         // -------
         // STEP 6
         // -------
@@ -1430,12 +1302,11 @@ namespace CoupledField {
             UInt actDof = actIdBcList[i]->dof;
 
             for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-              // only assign an equation number, if the map contains
-              // a 0. Otherwise, we have already labeled this node
-              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
-              if( locNode > 0 ) { 
-                if(  actMap[locNode-1] [actDof-1] 
-                     == -1  ) {
+              for ( UInt i=0;i<mesh2DisPdeNode_[nodes[iNode]-1].GetSize() ;i++ )
+              {
+                locNode = mesh2DisPdeNode_[nodes[iNode]-1][i][1];
+                if( locNode > 0 ) 
+                { 
                   numEqns_++;
                   actMap[locNode-1] [actDof-1] = numEqns_;
                 }
@@ -1459,14 +1330,15 @@ namespace CoupledField {
             UInt masterDof = actCsList[i]->masterDof;
             UInt masterNode = slaveNodes[0];
 
-            // assign the master node/dof a equation number
-            //actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
-            //  [slaveDof-1] = ++numEqns_;
+            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) 
+            {
+              for ( UInt i = 0;i<mesh2DisPdeNode_[slaveNodes[iNode]-1].GetSize() ;i++ )
+              {
+                actMap[mesh2DisPdeNode_[slaveNodes[iNode]-1][i][1]-1] [slaveDof-1] = 
+                    -actMap[mesh2DisPdeNode_[masterNode-1][i][1]-1] [masterDof-1];
 
-            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
-                -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
-              numCs_++;
+                numCs_++;
+              }
             }
           }
         }
@@ -1476,8 +1348,8 @@ namespace CoupledField {
       }
     }
   }
-   
-  void EqnMap::CalcElemInteriorEquations( UInt phase ) {
+  
+  void DiscontinuousEqnMap::CalcElemInteriorEquations( UInt phase ) {
     
     // Big outer loop over all element interior mapped lists
     ResultEntityMap::iterator listIt;
@@ -1532,11 +1404,11 @@ namespace CoupledField {
               if( numFcns[iDof][0] > max )
                 max = numFcns[iDof][0];
             }
-            //LOG_DBG3(eqnMap) << "1-dof: " << numFcns[0].Serialize() << std::endl;
-            //LOG_DBG3(eqnMap) << "2-dof: " << numFcns[1].Serialize() << std::endl;
-            //LOG_DBG3(eqnMap) << "3-dof: " << numFcns[2].Serialize() << std::endl;
-            //LOG_DBG3(eqnMap) << "maximum for this elem"  << max << std::endl;
-            //LOG_DBG3(eqnMap) << "Elem got " << sum << " equation numbers!\n";
+            //LOG_DBG3(disContEqnMap) << "1-dof: " << numFcns[0].Serialize() << std::endl;
+            //LOG_DBG3(disContEqnMap) << "2-dof: " << numFcns[1].Serialize() << std::endl;
+            //LOG_DBG3(disContEqnMap) << "3-dof: " << numFcns[2].Serialize() << std::endl;
+            //LOG_DBG3(disContEqnMap) << "maximum for this elem"  << max << std::endl;
+            //LOG_DBG3(disContEqnMap) << "Elem got " << sum << " equation numbers!\n";
              
 
             // iterate over all element functions
@@ -1549,14 +1421,17 @@ namespace CoupledField {
               
               // iterate over all element dofs
               for( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
-                
-
                 // Check if the related nodes have a 0 equations number
                 // (= are (in-)hom. Dirichlet nodes)
                 bool allZero = true;
                 StdVector<UInt> const & elemNodes = actEl.connect;
+                UInt elemIdx = 0;
                 for( UInt iNode = 0; iNode < elemNodes.GetSize(); iNode++ ) {
-                  if( actNodeMap[mesh2PdeNode_[elemNodes[iNode]-1]-1][iDof] != 0) {
+                  for ( UInt k=0;k< mesh2DisPdeNode_[elemNodes[iNode]-1].GetSize() ;k++ ) {
+                      if(static_cast<UInt>(mesh2DisPdeNode_[elemNodes[iNode]-1][k][0]) == actEl.elemNum )  
+                        elemIdx=k;
+                  }
+                  if( actNodeMap[mesh2DisPdeNode_[elemNodes[iNode]-1][elemIdx][1]-1][iDof] != 0) {
                     allZero = false;
                     break;
                   }
@@ -1573,9 +1448,8 @@ namespace CoupledField {
       } // loop over entitylists
     } // loop over results
   }
-  
 
-  void EqnMap::CalcElemConstEquations( UInt phase ) {
+  void DiscontinuousEqnMap::CalcElemConstEquations( UInt phase ) {
 
     // Big outer loop over all nodal mapped element lists
     ResultEntityMap::iterator listIt;
@@ -1768,8 +1642,8 @@ namespace CoupledField {
 
   }
   
-  void EqnMap::CalcEdgeEquations( UInt phase ) {
-    
+  void DiscontinuousEqnMap::CalcEdgeEquations( UInt phase ) {
+
     // MAGIC number, which gets assignetd to all edges,
     // which have not yet an equation number
     const Integer NO_EQN = -333;
@@ -1778,10 +1652,10 @@ namespace CoupledField {
     ResultEntityMap::iterator listIt;
 
     for( listIt = edgeMappedList_.begin(); 
-         listIt != edgeMappedList_.end(); 
-         listIt++ ) {
+    listIt != edgeMappedList_.end(); 
+    listIt++ ) {
 
-      // Remember current result and list of elementLists
+      // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
       StdVector<Vector<Integer> > & actMap = edgeEqns_[actRes];
@@ -1803,6 +1677,7 @@ namespace CoupledField {
         // --------
         if( hdBcIt != hdBcs_.end() ) {
           HdBcList const & actHdBcList = hdBcIt->second;
+          Integer locEdge = NO_EQN;
           for ( UInt i = 0; i < actHdBcList.GetSize(); i++ ) {
 
             // check, if entitylist consists of elements
@@ -1815,11 +1690,14 @@ namespace CoupledField {
 
                 // obtain edges
                 StdVector<Integer> const & edges = it.GetElem()->edges;
-
                 for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
 
-                  // check, if edge can be found
-                  Integer locEdge = mesh2PdeEdge_[std::abs(edges[iEdge]) - 1];
+                  locEdge = NO_EQN;
+                  for (UInt k = 0 ;k < mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ].GetSize() ; k++)
+                  {
+                    if(static_cast<UInt>(mesh2DisPdeEdge_[ std::abs(edges[iEdge])-1 ][k][0]) == it.GetElem()->elemNum)
+                      locEdge = mesh2DisPdeEdge_[std::abs(edges[iEdge]) - 1][k][1];
+                  }
 
                   if( locEdge > 0 ) {
                     actMap[locEdge-1].Resize(dofsPerEdge);
@@ -1831,129 +1709,146 @@ namespace CoupledField {
           }
         }
 
+        // Iterate over all entitylists
+        for( UInt iList = 0; iList < actLists.GetSize(); iList++ ) {
+          EntityIterator it = actLists[iList]->GetIterator();
+  
+          // Iterate over all elements within this list
+          for( it.Begin(); !it.IsEnd(); it++ ) {
 
-      Integer locEdge = 0;
+            // Get grip of element
+            const Elem & actEl = *(it.GetElem());
+                        
+            // Get number of unknowns for each edge
+            StdVector<Vector<UInt> > numFcns; 
+            numFcns.Resize( dofsPerEdge );
 
-      // Iterate over all entitylists
-      for( UInt iList = 0; iList < actLists.GetSize(); iList++ ) {
-        EntityIterator it = actLists[iList]->GetIterator();
-
-        // Iterate over all elements within this list
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-
-          // Get grip of element
-          const Elem & actEl = *(it.GetElem());
-
-          // Get number of unknowns for each edge
-          StdVector<Vector<UInt> > numFcns; 
-          numFcns.Resize( dofsPerEdge );
-
-          // iterate over all dofs of this result
-          for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
-            actEl.ptElem->GetNumFncs( numFcns[iDof], actRes.fctType, 
-                                      AnsatzFct::EDGE, iDof );
-            //LOG_DBG3(eqnMap) << "numFncs, dof " << iDof+1 << ": " 
-            //          << numFcns[iDof].Serialize() << std::endl;
-            // assert that we have as many entries as we have edges
-            assert( numFcns[iDof].GetSize() == actEl.edges.GetSize() );
-          }
-          
-          // Iterate over all edges of this element
-          for( UInt iEdge = 0; iEdge < actEl.edges.GetSize(); iEdge++ ) {
-            
-            // determine local edge
-            locEdge = mesh2PdeEdge_[std::abs(actEl.edges[iEdge]) - 1];
-            Edge const & edge = ptGrid_->GetEdge( std::abs(actEl.edges[iEdge] ));
-            
-            // Check if this edge was already mapped
-            if ( actMap[locEdge-1].GetSize() == 0 && locEdge > 0 ) {
-              
-              // sum up unknowns of this dof
-              UInt sum = 0;
-              UInt max = 0;
-              for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
-                sum +=  numFcns[iDof][iEdge];
-                if( numFcns[iDof][iEdge] > max )
-                  max = numFcns[iDof][iEdge];
-              }
-              //LOG_DBG3(eqnMap) << "1-dof: " << numFcns[0].Serialize();
-              //LOG_DBG3(eqnMap) << "2-dof: " << numFcns[1].Serialize();
-              //LOG_DBG3(eqnMap) << "3-dof: " << numFcns[2].Serialize();
-              LOG_DBG3(eqnMap) << "maximum for edge " << iEdge 
-                               << ": " << max;
-              LOG_DBG3(eqnMap) << "Edge got " << sum 
-                               << " equation numbers!" << std::endl;
-              
-              
-              // iterate over all edge functions
-              UInt pos = 0;
-              UInt counter = 0;
-              for( UInt iFcn = 0; iFcn < max; iFcn++ ) {
-                if( actMap[locEdge-1].GetSize() == 0 ) {
-                  actMap[locEdge-1].Resize( dofsPerEdge * max );
-                  actMap[locEdge-1].Init(0);
+            // iterate over all dofs of this result
+            for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+              actEl.ptElem->GetNumFncs( numFcns[iDof], actRes.fctType, 
+                                        AnsatzFct::EDGE, iDof );
+              //LOG_DBG3(disContEqnMap) << "numFncs, dof " << iDof+1 << ": " 
+              //          << numFcns[iDof].Serialize() << std::endl;
+              // assert that we have as many entries as we have edges
+              assert( numFcns[iDof].GetSize() == actEl.edges.GetSize() );
+            }
+            Integer locEdge = -999;
+            // Iterate over all edges of this element
+            for( UInt iEdge = 0; iEdge < actEl.edges.GetSize(); iEdge++ ) 
+            {
+              // determine local edge
+              locEdge = -999;
+              for ( UInt k = 0;k< mesh2DisPdeEdge_[std::abs(actEl.edges[iEdge])-1].GetSize() ;k++ ) {
+                if(static_cast<UInt>(mesh2DisPdeEdge_[std::abs(actEl.edges[iEdge]) - 1][k][0]) == actEl.elemNum ) {
+                  locEdge = mesh2DisPdeEdge_[std::abs(actEl.edges[iEdge]) - 1][k][1];
                 }
+              }
+              if(locEdge == -999){
+                LOG_DBG3(disContEqnMap) << "local Edge not found, check the mesh2DisPdeEdge_ Array" << std::endl;
+              }
+
+              Edge const & edge = ptGrid_->GetEdge( std::abs(actEl.edges[iEdge] ));
+              
+              // Check if this edge was already mapped
+              if ( actMap[locEdge-1].GetSize() == 0 && locEdge > 0 ) {
                 
-                // iterate over all dofs
+                // sum up unknowns of this dof
+                UInt sum = 0;
+                UInt max = 0;
                 for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
-                  //spectral and legendre functions have to be treated
-                  //differently in the case of inhomognious BCs due to the
-                  //non-hirarchical structure of sprectral approximations
-                  if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
-                    // Check if the related nodes have a 0 equations number
-                    // (= are (in-)hom. Dirichlet nodes)
-                    // of if the edge with this dof has a smaller order
-                    // than the maximum for this edge -> assign 0 equation number
-                    if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] != 0  || 
-                          actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] != 0) &&
-                          (iFcn < numFcns[iDof][iEdge]) ) 
-                    {
+                  sum +=  numFcns[iDof][iEdge];
+                  if( numFcns[iDof][iEdge] > max )
+                    max = numFcns[iDof][iEdge];
+                }
+                //LOG_DBG3(disContEqnMap) << "1-dof: " << numFcns[0].Serialize();
+                //LOG_DBG3(disContEqnMap) << "2-dof: " << numFcns[1].Serialize();
+                //LOG_DBG3(disContEqnMap) << "3-dof: " << numFcns[2].Serialize();
+                LOG_DBG3(disContEqnMap) << "maximum for edge " << iEdge 
+                                 << ": " << max;
+                LOG_DBG3(disContEqnMap) << "Edge got " << sum 
+                                 << " equation numbers!" << std::endl;
+                
+                // iterate over all edge functions
+                UInt pos = 0;
+                UInt counter = 0;
+                for( UInt iFcn = 0; iFcn < max; iFcn++ ) {
+                  if( actMap[locEdge-1].GetSize() == 0 ) {
+                    actMap[locEdge-1].Resize( dofsPerEdge * max );
+                    actMap[locEdge-1].Init(0);
+                  }
+                  
+                  UInt elemIdx = 0;
+                  bool foundIdx = false;
+                  // iterate over all dofs
+                  for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+                    elemIdx = -333;
+                    foundIdx = false;
+                    //find the correct element the edge belons to
+                    for ( UInt k=0;k< mesh2DisPdeNode_[edge.nodes[0]-1].GetSize() ;k++ ) {
+                      if(static_cast<UInt>(mesh2DisPdeNode_[edge.nodes[0]-1][k][0])== actEl.elemNum ) {
+                        elemIdx=k;
+                        foundIdx = true;
+                      }
+                    }
+                    assert(foundIdx); 
+                    //spectral and legendre functions have to be treated
+                    //differently in the case of inhomognious BCs due to the
+                    //non-hirarchical structure of sprectral approximations
+                    if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
+                      // Check if the related nodes have a 0 equations number
+                      // (= are (in-)hom. Dirichlet nodes)
+                      // of if the edge with this dof has a smaller order
+                      // than the maximum for this edge -> assign 0 equation number
+                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] != 0  || 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx][1]-1][iDof] != 0) &&
+                           (iFcn < numFcns[iDof][iEdge]) ) 
+                      {
                         actMap[locEdge-1][pos++] = numEqns_ + counter + 1;
-                        if( actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] < 0  && 
-                            actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] < 0)
+                        if( actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] < 0  && 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[1]-1][elemIdx][1]-1][iDof] < 0)
                           numIdBcs_++;
 
                         counter++;
                       }else
                         actMap[locEdge-1][pos++] = 0;
-                  } else if ( actRes.fctType->GetType() == AnsatzFct::LEGENDRE ) {
-                    if(  (actNodeMap[mesh2PdeNode_[edge.nodes[0]-1]-1][iDof] > 0
-                          || actNodeMap[mesh2PdeNode_[edge.nodes[1]-1]-1][iDof] > 0)
-                         && (iFcn < numFcns[iDof][iEdge]) ) {
-                      actMap[locEdge-1][pos++] = ++numEqns_;
+                    } else if ( actRes.fctType->GetType() == AnsatzFct::LEGENDRE ) {
+                      if(  (actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] > 0 || 
+                            actNodeMap[mesh2DisPdeNode_[edge.nodes[0]-1][elemIdx][1]-1][iDof] > 0 ) && 
+                           (iFcn < numFcns[iDof][iEdge]) ) {
+                        actMap[locEdge-1][pos++] = ++numEqns_;
+                      } else {
+                        actMap[locEdge-1][pos++] = 0;
+                      }// check if edge has one non-zero node
                     } else {
-                      actMap[locEdge-1][pos++] = 0;
-                    }// check if edge has one non-zero node
-                  } else {
-                    // This here is the Nedelec case -> just number the edges
-                    actMap[locEdge-1][pos++] = ++numEqns_;
-                  }
-                } // loop over dofs
-              } // loop over functions
-              numEqns_ += counter;
-              counter = 0;
-            } // check if edge was already mapped
-          } // loop over all edges
-        } // looop over all elements
-      } // loop over all entitylists
+                      // This here is the Nedelec case -> just number the edges
+                      actMap[locEdge-1][pos++] = ++numEqns_;
+                    }
+                  } // loop over dofs
+                } // loop over functions
+                numEqns_ += counter;
+                counter = 0;
+              } // check if edge was already mapped
+            } // loop over all edges
+          } // looop over all elements
+        } // loop over all entitylists
+
       } else {
         // === PHASE 2 ===  
       } 
     } // loop over all results
-
   } 
 
-  void EqnMap::CalcFaceEquations( UInt phase ) {
+  void DiscontinuousEqnMap::CalcFaceEquations( UInt phase ) {
 
-    LOG_TRACE(eqnMap) << "Starting to map face equations\n";
+    LOG_TRACE(disContEqnMap) << "Starting to map face equations\n";
 
     // Big outer loop over all face mapped element lists
     ResultEntityMap::iterator listIt;
 
-    for( listIt = edgeMappedList_.begin(); 
-    listIt != edgeMappedList_.end(); 
-    listIt++ ) {
-      
+    for( listIt = faceMappedList_.begin(); 
+         listIt != faceMappedList_.end(); 
+         listIt++ ) {
+
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
@@ -1992,16 +1887,29 @@ namespace CoupledField {
           for( UInt iFace = 0; iFace < actEl.faces.GetSize(); iFace++ ) {
             
             // Check if there are any faces at all present
-            //LOG_DBG3(eqnMap) << "Element has " << numFcns[iFace]
+            //LOG_DBG3(disContEqnMap) << "Element has " << numFcns[iFace]
             //                 << "face functions!";
             //if( numFcns[iFace].GetSize() == 0 ) {
             //  continue;
             //}
             
             // determine local face number
-            locFace = mesh2PdeFace_[actEl.faces[iFace] - 1];
+            UInt locElemPos = 999;
+            locFace = -999;
+            for ( UInt k = 0;k< mesh2DisPdeFace_[std::abs(actEl.faces[iFace])-1].GetSize() ;k++ )
+            {
+              if(static_cast<UInt>(mesh2DisPdeFace_[std::abs(actEl.faces[iFace]) - 1][k][0]) == actEl.elemNum )
+              {
+                locFace = mesh2DisPdeFace_[std::abs(actEl.faces[iFace]) - 1][k][1];
+                locElemPos = k;
+              }
+            }
+            if(locFace == -999 || locElemPos == 999){
+              LOG_DBG3(disContEqnMap) << "local Edge not found, check the mesh2DisPdeEdge_ Array" << std::endl;
+            }
+
             Face const & face = ptGrid_->GetFace( actEl.faces[iFace] );
-            LOG_DBG3(eqnMap) << "Actual face: " << actEl.faces[iFace] << " / "
+            LOG_DBG3(disContEqnMap) << "Actual face: " << actEl.faces[iFace] << " / "
                              << locFace << " (global / local )";
             
             // Check if this face was already mapped
@@ -2015,12 +1923,12 @@ namespace CoupledField {
                 if( numFcns[iDof][iFace] > max )
                   max = numFcns[iDof][iFace];
               }
-              //LOG_DBG3(eqnMap) << "1-dof: " << numFcns[0].Serialize();
-              //LOG_DBG3(eqnMap) << "2-dof: " << numFcns[1].Serialize();
-              //LOG_DBG3(eqnMap) << "3-dof: " << numFcns[2].Serialize();
-              LOG_DBG3(eqnMap) << "maximum for face " << iFace 
+              //LOG_DBG3(disContEqnMap) << "1-dof: " << numFcns[0].Serialize();
+              //LOG_DBG3(disContEqnMap) << "2-dof: " << numFcns[1].Serialize();
+              //LOG_DBG3(disContEqnMap) << "3-dof: " << numFcns[2].Serialize();
+              LOG_DBG3(disContEqnMap) << "maximum for face " << iFace 
                                << ": " << max;
-              LOG_DBG3(eqnMap) << "Face got " << sum << " equation numbers!\n";
+              LOG_DBG3(disContEqnMap) << "Face got " << sum << " equation numbers!\n";
              
               
               // iterate over all functions of this face
@@ -2036,61 +1944,69 @@ namespace CoupledField {
                 for( UInt iDof = 0; iDof < dofsPerFace; iDof++ ) {
                   
                   // Check if the related nodes have an equation number =< 0
+                  // (= are (in-)hom. Dirichlet nodes)
                   bool allFixed = true;
                   bool isInHomBoundaryFace = true;
-                  // (= are (in-)hom. Dirichlet nodes)
+                  for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
+                    for ( UInt k=0;k< mesh2DisPdeNode_[face.nodes[iNode]-1].GetSize() ;k++ ) {
+                      if(static_cast<UInt>(mesh2DisPdeNode_[face.nodes[iNode]-1][k][0])== actEl.elemNum ){
+                        locElemPos=k;
+                        break;
+                      }
+                    }
+                  }//for all nodes of the face
                   if( actRes.fctType->GetType() == AnsatzFct::SPECTRAL) {
                     for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
-                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] != 0) {
+                      if( actNodeMap[mesh2DisPdeNode_[face.nodes[iNode]-1][locElemPos][1]-1][iDof] != 0) {
                         allFixed = false;
                       }
-                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
+                      if( actNodeMap[mesh2DisPdeNode_[face.nodes[iNode]-1][locElemPos][1]-1][iDof] > 0) {
                         isInHomBoundaryFace = false;
                       }
                     }
                     if( !allFixed  && (iFcn < numFcns[iDof][iFace]) ) 
                     {
                       actMap[locFace-1][pos++] = ++numEqns_;
-                      LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
-                                       << " got equation number " << numEqns_-1 << "For Element #" << actEl.elemNum;
+                      LOG_DBG3(disContEqnMap) << "Face #" << actEl.faces[iFace]
+                                       << " got equation number " << numEqns_-1 << "For Discontinuous Element #" << actEl.elemNum;
                       if( isInHomBoundaryFace )
                         numIdBcs_++;
 
                     }else{
                       actMap[locFace-1][pos++] = 0;
-                      LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
+                      LOG_DBG3(disContEqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
                     } // check for zero nodes
                   } else{
                     for( UInt iNode = 0; iNode < face.nodes.GetSize(); iNode++ ) {
-                      if( actNodeMap[mesh2PdeNode_[face.nodes[iNode]-1]-1][iDof] > 0) {
+                      if( actNodeMap[mesh2DisPdeNode_[face.nodes[iNode]-1][locElemPos][1]-1][iDof] > 0) {
                         allFixed = false;
                         break;
                       }
                     }
                     if( !allFixed && (iFcn < numFcns[iDof][iFace]) ) {
                       actMap[locFace-1][pos++] = ++numEqns_;
-                      LOG_DBG3(eqnMap) << "Face #" << actEl.faces[iFace]
+                      LOG_DBG3(disContEqnMap) << "Face #" << actEl.faces[iFace]
                                        << " got equation number " << numEqns_-1;
                     } else {
                       actMap[locFace-1][pos++] = 0;
-                      LOG_DBG3(eqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
+                      LOG_DBG3(disContEqnMap) << "-> Nodal equations 0 for dof" << iDof+1;
                     } // check for zero nodes
                   }// spectral or not
                 } // loop over dofs
               }  // loop over functions
             } else {
-              LOG_DBG3(eqnMap) << "--> Already mapped\n ";
+              LOG_DBG3(disContEqnMap) << "--> Already mapped\n ";
             }// check if already mapped
           } // loop over faces
         } // loop over elements
       } // loop over results
     }
     
-    LOG_TRACE(eqnMap) << "Finished mapping face equations\n";
+    LOG_TRACE(disContEqnMap) << "Finished mapping face equations\n";
     
   }
 
-  void EqnMap::GetNodesOfEntities( StdVector<UInt>& nodes,
+  void DiscontinuousEqnMap::GetNodesOfEntities( StdVector<UInt>& nodes,
       shared_ptr<EntityList> ent ) {
     
     // Get type of entries of the particular entity list
@@ -2111,19 +2027,19 @@ namespace CoupledField {
     //      
     //    case EntityList::ELEM_LIST:
     //      elemList= 
-    //	dynamic_pointer_cast<ElemList, EntityList>(ent);
+    //  dynamic_pointer_cast<ElemList, EntityList>(ent);
     //      ptGrid_->GetNodesByRegion( nodes, elemList->GetRegion() );
     //      break;
     //      
     //    case EntityList::SURF_ELEM_LIST:
     //      sElemList = 
-    //	dynamic_pointer_cast<SurfElemList, EntityList>(ent);
+    //  dynamic_pointer_cast<SurfElemList, EntityList>(ent);
     //      ptGrid_->GetNodesByRegion( nodes, sElemList->GetRegion() );
     //      break;
     //
     //    case EntityList::REGION_LIST:
     //      regionList= 
-    //	dynamic_pointer_cast<RegionList, EntityList>(ent);
+    //  dynamic_pointer_cast<RegionList, EntityList>(ent);
     //      it = regionList->GetIterator();
     //      for( ; !it.IsEnd(); it++ ) {
     //        helpNodes.Clear();
@@ -2136,7 +2052,7 @@ namespace CoupledField {
     //
     //    case EntityList::NODE_LIST:
     //      nodeList = 
-    //	dynamic_pointer_cast<NodeList, EntityList>(ent);        
+    //  dynamic_pointer_cast<NodeList, EntityList>(ent);        
     //      nodes = nodeList->GetNodes();
     //      break;
     //      
@@ -2149,13 +2065,25 @@ namespace CoupledField {
     //    }
   }
 
-  UInt EqnMap::GetNumLastFreeDof() const {
-
-    if( usePenalty_ ) {
-      return numEqns_;
-    } else {
-      return numEqns_ - numIdBcs_;
+  /*void DiscontinuousEqnMap::GetResEqns(  StdVector<Integer>& eqns, const ResultInfo& result ) const 
+  {
+    StdVector< shared_ptr< EntityList > > eLists = (resEntMap_.find(result) )->second;
+    StdVector< Integer > actEqns;
+    for ( UInt i= 0;i < eLists.GetSize() ;i++ )
+    {
+      EntityIterator entIt = eLists[i]->GetIterator();
+      UInt size = eLists[i]->GetSize();
+      entIt.Begin();
+      while ( !entIt.IsEnd() )
+      {
+        GetEqns(actEqns,result,entIt);
+        for ( UInt x = 0; x<actEqns.GetSize() ; x++ )
+        {
+          if(eqns.Find(actEqns[x]) == -1)
+            eqns.Push_back(actEqns[x]);
+        }
+        entIt++;
+      }
     }
-  }
-
+  }*/
 }

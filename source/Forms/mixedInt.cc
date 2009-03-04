@@ -59,22 +59,20 @@ namespace CoupledField {
        ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
        
        partElemMat.DyadicMult(shapeFncAtIp);
-       
        if (isaxi_) {
-	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+	        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
 				    ptCoord_, it1_.GetElem() );
-	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-	   * jacDet * CoordAtIP[0];
+	        partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+	                       * jacDet * CoordAtIP[0];
        }
-       else
-	 partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
-       
+       else {
+	        partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+       }
        elemMat += partElemMat;
      }
      
-     //     std::cout << "Part Element Mass Matrix, MPP:\n" << elemMat << std::endl;
+     //std::cout << "Part Element Mass Matrix, MPP:\n" << elemMat << std::endl;
   }
-
 
 
 
@@ -103,7 +101,6 @@ namespace CoupledField {
   void MassMixedInt_VV::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1,
                                    EntityIterator& ent2  )  {
-
      // Extract pointer to reference element and get coordinates
      Vector<Double> CoordAtIP;
      Matrix<Double> tempElemMat;
@@ -135,10 +132,10 @@ namespace CoupledField {
        partElemMat.DyadicMult(shapeFncAtIp);
 
        if (isaxi_) {
-	 ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-				    ptCoord_, it1_.GetElem() );
-	 partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
-	   * jacDet * CoordAtIP[0];
+   ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+            ptCoord_, it1_.GetElem() );
+   partElemMat *= 2 * PI * intWeights[actIntPt-1] * factor_
+     * jacDet * CoordAtIP[0];
        }
        else {
          partElemMat *= intWeights[actIntPt-1] * factor_ * jacDet;
@@ -160,8 +157,105 @@ namespace CoupledField {
    }
 
 
+//=========================== Mass-Piola-MVV ==========================//
 
-  //=========================== Stiff-KPV==========================//
+  MassPiolaMixedInt_VV::MassPiolaMixedInt_VV(const Double aFactor, bool axi, bool coordUpdate )
+    : BaseForm(NULL), 
+      factor_(aFactor)
+  {
+    name_ = "MassMixedVelocityInt with PIOLA";
+
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+    baseType_ = MASS;
+  }
+
+ 
+  MassPiolaMixedInt_VV::~MassPiolaMixedInt_VV()
+  {
+  }
+
+ 
+
+
+  void MassPiolaMixedInt_VV::CalcElementMatrix( Matrix<Double>& elemMat,
+                                   EntityIterator& ent1,
+                                   EntityIterator& ent2  )  {
+
+     // Extract pointer to reference element and get coordinates
+     Vector<Double> CoordAtIP;
+     Matrix<Double> tempElemMat;
+
+     // set matrix to desired size and set all elements to zero
+    //    partElemMat.Resize(numFncs);
+
+
+     //New additions
+     ExtractElemInfo( ent1 );
+     ptelem->SetAnsatzFct( ansatzFct1_ );
+     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+     //check for spectral element approximation if not, throw error
+     assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+
+     const UInt nrIntPts= ptelem->GetNumIntPoints();    
+     const UInt spaceDim = ptelem->GetDim();  
+     const Vector<Double> & intWeights = ptelem->GetIntWeights();
+     Double jacDet;
+
+     elemMat.Resize(spaceDim*numFncs);
+     elemMat.Init();
+
+     Matrix<Double>  partElemMat;
+     partElemMat.Resize(spaceDim*numFncs);
+     partElemMat.Init();
+
+     Vector<Double> shapeFncAtIp;
+     Matrix<Double> JacMat;
+     Matrix<Double> JacMatT;
+     Matrix<Double> subMat; 
+     JacMat.Resize(spaceDim,spaceDim);
+     JacMatT.Resize(spaceDim,spaceDim);
+     subMat.Resize(spaceDim,spaceDim);
+     JacMat.Init();
+     JacMatT.Init();
+     subMat.Init();
+
+
+     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+       
+       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );       
+       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+       ptelem->CalcJacobianAtIp(JacMat,actIntPt,ptCoord_,ent1.GetElem() );
+
+       JacMat.Transpose(JacMatT);
+       //subMat = JacMat;
+       JacMatT.Mult(JacMat,subMat);
+       //subMat *= 1.0/jacDet;
+       //subMat *= factor_;
+
+       for( UInt intPti = 0 ; intPti< shapeFncAtIp.GetSize();intPti++){
+         for( UInt intPtj = 0 ; intPtj< shapeFncAtIp.GetSize();intPtj++){
+           for ( UInt i = 0;i<spaceDim ; i++ ) {
+             for ( UInt j=0; j<spaceDim;j++ ) {
+               partElemMat[(intPti*spaceDim)+i][(intPtj*spaceDim)+j] =  intWeights[actIntPt-1] * 
+                                                                        subMat[i][j]  * 
+                                                                        (1.0 / jacDet) *
+                                                                        factor_ *
+                                                                        shapeFncAtIp[intPti] * shapeFncAtIp[intPtj];
+             }
+           }
+         }
+       }
+
+       elemMat += partElemMat;
+     }
+     //std::cout << "MassPiolaMixedInt_VV Matrix:\n" << elemMat << std::endl;
+   }
+
+
+
+ //=========================== Stiff-KPV==========================//
   StiffMixedInt_KPV::StiffMixedInt_KPV(Double aVal, UInt dim, bool axi, bool coordUpdate )
     : BaseForm(NULL), factor_ (aVal)  {
     
@@ -232,8 +326,9 @@ namespace CoupledField {
         for(UInt j=0; j<numFncs2; j++ ) {
           K_x[i][j] += xiDx[i][0]*shapeFncAtIp[j] * val;
           K_y[i][j] += xiDx[i][1]*shapeFncAtIp[j] * val;
-	  if ( dim_ == 3 )
-	    K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
+	        if ( dim_ == 3 ) {
+	          K_z[i][j] += xiDx[i][2]*shapeFncAtIp[j] * val;
+          }
         }
       }
     }
@@ -251,12 +346,79 @@ namespace CoupledField {
       }
     }
 
-    //   std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
+    //std::cout << "ElemeMatStiff KPV:\n" << elemMat << std::endl;
 
 }
 
 
 
+//=========================== Stiff-Piola-KPV==========================//
+  StiffPiolaMixedInt_KPV::StiffPiolaMixedInt_KPV(Double aVal, bool axi, bool coordUpdate )
+   : BaseForm(NULL), factor_ (aVal)  {
+    
+    name_ = "StiffMixed_KPV_Int with PIOLA";
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+  }
+
+
+ 
+  StiffPiolaMixedInt_KPV::~StiffPiolaMixedInt_KPV()
+  {
+  }
+
+
+  void StiffPiolaMixedInt_KPV::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1,
+                                             EntityIterator& ent2 ) {
+    //Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+     //check for spectral element approximation if not, throw error
+     assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+    
+    // ansatzFct1_ corresponds to functions of pressure P (Taylor Hood: 1st order)
+    // ansatzFct2_ corresponds to functions of veloctity V (TaylorHood: 2nd order )
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+    UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const UInt spaceDim = ptelem->GetDim();  
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+
+    //set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs1, numFncs2*spaceDim);
+    elemMat.Init();
+    xiDx.Init();
+    shapeFncAtIp.Init();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->GetLocDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      //Get the shape functions vector
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+
+      Double val = intWeights[actIntPt-1] * factor_;
+      for(UInt i=0; i<numFncs1; i++ ) {
+        for(UInt j=0; j<numFncs2; j++ ) {
+          for(UInt d = 0; d<spaceDim;d++) {
+            elemMat[i][(j*spaceDim)+d] -= shapeFncAtIp[j] * val * xiDx[i][d];
+          }
+        }
+      }
+    }
+    //std::cout << "ElemeMatStiff KPV PIOLA:\n" << elemMat << std::endl;
+
+}
 
   //=========================== Stiff-KVP==========================//
   StiffMixedInt_KVP::StiffMixedInt_KVP(Double aVal, UInt dim, bool axi, bool coordUpdate )
@@ -358,7 +520,82 @@ namespace CoupledField {
 }
 
 
-  //=========================== Absorbing Boundaries 1st order==========================//
+//=========================== Stiff-Piola-KVP==========================//
+  StiffPiolaMixedInt_KVP::StiffPiolaMixedInt_KVP(Double aVal, bool axi, bool coordUpdate )
+    : BaseForm(NULL), factor_ (aVal)
+  {
+    name_ = "StiffMixed_KVP_Int with PIOLA";
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+  }
+
+
+ 
+  StiffPiolaMixedInt_KVP::~StiffPiolaMixedInt_KVP()
+  {
+
+
+  }
+
+
+  void StiffPiolaMixedInt_KVP::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1,
+                                             EntityIterator& ent2 ) {
+
+    
+    
+    //Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
+     //check for spectral element approximation if not, throw error
+     assert(ansatzFct1_->GetType() == AnsatzFct::SPECTRAL );
+
+    // ansatzFct1_ corresponds to functions of velocity V (Taylor Hood: 2nd order)
+    // ansatzFct2_ corresponds to functions of pressure P (TaylorHood: 1st order )
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+    UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts= ptelem->GetNumIntPoints();    
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+    const UInt spaceDim = ptelem->GetDim();  
+    Double jacDet;
+
+    Vector<Double> shapeFncAtIp;
+    Vector<Double> CoordAtIP;
+    Matrix<Double> xiDx;
+    
+    //set matrix to desired size and set all elements to zero
+    elemMat.Resize(numFncs1*spaceDim, numFncs2);
+    elemMat.Init();
+    xiDx.Init();
+    shapeFncAtIp.Init();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+      //get derivatives
+      ptelem->SetAnsatzFct( ansatzFct1_ , false);
+      ptelem->GetLocDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet, ent1.GetElem());
+
+      //Get the shape functions vector
+      ptelem->SetAnsatzFct( ansatzFct2_ , false);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+
+      //std::cout << "LocalFnc intPT# " << actIntPt << ":\n" << shapeFncAtIp << std::endl;
+
+      Double val = intWeights[actIntPt-1] * factor_;
+      for(UInt i=0; i<numFncs1; i++ ) {
+        for(UInt j=0; j<numFncs2; j++ ) {
+          for(UInt d = 0; d<spaceDim;d++) {
+            elemMat[(j*spaceDim)+d][i] += shapeFncAtIp[j] * val * xiDx[i][d];
+          }
+        }
+      }
+    }
+    //std::cout << "ElemeMatStiff KVP PIOLA:\n" << elemMat << std::endl;
+}
+
+
+//=========================== Absorbing Boundaries 1st order==========================//
 
 
   ABC_MixedInt:: ABC_MixedInt(Double aVal, bool axi, bool coordUpdate )
@@ -378,8 +615,8 @@ namespace CoupledField {
 
 
   void ABC_MixedInt::CalcElementMatrix( Matrix<Double>& elemMat,
-					EntityIterator& ent1,
-					EntityIterator& ent2 ) {
+          EntityIterator& ent1,
+          EntityIterator& ent2 ) {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -443,8 +680,8 @@ namespace CoupledField {
 
 
   void SurfVel_MixedInt::CalcElementMatrix( Matrix<Double>& elemMat,
-					    EntityIterator& ent1,
-					    EntityIterator& ent2 ) {
+              EntityIterator& ent1,
+              EntityIterator& ent2 ) {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -480,18 +717,20 @@ namespace CoupledField {
       ptelem->SetAnsatzFct( ansatzFct2_ );
       ptelem->GetShFncAtIp(shapeFncAtIp2, actIntPt, ent1.GetElem() );
         
-      for ( UInt i=0; i<numFncs1; i++ )
-	for ( UInt j=0; j<numFncs2; j++ )
-	  partMat[i][j] = shapeFncAtIp1[i] * shapeFncAtIp2[j];
-   
+      for ( UInt i=0; i<numFncs1; i++ ){
+        for ( UInt j=0; j<numFncs2; j++ ){
+          partMat[i][j] = shapeFncAtIp1[i] * shapeFncAtIp2[j];
+        }
+      }
       if (isaxi_) {
         ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
-                                   ptCoord_, it1_.GetElem() );
+                                  ptCoord_, it1_.GetElem() );
         partMat *= 2 * PI * intWeights[actIntPt-1] 
-          * factor_ * jacDet * CoordAtIP[0];
+                    * factor_ * jacDet * CoordAtIP[0];
       }
-      else 
+      else { 
         partMat *= intWeights[actIntPt-1] * factor_ * jacDet;
+      }
 
       helpElemMat += partMat;
     }
@@ -499,10 +738,10 @@ namespace CoupledField {
     // Create a multi-dof matrix, multiplied by normal vector
     for ( UInt iRow = 0; iRow<numFncs1; iRow++ ) {
       for ( UInt iCol = 0; iCol<numFncs2; iCol++ ) {
-	for ( UInt iDof = 0; iDof<dim_; iDof++ ) {
-	  elemMat[iRow][iCol*dim_+iDof] = 
-	    normal_[iDof] * helpElemMat[iCol][iRow];
-	}
+        for ( UInt iDof = 0; iDof<dim_; iDof++ ) {
+          elemMat[iRow][iCol*dim_+iDof] = 
+            normal_[iDof] * helpElemMat[iCol][iRow];
+        }
       }
     }
    
@@ -513,9 +752,9 @@ namespace CoupledField {
   //================== Neumann integrator for surface velocity =====================!
 
   LinSurfVelocity::LinSurfVelocity( std::string amplitudeStr,
-				    std::string phaseStr,
-				    Double materialParam,
-				    bool isaxi ) 
+            std::string phaseStr,
+            Double materialParam,
+            bool isaxi ) 
     : LinearSurfForm() {
 
     name_ = "LinSurfVelocity";
@@ -533,7 +772,7 @@ namespace CoupledField {
   }
 
   void LinSurfVelocity::PrepareElemVector( Vector<Double> & elemVec,
-					   EntityIterator& ent) {
+             EntityIterator& ent) {
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -571,7 +810,7 @@ namespace CoupledField {
 
 
   void LinSurfVelocity::CalcElemVector( Vector<Double> & elemVec,
-					EntityIterator& ent) {
+          EntityIterator& ent) {
     
     // compute element vector
     PrepareElemVector( elemVec, ent );
@@ -586,7 +825,7 @@ namespace CoupledField {
   }
 
   void LinSurfVelocity::CalcElemVector( Vector<Complex> & elemVec,
-					EntityIterator& ent) {
+          EntityIterator& ent) {
 
     // compute element vector
     Vector<Double> helpVec;

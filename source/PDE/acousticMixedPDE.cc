@@ -17,6 +17,7 @@
 #include "bdf2.hh"
 #include "StdPDE.hh"
 #include "Driver/stdSolveStep.hh"
+#include "PDE/mixedEqnMap.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -43,6 +44,13 @@ namespace CoupledField
     std::string probGeo;
     param->Get("domain")->Get("geometryType", probGeo );
 
+    approxType_ = myParam_->Get("type")->AsString();
+    if(approxType_ == "spectral"){
+      std::cerr << std::endl << "Usng the mixed Equation Map" << std::endl;
+      //eqnMap_->~EqnMap();
+      eqnMap_ = shared_ptr<MixedEqnMap>(new MixedEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+    }
+
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -57,6 +65,7 @@ namespace CoupledField
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "plane" && probGeo == "plane" ) {
+      isaxi_ = false;
       dofspernode = 3;
       Info->PrintF("", "=== PLANE PROBLEM\n");
     }
@@ -84,7 +93,17 @@ namespace CoupledField
       effectiveMass_ = true;
       Info->PrintF( pdename_, 
                     "      * diagonal mass matrix in explicit timestepping\n");
-    } 
+    }//just preparing for explicit schemes which are implemented later
+    else if (str == "leapfrog"){
+      diagMass_  = true;
+      Info->PrintF( pdename_, 
+                    "      * explicit timestepping using leapfrog second order scheme\n");
+    }
+    else if (str == "RK4"){
+      diagMass_  = true;
+      Info->PrintF( pdename_, 
+                    "      * explicit timestepping using runge-kutta fourth order scheme\n");
+    }
     else {
       effectiveMass_ = false;
       Info->PrintF( pdename_, 
@@ -104,7 +123,8 @@ namespace CoupledField
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
     
-    Double density, bulkModulus;
+    Double density, bulkModulus,c0;
+    Double VelSurfIntFactor,abcIntFactor;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
@@ -115,64 +135,117 @@ namespace CoupledField
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
       actMat->GetScalar(density, DENSITY,REAL);
       actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,REAL);
+      c0 = sqrt(bulkModulus/density);
       
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "bulk modulus = %e\n", bulkModulus);
       
       std::cout << "dim: " << dim_ << std::endl;
- 
-      // ==============  add stiffness ======================================
-      // ==============  add KPV ======================================
-      BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, 
-							   dim_, isaxi_);
-      BiLinFormContext * stiffContext_KPV =
-        new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
 
-      stiffContext_KPV->SetPtPdes(this, this);
-      stiffContext_KPV->SetResults( results_[0], results_[1],
-				    actSDList, actSDList );
+      if( approxType_ == "spectral" ){
+        VelSurfIntFactor = 1.0;
+        abcIntFactor = density * c0;
+        // ==============  add stiffness ======================================
+        BaseForm *bilinearStiff_KPV = new StiffPiolaMixedInt_KPV( 1.0 , dim_, isaxi_);
+        BiLinFormContext * stiffContext_KPV =
+          new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
 
-      assemble_->AddBiLinearForm( stiffContext_KPV );
+        stiffContext_KPV->SetPtPdes(this, this);
+        stiffContext_KPV->SetResults( results_[0], results_[1],
+              actSDList, actSDList );
 
-       // ==============  add KVP ======================================
-      BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, 
-							   dim_, isaxi_);
-      BiLinFormContext * stiffContext_KVP =
-        new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
+        assemble_->AddBiLinearForm( stiffContext_KPV );
 
-      stiffContext_KVP->SetPtPdes(this, this);
-      stiffContext_KVP->SetResults( results_[1], results_[0],
-				    actSDList, actSDList );
+         // ==============  add KVP ======================================
+        BaseForm *bilinearStiff_KVP = new StiffPiolaMixedInt_KVP( 1.0, dim_, isaxi_);
+        BiLinFormContext * stiffContext_KVP =
+          new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
 
-      assemble_->AddBiLinearForm( stiffContext_KVP );
+        stiffContext_KVP->SetPtPdes(this, this);
+        stiffContext_KVP->SetResults( results_[1], results_[0],
+              actSDList, actSDList );
 
-      //==============  add MPP ======================================
-      Double coeffMass = 1.0;
-      BaseForm * bilinearMass_PP = new MassMixedInt_PP(coeffMass, isaxi_);
+        assemble_->AddBiLinearForm( stiffContext_KVP );
 
-      BiLinFormContext * massContext_PP =  
-      	new BiLinFormContext( bilinearMass_PP, MASS );
+        //==============  add MPP ======================================
+        BaseForm * bilinearMass_PP = new MassMixedInt_PP(1.0/bulkModulus, isaxi_);
 
-      massContext_PP->SetPtPdes(this, this);
-      massContext_PP->SetResults( results_[0], results_[0],
-			       actSDList, actSDList );
-      assemble_->AddBiLinearForm( massContext_PP );
+        BiLinFormContext * massContext_PP =  
+        	new BiLinFormContext( bilinearMass_PP, MASS );
+
+        massContext_PP->SetPtPdes(this, this);
+        massContext_PP->SetResults( results_[0], results_[0],
+			         actSDList, actSDList );
+        assemble_->AddBiLinearForm( massContext_PP );
 
 
-      //==============  add MVV ======================================	
-      BaseForm * bilinearMass_VV = new MassMixedInt_VV(coeffMass, dim_, isaxi_);
+        //==============  add MVV ======================================  
+        BaseForm * bilinearMass_VV = new MassPiolaMixedInt_VV(density, dim_, isaxi_);
 
-      BiLinFormContext * massContext_VV =  
-      	new BiLinFormContext( bilinearMass_VV, MASS );
+        BiLinFormContext * massContext_VV =  
+          new BiLinFormContext( bilinearMass_VV, MASS );
 
-      massContext_VV->SetPtPdes(this, this);
-      massContext_VV->SetResults( results_[1], results_[1],
-			       actSDList, actSDList );
-      assemble_->AddBiLinearForm( massContext_VV );
+        massContext_VV->SetPtPdes(this, this);
+        massContext_VV->SetResults( results_[1], results_[1],
+               actSDList, actSDList );
+        assemble_->AddBiLinearForm( massContext_VV );
+      }
+      else{
+        VelSurfIntFactor = bulkModulus;
+        abcIntFactor = c0;
+        // ==============  add stiffness ======================================
+        BaseForm *bilinearStiff_KPV = new StiffMixedInt_KPV( bulkModulus, 
+			  				   dim_, isaxi_);
+        BiLinFormContext * stiffContext_KPV =
+          new BiLinFormContext(bilinearStiff_KPV, STIFFNESS );
+
+        stiffContext_KPV->SetPtPdes(this, this);
+        stiffContext_KPV->SetResults( results_[0], results_[1],
+			  	    actSDList, actSDList );
+
+        assemble_->AddBiLinearForm( stiffContext_KPV );
+
+         // ==============  add KVP ======================================
+        BaseForm *bilinearStiff_KVP = new StiffMixedInt_KVP( 1.0/density, 
+			  				   dim_, isaxi_);
+        BiLinFormContext * stiffContext_KVP =
+          new BiLinFormContext(bilinearStiff_KVP, STIFFNESS );
+
+        stiffContext_KVP->SetPtPdes(this, this);
+        stiffContext_KVP->SetResults( results_[1], results_[0],
+			  	    actSDList, actSDList );
+
+        assemble_->AddBiLinearForm( stiffContext_KVP );
+
+        //==============  add MPP ======================================
+        Double coeffMass = 1.0;
+        BaseForm * bilinearMass_PP = new MassMixedInt_PP(coeffMass, isaxi_);
+
+        BiLinFormContext * massContext_PP =  
+        	new BiLinFormContext( bilinearMass_PP, MASS );
+
+        massContext_PP->SetPtPdes(this, this);
+        massContext_PP->SetResults( results_[0], results_[0],
+			         actSDList, actSDList );
+        assemble_->AddBiLinearForm( massContext_PP );
+
+
+        //==============  add MVV ======================================	
+        BaseForm * bilinearMass_VV = new MassMixedInt_VV(coeffMass, dim_, isaxi_);
+
+        BiLinFormContext * massContext_VV =  
+        	new BiLinFormContext( bilinearMass_VV, MASS );
+
+        massContext_VV->SetPtPdes(this, this);
+        massContext_VV->SetResults( results_[1], results_[1],
+			         actSDList, actSDList );
+        assemble_->AddBiLinearForm( massContext_VV );
+      }
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
       eqnMap_->AddResult( *results_[1], actSDList );
+
     }
     
     // *******************************************************************************
@@ -183,7 +256,7 @@ namespace CoupledField
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
       LinearSurfForm *neumannBC = new LinSurfVelocity( actBc.value, actBc.phase,
-                                                     bulkModulus, isaxi_ );
+                                                     VelSurfIntFactor, isaxi_ );
       LinearFormContext * neumannContext = new LinearFormContext( neumannBC );
       neumannContext->SetPtPde( this );
       neumannContext->SetResult( results_[0], actBc.entities );
@@ -199,8 +272,7 @@ namespace CoupledField
     // **********************************************************************
     if ( absorbingBCs_ == true) { 
       for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
-	Double c0 = sqrt(bulkModulus/density);
-        ABC_MixedInt * bilinear_abc = new ABC_MixedInt(c0,isaxi_);
+        ABC_MixedInt * bilinear_abc = new ABC_MixedInt(abcIntFactor,isaxi_);
         BiLinFormContext * abcContext = 
           new BiLinFormContext( bilinear_abc, STIFFNESS );
         abcContext->SetPtPdes(this, this);     
@@ -218,14 +290,13 @@ namespace CoupledField
     // **********************************************************************
     if ( isSurfVelLHS_ == true) { 
       for (UInt actSD = 0; actSD < surfVelLHS_.GetSize(); actSD++) {
-	Double c0 = sqrt(bulkModulus/density);
-        SurfVel_MixedInt * bilinear_surf = new SurfVel_MixedInt( bulkModulus,
-								 dim_, isaxi_);
+        SurfVel_MixedInt * bilinear_surf = new SurfVel_MixedInt( VelSurfIntFactor,
+                 dim_, isaxi_);
         BiLinFormContext * surfContext = 
           new BiLinFormContext( bilinear_surf, STIFFNESS );
         surfContext->SetPtPdes(this, this);     
         surfContext->SetResults( results_[0], results_[0],
-				 surfVelLHS_[actSD], surfVelLHS_[actSD] );
+         surfVelLHS_[actSD], surfVelLHS_[actSD] );
         assemble_->AddBiLinearForm( surfContext );
 
         // Give result to equation numbering class
@@ -293,13 +364,44 @@ namespace CoupledField
       for( UInt i = 0; i < surfNodes.GetSize(); i++ ) {
         std::string regionName = surfNodes[i]->Get("name")->AsString(); 
         surfVelLHS_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
-						       regionName, EntityList::REGION ) );
+                   regionName, EntityList::REGION ) );
         isSurfVelLHS_ = true;
         Info->PrintF( pdename_, 
                       "Apply Surface bilinear form for particle velocity in normal direction '%s'\n",
                       regionName.c_str() );
       }
     }
+
+    //// ***************************************************************
+    ////   Surface bilinear form for particle velocity in normal direction
+    //// ***************************************************************
+    //ParamNode * bcNodeDirichletVel = myParam_->Get( "bcsAndLoads", false );
+    //if( bcNodeDirichletVel ) {
+    //  StdVector<ParamNode*> velNodes = bcNodeVel->GetList( "dirichletVelCond" );
+    //  for( UInt i = 0; i < velNodes.GetSize(); i++ ) {
+    //    // read parameters
+    //    dof = "";
+    //    velNodes[i]->Get( "name", name );
+    //    velNodes[i]->Get( "dof1", dof1, false );
+    //    velNodes[i]->Get( "dof2", dof2, false );
+    //    velNodes[i]->Get( "dof3", dof3, false );
+    //    velNodes[i]->Get( "val1", val1, false );
+    //    velNodes[i]->Get( "val2", val2, false );
+    //    velNodes[i]->Get( "val3", val3, false );
+    //    velNodes[i]->Get( "entityType", entType );
+
+    //    surfVelLHS_.Push_back( ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
+    //               regionName, EntityList::REGION ) );
+    //    isSurfVelLHS_ = true;
+    //    Info->PrintF( pdename_, 
+    //                  "Apply Surface bilinear form for particle velocity in normal direction '%s'\n",
+    //                  regionName.c_str() );
+    //  }
+    //}
+  }
+  
+  void AcousticMixedPDE::SetSpecialBCs(){
+    return;
   }
   
   void AcousticMixedPDE::DefineSolveStep()
@@ -369,6 +471,7 @@ namespace CoupledField
       res1->definedOn = ResultInfo::PFEM;
       fct->SetOrder( order );
       res1->fctType = fct;
+      res1->fctType->SetDiscontinuity(false);
     }
     else {
       EXCEPTION( "approximation type '" << approxType << "' not allowd");
@@ -411,11 +514,12 @@ namespace CoupledField
       res2->definedOn = ResultInfo::PFEM;
     }
     else if(  approxType == "spectral" ) {
-      shared_ptr<SpectralFct> fct(new SpectralFct);
       UInt order = myParam_->Get("order")->AsUInt();
+      shared_ptr<SpectralFct> fct(new SpectralFct);
       res2->definedOn = ResultInfo::PFEM;
       fct->SetOrder( order );
       res2->fctType = fct;
+      res2->fctType->SetDiscontinuity(true);
     }
     else {
       EXCEPTION( "approximation type '" << approxType << "' not allowd");
