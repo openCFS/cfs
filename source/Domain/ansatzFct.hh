@@ -33,6 +33,12 @@ namespace CoupledField {
     //! Return true, if approximation is isotropic
     bool IsIsotropic() const { return isIsotropic_; }
 
+    //! Return true, if Function is Discontinuous from Element to element
+    bool IsDiscontinuous() const;
+
+    //! Sets flag if the ansatz function is discontiuous from element to element
+    void SetDiscontinuity(bool discontinuous);
+
   protected:
     
     //! Type of ansatz functions used
@@ -41,6 +47,8 @@ namespace CoupledField {
     //! Flag indicating isotropy of ansatz functions
     bool isIsotropic_;
 
+    //! Flag indicating if the AnsatzFnc is discontinous from element to element
+    bool isDiscontinuous_;
   };
 
   //! Comparison operator for AnsatzFct

@@ -1071,7 +1071,8 @@ namespace CoupledField
 
     LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=["
                        << StdVector<Double>::ToString(elemMat.GetSizeCol() * elemMat.GetSizeRow(), dat_ptr, 1)
-                       << "] eqnVec1=" << eqnVec1.ToString();
+                       << "]\neqnVec1=" << eqnVec1.ToString() <<
+                       "\neqnVec2=" << eqnVec2.ToString() << std::endl;
 
     algsys_->SetElementMatrix( mappedDest, dat_ptr,
                                pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(),

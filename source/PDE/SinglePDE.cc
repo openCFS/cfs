@@ -1,4 +1,3 @@
-
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -292,8 +291,31 @@ namespace CoupledField {
       infoNode_->Get(InfoNode::HEADER)->Get("idbc", "handling of IDBCs")->SetValue(aux);
     }
 
+    //determine which kind of equationmap will be needed
+    if(results_.GetSize() == 1){
+      if(results_[0]->fctType->IsDiscontinuous()){
+        eqnMap_ = shared_ptr<DiscontinuousEqnMap>(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      }else{
+        eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      }
+    }else if(results_.GetSize() == 2){
+      if(!results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
+        eqnMap_ = shared_ptr<MixedEqnMap>(new MixedEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      }else if(results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
+        eqnMap_ = shared_ptr<DiscontinuousEqnMap>(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      }else{
+        eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+      }
+    }else{
+      //this is the defulat case
+      //more cases can be implemented as needed
+      eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
+    }
+
+
+
+
     // Create a new equation map
-    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
 
 
     // =====================================================================

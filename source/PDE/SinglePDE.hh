@@ -126,6 +126,9 @@ namespace CoupledField
     //! set boundary condition
     void SetBCs();
 
+    //! set special PDE dependent boundary conditions
+    virtual void SetSpecialBCs(){ return; }
+
     //! Method for modifying an inhomogeneous boundary condition
     void SetIDBC( const std::string &name,
                   const std::string &dofString, 

@@ -101,8 +101,8 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="lagrange"/>
               <xsd:enumeration value="legendre"/>
-	      <xsd:enumeration value="taylorHood"/>
-	      <xsd:enumeration value="spectral"/>
+	            <xsd:enumeration value="taylorHood"/>
+	            <xsd:enumeration value="spectral"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>

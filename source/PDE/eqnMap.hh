@@ -50,20 +50,20 @@ namespace CoupledField {
     //! \name Set And Initialization Methods
     
     //! Add a new result
-    void AddResult( ResultInfo& result, 
+    virtual void AddResult( ResultInfo& result, 
                     shared_ptr<EntityList> list );
     
     //! Set the homogeneous boundary conditions
-    void SetHomoDirichletBCs( HdBcList& hdBcs );
+    virtual void SetHomoDirichletBCs( HdBcList& hdBcs );
         
     //! Set the in-homogeneous boundary conditions
-    void SetInhomDirichletBCs( IdBcList& idBcs );
+    virtual void SetInhomDirichletBCs( IdBcList& idBcs );
 
     //! Set the constraint conditions
-    void SetConstraints( ConstraintList& constraints );
+    virtual void SetConstraints( ConstraintList& constraints );
     
     //! Finalize setup and calculate mapping
-    void Finalize();
+    virtual void Finalize();
 
     //! Maps the equation numbers according to the reordering
 
@@ -81,7 +81,7 @@ namespace CoupledField {
     //!   object, we re-set order to NULL in this method.
     //! - For the sake of a low memory foot-print we delete the permutation
     //!   buffer once the reordering was incorporated
-    void ReorderMapping( Integer **order );
+    virtual void ReorderMapping( Integer **order );
     
     //@}
     // ======================================================================
@@ -91,10 +91,10 @@ namespace CoupledField {
     //@{
     //! \name General Query Methods
     //! Return true if eqns are assigned
-    inline bool IsFinalized() const {return isFinalized_;}
+    virtual inline bool IsFinalized() const {return isFinalized_;}
 
     //! Return the total number of equations
-    inline UInt GetNumEqns() const { return numEqns_; }
+    virtual inline UInt GetNumEqns() const { return numEqns_; }
 
     //! Return the equation number of the last unfixed degree of freedom
 
@@ -111,26 +111,26 @@ namespace CoupledField {
     //! penalty method and must be considered free dofs as well. Thus, in this
     //! case we return the total number of equations. Otherwise we return only
     //! the number of equations withou a dirichlet boundary condition
-    UInt GetNumLastFreeDof() const;
+    virtual UInt GetNumLastFreeDof() const;
                               
     //! Return number of real inhomogeneous Dirichlet boundary conditions
 
     //! This method returns the number of 'real' boundary conditions, i.e.
     //! douplets of nodes are already removed, so this number represents
     //! the number of equations, which are not 'free'
-    inline UInt GetNumInHomDirichletEqns() const {
+    virtual inline UInt GetNumInHomDirichletEqns() const {
       return numIdBcs_;
     }
     //! Return number of constraint slave equations.
 
     //! This method returns the number of equations, which are fixed
     //! by a slave constraint condition.
-    inline UInt GetNumConstraintSlaveEqns() const {
+    virtual inline UInt GetNumConstraintSlaveEqns() const {
       return numCs_;
     }
                               
     //! Return id of associated PDE
-    PdeIdType GetPdeId() const {
+    virtual PdeIdType GetPdeId() const {
       return pdeId_;
     }
     
@@ -143,25 +143,25 @@ namespace CoupledField {
     //@{
     //! \name Equation Mapping
     //! Map result and entities to equation numbers
-    void GetEqns( StdVector<Integer>& eqns,
+    virtual void GetEqns( StdVector<Integer>& eqns,
                   const ResultInfo& result, const EntityIterator& it ) const;
 
     //! Map result, entities and dof numbers to equation numbers
-    void GetEqns( StdVector<Integer>& eqns,
+    virtual void GetEqns( StdVector<Integer>& eqns,
                   const ResultInfo& result, const EntityIterator& it,
                   UInt dof ) const;
     
     //! Mpa combination of result, entity and dof to single equation number
-    Integer GetEqn( const ResultInfo& result, 
+    virtual Integer GetEqn( const ResultInfo& result, 
                     const EntityIterator& it, UInt dof ) const;
 
     //! Name mapping function for obtaining a nodal equation
-    Integer GetNodeEqn( const ResultInfo& result, UInt nodeNr, UInt dof );
+    virtual Integer GetNodeEqn( const ResultInfo& result, UInt nodeNr, UInt dof );
 
     //! Name mapping function for obtaining a nodal equation
-    Integer GetNodeEqn( UInt nodeNr, UInt dof );
+    virtual Integer GetNodeEqn( UInt nodeNr, UInt dof );
 
-    void GetNodeEqn( const StdVector<UInt>& nodeNrs, 
+    virtual void GetNodeEqn( const StdVector<UInt>& nodeNrs, 
                      StdVector<Integer>& eqnNrs );
 
     //@}
@@ -174,60 +174,64 @@ namespace CoupledField {
     //! \name Local/Global Mapping of Mesh Entities
 
     //! Get number of local nodes
-    inline UInt GetNumLocalNodes() const {return numLocNodes_;}
+    virtual inline UInt GetNumLocalNodes() const {return numLocNodes_;}
     
     //! Get number of local elements
-    inline UInt GetNumLocalElems() const {return numLocElems_;}
+    virtual inline UInt GetNumLocalElems() const {return numLocElems_;}
 
     //! Get number of local edges
-    inline UInt GetNumLocalEdges() const {return numLocEdges_;}
+    virtual inline UInt GetNumLocalEdges() const {return numLocEdges_;}
 
     //! Get number of local faces
-    inline UInt GetNumLocalFaces() const {return numLocFaces_;}
+    virtual inline UInt GetNumLocalFaces() const {return numLocFaces_;}
 
     //! Map global to local node numbers
     //! (needed for nodal displacement of grid)
-    void Mesh2PdeNode(StdVector<UInt> & PdeNodes,
+    virtual void Mesh2PdeNode(StdVector<UInt> & PdeNodes,
                       const StdVector<UInt> & MeshNodes) const;
 
     //! Map global to local node number
     //! (needed for nodal displacement of grid)
-    UInt Mesh2PdeNode(const UInt meshNode) const;
+    virtual UInt Mesh2PdeNode(const UInt meshNode) const;
     
     //! Map local to global node number
-    void Pde2MeshNode(StdVector<UInt> & meshNodes,
+    virtual void Pde2MeshNode(StdVector<UInt> & meshNodes,
                       const StdVector<UInt> & pdeNodes) const;
     
     //! Map local to global node number
-    UInt Pde2MeshNode(const UInt pdeNode) const;
+    virtual UInt Pde2MeshNode(const UInt pdeNode) const;
 
     //! Map global to local elem number
-    UInt Mesh2PdeElem(const UInt elemNumGlob) const;
+    virtual UInt Mesh2PdeElem(const UInt elemNumGlob) const;
 
     //! Map local to global elem number
-    UInt Pde2MeshElem(const UInt elemNumLoc) const;
+    virtual UInt Pde2MeshElem(const UInt elemNumLoc) const;
 
     //@}
 
     /** Give all details of the mapping to the info.xml file it triggered 
      * such in the comman line. One can gain similar data via the loggin 
      * (in the debug version) */ 
-    void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(InfoNode* in) const;
+
+    //! Reads the comst significant infos from the given Map and copys them
+    //! used e.g. in the mixed equation map to determine the number of unknowns already assigned
+    virtual void CopyMapInfo(EqnMap* map);
     
-  private:
+  protected:
 
     // ======================================================================
     // PRIVATE HELPER METHODS
     // ======================================================================
 
     //! Trigger local/global mapping of element/nodal numbers
-    void CalcNodeElemMapping();
+    virtual void CalcNodeElemMapping();
 
     //! Trigger local/global mapping of edge numbers
-    void CalcEdgeMapping();
+    virtual void CalcEdgeMapping();
 
     //! Trigger local/global mapping of face numbers
-    void CalcFaceMapping();
+    virtual void CalcFaceMapping();
 
     //! Calculate equation numbers for nodes
 
@@ -235,7 +239,7 @@ namespace CoupledField {
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcNodalEquations( UInt phase );
+    virtual void CalcNodalEquations( UInt phase );
 
     //! Calculate equation numbers for elements interior (pfem)
 
@@ -243,7 +247,7 @@ namespace CoupledField {
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcElemInteriorEquations( UInt phase );
+    virtual void CalcElemInteriorEquations( UInt phase );
 
     //! Calculate equation numbers for elements (constants)
 
@@ -251,7 +255,7 @@ namespace CoupledField {
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcElemConstEquations( UInt phase );
+    virtual void CalcElemConstEquations( UInt phase );
 
     //! Calculate equation numbers for edges
 
@@ -259,7 +263,7 @@ namespace CoupledField {
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcEdgeEquations( UInt phase );
+    virtual void CalcEdgeEquations( UInt phase );
 
     //! Calculate equation numbers for faces
 
@@ -267,10 +271,10 @@ namespace CoupledField {
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcFaceEquations( UInt phase );
+    virtual void CalcFaceEquations( UInt phase );
 
     //! Extract node numbers from given entitylist
-    void GetNodesOfEntities( StdVector<UInt>& nodeNr, 
+    virtual void GetNodesOfEntities( StdVector<UInt>& nodeNr, 
                              shared_ptr<EntityList> ent );
 
 
@@ -359,20 +363,11 @@ namespace CoupledField {
     //! Mapping Local -> Global node numbering
     StdVector<UInt> pde2MeshNode_;
 
-    //! Mapping Global -> Local node numbering
-    StdVector<Integer> mesh2PdeNode_;
- 
     //! Element mapping from local->global
     StdVector<UInt> pde2MeshElem_;
   
     //! Element mapping from global->local
     StdVector<Integer> mesh2PdeElem_;
-
-    //! Edge mapping from global->local
-    StdVector<Integer> mesh2PdeEdge_;
-
-    //! Face mapping from global->local
-    StdVector<Integer> mesh2PdeFace_;
 
     // ======================================================================
     // BOUNDARY CONDITIONS
@@ -394,6 +389,17 @@ namespace CoupledField {
     //! Pointer to grid
     Grid * ptGrid_;
      
+
+private:
+    //! Edge mapping from global->local
+    StdVector<Integer> mesh2PdeEdge_;
+
+    //! Face mapping from global->local
+    StdVector<Integer> mesh2PdeFace_;
+
+    //! Mapping Global -> Local node numbering
+    StdVector<Integer> mesh2PdeNode_;
+ 
   };
   
   

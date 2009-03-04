@@ -22,6 +22,8 @@ namespace CoupledField {
   class BaseNodeStoreSol;
   class StdSolveStep;
   class PDECoupling;
+  class DiscontinuousEqnMap;
+  class MixedEqnMap;
   class EqnMap;
   class ParamNode;
   class InfoNode;

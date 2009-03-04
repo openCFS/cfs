@@ -15,6 +15,8 @@
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"
 #include "PDE/eqnMap.hh"
+#include "PDE/disContEqnMap.hh"
+#include "PDE/mixedEqnMap.hh"
 
 
 namespace CoupledField{

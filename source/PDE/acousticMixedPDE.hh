@@ -27,8 +27,7 @@ namespace CoupledField
 //     WriteResults *aOutFile; //pointer to class TimeFunc
 
 
-    AcousticMixedPDE(Grid* aGrid, ParamNode* paramNode );
-
+    AcousticMixedPDE(Grid* aGrid, ParamNode* paramNode ); 
     //!  Deconstructor
     virtual ~AcousticMixedPDE();
 
@@ -42,8 +41,10 @@ namespace CoupledField
     virtual void DefineSolveStep();
 
     //! Read special boundary conditions
-    void ReadSpecialBCs();
+    virtual void ReadSpecialBCs();
     
+    //! set special PDE dependent boundary conditions
+    virtual void SetSpecialBCs();
 
     // ======================================================
     // POSTPROC SECTION
@@ -84,6 +85,7 @@ namespace CoupledField
     //! true, if solution should be written to result file
     bool saveSolVel_;
     bool saveSolPres_;
+    std::string approxType_;
 
   };
 
