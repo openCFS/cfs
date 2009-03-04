@@ -124,7 +124,8 @@ namespace CoupledField
     StdVector<std::string> valVec;
     
     Double density, bulkModulus,c0;
-    Double VelSurfIntFactor,abcIntFactor;
+    Double VelSurfIntFactor = 0;
+    Double abcIntFactor = 0;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
