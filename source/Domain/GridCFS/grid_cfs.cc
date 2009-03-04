@@ -365,7 +365,7 @@ namespace CoupledField {
         if( dim_ == 3 ) {
           if( !coords[2].isFree ) {
             parser->SetValue( handles[2], coords[0].comp, sampleVals[0][iSample1] );
-            parser->SetValue( handles[2], coords[1].comp, sampleVals[1][iSample1] );
+            parser->SetValue( handles[2], coords[1].comp, sampleVals[1][iSample2] );
             sampleVals[2][0] = parser->Eval(handles[2] );
           }
           for( UInt iSample3 = 0; iSample3 < sampleVals[2].GetSize(); iSample3++ ) {
