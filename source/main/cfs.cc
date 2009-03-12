@@ -86,6 +86,11 @@ int main( int argc, const char **argv ) {
   // =========================================================================
 
   progOpts = new ProgramOptions(argc, argv);
+
+  // Log program startup
+  progOpts->GetHeaderString( std::cout );
+  
+  // Parse command line
   progOpts->ParseData();
 
   // Get information about exception handling
@@ -94,9 +99,6 @@ int main( int argc, const char **argv ) {
   // the new xml logging derived from the ParamNode
   info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
-
-  // Log program startup
-  ProgramOptions::GetHeaderString(std::cout);
   
   // GENERATE OBJECT FOR HANDLING FILE-IO
   DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
@@ -391,9 +393,9 @@ int main( int argc, const char **argv ) {
               << "***********************************************************************"
               << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
               << std::endl << std::endl 
-              << ex.what() 
+              << ex.what() << std::endl << std::endl
               << "***********************************************************************"
-              << std::endl  << std::endl;
+              << std::endl << std::endl;
   }
 
 

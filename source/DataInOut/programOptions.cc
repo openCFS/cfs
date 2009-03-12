@@ -161,43 +161,47 @@ namespace CoupledField {
     po::options_description cmdLineOptions;
     cmdLineOptions.add(cmdVisible).add(cmdInvisible);
 
+    try {
 
-    // 5) Parse command line
-    // -----------------------------------------
-    po::store( po::command_line_parser( args_ ).
-               options( cmdLineOptions ).positional( p ).run(),
-               varMap_ );
+      // 5) Parse command line
+      // -----------------------------------------
+      po::store( po::command_line_parser( args_ ).
+                 options( cmdLineOptions ).positional( p ).run(),
+                 varMap_ );
 
-    // 6) Parse environment
-    // -----------------------------------------
+      // 6) Parse environment
+      // -----------------------------------------
 
-    // first, define function pointer, which maps environment variables
-    // (e.g. CFS_SCHEMA_ROOT) to local string paramter representation
-    // (e.g. schemaRoot)
-    boost::function1<std::string, std::string> name_mapper;
-    name_mapper = boost::bind(&ProgramOptions::EnvironmentNameMapper, *this, _1);
-    po::store( po::parse_environment( cmdLineOptions, name_mapper ),
-               varMap_ );
+      // first, define function pointer, which maps environment variables
+      // (e.g. CFS_SCHEMA_ROOT) to local string paramter representation
+      // (e.g. schemaRoot)
+      boost::function1<std::string, std::string> name_mapper;
+
+      name_mapper = boost::bind(&ProgramOptions::EnvironmentNameMapper, *this, _1);
+
+      po::store( po::parse_environment( cmdLineOptions, name_mapper ),
+                 varMap_ );
+                 
+    } catch (std::exception& e) {
+      EXCEPTION( "Wrong command line arguments: " << e.what() );
+    }
 
     po::notify( varMap_ );
 
     // Check for version
     if( varMap_.count("version") != 0  ) {
-      GetHeaderString(std::cout);      
       GetVersionString( std::cout, true );
       exit( EXIT_SUCCESS );
     }
 
     // Check for history
     if( varMap_.count("history") != 0  ) {
-      GetHeaderString(std::cout);
       GetHistoryString(std::cout);
       exit( EXIT_SUCCESS );
     }
     
     // Check for help
     if( varMap_.count("help") != 0) {
-      GetHeaderString(std::cout);      
       std::cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
@@ -205,7 +209,6 @@ namespace CoupledField {
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
     {
-      GetHeaderString(std::cout);      
       std::cout << "cfs: no input files. Pleas run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
@@ -710,7 +713,8 @@ namespace CoupledField {
   void ProgramOptions::GetHeaderString(std::ostream & out)
   {
     // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-    out << "============================================================"
+    out << std::endl  
+        << "============================================================"
         << "===========" << std::endl;
     out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
         << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
