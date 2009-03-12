@@ -15,7 +15,7 @@
 #endif // DEBUG_TO_CERR
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -50,7 +50,7 @@ bool Smoother<T>::Setup( const CRS_Matrix<T>& matrix )
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

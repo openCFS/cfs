@@ -7,7 +7,7 @@ ENDIF(USE_IPOPT)
 SET(CFSTOOL_SRCS cfstool.cc)
 
 # Main CFS++ Tool executable target.
-ADD_EXECUTABLE(cfstool ${CFSTOOL_SRCS})
+ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 
 SET(TARGET_LL ${TARGET_LL}
@@ -24,7 +24,6 @@ SET(TARGET_LL ${TARGET_LL}
   mathparser
   coupledpde
   forms
-  matrix
   elements
   definefiles
   simouttext
@@ -81,22 +80,20 @@ SET(TARGET_LL ${TARGET_LL}
   paramh
   driver
   utils
-  matrix
+  matvec
   cfsgeneral
-  odesolver
-  odedescr
   paramident
   logging
   scripting
   simouttext
   ${BOOST_SERIALIZATION_LIB}
   ${BOOST_FILESYSTEM_LIB}
-)
+  ${BOOST_SYSTEM_LIB}
+  )
   
 SET(TARGET_LL ${TARGET_LL} 
   algsys-olas
   graph-olas
-  matvec-olas
   precond-olas
   solver-olas
   utils-olas
@@ -106,10 +103,6 @@ IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)
 ENDIF(USE_ARPACK)
 
-IF(USE_ILUPACK)
-  SET(TARGET_LL ${TARGET_LL} ilupack-olas)
-ENDIF(USE_ILUPACK)
-
 IF(USE_LAPACK)
   SET(TARGET_LL ${TARGET_LL} lapack-olas)
 ENDIF(USE_LAPACK)
@@ -117,8 +110,12 @@ ENDIF(USE_LAPACK)
 IF(USE_PARDISO)
   SET(TARGET_LL ${TARGET_LL} pardiso-olas)
 ENDIF(USE_PARDISO)
-  
-TARGET_LINK_LIBRARIES(cfstool ${TARGET_LL})
+
+SET(TARGET_LL ${TARGET_LL} 
+  ${CFS_FORTRAN_DYNRT_LIBS}
+)
+
+TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 
 # Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(USE_ANSYSRST)
@@ -126,4 +123,4 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 # Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin
-INSTALL_TARGETS(/bin cfstool)
+#INSTALL_TARGETS(/bin cfstool)

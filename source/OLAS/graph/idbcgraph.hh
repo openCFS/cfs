@@ -7,12 +7,11 @@
 
 #include <iostream>
 #include <vector>
-#include "utils/utils.hh"
-#include "algsys/olasparams.hh"
-#include "graph/basegraph.hh"
+#include "OLAS/algsys/olasparams.hh"
+#include "OLAS/graph/basegraph.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Special graph class for handling IDBC graphs
 
@@ -68,22 +67,20 @@ namespace OLAS {
     //!       changed and that there is no need to re-number the vertices.
     //! \param newEqn one-based array containing the new equation numbers
     //!               of the free degrees of freedom
-    void FinaliseAssembly( Integer *newEqn );
+    void FinaliseAssembly( StdVector<UInt>* newEqn );
 
     private:
 
     //! Default constructor is not allowed
     IDBC_Graph( UInt numNodes, ReorderingType reorder ) {
-      (*error) << "Call to forbidden default constructor of "
-               << "IDBC_Graph class";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Call to forbidden default constructor of "
+               << "IDBC_Graph class" );
     }
 
     //! Copy constructor is not allowed
     IDBC_Graph( const IDBC_Graph &idbcGraph ) {
-      (*error) << "Call to forbidden copy constructor of "
-               << "IDBC_Graph class";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Call to forbidden copy constructor of "
+               << "IDBC_Graph class");
     }
 
   };

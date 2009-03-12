@@ -24,7 +24,7 @@ namespace CoupledField {
     secDestMat_ = NOTYPE;
     secMatFac_ = "0.0";
     //    setCounterPart_ = false;
-    entryType_ = REAL;
+    entryType_ = Global::REAL;
 
     // Note: By default, we do not set the counter part
     // of a matrix as well, i.e. if an element matrix

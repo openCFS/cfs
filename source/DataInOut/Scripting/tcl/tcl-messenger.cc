@@ -51,7 +51,7 @@ namespace CoupledField {
     tcl_ = NULL;
   }
   
-  void TCL_CFSMessenger::Warning( const Char * msg, const Char * const filename,
+  void TCL_CFSMessenger::Warning( const char * msg, const char * const filename,
                                   const UInt numline) {
     
     std::stringstream warn;
@@ -69,7 +69,7 @@ namespace CoupledField {
   }
 
 
-  void TCL_CFSMessenger::Error( const Char * msg, const Char * const filename,
+  void TCL_CFSMessenger::Error( const char * msg, const char * const filename,
                                 const UInt numline) {
     std::stringstream error;
 
@@ -88,7 +88,7 @@ namespace CoupledField {
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Error( error.str().c_str(), filename, numline );
+    EXCEPTION( error.str().c_str() );
                                               
   } 
 
@@ -115,7 +115,7 @@ namespace CoupledField {
       error+= "':\n\n ";
       if ( *tcl_->result != 0 )
         error += tcl_->result;
-      ::Error( error.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( error.c_str() );
       return false;
     }
     return true;
@@ -142,10 +142,9 @@ namespace CoupledField {
     // Check, if for all events the number
     // of parameters has been passed correctly
     if ( eventNumParams_.size() != eventNames_.size() ) {
-      (*error) << "Size of eventNumParams_ and eventNames_ "
+      EXCEPTION( "Size of eventNumParams_ and eventNames_ "
                << "mismatch!\n Please ensure, that for each "
-               << "event the number of parameters is defined!";
-      ::Error( __FILE__, __LINE__ );
+               << "event the number of parameters is defined!");
     }
     
     // Register all possible events

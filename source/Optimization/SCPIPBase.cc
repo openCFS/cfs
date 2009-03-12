@@ -231,7 +231,7 @@ void SCPIPBase::SetDenseConstraintGradient()
 {
    assert(iern.GetSize() != 0 && iecn.GetSize() != 0 && iederv.GetSize() != 0);
    assert(eqrn.GetSize() != 0 && eqcn.GetSize() != 0 && eqcoef.GetSize() != 0);
-   assert(m >= 0 & mie >= 0 && meq >= 0);
+   assert(m >= 0 && mie >= 0 && meq >= 0);
 
    for(int ie = 0; ie < mie; ie++)
    {

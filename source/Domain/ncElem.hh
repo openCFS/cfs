@@ -48,7 +48,7 @@ namespace CoupledField
     NCElem() {
       ptLagrangeParent = NULL;
       ptSurfParent = NULL;
-      isOnSlaveSide = TRUE;
+      isOnSlaveSide = true;
     }
     
     // ======================================================

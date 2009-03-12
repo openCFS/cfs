@@ -6,8 +6,8 @@
 #define FILE_ELEMSTORESOL_2004
 
 #include "baseelemstoresol.hh"
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
+#include <MatVec/matrix.hh>
+#include <MatVec/vector.hh>
 
 namespace CoupledField{
 
@@ -18,7 +18,7 @@ namespace CoupledField{
   //! old Array-class).
   //!
   //! In principle this class is only a wrapper around
-  //! a CFSVector class. Additionally it contains
+  //! a SingleVector class. Additionally it contains
   //! informations about the information stored in it and
   //! it can selectively be accessed, set and read.
   //!
@@ -39,7 +39,7 @@ namespace CoupledField{
   //! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
   //! mySol.SetNumDofs(1,ELEC_POTENTIAL);
   //! mySol.SetNumNodes(numNodes);
-  //! mySol.Init(0.0) 
+  //! mySol.Init() 
   //! \endverbatim
   //! \note An object of the StoreSolution can only used after the Init()-
   //! routine was called, otherwise an error is reported!
@@ -201,7 +201,7 @@ namespace CoupledField{
       \param (output) Vector with given solution type)
     */
     void GetGlobalSolVector(const SolutionType solType, 
-                            CFSVector & val) const;
+                            SingleVector & val) const;
 
   
     //! Set all solution types for one elem
@@ -210,7 +210,7 @@ namespace CoupledField{
       \param val (input) Vector containing nodal results
     */
     void SetElemResult(const UInt elemNr,
-                       const CFSVector &val);
+                       const SingleVector &val);
   
   
     //! Get all solution types for one elem
@@ -219,7 +219,7 @@ namespace CoupledField{
       \param val (output) Vector containing nodal results
     */
     void GetElemResult(const UInt elemNr,
-                       CFSVector & val) const;
+                       SingleVector & val) const;
   
   
     //! Get vector of one solution type for all elems of one given dof
@@ -230,7 +230,7 @@ namespace CoupledField{
     */
     void GetGlobalSolVectorSingleDof(const SolutionType solType,
                                      const UInt dof,
-                                     CFSVector & val) const;
+                                     SingleVector & val) const;
   
   
     //! Get solution vector for all elems of one given dof
@@ -241,7 +241,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     void GetGlobalSolVectorSingleDof(const UInt dof,
-                                     CFSVector & val) const;
+                                     SingleVector & val) const;
 
     //! Get single result of given elem for given dof
     /*!
@@ -302,14 +302,14 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     //!
-    void TransformElemSolution(CFSVector & transformedSolution,
+    void TransformElemSolution(SingleVector & transformedSolution,
                                Grid * ptGrid) const;
   
 
     //! maps the local element solution to the coupling Elems
-    void ElemSolutionToCoupling(CFSVector & couplingSol,
+    void ElemSolutionToCoupling(SingleVector & couplingSol,
                                 const StdVector<Elem*>& elements,
-                                const CFSVector & elemSol) const;
+                                const SingleVector & elemSol) const;
   
 
     ///////////////

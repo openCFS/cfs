@@ -66,7 +66,7 @@ namespace CoupledField {
 
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat.Init();
-    for ( UInt i=0; i<dMat.GetSizeRow(); i++ ) {
+    for ( UInt i=0; i<dMat.GetNumRows(); i++ ) {
       dMat[i][i] = diffEpsVal_;
     }
 
@@ -101,7 +101,7 @@ namespace CoupledField {
     diffEpsVal_ = ptMaterial->ComputeScalarDiffVal( nrEl, Ecomp );
 
     if (  diffEpsVal_ < 0.0 ) 
-      Error("Negative effective permittivity", __FILE__, __LINE__);
+      EXCEPTION("Negative effective permittivity");
 
     // call method of base class
     BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );

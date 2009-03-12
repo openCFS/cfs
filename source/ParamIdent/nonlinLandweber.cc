@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "PDE/SinglePDE.hh" 
+#include "PDE/SinglePDE.hh"
 #include "piezoParamIdent.hh"
 
 namespace CoupledField {
@@ -30,29 +30,29 @@ void piezoParamIdent::nonlinLandweber() {
   F_y.Init();
   adjJacobiTemp.Init();
 
-  
+
   Double omega = 0.1; //7.812500e-03;
   Double maxres, normFy0, normFy1;
   Integer indPar=0;
-  Integer indParC=0; 
+  Integer indParC=0;
   parameterNew = parameter_;
   parameterCNew = parameterC_;
 
-  
+
   for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_; iterIndex++) {
-    
+
     globalIterationNr_ = iterIndex;
 
     updateMaterialData(parameter_);
     if (imagMaterialParam_ ) {
       updateComplexMaterialData(parameterC_);
     }
-    
-    createF(F_hat_, FALSE);
-    
+
+    createF(F_hat_, false);
+
     act_res = y_hat_-F_hat_;
     norm(act_res, normFy0, maxres, y_hat_);
-    
+
     std::cout<<"\n||F(p)-y|| = "<< normFy0<<std::endl;
     std::cout<< "--------------------------------\n"<<std::endl;
 
@@ -75,8 +75,8 @@ void piezoParamIdent::nonlinLandweber() {
     else if (whichMethod_=="minimalError")
       std::cout<<"\n"<< iterIndex << ". minimal error step ... "<<std::endl;
     else if (whichMethod_=="steepestDescent")
-      std::cout<<"\n"<< iterIndex << ". steepest descent step ..." <<std::endl;   
-            
+      std::cout<<"\n"<< iterIndex << ". steepest descent step ..." <<std::endl;
+
 
     if (imagMaterialParam_ )
       computeJacobiMatrixC();
@@ -88,19 +88,20 @@ void piezoParamIdent::nonlinLandweber() {
     for (UInt i=0; i<nrMeasuredData_; i++)
       for (UInt j=0; j<nrMeasuredData_; j++)
         if (i==j)
+        {
           if (whichNormCriteria_=="logAmplitude")
             ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],
                 imag_[i])));
           else if (whichNormCriteria_=="logImpedance")
             ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],
                 imag_[i]))); ///(180.0/PI*std::atan2(imag_[i],real_[i]));
-          
+
           else if (whichNormCriteria_=="amplitude")
             ImgSpaceScaling_Mat[i][j] = 1.0/(std::abs(Complex(real_[i], imag_[i]))); ///(180.0/PI*std::atan2(imag_[i],real_[i]));
-       
+
           else if (whichNormCriteria_=="phase")
             ImgSpaceScaling_Mat[i][j] = 1.0/(180.0/PI*std::atan2(imag_[i],real_[i]));
-    
+
           else if (whichNormCriteria_=="amplitudeMech")
             ImgSpaceScaling_Mat[i][j]=1000.0/(std::abs(Complex(realMech_[i], imagMech_[i])));
 
@@ -112,9 +113,9 @@ void piezoParamIdent::nonlinLandweber() {
 
           else if (whichNormCriteria_=="phaseMech")
             ImgSpaceScaling_Mat[i][j]=1.0/(180.0/PI * std::atan2(realMech_[i], imagMech_[i]));
-          else 
+          else
             std::cerr<<"Your choice of the fitting quantity seems to be invalid" <<std::endl;
-
+        }
 
     createAdjointJacobiMatrix();
 
@@ -122,7 +123,7 @@ void piezoParamIdent::nonlinLandweber() {
     adjJacobiMatrix_ = adjJacobiTemp;
 
     parUpdate=adjJacobiMatrix_*act_res;
-    
+
     // make Landwebers iteration a steepest descent method
     if (whichMethod_=="steepestDescent") {
       Vector<Complex> adjResidual(actNrParameter_+actNrParameterC_);
@@ -133,23 +134,23 @@ void piezoParamIdent::nonlinLandweber() {
 
       adjResidual = adjJacobiMatrix_*act_res;
       normalResidual=JacobiMatrix_*adjResidual;
-      
+
       Double normAdjResidual = a2norm(adjResidual);
 
       // relative Norm:
       Double normNormalResidual;
-      
-     
+
+
       if (whichNormCriteria_=="phase")
         normNormalResidual = a2norm(normalResidual);
       else
         norm(normalResidual, normNormalResidual, maxres, y_hat_);
-                
+
       omega = normAdjResidual/normNormalResidual;
-                
+
       if(whichNormCriteria_=="phase")
         omega=0.5*omega;
-         
+
     }
 
     // make Landweber a minimal error method:
@@ -163,11 +164,11 @@ void piezoParamIdent::nonlinLandweber() {
       Double normAdjResidual = a2norm(adjResidual);
 
       omega =normFy0/normAdjResidual;
-    
+
     }
 
     computeScaling();
-    
+
     indPar=0;
     for (UInt par=0; par<nrParameter_; par++)
       if (whichParameterToUpdate_[par]==1) {
@@ -186,10 +187,10 @@ void piezoParamIdent::nonlinLandweber() {
       updateComplexMaterialData(parameterCNew);
     }
 
-    createF(F_hat_, FALSE);
+    createF(F_hat_, false);
     act_res = y_hat_-F_hat_;
     norm(act_res, normFy1, maxres, y_hat_);
-    
+
     if (normFy0 <= stopRes_){
       std::cout<<"Terminate iteration, since the norm of the residual is smaller than " << stopRes_ <<std::endl;
       break;
@@ -205,7 +206,7 @@ void piezoParamIdent::nonlinLandweber() {
 
     std::cout<<"++ Performing line search ... " <<std::endl;
     while (normFy1>normFy0||negFlag==true) {
-    
+
       omega=0.8*omega;
       //std::cout<<"Linesearchstep = "<< lineSearchCount << "\t omega "
        //   << omega << "\t ||F(p)-y|| = "<< normFy1 << std::endl;
@@ -219,7 +220,7 @@ void piezoParamIdent::nonlinLandweber() {
                   std::cout<<"Check your results (convergence?) and input data!"<<std::endl;
         break;
       }
-        
+
 
       indPar=0;
 
@@ -278,36 +279,36 @@ void piezoParamIdent::nonlinLandweber() {
 
     // computes impedance curve after each 10 iteration steps
     if ((iterIndex+1)%computeImpedanceCurveAfterStep_==0) {
-      
-            
+
+
       Vector<Double> freqsTemp = freqs_;
-      
+
       freqs_.Resize(nrfreq_);
       freqs_.Init();
       Double startFreqTemp=startfreq_;
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
-      
+
       for (UInt i=0; i<nrfreq_; i++) {
         startFreqTemp+=freqincr;
        freqs_[i]=startFreqTemp;
       }
-      
+
       if (impedCurve_)
         impedCurve_->close();
       std::string filename= "imped.dat";
       impedCurve_ = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
-          
+
       if(mechDispl_)
         mechDispl_->close();
       filename="mechDispl.dat";
       mechDispl_ = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
-    
+
      calcImpedanceCurve();
-     
+
      // std::cout<<freqsTemp<<std::endl;
-     
+
      freqs_ = freqsTemp;
-     
+
     }
 
   } // end iter index

@@ -7,7 +7,8 @@
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
-#include "Forms/forms_header.hh"
+#include "Forms/nLinPiezoHyst.hh"
+#include "mechStressStrain.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
 
 

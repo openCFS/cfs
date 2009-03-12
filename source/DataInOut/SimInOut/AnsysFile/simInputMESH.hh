@@ -6,6 +6,7 @@
 #define FILE_MOD_ANSYSFILE_2002
 
 #include <set>
+#include <fstream>
 
 #include <DataInOut/simInput.hh>
 
@@ -137,7 +138,7 @@ namespace CoupledField {
     //!                          the elems vector
     //! \param dim (input) dimension of the elements to be read (1,2 or 3)
     void GetElements( std::vector< std::vector<UInt> > & elems,
-                      std::vector< std::vector<FEType> > & elemTypes,
+                      std::vector< std::vector<Elem::FEType> > & elemTypes,
                       std::vector< std::vector<UInt> > & elemNums,
                       std::vector<RegionIdType> & regionIds,
                       const UInt dim );
@@ -285,7 +286,7 @@ namespace CoupledField {
     //! This method maps the type number of an element - as given in the 
     //! mesh file - to a pointer to a reference finite element.
     //! \param itype (input) element type number as read in from the mesh
-    FEType AnsysType2ElemType(const UInt itype);
+    Elem::FEType AnsysType2ElemType(const UInt itype);
     //@}
 
     // =======================================================================

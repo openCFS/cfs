@@ -1,3 +1,0 @@
-// Define used to check if VTK output is used
-
-#cmakedefine USE_VTK

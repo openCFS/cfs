@@ -6,7 +6,7 @@
 #define FUNCTIONS_2001
 
 #include "General/environment.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField
 {

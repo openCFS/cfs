@@ -17,7 +17,7 @@ namespace CoupledField
 
     Init(method, order);
   }
-  
+
   Triangle1FE::~Triangle1FE()
   {
   }
@@ -34,7 +34,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] = 0;
     LCornerCoords_[1][0] = 0;
     LCornerCoords_[0][1] = 1;
@@ -45,12 +45,12 @@ namespace CoupledField
   }
 
   void Triangle1FE::SetEdgeIndices() {
-    
+
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
       edgeIndices_[i].Resize(2);
     }
-    
+
     edgeIndices_[0][0] = 1;
     edgeIndices_[0][1] = 2;
     edgeIndices_[1][0] = 2;
@@ -60,7 +60,7 @@ namespace CoupledField
   }
 
 
-  void Triangle1FE::CalcShapeFnc( Vector<Double> & Shape, 
+  void Triangle1FE :: CalcShapeFnc( Vector<Double> & Shape,
                                     const Vector<Double> & LCoord,
                                     const Elem* el, UInt dof,
                                     AnsatzFct::FctEntityType )
@@ -74,11 +74,11 @@ namespace CoupledField
     //    if (Shape[0] < 0)
     //      EXCEPTION("Local coordinates are not inside triangular element #"
     //                << el->elemNum << "!");
-    
+
     for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
 
-#ifdef DEBUG
+#ifndef NDEBUG
     //  (*debug) << "LCoord \n " << LCoord << std::endl;
     //  (*debug) << "Shape \n " << Shape << std::endl;
 #endif
@@ -86,7 +86,7 @@ namespace CoupledField
   }
 
 
-  void Triangle1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Triangle1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv,
                                               const Vector<Double> & LCoord,
                                               const Elem*, UInt dof,
                                               AnsatzFct::FctEntityType )
@@ -99,7 +99,7 @@ namespace CoupledField
     LDeriv[1][0] =  1;
     LDeriv[1][1] =  0;
     LDeriv[2][0] =  0;
-    LDeriv[2][1] =  1; 
+    LDeriv[2][1] =  1;
   }
 
   void Triangle1FE::Global2LocalCoords(Matrix<Double> & localCoords,
@@ -109,7 +109,7 @@ namespace CoupledField
     Vector<Double> c0, c1, c2; // endpoint-coordinates
     Vector<Double> dummy;
     Vector<Double> bCoords;
-    UInt globDim = globalCoords.GetSizeRow();
+    UInt globDim = globalCoords.GetNumRows();
 
     // Get coordinates of the endpoints
     c0.Resize(3);
@@ -118,12 +118,12 @@ namespace CoupledField
     dummy.Resize(3);
     bCoords.Resize(3);
 
-    c0.Init(0.0);
-    c1.Init(0.0);
-    c2.Init(0.0);
-    dummy.Init(0.0);
-    bCoords.Init(0.0);
-    
+    c0.Init();
+    c1.Init();
+    c2.Init();
+    dummy.Init();
+    bCoords.Init();
+
     //    std::cout << "SIMON> Line1FE->Global2Local(): coordMat " << coordMat << std::endl;
     //    std::cout << "SIMON> Line1FE->Global2Local(): globalCoords " << globalCoords << std::endl;
 
@@ -135,9 +135,9 @@ namespace CoupledField
     }
 
 
-    localCoords.Resize(Dim_, globalCoords.GetSizeCol());
-    
-    for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
+    localCoords.Resize(Dim_, globalCoords.GetNumCols());
+
+    for(UInt i=0; i < globalCoords.GetNumCols(); i++)
     {
       for(UInt j = 0; j < globDim; j++)
       {
@@ -145,19 +145,19 @@ namespace CoupledField
       }
 
       GetBarycentricCoords(c0, c1, c2, dummy, bCoords);
-        
+
 
       localCoords[0][i] = bCoords[0] * LCornerCoords_[0][0] +
                           bCoords[1] * LCornerCoords_[0][1] +
                           bCoords[2] * LCornerCoords_[0][2];
-        
-                            
+
+
       localCoords[1][i] = bCoords[0] * LCornerCoords_[1][0] +
                           bCoords[1] * LCornerCoords_[1][1] +
                           bCoords[2] * LCornerCoords_[1][2];
 
       //        std::cout << "SIMON> Triangle1FE->Global2Local(): localCoord[" << i << "]: (" <<localCoords[0][i]<< ", " << localCoords[1][i] << ")" << std::endl;
-      /*        
+      /*
                 std::cout << "SIMON> Line1FE->Global2Local(): s " << s << std::endl;
 
                 for(UInt j = 0; j < Dim_; j++)
@@ -167,7 +167,7 @@ namespace CoupledField
                 }
       */
     }
-    
+
   }
 
 

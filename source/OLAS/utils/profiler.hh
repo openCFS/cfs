@@ -12,7 +12,7 @@
 
 #include <map>
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! this class is a map entry for profiling info

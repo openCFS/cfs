@@ -3,3 +3,4 @@
 #cmakedefine USE_PARDISO
 
 #define PARDISO_LIBRARY "@PARDISO_LIBRARY@"
+#define CFS_PARDISO "@CFS_PARDISO@"

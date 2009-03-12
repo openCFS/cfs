@@ -13,8 +13,7 @@ namespace CoupledField
 {
 
   Tetra1FE::Tetra1FE():TetraFE()
-  { 
-
+  {
     Init();
   }
 
@@ -106,7 +105,7 @@ namespace CoupledField
         
   }
   
-  void Tetra1FE::GetNumFncs(Vector<UInt>& numFcns,  
+  void Tetra1FE::GetNumFncs(StdVector<UInt>& numFcns,  
                             const shared_ptr<AnsatzFct>& fcnType, 
                             AnsatzFct::FctEntityType fctEntityType, 
                             UInt dof) {
@@ -127,9 +126,9 @@ namespace CoupledField
 
 
   void Tetra1FE::CalcShapeFnc( Vector<Double> & Shape, 
-                                 const Vector<Double> & LCoord,
-                                 const Elem*, UInt dof,
-                                 AnsatzFct::FctEntityType fctEntityType )
+                               const Vector<Double> & LCoord,
+                               const Elem*, UInt dof,
+                               AnsatzFct::FctEntityType fctEntityType )
   {
 
 
@@ -140,7 +139,7 @@ namespace CoupledField
     Shape[0] = 1.0 - LCoord[0] - LCoord[1] - LCoord[2];
 
     if (Shape[0] < 0)
-      Error("Local coordinates are not inside tetrahedral element!",__FILE__,__LINE__);
+      EXCEPTION("Local coordinates are not inside tetrahedral element!");
 
     for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];

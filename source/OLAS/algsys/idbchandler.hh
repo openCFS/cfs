@@ -5,14 +5,14 @@
 #ifndef IDBC_HANDLER_HH
 #define IDBC_HANDLER_HH
 
-
 #include <set>
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "algsys/baseidbchandler.hh"
+
+#include <def_expl_templ_inst.hh>
+
+#include "OLAS/algsys/baseidbchandler.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // forward declarations
@@ -84,9 +84,8 @@ namespace OLAS {
       // Check for validity of matrix identifier
       mySetIterator it = myMatrices_.find( matrixID );
       if ( it == myMatrices_.end() ) {
-        (*error) << "IDBC_Handler::InitMatrix: Received invalid matrix "
-                 << "identifier '" << matrixID << "'";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "IDBC_Handler::InitMatrix: Received invalid matrix "
+                 << "identifier '" << matrixID << "'");
       }
       else {
         auxMat_[ *it ]->Init();
@@ -131,10 +130,9 @@ namespace OLAS {
     //! \param rhs vector with right-hand side entries
     inline void AddIDBCToRHS( BaseVector *rhs ) {
       if ( addIDBCPossible_ == false ) {
-        (*error) << "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
+        EXCEPTION( "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
                  << "add Dirichlet BCs, since addIDBCPossible_ = false! "
-                 << "Did you call BuiltSystemMatrix()?";
-        Error( __FILE__, __LINE__ );
+                 << "Did you call BuiltSystemMatrix()?");
       }
       auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );
       remIDBCPossible_ = true;
@@ -153,12 +151,11 @@ namespace OLAS {
     //! \param rhs vector with right-hand side entries
     inline void RemoveIDBCFromRHS( BaseVector *rhs ) {
       if ( remIDBCPossible_ == false ) {
-        (*error) << "IDBCHandler::RemoveIDBCFromRHS: Internal error! "
+    	EXCEPTION( "IDBCHandler::RemoveIDBCFromRHS: Internal error! "
                  << "Refusing to remove Dirichlet BCs, since "
                  << "remIDBCPossible_ = false! "
                  << "Either FE matrices or Dirichlet values have changed "
-                 << "since last call to AddIDBCToRHS()!";
-        Error( __FILE__, __LINE__ );
+                 << "since last call to AddIDBCToRHS()!");
       }
       auxMat_[SYSTEM]->MultAdd( *vecIDBC_, *rhs );
     }
@@ -193,11 +190,10 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     void AddWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double realPart, Double imagPart = 0.0 );
+                               const T& val );
     
     //! Set weight of coupling between a fixed and a free dof into matrix
 
@@ -214,11 +210,10 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     void SetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double realPart, Double imagPart = 0.0 );
+                               const T& val );
 
     //! Get weight of coupling between a fixed and a free dof from matrix
 
@@ -235,11 +230,10 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double & realPart,Double & imagPart ) const;
+                               T& val ) const;
     
     //! Set the value of all coupling weights of a free dof to its fixed ones
 
@@ -250,10 +244,9 @@ namespace OLAS {
     //! \param pdeID    row index of sub-matrix in the SBM_Matrix case
     //! \param rowInd   row index of entry to get, i.e. the equation
     //!                 number of the free degree of freedom
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
-                        Double realPart, Double imagPart = 0.0 );
+                        const T& val );
 
     
     //! Set the value of all coupling weights of a fixed dof to its free ones
@@ -266,9 +259,8 @@ namespace OLAS {
     //! \param colInd   column index of entry to get, i.e. the equation
     //!                 number of the fixed degree of freedom
     //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
     void SetColWeights( FEMatrixType matID, PdeIdType pdeID,UInt colInd,
-                        Double realPart, Double imagPart = 0.0 );
+                        const T& val );
 
     //! Set fixed dofs to specified Dirichlet boundary values
 
@@ -308,12 +300,6 @@ namespace OLAS {
     //! factory concept and our idea of compiler-independent template class
     //! instantiation.
 
-    //@{
-    //! Method to force instantiation of all public member functions
-    void InstantiatePublicMethods();
-    //@}
-
-
   private:
 
     //! Private shortcut for set iterator
@@ -321,15 +307,13 @@ namespace OLAS {
 
     //! Default constructor is dis-allowed
     IDBC_Handler() {
-      (*error) << "Call to forbidden default constructor of "
-               << "IDBC_Handler class";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Call to forbidden default constructor of "
+               << "IDBC_Handler class" );
     }
 
     //! Copy constructor is dis-allowed
     IDBC_Handler( const IDBC_Handler &idbcHandler ) {
-      (*error) << "Call to forbidden copy constructor of IDBC_Handler class";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Call to forbidden copy constructor of IDBC_Handler class" );
     }
 
     //! Set containing markers for the potentially required matrices
@@ -391,7 +375,10 @@ namespace OLAS {
     bool sbmCase_;
 
   };
-
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "idbchandler.cc"
+#endif
 
 #endif

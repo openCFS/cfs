@@ -25,7 +25,7 @@ namespace CoupledField
                                Double hMax ){
     const Double tiny = 1.0e-30;
     Integer i;
-    Integer nstp;
+    UInt nstp;
     Double t;
     Double h;
     Double hNext;
@@ -43,7 +43,7 @@ namespace CoupledField
     if ( yInitOut[0] >= 0 )
       RadiusGroesserNull_ = true;
     else 
-     	Error("Radius is negative! ",__FILE__,__LINE__); 
+      EXCEPTION("Radius is negative! "); 
 
 
     t = tInit;
@@ -104,7 +104,7 @@ namespace CoupledField
       
       if (fabs(hNext) <= hMin){
 	std::cout<<"Step size in  " <<numEl_ << "  is  " << hNext <<std::endl;
-	Error("Step size too small",__FILE__,__LINE__);
+	EXCEPTION("Step size too small");
 	successLastSolve_ = false;
       }
       h = hNext;
@@ -119,7 +119,7 @@ namespace CoupledField
     //	  dummydpdt = theODE.GetDpdt();
     //	  Info->PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
     //		       ,numEl_,dummyp,dummydpdt,t,h,y[0],y[1]);
-    Error( "Too many steps", __FILE__, __LINE__ );
+    EXCEPTION( "Too many steps" );
     //	}
     //	catch (...) {
     //Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
@@ -203,7 +203,7 @@ namespace CoupledField
 	  //	  Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
 	  //			,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
 	  std::cerr<<"Abbruch in Element Nr:"<<numEl_<<std::endl;
-	  Error("Stepsize underflow",__FILE__,__LINE__);
+	  EXCEPTION("Stepsize underflow");
 	  //	}
 	  //	catch (...) {
 	  //	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 

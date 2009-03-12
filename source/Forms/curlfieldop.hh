@@ -9,7 +9,7 @@
 #include "Utils/tools.hh"
 #include "Utils/StdVector.hh"
 
-#include "olas.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField
 {
@@ -99,7 +99,7 @@ namespace CoupledField
     void CalcElemMagVec(Vector<Double> & magVecPot, 
                         const Elem * ptElement,
                         const Vector<Double> & LCoord)
-    {Error("CalcElemMagVec not implemented",__FILE__,__LINE__);};
+    {EXCEPTION("CalcElemMagVec not implemented");};
   
   protected:
   

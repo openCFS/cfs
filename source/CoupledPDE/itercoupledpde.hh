@@ -79,7 +79,7 @@ namespace CoupledField
     void ToInfo(InfoNode* in);
 
     //! calculates the norm of a vector
-    //Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);
+    //Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval);
 
     UInt miniter_;                        //!< minimum number of iterations per time step
     UInt maxiter_;                        //!< maximum number of iterations per time step

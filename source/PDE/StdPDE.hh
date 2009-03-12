@@ -113,7 +113,7 @@ namespace CoupledField {
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
     {
-      Error("not implemented",__FILE__,__LINE__);
+      EXCEPTION("not implemented");
       return false;
     }
   
@@ -150,19 +150,23 @@ namespace CoupledField {
     //!
     //! \for computing vortex source both analytically and with complex 
     //! \potential function 
-    virtual  void VortexAnalytical(Double & press, Vector<Double>& dTij_di, const Double x,
+    virtual  void VortexAnalytical(Double & press, Vector<Double>& dTij_di,
+                                   const Double x,
                                    const Double y, const Double t, 
                                    const UInt outType){
-      Error("VortexAnalytical is only implemented in acouFlowNoisePDE",__FILE__,__LINE__);};
+      EXCEPTION("VortexAnalytical is only implemented in acouFlowNoisePDE");};
   
     //! set boundary condition
     //! \param atimestep         time step of claculation
     virtual  void SetBCs() = 0;
 
     virtual  void InitStabParams( ) {
-      Error("Not Implemented, only needed for fluidMech and smooth",__FILE__,__LINE__);};
+      EXCEPTION("Not Implemented, only needed for fluidMech and smooth");
+    };
+
     virtual  void PrintStabParams( ) {
-      Error("Not Implemented, only needed for fluidMech",__FILE__,__LINE__);};
+      EXCEPTION("Not Implemented, only needed for fluidMech");
+    };
 
     
     //! Initialize all/some the nodes by this value
@@ -186,13 +190,13 @@ namespace CoupledField {
     //@}
 
     /** Get the data vector of the current solution of the algebraic system */
-    virtual CFSVector* GetSolutionVector() { return solVec_;} 
+    virtual SingleVector* GetSolutionVector() { return solVec_;} 
 
     /** Get the data vector of the current rhs of the algebraic system. */
-    CFSVector* GetRHSVector() { return rhsVec_;}
+    SingleVector* GetRHSVector() { return rhsVec_;}
 
     //! get the data vector of the previous solution of a PDE.
-    virtual CFSVector * GetPrevSolutionVector();
+    virtual SingleVector * GetPrevSolutionVector();
     
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
@@ -255,10 +259,10 @@ namespace CoupledField {
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
     
-    void setPDE_MatDataType(DataType & pMatType){
+    void setPDE_MatDataType(Global::ComplexPart & pMatType){
       matDataType_ = pMatType;};
   
-    DataType getPDE_MatDataType()
+    Global::ComplexPart getPDE_MatDataType()
     {return matDataType_;}
 
     //! get pointer to time stepping object
@@ -331,7 +335,7 @@ namespace CoupledField {
   
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {
-      Error ("Not implemented", __FILE__, __LINE__);
+      EXCEPTION("Not implemented");
 
       // The following line is only to satisfy the compiler
       return *this;
@@ -452,7 +456,7 @@ namespace CoupledField {
     MaterialClass pdematerialclass_;   
   
     //! Data Type which decides wheather material is real or complex
-    DataType  matDataType_;
+    Global::ComplexPart  matDataType_;
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
     Vector<Complex> complexValuedEfield_;
@@ -519,10 +523,10 @@ namespace CoupledField {
     bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
     BaseNodeStoreSol * sol_;    //!< solution
-    CFSVector * solVec_;        //! needed in iterative coupled computation 
-    CFSVector * rhsVec_;        //! needed when writing the RHS to file
+    SingleVector * solVec_;        //! needed in iterative coupled computation 
+    SingleVector * rhsVec_;        //! needed when writing the RHS to file
     BaseNodeStoreSol * solPrev_;    //!< solution at time step n
-    CFSVector * solVecPrev_;        //! needed in coupled computation 
+    SingleVector * solVecPrev_;        //! needed in coupled computation 
 
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;

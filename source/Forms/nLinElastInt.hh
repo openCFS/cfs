@@ -196,7 +196,8 @@ protected:
     virtual UInt getFullPiolaDMatSize()=0;
 
     /// conversion of stress vector to stress tensor
-    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                               Vector<Double>& piolaStress);
   
   private:
   
@@ -284,7 +285,8 @@ protected:
     virtual UInt getNrDofs(){return 2;};  
 
     /// conversion of stress vector to stress tensor
-    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                               Vector<Double>& piolaStress);
 
     /// returns material D-matrix for 3d mechanics
     virtual void calcMaterialDMat(Matrix<Double> & dMat);
@@ -352,7 +354,8 @@ protected:
     virtual UInt getNrDofs(){return 2;};  
 
     /// conversion of stress vector to stress tensor
-    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    virtual void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                               Vector<Double>& piolaStress);
 
     /// returns material D-matrix for 3d mechanics
     virtual void calcMaterialDMat(Matrix<Double> & dMat);
@@ -399,34 +402,36 @@ protected:
     //!
     void convertStressVecToTensor( Matrix<Double> &stressTensor,
                                    Vector<Double> &piolaStress ) {
-      Error( "convertStressVecToTensor not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "convertStressVecToTensor not implemented" );
     }
 
   protected:
     /// calculates pre-stresses (vector notation)
-    void CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, Matrix<Double> & ptCoord);
+    void CalcStressVec(Vector<Double>& piolaStressVec,
+                         UInt ip,
+                         Matrix<Double> & ptCoord);
 
     /// returns the size of the full piola d-matrix
     virtual UInt getFullPiolaDMatSize(){
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
       return 0;
     }
 
     /// returns dimension of D matrix
     virtual UInt getDimD() {
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
       return 0;
     }
   
     /// returns nr. of degrees of freedom
     virtual UInt getNrDofs(){
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
       return 0;
     }
 
     /// returns the size of the material d-matrix
     virtual UInt getMaterialDMatSize() {
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
       return 0;
     }
 
@@ -450,7 +455,8 @@ protected:
     virtual ~PreStressInt3D();  
 
     //!
-    void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                      Vector<Double>& piolaStress);
 
   protected:
     /// returns the size of the full piola d-matrix
@@ -473,13 +479,15 @@ protected:
   {
   public:
     //! Constructor
-    PreStressIntPlaneStrain(BaseMaterial* matData, Vector<Double> aPreStressVal);
+    PreStressIntPlaneStrain(BaseMaterial* matData,
+                               Vector<Double> aPreStressVal);
   
     /// Destructor
     virtual ~PreStressIntPlaneStrain();  
 
     //!
-    void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                      Vector<Double>& piolaStress);
 
   protected:
     /// returns the size of the full piola d-matrix
@@ -503,13 +511,15 @@ protected:
   public:
   
     //! Constructor
-    PreStressIntAxi(BaseMaterial* matData, Vector<Double> aPreStressVal);
+    PreStressIntAxi(BaseMaterial* matData,
+                      Vector<Double> aPreStressVal);
   
     /// Destructor
     virtual ~PreStressIntAxi();  
 
     //!
-    void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
+    void convertStressVecToTensor(Matrix<Double>& stressTensor,
+                                      Vector<Double>& piolaStress);
 
   protected:
     /// returns the size of the full piola d-matrix

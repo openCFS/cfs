@@ -13,17 +13,19 @@
 
 SET(SCPIP_FOUND 0)
 
-FIND_LIBRARY(SCPIP_LIBRARY
-  NAMES scpip
-  PATHS ${CFSDEPS_LIBRARY_DIR}
-)
+BUILD_EXTLIB("SCPIP"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libscpip.a"
+  "${CFS_DEPS_ROOT}/scpip/build_scpip.pl"
+  "build_scpip.log")
 
-IF(SCPIP_LIBRARY)
-  SET(SCPIP_FOUND 1)
-ENDIF(SCPIP_LIBRARY)
+#-------------------------------------------------------------------------------
+# Determine paths of SCPIP libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(SCPIP_LIBRARY
+  "${LD}/libscpip.a"
+  CACHE FILEPATH "SCPIP library.")
 
 MARK_AS_ADVANCED(SCPIP_LIBRARY)
 
-IF(NOT SCPIP_FOUND)
-  MESSAGE("Warning: SCPIP could not be found! Please specify proper paths.")
-ENDIF(NOT SCPIP_FOUND)
+SET(SCPIP_FOUND 1)

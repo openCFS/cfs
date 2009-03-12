@@ -5,11 +5,13 @@
 #ifndef OLAS_ARPACK_EIGENSOLVER_HH
 #define OLAS_ARPACK_EIGENSOLVER_HH
 
+#include "OLAS/solver/baseEigensolver.hh"
 #include "arpackSolver.hh"
-#include "solver/solver.hh"
-#include "arpackMatInterface.cc"
+#include "arpackMatInterface.hh"
 
-namespace OLAS {
+namespace CoupledField {
+  
+  class StdMatrix;
   
   // =========================================================================
   //   ARPACK SOLVER

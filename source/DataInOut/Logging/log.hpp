@@ -168,7 +168,7 @@ protected:
 */
 struct logger_and_level {
     logger_and_level(logger & l, level_type lvl) : l(l), lvl(lvl) {}
-    mutable logger &l;
+    logger &l;
     level_type lvl;
 };
 

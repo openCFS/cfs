@@ -69,7 +69,7 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetSolverParams( std::string pdename, ParamNode *cfs,
-                                 OLAS_Params *olas, OLAS::SolverType sType );
+                                 OLAS_Params *olas, SolverType sType );
 
     //! Set parameters for eigenvalue solver for linear system
 
@@ -88,7 +88,7 @@ namespace CoupledField
     static void SetEigenSolverParams( std::string pdename, 
                                       ParamNode *cfs,
                                       OLAS_Params *olas, 
-                                      OLAS::EigenSolverType sType );    
+                                      EigenSolverType sType );    
 
     //! Set parameters for preconditioner for linear system
 
@@ -106,17 +106,17 @@ namespace CoupledField
     //!       definitions require the parameters to be unique.
     static void SetPrecondParams( std::string pdename, ParamNode *cfs,
                                   OLAS_Params *olas, 
-                                  OLAS::PrecondType pType );
+                                  PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
     static void Expert( ParamNode *cfs,
                         std::string pdename, 
-                        OLAS::EigenSolverType &esType,
-                        OLAS::SolverType &sType,
-                        OLAS::PrecondType &pType, 
-                        OLAS::MatrixStorageType &mType,
-                        OLAS::MatrixEntryType &eType, 
-                        OLAS::ReorderingType &rType,
+                        EigenSolverType &esType,
+                        SolverType &sType,
+                        PrecondType &pType, 
+                        BaseMatrix::StorageType &mType,
+                        BaseMatrix::EntryType &eType, 
+                        ReorderingType &rType,
                         BasePDE::AnalysisType analysisType,
                         Assemble * assemble,
                         bool allowChangeOfReordering );

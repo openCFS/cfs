@@ -23,8 +23,8 @@ namespace CoupledField
     virtual ~Line2FE();
   
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_LINE3;
+    virtual Elem::FEType feType() {
+      return Elem::LINE3;
     };
 
   protected:

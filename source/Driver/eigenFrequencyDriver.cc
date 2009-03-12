@@ -5,6 +5,9 @@
 #include "eigenFrequencyDriver.hh"
 #include "stdSolveStep.hh"
 
+#include <iostream>
+#include <iomanip>
+
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
 
@@ -72,7 +75,7 @@ namespace CoupledField {
     // ------------------------------
     
     // the eigenfrequencies are complex in the quadratic case
-    CFSVector* eigenFreqs = NULL;
+    SingleVector* eigenFreqs = NULL;
     if(isQuadratic_) eigenFreqs = new Vector<Complex>(numFreq_); 
                 else eigenFreqs = new Vector<Double>(numFreq_);
     Vector<Double> errBounds( numFreq_ );
@@ -101,7 +104,7 @@ namespace CoupledField {
 
   
   template <class T>
-  void EigenFrequencyDriver::PrintResult(CFSVector* freq_ptr, Vector<Double> errBounds, 
+  void EigenFrequencyDriver::PrintResult(SingleVector* freq_ptr, Vector<Double> errBounds, 
                                          ResultHandler* resHandler, UInt numConverged)
   {
     Vector<T>& eigenFreqs = dynamic_cast<Vector<T>&>(*freq_ptr);

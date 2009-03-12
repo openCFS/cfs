@@ -18,44 +18,41 @@ namespace CoupledField {
 // =================================
 //    Initialize Static Variables
 // =================================
-hsize_t H5IO::maxChunkSize_= 100; 
-
+hsize_t H5IO::maxChunkSize_= 100;
 
   // ====================================
   //    Initialize Atom Data Typemaps
   // ====================================
-#define DECL_HDF_ATOM_TYPE(TYPE, NATIVE_TYPE, STD_TYPE )        \
-  template<>                                                    \
-  H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =      \
-    H5::IntType( NATIVE_TYPE );                                 \
-    template<>                                                  \
-    H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfStdType =       \
-      H5::IntType( STD_TYPE )
-  
-  
+#define DECL_HDF_ATOM_TYPE(TYPE, NATIVE_TYPE, STD_TYPE )                \
+  template<>                                                            \
+  H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =              \
+    InitHdfAtomNativeType<TYPE>(NATIVE_TYPE);                           \
+  template<>                                                            \
+  H5::DataType H5IO::HdfAtomTypeMap<TYPE>::HdfStdType =                 \
+    InitHdfAtomStdType<TYPE>(STD_TYPE)
+
   // Define mapping
   DECL_HDF_ATOM_TYPE( bool,
-                      H5::PredType::NATIVE_INT32,
-                      H5::PredType::STD_I32LE );
-  
-  DECL_HDF_ATOM_TYPE( Integer,
-                      H5::PredType::NATIVE_INT32,
-                      H5::PredType::STD_I32LE );
-  
-  DECL_HDF_ATOM_TYPE( UInt,
-                      H5::PredType::NATIVE_UINT32,
-                      H5::PredType::STD_U32LE );
-  
-  DECL_HDF_ATOM_TYPE( Double,
-                      H5::PredType::NATIVE_DOUBLE,
-                      H5::PredType::IEEE_F64LE );
-  
-  DECL_HDF_ATOM_TYPE( Float,
-                      H5::PredType::NATIVE_FLOAT,
-                      H5::PredType::IEEE_F32LE );
+                      H5T_NATIVE_INT32,
+                      H5T_STD_I32LE );
 
+  DECL_HDF_ATOM_TYPE( Integer,
+		              H5T_NATIVE_INT32,
+                      H5T_STD_I32LE );
+
+  DECL_HDF_ATOM_TYPE( UInt,
+                      H5T_NATIVE_UINT32,
+                      H5T_STD_U32LE );
+
+  DECL_HDF_ATOM_TYPE( Double,
+                      H5T_NATIVE_DOUBLE,
+                      H5T_IEEE_F64LE );
+
+  DECL_HDF_ATOM_TYPE( Float,
+                      H5T_NATIVE_FLOAT,
+                      H5T_IEEE_F32LE );
 #undef DECL_HDF_ATOM_TYPE
-  
+
   // ========================================
   //    Initialize General Datatype mapping
   // ========================================
@@ -63,8 +60,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   // -----------
   //  AtomTypes
   // -----------
-  
-#define DECL_HDF_ATOM_TYPE_CONV(TYPE )                          \
+
+#define DECL_HDF_ATOM_TYPE_CONV(TYPE)                           \
   template<>                                                    \
   class H5IO::HdfTypeConversion<TYPE> :                         \
     public H5IO::BaseHdfTypeConversion {                        \
@@ -75,11 +72,11 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                                 \
   public:                                                       \
     HdfTypeConversion()                                         \
-      : buffer_( NULL ) {                                        \
-      nativeType_ =                                              \
-        HdfAtomTypeMap<TYPE>::HdfNativeType;                     \
-      stdType_ =                                                 \
-        HdfAtomTypeMap<TYPE>::HdfStdType;                        \
+      : buffer_( NULL ) {                                       \
+      nativeType_ =                                             \
+        HdfAtomTypeMap<TYPE>::HdfNativeType;                    \
+      stdType_ =                                                \
+        HdfAtomTypeMap<TYPE>::HdfStdType;                       \
     }                                                           \
                                                                 \
     const void * GetOutBufferPtr() {                            \
@@ -137,23 +134,23 @@ hsize_t H5IO::maxChunkSize_= 100;
   DECL_HDF_ATOM_TYPE_CONV(UInt);
   DECL_HDF_ATOM_TYPE_CONV(Double);
   DECL_HDF_ATOM_TYPE_CONV(Float);
-  
+
 #undef DECL_HDF_ATOM_TYPE_CONV
-  
+
   // ---------------
   //  bool
   // ---------------
   template<>
   class H5IO::HdfTypeConversion<bool> :
     public H5IO::BaseHdfTypeConversion  {
-    
+
   private:
 
     Integer* buffer_;
-    
+
   public:
-    
-    HdfTypeConversion() 
+
+    HdfTypeConversion()
       : buffer_ ( NULL ) {
       nativeType_ =  HdfAtomTypeMap<bool>::HdfNativeType;
       stdType_ = HdfAtomTypeMap<bool>::HdfStdType;
@@ -165,7 +162,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       }
       return buffer_;
     }
-    
+
     void* GetInBufferPtr( UInt numData ) {
       CleanUp();
       numElems_ = numData;
@@ -178,7 +175,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         data[i] = (buffer_[i] == 1) ? true : false;
       }
     }
-    
+
     void SetNativeData( const bool& t ) {
       CleanUp();
       buffer_ = new Integer[1];
@@ -187,7 +184,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = 1;
       isSet_ = true;
     }
-    
+
     void SetNativeData( const bool* t, UInt size  ) {
       CleanUp();
       buffer_ = new Integer[size];
@@ -208,7 +205,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = 0;
       isSet_ = false;
     }
-    
+
   };
 
   // ---------------
@@ -217,18 +214,18 @@ hsize_t H5IO::maxChunkSize_= 100;
   template<>
   class H5IO::HdfTypeConversion<std::string> :
     public H5IO::BaseHdfTypeConversion  {
-    
+
   private:
 
     const char** buffer_;
-    
+
   public:
-    HdfTypeConversion() 
+    HdfTypeConversion()
       : buffer_( NULL ) {
       nativeType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
       stdType_ = H5::StrType( H5::PredType::C_S1, H5T_VARIABLE);
     }
-    
+
     const void * GetOutBufferPtr() {
       if( !isSet_ ) {
         EXCEPTION( "Data buffer is empty" );
@@ -248,7 +245,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         data[i].assign( buffer_[i]);
       }
     }
-    
+
     void SetNativeData( const std::string& t ) {
       CleanUp();
       buffer_ = new const char*[1];
@@ -257,7 +254,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = 1;
       isSet_ = true;
     }
-    
+
     void SetNativeData( const std::string* t, UInt size  ) {
       CleanUp();
       buffer_ = new const char*[size];
@@ -268,7 +265,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = size;
       isSet_ = true;
     }
-    
+
     void CleanUp() {
       if( buffer_ ) {
         delete[] buffer_;
@@ -279,8 +276,8 @@ hsize_t H5IO::maxChunkSize_= 100;
       isSet_ = false;
     }
   };
-  
-  
+
+
   // --------------------------
   //  StdVector<std::string>
   // --------------------------
@@ -292,14 +289,14 @@ hsize_t H5IO::maxChunkSize_= 100;
     hvl_t * buffer_;
 
   public:
-    HdfTypeConversion() 
-      : buffer_( NULL ) { 
+    HdfTypeConversion()
+      : buffer_( NULL ) {
       H5::StrType sType( H5::PredType::C_S1, H5T_VARIABLE);
       H5::VarLenType vType( &sType );
       nativeType_ = vType;
       stdType_ = vType;
     }
-    
+
     const void * GetOutBufferPtr() {
       if( !isSet_ ) {
         EXCEPTION( "Data buffer is empty" );
@@ -313,7 +310,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       buffer_ = new hvl_t[numData];
       return buffer_;
     }
-    
+
     void GetNativeData( StdVector<std::string> * data) {
       for( UInt i = 0; i < numElems_; i++ ) {
         data[i].Resize( buffer_[i].len );
@@ -336,7 +333,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       isSet_ = true;
     }
 
-    
+
     void SetNativeData( const StdVector<std::string>* t, UInt size ) {
       CleanUp();
       buffer_ = new hvl_t[size];
@@ -351,9 +348,9 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = size;
       isSet_ = true;
     }
- 
+
     void CleanUp() {
-      
+
       if( buffer_ ) {
 
         // delete pointers to characters
@@ -361,7 +358,7 @@ hsize_t H5IO::maxChunkSize_= 100;
           delete[] (const char*) buffer_[i].p;
           buffer_[i].p = NULL;
         }
-        
+
         // delete buffer itself
         delete[] buffer_;
       }
@@ -370,11 +367,11 @@ hsize_t H5IO::maxChunkSize_= 100;
       numElems_ = 0;
       isSet_ = false;
     }
-    
+
   }; // end of class definition
-  
-  
-  
+
+
+
   // ----------------------
   //  StdVector<TYPE>
   // ----------------------
@@ -465,20 +462,21 @@ hsize_t H5IO::maxChunkSize_= 100;
     }                                                                   \
                                                                         \
   }
-  
+
+  DECL_STL_VECTOR_CONVERSION( bool );
   DECL_STL_VECTOR_CONVERSION( Integer );
   DECL_STL_VECTOR_CONVERSION( UInt );
   DECL_STL_VECTOR_CONVERSION( Double );
   DECL_STL_VECTOR_CONVERSION( Float );
-  
+
 #undef DECL_ST_VECTOR_CONVERSION
-    
+
   template<typename TYPE>
   void H5IO::WriteAttribute( H5::H5Object& obj,
                              const std::string& name,
                              const TYPE& data,
                              const H5::DSetCreatPropList &create_plist ) {
-    
+
     try {
 
       // create conversion helper object and get native / std hdf5 datatype
@@ -488,33 +486,33 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // create memory data space
       H5::DataSpace space;
-      
+
       // generate attribute
       conv.SetNativeData( data );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for attribute '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
-      H5::Attribute attr = obj.createAttribute( name, stdType, 
+      H5::Attribute attr = obj.createAttribute( name, stdType,
                                                 space, create_plist );
-      
+
       // write attribute
       attr.write( nativeType, conv.GetOutBufferPtr() );
-      
+
       // reset conversion object
       conv.CleanUp();
-      
+
       // close attribute, dataspace- and types
       space.close();
       attr.close();
-      
+
 
     }  catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not write attribute '" 
+      EXCEPTION("Could not write attribute '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write attribute '" << name << "'" );
-    } 
+    }
   }
 
   template<typename TYPE>
@@ -523,10 +521,10 @@ hsize_t H5IO::maxChunkSize_= 100;
                            UInt size,
                            const TYPE * buffer,
                            const H5::DSetCreatPropList &create_plist ) {
-    
+
     // check, that size is greate than zero
     if( size == 0 || buffer == NULL ) {
-      EXCEPTION( "Attribute data buffer of 1D array '" << name 
+      EXCEPTION( "Attribute data buffer of 1D array '" << name
                  << "' is NULL or has zero size" );
     }
     try {
@@ -535,7 +533,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       HdfTypeConversion<TYPE> conv;
       H5::DataType stdType = conv.GetStdType();
       H5::DataType nativeType = conv.GetNativeType();
-  
+
       // create memory data space
       const hsize_t dims = size;
       H5::DataSpace space( 1, &dims );
@@ -546,12 +544,12 @@ hsize_t H5IO::maxChunkSize_= 100;
         EXCEPTION( "Could not convert data for 1D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
-      
+
       // set chunking of dataset
       H5::DSetCreatPropList newList(create_plist);
       const hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
       newList.setChunk( 1, &chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType, 
+      H5::DataSet dataset = loc.createDataSet( name, stdType,
                                                space, newList );
       dataset.write( conv.GetOutBufferPtr(), nativeType  );
 
@@ -561,15 +559,15 @@ hsize_t H5IO::maxChunkSize_= 100;
       // close dataset, dataspace- and types
       space.close();
       dataset.close();
-      
-      
+
+
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not write 1D-Array '" 
+      EXCEPTION("Could not write 1D-Array '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write 1D-Array '" << name << "'" );
     }
-    
+
   }
 
   template<typename TYPE>
@@ -577,26 +575,26 @@ hsize_t H5IO::maxChunkSize_= 100;
                              const std::string& name,
                              UInt size,
                              const H5::DSetCreatPropList &create_plist ) {
-    
+
     try {
-  
+
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
       H5::DataType stdType = conv.GetStdType();
-               
+
       // create memory data space
       hsize_t dims[1] = {size};
       const hsize_t maxDims[1] = {H5S_UNLIMITED};
       H5::DataSpace space( 1, dims, maxDims );
-      
+
       // set chunking of dataset
       H5::DSetCreatPropList newList(create_plist);
-      
+
       hsize_t chunk = std::min( (UInt) size, (UInt) maxChunkSize_ );
       newList.setChunk( 1, &chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType, 
+      H5::DataSet dataset = loc.createDataSet( name, stdType,
                                                space, newList );
-            
+
       // reset conversion object
       conv.CleanUp();
 
@@ -605,23 +603,23 @@ hsize_t H5IO::maxChunkSize_= 100;
       dataset.close();
 
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not reserve 1D-Array '" 
+      EXCEPTION("Could not reserve 1D-Array '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not reserve 1D-Array '" << name << "'" );
     }
   }
-      
-  
+
+
   template<typename TYPE>
   void H5IO::SetEntries1DArray( H5::CommonFG &loc,
                                 const std::string& name,
                                 UInt start, UInt end,
                                 const TYPE * buffer ) {
-    
+
     // check, that size is greate than zero
     if( start > end || buffer == NULL ) {
-      EXCEPTION( "Attribute data buffer of 1D array '" << name 
+      EXCEPTION( "Attribute data buffer of 1D array '" << name
                  << "' is NULL or has zero size" );
     }
     try {
@@ -629,12 +627,12 @@ hsize_t H5IO::maxChunkSize_= 100;
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
       H5::DataType nativeType = conv.GetNativeType();
-  
+
       // create memory data space
       const hsize_t size = ( end - start ) + 1;
       const hsize_t maxDims = H5S_UNLIMITED;
       H5::DataSpace memSpace( 1, &size, &maxDims );
-      
+
       // fill conversion object
       conv.SetNativeData( buffer, static_cast<UInt>(size) );
       if( !conv.IsSet() ) {
@@ -644,11 +642,11 @@ hsize_t H5IO::maxChunkSize_= 100;
       // open dataset and dataspace of file dataset
       H5::DataSet dataset = loc.openDataSet( name );
       H5::DataSpace fileSpace = dataset.getSpace();
-      
+
       hsize_t Offset[1] = {start};
       hsize_t Mysize[1] = {size};
       fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
-                                                            
+
       // write data
       dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
 
@@ -659,16 +657,16 @@ hsize_t H5IO::maxChunkSize_= 100;
       fileSpace.close();
       memSpace.close();
       dataset.close();
-      
+
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not set entries in 1D-Array '" 
+      EXCEPTION("Could not set entries in 1D-Array '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
-      RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '" 
+      RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '"
                         << name << "'" );
     }
   }
-  
+
   template<typename TYPE>
   void H5IO::Write2DArray( H5::CommonFG &loc,
                            const std::string& name,
@@ -677,40 +675,40 @@ hsize_t H5IO::maxChunkSize_= 100;
                            const TYPE * buffer,
                            const H5::DSetCreatPropList &create_plist
                            ) {
-    
+
     // check, that size is greate than zero
     if( rowSize == 0 || colSize == 0 || buffer == NULL ) {
-      EXCEPTION( "Data buffer of 2D array '" << name 
+      EXCEPTION( "Data buffer of 2D array '" << name
                  << "' is NULL or has zero size" );
     }
-    
+
     try {
 
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
       H5::DataType stdType = conv.GetStdType();
       H5::DataType nativeType = conv.GetNativeType();
-      
+
       // create memory data space
       const hsize_t dims[] = {rowSize, colSize};
       const Integer rank = 2;
 
       H5::DataSpace space( rank, dims );
-      
+
       // generate dataset and fill it
       conv.SetNativeData( buffer, rowSize * colSize );
       if( !conv.IsSet() ) {
         EXCEPTION( "Could not convert data for 2D array '"
                    << name << "' of type " << typeid(TYPE).name() );
       }
-      
+
       H5::DSetCreatPropList newList(create_plist);
-      const hsize_t chunk[2] = { std::min( (UInt) rowSize, 
+      const hsize_t chunk[2] = { std::min( (UInt) rowSize,
                                            (UInt) maxChunkSize_ ),
-                                 std::min( (UInt) colSize, 
+                                 std::min( (UInt) colSize,
                                            (UInt) maxChunkSize_ ) };
       newList.setChunk( 2, chunk);
-      H5::DataSet dataset = loc.createDataSet( name, stdType, 
+      H5::DataSet dataset = loc.createDataSet( name, stdType,
                                                space, newList );
       dataset.write( conv.GetOutBufferPtr(), nativeType  );
 
@@ -722,7 +720,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       dataset.close();
 
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not write 2D-Array '" << name 
+      EXCEPTION("Could not write 2D-Array '" << name
                 << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
@@ -740,21 +738,21 @@ hsize_t H5IO::maxChunkSize_= 100;
        // create conversion helper object and get native / std hdf5 datatype
        HdfTypeConversion<TYPE> conv;
        H5::DataType stdType = conv.GetStdType();
-       
+
        // create memory data space
        const hsize_t dims[] = {rowSize, colSize};
        const hsize_t maxDims[2] = {H5S_UNLIMITED, H5S_UNLIMITED};
        const Integer rank = 2;
        H5::DataSpace space( rank, dims, maxDims );
-       
+
        // set chunking of dataset
        H5::DSetCreatPropList newList(create_plist);
-       const hsize_t chunk[2] = { std::min( (UInt) rowSize, 
+       const hsize_t chunk[2] = { std::min( (UInt) rowSize,
                                             (UInt) maxChunkSize_ ),
-                                  std::min( (UInt) colSize, 
+                                  std::min( (UInt) colSize,
                                             (UInt) maxChunkSize_) };
        newList.setChunk( 2, chunk);
-       H5::DataSet dataset = loc.createDataSet( name, stdType, 
+       H5::DataSet dataset = loc.createDataSet( name, stdType,
                                                 space, newList );
 
        // reset conversion object
@@ -765,14 +763,14 @@ hsize_t H5IO::maxChunkSize_= 100;
        dataset.close();
 
      } catch (H5::Exception& h5ex) {
-       EXCEPTION("Could not write 2D-Array '" << name 
+       EXCEPTION("Could not write 2D-Array '" << name
                  << "':\n" << h5ex.getCDetailMsg());
      } catch( Exception& ex ) {
        RETHROW_EXCEPTION(ex, "Could not write 2D-Array '" << name << "'" );
      }
-  
+
   }
-  
+
   template<typename TYPE>
   void H5IO::SetEntries2DArray( H5::CommonFG &loc,
                                 const std::string& name,
@@ -781,7 +779,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                                 const TYPE * buffer ) {
     // check, that size is greate than zero
       if( rowBegin > rowEnd || colBegin > colEnd || buffer == NULL ) {
-        EXCEPTION( "Data buffer of 2D array '" << name 
+        EXCEPTION( "Data buffer of 2D array '" << name
                    << "' is NULL or has zero size" );
       }
       try {
@@ -789,14 +787,14 @@ hsize_t H5IO::maxChunkSize_= 100;
         // create conversion helper object and get native / std hdf5 datatype
         HdfTypeConversion<TYPE> conv;
         H5::DataType nativeType = conv.GetNativeType();
-    
+
         // create memory data space
-        const hsize_t size[2] = { (( rowEnd - rowBegin ) + 1), 
+        const hsize_t size[2] = { (( rowEnd - rowBegin ) + 1),
                                   (( colEnd - colBegin ) + 1)};
         const hsize_t maxDims[2] = {H5S_UNLIMITED, H5S_UNLIMITED };
         H5::DataSpace memSpace( 2, size, maxDims );
-        
-        
+
+
         // fill conversion object
         conv.SetNativeData( buffer, static_cast<UInt>(size[0]*size[1]) );
         if( !conv.IsSet() ) {
@@ -806,11 +804,11 @@ hsize_t H5IO::maxChunkSize_= 100;
         // open dataset and dataspace of file dataset
         H5::DataSet dataset = loc.openDataSet( name );
         H5::DataSpace fileSpace = dataset.getSpace();
-        
+
         hsize_t Offset[2] = {rowBegin, colBegin};
         hsize_t Mysize[2] = {size[0], size[1] };
         fileSpace.selectHyperslab(  H5S_SELECT_SET, Mysize, Offset );
-                                                              
+
         // write data
         dataset.write( conv.GetOutBufferPtr(), nativeType, memSpace, fileSpace );
 
@@ -821,16 +819,16 @@ hsize_t H5IO::maxChunkSize_= 100;
         fileSpace.close();
         memSpace.close();
         dataset.close();
-        
+
       } catch (H5::Exception& h5ex) {
-        EXCEPTION("Could not set entries in 1D-Array '" 
+        EXCEPTION("Could not set entries in 1D-Array '"
                   << name << "':\n" << h5ex.getCDetailMsg());
       } catch( Exception& ex ) {
-        RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '" 
+        RETHROW_EXCEPTION(ex, "Could not set entries in 1D-Array '"
                           << name << "'" );
       }
   }
-  
+
   void H5IO::WriteCompound( H5::CommonFG& loc,
                             const std::string& name,
                             const CompoundType comp,
@@ -838,14 +836,14 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     try {
       // collect datatypes for compound array
-      StdVector<shared_ptr<BaseHdfTypeConversion > > conv (comp.GetSize() );  
+      StdVector<shared_ptr<BaseHdfTypeConversion > > conv (comp.GetSize() );
       StdVector<H5::CompType> memCompTypes( comp.GetSize() );
       UInt totalSize = 0;
       for( UInt i = 0; i < comp.GetSize(); i++ ) {
-        
+
         // get name of compound member
         std::string memName = comp[i].first;
-        
+
         // obtain conversion object for generic compound member
         GetAnyConversion( comp[i].second, conv[i] );
         if( !conv[i]->IsSet() ) {
@@ -853,7 +851,7 @@ hsize_t H5IO::maxChunkSize_= 100;
                      << "' of compound '" << name << "'" );
         }
         totalSize += conv[i]->GetRawSize();
-      
+
         // create new compound for memory datatype
         memCompTypes[i] = H5::CompType( (size_t)conv[i]->GetRawSize() );
         memCompTypes[i].insertMember( memName, 0, conv[i]->GetNativeType() );
@@ -872,9 +870,9 @@ hsize_t H5IO::maxChunkSize_= 100;
       // create  data space
       hsize_t dims = 1;
       H5::DataSpace space( 1, &dims );
-    
+
       // generate dataset
-      H5::DataSet dataset = loc.createDataSet( name, fileCompType, 
+      H5::DataSet dataset = loc.createDataSet( name, fileCompType,
                                                space, create_plist );
 
       // iterate again over all entries and fill in values
@@ -888,7 +886,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       space.close();
 
     }  catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not write compound '" << name 
+      EXCEPTION("Could not write compound '" << name
                 << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not write compound '" << name << "'" );
@@ -906,33 +904,33 @@ hsize_t H5IO::maxChunkSize_= 100;
     // to account for the trailing '\0' for strings, when determining the
     // length of the blank c-array
     char* name_C = new char[name_len+1];
-    
+
     name_len = H5Gget_objname_by_idx(loc.getLocId(), idx, name_C, name_len+1);
-    
+
     // clean up and return the string
     std::string name = std::string(name_C);
     delete []name_C;
 
     return name;
-  }    
-  
+  }
+
   template<typename TYPE>
   void H5IO::ReadAttribute( H5::H5Object& obj,
                             const std::string& name,
                             TYPE& data ) {
     try {
-      
+
       // create conversion helper object and get native / std hdf5 datatype
       HdfTypeConversion<TYPE> conv;
       H5::DataType stdType = conv.GetStdType();
       H5::DataType nativeType = conv.GetNativeType();
-      
+
       // open attribute
       H5::Attribute attribute = obj.openAttribute( name );
-      
+
       // read data in buffer of conversion object
       attribute.read( nativeType, conv.GetInBufferPtr(1) );
-      
+
       // obtain data pointer from conversion object and
       // copy it to return buffer
       conv.GetNativeData( &data );
@@ -942,24 +940,24 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // close attribute
       attribute.close();
-      
+
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not read Attribute '" 
+      EXCEPTION("Could not read Attribute '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not read Attribute '" << name << "'" );
     }
-    
+
   }
 
 
   StdVector<UInt> H5IO::GetArrayDims( const H5::CommonFG &loc,
                                       const std::string& name ) {
-    
+
     H5::DataSet dataset = loc.openDataSet( name );
     H5::DataSpace dataspace = dataset.getSpace();
     int rank = dataspace.getSimpleExtentNdims();
-    
+
     hsize_t * myDims = new hsize_t[rank];
     rank = dataspace.getSimpleExtentDims( myDims, NULL);
 
@@ -978,7 +976,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     H5::DataSet dataset = loc.openDataSet( name );
     H5::DataSpace dataspace = dataset.getSpace();
     int rank = dataspace.getSimpleExtentNdims();
-    
+
     hsize_t * myDims = new hsize_t[rank];
     rank = dataspace.getSimpleExtentDims( myDims, NULL);
 
@@ -996,10 +994,10 @@ hsize_t H5IO::maxChunkSize_= 100;
   void H5IO::ReadArray( H5::CommonFG &loc,
                         const std::string& name,
                         TYPE* data ) {
-    
+
     // check, that data buffer is not empty
     if( data == NULL ) {
-      EXCEPTION( "Data buffer for reading array '" << name 
+      EXCEPTION( "Data buffer for reading array '" << name
                  << "' is NULL" );
     }
     try {
@@ -1008,7 +1006,7 @@ hsize_t H5IO::maxChunkSize_= 100;
       HdfTypeConversion<TYPE> conv;
       H5::DataType stdType = conv.GetStdType();
       H5::DataType nativeType = conv.GetNativeType();
-  
+
       // open dataset
       H5::DataSet dataset = loc.openDataSet( name );
 
@@ -1017,14 +1015,14 @@ hsize_t H5IO::maxChunkSize_= 100;
 
       // calculate absolute number of entries
       UInt size = static_cast<UInt>(dataspace.getSelectNpoints());
-      
+
       // check, that standard hdf5 datatype is the same as the datatype
       // of the stored dataset
       // .. not sure if this can be implemented properly ...
 
       // read data in buffer of conversion object
       dataset.read( conv.GetInBufferPtr(size), nativeType );
-      
+
       // obtain data pointer from conversion object and
       // copy it to return buffer
       conv.GetNativeData( data );
@@ -1035,16 +1033,16 @@ hsize_t H5IO::maxChunkSize_= 100;
       // close dataset and space
       dataset.close();
       dataspace.close();
-      
+
     } catch (H5::Exception& h5ex) {
-      EXCEPTION("Could not read Array '" 
+      EXCEPTION("Could not read Array '"
                 << name << "':\n" << h5ex.getCDetailMsg());
     } catch( Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not read Array '" << name << "'" );
     }
-    
+
   }
-  
+
   template<typename TYPE>
   void H5IO::ReadArray( H5::CommonFG &loc,
                         const std::string& name,
@@ -1102,7 +1100,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   
   void H5IO::GetAnyConversion( const boost::any& anyType,
                                shared_ptr<BaseHdfTypeConversion>& conv ) {
-    
+
     // query type of any
 #define ANY_CONVERSION( TYPE )                          \
     if( anyType.type() == typeid(TYPE) ){               \
@@ -1129,7 +1127,7 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     EXCEPTION( "Could not convert ANY-type "
                << anyType.type().name() << "to known value" );
-      
+
   }
 
 
@@ -1213,11 +1211,11 @@ hsize_t H5IO::maxChunkSize_= 100;
   // =======================================================================
   //  GENERAL ACCESS METHODS
   // =======================================================================
-  
-  H5::Group H5IO::GetMultiStepGroup( H5::H5File& file, 
+
+  H5::Group H5IO::GetMultiStepGroup( H5::H5File& file,
                                          UInt msStep,
                                          bool isHistory ) {
-    
+
     // open group with multisteps
     H5::Group resultGroup;
     try {
@@ -1227,10 +1225,10 @@ hsize_t H5IO::maxChunkSize_= 100;
         resultGroup = file.openGroup("/Results/History");
       }
     } H5_CATCH( "Could not open result group" );
-    
+
     // open specified msgroup
     H5::Group actMsGroup;
-    std::string actMsName = "MultiStep_" 
+    std::string actMsName = "MultiStep_"
       + boost::lexical_cast<std::string>( msStep );
     try {
       actMsGroup = resultGroup.openGroup( actMsName );
@@ -1240,13 +1238,13 @@ hsize_t H5IO::maxChunkSize_= 100;
     return actMsGroup;
   }
 
-  H5::Group H5IO::GetStepGroup( H5::H5File& file, 
-                                UInt msStep, 
+  H5::Group H5IO::GetStepGroup( H5::H5File& file,
+                                UInt msStep,
                                 UInt stepNum ) {
     // get multistep group
     H5::Group actMsGroup = GetMultiStepGroup( file, msStep, false );
 
-    std::string groupName = "Step_" + 
+    std::string groupName = "Step_" +
       boost::lexical_cast<std::string> (stepNum );
 
     H5::Group stepGroup;
@@ -1257,12 +1255,12 @@ hsize_t H5IO::maxChunkSize_= 100;
     actMsGroup.close();
     return stepGroup;
   }
-  
+
   void H5IO::SetMaxChunkSize( UInt chunkSize ) {
     H5IO::maxChunkSize_ = chunkSize;
-    
+
   }
-  
+
 
   Integer H5IO::MapCapabilityType( SimOutput::Capability c ) {
     Integer ret = 0;
@@ -1283,12 +1281,12 @@ hsize_t H5IO::maxChunkSize_= 100;
       ret = 4;
       break;
     default:
-      EXCEPTION( "Could not map capability '" << c 
+      EXCEPTION( "Could not map capability '" << c
                  << "' to hdf5 representation" );
     }
     return ret;
   }
-  
+
   SimOutput::Capability H5IO::MapCapabilityType( Integer c ) {
     SimOutput::Capability ret = SimOutput::NONE;
     switch ( c ) {
@@ -1312,8 +1310,8 @@ hsize_t H5IO::maxChunkSize_= 100;
     }
     return ret;
   }
-  
-  
+
+
   Integer H5IO::MapUnknownType( ResultInfo::EntityUnknownType t ) {
     Integer definedOn = 0;
     switch(t) {
@@ -1355,7 +1353,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     return definedOn;
 
   }
-  
+
   std::string H5IO::MapUnknownTypeAsString( ResultInfo::EntityUnknownType t ) {
      std::string definedOn = "";
      switch(t) {
@@ -1397,7 +1395,7 @@ hsize_t H5IO::maxChunkSize_= 100;
      return definedOn;
 
    }
-  
+
   ResultInfo::EntityUnknownType H5IO::MapUnknownType( Integer t ) {
 
 		// COMPWARNING: initialized to ResultInfo::NODE for no good reason
@@ -1409,7 +1407,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     case 2:
       definedOn = ResultInfo::EDGE;
       break;
-    case 3: 
+    case 3:
       definedOn = ResultInfo::FACE;
       break;
     case 4:
@@ -1440,11 +1438,11 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     return definedOn;
   }
-  
-  
+
+
   Integer H5IO::MapEntryType( ResultInfo::EntryType t ) {
     Integer entryType = 0;
-    
+
     switch(t) {
     case ResultInfo::UNKNOWN:
       entryType = 0;
@@ -1465,12 +1463,12 @@ hsize_t H5IO::maxChunkSize_= 100;
     return entryType;
   }
 
-  
+
   ResultInfo::EntryType H5IO::MapEntryType( Integer t ) {
 
 		// COMPWARNING: initialized to ResultInfo::UNKNOWN for no good reason
     ResultInfo::EntryType entryType = ResultInfo::UNKNOWN;
-    
+
     switch(t) {
     case 0:
       entryType =ResultInfo::UNKNOWN;
@@ -1484,7 +1482,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     case 6:
       entryType = ResultInfo::TENSOR;
       break;
-    case 32: 
+    case 32:
       entryType = ResultInfo::STRING;
       break;
     }
@@ -1523,7 +1521,7 @@ hsize_t H5IO::maxChunkSize_= 100;
         H5::Group group;
         H5::DataType dt;
         H5::Attribute attr;
-        H5::IdComponent *idComp;
+        H5::IdComponent *idComp = NULL;
 
         switch(types[t])
         {

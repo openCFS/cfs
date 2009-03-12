@@ -53,7 +53,7 @@ namespace CoupledField
     }
 
     //for inverse computation
-    dH_ = Xsaturated_ / (Double) (50.0*preisachWeights_.GetSizeRow());
+    dH_ = Xsaturated_ / (Double) (50.0*preisachWeights_.GetNumRows());
 
     //    computePreisachWeights();
   }
@@ -300,7 +300,7 @@ namespace CoupledField
     Double X1 = std::max(val1,val2);
     Double X2 = std::min(val1,val2);
 
-    UInt M = preisachWeights_.GetSizeRow();
+    UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
 //     std::cout << "delta=" << delta << std::endl;
 //     std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;

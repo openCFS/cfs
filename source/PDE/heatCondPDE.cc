@@ -26,6 +26,7 @@
 
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
+#include "CoupledPDE/pdecoupling.hh"
 
 
 namespace CoupledField {
@@ -55,18 +56,20 @@ void HeatCondPDE::SetInitialCondition() {
 
   try {
     // fetch paramnodes for initial condition
-    myParam_->Get("InitialCondition",InitialCondition_);
+    myParam_->Get("InitialCondition", InitialCondition_);
 
     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
 
 
     if (!isDirectCoupled_ ) {
       if (isComplex_ ) {
-        solVec_->Init(Complex(InitialCondition_, 0.0) );
+        Vector<Complex> & solComplex = dynamic_cast<Vector<Complex>& >(*solVec_); 
+        solComplex.Init(Complex(InitialCondition_, 0.0) );
       } else {
-        solVec_->Init( InitialCondition_);
+        Vector<Double> & solReal = dynamic_cast<Vector<Double>& >(*solVec_);
+        solReal.Init( InitialCondition_);
       }
-      sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+      sol_->SetAlgSysDataPointer(solVec_->GetSize(),
           dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
 
       // to test -----------------------------------------------------------
@@ -92,7 +95,7 @@ void HeatCondPDE::ReadSpecialBCs() {
   //inBcs_.Clear();
 
   // fetch paramnodes for Robin boundary condition
-  StdVector<ParamNode*> rbcNodes = 
+  StdVector<ParamNode*> rbcNodes =
     myParam_->Get("bcsAndLoads")->GetList("robin");
 
   std::string myDof, myName, myType, myHTC, myBulkTemp;
@@ -108,12 +111,12 @@ void HeatCondPDE::ReadSpecialBCs() {
 
       // Create robin boundary condition
       shared_ptr<RobinBc> actBc ( new RobinBc );
-      
+
       EntityList::ListType listType;
       EntityList::String2Enum( myType, listType );
       shared_ptr<EntityList> actList =
         ptgrid_->GetEntityList( listType, myName, EntityList::REGION );
-      
+
       actBc->entities = actList;
       actBc->result = results_[0];
       actBc->eqnMap = eqnMap_;
@@ -164,9 +167,9 @@ void HeatCondPDE::DefineIntegrators() {
     actSDList->SetRegion( subdoms_[actSD] );
 
     BaseMaterial * actMat = materials_[subdoms_[actSD]];
-    actMat->GetScalar(density,DENSITY,REAL);
-    actMat->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
-    //actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
+    actMat->GetScalar(density,DENSITY,Global::REAL);
+    actMat->GetScalar(heatCapacity,HEAT_CAPACITY,Global::REAL);
+    //actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,Global::REAL);
 
     // ====================================================================
     // stiffness integrator
@@ -176,12 +179,12 @@ void HeatCondPDE::DefineIntegrators() {
     if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
 
       // stiffness integrator for isotropic material
-      actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
+      actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,Global::REAL);
 
       coeffstiff = thermalConductivity;
       bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
 
-      Info->PrintF( pdename_, 
+      Info->PrintF( pdename_,
           "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
 
     } else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
@@ -189,7 +192,7 @@ void HeatCondPDE::DefineIntegrators() {
       bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
     }
 
-    BiLinFormContext * stiffContext = 
+    BiLinFormContext * stiffContext =
       new BiLinFormContext(bilinearStiff, STIFFNESS );
 
     stiffContext->SetPtPdes(this, this);
@@ -217,7 +220,7 @@ void HeatCondPDE::DefineIntegrators() {
       // Finally add the standard integrators - mass
       assemble_->AddBiLinearForm(massContext );
 
-      Info->PrintF( pdename_, 
+      Info->PrintF( pdename_,
           "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
     } else {
       // damping integrator
@@ -237,7 +240,7 @@ void HeatCondPDE::DefineIntegrators() {
     eqnMap_->AddResult( *results_[0], actSDList );
   }
 
-  // ======================================================================    
+  // ======================================================================
   // Neumann boundary condition
   // ======================================================================
   try{
@@ -248,7 +251,7 @@ void HeatCondPDE::DefineIntegrators() {
 
       LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value,
           actBc.phase, HEAT_CONDUCTIVITY, isaxi_ );
-      
+
       neumannBC->SetVoluInfo( materials_ );
 
       LinearFormContext * neumannContext =
@@ -265,10 +268,10 @@ void HeatCondPDE::DefineIntegrators() {
     RETHROW_EXCEPTION(ex, "Could not assemble Neumann boundary condition"
         <<" in HeatCondPDE!" );
   }
-  
+
   // ======================================================================
   // Robin boundary condition
-  // ====================================================================== 
+  // ======================================================================
   try{
     for( UInt iBc = 0; iBc < robinBcs_.GetSize(); iBc++ ) {
 
@@ -286,11 +289,11 @@ void HeatCondPDE::DefineIntegrators() {
         bulkTempContext->SetPtPde( this );
         bulkTempContext->SetResult( actBc.result, actBc.entities );
         assemble_->AddLinearForm( bulkTempContext );
-        
-        Info->PrintF( pdename_, 
+
+        Info->PrintF( pdename_,
             "Assemble RHS integrator with bulk temperature %6.1f.\n", bTemp );
       } else {
-        Info->PrintF( pdename_, 
+        Info->PrintF( pdename_,
             "Bulk temperature is zero, no linear form on RHS!\n" );
       }
 
@@ -307,8 +310,8 @@ void HeatCondPDE::DefineIntegrators() {
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *actBc.result, actBc.entities );
-      
-      Info->PrintF( pdename_, 
+
+      Info->PrintF( pdename_,
           "Assemble additional integrator for stiffness matrix with HTC %6.1f.\n", hTC );
     }
   } catch(Exception & ex){
@@ -318,10 +321,10 @@ void HeatCondPDE::DefineIntegrators() {
 
   // ======================================================================
   // RHS source values
-  // ====================================================================== 
+  // ======================================================================
 
   // fetch paramnodes for RHS source
-  StdVector<ParamNode*> rhsValuesNodes = 
+  StdVector<ParamNode*> rhsValuesNodes =
     myParam_->Get("bcsAndLoads")->GetList("rhsValues");
 
   bool isharmonic;
@@ -336,21 +339,21 @@ void HeatCondPDE::DefineIntegrators() {
       //rhsFileId = rhsValuesNodes[i]->Get("inputId")->AsString();
 
       if ( isharmonic ) {
-        Info->PrintF( pdename_, 
-            "Use same RHS source vector for region '%s' for all timesteps.\n\n", 
+        Info->PrintF( pdename_,
+            "Use same RHS source vector for region '%s' for all timesteps.\n\n",
             rhsRegion.c_str() );
       } else {
-        Info->PrintF( pdename_, 
-            "Use RHS source vector for region '%s' from acoustic results.\n\n", 
+        Info->PrintF( pdename_,
+            "Use RHS source vector for region '%s' from acoustic results.\n\n",
             rhsRegion.c_str() );
-        
+
       }
 
       // get material density
       BaseMaterial * actMat = materials_[ ptgrid_->RegionNameToId(rhsRegion) ];
-      actMat->GetScalar(density,DENSITY,REAL);
+      actMat->GetScalar(density,DENSITY,Global::REAL);
 
-      linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_, 
+      linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_,
           isharmonic, rhsFileId, rhsRegion, density );
 
       LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
@@ -380,7 +383,7 @@ void HeatCondPDE::DefineSolveStep() {
 
 void HeatCondPDE::InitTimeStepping() {
 
-  // Until now no effective mass formulation in the trapezoidal 
+  // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
   TS_alg_ = new Trapezoidal( algsys_ );
 
@@ -400,7 +403,7 @@ void HeatCondPDE::InitCoupling(PDECoupling * Coupling) {
     if (ptCoupling_->GetOutputQuantity(i) == HEAT_TEMPERATURE) {
       ptCoupling_->CreateCouplingVector(i,isComplex_);
 
-      // now since we need a incremental formulation, 
+      // now since we need a incremental formulation,
       //  initialize some necessary vectors
       isIncrFormulation_ = true;
     }
@@ -414,7 +417,7 @@ void HeatCondPDE::CalcOutputCoupling() {
   //     SolutionType quantity;
   //     StdVector<Elem*> * couplingElems = NULL;
   //     StdVector<UInt> * couplingNodes = NULL;
-  //     CFSVector * temp_values = NULL;
+  //     SingleVector * temp_values = NULL;
   //     // at first, check if this PDE is iterative coupled
   //     if (isIterCoupled_ == false)
   //       return;
@@ -429,7 +432,7 @@ void HeatCondPDE::CalcOutputCoupling() {
   //       case NODE:
   //         ptCoupling_->GetOutputNodes(i, couplingNodes);
   //         ptCoupling_->GetOutputElements(i, couplingElems);
-  //         dof = ptCoupling_->GetOutputDof(i);    
+  //         dof = ptCoupling_->GetOutputDof(i);
   //         break;
   //       case ELEM:
   //         EXCEPTION("No Element coupling output", __FILE__,__LINE__);
@@ -458,7 +461,7 @@ void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
     }
     break;
 
-  default:   
+  default:
     Warning( "Resulttype not computable by thermic PDE",
         __FILE__, __LINE__ );
   }

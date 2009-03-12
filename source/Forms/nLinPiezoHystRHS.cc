@@ -6,7 +6,8 @@
 #include <fstream>
 #include <math.h>
 
-#include "forms_header.hh"
+#include "nLinPiezoHystRHS.hh"
+#include "mechStressStrain.hh"
 #include "Utils/coordSystem.hh"
 #include "Domain/domain.hh"
 #include "Utils/SmoothSpline.hh"
@@ -168,7 +169,7 @@ namespace CoupledField {
 
     elemMat.Resize( numFncs );
     elemMat.Init();
-    dbMat.Resize( dMat1.GetSizeRow(), numFncs );
+    dbMat.Resize( dMat1.GetNumRows(), numFncs );
     elemVec.Resize ( numFncs );
     elemVec.Init();
 
@@ -207,12 +208,12 @@ namespace CoupledField {
       // We now compute B^T * D * B and scale it by the determinant
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
-      for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
         ptr1 = bMat[k];
         ptr2 = dbMat[k];
-        for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
+        for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
           aux = jacDet * ptr1[i];
-          for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+          for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
             elemMat[i][j] += aux * ptr2[j];
           }
         }
@@ -335,17 +336,17 @@ namespace CoupledField {
       jacDet *= intWeights[actIntPt-1];
 
       // Compute the matrix product D * B and store as intermediate matrix
-      dbMat.Resize( dMat.GetSizeRow(), bMat.GetSizeCol() );
+      dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
       dMat.Mult( bMat, dbMat );
 
       // We now compute A * D * B and scale it by the determinant
       // of the Jacobian 
-      for ( UInt i = 0; i < aMat.GetSizeRow(); i++ ) {
-        for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+      for ( UInt i = 0; i < aMat.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
 
           // Compute entry (i,j) of A * D * B
           aux = 0.0;
-          for ( UInt k = 0; k < aMat.GetSizeCol(); k++ ) {
+          for ( UInt k = 0; k < aMat.GetNumCols(); k++ ) {
             aux += aMat[i][k] * dbMat[k][j];
           }
 

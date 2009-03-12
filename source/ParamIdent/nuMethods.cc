@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "PDE/SinglePDE.hh" 
+#include "PDE/SinglePDE.hh"
 #include "piezoParamIdent.hh"
 #include "Utils/mathfunctions.hh"
 
@@ -22,7 +22,7 @@ void piezoParamIdent::nuMethods() {
   Double normJacMat, old_res_outer, res_outer, new_res_inner, old_res_inner,
       new_res_outer, maxres_inner;
   Double relax;
-  relax=10.0;    
+  relax=10.0;
 
   Vector<Complex> act_res(nrMeasuredData_);
   Vector<Complex> JacFs(nrMeasuredData_);
@@ -35,22 +35,22 @@ void piezoParamIdent::nuMethods() {
   Vector<Double> parameter_old(nrParameter_);
 
   updateMaterialData(parameter_);
-  
+
   if (imagMaterialParam_ ) {
     updateComplexMaterialData(parameterC_);
   }
-  
+
   createF(F_hat_, false);
 
   act_res = y_hat_-F_hat_;
   norm(act_res, new_res_outer, maxres_inner, y_hat_);
-  
+
   std::cout<<"\n Norm of residual ||F(p)-y|| = "<< new_res_outer <<std::endl;
   res_outer=new_res_outer;
 
   *parLog_<<" "<< new_res_outer<<"  ";
 
-  // *parLog<< new_res_outer; 
+  // *parLog<< new_res_outer;
 
   /*for (UInt i=0;i<nrParameter_;i++)
     if (whichParameterToUpdate_[i]==1)
@@ -76,6 +76,7 @@ void piezoParamIdent::nuMethods() {
   for (UInt i=0; i<nrMeasuredData_; i++)
     for (UInt j=0; j<nrMeasuredData_; j++)
       if (i==j)
+      {
         if (whichNormCriteria_=="logAmplitude")
           ImgSpaceScaling_Mat[i][j] = 1.0/std::log(std::abs(Complex(real_[i],
               imag_[i])));
@@ -111,6 +112,7 @@ void piezoParamIdent::nuMethods() {
         else
           std::cerr<<"Your choice of the fitting quantity seems to be invalid"
               <<std::endl;
+      }
 
   createAdjointJacobiMatrix();
   Matrix<Complex> adjJacobiTemp;
@@ -226,14 +228,14 @@ void piezoParamIdent::nuMethods() {
   Integer lineSearchCount=0;
 
   std::cout<<"++ Performing line search ... "<<std::endl;
-  
+
   bool negFlag=false;
-   
+
    for (UInt par=0; par<nrParameter_; par++)
         if (parameter_[par]<0.0&&par!=6) {
           negFlag=true;
         }
-   
+
    while (new_res_outer>old_res_outer || negFlag==true) {
      theta = 0.5*theta;
      negFlag=false;
@@ -246,9 +248,9 @@ void piezoParamIdent::nuMethods() {
 
     for (UInt i=0; i<nrMeasuredData_; i++)
       act_res[i]=y_hat_[i]-F_hat_[i];
-    
+
     for (UInt par=0; par<nrParameter_; par++)
-          if (parameter_[par]<0.0&&par!=6) 
+          if (parameter_[par]<0.0&&par!=6)
             negFlag=true;
 
     norm(act_res, new_res_outer, maxres_inner, y_hat_);
@@ -435,7 +437,7 @@ void piezoParamIdent::nuMethodsC2() {
       *parLog_<<"  "<< parameterC_[i];
 
   *parLog_<<std::endl;
-  
+
   while (nNuMethods<maxNumberInnerLoops_) {
     //while(nnuMethods<maxNumberInnerLoops_){
     s_old=s_;
@@ -472,7 +474,7 @@ void piezoParamIdent::nuMethodsC2() {
     }
 
     adjJacobiMatrix_.Mult(z, s_);
-  
+
     for (UInt i=0; i<nrMeasuredData_; i++)
       z_old[nNuMethods][i]=z[i];
 
@@ -518,11 +520,11 @@ void piezoParamIdent::nuMethodsC2() {
   //     Double old_resid2=old_res_outer;
   //     Double new_resid2=new_res_outer;
 
-  // backtracking(et , theta, s, old_resid2, new_resid2); 
+  // backtracking(et , theta, s, old_resid2, new_resid2);
 
   computeScaling();
 
-  Double mult=1.0;
+  // Double mult=1.0; // TODO: Check if this is still needed
 
   for (UInt i=0; i<actNrParameter_; i++)
     stepR[i]=s_[i].real();
@@ -543,7 +545,7 @@ void piezoParamIdent::nuMethodsC2() {
       whichParameterToUpdateC_);
 
   // if no backtracking is specified, please include the following lines!
-  
+
   // parameter=parameter_new_;
 
   updateMaterialData(parameter_);
@@ -561,15 +563,15 @@ void piezoParamIdent::nuMethodsC2() {
   //std::cout<<new_res_outer<<std::endl;
 
   Integer lineSearchCount=0;
-  
+
   bool negFlag=false;
-  
+
   for (UInt par=0; par<nrParameter_; par++)
        if (parameter_[par]<0.0&&par!=6) {
          negFlag=true;
        }
 
-     
+
   std::cout<<"Performing line search ... "<< std::endl;
 
   while (new_res_outer>old_res_outer || negFlag==true) {
@@ -592,11 +594,11 @@ void piezoParamIdent::nuMethodsC2() {
 
     for (UInt i=0; i<nrMeasuredData_; i++)
       act_res[i]=y_hat_[i]-F_hat_[i];
-    
+
     for (UInt par=0; par<nrParameter_; par++)
-      if (parameter_[par]<0.0&&par!=6) 
+      if (parameter_[par]<0.0&&par!=6)
         negFlag=true;
-      
+
     norm(act_res, new_res_outer, maxres_inner, y_hat_);
     // std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
 
@@ -612,7 +614,7 @@ void piezoParamIdent::nuMethodsC2() {
     }
 
   }
-  
+
   for (UInt i=0; i<nrParameter_; i++) {
       std::cout<<" paramter("<<i<<") = "<< parameter_[i]<<" + "<< parameterC_[i]
           << " i "<< std::endl;

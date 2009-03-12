@@ -7,7 +7,8 @@
 #include <string>
 #include <math.h>
 
-#include "Forms/forms_header.hh"
+#include "Forms/smoothInt.hh"
+#include "Forms/smoothNLInt.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/assemble.hh"
 #include "Driver/solveStepSmooth.hh"
@@ -124,7 +125,7 @@ namespace CoupledField {
       
       BaseMaterial* actSDMat = materials_[subdoms_[actSD]];
       
-      BaseForm * bilinearStiff;
+      BaseForm * bilinearStiff = NULL;
       if (elastWeight_=="byArea"){
         bilinearStiff = new SmoothInt(actSDMat, type, coordUpdate );
       }
@@ -198,7 +199,7 @@ namespace CoupledField {
 
             ptCoupling_->GetInputNodes(i, nodes);
             couplingNodes_.Resize(nodes->GetSize(),2);
-            couplingNodes_.Init(0.0);
+            couplingNodes_.Init();
             for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
               ptgrid_->GetNodeCoordinate( globCoord, (*nodes)[j] );
 
@@ -239,7 +240,7 @@ namespace CoupledField {
     
     SolutionType quantity;
     StdVector<UInt> * couplingnodes;
-    CFSVector * values;
+    SingleVector * values;
     
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == false)
@@ -336,7 +337,7 @@ namespace CoupledField {
       //Num2DElements/Num3DElements long. 
       //Bec currently i have no idea how to access local elem numbers in the integrator
 	  elastFactors_.Resize(ptgrid_->GetNumElems()+1,4);
-      elastFactors_.Init(-1.0);    	    	
+      elastFactors_.InitValue(-1.0);    	    	
 
 	  
     // =====================================================================

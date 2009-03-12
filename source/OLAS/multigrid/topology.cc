@@ -35,7 +35,7 @@
 #endif // TOPOLOGY_IMPORT_CF_SPLITTING
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -216,7 +216,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // prepare some data structures
     /////////////////////////////////
 
-    Size_h_ = matrix.GetNrows();
+    Size_h_ = matrix.GetNumRows();
     
     // prepare dependency graph S
     S_.Create( matrix,  // build it from matrix "matrix"
@@ -237,19 +237,19 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
 //
 //    //  (1) get its maximal size from the column sizes
 //    Integer *ColLengths = NULL;
-//    NewArray( ColLengths, Integer, matrix.GetNcols() );
-//    for( j = 1; j <= matrix.GetNcols(); j++ )  ColLengths[j] = 0;
+//    NEWARRAY( ColLengths, Integer, matrix.GetNumCols() );
+//    for( j = 1; j <= matrix.GetNumCols(); j++ )  ColLengths[j] = 0;
 //    for( ij = 1; ij <= matrix.GetNnz(); ij++ )  ColLengths[pCol[ij]]++;
 //    //  (2) create the empty graph ST
-//    ST_.Create( matrix.GetNcols(), ColLengths, matrix.GetNnz() );
-//    DeleteArray( ColLengths );
+//    ST_.Create( matrix.GetNumCols(), ColLengths, matrix.GetNnz() );
+//    DELETEARRAY( ColLengths );
 //
 //////////////////////////////////////////////////
 
     // allocate the array for the C-F-splitting and the coarse indices
-    DeleteArray( CoarseIndex_ );
-    NewArray( CoarseIndex_, Integer, matrix.GetNrows() );
-    for( i = 1; i <= matrix.GetNrows(); i++ ) {
+    DELETEARRAY( CoarseIndex_ );
+    NEWARRAY( CoarseIndex_, Integer, matrix.GetNumRows() );
+    for( i = 1; i <= matrix.GetNumRows(); i++ ) {
         CoarseIndex_[i] = (Integer)UNDEFINED;
     }
 
@@ -258,7 +258,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     ///////////////////////////////
 
     // inspect matrix row by row
-    for( i = 1; i <= matrix.GetNrows(); i++ ) {
+    for( i = 1; i <= matrix.GetNumRows(); i++ ) {
         // get number of non-zero entries in row [i]
         Integer RowLength = matrix.GetRowSize( i );
         if( RowLength == 0 ) {
@@ -308,7 +308,7 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     // maximal number of strong dependencies for one node
     Integer maxNumStrongDep = 0;
 
-    for( i = 1, startCoarsePoint_ = 0; i <= matrix.GetNrows(); i++ ) {
+    for( i = 1, startCoarsePoint_ = 0; i <= matrix.GetNumRows(); i++ ) {
         // The first coarse node will be the one that influences the
         // most other nodes strongly, i.e. i with maximal |ST(i)|
         // LAS: LAS additionally (AND) checked, if the number of entries
@@ -386,7 +386,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
     // create array to prevent redundant evaluation of "the
     // coarse importance" of possible C-points
-    NewArray( importanceKnown_, Integer, Size_h_ );
+    NEWARRAY( importanceKnown_, Integer, Size_h_ );
     for( Integer i = 1; i <= Size_h_; i++ )  importanceKnown_[i] = -1;
 #endif
     
@@ -445,7 +445,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
     }
 
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
-    DeleteArray( importanceKnown_ );
+    DELETEARRAY( importanceKnown_ );
 #endif
 
 #ifdef PROFILE_TOPOLOGY
@@ -978,7 +978,7 @@ void Topology<T>::Reset()
     NhStartIndex_ = NULL;
     NhEdges_      = NULL;
     // delete array of C-F-Splitting
-    DeleteArray( CoarseIndex_ );
+    DELETEARRAY( CoarseIndex_ );
     CoarseIndex_ = NULL;
     
     startCoarsePoint_ = -1;
@@ -1078,7 +1078,7 @@ void Topology<T>::ExportCFSplitting()
 
 #endif // TOPOLOGY_EXPORT_CF_SPLITTING
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

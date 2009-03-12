@@ -5,12 +5,13 @@
 #ifndef ILDLTP_FACTORISER_HH
 #define ILDLTP_FACTORISER_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "precond/ILDLPrecond/baseildlfactoriser.hh"
+#include <def_expl_templ_inst.hh>
 
 
-namespace OLAS {
+#include "baseildlfactoriser.hh"
+
+
+namespace CoupledField {
 
   //! This class implements an incomplete LDL(tau,p) factorisation
 
@@ -108,7 +109,8 @@ namespace OLAS {
     public:
 
       //! Constructor takes reference to dense vector
-      FindMaxEntries( T *numValue ) : numValue_(numValue) {};
+      // FindMaxEntries( T *numValue ) : numValue_(numValue) {};
+      FindMaxEntries( std::vector<T> &denseVec ) : dVec_(denseVec) {};
 
       //! The predicate method for sorting
 
@@ -124,18 +126,18 @@ namespace OLAS {
       //! \end{array}\right.
       //! \f]
       bool operator()( const UInt &i, const UInt &j ) const {
-	bool retVal = false;
+        bool retVal = false;
 
-	// A problem is here with the abs (g++ using int abs(int)!!!)
-	if ( abs(this->dVec_[i]) > abs(this->dVec_[j]) ) {
-	  retVal = true;
-	}
-	else if ( abs(this->dVec_[i]) == abs(this->dVec_[j]) ) {
-	  if ( i < j ) {
-	    retVal = true;
-    	  }
-	}
-	return retVal;
+        // A problem is here with the abs (g++ using int abs(int)!!!)
+        if ( abs(dVec_[i]) > abs(dVec_[j]) ) {
+          retVal = true;
+        }
+        else if ( abs(dVec_[i]) == abs(dVec_[j]) ) {
+          if ( i < j ) {
+            retVal = true;
+          }
+        }
+        return retVal;
       };
 
       //! Reference to array with numerical values of row entries
@@ -144,7 +146,9 @@ namespace OLAS {
       //! values for all row entries are stored. This is the value array of
       //! for the linked list, resp. to the STL vector containing their
       //! column indices
-      T* numValue_;
+      // T* numValue_;
+      std::vector<T> &dVec_;      
+
     };
 
   private:
@@ -172,5 +176,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ildltpfactoriser.cc"
+#endif
 
 #endif

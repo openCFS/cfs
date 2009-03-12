@@ -39,8 +39,8 @@ if( !mat.IsParallel() || ((BaseParallel&)mat).GetCommRank() == 1 ) { \
     << " ("<<__FILE__<<", "<<__LINE__<<")\n"; \
 } \
 CRSparseMatrix<T> expMatrix; \
-expMatrix.setSize(  mat.GetNrows(), mat.GetNcols() ); \
-for( int matr = 1; matr <= mat.GetNrows(); matr++ ) { \
+expMatrix.setSize(  mat.GetNumRows(), mat.GetNumCols() ); \
+for( int matr = 1; matr <= mat.GetNumRows(); matr++ ) { \
     for( int matij = mat.GetRowPointer()[matr]; \
              matij < mat.GetRowPointer()[matr+1]; matij++ ) { \
         expMatrix.setEntry( matr-1, (mat.GetColPointer())[matij]-1, \

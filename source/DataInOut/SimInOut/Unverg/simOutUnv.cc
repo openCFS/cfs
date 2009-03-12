@@ -9,6 +9,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs = boost::filesystem;
 
+#include <fstream>
 #include "simOutUnv.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -24,7 +25,7 @@ namespace CoupledField {
     
     formatName_ = "unv";
     fileName_ = filename;
-    dirName_ = ".";
+    dirName_ = "results_unv";
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     
@@ -508,7 +509,7 @@ namespace CoupledField {
         numEntities = ptGrid_->GetNumVolElems();
       }
       
-      if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
+      if( actResults[0]->GetEntryType() == BaseMatrix::DOUBLE ) {
         Vector<Double> gSol;
         FillGlobalVec<Double>(gSol, actResults, entityType );
         

@@ -10,7 +10,7 @@
 namespace CoupledField {
 
 template <class TYPE> class Vector;
-class CFSVector;
+class SingleVector;
   
 
   //! Driver class for calculating a general eigenvalue problem
@@ -42,7 +42,7 @@ class CFSVector;
   private:
     /** This is the templated form to handle the general and quadratic case */
     template <class T>
-    void PrintResult(CFSVector* frequencies, Vector<Double> bounds, 
+    void PrintResult(SingleVector* frequencies, Vector<Double> bounds, 
                      ResultHandler* resHandler, UInt numConverged);
     
     //! Flag indicating, if a quadratic eigenvalue problem is to

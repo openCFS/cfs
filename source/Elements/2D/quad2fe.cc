@@ -16,7 +16,7 @@ namespace CoupledField
 
     Init();
   }
-  
+
   Quad2FE::~Quad2FE()
   {
   }
@@ -25,7 +25,7 @@ namespace CoupledField
   {
     NumNodes_ = 8;
 
-    CommonInit();   
+    CommonInit();
     SetShapeFnc2ndDerivAtIp();
   }
   // Should be called SetNodalCoords!!
@@ -33,7 +33,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] = -1;
     LCornerCoords_[1][0] = -1;
     LCornerCoords_[0][1] =  1;
@@ -54,7 +54,7 @@ namespace CoupledField
 
   }
 
-  void Quad2FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape,
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
@@ -79,7 +79,7 @@ namespace CoupledField
   }
 
 
-  void Quad2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Quad2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                          const Vector<Double> & LCoord,
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )
@@ -90,27 +90,27 @@ namespace CoupledField
     // corner nodes
     for( UInt i=0; i<(NumNodes_/2); i++)
       {
-        LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] * 
-          (1 + LCornerCoords_[1][i] * LCoord[1]) * 
+        LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] *
+          (1 + LCornerCoords_[1][i] * LCoord[1]) *
           (2 * LCornerCoords_[0][i] * LCoord[0] +
            LCornerCoords_[1][i] * LCoord[1]);
 
-        LDeriv[i][1] = 0.25 * LCornerCoords_[1][i] * 
-          (1 + LCornerCoords_[0][i] * LCoord[0]) * 
+        LDeriv[i][1] = 0.25 * LCornerCoords_[1][i] *
+          (1 + LCornerCoords_[0][i] * LCoord[0]) *
           (2 * LCornerCoords_[1][i] * LCoord[1] +
            LCornerCoords_[0][i] * LCoord[0]);
       }
-  
+
     // midside node
     for( UInt i=(NumNodes_/2); i<NumNodes_; i=i+2)
       {
         LDeriv[i][0]   = - LCoord[0]*
           (1 + LCornerCoords_[1][i] * LCoord[1]);
 
-        LDeriv[i][1]   = 0.5 * LCornerCoords_[1][i] * 
+        LDeriv[i][1]   = 0.5 * LCornerCoords_[1][i] *
           (1 - LCoord[0]*LCoord[0]);
 
-        LDeriv[i+1][0] = 0.5 *  LCornerCoords_[0][i+1] * 
+        LDeriv[i+1][0] = 0.5 *  LCornerCoords_[0][i+1] *
           (1 - LCoord[1]*LCoord[1]);
 
         LDeriv[i+1][1] = -LCoord[1]*
@@ -130,7 +130,7 @@ namespace CoupledField
       L2ndDeriv.Resize(NumNodes_,Dim_+1);
 
       // corner nodes
-      for( Integer i=0; i<(NumNodes_/2); i++)
+      for( UInt i=0; i<(NumNodes_/2); i++)
         {
           L2ndDeriv[i][0] = 0.5 * LCornerCoords_[0][i] * LCornerCoords_[0][i] * 
             ( 1 + LCornerCoords_[1][i] * LCoord[1] );
@@ -145,7 +145,7 @@ namespace CoupledField
         }
   
       // midside node
-      for( Integer i=(NumNodes_/2); i<NumNodes_; i+=2)
+      for( UInt i=(NumNodes_/2); i<NumNodes_; i+=2)
         {
 
 
@@ -169,9 +169,8 @@ namespace CoupledField
   Double Quad2FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
   {
 
-    (*error) << "Quad2FE::CalcDistortion. This function has not yet been implemented in " 
-             << " quadratic quadrilaterals" << std::endl;
-    Error( __FILE__, __LINE__ );
+    EXCEPTION( "Quad2FE::CalcDistortion. This function has not yet been implemented in "
+             << " quadratic quadrilaterals" );
     return -1;
 
     //   Double factor;
@@ -183,7 +182,7 @@ namespace CoupledField
     //   length11 = abs(cornerCoords[0][0] - cornerCoords[0][1]);
     //   length12 = abs(cornerCoords[0][3] - cornerCoords[0][2]);
     //   length1 = (length11+length12) * 0.5;
-  
+
     //   length21 = abs(cornerCoords[1][0] - cornerCoords[1][3]);
     //   length22 = abs(cornerCoords[1][1] - cornerCoords[1][2]);
     //   length2 = (length21+length22) * 0.5;
@@ -196,17 +195,17 @@ namespace CoupledField
     //   eps21 = displacements[1][0] - displacements[1][3];
     //   eps22 = displacements[1][1] - displacements[1][2];
     //   eps2 = (eps21+eps22) * 0.5;
-  
+
     //   eps41 = displacements[0][2] - displacements[0][1];
-    //   eps42 = displacements[0][3] - displacements[0][0]; 
+    //   eps42 = displacements[0][3] - displacements[0][0];
     //   eps4 = (eps41+eps42)*0.5;
-    
+
     //   eps51 = displacements[1][1] - displacements[1][0];
     //   eps52 = displacements[1][3] - displacements[1][2];
-    //   eps5= (eps51+eps52)*0.5;  
+    //   eps5= (eps51+eps52)*0.5;
 
     //   factor =  0.2 * ((eps1*eps1/(length1*length1))
-    //               + (eps2*eps2/(length2*length2)) 
+    //               + (eps2*eps2/(length2*length2))
     //               + (eps5*eps5/(length1*length2))
     //               + (eps4*eps4/(length1*length1)));
 

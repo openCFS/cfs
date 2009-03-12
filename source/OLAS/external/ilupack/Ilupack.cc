@@ -10,32 +10,28 @@
 #include <def_use_metis.hh>
 
 #include "General/exception.hh"
-#include "external/ilupack/Ilupack.hh"
-#include "matvec/matvec.hh"
-#include "utils/utils.hh"
-#include "solver/solver.hh"
-#include "precond/precond.hh"
+#include "MatVec/sparseolasmatrix.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
-
-using CoupledField::StdVector;
-using CoupledField::Exception;
-using CoupledField::EnumTupel;
+#include "Ilupack.hh"
 
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
-using namespace OLAS; 
+using namespace CoupledField; 
 
 template<typename T>
-Ilupack<T>::Ilupack(ParamNode* xml, OLAS_Report *myReport, MatrixEntryType type) 
+Ilupack<T>::Ilupack(ParamNode* xml, OLAS_Report *myReport, BaseMatrix::EntryType type) 
 {
   // we work with out 
   xml_       = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
 
   myReport_  = myReport;
 
-  if(type != COMPLEX && type != DOUBLE) EXCEPTION("unhandled type " << type);
-  isComplex_ = type == COMPLEX;
+  if(type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)
+	EXCEPTION("unhandled type " << type);
+  isComplex_ = type == BaseMatrix::COMPLEX;
 
   LOG_TRACE(ilupack) << "Ilupack(): isComplex=" << isComplex_;
 
@@ -84,22 +80,22 @@ void Ilupack<T>::ReleaseIlupackMemory()
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) ZGNLAMGdelete(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_);
-              else DGNLAMGdelete(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_);
+    if(isComplex_) ZGNLAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else DGNLAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
   break;
 
   case SYM: 
-    if(isComplex_) ZSYMAMGdelete(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_);
-              else DSYMAMGdelete(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_);
+    if(isComplex_) ZSYMAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else DSYMAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
   break;
 
   case PD:  
-    if(isComplex_) ZHPDAMGdelete(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_);
-              else DSPDAMGdelete(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_);
+    if(isComplex_) ZHPDAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else DSPDAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
   break;
 
   case HER: 
-    if(isComplex_) ZHERAMGdelete(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_);
+    if(isComplex_) ZHERAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
   break;
 
   default: EXCEPTION("invalid matrix type " << matrix_);          
@@ -113,9 +109,10 @@ void Ilupack<T>::ReleaseIlupackMemory()
 template<typename T>
 void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 {     
-  const SparseOLASMatrix<T>& som = dynamic_cast<const SparseOLASMatrix<T>&>(base_mat);              
+  const SparseOLASMatrix<T>& som = dynamic_cast<const SparseOLASMatrix<T>&>(base_mat);
 
-  LOG_TRACE2(ilupack) << "SetMatrix: SPARSE_SYM=" << (som.GetStorageType() == SPARSE_SYM)
+  LOG_TRACE2(ilupack) << "SetMatrix: SPARSE_SYM="
+                      << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
                       << " mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;  
   
   // delete the old values before we allocate the new space - if could be faster! 
@@ -126,19 +123,19 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   unsigned int elements = 0;
 
   // pointers will point to the first actual element    
-  const int* row_ptr = NULL;
-  const int* col_ptr = NULL;
+  const UInt* row_ptr = NULL;
+  const UInt* col_ptr = NULL;
   const T*   val_ptr = NULL;
 
-  if(som.GetStorageType() == SPARSE_SYM) 
+  if(som.GetStorageType() == BaseMatrix::SPARSE_SYM) 
   {
     const SCRS_Matrix<T>& scrs = dynamic_cast<const SCRS_Matrix<T>&>(som);        
     // Nnz is the total number = Diagonal + 2 * triagonals. But one is skipped!
-    elements= scrs.GetNnz() - (UInt) (0.5 * (double) (scrs.GetNnz() - scrs.GetNrows()));
+    elements= scrs.GetNnz() - (UInt) (0.5 * (double) (scrs.GetNnz() - scrs.GetNumRows()));
 
-    row_ptr = scrs.GetRowPointer() + 1;
-    col_ptr = scrs.GetColPointer() + 1;
-    val_ptr = scrs.GetDataPointer() + 1;
+    row_ptr = scrs.GetRowPointer();
+    col_ptr = scrs.GetColPointer();
+    val_ptr = scrs.GetDataPointer();
   }   
   else 
   {
@@ -146,17 +143,17 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 
     elements= crs.GetNnz();
 
-    row_ptr = crs.GetRowPointer() + 1;
-    col_ptr = crs.GetColPointer() + 1;
-    val_ptr = crs.GetDataPointer() + 1;
+    row_ptr = crs.GetRowPointer();
+    col_ptr = crs.GetColPointer();
+    val_ptr = crs.GetDataPointer();
   }   
 
-  // allocate and copy the stuff
+  // allocate and copy the stuff - note, that we are 0-based in OLAS
+  // but 1-based in Ilupack!
 
   // rows are simple but we have to handle the tailing element
-  mat_.ia = new int[som.GetNrows() + 1]; // one plus due to CRS tail
-  // ignore the olas 0th element garbage and add the one from above to the end
-  std::copy(row_ptr, row_ptr + som.GetNrows() + 1, mat_.ia);  
+  mat_.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
+  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat_.ia);  
 
   mat_.ja = new int[elements];
   std::copy(col_ptr, col_ptr + elements, mat_.ja);
@@ -166,10 +163,18 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   T* val_src = reinterpret_cast<T*>(mat_.a);
   std::copy(val_ptr, val_ptr + elements, val_src);
 
-  mat_.nr = som.GetNrows();
-  mat_.nc = som.GetNcols();
+  // no adjust to 1-based!
+  UInt numRows = som.GetNumRows();
+  for(UInt i = 0; i < numRows+1; i++)
+    mat_.ia[i] += 1;
+    
+  for(UInt i = 0; i < elements; i++)
+      mat_.ja[i] += 1;
   
-  LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNrows() + 1)
+  mat_.nr = som.GetNumRows();
+  mat_.nc = som.GetNumCols();
+  
+  LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
                       << ".ia=" << elements << "; .nr=" << mat_.nr << " .nc=" << mat_.nc;
 }
 
@@ -198,27 +203,27 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat)
   nlev_ = 0; // initialized in the example, but why?
 
   // result
-  int r;
+  int r = 1;
 
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) r = ZGNLAMGfactor(zmat_ptr_, zprecond_ptr_, &nlev_, zparam_ptr_, initial_.cplxFunc, regular_.cplxFunc, final_.cplxFunc);
-              else r = DGNLAMGfactor(dmat_ptr_, dprecond_ptr_, &nlev_, dparam_ptr_, initial_.realFunc, regular_.realFunc, final_.realFunc);
+    if(isComplex_) r = ZGNLAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else r = DGNLAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
   break;                             
 
   case SYM: 
-    if(isComplex_) r = ZSYMAMGfactor(zmat_ptr_, zprecond_ptr_, &nlev_, zparam_ptr_, initial_.cplxFunc, regular_.cplxFunc, final_.cplxFunc);
-              else r = DSYMAMGfactor(dmat_ptr_, dprecond_ptr_, &nlev_, dparam_ptr_, initial_.realFunc, regular_.realFunc, final_.realFunc); 
+    if(isComplex_) r = ZSYMAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else r = DSYMAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_); 
   break;
 
   case PD : 
-    if(isComplex_) r = ZHPDAMGfactor(zmat_ptr_, zprecond_ptr_, &nlev_, zparam_ptr_, initial_.cplxFunc, regular_.cplxFunc, final_.cplxFunc);
-              else r = DSPDAMGfactor(dmat_ptr_, dprecond_ptr_, &nlev_, dparam_ptr_, initial_.realFunc, regular_.realFunc, final_.realFunc); 
+    if(isComplex_) r = ZHPDAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+              else r = DSPDAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_); 
   break;
 
   case HER: 
-    if(isComplex_) r = ZHERAMGfactor(zmat_ptr_, zprecond_ptr_, &nlev_, zparam_ptr_, initial_.cplxFunc, regular_.cplxFunc, final_.cplxFunc);
+    if(isComplex_) r = ZHERAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
   break;
   }              
 
@@ -243,12 +248,11 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   // the preconditioner sets the ilupack matrix
   if(mat_.a == NULL) throw Exception("Setup() not called before Solve()");
 
-  // we gain the solution pointer and compensate the first element of the OLAS one based stuff
-  // Note, that we do this with the template form, such for complex, the 0 complex element is skipped.
-  T* sol_ptr = dynamic_cast<Vector<T>&>(base_sol).GetPointer() + 1;
+  // we gain the solution pointer
+  T* sol_ptr = dynamic_cast<Vector<T>&>(base_sol).GetPointer();
 
   // additionally remove the constness of the rhs, ilupack knows no const.
-  T* rhs_ptr = const_cast<T*>(dynamic_cast<const Vector<T>&>(base_rhs).GetPointer() + 1);
+  T* rhs_ptr = const_cast<T*>(dynamic_cast<const Vector<T>&>(base_rhs).GetPointer());
 
   LOG_TRACE2(ilupack) << "Solve: sol_ptr=" << sol_ptr << " rhs_ptr=" << rhs_ptr;  
   
@@ -262,27 +266,27 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   z_rhs = isComplex_ ? reinterpret_cast<doublecomplex*>(rhs_ptr) : NULL;
 
   // result
-  int r;
+  int r = 1;
 
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) r = ZGNLAMGsolver(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_, z_sol, z_rhs);
-              else r = DGNLAMGsolver(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_, d_sol, d_rhs);
+    if(isComplex_) r = ZGNLAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
+              else r = DGNLAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
   break;
 
   case SYM: 
-    if(isComplex_) r = ZSYMAMGsolver(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_, z_sol, z_rhs);
-              else r = DSYMAMGsolver(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_, d_sol, d_rhs);
+    if(isComplex_) r = ZSYMAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
+              else r = DSYMAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
   break;
 
   case PD:  
-    if(isComplex_) r = ZHPDAMGsolver(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_, z_sol, z_rhs);
-              else r = DSPDAMGsolver(*dmat_ptr_, *dprecond_ptr_, nlev_, dparam_ptr_, d_sol, d_rhs);
+    if(isComplex_) r = ZHPDAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
+              else r = DSPDAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
   break;
 
   case HER: 
-    if(isComplex_) r = ZHERAMGsolver(*zmat_ptr_, *zprecond_ptr_, nlev_, zparam_ptr_, z_sol, z_rhs);
+    if(isComplex_) r = ZHERAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
   break;
   }              
 
@@ -337,22 +341,22 @@ void Ilupack<T>::InitParameters()
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) ZGNLAMGinit(*zmat_ptr_, zparam_ptr_);
-              else DGNLAMGinit(*dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZGNLAMGinit(zmat_ptr_, zparam_ptr_);
+              else DGNLAMGinit(dmat_ptr_, dparam_ptr_);
   break;
 
   case SYM: 
-    if(isComplex_) ZSYMAMGinit(*zmat_ptr_, zparam_ptr_);
-              else DSYMAMGinit(*dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZSYMAMGinit(zmat_ptr_, zparam_ptr_);
+              else DSYMAMGinit(dmat_ptr_, dparam_ptr_);
   break;
 
   case PD:  
-    if(isComplex_) ZHPDAMGinit(*zmat_ptr_, zparam_ptr_);
-              else DSPDAMGinit(*dmat_ptr_, dparam_ptr_);
+    if(isComplex_) ZHPDAMGinit(zmat_ptr_, zparam_ptr_);
+              else DSPDAMGinit(dmat_ptr_, dparam_ptr_);
   break;
 
   case HER: 
-    if(isComplex_) ZHERAMGinit(*zmat_ptr_, zparam_ptr_);
+    if(isComplex_) ZHERAMGinit(zmat_ptr_, zparam_ptr_);
     else throw Exception("ilupack matrix is set to hermitian but not complex");
   break;
 
@@ -366,22 +370,22 @@ void Ilupack<T>::InitParameters()
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) ZGNLAMGgetparams(*zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
-              else DGNLAMGgetparams(*dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
+    if(isComplex_) ZGNLAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
+              else DGNLAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
   break;
 
   case SYM: 
-    if(isComplex_) ZSYMAMGgetparams(*zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-              else DSYMAMGgetparams(*dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
+    if(isComplex_) ZSYMAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
+              else DSYMAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
   break;
 
   case PD:  
-    if(isComplex_) ZHPDAMGgetparams(*zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-              else DSPDAMGgetparams(*dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
+    if(isComplex_) ZHPDAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
+              else DSPDAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
   break;
 
   case HER: 
-    ZHERAMGgetparams(*zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
+    ZHERAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
   break;
   }              
 
@@ -444,19 +448,19 @@ void Ilupack<T>::InitParameters()
 
   const int size = 26;
 
-  std::map<int, EnumTupel>::iterator iter;
+  EnumMap::iterator iter;
   for(iter = flags.map.begin(); iter != flags.map.end(); iter++)
   {
     int f = iter->first;
     bool now = (flag & f) > 0;
     bool was = (org_flag & f) > 0;
 
-    out << std::endl << " " << iter->second.string;
-    out.width(size - iter->second.string.length());
+    out << std::endl << " " << iter->second;
+    out.width(size - iter->second.length());
     out << ": " << (was ? "on" : "off");
 
     // do we overwrite this setting?
-    if(xml_ != NULL && xml_->Has("flag", "name", iter->second.string))
+    if(xml_ != NULL && xml_->Has("flag", "name", iter->second))
       out << (now == was ? " == " : " -> ") << (now ? "on" : "off");
   }
 
@@ -466,22 +470,22 @@ void Ilupack<T>::InitParameters()
   switch(matrix_)
   {
   case GNL: 
-    if(isComplex_) ZGNLAMGsetparams(*zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
-              else DGNLAMGsetparams(*dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
+    if(isComplex_) ZGNLAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
+              else DGNLAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
     break;
 
   case SYM: 
-    if(isComplex_) ZSYMAMGsetparams(*zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-              else DSYMAMGsetparams(*dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it); 
+    if(isComplex_) ZSYMAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
+              else DSYMAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it); 
     break;
 
   case PD:  
-    if(isComplex_) ZHPDAMGsetparams(*zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-              else DSPDAMGsetparams(*dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
+    if(isComplex_) ZHPDAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
+              else DSPDAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
     break;
 
   case HER: 
-    ZHERAMGsetparams(*zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
+    ZHERAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
     break;
   }        
 
@@ -558,20 +562,22 @@ template<typename T>
 void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat)
 { 
   // first determine it manually for some checking
-  if(sysMat.GetStructureType() != STDMATRIX) EXCEPTION("Sorry, excpect StdMatrix " << sysMat.GetStructureType()); 
+  if(sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
+    EXCEPTION("Sorry, excpect StdMatrix " << sysMat.GetStructureType()); 
 
   const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
-  MatrixStorageType mst = stdMat.GetStorageType(); 
-  if(mst != SPARSE_SYM && mst != SPARSE_NONSYM) EXCEPTION("Sorry, expect sparse matrix " << mst);   
+  BaseMatrix::StorageType mst = stdMat.GetStorageType(); 
+  if(mst != BaseMatrix::SPARSE_SYM && mst != BaseMatrix::SPARSE_NONSYM)
+	EXCEPTION("Sorry, expect sparse matrix " << mst);   
 
   if(xml_ != NULL && xml_->Has("matrix")) {
     matrix_ = matrix.Parse(xml_->Get("matrix"));
     // plausibility check -- killme: what is with hermitian?
-    if(mst != SPARSE_SYM && matrix_ != GNL) 
+    if(mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL) 
       throw Exception("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid " + matrix.ToString(matrix_));
   } else {
     // ignore PD and HER
-    matrix_ = mst == SPARSE_SYM ? SYM : GNL;
+    matrix_ = mst == BaseMatrix::SPARSE_SYM ? SYM : GNL;
   }
 
   if(setupRuns_ == 0) (*cla) << " Use Ilupack matrix type " << matrix.ToString(matrix_) << std::endl;
@@ -919,3 +925,9 @@ void Ilupack<T>::GetPermutation(PermutationRole role, Permutation& out)
   if(in_xml) GetPermutation(my_matrix, my_ordering, my_matching, out); 
         else GetDefaultPermutation(role, out);
 }
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class Ilupack<Double>;
+  template class Ilupack<Complex>;
+#endif

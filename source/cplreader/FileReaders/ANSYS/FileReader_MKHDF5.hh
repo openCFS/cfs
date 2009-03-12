@@ -35,7 +35,7 @@ namespace CoupledField
                                std::vector<UInt> >& elemGroups);
 
   protected:
-    FEType ANSYSTypeToFEType(UInt type, UInt numNodes, bool& readAnotherLine);
+    Elem::FEType ANSYSTypeToFEType(UInt type, UInt numNodes, bool& readAnotherLine);
 
     void ReadEWRITEFile(std::string fileName,
                         std::map< std::string, std::vector<UInt> >& elemSets);

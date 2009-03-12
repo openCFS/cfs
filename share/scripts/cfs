@@ -1,0 +1,274 @@
+#!/bin/sh
+
+# This is the start script for CFS. It should be placed in
+# CFS_DIST/bin under the name 'nacs'
+
+# Source shell script for setting some common variables.
+. `dirname $0`/common.sh
+
+SUSEPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   blas"
+    echo "   boost"
+    echo "   compat-g77"
+    echo "   lapack"
+    echo "   python"
+    echo "   tcl"
+    echo "   Xerces-c"
+    echo
+}
+
+RedhatPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   blas"
+    echo "   boost"
+    echo "   compat-gcc-g77 or gcc-g77"
+    echo "   gcc-gfortran"
+    echo "   lapack"
+    echo "   python"
+    echo "   tcl"
+    echo "   xerces-c"
+    echo
+}
+
+DebianPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   blas or refblas3"
+    echo "   libg2c0"
+    echo "   libboost-*"
+    echo "   lapack, lapack99, lapack3"
+    echo "   python2.4"
+    echo "   tcl8.4"
+    echo "   libxerces27"
+    echo     
+}
+
+UbuntuPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   refblas3"
+    echo "   libboost-*"
+    echo "   libg2c0"
+    echo "   lapack3"
+    echo "   python2.4"
+    echo "   tcl8.4"
+    echo "   libxerces27"
+    echo
+}
+
+MandrivaPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+   "libblas1.1, libblas3, libblas, blas"
+   "libboost1, libboost, boost"
+   "gcc3.3-g77"
+   "libgfortran"
+   "lapack"
+   "python, libpython"
+   "libtcl8.4, tcl"
+   "xerces-c, libxerces-c"
+}
+
+GivePackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    case "$DISTRO" in
+	SUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	OPENSUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	SLES) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	*) break ;;
+    esac
+}
+
+SetANSYSParameters()
+{
+    ARCH=$1
+    ANSYS_ROOT_DIR=$2
+
+    case "$ARCH" in
+	I386)
+	    ANS_ARCH=linia32;
+	    LIB=/lib ;;
+	X86_64)
+	    ANS_ARCH=linop64;
+	    LIB=/lib64 ;;
+	IA64)
+	    ANS_ARCH=linia64;
+	    LIB=/lib ;;
+    esac
+
+    # If ANSYS directory does not exist, try to determine it from executable.
+    if [ ! -d "$ANSYS_ROOT_DIR" ]
+    then
+        PGFLIB=`ldd $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+
+        if [ -f "$PGFLIB" ]
+        then
+            SEDSTR="s/\\/ansys\\/syslib\\/$ANS_ARCH\\/libpgf90.so//"
+            ANSYS_ROOT_DIR=`echo $PGFLIB | sed -e $SEDSTR`
+        fi
+    fi
+
+    if [ ! -d "$ANSYS_ROOT_DIR" ]
+    then
+
+
+	echo "Cannot find root directory of ANSYS:"
+	echo "  $ANSYS_ROOT_DIR"
+	echo "Please set either environment variable ANSYS_ROOT_DIR"
+	echo "or edit $HOME/.nacsrc."
+	exit 1
+    fi
+
+
+    export LD_LIBRARY_PATH=$LIB:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+}
+
+SetGIDParameters()
+{
+  dummy=1
+}
+
+# Set XML schema root path
+#export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+
+# Get settings concerning the distribution type of CFS: GiD/ANSYS
+#if [ "$CFS_DIST_TYPE" != "" ]
+#then 
+#    CFS_DIST_TYPE_TEMP=$CFS_DIST_TYPE 
+#fi
+
+if [ "$ANSYS_ROOT_DIR" != "" ]
+then 
+    ANSYS_ROOT_DIR_TEMP=$ANSYS_ROOT_DIR 
+fi
+
+# Check if a CFS config file exists in user's home directory.
+if [ -e $HOME/.nacsrc ]
+then 
+    . $HOME/.nacsrc;
+fi
+
+# environment variables override variables from config file.
+#if [ "$CFS_DIST_TYPE_TEMP" != "" ]
+#then 
+#    CFS_DIST_TYPE=$CFS_DIST_TYPE_TEMP
+#    unset CFS_DIST_TYPE_TEMP
+#fi
+
+if [ "$ANSYS_ROOT_DIR_TEMP" != "" ]
+then 
+    ANSYS_ROOT_DIR=$ANSYS_ROOT_DIR_TEMP
+    unset ANSYS_ROOT_DIR_TEMP
+fi
+
+CFS_DIST_TYPE="GID"
+
+if [ "$CFS_DIST_TYPE" = "" ]
+then 
+    echo "Cannot determine distribution type of CFS."
+    echo "CFS_DIST_TYPE should be one of GID / ANSYS."
+    exit 1
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "CFS_DIST_TYPE: $CFS_DIST_TYPE"
+    echo "CFS_SCHEMA_ROOT: $CFS_SCHEMA_ROOT"
+    echo "OS: $OS"
+    echo "ARCH_STR: $ARCH_STR"
+    echo "DISTRO: $DISTRO"
+    echo "DISTRO_VER: $DISTRO_VER"
+    echo "ARCH: $ARCH"
+fi
+
+# Set path to CFS executable
+CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
+
+# Set parameters according to distribution type.
+case "$CFS_DIST_TYPE" in
+    ANSYS)
+	SetANSYSParameters $ARCH $ANSYS_ROOT_DIR ;;
+    GID)
+	SetGIDParameters ;;
+    *)
+	echo "Unknown distribution type $CFS_DIST_TYPE.";
+	echo "Should be one of GID / ANSYS.";
+	exit 1;;
+esac
+
+# Check if we have the necessary libraries for the current arch.
+if [ "$BINARY_TREE" = "0" ]; then
+    if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
+    then 
+        echo "Cannot find CFS library path for architecture $ARCH_STR."
+        exit 2
+    fi
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+fi
+
+# Check if we have the necessary executable for the current arch.
+if [ ! -e $CFS_EXE ]
+then 
+    echo "Cannot find CFS executable for architecture $ARCH_STR."
+    exit 3
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Libraries:"
+    ldd $CFS_EXE
+fi
+
+# Check if some system libraries are missing.
+CFS_EXE_LDD=`ldd $CFS_EXE | grep "not found"`
+
+if [ "$CFS_EXE_LDD" != "" ]
+then 
+    echo "Some dependencies on system libraries could not be resolved."
+    echo "CFS depends on the following packages on $DISTRO $DISTRO_VER:"
+    GivePackageHint $DISTRO $DISTRO_VER
+    echo "Please install the required packages."
+    exit 4
+fi
+
+# Execute the CFS exutable with arguments from this script
+if [ $# != 0 ]
+then
+ $CFS_EXE "$@";
+else
+ $CFS_EXE;
+fi

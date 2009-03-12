@@ -5,14 +5,18 @@
 #ifndef BASE_IDBC_HANDLER_HH
 #define BASE_IDBC_HANDLER_HH
 
-
 #include <set>
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "algsys/baseidbchandler.hh"
+#include <map>
 
+#include "General/environment.hh"
+#include "General/defs.hh"
 
-namespace OLAS {
+#include "MatVec/basevector.hh"
+#include "MatVec/basematrix.hh"
+
+#include "OLAS/algsys/baseidbchandler.hh"
+
+namespace CoupledField {
 
 
   //! Base class for all IDBC_Handler classes
@@ -84,20 +88,19 @@ namespace OLAS {
     //!              should be set
     //! \param val   inhomogeneous Dirichlet value
     virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Double &val ) {
-      (*error) << "BaseIDBC_Handler::SetIDBC: The derived class does "
-               << "obviously not support the Double version of this "
-               << "interface! So it is probably a Complex instance!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
     }
 
     virtual void SetIDBC( PdeIdType pdeID, UInt eqnNo, const Complex &val )  {
-      (*error) << "BaseIDBC_Handler::SetIDBC: The derived class does "
-               << "obviously not support the Complex version of this "
-               << "interface! So it is probably a Double instance!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Double instance!");
     }
     //@}
 
+    //@{
     //! Add weight of coupling between a fixed and a free dof into matrix
 
     //! This method provides an interface to add the weight of the coupling
@@ -113,16 +116,31 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val value of the weight of the coupling
     virtual void AddWeightFixedToFree( FEMatrixType matID,
                                        PdeIdType pdeID1,
                                        PdeIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
-                                       Double realPart,
-                                       Double imagPart = 0.0 ) = 0;
-
+                                       const Double& val ) {
+      EXCEPTION("BaseIDBC_Handler::AddWeightFixedToFree: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+    
+    virtual void AddWeightFixedToFree( FEMatrixType matID,
+                                       PdeIdType pdeID1,
+                                       PdeIdType pdeID2,
+                                       UInt rowInd,
+                                       UInt colInd,
+                                       const Complex& val ) {
+      EXCEPTION("BaseIDBC_Handler::AddWeightFixedToFree: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+    //@}
+    
+    //@{
     //! Set weight of coupling between a fixed and a free dof into matrix
 
     //! This method provides an interface to set the weight of the coupling
@@ -138,16 +156,30 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     virtual void SetWeightFixedToFree( FEMatrixType matID,
                                        PdeIdType pdeID1,
                                        PdeIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
-                                       Double realPart,
-                                       Double imagPart = 0.0 ) = 0;
+                                       const Double& val ) {
+      EXCEPTION("BaseIDBC_Handler::SetWeightFixedToFree: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+    virtual void SetWeightFixedToFree( FEMatrixType matID,
+                                       PdeIdType pdeID1,
+                                       PdeIdType pdeID2,
+                                       UInt rowInd,
+                                       UInt colInd,
+                                       const Complex& val ) {
+      EXCEPTION("BaseIDBC_Handler::SetWeightFixedToFree: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+    //@}
 
+    //@{
     //! Get weight of coupling between a fixed and a free dof from matrix
 
     //! This method provides an interface to get the weight of the coupling
@@ -163,15 +195,30 @@ namespace OLAS {
     //!                 number of the fixed degree of freedom; must be the
     //!                 real equation number, %IDBC_Handler transforms this
     //!                 to a one-based index itself.
-    //! \param realPart real valued part of the weight of the coupling
-    //! \param imagPart imaginary part of the weight of the coupling
+    //! \param val      value of the weight of the coupling
     virtual void GetWeightFixedToFree( FEMatrixType matID,
                                        PdeIdType pdeID1,
                                        PdeIdType pdeID2,
                                        UInt rowInd,
                                        UInt colInd,
-                                       Double & realPart,
-                                       Double & imagPart ) const = 0;
+                                       Double & val ) {
+      EXCEPTION("BaseIDBC_Handler::GetWeightFixedToFree: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+
+    }
+    virtual void GetWeightFixedToFree( FEMatrixType matID,
+                                       PdeIdType pdeID1,
+                                       PdeIdType pdeID2,
+                                       UInt rowInd,
+                                       UInt colInd,
+                                       Complex & val ) {
+      EXCEPTION("BaseIDBC_Handler::GetWeightFixedToFree: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+
+    }
+    //@}
 
     //! Re-set specified internal matrix to zero
 

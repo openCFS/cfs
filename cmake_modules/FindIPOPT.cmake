@@ -18,56 +18,28 @@
 # NOTES
 #
 # AUTHOR
-# Simon Triebenbacher simon@ibtriebenbacher.de (07/2006)
+# Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
 
+SET(IPOPT_FOUND 0)
 
-SET(UNIX_STYLE_FIND 1)
+#-------------------------------------------------------------------------------
+# Look for IPOPT header.
+#-------------------------------------------------------------------------------
+BUILD_EXTLIB("IPOPT"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libipopt.a"
+  "${CFS_DEPS_ROOT}/ipopt/build_ipopt.pl"
+  "build_ipopt.log")
 
+SET(IPOPT_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
-IF (UNIX_STYLE_FIND) 
+#-------------------------------------------------------------------------------
+# Determine paths of IPOPT libraries.
+#-------------------------------------------------------------------------------
+SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+SET(IPOPT_LIBRARY
+  "${LD}/libipopt.a"
+  CACHE FILEPATH "IPOPT library.")
 
-SET (IPOPT_POSSIBLE_ROOT_PATHS
-    $ENV{IPOPT_ROOT}
-    "/space/fwein/packages/ipopt_3.3_stable/build"
-    )
-  
-FIND_PATH(IPOPT_ROOT_DIR include/config_ipopt.h
-    ${IPOPT_POSSIBLE_ROOT_PATHS} )  
+MARK_AS_ADVANCED(IPOPT_LIBRARY)
+SET(IPOPT_FOUND 1)
 
-    
-SET (IPOPT_POSSIBLE_LIB_PATHS
-      "${IPOPT_ROOT_DIR}/lib64"
-      "${IPOPT_ROOT_DIR}/lib"
-      ) 
-    
-FIND_LIBRARY(IPOPT_LIBRARY
-      NAMES ipopt
-      PATHS ${IPOPT_POSSIBLE_LIB_PATHS}
-      DOC "IPOPT library" ) 
-
-STRING(REGEX REPLACE "/libipopt.*" #"[^/]*$"
-      "" IPOPT_LINK_DIR
-      ${IPOPT_LIBRARY})
-
-
-IF(IPOPT_ROOT_DIR)
-  IF(IPOPT_LIBRARY)
-  ## found all we need.
-    SET(IPOPT_FOUND 1)
-
-     SET(IPOPT_INCLUDE_DIR "${IPOPT_ROOT_DIR}/include"
-       CACHE PATH "IPOPT_INCLUDE_DIR")
-
-     SET(IPOPT_LIBRARY "${IPOPT_LIBRARY}"
-       CACHE PATH "IPOPT_LIBRARY")
-
-     SET(IPOPT_LINK_DIR "${IPOPT_LINK_DIR}"
-       CACHE PATH "IPOPT_LINK_DIR")
-
-     MARK_AS_ADVANCED(
-       IPOPT_INCLUDE_DIR
-       IPOPT_LIBRARY
-       IPOPT_ROOT_DIR
-     )
-  ENDIF(IPOPT_LIBRARY)
-ENDIF(IPOPT_ROOT_DIR)

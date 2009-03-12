@@ -2,9 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "solver/minres.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-namespace OLAS {
+#include "OLAS/solver/minres.hh"
+
+namespace CoupledField {
 
 
   // ***************
@@ -77,7 +81,7 @@ namespace OLAS {
 
 
     // Test, whether the problem dimension has changed
-    UInt newDim_ = sysMat.GetNcols();
+    UInt newDim_ = sysMat.GetNumCols();
 
     if ( newDim_ > vectorLength_ ) {
 
@@ -192,7 +196,7 @@ namespace OLAS {
 
     // Determine norm of preconditioned right hand side
     precond.Apply( sysMat, rhs, *pV_ );
-    Double rhsNorm = pV_->NormEuclid();
+    Double rhsNorm = pV_->NormL2();
 
     // Compute residual of initial guess
     sysMat.CompRes( *pV_, sol, rhs );
@@ -201,13 +205,13 @@ namespace OLAS {
     precond.Apply( sysMat, *pV_, *q0_ );
 
     // Compute norm of residual of preconditioned system
-    rho = q0_->NormEuclid();
+    rho = q0_->NormL2();
 
     // Be verbose
     (*cla) << "\n MINRESSolver:\n"
-           << "\n Norm of rhs              = " << rhs.NormEuclid()
+           << "\n Norm of rhs              = " << rhs.NormL2()
 	   << "\n Norm of precond rhs      = " << rhsNorm
-	   << "\n Norm of residual         = " << pV_->NormEuclid()
+	   << "\n Norm of residual         = " << pV_->NormL2()
 	   << "\n Norm of precond residual = " << rho
 	   << std::endl;
 
@@ -215,7 +219,7 @@ namespace OLAS {
     q0_->ScalarDiv( rho );
 
     // Initialise right-hand side of least-squares problem
-    bV_->SetVectorEntry( 1, rho );
+    bV_->SetEntry( 1, rho );
 
     // For start of recurrence, set last but one vectors
     // and some coefficients
@@ -262,11 +266,11 @@ namespace OLAS {
 
 #ifdef DEBUG_MINRES
       std::cerr << "\n Norm of basis vector q[" << k-1 << "] = "
-		<< q1_->NormEuclid();
+		<< q1_->NormL2();
       std::cerr << "\n Norm of basis vector q[" <<  k  << "] = "
-		<< q0_->NormEuclid();
+		<< q0_->NormL2();
       std::cerr << "\n Norm of basis vector q[" << k+1 << "] = "
-		<< qN_->NormEuclid();
+		<< qN_->NormL2();
       std::cerr << "\n beta2 = " << beta2
 		<< "\n beta1 = " << beta1
 		<< "\n beta0 = " << beta0
@@ -298,19 +302,19 @@ namespace OLAS {
 
       // Compute the effect of the Givens rotation on the
       // right-hand side vector of the least-squares problem
-      bV_->GetVectorEntry( k, aux );
+      bV_->GetEntry( k, aux );
 
       tmp = -Conj(sNew) * aux;
-      bV_->SetVectorEntry( k+1, tmp );
+      bV_->SetEntry( k+1, tmp );
 
       tmp =       cNew  * aux;
-      bV_->SetVectorEntry(  k , tmp );
+      bV_->SetEntry(  k , tmp );
 
 #ifdef DEBUG_MINRES
       std::cerr << "\n cNew = " << cNew
 		<< "\n sNew = " << sNew
 		<< "\n b[" << k << "] = " << aux << std::endl;
-      bV_->GetVectorEntry( k+1, aux );
+      bV_->GetEntry( k+1, aux );
       std::cerr << "\n b[" << k+1 << "] = " << aux
 		<< std::endl;
 #endif
@@ -323,7 +327,7 @@ namespace OLAS {
       w0_->Add( -l1, *w1_, -l2, *w2_ );
       w0_->Add( *q0_ );
       w0_->ScalarDiv( l0 );
-      bV_->GetVectorEntry( k, aux );
+      bV_->GetEntry( k, aux );
       sol.Add( cNew * aux, *w0_ );
 
 
@@ -339,13 +343,13 @@ namespace OLAS {
       // ---------------------------
       //   Test stopping threshold
       // ---------------------------
-      bV_->GetVectorEntry( k+1, aux );
+      bV_->GetEntry( k+1, aux );
       if ( Abs(aux) <= threshold ) {
 
         // Test for false convergence
         sysMat.CompRes( *pV_, sol, rhs );
         precond.Apply( sysMat, *pV_, *q0_ );
-        rho = q0_->NormEuclid();
+        rho = q0_->NormL2();
         if ( rho > threshold ) {
           (*warning) << " MINRESSolver::Solve\n"
 		     << " False convergence detected.\n"
@@ -372,7 +376,7 @@ namespace OLAS {
     // Compute real residual of preconditioned system
     sysMat.CompRes( *pV_, sol, rhs );
     precond.Apply( sysMat, *pV_, *q0_ );
-    rho = q0_->NormEuclid();
+    rho = q0_->NormL2();
 
     // Compose report
     myReport_->SetValue( "finalNorm", rho );
@@ -388,21 +392,16 @@ namespace OLAS {
   void MINRESSolver<T>::TestMatrixType( const BaseMatrix &sysMat ) const {
 
 
-    if ( sysMat.GetStructureType() == SBM_MATRIX ) {
+    if ( sysMat.GetStructureType() == BaseMatrix::SBM_MATRIX ) {
       Warning( "MINRESSolver expects matrix entries to be scalars!"
                " We do not test this for SBM_Matrix class" );
     }
-
-    TRY_CAST {
-
-      ConstRefCast( sysMat, StdMatrix, stdMat );
-
-      if ( stdMat.GetBlockSize() != 1 ) {
-        Error( "MINRESSolver cannot deal with matrix block sizes > 1",
-               __FILE__, __LINE__ );
-      }
-
-    } CATCH_CAST;
   }
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class MINRESSolver<Double>;
+  template class MINRESSolver<Complex>;
+#endif
 
 }

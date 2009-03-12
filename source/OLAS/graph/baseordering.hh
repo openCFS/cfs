@@ -7,11 +7,11 @@
 
 #include <iostream>
 #include <vector>
-#include "utils/utils.hh"
-#include "utils/plainAlloc.hh"
 
+#include "General/defs.hh"
+#include "Utils/StdVector.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! Base Class for ordering of a matrix graph 
@@ -33,7 +33,7 @@ namespace OLAS {
     //!              lists
     //! \param order contains for global node i the mapped index
     //! \param asize number of elements (nodes) in the graph
-    BaseOrdering( NodeList *graph, Integer *order, Integer asize );
+    BaseOrdering( NodeList *graph, StdVector<UInt>& order );
 
     //! Destructor
     virtual ~BaseOrdering();
@@ -54,8 +54,7 @@ namespace OLAS {
   protected:
 
     NodeList* graph_;  //!< Uncompressed matrix graph (STL list)
-    Integer *order_;   //!< stores for global node i the mapped index
-    UInt size_;        //!< Total number of nodes in matrix graph
+    StdVector<UInt>& order_;   //!< stores for global node i the mapped index
 
   };
 

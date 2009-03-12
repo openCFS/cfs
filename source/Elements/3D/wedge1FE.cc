@@ -13,7 +13,10 @@ namespace CoupledField
 {
 
   Wedge1FE::Wedge1FE():WedgeFE()
-  { 
+  {
+    ShFnc2AtIp_       = NULL;
+    ShFnc2DerivAtIp_  = NULL; 
+    
     ShFnc2AtIp_       = NULL;
     ShFnc2DerivAtIp_  = NULL; 
     
@@ -43,7 +46,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =  0.0;
     LCornerCoords_[1][0] =  0.0;
     LCornerCoords_[2][0] = -1.0;
@@ -71,56 +74,54 @@ namespace CoupledField
   }
   
   void Wedge1FE :: SetEdgeIndices() {
-
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
       edgeIndices_[i].Resize(2);
     }
-
+    
     // edge 1
     edgeIndices_[0][0] = 1;
     edgeIndices_[0][1] = 2;
-
+    
     // edge 2
     edgeIndices_[1][0] = 1;
     edgeIndices_[1][1] = 3;
-
+    
     // edge 3
     edgeIndices_[2][0] = 2;
     edgeIndices_[2][1] = 3;
-
+    
     // edge 4
     edgeIndices_[3][0] = 4;
     edgeIndices_[3][1] = 5;
-
+    
     // edge 5
     edgeIndices_[4][0] = 4;
     edgeIndices_[4][1] = 6;
-
+    
     // edge 6
     edgeIndices_[5][0] = 5;
     edgeIndices_[5][1] = 6;
-
+    
     // edge 7
     edgeIndices_[6][0] = 1;
     edgeIndices_[6][1] = 4;
-
+    
     // edge 8
     edgeIndices_[7][0] = 2;
     edgeIndices_[7][1] = 5;
-
+    
     // edge 9
     edgeIndices_[8][0] = 3;
     edgeIndices_[8][1] = 6;
-
   }
-
+  
   void Wedge1FE::CalcShapeFnc(Vector<Double> & Shape, 
-                                const Vector<Double> & LCoord,
-                                const Elem*, UInt dof,
-                                AnsatzFct::FctEntityType fctEntityType )
+                              const Vector<Double> & LCoord,
+                              const Elem*, UInt dof,
+                              AnsatzFct::FctEntityType fctEntityType )
   {
-
+    
     Shape.Resize(NumNodes_);
 
     //"Wedge Elements"
@@ -130,7 +131,7 @@ namespace CoupledField
     Shape[0] = 0.5 * (1 - LCoord[2]) * (1 - LCoord[0] - LCoord[1]);
     Shape[1] = 0.5 * (1 - LCoord[2]) * LCoord[0];
     Shape[2] = 0.5 * (1 - LCoord[2]) * LCoord[1];
-    Shape[3] = 0.5 * (1 + LCoord[2]) * (1 - LCoord[0] - LCoord[1]); 
+    Shape[3] = 0.5 * (1 + LCoord[2]) * (1 - LCoord[0] - LCoord[1]);
     Shape[4] = 0.5 * (1 + LCoord[2]) * LCoord[0];
     Shape[5] = 0.5 * (1 + LCoord[2]) * LCoord[1];
 
@@ -138,7 +139,7 @@ namespace CoupledField
 
 
   void Wedge1FE::
-  CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                          const Vector<Double> & LCoord,
                          const Elem*, UInt dof,
                          AnsatzFct::FctEntityType fctEntityType )
@@ -151,28 +152,28 @@ namespace CoupledField
     LDeriv[0][0] = -0.5 * (1 - LCoord[2]);
     LDeriv[0][1] = -0.5 * (1 - LCoord[2]);
     LDeriv[0][2] = -0.5 * (1 - LCoord[0] - LCoord[1]);
-  
+
     LDeriv[1][0] =  0.5 * (1 - LCoord[2]);
     LDeriv[1][1] =  0.0;
     LDeriv[1][2] = -0.5 * LCoord[0];
-  
+
     LDeriv[2][0] =  0.0;
     LDeriv[2][1] =  0.5 * (1 - LCoord[2]);
     LDeriv[2][2] = -0.5 * LCoord[1];
-  
+
     LDeriv[3][0] = -0.5 * (1+ LCoord[2]);
     LDeriv[3][1] = -0.5 * (1+ LCoord[2]);
     LDeriv[3][2] =  0.5 * (1- LCoord[0] - LCoord[1]);
-  
+
     LDeriv[4][0] =  0.5 * (1+ LCoord[2]);
     LDeriv[4][1] =  0.0;
     LDeriv[4][2] =  0.5 * LCoord[0];
-  
+
     LDeriv[5][0] =  0.0;
     LDeriv[5][1] =  0.5 * (1 + LCoord[2]);
     LDeriv[5][2] =  0.5 * LCoord[1];
   }
-  
+
   // see Ph.D. Sabine Zagelmayr
   void Wedge1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
                                     const Vector<Double> & LCoord, 
@@ -186,7 +187,6 @@ namespace CoupledField
     // nodal shape functions of a tet
     Vector<Double> nodeShape;
     CalcShapeFnc2(nodeShape, LCoord);
-
 
     // local derivates for special shape functions
     Matrix<Double> xDxi;  
@@ -374,7 +374,6 @@ namespace CoupledField
     LDeriv[3][2] = -0.5;
     LDeriv[4][2] =  0.5;
   }
-
 
 } // end of namespace
 

@@ -108,7 +108,7 @@ namespace CoupledField
     //! write named entities (nodes, elements)
     void WriteNamedEntities( std::ofstream * gridFile );
 
-    void ElemType2GMVElemId(FEType et, std::string & id);
+    void ElemType2GMVElemId(Elem::FEType et, std::string & id);
 
     void WriteNodeElemDataTrans( const Vector<Double> & var, 
                                  const StdVector<std::string> & dofNames,

@@ -21,7 +21,7 @@
 #define  PREMATRIX_ROW_GRANULARITY  32
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -61,11 +61,11 @@ template <typename T>
 inline Integer PreMatrix<T>::GetRowSize( const Integer row ) const
 {
 #ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNrows() ) {
+    if( row < 1 || row > GetNumRows() ) {
         Error( __FILE__, __LINE__,
                "PreMatrix::GetRowSize(%d): %d is not a valid "
                "row index in range [1,%d]",
-               row, row, GetNrows() );
+               row, row, GetNumRows() );
     }
 #endif
 
@@ -78,11 +78,11 @@ template <typename T>
 inline const T* PreMatrix<T>::GetRowData( const Integer row ) const
 {
 #ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNrows() ) {
+    if( row < 1 || row > GetNumRows() ) {
         Error( __FILE__, __LINE__,
                "PreMatrix::GetRowData(%d): %d is not a valid "
                "row index in range [1,%d]",
-               row, row, GetNrows() );
+               row, row, GetNumRows() );
     }
 #endif
 
@@ -96,11 +96,11 @@ inline const Integer* PreMatrix<T>::
 GetRowCols( const Integer row ) const
 {
 #ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNrows() ) {
+    if( row < 1 || row > GetNumRows() ) {
         Error( __FILE__, __LINE__,
                "PreMatrix::GetRowCols(%d): %d is not a valid "
                "row index in range [1,%d]",
-               row, row, GetNrows() );
+               row, row, GetNumRows() );
     }
 #endif
 
@@ -109,7 +109,7 @@ GetRowCols( const Integer row ) const
 
 template <typename T>
 inline Integer PreMatrix<T>::
-GetNrows() const
+GetNumRows() const
 {
     return numRows_;
 }
@@ -137,11 +137,11 @@ void PreMatrix<T>::SetEntry( const Integer  row, const Integer col,
 {
 
 #ifdef DEBUG_PREMATRIX
-    if( row < 1 || GetNrows() < row ) {
+    if( row < 1 || GetNumRows() < row ) {
         Error( __FILE__, __LINE__,
                "PreMatrix::SetEntry(%d,%d,..): %d is not a valid "
                "row index in range [1,%d]",
-               row, col, row, GetNrows() );
+               row, col, row, GetNumRows() );
     }
 #endif
 
@@ -169,11 +169,11 @@ void PreMatrix<T>::AddToEntry( const Integer  row,
 {
 
 #ifdef DEBUG_PREMATRIX
-    if( row < 1 || row > GetNrows() ) {
+    if( row < 1 || row > GetNumRows() ) {
         Error( __FILE__, __LINE__,
                "PreMatrix::AddToEntry(%d,%d,..): %d is not a valid "
                "row index in range [1,%d]",
-               row, col, row, GetNrows() );
+               row, col, row, GetNumRows() );
     }
 #endif
 
@@ -281,19 +281,19 @@ void PreMatrix<T>::Reset()
     // delete array with row data
     if( rows_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DeleteArray( rows_[i] ); }
-        DeleteArray( rows_ );  rows_ = NULL;        
+            DELETEARRAY( rows_[i] ); }
+        DELETEARRAY( rows_ );  rows_ = NULL;        
     }
     // delete array with column data
     if( cols_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DeleteArray( cols_[i] ); }
-        DeleteArray( cols_ );  cols_ = NULL;        
+            DELETEARRAY( cols_[i] ); }
+        DELETEARRAY( cols_ );  cols_ = NULL;        
     }
     // delete array with row sizes
-    DeleteArray( rowSize_ );  rowSize_ = NULL;
+    DELETEARRAY( rowSize_ );  rowSize_ = NULL;
 #ifndef PREMATRIX_USE_MODULO
-    DeleteArray( buffSize_ );  buffSize_ = NULL;
+    DELETEARRAY( buffSize_ );  buffSize_ = NULL;
 #endif
     // reset number of rows
     numRows_ = 0;
@@ -379,10 +379,10 @@ std::ostream& PreMatrix<T>::Print( std::ostream& out ) const
 {
 
     out << "\033[1mPreMatrix:\033[0m" << std::endl
-        << "  "<<GetNrows()<<" rows " << std::endl
+        << "  "<<GetNumRows()<<" rows " << std::endl
         << "  "<<GetNumNonzeros()<<" entries: " << std::endl;
     
-    for( Integer r = 1; r <= GetNrows(); r++ ) {
+    for( Integer r = 1; r <= GetNumRows(); r++ ) {
         for( Integer ic = 1; ic <= GetRowSize(r); ic++ ) {
             out << "("<<r<<","<<GetRowCols(r)[ic]<<") = "
                 << GetRowData(r)[ic] << std::endl;
@@ -403,36 +403,36 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
     // delete rows and the rows array, if it cannot be reused
     if( rows_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DeleteArray( rows_[i] );  rows_[i] = NULL; }
+            DELETEARRAY( rows_[i] );  rows_[i] = NULL; }
         if( num_rows != numRows_ ) {
-            DeleteArray( rows_ );  rows_ = NULL; }
+            DELETEARRAY( rows_ );  rows_ = NULL; }
     }
     // new rows array
     if( rows_ == NULL ) {
-        NewArray( rows_, T*, num_rows );
+        NEWARRAY( rows_, T*, num_rows );
         for( Integer i = 1; i <= num_rows; i++ )  rows_[i] = NULL;
     }
 
     // delete column indices and columns array, if it cannot be reused
     if( cols_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DeleteArray( cols_[i] );  cols_[i] = NULL; }
+            DELETEARRAY( cols_[i] );  cols_[i] = NULL; }
         if( num_rows != numRows_ ) {
-            DeleteArray( cols_ );  cols_ = NULL; }
+            DELETEARRAY( cols_ );  cols_ = NULL; }
     }
     // new column array
     if( cols_ == NULL ) {
-        NewArray( cols_, Integer*, num_rows );
+        NEWARRAY( cols_, Integer*, num_rows );
         for( Integer i = 1; i <= num_rows; i++ )  cols_[i] = NULL;
     }
 
     // new array for row sizes
     if( num_rows != numRows_ ) {
-        DeleteArray( rowSize_ );
-        NewArray( rowSize_, Integer, num_rows );
+        DELETEARRAY( rowSize_ );
+        NEWARRAY( rowSize_, Integer, num_rows );
 #ifndef PREMATRIX_USE_MODULO
-        DeleteArray( buffSize_ );
-        NewArray( buffSize_, Integer, num_rows );
+        DELETEARRAY( buffSize_ );
+        NEWARRAY( buffSize_, Integer, num_rows );
 #endif
     }
     // must be initialized or reset in any case
@@ -452,7 +452,7 @@ void PreMatrix<T>::InstantiatePublicMethods()
 {
     PreMatrix<T> dummyPreMatrix( 1 );
     GetNumNonzeros();
-    GetNrows();
+    GetNumRows();
     GetRowSize( 1 );
     GetRowData( 1 );
     GetRowCols( 1 );
@@ -484,27 +484,27 @@ inline void PreMatrix<T>::CheckBufferSize( const Integer row )
         // enlarge data array
         T *newRow = NULL;
 #ifdef PREMATRIX_USE_MODULO
-        NewArray( newRow, T,
+        NEWARRAY( newRow, T,
                   rowSize_[row] + PREMATRIX_ROW_GRANULARITY );
 #else
-        NewArray( newRow, T,
+        NEWARRAY( newRow, T,
                   buffSize_[row] += PREMATRIX_ROW_GRANULARITY );
 #endif
         for( Integer i = 1; i <= rowSize_[row]; i++ ) {
             newRow[i] = rows_[row][i]; }
-        DeleteArray( rows_[row] );
+        DELETEARRAY( rows_[row] );
         rows_[row] = newRow;
         // enlarge column array
         Integer *newCols = NULL;
 #ifdef PREMATRIX_USE_MODULO
-        NewArray( newCols, Integer,
+        NEWARRAY( newCols, Integer,
                   rowSize_[row] + PREMATRIX_ROW_GRANULARITY );
 #else
-        NewArray( newCols, Integer, buffSize_[row] );
+        NEWARRAY( newCols, Integer, buffSize_[row] );
 #endif
         for( Integer i = 1; i <= rowSize_[row]; i++ ) {
             newCols[i] = cols_[row][i]; }
-        DeleteArray( cols_[row] );
+        DELETEARRAY( cols_[row] );
         cols_[row] = newCols;
     }
 }
@@ -567,7 +567,7 @@ ImportEntryASCII( const char* const line,
 /**********************************************************/
 #undef  PREMATRIX_ROW_GRANULARITY
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************
  * print-out operator

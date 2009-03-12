@@ -6,20 +6,17 @@
 #define OLAS_BASEENTRYMANIPULATOR_HH
 
 
-#include "utils/utils.hh"
-#include "matvec/vector.hh"
+#include "MatVec/vector.hh"
 
 #include "General/exception.hh"
 
-using CoupledField::Exception;
-
-namespace OLAS {
+namespace CoupledField {
 
 
   // Forward declaration of classes
   class StandardSystem;
   class StdMatrix;
-  class SparseVector;
+  class SingleVector;
   class BaseIDBC_Handler;
 
 
@@ -52,7 +49,7 @@ namespace OLAS {
     }
  
     //! Destructor
-    virtual ~BaseEntryManipulator() {
+    ~BaseEntryManipulator() {
     }
 
     //@}
@@ -64,29 +61,31 @@ namespace OLAS {
     //@{ \name Methods used in the assembly of the linear system
 
     //! Insert local element matrix into global finite element matrix
-    virtual void SetElementMatrix( FEMatrixType matrix_id,
-                                   const PdeIdType pdeID1,
-                                   const PdeIdType pdeID2,
-                                   StdMatrix *stdMat,
-                                   StdMatrix *counterPart,
-                                   BaseIDBC_Handler *idbcHandler,
-                                   Double *elemMat,
-                                   Integer *connect1, UInt length1,
-                                   Integer *connect2, UInt length2,
-                                   UInt limit1, UInt limit2,
-                                   bool setCounterPart) = 0;
+    template<typename T>
+    void SetElementMatrix( FEMatrixType matrix_id,
+                           const PdeIdType pdeID1,
+                           const PdeIdType pdeID2,
+                           StdMatrix *stdMat,
+                           StdMatrix *counterPart,
+                           BaseIDBC_Handler *idbcHandler,
+                           const Matrix<T>& elemMat,
+                           const StdVector<Integer>& connect1,
+                           const StdVector<Integer>& connect2,
+                           UInt limit1, UInt limit2,
+                           bool setCounterPart);
 
     //! Only insert counter part of local element matrix into global one
-    virtual void SetCounterPartOnly( FEMatrixType matrix_id,
-                                     const PdeIdType pdeID1,
-                                     const PdeIdType pdeID2,
-                                     StdMatrix *stdMat,
-                                     StdMatrix *counterPart,
-                                     BaseIDBC_Handler *idbcHandler,
-                                     Double *elemMat,
-                                     Integer *connect1, UInt length1,
-                                     Integer *connect2, UInt length2,
-                                     UInt limit1, UInt limit2 ) = 0;
+    template<typename T>
+    void SetCounterPartOnly( FEMatrixType matrix_id,
+                             const PdeIdType pdeID1,
+                             const PdeIdType pdeID2,
+                             StdMatrix *stdMat,
+                             StdMatrix *counterPart,
+                             BaseIDBC_Handler *idbcHandler,
+                             const Matrix<T>& elemMat,
+                             const StdVector<Integer>& connect1,
+                             const StdVector<Integer>& connect2,
+                             UInt limit1, UInt limit2 );
 
     //! Method for insertion of local element vector into right-hand side
 
@@ -112,126 +111,38 @@ namespace OLAS {
     //! \note For using the penalty approach of handling inhomogeneous
     //!       Dirichlet boundary conditions simply set limit = size of
     //!       the linear system
-    virtual void SetElementRHS( SparseVector *rhs, Double *elemRHS,
-                                Integer *connect, UInt elemSize,
-                                UInt limit ) = 0;
+    template<typename T>
+    void SetElementRHS( SingleVector *rhs, const Vector<T>& elemRhs,
+                        const StdVector<Integer>& connect,
+                        UInt limit );
     
-    //! Get an entry of a matrix (real)
-    virtual void GetMatrixEntry( FEMatrixType matrix_id,
-                                 const PdeIdType pdeID1,
-                                 const PdeIdType pdeID2,
-                                 StdMatrix *stdMat,
-                                 BaseIDBC_Handler *idbcHandler,
-                                 Double & entry,
-                                 Integer eqnNr1, 
-                                 Integer eqnNr2, 
-                                 UInt limit1, UInt limit2 ) = 0;
+    //! Get an entry of a matrix
+    template<typename T>
+    void GetMatrixEntry( FEMatrixType matrix_id,
+                         const PdeIdType pdeID1,
+                         const PdeIdType pdeID2,
+                         StdMatrix *stdMat,
+                         BaseIDBC_Handler *idbcHandler,
+                         T & entry,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
+                         UInt limit1, UInt limit2 );
+                         
+    //! Set directly an entry of a  matrix
+    template<typename T>
+    void SetMatrixEntry( FEMatrixType matrix_id,
+                         const PdeIdType pdeID1,
+                         const PdeIdType pdeID2,
+                         StdMatrix *stdMat,
+                         BaseIDBC_Handler *idbcHandler,
+                         const T& entry,
+                         Integer eqnNr1, 
+                         Integer eqnNr2, 
+                         UInt limit1, UInt limit2,
+                         bool setCounterPart );
     
-    //! Get an entry of a matrix (complex)
-    virtual void GetMatrixEntry( FEMatrixType matrix_id,
-                                 const PdeIdType pdeID1,
-                                 const PdeIdType pdeID2,
-                                 StdMatrix *stdMat,
-                                 BaseIDBC_Handler *idbcHandler,
-                                 Complex & entry,
-                                 Integer eqnNr1, 
-                                 Integer eqnNr2, 
-                                 UInt limit1, UInt limit2 ) = 0;
-
-    //! Set directly an entry of a  matrix (real)
-    virtual void SetMatrixEntry( FEMatrixType matrix_id,
-                                 const PdeIdType pdeID1,
-                                 const PdeIdType pdeID2,
-                                 StdMatrix *stdMat,
-                                 BaseIDBC_Handler *idbcHandler,
-                                 Double entry,
-                                 Integer eqnNr1, 
-                                 Integer eqnNr2, 
-                                 UInt limit1, UInt limit2,
-                                 bool setCounterPart ) = 0;
-    
-    //! Set directly an entry of a matrix (complex)
-    virtual void SetMatrixEntry( FEMatrixType matrix_id,
-                                 const PdeIdType pdeID1,
-                                 const PdeIdType pdeID2,
-                                 StdMatrix *stdMat,
-                                 BaseIDBC_Handler *idbcHandler,
-                                 Complex entry,
-                                 Integer eqnNr1, 
-                                 Integer eqnNr2,
-                                 UInt limit1, UInt limit2,
-                                 bool setCounterPart ) = 0;
     //@}
     
-
-    // ======================================================================
-    // GETTER METHODS
-    // ======================================================================
-
-    //! \name Methods related to passing vectors back to CFS++
-    //@{
-
-    //@{
-    //! Return the pointer to the current solution of a PDE
-
-    //! This method passes the current solution of one given PDE
-    //! as a pointer to a buffer containing the solution entries. 
-    //! If no identifier is given, the pointer to the beginning of the
-    //! complete solution array is passed.
-    //!
-    //! \param sol   pointer to solution vector of linear system
-    //! \param ptSol pointer (0-based) to the solution buffer
-    //! \param identifierPDE identifier for PDE related to sub-graph
-    //! \return number of array entries
-    //! 
-    //! \note The return buffer is guaranteed to retain the current solution
-    //! until the next call of this method (after solving the next step)!
-    virtual void GetSolutionVal( SparseVector *sol, Double* &ptSol, 
-                                 const PdeIdType identifierPDE
-                                 = NO_PDE_ID ) = 0;
-
-    virtual void GetSolutionVal( SparseVector *sol, Complex* &ptSol, 
-                                 const PdeIdType identifierPDE 
-                                 = NO_PDE_ID ) = 0;
-    //@}
-
-    //! Invalidates the buffer containing the solution values
-    
-    //! This method invalidates the buffer containing the solution array.
-    //! This causes an update of the buffer the next time 
-    //! GetSolutionVal()-method is called.
-    void InvalidateSolBuffer() {
-     solBufferIsValid_ = false;
-    }
-
-    //@{
-    //! Return the pointer to the current rhs value of a PDE
-    
-    //! This method passes the current rhs as a pointer to buffer with
-    //! right hand side entries.
-    //! \param rhs   pointer to right-hand side vector of linear system
-    //! \param ptRhs pointer (0-based) to the buffer with rhs values
-    //! \param identifierPDE identifier for PDE related to sub-graph
-    //! \return number of array entries
-    //! \note The return buffer is guaranteed to retain the current rhs
-    //! until the next call of this method!
-    virtual void GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
-                            const PdeIdType identifierPDE = NO_PDE_ID) = 0;
-
-    virtual void GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
-                            const PdeIdType identifierPDE = NO_PDE_ID) = 0;
-    //@}
-
-    //! Invalidates the buffer containing the rhs values
-
-    //! This method invalidates the buffer containing the right hand side 
-    //! array. This causes an update of the buffer the next time 
-    //! GetRhsVal()-method is called.
-    void InvalidateRhsBuffer() {
-      rhsBufferIsValid_ = false;
-    }
-    //@}
-
 
     // ======================================================================
     // SPECIAL RHS METHODS
@@ -240,34 +151,22 @@ namespace OLAS {
     //! \name Special methods for manipulation of right-hand side vector
     //@{
 
-    //@{
     //! Set single entry of right-hand side vector
-    virtual void SetNodeRHS( SparseVector *rhs, Double val, 
-                             Integer node ) = 0;
-
-    virtual void SetNodeRHS( SparseVector *rhs, Complex val, 
-                             Integer node ) = 0;
-    //@}
+    template<typename T>
+    void SetNodeRHS( SingleVector *rhs, const T& val, Integer node );
+   
+    //! Initialize RHS side with given entries
+    template<typename T>
+    void InitRHS( SingleVector *rhs, const Vector<T>& newRHS );
     
     //! Initialise sol vector  with given vector
-    virtual void InitSol( SparseVector *sol, const Double *newSol) = 0;
+    template<typename T>
+    void InitSol( SingleVector *sol, const Vector<T>& newSol);
 
-    //! Initialise right-hand side with given vector
-    virtual void InitRHS( SparseVector *rhs, const Double *newRHS) = 0;
-    
-    virtual void InitRHS( SparseVector *rhs, const Vector<Complex>* newRHS) 
-    {
-      EXCEPTION("Only implemented for complex entrymanipulators");
-    }
-    
-    virtual void InitRHS( SparseVector *rhs, const Vector<Double>* newRHS) 
-    { 
-      EXCEPTION("Only implemented for complex entrymanipulators"); 
-    }
-    
     //! ...
-    virtual void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
-                            Double *fup ) = 0;
+    template<typename T>
+    void UpdateRHS( SingleVector *rhs, StdMatrix *stdMat,
+                    const Vector<T>& fup );
 
     //@}
 
@@ -280,13 +179,11 @@ namespace OLAS {
     //@{
 
     //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( SparseVector *vec, UInt index,
-                                 Double &newVal ) = 0;
+    template<typename T>
+    void SetVectorEntry( SingleVector *vec, UInt index,
+                         const T& newVal );
 
-    //! Set entry in a vector to specified value
-    virtual void SetVectorEntry( SparseVector *vec, UInt index,
-                                 Complex &newVal ) = 0;
-
+    
     //! Add a value to a diagonal matrix entry
 
     //! This method allows to directly add a value to the value of an entry
@@ -302,8 +199,9 @@ namespace OLAS {
     //!                 real entries, the first array value is used, in the
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
-    virtual void AddToDiagMatrixEntry( StdMatrix *stdMat, Integer eqnNum,
-                                       Double *val ) = 0;
+    template<typename T>
+    void AddToDiagMatrixEntry( StdMatrix *stdMat, Integer eqnNum,
+                               const T& val );
     //@}
 
 
@@ -318,16 +216,16 @@ namespace OLAS {
 
     //@{
     //! Modify system matrix for penalty approach
-    virtual void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
-                                    UInt numIDBC,
-                                    Double &penaltyTerm ) = 0;
-
+    void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
+                            UInt numIDBC,
+                            Double& penaltyTerm );
+                            
     //! Modify right-hand side vector following penalty approach
-    virtual void AdaptRHSForIDBC( SparseVector &rhs,
-                                  UInt *dirichletEQN,
-                                  SparseVector &dirichletValue,
-                                  Double &penaltyTerm,
-                                  UInt numIDBC ) = 0;
+    void AdaptRHSForIDBC( SingleVector &rhs,
+                          UInt *dirichletEQN,
+                          SingleVector &dirichletValue,
+                          Double& penaltyTerm,
+                          UInt numIDBC );
     //@}
 
   protected:
@@ -338,6 +236,13 @@ namespace OLAS {
     //! flag for state of rhs buffer
     bool rhsBufferIsValid_;
     
+    //@{
+    //! Auxilliary vector
+    std::vector<UInt> rowIndList_ ;
+    std::vector<UInt> colIndList1_;
+    std::vector<UInt> colIndList2_;
+    //@}
+
   };
 
 }

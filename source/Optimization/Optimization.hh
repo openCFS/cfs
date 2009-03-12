@@ -3,6 +3,7 @@
 
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
+#include "MatVec/vector.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/bcs.hh"
 #include "Optimization/DesignElement.hh"

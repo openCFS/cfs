@@ -2895,9 +2895,8 @@ namespace CoupledField
         break;
       
       default:
-        errMsg = "HexaFE::GetLocalIntPoints4Surface: surface and volume element ";
-        errMsg = "have not four nodes in common. Check your .mesh-file.";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        EXCEPTION("HexaFE::GetLocalIntPoints4Surface: surface and volume element "
+                  << "have not four nodes in common. Check your .mesh-file.");
       }
   }
 
@@ -2957,7 +2956,7 @@ namespace CoupledField
                                   const Double tolerance,
                                   StdVector<bool> & coordsInside) const
   {
-    UInt numPoints = localCoords.GetSizeCol();
+    UInt numPoints = localCoords.GetNumCols();
     double xi, eta, zeta;
 
     coordsInside.Resize(numPoints);

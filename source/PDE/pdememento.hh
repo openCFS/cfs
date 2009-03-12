@@ -6,6 +6,8 @@
 #define FILE_PDEMEMENTO
 
 #include "General/environment.hh"
+
+// include serialization headers
 #include "CoupledPDE/couplingmemento.hh"
 #include "Utils/basenodestoresol.hh"
 #include "Utils/boost-serialization.hh"
@@ -23,24 +25,12 @@ namespace CoupledField
     // Friend declarations
     friend class SinglePDE;
 
-    //! Type of usage of stored values: usage as start values or
-    //! dirichlet values
-    typedef enum { NO_TYPE, START_VALUE, DIRICHLET_VALUE } ValueUsageType;
-
-    //@{
-    //! Conversion of ValueUsageType
-    static std::string Enum2String( ValueUsageType type );
-    static ValueUsageType String2Enum( std::string typeString );
-    //@}
-    
-    
     //! Constructor
     PDEMemento();
 
     //! Copy constructor
     PDEMemento( const PDEMemento &x ) {
-      Error( "PDEMemento: Copy constructor not implemented",
-             __FILE__, __LINE__ );
+      EXCEPTION( "PDEMemento: Copy constructor not implemented" );
     };
 
     //! Destructor
@@ -73,7 +63,7 @@ namespace CoupledField
     Double freq_;
 
     //! Stores the nodal solution for each region
-    std::map<std::string,CFSVector*> solution_;
+    std::map<std::string, SingleVector*> solution_;
   
     //! Contains first derivative of PDE solution for each region
     std::map<std::string, Vector<Double> > solDeriv1_;
@@ -86,9 +76,10 @@ namespace CoupledField
 
     //! Flag indicating iterative coupling
     bool isIterCoupled_;
-
+    
     //! Contains the state of the coupling object
     CouplingMemento couplingMemento_;
+
 
     // =======================================================================
     // SERIALIZATION FUNCTIONS
@@ -139,19 +130,29 @@ namespace CoupledField
   template <class Archive>
   void PDEMemento::serialize(Archive & ar, const unsigned int version) {
 
+#if 0
+    ar & BOOST_SERIALIZATION_NVP(isSet_);
+    ar & BOOST_SERIALIZATION_NVP(analysisType_); // Problems with HDF5
+    ar & BOOST_SERIALIZATION_NVP(gridFileName_);
+    ar & BOOST_SERIALIZATION_NVP(stepNum_);
+    ar & BOOST_SERIALIZATION_NVP(freq_);
+    ar & BOOST_SERIALIZATION_NVP(solution_); // Problems with HDF5
+    ar & BOOST_SERIALIZATION_NVP(solDeriv1_); // Problems with HDF5
+    ar & BOOST_SERIALIZATION_NVP(solDeriv2_); // Problems with HDF5
+    ar & BOOST_SERIALIZATION_NVP(sol_tn_1_); // Problems with HDF5
+    ar & BOOST_SERIALIZATION_NVP(isIterCoupled_);
+#endif
+
     ar & isSet_;
-    ar & analysisType_;
+    ar & analysisType_; // Problems with HDF5
     ar & gridFileName_;
     ar & stepNum_;
     ar & freq_;
-    ar & solution_;
-    ar & solDeriv1_;
-    ar & solDeriv2_;
-    ar & sol_tn_1_;
+    ar & solution_; // Problems with HDF5
+    ar & solDeriv1_; // Problems with HDF5
+    ar & solDeriv2_; // Problems with HDF5
+    ar & sol_tn_1_; // Problems with HDF5
     ar & isIterCoupled_;
-    if( isIterCoupled_ ) {
-      ar & couplingMemento_;
-    }
 
   }
 

@@ -86,7 +86,7 @@ namespace CoupledField
     std::map<std::string, std::string> exprMap;
     std::vector< std::string > transientFNs_;
     std::vector< int > timeStepNumbers_;
-    std::vector< FEType > regionElemTypes_;
+    std::vector< Elem::FEType > regionElemTypes_;
     std::ifstream inFile_;
     bool determineFloatDS_;
 

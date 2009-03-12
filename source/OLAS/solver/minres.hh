@@ -5,14 +5,14 @@
 #ifndef OLAS_MINRES_HH
 #define OLAS_MINRES_HH
 
+#include <def_expl_templ_inst.hh>
 
-#include "solver/basesolver.hh"
-#include "matvec/matvec.hh"
-#include "utils/math/givensrotation.hh"
-#include "utils/math/lanczosmethod.hh"
+#include "OLAS/utils/math/givensrotation.hh"
+#include "OLAS/utils/math/lanczosmethod.hh"
 
+#include "basesolver.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! Implementation of the Minimal Residual (MINRES) algorithm
@@ -366,5 +366,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "minres.cc"
+#endif
 
 #endif

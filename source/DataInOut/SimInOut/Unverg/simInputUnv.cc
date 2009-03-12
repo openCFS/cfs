@@ -217,11 +217,11 @@ namespace CoupledField {
     // get elements
     long elemColor, unvElemType, numElemNodes, elemNodes[32], dummy;
     UInt elemNodesUInt[32];
-    std::vector< FEType >  element_types(nelems);
+    std::vector< Elem::FEType >  element_types(nelems);
     std::vector< UInt > num_vertices_of_elements(nelems);
     std::vector< UInt > element_partition(nelems);
     std::set<UInt> partitions;
-    FEType eType;
+    Elem::FEType eType;
     std::stringstream strBuffer;
 
 
@@ -239,14 +239,14 @@ namespace CoupledField {
       {
         switch(eType)
         {
-        case ET_TRIA6:
+        case Elem::TRIA6:
           dummy = elemNodes[1];
           elemNodes[1] = elemNodes[2];
           elemNodes[2] = elemNodes[4];
           elemNodes[4] = elemNodes[3];
           elemNodes[3] = dummy;
           break;
-        case ET_QUAD8:
+        case Elem::QUAD8:
           dummy = elemNodes[1];
           elemNodes[1] = elemNodes[2];
           elemNodes[2] = elemNodes[4];
@@ -309,7 +309,7 @@ namespace CoupledField {
                                     data1,
                                     data2);
 
-          for (UInt n=0; n<ndata; n++) {
+          for (Integer n=0; n<ndata; n++) {
             std::cout << data1[n] << " ";
           }
           std::cout << std::endl;
@@ -333,7 +333,7 @@ namespace CoupledField {
         for (UInt elem=1; (int) elem<=nelems; elem++) {
           capaInterface.GetElemData(elem, datainfo.Esetinfo[k][set].idx, data1, data2);
 
-          for (UInt n=0; n<edata; n++) {
+          for (Integer n=0; n<edata; n++) {
             std::cout << data1[n] << " ";
           }
           std::cout << std::endl;
@@ -345,22 +345,22 @@ namespace CoupledField {
     return;
   }
 
-  FEType SimInputUnv::UnvType2ElemType( const UInt elemType ) {
+  Elem::FEType SimInputUnv::UnvType2ElemType( const UInt elemType ) {
 
     switch (elemType) {
-    case 91:  return ET_TRIA3;
-    case 94:  return ET_QUAD4;
-    case 92:  return ET_TRIA6;
-    case 95:  return ET_QUAD8;
-    case 111: return ET_TET4;  // tetraeder 1.ord
-    case 112: return ET_WEDGE6;  // prism     1.ord
-    case 115: return ET_HEXA8;  // hexaeder  1.ord
-    case 113: return ET_WEDGE15;  // prism     2.ord
-    case 116: return ET_HEXA20;  // hexaeder  2.ord
+    case 91:  return Elem::TRIA3;
+    case 94:  return Elem::QUAD4;
+    case 92:  return Elem::TRIA6;
+    case 95:  return Elem::QUAD8;
+    case 111: return Elem::TET4;  // tetraeder 1.ord
+    case 112: return Elem::WEDGE6;  // prism     1.ord
+    case 115: return Elem::HEXA8;  // hexaeder  1.ord
+    case 113: return Elem::WEDGE15;  // prism     2.ord
+    case 116: return Elem::HEXA20;  // hexaeder  2.ord
     }
 
     // This place should never be reached!
-    return ET_UNDEF;
+    return Elem::UNDEF;
   }
 
   bool SimInputUnv::ReadData()

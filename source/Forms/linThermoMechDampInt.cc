@@ -47,7 +47,7 @@ namespace CoupledField
       // get the elastic tensor coefficients
       cMatrix_.Init();
 	
-      matDataMech->GetTensor(cMatrix_,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
+      matDataMech->GetTensor(cMatrix_,MECH_STIFFNESS_TENSOR,Global::REAL,subTensorType_);
       //ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
       
     }
@@ -145,9 +145,8 @@ namespace CoupledField
 	
         // Perform a safety check
         if ( jacDet < 0.0 ) {
-          (*error) << "LinThermoMechDampInt::CalcElementMatrix: Encountered "
-                   << "negative Jacobian determinant!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "LinThermoMechDampInt::CalcElementMatrix: Encountered "
+                   << "negative Jacobian determinant!" );
         }
 	
         // Special things must be done in the axi-symmetric case
@@ -170,18 +169,18 @@ namespace CoupledField
         }
 	
         // Compute the matrix product D * B and store as intermediate matrix
-        dbMat.Resize( dMat.GetSizeRow(), bMat.GetSizeCol() );
+        dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
         dMat.Mult( bMat, dbMat );
 	
         // We now compute A * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix
-        for ( UInt i = 0; i < aMat.GetSizeRow(); i++ ) {
-          for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+        for ( UInt i = 0; i < aMat.GetNumRows(); i++ ) {
+          for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
 	
             // Compute entry (i,j) of A * D * B
             aux = 0.0;
-            for ( UInt k = 0; k < aMat.GetSizeCol(); k++ ) {
+            for ( UInt k = 0; k < aMat.GetNumCols(); k++ ) {
               aux += aMat[i][k] * dbMat[k][j];
             }
 	
@@ -232,8 +231,8 @@ namespace CoupledField
       //multiply the transpose of the shape function matrix by the shape functions matrix
       Matrix<Double> lN_tetaXN_teta(numFncs, numFncs);
       lN_tetaXN_teta.Init();
-      for(UInt i=0; i < lN_tetaXN_teta.GetSizeRow(); i++ ) {
-        for(UInt j=0; j < lN_tetaXN_teta.GetSizeCol(); j++ ) {
+      for(UInt i=0; i < lN_tetaXN_teta.GetNumRows(); i++ ) {
+        for(UInt j=0; j < lN_tetaXN_teta.GetNumCols(); j++ ) {
           lN_tetaXN_teta[i][j] += lN_teta[i]*lN_teta[j];;
         }
       }
@@ -246,7 +245,7 @@ namespace CoupledField
 
 
       //multiply the last matrix by the last temperature
-      for(UInt i=0; i < lN_tetaXN_teta.GetSizeCol(); i++ ) {
+      for(UInt i=0; i < lN_tetaXN_teta.GetNumCols(); i++ ) {
         //        for(UInt j=0; j < teta_.GetSize(); j++ ) {
         for(UInt j=0; j < teta_.GetSize() ; j++ ) {
           aMat[i][0] += lN_tetaXN_teta[i][j]*(teta_[j]+refTemp);

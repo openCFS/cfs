@@ -18,7 +18,7 @@
 # NOTES
 #
 # AUTHOR
-# Simon Triebenbacher simon@ibtriebenbacher.de (07/2006)
+# Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
 
 
 SET (MPI_POSSIBLE_ROOT_PATHS

@@ -6,20 +6,25 @@
 #include <iostream>
 #include <fstream>
 
-#include "algsys/olascomm.hh"
-#include "algsys/standardsys.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/patternpool.hh"
+#include "MatVec/generatematvec.hh"
 
-#include "utils/utils.hh"
-#include "graph/graphmanagersimple.hh"
-#include "graph/graphmanagerstdmat.hh"
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "precond/precond.hh"
+#include "OLAS/algsys/olascomm.hh"
+#include "OLAS/algsys/standardsys.hh"
 
-#include "algsys/generateentrymanipulator.hh"
-#include "algsys/baseentrymanipulator.hh"
-#include "algsys/generateidbchandler.hh"
-#include "algsys/baseidbchandler.hh"
+#include "OLAS/graph/graphmanagersimple.hh"
+#include "OLAS/graph/graphmanagerstdmat.hh"
+#include "OLAS/precond/generateprecond.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "OLAS/solver/baseEigensolver.hh"
+#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/generateEigensolver.hh"
+
+#include "OLAS/algsys/baseentrymanipulator.hh"
+#include "OLAS/algsys/generateidbchandler.hh"
+#include "OLAS/algsys/baseidbchandler.hh"
 
 #include "General/exception.hh"
 
@@ -31,8 +36,8 @@ using CoupledField::Exception;
 DECLARE_LOG(stdSys)
 DEFINE_LOG(stdSys, "stdSys")
 
-namespace OLAS {
- 
+namespace CoupledField {
+
 
   // ***********************
   //   Default Constructor
@@ -50,8 +55,8 @@ namespace OLAS {
     algSysType_          = STANDARD_SYSTEM;
 
     // Initialize pointer to finite-element matrices
-    NewArray( sysmat_, StdMatrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
+    NEWARRAY( sysmat_, StdMatrix*, MAX_NUM_FE_MATRICES );
+    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
       sysmat_[i] = NULL;
     }
 
@@ -78,10 +83,10 @@ namespace OLAS {
     delete eigenValues_;
 
     // Delete finite-element matrices
-    for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
+    for ( UInt i = 1; i < MAX_NUM_FE_MATRICES; i++ ) {
       delete sysmat_[i];
     }
-    DeleteArray( sysmat_ );
+    DELETEARRAY( sysmat_ );
 
     // After matrices we may delete the pattern pool
     delete patternPool_;
@@ -104,26 +109,25 @@ namespace OLAS {
   void StandardSystem::SetupSolver( ) {
     solver_->Setup( *sysmat_[SYSTEM] );
   }
-  
+
   // **************************************
   //   Trigger setup phase of EigenSolver
   // **************************************
-  void StandardSystem::SetupEigenSolver( UInt numFreq, Double shift, 
+  void StandardSystem::SetupEigenSolver( UInt numFreq, Double shift,
                                          bool isQuadratic ) {
 
-    // Determine if a generalized or a quadratic eigenvalue 
+    // Determine if a generalized or a quadratic eigenvalue
     // problem has to be solved
-    // In the latter case, a damping matrix has to be present, 
+    // In the latter case, a damping matrix has to be present,
     // otherwise we issue a warning
     bool dampPresent = (matrixTypes_.find( DAMPING) != matrixTypes_.end());
-    
+
     if( isQuadratic == true ) {
       if( dampPresent == false ) {
-        (*error) << "To solve a quadratic eigenvalue problem, a damping "
-                 << "matrix has to be present!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("To solve a quadratic eigenvalue problem, a damping " \
+                  << "matrix has to be present!");
       }
-     
+
       // Setup the quadratic eigenvalue solver
       eigenSolver_->Setup( *sysmat_[STIFFNESS], *sysmat_[MASS],
                            *sysmat_[DAMPING], numFreq, shift );
@@ -133,30 +137,30 @@ namespace OLAS {
                    << "eigenvalue will be solved (as you have specified)!";
         Warning( __FILE__, __LINE__ );
       }
-      
+
       // Setup the eigenvalue solver
       eigenSolver_->Setup( *sysmat_[STIFFNESS], *sysmat_[MASS],
                            numFreq, shift );
     }
-    
+
     // Determine some basic properties and create vectors
     // for eigenvalues and related error bounds
-    MatrixEntryType eType;
-    if( isQuadratic == true ) { 
-      eType = COMPLEX;
-    } else { 
-      eType = DOUBLE;
+    BaseMatrix::EntryType eType;
+    if( isQuadratic == true ) {
+      eType = BaseMatrix::COMPLEX;
+    } else {
+      eType = BaseMatrix::DOUBLE;
     }
 
-    MatrixStorageType sType = sysmat_[SYSTEM]->GetStorageType();
+    BaseMatrix::StorageType sType = sysmat_[SYSTEM]->GetStorageType();
     UInt totalSize = totalSize_;
     totalSize *= blockSize_;
 
-    BaseVector *bVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
-    BaseVector *errVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
-    eigenValues_ = dynamic_cast<SparseVector*>( bVec );
-    eigenValError_ = dynamic_cast<SparseVector*>( errVec );
-    
+    BaseVector *bVec = GenerateSingleVectorObject( sType, eType, totalSize );
+    BaseVector *errVec = GenerateSingleVectorObject( sType, eType, totalSize );
+    eigenValues_ = dynamic_cast<SingleVector*>( bVec );
+    eigenValError_ = dynamic_cast<SingleVector*>( errVec );
+
   }
 
   // ***********************
@@ -193,14 +197,13 @@ namespace OLAS {
       idbcHandler_->SetDofsToIDBC( sol_ );
       (*cla) << " Inserted Dirichlet values into initial guess"
              << std::endl;
-      LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver"; 
+      LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver";
     }
 
     // Perform a simple sanity check
     if ( sysmat_[SYSTEM] == NULL || precond_ == NULL || rhs_ == NULL ||
          sol_ == NULL ) {
-      Error( "Detected NULL pointer where there should be none!", __FILE__,
-             __LINE__ );
+      EXCEPTION( "Detected NULL pointer where there should be none!" );
     }
 
     // Assume that everything will go well
@@ -209,7 +212,7 @@ namespace OLAS {
     // Now modifiy the right-hand side vector
     LOG_DBG(stdSys) << "Solve: add idbc to rhs";
     idbcHandler_->AddIDBCToRHS( rhs_ );
-    
+
     // check if we do export stuff
     ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
     std::string file;
@@ -220,49 +223,49 @@ namespace OLAS {
       std::ostringstream os;
       os << els->Get("baseName")->AsString();
       if(comment != "") os << "_" << comment;
-      base = os.str();  
+      base = os.str();
     }
 
     // check if we do not only want the solution
     if(els && els->Get("solution")->AsString() != "exclusive")
     {
       // two formats. The harwell-boing format includes the rhs!
-      if(els->Get("format")->AsString()  == "harwell-boeing") 
+      if(els->Get("format")->AsString()  == "harwell-boeing")
       {
         sysmat_[SYSTEM]->ExportHarwellBoeing(base+".hb", *rhs_);
 
         if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->ExportHarwellBoeing(base+"_damping.hb", *rhs_);
-        
+
         if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->ExportHarwellBoeing(base+"_aux.hb", *rhs_);
-      } 
-      else // classical (default) matrix-market 
+      }
+      else // classical (default) matrix-market
       {
         sysmat_[SYSTEM]->Export((base+".mtx").c_str() );
 
         if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
-        
+
         if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
 
-        // rhs is only in harwell-boing included    
+        // rhs is only in harwell-boing included
         rhs_->Export((base+".vec").c_str() );
-      }    
+      }
     }
 
     if(els && els->Has("initialGuess", true))
       sol_->Export((base+"_intial_guess.vec").c_str());
-    
-    LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormEuclid(); 
-    LOG_DBG(stdSys) << "euclidian norm of rhs = " << rhs_->NormEuclid();
-    
+
+    LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormL2();
+    LOG_DBG(stdSys) << "euclidian norm of rhs = " << rhs_->NormL2();
+
     // ---------------------------
     // This is the expensize part! solve the system
     solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_ );
-    
-    LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormEuclid();
+
+    LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormL2();
 
     if(els && els->Get("solution")->AsString() != "no")
       sol_->Export((base+".sol.vec").c_str());
@@ -270,7 +273,7 @@ namespace OLAS {
     LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
     // Now de-modifiy the right-hand side vector
     idbcHandler_->RemoveIDBCFromRHS( rhs_ );
-    
+
 
     // Check that solution went fine, if not issue a warning
     if ( myReport_.GetBoolValue( "solutionIsOkay" ) == false ) {
@@ -280,86 +283,68 @@ namespace OLAS {
       Warning( __FILE__, __LINE__ );
     }
 
-#ifdef PROFILING    
+#ifdef PROFILING
     Double t2 = Profiler::GetRealTime();
     (*cla)  << "solution time: " << t2-t1 << " seconds " << std::endl;
     Profiler::WriteReport();
 #endif
 
     LOG_DBG(stdSys) << "Solve invalidate flag for solution buffer, why not also fro rhs?";
-    // Set invaldiation flag for assembling routine
-    assemble_->InvalidateSolBuffer();
   }
 
   // ******************************
   //   Calculate Eigenfrequencies
   // ******************************
-  UInt StandardSystem::
-  CalcEigenFrequencies( const Double * &frequencies, const Double* &err  ) {
+  void StandardSystem::
+  CalcEigenFrequencies(  Vector<Double>& frequencies,
+                         Vector<Double>& err ) {
 
-    
     // Trigger calculation of eigenvalues
-    UInt numConverged = 
-      eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
-    
+    eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
+
     // Hard coded cast for double values
-    RefCast( *eigenValues_, Vector<Double>, valVec );
-    frequencies = valVec.GetPointer();
-    frequencies++;
+    REFCAST( *eigenValues_, Vector<Double>, valVec );
+    frequencies = valVec;
 
-    RefCast( *eigenValError_, Vector<Double>, errVec );
-    err = errVec.GetPointer();
-    err++;
+    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    err = errVec;
 
-    // Return number of converged eigenvalues
-    return numConverged;
-    
   }
 
-  UInt StandardSystem::
-  CalcEigenFrequencies( const Complex * &frequencies, const Double* &err  ) {
+  void StandardSystem::
+  CalcEigenFrequencies(  Vector<Complex>& frequencies,
+                         Vector<Double>& err ) {
 
     
     // Check, if eigenvalue solver is quadratic, as only in this case
     // this method is well-defined
-    
+
     if( eigenSolver_->IsQuadratic() == false ) {
-      (*error) << "When solving a generalized eigenvalue problem, only "
-               << "real-valued results are obtained! Use the second "
-               << "CalcEigenFrequencies()-method!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("When solving a generalized eigenvalue problem, only " \
+               << "real-valued results are obtained! Use the second " \
+               << "CalcEigenFrequencies()-method!");
     }
 
     // Trigger calculation of eigenvalues
-    UInt numConverged = 
-      eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
-    
+    eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
+
     // Hard coded cast for double values
-    RefCast( *eigenValues_, Vector<Complex>, valVec );
-    frequencies = valVec.GetPointer();
-    frequencies++;
+    REFCAST( *eigenValues_, Vector<Complex>, valVec );
+    frequencies = valVec;
 
-    RefCast( *eigenValError_, Vector<Double>, errVec );
-    err = errVec.GetPointer();
-    err++;
-
-    // Return number of converged eigenvalues
-    return numConverged;
-    
+    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    err = errVec;
   }
 
-  
+
   // ******************************
   //   Calculate Eigenmodes
   // ******************************
   void StandardSystem::CalcEigenMode( UInt numMode ) {
-    
+
     Vector<Double> & solHelp =
       dynamic_cast<Vector<Double> &> (*sol_);
     eigenSolver_->CalcEigenMode( numMode, solHelp );
-
-    // Set invaldiation flag for assembling routine
-    assemble_->InvalidateSolBuffer();
   }
 
 
@@ -369,8 +354,8 @@ namespace OLAS {
   void StandardSystem::CreateLinSys() {
 
 
-    MatrixEntryType   entryType;
-    MatrixStorageType storageType;
+    BaseMatrix::EntryType   entryType;
+    BaseMatrix::StorageType storageType;
 
     myParams_.GetEnumValue( "MatrixEntryType"  , entryType   );
     myParams_.GetEnumValue( "MatrixStorageType", storageType );
@@ -383,21 +368,21 @@ namespace OLAS {
     // Determine total number of equation numbers for this system
     // including those for fixed dofs
     totalSize_ = 0;
-    for ( UInt i = 1; i <= numPDEs_; i++ ) {
+    for ( UInt i = 0; i < numPDEs_; i++ ) {
       totalSize_ += sizePerPDE_[i];
     }
 
-    LOG_DBG(stdSys)  << "CreateLinSys() size=" << size_ << " nne=" << nne_ << " totalSize=" << totalSize_; 
+    LOG_DBG(stdSys)  << "CreateLinSys() size=" << size_ << " nne=" << nne_ << " totalSize=" << totalSize_;
     LOG_DBG3(stdSys) << " Matrix Graph=" << graph->ToString();
 
     // ------------------------
     //  Re-set numLastFreeDof
     // ------------------------
-    DeleteArray( numLastFreeDof_ );
-    NewArray( numLastFreeDof_, UInt, 1 );
-    numLastFreeDof_[1] = graph->GetSize();
+    DELETEARRAY( numLastFreeDof_ );
+    NEWARRAY( numLastFreeDof_, UInt, 1 );
+    numLastFreeDof_[0] = graph->GetSize();
 
-    LOG_DBG(stdSys) << " CreateLinSys(): Re-set numLastFreeDof to " << numLastFreeDof_[1];
+    LOG_DBG(stdSys) << " CreateLinSys(): Re-set numLastFreeDof to " << numLastFreeDof_[0];
 
     // --------------------------------------------
     //  Treatment of Dirichlet Boundary Conditions
@@ -424,11 +409,13 @@ namespace OLAS {
     //  Generation of matrices
     // ------------------------
     std::set<FEMatrixType>::iterator it;
-    
+
     // Print information about matrix types to .las file
     (*cla) << "\n StandardSystem: The following matrices are created:\n ";
     for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-      (*cla) << " " << Enum2String(*it) << '\n';
+      std::string tmp;
+      Enum2String( *it, tmp );
+      (*cla) << " " << tmp << '\n';
     }
     (*cla) << std::endl;
 
@@ -441,15 +428,15 @@ namespace OLAS {
     bool sharePatternPossible = false;
     bool sharePattern = false;
     PatternIdType patternID = NO_PATTERN_ID;
-    if ( storageType == SPARSE_SYM && solver != DIAGSOLVER ) {
+    if ( storageType == BaseMatrix::SPARSE_SYM && solver != DIAGSOLVER ) {
       sharePatternPossible = true;
-      patternPool_ = New PatternPool;
+      patternPool_ = new PatternPool;
     }
 
     // actual matrix generation
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) 
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ )
     {
-      MatrixStorageType actStorageType;
+      BaseMatrix::StorageType actStorageType;
 
       LOG_DBG(stdSys) << "Generating matrix[" << *it << "]" << " MatrixEntryType=" << entryType
       << " MatrixStorageType= " << storageType << " dofs= " << blockSize_
@@ -459,33 +446,34 @@ namespace OLAS {
       if ( solver == DIAGSOLVER ) {
         if ( *it == SYSTEM || *it == MASS ) {
           // just allocate a diagonal matrix
-          actStorageType = DIAG;
+          actStorageType = BaseMatrix::DIAG;
         }
       }
 
       LOG_DBG(stdSys) << "calling GenerateStdMatrixObject" << std::endl;
 
       sysmat_[*it] = GenerateStdMatrixObject( entryType, actStorageType,
-          blockSize_, size_, size_,
-          nne_ );
-      
-      assert(sysmat_[*it] != NULL);
-      sysmat_[*it]->name = Enum2String(*it);
+                                              size_, size_, nne_ );
 
-      LOG_DBG(stdSys) << "created matrix " << sysmat_[*it]->ToString(); 
-      
+      assert(sysmat_[*it] != NULL);
+
+      std::string tmp;
+      Enum2String( *it, tmp );
+
+      LOG_DBG(stdSys) << "created matrix " << tmp;
+
       // Generate sparsity pattern once, but share it afterwards
       // if this is possible
-      if ( sharePattern == false ) 
+      if ( sharePattern == false )
       {
         sysmat_[*it]->SetSparsityPattern( (*graph) );
-        if ( sharePatternPossible == true ) 
+        if ( sharePatternPossible == true )
         {
           sharePattern = true;
           patternID = sysmat_[*it]->TransferPatternToPool( patternPool_ );
         }
       }
-      else 
+      else
         sysmat_[*it]->SetSparsityPattern( patternPool_, patternID );
     }
 
@@ -495,17 +483,17 @@ namespace OLAS {
     // ---------------------------------
 
     // Generate vectors
-    rhs_ = dynamic_cast<SparseVector *>
+    rhs_ = dynamic_cast<SingleVector *>
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
-    sol_ = dynamic_cast<SparseVector *>
+    sol_ = dynamic_cast<SingleVector *>
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
 
     // Generate communication buffers
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) 
+    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false )
       GenerateCFSTransferBuffers();
 
     if ( rhs_ == NULL || sol_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
 
     /*
@@ -520,7 +508,8 @@ namespace OLAS {
     */
 
     // Create the assemble object
-    assemble_ = GenerateEntryManipulatorObject( entryType, blockSize_ );
+    assemble_ =  new BaseEntryManipulator();
+    //GenerateEntryManipulatorObject( entryType, blockSize_ );
 
 
     // -----------------
@@ -554,7 +543,7 @@ namespace OLAS {
   // Das Interface muessen wir uns noch ueberlegen
   void StandardSystem::CreatePrecond() {
 
-    
+
     PrecondType precond;
     myParams_.GetEnumValue("Precond", precond);
     precond_ = GenerateStdPrecondObject( *(sysmat_[SYSTEM]), precond,
@@ -568,11 +557,11 @@ namespace OLAS {
 
   void StandardSystem::CreateEigenSolver() {
 
-    
+
     EigenSolverType egSolver;
     myParams_.GetEnumValue("EigenSolver", egSolver);
     eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), egSolver,
-                                              xml, 
+                                              xml,
                                               &myParams_, &myReport_ );
 
   }
@@ -588,21 +577,12 @@ namespace OLAS {
   //   SetFEMatrixType
   // *******************
   void StandardSystem::SetFEMatrixType(const FEMatrixType matType,
-                                       const PdeIdType identifier1, 
-                                       const PdeIdType identifier2) 
+                                       const PdeIdType identifier1,
+                                       const PdeIdType identifier2)
   {
-    LOG_DBG2(stdSys) << "SetFEMatrixType matType=" << matType << " pde1=" 
+    LOG_DBG2(stdSys) << "SetFEMatrixType matType=" << matType << " pde1="
                      << identifier1 << " pde2=" << identifier2;
     if(matType != NOTYPE) matrixTypes_.insert(matType);
-  }
-
-
-  // ****************
-  //   SetBlockSize
-  // ****************
-  void StandardSystem::SetBlockSize( const PdeIdType identifier,
-                                     const UInt bs ) {
-    blockSize_ = bs;
   }
 
 
@@ -610,20 +590,20 @@ namespace OLAS {
   // =======================================================================
   //   Methods for assembling, setting BCs and rhs
   // =======================================================================
-  
+
 
 
   // **************
   //   InitMatrix
   // **************
   void StandardSystem::InitMatrix( FEMatrixType matrixID,
-                                   const PdeIdType identifierPDE ) 
+                                   const PdeIdType identifierPDE )
   {
 
     LOG_TRACE2(stdSys) << "InitMatrix matrixID=" << matrixID << " identifierPDE=" << identifierPDE;
-    
+
     // If matrix specified init this one
-    if ( matrixID != NOTYPE ) 
+    if ( matrixID != NOTYPE )
     {
       assert(sysmat_[matrixID] != NULL);
       sysmat_[matrixID]->Init();
@@ -652,55 +632,48 @@ namespace OLAS {
   // ***********************
   void StandardSystem::InitRHS( const PdeIdType identifierPDE ) {
     rhs_->Init();
-
-    // Invalidate rhs buffer of assemble
-    assemble_->InvalidateRhsBuffer();
   }
 
 
   // ***********************
   //   InitRHS (Version 2)
   // ***********************
-  void StandardSystem::InitRHS( const Double *newRHS ) {
-    assemble_->InitRHS( rhs_, newRHS );
+  void StandardSystem::InitRHS( const BaseVector& newRHS ) {
+    if( newRHS.GetEntryType() == BaseMatrix::COMPLEX ) {
+      assemble_->InitRHS( rhs_, dynamic_cast<const Vector<Complex>&>(newRHS) );
+    } else {
+      assemble_->InitRHS( rhs_, dynamic_cast<const Vector<Double>&>(newRHS) );
+    }
   }
 
-  void StandardSystem::InitRHS( const Vector<Complex>* newRHS ) {
-    assemble_->InitRHS( rhs_, newRHS );
-  }
-  
-  void StandardSystem::InitRHS( const Vector<Double>* newRHS ) {
-    assemble_->InitRHS(rhs_, newRHS);
-  }
-      
+
 
   // **********************
   //   InitSol (Version1)
   // **********************
   void StandardSystem::InitSol( const PdeIdType identifierPDE ) {
     sol_->Init();
-
-    // Invalidate sol buffer of assemble
-    assemble_->InvalidateSolBuffer();
   }
 
   // ***********************
   //   InitSol (Version 2)
   //   for doubles
   // ***********************
-  void StandardSystem::InitSol( const Double *newSol, const UInt size ) {
-    
+  void StandardSystem::InitSol( const BaseVector& newSol ) {
+
 //     try{
-// 	    std::cerr << "\n Initializing solution vector to initial conditions " << std::endl;
-	
-	    if( size == sol_->GetSize() ){
+    // 	    std::cerr << "\n Initializing solution vector to initial conditions " << std::endl;
+
 //	    	std::cout << "\n InitSol: " ;
 //	    	for(UInt i=0; i<size; i++){
 //	    		std::cout <<  newSol[i] << "," ;
 //	    	}
-//	    	std::cout << std::endl;
-	    	assemble_->InitSol( sol_, newSol );
-	    }
+    //	    	std::cout << std::endl;
+    if( newSol.GetEntryType() == BaseMatrix::COMPLEX ) {
+      assemble_->InitSol( sol_, dynamic_cast<const Vector<Complex>&>(newSol) );
+    } else {
+      assemble_->InitSol( sol_, dynamic_cast<const Vector<Double>&>(newSol) );
+    }
 // 	    else{
 // #ifdef DEBUG_STANDARDSYSTEM
 //           std::cout << "\n aux:" << size <<" != sol_:"<< sol_->GetSize() << std::endl;
@@ -713,55 +686,75 @@ namespace OLAS {
 //     catch(Exception& e) {
 //       throw e.ToString();
 //     }
-        
+
   }
-  
+
 
 
   // ********************
-  //   SetElementMatrix 
+  //   SetElementMatrix
   // ********************
-  void StandardSystem::SetElementMatrix( FEMatrixType matrixID,
-                                         Double *elemMat, 
+  void StandardSystem::SetElementMatrix( FEMatrixType matrixID, 
+                                         const Matrix<Double>& elemMat,
                                          PdeIdType idPDE1,
-                                         Integer *connect1,
-                                         Integer elemSize1,
+                                         const StdVector<Integer>& eqnNrs1,
                                          PdeIdType idPDE2,
-                                         Integer *connect2,
-                                         Integer elemSize2,
-                                         bool setCounterPart ) {
+                                         const StdVector<Integer>& eqnNrs2,
+                                         bool setCounterPart) {
 
 
     // then normal assembly:
-    // element matrix and its transposed on the counter  
-    // part of the global matrix when setCounterPart is 
+    // element matrix and its transposed on the counter
+    // part of the global matrix when setCounterPart is
     // true (upper and lower global assembly).
     assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
                                  sysmat_[matrixID],
                                  sysmat_[matrixID],
                                  idbcHandler_, elemMat,
-                                 connect1, (UInt)elemSize1,
-                                 connect2, (UInt)elemSize2,
-                                 numLastFreeDof_[1],
-                                 numLastFreeDof_[1],
+                                 eqnNrs1,
+                                 eqnNrs2,
+                                 numLastFreeDof_[0],
+                                 numLastFreeDof_[0],
                                  setCounterPart );
 
-
-
+  }
+  
+  void StandardSystem::SetElementMatrix( FEMatrixType matrixID, 
+                                         const Matrix<Complex>& elemMat,
+                                         PdeIdType idPDE1,
+                                         const StdVector<Integer>& eqnNrs1,
+                                         PdeIdType idPDE2,
+                                         const StdVector<Integer>& eqnNrs2,
+                                         bool setCounterPart) {
+    // then normal assembly:
+       // element matrix and its transposed on the counter
+       // part of the global matrix when setCounterPart is
+       // true (upper and lower global assembly).
+       assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
+                                    sysmat_[matrixID],
+                                    sysmat_[matrixID],
+                                    idbcHandler_, elemMat,
+                                    eqnNrs1,
+                                    eqnNrs2,
+                                    numLastFreeDof_[0],
+                                    numLastFreeDof_[0],
+                                    setCounterPart );
   }
 
 
   // *****************
   //   SetElementRHS
   // *****************
-  void StandardSystem::SetElementRHS( Double *elemRHS, 
-                                      const PdeIdType identifierPDE,
-                                      Integer *connect, UInt length ) {
-
-
-    // Delegate work to EntryManipulator
-    assemble_->SetElementRHS( rhs_, elemRHS, connect, length, size_ );
+  void StandardSystem::SetElementRHS( const Vector<Double>& elemRHS, 
+                                      const PdeIdType idPDE,
+                                      StdVector<Integer>& eqnNrs ) {
+    assemble_->SetElementRHS( rhs_, elemRHS, eqnNrs, size_ );
   }
+  void StandardSystem::SetElementRHS( const Vector<Complex>& elemRHS, 
+                                      const PdeIdType idPDE,
+                                      StdVector<Integer>& eqnNrs ) {
+    assemble_->SetElementRHS( rhs_, elemRHS, eqnNrs,  size_ );
+   }
 
 
   // ***********************
@@ -792,7 +785,7 @@ namespace OLAS {
   void StandardSystem::SetNodeRHS( Complex val, const PdeIdType identifierPDE,
                                    Integer eqnNum  ) {
 
-    
+
     // Perform consistency check
 #ifdef DEBUG_STANDARDSYSTEM
     if ( eqnNum > size_ || eqnNum < 1 ) {
@@ -806,7 +799,7 @@ namespace OLAS {
       Error( __FILE__, __LINE__ );
     }
 #endif
-    
+
     // Delegate work to entry manipulation object
     assemble_->SetNodeRHS( rhs_, val, eqnNum );
   }
@@ -818,15 +811,23 @@ namespace OLAS {
 
   // **************
   //   Update RHS
-  // **************  
-  void StandardSystem::UpdateRHS( FEMatrixType matrix_id, Double *fup ) {
+  // **************
+  void StandardSystem::UpdateRHS( FEMatrixType matrix_id, const BaseVector& fup ) {
+    
     if ( numDirichletValues_ > 0 &&
          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
       (*warning) << "UpdateRHS may fail in combo with "
                  << "idbcHandling = elimination";
       Warning( __FILE__, __LINE__ );
     }
-    assemble_->UpdateRHS( rhs_, sysmat_[matrix_id], fup );
+    if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
+      assemble_->UpdateRHS( rhs_, sysmat_[matrix_id],
+                            dynamic_cast<const Vector<Complex>&>(fup) );
+    } else {
+    const Vector<Double> & tmp = dynamic_cast<const Vector<Double>&>(fup);
+    assemble_->UpdateRHS( rhs_, sysmat_[matrix_id], tmp );
+    }
+
   }
 
   // *************************************
@@ -836,13 +837,13 @@ namespace OLAS {
   void StandardSystem::RemoveIDBCInfoFromMatrix() const {
 
     std::set<FEMatrixType>::iterator it;
-    BaseVector *rhs;
+    BaseVector *rhs = NULL;
     for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
       //sysmat_[*it]->Init();
       idbcHandler_->InitMatrix(*it);
       idbcHandler_->RemoveIDBCFromRHS( rhs );
     }
-    
+
   }
 
 
@@ -850,7 +851,7 @@ namespace OLAS {
   //   SetDirichlet (Double)
   // *************************
   void StandardSystem::SetDirichlet(const PdeIdType pdeID,
-                                     Integer eqnNum, const Double &val  ) {
+                                    Integer eqnNum, const Double &val  ) {
 
 
     // Perform some consistency checks
@@ -931,7 +932,7 @@ namespace OLAS {
   // ****************************
   //   ConstructEffectiveMatrix
   // ****************************
-  void StandardSystem::ConstructEffectiveMatrix( const factorMap &matFactors ) 
+  void StandardSystem::ConstructEffectiveMatrix( const factorMap &matFactors )
   {
     LOG_DBG(stdSys) << "ConstructEffectiveMatrix() matFactors = " << matFactors.size()
                     << " matrixTypes: " << matrixTypes_.size();
@@ -941,7 +942,7 @@ namespace OLAS {
 
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other non auxiliary ones
-    if(matFactors.empty() == true) 
+    if(matFactors.empty() == true)
     {
       // one element is auxiliary
       bool has_aux = std::find(matrixTypes_.begin(), matrixTypes_.end(), AUXILIARY) != matrixTypes_.end();
@@ -973,8 +974,10 @@ namespace OLAS {
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ )
     {
-      LOG_DBG(stdSys) << " matFactor: " << Enum2String((*it).first) << ":" << (*it).second;      
-      if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 ) 
+      std::string tmp;
+      Enum2String( (*it).first, tmp );
+      LOG_DBG(stdSys) << " matFactor: " << tmp << ":" << (*it).second;
+      if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 )
         sys->Add((*it).second, *sysmat_[(*it).first] );
     }
     LOG_DBG3(stdSys) << "effective Matrix: " << sys->ToString();
@@ -986,129 +989,84 @@ namespace OLAS {
 
 
   // ******************************
-  //   GetSolutionVal (Version 1)
+  //   GetSolutionVal
   // ******************************
-  Integer StandardSystem::
-  GetSolutionVal( Double* &ptSol,
+  void StandardSystem::
+  GetSolutionVal( SingleVector& ptSol,
                   const PdeIdType identifierPDE ) {
-
+    
 
     // Elimination case
     if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
 
       // Will not work
       if ( myParams_.GetBoolValue( "Parallel" ) ) {
-        (*error) << "Parallel only supported in combo with penalty!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("Parallel only supported in combo with penalty!");
       }
 
-      // Sequential setting: We copy the solution and add the Dirichlet values
-      Vector<Double> *dVec1 = dynamic_cast<Vector<Double>*>( sol_ );
-      Vector<Double> *dVec2 = dynamic_cast<Vector<Double>*>( solComm_ );
-      Double *data1 = dVec1->GetPointer();
-      Double *data2 = dVec2->GetPointer();
-
-      for ( int i = 1; i <= size_; i++ ) {
-        data2[i] = data1[i];
+      if( ptSol.GetEntryType() == BaseMatrix::COMPLEX ) {
+        // Sequential setting: We copy the solution and add the Dirichlet values
+        const Vector<Complex> * dVec1 = dynamic_cast<Vector<Complex>*>( sol_ );
+        Vector<Complex> * retVec = dynamic_cast<Vector<Complex>*>( &ptSol );
+        (*retVec) = (*dVec1);
+        idbcHandler_->SetDofsToIDBC( retVec );
+      } else {
+        // Sequential setting: We copy the solution and add the Dirichlet values
+        const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( *sol_ );
+        Vector<Double> & retVec = dynamic_cast<Vector<Double>& >( ptSol );
+        retVec.Resize( totalSize_ );
+        for ( int i = 0; i < size_; i++ ) {
+          retVec[i] = dVec1[i];
+        }
+        idbcHandler_->SetDofsToIDBC( &retVec );
       }
-      idbcHandler_->SetDofsToIDBC( solComm_ );
-
-      ptSol = data2 + 1;
     }
 
     // Penalty case
     else {
-      assemble_->GetSolutionVal( sol_, ptSol, identifierPDE );
-    }
-
-    // Compute total size
-    return totalSize_ * blockSize_;
-  }
-
-
-  // ******************************
-  //   GetSolutionVal (Version 2)
-  // ******************************
-  Integer StandardSystem::
-  GetSolutionVal( Complex* &ptSol,
-                  const PdeIdType identifierPDE ) {
-
-
-    // Elimination case
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-
-      // Will not work
-      if ( myParams_.GetBoolValue( "Parallel" ) ) {
-        (*error) << "Parallel only supported in combo with penalty!";
-        Error( __FILE__, __LINE__ );
+      if( ptSol.GetEntryType() == BaseMatrix::COMPLEX ) {
+       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
+        retVec = dynamic_cast<Vector<Complex>&>(*sol_);
+      } else {
+        Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+        retVec = dynamic_cast<Vector<Double>&>(*sol_);
       }
-
-      // Sequential setting: We copy the solution and add the Dirichlet values
-      Vector<Complex> *cVec1 = dynamic_cast<Vector<Complex>*>( sol_ );
-      Vector<Complex> *cVec2 = dynamic_cast<Vector<Complex>*>( solComm_ );
-      Complex *data1 = cVec1->GetPointer();
-      Complex *data2 = cVec2->GetPointer();
-
-      for ( int i = 1; i <= size_; i++ ) {
-        data2[i] = data1[i];
-      }
-      idbcHandler_->SetDofsToIDBC( solComm_ );
-
-      ptSol = data2 + 1;
     }
 
-    // Penalty case
-    else {
-      assemble_->GetSolutionVal( sol_, ptSol, identifierPDE );
+  }
+
+
+  // ************
+  //   GetRHSVal 
+  // ************
+  void StandardSystem::GetRHSVal( SingleVector &ptRhs,
+                                  const PdeIdType identifierPDE ) {
+    if ( numDirichletValues_ > 0 &&
+        myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+      (*warning) << "GetRHSVal does not work for idbcHandling=elimination";
+      Warning( __FILE__, __LINE__ );
     }
-
-    // Compute total size
-    return totalSize_ * blockSize_;
+    if( ptRhs.GetEntryType() == BaseMatrix::COMPLEX ) {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
+      retVec = dynamic_cast<Vector<Complex>&>(*rhs_);
+    } else {
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptRhs );
+      retVec = dynamic_cast<Vector<Double>&>(*rhs_);
+    }
   }
-  
-
-  // *************************
-  //   GetRHSVal (Version 1)
-  // *************************
-  Integer StandardSystem::GetRHSVal( Double* &ptRhs,
-                                     const PdeIdType identifierPDE ) {
-   //  if ( numDirichletValues_ > 0 &&
-//          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-//       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
-//       Error( __FILE__, __LINE__ );
-//     }
-    assemble_->GetRHSVal( rhs_, ptRhs, identifierPDE );
-    return size_ * blockSize_;
-  }
-
-
-  // *************************
-  //   GetRHSVal (Version 2)
-  // *************************
-  Integer StandardSystem::GetRHSVal( Complex* &ptRhs,
-                                     const PdeIdType identifierPDE ) {
-//     if ( numDirichletValues_ > 0 &&
-//          myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-//       (*error) << "GetRHSVal does not work for idbcHandling=elimination";
-//       Error( __FILE__, __LINE__ );
-//     }
-    assemble_->GetRHSVal( rhs_, ptRhs, identifierPDE );
-    return size_ * blockSize_;
-  }
-  
 
   // *********
   //   Print
   // *********
   void StandardSystem::Print( FEMatrixType matrix_id) const {
-    sysmat_[matrix_id]->Print(*cla);
+    *cla << sysmat_[matrix_id]->ToString();
   }
 
   // **********
   //   Export
   // **********
-  void StandardSystem::Export( FEMatrixType type, Char *filename,
-                               Char *comment ) const {
+  void StandardSystem::Export( FEMatrixType type, char *filename,
+                               char *comment ) const {
     sysmat_[type]->Export( filename, comment );
   }
 
@@ -1119,47 +1077,54 @@ namespace OLAS {
   void StandardSystem::AddToDiagMatrixEntry( FEMatrixType matrixID,
                                              const PdeIdType pdeID,
                                              Integer eqnNum,
-                                             Double *val ) {
+                                             Double val ) {
 
-
+    Warning( "Adapt me");
     // Delegate work to implementation in assemble class
-    assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, val );
+    //assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, val );
   }
   
+  void StandardSystem::AddToDiagMatrixEntry( FEMatrixType matrixID,
+                                             const PdeIdType pdeID,
+                                             Integer eqnNum,
+                                             Complex val )  {
+                                     
+  }
+
   // ******************
   //   GetMatrixEntry
   // ******************
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, 
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, 
+                                       Integer colEqnNum,
                                        Double & val ) {
 
 
     // Delegate work to implementation in assemble class
-    assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID, 
+    assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID,
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, 
-                               colEqnNum, numLastFreeDof_[1],
-                               numLastFreeDof_[1] );
-    
+                               val, rowEqnNum,
+                               colEqnNum, numLastFreeDof_[0],
+                               numLastFreeDof_[0] );
+
   }
-  
+
   void StandardSystem::GetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, 
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, 
+                                       Integer colEqnNum,
                                        Complex & val ) {
-    
+
 
     // Delegate work to implementation in assemble class
-    assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID, 
+    assemble_->GetMatrixEntry( matrixID, rowPdeID, colPdeID,
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, 
-                               colEqnNum,  numLastFreeDof_[1],
-                               numLastFreeDof_[1] );
+                               val, rowEqnNum,
+                               colEqnNum,  numLastFreeDof_[0],
+                               numLastFreeDof_[0] );
   }
 
   // ******************
@@ -1168,32 +1133,32 @@ namespace OLAS {
 
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, 
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
-                                       Integer colEqnNum, 
+                                       Integer colEqnNum,
                                        Double val, bool setCounterPart ) {
 
-     
+
     // Delegate work to implementation in assemble class
-    assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID, 
+    assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID,
                                sysmat_[matrixID], idbcHandler_,
                                val, rowEqnNum,
-                               colEqnNum,  numLastFreeDof_[1],
-                               numLastFreeDof_[1], setCounterPart );
+                               colEqnNum,  numLastFreeDof_[0],
+                               numLastFreeDof_[0], setCounterPart );
   }
   void StandardSystem::SetMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType rowPdeID,
-                                       Integer rowEqnNum, 
+                                       Integer rowEqnNum,
                                        const PdeIdType colPdeID,
                                        Integer colEqnNum,
                                        Complex val, bool setCounterPart ) {
 
      // Delegate work to implementation in assemble class
-    assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID, 
+    assemble_->SetMatrixEntry( matrixID, rowPdeID, colPdeID,
                                sysmat_[matrixID], idbcHandler_,
-                               val, rowEqnNum, 
-                               colEqnNum, numLastFreeDof_[1],
-                               numLastFreeDof_[1], setCounterPart );
+                               val, rowEqnNum,
+                               colEqnNum, numLastFreeDof_[0],
+                               numLastFreeDof_[0], setCounterPart );
   }
 
   // ******************************
@@ -1210,12 +1175,12 @@ namespace OLAS {
     totalSize *= blockSize_;
 
     // Determine some basic properties
-    MatrixStorageType sType = sysmat_[SYSTEM]->GetStorageType();
-    MatrixEntryType eType = sysmat_[SYSTEM]->GetEntryType();
+    BaseMatrix::StorageType sType = sysmat_[SYSTEM]->GetStorageType();
+    BaseMatrix::EntryType eType = sysmat_[SYSTEM]->GetEntryType();
 
     // Generate vector for passing solution back to CFS++
-    bVec = GenerateSparseVectorObject( sType, eType, 1, totalSize );
-    solComm_ = dynamic_cast<SparseVector*>( bVec );
+    bVec = GenerateSingleVectorObject( sType, eType, totalSize );
+    solComm_ = dynamic_cast<SingleVector*>( bVec );
 
   }
 

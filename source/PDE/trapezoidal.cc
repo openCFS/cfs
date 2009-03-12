@@ -8,6 +8,8 @@
 
 #include "trapezoidal.hh"
 
+#include "OLAS/algsys/basesystem.hh"
+
 namespace CoupledField
 {
 
@@ -73,7 +75,7 @@ namespace CoupledField
 
     // mass part
     coeffMass = solpred_*a1_;
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
   }
 
 
@@ -84,7 +86,7 @@ namespace CoupledField
 
     // mass part
     coeffMass = (solpred_ - actSol) *a1_;
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
   }
 
 
@@ -163,7 +165,7 @@ namespace CoupledField
 
     // mass part
     coeffStiff = -solpred_;
-    algsys_->UpdateRHS(STIFFNESS,coeffStiff.GetPointer());
+    algsys_->UpdateRHS(STIFFNESS,coeffStiff);
   }
 
 

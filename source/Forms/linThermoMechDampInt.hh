@@ -22,32 +22,32 @@ namespace CoupledField
 
     /// Constructor
     LinThermoMechDampInt(BaseMaterial* matData, BaseMaterial *matDataMech, SubTensorType type);
-		
-    /// 
+
+    ///
     ~LinThermoMechDampInt();
-		
-	
+
+
     //!  Compute matrix \f$ A \f$ at given integration point.
     void calcAMat( Matrix<Double> &aMat, UInt ip,
                    const Matrix<Double> &ptCoord );
-	
+
     //!  Compute matrix \f$ D \f$ at given integration point.
     void calcDMat( Matrix<Double> &dMat );
-	
+
     //!  Compute matrix \f$ B \f$ at given integration point.
     void calcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord );
 
     //! Compute element matrix associated to damping integral form
     void CalcElementMatrix( Matrix<Double>& elemMat,
-                            EntityIterator& ent1, 
+                            EntityIterator& ent1,
                             EntityIterator& ent2 );
-	    
+
     // 	QUERIES
-	
-	
+
+
     /*!   Query dimension of the matrix \f$ D \f$
-	
+
     This method returns the dimensions of the data-matrix \f$ D \f$.
     Which corresponds to pyroelectric constants.
     In the case of 3D, a thermo-mechanic constants matrix has
@@ -58,9 +58,9 @@ namespace CoupledField
       //nRows = matDimRow_;
       //nCols = matDimCol_;
     };
-	
+
     /*!   Query number of degrees of freedom for first physical quantity
-	
+
     This method can be used to query the number of degrees of freedom at
     any node of a finite element for the physical quantity associated to
     the base functions whose derivatives form the matrix \f$ A \f$.
@@ -70,9 +70,9 @@ namespace CoupledField
     UInt getNumDofsA() {
       return numDofsA_;
     }
-	
+
     /*!   Query number of degrees of freedom for second physical quantity
-	
+
     This method can be used to query the number of degrees of freedom at
     any node of a finite element for the physical quantity associated to
     the base functions whose derivatives form the matrix \f$ B \f$.
@@ -82,7 +82,7 @@ namespace CoupledField
     UInt getNumDofsB() {
       return numDofsB_;
     }
-	
+
     //! Query material type for \f$ D \f$ tensor.
     MaterialType getDMaterialType();
 
@@ -96,17 +96,17 @@ namespace CoupledField
 
     UInt numDofsA_;
     UInt numDofsB_;
-	
+
     // dimension of the D matrix
     UInt matDimRow_;
     UInt matDimCol_;
-	
+
     // Stiffness Tensor from mech material pde
     Matrix<Double> cMatrix_;
 
-    // To keep the last heat solution
-    Vector< Double > teta_;
-  
+		// To keep the last heat solution
+		Vector< Double > teta_;
+
     // ParamNode
     ParamNode* pn_;
 

@@ -22,8 +22,8 @@ namespace CoupledField
     virtual ~Wedge1FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_WEDGE6;
+    virtual Elem::FEType feType() {
+      return Elem::WEDGE6;
     };
 
   protected:

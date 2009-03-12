@@ -7,10 +7,13 @@
 
 #include <string>
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
+#include "OLAS/solver/basesolver.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  class OLAS_BaseMatrix;
+  class OLAS_Params;
+  class OLAS_Report;
 
   //! This class implements the interface to PARDISO's LU decomposition
   //! and solving of a sparse system of linear equations.
@@ -165,14 +168,14 @@ namespace OLAS {
     //! This pointer is used to hold the address of a part of the internal
     //! (S)CRS matrix structures. The related memory segment must not
     //! be altered of deleted. Therefore the pointer is const!
-    const Integer *rowPtr_;
-    const Integer *colPtr_;
+    Integer *rowPtr_;
+    Integer *colPtr_;
     const T *datPtr_;
     //@}
 
     //! Stored information about the storage type and entry type of the matrix
-    MatrixStorageType stype;
-    MatrixEntryType etype;
+    BaseMatrix::StorageType stype;
+    BaseMatrix::EntryType etype;
 
     //! A working array for the Pardiso-Routines
 
@@ -244,8 +247,15 @@ namespace OLAS {
     //! Size of identity permutation array
     int idPermSize_;
 
+    //! number of non zero entries
+    UInt nnz_;
+
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "pardisosolver.cc"
+#endif
 
 #endif

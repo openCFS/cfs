@@ -122,7 +122,7 @@ namespace CoupledField {
 
     std::vector< std::vector<UInt> > elems;
     std::vector< std::vector<UInt> > elemNums;
-    std::vector< std::vector<FEType> > elemTypes;
+    std::vector< std::vector<Elem::FEType> > elemTypes;
     std::vector<RegionIdType> regionId;
 
     GetElements(elems,elemTypes,elemNums,regionId,1);
@@ -136,7 +136,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += NUM_ELEM_NODES[elemTypes[j][i]];
+        n += Elem::GetNumElemNodes(elemTypes[j][i]);
       }
     }
 
@@ -152,7 +152,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += NUM_ELEM_NODES[elemTypes[j][i]];
+        n += Elem::GetNumElemNodes(elemTypes[j][i]);
       }
     }
 
@@ -169,7 +169,7 @@ namespace CoupledField {
       {
         mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
                          ids[regionId[j]], &elems[j][n]);
-        n += NUM_ELEM_NODES[elemTypes[j][i]];
+        n += Elem::GetNumElemNodes(elemTypes[j][i]);
       }
     }
 
@@ -336,7 +336,7 @@ namespace CoupledField {
     // read them in into dummy variables
     if ( elemDimReadIn_[dim-1] == false ) {
       std::vector< std::vector<UInt> > elems, elemNums;
-      std::vector< std::vector<FEType> > elemTypes;
+      std::vector< std::vector<Elem::FEType> > elemTypes;
       std::vector<RegionIdType> dummyId;
       GetElements(elems,elemTypes,elemNums,dummyId,dim);
     }
@@ -460,7 +460,7 @@ namespace CoupledField {
   }
     
   void SimInputMESH::GetElements( std::vector< std::vector<UInt> > & elems,
-                                  std::vector< std::vector<FEType> > & elemTypes,
+                                  std::vector< std::vector<Elem::FEType> > & elemTypes,
                                   std::vector< std::vector<UInt> > & elemNums,                                
                                   std::vector<RegionIdType> & regionIds,
                                   const UInt dim ) {
@@ -551,7 +551,7 @@ namespace CoupledField {
           regionIds.push_back(regionId);
           elems.push_back( std::vector<UInt>() );
           elemNums.push_back( std::vector<UInt>() );
-          elemTypes.push_back( std::vector<FEType>() );
+          elemTypes.push_back( std::vector<Elem::FEType>() );
           regionNodes_.push_back(std::set<UInt>());
           regionIndex = regionIds.size() - 1;
         } else {
@@ -931,48 +931,48 @@ namespace CoupledField {
   // ***************
   //   Type2ptElem
   // ***************
-  FEType SimInputMESH::AnsysType2ElemType( const UInt itype ) {
+  Elem::FEType SimInputMESH::AnsysType2ElemType( const UInt itype ) {
 
 
     switch( itype ) {
 
     case 101:
-      return ET_LINE3;
+      return Elem::LINE3;
     case 100:
-      return ET_LINE2;
+      return Elem::LINE2;
     case 4:
-      return ET_TRIA3;
+      return Elem::TRIA3;
     case 5:
-      return ET_TRIA6;
+      return Elem::TRIA6;
     case 6:
-      return ET_QUAD4;
+      return Elem::QUAD4;
     case 7:
-      return ET_QUAD8;
+      return Elem::QUAD8;
     case 8:
-      return ET_TET4;
+      return Elem::TET4;
     case 9:
-      return ET_TET10;
+      return Elem::TET10;
     case 10:
-      return ET_HEXA8;
+      return Elem::HEXA8;
     case 11:
-      return ET_HEXA20;
+      return Elem::HEXA20;
     case 12:
-      return ET_PYRA5;
+      return Elem::PYRA5;
     case 13:
       //    (*warning) << "Pyram. with quadratic shape functions" << 
       //    "do not work well for some cases "<< 
       //    "(i.e. electric field intensity). Please verify your results."; 
-      return ET_PYRA13;
+      return Elem::PYRA13;
     case 14:
-      return ET_WEDGE6;
+      return Elem::WEDGE6;
     case 15:
-      return ET_WEDGE15;
+      return Elem::WEDGE15;
     default:
       break;
     }
     
     // This place should never be reached!
-    return ET_UNDEF;
+    return Elem::UNDEF;
   }
 
 }

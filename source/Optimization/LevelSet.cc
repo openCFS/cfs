@@ -149,7 +149,7 @@ void LevelSet::AddLevelSetElement(DesignElement* upper_right, double subLevelSpa
   
   assert(domain->GetGrid()->GetDim() == 2);
   lse.nodeNumber = 0;
-  for(unsigned int c = 0; lse.nodeNumber == 0 && c < coords.GetSizeCol(); c++)
+  for(unsigned int c = 0; lse.nodeNumber == 0 && c < coords.GetNumCols(); c++)
   {
     //LOG_DBG3(ls) << "LevelSet::AddLevelSetElement compare (" << coords[0][c] << ", " <<  coords[1][c] 
     //             << ") against (" << center.data[0] << ", " << center.data[1] << ")"; 
@@ -380,7 +380,7 @@ double LevelSetElement::CalcDistance(LevelSetNode* lsn)
   
   const double h = subLevelSpacing_; // this is our subdivision
   const double step = 1.0/h;
-  distance_tmp_.Resize((h+1) * (h+1));
+  distance_tmp_.Resize(static_cast<UInt>((h+1) * (h+1)));
   
   Point* other = lsn->de_->GetLocation();
   
@@ -403,7 +403,7 @@ double LevelSetElement::CalcDistance(LevelSetNode* lsn)
   {
     for(unsigned int y = 0; y <= h; y++)
     {
-      DistanceHelper& helper = distance_tmp_[x * h + y]; 
+      DistanceHelper& helper = distance_tmp_[static_cast<UInt>(x * h + y)]; 
       helper.sub_location.data[0] = lower_left->data[0] + x * step * d_x; 
       helper.sub_location.data[1] = lower_left->data[1] + y * step * d_y;
       helper.sub_location.data[2] = 0.0;

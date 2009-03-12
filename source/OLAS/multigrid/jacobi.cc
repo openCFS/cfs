@@ -15,7 +15,7 @@
 #endif // DEBUG_TO_CERR
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -43,13 +43,13 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
 {
 
 #ifdef  DEBUG_JACOBI
-    if( matrix.GetNrows() <= 0 ) {
+    if( matrix.GetNumRows() <= 0 ) {
         Warning( "Jacobi::Setup called with an empty "
                  "matrix -> object reseted", __FILE__, __LINE__ );
         Reset();
         return false;
     }
-    for( Integer i = 1; i < matrix.GetNrows(); i++ ) {
+    for( Integer i = 1; i < matrix.GetNumRows(); i++ ) {
         if( matrix.GetColPointer()[matrix.GetRowPointer()[i]] != i ) {
             Error( "Jacobi::Setup: non-diagonal at leading position",
                    __FILE__, __LINE__ );
@@ -65,16 +65,16 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     // old one cannot be reused. So first check, whether the old
     // one is present and has appropriate size.
     // Note: (Size_ == 0) <==> (DiagonalInverse_ == NULL)
-    // So it is sufficient to check (Size_ != matrix.GetNrows()),
+    // So it is sufficient to check (Size_ != matrix.GetNumRows()),
     // except of calls with an empty matrix.
-    if( Size_ != matrix.GetNrows() ) {
-        DeleteArray( DiagonalInverse_ );
+    if( Size_ != matrix.GetNumRows() ) {
+        DELETEARRAY( DiagonalInverse_ );
         DiagonalInverse_ = NULL;
     }
     // create a new array for the diagonal inverses
     if( DiagonalInverse_ == NULL ) {
-        Size_ = matrix.GetNrows();
-        NewArray( DiagonalInverse_, T_Mtype, Size_ );
+        Size_ = matrix.GetNumRows();
+        NEWARRAY( DiagonalInverse_, T_Mtype, Size_ );
     }
 
     const Integer *const pRow = matrix.GetRowPointer();
@@ -85,7 +85,7 @@ bool Jacobi<T>::Setup( const CRS_Matrix<T>& matrix )
     }
 
     // create auxiliary vector
-    auxVec_.Resize( matrix.GetNrows() );
+    auxVec_.Resize( matrix.GetNumRows() );
 
     // set flag for the prepared state
     return this->prepared_ = true;
@@ -128,7 +128,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     // check, wheter the setup is suppressed explicitely, although
     // the matrix size and the size of the Jacobi preparation do
     // not match
-    if( matrix.GetNrows() != Size_ ) {
+    if( matrix.GetNumRows() != Size_ ) {
         Warning( "Jacobi::Step: non-matching dimensions",
                  __FILE__, __LINE__ );
         return;
@@ -202,13 +202,13 @@ template <typename T>
 void Jacobi<T>::Reset()
 {
     
-    DeleteArray( DiagonalInverse_ ); // delete diagonal inverse
+    DELETEARRAY( DiagonalInverse_ ); // delete diagonal inverse
     DiagonalInverse_ = NULL;
     auxVec_.Resize( 0 );
     Size_  =   0; // reset the size of the LES
     Omega_ = 1.0; // reset damping factor
 
-    DeleteArray( PenaltyFlags_ );
+    DELETEARRAY( PenaltyFlags_ );
     PenaltyFlags_ = NULL;
 
     // call Reset() of base class
@@ -216,7 +216,7 @@ void Jacobi<T>::Reset()
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

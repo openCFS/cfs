@@ -39,13 +39,13 @@ namespace CoupledField
 // 
 // 
    void ThermoelasticMaterial::SetScalar( Double param,MaterialType matType, 
-                                          DataType dataType ) { 
-     Error("SetScalar for 'Double' not implemented",__FILE__,__LINE__);}
+                                          Global::ComplexPart dataType ) { 
+     EXCEPTION("SetScalar for 'Double' not implemented");}
  
 
   void ThermoelasticMaterial::SetTensor(const Matrix<Double>& param,
                                         MaterialType matType, 
-                                        DataType dataType ) {
+                                        Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -55,13 +55,13 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == REAL || dataType == IMAG ) {
-	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
+	if ( tensorParams_[matType].GetNumRows() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
 	}
-	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
 	}
 
@@ -69,7 +69,7 @@ namespace CoupledField
 	tensorParamsOrig_[matType].SetPart( dataType, param );
 
 	// to be consistent to old structure
-	if ( dataType == REAL ) {
+	if ( dataType == Global::REAL ) {
 	  scalarParams_[matType] = Complex( param[2][2], 0.0);
 	}
 	else {
@@ -87,7 +87,7 @@ namespace CoupledField
   }
 
 //   void ThermoelasticMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
-// 					   const DataType& dataType ) {
+// 					   const Global::ComplexPart& dataType ) {
 //     
 //     ENTER_FCN( "ThermoelasticMaterial::SetTensor" );
 //     std::string dim = "tensir";
@@ -98,14 +98,14 @@ namespace CoupledField
 
   void ThermoelasticMaterial::GetScalar( Double& param,
                                          MaterialType matType, 
-                                         DataType dataType ) const {
-    Error("GetScalar for 'Double' not implemented",__FILE__,__LINE__);
+                                         Global::ComplexPart dataType ) const {
+    EXCEPTION("GetScalar for 'Double' not implemented");
   }
 
 
   void ThermoelasticMaterial::GetTensor( Matrix<Double>& param, 
                                          MaterialType matType, 
-                                         DataType dataType,
+                                         Global::ComplexPart dataType,
                                          SubTensorType subTensor) const {
 
 
@@ -125,7 +125,7 @@ namespace CoupledField
     	  ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
     	  param = matTensor.GetPart( dataType );
       }
       else {

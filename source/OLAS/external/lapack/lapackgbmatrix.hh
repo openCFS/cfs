@@ -7,13 +7,13 @@
 #ifndef OLAS_LAPACKGBMATRIX_HH
 #define OLAS_LAPACKGBMATRIX_HH
 
-#include "graph/graph.hh"
-#include "matvec/matvec.hh"
-#include "utils/utils.hh"
-#include "external/lapack/olasf77mapping.hh"
-#include "external/lapack/lapackbasematrix.hh"
+#include <def_expl_templ_inst.hh>
 
-namespace OLAS {
+#include "olasf77mapping.hh"
+#include "lapackbasematrix.hh"
+#include "MatVec/crs_matrix.hh"
+
+namespace CoupledField {
 
   // some compilers insist on the declaration of this function
   // before it is introduced as a friend of LapackBaseMatrix
@@ -48,6 +48,12 @@ namespace OLAS {
     friend class Lapack_LU;
 
   public:
+    using StdMatrix::SetMatrixEntry;
+    using StdMatrix::AddToMatrixEntry;
+    using BaseMatrix::Add;
+    using StdMatrix::SetDiagEntry;
+    using StdMatrix::GetDiagEntry;
+    using StdMatrix::SetSparsityPattern;
 
     //! Standard constructor
 
@@ -55,7 +61,7 @@ namespace OLAS {
     //! GenerateStdMatrixObject function. Since banded storage is used a
     //! fill value is meaningless and not required. It is only provided as
     //! (optional) argument for constistency reasons.
-    LapackGBMatrix( Integer nrows, Integer ncols, MatrixEntryType entryType ) {
+    LapackGBMatrix( UInt nrows, UInt ncols, BaseMatrix::EntryType entryType ) {
       nrows_ = nrows;
       ncols_ = ncols;
       data_ = NULL;
@@ -68,7 +74,7 @@ namespace OLAS {
 
       // Ensure that matrix is square
       if ( nrows_ != ncols_ ) {
-        Error( "Request for a non-square LapackGBMatrix", __FILE__, __LINE__ );
+        EXCEPTION( "Request for a non-square LapackGBMatrix" );
       }
     }
 
@@ -77,7 +83,7 @@ namespace OLAS {
     //! This is the default destructor. It needs to be deep, since the
     //! class dynamically allocates memory for the matrix entries.
     ~LapackGBMatrix() {
-      DeleteArray(data_);
+      DELETEARRAY(data_);
     }
 
     //! Convert a CRS_Matrix into a LapackGBMatrix
@@ -113,7 +119,7 @@ namespace OLAS {
     //! Note that the input argument v currently can only be either Double or
     //! Complex. The argument v will be cast to the entry type entryT and thus
     //! the fitting interface must be called.
-    void SetMatrixEntry( Integer i, Integer j, entryC &v );
+    void SetMatrixEntry( UInt i, UInt j, entryC &v );
 
     //! Add value to a matrix entry
 
@@ -121,14 +127,14 @@ namespace OLAS {
     //! Note that the input argument v currently can only be either Double or
     //! Complex. The argument v will be cast to the entry type entryT and thus
     //! the fitting interface must be called.
-    void AddToMatrixEntry( Integer i, Integer j, entryC &v );
+    void AddToMatrixEntry( UInt i, UInt j, entryC &v );
   
     //! Return the storage type of the matrix
   
     //! The method returns the storagfe type of the matrix. This is encoded
     //! as a value of the enumeration data type MatrixStorageType. In the
     //! case of this class the return value is of course LAPACK_GBMATRIX.
-    MatrixStorageType GetStorageType() const {
+    BaseMatrix::StorageType GetStorageType() const {
       return LAPACK_GBMATRIX;
     }
 
@@ -137,7 +143,7 @@ namespace OLAS {
     //! The method returns the entry type of the matrix (i.e. Double, Complex,
     //! or whatever it is). This is encoded as a value of the enumeration data
     //! type MatrixEntryType. 
-    MatrixEntryType GetEntryType() const {
+    BaseMatrix::EntryType GetEntryType() const {
       return myEntryType_;
     };
 
@@ -145,7 +151,7 @@ namespace OLAS {
 
     //! The method returns the upper bandwidth of the matrix as obtained
     //! from the graph via SetSparsityPattern.
-    Integer GetUpperBandwidth() const {
+    UInt GetUpperBandwidth() const {
       return wupper_;
     }
 
@@ -153,7 +159,7 @@ namespace OLAS {
 
     //! The method returns the lower bandwidth of the matrix as obtained
     //! from the graph via SetSparsityPattern.
-    Integer GetLowerBandwidth() const {
+    UInt GetLowerBandwidth() const {
       return wlower_;
     }
 
@@ -168,7 +174,7 @@ namespace OLAS {
     //! not identical to zero.
     //! \param fname name of output file
     //! \param comment string to be inserted into file header
-    void Export( const Char *fname, const Char *comment = NULL ) const;
+    void Export( const char *fname, const char *comment = NULL ) const;
 
     //! Add the multiple of a matrix to this matrix.
 
@@ -188,38 +194,13 @@ namespace OLAS {
     //! This method sets the value of the diagonal entry of the i-th
     //! row of the matrix to the value given by the paramter v.
     //! This method sets the needsAssembly_ attribute to true.
-    void SetDiagEntry( Integer i, entryC &v );
+    void SetDiagEntry( UInt i, entryC &v );
 
     //! Query a diagonal entry
 
     //! This method returns in v the value of the diagonal entry of the i-th
     //! row of the matrix.
-    void GetDiagEntry( Integer i, entryC &v ) const;
-
-    //! Method to force instantiation of all public member functions
-    void InstantiatePublicMethods();
-
-    //! Get the number of matrix rows on scalar level
-
-    //! The method returns the number of rows of the matrix on the scalar
-    //! level, i.e. the count is not based upon the stored entry type but
-    //! accumulated over the scalar real/complex entries.
-    //! \return The same value as GetNrows(), since LapackGBMatrices only
-    //!         store scalar entries anyhow.
-    Integer GetNrowsScalar() const {
-      return nrows_;
-    }
-
-    //! Get the number of matrix columns on scalar level
-
-    //! The method returns the number of columns of the matrix on the scalar
-    //! level, i.e. the count is not based upon the stored entry type but
-    //! accumulated over the scalar real/complex entries.
-    //! \return The same value as GetNcols(), since LapackGBMatrices only
-    //!         store scalar entries anyhow.
-    Integer GetNcolsScalar() const {
-      return ncols_;
-    }
+    void GetDiagEntry( UInt i, entryC &v ) const;
 
   private:
 
@@ -228,8 +209,7 @@ namespace OLAS {
     //! Use of the default constructor is not intended and thus
     //! forbidden.
     LapackGBMatrix(){
-      Error( "LapackGBMatrix: Private constructor was called!", __FILE__,
-             __LINE__ );
+      EXCEPTION( "LapackGBMatrix: Private constructor was called!" );
     };
 
     //! Alternative Constructor
@@ -244,8 +224,8 @@ namespace OLAS {
     //! \param wlower lower bandwidth, i.e. number of non-zero sub-diagonals
     //! \param wupper upper bandwidth, i.e. number of non-zero super-diagonals
     //! \param etype type of matrix entries
-    LapackGBMatrix( Integer nrows, Integer ncols, Integer wlower,
-                    Integer wupper, MatrixEntryType etype );
+    LapackGBMatrix( UInt nrows, UInt ncols, UInt wlower,
+                    UInt wupper, BaseMatrix::EntryType etype );
 
     //! Vector with matrix entries
 
@@ -255,7 +235,7 @@ namespace OLAS {
     entryF *data_;
 
     //! Length of data array
-    Integer length_;
+    UInt length_;
 
     //! Lower bandwidth of matrix
     UInt wlower_;
@@ -271,7 +251,7 @@ namespace OLAS {
     //! If the matrix does not contain additional storage space (see also
     //! the amEnlarged_ attribute) we have \f$\mbox{offset} = w_l + 1 + w_u\f$,
     //! otherwise it is \f$\mbox{offset} = 2w_l + 1 + w_u\f$.
-    Integer nrowsact_;
+    UInt nrowsact_;
 
     //! Auxilliary value
 
@@ -292,7 +272,7 @@ namespace OLAS {
     //! \f$(2 w_l + w_u + 1)\f$. This attribute stores the corresponding offset
     //! used in the index computation in the Index method if the matrix has
     //! such work space attached to it.
-    Integer offset_;
+    UInt offset_;
 
     //! Mapping of matrix indices to indices in data vector
 
@@ -302,7 +282,7 @@ namespace OLAS {
     //! to \f$A(w_u+1+i-j,j)\f$ where \f$w_u\f$ is the number of
     //! super-diagonals of the matrix. The resulting value is then serialised
     //! taking FORTRAN's row-major ordering into account.
-    inline Integer Index( Integer i, Integer j ) const {
+    inline UInt Index( UInt i, UInt j ) const {
       return (j-1) * nrowsact_ + (wupper_ + 1 + (i+offset_) - j);
     }
 
@@ -354,7 +334,7 @@ namespace OLAS {
 
     //! This attribute contains the entry type of an instantiation of this
     //! template class as a value of the enumeration data type MatrixEntryType.
-    MatrixEntryType myEntryType_;
+    BaseMatrix::EntryType myEntryType_;
 
     //! Auxilliary friendship relation (temporary?)
 
@@ -366,5 +346,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "lapackgbmatrix.cc"
+#endif
 
 #endif

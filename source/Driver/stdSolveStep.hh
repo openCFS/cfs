@@ -9,7 +9,7 @@
 
 #include "assemble.hh"
 #include "baseSolveStep.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/domain.hh"
@@ -103,7 +103,7 @@ namespace CoupledField
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin()
-    {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {;};

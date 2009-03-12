@@ -48,7 +48,7 @@ namespace CoupledField
     // get the elastic tensor coefficients
 	cMatrix_.Init();
 
-	matDataMech->GetTensor(cMatrix_,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
+	matDataMech->GetTensor(cMatrix_,MECH_STIFFNESS_TENSOR,Global::REAL,subTensorType_);
     
 	//std::cerr << "\nMECH_STIFFNESS_TENSOR = \n" << cMatrix_ << std::endl;
    }
@@ -290,7 +290,7 @@ namespace CoupledField
 	
 			//std::cout << "\nlN_teta=" << lN_teta.Serialize () << std::endl;
 	
-			for(UInt i=0; i < bMat.GetSizeCol(); i++ ) {
+			for(UInt i=0; i < bMat.GetNumCols(); i++ ) {
 				bMat[0][i] = lN_teta[i];
 			}
 	

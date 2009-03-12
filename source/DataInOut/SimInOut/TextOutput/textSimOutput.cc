@@ -7,6 +7,7 @@
 namespace fs = boost::filesystem;
 
 #include "textSimOutput.hh"
+#include <fstream>
 
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -191,7 +192,7 @@ namespace CoupledField {
           EXCEPTION( "Case not implemented" );
         }
 
-        if( actResults[iSol]->GetEntryType() == EntryType::DOUBLE ) {
+        if( actResults[iSol]->GetEntryType() == BaseMatrix::DOUBLE ) {
 
           // --- Real part ---
           Result<Double> & actRes = 
@@ -301,7 +302,7 @@ namespace CoupledField {
         UInt numDofs = actInfo.dofNames.GetSize();
         
         // *** Transient part ***
-        if( actResults[iSol]->GetEntryType() == EntryType::DOUBLE ) {
+        if( actResults[iSol]->GetEntryType() == BaseMatrix::DOUBLE ) {
           Result<Double> & actRes = 
             dynamic_cast<Result<Double>& >( *(actResults[iSol]) );
           Vector<Double> & vec = actRes.GetVector();
@@ -373,7 +374,7 @@ namespace CoupledField {
         UInt numDofs = actInfo.dofNames.GetSize();
         
         // *** Transient part ***
-        if( actResults[iSol]->GetEntryType() == EntryType::DOUBLE ) {
+        if( actResults[iSol]->GetEntryType() == BaseMatrix::DOUBLE ) {
           Result<Double> & actRes = 
             dynamic_cast<Result<Double>& >( *(actResults[iSol]) );
           Vector<Double> & vec = actRes.GetVector();
@@ -493,7 +494,7 @@ namespace CoupledField {
                 << "' on " << entTypeString << "(s) '" 
                 << list->GetName() << "'\n" << cmChar_ << "\n" << cmChar_;
         
-        if( res->GetEntryType() == EntryType::DOUBLE ) {
+        if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
           actFile << " t (s)  ";        
         } else {
           actFile << " f (Hz)  ";
@@ -518,7 +519,7 @@ namespace CoupledField {
       totalName = namePrefix + "-";
       totalName += list->GetName();
       totalName += "-" + GenStr(step);
-//      if( res->GetEntryType() == EntryType::DOUBLE ) {
+//      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
 //        totalName += "s";
 //      } else {
 //        totalName += "Hz";
@@ -532,7 +533,7 @@ namespace CoupledField {
       *outFile << cmChar_ << " Result: '" << actInfo.resultName 
               << "' on " << entTypeString << "(s) '" 
               << list->GetName();
-      if( res->GetEntryType() == EntryType::DOUBLE ) {
+      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
         *outFile << "' at time " << stepVal << " s";
       } else {
         *outFile << "' at frequency " << stepVal << " Hz";
@@ -624,7 +625,7 @@ namespace CoupledField {
       }
       
       // write dof result string
-      if( res->GetEntryType() == EntryType::DOUBLE ) {
+      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
         *outFile << cmChar_ << " t (s)  ";        
       } else {
         *outFile << cmChar_ << " f (Hz)  ";
@@ -645,7 +646,7 @@ namespace CoupledField {
 
     std::stringstream ret;
 
-    if( res->GetEntryType() == EntryType::DOUBLE ) {
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
       for( UInt i = 0; i < actInfo.dofNames.GetSize(); i++ ) {
         ret << actInfo.dofNames[i]
             << " (" << actInfo.unit << ")  ";

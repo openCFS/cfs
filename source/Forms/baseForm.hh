@@ -6,7 +6,7 @@
 #define FILE_BASEFORM_
 
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Elements/basefe.hh"
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
@@ -54,7 +54,7 @@ namespace CoupledField
                                     EntityIterator& ent1, 
                                     EntityIterator& ent2 ){
       
-      Error( "Not implemented here", __FILE__, __LINE__ );}
+      EXCEPTION( "Not implemented here" );}
 
     //! Virtual function
     /** this version is for convenience, it gets called from ErsatzMaterial, 
@@ -72,7 +72,7 @@ namespace CoupledField
                                     EntityIterator& ent1, 
                                     EntityIterator& ent2 ){
       
-      Error( "Not implemented here", __FILE__, __LINE__ );}
+      EXCEPTION( "Not implemented here" );}
     
 #endif
 
@@ -84,7 +84,7 @@ namespace CoupledField
     
     //! define diagonal mass matrix
     virtual void SetDiagMass() {
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
     };
 
     //
@@ -140,32 +140,32 @@ namespace CoupledField
 
     //! sets actual element solution
     virtual void SetActElemSol(Matrix<Double>& disp)
-    {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SetActElemSol not implemented!");};
 
     //! sets actual element solution
-    virtual void SetActElemSol(CFSMatrix & disp)
-    {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+    virtual void SetActElemSol(DenseMatrix & disp)
+    {EXCEPTION("SetActElemSol not implemented!");};
 
     //! sets actual element solution
     virtual void SetActElemSol(Vector<Double>& disp)
-    {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SetActElemSol not implemented!");};
 
     //! sets actual first time derivative of element solution
     virtual void SetActElemSolDeriv1(Matrix<Double>& disp)
-    {Error("SetActElemSol not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SetActElemSol not implemented!");};
 
     //! sets actual first time derivative of element solution
     virtual void SetActElemSolDeriv1(Vector<Double>& disp)
-    {Error("SetActElemSolDeriv1 not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SetActElemSolDeriv1 not implemented!");};
 
     //! sets actual 2nd time derivative of element solution
     virtual void SetActElemSolDeriv2(Vector<Double>& disp)
-    {Error("SetActElemSolDeriv2 not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SetActElemSolDeriv2 not implemented!");};
 
     //! reads the values y(x) out of the file with name fncName  
     void ReadNlinFunc( std::string fncName, Vector<double> &xval,
                        Vector<Double> &yval ) {
-      Error("ReadNlinFunc not implemented!", __FILE__, __LINE__ );
+      EXCEPTION("ReadNlinFunc not implemented!");
     };
 
     //! set the integration point
@@ -176,7 +176,7 @@ namespace CoupledField
     void UnsetIntPoint() { isSetIntPoint_ = false;}
 
     //!
-    void SetMatDataType(DataType & pMatType)
+    void SetMatDataType(Global::ComplexPart & pMatType)
     { matDataType_=pMatType; };
 
     //! set softening type for forms
@@ -251,7 +251,7 @@ namespace CoupledField
     //
     bool isSetIntPoint_;
 
-    DataType matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
+    Global::ComplexPart matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 
     FEMatrixType baseType_;  // base type: STIFFNESS, DAMPING, MASS
 

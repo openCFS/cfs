@@ -12,7 +12,7 @@ namespace CoupledField
 {
 
   Wedge2FE::Wedge2FE():WedgeFE()
-  { 
+  {
     Init();
   }
 
@@ -24,7 +24,7 @@ namespace CoupledField
   void Wedge2FE::Init()
   {
 
-    NumNodes_ = 15; 
+    NumNodes_ = 15;
 
     CommonInit();
   }
@@ -34,7 +34,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =   0.0;
     LCornerCoords_[1][0] =   0.0;
     LCornerCoords_[2][0] =  -1.0;
@@ -99,7 +99,7 @@ namespace CoupledField
   }
 
 
-  void Wedge2FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Wedge2FE :: CalcShapeFnc(Vector<Double> & Shape,
                                 const Vector<Double> & LCoord,
                                 const Elem*, UInt dof,
                                 AnsatzFct::FctEntityType fctEntityType )
@@ -107,12 +107,12 @@ namespace CoupledField
 
     Shape.Resize(NumNodes_);
 
-    Shape[0] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - LCoord[0] - LCoord[1]) 
+    Shape[0] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - LCoord[0] - LCoord[1])
       * (2 * LCoord[0] + 2*LCoord[1] -1);
     Shape[1] =  0.5*LCoord[2] * (1 - LCoord[2]) *  LCoord[0] * (1 - 2*LCoord[0]);
     Shape[2] =  0.5*LCoord[2] * (1 - LCoord[2]) *  LCoord[1] * (1 - 2*LCoord[1]);
 
-    Shape[3] =- 0.5*LCoord[2] * (1 + LCoord[2]) * (1 - LCoord[0] - LCoord[1]) 
+    Shape[3] =- 0.5*LCoord[2] * (1 + LCoord[2]) * (1 - LCoord[0] - LCoord[1])
       * (2*LCoord[0] + 2*LCoord[1] -1);
     Shape[4] = -0.5*LCoord[2] * (1 + LCoord[2]) * LCoord[0] * (1 - 2*LCoord[0]);
     Shape[5] = -0.5*LCoord[2] * (1 + LCoord[2]) * LCoord[1] * (1 - 2*LCoord[1]);
@@ -131,7 +131,7 @@ namespace CoupledField
   }
 
 
-  void Wedge2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Wedge2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                           const Vector<Double> & LCoord,
                                           const Elem*, UInt dof,
                                           AnsatzFct::FctEntityType fctEntityType )
@@ -143,7 +143,7 @@ namespace CoupledField
 
     LDeriv[0][0] = +0.5*LCoord[2] * (1 - LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
     LDeriv[0][1] = +0.5*LCoord[2] * (1 - LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[0][2] = +0.5 * (1 - 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1]) 
+    LDeriv[0][2] = +0.5 * (1 - 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1])
       * (2*LCoord[0] + 2*LCoord[1] -1 );
 
     LDeriv[1][0] =  0.5*LCoord[2] * (1 - LCoord[2]) * (1 - 4*LCoord[0]);
@@ -156,7 +156,7 @@ namespace CoupledField
 
     LDeriv[3][0] = -0.5*LCoord[2] * (1 + LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
     LDeriv[3][1] = -0.5*LCoord[2] * (1 + LCoord[2]) * (3 - 4*LCoord[0] - 4*LCoord[1]);
-    LDeriv[3][2] = -0.5 * (1 + 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1]) 
+    LDeriv[3][2] = -0.5 * (1 + 2*LCoord[2]) * (1 - LCoord[0] - LCoord[1])
       * (2*LCoord[0] + 2*LCoord[1] -1 );
 
     LDeriv[4][0] = -0.5*LCoord[2] * (1 + LCoord[2]) * (1 - 4*LCoord[0]);
@@ -169,31 +169,31 @@ namespace CoupledField
 
     LDeriv[6][0] =  -2*LCoord[2] * (1 - LCoord[2]) * (1 - 2*LCoord[0] - LCoord[1]);
     LDeriv[6][1] =   2*LCoord[2] * (1 - LCoord[2]) * LCoord[0];
-    LDeriv[6][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]); 
+    LDeriv[6][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
 
     LDeriv[7][0] =  -2*LCoord[2] * (1 - LCoord[2]) * LCoord[1];
     LDeriv[7][1] =  -2*LCoord[2] * (1 - LCoord[2]) * LCoord[0];
-    LDeriv[7][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * LCoord[1]; 
+    LDeriv[7][2] =  -2*(1 - 2*LCoord[2]) * LCoord[0] * LCoord[1];
 
     LDeriv[8][0] =   2*LCoord[2] * (1 - LCoord[2]) * LCoord[1];
     LDeriv[8][1] =  -2*LCoord[2] * (1 - LCoord[2]) * (1 - LCoord[0] - 2*LCoord[1]);
-    LDeriv[8][2] =  -2*(1 - 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]); 
+    LDeriv[8][2] =  -2*(1 - 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
 
     LDeriv[9][0] =   2*LCoord[2] * (1 + LCoord[2]) * (1 - 2*LCoord[0] - LCoord[1]);
     LDeriv[9][1] =  -2*LCoord[2] * (1 + LCoord[2]) * LCoord[0];
-    LDeriv[9][2] =   2*(1 + 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]); 
+    LDeriv[9][2] =   2*(1 + 2*LCoord[2]) * LCoord[0] * (1 - LCoord[0] - LCoord[1]);
 
     LDeriv[10][0] =  2*LCoord[2] * (1 + LCoord[2]) * LCoord[1];
     LDeriv[10][1] =  2*LCoord[2] * (1 + LCoord[2]) * LCoord[0];
-    LDeriv[10][2] =  2*(1 + 2*LCoord[2]) * LCoord[0] * LCoord[1]; 
+    LDeriv[10][2] =  2*(1 + 2*LCoord[2]) * LCoord[0] * LCoord[1];
 
     LDeriv[11][0] =  -2*LCoord[2] * (1 + LCoord[2]) * LCoord[1];
     LDeriv[11][1] =   2*LCoord[2] * (1 + LCoord[2]) * (1 - LCoord[0] - 2*LCoord[1]);
-    LDeriv[11][2] =   2*(1 + 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]); 
+    LDeriv[11][2] =   2*(1 + 2*LCoord[2]) * LCoord[1] * (1 - LCoord[0] - LCoord[1]);
 
     LDeriv[12][0] =  -(1 - LCoord[2] * LCoord[2]);
     LDeriv[12][1] =  -(1 - LCoord[2] * LCoord[2]);
-    LDeriv[12][2] =  -2*LCoord[2] * (1 - LCoord[0] - LCoord[1]); 
+    LDeriv[12][2] =  -2*LCoord[2] * (1 - LCoord[0] - LCoord[1]);
 
     LDeriv[13][0] =  (1 - LCoord[2] * LCoord[2]);
     LDeriv[13][1] =  0;
@@ -204,7 +204,7 @@ namespace CoupledField
     LDeriv[14][2] = -2*LCoord[2] * LCoord[1];
 
   }
-  
+
 
 
 

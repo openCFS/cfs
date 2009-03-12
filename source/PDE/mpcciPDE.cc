@@ -6,7 +6,6 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/solveStepMpCCI.hh"
-#include "Forms/forms_header.hh"
 #include "CoupledPDE/pdecoupling.hh"
 
 #ifdef MpCCI
@@ -268,7 +267,7 @@ namespace CoupledField {
 
     std::string errMsg;
     StdVector<UInt> * nodes;
-    CFSVector * val;
+    SingleVector * val;
     UInt pdeNode;
     UInt k, couplingDof;
     UInt * nodeIds;
@@ -316,7 +315,7 @@ namespace CoupledField {
 
                     //Info->PrintF( pdename_, "pdeNode=%d \t (*nodes)[%d]=%d\n", pdeNode, j, (*nodes)[j] );
                   
-                    if(NodeBelongsToSD_(pdeNode,ii)==true)
+                    if(NodeBelongsToSD_[pdeNode][ii]==true)
                       {
                         nodeIds[k]=pdeNode;
                         for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
@@ -361,6 +360,9 @@ namespace CoupledField {
           case MAT:
             EXCEPTION(" No use for MAT coupling!" );
             break;
+          case GRID_VEL:
+            EXCEPTION(" No use for GRID_VEL coupling!" );
+            break;
           }  // end switch
       } // end for
   }
@@ -371,7 +373,7 @@ namespace CoupledField {
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes = NULL;
-    CFSVector * values = 0;
+    SingleVector * values = 0;
     UInt forcesCount = 0;
 
     std::string errMsg;
@@ -388,7 +390,7 @@ namespace CoupledField {
         Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
         Vector<Double> subdomForces;
 
-        temp->Init(0.0);
+        temp->Init();
 
         switch(ptCoupling_->GetOutputType(actCoupling))
           {
@@ -422,7 +424,7 @@ namespace CoupledField {
                 for (UInt ii=0; ii<subdoms_.GetSize(); ii++)
                   {
                     subdomForces.Resize(numOfNodesInSD_[ii] * ptCoupling_->GetInputDof(actCoupling));
-                    subdomForces.Init(0.0);
+                    subdomForces.Init();
                     nodeIds=new UInt[numOfNodesInSD_[ii]];
 #ifdef MpCCI
                     ptMpCCIexch_->GetNodalValOfOnePartition(ii+1 , subdomForces, numOfNodesInSD_[ii], localNodes_[ii], MpCCIType_);
@@ -503,25 +505,28 @@ namespace CoupledField {
     UInt i, j, k;
     UInt numOfSubdom=subdoms_.GetSize();
 
-    NodeBelongsToSD_.Resize(numPDENodes_+1, numOfSubdom);
-    NodeBelongsToSD_.Init(false);
+    
+    //NodeBelongsToSD_.Resize(numPDENodes_+1, numOfSubdom);
+    NodeBelongsToSD_.Resize(numPDENodes_+1);
 
     for (i=1; i<=numPDENodes_; i++)
+    {
+      NodeBelongsToSD_[i].Resize(numOfSubdom);
+      NodeBelongsToSD_[i].Init( false );
+      for (j=0; j<numOfSubdom; j++)
       {
-	for (j=0; j<numOfSubdom; j++)
-	  {
-	    for (k=0; k<numOfNodesInSD_[j]; k++)
-	      {
-		if(i==localNodes_[j][k])
-		  {
-		    NodeBelongsToSD_(i,j)=true;
-		    Info->PrintF( pdename_, "pdeNode:%d is in SD %d \t", i, j );
-		    break;
-		  }
-	      }
-	  }
-	Info->PrintF( pdename_, "\n");
+        for (k=0; k<numOfNodesInSD_[j]; k++)
+        {
+          if(i==localNodes_[j][k])
+          {
+            NodeBelongsToSD_[i][j]=true;
+            Info->PrintF( pdename_, "pdeNode:%d is in SD %d \t", i, j );
+            break;
+          }
+        }
       }
+      Info->PrintF( pdename_, "\n");
+    }
   }
 
 } // end of namespace

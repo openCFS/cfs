@@ -37,10 +37,10 @@ namespace CoupledField {
   private:
 
     //! static map for bits of quadrilateral faces
-    static Char quadBits[4][4];
+    static char quadBits[4][4];
     
     //! static map for bits of triangular face
-    static Char triaBits[3][3];
+    static char triaBits[3][3];
     
   };
 

@@ -20,7 +20,7 @@ namespace CoupledField
     // library, it is important to make sure that the object isn't 
     // copied.
     DynamicLibrary(const DynamicLibrary&) {}
-    DynamicLibrary& operator=(const DynamicLibrary&) {}
+    DynamicLibrary& operator=(const DynamicLibrary&) { return *this; }
     
     // Creates a new library, with the object file handle that is passed 
     // in. Protected so that only the DynamicLoader can create an 

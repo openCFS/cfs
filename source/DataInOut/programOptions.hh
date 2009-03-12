@@ -143,6 +143,8 @@ namespace CoupledField
     //! filled out by the user for a subsequent simulation run.
     bool GetWriteSkeleton() const;
 
+    //! Returns license path
+
     //! Return forceSegfault flag
 
     //! This method can be used to query the status of the forceSegFault flag.

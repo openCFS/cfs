@@ -6,12 +6,10 @@
 #define IDBC_HANDLER_VOID_HH
 
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "algsys/baseidbchandler.hh"
+#include "OLAS/algsys/baseidbchandler.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! Null version of the IDBC_Handler concept
@@ -66,8 +64,16 @@ namespace OLAS {
                                PdeIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
-                               Double realPart,
-                               Double imagPart = 0.0 ) {};
+                               const Double& val ) {};
+
+    //! Add weight of coupling between a fixed and a free dof into matrix
+    void AddWeightFixedToFree( FEMatrixType matID,
+                               PdeIdType pdeID1,
+                               PdeIdType pdeID2,
+                               UInt rowInd,
+                               UInt colInd,
+                               const Complex& val ) {};
+
 
     //! Set weight of coupling between a fixed and a free dof into matrix
     void SetWeightFixedToFree( FEMatrixType matID,
@@ -75,14 +81,26 @@ namespace OLAS {
                                PdeIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
-                               Double realPart,
-                               Double imagPart = 0.0 ) {};
+                               const Double& val ) {};
+
+    //! Set weight of coupling between a fixed and a free dof into matrix
+    void SetWeightFixedToFree( FEMatrixType matID,
+                               PdeIdType pdeID1,
+                               PdeIdType pdeID2,
+                               UInt rowInd,
+                               UInt colInd,
+                               const Complex& val ) {};
 
      //! Get weight of coupling between a fixed and a free dof from matrix
     void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double & realPart,Double & imagPar ) const  {};
-    
+                               Double & val ) const  {};
+
+    //! Get weight of coupling between a fixed and a free dof from matrix
+    void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
+                               PdeIdType pdeID2, UInt rowInd, UInt colInd,
+                               Complex & realPart ) const  {};
+
     //! Set the value of all coupling weights of a free dof to its fixed ones
     void SetRowWeights( FEMatrixType matID, PdeIdType pdeID, UInt rowInd,
                         Double realPart, Double imagPart = 0.0 ) {};

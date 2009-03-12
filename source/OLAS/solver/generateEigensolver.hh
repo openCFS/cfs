@@ -5,8 +5,8 @@
 #ifndef OLAS_GENERATE_EIGEN_SOLVER_HH
 #define OLAS_GENERATE_EIGEN_SOLVER_HH
 
-#include "utils/environment.hh"
-#include "utils/defs.hh"
+#include "General/environment.hh"
+#include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 using CoupledField::ParamNode;
 
@@ -14,7 +14,7 @@ using CoupledField::ParamNode;
 //! This module handles generation of Eigen solver objects. It is also
 //! responsible for the instantiation of the templated Eigen solvers.
 
-namespace OLAS {
+namespace CoupledField {
 
   // forward class declarations
   class BaseEigenSolver;

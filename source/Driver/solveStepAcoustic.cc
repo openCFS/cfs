@@ -13,6 +13,8 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
+#include "OLAS/algsys/basesystem.hh"
+
 namespace CoupledField {
 
   SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde, bool justInterpolate)
@@ -32,8 +34,6 @@ namespace CoupledField {
   void SolveStepAcoustic::StepTransNonLin() {
 
 
-    Double *solPtr;
-  
     UInt job;
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -72,8 +72,8 @@ namespace CoupledField {
     assemble_->AssembleLinRHS();
 
     // stores this as linear part of RHS
-    algsys_->GetRHSVal( solPtr );
-    StoreAlgsysToVec(RhsLinVal_, solPtr );
+    algsys_->GetRHSVal( RhsLinVal_ );
+    
 
     do {
       iterationCounter++;
@@ -101,7 +101,7 @@ namespace CoupledField {
         job = 3;
         
       // Set linear part of RHS
-      algsys_->InitRHS(RhsLinVal_.GetPointer());
+      algsys_->InitRHS( RhsLinVal_ );
         
       // put nonlinear part to RHS
       AddNonLinRHS();
@@ -115,8 +115,7 @@ namespace CoupledField {
       algsys_->Solve();
 
       // store new solution in newSol
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(newSol, solPtr );
+      algsys_->GetSolutionVal( newSol );
           
       // perform corrector step, if effective mass formulation is used,
       //   we need the Corrector step before we store newsol to sol_,
@@ -183,10 +182,10 @@ namespace CoupledField {
       RegionIdType actRegionId = subdoms_[actSD];
 
       // get material data
-      materialData_[actRegionId]->GetScalar(density,DENSITY,REAL);
-      materialData_[actRegionId]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+      materialData_[actRegionId]->GetScalar(density,DENSITY,Global::REAL);
+      materialData_[actRegionId]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
       c0 = sqrt(compressibility/density);
-      materialData_[actRegionId]->GetScalar(BoverA,BOVERA,REAL);
+      materialData_[actRegionId]->GetScalar(BoverA,BOVERA,Global::REAL);
 
       if ( regionNonLinType_[actRegionId] == WESTERVELT ) {
         rhsWest = std::auto_ptr<nLinWesterveltRHSInt>(new nLinWesterveltRHSInt( isaxi_));
@@ -233,8 +232,7 @@ namespace CoupledField {
           eqnMap_->GetNodeEqn( connect, connect_PDE );
           
           //assemble
-          algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), 
-                                 connect_PDE.GetSize());
+          algsys_->SetElementRHS( rhs, pdeId1_, connect_PDE );
         }
       }
     }
@@ -246,12 +244,10 @@ namespace CoupledField {
       assemble_->AssembleLinRHS();
       PDE_.ComputeRHS( actTime_ );
       
-      UInt length = 0;
-      
       // store rhs vector back to PDE
-      Double * rhsPt;
-      length = algsys_->GetRHSVal(rhsPt);
-      PDE_.SaveRHS( rhsPt, length );
+      Vector<Double> rhs;
+      algsys_->GetRHSVal(rhs);
+      PDE_.SaveRHS( rhs.GetPointer(), rhs.GetSize());
     }
     else {
       StdSolveStep::StepTransLin();

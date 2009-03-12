@@ -18,6 +18,7 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
+#include "DataInOut/WriteInfo.hh"
 
 #define WL( MSG ) \
 (*out_) << MSG << std::endl;
@@ -43,20 +44,16 @@ namespace CoupledField {
     std::string dummy;
     testfile >> dummy;
     if ( !dummy.empty() ) {
-      std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
-                << "xml-File is not empty: please change the name of your "
+      EXCEPTION("XML-file is not empty: please change the name of your "
                 << "current conf-file" << std::endl
-                << "\t \t \t \t before calling cfs with option -skel"
-                << std::endl<< std::endl ;
-      exit(1);
+                << "\t \t \t \t before calling cfs with option -skel");
     }
 
     // open the conf-file
     out_ = new std::ofstream( xmlFile.c_str() );
     if ( out_ == NULL ) {
-      (*error) << "Could not open XML-file '" << xmlFile
-               << "' for writing!\n";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Could not open XML-file '" << xmlFile
+               << "' for writing!");
     }
 
   }
@@ -195,8 +192,7 @@ namespace CoupledField {
       {
         //subdomains consists of 3d elements
         if (simInput_->GetNumElems(3) == 0)
-          Error( "3D-Problem specified, but no 3D-Elements in mesh-File",
-                 __FILE__,__LINE__);
+          EXCEPTION( "3D-Problem specified, but no 3D-Elements in mesh-File" );
 
         simInput_->GetRegionNamesOfDim(regionNames, 3);
       }
@@ -205,12 +201,11 @@ namespace CoupledField {
       {
         //subdomains consists of 2d elements
         if (simInput_->GetNumElems(2) == 0)
-          Error( "2D-Problem specified, but no 2D-Elements in mesh-File",
-                 __FILE__,__LINE__);
+          EXCEPTION( "2D-Problem specified, but no 2D-Elements in mesh-File" );
         simInput_->GetRegionNamesOfDim(regionNames, 2);
       }
     else
-      Error("Dimension of Problem not supported",__FILE__,__LINE__);
+      EXCEPTION("Dimension of Problem not supported");
 
 
     WL( Quote("Specify geometry and material information") );

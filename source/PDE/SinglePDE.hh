@@ -15,7 +15,6 @@
 #include "Domain/resultInfo.hh"
 #include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
-#include "pdememento.hh"
 #include "Utils/result.hh"
 
 namespace CoupledField
@@ -27,6 +26,7 @@ namespace CoupledField
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
+  class PDEMemento;
 
   
   //! Base class for all kinds of single field problems.
@@ -168,10 +168,10 @@ namespace CoupledField
     //! With this method the previous stored information can be set
     //! to the current PDE.
     //! \param memento (input) Previously saved state of the PDE
-    //! \param usage (input) Usage type of values (start-value / 
-    //!                      dirichlet value )
+    //! \param useAsDirichlet (input) Usage type of values (start-value / 
+             //!                      dirichlet value )
     void SetMemento( shared_ptr<PDEMemento>&  memento, 
-                     PDEMemento::ValueUsageType usage );
+                     bool useAsDirichlet );
                    
 
     //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
@@ -214,7 +214,7 @@ namespace CoupledField
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
-      Error( "Not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented" );
       
       // For compiler
       return *this;
@@ -435,7 +435,7 @@ namespace CoupledField
     shared_ptr<PDEMemento> memento_;
 
     //! usage type of memento
-    PDEMemento::ValueUsageType mementoUsage_;
+    bool mementoAsDirichlet_;
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;

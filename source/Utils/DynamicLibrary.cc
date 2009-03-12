@@ -1,3 +1,6 @@
+#include <iostream>
+#include <cstdlib>
+
 #include "DynamicLibrary.hh"
 
 namespace CoupledField
@@ -25,8 +28,10 @@ namespace CoupledField
       return 0;
     }
     // Load a new instance of the requested class, and return it
-    void* obj = 
-      ((void* (*)(const char*, int, void**))(loadSym))(name, argc, argv);
+    void* obj = 0;
+    std::cerr << "Loading of C++ object from DLL has to be reimplemented cleanly." << std::endl;
+    exit(1);
+    // obj = ((void* (*)(const char*, int, void**))(loadSym))(name, argc, argv);
     return reinterpret_cast<DynamicObject*>(obj);
   }
   

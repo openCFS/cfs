@@ -6,14 +6,18 @@
 #include <vector>
 #include <algorithm>
 
-#include "precond/ILDLPrecond/ildltpfactoriser.hh"
-#include "precond/ILDLPrecond/ildlprecond.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
+
+#include "OLAS/precond/ILDLPrecond/ildltpfactoriser.hh"
+#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 
 // Used during development phase
 // #define DEBUG_ILDLTPFACTORISER
 #define ILDLTPFACTORISER_SAFEGUARD
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
@@ -23,9 +27,8 @@ namespace OLAS {
   ILDLTPFactoriser<T>::ILDLTPFactoriser() {
 
 
-    (*error) << "Default constructor of ILDLTPFactoriser call was called! "
-             << "This constructor is forbidden!";
-    Error( __FILE__, __LINE__ );
+    EXCEPTION( "Default constructor of ILDLTPFactoriser call was called! "
+        << "This constructor is forbidden!" );
 
   }
 
@@ -85,24 +88,22 @@ namespace OLAS {
     // ======================
 
     // Problem size
-    this->sysMatDim_ = sysMat.GetNcols();
+    this->sysMatDim_ = sysMat.GetNumCols();
 
     // Dropping threshold
     Double tau = this->myParams_->GetDoubleValue( "ILDLPRECOND_tau" );
     if ( tau <= 0.0 || tau > 1.0 ) {
-      (*error) << "ILDLTPFactoriser::Factorise: Dropping threshold tau = "
+      EXCEPTION( "ILDLTPFactoriser::Factorise: Dropping threshold tau = "
                << tau << ", but should be in (0,1]. Check setting of "
-               << "ILDLPRECOND_tau parameter";
-      Error( __FILE__, __LINE__ );
+               << "ILDLPRECOND_tau parameter" );
     }
 
     // Maximal number of entries in a row
     UInt fillVal = this->myParams_->GetIntValue( "ILDLPRECOND_fillVal" );
     if ( fillVal <= 0 ) {
-      (*error) << "ILDLTPFactoriser::Factorise: fill value factor fillVal = "
+      EXCEPTION( "ILDLTPFactoriser::Factorise: fill value factor fillVal = "
                << fillVal << ", but should be positive integer. Check setting "
-               << "of ILDLPRECOND_fillVal parameter";
-      Error( __FILE__, __LINE__ );
+               << "of ILDLPRECOND_fillVal parameter" );
     }
 
     UInt entriesPerRow = (sysMat.GetNnz() - this->sysMatDim_);
@@ -182,8 +183,8 @@ namespace OLAS {
     // =================
     //  Get matrix data
     // =================
-    const Integer *cidxA = sysMat.GetColPointer();
-    const Integer *rptrA = sysMat.GetRowPointer();
+    const UInt *cidxA = sysMat.GetColPointer();
+    const UInt *rptrA = sysMat.GetRowPointer();
     const T *dataA = sysMat.GetDataPointer();
 
 
@@ -203,14 +204,14 @@ namespace OLAS {
     // Allocate memory for linked lists
     // (in future releases these will be attributes and (de-)allocation
     // will be handled by constructor/destructor)
-    UInt* scanList_   = New UInt[this->sysMatDim_ + 1];
-    UInt* activeList_ = New UInt[this->sysMatDim_ + 1];
-    UInt* listIDX_    = New UInt[this->sysMatDim_ + 1];
-    T*    listVAL_    = New   T [this->sysMatDim_ + 1];
-    AssertMem( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
+    UInt* scanList_   = new UInt[this->sysMatDim_ + 1];
+    UInt* activeList_ = new UInt[this->sysMatDim_ + 1];
+    UInt* listIDX_    = new UInt[this->sysMatDim_ + 1];
+    T*    listVAL_    = new   T [this->sysMatDim_ + 1];
+    ASSERTMEM( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
 
     // Generate markers for linked lists
     UInt scanListElem, scanListPrevElem;
@@ -238,7 +239,7 @@ namespace OLAS {
     // Generate array for keeping track of first entry in a rwo that
     // has a column index larger or equal to the current row index
     UInt *firstU_;
-    NewArray( firstU_, UInt, this->sysMatDim_ );
+    NEWARRAY( firstU_, UInt, this->sysMatDim_ );
 
     // First row starts with index 1 in CRS data array
     rptrU.push_back(1);
@@ -685,7 +686,7 @@ namespace OLAS {
     delete[] activeList_ ;
     delete[] listIDX_    ; 
     delete[] listVAL_    ;
-    DeleteArray( firstU_ );
+    DELETEARRAY( firstU_ );
 
 #ifdef DEBUG_ILDLTPFACTORISER
     (*debug) << std::endl;
@@ -827,8 +828,7 @@ namespace OLAS {
         // Since there is a tie, there must be several elements with the
         // value threshold in the list. Remove the last excess occurences
         if ( excess > (int) numTie ) {
-          (*error) << "Internal error. My master cannot program :(";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Internal error. My master cannot program :(" );
         }
         dropTie = numTie - excess;
 
@@ -872,8 +872,7 @@ namespace OLAS {
 
           std::cerr << "\n\n TIE still there!\n"
                   << "listLength = " << listLength << std::endl;
-          (*error) << "FUBAR!!!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "FUBAR!!!" );
         }
       }
 
@@ -890,5 +889,12 @@ namespace OLAS {
 
     }
   }
+  
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILDLTPFactoriser<Double>;
+  template class ILDLTPFactoriser<Complex>;
+#endif
+  
 }
 

@@ -327,7 +327,7 @@ namespace CoupledField {
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
-                                              CFSVector & val) const
+                                              SingleVector & val) const
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) 
@@ -351,9 +351,8 @@ namespace CoupledField {
     if( !solFound) {
       std::string solName;
       Enum2String( type, solName );
-      *error << "Solution type '" << solName
-             << "' is not contained in this solution object!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Solution type '" << solName
+                << "' is not contained in this solution object!");
     }
 
     UInt numDofs = actResult->dofNames.GetSize();
@@ -417,7 +416,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::SetNodalResult(const UInt nodeNr, const CFSVector &val)
+  void NodeStoreSol<TYPE>::SetNodalResult(const UInt nodeNr, const SingleVector &val)
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -438,7 +437,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::GetNodalResult(const UInt nodeNr, CFSVector &val) const
+  void NodeStoreSol<TYPE>::GetNodalResult(const UInt nodeNr, SingleVector &val) const
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -449,10 +448,10 @@ namespace CoupledField {
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, 
                                                        const UInt dof, 
-                                                       CFSVector & val) const
+                                                       SingleVector & val) const
   {
-    UInt solDof = (*solDofs_.find(type)).second;
 #ifdef CHECK_INITIALIZED
+    UInt solDof = (*solDofs_.find(type)).second;
 
     if (length_ == 0) 
       EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -493,7 +492,7 @@ namespace CoupledField {
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, 
-                                                       CFSVector & val) const{
+                                                       SingleVector & val) const{
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) {
       EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -581,9 +580,8 @@ namespace CoupledField {
     if( !solFound) {
       std::string solName;
       Enum2String( type, solName );
-      *error << "Solution type '" << solName
-             << "' is not contained in this solution object!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Solution type '" << solName
+                << "' is not contained in this solution object!");
     }  
 
     Integer eqnNr;
@@ -647,7 +645,7 @@ namespace CoupledField {
 
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::SetAlgSysVector(const CFSVector & val)
+  void NodeStoreSol<TYPE>::SetAlgSysVector(const SingleVector & val)
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Warning ("NodeStoreSol: Use of uninitialized object!", __FILE__, __LINE__);
@@ -666,7 +664,7 @@ namespace CoupledField {
   }
   
   template<class TYPE> 
-  void NodeStoreSol<TYPE>::GetAlgSysVector(CFSVector & val) const
+  void NodeStoreSol<TYPE>::GetAlgSysVector(SingleVector & val) const
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
@@ -677,13 +675,13 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(CFSVector* &ptrToVec)
+  void NodeStoreSol<TYPE>::GetAlgSysVectorPointer(SingleVector* &ptrToVec)
   {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) EXCEPTION("NodeStoreSol: Use of uninitialized object!" );
 #endif
 
-    ptrToVec = (CFSVector*) &data_;
+    ptrToVec = (SingleVector*) &data_;
   }
 
   template<class TYPE>
@@ -759,7 +757,7 @@ namespace CoupledField {
   ///////// Transformation Operations ///////// 
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::GetElemSolution(CFSVector & elemSol,
+  void NodeStoreSol<TYPE>::GetElemSolution(SingleVector & elemSol,
                                            const EntityIterator& it, 
                                            UInt solIndex ) const
   {
@@ -782,9 +780,9 @@ namespace CoupledField {
 
   
   template<class TYPE>
-  void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
+  void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(DenseMatrix & elemSol, 
                                                    const EntityIterator& it,
-                                                   UInt solIndex, const CFSVector* ext_data) const
+                                                   UInt solIndex, const SingleVector* ext_data) const
   {
 #ifdef CHECK_INITIALIZED
     if(ext_data != NULL) 
@@ -821,7 +819,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::NodeSolutionToCoupling(CFSVector & couplingSol,
+  void NodeStoreSol<TYPE>::NodeSolutionToCoupling(SingleVector & couplingSol,
                                                   const StdVector<UInt>& nodeNumbers,
                                                   UInt solIndex) const
   {

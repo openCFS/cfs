@@ -30,13 +30,24 @@
 #include <boost/filesystem/exception.hpp>
 
 
-#ifdef USE_MKL_LIB
+#ifdef USE_MKL
 #include <mkl_service.h>
+#endif
+
+#ifdef USE_ACML
+#include <acml.h>
 #endif
 
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
+#include "Utils/tools.hh"
+
+// Lapack version function interface
+extern "C" void ilaver_(int*,
+                        int*,
+                        int*);
+
 
 namespace CoupledField {
 
@@ -290,31 +301,30 @@ namespace CoupledField {
   fs::path ProgramOptions::GetSchemaPath() const
   {
     std::string schema;
+    fs::path schemaPath;
 
-
+    // If the user specified a path on the command line use it instead.
     if( varMap_.count( "schemaRoot" ) ) {
       schema = varMap_[ "schemaRoot" ].as<std::string>();
-    }
-    else if( varMap_.count( "root" ) ) {
-      std::string pathsep;
-      pathsep = fs::path("/").native_directory_string();
-
-      schema.append(varMap_[ "root" ].as<std::string>());
-      schema.append(pathsep);
-      schema.append("xml");
-    }
-    else
+    } else {
       schema = XMLSCHEMA;
+    }
+
+    // If none of the above paths exists, raise exception
+    if(!fs::exists(schema)) {
+      EXCEPTION( "Schema path '" << schema << "' does not exist!" );
+    }
 
     try
     {
-      fs::path schemaPath = fs::system_complete(schema);
+      schemaPath = fs::system_complete(schema);
       schemaPath.normalize();
-      return schemaPath;
     } catch (fs::filesystem_error& ex)
     {
       EXCEPTION(ex.what());
     }
+
+    return schemaPath;
   }
 
   std::string ProgramOptions::GetSchemaPathStr() const
@@ -399,9 +409,8 @@ namespace CoupledField {
     in->Get("forceSegFault")->SetValue(GetForceSegFault());
   }
 
-
   void ProgramOptions::GetVersionString( std::ostream & outstr,
-                                      bool colorise)
+                                         bool colorise)
   {
     bool colTmp = ColoredConsole::colorise;
     ColoredConsole::colorise = colorise;
@@ -453,9 +462,7 @@ namespace CoupledField {
 
            << "CMAKE_BUILD_TYPE:      "
            << fg_blue  << build_type << fg_reset << std::endl;
-
-    if(build_type == "DEBUG")
-    {
+#ifndef NDEBUG
       outstr << "COMPILE_FLAGS:       "
              << fg_blue  << CMAKE_CXX_FLAGS
              << " " << CMAKE_CXX_FLAGS_DEBUG << fg_reset << std::endl;
@@ -465,9 +472,7 @@ namespace CoupledField {
              << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
              << fg_reset
              << std::endl << std::endl;
-    }
-    else
-    {
+#else
       outstr << "COMPILE_FLAGS:       "
              << fg_blue  << CMAKE_CXX_FLAGS
              << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << std::endl;
@@ -476,8 +481,7 @@ namespace CoupledField {
              << fg_blue << CMAKE_EXE_LINKER_FLAGS
              << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
              << fg_reset << std::endl << std::endl;
-    }
-
+#endif
  #ifdef USE_ARPACK
     outstr << "USE_ARPACK:            "
            << fg_blue  << "YES" << fg_reset << std::endl;
@@ -489,40 +493,9 @@ namespace CoupledField {
  #ifdef USE_BLAS
     outstr << "USE_BLAS:              "
            << fg_blue  << "YES" << fg_reset << std::endl;
-#else
-    outstr << "USE_BLAS:              "
-           << fg_blue  << "NO" << fg_reset << std::endl;
-#endif
-
- #ifdef USE_LAPACK
-    outstr << "USE_LAPACK:            "
-           << fg_blue << "YES" << fg_reset << std::endl;
-#else
-    outstr << "USE_LAPACK:            "
-           << fg_blue << "NO" << fg_reset << std::endl;
-#endif
-
- #ifdef USE_ILUPACK
-    outstr << "USE_ILUPACK:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
- #else
-    outstr << "USE_ILUPACK:           "
-           << fg_blue  << "NO" << fg_reset << std::endl;
- #endif
-
- #ifdef USE_PARDISO
-    outstr << "USE_PARDISO:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
- #else
-    outstr << "USE_PARDISO:           "
-           << fg_blue << "NO" << fg_reset << std::endl;
- #endif
-
- #ifdef USE_MKL_LIB
-    outstr << std::endl
-           << "USE_MKL_LIB:           "
-           << fg_blue << "YES" << fg_reset << std::endl;
-
+    outstr << "BLAS_IMPLEMENTATION:   "
+           << fg_blue  << CFS_BLAS_LAPACK << fg_reset << std::endl;
+ #ifdef USE_MKL
     MKLVersion ver;
 
     MKLGetVersion(&ver);
@@ -540,9 +513,55 @@ namespace CoupledField {
            << std::endl;
 
     MKL_FreeBuffers();
+ #endif
+ #ifdef USE_ACML
+    Integer acml_major, acml_minor, acml_patch;
+
+    acmlversion(&acml_major, &acml_minor, &acml_patch);
+
+    outstr << "ACML_VERSION:          " << fg_blue
+           << acml_major << "."
+           << acml_minor << "."
+           << acml_patch << fg_reset
+           << std::endl;
+    acmlinfo();
+ #endif
+#else
+    outstr << "USE_BLAS:              "
+           << fg_blue  << "NO" << fg_reset << std::endl;
+#endif
+    outstr << std::endl;
+
+ #ifdef USE_LAPACK
+    outstr << "USE_LAPACK:            "
+           << fg_blue << "YES" << fg_reset << std::endl;
+    Integer major, minor, rev;
+    ilaver_(&major, &minor, &rev);
+    outstr << "LAPACK_VERSION:        "
+           << fg_blue << major << "." << minor << "." << rev
+           << fg_reset << std::endl;
+#else
+    outstr << "USE_LAPACK:            "
+           << fg_blue << "NO" << fg_reset << std::endl;
+#endif
+
+ #ifdef USE_ILUPACK
+    outstr << std::endl;
+    outstr << "USE_ILUPACK:           "
+           << fg_blue << "YES" << fg_reset << std::endl;
  #else
-    outstr << std::endl
-           << "USE_MKL_LIB:           "
+    outstr << "USE_ILUPACK:           "
+           << fg_blue  << "NO" << fg_reset << std::endl;
+ #endif
+
+ #ifdef USE_PARDISO
+    outstr << std::endl;
+    outstr << "USE_PARDISO:           "
+           << fg_blue << "YES" << fg_reset << std::endl;
+    outstr << "PARDISO_IMPL:          "
+           << fg_blue  << CFS_PARDISO << fg_reset << std::endl;
+ #else
+    outstr << "USE_PARDISO:           "
            << fg_blue << "NO" << fg_reset << std::endl;
  #endif
 
@@ -581,7 +600,7 @@ namespace CoupledField {
  #ifdef USE_SCRIPTING_PYTHON
     outstr << "USE_SCRIPTING_PYTHON:  "
            << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "CFS_PYTHON_VERSION:   "
+    outstr << "CFS_PYTHON_VERSION:    "
            << fg_blue << CFS_PYTHON_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_SCRIPTING_PYTHON:  "
@@ -691,11 +710,16 @@ namespace CoupledField {
   void ProgramOptions::GetHeaderString(std::ostream & out)
   {
     // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-    
-    out << "CFS++ " << CFS_VERSION << " '" << CFS_NAME << "'"
-        << " rev " << CFS_SUBVERSION_REV 
+    out << "============================================================"
+        << "===========" << std::endl;
+    out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
+        << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+        << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl 
         << " compiled " << __DATE__ 
-        << " as " << CMAKE_BUILD_TYPE << std::endl << std::endl;
+        << " as " << CMAKE_BUILD_TYPE << std::endl; 
+    out << "============================================================"
+        << "==========="
+        << std::endl << std::endl;
   }
   
   

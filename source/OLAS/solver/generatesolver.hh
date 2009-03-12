@@ -5,16 +5,20 @@
 #ifndef OLAS_GENERATESOLVER_HH
 #define OLAS_GENERATESOLVER_HH
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
-
-using CoupledField::ParamNode;
+#include "General/environment.hh"
 
 //! \file generatesolver.hh
 //! This module handles generation of solver objects. It is also responsible
 //! for the instantiation of the templated solvers.
 
-namespace OLAS {
+namespace CoupledField {
 
+  class BaseSolver;
+  class BaseMatrix;
+  class ParamNode;
+  class OLAS_Params;
+  class OLAS_Report;
+  
   //! Generate a basic solver object
 
   //! This method will generate a BaseSolver solver object that fits

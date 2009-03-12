@@ -5,13 +5,19 @@
 #ifndef OLAS_SSORPRECOND_HH
 #define OLAS_SSORPRECOND_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
+#include <def_expl_templ_inst.hh>
 
-#include "precond/baseprecond.hh"
-#include "precond/bnprecond.hh"
+#include "baseprecond.hh"
+#include "bnprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  template<typename> class Vector;
+  template<typename> class CRS_Matrix;
+  class StdMatrix;
+  class OLAS_Params;
+  class OLAS_Report;
+  
 
   //! SSOR preconditioner
 
@@ -25,14 +31,17 @@ namespace OLAS {
 
   public:
 
+    using BNPrecond<SSORPrecond<T>,CRS_Matrix<T>,T>::Apply;
+    using BNPrecond<SSORPrecond<T>,CRS_Matrix<T>,T>::Setup;
+
     //! Typename of matrix entries (=T)
-    typedef typename assocType<T>::T_Mtype T_Mtype;
+    typedef typename AssocType<T>::T_Mtype T_Mtype;
 
     //! Tiny vector of the same dimension as matrix block
-    typedef typename assocType<T>::T_Vtype T_Vtype;
+    typedef typename AssocType<T>::T_Vtype T_Vtype;
 
     //! Scalar of the same primitive data type as matrix
-    typedef typename assocType<T>::T_Stype T_Stype;
+    typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Matrix class associated with this preconditioner
     typedef CRS_Matrix<T> MyMatrixClass;
@@ -89,8 +98,7 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     SSORPrecond(){
-      Error( "Default constructor of SSORPrecond should never be called!",
-	     __FILE__, __LINE__ );
+      EXCEPTION( "Default constructor of SSORPrecond should never be called!" );
     };
  
     //! Array containing inverses of diagonal entries of system matrix
@@ -105,8 +113,10 @@ namespace OLAS {
 
   };
 
-
-
 }//namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ssorprecond.cc"
+#endif
 
 #endif // OLAS_SSORPRECOND_HH

@@ -2,6 +2,7 @@
 #define FILE_FILEREADER_ANSYS_2008
 
 #include <def_cplreader.hh>
+
 #include "cplreader/FileReader.hh"
 
 namespace CoupledField
@@ -48,8 +49,8 @@ namespace CoupledField
     bool GetNextLine(std::string& line);
 
     virtual void ResortNodes(std::vector<UInt>& elemNodes);
-    virtual void DegenerateElement(const FEType elemTypeIn,
-                                   FEType& elemTypeOut,
+    virtual void DegenerateElement(const Elem::FEType elemTypeIn,
+                                   Elem::FEType& elemTypeOut,
                                    std::vector<UInt>& elemNodes);
 
     // Checks if connectivities of two elements match.

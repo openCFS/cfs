@@ -5,20 +5,20 @@
 #ifndef ILUPACK_HH
 #define ILUPACK_HH
 
-#include "utils/environment.hh"
-#include "solver/basesolver.hh"
+#include <def_expl_templ_inst.hh>
+
+#include "General/environment.hh"
+#include "OLAS/solver/basesolver.hh"
 
 #include "General/Enum.hh"
-
-using CoupledField::Enum;
 
 // include the original ilupack header
 extern "C"
 {
-   #include "ilupack.h" 
+   #include <ilupack.h> 
 }
 
-namespace OLAS 
+namespace CoupledField 
 {
   class BaseMatrix;  
   class BaseVector;
@@ -29,7 +29,7 @@ namespace OLAS
   class Ilupack : public BaseIterativeSolver 
   {
   public:
-    Ilupack(ParamNode* param, OLAS_Report *myReport, MatrixEntryType type);
+    Ilupack(ParamNode* param, OLAS_Report *myReport, BaseMatrix::EntryType type);
 
     ~Ilupack();
 
@@ -328,5 +328,9 @@ namespace OLAS
   };
 
 } // end of namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "Ilupack.cc"
+#endif
 
 #endif

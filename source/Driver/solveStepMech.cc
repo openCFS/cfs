@@ -5,6 +5,7 @@
 #include "solveStepMech.hh"
 #include "assemble.hh"
 #include "PDE/StdPDE.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
 
@@ -91,9 +92,9 @@ namespace CoupledField {
     }
     algsys_->Solve();
 
-    Double* ptsol;
-    UInt length = algsys_->GetSolutionVal(ptsol);
-    PDE_.SaveSolution(ptsol,length);
+    Vector<Double> solHelp;
+    algsys_->GetSolutionVal(solHelp);
+    PDE_.SaveSolution(solHelp.GetPointer(), solHelp.GetSize());
    
     if( isIterCoupled == false ) {
       Vector<Double> & solHelp = 

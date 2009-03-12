@@ -64,9 +64,8 @@ namespace CoupledField
       
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-        (*error) << "BDBInt::CalcElementMatrix: Encountered "
-                 << "negative Jacobian determinant!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "BDBInt::CalcElementMatrix: Encountered "
+                 << "negative Jacobian determinant!" );
       }
 
       // Special things must be done in the axi-symmetric case
@@ -86,12 +85,12 @@ namespace CoupledField
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1];
-      for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
         ptr1 =  bMat[k];
         ptr2 = dbMat[k];
-        for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
+        for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
           aux = fac * ptr1[i];
-          for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+          for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
             elemMat[i][j] += aux * ptr2[j];
           }
         }
@@ -137,15 +136,13 @@ namespace CoupledField
         }
 
         if (isaxi_) {
-          Error("nLinMagHystInt::calcBMat for axisymmetric case not implemented",
-                __FILE__, __LINE__ );
+          EXCEPTION("nLinMagHystInt::calcBMat for axisymmetric case not implemented");
         }
         break;
 
 
       case 3:
-        Error("nLinMagHystInt::calcBMat for 3D case not implemented",
-              __FILE__, __LINE__ );
+        EXCEPTION("nLinMagHystInt::calcBMat for 3D case not implemented");
         break;
       }
 
@@ -212,7 +209,7 @@ namespace CoupledField
 
     isSolDependent_ = true;
 
-    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     reluctivity0_ = 7.9577E+05;
 

@@ -189,11 +189,11 @@ piezoParamIdent::~piezoParamIdent() {
 
 void piezoParamIdent::SolveProblem(bool write_results,
     const std::string& comment) {
-  
+
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();
-  
+
   DirectCoupledPDE* ptCoupledPDE = domain->GetDirectCoupledPDE();
 
   // Section added by ahauck July 4th
@@ -325,8 +325,8 @@ void piezoParamIdent::SolveProblem(bool write_results,
   y_hat_.Init();
   F_hat_.Init();
   s_.Init();
-  scaling_.Init(0.0);
-  scalingC_.Init(0.0);
+  scaling_.Init();
+  scalingC_.Init();
   parameter_new_.Init();
 
   ptPDE_->WriteGeneralPDEdefines();
@@ -431,7 +431,7 @@ void piezoParamIdent::SolveProblem(bool write_results,
           <<std::endl;
       std::cerr<<" Choose either nuMethods=8 in your input file or "<<std::endl;
       std::cerr<<" use only real - valued parameters "<<std::endl;
-      
+
     }
     std::cout<<"++ Newton - nu Methods "<<std::endl;
     UInt nrNuMethods=0;
@@ -753,10 +753,10 @@ void piezoParamIdent::SolveProblem(bool write_results,
 
   // notify resultHandler about finishing of current sequence step
   if (CalcImpedanceCurve_ == true|| CalcMechDisplCurve_ == true) {
-    resHandler->FinishMultiSequenceStep();  
+    resHandler->FinishMultiSequenceStep();
     resHandler->Finalize();
   }
-  
+
 }// End solveProblem
 
 
@@ -777,9 +777,9 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
   piezoTensor.Resize(3, 6);
   permTensor.Resize(3, 3);
 
-  stiffTensor.Init(0);
-  piezoTensor.Init(0);
-  permTensor.Init(0);
+  stiffTensor.Init();
+  piezoTensor.Init();
+  permTensor.Init();
 
   subdomsMech_ = ptPDE1_->getPDE_subdoms();
 
@@ -850,9 +850,9 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
       permTensor[1][1] = parameter_[9]; //eps_33
     }
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, REAL);
-    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL);
-    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, REAL);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, Global::REAL);
+    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, Global::REAL);
+    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, Global::REAL);
   }
 
   // Materialparameteridentifizierung fuer eine piezoelektrische Keramik
@@ -949,11 +949,11 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
       permTensor[1][1] = parameter_[9]; //eps_33
     }
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, REAL);
-    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL);
-    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, REAL);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, Global::REAL);
+    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, Global::REAL);
+    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, Global::REAL);
 
-    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaption, MECH_STIFFNESS_TENSOR, REAL);
+    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaption, MECH_STIFFNESS_TENSOR, Global::REAL);
   }
 
   // Materialparameteridentifizierung fuer eine piezoelektrische Keramik,
@@ -1050,12 +1050,12 @@ void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_) {
     }
 
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, REAL);
-    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, REAL);
-    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, REAL);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensor, PIEZO_TENSOR, Global::REAL);
+    ptMaterialMech_[actId]->SetTensor(stiffTensor, MECH_STIFFNESS_TENSOR, Global::REAL);
+    ptMaterialElec_[actId]->SetTensor(permTensor, ELEC_PERMITTIVITY, Global::REAL);
 
-    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaption, MECH_STIFFNESS_TENSOR, REAL);
-    ptMaterialMech_[actId2]->SetTensor(stiffTensorBacking, MECH_STIFFNESS_TENSOR, REAL);
+    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaption, MECH_STIFFNESS_TENSOR, Global::REAL);
+    ptMaterialMech_[actId2]->SetTensor(stiffTensorBacking, MECH_STIFFNESS_TENSOR, Global::REAL);
   }
 
 } // end updateMaterialData
@@ -1071,9 +1071,9 @@ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_) {
   piezoTensorC.Resize(3, 6);
   permTensorC.Resize(3, 3);
 
-  stiffTensorC.Init(0);
-  piezoTensorC.Init(0);
-  permTensorC.Init(0);
+  stiffTensorC.Init();
+  piezoTensorC.Init();
+  permTensorC.Init();
 
   UInt dim=ptPDE1_->getPDE_spaceDim();
   subdomsMech_ = ptPDE1_->getPDE_subdoms();
@@ -1135,9 +1135,9 @@ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_) {
     // Get first regionId of mechanic pde
     RegionIdType actId = subdomsMech_[0];
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, IMAG);
-    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, IMAG);
-    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, IMAG);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, Global::IMAG);
+    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, Global::IMAG);
+    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, Global::IMAG);
 
   }
 
@@ -1235,11 +1235,11 @@ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_) {
       permTensorC[1][1] = parameterC_[9]; //eps_33
     }
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, IMAG);
-    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, IMAG);
-    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, IMAG);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, Global::IMAG);
+    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, Global::IMAG);
+    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, Global::IMAG);
 
-    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaptionC, MECH_STIFFNESS_TENSOR, IMAG);
+    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaptionC, MECH_STIFFNESS_TENSOR, Global::IMAG);
   }
 
   // Materialparameteridentifizierung fuer eine piezoelektrische Keramik,
@@ -1337,12 +1337,12 @@ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_) {
 
 
 
-    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, IMAG);
-    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, IMAG);
-    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, IMAG);
+    ptMaterialPiezo_[actId]->SetTensor(piezoTensorC, PIEZO_TENSOR, Global::IMAG);
+    ptMaterialMech_[actId]->SetTensor(stiffTensorC, MECH_STIFFNESS_TENSOR, Global::IMAG);
+    ptMaterialElec_[actId]->SetTensor(permTensorC, ELEC_PERMITTIVITY, Global::IMAG);
 
-    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaptionC, MECH_STIFFNESS_TENSOR, IMAG);
-    ptMaterialMech_[actId2]->SetTensor(stiffTensorBackingC, MECH_STIFFNESS_TENSOR, IMAG);
+    ptMaterialMech_[actId1]->SetTensor(stiffTensorAdaptionC, MECH_STIFFNESS_TENSOR, Global::IMAG);
+    ptMaterialMech_[actId2]->SetTensor(stiffTensorBackingC, MECH_STIFFNESS_TENSOR, Global::IMAG);
   }
 
 } // end updateComplexMaterialData
@@ -1387,14 +1387,14 @@ void piezoParamIdent::writeTensorsInFile() {
   RegionIdType actId = subdomsMech_[0];
 
   if(ptPDE1_->getPDE_spaceDim()==3){
-    ptMaterialPiezo_[actId]->GetTensor(piezoMatC, PIEZO_TENSOR, COMPLEX, FULL);
-    ptMaterialMech_[actId]->GetTensor(stiffMatC, MECH_STIFFNESS_TENSOR, COMPLEX, FULL);
-    ptMaterialElec_[actId]->GetTensor(permMatC, ELEC_PERMITTIVITY, COMPLEX, FULL);
+    ptMaterialPiezo_[actId]->GetTensor(piezoMatC, PIEZO_TENSOR, Global::COMPLEX, FULL);
+    ptMaterialMech_[actId]->GetTensor(stiffMatC, MECH_STIFFNESS_TENSOR, Global::COMPLEX, FULL);
+    ptMaterialElec_[actId]->GetTensor(permMatC, ELEC_PERMITTIVITY, Global::COMPLEX, FULL);
   }
   else {
-    ptMaterialPiezo_[actId]->GetTensor(piezoMatC, PIEZO_TENSOR, COMPLEX, AXI);
-    ptMaterialMech_[actId]->GetTensor(stiffMatC, MECH_STIFFNESS_TENSOR, COMPLEX, AXI);
-    ptMaterialElec_[actId]->GetTensor(permMatC, ELEC_PERMITTIVITY, COMPLEX, AXI);
+    ptMaterialPiezo_[actId]->GetTensor(piezoMatC, PIEZO_TENSOR, Global::COMPLEX, AXI);
+    ptMaterialMech_[actId]->GetTensor(stiffMatC, MECH_STIFFNESS_TENSOR, Global::COMPLEX, AXI);
+    ptMaterialElec_[actId]->GetTensor(permMatC, ELEC_PERMITTIVITY, Global::COMPLEX, AXI);
   }
 
   Matrix<Complex> sE;
@@ -1404,7 +1404,7 @@ void piezoParamIdent::writeTensorsInFile() {
     sE.Resize(4,4);
 
   sE.Init();
-  for (UInt i=0; i<sE.GetSizeRow(); i++)
+  for (UInt i=0; i<sE.GetNumRows(); i++)
     sE[i][i]=Complex(1.0, 0.0);
 
 #ifdef USE_LAPACK
@@ -1423,7 +1423,7 @@ void piezoParamIdent::writeTensorsInFile() {
   *allTensors_<<"Piezoelectric Coupling Tensor e = "<<std::endl;
   *allTensors_<<piezoMatC<<std::endl;
 
-  Matrix<Complex> d(piezoMatC.GetSizeRow(), piezoMatC.GetSizeCol());
+  Matrix<Complex> d(piezoMatC.GetNumRows(), piezoMatC.GetNumCols());
   d.Init();
   d=piezoMatC*sE;
   *allTensors_<<"Piezoelectric Coupling Tensor d = "<<std::endl;
@@ -1432,7 +1432,7 @@ void piezoParamIdent::writeTensorsInFile() {
   *allTensors_<<"Permittivity Tensor epsS = "<<std::endl;
   *allTensors_<<permMatC<<std::endl;
 
-  Matrix<Complex> epsT(permMatC.GetSizeRow(),permMatC.GetSizeRow() );
+  Matrix<Complex> epsT(permMatC.GetNumRows(),permMatC.GetNumRows() );
   Matrix<Complex> epsTrans;
   piezoMatC.Transpose(epsTrans);
 
@@ -1501,10 +1501,9 @@ void piezoParamIdent::writeTensorsInFile() {
       default:
         std::string damp;
         Enum2String( samplingType_, damp );
-        (*error) << "HarmonicDriver::ComputeNextFrequency: '"
-                 << damp
-                 << "' is not supported as sampling type";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "HarmonicDriver::ComputeNextFrequency: '"
+                   << damp
+                   << "' is not supported as sampling type" );
       }
     }
 

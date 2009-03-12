@@ -12,23 +12,22 @@
 #include "Forms/SurfaceNormalInt.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/result.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Driver/assemble.hh"
 #include "Driver/baseSolveStep.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/olas.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/matvec/basematrix.hh"
-#include "OLAS/matvec/stdmatrix.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
 
 #include <string>
 
 using namespace CoupledField;
 
-using OLAS::StdMatrix;
 using std::complex;
 
 DECLARE_LOG(conditions)
@@ -128,14 +127,14 @@ BiLinFormContext* SIMP::CreateSurfaceNormalMatrix(SinglePDE* pde, BaseMaterial* 
   return bilifc;
 }
 
-void SIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* out)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out)
 {
   if(harmonic) SetElementK<std::complex<double> >(de, app, out);
   else SetElementK<double>(de, app, out);
 }
 
 template <class T>
-void SIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out)
 {
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
@@ -150,7 +149,7 @@ void SIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out)
   case MECH:
   {
     const Matrix<double> mechStiffness = MechStiffness(de->elem);
-    out.Resize(mechStiffness.GetSizeRow(), mechStiffness.GetSizeCol());
+    out.Resize(mechStiffness.GetNumRows(), mechStiffness.GetNumCols());
 
     // Find the transferfunction for K (e.g. DENSITY, MECH)
     TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
@@ -187,7 +186,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
   const Matrix<double>& M = MechMass(de->elem);
-  assert(S.GetSizeRow() == M.GetSizeRow() && S.GetSizeCol() == M.GetSizeCol());
+  assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega
   double omega = 2.0 * M_PI * mech->GetSolveStep()->GetActFreq() ;  // todo: check with multiple excitation frequencies!
@@ -218,14 +217,14 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
   }
 
   // we first add the K part of C (= pure imaginary)
-  for(unsigned int r = 0; r < S.GetSizeRow(); r++)
-    for(unsigned int c = 0; c < S.GetSizeCol(); c++)
+  for(unsigned int r = 0; r < S.GetNumRows(); r++)
+    for(unsigned int c = 0; c < S.GetNumCols(); c++)
       S[r][c] = complex<double>(S[r][c].real(), omega * alpha_k * S[r][c].real());
 
   // we the add the M part of C and the real mass part
   complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*alpha_m*m_factor);
-  for(unsigned int r = 0; r < S.GetSizeRow(); r++)
-    for(unsigned int c = 0; c < S.GetSizeCol(); c++)
+  for(unsigned int r = 0; r < S.GetNumRows(); r++)
+    for(unsigned int c = 0; c < S.GetNumCols(); c++)
       S[r][c] += damp_mass * M[r][c];
 
   LOG_DBG2(simp) << "AddMassToStiffness: m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m
@@ -247,17 +246,17 @@ double SIMP::CalcRadiation()
 
   // Make an OLAS Vector and feed it with the solution vector
   Vector<complex<double> >& sol   = *(forward.data[idx]->GetComplexPointer(Solution::RAW_VECTOR, MECH));
-  OLAS::Vector<complex<double> > olas_sol;
+  Vector<complex<double> > olas_sol;
   // OLAS is one based!!
   olas_sol.Replace(sol.GetSize(), sol.GetPointer()-1, false);
 
   // The result is also an olas vector
-  OLAS::Vector<complex<double> > olas_prod;
+  Vector<complex<double> > olas_prod;
   olas_prod.Resize(olas_sol.GetSize());
 
   // multiply (S_n U)
   snm->Mult(olas_sol, olas_prod);
-  LOG_DBG(simp) << "radiation objective: ||S_n*U||=" << olas_prod.NormEuclid();
+  LOG_DBG(simp) << "radiation objective: ||S_n*U||=" << olas_prod.NormL2();
 
   // scalar product U (S_n U)
   complex<double>  tsp;
@@ -279,7 +278,7 @@ double SIMP::CalcRadiation()
 }
 
 template <class T>
-void SIMP::CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod, Excitation& excite)
+void SIMP::CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod, Excitation& excite)
 {
   // get surface normal matrix
   StdMatrix* snm = assemble_->GetAlgSys()->GetSysMat(AUXILIARY);
@@ -288,7 +287,7 @@ void SIMP::CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod, Excitation
 
   // Make an OLAS Vector and feed it with the solution vector
   Vector<T>& sol   = dynamic_cast<Vector<T>& >(*forward.data[excite.index]->raw[MECH]);
-  OLAS::Vector<T> olas_sol;
+  Vector<T> olas_sol;
   // OLAS is one based!!
   olas_sol.Replace(sol.GetSize(), sol.GetPointer()-1, false);
   LOG_DBG3(simp) << "Solution 'backcasted' to OLAS::Vector -> " << olas_sol.ToString();
@@ -298,7 +297,7 @@ void SIMP::CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod, Excitation
 
   // multiply (S_n U)
   snm->Mult(olas_sol, olas_prod);
-  LOG_DBG(simp) << "||S_n*U||=" << olas_prod.NormEuclid();
+  LOG_DBG(simp) << "||S_n*U||=" << olas_prod.NormL2();
   LOG_DBG3(simp) << "S_n * U -> " << olas_prod.ToString();
 }
 
@@ -356,11 +355,11 @@ void SIMP::AdjustComplexAdjointRHS(Excitation& excite)
   // the rhs for radiation is S_n * U
 
   // We have to use an OLAS Vector here
-  OLAS::Vector<std::complex<double> > rhs;
+  Vector<std::complex<double> > rhs;
   CalcSurfaceNormalTimesSolution(rhs, excite); // does S_n * U as we also need it in the objective
 
   // rhs is OLAS 1-based but handles this internally
-  assemble_->GetAlgSys()->InitRHS(const_cast<const OLAS::Vector<std::complex<double> >* >(&rhs));
+  assemble_->GetAlgSys()->InitRHS(rhs);
 }
 
 SurfaceRef::SurfaceRef()
@@ -429,7 +428,7 @@ bool SurfaceRef::Init(DesignSpace* design, Optimization::Application app)
   assert(vec == NULL);
   // copy the first nodes dofs
   Vector<T>* vt = new Vector<T>(dof);
-  // vec is the base CFSVector which has no abstact operators overloaded
+  // vec is the base SingleVector which has no abstact operators overloaded
   vec = vt;
   for(int i = 0; i < dof; i++) (*vt)[i] = full[i];
 

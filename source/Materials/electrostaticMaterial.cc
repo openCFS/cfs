@@ -71,7 +71,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::SetScalar( Double param, MaterialType matType, 
-					 DataType dataType ) {
+					 Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -83,10 +83,10 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	val = Complex ( param, 0.0 );
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
 	val = Complex ( 0.0, param );
 	isComplex_.insert( matType );
       }
@@ -101,7 +101,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::SetScalar( Complex param, MaterialType matType, 
-					 DataType dataType ) {
+					 Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -113,14 +113,14 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	val = param.real();
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
 	val = param.imag();
 	isComplex_.insert( matType );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	val = param;
 	isComplex_.insert( matType );
       }
@@ -131,7 +131,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-					 DataType dataType ) {
+					 Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -141,13 +141,13 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == REAL || dataType == IMAG ) {
-	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
+	if ( tensorParams_[matType].GetNumRows() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
 	}
-	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
 	}
 
@@ -155,7 +155,7 @@ namespace CoupledField
 	tensorParamsOrig_[matType].SetPart( dataType, param );
 
 	// to be consistent to old structure
-	if ( dataType == REAL ) {
+	if ( dataType == Global::REAL ) {
 	  scalarParams_[matType] = Complex( param[2][2], 0.0);
 	}
 	else {
@@ -171,7 +171,7 @@ namespace CoupledField
   }
 
   void ElectroStaticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-					 DataType dataType ) {
+					 Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -182,7 +182,7 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
 
-      if ( dataType != COMPLEX ) {
+      if ( dataType != Global::COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
@@ -215,7 +215,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::GetScalar( Double& param, MaterialType matType, 
-					   DataType dataType ) const {
+					   Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -227,10 +227,10 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	param = val.real();
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
 	param = val.imag();
       }
       else {
@@ -242,7 +242,7 @@ namespace CoupledField
 
 
   void ElectroStaticMaterial::GetScalar( Complex& param, MaterialType matType, 
-					 DataType dataType ) const {
+					 Global::ComplexPart dataType ) const {
 
 
 
@@ -255,15 +255,15 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	Complex valReal = Complex (val.real(), 0.0);
 	param = valReal;
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
 	Complex valImag = Complex (0.0, val.imag());
 	param = valImag;
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = val;
       }
     }    
@@ -289,7 +289,7 @@ namespace CoupledField
 
   void ElectroStaticMaterial::GetTensor( Matrix<Double>& param, 
 					 MaterialType matType, 
-					 DataType dataType,
+					 Global::ComplexPart dataType,
 					 SubTensorType subTensor) const {
 
 
@@ -310,7 +310,7 @@ namespace CoupledField
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
       
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	param = matTensor.GetPart( dataType );
       }
       else {
@@ -322,7 +322,7 @@ namespace CoupledField
 
   void ElectroStaticMaterial::GetTensor( Matrix<Complex>& param, 
 					 MaterialType matType, 
-					 DataType dataType,
+					 Global::ComplexPart dataType,
 					 SubTensorType subTensor) const {
     
 
@@ -342,13 +342,13 @@ namespace CoupledField
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	Matrix<Double> help; 
 	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
 	param.SetPart( dataType, help );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = matTensor;
       }
     }
@@ -389,7 +389,7 @@ namespace CoupledField
     Double dY = Ycurrent -Yprevious_[idx];
 
     if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
-      GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+      GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
       matDiff = eps;
     }
     else {

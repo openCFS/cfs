@@ -137,7 +137,7 @@ void PiezoSIMP::CalcObjectiveGradient(Excitation& excite)
 }
 
 template <class T>
-void PiezoSIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out)
+void PiezoSIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out)
 {
   TransferFunction* tf = design->GetTransferFunction(de->GetType(), app);
   double factor = tf->Derivative(de);
@@ -154,7 +154,7 @@ void PiezoSIMP::SetElementK(DesignElement* de, Application app, CFSMatrix* mat_o
   {
     const Matrix<double>& coupledStiffness = CoupledStiffness(de->elem);
     // we see on the size of in if we cave to be transposed!
-    if(out.GetSizeCol() == coupledStiffness.GetSizeCol())
+    if(out.GetNumCols() == coupledStiffness.GetNumCols())
       Assign(out, coupledStiffness, factor);
     else
       Assign(out, CoupledStiffnessTransposed(de->elem), factor);

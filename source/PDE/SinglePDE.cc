@@ -1,6 +1,8 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+#include <boost/serialization_hdf5/hdf5_oarchive.hpp>
+#include <boost/serialization_hdf5/hdf5_iarchive.hpp>
 
 #include "PDE/SinglePDE.hh"
 
@@ -11,6 +13,9 @@
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
+
+#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/standardsys.hh"
 
 // header for scripting
 #include <def_use_scripting.hh>
@@ -35,7 +40,8 @@
 #include "CoupledPDE/pdecoupling.hh"
 
 // header for memento/restart handling
-#include "Utils/boost-serialization.hh"
+#include "MatVec/vectorSerialization.hh"
+#include "pdememento.hh"
 
 // header for resultHandling
 #include "DataInOut/resultHandler.hh"
@@ -44,7 +50,7 @@
 #include "DataInOut/postProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
-#include "Forms/forms_header.hh"
+#include "Forms/linearForm.hh"
 
 namespace CoupledField {
 
@@ -326,7 +332,7 @@ namespace CoupledField {
     // as "dirichlet"-values from a previous simulation run
     // (e.g. obtained from a previous static run)
     if( memento_ != NULL
-        && mementoUsage_ == PDEMemento::DIRICHLET_VALUE ) {
+        && mementoAsDirichlet_ == true ) {
       IncorporateMemento();
     }
 
@@ -428,10 +434,9 @@ namespace CoupledField {
 
     SETPROFILE("Before Resizing StoreSol");
     if(!isDirectCoupled_ ) {
-      solVec_->Resize( eqnMap_->GetNumEqns() );
-      rhsVec_->Resize( eqnMap_->GetNumEqns() );
-      solVec_->SetToZero();
-      rhsVec_->SetToZero();
+      solVec_->Resize( eqnMap_->GetNumEqns(), true );
+      rhsVec_->Resize( eqnMap_->GetNumEqns(), true );
+
       SETPROFILE("After Resizing StoreSol");
       if ( analysistype_ == HARMONIC ) {
         sol_->SetAlgSysDataPointer(solVec_->GetSize(),
@@ -1886,13 +1891,14 @@ namespace CoupledField {
       algsys_->GraphSetupDone();
 
       // obtain reordering of the matrix graph and pass it to the EQN-object.
-      Integer *newOrder = algsys_->GetReordering( pdeId_ );
-      eqnMap_->ReorderMapping( &newOrder );
+      StdVector<UInt> newOrder;
+      algsys_->GetReordering( pdeId_, newOrder );
+      eqnMap_->ReorderMapping( newOrder );
     }
 
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
-    algsys_->SetBlockSize( pdeId_, 1 );
+    //algsys_->SetBlockSize( pdeId_, 1 );
 
     UInt numDir = eqnMap_->GetNumInHomDirichletEqns() +
       numCouplingBcs_;
@@ -1913,7 +1919,7 @@ namespace CoupledField {
       // as "start"-values from a previous simulation run
       // (e.g. obtained from a previous static run)
       if( memento_ != NULL
-          && mementoUsage_ == PDEMemento::START_VALUE ) {
+          && mementoAsDirichlet_ ==  false) {
         IncorporateMemento();
       }
     }
@@ -2046,7 +2052,7 @@ namespace CoupledField {
 
     std::string errMsg;
     StdVector<UInt> * nodes;
-    CFSVector * val;
+    SingleVector * val;
     Integer eqnNr;
     UInt couplingDof;
 
@@ -2099,7 +2105,7 @@ namespace CoupledField {
                                    eqnNr );
             }
 
-#ifdef DEBUG
+#ifndef NDEBUG
             /*
             else if ( eqnNr > maxAllowedEqn ) {
               (*debug) << "SinglePDE::CalcInputCoupling: "
@@ -2220,9 +2226,25 @@ namespace CoupledField {
                   << "'!" );
      }
 
+#if 0
+     // START OF HDF5 SERIALIZATION DEMO!
+     H5::H5File* h5file = new H5::H5File( std::string("SinglePDE.h5").c_str(), H5F_ACC_TRUNC );
+
+     boost::archive::hdf5_oarchive ho(h5file);
+     // test compression
+     ho.set_compression(6);
+     //     ho << BOOST_SERIALIZATION_NVP(temp);
+     ho << BOOST_SERIALIZATION_NVP(simName);
+     std::vector<UInt> test(3);
+     test[0] = 5;
+     test[1] = 17;
+     test[2] = 894;
+     // ho << BOOST_SERIALIZATION_NVP(test);
+     delete h5file;
+     // END OF HDF5 SERIALIZATION DEMO!
+#endif
 
      boost::archive::binary_oarchive outArchive(writeTo);
-
      GetMemento(memento_);
      PDEMemento const & temp = *memento_;
      outArchive << temp;
@@ -2251,7 +2273,7 @@ namespace CoupledField {
       shared_ptr<PDEMemento> myMemento (new PDEMemento );
       inArchive >> *myMemento;
       readRestart.close();
-      SetMemento( myMemento, PDEMemento::START_VALUE );
+      SetMemento( myMemento, false );
 
       startStep = myMemento->GetRestartStep();
     } else  {
@@ -2388,7 +2410,7 @@ namespace CoupledField {
 
 
   void SinglePDE::SetMemento( shared_ptr<PDEMemento>& memento,
-                              PDEMemento::ValueUsageType usage) {
+                              bool mementoAsDirichlet ) {
 
     if( isInitialized_ == true ) {
       EXCEPTION( "SetMemento may only be called, if the method "
@@ -2396,7 +2418,7 @@ namespace CoupledField {
     }
 
     memento_ = memento;
-    mementoUsage_ = usage;
+    mementoAsDirichlet_ = mementoAsDirichlet;
   }
 
   void SinglePDE::IncorporateMemento( ) {
@@ -2555,7 +2577,7 @@ namespace CoupledField {
     } else if ( analysistype_ == HARMONIC ) {
 
       // check value-usage type
-      if( mementoUsage_ != PDEMemento::DIRICHLET_VALUE ) {
+      if( mementoAsDirichlet_ != true) {
         EXCEPTION( "For an harmonic simulation only the usage "
                    << "of a memento as Drichlet values makes sense!" );
       }
@@ -2651,7 +2673,7 @@ namespace CoupledField {
     UInt numDofs = actDof.dofNames.GetSize();
     EntityIterator it = res->GetEntityList()->GetIterator();
 
-    if( res->GetEntryType() == EntryType::DOUBLE ) {
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
 
       // === TRANSIENT CASE ===
       const Vector<Double>& (TimeStepping::*fct) () const;
@@ -2885,7 +2907,7 @@ namespace CoupledField {
     out.clear();
     out << "PML for region '" << ptgrid_->RegionIdToName(actRegion) << "':" << std::endl;
 
-    if ( inner.GetSizeCol() != dim_ ) {
+    if ( inner.GetNumCols() != dim_ ) {
 
       //we have to compute it, since the user has not specified it
       inner.Resize(2,dim_);
@@ -2901,7 +2923,7 @@ namespace CoupledField {
 
             Matrix<Double> ptCoord;
             ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-            for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
+            for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
               //minInnerX
               if ( ptCoord[0][i] < inner[0][0] )
                 inner[0][0] = ptCoord[0][i];
@@ -2946,11 +2968,11 @@ namespace CoupledField {
     }
 
 
-    outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
+    outer.Resize(inner.GetNumRows(),inner.GetNumCols());
     // set outer boundary values to max-value of acoustic propagation region
     outer[0][0] = outer[1][0] = inner[1][0];
     outer[0][1] = outer[1][1] = inner[1][1];
-    if (inner.GetSizeCol() > 2 ) {
+    if (inner.GetNumCols() > 2 ) {
       outer[0][2] = outer[1][2] = inner[1][2];
     }
 
@@ -2962,7 +2984,7 @@ namespace CoupledField {
 
       Matrix<Double> ptCoord;
       ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-      for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
+      for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
         //minXPML
         if ( ptCoord[0][i] < outer[0][0] )
           outer[0][0] = ptCoord[0][i];
@@ -2971,7 +2993,7 @@ namespace CoupledField {
         if ( ptCoord[1][i] < outer[0][1] )
           outer[0][1] = ptCoord[1][i];
 
-        if (inner.GetSizeCol() > 2 ) {
+        if (inner.GetNumCols() > 2 ) {
           //minZPML
           if ( ptCoord[2][i] < outer[0][2] )
             outer[0][2] = ptCoord[2][i];
@@ -2985,7 +3007,7 @@ namespace CoupledField {
         if ( ptCoord[1][i] > outer[1][1] )
           outer[1][1] = ptCoord[1][i];
 
-        if (inner.GetSizeCol() > 2 ) {
+        if (inner.GetNumCols() > 2 ) {
           //maxZPML
           if ( ptCoord[2][i] > outer[1][2] )
             outer[1][2] = ptCoord[2][i];

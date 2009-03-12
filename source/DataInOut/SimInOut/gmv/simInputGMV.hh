@@ -38,8 +38,8 @@ namespace CoupledField {
     std::vector< UInt > mElementMaterials;
     std::vector< UInt > mElementIds;
     std::vector< UInt > mVertexIds;
-    std::vector< std::string > mMatNames;
-    std::vector< RegionIdType > mMatNums;
+    StdVector< std::string > mMatNames;
+    StdVector< RegionIdType > mMatNums;
     std::map< std::string, GridLabelInfo > mGridLabels;
     std::vector< UInt > mCycleNos;
     std::vector< Double > mProbTimes;
@@ -49,9 +49,9 @@ namespace CoupledField {
       SimInputGMV(std::string fileName, ParamNode * inputNode);
     virtual ~SimInputGMV();
 
-    virtual void InitModule(Grid *mi);
+    virtual void InitModule();
 
-    virtual void ReadMesh();
+    virtual void ReadMesh(Grid *mi);
     
     // =======================================================================
     // GENERAL MESH INFORMATION
@@ -131,3 +131,5 @@ namespace CoupledField {
   }; 
 
 } 
+
+#endif

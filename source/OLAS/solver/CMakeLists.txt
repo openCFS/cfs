@@ -1,9 +1,24 @@
 # Make sure the compiler can find include files
 INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
 
-SET(SOLVER_SRCS generatesolver.cc generateEigensolver.cc)
+SET(SOLVER_SRCS
+    basesolver.cc
+    generateEigensolver.cc    
+    generatesolver.cc
+    )
 
-ADD_DEFINITIONS()
+IF(EXPLICIT_TEMPLATE_INSTANTIATION)
+SET(SOLVER_SRCS
+    ${SOLVER_SRCS}
+    cgsolver.cc
+    diagsolver.cc
+    gmres.cc
+    ldlsolver.cc
+    lusolver.cc
+    minres.cc
+    richardson.cc
+    )
+ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(solver-olas STATIC ${SOLVER_SRCS})
 

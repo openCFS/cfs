@@ -5,21 +5,22 @@
 #include "magforceop.hh"
 #include <string>
 #include "Domain/elem.hh"
+#include "Elements/basefe.hh"
 #include "Domain/grid.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include "PDE/StdPDE.hh"
 #include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
-  
+
   template<class TYPE>
   MagLorentzForceOp<TYPE>::MagLorentzForceOp(Grid * ptGrid,
                                        StdPDE * ptPDE,
                                        shared_ptr<EqnMap> eqnMap,
                                        NodeStoreSol<TYPE> & magPotential,
-                                       bool isaxi, bool coordUpdate) 
+                                       bool isaxi, bool coordUpdate)
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
 
@@ -28,8 +29,7 @@ namespace CoupledField
                                          magPotential, coordUpdate);
     curlFieldOp_->Set2DType(isaxi);
     if ( ptGrid->GetDim() != 2 ) {
-      Error( "Currently MagLorentzForceOp just working for 2D problems",
-             __FILE__, __LINE__ );
+      EXCEPTION("Currently MagLorentzForceOp just working for 2D problems");
     }
   }
 
@@ -37,7 +37,7 @@ namespace CoupledField
   MagLorentzForceOp<TYPE>::~MagLorentzForceOp()
   {
 
-    if (curlFieldOp_) 
+    if (curlFieldOp_)
       delete curlFieldOp_;
   }
 
@@ -54,16 +54,16 @@ namespace CoupledField
 
     UInt Dim, NumNodes, NumIntPoints;
 
-    BaseFE *elem = ent.GetElem()->ptElem;    
+    BaseFE *elem = ent.GetElem()->ptElem;
     Dim = elem->GetDim();
 
     NumNodes = elem->GetNumNodes();
     NumIntPoints = elem->GetNumIntPoints();
     Ip = elem->GetIntPoints();
- 
+
     //resize F and set to zero
     F.Resize(NumNodes,Dim);
-    F.Init(0);
+    F.Init();
 
     // Get element coordinates
     ptGrid_->GetElemNodesCoord( CornerCoords, ent.GetElem()->connect,
@@ -87,18 +87,18 @@ namespace CoupledField
       {
         // Calculate B-Field
         curlFieldOp_->CalcElemCurlNode(B, ent, Ip[nIp-1]);
-      
+
         Vector<Double> shpFncAtIp;
         elem->GetShFncAtIp(shpFncAtIp, nIp, ent.GetElem() );
-        TYPE JeddyAtIp =  shpFncAtIp * Jeddy;     
- 
+        TYPE JeddyAtIp =  shpFncAtIp * Jeddy;
+
         if (isaxi_)
           {
             Vector<Double> coordAtIP;
             elem->GetShFncAtIp(shpFncAtIp, nIp, ent.GetElem());
             coordAtIP = CornerCoords * shpFncAtIp;
             factor = 2 * PI * coordAtIP[0];
-          }     
+          }
 
         Double jacDet = elem->
           CalcJacobianDetAtIp(nIp, CornerCoords, ent.GetElem() );
@@ -143,15 +143,15 @@ namespace CoupledField
   template class  MagLorentzForceOp<Complex>;
 #endif
 
-  //---------------------------- VWP ----------------------------------------------------- 
+  //---------------------------- VWP -----------------------------------------------------
   MagForceOp::MagForceOp(Grid * ptGrid,
                          StdPDE * ptPDE,
                          shared_ptr<EqnMap> eqnMap,
                          NodeStoreSol<Double> & sol,
                          UInt dim,
                          std::map<RegionIdType,BaseMaterial*>& matData,
-                         bool isaxi, bool coordUpdate ) 
-    : BaseForceOp(ptGrid, ptPDE,  eqnMap, sol, dim, 
+                         bool isaxi, bool coordUpdate )
+    : BaseForceOp(ptGrid, ptPDE,  eqnMap, sol, dim,
                   matData, isaxi, coordUpdate )
   {
 
@@ -165,27 +165,27 @@ namespace CoupledField
   MagForceOp::~MagForceOp()
   {
 
-    if (curlFieldOp_) 
+    if (curlFieldOp_)
       delete curlFieldOp_;
   }
 
 
-  void MagForceOp::ComputeField(Vector<Double> & Field, 
+  void MagForceOp::ComputeField(Vector<Double> & Field,
                                 const EntityIterator& ent,
                                 const Vector<Double> & lCoord)
   {
 
     curlFieldOp_->CalcElemCurlNode(Field, ent,lCoord);
-  } 
+  }
 
   Double MagForceOp::GetMatVal(RegionIdType actRegion)
   {
 
     Double reluctivity;
-    materials_[actRegion]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+    materials_[actRegion]->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
 
     return reluctivity;
-  } 
+  }
 
 
 } // end of namespace CoupledField

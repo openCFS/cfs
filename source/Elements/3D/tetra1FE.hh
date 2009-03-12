@@ -22,8 +22,8 @@ namespace CoupledField
     virtual ~Tetra1FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_TET4;
+    virtual Elem::FEType feType() {
+      return Elem::TET4;
     };
 
   protected:
@@ -38,7 +38,7 @@ namespace CoupledField
     void SetEdgeIndices();
     
     //! return number of knowns
-    void GetNumFncs(Vector<UInt>& numFcns,  
+    void GetNumFncs(StdVector<UInt>& numFcns,  
                     const shared_ptr<AnsatzFct>& fcnType, 
                     AnsatzFct::FctEntityType fctEntityType, 
                     UInt dof);

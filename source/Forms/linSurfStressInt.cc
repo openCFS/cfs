@@ -44,9 +44,8 @@ namespace CoupledField {
    
     // Get related surface element
     if( surfElems_.find(ent.GetElem() ) == surfElems_.end() ) {
-      *error << "Could not find matching surface element for "
-             << "volume element " << ent.GetElem()->elemNum;
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Could not find matching surface element for "
+             << "volume element " << ent.GetElem()->elemNum );
     }
 
     SurfElem const * surf = surfElems_[ent.GetElem()];

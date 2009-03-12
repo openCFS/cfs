@@ -7,7 +7,8 @@
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
-#include "Forms/forms_header.hh"
+#include "nLinPiezoCoupling.hh"
+#include "mechStressStrain.hh"
 
 
 namespace CoupledField {
@@ -84,7 +85,7 @@ namespace CoupledField {
       dirP_ = dir;
 
       // get maximum of polarization
-      matDataElec_->GetScalar(Psat_, Y_SATURATION, REAL);
+      matDataElec_->GetScalar(Psat_, Y_SATURATION, Global::REAL);
 
     }
   }
@@ -150,9 +151,8 @@ namespace CoupledField {
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-        (*error) << "ADBInt::CalcElementMatrix: Encountered "
-                 << "negative Jacobian determinant!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("ADBInt::CalcElementMatrix: Encountered "
+                 << "negative Jacobian determinant!");
       }
 
       // Special things must be done in the axi-symmetric case
@@ -175,18 +175,18 @@ namespace CoupledField {
       }
 
       // Compute the matrix product D * B and store as intermediate matrix
-      dbMat.Resize( dMat.GetSizeRow(), bMat.GetSizeCol() );
+      dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
       dMat.Mult( bMat, dbMat );
 
       // We now compute A * D * B and scale it by the determinant
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix
-      for ( UInt i = 0; i < aMat.GetSizeRow(); i++ ) {
-        for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+      for ( UInt i = 0; i < aMat.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
 
           // Compute entry (i,j) of A * D * B
           aux = 0.0;
-          for ( UInt k = 0; k < aMat.GetSizeCol(); k++ ) {
+          for ( UInt k = 0; k < aMat.GetNumCols(); k++ ) {
             aux += aMat[i][k] * dbMat[k][j];
           }
 
@@ -210,7 +210,7 @@ namespace CoupledField {
     matMatrix.Transpose(dMat);
 
     Matrix<Double> stiffMat;
-    matDataMech_->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR,REAL);
+    matDataMech_->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR,Global::REAL);
 
     Matrix<Double> xiDx;
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord,  it1_.GetElem());
@@ -248,7 +248,7 @@ namespace CoupledField {
       mechStrainOp->CalcStrainVec(TempBu,1,ent1_);
       
       
-      Vector<Double> stressVec(stiffMat.GetSizeRow());
+      Vector<Double> stressVec(stiffMat.GetNumRows());
       stressVec.Init();
       stressVec = stiffMat * TempBu;	
       
@@ -272,7 +272,7 @@ namespace CoupledField {
           if(nonLinCoeff==33)
             dMat[2][2]+=0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[2][2];
           else
-            Error("The nonlinear parameter dependency is not known", __FILE__, __LINE__);
+            EXCEPTION("The nonlinear parameter dependency is not known");
         }
         else if (nonLinApproxType=="smoothSplines")
 	  {
@@ -284,7 +284,7 @@ namespace CoupledField {
 	    }
 	  }
 	else
-	  Error("The nonlinear approximation type is not known", __FILE__, __LINE__);
+	  EXCEPTION("The nonlinear approximation type is not known");
       }
 
       else if(nonLinDepend=="elecField"){
@@ -296,7 +296,7 @@ namespace CoupledField {
 	  if(nonLinCoeff==33)
 	    dMat[2][2]+=0.01*(eFieldSum + 0.02*eFieldSum*eFieldSum)*dMat[2][2];
 	  else
-	    Error("The nonlinear parameter dependency is not known", __FILE__, __LINE__);
+	    EXCEPTION("The nonlinear parameter dependency is not known");
 	}
 	else if (nonLinApproxType=="smoothSplines")
 	  {
@@ -309,12 +309,12 @@ namespace CoupledField {
 	    }
 	  }
 	else
-	  Error("The nonlinear approximation type is not known", __FILE__, __LINE__);
+	  EXCEPTION("The nonlinear approximation type is not known");
       }
       else{
 	std::cout<<"The data dependency you have chosen is " << nonLinDepend <<std::endl;
 	std::cout<<"(If this is true, check if there is a blank in font of choice) " <<std::endl;
-	Error("Nonlinear dependency not implemented here", __FILE__, __LINE__);
+	EXCEPTION("Nonlinear dependency not implemented here");
       }
     }
 

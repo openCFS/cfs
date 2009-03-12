@@ -9,7 +9,7 @@
 #include "Utils/StdVector.hh"
 #include "Domain/resultInfo.hh"
 #include "Domain/bcs.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
@@ -40,7 +40,7 @@ namespace CoupledField {
     EqnMap( Grid* ptGrid, PdeIdType, bool usePenalty);
     
     //! Destructor
-    ~EqnMap();
+    virtual ~EqnMap();
     
     // ======================================================================
     // SET AND INITIALIZATION METHODS
@@ -81,7 +81,7 @@ namespace CoupledField {
     //!   object, we re-set order to NULL in this method.
     //! - For the sake of a low memory foot-print we delete the permutation
     //!   buffer once the reordering was incorporated
-    virtual void ReorderMapping( Integer **order );
+    virtual void ReorderMapping( const StdVector<UInt>& order );
     
     //@}
     // ======================================================================

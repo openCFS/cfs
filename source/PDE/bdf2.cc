@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/algsys/basesystem.hh"
 #include "bdf2.hh"
 
 namespace CoupledField
@@ -97,7 +98,7 @@ namespace CoupledField
 
     // mass part
     coeffMass = (sol_tn_1_*a0_) - (sol_tn_2_*a1_);
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
     LOG_DBG(bdf2) << "\n coeffMass: \n" << coeffMass << std::endl;
   }
 

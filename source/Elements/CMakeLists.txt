@@ -18,4 +18,5 @@ ADD_LIBRARY(elements STATIC ${ELEMENTS_SRCS})
 TARGET_LINK_LIBRARIES(elements
   paramh
   logging
+  matvec
 )

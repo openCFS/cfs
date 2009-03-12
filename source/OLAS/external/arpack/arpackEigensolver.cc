@@ -2,19 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "arpackEigensolver.hh"
-#include "arpackSolver.cc"
-
 #include <limits>
-#include "solver/solver.hh"
-#include "precond/precond.hh"
-#include "matvec/matvec.hh"
+#include <string.h>
 
-namespace OLAS {
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-  ArpackEigenSolver::ArpackEigenSolver( ParamNode * xml, 
-                                        OLAS_Params *myParams, 
-                                        OLAS_Report *myReport ) 
+#include "OLAS/precond/generateprecond.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/basesolver.hh"
+
+#include "arpackEigensolver.hh"
+
+namespace CoupledField {
+
+  ArpackEigenSolver::ArpackEigenSolver( ParamNode * xml,
+                                        OLAS_Params *myParams,
+                                        OLAS_Report *myReport )
     : BaseEigenSolver( myParams, myReport ){
 
     interface_    = NULL;
@@ -23,15 +29,15 @@ namespace OLAS {
     matrixD_      = NULL;
     arpackSolver_ = NULL;
     solver_       = NULL;
-    precond_      = NULL;    
+    precond_      = NULL;
     which_        = NULL;
     xml_          = xml;
-    
-    shiftAndInvert_ = FALSE;
+
+    shiftAndInvert_ = false;
   }
-  
+
   ArpackEigenSolver::~ArpackEigenSolver() {
-    
+
     delete solver_;
     delete precond_;
     delete interface_;
@@ -53,29 +59,29 @@ namespace OLAS {
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
     if ( matrixA_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
-    }
-    
-    matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
-    if ( matrixB_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
 
-    UInt size = matrixA_->GetNrows();
-    
+    matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
+    if ( matrixB_ == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    UInt size = matrixA_->GetNumRows();
+
     // Save frequency parameters
     numFreq_ = numFreq;
     freqShift_ = freqShift;
-    
+
     // NOTE: Hard coded as true!!!
     shiftAndInvert_ = true;
 
     // Create matrix interface for arpack
-    interface_ = New ArpackMatInterface( matrixA_, matrixB_, shiftAndInvert_, freqShift_ );
+    interface_ = new ArpackMatInterface( matrixA_, matrixB_, shiftAndInvert_, freqShift_ );
 
     // Create solver class
-    arpackSolver_ = New ArpackSolver();
-    
+    arpackSolver_ = new ArpackSolver();
+
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = (myParams_->GetStringValue( "ARPACK_which" ));
     which_ = new char[whichString.size()+1];
@@ -99,7 +105,7 @@ namespace OLAS {
         arpackSolver_->SetNumVectors(numVec);
 
     // Check trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == TRUE ) {
+    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
        arpackSolver_->DebugOn();
     }
 
@@ -116,19 +122,18 @@ namespace OLAS {
     // Create preconditioner
     PrecondType precond;
     myParams_->GetEnumValue("Precond", precond);
-    
+
     // Perform check, if matrix is std or sbm
-    if ( matrixA_->GetStructureType() == STDMATRIX ) {
+    if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
       precond_ = GenerateStdPrecondObject( mat, precond,
                                            myParams_, myReport_ );
     } else {
-      (*error) << "No preconditioner available for SBM-matrices!";
-      Error( __FILE__, __LINE__ );      
+      EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
-    
+
     // Setup matrixinterface
-    interface_->Setup( solver_, precond_ ); 
+    interface_->Setup( solver_, precond_ );
 
   }
 
@@ -146,58 +151,57 @@ namespace OLAS {
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
     if ( matrixA_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
-    
+
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
     if ( matrixB_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
-    
-    matrixD_ = & dynamic_cast<const StdMatrix&>(dampMat);    
+
+    matrixD_ = & dynamic_cast<const StdMatrix&>(dampMat);
     if ( matrixD_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
 
-    // COMPWARNING unused variable UInt size = matrixA_->GetNrows();
+    // UInt size = matrixA_->GetNumRows(); // TODO: Check if this is still needed
 
-    // Now generate a new complex matrix 
-    MatrixEntryType eType = COMPLEX;
-    MatrixStorageType sType = matrixA_->GetStorageType();
-    Integer dof = matrixA_->GetBlockSize();
-    Integer nrows = matrixA_->GetNrows();
-    Integer ncols = matrixA_->GetNcols();
-    Integer fill = matrixA_->GetNnz(); // not really needed for 
-    StdMatrix * newComplexMat = GenerateStdMatrixObject( eType, sType, dof,
+    // Now generate a new complex matrix
+    BaseMatrix::EntryType eType = BaseMatrix::COMPLEX;
+    BaseMatrix::StorageType sType = matrixA_->GetStorageType();
+    Integer nrows = matrixA_->GetNumRows();
+    Integer ncols = matrixA_->GetNumCols();
+    Integer fill = matrixA_->GetNnz(); // not really needed for
+    StdMatrix * newComplexMat = GenerateStdMatrixObject( eType, sType,
                                                          nrows, ncols, fill );
     // Copy sparsity pattern
     matrixA_->CopySparsityPattern( *newComplexMat );
 
-    // Now "add" the double matrix (e.g. matrixA_) to the entries of 
+    // Now "add" the double matrix (e.g. matrixA_) to the entries of
     // newComplexMat
     newComplexMat->Add( 1.0, *matrixA_ );
 
-    // Print original double matrix into .las file
-    matrixA_->Print( *cla );
+//    // Print original double matrix into .las file
+//    *cla << matrixA_->ToString();
+//
+//    // Print complex matrix into .las file
+//    *cla << newComplexMat->ToString();
 
-    // Print complex matrix into .las file
-    newComplexMat->Print( *cla );
-    
 
     exit(-1);
 
     // ... TO BE IMPLEMENTED ...
-    
+
  }
-  
+
   UInt ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol,
                                                 BaseVector &err) {
-    
+
     // Find the eigenvalues and calculate the eigenvectors
     UInt numEVs = arpackSolver_->FindEigenvalues();
 
 
-    
+
     // Save eigenvalues
     // if non-negative eigenvalue, convert to eigenfrequency
 
@@ -206,9 +210,9 @@ namespace OLAS {
       Vector<Double> & solConverted = dynamic_cast<Vector<Double>&>(sol);
       solConverted.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i+1] = arpackSolver_->Eigenvalue(i);
-        if (solConverted[i+1] >= 0.0)
-          solConverted[i+1] = sqrt(solConverted[i+1])/(8.0*atan(1.0));
+        solConverted[i] = arpackSolver_->Eigenvalue(i);
+        if (solConverted[i] >= 0.0)
+          solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
       }
     } else {
       // case2: quadratic problem
@@ -220,26 +224,26 @@ namespace OLAS {
     Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
     errVec.Resize( numEVs );
     for (UInt i = 0; i < numEVs; i++ ) {
-        errVec[i+1] = arpackSolver_->Tolerance(i);
+        errVec[i] = arpackSolver_->Tolerance(i);
     }
 
     // Return number of converged eigenvalues
     return numEVs;
   }
- 
+
   void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Double> & mode ) {
-    
-    UInt size = matrixA_->GetNrows();
+
+    UInt size = matrixA_->GetNumRows();
     mode.Resize( size );
     mode.Init();
 
     for ( UInt i = 0; i < size; i++ ) {
-        mode[i+1] = (arpackSolver_->GetEigenvector( modeNr ))[i];
-    }    
+        mode[i] = (arpackSolver_->GetEigenvector( modeNr ))[i];
+    }
   }
 
   void ArpackEigenSolver::PrintInfo() {
-    
+
     (*cla) << " -------------------------------------------------------"
            << "-----------------------\n"
            << " ARPACK Eigenvalue Solver - Information\n\n";
@@ -258,11 +262,11 @@ namespace OLAS {
            << " eigenvalues\n";
 
     // 'which'-settings
-    (*cla) << " Searching for eigenvalues with '" 
+    (*cla) << " Searching for eigenvalues with '"
            << arpackSolver_->GetWhich() << "'\n";
-    
+
     // Shift-And-Invert info
-    if ( shiftAndInvert_ == TRUE ) {
+    if ( shiftAndInvert_ == true ) {
       (*cla) << " Applying Shift-And-Invert mode with shift of "
              << arpackSolver_->GetShift() << "\n";
     } else {
@@ -270,19 +274,19 @@ namespace OLAS {
     }
 
     // Tolerance, number of arnoldi vectors, number of Iterations
-    (*cla) << " Using tolerance of " 
+    (*cla) << " Using tolerance of "
             << arpackSolver_->GetTol() << "\n";
-    (*cla) << " Maximum number of iterations: " 
+    (*cla) << " Maximum number of iterations: "
            << arpackSolver_->GetMaxit() << "\n";
-    (*cla) << " Maximum number of Arnoldi vectors: " 
+    (*cla) << " Maximum number of Arnoldi vectors: "
            << arpackSolver_->GetNcv() << "\n";
 
     // Trace settings
-    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == TRUE ) {
+    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
       (*cla) << " Logging activated\n";
     }
     (*cla) << " -------------------------------------------------------"
            << "-----------------------\n\n";
   }
-  
+
 }

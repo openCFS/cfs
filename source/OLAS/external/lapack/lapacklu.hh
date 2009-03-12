@@ -5,12 +5,10 @@
 #ifndef LAPACK_LU_HH
 #define LAPACK_LU_HH
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "solver/basesolver.hh"
-#include "external/lapack/lapackgbmatrix.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "lapackgbmatrix.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! This class implements the interface to LAPACK's LU decomposition.
 

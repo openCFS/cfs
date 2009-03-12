@@ -43,7 +43,9 @@
     #if defined(_UNICODE) || defined(UNICODE)
     #define _T(x)      L ## x
     #else
-    #define _T(x)      x
+    #ifndef _T
+      #define _T(x)      x
+    #endif
     #endif
 #endif
 

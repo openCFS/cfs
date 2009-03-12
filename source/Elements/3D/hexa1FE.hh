@@ -24,8 +24,8 @@ namespace CoupledField
     virtual ~Hexa1FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_HEXA8;
+    virtual Elem::FEType feType() {
+      return Elem::HEXA8;
     };
 
   protected:
@@ -44,24 +44,24 @@ namespace CoupledField
     //! calculates the shape functions at an arbitrary local point
     /*!
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
-      \param LCoord (input) Local coordinates of evalutation point 
+      \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcShapeFnc( Vector<Double> & LShape, 
+    virtual void CalcShapeFnc( Vector<Double> & LShape,
                                const Vector<Double> & LCoord,
                                const Elem* elem , UInt dof,
                                AnsatzFct::FctEntityType );
 
 
-  
+
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
       \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
       N_{2,d\xi} & N_{2,d\eta} & \cdots \\
       \cdots     & \cdots      & \cdots \end{array}\right) \f]
-      \param LCoord (input) Local coordinates of evalutation point 
+      \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+    virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                         const Vector<Double> & LCoord,
                                         const Elem* elem , UInt dof,
                                         AnsatzFct::FctEntityType );
@@ -72,14 +72,14 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
       N_{2,d\xi} & N_{2,d\eta} & \cdots \\
       \cdots     & \cdots      & \cdots \end{array}\right) \f]
-      \param LCoord (input) Local coordinates of evalutation point 
+      \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcLocalICModesDerivShapeFnc(Matrix<Double> & LDeriv, 
+    virtual void CalcLocalICModesDerivShapeFnc(Matrix<Double> & LDeriv,
 					       const Vector<Double> & LCoord,
 					       const Elem* elem, UInt dof,
 					       AnsatzFct::FctEntityType = AnsatzFct::ALL );
 
-    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */
     void SetDefaultIntegration()
     {
         IntegMethod = CLASSICAL;
@@ -88,20 +88,20 @@ namespace CoupledField
         //        IntegOrder  = 5; // 4+5 is same -> avoid warning
     }
 
-    /** Sets the default reduced integration */ 
+    /** Sets the default reduced integration */
     void SetDefaultReducedIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 1; 
+        IntegOrder  = 1;
     }
 
 
     void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
                        bool setIntPoints = true );
 
-    void GetNumFncs(Vector<UInt>& numFcns, 
-                    const shared_ptr<AnsatzFct>& fcnType, 
-                    AnsatzFct::FctEntityType fctEntityType, 
+    void GetNumFncs(StdVector<UInt>& numFcns,
+                    const shared_ptr<AnsatzFct>& fcnType,
+                    AnsatzFct::FctEntityType fctEntityType,
                     UInt dof = 1);
 
 
@@ -142,12 +142,12 @@ namespace CoupledField
 
   private:
 
-    virtual void CalcSpectralShFct( Vector<Double> & Shape, 
+    virtual void CalcSpectralShFct( Vector<Double> & Shape,
                                     const Vector<Double> & LCoord,
                                     const Elem* elem, UInt dof,
                                     AnsatzFct::FctEntityType type );
 
-    virtual void CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+    virtual void CalcSpectralDerivFct( Matrix<Double> & LDeriv,
                                        const Vector<Double> & LCoord,
                                        const Elem* elem, UInt dof,
                                        AnsatzFct::FctEntityType type);
@@ -188,7 +188,6 @@ namespace CoupledField
 
     Vector<Double> * ShFnc2AtIp_; //!< shape functions for edge elements at IPs
     Matrix<Double> * ShFnc2DerivAtIp_; //!< deivative of  shape functions for edge elements at IPs
-
   };
 
 }

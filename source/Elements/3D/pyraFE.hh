@@ -26,8 +26,8 @@ namespace CoupledField
     virtual ~PyraFE(); 
 
     //! return FE-Type for OLAS
-    virtual FEType feType() {
-      return ET_UNDEF;
+    virtual Elem::FEType feType() {
+      return Elem::UNDEF;
     }
 
     //! Returns wether a given local coordinate is

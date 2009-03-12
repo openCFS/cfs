@@ -9,7 +9,8 @@
 
 #include "Domain/grid.hh"
 #include "Utils/tools.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include "General/environment.hh"
 
 namespace CoupledField {

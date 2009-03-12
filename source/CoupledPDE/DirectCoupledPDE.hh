@@ -65,10 +65,10 @@ namespace CoupledField {
     void DefineAlgSys();
 
     //! return the solution
-    CFSVector * GetSolutionVector();
+    SingleVector * GetSolutionVector();
 
     //! return the previous solution
-    CFSVector * GetPrevSolutionVector();
+    SingleVector * GetPrevSolutionVector();
 
     //@{
     //! store the new solution returned by the algebraic system

@@ -9,9 +9,10 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "PDE/eqnMap.hh"
 #include "Utils/result.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
@@ -216,7 +217,7 @@ namespace CoupledField
     //! contains element results of complex valued Efield
     Vector<Complex> complexValuedEfield_;
 
-    CFSVector * solVec_;        //! needed in iterative coupled computation
+    SingleVector * solVec_;        //! needed in iterative coupled computation
 
     //! Parameter node of direct coupling section
     ParamNode * myParam_;

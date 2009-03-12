@@ -9,7 +9,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
 #include "BaseODESolver.hh"  
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 

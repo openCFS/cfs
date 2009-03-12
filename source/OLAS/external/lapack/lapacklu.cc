@@ -4,23 +4,16 @@
 
 #include <cstring>
 
-#include "utils/utils.hh"
-#include "external/lapack/lapacklu.hh"
+#include "OLAS/external/lapack/lapacklu.hh"
 
-#if defined( __INTEL_COMPILER)
-#include "external/lapack/lapack.hh"
-#include "external/lapack/lapackgbmatrix.cc"
-#endif
-
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
   //   Default Constructor
   // ***********************
   Lapack_LU::Lapack_LU() {
-    Error( "Default constructor of LAPACK_LU is forbidden!",
-	   __FILE__, __LINE__ );
+    EXCEPTION( "Default constructor of LAPACK_LU is forbidden!" );
   }
 
 
@@ -104,38 +97,37 @@ namespace OLAS {
     TRY_CAST {
 
       // Down-cast matrix to standard matrix
-      ConstRefCast( sysmat, StdMatrix, stdmat );
+      CONSTREFCAST( sysmat, StdMatrix, stdmat );
 
       // Check that we have the correct matrix type
-      MatrixStorageType mtype = stdmat.GetStorageType();
-      if ( mtype != LAPACK_GBMATRIX ) {
-	Error( "Expected a LAPACK_GBMATRIX", __FILE__, __LINE__ );
+      BaseMatrix::StorageType mtype = stdmat.GetStorageType();
+      if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
+        EXCEPTION( "Expected a LAPACK_GBMATRIX" );
       }
 
       // Allocate memory for pivot indices
       if ( amFactorised_ == true ) {
 	delete[] pivots_;
       }
-      pivots_ = New int[stdmat.GetNcols()];
-      AssertMem(pivots_,stdmat.GetNcols());
+      pivots_ = new int[stdmat.GetNumCols()];
+      ASSERTMEM(pivots_,stdmat.GetNumCols());
 
       // Get the entry type to figure out which Factorisation method to call
-      MatrixEntryType etype = stdmat.GetEntryType();
+      BaseMatrix::EntryType etype = stdmat.GetEntryType();
 
       // Call appropriate factorisation routine
       switch( etype ) {
 
-      case F77REAL8:
+      case BaseMatrix::F77REAL8:
 	FactoriseF77REAL8( stdmat );
 	break;
 
-      case F77COMPLEX16:
+      case BaseMatrix::F77COMPLEX16:
 	FactoriseF77COMPLEX16( stdmat );
 	break;
 
       default:
-	Error( "Matrix entry type not valid for a LAPACK matrix", __FILE__,
-	       __LINE__ );
+        EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
       }
 
     } CATCH_CAST;
@@ -161,8 +153,8 @@ namespace OLAS {
       dynamic_cast<const LapackGBMatrix<F77real8,double>&>(stdmat);
 
     // Obtain some matrix information
-    int lp_ncols = (int)mat.GetNcols();
-    int lp_nrows = (int)mat.GetNrows();
+    int lp_ncols = (int)mat.GetNumCols();
+    int lp_nrows = (int)mat.GetNumRows();
     int lp_wlower = (int)mat.GetLowerBandwidth();
     int lp_wupper = (int)mat.GetUpperBandwidth();
     int lp_ldab = lp_wlower + lp_wupper + 1;
@@ -178,10 +170,10 @@ namespace OLAS {
     if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
 
       // Allocate memory for scaling factors
-      row_scalings_ = New F77real8[lp_nrows];
-      AssertMem( row_scalings_, lp_nrows );
-      col_scalings_ = New F77real8[lp_ncols];
-      AssertMem( col_scalings_, lp_ncols );
+      row_scalings_ = new F77real8[lp_nrows];
+      ASSERTMEM( row_scalings_, lp_nrows );
+      col_scalings_ = new F77real8[lp_ncols];
+      ASSERTMEM( col_scalings_, lp_ncols );
 
       // output parameters (condition numbers)
       F77real8 lp_rowcond;
@@ -195,23 +187,21 @@ namespace OLAS {
 
       // Process status flag
       if ( lp_info < 0 ) {
-	Error( "DGBEQU reports invalid input parameter", __FILE__, __LINE__ );
+        EXCEPTION( "DGBEQU reports invalid input parameter" );
       }
       else if ( lp_info > lp_nrows ) {
-	(*error) << "DBGEQU reports that column "
-		 << lp_info - lp_nrows << " is exactly zero";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION( "DBGEQU reports that column "
+            << lp_info - lp_nrows << " is exactly zero" );
       }
       else if ( lp_info > 0 ) {
-	(*error) << "DBGEQU reports that row " << lp_info
-		 << " is exactly zero";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION( "DBGEQU reports that row " << lp_info
+            << " is exactly zero" );
       }
       else {
-	(*cla) << " DGBEQU reports: rowcnd = "   << lp_rowcond
-	       << "\n                 colcnd = " << lp_colcond
-	       << "\n                 amax   = " << lp_amax
-	       << std::endl;
+        (*cla) << " DGBEQU reports: rowcnd = "   << lp_rowcond
+	         << "\n                 colcnd = " << lp_colcond
+	         << "\n                 amax   = " << lp_amax
+	         << std::endl;
       }
 
       // Scale matrix
@@ -234,8 +224,7 @@ namespace OLAS {
 	(*cla) << " DLAQGB performed row & column scaling" << std::endl;
       }
       else {
-	Error( "DLAQGB returned with unexpected parameter value", __FILE__,
-	       __LINE__ );
+        EXCEPTION( "DLAQGB returned with unexpected parameter value" );
       }
       (*cla) << " DLAQGB reports: rowcnd = "   << lp_rowcond
 	     << "\n                 colcnd = " << lp_colcond
@@ -254,12 +243,11 @@ namespace OLAS {
     // We have to generate a copy of the matrix containing additional
     // wlower_ super-diagonals in the beginning as work-space and for
     // the result of the factorisation
-    LapackGBMatrix<F77real8,double> *facmat = New
-      LapackGBMatrix<F77real8,double>( lp_nrows, lp_ncols, lp_wlower,
-					lp_wupper, F77REAL8 );
+    LapackGBMatrix<F77real8,double> *facmat = new
+    LapackGBMatrix<F77real8,double>( lp_nrows, lp_ncols, lp_wlower,
+                                     lp_wupper, BaseMatrix::F77REAL8 );
     if ( facmat == NULL ) {
-      Error( "Memory allocation for new LapackGBMatrix failed", __FILE__,
-	     __LINE__ );
+      EXCEPTION( "Memory allocation for new LapackGBMatrix failed" );
     }
 
     // Upcast matrix to store as class attribute
@@ -291,7 +279,7 @@ namespace OLAS {
 
     // Process status flag
     if ( lp_info < 0 ) {
-      Error( "DGBTRF reports invalid input parameter", __FILE__, __LINE__ );
+      EXCEPTION( "DGBTRF reports invalid input parameter" );
     }
     else if ( lp_info > 0 ) {
 
@@ -303,7 +291,7 @@ namespace OLAS {
 	       << std::endl;
 #endif
 
-      Error( "DBGTRF reports zero pivot element", __FILE__, __LINE__ );
+      EXCEPTION( "DBGTRF reports zero pivot element" );
     }
 
   }
@@ -320,8 +308,8 @@ namespace OLAS {
       dynamic_cast<const LapackGBMatrix<F77complex16,Complex>&>(stdmat);
 
     // Obtain some matrix information
-    int lp_ncols = (int)mat.GetNcols();
-    int lp_nrows = (int)mat.GetNrows();
+    int lp_ncols = (int)mat.GetNumCols();
+    int lp_nrows = (int)mat.GetNumRows();
     int lp_wlower = (int)mat.GetLowerBandwidth();
     int lp_wupper = (int)mat.GetUpperBandwidth();
     int lp_ldab = lp_wlower + lp_wupper + 1;
@@ -337,10 +325,10 @@ namespace OLAS {
     if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
 
       // Allocate memory for scaling factors
-      row_scalings_ = New F77real8[lp_nrows];
-      AssertMem( row_scalings_, lp_nrows );
-      col_scalings_ = New F77real8[lp_ncols];
-      AssertMem( col_scalings_, lp_ncols );
+      row_scalings_ = new F77real8[lp_nrows];
+      ASSERTMEM( row_scalings_, lp_nrows );
+      col_scalings_ = new F77real8[lp_ncols];
+      ASSERTMEM( col_scalings_, lp_ncols );
 
       // output parameters (condition numbers)
       F77real8 lp_rowcond;
@@ -354,13 +342,13 @@ namespace OLAS {
 
       // Process status flag
       if ( lp_info < 0 ) {
-	Error( "ZGBEQU reports invalid input parameter", __FILE__, __LINE__ );
+        EXCEPTION( "ZGBEQU reports invalid input parameter" );
       }
       else if ( lp_info > lp_nrows ) {
-	Error( "ZBGEQU reports zero column", __FILE__, __LINE__ );
+        EXCEPTION( "ZBGEQU reports zero column" );
       }
       else if ( lp_info > 0 ) {
-	Error( "ZBGEQU reports zero row", __FILE__, __LINE__ );
+        EXCEPTION( "ZBGEQU reports zero row" );
       }
       else {
 	(*cla) << " ZGBEQU reports: rowcnd = "   << lp_rowcond
@@ -389,8 +377,7 @@ namespace OLAS {
 	(*cla) << " ZLAQGB performed row & column scaling" << std::endl;
       }
       else {
-	Error( "ZLAQGB returned with unexpected parameter value", __FILE__,
-	       __LINE__ );
+        EXCEPTION( "ZLAQGB returned with unexpected parameter value" );
       }
       (*cla) << " ZLAQGB reports: rowcnd = "   << lp_rowcond
              << "\n                 colcnd = " << lp_colcond
@@ -409,12 +396,11 @@ namespace OLAS {
     // We have to generate a copy of the matrix containing additional
     // wlower_ super-diagonals in the beginning as work-space and for
     // the result of the factorisation
-    LapackGBMatrix<F77complex16,Complex> *facmat = New
+    LapackGBMatrix<F77complex16,Complex> *facmat = new
       LapackGBMatrix<F77complex16,Complex>( lp_nrows, lp_ncols, lp_wlower,
-					    lp_wupper, F77COMPLEX16 );
+					    lp_wupper, BaseMatrix::F77COMPLEX16 );
     if ( facmat == NULL ) {
-      Error( "Memory allocation for new LapackGBMatrix failed", __FILE__,
-	     __LINE__ );
+      EXCEPTION( "Memory allocation for new LapackGBMatrix failed" );
     }
 
     // Upcast matrix to store as class attribute
@@ -446,7 +432,7 @@ namespace OLAS {
 
     // Process status flag
     if ( lp_info < 0 ) {
-      Error( "ZGBTRF reports invalid input parameter", __FILE__, __LINE__ );
+      EXCEPTION( "ZGBTRF reports invalid input parameter" );
     }
     else if ( lp_info > 0 ) {
 
@@ -458,7 +444,7 @@ namespace OLAS {
 	       << std::endl;
 #endif
 
-      Error( "ZBGTRF reports zero pivot element", __FILE__, __LINE__ );
+      EXCEPTION( "ZBGTRF reports zero pivot element" );
     }
 
   }
@@ -489,43 +475,42 @@ namespace OLAS {
 
       // The two indicators disagree, so complain
       else if ( amFactorised_ == false ) {
-	Error( "LAPACKLU: Internal error. facmat_ <> NULL but amFactorised_ = "
-	       "false!", __FILE__, __LINE__ );
+        EXCEPTION( "LAPACKLU: Internal error. facmat_ <> NULL but amFactorised_ = "
+	       "false!" );
       }
       else {
-	Error( "LAPACKLU: Internal error. facmat_ = NULL but amFactorised_ = "
-	       "true!", __FILE__, __LINE__ );
+        EXCEPTION( "LAPACKLU: Internal error. facmat_ = NULL but amFactorised_ = "
+	       "true!" );
       }
     }
 
     TRY_CAST {
 
       // Down-cast matrix to standard matrix
-      ConstRefCast( sysmat, StdMatrix, stdmat );
+      CONSTREFCAST( sysmat, StdMatrix, stdmat );
 
       // Check that we have the correct matrix type
-      MatrixStorageType mtype = stdmat.GetStorageType();
-      if ( mtype != LAPACK_GBMATRIX ) {
-	Error( "Expected a LAPACK_GBMATRIX", __FILE__, __LINE__ );
+      BaseMatrix::StorageType mtype = stdmat.GetStorageType();
+      if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
+        EXCEPTION( "Expected a LAPACK_GBMATRIX" );
       }
 
       // Get the entry type to figure out which Factorization method to call
-      MatrixEntryType etype = stdmat.GetEntryType();
+      BaseMatrix::EntryType etype = stdmat.GetEntryType();
 
       // Call appropriate solution routine
       switch( etype ) {
 
-      case F77REAL8:
+      case BaseMatrix::F77REAL8:
 	SolveF77REAL8( rhs, sol, &sysmat );
 	break;
 
-      case F77COMPLEX16:
+      case BaseMatrix::F77COMPLEX16:
 	SolveF77COMPLEX16( rhs, sol, &sysmat );
 	break;
 
       default:
-	Error( "Matrix entry type not valid for a LAPACK matrix", __FILE__,
-	       __LINE__ );
+        EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
       }
 
     } CATCH_CAST;
@@ -561,10 +546,10 @@ namespace OLAS {
 
     // This should not have failed, but better test
     if ( facmat == NULL ) {
-      Error( "Downcast of facmat_ failed!", __FILE__, __LINE__ );
+      EXCEPTION( "Downcast of facmat_ failed!" );
     }
     if ( facmat == NULL ) {
-      Error( "Downcast of system matrix failed!", __FILE__, __LINE__ );
+      EXCEPTION( "Downcast of system matrix failed!" );
     }
 
     // Obtain data pointers
@@ -572,7 +557,7 @@ namespace OLAS {
     const F77real8 *matdata = mymat->GetDataPointer0();
 
     // Obtain some matrix information
-    int lp_ncols  = (int)facmat->GetNcols();
+    int lp_ncols  = (int)facmat->GetNumCols();
     int lp_wlower = (int)facmat->GetLowerBandwidth();
     int lp_wupper = (int)facmat->GetUpperBandwidth();
     int lp_ldab   = lp_wlower + lp_wupper + 1;
@@ -582,8 +567,8 @@ namespace OLAS {
     const F77real8 *lp_rhs;
     F77real8 *lp_sol;
     TRY_CAST {
-      ConstRefCast( rhs, Vector<Double>, myrhs );
-      RefCast( sol, Vector<Double>, mysol );
+      CONSTREFCAST( rhs, Vector<Double>, myrhs );
+      REFCAST( sol, Vector<Double>, mysol );
       lp_rhs = myrhs.GetPointer() + 1;
       lp_sol = mysol.GetPointer() + 1;
     } CATCH_CAST;
@@ -618,7 +603,7 @@ namespace OLAS {
 
     // Process status flag
     if ( lp_info != 0 ) {
-      Error( "DGBTRS reports invalid input parameter", __FILE__, __LINE__ );
+      EXCEPTION( "DGBTRS reports invalid input parameter" );
     }
     else if ( logging == true ) {
       (*cla) << " LAPACK_LU: Solution went fine" << std::endl;
@@ -635,14 +620,13 @@ namespace OLAS {
 
       // If not yet done allocate workspaces
       if ( workspaceF77REAL8_ == NULL ) {
-	workspaceF77REAL8_ = New F77real8[3 * lp_ncols];
+	workspaceF77REAL8_ = new F77real8[3 * lp_ncols];
       }
       if ( workspaceInt_ == NULL ) {
-	workspaceInt_ = New int[lp_ncols];
+	workspaceInt_ = new int[lp_ncols];
       } 
       if ( workspaceF77REAL8_ == NULL || workspaceInt_ == NULL ) {
-	Error( "Memory allocation for iterative refinement step failed",
-	       __FILE__, __LINE__ );
+        EXCEPTION( "Memory allocation for iterative refinement step failed" );
       }
 
       // Perform iterative refinement
@@ -653,7 +637,7 @@ namespace OLAS {
 
       // Process results
       if ( lp_info != 0 ) {
-	Error( "DBGRFS reports invalid input parameter", __FILE__, __LINE__ );
+        EXCEPTION( "DBGRFS reports invalid input parameter" );
       }
       else if ( logging == true ) {
 	(*cla) << " LAPACK_LU: Iterative refinement suceeded\n"
@@ -718,10 +702,10 @@ namespace OLAS {
 
     // This should not have failed, but better test
     if ( facmat == NULL ) {
-      Error( "Downcast of facmat_ failed!", __FILE__, __LINE__ );
+      EXCEPTION( "Downcast of facmat_ failed!" );
     }
     if ( facmat == NULL ) {
-      Error( "Downcast of system matrix failed!", __FILE__, __LINE__ );
+      EXCEPTION( "Downcast of system matrix failed!" );
     }
 
     // Obtain data pointers
@@ -729,7 +713,7 @@ namespace OLAS {
     const F77complex16 *matdata = mymat->GetDataPointer0();
 
     // Obtain some matrix information
-    int lp_ncols  = (int)facmat->GetNcols();
+    int lp_ncols  = (int)facmat->GetNumCols();
     int lp_wlower = (int)facmat->GetLowerBandwidth();
     int lp_wupper = (int)facmat->GetUpperBandwidth();
     int lp_ldab   = lp_wlower + lp_wupper + 1;
@@ -742,17 +726,17 @@ namespace OLAS {
     //       We must copy sol back afterwards
     F77complex16 *lp_rhs;
     F77complex16 *lp_sol;
-    NewArray( lp_rhs, F77complex16, lp_ncols );
-    NewArray( lp_sol, F77complex16, lp_ncols );
+    NEWARRAY( lp_rhs, F77complex16, lp_ncols );
+    NEWARRAY( lp_sol, F77complex16, lp_ncols );
     Complex auxVal1;
     F77complex16 auxVal2;
 
     for ( int count = 1; count <= lp_ncols; count++ ) {
-      sol.GetVectorEntry( count, auxVal1 );
+      sol.GetEntry( count, auxVal1 );
       CC2F77( auxVal1, auxVal2 );
       lp_sol[count] = auxVal2;
 
-      rhs.GetVectorEntry( count, auxVal1 );
+      rhs.GetEntry( count, auxVal1 );
       CC2F77( auxVal1, auxVal2 );
       lp_rhs[count] = auxVal2;
     }
@@ -791,7 +775,7 @@ namespace OLAS {
 
     // Process status flag
     if ( lp_info != 0 ) {
-      Error( "DGBTRS reports invalid input parameter", __FILE__, __LINE__ );
+      EXCEPTION( "DGBTRS reports invalid input parameter" );
     }
     else if ( logging == true ) {
       (*cla) << " LAPACK_LU: Solution went fine" << std::endl;
@@ -808,14 +792,13 @@ namespace OLAS {
 
       // If not yet done allocate workspaces
       if ( workspaceF77COMPLEX16_ == NULL ) {
-	workspaceF77COMPLEX16_ = New F77complex16[3 * lp_ncols];
+	workspaceF77COMPLEX16_ = new F77complex16[3 * lp_ncols];
       }
       if ( workspaceF77REAL8_ == NULL ) {
-	workspaceF77REAL8_ = New F77real8[lp_ncols];
+	workspaceF77REAL8_ = new F77real8[lp_ncols];
       } 
       if ( workspaceF77COMPLEX16_ == NULL || workspaceF77REAL8_ == NULL ) {
-	Error( "Memory allocation for iterative refinement step failed",
-	       __FILE__, __LINE__ );
+        EXCEPTION( "Memory allocation for iterative refinement step failed" );
       }
 
       // Perform iterative refinement
@@ -826,7 +809,7 @@ namespace OLAS {
 
       // Process results
       if ( lp_info != 0 ) {
-	Error( "ZBGRFS reports invalid input parameter", __FILE__, __LINE__ );
+        EXCEPTION( "ZBGRFS reports invalid input parameter" );
       }
       else if ( logging == true ) {
 	(*cla) << " Iterative refinement suceeded!\n ZGBRFS reports:"
@@ -842,7 +825,7 @@ namespace OLAS {
     for ( int count = 1; count <= lp_ncols; count++ ) {
       auxVal2 = lp_sol[count-1];
       F772CC( auxVal2, auxVal1 );
-      sol.SetVectorEntry( count, auxVal1 );
+      sol.SetEntry( count, auxVal1 );
     }
 
     // ============================================

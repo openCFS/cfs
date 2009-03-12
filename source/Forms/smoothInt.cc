@@ -82,9 +82,9 @@ namespace CoupledField
   {
 
     Matrix<Double> matMatrix;
-    ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
-    UInt dimRow = matMatrix.GetSizeRow();
-    UInt dimCol = matMatrix.GetSizeCol();
+    ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,Global::REAL,subTensorType_);
+    UInt dimRow = matMatrix.GetNumRows();
+    UInt dimCol = matMatrix.GetNumCols();
 
     dMat.Resize(dimRow, dimCol);
 

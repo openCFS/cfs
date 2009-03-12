@@ -10,11 +10,11 @@
 #include <vector>
 #include <iostream>
 
-#include "graph/basegraph.hh"
-#include "graph/idbcgraph.hh"
-#include "graph/basegraphmanager.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/idbcgraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Graph manager for the case of several PDEs and a StdMatrix
 
@@ -123,7 +123,7 @@ namespace OLAS {
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
     void AssembleInit( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Finalise assembly of a sub-graph
@@ -144,7 +144,7 @@ namespace OLAS {
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
     void AssembleDone( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose ) {
     }
 
@@ -184,13 +184,11 @@ namespace OLAS {
     //!       a coupling object, it is safe to pass identical identifiers
     //!       and connect arrays to the method. The offset will only be added
     //!       once. 
-    void SetElementPos( const PdeIdType identifierPDE1,
-			Integer *connect1,
-			Integer elemSize1,
-			const PdeIdType identifierPDE2,
-			Integer *connect2,
-			Integer elemSize2,
-                        bool setCounterPart );
+    virtual void SetElementPos( const PdeIdType identifierPDE1,
+                                const StdVector<Integer>& eqnNrs1,
+                                const PdeIdType identifierPDE2,
+                                const StdVector<Integer>& eqnNrs2,
+                                bool setCounterPart );
     //@}
 
     // =======================================================================
@@ -238,7 +236,7 @@ namespace OLAS {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    Integer *GetReordering( const PdeIdType identifier );
+    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order );
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );
@@ -256,7 +254,7 @@ namespace OLAS {
     //! if the PDE does not claim its permutation vector by calling
     //! GetReordering, we will de-allocate the memory in the destructor
     //! of this class.
-    Integer **newOrdering_;
+    StdVector< StdVector<UInt> > newOrdering_;
 
     //! Type of re-ordering to be applied to the graph
 

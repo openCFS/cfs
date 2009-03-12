@@ -5,9 +5,18 @@
 #ifndef OLAS_BASEPRECOND_HH
 #define OLAS_BASEPRECOND_HH
 
-#include "matvec/matvec.hh"
+#include "General/environment.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  class BaseMatrix;
+  class StdMatrix;
+  class SBM_Matrix;
+  class BaseVector;
+  class SBM_Vector;
+  class SingleVector;
+  class OLAS_Params;
+  class OLAS_Report;
 
   //! Generic preconditioner class
   class BasePrecond {
@@ -88,41 +97,29 @@ namespace OLAS {
     //! \param r residual vector for current iteration step
     //! \param z output vector computed by the preconditioner
     virtual void Apply( const BaseMatrix &sysmat, const BaseVector &r, 
-                        BaseVector &z ) const {
-      TRY_CAST {
-        ConstRefCast(sysmat,StdMatrix,stdsysmat);
-        ConstRefCast(r,SparseVector,stdr);
-        RefCast(z,SparseVector,stdz);
-        Apply(stdsysmat,stdr,stdz);
-      } CATCH_CAST;
-    }
+                        BaseVector &z ) const;
     
     //! Applies the preconditioner by "solving" Az=r for z
 
     //! This version of the Apply method has an interface fitting to
-    //! StdMatrices and SparseVectors. It is purely virtual.
-    virtual void Apply( const StdMatrix &sysmat, const SparseVector &r,
-                        SparseVector &z) const = 0;
+    //! StdMatrices and SingleVectors. It is purely virtual.
+    virtual void Apply( const StdMatrix &sysmat, const SingleVector &r,
+                        SingleVector &z) const = 0;
 
     //! A call of this method triggers the construction of the preconditioner.
 
     //! This method implements the purely virtual Setup function inherited from
     //! the BasePrecond class. It does this by dynamically down-casting the
     //! input matrix and vectors from BaseMatrix/BaseVector type to the
-    //! StdMatrix/SparseVector type and calling the Setup method with the
+    //! StdMatrix/SingleVector type and calling the Setup method with the
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
-    virtual void Setup( BaseMatrix &sysMat ) {
-      TRY_CAST {
-        RefCast( sysMat, StdMatrix, stdMat );
-        Setup( stdMat );
-      } CATCH_CAST;
-    }
+    virtual void Setup( BaseMatrix &sysMat );
                         
     //! A call of this method triggers the construction of the preconditioner.
      
     //! This version of the Setup method has an interface fitting to
-    //! StdMatrices and SparseVectors. It is purely virtual.
+    //! StdMatrices and SingleVectors. It is purely virtual.
     virtual void Setup( StdMatrix &sysMat ) = 0;
 
   protected:
@@ -166,14 +163,9 @@ namespace OLAS {
     //! input matrix and vectors from BaseMatrix/BaseVector type to the
     //! SBM_Matrix/SBM_Vector type and calling the Apply method with the
     //! corresponding interface. Thus, using this method with StdMatrices
-    //! or SparseVectors will lead to a run-time error.
+    //! or SingleVectors will lead to a run-time error.
     virtual void Apply( const BaseMatrix& sysmat, const BaseVector& r, 
-                        BaseVector& z ) const {
-      const SBM_Matrix& sbmsysmat = dynamic_cast<const SBM_Matrix&>(sysmat);
-      const SBM_Vector& sbmr      = dynamic_cast<const SBM_Vector&>(r);
-      SBM_Vector& sbmz            = dynamic_cast<SBM_Vector&>(z);
-      Apply(sbmsysmat,sbmr,sbmz);
-    }
+                        BaseVector& z ) const;
 
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -189,10 +181,7 @@ namespace OLAS {
     //! SBM_Matrix/SBM_Vector type and calling the Setup method with the
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
-    virtual void Setup( BaseMatrix &A ) {
-      SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
-      Setup(sbmA);
-    }
+    virtual void Setup( BaseMatrix &A );
 
   private:
 

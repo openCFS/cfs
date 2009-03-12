@@ -5,8 +5,8 @@
 #ifndef FILE_JACOBIAN_2001
 #define FILE_JACOBIAN_2001
 
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
+#include <MatVec/matrix.hh>
+#include <MatVec/vector.hh>
 
 namespace CoupledField
 {

@@ -8,8 +8,8 @@
 
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include "PDE/StdPDE.hh"
 #include "Utils/elemstoresol.hh"
 #include "Materials/baseMaterial.hh"
@@ -57,7 +57,7 @@ namespace CoupledField
   {
 
     Double epsilon;
-    materials_[actRegion]->GetScalar(epsilon,ELEC_PERMITTIVITY,REAL);
+    materials_[actRegion]->GetScalar(epsilon,ELEC_PERMITTIVITY,Global::REAL);
     return epsilon;
   } 
 

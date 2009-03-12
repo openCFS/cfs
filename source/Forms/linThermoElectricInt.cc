@@ -131,7 +131,7 @@ namespace CoupledField
 
 		//std::cout << "\nlN_teta=" << lN_teta.Serialize () << std::endl;
 
-		for(UInt i=0; i < bMat.GetSizeCol(); i++ ){
+		for(UInt i=0; i < bMat.GetNumCols(); i++ ){
 			bMat[0][i] = lN_teta[i];
 		}
 

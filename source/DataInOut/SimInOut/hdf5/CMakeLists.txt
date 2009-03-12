@@ -6,6 +6,7 @@ SET(SIMINOUTHDF5_SRCS
   simOutputHDF5.cc
 )
 
+
 ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
 TARGET_LINK_LIBRARIES(siminouthdf5
@@ -18,3 +19,13 @@ TARGET_LINK_LIBRARIES(siminouthdf5
 ADD_EXECUTABLE(h5tool h5tool.cc)
 
 TARGET_LINK_LIBRARIES(h5tool siminouthdf5 cfsgeneral)
+
+ADD_EXECUTABLE(h5SerializeTest serializeTest.cc)
+
+TARGET_LINK_LIBRARIES(h5SerializeTest
+  ${BOOST_SERIALIZATION_HDF5_LIB}
+  ${BOOST_SERIALIZATION_LIB}
+  ${HDF5_CPP_LIBRARY}
+  ${HDF5_LIBRARY}
+  )
+

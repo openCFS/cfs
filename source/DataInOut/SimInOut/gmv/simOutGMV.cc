@@ -49,7 +49,7 @@ namespace CoupledField {
 
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
-    dirName_ = "simoutput_gmv";
+    dirName_ = "results_gmv";
     fileName_ = fileName;
 
     try 
@@ -224,7 +224,7 @@ namespace CoupledField {
 
       LOG_DBG(simOutputGMV) << "Writing result '" << title << "'";
       
-      if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
+      if( actResults[0]->GetEntryType() == BaseMatrix::DOUBLE ) {
         Vector<Double> gSol;
         FillGlobalVec<Double>(gSol, actResults, entityType );
         WriteNodeElemDataTrans( gSol, myDofNames, title, entryType,
@@ -583,7 +583,7 @@ namespace CoupledField {
     std::vector<UInt> connect;
     UInt elemNum, numNodes;
     RegionIdType elemRegion;
-    FEType  elemType;
+    Elem::FEType  elemType;
     std::string gmvElemName;
     connect.resize(100);
     std::vector<UInt> elemRegions;
@@ -597,7 +597,7 @@ namespace CoupledField {
     for ( i = 0; i < numelem; i++ ) {
       elemNum = i+1;
       ptGrid_->GetElemData(elemNum, elemType, elemRegion, &connect[0]);
-      numNodes = NUM_ELEM_NODES[elemType];
+      numNodes = Elem::GetNumElemNodes(elemType);
       
       ElemType2GMVElemId(elemType, gmvElemName);
 
@@ -605,7 +605,7 @@ namespace CoupledField {
 
       switch(elemType)
       {
-      case ET_LINE3:
+      case Elem::LINE3:
         connect[3] = connect[1];
         connect[1] = connect[2];
         connect[2] = connect[3];          
@@ -665,53 +665,53 @@ namespace CoupledField {
       (*gridFile) << std::endl;
   }
 
-  void SimOutputGMV::ElemType2GMVElemId(FEType et, std::string & id)
+  void SimOutputGMV::ElemType2GMVElemId(Elem::FEType et, std::string & id)
   {
     switch(et)
     {
-    case ET_LINE2:
+    case Elem::LINE2:
       id       = "line    ";
       break;
-    case ET_LINE3:
+    case Elem::LINE3:
       id       = "3line   ";
       break;
-    case ET_TRIA3:
+    case Elem::TRIA3:
       id       = "tri     ";
       break;
-    case ET_TRIA6:
+    case Elem::TRIA6:
       id       = "6tri    ";
       break;
-    case ET_QUAD4:
+    case Elem::QUAD4:
       id       = "quad    ";
       break;
-    case ET_QUAD8:
+    case Elem::QUAD8:
       id       = "8quad   ";
       break;
-    case ET_TET4:
+    case Elem::TET4:
       id       = "tet     ";
       break;
-    case ET_TET10:
+    case Elem::TET10:
       id       = "ptet10  ";
       break;
-    case ET_HEXA8:
+    case Elem::HEXA8:
       id       = "phex8   ";
       break;
-    case ET_HEXA20:
+    case Elem::HEXA20:
       id       = "phex20  ";
       break;
-    case ET_HEXA27:
+    case Elem::HEXA27:
       id       = "phex27  ";
       break;
-    case ET_PYRA5:
+    case Elem::PYRA5:
       id       = "ppyrmd5 ";
       break;
-    case ET_PYRA13:
+    case Elem::PYRA13:
       id       = "ppyrmd13";
       break;
-    case ET_WEDGE6:
+    case Elem::WEDGE6:
       id       = "pprism6 ";
       break;
-    case ET_WEDGE15:
+    case Elem::WEDGE15:
       id       = "pprism15";
       break;
     default:

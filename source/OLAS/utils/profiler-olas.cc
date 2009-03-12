@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "utils/profiler.hh"
+#include "OLAS/utils/profiler.hh"
 
 #ifdef PROFILING
 
@@ -10,10 +10,10 @@
 #include <iomanip>
 #include <map>
 #include <sys/time.h>
-#include "utils/environment.hh"
-//#include "graph/baseparallel.hh"
+#include "General/environment.hh"
+//#include "OLAS/graph/baseparallel.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! called after a function with profiling
   void Profiler::Update(char *name,int ops, double timediff) {

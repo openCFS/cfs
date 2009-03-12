@@ -5,15 +5,19 @@
 #ifndef OLAS_BASESOLVER_HH
 #define OLAS_BASESOLVER_HH
 
-#include "matvec/matvec.hh"
-#include "precond/precond.hh"
-
+#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 using CoupledField::ParamNode;
 
-namespace OLAS {
+namespace CoupledField {
 
+
+  class BasePrecond;
+  class BaseMatrix;
+  class BaseVector;
+  class OLAS_Params;
+  class OLAS_Report;
 
   // =========================================================================
   // BASE SOLVER
@@ -50,22 +54,6 @@ namespace OLAS {
     //! \return type of the solver
     virtual SolverType GetSolverType() = 0;
 
-    //! Method to force instantiation of all public member functions
-
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateSolverObject() will
-    //! make a pseudo call to this method in order to force the compiler
-    //! to instantiate all public methods of a templated solver class.
-    //! \note
-    //! - The method must never be actually called, since it does not perform
-    //!   any sensible operations.
-    //! - If a templated solver offers additional public methods besides
-    //!   the ones defined in the BaseSolver class, then it should over-write
-    //!   the InstantiateAdditionalPublicMethods() member function which is
-    //!   called by this method.
-    void InstantiatePublicMethods( BaseMatrix &sysMat );
-
-
   protected:
     
     //! Pointer to parameter object
@@ -83,17 +71,6 @@ namespace OLAS {
     /** This is the description of the solver part in XML - if given!! 
      * Might easily be NULL!! */
     ParamNode* xml_; 
-
-    //! Method to force instantiation of all public member functions
-
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateSolverObject() will
-    //! make a pseudo call to InstantiatePublicMethods() in order to force the
-    //! compiler to instantiate all public methods of a templated solver
-    //! class. The former method in turn calls this method. It is virtual in
-    //! order to allow over-writing by derived classes which offer additional
-    //! public methods besides the one defined in the BaseSolver class.
-    virtual void InstantiateAdditionalPublicMethods( BaseMatrix &sysMat );
 
   };
 

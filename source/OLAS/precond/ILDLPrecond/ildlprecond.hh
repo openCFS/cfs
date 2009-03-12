@@ -5,14 +5,16 @@
 #ifndef ILDL_PRECOND_HH
 #define ILDL_PRECOND_HH
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "utils/math/ldlsystemsolve.hh"
-#include "precond/ILDLPrecond/baseildlfactoriser.hh"
-#include "precond/ILDLPrecond/ildlkfactoriser.hh"
+#include <def_expl_templ_inst.hh>
+
+#include "OLAS/utils/math/ldlsystemsolve.hh"
+
+#include "OLAS/precond/bnprecond.hh"
+#include "baseildlfactoriser.hh"
+#include "ildlkfactoriser.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! This is a base class for all incomplete LDL preconditioners
@@ -105,6 +107,9 @@ namespace OLAS {
 
   public:
 
+    using BNPrecond<ILDLPrecond<T>, SCRS_Matrix<T>, T >::Apply;
+    using BNPrecond<ILDLPrecond<T>, SCRS_Matrix<T>, T >::Setup;
+
     // ILDLKFactoriser is a close friend of ours
     // template <class A> 
     // friend class ILDLKFactoriser;
@@ -136,8 +141,8 @@ namespace OLAS {
     //! Note that the method will neglect the precond input parameter, since
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Apply( const StdMatrix &stdMat, const SparseVector &,
-                SparseVector &z ) const;
+    void Apply( const StdMatrix &stdMat, const SingleVector &,
+                SingleVector &z ) const;
 
     //! Query type of this preconditioner.
 
@@ -222,5 +227,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ildlprecond.cc"
+#endif
 
 #endif

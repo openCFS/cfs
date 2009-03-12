@@ -22,8 +22,8 @@ public:
    virtual ~Tetra2FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_TET10;
+    virtual Elem::FEType feType() {
+      return Elem::TET10;
     };
 
 protected:

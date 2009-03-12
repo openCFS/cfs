@@ -12,24 +12,26 @@
 #include "DataInOut/Logging/cfslog.hh"
 
 
-// Since OLAS uses a separate namespace for 
+// Since OLAS uses a separate namespace for
 // writing out data, two different declarations
 // have to be made
 namespace OutInfo{
 
-#ifndef INTEGLIB
   std::ostream *debug    = NULL;
   std::ostream *cla      = NULL;
   std::ostream *memtrace = NULL;
-#endif
 
   // Generate string stream for generation of error messages
-  std::stringstream *error = new std::stringstream();
+//  std::stringstream *error = new std::stringstream();
 
   // Generate string stream for generation of warning messages
   std::stringstream *warning = new std::stringstream();
-}
 
+#ifdef MEMTRACE
+  double sumdmem = 0;
+  double sumimem = 0;
+#endif
+}
 
 namespace CoupledField {
 
@@ -38,7 +40,7 @@ namespace CoupledField {
 
 #ifdef PROFILING
   Profiler * profiler = NULL;
-#endif  
+#endif
 
 #ifdef USE_SCRIPTING
   CFSMessenger * messenger = NULL;
@@ -67,11 +69,25 @@ namespace CoupledField {
   // Initialisation of some global pointers
   WriteInfo *Info = NULL;
 
+  // Definition of finite element type mappings
+  static EnumTuple complexPartTuples[] = {
+      EnumTuple(Global::INTEGER,  "INTEGER (does not belong into ComplexPart!)"),
+      EnumTuple(Global::REAL,     "RealPart"),
+      EnumTuple(Global::IMAG,     "ImaginaryPart"),
+      EnumTuple(Global::COMPLEX,  "Complex")
+  };
+
+  Enum<Global::ComplexPart> Global::complexPart = \
+  Enum<Global::ComplexPart>("Parts of a complex number",
+                              sizeof(complexPartTuples) / sizeof(EnumTuple),
+                              complexPartTuples);
+
+
   // --------------------------------------------
-  //  Implementation of enum conversion routines 
+  //  Implementation of enum conversion routines
   // --------------------------------------------
   // General template function
-  template <class TYPE> 
+  template <class TYPE>
   void String2Enum(const std::string &in, TYPE &out)
   {
     EXCEPTION("Not implemented");
@@ -82,10 +98,10 @@ namespace CoupledField {
   {
     EXCEPTION("Not implemented");
   }
-  
+
   // CouplingInputType
   template<>
-  void String2Enum<CouplingInputType>( const std::string &in, 
+  void String2Enum<CouplingInputType>( const std::string &in,
                                        CouplingInputType &out ) {
 
     if (in == "Coordinate-Displacement")
@@ -104,15 +120,15 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<CouplingInputType>(const CouplingInputType &in, 
+  template<>
+  void Enum2String<CouplingInputType>(const CouplingInputType &in,
                                       std::string &out) {
 
     switch(in) {
 
     case COORD:
       out = "Coordinate-Displacement";
-      break; 
+      break;
     case RHS:
       out = "RHS";
       break;
@@ -129,7 +145,7 @@ namespace CoupledField {
       EXCEPTION("No conversion found for your 'CouplingInputType'" );
     }
   }
-  
+
   // IntegrationMethod
   template<>
   void String2Enum<IntegrationMethod>( const std::string &in, IntegrationMethod &out ) {
@@ -164,7 +180,7 @@ namespace CoupledField {
     }
   }
 
-  template<> 
+  template<>
   void Enum2String<IntegrationMethod>( const IntegrationMethod &in, std::string &out ) {
     switch(in) {
     case ECONOMICAL:
@@ -178,9 +194,9 @@ namespace CoupledField {
     case LOBATTO:
       out = "Lobatto";
       break;
-      
+
     case CHEBYSHEV:
-      out = "Chebyshev";  
+      out = "Chebyshev";
       break;
 
     case EXPERIMENTAL:
@@ -199,16 +215,16 @@ namespace CoupledField {
        out = "Undefined";
        break;
 
-    default:    
+    default:
       EXCEPTION( "No conversion found for your 'IntegrationMethod'" );
     }
   }
-  
-  
+
+
 
   // BubbleDynType
   template<>
-  void String2Enum<BubbleDynType>( const std::string &in, 
+  void String2Enum<BubbleDynType>( const std::string &in,
                                    BubbleDynType &out ) {
 
     if ( in == "KellerMiksis" )
@@ -221,8 +237,8 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<BubbleDynType>( const BubbleDynType &in, 
+  template<>
+  void Enum2String<BubbleDynType>( const BubbleDynType &in,
                                    std::string &out ) {
     switch(in) {
 
@@ -232,14 +248,14 @@ namespace CoupledField {
     case GILMORE:
       out = "Gilmore";
       break;
-    default:    
+    default:
       EXCEPTION( "No conversion found for your 'BubbleDynType'" );
     }
   }
 
   // CouplingOutputType
   template<>
-  void String2Enum<CouplingOutputType>(const std::string &in, 
+  void String2Enum<CouplingOutputType>(const std::string &in,
                                        CouplingOutputType &out) {
 
     if (in == "nodal")
@@ -252,25 +268,25 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<CouplingOutputType>(const CouplingOutputType &in, 
+  template<>
+  void Enum2String<CouplingOutputType>(const CouplingOutputType &in,
                                        std::string &out) {
     switch(in) {
 
     case NODE:
       out = "nodal";
-      break; 
+      break;
     case ELEM:
       out = "elem";
       break;
-    default:  
+    default:
       EXCEPTION("No conversion found for your 'CouplingOutputType'" );
     }
   }
-  
+
   // CouplingRegionType
   template<>
-  void String2Enum<CouplingRegionType>(const std::string &in, 
+  void String2Enum<CouplingRegionType>(const std::string &in,
                                        CouplingRegionType &out) {
     if (in == "region")
       out = REGION;
@@ -284,22 +300,22 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<CouplingRegionType>(const CouplingRegionType &in, 
+  template<>
+  void Enum2String<CouplingRegionType>(const CouplingRegionType &in,
                                        std::string &out) {
 
     switch(in) {
 
     case REGION:
       out = "region";
-      break; 
+      break;
     case NODES:
       out = "node";
       break;
     case SURFACE:
       out = "interface";
       break;
-    default:  
+    default:
       EXCEPTION( "No conversion found for your 'CouplingRegionType'" );
     }
   }
@@ -320,57 +336,6 @@ namespace CoupledField {
     }
   }
 
-  // ScalarType
-  template<>
-  void Enum2String<EntryType::ScalarType>( const EntryType::ScalarType &in,
-                                           std::string &out ) {
-    
-    switch(in) {
-    case EntryType::NOENTRYTYPE:
-      out = "No Entry Type";
-      break;
-    case EntryType::DOUBLE:
-      out = "Double";
-      break;
-    case EntryType::COMPLEX:
-      out = "Complex";
-      break;
-    case EntryType::INTEGER:
-      out = "Integer";
-      break;
-    case EntryType::UINT:
-      out = "Unsigned Integer";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'EntryType::ScalarType'" );
-    }
-  }
-
-  template<>
-  void String2Enum<EntryType::ScalarType>( const std::string &in,  
-                                           EntryType::ScalarType &out ) {
-    
-    if ( in == "No Entry Type" ) {
-      out = EntryType::NOENTRYTYPE;
-    }
-    else if ( in == "Double" ) {
-      out = EntryType::DOUBLE;
-    }
-    else if ( in == "Complex" ) {
-      out = EntryType::COMPLEX;
-    }
-    else if ( in == "Integer" ) {
-      out = EntryType::INTEGER;
-    }
-    else if ( in == "Unsigned Integer" ) {
-      out = EntryType::UINT;
-    }
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into an '"
-                 << "EntryType::ScalarType' item!" );
-    }
-  }
-  
   template<>
   void Enum2String<NormType>(const NormType &in, std::string &out) {
 
@@ -410,9 +375,9 @@ namespace CoupledField {
       out = MECH_STRAIN_IRR;
     else if (in == "mechEnergy")
       out = MECH_ENERGY;
-    else if (in == "volumeAboveDefSurf" ) 
+    else if (in == "volumeAboveDefSurf" )
       out = MECH_DEF_VOLUME;
-    else if (in == "mechRhsLoad" ) 
+    else if (in == "mechRhsLoad" )
       out = MECH_RHS_LOAD;
     else if (in == "mechPseudoDensity")
       out = MECH_PSEUDO_DENSITY;
@@ -489,7 +454,7 @@ namespace CoupledField {
       out = ACOU_INTENSITY;
     else if (in == "acouSurfIntensity")
       out = ACOU_SURFINTENSITY;
-      
+
     //magnetics
     else if (in == "magPotential")
       out = MAG_POTENTIAL;
@@ -535,7 +500,7 @@ namespace CoupledField {
       out = FLUIDMECH_TKE;
     else if (in == "lambda_k")
       out = LAMBDA_K;
-    
+
     // bubble
     else if (in == "bubbleRadius")
       out = BUBBLE_RADIUS;
@@ -544,7 +509,7 @@ namespace CoupledField {
     else if (in == "bubbleValues")
       out = MAG_FLUX_DENSITY;
 
-    // the actual result type is given in result descriptions 
+    // the actual result type is given in result descriptions
     // in the xml file in the optimization element.
     else if (in == "optResult_1")
       out = OPT_RESULT_1;
@@ -556,7 +521,7 @@ namespace CoupledField {
     // independent
     else if (in == "LagrangeMultiplier")
       out = LAGRANGE_MULT;
-      
+
     else {
       EXCEPTION( "'" << in << "' cannot be converted into item of "
                << "'SolutionType'!" );
@@ -565,7 +530,7 @@ namespace CoupledField {
 
   template<>
   void Enum2String<SolutionType>(const SolutionType &in, std::string &out)
-  { 
+  {
 
     switch (in)
       {
@@ -605,7 +570,7 @@ namespace CoupledField {
       case MECH_RHS_LOAD:
         out = "mechRhsLoad";
         break;
-        
+
         //electrostatics
       case ELEC_POTENTIAL:
         out = "elecPotential";
@@ -619,26 +584,26 @@ namespace CoupledField {
       case ELEC_PSEUDO_POLARIZATION:
         out = "elecPseudoPolarization";
         break;
-      case ELEC_FORCE_VWP: 
+      case ELEC_FORCE_VWP:
         out = "elecForceVWP";
         break;
       case ELEC_INTERFACE_FORCE:
         out = "elecInterfaceForce";
-        break; 
+        break;
       case ELEC_CHARGE:
         out = "elecCharge";
         break;
       case ELEC_FLUX_DENSITY:
         out = "elecFluxDensity";
-        break; 
+        break;
       case ELEC_ENERGY:
         out = "elecEnergy";
         break;
       case ELEC_RHS_LOAD:
         out = "elecRhsLoad";
         break;
-      
-        //smoothing PDE  
+
+        //smoothing PDE
       case SMOOTH_DISPLACEMENT:
         out = "smoothDisplacement";
         break;
@@ -713,8 +678,8 @@ namespace CoupledField {
       case ACOU_SURFINTENSITY:
         out = "acouSurfIntensity";
         break;
- 
-        //magnetics  
+
+        //magnetics
       case MAG_POTENTIAL:
         out = "magPotential";
         break;
@@ -745,7 +710,7 @@ namespace CoupledField {
       case MAG_RHS_LOAD:
         out = "magRhsLoad";
         break;
-        
+
         //heat conduction
       case HEAT_TEMPERATURE:
         out = "heatTemperature";
@@ -755,7 +720,7 @@ namespace CoupledField {
         out = "heatRhsLoad";
         break;
 
-        //mpcci PDE  
+        //mpcci PDE
       case FLUID_FORCE:
         out = "fluidForce";
         break;
@@ -779,7 +744,7 @@ namespace CoupledField {
       case LAMBDA_K:
         out = "lambda_k";
         break;
-        
+
         // bubble
       case BUBBLE_RADIUS:
         out = "bubbleRadius";
@@ -790,7 +755,7 @@ namespace CoupledField {
       case BUBBLE_VOLUME_FRAC:
         out = "bubbleVolumeFrac";
         break;
-      
+
       // write design element data from optimization
       case OPT_RESULT_1:
         out = "optResult_1";
@@ -801,7 +766,7 @@ namespace CoupledField {
       case OPT_RESULT_3:
         out = "optResult_3";
         break;
-      
+
         // independent
       case LAGRANGE_MULT:
         out = "LagrangeMultiplier";
@@ -811,11 +776,11 @@ namespace CoupledField {
         EXCEPTION( "Wrong type of solution or 'SolutionType2String' not "
                    << "implemented for this type of solution" );
       }
-  } 
+  }
 
-  std::string MapSolTypeToUnit(SolutionType solType) 
+  std::string MapSolTypeToUnit(SolutionType solType)
   {
-    switch(solType) 
+    switch(solType)
     {
 
     case ACOU_FORCE:
@@ -1009,16 +974,6 @@ namespace CoupledField {
     }
   }
 
-  // FEType
-  template<>
-  void Enum2String<FEType>( const FEType &in, std::string &out ) {
-      out = ELEM_TYPE_NAMES[in];
-  }
-
-  template<>
-  void String2Enum<FEType>( const std::string &in, FEType &out ) {
-    EXCEPTION( "String2Enum not implemented for FEType" );
-  }
 
   // ComplexFormat
   template<>
@@ -1034,9 +989,9 @@ namespace CoupledField {
 
   template<>
   void Enum2String<ComplexFormat>(const ComplexFormat &in, std::string &out) {
-    
+
     switch( in ) {
-      
+
     case AMPLITUDE_PHASE:
       out = "amplPhase";
       break;
@@ -1054,7 +1009,7 @@ namespace CoupledField {
   template<>
   void String2Enum<FreqSamplingType>( const std::string &in,
                                       FreqSamplingType &out ) {
-    
+
     if ( in == "noSamplingType" ) {
       out = NO_SAMPLING_TYPE;
     }
@@ -1101,43 +1056,7 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<DataType>(const DataType &in, std::string &out) {
-    switch(in) {
-    case COMPLEX:
-      out = "Complex";
-      break;
-    case REAL:
-      out = "Real";
-      break;
-    case IMAG:
-      out = "ImaginaryPart";
-      break;
-    default:  
-      EXCEPTION("No conversion found for your 'DataType'");
-    }
-  }
-
-
   template<>
-  void String2Enum<DataType>( const std::string &in, DataType &out ) {
-
-    if ( in == "Complex" ) {
-      out = COMPLEX;
-    }
-    else if ( in == "Real" ) {
-      out = REAL;
-    }
-    else if ( in == "ImaginaryPart" ) {
-      out = IMAG;
-    }
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into an '"
-                 << "DataType' item!" );
-    }
-  }
-
-  template<> 
   void Enum2String<MaterialType>(const MaterialType &in, std::string &out) {
     switch(in) {
     case NO_MATERIAL:
@@ -1329,12 +1248,12 @@ namespace CoupledField {
     case PYROCOEFFICIENT_TENSOR:
       out = "Pyrocoefficient_Tensor";
       break;
-    default:  
+    default:
       EXCEPTION("No conversion found for your 'DataType'");
     }
   }
 
-  template<> 
+  template<>
   void String2Enum<MaterialType>( const std::string &in, MaterialType &out ) {
     if ( in == "noMaterial" ) {
       out = NO_MATERIAL;
@@ -1531,7 +1450,7 @@ namespace CoupledField {
   }
 
 
-  template<> 
+  template<>
   void Enum2String<SubTensorType>(const SubTensorType &in, std::string &out) {
     switch(in) {
     case PLANE_STRAIN:
@@ -1549,12 +1468,12 @@ namespace CoupledField {
     case FULL:
       out = "3d";
       break;
-    default:  
+    default:
       EXCEPTION("No conversion found for your 'SubTensorType'");
     }
   }
 
-  template<> 
+  template<>
   void String2Enum<SubTensorType>( const std::string &in, SubTensorType &out ) {
     if ( in == "planeStrain" ) {
       out = PLANE_STRAIN;
@@ -1575,12 +1494,12 @@ namespace CoupledField {
       EXCEPTION("No conversion from string to 'SubTensorType' found" );
     }
   }
-  
-  
-  
-  
-  template<> 
-  void Enum2String<MaterialClass>(const MaterialClass &in, 
+
+
+
+
+  template<>
+  void Enum2String<MaterialClass>(const MaterialClass &in,
                                   std::string &out) {
     switch(in) {
     case NO_CLASS:
@@ -1613,21 +1532,21 @@ namespace CoupledField {
     case THERMOELASTIC:
       out = "thermoelastic";
       break;
-      
-    default:  
+
+    default:
       EXCEPTION("No conversion found for your 'MaterialClass'" );
     }
   }
-  
-  template<> 
+
+  template<>
   void String2Enum<MaterialClass>( const std::string &in, MaterialClass &out ) {
-    
+
     if ( in == "No MaterialClass" ) {
       out = NO_CLASS;
     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
-    }    
+    }
     else if ( in == "electrostatic" ) {
       out = ELECTROSTATIC;
     }
@@ -1688,8 +1607,8 @@ namespace CoupledField {
     }
   }
 
-  template<> 
-  void Enum2String<Directions>(const Directions &in, 
+  template<>
+  void Enum2String<Directions>(const Directions &in,
 			       std::string &out) {
     switch(in) {
     case X:
@@ -1710,8 +1629,8 @@ namespace CoupledField {
     case radYZ:
       out = "radYZ";
       break;
-      
-    default:  
+
+    default:
       EXCEPTION("No conversion found for your 'MaterialClass'" );
     }
   }
@@ -1788,7 +1707,7 @@ namespace CoupledField {
 
   template<>
   void String2Enum<DampingType>( const std::string &in, DampingType &out ) {
-    
+
     if( in == "none" ) {
       out = NONE;
     } else if( in == "rayleigh" ) {
@@ -1802,11 +1721,11 @@ namespace CoupledField {
     } else if( in == "fractiona_gl") {
       out = FRACTIONAL_GL;
     } else if( in == "fractional_blank") {
-      out = FRACTIONAL_BLANK;  
+      out = FRACTIONAL_BLANK;
     } else if( in == "fractional_gl_int") {
       out = FRACTIONAL_GL_INT;
     } else if( in == "fractional_blank_int") {
-      out = FRACTIONAL_BLANK_INT; 
+      out = FRACTIONAL_BLANK_INT;
     } else if( in == "pml" ) {
       out = PML;
     } else if( in == "dampLayer" ) {
@@ -1816,7 +1735,7 @@ namespace CoupledField {
                  << "'DampingType' item!" );
     }
   }
-  
+
   template<>
   void Enum2String<DampingType>( const DampingType &in, std::string& out ) {
     switch(in) {
@@ -1857,6 +1776,525 @@ namespace CoupledField {
     EXCEPTION( "No conversion found for 'DapmingType' " << in );
     }
   }
-  
+
+  // ****************************************************************
+  // ****************************************************************
+  //              THE OLAS ENVIRONMENT STARTS HERE
+  // ****************************************************************
+  // ****************************************************************
+
+
+  // Specialisation for SolverType
+  template<>
+  void Enum2String<SolverType>(const SolverType &in,
+                                      std::string &out) {
+    switch( in ) {
+    case NOSOLVER:
+      out = "no solver";
+      break;
+    case RICHARDSON:
+      out = "Richardson";
+      break;
+    case DIAGSOLVER:
+      out = "diagsolver";
+      break;
+    case CG:
+      out = "cg";
+      break;
+    case GMRES:
+      out = "gmres";
+      break;
+    case MINRES:
+      out = "minres";
+      break;
+    case SYMMLQ:
+      out = "symmlq";
+      break;
+    case LAPACK_LU:
+      out = "lapackLU";
+      break;
+    case LAPACK_LL:
+      out = "lapackLL";
+      break;
+    case LU_SOLVER:
+      out = "directLU";
+      break;
+    case LDL_SOLVER:
+      out = "directLDL";
+      break;
+    case LDL_SOLVER2:
+      out = "directLDL2";
+      break;
+    case PARDISO:
+      out = "pardiso";
+      break;
+    case ILUPACK_SOLVER:
+      out = "ilupack";
+      break;
+
+
+
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+           << "enumeration datatype SolverType.\n"
+           << "Seems to indicate a missing case implementation!" );
+    }
   }
-  
+
+  // Specialisation for EigenSolverType
+  template<>
+  void Enum2String<EigenSolverType>(const EigenSolverType &in,
+                                      std::string &out) {
+    switch( in ) {
+    case NOEIGENSOLVER:
+      out = "no eigensolver";
+      break;
+    case ARPACK:
+      out = "arpack";
+      break;
+    case SUBSPACE:
+      out = "subspace";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype EigenSolverType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+
+  // Specialisation for PrecondType
+  template<>
+  void Enum2String<PrecondType>(const PrecondType &in,
+                                      std::string &out) {
+    switch( in ) {
+    case NOPRECOND:
+      out = "no precond";
+      break;
+    case ID:
+      out = "Id";
+      break;
+    case MG:
+      out = "MG";
+      break;
+    case JACOBI:
+      break;
+    case SSOR:
+      out = "SSOR";
+      break;
+    case ILU0:
+      out = "ILU0";
+      break;
+    case ILUTP:
+      out = "ILUTP";
+      break;
+    case ILUK:
+      out = "ILUK";
+      break;
+    case ILDL0:
+      out = "ILDL0";
+      break;
+    case ILDLK:
+      out = "ILDLK";
+      break;
+    case ILDLTP:
+      out = "ILDLTP";
+      break;
+    case ILDLCN:
+      out = "ILDLCN";
+      break;
+    case IC0:
+      out = "IC0";
+      break;
+
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+           << "enumeration datatype PrecondType.\n"
+           << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // Specialisation for StopCritType
+  template<>
+  void Enum2String<StopCritType>(const StopCritType &in,
+                                        std::string &out) {
+    switch( in ) {
+    case NOSTOPCRITTYPE:
+      out = "no stopping criterion";
+      break;
+    case ABSNORM:
+      out = "absNorm";
+      break;
+    case RELNORM_RHS:
+      out = "relNormRHS";
+      break;
+    case RELNORM_RES0:
+      out = "relNormRes0";
+      break;
+
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+           << "enumeration datatype StopCritType.\n"
+           << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // Specialisation for ReorderingType
+  template<>
+  void Enum2String<ReorderingType>(const ReorderingType &in,
+                                        std::string &out) {
+    switch( in ) {
+    case NOREORDERING:
+      out = "noReordering";
+      break;
+    case SLOAN:
+      out = "Sloan";
+      break;
+    case METIS:
+      out = "Metis";
+      break;
+    case MINIMUM_DEGREE:
+      out = "minimumDegree";
+      break;
+    case NESTED_DISSECTION:
+      out = "nestedDissection";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+           << "enumeration datatype ReorderingType.\n"
+           << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // Specialisation for AMG interpolation type
+  template<>
+  void Enum2String<AMGInterpolationType>(const AMGInterpolationType &in,
+                                        std::string &out) {
+    switch( in ) {
+    case AMG_INTERPOLATION_CONSTANT:
+      out = "constant";
+      break;
+    case AMG_INTERPOLATION_SIMPLE_WEIGHTED:
+      out = "simpleWeighted";
+      break;
+    case AMG_INTERPOLATION_SMOOTHED_SCALING:
+      out = "smoothedScaling";
+      break;
+    case AMG_INTERPOLATION_DEVELOP:
+      out = "develop";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype AMGInterpolationType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // specialisation for AMG smoother type
+  template<>
+  void Enum2String<AMGSmootherType>(const AMGSmootherType &in,
+                                        std::string &out) {
+    switch( in ) {
+        case AMG_SMOOTHER_GAUSSSEIDEL:
+          out = "GaussSeidel";
+          break;
+        case AMG_SMOOTHER_DAMPED_JACOBI:
+          out = "Jacobi";
+          break;
+        default:
+          EXCEPTION( "No string value found for the specified value of the "
+              << "enumeration datatype AMGSmootherType.\n"
+              << "Seems to indicate a missing case implementation!"; );
+    }
+  }
+
+  // Specialisation for FEMatrixType
+  template<>
+  void Enum2String<FEMatrixType>(const FEMatrixType &in,
+                                        std::string &out) {
+    switch( in ) {
+    case NOTYPE:
+      out = "no_fe_matrix";
+      break;
+    case SYSTEM:
+      out = "system";
+      break;
+    case STIFFNESS:
+      out = "stiffness";
+      break;
+    case DAMPING:
+      out = "damping";
+      break;
+    case CONVECTION:
+      out = "convection";
+      break;
+    case MASS:
+      out = "mass";
+      break;
+    case AUXILIARY:
+      out = "auxiliary";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype FEMatrixTypeType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // Specialisation for IDBCType
+  template<>
+  void Enum2String<IDBCType>(const IDBCType &in,
+                             std::string &out) {
+    switch( in ) {
+
+    case IDBC_NOTYPE:
+      out = "notype";
+      break;
+    case IDBC_ELIMINATION:
+      out = "elimination";
+      break;
+    case IDBC_PENALTY:
+      out = "penalty";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype IDBCType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  // -----------------------------------------------
+  //  Implementation of string conversion routines
+  // -----------------------------------------------
+
+  // Specialisation for StopCritType
+  template<>
+  void String2Enum<StopCritType>( const std::string &in, StopCritType &out ) {
+
+    if ( in == "noStopCritType" ) {
+      out = NOSTOPCRITTYPE;
+    }
+    else if ( in == "absNorm" ) {
+      out = ABSNORM;
+    }
+    else if ( in == "relNormRHS" ) {
+      out = RELNORM_RHS;
+    }
+    else if ( in == "relNormRes0" ) {
+      out = RELNORM_RES0;
+    }
+    else {
+      EXCEPTION( "No enumeration value found in StopCritType for '"
+           << in << "'\n A missing case implementation?" );
+    }
+  }
+
+  // Specialisation for SolverType
+  template<>
+  void String2Enum<SolverType>( const std::string &in, SolverType &out ) {
+
+    if ( in == "no solver" ) {
+      out = NOSOLVER;
+    }
+    else if ( in == "Richardson" ) {
+      out = RICHARDSON;
+    }
+    else if ( in == "diagsolver" ) {
+      out = DIAGSOLVER;
+    }
+    else if ( in == "cg" ) {
+      out = CG;
+    }
+    else if ( in == "gmres" ) {
+      out = GMRES;
+    }
+    else if ( in == "minres" ) {
+      out = MINRES;
+    }
+    else if ( in == "symmlq" ) {
+      out = SYMMLQ;
+    }
+    else if ( in == "lapackLL" ) {
+      out = LAPACK_LL;
+    }
+    else if ( in == "directLU" ) {
+      out = LU_SOLVER;
+    }
+    else if ( in == "directLDL" ) {
+      out = LDL_SOLVER;
+    }
+    else if ( in == "directLDL2" ) {
+      out = LDL_SOLVER2;
+    }
+    else if ( in == "pardiso" ) {
+      out = PARDISO;
+    }
+    else if ( in == "ilupack" ) {
+      out = ILUPACK_SOLVER;
+    }
+    else {
+      EXCEPTION( "No enumeration value found in SolverType for '"
+           << in << "'\n A missing case implementation?" );
+    }
+  }
+
+ // Specialisation for EigenSolverType
+  template<>
+  void String2Enum<EigenSolverType>( const std::string &in, EigenSolverType &out ) {
+
+    if ( in == "no eigensolver" ) {
+      out = NOEIGENSOLVER;
+    }
+    else if ( in == "arpack" ) {
+      out = ARPACK;
+    }
+    else if ( in == "subspace" ) {
+      out = SUBSPACE;
+    }
+    else {
+      EXCEPTION( "No enumeration value found in EigenSolverType for '"
+               << in << "'\n A missing case implementation?" );
+    }
+  }
+  // Specialisation for PrecondType
+  template<>
+  void String2Enum<PrecondType>( const std::string &in, PrecondType &out ) {
+
+    if ( in == "noPrecond" ) {
+      out = NOPRECOND;
+    }
+    else if ( in == "Id" ) {
+      out = ID;
+    }
+    else if ( in == "MG" ) {
+      out = MG;
+    }
+    else if ( in == "Jacobi" ) {
+      out = JACOBI;
+    }
+    else if ( in == "SSOR" ) {
+      out = SSOR;
+    }
+    else if ( in == "ILU0" ) {
+      out = ILU0;
+    }
+    else if ( in == "ILUTP" ) {
+      out = ILUTP;
+    }
+    else if ( in == "ILUK" ) {
+      out = ILUK;
+    }
+    else if ( in == "ILDL0" ) {
+      out = ILDL0;
+    }
+    else if ( in == "ILDLK" ) {
+      out = ILDLK;
+    }
+    else if ( in == "ILDLTP" ) {
+      out = ILDLTP;
+    }
+    else if ( in == "ILDLCN" ) {
+      out = ILDLCN;
+    }
+    else if ( in == "IC0" ) {
+      out = IC0;
+    }
+    else {
+      EXCEPTION( "No enumeration value found in PrecondType for '"
+           << in << "'\n A missing case implementation?" );
+    }
+  }
+
+  // map specialisation for interpolation types
+  template<>
+  void String2Enum<AMGInterpolationType>( const std::string &in,
+      AMGInterpolationType &out ) {
+    if ( in == "constant" ) {
+      out = AMG_INTERPOLATION_CONSTANT;
+    } else if( in == "simpleWeighted" ) {
+      out = AMG_INTERPOLATION_SIMPLE_WEIGHTED;
+    } else if( in == "develop" ) {
+      out = AMG_INTERPOLATION_DEVELOP;
+    } else {
+      EXCEPTION( "No enumeration value found in AMGInterpolationType "
+       << "for '" << in << "'\n A missing case implementation?" );
+    }
+  }
+
+  // map specialisation for interpolation types
+  template <>
+  void String2Enum<AMGSmootherType>( const std::string &in,
+                                     AMGSmootherType   &out )
+  {
+    if ( in == "GaussSeidel" ) {
+      out = AMG_SMOOTHER_GAUSSSEIDEL;
+    } else if( in == "Jacobi" ) {
+      out = AMG_SMOOTHER_DAMPED_JACOBI;
+    } else {
+      EXCEPTION( "No enumeration value found in AMGSmoothertype "
+       << "for '" << in << "'\n A missing case implementation?" );
+    }
+  }
+
+  // Specialisation for ReorderingType
+  template<>
+  void String2Enum<ReorderingType>( const std::string &in,
+                    ReorderingType &out ) {
+
+    if ( in == "noReordering" )
+      out = NOREORDERING;
+    else if ( in == "Sloan" )
+      out = SLOAN;
+    else if ( in == "Metis" )
+      out = METIS;
+    else if ( in == "minimumDegree" )
+      out = MINIMUM_DEGREE;
+    else if ( in == "nestedDissection" )
+      out = NESTED_DISSECTION;
+    else {
+      EXCEPTION( "String '" << in << "' cannot be converted to item of "
+           << "'ReorderingType'!"; );
+    }
+  }
+
+  // Specialisation for FEMatrixType
+  template<>
+  void String2Enum<FEMatrixType>( const std::string &in,
+                                  FEMatrixType &out ) {
+
+    if ( in == "nomatrixtype" )
+      out = NOTYPE;
+    else if ( in == "system" )
+      out = SYSTEM;
+    else if ( in == "stiffness" )
+      out = STIFFNESS;
+    else if ( in == "damping" )
+      out = DAMPING;
+    else if ( in == "convection" )
+      out = CONVECTION;
+    else if ( in == "mass" )
+      out = MASS;
+    else {
+      EXCEPTION( "String '" << in << "' cannot be converted to item of "
+           << "'FEMatrixType'!" );
+    }
+  }
+
+  // Specialisation for IDBCType
+  template<>
+  void String2Enum<IDBCType>( const std::string &in, IDBCType &out ) {
+
+    if ( in == "notype" )
+      out = IDBC_NOTYPE;
+    else if ( in == "elimination" )
+      out = IDBC_ELIMINATION;
+    else if ( in == "penalty" )
+      out = IDBC_PENALTY;
+    else {
+      EXCEPTION( "String '" << in << "' cannot be converted to item of "
+           << "'IDBCType'!" );
+    }
+  }
+
+}
+

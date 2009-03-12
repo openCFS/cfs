@@ -42,7 +42,7 @@ namespace CoupledField {
     return true;
   }
   
-  void CFSMessenger::Error( const Char * msg, const Char * const filename,
+  void CFSMessenger::Error( const char * msg, const char * const filename,
                             const UInt numline) {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
@@ -51,7 +51,7 @@ namespace CoupledField {
     
   }
   
-  void CFSMessenger::Warning( const Char * msg, const Char * const filename,
+  void CFSMessenger::Warning( const char * msg, const char * const filename,
                             const UInt numline) {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function

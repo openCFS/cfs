@@ -2,7 +2,7 @@
 #define OPTIMALITYCONDITION_HH_
 
 #include "Optimization/BaseOptimizer.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "General/Enum.hh"
 
 namespace CoupledField

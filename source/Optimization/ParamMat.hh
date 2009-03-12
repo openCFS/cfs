@@ -18,7 +18,7 @@ namespace CoupledField {
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* mat_out);
+    virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out);
     
   };
 

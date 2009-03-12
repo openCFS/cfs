@@ -12,6 +12,8 @@
 #include "Utils/tools.hh"
 #include "Domain/grid.hh"
 #include "General/exception.hh"
+#include "Utils/result.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {

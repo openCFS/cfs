@@ -1,292 +1,47 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
-Doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
-Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
-Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
-Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
-Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
-Doc/developer/AddDoc/element_types/elementtypes.doc -text
-Doc/developer/AddDoc/element_types/elementtypes.pdf -text svneol=unset#application/pdf
-Doc/developer/AddDoc/element_types/hexa20.dia -text
-Doc/developer/AddDoc/element_types/hexa27.dia -text
-Doc/developer/AddDoc/element_types/hexa8.dia -text
-Doc/developer/AddDoc/element_types/line2.dia -text
-Doc/developer/AddDoc/element_types/line3.dia -text
-Doc/developer/AddDoc/element_types/point.dia -text
-Doc/developer/AddDoc/element_types/prism15.dia -text
-Doc/developer/AddDoc/element_types/prism6.dia -text
-Doc/developer/AddDoc/element_types/pyra13.dia -text
-Doc/developer/AddDoc/element_types/pyra5.dia -text
-Doc/developer/AddDoc/element_types/quad4.dia -text
-Doc/developer/AddDoc/element_types/quad8.dia -text
-Doc/developer/AddDoc/element_types/quad9.dia -text
-Doc/developer/AddDoc/element_types/refelems/hex.gmv -text
-Doc/developer/AddDoc/element_types/refelems/line.gmv -text
-Doc/developer/AddDoc/element_types/refelems/line3.gmv -text
-Doc/developer/AddDoc/element_types/refelems/phex20.gmv -text
-Doc/developer/AddDoc/element_types/refelems/phex27.gmv -text
-Doc/developer/AddDoc/element_types/refelems/phex8.gmv -text
-Doc/developer/AddDoc/element_types/refelems/pprism15.gmv -text
-Doc/developer/AddDoc/element_types/refelems/pprism6.gmv -text
-Doc/developer/AddDoc/element_types/refelems/ppyrmd13.gmv -text
-Doc/developer/AddDoc/element_types/refelems/ppyrmd5.gmv -text
-Doc/developer/AddDoc/element_types/refelems/prism.gmv -text
-Doc/developer/AddDoc/element_types/refelems/ptet10.gmv -text
-Doc/developer/AddDoc/element_types/refelems/ptet4.gmv -text
-Doc/developer/AddDoc/element_types/refelems/pyramid.gmv -text
-Doc/developer/AddDoc/element_types/refelems/quad.gmv -text
-Doc/developer/AddDoc/element_types/refelems/quad8.gmv -text
-Doc/developer/AddDoc/element_types/refelems/tet.gmv -text
-Doc/developer/AddDoc/element_types/refelems/tri.gmv -text
-Doc/developer/AddDoc/element_types/refelems/tri6.gmv -text
-Doc/developer/AddDoc/element_types/tet10.dia -text
-Doc/developer/AddDoc/element_types/tet4.dia -text
-Doc/developer/AddDoc/element_types/tria3.dia -text
-Doc/developer/AddDoc/element_types/tria6.dia -text
-Doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
-Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
-Doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
-Doc/developer/CMakeLists.txt svneol=native#text/plain
-Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
-Doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
-Doc/developer/Concepts/Dof-Mapping/dofmapping.pdf -text svneol=unset#application/pdf
-Doc/developer/Concepts/Dof-Mapping/dofmapping.tex svneol=native#text/plain
-Doc/developer/Concepts/Dof-Mapping/lse.eps -text svneol=unset#application/postscript
-Doc/developer/Concepts/Dof-Mapping/lse.png -text svneol=unset#image/png
-Doc/developer/Concepts/Dof-Mapping/lsepaper.sty svneol=native#text/plain
-Doc/developer/Concepts/Dof-Mapping/mycommands.tex svneol=native#text/plain
-Doc/developer/Concepts/cfs/128037 -text
-Doc/developer/Concepts/cfs/128038.diagram -text
-Doc/developer/Concepts/cfs/128165 -text
-Doc/developer/Concepts/cfs/128205.diagram -text
-Doc/developer/Concepts/cfs/128293 -text
-Doc/developer/Concepts/cfs/128293.diagram -text
-Doc/developer/Concepts/cfs/128421 -text
-Doc/developer/Concepts/cfs/128421.diagram -text
-Doc/developer/Concepts/cfs/128549 -text
-Doc/developer/Concepts/cfs/128677 -text
-Doc/developer/Concepts/cfs/128677.bodies -text
-Doc/developer/Concepts/cfs/128805 -text
-Doc/developer/Concepts/cfs/128933 -text
-Doc/developer/Concepts/cfs/128933.bodies -text
-Doc/developer/Concepts/cfs/129061 -text
-Doc/developer/Concepts/cfs/129189 -text
-Doc/developer/Concepts/cfs/129317 -text
-Doc/developer/Concepts/cfs/129445 -text
-Doc/developer/Concepts/cfs/129573 -text
-Doc/developer/Concepts/cfs/129701 -text
-Doc/developer/Concepts/cfs/129829 -text
-Doc/developer/Concepts/cfs/129957 -text
-Doc/developer/Concepts/cfs/130085 -text
-Doc/developer/Concepts/cfs/130213 -text
-Doc/developer/Concepts/cfs/130213.bodies -text
-Doc/developer/Concepts/cfs/130341 -text
-Doc/developer/Concepts/cfs/130469 -text
-Doc/developer/Concepts/cfs/130597 -text
-Doc/developer/Concepts/cfs/130725 -text
-Doc/developer/Concepts/cfs/130853 -text
-Doc/developer/Concepts/cfs/130981 -text
-Doc/developer/Concepts/cfs/131109 -text
-Doc/developer/Concepts/cfs/131237 -text
-Doc/developer/Concepts/cfs/131365 -text
-Doc/developer/Concepts/cfs/131493 -text
-Doc/developer/Concepts/cfs/131621 -text
-Doc/developer/Concepts/cfs/131749 -text
-Doc/developer/Concepts/cfs/131877 -text
-Doc/developer/Concepts/cfs/132005 -text
-Doc/developer/Concepts/cfs/132133 -text
-Doc/developer/Concepts/cfs/132261 -text
-Doc/developer/Concepts/cfs/132389 -text
-Doc/developer/Concepts/cfs/132389.bodies -text
-Doc/developer/Concepts/cfs/132517 -text
-Doc/developer/Concepts/cfs/132645 -text
-Doc/developer/Concepts/cfs/132773 -text
-Doc/developer/Concepts/cfs/132901 -text
-Doc/developer/Concepts/cfs/133029 -text
-Doc/developer/Concepts/cfs/133029.bodies -text
-Doc/developer/Concepts/cfs/133157 -text
-Doc/developer/Concepts/cfs/133285 -text
-Doc/developer/Concepts/cfs/133413 -text
-Doc/developer/Concepts/cfs/133541 -text
-Doc/developer/Concepts/cfs/133669 -text
-Doc/developer/Concepts/cfs/133797 -text
-Doc/developer/Concepts/cfs/133925 -text
-Doc/developer/Concepts/cfs/134181 -text
-Doc/developer/Concepts/cfs/134309 -text
-Doc/developer/Concepts/cfs/134437 -text
-Doc/developer/Concepts/cfs/143397.bodies -text
-Doc/developer/Concepts/cfs/143525.bodies -text
-Doc/developer/Concepts/cfs/143653.bodies -text
-Doc/developer/Concepts/cfs/143781.bodies -text
-Doc/developer/Concepts/cfs/143909.bodies -text
-Doc/developer/Concepts/cfs/144677.bodies -text
-Doc/developer/Concepts/cfs/144805.bodies -text
-Doc/developer/Concepts/cfs/147109.bodies -text
-Doc/developer/Concepts/cfs/147237.bodies -text
-Doc/developer/Concepts/cfs/149413.bodies -text
-Doc/developer/Concepts/cfs/157349.bodies -text
-Doc/developer/Concepts/cfs/37.session -text
-Doc/developer/Concepts/cfs/cfs.prj -text
-Doc/developer/Concepts/cfs/cpp_includes -text
-Doc/developer/Concepts/cfs/generation_settings -text
-Doc/developer/Concepts/cfs/idl_includes -text
-Doc/developer/Concepts/cfs/java_imports -text
-Doc/developer/Concepts/cfs/stereotypes -text
-Doc/developer/Concepts/cfs/tools -text
-Doc/developer/Concepts/resultHandling/resultHandling.dia -text
-Doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
-Doc/developer/DoxygenConfig/doxy-config.in -text
-Doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
-Doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-Doc/developer/DoxygenConfig/header.html svneol=native#text/html
-Doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
-Doc/developer/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
-Doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
-Doc/developer/makedoc.sh.in -text
-Doc/user/CMakeLists.txt svneol=native#text/plain
-Doc/user/makedoc.sh.in -text
-Doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
-Doc/user/matFile/matRef.tex svneol=native#text/plain
-Doc/user/matFile/matintro.tex svneol=native#text/plain
-Doc/user/matFile/singlePDEs.tex svneol=native#text/plain
-Doc/user/scripting/commands.tex svneol=native#text/plain
-Doc/user/scripting/events.tex svneol=native#text/plain
-Doc/user/scripting/intro.tex svneol=native#text/plain
-Doc/user/scripting/pics/program-flow.cdr -text
-Doc/user/scripting/pics/program-flow.png -text svneol=unset#image/png
-Doc/user/scripting/scripting.tex svneol=native#text/plain
-Doc/user/xmlFile/BCsLoads.tex svneol=native#text/plain
-Doc/user/xmlFile/Savings.tex svneol=native#text/plain
-Doc/user/xmlFile/basicCommands.tex svneol=native#text/plain
-Doc/user/xmlFile/coupledfields.tex svneol=native#text/plain
-Doc/user/xmlFile/general.tex svneol=native#text/plain
-Doc/user/xmlFile/mathExpressions.tex svneol=native#text/plain
-Doc/user/xmlFile/mycommands.tex svneol=native#text/plain
-Doc/user/xmlFile/optimization.tex svneol=native#text/plain
-Doc/user/xmlFile/paramIdent.tex svneol=native#text/plain
-Doc/user/xmlFile/pics/cartesian.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/checkerboard.jpg -text svneol=unset#image/jpeg
-Doc/user/xmlFile/pics/coordSystems.cdr -text svneol=unset#application/coreldraw
-Doc/user/xmlFile/pics/cyl.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/cylExample.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/half_mbb.jpg -text svneol=unset#image/jpeg
-Doc/user/xmlFile/pics/large_filter.jpg -text svneol=unset#image/jpeg
-Doc/user/xmlFile/pics/matCoord.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/polar.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/rot1.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/rot2.png -text svneol=unset#image/png
-Doc/user/xmlFile/pics/small_filter.jpg -text svneol=unset#image/jpeg
-Doc/user/xmlFile/singlefields.tex svneol=native#text/plain
-Doc/user/xmlFile/solverParams.tex svneol=native#text/plain
-Doc/user/xmlFile/special.tex svneol=native#text/plain
-Doc/user/xmlFile/xmlReference.tex svneol=native#text/plain
-Doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
-Doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
-XML/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Examples/mat.xml svneol=native#text/xml
-XML/CFS-Material/Examples/matElec.xml svneol=native#text/xml
-XML/CFS-Material/Schemas/CFS_MATacoustic.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATelectric.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATflow.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATheatConduction.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATmagnetic.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATmechanical.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATpiezo.xsd -text svneol=unset#text/xml
-XML/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
-XML/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
-XML/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
-XML/CFS-Simulation/CFS.xsd svneol=native#text/xml
-XML/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
-XML/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
-XML/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
-XML/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
-XML/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
-XML/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
-XML/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
-XML/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
-XML/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
-XML/CFS-Simulation/Schemas/CFS_PDEacousticXYZ.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEbubble.xsd -text svneol=unset#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PDEstokesFluid.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
-XML/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
-XML/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
-XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
-auxiliary/MaterialFile/mat.xml svneol=native#text/xml
-auxiliary/XSL/extract_eigenvalues_line.xsl -text
-auxiliary/XSL/extract_last_design_line.xsl -text
-auxiliary/XSL/meta_optimization_subiterations.xsl -text
-auxiliary/matlab/CopyTreeHDF5.m -text
-auxiliary/matlab/FftHdf5Core.m -text
-auxiliary/matlab/FindPathHDF5.m -text
-auxiliary/matlab/PCOLOR.m svneol=native#text/plain
-auxiliary/matlab/README -text
-auxiliary/matlab/Time2FreqHDF5.m -text
-auxiliary/matlab/TimeFilterHDF5.m -text
-auxiliary/matlab/WriteFileInfoHDF5.m -text
-auxiliary/matlab/exec.m -text
-auxiliary/matlab/mminfo.m svneol=native#text/plain
-auxiliary/matlab/mmread.m svneol=native#text/plain
-auxiliary/matlab/opt_design_change.m -text
-auxiliary/matlab/sbmread.m svneol=native#text/plain
-auxiliary/scripts/CMakeLists.txt svneol=native#text/plain
-auxiliary/scripts/hdf5_aux.sh.in -text
-auxiliary/scripts/hdf5_concat.sh.in -text
-auxiliary/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
-auxiliary/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
-auxiliary/scripts/log.tcl svneol=native#text/x-tcl
-auxiliary/scripts/xmlreplace.py -text
+cmake_modules/CFS_macros.cmake -text
 cmake_modules/FindACML.cmake -text
+cmake_modules/FindANSYSCust.cmake -text
 cmake_modules/FindARPACK.cmake -text
 cmake_modules/FindBLAS.cmake -text
 cmake_modules/FindBoostForCFS.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
+cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
 cmake_modules/FindGiDpost.cmake -text
+cmake_modules/FindGotoBLAS.cmake -text
 cmake_modules/FindHDF5.cmake -text
+cmake_modules/FindILUPACK.cmake -text
 cmake_modules/FindIPOPT.cmake -text
 cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindLAPACK.cmake -text
 cmake_modules/FindMetis.cmake -text
 cmake_modules/FindMpCCI.cmake -text
+cmake_modules/FindMuParser.cmake -text
+cmake_modules/FindParaView.cmake -text
 cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSCPIP.cmake -text
 cmake_modules/FindTCLForCFS.cmake -text
+cmake_modules/FindVTK.cmake -text
 cmake_modules/FindXerces.cmake -text
+cmake_modules/FindZlib.cmake -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
-cmake_modules/distro.sh svneol=native#text/plain
+cmake_modules/platform_defaults.cmake -text
+cmake_modules/platform_defaults_altix.cmake -text
+cmake_modules/platform_defaults_lse.cmake -text
+cmake_modules/platform_defaults_mac.cmake -text
+cmake_modules/platform_defaults_rom.cmake -text
+cmake_modules/platform_defaults_woody.cmake -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
 include/def_cplreader.hh.in -text
+include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
@@ -306,10 +61,275 @@ include/def_use_scpip.hh.in -text
 include/def_use_scripting.hh.in -text
 include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
-include/def_use_vtk.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
+share/MaterialFile/mat.xml svneol=native#text/xml
+share/XSL/extract_eigenvalues_line.xsl -text
+share/XSL/extract_last_design_line.xsl -text
+share/XSL/meta_optimization_subiterations.xsl -text
+share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
+share/doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
+share/doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
+share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
+share/doc/developer/AddDoc/element_types/elementtypes.doc -text
+share/doc/developer/AddDoc/element_types/elementtypes.pdf -text svneol=unset#application/pdf
+share/doc/developer/AddDoc/element_types/hexa20.dia -text
+share/doc/developer/AddDoc/element_types/hexa27.dia -text
+share/doc/developer/AddDoc/element_types/hexa8.dia -text
+share/doc/developer/AddDoc/element_types/line2.dia -text
+share/doc/developer/AddDoc/element_types/line3.dia -text
+share/doc/developer/AddDoc/element_types/point.dia -text
+share/doc/developer/AddDoc/element_types/prism15.dia -text
+share/doc/developer/AddDoc/element_types/prism6.dia -text
+share/doc/developer/AddDoc/element_types/pyra13.dia -text
+share/doc/developer/AddDoc/element_types/pyra5.dia -text
+share/doc/developer/AddDoc/element_types/quad4.dia -text
+share/doc/developer/AddDoc/element_types/quad8.dia -text
+share/doc/developer/AddDoc/element_types/quad9.dia -text
+share/doc/developer/AddDoc/element_types/refelems/hex.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/line.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/line3.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/phex20.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/phex27.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/phex8.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/pprism15.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/pprism6.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/ppyrmd13.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/ppyrmd5.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/prism.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/ptet10.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/ptet4.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/pyramid.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/quad.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/quad8.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/tet.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/tri.gmv -text
+share/doc/developer/AddDoc/element_types/refelems/tri6.gmv -text
+share/doc/developer/AddDoc/element_types/tet10.dia -text
+share/doc/developer/AddDoc/element_types/tet4.dia -text
+share/doc/developer/AddDoc/element_types/tria3.dia -text
+share/doc/developer/AddDoc/element_types/tria6.dia -text
+share/doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
+share/doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
+share/doc/developer/AddDoc/technical_ovv/cfs_technical.odp -text
+share/doc/developer/CMakeLists.txt svneol=native#text/plain
+share/doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
+share/doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
+share/doc/developer/Concepts/Dof-Mapping/dofmapping.pdf -text svneol=unset#application/pdf
+share/doc/developer/Concepts/Dof-Mapping/dofmapping.tex svneol=native#text/plain
+share/doc/developer/Concepts/Dof-Mapping/lse.eps -text svneol=unset#application/postscript
+share/doc/developer/Concepts/Dof-Mapping/lse.png -text svneol=unset#image/png
+share/doc/developer/Concepts/Dof-Mapping/lsepaper.sty svneol=native#text/plain
+share/doc/developer/Concepts/Dof-Mapping/mycommands.tex svneol=native#text/plain
+share/doc/developer/Concepts/cfs/128037 -text
+share/doc/developer/Concepts/cfs/128038.diagram -text
+share/doc/developer/Concepts/cfs/128165 -text
+share/doc/developer/Concepts/cfs/128205.diagram -text
+share/doc/developer/Concepts/cfs/128293 -text
+share/doc/developer/Concepts/cfs/128293.diagram -text
+share/doc/developer/Concepts/cfs/128421 -text
+share/doc/developer/Concepts/cfs/128421.diagram -text
+share/doc/developer/Concepts/cfs/128549 -text
+share/doc/developer/Concepts/cfs/128677 -text
+share/doc/developer/Concepts/cfs/128677.bodies -text
+share/doc/developer/Concepts/cfs/128805 -text
+share/doc/developer/Concepts/cfs/128933 -text
+share/doc/developer/Concepts/cfs/128933.bodies -text
+share/doc/developer/Concepts/cfs/129061 -text
+share/doc/developer/Concepts/cfs/129189 -text
+share/doc/developer/Concepts/cfs/129317 -text
+share/doc/developer/Concepts/cfs/129445 -text
+share/doc/developer/Concepts/cfs/129573 -text
+share/doc/developer/Concepts/cfs/129701 -text
+share/doc/developer/Concepts/cfs/129829 -text
+share/doc/developer/Concepts/cfs/129957 -text
+share/doc/developer/Concepts/cfs/130085 -text
+share/doc/developer/Concepts/cfs/130213 -text
+share/doc/developer/Concepts/cfs/130213.bodies -text
+share/doc/developer/Concepts/cfs/130341 -text
+share/doc/developer/Concepts/cfs/130469 -text
+share/doc/developer/Concepts/cfs/130597 -text
+share/doc/developer/Concepts/cfs/130725 -text
+share/doc/developer/Concepts/cfs/130853 -text
+share/doc/developer/Concepts/cfs/130981 -text
+share/doc/developer/Concepts/cfs/131109 -text
+share/doc/developer/Concepts/cfs/131237 -text
+share/doc/developer/Concepts/cfs/131365 -text
+share/doc/developer/Concepts/cfs/131493 -text
+share/doc/developer/Concepts/cfs/131621 -text
+share/doc/developer/Concepts/cfs/131749 -text
+share/doc/developer/Concepts/cfs/131877 -text
+share/doc/developer/Concepts/cfs/132005 -text
+share/doc/developer/Concepts/cfs/132133 -text
+share/doc/developer/Concepts/cfs/132261 -text
+share/doc/developer/Concepts/cfs/132389 -text
+share/doc/developer/Concepts/cfs/132389.bodies -text
+share/doc/developer/Concepts/cfs/132517 -text
+share/doc/developer/Concepts/cfs/132645 -text
+share/doc/developer/Concepts/cfs/132773 -text
+share/doc/developer/Concepts/cfs/132901 -text
+share/doc/developer/Concepts/cfs/133029 -text
+share/doc/developer/Concepts/cfs/133029.bodies -text
+share/doc/developer/Concepts/cfs/133157 -text
+share/doc/developer/Concepts/cfs/133285 -text
+share/doc/developer/Concepts/cfs/133413 -text
+share/doc/developer/Concepts/cfs/133541 -text
+share/doc/developer/Concepts/cfs/133669 -text
+share/doc/developer/Concepts/cfs/133797 -text
+share/doc/developer/Concepts/cfs/133925 -text
+share/doc/developer/Concepts/cfs/134181 -text
+share/doc/developer/Concepts/cfs/134309 -text
+share/doc/developer/Concepts/cfs/134437 -text
+share/doc/developer/Concepts/cfs/143397.bodies -text
+share/doc/developer/Concepts/cfs/143525.bodies -text
+share/doc/developer/Concepts/cfs/143653.bodies -text
+share/doc/developer/Concepts/cfs/143781.bodies -text
+share/doc/developer/Concepts/cfs/143909.bodies -text
+share/doc/developer/Concepts/cfs/144677.bodies -text
+share/doc/developer/Concepts/cfs/144805.bodies -text
+share/doc/developer/Concepts/cfs/147109.bodies -text
+share/doc/developer/Concepts/cfs/147237.bodies -text
+share/doc/developer/Concepts/cfs/149413.bodies -text
+share/doc/developer/Concepts/cfs/157349.bodies -text
+share/doc/developer/Concepts/cfs/37.session -text
+share/doc/developer/Concepts/cfs/cfs.prj -text
+share/doc/developer/Concepts/cfs/cpp_includes -text
+share/doc/developer/Concepts/cfs/generation_settings -text
+share/doc/developer/Concepts/cfs/idl_includes -text
+share/doc/developer/Concepts/cfs/java_imports -text
+share/doc/developer/Concepts/cfs/stereotypes -text
+share/doc/developer/Concepts/cfs/tools -text
+share/doc/developer/Concepts/resultHandling/resultHandling.dia -text
+share/doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
+share/doc/developer/DoxygenConfig/doxy-config.in -text
+share/doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
+share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
+share/doc/developer/DoxygenConfig/header.html svneol=native#text/html
+share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
+share/doc/developer/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
+share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/makedoc.sh.in -text
+share/doc/user/CMakeLists.txt svneol=native#text/plain
+share/doc/user/makedoc.sh.in -text
+share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
+share/doc/user/matFile/matRef.tex svneol=native#text/plain
+share/doc/user/matFile/matintro.tex svneol=native#text/plain
+share/doc/user/matFile/singlePDEs.tex svneol=native#text/plain
+share/doc/user/scripting/commands.tex svneol=native#text/plain
+share/doc/user/scripting/events.tex svneol=native#text/plain
+share/doc/user/scripting/intro.tex svneol=native#text/plain
+share/doc/user/scripting/pics/program-flow.cdr -text
+share/doc/user/scripting/pics/program-flow.png -text svneol=unset#image/png
+share/doc/user/scripting/scripting.tex svneol=native#text/plain
+share/doc/user/xmlFile/BCsLoads.tex svneol=native#text/plain
+share/doc/user/xmlFile/Savings.tex svneol=native#text/plain
+share/doc/user/xmlFile/basicCommands.tex svneol=native#text/plain
+share/doc/user/xmlFile/coupledfields.tex svneol=native#text/plain
+share/doc/user/xmlFile/general.tex svneol=native#text/plain
+share/doc/user/xmlFile/mathExpressions.tex svneol=native#text/plain
+share/doc/user/xmlFile/mycommands.tex svneol=native#text/plain
+share/doc/user/xmlFile/optimization.tex svneol=native#text/plain
+share/doc/user/xmlFile/paramIdent.tex svneol=native#text/plain
+share/doc/user/xmlFile/pics/cartesian.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/checkerboard.jpg -text svneol=unset#image/jpeg
+share/doc/user/xmlFile/pics/coordSystems.cdr -text svneol=unset#application/coreldraw
+share/doc/user/xmlFile/pics/cyl.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/cylExample.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/half_mbb.jpg -text svneol=unset#image/jpeg
+share/doc/user/xmlFile/pics/large_filter.jpg -text svneol=unset#image/jpeg
+share/doc/user/xmlFile/pics/matCoord.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/polar.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/rot1.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/rot2.png -text svneol=unset#image/png
+share/doc/user/xmlFile/pics/small_filter.jpg -text svneol=unset#image/jpeg
+share/doc/user/xmlFile/singlefields.tex svneol=native#text/plain
+share/doc/user/xmlFile/solverParams.tex svneol=native#text/plain
+share/doc/user/xmlFile/special.tex svneol=native#text/plain
+share/doc/user/xmlFile/xmlReference.tex svneol=native#text/plain
+share/doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
+share/doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
+share/matlab/CopyTreeHDF5.m -text
+share/matlab/FftHdf5Core.m -text
+share/matlab/FindPathHDF5.m -text
+share/matlab/PCOLOR.m svneol=native#text/plain
+share/matlab/README -text
+share/matlab/Time2FreqHDF5.m -text
+share/matlab/TimeFilterHDF5.m -text
+share/matlab/WriteFileInfoHDF5.m -text
+share/matlab/exec.m -text
+share/matlab/mminfo.m svneol=native#text/plain
+share/matlab/mmread.m svneol=native#text/plain
+share/matlab/opt_design_change.m -text
+share/matlab/sbmread.m svneol=native#text/plain
+share/scripts/CMakeLists.txt svneol=native#text/plain
+share/scripts/cfs -text
+share/scripts/cfstool -text
+share/scripts/common.sh svneol=native#text/plain
+share/scripts/cplreader -text
+share/scripts/distro.sh svneol=native#text/plain
+share/scripts/hdf5_aux.sh.in -text
+share/scripts/hdf5_concat.sh.in -text
+share/scripts/hdf5_concat2.sh.in -text
+share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
+share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
+share/scripts/log.tcl svneol=native#text/x-tcl
+share/scripts/macsysinfo.scpt -text
+share/scripts/xmlreplace.py -text
+share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Examples/mat.xml svneol=native#text/xml
+share/xml/CFS-Material/Examples/matElec.xml svneol=native#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATacoustic.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATelectric.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATflow.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATheatConduction.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATmagnetic.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATmechanical.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATpiezo.xsd -text svneol=unset#text/xml
+share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
+share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
+share/xml/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
+share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
+share/xml/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
+share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEbubble.xsd -text svneol=unset#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEelectrostatic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEfluidMech.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEheatConduction.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEstokesFluid.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
+share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 source/CoupledPDE/AcouMechCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/AcouMechCoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/BasePairCoupling.cc svneol=native#text/x-c%2B%2Bsrc
@@ -409,11 +429,6 @@ source/DataInOut/SimInOut/AnsysRST/bintwr.F -text
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysRST/simOutputRST.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/SimInOut/GiD/gidpost/gidpost.cpp svneol=native#text/plain
-source/DataInOut/SimInOut/GiD/gidpost/gidpost.h svneol=native#text/plain
-source/DataInOut/SimInOut/GiD/gidpost/gidpostInt.cpp svneol=native#text/plain
-source/DataInOut/SimInOut/GiD/gidpost/gidpostInt.h svneol=native#text/plain
-source/DataInOut/SimInOut/GiD/gidpost/gidpostfor.c svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/simOutGiD.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/GiD/simOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/TextOutput/CMakeLists.txt svneol=native#text/plain
@@ -431,9 +446,6 @@ source/DataInOut/SimInOut/Unverg/unv_dat.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_reader.cc svneol=native#text/plain
-source/DataInOut/SimInOut/VTK/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/SimInOut/VTK/SimOutputVTK.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/SimInOut/VTK/SimOutputVTK.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/gmv/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/gmv/gmvread.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/gmv/gmvread.hh svneol=native#text/x-c%2B%2Bhdr
@@ -445,6 +457,7 @@ source/DataInOut/SimInOut/hdf5/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/h5tool.cc svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/hdf5io.cc svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/hdf5io.hh svneol=native#text/plain
+source/DataInOut/SimInOut/hdf5/serializeTest.cc svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/simInputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simInputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
@@ -520,6 +533,7 @@ source/Domain/domain.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/domain.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/edgeFace.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/edgeFace.hh svneol=native#text/x-c%2B%2Bhdr
+source/Domain/elem.cc svneol=native#text/plain
 source/Domain/elem.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/entityList.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/entityList.hh svneol=native#text/x-c%2B%2Bhdr
@@ -562,14 +576,12 @@ source/Driver/solveStepMech.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMech.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepMpCCI.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepMpCCI.hh svneol=native#text/x-c%2B%2Bhdr
-source/Driver/solveStepODE.cc svneol=native#text/x-c%2B%2Bsrc
-source/Driver/solveStepODE.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/solveStepODE.cc svneol=native#text/plain
+source/Driver/solveStepODE.hh svneol=native#text/plain
 source/Driver/solveStepPiezo.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepPiezo.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/solveStepSmooth.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/solveStepSmooth.hh svneol=native#text/x-c%2B%2Bhdr
-source/Driver/solveStepStokesFluid.cc svneol=native#text/x-c%2B%2Bsrc
-source/Driver/solveStepStokesFluid.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/staticdriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/staticdriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/stdSolveStep.cc svneol=native#text/x-c%2B%2Bsrc
@@ -644,8 +656,6 @@ source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/PMLTransXYZInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/PMLTransXYZInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/SurfaceNormalInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/SurfaceNormalInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -670,10 +680,6 @@ source/Forms/bdInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/bdInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/bdbInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/bdbInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/bubbleDampInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/bubbleDampInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/bubbleStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/bubbleStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/curlCurlEdgeInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/curlCurlEdgeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/curlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -692,13 +698,10 @@ source/Forms/fluidMechShearStress.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/fluidMechShearStress.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/fluidMechStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/fluidMechStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/forms_header.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/gradfieldop.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/gradfieldop.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/laplaceInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/laplaceInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/laplaceXYZInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/laplaceXYZInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linElastInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/linElastInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/linElecInt.cc -text svneol=unset#text/x-c%2B%2Bsrc
@@ -755,8 +758,6 @@ source/Forms/nLinPiezoHyst.cc -text
 source/Forms/nLinPiezoHyst.hh -text
 source/Forms/nLinPiezoHystRHS.cc -text
 source/Forms/nLinPiezoHystRHS.hh -text
-source/Forms/nLinStokesFluidInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/nLinStokesFluidInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nLincurlCurlNodeInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nLincurlCurlNodeInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/nlinLaplaceInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -773,14 +774,6 @@ source/Forms/smoothInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/smoothInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/smoothNLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/smoothNLInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/stokesFluid3DInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/stokesFluid3DInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/stokesFluidAxiInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/stokesFluidAxiInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/stokesFluidInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/stokesFluidInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/stokesFluidPlaneInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/stokesFluidPlaneInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/CMakeLists.txt svneol=native#text/plain
 source/General/Enum.hh -text
 source/General/defs.hh svneol=native#text/x-c%2B%2Bhdr
@@ -788,7 +781,47 @@ source/General/environment.cc svneol=native#text/x-c%2B%2Bsrc
 source/General/environment.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/exception.cc svneol=native#text/x-c%2B%2Bsrc
 source/General/exception.hh svneol=native#text/x-c%2B%2Bhdr
-source/General/pstdint.h svneol=native#text/x-chdr
+source/MatVec/CMakeLists.txt svneol=native#text/plain
+source/MatVec/SingleVector.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/SingleVector.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/basematrix.cc svneol=native#text/plain
+source/MatVec/basematrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/basevector.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/coordformat.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/crs_matrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/crs_matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/denseMatrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/diag_matrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/diag_matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/dinolfo_matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/exprt/xpr1.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/exprt/xpr2.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/generatematvec.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/generatematvec.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/matrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/matrixLapackSupport.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/matrixSerialization.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/matrixSerialization.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/opdefs.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/patternpool.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/promote.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/sbmmatrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/sbmmatrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/sbmvector.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/sbmvector.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/scrs_matrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/scrs_matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/sparseolasmatrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/sparsitypatterns.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/stdmatrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/stdmatrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/typedefs.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/typedefs.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/vector.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/vector.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/vectorSerialization.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/vectorSerialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Materials/CMakeLists.txt svneol=native#text/plain
 source/Materials/acousticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/acousticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
@@ -810,49 +843,37 @@ source/Materials/pyroelectricMaterial.cc -text
 source/Materials/pyroelectricMaterial.hh -text
 source/Materials/thermoelasticMaterial.cc -text
 source/Materials/thermoelasticMaterial.hh -text
-source/Matrix/CMakeLists.txt svneol=native#text/plain
-source/Matrix/cfsmatrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/Matrix/dinolfo_matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/Matrix/matrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/Matrix/matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/Matrix/matrixLapackSupport.hh svneol=native#text/x-c%2B%2Bhdr
-source/Matrix/matrix_header.hh svneol=native#text/x-c%2B%2Bhdr
 source/MpCCIcpl/CMakeLists.txt svneol=native#text/plain
 source/MpCCIcpl/MpCCIexch.cc svneol=native#text/x-c%2B%2Bsrc
 source/MpCCIcpl/MpCCIexch.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/BaseODEProblem.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/BubbleODE.hh svneol=native#text/x-c%2B%2Bhdr
+source/ODEDescr/BaseODEProblem.hh svneol=native#text/plain
+source/ODEDescr/BubbleODE.hh svneol=native#text/plain
 source/ODEDescr/CMakeLists.txt svneol=native#text/plain
-source/ODEDescr/Gilmore.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODEDescr/Gilmore.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/Gilmoredimlos.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODEDescr/Gilmoredimlos.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/KellerMiksis.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODEDescr/KellerMiksis.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/LinearKellerMiksis.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODEDescr/LinearKellerMiksis.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODEDescr/RPNNP.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODEDescr/RPNNP.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODESolve/BaseODESolver.hh svneol=native#text/x-c%2B%2Bhdr
+source/ODEDescr/Gilmore.cc svneol=native#text/plain
+source/ODEDescr/Gilmore.hh svneol=native#text/plain
+source/ODEDescr/Gilmoredimlos.cc svneol=native#text/plain
+source/ODEDescr/Gilmoredimlos.hh svneol=native#text/plain
+source/ODEDescr/KellerMiksis.cc svneol=native#text/plain
+source/ODEDescr/KellerMiksis.hh svneol=native#text/plain
+source/ODEDescr/LinearKellerMiksis.cc svneol=native#text/plain
+source/ODEDescr/LinearKellerMiksis.hh svneol=native#text/plain
+source/ODEDescr/RPNNP.cc svneol=native#text/plain
+source/ODEDescr/RPNNP.hh svneol=native#text/plain
+source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
-source/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODESolve/ODESolver_ExplEuler.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODESolve/ODESolver_RKF45.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODESolve/ODESolver_RKF45.hh svneol=native#text/x-c%2B%2Bhdr
-source/ODESolve/ODESolver_Rosenbrock.cc svneol=native#text/x-c%2B%2Bsrc
-source/ODESolve/ODESolver_Rosenbrock.hh svneol=native#text/x-c%2B%2Bhdr
+source/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
+source/ODESolve/ODESolver_ExplEuler.hh svneol=native#text/plain
+source/ODESolve/ODESolver_RKF45.cc svneol=native#text/plain
+source/ODESolve/ODESolver_RKF45.hh svneol=native#text/plain
+source/ODESolve/ODESolver_Rosenbrock.cc svneol=native#text/plain
+source/ODESolve/ODESolver_Rosenbrock.hh svneol=native#text/plain
 source/OLAS/algsys/CMakeLists.txt svneol=native#text/plain
-source/OLAS/algsys/algsys.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/algsys/baseentrymanipulator.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/baseentrymanipulator.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/baseidbchandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/basesystem.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/basesystem.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/algsys/entrymanipulatorcomplex.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/algsys/entrymanipulatorcomplex.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/algsys/entrymanipulatordouble.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/entrymanipulatordouble.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/algsys/generateentrymanipulator.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/algsys/generateentrymanipulator.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/generateidbchandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/generateidbchandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/idbchandler.cc svneol=native#text/x-c%2B%2Bsrc
@@ -862,7 +883,7 @@ source/OLAS/algsys/idbchandlerpenalty.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/idbchandlervoid.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/olascomm.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/olascomm.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/algsys/olascomm_impl.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/algsys/olascomm_templ_impl.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/olasparams.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/olasparams.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/sbmsystem.cc svneol=native#text/x-c%2B%2Bsrc
@@ -880,6 +901,7 @@ source/OLAS/external/arpack/arpackSolver.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/OLAS/external/ilupack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/ilupack/Ilupack.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/OLAS/external/ilupack/IlupackDummy.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/lapack/lapack.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapackbasematrix.cc svneol=native#text/x-c%2B%2Bsrc
@@ -893,6 +915,7 @@ source/OLAS/external/lapack/lapacklu.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/olasf77mapping.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/olasf77mapping.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
+source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/pardisosolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/pardisosolver.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/CMakeLists.txt svneol=native#text/plain
@@ -901,7 +924,6 @@ source/OLAS/graph/basegraph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/basegraphmanager.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/baseordering.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/baseordering.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/graph/graph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/graphmanagersbmmat.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/graphmanagersbmmat.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/graphmanagersimple.cc svneol=native#text/x-c%2B%2Bsrc
@@ -912,35 +934,6 @@ source/OLAS/graph/idbcgraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/idbcgraph.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/graph/sloan.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/sloan.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/CMakeLists.txt svneol=native#text/plain
-source/OLAS/matvec/SparseVector.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/SparseVector.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/basematrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/basevector.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/coordformat.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/crs_matrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/crs_matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/diag_matrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/diag_matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/generatematvec.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/generatematvec.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/matvec.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/opdefs.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/patternpool.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/sbmmatrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/sbmmatrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/sbmvector.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/sbmvector.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/scrs_matrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/scrs_matrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/sparseolasmatrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/sparsitypatterns.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/stdmatrix.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/stdmatrix.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/typedefs.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/typedefs.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/matvec/vector.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/matvec/vector.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/multigrid/CMakeLists.txt svneol=native#text/plain
 source/OLAS/multigrid/amg.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/multigrid/amg.hh svneol=native#text/x-c%2B%2Bhdr
@@ -963,7 +956,6 @@ source/OLAS/multigrid/topology.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/multigrid/topology.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/multigrid/transfer.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/multigrid/transfer.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/olas.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/CMakeLists.txt svneol=native#text/plain
 source/OLAS/precond/ILDLPrecond/baseildlfactoriser.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/ILDLPrecond/ildl0factoriser.cc svneol=native#text/x-c%2B%2Bsrc
@@ -976,12 +968,14 @@ source/OLAS/precond/ILDLPrecond/ildlprecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/ILDLPrecond/ildlprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/ILDLPrecond/ildltpfactoriser.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/ILDLPrecond/ildltpfactoriser.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/precond/baseprecond.cc svneol=native#text/plain
 source/OLAS/precond/baseprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/bnprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/generateprecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/generateprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/ic0precond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/ic0precond.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/precond/idprecond.cc svneol=native#text/plain
 source/OLAS/precond/idprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/ilu0precond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/ilu0precond.hh svneol=native#text/x-c%2B%2Bhdr
@@ -993,7 +987,6 @@ source/OLAS/precond/jacprecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/jacprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/mgprecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/mgprecond.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/precond/precond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/sbmdiagprecond.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/precond/sbmdiagprecond.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/precond/ssorprecond.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1020,13 +1013,8 @@ source/OLAS/solver/minres.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/solver/minres.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/solver/richardson.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/solver/richardson.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/solver/solver.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/solver/symmlq.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/CMakeLists.txt svneol=native#text/plain
-source/OLAS/utils/Configuration.hh -text svneol=unset#text/x-c%2B%2Bhdr
-source/OLAS/utils/defs.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/environment-olas.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/utils/environment.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/croutlu.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/math/croutlu.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/givensrotation.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1035,14 +1023,8 @@ source/OLAS/utils/math/iterativerefinement.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/math/iterativerefinement.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/lanczosmethod.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/ldlsystemsolve.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/output.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/utils/output.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/plainAlloc.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/profiler-olas.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/tools-olas.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/utils/utils.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/BaseOptimizer.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
@@ -1094,20 +1076,14 @@ source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/StdPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/acouCombustion.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/acouCombustion.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/acouFlowNoise.cc svneol=native#text/x-c%2B%2Bsrc
-source/PDE/acouFlowNoise.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/acousticMixedPDE.cc -text
 source/PDE/acousticMixedPDE.hh -text
 source/PDE/acousticPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/acousticPDE.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/acousticXYZPDE.cc svneol=native#text/x-c%2B%2Bsrc
-source/PDE/acousticXYZPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/basePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/basePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/bdf2.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/bdf2.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/bubblePDE.cc svneol=native#text/x-c%2B%2Bsrc
-source/PDE/bubblePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/disContEqnMap.cc -text
 source/PDE/disContEqnMap.hh -text
 source/PDE/elecPDE.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1136,13 +1112,10 @@ source/PDE/newmarkFracDampMech.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/newmarkFracDampMech.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/pdememento.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/pdememento.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/pdes_header.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/pseudoTS.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/pseudoTS.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/smoothPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/smoothPDE.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/stokesFluidPDE.cc svneol=native#text/x-c%2B%2Bsrc
-source/PDE/stokesFluidPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/timestepping.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/timestepping.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/trapezoidal.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1169,12 +1142,12 @@ source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/cartesianCoordSys.cc svneol=native#text/plain
 source/Utils/cartesianCoordSys.hh svneol=native#text/plain
-source/Utils/cfsvector.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/coordSystem.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/coordSystem.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/cylCoordSys.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1185,8 +1158,6 @@ source/Utils/defaultCoordSys.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/defaultCoordSys.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/elemstoresol.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/elemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/exprt/xpr1.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/exprt/xpr2.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/hysteresis.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/hysteresis.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/interpolate.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1196,25 +1167,6 @@ source/Utils/jiles.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathParser/CMakeLists.txt svneol=native#text/plain
 source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/mathParser/muParser.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParser.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserBase.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserBase.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserBytecode.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserBytecode.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserCallback.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserCallback.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserDef.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserError.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserError.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserFixes.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserInt.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserInt.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserStack.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserTest.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserToken.h svneol=native#text/x-chdr
-source/Utils/mathParser/muParserTokenReader.cpp svneol=native#text/x-c%2B%2Bsrc
-source/Utils/mathParser/muParserTokenReader.h svneol=native#text/x-chdr
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/myclock.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1227,7 +1179,6 @@ source/Utils/preisach.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/preisach.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/profiler.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/profiler.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/promote.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/readCFDbinary.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Utils/result.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/result.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1235,8 +1186,6 @@ source/Utils/tools.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/tools.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/trivialCartesianCoordSys.cc svneol=native#text/plain
 source/Utils/trivialCartesianCoordSys.hh svneol=native#text/plain
-source/Utils/vector.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/vector.hh svneol=native#text/x-c%2B%2Bhdr
 source/cfstool/CMakeLists.txt svneol=native#text/plain
 source/cfstool/cfstool.cc svneol=native#text/plain
 source/cplreader/CMakeLists.txt svneol=native#text/plain

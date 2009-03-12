@@ -12,7 +12,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "PDE/eqnMap.hh"
 
 
@@ -21,8 +21,8 @@ namespace CoupledField{
   // Forward class declarations
   class Elem;
   class Grid;
-  class CFSVector;
-  class CFSMatrix;
+  class SingleVector;
+  class DenseMatrix;
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
 
@@ -34,7 +34,7 @@ namespace CoupledField{
   //! old Array-class).
   //!
   //! In principle this class is only a wrapper around
-  //! a CFSVector class. Additionally it contains
+  //! a SingleVector class. Additionally it contains
   //! informations about the information stored in it and
   //! it can selectively be accessed, set and read.
   //!
@@ -55,7 +55,7 @@ namespace CoupledField{
   //! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
   //! mySol.SetNumDofs(1,ELEC_POTENTIAL);
   //! mySol.SetNumNodes(numNodes);
-  //! mySol.Init(0.0) 
+  //! mySol.Init() 
   //! \endverbatim
   //! \note An object of the StoreSolution can only used after the Init()-
   //! routine was called, otherwise an error is reported!
@@ -80,7 +80,7 @@ namespace CoupledField{
     //! Set Pointer to nodal equation object
     virtual void SetPtrEQNData( EqnMap * eqnMap,
                                 Grid * ptGrid)
-    {Error( "Not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION( "Not implemented here" );}
  
     virtual void SetResult( shared_ptr<ResultInfo>& result ) {
       result_ = result; }
@@ -114,7 +114,7 @@ namespace CoupledField{
       \param val (input) Value the object gets initialized with
     */
     virtual void Init(const Double val) 
-      {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);}  
+      {EXCEPTION("BaseElemStoreSol::Init() not implemented here");}  
   
     //! Set the number of different solution types
     /*! 
@@ -207,7 +207,7 @@ namespace CoupledField{
       \param (output) Vector with given solution type)
     */
     virtual void GetGlobalSolVector(const SolutionType solType, 
-                                    CFSVector & val) const = 0;
+                                    SingleVector & val) const = 0;
 
   
     //! Set all solution types for one elem
@@ -216,7 +216,7 @@ namespace CoupledField{
       \param val (input) Vector containing nodal results
     */
     virtual void SetElemResult(const UInt elemNr,
-                               const CFSVector &val) = 0;
+                               const SingleVector &val) = 0;
 
   
     //! Get all solution types for one elem
@@ -225,7 +225,7 @@ namespace CoupledField{
       \param val (output) Vector containing nodal results
     */
     virtual void GetElemResult(const UInt elemNr,
-                               CFSVector & val) const = 0;
+                               SingleVector & val) const = 0;
   
 
     //! Get vector of one solution type for all elems of one given dof
@@ -236,7 +236,7 @@ namespace CoupledField{
     */
     virtual void GetGlobalSolVectorSingleDof(const SolutionType solType,
                                              const UInt dof,
-                                             CFSVector & val) const = 0;
+                                             SingleVector & val) const = 0;
   
   
     //! Get solution vector for all elems of one given dof
@@ -247,7 +247,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     virtual void GetGlobalSolVectorSingleDof(const UInt dof,
-                                             CFSVector & val) const = 0;
+                                             SingleVector & val) const = 0;
 
 
     //! Get single result of given elem for given dof
@@ -261,7 +261,7 @@ namespace CoupledField{
     virtual void Get(const UInt elemNr, 
                      const UInt dof,
                      Double & val) const
-    {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
+    {EXCEPTION("BaseElemStoreSol::Get() not implemented here");} 
 
   
     //! Get single result of given solution type, elem and dof
@@ -275,7 +275,7 @@ namespace CoupledField{
                      const UInt elemNr,
                      const UInt dof, 
                      Double & val) const
-    {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("BaseElemStoreSol::Get() not implemented here");}
 
   
     //! Set a single entry of a given solution type and a given dof
@@ -289,7 +289,7 @@ namespace CoupledField{
                      const UInt elemNr,
                      const UInt dof, 
                      const Double val)
-    {Error("BaseElemStoreSol::Set() not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("BaseElemStoreSol::Set() not implemented here");}
   
 
     //! Add value to a single entry of a given solution type and a given dof
@@ -303,7 +303,7 @@ namespace CoupledField{
                      const UInt elemNr,
                      const UInt dof, 
                      const Double val) const
-    {Error("BaseElemStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
+    {EXCEPTION("BaseElemStoreSol::Add() not implemented here");} 
 
     //! Output function
     virtual void Print(std::ostream& str) = 0;
@@ -330,17 +330,17 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     //!
-    virtual void TransformElemSolution(CFSVector & transformedSolution,
+    virtual void TransformElemSolution(SingleVector & transformedSolution,
                                        Grid * ptGrid,
                                        StdVector<UInt> & mapping) const
-    {Error ("Not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("Not implemented here");}
   
   
     //! maps the local element solution to the coupling elements
-    virtual void ElemSolutionToCoupling(CFSVector & couplingSol,
+    virtual void ElemSolutionToCoupling(SingleVector & couplingSol,
                                         const StdVector<Elem*>& elements,
-                                        const CFSVector & elemSol) const
-    {Error ("Not implemented here", __FILE__, __LINE__);}  
+                                        const SingleVector & elemSol) const
+    {EXCEPTION("Not implemented here");}  
     
 
     // ==========================================================
@@ -350,25 +350,25 @@ namespace CoupledField{
   
 #define DEFINE_BASEELEMSTORESOL_FCT(TYPE)                                               \
   virtual void Init(const TYPE val)                                             \
-  {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);} \
+  {EXCEPTION("BaseElemStoreSol::Init() not implemented here");} \
   virtual void Get(const UInt elemNr,                                        \
                    TYPE & ret) const                                            \
-  {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);}  \
+  {EXCEPTION("BaseElemStoreSol::Get() not implemented here");}  \
   virtual void Get(const SolutionType type,                                     \
                    const UInt elemNr,                                        \
                    const UInt dof,                                           \
                    TYPE & ret) const                                            \
-  {Error("BaseElemStoreSol::Get not implemented here", __FILE__, __LINE__);}    \
+  {EXCEPTION("BaseElemStoreSol::Get not implemented here");}    \
   virtual void Set(const SolutionType type,                                     \
                    const UInt elemNr,                                        \
                    const UInt dof,                                           \
                    const TYPE val) const                                        \
-  {Error("BaseElemStoreSol::Set not implemented here", __FILE__, __LINE__);}    \
+  {EXCEPTION("BaseElemStoreSol::Set not implemented here");}    \
   virtual void Add(const SolutionType type,                                     \
                    const UInt elemNr,                                        \
                    const UInt dof,                                           \
                    const TYPE val) const                                        \
-  {Error("BaseElemStoreSol::Add() not implemented here", __FILE__, __LINE__);}
+  {EXCEPTION("BaseElemStoreSol::Add() not implemented here");}
     
     DEFINE_BASEELEMSTORESOL_FCT(Complex);
 

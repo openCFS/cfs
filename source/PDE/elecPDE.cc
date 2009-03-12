@@ -284,7 +284,7 @@ namespace CoupledField {
                 == "imagMaterialParameter";
             
             if( isImag ) {
-              DataType matType = IMAG; 
+              Global::ComplexPart matType = Global::IMAG; 
               
               linElecInt * linElecFormC  = new 
                 linElecInt( materials_[actRegion], tensorType,
@@ -819,7 +819,7 @@ namespace CoupledField {
       
       // Get the right material parameter for actual volume element
       BaseMaterial * myMat = materials_[ptVolElem->regionId];
-      myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
+      myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,Global::REAL);
 
       // check for hysteresis
       Hysteresis* hyst = NULL;
@@ -883,7 +883,7 @@ namespace CoupledField {
       tensorType = FULL;
     }
     else {
-      if ( isaxi_ == TRUE ) {
+      if ( isaxi_ == true ) {
 	tensorType = AXI;
       }
       else {
@@ -1003,7 +1003,7 @@ namespace CoupledField {
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes     = NULL;
-    CFSVector * values = 0;
+    SingleVector * values = 0;
     UInt forcesCount = 0;
 
     // at first, check if this PDE is iterative coupled

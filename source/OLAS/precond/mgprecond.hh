@@ -9,11 +9,12 @@
 
 /**********************************************************/
 
-#include "precond/baseprecond.hh"
-#include "precond/bnprecond.hh"
 #include "multigrid/multigrid.hh"
 
-namespace OLAS {
+#include "baseprecond.hh"
+#include "bnprecond.hh"
+
+namespace CoupledField {
 /**********************************************************/
 
 //! Base Class for Multigrid Preconditioners
@@ -31,11 +32,11 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
     public:
 
         //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename assocType<T>::T_Mtype T_Mtype;
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
         //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename assocType<T>::T_Vtype T_Vtype;
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename assocType<T>::T_Stype T_Stype;
+        typedef typename AssocType<T>::T_Stype T_Stype;
 
         //! Constructor
         MGPrecond( OLAS_Params* params = NULL );
@@ -71,8 +72,8 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
          *  \param sol solution (\b output only, will be initialized first)
          */
         void Apply( const StdMatrix& sysmatrix,
-                    const SparseVector& rhs,
-                          SparseVector& sol ) const;
+                    const SingleVector& rhs,
+                          SingleVector& sol ) const;
 
         //! print method for the AMG preconditioner
 		std::ostream& Print( std::ostream& out ) const {
@@ -106,6 +107,10 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "mgprecond.cc"
+#endif
 
 #endif // OLAS_MGPRECOND_HH

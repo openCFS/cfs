@@ -6,22 +6,21 @@
 // #include <iostream>
 // #include <fstream>
 
-#include "matvec/matvec.hh"
-#include "precond/baseprecond.hh"
-#include "precond/sbmdiagprecond.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/precond/sbmdiagprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   void SBMDiagPrecond::Setup( SBM_Matrix &mat ) {
 
 
     // Obtain size information from matrix
-    Ncols_ = mat.GetNcols();
-    Nrows_ = mat.GetNrows();
+    Ncols_ = mat.GetNumCols();
+    Nrows_ = mat.GetNumRows();
 
     // Check that matrix is square
     if ( Ncols_ != Nrows_ ) {
-      Error( "Expected a square SBMMatrix", __FILE__, __LINE__ );
+      EXCEPTION("Expected a square SBMMatrix");
     }
 
     // Construct the individual preconditioners
@@ -41,7 +40,7 @@ namespace OLAS {
     }
 
     // Now the preconditioner is ready to use
-    readyToUse_ = TRUE;
+    readyToUse_ = true;
 
   }
 

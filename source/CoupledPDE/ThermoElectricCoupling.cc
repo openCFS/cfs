@@ -73,7 +73,7 @@ namespace CoupledField {
 	//std::cout << "\nworking on thermo-electrostatics ..... " << std::endl;
 
 	// Calculate global thermo-elec integral
-	DataType matType = REAL;
+	Global::ComplexPart matType = Global::REAL;
 	RegionIdType actRegion;
 	BaseMaterial * actSDMat= NULL;
 
@@ -107,7 +107,7 @@ namespace CoupledField {
 		for (it = materials_.begin(); it != materials_.end(); it++) {
 			actRegion = it->first; // set current region
 			actSDMat = it->second; // set current material
-			matType = REAL;
+			matType = Global::REAL;
 
 			// create new entity list
 			shared_ptr<ElemList> actSDList(new ElemList(ptGrid_ ));

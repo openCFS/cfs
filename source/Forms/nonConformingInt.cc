@@ -11,7 +11,7 @@
 
 
 namespace CoupledField {
-  
+
   DECLARE_LOG(ncint)
   DEFINE_LOG(ncint, "forms.nonconformingint")
 
@@ -22,14 +22,14 @@ namespace CoupledField {
     isaxi_ = isAxi;
     dofs_ = dofsPerNode;
     coordUpdate_ = coordUpdate;
-    
+
   }
 
   NonConformingInt::~NonConformingInt() {
   }
 
   void NonConformingInt::CalcElementMatrix(  Matrix<Double>& stiffMat,
-                                             EntityIterator& ent1, 
+                                             EntityIterator& ent1,
                                              EntityIterator& ent2 ) {
 
     SurfElem *surfElem[2];
@@ -45,31 +45,31 @@ namespace CoupledField {
     UInt shapeFuncsSurfSize, shapeFuncsLGSize, numIntPoints;
 
     Grid* ptGrid = domain->GetGrid();
-    
+
     const NCElem *elem = dynamic_cast< const NCElem* >(ent1.GetElem());
     if(elem == NULL)
     {
-      EXCEPTION(name_ << " can only handle NCElems!");
+      EXCEPTION("NonConformingInt can only handle NCElems!");
     }
 
-    ptGrid->GetElemNodesCoord( ptCoord_, 
+    ptGrid->GetElemNodesCoord( ptCoord_,
                                elem->connect,
                                coordUpdate_ );
-    
-    LOG_DBG3(ncint) << "On NC-elem #" << elem->elemNum 
+
+    LOG_DBG3(ncint) << "On NC-elem #" << elem->elemNum
                     << " with connect = " << elem->connect.Serialize()
                     << " with coordinates \n"
                     << ptCoord_;
-     
+
     surfElem[0] = elem->ptSurfParent;
     surfElem[1] = elem->ptLagrangeParent;
-     
+
     dim = ptGrid->GetDim();
-    
+
     // calculate surface normal
     ptGrid->CalcSurfNormal(normal_, *surfElem[1]);
     normal_ *= (Double) surfElem[1]->normalSign;
-        
+
     surfElem[0]->ptElem->SetAnsatzFct(ansatzFct1_);
     shapeFuncsSurfSize = surfElem[0]->ptElem->GetNumFncs(ansatzFct1_);
     surfElem[1]->ptElem->SetAnsatzFct(ansatzFct2_);
@@ -100,8 +100,8 @@ namespace CoupledField {
     // get corner coordinates of NCElem and resize
     // the intPoints matrices to dim x numIntPoints
     globalIntPoints.Resize(dim, numIntPoints);
-    localIntPointsSurf.Resize(dim-1, numIntPoints);    
-    localIntPointsLG.Resize(dim-1, numIntPoints);    
+    localIntPointsSurf.Resize(dim-1, numIntPoints);
+    localIntPointsLG.Resize(dim-1, numIntPoints);
 
     point.Resize(dim);
 
@@ -155,17 +155,17 @@ namespace CoupledField {
           point[j] = globalIntPoints[j][i];
 
         line = point - p0;
-        
+
         // calculate distance of int. point to master element
         normal.Inner(line, dist);
 
         // determine orientation of normal on slave element
         normal_.Inner(line, sign);
         sign /= fabs(sign);
-        
+
         // scale the distance for the normal projection
         normal_.Inner(normal, scale);
-        
+
         // do the projection
         for (UInt j = 0; j < dim; ++j) {
           globalIntPoints[j][i] -= sign * normal_[j] * fabs(dist) * fabs(scale);
@@ -175,7 +175,7 @@ namespace CoupledField {
     surfElem[0]->ptElem->Global2LocalCoords(localIntPointsSurf,
                                             globalIntPoints,
                                             coordMat);
-    
+
     LOG_DBG3(ncint) << "Local ip Surf: " << surfElem[0]->elemNum
                     << ": " << std::endl << localIntPointsSurf;
 
@@ -185,7 +185,7 @@ namespace CoupledField {
     {
       for(UInt j=0; j < dim-1; j++)
         point[j] = localIntPointsSurf[j][i];
-         
+
       try
       {
           surfElem[0]->ptElem->GetShFnc(shapeFuncsSurf, point, surfElem[0]);
@@ -235,23 +235,23 @@ namespace CoupledField {
       else {
         for(UInt s=0; s < shapeFuncsSurfSize; s++) {
           for(UInt l=0; l < shapeFuncsLGSize; l++) {
-            // stiffMat[s][l] += jacDet * intWeights[i] * 
+            // stiffMat[s][l] += jacDet * intWeights[i] *
             //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
             //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
 
             // This destroyed the circular pattern for the l2d example.
             // TODO: strieben - Take a closer look!
-            stiffMat[s][l] += jacDet * intWeights[i] * 
+            stiffMat[s][l] += jacDet * intWeights[i] *
               shapeFuncsSurf[s] *
               shapeFuncsLG[l];
           }
         }
       }
     }
-    
+
     LOG_DBG2(ncint) << "element matrix of NCElem #" << elem->elemNum
                     << ": " << stiffMat << std::endl;
   }
-      
+
 
 }

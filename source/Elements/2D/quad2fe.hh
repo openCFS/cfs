@@ -23,8 +23,8 @@ namespace CoupledField
     virtual ~Quad2FE();
   
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_QUAD8;
+    virtual Elem::FEType feType() {
+      return Elem::QUAD8;
     };
 
   protected:

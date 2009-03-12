@@ -2,14 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_ELECCHARGEDOP_2004
-#define FILE_ELECCHARGEDOP_2004
+#ifndef FILE_ELECCHARGEOP_2004
+#define FILE_ELECCHARGEOP_2004
 
 #include "Forms/baseoperator.hh"
 #include "Utils/tools.hh"
 #include "Utils/StdVector.hh"
-
-#include "olas.hh"
 
 namespace CoupledField {
 

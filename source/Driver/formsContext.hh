@@ -12,7 +12,7 @@
 
 namespace CoupledField
 {
-  
+
   //! Forward class declarations
   class BaseForm;
   class LinearForm;
@@ -21,9 +21,9 @@ namespace CoupledField
   class EqnMap;
   class EntityIterator;
   class ResultInfo;
-  
-  
- 
+
+
+
   //! Base class for wrapping a (bi)linearform
 
   //! This class is used as a wrapper around a bilinear-form (assembled onto
@@ -39,7 +39,7 @@ namespace CoupledField
   class BiLinFormContext  {
 
   public:
-    
+
     //! Constructor
     //! \param biLinForm pointer to the bilinearform to be wrapped
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
@@ -51,48 +51,48 @@ namespace CoupledField
 
     // ======================================================
     //  MATRIX ASSEMBLING INFORMATION
-    // ======================================================    
-    
+    // ======================================================
+
     //! Returns true if a non-linear dependency (geometry,
     //! solution) is present for the wrapped bilinearform
     bool IsNonLin();
 
     //! Get destination matrix
     FEMatrixType GetDestMat() const { return destMat_; }
-    
+
     //! Set destination matrix
     void SetDestMat(FEMatrixType destMat) {
-    	destMat_ = destMat; 
+    	destMat_ = destMat;
       }
-    
+
     //! Defines a secondary destination for the element matrix
-    void SetSecDestMat( FEMatrixType aSecMat, 
+    void SetSecDestMat( FEMatrixType aSecMat,
                         std::string aSecMatFac ) {
       secDestMat_ = aSecMat;
       secMatFac_ = aSecMatFac; }
 
     //! initialize object for damping layer
-    void SetDampLayer(std::string& dampingTypeFnc, 
-		      Vector<Double>& mPoint, 
-		      Double& dampFactor, 
-		      Double& dampFactorMax, 
-		      Double& startRadius, 
+    void SetDampLayer(std::string& dampingTypeFnc,
+		      Vector<Double>& mPoint,
+		      Double& dampFactor,
+		      Double& dampFactorMax,
+		      Double& startRadius,
 		      Double& endRadius);
-    
-    //! Returns matrix type of the secondary matrix 
-    FEMatrixType GetSecDestMat() const { return secDestMat_; } 
+
+    //! Returns matrix type of the secondary matrix
+    FEMatrixType GetSecDestMat() const { return secDestMat_; }
 
     //! Returns the factor the secondary matrix gets multiplied with
-    std::string GetSecMatFac() const {return secMatFac_;} 
+    std::string GetSecMatFac() const {return secMatFac_;}
 
     //! Returns the integrator
     BaseForm * GetIntegrator() {return integrator_; };
 
     //! Return entry type of matrix (real/imag part)
-    DataType GetEntryType() {return entryType_;};
+    Global::ComplexPart GetEntryType() {return entryType_;};
 
     //! Set entrytype for matrix (real/imag part)
-    void SetEntryType( DataType &pEntryType ){
+    void SetEntryType( Global::ComplexPart &pEntryType ){
       entryType_ = pEntryType;};
 
     // ======================================================
@@ -100,25 +100,25 @@ namespace CoupledField
     // ======================================================
 
     //! Map equations for bilinear form for combination of two given entities
-    virtual void MapEqns( EntityIterator& it1, 
+    virtual void MapEqns( EntityIterator& it1,
                           EntityIterator& it2,
-                          StdVector<Integer>& eqnVec1, 
+                          StdVector<Integer>& eqnVec1,
                           StdVector<Integer>& eqnVec2,
                           PdeIdType& id1, PdeIdType& id2 );
-    
+
     // ======================================================
     // ENTITIES / RESULTS
     // ======================================================
 
-    //! Set pointer to PDE(s) where the form is derived from 
+    //! Set pointer to PDE(s) where the form is derived from
     void SetPtPdes(SinglePDE * aPDE1, SinglePDE * aPDE2 );
-    
+
     //! Set the result types and entities the bilinearform is working on
-    void SetResults( shared_ptr<ResultInfo> result1, 
+    void SetResults( shared_ptr<ResultInfo> result1,
                      shared_ptr<ResultInfo> result2,
-                     shared_ptr<EntityList> list1, 
+                     shared_ptr<EntityList> list1,
                      shared_ptr<EntityList> list2 );
-    
+
     //! Return first set of current entities
     shared_ptr<EntityList> GetFirstEntities() { return ent1_; }
 
@@ -140,9 +140,9 @@ namespace CoupledField
     //get the pointe rto damping layer object!
     DampLayer* getPtDamplayer() {
       return dampingLayer_;}
-      
+
     //! Set function for SetCounterPart
-    void SetCounterPart( bool setCounterPart ) { 
+    void SetCounterPart( bool setCounterPart ) {
       setCounterPart_ = setCounterPart;
     }
 
@@ -150,18 +150,18 @@ namespace CoupledField
     void SetNegate(bool setNegate) {
       negateEntries_ = setNegate;
     }
-	
-    //! Check, if element matrix has to be assembled to 
+
+    //! Check, if element matrix has to be assembled to
     //! upper and lower part of global matrix
     bool IsSetCounterPart() const {
     	return setCounterPart_;
     }
-    
+
     //! to check if we need to negate the integrator
     bool IsSetNegate() const {
       return negateEntries_;
-    } 
-	
+    }
+
     //! create human readable debug output */
     std::string ToString();
 
@@ -178,25 +178,26 @@ namespace CoupledField
 
     //! Secondary matrix factor
     std::string secMatFac_;
-  
+
     //! Entry type of matrix (real/imag part)
-    DataType entryType_;
+    Global::ComplexPart entryType_;
 
     //! for damping layer
     DampLayer* dampingLayer_;
 
-    
+
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location
     bool setCounterPart_;
-    
+
+
     // Flag indicating negating the entries of the element matrix
     bool negateEntries_;
-    
+
     // ======================================================
     //  MAPPING DATA
     // ======================================================
-    
+
     //! Pointer to first pde
     SinglePDE * ptPde1_;
 
@@ -217,7 +218,7 @@ namespace CoupledField
 
     //! Pointer to first equation map
     shared_ptr<EqnMap> map1_;
-    
+
     //! Pointer to second equation map
     shared_ptr<EqnMap> map2_;
 
@@ -243,7 +244,7 @@ namespace CoupledField
     //! Returns true if a non-linear dependency (geometry,
     //! solution) is present for the wrapped linearform
     bool IsNonLin();
-    
+
     // ======================================================
     //  MAPPING METHODS
     // ======================================================
@@ -259,11 +260,11 @@ namespace CoupledField
 
     //! Set pointer to pde where the form is defined from
     void SetPtPde(SinglePDE * ptPde );
-    
+
     //! Set the result types and entities the linearform is defined on
     void SetResult( shared_ptr<ResultInfo> result,
                     shared_ptr<EntityList> list );
-    
+
     //! Return first set of current entities
     shared_ptr<EntityList> GetEntities() { return ent_; }
 
@@ -271,16 +272,16 @@ namespace CoupledField
     SinglePDE * GetPde () { return ptPde_; }
 
     std::string ToString() const;
-    
+
   protected:
 
     //! Pointer to bilinearform
     LinearForm * integrator_;
-    
+
     // ======================================================
     //  MAPPING DATA
     // ======================================================
-    
+
     //! Pointer to pde
     SinglePDE * ptPde_;
 
@@ -292,19 +293,19 @@ namespace CoupledField
 
     //! Pointer to equation map
     shared_ptr<EqnMap> map_;
-    
+
   };
 
   //! Specialized context for non-conforming interfaces
   class NcBiLinFormContext : public BiLinFormContext  {
-  
+
   public:
-    
+
     //! Constructor
     //! \param biLinForm pointer to the bilinearform to be wrapped
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
     //!                bilinearform
-    NcBiLinFormContext( BaseForm* biLinForm, 
+    NcBiLinFormContext( BaseForm* biLinForm,
                         FEMatrixType destMat );
 
     //! Destructor
@@ -315,13 +316,13 @@ namespace CoupledField
     // ======================================================
 
     //! Map equations for bilinear form for combination of two given entities
-    void MapEqns( EntityIterator& it1, 
+    void MapEqns( EntityIterator& it1,
                   EntityIterator& it2,
-                  StdVector<Integer>& eqnVec1, 
+                  StdVector<Integer>& eqnVec1,
                   StdVector<Integer>& eqnVec2,
                   PdeIdType& id1, PdeIdType& id2 );
   };
-  
+
 } // end of namespace
 
 #endif

@@ -691,7 +691,7 @@ namespace CoupledField
   // template <Integer Dim>
   // void SpaceErrorEstimator<Dim>::KellyError(Grid * ptgrid, std::vector<std::string> &sbdoms, Vector<Double> & errorMap,const Integer level) 
   // {
-  // #ifdef DEBUG
+  // #ifndef NDEBUG
   //   (*trace) << " step: kelly error map is calculated\n";
   // #endif
   //   Integer isd,jel;

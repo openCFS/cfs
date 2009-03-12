@@ -7,7 +7,9 @@
 #include <string>
 #include <cmath>
 
-#include "Forms/forms_header.hh"
+#include "Forms/bdInt.hh"
+#include "Forms/bdbInt.hh"
+#include "Forms/linViscoElastInt.hh"
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -17,6 +19,7 @@
 #include "Domain/domain.hh"
 #include "Driver/singleDriver.hh"
 #include "General/exception.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
 
@@ -166,7 +169,7 @@ namespace CoupledField {
     Vector<Double> coeffMass;
 
     coeffMass = solpred_*a2_;
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
     Matrix<Double>  elemmat;
@@ -183,8 +186,8 @@ namespace CoupledField {
 
     BaseMaterial * firstMat = mymaterialData.begin()->second;
 
-    firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,REAL);
-    firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,REAL);
+    firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,Global::REAL);
+    firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,Global::REAL);
 
     ParamNode * firstRegionNode = (mechNode_->GetList("region"))[0];
     Double fracDeriv_;
@@ -205,7 +208,7 @@ namespace CoupledField {
 	
         Vector<Double> coeffDamp;
         coeffDamp = -solderiv1pred_ + solpred_*a4_;
-        algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+        algsys_->UpdateRHS(DAMPING,coeffDamp);
       }
       else {
         if ( dampingList_[subdoms_[actSD]]== FRACTIONAL_GL ) {
@@ -317,9 +320,7 @@ namespace CoupledField {
           //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;
           //(*debug) << rhsvec << std::endl;
           //assemble to RHS
-          algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, connect_PDE.GetPointer(),
-                                 connect_PDE.GetSize());
-              
+          algsys_->SetElementRHS( rhsAssemble, pdeId_, connect_PDE );
         }
       }
     }

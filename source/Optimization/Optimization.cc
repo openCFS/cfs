@@ -372,7 +372,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   // we solve, give a part of the filename in case we use export linear system
   // but do not store the results. This is to be done in CommitIteration
   string comment = GetSolveComment(excite);
-  if(!harmonic || excite == NULL || excite->f_link->step < 0)
+  if(!harmonic || excite == NULL)
     driver->SolveProblem(false, comment);
   else
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, comment);

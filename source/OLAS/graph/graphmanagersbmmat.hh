@@ -7,11 +7,11 @@
 
 #include <string>
 
-#include "graph/basegraph.hh"
-#include "graph/idbcgraph.hh"
-#include "graph/basegraphmanager.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/idbcgraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Graph manager for the case of several PDEs and a SBM_Matrix
 
@@ -73,7 +73,7 @@ namespace OLAS {
     void RegisterPDE( const PdeIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
-		      const ReorderingType reorder = NOREORDERING );
+                      const ReorderingType reorder = NOREORDERING );
 
     //@}
 
@@ -98,7 +98,7 @@ namespace OLAS {
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
     void AssembleInit( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Finalise assembly of a sub-graph
@@ -117,7 +117,7 @@ namespace OLAS {
     //!                            transpose coupling object was assembled
     //!                            together with the coupling object.
     void AssembleDone( const PdeIdType identifierPDE1,
-		       const PdeIdType identifierPDE2,
+                       const PdeIdType identifierPDE2,
                        bool assemblingTranspose );
 
     //! Insert connectivity of a finite element into the matrix graph
@@ -145,13 +145,11 @@ namespace OLAS {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
-    void SetElementPos( const PdeIdType identifierPDE1,
-			Integer *connect1,
-			Integer elemSize1,
-			const PdeIdType identifierPDE2,
-			Integer *connect2,
-			Integer elemSize2,
-                        bool setCounterPart );
+    virtual void SetElementPos( const PdeIdType identifierPDE1,
+                                const StdVector<Integer>& eqnNrs1,
+                                const PdeIdType identifierPDE2,
+                                const StdVector<Integer>& eqnNrs2,
+                                bool setCounterPart );
     //@}
 
     // =======================================================================
@@ -173,7 +171,7 @@ namespace OLAS {
     //! \note The method refuses to return a pointer to a non-existant
     //!       graph and will instead report an error
     BaseGraph* GetGraph( const PdeIdType identifierPDE1 = NO_PDE_ID,
-			 const PdeIdType identifierPDE2 = NO_PDE_ID );
+                         const PdeIdType identifierPDE2 = NO_PDE_ID );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -200,7 +198,7 @@ namespace OLAS {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    Integer *GetReordering( const PdeIdType identifier ) ;
+    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order ) ;
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );
@@ -295,7 +293,7 @@ namespace OLAS {
     //! of two cases
     //! - no reordering is performed for the PDE
     //! - the permutation vector was already claimed via GetReordering()
-    Integer **newOrdering_;
+    StdVector< StdVector<UInt> > newOrdering_;
 
     //! Vector storing for each PDE the last free equation number
 

@@ -5,11 +5,9 @@
 #ifndef OLAS_IDSTDPRECOND_HH
 #define OLAS_IDSTDPRECOND_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "precond/baseprecond.hh"
+#include "baseprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Identity Preconditioner for Standard Matrices
 
@@ -22,6 +20,9 @@ namespace OLAS {
   class IdPrecondStd : public BaseStdPrecond {
 
   public:
+
+    using BasePrecond::Apply;
+    using BasePrecond::Setup;
 
     //! Default Constructor
     IdPrecondStd() {
@@ -36,10 +37,8 @@ namespace OLAS {
     //! This method applies the identity preconditioner to solve Id * sol = rhs
     //! for sol. As a consequence it simply copies the rhs entries into the sol
     //! vector.
-    void Apply( const StdMatrix &sysmat, const SparseVector &rhs,
-                SparseVector &sol ) const {
-      sol = rhs;
-    }
+    void Apply( const StdMatrix &sysmat, const SingleVector &rhs,
+                SingleVector &sol ) const;
 
     //! Triggers setup of the identity preconditioner
 
@@ -70,6 +69,9 @@ namespace OLAS {
 
   public:
 
+    using BasePrecond::Apply;
+    using BasePrecond::Setup;
+
     //! Default Constructor
     IdPrecondSBM() {
     };
@@ -84,9 +86,7 @@ namespace OLAS {
     //! for sol. As a consequence it simply copies the rhs entries into the sol
     //! vector.
     void Apply( const SBM_Matrix &sysmat, const SBM_Vector &rhs,
-                SBM_Vector &sol ) const {
-      sol = rhs;
-    }
+                SBM_Vector &sol ) const;
 
     //! Triggers setup of the identity preconditioner
 

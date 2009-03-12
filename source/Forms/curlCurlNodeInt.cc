@@ -18,7 +18,7 @@ namespace CoupledField
     name_ = "CurlCurlNode2DInt";
     isaxi_ = axi;
     if ( matData != NULL )
-      ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+      ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, Global::REAL);
   }
 
 
@@ -125,16 +125,16 @@ namespace CoupledField
       if ( matData->GetSymmetryType() == BaseMaterial::ORTHOTROPIC ) {
         isOrthotropic_ = true;
         reluctivityVec_.Resize(3);
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, Global::REAL);
         reluctivityVec_[0] = 1.0 / matVal_;
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, Global::REAL);
         reluctivityVec_[1] = 1.0 / matVal_;
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, Global::REAL);
         reluctivityVec_[2] = 1.0 / matVal_;
         //        std::cout << "Orthotropic: \n" << reluctivityVec_ << std::endl;
       }
       else {
-        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, Global::REAL);
         //std::cout << "Isotropic: mu=" << matVal_ << std::endl;
       }
     }
@@ -181,9 +181,8 @@ namespace CoupledField
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
-		 << "negative Jacobian determinant!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION( "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+            << "negative Jacobian determinant!");
       }
 
       // We now compute B^T * D * B and scale it by the determinant
@@ -203,7 +202,7 @@ namespace CoupledField
  
 //       elemMat += partMat;
 
-      for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMatCurl.GetNumRows(); k++ ) {
         if ( isOrthotropic_ ) 
           fac =  jacDet * intWeights[actIntPt-1] * reluctivityVec_[k];
 
@@ -211,10 +210,10 @@ namespace CoupledField
         ptr2 = bMatCurl[k];
         ptr3 = bMatDiv[k];
         ptr4 = bMatDiv[k];
-        for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
+        for ( UInt i = 0; i < bMatCurl.GetNumCols(); i++ ) {
           aux1 = ptr1[i];
           aux2 = ptr3[i];
-          for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
+          for ( UInt j = 0; j < bMatCurl.GetNumCols(); j++ ) {
             elemMat[i][j] += ( aux1 * ptr2[j] + aux2 * ptr4[j] ) * fac;
           }
         }
@@ -340,9 +339,8 @@ namespace CoupledField
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-	(*error) << "MagCoupVectorScalarPotentialInt::CalcElementMatrix: Encountered "
-		 << "negative Jacobian determinant!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("MagCoupVectorScalarPotentialInt::CalcElementMatrix: Encountered "
+            << "negative Jacobian determinant!");
       }
 
       factor = jacDet * intWeights[actIntPt-1] * matVal_;

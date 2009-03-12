@@ -4,6 +4,7 @@
 #include "Optimization/Condition.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
+#include "Elements/basefe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
@@ -35,7 +36,7 @@ DesignElement::DesignElement(ParamNode* pn, Elem* elem)
 
   // it is a little slow to perform this code for every DesignElement but the
   // implementations are rater fast and it should be not measurable in the end
-  type_ = type.Parse(pn->Get("name"));  
+  type_ = type.Parse(pn->Get("name"));
 
   upper_ = 1.0;
   // eventually overwrite
@@ -169,14 +170,14 @@ Point* DesignElement::GetLocation()
   return location_;
 }
 
-void DesignElement::SetConstraintGradient(const Condition* condition, double value) 
-{ 
-  this->constraintGradient[condition->GetIndex()] = value; 
+void DesignElement::SetConstraintGradient(const Condition* condition, double value)
+{
+  this->constraintGradient[condition->GetIndex()] = value;
 }
 
 double DesignElement::GetConstraintGradient(const Condition* condition) const
-{ 
-  return this->constraintGradient[condition->GetIndex()]; 
+{
+  return this->constraintGradient[condition->GetIndex()];
 }
 
 
@@ -220,7 +221,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access) const
 {
   double val = 0.0;
   // we are silent if one wants filtering and it is not possible // todo: info
-  if(simp == NULL || access == PLAIN) 
+  if(simp == NULL || access == PLAIN)
     val = GetValue(vs);
   else
     val = simp->GetFilteredValue(vs, false);
@@ -285,11 +286,11 @@ double DesignElement::GetObjectiveGradient(Access access) const
 {
   double val = 0;
 
-  if(simp == NULL || access == PLAIN) 
+  if(simp == NULL || access == PLAIN)
     val = GetValue(COST_GRADIENT);
   else
     // see the filter definition for gradients in the
-    // 99-lines paper why we use here "design TIMES cost_gradient" 
+    // 99-lines paper why we use here "design TIMES cost_gradient"
     val = simp->GetFilteredValue(COST_GRADIENT, true);
 
   LOG_DBG2(del) << elem->elemNum << " GetObjectiveGradient() -> " << val;
@@ -298,7 +299,7 @@ double DesignElement::GetObjectiveGradient(Access access) const
 
 double DesignElement::GetDesign(Access access) const
 {
-  if(simp == NULL || access == PLAIN) 
+  if(simp == NULL || access == PLAIN)
     return design;
   else
     return simp->GetFilteredValue(DESIGN, false);
@@ -381,7 +382,7 @@ void SIMPElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
   DesignElement::Filter filter = DesignElement::filter.Parse(pn->Get("type"));
   double value  = pn->Get("value")->AsDouble();
 
-  if(value == 0.0) return; // todo: infoParam 
+  if(value == 0.0) return; // todo: infoParam
 
   double avg_radius = 0;
   double avg_neighbours = 0;
@@ -397,7 +398,7 @@ void SIMPElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
   // for the same reason GridCFS<DIM>::GetElemsNextToNodes() is not used.
   for(UInt element = 0; element < data.GetSize(); element++)
   {
-    DesignElement* de = &data[element];  
+    DesignElement* de = &data[element];
 
     de->simp->filter_ = value > 0.0;
     Point& loc = *de->GetLocation();
@@ -444,40 +445,40 @@ void SIMPElement::InitFilter(StdVector<DesignElement>& data, ParamNode* pn)
         ne.weight    = value - distance;
         ne.distance  = distance;
         de->simp->neighbourhood.Push_back(ne); // let the default copy constructor work!
-        // std::cout << "element " << data[element].elem->elemNum << " " 
+        // std::cout << "element " << data[element].elem->elemNum << " "
         //          << data[element].location_.ToString() << " has neighbour "
         //          << data[n].elem->elemNum << " " <<  data[n].location_.ToString()
-        //          << " distance= " << distance << " weight=" << ne.weight << std::endl; 
+        //          << " distance= " << distance << " weight=" << ne.weight << std::endl;
       }
     } // here the element is calculated
 
     // now normalize the weights. The weight of this element is by definition 1.0
-    double sum = 1.0;  
-    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++) 
+    double sum = 1.0;
+    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++)
       sum += de->simp->neighbourhood[e].weight;
 
     // now normalize all
     de->simp->weight /= sum;
-    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++) 
-      de->simp->neighbourhood[e].weight /= sum;  
+    for(unsigned int e = 0; e < de->simp->neighbourhood.GetSize(); e++)
+      de->simp->neighbourhood[e].weight /= sum;
 
     avg_radius += radius;
     avg_neighbours += de->simp->neighbourhood.GetSize();
   }
 
   // for direct debug output: determin neighbourhood statistics
-  std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize()) 
+  std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
   << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
 
 double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool design_weighted) const
 {
-  // We filter over this element and the neighbours. 
+  // We filter over this element and the neighbours.
 
   double factor_sum = 0.0;
   double weight_sum = 0.0;
 
-  for(UInt i = 0; i < neighbourhood.GetSize(); i++) 
+  for(UInt i = 0; i < neighbourhood.GetSize(); i++)
   {
     const NeighbourElement& ne = neighbourhood[i];
     double des_weight = design_weighted ?  ne.neighbour->GetDesign(DesignElement::PLAIN) : 1.0;
@@ -493,7 +494,7 @@ double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool desi
   double des_weight = design_weighted ? de_->GetDesign(DesignElement::PLAIN) : 1.0;
 
   LOG_DBG2(del) << de_->elem->elemNum << ": factor_sum = " << factor_sum << " + " << de_->GetValue(sp)
-  << " weight_sum = " << weight_sum << " + " << weight << " -> " 
+  << " weight_sum = " << weight_sum << " + " << weight << " -> "
   << ((factor_sum+(de_->GetValue(sp)*des_weight))/((weight_sum+weight)*des_weight)) << " instead of " << de_->GetValue(sp);
 
   factor_sum += de_->GetValue(sp) * des_weight;
@@ -502,7 +503,7 @@ double SIMPElement::GetFilteredValue(DesignElement::ValueSpecifier sp, bool desi
   // in the 99-lines paper this is inverse of this_value
   double result = factor_sum / (weight_sum * des_weight);
 
-  return result;      
+  return result;
 }  
 
 
@@ -620,11 +621,11 @@ bool VicinityElement::IdentifyNeighbor(Matrix<double>& reference, Matrix<double>
   // [x][i]
   // [y][i]
   // [z][i]
-  unsigned int dim = reference.GetSizeRow();
-  unsigned int size  = reference.GetSizeCol();
+  unsigned int dim = reference.GetNumRows();
+  unsigned int size  = reference.GetNumCols();
 
-  assert(other.GetSizeRow() == dim);
-  assert(other.GetSizeCol() == size);
+  assert(other.GetNumRows() == dim);
+  assert(other.GetNumCols() == size);
   assert(dim == domain->GetGrid()->GetDim());
   if(dim != 2) EXCEPTION("no implementation for 3D yet")
   
@@ -997,7 +998,7 @@ ResultDescription::ResultDescription()
 ResultDescription::ResultDescription(ParamNode* pn)
 {
   // killme: do this nice when there is no more environment.hh
-  SolutionType st; 
+  SolutionType st;
   String2Enum(pn->Get("id")->AsString(), st);
   solutionType = st;
 
@@ -1009,7 +1010,7 @@ ResultDescription::ResultDescription(ParamNode* pn)
 
   value = DesignElement::valueSpecifier.Parse(pn->Get("value"));
 
-  detail = DesignElement::detail.Parse(pn->Get("detail")); 
+  detail = DesignElement::detail.Parse(pn->Get("detail"));
 }
 
 std::string ResultDescription::ToString()

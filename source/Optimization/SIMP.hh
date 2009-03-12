@@ -3,9 +3,11 @@
 
 #include "Optimization/ErsatzMaterial.hh"
 #include "Domain/bcs.hh"
-#include "Utils/cfsvector.hh"
-#include "OLAS/matvec/vector.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include <map>
+#include <set>
 
 namespace CoupledField
 {
@@ -59,7 +61,7 @@ public:
   bool valid;
 
   /** This is one nodal result (scalar or displacement vector) (real/complex) */
-  CFSVector* vec;
+  SingleVector* vec;
 
   /** This is out reference element */
   const SurfElem*  elem;
@@ -123,7 +125,7 @@ protected:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out);
 
   /** calculates the radiation, an approximation to emitted sound (Du & Olhoff),
    * only harmomic. Is specific to SIMP, hence not in ErsatzMaterial.
@@ -147,7 +149,7 @@ private:
 
   /** This private, as no virtual templates are possible with C++ */
   template <class T>
-  void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
+  void SetElementK(DesignElement* de, Application app, DenseMatrix* out);
 
   /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
   void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);
@@ -161,7 +163,7 @@ private:
    * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
    * It shall be cheap enough to calc here twice! */
   template <class T>
-  void CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod, Excitation& excite);
+  void CalcSurfaceNormalTimesSolution( Vector<T>& olas_prod, Excitation& excite);
 
 };
 

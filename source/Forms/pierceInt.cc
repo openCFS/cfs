@@ -46,7 +46,7 @@ namespace CoupledField {
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet, factor;
 
-    UInt dim = ptCoord_.GetSizeRow();
+    UInt dim = ptCoord_.GetNumRows();
 
     Matrix<Double> xiDx;
     Vector<Double> shapeFncAtIp;
@@ -129,7 +129,7 @@ namespace CoupledField {
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    const UInt dim = ptCoord_.GetSizeRow();
+    const UInt dim = ptCoord_.GetNumRows();
 
 
     Double jacDet, factor;

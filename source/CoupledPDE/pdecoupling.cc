@@ -6,6 +6,7 @@
 
 #include <list>
 
+#include "MatVec/basematrix.hh"
 #include "couplingmemento.hh"
 #include "PDE/StdPDE.hh"
 #include "Domain/elem.hh"
@@ -50,7 +51,7 @@ namespace CoupledField
     materials = x.materials;
 
     if (x.values != NULL) {
-      if (x.values->GetEntryType() == EntryType::COMPLEX) {
+      if (x.values->GetEntryType() == BaseMatrix::COMPLEX) {
         std::cerr << "IM FALSCHEN TEIL" << std::endl;
         EXCEPTION( "Sorry, wrong branch :) ");
         values = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values)));
@@ -223,9 +224,9 @@ namespace CoupledField
   
     // Initialize the values and oldValues arrays
     //myInterface->values->SetDof(myPDE_->dofspernode_);
-    //myInterface->values->Init(0.0);
+    //myInterface->values->Init();
     //myInterface->oldValues->SetDof(myPDE_->dofspernode_);
-    //myInterface->oldValues->Init(0.0);
+    //myInterface->oldValues->Init();
   
     // set normtype and epsilon
     //myInterface->epsilon = defaultEpsilon;
@@ -703,19 +704,19 @@ namespace CoupledField
 
 
     if( isComplex ) {
-      outputInterfaces_[i]->values->Init(Complex(0.0,0.0));
-      outputInterfaces_[i]->oldValues->Init(Complex(0.0,0.0));
-      outputInterfaces_[i]->values_tn_1->Init(Complex(0.0,0.0));
-      outputInterfaces_[i]->values_tn_2->Init(Complex(0.0,0.0));
-      outputInterfaces_[i]->values_tn_3->Init(Complex(0.0,0.0));
+      outputInterfaces_[i]->values->Init( );
+      outputInterfaces_[i]->oldValues->Init( );
+      outputInterfaces_[i]->values_tn_1->Init();
+      outputInterfaces_[i]->values_tn_2->Init();
+      outputInterfaces_[i]->values_tn_3->Init();
 
     } 
     else {
-      outputInterfaces_[i]->values->Init(0.0);
-      outputInterfaces_[i]->oldValues->Init( 0.0 );
-      outputInterfaces_[i]->values_tn_1->Init(0.0);
-      outputInterfaces_[i]->values_tn_2->Init(0.0);
-      outputInterfaces_[i]->values_tn_3->Init(0.0);
+      outputInterfaces_[i]->values->Init( );
+      outputInterfaces_[i]->oldValues->Init(  );
+      outputInterfaces_[i]->values_tn_1->Init();
+      outputInterfaces_[i]->values_tn_2->Init();
+      outputInterfaces_[i]->values_tn_3->Init();
     }
     
   }
@@ -832,7 +833,7 @@ namespace CoupledField
             // This section is reached, if the two couplings
             // are the same
             if (inputInterfaces_[iOwn]->values->GetEntryType()
-                == EntryType::COMPLEX){
+                == BaseMatrix::COMPLEX){
             
               // --- Complex values --
               dynamic_cast<Vector<Complex>&> (*(inputInterfaces_[iOwn]->values)) 

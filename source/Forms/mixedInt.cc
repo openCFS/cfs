@@ -146,7 +146,7 @@ namespace CoupledField {
 
 
      //Blowing up the element matrix to number of velocity components 
-     const UInt singleDofSize = tempElemMat.GetSizeRow();
+     const UInt singleDofSize = tempElemMat.GetNumRows();
      for (UInt i=0; i < singleDofSize; i++)
        for (UInt j=0; j < singleDofSize; j++)
          for (UInt actDof = 0; actDof < dim_ ; actDof++)

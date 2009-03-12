@@ -6,11 +6,6 @@
 #define FILE_ACOUSTICPDE_2001
 
 #include "SinglePDE.hh"
-#include "ODEDescr/KellerMiksis.hh"
-#include "ODEDescr/Gilmore.hh"
-#include "ODESolve/ODESolver_RKF45.hh"
-#include "Forms/bubbleDampInt.hh"
-#include "Forms/bubbleStiffInt.hh"
 #include "Utils/mathParser/mathParser.hh"
  
 namespace CoupledField {
@@ -144,12 +139,6 @@ namespace CoupledField {
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
 
-    //! calculate element mean pressure and derivative for bubble PDE
-    void CalcBubblePressure( StdVector<Elem*>& couplingElems,
-                             Vector<Double>& elemCouplingSols,
-                             SolutionType solType );
-    
-
     // ========================
     // set solution information
     // ========================
@@ -168,9 +157,6 @@ namespace CoupledField {
 
     bool absorbingBCs_; //!< switch for absorbing BCs     
 
-    //! indicator for bubble coupling
-    bool isBubbleCoupled_;   
-    
     //bool fracDamping_; //!< switch indicating use of fractional damping
     
     // ========================
@@ -202,12 +188,6 @@ namespace CoupledField {
 
     //! variable speed of sound( combustion noise )
     NodeStoreSol<Double> speedOfSound_; 
-
-    //! Attribute describing model for bubble dynamics
-    BubbleDynType bubbleDynType_;
-
-    //! bubbledensity
-    Double bubbleDensity_;
 
     bool plotRHS_; // Flag for saving of rhs for output
     bool plotRHSVel_; // Flag for saving of rhs as a vector field
@@ -250,9 +230,6 @@ namespace CoupledField {
 
     //! 
 
-    std::map<RegionIdType, BubbleDampInt*> bubbleDampIntMap_; 
-    std::map<RegionIdType, BubbleStiffInt*> bubbleStiffIntMap_; 
-  
     //! map storing for each region the related flowData node
     std::map<RegionIdType, ParamNode*> regionFlowNodes_;
 

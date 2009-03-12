@@ -2,17 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "graph/idbcgraph.hh"
+#include "Utils/tools.hh"
+#include "OLAS/graph/idbcgraph.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
-  void IDBC_Graph::FinaliseAssembly( Integer *newEqn ) {
+  void IDBC_Graph::FinaliseAssembly( StdVector<UInt>* newEqn ) {
 
 
     // Re-ordering strategy should be not to re-order
     if ( newOrder_ != NOREORDERING ) {
+      std::string tmp;
+      Enum2String( newOrder_, tmp );
+      
       (*warning) << "IDBC_Graph::FinaliseAssembly: Re-ordering strategy = '"
-                 << Enum2String( newOrder_ )
+                 << tmp
                  << "' makes no sense in my case! Ignoring it!";
       Warning( __FILE__, __LINE__ );
     }
@@ -22,7 +26,7 @@ namespace OLAS {
 
     // Check whether we got a NULL pointer. In this case there is
     // no re-ordering necessary
-    bool doReorder = newEqn == NULL ? false : true;
+    bool doReorder = newEqn->GetSize() == 0 ? false : true;
 
     // Only do re-order, if graph is not empty
     doReorder = numNodes_ > 0 ? doReorder : false;
@@ -45,20 +49,22 @@ namespace OLAS {
     // Re-arrange neighbour list with respect to the new equation
     // numbers of the free dofs
     if ( doReorder == true ) {
-      NodeList *newElement;
-      NewArray( newElement, NodeList, numNodes_ );
-      for ( UInt i = 1; i <= numNodes_; i++ ) {
-        newElement[ newEqn[i] ] = element_[i];
+
+      StdVector<NodeList> newElement(numNodes_);
+
+      for ( UInt i=0; i< numNodes_; i++ ) {
+        UInt n = (*newEqn)[i];
+        newElement[n-1] = element_[i];
       }
-      NodeList *tmpPtr = element_;
-      element_ = newElement;
-      newElement = NULL;
-      DeleteArray( tmpPtr );
+
+      for ( UInt i=0; i< numNodes_; i++ ) {
+        element_[i] = newElement[i];
+      }
 
 #ifdef DEBUG_IDBCGRAPH
       (*debug) << " IDBC_Graph: New numbers of free dofs:\n";
-      for ( UInt i = 1; i <= numNodes_; i++ ) {
-        (*debug) << i << " -> " << newEqn[i] << std::endl;
+      for ( UInt i = 0; i < numNodes_; i++ ) {
+        (*debug) << i << " -> " << (*newEqn)[i] << std::endl;
       }
 #endif
 
@@ -71,7 +77,7 @@ namespace OLAS {
     ConvertToCRS();
 
     // The element vector is no longer required
-    DeleteArray( element_ );
+    delete[] element_;
     element_ = NULL;
 
     // Now the graph object is fully assembled

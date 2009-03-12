@@ -7,10 +7,14 @@
 
 #include <vector>
 
-#include "matvec/matvec.hh"
+#include <def_expl_templ_inst.hh>
 
+#include "OLAS/utils/math/croutlu.hh"
 
-namespace OLAS {
+#include "baseprecond.hh"
+#include "bnprecond.hh"
+
+namespace CoupledField {
 
   //! This class implements an ILU(k) preconditioner
 
@@ -111,6 +115,9 @@ namespace OLAS {
 
   public:
 
+    using BNPrecond<ILUK_Precond<T>, CRS_Matrix<T>, T >::Apply;
+    using BNPrecond<ILUK_Precond<T>, CRS_Matrix<T>, T >::Setup;
+
     //! Constructor
     ILUK_Precond( const StdMatrix &stdMat, OLAS_Params *myParams,
                    OLAS_Report *myReport );
@@ -142,18 +149,6 @@ namespace OLAS {
     void Apply( const CRS_Matrix<T> &sysMat, const Vector<T> &res,
                 Vector<T> &sol ) const;
 
-    //! Method to force instantiation of public member functions
-
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateStdPrecondObject() will
-    //! make a pseudo call to InstantiatePublicMethods() in order to force the
-    //! compiler to instantiate all public methods of a templated solver class.
-    //! The former method in turn calls this method. We use it to force
-    //! instantiation of the public methods offered in addition to the ones
-    //! defined in the BaseSolver class. Currently this is only the
-    //! ExportILUFactorisation() method inherited from the CroutLU class.
-    void InstantiateAdditionalPublicMethods( BaseMatrix &sysMat );
-
   private:
 
     //! Dropping strategy for fill-in in the incomplete decomposition
@@ -176,8 +171,7 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     ILUK_Precond() {
-      Error( "Default constructor of ILUK_Precond should never be called!",
-             __FILE__, __LINE__ );
+      EXCEPTION( "Default constructor of ILUK_Precond should never be called!" );
     };
 
     //! Dimension of system matrix
@@ -270,5 +264,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ilukprecond.cc"
+#endif
 
 #endif

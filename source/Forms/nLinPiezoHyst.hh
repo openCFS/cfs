@@ -22,6 +22,7 @@ namespace CoupledField {
 
   class PiezoCoupling;
   class LinElastInt;
+  template<typename> class MechStressStrain;
 
   class nLinPiezoHystCouple : public linPiezoCoupling {
 

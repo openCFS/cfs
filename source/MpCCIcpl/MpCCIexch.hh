@@ -7,15 +7,16 @@
 
 #include <def_use_mpcci.hh>
 
-#include <Matrix/matrix.hh>
-#include <Domain/grid.hh>
-#include <General/environment.hh>
+#include "MatVec/matrix.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
 
 namespace CoupledField
 {
 
   //! forward class declaration
   class ParamNode;
+  class EqnMap;
 
   //! Class for mesh coupling
   /*! 
@@ -60,12 +61,20 @@ public:
   void RecvAllPartitions(std::string couplingType);
   
   //! Get the nodal value of one partition/subdomain
-  void GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceData, UInt nrNodesSD, UInt* nodeIds, std::string couplingType);
+  void GetNodalValOfOnePartition(UInt partId,
+                                     Vector<Double> & forceData,
+                                     UInt nrNodesSD,
+                                     UInt* nodeIds,
+                                     std::string couplingType);
   
   ////////////////////////////////////////////////////////////////
   
   //! put values of one partitions/subdomain into the sending queue of MpCCI
-  void PutPartition(UInt partId, const Vector<Double>  & displData, UInt nrNodesSD, UInt* nodeIds, bool conv);
+  void PutPartition(UInt partId,
+                      const Vector<Double>  & displData,
+                      UInt nrNodesSD,
+                      UInt* nodeIds,
+                      bool conv);
   
   //! Sends values of all partitions/subdomains to MpCCI
   void SendAllPartitions();

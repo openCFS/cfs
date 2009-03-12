@@ -58,7 +58,7 @@ namespace CoupledField
                                   const Double tolerance,
                                   StdVector<bool> & coordsInside) const
   {
-    UInt numPoints = localCoords.GetSizeCol();
+    UInt numPoints = localCoords.GetNumCols();
     double xi, eta, zeta;
     double threshold;
 

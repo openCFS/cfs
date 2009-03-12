@@ -10,8 +10,8 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "General/environment.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 
 #include <PDE/StdPDE.hh>
 
@@ -48,7 +48,7 @@ namespace CoupledField {
 
     // initialize output vector
     elemPD.Resize(nrNodes);
-    elemPD.Init(0.0);
+    elemPD.Init();
 
     StdVector<UInt>  connect = ptElement->connect;
     Matrix<Double> ptCoord;
@@ -94,7 +94,7 @@ namespace CoupledField {
       }
         
       xiDx.Transpose(xiDxTransp);
-      dimensions_ = xiDx.GetSizeCol();
+      dimensions_ = xiDx.GetNumCols();
         
       // compute gradient of solution + 1st derivative at integration point
       solGradAtIp       = xiDxTransp * elemSol;
@@ -112,7 +112,7 @@ namespace CoupledField {
 
         elemPD[i] += ShpFncAtIp[i] * N1;
 
-        for (UInt j=0; j<xiDx.GetSizeCol(); j++)
+        for (UInt j=0; j<xiDx.GetNumCols(); j++)
           elemPD[i] -= xiDx[i][j] * N2[j];
       }
       elemPD *= jacDet * intWeights[actIntPt-1];
@@ -131,9 +131,8 @@ namespace CoupledField {
                                               Vector<TYPE> solD1GrAtIp )
   {
 
-    (*error) << "AcouPowerDensityOp::ComputeN1 "
-             << "only defined for TYPE=Complex/Double "; 
-    Error( __FILE__, __LINE__ );
+    EXCEPTION( "AcouPowerDensityOp::ComputeN1 "
+             << "only defined for TYPE=Complex/Double ");
     return TYPE();
   }
 
@@ -165,9 +164,8 @@ namespace CoupledField {
                                                       TYPE solD1AtIp )
   {
 
-    (*error) << "AcouPowerDensityOp::ComputeN2 "
-             << "only defined for TYPE=Complex/Double "; 
-    Error( __FILE__, __LINE__ );
+    EXCEPTION( "AcouPowerDensityOp::ComputeN2 "
+             << "only defined for TYPE=Complex/Double " );
     return TYPE();
   }
 

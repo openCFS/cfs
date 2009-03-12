@@ -22,8 +22,8 @@ namespace CoupledField
     virtual ~Hexa2FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_HEXA20;
+    virtual Elem::FEType feType() {
+      return Elem::HEXA20;
     };
 
   protected:

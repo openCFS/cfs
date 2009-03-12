@@ -106,7 +106,7 @@ namespace CoupledField {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt dim      = ptCoord_.GetSizeRow();
+    const UInt dim      = ptCoord_.GetNumRows();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
     Vector<Double> shapeFnc;
   

@@ -509,7 +509,7 @@ namespace CoupledField
 
   Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
   {
-    Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
+    EXCEPTION("RectangleFE::CalcDistortion: Not implemented");
     return -1.0;
   }
 
@@ -577,9 +577,8 @@ namespace CoupledField
         break;
 
       default:
-        errMsg = "RectangleFE::GetLocalIntPoints4Surface: surface and volume element ";
-        errMsg = "have not two nodes in common. Check your .mesh-file.";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        EXCEPTION( "RectangleFE::GetLocalIntPoints4Surface: surface and volume element "
+                   <<  "have not two nodes in common. Check your .mesh-file.");
       }
   }
   
@@ -587,7 +586,7 @@ namespace CoupledField
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {
-    UInt numPoints = localCoords.GetSizeCol();
+    UInt numPoints = localCoords.GetNumCols();
     double xi, eta;
 
     coordsInside.Resize(numPoints);

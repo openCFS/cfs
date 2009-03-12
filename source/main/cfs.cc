@@ -1,4 +1,5 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim:fenc=utf-8:ft=tcl:et:sw=2:ts=2:sts=2
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
@@ -19,6 +20,7 @@
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "Utils/profiler.hh"
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -33,10 +35,6 @@
 #include <cci.h>
 #endif
 
-#endif
-
-#ifdef GRIDLIB
-#include "Domain/Gridlib/interface_gridlib.hh"
 #endif
 
 #ifdef USE_MESH
@@ -315,7 +313,7 @@ int main( int argc, const char **argv ) {
   // Only output of grid
   // =========================================================================
   if ( progOpts->GetPrintGrid() == true ) {
-    std::cout << "Printing grid to file " << myEndl << myEndl;
+    std::cout << "Printing grid to file " << std::endl << std::endl;
     domain->PrintGrid();
     delete domain;
     delete Info;
@@ -389,12 +387,17 @@ int main( int argc, const char **argv ) {
       info->Get(InfoNode::ERROR)->SetValue(ex.what());
       info->ToFile();
     }
-    Error(ex.what(), __FILE__, __LINE__);
+    std::cerr << std::endl << std::endl
+              << "***********************************************************************"
+              << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
+              << std::endl << std::endl 
+              << ex.what() 
+              << "***********************************************************************"
+              << std::endl  << std::endl;
   }
 
 
   // Delete global string streams
-  delete error;
   delete warning;
 
   // Seems that everything went fine

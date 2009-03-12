@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "scriptable.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include <cstdio>
@@ -100,8 +101,8 @@ namespace CoupledField
       currentArgs_->GetSignature( signature );
       errMsg_ << argStr.str()
               << "Wrong number of arguments provided!";
-      errMsg_ << "\n \n Usage: \033[31m" << args[argOffset] 
-              <<  "\033[0m " << signature;
+      errMsg_ << "\n \n Usage: " << fg_red << args[argOffset] 
+              << fg_reset << " " << signature;
       return false;
     }
     
@@ -138,7 +139,7 @@ namespace CoupledField
     
     for ( it = argLists_.begin(); it != argLists_.end(); it++ ) {
       (*it).second.GetSignature( signature );
-      out << "\033[31m" << (*it).first << "\033[0m "  
+      out << fg_red << (*it).first << fg_reset << " "  
           << signature;
       commands.Push_back( out.str() );
       out.str("");
@@ -182,9 +183,9 @@ namespace CoupledField
     
     // Iterate over all arguments
     for (UInt i = 0; i < orderedParams_.GetSize(); i++ ) {
-      out << "\033[31m" << orderedParams_[i] << "\033[0m (\033[32m" 
+      out << fg_red << orderedParams_[i] << fg_reset << " (" << fg_green
           << ParamType2String(paramMap_[orderedParams_[i]])
-          << "\033[0m) ";
+          << fg_reset << ") ";
     }
     
     signature = out.str();

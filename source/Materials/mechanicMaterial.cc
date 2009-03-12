@@ -84,7 +84,7 @@ namespace CoupledField
   
 
   void MechanicMaterial::SetScalar(Double param, MaterialType matType, 
-				    DataType dataType ) {
+				    Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -96,10 +96,10 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
         val = Complex ( param, 0.0 );
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
         val = Complex ( 0.0, param );
         isComplex_.insert( matType );
       }
@@ -114,7 +114,7 @@ namespace CoupledField
 
 
   void MechanicMaterial::SetScalar( Complex param, MaterialType matType, 
-				    DataType dataType ) {
+				    Global::ComplexPart dataType ) {
 
 
 
@@ -127,14 +127,14 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	val = param.real();
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
 	val = param.imag();
 	isComplex_.insert( matType );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	val = param;
 	isComplex_.insert( matType );
       }
@@ -145,7 +145,7 @@ namespace CoupledField
 
 
   void MechanicMaterial::SetVector(const Vector<Double>& param, MaterialType matType, 
-				    DataType dataType ) {
+				    Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -155,7 +155,7 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == REAL || dataType == IMAG ) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
 	if ( vectorParams_[matType].GetSize() == 0 ) {
 	  vectorParams_[matType].Resize( param.GetSize() );
           vectorParams_[matType].Init();
@@ -163,7 +163,7 @@ namespace CoupledField
 
 	vectorParams_[matType].SetPart( dataType, param );
 
-	if ( dataType == IMAG ) {
+	if ( dataType == Global::IMAG ) {
 	  isComplex_.insert( matType );
 	}
       }
@@ -176,8 +176,8 @@ namespace CoupledField
 
 
   void MechanicMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-				    DataType dataType ) {
-    
+                                   Global::ComplexPart dataType ) {
+
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -186,32 +186,32 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == REAL || dataType == IMAG ) {
-	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
+        if ( tensorParams_[matType].GetNumRows() == 0 ) {
+          tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
-	}
-	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+        }
+        if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+          tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
-	}
+        }
 
-	tensorParams_[matType].SetPart( dataType, param );
-	tensorParamsOrig_[matType].SetPart( dataType, param );
+        tensorParams_[matType].SetPart( dataType, param );
+        tensorParamsOrig_[matType].SetPart( dataType, param );
 
-	if ( dataType == IMAG ) {
-	  isComplex_.insert( matType );
-	}
+        if ( dataType == Global::IMAG ) {
+          isComplex_.insert( matType );
+        }
       }
       else {
-	std::string msg = "SetTensor-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetTensor-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
     }
   }
 
   void MechanicMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-				    DataType dataType ) {
+				    Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -221,7 +221,7 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType != COMPLEX ) {
+      if ( dataType != Global::COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
@@ -268,7 +268,7 @@ namespace CoupledField
 
 
   void MechanicMaterial::GetScalar( Double& param, MaterialType matType, 
-				    DataType dataType )  const {
+				    Global::ComplexPart dataType )  const {
 
 
     scalarMap::const_iterator pos;
@@ -280,10 +280,10 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
         param = val.real();
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
         param = val.imag();
       }
       else {
@@ -294,7 +294,7 @@ namespace CoupledField
   }
 
   void MechanicMaterial::GetScalar( Complex& param, MaterialType matType, 
-				    DataType dataType )  const {
+				    Global::ComplexPart dataType )  const {
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
@@ -305,15 +305,15 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	Complex valReal = Complex (val.real(), 0.0);
 	param = valReal;
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
 	Complex valImag = Complex (0.0, val.imag());
 	param = valImag;
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = val;
       }
     }    
@@ -322,7 +322,7 @@ namespace CoupledField
 
   void MechanicMaterial::GetVector( Vector<Double>& param, 
 				    MaterialType matType, 
-				    DataType dataType ) const {
+				    Global::ComplexPart dataType ) const {
     
 
     vectorMap::const_iterator pos;
@@ -336,7 +336,7 @@ namespace CoupledField
       Vector<Complex> matVector;
       matVector = pos->second;
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	param = matVector.GetPart( dataType );
       }
       else {
@@ -348,11 +348,9 @@ namespace CoupledField
 
 
   void MechanicMaterial::GetTensor( Matrix<Double>& param, 
-      MaterialType matType, 
-      DataType dataType,
-      SubTensorType subTensor ) const {
-
-
+				    MaterialType matType, 
+				    Global::ComplexPart dataType,
+				    SubTensorType subTensor ) const {
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
@@ -369,7 +367,7 @@ namespace CoupledField
         ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
         param = matTensor.GetPart( dataType );
       }
       else {
@@ -381,7 +379,7 @@ namespace CoupledField
 
   void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
 				    MaterialType matType, 
-				    DataType dataType,
+				    Global::ComplexPart dataType,
 				    SubTensorType subTensor ) const {	
     
 
@@ -401,14 +399,14 @@ namespace CoupledField
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	Matrix<Double> help; 
 	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
 	param.SetPart( dataType, help );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = matTensor;
       }
     }
@@ -501,8 +499,8 @@ namespace CoupledField
       // get complex valued values
       Complex EModul, poisson;
         
-      GetScalar( EModul, MECH_EMODULUS, COMPLEX ); 
-      GetScalar( poisson, MECH_POISSON, COMPLEX ); 
+      GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
+      GetScalar( poisson, MECH_POISSON, Global::COMPLEX ); 
   
       // calculate isothropic case        
       Complex LameLambda, LameMu;
@@ -528,22 +526,22 @@ namespace CoupledField
       elasticityTensor[4][4]=LameMu;
       elasticityTensor[5][5]=LameMu;
 
-      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, COMPLEX ); 
+      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX ); 
 
 
 
     } else if( symmetryType_ == ORTHOTROPIC ) {
         
       Complex EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
-      GetScalar( EX, MECH_EMODULUS_X, COMPLEX ); 
-      GetScalar( EY, MECH_EMODULUS_Y, COMPLEX ); 
-      GetScalar( EZ, MECH_EMODULUS_Z, COMPLEX ); 
-      GetScalar( nuXY, MECH_POISSON_XY, COMPLEX ); 
-      GetScalar( nuYZ, MECH_POISSON_YZ, COMPLEX ); 
-      GetScalar( nuXZ, MECH_POISSON_XZ, COMPLEX ); 
-      GetScalar( GYZ, MECH_GMODULUS_YZ, COMPLEX ); 
-      GetScalar( GZX, MECH_GMODULUS_ZX, COMPLEX ); 
-      GetScalar( GXY, MECH_GMODULUS_XY, COMPLEX ); 
+      GetScalar( EX, MECH_EMODULUS_X, Global::COMPLEX ); 
+      GetScalar( EY, MECH_EMODULUS_Y, Global::COMPLEX ); 
+      GetScalar( EZ, MECH_EMODULUS_Z, Global::COMPLEX ); 
+      GetScalar( nuXY, MECH_POISSON_XY, Global::COMPLEX ); 
+      GetScalar( nuYZ, MECH_POISSON_YZ, Global::COMPLEX ); 
+      GetScalar( nuXZ, MECH_POISSON_XZ, Global::COMPLEX ); 
+      GetScalar( GYZ, MECH_GMODULUS_YZ, Global::COMPLEX ); 
+      GetScalar( GZX, MECH_GMODULUS_ZX, Global::COMPLEX ); 
+      GetScalar( GXY, MECH_GMODULUS_XY, Global::COMPLEX ); 
         
       Complex nuYX, nuZY, nuZX, aux;
       nuYX=(EY/EX)*nuXY;
@@ -570,7 +568,7 @@ namespace CoupledField
       elasticityTensor[3][3]=GYZ;
       elasticityTensor[4][4]=GZX;
       elasticityTensor[5][5]=GXY;
-      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, COMPLEX );
+      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
     } else {
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
                  << symmetryType_ << "' not implemented!" );

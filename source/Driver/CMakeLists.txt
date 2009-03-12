@@ -1,15 +1,40 @@
-# Make sure the compiler can find include files from our CFSMESHIO library.
-#INCLUDE_DIRECTORIES(${CFSMESHIO_SOURCE_DIR}/include ${HDF5_INCLUDE_DIR})
+# Just redefine __builtin_isnan to ::isnan for Intel compiler for 
+# assemble.cc
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS OptimalityCondition.cc
+        COMPILE_FLAGS)
+    #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
+    IF(OPTCONDFLAGS STREQUAL NOTFOUND)
+      SET(OPTCONDFLAGS "")
+    ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
+    
+    SET_SOURCE_FILES_PROPERTIES(assemble.cc
+      PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
-# Make sure the linker can find the CFSMESHIO library once it is built.
-#LINK_DIRECTORIES()
-
-SET(DRIVER_SRCS solveStepAcoustic.cc stdSolveStep.cc baseSolveStep.cc
-  solveStepElec.cc basedriver.cc transientdriver.cc staticdriver.cc
-  harmonicDriver.cc multiSequenceDriver.cc assemble.cc singleDriver.cc
-  iterSolveStep.cc solveStepPiezo.cc solveStepSmooth.cc
-  solveStepFluidMech.cc solveStepMech.cc eigenFrequencyDriver.cc formsContext.cc
-  solveStepODE.cc solveStepMpCCI.cc solveStepMagHyst.cc)
+SET(DRIVER_SRCS
+  assemble.cc
+  basedriver.cc
+  baseSolveStep.cc
+  eigenFrequencyDriver.cc
+  formsContext.cc
+  harmonicDriver.cc
+  iterSolveStep.cc
+  multiSequenceDriver.cc
+  singleDriver.cc
+  solveStepAcoustic.cc
+  solveStepElec.cc
+  solveStepFluidMech.cc
+  solveStepMagHyst.cc
+  solveStepMech.cc
+  solveStepMpCCI.cc
+  solveStepODE.cc
+  solveStepPiezo.cc
+  solveStepSmooth.cc
+  staticdriver.cc
+  stdSolveStep.cc
+  transientdriver.cc
+  )
 
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})
 

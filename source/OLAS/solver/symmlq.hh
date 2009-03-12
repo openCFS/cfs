@@ -5,10 +5,11 @@
 #ifndef OLAS_SYMMLQ_HH
 #define OLAS_SYMMLQ_HH
 
-#include "solver/basesolver.hh"
 #include "utils/math/givensrotation.hh"
 
-namespace OLAS {
+#include "basesolver.hh"
+
+namespace CoupledField {
 
   // Forward declaration of classes
   // class GivenRotation;

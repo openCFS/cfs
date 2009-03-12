@@ -23,16 +23,16 @@ namespace CoupledField
       if ( matData->GetSymmetryType() == BaseMaterial::ORTHOTROPIC ) {
         isOrthotropic_ = true;
         reluctivityVec_.Resize(3);
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_1, Global::REAL);
         reluctivityVec_[0] = 1.0 / matVal_;
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_2, Global::REAL);
         reluctivityVec_[1] = 1.0 / matVal_;
-        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_PERMEABILITY_3, Global::REAL);
         reluctivityVec_[2] = 1.0 / matVal_;
         //        std::cout << "Orthotropic: \n" << reluctivityVec_ << std::endl;
       }
       else {
-        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, REAL);
+        ptMaterial->GetScalar( matVal_, MAG_RELUCTIVITY, Global::REAL);
         //std::cout << "Isotropic: mu=" << matVal_ << std::endl;
       }
     }
@@ -86,15 +86,15 @@ namespace CoupledField
          // of the Jacobian and the weight of the current integration
          // point. The result is added to the element matrix.
 
-         for ( UInt k = 0; k < curl.GetSizeRow(); k++ ) {
+         for ( UInt k = 0; k < curl.GetNumRows(); k++ ) {
            if ( isOrthotropic_ ) 
              fac =  jacDet * intWeights[actIntPt-1] * reluctivityVec_[k];
 
            ptr1 = curl[k];
            ptr2 = curl[k];
-           for ( UInt i = 0; i < curl.GetSizeCol(); i++ ) {
+           for ( UInt i = 0; i < curl.GetNumCols(); i++ ) {
              aux1 = fac * ptr1[i];
-             for ( UInt j = 0; j < curl.GetSizeCol(); j++ ) {
+             for ( UInt j = 0; j < curl.GetNumCols(); j++ ) {
                elemMat[i][j] += aux1 * ptr2[j];
              }
            }
@@ -108,7 +108,7 @@ namespace CoupledField
                                       const StdVector<Matrix<Double> >& shapeDeriv)
    {
      UInt nrEdges = shapeDeriv.GetSize();
-     UInt dim = shapeDeriv[0].GetSizeRow();
+     UInt dim = shapeDeriv[0].GetNumRows();
      
      curl.Resize(dim, nrEdges);
 

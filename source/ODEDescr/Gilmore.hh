@@ -7,8 +7,8 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
+#include "MatVec/matrix.hh"
 #include "BubbleODE.hh"
-#include "Matrix/matrix.hh"
 
 namespace CoupledField{
 

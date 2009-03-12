@@ -9,13 +9,13 @@
 #include <iomanip>
 #include <complex>
 
-#include "acouCombustion.hh"
-
+#include "OLAS/algsys/basesystem.hh"
 #include "DataInOut/freqfunc.hh"
-#include "Forms/forms_header.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/singleDriver.hh"
+
+#include "acouCombustion.hh"
 
 
 extern "C" {
@@ -256,7 +256,8 @@ namespace CoupledField
 	GetSrcTerm(srcVal, idx);
         //std::cout << "val = " << srcVal << std::endl;
 
-	Double origVal = srcVal;
+        // TODO: Check if this is still needed
+	// Double origVal = srcVal;
 
 	//variable speed of sound
 	if ( variableSpeedOfSoundCN_ ) {

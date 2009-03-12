@@ -30,8 +30,17 @@
 #include "DataInOut/resultHandler.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/DesignSpace.hh"
-#include "PDE/pdes_header.hh"
-#include "PDE/basePDE.hh"
+#include "PDE/acousticPDE.hh"
+#include "PDE/elecPDE.hh"
+#include "PDE/mechPDE.hh"
+#include "PDE/smoothPDE.hh"
+#include "PDE/magneticPDE.hh"
+#include "PDE/magEdgePDE.hh"
+#include "PDE/mpcciPDE.hh"
+#include "PDE/heatCondPDE.hh"
+#include "PDE/acouCombustion.hh"
+#include "PDE/acousticMixedPDE.hh"
+#include "PDE/fluidMechPDE.hh"
 #include "Utils/result.hh"
 
 // Coupling of single PDEs
@@ -473,16 +482,12 @@ namespace CoupledField {
       else if (actPdeName == "acoustic") {
         
         std::string acouSubType = actPdeNode->Get("subType")->AsString();
-        if (acouSubType == "flowNoise")
-          ptSinglePde_[i]=new AcouFlowNoise(defaultGrid, actPdeNode);
-        else if  (acouSubType == "combustionNoise")
+
+        if  (acouSubType == "combustionNoise")
           ptSinglePde_[i]=new AcouCombustionNoise(defaultGrid, actPdeNode);
         else
           ptSinglePde_[i]=new AcousticPDE(defaultGrid, actPdeNode );
       }
-      
-      else if (actPdeName == "acousticXYZ")
-        ptSinglePde_[i]=new AcousticXYZPDE(defaultGrid, actPdeNode );
       
       else if (actPdeName == "acousticMixed")
         ptSinglePde_[i]=new AcousticMixedPDE(defaultGrid, actPdeNode );
@@ -504,9 +509,6 @@ namespace CoupledField {
 
       else if (actPdeName == "fluidMech")
         ptSinglePde_[i]=new FluidMechPDE(defaultGrid, actPdeNode);
-
-      else if (actPdeName == "bubble")
-        ptSinglePde_[i]=new BubblePDE(defaultGrid, actPdeNode );
 
       else {
         EXCEPTION( actPdeName << " - this type of pdes is unknown" );

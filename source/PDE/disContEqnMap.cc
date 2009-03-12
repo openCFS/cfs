@@ -50,34 +50,34 @@ namespace CoupledField {
   //! SET AND INITIALIZATION METHODS
   //! ======================================================================
 
-  void DiscontinuousEqnMap::ReorderMapping( Integer **order ) {
+  void DiscontinuousEqnMap::ReorderMapping( const StdVector<UInt>& order ) {
 
     LOG_DBG(disContEqnMap) << "WARNING: The ReorderMapping functionality has never \
                          been tested for discontinuous equation numbering" 
                      << std::endl;
     
+    // Iterate over all nodal maps and map the new ordering
+    EqnMapType::iterator it1;
+
     // Check if any reordering array was given
-    if( (*order) == NULL ) {
+    if( !order.GetSize() ) {
       //std::cerr << "Performing no reordering";
       return;
     }
-
-    // Iterate over all nodal maps and map the new ordering
-    EqnMapType::iterator it1;
 
     // iterate over all nodal resuls
     for ( it1=nodeEqns_.begin(); it1!=nodeEqns_.end(); it1++ ) {
       Matrix<Integer> & actMap = it1->second;
 
       // iterate over all entries in the current map and renumber them
-      for ( UInt i = 0; i < actMap.GetSizeRow(); i++ ) {
-        for ( UInt j = 0; j < actMap.GetSizeCol(); j++ ) {
+      for ( UInt i = 0; i < actMap.GetNumRows(); i++ ) {
+        for ( UInt j = 0; j < actMap.GetNumRows(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            actMap[i][j] = (*order)[actMap[i][j]-1];
+            actMap[i][j] = order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
             //due to constraints
-            actMap[i][j] = -(*order)[-actMap[i][j]-1];   
+            actMap[i][j] = -order[-actMap[i][j]-1];   
           }
         }
       }
@@ -93,11 +93,11 @@ namespace CoupledField {
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
         for ( UInt j = 0; j < actMap[i].GetSize(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            actMap[i][j] = (*order)[actMap[i][j]-1];
+            actMap[i][j] = order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
             //due to constraints
-            actMap[i][j] = -(*order)[-actMap[i][j]-1];   
+            actMap[i][j] = -order[-actMap[i][j]-1];   
           }
         }
       }
@@ -112,11 +112,11 @@ namespace CoupledField {
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
         for ( UInt j = 0; j < actMap[i].GetSize(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            actMap[i][j] = (*order)[actMap[i][j]-1];
+            actMap[i][j] = order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
             //due to constraints
-            actMap[i][j] = -(*order)[-actMap[i][j]-1];   
+            actMap[i][j] = -order[-actMap[i][j]-1];   
           }
         }
       }
@@ -132,19 +132,15 @@ namespace CoupledField {
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
         for ( UInt j = 0; j < actMap[i].GetSize(); j++ ) {
           if ( actMap[i][j] > 0 ) {
-            actMap[i][j] = (*order)[actMap[i][j]-1];
+            actMap[i][j] = order[actMap[i][j]-1];
           }
           else if(actMap[i][j] < 0 ) {
             //due to constraints
-            actMap[i][j] = -(*order)[-actMap[i][j]-1];   
+            actMap[i][j] = -order[-actMap[i][j]-1];   
           }
         }
       }
     }
-
-    // Delete ordering array at the end
-    delete [] (*order);
-    (*order) = NULL;
   }
 
 
@@ -292,7 +288,7 @@ namespace CoupledField {
       for( UInt iFace = 0; iFace < faces.GetSize(); iFace++ ) 
       {
         // get local face number
-        Integer locFace;
+        Integer locFace = 0;
         for (UInt i = 0 ;i < mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ].GetSize() ; i++)
         {
             if(static_cast<UInt>(mesh2DisPdeFace_[ std::abs(faces[iFace])-1 ][i][0]) == it.GetElem()->elemNum)
@@ -347,7 +343,7 @@ namespace CoupledField {
       // get related nodal equaiton map
       Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
 
-      if(map.GetSizeRow() !=0 && map.GetSizeCol()!=0)
+      if(map.GetNumRows() !=0 && map.GetNumRows()!=0)
       {  
         // Distinguish the type the of the list
         if ( it.GetType() == EntityList::ELEM_LIST ||
@@ -1103,7 +1099,7 @@ namespace CoupledField {
         //UInt multipleBCs = 0;
 
         actMap.Resize( numLocNodes_ , dofsPerNode);
-        actMap.Init( NO_EQN );
+        actMap.InitValue( NO_EQN );
 
         // ------
         // STEP 2
@@ -1135,7 +1131,7 @@ namespace CoupledField {
         // ------
         Matrix<UInt> countNodes;
         countNodes.Resize( numLocNodes_, dofsPerNode );
-        countNodes.Init( 0 );
+        countNodes.Init();
 
         if( hdBcIt != hdBcs_.end() ) {
           HdBcList const & actHdBcList = hdBcIt->second;
@@ -1179,7 +1175,7 @@ namespace CoupledField {
         // STEP 3b
         // -------
 
-        countNodes.Init(0);
+        countNodes.Init();
 
         // Check if any inhom. boundary condition is defined for the current
         // result
@@ -1235,7 +1231,7 @@ namespace CoupledField {
         // ------
         // Initialize countNodes to zero. It will be used to count if
         // a node got already an equation number
-        countNodes.Init(0);
+        countNodes.Init();
 
         StdVector<UInt> nodes;
         // Iterate over all element list belonging to this result
@@ -1278,8 +1274,8 @@ namespace CoupledField {
         // ------
         // Re-iterate over the whole equation map and set all entries 
         // with eqn-number of NO_EQN to 0
-        for( UInt i = 0; i < actMap.GetSizeRow(); i++ ) {
-          for( UInt j = 0; j < actMap.GetSizeCol(); j++ ) {
+        for( UInt i = 0; i < actMap.GetNumRows(); i++ ) {
+          for( UInt j = 0; j < actMap.GetNumRows(); j++ ) {
             if( actMap[i][j] == NO_EQN )
               actMap[i][j] = 0;
           }
@@ -1383,7 +1379,7 @@ namespace CoupledField {
           const Elem & actEl = *(it.GetElem());
 
           // Get number of unknowns for element
-          StdVector<Vector<UInt> > numFcns; 
+          StdVector< StdVector<UInt> > numFcns; 
           numFcns.Resize( dofsPerElem );
 
           // iterate over all dofs of this result
@@ -1416,7 +1412,7 @@ namespace CoupledField {
             for( UInt iFcn = 0; iFcn < max; iFcn++ ) {
               if( actMap[locElem-1].GetSize() == 0 ) {
                 actMap[locElem-1].Resize( dofsPerElem * max );
-                actMap[locElem-1].Init(0);
+                actMap[locElem-1].Init();
               }
               
               // iterate over all element dofs
@@ -1516,7 +1512,7 @@ namespace CoupledField {
         //UInt multipleBCs = 0;
         Matrix<UInt> countElems;
         countElems.Resize( numLocElems_, dofsPerElem );
-        countElems.Init( 0 );
+        countElems.Init();
 
         actMap.Resize( numLocElems_);
         for( UInt i = 0; i < actMap.GetSize(); i++) {
@@ -1528,7 +1524,7 @@ namespace CoupledField {
         // STEP 2b
         // -------
 
-        countElems.Init(0);
+        countElems.Init();
 
         // Check if any inhom. boundary condition is defined for the current
         // result
@@ -1575,7 +1571,7 @@ namespace CoupledField {
         // ------
         // Initialize countNodes to zero. It will be used to count if
         // a node got already an equation number
-        countElems.Init(0);
+        countElems.Init();
 
         StdVector<Elem*> elems;
         // Iterate over all element list belonging to this result
@@ -1591,7 +1587,7 @@ namespace CoupledField {
             // Check if this element was already mapped
             if ( actMap[locElem-1].GetSize() == 0 ) {
               actMap[locElem-1].Resize( dofsPerElem );
-              actMap[locElem-1].Init(0);
+              actMap[locElem-1].Init();
             }
 
             for ( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
@@ -1701,7 +1697,7 @@ namespace CoupledField {
 
                   if( locEdge > 0 ) {
                     actMap[locEdge-1].Resize(dofsPerEdge);
-                    actMap[locEdge-1].Init( 0 );
+                    actMap[locEdge-1].Init();
                   }
                 }
               }
@@ -1720,7 +1716,7 @@ namespace CoupledField {
             const Elem & actEl = *(it.GetElem());
                         
             // Get number of unknowns for each edge
-            StdVector<Vector<UInt> > numFcns; 
+            StdVector< StdVector<UInt> > numFcns; 
             numFcns.Resize( dofsPerEdge );
 
             // iterate over all dofs of this result
@@ -1774,7 +1770,7 @@ namespace CoupledField {
                 for( UInt iFcn = 0; iFcn < max; iFcn++ ) {
                   if( actMap[locEdge-1].GetSize() == 0 ) {
                     actMap[locEdge-1].Resize( dofsPerEdge * max );
-                    actMap[locEdge-1].Init(0);
+                    actMap[locEdge-1].Init();
                   }
                   
                   UInt elemIdx = 0;
@@ -1874,7 +1870,7 @@ namespace CoupledField {
           const Elem & actEl = *(it.GetElem());
 
           // Get number of unknowns for each face
-          StdVector<Vector<UInt> > numFcns; 
+          StdVector< StdVector<UInt> > numFcns; 
           numFcns.Resize( dofsPerFace );
 
           // iterate over all dofs of this result
@@ -1937,7 +1933,7 @@ namespace CoupledField {
                 
                 if( actMap[locFace-1].GetSize() == 0 ) {
                   actMap[locFace-1].Resize( dofsPerFace * max);
-                  actMap[locFace-1].Init(0);
+                  actMap[locFace-1].Init();
                 }
               
                 // iterate over all dofs

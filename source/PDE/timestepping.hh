@@ -54,11 +54,11 @@ namespace CoupledField {
 
     //! Substract Stiffness from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
-    {Error("Error not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("Error not implemented!");};
 
     //! perform an update to RHS with actual solution (for nonlin calculation)
     virtual void UpdateRHS(Vector<Double>& actSol)
-    {Error("Error not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("Error not implemented!");};
 
     //! perform calculations at end of timestep different from above methods 
     //! e.g. when fractional damping is used, store current in memory
@@ -97,19 +97,18 @@ namespace CoupledField {
 
     //! get beta coefficient from Newmark time stepping scheme
     virtual Double GetNewmarkBeta() { 
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
       return -1.0;
     }
 
     //! set gamma coefficient from Trapezoidal time stepping scheme
     virtual void SetTrapezoidalGamma(Double val) { 
-      Error( "Not implemented here", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here" );
     }
 
     //! Dirichlet boundary condition has to be adapted
     virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
-      Error( "DirichletBC4EffMassMatrix not implemented",
-             __FILE__, __LINE__ );
+      EXCEPTION( "DirichletBC4EffMassMatrix not implemented" );
       return -1.0;
     }
 

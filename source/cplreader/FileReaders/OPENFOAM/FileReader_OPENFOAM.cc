@@ -239,7 +239,7 @@ namespace CoupledField
 
         switch(elemTypes[elemIdx])
         {
-        case ET_WEDGE6:
+        case Elem::WEDGE6:
           TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(3)];
           TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(4)];
           TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(5)];
@@ -247,7 +247,7 @@ namespace CoupledField
           TOPOLOGYDATA[topoIdx+4] = nodeMap[cell->GetPointId(1)];
           TOPOLOGYDATA[topoIdx+5] = nodeMap[cell->GetPointId(2)];
           break;
-        case ET_HEXA8:
+        case Elem::HEXA8:
           TOPOLOGYDATA[topoIdx+0] = nodeMap[cell->GetPointId(4)];
           TOPOLOGYDATA[topoIdx+1] = nodeMap[cell->GetPointId(5)];
           TOPOLOGYDATA[topoIdx+2] = nodeMap[cell->GetPointId(6)];
@@ -319,9 +319,9 @@ namespace CoupledField
 
       int nvx = ds_point->GetNumberOfPoints();
       FlowDataType& fd = nodalFlowData[actRegion];
-      UInt numDOFs;
+      UInt numDOFs = 0;
 
-      FlowDataPartStruct* fdps;
+      FlowDataPartStruct* fdps = NULL;
       vtkArrayIteratorTemplate<float>* floatIt = NULL;
 
       /*  Helper string which should help check if a seperate polyMesh in each timestep exists.
@@ -501,23 +501,23 @@ namespace CoupledField
     return sstr.str();
   }
 
-  FEType FileReader_OPENFOAM::VTKCellTypeToFEType(UInt cellType)
+  Elem::FEType FileReader_OPENFOAM::VTKCellTypeToFEType(UInt cellType)
   {
-    static std::map<UInt, FEType> elemTypeMap;
+    static std::map<UInt, Elem::FEType> elemTypeMap;
 
     if(elemTypeMap.empty())
     {
-      elemTypeMap[VTK_LINE] = ET_LINE2;
-      elemTypeMap[VTK_TRIANGLE] = ET_TRIA3;
-      elemTypeMap[VTK_QUAD] = ET_QUAD4;
-      elemTypeMap[VTK_TETRA] = ET_TET4;
-      elemTypeMap[VTK_HEXAHEDRON] = ET_HEXA8;
-      elemTypeMap[VTK_WEDGE] = ET_WEDGE6;
-      elemTypeMap[VTK_PYRAMID] = ET_PYRA5;
+      elemTypeMap[VTK_LINE] = Elem::LINE2;
+      elemTypeMap[VTK_TRIANGLE] = Elem::TRIA3;
+      elemTypeMap[VTK_QUAD] = Elem::QUAD4;
+      elemTypeMap[VTK_TETRA] = Elem::TET4;
+      elemTypeMap[VTK_HEXAHEDRON] = Elem::HEXA8;
+      elemTypeMap[VTK_WEDGE] = Elem::WEDGE6;
+      elemTypeMap[VTK_PYRAMID] = Elem::PYRA5;
     }
 
     if(elemTypeMap.find(cellType) == elemTypeMap.end())
-      return ET_UNDEF;
+      return Elem::UNDEF;
     else
       return elemTypeMap[cellType];
   }

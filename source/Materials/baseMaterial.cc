@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <string>
 #include "Utils/StdVector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/preisach.hh"
 #include "Domain/entityList.hh"
@@ -66,7 +66,7 @@ namespace CoupledField
     }
   }
                  
-  void BaseMaterial::GetScalar(Integer& param, MaterialType matType, DataType dataType ) const 
+  void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const 
   {
 
 
@@ -78,7 +78,7 @@ namespace CoupledField
       matTypeNotInDataBase( matType, dim );
     }
     else {
-      if ( dataType == INTEGER ) {	
+      if ( dataType == Global::INTEGER ) {	
         std::string msg = "GetScalar-Integer";
         dataTypeNotAllowed4SetGet( dataType, msg );
       }
@@ -112,20 +112,20 @@ namespace CoupledField
   }
   
 
-  void  BaseMaterial::dataTypeNotAllowed4SetGet(DataType dataType, 
+  void  BaseMaterial::dataTypeNotAllowed4SetGet(Global::ComplexPart dataType, 
 						 const std::string& msg ) const {
 
     std::string help;
-    Enum2String( dataType, help );
+    help = Global::complexPart.ToString( dataType );
     EXCEPTION( "Datatype " << help << " is not allowed in function " 
                << msg );
   }
 
 
-  void BaseMaterial::dataTypeNotAllowed(DataType dataType, MaterialType matType ) const {
+  void BaseMaterial::dataTypeNotAllowed(Global::ComplexPart dataType, MaterialType matType ) const {
 
     std::string help1, help2;
-    Enum2String( dataType, help1 );
+    help1 = Global::complexPart.ToString( dataType );
     Enum2String( matType, help2 );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
                << help2 << " in material data base " << materialDatabaseName_ );
@@ -140,10 +140,10 @@ namespace CoupledField
   }
 
 
-  void  BaseMaterial::setMakesNoSense(DataType dataType, const std::string& msg ) const {
+  void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const std::string& msg ) const {
 
     std::string msgAll, help;
-    Enum2String( dataType, help );
+    help = Global::complexPart.ToString( dataType );
     EXCEPTION( "Set of " << msg << " makes no sense with datatype "
                << help );
   }
@@ -197,13 +197,13 @@ namespace CoupledField
       if ( posTens != tensorData.end() ) {
 	// tensor data
 	Matrix<Complex> matTensor = posTens->second;
-	Matrix<Double>  tensor = matTensor.GetPart( REAL );
+	Matrix<Double>  tensor = matTensor.GetPart( Global::REAL );
 
 	out  << matTypeName << " (real part)" << ":\n\n" 
 	     << tensor << std::endl;
       
 	if ( isComplex ) {
-	  tensor = matTensor.GetPart( IMAG );
+	  tensor = matTensor.GetPart( Global::IMAG );
 	  out  << matTypeName << " (imag. part)" << ":\n\n" 
 	       << tensor << std::endl;
 	}
@@ -298,7 +298,7 @@ namespace CoupledField
 
       RComplex.Resize(3,3);
       RComplex.Init();
-      RComplex.SetPart( REAL, R );
+      RComplex.SetPart( Global::REAL, R );
       PerformRotation(RComplex, matTensor, helpTensor); 
       tensorParams_[matType] = matTensor;
       
@@ -394,8 +394,8 @@ namespace CoupledField
       R.Transpose(RT);
 
       //get dimension of matrix
-      UInt rowSize = matTensorOrig.GetSizeRow();
-      UInt colSize = matTensorOrig.GetSizeCol();
+      UInt rowSize = matTensorOrig.GetNumRows();
+      UInt colSize = matTensorOrig.GetNumCols();
 
       Matrix<Complex> helpMat;
 
@@ -495,10 +495,10 @@ namespace CoupledField
       isHysteresis_ = true;
 
       Double Xsat, Ysat;
-      GetScalar(Xsat, X_SATURATION, REAL);
-      GetScalar(Ysat, Y_SATURATION, REAL);
+      GetScalar(Xsat, X_SATURATION, Global::REAL);
+      GetScalar(Ysat, Y_SATURATION, Global::REAL);
       Matrix<Double> weights;
-      GetTensor(weights,  PREISACH_WEIGHTS, REAL);
+      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
       bool isVirgin = true;   
       hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
 
@@ -517,8 +517,8 @@ namespace CoupledField
     //effective material parameter formulation
     Xprevious_.Resize(numElemSD);
     Yprevious_.Resize(numElemSD);
-    Xprevious_.Init(0.0);
-    Yprevious_.Init(0.0);
+    Xprevious_.Init();
+    Yprevious_.Init();
   }
 
 
@@ -571,9 +571,9 @@ namespace CoupledField
     if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
       //std::cout << "Use start eps" << std::endl;
       if ( materialDatabaseName_ == "Electrostatic" )
-        GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+        GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
       else if ( materialDatabaseName_ == "Electromagnetics" )
-        GetScalar(eps,MAG_RELUCTIVITY,REAL);
+        GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
 
       matDiff = eps;
     }
@@ -584,7 +584,7 @@ namespace CoupledField
     
     std::cout << "dB=" << dX << "  dH=" << dY <<  "  dnu=" << matDiff << std::endl << std::endl;
 
-//     GetScalar(eps,MAG_RELUCTIVITY,REAL);
+//     GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
 //     matDiff = eps;
 
     return matDiff;
@@ -622,22 +622,22 @@ namespace CoupledField
          && IsSet(RAYLEIGH_FREQUENCY) ) {
       Double alpha, beta, freq;
 
-      GetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
-      GetScalar( beta, RAYLEIGH_BETA, REAL ); 
-      GetScalar( freq, RAYLEIGH_FREQUENCY, REAL ); 
+      GetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
+      GetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+      GetScalar( freq, RAYLEIGH_FREQUENCY, Global::REAL ); 
 
       if( abs(freq-dampFreq) > 0.001*freq ){
         alpha*=(dampFreq/freq);
         beta*=(freq/dampFreq);
-        SetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
-        SetScalar( beta, RAYLEIGH_BETA, REAL ); 
+        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
+        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
       }
     }
     else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
 
       Double alpha, beta, tanDelta, deltaFreq, omega1, omega2;
 
-      GetScalar( tanDelta, LOSS_TANGENS_DELTA, REAL ); 
+      GetScalar( tanDelta, LOSS_TANGENS_DELTA, Global::REAL ); 
 
       deltaFreq=RatioDeltaF*dampFreq;
 
@@ -649,8 +649,8 @@ namespace CoupledField
       beta=2.0*tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
       alpha=(2.0*omega1*tanDelta)-(beta*omega1*omega1);
 
-      SetScalar( alpha, RAYLEIGH_ALPHA, REAL ); 
-      SetScalar( beta, RAYLEIGH_BETA, REAL ); 
+      SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
+      SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
     }
     else
       EXCEPTION("Error in specification of Rayleigh damping!!!" );

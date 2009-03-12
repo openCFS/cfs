@@ -7,10 +7,12 @@
 
 #include <list>
 
+
 #include "General/environment.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
 #include "Materials/baseMaterial.hh"
+#include "Utils/boost-serialization.hh"
 
 namespace CoupledField
 {
@@ -74,19 +76,19 @@ namespace CoupledField
       StdVector<BaseMaterial*>  oppositePdeMaterials;         
 
       //! array containing coupling values
-      CFSVector * values;
+      SingleVector * values;
 
       //! array containing coupling values of previous iteration step
-      CFSVector * oldValues;
+      SingleVector * oldValues;
 
       //! array containing coupling values of n-1 (previus) time step
-      CFSVector * values_tn_1;
+      SingleVector * values_tn_1;
 
       //! array containing coupling values of n-2 (previus) time step
-      CFSVector * values_tn_2;
+      SingleVector * values_tn_2;
 
       //! array containing coupling values of n-3 (previus) time step
-      CFSVector * values_tn_3;
+      SingleVector * values_tn_3;
 
       //! dof of coupling values
       UInt dof;
@@ -175,7 +177,7 @@ namespace CoupledField
     virtual UInt GetNumOutputCouplings();
 
 
-    //! creates a new CFSVector-object for the 
+    //! creates a new SingleVector-object for the 
     //! couplingvalues.
     //! This method has to be called from the according
     //! PDE in the method 'InitCoupling'
@@ -218,23 +220,23 @@ namespace CoupledField
     { regions = &(inputInterfaces_[i]->neighInputRegions);}
 
     //! get input coupling values
-    virtual void GetInputValues(UInt i, CFSVector* &values)
+    virtual void GetInputValues(UInt i, SingleVector* &values)
     { values = (inputInterfaces_[i]->values);}
 
     //! get input coupling values
-    virtual void GetInputOldValues(UInt i, CFSVector* &values)
+    virtual void GetInputOldValues(UInt i, SingleVector* &values)
     { values = (inputInterfaces_[i]->oldValues);}
 
     //! get input coupling values of step tn-1
-    virtual void GetInputValues_tn_1(UInt i, CFSVector* &values_tn_1)
+    virtual void GetInputValues_tn_1(UInt i, SingleVector* &values_tn_1)
     { values_tn_1 = (inputInterfaces_[i]->values_tn_1);}
 
     //! get input coupling values of step tn-2
-    virtual void GetInputValues_tn_2(UInt i, CFSVector* &values_tn_2)
+    virtual void GetInputValues_tn_2(UInt i, SingleVector* &values_tn_2)
     { values_tn_2 = (inputInterfaces_[i]->values_tn_2);}
 
     //! get input coupling values of step tn-3
-    virtual void GetInputValues_tn_3(UInt i, CFSVector* &values_tn_3)
+    virtual void GetInputValues_tn_3(UInt i, SingleVector* &values_tn_3)
     { values_tn_3 = (inputInterfaces_[i]->values_tn_3);}
 
     //! get input coupling values dof
@@ -300,11 +302,11 @@ namespace CoupledField
     { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
     //! get output coupling values
-    virtual void GetOutputValues(UInt i, CFSVector* &values)
+    virtual void GetOutputValues(UInt i, SingleVector* &values)
     { values = (outputInterfaces_[i]->values);}
 
     //! get old output coupling values
-    virtual void GetOutputOldValues(UInt i, CFSVector* &values)
+    virtual void GetOutputOldValues(UInt i, SingleVector* &values)
     { values = (outputInterfaces_[i]->oldValues);}
 
     //! get output coupling values dof

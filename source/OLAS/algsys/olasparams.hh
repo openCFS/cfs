@@ -9,9 +9,9 @@
 
 /**********************************************************/
 
-#include "algsys/olascomm.hh"
+#include "OLAS/algsys/olascomm.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   /**********************************************************/
 
@@ -36,6 +36,6 @@ namespace OLAS {
   };
 
   /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_OLASPARAMS_HH

@@ -18,66 +18,69 @@
 # NOTES
 #
 # AUTHOR
-# Simon Triebenbacher simon@ibtriebenbacher.de (07/2006)
+# Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
 
+#-----------------------------------------------------------------------------
+# If user has set environment variables use them. If not use defaults
+#-----------------------------------------------------------------------------
+SET(CFS_DEPS_ROOT_DUMMY "$ENV{CFS_DEPS_ROOT}")
+IF(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
+  SET(CFS_DEPS_ROOT "${CFS_DEPS_ROOT_DUMMY}" CACHE PATH
+    "Root directory of CFSDEPS.")
+ELSE(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
+  SET(CFS_DEPS_ROOT "${CFS_DEPS_ROOT_DEFAULT}" CACHE PATH
+    "Root directory of CFSDEPS.")
+ENDIF(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
 
-IF(WIN32)
-  SET(WIN32_STYLE_FIND 1)
-ENDIF(WIN32)
-IF(MINGW)
-  SET(WIN32_STYLE_FIND 0)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(MINGW)
-IF(UNIX)
-  SET(UNIX_STYLE_FIND 1)
-ENDIF(UNIX)
+SET(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
+IF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH
+    "Directory for CFSDEPS sources and prebuilt binaries.")
+ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH
+    "Directory for CFSDEPS sources and prebuilt binaries.")
+ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 
-IF(NOT UNIX_STYLE_FIND) 
-  MESSAGE(FATAL_ERROR "FindCFSDEPS.cmake:  Platform unknown/unsupported by FindCFSDEPS.cmake. It's not UNIX compatible.")
-ENDIF(NOT UNIX_STYLE_FIND) 
+#-----------------------------------------------------------------------------
+# Check if the proper files are present in the CFSDEPS directory
+#-----------------------------------------------------------------------------
+IF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
+  MESSAGE(FATAL_ERROR "You obviously do not have a proper CFSDEPS directory. "
+    "Get it from svn+ssh://lse10/software/cfsdeps/trunk and place it in /opt/CFSDEPS. "
+    "You can also just copy the contents of the directory /home/data/libraries/CFSDEPS. "
+    "If you want to use different directories for CFS_DEPS_ROOT and CFS_DEPS_CACHE_DIR, "
+    "please set environment variables with the same name before starting CMake or use "
+    "its -D switch.")
+ENDIF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
 
+#-----------------------------------------------------------------------------
+# Check if cache directory is present
+#-----------------------------------------------------------------------------
+IF(NOT CFS_DEPS_CACHE_DIR)
+  MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. "
+    "This dirctory is used to store downloaded sources and prebuilt "
+    "binaries, which can be reused for other CFS++ builds."
+    "This directory may even be located on a network share.")
+ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
-#---------------------------------------------------------------------------
-# Candidates for root/base directory of CFSDEPS
-#---------------------------------------------------------------------------
-SET (CFSDEPS_POSSIBLE_ROOT_PATHS
-  "$ENV{CFSDEPS_ROOT}"
-  "/home/data/libraries/CFSDEPS/${CFS_ARCH_STR}"
-  "/opt/lse"
-  )
+FILE(TO_CMAKE_PATH
+  "${CFS_DEPS_CACHE_DIR}"
+  CFS_DEPS_CACHE_DIR)
 
-#    MESSAGE("DBG CFSDEPS_POSSIBLE_ROOT_PATHS: ${CFSDEPS_POSSIBLE_ROOT_PATHS}")
+CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
+  "${CFS_TEMP_DIR}/build_vars.pl"
+  @ONLY )
+
 
 #-------------------------------------------------------------------------------
-# Find root/base directory of CFSDEPS among possible directories.
-# Candidates for root/base directory of CFSDEPS
-# should have subdirs include and lib containing include/hdf5.h
+# Build MuParser library
 #-------------------------------------------------------------------------------
-FIND_PATH(CFSDEPS_ROOT_DIR  include/hdf5.h 
-  ${CFSDEPS_POSSIBLE_ROOT_PATHS} 
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH)  
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMuParser.cmake")
 
 #-------------------------------------------------------------------------------
-# Set paths for include and lib directories.
+# Build zlib library
 #-------------------------------------------------------------------------------
-IF(${CFS_ARCH} STREQUAL "X86_64")
-  SET(CFSDEPS_LIBRARY_DIR "${CFSDEPS_ROOT_DIR}/lib64") 
-ELSE(${CFS_ARCH} STREQUAL "X86_64")
-  SET(CFSDEPS_LIBRARY_DIR "${CFSDEPS_ROOT_DIR}/lib") 
-ENDIF(${CFS_ARCH} STREQUAL "X86_64")
-
-SET(CFSDEPS_INCLUDE_DIR "${CFSDEPS_ROOT_DIR}/include")
-
-
-MARK_AS_ADVANCED(
-  CFSDEPS_ROOT_DIR
-  CFSDEPS_INCLUDE_DIR
-  CFSDEPS_LIBRARY_DIR
-  )
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindZlib.cmake")
 
 
 #-------------------------------------------------------------------------------
@@ -101,43 +104,64 @@ IF(USE_GIDPOST)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGiDpost.cmake")
 ENDIF(USE_GIDPOST)
 
-#-------------------------------------------------------------------------------
-# Find ACML library
-#-------------------------------------------------------------------------------
-IF(CFS_SUBARCH STREQUAL "OPTERON")
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindACML.cmake")
-ELSE(CFS_SUBARCH STREQUAL "OPTERON")
+IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
-  # Find mkl library
+  # Find ACML library
   #-----------------------------------------------------------------------------
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-ENDIF(CFS_SUBARCH STREQUAL "OPTERON")
+  IF(CFS_BLAS_LAPACK STREQUAL "ACML")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindACML.cmake")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML")
 
-IF(NOT ACML_FOUND AND NOT MKL_FOUND)
   #-----------------------------------------------------------------------------
-  # If USE_BLAS option is defined find BLAS library
+  # Find GotoBLAS library
   #-----------------------------------------------------------------------------
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBLAS.cmake")
+  IF(CFS_BLAS_LAPACK STREQUAL "GOTO")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGotoBLAS.cmake")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO")
+
+  #-----------------------------------------------------------------------------
+  # Find Intel Math Kernel library
+  #-----------------------------------------------------------------------------
+  IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+
+  #-----------------------------------------------------------------------------
+  # Find Netlib BLAS/LAPACK library
+  #-----------------------------------------------------------------------------
+  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+
+  #-----------------------------------------------------------------------------
+  # Search for Pardiso Library
+  #-----------------------------------------------------------------------------
+  IF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
+  ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
+
+  #-----------------------------------------------------------------------------
+  # If USE_ARPACK option is defined find ARPACK library
+  #-----------------------------------------------------------------------------
+  IF(USE_ARPACK)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindARPACK.cmake")
+  ENDIF(USE_ARPACK)
   
   #-----------------------------------------------------------------------------
-  # If USE_LAPACK option is defined find LAPACK library
+  # Find ILUPACK library
   #-----------------------------------------------------------------------------
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
-ENDIF(NOT ACML_FOUND AND NOT MKL_FOUND)
+  IF(USE_ILUPACK)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindILUPACK.cmake")
+  ENDIF(USE_ILUPACK)
 
-#-------------------------------------------------------------------------------
-# Search for Pardiso Library
-#-------------------------------------------------------------------------------
-IF(NOT MKL_FOUND)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
-ENDIF(NOT MKL_FOUND)
+#  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
+#  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
+#  MESSAGE("PARDISO_LIBRARY ${PARDISO_LIBRARY}")
+  
+ENDIF(USE_BLAS OR USE_LAPACK)
 
-#-------------------------------------------------------------------------------
-# If USE_ARPACK option is defined find ARPACK library
-#-------------------------------------------------------------------------------
-IF(USE_ARPACK)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindARPACK.cmake")
-ENDIF(USE_ARPACK)
 
 #-------------------------------------------------------------------------------
 # Find Boost
@@ -193,165 +217,40 @@ IF(USE_SCPIP)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSCPIP.cmake")    
 ENDIF(USE_SCPIP)
 
+#-----------------------------------------------------------------------------
+# Find ANSYS Customizations
+#-----------------------------------------------------------------------------
+IF(USE_ANSYSRST)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindANSYSCust.cmake")
+ENDIF(USE_ANSYSRST)
 
-#-------------------------------------------------------------------------------
-# Set BLAS_LIBRARY and LAPACK_LIBRARY according to architecture
-#-------------------------------------------------------------------------------
-IF(CFS_ARCH STREQUAL "I386")
-  IF(MKL_FOUND)
-    SET(BLAS_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/32/libmkl_ia32.a" CACHE FILEPATH "MKL Blas.")
-    SET(BLAS_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/32/libmkl_ia32.a" CACHE FILEPATH "MKL Blas.")
+#-----------------------------------------------------------------------------
+# Find CFX Customizations
+#-----------------------------------------------------------------------------
+IF(CPLREADER_CFX)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCFXCust.cmake")
+ENDIF(CPLREADER_CFX)
 
-    SET(LAPACK_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/32/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
-    SET(LAPACK_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/32/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
+#-----------------------------------------------------------------------------
+# Find VTK for OpenFOAM reader
+#-----------------------------------------------------------------------------
+IF(CPLREADER_OPENFOAM)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindVTK.cmake")
+ENDIF(CPLREADER_OPENFOAM)
 
-    SET(PARDISO_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/32/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
-    SET(PARDISO_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/32/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
+#-----------------------------------------------------------------------------
+# Find ParaView postprocessor
+#-----------------------------------------------------------------------------
+IF(BUILD_PARAVIEW)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
+ENDIF(BUILD_PARAVIEW)
 
-    SET(MKL_GUIDE_OPENMP_LIB "${MKL_ROOT_DIR}/lib/32/libguide.a")
+EXECUTE_PROCESS(COMMAND "${PERL}" "${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl"
+  RESULT_VARIABLE retval
+  OUTPUT_VARIABLE CFS_DEPS_MODIFIED)
 
-    MARK_AS_ADVANCED(BLAS_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(BLAS_MKL_OPENMP_LIB)
-    MARK_AS_ADVANCED(LAPACK_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(LAPACK_MKL_OPENMP_LIB)
-    MARK_AS_ADVANCED(PARDISO_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(PARDISO_MKL_OPENMP_LIB)
-    
-    IF(USE_OPENMP)
-      SET(BLAS_LIBRARY "${BLAS_MKL_OPENMP_LIB};${MKL_GUIDE_OPENMP_LIB}")
-      SET(LAPACK_LIBRARY "${LAPACK_MKL_OPENMP_LIB}")
-      SET(PARDISO_LIBRARY "${PARDISO_MKL_OPENMP_LIB}")
-    ELSE(USE_OPENMP)
-      SET(BLAS_LIBRARY "${BLAS_MKL_SERIAL_LIB}")
-      SET(LAPACK_LIBRARY "${LAPACK_MKL_SERIAL_LIB}")
-      SET(PARDISO_LIBRARY "${PARDISO_MKL_SERIAL_LIB}")
-    ENDIF(USE_OPENMP)
+IF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
+  MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
+ENDIF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
 
-    IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-      SET(BLAS_LIBRARY "${BLAS_LIBRARY};-lpthread")
-    ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-
-  ELSE(MKL_FOUND)
-    SET(BLAS_LIBRARY "${BLAS_STANDARD_LIB}")
-    SET(LAPACK_LIBRARY "${LAPACK_STANDARD_LIB}")
-    SET(PARDISO_LIBRARY "${PARDISO_STANDARD_LIB}")
-  ENDIF(MKL_FOUND)
-ENDIF(CFS_ARCH STREQUAL "I386")
-
-IF(CFS_ARCH STREQUAL "X86_64")
-  IF(CFS_SUBARCH STREQUAL "OPTERON")
-    IF(ACML_FOUND)
-      IF(USE_OPENMP)
-	SET(BLAS_LIBRARY "${BLAS_ACML_OPENMP_LIB}")
-	SET(LAPACK_LIBRARY "${LAPACK_ACML_OPENMP_LIB}")
-      ELSE(USE_OPENMP)
-	SET(BLAS_LIBRARY "${BLAS_ACML_SERIAL_LIB}")
-	SET(LAPACK_LIBRARY "${LAPACK_ACML_SERIAL_LIB}")
-      ENDIF(USE_OPENMP)
-    ELSE(ACML_FOUND)
-      SET(BLAS_LIBRARY ${BLAS_STANDARD_LIB})
-      SET(LAPACK_LIBRARY ${LAPACK_STANDARD_LIB})
-    ENDIF(ACML_FOUND)
-
-    SET(PARDISO_LIBRARY "${PARDISO_STANDARD_LIB}")
-
-  ELSE(CFS_SUBARCH STREQUAL "OPTERON")
-    IF(MKL_FOUND)
-      SET(BLAS_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/em64t/libmkl_em64t.a" CACHE FILEPATH "MKL Blas.")
-      SET(BLAS_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/em64t/libmkl_em64t.a" CACHE FILEPATH "MKL Blas.")
-      
-      SET(LAPACK_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/em64t/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
-      SET(LAPACK_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/em64t/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
-      
-      SET(PARDISO_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib_serial/em64t/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
-      SET(PARDISO_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/em64t/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
-
-      SET(MKL_GUIDE_OPENMP_LIB "${MKL_ROOT_DIR}/lib/em64t/libguide.a")
-
-      MARK_AS_ADVANCED(BLAS_MKL_SERIAL_LIB)
-      MARK_AS_ADVANCED(BLAS_MKL_OPENMP_LIB)
-      MARK_AS_ADVANCED(LAPACK_MKL_SERIAL_LIB)
-      MARK_AS_ADVANCED(LAPACK_MKL_OPENMP_LIB)
-      MARK_AS_ADVANCED(PARDISO_MKL_SERIAL_LIB)
-      MARK_AS_ADVANCED(PARDISO_MKL_OPENMP_LIB)
-      
-      IF(USE_OPENMP)
-	SET(BLAS_LIBRARY "${BLAS_MKL_OPENMP_LIB};${MKL_GUIDE_OPENMP_LIB}")
-	SET(LAPACK_LIBRARY "${LAPACK_MKL_OPENMP_LIB}")
-	SET(PARDISO_LIBRARY "${PARDISO_MKL_OPENMP_LIB}")
-      ELSE(USE_OPENMP)
-	SET(BLAS_LIBRARY "${BLAS_MKL_SERIAL_LIB}")
-	SET(LAPACK_LIBRARY "${LAPACK_MKL_SERIAL_LIB}")
-	SET(PARDISO_LIBRARY "${PARDISO_MKL_SERIAL_LIB}")
-      ENDIF(USE_OPENMP)
-      
-      IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-	SET(BLAS_LIBRARY "${BLAS_LIBRARY};-lpthread")
-      ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-    ELSE(MKL_FOUND)
-      SET(BLAS_LIBRARY "${BLAS_STANDARD_LIB}")
-      SET(LAPACK_LIBRARY "${LAPACK_STANDARD_LIB}")
-      SET(PARDISO_LIBRARY "${PARDISO_STANDARD_LIB}")
-    ENDIF(MKL_FOUND)
-  ENDIF(CFS_SUBARCH STREQUAL "OPTERON")
-ENDIF(CFS_ARCH STREQUAL "X86_64")
-
-IF(CFS_ARCH STREQUAL "IA64")
-  IF(MKL_FOUND)
-    SET(BLAS_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_ipf.a" CACHE FILEPATH "MKL Blas.")
-    SET(BLAS_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_ipf.a" CACHE FILEPATH "MKL Blas.")
-
-    SET(LAPACK_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
-    SET(LAPACK_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_lapack.a" CACHE FILEPATH "MKL Lapack.")
-
-    SET(PARDISO_MKL_SERIAL_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
-    SET(PARDISO_MKL_OPENMP_LIB "${MKL_ROOT_DIR}/lib/64/libmkl_solver.a" CACHE FILEPATH "MKL Pardiso.")
-
-    SET(MKL_GUIDE_OPENMP_LIB "${MKL_ROOT_DIR}/lib/64/libguide.a")
-
-    MARK_AS_ADVANCED(BLAS_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(BLAS_MKL_OPENMP_LIB)
-    MARK_AS_ADVANCED(LAPACK_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(LAPACK_MKL_OPENMP_LIB)
-    MARK_AS_ADVANCED(PARDISO_MKL_SERIAL_LIB)
-    MARK_AS_ADVANCED(PARDISO_MKL_OPENMP_LIB)
-
-    IF(USE_OPENMP)
-      SET(BLAS_LIBRARY "${BLAS_MKL_OPENMP_LIB};${MKL_GUIDE_OPENMP_LIB}")
-      SET(LAPACK_LIBRARY "${LAPACK_MKL_OPENMP_LIB}")
-      SET(PARDISO_LIBRARY "${PARDISO_MKL_OPENMP_LIB}")
-    ELSE(USE_OPENMP)
-      SET(BLAS_LIBRARY "${BLAS_MKL_SERIAL_LIB}")
-      SET(LAPACK_LIBRARY "${LAPACK_MKL_SERIAL_LIB}")
-      SET(PARDISO_LIBRARY "${PARDISO_MKL_SERIAL_LIB}")
-    ENDIF(USE_OPENMP)
-
-    IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-      SET(BLAS_LIBRARY "${BLAS_LIBRARY};-lpthread")
-    ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-
-  ELSE(MKL_FOUND)
-    SET(BLAS_LIBRARY "${BLAS_STANDARD_LIB}")
-    SET(LAPACK_LIBRARY "${LAPACK_STANDARD_LIB}")
-    SET(PARDISO_LIBRARY "${PARDISO_STANDARD_LIB}")
-  ENDIF(MKL_FOUND)
-ENDIF(CFS_ARCH STREQUAL "IA64")
-
-
-IF(CFSDEPS_INCLUDE_DIR OR CFSDEPS_CXX_FLAGS)
-  ## found all we need.
-  SET(CFSDEPS_FOUND 1)
-  SET(CFSDEPS_INCLUDE_DIR "${CFSDEPS_INCLUDE_DIR}"
-    CACHE PATH INTERNAL "CFSDEPS_INCLUDE_DIR")
-  
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS}"
-    CACHE INTERNAL "CFSDEPS_CXX_FLAGS")
-  
-  SET(CFSDEPS_LIBRARIES "${CFSDEPS_LIBRARY_DIR}"
-    CACHE INTERNAL "CFSDEPS_LIBRARY_DIR")
-  
-  #    MESSAGE("CFSDEPS_INCLUDE_DIR: ${CFSDEPS_INCLUDE_DIR}")
-  #    MESSAGE("CFSDEPS_LIBRARY_DIR: ${CFSDEPS_LIBRARY_DIR}")
-  #    MESSAGE("DBG found CFSDEPS_FOUND: ${CFSDEPS_FOUND}")
-
-ENDIF(CFSDEPS_INCLUDE_DIR OR CFSDEPS_CXX_FLAGS)
+SET(CFSDEPS_FOUND 1)

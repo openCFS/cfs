@@ -6,6 +6,7 @@
 
 #include "iterSolveStep.hh"
 
+#include "MatVec/basematrix.hh"
 #include "PDE/StdPDE.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
@@ -34,7 +35,7 @@ namespace CoupledField
   void IterSolveStep::SolveStepStatic(const std::string& comment)
   {
   
-    CFSVector *val, *oldVal;
+    SingleVector *val, *oldVal;
     UInt iter = 0;
     UInt counter = 0;
     bool normsReached = false;
@@ -186,7 +187,7 @@ namespace CoupledField
         // Calculate Norms
         for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
             
-          CFSVector *val, *oldVal;
+          SingleVector *val, *oldVal;
           rCouplings_[i]->GetOutputValues(k, val);
           rCouplings_[i]->GetOutputOldValues(k, oldVal);
           rPDE_.norms_[counter] = 
@@ -232,7 +233,6 @@ namespace CoupledField
     
   } 
 
-  
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::SolveStepHarmonic(const std::string& comment)
   {
@@ -308,29 +308,29 @@ namespace CoupledField
   }
 
 
-  Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val,
-                                 CFSVector & oldval)
+  Double IterSolveStep::CalcNorm(NormType normtype, SingleVector & val,
+                                 SingleVector & oldval)
   {
 
     // ATTENTION: Currently only working with Double-values
     // will be changed as soon as dynamic type information
     // is available
 
-    CFSVector * delta = NULL;
+    SingleVector * delta = NULL;
  
 		// initialize or receive compiler warning
     Double norm = 0.0, valNorm2 = 0.0;
   
     // Distinguish complex and real case
-    if ( val.GetEntryType() == EntryType::COMPLEX ) {
+    if ( val.GetEntryType() == BaseMatrix::COMPLEX ) {
 
       delta = new Vector<Complex>;
       delta->Resize( val.GetSize() );
-      delta->Init( Complex(0.0,0.0) );
+      delta->Init( );
     } else {
       delta = new Vector<Double>;
       delta->Resize( val.GetSize() );
-      delta->Init( 0.0);
+      delta->Init();
     }
    
     

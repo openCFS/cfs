@@ -47,7 +47,7 @@
 #endif // TRANSFER_OPERATOR_IMPORT_INTERPOLATION
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -109,8 +109,8 @@ CreateOperators( const CRS_Matrix<T>& matrix,
 #endif
 
 #ifdef DEBUG_TRANSFEROPERATOR
-    if( matrix.GetNcols() != topology.GetSizeh() ) {
-        (*debug) << "ERROR: # columns of the matrix == " << matrix.GetNcols()
+    if( matrix.GetNumCols() != topology.GetSizeh() ) {
+        (*debug) << "ERROR: # columns of the matrix == " << matrix.GetNumCols()
                  << std::endl << "       != size_h in topology   == "
                  << topology.GetSizeh() << std::endl << "must match!"
                  << std::endl;
@@ -190,7 +190,7 @@ CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
-    NewArray( RowLengths, Integer, topology.GetSizeH() );
+    NEWARRAY( RowLengths, Integer, topology.GetSizeH() );
     // get number of interpolated points for each C-point
     nNonZeros = topology.GetNumInterpolatedPoints( RowLengths );
 
@@ -222,7 +222,7 @@ CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
     // this loop we will use it to keep at position [i] the position of
     // the next free entry in row [i] of the restriction matrix
     pRowR[1] = 1;
-    for( Integer i = 1; i <= Restriction_->GetNrows(); i++ ) {
+    for( Integer i = 1; i <= Restriction_->GetNumRows(); i++ ) {
         pRowR[i+1]    = pRowR[i] + RowLengths[i];
         // change the functionality of RowLengths[i] (see above)
         RowLengths[i] = pRowR[i];
@@ -286,7 +286,7 @@ CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DeleteArray( RowLengths );
+    DELETEARRAY( RowLengths );
 
     return true;
 }
@@ -305,7 +305,7 @@ CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
-    NewArray( RowLengths, Integer, topology.GetSizeH() );
+    NEWARRAY( RowLengths, Integer, topology.GetSizeH() );
     // get number of interpolated points for each C-point
     nNonZeros = topology.GetNumInterpolatedPoints( RowLengths );
 
@@ -343,7 +343,7 @@ CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
     // this loop we will use it to keep at position [i] the position of
     // the next free entry in row [i] of the restriction matrix
     pRowR[1] = 1;
-    for( Integer i = 1; i <= Restriction_->GetNrows(); i++ ) {
+    for( Integer i = 1; i <= Restriction_->GetNumRows(); i++ ) {
         pRowR[i+1]    = pRowR[i] + RowLengths[i];
         // change the functionality of RowLengths[i] (see above)
         RowLengths[i] = pRowR[i];
@@ -400,7 +400,7 @@ CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DeleteArray( RowLengths );
+    DELETEARRAY( RowLengths );
     
     return true;
 }
@@ -421,7 +421,7 @@ CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
     //////////////////////////////////////////////
 
     T *v = 0x0;
-    NewArray( v, T, topology.GetSizeh() );
+    NEWARRAY( v, T, topology.GetSizeh() );
 
     const Integer* const pRowA = matrix.GetRowPointer();
     const Integer* const pColA = matrix.GetColPointer();
@@ -448,7 +448,7 @@ CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
-    NewArray( RowLengths, Integer, topology.GetSizeH() );
+    NEWARRAY( RowLengths, Integer, topology.GetSizeH() );
     // get number of interpolated points for each C-point
     nNonZeros = topology.GetNumInterpolatedPoints( RowLengths );
 
@@ -480,7 +480,7 @@ CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
     // this loop we will use it to keep at position [i] the position of
     // the next free entry in row [i] of the restriction matrix
     pRowR[1] = 1;
-    for( Integer i = 1; i <= Restriction_->GetNrows(); i++ ) {
+    for( Integer i = 1; i <= Restriction_->GetNumRows(); i++ ) {
         pRowR[i+1]    = pRowR[i] + RowLengths[i];
         // change the functionality of RowLengths[i] (see above)
         RowLengths[i] = pRowR[i];
@@ -543,8 +543,8 @@ CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DeleteArray( RowLengths );
-    DeleteArray( v );
+    DELETEARRAY( RowLengths );
+    DELETEARRAY( v );
 
     return true;
 }
@@ -584,12 +584,12 @@ void TransferOperator<T>::Prolongate( const Vector<T>& v_H,
     }
     // if there is a prolongation matrix, we want to use it
     if( Prolongation_ != NULL ) {
-        if( Prolongation_->GetNcols() != v_H.GetSize() ||
-            Prolongation_->GetNrows() != v_h.GetSize()    ) {
+        if( Prolongation_->GetNumCols() != v_H.GetSize() ||
+            Prolongation_->GetNumRows() != v_h.GetSize()    ) {
             (*debug) << "ERROR: dimensions of vectors and prolongation "
                         "operator do not match" << std::endl << "       "
-                        "prolongation : " << Prolongation_->GetNrows()
-                     << " x " << Prolongation_->GetNcols() << std::endl
+                        "prolongation : " << Prolongation_->GetNumRows()
+                     << " x " << Prolongation_->GetNumCols() << std::endl
                      << "       v_h         : " << v_h.GetSize() << std::endl
                      << "       v_H         : " << v_H.GetSize() << std::endl;
             Error( "dimensions for prolongation do not match",
@@ -597,12 +597,12 @@ void TransferOperator<T>::Prolongate( const Vector<T>& v_H,
         }
     // without prolongation matrix we use the restriction
     } else {
-        if( Restriction_->GetNcols() != v_h.GetSize() ||
-            Restriction_->GetNrows() != v_H.GetSize()    ) {
+        if( Restriction_->GetNumCols() != v_h.GetSize() ||
+            Restriction_->GetNumRows() != v_H.GetSize()    ) {
             (*debug) << "ERROR: dimensions of vectors and restriction "
                         "operator do not match" << std::endl << "       "
-                        "restriction : " << Restriction_->GetNrows()
-                     << " x " << Restriction_->GetNcols() << std::endl
+                        "restriction : " << Restriction_->GetNumRows()
+                     << " x " << Restriction_->GetNumCols() << std::endl
                      << "       v_h         : " << v_h.GetSize() << std::endl
                      << "       v_H         : " << v_H.GetSize() << std::endl;
             Error( "dimensions for prolongation do not match",
@@ -633,12 +633,12 @@ void TransferOperator<T>::Restrict( const Vector<T>& v_h,
         Error( "cannot restrict vector, restriction operator not"
                " yet built", __FILE__, __LINE__ );
     }
-    if( Restriction_->GetNcols() != v_h.GetSize() ||
-        Restriction_->GetNrows() != v_H.GetSize()    ) {
+    if( Restriction_->GetNumCols() != v_h.GetSize() ||
+        Restriction_->GetNumRows() != v_H.GetSize()    ) {
         (*debug) << "ERROR: dimensions of vectors and restriction "
                     "operator do not match" << std::endl << "       "
-                    "restriction : " << Restriction_->GetNrows()
-                 << " x " << Restriction_->GetNcols() << std::endl
+                    "restriction : " << Restriction_->GetNumRows()
+                 << " x " << Restriction_->GetNumCols() << std::endl
                  << "       v_h         : " << v_h.GetSize() << std::endl
                  << "       v_H         : " << v_H.GetSize() << std::endl;
         Error( "dimensions for restriction do not match",
@@ -709,7 +709,7 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
 
 #ifdef DEBUG_TRANSFEROPERATOR
     // check, if Ah is sorted correctly
-    for( int rr = 1; rr <= a_h.GetNrows(); rr++ ) {
+    for( int rr = 1; rr <= a_h.GetNumRows(); rr++ ) {
         // diagonal entry at leading position?
         if( a_h.GetColPointer()[a_h.GetRowPointer()[rr]] != rr ) {
             (*debug) << "ERROR: TransferOperator<T>::GalerkinProduct:"
@@ -737,7 +737,7 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
         }
     }
     // check, if the restriction matrix is sorted
-    for( int rr = 1; rr <= Restriction_->GetNrows(); rr++ ) {
+    for( int rr = 1; rr <= Restriction_->GetNumRows(); rr++ ) {
         for( int icc = Restriction_->GetRowPointer()[rr]+1;
                  icc < Restriction_->GetRowPointer()[rr+1]; icc++ ) {
             if( Restriction_->GetColPointer()[icc]   <
@@ -780,13 +780,13 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
     }
     // create the array, but zero-based indexed (this matches with
     // the also zero-based return value of graph_VT.GetEdges(..))
-    NewArray( V, T, lengthV );  V++;
+    NEWARRAY( V, T, lengthV );  V++;
 
  ///////////////////////////////////
  // create object for coarse matrix
     // first calc the line lengths of AH (note that we have the graph of AH^T)
     Integer *RowSizeAH = NULL;
-    NewArray( RowSizeAH, Integer, graph_AHT.GetNumNodes() );
+    NEWARRAY( RowSizeAH, Integer, graph_AHT.GetNumNodes() );
     for( Integer i = 1; i <= graph_AHT.GetNumNodes(); i++ )  RowSizeAH[i] = 0;
     for( Integer i = 1; i <= graph_AHT.GetNumNodes(); i++ ) {
         for( Integer ij = 0; ij < graph_AHT.GetNumEdges(i); ij++ ) {
@@ -835,7 +835,7 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
     // 
 
     // the outer loop runs over the columns of a_H
-    for( Integer j = 1; j <= (*a_H)->GetNcols(); j++ ) {
+    for( Integer j = 1; j <= (*a_H)->GetNumCols(); j++ ) {
         // build temporary vector V. Note that we need not store the
         // column indices or the number of its entries, since these
         // data are already contained in graph_VT. Nevertheless we store
@@ -908,8 +908,8 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
         }
     } // j
 
-    DeleteArray( RowSizeAH );
-    V--;  DeleteArray( V );
+    DELETEARRAY( RowSizeAH );
+    V--;  DELETEARRAY( V );
 
 #ifdef PROFILE_TRANSFEROPERATOR
     Double t2 = AMG_GET_REAL_TIME
@@ -951,7 +951,7 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
     // pointer to the splitting and fine-coarse mapping
 
     // create the object for the pre-matrix
-    PreMatrix<T> preAH( Restriction_->GetNrows() );
+    PreMatrix<T> preAH( Restriction_->GetNumRows() );
 
     /////////////////////////////////////////////////
     //              n                              //
@@ -962,7 +962,7 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
     /////////////////////////////////////////////////
 
     // for i in [1,nH]
-    for( Integer iC = 1; iC <= Restriction_->GetNrows(); iC++ ) {
+    for( Integer iC = 1; iC <= Restriction_->GetNumRows(); iC++ ) {
         // for k in [1,nh] (only non-zero entries)
         for( Integer ik = pRowR[iC]; ik < pRowR[iC+1]; ik++ ) {
             const Integer k     = pColR[ik];
@@ -986,7 +986,7 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
     char filename[500];
     sprintf( filename,
              TRANSFER_OPERATOR_GALERKIN_PRODUCT_IMPORT_PREFIX "A_%d",
-             Restriction_->GetNrows() );
+             Restriction_->GetNumRows() );
     std::cout
     << "\033[37m importing Galerkin product from \033[0;1m\""
     << filename<<"\"\033[0m\n";
@@ -1000,10 +1000,10 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
     //       layout flag by calling SetLayoutFlag().
     preAH.SortDiagonal();
     // convert the prematrix into the CRS format
-    *a_H = New CRS_Matrix<T>( Restriction_->GetNrows(),
-                              Restriction_->GetNrows(),
+    *a_H = New CRS_Matrix<T>( Restriction_->GetNumRows(),
+                              Restriction_->GetNumRows(),
                               preAH.GetNumNonzeros()   );
-    for( Integer i = 1, position = 1; i <= Restriction_->GetNrows(); i++ ) {
+    for( Integer i = 1, position = 1; i <= Restriction_->GetNumRows(); i++ ) {
         const Integer rowlength = preAH.GetRowSize( i );
         // copy column indices
         memcpy( (*a_H)->GetColPointer() + position,
@@ -1049,7 +1049,7 @@ void TransferOperator<T>::ImportInterpolation( const Integer size_h,
     // If the interpolation is imported, we create the restriction
     // in any case.
     preR.SetNumRows( size_H );
-    for( Integer i = 1; i <= preP.GetNrows(); i++ ) {
+    for( Integer i = 1; i <= preP.GetNumRows(); i++ ) {
         for( Integer ij = 1; ij <= preP.GetRowSize(i); ij++ ) {
             preR.SetEntry( preP.GetRowCols(i)[ij], i,
                            preP.GetRowData(i)[ij]     );
@@ -1092,7 +1092,7 @@ bool TransferOperator<T>::CheckOperators() const
         // check, whether P is really the transpose of R
         ////////////////////////////////////////////////////
         // inclusion R in P
-        for( Integer i = 1; i <= Restriction_->GetNrows(); i++ ) {
+        for( Integer i = 1; i <= Restriction_->GetNumRows(); i++ ) {
             for( Integer ijR = pRowR[i]; ijR < pRowR[i+1]; ijR++ ) {
                 const Integer j   = pColR[ijR];
                 const T Rij = pDatR[ijR];
@@ -1121,7 +1121,7 @@ bool TransferOperator<T>::CheckOperators() const
             }
         }
         // inclusion P in R
-        for( Integer i = 1; i <= Prolongation_->GetNrows(); i++ ) {
+        for( Integer i = 1; i <= Prolongation_->GetNumRows(); i++ ) {
             for( Integer ijP = pRowP[i]; ijP < pRowP[i+1]; ijP++ ) {
                 const Integer j   = pColP[ijP];
                 const T Pij = pDatP[ijP];
@@ -1152,7 +1152,7 @@ bool TransferOperator<T>::CheckOperators() const
         ////////////////////////////////////////////////////
         if( false &&
             Prolongation_ )  {
-            for( Integer i = 1; i <= Prolongation_->GetNrows(); i++ ) {
+            for( Integer i = 1; i <= Prolongation_->GetNumRows(); i++ ) {
                 if( pRowP[i] < pRowP[i+1] ) {
                     T sum = static_cast<T>(0.0);
                     for( Integer ij = pRowP[i]; ij < pRowP[i+1]; ij++ ) {
@@ -1179,7 +1179,7 @@ bool TransferOperator<T>::CheckOperators() const
 
 #endif // DEBUG_TRANSFEROPERATOR
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR
@@ -1200,8 +1200,8 @@ CreateOperators( const CRS_Matrix<T>& matrix,
 {
 
 #ifdef DEBUG_TRANSFEROPERATOR
-    if( matrix.GetNcols() != topology.GetSizeh() ) {
-        (*debug) << "ERROR: # columns of the matrix == " << matrix.GetNcols()
+    if( matrix.GetNumCols() != topology.GetSizeh() ) {
+        (*debug) << "ERROR: # columns of the matrix == " << matrix.GetNumCols()
                  << std::endl << "       != size_h in topology   == "
                  << topology.GetSizeh() << std::endl << "must match!"
                  << std::endl;
@@ -1214,7 +1214,7 @@ CreateOperators( const CRS_Matrix<T>& matrix,
 
     Integer  nNonZeros  = 0,
             *RowLengths = NULL;
-    NewArray( RowLengths, Integer, matrix.GetNcols() );
+    NEWARRAY( RowLengths, Integer, matrix.GetNumCols() );
     // get number of interpolating points for each point
     nNonZeros = topology.GetNumInterpolatingPoints( RowLengths );
 
@@ -1275,7 +1275,7 @@ CreateOperators( const CRS_Matrix<T>& matrix,
     }
     pRow[topology.GetSizeh()+1] = RowStart;
 
-    DeleteArray( RowLengths );
+    DELETEARRAY( RowLengths );
     
     return true;
 }

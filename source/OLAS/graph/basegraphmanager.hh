@@ -9,9 +9,8 @@
 #include <vector>
 #include <iostream>
 
-#include "utils/utils.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   // forward class declarations
   class BaseGraph;
@@ -232,11 +231,9 @@ namespace OLAS {
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
     virtual void SetElementPos( const PdeIdType identifierPDE1,
-                                Integer *connect1,
-                                Integer elemSize1,
+                                const StdVector<Integer>& eqnNrs1,
                                 const PdeIdType identifierPDE2,
-                                Integer *connect2,
-                                Integer elemSize2,
+                                const StdVector<Integer>& eqnNrs2,
                                 bool setCounterPart ) = 0;
 
     //@}
@@ -263,7 +260,8 @@ namespace OLAS {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    virtual Integer *GetReordering( const PdeIdType identifier ) = 0;
+    virtual void GetReordering( const PdeIdType identifier,
+                                StdVector<UInt>& order ) = 0;
 
     //! Get a specified (sub-)graph
 
@@ -384,8 +382,8 @@ namespace OLAS {
       //         equation numbers for dofs fixed by inhomogeneous Dirichlet
       //         boundary conditions and changing the sign of those fixed by
       //         constraints
-      for ( UInt i = 1; i <= length1; i++ ) {
-        aux = std::abs( (double) connect1[i] );
+      for ( UInt i = 0; i < length1; i++ ) {
+        aux = connect1[i] >= 0 ? connect1[i] : -connect1[i];
         if ( aux <= limit && aux > 0 ) {
           vertexList.push_back( aux + offsetVertexList );
         }
@@ -394,8 +392,8 @@ namespace OLAS {
       // STEP 2: Split the second connect array into two edge lists, one for
       //         the graph and one for the IDBCgraph (which handles the dofs
       //         fixed by inhomogeneous Dirichlet boundary conditions)
-      for ( UInt i = 1; i <= length2; i++ ) {
-        aux = std::abs( (double) connect2[i] );
+      for ( UInt i = 0; i < length2; i++ ) {
+        aux = connect2[i] >= 0 ? connect2[i] : -connect2[i];
         if ( aux > 0 ) {
           if ( aux > limit ) {
             edgeList2.push_back( UInt(aux + offsetEdgeList2) );
@@ -403,7 +401,7 @@ namespace OLAS {
           else {
             edgeList1.push_back( aux + offsetEdgeList1 );
           }
-        }
+        } 
       }
 
 #ifdef DEBUG_BASEGRAPHMANAGER
@@ -414,12 +412,12 @@ namespace OLAS {
                << " offsetEdgeList1  = " << offsetEdgeList1  << '\n'
                << " offsetEdgeList2  = " << offsetEdgeList2  << '\n';
       (*debug) << " connect1 ";
-      for ( UInt i = 1; i <= length1; i++ ) {
+      for ( UInt i = 0; i < length1; i++ ) {
         (*debug) << connect1[i] << " ";
       }
       (*debug) << std::endl;
       (*debug) << " connect2 ";
-      for ( UInt i = 1; i <= length2; i++ ) {
+      for ( UInt i = 0; i < length2; i++ ) {
         (*debug) << connect2[i] << " ";
       }
       (*debug) << std::endl;

@@ -25,7 +25,7 @@
 
 #include "matvec/matvec.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! matrix class with dynamic memory allocation
@@ -52,7 +52,7 @@ class PreMatrix
         //! returns the number of set (i.e. nonzero) entries
         inline Integer GetNumNonzeros() const;        
         //! returns the number of rows
-        inline Integer GetNrows() const;        
+        inline Integer GetNumRows() const;        
         //! returns the number of non-zero entries in the i-th row
         inline Integer GetRowSize( const Integer row ) const;
         /*! \brief returns a pointer to the data of the i-th row
@@ -185,6 +185,6 @@ class PreMatrix
 };    
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // _PREMATRIX_HH_

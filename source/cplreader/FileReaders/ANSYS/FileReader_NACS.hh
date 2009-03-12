@@ -28,15 +28,15 @@ namespace CoupledField
 
     //! Get node groups
     virtual void GetNodeGroups(std::map<std::string,
-                                        std::vector<UInt> >& nodeGroups);
+                               std::vector<UInt> >& nodeGroups);
 
     //! Get element groups
     virtual void GetElemGroups(std::map<std::string,
-                                        std::vector<UInt> >& elemGroups);
+                               std::vector<UInt> >& elemGroups);
 
   protected:
 
-    FEType DegenTypeToNativeType(UInt type, UInt numNodes);
+    Elem::FEType DegenTypeToNativeType(UInt type, UInt numNodes);
     void GetRegionAndGroupNames();
 
     std::vector<std::string> nodeGroupNames_;

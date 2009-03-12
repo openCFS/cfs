@@ -95,10 +95,10 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Double tau_m, tau_mu, tau_c;
 	Double lambda_k, A_elem, h_k;
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
 	if(spaceDim==3)
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 
 	for (UInt i=0; i<nrFncs; i++) {
 		Vx[i]=elemResult_[0][i];
@@ -139,7 +139,7 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -166,7 +166,7 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 
 
@@ -196,11 +196,11 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	}
 
 	// set matrix to desired size and set all elements to zero
-	//elemMat.Resize(nrFncs*N); elemMat.Init(0.0);
-	locElemMat.Resize(nrFncs*N); locElemMat.Init(0.0);
+	//elemMat.Resize(nrFncs*N); elemMat.Init();
+	locElemMat.Resize(nrFncs*N); locElemMat.Init();
 
 //#pragma omp parallel for private(auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1)
-	for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = 0;
 
@@ -209,16 +209,16 @@ void FluidMechPlaneMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 		if(abs(viscStabSign_) > 1e-5)
 			ptelem->GetGlob2ndDerivShFncAtIp(xiDxxDyyDxy, xiDxDy, actIntPt, ptCoord_, ent1.GetElem());
 
-		xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncs); //xiDx.Init();
+		xiDy.Resize(nrFncs); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncs); //xiDz.Init();
 
 		if(abs(viscStabSign_) > 1e-5){
-			xiDxx.Resize(nrFncs); //xiDxx.Init(0.0);
-			xiDyy.Resize(nrFncs); //xiDyy.Init(0.0);
+			xiDxx.Resize(nrFncs); //xiDxx.Init();
+			xiDyy.Resize(nrFncs); //xiDyy.Init();
 			if(spaceDim==3)
-				xiDzz.Resize(nrFncs); //xiDzz.Init(0.0);
+				xiDzz.Resize(nrFncs); //xiDzz.Init();
 		}
 
 		for (UInt i=0; i<nrFncs; i++) {
@@ -306,10 +306,10 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	Double tau_m, tau_mu, tau_c;
 	Double lambda_k, A_elem, h_k;
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
 	if(spaceDim==3)
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 
 	for (UInt i=0; i<nrFncs; i++) {
 		Vx[i]=elemResult_[0][i];
@@ -347,7 +347,7 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -374,7 +374,7 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 
 		VL2AtIp = -1.0;
@@ -403,21 +403,21 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	}
 
 	// set matrix to desired size and set all elements to zero
-	//elemMat.Resize(nrFncs,nrFncs*N); elemMat.Init(0.0);
+	//elemMat.Resize(nrFncs,nrFncs*N); elemMat.Init();
 
-	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init(0.0);
+	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init();
 	if(abs(presStabSign_)>1e-5){
 //#pragma omp parallel for private(auxJ,jacDet,multAux,xiDxDy,xiDx,xiDy,xiDz,xi,D_ea,D_eb,D_ec)
-		for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++){
+		for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++){
 			jacDet = 0;
 
 			ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem());
 			ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet, ent1.GetElem());
 
-			xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-			xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+			xiDx.Resize(nrFncs); //xiDx.Init();
+			xiDy.Resize(nrFncs); //xiDy.Init();
 			if(spaceDim==3)
-				xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+				xiDz.Resize(nrFncs); //xiDz.Init();
 
 			for (UInt i=0; i<nrFncs; i++) {
 				xiDx[i] = xiDxDy[i][0];
@@ -448,7 +448,7 @@ void FluidMechPlaneMassInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		ColResortElementMatrix(elemMat, locElemMat, nrFncs, nrFncs, 1,N);
 	}
 	else
-		elemMat.Resize(nrFncs,nrFncs*N); elemMat.Init(0.0);
+		elemMat.Resize(nrFncs,nrFncs*N); elemMat.Init();
 
 }
 //*********************************************************************************************
@@ -478,10 +478,10 @@ void FluidMechPlaneMixedMassInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Vector<Double> auxJ;
 
 	// set matrix to desired size and set all elements to zero
-	//elemMat.Resize(nrFncs*N); elemMat.Init(0.0);
-	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init(0.0);
+	//elemMat.Resize(nrFncs*N); elemMat.Init();
+	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init();
 
-	for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
 		jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,ent1.GetElem() );
 		ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem());

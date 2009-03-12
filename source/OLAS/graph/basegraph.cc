@@ -28,19 +28,21 @@
 #ifdef USE_METIS
 
 // this namespace serves to hide metis names
-namespace olas_metis{
+namespace CoupledFieldMetis{
   extern "C"{
 #include "metis.h"
   }
 }
 #endif
 
-#include "graph/basegraph.hh"
-#include "graph/sloan.hh"
 
 
-namespace OLAS {
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/sloan.hh"
 
+namespace CoupledField {
+
+  //#define DEBUG_BASEGRAPH
 
   // ***************
   //   Constructor
@@ -50,9 +52,8 @@ namespace OLAS {
 
     // Avoid problems with partially empty graphs
     if ( nRows == 0 || nCols ==0 ) {
-      (*error) << "Refusing to generate a graph for a "
-               << nRows << " x " << nCols << " matrix!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Refusing to generate a graph for a "
+               << nRows << " x " << nCols << " matrix!");
     }
 
     // Initialise attributes
@@ -69,7 +70,7 @@ namespace OLAS {
 
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
-      NewArray( element_, NodeList, numNodes_ );
+      NEWARRAY( element_, NodeList, numNodes_ );
     }
     else {
       element_ = NULL;
@@ -80,8 +81,8 @@ namespace OLAS {
   // *************************
   //   Alternate Constructor
   // *************************
-  BaseGraph::BaseGraph( UInt nRows, UInt nCols, UInt nne, Integer *cs_nodes,
-                        Integer *cs_edges, ReorderingType reorder ) :
+  BaseGraph::BaseGraph( UInt nRows, UInt nCols, UInt nne, UInt *cs_nodes,
+                        UInt *cs_edges, ReorderingType reorder ) :
     amReordered_(false),
     amAssembled_(false) {
 
@@ -106,12 +107,12 @@ namespace OLAS {
   BaseGraph::~BaseGraph() {
 
 
-    DeleteArray( csNodes_ );
-    DeleteArray( csEdges_ );
+    DELETEARRAY( csNodes_ );
+    DELETEARRAY( csEdges_ );
 
     // Note: element_ should already have been deleted
     // in FinaliseAssembly()
-    DeleteArray( element_ );
+    DELETEARRAY( element_ );
 
   }
 
@@ -124,6 +125,7 @@ namespace OLAS {
 
 
     UInt i, j;
+    // UInt i, j, nodeIndex; // TODO: Check if this is still needed
 
 #ifdef DEBUG_BASEGRAPH
     (*debug) << "\n BaseGraph::AddVertexNeighbours:\n";
@@ -179,7 +181,7 @@ namespace OLAS {
   void BaseGraph::CountNNE() {
     UInt i;
     nne_ = 0;
-    for ( i = 1; i <= numNodes_; i++ ) {
+    for ( i = 0; i < numNodes_; i++ ) {
       nne_ += element_[i].size();
     }
   }
@@ -197,7 +199,7 @@ namespace OLAS {
     // uncompressed graph
     if (amAssembled_ == false) {
       os << "Graph is in uncompressed state" << std::endl;
-      for (i=1; i<=numNodes_; i++) {
+      for (i=0; i<numNodes_; i++) {
         os << "line " << i << ", " << element_[i].size() << " entries:\t";
         for (j=element_[i].begin();j!=element_[i].end();j++)
           os << *j << "\t";
@@ -208,10 +210,10 @@ namespace OLAS {
     // compressed graph
     else if (csNodes_){
       os << "Graph is in compressed state" << std::endl;
-      for (i=1;i<=numNodes_;i++) {
+      for (i=0;i<numNodes_;i++) {
         os << "line " << i << ", " << csNodes_[i+1]-csNodes_[i]
            << " entries:\t";
-        for (Integer k=csNodes_[i];k<csNodes_[i+1];k++)
+        for (UInt k=csNodes_[i];k<csNodes_[i+1];k++)
           os << csEdges_[k] << "\t";
         os << std::endl;
       }
@@ -222,7 +224,7 @@ namespace OLAS {
   // ********************
   //   FinaliseAssembly
   // ********************
-  void BaseGraph::FinaliseAssembly( Integer *order ) {
+  void BaseGraph::FinaliseAssembly( StdVector<UInt>* order ) {
 
 
     NodeListIterator iter;
@@ -237,48 +239,51 @@ namespace OLAS {
     if ( newOrder_ != NOREORDERING ) {
 
       if ( order == NULL ) {
-        (*error) << "BaseGraph::FinaliseAssembly: I was told to do a '"
-                 << Enum2String( newOrder_ )
+        std::string tmp;
+        Enum2String( newOrder_, tmp );
+
+        EXCEPTION("BaseGraph::FinaliseAssembly: I was told to do a '"
+                 << tmp
                  << "' reordering, but you provided a NULL pointer "
                  << "for storing the permutation array!"
-                 << "Who you think you are? I'm mortally offended! ;-)";
-        Error( __FILE__, __LINE__ );
+                 << "Who you think you are? I'm mortally offended! ;-)");
       }
 
       // compute new ordering
-      Reorder( newOrder_, order );
+      // in the array "order" we still have vertices starting with one
+      // since we pass it back to eqnMap in CFS
+      Reorder( newOrder_, *order );
+
+ 
 
       // sort graph according to new ordering
       // step 1: re-number every list
       // step 2: re-arrange lists in vector
-      for ( UInt i = 1; i <= numNodes_; i++ ) {
+      for ( UInt i = 0; i < numNodes_; i++ ) {
         for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ){
-          *iter = order[ *iter ];
+          // minus one, since in OLAS the vertices starts with zero
+          *iter = (*order)[ *iter ] - 1;
         }
       }
 
-      NodeList *newElement;
-      NewArray( newElement, NodeList, numNodes_ );
+      StdVector<NodeList> newElement(numNodes_);
 
-      for ( UInt i=1; i<= numNodes_; i++ ) {
-        newElement[ order[i] ] = element_[i];
+      for ( UInt i=0; i< numNodes_; i++ ) {
+        UInt n = (*order)[i];
+        newElement[n-1] = element_[i];
       }
 
-      NodeList *tmpList = NULL;
-      tmpList = element_;
-      element_ = newElement;
-      newElement = NULL;
-      DeleteArray( tmpList );
-
       // Sort the list again (but no need to make unique)
-      for ( UInt i = 1; i <= numNodes_; i++ ) {
+      for ( UInt i=0; i< numNodes_; i++ ) {
+        element_[i] = newElement[i];
         std::sort(element_[i].begin(), element_[i].end());
       }
 
+
 #ifdef DEBUG_BASEGRAPH
       (*debug) << "Reordering: New mapping" << std::endl;
-      for ( UInt i = 1; i <= numNodes_; i++ ) {
-        (*debug) << i << " -> " << order[i] << std::endl;
+      for ( UInt i = 0; i < numNodes_; i++ ) {
+        (*debug) << i+1 << " -> " << order[i] << std::endl;
       }
 #endif
 
@@ -288,7 +293,7 @@ namespace OLAS {
     ConvertToCRS();
     
     // The element vector is no longer required
-    DeleteArray( element_ );
+    DELETEARRAY( element_ );
     element_ = NULL;
 
     // Now the graph object is fully assembled
@@ -304,7 +309,7 @@ namespace OLAS {
 
 
     // Sort lists and remove duplicate entries 
-    for ( UInt i = 1; i <= numNodes_; i++ ) {
+    for ( UInt i = 0; i < numNodes_; i++ ) {
       std::sort( element_[i].begin(), element_[i].end() );
 
       NodeList::iterator new_end = std::unique( element_[i].begin(), 
@@ -326,16 +331,16 @@ namespace OLAS {
 
     // Allocate memory for CRS structure
     if ( csNodes_ == NULL ) {
-      NewArray( csNodes_, Integer, numNodes_ + 1 );
-      NewArray( csEdges_, Integer, nne_ );
+      NEWARRAY( csNodes_, UInt, numNodes_ + 1 );
+      NEWARRAY( csEdges_, UInt, nne_ );
     }
 
-    csNodes_[1] = 1;
+    csNodes_[0] = 0;
 
     NodeListIterator iter;
     // unused variable UInt pos;
 
-    for ( i = 1; i <= numNodes_; i++ ) {
+    for ( i = 0; i < numNodes_; i++ ) {
 
       // set number of edges for current node
       csNodes_[i+1] = csNodes_[i] + element_[i].size();
@@ -350,7 +355,7 @@ namespace OLAS {
 
 #ifdef DEBUG_BASEGRAPH
     (*debug) << "Graph in CRS format: " << std::endl;
-    for ( i = 1; i <= numNodes_; i++ ) {
+    for ( i = 0; i < numNodes_; i++ ) {
       (*debug) << " Row " << i << ": ";
       for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
         (*debug) << csEdges_[j] << " ";
@@ -365,7 +370,7 @@ namespace OLAS {
   // *********************
   //   ConvertToMetisCRS
   // *********************
-  void BaseGraph::ConvertToMetisCRS( Integer **rptr, Integer **cidx ) {
+  void BaseGraph::ConvertToMetisCRS( UInt **rptr, UInt **cidx ) {
 
 
     UInt i, j;
@@ -374,15 +379,18 @@ namespace OLAS {
     CountNNE();
 
     // Allocate memory for CRS structure
-    NewArray( (*rptr), Integer, numNodes_ + 1 );
-    NewArray( (*cidx), Integer, nne_ - numNodes_ );
+    NEWARRAY( (*rptr), UInt, numNodes_ + 1 );
+    NEWARRAY( (*cidx), UInt, nne_ - numNodes_ );
 
-    (*rptr)[1] = 1;
+    // the first col and first row start with index 1 
+    // to be consistent with Metis
+
+    (*rptr)[0] = 1;
 
     NodeListIterator iter;
     UInt pos;
 
-    for ( i = 1; i <= numNodes_; i++ ) {
+    for ( i = 0; i < numNodes_; i++ ) {
 
       // set number of edges for current node (minus self-reference of node)
         
@@ -391,7 +399,7 @@ namespace OLAS {
       for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
         pos = (*iter);
         if ( pos != i ) {
-          (*cidx)[j] = pos;
+          (*cidx)[j-1] = pos+1;
           j++;
         }
       }
@@ -403,9 +411,9 @@ namespace OLAS {
         
 #ifdef DEBUG_BASEGRAPH
     (*debug) << "Graph in CRS format (minus self references): " << std::endl;
-    for ( i = 1; i <= numNodes_; i++ ) {
+    for ( i = 0; i < numNodes_; i++ ) {
       for ( j = (*rptr)[i]; j < (*rptr)[i+1]; j++ ) {
-        (*debug) << (*cidx)[j] << " ";
+        (*debug) << (*cidx)[j-1] << " ";
       }
       (*debug) << std::endl;
     }
@@ -417,36 +425,26 @@ namespace OLAS {
   // *************************
   //   Compute a re-ordering
   // *************************
-  void BaseGraph::Reorder( ReorderingType newOrder, Integer *order ) {
+  void BaseGraph::Reorder( ReorderingType newOrder, StdVector<UInt>& order ) {
 
     UInt i;
     
-    // Test, if there is memory available for storing new ordering
-    if ( order == NULL ) {
-      (*error) << "No memory provided for storing re-ordering";
-      Error( __FILE__, __LINE__ );
-    }
-
     switch( newOrder ) {
 
     case METIS:
       {
 #ifdef USE_METIS
 
-        //if ( !amAssembled_ ) {
-        //  ConvertToCRS();
-        //}
-
         // Generate auxilliary CRS representation of the graph for
         // Metis. We cannot use ConvertToCRS() here, since this
         // contains self-references of the nodes
-        Integer *rptr = NULL;
-        Integer *cidx = NULL;
+        UInt *rptr = NULL;
+        UInt *cidx = NULL;
         ConvertToMetisCRS( &rptr, &cidx );
 
         // Allocate memory for the ordering
         Integer *iorder = NULL;
-        NewArray( iorder, Integer, numNodes_ );
+        NEWARRAY( iorder, Integer, numNodes_ );
 
         // Set parameters for Metis
         Integer options[8];
@@ -465,14 +463,14 @@ namespace OLAS {
 
         // Note that what for metis is the inverse permutation vector,
         // for us is the re-ordering vector
-        olas_metis::METIS_NodeND( &nNodes, rptr + 1, cidx + 1, &numflag,
-                                  options, iorder + 1, order + 1 );
+        CoupledFieldMetis::METIS_NodeND( &nNodes, (Integer*) rptr, (Integer*) cidx, &numflag,
+                                         options, iorder, (Integer*) order.GetPointer() );
 
         // We don't need the inverse mapping and the auxilliary CRS structure
         // anymore, so free the memory
-        DeleteArray( iorder );
-        DeleteArray( rptr );
-        DeleteArray( cidx );
+        DELETEARRAY( iorder );
+        DELETEARRAY( rptr );
+        DELETEARRAY( cidx );
 
         // Generate log message
         (*cla) << " Reordering: Re-ordered graph using Metis" << std::endl;
@@ -493,11 +491,11 @@ namespace OLAS {
                << std::endl;
 
         // Remove form the neighboring nodes the node itself 
+        // ararys are zero based, the equation number however starts by one
         NodeList::iterator it;
-        for ( i = 1; i <= numNodes_; i++ ) {
+        for ( i = 0; i < numNodes_; i++ ) {
 
           for ( it = element_[i].begin(); it != element_[i].end(); it++ ) {
-            
             if ( *it == i ) {
               element_[i].erase(it);
               break;
@@ -506,8 +504,16 @@ namespace OLAS {
 
         }
 
+        // put it to one based
+        for ( i = 0; i < numNodes_; i++ ) {
+          for ( it = element_[i].begin(); it != element_[i].end(); it++ ) {
+            *it += 1;
+          }
+        }
+
         // Create re-ordering object
-        Sloan reorder( element_, order, numNodes_ );
+        //        Sloan reorder( element_, order, numNodes_ );
+        Sloan reorder( element_, order );
         reorder.LabelGraph();
 
         // Use old graph, if bandwidth was better as after reordering
@@ -525,7 +531,7 @@ namespace OLAS {
           (*cla) << " Discarded re-ordering, since new profile >="
                  << " old one\n";
 
-          for ( i = 1; i <= numNodes_; i++ ) {
+          for ( i = 0; i < numNodes_; i++ ) {
             order[i] = i;
           }
         }
@@ -540,8 +546,14 @@ namespace OLAS {
         (*cla) << " -----------------------------------------------"
                << std::endl;
 
+        // put it to zero based
+        for ( i = 0; i < numNodes_; i++ ) {
+          for ( it = element_[i].begin(); it != element_[i].end(); it++ ) {
+            *it -= 1;
+          }
+        }
         // re-add the node itself (with the new number)
-        for ( i = 1; i <= numNodes_; i++ ) {
+        for ( i = 0; i < numNodes_; i++ ) {
           element_[i].push_back( i );
           //element_[i].insert( i );
         }
@@ -553,8 +565,7 @@ namespace OLAS {
       break;
 
     default:
-      (*error) << "Request for unknown re-ordering type";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Request for unknown re-ordering type");
     }
 
     // now we are re-ordered
@@ -570,22 +581,22 @@ namespace OLAS {
 
                 
 #ifdef DEBUG_BASEGRAPH
-    if ( amAssembled_ == false ) {
-      (*error) << "Attempt to obtain information from graph object, "
-               << "before assembly was completed by calling "
-               << "FinaliseAssembly()";
-      Error( __FILE__, __LINE__ );
-    }
+//     if ( amAssembled_ == false ) {
+//       (*error) << "Attempt to obtain information from graph object, "
+//                << "before assembly was completed by calling "
+//                << "FinaliseAssembly()";
+//       Error( __FILE__, __LINE__ );
+//     }
 #endif
                 
     // If both values are still 0, they have not been computed yet,
     // so we do it now (or we have a diagonal matrix, which is unlikely)
     if ( (bwlower_ == 0) && (bwupper_ == 0) ) {
 
-      Integer bwu, bwl; // distance of current edge
+      UInt bwu, bwl; // distance of current edge
 
       // Loop over all nodes, i.e. all matrix rows
-      for ( UInt node = 1; node <= numNodes_; node++ ) {
+      for ( UInt node = 0; node < numNodes_; node++ ) {
 
         // since the row is ordered
         bwl = bwu = 0;
@@ -598,7 +609,7 @@ namespace OLAS {
         // if we do not test for the case that the row contains only one
         // entry.
         if ( csNodes_[node+1] - csNodes_[node] > 1 ) {
-          bwl = (Integer)node - csEdges_[ csNodes_[node] + 1 ];
+          bwl = (UInt)node - csEdges_[ csNodes_[node] + 1 ];
         }
 
         // The row entries are stored with the diagonal entry first,
@@ -607,13 +618,13 @@ namespace OLAS {
         // one in this row. If the last entry in the row is left of the
         // diagonal, or the diagonal itself, bwu will get <= 0, which is
         // okay.
-        bwu = csEdges_[ csNodes_[node+1] - 1 ] - (Integer)node;
+        bwu = csEdges_[ csNodes_[node+1] - 1 ] - (UInt)node;
            
         // Has the lower bandwidth grown?
-        bwlower_ = bwl > (Integer)bwlower_ ? (UInt)bwl : bwlower_;
+        bwlower_ = bwl > (UInt)bwlower_ ? (UInt)bwl : bwlower_;
 
         // Ha the upper bandwidth grown?
-        bwupper_ = bwu > (Integer)bwupper_ ? (UInt)bwu : bwupper_;
+        bwupper_ = bwu > (UInt)bwupper_ ? (UInt)bwu : bwupper_;
       }
     }
 

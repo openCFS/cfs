@@ -11,7 +11,7 @@
 
 #include "multigrid/smoother.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! Gauss-Seidel smoother for AMG
@@ -37,11 +37,11 @@ class GaussSeidel : public Smoother<T>
         // the types are already defined in the base class Smoother,
         // on some systems you don't, even if you use identical compilers
         //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename assocType<T>::T_Mtype T_Mtype;
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
         //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename assocType<T>::T_Vtype T_Vtype;
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename assocType<T>::T_Stype T_Stype;
+        typedef typename AssocType<T>::T_Stype T_Stype;
 
         GaussSeidel();
         ~GaussSeidel();
@@ -113,6 +113,6 @@ class GaussSeidel : public Smoother<T>
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_GAUSSSEIDEL_HH

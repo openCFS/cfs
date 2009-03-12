@@ -8,7 +8,12 @@
 #include <algorithm>
 #include <iterator>
 
-#include "utils/math/croutlu.hh"
+#include "General/environment.hh"
+#include "Utils/tools.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/crs_matrix.hh"
+#include "OLAS/utils/math/croutlu.hh"
 
 // Be commenting in or out the macros below debugging of the CroutLU class
 // can be made more or less fine-grain
@@ -17,7 +22,7 @@
 #define DEBUG_CROUTLU_SOLVE
 #endif
 
-namespace OLAS {
+namespace CoupledField {
 
   // =======================
   //   Default Constructor
@@ -101,21 +106,12 @@ namespace OLAS {
       storingFactors_ = false;
     }
 
-    // Check that we have scalar entries
-    if ( sysMat.GetBlockSize() != 1 ) {
-      (*error) << "CroutLU::Factorise encountered a system matrix with a "
-               << "blocksize of " << sysMat.GetBlockSize()
-               << ". However, we can only handle scalar entries, so far!";
-      Error( __FILE__, __LINE__ );
-    }
-
     // Obtain size information of the matrix
-    sysMatDim_ = sysMat.GetNrows();
-    if ( (int) sysMatDim_ != sysMat.GetNcols() ) {
-      (*error) << "CroutLU::Factorise encountered a "
-               << sysMatDim_ << " x " << sysMat.GetNrows()
-               << "system matrix. Should be square, however.";
-      Error( __FILE__, __LINE__ );
+    sysMatDim_ = sysMat.GetNumRows();
+    if ( sysMatDim_ != sysMat.GetNumCols() ) {
+      EXCEPTION( "CroutLU::Factorise encountered a "
+               << sysMatDim_ << " x " << sysMat.GetNumRows()
+               << "system matrix. Should be square, however." );
     }
     sysMatNNZ_ = sysMat.GetNnz();
 
@@ -157,26 +153,26 @@ namespace OLAS {
     // Initialise the data structure for storing the matrix factor U,
     // we use compressed row storage format for this
     cidxU_.reserve( estNZPerFac + 1 );
-    cidxU_.push_back( 0 );
+    //    cidxU_.push_back( 0 );
 
     rptrU_.reserve( sysMatDim_ + 2 );
     rptrU_.push_back( 0 );
-    rptrU_.push_back( 1 );
+    //rptrU_.push_back( 1 );
 
     entryU_.reserve( estNZPerFac + 1 );
-    entryU_.push_back( 0 );
+    //    entryU_.push_back( 0 );
 
     // Initialise the data structure for storing the matrix factor L,
     // we use compressed column storage format for this
     ridxL_.reserve( estNZPerFac + 1 );
-    ridxL_.push_back( 0 );
+    //ridxL_.push_back( 0 );
 
     cptrL_.reserve( sysMatDim_ + 2 );
     cptrL_.push_back( 0 );
-    cptrL_.push_back( 1 );
+    //cptrL_.push_back( 1 );
 
     entryL_.reserve( estNZPerFac + 1 );
-    entryL_.push_back( 0 );
+    //    entryL_.push_back( 0 );
 
     // The following containers are the two dense vectors we need for our
     // Crout implementation and two vectors that are used to keep track of
@@ -209,27 +205,27 @@ namespace OLAS {
     // vector. L is treated analogously
     std::vector<UInt> *listL;
     std::vector<UInt> *listU;
-    NewArray( listL, std::vector<UInt>, sysMatDim_ );
-    NewArray( listU, std::vector<UInt>, sysMatDim_ );
-    for ( UInt i = 1; i <= sysMatDim_; i++ ) {
+    NEWARRAY( listL, std::vector<UInt>, sysMatDim_ );
+    NEWARRAY( listU, std::vector<UInt>, sysMatDim_ );
+    for ( UInt i = 0; i < sysMatDim_; i++ ) {
       listL[i].reserve( estNZPerRow );
       listU[i].reserve( estNZPerRow );
-      listL[i].push_back( 0 );
-      listU[i].push_back( 0 );
+      listL[i].push_back( -1 );
+      listU[i].push_back( -1 );
     }
 
     // Initialise the index vectors showing where the non-zero entries with
     // column (for U) / row (for L) indices larger then k (see outer most loop
     // below) start. We can update these vectors sucessively during the outer
     // most loop and need not initialise all here now.
-    std::vector<UInt> firstL;
-    std::vector<UInt> firstU;
+    std::vector<Integer> firstL;
+    std::vector<Integer> firstU;
 
     firstL.reserve( sysMatDim_ + 1 );
     firstU.reserve( sysMatDim_ + 1 );
 
-    firstL.push_back( 0 );
-    firstU.push_back( 0 );
+//     firstL.push_back( 0 );
+//     firstU.push_back( 0 );
 
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
@@ -283,7 +279,7 @@ namespace OLAS {
     T aux;
 
     // Outermost loop
-    for ( k = 1; k <= sysMatDim_; k++ ) {
+    for ( k = 0; k < sysMatDim_; k++ ) {
 
 #ifdef DEBUG_CROUTLU_ILU
       (*debug) << "--------------------------------------\n"
@@ -359,15 +355,15 @@ namespace OLAS {
           // Elimination factor l(k,idx) is not zero, so we must treat all
           // non-zero entries in row idx of U, with column indices starting
           // from k. The first one is stored in firstU[idx]
-          lvlParent2 = sysMatDim_ + 1;
+          lvlParent2 = sysMatDim_+1;
           for ( j = firstU[idx]; j < rptrU_[idx+1]; j++ ) {
 
             // Add to entry
             vecZ[ cidxU_[j] ] -= aux * entryU_[j];
-
+ 
             // Correct fill-level
             lvlParent2 = levelU_[j];
-            auxLvl = lvlParent1 + lvlParent2 + 1;
+            auxLvl = lvlParent1 + lvlParent2;
             if ( auxLvl < vecZLevel_[ cidxU_[j] ] ) {
               vecZLevel_[ cidxU_[j] ] = auxLvl;
             }
@@ -446,7 +442,7 @@ namespace OLAS {
 
             // Correct fill-level
             lvlParent2 = levelL_[j];
-            auxLvl = lvlParent1 + lvlParent2 + 1;
+            auxLvl = lvlParent1 + lvlParent2;
             if ( auxLvl < vecWLevel_[ ridxL_[j] ] ) {
               vecWLevel_[ ridxL_[j] ] = auxLvl;
             }
@@ -454,7 +450,7 @@ namespace OLAS {
 
 	  // Check if inded of maximal (i.e. bottom-most) non-zero entry
 	  // in column of L has increased
-      lowestL = ridxL_[j-1] > lowestL ? ridxL_[j-1] : lowestL;
+          lowestL = ridxL_[j-1] > lowestL ? ridxL_[j-1] : lowestL;
 
         }
       }
@@ -521,7 +517,7 @@ namespace OLAS {
           levelU_.push_back( vecZLevel_[ *it ] );
           cidxU_.push_back( *it );
           vecZ[ *it ] = 0.0;
-          vecZLevel_[ *it ] = sysMatDim_ + 1;
+          vecZLevel_[ *it ] = sysMatDim_+1;
           memIndex++;
         }
         rptrU_.push_back( rptrU_[k] + memIndex );
@@ -535,7 +531,7 @@ namespace OLAS {
           levelL_.push_back( vecWLevel_[ *it ] );
           ridxL_.push_back( *it );
           vecW[ *it ] = 0.0;
-          vecWLevel_[ *it ] = sysMatDim_ + 1;
+          vecWLevel_[ *it ] = sysMatDim_+1;
           memIndex++;
         }
         cptrL_.push_back( cptrL_[k] + memIndex );
@@ -565,7 +561,7 @@ namespace OLAS {
       // they are no longer required.
       // listU[k].empty();
 
-      for ( i = 1; i < k; i++ ) {
+      for ( i = 0; i < k; i++ ) {
 
         // std::cerr << " k = " << k << ", i = " << i << std::endl;
 
@@ -581,13 +577,13 @@ namespace OLAS {
           // Not quite sure, whether this is really necessary,
           // but might be for pathological cases. We do not want
           // to advance beyond the first entry in the next row
-          if ( firstU[i] < rptrU_[i+1] ) {
+          if ( firstU[i] < static_cast<Integer>(rptrU_[i+1]) ) {
 
             // advance pointer
             firstU[i]++;
 
             // update incomplete linked list
-            if ( firstU[i] < rptrU_[i+1] ) {
+            if ( firstU[i] < static_cast<Integer>(rptrU_[i+1]) ) {
 	      listU[ cidxU_[ firstU[i] ] ].push_back( i );
 
 #ifdef DEBUG_CROUTLU_ILU
@@ -611,13 +607,13 @@ namespace OLAS {
           // Not quite sure, whether this is really necessary,
           // but might be for pathological cases. We do not want
           // to advance beyond the first entry in the next column
-          if ( firstL[i] < cptrL_[i+1] ) {
+          if ( firstL[i] < static_cast<Integer>(cptrL_[i+1]) ) {
 
             // advance pointer
             firstL[i]++;
 
             // update incomplete linked list
-            if ( firstL[i] < cptrL_[i+1] ) {
+            if ( firstL[i] < static_cast<Integer>(cptrL_[i+1]) ) {
               listL[ ridxL_[ firstL[i] ] ].push_back( i );
 
 #ifdef DEBUG_CROUTLU_ILU
@@ -633,7 +629,7 @@ namespace OLAS {
       // Add pointer to first entry with column index >= (k+1) for
       // the new k-th row of U, also update linked list. We also must
       // allow for the case that there is no such entry in the row.
-      firstU.push_back( 0 );
+      firstU.push_back( -1 );
       for ( i = rptrU_[k]; i < rptrU_[k+1]; i++ ) {
         if ( cidxU_[i] > k ) {
           firstU[k] = i;
@@ -647,14 +643,14 @@ namespace OLAS {
           break;
         }
       }
-      if ( firstU[k] == 0 ) {
-        firstU[k] = rptrU_[k+1];
+      if ( firstU[k] == -1 ) {
+        firstU[k] = rptrU_[k];
       }
 
       // Add pointer to first entry with row index >= (k+1) for the
       // new k-th column of L, also update linked list. We also must
       // allow for the case that there is no such entry in the column.
-      firstL.push_back( 0 );
+      firstL.push_back( -1 );
       for ( i = cptrL_[k]; i < cptrL_[k+1]; i++ ) {
         if ( ridxL_[i] > k ) {
           firstL[k] = i;
@@ -668,9 +664,9 @@ namespace OLAS {
           break;
         }
       }
-      if ( firstL[k] == 0 ) {
-        firstL[k] = cptrL_[k+1];
-      }
+      if ( firstL[k] == -1 ) {
+         firstL[k] = cptrL_[k];
+       }
 
     }
 
@@ -686,7 +682,7 @@ namespace OLAS {
 
     // We replace the diagonal entry of U by its inverse
     // so we don't need a division in the back substitutions
-    for ( i = 1; i <= sysMatDim_; i++ ) {
+    for ( i = 0; i < sysMatDim_; i++ ) {
       entryU_[ rptrU_[i] ] = 1.0 / entryU_[ rptrU_[i] ];
     }
 
@@ -698,8 +694,8 @@ namespace OLAS {
     storingFactors_ = true;
 
     // Free dynamically allocated memory
-    DeleteArray( listL );
-    DeleteArray( listU );
+    DELETEARRAY( listL );
+    DELETEARRAY( listU );
 
   }
 
@@ -723,15 +719,13 @@ namespace OLAS {
     // Check that we have a factorisation at hand and that the
     // dimensions agree
     if ( storingFactors_ == false ) {
-      (*error) << "CroutLU::Solve cannot perform a solve, since there are no "
-               << "factors L and U available. Call Factorise() first";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "CroutLU::Solve cannot perform a solve, since there are no "
+               << "factors L and U available. Call Factorise() first" );
     }
     if ( x.GetSize() != sysMatDim_ || y.GetSize() != sysMatDim_ ) {
-      (*error) << "CroutLU::Solve: The size of the input vectors is "
+      EXCEPTION( "CroutLU::Solve: The size of the input vectors is "
                << "x = " << x.GetSize() << " and y = " << y.GetSize()
-               << ", while matrix is " << sysMatDim_ << " x " << sysMatDim_;
-      Error( __FILE__, __LINE__ );
+               << ", while matrix is " << sysMatDim_ << " x " << sysMatDim_ );
     }
 
     // We solve LU x = y by a pair of forward/backward substitutions
@@ -757,11 +751,11 @@ namespace OLAS {
     (*debug) << "Starting forward substitution" << std::endl;
 #endif
 
-    for ( k = 1; k <= sysMatDim_; k++ ) {
+    for ( k = 0; k < sysMatDim_; k++ ) {
       x[k] = y[k];
     }
 
-    for ( k = 1; k <= sysMatDim_; k++ ) {
+    for ( k = 0; k < sysMatDim_; k++ ) {
       for ( i = cptrL_[k]; i < cptrL_[k+1]; i++ ) {
         x[ ridxL_[i] ] -= entryL_[i] * x[k];
       }
@@ -782,7 +776,10 @@ namespace OLAS {
 #endif
 
     T aux;
-    for ( k = sysMatDim_; k >= 1; k-- ) {
+    k = sysMatDim_;
+    while ( k >0 ) {
+      //    for ( k = sysMatDim_; k >= 1; k-- ) {
+      k--;
       aux = x[k];
       for ( i = rptrU_[k] + 1; i < rptrU_[k+1]; i++ ) {
         aux -= entryU_[i] * x[ cidxU_[i] ];
@@ -811,9 +808,9 @@ namespace OLAS {
 
     // Taunt the C++ concept of data encapsulation and obtain direct
     // access to the internal data structures of the system matrix
-    const Integer *rptrA  = sysMat.GetRowPointer();
-    const Integer *cidxA  = sysMat.GetColPointer();
-    const Integer *diagA  = sysMat.GetDiagPointer();
+    const UInt *rptrA  = sysMat.GetRowPointer();
+    const UInt *cidxA  = sysMat.GetColPointer();
+    const UInt *diagA  = sysMat.GetDiagPointer();
     const T       *entryA = sysMat.GetDataPointer();
 
     // --------------------------------------------------
@@ -829,7 +826,7 @@ namespace OLAS {
         // Copy the off-diagonal entries on the right
         UInt i;
         for ( i = rptrA[k] + 1; i < (UInt)rptrA[k+1]; i++ ) {
-          if ( cidxA[i] >= (int) k ) {
+          if ( cidxA[i] >= k ) {
             vecZ[ cidxA[i] ] = entryA[i];
           }
         }
@@ -847,7 +844,7 @@ namespace OLAS {
         // Copy the off-diagonal entries on the right
         UInt i;
         for ( i = rptrA[k] + 1; i < (UInt)rptrA[k+1]; i++ ) {
-          if ( cidxA[i] >=  (int) k ) {
+          if ( cidxA[i] >=  k ) {
             vecZ[ cidxA[i] ] = entryA[i];
             vecZLevel_[ cidxA[i] ] = 0;
           }
@@ -887,11 +884,10 @@ namespace OLAS {
     // ----------------------------------------------
     else {
 
-      (*error) << "Got a problem in CroutLU<T>::GetRowOfA. "
+      EXCEPTION( "Got a problem in CroutLU<T>::GetRowOfA. "
                << "The system matrix is neither in LEX nor LEX_DIAG_FIRST "
                << "sub-format of CRS storage. Cannot re-order myself, "
-               << "however, due to 'const' qualifier!@$%&";
-      Error( __FILE__, __LINE__ );
+               << "however, due to 'const' qualifier!@$%&" );
 
       // In this case we sort the matrix to LEX and solve
       // problem by recursion
@@ -933,9 +929,9 @@ namespace OLAS {
 
     // Taunt the C++ concept of data encapsulation and obtain a direct access
     // to the internal data structures of the system matrix
-    const Integer *rptrA  = sysMat.GetRowPointer();
-    const Integer *cidxA  = sysMat.GetColPointer();
-    const Integer *diagA  = sysMat.GetDiagPointer();
+    const UInt *rptrA  = sysMat.GetRowPointer();
+    const UInt *cidxA  = sysMat.GetColPointer();
+    const UInt *diagA  = sysMat.GetDiagPointer();
     const T       *entryA = sysMat.GetDataPointer();
 
 
@@ -945,12 +941,12 @@ namespace OLAS {
     if ( sysMat.GetCurrentLayout() == CRS_Matrix<T>::LEX_DIAG_FIRST ) {
 
       // Initialise auxilliary index vector
-      if ( k == 1 ) {
+      if ( k == 0 ) {
         firstUncheckedAij.clear();
         firstUncheckedAij.reserve( sysMatDim_ + 1 );
         firstUncheckedAij.push_back( 0 );
         firstUncheckedAij.push_back( 0 );
-        for ( UInt i = 2; i <= sysMatDim_; i++ ) {
+        for ( UInt i = 1; i < sysMatDim_; i++ ) {
           firstUncheckedAij.push_back( rptrA[i] + 1 );
         }
       }
@@ -961,7 +957,7 @@ namespace OLAS {
         // of the system Matrix into the respective positions in the
         // auxilliary full vector.
         UInt i, cidx;
-        for ( i = k + 1; i <= sysMatDim_; i++ ) {
+        for ( i = k + 1; i < sysMatDim_; i++ ) {
 
           // Avoid "overflow" into next row
           if ( firstUncheckedAij[i] < (UInt)rptrA[i+1] ) {
@@ -989,7 +985,7 @@ namespace OLAS {
         // of the system Matrix into the respective positions in the
         // auxilliary full vector.
         UInt i, cidx;
-        for ( i = k + 1; i <= sysMatDim_; i++ ) {
+        for ( i = k + 1; i < sysMatDim_; i++ ) {
 
           // Avoid "overflow" into next row
           if ( firstUncheckedAij[i] < (UInt)rptrA[i+1] ) {
@@ -1019,12 +1015,12 @@ namespace OLAS {
     else if ( sysMat.GetCurrentLayout() == CRS_Matrix<T>::LEX ) {
 
       // Initialise auxilliary index vector
-      if ( k == 1 ) {
+      if ( k == 0 ) {
         firstUncheckedAij.clear();
         firstUncheckedAij.reserve( sysMatDim_ + 1 );
         firstUncheckedAij.push_back( 0 );
-        firstUncheckedAij.push_back( 0 );
-        for ( UInt i = 2; i <= sysMatDim_; i++ ) {
+        //        firstUncheckedAij.push_back( 0 );
+        for ( UInt i = 1; i < sysMatDim_; i++ ) {
           firstUncheckedAij.push_back( rptrA[i] );
         }
       }
@@ -1035,7 +1031,7 @@ namespace OLAS {
         // of the system Matrix into the respective positions in the
         // auxilliary full vector.
         UInt i, cidx;
-        for ( i = k + 1; i <= sysMatDim_; i++ ) {
+        for ( i = k + 1; i < sysMatDim_; i++ ) {
 
           // No need to search right of diagonal
           if ( firstUncheckedAij[i] < (UInt)diagA[i] ) {
@@ -1045,8 +1041,7 @@ namespace OLAS {
             if ( cidx == k ) {
 
               // This entry must be copied into the full auxilliary vector
-              vecW[ i ] = entryA[ firstUncheckedAij[i] ];
-              
+              vecW[ i ] = entryA[ firstUncheckedAij[i] ];              
 
               // This entry is a candidate for the largest row index
               lowest = i;
@@ -1064,7 +1059,7 @@ namespace OLAS {
         // of the system Matrix into the respective positions in the
         // auxilliary full vector.
         UInt i, cidx;
-        for ( i = k + 1; i <= sysMatDim_; i++ ) {
+        for ( i = k + 1; i < sysMatDim_; i++ ) {
 
           // No need to search right of diagonal
           if ( firstUncheckedAij[i] < (UInt)diagA[i] ) {
@@ -1093,11 +1088,10 @@ namespace OLAS {
     // ----------------------------------------------
     else {
 
-      (*error) << "Got a problem in CroutLU<T>::GetColOfA. "
+      EXCEPTION( "Got a problem in CroutLU<T>::GetColOfA. "
                << "The system matrix is neither in LEX nor LEX_DIAG_FIRST "
                << "sub-format of CRS storage. Cannot re-order myself, "
-               << "however, due to 'const' qualifier!@$%&";
-      Error( __FILE__, __LINE__ );
+               << "however, due to 'const' qualifier!@$%&" );
 
       // In this case we sort the matrix to LEX and solve
       // problem by recursion
@@ -1124,9 +1118,8 @@ namespace OLAS {
     // ********************
     FILE *fp = fopen( fname, "w" );
     if ( fp == NULL ) {
-      (*error) << "CroutLU::ExportILUFactorisation: Cannot open file "
-               << fname << " for writing!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "CroutLU::ExportILUFactorisation: Cannot open file "
+               << fname << " for writing!" );
     }
 
     // *********************
@@ -1134,16 +1127,15 @@ namespace OLAS {
     // *********************
 
     // Matrix Market Format Specification
-    if ( EntryType<T>::M_EntryType == DOUBLE ) {
+    if ( EntryType<T>::M_EntryType == BaseMatrix::DOUBLE ) {
       fprintf( fp, "%%%%MatrixMarket matrix coordinate real general\n" );
     }
-    else if ( EntryType<T>::M_EntryType == COMPLEX ) {
+    else if ( EntryType<T>::M_EntryType == BaseMatrix::COMPLEX ) {
       fprintf( fp, "%%%%MatrixMarket matrix coordinate complex general\n" );
     }
     else {
-      (*error) << "CroutLU::ExportILUFactorisation: Can't identify "
-               << "template parameter";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "CroutLU::ExportILUFactorisation: Can't identify "
+               << "template parameter" );
     }
 
     // Comment
@@ -1167,7 +1159,7 @@ namespace OLAS {
       fprintf( fp, "%6d\t%6d\t", i, i );
 
       // store non-zero entry
-      opType<T>::ExportEntry( 1.0 / entryU_[ rptrU_[i] ], 0, 0, fp );
+      OpType<T>::ExportEntry( 1.0 / entryU_[ rptrU_[i] ], 0, 0, fp );
       fprintf( fp, "\n" );
 
       // loop over remaining entries in this row
@@ -1177,7 +1169,7 @@ namespace OLAS {
         fprintf( fp, "%6d\t%6d\t", i, cidxU_[j] );
 
         // store non-zero entry
-        opType<T>::ExportEntry( entryU_[j], 0, 0, fp );
+        OpType<T>::ExportEntry( entryU_[j], 0, 0, fp );
         fprintf( fp, "\n" );
       }
     }
@@ -1196,7 +1188,7 @@ namespace OLAS {
         fprintf( fp, "%6d\t%6d\t", ridxL_[j], i );
 
         // store non-zero entry
-        opType<T>::ExportEntry( entryL_[j], 0, 0, fp );
+        OpType<T>::ExportEntry( entryL_[j], 0, 0, fp );
         fprintf( fp, "\n" );
       }
     }
@@ -1211,6 +1203,12 @@ namespace OLAS {
       Warning( __FILE__, __LINE__ );
     }
   }
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CroutLU<Double>;
+  template class CroutLU<Complex>;
+#endif
 
 }
 

@@ -7,9 +7,10 @@
 
 #include <map>
 #include <list>
+#include <set>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "General/environment.hh"
 
 namespace CoupledField {

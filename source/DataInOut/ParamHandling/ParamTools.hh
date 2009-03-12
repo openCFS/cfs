@@ -8,7 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
 #include "Utils/tools.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 #include "boost/lexical_cast.hpp"
 
 namespace CoupledField

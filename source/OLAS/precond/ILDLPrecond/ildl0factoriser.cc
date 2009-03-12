@@ -4,11 +4,13 @@
 
 #include <vector>
 
-#include "precond/ILDLPrecond/ildl0factoriser.hh"
-#include "precond/ILDLPrecond/ildlprecond.hh"
+#include "General/exception.hh"
 
+#include "MatVec/scrs_matrix.hh"
 
-namespace OLAS {
+#include "ildl0factoriser.hh"
+
+namespace CoupledField {
 
 
   // ***********************
@@ -18,9 +20,8 @@ namespace OLAS {
   ILDL0Factoriser<T>::ILDL0Factoriser() {
 
 
-    (*error) << "Default constructor of ILDL0Factoriser call was called! "
-             << "This constructor is forbidden!";
-    Error( __FILE__, __LINE__ );
+    EXCEPTION( "Default constructor of ILDL0Factoriser call was called! "
+             << "This constructor is forbidden!" );
 
   }
 
@@ -65,9 +66,9 @@ namespace OLAS {
                                       bool newPattern ) {
 
 
-    this->sysMatDim_ = sysMat.GetNcols();
+    this->sysMatDim_ = sysMat.GetNumCols();
     Integer nnzA = (sysMat.GetNnz() + this->sysMatDim_ ) / 2;
-    std::cout << "Dim=" << this->sysMatDim_ << " NNZ=" << nnzA << std::endl;
+    //std::cout << "Dim=" << this->sysMatDim_ << " NNZ=" << nnzA << std::endl;
 
     dataD.reserve( this->sysMatDim_ + 1 );
     rptrU.reserve( this->sysMatDim_ + 2 );
@@ -103,21 +104,21 @@ namespace OLAS {
     // =================
     //  Get matrix data
     // =================
-    const Integer *cidxA = sysMat.GetColPointer();
-    const Integer *rptrA = sysMat.GetRowPointer();
+    const UInt *cidxA = sysMat.GetColPointer();
+    const UInt *rptrA = sysMat.GetRowPointer();
     const T *dataA = sysMat.GetDataPointer();
 
     //write out the system matrix
     for (UInt k=1; k<=this->sysMatDim_; k++) {
       Integer numCol = rptrA[k+1] - rptrA[k]; 
-      Integer startIdx = rptrA[k];
+      // Integer startIdx = rptrA[k]; TODO: Check if this is still needed
       for (Integer j=0; j<numCol; j++) {
-	std::cout << dataA[startIdx+j] << "  ";
+        //std::cout << dataA[startIdx+j] << "  ";
       }
-      std::cout << std::endl;
+      //std::cout << std::endl;
     }
 
-    std::cout << "Do factorise" << std::endl;
+    //std::cout << "Do factorise" << std::endl;
 
     //help vector; same structure as dataU
     Integer nnzA = (sysMat.GetNnz() + this->sysMatDim_ ) / 2;
@@ -140,59 +141,64 @@ namespace OLAS {
     T val;
     //loop over all rows
     for (UInt j=1; j<=this->sysMatDim_; j++) {
-      std::cout << "EQj: " << j << std::endl;
+      //std::cout << "EQj: " << j << std::endl;
       for (UInt i=1; i<=j-1; i++) {
-	std::cout << "EQi: " << i << std::endl;
-	//get entry positions if row i
-	idxI1 = rptrA[i] + 1;
-	idxI2 = rptrA[i+1] - 1;
-	std::cout << "idxI1=" << idxI1 << " idxI2=" << idxI2 << std::endl;
-	for (Integer l=idxI1; l<=idxI2; l++) {
-	  colIdxRowI[cidxA[l]] = l;
-	}
+        //std::cout << "EQi: " << i << std::endl;
+        //get entry positions if row i
+        idxI1 = rptrA[i] + 1;
+        idxI2 = rptrA[i+1] - 1;
+        //std::cout << "idxI1=" << idxI1 << " idxI2=" << idxI2 << std::endl;
+        for (Integer l=idxI1; l<=idxI2; l++) {
+          colIdxRowI[cidxA[l]] = l;
+        }
 
-	for (UInt pos=1; pos<=this->sysMatDim_; pos++) {
-	  std::cout <<  colIdxRowI[pos] << "  ";
-	}
-	std::cout << std::endl;
+        //for (UInt pos=1; pos<=this->sysMatDim_; pos++) {
+        //  std::cout <<  colIdxRowI[pos] << "  ";
+        //}
+        std::cout << std::endl;
 
-	if (colIdxRowI[j] > 0 ) {
-	  dataH[idxI1-1] = dataA[idxI1];
+        if (colIdxRowI[j] > 0 ) {
+          dataH[idxI1-1] = dataA[idxI1];
 
-	  std::cout << "dataA=" <<  dataA[idxI1] << std::endl;
+          //std::cout << "dataA=" <<  dataA[idxI1] << std::endl;
 
-	  val = 0.0;
-	  for (UInt k=1; k<=i-1; k++) {
-	    //get entry positions if row i
-	    idxK1 = rptrA[k] + 1;
-	    idxK2 = rptrA[k+1] - 1;
-	    std::cout << "idxK1=" << idxK1 << " idxK2=" << idxK2 << std::endl;
+          val = 0.0;
+          for (UInt k=1; k<=i-1; k++) {
+            //get entry positions if row i
+            idxK1 = rptrA[k] + 1;
+            idxK2 = rptrA[k+1] - 1;
+            //std::cout << "idxK1=" << idxK1 << " idxK2=" << idxK2 << std::endl;
 
-	    for (Integer l=idxK1; l<=idxK2; l++) {
-	      colIdxRowK[cidxA[l]] = l;
-	    }
+            for (Integer l=idxK1; l<=idxK2; l++) {
+              colIdxRowK[cidxA[l]] = l;
+            }
 
-	    if (colIdxRowK[i] > 0 && colIdxRowK[j] ) {
-	      val = val + dataU[idxK1]; // * dataH[
-	    }
+            if (colIdxRowK[i] > 0 && colIdxRowK[j] ) {
+              val = val + dataU[idxK1]; // * dataH[
+            }
 
-	    for (Integer l=idxK1; l<=idxK2; l++) {
-	      colIdxRowK[cidxA[l]] = 0;
-	    }
-	  }
+            for (Integer l=idxK1; l<=idxK2; l++) {
+              colIdxRowK[cidxA[l]] = 0;
+            }
+          }
 
-	}
+        }
 
-	for (Integer l=idxI1; l<=idxI2; l++) {
-	  colIdxRowI[cidxA[l]] = 0; 
-	}
+        for (Integer l=idxI1; l<=idxI2; l++) {
+          colIdxRowI[cidxA[l]] = 0; 
+        }
 
       } // for i
     }  // for j
 
 
-    std::cout << "OK, that's it" << std::endl;
+    //std::cout << "OK, that's it" << std::endl;
   }
 
+  // Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILDL0Factoriser<Double>;
+    template class ILDL0Factoriser<Complex>;
+  #endif
 
 }

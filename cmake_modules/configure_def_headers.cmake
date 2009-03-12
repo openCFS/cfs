@@ -1,3 +1,10 @@
+#-----------------------------------------------------------------------------
+# In this CMake file all headers get configured with the current values of
+# the CMake variables. The configured headers will be written to
+# CFS_BUILD_DIR/include. To see what values are written to which file just
+# open one of the *.hh.in header templates.
+#-----------------------------------------------------------------------------
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_type_options.hh.in"
   "${CFS_BINARY_DIR}/include/def_build_type_options.hh")
 
@@ -6,6 +13,22 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
+
+IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+  SET(USE_MKL 1)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+
+IF(CFS_BLAS_LAPACK STREQUAL "ACML")
+  SET(USE_ACML 1)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML")
+
+IF(CFS_BLAS_LAPACK STREQUAL "GOTO")
+  SET(USE_GOTO 1)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO")
+
+IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  SET(USE_NETLIB 1)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
@@ -58,9 +81,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ansysrst.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ansysrst.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_vtk.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_vtk.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_xmlschema.hh.in"
   "${CFS_BINARY_DIR}/include/def_xmlschema.hh"
   @ONLY )
@@ -75,6 +95,10 @@ ENDIF(USE_MPCCI)
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpcci.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mpcci.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
+  "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"
+  @ONLY )
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cplreader.hh.in"
   "${CFS_BINARY_DIR}/include/def_cplreader.hh")

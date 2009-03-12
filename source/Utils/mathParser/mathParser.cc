@@ -6,7 +6,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/interpolate.hh"
 #include "DataInOut/ResultCache.hh"

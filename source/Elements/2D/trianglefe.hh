@@ -25,7 +25,7 @@ namespace CoupledField
     virtual ~TriangleFE();
 
     //! return FE-Type
-    virtual FEType feType() { return ET_UNDEF;}
+    virtual Elem::FEType feType() { return Elem::UNDEF;}
 
     //! Calculates corresponding volume point of neighbouring surface
   

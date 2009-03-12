@@ -7,7 +7,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField
 {
@@ -72,7 +72,7 @@ public:
 
   inline void SetBegin(UInt b)
   {
-    if ((b >= 0) && (b < poly_->GetSize()))
+    if (b < poly_->GetSize())
       start_ = b;
   };
 
@@ -80,7 +80,7 @@ public:
 
   inline void Seek(UInt pos)
   {
-    if ((pos >= 0) && (pos < poly_->GetSize()))
+    if (pos < poly_->GetSize())
       pos_ = pos;
     dirty_ = false;
   };
@@ -209,7 +209,7 @@ public:
 
   inline void SetBegin(UInt b)
   {
-    if ((b >= 0) && (b < poly_->GetSize()))
+    if (b < poly_->GetSize())
       start_ = b;
   };
 
@@ -217,7 +217,7 @@ public:
 
   inline void Seek(UInt pos)
   {
-    if ((pos >= 0) && (pos < poly_->GetSize()))
+    if (pos < poly_->GetSize())
       pos_ = pos;
     dirty_ = false;
   };

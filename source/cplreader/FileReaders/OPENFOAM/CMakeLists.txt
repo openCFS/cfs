@@ -1,11 +1,3 @@
-SET(VTK_ROOT_DIR
-  "/home/lse24/lse/strieben/packages/vtk_freiberg_static_nightly_230508_${CFS_ARCH}"
-  CACHE
-  PATH
-  "Path to VTK 5.3 directory.")
-  
-MARK_AS_ADVANCED(VTK_ROOT_DIR)
-
 INCLUDE_DIRECTORIES(${VTK_ROOT_DIR}/include/vtk-5.3)
 
 SET(CPLREADER_OPENFOAM_SRCS
@@ -23,3 +15,7 @@ TARGET_LINK_LIBRARIES(cplreader_openfoam
   ${VTK_ROOT_DIR}/lib/vtk-5.3/libvtkzlib.a
   dl
 )
+
+SET_SOURCE_FILES_PROPERTIES(${CPLREADER_OPENFOAM_SRCS}
+  PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+

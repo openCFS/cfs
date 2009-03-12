@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <def_cplreader.hh>
+#include "Domain/elem.hh"
 #include "FlowDataTypes.hh"
 
 //! Base class for reading topology and nodal data from results of fluid computations
@@ -40,7 +41,7 @@ namespace CoupledField
 
     //! get topology information from the corresponding topology file
     virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
-                                 std::vector<UInt> & elemTypes) = 0;
+                              std::vector<UInt> & elemTypes) = 0;
 
     //! get elements in a certain region.
     virtual void GetRegionElements(std::vector<UInt> & regionElements,

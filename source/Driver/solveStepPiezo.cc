@@ -17,6 +17,8 @@
 #include "Domain/domain.hh"
 #include "Utils/result.hh"
 
+#include "OLAS/algsys/basesystem.hh"
+
 namespace CoupledField {
 
   SolveStepPiezo::SolveStepPiezo(StdPDE& apde) : StdSolveStep(apde)
@@ -91,10 +93,6 @@ namespace CoupledField {
  
     // get second order derivative of previous time step;
     Vector<Double> solDeriv2Prev = PDE_.getS2();
-
-    Double* actRHS;
-    Double* solPtr;
-
     Vector<Double> coeff;
 
     oldSol.Init(0);
@@ -108,8 +106,7 @@ namespace CoupledField {
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
-      Error( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin",
-             __FILE__, __LINE__ );
+      EXCEPTION( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin" );
     }
     else {
       //compute predictors
@@ -159,18 +156,17 @@ namespace CoupledField {
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       // K*(u_n,Ve_n)
-      algsys_->UpdateRHS(STIFFNESS, solPrev.GetPointer());
+      algsys_->UpdateRHS(STIFFNESS, solPrev);
 
       // M*(d2u_n,Ve_n)
-      algsys_->UpdateRHS(MASS, solDeriv2Prev.GetPointer());
+      algsys_->UpdateRHS(MASS, solDeriv2Prev);
 
       // build in the Dirichlet vales in system mmatrix and rhs
       algsys_->BuildInDirichlet();
 
       //get RHS
       Vector<Double> RHS;
-      algsys_->GetRHSVal( actRHS );
-      StoreAlgsysToVec(RHS, actRHS );       
+      algsys_->GetRHSVal( RHS );
       Double residualNorm = PDE_.GetRhsL2Norm( RHS );
       residualNorm = 0.0;
 
@@ -178,8 +174,7 @@ namespace CoupledField {
       algsys_->SetupPrecond();
     
       algsys_->Solve();
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(newSol, solPtr );
+      algsys_->GetSolutionVal( newSol );
 
       //store solution for (n+1)
       PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
@@ -216,10 +211,9 @@ namespace CoupledField {
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     if ( iterationCounter >= nonLinMaxIter_ ) {
-      (*error) << "Number of nonlinear iterations exceeds limit "
+      EXCEPTION( "Number of nonlinear iterations exceeds limit "
                << "nonLinearMaxIter_ = "
-               << nonLinMaxIter_;
-      Error( __FILE__, __LINE__ );
+               << nonLinMaxIter_ );
     }
 
     //set the current values to the previous for the next time step!
@@ -315,7 +309,7 @@ namespace CoupledField {
       EntityIterator it = actSDList.GetIterator();
       
       //get direction of polarization
-      materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
+      materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,Global::INTEGER);
       comp -= 1;
       UInt iel = 0;
       for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
@@ -340,7 +334,7 @@ namespace CoupledField {
         dE = Ecomp - Eprevious_[pdeElem-1];
         dD = Dval - Dprevious_[pdeElem-1];
         if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
           if (eps < 8.854e-12) {
             eps = 8.854e-12;
           }

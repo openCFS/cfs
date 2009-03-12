@@ -1,0 +1,265 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for variaous IO format and file definitions
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition file formats element data type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Data type for defining the input, output and material formats -->
+  <xsd:complexType name="DT_FileFormats">
+    <xsd:sequence>
+      <xsd:element name="input"  type="DT_InputList" minOccurs="0"
+      maxOccurs="1"/>
+      <xsd:element name="output" type="DT_OutputList" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="materialData" type="DT_MatFile" minOccurs="1"
+      maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic input type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_InputBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+  </xsd:complexType>
+
+  <!-- Definition of input element group -->
+  <xsd:group name="InputGroup">
+    <xsd:choice>
+      <xsd:element name="gmv" type="DT_InputGMV"/>
+      <xsd:element name="mesh" type="DT_InputMesh"/>
+      <xsd:element name="hdf5" type="DT_InputHDF5"/>      
+      <xsd:element name="unv" type="DT_InputUNV"/>
+    </xsd:choice>
+  </xsd:group>
+
+<!--
+
+  <xsd:group name="InputGroup">
+    <xsd:sequence>
+      <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:group>
+-->
+
+ <!-- Data type for specification of output file format -->
+  <xsd:complexType name="DT_InputList">
+    <xsd:sequence>
+      <xsd:group ref="InputGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of MESH data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputMesh">
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of GMV  data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputGMV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of HDF5 data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputHDF5">
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="generateRegionNodes"
+		       type="DT_CFSBool"
+		       default="no"/>
+        <xsd:attribute name="readEntities"
+		       type="xsd:token"
+		       default="all"/>
+        <xsd:attribute name="linearizeEntities"
+          type="xsd:token"
+          default="none"/>
+        <xsd:attribute name="fileName"
+		       type="xsd:token"
+		       default="default"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of UNV  data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputUNV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="mapXTo"
+          type="DT_InputUNVCoordMap"
+          default="x"/>
+        <xsd:attribute name="mapYTo"
+          type="DT_InputUNVCoordMap"
+          default="y"/>
+        <xsd:attribute name="mapZTo"
+          type="DT_InputUNVCoordMap"
+          default="z"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:simpleType name="DT_InputUNVCoordMap">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x"/>
+      <xsd:enumeration value="y"/>
+      <xsd:enumeration value="z"/>
+      <xsd:enumeration value="zero"/>
+    </xsd:restriction>
+  </xsd:simpleType>  
+
+  <xsd:group name="OutputGroup">
+    <xsd:choice>
+      <xsd:element name="gmv" type="DT_OutputGMV"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="unv" type="DT_OutputUNV"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gid" type="DT_OutputGiD"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="hdf5" type="DT_OutputHDF5"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="rst" type="DT_OutputRST"
+		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="text" type="DT_OutputText"
+		   minOccurs="0" maxOccurs="1"/>
+    </xsd:choice>
+  </xsd:group>
+
+  <!-- Data type for specification of output file format -->
+  <xsd:complexType name="DT_OutputList">
+    <xsd:sequence>
+      <xsd:group ref="OutputGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GMV output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGMV">
+    <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="id" type="xsd:token" default="gmv"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for UNV output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputUNV">
+    <xsd:attribute name="id" type="xsd:token" default="unv"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GiD output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGiD">
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="id" type="xsd:token" default="gid"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for HDF5 output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputHDF5">
+    <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="maxChunkSize" type="xsd:positiveInteger" default="100"/>
+    <xsd:attribute name="compressionLevel" default="6">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:nonNegativeInteger">
+          <xsd:maxInclusive value="9"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for ANSYS RST output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputRST">
+    <xsd:attribute name="ansysRevision" default="10.0">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:float">
+          <xsd:minInclusive value="10.0"/>
+          <xsd:maxInclusive value="12.0"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="rst"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for text output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputText">
+    <xsd:attribute name="commentChar" type="DT_Character" default="#"/>
+    <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+    <xsd:attribute name="fileCollect" default="entity">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="entity"/>
+          <xsd:enumeration value="timeFreq"/>
+          <xsd:enumeration value="altogether"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="id" type="xsd:token" default="txt"/>
+  </xsd:complexType>
+  
+  
+  <!-- Data type for name of file containing material data -->
+  <xsd:complexType name="DT_MatFile">
+    <xsd:attribute name="file" type="xsd:string" use="optional"
+      default="mat.xml"/>
+    <xsd:attribute name="format" use="optional" default="xml">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="xml"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+  
+
+
+
+</xsd:schema>
+

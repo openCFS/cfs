@@ -30,12 +30,12 @@ namespace CoupledField {
     
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
 
     //! get a scalar real material parameter
     void GetScalar( Double& param, MaterialType matType, 
-		    DataType dataType ) const;
+		    Global::ComplexPart dataType ) const;
 
   private:
     void ComputeAllViscosities();

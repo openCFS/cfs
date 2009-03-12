@@ -31,18 +31,18 @@ namespace CoupledField
   }
 
   template<Integer dim>
-  void InterfaceAdaptGrid<dim>::Read() 
+  void InterfaceAdaptGrid<dim>::Read()
   {
 #ifdef TRACE
     (*trace)<< "Entering InterfaceAdaptGrid::Read 2D" << std::endl;
 #endif
-  
+
     dim_=ptFileType->ReadDim();
 
     Integer nnodes;
-    ptFileType->ReadMaxnumnodes(nnodes); 
+    ptFileType->ReadMaxnumnodes(nnodes);
 
-    Point<dim> * ptCoord=new Point<dim>[nnodes]; 
+    Point<dim> * ptCoord=new Point<dim>[nnodes];
     ptFileType->ReadCoordinate(ptCoord, nnodes);
 
     // read id of bnd nodes
@@ -50,10 +50,10 @@ namespace CoupledField
     std::vector<Integer> colorBCs;
     ptFileType->ReadBCs_GridRG(idBCs,colorBCs);
 
-    // read vertices  
+    // read vertices
     Integer inode;
     Integer ibnd=0;
-    vertices_.resize(nnodes);  
+    vertices_.resize(nnodes);
     for (inode=0; inode<nnodes; inode++)
       {
         Double pos[3];
@@ -71,7 +71,7 @@ namespace CoupledField
         std::vector<Integer>::const_iterator p;
         ibnd = 0;
         for ( p=idBCs.begin(); p!=idBCs.end(); p++,ibnd++) {
-          if ((inode+1) == *p) {      
+          if ((inode+1) == *p) {
             tmpVt->setBoundaryNode();
             tmpVt->setColorBndNode(colorBCs[ibnd]);
           }
@@ -86,14 +86,14 @@ namespace CoupledField
 
     grid_.buildCoarseMesh(vertices_,elements_);
 
-    // set nodes at level 0 as processed: 
+    // set nodes at level 0 as processed:
     // needed for transient problem in restoring solution
     std::list<grd::Vertex*>* lt = (grid_.getGridLevel(0))->getVertexList();
     std::list<grd::Vertex*>::iterator p;
     for (p = lt->begin(); p != lt->end(); ++p) {
       (*p)->setProcessed();
     }
-  
+
     // set anisotropic refinement. only for Quadrangle
     typedef std::list<grd::Element*>::iterator Eit;
     std::list<grd::Element*>* elt = (grid_.getGridLevel(0))->getQuadrangleList();
@@ -101,9 +101,9 @@ namespace CoupledField
       const double dir[3] = {0.0,1.0,0.0};
       (*p)->setAnisotropy(dir);
     }
-  
-    // transfer this grid to GridCFS, since we do computation only with GridCFS 
- 
+
+    // transfer this grid to GridCFS, since we do computation only with GridCFS
+
     Trans2CFSGrid();
 
 #ifdef TRACE
@@ -119,7 +119,7 @@ namespace CoupledField
 #endif
 
     ptgridcfs_->Refine(grid_);
-  
+
     Integer i;
     for(i=0; i<numLoops-1; i++)
       ptgridcfs_->ReRefine(grid_);
@@ -161,7 +161,7 @@ namespace CoupledField
         for (p=lv->begin(); p!=lv->end(); ++p)
           {
             if ((*p)->isBoundaryNode())
-              { 
+              {
                 bcs[(*p)->getColorBndNode()].push_back((*p)->getId());
               }
           }
@@ -179,8 +179,8 @@ namespace CoupledField
   }
 
   template<Integer dim>
-  void InterfaceAdaptGrid<dim>::GetCoordinateNode(const Integer inode, const Integer level, Point<dim> & rfPoint) 
-  { 
+  void InterfaceAdaptGrid<dim>::GetCoordinateNode(const Integer inode, const Integer level, Point<dim> & rfPoint)
+  {
     ptgridcfs_->GetCoordinateNode(inode,level,rfPoint);
   }
 
@@ -191,7 +191,7 @@ namespace CoupledField
   }
 
   template<Integer dim>
-  void  InterfaceAdaptGrid<dim>::GetCoordNodesElemMat(const Vector<Integer> connect,
+  void  InterfaceAdaptGrid<dim> :: GetCoordNodesElemMat(const Vector<Integer> connect,
                                                         Matrix<Double>& coordMat, const Integer level)
   {
 #ifdef TRACE
@@ -217,7 +217,7 @@ namespace CoupledField
   template<Integer dim>
   Integer InterfaceAdaptGrid<dim>::GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms)
   {
-    return ptgridcfs_->GetMaxnumElem(numlevel,subdoms); 
+    return ptgridcfs_->GetMaxnumElem(numlevel,subdoms);
   }
 
   template<Integer dim>
@@ -279,14 +279,14 @@ namespace CoupledField
     (*trace) << " entering InterfaceAdaptGrid<Dim>::Transform2CFSGrid()" << std::endl;
 #endif
 
-    if (ptgridcfs_) { delete ptgridcfs_;} 
+    if (ptgridcfs_) { delete ptgridcfs_;}
 
     ptgridcfs_=new GridCFS<dim>(ptFileType);
 
     Integer level=alevel;
     if (level==-1) level=grid_.getTopLevel();
     ptgridcfs_->SetDim(dim_);
-    ptgridcfs_->putNodesFromGrid_RG(&grid_,level); 
+    ptgridcfs_->putNodesFromGrid_RG(&grid_,level);
     ptgridcfs_->putElemsFromGrid_RG(&grid_,level);
 
   }
@@ -299,9 +299,9 @@ namespace CoupledField
     (*trace) << " entering InterfaceAdaptGrid<Dim>::ResetToCoarseGrid()" << std::endl;
     #endif
 
-    if (ptgridcfs_) { delete ptgridcfs_;} 
+    if (ptgridcfs_) { delete ptgridcfs_;}
     ptgridcfs_=NULL;
-  
+
     grid_.reset();
 
     Read();
@@ -317,14 +317,14 @@ namespace CoupledField
 #ifdef TRACE
     (*trace) << " entering InterfaceAdaptGrid<Dim>::ProlongSol()" << std::endl;
 #endif
-  
+
     Integer numnodes=grid_.getNoOfVertices();
     sol.Resize(numnodes);
     sol.Init();
     Integer i;
     for (i=0; i < sol_coarse.size(); i++) {
       sol[i]=sol_coarse[i];
-    }    
+    }
 
     Integer level;
     Integer noOfLevels = grid_.getNoOfLevels();
@@ -347,16 +347,16 @@ namespace CoupledField
             Integer id1 = v1->getId();
             Integer id  = v->getId();
 
-          
+
             sol[id-1]=(sol[id0-1]+sol[id1-1])/2; // compute new function values
-            
+
             // set nodes as processed
             v->setProcessed();
-          } // if isProcessed 
+          } // if isProcessed
         } // if isRefined
       } // for edge
     } // for level
- 
+
     // Process the elements
     for (level = 1; level < noOfLevels; level++) {
       elmlt = (grid_.getGridLevel(level))->getQuadrangleList();
@@ -365,9 +365,9 @@ namespace CoupledField
         Integer noOfVertices = elm->getNoOfVertices();
         for (Integer vertex = 0; vertex < noOfVertices; vertex++) {
           grd::Vertex* v = elm->getVertex(vertex);
-          if (!v->isProcessed()) {        
+          if (!v->isProcessed()) {
             grd::Element* parentElm = elm->getParent();
-          
+
             grd::Vertex* v0=elm->getVertex(0);
             grd::Vertex* v1=elm->getVertex(1);
             grd::Vertex* v2=elm->getVertex(2);
@@ -379,12 +379,12 @@ namespace CoupledField
             Double * p3=v3->getPosition();
             Double * pmid=v->getPosition();
 
-            Integer id0=v0->getId();        
+            Integer id0=v0->getId();
             Integer id1=v1->getId();
             Integer id2=v2->getId();
             Integer id3=v3->getId();
             Integer id=v->getId();
-          
+
             Double d0=grd::distance(p0,pmid);
             Double d1=grd::distance(p1,pmid);
             Double d2=grd::distance(p2,pmid);
@@ -398,7 +398,7 @@ namespace CoupledField
         }
       }
     } //for level
-  }  
+  }
 
   //! return vector of element-neighbors for the element with number noOfElem
   template <Integer dim>

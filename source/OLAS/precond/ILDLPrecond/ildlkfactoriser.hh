@@ -5,12 +5,13 @@
 #ifndef ILDLK_FACTORISER_HH
 #define ILDLK_FACTORISER_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "precond/ILDLPrecond/baseildlfactoriser.hh"
+#include <def_expl_templ_inst.hh>
 
 
-namespace OLAS {
+#include "baseildlfactoriser.hh"
+
+
+namespace CoupledField {
 
   //! This class implements an incomplete LDL(k) factorisation
 
@@ -128,5 +129,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ildlkfactoriser.cc"
+#endif
 
 #endif

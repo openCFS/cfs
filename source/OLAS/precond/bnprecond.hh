@@ -5,7 +5,11 @@
 #ifndef OLAS_BNPRECOND_HH
 #define OLAS_BNPRECOND_HH
 
-namespace OLAS {
+#include "MatVec/vector.hh"
+#include "baseprecond.hh"
+
+
+namespace CoupledField {
 
   //! This class is the Barton-Nackman base class for
   //! standard preconditioners. It essentially casts
@@ -15,9 +19,12 @@ namespace OLAS {
 
   public:
 
-    typedef typename assocType<T>::T_Mtype T_Mtype;
-    typedef typename assocType<T>::T_Vtype T_Vtype;
-    typedef typename assocType<T>::T_Stype T_Stype;
+    using BasePrecond::Apply;
+    using BasePrecond::Setup;
+
+    typedef typename AssocType<T>::T_Mtype T_Mtype;
+    typedef typename AssocType<T>::T_Vtype T_Vtype;
+    typedef typename AssocType<T>::T_Stype T_Stype;
 
     typedef T_storage AssocMatrixType;
     typedef Vector<T> AssocVectorType;
@@ -34,7 +41,7 @@ namespace OLAS {
     //! of the preconditioner as subclass
     virtual void Setup( StdMatrix &A ) {
       TRY_CAST {
-	RefCast( A, AssocMatrixType, idA );
+	REFCAST( A, AssocMatrixType, idA );
       	SubClass().Setup(idA);
 	readyToUse_ = true;
       } CATCH_CAST;
@@ -43,18 +50,18 @@ namespace OLAS {
     //! cast the Matrix and Vectors into their full types and
     //! apply the preconditioner if Setup has been called in advance
     virtual void Apply( const StdMatrix &A, 
-			const SparseVector &r, SparseVector &z) const {
+			const SingleVector &r, SingleVector &z) const {
     	
       TRY_CAST {
-	ConstRefCast(A,AssocMatrixType,idA);
-	ConstRefCast(r,AssocVectorType,idr);
-	RefCast(z,AssocVectorType,idz);
+	CONSTREFCAST(A,AssocMatrixType,idA);
+	CONSTREFCAST(r,AssocVectorType,idr);
+	REFCAST(z,AssocVectorType,idz);
 
 	if (readyToUse_) {
 	  SubClass().Apply(idA,idr,idz);
 	}
 	else {
-	  Error( "Preconditioner used before Setup!", __FILE__, __LINE__ );
+	  EXCEPTION( "Preconditioner used before Setup!");
 	}
       } CATCH_CAST;
     }

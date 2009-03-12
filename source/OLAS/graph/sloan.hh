@@ -5,10 +5,9 @@
 #ifndef OLAS_SLOAN_HH
 #define OLAS_SLOAN_HH
 
-#include "utils/utils.hh"
-#include "graph/baseordering.hh"
+#include "OLAS/graph/baseordering.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Sloan ordering algorithm for a matrix graph
 
@@ -27,7 +26,7 @@ namespace OLAS {
     //! \param agraph pointer to original graph of matrix
     //! \param order contains for global node i the mapped index
     //! \param asize  number of elements (nodes) in the graph
-    Sloan( NodeList* agraph, Integer *order, Integer asize );
+    Sloan( NodeList* agraph, StdVector<UInt>& order );
 
     //! Destructor
     virtual ~Sloan();
@@ -93,10 +92,10 @@ namespace OLAS {
     //! The attribute are related to computing and storing the profile
     //! of the matrix graph before and after reordering. Since the size
     //! of the profile (especially the un-reordered one) may easily exceed
-    //! OLAS_UINT_MAX, i.e. the maximal value of the standard unsigned
+    //! UINT_MAX, i.e. the maximal value of the standard unsigned
     //! integral data type in OLAS, we store the profiles as tuples
     //! (Mult, Rem). The actual profile size is then given by
-    //! Mult * OLAS_UINT_MAX + Rem.
+    //! Mult * UINT_MAX + Rem.
     UInt profOldRem_;      //!< profile before renumbering
     UInt profNewRem_;      //!< profile after renumbering
     UInt profOldMult_;     //!< profile before renumbering
