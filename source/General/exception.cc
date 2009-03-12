@@ -53,7 +53,7 @@ namespace CoupledField {
             ostream << " at line " << lineNum_ << std::endl;
         }
         
-        ostream << "\n";
+        //ostream << "\n";
         
         if(reason_)
         {
