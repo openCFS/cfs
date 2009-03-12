@@ -53,8 +53,22 @@ namespace CoupledField {
     // Determine, if binary result file should be written
     isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
 
+    std::string pathsep;
+    std::ostringstream strBuffer;
+    std::string postFileName;
+
+    // concatenate output file name
+    try {
+      fs::create_directory( dirName_ );
+      pathsep = fs::path("/").native_directory_string();
+    } catch (std::exception &ex) {
+      EXCEPTION(ex.what());
+    }
+
+    strBuffer << dirName_ << pathsep << fileName_;
+    postFileName = strBuffer.str();
+
     // Open result file
-    std::string postFileName = fileName_;
     if ( isAscii_ == true) {
       postFileName += ".post.res";
       GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostAscii );
