@@ -8,9 +8,12 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include "utils/defs.hh"
 
-namespace OLAS {
+#include <def_expl_templ_inst.hh>
+
+#include "General/defs.hh"
+
+namespace CoupledField {
 
   //! Base class for the objects for passing information to and from OLAS
   class OLAS_BaseComm {
@@ -189,11 +192,8 @@ namespace OLAS {
   
 }
 
-//! if we are using icc or g++ 3.2 and older we include the
-//! implementation of the template functions in the header
-#ifndef DOXYGEN
-#if(!__GNUC_PREREQ(3,3))
-//#include "algsys/olascomm_impl.hh"
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "olascomm_templ_impl.cc"
 #endif
-#endif
+
 #endif

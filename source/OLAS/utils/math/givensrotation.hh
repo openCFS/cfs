@@ -5,10 +5,10 @@
 #ifndef GIVENS_ROTATION_HH
 #define GIVENS_ROTATION_HH
 
-#include "utils/defs.hh"
-#include "utils/environment.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Class for performing a Givens rotation.
 

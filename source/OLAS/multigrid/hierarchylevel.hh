@@ -14,7 +14,7 @@
 #include "multigrid/smoother.hh"
 #include "multigrid/transfer.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 class BaseSolver;
 
@@ -41,11 +41,11 @@ class HierarchyLevel
     public:
 
         //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename assocType<T>::T_Mtype T_Mtype;
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
         //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename assocType<T>::T_Vtype T_Vtype;
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename assocType<T>::T_Stype T_Stype;
+        typedef typename AssocType<T>::T_Stype T_Stype;
 
         //! class for passing settings through all levels
 
@@ -274,7 +274,7 @@ class HierarchyLevel
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 namespace std {
 template <typename T> std::ostream& operator <<

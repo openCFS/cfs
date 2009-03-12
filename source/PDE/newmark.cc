@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include "OLAS/algsys/basesystem.hh"
+
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "newmark.hh"
@@ -131,21 +133,21 @@ namespace CoupledField
 
     // mass part
     coeffMass = solpred_*a2_;
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) ) {
       Vector<Double> coeffDamp;
         
       coeffDamp = -solderiv1pred_ + solpred_*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+      algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
     //just in case of alpha-Method
     if (abs(alpha_) > 0) {
       Vector<Double> coeffStiff;
       coeffStiff = solpred_*alpha_;
-      algsys_->UpdateRHS(DAMPING,coeffStiff.GetPointer());
+      algsys_->UpdateRHS(DAMPING,coeffStiff);
     }
 
   }
@@ -156,7 +158,7 @@ namespace CoupledField
     Vector<Double> actSolTemp;
     actSolTemp=-actSol;
 
-    algsys_->UpdateRHS(STIFFNESS,actSolTemp.GetPointer());
+    algsys_->UpdateRHS(STIFFNESS,actSolTemp);
   }
 
   void Newmark::UpdateRHS(Vector<Double>& actSol)
@@ -165,7 +167,7 @@ namespace CoupledField
     // mass part
     Vector<Double> coeffMass;
     coeffMass = (solpred_ - actSol) * a2_;
-    algsys_->UpdateRHS(MASS, coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS, coeffMass);
 
 
     // damping part
@@ -173,14 +175,14 @@ namespace CoupledField
       Vector<Double> coeffDamp;
         
       coeffDamp = -solderiv1pred_ + (solpred_-actSol)*a4_;
-      algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+      algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
     //just in case of alpha-Method
     if (abs(alpha_) > 0) {
       Vector<Double> coeffStiff;
       coeffStiff = solpred_*alpha_;
-      algsys_->UpdateRHS(DAMPING,coeffStiff.GetPointer());
+      algsys_->UpdateRHS(DAMPING,coeffStiff);
     }
 
   }
@@ -330,7 +332,7 @@ namespace CoupledField
     Vector<Double> coeffStiff;
     coeffStiff = -solpred_;
 
-    algsys_->UpdateRHS(STIFFNESS, coeffStiff.GetPointer());
+    algsys_->UpdateRHS(STIFFNESS, coeffStiff);
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) )
@@ -338,7 +340,7 @@ namespace CoupledField
         Vector<Double> coeffDamp;
         coeffDamp = -solderiv1pred_;
 
-        algsys_->UpdateRHS(DAMPING, coeffDamp.GetPointer());
+        algsys_->UpdateRHS(DAMPING, coeffDamp);
       }
   }
 

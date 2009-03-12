@@ -24,8 +24,7 @@ namespace CoupledField
 
     //! Copy Constructor
     CouplingMemento( const CouplingMemento & x ) {
-      Error( "CouplingMemento: Copy constructor not implemented",
-             __FILE__, __LINE__ );
+      EXCEPTION( "CouplingMemento: Copy constructor not implemented" );
     }
 
     //! Destructor
@@ -92,7 +91,7 @@ namespace CoupledField
  template<class Archive>
   void CouplingMemento::serialize(Archive & ar, 
                                   const unsigned int version) {
-    //Error( "Not imeplemented at the momement", __FILE__, __LINE__ );
+   EXCEPTION( "Not imeplemented at the momement" );
     
     // For further details, why this is currently not imeplemented,
     // see PDECoupling::CouplingInterface::serialize

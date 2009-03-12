@@ -1,4 +1,8 @@
-SET(ARPACK_SRCS arpackEigensolver.cc arpackMatInterface.cc arpackSolver.cc)
+SET(ARPACK_SRCS
+  arpackEigensolver.cc
+  arpackMatInterface.cc
+  arpackSolver.cc
+  )
 
 ADD_LIBRARY(arpack-olas STATIC ${ARPACK_SRCS})
 
@@ -9,7 +13,9 @@ SET(TARGET_LL
   ${ARPACK_LIBRARY}
   ${LAPACK_LIBRARY}
   ${BLAS_LIBRARY}
-  ${CFS_FORTRAN_LIBS})
+  ${CFS_FORTRAN_LIBS}
+  matvec
+  )
 
 TARGET_LINK_LIBRARIES(arpack-olas ${TARGET_LL})
 

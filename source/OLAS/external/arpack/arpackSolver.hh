@@ -5,11 +5,10 @@
 #ifndef OLAS_ARPACK_SOLVER_HH
 #define OLAS_ARPACK_SOLVER_HH
 
-#include "solver/solver.hh"
 #include "arpackMatInterface.hh"
 #include "arpackFortranInterface.hh"
 
-namespace OLAS {
+namespace CoupledField {
   // =========================================================================
   //   ARPACK SOLVER FOR SYMMETRIC REAL SYSTEMS
   // =========================================================================
@@ -37,7 +36,7 @@ namespace OLAS {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     void Setup( ArpackMatInterface *apInterface, 
-                UInt size, UInt numFreq, Double freqShift, Char* which, bool shiftMode );
+                UInt size, UInt numFreq, Double freqShift, char* which, bool shiftMode );
 
     //! Solve the linear generalized eigenvalue problem
     
@@ -83,7 +82,7 @@ namespace OLAS {
     //! number of wanted eigenvalues
     UInt GetNev();
     //! arpack 'which' setting for eigenvalue calculation
-    Char* GetWhich();
+    char* GetWhich();
     //! tolerance setting
     Double GetShift();
     //! tolerance setting

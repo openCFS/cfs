@@ -4,20 +4,19 @@
 #include <map>
 #include <string>
 
+#include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField 
 {
 
-/** There is a case where for a key we have multiple names. Then the
- * map key is not an enum but an large negative number which cannot be
- * retrieved. Therfore we store the real enum key in the value part.
+/** There is a case where for a key we have multiple names. 
+ * Something about ParamIdent <-> Harmonic analysis types. Therefore we
+ * use the C++ multimap type. 
  * As the Enum is Templated we cannot define this struct inside Enum<T> :( */
-struct EnumTupel
-{
-  std::string string;
-  int key; // this is always an enum key!
-};
+typedef std::pair<int, std::string> EnumTuple;
+typedef std::multimap<int, std::string> EnumMap;
+
 
 /** <p>This class is a convenient wrapper for enums, it is somehow oriented to the 
    * Java Enum type. It can also be used for general text string handling.</p>
@@ -78,7 +77,7 @@ struct EnumTupel
      public:
         Enum()
         {
-          this->name_ = "";
+          name_ = "";
         }
         
         ~Enum()
@@ -88,19 +87,32 @@ struct EnumTupel
         /** optional constructor sets the name of the type */
         Enum(const std::string& name)
         {
-          this->name_ = name;
+          name_ = name;
         }
 
+        Enum( const std::string& name,
+               UInt numTuples,
+               EnumTuple * tuples,
+               bool forceUniqueness = true)
+        {        
+          name_ = name;
+          for(UInt i=0; i<numTuples; i++) {
+        	Add(T(tuples[i].first), tuples[i].second, forceUniqueness);  
+          }
+        }
         
-        std::map<int, EnumTupel> map;
+        EnumMap map;
         
         /** checks if the string has an representation */
         bool IsValid(const std::string& string)
         {
-          std::map<int,EnumTupel>::iterator it;
-          for(it = map.begin(); it != map.end(); it++)
+          EnumMap::iterator it, end;
+          it = map.begin();
+          end = map.end();
+          
+          for( ; it != end; it++)
           {
-            if(it->second.string == string) return true;
+            if(it->second == string) return true;
           } 
 
           return false;
@@ -109,7 +121,7 @@ struct EnumTupel
         /** checks if the integer has an representation */
         bool IsValid(T key)
         {
-          return map.find((int) key) != map.end();
+          return map.find(static_cast<Integer>(key)) != map.end();
         }
         
         /** converts the string representation to the type.
@@ -117,11 +129,14 @@ struct EnumTupel
          * @throw an exception if the string is not found. */
         T Parse(const std::string& value)
         {
-          std::map<int,EnumTupel>::iterator it;
-          for(it = map.begin(); it != map.end(); it++)
+          EnumMap::iterator it, end;
+          it = map.begin();
+          end = map.end();
+            
+          for( ; it != end; it++)
           {
             // Check comments on Tupel!!
-            if(it->second.string == value) return (T) it->second.key;
+            if(it->second == value) return static_cast<T>(it->first);
           }
 
           throw Exception("There is no enum key '" + value + "' for '" + name_ + "'"); 
@@ -130,7 +145,7 @@ struct EnumTupel
         /** Takes the ->ToString() value */
         T Parse(ParamNode* pn)
         {
-          return (T) Parse(pn->AsString());
+          return static_cast<T>(Parse(pn->AsString()));
         }
 
         /** converts the enumeration to the string.
@@ -138,38 +153,29 @@ struct EnumTupel
          * @throw an exception if the type is invalid */
         const std::string& ToString(T type)
         {
-          std::map<int,EnumTupel>::iterator it = map.find((int) type);
-          if(it != map.end()) return it->second.string;
+          EnumMap::iterator it = map.find(static_cast<Integer>(type));
+          if(it != map.end()) return it->second;
 
           EXCEPTION("Invalid key " << type << " for '" + name_ + "'");
         }  
         
-        /** Inserts a key/value pair which has to be by default unique. If one
-         * allows additional values the map get's a generated/hidden key internaly */
+        /** Inserts a key/value pair which has to be by default unique. */
         void Add(T key, const std::string& value, bool force_uniqueness = true)
         {
-          // for further values this is a generated key
-          int working_key = (int) key;
-
-          if(working_key <= -3092006)
-            EXCEPTION("enum values <= -3092006 are reserved");
-          
           // check if we already had the key
           if(IsValid(key))
           {
             if(force_uniqueness)
               EXCEPTION("You want to set " << key << ":'" << value << "' in enum "
                         << name_ << " but key is already used");
-            working_key = -3092006 - map.size();
           }
           
-          // check if we already has the value
+          // check if we already have the value
           if(IsValid(value))
             EXCEPTION("You want to set " << key << ":'" << value << "' in enum "
                       << name_ << " but value is already used");
           
-          map[working_key].key    = (int) key;
-          map[working_key].string = value;
+          map.insert( EnumTuple(key,value) );
         }
 
         

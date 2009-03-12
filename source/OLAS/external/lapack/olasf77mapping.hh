@@ -5,9 +5,9 @@
 #ifndef OLASF77MAPPING_HH
 #define OLASF77MAPPING_HH
 
-#include "matvec/matvec.hh"
+#include <complex>
 
-namespace OLAS {
+namespace CoupledField {
 
   //! \file olasf77mapping.hh
   //! This file contains macros and type definitions required for interfacing

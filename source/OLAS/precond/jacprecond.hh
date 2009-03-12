@@ -9,13 +9,11 @@
 #include <iostream>
 #include <fstream>
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
 
-#include "precond/baseprecond.hh"
-#include "precond/bnprecond.hh"
+#include "baseprecond.hh"
+#include "bnprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   //! Jacobi Preconditioner
 
@@ -30,10 +28,13 @@ namespace OLAS {
 
   public:
 
+    using BNPrecond<JacPrecond<T_storage,T>,T_storage,T>::Apply;
+    using BNPrecond<JacPrecond<T_storage,T>,T_storage,T>::Setup;
+
     ///
-    typedef typename assocType<T>::T_Mtype T_Mtype;
-    typedef typename assocType<T>::T_Vtype T_Vtype;
-    typedef typename assocType<T>::T_Stype T_Stype;
+    typedef typename AssocType<T>::T_Mtype T_Mtype;
+    typedef typename AssocType<T>::T_Vtype T_Vtype;
+    typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor
 
@@ -72,8 +73,7 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     JacPrecond(){
-      Error( "Default constructor of JacPrecond should never be called!",
-	     __FILE__, __LINE__ );
+      EXCEPTION( "Default constructor of JacPrecond should never be called!");
     };
 
     //! Array containing inverses of diagonal entries of system matrix
@@ -85,5 +85,9 @@ namespace OLAS {
   };
 
 }//namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "jacprecond.cc"
+#endif
 
 #endif // OLAS_JACPRECOND_HH

@@ -4,6 +4,7 @@
 #include "General/Enum.hh"
 #include "Domain/elem.hh"
 #include "Utils/tools.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField
 {

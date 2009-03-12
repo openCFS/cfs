@@ -44,13 +44,13 @@ namespace CoupledField {
     std::string pdeNameLong(pdename_);
     pdeNameLong += "-PDE: ";
 
-    Double *solPtr;
     Vector<Double> newSol;
     newSol.Resize( numEqns_ );
 
     UInt iterationCounter=0;
-    Double iterDeltaT=0.1;
-    Double iterDeltaT2=0.01;
+    // TODO: Check if this is still needed
+    // Double iterDeltaT=0.1;
+    // Double iterDeltaT2=0.01;
 
     bool performOneMoreStep;
 
@@ -80,13 +80,12 @@ namespace CoupledField {
       algsys_->SetupSolver( );
       algsys_->Solve();
       
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(newSol, solPtr);
+      algsys_->GetSolutionVal( newSol );
       sol_->SetAlgSysVector(newSol);
 
-      Double* ptsol;
-      UInt length = algsys_->GetSolutionVal(ptsol);
-      PDE_.SaveSolution(ptsol,length);
+      Vector<Double> solHelp;
+      algsys_->GetSolutionVal(solHelp);
+      PDE_.SaveSolution(solHelp.GetPointer(),solHelp.GetSize());
 
       //if(iterationCounter < nonLinMaxIter_ ){
       //  PDE_.PostProcess();
@@ -94,10 +93,8 @@ namespace CoupledField {
       //}
 
       Vector<Double> actRHS;
-      Double *rhsPtr;
       Double RhsL2Norm;
-      algsys_->GetRHSVal( rhsPtr );
-      StoreAlgsysToVec( actRHS, rhsPtr );
+      algsys_->GetRHSVal( actRHS );
       RhsL2Norm = actRHS.NormL2();
       if(RhsL2Norm<1e-9)
         performOneMoreStep=false;

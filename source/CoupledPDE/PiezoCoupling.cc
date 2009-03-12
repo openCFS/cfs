@@ -11,7 +11,13 @@
 #include "DataInOut/WriteInfo.hh"
 
 // integrator (bi-)linear forms
-#include "Forms/forms_header.hh"
+#include "Forms/mechStressStrain.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/elecchargeop.hh"
+#include "Forms/nLinPiezoHyst.hh"
+#include "Forms/nLinPiezoHyst.hh"
+#include "Forms/nLinPiezoHystRHS.hh"
+#include "Forms/nLinPiezoCoupling.hh"
 #include "Forms/linElecInt.hh"
 #include "Forms/FlatShellPiezoInt.hh"
 #include "Utils/ApproxData.hh"
@@ -194,12 +200,12 @@ namespace CoupledField {
     Matrix<TYPE> permittivityMat;
     Matrix<TYPE> elemDisp;
 
-    DataType dataType;
+    Global::ComplexPart dataType;
     if ( hasComplexMatParams_ ) {
-      dataType = COMPLEX;
+      dataType = Global::COMPLEX;
     }
     else {
-      dataType = REAL;
+      dataType = Global::REAL;
     }
 
     // get material from mechanics
@@ -339,12 +345,12 @@ namespace CoupledField {
      std::map<RegionIdType, BaseMaterial*> mechMat =
        pde1_->getPDEMaterialData();
 
-     DataType dataType;
+     Global::ComplexPart dataType;
      if ( hasComplexMatParams_ ) {
-       dataType = COMPLEX;
+       dataType = Global::COMPLEX;
      }
      else {
-       dataType = REAL;
+       dataType = Global::REAL;
      }
 
      // get material from electrostatics
@@ -368,7 +374,7 @@ namespace CoupledField {
          normSign = 1.0;
        }
 
-       normSign *= (double) it.GetSurfElem()->normalSign;
+       normSign *= static_cast<Double>(it.GetSurfElem()->normalSign);
 
        ptSurfElemFE = it.GetSurfElem()->ptElem;
        ptVolElemFE = ptVolElem->ptElem;
@@ -567,7 +573,7 @@ namespace CoupledField {
         // compute actual and old polarization
         elecMatSD->GetScalar( str, P_DIRECTION );
         String2Enum( str, dirP );
-        elecMatSD->GetScalar( Psat, Y_SATURATION, REAL);
+        elecMatSD->GetScalar( Psat, Y_SATURATION, Global::REAL);
 
         nrEl  = it.GetElem()->elemNum;
         actP  = elecMatSD->ComputeScalarHystVal( nrEl, elecField[dirP] );
@@ -709,7 +715,7 @@ namespace CoupledField {
   void PiezoCoupling::DefineIntegrators() {
 
 
-    DataType matType = REAL;
+    Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
@@ -725,7 +731,7 @@ namespace CoupledField {
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
-      matType = REAL;
+      matType = Global::REAL;
 
       //transform the type
       SubTensorType tensorType;
@@ -977,7 +983,7 @@ namespace CoupledField {
 
         // check for complex valued material parameter
         if( hasComplexMatParams_ ) {
-          matType = IMAG;
+          matType = Global::IMAG;
 
           BaseForm * bilinearStiffC =
             new linPiezoCoupling( materials_[actRegion], tensorType);
@@ -1110,15 +1116,15 @@ namespace CoupledField {
 
     // linear c-Tensor
     Matrix<Double> cTensor;
-    matMech->GetTensor( cTensor, MECH_STIFFNESS_TENSOR, REAL, subTensorType );
+    matMech->GetTensor( cTensor, MECH_STIFFNESS_TENSOR, Global::REAL, subTensorType );
 
     // lineaer eps-Tensor at constant strain
     Matrix<Double> epsTensor_cStrain;
-    matElec->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, REAL, subTensorType );
+    matElec->GetTensor( epsTensor_cStrain, ELEC_PERMITTIVITY, Global::REAL, subTensorType );
 
     // linear e-Tensor
     Matrix<Double> eTensor;
-    matCouple->GetTensor( eTensor, PIEZO_TENSOR, REAL, subTensorType );
+    matCouple->GetTensor( eTensor, PIEZO_TENSOR, Global::REAL, subTensorType );
 
     // compute actual and old polarization
     UInt nrEl;
@@ -1127,14 +1133,14 @@ namespace CoupledField {
     Directions dirP;
     matElec->GetScalar( str, P_DIRECTION );
     String2Enum( str, dirP );
-    matElec->GetScalar( Psat, Y_SATURATION, REAL);
+    matElec->GetScalar( Psat, Y_SATURATION, Global::REAL);
 
     nrEl  = ent.GetElem()->elemNum;
     actP  = matElec->ComputeScalarHystVal( nrEl, elecField[dirP] );
     prevP = matElec->GetScalarHystPrevVal( nrEl );
 
     Double Pr; // = 0.26;
-    matElec->GetScalar( Pr, Y_REMANENCE, REAL);
+    matElec->GetScalar( Pr, Y_REMANENCE, Global::REAL);
     Psat += Pr;
 
     // compute d-Tensor
@@ -1162,8 +1168,8 @@ namespace CoupledField {
     Vector<Double> actSirr, prevSirr;
     ComputeSirr( actSirr, subTensorType, dirP, actP, matMech );
     ComputeSirr( prevSirr, subTensorType, dirP, prevP, matMech );
-//     actSirr.Init(0.0);
-//     prevSirr.Init(0.0);
+//     actSirr.Init();
+//     prevSirr.Init();
 
 //     std::cout << "\n actSirr:\n" << actSirr << std::endl;
 //     std::cout << "\n prevSirr:\n" << prevSirr << std::endl;
@@ -1200,7 +1206,7 @@ namespace CoupledField {
         //      std::cout << "diffEpsval: " << diffEpsVal << std::endl;
 
         if (  diffEpsVal < 0.0 )
-          Error("Negative effective permittivity", __FILE__, __LINE__);
+          EXCEPTION("Negative effective permittivity");
         matTensor[dirP][dirP] += diffEpsVal;
 
         Matrix<Double> tmp;
@@ -1263,7 +1269,7 @@ namespace CoupledField {
 
     // compute irreversibel strain
     Vector<Double> coeff;
-    matMech->GetVector( coeff, COEFF_STRAIN_IRREVERSIBLE, REAL);
+    matMech->GetVector( coeff, COEFF_STRAIN_IRREVERSIBLE, Global::REAL);
 
     Double val =  coeff[0] +
       coeff[1] * actP +

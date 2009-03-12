@@ -2,15 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "solver/lusolver.hh"
+#include "MatVec/crs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
 // used in ILUTP_Precond. Going to implement better concept as soon
 // as time permits.
-#include "utils/math/croutlu.cc"
+#include "OLAS/utils/math/croutlu.hh"
 
-namespace OLAS {
+#include "OLAS/solver/lusolver.hh"
+
+namespace CoupledField {
 
 
   // ***************
@@ -41,15 +44,6 @@ namespace OLAS {
 
   }
 
-  // ************************
-  //   Forced Instantiation
-  // ************************
-  template<typename T>
-  void LUSolver<T>::InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    this->ExportILUFactorisation( "dummy.mtx" );
-  }
-
-
   // *********
   //   Setup
   // *********
@@ -58,33 +52,31 @@ namespace OLAS {
 
 
     // Check that we have a StdMatrix
-    if ( sysMat.GetStructureType() != STDMATRIX ) {
-      Error( "LUSolver cannot deal with matrices other than StdMatrix",
-	     __FILE__, __LINE__ );
+    if ( sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "LUSolver cannot deal with matrices other than StdMatrix" );
     }
 
     TRY_CAST {
 
       // Down-cast to StdMatrix
-      RefCast( sysMat, StdMatrix, stdMat );
+      REFCAST( sysMat, StdMatrix, stdMat );
 
       // Now test the storage layout
-      MatrixStorageType sType = stdMat.GetStorageType();
-      if ( sType != SPARSE_NONSYM ) {
-	(*error) << "LUSolver::Setup: The LUSolver requires the system matrix"
-		 << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
-		 << " you supplied is a matrix in " << Enum2String( sType )
-		 << " format.";
-	Error( __FILE__, __LINE__ );
+      BaseMatrix::StorageType sType = stdMat.GetStorageType();
+      if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+        EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
+            << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
+            << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
+            << " format." );
       }
 
       // Down-cast to CRS_Matrix
-      RefCast( sysMat, CRS_Matrix<T>, crsMat );
+      REFCAST( sysMat, CRS_Matrix<T>, crsMat );
 
       // Logging
       (*cla) << " -----------------------------------------------\n"
 	     << " LUSolver: Factorisation of a "
-	     << crsMat.GetNrows() << " x " << crsMat.GetNcols()
+	     << crsMat.GetNumRows() << " x " << crsMat.GetNumCols()
 	     << " matrix (nnz = " << crsMat.GetNnz() << ")"
 	     << std::endl;
 
@@ -125,22 +117,21 @@ namespace OLAS {
     // only have a const reference, but the factorisation requires a
     // non-const reference (currently only for sorting the CRS matrix)
     if ( amFactorised_ == false ) {
-      (*error) << "LUSolver::Solve: No factorisation available. Call Setup() "
-	       << "first!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "LUSolver::Solve: No factorisation available. Call Setup() "
+	       << "first!" );
     }
 
     // Solve the problem
     TRY_CAST {
-      ConstRefCast( rhs, Vector<T>, myRHS );
-      RefCast( sol, Vector<T>, mySol );
+      CONSTREFCAST( rhs, Vector<T>, myRHS );
+      REFCAST( sol, Vector<T>, mySol );
 
       // Logging
       bool logging = myParams_->GetBoolValue( "LUSOLVER_logging" );
       if ( logging ) {
         (*cla) << " -----------------------------------------------\n"
                << " LUSolver: Solving a problem with "
-               << sysMat.GetNcols() << " unknowns" << std::endl;
+               << sysMat.GetNumCols() << " unknowns" << std::endl;
       }
 
       // Actual solve is done by CroutLU class
@@ -219,14 +210,15 @@ namespace OLAS {
       Integer aux;
 
       // Get hold of index arrays
-      const Integer *cidx = crsMat.GetColPointer();
-      const Integer *rptr = crsMat.GetRowPointer();
-      const Integer *diag = crsMat.GetDiagPointer();
+      const UInt *cidx = crsMat.GetColPointer();
+      const UInt *rptr = crsMat.GetRowPointer();
+      // TODO: Check if this is still needed      
+      // const UInt *diag = crsMat.GetDiagPointer();
 
       // Implementation for LEX_DIAG_FIRST sub-format
       if ( crsMat.GetCurrentLayout() == CRS_Matrix<T>::LEX_DIAG_FIRST ) {
 
-        for ( i = 1; i <= crsMat.GetNrows(); i++ ) {
+        for ( i = 0; i < crsMat.GetNumRows(); i++ ) {
 
           // Determine bandwidth of this row
           aux = cidx[ rptr[i+1] - 1 ] - i;
@@ -243,7 +235,7 @@ namespace OLAS {
       // Implementation for LEX sub-format
       else if ( crsMat.GetCurrentLayout() == CRS_Matrix<T>::LEX ) {
 
-        for ( i = 1; i <= crsMat.GetNrows(); i++ ) {
+        for ( i = 0; i < crsMat.GetNumRows(); i++ ) {
 
           // Determine bandwidth of this row
           aux = cidx[rptr[i]] - i;
@@ -259,8 +251,7 @@ namespace OLAS {
 
       // Should not happen
       else {
-        (*error) << "Reached a branch that should not exist!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Reached a branch that should not exist!" );
       }
 
       // For the L factor we do not need to store the ones
@@ -270,17 +261,22 @@ namespace OLAS {
   
       // For the U factor we need the diagonal entries
       maxRowLengthU = bwGlobal + 1;
-      maxEntriesU = profile + crsMat.GetNrows();
+      maxEntriesU = profile + crsMat.GetNumRows();
     }
 
     // ====================================
     //  Problem not structurally symmetric
     // ====================================
     else {
-      Error( "Missing implementation! Go find a code monkey ;-)",
-	     __FILE__, __LINE__ );
+      EXCEPTION( "Missing implementation! Go find a code monkey ;-)" );
     }
 
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class LUSolver<Double>;
+  template class LUSolver<Complex>;
+#endif
+  
 }

@@ -5,14 +5,18 @@
 #include <cmath>
 #include <vector>
 
-#include "precond/ILDLPrecond/ildlcnfactoriser.hh"
-#include "precond/ILDLPrecond/ildlprecond.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "MatVec/opdefs.hh"
+#include "OLAS/algsys/olasparams.hh"
+
+#include "OLAS/precond/ILDLPrecond/ildlcnfactoriser.hh"
+#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 
 // Used during development phase
 // #define DEBUG_ILDLCNFACTORISER
 #define ILDLCNFACTORISER_SAFEGUARD
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
@@ -20,12 +24,8 @@ namespace OLAS {
   // ***********************
   template <class T>
   ILDLCNFactoriser<T>::ILDLCNFactoriser() {
-
-
-    (*error) << "Default constructor of ILDLCNFactoriser call was called! "
-             << "This constructor is forbidden!";
-    Error( __FILE__, __LINE__ );
-
+    EXCEPTION( "Default constructor of ILDLCNFactoriser call was called! "
+             << "This constructor is forbidden!" );
   }
 
 
@@ -84,16 +84,15 @@ namespace OLAS {
     // ======================
 
     // Problem size
-    this->sysMatDim_ = sysMat.GetNcols();
+    this->sysMatDim_ = sysMat.GetNumCols();
 
     // Dropping threshold
     Double tau = this->myParams_->GetDoubleValue( "ILDLPRECOND_tau" );
     // if ( tau <= 0.0 || tau > 1.0 ) {
     if ( tau < 0.0 ) {
-      (*error) << "ILDLCNFactoriser::Factorise: Dropping threshold tau = "
-               << tau << ", but should be in (0,1]. Check setting of "
-               << "ILDLPRECOND_tau parameter";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILDLCNFactoriser::Factorise: Dropping threshold tau = "
+          << tau << ", but should be in (0,1]. Check setting of "
+          << "ILDLPRECOND_tau parameter" );
     }
  
     // Shall we be verbose?
@@ -162,8 +161,8 @@ namespace OLAS {
     // =================
     //  Get matrix data
     // =================
-    const Integer *cidxA = sysMat.GetColPointer();
-    const Integer *rptrA = sysMat.GetRowPointer();
+    const UInt *cidxA = sysMat.GetColPointer();
+    const UInt *rptrA = sysMat.GetRowPointer();
     const T *dataA = sysMat.GetDataPointer();
 
 
@@ -183,14 +182,14 @@ namespace OLAS {
     // Allocate memory for linked lists
     // (in future releases these will be attributes and (de-)allocation
     // will be handled by constructor/destructor)
-    UInt* scanList_   = New UInt[this->sysMatDim_ + 1];
-    UInt* activeList_ = New UInt[this->sysMatDim_ + 1];
-    UInt* listIDX_    = New UInt[this->sysMatDim_ + 1];
-    T*    listVAL_    = New   T [this->sysMatDim_ + 1];
-    AssertMem( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
+    UInt* scanList_   = new UInt[this->sysMatDim_ + 1];
+    UInt* activeList_ = new UInt[this->sysMatDim_ + 1];
+    UInt* listIDX_    = new UInt[this->sysMatDim_ + 1];
+    T*    listVAL_    = new   T [this->sysMatDim_ + 1];
+    ASSERTMEM( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
 
     // Generate markers for linked lists
     UInt scanListElem, scanListPrevElem;
@@ -216,8 +215,8 @@ namespace OLAS {
     // =============================
     T *xi, *nu;
     T xiPlus, xiMinus;
-    NewArray( xi, T, this->sysMatDim_ );
-    NewArray( nu, T, this->sysMatDim_ );
+    NEWARRAY( xi, T, this->sysMatDim_ );
+    NEWARRAY( nu, T, this->sysMatDim_ );
     xi[1] = 1.0;
     for ( i = 1; i <= this->sysMatDim_; i++ ) {
       nu[i] = 0.0;
@@ -231,7 +230,7 @@ namespace OLAS {
     // Generate array for keeping track of first entry in a row that
     // has a column index larger or equal to the current row index
     UInt *firstU_;
-    NewArray( firstU_, UInt, this->sysMatDim_ );
+    NEWARRAY( firstU_, UInt, this->sysMatDim_ );
 
     // First row starts with index 1 in CRS data array
     rptrU.push_back(1);
@@ -697,9 +696,9 @@ namespace OLAS {
     delete[] activeList_ ;
     delete[] listIDX_    ; 
     delete[] listVAL_    ;
-    DeleteArray( firstU_ );
-    DeleteArray( xi );
-    DeleteArray( nu );
+    DELETEARRAY( firstU_ );
+    DELETEARRAY( xi );
+    DELETEARRAY( nu );
 
 #ifdef DEBUG_ILDLCNFACTORISER
     (*debug) << std::endl;
@@ -761,5 +760,11 @@ namespace OLAS {
 
   }
 
+  // Explicit template instantiation
+  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+    template class ILDLCNFactoriser<Double>;
+    template class ILDLCNFactoriser<Complex>;
+  #endif
+  
 }
 

@@ -12,7 +12,7 @@
 #include "matvec/matvec.hh"
 #include "multigrid/topology.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! base class for multigrid smoothers
@@ -26,11 +26,11 @@ class Smoother
     public:
 
         //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename assocType<T>::T_Mtype T_Mtype;
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
         //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename assocType<T>::T_Vtype T_Vtype;
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename assocType<T>::T_Stype T_Stype;
+        typedef typename AssocType<T>::T_Stype T_Stype;
 
         //! enumeration type for the smoothing direction
         enum Direction { FORWARD = 0, BACKWARD };
@@ -110,6 +110,6 @@ class Smoother
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_SMOOTHER_HH

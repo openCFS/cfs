@@ -9,6 +9,7 @@
 
 #include <sstream>
 #include <cmath>
+#include <fstream>
 
 using namespace CoupledField;
 using std::abs;
@@ -84,7 +85,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
 
   // evaluate the the gradient -> will be cheep in restart case
   bool good = base_->EvalGradObjective(grad.GetSize(), data.GetPointer(), grad.GetPointer());
-  assert(good); // needs to be good as tol = set to 0.0;
+  if(!good) EXCEPTION("internal error"); // needs to be good as tol = set to 0.0;
   assert(opt_scaling.value != 0.0);
   
   // our new scaling is the optimal scaling for now!

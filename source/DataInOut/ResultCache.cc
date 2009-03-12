@@ -16,7 +16,7 @@ Double ResultCache::curStepVal_ = -1.0;
 
 ResultCache::OutputType ResultCache::outType_ = OUT_REAL;
 
-EntryType::ScalarType ResultCache::entryType_ = EntryType::DOUBLE;
+BaseMatrix::EntryType ResultCache::entryType_ = BaseMatrix::DOUBLE;
 
 UInt ResultCache::dof_ = 0;
 
@@ -130,7 +130,7 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
                                                           solType_,
                                                           entityName_);
     entryType_ = tmpRes->GetEntryType();
-    if (entryType_ == EntryType::COMPLEX) {
+    if (entryType_ == BaseMatrix::COMPLEX) {
       resCacheComplex_ = dynamic_cast<Result<Complex>&>(*tmpRes).GetVector();
     }
     else {
@@ -141,8 +141,9 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     resultValid_ = true;
   }
 
-  if (entryType_ == EntryType::COMPLEX) {
-#ifdef DEBUG
+
+  if (entryType_ == BaseMatrix::COMPLEX) {
+#ifndef NDEBUG
     if (index_*numDofs_ + dof_ - 1 >= resCacheComplex_.GetSize()) {
       std::string resultName;
       Enum2String(solType_, resultName);
@@ -165,8 +166,8 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
     }
   }
   else {
-#ifdef DEBUG
-    if (index_*numDofs_ + dof_ - 1 >= resCacheDouble_.GetSize()) {
+#ifndef NDEBUG
+     if (index_*numDofs_ + dof_ - 1 >= resCacheDouble_.GetSize()) {
       std::string resultName;
       Enum2String(solType_, resultName);
       EXCEPTION("Index of '" << resultName << "' from input file (id="

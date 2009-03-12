@@ -10,6 +10,7 @@
 #include <string>
 
 #include "General/environment.hh"
+#include "Domain/elem.hh"
 #include "FlowDataTypes.hh"
 
 namespace CoupledField

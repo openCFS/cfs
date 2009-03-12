@@ -5,10 +5,12 @@
 #ifndef LAPACK_LL_HH
 #define LAPACK_LL_HH
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
+#include "OLAS/solver/basesolver.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  class StdMatrix;
+  
 
   //! This class implements the interface to LAPACK's Cholesky decomposition.
 

@@ -5,14 +5,12 @@
 #ifndef ITERATIVE_REFINEMENT_HH
 #define ITERATIVE_REFINEMENT_HH
 
-#include "utils/defs.hh"
-#include "utils/environment.hh"
-#include "matvec/matvec.hh"
-#include "precond/precond.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 
+namespace CoupledField {
 
-namespace OLAS {
-
+  class BasePrecond;
 
   class BaseDirectSolver;
 
@@ -53,19 +51,10 @@ namespace OLAS {
   public:
 
     // Default constructor
-    IterativeRefinement() {
-      residual_     = NULL;
-      update_       = NULL;
-      dummyPrecond_ = new IdPrecondStd();
-    }
+    IterativeRefinement();
 
     // Destructor
-    ~IterativeRefinement() {
-      delete residual_;
-      delete update_;
-      delete dummyPrecond_;
-    }
-
+    ~IterativeRefinement();
 
     //! Perform iterative refinement
 

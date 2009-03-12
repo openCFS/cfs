@@ -15,7 +15,7 @@ namespace CoupledField
 
     Init();
   }
-  
+
   Triangle2FE::~Triangle2FE()
   {
   }
@@ -23,15 +23,15 @@ namespace CoupledField
   void Triangle2FE::Init()
   {
     NumNodes_ = 6;
-  
-    CommonInit(); 
+
+    CommonInit();
   }
 
   void Triangle2FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] = 0;
     LCornerCoords_[1][0] = 0;
     LCornerCoords_[0][1] = 1;
@@ -47,7 +47,7 @@ namespace CoupledField
     LCornerCoords_[1][5] = 0.5;
   }
 
-  void Triangle2FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Triangle2FE :: CalcShapeFnc(Vector<Double> & Shape,
                                    const Vector<Double> & LCoord,
                                    const Elem*, UInt dof,
                                    AnsatzFct::FctEntityType )
@@ -69,7 +69,7 @@ namespace CoupledField
     //   if (Shape[0] < 0)
     //     Error("Local coordinates are not inside tetrahedral element!",__FILE__,__LINE__);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     //  (*debug) << "LCoord \n " << LCoord << std::endl;
     //  (*debug) << "Shape \n " << Shape << std::endl;
 #endif
@@ -77,7 +77,7 @@ namespace CoupledField
   }
 
 
-  void Triangle2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Triangle2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                              const Vector<Double> & LCoord,
                                              const Elem*, UInt dof,
                                              AnsatzFct::FctEntityType )
@@ -92,7 +92,7 @@ namespace CoupledField
     LDeriv[1][1] =  0;
 
     LDeriv[2][0] =  0;
-    LDeriv[2][1] =  4*LCoord[1]-1; 
+    LDeriv[2][1] =  4*LCoord[1]-1;
 
     LDeriv[3][0] =  4*(1 - 2*LCoord[0] - LCoord[1]);
     LDeriv[3][1] = -4*LCoord[0];
@@ -101,7 +101,7 @@ namespace CoupledField
     LDeriv[4][1] =  4* LCoord[0];
 
     LDeriv[5][0] = -4*LCoord[1];
-    LDeriv[5][1] =  4*(1 - 2*LCoord[1] - LCoord[0]); 
+    LDeriv[5][1] =  4*(1 - 2*LCoord[1] - LCoord[0]);
   }
 
 

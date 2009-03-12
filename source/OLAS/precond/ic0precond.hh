@@ -5,13 +5,14 @@
 #ifndef OLAS_IC0PRECOND_HH
 #define OLAS_IC0PRECOND_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
+#include <def_expl_templ_inst.hh>
 
-#include "precond/baseprecond.hh"
-#include "precond/bnprecond.hh"
+#include "baseprecond.hh"
+#include "bnprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  template<typename> class SCRS_Matrix;
 
   //! IC0 preconditioner
 
@@ -21,6 +22,9 @@ namespace OLAS {
   class IC0Precond : public BNPrecond<IC0Precond<T>,SCRS_Matrix<T>,T> {
 
   public:
+
+    using BNPrecond<IC0Precond<T>,SCRS_Matrix<T>,T>::Apply;
+    using BNPrecond<IC0Precond<T>,SCRS_Matrix<T>,T>::Setup;
 
     //! Constructor
 
@@ -66,8 +70,7 @@ namespace OLAS {
     //! The default constructor is not allowed, since we need size information
     //! and pointers to communication objects for corrected initialisation.
     IC0Precond(){
-      Error( "Default constructor of IC0Precond should never be called!",
-	     __FILE__, __LINE__ );
+      EXCEPTION( "Default constructor of IC0Precond should never be called!" );
     };
 
     //! Checks if a double value is larger a prescribed value
@@ -104,8 +107,10 @@ namespace OLAS {
     bool amFactorised_;
   };
 
-
-
 }//namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ic0precond.cc"
+#endif
 
 #endif // OLAS_IC0PRECOND_HH

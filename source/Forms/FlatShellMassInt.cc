@@ -17,7 +17,7 @@ namespace CoupledField {
     
     
     name_ = "FlatShellMassInt";
-    matData->GetScalar(density_,DENSITY,REAL);
+    matData->GetScalar(density_,DENSITY,Global::REAL);
     baseType_ = MASS;
     
   }
@@ -70,7 +70,7 @@ namespace CoupledField {
     //Transformation from 3d to 2d
     FlatShellInt::CoordTrans(ptCoord_, TransMat, ShellCoord );
 
-    if ( isComposite_ == TRUE ) {
+    if ( isComposite_ == true ) {
 
       //Initialisation of the composite structure variables
       const UInt nrLayers  = composite_->thickness.GetSize();
@@ -93,7 +93,7 @@ namespace CoupledField {
       //Loop over the layers to calculate the additional factors for the mass matrix            
       for (UInt k=1 ; k <= nrLayers ; k++) {
 
-        composite_->materials[k-1]->GetScalar(density_,DENSITY,REAL);
+        composite_->materials[k-1]->GetScalar(density_,DENSITY,Global::REAL);
 
         fac_alpha += density_*(z_[k] - z_[k-1]);
         fac_beta  += density_*((z_[k])*(z_[k]) - (z_[k-1])*(z_[k-1]));

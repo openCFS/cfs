@@ -2,14 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "algsys/idbchandlerpenalty.hh"
-#include "algsys/standardsys.hh"
-#include "algsys/baseentrymanipulator.hh"
-#include "algsys/generateentrymanipulator.hh"
-#include "matvec/matvec.hh"
+#include "MatVec/sbmmatrix.hh"
+#include "MatVec/sbmvector.hh"
 
+#include "OLAS/algsys/standardsys.hh"
+#include "OLAS/algsys/baseentrymanipulator.hh"
 
-namespace OLAS {
+#include "idbchandlerpenalty.hh"
+
+namespace CoupledField {
 
 
   // ***********************************
@@ -28,43 +29,42 @@ namespace OLAS {
     offset_  = NULL;
 
     // Initialise next index for boundary condition array
-    nextIndex_ = 1;
+    nextIndex_ = 0;
 
     // Initialise penalty term
     penaltyTerm_ = 0.0;
 
     // Allocate memory for internal arrays
     numIDBC_ = numIDBC;
-    NewArray( dirichletEQN_      , UInt, numIDBC_ );
+    NEWARRAY( dirichletEQN_, UInt, numIDBC_ );
 
 #ifdef DEBUG_IDBCHANDLERPENALTY
     // Initialise arrays
-    for ( UInt i = 1; i <= numIDBC_; i++ ) {
+    for ( UInt i = 0; i < numIDBC_; i++ ) {
       dirichletEQN_[i] = 0;
     }
 #endif
 
     // Determine entry type from template parameter
-    eType_ = NOENTRYTYPE;
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      eType_ = DOUBLE;
+    eType_ = BaseMatrix::NOENTRYTYPE;
+    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
+      eType_ = BaseMatrix::DOUBLE;
     }
-    else if ( assocType<T>::tagM == assocType<Complex>::tagM ) {
-      eType_ = COMPLEX;
+    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
+      eType_ = BaseMatrix::COMPLEX;
     }
     else {
-      (*error) << "Internal template error! No swearing please!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Internal template error! No swearing please!");
     }
 
     // Generate vector for storing Dirchlet values
     // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
     //       obtain a Vector<T> object
-    dirichletValue_ = GenerateSparseVectorObject( SPARSE_NONSYM, eType_,
-                                               blockSize, numIDBC_ );
+    dirichletValue_ = GenerateSingleVectorObject( BaseMatrix::SPARSE_NONSYM, eType_,
+                                                  numIDBC_ );
 
     // Generate our personal assemble object
-    assembler_ = GenerateEntryManipulatorObject( eType_, blockSize );
+    assembler_ = new BaseEntryManipulator();
   }
 
 
@@ -88,36 +88,35 @@ namespace OLAS {
 
     // Allocate memory for internal arrays
     numIDBC_ = numIDBC;
-    NewArray( dirichletEQN_      , UInt, numIDBC_    );
-    NewArray( offset_            , UInt, numPDEs + 1 );
+    NEWARRAY( dirichletEQN_      , UInt, numIDBC_    );
+    NEWARRAY( offset_            , UInt, numPDEs + 1 );
 
     // Generate array containing index pointers
     //
     // Note: In the algebraic system these are real offsets, while here the
     //       values actually are index pointers, so we must add one to them.
-    for ( UInt i = 1; i <= numPDEs + 1; i++ ) {
+    for ( UInt i = 0; i < numPDEs + 1; i++ ) {
       offset_[i] = bcOffsets[i];
     }
 
     // Determine entry type from template parameter
-    eType_ = NOENTRYTYPE;
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      eType_ = DOUBLE;
+    eType_ = BaseMatrix::NOENTRYTYPE;
+    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
+      eType_ = BaseMatrix::DOUBLE;
     }
-    else if ( assocType<T>::tagM == assocType<Complex>::tagM ) {
-      eType_ = COMPLEX;
+    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
+      eType_ = BaseMatrix::COMPLEX;
     }
     else {
-      (*error) << "Internal template error! No swearing please!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Internal template error! No swearing please!" );
     }
 
     // Generate vector for storing Dirchlet values
-    SparseVector *stdVec = NULL;
+    SingleVector *stdVec = NULL;
     BaseVector *bVec = NULL;
-    SBM_Vector *sbmVec = New SBM_Vector( numPDEs );
+    SBM_Vector *sbmVec = new SBM_Vector( numPDEs );
     UInt aux = 0;
-    for ( UInt i = 1; i <= numPDEs; i++ ) {
+    for ( UInt i = 0; i < numPDEs; i++ ) {
 
       // Determine number of IDBCs for i-th PDE
       aux = offset_[i+1] - offset_[i];
@@ -127,8 +126,8 @@ namespace OLAS {
       // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
       //       obtain a Vector<T> object
       if ( aux > 0 ) {
-        bVec = GenerateSparseVectorObject( SPARSE_NONSYM, eType_, 1, aux );
-        stdVec = dynamic_cast<SparseVector*>(bVec);
+        bVec = GenerateSingleVectorObject( BaseMatrix::SPARSE_NONSYM, eType_, aux );
+        stdVec = dynamic_cast<SingleVector*>(bVec);
         sbmVec->SetSubVector( stdVec, i );
       }
     }
@@ -136,14 +135,14 @@ namespace OLAS {
 
 #ifdef DEBUG_IDBCHANDLERPENALTY
     // Initialise arrays
-    for ( UInt i = 1; i <= numIDBC_; i++ ) {
+    for ( UInt i = 0; i < numIDBC_; i++ ) {
       dirichletEQN_[i] = 0;
     }
     dirichletValue_->Init();
 #endif
 
     // Generate our personal assemble object
-    assembler_ = GenerateEntryManipulatorObject( eType_, 1 );
+    assembler_ = new BaseEntryManipulator();
   }
 
 
@@ -155,8 +154,8 @@ namespace OLAS {
 
 
     // Free memory for internal arrays
-    DeleteArray( dirichletEQN_       );
-    DeleteArray( offset_             );
+    DELETEARRAY( dirichletEQN_       );
+    DELETEARRAY( offset_             );
 
     // Delete vector of Dirichlet values
     delete dirichletValue_;
@@ -187,7 +186,7 @@ namespace OLAS {
 
     // Check that each IDBC was initialised
 #ifdef DEBUG_IDBCHANDLERPENALTY
-    for ( UInt i = 1; i <= numIDBC_; i++ ) {
+    for ( UInt i = 0; i < numIDBC_; i++ ) {
       if ( dirichletEQN_[i] == 0 ) {
         PrintInternalState( std::cerr );
         (*error) << "Found unset IDBC (eqnNo = 0): # = " << i;
@@ -201,7 +200,7 @@ namespace OLAS {
     if ( sbmCase_ == false ) {
 
       TRY_CAST {
-        RefCast( sysMat, StdMatrix, stdMat );
+        REFCAST( sysMat, StdMatrix, stdMat );
         assembler_->AdaptSystemMatrix( stdMat, dirichletEQN_,
                                        numIDBC_,
                                        penaltyTerm_ );
@@ -212,10 +211,10 @@ namespace OLAS {
     else {
 
       TRY_CAST {
-        RefCast( sysMat, SBM_Matrix, sbmMat );
+        REFCAST( sysMat, SBM_Matrix, sbmMat );
         StdMatrix *stdMat = NULL;
         UInt aux = 0;
-        for ( UInt i = 1; i <= (UInt)sbmMat.GetNrows(); i++ ) {
+        for ( UInt i = 0; i < (UInt)sbmMat.GetNumRows(); i++ ) {
           stdMat = sbmMat.GetPointer(i,i);
           aux = offset_[i+1] - offset_[i];
           if ( aux > 0 && stdMat != NULL ) {
@@ -251,8 +250,8 @@ namespace OLAS {
     if ( sbmCase_ == false ) {
 
       TRY_CAST {
-        PtrCast( rhs, SparseVector, stdVec );
-        PtrCast( dirichletValue_, SparseVector, stdVal );
+        PTRCAST( rhs, SingleVector, stdVec );
+        PTRCAST( dirichletValue_, SingleVector, stdVal );
         assembler_->AdaptRHSForIDBC( *stdVec,
                                      dirichletEQN_,
                                      *stdVal,
@@ -269,17 +268,17 @@ namespace OLAS {
       TRY_CAST {
 
         // First down-cast vectors from Base to SBM
-        PtrCast( rhs, SBM_Vector, sbmVec );
-        PtrCast( dirichletValue_, SBM_Vector, sbmVal );
+        PTRCAST( rhs, SBM_Vector, sbmVec );
+        PTRCAST( dirichletValue_, SBM_Vector, sbmVal );
 
         // We need pointers to sub-vectors
-        SparseVector *stdVec = NULL;
-        SparseVector *stdVal = NULL;
+        SingleVector *stdVec = NULL;
+        SingleVector *stdVal = NULL;
 
         // Now loop over all PDEs / sub-vectors and
         // set the Dirichlet values
         UInt aux = 0;
-        for ( UInt i = 1; i <= sbmVec->GetSize() ; i++ ) {
+        for ( UInt i = 0; i < sbmVec->GetSize() ; i++ ) {
 
           // obtain sub-vectors
           stdVec = sbmVec->GetPointer( i );
@@ -321,7 +320,7 @@ namespace OLAS {
         index = bcIndices_[pdeID][eqnNo];
       }
 
-      dirichletValue_->SetVectorEntry( index, val );
+      dirichletValue_->SetEntry( index, val );
       dirichletEQN_      [index] = eqnNo;
     }
 
@@ -336,8 +335,8 @@ namespace OLAS {
       }
 
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( dirichletValue_ );
-      SparseVector *stdVec = sbmVec->GetPointer( pdeID );
-      stdVec->SetVectorEntry( index, val );
+      SingleVector *stdVec = sbmVec->GetPointer( pdeID );
+      stdVec->SetEntry( index, val );
       dirichletEQN_      [ index+offset_[pdeID] ] = eqnNo;
     }
   }
@@ -356,15 +355,15 @@ namespace OLAS {
     if ( sbmCase_ == false ) {
 
       // Down-cast vector
-      SparseVector *stdVec = dynamic_cast<SparseVector*>( vec );
+      SingleVector *stdVec = dynamic_cast<SingleVector*>( vec );
       if ( stdVec == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
       // Insert values
       T aux;
-      for ( UInt i = 1; i <= numIDBC_; i++ ) {
-        dirichletValue_->GetVectorEntry( i, aux );
+      for ( UInt i = 0; i < numIDBC_; i++ ) {
+        dirichletValue_->GetEntry( i, aux );
         assembler_->SetVectorEntry( stdVec, dirichletEQN_[i],
                                     aux );
       }
@@ -379,16 +378,16 @@ namespace OLAS {
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( vec );
       SBM_Vector *sbmVal = dynamic_cast<SBM_Vector*>( dirichletValue_ );
       if ( sbmVec == NULL || sbmVal == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
       // Loop over all sub-vectors
-      SparseVector *stdVec = NULL;
-      SparseVector *stdVal = NULL;
+      SingleVector *stdVec = NULL;
+      SingleVector *stdVal = NULL;
       T aux;
       UInt idx;
 
-      for ( UInt i = 1; i <= sbmVec->GetSize(); i++ ) {
+      for ( UInt i = 0; i < sbmVec->GetSize(); i++ ) {
 /*
         (*debug) << " IDBC_HandlerPenalty::SetDofsToIDBC:"
                  << " Setting " << offset_[i+1] - offset_[i]
@@ -398,8 +397,8 @@ namespace OLAS {
         stdVal = sbmVal->GetPointer( i );
 
         // Insert values
-        for ( UInt j = 1; j <= offset_[i+1] - offset_[i]; j++ ) {
-          stdVal->GetVectorEntry( j, aux );
+        for ( UInt j = 0; j < offset_[i+1] - offset_[i]; j++ ) {
+          stdVal->GetEntry( j, aux );
           idx = offset_[i] + j;
           assembler_->SetVectorEntry( stdVec, dirichletEQN_[idx],
                                        aux );
@@ -407,34 +406,6 @@ namespace OLAS {
       }
     }
   }
-
-
-  // ****************************
-  //   InstantiatePublicMethods
-  // ****************************
-  template <typename T>
-  void IDBC_HandlerPenalty<T>::InstantiatePublicMethods() {
-
-
-    Error( "This function should never be called", __FILE__, __LINE__ );
-
-    // Some dummy variables we need
-    BaseVector *dummyVec = NULL;
-    std::map<FEMatrixType,Double> dummyMap;
-    BaseMatrix *dummyMat = NULL;
-    T aux(0.0);
-
-    // Public methods in alphabetical order
-    AdaptSystemMatrix( *dummyMat );
-    AddIDBCToRHS( dummyVec );
-    BuiltSystemMatrix( dummyMap );
-    InitDirichletValues();
-    InitMatrix( SYSTEM );
-    RemoveIDBCFromRHS( dummyVec );
-    SetDofsToIDBC( dummyVec );
-    SetIDBC( NO_PDE_ID, 0, aux );
-  }
-
 
   // **********************
   //   PrintInternalState
@@ -454,10 +425,10 @@ namespace OLAS {
          << " # | eqnNo | comp | value\n";
 
       T val;
-      PtrCast( dirichletValue_, SparseVector, stdVal );
+      PTRCAST( dirichletValue_, SingleVector, stdVal );
 
-      for ( UInt i = 1; i <= numIDBC_; i++ ) {
-        stdVal->GetVectorEntry( i, val );
+      for ( UInt i = 0; i < numIDBC_; i++ ) {
+        stdVal->GetEntry( i, val );
         os << i << " | "
            << dirichletEQN_[i] << " | "
            << val << std::endl;
@@ -474,8 +445,8 @@ namespace OLAS {
          << " --------------------------------------\n"
          << " numIDBC_ = " << numIDBC_ << '\n' << std::endl;
 
-      SparseVector *stdVal = NULL;
-      PtrCast( dirichletValue_, SBM_Vector, sbmVec );
+      SingleVector *stdVal = NULL;
+      PTRCAST( dirichletValue_, SBM_Vector, sbmVec );
       UInt aux = 0;
       UInt idx = 0;
       T val;
@@ -484,9 +455,9 @@ namespace OLAS {
       aux = numIDBC_ + 1;
       UInt cw1 = aux > 0 ? (UInt)std::log10( (float)aux ) + 1 : 1;
       UInt cw2 = 5;
-      UInt cw3 = 4;
+      // UInt cw3 = 4; // TODO: Check if this is still needed
 
-      for ( UInt i = 1; i <= dirichletValue_->GetSize(); i++ ) {
+      for ( UInt i = 0; i < dirichletValue_->GetSize(); i++ ) {
 
         // Compute number of IDBCs
         aux = offset_[i+1] - offset_[i];
@@ -498,9 +469,9 @@ namespace OLAS {
         os << " PDE # " << i << " / numIDBCs = " << aux << std::endl;
         if ( aux > 0 ) {
           os << " # | eqnNo | comp | value" << std::endl;
-          for ( UInt j = 1; j <= aux; j++ ) {
+          for ( UInt j = 0; j < aux; j++ ) {
 
-            stdVal->GetVectorEntry( j, val );
+            stdVal->GetEntry( j, val );
             idx = offset_[i] + j;
 
             os << std::setfill( ' ' )
@@ -517,4 +488,9 @@ namespace OLAS {
 
   }
 
+  // Explicit template instantiation
+  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+    template class IDBC_HandlerPenalty<Double>;
+    template class IDBC_HandlerPenalty<Complex>;
+  #endif  
 }

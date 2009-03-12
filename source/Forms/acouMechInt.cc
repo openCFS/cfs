@@ -67,7 +67,7 @@ namespace CoupledField {
       normal_ *= -1.0;
     }
 
-    it->second->GetScalar(density,DENSITY,REAL);
+    it->second->GetScalar(density,DENSITY,Global::REAL);
     if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
       //multiplicative factor in case of pressure formulation
       density *= -density;

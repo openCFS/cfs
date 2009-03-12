@@ -145,10 +145,12 @@ prepend_time::prepend_time(const logging_types::string & format) : m_day(-1), m_
         indexes.push_back( index_info(month_idx, &m_month) );
 
     if ( yy_idx != logging_types::string::npos || yyyy_idx != logging_types::string::npos)
+    {
         if ( yyyy_idx  != logging_types::string::npos)
             indexes.push_back( index_info(yyyy_idx, &m_yyyy, 4) );
-        else
+        else 
             indexes.push_back( index_info(yy_idx, &m_yy) );
+    }
 
     if ( hour_idx != logging_types::string::npos)
         indexes.push_back( index_info(hour_idx, &m_hour ) );

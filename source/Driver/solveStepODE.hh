@@ -27,23 +27,23 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     void PreStepStatic() {
-      Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved statically!" );
 
     }
 
     //! base method for solving one static step 
     void SolveStepStatic() {
-      Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved statically!" );
     }
 
     //! solves for one nonlinear static step 
     void StepStaticNonLin() {
-      Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved statically!" );
     }
   
     //! routine for acttions after the SolveStep-method 
     void PostStepStatic() {
-      Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved statically!" );
  }
 
     //----------------------- TRANSIENT---------------------------------------
@@ -62,27 +62,27 @@ namespace CoupledField
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepHarmonic() {
-      Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved harmonically!" );
     }
 
     //!  base method for solving one harmonic step 
     virtual void SolveStepHarmonic() {
-      Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved harmonically!" );
     }
     
     //! solves for one linear frequency step 
     virtual void StepHarmonicLin() {
-      Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved harmonically!" );
     }
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin() {
-      Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved harmonically!" );
     }
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() {
-      Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
+      EXCEPTION( "An ODE can not be solved harmonically!" );
     }
 
   private:

@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "multigrid/depgraph.hh"
+#include "DataInOut/coloredConsole.hh"
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR
@@ -17,7 +18,7 @@
 #endif // DEBUG_TO_CERR
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -186,14 +187,14 @@ bool DependencyGraph<T>::Create( const CRS_Matrix<T>& matrix,
     if( matrix.GetNnz() == 0 ) { Reset(); return true; }
 
     // create the arrays
-    if( !CreateArrays(matrix.GetNrows(),
+    if( !CreateArrays(matrix.GetNumRows(),
                       matrix.GetNnz(),
                       copystartarray) ) {
         return false;
     }    
     // insert the array of start indices
     if( !InsertStartArray(matrix.GetRowPointer(), // pointer to start indices
-                          matrix.GetNrows(), // #rows == #nodes
+                          matrix.GetNumRows(), // #rows == #nodes
                           false, // never accroach an array from a matrix
                           copystartarray, // just pipe the parameter
                           true) ) { // important, if copystartarray == true
@@ -235,8 +236,8 @@ InsertStartArray( const Integer *const startarray,
             if( size != NumNodes_ ) {
                 // cannot change number of nodes, if connections already exist
                 if( NumEdges_ )  return false;
-                DeleteArray( StartIndex_ );
-                NewArray( StartIndex_, Integer, size+1 );
+                DELETEARRAY( StartIndex_ );
+                NEWARRAY( StartIndex_, Integer, size+1 );
             }
         }
     }
@@ -261,7 +262,7 @@ inline void DependencyGraph<T>::AddEdge( const Integer i,
     // check range of the parameters
     if( i < 1 || i > NumNodes_  ) {
         std::cerr
-        << "\033[31mDependencyGraph<T>::AddEdge\033[0m\n"
+          << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset << "\n"
            "  >> edge ("<<i<<","<<j<<") is out of range [1,"
         << NumNodes_ << "] for node index" << std::endl;
         return;
@@ -270,7 +271,7 @@ inline void DependencyGraph<T>::AddEdge( const Integer i,
     for( Integer ij = 0; ij < NodeSize_[i]; ij++ ) {
         if( Edges_[StartIndex_[i]+ij] == j ) {
             std::cerr
-            << "\033[31mDependencyGraph<T>::AddEdge\033[0m\n"
+            << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset
             << "  >> edge ("<<i<<","<<j<<") already exists.\n     "
                "To add edges savely in non-debug mode use "
                "AddEdgeSavely\n";
@@ -280,7 +281,7 @@ inline void DependencyGraph<T>::AddEdge( const Integer i,
     // check, if the node can take further edges
     if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
         std::cerr
-        << "\033[31mDependencyGraph<T>::AddEdge\033[0m\n  >> "
+        << fg_red << "DependencyGraph<T>::AddEdge" << fg_reset << "\n  >> "
            "node " << i << " cannot take the additional edge ("
         << i<<","<<j<<") (max " << NodeSize_[i] << ")";
         if( GetNumEdges(i) > 0 ) {
@@ -308,7 +309,7 @@ inline void DependencyGraph<T>::AddEdgeSavely( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check range of the parameters
     if( i < 1 || i > NumNodes_ ) {
-        std::cerr << "\033[31mDependencyGraph<T>::AddEdgeSavely\033[0m\n"
+        std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSavely" << fg_reset
                      "  >> edge ("<<i<<","<<j<<") is out of range "
                   << NumNodes_ << std::endl;
         return;
@@ -326,7 +327,7 @@ inline void DependencyGraph<T>::AddEdgeSavely( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check, if the node can take further edges
     if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-        std::cerr << "\033[31mDependencyGraph<T>::AddEdgeSavely\033[0m\n  >> "
+        std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSavely" << fg_reset << "\n  >> "
                      "node " << i << " cannot take further edges (maximal "
                   << NodeSize_ << ")\n";
         return;
@@ -351,7 +352,7 @@ AddEdgeSorted( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
         // check, if the node can take further edges
         if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-            std::cerr << "\033[31mDependencyGraph<T>::AddEdgeSorted\033[0m\n  >> "
+            std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
                          "node " << i << " cannot take further edges (maximal "
                       << NodeSize_ << ")\n";
             return;
@@ -378,7 +379,7 @@ AddEdgeSorted( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
             // check, if the node can take further edges
             if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-                std::cerr << "\033[31mDependencyGraph<T>::AddEdgeSorted\033[0m\n  >> "
+                std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
                              "node " << i << " cannot take further edges (maximal "
                           << NodeSize_ << ")\n";
                 return;
@@ -396,7 +397,7 @@ AddEdgeSorted( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
             // check, if the node can take further edges
             if( NodeSize_[i] >= StartIndex_[i+1] - StartIndex_[i] ) {
-                std::cerr << "\033[31mDependencyGraph<T>::AddEdgeSorted\033[0m\n  >> "
+                std::cerr << fg_red << "DependencyGraph<T>::AddEdgeSorted" << fg_reset << "\n  >> "
                              "node " << i << " cannot take further edges (maximal "
                           << NodeSize_ << ")\n";
                 return;
@@ -442,16 +443,16 @@ inline void DependencyGraph<T>::SetEdgeAtPosition( const Integer i,
 {
     
 #ifdef DEBUG_DEPENDENCYGRAPH
-    const char fn[] = "\033[31mDependencyGraph::AddEdgeAtPosition\033[0m\n";
+    const char fn[] = "DependencyGraph::AddEdgeAtPosition\n";
     // check range of the node number
     if( i < 1 || i > NumNodes_ ) {
-        std::cerr << fn << "  >> edge ("<<i<<","<<j<<") is out of range "
+        std::cerr << fg_red << fn << fg_reset << "  >> edge ("<<i<<","<<j<<") is out of range "
                   << NumNodes_ << std::endl;
         return;
     }
     // check range of position
     if( StartIndex_[i] + position >= StartIndex_[i+1] ) {
-        std::cerr << fn << "  >> position " << position << " ist out of "
+        std::cerr << fg_red << fn << fg_reset << "  >> position " << position << " ist out of "
                      "range [0,"<<GetMaxNumEdges(i)<<"] for node "<<i
                   << std::endl;
         return;
@@ -459,7 +460,7 @@ inline void DependencyGraph<T>::SetEdgeAtPosition( const Integer i,
     // check if the edge is already present
     for( int ij = StartIndex_[i]; ij < StartIndex_[i+1]; i++ ) {
         if( Edges_[ij] == j && StartIndex_[i] + position != ij ) {
-            std::cerr << fn << "  >> edge ("<<i<<","<<j<<") is already"
+            std::cerr << fg_red << fn << fg_reset << "  >> edge ("<<i<<","<<j<<") is already"
                          " present at position "<<(ij - StartIndex_[i])
                       << " at node "<<i<<". Is this intended?";
         }
@@ -480,7 +481,7 @@ inline void DependencyGraph<T>::RemoveEdge( const Integer i,
 #ifdef DEBUG_DEPENDENCYGRAPH
     // check range of the parameters
     if( i < 1 || i > NumNodes_ ) {
-        std::cerr << "\033[31mDependencyGraph<T>::RemoveEdge\033[0m\n"
+        std::cerr << fg_red << "DependencyGraph<T>::RemoveEdge" << fg_reset << "\n"
                      "  >> edge ("<<i<<","<<j<<") is out of range "
                   << NumNodes_ << std::endl;
         return;
@@ -631,13 +632,13 @@ AssignTransposed( const DependencyGraph<T>& graph,
             }
         }
         if( debug_highestEdgeIndex > graph.GetNumNodes() ) {
-            const Char msgf[] = "DependencyGraph<T>::AssignTransposed: "
+            const char msgf[] = "DependencyGraph<T>::AssignTransposed: "
                 "edge checking suppressed and predicted graph as square"
                 ", but there are %d nodes in the graph, and the edge "
                 "with highest j is (i,j) = (%d,%d) -> (this check is "
                 "only performed in debug mode)\n";
-            Char *msg = NULL;
-            NewArray( msg, Char, strlen(msgf)+50 )
+            char *msg = NULL;
+            NEWARRAY( msg, char, strlen(msgf)+50 )
             sprintf( msg+1, msgf, graph.GetNumNodes(),
                      debug_criticalNode, debug_highestEdgeIndex );
             Warning( msg+1, __FILE__, __LINE__ );
@@ -883,11 +884,11 @@ void DependencyGraph<T>::Reset()
 {
     
     // destroy start array only if it is mine
-    if( ownStartIndex_ )  DeleteArray( StartIndex_ );
+    if( ownStartIndex_ )  DELETEARRAY( StartIndex_ );
     StartIndex_ = NULL;
     // destroy other arrays
-    DeleteArray( NodeSize_ );  NodeSize_  = NULL;
-    DeleteArray( Edges_ );     Edges_     = NULL;
+    DELETEARRAY( NodeSize_ );  NodeSize_  = NULL;
+    DELETEARRAY( Edges_ );     Edges_     = NULL;
 
     NumNodes_      = 0;
     NumEdges_      = 0;
@@ -905,21 +906,21 @@ std::ostream& DependencyGraph<T>::Print( std::ostream& out,
         out << "graph is empty\n";
     } else {
         out
-        << (color ? "\033[1m" : "")<<"DependencyGraph"
-        << (color ? "\033[0m" : "")<< std::endl
+        << fg_green << "DependencyGraph"
+        << fg_reset << std::endl
         << "  "<<NumNodes_ << "  nodes"<<std::endl
         << "  "<<GetNumEdges()<<':'<<NumEdges_<<" edges"
         << std::endl;
         for( Integer i = 1; i <= NumNodes_; i++ ) {
-            out << (color ? "\033[1m" : "")<<'['<<i
-                << ']'<<(color ? "\033[0m" : "")<<": ";
+            out << fg_cyan <<'['<<i
+                << ']'<< fg_reset <<": ";
             for( Integer j = 0; j < NodeSize_[i]; j++ ) {
                 out << "[" << Edges_[StartIndex_[i]+j] << "] ";
             }
             out
-            << (color ? "\033[1m" : "")<<'<'<< NodeSize_[i]
+            <<  fg_cyan <<'<'<< NodeSize_[i]
             << ':'<<(StartIndex_[i+1] - StartIndex_[i])
-            << '>'<<(color ? "\033[0m" : "")<<std::endl;
+            << '>'<< fg_reset <<std::endl;
         }
     }
 
@@ -942,7 +943,7 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
             if( ownStartIndex_ ) {
                 // ... check if we can reuse it.
                 if( numnodes != NumNodes_ ) {
-                    DeleteArray( StartIndex_ );  StartIndex_ = NULL;
+                    DELETEARRAY( StartIndex_ );  StartIndex_ = NULL;
                 }
             // if the present start array is not owned by this
             // class remove by simply removing the access
@@ -952,18 +953,18 @@ bool DependencyGraph<T>::CreateArrays( const int  numnodes,
         }
         // (StartIndex_ != NULL) means, that we have found an
         // array, we can reuse
-        if( !StartIndex_ )  NewArray( StartIndex_, Integer, numnodes+1 );
+        if( !StartIndex_ )  NEWARRAY( StartIndex_, Integer, numnodes+1 );
         ownStartIndex_ = true;
     }
     // delete old arrays, if their sizes do not match
     if( NodeSize_  && numnodes != NumNodes_ ) {
-        DeleteArray( NodeSize_ );  NodeSize_ = NULL; }
+        DELETEARRAY( NodeSize_ );  NodeSize_ = NULL; }
     if( Edges_ && numedges != NumEdges_ ) {
-        DeleteArray( Edges_ );  Edges_ = NULL;
+        DELETEARRAY( Edges_ );  Edges_ = NULL;
     }
     // create new arrays
-    if( NULL == NodeSize_ )  NewArray( NodeSize_, Integer, numnodes );
-    if( NULL == Edges_    )  NewArray( Edges_,    Integer, numedges );
+    if( NULL == NodeSize_ )  NEWARRAY( NodeSize_, Integer, numnodes );
+    if( NULL == Edges_    )  NEWARRAY( Edges_,    Integer, numedges );
     // NOTE that there is NO INITIALISATION, for example of NodeSize_, here
 //    for( Integer i = 1; i <= numnodes; i++ )  NodeSize_[i] = 0;
     
@@ -1002,7 +1003,7 @@ void DependencyGraph<T>::QuickSort(       Integer *const array,
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************
  * print-out operator

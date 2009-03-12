@@ -6,7 +6,8 @@
 #include <fstream>
 #include <math.h>
 
-#include "forms_header.hh"
+#include "linearForm.hh"
+#include "nLincurlCurlNodeInt.hh"
 #include "Utils/coordSystem.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
@@ -376,9 +377,8 @@ namespace CoupledField {
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
-		 << "negative Jacobian determinant!";
-	Error( __FILE__, __LINE__ );
+	EXCEPTION("CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+                  << "negative Jacobian determinant!");
       }
 
       factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
@@ -411,7 +411,7 @@ namespace CoupledField {
 
     isaxi_       = axi;
     coordUpdate_ = coordUpdate;
-    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     // need nonlinear BH curve approximation
     if (  ptMaterial->GetNonlinFileName() != "" )  
@@ -472,7 +472,7 @@ namespace CoupledField {
 
     isaxi_       = false;
     coordUpdate_ = coordUpdate;
-    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     // need nonlinear BH curve approximation
     // need nonlinear BH curve approximation
@@ -581,7 +581,7 @@ namespace CoupledField {
     else if (ptelem->GetDim() == 3)
       stressBiformInt = new nLinMech3dInt_PiolaStress (matData_);
     else {
-      Error("Wrong space dimension of elements! ",__FILE__,__LINE__);
+      EXCEPTION("Wrong space dimension of elements! ");
     }  
     
     stressBiformInt->SetActEntities( ent, ent );
@@ -718,8 +718,7 @@ namespace CoupledField {
   void PreStressLinFormInt::CalcElemVector( Vector<Double> & result,
                                             EntityIterator& ent )
   {
-    Error( "PreStressLinFormInt::CalcElemVector: not working",
-           __FILE__, __LINE__ );
+    EXCEPTION( "PreStressLinFormInt::CalcElemVector: not working");
 
     //   const UInt nrIntPts = ptelem->GetNumIntPoints();
     //   const UInt numFncs  = ptelem->GetNumNodes();
@@ -740,8 +739,8 @@ namespace CoupledField {
     //   PreStressInt preStressBiformInt(ptelem, matData_, 
     //                  preStressVal_, preStressDir_);
 
-    //   if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
-    //     Error("Undefined displacements! ",__FILE__,__LINE__);
+    //   if (!elemDisp_.GetNumRows() || !elemDisp_.GetNumCols()) 
+    //     EXCEPTION("Undefined displacements! ");
 
     //   partElemVec.Resize(numFncs * nrDofs);
 
@@ -829,8 +828,7 @@ namespace CoupledField {
         }
       default:
         {
-          std::string errMsg = "Incorrect dimension of normal. ";
-          Error(errMsg.c_str(),__FILE__,__LINE__);
+          EXCEPTION("Incorrect dimension of normal. ");
         }
       }
   
@@ -917,7 +915,7 @@ namespace CoupledField {
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dimelem = ptCoord.GetSizeRow();
+    Integer dimelem = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Vector<Double>  Sf;
@@ -990,7 +988,7 @@ namespace CoupledField {
 
    Integer l = ptelem->GetNumIntPoints(); 
    Integer n = ptelem->GetNumNodes();
-   Integer dimelem = ptCoord.GetSizeRow();
+   Integer dimelem = ptCoord.GetNumRows();
 
    Matrix<Double> xiDx;      
    Vector<Double>  Sf;
@@ -1098,7 +1096,7 @@ namespace CoupledField {
     Vector<Double>  Sf;
     Vector<Double> partResult;
   
-    int dimelem=ptCoord.GetSizeRow();
+    int dimelem=ptCoord.GetNumRows();
 
     //     std::vector<Double>  VelAtIP;
     //     Matrix<Double> VelDerAtIP;
@@ -1280,7 +1278,7 @@ namespace CoupledField {
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dimelem = ptCoord.GetSizeRow();
+    Integer dimelem = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Vector<Double>  Sf;
@@ -1377,7 +1375,7 @@ void LinearFlowNoiseInt::CalcElemVec4CombustionTij(const Matrix<Double>& ptCoord
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dim = ptCoord.GetSizeRow();
+    Integer dim = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Matrix<Double> xiDxTransp;      
@@ -1450,7 +1448,7 @@ void LinearFlowNoiseInt::CalcElemVec4CombustionVec(const Matrix<Double>& ptCoord
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dim = ptCoord.GetSizeRow();
+    Integer dim = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Vector<Double>  Sf;
@@ -1545,7 +1543,7 @@ void LinearFlowNoiseInt::CalcElemVec4CombustionTijOnSurface(const Matrix<Double>
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dim = ptCoord.GetSizeRow();
+    Integer dim = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Matrix<Double> xiDxTransp;      
@@ -1618,7 +1616,7 @@ void LinearFlowNoiseInt::CalcElemVec4CombustionVectorOnSurface(const Matrix<Doub
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dim = ptCoord.GetSizeRow();
+    Integer dim = ptCoord.GetNumRows();
 
     Matrix<Double> xiDx;      
     Vector<Double>  Sf;
@@ -1708,14 +1706,14 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     if ( dim == 3) {
       UInt idx=0;
-      if ( ptCoord.GetSizeCol() == 4) {
+      if ( ptCoord.GetNumCols() == 4) {
         idx = 3;
       }
-      else if ( ptCoord.GetSizeCol() == 3) {
+      else if ( ptCoord.GetNumCols() == 3) {
         idx = 2;
       }
       else {
-        Error("Surface Element is no quadrilateral or triangle",__FILE__,__LINE__);
+        EXCEPTION("Surface Element is no quadrilateral or triangle");
       }
 
       for ( UInt i=0; i<dim; i++ ) {
@@ -1764,7 +1762,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     const UInt spaceDim = ptelem->GetDim();  
 
     elemVec.Resize(numFncs);
-    elemVec.Init(0.0);
+    elemVec.Init();
 
     solGradAtIp_.Resize(numFncs);
     solDeriv1GradAtIp_.Resize(numFncs);
@@ -1802,7 +1800,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       solDeriv2AtIp_ = solderiv2_ * ShpFncAtIp_;
         
       totalfactor=0;
-      for (UInt j=0; j<xiDx_.GetSizeCol(); j++)
+      for (UInt j=0; j<xiDx_.GetNumCols(); j++)
         totalfactor += solGradAtIp_[j] * solDeriv1GradAtIp_[j];
       totalfactor *= factorN2_;
         
@@ -1836,7 +1834,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     const UInt nrIntPts = ptelem->GetNumIntPoints();
        
     elemVec.Resize(numFncs);
-    elemVec.Init(0.0);
+    elemVec.Init();
 
     Double jacDet, totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
@@ -1939,7 +1937,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     
     // resize and initialize output vector
     elemPower.Resize(numFncs);
-    elemPower.Init(0.0);
+    elemPower.Init();
     
     Double jacDet, factor;
     solGradAtIp.Resize(spacedim);
@@ -2024,7 +2022,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     
     // resize and initialize output vector
     elemPower.Resize(numFncs);
-    elemPower.Init(0.0);
+    elemPower.Init();
     
     Double jacDet, factor;
     N2.Resize(spacedim);
@@ -2286,7 +2284,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
     // Then, calculate element vector
     elemVec.Resize(numFncs * numDofs_);
-    elemVec.Init(0.0);
+    elemVec.Init();
     Double factor;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
@@ -2327,7 +2325,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     subTensorType_ = type;
     if ( type == AXI ) {
       addStress_.Resize(4);
-      addStress_.Init(0.0);
+      addStress_.Init();
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[5];
@@ -2335,7 +2333,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     }
     else if ( type == PLANE_STRAIN ) {
       addStress_.Resize(3);
-      addStress_.Init(0.0);
+      addStress_.Init();
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[5];
@@ -2343,7 +2341,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     }
     else if ( type == FULL ) {
       addStress_.Resize(6);
-      addStress_.Init(0.0);
+      addStress_.Init();
       addStress_[0] = stressVec[0];
       addStress_[1] = stressVec[1];
       addStress_[2] = stressVec[2];
@@ -2382,7 +2380,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     partElemVec.Init();
   
     elemVec.Resize(nrNodes*nrDofs);
-    elemVec.Init(0.0);
+    elemVec.Init();
   
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

@@ -1,6 +1,8 @@
 #ifndef FILE_SOLVESTEPSMOOTH
 #define FILE_SOLVESTEPSMOOTH
 
+#include "OLAS/algsys/basesystem.hh"
+
 #include "stdSolveStep.hh"
 
 namespace CoupledField

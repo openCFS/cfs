@@ -11,24 +11,24 @@
 namespace CoupledField {
 
   void FlatShellStiffInt::CalcElementMatrix(Matrix<Double>& elemMat,
-					    EntityIterator& ent1, 
+					    EntityIterator& ent1,
 					    EntityIterator& ent2 ) {
-    
-    
-    
+
+
+
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
     //std::cout << "FlatShellStiffInt::CalcElementMatrix\n" << std::endl;
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-    
-    
-    //std::cout << "The Number of nodes is\n" << numFncs << std::endl;   
-    const UInt nrDofs   = getNrDofs();  
+
+
+    //std::cout << "The Number of nodes is\n" << numFncs << std::endl;
+    const UInt nrDofs   = getNrDofs();
     //std::cout << "The Number of Dof is\n" << nrDofs << std::endl;
     double jacDet=0.0;
-        
+
 
     Matrix<Double> bMat; //B matrix
     Matrix<Double> dMat; //D matrix
@@ -41,67 +41,67 @@ namespace CoupledField {
     //Element matrix in the case of Flat Shells with linear elements is 24x24
     elemMat.Resize(numFncs * nrDofs);
     elemMat.Init();
-       
-    //B matrix in the case of flat shells 8x24 
+
+    //B matrix in the case of flat shells 8x24
     bMat.Resize( getDimD(), numFncs * nrDofs );
     bMat.Init();
-    
+
     //D matrix in the case of flat shells 8x8
-    dMat.Resize(getDimD()); 
+    dMat.Resize(getDimD());
     dMat.Init();
-      
+
     //D*B matrix in the case of flat shells 8x24
     dB.Resize( getDimD(), numFncs * nrDofs );
     dB.Init();
-     
+
     //The transpose of B in the case of flat shells is 24x8
     bTrans.Resize( numFncs * nrDofs , getDimD() );
     bTrans.Init();
-      
-    //The partial Element Matrix with the size of 24x24 
+
+    //The partial Element Matrix with the size of 24x24
     partElemMat.Resize(numFncs * nrDofs);
     partElemMat.Init();
-         
+
     // 1. rotate 3D-coordintates to 2D (x-y-reference plane) on the element level,4 nodes x 6 coordinates = 24
     //and stor the full Element transformation matrix in TransMat
-	
+
     FlatShellInt::CoordTrans(ptCoord_, TransMat, ShellCoord );
-    
+
     // 2. calculate partial B- and D-Matrices and assemble into big one
-	
+
     // If the material parameters are constant within the element
     // we can compute the D matrix once and for all
     if ( isComposite_ == true ) {
       //std::cout << "calcDMatComposite\n" << std::endl;
       FlatShellStiffInt::calcDMatComposite( dMat );
-      
+
     }
     else {
       //std::cout << "calcDMat\n" << std::endl;
       FlatShellStiffInt::calcDMat(dMat);
-       
+
     }
 
     for (UInt i =0 ; i<parts_.GetSize(); i++ ) {
 
-      //Set the reduced integration          
+      //Set the reduced integration
       if (reducedPart_[i] == true ) {
-        //std::cout << "Set Reduced Integration\n" << std::endl;  
+        //std::cout << "Set Reduced Integration\n" << std::endl;
         ptelem->SetReducedIntegration();
       }
       const UInt nrIntPts = ptelem->GetNumIntPoints();
       const Vector<Double> & intWeights = ptelem->GetIntWeights();
-      //Main Cycle	
+      //Main Cycle
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
         //std::cout << "Integration point\n" << actIntPt << std::endl;
         //The calcBMat function calculates the B matrix either membrane shear or bending part
         if (parts_[i] == MEMBRANE || parts_[i] == BENDING || parts_[i] == SHEAR) {
           //std::cout <<"MEMBRANE BENDING OR SHEAR\n" << std::endl;
-          //Calculates the B matrix 
+          //Calculates the B matrix
           FlatShellStiffInt::calcBMat(bMat, actIntPt, ptelem, ShellCoord, parts_[i]);
           //Calculates the product D*B
-          dB=dMat*bMat; 
-          //Find the transpose of the bMat and Store it in the bTrans   
+          dB=dMat*bMat;
+          //Find the transpose of the bMat and Store it in the bTrans
           bMat.Transpose(bTrans);
           //3. Calculate B^t*B*D and store it in the partElemMat
           partElemMat = bTrans * dB;
@@ -113,8 +113,8 @@ namespace CoupledField {
           //Calculates the product D*B
           dB=dMat*bMat;
           //Calculates B membrane part
-          FlatShellStiffInt::calcBMat(bMat, actIntPt, ptelem, ShellCoord, parts_[0]); 
-          //Find the transpose of the bMat and Store it in the bTrans   
+          FlatShellStiffInt::calcBMat(bMat, actIntPt, ptelem, ShellCoord, parts_[0]);
+          //Find the transpose of the bMat and Store it in the bTrans
           bMat.Transpose(bTrans);
 
           partElemMat = bTrans * dB;
@@ -127,8 +127,8 @@ namespace CoupledField {
           //Thickness of the laminas' layers
           dB=dMat*bMat;
           //Calculates B bending part
-          FlatShellStiffInt::calcBMat(bMat, actIntPt, ptelem, ShellCoord, parts_[1]); 
-          //Find the transpose of the bMat and Store it in the bTrans   
+          FlatShellStiffInt::calcBMat(bMat, actIntPt, ptelem, ShellCoord, parts_[1]);
+          //Find the transpose of the bMat and Store it in the bTrans
           bMat.Transpose(bTrans);
           //3. Calculate B^t*B*D and store it in the partElemMat
           partElemMat = bTrans * dB;
@@ -140,14 +140,14 @@ namespace CoupledField {
         if ( jacDet < 0.0 ) {
           EXCEPTION( "FlatShellStiffInt::CalcElementMatrix: Encountered "
           << "negative Jacobian determinant!" );
-        }    
+        }
 
         // Sum up part element matrices
         elemMat += partElemMat * jacDet * intWeights[actIntPt-1];
 
       }
 
-      if (reducedPart_[i] == true ) 
+      if (reducedPart_[i] == true )
         ptelem->SetStandardIntegration();
     }
     //std::cout << "The Element Matrix is :"<< elemMat << std::endl;
@@ -162,8 +162,8 @@ namespace CoupledField {
 
     const UInt numFncs = elem->GetNumFncs( ansatzFct1_ );
     elem->SetAnsatzFct( ansatzFct1_ );
-    const UInt spaceDim = getDimD(); //8 
-    const UInt nrDofs   = getNrDofs(); //6 
+    const UInt spaceDim = getDimD(); //8
+    const UInt nrDofs   = getNrDofs(); //6
 
     UInt actDim, actNode;
 
@@ -176,7 +176,7 @@ namespace CoupledField {
     bMat.Init();
     elem->GetShFncAtIp(shapeFnc,ip, it1_.GetElem());
     elem->GetGlobDerivShFncAtIp(xiDx, ip, ShellCoord, it1_.GetElem());
-    
+
     //Filling of the big B matrix
 
     if (part == MEMBRANE || part == PIEZO){
@@ -186,12 +186,12 @@ namespace CoupledField {
           bMat[actDim][actNode * nrDofs + actDim] = xiDx[actNode][actDim];
 
       actDim = spaceDim - 6;
-  	
+
       for(actNode = 0; actNode < numFncs; actNode++){
         bMat[actDim][actNode * nrDofs]     = xiDx[actNode][1];
         bMat[actDim][actNode * nrDofs + 1] = xiDx[actNode][0];
       }
-    
+
     }
 
     if (part == BENDING || part == PIEZO){
@@ -206,7 +206,7 @@ namespace CoupledField {
         bMat[actDim][actNode * nrDofs + 3] = xiDx[actNode][1];
         bMat[actDim][actNode * nrDofs + 4] = xiDx[actNode][0];
       }
-      
+
     }
 
     if (part == SHEAR || part == PIEZO) {
@@ -218,12 +218,12 @@ namespace CoupledField {
       for( actDim = 6; actDim < spaceDim; actDim++ )
         for( actNode = 0; actNode < numFncs; actNode++ )
           bMat[actDim][actNode * nrDofs + actDim - 3] = -shapeFnc[actNode];
-    } 
- 
+    }
+
     //std::cout << "The B TransMatrix is\n" << bMat << std::endl;
 
   }
- 
+
   // calculates the summed D-matrix
   void FlatShellStiffInt::calcDMatComposite( Matrix<Double> &dMat ){
 
@@ -231,7 +231,7 @@ namespace CoupledField {
     const UInt SizeOfD = 8;
     const UInt nrLayers  = composite_->thickness.GetSize();
     Double kappa = 5.0/6.0;
-    Double thickness_all = 0.0; 
+    Double thickness_all = 0.0;
 
     Matrix<Double> A, B, D, K, Q, Q_, Qs, Qs_, Ck, Qk, Cs, Buffer, Buffer_shear;
     Matrix<Double> matMatrix;
@@ -283,21 +283,21 @@ namespace CoupledField {
 
       for (UInt k=1 ; k <= nrLayers ; k++){
         //Reading orthotropic material parametres
-        composite_->materials[k-1]->GetScalar(Ex,MECH_EMODULUS_X,REAL);
-        composite_->materials[k-1]->GetScalar(Ey,MECH_EMODULUS_Y,REAL);
-        composite_->materials[k-1]->GetScalar(Ez,MECH_EMODULUS_Z,REAL);
-        composite_->materials[k-1]->GetScalar(NUxy,MECH_POISSON_XY,REAL);
-        composite_->materials[k-1]->GetScalar(NUyz,MECH_POISSON_YZ,REAL);
-        composite_->materials[k-1]->GetScalar(NUxz,MECH_POISSON_XZ,REAL);
-        composite_->materials[k-1]->GetScalar(Gyz,MECH_GMODULUS_YZ,REAL);
-        composite_->materials[k-1]->GetScalar(Gzx,MECH_GMODULUS_ZX,REAL);
-        composite_->materials[k-1]->GetScalar(Gxy,MECH_GMODULUS_XY,REAL);
+        composite_->materials[k-1]->GetScalar(Ex,MECH_EMODULUS_X,Global::REAL);
+        composite_->materials[k-1]->GetScalar(Ey,MECH_EMODULUS_Y,Global::REAL);
+        composite_->materials[k-1]->GetScalar(Ez,MECH_EMODULUS_Z,Global::REAL);
+        composite_->materials[k-1]->GetScalar(NUxy,MECH_POISSON_XY,Global::REAL);
+        composite_->materials[k-1]->GetScalar(NUyz,MECH_POISSON_YZ,Global::REAL);
+        composite_->materials[k-1]->GetScalar(NUxz,MECH_POISSON_XZ,Global::REAL);
+        composite_->materials[k-1]->GetScalar(Gyz,MECH_GMODULUS_YZ,Global::REAL);
+        composite_->materials[k-1]->GetScalar(Gzx,MECH_GMODULUS_ZX,Global::REAL);
+        composite_->materials[k-1]->GetScalar(Gxy,MECH_GMODULUS_XY,Global::REAL);
 
         //see Finite Element Analysis of Composite Laminates O.O.Ochoa and J.N.Reddy page 10 and 12
         NUyx=(Ey/Ex)*NUxy;
         NUzy=(Ez/Ey)*NUyz;
         NUzx=(Ez/Ex)*NUxz;
-        Q_[0][0] = Ex/(1 - NUxy*NUyx); 
+        Q_[0][0] = Ex/(1 - NUxy*NUyx);
         Q_[0][1] = NUxy*Ey/(1 - NUxy*NUyx);
         Q_[0][2] = 0.0;
         Q_[1][0] = NUxy*Ey/(1 - NUxy*NUyx);
@@ -309,7 +309,7 @@ namespace CoupledField {
         //std::cout << "Q_ Matrix is\n" << Q_ << std::endl;
 
         //Matrix Qs_ taken from Reddy page 10
-        Qs_[0][0] = Gyz; //Gyz; 
+        Qs_[0][0] = Gyz; //Gyz;
         Qs_[0][1] = 0.0;
         Qs_[1][0] = 0.0;
         Qs_[1][1] = Gzx; //Gzx;
@@ -320,7 +320,7 @@ namespace CoupledField {
 
         Q[0][1] = (Q_[0][0] + Q_[1][1] - 4.0*Q_[2][2])*sin(orAngle_[k])*sin(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]) + Q_[0][1]*(sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k]) + cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]));
 
-        Q[0][2] = (Q_[0][0] - Q_[0][1] - 2.0*Q_[2][2])*sin(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]) + (Q_[0][1] - Q_[1][1] + 2.0*Q_[2][2])*sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k])*cos(orAngle_[k]); 
+        Q[0][2] = (Q_[0][0] - Q_[0][1] - 2.0*Q_[2][2])*sin(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]) + (Q_[0][1] - Q_[1][1] + 2.0*Q_[2][2])*sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k])*cos(orAngle_[k]);
 
         Q[1][0] = Q[0][1];
 
@@ -392,16 +392,16 @@ namespace CoupledField {
       K.Init();
 
       for (UInt k=1 ; k <= nrLayers ; k++) {
-        //Construction of the Transformation Matrices Rt and Rs 
+        //Construction of the Transformation Matrices Rt and Rs
         //see equation (2.56) and (2.57) Pefort 'Finite Element Modelling of Piezoelectric Active Structures'
         //std::cout << "Layer number\n" << k << std::endl;
 
         //Extracting material matrix
-        composite_->materials[k-1]->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,FULL);
+        composite_->materials[k-1]->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,Global::REAL,FULL);
         //std::cout << "The Material Matrix is\n" << matMatrix << std::endl;
 
         if( orAngle_[k] > EPS ) {
-          RtMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]); 
+          RtMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]);
           RtMat[0][1] = sin(orAngle_[k])*sin(orAngle_[k]);
           RtMat[0][2] = 2*sin(orAngle_[k])*cos(orAngle_[k]);
           RtMat[1][0] = sin(orAngle_[k])*sin(orAngle_[k]);
@@ -413,7 +413,7 @@ namespace CoupledField {
 
           //std::cout << "Rt Matrix is\n" << RtMat << std::endl;
 
-          RsMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]); 
+          RsMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]);
           RsMat[0][1] = sin(orAngle_[k])*sin(orAngle_[k]);
           RsMat[0][2] = sin(orAngle_[k])*cos(orAngle_[k]);
           RsMat[1][0] = sin(orAngle_[k])*sin(orAngle_[k]);
@@ -446,9 +446,9 @@ namespace CoupledField {
         //Transpose of RsMat
         RtMat.Invert(RtMatInv);
         //Transpose of RkMat
-        RkMat.Invert(RkMatInv);         
+        RkMat.Invert(RkMatInv);
         //Matrix Ck
-        Ck[0][0] = 2.0*matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0] + 2.0*matMatrix[5][5]; 
+        Ck[0][0] = 2.0*matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0] + 2.0*matMatrix[5][5];
         Ck[0][1] = 2.0*matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0];
         Ck[0][2] = 0.0;
         Ck[1][0] = Ck[0][1];
@@ -484,9 +484,9 @@ namespace CoupledField {
     }
 
     //The material matrix for the laminate case is created
-    //The whole D matrix is consisted of the separate matrices for membrane, bending and shear part 
+    //The whole D matrix is consisted of the separate matrices for membrane, bending and shear part
     //Matrix part A
-    dMat[0][0] = A[0][0]; 
+    dMat[0][0] = A[0][0];
     dMat[0][1] = A[0][1];
     dMat[0][2] = A[0][2];
     dMat[1][0] = A[1][0];
@@ -497,7 +497,7 @@ namespace CoupledField {
     dMat[2][2] = A[2][2];
 
     //Matrix part B1
-    dMat[0][3] = B[0][0]; 
+    dMat[0][3] = B[0][0];
     dMat[0][4] = B[0][1];
     dMat[0][5] = B[0][2];
     dMat[1][3] = B[1][0];
@@ -518,8 +518,8 @@ namespace CoupledField {
     dMat[5][1] = B[2][1];
     dMat[5][2] = B[2][2];
 
-    //Matrix part D	
-    dMat[3][3] = D[0][0]; 
+    //Matrix part D
+    dMat[3][3] = D[0][0];
     dMat[3][4] = D[0][1];
     dMat[3][5] = D[0][2];
     dMat[4][3] = D[1][0];
@@ -530,34 +530,34 @@ namespace CoupledField {
     dMat[5][5] = D[2][2];
 
 
-    //Matrix part K	
+    //Matrix part K
     dMat[6][6] = K[0][0];
     dMat[6][7] = K[0][1];
     dMat[7][6] = K[1][0];
     dMat[7][7] = K[1][1];
 
-    // std::cerr << "The D Composite  Matrix is\n" << dMat << std::endl;  
+    // std::cerr << "The D Composite  Matrix is\n" << dMat << std::endl;
   }
-  
+
   void FlatShellStiffInt::calcDMat( Matrix<Double> &dMat){
 
 
     const UInt nrElems2d = 8;
     double t = thickness_;
-    double k = 5.0/6.0; 
+    double k = 5.0/6.0;
 
     Matrix<Double> matMatrix;
-    ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,FULL);
+    ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,Global::REAL,FULL);
     //Matrix<Double> const  & matMatrix = *( ptMaterial->GetMatrix());
-    
+
     //std::cout << "The Material Matrix is\n" << matMatrix << std::endl;
-    
+
     dMat.Resize(nrElems2d);
     dMat.Init();
 
-    //The whole D matrix is consisted of the separate matrices for membrane, bending and shear part 
+    //The whole D matrix is consisted of the separate matrices for membrane, bending and shear part
 
-    dMat[0][0] = t*2.0*(matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0]+matMatrix[5][5]); 
+    dMat[0][0] = t*2.0*(matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0]+matMatrix[5][5]);
     dMat[0][1] = t*2.0*(matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0]);
     dMat[0][2] = 0.0;
     dMat[1][0] = dMat[0][1];
@@ -566,8 +566,8 @@ namespace CoupledField {
     dMat[2][0] = 0.0;
     dMat[2][1] = 0.0;
     dMat[2][2] = t*matMatrix[5][5];
-	
-    dMat[3][3] = (t*t*t)/6.0*((matMatrix[0][1]*matMatrix[5][5])/matMatrix[0][0]+matMatrix[5][5]); 
+
+    dMat[3][3] = (t*t*t)/6.0*((matMatrix[0][1]*matMatrix[5][5])/matMatrix[0][0]+matMatrix[5][5]);
     dMat[3][4] = (t*t*t)/6.0*(matMatrix[0][1]*matMatrix[5][5]/matMatrix[0][0]);
     dMat[3][5] = 0.0;
     dMat[4][3] = dMat[3][4];
@@ -576,25 +576,25 @@ namespace CoupledField {
     dMat[5][3] = 0.0;
     dMat[5][4] = 0.0;
     dMat[5][5] = (t*t*t)/12.0*matMatrix[5][5];
-	
+
     dMat[6][6] = k*t*matMatrix[3][3];
     dMat[6][7] = 0.0;
     dMat[7][6] = 0.0;
     dMat[7][7] = k*t*matMatrix[4][4];
 
-    //std::cout << "The D TransMatrix is\n" << dMat << std::endl;  
+    //std::cout << "The D TransMatrix is\n" << dMat << std::endl;
   }
-  
+
   // *************************************
   //   Constructor for Composite Material
   // *************************************
-  FlatShellStiffInt::FlatShellStiffInt( Composite * composite, bool hasDrillDof ) 
+  FlatShellStiffInt::FlatShellStiffInt( Composite * composite, bool hasDrillDof )
     : FlatShellInt(composite, hasDrillDof) {
 
     name_ = "FlatShellStiffInt";
 
     baseType_ = STIFFNESS;
-            
+
     parts_.Push_back(MEMBRANE);
     parts_.Push_back(BENDING);
     parts_.Push_back(SHEAR);
@@ -606,27 +606,27 @@ namespace CoupledField {
     reducedPart_.Push_back(false);
     reducedPart_.Push_back(false);
     reducedPart_.Push_back(false);
-              
+
   }
   // **********************************
   //   Constructor for Normal Material
   // **********************************
-  
-  FlatShellStiffInt::FlatShellStiffInt( BaseMaterial * matData, bool hasDrillDof ) 
+
+  FlatShellStiffInt::FlatShellStiffInt( BaseMaterial * matData, bool hasDrillDof )
     : FlatShellInt(matData, hasDrillDof) {
 
     name_ = "FlatShellStiffInt";
-    
+
     baseType_ = STIFFNESS;
-   
+
     parts_.Push_back(MEMBRANE);
     parts_.Push_back(BENDING);
     parts_.Push_back(SHEAR);
-    
+
     reducedPart_.Push_back(false);
     reducedPart_.Push_back(false);
     reducedPart_.Push_back(false);
-   
+
   }
 
   // **************
@@ -634,5 +634,5 @@ namespace CoupledField {
   // **************
   FlatShellStiffInt::~FlatShellStiffInt() {
   }
-  
+
 } // end namespace CoupledField

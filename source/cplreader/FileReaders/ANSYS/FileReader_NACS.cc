@@ -164,11 +164,11 @@ namespace CoupledField
 
       maxNumElemNodes_ = numElemNodes > maxNumElemNodes_ ? numElemNodes : maxNumElemNodes_;
 
-      FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum], numElemNodes);
+      Elem::FEType newFEType = DegenTypeToNativeType(elemTypes_[elemNum], numElemNodes);
 
       if(degen_)
       {
-        DegenerateElement((FEType)elemTypes_[elemNum], newFEType, elemNodes);
+        DegenerateElement((Elem::FEType)elemTypes_[elemNum], newFEType, elemNodes);
       }
       else
       {
@@ -177,10 +177,10 @@ namespace CoupledField
 
       elemTypes_[elemNum] = newFEType;
       elemNumsMap_[elemNum] = elemNum;
-      elemDim = ELEM_DIM[newFEType];
+      elemDim = Elem::GetElemDim(newFEType);
       dim = dim < elemDim ? elemDim : dim;
 
-      std::copy(elemNodes.begin(), elemNodes.begin() + NUM_ELEM_NODES[newFEType],
+      std::copy(elemNodes.begin(), elemNodes.begin() + Elem::GetNumElemNodes(newFEType),
                 std::back_inserter(topology_[elemNum]));
 
       elemNum++;
@@ -339,76 +339,76 @@ namespace CoupledField
     everyThingRead_ = true;
   }
 
-  FEType FileReader_NACS::DegenTypeToNativeType(UInt type, UInt numNodes)
+  Elem::FEType FileReader_NACS::DegenTypeToNativeType(UInt type, UInt numNodes)
   {
-    FEType ret = (FEType) type;
+    Elem::FEType ret = (Elem::FEType) type;
 
-    switch((FEType) type)
+    switch((Elem::FEType) type)
     {
-    case ET_QUAD4: // rectangle
+    case Elem::QUAD4: // rectangle
       switch(numNodes)
       {
       case 3:
-        ret = ET_TRIA3;
+        ret = Elem::TRIA3;
         break;
 
       case 4:
-        ret = ET_QUAD4;
+        ret = Elem::QUAD4;
         break;
       }
       break;
 
-    case ET_QUAD8: // quad. rectangle
+    case Elem::QUAD8: // quad. rectangle
       switch(numNodes)
       {
       case 6:
-        ret = ET_TRIA6;
+        ret = Elem::TRIA6;
         break;
 
       case 8:
-        ret = ET_QUAD8;
+        ret = Elem::QUAD8;
         break;
       }
       break;
 
-    case ET_HEXA8: // hexa
+    case Elem::HEXA8: // hexa
       switch(numNodes)
       {
       case 4:
-        ret = ET_TET4;
+        ret = Elem::TET4;
         break;
 
       case 5:
-        ret = ET_PYRA5;
+        ret = Elem::PYRA5;
         break;
 
       case 6:
-        ret = ET_WEDGE6;
+        ret = Elem::WEDGE6;
         break;
 
       case 8:
-        ret = ET_HEXA8;
+        ret = Elem::HEXA8;
         break;
       }
       break;
 
-    case ET_HEXA20: // quad. hexa
+    case Elem::HEXA20: // quad. hexa
       switch(numNodes)
       {
       case 10:
-      ret = ET_TET10;
+      ret = Elem::TET10;
       break;
 
       case 13:
-      ret = ET_PYRA13;
+      ret = Elem::PYRA13;
       break;
 
       case 15:
-      ret = ET_WEDGE15;
+      ret = Elem::WEDGE15;
       break;
 
       case 20:
-      ret = ET_HEXA20;
+      ret = Elem::HEXA20;
       break;
       }
 

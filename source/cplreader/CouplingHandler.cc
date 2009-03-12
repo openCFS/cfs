@@ -103,13 +103,13 @@ namespace CoupledField
     }
 
     // Initialize element integrators for source term calculation
-    ptElemIntegr_[ET_LINE2]  = new ElemIntegr(ET_LINE2);
-    ptElemIntegr_[ET_TRIA3]  = new ElemIntegr(ET_TRIA3);
-    ptElemIntegr_[ET_QUAD4]  = new ElemIntegr(ET_QUAD4);
-    ptElemIntegr_[ET_TET4]   = new ElemIntegr(ET_TET4);
-    ptElemIntegr_[ET_WEDGE6] = new ElemIntegr(ET_WEDGE6);
-    ptElemIntegr_[ET_PYRA5]  = new ElemIntegr(ET_PYRA5);
-    ptElemIntegr_[ET_HEXA8]  = new ElemIntegr(ET_HEXA8);
+    ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
+    ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
+    ptElemIntegr_[Elem::QUAD4]  = new ElemIntegr(Elem::QUAD4);
+    ptElemIntegr_[Elem::TET4]   = new ElemIntegr(Elem::TET4);
+    ptElemIntegr_[Elem::WEDGE6] = new ElemIntegr(Elem::WEDGE6);
+    ptElemIntegr_[Elem::PYRA5]  = new ElemIntegr(Elem::PYRA5);
+    ptElemIntegr_[Elem::HEXA8]  = new ElemIntegr(Elem::HEXA8);
 
   }
 
@@ -235,15 +235,15 @@ namespace CoupledField
       {        
         UInt elemNum = *elemIt;
         UInt regionDim = regionDims[actRegion];
-        FEType elemType = (FEType) elemTypes_[elemNum-1];
+        Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum-1];
         
         if(!regionDim) 
         {
-          regionDims[actRegion] = ELEM_DIM[elemType];
+          regionDims[actRegion] = Elem::GetElemDim(elemType);
         }
         else
         {
-          if( regionDim != ELEM_DIM[elemType] )
+          if( regionDim != Elem::GetElemDim(elemType) )
           {
             EXCEPTION("Elements with different dimensions have been "
                       << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
@@ -551,7 +551,7 @@ namespace CoupledField
     UInt topoIdx = 0;
     UInt idx = 0;
     UInt numElemNodes;
-    FEType et;
+    Elem::FEType et;
     UInt maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
 
 
@@ -563,13 +563,13 @@ namespace CoupledField
     {
       idx = (*it-1);
       topoIdx = idx * maxNumElemNodes;
-      et = (FEType) elemTypes_[idx];
-      numElemNodes = NUM_ELEM_NODES[ et ];
+      et = (Elem::FEType) elemTypes_[idx];
+      numElemNodes = Elem::GetNumElemNodes( et );
 
       nodeSet.insert(&topology_[topoIdx],
                      &topology_[topoIdx+numElemNodes]);
 
-      dim = dim < ELEM_DIM[et] ? ELEM_DIM[et] : dim;
+      dim = dim < Elem::GetElemDim(et) ? Elem::GetElemDim(et) : dim;
     }
 
     std::copy(nodeSet.begin(), nodeSet.end(),
@@ -627,7 +627,7 @@ namespace CoupledField
     Matrix<Double> nodalVel;
     Vector<Double> elemVec;
 
-    FEType elemType;
+    Elem::FEType elemType;
     UInt numElemNodes;
     UInt elemDim;
     UInt elemIdx;
@@ -637,9 +637,9 @@ namespace CoupledField
     for( int i=0; i<nElems; i++)
     {
       elemIdx = regionElems_[regionIdx][i] - 1;
-      elemType = (FEType) elemTypes_[elemIdx];
-      numElemNodes = NUM_ELEM_NODES[elemType];
-      elemDim = ELEM_DIM[elemType];
+      elemType = (Elem::FEType) elemTypes_[elemIdx];
+      numElemNodes = Elem::GetNumElemNodes(elemType);
+      elemDim = Elem::GetElemDim(elemType);
 
       // Just calculate sources for volume elements!
       if(elemDim < dim_)
@@ -677,9 +677,9 @@ namespace CoupledField
           UInt oldPrec = std::cerr.precision(8);
 
           std::cerr << "Corner coords:\n";
-          for (UInt iCol = 0, numCols = coordMat.GetSizeCol();
+          for (UInt iCol = 0, numCols = coordMat.GetNumCols();
                iCol < numCols; ++iCol) {
-            for (UInt iRow = 0, numRows = coordMat.GetSizeRow();
+            for (UInt iRow = 0, numRows = coordMat.GetNumRows();
                  iRow < numRows; ++iRow) {
               std::cerr << "\t" << coordMat[iRow][iCol];
             }
@@ -692,7 +692,7 @@ namespace CoupledField
 
         std::cerr << "Setting contribution to acousrc to zero!\n\n";
         elemVec.Resize(numElemNodes);
-        elemVec.Init(0.0);
+        elemVec.Init();
       }
 
       // Add contributions of all element nodes
@@ -702,7 +702,7 @@ namespace CoupledField
         nodeNum = topology_[elemIdx * maxNENodes + n];
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
-#ifdef DEBUG
+#ifndef NDEBUG
         if (std::isnan(elemVec[n]) || std::isinf(elemVec[n])) {
           EXCEPTION("Source term calculated on element " << i+1
                     << " is Inf or Nan.");

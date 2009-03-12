@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iterator>
 
+#include "Domain/elem.hh"
 #include "SphericalShellGenerator.hh"
 
 namespace CoupledField
@@ -262,7 +263,7 @@ namespace CoupledField
     connectOut[baseIdx * maxNumElemNodes_+2] = idx9;
     connectOut[baseIdx * maxNumElemNodes_+3] = idx8;
     regionsOut[baseIdx] = regionIdx;
-    elemTypesOut[baseIdx] = ET_QUAD4;
+    elemTypesOut[baseIdx] = Elem::QUAD4;
   
     baseIdx = 4 * elemIdx + 1;
     connectOut[baseIdx * maxNumElemNodes_+0] = idx5;
@@ -270,7 +271,7 @@ namespace CoupledField
     connectOut[baseIdx * maxNumElemNodes_+2] = idx6;
     connectOut[baseIdx * maxNumElemNodes_+3] = idx9;
     regionsOut[baseIdx] = regionIdx;
-    elemTypesOut[baseIdx] = ET_QUAD4;
+    elemTypesOut[baseIdx] = Elem::QUAD4;
  
     baseIdx = 4 * elemIdx + 2;
     connectOut[baseIdx * maxNumElemNodes_+0] = idx9;
@@ -278,7 +279,7 @@ namespace CoupledField
     connectOut[baseIdx * maxNumElemNodes_+2] = idx3;
     connectOut[baseIdx * maxNumElemNodes_+3] = idx7;
     regionsOut[baseIdx] = regionIdx;
-    elemTypesOut[baseIdx] = ET_QUAD4;
+    elemTypesOut[baseIdx] = Elem::QUAD4;
 
     baseIdx = 4 * elemIdx + 3;
     connectOut[baseIdx * maxNumElemNodes_+0] = idx8;
@@ -286,7 +287,7 @@ namespace CoupledField
     connectOut[baseIdx * maxNumElemNodes_+2] = idx7;
     connectOut[baseIdx * maxNumElemNodes_+3] = idx4;
     regionsOut[baseIdx] = regionIdx;
-    elemTypesOut[baseIdx] = ET_QUAD4;
+    elemTypesOut[baseIdx] = Elem::QUAD4;
 
   }
 
@@ -403,7 +404,7 @@ namespace CoupledField
       
       regions_.push_back(region + numRegions);
 
-      elemTypes_.push_back(ET_QUAD4);
+      elemTypes_.push_back(Elem::QUAD4);
     }
 
     nodeGroups_["outer_face_bottom_pole"].push_back(25 + nodeOffset);
@@ -439,6 +440,8 @@ namespace CoupledField
     UInt nodeOffsetTop;
     UInt p1, p2, p3, p4, p5, p6, p7, p8, p9;
     UInt region;
+
+    p1 = p2 = p3 = p4 = p5 = p6 = p7 = p8 = p9 = 0;
 
     numRegions = regionBaseNames_.size();
     
@@ -521,16 +524,16 @@ namespace CoupledField
             connect_[elem*maxNumElemNodes_+24] = p9 + nodeOffsetBottom;
             connect_[elem*maxNumElemNodes_+25] = p9 + nodeOffsetTop;
             connect_[elem*maxNumElemNodes_+26] = p9 + nodeOffsetMiddle;
-            elemTypes_.push_back(ET_HEXA27);
+            elemTypes_.push_back(Elem::HEXA27);
           }
           else
           {
-            elemTypes_.push_back(ET_HEXA20);
+            elemTypes_.push_back(Elem::HEXA20);
           }
         }
         else 
         {
-          elemTypes_.push_back(ET_HEXA8);
+          elemTypes_.push_back(Elem::HEXA8);
         }
         
         regions_.push_back(region + numRegions);
@@ -552,6 +555,11 @@ namespace CoupledField
     UInt p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13;
     UInt region;
     UInt numElems;
+
+    p1 = p2 = p3 = p4 = p5 = p6 = p7 = p8 = p9 = p10 = p11 = p12 = p13 = 0;
+    nodeOffsetTop = 0;
+    nodeOffsetUpper = 0;
+    nodeOffsetLower = 0;
     
     numRegions = regionBaseNames_.size();
     
@@ -632,11 +640,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p12 + nodeOffsetLower;
           connect_[elem*maxNumElemNodes_+12] = p13 + nodeOffsetLower;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
         
         regions_.push_back(region + numRegions);
@@ -661,11 +669,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p11 + nodeOffsetUpper;
           connect_[elem*maxNumElemNodes_+12] = p10 + nodeOffsetUpper;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
 
         regions_.push_back(region + numRegions);
@@ -690,11 +698,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p12 + nodeOffsetUpper;
           connect_[elem*maxNumElemNodes_+12] = p11 + nodeOffsetUpper;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
 
         regions_.push_back(region + numRegions);
@@ -719,11 +727,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p13 + nodeOffsetUpper;
           connect_[elem*maxNumElemNodes_+12] = p12 + nodeOffsetUpper;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
 
         regions_.push_back(region + numRegions);
@@ -748,11 +756,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p10 + nodeOffsetUpper;
           connect_[elem*maxNumElemNodes_+12] = p13 + nodeOffsetUpper;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
 
         regions_.push_back(region + numRegions);
@@ -777,11 +785,11 @@ namespace CoupledField
           connect_[elem*maxNumElemNodes_+11] = p12 + nodeOffsetUpper;
           connect_[elem*maxNumElemNodes_+12] = p13 + nodeOffsetUpper;
 
-          elemTypes_.push_back(ET_PYRA13);
+          elemTypes_.push_back(Elem::PYRA13);
         }
         else
         {
-          elemTypes_.push_back(ET_PYRA5);
+          elemTypes_.push_back(Elem::PYRA5);
         }
 
         regions_.push_back(region + numRegions);
@@ -823,11 +831,11 @@ namespace CoupledField
         if(outer)
           connect_[connectOffset + 8] += nodeOffsetOuter;
 
-        elemTypes_[i] = ET_QUAD9;
+        elemTypes_[i] = Elem::QUAD9;
       }
       else 
       {
-        elemTypes_[i] = ET_QUAD8;
+        elemTypes_[i] = Elem::QUAD8;
       }
       
       connectOffset += maxNumElemNodes_;
@@ -999,7 +1007,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 9;
     connect_[elem * maxNumElemNodes_ + 3] = 1;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 25;
@@ -1007,7 +1015,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 2;
     connect_[elem * maxNumElemNodes_ + 3] = 9;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 11;
@@ -1015,7 +1023,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 10;
     connect_[elem * maxNumElemNodes_ + 3] = 25;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 4;
@@ -1023,7 +1031,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 25;
     connect_[elem * maxNumElemNodes_ + 3] = 12;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
 
@@ -1033,7 +1041,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 21;
     connect_[elem * maxNumElemNodes_ + 3] = 17;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 9;
@@ -1041,7 +1049,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 18;
     connect_[elem * maxNumElemNodes_ + 3] = 21;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 21;
@@ -1049,7 +1057,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 6;
     connect_[elem * maxNumElemNodes_ + 3] = 13;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 17;
@@ -1057,7 +1065,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 13;
     connect_[elem * maxNumElemNodes_ + 3] = 5;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
 
@@ -1067,7 +1075,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 22;
     connect_[elem * maxNumElemNodes_ + 3] = 18;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 10;
@@ -1075,7 +1083,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 19;
     connect_[elem * maxNumElemNodes_ + 3] = 22;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 22;
@@ -1083,7 +1091,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 7;
     connect_[elem * maxNumElemNodes_ + 3] = 14;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 18;
@@ -1091,7 +1099,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 14;
     connect_[elem * maxNumElemNodes_ + 3] = 6;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     // Back
@@ -1100,7 +1108,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 23;
     connect_[elem * maxNumElemNodes_ + 3] = 19;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 11;
@@ -1108,7 +1116,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 20;
     connect_[elem * maxNumElemNodes_ + 3] = 23;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 23;
@@ -1116,7 +1124,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 8;
     connect_[elem * maxNumElemNodes_ + 3] = 15;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 19;
@@ -1124,7 +1132,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 15;
     connect_[elem * maxNumElemNodes_ + 3] = 7;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
 
@@ -1134,7 +1142,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 24;
     connect_[elem * maxNumElemNodes_ + 3] = 20;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 12;
@@ -1142,7 +1150,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 17;
     connect_[elem * maxNumElemNodes_ + 3] = 24;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 24;
@@ -1150,7 +1158,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 5;
     connect_[elem * maxNumElemNodes_ + 3] = 16;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 20;
@@ -1158,7 +1166,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 16;
     connect_[elem * maxNumElemNodes_ + 3] = 8;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
 
@@ -1168,7 +1176,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 26;
     connect_[elem * maxNumElemNodes_ + 3] = 16;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 13;
@@ -1176,7 +1184,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 14;
     connect_[elem * maxNumElemNodes_ + 3] = 26;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 26;
@@ -1184,7 +1192,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 7;
     connect_[elem * maxNumElemNodes_ + 3] = 15;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     connect_[elem * maxNumElemNodes_ + 0] = 16;
@@ -1192,7 +1200,7 @@ namespace CoupledField
     connect_[elem * maxNumElemNodes_ + 2] = 15;
     connect_[elem * maxNumElemNodes_ + 3] = 8;
 
-    elemTypes_.push_back(ET_QUAD4);
+    elemTypes_.push_back(Elem::QUAD4);
     elem++;
 
     if(octantRegions_) 
@@ -1356,7 +1364,7 @@ namespace CoupledField
 #if 0
     TriangulateQuads(connect, connect2, regions, regions2);
     maxNumElemNodes = 3;
-    elemType = ET_TRIA3;
+    elemType = Elem::TRIA3;
     
     connect = connect2;
     connect2.clear();

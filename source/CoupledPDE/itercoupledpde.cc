@@ -291,7 +291,7 @@ namespace CoupledField
 
   void IterCoupledPDE::ToInfo(InfoNode* base)
   {
-    CFSVector *val;
+    SingleVector *val;
     StdVector<UInt> * nodes;
     StdVector<std::string> couplingRegions;
     std::string couplingTypeAux, quantityAux, regionTypeAux, normTypeAux;

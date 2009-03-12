@@ -4,6 +4,9 @@
 
 #include "assemble.hh"
 
+#include <iostream>
+#include <iomanip>
+
 #include "Domain/entityList.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linearForm.hh"
@@ -14,6 +17,7 @@
 #include "Driver/harmonicDriver.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField
 {
@@ -123,8 +127,8 @@ namespace CoupledField
     // If the datatype of the bilinearformcontext is "COMPLEX"
     // we have to ensure that we are in an harmonic case.
     // Otherwise we issue an error
-    if( (biLinContext->GetEntryType() == IMAG ||
-         biLinContext->GetEntryType() == COMPLEX )
+    if( (biLinContext->GetEntryType() == Global::IMAG ||
+         biLinContext->GetEntryType() == Global::COMPLEX )
         && analysisType_ != BasePDE::HARMONIC ) {
       EXCEPTION( "Can not add integrator '"
                  << biLinContext->GetIntegrator()->GetName()
@@ -244,16 +248,13 @@ namespace CoupledField
 
             // Pass entity eqn-connectivity to algebraic system
             if( !doTranspose ) {
-            algsys_->
-              SetElementPos( id1, eqnVec1.GetPointer(), eqnVec1.GetSize(),
-                             id2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                             setCounterPart );
+              algsys_-> SetElementPos( id1, eqnVec1,
+                                       id2, eqnVec2,
+                                       setCounterPart );
             } else {
-              algsys_->
-              SetElementPos( id2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                             id1, eqnVec1.GetPointer(), eqnVec1.GetSize(),
-                             setCounterPart );
-
+              algsys_-> SetElementPos( id2, eqnVec2,
+                                       id1, eqnVec1,
+                                       setCounterPart );
             }
 
             // increment iterators
@@ -359,17 +360,17 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
           if (form->IsComplex()) {
-            if ((eqnVec1.GetSize() != elemMatrixC.GetSizeRow())
-                || (eqnVec2.GetSize() != elemMatrixC.GetSizeCol())) {
+            if ((eqnVec1.GetSize() != elemMatrixC.GetNumRows())
+                || (eqnVec2.GetSize() != elemMatrixC.GetNumCols())) {
               EXCEPTION("An element matrix returned by integrator '"
                         << form->GetName() << "' has the wrong size.");
             }
           }
           else {
-            if ((eqnVec1.GetSize() != elemMatrix.GetSizeRow())
-                || (eqnVec2.GetSize() != elemMatrix.GetSizeCol())) {
-              std::cerr << "elemMat (" << elemMatrix.GetSizeRow() << " x "
-              << elemMatrix.GetSizeCol() << "):\n";
+            if ((eqnVec1.GetSize() != elemMatrix.GetNumRows())
+                || (eqnVec2.GetSize() != elemMatrix.GetNumCols())) {
+              std::cerr << "elemMat (" << elemMatrix.GetNumRows() << " x "
+              << elemMatrix.GetNumCols() << "):\n";
               std::cerr << elemMatrix << std::endl;
               std::cerr << "eqnVec1: " << eqnVec1.Serialize() << std::endl;
               std::cerr << "eqnVec2: " << eqnVec2.Serialize() << std::endl;
@@ -509,32 +510,21 @@ namespace CoupledField
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, pdeId );
 
-            // We copy the complex vector 'elemVec' to a double vector
-            //  'harmVec' which has real and imaginary part in consecutive
-            //  order and has double length
-            Vector<Double> harmVec;
+
+
+#ifndef NDEBUG
             Integer size = elemVec.GetSize();
-            harmVec.Resize(2*size);
-
             Integer k=0;
-            //real part
             for (Integer i=0; i<size; i++) {
-              harmVec[k] = elemVec[i].real();
-              if( std::isnan(harmVec[k]) || std::isinf(harmVec[k]) )
+              if( std::isnan(elemVec[k].real()) || std::isinf(elemVec[k].real()) )
+                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
+              if( std::isnan(elemVec[k].imag()) || std::isinf(elemVec[k].imag()) )
                 EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
               k++;
             }
-            //imaginary part
-            for (Integer i=0; i<size; i++) {
-              harmVec[k] = elemVec[i].imag();
-              if( std::isnan(harmVec[k]) || std::isinf(harmVec[k]) )
-                EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
-              k++;
-            }
-
-            algsys_-> SetElementRHS( harmVec.GetPointer(),
-                                     pdeId, eqnVec.GetPointer(),
-                                     eqnVec.GetSize() );
+#endif
+            algsys_-> SetElementRHS( elemVec,
+                                     pdeId, eqnVec );
           }
 
         } else {
@@ -550,16 +540,17 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, pdeId );
-
+            
+#ifndef NDEBUG
             for (Integer i=0, size = elemVec.GetSize(); i<size; i++) {
               if( std::isnan(elemVec[i]) || std::isinf(elemVec[i]) )
                 EXCEPTION("Trying to assemble nan/inf in AssembleRHSLinForms!");
             }
+#endif
 
             // Pass element vector to algebraic system
-            algsys_-> SetElementRHS( elemVec.GetPointer(),
-                                     pdeId, eqnVec.GetPointer(),
-                                     eqnVec.GetSize() );
+            algsys_-> SetElementRHS( elemVec,
+                                     pdeId, eqnVec );
           }
 
         }
@@ -627,19 +618,21 @@ namespace CoupledField
                 parser->SetExpr( mHandle_, actLoad.phase  );
                 phase = parser->Eval( mHandle_ );
 
+#ifndef NDEBUG
                 if( std::isnan(val) || std::isinf(val) ||
                     std::isnan(phase) || std::isinf(phase))
                   EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-
+#endif
                 Complex complexValue( val * cos( phase / 180 * PI ),
                                       val * sin( phase / 180 * PI ) );
 
                 algsys_->SetNodeRHS(complexValue, eqnMap.GetPdeId(),
                                     eqns[iEqn] );
               } else {
-
+#ifndef NDEBUG
                 if( std::isnan(val) || std::isinf(val))
                   EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
+#endif
 
                 algsys_->SetNodeRHS(val, eqnMap.GetPdeId(),
                                     eqns[iEqn] );
@@ -691,7 +684,8 @@ namespace CoupledField
       form->Get("region")->SetValue(regionName);
 
       // matrix type
-      form->Get("matrix")->SetValue(OLAS::Enum2String(context.GetDestMat()));
+      std::string tmp;
+      Enum2String(context.GetDestMat(), tmp );
     }
 
     list = in->Get("rhsLinearForms");
@@ -749,190 +743,88 @@ namespace CoupledField
     }
   }
 
-  void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
+  void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
-                                 DataType entryType,
+                                 Global::ComplexPart entryType,
                                  Double omega ) {
 
-    Integer numRow = origMat.GetSizeRow();
-    Integer numCol = origMat.GetSizeCol();
-    harmMat.Resize(2*numRow*numCol);
-    harmMat.Init();
-    Integer k=0;
-    Double factor;
-
-    assert(entryType == REAL || entryType == IMAG);
-
-    if (entryType == REAL)
-    {
-      switch(matrixType)
-      {
+    Double factor = 0.0;
+    UInt derivOrder = 0;
+    // first determine factor of due to time derivative: d/dt = jOmega
+    // 0: stiffness
+    // 1: damping / mass
+    // 2: mass
+    switch( matrixType ) {
       case STIFFNESS:
-      case AUXILIARY:
-
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = origMat[row][col];
-            k++;
-          }
+        derivOrder = 0;
+        factor = 1;
         break;
-
+      case DAMPING:
+        derivOrder = 1;
+        factor = omega;
+        break;
       case MASS:
-
-        // NOTE: here we have to distinguish, if the
-        //  mass matrix is associated with first
-        // or second order time derivative
         if( maxTimeDerivOrder_ == 2 ) {
+          derivOrder = 2;
           factor = -omega*omega;
-          for (Integer row=0; row<numRow; row++)
-            for (Integer col=0; col<numCol; col++) {
-              harmMat[k] = factor*origMat[row][col];
-              k++;
-            }
         } else {
+          derivOrder = 1;
           factor = omega;
-          k=numRow*numCol;
-          for (Integer row=0; row<numRow; row++)
-            for (Integer col=0; col<numCol; col++) {
-              harmMat[k] = factor*origMat[row][col];
-              k++;
-            }
         }
         break;
-
-      case DAMPING:
-
-        factor = omega;
-
-        k=numRow*numCol;
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = factor*origMat[row][col];
-            k++;
-          }
-        break;
-
-      default: EXCEPTION("case " << matrixType << " not implemented");
-      }// end switch
-    } // end, if matatType == real...
-    else
-    {  // the "imaginary parts"
-      switch(matrixType)
-      {
-      case STIFFNESS:
-
-        k=numRow*numCol;
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = origMat[row][col];
-            k++;
-          }
-        break;
-
-      case MASS:
-        // NOTE: here we have to distinguish, if the
-        //  mass matrix is associated with first
-        // or second order time derivative
-        if( maxTimeDerivOrder_ == 2 ) {
-          factor = -omega*omega;
-          k=numRow*numCol;
-          for (Integer row=0; row<numRow; row++)
-            for (Integer col=0; col<numCol; col++) {
-              harmMat[k] = factor*origMat[row][col];
-              k++;
-            }
-        } else {
-          factor = omega;
-          k=0;
-          for (Integer row=0; row<numRow; row++)
-            for (Integer col=0; col<numCol; col++) {
-              harmMat[k] = -factor*origMat[row][col];
-              k++;
-            }
-        }
-        break;
-
-      case DAMPING:
-        factor = omega;
-        k=0;
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = -factor*origMat[row][col];
-            k++;
-          }
-        break;
-
-      default: EXCEPTION("case " << matrixType << " not implemented");
-      }// end switch
-    } // end if matType == imag
+      default:
+        EXCEPTION("No default conversion from double entries to matrix type"
+                  << matrixType << "known" );
+    }
+    
+    // determine if destination is real / imaginary part
+    // if time derivative is 0 or 2, a real part stay a real part
+    // and a imaginary one a imaginary one.
+    // Only if the derivative oder = 1, we have to interchange them
+    Global::ComplexPart destType;
+    if( derivOrder == 1 ) {
+      destType = (entryType == Global::REAL) ? Global::IMAG : Global::REAL;
+    } else {
+      destType = entryType;
+    } 
+    
+    harmMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+    harmMat.SetPart( destType, origMat );
+    harmMat *= factor;
   }
 
-
-  void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
+  void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
                                  Matrix<Complex>& origMat,
                                  FEMatrixType matrixType,
-                                 DataType entryType,
+                                 Global::ComplexPart entryType,
                                  Double omega ) {
-
-    Integer numRow = origMat.GetSizeRow();
-    Integer numCol = origMat.GetSizeCol();
-    harmMat.Resize(2*numRow*numCol);
-    harmMat.Init();
-    Integer k=0;
-    Double factor;
-
-    UInt offset = numRow*numCol;
-
-    switch(matrixType)
-    {
-    case STIFFNESS:
-
-      for (Integer row=0; row<numRow; row++)
-        for (Integer col=0; col<numCol; col++) {
-          harmMat[k] = origMat[row][col].real();
-          harmMat[k+offset] = origMat[row][col].imag();
-          k++;
+                                 
+    Complex factor(0.0, 0.0);
+    // first determine factor of due to time derivative: d/dt = jOmega
+    // 0: stiffness
+    // 1: damping / mass
+    // 2: mass
+    switch( matrixType ) {
+      case STIFFNESS:
+        factor = Complex(1.0, 0.0);
+        break;
+      case DAMPING:
+        factor = Complex(0.0, omega);
+        break;
+      case MASS:
+        if( maxTimeDerivOrder_ == 2 ) {
+          factor = Complex(-omega*omega, 0.0);
+        } else {
+          factor = Complex(0.0, omega);
         }
-      break;
+        break;
+      default:
+        EXCEPTION("No default conversion from double entries to matrix type"
+                  << matrixType << "known" );
+    }
+    harmMat = origMat * factor;
 
-    case MASS:
-
-      // NOTE: here we have to distinguish, if the
-      //  mass matrix is associated with first
-      // or second order time derivative
-      if( maxTimeDerivOrder_ == 2 ) {
-        factor = -omega*omega;
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = factor*origMat[row][col].real();
-            harmMat[k+offset] = factor*origMat[row][col].imag();
-            k++;
-          }
-      } else {
-        factor = omega;
-        for (Integer row=0; row<numRow; row++)
-          for (Integer col=0; col<numCol; col++) {
-            harmMat[k] = -factor*origMat[row][col].imag();
-            harmMat[k+offset] = factor*origMat[row][col].real();
-            k++;
-          }
-      }
-      break;
-
-    case DAMPING:
-
-      factor = omega;
-      for (Integer row=0; row<numRow; row++)
-        for (Integer col=0; col<numCol; col++) {
-          harmMat[k] = -factor*origMat[row][col].imag();
-          harmMat[k+offset] = factor*origMat[row][col].real();
-          k++;
-        }
-      break;
-
-    default: EXCEPTION("case " << matrixType << " not implemented");
-    } // end switch
   }
 
 
@@ -992,6 +884,11 @@ namespace CoupledField
     isSymmetric[MASS] = true;
     isSymmetric[STIFFNESS] = true;
     isSymmetric[DAMPING] = true;
+    
+    // set collecting all result types
+    
+    // set collecting all diagonal-positions
+    std::set<shared_ptr<ResultInfo> > allResults, diagResults;
 
 
     // iterate over all bilinear forms
@@ -1040,24 +937,28 @@ namespace CoupledField
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
 
+    Matrix<Complex> harmMat;
     // if destination matrix is NOTYPE -> leave
     if( mappedDest == NOTYPE )
       return;
 
-    Vector<Double> harmMat;
+#ifndef NDEBUG
     Double* dat_ptr = NULL;
-
     dat_ptr = elemMat.GetDataPointer();
-    for(UInt i=0, n=elemMat.GetSizeCol() * elemMat.GetSizeRow(); i<n; i++) {
+    for(UInt i=0, n=elemMat.GetNumCols() * elemMat.GetNumRows(); i<n; i++) {
       if( std::isnan(dat_ptr[i]) || std::isinf(dat_ptr[i]) )
         EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
     }
+#endif
 
     if( analysisType_ == BasePDE::TRANSIENT
         || analysisType_ == BasePDE::STATIC
         || analysisType_ == BasePDE::EIGENFREQUENCY) {
+      algsys_->SetElementMatrix( mappedDest, elemMat,
+                                 pdeId1, eqnVec1,
+                                 pdeId2, eqnVec2,
+                                 context.IsSetCounterPart() );
 
-      dat_ptr = elemMat.GetDataPointer();
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);
 
@@ -1065,19 +966,20 @@ namespace CoupledField
       Double omega = freq * 2 * PI;
 
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
-
-      dat_ptr = harmMat.GetPointer();
+      algsys_->SetElementMatrix( mappedDest, harmMat,
+                                    pdeId1, eqnVec1,
+                                    pdeId2, eqnVec2,
+                                    context.IsSetCounterPart() );
     }
 
+#ifndef NDEBUG
     LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=["
-                       << StdVector<Double>::ToString(elemMat.GetSizeCol() * elemMat.GetSizeRow(), dat_ptr, 1)
+                       << StdVector<Double>::ToString(elemMat.GetNumCols() * elemMat.GetNumRows(), dat_ptr, 1)
                        << "]\neqnVec1=" << eqnVec1.ToString() <<
                        "\neqnVec2=" << eqnVec2.ToString() << std::endl;
+#endif
 
-    algsys_->SetElementMatrix( mappedDest, dat_ptr,
-                               pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(),
-                               pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                               context.IsSetCounterPart() );
+   
   }
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -1085,7 +987,7 @@ namespace CoupledField
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
                                PdeIdType pdeId1, PdeIdType pdeId2) {
-    Vector<Double> harmMat;
+    Matrix<Complex> harmMat;
 
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
@@ -1093,8 +995,9 @@ namespace CoupledField
     assert(mappedDest != NOTYPE);
     assert(analysisType_ == BasePDE::HARMONIC);
 
-    for(UInt i=0, m=elemMat.GetSizeRow(); i<m; i++) {
-      for(UInt j=0, n=elemMat.GetSizeCol(); j<n; j++) {
+#ifndef NDEBUG
+    for(UInt i=0, m=elemMat.GetNumRows(); i<m; i++) {
+      for(UInt j=0, n=elemMat.GetNumCols(); j<n; j++) {
         if( std::isnan(elemMat[i][j].real()) ||
             std::isinf(elemMat[i][j].real()) ||
             std::isnan(elemMat[i][j].imag()) ||
@@ -1102,15 +1005,14 @@ namespace CoupledField
           EXCEPTION("Trying to assemble nan/inf in InsertMatrix!");
       }
     }
+#endif
 
     Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
     Double omega = freq * 2 * PI;
 
     Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
 
-    algsys_->SetElementMatrix( mappedDest, harmMat.GetPointer(),
-                               pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(),
-                               pdeId2, eqnVec2.GetPointer(), eqnVec2.GetSize(),
-                               context.IsSetCounterPart() );
+    algsys_->SetElementMatrix( mappedDest, harmMat, pdeId1, eqnVec1,
+                               pdeId2, eqnVec2, context.IsSetCounterPart() );
   }
 }

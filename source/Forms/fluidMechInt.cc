@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
 
 #include "fluidMechInt.hh"
 
@@ -9,7 +10,11 @@ namespace CoupledField
 {
 
   FluidMechInt::FluidMechInt(Double aVal, Double bVal, bool movingMesh, std::string stabilType  )
-    : BaseForm(NULL), density_ (aVal), kinematicViscosity_ (bVal), movingMesh_(movingMesh), stabilType_(stabilType)
+    : BaseForm(NULL),
+      density_ (aVal),
+      kinematicViscosity_ (bVal),
+      stabilType_(stabilType),
+      movingMesh_(movingMesh)
   {
     name_ = "fluidMechInt";
 
@@ -101,7 +106,7 @@ namespace CoupledField
                                          const UInt & nrOfNodes, 
                                          const UInt & dofPerNode) {
 
-    Integer i;
+    UInt i;
     UInt j, k, dofPerElem;
     Matrix<Double> auxMat;
 
@@ -113,7 +118,7 @@ namespace CoupledField
 
     //==============================================================//
     if(nrOfNodes == 8 && dofPerNode == 3){
-      Error("LookUpTable is deactivated",__FILE__,__LINE__);
+      EXCEPTION("LookUpTable is deactivated");
       
       //check size of lookuptable and Matrix
       if((dofPerElem*dofPerElem) != lookuptable[0].size())
@@ -159,7 +164,7 @@ namespace CoupledField
                                             const UInt & dofPerNodeRow,
                                             const UInt & dofPerNodeCol) {
 
-    Integer i;
+    UInt i;
     UInt j, k, dofPerElemRow, dofPerElemCol;
     
     dofPerElemRow = nrOfFctRow * dofPerNodeRow;
@@ -190,7 +195,7 @@ namespace CoupledField
                                             const UInt & dofPerNodeRow,
                                             const UInt & dofPerNodeCol) {
 
-    Integer i;
+    UInt i;
     UInt j, k, dofPerElemRow, dofPerElemCol;
     
     dofPerElemRow = nrOfFctRow * dofPerNodeRow;
@@ -257,7 +262,7 @@ namespace CoupledField
       else if(nrFncs==8)
         m_k = 1.0/12.0;
       else 
-        Error("unknown element!!!",__FILE__,__LINE__);
+        EXCEPTION("unknown element!!!");
       
       //Double C_k = 1.0/(lambda_k*h_k*h_k);
       //Double h_kF = 100.0*h_k;
@@ -272,7 +277,7 @@ namespace CoupledField
       else{
 	std::cerr << "m_k=" << m_k << "; VelNorm=" << VelNorm << "; h_k=" << h_k << "; kinematicViscosity=" << kinematicViscosity <<std::endl;
         std::cerr << "VL2=" << VL2 << "; VL2AtIp=" << VL2AtIp << "; VMax=" << VMax << std::endl;
-        Error( "Re_k value is smaller than 1e-12;\n\n\n !!! INCREAS VMIN !!!\n", __FILE__, __LINE__);
+        EXCEPTION( "Re_k value is smaller than 1e-12;\n\n\n !!! INCREAS VMIN !!!\n");
       }
 
       tau_mp  = ( h_k * zeta ) / ( 2.0 * VelNorm );
@@ -310,7 +315,7 @@ namespace CoupledField
       else if(nrFncs==8)
         m_k = 1.0/12.0;
       else 
-        Error("unknown element!!!",__FILE__,__LINE__);
+        EXCEPTION("unknown element!!!");
 
       Double zeta1, zeta2;
       Double delta=0.5*dt_;
@@ -324,14 +329,14 @@ namespace CoupledField
       else if (Re_k >= 1.0)
         zeta2 = 1.0;
       else
-        Error( "Re_k value is smaller than 0!", __FILE__, __LINE__);
+        EXCEPTION( "Re_k value is smaller than 0!");
 
       if (Pe_k >= 0.0 && Pe_k < 1.0)
         zeta1 = Pe_k;
       else if (Pe_k >= 1.0)
         zeta1 = 1.0;
       else
-        Error( "Pe_k value is smaller than 0!", __FILE__, __LINE__);
+        EXCEPTION( "Pe_k value is smaller than 0!");
 
           
       tau_mp  = ( h_k * h_k ) / ( (h_k*h_k*zeta1/delta)+(4*kinematicViscosity*zeta2/m_k) );
@@ -375,7 +380,7 @@ namespace CoupledField
       else if (Re_k >= 1.0)
         zeta = 1.0;
       else
-        Error( "Re_k value is smaller than 1e-9!", __FILE__, __LINE__);
+        EXCEPTION( "Re_k value is smaller than 1e-9!");
 
       tau_mp = zeta / (sqrt(lambda_k)*VelNorm );
       tau_mu = tau_mp;
@@ -395,7 +400,7 @@ namespace CoupledField
         tau_mp = C3/VelNorm;
       }
       else
-        Error( "Re_k value is smaller than 1e-9!", __FILE__, __LINE__);
+        EXCEPTION( "Re_k value is smaller than 1e-9!");
 
       tau_mu = tau_mp;
       tau_c = 0.0;
@@ -418,7 +423,7 @@ namespace CoupledField
       else if (Re_k >= 1.0)
         zeta = 1.0;
       else
-        Error( "Re_k value is smaller than 1e-9!", __FILE__, __LINE__);
+        EXCEPTION( "Re_k value is smaller than 1e-9!");
       
       tau_mp  = ( h_k * zeta ) / ( 2.0 * VelNorm );
       tau_c =  ( lambda * VelNorm * h_k * zeta );
@@ -439,7 +444,7 @@ namespace CoupledField
 //      
 //    }
     else
-      Error( "So what: Wall, Codina, Franca or generalized Eigenvalue???", __FILE__, __LINE__);
+      EXCEPTION( "So what: Wall, Codina, Franca or generalized Eigenvalue???");
 
     //Info->PrintF( stabParamEsti_, "tau_mp = %e   tau_c = %e   h_k = %e   VelNorm = %e   \n", tau_mp, tau_c, h_k, VelNorm);
   }
@@ -466,8 +471,8 @@ namespace CoupledField
 //       computeTaus_=false;
     
 
-//     Vx_.Resize(nrFncs);//Vx_.Init(0.0);
-//     Vy_.Resize(nrFncs);//Vy_.Init(0.0);
+//     Vx_.Resize(nrFncs);//Vx_.Init();
+//     Vy_.Resize(nrFncs);//Vy_.Init();
     
 //     for (UInt i=0; i<nrFncs; i++) {
 //       Vx_[i]=elemResult_[0][i];

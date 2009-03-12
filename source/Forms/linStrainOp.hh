@@ -9,8 +9,6 @@
 #include "Utils/tools.hh"
 #include "Utils/StdVector.hh"
 
-#include "olas.hh"
-
 namespace CoupledField
 {
 
@@ -58,7 +56,7 @@ namespace CoupledField
       \param ptElem (input) Pointer to element
       \param LCoord (input) Local coordinates of evaluation point
     */
-    virtual void CalcElemLinearStrain(CFSVector & linStrain,
+    virtual void CalcElemLinearStrain(SingleVector & linStrain,
                                    const Elem * ptElement,
                                    Matrix<Double> & LCoord);
   
@@ -69,7 +67,7 @@ namespace CoupledField
       \param SD (input) Name of the subdomain
       \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcSDLinearStrain(CFSVector & linStrain,
+    virtual void CalcSDLinearStrain(SingleVector & linStrain,
                                  const StdVector<RegionIdType> & SD,
                                  Matrix<Double> & lCoord);
 

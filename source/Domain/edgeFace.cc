@@ -3,20 +3,20 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "edgeFace.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
 
   // static variable initialization
   
-  Char Face::quadBits[4][4] = 
+  char Face::quadBits[4][4] = 
     { { 0, 7, 0, 6,},
       { 3, 0, 2, 0,},
       { 0, 0, 0, 1,},
       { 4, 0, 5, 0,} };
   
-  Char Face::triaBits[3][3] = 
+  char Face::triaBits[3][3] = 
     { { 0, 0, 0, },
       { 0, 0, 0, },
       { 0, 0, 0, } };
@@ -48,7 +48,7 @@ namespace CoupledField {
 
   void Face::Normalize( std::bitset<3>& flags) {
     
-    Vector<UInt> indices( nodes.GetSize() );
+    StdVector<UInt> indices( nodes.GetSize() );
     UInt size = nodes.GetSize();
     
     // initialize indices array

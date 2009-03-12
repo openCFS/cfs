@@ -52,7 +52,7 @@ namespace CoupledField
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
-    {Error("SolveStepTrans4Slice not implemented!",__FILE__,__LINE__);};
+    {EXCEPTION("SolveStepTrans4Slice not implemented!");};
 
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() = 0;
@@ -73,7 +73,7 @@ namespace CoupledField
     virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies,
                                        Vector<Double> & errBounds,
                                        UInt numFreq, Double shift ) {
-      Error( "Not implemented her!", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented her!");
       return 0;
     }
 
@@ -81,15 +81,29 @@ namespace CoupledField
     virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
                                        Vector<Double> & errBounds,
                                        UInt numFreq, Double shift ) {
-      Error( "Not implemented her!", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here!" );
       return 0;
     }
     
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     virtual void CalcEigenMode( UInt numMode ) {
-      Error( "Not implemented her!", __FILE__, __LINE__ );
+      EXCEPTION( "Not implemented here!" );
     }
+
+    //----------------------- TRANSIENTHARMONIC------------------------------
+    //! routine for initilizations before execution of the SolveStep-method
+    virtual void PreStepTransHarmonic( )
+    {EXCEPTION("PreStepTransHarmonic not implemented!");};
+
+    //! base method for solving one transient-harmonic coupled step
+    virtual void SolveStepTransHarmonic()
+    {EXCEPTION("SolveStepTransHarmonic not implemented!");};
+
+    //! routine for actions after the SolveStep-method
+    virtual void PostStepTransHarmonic()
+    {EXCEPTION("PostStepTransHarmonic not implemented!");};
+
 
     //----------------------- SET/ GET METHODS--------------------------------
 

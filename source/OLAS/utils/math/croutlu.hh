@@ -7,11 +7,15 @@
 
 #include <vector>
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
+#include <def_expl_templ_inst.hh>
 
+#include "General/defs.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  template<typename> class CRS_Matrix;
+  template<typename> class Vector;
+  
 
   //! (I)LU factorisation of a matrix by Crout variant of Gaussian Elimination
 
@@ -249,7 +253,7 @@ namespace OLAS {
     // Free all dynamically allocated memory
     void DeleteDynamicDataStructures();
 
-#ifdef DEBUG_CROUTLU
+    #ifdef DEBUG_CROUTLU
     //! Output content of an STL vector to screen (for debugging purposes)
     template<typename vecT>
     void PrintVector( const vecT &vec, const char *vecName ) const {
@@ -259,10 +263,14 @@ namespace OLAS {
       }
       (*debug) << std::endl;
     };
-#endif
+    #endif
 
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "croutlu.cc"
+#endif
 
 #endif

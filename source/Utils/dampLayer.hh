@@ -5,8 +5,8 @@
 #ifndef FILE_DAMPLAYER
 #define FILE_DAMPLAYER
 
-#include "Matrix/matrix.hh"
-#include "Utils/vector.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Domain/elem.hh"
 #include "Elements/basefe.hh"
 #include "Domain/entityList.hh"

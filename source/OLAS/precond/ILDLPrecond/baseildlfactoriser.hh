@@ -5,9 +5,14 @@
 #ifndef BASE_ILD_FACTORISER_HH
 #define BASE_ILD_FACTORISER_HH
 
-#include "matvec/matvec.hh"
+#include "General/defs.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  template<typename> class SCRS_Matrix;
+  class OLAS_Params;
+  class OLAS_Report;
+
 
   //! Base class for all incomplete LDL factorisation variants
 

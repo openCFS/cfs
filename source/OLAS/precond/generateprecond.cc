@@ -4,31 +4,22 @@
 
 #include <def_use_lapack.hh>
 
-#include "matvec/matvec.hh"
-#include "precond/precond.hh"
-#include "precond/idprecond.hh"
-#include "precond/generateprecond.hh"
+#include "OLAS/precond/idprecond.hh"
+#include "OLAS/precond/generateprecond.hh"
 
 // include source code for templated preconditioners
-#include "precond/jacprecond.cc"
-#include "precond/ssorprecond.cc"
-#include "precond/ilu0precond.cc"
-#include "precond/ilutpprecond.cc"
-#include "precond/ilukprecond.cc"
+#include "OLAS/precond/jacprecond.hh"
+#include "OLAS/precond/ssorprecond.hh"
+#include "OLAS/precond/ilu0precond.hh"
+#include "OLAS/precond/ilutpprecond.hh"
+#include "OLAS/precond/ilukprecond.hh"
 //#include "precond/mgprecond.cc"
-#include "precond/ILDLPrecond/ildlprecond.cc"
-#include "precond/ic0precond.cc"
+#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
+#include "OLAS/precond/ic0precond.hh"
 
-#if defined( __INTEL_COMPILER)
-#ifdef USE_LAPACK
-#include "external/lapack/lapack.hh"
-#include "external/lapack/lapackgbmatrix.cc"
-#endif
-#endif
+#include "MatVec/diag_matrix.hh"
 
-#include "matvec/diag_matrix.hh"
-
-namespace OLAS {
+namespace CoupledField {
 
 
   // *********************************************************
@@ -36,8 +27,8 @@ namespace OLAS {
   //   Its use also takes care of the instantiation in the
   //   case of the templated preconditioners
   // *********************************************************
-#define PRECOND_OBJ(matEntry,matStore,numDof,precondObjType)\
-if ((entryType==matEntry) && (storageType==matStore) && (dofNum==numDof)) {\
+#define PRECOND_OBJ(matEntry,matStore,precondObjType)\
+if ((entryType==matEntry) && (storageType==matStore) ) {\
 retVal = new precondObjType( mat, myParams, myReport );\
 (*cla) << " GenerateStdPrecondObject: Generated "\
        << MACRO2STRING(precondObjType)\
@@ -64,7 +55,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
   // **********************
   //   Generation routine
   // **********************
-  BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat, 
+  BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
                                             PrecondType ptype,
                                             OLAS_Params *myParams,
                                             OLAS_Report *myReport ) {
@@ -73,9 +64,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
     BaseStdPrecond *retVal = NULL;
 
     // Obtain matrix type information
-    MatrixEntryType entryType = mat.GetEntryType();
-    MatrixStorageType storageType = mat.GetStorageType();
-    Integer dofNum = mat.GetBlockSize();
+    BaseMatrix::EntryType entryType = mat.GetEntryType();
+    BaseMatrix::StorageType storageType = mat.GetStorageType();
 
     // Branch depending on desired preconditioner
     switch( ptype ) {
@@ -93,101 +83,98 @@ retVal = new precondObjType( mat, myParams, myReport );\
 	     << std::endl;
       break;
 
-      // ========================= 
+      // =========================
       //   Jacobi Preconditioner
-      // ========================= 
+      // =========================
     case JACOBI:
 
       // real crs jacobi
-      PRECOND_OBJ(DOUBLE,SPARSE_NONSYM,1,RCRSJacDof1);
+      PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_NONSYM,RCRSJacDof1);
       //complex crs jacobi
-      PRECOND_OBJ(COMPLEX,SPARSE_NONSYM,1,CCRSJacDof1);
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_NONSYM,CCRSJacDof1);
 
       //real scrs jacobi
-      PRECOND_OBJ(DOUBLE,SPARSE_SYM,1,RSCRSJacDof1);
+      PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_SYM,RSCRSJacDof1);
       //complex scrs jacobi
-      PRECOND_OBJ(COMPLEX,DIAG,1,CSCRSJacDof1);
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::DIAG,CSCRSJacDof1);
 
       //real diag jacobi
-      PRECOND_OBJ(DOUBLE,DIAG,1,RDIAGJacDof1);
+      PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::DIAG,RDIAGJacDof1);
       //complex diag jacobi
-      PRECOND_OBJ(COMPLEX,SPARSE_SYM,1,CDIAGJacDof1);
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_SYM,CDIAGJacDof1);
 
       break;
 
-      // ======================= 
+      // =======================
       //   SSOR Preconditioner
-      // ======================= 
+      // =======================
     case SSOR:
 
       // real crs SSOR
-      PRECOND_OBJ(DOUBLE,SPARSE_NONSYM,1,SSORPrecond<Double>);
+      PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_NONSYM,SSORPrecond<Double>);
       //complex crs SSOR
-      PRECOND_OBJ(COMPLEX,SPARSE_NONSYM,1,SSORPrecond<Complex>);
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_NONSYM,SSORPrecond<Complex>);
 
       break;
 
-      // ======================= 
+      // =======================
       //   ILU0 Preconditioner
-      // ======================= 
+      // =======================
     case ILU0:
 
       // real scalar ILU(0) (currently only in CRS)
-      PRECOND_OBJ( DOUBLE, SPARSE_NONSYM, 1, ILU0Precond<Double> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM,  ILU0Precond<Double> );
 
       // complex scalar ILU(0) (currently only in CRS)
-      PRECOND_OBJ( COMPLEX, SPARSE_NONSYM, 1, ILU0Precond<Complex> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_NONSYM, ILU0Precond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
       // of ILUPrecond.
-      if ( retVal == NULL ) { 
-	(*error) << " Request for unsupported version of ILU0Precond";
-	Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        EXCEPTION( " Request for unsupported version of ILU0Precond" );
       }
       break;
 
-      // ============================= 
+      // =============================
       //   ILU(tau,p) Preconditioner
-      // ============================= 
+      // =============================
     case ILUTP:
 
       // real scalar ILU(tau,p) (works with CRS_Matrix only)
-      PRECOND_OBJ( DOUBLE, SPARSE_NONSYM, 1, ILUTP_Precond<Double> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, ILUTP_Precond<Double> );
 
       // complex scalar ILU(tau,p) (works with CRS_Matrix only)
-      PRECOND_OBJ( COMPLEX, SPARSE_NONSYM, 1, ILUTP_Precond<Complex> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_NONSYM, ILUTP_Precond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
       // of ILUTP_Precond.
-      if ( retVal == NULL ) { 
-	(*error) << " Generation of ILUTP_Precond object failed! "
-		 << "Most likely this is due to request for an unsupported "
-		 << "version, i.e. non CRS_Matrix or non-scalar entries!";
-	Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        EXCEPTION( " Generation of ILUTP_Precond object failed! "
+            << "Most likely this is due to request for an unsupported "
+            << "version, i.e. non CRS_Matrix or non-scalar entries!" );
       }
       break;
 
-      // ========================= 
+      // =========================
       //   ILU(k) Preconditioner
-      // ========================= 
+      // =========================
     case ILUK:
 
       // real scalar ILU(k) (works with CRS_Matrix only)
-      PRECOND_OBJ( DOUBLE, SPARSE_NONSYM, 1, ILUK_Precond<Double> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, ILUK_Precond<Double> );
 
       // complex scalar ILU(k) (works with CRS_Matrix only)
-      PRECOND_OBJ( COMPLEX, SPARSE_NONSYM, 1, ILUK_Precond<Complex> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_NONSYM, ILUK_Precond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
       // of ILUK_Precond.
-      if ( retVal == NULL ) { 
-	(*error) << " Generation of ILUK_Precond object failed! "
-		 << "Most likely this is due to request for an unsupported "
-		 << "version, i.e. non CRS_Matrix or non-scalar entries!";
-	Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        EXCEPTION( " Generation of ILUK_Precond object failed! "
+            << "Most likely this is due to request for an unsupported "
+            << "version, i.e. non CRS_Matrix or non-scalar entries!" );
       }
       break;
 
@@ -208,37 +195,38 @@ retVal = new precondObjType( mat, myParams, myReport );\
       myParams->SetValue( "ILDLPRECOND_subType", ptype );
 
       // Generate preconditioner
-      PRECOND_OBJ( DOUBLE,  SPARSE_SYM, 1, ILDLPrecond<Double> );
-      PRECOND_OBJ( COMPLEX, SPARSE_SYM, 1, ILDLPrecond<Complex> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE,  BaseMatrix::SPARSE_SYM, ILDLPrecond<Double> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_SYM, ILDLPrecond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version.
-      if ( retVal == NULL ) { 
-	(*error) << "Generation of ILDLPrecond object (variant = "
-                 << Enum2String(ptype) << ") failed! "
-		 << "Most likely this is due to request for an unsupported "
-		 << "version, i.e. non SCRS_Matrix or non-scalar entries!";
-	Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        std::string tmp;
+        Enum2String( ptype, tmp );
+
+        EXCEPTION( "Generation of ILDLPrecond object (variant = "
+                   << tmp << ") failed! "
+                   << "Most likely this is due to request for an unsupported "
+                   << "version, i.e. non SCRS_Matrix or non-scalar entries!" );
       }
       break;
 
-      // ======================= 
+      // =======================
       //   IC0 Preconditioner
-      // ======================= 
+      // =======================
     case IC0:
 
       // real scalar IC(0) (currently only in CRS)
-      PRECOND_OBJ( DOUBLE, SPARSE_SYM, 1, IC0Precond<Double> );
+      PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_SYM, IC0Precond<Double> );
 
       // complex scalar IC(0) (currently only in CRS)
-      PRECOND_OBJ( COMPLEX, SPARSE_SYM, 1, IC0Precond<Complex> );
+      PRECOND_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_SYM, IC0Precond<Complex> );
 
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
       // of ICPrecond.
-      if ( retVal == NULL ) { 
-	(*error) << " Request for unsupported version of IC0Precond";
-	Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        EXCEPTION( " Request for unsupported version of IC0Precond" );
       }
       break;
 
@@ -253,9 +241,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // Test, if preconditioner object could be generated. If not, then
       // this is most likely due to a request for an unsupported version
       // of MGPrecond.
-      if ( retVal == NULL ) { 
-          (*error) << " Request for unsupported version of MGPrecond";
-          Error( __FILE__, __LINE__ );
+      if ( retVal == NULL ) {
+        EXCEPTION( " Request for unsupported version of MGPrecond" );
       }
       break;
 
@@ -264,21 +251,19 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // ======================
 
     default:
-      Error( "GeneratePrecondObject failed: Preconditioner type unknown",
-             __FILE__, __LINE__ );
+      EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
     }
 
     // test, if preconditioner object could be generated
     if ( retVal == NULL ) {
-      (*error) << "Something's broke. No preconditioner was generated!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Something's broke. No preconditioner was generated!" );
     }
 
     // Finished
     return retVal;
   }
-  
-  BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat, 
+
+  BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
                                             PrecondType ptype,
                                             OLAS_Params *myParams,
                                             OLAS_Report *myReport ) {
@@ -286,7 +271,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
     BaseSBMPrecond *retVal = NULL;
 
     // Obtain matrix type information
-    MatrixEntryType entryType = mat.GetEntryType();
+    // BaseMatrix::EntryType entryType = mat.GetEntryType(); TODO: Check if this is still needed.
 
     // Branch depending on desired preconditioner
     switch( ptype ) {
@@ -304,18 +289,16 @@ retVal = new precondObjType( mat, myParams, myReport );\
       << std::endl;
       break;
     default:
-      Error( "GeneratePrecondObject failed: Preconditioner type unknown",
-             __FILE__, __LINE__ );
+      EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
     }
 
     // test, if preconditioner object could be generated
     if ( retVal == NULL ) {
-      (*error) << "Something's broke. No preconditioner was generated!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Something's broke. No preconditioner was generated!" );
     }
 
     // Finished
     return retVal;
-      
+
   }
 }

@@ -5,13 +5,14 @@
 #ifndef OLAS_ILU0_PRECOND_HH
 #define OLAS_ILU0_PRECOND_HH
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
+#include <def_expl_templ_inst.hh>
 
-#include "precond/baseprecond.hh"
-#include "precond/bnprecond.hh"
+#include "baseprecond.hh"
+#include "bnprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
+
+  template<typename> class CRS_Matrix;
 
   //! ILU(0) Preconditioner
   
@@ -38,12 +39,15 @@ namespace OLAS {
 
   public:
 
+    using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Apply;
+    using BNPrecond<ILU0Precond<T>,CRS_Matrix<T>,T>::Setup;
+
     //!
-    typedef typename assocType<T>::T_Mtype T_Mtype;
+    typedef typename AssocType<T>::T_Mtype T_Mtype;
     //!
-    typedef typename assocType<T>::T_Vtype T_Vtype;
+    typedef typename AssocType<T>::T_Vtype T_Vtype;
     //!
-    typedef typename assocType<T>::T_Stype T_Stype;
+    typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor (for use in GenerateStdPrecondObject)
     ILU0Precond( const StdMatrix &mat, OLAS_Params *myParams,
@@ -104,6 +108,10 @@ namespace OLAS {
   };
 
 }//namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ilu0precond.cc"
+#endif
 
 #endif
 

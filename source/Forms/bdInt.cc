@@ -48,7 +48,7 @@ namespace CoupledField
                                              ent.GetElem());
 
 	if (jacDet < 0)
-	  Error("Negative Jacobian determinant!", __FILE__, __LINE__);
+	  EXCEPTION("Negative Jacobian determinant!");
 
 	if (isaxi_)
 	  {
@@ -205,7 +205,7 @@ namespace CoupledField
       }
     else
       {
-	Error("wrongh geomType(axi,planeStrein,3d) specified", __FILE__, __LINE__);  
+      EXCEPTION("wrongh geomType(axi,planeStrein,3d) specified");  
       }
     return 0;
   }
@@ -224,7 +224,7 @@ namespace CoupledField
       }
     else 
       {
-	Error("wrongh geomType(axi,planeStrein,3d) specified", __FILE__, __LINE__);
+      EXCEPTION("wrongh geomType(axi,planeStrein,3d) specified");
 	return -1;
       }    
   }
@@ -238,7 +238,7 @@ namespace CoupledField
     Warning( __FILE__, __LINE__ );
   //   name_ = "BDInt";
 //     geomType_ = geomType;
-//     ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
+//     ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,Global::REAL);
 
 //    StdVector<Double> fracDerivList_;
 //    params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );

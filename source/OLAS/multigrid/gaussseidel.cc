@@ -15,7 +15,7 @@
 #endif // DEBUG_TO_CERR
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -43,13 +43,13 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
 {
 
 #ifdef  DEBUG_GAUSSSEIDEL
-    if( matrix.GetNrows() <= 0 ) {
+    if( matrix.GetNumRows() <= 0 ) {
         Warning( "GaussSeidel::Setup called with an empty "
                  "matrix -> object reseted", __FILE__, __LINE__ );
         Reset();
         return false;
     }
-    for( Integer i = 1; i < matrix.GetNrows(); i++ ) {
+    for( Integer i = 1; i < matrix.GetNumRows(); i++ ) {
         if( matrix.GetColPointer()[matrix.GetRowPointer()[i]] != i ) {
             Error( "GaussSeidel::Setup: non-diagonal at leading position",
                    __FILE__, __LINE__ );
@@ -65,16 +65,16 @@ bool GaussSeidel<T>::Setup( const CRS_Matrix<T>& matrix )
     // old one cannot be reused. So first check, whether the old
     // one is present and has appropriate size.
     // Note: (Size_ == 0) <==> (DiagonalInverse_ == NULL)
-    // So it is sufficient to check (Size_ != matrix.GetNrows()),
+    // So it is sufficient to check (Size_ != matrix.GetNumRows()),
     // except of calls with an empty matrix.
-    if( Size_ != matrix.GetNrows() ) {
-        DeleteArray( DiagonalInverse_ );
+    if( Size_ != matrix.GetNumRows() ) {
+        DELETEARRAY( DiagonalInverse_ );
         DiagonalInverse_ = NULL;
     }
     // create a new array for the diagonal inverses
     if( DiagonalInverse_ == NULL ) {
-        Size_ = matrix.GetNrows();
-        NewArray( DiagonalInverse_, T_Mtype, Size_ );
+        Size_ = matrix.GetNumRows();
+        NEWARRAY( DiagonalInverse_, T_Mtype, Size_ );
     }
 
     const Integer *const pRow = matrix.GetRowPointer();
@@ -125,7 +125,7 @@ Step( const CRS_Matrix<T>&                  matrix,
     // check, wheter the setup is suppressed explicitely, although
     // the matrix size and the size of the GaussSeidel preparation
     // do not match
-    if( matrix.GetNrows() != Size_ ) {
+    if( matrix.GetNumRows() != Size_ ) {
         Warning( "suppressed setup in GaussSeidel::Step, but the "
                  "dimensions do not match", __FILE__, __LINE__ );
         return;
@@ -243,12 +243,12 @@ template <typename T>
 void GaussSeidel<T>::Reset()
 {
     
-    DeleteArray( DiagonalInverse_ ); // delete diagonal inverse
+    DELETEARRAY( DiagonalInverse_ ); // delete diagonal inverse
     DiagonalInverse_ = NULL;
     Size_            =    0;         // reset the size of the LES
     Omega_           =  1.0;         // reset damping factor
 
-    DeleteArray( PenaltyFlags_ );
+    DELETEARRAY( PenaltyFlags_ );
     PenaltyFlags_ = NULL;
 
     // call Reset() of base class
@@ -256,7 +256,7 @@ void GaussSeidel<T>::Reset()
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

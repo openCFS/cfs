@@ -74,10 +74,14 @@ namespace {
     };
 }
 
-logger_impl::logger_impl(const logging_types::log_name_string_type & name) : name(name), m_is_compile_time(false), m_level(level::default_) {
+logger_impl::logger_impl(const logging_types::log_name_string_type & name) :
+  name(name),
+  m_level(level::default_),
+  m_is_compile_time(false) {
 }
+
 logger_impl::~logger_impl() {
-    m_level = level::disable_all;
+  m_level = level::disable_all;
 }
 
 bool logger_impl::is_enabled(level_type lvl) const {
@@ -159,6 +163,7 @@ void logger_impl::write_msg(const logging_types::string & msg, level_type lvl) {
 
     logging_types::lock lk(cs);
     if ( !is_enabled(lvl) )
+    { // added this braces to prevent ambiguous 'else' 
         if ( !m_is_compile_time)
             // now, we're locked - thus, really make sure we're enabled... (in other words - the is_enabled() test
             // is not locked - for speed, but this one is)
@@ -166,6 +171,7 @@ void logger_impl::write_msg(const logging_types::string & msg, level_type lvl) {
         else
             ; // this is a compile-time enabled log
               // if we ended up here, it means we're enabled at compiled time
+    }
 
     // run modifiers
     { typedef modifier_array array;

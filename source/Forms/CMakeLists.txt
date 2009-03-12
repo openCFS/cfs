@@ -10,8 +10,6 @@ SET(FORMS_SRCS
   baseoperator.cc
   bdbInt.cc
   bdInt.cc
-  bubbleDampInt.cc
-  bubbleStiffInt.cc
   curlCurlEdgeInt.cc
   curlCurlNodeInt.cc
   curlfieldop.cc
@@ -24,7 +22,6 @@ SET(FORMS_SRCS
   FlatShellStiffInt.cc
   gradfieldop.cc
   laplaceInt.cc
-  laplaceXYZInt.cc
   linearForm.cc
   linElastInt.cc
   linElecInt.cc
@@ -53,12 +50,10 @@ SET(FORMS_SRCS
   nLinPiezoCoupling.cc
   nLinPiezoHyst.cc
   nLinPiezoHystRHS.cc
-  nLinStokesFluidInt.cc
   nonConformingInt.cc
   pierceInt.cc
   pmlBasics.cc
   PMLInt.cc
-  PMLTransXYZInt.cc
   singleEntryInt.cc
   smoothInt.cc
   smoothNLInt.cc
@@ -78,4 +73,6 @@ TARGET_LINK_LIBRARIES(forms
   domain
   materials
   mathparser
+  matvec
+  utils
 )

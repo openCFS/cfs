@@ -5,7 +5,10 @@
 #ifndef BASE_LANCZOS_HH
 #define BASE_LANCZOS_HH
 
-namespace OLAS {
+#include "MatVec/basematrix.hh"
+#include "OLAS/precond/baseprecond.hh"
+
+namespace CoupledField {
 
   //! For every symmetric (Hermitean) matrix \f$A\in \mathcal{K}^{n\times n}\f$
   //! (\f$\mathcal{K} = \mathcal{R}\mbox{ or }\mathcal{C}\f$) one can construct
@@ -88,7 +91,7 @@ namespace OLAS {
       q3.Add( - beta1, q1 );
       q2.Inner( q3, alpha2 );
       q3.Add( - alpha2, q2 );
-      beta2 = q3.NormEuclid();
+      beta2 = q3.NormL2();
       q3.ScalarDiv( beta2 );
 
     };
@@ -104,7 +107,7 @@ namespace OLAS {
       q3.Add( - beta1, q1 );
       q2.Inner( q3, alpha2 );
       q3.Add( - alpha2, q2 );
-      beta2 = q3.NormEuclid();
+      beta2 = q3.NormL2();
       q3.ScalarDiv( beta2 );
 
     };

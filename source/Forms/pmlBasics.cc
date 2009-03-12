@@ -21,7 +21,7 @@ namespace CoupledField
       formsType_ = type;
     }
     else {
-      Error("PMLInt: type must be laplaceInt or massInt", __FILE__, __LINE__);
+      EXCEPTION("PMLInt: type must be laplaceInt or massInt");
     }
 
     //check correct damping type
@@ -35,7 +35,7 @@ namespace CoupledField
       dampingTypePML_ = dampingTypePML;
     }
     else {
-      Error("Damping type for PML not known", __FILE__, __LINE__);
+      EXCEPTION("Damping type for PML not known");
     }
 
     dampingFactor_ = damp;
@@ -265,8 +265,7 @@ namespace CoupledField
       }
 
       if ( abs (maxPos - pos[idx]) < 1e-12 ) {
-	Error("PML damping inverseDist divides by factor smaller 1E-12",
-	      __FILE__,__LINE__);
+        EXCEPTION("PML damping inverseDist divides by factor smaller 1E-12");
       }
 
       //      std::cout << "maxPos =" << maxPos << std::endl;
@@ -289,14 +288,14 @@ namespace CoupledField
     minY_ = inner[0][1];
     maxY_ = inner[1][1];
 
-    if (inner.GetSizeCol() > 2 ) {
+    if (inner.GetNumCols() > 2 ) {
       minZ_ = inner[0][2];
       maxZ_ = inner[1][2];
     }
 
     //get layer thickness
-    layerThickness_.Resize(2,inner.GetSizeCol());
-    for (UInt i=0; i<inner.GetSizeCol(); i++) {
+    layerThickness_.Resize(2,inner.GetNumCols());
+    for (UInt i=0; i<inner.GetNumCols(); i++) {
       layerThickness_[0][i] = abs(outer[0][i] - inner[0][i]);
       layerThickness_[1][i] = abs(outer[1][i] - inner[1][i]);
     }

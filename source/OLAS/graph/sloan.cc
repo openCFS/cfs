@@ -3,24 +3,27 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
-#include <cmath>
+#include <limits>
 
-#include "graph/sloan.hh"
+#include "General/environment.hh"
+#include "OLAS/graph/sloan.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***************
   //   Constructor
   // ***************
-  Sloan::Sloan( NodeList* agraph, Integer *order, Integer asize ) :
-    BaseOrdering( agraph, order, asize ) {
-
-
-    profOldRem_  = 0;
-    profNewRem_  = 0;
-    profOldMult_ = 0;
-    profNewMult_ = 0;
+  Sloan::Sloan( NodeList* agraph, StdVector<UInt>& order ) :
+    BaseOrdering( agraph, order ),
+    profOldRem_(0),
+    profNewRem_(0),
+    profOldMult_(0),
+    profNewMult_(0)
+  {
+    // we do our reordering with vertices starting with one
+    // all arrays will have idices starting with one, except
+    // order and graph
   }
 
 
@@ -41,14 +44,19 @@ namespace OLAS {
 
     // working arrays
     Integer *xls, *ls, *hlevel;
-    NewArray( xls,    Integer, size_+1 );
-    NewArray( ls,     Integer, size_   );
-    NewArray( hlevel, Integer, size_   );
+    Integer size = order_.GetSize();
+    
+    // we allocate always for size plus 1; so we can index this
+    // arrays starting by 1!!
+    NEWARRAY( xls,    Integer, size+2 );
+    NEWARRAY( ls,     Integer, size+1 );
+    NEWARRAY( hlevel, Integer, size+1 );
 
     // loop while some nodes remain unnumbered
     Integer startnode, nc;
     Integer lstnum = 0;
-    while ( lstnum < (int) size_ ) {
+
+    while ( lstnum < size ) {
 
       // find end points of p-diameter for nodes in this component
       // compute distances of nodes from end node
@@ -62,9 +70,9 @@ namespace OLAS {
     CalcProfile();
 
     // Clear memory
-    DeleteArray( xls    );
-    DeleteArray( ls     );
-    DeleteArray( hlevel );
+    DELETEARRAY( xls    );
+    DELETEARRAY( ls     );
+    DELETEARRAY( hlevel );
 
   }
 
@@ -82,11 +90,11 @@ namespace OLAS {
     // ( = min number of neighbors)
     // ignore nodes that are invisible (order .ne. 0)
     Integer degree = 0, depth = 0, enode = 0;
-    Integer minDegree = 10*size_;
+    Integer minDegree = 10*order_.GetSize();
 
-    for (UInt n=1; n<=size_; n++) {
-      if (order_[n] == 0) {
-        degree = graph_[n].size();
+    for (UInt n=1, m=order_.GetSize(); n<=m; n++) {
+      if (order_[n-1] == 0) {
+        degree = graph_[n-1].size();
         if (degree < minDegree) {
           snode = n;
           minDegree = degree;
@@ -96,7 +104,7 @@ namespace OLAS {
 
     // generate level structure for node with min degree
     Integer sdepth, width;
-    RootedLevel(snode, size_+1, ls, xls, sdepth, width);
+    RootedLevel(snode, order_.GetSize()+1, ls, xls, sdepth, width);
 
     //store number of nodes in this component
     nc = xls[sdepth+1] -1;
@@ -113,7 +121,7 @@ namespace OLAS {
       node = ls[i];
       hsize += 1;
       hlevel[hsize] = node;
-      xls[node] = graph_[node].size();
+      xls[node] = graph_[node-1].size();
     }
 
 
@@ -174,9 +182,8 @@ namespace OLAS {
       jstart = xls[i];
       jstop  = xls[i+1] -1;
       for (Integer j=jstart; j<=jstop; j++) 
-        order_[ls[j]] = i-1;
+        order_[ls[j]-1] = i-1;
     }
-
   }
 
 
@@ -188,11 +195,11 @@ namespace OLAS {
     // of the algorithm given by George and Liu
 
     Integer nc, lstrt, lstop, lwdth, node, nbr;
-    Integer* mask = order_;
+    StdVector<UInt> mask = order_;
     NodeList::iterator liter;
 
     // initialisation
-    mask[root] = 1;
+    mask[root-1] = 1;
     ls[1] = root;
     nc    = 1;
     width = 1;
@@ -216,12 +223,12 @@ namespace OLAS {
       // of nodes in current level
       for (Integer i=lstrt; i<=lstop; i++) {
         node = ls[i];
-        for (liter=graph_[node].begin(); liter!=graph_[node].end(); liter++) {
+        for (liter=graph_[node-1].begin(); liter!=graph_[node-1].end(); liter++) {
           nbr = *liter;
-          if (mask[nbr] == 0) {
+          if (mask[nbr-1] == 0) {
             nc  += 1;
             ls[nc] = nbr;
-            mask[nbr] = 1;
+            mask[nbr-1] = 1;
           }
         }
       }
@@ -236,7 +243,7 @@ namespace OLAS {
 
     // reset mask = 0 for nodes in the level structure
     for (Integer i =1; i<=nc; i++)
-      mask[ls[i]] = 0;
+      mask[ls[i]-1] = 0;
 
   }
 
@@ -251,10 +258,16 @@ namespace OLAS {
     // having a low degree (number of neighbors) get a high priority
  
     Integer node;
-    Integer* s = order_;
+    StdVector<Integer> s;
     Integer w1 = 1;
     Integer w2 = 2;
 
+    s.Resize(order_.GetSize());
+    for(UInt i=0, n = order_.GetSize(); i<n; i++) 
+    {
+      s[i] = static_cast<Integer>(order_[i]);
+    }
+    
     // initialise priorities and status for each node of this component
     // initial priority = w1*dist - w2*degree  where:
     // w1     = a positive weight
@@ -264,15 +277,15 @@ namespace OLAS {
 
     for (Integer i=1; i<=nc; i++) {
       node = q[i];
-      p[node] = w1*s[node] - w2*(graph_[node].size()+1); 
-      s[node] = -2;
+      p[node] = w1*s[node-1] - w2*(graph_[node-1].size()+1);
+      s[node-1] = -2;
     }
 
-    // insert starting node in queue and assign it a preactive status
+    // Insert starting node in queue and assign it a preactive status
     // nn is the size of queue
     Integer nn = 1;
     q[nn]    = snode;
-    s[snode] = -1;
+    s[snode-1] = -1;
 
     Integer addres, maxprt, prty, next, nabor, nbr;
     NodeList::iterator liter, liter1;
@@ -297,20 +310,20 @@ namespace OLAS {
       q[addres] = q[nn];
       nn -= 1;
   
-      if (s[next] == -1) {
+      if (s[next-1] == -1) {
         // node next is preactive, examine its neighbours
 
-        for (liter=graph_[next].begin(); liter!=graph_[next].end(); liter++) {
+        for (liter=graph_[next-1].begin(); liter!=graph_[next-1].end(); liter++) {
           // decrease current degree of neighbour by -1
           nbr = *liter;
           p[nbr] += w2;
 
           // add neighbour to queue if it is inactive
           // assign it a preactive status
-          if (s[nbr] == -2) {
+          if (s[nbr-1] == -2) {
             nn += 1;
             q[nn] = nbr;
-            s[nbr] = -1;
+            s[nbr-1] = -1;
           }
         }
       }
@@ -318,35 +331,39 @@ namespace OLAS {
       // store new node number for node next
       // status for node next is now postactive
       lstnum += 1;
-      s[next] = lstnum;
+      s[next-1] = lstnum;
 
       // search for preactive neighbours of node next 
-      for (liter=graph_[next].begin(); liter!=graph_[next].end(); liter++) {
+      for (liter=graph_[next-1].begin(); liter!=graph_[next-1].end(); liter++) {
         nbr = *liter;
-        if (s[nbr] == -1) {
+        if (s[nbr-1] == -1) {
           // decrease current degree of preactive neighbour by -1
           // assign neighbour an active status
           p[nbr] += w2;
-          s[nbr] = 0;
+          s[nbr-1] = 0;
 
           // loop over nodes adjacent ro preactive neighbour
-          for ( liter1 = graph_[nbr].begin(); liter1 != graph_[nbr].end();
+          for ( liter1 = graph_[nbr-1].begin(); liter1 != graph_[nbr-1].end();
                 liter1++ ) {
             nabor = *liter1;
 
             // decrease current degree of adjacent node by -1
             p[nabor] += w2;
-            if (s[nabor] == -2) {
+            if (s[nabor-1] == -2) {
               //insert inactive node in queue with a preactive status
               nn       += 1;
               q[nn]    = nabor;
-              s[nabor] = -1;
+              s[nabor-1] = -1;
             }
           }
         }
       }
     }
 
+    for(UInt i=0, n = order_.GetSize(); i<n; i++) 
+    {
+      order_[i] = static_cast<UInt>(s[i]);
+    }
   }
 
 
@@ -362,13 +379,13 @@ namespace OLAS {
     // order a list of integers in asending sequence of their keys
     // using insertion sort
     for (Integer i=2; i<=nl; i++) {
-      found = FALSE;
+      found = false;
       t     = list[i];
       value = key[t];
       for (Integer j=i-1; j>=1; --j) {
         if (value >= key[list[j]]) {
           list[j+1] = t;
-          found     = TRUE;
+          found     = true;
           continue;
         }
         list[j+1] = list[j];
@@ -392,15 +409,15 @@ namespace OLAS {
     UInt profNew = 0;
     UInt aux = 0;
 
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 1, n=order_.GetSize(); i <= n; i++ ) {
 
-      oldMin = size_;
-      newMin = size_;
+      oldMin = n;
+      newMin = n;
 
-      for ( liter = graph_[i].begin(); liter != graph_[i].end(); liter++ ) {
+      for ( liter = graph_[i-1].begin(); liter != graph_[i-1].end(); liter++ ) {
         node = *liter;
         oldMin = std::min( oldMin, node );
-        newMin = std::min( newMin, (UInt)order_[node] );
+        newMin = std::min( newMin, order_[node-1] );
       }
 
       if ( i > oldMin ) {
@@ -411,9 +428,9 @@ namespace OLAS {
         }
       }
 
-      if ( order_[i] > (int) newMin ) {
+      if ( order_[i-1] > newMin ) {
         aux = profNew;
-        profNew += order_[i] - newMin;
+        profNew += order_[i-1] - newMin;
         if ( profNew < aux ) {
           profNewMult_++;
         }
@@ -422,13 +439,13 @@ namespace OLAS {
 
     // add diagonal terms
     aux = profOld;
-    profOld += size_;
+    profOld += order_.GetSize();
     if ( profOld < aux ) {
       profOldMult_++;
     }
 
     aux = profNew;
-    profNew += size_;
+    profNew += order_.GetSize();
     if ( profNew < aux ) {
       profNewMult_++;
     }
@@ -451,9 +468,11 @@ namespace OLAS {
       CalcProfile();
     }
 
+    UInt max = std::numeric_limits<UInt>::max();
+    
     // Convert profile information to floating point representation
-    oldprof = profOldMult_ * OLAS_UINT_MAX + profOldRem_;
-    newprof = profNewMult_ * OLAS_UINT_MAX + profNewRem_;
+    oldprof = profOldMult_ * max + profOldRem_;
+    newprof = profNewMult_ * max + profNewRem_;
 
   }
 

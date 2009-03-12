@@ -17,11 +17,12 @@
 #include "Utils/Coil.hh"
 #include "Utils/coordSystem.hh"
 #include "Materials/baseMaterial.hh"
+#include "coloredConsole.hh"
 #ifndef INTEGLIB
-#include "PDE/pdes_header.hh"
+#include "Domain/resultInfo.hh"
 #include "DataInOut/programOptions.hh"
 #endif
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 
 #ifdef USE_SCRIPTING 
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -61,9 +62,8 @@ namespace CoupledField {
 
     // Check if a file is already open
     if ( cfsInfo != NULL ) {
-      (*error) << "WriteInfo::CreateFile: cfsInfo already points to a "
-               << "file! Cowardly refusing to open another one\n";
-      CoupledField::Error( __FILE__, __LINE__ );
+      EXCEPTION("WriteInfo::CreateFile: cfsInfo already points to a "
+               << "file! Cowardly refusing to open another one\n");
     }
 
     std::string filename = progOpts->GetSimName() + ".info";
@@ -71,9 +71,8 @@ namespace CoupledField {
 
     // Check if everything went fine
     if ( cfsInfo == NULL ) {
-      (*error) << "WriteInfo::CreateFile: Failed to open file '"
-               << filename << "' for writing status messages\n";
-      CoupledField::Error( __FILE__, __LINE__ );  
+      EXCEPTION("WriteInfo::CreateFile: Failed to open file '"
+               << filename << "' for writing status messages\n");
     }
   }
 
@@ -154,29 +153,29 @@ namespace CoupledField {
 
  
     // write std::out info 
-    std::cout << myEndl 
-              << " ***************************** " << myEndl
-              << " MultiSequenceStep: " << sequenceStep << myEndl
-              << " AnalysisType:      " << analysisString << myEndl
-              << " ***************************** " << myEndl << myEndl;
+    std::cout << std::endl 
+              << " ***************************** " << std::endl
+              << " MultiSequenceStep: " << sequenceStep << std::endl
+              << " AnalysisType:      " << analysisString << std::endl
+              << " ***************************** " << std::endl << std::endl;
 
 
 
-    *cla <<  myEndl 
-         << " ***************************** " << myEndl
-         << " MultiSequenceStep: " << sequenceStep << myEndl
-         << " AnalysisType:      " << analysisString << myEndl
-         << " ***************************** " << myEndl << myEndl;
+    *cla <<  std::endl 
+         << " ***************************** " << std::endl
+         << " MultiSequenceStep: " << sequenceStep << std::endl
+         << " AnalysisType:      " << analysisString << std::endl
+         << " ***************************** " << std::endl << std::endl;
     
 
 
     
     if (cfsInfo)
-      *cfsInfo << myEndl 
-               << myEndl<< " ***************************** " << myEndl
-               << " MultiSequenceStep: " << sequenceStep << myEndl
-               << " AnalysisType:      " << analysisString << myEndl
-               << " ***************************** " << myEndl << myEndl;
+      *cfsInfo << std::endl 
+               << std::endl<< " ***************************** " << std::endl
+               << " MultiSequenceStep: " << sequenceStep << std::endl
+               << " AnalysisType:      " << analysisString << std::endl
+               << " ***************************** " << std::endl << std::endl;
   }
   
 
@@ -188,11 +187,11 @@ namespace CoupledField {
     std::string pdeNameLong(pdeName);
 
     // write std::out info    
-    std::cout << myEndl << pdeName << ": Time step " 
+    std::cout << std::endl << pdeName << ": Time step " 
               << timeStep <<" ======================= " << std::endl;      
 
 
-    *cla << myEndl << pdeName << ": Time step " 
+    *cla << std::endl << pdeName << ": Time step " 
          << timeStep <<" ********************************************"
          << std::endl;
 
@@ -230,11 +229,11 @@ namespace CoupledField {
     UInt fw = (Integer)std::log10( (float)freqStep ) + 1;
 
     // Report 1: Goes to standard output
-    std::cout << myEndl << pdeName << ": Harmonic step " 
+    std::cout << std::endl << pdeName << ": Harmonic step " 
               << freqStep <<" ======================= " << std::endl;      
 
     // Report 2: Goes into logfile for algebraic sub-system
-    (*cla) << myEndl << ' '
+    (*cla) << std::endl << ' '
            << std::setw( 79 ) << std::setfill( '*' ) << "\n"
            << " *** " << pdeName
            << ": Harmonic step " << freqStep << ' '
@@ -312,7 +311,7 @@ namespace CoupledField {
       return;
     
     *cfsInfo << "COIL DESCRIPTION ======================================= "
-             << myEndl;
+             << std::endl;
 
     // Basic coil info
     *cfsInfo << "Coil domain: "              << coil.coilRegionName_ << '\n'
@@ -381,19 +380,19 @@ namespace CoupledField {
       }
       else {
         *cfsInfo << "Direction of current flow: ";
-        *cfsInfo << coil.locFlowDir_.Serialize() << std::endl;
+        *cfsInfo << coil.locFlowDir_.ToString() << std::endl;
         *cfsInfo << " in coordinate system " 
                  << coil.flowCoordSys_->GetName();
       }
     }
 
-    *cfsInfo << std::endl << myEndl;
+    *cfsInfo << std::endl << std::endl;
   }
 
   template <class TYPE>
   void WriteInfo::WriteAcouPower(std::string pdename, 
-					   StdVector<std::string> & subdoms,
-					   Vector<TYPE>& power)
+                                 StdVector<std::string> & subdoms,
+                                 Vector<TYPE>& power)
   {
  
     if (cfsInfo) {
@@ -402,7 +401,7 @@ namespace CoupledField {
       *cfsInfo << "   Acoustic Power: \n";
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i] 
-		 << " W" << std::endl;
+                 << " W" << std::endl;
       }
     }
   }
@@ -422,8 +421,8 @@ namespace CoupledField {
   
 
   void WriteInfo::WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
-					   UInt sosIdx, UInt src1, UInt src2, UInt src3, 
-					   UInt src4, UInt src5, UInt src6, UInt src7) {
+                                           UInt sosIdx, UInt src1, UInt src2, UInt src3, 
+                                           UInt src4, UInt src5, UInt src6, UInt src7) {
 
 
     *cfsInfo << "\nCombustion Noise Info:\n" 
@@ -476,7 +475,7 @@ namespace CoupledField {
   void WriteInfo::PrintVec(const char * comment, StdVector<Integer>& vec)
   {
     if (cfsInfo)
-      *cfsInfo << comment << myEndl << vec << myEndl << myEndl;
+      *cfsInfo << comment << std::endl << vec << std::endl << std::endl;
   }
 
 
@@ -487,7 +486,7 @@ namespace CoupledField {
 
     if (cfsInfo)
       {
-        *cfsInfo << comment << myEndl;
+        *cfsInfo << comment << std::endl;
         
         for (UInt i=0; i< vec.GetSize(); i++)
           *cfsInfo << vec[i] << std::endl;
@@ -500,14 +499,14 @@ namespace CoupledField {
   {
 
     if (cfsInfo)
-      *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
+      *cfsInfo << comment << std::endl << mat << std::endl << std::endl;
   }
 
 #endif //INTEGLIB
 
   // prints warning to info-file
   void WriteInfo::Warning( const std::string & Text,
-                           const Char* const filename, const UInt numline ) {
+                           const char* const filename, const UInt numline ) {
 
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
@@ -524,7 +523,9 @@ namespace CoupledField {
       std::cout << std::endl;
     }
 
-    std::cerr << "\n \033[31mWARNING:\033[0m\n " << Text << myEndl;
+    std::cerr << "\n "
+              << fg_yellow << "WARNING:" << fg_reset << "\n "
+              << Text << std::endl;
 
     warningOccured_ = true;
 
@@ -540,12 +541,12 @@ namespace CoupledField {
     }
 
     if (cfsInfo) {
-      *cfsInfo << myEndl << myEndl << myEndl
+      *cfsInfo << std::endl << std::endl << std::endl
                << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << myEndl
-               << "                          WARNING " << myEndl
+               << "!!!!!!!!!!!!!" << std::endl
+               << "                          WARNING " << std::endl
                << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!" << myEndl
+               << "!!!!!!!!!!!!!" << std::endl
                << "WARNING: " << Text;
         
       if (filename) {
@@ -556,8 +557,8 @@ namespace CoupledField {
       }
     
       *cfsInfo << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-               << "!!!!!!!!!!!!!!!" << myEndl
-               << myEndl;
+               << "!!!!!!!!!!!!!!!" << std::endl
+               << std::endl;
     }
 #endif // INTEGLIB
   }
@@ -566,7 +567,7 @@ namespace CoupledField {
   // *********
   //   Error
   // *********
-  void WriteInfo::Error( const std::string &Text, const Char *const filename,
+  void WriteInfo::Error( const std::string &Text, const char *const filename,
                          const UInt numline ) {
 
 
@@ -588,7 +589,10 @@ namespace CoupledField {
       FinishProgress( false );
     }
 
-    std::cerr << std::endl << " \033[31mERROR:\033[0m\n" << myEndl;
+    std::cerr << std::endl << " "
+              << fg_red << "ERROR:"
+              << fg_reset << "\n" << std::endl;
+
     if ( Text != "" ) {
       std::cerr << ' ' << Text;
     }
@@ -606,12 +610,12 @@ namespace CoupledField {
     std::cerr << std::endl << std::endl;
     
     if (cfsInfo) {
-      *cfsInfo << myEndl << myEndl << myEndl
+      *cfsInfo << std::endl << std::endl << std::endl
                << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << myEndl
-               << "                          ERROR " << myEndl
+               << std::endl
+               << "                          ERROR " << std::endl
                << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-               << myEndl
+               << std::endl
                << " ERROR: " << Text;
 
       if (filename) {
@@ -658,7 +662,7 @@ namespace CoupledField {
                  << std::endl;
       }
 
-      *cfsInfo << myEndl;
+      *cfsInfo << std::endl;
     }
   }
 
@@ -689,7 +693,7 @@ namespace CoupledField {
                  << std::endl;
       }
 
-      *cfsInfo << myEndl;
+      *cfsInfo << std::endl;
     }
   }
 
@@ -718,7 +722,7 @@ namespace CoupledField {
                  << std::endl;
       }
     }
-    *cfsInfo << myEndl;
+    *cfsInfo << std::endl;
   }
 
 
@@ -754,7 +758,7 @@ namespace CoupledField {
                  << std::endl;
       }
     }
-    *cfsInfo << myEndl;
+    *cfsInfo << std::endl;
 
   }
 
@@ -781,7 +785,7 @@ namespace CoupledField {
                  << std::endl;
       }
     }
-    *cfsInfo << myEndl;
+    *cfsInfo << std::endl;
   }
   
 
@@ -863,9 +867,8 @@ namespace CoupledField {
 
 
         default:
-          (*error) << "Format character " << formatChar
-                   << " not yet defined!";
-          CoupledField::Error( __FILE__, __LINE__ );
+          EXCEPTION( "Format character " << formatChar
+                   << " not yet defined!" );
           break;
         }
 
@@ -922,10 +925,10 @@ namespace CoupledField {
     bool okay = ( warningOccured_ == false ) && ( success == true );
 
     if ( okay == true ) {
-      std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+      std::cout << std::setw(10) << fg_green << "OK" << fg_reset<< std::endl;
     }
     else if ( success == false ) {
-      std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+      std::cout << std::setw(10) << fg_red << "FAILED" << fg_reset << std::endl;
     }
     else {
       std::cout << std::endl;
@@ -940,12 +943,12 @@ namespace CoupledField {
 #ifdef __GNUC__
   template
   void  WriteInfo::WriteAcouPower<Double>(std::string pdename, 
-						   StdVector<std::string> & subdoms,
-						   Vector<Double>& power);
+                                          StdVector<std::string> & subdoms,
+                                          Vector<Double>& power);
   template 
-  void  WriteInfo::WriteAcouPower<Complex>(std::string pdename, 
-						    StdVector<std::string> & subdoms,
-						    Vector<Complex>& power);
+  void  WriteInfo::WriteAcouPower<Complex>( std::string pdename, 
+                                            StdVector<std::string> & subdoms,
+                                            Vector<Complex>& power );
 #endif
 
 }

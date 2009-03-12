@@ -105,7 +105,7 @@ namespace CoupledField {
           if( memento[iPde] != NULL) {
             if (memento[iPde]->IsSet()) {
               ptPDEs[iPde]->SetMemento( memento[iPde], 
-                                        valueUsagePerStep_[iStep] );
+                                        usageDirichletPerStep_[iStep] );
             }
           }
         }
@@ -190,7 +190,7 @@ namespace CoupledField {
     // 2.) Resize 'outer' vectors
     pdesPerStep_.Resize(numSteps_);
     analysisPerStep_.Resize(numSteps_);
-    valueUsagePerStep_.Resize(numSteps_);
+    usageDirichletPerStep_.Resize( numSteps_ );
     
 
     // 3.) Read in all pdes and analysis types
@@ -205,7 +205,11 @@ namespace CoupledField {
       // get current usage type 
       std::string usageString;
       actStepNode->Get( "usage", usageString );
-      valueUsagePerStep_[iStep] = PDEMemento::String2Enum( usageString );
+      if( usageString == "startValue") {
+        usageDirichletPerStep_[iStep] = false;
+      } else {
+        usageDirichletPerStep_[iStep] = true;
+      }
       
       // get current analysistype
       std::string analysisString;

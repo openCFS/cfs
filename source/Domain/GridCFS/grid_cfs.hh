@@ -81,7 +81,7 @@ namespace CoupledField
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
-    UInt GetNumElemOfType( FEType type );
+    UInt GetNumElemOfType( Elem::FEType type );
 
     //! Return dimension of mesh
 
@@ -113,12 +113,12 @@ namespace CoupledField
     virtual void AddElems(UInt nElems);
       
     virtual void SetElemData(UInt ielem,
-                             FEType type,
+                             Elem::FEType type,
                              RegionIdType region,
                              const UInt* connect);
 
     virtual void GetElemData(const UInt ielem,
-                             FEType & type,
+                             Elem::FEType & type,
                              RegionIdType & region,
                              UInt* connect) const;
 
@@ -208,7 +208,7 @@ namespace CoupledField
     //! \param elemNr element number
     const Elem * GetElem( UInt elemNr );
 
-    virtual const UInt GetMaxNumNodesPerElem()
+    virtual UInt GetMaxNumNodesPerElem()
     {
       return maxNumElemNodes_;
     }
@@ -602,7 +602,7 @@ namespace CoupledField
     StdVector<Elem*> orderedElems_;
   
     //! Map containing number elements of each type
-    std::map<FEType, UInt> numElemTypes_;
+    std::map<Elem::FEType, UInt> numElemTypes_;
 
     UInt maxNumElemNodes_;
     //@}

@@ -2,9 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "solver/diagsolver.hh"
+#include "MatVec/vector.hh"
 
-namespace OLAS {
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/diagsolver.hh"
+
+namespace CoupledField {
 
 
   // **************
@@ -20,8 +23,8 @@ namespace OLAS {
   // ****************
   template<typename T>
   void DiagSolver<T>::Solve( const BaseMatrix &sysmat,
-				   const BasePrecond &precond,
-				   const BaseVector &rhs, BaseVector &sol ) {
+                             const BasePrecond &precond,
+                             const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
     (*cla) << "### Solver for diagonal system  matrix" << std::endl;
@@ -31,9 +34,15 @@ namespace OLAS {
       precond.Apply( sysmat, rhs, sol );
     }
     else {
-      Error("Diagobal solver needs Jacobi-preconditioner"__FILE__,__LINE__);
+      EXCEPTION("Diagonal solver needs Jacobi-preconditioner");
     }
 
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class DiagSolver<Double>;
+  template class DiagSolver<Complex>;
+#endif
+  
 }

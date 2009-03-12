@@ -43,8 +43,7 @@ namespace CoupledField {
 
     //! returns D - matrix for BD
     virtual void calcDMat( Matrix<Double> &dMat ) {
-      Error( "BDInt::calcDMat(Matrix<Double>&) not correctly overwritten!",
-	     __FILE__, __LINE__);
+      EXCEPTION("BDInt::calcDMat(Matrix<Double>&) not correctly overwritten!");
     };
 
 
@@ -52,7 +51,8 @@ namespace CoupledField {
     //! returns D - matrix for BDB, changes in every integration point
     virtual void calcDMat( Matrix<Double> &dMat, Integer ip,
 			   Matrix<Double> &ptCoord ) {
-      Error( "BDInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) not correct overwritten!",__FILE__,__LINE__);
+      EXCEPTION("BDInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
+          << "not correct overwritten!");
     };
 
     //! returns dimension of D matrix

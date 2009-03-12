@@ -1,3 +1,7 @@
+#include <string>
+#include <fstream>
+#include <cmath>
+
 #include "Optimization/OptimalityCondition.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
@@ -5,8 +9,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
-
-#include <string>
 
 using namespace CoupledField;
 using std::abs;
@@ -29,6 +31,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, ParamNode* 
   this->move_limit_ = 0.2;
   this->oc_damping_ = 0.5;
   this->lambda_min_ = 1e-30;
+  this->lambda_iters_ = 0;
   this->max_lambda_iters_ = 70;
   this->err_eps_    = 1e-3;
   this->type_       = optimization->GetObjective()->type == Optimization::COMPLIANCE ? FRAMED : FUMBLE;
@@ -425,8 +428,8 @@ double OptimalityCondition::Evaluate(double lambda)
      double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
-     if(isnan(b_e)) EXCEPTION("b_e is nan");
-     
+     if(std::isnan(b_e)) EXCEPTION("b_e is nan");
+
      // for compliant mechanism the gradient can be positive, this is cut
      // -> Bendsoe/Sigmund. p 97
      // for piezo we might become negative lambdas -> cut the positive!

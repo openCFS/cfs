@@ -83,8 +83,8 @@ namespace CoupledField {
     }
     // writing current PDE-state into the restart-file
     if (restartIncr_ >= 1){
-        std::cout << myEndl << " *** Write a restart file *** " << std::endl;      
-        ptPDE_->WriteRestart( );
+      std::cout << std::endl << " *** Write a restart file *** " << std::endl;      
+      ptPDE_->WriteRestart( );
     }
     
     SETPROFILE("After Static Step");    

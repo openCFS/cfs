@@ -4,15 +4,19 @@
 
 #include <algorithm>
 
-#include "precond/ilutpprecond.hh"
+#include <complex>
+
+#include "MatVec/crs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
+#include "OLAS/precond/ilutpprecond.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
 // used in LUSolver. Going to implement better concept as soon as
 // time permits.
-#include "utils/math/croutlu.cc"
+#include "OLAS/utils/math/croutlu.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   // =====================================================
   //   Constructor (for use in GenerateStdPrecondObject)
@@ -61,9 +65,8 @@ namespace OLAS {
 
     // Test that a factorisation is available, if not issue an error.
     if ( amFactorised_ == false ) {
-      (*error) << "ILUTP_Precond::Apply: No factorisation available. "
-	       << "Call Setup() first!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILUTP_Precond::Apply: No factorisation available. "
+          << "Call Setup() first!" );
     }
 
     // Solve the problem
@@ -85,7 +88,7 @@ namespace OLAS {
       maxFill_ = (UInt)aux;
     }
     else {
-      maxFill_ = (-aux) * ( sysMat.GetNnz() / sysMat.GetNcols() - 1 );
+      maxFill_ = (-aux) * ( sysMat.GetNnz() / sysMat.GetNumCols() - 1 );
     }
 
     // Report parameters to standard log stream
@@ -116,7 +119,7 @@ namespace OLAS {
 				      std::vector<UInt> &vecWFill ) {
 
 
-    Error( "ILUTP_Precond currently not operational", __FILE__, __LINE__ );
+    EXCEPTION( "ILUTP_Precond currently not operational" );
     // COMPWARNING: unused variable UInt i, j;
     // COMPWARNING: unused variable Double curTau;
     // COMPWARNING: unused variable Double norm = 0.0;
@@ -273,13 +276,10 @@ namespace OLAS {
 
   }
 
-  // ************************
-  //   Forced Instantiation
-  // ************************
-  template<typename T>
-  void ILUTP_Precond<T>::
-  InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    this->ExportILUFactorisation( "dummy.mtx" );
-  }
-
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILUTP_Precond<Double>;
+  template class ILUTP_Precond<Complex>;
+#endif
+  
 }

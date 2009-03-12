@@ -1,11 +1,12 @@
 #ifndef ERSATZ_MATERIAL_HH_
 #define ERSATZ_MATERIAL_HH_
 
+#include <map>
+
 #include "Optimization/Optimization.hh"
 #include "Domain/bcs.hh"
-#include "Utils/cfsvector.hh"
-#include "OLAS/matvec/vector.hh"
-#include <map>
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField
 {
@@ -122,7 +123,7 @@ protected:
      *        "SaveSolution()" in the pde such that we can extract it elementwise.
      *        Only relevant for st = ELEMENT_VECTORS
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    CFSVector* Read(StorageType st, StdPDE* pde, Application app, bool save_sol = false)
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app, bool save_sol = false)
     {
       if(em_->harmonic) return Read<std::complex<double> >(st, pde, app, save_sol);
                    else return Read<double>(st, pde, app, save_sol);
@@ -135,20 +136,20 @@ protected:
       else Write<double>(pde, app);
     }
 
-    static void Write(StdPDE* pde, CFSVector* vec);
+    static void Write(StdPDE* pde, SingleVector* vec);
 
 
     /** Helper method */
-    CFSVector* GetVector(StorageType st, Application app);
+    SingleVector* GetVector(StorageType st, Application app);
     Vector<std::complex<double> >* GetComplexPointer(StorageType st, Application app);
     Vector<double>*                GetRealPointer(StorageType st, Application app);
 
     /** This is an element wise storage of the solution
      * the Application shall be MECH or ELEC */
-    std::map<Application, StdVector<CFSVector* > > elem;
+    std::map<Application, StdVector<SingleVector* > > elem;
 
     /** This is the algsys solution vector */
-    std::map<Application, CFSVector* > raw;
+    std::map<Application, SingleVector* > raw;
 
     /** This stores the right hand sides in raw format.
      * In the adjoint case this is the constructed rhs form the artifical loads.
@@ -157,11 +158,11 @@ protected:
      * the linear system.
      * In the forward case this stores the rhs from the forward excitation to perform multiple
      * loadcases. */
-    std::map<Application, CFSVector* > rhs;
+    std::map<Application, SingleVector* > rhs;
 
   private:
     template <class T>
-    CFSVector* Read(StorageType st, StdPDE* pde, Application app, bool save_sol = false);
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app, bool save_sol = false);
 
     template <class T>
     void Write(StdPDE* pde, Application app);
@@ -185,7 +186,7 @@ protected:
     StdVector<Solution*> data;
 
     /** When we want to average this stuff */
-    CFSVector* multiple;
+    SingleVector* multiple;
   };
 
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
@@ -240,14 +241,14 @@ protected:
    * the vector u(2).
    *
    * @param tf the transfer function defines the design variable and multiplier of K
-   * @param u1 for derivatives the lagrange vector l\f$
+   * @param u1 for derivatives the lagrange vector l
    * @param k the application determines the stiffness matrix
    * @param u2 the solution or u in \f$<l,K'u-f'>\f$
    * @param rhs if one want to do \f$<l,K'u-f'>\f$ this containts the info for \f$-f'\f$.
    * @param add if true we sum up to the desing elements cost gradient
    * @param factor see above, more complex in radiation case. */
-  double CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1, Application k,
-      StdVector<CFSVector*>& u2, SurfaceRef* rhs = NULL,
+  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k,
+      StdVector<SingleVector*>& u2, SurfaceRef* rhs = NULL,
       bool add = false, double factor = 1.0, Condition* constraint = NULL)
   {
     if(harmonic) return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, add, factor, constraint);
@@ -258,7 +259,7 @@ protected:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out)
   {
     throw Exception("not implemented");
   }
@@ -410,8 +411,8 @@ private:
 
   /** See the non-template version for documentation! */
   template <class T>
-  double CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1,
-      Application k, StdVector<CFSVector*>& u2, SurfaceRef* ref, bool add, double factor, Condition* constraint);
+  double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref, bool add, double factor, Condition* constraint);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * Another application is  RADIATION. Then SurfaceRef is
@@ -458,7 +459,7 @@ private:
    * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
    * It shall be cheap enough to calc here twice! */
   template <class T>
-  void CalcSurfaceNormalTimesSolution(OLAS::Vector<T>& olas_prod);
+  void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
   /** Handle multiple excitations (loads/frquencies). By defefinition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */

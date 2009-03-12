@@ -27,7 +27,7 @@ namespace CoupledField
 
     linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
   }
-  
+
   ElemIntegr::~ElemIntegr()
   {
     delete linearLoad_;
@@ -42,56 +42,56 @@ namespace CoupledField
     (*trace) << " entering ElemIntegr::CreatePt2Elems " << std::endl;
  #endif
     ptElem_ = new Elem();
-    
-    switch(type) 
+
+    switch(type)
     {
-    case ET_LINE2:
+    case Elem::LINE2:
       ptElem_->ptElem = new Line1FE();
-      ptElem_->connect = 1, 2;  
-      ptElem_->edges = 1;  
-      ptElem_->faces = 1;  
+      ptElem_->connect = 1, 2;
+      ptElem_->edges = 1;
+      ptElem_->faces = 1;
       break;
 
-    case ET_TRIA3:
+    case Elem::TRIA3:
       ptElem_->ptElem = new Triangle1FE();
-      ptElem_->connect = 1, 2, 3;  
-      ptElem_->edges = 1, 2, 3;  
+      ptElem_->connect = 1, 2, 3;
+      ptElem_->edges = 1, 2, 3;
       ptElem_->faces = 1;
       break;
 
-    case ET_QUAD4:
+    case Elem::QUAD4:
       ptElem_->ptElem = new Quad1FE();
-      ptElem_->connect = 1, 2, 3, 4;  
-      ptElem_->edges = 1, 2, 3, 4;  
+      ptElem_->connect = 1, 2, 3, 4;
+      ptElem_->edges = 1, 2, 3, 4;
       ptElem_->faces = 1;
       break;
 
-    case ET_TET4:
+    case Elem::TET4:
       ptElem_->ptElem = new Tetra1FE();
-      ptElem_->connect = 1, 2, 3, 4;  
-      ptElem_->edges = 1, 2, 3, 4, 5, 6;  
+      ptElem_->connect = 1, 2, 3, 4;
+      ptElem_->edges = 1, 2, 3, 4, 5, 6;
       ptElem_->faces = 1, 2, 3;
       break;
 
-    case ET_HEXA8:
+    case Elem::HEXA8:
       ptElem_->ptElem = new Hexa1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5, 6, 7, 8;  
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;  
-      ptElem_->faces = 1, 2, 3, 4, 5, 6;  
+      ptElem_->connect = 1, 2, 3, 4, 5, 6, 7, 8;
+      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
+      ptElem_->faces = 1, 2, 3, 4, 5, 6;
 
       break;
 
-    case ET_PYRA5:
+    case Elem::PYRA5:
       ptElem_->ptElem = new Pyra1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5;  
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8;  
+      ptElem_->connect = 1, 2, 3, 4, 5;
+      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8;
       ptElem_->faces = 1, 2, 3, 4, 5;
       break;
 
-    case ET_WEDGE6:
+    case Elem::WEDGE6:
       ptElem_->ptElem = new Wedge1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5, 6;  
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;  
+      ptElem_->connect = 1, 2, 3, 4, 5, 6;
+      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
       ptElem_->faces = 1, 2, 3, 4, 5;
       break;
 
@@ -104,12 +104,12 @@ namespace CoupledField
 
     if(ptElem_)
     {
-      ptElem_->regionId = 1;  
-      ptElem_->elemNum = 1;  
+      ptElem_->regionId = 1;
+      ptElem_->elemNum = 1;
     }
-    
+
   }
-  
+
   void ElemIntegr::PerformIntegration(const Matrix<Double> & coordMat,
                                       const Matrix<Double>& NodaldTijdxj,
                                       const Matrix<Double>& NodalVal,
@@ -128,7 +128,7 @@ namespace CoupledField
 
 
   void ElemIntegr::ComputeFromCombustionTij(const Matrix<Double> & coordMat,
-                                            const Matrix<Double>& NodalVel, 
+                                            const Matrix<Double>& NodalVel,
                                             const Vector<Double>& NodalRho,
                                             Vector<Double>& elemvec) {
 #ifdef TRACE
@@ -172,7 +172,7 @@ namespace CoupledField
 
 
   void ElemIntegr::ComputeFromCombustionTijOnSurface(const Matrix<Double> & coordMat,
-                                                     const Matrix<Double>& NodalVel, 
+                                                     const Matrix<Double>& NodalVel,
                                                      const Vector<Double>& NodalRho,
                                                      Vector<Double>& elemvec) {
 #ifdef TRACE

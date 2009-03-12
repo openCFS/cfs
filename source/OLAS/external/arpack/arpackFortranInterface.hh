@@ -5,15 +5,17 @@
 #ifndef OLAS_ARPACK_SETTINGS_HH
 #define OLAS_ARPACK_SETTINGS_HH
 
+#include "General/defs.hh"
+
+using CoupledField::Integer;
+using CoupledField::Double;
+
 //! arpack driver routine controling calculation
 #define ARPACK_DSAUPD dsaupd_
 //! arpack driver routine controling eigenvalue and eigenvector extraction
 #define ARPACK_DSEUPD dseupd_
 //! arpack debug common block
 #define ARPACK_DEBUG_CMN debug_
-
-using OLAS::Integer;
-using OLAS::Double;
 
 extern "C" {
   void ARPACK_DSAUPD(Integer *ido, char *bmat, Integer *n, char *which,
@@ -31,7 +33,7 @@ extern "C" {
 
   // arpack debug "common" statement.
 
-  struct {
+  extern struct {
     Integer logfil, ndigit, mgetv0;
     Integer msaupd, msaup2, msaitr, mseigt, msapps, msgets, mseupd;
     Integer mnaupd, mnaup2, mnaitr, mneigt, mnapps, mngets, mneupd;

@@ -3,30 +3,43 @@ SET(CGAL_FOUND 0)
 #-------------------------------------------------------------------------------
 # Determine path of CGAL library.
 #-------------------------------------------------------------------------------
-FIND_LIBRARY(CGAL_LIBRARY
-  NAMES CGAL
-  PATHS ${CFSDEPS_LIBRARY_DIR}
-  )
+BUILD_EXTLIB("GMP"
+  "${CFS_BINARY_DIR}/include/gmp.h"
+  "${CFS_DEPS_ROOT}/gmp/build_gmp.pl"
+  "build_gmp.log")
+
+BUILD_EXTLIB("MPFR"
+  "${CFS_BINARY_DIR}/include/mpfr.h"
+  "${CFS_DEPS_ROOT}/mpfr/build_mpfr.pl"
+  "build_mpfr.log")
+
+BUILD_EXTLIB("CGAL"
+  "${CFS_BINARY_DIR}/include/CGAL"
+  "${CFS_DEPS_ROOT}/cgal/build_cgal.pl"
+  "build_cgal.log")
 
 #-------------------------------------------------------------------------------
 # Mark path of CGAL library as advanced.
 #-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(CGAL_LIBRARY)
+SET(CGAL_LIBRARY_DEBUG
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a"
+  CACHE FILEPATH "CGAL debug library.")
 
-FIND_PATH(CGAL_INCLUDE_DIR CGAL/version.h 
-  ${CFSDEPS_INCLUDE_DIR} 
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH)
+SET(CGAL_LIBRARY_RELEASE
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libCGAL.a"
+  CACHE FILEPATH "CGAL release library.")
 
-MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
+MARK_AS_ADVANCED(CGAL_LIBRARY_DEBUG)
+MARK_AS_ADVANCED(CGAL_LIBRARY_RELEASE)
 
+IF(DEBUG)
+  SET(CGAL_LIBRARY "${CGAL_LIBRARY_DEBUG}")
+ELSE(DEBUG)
+  SET(CGAL_LIBRARY "${CGAL_LIBRARY_RELEASE}")
+ENDIF(DEBUG)
 
-IF(CGAL_LIBRARY AND CGAL_INCLUDE_DIR)
-  SET(CGAL_FOUND 1)
-ENDIF(CGAL_LIBRARY AND CGAL_INCLUDE_DIR)
+SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+SET(CGAL_FOUND 1)
 
 IF(CGAL_FOUND)
 
@@ -57,7 +70,3 @@ IF(CGAL_FOUND)
 #  MESSAGE("CFS_CGAL_VERSION ${CFS_CGAL_VERSION}")
 
 ENDIF(CGAL_FOUND)
-
-IF(NOT CGAL_FOUND)
-  MESSAGE("Warning: CGAL could not be found! Please specify proper paths.")
-ENDIF(NOT CGAL_FOUND)

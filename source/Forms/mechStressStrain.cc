@@ -16,13 +16,13 @@ namespace CoupledField
 
   // base class for calculation of mechanical stresses
   template <class TYPE>
-  MechStressStrain<TYPE>::MechStressStrain(BaseMaterial* matData, SubTensorType type) 
+  MechStressStrain<TYPE>::MechStressStrain(BaseMaterial* matData, SubTensorType type)
     : linElastInt(matData, type)
   {
     name_ = "MechStressStrain";
   }
 
- 
+
   template <class TYPE>
   MechStressStrain<TYPE>::~MechStressStrain()
   {
@@ -31,27 +31,28 @@ namespace CoupledField
 
   /// calculates of stresses T (vector notation)
   // T = c . S with c the material tensor snd S the linear strains
-  // S = B_lin * u 
-  // see Habil. M. Kaltenbacher 
+  // S = B_lin * u
+  // see Habil. M. Kaltenbacher
 
   template <class TYPE>
-  void MechStressStrain<TYPE>::CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent) 
-  {
+  void MechStressStrain<TYPE>::
+  CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent) {
+
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
-    Matrix<TYPE> dMat;
-    linElastInt::calcDMat(dMat, ent.GetElem()); 
 
-    // convert displacement of all elem nodes into one vector: 
+    Matrix<TYPE> dMat;
+    linElastInt::calcDMat(dMat, ent.GetElem());
+
+    // convert displacement of all elem nodes into one vector:
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
     Vector<TYPE> displVec;
     elemDisp_.ConvertToVec_AppendCols(displVec);
     // linear differential operator B_lin
-    Matrix<Double> linBMat;    
+    Matrix<Double> linBMat;
     calcBMat( linBMat, ip, ptCoord_);
 
-    Vector<TYPE> linStrain(linBMat.GetSizeRow());
+    Vector<TYPE> linStrain(linBMat.GetNumRows());
     linStrain.Init();
     stressVec.Init();
     //Matrix<TYPE>(linBMat).Mult(displVec,linStrain);
@@ -61,28 +62,28 @@ namespace CoupledField
   }
 
   /// calculates green-lagrangian strains (linear part, vector notation)
-  // see Habil. M. Kaltenbacher 
+  // see Habil. M. Kaltenbacher
 
   template <class TYPE>
-  void MechStressStrain<TYPE>::CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) 
-  {
+  void MechStressStrain<TYPE>::
+  CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
     Matrix<Double> dMat;
     linElastInt::calcDMat(dMat, ent.GetElem());
-    
-    // convert displacement of all elem nodes into one vector: 
+
+    // convert displacement of all elem nodes into one vector:
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
     Vector<TYPE> displVec;
     elemDisp_.ConvertToVec_AppendCols(displVec);
 
     // linear differential operator B_lin
-    Matrix<Double> linBMat;    
+    Matrix<Double> linBMat;
     calcBMat( linBMat, ip, ptCoord_);
 
     strainVec = linBMat * displVec;
-  
+
   }
 
 

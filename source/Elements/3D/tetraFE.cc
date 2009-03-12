@@ -339,9 +339,8 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
       volIntPoint[2] = 0.0;
       break;
     default:
-      errMsg = "TetraFE::GetLocalIntPoints4Surface: surface and volume element ";
-      errMsg = "have not three nodes in common. Check your .mesh-file.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
+      EXCEPTION("TetraFE::GetLocalIntPoints4Surface: surface and volume element "
+          << "have not three nodes in common. Check your .mesh-file.");
     }
 }
 
@@ -349,7 +348,7 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                                    const Double tolerance,
                                    StdVector<bool> & coordsInside) const
   {
-    UInt numPoints = localCoords.GetSizeCol();
+    UInt numPoints = localCoords.GetNumCols();
     double xi, eta, zeta;
 
     coordsInside.Resize(numPoints);

@@ -40,8 +40,8 @@
 #define HIERARCHY_EXPORT_COMPONENTS ExportComponents()
 //// macro, that exports a matrix (calls macro in "exporttools.hh"
 #define HIERARCHY_EXPORT_MATRIX( MATRIX, NAMEFORMAT ) { \
-    Integer exportformatid = MATRIX.GetNrows(); \
-    if( exportformatid < MATRIX.GetNcols() )  exportformatid = MATRIX.GetNcols(); \
+    Integer exportformatid = MATRIX.GetNumRows(); \
+    if( exportformatid < MATRIX.GetNumCols() )  exportformatid = MATRIX.GetNumCols(); \
     EXPORT_MATRIX_FN1( MATRIX, filename, AMG_EXPORT_PREFIX NAMEFORMAT, exportformatid ) \
 }
 #else
@@ -94,7 +94,7 @@
 #endif
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -310,7 +310,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
 #ifdef AMG_DIRICHLET_MIXED_SMOOTHING
     if( !GetLevelID() ) {
-        NewArray( penaltyFlags, bool, SysMatrix_->GetNrows() ); }
+        NEWARRAY( penaltyFlags, bool, SysMatrix_->GetNumRows() ); }
 #endif // AMG_DIRICHLET_MIXED_SMOOTHING
 
     // setup the topology (also creates the dependency graphs)
@@ -318,7 +318,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
                         settings->strongDiagRatio,
                         settings->forceFineRatio,
                         penaltyFlags) ) {
-        DeleteArray( penaltyFlags );
+        DELETEARRAY( penaltyFlags );
         return false;
     }
 
@@ -341,7 +341,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     if( ! SetupAuxData(
               Topology_->GetSizeh(),
               SizeH < settings->minSystemSize ? 0 : SizeH) ) {
-        DeleteArray( penaltyFlags );
+        DELETEARRAY( penaltyFlags );
         return false;
     }
     // check, if the coarsenig gets slow
@@ -384,7 +384,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
         // remove topology object and eventually the penalty flags
         delete Topology_;  Topology_ = NULL;
-        DeleteArray( penaltyFlags );
+        DELETEARRAY( penaltyFlags );
         // setup direct solver
         const bool rValue = SetupDirectSolver( settings );
 
@@ -404,7 +404,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
     // setup the smoother
     if( ! SetupSmoother(settings, penaltyFlags) ) {
-        DeleteArray( penaltyFlags );
+        DELETEARRAY( penaltyFlags );
         return false;
     }
     // create transfer operator
@@ -572,7 +572,7 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
                 dir = (dir == Smoother<T>::FORWARD ?
                        Smoother<T>::BACKWARD : Smoother<T>::FORWARD);
                 SysMatrix_->CompRes( *vh1_, sol, rhs );
-                residualL2Norm = vh1_->NormEuclid();
+                residualL2Norm = vh1_->NormL2();
                 if( logging_ ) {
                     (*cla) << " AMG: smoother: step "<<nExactSmoothingSteps
                            << " : ||r|| = "<<std::scientific<<residualL2Norm
@@ -622,12 +622,12 @@ std::ostream& HierarchyLevel<T>::Print( std::ostream& out,
     << (color ? "\033[0;1m" : "")
     << "hierarchy level "<<LevelID_
     << (color ? "\033[0m" : "")<<std::endl
-    << "  system matrix : size : " << SysMatrix_->GetNrows() << 'x'
-                                   << SysMatrix_->GetNcols() << std::endl
+    << "  system matrix : size : " << SysMatrix_->GetNumRows() << 'x'
+                                   << SysMatrix_->GetNumCols() << std::endl
     << "                : nnz  : " << SysMatrix_->GetNnz()   << std::endl
     << "                : dens : " << (((double)SysMatrix_->GetNnz()  /
-                                        (double)SysMatrix_->GetNrows() )/
-                                        (double)SysMatrix_->GetNrows()   )
+                                        (double)SysMatrix_->GetNumRows() )/
+                                        (double)SysMatrix_->GetNumRows()   )
     << std::endl
     << "  complexity    : " << GetOperatorComplexity() << std::endl;
 
@@ -780,8 +780,8 @@ SetupDirectSolver( const Settings* const settings )
             DirSysMatrix_ = GenerateStdMatrixObject(
                                 SysMatrix_->GetEntryType(),
                                 LAPACK_GBMATRIX, 1,
-                                SysMatrix_->GetNrows(),
-                                SysMatrix_->GetNcols(),
+                                SysMatrix_->GetNumRows(),
+                                SysMatrix_->GetNumCols(),
                                 SysMatrix_->GetNnz()    );
 
             // only LapackGBMatrix knows the Convert method
@@ -863,18 +863,18 @@ SetupDirectSolver( const Settings* const settings )
             GenerateStdMatrixObject( SysMatrix_->GetEntryType(),
                                      SPARSE_SYM,
                                      BlockSize<T_Mtype>::size,
-                                     SysMatrix_->GetNrows(),
-                                     SysMatrix_->GetNcols(),
+                                     SysMatrix_->GetNumRows(),
+                                     SysMatrix_->GetNumCols(),
                                      SysMatrix_->GetNnz() );
             // cast matrix pointer
-            PtrCast( DirSysMatrix_, SCRS_Matrix<T>, scrs );
+            PTRCAST( DirSysMatrix_, SCRS_Matrix<T>, scrs );
             // create sparsity pattern for the SCRS_Matrix
             // NOTE that the number of nonzeros is only the one of the
             //      upper diagonal part, including the diagonal.
             SCRS_Pattern *pattern = New SCRS_Pattern;
-            NewArray( pattern->rptr_, Integer, SysMatrix_->GetNrows()+1 );
-            NewArray( pattern->cidx_, Integer,
-                      (SysMatrix_->GetNnz() + SysMatrix_->GetNrows())/2 );
+            NEWARRAY( pattern->rptr_, Integer, SysMatrix_->GetNumRows()+1 );
+            NEWARRAY( pattern->cidx_, Integer,
+                      (SysMatrix_->GetNnz() + SysMatrix_->GetNumRows())/2 );
             // insert the pattern into the pattern pool and set
             // the pool's pattern in the SCRS_Matrix
             dirSysMatPPool_ = New PatternPool;
@@ -895,7 +895,7 @@ SetupDirectSolver( const Settings* const settings )
             scrsRow[1] = scrs_ij;
 
             // fill in the values
-            for( Integer i = 1; i <= SysMatrix_->GetNrows(); i++ ) {
+            for( Integer i = 1; i <= SysMatrix_->GetNumRows(); i++ ) {
                 // set diagonal entry
                 scrsCol[scrs_ij  ] = i;
                 scrsDat[scrs_ij++] = crsDat[crs_ij = crsRow[i]];
@@ -983,13 +983,13 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
                   Integer           *indexMap ) const
 {
     bool  traceResult   = true;
-    const Integer sizeh = SysMatrix_->GetNrows();
+    const Integer sizeh = SysMatrix_->GetNumRows();
     
     // On top level create and initialize arrays for splitting
     // trace and for index map [index] -> [index on fines level].
     if( GetLevelID() == 0 ) {
-        NewArray( trace,    AMG_CF_TRACE_TYPE, sizeh );
-        NewArray( indexMap, Integer,           sizeh );
+        NEWARRAY( trace,    AMG_CF_TRACE_TYPE, sizeh );
+        NEWARRAY( indexMap, Integer,           sizeh );
         // Initializing trace with -1 allows succesive increment
         // of the values in trace instead of assigning the level ID.
         // This enables correctness check.
@@ -1021,7 +1021,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
     if( traceResult && GetNextLevel() ) {
         if( Topology_ ) {
             Integer *indexMapH = NULL;
-            NewArray( indexMapH, Integer, Topology_->GetSizeH() );
+            NEWARRAY( indexMapH, Integer, Topology_->GetSizeH() );
             for( Integer ih = 1; ih <= sizeh; ih++ ) {
                 if( Topology_->IsCPoint(ih) ) {
                     indexMapH[Topology_->GetCoarseIndex(ih)] = indexMap[ih];
@@ -1030,7 +1030,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
             traceResult &=
             GetNextLevel()->TraceCFSplitting( trace, indexMapH );
 
-            DeleteArray( indexMapH );
+            DELETEARRAY( indexMapH );
         // Topology_ == NULL
         } else {
             Warning( __FILE__, __LINE__,
@@ -1073,8 +1073,8 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
                      "is written.", __FILE__, __LINE__ );
         }
 
-        DeleteArray( trace );
-        DeleteArray( indexMap );
+        DELETEARRAY( trace );
+        DELETEARRAY( indexMap );
     }
 
     return traceResult;
@@ -1163,7 +1163,7 @@ Print( std::ostream& out ) const
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************
  * print-out operators

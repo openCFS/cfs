@@ -120,7 +120,7 @@ namespace CoupledField
     for( ; it != end; it++ )
     {
       elemNum = it->first;
-      numElemNodes = NUM_ELEM_NODES[elemTypes_[elemNum]];
+      numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemTypes_[elemNum]);
       elemTypes[idx] = elemTypes_[elemNum];
 
       for(UInt i=0; i<numElemNodes; i++)
@@ -244,18 +244,18 @@ namespace CoupledField
     return true;
   }
 
-  void FileReader_ANSYS::DegenerateElement(const FEType elemTypeIn,
-                                           FEType& elemTypeOut,
+  void FileReader_ANSYS::DegenerateElement(const Elem::FEType elemTypeIn,
+                                           Elem::FEType& elemTypeOut,
                                            std::vector<UInt>& elemNodes)
   {
     static std::vector<UInt> newElemNodes;
-    static std::map<FEType, std::vector<UInt> > idxMap;
+    static std::map<Elem::FEType, std::vector<UInt> > idxMap;
     elemTypeOut = elemTypeIn;
 
     switch(elemTypeIn)
     {
-    case ET_TRIA3:
-      elemTypeOut = ET_QUAD4;
+    case Elem::TRIA3:
+      elemTypeOut = Elem::QUAD4;
       if(idxMap[elemTypeIn].empty())
       {
         UInt elemIdxMap[] = {0, 1, 2, 2};
@@ -263,8 +263,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_TRIA6:
-      elemTypeOut = ET_QUAD8;
+    case Elem::TRIA6:
+      elemTypeOut = Elem::QUAD8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -273,8 +273,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_TET4:
-      elemTypeOut = ET_HEXA8;
+    case Elem::TET4:
+      elemTypeOut = Elem::HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -283,8 +283,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_TET10:
-      elemTypeOut = ET_HEXA20;
+    case Elem::TET10:
+      elemTypeOut = Elem::HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -297,8 +297,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_PYRA5:
-      elemTypeOut = ET_HEXA8;
+    case Elem::PYRA5:
+      elemTypeOut = Elem::HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -308,8 +308,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_PYRA13:
-      elemTypeOut = ET_HEXA20;
+    case Elem::PYRA13:
+      elemTypeOut = Elem::HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -322,8 +322,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_WEDGE6:
-      elemTypeOut = ET_HEXA8;
+    case Elem::WEDGE6:
+      elemTypeOut = Elem::HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -333,8 +333,8 @@ namespace CoupledField
       }
       break;
 
-    case ET_WEDGE15:
-      elemTypeOut = ET_HEXA20;
+    case Elem::WEDGE15:
+      elemTypeOut = Elem::HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -351,7 +351,7 @@ namespace CoupledField
       return;
     }
 
-    newElemNodes.resize(NUM_ELEM_NODES[elemTypeOut]);
+    newElemNodes.resize(Elem::GetNumElemNodes((Elem::FEType)elemTypeOut));
     std::vector<UInt>::const_iterator it, end;
     it = idxMap[elemTypeIn].begin();
     end = idxMap[elemTypeIn].end();

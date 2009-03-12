@@ -120,7 +120,7 @@ namespace CoupledField
     // Matrix containig the local PDE node numbers of all subdomains of the PDE
     UInt ** localNodes_;
     UInt * numOfNodesInSD_;
-    Matrix<bool> NodeBelongsToSD_;
+    StdVector<StdVector<bool> > NodeBelongsToSD_;
 
   };
 

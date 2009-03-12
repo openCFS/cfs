@@ -5,6 +5,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
+#include <fstream>
 
 #include "interpolate.hh"
 
@@ -205,9 +206,9 @@ namespace CoupledField {
     UInt n = x.GetSize() - 1; // last index
     Vector<Double> u;
     u.Resize(x.GetSize() );
-    u.Init(0.0);
+    u.Init();
     y2.Resize(x.GetSize() );
-    y2.Init(0.0);
+    y2.Init();
 
     // The lower boundary condition is set either to be natural
     // or else to have a specified first derivative.

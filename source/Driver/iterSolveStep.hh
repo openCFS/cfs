@@ -7,7 +7,7 @@
 
 #include "PDE/basePDE.hh"
 #include "Driver/baseSolveStep.hh"
-#include "Utils/cfsvector.hh"
+#include "MatVec/SingleVector.hh"
 
 namespace CoupledField
 {
@@ -90,7 +90,7 @@ namespace CoupledField
   protected:
 
     //! calculates the norm of a vector
-    Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval); 
+    Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval); 
     
 
     //! reference to PDE

@@ -9,7 +9,7 @@
 #include <string>
 
 #include "General/environment.hh"
-#include "vector.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
   

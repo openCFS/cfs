@@ -8,9 +8,9 @@
 #include <map>
 #include <set>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "olasparams.hh"
-#include "utils/defs.hh"
-#include "utils/environment.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
@@ -18,7 +18,7 @@
 using CoupledField::ParamNode;
 using CoupledField::Exception;
 
-namespace OLAS {
+namespace CoupledField {
 
   // Forward declarations
   class BaseSolver;
@@ -27,7 +27,12 @@ namespace OLAS {
   class BaseGraphManager;
   class BaseIDBC_Handler;
   class BaseEntryManipulator;
+  class BaseMatrix;
   class StdMatrix;
+  class DenseMatrix;
+  class BaseVector;
+  class SingleVector;
+  template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
 
   //! Base class for linear algebraic system
@@ -194,11 +199,11 @@ namespace OLAS {
     //!                    of the generalized eigenvalue problem
     //! \param err Reached error norm for each eigenvalue
     //! \return Number of converged eigenvalues
-    //! \note This method may only be called if SetupEigenfrequencySolver()
+    //! \note This method may only be calaled if SetupEigenfrequencySolver()
     //!       was called previously.
-    virtual UInt CalcEigenFrequencies( const Double* &frequencies,
-                                       const Double* &err ) = 0;
-
+    virtual void CalcEigenFrequencies( Vector<Double>& frequencies,
+                                       Vector<Double>& err ) = 0;
+ 
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
 
     //! Calling this method triggers the solution of a quadratic eigenvalue
@@ -213,8 +218,8 @@ namespace OLAS {
     //! \return Number of converged eigenvalues
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
-    virtual UInt CalcEigenFrequencies( const Complex* &frequencies,
-                                       const Double* &err ) = 0;
+    virtual void CalcEigenFrequencies( Vector<Complex>& frequencies,
+                                       Vector<Double>& err ) = 0;
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
@@ -343,11 +348,9 @@ namespace OLAS {
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
     void SetElementPos( const PdeIdType identifierPDE1,
-                        Integer *eqnNrs1,
-                        Integer elemSize1,
+                        const StdVector<Integer>& eqnNrs1,
                         const PdeIdType identifierPDE2,
-                        Integer *eqnNrs2,
-                        Integer elemSize2,
+                        const StdVector<Integer>& eqnNrs2,
                         bool setCounterPart );
 
     //! Obtain the permutation/re-ordering vector for a graph
@@ -365,7 +368,9 @@ namespace OLAS {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    Integer *GetReordering( const PdeIdType identifier );
+    void GetReordering( const PdeIdType identifier,
+                        StdVector<UInt>& newOrder );
+
     //@}
 
     // ***********************************************************************
@@ -399,7 +404,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! right-hand side vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a SparseVector
+    //!       We currently do not support setting only the part of a SingleVector
     //!       related to a single PDE to zero in this case.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
@@ -412,22 +417,7 @@ namespace OLAS {
     //! \param newRHS Pointer to new right-hand-side values
     //! \note The values of newRHS are copied, so the pointer to newRHS
     //! can be changed afterwards!
-    virtual void InitRHS( const Double * newRHS ) = 0;
-
-    /** Sets the global rhs to given complex values.
-     * We use OLAS::Vector<> as the pointer stuff has the convention of
-     * first all real and then the imaginary parts and this is f* messy stuff.
-     * Is only implemented for StandardSystem. */
-    virtual void InitRHS( const Vector<Complex>* newRHS )
-    {
-      EXCEPTION("Only implemented in StandardSystem");
-    }
-
-    virtual void InitRHS(const Vector<Double>* newRHS )
-    {
-      EXCEPTION("Only implemented in StandardSystem");
-    }
-
+    virtual void InitRHS( const BaseVector& newRHS ) = 0;
 
     //! Set the solution vector of the specified PDE to zero
 
@@ -435,7 +425,7 @@ namespace OLAS {
     //! specified PDE to zero. If no PDE identifier is given, the complete
     //! solution vector is zeroed.
     //! \note In the case of a StandardSystem the PDE identifier is ignored.
-    //!       We currently do not support setting only the part of a SparseVector
+    //!       We currently do not support setting only the part of a SingleVector
     //!       related to a single PDE to zero.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
@@ -448,9 +438,10 @@ namespace OLAS {
     //! \param newSol Pointer to new solution values
     //! \note The values of newSol are copied, so the pointer to newSol
     //! can be changed afterwards!
-    virtual void InitSol( const Double * newSol, const UInt size ) = 0;
+    virtual void InitSol( const BaseVector& newSol ) = 0;
 
 
+    //@{
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
@@ -481,15 +472,24 @@ namespace OLAS {
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different PDE identifiers.
-    virtual void SetElementMatrix( FEMatrixType matrix_id, Double * elemmat,
-                                    PdeIdType identifierPDE1,
-                                    Integer *eqnNrs1,
-                                    Integer numEqn1,
-                                    PdeIdType identifierPDE2,
-                                    Integer *eqnNrs2,
-                                    Integer numEqn2,
-                                    bool setCounterPart ) = 0;
+    virtual void SetElementMatrix( FEMatrixType matrix_id, 
+                                   const Matrix<Double>& elemmat,
+                                   PdeIdType identifierPDE1,
+                                   const StdVector<Integer>& eqnNrs1,
+                                   PdeIdType identifierPDE2,
+                                   const StdVector<Integer>& eqnNrs2,
+                                   bool setCounterPart ) = 0;
 
+    virtual void SetElementMatrix( FEMatrixType matrix_id, 
+                                   const Matrix<Complex>& elemmat,
+                                   PdeIdType identifierPDE1,
+                                   const StdVector<Integer>& eqnNrs1,
+                                   PdeIdType identifierPDE2,
+                                   const StdVector<Integer>& eqnNrs2,
+                                   bool setCounterPart ) = 0;
+    //@}
+
+    //@{
     //! Assemble the local rhs vector to the global one
 
     //! This method adds the entries of the element right hand side to the
@@ -501,8 +501,14 @@ namespace OLAS {
     //! \param eqnNrs  equation numbers (1-based) of the element rhs
     //!                w.r.t. sub-graph associated with idPDE
     //! \param numEqn  length of eqnNrs array
-    virtual void SetElementRHS( Double *elemRHS, const PdeIdType idPDE,
-                                Integer *eqnNrs, UInt numEqn ) = 0;
+    virtual void SetElementRHS( const Vector<Double>& elemRHS, 
+                                const PdeIdType idPDE,
+                                StdVector<Integer>& eqnNrs ) = 0;
+
+    virtual void SetElementRHS( const Vector<Complex>& elemRHS, 
+                                const PdeIdType idPDE,
+                                StdVector<Integer>& eqnNrs ) = 0;
+    //@}
 
 
     //@{
@@ -531,7 +537,7 @@ namespace OLAS {
     //! \param matrix_id type of finite element matrix (STIFFNESS, MASS, ...)
     //!                  which gets multiplied
     //! \param fup array with vector entries, which get multiplied
-    virtual void UpdateRHS(FEMatrixType matrix_id, Double * fup) = 0;
+    virtual void UpdateRHS(FEMatrixType matrix_id, const BaseVector& fup) = 0;
 
     //! Add a value to a diagonal matrix entry
 
@@ -552,7 +558,11 @@ namespace OLAS {
     virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
                                        const PdeIdType pdeID,
                                        Integer eqnNum,
-                                       Double *val ) = 0;
+                                       Double val ) = 0;
+    virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
+                                       const PdeIdType pdeID,
+                                       Integer eqnNum,
+                                       Complex val ) = 0;
     //@{
     //! Get value of specific matrix entry
 
@@ -658,7 +668,6 @@ namespace OLAS {
     //! the solver have to be set up again.
     virtual void BuildInDirichlet() = 0;
 
-    //@{
     //! Return the pointer to the current solution of a PDE
 
     //! This method passes the current solution of one given PDE
@@ -668,19 +677,13 @@ namespace OLAS {
     //!
     //! \param ptSol pointer (0-based) to the solution buffer
     //! \param identifierPDE identifier for PDE related to sub-graph
-    //! \return number of array entries
     //!
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    virtual Integer GetSolutionVal( Double* &ptSol,
-                                    const PdeIdType identifierPDE
-                                    = NO_PDE_ID ) = 0;
-    virtual Integer GetSolutionVal( Complex* &ptSol,
-                                    const PdeIdType identifierPDE
-                                    = NO_PDE_ID ) = 0;
-    //@}
+    virtual void GetSolutionVal( SingleVector& ptSol,
+                                 const PdeIdType identifierPDE
+                                 = NO_PDE_ID ) = 0;
 
-    //@{
     //! Return the pointer to the current rhs value of a PDE
 
     //! This method passes the current rhs as a pointer to buffer with
@@ -688,17 +691,12 @@ namespace OLAS {
     //!
     //! \param ptRhs pointer (0-based) to the buffer with rhs values
     //! \param identifierPDE identifier for PDE related to sub-graph
-    //! \return number of array entries
     //!
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
-    virtual Integer GetRHSVal( Double* &ptRhs,
-                               const PdeIdType identifierPDE
-                               = NO_PDE_ID) = 0;
-    virtual Integer GetRHSVal( Complex* &ptRhs,
-                               const PdeIdType identifierPDE
-                               = NO_PDE_ID) = 0;
-    //@}
+    virtual void GetRHSVal( SingleVector &ptRhs,
+                            const PdeIdType identifierPDE
+                            = NO_PDE_ID ) = 0;
 
 
     // ***********************************************************************
@@ -734,21 +732,6 @@ namespace OLAS {
     //! for example STIFFNESS, MASS...
     //! \param matTypes set of enums of global matrices
     virtual void GetFEMatrixTypes( std::set<FEMatrixType> &matTypes ) const;
-
-    //! Set block size of a matrix entry
-
-    //! The number of degrees of freedom associated with a single equation
-    //! number depends on the type of equation numbering in CFS. In the
-    //! simple case of a scalar numbering each equation number represents
-    //! precisely one unknown. If dof blocking is used the matrices in %OLAS
-    //! will be composed of tiny submatrices and the block size will be
-    //! larger than one.
-    //! \param identifier unique identifier for a PDE registered with the
-    //!                   graph manager
-    //! \param bs         number of unknonws per equation number
-    //!                   (1 = scalar matrix, > 1 = block matrix)
-    virtual void SetBlockSize( const PdeIdType identifier,
-                               const UInt bs ) = 0;
 
     //! Set the number of inhomogeneous Dirichlet boundary conditions
 
@@ -787,8 +770,8 @@ namespace OLAS {
     //! \param matrixID specifies matrix to be exported
     //! \param filename name of output file
     //! \param comment  string to be inserted into file header (optional)
-    virtual void Export( FEMatrixType matrixID, Char *filename,
-                         Char *comment = NULL ) const = 0;
+    virtual void Export( FEMatrixType matrixID, char *filename,
+                         char *comment = NULL ) const = 0;
 
     //! Print the specified matrix into the .las-file
 

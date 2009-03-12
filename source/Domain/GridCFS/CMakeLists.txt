@@ -10,6 +10,7 @@ ADD_LIBRARY(gridcfs STATIC ${GRIDCFS_SRCS})
 
 SET(TARGET_LL
   domain
+  matvec
 )
 
 TARGET_LINK_LIBRARIES(gridcfs ${TARGET_LL})

@@ -22,7 +22,7 @@ public:
 
   /// Calculation of stiffmess matrix
   virtual void CalcElementMatrix( Matrix<Double>& stiffMat,EntityIterator& ent1,EntityIterator& ent2 ) {
-    Error( "FluidMechInt::CalcElementMatrix() not correctly overwritten!", __FILE__, __LINE__);
+    EXCEPTION( "FluidMechInt::CalcElementMatrix() not correctly overwritten!" );
   };
 
 
@@ -54,7 +54,7 @@ protected:
                            const Vector<Double> & elemVec,
                            const UInt & nrOfNodes, 
                            const UInt & dofPerNode)
-  {Error("ResortElementVector is now in LinearForm",__FILE__,__LINE__);};
+  {EXCEPTION ("ResortElementVector is now in LinearForm");};
   
   void ComputeTaus(Double & tau_mp,
                    Double & tau_mu,

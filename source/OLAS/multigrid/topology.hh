@@ -13,7 +13,7 @@
 #include  "multigrid/ppflags.hh"
 #include  "multigrid/depgraph.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 #define  TOPOLOGY_COARSE_GRAPH_STRETCH_FACTOR  5
 /**********************************************************/
@@ -50,11 +50,11 @@ class Topology
     public:
 
         //! entry type of the matrices (e.g. tiny matrices)
-        typedef typename assocType<T>::T_Mtype T_Mtype;
+        typedef typename AssocType<T>::T_Mtype T_Mtype;
         //! entry type of the vectors (e.g. tiny vectors)
-        typedef typename assocType<T>::T_Vtype T_Vtype;
+        typedef typename AssocType<T>::T_Vtype T_Vtype;
         //! scalar type (e.g. double, even if T_Mtype is a tiny matrix)
-        typedef typename assocType<T>::T_Stype T_Stype;
+        typedef typename AssocType<T>::T_Stype T_Stype;
 
         //! enumeration constants for the array <code>CoarseIndex_</code>.
         //! <b>Note</b> that <code>CoarseIndex_</code> does not contain the
@@ -108,7 +108,7 @@ class Topology
          *  Returns the index of the first coarse node.
          *  \param matrix system matrix
          *  \param alpha the coarsening parameter \f$ \alpha \f$ in the
-         *         Ruge-Stüben algorithm for the evaluation of strong
+         *         Ruge-Stï¿½ben algorithm for the evaluation of strong
          *         dependencies
          *  \param tolerance additional evaluation criterion for strong
          *         dependencies: \f$ (i,j) \in S \Rightarrow (tolerance
@@ -159,7 +159,7 @@ class Topology
          *  need only the return value, call the overloaded function version
          *  without a parameter.
          *  \param sizes <code>Integer</code> array of size \f$ n_h \f$,
-         *               one-based indexed (use <code>NewArray()</code>)
+         *               one-based indexed (use <code>NEWARRAY()</code>)
          *  \return total number of points needed for interpolation ( ==
          *          \f$ \sum_{i=1}^n size[i] \f$ )
          */
@@ -288,6 +288,6 @@ class Topology
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_TOPOLOGY_HH

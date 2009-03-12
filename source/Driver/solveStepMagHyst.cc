@@ -14,6 +14,8 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
+#include "OLAS/algsys/basesystem.hh"
+
 namespace CoupledField {
 
   SolveStepMagHyst::SolveStepMagHyst(StdPDE& apde) : StdSolveStep(apde) {
@@ -26,9 +28,7 @@ namespace CoupledField {
   void SolveStepMagHyst::StepTransNonLinHysteresis() {
 
 
-    Double *solPtr;
     bool performOneMoreStep;
-
     Vector<Double> newSol( numEqns_ );
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> prevSol( numEqns_ );
@@ -41,52 +41,46 @@ namespace CoupledField {
     }
 
     // get solution of last time step
-    algsys_->GetSolutionVal( solPtr );      
-    StoreAlgsysToVec(prevSol, solPtr );
+    algsys_->GetSolutionVal( prevSol );      
 
     //get previous 1st order derivative of solution
     prevSolDeriv = TS_alg_->GetDeriv1();
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
-      Error( "TS_alg has NULL-Pointer, in SolveStepMagHyst::StepTransNonLin",
-             __FILE__, __LINE__ );
+      EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMagHyst::StepTransNonLin" );
     }
     else {
       //compute predictors
       TS_alg_->Predictor(prevSol);
     }
-
+    
     //! account for Dirichlet BCs
     PDE_.SetBCs();
 
-
     // handle loads
-
     // 1)  assemble to RHS loads for time step (n+1) and save it to RhsLinVal_ 
     assemble_->AssembleLinRHS(); 
-    algsys_->GetRHSVal( solPtr );
-    StoreAlgsysToVec(RhsLinVal_, solPtr );
+    algsys_->GetRHSVal( RhsLinVal_ );
 //     std::cout << "new load:\n" << RhsLinVal_ << std::endl;
 //     std::cout << "old load:\n" << prevLoadRHS_ << std::endl;
 
     //2) substract the loads of time step n
     helpVec     = RhsLinVal_;
     RhsLinVal_ -= prevLoadRHS_;
-    algsys_->InitRHS(RhsLinVal_.GetPointer());
+    algsys_->InitRHS( RhsLinVal_ );
 
     //3) store loads of time step (n+1) for the next time step
     prevLoadRHS_ = helpVec;
 
     //4) add mass matrix multiplied by derivativ of previous solution
-    algsys_->UpdateRHS(MASS, prevSolDeriv.GetPointer());
+    algsys_->UpdateRHS(MASS, prevSolDeriv );
 
     //5) update RHS according to time stepping
     TS_alg_->UpdateRHS();
 
     //6) this will be our constant RHS for this time step
-    algsys_->GetRHSVal( solPtr );
-    StoreAlgsysToVec(RhsLinVal_, solPtr );
+    algsys_->GetRHSVal( RhsLinVal_ );
 
     //L2 of linear RHS
     Double RhsLinL2Norm = RhsLinVal_.NormL2();
@@ -117,14 +111,14 @@ namespace CoupledField {
       // RHS is already set up!!
       if ( iterationCounter > 1 ) {
         // setup linear part of right hand side 
-        algsys_->InitRHS(RhsLinVal_.GetPointer());
+        algsys_->InitRHS(RhsLinVal_);
       }
 
       //asemble matrices
       assemble_->AssembleMatrices();
 
       // add stiffness multiplied by solution of previous time step;
-      algsys_->UpdateRHS(STIFFNESS, prevSol.GetPointer());
+      algsys_->UpdateRHS(STIFFNESS, prevSol );
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
       algsys_->BuildInDirichlet();
@@ -133,8 +127,7 @@ namespace CoupledField {
       algsys_->SetupSolver();
       algsys_->Solve();
 
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(newSol, solPtr );
+      algsys_->GetSolutionVal( newSol );
 
       std::cout << "New Solution: iter  " << iterationCounter << "\n" << newSol << std::endl;
       //    std::cout << "Old Solution:\n" << oldSol << std::endl;
@@ -162,26 +155,25 @@ namespace CoupledField {
       // compute residual norm
 
       // 1) Set linear part to RHS
-      algsys_->InitRHS(RhsLinVal_.GetPointer());
+      algsys_->InitRHS(RhsLinVal_ );
 
       //2) assemble matrices
       assemble_->AssembleMatrices();
 
       //3) add stiffness multiplied by solution of previous time step;
-      algsys_->UpdateRHS(STIFFNESS, prevSol.GetPointer());
+      algsys_->UpdateRHS(STIFFNESS, prevSol );
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS(newSol);
 
       //4) stiffness matrix
       helpSol = -newSol;
-      algsys_->UpdateRHS(STIFFNESS, helpSol.GetPointer());
+      algsys_->UpdateRHS(STIFFNESS, helpSol );
 
 
       Vector<Double> actRHS;
-      Double *rhsPtr, residualL2Norm;
-      algsys_->GetRHSVal( rhsPtr );
-      StoreAlgsysToVec( actRHS, rhsPtr );
+      Double residualL2Norm;
+      algsys_->GetRHSVal( actRHS );
       
       // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
       residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
@@ -209,10 +201,9 @@ namespace CoupledField {
     } while( performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     if ( iterationCounter >= nonLinMaxIter_ ) {
-      (*error) << "Number of nonlinear iterations exceeds limit "
+      EXCEPTION( "Number of nonlinear iterations exceeds limit "
                << "nonLinearMaxIter_ = "
-               << nonLinMaxIter_;
-      Error( __FILE__, __LINE__ );
+               << nonLinMaxIter_ );
     }
 
 
@@ -227,8 +218,6 @@ namespace CoupledField {
 
   void SolveStepMagHyst::StepTransNonLinHysteresisDiff() {
 
-
-    Double *solPtr;
     bool performOneMoreStep;
 
     Vector<Double> actSol( numEqns_ );
@@ -242,8 +231,7 @@ namespace CoupledField {
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
-      Error( "TS_alg has NULL-Pointer, in SolveStepMagHyst::StepTransNonLin",
-             __FILE__, __LINE__ );
+      EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMagHyst::StepTransNonLin" );
     }
     else {
       //compute predictors
@@ -263,8 +251,7 @@ namespace CoupledField {
     TS_alg_->UpdateRHS();
 
     //3) this will be our constant RHS for this time step
-    algsys_->GetRHSVal( solPtr );
-    StoreAlgsysToVec(RhsLinVal_, solPtr );
+    algsys_->GetRHSVal( RhsLinVal_ );
 
     //L2 of linear RHS
     Double RhsLinL2Norm = RhsLinVal_.NormL2();
@@ -294,7 +281,7 @@ namespace CoupledField {
       // RHS is already set up!!
       if ( iterationCounter > 1 ) {
         // setup linear part of right hand side 
-        algsys_->InitRHS(RhsLinVal_.GetPointer());
+        algsys_->InitRHS(RhsLinVal_);
       }
 
       //asemble matrices
@@ -307,9 +294,7 @@ namespace CoupledField {
       algsys_->SetupSolver();
       algsys_->Solve();
 
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(actSol, solPtr );
-
+      algsys_->GetSolutionVal( actSol );
       //      std::cout << "New Solution:\n" << newSol << std::endl;
       //    std::cout << "Old Solution:\n" << oldSol << std::endl;
 
@@ -336,7 +321,7 @@ namespace CoupledField {
       // compute residual norm
 
       // 1) Set linear part to RHS
-      algsys_->InitRHS(RhsLinVal_.GetPointer());
+      algsys_->InitRHS(RhsLinVal_ );
 
       //2) assemble matrices
       assemble_->AssembleMatrices();
@@ -346,13 +331,12 @@ namespace CoupledField {
 
       //4) stiffness matrix
       helpSol = -actSol;
-      algsys_->UpdateRHS(STIFFNESS, helpSol.GetPointer());
+      algsys_->UpdateRHS(STIFFNESS, helpSol );
 
 
       Vector<Double> actRHS;
-      Double *rhsPtr, residualL2Norm;
-      algsys_->GetRHSVal( rhsPtr );
-      StoreAlgsysToVec( actRHS, rhsPtr );
+      Double residualL2Norm;
+      algsys_->GetRHSVal( actRHS );
       
       // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
       residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
@@ -380,10 +364,9 @@ namespace CoupledField {
     } while( performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     if ( iterationCounter >= nonLinMaxIter_ ) {
-      (*error) << "Number of nonlinear iterations exceeds limit "
+      EXCEPTION( "Number of nonlinear iterations exceeds limit "
                << "nonLinearMaxIter_ = "
-               << nonLinMaxIter_;
-      Error( __FILE__, __LINE__ );
+               << nonLinMaxIter_ );
     }
 
     //set the current values to the previous for the next time step!
@@ -408,15 +391,15 @@ namespace CoupledField {
       if ( hyst!= NULL ) {
 
         CurlCurlNode2DInt *curlOp = new CurlCurlNode2DInt( materialData_[actRegion], isaxi_);
-       
-	ElemList actSDList(ptgrid_ );
-	actSDList.SetRegion( actRegion );
-	
-	EntityIterator it = actSDList.GetIterator();
-	UInt iel = 0;
-	for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	  //compute the magnetic field intensity
-	  it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( actRegion );
+
+        EntityIterator it = actSDList.GetIterator();
+        UInt iel = 0;
+        for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+          //compute the magnetic field intensity
+          it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
           Matrix<Double> CornerCoords;
           ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
@@ -428,7 +411,7 @@ namespace CoupledField {
           Vector<double> field;
           if( LCoord.GetSize() ==3 ) {
             field.Resize(3);
-            Error("3D magnetic with hysteresis not implemented!", __FILE__, __LINE__);
+            EXCEPTION("3D magnetic with hysteresis not implemented!");
           }
           else {
             Matrix<Double> bMat;
@@ -450,12 +433,12 @@ namespace CoupledField {
             }
           }
 
-	  pdeElem = it.GetElem()->elemNum;
-	  
+          pdeElem = it.GetElem()->elemNum;
+
           // std::cout << "New Bfield: \n " << field << std::endl << std::endl;
-	  //set the values
-	  materialData_[actRegion]->SetPreviousHystVal( pdeElem, field );
-	}
+          //set the values
+          materialData_[actRegion]->SetPreviousHystVal( pdeElem, field );
+        }
         delete curlOp;
       }
     }

@@ -350,16 +350,15 @@ namespace CoupledField
         volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
         break;
 
-      case 4:
+      case 6:
         // Edge[2,3] is common
         volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
         volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
         break;
 
       default:
-        errMsg = "TriangleFE::GetLocalIntPoints4Surface: surface and volume element ";
-        errMsg = "have not two nodes in common. Check your .mesh-file.";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        EXCEPTION( "TriangleFE::GetLocalIntPoints4Surface: surface and volume element "
+           << "have not two nodes in common. Check your .mesh-file.");
       }
   }
 
@@ -367,7 +366,7 @@ namespace CoupledField
                                       const Double tolerance,
                                       StdVector<bool> & coordsInside) const
   {
-    UInt numPoints = localCoords.GetSizeCol();
+    UInt numPoints = localCoords.GetNumCols();
     double xi, eta;
 
     coordsInside.Resize(numPoints);

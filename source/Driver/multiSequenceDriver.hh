@@ -72,7 +72,7 @@ namespace CoupledField
     StdVector<StdVector<std::string> > pdesPerStep_;
 
     //! stores for each step the usage of the values for each pde
-    StdVector<PDEMemento::ValueUsageType > valueUsagePerStep_;
+    StdVector<bool >  usageDirichletPerStep_;
 
     //! stores for each step the analisystype of each pde
     StdVector<BasePDE::AnalysisType > analysisPerStep_;

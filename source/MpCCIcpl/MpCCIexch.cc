@@ -9,9 +9,11 @@
 
 #include "MpCCIexch.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "PDE/eqnMap.hh"
 #include "Driver/transientdriver.hh"
 #include "Domain/domain.hh"
+
 
 #ifdef MpCCI
 
@@ -641,7 +643,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
       }
     }
     
-    //std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
+    //std::cout<<"flowdata length= "<<flowdata.GetNumCols()<<std::endl;
     if (nodalSrc == true)
       {
         Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );    

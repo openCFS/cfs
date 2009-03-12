@@ -16,6 +16,7 @@ SET(DOMAIN_SRCS
   bcs.cc
   domain.cc
   edgeFace.cc
+  elem.cc
   entityList.cc
   grid.cc
   resultInfo.cc
@@ -33,6 +34,7 @@ SET(TARGET_LL
   coupledpde
   gridcfs
   scripting
+  matvec
 # DIRTY, DIRTYYYY HACK!
   datainout
   simouttext

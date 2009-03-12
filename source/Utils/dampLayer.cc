@@ -28,7 +28,7 @@ namespace CoupledField
       dampFncType_ = type;
     }
     else {
-      Error("Damping type for Sponge Layer not known", __FILE__, __LINE__);
+      EXCEPTION("Damping type for Sponge Layer not known");
     }
   }
 
@@ -46,15 +46,15 @@ namespace CoupledField
                                           ent.GetElem()->connect,
                                           false );
 
-    UInt numVals = ptCoord_.GetSizeRow();
+    UInt numVals = ptCoord_.GetNumRows();
     Vector<Double> pos;
     pos.Resize(numVals);
     pos.Init(0);
-    for (UInt i=0; i<ptCoord_.GetSizeRow(); i++) {
-      for (UInt j=0; j<ptCoord_.GetSizeCol(); j++) {
+    for (UInt i=0; i<ptCoord_.GetNumRows(); i++) {
+      for (UInt j=0; j<ptCoord_.GetNumCols(); j++) {
 	pos[i] += ptCoord_[i][j];
       }
-      pos[i] /= (Double) ptCoord_.GetSizeCol();
+      pos[i] /= (Double) ptCoord_.GetNumCols();
     }
 
     //    std::cout << "pos:\n" << pos << std::endl;
@@ -78,8 +78,7 @@ namespace CoupledField
     }
 
     else if ( dampFncType_  == "inverseDist" ) {
-      Error("PML damping inverseDist divides by factor smaller 1E-12",
-	    __FILE__,__LINE__);
+      EXCEPTION("PML damping inverseDist divides by factor smaller 1E-12");
     }
     else if ( dampFncType_ == "exponential" ) {
       UInt dim = pos.GetSize(); 
@@ -120,7 +119,7 @@ namespace CoupledField
     dampingFactorMax_ = dampFactorMax;
     layerThickness_ =  endRadius - startRadius;
     if ( layerThickness_ < 0 ) {
-      Error("Start-Radius has to be larger then End-Radius",__FILE__,__LINE__);
+      EXCEPTION("Start-Radius has to be larger then End-Radius");
     }
   }
 

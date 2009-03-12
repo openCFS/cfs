@@ -33,7 +33,7 @@
 #endif
 /**********************************************************/
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -178,7 +178,7 @@ std::ostream& AMGSolver<T>::Print( std::ostream& out ) const
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

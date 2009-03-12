@@ -7,7 +7,8 @@
 
 #include <list>
 
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include "hysteresis.hh"
 
 namespace CoupledField {

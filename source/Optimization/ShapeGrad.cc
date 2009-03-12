@@ -150,8 +150,8 @@ double ShapeGrad::MultiplyForwardAndAdjointSolution(Solution* sol_forward,
   // for cost function
   double sum = 0.0;
 
-  StdVector<CFSVector*>& sol_forward_elem = sol_forward->elem[app1];
-  StdVector<CFSVector*>& sol_adjoint_elem = sol_adjoint->elem[app2];
+  StdVector<SingleVector*>& sol_forward_elem = sol_forward->elem[app1];
+  StdVector<SingleVector*>& sol_adjoint_elem = sol_adjoint->elem[app2];
   Vector<double> tmp;
 
   assert(sol_forward_elem.GetSize() != 0);
@@ -177,9 +177,9 @@ double ShapeGrad::MultiplyForwardAndAdjointSolution(Solution* sol_forward,
 
   BaseMaterial* material = mech->getPDEMaterialData()[regionIds[0]]; // TODO: extend for multi-region-optimization if necessary
   double poisson;
-  material->GetScalar(poisson, MECH_POISSON, REAL);
+  material->GetScalar(poisson, MECH_POISSON, Global::REAL);
   double e_mod;
-  material->GetScalar(e_mod, MECH_EMODULUS, REAL);
+  material->GetScalar(e_mod, MECH_EMODULUS, Global::REAL);
 
   // calculate lame parameters (-> Kaltenbacher)
   // from poisson ratio and elasticity modulus

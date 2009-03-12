@@ -16,9 +16,8 @@
 #define OLAS_GENERATE_IDBC_HANLDER_HH
 
 #include <set>
-#include "utils/utils.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   // forward declaration
   class BaseIDBC_Handler;
@@ -28,18 +27,19 @@ namespace OLAS {
   BaseIDBC_Handler*
   GenerateIDBC_HandlerObject( const std::set<FEMatrixType> usedFEMatrices,
                               BaseGraphManager *graphManager, UInt numPDEs,
-                              UInt numIDBCs, const MatrixEntryType eType,
+                              UInt numIDBCs,
+                              const BaseMatrix::EntryType eType,
                               bool sbmCase );
 
   //! Function for generating an IDBC_HandlerPenalty object for StdMatrices
   BaseIDBC_Handler*
   GenerateIDBC_HandlerObject( UInt numIDBC, UInt blockSize,
-                              const MatrixEntryType eType );
+                              const BaseMatrix::EntryType eType );
 
   //! Function for generating an IDBC_HandlerPenalty object for SBM_Matrices
   BaseIDBC_Handler*
   GenerateIDBC_HandlerObject( UInt numIDBC, UInt numPDEs, UInt *bcOffsets,
-                              const MatrixEntryType eType );
+                              const BaseMatrix::EntryType eType );
 }
 
 #endif

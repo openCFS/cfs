@@ -2,39 +2,38 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "graph/graphmanagerstdmat.hh"
-
 #include <iterator>
 #include <iomanip>
 
-namespace OLAS {
+#include "OLAS/graph/graphmanagerstdmat.hh"
+
+namespace CoupledField {
 
 
   // ===============
   //   Constructor
   // ===============
-  GraphManagerStdMat::GraphManagerStdMat() {
-
-
-    graph_               = NULL;
-    graphIDBC_           = NULL;
-    numEqn_              = NULL;
-    numLastFreeDof_      = NULL;
-    newOrdering_         = NULL;
-    offsetIDBC_          = NULL;
-    offset_              = NULL;
-
-    reorderType_         = NOREORDERING;
-
-    reorderingDone_      = false;
-
-    numPDEs_             = 0;
-    numRegisteredPDEs_   = 0;
-    numFreeDofs_         = 0;
-    numFixedDofs_        = 0;
-    offset1_             = 0;
-    offset2_             = 0;
-
+  GraphManagerStdMat::GraphManagerStdMat()
+    : 
+      reorderType_(NOREORDERING),
+      offset_(NULL),
+      offsetIDBC_(NULL),
+      offset1_(0),
+      offset2_(0),
+      offsetIDBC1_(0),
+      offsetIDBC2_(0),
+      idPDE1_(NO_PDE_ID),
+      idPDE2_(NO_PDE_ID),
+      graph_(NULL),
+      graphIDBC_(NULL),
+      numPDEs_(0),
+      numRegisteredPDEs_(0),
+      numFixedDofs_(0),
+      numFreeDofs_(0),
+      numLastFreeDof_(NULL),
+      numEqn_(NULL),
+      reorderingDone_(false)
+  {
   }
 
 
@@ -48,29 +47,22 @@ namespace OLAS {
     // vectors are still NULL. If they were claimed by the PDEs they
     // were re-set to NULL and if they were not claimed, it is our
     // responsibility to delete then now.
-    for ( UInt i = 1; i <= numPDEs_; i++ ) {
-      if ( newOrdering_[i] != NULL ) {
-	(*error) << "GraphManagerStdMat::~GraphManagerStdMat: "
-                 << "Nobody ever claimed the permutation vector for the "
-                 << "PDE with identifier '" << i
-                 << "'! Assuming it's my task to de-allocate the memory!";
-	Error( __FILE__, __LINE__ );
-      }
-      else {
-        DeleteArray( newOrdering_[i] );
+    for ( UInt i = 0; i < numPDEs_; i++ ) {
+      if ( newOrdering_[i].GetSize() ) {
+        newOrdering_[i].Resize(0);
       }
     }
-    DeleteArray( newOrdering_ );
+    newOrdering_.Resize(0);
 
     // Delete the graph objects
     delete graph_;
     delete graphIDBC_;
 
     // Delete auxilliary information arrays
-    DeleteArray( numLastFreeDof_ );
-    DeleteArray( offsetIDBC_ );
-    DeleteArray( offset_ );
-    DeleteArray( numEqn_ );
+    DELETEARRAY( numLastFreeDof_ );
+    DELETEARRAY( offsetIDBC_ );
+    DELETEARRAY( offset_ );
+    DELETEARRAY( numEqn_ );
 
   }
 
@@ -85,16 +77,16 @@ namespace OLAS {
     numPDEs_ = numPDEs;
 
     // Allocate memory to store the offsets and further PDE size information
-    NewArray( numEqn_        , UInt, numPDEs_     );
-    NewArray( numLastFreeDof_, UInt, numPDEs_     );
-    NewArray( offset_        , UInt, numPDEs_ + 1 );
-    NewArray( offsetIDBC_    , Integer, numPDEs_ + 1 );
+    NEWARRAY( numEqn_        , UInt, numPDEs_     );
+    NEWARRAY( numLastFreeDof_, UInt, numPDEs_     );
+    NEWARRAY( offset_        , UInt, numPDEs_ + 1 );
+    NEWARRAY( offsetIDBC_    , Integer, numPDEs_ + 1 );
 
     // Allocate memory for the re-ordering vectors and set all
     // pointers to NULL for the case that no re-ordering is performed
-    NewArray( newOrdering_, Integer*, numPDEs_ );
-    for ( UInt i = 1; i <= numPDEs; i++ ) {
-      newOrdering_[i] = NULL;
+    newOrdering_.Resize( numPDEs_ );
+    for ( UInt i = 0; i < numPDEs; i++ ) {
+      newOrdering_[i].Resize(0);
     }
 
   }
@@ -113,23 +105,23 @@ namespace OLAS {
 
     // If re-ordering is to be performed, allocate auxilliary
     // vector to store large permutation vector
-    Integer *permutation = NULL;
+    StdVector<UInt> permutation;
     if ( reorderType_ != NOREORDERING ) {
-      NewArray( permutation, Integer, numFreeDofs_ );
+      permutation.Resize( numFreeDofs_ );
     }
 
     // Only need permutation vector for first PDE, if we are
     // using the elimination approach and there are fixed dofs
     // for the first PDE
-    UInt firstPermVec = 1;
-    if ( numLastFreeDof_[1] == numEqn_[1] && reorderType_ == NOREORDERING ) {
-      firstPermVec = 2;
+    UInt firstPermVec = 0;
+    if ( numLastFreeDof_[0] == numEqn_[0] && reorderType_ == NOREORDERING ) {
+      firstPermVec = 1;
     }
 
     // Each PDE, besides maybe the first, needs an individual reordering
     // array, so allocate memory for them taking into accout fixed dofs, too.
-    for ( UInt i = firstPermVec; i <= numPDEs_; i++ ) {
-      NewArray( newOrdering_[i], Integer, numEqn_[i] );
+    for ( UInt i = firstPermVec; i < numPDEs_; i++ ) {
+      newOrdering_[i].Resize( numEqn_[i] );
     }
 
 
@@ -138,11 +130,11 @@ namespace OLAS {
     // *****************
 
     // Trigger final steps of assembly
-    graph_->FinaliseAssembly( permutation );
+    graph_->FinaliseAssembly( &permutation );
 
     // Finish generation of auxilliary graph
     if ( graphIDBC_ != NULL ) {
-      graphIDBC_->FinaliseAssembly( permutation );
+      graphIDBC_->FinaliseAssembly( &permutation );
     }
 
 
@@ -156,18 +148,18 @@ namespace OLAS {
     if ( reorderType_ != NOREORDERING ) {
 
       // Loop over all registered PDEs
-      for ( i = 1; i <= numPDEs_; i++ ) {
+      for ( i = 0; i < numPDEs_; i++ ) {
 
         // Copy new dof number from large vector into PDE individual vector
-        index = 1;
-        for ( k = offset_[i] + 1; k <= offset_[i+1]; k++ ) {
+        index = 0;
+        for ( k = offset_[i]; k < offset_[i+1]; k++ ) {
           newOrdering_[i][index] = permutation[k];
           index++;
         }
       }
 
       // Large vector is no longer needed
-      DeleteArray( permutation );
+      permutation.Resize(0);
     }
 
     // No "real" re-ordering was performed. However, CFS++ needs the new
@@ -176,8 +168,8 @@ namespace OLAS {
     else {
 
       // Loop over all registered PDEs
-      for ( i = firstPermVec; i <= numPDEs_; i++ ) {
-        index = 1;
+      for ( i = firstPermVec; i < numPDEs_; i++ ) {
+        index = 0;
         for ( k = offset_[i] + 1; k <= offset_[i+1]; k++ ) {
           newOrdering_[i][index] = k;
           index++;
@@ -191,13 +183,13 @@ namespace OLAS {
     if ( numFixedDofs_ > 0 ) {
 
       // We use a running index for all fixed dofs per PDE
-      UInt fixedBlockInit = numFreeDofs_;
-      if ( firstPermVec == 2 ) {
-        fixedBlockInit += numEqn_[1] - numLastFreeDof_[1];
+      UInt fixedBlockInit = numFreeDofs_+1;
+      if ( firstPermVec == 1 ) {
+        fixedBlockInit += numEqn_[0] - numLastFreeDof_[0];
       }
 
-      for ( i = firstPermVec; i <= numPDEs_; i++ ) {
-        for ( UInt j = 1; j <= numEqn_[i] - numLastFreeDof_[i]; j++ ) {
+      for ( i = firstPermVec; i < numPDEs_; i++ ) {
+        for ( UInt j = 0; j < numEqn_[i] - numLastFreeDof_[i]; j++ ) {
           newOrdering_[i][ numLastFreeDof_[i] + j ] = fixedBlockInit + j;
         }
         fixedBlockInit += numEqn_[i] - numLastFreeDof_[i];
@@ -226,11 +218,10 @@ namespace OLAS {
     // Step counter for the number of registered PDEs and check number
     numRegisteredPDEs_++;
     if ( numRegisteredPDEs_ > numPDEs_ ) {
-      (*error) << "GraphManagerStdMat::RegisterPDE: You tried to "
+      EXCEPTION("GraphManagerStdMat::RegisterPDE: You tried to "
                << "register a " << numRegisteredPDEs_ << "-th PDE "
                << "with id = '" << identifierPDE << "', but SetupInit "
-               << "specified only " << numPDEs_ << " to be expected!";
-      Error( __FILE__, __LINE__ );
+               << "specified only " << numPDEs_ << " to be expected!");
     }
 
 
@@ -268,26 +259,26 @@ namespace OLAS {
       // Compute the offsets for the free equation numbers to be inserted
       // into the main graph and the offsets for the fixed equation numbers
       // that will be inserted into the auxilliary IDBC graph
-      offset_[1] = 0;
-      for ( UInt i = 1; i <= numPDEs_; i++ ) {
+      offset_[0] = 0;
+      for ( UInt i = 0; i < numPDEs_; i++ ) {
         offset_[i+1] = offset_[i] + numLastFreeDof_[i];
       }
 
       UInt aux = 0;
-      for ( UInt i = 1; i <= numPDEs_; i++ ) {
+      for ( UInt i = 0; i < numPDEs_; i++ ) {
         offsetIDBC_[i] = aux - numLastFreeDof_[i];
         aux += numEqn_[i] - numLastFreeDof_[i];
       }
 
       // Once the last PDE has registered itself, we know the number of
       // vertices in the graph and can thus construct the graph object.
-      graph_ = New BaseGraph( numFreeDofs_, numFreeDofs_, reorderType_ );
-      AssertMem( graph_, sizeof(BaseGraph) );
+      graph_ = new BaseGraph( numFreeDofs_, numFreeDofs_, reorderType_ );
+      ASSERTMEM( graph_, sizeof(BaseGraph) );
 
       // Generate auxilliary graph object
       if ( numFixedDofs_ > 0 ) {
-        graphIDBC_ = New IDBC_Graph( numFreeDofs_, numFixedDofs_ );
-        AssertMem( graphIDBC_, sizeof(IDBC_Graph) );
+        graphIDBC_ = new IDBC_Graph( numFreeDofs_, numFixedDofs_ );
+        ASSERTMEM( graphIDBC_, sizeof(IDBC_Graph) );
       }
     }
   }
@@ -303,16 +294,14 @@ namespace OLAS {
 
     // Perform a consistency check
     if ( identifierPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerStdMat: First PDE identifier passed to "
-               << "AssembleInit is empty!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerStdMat: First PDE identifier passed to "
+               << "AssembleInit is empty!");
     }
     if ( graph_ == NULL ) {
-      (*error) << "GraphManagerStdMat::AssembleInit: "
-               << "Pointer to graph object = NULL! "
-	       << "Did you call RegisterPDE() for all " << numPDEs_
-               << " PDEs?";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerStdMat::AssembleInit: "
+          << "Pointer to graph object = NULL! "
+          << "Did you call RegisterPDE() for all " << numPDEs_
+          << " PDEs?");
     }
 
     // Assign identifiers for checking in SetElementPos
@@ -320,21 +309,19 @@ namespace OLAS {
     idPDE2_ = identifierPDE2;
 
     // Determine offsets
-    if ( idPDE1_ > numPDEs_ ) {
-      (*error) << "GraphManagerStdMat::AssembleInit: "
+    if ( idPDE1_ > static_cast<Integer>(numPDEs_) ) {
+      EXCEPTION("GraphManagerStdMat::AssembleInit: "
                << "PDE with identifier '" << idPDE1_ << "' was not "
-               << "registered using RegisterPDE()!";
-      Error( __FILE__, __LINE__ );
+               << "registered using RegisterPDE()!");
     }
     offset1_ = offset_[idPDE1_];
     offsetIDBC1_ = offsetIDBC_[idPDE1_];
     
     if ( idPDE2_ != NO_PDE_ID ) {
-      if ( idPDE2_ > numPDEs_ ) {
-        (*error) << "GraphManagerStdMat::AssembleInit: "
+      if ( idPDE2_ > static_cast<Integer>(numPDEs_) ) {
+        EXCEPTION("GraphManagerStdMat::AssembleInit: "
                  << "PDE with identifier '" << idPDE2_ << "' was not "
-                 << "registered using RegisterPDE()!";
-        Error( __FILE__, __LINE__ );
+                 << "registered using RegisterPDE()!");
       }
       offset2_ = offset_[idPDE2_];
       offsetIDBC2_ = offsetIDBC_[idPDE2_];
@@ -346,36 +333,31 @@ namespace OLAS {
   // =================
   //   SetElementPos
   // =================
-  void GraphManagerStdMat::SetElementPos( const PdeIdType idPDE1,
-					  Integer *connect1,
-					  Integer length1,
-					  const PdeIdType idPDE2,
-					  Integer *connect2,
-					  Integer length2,
-                                          bool setCounterPart ) {
+  void GraphManagerStdMat::SetElementPos( const PdeIdType identifierPDE1,
+                                          const StdVector<Integer>& eqnNrs1,
+                                          const PdeIdType identifierPDE2,
+                                          const StdVector<Integer>& eqnNrs2,
+                                          bool setCounterPart ) {  
 
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
 
-    if ( idPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerStdMat: First PDE identifier passed to "
-               << "SetElementPos is empty!";
-      Error( __FILE__, __LINE__ );
+    if ( identifierPDE1 == NO_PDE_ID ) {
+      EXCEPTION("GraphManagerStdMat: First PDE identifier passed to "
+                << "SetElementPos is empty!");
     }
     if ( graph_ == NULL ) {
-      (*error) << "GraphManagerStdMat::SetElementPos: "
+      EXCEPTION("GraphManagerStdMat::SetElementPos: "
                << "Pointer to graph object = NULL! "
 	       << "Did you call RegisterPDE() for all " << numPDEs_
-               << " PDEs?";
-      Error( __FILE__, __LINE__ );
+                << " PDEs?");
     }
-    if ( idPDE1_ != idPDE1 || idPDE2_ != idPDE2 ) {
-      (*error) << "Consistency error detected! You specified to AssembleInit "
+    if ( idPDE1_ != identifierPDE1 || idPDE2_ != identifierPDE2 ) {
+      EXCEPTION("Consistency error detected! You specified to AssembleInit "
                << " idPDE1 = '" << idPDE1_ << "',  idPDE2 = '" <<  idPDE2_
                << "', but SetElementPos received idPDE1 = '"
-               << idPDE1 << "',  idPDE2 = '" <<  idPDE2
-               << "'. Maybe you forgot to call AssembleDone & AssembleInit?";
-      Error( __FILE__, __LINE__ );
+               << identifierPDE1 << "',  idPDE2 = '" <<  identifierPDE2
+                << "'. Maybe you forgot to call AssembleDone & AssembleInit?");
     }
 
 #endif
@@ -390,20 +372,22 @@ namespace OLAS {
     vertexList2_.clear();
     edgeList1_.clear();
     edgeList2_.clear();
+    UInt length1 = eqnNrs1.GetSize();
+    UInt length2 = eqnNrs2.GetSize();
 
     // STEP 1: Generate vertex list from first connect array, dropping
     //         equation numbers for dofs fixed by inhomogeneous Dirichlet
     //         boundary conditions and changing the sign of those fixed by
     //         constraints
     UInt aux;
-    for ( int i = 1; i <= length1; i++ ) {
-      aux = std::abs( (double) connect1[i] );
+    for ( UInt i = 0; i < length1; i++ ) {
+      aux = abs(eqnNrs1[i]);
       if ( aux > 0 ) {
-        if ( aux <= numLastFreeDof_[idPDE1] ) {
-          vertexList1_.push_back( aux + offset1_ );
+        if ( aux <= numLastFreeDof_[identifierPDE1] ) {
+          vertexList1_.push_back( aux + offset1_ - 1);
         }
         else {
-          vertexList2_.push_back( aux + offsetIDBC1_ );
+          vertexList2_.push_back( aux + offsetIDBC1_ - 1);
         }
       }
     }
@@ -411,61 +395,62 @@ namespace OLAS {
     // STEP 2: Split the second connect array into two edge lists, one for
     //         the graph and one for the IDBCgraph (which handles the dofs
     //         fixed by inhomogeneous Dirichlet boundary conditions)
-    for ( int i = 1; i <= length2; i++ ) {
-      aux = std::abs( (double) connect2[i] );
+    for ( UInt i = 0; i < length2; i++ ) {
+      aux = abs(eqnNrs2[i]);
       if ( aux > 0 ) {
-        if ( aux > numLastFreeDof_[idPDE2] ) {
-          edgeList2_.push_back( aux + offsetIDBC2_ );
+        if ( aux > numLastFreeDof_[identifierPDE2] ) {
+          edgeList2_.push_back( aux + offsetIDBC2_ - 1);
         }
         else {
-          edgeList1_.push_back( aux + offset2_ );
+          edgeList1_.push_back( aux + offset2_ - 1);
         }
       }
     }
-
+ 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
+    
     // output original connectivity
-    (*debug) << "\n GraphManagerStdMat::AdaptConnects\n"
-             << " idPDE1 = " << idPDE1 << '\n'
-             << " idPDE2 = " << idPDE2 << '\n'
+    (std::cerr) << "\n GraphManagerStdMat::AdaptConnects\n"
+             << " idPDE1 = " << identifierPDE1 << '\n'
+             << " idPDE2 = " << identifierPDE2 << '\n'
              << " offset1 = " << offset1_ << '\n'
              << " offset2 = " << offset2_ << '\n'
              << " offsetIDBC1 = " << offsetIDBC1_ << '\n'
              << " offsetIDBC2 = " << offsetIDBC2_ << '\n'
-             << " numLastFreeDof1 = " << numLastFreeDof_[idPDE1] << '\n'
-             << " numLastFreeDof2 = " << numLastFreeDof_[idPDE2] << '\n';
-    (*debug) << " connect1 ";
-    for ( UInt i = 1; i <= length1; i++ ) {
-      (*debug) << connect1[i] << " ";
+             << " numLastFreeDof1 = " << numLastFreeDof_[identifierPDE1] << '\n'
+             << " numLastFreeDof2 = " << numLastFreeDof_[identifierPDE2] << '\n';
+    (std::cerr) << " connect1 ";
+    for ( UInt i = 0; i < length1; i++ ) {
+      (std::cerr) << eqnNrs1[i] << " ";
     }
-    (*debug) << std::endl;
-    (*debug) << " connect2 ";
-    for ( UInt i = 1; i <= length2; i++ ) {
-      (*debug) << connect2[i] << " ";
+    (std::cerr) << std::endl;
+    (std::cerr) << " connect2 ";
+    for ( UInt i = 0; i < length2; i++ ) {
+      (std::cerr) << eqnNrs2[i] << " ";
     }
-    (*debug) << std::endl;
+    (std::cerr) << std::endl;
 
     // output new connectivity
-    (*debug) << " vertexList1: ";
+    (std::cerr) << " vertexList1: ";
     for ( UInt i = 0; i < vertexList1_.size(); i++ ) {
-      (*debug) << vertexList1_[i] << " ";
+      (std::cerr) << vertexList1_[i] << " ";
     }
-    (*debug) << std::endl;
-    (*debug) << " vertexList2: ";
+    (std::cerr) << std::endl;
+    (std::cerr) << " vertexList2: ";
     for ( UInt i = 0; i < vertexList2_.size(); i++ ) {
-      (*debug) << vertexList2_[i] << " ";
+      (std::cerr) << vertexList2_[i] << " ";
     }
-    (*debug) << std::endl;
-    (*debug) << " edgeList1: ";
+    (std::cerr) << std::endl;
+    (std::cerr) << " edgeList1: ";
     for ( UInt i = 0; i < edgeList1_.size(); i++ ) {
-      (*debug) << edgeList1_[i] << " ";
+      (std::cerr) << edgeList1_[i] << " ";
     }
-    (*debug) << std::endl;
-    (*debug) << " edgeList2: ";
+    (std::cerr) << std::endl;
+    (std::cerr) << " edgeList2: ";
     for ( UInt i = 0; i < edgeList2_.size(); i++ ) {
-      (*debug) << edgeList2_[i] << " ";
+      (std::cerr) << edgeList2_[i] << " ";
     }
-    (*debug) << std::endl;
+    (std::cerr) << std::endl;
 #endif
 
     // Insert information into graph for real dofs
@@ -493,54 +478,47 @@ namespace OLAS {
   // =================
   //   GetReordering
   // =================
-  Integer* GraphManagerStdMat::GetReordering( const PdeIdType identifier ) {
-
-
-    Integer *retVal = NULL;
+  void GraphManagerStdMat::GetReordering( const PdeIdType identifier, 
+                                          StdVector<UInt>& order ) {
 
     // Get registration number of PDE
-    if ( identifier > numPDEs_ ) {
-      (*error) << "GraphManagerStdMat::GetReordering: "
+    if ( identifier > static_cast<Integer>(numPDEs_) ) {
+      EXCEPTION("GraphManagerStdMat::GetReordering: "
                << "PDE with identifier '" << identifier << "' was not "
-               << "registered using RegisterPDE()!";
-      Error( __FILE__, __LINE__ );
+               << "registered using RegisterPDE()!");
     }
 
     // Test, whether we can return a re-ordering vector
     if ( reorderingDone_ == false ) {
-      (*error) << "GraphManagerStdMat::GetReordering: "
+      EXCEPTION("GraphManagerStdMat::GetReordering: "
                << "No reordering vector available since the graph has not "
-               << "been reordered, yet!";
-      Error( __FILE__, __LINE__ );
+               << "been reordered, yet!");
     }
-    else if ( newOrdering_[identifier] == NULL &&
+    else if ( !newOrdering_[identifier].GetSize() &&
               reorderType_ != NOREORDERING ) {
-      (*error) << "GraphManagerStdMat::GetReordering: "
+      EXCEPTION("GraphManagerStdMat::GetReordering: "
                << "No reordering vector available for PDE with identifier '"
-               << identifier << "' Maybe it was already claimed?";
-      Error( __FILE__, __LINE__ );
+               << identifier << "' Maybe it was already claimed?");
     }
 
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
-    retVal = newOrdering_[identifier];
-    newOrdering_[identifier] = NULL;
+    order = newOrdering_[identifier];
+    newOrdering_[identifier].Resize(0);
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
     (*debug) << "\nGraphManagerStdMat::GetReordering:\n"
              << "Re-ordering for PDE with ID = '" << identifier
              << std::endl;
-    if ( retVal == NULL ) {
+    if ( !order.GetSize() ) {
       (*debug) << " NULL\n" << std::endl;
     }
     else {
-      for ( UInt i = 1; i <= numEqn_[identifier]; i++ ) {
-        (*debug) << " " << i << " -> " << retVal[i] << std::endl;
+      for ( UInt i = 0; i < numEqn_[identifier]; i++ ) {
+        (*debug) << " " << i << " -> " << order[i] << std::endl;
       }
     }
 #endif
-
-    return retVal;
   }
 
 
@@ -553,9 +531,8 @@ namespace OLAS {
 
     // Check if a graph object was already created
     if ( graph_ == NULL ) {
-      (*error) << "GraphManagerStdMat: There exists no graph yet, "
-               << "which could be returned by the GetGraph() method.";
-      Error( __FILE__, __LINE__);
+      EXCEPTION("GraphManagerStdMat: There exists no graph yet, "
+               << "which could be returned by the GetGraph() method.");
     }
 
     // Return pointer to the one and only graph object
@@ -588,7 +565,7 @@ namespace OLAS {
 
     // Compute maximal column widths
     UInt cw1 = 0, cw2 = 0, cw3 = 0, cw4 = 0, tw = 0, aux;
-    for ( UInt i = 1; i <= numPDEs_; i++) {
+    for ( UInt i = 0; i < numPDEs_; i++) {
       aux = numEqn_[i] > 0 ? (UInt)std::log10( (float)numEqn_[i] ) + 1 : 1;
       cw1 = cw1 < aux ? aux : cw1;
 
@@ -639,7 +616,7 @@ namespace OLAS {
 
     // now the table rows
     log->setf( std::ios::right, std::ios::adjustfield );
-    for ( UInt i = 1; i <= numPDEs_; i++) {
+    for ( UInt i = 0; i < numPDEs_; i++) {
       (*log) << std::setw(8) << i
              << " | " << std::setw(cw1) << numEqn_[i]
              << " | " << std::setw(cw2) << numLastFreeDof_[i]

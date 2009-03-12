@@ -5,13 +5,14 @@
 #ifndef IDBC_HANDLER_PENALTY_HH
 #define IDBC_HANDLER_PENALTY_HH
 
-
 #include <set>
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
+
+#include <def_expl_templ_inst.hh>
 
 
-namespace OLAS {
+#include "baseidbchandler.hh"
+
+namespace CoupledField {
 
 
   // forward declarations
@@ -181,8 +182,7 @@ namespace OLAS {
                                PdeIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
-                               Double realPart,
-                               Double imagPart = 0.0 ) {
+                               const T& value ) {
     };
 
     //! Set weight of coupling between a fixed and a free dof into matrix
@@ -191,14 +191,13 @@ namespace OLAS {
                                PdeIdType pdeID2,
                                UInt rowInd,
                                UInt colInd,
-                               Double realPart,
-                               Double imagPart = 0.0 ) {
+                               const T& value ) {
     };
 
     //! Get weight of coupling between a fixed and a free dof from matrix
     void GetWeightFixedToFree( FEMatrixType matID, PdeIdType pdeID1,
                                PdeIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double & realPart,Double & imagPart ) const {
+                               T & value ) const {
     };
     
     //! Set the value of all coupling weights of a free dof to its fixed ones
@@ -247,27 +246,12 @@ namespace OLAS {
       if(iter == bcIndices_[pde_type].end()) return false;
 
       // set dirichlet value
-      dirichletValue_->GetVectorEntry(iter->second, dirichlet_value);
+      dirichletValue_->GetEntry(iter->second, dirichlet_value);
 
       return true;
     }
     
     
-    //@}
-
-
-    // =======================================================================
-    // METHODS FOR FACTORY CONCEPT
-    // =======================================================================
-
-    //! \name Methods required for factory concept
-    //! The following methods are required for our implementation of the
-    //! factory concept and our idea of compiler-independent template class
-    //! instantiation.
-
-    //@{
-    //! Method to force instantiation of all public member functions
-    void InstantiatePublicMethods();
     //@}
 
 
@@ -311,7 +295,7 @@ namespace OLAS {
     Double penaltyTerm_;
 
     //! Attribute storing run-time information on class template
-    MatrixEntryType eType_;
+    BaseMatrix::EntryType eType_;
 
     //! Array storing index pointers into internal arrays
 
@@ -336,5 +320,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "idbchandlerpenalty.cc"
+#endif
 
 #endif

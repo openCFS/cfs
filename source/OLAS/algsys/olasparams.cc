@@ -8,10 +8,11 @@
 
 #include <def_use_lapack.hh>
 
-#include "algsys/olasparams.hh"
-#include "utils/utils.hh"
+#include "General/environment.hh"
+#include "MatVec/basematrix.hh"
+#include "olasparams.hh"
 
-namespace OLAS {
+namespace CoupledField {
   /**********************************************************/
   
   OLAS_Params::OLAS_Params() {
@@ -162,4 +163,84 @@ namespace OLAS {
   }
 
   /**********************************************************/
+  
+  // ****************************************
+  //   Instantiate set/getEnumValue methods
+  // ****************************************
+  void OLAS_Params::EnumInterfaces() {
+
+    // ReorderingType
+    {
+      SetValue( "Instantiation", NOREORDERING );
+      ReorderingType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // FEMatrixType
+    {
+      SetValue( "Instantiation", NOTYPE );
+      FEMatrixType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // PrecondType
+    {
+      SetValue( "Instantiation", NOPRECOND );
+      PrecondType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // SolverType
+    {
+      SetValue( "Instantiation", NOSOLVER );
+      SolverType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // EigenSolveType
+    {
+      SetValue( "Instantiation", NOEIGENSOLVER );
+      EigenSolverType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // CycleType
+    {
+      SetValue( "Instantiation", NOCYCLE );
+      CycleType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // MatrixStructureType
+    {
+      SetValue( "Instantiation", BaseMatrix::NOSTRUCTURETYPE );
+      BaseMatrix::StructureType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // MatrixEntryType
+    {
+      SetValue( "Instantiation", BaseMatrix::NOENTRYTYPE );
+      BaseMatrix::EntryType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // MatrixStorageType
+    {
+      SetValue( "Instantiation", BaseMatrix::NOSTORAGETYPE );
+      BaseMatrix::StorageType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // StopCrit
+    {
+      SetValue( "Instantiation", NOSTOPCRITTYPE );
+      StopCritType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // AMG interpolation
+    {
+      SetValue( "Instantiation", AMG_INTERPOLATION_CONSTANT );
+      AMGInterpolationType val;
+      GetEnumValue( "Instantiation", val );
+    }
+    // AMG smoother
+    {
+      SetValue( "Instantiation", AMG_SMOOTHER_GAUSSSEIDEL );
+      AMGSmootherType val;
+      GetEnumValue( "Instantiation", val );
+    }
+  }
+  
 }

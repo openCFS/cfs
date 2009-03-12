@@ -19,7 +19,7 @@
 //#include  "multigrid/totypes.hh"
 #include  "multigrid/topology.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! encapsulates operators and operations for transfer between AMG levels
@@ -193,6 +193,6 @@ namespace OLAS {
   };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_TRANSFER_HH

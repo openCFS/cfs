@@ -8,8 +8,8 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "General/environment.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 #include "Forms/linStrainOp.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
@@ -41,7 +41,7 @@ namespace CoupledField
   }
 
   template <class TYPE>
-  void LinStrainOp<TYPE>::CalcElemLinearStrain(CFSVector & strain,
+  void LinStrainOp<TYPE>::CalcElemLinearStrain(SingleVector & strain,
                                                const Elem * ptElement,
                                                Matrix<Double> & lCoord)
   {
@@ -53,7 +53,7 @@ namespace CoupledField
     Vector<TYPE> & helpElemField = dynamic_cast<Vector<TYPE>&> (strain);   
 
     helpElemField.Resize(dim);
-    helpElemField.Init(0.0);
+    helpElemField.Init();
    
     UInt nShFnc = 0;
     UInt ip=1;
@@ -173,13 +173,11 @@ namespace CoupledField
   } // end calcBMat
 
   template<class TYPE>
-  void LinStrainOp<TYPE>::CalcSDLinearStrain(CFSVector & strain,
+  void LinStrainOp<TYPE>::CalcSDLinearStrain(SingleVector & strain,
                                               const StdVector<RegionIdType> & SD, 
                                               Matrix<Double> & lCoords)
   {
-  
-     Error( "LinStrainOp::CalcSDLinearStrain: Not working yet", __FILE__, __LINE__);
-
+    EXCEPTION("LinStrainOp::CalcSDLinearStrain: Not working yet");
   }
 
   // explicit template instantiation for GCC compiler

@@ -7,8 +7,8 @@
 
 #include <list>
 
-#include "Utils/StdVector.hh"
 #include "General/environment.hh"
+#include "Utils/StdVector.hh"
 #include "General/exception.hh"
 #include "General/Enum.hh"
 

@@ -13,6 +13,7 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
 
@@ -53,11 +54,10 @@ namespace CoupledField {
     
     pdeNameLong += "-PDE: ";
 
-    Double *solPtr;
-
     bool performOneMoreStep;
-    Integer eqnNr;
-    UInt  eqnDof;
+    // TODO: Check if this is still needed
+    // Integer eqnNr;
+    // UInt  eqnDof;
   
     Vector<Double>  actSol;
     Vector<Double>  actVelo, actPres, tmpVelo, tmpPres;
@@ -133,8 +133,7 @@ namespace CoupledField {
         SETPROFILE("After Solve");
 
         // new solution is NOT only an increment of the full solution =============
-        algsys_->GetSolutionVal( solPtr );
-        StoreAlgsysToVec(newSol, solPtr);
+        algsys_->GetSolutionVal( newSol );
         LOG_DBG(solvestepfluidmech) << "newSol\n" << newSol << std::endl;
         
         sol_->SetAlgSysVector(newSol);
@@ -164,8 +163,9 @@ namespace CoupledField {
         Double actPresL2Norm  = tmpPres.NormL2();
         Double actSolL2Norm  = actSol.NormL2();
 
-        Double etaLineSearch = 0;
-        Double residualErr = 0;
+        // TODO: Check if this is still needed
+        // Double etaLineSearch = 0;
+        // Double residualErr = 0;
 
         if (actVeloL2Norm > 1.0){
           incrementalVeloErr = solVelocityIncL2Norm / actVeloL2Norm;

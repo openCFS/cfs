@@ -31,7 +31,7 @@ namespace CoupledField {
     DiscontinuousEqnMap(Grid* grid, PdeIdType pdeId, bool usePenalty,EqnMap* startMap);
     
     //! Destructor
-    ~DiscontinuousEqnMap();
+    virtual ~DiscontinuousEqnMap();
     
     //! Maps the equation numbers according to the reordering
 
@@ -49,7 +49,7 @@ namespace CoupledField {
     //!   object, we re-set order to NULL in this method.
     //! - For the sake of a low memory foot-print we delete the permutation
     //!   buffer once the reordering was incorporated
-    virtual void ReorderMapping( Integer **order );
+    virtual void ReorderMapping( const StdVector<UInt>& order );
     // ======================================================================
     // EQUATION MAPPING
     // ======================================================================

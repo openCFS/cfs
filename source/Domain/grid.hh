@@ -6,7 +6,7 @@
 #define FILE_SCFE_GRID_2001
 
 #include <list>
-
+#include <set>
 #include <def_use_interpolation.hh>
 
 #ifdef USE_INTERPOLATION
@@ -18,11 +18,13 @@
 #endif
 
 #include "Domain/elem.hh"
+#include "Elements/basefe.hh"
 #include "Domain/surfElem.hh"
 #include "Domain/ncElem.hh"
 #include "Domain/edgeFace.hh"
 #include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
+#include "MatVec/vector.hh"
 
 
 namespace CoupledField
@@ -31,7 +33,7 @@ namespace CoupledField
   //! Class representing geometrical entities (elements, nodes, ...) of a
   //! FE simulation.
 
-  //! This class represents an abstract interface to the geometrical entities 
+  //! This class represents an abstract interface to the geometrical entities
   //! (elements, nodes, ...) in a FE simulation.
   //! It allows access to elements, nodes and coordinates.
   //! The underlying structure is hidden by the according interface classes.
@@ -51,30 +53,30 @@ namespace CoupledField
     // CONSTRUCTION AND INTIIALIZATION
     // =======================================================================
     //@{ \name Constructor / Initialization
-  
-    //! Constructor 
 
-    //! Standard Constructor 
+    //! Constructor
+
+    //! Standard Constructor
     //! \param aptFileType pointer to FileType for reading initial grid
-    Grid(); 
-  
+    Grid();
+
     //! Destructor
     virtual ~Grid();
 
     //! Trigger mapping of elements' faces
 
-    //! This method calculates global surface numbers and 
+    //! This method calculates global surface numbers and
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
     virtual void MapFaces() = 0;
-    
+
     //! Trigger mapping of edges
 
-    //! This method calculates global edge and surface numbers and 
+    //! This method calculates global edge and surface numbers and
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
     virtual void MapEdges() = 0;
- 
+
     //@}
 
     // =======================================================================
@@ -86,19 +88,19 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ NODE INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     virtual void AddNodes(const UInt numNodes)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     virtual void SetNodeCoordinate(const UInt numNode, const Point & rfPoint)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     //! Return dimension of mesh
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() = 0;  
+    virtual UInt GetDim() = 0;
 
     //! Returns the maximum node number in the finite element grid.
     virtual UInt GetNumNodes() = 0;
@@ -113,7 +115,7 @@ namespace CoupledField
     virtual void GetNodeCoordinate( Point & rfPoint,
                                     const UInt inode,
                                     bool updated = false )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
@@ -127,31 +129,31 @@ namespace CoupledField
 
     //! Returns a list of elements, which have one or more of the given
     //! common. The elements are taken out of a given list of regions.
-    //! \param elemList (out) elements which have one or more nodes 
+    //! \param elemList (out) elements which have one or more nodes
     //!                          of nodeList
     //! \param nodeList (in) list of nodes for which neighbouring elements
     //!                      are needed
-    //! \param regionIds (in) identifiers for the regions, where the 
+    //! \param regionIds (in) identifiers for the regions, where the
     //!                       neihgbouring elements are searched in
-    virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+    virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList,
                                       const StdVector<UInt> & nodeList,
-                                      const StdVector<RegionIdType> 
+                                      const StdVector<RegionIdType>
                                       & regionIds ) = 0;
 
     //! Get coordinates of element nodes
 
     //! Returns the coordinates of all nodes of one element.
-    //! \param coordMat (out) coordinates of the element nodes 
+    //! \param coordMat (out) coordinates of the element nodes
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
     //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void GetElemNodesCoord( Matrix<Double> & coordMat,  
+    virtual void GetElemNodesCoord( Matrix<Double> & coordMat,
                                     const StdVector<UInt> & connect,
                                     bool updated = false ) = 0;
 
 
     //! Set offset for coordinates due to updated Lagrangian formulation
-    virtual void SetNodeOffset( const StdVector<UInt>& nodes, 
+    virtual void SetNodeOffset( const StdVector<UInt>& nodes,
                                 const Vector<Double>& offsets ) = 0;
 
     //! Return status of presence of nodal coordinate offsets (up. Lagrange)
@@ -162,30 +164,30 @@ namespace CoupledField
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     virtual void AddElems(UInt nElems) = 0;
-      
+
     virtual void SetElemData(UInt ielem,
-                             FEType type,
+                             Elem::Elem::FEType type,
                              RegionIdType region,
                              const UInt* connect) = 0;
 
     virtual void GetElemData(const UInt ielem,
-                             FEType & type,
+                             Elem::FEType & type,
                              RegionIdType & region,
                              UInt* connect) const
-    { Error( "Not implemented", __FILE__, __LINE__); }
-      
+    { EXCEPTION( "Not implemented" ); }
+
 
     //! Returns the total number of elements in the grid
     virtual UInt GetNumElems() = 0;
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
-    virtual UInt GetNumElemOfType( FEType type ) = 0;
+    virtual UInt GetNumElemOfType( Elem::FEType type ) = 0;
 
     //! Returns the total number of volume elements in the finite element grid
     virtual UInt GetNumVolElems() = 0;
-  
-    //! Returns the total number of surface elements in the grid 
+
+    //! Returns the total number of surface elements in the grid
     virtual UInt GetNumSurfElems() = 0;
 
     //! Get element with given element number
@@ -196,24 +198,24 @@ namespace CoupledField
 
 
     //! Get node numbers of given element
-  
+
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
-    virtual void GetElemNodes( StdVector<UInt> & connect, 
+    virtual void GetElemNodes( StdVector<UInt> & connect,
                                const UInt iElem ) = 0;
 
     //! Returns surface element normal without defined orientation
 
     //! This method calculates the normal of an surface element. The direction
     //! is unspecified and dependend on the order or nodes of the element.
-    //! However, each surface element stores a flag \a normalSign, which 
+    //! However, each surface element stores a flag \a normalSign, which
     //! indicates the direction of the resulting normal w.r.t. its first
     //! volume element pointer.
     //! \param n (out) vector containing surface normal
     //! \param surfElem (in) reference to surface element
     //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void CalcSurfNormal( Vector<Double> & n, 
+    virtual void CalcSurfNormal( Vector<Double> & n,
                                  const Elem & surfElem,
                                  bool updated = false ) = 0;
 
@@ -259,7 +261,7 @@ namespace CoupledField
     virtual UInt GetNumSurfRegions();
 
     //! Get vector with all (surface and volume) region identifiers
-    
+
     //! Return a vector with names of all region identifiers in the
     //! current mesh (surface and volume)
     //! \param volRegions (out) vector with region identifiers
@@ -271,25 +273,25 @@ namespace CoupledField
     //! current mesh.
     //! \param volRegions (out) vector with volume region identifiers
     virtual void GetVolRegionIds( StdVector<RegionIdType> & volRegions );
-  
+
     //! Get vector with all surface region identifiers
 
     //! Return a vector with names of all surface region identifiers in the
     //! current mesh.
     //! \param surfRegions (out) vector with volume region identifiers
-    virtual void GetSurfRegionIds( StdVector<RegionIdType> 
+    virtual void GetSurfRegionIds( StdVector<RegionIdType>
                                    & surfRegions );
 
     //! Returns the number of nodes contained in given region
-    virtual UInt GetNumNodes( const StdVector<RegionIdType> 
+    virtual UInt GetNumNodes( const StdVector<RegionIdType>
                               & regions ) = 0;
 
     //! Get list of nodes contained in a region
 
-    //! Returns a list of all nodes, which are contained in a 
+    //! Returns a list of all nodes, which are contained in a
     //! volume- or surface-region.
     //! \param nodeList (out) list with node numbers
-    //! \param regionId (in) region identifier 
+    //! \param regionId (in) region identifier
     virtual void GetNodesByRegion( StdVector<UInt> & nodeList,
                                    const RegionIdType regionId ) = 0;
 
@@ -297,21 +299,21 @@ namespace CoupledField
 
     //! Returns the number of element, which belong to a list of given
     //! regions.
-    //! \param regions (in) contains the regionIds of 
-    virtual UInt GetNumElems( const StdVector<RegionIdType> 
+    //! \param regions (in) contains the regionIds of
+    virtual UInt GetNumElems( const StdVector<RegionIdType>
                               & regions ) = 0;
 
 
-    virtual const UInt GetMaxNumNodesPerElem()
-    { Error( "Not implemented", __FILE__, __LINE__); return 0;}
+    virtual UInt GetMaxNumNodesPerElem()
+    { EXCEPTION( "Not implemented" );  return 0;}
 
     virtual void SetElemRegion(UInt ielem, RegionIdType region)
-    { Error( "Not implemented", __FILE__, __LINE__); }
+    { EXCEPTION( "Not implemented" ); }
 
 
     //! Get list of elements (surface / volumes)
-    
-    //! Returns all elems for a given surface / volume region. If the desired 
+
+    //! Returns all elems for a given surface / volume region. If the desired
     //! region consists of surface elements, they are up-casted into Elem*.
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
@@ -324,24 +326,24 @@ namespace CoupledField
     //! Returns all elements for a given volume region.
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
-    virtual void GetVolElems( StdVector<Elem*> & elems, 
+    virtual void GetVolElems( StdVector<Elem*> & elems,
                               const RegionIdType regionId ) = 0;
 
     //! Get list of surface elements
-  
-    //! Returns all elements for a given surface region 
+
+    //! Returns all elements for a given surface region
     //! \param surfElems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
-    virtual void GetSurfElems( StdVector<SurfElem*> & surfElems, 
+    virtual void GetSurfElems( StdVector<SurfElem*> & surfElems,
                                const RegionIdType regionId ) = 0;
 
     //! Get volume elements lying next to given surface elements
-  
-    //! Returns for a given list of surface elements those (volume) elements, 
-    //! which are neighbouring / have a face in common and are within a given 
+
+    //! Returns for a given list of surface elements those (volume) elements,
+    //! which are neighbouring / have a face in common and are within a given
     //! listof regions. This can be used to determine interfaces.
     //! \note A surface element is considered to be a neighbour of a volume
-    //! element only, if all nodes of the surface element are common with 
+    //! element only, if all nodes of the surface element are common with
     //! a volume element
     //! \param neighbours (out) vector of neighbouring elements
     //! \param surfElems (in) vector of surface elements
@@ -350,19 +352,19 @@ namespace CoupledField
     //! element, an error is thrown. If the search was successfull, the
     //! i-th entry in the surfElems-vector corresponds to the i-th
     //! entry in the volElems-vector
-    virtual void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
+    virtual void GetElemsNextToSurface( StdVector<Elem*> & neighbours,
                                         const StdVector<Elem*> & surfElems,
-                                        const StdVector<RegionIdType> 
+                                        const StdVector<RegionIdType>
                                         &neighRegions ) = 0;
 
 
     //! Returns the volume of a given region
 
     //! This method returns the volume of a given region by iterating over
-    //! all elements (volume / surface) and summing up their volume. 
-    //! 'Volume' here means, that for 2D elements the third dimension is 
+    //! all elements (volume / surface) and summing up their volume.
+    //! 'Volume' here means, that for 2D elements the third dimension is
     //! assumed to be 1m.
-    //! \param regionId (in) region identifier 
+    //! \param regionId (in) region identifier
     //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
     virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
@@ -375,7 +377,7 @@ namespace CoupledField
     //! Returns for a list of region identifiers the associated names
     virtual void RegionIdToName( StdVector<std::string> & regionNames,
                                  const StdVector<RegionIdType> & regionId );
-  
+
     //! Returns for a list of region names  the associated identifiers
     virtual void RegionNameToId( StdVector<RegionIdType> & regionIds,
                                  const StdVector<std::string> & regionName );
@@ -400,7 +402,7 @@ namespace CoupledField
 
     virtual void GetElemNumsByName( StdVector<UInt> & elemsNums,
                                     const std::string & elemsName )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
+    { EXCEPTION( "Not implemented" ); }
 
     //! Returns the number of nodes in the given nodelist
     virtual UInt GetNumNodes( const std::string & nodesName ) = 0;
@@ -445,11 +447,11 @@ namespace CoupledField
     // =======================================================================
     // ENTITIYLIST ACCESS FUNCTIONS
     // =======================================================================
-    //@{ \name Entity Access Functions 
-    
+    //@{ \name Entity Access Functions
+
     //! Get element list of given type with given entities
 
-    //! Returns an EntityList (elements, surface-elements, nodes ) of  the 
+    //! Returns an EntityList (elements, surface-elements, nodes ) of  the
     //! specified type and with the given name
     //! \param type Type of EntityList to be created
     //! \param name Name of the elements (region) or nodes
@@ -466,7 +468,7 @@ namespace CoupledField
     //! Get a vecor which contains all region nodes. The order is in that way,
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
-    virtual void GetRegionNames( StdVector<std::string> 
+    virtual void GetRegionNames( StdVector<std::string>
                                  & regionNames ) = 0;
 
     // =======================================================================
@@ -474,9 +476,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Node Access Functions
 
-
-    
-  
     //@}
 
     // =======================================================================
@@ -484,13 +483,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Element Access Functions
 
-
-
-    
-
-  
-
-    
     //@}
 
 
@@ -511,7 +503,7 @@ namespace CoupledField
     // ELEMENT EDGE ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Edge Access Functions
-          
+
 
     //! Get number of edges in the grid
     virtual UInt GetNumEdges() = 0;
@@ -539,53 +531,52 @@ namespace CoupledField
     //! \param sol_coarse (in) solution on coarse grid
     //! \param sol (out) contains the solution on the new grid (fine grid)
     //! \param alevel (in) index in multilevel hierarchy
-    virtual void ProlongSol( const Vector<Double> sol_coarse, 
+    virtual void ProlongSol( const Vector<Double> sol_coarse,
                              Vector<Double> & sol,
                              const UInt alevel )
-    { Error( "Not implemented", __FILE__, __LINE__); }
+    { EXCEPTION( "Not implemented" ); }
 
-    //! Do refinement of elements, which we mark through function 
+    //! Do refinement of elements, which we mark through function
     //! SetRefinementFlag
     virtual void Refine(const UInt numLoops = 1)
-    { Error( "This fnc is valid only for adaptgrid. Change your config-file",
-             __FILE__ ,__LINE__); }
+    { EXCEPTION( "This fnc is valid only for adaptgrid. Change your config-file" ); }
 
-    //! Do uniform refinement of elements, which we mark through function 
+    //! Do uniform refinement of elements, which we mark through function
     //! 'SetRefinementFlag'
     virtual void RefineUniform()
-    { Error( "Not implemented", __FILE__, __LINE__); }
+    { EXCEPTION( "Not implemented" ); }
 
     //! Update nodes for boundary conditions
     //! \param bcs list of boundary nodes
     virtual void UpdateBCs(std::list<UInt> * bcs)
-    { Error( "Not implemented", __FILE__, __LINE__); }
-  
+    { EXCEPTION( "Not implemented" ); }
+
     //! Return vector of element-neighbors for the element with number noOfElem
     //! \param noOfElem (in) element level
     //! \param color (in) subdomain
-    virtual  StdVector<Elem*> *GetNeighboursOfElem(const UInt noOfElem, 
+    virtual  StdVector<Elem*> *GetNeighboursOfElem(const UInt noOfElem,
                                                    std::string color)
-    { 
-      Error(" Not implemented",__FILE__,__LINE__);
+    {
+      EXCEPTION( "Not implemented" );
       StdVector<Elem*> *dummy = NULL;
       return dummy;
     }
- 
+
 
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
     virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
-    { Error(" Not implemented",__FILE__,__LINE__);}
+    { EXCEPTION( "Not implemented" ); }
     //@}
 
 
     // =======================================================================
     // MISCELLANEOUS
     // =======================================================================
-    //@{ \name Miscellaneous  
- 
+    //@{ \name Miscellaneous
+
     /** Convenience method for developers, dumps summary information to stdout */
     void Dump();
 
@@ -594,9 +585,9 @@ namespace CoupledField
      * @param name the name to check - case sensitive */
     bool HasRegion(const std::string & regionName)
     {
-        return regionNames_.Find(regionName) != -1; 
-    }  
-    
+        return regionNames_.Find(regionName) != -1;
+    }
+
     //! Computes the surface region between two volume regions (2D only)
     virtual void SurfRegionFromVolRegions(
         const std::string& surfRegionName,
@@ -606,9 +597,9 @@ namespace CoupledField
     //! Computes the surface region around one volume region (outline, 2D only)
     virtual void SurfRegionFromSingleVolRegion(
         const std::string& surfRegionName,
-        const std::string& region);    
+        const std::string& region);
     //@}
-  
+
 
     // =======================================================================
     // NONCONFORMING GRID SECTION
@@ -651,17 +642,17 @@ namespace CoupledField
     //! \param coord (in) coordinates of point
     //! \param inode (out) node number
     virtual void AddNode( const Point & coord, UInt & inode)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     virtual void AddNode( const Vector<Double> & coord, UInt & inode )
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
-    
+    { EXCEPTION( "Not implemented" ); }
+
     //! NC_SIMON: add multiple nodes to the grid
     //! \param coords (in) coordinates of points
     //! \param inode (out) node numbers
     virtual void AddNodes( const StdVector< Point > & coords,
                            StdVector< UInt > & inodes)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+    { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: Add surface elements
     //! \param regionId (in) elements will be added to region with this id
@@ -670,46 +661,46 @@ namespace CoupledField
     virtual void AddSurfaceElems( const RegionIdType regionid,
                                   const StdVector< SurfElem* > & surfelems,
                                   StdVector< UInt > & elemids)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
+    { EXCEPTION( "Not implemented" ); }
 
-    //! NC_SIMON: Add volume elements 
+    //! NC_SIMON: Add volume elements
     //! \param regionId (in) elements will be added to region with this id
     //! \param volelems (in) volume elements to be added
     //! \param elemids (out) element id numbers returned
     virtual void AddVolumeElems(  const RegionIdType regionid,
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
+    { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: Add a new Surface region to the grid
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
     virtual void AddSurfaceRegion( const std::string name,
                                    RegionIdType& regionid)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
+    { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: Add a new volume region to the grid
     //! \param name (in) name of the new region
     //! \param regionid (out) id of the new region
     virtual void AddVolumeRegion( const std::string name,
                                   RegionIdType& regionid)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
+    { EXCEPTION( "Not implemented" ); }
 
     //! NC_SIMON: Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid)
-    { Error( "Not implemented", __FILE__, __LINE__ ); }
-    
+    { EXCEPTION( "Not implemented" ); }
+
     //@}
- 
- 
+
+
   protected:
 
     // =======================================================================
     // Method wrappers for function tracing
     // =======================================================================
     //@{ \name Scripting wrapper functions
-    
+
     //! Trigger function registering
     void RegisterFunctions();
 
@@ -732,36 +723,36 @@ namespace CoupledField
     StdVector<std::string> regionNames_;
 
     //! Vector with elements for each volume region
-    StdVector<StdVector<Elem*> > volElems_;  
+    StdVector<StdVector<Elem*> > volElems_;
 
     //! Vector with node numbers for each volume region
     StdVector< std::set<UInt> > volElemNodes_;
 
     //! Vector with region ids for each volume region
     StdVector<RegionIdType> volRegionIds_;
-  
+
     //! Vector with elements for each surface region
-    StdVector<StdVector<Elem*> > surfElems_;  
+    StdVector<StdVector<Elem*> > surfElems_;
 
     //! Vector with node numbers for each surface region
     StdVector< std::set<UInt> > surfElemNodes_;
 
     //! Vector with region ids for each surface region
     StdVector<RegionIdType> surfRegionIds_;
-    
+
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
-    
+
 
     // =======================================================================
     // Non-matching grid interface calculation
     // =======================================================================
-    
+
     //@{ \name Non-matching grid helper functions
 
     //! type of intersection calculation for ncInterfaces
     enum IntersectType { LINE_INTERSECT, RECT_INTERSECT, POLYGON_INTERSECT };
-    
+
     //! return codes of function CutLines
     enum LineIntersectType {
       INTERSECT_NONE,
@@ -774,7 +765,7 @@ namespace CoupledField
       INTERSECT_IN_D,
       INTERSECT_A_EQ_C
     };
-    
+
     //! struct for keeping all information of an ncInterface
     struct ncInterface {
       std::string name;
@@ -788,13 +779,13 @@ namespace CoupledField
       std::string coordSysId;
       bool coplanar;
     };
-    
+
     //! returns if a list of surface elements are all coplanar
     bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems);
-    
+
     //! updates the intersection mesh of a ncInterface
     void UpdateNcIntersection(const ncInterface& ncIf);
-    
+
     //! Calculates the intersection of two lines [a,b] and [c,d] and stores
     //! the intersection point (if any) in e.
     //! return codes:
@@ -849,7 +840,7 @@ namespace CoupledField
 
     //! vector of all ncInterfaces defined
     StdVector<ncInterface> ncInterfaces_;
-    
+
     //! variable for tolerance of absolute values (used in polygonal
     //! intersection algorithm)
     double polysectAbsTol_;
@@ -878,14 +869,14 @@ namespace CoupledField
 
 #ifdef USE_INTERPOLATION
     typedef CGAL::Box_intersection_d::Box_d<int,2> Box;
-    
+
     //  typedef CGAL::Box_intersection_d::Box_d<double,2> Box2D;
     //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
     //  typedef CGAL::Bbox_2                              BBox2D;
     typedef CGAL::Bbox_3                              BBox3D;
     typedef CGAL::Box_intersection_d
                 ::Box_with_handle_d<double,3,const UInt*> HandleBox;
-    
+
     typedef CGAL::Cartesian<double> K;
     typedef K::Point_2 Point2D;
 
@@ -905,7 +896,7 @@ namespace CoupledField
       UInt dim = grid.GetDim();
       UInt localDim;
       UInt numElemNodes;
-      FEType type;
+      Elem::FEType type;
       RegionIdType region;
       std::vector<UInt> connect;
       Matrix<Double> coordMat;
@@ -916,11 +907,11 @@ namespace CoupledField
       Vector<Double> locCoords;
 
       connect.resize(64);
-      
+
       std::cout << "Elem Number " << elemNum << std::endl;
 
       grid.GetElemData(elemNum, type, region, &connect[0]);
-      numElemNodes = NUM_ELEM_NODES[type];
+      numElemNodes = Elem::GetNumElemNodes(type);
       coordMat.Resize(dim, numElemNodes);
       globCoordMat.Resize(dim, 1);
 
@@ -950,9 +941,9 @@ namespace CoupledField
 
       grid.GetElem(elemNum)->ptElem->CoordsInsideElem(localCoords, 0, coordsInside);
 
-      localDim = localCoords.GetSizeRow();
+      localDim = localCoords.GetNumRows();
       locCoords.Resize(localDim);
-      
+
       for(UInt j=0; j<localDim; j++)
       {
         //        std::cout << "Local Coord " << (j+1)
@@ -960,15 +951,15 @@ namespace CoupledField
 
         locCoords[j] = localCoords[j][0];
       }
-      
+
       if(coordsInside[0])
-      {  
+      {
         std::pair<const Elem*, Vector<Double> > pair;
         pair.first = grid.GetElem(elemNum);
         pair.second = locCoords;
         *it++ = pair;
       }
-      
+
     }
   };
   template <class Iter, class Grid> // helper function to create the function object
@@ -992,7 +983,7 @@ namespace CoupledField
     UInt percentage_;
     UInt oldPercentage_;
     std::map<UInt, UInt> destNodeNumToPosMap_;
-    
+
     ConsInterpReportFunctor(const ElemList& destElemList,
                             const NodeList& sourceNodeList,
                             const std::vector< Vector<Double> >& nodeCoords,
@@ -1011,7 +1002,7 @@ namespace CoupledField
       connect_.resize(64);
 
       sourceGrid_ = sourceNodeList.GetGrid();
-      destGrid_ = destElemList.GetGrid();      
+      destGrid_ = destElemList.GetGrid();
 
       StdVector<UInt> destNodeNumbers;
       NodeList destNodeList(destGrid_);
@@ -1034,7 +1025,7 @@ namespace CoupledField
       UInt dim = destGrid_->GetDim();
       UInt localDim;
       UInt numElemNodes;
-      FEType type;
+      Elem::FEType type;
       RegionIdType region;
       Matrix<Double> coordMat;
       Matrix<Double> globCoordMat;
@@ -1049,13 +1040,13 @@ namespace CoupledField
 
       if((nodeCounter_ % 10000) == 0)
         std::cout << "nodeCounter_ " << nodeCounter_ << " pointer " << (&nodeCounter_) << std::endl;
-      
+
       return;
    #endif
       //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
 
       destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
-      numElemNodes = NUM_ELEM_NODES[type];
+      numElemNodes = Elem::GetNumElemNodes(type);
       coordMat.Resize(dim, numElemNodes);
       globCoordMat.Resize(dim, 1);
 
@@ -1089,15 +1080,15 @@ namespace CoupledField
       elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
 
       if(coordsInside[0])
-      {  
-        localDim = localCoords.GetSizeRow();
+      {
+        localDim = localCoords.GetNumRows();
         locCoords.Resize(localDim);
 
         for(UInt j=0; j<localDim; j++)
         {
           locCoords[j] = localCoords[j][0];
         }
-        
+
         Vector<double> S;
 
         elem->ptElem->GetShFnc(S, locCoords, elem );
@@ -1109,7 +1100,7 @@ namespace CoupledField
         {
           UInt pos = destNodeNumToPosMap_[connect_[i]];
 
-          if(consInterpWeights_[sourceNodeIndex].find(pos) == 
+          if(consInterpWeights_[sourceNodeIndex].find(pos) ==
              consInterpWeights_[sourceNodeIndex].end())
           {
             if(S[i] != 0.0)
@@ -1117,11 +1108,11 @@ namespace CoupledField
               consInterpWeights_[sourceNodeIndex][pos] = S[i];
             }
             //            std::cout << "Node: " << connect_[i] << ": " << S[i] << std::endl;
-          }  
+          }
         }
 
         nodeCounter_++;
-        
+
         percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
         if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
         {
@@ -1173,7 +1164,7 @@ namespace CoupledField
             StdVector<UInt> &unmapped_nodes);
 
 #endif // USE_INTERPOLATION
-    
+
     ///
   };
 

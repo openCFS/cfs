@@ -27,14 +27,14 @@ private:
 
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
    * PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(DesignElement* de, Application app, CFSMatrix* out)
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out)
   {
     if(harmonic) SetElementK<std::complex<double> >(de, app, out);
             else SetElementK<double>(de, app, out);
   }
 
   template <class T>
-  void SetElementK(DesignElement* de, Application app, CFSMatrix* out);
+  void SetElementK(DesignElement* de, Application app, DenseMatrix* out);
 
 
   /** We have for the direct coupled piezo the corresponding ElecPDE, is also in SIMP::pde */

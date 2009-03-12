@@ -7,9 +7,7 @@
 
 #include <vector>
 
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-
+#include "General/defs.hh"
 
 // Add debug macro for derived class' macros here in order to get
 // automatic debugging of the Solve step of the solver / preconditioner
@@ -19,9 +17,10 @@
 #endif
 
 
-namespace OLAS {
+namespace CoupledField {
 
-
+  template <typename T> class Vector;
+  
   //! Solution of a linear system of the form \f$LDL^T x = y\f$
 
   //! This class implements the solution of a linear system of the form
@@ -89,11 +88,11 @@ namespace OLAS {
       //
       // where zk is the k-th component of z and lk the k-th column vector
       // of L. So after zk was computed we replace y by y - lk * zk.
-      for ( k = 1; k <= dim; k++ ) {
+      for ( k = 0; k < dim; k++ ) {
         x[k] = y[k];
       }
 
-      for ( k = 1; k <= dim; k++ ) {
+      for ( k = 0; k < dim; k++ ) {
         for ( i = rptr[k]; i < rptr[k+1]; i++ ) {
           x[ cidx[i] ] -= entry[i] * x[k];
         }
@@ -112,7 +111,9 @@ namespace OLAS {
       // U is stored in CRS format, where the entries of a row are in
       // ascending lexicographical ordering w.r.t. their column indices.
       // The diagonal entries are omitted, since they are all equal to one.
-      for ( k = dim; k >= 1; k-- ) {
+      k = dim;
+      while ( k > 0 ) {
+        k--;
         x[k] = invDiag[k] * x[k];
         for ( i = rptr[k]; i < rptr[k+1]; i++ ) {
           x[k] = x[k] - entry[i] * x[ cidx[i] ];

@@ -24,6 +24,8 @@
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/resultHandler.hh"
 
+#include "OLAS/algsys/sbmsystem.hh"
+#include "OLAS/algsys/standardsys.hh"
 
 namespace CoupledField {
 
@@ -99,7 +101,7 @@ namespace CoupledField {
   void DirectCoupledPDE::SetInitialCondition() {
 
     Vector< Double > aux;
-    aux.Init(0.0);
+    aux.Init();
 
     // Construct the initial solution vector
     shared_ptr<EqnMap> eqn;
@@ -154,13 +156,13 @@ namespace CoupledField {
 
 
       // save the initial solution vector into algsys
-      algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
+      algsys_->InitSol(aux);
 
       // save the initial vector in each pde solution vector
       SaveSolution(aux.GetPointer(), aux.GetSize());
 
       // save the initial solution vector into algsys
-      algsys_->InitSol(aux.GetPointer(), aux.GetSize() );
+      algsys_->InitSol( aux );
 
     }
 
@@ -283,7 +285,7 @@ namespace CoupledField {
     BaseNodeStoreSol *ptNodeSol, *ptNodeSolPrev;
 
     if ( analysistype_ == BasePDE::HARMONIC  ) {
-      solVec_->Init( Complex(0.0, 0.0 ) );
+      solVec_->Init( );
       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
         singlePDEs_[i]->solVec_ = solVec_;
@@ -291,7 +293,7 @@ namespace CoupledField {
         ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
       }
     } else {
-      solVec_->Init( 0.0 );
+      solVec_->Init( );
       Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
         singlePDEs_[i]->solVec_ = solVec_;
@@ -300,7 +302,7 @@ namespace CoupledField {
       }
 
       if (  needSolPrev_ ) {
-        solVecPrev_->Init( 0.0 );
+        solVecPrev_->Init( );
         Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
         for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
           singlePDEs_[i]->solVecPrev_ = solVecPrev_;
@@ -537,18 +539,18 @@ namespace CoupledField {
 
     for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       if (singlePDEs_[i]->memento_ != NULL &&
-          singlePDEs_[i]->mementoUsage_ == PDEMemento::START_VALUE ) {
+          singlePDEs_[i]->mementoAsDirichlet_ == false ) {
         singlePDEs_[i]->IncorporateMemento();
       }
     }
 
   }
 
-  CFSVector* DirectCoupledPDE::GetSolutionVector() {
+  SingleVector* DirectCoupledPDE::GetSolutionVector() {
     return singlePDEs_[0]->GetSolutionVector();
   }
 
-  CFSVector* DirectCoupledPDE::GetPrevSolutionVector() {
+  SingleVector* DirectCoupledPDE::GetPrevSolutionVector() {
     return singlePDEs_[0]->GetPrevSolutionVector();
   }
 
@@ -770,17 +772,17 @@ namespace CoupledField {
 
     PdeIdType pdeId   = NO_PDE_ID;
     shared_ptr<EqnMap> eqn;
-    Integer *newOrder = NULL;
+    StdVector<UInt> newOrder;
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       pdeId    = singlePDEs_[i]->GetPDEId();
       eqn      = singlePDEs_[i]->GetEqnMap();
-      newOrder = algsys_->GetReordering( pdeId );
+      algsys_->GetReordering( pdeId, newOrder );
 //       if( newOrder == NULL ) {
 //         std::cerr << "performing no reordering!";
 //       }
 
-      eqn->ReorderMapping( &newOrder );
+      eqn->ReorderMapping( newOrder );
     }
   }
 

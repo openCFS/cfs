@@ -6,13 +6,13 @@
 
 #include <cmath>
 #include <complex>
-#include "external/lapack/lapackgbmatrix.hh"
-#include "utils/utils.hh"
+#include <string.h>
+#include "lapackgbmatrix.hh"
 
 // the following headers are required for Export()
 #include <cstdio>
 
-namespace OLAS {
+namespace CoupledField {
 
   // **********************************************
   //   convert a CRS_Matrix into a LapackGBMatrix
@@ -22,24 +22,23 @@ namespace OLAS {
 
   
     // check the dimensions
-    if( A.GetNrows() != GetNrows() || A.GetNcols() != GetNcols() ) {
-      Error( "The matrix was created with dimensions different from "
-             "those of the passed matrix", __FILE__, __LINE__ );
+    if( A.GetNumRows() != GetNumRows() || A.GetNumCols() != GetNumCols() ) {
+      EXCEPTION( "The matrix was created with dimensions different from "
+                 << "those of the passed matrix" );
     }
 
     // set the sparsity pattern analoguously to SetSparsityPattern
     if( data_ != NULL ) {
-      Error( "Matrix structure has already been defined!",
-             __FILE__, __LINE__ );
+      EXCEPTION( "Matrix structure has already been defined!" );
     }
 
     // first obtain bandwidth by hand from the matrix
-    const Integer* const pRow = A.GetRowPointer(); // pointer to row indices
-    const Integer* const pCol = A.GetColPointer(); // pointer to column indices
+    const UInt* const pRow = A.GetRowPointer(); // pointer to row indices
+    const UInt* const pCol = A.GetColPointer(); // pointer to column indices
     const entryC*  const pDat = A.GetDataPointer();// pointer to the data array
     UInt bw; // variable for temporary storage of the bandwidth of one row
     wlower_ = wupper_ = 0;
-    for( UInt i = 1; i <= GetNrows(); i++ ) {
+    for( UInt i = 1; i <= GetNumRows(); i++ ) {
       // only compute bandwidth, if offdiagonal entries are present
       if( pRow[i] < pRow[i+1] ) {
         // lower bandwidth
@@ -63,7 +62,7 @@ namespace OLAS {
     length_ = nrowsact_ * ncols_;
 
     // allocate memory
-    NewArray( data_, entryF, length_ );
+    NEWARRAY( data_, entryF, length_ );
 
     // set matrix entries to zero
     Init();
@@ -71,10 +70,10 @@ namespace OLAS {
     // fill the matrix (there might be a more performant way, but
     // I implement it that way first ... in a braver hour differently)
     entryC tempVar = 0;
-    for( Integer i = 1; i <= GetNrows(); i++ ) {
-      for( Integer ij = pRow[i]; ij < pRow[i+1]; ij++ ) {
-	tempVar = (entryC)pDat[ij];
-        SetMatrixEntry( i, (Integer)pCol[ij], tempVar );
+    for( UInt i = 1; i <= GetNumRows(); i++ ) {
+      for( UInt ij = pRow[i]; ij < pRow[i+1]; ij++ ) {
+        tempVar = (entryC)pDat[ij];
+        SetMatrixEntry( i, (UInt)pCol[ij], tempVar );
       }
     }
 
@@ -98,8 +97,7 @@ namespace OLAS {
 
     // Check that matrix has not already been defined
     if ( data_ != NULL ) {
-      Error( "Matrix structure has already been defined!", __FILE__,
-             __LINE__ );
+      EXCEPTION( "Matrix structure has already been defined!" );
     }
 
     // obtain bandwidth info from graph
@@ -125,7 +123,7 @@ namespace OLAS {
              << "                 enlarged = " << amEnlarged_ << std::endl;
     */    
     // allocate memory
-    NewArray( data_, entryF, length_ );
+    NEWARRAY( data_, entryF, length_ );
 
     // set matrix entries to zero
     Init();
@@ -137,16 +135,16 @@ namespace OLAS {
   //   Alternative Constructor
   // ***************************
   template <class entryF, class entryC>
-  LapackGBMatrix<entryF,entryC>::LapackGBMatrix( Integer nrows,
-						 Integer ncols,
-						 Integer wlower,
-						 Integer wupper,
-						 MatrixEntryType etype ) {
+  LapackGBMatrix<entryF,entryC>::LapackGBMatrix( UInt nrows,
+                                                 UInt ncols,
+                                                 UInt wlower,
+                                                 UInt wupper,
+                                                 BaseMatrix::EntryType etype ) {
 
 
     // Ensure that matrix is square
     if ( nrows != ncols ) {
-      Error( "Request for a non-square LapackGBMatrix", __FILE__, __LINE__ );
+      EXCEPTION( "Request for a non-square LapackGBMatrix" );
     }
 
     // Set matrix information
@@ -166,16 +164,16 @@ namespace OLAS {
 
     /*
     (*debug) << " LapackGBMatrix: nrows    = " << nrows_      << std::endl
-	     << "                 ncols    = " << ncols_      << std::endl
-	     << "                 wlower   = " << wlower_     << std::endl
-	     << "                 wupper   = " << wupper_     << std::endl
-	     << "                 nrowsact = " << nrowsact_   << std::endl
-	     << "                 length   = " << length_     << std::endl
-	     << "                 enlarged = " << amEnlarged_ << std::endl;
+    << "                 ncols    = " << ncols_      << std::endl
+    << "                 wlower   = " << wlower_     << std::endl
+    << "                 wupper   = " << wupper_     << std::endl
+    << "                 nrowsact = " << nrowsact_   << std::endl
+    << "                 length   = " << length_     << std::endl
+    << "                 enlarged = " << amEnlarged_ << std::endl;
     */
 
     // allocate memory
-    NewArray( data_, entryF, length_ );
+    NEWARRAY( data_, entryF, length_ );
 
     // set matrix entries to zero
     Init();
@@ -191,7 +189,7 @@ namespace OLAS {
     entryF fzero;
     entryC czero = 0;
     CC2F77( czero, fzero );
-    for ( Integer i = 1; i <= length_; i++ ) {
+    for ( UInt i = 1; i <= length_; i++ ) {
       data_[i] = fzero;
     }
   }
@@ -202,7 +200,7 @@ namespace OLAS {
   // ********************************************
   template <>
   void LapackGBMatrix<F77complex16,std::complex<double> >::Init() {
-    for ( Integer i = 1; i <= length_; i++ ) {
+    for ( UInt i = 1; i <= length_; i++ ) {
       data_[i].real = 0.0;
       data_[i].imag = 0.0;
     }
@@ -213,19 +211,19 @@ namespace OLAS {
   //   Set value of a matrix entry
   // *******************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::SetMatrixEntry( Integer i, Integer j,
-						      entryC &v ) {
+  void LapackGBMatrix<entryF,entryC>::SetMatrixEntry( UInt i, UInt j,
+                                                      entryC &v ) {
 
     /*
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
       (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
-	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
-	       << "    Index(i,j) = " << Index(i,j) << std::endl
-	       << "        nrows  = " << nrows_  << std::endl
-	       << "        ncols  = " << ncols_  << std::endl
-	       << "        wlower = " << wlower_ << std::endl
-	       << "        wupper = " << wupper_ << std::endl
-	       << "        length = " << length_ << std::endl;
+      << "         (i,j) = (" << i << ", " << j << ")" << std::endl
+      << "    Index(i,j) = " << Index(i,j) << std::endl
+      << "        nrows  = " << nrows_  << std::endl
+      << "        ncols  = " << ncols_  << std::endl
+      << "        wlower = " << wlower_ << std::endl
+      << "        wupper = " << wupper_ << std::endl
+      << "        length = " << length_ << std::endl;
     }
     */
 
@@ -239,22 +237,22 @@ namespace OLAS {
   //   Add value to a matrix entry
   // *******************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::AddToMatrixEntry( Integer i, Integer j,
-							entryC &v ) {
+  void LapackGBMatrix<entryF,entryC>::AddToMatrixEntry( UInt i, UInt j,
+                                                        entryC &v ) {
 
     /* 
     if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
       (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
-	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
-	       << "    Index(i,j) = " << Index(i,j) << std::endl
-	       << "        nrows  = " << nrows_  << std::endl
-	       << "        ncols  = " << ncols_  << std::endl
-	       << "        wlower = " << wlower_ << std::endl
-	       << "        wupper = " << wupper_ << std::endl
-	       << "        length = " << length_ << std::endl;
+      << "         (i,j) = (" << i << ", " << j << ")" << std::endl
+      << "    Index(i,j) = " << Index(i,j) << std::endl
+      << "        nrows  = " << nrows_  << std::endl
+      << "        ncols  = " << ncols_  << std::endl
+      << "        wlower = " << wlower_ << std::endl
+      << "        wupper = " << wupper_ << std::endl
+      << "        length = " << length_ << std::endl;
     }
     */
-    
+
     entryF val;
     CC2F77( v, val );
     data_[Index(i,j)] += val;
@@ -265,17 +263,14 @@ namespace OLAS {
   //   Export matrix to file
   // *************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::Export( const Char *fname,
-					      const Char *comment ) const {
+  void LapackGBMatrix<entryF,entryC>::Export( const char *fname,
+                                              const char *comment ) const {
 
 
     // open output file and check for errors
     FILE *fp = fopen( fname, "w" );
     if ( fp == NULL ) {
-      Char *errmsg;
-      NewArray( errmsg, Char, strlen(fname)+40 );
-      sprintf( errmsg, "Cannot open file %s for writing!", fname );
-      Error( errmsg, __FILE__, __LINE__ );
+      EXCEPTION( "Cannot open file " << fname << " for writing!" );
     }
 
     // ---------------------
@@ -291,8 +286,8 @@ namespace OLAS {
     }
     else {
       std::cerr << "Unexpected matrix entry type " << GetEntryType()
-		<< std::endl;
-      Error( "Unexpected matrix entry type", __FILE__, __LINE__ );
+      << std::endl;
+      EXCEPTION( "Unexpected matrix entry type" );
     }
 
     // User-supplied private comment
@@ -310,8 +305,8 @@ namespace OLAS {
 
     // close output file
     if ( fclose( fp ) == EOF ) {
-      Char *errmsg;
-      NewArray( errmsg, Char, strlen(fname)+40 );
+      char *errmsg;
+      NEWARRAY( errmsg, char, strlen(fname)+40 );
       sprintf( errmsg, "Could not close file %s after writing!", fname );
       Warning( errmsg, __FILE__, __LINE__ );
     }
@@ -325,11 +320,11 @@ namespace OLAS {
   void LapackGBMatrix<entryF,entryC>::WriteEntries( FILE *fp ) const {
 
 
-    int i, j;
-    int colinit, colstop;
+    UInt i, j;
+    UInt colinit, colstop;
 
     // Count number of non-zero matrix entries
-    Integer nnz = 0;
+    UInt nnz = 0;
     for ( j = 1; j <= ncols_; j++ ) {
 
       // compute column bounds
@@ -339,9 +334,9 @@ namespace OLAS {
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
 
-	if ( data_[Index(i,j)] != static_cast<entryF>(0.0) ) {
-	  nnz++;
-	}
+        if ( data_[Index(i,j)] != static_cast<entryF>(0.0) ) {
+          nnz++;
+        }
       }
     }
 
@@ -360,22 +355,22 @@ namespace OLAS {
       for ( i = colinit; i <= colstop; i++ ) {
 
     /*
-    if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
-      (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
-	       << "         (i,j) = (" << i << ", " << j << ")" << std::endl
-	       << "    Index(i,j) = " << Index(i,j) << std::endl
-	       << "        nrows  = " << nrows_  << std::endl
-	       << "        ncols  = " << ncols_  << std::endl
-	       << "        wlower = " << wlower_ << std::endl
-	       << "        wupper = " << wupper_ << std::endl
-	       << "        length = " << length_ << std::endl;
-    }
+        if ( Index(i,j) > length_ || Index(i,j) < 1 ) {
+          (*debug) << " FUBAR: Index(i,j) is out of bounds!" << std::endl
+          << "         (i,j) = (" << i << ", " << j << ")" << std::endl
+          << "    Index(i,j) = " << Index(i,j) << std::endl
+          << "        nrows  = " << nrows_  << std::endl
+          << "        ncols  = " << ncols_  << std::endl
+          << "        wlower = " << wlower_ << std::endl
+          << "        wupper = " << wupper_ << std::endl
+          << "        length = " << length_ << std::endl;
+        }
     */
 
-	val = data_[Index(i,j)];
-	if ( val != 0.0 ) {
-	  fprintf( fp, "%6d\t%6d\t% 22.16e\n", i, j, val );
-	}
+        val = data_[Index(i,j)];
+        if ( val != 0.0 ) {
+          fprintf( fp, "%6d\t%6d\t% 22.16e\n", i, j, val );
+        }
       }
     }
   }
@@ -389,11 +384,11 @@ namespace OLAS {
   WriteEntries(FILE *fp) const {
 
 
-    int i, j;
-    int colinit, colstop;
+    UInt i, j;
+    UInt colinit, colstop;
 
     // Count number of non-zero matrix entries
-    Integer nnz = 0;
+    UInt nnz = 0;
     for ( j = 1; j <= ncols_; j++ ) {
 
       // compute column bounds
@@ -403,9 +398,9 @@ namespace OLAS {
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
 
-	if ( data_[Index(i,j)].real != 0 || data_[Index(i,j)].imag != 0 ) {
-	  nnz++;
-	}
+        if ( data_[Index(i,j)].real != 0 || data_[Index(i,j)].imag != 0 ) {
+          nnz++;
+        }
       }
     }
 
@@ -422,11 +417,11 @@ namespace OLAS {
 
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
-	val = data_[Index(i,j)];
-	if ( val.real != 0 || val.imag != 0 ) {
-	  fprintf( fp, "%6d\t%6d\t% 22.16e\t% 22.16e\n", i, j, val.real,
-		   val.imag );
-	}
+        val = data_[Index(i,j)];
+        if ( val.real != 0 || val.imag != 0 ) {
+          fprintf( fp, "%6d\t%6d\t% 22.16e\t% 22.16e\n", i, j, val.real,
+                   val.imag );
+        }
       }
     }
   }
@@ -437,33 +432,33 @@ namespace OLAS {
   // ***********************************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::Add( const Double factor,
-					   const StdMatrix& mat ) {
+                                           const StdMatrix& mat ) {
 
 
     // Down-cast to LapackGBMatrix
     TRY_CAST {
       const LapackGBMatrix<entryF,entryC> &lpmat = dynamic_cast<const
-	LapackGBMatrix<entryF,entryC>&>(mat);
+      LapackGBMatrix<entryF,entryC>&>(mat);
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( length_ != lpmat.length_ ) {
-	(*debug) << " LapackGBMatrix::Add - Inconsistency in matrix structure!"
-		 << " Matrix A: length of data vector = " << length_
-		 << std::endl
-		 << " Matrix B: length of data vector = " << lpmat.length_
-		 << std::endl;
-	std::cerr << "LapackGBMatrix::Add - Inconsistency in matrix structure!"
-		  << "Matrix A: length of data vector = " << length_
-		  << std::endl
-		  << "Matrix B: length of data vector = " << lpmat.length_
-		  << std::endl;
-	exit(1);
-    }
+        (*debug) << " LapackGBMatrix::Add - Inconsistency in matrix structure!"
+        << " Matrix A: length of data vector = " << length_
+        << std::endl
+        << " Matrix B: length of data vector = " << lpmat.length_
+        << std::endl;
+        std::cerr << "LapackGBMatrix::Add - Inconsistency in matrix structure!"
+        << "Matrix A: length of data vector = " << length_
+        << std::endl
+        << "Matrix B: length of data vector = " << lpmat.length_
+        << std::endl;
+        exit(1);
+      }
 #endif
 
       // Perform the scaled addition
-      for ( Integer i = 1; i <= length_; i++ ) {
-	data_[i] += factor * lpmat.data_[i];
+      for ( UInt i = 1; i <= length_; i++ ) {
+        data_[i] += factor * lpmat.data_[i];
       }
 
     } CATCH_CAST;
@@ -482,13 +477,13 @@ namespace OLAS {
     // Down-cast to LapackGBMatrix
     TRY_CAST {
       const LapackGBMatrix<F77complex16,std::complex<double> > &lpmat =
-	dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> >&>
-	(mat);
+        dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> >&>
+      (mat);
 
       // Perform the scaled addition
-      for ( Integer i = 1; i <= length_; i++ ) {
-	data_[i].real += factor * lpmat.data_[i].real;
-	data_[i].imag += factor * lpmat.data_[i].imag;
+      for ( UInt i = 1; i <= length_; i++ ) {
+        data_[i].real += factor * lpmat.data_[i].real;
+        data_[i].imag += factor * lpmat.data_[i].imag;
       }
 
     } CATCH_CAST;
@@ -506,7 +501,7 @@ namespace OLAS {
     Double absmax = 0.0;
     entryF fdata;
     entryC cdata;
-    for ( Integer i = 1; i <= ncols_; i++ ) {
+    for ( UInt i = 1; i <= ncols_; i++ ) {
       fdata = data_[Index(i,i)];
       F772CC( fdata, cdata );
       absmax = std::abs(cdata) > absmax ? std::abs(cdata) : absmax;
@@ -520,7 +515,7 @@ namespace OLAS {
   //   Set a Diagonal Entry
   // ************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::SetDiagEntry( Integer i, entryC &v ){
+  void LapackGBMatrix<entryF,entryC>::SetDiagEntry( UInt i, entryC &v ){
     entryF fdata;
     CC2F77( v, fdata );
     data_[Index(i,i)] = fdata;
@@ -531,50 +526,16 @@ namespace OLAS {
   //   Get a Diagonal Entry
   // ************************
   template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::GetDiagEntry( Integer i,
-						    entryC &v ) const {
+  void LapackGBMatrix<entryF,entryC>::GetDiagEntry( UInt i,
+                                                    entryC &v ) const {
     F772CC( data_[Index(i,i)], v );
   }
 
 
-  // ***********************
-  //  Forced Instantiation
-  // ***********************
-  template <class entryF, class entryC>
-  void LapackGBMatrix<entryF,entryC>::InstantiatePublicMethods() {
-
-
-    Error( "This function should never be called", __FILE__, __LINE__ );
-
-    CRS_Matrix<entryC> dummyCRSMat;
-    StdMatrix *dummyMat = NULL;
-    BaseGraph dummyGraph( 0, 0, NOREORDERING );
-    Integer i = 0, j = 0;
-    Double val = 0;
-    entryC dummyEntry;
-    MatrixStorageType dummyType = NOSTORAGETYPE;
-    MatrixEntryType dummyEntryType = NOENTRYTYPE;
-
-    LapackGBMatrix( 1, 1, 2, 2, dummyEntryType );
-    Export( "", "" );
-    Convert( dummyCRSMat );
-    SetSparsityPattern( dummyGraph );
-    Init();
-    SetMatrixEntry( i, j, dummyEntry );
-    AddToMatrixEntry( i, j, dummyEntry );
-    Add( val, *dummyMat );
-    SetDiagEntry( i, dummyEntry );
-    GetDiagEntry( i, dummyEntry );
-
-    dummyType = GetStorageType();
-    dummyEntryType = GetEntryType();
-    i = GetUpperBandwidth();
-    i = GetLowerBandwidth();
-    val = GetMaxDiag();
-    entryF *dummyArray1 = GetDataPointer0();
-    const entryF *dummyArray2 = GetDataPointer0();
-
-  }
-
+  // Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class LapackGBMatrix< F77real8, Double >;
+  template class LapackGBMatrix< F77complex16, Complex >;
+#endif
 }
 

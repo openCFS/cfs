@@ -140,8 +140,8 @@ namespace CoupledField
 
     H5IO::WriteAttribute( elemGroup, "NumElems", nElems );
     std::vector< UInt > numElemsOfDim ( 3 );
-    UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
-    std::map<FEType, UInt> numElemsOfType;
+    UInt numElemTypes = Elem::feType.map.size();
+    std::map<Elem::FEType, UInt> numElemsOfType;
     std::vector<UInt>::const_iterator it, end;
 
     it = elemTypes.begin();
@@ -150,9 +150,9 @@ namespace CoupledField
 
     for( ; it != end; it++ )
     {
-      numElemsOfDim[ ELEM_DIM[*it]-1 ]++;
-      quadrElems &= static_cast<UInt>(ELEM_QUADRATIC[*it]);
-      numElemsOfType[(FEType)*it]++;
+      numElemsOfDim[ Elem::GetElemDim((Elem::FEType)*it)-1 ]++;
+      quadrElems &= static_cast<UInt>(Elem::GetElemQuadratic((Elem::FEType)*it));
+      numElemsOfType[(Elem::FEType)*it]++;
     }
 
     // This has still to to be checked
@@ -169,9 +169,9 @@ namespace CoupledField
     // number of elements per type
     for(UInt i=0; i<numElemTypes; i++) {
       std::stringstream attrName;
-      attrName << "Num_" << ELEM_TYPE_NAMES[i].substr(3);
+      attrName << "Num_" << Elem::feType.ToString((Elem::FEType)i);
       H5IO::WriteAttribute( elemGroup, attrName.str(),
-                            numElemsOfType[(FEType)i] );
+                            numElemsOfType[(Elem::FEType)i] );
     }
 
     std::cout << "done.\n";

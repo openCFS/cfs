@@ -68,47 +68,40 @@ namespace CoupledField {
   {
   }
 
-  void SimInputGMV::InitModule(Grid *mi)
+  void SimInputGMV::InitModule()
   {
-    mi_ = mi;
   }
 
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputGMV::GetDim() {
-    Error("SimInputGMV::GetDim() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetDim() not implemented");
     return 0;
   }
   
   UInt SimInputGMV::GetNumNodes(){
-    Error("SimInputGMV::GetNumNodes() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNumNodes() not implemented");
     return 0;
   }
     
   UInt SimInputGMV::GetNumElems(const Integer dim){
-    Error("SimInputGMV::GetNumElems() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNumElems() not implemented");
     return 0;
   }
   
   UInt SimInputGMV::GetNumRegions(){
-    Error("SimInputGMV::GetNumRegions() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNumRegions() not implemented");
     return 0;
   }
 
   UInt SimInputGMV::GetNumNamedNodes(){
-    Error("SimInputGMV::GetNumNamedNodes() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNumNamedNodes() not implemented");
     return 0;
   }
 
   UInt SimInputGMV::GetNumNamedElems(){
-    Error("SimInputGMV::GetNumNamedElems() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNumNamedElems() not implemented");
     return 0;
   }
   
@@ -116,36 +109,34 @@ namespace CoupledField {
   // ENTITY NAME ACCESS
   // ======================================================
 
-  void SimInputGMV::GetAllRegionNames( std::vector<std::string> & regionNames ){
-    Error("SimInputGMV::GetAllRegionNames() not implemented",
-          __FILE__,__LINE__);
+  void SimInputGMV::GetAllRegionNames( StdVector<std::string> & regionNames ){
+    EXCEPTION("SimInputGMV::GetAllRegionNames() not implemented");
   }
 
   void SimInputGMV::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
                                    const UInt dim )
   {
-    Error("SimInputGMV::GetRegionNamesOfDim() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetRegionNamesOfDim() not implemented");
   }
   
 
   void SimInputGMV::GetNodeNames( StdVector<std::string> & nodeNames )
   {
-    Error("SimInputGMV::GetNodeNames() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetNodeNames() not implemented");
   }
   
   void SimInputGMV::GetElemNames( StdVector<std::string> & elemNames )
   {
-    Error("SimInputGMV::GetElemNames() not implemented",
-          __FILE__,__LINE__);
+    EXCEPTION("SimInputGMV::GetElemNames() not implemented");
   }
 
 
-  void SimInputGMV::ReadMesh()
+  void SimInputGMV::ReadMesh(Grid *mi)
   {
     Integer retcode;
 
+    mi_ = mi;
+    
     gmvread_printon();
     
     //    gmv_base_dir = mFile.GetParent().GetAbsolutePath();
@@ -185,7 +176,7 @@ namespace CoupledField {
       switch (gmv_data.keyword)
       {
       case(NODES):
-        MESHIO_DEBUG("NODES");
+        // MESHIO_DEBUG("NODES");
 
         try {
           gmvread_mesh();
@@ -205,43 +196,49 @@ namespace CoupledField {
         }
         break;
       case(MATERIAL):
-        MESHIO_DEBUG("MATERIAL");
+//        MESHIO_DEBUG("MATERIAL");
         if(!ProcessMaterials())
         {
-          mMatNames.resize(0);
-          mMatNames.push_back("Material");
-          mMatNums.push_back(0);
+          mMatNames.Resize(0);
+          mMatNames.Push_back("Material");
+          mMatNums.Push_back(0);
           mElementMaterials.resize(gmv_meshdata.ncells);
         }
         break;
       case CELLS:
-        MESHIO_DEBUG("CELLS");
+        std::cout << "CELLS" << std::endl;
         break;
       case FACES:
-        MESHIO_DEBUG("FACES");
+        std::cout << "FACES" << std::endl;
+        
         break;
       case VFACES:
-        MESHIO_DEBUG("VFACES");
+        std::cout << "VFACES" << std::endl;
+        
         break;
       case XFACES:
-        MESHIO_DEBUG("XFACES");
+        std::cout << "XFACES" << std::endl;
+        
         break;
       case VELOCITY:
-        MESHIO_DEBUG("VELOCITY");
+        std::cout << "VELOCITY" << std::endl;
+        
         if(!ProcessVelocities())
         {
           return;
         }
         break;
       case VARIABLE:
-        MESHIO_DEBUG("VARIABLE");
+        std::cout << "VARIABLE" << std::endl;
+        
         if(!ProcessVariables())
         {
           return;
         }
         break;
       case FLAGS:
-        MESHIO_DEBUG("FLAGS");
+        std::cout << "FLAGS" << std::endl;
+        
         break;
       case POLYGONS:
         //            MESHIO_DEBUG("POLYGONS");
@@ -249,10 +246,12 @@ namespace CoupledField {
         polys++;
         break;
       case TRACERS:
-        MESHIO_DEBUG("TRACERS");
+        std::cout << "TRACERS" << std::endl;
+        
         break;
       case PROBTIME:
-        MESHIO_DEBUG("PROBTIME");
+        std::cout << "PROBTIME" << std::endl;
+        
         if(!ProcessProbtime())
         {
           mProbTimes.resize(1);
@@ -260,7 +259,8 @@ namespace CoupledField {
         }
         break;
       case CYCLENO:
-        MESHIO_DEBUG("CYCLENO");
+        std::cout << "CYCLENO" << std::endl;
+        
         if(!ProcessCycleNo())
         {
           mCycleNos.resize(1);
@@ -268,75 +268,88 @@ namespace CoupledField {
         }
         break;
       case NODEIDS:
-        MESHIO_DEBUG("NODEIDS");
+        std::cout << "NODEIDS" << std::endl;
+        
         break;
       case CELLIDS:
-        MESHIO_DEBUG("CELLIDS");
+        std::cout << "CELLIDS" << std::endl;
+        
         break;
       case SURFACE:
-        MESHIO_DEBUG("SURFACE");
+        std::cout << "SURFACE" << std::endl;
+        
         break;
       case SURFMATS:
-        MESHIO_DEBUG("SURFMATS");
+        std::cout << "SURFMATS" << std::endl;
+        
         break;
       case SURFVEL:
-        MESHIO_DEBUG("SURFVEL");
+        std::cout << "SURFVEL" << std::endl;
+        
         break;
       case SURFVARS:
-        MESHIO_DEBUG("SURFVARS");
+        std::cout << "SURFVARS" << std::endl;
+        
         break;
       case SURFFLAG:
-        MESHIO_DEBUG("SURFFLAG");
+        std::cout << "SURFFLAG" << std::endl;
+        
         break;
       case UNITS:
-        MESHIO_DEBUG("UNITS");
+        std::cout << "UNITS" << std::endl;
+        
         break;
       case VINFO:
-        MESHIO_DEBUG("VINFO");
+        std::cout << "VINFO" << std::endl;
+        
         break;
       case TRACEIDS:
-        MESHIO_DEBUG("TRACEIDS");
+        std::cout << "TRACEIDS" << std::endl;
+        
         break;
       case GROUPS:
-        MESHIO_DEBUG("GROUPS");
+        std::cout << "GROUPS" << std::endl;
+        
         if(!ProcessGroups())
         {
           return;
         }
         break;
       case FACEIDS:
-        MESHIO_DEBUG("FACEIDS");
+        std::cout << "FACEIDS" << std::endl;
+        
         break;
       case SURFIDS:
-        MESHIO_DEBUG("SURFIDS");
+        std::cout << "SURFIDS" << std::endl;
+        
         break;
       case CELLPES:
-        MESHIO_DEBUG("CELLPES");
+        std::cout << "CELLPES" << std::endl;
         break;
       case SUBVARS:
-        MESHIO_DEBUG("SUBVARS");
+        std::cout << "SUBVARS" << std::endl;
         break;
       case GHOSTS:
-        MESHIO_DEBUG("GHOSTS");
+        std::cout << "GHOSTS" << std::endl;
         break;
       case CODENAME:
-        MESHIO_DEBUG("CODENAME");
+        std::cout << "CODENAME" << std::endl;
         break;
       case CODEVER:
-        MESHIO_DEBUG("CODEVER");
+        std::cout << "CODEVER" << std::endl;
         break;
       case SIMDATE:
-        MESHIO_DEBUG("SIMDATE");
+        std::cout << "SIMDATE" << std::endl;
         break;
       case VECTOR:
-        MESHIO_DEBUG("VECTOR");
+        std::cout << "VECTOR" << std::endl;
         if(!ProcessVectors())
         {
           return;
         }            
         break;
       case INVALIDKEYWORD:
-        MESHIO_DEBUG("INVALIDKEYWORD");
+        std::cout << "INVALIDKEYWORD" << std::endl;
         break;
       }
     }  
@@ -351,8 +364,8 @@ namespace CoupledField {
   {
     gmvread_close();
     
-    mMatNames.clear();
-    mMatNums.clear();
+    mMatNames.Clear();
+    mMatNums.Clear();
     mElementMaterials.clear();
     mElementIds.clear();
     gmv_cell_types.clear();
@@ -429,7 +442,7 @@ namespace CoupledField {
         
         if(numNodes == 0)
         {
-          mi_->SetElemData(elem+1, ET_UNDEF, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::UNDEF, 0, cellNodesPtr);
           continue;
         }
         //        cellNodesPtr = (long*)(gmv_meshdata.cellnodes + numNodesOffset);
@@ -438,30 +451,30 @@ namespace CoupledField {
         {
 
         case LINE:
-          mi_->SetElemData(elem+1, ET_LINE2, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::LINE2, 0, cellNodesPtr);
           break;
 
         case LINE3:
           element_vertex_ids[0] = cellNodesPtr[0];
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[1];
-          mi_->SetElemData(elem+1, ET_LINE3, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::LINE3, 0, &element_vertex_ids[0]);
           break;
 
         case TRI:
-          mi_->SetElemData(elem+1, ET_TRIA3, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::TRIA3, 0, cellNodesPtr);
           break;
 
         case TRI6:
-          mi_->SetElemData(elem+1, ET_TRIA6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::TRIA6, 0, cellNodesPtr);
           break;
 
         case QUAD:
-          mi_->SetElemData(elem+1, ET_QUAD4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::QUAD4, 0, cellNodesPtr);
           break;
 
         case QUAD8:               
-          mi_->SetElemData(elem+1, ET_QUAD8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::QUAD8, 0, cellNodesPtr);
           break;
 
         case TET:
@@ -469,15 +482,15 @@ namespace CoupledField {
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, ET_TET4, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::TET4, 0, &element_vertex_ids[0]);
           break;
 
         case PTET4:
-          mi_->SetElemData(elem+1, ET_TET4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::TET4, 0, cellNodesPtr);
           break;
 
         case PTET10:
-          mi_->SetElemData(elem+1, ET_TET10, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::TET10, 0, cellNodesPtr);
           break;
 
         case PYRAMID:
@@ -486,15 +499,15 @@ namespace CoupledField {
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[4];
           element_vertex_ids[4] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, ET_PYRA5, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::PYRA5, 0, &element_vertex_ids[0]);
           break;
 
         case PPYRMD5:                    
-          mi_->SetElemData(elem+1, ET_PYRA5, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::PYRA5, 0, cellNodesPtr);
           break;
 
         case PPYRMD13:               
-          mi_->SetElemData(elem+1, ET_PYRA13, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::PYRA13, 0, cellNodesPtr);
           break;
 
         case PRISM:
@@ -504,15 +517,15 @@ namespace CoupledField {
           element_vertex_ids[3] = cellNodesPtr[0];
           element_vertex_ids[4] = cellNodesPtr[1];
           element_vertex_ids[5] = cellNodesPtr[2];
-          mi_->SetElemData(elem+1, ET_WEDGE6, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::WEDGE6, 0, &element_vertex_ids[0]);
           break;
 
         case PPRISM6:
-          mi_->SetElemData(elem+1, ET_WEDGE6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::WEDGE6, 0, cellNodesPtr);
           break;
 
         case PPRISM15:
-          mi_->SetElemData(elem+1, ET_WEDGE15, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::WEDGE15, 0, cellNodesPtr);
           break;
 
         case HEX:
@@ -524,19 +537,19 @@ namespace CoupledField {
           element_vertex_ids[5] = cellNodesPtr[1];
           element_vertex_ids[6] = cellNodesPtr[2];
           element_vertex_ids[7] = cellNodesPtr[3];
-          mi_->SetElemData(elem+1, ET_HEXA8, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::HEXA8, 0, &element_vertex_ids[0]);
           break;
 
         case PHEX8:               
-          mi_->SetElemData(elem+1, ET_HEXA8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::HEXA8, 0, cellNodesPtr);
           break;
 
         case PHEX20:               
-          mi_->SetElemData(elem+1, ET_HEXA20, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::HEXA20, 0, cellNodesPtr);
           break;
 
         case PHEX27:  
-          mi_->SetElemData(elem+1, ET_HEXA27, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::HEXA27, 0, cellNodesPtr);
           break;
         }
 
@@ -584,7 +597,7 @@ namespace CoupledField {
             element_vertex_ids[6] = offset_y1z1 + ix+1 +1;
             element_vertex_ids[7] = offset_y1z1 + ix +1;
 
-            mi_->SetElemData(elem+1, ET_HEXA8, 0, &element_vertex_ids[0]);
+            mi_->SetElemData(elem+1, Elem::HEXA8, 0, &element_vertex_ids[0]);
                     
             elem++;
           }
@@ -610,19 +623,18 @@ namespace CoupledField {
       return false;
     }
     
-    UInt i, numElems;
+    UInt numElems;
     
-    mMatNames.resize(0);
-    mMatNums.resize(0);
+    mMatNames.Resize(0);
+    mMatNums.Resize(0);
 
-    for( i=0; i<gmv_data.num; i++)
+    for(Integer i=0; i<gmv_data.num; i++)
     {
-      mMatNames.push_back(gmv_data.chardata1+i*33);
-      mMatNums.push_back(i+1);
-      MESHIO_DEBUG(mMatNames[i]);
+      mMatNames.Push_back(gmv_data.chardata1+i*33);
+      mMatNums.Push_back(i+1);
+//      MESHIO_DEBUG(mMatNames[i]);
     }
 
-    i=0;
 
     mi_->AddRegions(mMatNames, mMatNums);
 
@@ -630,7 +642,7 @@ namespace CoupledField {
     mi_->GetElems(elems, ALL_REGIONS);
     numElems = elems.GetSize();
     
-    for( i=0; i<numElems; i++ ) {
+    for( UInt i=0; i<numElems; i++ ) {
       elems[i]->regionId = mMatNums[gmv_data.longdata1[i]-1];
     }
 
@@ -649,13 +661,13 @@ namespace CoupledField {
     
     if(gmv_data.datatype == ENDKEYWORD)
     {
-      MESHIO_DEBUG("All groups have been read!");
+//      MESHIO_DEBUG("All groups have been read!");
       return true;
     }
 
     std::string entityName;
-    std::vector <UInt> entities;
-    entities.resize(gmv_data.nlongdata1);
+    StdVector <UInt> entities;
+    entities.Resize(gmv_data.nlongdata1);
 
     entityName = gmv_data.name1;
 
@@ -1357,3 +1369,4 @@ namespace CoupledField {
     */    
     return true;
   }
+}

@@ -98,7 +98,7 @@ namespace CoupledField {
     LOG_DBG3(acoumechncint) << "fluidOnSlaveSide " << fluidOnSlaveSide;
 
     // get the density of the fluid
-    itMat->second->GetScalar(fluidDensity, DENSITY, REAL);
+    itMat->second->GetScalar(fluidDensity, DENSITY, Global::REAL);
     if (formulation_ == ACOU_PRESSURE) {
       if (firstPDEName_ == "mechanic")
         fluidDensity = 1.0;

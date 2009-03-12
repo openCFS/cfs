@@ -43,7 +43,7 @@ namespace CoupledField {
 
         std::ostringstream ostream;
         
-        ostream << msg_;
+        ostream << "\n" << msg_;
 
         if( fileName_ != "" && fileName_ != "NO_FILENAME") {
             ostream << "\nIn file '" << fileName_ << "'";

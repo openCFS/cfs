@@ -21,7 +21,7 @@ namespace CoupledField {
   {
     std::ostringstream os;
     os << "entity list: " << entities_->GetName()
-       //<< " values: " << (const_cast<const CFSVector*>(GetCFSVector())->GetSize()
+       //<< " values: " << (const_cast<const SingleVector*>(GetSingleVector())->GetSize()
        << " result info: " << resultDof_->ToString();
     return os.str();
   }

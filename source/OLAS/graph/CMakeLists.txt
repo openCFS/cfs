@@ -1,8 +1,15 @@
 # Make sure the compiler can find include files
 INCLUDE_DIRECTORIES(${METIS_INCLUDE_DIR})
 
-SET(GRAPH_SRCS basegraph.cc baseordering.cc sloan.cc graphmanagersimple.cc
-	       graphmanagerstdmat.cc graphmanagersbmmat.cc idbcgraph.cc)
+SET(GRAPH_SRCS
+    basegraph.cc
+    baseordering.cc
+    graphmanagersbmmat.cc
+    graphmanagersimple.cc
+    graphmanagerstdmat.cc
+    idbcgraph.cc
+    sloan.cc
+	)
 
 ADD_DEFINITIONS()
 

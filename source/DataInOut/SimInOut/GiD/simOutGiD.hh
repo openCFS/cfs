@@ -9,9 +9,6 @@
 #include <DataInOut/simOutput.hh>
 #include <Domain/resultInfo.hh>
 
-// Header of postprocessing library
-#include "DataInOut/SimInOut/GiD/gidpost/gidpost.h"
-
 namespace CoupledField
 {
 
@@ -96,7 +93,7 @@ namespace CoupledField
     ResultMapType resultMap_;
 
     //! Dimension of grid
-    GiD_Dimension dim_;
+    UInt dim_;
 
     //! Current region number written
     Integer actMeshId_;

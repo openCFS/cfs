@@ -5,9 +5,9 @@
 #ifndef OLAS_LAPACK_HEADERS_HH
 #define OLAS_LAPACK_HEADERS_HH
 
-#include "external/lapack/olasf77mapping.hh"
-#include "external/lapack/lapackbasematrix.hh"
-#include "external/lapack/lapackgbmatrix.hh"
-#include "external/lapack/lapacklu.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "OLAS/external/lapack/lapackbasematrix.hh"
+#include "OLAS/external/lapack/lapackgbmatrix.hh"
+#include "OLAS/external/lapack/lapacklu.hh"
 
 #endif

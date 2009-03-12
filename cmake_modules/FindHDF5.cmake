@@ -1,47 +1,70 @@
 SET(HDF5_FOUND 0)
 
 #-------------------------------------------------------------------------------
-# Find Zlib.
+# Look for HDF5 header.
 #-------------------------------------------------------------------------------
-FIND_PACKAGE(ZLIB)
-
-MARK_AS_ADVANCED(ZLIB_LIBRARY)
-MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
+BUILD_EXTLIB("HDF5"
+  "${CFS_BINARY_DIR}/include/hdf5.h"
+  "${CFS_DEPS_ROOT}/hdf5/build_hdf5.pl"
+  "build_hdf5.log")
 
 #-------------------------------------------------------------------------------
 # Determine paths of HDF5 libraries.
 #-------------------------------------------------------------------------------
-FIND_LIBRARY(HDF5_LIBRARY
-  NAMES hdf5
-  PATHS ${CFSDEPS_LIBRARY_DIR}
-  )
+IF(WIN32)
+  SET(HDF5_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5dll.lib)
+  SET(HDF5_CPP_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppdll.lib)
+  SET(HDF5_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5ddll.lib)
+  SET(HDF5_CPP_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/hdf5_cppddll.lib)
+ELSE(WIN32)
+  SET(HDF5_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libhdf5.a")
 
-FIND_LIBRARY(HDF5_CPP_LIBRARY
-  NAMES hdf5_cpp
-  PATHS ${CFSDEPS_LIBRARY_DIR}
-  )
+  SET(HDF5_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libhdf5.a")
+
+  SET(HDF5_CPP_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libhdf5_cpp.a")
+    
+  SET(HDF5_CPP_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libhdf5_cpp.a")
+ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
-# Mark paths of HDF5 libraries as advanced.
+# Set HDF5_LIBRARY* according to configuration
 #-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(HDF5_LIBRARY)
-MARK_AS_ADVANCED(HDF5_CPP_LIBRARY)
+IF(DEBUG)
+  SET(HDF5_LIBRARY "${HDF5_LIBRARY_DEBUG}")
+  SET(HDF5_CPP_LIBRARY "${HDF5_CPP_LIBRARY_DEBUG}")
+ELSE(DEBUG)
+  SET(HDF5_LIBRARY "${HDF5_LIBRARY_RELEASE}")
+  SET(HDF5_CPP_LIBRARY "${HDF5_CPP_LIBRARY_RELEASE}")
+ENDIF(DEBUG)
 
-FIND_PATH(HDF5_INCLUDE_DIR hdf5.h 
-  ${CFSDEPS_INCLUDE_DIR} 
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH)
+SET(HDF5_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
-MARK_AS_ADVANCED(HDF5_INCLUDE_DIR)
-
-
-IF(HDF5_LIBRARY AND HDF5_CPP_LIBRARY AND HDF5_INCLUDE_DIR)
+# Safety check for existance of libs and headers
+IF(EXISTS "${HDF5_LIBRARY}"
+    AND EXISTS "${HDF5_CPP_LIBRARY}"
+    AND EXISTS "${HDF5_INCLUDE_DIR}/hdf5.h")
+  
   SET(HDF5_FOUND 1)
-ENDIF(HDF5_LIBRARY AND HDF5_CPP_LIBRARY AND HDF5_INCLUDE_DIR)
+  
+ELSE(EXISTS "${HDF5_LIBRARY}"
+    AND EXISTS "${HDF5_CPP_LIBRARY}"
+    AND EXISTS "${HDF5_INCLUDE_DIR}/hdf5.h")
+  
+  MESSAGE(FATAL_ERROR "Could not find ${HDF5_LIBRARY}, ${HDF5_CPP_LIBRARY} or"
+    " ${CFS_BINARY_DIR}/include/hdf5.h")
+  
+ENDIF(EXISTS "${HDF5_LIBRARY}"
+  AND EXISTS "${HDF5_CPP_LIBRARY}"
+  AND EXISTS "${HDF5_INCLUDE_DIR}/hdf5.h")
 
+
+IF(NOT WIN32)
+SET(HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY};-lpthread")
+ENDIF(NOT WIN32)
 
 IF(HDF5_FOUND)
 
@@ -88,8 +111,23 @@ IF(HDF5_FOUND)
     HDF5_LIBRARY "${HDF5_LIBRARY}")
 
   SET(HDF5_LIBRARY "${HDF5_LIBRARY}" CACHE PATH "Path to HDF5 libraries." FORCE)
+  SET(HDF5_CPP_LIBRARY "${HDF5_CPP_LIBRARY}" CACHE PATH "Path to HDF5 C++ libraries." FORCE)
 
+  MARK_AS_ADVANCED(HDF5_CPP_LIBRARY)
+  MARK_AS_ADVANCED(HDF5_LIBRARY)
 ENDIF(HDF5_FOUND)
+
+# MESSAGE("CFS_HDF5_VERSION ${CFS_HDF5_VERSION}")
+
+IF(WIN32)
+  IF(DEBUG)
+    SET(HDF5DLL "${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}/hdf5ddll.dll")
+    SET(HDF5_CPPDLL "${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}/hdf5_cppddll.dll")
+  ELSE(DEBUG)
+    SET(HDF5DLL "${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}/hdf5dll.dll")
+    SET(HDF5_CPPDLL "${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}/hdf5_cppdll.dll")
+  ENDIF(DEBUG)
+ENDIF(WIN32)
 
 IF(NOT HDF5_FOUND)
   MESSAGE("Warning: HDF5 could not be found! Please specify proper paths.")

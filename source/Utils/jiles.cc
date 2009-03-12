@@ -115,9 +115,8 @@ namespace CoupledField
 
 
     if (iter >= iterMax_ ) {
-      (*error) << "No convergence with Jiles hysteresis model in "
-               << iterMax_ << " steps";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "No convergence with Jiles hysteresis model in "
+               << iterMax_ << " steps" );
     }
 
     YirrNew_[idx]  = YirrNew;

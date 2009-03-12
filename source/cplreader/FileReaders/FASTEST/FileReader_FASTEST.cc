@@ -343,7 +343,7 @@ namespace CoupledField
     {
       std::string filename;
       char buf[128];
-      UInt dummy, numNodes, elemType = ET_UNDEF;
+      UInt dummy, numNodes, elemType = Elem::UNDEF;
       UInt regionIdx;
       UInt numElems = 0;
       UInt elemIdx = 0;
@@ -377,31 +377,31 @@ namespace CoupledField
         switch(numNodes)
         {
         case 2:
-          elemType = ET_LINE2;
+          elemType = Elem::LINE2;
           break;
         case 3:
-          elemType = ET_TRIA3;
+          elemType = Elem::TRIA3;
           break;
         case 4:
           if(dim_ == 3)
-            elemType = ET_TET4;
+            elemType = Elem::TET4;
           else
-            elemType = ET_QUAD4;
+            elemType = Elem::QUAD4;
           break;
         case 8:
           if (dim_ == 3)
-            elemType = ET_HEXA8;
+            elemType = Elem::HEXA8;
           else
-            elemType = ET_QUAD8;
+            elemType = Elem::QUAD8;
           break;
         case 5:
-          elemType = ET_PYRA5;
+          elemType = Elem::PYRA5;
           break;
         case 6:
           if (dim_ == 3)
-            elemType = ET_WEDGE6;
+            elemType = Elem::WEDGE6;
           else
-            elemType = ET_TRIA6;
+            elemType = Elem::TRIA6;
           break;
         }
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <set>
 #include <fstream>
 #include <stdio.h>
 #include <iomanip>
@@ -217,7 +218,6 @@ namespace CoupledField
     {
       fs::path trnDir( baseName_ +  name_);
       fs::directory_iterator end_iter;
-      UInt its = 1;
       std::set<UInt> stepNumSet;
       std::set<UInt>::const_iterator it, end;
       UInt stepNum;
@@ -419,12 +419,12 @@ namespace CoupledField
       //
       //---- number of nodes per element
       //
-      if (ielem[ies-1] == 4) regionElemTypes_.push_back(ET_TET4);
-      if (ielem[ies-1] == 5) regionElemTypes_.push_back(ET_WEDGE6);
-      if (ielem[ies-1] == 6) regionElemTypes_.push_back(ET_HEXA8);
-      if (ielem[ies-1] == 7) regionElemTypes_.push_back(ET_PYRA5);
+      if (ielem[ies-1] == 4) regionElemTypes_.push_back(Elem::TET4);
+      if (ielem[ies-1] == 5) regionElemTypes_.push_back(Elem::WEDGE6);
+      if (ielem[ies-1] == 6) regionElemTypes_.push_back(Elem::HEXA8);
+      if (ielem[ies-1] == 7) regionElemTypes_.push_back(Elem::PYRA5);
 
-      UInt nENod = NUM_ELEM_NODES[*regionElemTypes_.rbegin()];
+      UInt nENod = Elem::GetNumElemNodes(*regionElemTypes_.rbegin());
       maxNumElemNodes_ = nENod > maxNumElemNodes_ ? nENod : maxNumElemNodes_;
 
       //
@@ -523,7 +523,7 @@ namespace CoupledField
     UInt elem=0;
     int numElems=0;
     int numElemNodes;
-    int elemType = ET_UNDEF;
+    int elemType = Elem::UNDEF;
     std::vector<UInt> elConnect(maxNumElemNodes_);
 
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
@@ -541,7 +541,7 @@ namespace CoupledField
     for(UInt actRegion=0; actRegion<numRegions_; actRegion++) {
       elemType = regionElemTypes_[actRegion];
       numElems = numElemsPerRegion_[actRegion];
-      numElemNodes = NUM_ELEM_NODES[elemType];
+      numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemType);
 
       //---- reading connectivity for each element set
       //     outer loop:  i_element
@@ -580,7 +580,7 @@ namespace CoupledField
         elemTypes.push_back(elemType);
         std::fill(elConnect.begin(), elConnect.end(), 0);
 
-        if(elemType == ET_HEXA8)
+        if(elemType == Elem::HEXA8)
         {
           elConnect[0] = intvec[baseIdx + 4];
           elConnect[1] = intvec[baseIdx + 6];
@@ -910,7 +910,6 @@ namespace CoupledField
   {
     std::string cmd, attrib;
     int pos=0;
-    Settings& settings = Settings::Instance();
     std::ostringstream sstr;
 
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);

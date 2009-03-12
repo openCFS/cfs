@@ -120,7 +120,7 @@ namespace CoupledField {
     }
 
     ResultHandler * resHandler = domain->GetResultHandler();
-    
+
     // we only write results during the final computation of the impedance/mechDispl curve
     if (writeResults_==true)
       resHandler->BeginMultiSequenceStep( 1, analysis_, freqs_.GetSize() );
@@ -149,7 +149,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
-     
+
       if(writeResults_==true){
         resHandler->BeginStep(fstep+1, actFreq );
         ptPDE_->WriteResultsInFile(fstep, actFreq);
@@ -157,7 +157,7 @@ namespace CoupledField {
       resHandler->FinishStep();
 
       if (CalcImpedanceCurve_==true) {
-        
+
         piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
         Vector<Complex> & chargeVec = charges_->GetVector();
         Complex charge=Complex(0.0, 0.0);
@@ -310,11 +310,11 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       resHandler->FinishStep();
-  
+
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
-      
+
       piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
       Vector<Complex> & chargeVec = charges_->GetVector();
       Complex charge=Complex(0.0, 0.0);
@@ -460,12 +460,12 @@ namespace CoupledField {
     //////////////////////////////////////////////////////////
     //Retrieves & stores Solution for further calculations  //
     /////////////////////////////////////////////////////////
-    
+
     piezoCpl_->CalcCharges<Complex>( charges_ , chargeNeighborRegion_ );
     Vector<Complex> & chargeVec = charges_->GetVector();
     Complex charge=Complex(0.0, 0.0);
-    Complex im=Complex(0.0, 1.0);     
-    
+    Complex im=Complex(0.0, 1.0);
+
     for (UInt i=0;i<chargeVec.GetSize();i++) {
       charge+=chargeVec[i];
     }
@@ -507,12 +507,12 @@ namespace CoupledField {
     inverse.Resize(actNrParameter_+actNrParameterC_, actNrParameter_+actNrParameterC_);
     inverse.Init();
 
-    for (UInt ind=0;ind<data.GetSizeRow();ind++) {
+    for (UInt ind=0;ind<data.GetNumRows();ind++) {
       e[ind]=1.0;
 
       dataTemp.DirectSolve(x,e);
       dataTemp=data;
-      for (UInt indC=0;indC<data.GetSizeCol();indC++)
+      for (UInt indC=0;indC<data.GetNumCols();indC++)
       inverse[indC][ind]=x[indC];
       x.Resize(actNrParameter_+actNrParameterC_);
       x.Init();
@@ -633,11 +633,11 @@ namespace CoupledField {
 
 
   void piezoParamIdent::createAdjointJacobiMatrix() {
-    adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),
-        JacobiMatrix_.GetSizeRow());
+    adjJacobiMatrix_.Resize(JacobiMatrix_.GetNumCols(),
+        JacobiMatrix_.GetNumRows());
     adjJacobiMatrix_.Init();
-    for (UInt i=0; i<JacobiMatrix_.GetSizeCol(); i++)
-    for (UInt j=0; j<JacobiMatrix_.GetSizeRow(); j++) {
+    for (UInt i=0; i<JacobiMatrix_.GetNumCols(); i++)
+    for (UInt j=0; j<JacobiMatrix_.GetNumRows(); j++) {
       adjJacobiMatrix_[i][j] = std::conj(JacobiMatrix_[j][i]);
     }
   } // end createAdjointJacobiMatrix
@@ -722,8 +722,8 @@ namespace CoupledField {
   Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat) {
 
     Double norm=0.0;
-    for (UInt i=0; i<mat.GetSizeRow(); i++)
-    for (UInt j=0; j<mat.GetSizeCol(); j++)
+    for (UInt i=0; i<mat.GetNumRows(); i++)
+    for (UInt j=0; j<mat.GetNumCols(); j++)
     norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
     norm=sqrt(norm);
     return norm;
@@ -1113,7 +1113,7 @@ namespace CoupledField {
       imagMech_.Init();
 
       Double newFreq, amplitude, phase;
-      
+
       // read only file mess.dat if we have one of the following fitting quantities
       if (whichNormCriteria_=="logImpedance"|| whichNormCriteria_=="logAmplitude"
         || whichNormCriteria_=="amplitude"||whichNormCriteria_=="phase") {
@@ -1133,7 +1133,7 @@ namespace CoupledField {
               real_[mInd]=amplitude;
               imag_[mInd]=phase;
             }
-          } 
+          }
         }// end while mess
       }
 

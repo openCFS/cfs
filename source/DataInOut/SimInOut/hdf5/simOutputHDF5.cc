@@ -21,12 +21,13 @@
 #include "General/exception.hh"
 #include "simOutputHDF5.hh"
 #include "Domain/elem.hh"
+#include "Elements/basefe.hh"
 #include "hdf5io.hh"
 
 namespace fs = boost::filesystem;
 
 namespace CoupledField {
-  
+
 #define H5_EXCEPTION(STR, EX)                                           \
   EXCEPTION( STR, EX.getCDetailMsg() );
 
@@ -35,14 +36,14 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
-  
+
   SimOutputHDF5::SimOutputHDF5(std::string fileName, ParamNode * inputNode) :
     SimOutput(fileName, inputNode) {
-    
+
     fileName_ = fileName;
     formatName_ = "hdf5";
-    dirName_ = "simoutput_hdf5";
-    
+    dirName_ = "results_hdf5";
+
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
     capabilities_.insert( HISTORY );
@@ -122,7 +123,7 @@ namespace CoupledField {
     std::stringstream version;
     version << CFS_HDF5_FORMAT_MAJOR << "." << CFS_HDF5_FORMAT_MINOR;
     std::string versionString = version.str();
-    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ ); 
+    H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ );
 
     // write date / time information
     using namespace boost::posix_time;
@@ -273,13 +274,12 @@ namespace CoupledField {
               } catch( H5::Exception& h5Ex ) {
                 entityGroup = entityTypeGroup.createGroup( entIt.GetIdString() );
               }
-             
+
               H5IO::Reserve2DArray<Double>(entityGroup, "Real", numRealSteps,
                                           numDofs, dPropList_ );
-             
-              if( lists[iList]->GetEntryType() == EntryType::COMPLEX){
+              if( lists[iList]->GetEntryType() == BaseMatrix::COMPLEX){
                 H5IO::Reserve2DArray<Double>(entityGroup, "Imag", numRealSteps,
-                                            numDofs, dPropList_ );
+                                             numDofs, dPropList_ );
               }
               entityGroup.close();
             }
@@ -441,7 +441,7 @@ namespace CoupledField {
                 << " for result " << resultName << " on region "
                 << regionName );
 
-    if( sol->GetEntryType() == EntryType::DOUBLE ) {
+    if( sol->GetEntryType() == BaseMatrix::DOUBLE ) {
 
       Vector<Double> & resultVec = dynamic_cast<Result<Double>&>
       (*sol).GetVector();
@@ -521,7 +521,7 @@ namespace CoupledField {
         H5::Group entityGroup =
           entityTypeGroup.openGroup( entIt.GetIdString() );
 
-        if( sol->GetEntryType() == EntryType::DOUBLE ){
+        if( sol->GetEntryType() == BaseMatrix::DOUBLE ){
           Vector<Double> & resultVec = dynamic_cast<Result<Double>&>
           (*sol).GetVector();
           H5IO::SetEntries2DArray( entityGroup, "Real", myStepNums.GetSize()-1,
@@ -675,7 +675,7 @@ namespace CoupledField {
 
     strBuffer << dirName_ << pathsep << fileName_ << ".h5";
     fileName = strBuffer.str();
-    
+
     // create main file and obtain main group
     try {
       mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
@@ -746,7 +746,7 @@ namespace CoupledField {
     // Fill connectivity array
     std::fill( connect.begin(), connect.end(), 0 );
     UInt offset;
-    FEType eType;
+    Elem::FEType eType;
     RegionIdType region;
 
     // iterate over all elements
@@ -755,7 +755,7 @@ namespace CoupledField {
       std::fill(elConnect.begin(), elConnect.end(),
                 0 );
       ptGrid_->GetElemData( i+1, eType, region, &elConnect[0] );
-      numElemsOfDim[ELEM_DIM[eType]-1]++;
+      numElemsOfDim[Elem::GetElemDim(eType)-1]++;
       feTypes[i] = eType;
 
       // insert connectivity into global array
@@ -791,12 +791,12 @@ namespace CoupledField {
     }
 
     // number of elements per type
-    UInt numElemTypes = sizeof(ELEM_DIM) / sizeof(UInt);
+    UInt numElemTypes = Elem::feType.map.size();
     for(UInt i=0; i<numElemTypes; i++) {
       std::stringstream attrName;
-      attrName << "Num_" << ELEM_TYPE_NAMES[i].substr(3);
+      attrName << "Num_" << Elem::feType.ToString((Elem::FEType)i);
       H5IO::WriteAttribute( elemGroup, attrName.str(),
-                            ptGrid_->GetNumElemOfType((FEType)i) );
+                            ptGrid_->GetNumElemOfType((Elem::FEType)i) );
     }
 
     // close element group
@@ -836,7 +836,7 @@ namespace CoupledField {
     StdVector<RegionIdType> surfRegionIds, volRegionIds;
     UInt dim, numRegions;
     Integer idx;
-    
+
     // create region group
     try{
       regionListGroup = meshGroup.createGroup("Regions");
@@ -979,7 +979,10 @@ namespace CoupledField {
     for(UInt i = 0; i < numElemGroups; i++ ) {
       ptGrid_->GetElemsByName(elems, elemNames[i]);
       elemNums.Resize( elems.GetSize() );
+      nodeSet.clear();
+      
       std::set<UInt> dims;
+
       for( UInt j = 0; j < elems.GetSize(); j++ ) {
         elemNums[j] = elems[j]->elemNum;
         dims.insert( elems[j]->ptElem->GetDim() );
@@ -1134,7 +1137,7 @@ namespace CoupledField {
 
       // open external file
       pathsep = fs::path("/").native_directory_string();
-      
+
       fName << fileName_ << "_ms" << currMS_ << "_step"
             << currStep_ << ".h5";
       fn = fName.str();

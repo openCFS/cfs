@@ -5,7 +5,11 @@
 #ifndef OLAS_SBMDIAGPRECOND_HH
 #define OLAS_SBMDIAGPRECOND_HH
 
-namespace OLAS {
+
+#include "baseprecond.hh"
+#include "bnprecond.hh"
+
+namespace CoupledField {
 
   //! Preconditioner for SBM Matrices working on the diagonal sub-matrices
 

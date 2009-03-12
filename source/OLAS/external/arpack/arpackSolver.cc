@@ -2,18 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <limits>
+
+#include "General/environment.hh"
+#include "General/exception.hh"
+
 #include "arpackSolver.hh"
 
-#include <limits>
-#include "solver/solver.hh"
-#include "precond/precond.hh"
-#include "matvec/matvec.hh"
-
-namespace OLAS {
+namespace CoupledField {
 
   ArpackSolver::ArpackSolver() {
 
-      shiftAndInvert_ = TRUE;
+      shiftAndInvert_ = true;
       freqShift_ = 0.0;
       tolerance_ = 1.e-8;
       maxIterations_ = 1000;
@@ -34,7 +34,7 @@ namespace OLAS {
   }
 
   void ArpackSolver::Setup( ArpackMatInterface *matInterface, UInt size, 
-              UInt numFreq, Double freqShift, Char* which, bool shiftMode ) {
+              UInt numFreq, Double freqShift, char* which, bool shiftMode ) {
 
       size_ = size;
 
@@ -51,9 +51,9 @@ namespace OLAS {
       numArnoldiVec_ = numFreq_*2;
 
       // eigenvalues, tolerances and vectors
-      eigenValues_ = New Double [numArnoldiVec_];
-      eigenTolerances_ = New Double [numArnoldiVec_];
-      eigenVectors_ = New Double [numFreq_*size_];
+      eigenValues_ = new Double [numArnoldiVec_];
+      eigenTolerances_ = new Double [numArnoldiVec_];
+      eigenVectors_ = new Double [numFreq_*size_];
 
       DebugOff();
 
@@ -78,7 +78,7 @@ namespace OLAS {
       return numFreq_;
   }
 
-  Char* ArpackSolver::GetWhich( ) {
+  char* ArpackSolver::GetWhich( ) {
       return which_;
   }
 
@@ -100,19 +100,19 @@ namespace OLAS {
 
   UInt ArpackSolver::FindEigenvalues( ) {
 
-      bool converged = FALSE;
+      bool converged = false;
       Integer  ido = 0, info = 0;
 
       // temp vector to store B*x
-      Double *tempV = New Double [size_];
+      Double *tempV = new Double [size_];
       // pointers to the position of x and y in workD
       Double *vecX, *vecY;
 
       // temp working space required in dsaupd
-      Double *workD = New Double [3*size_];
-      Double *residual = New Double [size_];
-      Double *workL = New Double [numArnoldiVec_*(numArnoldiVec_+8)];
-      Double *matrixV = New Double [size_*numArnoldiVec_];
+      Double *workD = new Double [3*size_];
+      Double *residual = new Double [size_];
+      Double *workL = new Double [numArnoldiVec_*(numArnoldiVec_+8)];
+      Double *matrixV = new Double [size_*numArnoldiVec_];
 
       InitTempSpace(tempV, residual, workD, workL, matrixV);
 
@@ -129,7 +129,7 @@ namespace OLAS {
       iparams[6] = 3;
 
       UInt itNum;
-      for (itNum=1; itNum<=maxIterations_; itNum++) {
+      for (itNum=0; itNum<maxIterations_; itNum++) {
 
 					// cast to char* or receive compiler warning
           ARPACK_DSAUPD(&ido, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_, 
@@ -171,21 +171,19 @@ namespace OLAS {
 
           case 3:
               // algorithm requires shifts - > not implemented
-              (*error) << "User required shifts not yet implemented!\n"
-                       << "ARPACK requested ido=3 in DSAUPD!";
-              Error( __FILE__, __LINE__ );
-              break;
+            EXCEPTION( "User required shifts not yet implemented!\n"
+                       << "ARPACK requested ido=3 in DSAUPD!" );
+            break;
 
           case 99:
-              converged = TRUE;
-              break;
+            converged = true;
+            break;
 
           default:
               // something went wrong -> arpack requires undefind ido
-              (*error) << "ARPACK requested not implemented ido=" << ido 
-                       << " in DSAUPD!";
-              Error( __FILE__, __LINE__ );
-              break;
+            EXCEPTION( "ARPACK requested not implemented ido=" << ido 
+                       << " in DSAUPD!" );
+            break;
 
           }
 
@@ -197,16 +195,14 @@ namespace OLAS {
 
       // check whether everything went well
       if (info<0) {
-          (*error) << "Error reported in ritz value calculation!\n"
-                   << "Errorcode reported is " << info << "!";
-          Error( __FILE__, __LINE__ );
+        EXCEPTION( "Error reported in ritz value calculation!\n"
+                   << "Errorcode reported is " << info << "!" );
       }
 
       if ( itNum>maxIterations_ && info != 99 ) {
-          (*error) << "No convergence achieved within maximum number of "
+        EXCEPTION( "No convergence achieved within maximum number of "
                    << "allowed iterations!\n"
-                   << "Increase maxIt (=" << maxIterations_ << ") in xml file!";
-          Error( __FILE__, __LINE__ );
+                   << "Increase maxIt (=" << maxIterations_ << ") in xml file!" );
       }
 
       // proceed with calculation of eigenvectors, values, and tolerances
@@ -218,9 +214,9 @@ namespace OLAS {
       //       (column first) in data transfer, we use a simple 1d vector 
       //       memory allocation here!
 
-      bool rvec = TRUE;
-      Double *select = New Double [numArnoldiVec_];
-      Double *d = New Double [numArnoldiVec_*2];
+      bool rvec = true;
+      Double *select = new Double [numArnoldiVec_];
+      Double *d = new Double [numArnoldiVec_*2];
       Double omgShift = pow(freqShift_*8.0*atan(1.0),2);
 
 			// cast to char* or receive compiler warning

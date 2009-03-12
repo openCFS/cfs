@@ -18,8 +18,11 @@ ENDIF(USE_XERCES)
 # List of source codes for current target.
 SET(CFS_SRCS cfs.cc)
 
+SET_SOURCE_FILES_PROPERTIES(${CFS_SRCS}
+  PROPERTIES COMPILE_FLAGS "-Wno-long-long")
+
 # Main CFS++ executable target.
-ADD_EXECUTABLE(cfs ${CFS_SRCS})
+ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 
 # Define a list of libraries CFS++ depends upon. At the moment there
 # are some nasty circular dependencies which should be resolved in
@@ -35,11 +38,12 @@ SET(TARGET_LL
   definefiles
   paramh
   domain
+  ${CFS_FORTRAN_DYNRT_LIBS}
   )
 
 
 # Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfs 
+TARGET_LINK_LIBRARIES(cfsbin 
   ${TARGET_LL}
   )
 
@@ -53,8 +57,8 @@ ENDIF(USE_XERCES)
 
 # Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(USE_ANSYSRST)
-  SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
+  SET_TARGET_PROPERTIES(cfsbin PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
 ENDIF(USE_ANSYSRST)
 
 # Install the CFS++ executable target to ${CMAKE_INSTALL_PREFIX}/bin
-INSTALL_TARGETS(/bin cfs)
+#INSTALL_TARGETS(/bin cfs)

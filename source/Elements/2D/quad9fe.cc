@@ -122,9 +122,8 @@ namespace CoupledField
   Double Quad9FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)
   {
 
-    (*error) << "Quad9FE::CalcDistortion. This function has not yet been implemented in "
-             << " quadratic (9-node) quadrilaterals" << std::endl;
-    Error( __FILE__, __LINE__ );
+    EXCEPTION("Quad9FE::CalcDistortion. This function has not yet been"
+              << "implemented in quadratic (9-node) quadrilaterals");
     return -1;
 
     //   Double factor;

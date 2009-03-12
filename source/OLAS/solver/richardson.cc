@@ -2,9 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "solver/richardson.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-namespace OLAS {
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/richardson.hh"
+
+namespace CoupledField {
 
 
   // **************
@@ -66,7 +70,7 @@ namespace OLAS {
 #endif
 
     // compute the euclidean norm of the residual
-    norm_new = r_->NormEuclid();
+    norm_new = r_->NormL2();
 
 #ifdef DEBUG_RICHARDSON
     (*debug) << " initial residual norm: " << norm_new << std::endl;
@@ -120,7 +124,7 @@ namespace OLAS {
       norm_old = norm_new;
 
       // compute the euclidean norm of the residual
-      norm_new = r_->NormEuclid();
+      norm_new = r_->NormL2();
 	  
 
       // Check stopping criterion
@@ -159,4 +163,10 @@ namespace OLAS {
     myReport_->SetValue( "finalPrecondResNorm", norm_new );
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class RichardsonSolver<Double>;
+  template class RichardsonSolver<Complex>;
+#endif
+  
 }

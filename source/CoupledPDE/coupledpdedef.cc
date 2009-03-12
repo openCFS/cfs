@@ -80,7 +80,7 @@ namespace CoupledField
       }
   
     if (found != true)
-      Error("Coupling for current set of PDEs ist not defined!",__FILE__,__LINE__);
+      EXCEPTION("Coupling for current set of PDEs ist not defined!");
 
     // Create Coupling objects
     Couplings.Clear();

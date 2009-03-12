@@ -6,7 +6,8 @@
 #define FILE_HYSTERESIS
 
 #include <string>
-#include "General/environment.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
 
 namespace CoupledField {
 
@@ -20,8 +21,7 @@ namespace CoupledField {
 
     //!
     virtual Double computeValue(Double xVal, Integer idxElem, bool overwrite = true) {
-      Error( "computeValue not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "computeValue not implemented in base-Class" );
       return 0.0;
     };
 
@@ -29,51 +29,44 @@ namespace CoupledField {
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 
                                          bool overwrite = true ) {
-      Error( "computeValueAndUpdate not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "computeValueAndUpdate not implemented in base-Class" );
       return 0.0;
     };
 
 
     //! 
     virtual Double getValue(  Integer idxElem) {
-      Error( "getValue not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "getValue not implemented in base-Class" );
       return 0.0;
     }
 
     //! 
     virtual UInt getStringLength( Integer idxElem ) {
-      Error( "getStringLength not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "getStringLength not implemented in base-Class" );
       return 0;
     }
 
     //!
     virtual Double GetIncX() {
-      Error( "GetIncX not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "GetIncX not implemented in base-Class" );
       return 1.0;
     };
 
     //!
     virtual Double updateMinMaxList(Double newX, Integer idxElem, 
                                   bool overwrite) {
-      Error( "updateMinMaxList not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "updateMinMaxList not implemented in base-Class" );
       return 0;
     };
 
     //! 
     virtual void SetTimeStepVal(Double dt) {
-      Error( "SetTimeStepVal not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( "SetTimeStepVal not implemented in base-Class" );
     };
 
     //!
     virtual Double EvalEverett(Double x1, Double x2, Integer idx ) {
-      Error( " EvalEverett not implemented in base-Class",
-             __FILE__, __LINE__ );
+      EXCEPTION( " EvalEverett not implemented in base-Class" );
       return 0.0;
     };
 

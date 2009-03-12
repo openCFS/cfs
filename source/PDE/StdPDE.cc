@@ -4,7 +4,7 @@
 
 #include "StdPDE.hh"
 
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/transientdriver.hh"
 
@@ -15,6 +15,8 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
+
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
 
@@ -233,7 +235,7 @@ namespace CoupledField {
     Double dt = driver->GetDeltaT();
 
     Double y;
-    materials_[regionId]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+    materials_[regionId]->GetScalar(y,FRACTIONAL_EXPONENT,Global::REAL);
 
     coeff = std::exp(-(y-1.0) * std::log(dt));
 
@@ -432,7 +434,7 @@ namespace CoupledField {
     }
   }
 
-  CFSVector *  StdPDE::GetPrevSolutionVector() {
+  SingleVector *  StdPDE::GetPrevSolutionVector() {
     return solVecPrev_;
   }
 

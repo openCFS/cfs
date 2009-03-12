@@ -15,58 +15,48 @@ SET(XERCES_FOUND 0)
 #-------------------------------------------------------------------------------
 # Determine paths of XERCES libraries.
 #-------------------------------------------------------------------------------
-SET (XERCES_POSSIBLE_LIB_PATHS
-  ${CFSDEPS_LIBRARY_DIR}/xercesc_2.8.0
-  ${CFSDEPS_LIBRARY_DIR}
-  /usr/lib64
-  /usr/lib
-  /usr/local/lib64
-  /usr/local/lib
-)
-
-FIND_LIBRARY(XERCES_LIBRARY
-  NAMES xerces-c
-  PATHS ${XERCES_POSSIBLE_LIB_PATHS}
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH
-  )
+BUILD_EXTLIB("Xerces-C"
+  "${CFS_BINARY_DIR}/include/xercesc"
+  "${CFS_DEPS_ROOT}/xerces/build_xerces.pl"
+  "build_xercesc.log")
 
 #-------------------------------------------------------------------------------
-# Mark paths of XERCES libraries as advanced.
+# Determine paths of XERCES libraries.
 #-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(XERCES_LIBRARY)
+IF(WIN32)
+  SET(XERCES_LIBRARY_RELEASE ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/xerces-c_2.lib)
+  SET(XERCES_LIBRARY_DEBUG ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}/xerces-c_2d.lib)
+ELSE(WIN32)
+  SET(XERCES_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libxerces-c.a")
 
+  IF(CFS_DISTRO STREQUAL "MACOSX")
+    SET(XERCES_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libxerces-c.dylib")
+  ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+  SET(XERCES_LIBRARY_DEBUG
+    "${XERCES_LIBRARY}"
+    CACHE FILEPATH "Xerces-C debug library.")
+
+  SET(XERCES_LIBRARY_RELEASE
+    "${XERCES_LIBRARY}"
+    CACHE FILEPATH "Xerces-C release library.")
+ENDIF(WIN32)
+
+MARK_AS_ADVANCED(XERCES_LIBRARY_DEBUG)
+MARK_AS_ADVANCED(XERCES_LIBRARY_RELEASE)
 
 #-------------------------------------------------------------------------------
-# Look for Xerces header.
+# Set XERCES_LIBRARY according to configuration
 #-------------------------------------------------------------------------------
-SET (XERCES_POSSIBLE_INCLUDE_PATHS
-  ${CFSDEPS_INCLUDE_DIR}/xercesc_2.8.0
-  ${CFSDEPS_INCLUDE_DIR}
-  /usr/include
-  /usr/local/include
-  )
+IF(DEBUG)
+  SET(XERCES_LIBRARY "${XERCES_LIBRARY_DEBUG}")
+ELSE(DEBUG)
+  SET(XERCES_LIBRARY "${XERCES_LIBRARY_RELEASE}")
+ENDIF(DEBUG)
 
-FIND_PATH(XERCES_INCLUDE_DIR
-  NAMES xercesc/util/XercesVersion.hpp 
-  PATHS ${XERCES_POSSIBLE_INCLUDE_PATHS}
-  NO_DEFAULT_PATH
-  NO_CMAKE_ENVIRONMENT_PATH
-  NO_CMAKE_PATH
-  NO_SYSTEM_ENVIRONMENT_PATH
-  NO_CMAKE_SYSTEM_PATH
-  )
+SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
-MARK_AS_ADVANCED(XERCES_INCLUDE_DIR)
-
-
-IF(XERCES_LIBRARY AND XERCES_INCLUDE_DIR)
-  SET(XERCES_FOUND 1)
-ENDIF(XERCES_LIBRARY AND XERCES_INCLUDE_DIR)
-
+SET(XERCES_FOUND 1)
 
 IF(XERCES_FOUND)
 
@@ -93,11 +83,6 @@ IF(XERCES_FOUND)
   STRING(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" CFS_XERCES_VERSION "${CFS_XERCES_VERSION}")
 
 #  MESSAGE("CFS_XERCES_VERSION ${CFS_XERCES_VERSION}")
-
-  STRING(REGEX REPLACE "xerces-c\\.so" "xerces-c.a"
-    XERCES_LIBRARY "${XERCES_LIBRARY}")
-
-  SET(XERCES_LIBRARY "${XERCES_LIBRARY}" CACHE PATH "Path to Xerces-C library." FORCE)
 
 ENDIF(XERCES_FOUND)
 

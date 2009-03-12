@@ -29,36 +29,36 @@ namespace CoupledField {
 
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
     //! set a scalar complex material parameter
     void SetScalar( Complex param, MaterialType matType, 
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
     //! set a real material tensor
     void SetTensor(const Matrix<Double>& param, MaterialType matType,
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
     //! set a complex material tensor
     void SetTensor(const Matrix<Complex>& param, MaterialType matType,
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
     //! get a scalar real material parameter
     void GetScalar( Double& param, MaterialType matType, 
-		    DataType dataType ) const;
+		    Global::ComplexPart dataType ) const;
 
     //! get a scalar complex real material parameter
     void GetScalar( Complex& param, MaterialType matType, 
-		    DataType dataType ) const;
+		    Global::ComplexPart dataType ) const;
 
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
-		    DataType dataType,
+		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
 
     //! get a complex material tensor
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
-		    DataType dataType,
+		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
 
     //Initialize approximations of nonlinear curves
@@ -87,7 +87,7 @@ namespace CoupledField {
 
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval ) {
-      Error( "ComputeScalarHystVal not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "ComputeScalarHystVal not implemented" );
       return 1.0; 
    };
 

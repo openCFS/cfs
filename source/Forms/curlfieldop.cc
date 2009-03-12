@@ -2,18 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "Forms/curlfieldop.hh"
 
 #include <string>
 
+#include "Forms/curlfieldop.hh"
 #include "Elements/basefe.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "General/environment.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
-
-#include <PDE/StdPDE.hh>
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField
 {
@@ -40,8 +39,7 @@ namespace CoupledField
                                     const Vector<Double> & LCoord)
   {
   
-    Error("CurlEdgeOp::CalcElemCurlEdgeOp: Not working due to EQN-class!",
-          __FILE__, __LINE__);
+    EXCEPTION("CurlEdgeOp::CalcElemCurlEdgeOp: Not working due to EQN-class!");
     //  ShortInt dim = ptElement->ptElem->GetDim();
   
     //   curlField.Resize(dim);
@@ -88,7 +86,7 @@ namespace CoupledField
   
     //   ptElement->ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
 
-    // #ifdef DEBUG
+    // #ifndef NDEBUG
     //   (*debug) << "CurlOP pos \n" << pos << std::endl
     //         << "epos \n " << epos << std::endl;
   
@@ -121,8 +119,7 @@ namespace CoupledField
                                   const Vector<Double> & lCoord)
   {
   
-    Error( "CurlEdgeOp::CalcElemMagVec: Not working due to EQN-class",
-           __FILE__, __LINE__);
+    EXCEPTION("CurlEdgeOp::CalcElemMagVec: Not working due to EQN-class");
     // UInt nrEdges = ptElement->ptElem->GetNumEdges();
     //   UInt nrNodes = ptElement->ptElem->GetNumNodes();
     //   BaseFE * ptElem = ptElement->ptElem;
@@ -262,7 +259,7 @@ namespace CoupledField
       }
 
     else if (dim ==3)
-      Error("CalcElemCurlNode for 3D not implemented",__FILE__,__LINE__);
+      EXCEPTION("CalcElemCurlNode for 3D not implemented");
  
   }
 

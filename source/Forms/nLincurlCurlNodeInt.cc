@@ -23,7 +23,7 @@ namespace CoupledField
     isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
-    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     isHysteresis_ = false;
     if ( ptMaterial->IsSetHysteresis() ) {
@@ -74,7 +74,7 @@ namespace CoupledField
     Double reluctivity, derivReluctivity;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(numFncs); elemMat.Init(0);
+    elemMat.Resize(numFncs); elemMat.Init();
 
     // get pointer to nonlinear BH curve approximation
     nlinFnc_ = ptMaterial->GetNonlinFncBH();
@@ -179,7 +179,7 @@ namespace CoupledField
     diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
 
     if (  diffRelucVal <= 0.0 ) 
-      Error("Negative effective permeability", __FILE__, __LINE__);
+      EXCEPTION("Negative effective permeability");
 
 
     return diffRelucVal;
@@ -200,7 +200,7 @@ namespace CoupledField
     isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
-    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,REAL);
+    ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     // get pointer to nonlinear BH curve approximation
     ptMaterial->NeedApproxMatCurve( magBH );
@@ -259,9 +259,8 @@ namespace CoupledField
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-	(*error) << "CurlCurlNode3DInt::CalcElementMatrix: Encountered "
-		 << "negative Jacobian determinant!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("CurlCurlNode3DInt::CalcElementMatrix: Encountered "
+            << "negative Jacobian determinant!");
       }
 
       //compute magnetic flux density
@@ -278,15 +277,15 @@ namespace CoupledField
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * reluctivity;
-      for ( UInt k = 0; k < bMatCurl.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMatCurl.GetNumRows(); k++ ) {
 	ptr1 = bMatCurl[k];
 	ptr2 = bMatCurl[k];
 	ptr3 = bMatDiv[k];
 	ptr4 = bMatDiv[k];
-	for ( UInt i = 0; i < bMatCurl.GetSizeCol(); i++ ) {
+	for ( UInt i = 0; i < bMatCurl.GetNumCols(); i++ ) {
 	  aux1 = fac * ptr1[i];
 	  aux2 = fac * ptr3[i];
-	  for ( UInt j = 0; j < bMatCurl.GetSizeCol(); j++ ) {
+	  for ( UInt j = 0; j < bMatCurl.GetNumCols(); j++ ) {
 	    elemMat[i][j] += aux1 * ptr2[j] + aux2 * ptr4[j];
 	  }
 	}
@@ -301,12 +300,12 @@ namespace CoupledField
           derivReluctivity =  nlinFnc_->EvaluatePrimeNu(Babs);
           fac = jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs;
 
-          for ( UInt k = 0; k < bMatCurl.GetSizeCol(); k++ ) 
-            for ( UInt i = 0; i < bMatCurl.GetSizeRow(); i++ ) 
+          for ( UInt k = 0; k < bMatCurl.GetNumCols(); k++ ) 
+            for ( UInt i = 0; i < bMatCurl.GetNumRows(); i++ ) 
               help[k] =  bMatCurl[i][k] * eB[i];
 
-          for ( UInt i = 0; i< bMatCurl.GetSizeCol(); i++ ) 
-            for ( UInt j = 0; j< bMatCurl.GetSizeCol(); j++ ) 
+          for ( UInt i = 0; i< bMatCurl.GetNumCols(); i++ ) 
+            for ( UInt j = 0; j< bMatCurl.GetNumCols(); j++ ) 
               elemMat[i][j] += fac * help[i] * help[j];
         }
       }

@@ -5,12 +5,16 @@
 #ifndef LDLSOLVER_HH
 #define LDLSOLVER_HH
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "utils/math/ldlsystemsolve.hh"
-#include "utils/math/iterativerefinement.hh"
+#include <def_expl_templ_inst.hh>
 
-namespace OLAS {
+#include "OLAS/utils/math/ldlsystemsolve.hh"
+#include "OLAS/utils/math/iterativerefinement.hh"
+
+#include "OLAS/solver/basesolver.hh"
+
+namespace CoupledField {
+
+  template<typename> class SCRS_Matrix;
 
   //! This class implements a sparse direct solver
 
@@ -140,17 +144,6 @@ namespace OLAS {
       return LDL_SOLVER;
     }
 
-    //! Method to force instantiation of public member functions
-
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateSolverObject() will
-    //! make a pseudo call to InstantiatePublicMethods() in order to force the
-    //! compiler to instantiate all public methods of a templated solver class.
-    //! The former method in turn calls this method. We use it to force
-    //! instantiation of the public methods offered in addition to the ones
-    //! defined in the BaseSolver class.
-    void InstantiateAdditionalPublicMethods( BaseMatrix &sysMat );
-
   private:
 
     //! Default constructor
@@ -200,14 +193,14 @@ namespace OLAS {
     //! This list contains the indices of those rows that must be scanned
     //! when updating the auxilliary index vectors after each elimination step.
     //! The entries in the list are in ascending row index order.
-    UInt *scanList_;
+    Integer *scanList_;
 
     //! List with indices of rows contributing in current elimination step
 
     //! List with indices of rows contributing in current elimination step.
     //! The entries in the list are in ascending row index order and
     //! activeList_ is a subset of scanList_.
-    UInt *activeList_;
+    Integer *activeList_;
 
     //! Inverses of values of factor \f$D\f$
 
@@ -242,5 +235,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "ldlsolver.cc"
+#endif
 
 #endif

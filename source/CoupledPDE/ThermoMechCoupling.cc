@@ -82,7 +82,7 @@ namespace CoupledField {
 
 
 	// Calculate global thermo-mech integral
-	DataType matType = REAL;
+	Global::ComplexPart matType = Global::REAL;
 	RegionIdType actRegion;
 	BaseMaterial * actSDMat= NULL;
 
@@ -106,7 +106,7 @@ namespace CoupledField {
 		for (it = materials_.begin(); it != materials_.end(); it++) {
 			actRegion = it->first; // set current region
 			actSDMat = it->second; // set current material
-			matType = REAL;
+			matType = Global::REAL;
 
 			//transform the type
 			SubTensorType tensorType;

@@ -2,14 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "fluidMechPDE.hh"
-
 #include <sstream>
 #include <iomanip>
 
-#include "Forms/forms_header.hh"
+#include "OLAS/algsys/basesystem.hh"
+
+#include "Forms/fluidMechInt.hh"
+#include "Forms/fluidMechMassInt.hh"
+#include "Forms/fluidMechShearStress.hh"
+#include "Forms/fluidMechStiffInt.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/massInt.hh"
+#include "Forms/mechStressStrain.hh"
 #include "Forms/linPressureInt.hh"
 #include "Forms/singleEntryInt.hh"
 #include "Forms/linSurfStressInt.hh"
@@ -32,6 +36,9 @@
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
+
+#include "fluidMechPDE.hh"
+
 
 namespace CoupledField {
 
@@ -141,9 +148,9 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       actRegion = it->first;
       actSDMat = it->second;
 
-      actSDMat->GetScalar(density,DENSITY,REAL);
-      actSDMat->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
-      actSDMat->GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,REAL);
+      actSDMat->GetScalar(density,DENSITY,Global::REAL);
+      actSDMat->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,Global::REAL);
+      actSDMat->GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,Global::REAL);
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -428,7 +435,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
     std::string errMsg;
     StdVector<UInt> * nodes;
-    CFSVector * val;
+    SingleVector * val;
     Integer eqnNr;
     UInt couplingDof;
     // Determine maximal allowed equation number for algebraic system
@@ -553,7 +560,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         break;
           
       case MAT:
-        Error( "Not implemented yet", __FILE__, __LINE__ );
+        EXCEPTION( "Not implemented yet" );
         break;
 
       case GRID_VEL:
@@ -586,8 +593,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         SolutionType quantity;
         StdVector<Elem*> * couplingElems = NULL;
         StdVector<UInt> * couplingNodes = NULL;
-        CFSVector * temp_values = NULL;
-        CFSVector * temp_oldValues = NULL;
+        SingleVector * temp_values = NULL;
+        SingleVector * temp_oldValues = NULL;
         //UInt regionCount = 0;
 
 //        Info->PrintF( "FACTORIZATION", "The fluid mechanical forces will be factorized by forceFactor = %e\n",forceFac_);
@@ -608,7 +615,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
           // hard coded cast, since coupling is only possible with
           // real valued entries
           Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
-          Vector<Double> * oldValues = dynamic_cast<Vector<Double>*>(temp_oldValues);
+          // TODO: Check if this is still needed
+          // Vector<Double> * oldValues = dynamic_cast<Vector<Double>*>(temp_oldValues);
           Vector<Double> auxValues;
           auxValues.Resize(values->GetSize());
           //Info->PrintF( pdename_, "Values_Size=%d\n", values->GetSize());
@@ -645,7 +653,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 //                                          << "couplingNodes:\n" << (*couplingNodes)
 //                                          << "values:\n" << (*values) << std::endl;
                   }else
-                  Error("Sorry, but acouRHSval is not defined as a NodeResult in your XML, please do so", __FILE__,__LINE__);
+                  EXCEPTION("Sorry, but acouRHSval is not defined as a "
+                            << "NodeResult in your XML, please do so");
                   
             } 
             if (quantity == ACOUSURF_RHSVAL) {
@@ -672,7 +681,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
       // fluidMech pressure of element nodes
       elemSol.Resize(1 * connecth.GetSize());
-      elemSol.Init(0);
+      elemSol.Init();
       Integer eqnNr; 
       //UInt presDof;
 
@@ -698,7 +707,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
       // fluidMech velocities of element nodes
       elemSol.Resize(dim_,connecth.GetSize());
-      elemSol.Init(0);
+      elemSol.Init();
       Integer eqnNr; 
       //UInt veloEndDof;
 
@@ -734,7 +743,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       StdVector<Integer> eqns;
       eqnMap_->GetEqns( eqns, *results_[0], it );
       sol.Resize( eqns.GetSize() );
-      sol.Init( 0.0 ); 
+      sol.Init(); 
       
       if (  analysistype_ == TRANSIENT) {
         const Vector<Double> & sol_der1 = getS1();
@@ -772,7 +781,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         BaseFE * ptEl;
       
         //Reset the values in nodestresol, due to the usage of the function "Add"
-        acou_src_.Init(0.0);
+        acou_src_.Init();
         
         // loop over all subdomains
         for (UInt isd=0; isd<subdoms_.GetSize(); isd++)
@@ -780,7 +789,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
             //Get the density of the current subdomain
             Double density;
             BaseMaterial * actMat = materials_[subdoms_[isd]];
-            actMat->GetScalar(density,DENSITY,REAL);
+            actMat->GetScalar(density,DENSITY,Global::REAL);
             
             ElemList actSDList(ptgrid_ );
             actSDList.SetRegion( subdoms_[isd] );
@@ -844,7 +853,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       Double dynamicViscosity = 0.0;
       Double kinematicViscosity = 0.0;
       Double sign = 0.0;
-      Double auxPres;
+      // TODO: Check if this is still needed
+      // Double auxPres;
       Integer matIndex = -1;
       Elem * ptVolElem = NULL;
       Matrix<Double> ptCoord, ptCoordVol, elemMat;
@@ -854,7 +864,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       Vector<Double> Eps_xy_ForceOnNode, Eps_yz_ForceOnNode, Eps_xz_ForceOnNode;
       Vector<Double> Eps_xx_Sol, Eps_yy_Sol, Eps_zz_Sol, Eps_xy_Sol, Eps_yz_Sol, Eps_xz_Sol;
             
-      elemCouplingSols.Init(0.0);
+      elemCouplingSols.Init();
       for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
         
         // Perform cast from volume element to surface element, since
@@ -896,9 +906,9 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         }
 
         // Assign correct density, dynamic viscosity and kinematic viscosity
-        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
-        materials_[subdoms_[matIndex]]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
-        materials_[subdoms_[matIndex]]->GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,Global::REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,Global::REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(kinematicViscosity,KINEMATIC_VISCOSITY,Global::REAL);
 
         std::auto_ptr<BaseForm> bilinear_mass = std::auto_ptr<BaseForm>(new MassInt(1.0,1,isaxi_,coordUp_ ));
 
@@ -963,7 +973,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
         Vector<Double> elemStress;
         elemStress.Resize(stressDim_);
-        elemStress.Init(0);
+        elemStress.Init();
         
         //calculates the stress
         shearStress->CalcShearStressVec(elemStress,1,it2 );
@@ -1059,7 +1069,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       Vector<Double> normal, actElemAcouRHS;
       Vector<Double> veloDerivSol, nveloDerivSol;
             
-      elemCouplingSols.Init(0.0);
+      elemCouplingSols.Init();
       for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
         
         // Perform cast from volume element to surface element, since
@@ -1071,7 +1081,8 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
           EXCEPTION( "No elements found for coupling!");
         }
         
-        BaseFE * ptElem = actCoupleElem->ptElem;
+        // TODO: Check if this is still needed
+        // BaseFE * ptElem = actCoupleElem->ptElem;
 
         StdVector<UInt> & connecth = actCoupleElem->connect;
         ptgrid_->GetElemNodesCoord( ptCoord, connecth, true );
@@ -1100,7 +1111,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
         	EXCEPTION("FluidMechPDE::CalcAcouSurfSourceCouplingRHS: The two volume element neighbours of surface element do not belong to my regions!");
         }
 
-        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,Global::REAL);
         
         std::auto_ptr<BaseForm> bilinear_mass = std::auto_ptr<BaseForm>(new MassInt(1.0,isaxi_,coordUp_ ));
 
@@ -1197,7 +1208,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       //Num2DElements/Num3DElements long. 
       //Bec currently i have no idea how to access local elem numbers in the integrator
       stabilParams_.Resize(ptgrid_->GetNumElems()+1,4);
-      stabilParams_.Init(-1.0);    	    	
+      stabilParams_.InitValue(-1.0);    	    	
     	
       // Check for subType
       StdVector<std::string> dispDofNames, stressDofNames;
@@ -1242,10 +1253,11 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     		  vel->fctType = fct;
     		  vel->definedOn = ResultInfo::PFEM;
     	  } else 
-    		  Error( "stabilization combined with taylorHood needs to be implemented", __FILE__, __LINE__ );
+    		  EXCEPTION( "Stabilization combined with Taylor-Hood needs "
+                             << "to be implemented" );
       }
       else
-    	  Error( "wrong approximation type", __FILE__, __LINE__ );	
+    	  EXCEPTION( "Wrong approximation type" );	
       
       results_.Push_back( vel );
       availResults_.insert( vel);
@@ -1276,10 +1288,11 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     		  pres->fctType = fct;
     		  pres->definedOn = ResultInfo::PFEM;
     	  } else 
-    		  Error( "stabilization combined with taylorHood needs to be implemented", __FILE__, __LINE__ );
+    		  EXCEPTION( "Stabilization combined with Taylor-Hood needs "
+                             << "to be implemented" );
       }
       else
-    	  Error( "wrong approximation type", __FILE__, __LINE__ );	
+    	  EXCEPTION( "Wrong approximation type" );	
 
       
       results_.Push_back( pres );
@@ -1420,7 +1433,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
 
       Vector<TYPE> elemStress;
       elemStress.Resize(stressDim_);
-      elemStress.Init(0);
+      elemStress.Init();
     
       Result<TYPE> &  actRes = 
         dynamic_cast<Result<TYPE>&>(*res);
@@ -1466,7 +1479,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
       Vector<Double> intPoint;
       Vector<TYPE> elemStrainRate;
       elemStrainRate.Resize(stressDim_);
-      elemStrainRate.Init(0);
+      elemStrainRate.Init();
     
       Result<TYPE> &  actRes = 
         dynamic_cast<Result<TYPE>&>(*res);
@@ -1667,7 +1680,7 @@ DEFINE_LOG(fluidmechpde, "fluidmechpde")
     		//Num2DElements/Num3DElements long. 
     		//Bec currently i have no idea how to access local elem numbers in the integrator
     		//std::cerr << "init\n"; 
-    		for(Integer i=0; i<ptgrid_->GetNumElems(); i++) 
+    		for(UInt i=0; i<ptgrid_->GetNumElems(); i++) 
     			stabilParams_[i][3]=(-1.0);
     	}
     }

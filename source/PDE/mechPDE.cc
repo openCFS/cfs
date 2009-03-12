@@ -7,7 +7,9 @@
 #include <sstream>
 #include <iomanip>
 
-#include "Forms/forms_header.hh"
+#include "Forms/mechStressStrain.hh"
+#include "Forms/PMLInt.hh"
+#include "Forms/linViscoElastInt.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/FlatShellStiffInt.hh"
 #include "Forms/FlatShellMassInt.hh"
@@ -223,7 +225,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       dampingList_[actRegionId] = idDampType[actDampingId];
       if ( dampingList_[actRegionId] == RAYLEIGH ){
         Double dampFreq, ratioDeltaF;
-        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,REAL);
+        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         ratioDeltaF = 0.01;
 
         // check, if deltaF and dampingFreq can be found in map
@@ -327,7 +329,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           
           if(materials_.size() != 1) 
             EXCEPTION("relative springstiffness only for one region implemented");
-          materials_.begin()->second->GetScalar(matStiffness, MECH_EMODULUS, REAL );
+          materials_.begin()->second->GetScalar(matStiffness, MECH_EMODULUS, Global::REAL );
           LOG_DBG2(mechpde) << "Set relative spring stiffness  to " << stiffVal << "*" << matStiffness; 
           stiffVal *= matStiffness;
         }
@@ -479,7 +481,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       // check type
       if( actType == GEOMETRIC ) {
-        nonLin_ = TRUE;
+        nonLin_ = true;
       }
 
       if( actType == MATERIAL ) {
@@ -632,7 +634,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         formsType = "massInt";
         
         double density;
-        actSDMat->GetScalar(density,DENSITY,REAL);
+        actSDMat->GetScalar(density,DENSITY,Global::REAL);
         
         //set real part
         PMLInt * bilinearMassPML = 
@@ -675,8 +677,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
           if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
             Double beta, measFreq;
             std::string fac;
-            actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-            actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+            actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
+            actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
             if( isComplex_ ) {
               // assemble string describing adjusted Rayleigh damping
               fac = GenStr( beta * measFreq) + "/ f";
@@ -693,7 +695,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
             BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
                                                               actRegion);
             
-            DataType matType = IMAG; 
+            Global::ComplexPart matType = Global::IMAG; 
             bilinearStiffImag->SetMatDataType(matType);
             
             //check  for softening!
@@ -832,7 +834,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         if ( subType_ != "flatShell" ) {
           
           double density;
-          actSDMat->GetScalar(density,DENSITY,REAL);
+          actSDMat->GetScalar(density,DENSITY,Global::REAL);
           MassInt * bilinearMass  = new MassInt(density, dim_, isaxi_);
           if ( diagMass_ ) {
             // diagonal mass matrix
@@ -868,8 +870,8 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         if ( dampingList_[actRegion] == RAYLEIGH ) {
           Double alpha, measFreq;
           std::string fac;
-          actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-          actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+          actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
+          actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
           if( isComplex_ ) {
             // assemble string describing adjusted Rayleigh damping
             fac = GenStr<Double>( alpha / measFreq ) + "* f";
@@ -951,11 +953,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         new BiLinFormContext( myInt, STIFFNESS);
       
       //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
         Double beta, measFreq;
         std::string fac;
-        actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+        actSDMat->GetScalar(beta,RAYLEIGH_BETA,Global::REAL);
+        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         if( isComplex_ ) {
           // assemble string describing adjusted Rayleigh damping
           fac = GenStr( beta * measFreq) + "/ f";
@@ -978,11 +980,11 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       BiLinFormContext * actIntDescrMass = new BiLinFormContext(bilinearMass, MASS);
             
       //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
         Double alpha, measFreq;
         std::string fac;
-        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,REAL);
+        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,Global::REAL);
+        actSDMat->GetScalar(measFreq,RAYLEIGH_FREQUENCY,Global::REAL);
         if( isComplex_ ) {
           // assemble string describing adjusted Rayleigh damping
           fac = GenStr( alpha / measFreq ) + "* f";
@@ -1189,16 +1191,16 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 	  SolutionType quantity;
 	  StdVector<UInt> * couplingnodes = NULL;
 	  StdVector<Elem*> * couplingElems = NULL;
-	  CFSVector * temp_values = NULL;
+	  SingleVector * temp_values = NULL;
 	  Vector<Double> * values;
-	  //CFSVector * temp_oldValues = NULL; // unused variable
-	  CFSVector *tempDispValues=NULL;
-	  CFSVector *tempDispOldValues=NULL;
+	  // SingleVector * temp_oldValues = NULL; // TODO: unused variable
+	  SingleVector *tempDispValues=NULL;
+	  SingleVector *tempDispOldValues=NULL;
 	  StdVector<BaseMaterial*> * materials = NULL;
 	  StdVector<std::string> outputRegions;
 	  UInt interfaceDispCoupl=0, interfaceVelCoupl=0, interfaceForceCoupl=0;
 	  bool foundDisp=false, foundVel=false, foundForce =false;
-	  //Double omega; // unused variable
+	  //Double omega;  // TODO: unused variable
 
 	  if(useAitken_==false)
 		  Info->PrintF( "RELAXATION", "Relaxation Factor = %e\n",displFac_);
@@ -1447,7 +1449,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     //     Double density = 0.0;
     //     Integer matIndex = -1;
 
-    //     elemCouplingSols.Init(0.0);
+    //     elemCouplingSols.Init();
   
     //     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++)
     //       {
@@ -1484,7 +1486,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     //         }
       
     //         // Assign correct density
-    // 	materials[actElem]->GetScalar(density,DENSITY,REAL);
+    // 	materials[actElem]->GetScalar(density,DENSITY,Global::REAL);
         
     //         // get correct density belonging to the the neighbouring element
     //         // in the fluid subdomain
@@ -1513,7 +1515,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     //         Vector<Double> forceOnElem;
     //         forceOnElem= elemmat * nSol;  
       
-    //         for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
+    //         for (UInt actNode=0; actNode<ptCoord.GetNumRows(); actNode++)
     //           {
     //             UInt nodePos = 0;
           

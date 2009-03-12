@@ -5,8 +5,14 @@
 #ifndef OLAS_ARPACKMATINTERFACE_HH
 #define OLAS_ARPACKMATINTERFACE_HH
 
-namespace OLAS {
+#include "General/defs.hh"
 
+namespace CoupledField {
+
+  class BaseSolver;
+  class BasePrecond;
+  class BaseMatrix;
+  
   //! Helper class for defining an interface to our matrices for the case of
   //! the "shift-and-invert" mode of arpack
   class ArpackMatInterface {

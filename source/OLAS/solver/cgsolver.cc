@@ -2,9 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "solver/cgsolver.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/generatematvec.hh"
 
-namespace OLAS {
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/cgsolver.hh"
+
+namespace CoupledField {
 
 
   // **************
@@ -70,10 +74,9 @@ namespace OLAS {
       xml_->Get("resDirectly", tmp, false);
     } 
     if ( tmp <= 0 ) {
-      (*error) << "CGSolver::CGSolver: The current value of "
+      EXCEPTION( "CGSolver::CGSolver: The current value of "
                << "CG_resDirectly = " << aux
-               << "! Please choose a positive value!";
-      Error( __FILE__, __LINE__ );
+               << "! Please choose a positive value!" );
     }
     else {
       resDirectly_ = (UInt)tmp;
@@ -167,7 +170,7 @@ namespace OLAS {
 
       // Determine norm of new residual
       // and log progress, if required
-      resNorm = r_->NormEuclid();
+      resNorm = r_->NormL2();
       if ( logging == true ) {
         LogConvergence( resNorm, niter );
       }
@@ -219,4 +222,10 @@ namespace OLAS {
     }
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CGSolver<Double>;
+  template class CGSolver<Complex>;
+#endif
+  
 }

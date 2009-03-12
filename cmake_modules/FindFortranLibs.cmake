@@ -20,6 +20,10 @@ SET (FORTRAN_POSSIBLE_LIB_PATHS
   /usr/lib/atlas
 )
 
+#-------------------------------------------------------------------------------
+# The g77 library for linking to C g2c should not be required any more in the
+# future. But we leave it here. Who knows...
+#-------------------------------------------------------------------------------
 FIND_LIBRARY(G2C_LIBRARY
   NAMES g2c
   PATHS ${FORTRAN_POSSIBLE_LIB_PATHS}
@@ -64,7 +68,8 @@ IF(GFORTRAN_LIBRARY)
   STRING(REGEX REPLACE "gfortran\\.so" "gfortran.a"
     GFORTRAN_LIBRARY "${GFORTRAN_LIBRARY}")
 
-  SET(GFORTRAN_LIBRARY "${GFORTRAN_LIBRARY}" CACHE PATH "Path to GFORTRAN library." FORCE)
+  SET(GFORTRAN_LIBRARY "${GFORTRAN_LIBRARY}" CACHE PATH
+    "Path to GFORTRAN library." FORCE)
 ENDIF(GFORTRAN_LIBRARY)
 
 MARK_AS_ADVANCED(

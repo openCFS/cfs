@@ -70,7 +70,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetScalar( Double param, MaterialType matType, 
-					   DataType dataType ) {
+					   Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -82,10 +82,10 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	val = Complex ( param, 0.0 );
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
 	val = Complex ( 0.0, param );
 	isComplex_.insert( matType );
       }
@@ -111,7 +111,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetScalar( Complex param, MaterialType matType, 
-					   DataType dataType ) {
+					   Global::ComplexPart dataType ) {
 
 
     //check, if allowed
@@ -123,14 +123,14 @@ namespace CoupledField
       isSet_.insert( matType );
 
       Complex val;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	val = param.real();
       }
-      else if (dataType == IMAG ) {
+      else if (dataType == Global::IMAG ) {
 	val = param.imag();
 	isComplex_.insert( matType );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	val = param;
 	isComplex_.insert( matType );
       }
@@ -152,7 +152,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Double>& param, MaterialType matType, 
-					   DataType dataType ) {
+					   Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -162,13 +162,13 @@ namespace CoupledField
     }
     else {
       isSet_.insert( matType );
-      if ( dataType == REAL || dataType == IMAG ) {
-	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
-	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+      if ( dataType == Global::REAL || dataType == Global::IMAG ) {
+	if ( tensorParams_[matType].GetNumRows() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParams_[matType].Init();
 	}
-	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
-	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	if ( tensorParamsOrig_[matType].GetNumRows() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetNumRows(), param.GetNumCols() );
           tensorParamsOrig_[matType].Init();
 	}
 
@@ -176,7 +176,7 @@ namespace CoupledField
 	tensorParamsOrig_[matType].SetPart( dataType, param );
 
 	// to be consistent to old structure
-	if ( dataType == REAL ) {
+	if ( dataType == Global::REAL ) {
 	  scalarParams_[matType] = Complex( param[2][2], 0.0);
 	}
 	else {
@@ -192,7 +192,7 @@ namespace CoupledField
   }
 
   void ElectroMagneticMaterial::SetTensor(const Matrix<Complex>& param, MaterialType matType, 
-					   DataType dataType ) {
+					   Global::ComplexPart dataType ) {
     
 
     //check, if allowed
@@ -203,7 +203,7 @@ namespace CoupledField
     else {
       isSet_.insert( matType );
 
-      if ( dataType != COMPLEX ) {
+      if ( dataType != Global::COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
@@ -222,7 +222,7 @@ namespace CoupledField
 
 
   void ElectroMagneticMaterial::GetScalar( Double& param, MaterialType matType, 
-					   DataType dataType ) const {
+					   Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -234,10 +234,10 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	param = val.real();
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
 	param = val.imag();
       }
       else {
@@ -248,7 +248,7 @@ namespace CoupledField
   }
 
   void ElectroMagneticMaterial::GetScalar( Complex& param, MaterialType matType, 
-					   DataType dataType ) const {
+					   Global::ComplexPart dataType ) const {
 
 
     scalarMap::const_iterator pos;
@@ -260,15 +260,15 @@ namespace CoupledField
     }
     else {
       Complex val = pos->second;
-      if ( dataType == REAL ) {
+      if ( dataType == Global::REAL ) {
 	Complex valReal = Complex (val.real(), 0.0);
 	param = valReal;
       }
-      else if ( dataType == IMAG ) {
+      else if ( dataType == Global::IMAG ) {
 	Complex valImag = Complex (0.0, val.imag());
 	param = valImag;
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = val;
       }
     }
@@ -276,7 +276,7 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
 					   MaterialType matType, 
-					   DataType dataType,
+					   Global::ComplexPart dataType,
 					   SubTensorType subTensor) const {
     
 
@@ -297,7 +297,7 @@ namespace CoupledField
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	param = matTensor.GetPart( dataType );
       }
       else {
@@ -309,7 +309,7 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
 					   MaterialType matType, 
-					   DataType dataType,
+					   Global::ComplexPart dataType,
 					   SubTensorType subTensor) const {
     
 
@@ -329,13 +329,13 @@ namespace CoupledField
 	ComputeSubTensor(matTensor, matType, subTensor);
       }
 
-      if ( dataType == REAL || dataType == IMAG) {
+      if ( dataType == Global::REAL || dataType == Global::IMAG) {
 	Matrix<Double> help; 
 	help = matTensor.GetPart( dataType );
-	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
 	param.SetPart( dataType, help );
       }
-      else if ( dataType == COMPLEX ) {
+      else if ( dataType == Global::COMPLEX ) {
 	param = matTensor;
       }
     }
@@ -366,11 +366,11 @@ namespace CoupledField
 
       //get accuracy of approximation
       Double dataAccuracy;
-      GetScalar( dataAccuracy, DATA_ACCURACY, REAL );
+      GetScalar( dataAccuracy, DATA_ACCURACY, Global::REAL );
 
       //get maximal approximation value
       Double maxApproxVal;
-      GetScalar( maxApproxVal, MAX_APPROX_VAL, REAL );
+      GetScalar( maxApproxVal, MAX_APPROX_VAL, Global::REAL );
 
       nlinFncBH_->SetAccuracy( dataAccuracy );
       nlinFncBH_->SetMaxY( maxApproxVal );   //maximal value of magnetic induction B
@@ -400,10 +400,10 @@ namespace CoupledField
       std::cout << "computeHystInverse: " << computeHystInverse_  
                 << " isHystInverse: " << isHystInverse_ << std::endl;  
 
-      GetScalar(Xsat_, X_SATURATION, REAL);
-      GetScalar(Ysat_, Y_SATURATION, REAL);
+      GetScalar(Xsat_, X_SATURATION, Global::REAL);
+      GetScalar(Ysat_, Y_SATURATION, Global::REAL);
       Matrix<Double> weights;
-      GetTensor(weights,  PREISACH_WEIGHTS, REAL);
+      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
       bool isVirgin = true;
 
       hyst_ = new Preisach(numElemSD, Xsat_, Ysat_, weights, isVirgin);
@@ -426,12 +426,12 @@ namespace CoupledField
     //effective material parameter formulation
     vecXprevious_.Resize(dim_,numElemSD);
     vecYprevious_.Resize(dim_,numElemSD);
-    vecXprevious_.Init(0.0);
-    vecYprevious_.Init(0.0);
+    vecXprevious_.Init();
+    vecYprevious_.Init();
 
     //
     Double startMatdiff;
-    GetScalar( startMatdiff, MAG_RELUCTIVITY, REAL );
+    GetScalar( startMatdiff, MAG_RELUCTIVITY, Global::REAL );
     matDiffprevious_.Resize( numElemSD );
     matDiffprevious_.Init( startMatdiff );
 
@@ -439,8 +439,8 @@ namespace CoupledField
       //for inverse hysteresis
       vecXact_.Resize(dim_,numElemSD);
       vecYact_.Resize(dim_,numElemSD);
-      vecXact_.Init(0.0);
-      vecYact_.Init(0.0);
+      vecXact_.Init();
+      vecYact_.Init();
     }
   }
 
@@ -610,7 +610,7 @@ namespace CoupledField
     //    std::cout << "  dnu=" << matDiff << std::endl << std::endl;
 
     if ( matDiff < 50.0 ) {
-      GetScalar(eps,MAG_RELUCTIVITY,REAL);
+      GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
       matDiff = eps;
     }
 
@@ -658,7 +658,7 @@ namespace CoupledField
 
   Double ElectroMagneticMaterial::GetScalarHystVal( UInt nrElem ) {
 
-    Error("ElectroMagneticMaterial::GetScalarHystVal makes no sense", __FILE__, __LINE__ );
+    EXCEPTION("ElectroMagneticMaterial::GetScalarHystVal makes no sense");
 
     // COMPWARNING: unused variable UInt idx = globalElem2Local_[nrElem];
     Double Yval = 0.0; // = hyst_->getValue( idx );

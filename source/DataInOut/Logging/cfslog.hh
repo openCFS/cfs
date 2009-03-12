@@ -22,7 +22,7 @@ BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
 
 // Create own logging statements, in order to ease the
 // use of logging
-#ifdef DEBUG
+#ifndef NDEBUG
 #define DECLARE_LOG(log_name) BOOST_DECLARE_LOG(log_name)
 #else
 #define DECLARE_LOG(log_name) BOOST_DECLARE_LOG_COMPILE_TIME(log_name,0)

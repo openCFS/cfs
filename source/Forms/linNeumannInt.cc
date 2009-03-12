@@ -12,14 +12,14 @@
 
 DECLARE_LOG(forms)
 
-namespace CoupledField 
+namespace CoupledField
 {
 
-  
+
   LinNeumannInt::LinNeumannInt( std::string amplitudeStr,
                                 std::string phaseStr,
                                 MaterialType materialParam,
-                                bool isaxi ) 
+                                bool isaxi )
     : LinearSurfForm() {
 
     name_ = "LinNeumannInt";
@@ -46,62 +46,63 @@ namespace CoupledField
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
 
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
     Vector<Double> shapeFnc, CoordAtIP;
 
 
     // Find material of region of relating volume element neighbour
-    std::map<RegionIdType, BaseMaterial*>::iterator it = 
+    std::map<RegionIdType, BaseMaterial*>::iterator it =
       materials_.find(actElem_->ptVolElem1->regionId );
     ptVolElem_ = actElem_->ptVolElem1;
 
     if ( it == materials_.end() && actElem_->ptVolElem2 != NULL ) {
       it = materials_.find( actElem_->ptVolElem2->regionId );
       ptVolElem_ = actElem_->ptVolElem2;
-    } 
-    
-    if(it == materials_.end()) 
-      EXCEPTION("LinNeumannInt: Surface element number " << actElem_->elemNum
-               << " has no corresponding volume element neighbour!");
+    }
+
+    if( it == materials_.end() ) {
+      EXCEPTION( "LinNeumannInt: Surface element number " << actElem_->elemNum
+               << " has no corresponding volume element neighbour!" );
+    }
 
     Double factor;
     switch(materialParam_)
     {
-       case DENSITY: 
-           it->second->GetScalar(factor,DENSITY,REAL);
+       case DENSITY:
+           it->second->GetScalar(factor,DENSITY,Global::REAL);
            break;
-           
+
        case HEAT_CONDUCTIVITY:
             {
               Double k;
-              it->second->GetScalar(k,HEAT_CONDUCTIVITY,REAL);
+              it->second->GetScalar(k,HEAT_CONDUCTIVITY,Global::REAL);
               factor = 1.0 / k;
             }
             break;
-            
+
        case NO_MATERIAL:
             factor = 1.0;
             break;
-            
-       default: EXCEPTION("material parameter " << materialParam_ << " not implemented");     
-    }            
 
-    // Calculate element vector  
+       default: EXCEPTION("material parameter " << materialParam_ << " not implemented");
+    }
+
+    // Calculate element vector
     elemVec.Resize(numFncs);
-    elemVec.Init(0.0);
+    elemVec.Init();
     Double value = 0.0;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-      
+
       ptelem->GetShFncAtIp(shapeFnc,actIntPt,ent.GetElem() );
-      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
+      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) *
         intWeights[actIntPt-1] * factor;
-      
+
       if (isaxi_) {
-        
+
         CoordAtIP = ptCoord_ * shapeFnc;
         value *=  2 * PI * CoordAtIP[0];
       }
-      
+
       shapeFnc *= value;
       elemVec += shapeFnc;
     }
@@ -111,7 +112,7 @@ namespace CoupledField
 
   void LinNeumannInt::CalcElemVector( Vector<Double> & elemVec,
                                       EntityIterator& ent) {
-    
+
     // compute element vector
     PrepareElemVector( elemVec, ent );
 
@@ -133,10 +134,10 @@ namespace CoupledField
     //  but we want to take deflections into the domain positive
     factor *= -1.0;
 
-    LOG_DBG3(forms) << "LinNeumannInt::CalcElemVector<double> elem=" 
+    LOG_DBG3(forms) << "LinNeumannInt::CalcElemVector<double> elem="
                     << actElem_->elemNum << " pseudo density=" << density
-                    << " factor=" << factor; 
-    
+                    << " factor=" << factor;
+
     // multiply element vector with factor
     elemVec *= factor;
   }
@@ -147,7 +148,7 @@ namespace CoupledField
     // compute element vector
     Vector<Double> helpVec;
     PrepareElemVector( helpVec, ent );
-    
+
     // register global coordinates of element midpoint
     Elem * ptVolElem = actElem_->ptVolElem1;
     RegisterSurfElemMidPoint( mHandle_, ent.GetSurfElem(), ptVolElem );

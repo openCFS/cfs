@@ -11,14 +11,14 @@
 namespace CoupledField {
 
   void FlatShellPiezoInt::CalcElementMatrix(  Matrix<Double>& elemMat,
-                                              EntityIterator& ent1, 
+                                              EntityIterator& ent1,
                                               EntityIterator& ent2 ) {
 
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
-    ptelem->SetAnsatzFct( ansatzFct1_ );    
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrDofs   = getNrDofs();
     const UInt nrIntPts = ptelem->GetNumIntPoints();
@@ -40,19 +40,19 @@ namespace CoupledField {
     Matrix<Double> TransMat; //Transformation matrix
     Matrix<Double> ShellCoord; //Shell Coordinates
 
-    //Element matrix  
+    //Element matrix
     elemMat.Resize(numFncs * nrDofs, nrLayers);
     elemMat.Init();
 
-    //B matrix  
+    //B matrix
     bMat.Resize( getDimD(), numFncs * nrDofs );
     bMat.Init();
 
-    //The transpose of B 
+    //The transpose of B
     bTrans.Resize( numFncs * nrDofs , getDimD() );
     bTrans.Init();
 
-    //The partial Element Matrix  
+    //The partial Element Matrix
     partElemMat.Resize(numFncs * nrDofs, nrLayers);
     partElemMat.Init();
 
@@ -72,7 +72,7 @@ namespace CoupledField {
       //std::cout << "Integration point\n" << actIntPt << std::endl;
       //FlatShellPiezoInt::calcBMat(bMat, actIntPt, ShellCoord);
       ptr_StiffInt_->calcBMat(bMat, actIntPt, ptelem, ShellCoord, FlatShellStiffInt::PIEZO);
-      //Find the transpose of the bMat and Store it in the bTrans   
+      //Find the transpose of the bMat and Store it in the bTrans
       bMat.Transpose(bTrans);
       //Calculate E matrix
       FlatShellPiezoInt::calcEMat(eMat);
@@ -94,13 +94,13 @@ namespace CoupledField {
 
     //std::cout << "The Element Matrix is :"<< elemMat << std::endl << std::endl;
 
-    //std::cerr << "Size of piezo-coupling matrix before back-transformation: " 
-    //          << elemMat.GetSizeRow() << " x " << elemMat.GetSizeCol() << std::endl;
+    //std::cerr << "Size of piezo-coupling matrix before back-transformation: "
+    //          << elemMat.GetNumRows() << " x " << elemMat.GetNumCols() << std::endl;
 
     //Do the back-Rotation and return
     FlatShellInt::LocaltoGlobPiezo(elemMat,TransMat );
   }
-  
+
   void FlatShellPiezoInt::calcEMat( Matrix<Double> &eMat ){
 
 
@@ -108,9 +108,9 @@ namespace CoupledField {
 
     const UInt nrLayers  = composite_->thickness.GetSize();
     Double thickness_all = 0.0;
-    Double z_mk =0.0; 
+    Double z_mk =0.0;
 
-    Matrix<Double> RtMat, RsMat, RtMatInv,eTensor; 
+    Matrix<Double> RtMat, RsMat, RtMatInv,eTensor;
     Vector<Double> eVec, Epsillon_k;
 
     eMat.Resize(SizeOfD, nrLayers);
@@ -149,9 +149,9 @@ namespace CoupledField {
 
     for (UInt k=1 ; k <= nrLayers ; k++) {
 
-      composite_->materials[k-1]->GetTensor(eTensor,PIEZO_TENSOR,REAL,FULL);
+      composite_->materials[k-1]->GetTensor(eTensor,PIEZO_TENSOR,Global::REAL,FULL);
 
-      RtMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]); 
+      RtMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]);
       RtMat[0][1] = sin(orAngle_[k])*sin(orAngle_[k]);
       RtMat[0][2] = 2*sin(orAngle_[k])*cos(orAngle_[k]);
       RtMat[1][0] = sin(orAngle_[k])*sin(orAngle_[k]);
@@ -163,7 +163,7 @@ namespace CoupledField {
 
       //std::cout << "Rt Matrix is\n" << RtMat << std::endl;
 
-      RsMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]); 
+      RsMat[0][0] = cos(orAngle_[k])*cos(orAngle_[k]);
       RsMat[0][1] = sin(orAngle_[k])*sin(orAngle_[k]);
       RsMat[0][2] = sin(orAngle_[k])*cos(orAngle_[k]);
       RsMat[1][0] = sin(orAngle_[k])*sin(orAngle_[k]);
@@ -206,9 +206,9 @@ namespace CoupledField {
   //   Constructor for Composite Material
   // *************************************
   FlatShellPiezoInt::FlatShellPiezoInt( Composite * composite,
-                                        bool hasDrillDof) 
+                                        bool hasDrillDof)
     : FlatShellInt(composite, hasDrillDof)  {
-    
+
     name_ = "FlatShellPiezoInt";
 
     baseType_ = STIFFNESS;
@@ -220,5 +220,5 @@ namespace CoupledField {
   // **************
   FlatShellPiezoInt::~FlatShellPiezoInt() {
   }
-  
+
 } // end namespace CoupledField

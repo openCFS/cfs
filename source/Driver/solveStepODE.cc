@@ -2,9 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "General/exception.hh"
+#include "PDE/StdPDE.hh"
 #include "solveStepODE.hh"
-
-#include "PDE/bubblePDE.hh"
 
 namespace CoupledField {
 
@@ -15,22 +15,7 @@ namespace CoupledField {
   }
   
   void SolveStepODE::SolveStepTrans() {
-
-    // Perform a cast into a BubblePDE 
-    try {
-      BubblePDE & bubblePDE = dynamic_cast<BubblePDE&>(PDE_);
-
-    // Call Solve()-method
-    bubblePDE.Solve();
-
-    } catch ( ... ) {
-      (*error) << "Could not cast pde of type'" 
-               << PDE_.GetName()  << "' into a BubblePDE!";
-      Error( __FILE__, __LINE__ );
-    }
-
-
-
+    EXCEPTION( "Don't know how to do a SolveStepTrans for " << PDE_.GetName());
   }
 
 

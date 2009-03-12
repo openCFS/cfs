@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "Forms/forms_header.hh"
+#include "Forms/mixedInt.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
@@ -134,8 +134,8 @@ namespace CoupledField
       actSDList->SetRegion( subdoms_[actSD] );
       
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
-      actMat->GetScalar(density, DENSITY,REAL);
-      actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,REAL);
+      actMat->GetScalar(density, DENSITY,Global::REAL);
+      actMat->GetScalar(bulkModulus, ACOU_BULK_MODULUS,Global::REAL);
       c0 = sqrt(bulkModulus/density);
       
       Info->PrintF( pdename_, "density = %e\n", density);

@@ -8,12 +8,12 @@
 #include <string>
 #include <iostream>
 
-#include "graph/basegraph.hh"
-#include "graph/idbcgraph.hh"
-#include "graph/basegraphmanager.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/idbcgraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! Simple graph manager for the case of a single PDE
@@ -147,13 +147,11 @@ namespace OLAS {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph (ignored by this class)
-    void SetElementPos( const PdeIdType identifierPDE1,
-                        Integer *connect1,
-                        Integer elemSize1,
-                        const PdeIdType identifierPDE2,
-                        Integer *connect2,
-                        Integer elemSize2,
-                        bool setCounterPart );
+    virtual void SetElementPos( const PdeIdType identifierPDE1,
+                                const StdVector<Integer>& eqnNrs1,
+                                const PdeIdType identifierPDE2,
+                                const StdVector<Integer>& eqnNrs2,
+                                bool setCounterPart );
     //@}
 
 
@@ -176,7 +174,7 @@ namespace OLAS {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    Integer *GetReordering( const PdeIdType identifier ) ;
+    void GetReordering( const PdeIdType identifier, StdVector<UInt>& order ) ;
 
     //! Get a specified (sub-)graph
 
@@ -212,7 +210,7 @@ namespace OLAS {
   private:
 
     //! Permutation vector stored as one-based array
-    Integer *newOrdering_;
+    StdVector<UInt> newOrdering_;
 
     //! This attribute keeps track of memory de-allocation for newOrdering_
 

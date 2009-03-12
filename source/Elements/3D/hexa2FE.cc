@@ -14,7 +14,7 @@ namespace CoupledField
 {
 
   Hexa2FE::Hexa2FE():HexaFE()
-  { 
+  {
 
     Init();
   }
@@ -26,18 +26,18 @@ namespace CoupledField
 
   void Hexa2FE::Init()
   {
-  
+
     NumNodes_ = 20;
     NumEdges_ = 12;
 
-    CommonInit(); 
+    CommonInit();
   }
 
   void Hexa2FE::SetCornerCoords()
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =  -1;
     LCornerCoords_[1][0] =  -1;
     LCornerCoords_[2][0] =  -1;
@@ -73,48 +73,48 @@ namespace CoupledField
     LCornerCoords_[0][8] =   0;
     LCornerCoords_[1][8] =  -1;
     LCornerCoords_[2][8] =  -1;
- 
+
     LCornerCoords_[0][9] =   1;
     LCornerCoords_[1][9] =   0;
     LCornerCoords_[2][9] =  -1;
 
- 
+
     LCornerCoords_[0][10] =   0;
     LCornerCoords_[1][10] =   1;
     LCornerCoords_[2][10] =  -1;
- 
+
     LCornerCoords_[0][11] =  -1;
     LCornerCoords_[1][11] =   0;
     LCornerCoords_[2][11] =  -1;
- 
+
     LCornerCoords_[0][12] =   0;
     LCornerCoords_[1][12] =  -1;
     LCornerCoords_[2][12] =   1;
- 
+
     LCornerCoords_[0][13] =   1;
     LCornerCoords_[1][13] =   0;
     LCornerCoords_[2][13] =   1;
- 
+
     LCornerCoords_[0][14] =   0;
     LCornerCoords_[1][14] =   1;
     LCornerCoords_[2][14] =   1;
- 
+
     LCornerCoords_[0][15] =  -1;
     LCornerCoords_[1][15] =   0;
     LCornerCoords_[2][15] =   1;
- 
+
     LCornerCoords_[0][16] =  -1;
     LCornerCoords_[1][16] =  -1;
     LCornerCoords_[2][16] =   0;
- 
+
     LCornerCoords_[0][17] =   1;
     LCornerCoords_[1][17] =  -1;
     LCornerCoords_[2][17] =   0;
- 
+
     LCornerCoords_[0][18] =   1;
     LCornerCoords_[1][18] =   1;
     LCornerCoords_[2][18] =   0;
- 
+
     LCornerCoords_[0][19] =  -1;
     LCornerCoords_[1][19] =   1;
     LCornerCoords_[2][19] =   0;
@@ -123,7 +123,7 @@ namespace CoupledField
 
 
 
-  void Hexa2FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Hexa2FE :: CalcShapeFnc(Vector<Double> & Shape,
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType fctEntityType )
@@ -198,12 +198,12 @@ namespace CoupledField
     Double  xi, eta, zeta;
     UInt i;
     Shape.Resize(NumNodes_);
-    
+
     //integration points
     xi   = LCoord[0];
     eta  = LCoord[1];
     zeta = LCoord[2];
-    
+
     //Corner coordinates:
     // Ni
     for (i=0;i<8; i++) {
@@ -213,28 +213,28 @@ namespace CoupledField
         *(1.0+zeta*LCornerCoords_[2][i])
         *(xi*LCornerCoords_[0][i]+eta*LCornerCoords_[1][i]+zeta*LCornerCoords_[2][i]-2.0);
     }
-    
+
     //Midside nodes xi_i=0:
     // Ni
     for (i=8;i<=14; i+=2) {
       Shape[i]  = 0.25*(1.0-xi*xi)*(1.0+eta*LCornerCoords_[1][i])*(1.0+zeta*LCornerCoords_[2][i]);
     }
-    
+
     //Midside nodes eta_i=0:
     // Ni
     for (i=9;i<=15; i+=2) {
       Shape[i]  = 0.25*(1.0+xi*LCornerCoords_[0][i])*(1.0-eta*eta)*(1.0+zeta*LCornerCoords_[2][i]);
     }
-    
+
     //Midside nodes zeta_i=0:
     // Ni
     for (i=16;i<20; i++) {
       Shape[i] = 0.25*(1.0+xi*LCornerCoords_[0][i])*(1.0+eta*LCornerCoords_[1][i])*(1.0-zeta*zeta);
     }
-#endif    
+#endif
   }
 
-  void Hexa2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Hexa2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                        const Vector<Double> & LCoord,
                                        const Elem*, UInt dof,
                                        AnsatzFct::FctEntityType fctEntityType )
@@ -250,7 +250,7 @@ namespace CoupledField
 
 
     LDeriv.Resize(NumNodes_,Dim_);
-    LDeriv.Init(0);
+    LDeriv.Init();
 
     //integration points
     rgauss = LCoord[0];
@@ -284,7 +284,7 @@ namespace CoupledField
     LDeriv[4][0] = -LDeriv[5][0];
     LDeriv[3][0] = -LDeriv[2][0];
     LDeriv[0][0] = -LDeriv[1][0];
-  
+
     LDeriv[6][1] = onehalf * oneplusr  * oneplust;
     LDeriv[7][1] = onehalf * oneminusr * oneplust;
     LDeriv[2][1] = onehalf * oneplusr  * oneminust;
@@ -293,7 +293,7 @@ namespace CoupledField
     LDeriv[5][1] = -LDeriv[6][1];
     LDeriv[0][1] = -LDeriv[3][1];
     LDeriv[1][1] = -LDeriv[2][1];
-  
+
     LDeriv[6][2] = onehalf * oneplusr  * onepluss;
     LDeriv[7][2] = onehalf * oneminusr * onepluss;
     LDeriv[4][2] = onehalf * oneminusr * oneminuss;
@@ -316,7 +316,7 @@ namespace CoupledField
     LDeriv[19][0] = -LDeriv[18][0];
     LDeriv[16][0] = -onehalf * oneminuss  * oneminust2;
     LDeriv[17][0] = -LDeriv[16][0];
-  
+
     LDeriv[14][1] =  onehalf * oneminusr2 * oneplust;
     LDeriv[15][1] =  two_s   * oneminusr  * oneplust;
     LDeriv[12][1] = -LDeriv[14][1];
@@ -361,11 +361,11 @@ namespace CoupledField
     Double  xi, eta, zeta;
     UInt i;
     LDeriv.Resize(NumNodes_,Dim_);
-    LDeriv.Init(0);
+    LDeriv.Init();
     xi   = LCoord[0];
     eta  = LCoord[1];
     zeta = LCoord[2];
-    
+
     for (i=0;i<8; i++) {
       //Corner coordinates: Ni,x
       LDeriv[i][0] =  0.25*xi*LCornerCoords_[0][i]*LCornerCoords_[0][i]
@@ -389,7 +389,7 @@ namespace CoupledField
         +0.25*xi*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
         +0.125*xi*zeta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
         +0.125*xi*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i];
-      
+
       //Corner coordinates: Ni,z
       LDeriv[i][2] =  0.25*zeta*LCornerCoords_[2][i]*LCornerCoords_[2][i]
         -0.125*LCornerCoords_[2][i]
@@ -402,7 +402,7 @@ namespace CoupledField
         +0.25*xi*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
         +0.125*xi*eta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i];
     }
-    
+
     for (i=8;i<=14; i+=2) {
       //Midside nodes xi_i=0: Ni,x
       LDeriv[i][0]  = -0.5*xi*(1.0+eta*LCornerCoords_[1][i])*(1.0+zeta*LCornerCoords_[2][i]);
@@ -411,7 +411,7 @@ namespace CoupledField
       //Midside nodes xi_i=0: Ni,z
       LDeriv[i][2]  = -0.25*(xi*xi - 1.0)*(1.0+eta*LCornerCoords_[1][i])*LCornerCoords_[2][i];
     }
-    
+
     for (i=9;i<=15; i+=2) {
       //Midside nodes eta_i=0: Ni,x
       LDeriv[i][0]  = -0.25*LCornerCoords_[0][i] *(eta*eta-1.0)*(1.0+zeta*LCornerCoords_[2][i]);
@@ -419,7 +419,7 @@ namespace CoupledField
       LDeriv[i][1]  = -0.5*(1.0+xi*LCornerCoords_[0][i])*eta*(1.0+zeta*LCornerCoords_[2][i]);
       //Midside nodes eta_i=0: Ni,z
       LDeriv[i][2]  = -0.25*(1.0+xi*LCornerCoords_[0][i])*(eta*eta-1.0)*LCornerCoords_[2][i];
-    }      
+    }
     for (i=16;i<20; i++) {
       //Midside nodes zeta_i=0: Ni,x
       LDeriv[i][0] = -0.25*LCornerCoords_[0][i]*(1+eta*LCornerCoords_[1][i])*(zeta*zeta-1.0);

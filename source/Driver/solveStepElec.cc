@@ -14,6 +14,8 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
+#include "OLAS/algsys/basesystem.hh"
+
 namespace CoupledField {
 
   SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde) {
@@ -62,10 +64,6 @@ namespace CoupledField {
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
     Vector<Double> incrSol( numEqns_ );
-
-    Double* actRHS;
-    Double* solPtr;
-
     Vector<Double> coeff;
 
     oldSol.Init(0);
@@ -82,8 +80,7 @@ namespace CoupledField {
     PDE_.SetBCs();
 
     // stores this as linear part of RHS
-    algsys_->GetRHSVal( actRHS );
-    StoreAlgsysToVec(RhsLinVal_, actRHS );
+    algsys_->GetRHSVal( RhsLinVal_ );
 
     do {
       iterationCounter++;
@@ -121,23 +118,21 @@ namespace CoupledField {
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       // set changing part of RHS
-      algsys_->UpdateRHS(SYSTEM,solPrev.GetPointer());
+      algsys_->UpdateRHS(SYSTEM,solPrev);
 
       // build in the Dirichlet vales in system mmatrix and rhs
       algsys_->BuildInDirichlet();
 
       //get RHS
       Vector<Double> RHS;
-      algsys_->GetRHSVal( actRHS );
-      StoreAlgsysToVec(RHS, actRHS );       
+      algsys_->GetRHSVal( RHS );
       Double residualNorm = PDE_.GetRhsL2Norm( RHS );
 
       algsys_->SetupSolver();
       algsys_->SetupPrecond();
     
       algsys_->Solve();
-      algsys_->GetSolutionVal( solPtr );
-      StoreAlgsysToVec(incrSol, solPtr );
+      algsys_->GetSolutionVal( incrSol );
 
       //Double alpha = 1;
       //    newSol = oldSol + incrSol * alpha;
@@ -183,10 +178,9 @@ namespace CoupledField {
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     if ( iterationCounter >= nonLinMaxIter_ ) {
-      (*error) << "Number of nonlinear iterations exceeds limit "
+      EXCEPTION( "Number of nonlinear iterations exceeds limit "
                << "nonLinearMaxIter_ = "
-               << nonLinMaxIter_;
-      Error( __FILE__, __LINE__ );
+               << nonLinMaxIter_ );
     }
 
     //set the current values to the previous for the next time step!

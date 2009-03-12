@@ -13,8 +13,7 @@ namespace CoupledField
 {
 
   Pyra1FE::Pyra1FE():PyraFE()
-  { 
-  
+  {
     Init();
   }
 
@@ -25,7 +24,7 @@ namespace CoupledField
 
   void Pyra1FE::Init()
   {
-  
+
     NumNodes_ = 5;
     NumEdges_ = 8;
 
@@ -38,7 +37,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =  1;
     LCornerCoords_[1][0] =  1;
     LCornerCoords_[2][0] =  0;
@@ -102,7 +101,7 @@ namespace CoupledField
 
    }
    
-  void Pyra1FE::GetNumFncs(Vector<UInt>& numFcns,  
+  void Pyra1FE::GetNumFncs(StdVector<UInt>& numFcns,  
                            const shared_ptr<AnsatzFct>& fcnType, 
                            AnsatzFct::FctEntityType fctEntityType, 
                            UInt dof) {
@@ -122,9 +121,9 @@ namespace CoupledField
   }
     
   void Pyra1FE::CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord,
-                               const Elem*, UInt dof,
-                               AnsatzFct::FctEntityType fctEntityType )
+                             const Vector<Double> & LCoord,
+                             const Elem*, UInt dof,
+                             AnsatzFct::FctEntityType fctEntityType )
   {
 
     Shape.Resize(NumNodes_);
@@ -162,7 +161,7 @@ namespace CoupledField
   }
 
 
-  void Pyra1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Pyra1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                          const Vector<Double> & LCoord,
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType fctEntityType )
@@ -171,10 +170,10 @@ namespace CoupledField
     LDeriv.Resize(NumNodes_,Dim_);
 
     LDeriv.Init();
- 
+
     LDeriv[4][0] = 0;
     LDeriv[4][1] = 0;
-    LDeriv[4][2] = 1; 
+    LDeriv[4][2] = 1;
 
     if (LCoord[2]==1)
       {
@@ -189,10 +188,10 @@ namespace CoupledField
         LDeriv[2][0] = 0.25 * (-1 + LCoord[1]);
         LDeriv[2][1] = 0.25 * (-1 + LCoord[0]);
         LDeriv[2][2] = -0.25;
-      
+
         LDeriv[3][0] = 0.25 * (1 - LCoord[1]);
         LDeriv[3][1] = 0.25 * (-1 - LCoord[0]);
-        LDeriv[3][2] = -0.25;    
+        LDeriv[3][2] = -0.25;
 
       }
     else
@@ -208,16 +207,16 @@ namespace CoupledField
         LDeriv[2][0] = 0.25 * (-1 + LCoord[1] + (LCoord[1]*LCoord[2])/(1-LCoord[2]));
         LDeriv[2][1] = 0.25 * (-1 + LCoord[0] + (LCoord[0]*LCoord[2])/(1-LCoord[2]));
         LDeriv[2][2] = 0.25 * (-1 + (LCoord[0]*LCoord[1])/((1-LCoord[2])*(1-LCoord[2])));
-      
+
         LDeriv[3][0] = 0.25 * (1 - LCoord[1] - (LCoord[1]*LCoord[2])/(1-LCoord[2]));
         LDeriv[3][1] = 0.25 * (-1 - LCoord[0] - (LCoord[0]*LCoord[2])/(1-LCoord[2]));
         LDeriv[3][2] = 0.25 * (-1 - (LCoord[0]*LCoord[1])/((1-LCoord[2])*(1-LCoord[2])));
 
       }
-      
+
 
   }
-  
+
   //"Pyramidal Edge Element"
    // J.L. Coulomb, F. Zgainski, Y. Marechal. IEEE Transactions on Magnetics, Vol. 33, No. 2, March 1997
    void Pyra1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
@@ -312,7 +311,5 @@ namespace CoupledField
                                                 - xDxi[node2][dim1] *  xDxi[node1][dim2] ) * factor;
      }  
    }
-
-
 } // end of namespace
 

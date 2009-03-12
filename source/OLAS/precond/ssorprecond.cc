@@ -2,9 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "precond/ssorprecond.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/crs_matrix.hh"
+#include "MatVec/opdefs.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-namespace OLAS {
+
+#include "OLAS/precond/ssorprecond.hh"
+
+namespace CoupledField {
 
   // ***************
   //   Constructor
@@ -14,8 +20,8 @@ namespace OLAS {
 			       OLAS_Report *myReport ) {
     this->myParams_ = myParams;
     this->myReport_ = myReport;
-    size_     = mat.GetNrows();
-    NewArray( diagInv_, T, size_ );
+    size_     = mat.GetNumRows();
+    NEWARRAY( diagInv_, T, size_ );
   }
 
 
@@ -24,7 +30,7 @@ namespace OLAS {
   // **************
   template <typename T>
   SSORPrecond<T>::~SSORPrecond() {
-    DeleteArray( diagInv_ );
+    DELETEARRAY( diagInv_ );
   }
 
 
@@ -34,7 +40,7 @@ namespace OLAS {
   template<typename T>
   void SSORPrecond<T>::Setup( CRS_Matrix<T> &sysmat ) {
     for ( UInt i=1; i<=size_; i++ ) {
-      diagInv_[i] = opType<T>::invert(sysmat.GetDiag(i));
+      diagInv_[i] = OpType<T>::invert(sysmat.GetDiag(i));
     }
   }
 
@@ -48,7 +54,7 @@ namespace OLAS {
 
 
     UInt i;
-		Integer j;
+    UInt j;
     T_Vtype sum;
 
     // Query relaxation parameter
@@ -56,8 +62,8 @@ namespace OLAS {
 
     // Extract matrix info/data
     const T *valA = sysmat.GetDataPointer();
-    const Integer *rowP = sysmat.GetRowPointer();
-    const Integer *colP = sysmat.GetColPointer();
+    const UInt *rowP = sysmat.GetRowPointer();
+    const UInt *colP = sysmat.GetColPointer();
 
     // Set initial guess to zero
     z.Init();
@@ -70,7 +76,7 @@ namespace OLAS {
       // Compute current local residual: sum = b - (L*xnew + U*xold)
       sum = r[i];
       for ( j = rowP[i]; j < rowP[i+1]; j++ ) {
-	sum -= valA[j] * z[colP[j]];
+        sum -= valA[j] * z[colP[j]];
       }
 
       // Compute new approximation for this unknown (starting from zero)
@@ -85,7 +91,7 @@ namespace OLAS {
       // Compute current local residual: sum = b - (L*xnew + U*xold)
       sum = r[i];
       for ( j = rowP[i]; j < rowP[i+1]; j++ ) {
-	sum -= valA[j] * z[colP[j]];
+        sum -= valA[j] * z[colP[j]];
       }
 
       // Compute new approximation for this unknown
@@ -93,4 +99,10 @@ namespace OLAS {
     }
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class SSORPrecond<Double>;
+  template class SSORPrecond<Complex>;
+#endif
+  
 } // namespace

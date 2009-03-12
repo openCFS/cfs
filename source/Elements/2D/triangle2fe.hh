@@ -23,8 +23,8 @@ namespace CoupledField
     virtual ~Triangle2FE();
   
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_TRIA6;
+    virtual Elem::FEType feType() {
+      return Elem::TRIA6;
     };
 
   protected:

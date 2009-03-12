@@ -2,6 +2,20 @@ SET(OPTIMIZATION_SRCS DesignElement.cc DesignSpace.cc Optimization.cc PiezoSIMP.
                       TransferFunction.cc Condition.cc OptimalityCondition.cc EvaluateOnly.cc
                       BaseOptimizer.cc ShapeGrad.cc LevelSet.cc ParamMat.cc DesignMaterial.cc)
 
+# Just redefine __builtin_isnan to ::isnan for Intel compiler for
+# OptimalityCondition.cc
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS OptimalityCondition.cc
+        COMPILE_FLAGS)
+    #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
+    IF(OPTCONDFLAGS STREQUAL NOTFOUND)
+      SET(OPTCONDFLAGS "")
+    ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
+
+    SET_SOURCE_FILES_PROPERTIES(OptimalityCondition.cc
+      PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan")
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
 IF(USE_IPOPT)
    SET(TARGET_LL
     ipopt 
@@ -18,7 +32,8 @@ ENDIF(USE_IPOPT)
 IF(USE_SCPIP)
    SET(TARGET_LL
     ${TARGET_LL}
-    scpip)
+    ${SCPIP_LIBRARY}
+    ${CFS_FORTRAN_LIBS})
 
    # SCPIPBase is also the open source project C++SCPIP.
    # With this definition the file lives in both worlds! 
@@ -35,6 +50,7 @@ SET(TARGET_LL
   ${TARGET_LL}
   domain
   forms
+  matvec
 )
 
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
@@ -52,7 +68,7 @@ TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 #TARGET_LINK_LIBRARIES(scpip blas general logging
 #                      /space/fwein/packages/scpip/libscpip.a g2c gfortran m)
 #
-#TARGET_LINK_LIBRARIES(scpip general utils logging scripting utils matrix datainout domain materials utils
+#TARGET_LINK_LIBRARIES(scpip general utils logging scripting utils matvec datainout domain materials utils
 #                       lapack blas
 #                       /space/fwein/packages/boost_dev/lib/libboost_serialization-gcc.so
 #                       /space/fwein/packages/scpip/libscpip.a g2c gfortran m)                      

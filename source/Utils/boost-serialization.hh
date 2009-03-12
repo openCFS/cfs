@@ -11,7 +11,8 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-// Include support for standards STL-containers, which cna be readily serialized
+// Include support for standards STL-containers, which can be readily serialized
+// if this the following 4 lines are commented, much more can be compiled with SUSE 11.0
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/set.hpp>
@@ -20,8 +21,9 @@
 // Additional includes
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/tracking.hpp>
+#include <boost/serialization/nvp.hpp>
 
-#include "General/environment.hh"
+#include "General/defs.hh"
 
 // Define Conversion of Complex data
 namespace boost {

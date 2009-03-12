@@ -2,18 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-
-#include "utils/utils.hh"
-#include "matvec/matvec.hh"
-#include "algsys/algsys.hh"
-
-#include "solver/gmres.hh"
 #include <cassert>
 
-#include "General/exception.hh"
-using CoupledField::Exception;
+#include "MatVec/opdefs.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/precond/baseprecond.hh"
 
-namespace OLAS {
+#include "Utils/tools.hh"
+#include "General/exception.hh"
+
+
+#include "OLAS/solver/gmres.hh"
+
+namespace CoupledField {
 
 
   // ***************
@@ -53,8 +55,8 @@ namespace OLAS {
     // ---------------
 
     // Givens coefficients
-    DeleteArray( c_ );
-    DeleteArray( s_ );
+    DELETEARRAY( c_ );
+    DELETEARRAY( s_ );
 
     // Upper Hessenberg matrix
     DeleteHessenbergMatrix();
@@ -92,8 +94,10 @@ namespace OLAS {
     // ----------------------------------------
 
     // Obtain relevant dimension information
-    UInt nCols = sysMat.GetNcolsScalar();
-    UInt nRows = sysMat.GetNrowsScalar();
+    UInt nCols = sysMat.GetNumCols();
+#ifndef NDEBUG
+    UInt nRows = sysMat.GetNumRows();
+#endif
     UInt newKrylovDim = (UInt)myParams_->GetIntValue( "GMRES_maxKrylovDim" );
 
     // Check that matrix is square
@@ -114,10 +118,10 @@ namespace OLAS {
     //   (Re-)allocate Givens coefficients
     // -------------------------------------
     if ( newKrylovDim > maxKrylovDim_ ) {
-      DeleteArray( c_ );
-      DeleteArray( s_ );
-      NewArray( c_, Double, newKrylovDim );
-      NewArray( s_, T, newKrylovDim );
+      DELETEARRAY( c_ );
+      DELETEARRAY( s_ );
+      NEWARRAY( c_, Double, newKrylovDim );
+      NEWARRAY( s_, T, newKrylovDim );
     }
 
     // -------------------------------------
@@ -175,8 +179,7 @@ namespace OLAS {
     //   A simple safeguard
     // ----------------------
     if ( hMat_ == NULL ) {
-      Error( "GMRESSolver::Solve() Detected NULL pointer!", __FILE__,
-             __LINE__ );
+      EXCEPTION( "GMRESSolver::Solve() Detected NULL pointer!" );
     }
 
 
@@ -232,7 +235,7 @@ namespace OLAS {
       // Compute residual of new approximation and its norm
       // (Will serve in constructing base vector for next inner loop)
       sysMat.CompRes( *(vMat_[1]), sol, rhs );
-      resNorm = vMat_[1]->NormEuclid();
+      resNorm = vMat_[1]->NormL2();
 
       // If InnerLoop says approximation is fine, test for false
       // convergence. If everything is fine, stop iteration.
@@ -347,7 +350,7 @@ namespace OLAS {
         vMat_[i+1]->Inner( *(vMat_[k]), hMat_[k][i] );
         vMat_[i+1]->Add( - hMat_[k][i], *(vMat_[k]) );
       }
-      hMat_[i+1][i] = vMat_[i+1]->NormEuclid();
+      hMat_[i+1][i] = vMat_[i+1]->NormL2();
       vMat_[i+1]->ScalarDiv( hMat_[i+1][i] );
 
 
@@ -461,15 +464,15 @@ namespace OLAS {
 
       // Generate space for new upper Hessenberg matrix
       hMatNumRows_ = maxKrylovDim_ + 1;
-      NewArray( hMat_, T*, hMatNumRows_ );
-      NewArray( hMat_[1], T, maxKrylovDim_ );
+      NEWARRAY( hMat_, T*, hMatNumRows_ );
+      NEWARRAY( hMat_[1], T, maxKrylovDim_ );
       UInt rowSize = 0;
       UInt offset = 0;
-      for ( UInt i = 2; i <= hMatNumRows_; i++ ) {
+      for ( UInt i = 2; i < hMatNumRows_; i++ ) {
         rowSize = maxKrylovDim_ - i + 2;
         offset = i - 1;
-        hMat_[i] = New T[rowSize];
-        AssertMem( hMat_[i], sizeof(T) * rowSize );
+        hMat_[i] = new T[rowSize];
+        ASSERTMEM( hMat_[i], sizeof(T) * rowSize );
         hMat_[i] -= offset;
       }
     }
@@ -484,13 +487,13 @@ namespace OLAS {
 
 
     if ( hMat_ != NULL ) {
-      delete[] ( hMat_[1] + 1 );
-      for ( UInt i = 2; i <= hMatNumRows_; i++ ) {
+      delete[] ( hMat_[1]  );
+      for ( UInt i = 2; i < hMatNumRows_; i++ ) {
         if ( hMat_[i] != NULL ) {
           delete[] ( hMat_[i] + i - 1 );
         }
       }
-      DeleteArray( hMat_ );
+      DELETEARRAY( hMat_ );
     }
   }
 
@@ -566,4 +569,10 @@ namespace OLAS {
     vMat_.clear();
   }
 
+  // Explicit template instantiation
+  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+    template class GMRESSolver<Double>;
+    template class GMRESSolver<Complex>;
+  #endif
+  
 }

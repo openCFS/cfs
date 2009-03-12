@@ -9,8 +9,6 @@
 #include "Utils/tools.hh"
 #include "Utils/StdVector.hh"
 
-#include "olas.hh"
-
 namespace CoupledField
 {
 

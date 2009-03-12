@@ -27,8 +27,8 @@ namespace CoupledField {
     Matrix<Double> TMat;//size 6x6
     Matrix<Double> NewCoord, temp; //matrices of size 3x4
     Vector<Double> Vx, Vr, Vz; //vectors of length 3
-    const UInt row = ptCoord.GetSizeRow();// size 3
-    const UInt col = ptCoord.GetSizeCol();// size 4
+    const UInt row = ptCoord.GetNumRows();// size 3
+    const UInt col = ptCoord.GetNumCols();// size 4
     UInt i=0,j=0,k=0;
     
     TransMat.Resize(ElementTransMatDim);//Resize the Element Transformation Matrix 24x24 and initialize with zeroes
@@ -136,7 +136,7 @@ namespace CoupledField {
     //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
 
     int i, j;
-    const Integer row = ElemMat.GetSizeRow(); //equals 24;
+    const Integer row = ElemMat.GetNumRows(); //equals 24;
 
 
     Matrix<Double> StiffTrans;
@@ -188,9 +188,10 @@ void FlatShellInt::LocaltoGlobPiezo( Matrix<Double> &ElemMat, const Matrix<Doubl
 
     //std::cout << "FlatShellInt::LocaltoGlob\n" << std::endl;
 
-    int i, j;
-    const Integer row = ElemMat.GetSizeRow(); //equals to nrDofs*nrNodes for linear quadrilateral is 24
-    const Integer col = ElemMat.GetSizeCol(); //equals to the number of piezoelectric Layers
+    // TODO: Check if this is still needed
+    // int i, j;
+    const Integer row = ElemMat.GetNumRows(); //equals to nrDofs*nrNodes for linear quadrilateral is 24
+    const Integer col = ElemMat.GetNumCols(); //equals to the number of piezoelectric Layers
 
 
     Matrix<Double> TransMatInv, ElemMatLocal;

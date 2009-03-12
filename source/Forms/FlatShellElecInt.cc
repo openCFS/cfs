@@ -11,7 +11,7 @@
 namespace CoupledField {
 
  void FlatShellElecInt::CalcElementMatrix( Matrix<Double>& elemMat,
-                                           EntityIterator& ent1, 
+                                           EntityIterator& ent1,
                                            EntityIterator& ent2 ) {
 
 
@@ -30,36 +30,36 @@ namespace CoupledField {
    double Omega = 0.0;
 
    //Element matrix in the case of Flat Shells with linear elements is 24x24
-   elemMat.Resize(nrLayers);   
+   elemMat.Resize(nrLayers);
    elemMat.Init();
 
    FlatShellInt::CoordTrans(ptCoord_, TransMat, ShellCoord );
 
    FlatShellElecInt::calcEMat(eMat);
 
-   Omega = ptelem->CalcVolume(ShellCoord,FALSE);    
+   Omega = ptelem->CalcVolume(ShellCoord,false);
    //See equation 4.65 Pietfort
    elemMat = - eMat * Omega;
 
    // Do the back-Rotation and return
-   // Back Rotation is not needed, as this matrix does not depend on 
+   // Back Rotation is not needed, as this matrix does not depend on
    // shell coordinates! (Andreas)
    //FlatShellInt::LocaltoGlob(elemMat,TransMat );
 
    //std::cerr << "elemMat =\n" << elemMat << std::endl << std::endl;
 
   }
-  
 
 
-  
+
+
   void FlatShellElecInt::calcEMat( Matrix<Double> &eMat ){
 
 
     const UInt nrLayers  = composite_->thickness.GetSize();
     Double thickness_all = 0.0;
     //Piezoelectric coefficients e31 and e32
-    Double epsillon_k = 0.0; 
+    Double epsillon_k = 0.0;
 
     eMat.Resize(nrLayers);
     eMat.Init();
@@ -73,7 +73,7 @@ namespace CoupledField {
     for (UInt k=0; k < nrLayers; k++) {
       thickness_all += composite_->thickness[k];
     }
-    
+
     z_[0]= - (thickness_all/2.0);
     orAngle_[0]= 0.0;
 
@@ -87,8 +87,8 @@ namespace CoupledField {
 
     for (UInt k=1 ; k <= nrLayers ; k++) {
 
-      composite_->materials[k-1]->GetScalar(epsillon_k,ELEC_PERMITTIVITY,REAL);
-      eMat[k-1][k-1] = epsillon_k/composite_->thickness[k-1]; 
+      composite_->materials[k-1]->GetScalar(epsillon_k,ELEC_PERMITTIVITY,Global::REAL);
+      eMat[k-1][k-1] = epsillon_k/composite_->thickness[k-1];
     }
     //std::cout << "The E matrix is\n" << eMat << std::endl;
 
@@ -97,12 +97,12 @@ namespace CoupledField {
   // *************************************
   //   Constructor for Composite Material
   // *************************************
-  FlatShellElecInt::FlatShellElecInt( Composite * composite, bool hasDrillDof ) 
+  FlatShellElecInt::FlatShellElecInt( Composite * composite, bool hasDrillDof )
     : FlatShellInt(composite, hasDrillDof) {
 
     name_ = "FlatShellElecInt";
-    
-    baseType_ = STIFFNESS;             
+
+    baseType_ = STIFFNESS;
     }
 
   // **************
@@ -110,5 +110,5 @@ namespace CoupledField {
   // **************
   FlatShellElecInt::~FlatShellElecInt() {
   }
-  
+
 } // end namespace CoupledField

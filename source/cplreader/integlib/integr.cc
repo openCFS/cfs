@@ -45,7 +45,7 @@ using namespace CoupledField;
 //     maxbnd[1]=0.218; 
 //     maxbnd[2]=0.218;
 
-    ElemIntegr * ptElemIntegr=new ElemIntegr(ET_HEXA8);
+    ElemIntegr * ptElemIntegr=new ElemIntegr(Elem::HEXA8);
   
         int k=0;
         for( int i=0; i<nElems; i++)
@@ -111,7 +111,7 @@ using namespace CoupledField;
 //     maxbnd[1]=0.219; 
 //     maxbnd[2]=0.219;
 
-    ElemIntegr * ptElemIntegr=new ElemIntegr(ET_HEXA8);
+    ElemIntegr * ptElemIntegr=new ElemIntegr(Elem::HEXA8);
   
         int k=0;
         for( int i=0; i<nElems; i++)
@@ -189,7 +189,7 @@ extern "C"
     }
 
     // Hex1-element
-    ElemIntegr * ptElemIntegr=new ElemIntegr(ET_HEXA8);
+    ElemIntegr * ptElemIntegr=new ElemIntegr(Elem::HEXA8);
 
     Vector<Double> elemvec4FASTEST;
 
@@ -238,7 +238,7 @@ void  calcacousrcterms2d_( double coordMat_fortran[2][4], double Nodal_dTijdxj_f
     }
 
     // quad1FE
-    ElemIntegr * ptElemIntegr=new ElemIntegr(ET_QUAD4);
+    ElemIntegr * ptElemIntegr=new ElemIntegr(Elem::QUAD4);
 
     Vector<Double> elemvec4FASTEST;
   
@@ -287,7 +287,7 @@ void  calcacousrcterms2d_withPress_( double coordMat_fortran[2][4], double Nodal
     }
 
     // quad1FE
-    ElemIntegr * ptElemIntegr=new ElemIntegr(ET_QUAD4);
+    ElemIntegr * ptElemIntegr=new ElemIntegr(Elem::QUAD4);
 
     Vector<Double> elemvec4FASTEST;
   
@@ -310,43 +310,43 @@ void getNumNodesAndDim(int type, int& numNodes, int& dim) {
 
   switch(type) 
     {
-    case ET_LINE2:
+    case Elem::LINE2:
       numNodes = 2;
       dim = 1;
       break;
 
-    case ET_TRIA3:
+    case Elem::TRIA3:
       numNodes = 3;
       dim = 2;
       break;
 
-    case ET_QUAD4:
+    case Elem::QUAD4:
       numNodes = 4;
       dim = 2;
       break;
 
-    case ET_TET4:
+    case Elem::TET4:
       numNodes = 4;
       dim = 3;
       break;
 
-    case ET_HEXA8:
+    case Elem::HEXA8:
       numNodes = 8;
       dim = 3;
       break;
 
-    case ET_PYRA5:
+    case Elem::PYRA5:
       numNodes = 5;
       dim = 3;
       break;
 
-    case ET_WEDGE6:
+    case Elem::WEDGE6:
       numNodes = 6;
       dim = 3;
       break;
 
     default:
-      Error("Element-Type not defined!",__FILE__,__LINE__);
+      EXCEPTION("Element-Type not defined!");
     }
   
   
@@ -510,10 +510,10 @@ void  calccombustionsrcvectorsurf_( double coordMat_fortran[12], double Nodal_Ve
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
     // due to fact, that element is a surface element
-    if ( elemType == ET_QUAD4 || elemType == ET_TRIA3 ) {
+    if ( elemType == Elem::QUAD4 || elemType == Elem::TRIA3 ) {
       DIM = 3;
     } 
-    else if ( elemType == ET_LINE2 ) {
+    else if ( elemType == Elem::LINE2 ) {
       DIM = 2;
     }
 
@@ -562,10 +562,10 @@ void  calccombustionsrctijsurf_( double coordMat_fortran[12], double Nodal_Vel_f
     getNumNodesAndDim(elemType, ELEMNUMNOD, DIM);
 
     // due to fact, that element is a surface element
-    if ( elemType == ET_QUAD4 || elemType == ET_TRIA3 ) {
+    if ( elemType == Elem::QUAD4 || elemType == Elem::TRIA3 ) {
       DIM = 3;
     } 
-    else if ( elemType == ET_LINE2 ) {
+    else if ( elemType == Elem::LINE2 ) {
       DIM = 2;
     }
 

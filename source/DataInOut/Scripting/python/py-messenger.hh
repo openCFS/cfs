@@ -5,6 +5,9 @@
 #ifndef CFS_PYTHON_MESSENGER_HH
 #define CFS_PYTHON_MESSENGER_HH
 
+#ifdef _POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#endif
 #include <Python.h>
 
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -36,11 +39,11 @@ namespace CoupledField {
                        const StdVector<std::string> & context);
     
     //! Trigger the writing of a warning message
-    virtual void Warning( const Char * msg, const Char * const filename,
+    virtual void Warning( const char * msg, const char * const filename,
                           const UInt numline);
     
     //! Trigger the abortion of the program with a given error message
-    virtual void Error( const Char * msg, const Char * const filename,
+    virtual void Error( const char * msg, const char * const filename,
                         const UInt numline);
     
     // ===================================================

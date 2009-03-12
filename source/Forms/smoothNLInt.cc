@@ -1,10 +1,11 @@
 #include <iostream>
 #include <fstream>
 
+#include "Utils/nodestoresol.hh"
+
 #include "smoothNLInt.hh"
 #include "mechStressStrain.hh"
 
-#include "Utils/nodestoresol.hh"
 
 namespace CoupledField
 {
@@ -61,7 +62,9 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
     UInt elemNumber = ent1.GetElem()->elemNum;
-    Double elastFactor, elastFactor2, elastFactor3, e11=0.0, e22=0.0, e12=0.0, A_elem;
+    Double elastFactor, e11=0.0, e22=0.0, e12=0.0, A_elem;
+    // TODO: Check if this is still needed
+    // Double elastFactor2, elastFactor3;
     //Double LMaxMax;
     //Double LMinMax;
     bool firstTime, firstIter;
@@ -96,7 +99,7 @@ namespace CoupledField
 
       dist=std::sqrt(deltaX*deltaX + deltaY*deltaY);
         
-      for(UInt i=1; i<couplingNodes_.GetSizeRow(); i++){
+      for(UInt i=1; i<couplingNodes_.GetNumRows(); i++){
         deltaX=couplingNodes_[i][0]-globIntPoint[0];
         deltaY=couplingNodes_[i][1]-globIntPoint[1];
         //deltaZ=couplingNodes_[i][2]-zMid;
@@ -112,23 +115,28 @@ namespace CoupledField
       //dist2
       deltaX=0.061-globIntPoint[0];
       deltaY=0.002-globIntPoint[1];
-      Double dist2=std::sqrt(deltaX*deltaX + deltaY*deltaY);
+      // TODO: Check if this is still needed
+      // Double dist2=std::sqrt(deltaX*deltaX + deltaY*deltaY);
       //dist3
       deltaX=0.071-globIntPoint[0];
       deltaY=0.002-globIntPoint[1];
-      Double dist3=std::sqrt(deltaX*deltaX + deltaY*deltaY);
+      // TODO: Check if this is still needed
+      // Double dist3=std::sqrt(deltaX*deltaX + deltaY*deltaY);
       //dist4
       deltaX=0.071-globIntPoint[0];
       deltaY=-0.002-globIntPoint[1];
-      Double dist4=std::sqrt(deltaX*deltaX + deltaY*deltaY);
+      // TODO: Check if this is still needed      
+      // Double dist4=std::sqrt(deltaX*deltaX + deltaY*deltaY);
       //dist5
       deltaX=0.061-globIntPoint[0];
       deltaY=-0.002-globIntPoint[1];
-      Double dist5=std::sqrt(deltaX*deltaX + deltaY*deltaY);
+      // TODO: Check if this is still needed
+      // Double dist5=std::sqrt(deltaX*deltaX + deltaY*deltaY);
 
       deltaX=0.066-globIntPoint[0];
       deltaY=globIntPoint[1];
-      Double distM=std::sqrt(deltaX*deltaX + deltaY*deltaY);
+      // TODO: Check if this is still needed
+      // Double distM=std::sqrt(deltaX*deltaX + deltaY*deltaY);
 
 
       Double auxFac=1.0;
@@ -240,12 +248,11 @@ namespace CoupledField
     }
 
     else{
-      (*error) << " Wrong Time iteration flags of smooother!\n"
-               << "firstTime=" 
-               << firstTime
-               << "; firstIter" 
-               << firstIter;
-      Error( __FILE__, __LINE__ );
+      EXCEPTION(" Wrong Time iteration flags of smooother!\n"
+                << "firstTime=" 
+                << firstTime
+                << "; firstIter" 
+                << firstIter);
     }
 
 //     file << " " << elastFactor
@@ -293,9 +300,8 @@ namespace CoupledField
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-        (*error) << "SmoothNLInt::CalcElementMatrix: Encountered "
-                 << "negative Jacobian determinant!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("SmoothNLInt::CalcElementMatrix: Encountered "
+                   << "negative Jacobian determinant!");
       }
 
       // Special things must be done in the axi-symmetric case
@@ -315,12 +321,12 @@ namespace CoupledField
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * elastFactor;
-      for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
         ptr1 =  bMat[k];
         ptr2 = dbMat[k];
-        for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
+        for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
           aux = fac * ptr1[i];
-          for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
+          for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
             elemMat[i][j] += aux * ptr2[j];
           }
         }
@@ -446,7 +452,8 @@ namespace CoupledField
 
   Double SmoothNLInt::ComputeElastFactor( Double & e11, Double & e22, Double & e12 ){
     Double fac;
-    Double e11Sqrd, e22Sqrd, e12Sqrd;
+    // TODO: Check if this is still needed
+    // Double e11Sqrd, e22Sqrd, e12Sqrd;
     //Strategy 0
     //if(Sx<=5.5e-3)
     //  elastFactor = ((64.516*Sx) + 0.6452);

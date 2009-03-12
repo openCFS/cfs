@@ -32,7 +32,7 @@ namespace CoupledField
     solDeriv2_ = NULL;
 
     // We generate the object, so we will delete it
-    matDataType_ = REAL;
+    matDataType_ = Global::REAL;
     delMatDataAtEnd_ = false;
 
     baseType_ = NOTYPE;

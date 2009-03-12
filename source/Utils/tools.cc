@@ -7,7 +7,7 @@
 #include <math.h>
 
 #include "tools.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 #include "Elements/elements_header.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
@@ -17,37 +17,10 @@
 
 namespace CoupledField {
 
-  // =======================
-  //   Issue Error Message
-  // =======================
-  void Error( const Char * Text, const Char * const filename,
-              const UInt numline ) {
-    Info->Error( Text, filename, numline );
-  }
-
-  // ====================================================
-  //   Issue Error Message (using global string stream)
-  // ====================================================
-  void Error( const Char *const filename, const UInt numline ) {
-
-    // Obtain error message and clear string stream
-    std::string errMsg = "";
-    if ( error != NULL ) {
-      errMsg = error->str();
-      error->str( "" );
-    }
-    else {
-      errMsg = "<Caller did not provide error description>";
-    }
-
-    // Delegate work to WriteInfo::Error()
-    Info->Error( errMsg.c_str(), filename, numline );
-  }
-
   // =========================
   //   Issue Warning Message
   // =========================
-  void Warning( const Char *Text, const Char * const filename,
+  void Warning( const char *Text, const char * const filename,
                 const UInt numline ) {
     Info->Warning( Text, filename, numline );
     //std::cerr << "\033[31mWARNING:\033[0m " << Text;
@@ -56,7 +29,7 @@ namespace CoupledField {
   // ======================================================
   //   Issue Warning Message (using global string stream)
   // ======================================================
-  void Warning( const Char *const filename, const UInt numline ) {
+  void Warning( const char *const filename, const UInt numline ) {
 
     // Obtain error message and clear string stream
     std::string warnMsg = "";
@@ -76,7 +49,7 @@ namespace CoupledField {
   //   Split a string into a list of strings
   // =========================================
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
-                        const Char delimiter ) {
+                        const char delimiter ) {
 
     UInt lastDelim = 0;
     strVec.Clear();
@@ -163,7 +136,6 @@ namespace CoupledField {
     return *this;
   }
 
-
   Point& Point::operator/=(const Double factor) {
     for (UInt i=0; i<3; i++)
       data[i] /= factor;
@@ -180,7 +152,7 @@ namespace CoupledField {
   Double dist_Mat(Matrix<Double> a) {
     Double preSqrt=0;
     UInt i;
-    UInt k=a.GetSizeRow();
+    UInt k=a.GetNumRows();
     // std::cout<<"tools.cc:size of matrix: "<<k<<std::endl;
     for (i=0; i<k; i++)
       preSqrt+= (a[i][0]-a[i][1]) * (a[i][0]-a[i][1]);
@@ -357,32 +329,32 @@ namespace CoupledField {
   void Assign(Matrix<Double>& target, const Matrix<Double>& other, Double factor)
   {
     target.Resize(other);
-    for(UInt r = 0; r < other.GetSizeRow(); r++)
-      for(UInt c = 0; c < other.GetSizeCol(); c++)
+    for(UInt r = 0; r < other.GetNumRows(); r++)
+      for(UInt c = 0; c < other.GetNumCols(); c++)
         target[r][c] = factor * other[r][c];
   }
 
   void Assign(Matrix<Complex>& target, const Matrix<Complex>& other, Complex factor)
   {
     target.Resize(other);
-    for(UInt r = 0; r < other.GetSizeRow(); r++)
-      for(UInt c = 0; c < other.GetSizeCol(); c++)
+    for(UInt r = 0; r < other.GetNumRows(); r++)
+      for(UInt c = 0; c < other.GetNumCols(); c++)
         target[r][c] = factor * other[r][c];
   }
 
   void Assign(Matrix<Complex>& target, const Matrix<Double>& other, Complex factor)
   {
-    target.Resize(other.GetSizeRow(), other.GetSizeCol());
-    for(UInt r = 0; r < other.GetSizeRow(); r++)
-      for(UInt c = 0; c < other.GetSizeCol(); c++)
+    target.Resize(other.GetNumRows(), other.GetNumCols());
+    for(UInt r = 0; r < other.GetNumRows(); r++)
+      for(UInt c = 0; c < other.GetNumCols(); c++)
         target[r][c] = factor * other[r][c];
   }
 
   void Assign(Matrix<Complex>& target, const Matrix<Double>& other, Double factor)
   {
-    target.Resize(other.GetSizeRow(), other.GetSizeCol());
-    for(UInt r = 0; r < other.GetSizeRow(); r++)
-      for(UInt c = 0; c < other.GetSizeCol(); c++)
+    target.Resize(other.GetNumRows(), other.GetNumCols());
+    for(UInt r = 0; r < other.GetNumRows(); r++)
+      for(UInt c = 0; c < other.GetNumCols(); c++)
         target[r][c] = factor * other[r][c];
   }
 

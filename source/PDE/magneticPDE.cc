@@ -13,8 +13,12 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
 #include "Forms/curlfieldop.hh"
-#include "Forms/forms_header.hh"
+#include "Forms/curlCurlNodeInt.hh"
+#include "Forms/nLincurlCurlNodeInt.hh"
+#include "Forms/laplaceInt.hh"
 #include "Forms/linElecInt.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/massInt.hh"
 #include "trapezoidal.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
@@ -182,7 +186,7 @@ namespace CoupledField {
     // set nonlinearity flag only, if any region references
     // a nonlinearity at all
     if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = TRUE;
+      nonLin_ = true;
     }
     
     // Here we need in addition the nonLinMethod_ for the definition
@@ -228,7 +232,7 @@ namespace CoupledField {
         if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
 
           if (is3d_ ) {
-            Error("Magnetics with hysteresis in 3D not supported", __FILE__, __LINE__ );
+            EXCEPTION("Magnetics with hysteresis in 3D not supported");
           }
           
           // hysteresis modeling in this region
@@ -326,7 +330,7 @@ namespace CoupledField {
 
       // Mass matrix
       Double conductivity;
-      materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+      materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
 
       BaseForm *bilinear_mass;
       if ( is3d_ ) {
@@ -443,7 +447,7 @@ namespace CoupledField {
           
           // Get reluctivity for this domain and perform consistency check
           Double reluctivity;
-          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
 
           std::string fncname = "none";
           LinearForm *permSource;
@@ -533,7 +537,7 @@ namespace CoupledField {
 
     case MAG_HFIELD:
       if( isComplex_ ) {
-        Error("H-field computation just for static and transient analysis", __FILE__, __LINE__);
+        EXCEPTION("H-field computation just for static and transient analysis");
       } else {
         CalcHfield( res );
       }
@@ -605,7 +609,7 @@ namespace CoupledField {
 
     Vector<Double> totalForce;
     ForceOpVWP_->CalcNodeForce(actVal, totalForce);
-    std::cerr << "totalForce (VWP) is:" << totalForce.Serialize() << std::endl;
+    std::cerr << "totalForce (VWP) is:" << totalForce.ToString() << std::endl;
 
   }
 
@@ -698,7 +702,7 @@ namespace CoupledField {
       // get conductivity of region
       Double conductivity;
       materials_[regionIt.GetRegion()]
-        ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+        ->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
       
       // iterate over elements
       for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
@@ -771,7 +775,7 @@ namespace CoupledField {
       
       Double reluctivity;
       materials_[regionIt.GetRegion()]
-        ->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+        ->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
       
       // Create stiffness integrator
       if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
@@ -1151,7 +1155,7 @@ namespace CoupledField {
     results_.Push_back( res1 );
     availResults_.insert( res1 );
 
-    if (is3d_ & analysistype_ != STATIC ) {
+    if (is3d_ && analysistype_ != STATIC ) {
       // === MAGNETIC SCALAR POTENTIAL ===
       shared_ptr<ResultInfo> res2(new ResultInfo);
       res2->resultType = ELEC_POTENTIAL;
@@ -1480,12 +1484,11 @@ namespace CoupledField {
       std::cout << "post: hfield: \n " << field << std::endl;
     }
     else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
-      Error( "CalcHfieldAtIP for nonlinear BH curve not implemented",
-             __FILE__, __LINE__ );
+      EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");
     }
     else {
       Double reluctivity;
-      materials_[actRegion]->GetScalar( reluctivity, MAG_RELUCTIVITY, REAL);
+      materials_[actRegion]->GetScalar( reluctivity, MAG_RELUCTIVITY, Global::REAL);
       field *= reluctivity;
     }
     
@@ -1505,7 +1508,7 @@ namespace CoupledField {
      // Get the right material parameter for current element
     RegionIdType actRegionId = it.GetElem()->regionId;
     materials_[actRegionId]
-      ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+      ->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
     BaseFE * ptEl = it.GetElem()->ptElem;
     
     
@@ -1633,7 +1636,7 @@ namespace CoupledField {
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes = NULL;
-    CFSVector * values = NULL;
+    SingleVector * values = NULL;
     UInt forcesCount = 0;
 
     // at first, check if this PDE is iterative coupled
@@ -1680,7 +1683,7 @@ namespace CoupledField {
                         const StdVector<RegionIdType> regionIds,
                         const std::map<UInt, UInt> & nodeNumPos ) {
        
-    force.Init(0.0);
+    force.Init();
     Vector<TYPE> fluxAtIp(dim_), elemForce, fAtIp, jAtIp;
     Matrix<Double> ptCoord;
     std::map<UInt, UInt>::const_iterator itPosEnd = nodeNumPos.end();
@@ -1695,13 +1698,11 @@ namespace CoupledField {
             << "' was not found in magneticPDE" );
       }
 
-      RegionIdType actRegionId = subdoms_[sdIndex] ;
-      Double conductivity;
-      materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-
       // Check if this region is a coil
+      RegionIdType actRegionId = subdoms_[sdIndex] ;
       Integer coilIndex = coilRegionId_.Find(actRegionId);
-
+      Double conductivity;
+      materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
       ElemList actSDList(ptgrid_);
       actSDList.SetRegion(actRegionId);
 

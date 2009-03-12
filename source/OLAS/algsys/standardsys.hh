@@ -8,14 +8,14 @@
 #include <set>
 #include <map>
 
-#include "algsys/basesystem.hh"
+#include "OLAS/algsys/basesystem.hh"
 
-namespace OLAS 
+namespace CoupledField 
 {
   // Forward Declarations of classes
   class BaseStdPrecond;
   class StdMatrix;
-  class SparseVector;
+  class SingleVector;
   class PatternPool;
 
 
@@ -155,8 +155,8 @@ namespace OLAS
     //! \return Number of converged eigenvalues
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
-    UInt CalcEigenFrequencies( const Double* &frequencies,
-                               const Double* &err );
+    void CalcEigenFrequencies( Vector<Double>& frequencies,
+                               Vector<Double>& err );
 
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
 
@@ -172,8 +172,8 @@ namespace OLAS
     //! \return Number of converged eigenvalues
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
-    UInt CalcEigenFrequencies( const Complex* &frequencies,
-                               const Double* &err );
+    void CalcEigenFrequencies( Vector<Complex>& frequencies,
+                               Vector<Double>& err );
     
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
@@ -227,14 +227,7 @@ namespace OLAS
     //! \param newRHS Pointer to new right-hand-side values
     //! \note The values of newRHS are copied, so the pointer to newRHS
     //! can be changed afterwards!
-    void InitRHS(const Double *  newRHS);
-    
-    /** @see BaseSystem::InitRHS(const Vector<Complex>*) */
-    void InitRHS( const Vector<Complex>* newRHS );
-
-    /** @see BaseSystem::InitRHS(const Vector<Double>*) */
-    void InitRHS( const Vector<Double>* newRHS );
-
+    void InitRHS( const BaseVector& newRHS );
     
     //! Set the solution vector of the specified PDE to zero
     
@@ -252,9 +245,10 @@ namespace OLAS
     //! \param newSol Pointer to new solution values
     //! \note The values of newSol are copied, so the pointer to newSol
     //! can be changed afterwards!
-    void InitSol(const Double *  newSol, const UInt size);
+    void InitSol( const BaseVector& newSol );
     
     
+    //@{
     //! Assemble an element matrix into the global one
 
     //! This methods assembles the given element matrix into a specified
@@ -288,15 +282,25 @@ namespace OLAS
     //!       have no clear concept how to administer this information within
     //!       CFS++ up to now. In the case of a diagonal matrix block, we
     //!       re-set this to false before passing the flag on to assemble.
-    void SetElementMatrix( FEMatrixType matrix_id, Double * elemmat, 
+    void SetElementMatrix( FEMatrixType matrix_id, 
+                           const Matrix<Double>& elemmat,
                            PdeIdType identifierPDE1,
-                           Integer *eqnNrs1,
-                           Integer numEqn1,
+                           const StdVector<Integer>& eqnNrs1,
                            PdeIdType identifierPDE2,
-                           Integer *eqnNrs2,
-                           Integer numEqn2,
+                           const StdVector<Integer>& eqnNrs2,
                            bool setCounterPart );
+                           
+    void SetElementMatrix( FEMatrixType matrix_id, 
+                           const Matrix<Complex>& elemmat,
+                           PdeIdType identifierPDE1,
+                           const StdVector<Integer>& eqnNrs1,
+                           PdeIdType identifierPDE2,
+                           const StdVector<Integer>& eqnNrs2,
+                           bool setCounterPart );
+    //@}
+                           
     
+    //@{
     //! Assemble the local rhs vector to the global one
 
     //! This method adds the entries of the element right hand side to the
@@ -308,8 +312,15 @@ namespace OLAS
     //! \param eqnNrs  equation numbers (1-based) of the element rhs
     //!                w.r.t. sub-graph associated with idPDE
     //! \param numEqn  length of eqnNrs array
-    void SetElementRHS( Double *elemRHS, const PdeIdType idPDE,
-                        Integer *eqnNrs, UInt numEqn );
+    void SetElementRHS( const Vector<Double>& elemRHS, 
+                        const PdeIdType idPDE,
+                        StdVector<Integer>& eqnNrs );
+                        
+    void SetElementRHS( const Vector<Complex>& elemRHS, 
+                        const PdeIdType idPDE,
+                        StdVector<Integer>& eqnNrs );
+    //@}
+                        
 
     //@{
     //! Adds a value to a given global rhs entry
@@ -337,8 +348,9 @@ namespace OLAS
     //! \param matrix_id type of finite element matrix (STIFFNESS, MASS, ...)
     //!                  which gets multiplied
     //! \param fup array with vector entries, which get multiplied
-    void UpdateRHS(FEMatrixType matrix_id, Double * fup);
+    void UpdateRHS( FEMatrixType matrix_id, const BaseVector& fup );
     
+    //@{
     //! Add a value to a diagonal matrix entry
 
     //! This method allows to directly add a value to the value of an entry
@@ -355,10 +367,17 @@ namespace OLAS
     //!                 real entries, the first array value is used, in the
     //!                 case of complex entries the first entry is used as
     //!                 real and the second as imaginary part
-    void AddToDiagMatrixEntry( FEMatrixType matrixID, const PdeIdType pdeID,
-                               Integer eqnNum, Double *val );
-
-
+    virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
+                                       const PdeIdType pdeID,
+                                       Integer eqnNum,
+                                       Double val );
+                                       
+    virtual void AddToDiagMatrixEntry( FEMatrixType matrixID,
+                                       const PdeIdType pdeID,
+                                       Integer eqnNum,
+                                       Complex val );
+    //@}
+ 
     //@{
     //! Get value of specific matrix entry
 
@@ -380,7 +399,7 @@ namespace OLAS
                          const PdeIdType colPdeID,
                          Integer eqnNum2, 
                          Double & val );
-
+                         
     void GetMatrixEntry( FEMatrixType matrixID,
                          const PdeIdType rowPdeID,
                          Integer rowEqnNum, 
@@ -466,7 +485,6 @@ namespace OLAS
     //! the solver have to be set up again.
     void BuildInDirichlet();
 
-    //@{
     //! Return the pointer to the current solution of a PDE
 
     //! This method passes the current solution of one given PDE
@@ -480,16 +498,10 @@ namespace OLAS
     //! 
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    Integer GetSolutionVal( Double* &ptSol, 
-                            const PdeIdType identifierPDE 
-                            = NO_PDE_ID );
- 
-    Integer GetSolutionVal( Complex* &ptSol, 
-                            const PdeIdType identifierPDE 
-                            = NO_PDE_ID );
-    //@}
-    
-    //@{
+    void GetSolutionVal( SingleVector& ptSol,
+                         const PdeIdType identifierPDE
+                         = NO_PDE_ID );
+                            
     //! Return the pointer to the current rhs value of a PDE
     
     //! This method passes the current rhs as a pointer to buffer with
@@ -501,13 +513,9 @@ namespace OLAS
     //!
     //! \note The return buffer is guaranteed to retain the current rhs
     //! until the next call of this method!
-    Integer GetRHSVal( Double* &ptRhs, 
-                       const PdeIdType identifierPDE 
-                       = NO_PDE_ID);
-  
-    Integer GetRHSVal( Complex* &ptRhs, 
-                       const PdeIdType identifierPDE 
-                       = NO_PDE_ID);
+    void GetRHSVal( SingleVector &ptRhs,
+                    const PdeIdType identifierPDE
+                    = NO_PDE_ID );
     //@}
 
 
@@ -531,20 +539,6 @@ namespace OLAS
                           const PdeIdType identifierPDE1,
                           const PdeIdType identifierPDE2 = NO_PDE_ID );
 
-    //! Set block size of a matrix entry
-
-    //! The number of degrees of freedom associated with a single equation
-    //! number depends on the type of equation numbering in CFS. In the
-    //! simple case of a scalar numbering each equation number represents
-    //! precisely one unknown. If dof blocking is used the matrices in OLAS
-    //! will be composed of tiny submatrices and the block size will be
-    //! larger than one.
-    //! \param identifier unique identifier for a PDE registered with the
-    //!                   graph manager
-    //! \param bs         number of unknonws per equation number
-    //!                   (1 = scalar matrix, > 1 = block matrix)
-    void SetBlockSize( const PdeIdType identifier, const UInt bs );
-
     //@}
 
   
@@ -564,8 +558,8 @@ namespace OLAS
     //! \param type     specifies matrix to be exported
     //! \param filename name of output file
     //! \param comment  string to be inserted into file header (optional)
-    void Export( FEMatrixType type, Char *filename,
-                 Char *comment = NULL ) const;
+    void Export( FEMatrixType type, char *filename,
+                 char *comment = NULL ) const;
 
     //! Print the specified matrix into the .las-file
 
@@ -579,8 +573,8 @@ namespace OLAS
     void RemoveIDBCInfoFromMatrix() const; 
 
     StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_[type];}
-    SparseVector *GetSolVec(){return sol_;}
-    SparseVector *GetRhsVec(){return rhs_;}
+    SingleVector *GetSolVec(){return sol_;}
+    SingleVector *GetRhsVec(){return rhs_;}
 
     //@}
   
@@ -595,10 +589,10 @@ namespace OLAS
     StdMatrix** sysmat_;
 
     //! Pointer to solution vector
-    SparseVector *sol_;
+    SingleVector *sol_;
 
     //! Pointer to right-hand side vector
-    SparseVector *rhs_;
+    SingleVector *rhs_;
 
     //! Auxilliary vector for passing solution back to CFS++
 
@@ -608,13 +602,13 @@ namespace OLAS
     //!       IDBC handling
     //! \todo Adapt handling of solution vector in StoreSolutions classes
     //!       of CFS++ to administer IDBCs itself
-    SparseVector *solComm_;
+    SingleVector *solComm_;
 
     //! Buffer for storing the eigenvalues of the system
-    SparseVector *eigenValues_;
+    SingleVector *eigenValues_;
 
     //! Buffer for storing the error bounds of the eigenvalues
-    SparseVector *eigenValError_;
+    SingleVector *eigenValError_;
 
     //! Pointer to the preconditioner object
     BaseStdPrecond *precond_; 

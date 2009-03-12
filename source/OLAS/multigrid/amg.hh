@@ -10,7 +10,7 @@
 
 #include "multigrid/hierarchylevel.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! AMG solver or preconditioner
@@ -101,7 +101,7 @@ namespace OLAS {
  *        <td>alpha</td>
  *        <td>0.15</td>
  *        <td>Setup phase, coarsening. The "alpha" in the classical
- *            Ruge-Stüben setup phase. It controls the judgement
+ *            Ruge-Stï¿½ben setup phase. It controls the judgement
  *            whether a dependency is strong or weak: \f$ (i,j) \in S
  *            \Leftrightarrow  d(i,j) \ge \alpha \f$, with the dependency
  *            strength of point i from point j \f$ \displaystyle d(i,j)
@@ -242,6 +242,6 @@ class AMGSolver
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_AMG_HH

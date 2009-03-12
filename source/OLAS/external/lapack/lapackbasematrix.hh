@@ -5,10 +5,9 @@
 #ifndef OLAS_LAPACKBASEMATRIX_HH
 #define OLAS_LAPACKBASEMATRIX_HH
 
-#include "matvec/matvec.hh"
-#include "utils/utils.hh"
+#include "MatVec/stdmatrix.hh"
 
-namespace OLAS {
+namespace CoupledField {
   
   //! This is the base class for LAPACK matrices in OLAS.
 
@@ -42,6 +41,14 @@ namespace OLAS {
     //   context of a LAPACK Matrix.
     // ************************************************************************
 
+    using BaseMatrix::Mult;
+    using BaseMatrix::MultT;
+    using BaseMatrix::MultAdd;
+    using BaseMatrix::MultTAdd;
+    using BaseMatrix::MultSub;
+    using BaseMatrix::CompRes;
+    using BaseMatrix::Add;
+
     //@{
     //! Dummy implementation
 
@@ -49,32 +56,26 @@ namespace OLAS {
     //! Since these types of matrices are intended to be used in conjunction
     //! with the direct methods LAPACK offers it is unclear, whether this
     //! functionality will be needed in OLAS.
-    void Mult(const SparseVector& mvec, SparseVector& rvec) const {
-      Error( "Mult not implemented by any LAPACK Matrix", __FILE__, __LINE__ );
+    void Mult(const SingleVector& mvec, SingleVector& rvec) const {
+      EXCEPTION( "Mult not implemented by any LAPACK Matrix" );
     }
-    void MultT(const SparseVector& mvec, SparseVector& rvec) const {
-      Error( "MultT not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+    void MultT(const SingleVector& mvec, SingleVector& rvec) const {
+      EXCEPTION( "MultT not implemented by any LAPACK Matrix" );
     }
-    void MultAdd( const SparseVector& mvec, SparseVector& rvec ) const {
-      Error( "MultAdd not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+    void MultAdd( const SingleVector& mvec, SingleVector& rvec ) const {
+      EXCEPTION( "MultAdd not implemented by any LAPACK Matrix" );
     }
-    void MultTAdd( const SparseVector& mvec, SparseVector& rvec ) const {
-      Error( "MultTAdd not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+    void MultTAdd( const SingleVector& mvec, SingleVector& rvec ) const {
+      EXCEPTION( "MultTAdd not implemented by any LAPACK Matrix" );
     }
-    void MultSub( const SparseVector& mvec, SparseVector& rvec ) const {
-      Error( "MultSub not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+    void MultSub( const SingleVector& mvec, SingleVector& rvec ) const {
+      EXCEPTION( "MultSub not implemented by any LAPACK Matrix" );
     }
-    void CompRes( SparseVector &r, const SparseVector &x, const SparseVector& b ) const{
-      Error( "CompRes not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+    void CompRes( SingleVector &r, const SingleVector &x, const SingleVector& b ) const{
+      EXCEPTION( "CompRes not implemented by any LAPACK Matrix" );
     }
     Double GetMaxDiag() const {
-      Error( "GetMaxDiag not implemented by any LAPACK Matrix", __FILE__,
-	     __LINE__ );
+      EXCEPTION( "GetMaxDiag not implemented by any LAPACK Matrix" );
       return 0;
     }
     //@}
@@ -88,13 +89,13 @@ namespace OLAS {
     //   Error( "Export not yet implemented for any LAPACK Matrix", __FILE__,
     //          __LINE__);
     // }
-    void Print( std::ostream &os ) const {
-      Warning( "Print not yet implemented for any LAPACK Matrix", __FILE__,
-	       __LINE__);
+    std::string ToString( char colSeparator = ' ',
+                          char rowSeparator = '\n' ) const {
+      return "LapackBaseMatrix: Print not yet implemented for any LAPACK Matrix";
     }
+
     void Add( const Double a, const StdMatrix& mat ) {
-      Error( "Add not yet implemented for any LAPACK Matrix", __FILE__,
-	     __LINE__);
+      EXCEPTION( "Add not yet implemented for any LAPACK Matrix" );
     }
     //@}
 

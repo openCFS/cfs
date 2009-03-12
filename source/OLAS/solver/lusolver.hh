@@ -5,12 +5,14 @@
 #ifndef LUSOLVER_HH
 #define LUSOLVER_HH
 
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "utils/math/croutlu.hh"
-#include "utils/math/iterativerefinement.hh"
+#include <def_expl_templ_inst.hh>
 
-namespace OLAS {
+#include "OLAS/utils/math/croutlu.hh"
+#include "OLAS/utils/math/iterativerefinement.hh"
+
+#include "OLAS/solver/basesolver.hh"
+
+namespace CoupledField {
 
   //! This class implements a sparse direct solver
 
@@ -124,18 +126,6 @@ namespace OLAS {
       return LU_SOLVER;
     }
 
-    //! Method to force instantiation of public member functions
-
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateSolverObject() will
-    //! make a pseudo call to InstantiatePublicMethods() in order to force the
-    //! compiler to instantiate all public methods of a templated solver class.
-    //! The former method in turn calls this method. We use it to force
-    //! instantiation of the public methods offered in addition to the ones
-    //! defined in the BaseSolver class. Currently this is only the
-    //! ExportILUFactorisation() method inherited from the CroutLU class.
-    void InstantiateAdditionalPublicMethods( BaseMatrix &sysMat );
-
   private:
 
     //! Default constructor
@@ -182,5 +172,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "lusolver.cc"
+#endif
 
 #endif

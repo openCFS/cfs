@@ -249,3 +249,5 @@ void gmvrayread_data(void);
   void fillcellinfo(long nc, long *facecell1, long *facecell2);
   int chk_rayend(FILE *fin);
 }
+
+#endif

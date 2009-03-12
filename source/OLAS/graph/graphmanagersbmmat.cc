@@ -2,12 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "graph/graphmanagersbmmat.hh"
-
 #include <iterator>
 #include <iomanip>
 
-namespace OLAS {
+#include "OLAS/graph/graphmanagersbmmat.hh"
+
+namespace CoupledField {
 
 
   // ===============
@@ -21,7 +21,6 @@ namespace OLAS {
     isCoupled_           = NULL;
     numLastFreeDof_      = NULL;
     numEqn_              = NULL;
-    newOrdering_         = NULL;
 
     reorderingDone_      = false;
     registrationDone_    = false;
@@ -42,35 +41,34 @@ namespace OLAS {
     // were re-set to NULL and if they were not claimed, it is our
     // responsibility to delete then now.
     for ( UInt i = 1; i <= numPDEs_; i++ ) {
-      if ( newOrdering_[i] != NULL ) {
-        (*error) << "GraphManagerSBMMat::~GraphManagerSBMMat: "
+      if ( !newOrdering_[i].GetSize() ) {
+        EXCEPTION("GraphManagerSBMMat::~GraphManagerSBMMat: "
                  << "Nobody ever claimed the permutation vector for the "
                  << "PDE with identifier '" << i
-                 << "'! Assuming it's my task to de-allocate the memory!";
-        Error( __FILE__, __LINE__ );
+                 << "'! Assuming it's my task to de-allocate the memory!");
       }
       else {
-        DeleteArray( newOrdering_[i] );
+        newOrdering_[i].Resize(0);
       }
     }
-    DeleteArray( newOrdering_ );
+    newOrdering_.Resize(0);
 
     // Delete the graph objects
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graph_[i];
     }
-    DeleteArray( graph_ );
+    DELETEARRAY( graph_ );
 
     // Delete the IDBC graph objects
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graphIDBC_[i];
     }
-    DeleteArray( graphIDBC_ );
+    DELETEARRAY( graphIDBC_ );
 
     // Delete remaining arrays
-    DeleteArray( numLastFreeDof_ );
-    DeleteArray( numEqn_ );
-    DeleteArray( isCoupled_ );
+    DELETEARRAY( numLastFreeDof_ );
+    DELETEARRAY( numEqn_ );
+    DELETEARRAY( isCoupled_ );
   }
 
 
@@ -84,20 +82,20 @@ namespace OLAS {
     numPDEs_ = numPDEs;
 
     // ... and can build the empty graph pointer matrix
-    NewArray( graph_, BaseGraph*, numPDEs_ * numPDEs_ );
+    NEWARRAY( graph_, BaseGraph*, numPDEs_ * numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       graph_[i] = NULL;
     }
 
     // ... and the empty IDBC graph array
-    NewArray( graphIDBC_, IDBC_Graph*, numPDEs_ * numPDEs_ );
+    NEWARRAY( graphIDBC_, IDBC_Graph*, numPDEs_ * numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       graphIDBC_[i] = NULL;
     }
 
     // Allocate memory to store PDE specific information
-    NewArray( numLastFreeDof_, UInt, numPDEs_ );
-    NewArray( numEqn_        , UInt, numPDEs_ );
+    NEWARRAY( numLastFreeDof_, UInt, numPDEs_ );
+    NEWARRAY( numEqn_        , UInt, numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_; i++ ) {
       numLastFreeDof_[i] = 0;
       numEqn_[i] = 0;
@@ -105,13 +103,13 @@ namespace OLAS {
 
     // Allocate memory to store the permutation vectors for the reordering
     // of the unknowns of each PDE
-    NewArray( newOrdering_, Integer*, numPDEs_ );
+    newOrdering_.Resize( numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_; i++ ) {
-      newOrdering_[i] = NULL;
+      newOrdering_[i].Resize(0);
     }
 
     // Setup empty array for coupling flags
-    NewArray( isCoupled_, bool, numPDEs_ * numPDEs_ );
+    NEWARRAY( isCoupled_, bool, numPDEs_ * numPDEs_ );
     for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       isCoupled_[i] = false;
     }
@@ -142,25 +140,22 @@ namespace OLAS {
 
     // Be cautious
     if ( registrationDone_ == true ) {
-      (*error) << "Attempt to use RegisterPDE() after end of "
+      EXCEPTION("Attempt to use RegisterPDE() after end of "
                << "registration phase, i.e. after the first call to "
-               << "AssembleInit()!";
-      Error( __FILE__, __LINE__ );
+               << "AssembleInit()!");
     }
 
     // Step counter for the number of registered PDEs and check number
     numRegisteredPDEs_++;
     if ( numRegisteredPDEs_ > numPDEs_ ) {
-      (*error) << "GraphManagerSBMMat::RegisterPDE: You tried to "
+      EXCEPTION("GraphManagerSBMMat::RegisterPDE: You tried to "
                << "register a " << numRegisteredPDEs_ << "-th PDE "
                << "with id = '" << identifierPDE << "', but SetupInit "
-               << "specified only " << numPDEs_ << " to be expected!";
-      Error( __FILE__, __LINE__ );
+               << "specified only " << numPDEs_ << " to be expected!");
     }
-    if ( numRegisteredPDEs_ == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat::RegisterPDE: You tried to "
-               << "register a PDE, but identifier is NO_PDE_ID!";
-      Error( __FILE__, __LINE__ );
+    if ( identifierPDE == NO_PDE_ID ) {
+      EXCEPTION("GraphManagerSBMMat::RegisterPDE: You tried to "
+                << "register a PDE, but identifier is NO_PDE_ID!");
     }
 
     // Store info on number of unknowns and euqation numbers of this PDE
@@ -169,11 +164,10 @@ namespace OLAS {
 
     // Generate graph object for this PDE
     UInt idx = ComputeIndex( identifierPDE, NO_PDE_ID );
-    graph_[idx] = New BaseGraph( numLastFreeDof, numLastFreeDof, reorder );
+    graph_[idx] = new BaseGraph( numLastFreeDof, numLastFreeDof, reorder );
     if ( graph_[idx] == NULL ) {
-      (*error) << "Generation of graph object for PDE with identifier "
-               << identifierPDE << " failed!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Generation of graph object for PDE with identifier "
+               << identifierPDE << " failed!");
     }
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
@@ -187,7 +181,7 @@ namespace OLAS {
     // we need to allocate memory to store the resulting permutation
     // vector
     if ( reorder != NOREORDERING ) {
-      NewArray( newOrdering_[identifierPDE], Integer, numLastFreeDof );
+      newOrdering_[identifierPDE].Resize( numLastFreeDof );
     }
   }
 
@@ -202,9 +196,8 @@ namespace OLAS {
 
     // Perform a consistency check
     if ( idPDE1 == NO_PDE_ID || idPDE2 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat: Please specify two valid PDE "
-               << "identifiers!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat: Please specify two valid PDE "
+               << "identifiers!");
     }
 
     // Generate coupling graph and also transpose if necessary
@@ -224,10 +217,9 @@ namespace OLAS {
     // Check that all PDEs have finished their assembly. This is important
     // since we do not want to do a reordering for the coupling objects!
     if ( idPDE2 != idPDE1 && numAssembledPDEs_ != numPDEs_ ) {
-      (*error) << "GraphManagerSBMMat::AssembleInit: You are trying to "
+      EXCEPTION("GraphManagerSBMMat::AssembleInit: You are trying to "
                << "assemble a coupling object before assembling all PDEs! "
-               << "Naughty you!";
-      Error( __FILE__, __LINE__ );
+               << "Naughty you!");
     }
   }
 
@@ -245,16 +237,14 @@ namespace OLAS {
 
     // Perform a consistency check
     if ( idPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
-               << "AssembleInit is empty!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat: First PDE identifier passed to "
+               << "AssembleInit is empty!");
     }
     if ( graph_[idx] == NULL ) {
-      (*error) << "GraphManagerSBMMat::AssembleInit: "
-               << "Pointer to graph object = NULL! "
-               << "Did you call RegisterPDE() for all " << numPDEs_
-               << " PDEs?";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat::AssembleInit: "
+          << "Pointer to graph object = NULL! "
+          << "Did you call RegisterPDE() for all " << numPDEs_
+          << " PDEs?");
     }
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
@@ -282,7 +272,7 @@ namespace OLAS {
     else {
 
       // Finalise assembly of graph
-      graph_[idx]->FinaliseAssembly( newOrdering_[idPDE1] );
+      graph_[idx]->FinaliseAssembly( &newOrdering_[idPDE1] );
 
       // Increase counter of PDEs that have finalised their assembly
       numAssembledPDEs_++;
@@ -290,7 +280,7 @@ namespace OLAS {
 
     // Now finalise the assembly of the associated IDBC graph
     if ( graphIDBC_[idx] != NULL ) {
-      graphIDBC_[idx]->FinaliseAssembly( newOrdering_[idPDE1] );
+      graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[idPDE1] );
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
       (*debug) << " GraphManagerSBMMat:\n"
@@ -303,7 +293,7 @@ namespace OLAS {
     // Now finalise assembly of transpose IDBC graph
     idx = ComputeIndex( idPDE2, idPDE1 );
     if ( assemblingTranspose == true && graphIDBC_[idx] != NULL ) {
-      graphIDBC_[idx]->FinaliseAssembly( newOrdering_[idPDE2] );
+      graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[idPDE2] );
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
       (*debug) << " GraphManagerSBMMat:\n"
@@ -324,29 +314,27 @@ namespace OLAS {
   // =================
   //   SetElementPos
   // =================
-  void GraphManagerSBMMat::SetElementPos( const PdeIdType pdeID1,
-                                          Integer *connect1,
-                                          Integer length1,
-                                          const PdeIdType pdeID2,
-                                          Integer *connect2,
-                                          Integer length2,
+  void GraphManagerSBMMat::SetElementPos( const PdeIdType identifierPDE1,
+                                          const StdVector<Integer>& eqnNrs1,
+                                          const PdeIdType identifierPDE2,
+                                          const StdVector<Integer>& eqnNrs2,
                                           bool setCounterPart ) {
 
 
     // Compute index of graph in graph pointer matrix
-    UInt idx = ComputeIndex( pdeID1, pdeID2 );
+    UInt idx = ComputeIndex( identifierPDE1, identifierPDE2 );
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
 
     // Perform some consistency checks in debug mode only
-    if ( pdeID1 == NO_PDE_ID ) {
+    if ( identifierPDE1 == NO_PDE_ID ) {
       (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
                << "SetElementPos is empty!";
       Error( __FILE__, __LINE__ );
     }
-    else if ( pdeID1 > numPDEs_ ) {
+    else if ( identifierPDE1 > numPDEs_ ) {
       (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
-               << "SetElementPos is " << pdeID1
+               << "SetElementPos is " << identifierPDE1
                << " which exceeds the number of " << numPDEs_
                << " registered PDEs!";
       Error( __FILE__, __LINE__ );
@@ -377,14 +365,14 @@ namespace OLAS {
     //         boundary conditions and changing the sign of those fixed by
     //         constraints
     UInt aux;
-    for ( int i = 1; i <= length1; i++ ) {
-      aux = std::abs( (double) connect1[i] );
+    for ( UInt i = 0, length1 = eqnNrs1.GetSize(); i < length1; i++ ) {
+      aux = std::abs( eqnNrs1[i] );
       if ( aux > 0 ) {
-        if ( aux <= numLastFreeDof_[pdeID1] ) {
+        if ( aux <= numLastFreeDof_[identifierPDE1] ) {
           vertexList1_.push_back( aux );
         }
         else {
-          vertexList2_.push_back( aux - numLastFreeDof_[pdeID1] );
+          vertexList2_.push_back( aux - numLastFreeDof_[identifierPDE1] );
         }
       }
     }
@@ -392,11 +380,11 @@ namespace OLAS {
     // STEP 2: Split the second connect array into two edge lists, one for
     //         the graph and one for the IDBCgraph (which handles the dofs
     //         fixed by inhomogeneous Dirichlet boundary conditions)
-    for ( int i = 1; i <= length2; i++ ) {
-      aux = std::abs( (double) connect2[i] );
+    for ( UInt i = 0, length2 = eqnNrs2.GetSize(); i < length2; i++ ) {
+      aux = std::abs( eqnNrs2[i] );
       if ( aux > 0 ) {
-        if ( aux > numLastFreeDof_[pdeID2] ) {
-          edgeList2_.push_back( aux - numLastFreeDof_[pdeID2] );
+        if ( aux > numLastFreeDof_[identifierPDE2] ) {
+          edgeList2_.push_back( aux - numLastFreeDof_[identifierPDE2] );
         }
         else {
           edgeList1_.push_back( aux );
@@ -407,18 +395,18 @@ namespace OLAS {
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
     // output original connectivity
     (*debug) << "\n GraphManagerSBMMat::AdaptConnects\n"
-             << " idPDE1 = " << pdeID1 << '\n'
-             << " idPDE2 = " << pdeID2 << '\n'
-             << " numLastFreeDof1 = " << numLastFreeDof_[pdeID1] << '\n'
-             << " numLastFreeDof2 = " << numLastFreeDof_[pdeID2] << '\n';
+             << " idPDE1 = " << identifierPDE1 << '\n'
+             << " idPDE2 = " << identifierPDE2 << '\n'
+             << " numLastFreeDof1 = " << numLastFreeDof_[identifierPDE1] << '\n'
+             << " numLastFreeDof2 = " << numLastFreeDof_[identifierPDE2] << '\n';
     (*debug) << " connect1 ";
-    for ( UInt i = 1; i <= length1; i++ ) {
-      (*debug) << connect1[i] << " ";
+    for ( UInt i = 0; i < eqnNrs1.GetSize(); i++ ) {
+      (*debug) << eqnNrs1[i] << " ";
     }
     (*debug) << std::endl;
     (*debug) << " connect2 ";
-    for ( UInt i = 1; i <= length2; i++ ) {
-      (*debug) << connect2[i] << " ";
+    for ( UInt i = 0; i < eqnNrs2.GetSize(); i++ ) {
+      (*debug) << eqnNrs2[i] << " ";
     }
     (*debug) << std::endl;
 
@@ -445,7 +433,7 @@ namespace OLAS {
     (*debug) << std::endl;
 #endif
 
-    idx = ComputeIndex( pdeID1, pdeID2 );
+    idx = ComputeIndex( identifierPDE1, identifierPDE2 );
 
     // Insert information into graph for real dofs
     graph_[idx]->AddVertexNeighbours( vertexList1_, edgeList1_ );
@@ -454,9 +442,9 @@ namespace OLAS {
     graphIDBC_[idx]->AddVertexNeighbours( vertexList1_, edgeList2_ );
 
     // Check for assembly of counter part
-    if ( (pdeID1 != pdeID2) && setCounterPart == true ) {
+    if ( (identifierPDE1 != identifierPDE2) && setCounterPart == true ) {
 
-      idx = ComputeIndex( pdeID2, pdeID1 );
+      idx = ComputeIndex( identifierPDE2, identifierPDE1 );
 
       // Insert information into (transpose) graph for real dofs
       graph_[idx]->AddVertexNeighbours( edgeList1_, vertexList1_);
@@ -470,32 +458,27 @@ namespace OLAS {
   // =================
   //   GetReordering
   // =================
-  Integer* GraphManagerSBMMat::GetReordering( const PdeIdType identifier ) {
-
-
-    Integer *retVal = NULL;
+  void GraphManagerSBMMat::GetReordering( const PdeIdType identifier,
+                                          StdVector<UInt>& order) {
 
     // Small consistency check
-    if ( identifier > numPDEs_ ) {
-      (*error) << "GraphManagerSBMMat::GetReordering: "
+    if ( identifier > static_cast<Integer>(numPDEs_) ) {
+      EXCEPTION("GraphManagerSBMMat::GetReordering: "
                << "PDE with identifier '" << identifier << "' was not "
-               << "registered using RegisterPDE()!";
-      Error( __FILE__, __LINE__ );
+               << "registered using RegisterPDE()!");
     }
 
     // Test, whether we can return a re-ordering vector
     if ( reorderingDone_ == false ) {
-      (*error) << "GraphManagerSBMMat::GetReordering: "
+      EXCEPTION("GraphManagerSBMMat::GetReordering: "
                << "No reordering vector available since the graphs have not "
-               << "been reordered, yet!";
-      Error( __FILE__, __LINE__ );
+               << "been reordered, yet!");
     }
 
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
-    retVal = newOrdering_[identifier];
-    newOrdering_[identifier] = NULL;
-    return retVal;
+    order = newOrdering_[identifier];
+    newOrdering_[identifier].Resize(0);
   }
 
 
@@ -508,9 +491,8 @@ namespace OLAS {
 
     // Check consisteny
     if ( identifierPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat::GetGraph: Please specify at least one "
-               << "PDE identifier!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat::GetGraph: Please specify at least one "
+               << "PDE identifier!");
     }
 
     // Determine which graph we are looking for
@@ -518,11 +500,10 @@ namespace OLAS {
 
     // Check if a graph object was already created
     if ( graph_[idx] == NULL) {
-      (*error) << "GraphManagerSBMMat: There exists no graph "
+      EXCEPTION("GraphManagerSBMMat: There exists no graph "
                << "for the PDE identifier pair ( " << identifierPDE1
                << " , " << identifierPDE2
-               << ") which could be returned by the GetGraph() method.";
-      Error( __FILE__, __LINE__);
+               << ") which could be returned by the GetGraph() method.");
     }
 
     // Return pointer to the graph object
@@ -540,18 +521,16 @@ namespace OLAS {
 
     // Check consisteny
     if ( pdeID1 == NO_PDE_ID || pdeID2 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat::GetIDBCGraph: "
-               << "Please specify two valid PDE identifiers!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat::GetIDBCGraph: "
+               << "Please specify two valid PDE identifiers!");
     }
 
     UInt idx = ComputeIndex( pdeID1, pdeID2 );
 
     if ( graphIDBC_[idx] == NULL ) {
-      (*error) << "GraphManagerSBMMat::GetIDBCGraph: "
+      EXCEPTION("GraphManagerSBMMat::GetIDBCGraph: "
                << "An IDBC graph object for PDE pair (" << pdeID1
-               << " , " << pdeID2 << ") does not or not yet exist!";
-      Error( __FILE__, __LINE__ );
+               << " , " << pdeID2 << ") does not or not yet exist!");
     }
 
     // Return pointer to the IDBC graph object
@@ -704,22 +683,20 @@ namespace OLAS {
 
     // Safety check
     if ( graph_[idx] != NULL ) {
-      (*error) << "GraphManagerSBMMat::GenerateCouplingGraph:\n "
+      EXCEPTION("GraphManagerSBMMat::GenerateCouplingGraph:\n "
                << "A graph object for PDE pair (" << pdeID1
-               << " , " << pdeID2 << ") already exists!";
-      Error( __FILE__, __LINE__ );
+               << " , " << pdeID2 << ") already exists!");
     }
 
     // Generate graph object
-    graph_[idx] = New BaseGraph( numLastFreeDof_[pdeID1],
+    graph_[idx] = new BaseGraph( numLastFreeDof_[pdeID1],
                                  numLastFreeDof_[pdeID2], NOREORDERING );
 
     if ( graph_[idx] == NULL ) {
-      (*error) << " GraphManagerSBMMat: Generation of sub-graph "
+      EXCEPTION("GraphManagerSBMMat: Generation of sub-graph "
                << "for PDE pair (" << pdeID1 << " , " << pdeID2
                << ") and a " << numLastFreeDof_[pdeID1]
-               << " x " << numLastFreeDof_[pdeID2] << " matrix failed ";
-      Error( __FILE__, __LINE__ );
+               << " x " << numLastFreeDof_[pdeID2] << " matrix failed ");
     }
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
@@ -749,20 +726,18 @@ namespace OLAS {
 
       // Safety check
       if ( graphIDBC_[idx] != NULL ) {
-        (*error) << "GraphManagerSBMMat::GenerateIDBCGraph:\n "
+        EXCEPTION("GraphManagerSBMMat::GenerateIDBCGraph:\n "
                  << "An IDBC graph object for PDE pair (" << pdeID1
-                 << " , " << pdeID2 << ") already exists!";
-        Error( __FILE__, __LINE__ );
+                 << " , " << pdeID2 << ") already exists!");
       }
 
       // Generate IDBC graph object
-      graphIDBC_[idx] = New IDBC_Graph( numLastFreeDof_[pdeID1], fixedDofs );
+      graphIDBC_[idx] = new IDBC_Graph( numLastFreeDof_[pdeID1], fixedDofs );
       if ( graphIDBC_[idx] == NULL ) {
-        (*error) << " GraphManagerSBMMat: Generation of IDBC sub-graph "
+        EXCEPTION(" GraphManagerSBMMat: Generation of IDBC sub-graph "
                  << "for PDE pair (" << pdeID1 << " , " << pdeID2
                  << ") and a " << numLastFreeDof_[pdeID1]
-                 << " x " << fixedDofs << " matrix failed ";
-        Error( __FILE__, __LINE__ );
+                 << " x " << fixedDofs << " matrix failed ");
       }
     }
 

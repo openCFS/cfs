@@ -290,7 +290,7 @@ namespace CoupledField {
     
     // c) Create new Result and set is as output
     shared_ptr<BaseResult> newResult;
-    if( res->GetEntryType() == EntryType::DOUBLE ) {
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
       newResult = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       newResult = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -302,7 +302,7 @@ namespace CoupledField {
 
   void PostProcSum::Apply() {
     
-    if( output_->GetEntryType() == EntryType::DOUBLE ) {
+    if( output_->GetEntryType() == BaseMatrix::DOUBLE ) {
       CalcSum<Double>();
     } else {
       CalcSum<Complex>();
@@ -348,7 +348,7 @@ namespace CoupledField {
     
     // c) Create new Result and set is as output
     shared_ptr<BaseResult> newResult;
-    if( res->GetEntryType() == EntryType::DOUBLE ) {
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
       newResult = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       newResult = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -361,7 +361,7 @@ namespace CoupledField {
 
   void PostProcMax::Apply() {
     
-    if( output_->GetEntryType() == EntryType::DOUBLE ) {
+    if( output_->GetEntryType() == BaseMatrix::DOUBLE ) {
       CalcMax<Double>();
     } else {
       CalcMax<Complex>();
@@ -466,7 +466,7 @@ namespace CoupledField {
     rVals_.Init();
     rHandles_.Resize( dofNames_.GetSize() );
     // b) complex
-    if( input_->GetEntryType() == EntryType::COMPLEX ) {
+    if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
       iVals_.Resize( dofNames_.GetSize() );
       iVals_.Init();
       iHandles_.Resize( dofNames_.GetSize() );
@@ -478,13 +478,13 @@ namespace CoupledField {
       
       // obtain new handle
       rHandles_[outDof] = mParser_->GetNewHandle();
-      if( input_->GetEntryType() == EntryType::COMPLEX ) {
+      if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
         iHandles_[outDof] = mParser_->GetNewHandle();
       }
       
       // register all input dofs 
       // a) real case
-      if( input_->GetEntryType() == EntryType::DOUBLE ) {
+      if( input_->GetEntryType() == BaseMatrix::DOUBLE ) {
         for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
           mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof], 0 );      
         }
@@ -524,7 +524,7 @@ namespace CoupledField {
 
     // b) Create new result object and set it as output
     shared_ptr<BaseResult> newResult;
-    if( input_->GetEntryType() == EntryType::DOUBLE ) {
+    if( input_->GetEntryType() == BaseMatrix::DOUBLE ) {
       newResult = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       newResult = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -559,7 +559,7 @@ namespace CoupledField {
   
   void PostProcFunc::Apply( ) {
 
-    if( output_->GetEntryType() == EntryType::DOUBLE ) {
+    if( output_->GetEntryType() == BaseMatrix::DOUBLE ) {
       ApplyReal();
     } else {
       ApplyComplex();
@@ -717,7 +717,7 @@ namespace CoupledField {
     
     // c) Create new Result and set is as output
     shared_ptr<BaseResult> newResult;
-    if( res->GetEntryType() == EntryType::DOUBLE ) {
+    if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
       newResult = shared_ptr<BaseResult>(new Result<Double>() );
     } else {
       newResult = shared_ptr<BaseResult>( new Result<Complex>() );
@@ -742,7 +742,7 @@ namespace CoupledField {
 
   void PostProcLimit::Apply() {
     
-    if( output_->GetEntryType() == EntryType::DOUBLE ) {
+    if( output_->GetEntryType() == BaseMatrix::DOUBLE ) {
       CalcLimit<Double>();
     } else {
       CalcLimit<Complex>();

@@ -7,19 +7,18 @@
 
 
 #include <vector>
-#include "utils/utils.hh"
-#include "matvec/vector.hh"
-#include "algsys/baseentrymanipulator.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/algsys/baseentrymanipulator.hh"
 
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // Forward declaration of classes
   class StandardSystem;
   class StdMatrix;
-  class SparseVector;
+  class SingleVector;
   class BaseIDBC_Handler;
 
 
@@ -82,7 +81,7 @@ namespace OLAS {
                              Integer *connect2, UInt length2,
                              UInt limit1, UInt limit2 );
 
-    void SetElementRHS( SparseVector *rhs, Double *elemRHS,
+    void SetElementRHS( SingleVector *rhs, Double *elemRHS,
                         Integer *connect, UInt elemSize, UInt limit );
 
     //! Get an entry of a matrix (real)
@@ -119,41 +118,41 @@ namespace OLAS {
                          Integer eqnNr2, 
                          UInt limit1, UInt limit2, bool setCounterPart );
 
-    void SetNodeRHS( SparseVector *rhs, Double val, 
+    void SetNodeRHS( SingleVector *rhs, Double val, 
                      Integer node );
 
-    void SetNodeRHS( SparseVector *rhs, Complex val, 
+    void SetNodeRHS( SingleVector *rhs, Complex val, 
                      Integer node);
 
-    void InitSol( SparseVector *sol, const Double *newSol);
+    void InitSol( SingleVector *sol, const Double *newSol);
     
-    void InitRHS( SparseVector *rhs, const Double *newRHS);
+    void InitRHS( SingleVector *rhs, const Double *newRHS);
     
-    void InitRHS( SparseVector *rhs, const Vector<Double>* newRHS );
-                          
-    void UpdateRHS( SparseVector *rhs, StdMatrix *stdMat,
+    void InitRHS( SingleVector *rhs, const Vector<Double>* newRHS );
+
+    void UpdateRHS( SingleVector *rhs, StdMatrix *stdMat,
                     Double *fup );
 
-    void SetVectorEntry( SparseVector *vec, UInt index,
+    void SetVectorEntry( SingleVector *vec, UInt index,
                          Double &newVal );
 
-    void SetVectorEntry( SparseVector *vec, UInt index,
+    void SetVectorEntry( SingleVector *vec, UInt index,
                          Complex &newVal );
 
-    void GetSolutionVal( SparseVector *sol, Double* &ptSol, 
+    void GetSolutionVal( SingleVector *sol, Double* &ptSol, 
                          const PdeIdType identifierPDE = NO_PDE_ID );
 
-    void GetSolutionVal( SparseVector *sol, Complex* &ptSol,
+    void GetSolutionVal( SingleVector *sol, Complex* &ptSol,
                          const PdeIdType identifierPDE = NO_PDE_ID );
 
     void InvalidateSolBuffer() {
       solBufferIsValid_ = false;
     }
 
-    void GetRHSVal( SparseVector *rhs, Double* &ptRhs, 
+    void GetRHSVal( SingleVector *rhs, Double* &ptRhs, 
                     const PdeIdType identifierPDE = NO_PDE_ID);
 
-    void GetRHSVal( SparseVector *rhs, Complex* &ptRhs, 
+    void GetRHSVal( SingleVector *rhs, Complex* &ptRhs, 
                     const PdeIdType identifierPDE = NO_PDE_ID);
 
     void InvalidateRhsBuffer() {
@@ -167,26 +166,13 @@ namespace OLAS {
                             UInt numIDBC,
                             Double &penaltyTerm );
 
-    void AdaptRHSForIDBC( SparseVector &rhs,
+    void AdaptRHSForIDBC( SingleVector &rhs,
                           UInt *dirichletEQN,
-                          SparseVector &dirichletValue,
+                          SingleVector &dirichletValue,
                           Double &penaltyTerm,
                           UInt numIDBC );
 
   private:
-
-    //! return buffer for solution values
-    Vector<Double> solBuffer_;
-
-    //! return buffer for rhs values
-    Vector<Double> rhsBuffer_;
-
-    //@{
-    //! Auxilliary vector
-    std::vector<UInt> rowIndList_ ;
-    std::vector<UInt> colIndList1_;
-    std::vector<UInt> colIndList2_;
-    //@}
 
   };
 

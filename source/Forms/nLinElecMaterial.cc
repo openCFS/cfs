@@ -177,7 +177,7 @@ namespace CoupledField {
           }
           
           else
-            Error("The nonlinear parameter dependency is not known", __FILE__, __LINE__);
+            EXCEPTION("The nonlinear parameter dependency is not known");
         }
         else if (nonLinApproxType=="smoothSplines")
          {
@@ -190,12 +190,12 @@ namespace CoupledField {
            }
          }
        else
-         Error("The nonlinear approximation type is not known", __FILE__, __LINE__);
+         EXCEPTION("The nonlinear approximation type is not known");
      }
      else{
        std::cout<<"The data dependency you have chosen is " << nonLinDepend <<std::endl;
        std::cout<<"(If this is true, check if there is a blank in font of choice) " <<std::endl;
-       Error("Nonlinear dependency not implemented here", __FILE__, __LINE__);
+       EXCEPTION("Nonlinear dependency not implemented here");
      }
 
   }

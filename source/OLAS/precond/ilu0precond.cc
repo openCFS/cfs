@@ -2,10 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "MatVec/crs_matrix.hh"
 
-#include "precond/ilu0precond.hh"
+#include "OLAS/precond/ilu0precond.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // =====================================================
@@ -21,11 +22,11 @@ namespace OLAS {
     this->myReport_ = myReport;
    
     // Set size information
-    size_ = mat.GetNrows();
+    size_ = mat.GetNumRows();
 
     // Initialise internal data arrays
-    NewArray( diagPos_, UInt, size_ );
-    NewArray( ilu_rptr_, UInt, size_ + 1 );
+    NEWARRAY( diagPos_, UInt, size_ );
+    NEWARRAY( ilu_rptr_, UInt, size_ + 1 );
     ilu_cidx_ = NULL;
     ilu_data_ = NULL;
 
@@ -40,10 +41,10 @@ namespace OLAS {
 
 
     // De-allocate internal data arrays
-    DeleteArray( diagPos_  );
-    DeleteArray( ilu_rptr_ );
-    DeleteArray( ilu_cidx_ );
-    DeleteArray( ilu_data_ );
+    DELETEARRAY( diagPos_  );
+    DELETEARRAY( ilu_rptr_ );
+    DELETEARRAY( ilu_cidx_ );
+    DELETEARRAY( ilu_data_ );
 
   }
 
@@ -60,7 +61,7 @@ namespace OLAS {
     T_Mtype sum;
 
     // Step 1: Solve L * u~ = f by forward substitution
-    for ( i = 1; i <= size_; i++ ) {
+    for ( i = 0; i < size_; i++ ) {
       sum = 0.0;
       for ( j = ilu_rptr_[i]; j < diagPos_[i]; j++ ) {
 	sum += ilu_data_[j] * u[ilu_cidx_[j]];
@@ -69,13 +70,16 @@ namespace OLAS {
     }
   
     // Step 2: Solve U * u = u~ by backward substitution
-    for ( i = size_; i > 0; i-- ) {
+    i = size_;
+    while ( i > 0 ) {
+      i--;
       sum = 0.0;
       for ( j = diagPos_[i] + 1; j < ilu_rptr_[i+1]; j++ ) {
 	sum += ilu_data_[j] * u[ilu_cidx_[j]];
       }
       u[i] = (u[i] - sum) / ilu_data_[diagPos_[i]];
     }
+
   }
 
 
@@ -94,40 +98,40 @@ namespace OLAS {
     //    mat.ChangeLayout( CRS_Matrix<T>::LEX_DIAG_FIRST );
 
     // Get the data of the matrix. Note that we use only CRS here
-    const Integer *a_rptr = mat.GetRowPointer();
-    const Integer *a_cidx = mat.GetColPointer();
+    const UInt *a_rptr = mat.GetRowPointer();
+    const UInt *a_cidx = mat.GetColPointer();
     const T_Mtype *a_val  = mat.GetDataPointer();
 
     // How large is the matrix to be factored?
     UInt a_nnz  = mat.GetNnz();
-    UInt a_size = mat.GetNrows();
+    UInt a_size = mat.GetNumRows();
 
     // Allocate memory for the ILU entries
-    NewArray( ilu_data_, T_Mtype, a_nnz );
-    NewArray( ilu_cidx_, UInt, a_nnz );
+    NEWARRAY( ilu_data_, T_Mtype, a_nnz );
+    NEWARRAY( ilu_cidx_, UInt, a_nnz );
 
     //set ilu-matrix structure according to system matrx
 
     UInt row;
     // first we copy the row pointers since they remain the same
-    for ( row = 1; row <= a_size + 1; row++ ) {
+    for ( row = 0; row < a_size + 1; row++ ) {
       ilu_rptr_[row] = a_rptr[row];
     }
 
     //set data and column indices
-    for ( UInt i = 1; i <= a_nnz; i++) {
+    for ( UInt i = 0; i < a_nnz; i++) {
       ilu_data_[i] = a_val[i];
       ilu_cidx_[i] = a_cidx[i];
     }
 
     //set diagonal entries
     UInt istart, iend;
-    UInt counter = 1;
-    for ( UInt row = 1; row <= a_size; row++) {
+    UInt counter = 0;
+    for ( UInt row = 0; row < a_size; row++) {
       istart = ilu_rptr_[row];
       iend   = ilu_rptr_[row+1];
       for ( UInt k = istart; k < iend; k++) {
-        if ( a_cidx[k] == (int) row ) {
+        if ( a_cidx[k] == row ) {
           diagPos_[row] = counter;
         }
         counter++;
@@ -137,14 +141,14 @@ namespace OLAS {
   
     // now perform the actual factorization
  
-    Integer i,j,k, j1, j2, jj, jw, jrow;
+    UInt i,j,k, j1, j2, jj, jw, jrow;
     T_Mtype  tl;
 
     //get help array and set it to zero;
     Integer *help;
-    NewArray(help,Integer,a_size+1);
+    NEWARRAY(help,Integer,a_size+1);
   
-    for (i=1; i<=(int) a_size+1; i++)
+    for (i=0; i<a_size+1; i++)
       help[i] = 0;
 
     // ILU: see Saad book: pp. 296
@@ -155,9 +159,9 @@ namespace OLAS {
     Double  actDone;
 
     // k walks over all rows
-    for (k=1; k<=(int) a_size; k++) {
+    for (k=0; k<a_size; k++) {
       // Keep user informed on progress
-      actDone = (double)(k*100) / (double)size_;
+      actDone = (double)(k*100) / (double)(size_-1);
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
 	percentDone = (UInt)actDone;
@@ -175,7 +179,7 @@ namespace OLAS {
       //we now simultaneously treat L and U:
       
       // walk over all nonzero values before diagonal
-      for (j=j1; j<(int) diagPos_[k]; j++) {
+      for (j=j1; j< diagPos_[k]; j++) {
          
 	// jrow keeps track of the column index of the
 	// column at position j we are treating.
@@ -188,7 +192,7 @@ namespace OLAS {
 	ilu_data_[j] = tl;
 	
 	// jj selects entries in the row of the pivot element in U
-	for (jj=diagPos_[jrow]+1; jj<(int) ilu_rptr_[jrow+1]; jj++) {
+	for (jj=diagPos_[jrow]+1; jj < ilu_rptr_[jrow+1]; jj++) {
             
 	  // find out if there is an entry in row k under jj
 	  // and if so, where it is
@@ -216,9 +220,9 @@ namespace OLAS {
       // if the diagonal has not been found or is zero
       // we terminate Setup and state that it failed.
       if (jrow!=k || ilu_data_[j] == 0.0) {
-	(*cla) << "Zero pivot in ILU setup: row: " << jrow << " k=" << k
-	       << " val=" << ilu_data_[j] << std::endl;
-	Error("Zero pivot in ILU setup!",__FILE__,__LINE__);
+        (*cla) << "Zero pivot in ILU setup: row: " << jrow << " k=" << k
+	         << " val=" << ilu_data_[j] << std::endl;
+        EXCEPTION("Zero pivot in ILU setup!");
       }// 0 pivot
 
       //set help-array to zero
@@ -228,11 +232,17 @@ namespace OLAS {
     }//k
 
     (*cla) << "\n \n " << std::endl;
+    
+    DELETEARRAY(help);
 
-    DeleteArray(help);
 
   }// Setup for ILU
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILU0Precond<Double>;
+  template class ILU0Precond<Complex>;
+#endif
 
 }//namespace
 

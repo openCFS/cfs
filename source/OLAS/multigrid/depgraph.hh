@@ -10,7 +10,7 @@
 #include "matvec/crs_matrix.hh"
 #include "multigrid/ppflags.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 //! dependency graph for the AMG topology
@@ -425,6 +425,6 @@ class DependencyGraph
 };
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField
 
 #endif // OLAS_DEPGRAPH_HH

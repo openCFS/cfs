@@ -26,7 +26,7 @@ namespace CoupledField
     virtual ~RectangleFE();
 
     //! return FE-Type for CLA++
-    virtual FEType feType() { return ET_UNDEF;}
+    virtual Elem::FEType feType() { return Elem::UNDEF;}
 
     //! Calculates a measure for the geometric distortion of an element
     /*!

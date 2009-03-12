@@ -5,9 +5,11 @@
 #ifndef FILE_CFS_SIMOUTPUT_HH
 #define FILE_CFS_SIMOUTPUT_HH
 
+#include <set>
 
 #include "Utils/result.hh"
 #include "Domain/resultInfo.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField {
 

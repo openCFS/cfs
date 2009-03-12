@@ -20,7 +20,7 @@ namespace CoupledField
 
     Init();
   }
-  
+
   Line2FE::~Line2FE()
   {
   }
@@ -28,7 +28,7 @@ namespace CoupledField
   void Line2FE::Init()
   {
      NumNodes_ = 3;
-     
+
      CommonInit();
   }
 
@@ -36,14 +36,14 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =   -1;
     LCornerCoords_[0][1] =   1;
     LCornerCoords_[0][2] =  0;
 
   }
 
-  void Line2FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Line2FE :: CalcShapeFnc(Vector<Double> & Shape,
                                const Vector<Double> & LCoord,
                                const Elem*, UInt dof,
                                AnsatzFct::FctEntityType )
@@ -54,13 +54,13 @@ namespace CoupledField
     Shape[0] = 0.5*LCoord[0]*(LCoord[0]-1);
 
     Shape[2] = 1.0 - LCoord[0]*LCoord[0];
-  
+
     Shape[1] = 0.5*LCoord[0]*(LCoord[0]+1);
 
   }
 
 
-  void Line2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
+  void Line2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                                          const Vector<Double> & LCoord,
                                          const Elem*, UInt dof,
                                          AnsatzFct::FctEntityType )
@@ -70,7 +70,7 @@ namespace CoupledField
 
     LDeriv[0][0] = 0.5*(2*LCoord[0] - 1);
     LDeriv[2][0] = -2.0*LCoord[0];
-    LDeriv[1][0] = 0.5*(2*LCoord[0] + 1); 
+    LDeriv[1][0] = 0.5*(2*LCoord[0] + 1);
 
   }
 
@@ -83,8 +83,8 @@ namespace CoupledField
     Vector<Double> dummy;
     Double s;
     Double dist, dist1, fac;
-    UInt globDim = globalCoords.GetSizeRow();
-    
+    UInt globDim = globalCoords.GetNumRows();
+
     LOG_DBG(line2fe) << "WARNING: Line2FE just uses linear mapping "
                      << "for Global2LocalCoords!";
     // Get coordinates of the endpoints
@@ -109,10 +109,10 @@ namespace CoupledField
     dist = diff1.NormL2();
     fac = 1.0 / dist;
     diff1 *= fac;
-    
-    localCoords.Resize(Dim_, globalCoords.GetSizeCol());
-    
-    for(UInt i=0; i < globalCoords.GetSizeCol(); i++)
+
+    localCoords.Resize(Dim_, globalCoords.GetNumCols());
+
+    for(UInt i=0; i < globalCoords.GetNumCols(); i++)
     {
         for(UInt j = 0; j < globDim; j++)
         {

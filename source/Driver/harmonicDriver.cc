@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include <boost/lexical_cast.hpp>
+
 #include "Driver/harmonicDriver.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
@@ -17,7 +19,6 @@
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 
-#include <boost/lexical_cast.hpp>
 
 namespace CoupledField
 {
@@ -127,25 +128,39 @@ namespace CoupledField
 
     // We cannot have negative frequencies (Schema avoids this, if
     // validated parsing is used)
-    if(startFreq_ < 0.0 || stopFreq_ < 0.0)
-      EXCEPTION("Negative frequency (startFreq = " << startFreq_ << ", stopFreq = " << stopFreq_ << ")");
+    if ( startFreq_ < 0.0 || stopFreq_ < 0.0 ) {
+      EXCEPTION( "Found negative frequency (startFreq = "
+               << startFreq_ << ", stopFreq = " << stopFreq_
+               << ") in xml-file" );
+    }
 
     // We cannot have negative or zero frequency number (Schema avoids this,
     // if validated parsing is used)
-    if(numFreq_ < 1)
-      EXCEPTION("Invalid number of frequencies: " << numFreq_);
+    if ( numFreq_ < 1 ) {
+      EXCEPTION( "Found numFreq = " << numFreq_ << " in xml-File! "
+               << "This is probably not what you want!" );
+    }
 
     // If only one step, check that start and stop are equal
-    if(numFreq_ == 1 &&  startFreq_ != stopFreq_)
-      EXCEPTION("One frequency but start = " << startFreq_ << " != " << " stop = " << stopFreq_);
+    if ( numFreq_ == 1 && startFreq_ != stopFreq_) {
+      if ( startFreq_ != stopFreq_ ) {
+        EXCEPTION( "Found numFreq = " << numFreq_ << " in xml-File, "
+                 << "but startFreq_ = " << startFreq_ << " != "
+                 << "stopFreq_ = " << stopFreq_ );
+      }
+    }
 
     // We do not allow smaller stopping than starting frequencies
-    if(startFreq_ > stopFreq_)
-      EXCEPTION("startFreq = " << startFreq_ << " > stopFreq = " << stopFreq_);
+    if ( startFreq_ > stopFreq_ ) {
+      EXCEPTION( "startFreq = " << startFreq_ << " > stopFreq = "
+               << stopFreq_ << " in xml-file!" );
+    }
 
     // Check that starting frequency is positive for non-linear sampling
-    if(startFreq_ == 0.0 && samplingType_ != LINEAR_SAMPLING )
-      EXCEPTION("You specified sampling = '" << sampling << "', but need linear for start = 0.0");
+    if ( startFreq_ == 0.0 && samplingType_ != LINEAR_SAMPLING ) {
+      EXCEPTION( "You specified sampling = '" << sampling
+               << "' which conflicts with startFreq = " << startFreq_ );
+    }
 
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
@@ -303,7 +318,11 @@ namespace CoupledField
 
       // Something's wrong
       default:
-        EXCEPTION("case not implemented");
+        std::string damp;
+        Enum2String( samplingType_, damp );
+        EXCEPTION( "HarmonicDriver::ComputeNextFrequency: '"
+                 << damp
+                 << "' is not supported as sampling type" );
       }
     }
 

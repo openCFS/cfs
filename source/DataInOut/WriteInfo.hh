@@ -20,7 +20,7 @@
 #include "PDE/basePDE.hh"
 #include "Domain/bcs.hh"
 #include "General/environment.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
@@ -64,8 +64,7 @@ namespace CoupledField {
       std::ostream *ofs = NULL;
       ofs = dynamic_cast<std::ostream*>( cfsInfo );
       if ( ofs == NULL ) {
-        (*error) << "GetInfoStreamPointer: Some weird shit happened!";
-        CoupledField::Error( __FILE__, __LINE__ );
+        EXCEPTION( "GetInfoStreamPointer: Some weird shit happened!" );
       }
       return ofs;
     }
@@ -169,11 +168,11 @@ namespace CoupledField {
     void PrintF(const std::string& pdeName, const char * formatStr ...);
 
     /// prints warning to info-file and std::cerr
-    void Warning(const std::string & text, const Char * const filename=NULL,
+    void Warning(const std::string & text, const char * const filename=NULL,
                  const UInt numline=0);
     
     /// prints error to both std::out and info-file
-    void Error( const std::string &text, const Char *const filename,
+    void Error( const std::string &text, const char *const filename,
                 const UInt numline );
 
     /// generates a message, that a certain action has started

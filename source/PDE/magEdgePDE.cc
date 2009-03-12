@@ -12,7 +12,9 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
 #include "Forms/curlfieldop.hh"
-#include "Forms/forms_header.hh"
+#include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/massEdgeInt.hh"
+#include "Forms/linearForm.hh"
 #include "trapezoidal.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
@@ -20,7 +22,7 @@
 #include "Utils/coordSystem.hh"
 
 #ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
+#include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
 namespace CoupledField {
@@ -40,7 +42,7 @@ namespace CoupledField {
 
     // check if we have a 3d setup
     bool is3d = param->Get("domain")->Get("geometryType")->AsString() == "3d";
-    if ( !is3d ) 
+    if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
   }
 
@@ -63,14 +65,14 @@ namespace CoupledField {
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
     ReadCoils();
- 
+
     // -----------------------------
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
- 
+
   }
-  
+
 
   // ****************************
   //  Initialize Nonlinearities
@@ -82,19 +84,19 @@ namespace CoupledField {
 
     // Check, if "nonLinList" is present
     ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-    if( !nonLinListNode) 
+    if( !nonLinListNode)
       return;
 
     // Get nonlinear types
     StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
     for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-      
+
       std::string actTypeString = nonLinNodes[i]->GetName();
       std::string actId = nonLinNodes[i]->Get("id")->AsString();
 
       NonLinType actType;
       String2Enum( actTypeString, actType );
-      
+
       // check type
       if( actType == PERMEABILITY ) {
         nonLin_ = true;
@@ -106,49 +108,49 @@ namespace CoupledField {
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes = 
+    StdVector<ParamNode*> regionNodes =
       myParam_->Get("regionList")->GetChildren();
-    
+
     RegionIdType actRegionId;
     std::string actRegionName, actNonLinId;
-    
+
     if( regionNodes.GetSize() > 0 ) {
       Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
     }
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
+
       // get data
       regionNodes[i]->Get( "name", actRegionName );
       regionNodes[i]->Get( "nonLinId", actNonLinId );
-      
+
       if( actNonLinId == "" )
         continue;
-      
+
       actRegionId = ptgrid_->RegionNameToId( actRegionName );
-      
+
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
+        EXCEPTION( "NonLinearity with id '" << actNonLinId
                    << "' was not defined in 'nonLinList'" );
       }
-      
+
       regionNonLinId_[actRegionId] = actNonLinId;
       regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-      
+
       // Log to info file
       std::string nonLinString;
       Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
                     nonLinString.c_str() );
-      
+
     }
 
     // set nonlinearity flag only, if any region references
     // a nonlinearity at all
     if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = TRUE;
+      nonLin_ = true;
     }
-    
+
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
     ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
@@ -227,11 +229,11 @@ namespace CoupledField {
         CurlCurlEdgeInt* curlcurl =
           new CurlCurlEdgeInt( actMat, upLagrangeForm);
 
-        BiLinFormContext * stiffContext = 
+        BiLinFormContext * stiffContext =
           new BiLinFormContext(curlcurl, STIFFNESS );
         stiffContext->SetPtPdes(this, this);  
         stiffContext->SetResults( results_[0], results_[0],
-                                  actSDList, actSDList );      
+                                  actSDList, actSDList );
         assemble_->AddBiLinearForm( stiffContext );
 
         //save bilinearForm
@@ -241,11 +243,11 @@ namespace CoupledField {
         if ( nonLin_ == true ) {
           // for nonlinear RHS linearform we need linear and nonlinear
           // subdomains
-          nLinMagNode3D_linFormInt* rhsSource = 
+          nLinMagNode3D_linFormInt* rhsSource =
             new nLinMagNode3D_linFormInt( actMat, upLagrangeForm );
 
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          LinearFormContext * rhsContext = 
+          LinearFormContext * rhsContext =
             new LinearFormContext( rhsSource );
           rhsContext->SetPtPde( this );
           rhsContext->SetResult( results_[0], actSDList );
@@ -254,14 +256,14 @@ namespace CoupledField {
       }
 
       // Mass matrix
-      Double conductivity, maxPerm = 0.0;
+      Double conductivity = 0.0; // , maxPerm = 0.0; // TODO: Check if this is still needed
        bool scaleByEdgeSize = false;
-       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
        
        if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
          Double regularizationFactor, perm;
          // get tensor of permeability and determine max. value
-           materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, REAL );
+           materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, Global::REAL );
          scaleByEdgeSize = true;
          regularizationFactor = 1e-6;
          conductivity =  regularizationFactor / perm;
@@ -290,17 +292,15 @@ namespace CoupledField {
        //save bilinearForm
        pdeBilinearForms_[actRegion][bilinear_mass->GetName()] = bilinear_mass;
 
-
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
             GenStr(coilDef_[coil]->windingCrossSection_);
 
-          VolForceInt *coilSource3d = 
+          VolForceInt *coilSource3d =
             new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
                                    isaxi_ );
-
 
           StdVector<std::string> currDensity(3);
           currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
@@ -309,7 +309,7 @@ namespace CoupledField {
           coilSource3d->SetVolForceVector( currDensity,
                                            coilDef_[coil]->flowCoordSys_,
                                            true, 1.0 );
-          LinearFormContext * coilContext = 
+          LinearFormContext * coilContext =
             new LinearFormContext( coilSource3d );
           coilContext->SetPtPde( this );
           coilContext->SetResult( results_[0], actSDList );
@@ -321,22 +321,22 @@ namespace CoupledField {
       for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
         if ( actRegion == magnetsDomain_[perm] ) {
           EXCEPTION("Currently magnetic 3D with edge elements do not support permanent magnets");
-          
+
           Vector<Double> magnetization(dim_);
           magnetization[0] = magnetsOriX_[perm];
           magnetization[1] = magnetsOriY_[perm];
           magnetization[2] = magnetsOriZ_[perm];
-          
+
           // Get reluctivity for this domain and perform consistency check
           Double reluctivity;
-          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+          actMat->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
 
           std::string fncname = "none";
           LinearForm *permSource =
-            new MagPerm3DInt(magnetization, reluctivity, 
+            new MagPerm3DInt(magnetization, reluctivity,
                              isaxi_, upLagrangeForm );
 
-          LinearFormContext * permContext = 
+          LinearFormContext * permContext =
             new LinearFormContext( permSource );
           permContext->SetPtPde( this );
           permContext->SetResult( results_[0], actSDList );
@@ -413,7 +413,6 @@ namespace CoupledField {
         }
         break;
 
-
       default:
         Warning( "Resulttype not computable by magnetic PDE",
                  __FILE__, __LINE__ );
@@ -421,15 +420,15 @@ namespace CoupledField {
 
   }
 
-  
+
 
   template<class TYPE>
   void MagEdgePDE::CalcFluxDensity( shared_ptr<BaseResult> result ) {
 
      Vector<TYPE> elemFlux(dim_);
-    
+
     // fetch result object and convert data
-    Result<TYPE> &  actSol = 
+    Result<TYPE> &  actSol =
       dynamic_cast<Result<TYPE>&>(*result);
     Vector<TYPE> & actVal = actSol.GetVector();
     actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
@@ -444,19 +443,19 @@ namespace CoupledField {
     }
   }
 
-  
+
   template<class TYPE>
   void MagEdgePDE::CalcEddyCurrent( shared_ptr<BaseResult> result ) {
-    
-    
+
+
     // fetch result object and convert data
-    Result<TYPE> &  actSol = 
+    Result<TYPE> &  actSol =
       dynamic_cast<Result<TYPE>&>(*result);
     EntityIterator it = actSol.GetEntityList()->GetIterator();
     Vector<TYPE> & actVal = actSol.GetVector();
     UInt jEddyDofs = 3;
     actVal.Resize( actSol.GetEntityList()->GetSize() * jEddyDofs );
-  
+
     Vector<TYPE> jEddyElem;
     for ( it.Begin(); !it.IsEnd(); it++ ) {
       CalcEddyCurrentAtIP( it, 0, jEddyElem );
@@ -534,7 +533,7 @@ namespace CoupledField {
     ParamNode * coilNode = myParam_->Get( "coils", false );
     if ( !coilNode )
       return;
-    
+
     // Get single coil nodes
     StdVector<ParamNode*> coilNodes = coilNode->GetChildren();
 
@@ -542,7 +541,7 @@ namespace CoupledField {
     if( coilNodes.GetSize() > 0 ) {
       Info->PrintF( pdename_, "Using the following coils:\n" );
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
-        
+
         // get region name of actual coil
         std::string regionName = coilNodes[i]->Get("name")->AsString();
         RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
@@ -574,23 +573,23 @@ namespace CoupledField {
     if( magnetNodes.GetSize() > 0 ) {
       Info->PrintF( pdename_,
               "Found permanent magnets in the following regions:\n" );
-      
+
       Double tmpDir;
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
-        
+
         // get region name of actual magnet
         std::string regionName = magnetNodes[i]->Get("name")->AsString();
         RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
-        
+
         magnetsDomain_.Push_back( regionId );
-        
+
         // read orientation
         magnetNodes[i]->Get( "orientX", tmpDir );
         magnetsOriX_.Push_back( tmpDir );
-          
+
         magnetNodes[i]->Get( "orientY", tmpDir );
         magnetsOriY_.Push_back( tmpDir );
-          
+
         magnetNodes[i]->Get( "orientZ", tmpDir );
         magnetsOriZ_.Push_back( tmpDir );
 
@@ -603,10 +602,10 @@ namespace CoupledField {
 
 
   void MagEdgePDE::DefineAvailResults() {
-    
+
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
-    
+
     // === MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> res1(new ResultInfo);
     shared_ptr<AnsatzFct> fct(new NedelecFct);
@@ -628,8 +627,8 @@ namespace CoupledField {
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
     flux->fctType = shared_ptr<ConstFct>(new ConstFct() );
-    availResults_.insert( flux ); 
-    
+    availResults_.insert( flux );
+
     // === EDDY CURRENT DENSITY ===
     shared_ptr<ResultInfo> eddy(new ResultInfo);
     eddy->resultType = MAG_EDDY_CURRENT;
@@ -638,7 +637,7 @@ namespace CoupledField {
     eddy->definedOn = ResultInfo::ELEMENT;
     eddy->entryType = ResultInfo::VECTOR;
     eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
-    availResults_.insert( eddy ); 
+    availResults_.insert( eddy );
     
     // === DIVERGENCE OF MAGNETIC POTENTIAL ===
     shared_ptr<ResultInfo> div(new ResultInfo);
@@ -649,7 +648,7 @@ namespace CoupledField {
     div->entryType = ResultInfo::SCALAR;
     div->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( div );
-
+    
     // === MAGNETIC ENERGY ===
      shared_ptr<ResultInfo> energy(new ResultInfo);
      energy->resultType = MAG_ENERGY;
@@ -662,14 +661,14 @@ namespace CoupledField {
   }
 
   void MagEdgePDE::ReadSpecialResults() {
-    
+
   }
-    
-    
+
+
   // =======================================================================
-  //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
+  //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES
   // =======================================================================
-  
+
   template<class TYPE>
   void MagEdgePDE::CalcFluxDensityAtIP( EntityIterator it,
                                     UInt ip,
@@ -678,7 +677,7 @@ namespace CoupledField {
     // get element solution
     Vector<TYPE> elSol;
     sol_->GetElemSolution(elSol, it);
-    
+
     field.Resize(3);
     RegionIdType actRegionId = it.GetElem()->regionId;
     
@@ -691,11 +690,11 @@ namespace CoupledField {
       std::string bilinearName = "CurlCurlEdgeInt";
       curlOp = dynamic_cast<CurlCurlEdgeInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
     }
-    
+
     //set element info
     curlOp->ExtractElemInfo( it );
     Matrix<Double> CornerCoords, bMatCurl;
-    ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+    ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect,
                                 true );
 
     StdVector< Matrix<Double> > xiDx;
@@ -717,13 +716,11 @@ namespace CoupledField {
     }
     field = bMatCurl * elSol;   
   }
-  
 
   template<class TYPE>
    void MagEdgePDE::CalcEddyCurrentAtIP( EntityIterator it,
                                          UInt ip,
                                          Vector<TYPE>& jEddy ) {
-
 
      Vector<Double> lCoord;
      Matrix<Double> shpFnc;
@@ -733,7 +730,7 @@ namespace CoupledField {
       // Get the right material parameter for current element
      RegionIdType actRegionId = it.GetElem()->regionId;
      materials_[actRegionId]
-       ->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+       ->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
      BaseFE * ptEl = it.GetElem()->ptElem;
 
      Matrix<Double> cornerCoords;
@@ -755,13 +752,12 @@ namespace CoupledField {
      GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
      jEddy.Init();
      for( UInt iDof = 0; iDof < 3; iDof++ ) {
-       for( UInt i = 0; i < shpFnc.GetSizeRow(); i++ ) {
+       for( UInt i = 0; i < shpFnc.GetNumRows(); i++ ) {
          jEddy[iDof] += shpFnc[i][iDof] * magVecDeriv1Elem[i];
        }
      }
-     jEddy *= -conductivity;
-     
-   }
+     jEddy *= -conductivity;   
+  }
    
   template<class TYPE>
   void MagEdgePDE::CalcMagPotentialDiv( shared_ptr<BaseResult> result ) {
@@ -815,7 +811,7 @@ namespace CoupledField {
     ptCoupling_   = Coupling;
 
     // Enable update of geometry
-    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();  
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
 
 
     cplNodeNumPos_.Resize( numCouplings );
@@ -832,7 +828,7 @@ namespace CoupledField {
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
         ptgrid_->RegionNameToId( regionIds, couplRegions );
-        
+
         // Check, that every coupling region is part of
         // the magnetic pde itself
         for( UInt iReg = 0; iReg < couplRegions.GetSize(); iReg++ ) {
@@ -842,14 +838,14 @@ namespace CoupledField {
                        << " magnetic PDE" );
           }
         }
-        
+
         StdVector<UInt> * couplingnodes = NULL;
         ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-        
+
         if ( couplingnodes == NULL ) {
           EXCEPTION( "Pointer couplingnodes = NULL!" );
         }
-        
+
         for( UInt iNode = 0; iNode < couplingnodes->GetSize(); iNode++ ) {
           UInt actNode = (*couplingnodes)[iNode];
           cplNodeNumPos_[actCoupling][actNode] = iNode;
@@ -862,7 +858,7 @@ namespace CoupledField {
 
     SolutionType quantity;
     StdVector<UInt> * couplingNodes = NULL;
-    CFSVector * values = NULL;
+    SingleVector * values = NULL;
     UInt forcesCount = 0;
 
     // at first, check if this PDE is iterative coupled
@@ -879,10 +875,10 @@ namespace CoupledField {
       Vector<Double> *temp = dynamic_cast<Vector<Double> *>(values);
 
       switch(ptCoupling_->GetOutputType(actCoupling)) {
-          
+
       case NODE:
         ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-          
+
         if (quantity == MAG_FORCE_LORENTZ) {
           CalcNodeForceLorentz( *temp, cplNodeNumPos_[forcesCount],
                                 actCoupling, couplingNodes->GetSize());
@@ -890,7 +886,7 @@ namespace CoupledField {
         }
 
         break;
-          
+
       case ELEM:
         EXCEPTION( "No Element coupling output" );
       }
@@ -909,7 +905,7 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( regionIds, couplRegions );
 
    
-    force.Init(0.0);
+    force.Init();
     Vector<Double>  fluxAtIp(dim_), elemForce, fAtIp, jAtIp;
     Matrix<Double> ptCoord;
 
@@ -925,7 +921,7 @@ namespace CoupledField {
       
       RegionIdType actRegionId = subdoms_[sdIndex] ;
       Double conductivity;
-      materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+      materials_[actRegionId]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
       
       // Check if this region is a coil
       Integer coilIndex = coilRegionId_.Find(actRegionId);
@@ -969,7 +965,8 @@ namespace CoupledField {
              std::string factor = coilDef_[coilIndex]->value_ + "/" 
                + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
              mParser->SetExpr( mHandle_, factor );
-             Double currDens = mParser->Eval(mHandle_);
+             // TODO: Check if this is still needed
+             // Double currDens = mParser->Eval(mHandle_);
            } 
            else {
              CalcEddyCurrentAtIP( it, 0, jAtIp );

@@ -7,11 +7,14 @@
 
 #include "Domain/entityList.hh"
 #include "General/environment.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "DataInOut/ParamHandling/InfoNode.hh"
 
-namespace CoupledField
-{
+#include "MatVec/basematrix.hh"
+#include "Domain/resultInfo.hh"
+
+namespace CoupledField {
+
   //! Base class representing a result object
   class BaseResult {
 
@@ -23,7 +26,7 @@ namespace CoupledField
     virtual ~BaseResult();
 
     //! Get entry type of data
-    virtual EntryType::ScalarType GetEntryType() const = 0;
+    virtual BaseMatrix::EntryType GetEntryType() const = 0;
 
     //! Return result dof
     shared_ptr<ResultInfo> GetResultInfo() { return resultDof_; }
@@ -42,7 +45,7 @@ namespace CoupledField
     shared_ptr<EntityList> GetEntityList() const {return entities_;}
 
     //! Return vector containing data
-    virtual CFSVector* GetCFSVector() = 0 ;
+    virtual SingleVector* GetSingleVector() = 0 ;
 
     /** Set all result values to the null value. Used, if one cannot compute */
     virtual void Init() = 0;
@@ -89,12 +92,12 @@ namespace CoupledField
     virtual ~Result();
 
     //! Get entry type of data
-    EntryType::ScalarType GetEntryType() const {
-      return EntryTypeMap<TYPE>::S_TYPE;
+    BaseMatrix::EntryType GetEntryType() const {
+      return  EntryType<TYPE>::M_EntryType;
     }
 
     //! Return data vector
-    CFSVector* GetCFSVector() { return &values_; }
+    SingleVector* GetSingleVector() { return &values_; }
 
     //! Return specific data vector
     Vector<TYPE>& GetVector() {return values_; }

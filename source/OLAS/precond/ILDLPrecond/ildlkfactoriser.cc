@@ -4,11 +4,14 @@
 
 #include <vector>
 
-#include "precond/ILDLPrecond/ildlkfactoriser.hh"
-#include "precond/ILDLPrecond/ildlprecond.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
+
+#include "OLAS/precond/ILDLPrecond/ildlkfactoriser.hh"
+#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
@@ -16,12 +19,8 @@ namespace OLAS {
   // ***********************
   template <class T>
   ILDLKFactoriser<T>::ILDLKFactoriser() {
-
-
-    (*error) << "Default constructor of ILDLKFactoriser call was called! "
-             << "This constructor is forbidden!";
-    Error( __FILE__, __LINE__ );
-
+    EXCEPTION( "Default constructor of ILDLKFactoriser call was called! "
+             << "This constructor is forbidden!" );
   }
 
 
@@ -68,19 +67,18 @@ namespace OLAS {
 
     // Get new problem size and perform consistency check
     if ( this->amFactorised_ == false ) {
-      this->sysMatDim_ = sysMat.GetNcols();
+      this->sysMatDim_ = sysMat.GetNumCols();
     }
     else {
       if ( newPattern == false &&
-           (int) this->sysMatDim_ != sysMat.GetNcols() ) {
-        (*error) << "ILDLKFactoriser::Factorise: Now I got you. "
+           this->sysMatDim_ != sysMat.GetNumCols() ) {
+        EXCEPTION( "ILDLKFactoriser::Factorise: Now I got you. "
                  << "newPattern = false, but matrix dimension changed "
                  << "from " << this->sysMatDim_ << " to "
-                 << sysMat.GetNcols();
-        Error( __FILE__, __LINE__ );
+                 << sysMat.GetNumCols() );
       }
       else {
-        this->sysMatDim_ = sysMat.GetNcols();
+        this->sysMatDim_ = sysMat.GetNumCols();
         this->amFactorised_ = false;
       }
     }
@@ -138,8 +136,8 @@ namespace OLAS {
     // =================
     //  Get matrix data
     // =================
-    const Integer *cidxA = sysMat.GetColPointer();
-    const Integer *rptrA = sysMat.GetRowPointer();
+    const UInt *cidxA = sysMat.GetColPointer();
+    const UInt *rptrA = sysMat.GetRowPointer();
     const T *dataA = sysMat.GetDataPointer();
 
 
@@ -150,16 +148,16 @@ namespace OLAS {
     // Allocate memory for linked lists
     // (in future releases these will be attributes and (de-)allocation
     // will be handled by constructor/destructor)
-    UInt* scanList_   = New UInt[this->sysMatDim_ + 1];
-    UInt* activeList_ = New UInt[this->sysMatDim_ + 1];
-    UInt* listIDX_    = New UInt[this->sysMatDim_ + 1];
-    UInt* listLVL_    = New UInt[this->sysMatDim_ + 1];
-    T*    listVAL_    = New   T [this->sysMatDim_ + 1];
-    AssertMem( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listLVL_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
-    AssertMem( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
+    UInt* scanList_   = new UInt[this->sysMatDim_ + 1];
+    UInt* activeList_ = new UInt[this->sysMatDim_ + 1];
+    UInt* listIDX_    = new UInt[this->sysMatDim_ + 1];
+    UInt* listLVL_    = new UInt[this->sysMatDim_ + 1];
+    T*    listVAL_    = new   T [this->sysMatDim_ + 1];
+    ASSERTMEM( scanList_  , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( activeList_, sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listIDX_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listLVL_   , sizeof( UInt ) * (this->sysMatDim_ + 1) );
+    ASSERTMEM( listVAL_   , sizeof(   T  ) * (this->sysMatDim_ + 1) );
 
     // Generate markers for linked lists
     UInt scanListElem, scanListPrevElem;
@@ -238,7 +236,7 @@ namespace OLAS {
     // Generate array for keeping track of first entry in a row that
     // has a column index larger or equal to the current row index
     UInt *firstU_;
-    NewArray( firstU_, UInt, this->sysMatDim_ );
+    NEWARRAY( firstU_, UInt, this->sysMatDim_ );
 
     // First row starts with index 1 in CRS data array
     rptrU.push_back(1);
@@ -738,7 +736,7 @@ namespace OLAS {
     delete[] activeList_ ;
     delete[] listIDX_    ; 
     delete[] listVAL_    ;
-    DeleteArray( firstU_ );
+    DELETEARRAY( firstU_ );
 
 #ifdef DEBUG_ILDLKFACTORISER
     (*debug) << std::endl;
@@ -759,7 +757,8 @@ namespace OLAS {
 
 
     // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    // TODO: Check if this is still needed
+    // bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
   }
 
 
@@ -781,8 +780,8 @@ namespace OLAS {
     // NOTE: Changed profile computation. We now do it as in Sloan class,
     //       i.e. we use UInt and represent the large number by modulo
     //       operation w.r.t. UINT_MAX
-		UInt i, j = 1;
-		Integer k;
+    UInt i, j = 1;
+    UInt k;
     Integer bw, bwLocal;
     UInt profile, profAux, profileMult;
 
@@ -790,10 +789,10 @@ namespace OLAS {
     bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
 
     // Get hold of column index array
-    const Integer *cidxA = sysMat.GetColPointer();
+    const UInt *cidxA = sysMat.GetColPointer();
 
     // Get hold of row pointer index array
-    const Integer *rptrA = sysMat.GetRowPointer();
+    const UInt *rptrA = sysMat.GetRowPointer();
 
     // =====================================
     //  Determine the bandwidth and profile
@@ -833,7 +832,7 @@ namespace OLAS {
     }
 
     // Represent profile as floating point number
-    Double profileFP = profile + (double)OLAS_UINT_MAX * profileMult;
+    Double profileFP = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult;
 
     // Report
     if ( logging ) {
@@ -850,7 +849,7 @@ namespace OLAS {
     Double fillIn, chunk, memSize;
 
     // Determine additional entries in profile
-    fillIn = profile + (double)OLAS_UINT_MAX * profileMult - sysMat.GetNnz();
+    fillIn = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult - sysMat.GetNnz();
 
     // Divide into equivalent chunks
     chunk = fillIn / bw;
@@ -890,9 +889,8 @@ namespace OLAS {
     // ====================
     FILE *fp = fopen( fname, "w" );
     if ( fp == NULL ) {
-      (*error) << "ILDLPrecond::ExportFillLevels: Cannot open file "
-               << fname << " for writing!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILDLPrecond::ExportFillLevels: Cannot open file "
+               << fname << " for writing!" );
     }
 
     // =====================
@@ -987,4 +985,10 @@ namespace OLAS {
 
   }
 
+  // Explicit template instantiation
+  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+    template class ILDLKFactoriser<Double>;
+    template class ILDLKFactoriser<Complex>;
+  #endif
+  
 }

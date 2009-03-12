@@ -4,13 +4,16 @@
 
 #include <iostream>
 
-#include "matvec/matvec.hh"
-#include "precond/precond.hh"
-#include "solver/solver.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/basesolver.hh"
 
 #include "arpackMatInterface.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
@@ -20,7 +23,7 @@ namespace OLAS {
     matrixA_ = matA;
     matrixB_ = matB;
     shift_ = pow(shift*8.0*atan(1.0),2);
-    size_ = matA->GetNrows();
+    size_ = matA->GetNumRows();
     shiftAndInvert_ = shiftMode;
   }
     
@@ -65,8 +68,8 @@ namespace OLAS {
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
     Double *y1 = y;
-    x1--;
-    y1--;
+//     x1--;
+//     y1--;
     Vector<Double> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
@@ -81,8 +84,8 @@ namespace OLAS {
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
     Double *y1 = y;
-    x1--;
-    y1--;
+//     x1--;
+//     y1--;
     Vector<Double> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
@@ -101,8 +104,8 @@ namespace OLAS {
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
     Double *y1 = y;
-    x1--;
-    y1--;
+//     x1--;
+//     y1--;
     Vector<Double> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );
@@ -117,8 +120,8 @@ namespace OLAS {
     // Create two temporary vectors as wrappers for x and y
     Double *x1 = x;
     Double *y1 = y;
-    x1--;
-    y1--;
+//     x1--;
+//     y1--;
     Vector<Double> vecX, vecY;
     vecX.Replace( size_, x1, false );
     vecY.Replace( size_, y1, false );

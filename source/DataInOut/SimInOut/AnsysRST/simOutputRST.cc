@@ -31,7 +31,7 @@ namespace CoupledField {
     // Initialize variables
     formatName_ = "rst";
     fileName_ = fileName;
-    dirName_ = "simoutput_rst";
+    dirName_ = "results_rst";
     outputNode_ = outputNode;
 
     capabilities_.insert( MESH );

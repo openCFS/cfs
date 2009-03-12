@@ -2,18 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "utils/utils.hh"
-#include "external/lapack/lapackll.hh"
-#include "external/lapack/olasf77mapping.hh"
+#include "OLAS/algsys/olasparams.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "OLAS/external/lapack/lapackll.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   // ***********************
   //   Default Constructor
   // ***********************
   Lapack_LL::Lapack_LL() {
-    Error( "Default constructor of LAPACK_LL is forbidden!",
-	   __FILE__, __LINE__ );
+    EXCEPTION("Default constructor of LAPACK_LL is forbidden!");
   }
 
 
@@ -43,8 +45,8 @@ namespace OLAS {
   //   Deep Constructor
   // ********************
   Lapack_LL::~Lapack_LL() {
-    DeleteArray( lapackRHS_ );
-    DeleteArray( facMat_ );
+    DELETEARRAY( lapackRHS_ );
+    DELETEARRAY( facMat_ );
   }
 
 
@@ -60,53 +62,43 @@ namespace OLAS {
     // Report to logfile
     if ( logging == true ) {
       (*cla) << " --------------------------------------\n"
-	     << " LAPACK_LL: Starting factorisation of a "
-	     << sysMat.GetNrows() << " x " << sysMat.GetNcols()
-	     << " matrix" << std::endl;
+      << " LAPACK_LL: Starting factorisation of a "
+      << sysMat.GetNumRows() << " x " << sysMat.GetNumCols()
+      << " matrix" << std::endl;
     }
 
     TRY_CAST {
 
       // Down-cast matrix to standard matrix
-      RefCast( sysMat, StdMatrix, stdMat );
+      REFCAST( sysMat, StdMatrix, stdMat );
 
       // Check that we have the correct matrix type
-      MatrixStorageType mtype = stdMat.GetStorageType();
-      if ( mtype != SPARSE_SYM ) {
-	(*error) << "Lapack_LL: Expected a sparseSym matrix, but got a "
-		 << Enum2String( mtype ) << " matrix";
-	Error( __FILE__, __LINE__ );
-      }
-
-      // Check the block size of the matrix entries
-      Integer blockSize = stdMat.GetBlockSize();
-      if ( blockSize != 1 ) {
-	(*error) << "Lapack_LL: Block size of matrix entries is " << blockSize
-		 << " but should be one";
-	Error( __FILE__, __LINE__ );
+      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+      if ( mtype != BaseMatrix::SPARSE_SYM ) {
+        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
       }
 
       // Get the entry type to figure out which Factorisation method to call
-      MatrixEntryType etype = stdMat.GetEntryType();
+      BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
       // Call appropriate factorisation routine
       switch( etype ) {
 
-      case DOUBLE:
-	TRY_CAST {
-	  FactoriseReal( stdMat );
-	} CATCH_CAST;
-	break;
+        case BaseMatrix::DOUBLE:
+          TRY_CAST {
+            FactoriseReal( stdMat );
+          } CATCH_CAST;
+          break;
 
-      case COMPLEX:
-	TRY_CAST {
-	  FactoriseComplex( stdMat );
-	} CATCH_CAST;
-	break;
+        case BaseMatrix::COMPLEX:
+          TRY_CAST {
+            FactoriseComplex( stdMat );
+          } CATCH_CAST;
+          break;
 
       default:
-	(*error) << "Matrix entry type is neither real nor complex!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Matrix entry type is neither real nor complex!");
       }
 
     } CATCH_CAST;
@@ -117,7 +109,7 @@ namespace OLAS {
     // Report to logfile
     if ( logging == true ) {
       (*cla) << " LAPACK_LL: Finished factorisation\n"
-	     << " --------------------------------------" << std::endl;
+      << " --------------------------------------" << std::endl;
     }
   }
 
@@ -128,26 +120,26 @@ namespace OLAS {
   void Lapack_LL::FactoriseReal( StdMatrix &stdMat ) {
 
 
-    int i, k;
+    UInt i, k;
 
     // Are we expected to be verbose?
     bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
 
     // Initialise parameters for DPBTRF
     char lp_uplo = 'L';
-    int  lp_n    = stdMat.GetNcols();
+    int  lp_n    = stdMat.GetNumCols();
     int  lp_kd   = 0;
     int  lp_ldab = 0;
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    RefCast( stdMat, SCRS_Matrix<Double>, scrsMat );
+    REFCAST( stdMat, SCRS_Matrix<Double>, scrsMat );
 
     // Get hold of column index array
-    const Integer *cidx = scrsMat.GetColPointer();
+    const UInt *cidx = scrsMat.GetColPointer();
 
     // Get hold of row pointer index array
-    const Integer *rptr = scrsMat.GetRowPointer();
+    const UInt *rptr = scrsMat.GetRowPointer();
 
     // Get hold of data array
     const Double *data = scrsMat.GetDataPointer();
@@ -158,23 +150,23 @@ namespace OLAS {
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-	 myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
 
 #ifdef DEBUG_LAPACK_LL
 
       // Are we over-writing an existing factorisation? Check, whether the
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
-	if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-	  (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-		   << "amFactorised_ = true!";
-	  Error( __FILE__, __LINE__ );
-	}
-	else if ( amFactorised_ == false ) {
-	  (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-		   << "amFactorised_ = false!";
-	  Error( __FILE__, __LINE__ );
-	}
+        if ( (facmat_+1) == NULL && amFactorised_ == true ) {
+          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
+          << "amFactorised_ = true!";
+          Error( __FILE__, __LINE__ );
+        }
+        else if ( amFactorised_ == false ) {
+          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
+          << "amFactorised_ = false!";
+          Error( __FILE__, __LINE__ );
+        }
       }
 
 #endif
@@ -188,13 +180,13 @@ namespace OLAS {
       // so no row is empty.
       UInt bwGlobal = 0;
       UInt bwLocal  = 0;
-      for ( i = 1; i <= lp_n; i++ ) {
+      for ( i = 1; i <= static_cast<UInt>(lp_n); i++ ) {
 
-	// Determine bandwidth of this row
-	bwLocal = (UInt)(cidx[ rptr[i+1] - 1 ] - i);
+        // Determine bandwidth of this row
+        bwLocal = (UInt)(cidx[ rptr[i+1] - 1 ] - i);
 
-	// Compare to global bandwidth
-	bwGlobal = bwLocal > bwGlobal ? bwLocal : bwGlobal;
+        // Compare to global bandwidth
+        bwGlobal = bwLocal > bwGlobal ? bwLocal : bwGlobal;
 
       }
 
@@ -206,39 +198,39 @@ namespace OLAS {
 
       // Report to logfile
       if ( logging == true ) {
-	(*cla) << "    Bandwidth = " << bwGlobal << "\n"
-	       << "    Sparse matrix has " << scrsMat.GetNnz()
-	       << " non-zero entries\n"
-	       << "    Banded matrix has " << facMatEntries_ << " real entries"
-	       << std::endl;
+        (*cla) << "    Bandwidth = " << bwGlobal << "\n"
+        << "    Sparse matrix has " << scrsMat.GetNnz()
+        << " non-zero entries\n"
+        << "    Banded matrix has " << facMatEntries_ << " real entries"
+        << std::endl;
       }
 
       // Memory allocation for band matrix: We only perform a
       // re-allocation, if the new size requirements are larger
       // than the old ones
       if ( amFactorised_ == false ) {
-	NewArray( facMat_, Double, facMatEntries_ );
+        NEWARRAY( facMat_, Double, facMatEntries_ );
       }
       else {
-	if ( facMatEntries_ > facMatCapacity_ ) {
-	  DeleteArray( facMat_ );
-	  NewArray( facMat_, Double, facMatEntries_ );
-	  facMatCapacity_ = facMatEntries_;
-	}
+        if ( facMatEntries_ > facMatCapacity_ ) {
+          DELETEARRAY( facMat_ );
+          NEWARRAY( facMat_, Double, facMatEntries_ );
+          facMatCapacity_ = facMatEntries_;
+        }
 
 #ifdef DEBUG_LAPACK_LL
-	else {
-	  for ( i = facMatEntries_ + 1; i <= facMatCapacity_; i++ ) {
-	    facMat_[i] = 0.0;
-	  }
-	}
+        else {
+          for ( i = facMatEntries_ + 1; i <= facMatCapacity_; i++ ) {
+            facMat_[i] = 0.0;
+          }
+        }
 #endif
 
       }
     }
 
     // Set all entries in band matrix to zero
-    for ( i = 1; i <= (int) facMatEntries_; i++ ) {
+    for ( i = 1; i <= facMatEntries_; i++ ) {
       facMat_[i] = 0.0;
     }
 
@@ -248,9 +240,9 @@ namespace OLAS {
     // the matrix, which is fine for LAPACK and is hopefully more cache
     // efficient than converting the rows into FORTRAN format.
     UInt colInit = 0;
-    for ( i = 1; i <= lp_n; i++ ) {
+    for ( i = 1; i <= static_cast<UInt>(lp_n); i++ ) {
       for ( k = rptr[i]; k < rptr[i+1]; k++ ) {
-	facMat_[ colInit + cidx[k] - i + 1 ] = data[k];
+        facMat_[ colInit + cidx[k] - i + 1 ] = data[k];
       }
       colInit += (sysMatBW_ + 1);
     }
@@ -265,15 +257,13 @@ namespace OLAS {
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
     if ( lp_info < 0 ) {
-      (*error) << "Lapack_LL: DPBTRF reports input value no. " << -lp_info
-	       << " is invalid";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Lapack_LL: DPBTRF reports input value no. " << -lp_info
+                << " is invalid");
     }
     else if ( lp_info > 0 ) {
-      (*error) << "Lapack_LL: DPBTRF reports that leading minor of order "
-	       << lp_info << " is not positive definite and the factorization"
-	       << " could not be completed";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Lapack_LL: DPBTRF reports that leading minor of order "
+                << lp_info << " is not positive definite and the factorization"
+                << " could not be completed");
     }
   }
 
@@ -291,19 +281,19 @@ namespace OLAS {
 
     // Initialise parameters for ZPBTRF
     char lp_uplo = 'L';
-    int  lp_n    = stdMat.GetNcols();
+    int  lp_n    = stdMat.GetNumCols();
     int  lp_kd   = 0;
     int  lp_ldab = 0;
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    RefCast( stdMat, SCRS_Matrix<Complex>, scrsMat );
+    REFCAST( stdMat, SCRS_Matrix<Complex>, scrsMat );
 
     // Get hold of column index array
-    const Integer *cidx = scrsMat.GetColPointer();
+    const UInt *cidx = scrsMat.GetColPointer();
 
     // Get hold of row pointer index array
-    const Integer *rptr = scrsMat.GetRowPointer();
+    const UInt *rptr = scrsMat.GetRowPointer();
 
     // Get hold of data array
     const Complex *data = scrsMat.GetDataPointer();
@@ -314,23 +304,23 @@ namespace OLAS {
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-	 myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
 
 #ifdef DEBUG_LAPACK_LL
 
       // Are we over-writing an existing factorisation? Check, whether the
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
-	if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-	  (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-		   << "amFactorised_ = true!";
-	  Error( __FILE__, __LINE__ );
-	}
-	else if ( amFactorised_ == false ) {
-	  (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-		   << "amFactorised_ = false!";
-	  Error( __FILE__, __LINE__ );
-	}
+        if ( (facmat_+1) == NULL && amFactorised_ == true ) {
+          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
+          << "amFactorised_ = true!";
+          Error( __FILE__, __LINE__ );
+        }
+        else if ( amFactorised_ == false ) {
+          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
+          << "amFactorised_ = false!";
+          Error( __FILE__, __LINE__ );
+        }
       }
 
 #endif
@@ -346,11 +336,11 @@ namespace OLAS {
       UInt bwLocal  = 0;
       for ( i = 1; (int) i <= lp_n; i++ ) {
 
-	// Determine bandwidth of this row
-	bwLocal = (UInt)(cidx[ rptr[i+1] - 1 ] - i);
+        // Determine bandwidth of this row
+        bwLocal = (UInt)(cidx[ rptr[i+1] - 1 ] - i);
 
-	// Compare to global bandwidth
-	bwGlobal = bwLocal > bwGlobal ? bwLocal : bwGlobal;
+        // Compare to global bandwidth
+        bwGlobal = bwLocal > bwGlobal ? bwLocal : bwGlobal;
 
       }
 
@@ -362,33 +352,33 @@ namespace OLAS {
 
       // Report to logfile
       if ( logging == true ) {
-	(*cla) << "    Bandwidth = " << bwGlobal << "\n"
-	       << "    Sparse matrix has " << scrsMat.GetNnz()
-	       << " non-zero entries\n"
-	       << "    Banded matrix has " << facMatEntries_
-	       << " complex entries"
-	       << std::endl;
+        (*cla) << "    Bandwidth = " << bwGlobal << "\n"
+        << "    Sparse matrix has " << scrsMat.GetNnz()
+        << " non-zero entries\n"
+        << "    Banded matrix has " << facMatEntries_
+        << " complex entries"
+        << std::endl;
       }
 
       // Memory allocation for band matrix: We only perform a
       // re-allocation, if the new size requirements are larger
       // than the old ones (real and imag part count separately)
       if ( amFactorised_ == false ) {
-	NewArray( facMat_, Double, 2 * facMatEntries_ );
+        NEWARRAY( facMat_, Double, 2 * facMatEntries_ );
       }
       else {
-	if ( 2 * facMatEntries_ > facMatCapacity_ ) {
-	  DeleteArray( facMat_ );
-	  NewArray( facMat_, Double, 2 * facMatEntries_ );
-	  facMatCapacity_ = 2 * facMatEntries_;
-	}
+        if ( 2 * facMatEntries_ > facMatCapacity_ ) {
+          DELETEARRAY( facMat_ );
+          NEWARRAY( facMat_, Double, 2 * facMatEntries_ );
+          facMatCapacity_ = 2 * facMatEntries_;
+        }
 
 #ifdef DEBUG_LAPACK_LL
-	else {
-	  for ( i = 2 * facMatEntries_ + 1; i <= facMatCapacity_; i++ ) {
-	    facMat_[i] = 0.0;
-	  }
-	}
+        else {
+          for ( i = 2 * facMatEntries_ + 1; i <= facMatCapacity_; i++ ) {
+            facMat_[i] = 0.0;
+          }
+        }
 #endif
 
       }
@@ -407,9 +397,9 @@ namespace OLAS {
     // efficient than converting the rows into FORTRAN format.
     UInt colInit = 0;
     for ( i = 1; (int) i <= lp_n; i++ ) {
-      for ( k = rptr[i]; (int) k < rptr[i+1]; k++ ) {
-	facMat_[ colInit + 2 * (cidx[k]-i+1) - 1 ] = data[k].real();
-	facMat_[ colInit + 2 * (cidx[k]-i+1)     ] = data[k].imag();
+      for ( k = rptr[i]; k < rptr[i+1]; k++ ) {
+        facMat_[ colInit + 2 * (cidx[k]-i+1) - 1 ] = data[k].real();
+        facMat_[ colInit + 2 * (cidx[k]-i+1)     ] = data[k].imag();
       }
       colInit += (facMatEntries_ + 1);
     }
@@ -424,15 +414,13 @@ namespace OLAS {
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
     if ( lp_info < 0 ) {
-      (*error) << "Lapack_LL: ZPBTRF reports input value no. " << -lp_info
-	       << " is invalid";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Lapack_LL: ZPBTRF reports input value no. " << -lp_info
+                << " is invalid");
     }
     else if ( lp_info > 0 ) {
-      (*error) << "Lapack_LL: ZPBTRF reports that leading minor of order "
-	       << lp_info << " is not positive definite and the factorization"
-	       << " could not be completed";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Lapack_LL: ZPBTRF reports that leading minor of order "
+                << lp_info << " is not positive definite and the factorization"
+                << " could not be completed");
     }
   }
 
@@ -441,7 +429,7 @@ namespace OLAS {
   //   Solve linear system
   // ***********************
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-			 const BaseVector &rhs, BaseVector &sol ) {
+                         const BaseVector &rhs, BaseVector &sol ) {
 
 
     // Are we expected to be verbose?
@@ -450,61 +438,56 @@ namespace OLAS {
     // Report to logfile
     if ( logging == true ) {
       (*cla) << " --------------------------------------\n"
-	     << " LAPACK_LL: Computing solution of linear system"
-	     << " with " << sysMat.GetNrows() << " unknowns"
-	     << std::endl;
+      << " LAPACK_LL: Computing solution of linear system"
+      << " with " << sysMat.GetNumRows() << " unknowns"
+      << std::endl;
     }
 
     // Complain, if no factorisation is available
     // or the two indicators disagree
     if ( (facmat_+1) == NULL || amFactorised_ == false ) {
       if ( (facmat_+1) == NULL && amFactorised_ == false ) {
-	(*error) << "Lapack_LL: No factorisation is available. Call Setup() "
-		 << " first";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Lapack_LL: No factorisation is available. Call Setup() "
+            << " first");
       }
       else if ( amFactorised_ == false ) {
-	(*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-		 << "amFactorised_ = false!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Lapack_LL: Internal error. facmat_ <> NULL, but "
+            << "amFactorised_ = false!");
       }
       else {
-	(*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-		 << "amFactorised_ = true!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Lapack_LL: Internal error. facmat_ = NULL, but "
+            << "amFactorised_ = true!");
       }
     }
 
     TRY_CAST {
 
       // Down-cast matrix to standard matrix
-      ConstRefCast( sysMat, StdMatrix, stdMat );
+      CONSTREFCAST( sysMat, StdMatrix, stdMat );
 
       // Check that we have the correct matrix type
-      MatrixStorageType mtype = stdMat.GetStorageType();
-      if ( mtype != SPARSE_SYM ) {
-	(*error) << "Lapack_LL: Expected a sparseSym matrix, but got a "
-		 << Enum2String( mtype ) << " matrix";
-	Error( __FILE__, __LINE__ );
+      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+      if ( mtype != BaseMatrix::SPARSE_SYM ) {
+        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
       }
 
       // Get the entry type to figure out which Factorization method to call
-      MatrixEntryType etype = stdMat.GetEntryType();
+      BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
       // Call appropriate solution routine
       switch( etype ) {
 
-      case DOUBLE:
-	SolveReal( rhs, sol );
-	break;
+      case BaseMatrix::DOUBLE:
+        SolveReal( rhs, sol );
+        break;
 
-      case COMPLEX:
-	SolveComplex( rhs, sol );
-	break;
+      case BaseMatrix::COMPLEX:
+        SolveComplex( rhs, sol );
+        break;
 
       default:
-	(*error) << "Matrix entry type is neither real nor complex!";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Matrix entry type is neither real nor complex!");
       }
 
     } CATCH_CAST;
@@ -536,8 +519,8 @@ namespace OLAS {
     TRY_CAST {
 
       // Down-cast the vectors
-      ConstRefCast( rhs, Vector<Double>, myRHS );
-      RefCast( sol, Vector<Double>, mySol );
+      CONSTREFCAST( rhs, Vector<Double>, myRHS );
+      REFCAST( sol, Vector<Double>, mySol );
 
       // Get data pointers
       const Double *dataRHS = myRHS.GetPointer();
@@ -546,30 +529,29 @@ namespace OLAS {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < lp_n ) {
-	DeleteArray( lapackRHS_ );
-	NewArray( lapackRHS_, Double, lp_n );
-	lapackRHSCapacity_ = lp_n;
+        DELETEARRAY( lapackRHS_ );
+        NEWARRAY( lapackRHS_, Double, lp_n );
+        lapackRHSCapacity_ = lp_n;
       }
 
       // Generate right-hand side for LAPACK
       for ( i = 1; i <= lp_n; i++ ) {
-	lapackRHS_[i] = dataRHS[i];
+        lapackRHS_[i] = dataRHS[i];
       }
 
       // Call LAPACK's solution routine
       LP_DPBTRS( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
-		 lapackRHS_ + 1, &lp_ldb, &lp_info );
+                 lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status
       if ( lp_info < 0 ) {
-	(*error) << "Lapack_LL: DPBTRS reports input argument number "
-		 << -lp_info << " had illegal value";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Lapack_LL: DPBTRS reports input argument number "
+            << -lp_info << " had illegal value");
       }
 
       // Extract solution from LAPACK array
       for ( i = 1; i <= lp_n; i++ ) {
-	dataSol[i] = lapackRHS_[i];
+        dataSol[i] = lapackRHS_[i];
       }
 
     } CATCH_CAST;
@@ -597,8 +579,8 @@ namespace OLAS {
     TRY_CAST {
 
       // Down-cast the vectors
-      ConstRefCast( rhs, Vector<Complex>, myRHS );
-      RefCast( sol, Vector<Complex>, mySol );
+      CONSTREFCAST( rhs, Vector<Complex>, myRHS );
+      REFCAST( sol, Vector<Complex>, mySol );
 
       // Get data pointers
       const Complex *dataRHS = myRHS.GetPointer();
@@ -607,32 +589,31 @@ namespace OLAS {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < 2 * lp_n ) {
-	DeleteArray( lapackRHS_ );
-	NewArray( lapackRHS_, Double, 2 * lp_n );
-	lapackRHSCapacity_ = 2 * lp_n;
+        DELETEARRAY( lapackRHS_ );
+        NEWARRAY( lapackRHS_, Double, 2 * lp_n );
+        lapackRHSCapacity_ = 2 * lp_n;
       }
 
       // Generate right-hand side for LAPACK
       for ( i = 1; i <= lp_n; i++ ) {
-	lapackRHS_[2*i-1] = dataRHS[i].real();
-	lapackRHS_[2*i  ] = dataRHS[i].imag();
+        lapackRHS_[2*i-1] = dataRHS[i].real();
+        lapackRHS_[2*i  ] = dataRHS[i].imag();
       }
 
       // Call LAPACK's solution routine
       LP_ZPBTRS( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
-		 lapackRHS_ + 1, &lp_ldb, &lp_info );
+                 lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status
       if ( lp_info < 0 ) {
-	(*error) << "Lapack_LL: ZPBTRS reports input argument number "
-		 << -lp_info << " had illegal value";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION("Lapack_LL: ZPBTRS reports input argument number "
+            << -lp_info << " had illegal value");
       }
 
       // Extract solution from LAPACK array
       for ( i = 1; i <= lp_n; i++ ) {
-	Complex aux( lapackRHS_[2*i-1], lapackRHS_[2*i]  );
-	dataSol[i] = aux;
+        Complex aux( lapackRHS_[2*i-1], lapackRHS_[2*i]  );
+        dataSol[i] = aux;
       }
 
     } CATCH_CAST;

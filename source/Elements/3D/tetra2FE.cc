@@ -12,7 +12,7 @@ namespace CoupledField
 {
 
 Tetra2FE::Tetra2FE():TetraFE()
-{ 
+{
 
   Init();
 }
@@ -20,7 +20,7 @@ Tetra2FE::Tetra2FE():TetraFE()
 
 Tetra2FE::~Tetra2FE()
 {
-  
+
 }
 
 void Tetra2FE::Init()
@@ -124,9 +124,9 @@ void Tetra2FE::SetEdgeVertices()
 // }
 
 
-void Tetra2FE::CalcShapeFnc(Vector<Double> & Shape,
+void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
                               const Vector<Double> & LCoord,
-                              const Elem*, UInt dof, 
+                              const Elem*, UInt dof,
                               AnsatzFct::FctEntityType fctEntityType )
 {
 
@@ -136,23 +136,23 @@ void Tetra2FE::CalcShapeFnc(Vector<Double> & Shape,
 //See Finite Element Procedures :Klaus Juergen Bathe, Prentice Hall,
 //page 375 Sec. 5.3.
 //Definition of the shape functions from 5 to 10
-	
+
 	Shape[4]=4*LCoord[0]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
 	Shape[5]=4*LCoord[0]*LCoord[1];
 	Shape[6]=4*LCoord[1]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
 	Shape[7]=4*LCoord[2]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
 	Shape[8]=4*LCoord[0]*LCoord[2];
 	Shape[9]=4*LCoord[1]*LCoord[2];
-        
+
 
 //definition of the shape functions from 1 to 4
-	
+
 	Shape[0]= 1. - LCoord[0] - LCoord[1] - LCoord[2] - 0.5*Shape[4] -
 	          0.5*Shape[6] - 0.5*Shape[7];
 	Shape[1]= LCoord[0] - 0.5*Shape[4] - 0.5*Shape[5] - 0.5*Shape[8];
 	Shape[2]= LCoord[1] - 0.5*Shape[5] - 0.5*Shape[6] - 0.5*Shape[9];
 	Shape[3]= LCoord[2] - 0.5*Shape[8] - 0.5*Shape[7] - 0.5*Shape[9];
-	
+
 // 	if (Shape[0] < 0)
 // 	  Error("Local coordinates are not inside tetrahedral element!",
 //       __FILE__,__LINE__);
@@ -175,44 +175,44 @@ void Tetra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	LDeriv[4][0]=4. - 8*LCoord[0] - 4.*LCoord[1] - 4.*LCoord[2];
 	LDeriv[4][1]=-4.*LCoord[0];
 	LDeriv[4][2]=-4.*LCoord[0];
-	
+
 	LDeriv[5][0]=4.*LCoord[1];
 	LDeriv[5][1]=4.*LCoord[0];
 	LDeriv[5][2]=0.0;
-	
+
 	LDeriv[6][0]=-4.*LCoord[1];
 	LDeriv[6][1]=4. - 8*LCoord[1] - 4.*LCoord[0] - 4.*LCoord[2];
 	LDeriv[6][2]=-4.*LCoord[1];
-	
+
 	LDeriv[8][0]=4.*LCoord[2];
 	LDeriv[8][1]=0.0;
 	LDeriv[8][2]=4.*LCoord[0];
-	
+
 	LDeriv[9][0]=0.0;
 	LDeriv[9][1]=4.*LCoord[2];
 	LDeriv[9][2]=4.*LCoord[1];
-	
+
 	LDeriv[7][0]=-4.*LCoord[2];
 	LDeriv[7][1]=-4.*LCoord[2];
 	LDeriv[7][2]=4. - 8.*LCoord[2] - 4.*LCoord[0] - 4.*LCoord[1];
 
-	//Calculation of the local derivatives from 1 to 4 
+	//Calculation of the local derivatives from 1 to 4
 
 	LDeriv[0][0]= -1.-0.5*LDeriv[4][0]-0.5*LDeriv[6][0]-0.5*LDeriv[7][0];
 	LDeriv[0][1]= -1.-0.5*LDeriv[4][1]-0.5*LDeriv[6][1]-0.5*LDeriv[7][1];
 	LDeriv[0][2]= -1.-0.5*LDeriv[4][2]-0.5*LDeriv[6][2]-0.5*LDeriv[7][2];
-	
-	LDeriv[1][0]= 1.-0.5*LDeriv[4][0]-0.5*LDeriv[5][0]-0.5*LDeriv[8][0]; 
+
+	LDeriv[1][0]= 1.-0.5*LDeriv[4][0]-0.5*LDeriv[5][0]-0.5*LDeriv[8][0];
 	LDeriv[1][1]= -0.5*LDeriv[4][1]-0.5*LDeriv[5][1]-0.5*LDeriv[8][1];
 	LDeriv[1][2]= -0.5*LDeriv[4][2]-0.5*LDeriv[5][2]-0.5*LDeriv[8][2];
-	
+
 	LDeriv[2][0]= -0.5*LDeriv[5][0]-0.5*LDeriv[6][0]-0.5*LDeriv[9][0];
 	LDeriv[2][1]= 1.-0.5*LDeriv[5][1]-0.5*LDeriv[6][1]-0.5*LDeriv[9][1];
 	LDeriv[2][2]= -0.5*LDeriv[5][2]-0.5*LDeriv[6][2]-0.5*LDeriv[9][2];
-	
+
 	LDeriv[3][0]= -0.5*LDeriv[9][0]-0.5*LDeriv[7][0]-0.5*LDeriv[8][0];
 	LDeriv[3][1]= -0.5*LDeriv[9][1]-0.5*LDeriv[7][1]-0.5*LDeriv[8][1];
-	LDeriv[3][2]= 1.-0.5*LDeriv[9][2]-0.5*LDeriv[7][2]-0.5*LDeriv[8][2]; 
+	LDeriv[3][2]= 1.-0.5*LDeriv[9][2]-0.5*LDeriv[7][2]-0.5*LDeriv[8][2];
 }
 
 // see Kaltenbacher: "Numerical Sim. of Mechatronic Sensors and Actuators"
@@ -222,7 +222,7 @@ void Tetra2FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 				  const Matrix<Double> & cornernodes)
 {
 
-Error("Tetra2FE::CalcEdgeShapeFnc not yet implemented!!",__FILE__,__LINE__);
+  EXCEPTION("Tetra2FE::CalcEdgeShapeFnc not yet implemented!!");
 
 //   edgeShape.Resize(NumEdges_, Dim_);
 //   edgeShape.Init();
@@ -257,8 +257,7 @@ void Tetra2FE::GetEdgeGlobalDerivShapeFnc(Vector<Matrix<Double>*> &shapeDeriv,
 					   const Matrix<Double> &cornerCoords)
 {
 
-Error("Tetra2FE::GetEdgeGlobalDerivShapeFnc not yet implemented!!",
-      __FILE__,__LINE__);
+  EXCEPTION("Tetra2FE::GetEdgeGlobalDerivShapeFnc not yet implemented!!");
 
 //   shapeDeriv.Resize(NumEdges_);
 

@@ -5,8 +5,8 @@
 #ifndef FILE_PMLBASICS
 #define FILE_PMLBASICS
 
-#include "Matrix/matrix.hh"
-#include "Utils/vector.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 namespace CoupledField
 {
 

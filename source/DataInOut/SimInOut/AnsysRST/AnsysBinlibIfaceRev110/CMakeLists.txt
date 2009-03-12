@@ -1,11 +1,4 @@
-LIST(GET CFSDEPS_INCLUDE_DIR 0 CFSINCDIR)
-SET(ANSINC_DIR "${CFSINCDIR}/ansys/v110")
-#MESSAGE("ANSINC_DIR ${ANSINC_DIR}")
-INCLUDE_DIRECTORIES(${ANSINC_DIR})
-
-LINK_DIRECTORIES(
-  ${CFSDEPS_LIBRARY_DIR}/ansys/v110
-  )
+INCLUDE_DIRECTORIES(${ANSYS_V110_INCLUDE_DIR})
 
 # Add the ANSYS ResWrDemo program for test purposes
 #ADD_EXECUTABLE(ResWrDemo110 ../ResWrDemo.F ../ResWr.F)
@@ -14,11 +7,15 @@ LINK_DIRECTORIES(
 #  ${GFORTRAN_LIBRARY}
 #  )
 
-ADD_EXECUTABLE(ResWrHeadTestCC110 ../ResWrHeadTest.cc ../ResWrTest.F ../ResWr.F)
+ADD_EXECUTABLE(ResWrHeadTestCC110
+  ../ResWrHeadTest.cc
+  ../ResWrTest.F
+  ../ResWr.F)
 TARGET_LINK_LIBRARIES(ResWrHeadTestCC110
-  ${CFSDEPS_LIBRARY_DIR}/ansys/v110/libbin.so
+  ${ANSYS_V110_LIBBIN}
   ${GFORTRAN_LIBRARY}
   ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_SYSTEM_LIB}
   )
 
 #ADD_EXECUTABLE(bintst110 ../bintst.F ../bintrd.F ../bintwr.F)
@@ -28,12 +25,15 @@ TARGET_LINK_LIBRARIES(ResWrHeadTestCC110
 #  )
 
 
-ADD_LIBRARY(CFSAnsysBinlibIfaceRev110 SHARED ../AnsysBinlibIfaceGeneral.cc ../ResWrTest.F ../ResWr.F)
+ADD_LIBRARY(CFSAnsysBinlibIfaceRev110 SHARED
+  ../AnsysBinlibIfaceGeneral.cc
+  ../ResWrTest.F
+  ../ResWr.F)
 
 TARGET_LINK_LIBRARIES(CFSAnsysBinlibIfaceRev110
-  ${CFSDEPS_LIBRARY_DIR}/ansys/v110/libbin.so
-#  ${GFORTRAN_LIBRARY}
-  -lgfortran
+  ${ANSYS_V110_LIBBIN}
+  ${GFORTRAN_LIBRARY}
   )
 
-SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev110 PROPERTIES LINKER_LANGUAGE CXX)
+SET_TARGET_PROPERTIES(CFSAnsysBinlibIfaceRev110 PROPERTIES
+  LINKER_LANGUAGE CXX)

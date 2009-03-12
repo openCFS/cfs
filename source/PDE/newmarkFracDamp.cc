@@ -7,7 +7,6 @@
 #include <string>
 #include <cmath>
 
-#include "newmarkFracDamp.hh"
 #include "Forms/massInt.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "basePDE.hh"
@@ -16,6 +15,10 @@
 #include "Domain/domain.hh"
 #include "Driver/singleDriver.hh"
 #include "General/exception.hh"
+
+#include "OLAS/algsys/basesystem.hh"
+
+#include "newmarkFracDamp.hh"
 
 namespace CoupledField {
 
@@ -151,7 +154,7 @@ beta and gamma!\n" );
     Vector<Double> coeffMass;
 
     coeffMass = solpred_*a2_;
-    algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
+    algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
     Matrix<Double>  elemmat,ptCoord;
@@ -171,13 +174,13 @@ beta and gamma!\n" );
 		
         Vector<Double> coeffDamp;
         coeffDamp = -solderiv1pred_ + solpred_*a4_;
-        algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+        algsys_->UpdateRHS(DAMPING,coeffDamp);
       }
       else {
-        mymaterialData[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
-        mymaterialData[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
-        mymaterialData[subdoms_[actSD]]->GetScalar(alpha0,ACOU_ALPHA,REAL);
-        mymaterialData[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(density,DENSITY,Global::REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(alpha0,ACOU_ALPHA,Global::REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,Global::REAL);
 
         c0 = sqrt(compressibility/density);
 
@@ -250,9 +253,7 @@ beta and gamma!\n" );
           // (*debug) << "BDF vector of timestep " << actStep_ << std::endl << rhsvec << std::endl;
           
           //assemble to RHS
-          algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
-                                 eqnNumbers.GetPointer(),
-                                 eqnNumbers.GetSize());
+          algsys_->SetElementRHS(rhsAssemble, pdeId_, eqnNumbers ); 
         }
         delete bilinear_mass;
       }

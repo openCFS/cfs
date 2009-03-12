@@ -23,21 +23,21 @@ namespace CoupledField {
 
    //! set a real material tensor
     void SetTensor(const Matrix<Double>& param, MaterialType matType,
-                   DataType dataType );
+                   Global::ComplexPart dataType );
 
 
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, MaterialType matType,
-                    DataType dataType, SubTensorType = FULL ) const;	
+                    Global::ComplexPart dataType, SubTensorType = FULL ) const;	
 
     //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
-		    DataType dataType );
+		    Global::ComplexPart dataType );
 
 
     //! get a scalar real material parameter
     void GetScalar( Double& param, MaterialType matType, 
-                    DataType dataType ) const;
+                    Global::ComplexPart dataType ) const;
 
 
   private:

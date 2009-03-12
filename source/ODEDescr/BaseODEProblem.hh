@@ -7,7 +7,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 

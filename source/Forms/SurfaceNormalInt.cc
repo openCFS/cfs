@@ -59,7 +59,8 @@ void SurfaceNormalInt::calcBMat( Matrix<Double> &bMat, UInt ip,
 
   assert(shapeFncAtIp.GetSize() == numFncs);
 
-  LOG_DBG3(forms) << "SurfaceNormalInt::calcBMat(): Ansatz functions are " << shapeFncAtIp.ToString();
+  LOG_DBG3(forms) << "SurfaceNormalInt::calcBMat(): Ansatz functions are " 
+  << shapeFncAtIp.ToString();
   
   // make
   // N1 0  0  N2 0  0  N3 0

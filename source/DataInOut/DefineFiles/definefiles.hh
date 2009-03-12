@@ -29,7 +29,7 @@ namespace CoupledField
 
     //! constructor
     //! \param name This is the basename for all auxilliary file.
-    DefineInOutFiles(const Char * name);
+    DefineInOutFiles(const char * name);
 
     //! destructor
     ~DefineInOutFiles();

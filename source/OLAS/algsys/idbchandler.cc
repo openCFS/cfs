@@ -2,12 +2,16 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "algsys/idbchandler.hh"
-#include "graph/graph.hh"
-#include "matvec/matvec.hh"
 
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/sbmmatrix.hh"
+#include "MatVec/sbmvector.hh"
 
-namespace OLAS {
+#include "OLAS/graph/graphmanagersbmmat.hh"
+
+#include "OLAS/algsys/idbchandler.hh"
+
+namespace CoupledField {
 
 
   // ***************
@@ -26,10 +30,10 @@ namespace OLAS {
     // Determine number of dofs fixed by inhomogeneous Dirichlet BCs
     // and number of free dofs
     if ( sbmCase == false ) {
-      NewArray( numFixedDofs_, UInt, 1 );
-      NewArray( numFreeDofs_ , UInt, 1 );
-      numFreeDofs_[1]  = graphManager->GetIDBCGraph()->GetSize();
-      numFixedDofs_[1] = graphManager->GetIDBCGraph()->GetNumColsMat();
+      NEWARRAY( numFixedDofs_, UInt, 1 );
+      NEWARRAY( numFreeDofs_ , UInt, 1 );
+      numFreeDofs_[0]  = graphManager->GetIDBCGraph()->GetSize();
+      numFixedDofs_[0] = graphManager->GetIDBCGraph()->GetNumColsMat();
     }
     else {
 
@@ -37,22 +41,22 @@ namespace OLAS {
       GraphManagerSBMMat *gmSBM = NULL;
       gmSBM = dynamic_cast<GraphManagerSBMMat *>(graphManager);
       if ( gmSBM == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
-      NewArray( numFixedDofs_, UInt, numPDEs );
-      NewArray( numFreeDofs_ , UInt, numPDEs );
+      NEWARRAY( numFixedDofs_, UInt, numPDEs );
+      NEWARRAY( numFreeDofs_ , UInt, numPDEs );
 
       // Determine number of free dofs per PDE
       // and initialise number of fixed dofs to zero
-      for ( UInt i = 1; i <= numPDEs; i++ ) {
+      for ( UInt i = 0; i < numPDEs; i++ ) {
         numFreeDofs_[i]  = gmSBM->GetGraph(i)->GetSize();
         numFixedDofs_[i] = 0;
       }
 
       // Set number of fixed dofs per PDE
-      for ( UInt i = 1; i <= numPDEs; i++ ) {
-        for ( UInt j = 1; j <= numPDEs; j++ ) {
+      for ( UInt i = 0; i < numPDEs; i++ ) {
+        for ( UInt j = 0; j < numPDEs; j++ ) {
           if ( gmSBM->IDBCGraphExists(i,j) == true ) {
             numFixedDofs_[i] = gmSBM->GetIDBCGraph(i,j)->GetNumColsMat();
           }
@@ -66,15 +70,13 @@ namespace OLAS {
 
     // Check size of set
     if ( usedFEMatrices.empty() == true ) {
-      (*error) << "IDBC_Handler::IDBC_Handler: Call to constructor with "
-               << "empty usedFEMatrices set!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "IDBC_Handler::IDBC_Handler: Call to constructor with "
+               << "empty usedFEMatrices set!");
     }
     else if ( usedFEMatrices.size() > MAX_NUM_FE_MATRICES ) {
-      (*error) << "IDBC_Handler::IDBC_Handler: Detected serious "
+      EXCEPTION( "IDBC_Handler::IDBC_Handler: Detected serious "
                << "inconsistency! Size of usedFEMatrices set exceeds "
-               << "value of MAX_NUM_FE_MATRICES macro";
-      Error( __FILE__, __LINE__ );
+               << "value of MAX_NUM_FE_MATRICES macro");
     }
 
     // Since the set will only have a few entries we can afford to
@@ -89,25 +91,24 @@ namespace OLAS {
     // ----------------------------------------------------
 
     // Determine entry type from template parameter
-    MatrixEntryType eType = NOENTRYTYPE;
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      eType = DOUBLE;
+    BaseMatrix::EntryType eType = BaseMatrix::NOENTRYTYPE;
+    if ( AssocType<T>::tagM == AssocType<Double>::tagM ) {
+      eType = BaseMatrix::DOUBLE;
     }
-    else if ( assocType<T>::tagM == assocType<Complex>::tagM ) {
-      eType = COMPLEX;
+    else if ( AssocType<T>::tagM == AssocType<Complex>::tagM ) {
+      eType = BaseMatrix::COMPLEX;
     }
     else {
-      (*error) << "Internal template error! No swearing please!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Internal template error! No swearing please!" );
     }
 
     // Initialise basic pointer structure
-    NewArray( auxMat_, BaseMatrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
+    NEWARRAY( auxMat_, BaseMatrix*, MAX_NUM_FE_MATRICES );
+    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
       auxMat_[i] = NULL;
     }
 
-    // STDMATRIX case:
+    // SPARSE_MATRIX case:
     if ( sbmCase == false ) {
 
       // Note: We always use CRS_Matrices currently. The entry type depends
@@ -123,10 +124,9 @@ namespace OLAS {
 
         // First generate empty object
         stdMat = GenerateStdMatrixObject( eType,
-                                          SPARSE_NONSYM,
-                                          1,
-                                          numFreeDofs_[1],
-                                          numFixedDofs_[1],
+                                          BaseMatrix::SPARSE_NONSYM,
+                                          numFreeDofs_[0],
+                                          numFixedDofs_[0],
                                           graph->GetNNE() );
 
         // Now set sparsity pattern
@@ -147,31 +147,32 @@ namespace OLAS {
       GraphManagerSBMMat *gmSBM = NULL;
       gmSBM = dynamic_cast<GraphManagerSBMMat *>(graphManager);
       if ( gmSBM == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
       // Generation of required SBM_Matrices
       for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
 
         // Generate empty SBM_Matrix
-        sbmMat = New SBM_Matrix( numPDEs, numPDEs, false );
+        sbmMat = new SBM_Matrix( numPDEs, numPDEs, false );
         if ( sbmMat == NULL ) {
-          (*error) << "IDBC_Handler::IDBC_Handler: "
+          std::string tmp;
+          Enum2String( *it, tmp );
+          EXCEPTION( "IDBC_Handler::IDBC_Handler: "
                    << "Failed to generate SBM companion matrix for "
-                   << "FE-Matrix '" << Enum2String( *it ) << "'";
-          Error( __FILE__, __LINE__ );
+                   << "FE-Matrix '" << tmp << "'");
         }
 
         // Populate matrix with sub-matrices for storing free-fixed-dof
         // connectivity
-        for ( UInt i = 1; i <= numPDEs; i++ ) {
-          for ( UInt k = 1; k <= numPDEs; k++ ) {
+        for ( UInt i = 0; i < numPDEs; i++ ) {
+          for ( UInt k = 0; k < numPDEs; k++ ) {
 
             if ( gmSBM->IDBCGraphExists(i,k) == true ) {
 
               graph = gmSBM->GetIDBCGraph(i,k);
 
-              sbmMat->SetSubMatrix( i, k, eType, SPARSE_NONSYM, 1,
+              sbmMat->SetSubMatrix( i, k, eType, BaseMatrix::SPARSE_NONSYM,
                                     graph->GetSize(),
                                     graph->GetNumColsMat(),
                                     graph->GetNNE() );
@@ -207,7 +208,7 @@ namespace OLAS {
     // --------------------
     if ( sbmCase == false ) {
       (*cla) << "\n IDBC_Handler: Administrating "
-             << numFixedDofs_[1] << " inhom. Dirichlet BCs.\n\n";
+             << numFixedDofs_[0] << " inhom. Dirichlet BCs.\n\n";
     }
     else {
     }
@@ -225,15 +226,15 @@ namespace OLAS {
     delete vecIDBC_;
 
     // Delete equation number splitting arrays
-    DeleteArray( numFreeDofs_  );
-    DeleteArray( numFixedDofs_ );
+    DELETEARRAY( numFreeDofs_  );
+    DELETEARRAY( numFixedDofs_ );
 
     // Delete internal FE matrices
     mySetIterator it;
     for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
       delete auxMat_[*it];
     }
-    DeleteArray( auxMat_ );
+    DELETEARRAY( auxMat_ );
   }
 
 
@@ -268,16 +269,16 @@ namespace OLAS {
   void IDBC_Handler<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo, const T &val ) {
 
 
-    // CASE 1: SparseVector
+    // CASE 1: SingleVector
     if ( sbmCase_ == false ) {
-      vecIDBC_->SetVectorEntry( eqnNo - numFreeDofs_[1], val );
+      vecIDBC_->SetEntry( eqnNo - numFreeDofs_[0] - 1, val );
     }
 
     // CASE 2: SBM_Vector
     else {
-      PtrCast( vecIDBC_, SBM_Vector, sbmVec );
-      sbmVec->GetPointer(pdeID)->SetVectorEntry( eqnNo - numFreeDofs_[pdeID],
-                                                 val );
+      PTRCAST( vecIDBC_, SBM_Vector, sbmVec );
+      sbmVec->GetPointer(pdeID)->SetEntry( eqnNo - numFreeDofs_[pdeID] - 1,
+                                           val );
     }
 
     // Adapt status flags
@@ -293,8 +294,7 @@ namespace OLAS {
                                               PdeIdType pdeID2,
                                               UInt rowInd,
                                               UInt colInd,
-                                              Double realPart,
-                                              Double imagPart ) {
+                                              const T& val ) {
 
 
     // ---------------------------
@@ -326,20 +326,7 @@ namespace OLAS {
     // -----------------
     // Now add the value
     // -----------------
-
-    // In the real-valued case find correct sub-matrix and insert value
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      stdMat->AddToMatrixEntry( rowInd, colInd, realPart );
-    }
-
-    // We can savely assume that we are in the complex case now, since
-    // otherwise an error would already have occured in the constructor.
-    // Here we do the same as above, but must assemble the complex value
-    // first
-    else {
-      Complex aux(realPart, imagPart);
-      stdMat->AddToMatrixEntry( rowInd, colInd, aux );
-    }
+    stdMat->AddToMatrixEntry( rowInd, colInd, val );
   }
 
 
@@ -352,8 +339,7 @@ namespace OLAS {
                                               PdeIdType pdeID2,
                                               UInt rowInd,
                                               UInt colInd,
-                                              Double realPart,
-                                              Double imagPart ) {
+                                              const T& val ) {
 
 
     // ---------------------------
@@ -385,20 +371,7 @@ namespace OLAS {
     // -----------------
     // Now set the value
     // -----------------
-
-    // In the real-valued case find correct sub-matrix and insert value
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      stdMat->SetMatrixEntry( rowInd, colInd, realPart, false );
-    }
-
-    // We can savely assume that we are in the complex case now, since
-    // otherwise an error would already have occured in the constructor.
-    // Here we do the same as above, but must assemble the complex value
-    // first
-    else {
-      Complex aux(realPart, imagPart);
-      stdMat->SetMatrixEntry( rowInd, colInd, aux, false );
-    }
+    stdMat->SetMatrixEntry( rowInd, colInd, val, false );
   }
 
   // ************************
@@ -409,8 +382,7 @@ namespace OLAS {
                                               PdeIdType pdeID1,
                                               PdeIdType pdeID2, 
                                               UInt rowInd, UInt colInd,
-                                              Double & realPart,
-                                              Double & imagPart ) const {
+                                              T& val ) const {
 
 
       // ---------------------------
@@ -442,22 +414,8 @@ namespace OLAS {
     // -----------------
     // Now get the value
     // -----------------
-
-    // In the real-valued case find correct sub-matrix and get value
-    if ( assocType<T>::tagM == assocType<Double>::tagM ) {
-      stdMat->GetMatrixEntry( rowInd, colInd, realPart );
-    }
-
-    // We can savely assume that we are in the complex case now, since
-    // otherwise an error would already have occured in the constructor.
-    // Here we do the same as above, but must disassemble the complex value
-    // afterwards
-    else {
-      Complex aux;
-      stdMat->GetMatrixEntry( rowInd, colInd, aux );
-      realPart = aux.real();
-      imagPart = aux.imag();
-    }
+    stdMat->GetMatrixEntry( rowInd, colInd, val );
+    
   }
     
 
@@ -467,8 +425,7 @@ namespace OLAS {
   template <typename T>
   void IDBC_Handler<T>::SetRowWeights( FEMatrixType matID, 
                                        PdeIdType pdeID, UInt rowInd,
-                                       Double realPart, 
-                                       Double imagPart ) {
+                                       const T& val ) {
 
 
   }
@@ -480,8 +437,7 @@ namespace OLAS {
   template <typename T>
   void IDBC_Handler<T>::SetColWeights( FEMatrixType matID, 
                                        PdeIdType pdeID,UInt colInd,
-                                       Double realPart, 
-                                       Double imagPart ) {
+                                       const T& val ) {
 
   }
   
@@ -501,71 +457,50 @@ namespace OLAS {
       SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( vec );
       SBM_Vector *sbmVal = dynamic_cast<SBM_Vector*>( vecIDBC_ );
       if ( sbmVec == NULL || sbmVal == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
       // Loop over all sub-vectors
-      SparseVector *stdVec = NULL;
-      SparseVector *stdVal = NULL;
-      for ( UInt i = 1; i <= sbmVec->GetSize(); i++ ) {
+      SingleVector *stdVec = NULL;
+      SingleVector *stdVal = NULL;
+      for ( UInt i = 0; i < sbmVec->GetSize(); i++ ) {
 
         stdVec = sbmVec->GetPointer( i );
         stdVal = sbmVal->GetPointer( i );
 
         // Insert values
-        for ( UInt j = 1; j <= numFixedDofs_[i]; j++ ) {
+        for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
           T aux;
-          stdVal->GetVectorEntry( j, aux );
-          stdVec->SetVectorEntry( j + numFreeDofs_[i], aux );
+          stdVal->GetEntry( j, aux );
+          stdVec->SetEntry( j + numFreeDofs_[i], aux );
         }
       }
     }
 
     // -----------------
-    // CASE 2: SparseVector
+    // CASE 2: SingleVector
     // -----------------
     else {
 
       // Down-cast vector
-      SparseVector *stdVec = dynamic_cast<SparseVector*>( vec );
+      SingleVector *stdVec = dynamic_cast<SingleVector*>( vec );
       if ( stdVec == NULL ) {
-        Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+        EXCEPTION( WRONG_CAST_MSG );
       }
 
       // Insert values
-      for ( UInt i = 1; i <= numFixedDofs_[1]; i++ ) {
+      for ( UInt i = 0; i < numFixedDofs_[0]; i++ ) {
         T aux;
-        vecIDBC_->GetVectorEntry( i, aux );
-        vec->SetVectorEntry( i + numFreeDofs_[1], aux );
+        vecIDBC_->GetEntry( i, aux );
+        vec->SetEntry( i + numFreeDofs_[0], aux );
       }
     }
   }
 
-
-  // ****************************
-  //   InstantiatePublicMethods
-  // ****************************
-  template <typename T>
-  void IDBC_Handler<T>::InstantiatePublicMethods() {
-
-
-    Error( "This function should never be called", __FILE__, __LINE__ );
-
-    // Some dummy variables we need
-    BaseVector *dummyVec = NULL;
-    std::map<FEMatrixType,Double> dummyMap;
-    BaseMatrix *dummyMat = NULL;
-
-    // Public methods in alphabetical order
-    AdaptSystemMatrix( *dummyMat );
-    AddIDBCToRHS( dummyVec );
-    BuiltSystemMatrix( dummyMap );
-    InitDirichletValues();
-    InitMatrix( SYSTEM );
-    RemoveIDBCFromRHS( dummyVec );
-    SetDofsToIDBC( dummyVec );
-    SetIDBC( NO_PDE_ID,  0, 0.0 );
-    SetWeightFixedToFree( SYSTEM, 1, 2, 3, 4, 1.0, 2.0 );
-  }
-
+  // Explicit template instantiation
+  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+    template class IDBC_Handler<Double>;
+    template class IDBC_Handler<Complex>;
+  #endif
+  
 }

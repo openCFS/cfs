@@ -18,9 +18,9 @@ namespace CoupledField
   DEFINE_LOG(hexa1fe,"hexa1fe")
 
   Hexa1FE::Hexa1FE():HexaFE()
-  { 
+  {
 
-    // Evaluate legendre polynomials of order 
+    // Evaluate legendre polynomials of order
     // 1-10 in the unit interval
 
  //    Double delta = 0.01;
@@ -30,7 +30,7 @@ namespace CoupledField
 //     for( UInt i = 0; i <= nums; i++ ) {
 //       std::cerr << x << "\t";
 //       for( UInt o = 1; o <= 8; o++ ) {
-//         EvalPolynom( val, deriv, o, lCoeff_[o], x  );             
+//         EvalPolynom( val, deriv, o, lCoeff_[o], x  );
 //         std::cerr << val << "\t";
 //       }
 //       x+=delta;
@@ -48,9 +48,9 @@ namespace CoupledField
 
   void Hexa1FE::Init()
   {
-  
+
     NumNodes_ = 8;
- 
+
     CommonInit();
     SetEdgeIndices();
     SetFaceIndices();
@@ -60,7 +60,7 @@ namespace CoupledField
   {
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
-  
+
     LCornerCoords_[0][0] =  -1;
     LCornerCoords_[1][0] =  -1;
     LCornerCoords_[2][0] =  -1;
@@ -155,13 +155,13 @@ namespace CoupledField
     edgeIndices_[11][0] = 5;
     edgeIndices_[11][1] = 8;
 
-    
+
   }
 
   void Hexa1FE::SetFaceIndices() {
 
     faceIndices_ = new StdVector<UInt>[NumFaces_];
-    
+
     for (UInt i = 0; i < NumFaces_; i++) {
       faceIndices_[i].Resize(4);
     }
@@ -185,7 +185,7 @@ namespace CoupledField
     faceIndices_[2][2] = 7;
     faceIndices_[2][3] = 6;
 
-    // face 4 
+    // face 4
     faceIndices_[3][0] = 4;
     faceIndices_[3][1] = 3;
     faceIndices_[3][2] = 7;
@@ -206,12 +206,12 @@ namespace CoupledField
   }
 
 
-  void Hexa1FE::CalcShapeFnc(Vector<Double> & Shape, 
+  void Hexa1FE :: CalcShapeFnc(Vector<Double> & Shape,
                                const Vector<Double> & actCoord,
                                const Elem* elem, UInt dof,
                                AnsatzFct::FctEntityType fcnType )
   {
-    
+
     // Check ansatzFctType
     if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
          fcnType == AnsatzFct::NODE ) {
@@ -219,13 +219,13 @@ namespace CoupledField
       // ===============
       //  LAGRANGE PART
       // ===============
-      
+
       Shape.Resize(NumNodes_);
-      
+
       for( UInt i=0; i<NumNodes_; i++)
-        Shape[i] = 0.125 
+        Shape[i] = 0.125
           * (1 + LCornerCoords_[0][i] * actCoord[0])
-          * (1 + LCornerCoords_[1][i] * actCoord[1]) 
+          * (1 + LCornerCoords_[1][i] * actCoord[1])
           * (1 + LCornerCoords_[2][i] * actCoord[2]);
     }else if(  actFct_->GetType() == AnsatzFct::SPECTRAL) {
       // ===============
@@ -234,19 +234,19 @@ namespace CoupledField
       CalcSpectralShFct(Shape,actCoord,elem,dof,fcnType);
 
     } else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
-      
+
       // ===============
       //  LEGENDRE PART
       // ===============
-      
+
       // Get number of ansatz functions
       UInt totalFcns = GetNumFncs( actFct_ );
       Shape.Resize( totalFcns );
-           
+
       // Get number of ansatz functions
-      shared_ptr<LegendreFct> legFct = 
+      shared_ptr<LegendreFct> legFct =
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
-      
+
       // --------------------
       //  a) nodal functions
       // --------------------
@@ -255,9 +255,9 @@ namespace CoupledField
 
       // Calculate nodal shape functions
       for( UInt iNode = 0; iNode < NumCorners_; iNode++, offset++ )
-        Shape[offset] = 0.125 
+        Shape[offset] = 0.125
           * (1 + LCornerCoords_[0][iNode] * actCoord[0])
-          * (1 + LCornerCoords_[1][iNode] * actCoord[1]) 
+          * (1 + LCornerCoords_[1][iNode] * actCoord[1])
           * (1 + LCornerCoords_[2][iNode] * actCoord[2]);
 
 
@@ -276,8 +276,8 @@ namespace CoupledField
         Shape[offset] = 0.25 * ( 1.0 sign1 actCoord[dir1] )             \
                              * ( 1.0 sign2 actCoord[dir2] ) * val;      \
       }
-      
-      
+
+
       // Edge #1
       HEX_EDGE_FCN(1, -, 1, -, 2, 0);
 
@@ -289,7 +289,7 @@ namespace CoupledField
 
       // Edge #4
       HEX_EDGE_FCN(4, -, 0, -, 2, 1);
-      
+
       // Edge #5
       HEX_EDGE_FCN(5, -, 0, -, 1, 2);
 
@@ -325,7 +325,7 @@ namespace CoupledField
       Double sFlag2, sFlag3;
       Integer order_1, order_2, order_3;
       UInt d2, d3;
-  
+
 #define HEX_FACE_FCN(faceNum, sgn1, dir1, dir2, dir3)                   \
       order_2 = legFct->GetMaxOrderLocDir(dir2);                        \
       order_3 = legFct->GetMaxOrderLocDir(dir3);                        \
@@ -353,13 +353,13 @@ namespace CoupledField
                               * val_2  * val_3;                         \
           offset++;                                                     \
         } }
-      
+
       // Face #1
       HEX_FACE_FCN(1, -, 2, 0, 1);
-      
+
       // Face #2
-      HEX_FACE_FCN(2, -, 1, 0, 2); 
-                   
+      HEX_FACE_FCN(2, -, 1, 0, 2);
+
       // Face #3
       HEX_FACE_FCN(3, +, 0, 1, 2);
 
@@ -373,15 +373,15 @@ namespace CoupledField
       HEX_FACE_FCN(6, +, 2, 0 ,1);
 
 #undef HEX_FACE_FCN
-      
+
 
 
       // ----------------------
       //  d) bubble functions
       // ----------------------
-      order_1 = legFct->GetMaxOrderLocDir(0);               
-      order_2 = legFct->GetMaxOrderLocDir(1);               
-      order_3 = legFct->GetMaxOrderLocDir(2);               
+      order_1 = legFct->GetMaxOrderLocDir(0);
+      order_2 = legFct->GetMaxOrderLocDir(1);
+      order_3 = legFct->GetMaxOrderLocDir(2);
       Integer temp, maxOrder;
       temp = std::max( order_1, order_2);
       maxOrder = std::max( temp, order_3);
@@ -395,43 +395,42 @@ namespace CoupledField
             EvalPolynom( val_1, deriv_1, i, lCoeff_[i], actCoord[0] );
             EvalPolynom( val_2, deriv_2, j, lCoeff_[j], actCoord[1] );
             EvalPolynom( val_3, deriv_3, k, lCoeff_[k], actCoord[2] );
-            
+
             Shape[offset++] = val_1 * val_2 * val_3;
           }
         }
       }
     } else {
-      *error << "Approximation type not known";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Approximation type not known" );
     }
-    
+
   }
 
-  void Hexa1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Hexa1FE::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv,
                                         const Vector<Double> & actCoord,
                                         const Elem* elem, UInt dof,
                                         AnsatzFct::FctEntityType fctType ) {
-    
+
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
         fctType == AnsatzFct::NODE ) {
-      
+
       LDeriv.Resize(NumNodes_,Dim_);
       LDeriv.Init();
-      
+
       for( UInt i=0; i<NumNodes_; i++) {
-        LDeriv[i][0] = 0.125 
-          * LCornerCoords_[0][i] 
+        LDeriv[i][0] = 0.125
+          * LCornerCoords_[0][i]
           * (1 + LCornerCoords_[1][i] * actCoord[1] )
           * (1 + LCornerCoords_[2][i] * actCoord[2]);
-        
-        LDeriv[i][1] = 0.125 
+
+        LDeriv[i][1] = 0.125
           * (1 + LCornerCoords_[0][i] * actCoord[0] )
-          * LCornerCoords_[1][i] 
+          * LCornerCoords_[1][i]
           * (1 + LCornerCoords_[2][i] * actCoord[2]);
-        
-        LDeriv[i][2] = 0.125 
+
+        LDeriv[i][2] = 0.125
           * (1 + LCornerCoords_[0][i] * actCoord[0])
-          * (1 + LCornerCoords_[1][i] * actCoord[1]) 
+          * (1 + LCornerCoords_[1][i] * actCoord[1])
           * LCornerCoords_[2][i];
       }
 
@@ -443,41 +442,41 @@ namespace CoupledField
       return;
 
     } else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
-      
+
       // ===============
       //  LEGENDRE PART
       // ===============
-      
+
       // Get number of ansatz functions
-      shared_ptr<LegendreFct> legFct = 
+      shared_ptr<LegendreFct> legFct =
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_);
       UInt totalFcns = GetNumFncs( actFct_ );
       LDeriv.Resize( totalFcns, Dim_ );
       LDeriv.Init();
-      
+
       // --------------------
       //  a) nodal functions
       // --------------------
       UInt offset = 0;
-      
+
       // First of all, calculate all nodal function derivatives
       for( UInt iNode = 0; iNode < NumCorners_; iNode++,offset++ ) {
-        LDeriv[iNode][0] = 0.125 
-          * LCornerCoords_[0][iNode] 
+        LDeriv[iNode][0] = 0.125
+          * LCornerCoords_[0][iNode]
           * (1 + LCornerCoords_[1][iNode] * actCoord[1] )
           * (1 + LCornerCoords_[2][iNode] * actCoord[2]);
-        
-        LDeriv[iNode][1] = 0.125 
+
+        LDeriv[iNode][1] = 0.125
           * (1 + LCornerCoords_[0][iNode] * actCoord[0] )
-          * LCornerCoords_[1][iNode] 
+          * LCornerCoords_[1][iNode]
           * (1 + LCornerCoords_[2][iNode] * actCoord[2]);
-        
-        LDeriv[iNode][2] = 0.125 
+
+        LDeriv[iNode][2] = 0.125
           * (1 + LCornerCoords_[0][iNode] * actCoord[0])
-          * (1 + LCornerCoords_[1][iNode] * actCoord[1]) 
+          * (1 + LCornerCoords_[1][iNode] * actCoord[1])
           * LCornerCoords_[2][iNode];
       }
-      
+
       // -------------------
       //  b) edge functions
       // -------------------
@@ -502,13 +501,13 @@ namespace CoupledField
 
       // EDGE #1
       HEX_EDGE_DERIV(1, -, 1, -, 2, 0 );
-      
+
       // EDGE #2
        HEX_EDGE_DERIV(2, +, 0, -, 2, 1 );
 
        // EDGE #3
        HEX_EDGE_DERIV(3, +, 1, -, 2, 0 );
-    
+
        // EDGE #4
        HEX_EDGE_DERIV(4, -, 0, -, 2, 1 );
 
@@ -529,7 +528,7 @@ namespace CoupledField
 
        // EDGE #10
        HEX_EDGE_DERIV(10, +, 0, +, 2, 1 );
-    
+
        // EDGE #11
        HEX_EDGE_DERIV(11, +, 1, +, 2, 0 );
 
@@ -538,11 +537,11 @@ namespace CoupledField
 
 
 
-     
+
       // -------------------
       //  c) face functions
       // -------------------
-       
+
        Double val_2, deriv_2, val_3, deriv_3;
       Double sFlag2, sFlag3;
       UInt d2, d3;
@@ -588,31 +587,31 @@ namespace CoupledField
             * val_2 * deriv_3 * sFlag3;                                 \
           offset++;                                                     \
         } }
-      
+
       // Face #1
       HEX_FACE_DERIV(1, -, 2, 0, 1);
-      
+
       // Face #2
-      HEX_FACE_DERIV(2, -, 1, 0, 2);      
-      
+      HEX_FACE_DERIV(2, -, 1, 0, 2);
+
       // Face #3
-      HEX_FACE_DERIV(3, +, 0, 1, 2);      
-      
+      HEX_FACE_DERIV(3, +, 0, 1, 2);
+
       // Face #4
-      HEX_FACE_DERIV(4, +, 1, 0, 2);      
-      
+      HEX_FACE_DERIV(4, +, 1, 0, 2);
+
       // Face #5
-      HEX_FACE_DERIV(5, -, 0, 1, 2);      
-      
+      HEX_FACE_DERIV(5, -, 0, 1, 2);
+
       // Face #6
-      HEX_FACE_DERIV(6, +, 2, 0, 1); 
-      
+      HEX_FACE_DERIV(6, +, 2, 0, 1);
+
       // ---------------------
       //  d) bubble functions
       // ---------------------
-      order_1 = legFct->GetMaxOrderLocDir(0);               
-      order_2 = legFct->GetMaxOrderLocDir(1);               
-      order_3 = legFct->GetMaxOrderLocDir(2);               
+      order_1 = legFct->GetMaxOrderLocDir(0);
+      order_2 = legFct->GetMaxOrderLocDir(1);
+      order_3 = legFct->GetMaxOrderLocDir(2);
       Integer temp, maxOrder;
       temp = std::max( order_1, order_2);
       maxOrder = std::max( temp, order_3);
@@ -620,13 +619,13 @@ namespace CoupledField
       for( Integer i = 2; i <= (order_1) - 4; i++ ) {
         for( Integer j = 2; j <= (order_2) - 4; j++ ) {
           for( Integer k = 2; k <= (order_3) - 4; k++ ) {
-          
-            // Condition for trunk space: 
+
+            // Condition for trunk space:
             // i+j+k in [6..max{order_i,order_j,order_k}]
             if ( (i+j+k) > maxOrder ) {continue;}
             EvalPolynom( val_i, deriv_i, i, lCoeff_[i], actCoord[0] );
             EvalPolynom( val_j, deriv_j, j, lCoeff_[j], actCoord[1] );
-            EvalPolynom( val_k, deriv_k, k, lCoeff_[k], actCoord[2] );            
+            EvalPolynom( val_k, deriv_k, k, lCoeff_[k], actCoord[2] );
 
             LDeriv[offset][0] = deriv_i * val_j   * val_k;
             LDeriv[offset][1] =   val_i * deriv_j * val_k;
@@ -638,37 +637,35 @@ namespace CoupledField
       LOG_DBG2(hexa1fe) << "LDeriv = \n" << LDeriv << std::endl;
       LOG_DBG3(hexa1fe) << "offset after bubbles: " << offset;
     } else {
-        *error << "Approximation type not known";
-        Error( __FILE__, __LINE__ );
+      EXCEPTION( "Approximation type not known" );
     }
   }
 
 
-  void Hexa1FE::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
+  void Hexa1FE::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv,
 					       const Vector<Double> & actCoord,
 					       const Elem* elem, UInt dof,
 					       AnsatzFct::FctEntityType fctType ) {
-    
+
     if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
         fctType == AnsatzFct::NODE ) {
-      
+
       LDeriv.Resize(3,Dim_);
       LDeriv.Init();
       LDeriv[0][0] = -2.0*actCoord[0];
       LDeriv[1][1] = -2.0*actCoord[1];
       LDeriv[2][2] = -2.0*actCoord[2];
-    } 
+    }
     else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
-      Error("CalcLocalICModesDerivShapeFnc for Legendre type not implemented",
-	    __FILE__,__LINE__);
+      EXCEPTION( "CalcLocalICModesDerivShapeFnc for Legendre type not implemented");
     }
 
   }
 
 
-  void  Hexa1FE::GetNumFncs( Vector<UInt>& numFcns,  
-                             const shared_ptr<AnsatzFct>& fcnType, 
-                             AnsatzFct::FctEntityType fctEntityType, 
+  void  Hexa1FE::GetNumFncs( StdVector<UInt>& numFcns,
+                             const shared_ptr<AnsatzFct>& fcnType,
+                             AnsatzFct::FctEntityType fctEntityType,
                              UInt dof ) {
 
     // Check ansatzFctType
@@ -683,20 +680,20 @@ namespace CoupledField
       if( fctEntityType == AnsatzFct::NODE ) {
         numFcns.Resize( NumNodes_ );
         numFcns.Init( 1 );
-        
+
       } else if( fctEntityType == AnsatzFct::EDGE ) {
         numFcns.Resize( NumEdges_ );
         numFcns.Init( order - 1 );
-      } 
+      }
       else if( fctEntityType == AnsatzFct::INTERIOR ) {
         numFcns.Resize(1);
-        numFcns.Init((order-1)*(order-1)*(order-1));  
-      } 
+        numFcns.Init((order-1)*(order-1)*(order-1));
+      }
       else if( fctEntityType == AnsatzFct::FACE ) {
         numFcns.Resize( NumFaces_ );
-        numFcns.Init((order-1)*(order-1));  
+        numFcns.Init((order-1)*(order-1));
       } else {
-        Error( "Not yet implemented!", __FILE__, __LINE__ );
+        EXCEPTION( "Not yet implemented!" );
       }
 
     } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
@@ -707,12 +704,12 @@ namespace CoupledField
         // Remember approximation order
         Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
           (fcnType)->GetIsoOrder();
-        
+
         // Check for subentity-type
         if( fctEntityType == AnsatzFct::NODE ) {
           numFcns.Resize( NumNodes_ );
           numFcns.Init( 1 );
-          
+
         } else if( fctEntityType == AnsatzFct::EDGE ) {
           numFcns.Resize( NumEdges_ );
           numFcns.Init( order - 1 );
@@ -729,7 +726,7 @@ namespace CoupledField
             }
           }
           numFcns.Init( numFaceFncs );
-        } 
+        }
         else if( fctEntityType == AnsatzFct::INTERIOR ) {
           numFcns.Resize(1);
           UInt total = 0;
@@ -745,21 +742,21 @@ namespace CoupledField
 
           numFcns.Init(total);
         } else {
-          Error( "Not yet implemented!", __FILE__, __LINE__ );
+          EXCEPTION("Not yet implemented!");
         }
-      
+
       } else {
         // *** anisotropic case ***
         // Remember approximation order
-        shared_ptr<LegendreFct> const & legFct = 
+        shared_ptr<LegendreFct> const & legFct =
           dynamic_pointer_cast<LegendreFct, AnsatzFct> (fcnType);
         Matrix<UInt> const & order =  legFct->GetAnisoOrder();
-        
+
         // Check for subentity-type
         if( fctEntityType == AnsatzFct::NODE ) {
           numFcns.Resize( NumNodes_ );
           numFcns.Init( 1 );
-          
+
         } else if( fctEntityType == AnsatzFct::EDGE ) {
           numFcns.Resize( NumEdges_ );
           numFcns.Init(0);
@@ -774,7 +771,7 @@ namespace CoupledField
           numFcns[3]  = numFcns[1];
           numFcns[9]  = numFcns[1];
           numFcns[11] = numFcns[1];
-          
+
           // zeta direction
           numFcns[4]  = order[2][dof]-1;
           numFcns[5]  = numFcns[4];
@@ -782,7 +779,7 @@ namespace CoupledField
           numFcns[7]  = numFcns[4];
         } else if( fctEntityType == AnsatzFct::FACE ) {
           numFcns.Resize( NumFaces_ );
-          
+
           UInt numFaceFncs = 0;
           Integer max = 0;
           // Face #1 and #6
@@ -823,9 +820,9 @@ namespace CoupledField
           numFcns[2] = numFaceFncs;
           numFcns[4] = numFaceFncs;
 
-        } 
+        }
         else if( fctEntityType == AnsatzFct::INTERIOR ) {
-          
+
           numFcns.Resize(1);
           numFcns[0] = 0;
           UInt total = 0;
@@ -839,32 +836,31 @@ namespace CoupledField
               }
             }
           }
-          
+
           numFcns.Init(total);
         } else {
-          Error( "Not yet implemented!", __FILE__, __LINE__ );
+          EXCEPTION("Not yet implemented!");
         }
       }
     } else {
-      *error << "AnsatzFcnType '" << fcnType->GetType() 
-             << "' is not known!";
-      Error( __FILE__, __LINE__ );
-    } 
-    
+      EXCEPTION("AnsatzFcnType '" << fcnType->GetType()
+             << "' is not known!");
+    }
+
   }
 
   UInt Hexa1FE::GetNumFncs( const shared_ptr<AnsatzFct>& type ) {
-    
+
     // Check ansatzFctType
     if( type->GetType() == AnsatzFct::LAGRANGE ) {
       return NumNodes_;
-    
+
     } else if ( type->GetType() == AnsatzFct::SPECTRAL ) {
       Integer order =  dynamic_pointer_cast<SpectralFct, AnsatzFct> (type)->GetOrder();
       return (order+1)*(order+1)*(order+1);
 
     } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
-      
+
       // Cache check: if ansatz function type is the same as
       // previously calculated, simply return the last calculated number)
    //    if ( type == actFct_ ) {
@@ -872,13 +868,13 @@ namespace CoupledField
 //       }
 
       if( type->IsIsotropic() == true ) {
-        
+
         Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
           (type)->GetIsoOrder();
-        
+
         // edge functions
         UInt numEdgeFncs = NumEdges_* (order-1);
-        
+
         // faces
         UInt numFaceFncs = 0;
         for( Integer i = 2; i<= order-2; i++ ) {
@@ -889,7 +885,7 @@ namespace CoupledField
           }
         }
         numFaceFncs *= NumFaces_;
-        
+
         LOG_DBG3(hexa1fe) << "numFaceFncs = " << numFaceFncs << std::endl;
         // determine number of bubble functions
         UInt numBubbles = 0;
@@ -902,35 +898,35 @@ namespace CoupledField
             }
           }
         }
-        
+
         LOG_DBG3(hexa1fe) << "numBubbles = " << numBubbles << std::endl;
         LOG_DBG3(hexa1fe) << "total number of unknowns: "
-                          <<  NumNodes_ + numFaceFncs 
+                          <<  NumNodes_ + numFaceFncs
           + numEdgeFncs + numBubbles
                           << std::endl;
-        
+
         actNumFcns_ = (NumNodes_ + numFaceFncs + numEdgeFncs + numBubbles);
         return actNumFcns_;
-        
+
       } else {
         // *** anisotropic case ***
         Integer max_1, max_2, max_3;
-        shared_ptr<LegendreFct> legFct = 
+        shared_ptr<LegendreFct> legFct =
           dynamic_pointer_cast<LegendreFct, AnsatzFct>(type);
 
         max_1 = legFct->GetMaxOrderLocDir( 0 );
         max_2 = legFct->GetMaxOrderLocDir( 1 );
         max_3 = legFct->GetMaxOrderLocDir( 2 );
-        
+
         // a) nodes
         UInt numNodeModes = 8;
-        
+
         // b) edges
         UInt numEdgeModes = 0;
         numEdgeModes += max_1 > 0 ? (max_1-1)*4 : 0;
         numEdgeModes += max_2 > 0 ? (max_2-1)*4 : 0;
         numEdgeModes += max_3 > 0 ? (max_3-1)*4 : 0;
-        
+
         Matrix<UInt> const & order = legFct->GetAnisoOrder();
 
         // c) faces
@@ -983,16 +979,16 @@ namespace CoupledField
             }
           }
         }
-        
-        
-        actNumFcns_ = numNodeModes + numEdgeModes 
+
+
+        actNumFcns_ = numNodeModes + numEdgeModes
           + numFaceModes + numBubbleModes;
         return actNumFcns_;
       }
     }
     return 0;
   }
-  
+
   void Hexa1FE::SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
                               bool setIntPoints ) {
   // Check if this ansatz fct was already set
@@ -1006,29 +1002,29 @@ namespace CoupledField
     actFct_ = actFct;
    if( actFct->GetType() == AnsatzFct::SPECTRAL ) {
       // If not, get order of functions
-      shared_ptr<SpectralFct> lagFct = 
+      shared_ptr<SpectralFct> lagFct =
         dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct);
-      
+
       //check for higher order lagrange functions
       //right now: higher order lagrange => Spectral Elements
       IntegMethod = LOBATTO;
       IntegOrder = 2 * lagFct->GetOrder() - 1;
-      
+
       // get the values by IntegMethod and IntegOrder
       SetIntPoints();
-      
+
       // ... then calc shape function values at integration points
       // for subsequent calls to CalcJacobian() ....
       SetShapeFncAtIp();
       SetShapeFncDerivAtIp();
-    
-    } else if( actFct->GetType() == AnsatzFct::LEGENDRE 
+
+    } else if( actFct->GetType() == AnsatzFct::LEGENDRE
         && setIntPoints == true ) {
-      
+
       // If not, get order of functions
-      shared_ptr<LegendreFct> legFct = 
+      shared_ptr<LegendreFct> legFct =
         dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct);
-      
+
 
       // check if isotropic order is present
      //  if( legFct->IsIsotropic() ) {
@@ -1039,9 +1035,9 @@ namespace CoupledField
 //           IntegOrder =  legFct->GetIsoOrder()*3;
 //           if( IntegOrder < 5 )
 //             IntegOrder = 5;
-//           if ( IntegOrder > 18 ) 
+//           if ( IntegOrder > 18 )
 //             IntegOrder = 19;
-          
+
 //         } else {
 //           IntegOrder = 5;
 //         }
@@ -1058,7 +1054,7 @@ namespace CoupledField
 
       // get the values by IntegMethod and IntegOrder
       SetIntPoints();
-      
+
       // ... then calc shape function values at integration points
       // for subsequent calls to CalcJacobian() ....
       SetShapeFncAtIp();
@@ -1066,22 +1062,22 @@ namespace CoupledField
     }
 
   }
-  
-  void Hexa1FE::CalcSpectralShFct( Vector<Double> & Shape, 
+
+  void Hexa1FE::CalcSpectralShFct( Vector<Double> & Shape,
                                   const Vector<Double> & LCoord,
                                   const Elem* elem, UInt dof,
                                   AnsatzFct::FctEntityType type ){
     shared_ptr<SpectralFct> myFct = dynamic_pointer_cast<SpectralFct, AnsatzFct>(actFct_);
     UInt order = myFct->GetOrder();
-    
+
     Shape.Resize( (order+1) * (order+1) * (order+1) );
-    Shape.Init(0.0);
+    Shape.Init();
 
     //! 1D Lagrange functions at IPs for spectral mode
     Vector<Double> * sShFcnAtIp_ = new Vector<Double>[3];
-    sShFcnAtIp_[0].Init(0.0);
-    sShFcnAtIp_[1].Init(0.0);
-    sShFcnAtIp_[2].Init(0.0);
+    sShFcnAtIp_[0].Init();
+    sShFcnAtIp_[1].Init();
+    sShFcnAtIp_[2].Init();
     myFct->EvaluatePolynomial( sShFcnAtIp_[0], LCoord[0] );
     myFct->EvaluatePolynomial( sShFcnAtIp_[1], LCoord[1] );
     myFct->EvaluatePolynomial( sShFcnAtIp_[2], LCoord[2] );
@@ -1092,12 +1088,12 @@ namespace CoupledField
     Shape[c++]= sShFcnAtIp_[0][order] *  sShFcnAtIp_[1][0]       * sShFcnAtIp_[2][0];
     Shape[c++]= sShFcnAtIp_[0][order] *  sShFcnAtIp_[1][order]  * sShFcnAtIp_[2][0];
     Shape[c++]= sShFcnAtIp_[0][0]      *  sShFcnAtIp_[1][order]  * sShFcnAtIp_[2][0];
-    
+
     Shape[c++]= sShFcnAtIp_[0][0]      * sShFcnAtIp_[1][0]        * sShFcnAtIp_[2][order];
     Shape[c++]= sShFcnAtIp_[0][order] * sShFcnAtIp_[1][0]        * sShFcnAtIp_[2][order];
     Shape[c++]= sShFcnAtIp_[0][order] * sShFcnAtIp_[1][order]   * sShFcnAtIp_[2][order];
     Shape[c++]= sShFcnAtIp_[0][0]      * sShFcnAtIp_[1][order]   * sShFcnAtIp_[2][order];
-  
+
 
     // --------------------
     //  b) edge functions
@@ -1114,19 +1110,19 @@ namespace CoupledField
       }                                        \
     }
 
-    FILL_EDGE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][0] );      
-    FILL_EDGE( 2, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][0] );      
-    FILL_EDGE( 3, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][0] );      
-    FILL_EDGE( 4, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][0] );      
-    FILL_EDGE( 5, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][0] );      
-    FILL_EDGE( 6, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][0] );      
-    FILL_EDGE( 7, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][order] );      
-    FILL_EDGE( 8, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][order] );      
-    FILL_EDGE( 9, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][order] );      
-    FILL_EDGE(10, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][order] );      
-    FILL_EDGE(11, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][order] );      
-    FILL_EDGE(12, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][order] );      
-    
+    FILL_EDGE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][0] );
+    FILL_EDGE( 2, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][0] );
+    FILL_EDGE( 3, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][0] );
+    FILL_EDGE( 4, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][0] );
+    FILL_EDGE( 5, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][0] );
+    FILL_EDGE( 6, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][0] );
+    FILL_EDGE( 7, sShFcnAtIp_[2], sShFcnAtIp_[0][order], sShFcnAtIp_[1][order] );
+    FILL_EDGE( 8, sShFcnAtIp_[2], sShFcnAtIp_[0][0],      sShFcnAtIp_[1][order] );
+    FILL_EDGE( 9, sShFcnAtIp_[0], sShFcnAtIp_[1][0],      sShFcnAtIp_[2][order] );
+    FILL_EDGE(10, sShFcnAtIp_[1], sShFcnAtIp_[0][order], sShFcnAtIp_[2][order] );
+    FILL_EDGE(11, sShFcnAtIp_[0], sShFcnAtIp_[1][order], sShFcnAtIp_[2][order] );
+    FILL_EDGE(12, sShFcnAtIp_[1], sShFcnAtIp_[0][0],      sShFcnAtIp_[2][order] );
+
     // --------------------
     //  c) face functions
     // --------------------
@@ -1152,15 +1148,15 @@ namespace CoupledField
         }                                                                          \
         if(! elem->faceFlags[numFace-1].test(0))                                  \
           std::swap(shape1,shape2);                                                \
-      }                                                                                  
-      
-    FILL_FACE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][0] );      
-    FILL_FACE( 2, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][0] );      
-    FILL_FACE( 3, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][order] );      
-    FILL_FACE( 4, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][order] );      
-    FILL_FACE( 5, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][0] );      
-    FILL_FACE( 6, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][order] );      
-      
+      }
+
+    FILL_FACE( 1, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][0] );
+    FILL_FACE( 2, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][0] );
+    FILL_FACE( 3, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][order] );
+    FILL_FACE( 4, sShFcnAtIp_[0], sShFcnAtIp_[2], sShFcnAtIp_[1][order] );
+    FILL_FACE( 5, sShFcnAtIp_[2], sShFcnAtIp_[1], sShFcnAtIp_[0][0] );
+    FILL_FACE( 6, sShFcnAtIp_[0], sShFcnAtIp_[1], sShFcnAtIp_[2][order] );
+
 
     // ----------------------
     //  d) bubble functions
@@ -1174,7 +1170,7 @@ namespace CoupledField
     }
   }
 
-  void Hexa1FE::CalcSpectralDerivFct( Matrix<Double> & LDeriv, 
+  void Hexa1FE::CalcSpectralDerivFct( Matrix<Double> & LDeriv,
                                      const Vector<Double> & LCoord,
                                      const Elem* elem, UInt dof,
                                      AnsatzFct::FctEntityType type){
@@ -1188,12 +1184,12 @@ namespace CoupledField
     //! 1D Lagrange functions at IPs for spectral mode
     Vector<Double> * sShFcnAtIp_ = new Vector<Double>[3];
     Vector<Double> * sDerivAtIp_ = new Vector<Double>[3];
-    sShFcnAtIp_[0].Init(0.0);
-    sShFcnAtIp_[1].Init(0.0);
-    sShFcnAtIp_[2].Init(0.0);
-    sDerivAtIp_[0].Init(0.0);
-    sDerivAtIp_[1].Init(0.0);
-    sDerivAtIp_[2].Init(0.0);
+    sShFcnAtIp_[0].Init();
+    sShFcnAtIp_[1].Init();
+    sShFcnAtIp_[2].Init();
+    sDerivAtIp_[0].Init();
+    sDerivAtIp_[1].Init();
+    sDerivAtIp_[2].Init();
 
     LDeriv.Resize( (order+1) * (order+1) * (order+1), Dim_ );
 
@@ -1208,8 +1204,8 @@ namespace CoupledField
     UInt swamping1 = 0;
     UInt swamping2 = 0;
     for ( UInt k = 0; k<= order ; k+=order)
-    {    
-      for(UInt i = 0; i<= 3 ; i++)  
+    {
+      for(UInt i = 0; i<= 3 ; i++)
       {
         LDeriv[c][0]=   sDerivAtIp_[0][swamping1] * sShFcnAtIp_[1][swamping2] * sShFcnAtIp_[2][k];
         LDeriv[c][1]=   sShFcnAtIp_[0][swamping1] * sDerivAtIp_[1][swamping2] * sShFcnAtIp_[2][k];
@@ -1220,7 +1216,7 @@ namespace CoupledField
       swamping1 = 0;
       swamping2 = 0;
     }
-  
+
     // -------------------
     //  b) edge functions
     // -------------------
@@ -1263,7 +1259,7 @@ namespace CoupledField
           }                                                                          \
           break;                                                                    \
         }                                                                            \
-      }                                                                    
+      }
 
     // EDGE #1
     HEX_E_DERIV(1, 0, 0, 0, 1);
@@ -1385,22 +1381,22 @@ namespace CoupledField
         break;                                                                                \
     }                                                                                          \
   }                                                                                            \
-       
-    HEX_F_DERIV( 1, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][0],      sDerivAtIp_[2][0], 3 );      
-    HEX_F_DERIV( 2, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][0],      sDerivAtIp_[1][0], 2 );      
-    HEX_F_DERIV( 3, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][order], sDerivAtIp_[0][order], 1 );      
-    HEX_F_DERIV( 4, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][order], sDerivAtIp_[1][order], 2 );      
-    HEX_F_DERIV( 5, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][0],      sDerivAtIp_[0][0], 1 );      
-    HEX_F_DERIV( 6, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][order], sDerivAtIp_[2][order], 3 );      
-    
+
+    HEX_F_DERIV( 1, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][0],      sDerivAtIp_[2][0], 3 );
+    HEX_F_DERIV( 2, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][0],      sDerivAtIp_[1][0], 2 );
+    HEX_F_DERIV( 3, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][order], sDerivAtIp_[0][order], 1 );
+    HEX_F_DERIV( 4, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1][order], sDerivAtIp_[1][order], 2 );
+    HEX_F_DERIV( 5, sShFcnAtIp_[2], sDerivAtIp_[2], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[0][0],      sDerivAtIp_[0][0], 1 );
+    HEX_F_DERIV( 6, sShFcnAtIp_[0], sDerivAtIp_[0], sShFcnAtIp_[1], sDerivAtIp_[1], sShFcnAtIp_[2][order], sDerivAtIp_[2][order], 3 );
+
     // ---------------------
     //  d) bubble functions
     // ---------------------
-    for(UInt k = 1; k< order ; k++)  
+    for(UInt k = 1; k< order ; k++)
     {
-      for(UInt j = 1; j< order ; j++)  
+      for(UInt j = 1; j< order ; j++)
       {
-        for(UInt i = 1; i< order ; i++)  
+        for(UInt i = 1; i< order ; i++)
         {
           LDeriv[c][0]  = sDerivAtIp_[0][i] * sShFcnAtIp_[1][j] * sShFcnAtIp_[2][k];
           LDeriv[c][1]  = sShFcnAtIp_[0][i] * sDerivAtIp_[1][j] * sShFcnAtIp_[2][k];

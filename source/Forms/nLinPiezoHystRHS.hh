@@ -5,7 +5,7 @@
 #ifndef FILE_PIEZOHYSTRHS
 #define FILE_PIEZOHYSTRHS
 
-#include "baseForm.hh"
+#include "linearForm.hh"
 #include "nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
 #include "gradfieldop.hh"
@@ -20,7 +20,8 @@ namespace CoupledField
 {
   // forward class declaration
   class CoordSystem;
-
+  class PiezoCoupling;
+  template<typename> class MechStressStrain;
 
   
   // =============================================================================
@@ -45,7 +46,7 @@ namespace CoupledField
     /// Calculation of vector of right hand side 
     virtual void CalcElemVector( Vector<Double> & result,
 				 EntityIterator& ent ) {
-      Error("CalcElemVector not implemented in base class",__FILE__,__LINE__);
+      EXCEPTION("CalcElemVector not implemented in base class");
     }
     
     //! set objects for computation of E-field

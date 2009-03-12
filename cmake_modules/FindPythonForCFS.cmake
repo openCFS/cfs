@@ -7,15 +7,14 @@ SET(PYTHON_FOUND 0)
 # Determine paths of PYTHON libraries.
 #-------------------------------------------------------------------------------
 SET (PYTHON_POSSIBLE_LIB_PATHS
-  ${CFSDEPS_LIBRARY_DIR}
   /usr/lib64
   /usr/lib
   /usr/local/lib64
   /usr/local/lib
 )
 
-FIND_LIBRARY(PYTHON_LIBRARY
-  NAMES python2.5 python2.4
+FIND_FILE(PYTHON_LIBRARY
+  NAMES libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so
   PATHS ${PYTHON_POSSIBLE_LIB_PATHS}
   NO_DEFAULT_PATH
   NO_CMAKE_ENVIRONMENT_PATH
@@ -34,7 +33,6 @@ MARK_AS_ADVANCED(PYTHON_LIBRARY)
 # Look for PYTHON header.
 #-------------------------------------------------------------------------------
 SET (PYTHON_POSSIBLE_INCLUDE_PATHS
-  ${CFSDEPS_INCLUDE_DIR}
   /usr/include/python2.5
   /usr/include/python2.4
   )

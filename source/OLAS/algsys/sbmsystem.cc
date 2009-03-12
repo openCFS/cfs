@@ -7,22 +7,23 @@
 #include <iomanip>
 #include <fstream>
 
-#include "algsys/olascomm.hh"
-#include "algsys/sbmsystem.hh"
+#include "MatVec/sbmmatrix.hh"
 
-#include "utils/utils.hh"
-#include "graph/graphmanagersbmmat.hh"
-#include "matvec/matvec.hh"
-#include "solver/solver.hh"
-#include "precond/precond.hh"
+#include "OLAS/algsys/olascomm.hh"
+#include "OLAS/algsys/sbmsystem.hh"
 
-#include "algsys/generateentrymanipulator.hh"
-#include "algsys/baseentrymanipulator.hh"
-#include "algsys/generateidbchandler.hh"
-#include "algsys/baseidbchandler.hh"
+#include "OLAS/graph/graphmanagersbmmat.hh"
+#include "OLAS/precond/generateprecond.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "OLAS/solver/generatesolver.hh"
+
+#include "OLAS/algsys/baseentrymanipulator.hh"
+#include "OLAS/algsys/generateidbchandler.hh"
+#include "OLAS/algsys/baseidbchandler.hh"
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
@@ -40,7 +41,7 @@ namespace OLAS {
     algSysType_          = SBM_SYSTEM;
 
     // Initialize pointer to finite-element matrices
-    NewArray( sysMat_, SBM_Matrix*, MAX_NUM_FE_MATRICES );
+    NEWARRAY( sysMat_, SBM_Matrix*, MAX_NUM_FE_MATRICES );
     for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
       sysMat_[i] = NULL;
     }
@@ -52,8 +53,7 @@ namespace OLAS {
     feSubMatrices_ = new(std::nothrow) std::set<SubMatrixID,SortSubMatrixID>
       [MAX_NUM_FE_MATRICES];
     if ( feSubMatrices_ == NULL ) {
-      (*error) << "Failed to allocate feSubMatrices_ array";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Failed to allocate feSubMatrices_ array");
     }
     feSubMatrices_--;
   }
@@ -74,8 +74,8 @@ namespace OLAS {
     for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
       delete sysMat_[i];
     }
-    DeleteArray( sysMat_ );
-    DeleteArray( feSubMatrices_ );
+    DELETEARRAY( sysMat_ );
+    DELETEARRAY( feSubMatrices_ );
   }
 
 
@@ -95,10 +95,9 @@ namespace OLAS {
 
     // Check consistency
     if ( bs > 1 ) {
-      (*error) << "SBM_System::SetBlockSize: "
+      EXCEPTION( "SBM_System::SetBlockSize: "
                << "We do not support block-size = " << bs
-               << ", but only scalar entries!";
-      Error( __FILE__, __LINE__ );
+               << ", but only scalar entries!");
     }
     else {
       blockSize_ = 1;
@@ -106,74 +105,75 @@ namespace OLAS {
   }
 
 
-  Integer SBM_System::GetSolutionVal( Double* &ptSol,
-                                      const PdeIdType identifierPDE ) {
+  void SBM_System::GetSolutionVal( SingleVector& ptSol,
+                                   const PdeIdType identifierPDE ) {
 
-    // iteratve over all rhs-vectors and copy entries
-    Integer actPos = 1;
-    Vector<Double> & bufVec = dynamic_cast<Vector<Double>&>(*solBuffer_);
-    bufVec.Resize( size_ );
-    bufVec.Init();
-    for( Integer i = 1; i <= numPDEs_; i++ ) {
-      Vector<Double> & actVec = dynamic_cast<Vector<Double>&>
-      ( *(sol_->GetPointer( i )) );
+    Warning( "Adapt me ");
+//    // iteratve over all rhs-vectors and copy entries
+//    Integer actPos = 1;
+//    Vector<Double> & bufVec = dynamic_cast<Vector<Double>&>(*solBuffer_);
+//    bufVec.Resize( size_ );
+//    bufVec.Init();
+//    for( UInt i = 1; i <= numPDEs_; i++ ) {
+//      Vector<Double> & actVec = dynamic_cast<Vector<Double>&>
+//      ( *(sol_->GetPointer( i )) );
+//
+//      for( UInt iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
+//        bufVec[actPos] = actVec[iEqn];
+//      }
+//    }
+//    Double * ptr  = (dynamic_cast<Vector<Double>& >
+//    (*solBuffer_)).GetPointer();
+//    ptr++;
+//    ptSol = ptr;
+//    Warning( "The ordering of results in the result file will not be correct!");
+//    return size_;
+//  }
 
-      for( Integer iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
-        bufVec[actPos] = actVec[iEqn];
-      }
-    }
-    Double * ptr  = (dynamic_cast<Vector<Double>& >
-    (*solBuffer_)).GetPointer();
-    ptr++;
-    ptSol = ptr;
-    Warning( "The ordering of results in the result file will not be correct!");
-    return size_;
+//  void SBM_System::GetSolutionVal( Complex* &ptSol,
+//                                      const PdeIdType identifierPDE ) {
+//
+//    // iteratve over all rhs-vectors and copy entries
+//     Integer actPos = 1;
+//     Vector<Complex> & bufVec = dynamic_cast<Vector<Complex>&>(*solBuffer_);
+//     bufVec.Resize( size_ );
+//     bufVec.Init();
+//     for( UInt i = 1; i <= numPDEs_; i++ ) {
+//       Vector<Complex> & actVec = dynamic_cast<Vector<Complex>&>
+//       ( *(sol_->GetPointer( i )) );
+//
+//       for( UInt iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
+//         bufVec[actPos] = actVec[iEqn];
+//       }
+//     }
+//     Complex * ptr  = (dynamic_cast<Vector<Complex>& >
+//     (*solBuffer_)).GetPointer();
+//     ptr++;
+//     ptSol = ptr;
+//     Warning( "The ordering of results in the result file will not be correct!");
+//     return size_;
   }
 
-  Integer SBM_System::GetSolutionVal( Complex* &ptSol,
-                                      const PdeIdType identifierPDE ) {
-
-    // iteratve over all rhs-vectors and copy entries
-     Integer actPos = 1;
-     Vector<Complex> & bufVec = dynamic_cast<Vector<Complex>&>(*solBuffer_);
-     bufVec.Resize( size_ );
-     bufVec.Init();
-     for( Integer i = 1; i <= numPDEs_; i++ ) {
-       Vector<Complex> & actVec = dynamic_cast<Vector<Complex>&>
-       ( *(sol_->GetPointer( i )) );
-
-       for( Integer iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
-         bufVec[actPos] = actVec[iEqn];
-       }
-     }
-     Complex * ptr  = (dynamic_cast<Vector<Complex>& >
-     (*solBuffer_)).GetPointer();
-     ptr++;
-     ptSol = ptr;
-     Warning( "The ordering of results in the result file will not be correct!");
-     return size_;
+  void SBM_System::GetRHSVal( SingleVector &ptRhs,
+                              const PdeIdType identifierPDE ) {
+    Warning( "Adapt Me");
+    //    Double * ptr  = (dynamic_cast<Vector<Double>& >
+    //      (*rhsBuffer_)).GetPointer();
+    //     ptr++;
+    //     ptRhs = ptr;
+    //     Warning( "The ordering of results in the result file will not be correct!");
+    //     return size_;
   }
 
-  Integer SBM_System::GetRHSVal( Double* &ptRhs,
-                                 const PdeIdType identifierPDE ) {
-    Double * ptr  = (dynamic_cast<Vector<Double>& >
-      (*rhsBuffer_)).GetPointer();
-     ptr++;
-     ptRhs = ptr;
-     Warning( "The ordering of results in the result file will not be correct!");
-     return size_;
-
-  }
-
-  Integer SBM_System::GetRHSVal( Complex* &ptRhs,
-                                 const PdeIdType identifierPDE ) {
-    Complex * ptr  = (dynamic_cast<Vector<Complex>& >
-    (*rhsBuffer_)).GetPointer();
-    ptr++;
-    ptRhs = ptr;
-    Warning( "The ordering of results in the result file will not be correct!");
-    return size_;
-  }
+  //  Integer SBM_System::GetRHSVal( Complex* &ptRhs,
+  //                                 const PdeIdType identifierPDE ) {
+  //    Complex * ptr  = (dynamic_cast<Vector<Complex>& >
+  //    (*rhsBuffer_)).GetPointer();
+  //    ptr++;
+  //    ptRhs = ptr;
+  //    Warning( "The ordering of results in the result file will not be correct!");
+  //    return size_;
+  //  }
 
 
   // *******************
@@ -264,7 +264,7 @@ namespace OLAS {
 
     // determine overall number of unknowns
     size_ = 0;
-    for( Integer i = 1; i <= numPDEs_; i++ ) {
+    for( UInt i = 1; i <= numPDEs_; i++ ) {
       size_ += numLastFreeDof_[i];
     }
 
@@ -276,7 +276,7 @@ namespace OLAS {
     PrintFeMatrixInfo( cla );
 
     // Obtain some info from parameter file
-    MatrixEntryType   entryType;
+    BaseMatrix::EntryType   entryType;
     myParams_.GetEnumValue( "MatrixEntryType"  , entryType   );
 
     for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
@@ -318,7 +318,7 @@ namespace OLAS {
       ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
 
     if ( rhs_ == NULL || sol_ == NULL ) {
-      Error( WRONG_CAST_MSG, __FILE__, __LINE__ );
+      EXCEPTION( WRONG_CAST_MSG );
     }
 
     // For the moment we insert a sub-vector for each position.
@@ -327,7 +327,7 @@ namespace OLAS {
     // are really needed, however?
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
-    SparseVector *sVec = NULL;
+    SingleVector *sVec = NULL;
     for ( UInt k = 1; k <= numPDEs_; k++ ) {
 
       // Get diag matrix for vector generation
@@ -335,12 +335,12 @@ namespace OLAS {
 
       // Insert sub-vector into solution
       bVec = GenerateVectorObject( *stdMat );
-      sVec = dynamic_cast<SparseVector*>( bVec );
+      sVec = dynamic_cast<SingleVector*>( bVec );
       sol_->SetSubVector( sVec, k );
 
       // Insert sub-vector into right-hand side
       bVec = GenerateVectorObject( *stdMat );
-      sVec = dynamic_cast<SparseVector*>( bVec );
+      sVec = dynamic_cast<SingleVector*>( bVec );
       rhs_->SetSubVector( sVec, k );
     }
 
@@ -349,15 +349,15 @@ namespace OLAS {
     // ----------------------------------
 
     // Create the assemble object
-    assemble_ = GenerateEntryManipulatorObject( entryType, 1 );
+    assemble_ = new BaseEntryManipulator();
 
-    // Generate sparsevectors
+    // Generate SingleVectors
 
-    MatrixStorageType sType = stdMat->GetStorageType();
-    solBuffer_ = dynamic_cast<SparseVector*>
-        ( GenerateSparseVectorObject( sType, entryType, 1, size_ ) );
-    rhsBuffer_ = dynamic_cast<SparseVector*>
-        ( GenerateSparseVectorObject( sType, entryType, 1, size_ ) );
+    BaseMatrix::StorageType sType = stdMat->GetStorageType();
+    solBuffer_ = dynamic_cast<SingleVector*>
+        ( GenerateSingleVectorObject( sType, entryType, size_ ) );
+    rhsBuffer_ = dynamic_cast<SingleVector*>
+        ( GenerateSingleVectorObject( sType, entryType, size_ ) );
 
     // -----------------
     //  Memory clean-up
@@ -400,7 +400,10 @@ namespace OLAS {
     for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
 
       // Log FE matrix name
-      (*os) << " " << Enum2String(*fIt) << std::endl;
+      std::string tmp;
+      Enum2String( *fIt, tmp );
+
+      (*os) << " " << tmp << std::endl;
 
       // Now plot sub-matrix pattern
       SubMatrixID sID;
@@ -435,17 +438,16 @@ namespace OLAS {
   //   GenerateSBM_Matrix
   // **********************
   SBM_Matrix* SBM_System::GenerateSBM_Matrix( FEMatrixType matType,
-                                              MatrixEntryType entryType ) {
+		  BaseMatrix::EntryType entryType ) {
 
 
     // STEP 1: Generate empty SBM_Matrix
     SBM_Matrix *retMat = NULL;
-    retMat = New SBM_Matrix( numPDEs_, numPDEs_, sbmSymm_ );
+    retMat = new SBM_Matrix( numPDEs_, numPDEs_, sbmSymm_ );
     if ( retMat == NULL ) {
-      (*error) << "SBM_System::GenerateSBM_Matrix: "
+      EXCEPTION( "SBM_System::GenerateSBM_Matrix: "
                << "This is the end my friend!\n"
-               << "Generation of empty SBM_Matrix failed!";
-      Error( __FILE__, __LINE__ );
+               << "Generation of empty SBM_Matrix failed!" );
     }
 
     // STEP 2: Populate with sub-matrices
@@ -474,11 +476,11 @@ namespace OLAS {
         // Trigger generation of sub-matrix
         graph = graphManager_->GetGraph( pde1, pde2 );
         if ( pde1 == pde2 && sbmSymm_ == true ) {
-          retMat->SetSubMatrix ( pde1, pde2, entryType, SPARSE_SYM, 1,
+          retMat->SetSubMatrix ( pde1, pde2, entryType, BaseMatrix::SPARSE_SYM,
                                  nrows, ncols, graph->GetNNE() );
         }
         else {
-          retMat->SetSubMatrix ( pde1, pde2, entryType, SPARSE_NONSYM, 1,
+          retMat->SetSubMatrix ( pde1, pde2, entryType, BaseMatrix::SPARSE_NONSYM,
                                  nrows, ncols, graph->GetNNE() );
         }
 
@@ -494,74 +496,84 @@ namespace OLAS {
   // ********************
   //   SetElementMatrix
   // ********************
-  void SBM_System::SetElementMatrix( FEMatrixType matrixID, Double *elemMat,
-                                     PdeIdType idPDE1, Integer *eqnNrs1,
-                                     Integer numEqn1, PdeIdType idPDE2,
-                                     Integer *eqnNrs2, Integer numEqn2,
-                                     bool setCounterPart ) {
+  void SBM_System::SetElementMatrix(FEMatrixType matrix_id, 
+                                    const Matrix<Double>& elemmat,
+                                    PdeIdType identifierPDE1,
+                                    const StdVector<Integer>& eqnNrs1,
+                                    PdeIdType identifierPDE2,
+                                    const StdVector<Integer>& eqnNrs2,
+                                    bool setCounterPar ) {
+    Warning( "Adapt me");
 
-    // Set flag for setting the symmetric counter-part of
-    // the element matrix
-    if ( setCounterPart == true && idPDE1 == idPDE2 ) {
-      setCounterPart = false;
-    }
-
-    // Do not try to set lower-part if symmetric
-    bool reverse = false;
-    if ( sbmSymm_ == true ) {
-
-      // Matrix in upper part, then do not set counter part
-      if ( idPDE1 <= idPDE2 ) {
-        setCounterPart = false;
-      }
-
-      // Matrix in lower part and we shall not set counter part
-      // then we have a major problem, since SBM matrix should
-      // not be symmetric
-      else if ( setCounterPart == false ) {
-        (*error) << "SBM_System::SetElementMatrix:\n"
-                 << " idPDE1 ........... " << idPDE1 << '\n'
-                 << " idPDE2 ........... " << idPDE2 << '\n'
-                 << " setCounterPart ... " << std::boolalpha << setCounterPart
-                 << " sbmSymm .......... true\n"
-                 << " leads to loss of element matrix!";
-        Error( __FILE__, __LINE__ );
-      }
-
-      // Matrix in lower part and counter part should be set,
-      // so we change to the counterPart
-      else {
-        setCounterPart = false;
-        reverse = true;
-      }
-    }
-
-    // Extract associated sub-matrix
-    StdMatrix *subMat1 = &((*sysMat_[matrixID])( idPDE1, idPDE2 ));
-    StdMatrix *subMat2 = &((*sysMat_[matrixID])( idPDE2, idPDE1 ));
-
-    // Delegate remaining work to assemble
-    if ( reverse == false ) {
-      assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
-                                   subMat1, subMat2,
-                                   idbcHandler_, elemMat,
-                                   eqnNrs1, (UInt)numEqn1,
-                                   eqnNrs2, (UInt)numEqn2,
-                                   numLastFreeDof_[idPDE1],
-                                   numLastFreeDof_[idPDE2],
-                                   setCounterPart);
-    }
-    else {
-      assemble_->SetCounterPartOnly( matrixID, idPDE1, idPDE2,
-                                     subMat1, subMat2,
-                                     idbcHandler_, elemMat,
-                                     eqnNrs1, (UInt)numEqn1,
-                                     eqnNrs2, (UInt)numEqn2,
-                                     numLastFreeDof_[idPDE1],
-                                     numLastFreeDof_[idPDE2] );
-    }
+//    // Set flag for setting the symmetric counter-part of
+//    // the element matrix
+//    if ( setCounterPart == true && idPDE1 == idPDE2 ) {
+//      setCounterPart = false;
+//    }
+//
+//    // Do not try to set lower-part if symmetric
+//    bool reverse = false;
+//    if ( sbmSymm_ == true ) {
+//
+//      // Matrix in upper part, then do not set counter part
+//      if ( idPDE1 <= idPDE2 ) {
+//        setCounterPart = false;
+//      }
+//
+//      // Matrix in lower part and we shall not set counter part
+//      // then we have a major problem, since SBM matrix should
+//      // not be symmetric
+//      else if ( setCounterPart == false ) {
+//        EXCEPTION("SBM_System::SetElementMatrix:\n"
+//                  << " idPDE1 ........... " << idPDE1 << '\n'
+//                  << " idPDE2 ........... " << idPDE2 << '\n'
+//                  << " setCounterPart ... " << std::boolalpha << setCounterPart
+//                  << " sbmSymm .......... true\n"
+//                  << " leads to loss of element matrix!" );
+//      }
+//
+//      // Matrix in lower part and counter part should be set,
+//      // so we change to the counterPart
+//      else {
+//        setCounterPart = false;
+//        reverse = true;
+//      }
+//    }
+//
+//    // Extract associated sub-matrix
+//    StdMatrix *subMat1 = &((*sysMat_[matrixID])( idPDE1, idPDE2 ));
+//    StdMatrix *subMat2 = &((*sysMat_[matrixID])( idPDE2, idPDE1 ));
+//
+//    // Delegate remaining work to assemble
+//    if ( reverse == false ) {
+//      assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
+//                                   subMat1, subMat2,
+//                                   idbcHandler_, elemMat,
+//                                   eqnNrs1, (UInt)numEqn1,
+//                                   eqnNrs2, (UInt)numEqn2,
+//                                   numLastFreeDof_[idPDE1],
+//                                   numLastFreeDof_[idPDE2],
+//                                   setCounterPart);
+//    }
+//    else {
+//      assemble_->SetCounterPartOnly( matrixID, idPDE1, idPDE2,
+//                                     subMat1, subMat2,
+//                                     idbcHandler_, elemMat,
+//                                     eqnNrs1, (UInt)numEqn1,
+//                                     eqnNrs2, (UInt)numEqn2,
+//                                     numLastFreeDof_[idPDE1],
+//                                     numLastFreeDof_[idPDE2] );
+//    }
   }
-
+  void SBM_System::SetElementMatrix(FEMatrixType matrix_id, 
+                                    const Matrix<Complex>& elemmat,
+                                    PdeIdType identifierPDE1,
+                                    const StdVector<Integer>& eqnNrs1,
+                                    PdeIdType identifierPDE2,
+                                    const StdVector<Integer>& eqnNrs2,
+                                    bool setCounterPar ) {
+    Warning( "Adapt me");
+  }
 
   // **************
   //   InitMatrix
@@ -678,24 +690,31 @@ namespace OLAS {
   // *****************
   //   SetElementRHS
   // *****************
-  void SBM_System::SetElementRHS( Double *elemRHS,
+  void SBM_System::SetElementRHS( const Vector<Double>& elemRHS, 
                                   const PdeIdType idPDE,
-                                  Integer *connect,
-                                  UInt length ) {
-
-
-    // Delegate work to EntryManipulator
-    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
-                              length, numLastFreeDof_[idPDE] );
+                                  StdVector<Integer>& eqnNrs ) {
+    Warning( "adapt me");
+//
+//    // Delegate work to EntryManipulator
+//    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
+//                              length, numLastFreeDof_[idPDE] );
+  }
+  void SBM_System::SetElementRHS( const Vector<Complex>& elemRHS, 
+                                  const PdeIdType idPDE,
+                                  StdVector<Integer>& eqnNrs ) {
+    Warning( "adapt me");
+    //
+    //    // Delegate work to EntryManipulator
+    //    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
+    //                              length, numLastFreeDof_[idPDE] );
   }
 
 
   // *************
   //   UpdateRHS
   // *************
-  void SBM_System::UpdateRHS( FEMatrixType matrix_id, Double *fup ) {
-    (*error) << "Method not yet implemented!";
-    Error( __FILE__, __LINE__ );
+  void SBM_System::UpdateRHS( FEMatrixType matrix_id, const BaseVector& fup ) {
+    EXCEPTION( "Method not yet implemented!" );
   }
 
 
@@ -716,19 +735,18 @@ namespace OLAS {
     UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
 
     if ( eqnNum > maxVal || eqnNum < minVal  ) {
-      (*error) << "SBMSystem::SetDirichlet: Inconsistency detected:"
-               << "\n pdeID           = " << pdeID
-               << "\n eqnNum          = " << eqnNum
-               << "\n val             = " << val
-               << "\n numBC           = " << numDirichletValues_
-               << "\n size            = " << sizePerPDE_[pdeID]
-               << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
-               << "\n minVal          = " << minVal
-               << "\n maxVal          = " << maxVal
-               << "\n SystemName is '"
-               << myParams_.GetStringValue( "SystemName" ) << "'";
-      Error( __FILE__, __LINE__ );
-    }
+      EXCEPTION( "SBMSystem::SetDirichlet: Inconsistency detected:"
+                 << "\n pdeID           = " << pdeID
+                 << "\n eqnNum          = " << eqnNum
+                 << "\n val             = " << val
+                 << "\n numBC           = " << numDirichletValues_
+                 << "\n size            = " << sizePerPDE_[pdeID]
+                 << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
+                 << "\n minVal          = " << minVal
+                 << "\n maxVal          = " << maxVal
+                 << "\n SystemName is '"
+                 << myParams_.GetStringValue( "SystemName" ) << "'";
+s    }
 #endif
 
     // Delegate work to IDBC handler
@@ -752,18 +770,17 @@ namespace OLAS {
     UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
 
     if ( eqnNum > maxVal || eqnNum < minVal ) {
-      (*error) << "SBMSystem::SetDirichlet: Inconsistency detected:"
-               << "\n pdeID           = " << pdeID
-               << "\n eqnNum          = " << eqnNum
-               << "\n val             = " << val
-               << "\n numBC           = " << numDirichletValues_
-               << "\n sizePerPDE      = " << sizePerPDE_[pdeID]
-               << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
-               << "\n minVal          = " << minVal
-               << "\n maxVal          = " << maxVal
-               << "\n SystemName is '"
-               << myParams_.GetStringValue( "SystemName" ) << "'";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "SBMSystem::SetDirichlet: Inconsistency detected:"
+                 << "\n pdeID           = " << pdeID
+                 << "\n eqnNum          = " << eqnNum
+                 << "\n val             = " << val
+                 << "\n numBC           = " << numDirichletValues_
+                 << "\n sizePerPDE      = " << sizePerPDE_[pdeID]
+                 << "\n numLastFreeDof_ = " << numLastFreeDof_[pdeID]
+                 << "\n minVal          = " << minVal
+                 << "\n maxVal          = " << maxVal
+                 << "\n SystemName is '"
+                 << myParams_.GetStringValue( "SystemName" ) << "'" )
     }
 #endif
 
@@ -813,12 +830,6 @@ namespace OLAS {
            << std::endl;
     }
 
-    // Perform a simple sanity check
-    // if ( sysmat_[SYSTEM] == NULL || precond_ == NULL || rhs_ == NULL ||
-    //      sol_ == NULL ) {
-    //   Error( "Detected NULL pointer where there should be none!", __FILE__,
-    //          __LINE__ );
-    // }
 
     // Assume that everything will go well
     myReport_.SetValue( "solutionIsOkay", true );
@@ -848,8 +859,7 @@ namespace OLAS {
        // two formats. The harwell-boing format includes the rhs!
        if(els->Get("format")->AsString()  == "harwell-boeing")
        {
-         Error( "Harwell-Boeing Format not implemented for SBM-case",
-                __FILE__, __LINE__ );
+         EXCEPTION( "Harwell-Boeing Format not implemented for SBM-case" );
        }
        else // classical (default) matrix-market
        {
@@ -883,12 +893,9 @@ namespace OLAS {
 
 #ifdef PROFILING
     Double t2 = Profiler::GetRealTime();
-    (*cla)  << "solution time: " << t2-t1 << " seconds " << std::endl;
+    (*cla)  << "solution timee " << t2-t1 << " seconds " << std::endl;
     Profiler::WriteReport();
 #endif
-
-    // Set invaldiation flag for assembling routine
-    assemble_->InvalidateSolBuffer();
 
   }
 
@@ -899,14 +906,27 @@ namespace OLAS {
   void SBM_System::AddToDiagMatrixEntry( FEMatrixType matrixID,
                                          const PdeIdType pdeID,
                                          Integer eqnNum,
-                                         Double *val ) {
-
-    // Determine sub-matrix
-    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
-
-    // Delegate work to implementation in assemble class
-    assemble_->AddToDiagMatrixEntry( stdMat, eqnNum,  val );
+                                         Double val  ) {
+    Warning( "Adapt me");
+//    // Determine sub-matrix
+//    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
+//
+//    // Delegate work to implementation in assemble class
+//    assemble_->AddToDiagMatrixEntry( stdMat, eqnNum,  val );
   }
+  
+  void SBM_System::AddToDiagMatrixEntry( FEMatrixType matrixID,
+                                          const PdeIdType pdeID,
+                                          Integer eqnNum,
+                                          Complex val  ) {
+     Warning( "Adapt me");
+ //    // Determine sub-matrix
+ //    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
+ //
+ //    // Delegate work to implementation in assemble class
+ //    assemble_->AddToDiagMatrixEntry( stdMat, eqnNum,  val );
+   }
+  
 
  // ******************
   //   GetMatrixEntry
@@ -919,7 +939,7 @@ namespace OLAS {
                                        Double & val ) {
 
 
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
 
   }
 
@@ -930,7 +950,7 @@ namespace OLAS {
                                        Integer colEqnNum2,
                                        Complex & val ) {
 
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
   // ******************
@@ -943,7 +963,7 @@ namespace OLAS {
                                    const PdeIdType colPdeID,
                                    Integer colEqnNum,
                                    Double val, bool setCounterPart ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
   void SBM_System::SetMatrixEntry( FEMatrixType matrixID,
@@ -952,7 +972,7 @@ namespace OLAS {
                                    const PdeIdType colPdeID,
                                    Integer colEqnNum,
                                    Complex val, bool setCounterPart ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
   // ********************
@@ -962,13 +982,13 @@ namespace OLAS {
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
   void SBM_System::SetMatrixRowVals( FEMatrixType matrixID,
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
   // ********************
@@ -978,22 +998,22 @@ namespace OLAS {
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Double val ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
   void SBM_System::SetMatrixColVals( FEMatrixType matrixID,
                                          const PdeIdType pdeID,
                                          Integer eqnNum, UInt dof,
                                          Complex val ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
+    EXCEPTION( "Not implemented" );
   }
 
 
   // **********
   //   Export
   // **********
-  void SBM_System::Export( FEMatrixType matrixID, Char *filename,
-                           Char *comment ) const {
+  void SBM_System::Export( FEMatrixType matrixID, char *filename,
+                           char *comment ) const {
     sysMat_[matrixID]->Export( filename, comment );
   }
 
@@ -1024,6 +1044,34 @@ namespace OLAS {
   // ***************
   void SBM_System::SetupSolver() {
     solver_->Setup( *sysMat_[SYSTEM] );
+  }
+
+
+  void SBM_System::CreateEigenSolver() {
+    (*warning) << "SBM_System::CreateEigenSolver not yet implemented!";
+    Warning( __FILE__, __LINE__ );
+  }
+
+  void SBM_System::SetupEigenSolver( UInt numFreq, Double shift, bool quadratic ) {
+    (*warning) << "SBM_System::SetupEigenSolver not yet implemented!";
+    Warning( __FILE__, __LINE__ );
+  }
+  
+  void SBM_System::CalcEigenFrequencies( Vector<Complex>& frequencies,
+                                         Vector<Double>& err ) {
+    (*warning) << "SBM_System::CalcEigenFrequencies not yet implemented!";
+    Warning( __FILE__, __LINE__ );
+  }
+
+  void SBM_System::CalcEigenFrequencies( Vector<Double>& frequencies,
+                                         Vector<Double>& err ) {
+    (*warning) << "SBM_System::CalcEigenFrequencies not yet implemented!";
+    Warning( __FILE__, __LINE__ );
+  }
+
+  void SBM_System::CalcEigenMode( UInt numMode ) {
+    (*warning) << "SBM_System::CalcEigenMode not yet implemented!";
+    Warning( __FILE__, __LINE__ );
   }
 
 }

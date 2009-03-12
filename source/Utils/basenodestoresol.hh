@@ -13,7 +13,7 @@
 #include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "PDE/eqnMap.hh"
 #include "PDE/disContEqnMap.hh"
 #include "PDE/mixedEqnMap.hh"
@@ -24,8 +24,8 @@ namespace CoupledField{
   // Forward class declarations
   class Elem;
   class Grid;
-  class CFSVector;
-  class CFSMatrix;
+  class SingleVector;
+  class DenseMatrix;
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
 
@@ -37,7 +37,7 @@ namespace CoupledField{
   //! old Array-class).
   //!
   //! In principle this class is only a wrapper around
-  //! a CFSVector class. Additionally it contains
+  //! a SingleVector class. Additionally it contains
   //! informations about the information stored in it and
   //! it can selectively be accessed, set and read.
   //!
@@ -58,7 +58,7 @@ namespace CoupledField{
   //! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
   //! mySol.SetNumDofs(1,ELEC_POTENTIAL);
   //! mySol.SetNumNodes(numNodes);
-  //! mySol.Init(0.0) 
+  //! mySol.Init() 
   //! \endverbatim
   //! \note An object of the StoreSolution can only used after the Init()-
   //! routine was called, otherwise an error is reported!
@@ -127,10 +127,10 @@ namespace CoupledField{
       \param val (input) Value the object gets initialized with
     */
     virtual void Init(const Double val)
-    {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("BaseNodeStoreSol::Init() not implemented here");}
   
     //  virtual void Init(const Complex val)
-    //  {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+    //  {EXCEPTION("BaseNodeStoreSol::Init() not implemented here");}
 
     //! Set the number of different solution types
     /*! 
@@ -224,7 +224,7 @@ namespace CoupledField{
       \param (output) Vector with given solution type)
     */
     virtual void GetGlobalSolVector(const SolutionType solType, 
-                                    CFSVector & val) const = 0;
+                                    SingleVector & val) const = 0;
   
 
     //! Set all solution types for one node
@@ -233,7 +233,7 @@ namespace CoupledField{
       \param val (input) Vector containing nodal results
     */
     virtual void SetNodalResult(const UInt nodeNr,
-                                const CFSVector &val) = 0;
+                                const SingleVector &val) = 0;
 
   
     //! Get all solution types for one node
@@ -242,7 +242,7 @@ namespace CoupledField{
       \param val (output) Vector containing nodal results
     */
     virtual void GetNodalResult(const UInt nodeNr,
-                                CFSVector & val) const = 0;
+                                SingleVector & val) const = 0;
   
 
     //! Get vector of one solution type for all nodes of one given dof
@@ -253,7 +253,7 @@ namespace CoupledField{
     */
     virtual void GetGlobalSolVectorSingleDof(const SolutionType solType,
                                              const UInt dof,
-                                             CFSVector & val) const = 0;
+                                             SingleVector & val) const = 0;
                                          
   
   
@@ -265,7 +265,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     virtual void GetGlobalSolVectorSingleDof(const UInt dof,
-                                             CFSVector & val) const = 0;
+                                             SingleVector & val) const = 0;
 
 
     //! Get single result of given node for given dof
@@ -279,7 +279,7 @@ namespace CoupledField{
     virtual void Get(const UInt nodeNr, 
                      const UInt dof,
                      Double & val) const
-    {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
+    {EXCEPTION("BaseNodeStoreSol::Get() not implemented here");} 
 
   
     //! Get single result of given solution type, node and dof
@@ -293,7 +293,7 @@ namespace CoupledField{
                      const UInt nodeNr,
                      const UInt dof, 
                      Double & val) const
-    {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("BaseNodeStoreSol::Get() not implemented here");}
 
   
     //! Set a single entry of a given solution type and a given dof
@@ -307,7 +307,7 @@ namespace CoupledField{
                      const UInt nodeNr,
                      const UInt dof, 
                      const Double val)
-    {Error("BaseNodeStoreSol::Set() not implemented here", __FILE__, __LINE__);}
+    {EXCEPTION("BaseNodeStoreSol::Set() not implemented here");}
   
 
     //! Add value to a single entry of a given solution type and a given dof
@@ -321,7 +321,7 @@ namespace CoupledField{
                      const UInt nodeNr,
                      const UInt dof, 
                      const Double val) const
-    {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
+    {EXCEPTION("BaseNodeStoreSol::Add() not implemented here");} 
 
   
     //! Set the complete solution vector inside this object
@@ -331,21 +331,21 @@ namespace CoupledField{
     //! \note The layout of the val-vector must match the layout
     //! of the solution prescribed by SetNumSolutions(), SetNumDofs() and
     //! SetSolutionType()!
-    virtual void SetAlgSysVector(const CFSVector & val) = 0;
+    virtual void SetAlgSysVector(const SingleVector & val) = 0;
 
 
     //! Get the complete solution vector inside this object
     /*!
       \param val (output) Vector containing complete solution
     */
-    virtual void GetAlgSysVector(CFSVector & val) const = 0;
+    virtual void GetAlgSysVector(SingleVector & val) const = 0;
   
   
-    //! Get the pointer to the CFSVector inside this object
+    //! Get the pointer to the SingleVector inside this object
     /*!
       \param ptrToVec (output) Pointer to vector inside this object
     */
-    virtual void GetAlgSysVectorPointer(CFSVector* &ptrToVec) = 0;
+    virtual void GetAlgSysVectorPointer(SingleVector* &ptrToVec) = 0;
 
 
     //! Copies the data from the given pointer
@@ -356,8 +356,7 @@ namespace CoupledField{
     //! matches to the one of the given array. This is the case e.g. for
     //! the solution of the algebraic system.
     virtual void CopyFromAlgSysDataPointer(Double * ptr) {
-      Error("BaseNodeStoreSol::CopyFromDataPointer() not implemented here",
-            __FILE__, __LINE__);
+      EXCEPTION("BaseNodeStoreSol::CopyFromDataPointer() not implemented here");
     }
   
     //@{
@@ -375,12 +374,10 @@ namespace CoupledField{
     //! matches to the one of the given array. This is the case e.g. for
     //! the solution of the algebraic system.
     virtual void SetAlgSysDataPointer( UInt size, Double * ptr ) 
-    {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
-           __LINE__);}
+    {EXCEPTION("BaseNodeStoreSol::SetDataPointer() not implemented here");}
 
     virtual void SetAlgSysDataPointer( UInt size, Complex * ptr ) 
-    {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
-           __LINE__);}
+    {EXCEPTION("BaseNodeStoreSol::SetDataPointer() not implemented here");}
     //@}
 
     //! Get pointer to data in double* - format
@@ -420,28 +417,28 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     //! Return the solution of all nodes of an element
-
-    //! This method returns the solution of an element. 
+    
+    //! This method returns the solution of an element.
     //! \param elemSol Vector containing the element solution
     //! \param it Entiyiterator containing the current element
     //! \param solIndex Index for the desired solution type
-    virtual void GetElemSolution( CFSVector & elemSol,
+    virtual void GetElemSolution( SingleVector & elemSol,
                                   const EntityIterator& it,
                                   UInt solIndex = 0 ) const = 0;
-
+    
     //! Return the solution of all nodes of an element as matrix
-
-    //! This method returns the solution of an element as matrix. 
+    
+    //! This method returns the solution of an element as matrix.
     //! \param elemSol Matrix containing the element solution
     //! \param it Entiyiterator containing the current element
-    //! \param solIndex Index for the desired solution type
-    virtual void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
+	    //! \param solIndex Index for the desired solution type
+    virtual void GetElemSolutionAsMatrix( DenseMatrix & elemSol,
                                           const EntityIterator& it,
-                                          UInt solIndex = 0, const CFSVector* ext_data = NULL) const = 0;
-  
+                                          UInt solIndex = 0, const SingleVector* ext_data = NULL) const = 0;
+    
     //! maps the local node solution to the coupling nodes
     virtual
-    void NodeSolutionToCoupling( CFSVector & couplingSol,
+    void NodeSolutionToCoupling( SingleVector & couplingSol,
                                  const StdVector<UInt>& nodeNumbers,
                                  UInt solIndex = 0 ) const = 0;
 
@@ -452,25 +449,25 @@ namespace CoupledField{
   
 #define DEFINE_BASENODESTORESOL_FCT(TYPE)                                               \
   virtual void Init(const TYPE val)                                             \
-  {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);} \
+  {EXCEPTION("BaseNodeStoreSol::Init() not implemented here");} \
   virtual void Get(const UInt nodeNr,                                        \
                    TYPE & ret) const                                            \
-  {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}  \
+  {EXCEPTION("BaseNodeStoreSol::Get() not implemented here");}  \
   virtual void Get(const SolutionType type,                                     \
                    const UInt nodeNr,                                        \
                    const UInt dof,                                           \
                    TYPE & ret) const                                            \
-  {Error("BaseNodeStoreSol::Get not implemented here", __FILE__, __LINE__);}    \
+  {EXCEPTION("BaseNodeStoreSol::Get not implemented here");}    \
   virtual void Set(const SolutionType type,                                     \
                    const UInt nodeNr,                                        \
                    const UInt dof,                                           \
                    const TYPE val) const                                        \
-  {Error("BaseNodeStoreSol::Set not implemented here", __FILE__, __LINE__);}    \
+  {EXCEPTION("BaseNodeStoreSol::Set not implemented here");}    \
   virtual void Add(const SolutionType type,                                     \
                    const UInt nodeNr,                                        \
                    const UInt dof,                                           \
                    const TYPE val) const                                        \
-  {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);}  \
+  {EXCEPTION("BaseNodeStoreSol::Add() not implemented here");}  \
    
     DEFINE_BASENODESTORESOL_FCT(Complex);
 
@@ -562,7 +559,7 @@ namespace CoupledField{
         errMsg = "BaseNodeStoresol::GetDof: Solution contains more than ";
         errMsg += "one solutiontype. \n Please specify a solutiontype as ";
         errMsg += "parameter";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        EXCEPTION(errMsg.c_str());
       }
 #endif
     UInt dof;
@@ -577,7 +574,7 @@ namespace CoupledField{
         warningMsg = "BaseNodeStoresol::GetDof: Either this type ";
         warningMsg += "of solution was not found or it has ";
         warningMsg += "0 degrees of freedom.";
-        Error(warningMsg.c_str(), __FILE__, __LINE__);
+        EXCEPTION(warningMsg.c_str());
       }
 
     return dof;

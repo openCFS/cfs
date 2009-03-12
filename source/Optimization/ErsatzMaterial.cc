@@ -1,3 +1,8 @@
+#include <string>
+#include <cmath>
+#include <limits>
+#include <iomanip>
+
 #include "Optimization/SIMP.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
@@ -12,7 +17,7 @@
 #include "Forms/SurfaceNormalInt.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/result.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Driver/assemble.hh"
@@ -22,18 +27,14 @@
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/olas.hh"
+#include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/matvec/basematrix.hh"
-#include "OLAS/matvec/stdmatrix.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
 
-#include <string>
-#include <cmath>
-#include <limits>
 
 using namespace CoupledField;
 using namespace std;
-using OLAS::StdMatrix;
 
 DECLARE_LOG(conditions)
 DEFINE_LOG(conditions, "conditions")
@@ -516,7 +517,7 @@ string ErsatzMaterial::GetIterationFrequency()
   double frequency = dynamic_cast<HarmonicDriver*>(domain->GetDriver())->GetActFreq();
   // as we control the fractional digits, we do not use lexical_cast<string>
   stringstream ss;
-  ss << fixed << setprecision(1) << frequency;
+  ss << fixed << std::setprecision(1) << frequency;
   return ss.str();
 }
 
@@ -672,8 +673,8 @@ void ErsatzMaterial::CalcObjectiveGradient(double* grad_out)
 }
 
 template <class T>
-double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1,
-                       Application app, StdVector<CFSVector*>& u2,
+double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+                       Application app, StdVector<SingleVector*>& u2,
                        SurfaceRef* rhs, bool add, double factor, Condition* constraint)
 {
   LOG_DBG2(em) << "CalcU1KU2(): tf=" << tf->ToString() << " #u1=" << u1.GetSize()
@@ -722,7 +723,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1
       LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
       // <u1, K' * u2 - f'> -> find "K'"
-      SetElementK(de, app, dynamic_cast<CFSMatrix*>(&mat));
+      SetElementK(de, app, static_cast<DenseMatrix*>(&mat));
       LOG_DBG3(em) << "mat: " << mat.ToString();
 
       // <u1, K' * u2 - f'> -> calc "K' * u2"
@@ -767,12 +768,12 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<CFSVector*>& u1
   return sum;
 }
 
-template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<CFSVector*>& u1,
-                       Application app, StdVector<CFSVector*>& u2,
+template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,
+                       Application app, StdVector<SingleVector*>& u2,
                        SurfaceRef* rhs, bool add, double factor, Condition* constraint);
 
-template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<CFSVector*>& u1,
-                       Application app, StdVector<CFSVector*>& u2,
+template double ErsatzMaterial::CalcU1KU2<std::complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
+                       Application app, StdVector<SingleVector*>& u2,
                        SurfaceRef* rhs, bool add, double factor, Condition* constraint);
 
 template <class T>
@@ -926,8 +927,8 @@ double ErsatzMaterial::CalcVolume(bool derivative, Condition* constraint)
         if(ersatzMaterialTensor){
           Matrix<double> material;
           GetErsatzMaterialTensor(material, de->elem, de->GetType());
-          assert(material.GetSizeRow() == material.GetSizeCol());
-          for(unsigned int i=0; i < material.GetSizeRow(); i++){
+          assert(material.GetNumRows() == material.GetNumCols());
+          for(unsigned int i=0; i < material.GetNumRows(); i++){
             val += material(i,i);
           }
         }else{
@@ -954,8 +955,8 @@ double ErsatzMaterial::CalcVolume(bool derivative, Condition* constraint)
         if(ersatzMaterialTensor){ // use the trace of the stiffness Tensor as "volume"
           Matrix<double> material;
           GetErsatzMaterialTensor(material, de->elem);
-          assert(material.GetSizeRow() == material.GetSizeCol());
-          for(unsigned int i=0; i < material.GetSizeRow(); i++){
+          assert(material.GetNumRows() == material.GetNumCols());
+          for(unsigned int i=0; i < material.GetNumRows(); i++){
             des += material(i,i);
           }
         }else{
@@ -980,7 +981,7 @@ double ErsatzMaterial::CalcGlobalDynamicCompliance(Excitation& excite)
   //GLOBAL_DYNAMIC_COMPLIANCE
   // c = u^T transpose(u) -> "A note on sensitivity analysis of linear dynamic systems with
   //                          harmonic excitation"; Jakob S. Jensen; June 22, 2007
-  CFSVector* cfsvec = forward.data[excite.index]->raw[MECH];
+  SingleVector* cfsvec = forward.data[excite.index]->raw[MECH];
   assert(cfsvec != NULL);
   assert(cfsvec->GetSize() != 0);
   Vector<complex<double> >& u = dynamic_cast<Vector<complex<double> >& >(*cfsvec);
@@ -1087,14 +1088,15 @@ double ErsatzMaterial::CalcTracking(bool derivative, Condition* constraint)
     // calculate the tracking functional gradient, which is z^T k_i u,
     // where Kz = ut
     // where ut = M^T M (u-u0) = I_\Gamma (u-u0)
-    double* rhs;
-    const int size = assemble_->GetAlgSys()->GetRHSVal(rhs);
-    assert(size != 0);
+    Vector<Double> rhs;
+    assemble_->GetAlgSys()->GetRHSVal(rhs);
 
     // set rhs to 0
-    for(int i=0; i < size; i++){
-      rhs[i] = 0;
-    }
+//    for(int i=0; i < size; i++){
+//      rhs[i] = 0;
+//    }
+    
+    rhs.Init();
 
     // set rhs for tracking nodes
     Vector<double> GlobCoord;
@@ -1118,12 +1120,12 @@ double ErsatzMaterial::CalcTracking(bool derivative, Condition* constraint)
     assemble_->GetAlgSys()->Solve(GetSolveComment() + "_tracking");
 
     // save solution to tracking_ and restore original solution
-    double* ptr;
-    int length = assemble_->GetAlgSys()->GetSolutionVal(ptr);
-    assert(length > 0);
-    ((StdPDE*)mech)->SaveSolution(ptr, length);
+    Vector<Double> tmpSol;
+    assemble_->GetAlgSys()->GetSolutionVal(tmpSol);
+    assert(tmpSol.GetSize() > 0);
+    ((StdPDE*)mech)->SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize());
     tracking_->Read(Solution::ELEMENT_VECTORS, mech, MECH);
-    assert(length == (int) forward.data[0]->raw[MECH]->GetSize());
+    assert(tmpSol.GetSize()== forward.data[0]->raw[MECH]->GetSize());
     forward.data[0]->Write(mech, MECH);
 
     // Hi Bastian: U read ELEMENT_VECTORS but want to print RAW - Fabian
@@ -1248,8 +1250,8 @@ double ErsatzMaterial::CalcGreyness(bool derivative, Condition* constraint)
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
 {
-  forward.multiple->SetToZero();
-  adjoint.multiple->SetToZero();
+  forward.multiple->Init();
+  adjoint.multiple->Init();
 
   // if ev_only_exite is set we use the given excitation
   // -> it shall not coincide
@@ -1310,7 +1312,7 @@ void ErsatzMaterial::StorePDESolution(Excitation &excite,  Solutions& solutions,
 {
   Solution& sol = *(solutions.data[excite.index]);
 
-  CFSVector* raw = NULL; // last result = every result for multiple solutions
+  SingleVector* raw = NULL; // last result = every result for multiple solutions
 
   // store solution element wise for gradient and raw vector for objective.
   // This is redundant as currently the solution is the global one!
@@ -1339,10 +1341,43 @@ void ErsatzMaterial::StorePDESolution(Excitation &excite,  Solutions& solutions,
     if(solutions.multiple->GetSize() == 0)
     {
       solutions.multiple->Resize(raw->GetSize());
-      solutions.multiple->SetToZero();
+      solutions.multiple->Init();
     }
 
-    solutions.multiple->Add(excite.normalized_weight, raw);
+    try 
+    {
+      // TODO: Fix this ugly code here!
+      Warning("ARRGH it sickens me! I gotta throw up! This is your computer complaining.\n"
+              "Unbelievably lousy code is being used! Please fix it as soon as possible!\n"
+              "Rework SingleVector::Add(Double a, const SingleVector &vec) -> Vector<T>::Add(T a, const SingleVector &vec)\n");
+      Vector<Double>* double_vec = dynamic_cast<Vector<Double>*>(raw);
+      if(!double_vec) 
+      {
+        try 
+        {
+          // TODO: Fix this ugly code here!
+          Warning("F***K! This so degrading!.\n"
+                  "Unbelievably lousy code is being used! Please fix it as soon as possible!\n"
+                  "Rework SingleVector::Add(Complex a, const SingleVector &vec) -> Vector<T>::Add(T a, const SingleVector &vec)\n");
+          Vector<Complex>* complex_vec = dynamic_cast<Vector<Complex>*>(raw);
+          Vector<Complex>* sol_vec = dynamic_cast<Vector<Complex>*>(solutions.multiple);
+          sol_vec->Add(Complex(excite.normalized_weight), *complex_vec);
+        }
+        catch( std::bad_cast e ) 
+        {
+          EXCEPTION("Cannot convert SingleVector to Vector<T>!");
+        }
+      }
+      else 
+      {
+        Vector<Double>* sol_vec = dynamic_cast<Vector<Double>*>(solutions.multiple);
+        sol_vec->Add(excite.normalized_weight, *double_vec);
+      }
+    }
+    catch( std::bad_cast e ) {}
+    
+    // TODO: This does not work any more since SingleVector::Add(Double Complex a, const SingleVector &vec) is no child of Vector<T>::Add(T a, const SingleVector &vec)
+    //    solutions.multiple->Add(excite.normalized_weight, *raw);
     LOG_DBG2(em) << "StorePDESolution: multiple= " << solutions.multiple->ToString();
   }
 }
@@ -1459,7 +1494,7 @@ LoadList ErsatzMaterial::ConstructOutputRHS(Excitation& excite)
   adjoint.data[excite.index]->Read(Solution::RHS_VECTOR, mech, MECH);  // up to now the vector is for all PDEs
   Vector<T>& t = dynamic_cast<Vector<T>& >(*(adjoint.data[excite.index]->rhs[MECH]));
   // create a own OLAS vector
-  OLAS::Vector<T> rhs(t.GetSize());
+  Vector<T> rhs(t.GetSize());
   // set the OLAS vector with -1 loads
 
   // hande the excite factor
@@ -1468,9 +1503,9 @@ LoadList ErsatzMaterial::ConstructOutputRHS(Excitation& excite)
   LOG_DBG2(em) << "ConstructOutputRHS: excite=" << excite.index << " norm_weight=" << excite.normalized_weight << " factor->" << factor;
 
   for(unsigned int i = 0; i < t.GetSize(); i++)
-    rhs[i+1] = -1.0 * factor * t[i];
+    rhs[i] = -1.0 * factor * t[i];
   // write the new rhs to the algsys. Note, that adjoint[excite.index]->rhs[MECH]) misses the -1
-  assemble_->GetAlgSys()->InitRHS(const_cast<const OLAS::Vector<T>* >(&rhs));
+  assemble_->GetAlgSys()->InitRHS(rhs);
 
   LOG_DBG2(em) << "ConstructOutputRHS: pure output vector w/o idbc: " << adjoint.data[excite.index]->rhs[MECH]->ToString();
 
@@ -1484,7 +1519,7 @@ void ErsatzMaterial::AdjustComplexAdjointRHS(Excitation& excite)
 
   // create a OLAS vector - note, that this is still fucking 1-based!! :)
   // todo: work directly on OLAS memory once the f*@!! OLAS buffer is kicked out of windows
-  OLAS::Vector<complex<double> > rhs(u.GetSize());
+  Vector<complex<double> > rhs(u.GetSize());
 
   int idx = excite.index;
 
@@ -1497,7 +1532,7 @@ void ErsatzMaterial::AdjustComplexAdjointRHS(Excitation& excite)
     Vector<complex<double> >& out = *(adjoint.data[idx]->GetComplexPointer(Solution::RHS_VECTOR, MECH));
 
     for(unsigned int i = 0; i < rhs.GetSize(); i++)
-      rhs[i+1] = -1.0 * out[i] * std::conj(u[i]); // FUCKING OLAS IS STILL 1-based!! todo
+      rhs[i] = -1.0 * out[i] * std::conj(u[i]);
     break;
   }
 
@@ -1509,7 +1544,7 @@ void ErsatzMaterial::AdjustComplexAdjointRHS(Excitation& excite)
 
     // the actual rhs for the adjoint pde is org_rhs * conj(u) -> this is only stored in OLAS!!!
     for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
-      rhs[i+1] = -1.0 * org_rhs[i] * std::conj(u[i]); // FUCKING OLAS IS STILL 1-based!! todo
+      rhs[i] = -1.0 * org_rhs[i] * std::conj(u[i]);
     break;
   }
 
@@ -1517,14 +1552,14 @@ void ErsatzMaterial::AdjustComplexAdjointRHS(Excitation& excite)
   case GLOBAL_DYNAMIC_COMPLIANCE:
     // S lambda = -conj(u);
     for(int i = 0, n = u.GetSize(); i < n; ++i)
-      rhs[i+1] = -1.0 * std::conj(u[i]); // FUCKING OLAS IS STILL 1-based!! todo
+      rhs[i] = -1.0 * std::conj(u[i]);
     break;
 
   default:
     assert(false);
   }
 
-  assemble_->GetAlgSys()->InitRHS(const_cast<const OLAS::Vector<complex<double> >* >(&rhs));
+  assemble_->GetAlgSys()->InitRHS(rhs);
   LOG_DBG2(em) << "AdjustAdjointRHS: rhs before solving: " << rhs.ToString();
 }
 
@@ -1609,17 +1644,17 @@ ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)
 
 ErsatzMaterial::Solution::~Solution()
 {
-  std::map<Application, CFSVector* >::iterator vec_iter;
+  std::map<Application, SingleVector* >::iterator vec_iter;
   for(vec_iter = raw.begin(); vec_iter != raw.end(); ++vec_iter)
     delete vec_iter->second;
 
   for(vec_iter = rhs.begin(); vec_iter != rhs.end(); ++vec_iter)
    delete vec_iter->second;
 
-  std::map<Application, StdVector<CFSVector* > >::iterator elem_iter;
+  std::map<Application, StdVector<SingleVector* > >::iterator elem_iter;
   for(elem_iter = elem.begin(); elem_iter != elem.end(); elem_iter++)
   {
-    StdVector<CFSVector* >& data = elem_iter->second;
+    StdVector<SingleVector* >& data = elem_iter->second;
     for(unsigned int i = 0; i < data.GetSize(); i++)
     {
       delete data[i];
@@ -1631,7 +1666,8 @@ template <class T>
 void ErsatzMaterial::Solution::Write(StdPDE* pde, Application app)
 {
   T* ptr = NULL;
-  raw[app]->GetPointer(ptr);
+  Vector<T>* v = static_cast<Vector<T>*>(raw[app]);  
+  ptr = v->GetPointer();
   assert(ptr != NULL);
   assert(raw[app]->GetSize() != 0);
   pde->SaveSolution(ptr, raw[app]->GetSize());
@@ -1640,7 +1676,7 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, Application app)
   //  void SinglePDE::SaveSolution( const Complex * ptSol, UInt size ) {
 }
 
-void ErsatzMaterial::Solution::Write(StdPDE* pde, CFSVector* vec)
+void ErsatzMaterial::Solution::Write(StdPDE* pde, SingleVector* vec)
 {
   // we are static
   bool harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
@@ -1658,9 +1694,9 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, CFSVector* vec)
 }
 
 
-CFSVector* ErsatzMaterial::Solution::GetVector(StorageType st, Application app)
+SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st, Application app)
 {
-  CFSVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
+  SingleVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
   assert(ptr != NULL);
 
   return ptr;
@@ -1669,7 +1705,7 @@ CFSVector* ErsatzMaterial::Solution::GetVector(StorageType st, Application app)
 
 Vector<double>* ErsatzMaterial::Solution::GetRealPointer(StorageType st, Application app)
 {
-  CFSVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
+  SingleVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
   assert(ptr != NULL);
 
   Vector<double>* result = dynamic_cast<Vector<double>*>(ptr);
@@ -1680,7 +1716,7 @@ Vector<double>* ErsatzMaterial::Solution::GetRealPointer(StorageType st, Applica
 
 Vector<complex<double> >* ErsatzMaterial::Solution::GetComplexPointer(StorageType st, Application app)
 {
-  CFSVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
+  SingleVector* ptr = st == RAW_VECTOR ? raw[app] : rhs[app];
   assert(ptr != NULL);
 
   Vector<complex<double> >* result = dynamic_cast<Vector<complex<double> >*>(ptr);
@@ -1690,7 +1726,7 @@ Vector<complex<double> >* ErsatzMaterial::Solution::GetComplexPointer(StorageTyp
 }
 
 template <class T>
-CFSVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol)
+SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol)
 {
   switch(st)
   {
@@ -1700,13 +1736,13 @@ CFSVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applicati
       {
         // store the solution in the PDE! This is necessary to read the element vector
         // in the adjoint case!
-        T* ptr;
-        int length = em_->assemble_->GetAlgSys()->GetSolutionVal(ptr);
-        pde->SaveSolution(ptr, length);
+        Vector<T> tmpSol;
+        em_->assemble_->GetAlgSys()->GetSolutionVal(tmpSol);
+        pde->SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize() );
       }
 
       // we save the element vectors in elem_vec. Might be empty the first call
-      StdVector<CFSVector*>& elem_vec = elem[app];
+      StdVector<SingleVector*>& elem_vec = elem[app];
       int n = em_->design->GetNumberOfElements();
 
       // check for first call
@@ -1742,10 +1778,16 @@ CFSVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applicati
 
       // get access to solution
       BaseSystem* bs = em_->assemble_->GetAlgSys();
-      T* ptr;
+      Vector<T> tmpSol;
 
-      int size = st == RAW_VECTOR ? bs->GetSolutionVal(ptr) : bs->GetRHSVal(ptr);
-      std::map<Application, CFSVector* >& map_ = st == RAW_VECTOR ? raw : rhs;
+      if( st == RAW_VECTOR ) 
+      {
+        bs->GetSolutionVal(tmpSol);
+      } else {
+        bs->GetRHSVal(tmpSol);
+      }
+      UInt size = tmpSol.GetSize();
+      std::map<Application, SingleVector* >& map_ = st == RAW_VECTOR ? raw : rhs;
       // check for first call
       if(map_.find(app) == map_.end())
         map_[app] = new Vector<T>(size);
@@ -1753,8 +1795,8 @@ CFSVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applicati
       Vector<T>* raw_vec = dynamic_cast<Vector<T>* >(map_[app]);
 
       // todo: do better when we interchange nicely with OLAS and not any further by pointers!
-      for(int i = 0; i < size; i++)
-        (*raw_vec)[i] = ptr[i];
+      for(UInt i = 0; i < size; i++)
+        (*raw_vec)[i] = tmpSol[i];
 
       return raw_vec;
     }

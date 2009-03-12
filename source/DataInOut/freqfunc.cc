@@ -50,9 +50,8 @@ namespace CoupledField {
       pathAndFilename="nodalSrcs/" + nodalFilename;
       freqfile.open( pathAndFilename.c_str() );
       if ( !freqfile ) {
-        (*error) << "Failed to open file '" << nodalFilename
-                 << "' in subdir 'nodalSrcs/' containing nodal freq. function";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Failed to open file '" << nodalFilename
+                 << "' in subdir 'nodalSrcs/' containing nodal freq. function");
       }
 
       freqfile.clear(); // clear flags
@@ -89,15 +88,12 @@ namespace CoupledField {
 
         pos = freqfile.tellg();  // and, where we are ?    
           
-        if( pos != line_end_pos)
-          {
-            errMsg  = "The freq data file '";
-            errMsg += fnc_names_[i];
-            errMsg += "' is not correctly formatted.\n";
-            errMsg += "Please correct it!";
-            Error(errMsg.c_str(), __FILE__, __LINE__);
-          }
-          
+        if( pos != line_end_pos) {
+          EXCEPTION("The freq data file '" << fnc_names_[i]
+                                           << "' is not correctly formatted.\n"
+                                           << "Please correct it!");
+        }
+
       }
       
       freqfile.close();
@@ -129,11 +125,9 @@ namespace CoupledField {
 
     if (numfnc == -1)
       {
-        std::string fncstring = "Freq Function '";
-        fncstring += fncname;
-        fncstring += "' is not defined within 'freqDataFile' ";
-        fncstring += "element in section 'Harmonic'!";
-        Error(fncstring.c_str(), __FILE__, __LINE__);
+      EXCEPTION("Freq Function '" << fncname
+      << "' is not defined within 'freqDataFile' "
+      << "element in section 'Harmonic'!");
       }
 
 
@@ -142,7 +136,7 @@ namespace CoupledField {
 
 
     if (freq < *freqFF_[numfnc].begin() )
-      Error("Wrong freq in FreqFuncAtFreq",__FILE__,__LINE__);
+      EXCEPTION("Wrong freq in FreqFuncAtFreq");
 
     //if freq larger as defined in freq function, return the last value
     if (freq > freqFF_[numfnc].back())

@@ -5,11 +5,13 @@
 #ifndef OLAS_BASE_EIGENSOLVER_HH
 #define OLAS_BASE_EIGENSOLVER_HH
 
-#include "matvec/matvec.hh"
-#include "algsys/olasparams.hh"
-
-namespace OLAS {
+namespace CoupledField {
   
+  class OLAS_BaseMatrix;
+  class OLAS_BaseVector;
+  template<typename> class Vector;
+  class OLAS_Params;
+  class OLAS_Report;
   
   // forward class declaration
   //class BaseSolver;
@@ -89,24 +91,6 @@ namespace OLAS {
     //! \param mode Vector with the eignmode
     virtual void CalcEigenMode( UInt modeNr, Vector<Double> & mode ) = 0;
     
-    
-    //! Method to force instantiation of all public member functions
-    
-    //! This auxillary method is used in our factory concept for solver
-    //! generation. The factory function GenerateEigenSolverObject() will
-    //! make a pseudo call to this method in order to force the compiler
-    //! to instantiate all public methods of a templated solver class.
-    //! \note
-    //! - The method must never be actually called, since it does not perform
-    //!   any sensible operations.
-    //! - If a templated solver offers additional public methods besides
-    //!   the ones defined in the BaseSolver class, then it should over-write
-    //!   the InstantiateAdditionalPublicMethods() member function which is
-    //!   called by this method.
-    void InstantiatePublicMethods( BaseMatrix &sysMat ) {
-      // To be implemented ...
-    }
-
   protected: 
 
     //! Pointer to parameter object

@@ -7,7 +7,8 @@
 #include <string>
 
 #include "timestepping.hh"
-#include "olas.hh"
+
+#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
 

@@ -20,9 +20,9 @@ namespace CoupledField
 
     coordUpdate_ = true;
     
-    matData->GetScalar(density_,DENSITY,REAL);
-    matData->GetScalar(dynamicViscosity_,DYNAMIC_VISCOSITY,REAL);
-    matData->GetScalar(kinematicViscosity_,KINEMATIC_VISCOSITY,REAL);
+    matData->GetScalar(density_,DENSITY,Global::REAL);
+    matData->GetScalar(dynamicViscosity_,DYNAMIC_VISCOSITY,Global::REAL);
+    matData->GetScalar(kinematicViscosity_,KINEMATIC_VISCOSITY,Global::REAL);
 
   }
  
@@ -52,7 +52,7 @@ namespace CoupledField
     Matrix<Double> linBMat;    
     calcBMat( linBMat, ip, ptCoord_);
 
-    Vector<TYPE> linVelocityStrain(linBMat.GetSizeRow());
+    Vector<TYPE> linVelocityStrain(linBMat.GetNumRows());
     linVelocityStrain.Init();
     stressVec.Init();
     linVelocityStrain = linBMat * veloVec;

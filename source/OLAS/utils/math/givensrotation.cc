@@ -8,22 +8,20 @@
 
 #include <def_use_lapack.hh>
 
-#include "utils/tools.hh"
-
-#include "utils/math/givensrotation.hh"
+#include "OLAS/utils/math/givensrotation.hh"
 
 #ifdef USE_LAPACK
-#include "external/lapack/olasf77mapping.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
 #endif
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***********************
   //   Default Constructor
   // ***********************
   GivensRotation::GivensRotation() {
-    Error( "This constructor should never be called!", __FILE__, __LINE__ );
+    EXCEPTION("This constructor should never be called!");
   }
 
 
@@ -58,8 +56,7 @@ namespace OLAS {
 
       // single precision case
       if ( sizeof(Double) == sizeof(float) ) {
-        Error( "Interface for Double = float no longer supported!",
-               __FILE__, __LINE__ );
+        EXCEPTION("Interface for Double = float no longer supported!");
       }
 
       // double precision case
@@ -74,8 +71,7 @@ namespace OLAS {
 
       // something else
       else {
-        Error( "Double is neither float nor double! Don't know what to do!",
-               __FILE__, __LINE__ );
+        EXCEPTION("Double is neither float nor double! Don't know what to do!");
       }
 
 #else
@@ -93,8 +89,7 @@ namespace OLAS {
       break;
 
     default:
-      Error( "Somethings broke! Should not have reached this line of code!",
-             __FILE__, __LINE__ );
+      EXCEPTION("Somethings broke! Should not have reached this line of code!");
     }
   }
 
@@ -115,8 +110,8 @@ namespace OLAS {
 
       // single precision case
       if ( sizeof(Complex) == sizeof(std::complex<float>) ) {
-        Error( "Interface for Complex = std::complex<float> no longer "
-               "supported!", __FILE__, __LINE__ );
+        EXCEPTION("Interface for Complex = std::complex<float> no longer "
+               "supported!");
       }
 
       // double precision case
@@ -141,16 +136,14 @@ namespace OLAS {
 
       // something else
       else {
-        (*error) << "Complex is neither complex<float> nor complex<double>! "
-                 << "Don't know what to do!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION("Complex is neither complex<float> nor complex<double>! "
+                 << "Don't know what to do!");
       }
 
 #else
 
-      (*error) << "Compile with USE_LAPACK to enable support for LAPACK's "
-               << "Givens rotation";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("Compile with USE_LAPACK to enable support for LAPACK's "
+               << "Givens rotation");
 
 #endif
 
@@ -161,8 +154,7 @@ namespace OLAS {
       break;
 
     default:
-      Error( "Something's broke! Should not have reached this line of code!",
-             __FILE__, __LINE__ );
+      EXCEPTION("Something's broke! Should not have reached this line of code!");
     }
   }
 

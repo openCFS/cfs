@@ -78,7 +78,7 @@ namespace CoupledField {
       PyErr_Print();
       std::string msg = "Error during reading of scriptfile! ";
       msg += "For details see previous error message.";
-      ::Error( msg.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( msg.c_str() );
     }
   }
   
@@ -114,14 +114,14 @@ namespace CoupledField {
       error+= eventNames_[event];
       error+= ". For details see previous error message.";
       //error += ExtractErrorInfo( type, pvalue, ptraceback );
-      ::Error( error.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( error.c_str() );
       return false;
     } else {
       return true;
     }
   }
   
-  void PY_CFSMessenger::Warning( const Char * msg, const Char * const filename,
+  void PY_CFSMessenger::Warning( const char * msg, const char * const filename,
                                  const UInt numline) {
     
     std::stringstream warn;
@@ -139,7 +139,7 @@ namespace CoupledField {
 
   }
   
-  void PY_CFSMessenger::Error( const Char * msg, const Char * const filename,
+  void PY_CFSMessenger::Error( const char * msg, const char * const filename,
                                const UInt numline) {
 
     std::stringstream error;
@@ -159,7 +159,7 @@ namespace CoupledField {
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Error( error.str().c_str(), filename, numline );
+    EXCEPTION( error.str().c_str() );
   }
   
   
@@ -174,9 +174,8 @@ namespace CoupledField {
       tuples = PyTuple_GetItem(args,0);
       
       // if object is not of type tuple, leave
-      if( PyTuple_Check(tuples) < 0 ) {
-        ::Error( "Argument to 'cfs' must be of type 'list'!",
-                 __FILE__, __LINE__);
+      if( !PyTuple_Check(tuples) ) {
+        EXCEPTION( "Argument to 'cfs' must be of type 'list'!");
         success = false;
       }
     } else {
@@ -190,7 +189,7 @@ namespace CoupledField {
     //    std::cerr << "numArgs = " << numArgs << std::endl;
     // check if there are more than 1 entries present
     if (numArgs < 2 ) { 
-      ::Error( "cfs needs at least 2 arguments!", __FILE__, __LINE__);
+      EXCEPTION( "cfs needs at least 2 arguments!" );
       success = false;
     } 
     
@@ -238,10 +237,9 @@ namespace CoupledField {
     // Check, if for all events the number
     // of parameters has been passed correctly
     if ( eventNumParams_.size() != eventNames_.size() ) {
-      (*error) << "Size of eventNumParams_ and eventNames_ "
-               << "mismatch!\n Please ensure, that for each "
-               << "event the number of parameters is defined!";
-      ::Error( __FILE__, __LINE__ );
+      EXCEPTION("Size of eventNumParams_ and eventNames_ "
+                << "mismatch!\n Please ensure, that for each "
+                << "event the number of parameters is defined!");
     }
     
     // Register all possible events

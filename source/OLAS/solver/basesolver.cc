@@ -2,56 +2,32 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "utils/utils.hh"
-#include "basesolver.hh"
+#include "MatVec/basevector.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-namespace OLAS {
+#include "Utils/tools.hh"
 
-  // ******************************
-  //   Instantiate Public Methods
-  // ******************************
-  void BaseSolver::InstantiatePublicMethods( BaseMatrix &sysMat ) {
+#include "OLAS/solver/basesolver.hh"
 
-
-    Error( "This method should _never_ be called!", __FILE__, __LINE__ );
-
-    BasePrecond *dummyPrecond = new IdPrecondStd;
-    BaseVector *dummyVec = GenerateVectorObject( sysMat );
-
-    Setup( sysMat );
-    Solve( sysMat, *dummyPrecond, *dummyVec, *dummyVec );
-    SolverType myType;
-    myType = GetSolverType();
-
-    // Allow derived classes to offer additional public methods
-    InstantiateAdditionalPublicMethods( sysMat );
-  }
-
-
-  // *****************************************
-  //   Instantiate Additional Public Methods
-  // *****************************************
-  void BaseSolver::InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-
-
-    Error( "This method should _never_ be called!", __FILE__, __LINE__ );
-  }
-
+namespace CoupledField {
 
   // *******************
   //   Log Convergence
   // *******************
   void BaseIterativeSolver::LogConvergence( Double rk, UInt step,
-					    bool firstCall ) {
+                                            bool firstCall ) {
 
     static double lastNorm = 0;
 
 
     // Write header
     if ( firstCall == true ) {
+      std::string tmp;
+      Enum2String( GetSolverType(), tmp );
+
       (*cla) << "\n "
-	     << Enum2String( GetSolverType() )
-	     << ": Starting iterations\n\n"
+      << tmp
+      << ": Starting iterations\n\n"
              << "# iter \t resid.norm \trel.res.norm\treduction\n"
              << "#------\t------------\t------------\t---------\n"
              << std::scientific << "  " << step << "\t" << rk << std::endl;
@@ -59,10 +35,9 @@ namespace OLAS {
 
       // Test that scalFac_ was initialised
       if ( scalFac_ < 0.0 ) {
-	(*error) << "Class attribute scalFac_ was not properly initialised!"
-		 << " scalFac_ = " << scalFac_
-		 << ".\n Did you call ComputeThreshold?";
-	Error( __FILE__, __LINE__ );
+        EXCEPTION( "Class attribute scalFac_ was not properly initialised!"
+            << " scalFac_ = " << scalFac_
+            << ".\n Did you call ComputeThreshold?" );
       }
     }
 
@@ -90,7 +65,7 @@ namespace OLAS {
 
 
     // Compute norm of initial residual
-    resNorm = res.NormEuclid();
+    resNorm = res.NormL2();
     std::cerr << "euclid norm of residual is " << resNorm << std::endl;
 
     // Test for the unlikely event, that the inital
@@ -107,10 +82,13 @@ namespace OLAS {
 
     // Report this to log file, if required
     if ( beVerbose == true ) {
+      std::string tmp;
+      Enum2String( stopCrit, tmp );
+
       (*cla) << "\n Checking stopping rule:\n"
-      << " ----------------------\n"
-      << " User specified '" << Enum2String( stopCrit ) << "'\n"
-      << std::scientific << " User supplied epsilon = " << eps << '\n';
+             << " ----------------------\n"
+             << " User specified '" << tmp << "'\n"
+             << std::scientific << " User supplied epsilon = " << eps << '\n';
     }
 
     switch( stopCrit ) {
@@ -139,7 +117,7 @@ namespace OLAS {
         }
       }
       else {
-        scalFac_ = rhs.NormEuclid();
+        scalFac_ = rhs.NormL2();
         if ( scalFac_ == 0 ) {
           (*cla) << " --> Norm of right-hand side is zero\n"
           << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
@@ -169,8 +147,7 @@ namespace OLAS {
       break;
 
     default:
-      (*error) << "No valid stopping criterion supplied";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "No valid stopping criterion supplied" );
 
     }
 

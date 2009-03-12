@@ -22,8 +22,8 @@ public:
    virtual ~Pyra2FE();
 
     //! return FE-Type
-    virtual FEType feType() {
-      return ET_PYRA13;
+    virtual Elem::FEType feType() {
+      return Elem::PYRA13;
     };
 
 protected:

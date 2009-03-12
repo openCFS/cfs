@@ -9,7 +9,7 @@ namespace CoupledField {
 
 
   AnsatzFct::AnsatzFct() {
-    
+
     isIsotropic_ = true;
     isDiscontinuous_ = false;
 
@@ -38,59 +38,59 @@ namespace CoupledField {
 //Spectral Ansatz function
 //======================================
 // Define supporting points for the polinomial
-    Double SpectralFct::l1[][1]  = { 
+    Double SpectralFct::l1[][1]  = {
       {-1},
       {1}
     };
-    
-    Double SpectralFct::l2[][1] = { 
+
+    Double SpectralFct::l2[][1] = {
       {-1.000000000000000e+00},
       { 0.000000000000000e+00},
       { 1.000000000000000e+00}
-    }; 
-    
-    Double SpectralFct::l3[][1] = { 
-      {-1.000000000000000e+00},
-      {-4.472135954999579e-01},        
-      { 4.472135954999579e-01},                
-      { 1.000000000000000e+00}
-    };
-    
-    Double SpectralFct::l4[][1] = { 
-      {-1.000000000000000e+00},
-      {-6.546536707079771e-01},        
-      { 0.000000000000000e+00},
-      { 6.546536707079771e-01},                
-      { 1.000000000000000e+00}
-    };
-    
-    Double SpectralFct::l5[][1] = { 
-      {-1.000000000000000e+00},
-      {-7.650553239294647e-01},        
-      {-2.852315164806451e-01},                
-      { 2.852315164806451e-01},
-      { 7.650553239294647e-01},
-      { 1.000000000000000e+00}        
     };
 
-    Double SpectralFct::l6[][1] = { 
+    Double SpectralFct::l3[][1] = {
       {-1.000000000000000e+00},
-      {-8.302238962785670e-01},        
-      {-4.688487934707142e-01},                
-      { 0.0000000000000000000},                        
+      {-4.472135954999579e-01},
+      { 4.472135954999579e-01},
+      { 1.000000000000000e+00}
+    };
+
+    Double SpectralFct::l4[][1] = {
+      {-1.000000000000000e+00},
+      {-6.546536707079771e-01},
+      { 0.000000000000000e+00},
+      { 6.546536707079771e-01},
+      { 1.000000000000000e+00}
+    };
+
+    Double SpectralFct::l5[][1] = {
+      {-1.000000000000000e+00},
+      {-7.650553239294647e-01},
+      {-2.852315164806451e-01},
+      { 2.852315164806451e-01},
+      { 7.650553239294647e-01},
+      { 1.000000000000000e+00}
+    };
+
+    Double SpectralFct::l6[][1] = {
+      {-1.000000000000000e+00},
+      {-8.302238962785670e-01},
+      {-4.688487934707142e-01},
+      { 0.0000000000000000000},
       { 4.688487934707142e-01},
       { 8.302238962785670e-01},
-      { 1.000000000000000e+00}        
+      { 1.000000000000000e+00}
     };
-    Double SpectralFct::l7[][1] = { 
+    Double SpectralFct::l7[][1] = {
       {-1.000000000000000e+00},
-      {-8.717401485096066e-01},        
-      {-5.917001814331423e-01},                
-      {-2.092992179024789e-01},                        
+      {-8.717401485096066e-01},
+      {-5.917001814331423e-01},
+      {-2.092992179024789e-01},
       { 2.092992179024789e-01},
       { 5.917001814331423e-01},
-      { 8.717401485096066e-01},        
-      { 1.000000000000000e+00}        
+      { 8.717401485096066e-01},
+      { 1.000000000000000e+00}
     };
 
   SpectralFct::SpectralFct() {
@@ -133,17 +133,17 @@ namespace CoupledField {
           supportingPoints_[i] = l7[i][0];
         break;
       default:
-        Error("Supplied Order of approximation not supported",__FILE__,__LINE__);
+        EXCEPTION( "Supplied Order of approximation not supported" );
         break;
     }
 
-        
+
   }
 
   void SpectralFct::EvaluatePolynomial( Vector<Double> & shape, Double coord )
   {
     shape.Resize(Order_+1);
-    shape.Init(0.0);
+    shape.Init();
     //get iutegration Pointes
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
     // corner nodes
@@ -154,7 +154,7 @@ namespace CoupledField {
       {
         if(p==i)
           continue;
-        else  
+        else
           shape[i] *= (coord - supportingPoints_[p]) / (supportingPoints_[i] - supportingPoints_[p]);
       }
     }
@@ -163,7 +163,7 @@ namespace CoupledField {
   void SpectralFct::EvaluateDerivPolynomial( Vector<Double> & deriv, Double coord )
   {
     deriv.Resize(Order_+1);
-    deriv.Init(0.0);
+    deriv.Init();
     for ( UInt i = 0; i<=Order_  ; i++)
     {
       Double sum = 1.0;
@@ -185,7 +185,7 @@ namespace CoupledField {
       {
         if(p==i)
           continue;
-        else  
+        else
           deriv[i] *= 1.0 / (supportingPoints_[i] - supportingPoints_[p]);
       }
     }
@@ -194,7 +194,6 @@ namespace CoupledField {
   UInt SpectralFct::GetOrder( ) const{
     return Order_;
   }
-  
 
   NedelecFct::NedelecFct() {
     type_ = NEDELEC;
@@ -207,24 +206,24 @@ namespace CoupledField {
     isIsotropic_ = true;
     subSpace_ = PRODUCT;
   }
-  
+
   void LegendreFct::SetIsoOrder( UInt order ) {
 
     isoOrder_ = order;
     isIsotropic_ = true;
     maxOrder_ = order;
   }
-  
-  
+
+
   UInt LegendreFct::GetIsoOrder() const {
     if( !isIsotropic_) {
-      Error( "Approximation is anisotropic!", __FILE__, __LINE__ );
+      EXCEPTION( "Approximation is anisotropic!" );
     }
-      
+
     return isoOrder_;
   }
-  
-  
+
+
   void LegendreFct::SetAnisoOrder( Matrix<UInt>& order ) {
 
     anOrder_ = order;
@@ -232,12 +231,12 @@ namespace CoupledField {
     maxOrder_ = 0;
 
     // determine maximum w.r.t. to local coordinate directions
-    maxOrderLocDir_.Resize( anOrder_.GetSizeRow() );
-    maxOrderDof_.Resize( anOrder_.GetSizeCol() );
+    maxOrderLocDir_.Resize( anOrder_.GetNumRows() );
+    maxOrderDof_.Resize( anOrder_.GetNumCols() );
     maxOrderLocDir_.Init( 0 );
     maxOrderDof_.Init( 0 );
-    for( UInt iLoc = 0; iLoc < anOrder_.GetSizeRow(); iLoc++ ) {
-      for( UInt iDof = 0; iDof < anOrder_.GetSizeCol(); iDof++ ) {
+    for( UInt iLoc = 0; iLoc < anOrder_.GetNumRows(); iLoc++ ) {
+      for( UInt iDof = 0; iDof < anOrder_.GetNumCols(); iDof++ ) {
         if( anOrder_[iLoc][iDof] > maxOrderLocDir_[iLoc] ) {
           maxOrderLocDir_[iLoc] = anOrder_[iLoc][iDof];
         }
@@ -249,21 +248,21 @@ namespace CoupledField {
         }
       }
     }
-    
+
     std::cerr << "order = \n" << order << std::endl;
     std::cerr << "maxOrderDof: " << maxOrderDof_.Serialize() << std::endl;
     std::cerr << "maxOrderLocDir: " << maxOrderLocDir_.Serialize() << std::endl;
   }
-  
-  
+
+
   const Matrix<UInt>& LegendreFct::GetAnisoOrder() const {
     if( isIsotropic_) {
-      Error( "Approximation is isotropic!", __FILE__, __LINE__ );
+      EXCEPTION( "Approximation is isotropic!" );
     }
     return anOrder_;
   }
-  
-  
+
+
   UInt LegendreFct::GetMaxOrderLocDir( UInt locDir ) const {
     if( isIsotropic_ ) {
       return isoOrder_;
@@ -271,8 +270,8 @@ namespace CoupledField {
       return maxOrderLocDir_[locDir];
     }
   }
-  
-  
+
+
   UInt LegendreFct::GetMaxOrderDof( UInt dof ) const {
     if( isIsotropic_ ) {
       return isoOrder_;
@@ -284,5 +283,5 @@ namespace CoupledField {
   UInt LegendreFct::GetMaxOrder( ) const {
     return maxOrder_;
   }
-  
+
 }

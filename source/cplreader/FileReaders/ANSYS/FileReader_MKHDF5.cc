@@ -42,8 +42,6 @@ namespace CoupledField
     std::stringstream sstr;
     std::string line;
     std::ostringstream errMsg;
-    UInt maxNodeNum = 0;
-    UInt numNodes = 0;
     std::map< std::string, std::vector<UInt> > entitySets;
     
     strict_ = settings.GetInt("strict") != 0;
@@ -134,7 +132,6 @@ namespace CoupledField
   void FileReader_MKHDF5::GetNodeGroups(std::map<std::string,
                                  std::vector<UInt> >& nodeGroups)
   {
-    Settings& settings = Settings::Instance();
     std::vector<std::string> nodeFiles;
     std::string line;
     std::string groupName;
@@ -174,10 +171,10 @@ namespace CoupledField
     }
   }
 
-  FEType FileReader_MKHDF5::ANSYSTypeToFEType(UInt type, UInt numNodes,
+  Elem::FEType FileReader_MKHDF5::ANSYSTypeToFEType(UInt type, UInt numNodes,
                                              bool& readAnotherLine)
   {
-    FEType ret = ET_UNDEF;
+    Elem::FEType ret = Elem::UNDEF;
     readAnotherLine = false;
 
     switch(type)
@@ -185,112 +182,112 @@ namespace CoupledField
     case 2:
     case 100:
       if(numNodes == 2 || numNodes == 0)
-        ret = ET_LINE2;
+        ret = Elem::LINE2;
       break;
 
     case 3:
     case 101:
       if(numNodes == 3 || numNodes == 0)
-        ret = ET_LINE3;
+        ret = Elem::LINE3;
       break;
 
     case 4:
       if(numNodes == 3 || numNodes == 0)
-        ret = ET_TRIA3;
+        ret = Elem::TRIA3;
       break;
 
     case 5:
       if(numNodes == 6 || numNodes == 0)
-        ret = ET_TRIA6;
+        ret = Elem::TRIA6;
       break;
 
     case 6: // rectangle
       if(numNodes == 0)
-        ret = ET_QUAD4;
+        ret = Elem::QUAD4;
 
       switch(numNodes)
       {
       case 3:
-        ret = ET_TRIA3;
+        ret = Elem::TRIA3;
         break;
 
       case 4:
-        ret = ET_QUAD4;
+        ret = Elem::QUAD4;
         break;
       }
       break;
 
     case 7: // quad. rectangle
       if(numNodes == 0)
-        ret = ET_QUAD8;
+        ret = Elem::QUAD8;
 
       switch(numNodes)
       {
       case 6:
-        ret = ET_TRIA6;
+        ret = Elem::TRIA6;
         break;
 
       case 8:
-        ret = ET_QUAD8;
+        ret = Elem::QUAD8;
         break;
       }
       break;
 
     case 8:
       if(numNodes == 4 || numNodes == 0)
-        ret = ET_TET4;
+        ret = Elem::TET4;
       break;
 
     case 9:
       if(numNodes == 10 || numNodes == 0)
-        ret = ET_TET10;
+        ret = Elem::TET10;
       readAnotherLine = true;
       break;
 
     case 10: // hexa
       if(numNodes == 0)
-        ret = ET_HEXA8;
+        ret = Elem::HEXA8;
 
       switch(numNodes)
       {
       case 4:
-        ret = ET_TET4;
+        ret = Elem::TET4;
         break;
 
       case 5:
-        ret = ET_PYRA5;
+        ret = Elem::PYRA5;
         break;
 
       case 6:
-        ret = ET_WEDGE6;
+        ret = Elem::WEDGE6;
         break;
 
       case 8:
-        ret = ET_HEXA8;
+        ret = Elem::HEXA8;
         break;
       }
       break;
 
     case 11: // quad. hexa
       if(numNodes == 0)
-        ret = ET_HEXA20;
+        ret = Elem::HEXA20;
 
       switch(numNodes)
       {
       case 10:
-      ret = ET_TET10;
+      ret = Elem::TET10;
       break;
 
       case 13:
-      ret = ET_PYRA13;
+      ret = Elem::PYRA13;
       break;
 
       case 15:
-      ret = ET_WEDGE15;
+      ret = Elem::WEDGE15;
       break;
 
       case 20:
-      ret = ET_HEXA20;
+      ret = Elem::HEXA20;
       break;
       }
 
@@ -299,23 +296,23 @@ namespace CoupledField
 
     case 12:
       if(numNodes == 5 || numNodes == 0)
-        ret = ET_PYRA5;
+        ret = Elem::PYRA5;
       break;
 
     case 13:
       if(numNodes == 13 || numNodes == 0)
-        ret = ET_PYRA13;
+        ret = Elem::PYRA13;
       readAnotherLine = true;
       break;
 
     case 14:
       if(numNodes == 6 || numNodes == 0)
-        ret = ET_WEDGE6;
+        ret = Elem::WEDGE6;
       break;
 
     case 15:
       if(numNodes == 15 || numNodes == 0)
-        ret = ET_WEDGE15;
+        ret = Elem::WEDGE15;
       readAnotherLine = true;
       break;
     }
@@ -333,19 +330,17 @@ namespace CoupledField
     std::stringstream sstr;
     UInt regionIdx = 0;
     bool readAnotherLine = false;
-    FEType prelimElemType, actualElemType;
+    Elem::FEType prelimElemType, actualElemType;
     UInt ansysElemType;
     UInt mat, real, secnum, esys;
     UInt elemNum;
     UInt numRegionElems = 0;
-    UInt numTotalElems = 0;
     UInt numElemNodes;
     UInt elemDim;
     std::vector<UInt> elemNodes(40);
     std::set<UInt> elemNodeSet;
     UInt dim = 0;
     bool isElementsFile;
-    UInt newElemNum = elemNumsMap_.size() + 1;
     std::set<UInt> elemSet;
     std::string line;
     bool firstSection = true;
@@ -482,10 +477,10 @@ namespace CoupledField
       actualElemType = ANSYSTypeToFEType(ansysElemType,
                                          numElemNodes,
                                          readAnotherLine);
-      if(actualElemType == ET_UNDEF)
+      if(actualElemType == Elem::UNDEF)
         EXCEPTION("Found undefined element type for elem " << elemNum
                   << " (region: " << (*regionNames_.rbegin())
-                  << ", type: " << ELEM_TYPE_NAMES[prelimElemType]
+                  << ", type: " << Elem::feType.ToString(prelimElemType)
                   << ", num. nodes: " << numElemNodes
                   << ")");
 
@@ -495,7 +490,7 @@ namespace CoupledField
       if(degen_)
       {
         DegenerateElement(prelimElemType, actualElemType, elemNodes);
-        numElemNodes = NUM_ELEM_NODES[actualElemType];
+        numElemNodes = Elem::GetNumElemNodes(actualElemType);
       }
 
       // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
@@ -545,7 +540,7 @@ namespace CoupledField
         
         maxOrigElemNum_ = maxOrigElemNum_ < elemNum ? elemNum : maxOrigElemNum_;
         maxNumElemNodes_ = maxNumElemNodes_ < numElemNodes ? numElemNodes : maxNumElemNodes_;
-        elemDim = ELEM_DIM[actualElemType];
+        elemDim = Elem::GetElemDim(actualElemType);
         dim = dim < elemDim ? elemDim : dim;
       }
       else 

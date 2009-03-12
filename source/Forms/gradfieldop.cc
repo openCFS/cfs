@@ -10,8 +10,8 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "General/environment.hh"
-#include "Utils/vector.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/vector.hh"
+#include "MatVec/matrix.hh"
 
 #include <PDE/StdPDE.hh>
 
@@ -52,7 +52,7 @@ namespace CoupledField
 
     dim = ent.GetElem()->ptElem->GetDim();
     elemField.Resize(dim);
-    elemField.Init(0.0);
+    elemField.Init();
    
     UInt nShFnc = 0;
     ent.GetElem()->ptElem->SetAnsatzFct( result_->fctType );
@@ -86,7 +86,7 @@ namespace CoupledField
                                               const Vector<Double> & factors)
   {
   
-    Error( "GradientFieldOp::CalcSDElecField: Not working yet", __FILE__, __LINE__);
+    EXCEPTION( "GradientFieldOp::CalcSDElecField: Not working yet");
     UInt nShFnc = 0;
     UInt dim;
     Matrix<Double> cornerCoords;

@@ -59,29 +59,20 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
     */
  }
 
-
-
  MassEdgeInt::MassEdgeInt( Double acond, 
                            bool scaleByEdgeSize,
                            bool coordUpdate )
    : BaseForm( NULL )
  {
-
    name_   = "MassEdgeInt";
    isaxi_  = false;
-
    conductivity_ = acond;
    coordUpdate_  = coordUpdate;
    baseType_     = MASS;
    scaleByEdgeSize_ = scaleByEdgeSize;
  }
 
-
-
  MassEdgeInt::~MassEdgeInt()
  {
  }
 } // end namespace CoupledField
-
-
-

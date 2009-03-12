@@ -24,7 +24,7 @@ namespace CoupledField{
                                    StdVector<SolutionType> solTypes, 
                                    StdVector<UInt> solDofs)
   {
-    Error( "Not implemented here", __FILE__, __LINE__ );
+    EXCEPTION("Not implemented here");
   }
 
   template<class TYPE>
@@ -32,14 +32,14 @@ namespace CoupledField{
                                    const SolutionType solType,
                                    const UInt numDofs)
   {
-    Error( "Not implemented here", __FILE__, __LINE__ );
+    EXCEPTION("Not implemented here");
   }
 
 
   template<class TYPE>
   ElemStoreSol<TYPE>::ElemStoreSol(const ElemStoreSol & x) 
   {
-    Error( "Not implemented here", __FILE__, __LINE__ );
+    EXCEPTION("Not implemented here");
   }
 
 
@@ -87,8 +87,8 @@ namespace CoupledField{
         std::cerr << "Size of solDofs: " << solDofs_.size() << std::endl;
         std::cerr << "Size of solTypes: " << solTypes_.size() << std::endl;
         std::cerr << "Size of offsets: " << solOffset_.size() << std::endl;
-        Error("ElemStoreSol::Init(): Before calling Init(), the number of solutions,\
-           elems, types and dofs has to be set to NONZERO value!",__FILE__,__LINE__);
+        EXCEPTION("ElemStoreSol::Init(): Before calling Init(), the number of solutions,\
+           elems, types and dofs has to be set to NONZERO value!");
       }
   
 #endif
@@ -98,9 +98,8 @@ namespace CoupledField{
       {
  
         if (solDofs_.size() != numSolutions_ || solTypes_.size() != numSolutions_)
-          Error("Inconsistent definition of Storesolution class.\
-                     Eventually you have to call 'Clear()' before using a modified data layout!",
-                __FILE__, __LINE__);
+          EXCEPTION("Inconsistent definition of Storesolution class.\
+                     Eventually you have to call 'Clear()' before using a modified data layout!");
       
         totalDofs_ = 0;
       
@@ -142,7 +141,7 @@ namespace CoupledField{
   {
 
 #ifdef CHECK_INDEX
-    if (numSolution >= numSolutions_) Error("ElemStoreSol: Index out of Bounds",__FILE__,__LINE__);
+    if (numSolution >= numSolutions_) EXCEPTION("ElemStoreSol: Index out of Bounds");
 #endif
 
     solTypes_[solType] = numSolution;
@@ -179,12 +178,12 @@ namespace CoupledField{
   TYPE& ElemStoreSol<TYPE>::operator()(UInt node, UInt dof)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
 
 #ifdef CHECK_INDEX
     if (numSolutions_ > 1) 
-      Error("ElemStoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol:operator(): Only defined objects with one type of solution!");
 #endif
 
     return data_[node * totalDofs_ + dof];
@@ -195,12 +194,12 @@ namespace CoupledField{
   {
   
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
 
 #ifdef CHECK_INDEX
     if (numSolutions_ > 1) 
-      Error("ElemStoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol:operator(): Only defined objects with one type of solution!");
 #endif
  
     return data_[node * totalDofs_ + dof];
@@ -208,17 +207,17 @@ namespace CoupledField{
 
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetElemResult(const UInt elemNr, const CFSVector &val)
+  void ElemStoreSol<TYPE>::SetElemResult(const UInt elemNr, const SingleVector &val)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
   
 #ifdef CHECK_INDEX
     if (elemNr >= numElems_) 
-      Error("ElemStoreSol::SetElemResult(): index out of bounds",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol::SetElemResult(): index out of bounds");
     if (val.GetSize() != totalDofs_)
-      Error("ElemStoreSol::SetElemResult(): vector of incompatible dimension",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol::SetElemResult(): vector of incompatible dimension");
 #endif
 
     const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
@@ -229,10 +228,10 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetElemResult(const UInt elemNr, CFSVector &val) const
+  void ElemStoreSol<TYPE>::GetElemResult(const UInt elemNr, SingleVector &val) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
     
    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
@@ -243,7 +242,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, CFSVector & val) const
+  void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, SingleVector & val) const
   {
     // killme ! the solType is not queried
 #ifdef CHECK_INITIALIZED
@@ -270,19 +269,19 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, const UInt dof, CFSVector & val) const
+  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, const UInt dof, SingleVector & val) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
-    Error("Not implemented here", __FILE__,__LINE__);
+    EXCEPTION("Not implemented here");
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, CFSVector & val) const
+  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, SingleVector & val) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
@@ -301,14 +300,14 @@ namespace CoupledField{
   void ElemStoreSol<TYPE>::Get(const UInt elemNr, const UInt dof, TYPE & ret) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
 
 #ifdef CHECK_INDEX
     if (numSolutions_ > 1)
-      Error("ElemStoreSol::Get(): Only used for single solution objects!",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol::Get(): Only used for single solution objects!");
     if (elemNr > numElems_)
-      Error("ElemStoreSol::Get(): Index out of bounds",__FILE__,__LINE__);
+      EXCEPTION("ElemStoreSol::Get(): Index out of bounds");
 #endif
 
     ret = data_[elemNr * totalDofs_ + dof]; 
@@ -318,7 +317,7 @@ namespace CoupledField{
   void ElemStoreSol<TYPE>::Get(const SolutionType type, const UInt elemNr, const UInt dof, TYPE & ret) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
     UInt offset = (*solOffset_.find(type)).second;
 
@@ -329,24 +328,24 @@ namespace CoupledField{
   void ElemStoreSol<TYPE>::Set(const SolutionType type, const UInt elemNr, const UInt dof, const TYPE val)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
-    Error("Not implemented here", __FILE__,__LINE__);
+    EXCEPTION("Not implemented here");
   }
 
   template<class TYPE>
   void ElemStoreSol<TYPE>::Add(const SolutionType type, const UInt elemNr, const UInt dof, const TYPE val) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
-    Error("Not implemented here", __FILE__,__LINE__);
+    EXCEPTION("Not implemented here");
   }
 
   ///////// Transformation Operations ///////// 
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::TransformElemSolution(CFSVector & transformedSolution,
+  void ElemStoreSol<TYPE>::TransformElemSolution(SingleVector & transformedSolution,
                                                  Grid * ptGrid) const
   {
 #ifdef CHECK_INITIALIZED
@@ -370,16 +369,16 @@ namespace CoupledField{
 
 
   template<class TYPE> 
-  void ElemStoreSol<TYPE>::ElemSolutionToCoupling(CFSVector & couplingSol,
+  void ElemStoreSol<TYPE>::ElemSolutionToCoupling(SingleVector & couplingSol,
                                                   const StdVector<Elem*>& elements,
-                                                  const CFSVector & elemSol) const
+                                                  const SingleVector & elemSol) const
   {
 
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
 #endif
 
-    Error("Not implemented here", __FILE__,__LINE__); 
+    EXCEPTION("Not implemented here"); 
 
   }
   
@@ -414,7 +413,7 @@ namespace CoupledField{
 
   template <class TYPE>
   void ElemStoreSol<TYPE>::Print( std::ostream& str ) {
-    Error( "ElemStoreSol::Print() not implemented", __FILE__, __LINE__ );
+    EXCEPTION("ElemStoreSol::Print() not implemented");
   }
 
   // explicit template instantiation for GCC compiler

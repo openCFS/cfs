@@ -1,5 +1,6 @@
+SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
 
-EXEC_PROGRAM("${CFS_SOURCE_DIR}/cmake_modules/distro.sh"
+EXEC_PROGRAM("${DISTRO_SCRIPT}"
   ARGS -c
   OUTPUT_VARIABLE CFS_ARCH_TEST
   RETURN_VALUE RETVAL)
@@ -7,6 +8,8 @@ EXEC_PROGRAM("${CFS_SOURCE_DIR}/cmake_modules/distro.sh"
 LIST(GET CFS_ARCH_TEST 0 CFS_DISTRO)
 LIST(GET CFS_ARCH_TEST 1 CFS_DISTRO_VER)
 LIST(GET CFS_ARCH_TEST 2 CFS_ARCH)
+
+# MESSAGE("CFS_ARCH_TEST: ${CFS_ARCH_TEST}")
 
 IF(CFS_ARCH STREQUAL "I386")
 
@@ -91,10 +94,6 @@ IF(CFS_DISTRO STREQUAL "SUSE" OR
    "doxygen"
    "graphviz"
    )
-
- IF(NOT CFS_DISTRO STREQUAL "SLES")
-   SET(CFS_FORTRAN_LIBS ${G2C_LIBRARY})
- ENDIF(NOT CFS_DISTRO STREQUAL "SLES")
 
  IF(CFS_DISTRO_VER GREATER 9.3)
    SET(CFS_PCKG_HINT ${CFS_PCKG_HINT} gfortran)
@@ -209,6 +208,29 @@ IF(CFS_DISTRO STREQUAL "MANDRAKE" OR
 
 ENDIF(CFS_DISTRO STREQUAL "MANDRAKE" OR
    CFS_DISTRO STREQUAL "MANDRIVA")
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+
+ # Supply a list of MacPorts (www.macports.org) packages which are needed
+ # to compile CFS
+ SET(CFS_PCKG_HINT
+   "blas"
+   "boost"
+   "lapack"
+   "python"
+   "subversion"
+   "tcl"
+   "xercesc"
+   "doxygen"
+   "graphviz"
+   "arpack"
+   "metis"
+   "hdf5"
+   )
+
+ SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})   
+ 
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 # Macro which prints a list of libraries which are needed to compile CFS++
 MACRO(SUGGEST_INSTALL_PCKG)

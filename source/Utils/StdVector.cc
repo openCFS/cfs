@@ -80,9 +80,6 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Reserve(unsigned int capacity)
   {
-    if (capacity < 0)
-      EXCEPTION( "Invalid value for StdVector::Reserve" );
-  
     if (capacity > capacity_)
       {
         capacity_ = capacity;
@@ -100,9 +97,6 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Resize(const unsigned int size)
   {
-    if (size < 0) 
-      EXCEPTION( "Invalid dimension for Resize" );
-  
     if (size != size_ ||  capacity_ < size)
       {
 
@@ -193,7 +187,6 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Import(const TYPE* source, unsigned int size)
   {
-    if(size < 0)       EXCEPTION("invalid dimension to import: " << size);
     if(source == NULL) EXCEPTION("cannot import NULL");
 
     // Reserve and Resize do stuff we don't need
@@ -311,7 +304,7 @@ namespace CoupledField {
 #endif
 
 #ifdef CHECK_INDEX
-    if (pos<0 || pos >=size_) 
+    if (pos >=size_) 
       EXCEPTION( "Invalid index for cut" );
 #endif
 
@@ -396,7 +389,7 @@ namespace CoupledField {
       return true;
   
     if(other == NULL)
-      EXCEPTION("cannot compare non-emoty StdVector with NULL");
+      EXCEPTION("Cannot compare non-empty StdVector with NULL");
     
     if(size_ == 0)
       return false;
@@ -507,28 +500,6 @@ namespace CoupledField {
       out << vc[i] << " " << std::endl;
     return out;
   }  
-  
-  template<class TYPE> template< class Archive>
-  void StdVector<TYPE>::save(Archive & ar, const unsigned int version) const {
-    ar & size_;
-    ar & capacity_;
-    for( unsigned int i = 0; i < size_; i++ ) 
-      ar & data_[i];
-  }
-  
-  template<class TYPE> template <class Archive>
-  void StdVector<TYPE>::load(Archive & ar, const unsigned int version) {
-    if( data_ != NULL ) {
-      delete[] data_;
-    }
-    
-    ar & size_;
-    ar & capacity_;
-    data_ = new TYPE[capacity_];
-    for( unsigned int i = 0; i < size_; i++ ) {
-      ar & data_[i];
-    }
-  }
   
 } // end of namespace
 

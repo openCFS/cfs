@@ -8,14 +8,16 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "Elements/elements_header.hh"
 #include "elem.hh"
 #include "domain.hh"
-#include "grid.hh"
 #include "General/exception.hh"
 #include "Utils/mathfunctions.hh"
 #include "Utils/coordSystem.hh"
 #include "polygonIterator.hh"
+
+#include "grid.hh"
 
 namespace CoupledField
 {
@@ -51,7 +53,7 @@ namespace CoupledField
 
   }
 
-  
+
 
   Grid::~Grid()
   {
@@ -78,15 +80,15 @@ namespace CoupledField
   {
     // Check if entities with given name exist already
     if( nameTypeMap_.find( regionName) != nameTypeMap_.end() ) {
-      EXCEPTION( "Entities with name " << regionName 
+      EXCEPTION( "Entities with name " << regionName
                  << " are already defined" );
     }
-    
+
     rId = regionNames_.GetSize();
     regionNames_.Push_back(regionName);
     nameTypeMap_[regionName] = EntityList::REGION;
   }
-    
+
   void Grid::AddRegions(const StdVector<std::string> & regionNames,
                         StdVector<RegionIdType> & rIds)
   {
@@ -98,7 +100,7 @@ namespace CoupledField
     {
       // Check if entities with given name exist already
       if( nameTypeMap_.find( regionNames[i]) != nameTypeMap_.end() ) {
-        EXCEPTION( "Entities with name " << regionNames[i] 
+        EXCEPTION( "Entities with name " << regionNames[i]
                    << " are already defined" );
       }
       rIds[i] = newId;
@@ -106,38 +108,38 @@ namespace CoupledField
       nameTypeMap_[regionNames[i]] = EntityList::REGION;
     }
   }
-    
+
   UInt Grid::GetNumRegions()
   {
     return regionNames_.GetSize();
   }
-    
+
   UInt Grid::GetNumVolRegions()
   {
     return volRegionIds_.GetSize();
   }
-    
+
   UInt Grid::GetNumSurfRegions()
   {
     return surfRegionIds_.GetSize();
   }
-    
+
   void Grid::GetRegionIds( StdVector<RegionIdType> & regions ) {
-    
+
     UInt numRegions = volRegionIds_.GetSize() + surfRegionIds_.GetSize();
-    
+
     regions.Clear();
 
     for(UInt i=0; i<numRegions; i++)
       regions.Push_back(i);
   }
-  
+
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
     volRegions = volRegionIds_;
   }
-  
+
   void Grid::GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
-    
+
     surfRegions = surfRegionIds_;
   }
 
@@ -150,7 +152,7 @@ namespace CoupledField
     } else {
       ret =  regionNames_.Find(regionName);
       if (ret == -1 ) {
-        EXCEPTION( "The region with name '" << regionName 
+        EXCEPTION( "The region with name '" << regionName
                    << "' is not contained in the grid!" );
       }
     }
@@ -159,7 +161,7 @@ namespace CoupledField
 
   void Grid::RegionIdToName( StdVector<std::string> & regionNames,
                              const StdVector<RegionIdType> & regionId ) {
-  
+
     regionNames.Resize( regionId.GetSize() );
     for (UInt i=0; i<regionId.GetSize(); i++ ) {
       if ( regionId[i] == ALL_REGIONS )
@@ -170,14 +172,14 @@ namespace CoupledField
   }
 
   void Grid::RegionNameToId( StdVector<RegionIdType> & regionIds,
-                             const StdVector<std::string> 
+                             const StdVector<std::string>
                              & regionNames ) {
 
     RegionIdType ret = NO_REGION_ID;
-    
+
     regionIds.Resize( regionNames.GetSize() );
     for (UInt i=0; i<regionNames.GetSize(); i++ ) {
-    
+
       if (regionNames[i] == "all" ) {
         ret = ALL_REGIONS;
       } else {
@@ -190,30 +192,30 @@ namespace CoupledField
       regionIds[i] = ret;
     }
   }
-  
+
   std::string Grid::RegionIdToName( const RegionIdType regionId ) {
-  
+
     if ( regionId == ALL_REGIONS )
       return "all";
     else
       return regionNames_[regionId];
   }
-  
 
-  shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType, 
+
+  shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
                                               const std::string& name,
                                               EntityList::DefineType defineType ) {
-    
+
     // First check, if there any entites with this name at all
     if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
-      EXCEPTION( "There are no entities with name '" << name 
+      EXCEPTION( "There are no entities with name '" << name
                  << "' in the mesh" ) ;
     }
-    
+
     EntityList::DefineType entityType = nameTypeMap_[name];
-    
+
     shared_ptr<EntityList> ret;
-    
+
     if( listType == EntityList::ELEM_LIST ) {
       shared_ptr<ElemList> eList  = shared_ptr<ElemList>( new ElemList(this) );
       if( entityType == EntityList::REGION ) {
@@ -223,9 +225,9 @@ namespace CoupledField
         eList->SetNamedElems( name );
       }
       ret = eList;
-      
+
     } else if( listType == EntityList::SURF_ELEM_LIST ) {
-      shared_ptr<SurfElemList> surfList  = 
+      shared_ptr<SurfElemList> surfList  =
         shared_ptr<SurfElemList>( new SurfElemList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
@@ -253,7 +255,7 @@ namespace CoupledField
       }
       ret = nodeList;
     } else if( listType == EntityList::REGION_LIST ) {
-      shared_ptr<RegionList> regionList = 
+      shared_ptr<RegionList> regionList =
         shared_ptr<RegionList>( new RegionList(this) );
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = RegionNameToId( name );
@@ -266,7 +268,7 @@ namespace CoupledField
       EXCEPTION( "Type '" << listType << "' describes no EntityList which is created "
                  << "by the grid-class." );
     }
-    
+
     return ret;
 
   }
@@ -274,17 +276,17 @@ namespace CoupledField
    void Grid::Dump()
    {
      StdVector<Elem*>   elems;
-    
-     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;             
 
-     for(UInt i = 0; i < regionNames_.GetSize(); i++) 
+     std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
+
+     for(UInt i = 0; i < regionNames_.GetSize(); i++)
      {
        std::string  region_name = regionNames_[i];
        RegionIdType region_id   = RegionNameToId(region_name);
-           
+
        GetElems(elems, region_id);
-                   
-       std::cout << "region: " << region_name << " id=" << region_id << " elements=" << elems.GetSize() <<  std::endl;            
+
+       std::cout << "region: " << region_name << " id=" << region_id << " elements=" << elems.GetSize() <<  std::endl;
      }
    }
 
@@ -299,7 +301,7 @@ namespace CoupledField
     RegionIdType masterId;
     ParamNode* pNode;
     StdVector<ParamNode*> ncIfaceNodes;
-    
+
     pNode = param->Get("domain");
     pNode = pNode->Get("ncInterfaceList",false);
     if(!pNode)
@@ -340,7 +342,7 @@ namespace CoupledField
         else
           ncInterfaces_[i].intersectAlgo = POLYGON_INTERSECT;
       }
-      
+
       ncIfaceNode->Get("tolAbs", ncInterfaces_[i].tolAbs, false);
       ncIfaceNode->Get("tolRel", ncInterfaces_[i].tolRel, false);
 
@@ -351,7 +353,7 @@ namespace CoupledField
       else {
         ncInterfaces_[i].rotationAngle = 0.0;
       }
-      
+
       if (ncInterfaces_[i].rotationAngle > 0.0) {
         ncInterfaces_[i].coplanar = false;
       }
@@ -387,7 +389,7 @@ namespace CoupledField
       //if (ncInterfaces_[i].rotationAngle == 0.0)
       UpdateNcIntersection(ncInterfaces_[i]);
     }
-    
+
     return true;
   }
 
@@ -409,7 +411,7 @@ namespace CoupledField
         LOG_DBG3(grid) << "\ncomputing integration grid of ncInterfaces...";
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            SideOnSide(masterElems[i], slaveElems[j], ncIf.coplanar, 
+            SideOnSide(masterElems[i], slaveElems[j], ncIf.coplanar,
                        ncIf.rotationAngle != 0.0, ncElems);
           }
         }
@@ -466,7 +468,7 @@ namespace CoupledField
       ClearRegion(ncIf.region);
 
       ncElemsHelper.Resize(ncElems.GetSize());
-      
+
       for(UInt i=0; i<ncElems.GetSize(); i++)
       {
         ncElemsHelper[i] = ncElems[i];
@@ -481,7 +483,7 @@ namespace CoupledField
     }
   }
 
-  
+
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems)
   {
     std::set<Integer> ifaceNodes;
@@ -505,7 +507,7 @@ namespace CoupledField
     normal.Resize(3);
     normal[0] = 0.0;
     normal[1] = 0.0;
-    normal[2] = 0.0;    
+    normal[2] = 0.0;
 
     // Loop through all interface points and determine if they are coplanar.
     for(it=ifaceNodes.begin(), end=ifaceNodes.end(); it!=end; it++)
@@ -550,7 +552,7 @@ namespace CoupledField
           // We don't want to compare the vector to itself!
           continue;
         }
-        
+
         switch(dim)
         {
         case 2:
@@ -562,7 +564,7 @@ namespace CoupledField
             return false;
 
           break;
-          
+
         case 3:
           if(normal.NormL2() == 0)
           {
@@ -574,7 +576,7 @@ namespace CoupledField
             {
               normal[0] = 0.0;
               normal[1] = 0.0;
-              normal[2] = 0.0;    
+              normal[2] = 0.0;
               continue;
             }
             Normalize(normal);
@@ -591,7 +593,7 @@ namespace CoupledField
           }
 
           Normalize(n);
-          
+
           n.Inner(normal, innerProd);
 
           // At this place we should have either linearly dependant normal
@@ -599,11 +601,11 @@ namespace CoupledField
           // The value of innerProd indicates what is the case.
           if((1.0 - std::fabs(innerProd)) >= eps)
             return false;
-          
+
           break;
         }
 
-      }      
+      }
       pnum++;
     }
 
@@ -616,7 +618,7 @@ namespace CoupledField
 
   bool Grid::IsNcInterfaceCoplanar(RegionIdType regionId) {
     UInt numIfaces = ncInterfaces_.GetSize();
-    
+
     for (UInt i = 0; i < numIfaces; ++i) {
       if (ncInterfaces_[i].region == regionId)
         return ncInterfaces_[i].coplanar;
@@ -627,7 +629,7 @@ namespace CoupledField
   }
 
   /****************************************************************************
-   ** 
+   **
    ** SideOnSide
    **
    **   computes the local coordinates of the overlap of the master and slave
@@ -635,7 +637,7 @@ namespace CoupledField
    **   orientation of the slave side element. It pushes back the intersection
    **   element to elemList.
    **
-   ** Input Parameters:   
+   ** Input Parameters:
    **   ifaceElemM:  Master Side
    **   ifaceElemS:  Slave Side
    **   collinear:   indicates if the interface is coplanar or not
@@ -643,8 +645,8 @@ namespace CoupledField
    **
    ** Output Parameters:
    **   elemList: the found intersection NCElems will be pushed
-   **                     back to this vector 
-   **   
+   **                     back to this vector
+   **
    */
 
 
@@ -665,11 +667,11 @@ namespace CoupledField
     Double dist, dist1, dist2, fac;
     UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
     Double relativeElemVol;
-    
+
     s.Resize(2);
     t.Resize(2);
     connect2.Resize(2);
-    
+
     // Get coordinates of the endpoints
     nodenum_c0 = ifaceElem1->connect[0];
     nodenum_c1 = ifaceElem1->connect[1];
@@ -710,7 +712,7 @@ namespace CoupledField
       }
       AddNode(new_node, node_num);
       nodenum_c0 = node_num;
-      
+
       // do the same for c1
       tmp = c1 - d0;
       normal.Inner(tmp, fac);
@@ -739,7 +741,7 @@ namespace CoupledField
     dist1 = diff0.NormL2();
     diff0.Inner(diff1, s[0]);
     s[0] *= fac;
-    
+
     // Compute x2 coordinate of line2 in respect
     // to line1.
     diff0 = d1 - c0;
@@ -753,7 +755,7 @@ namespace CoupledField
       t[0] = s[1];
       t[1] = s[0];
       connect2[0] = nodenum_d1;
-      connect2[1] = nodenum_d0;      
+      connect2[1] = nodenum_d0;
     }
     else
     {
@@ -775,7 +777,7 @@ namespace CoupledField
     ncElem->connect.Resize(2);
 
     relativeElemVol = t[1] - t[0];
-    
+
     // If an intersection exists, we must distinguish
     // 4 different cases.
     if(t[0] <= 0)
@@ -789,7 +791,7 @@ namespace CoupledField
 
         relativeElemVol = 1;
         ncElem->connect[1] = nodenum_c1;
-      }      
+      }
       else
       {
         // connect2[0] x--------|---------x connect2[1]
@@ -798,7 +800,7 @@ namespace CoupledField
         relativeElemVol = t[1];
         ncElem->connect[1] = connect2[1];
       }
-      
+
     }
     else
     {
@@ -808,7 +810,7 @@ namespace CoupledField
       {
         // connect2[0] x----------------|------x connect2[1]
         //      c0 x---|----------------x c1
-        
+
         ncElem->connect[1] = nodenum_c1;
         relativeElemVol = 1-t[0];
       }
@@ -828,12 +830,12 @@ namespace CoupledField
       sstr << "  for intersection of elements " << ifaceElem1->elemNum;
       sstr << " (" << RegionIdToName(ifaceElem1->regionId) << ") ";
       sstr << "and " << ifaceElem2->elemNum;
-      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";      
+      sstr << " (" << RegionIdToName(ifaceElem2->regionId) << ") ";
       Warning(sstr.str().c_str(), __FILE__, __LINE__);
       delete ncElem;
       return false;
     }
-    
+
     ncElem->ptElem = ptL1;
     ncElem->ptLagrangeParent = ifaceElem2;
     ncElem->ptSurfParent = ifaceElem1;
@@ -842,7 +844,7 @@ namespace CoupledField
 
     return true;
   }
-  
+
   bool Grid::RectangleOnRectangle(SurfElem *ifaceElem1, SurfElem *ifaceElem2,
                                   bool coplanar, StdVector<NCElem*>& elemList)
   {
@@ -853,7 +855,7 @@ namespace CoupledField
     Double distX, distY, facX, facY, r;
     UInt nodeNr;
     const Double tol_r = 1e-5;
-    
+
     s.Resize(4);
     t.Resize(4);
     connect2.Resize(4);
@@ -871,7 +873,7 @@ namespace CoupledField
     //    |                      |
     // c0 x----------------------x c1
 
-    
+
     // Get coordinates of the endpoints
     GetNodeCoordinate(c0, ifaceElem1->connect[0]);
     GetNodeCoordinate(c1, ifaceElem1->connect[1]);
@@ -886,7 +888,7 @@ namespace CoupledField
     distX = diffX.NormL2();
     facX = 1.0 / distX;
     diffX *= facX;
-    
+
     // Compute and normalize vector from c0 to c2
     // This becomes the new y-unit vector.
     diffY = c2 - c0;
@@ -901,7 +903,7 @@ namespace CoupledField
     diffS.Inner(diffY, s[1]);
     s[0] *= facX;
     s[1] *= facY;
-    
+
     // Now compute vector from c0 to d2 and project
     // the result onto the new x- and y-axis.
     diffS = d2 - c0;
@@ -913,7 +915,7 @@ namespace CoupledField
     // Determine the orientation of the second rectangle
     diffX2 = d1 - d0;
     diffX.Inner(diffX2, r);
-    
+
     // Bring the x- and y-coordinates of the intersection
     // into an order, where the smaller coordinates come
     // first.
@@ -952,7 +954,7 @@ namespace CoupledField
           connect2[2] = ifaceElem2->connect[3];
         }
       }
-      
+
     }
     else
     {
@@ -982,20 +984,20 @@ namespace CoupledField
         connect2[2] = ifaceElem2->connect[2];
         if (fabs(r) < tol_r) {
           connect2[1] = ifaceElem2->connect[3];
-          connect2[3] = ifaceElem2->connect[1];        
+          connect2[3] = ifaceElem2->connect[1];
         }
         else {
           connect2[1] = ifaceElem2->connect[1];
-          connect2[3] = ifaceElem2->connect[3];        
+          connect2[3] = ifaceElem2->connect[3];
         }
       }
     }
-    
+
     // Check if an intersection between rectangle1
     // and rectangle2 exists.
     if(t[0] >= 1.0)
       return false;
-    
+
     if(t[2] <= 0.0)
       return false;
 
@@ -1010,7 +1012,7 @@ namespace CoupledField
 
     diffX *= distX;
     diffY *= distY;
-    
+
     // If an intersection actually exist, we eventually
     // have to compute the intersection points.
     // There exist 16 different cases how two axiparallel
@@ -1029,7 +1031,7 @@ namespace CoupledField
 
           if(t[3] >= 1)
           {
-            ncElem->connect[2] = ifaceElem1->connect[2];            
+            ncElem->connect[2] = ifaceElem1->connect[2];
             ncElem->connect[3] = ifaceElem1->connect[3];
           }
           else
@@ -1041,7 +1043,7 @@ namespace CoupledField
             AddNode(tmp, nodeNr);
             ncElem->connect[3] = nodeNr;
           }
-      
+
         }
         else
         {
@@ -1072,7 +1074,7 @@ namespace CoupledField
             ncElem->connect[3] = nodeNr;
           }
         }
-      }      
+      }
       else
       {
         if(t[1] <= 0)
@@ -1093,13 +1095,13 @@ namespace CoupledField
             ncElem->connect[0] = ifaceElem1->connect[0];
             tmp = c0 + diffX*t[2] + diffY*0.0;
             AddNode(tmp, nodeNr);
-            ncElem->connect[1] = nodeNr;            
+            ncElem->connect[1] = nodeNr;
             ncElem->connect[2] = connect2[2];
             tmp = c0 + diffX*0.0  + diffY*t[3];
             AddNode(tmp, nodeNr);
-            ncElem->connect[3] = nodeNr;            
+            ncElem->connect[3] = nodeNr;
           }
-      
+
         }
         else
         {
@@ -1138,25 +1140,25 @@ namespace CoupledField
           {
             tmp = c0 + diffX*t[0] + diffY*0.0;
             AddNode(tmp, nodeNr);
-            ncElem->connect[0] = nodeNr;            
+            ncElem->connect[0] = nodeNr;
             ncElem->connect[1] = ifaceElem1->connect[1];
             ncElem->connect[2] = ifaceElem1->connect[2];
             tmp = c0 + diffX*t[0] + diffY;
             AddNode(tmp, nodeNr);
-            ncElem->connect[3] = nodeNr;            
+            ncElem->connect[3] = nodeNr;
           }
           else
           {
             tmp = c0 + diffX*t[0] + diffY*0.0;
             AddNode(tmp, nodeNr);
-            ncElem->connect[0] = nodeNr;            
+            ncElem->connect[0] = nodeNr;
             ncElem->connect[1] = ifaceElem1->connect[1];
             tmp = c0 + diffX      + diffY*t[3];
             AddNode(tmp, nodeNr);
-            ncElem->connect[2] = nodeNr;            
+            ncElem->connect[2] = nodeNr;
             ncElem->connect[3] = connect2[3];
           }
-      
+
         }
         else
         {
@@ -1183,7 +1185,7 @@ namespace CoupledField
             ncElem->connect[3] = connect2[3];
           }
         }
-      }      
+      }
       else
       {
         if(t[1] <= 0)
@@ -1212,9 +1214,9 @@ namespace CoupledField
             AddNode(tmp, nodeNr);
             ncElem->connect[1] = nodeNr;
             ncElem->connect[2] = connect2[2];
-            ncElem->connect[3] = connect2[3];            
+            ncElem->connect[3] = connect2[3];
           }
-      
+
         }
         else
         {
@@ -1259,11 +1261,11 @@ namespace CoupledField
 
     polysectAbsTol_ = absTol;
     polysectRelTol_ = relTol;
-      
+
     p1.Resize(ifElem1->connect.GetSize());
     for (i = 0; i < p1.GetSize(); ++i)
       GetNodeCoordinate(p1[i], ifElem1->connect[i], coordUpdate);
-      
+
     p2.Resize(ifElem2->connect.GetSize());
     for (i = 0; i < p2.GetSize(); ++i)
       GetNodeCoordinate(p2[i], ifElem2->connect[i], coordUpdate);
@@ -1278,7 +1280,7 @@ namespace CoupledField
         elemList[i]->ptSurfParent = ifElem1;
         //elemList[i]->ptElem = ptTr1;
       }
-    
+
       return true;
     }
     return false;
@@ -1469,7 +1471,7 @@ namespace CoupledField
       return false;
     }
  #endif
-      
+
     //last_cut.Resize(3);
 
     // compute surrounding circles of both polygons
@@ -1485,13 +1487,13 @@ namespace CoupledField
     if (!coplanar) {
       Double scale;
       Vector<Double> n;
-      
+
       // compute surface normal of p2
       temp1 = p2[1]- p2[0];
       temp2 = p2[2] - p2[0];
       CrossProd(temp1,temp2, n);
       Normalize(n);
-      
+
       // project each point of p1
       for (i = 0; i < p1.GetSize(); ++i) {
         temp1 = p1[i] - p2[0];
@@ -1499,7 +1501,7 @@ namespace CoupledField
         p1[i] -= n * scale;
       }
     }
-      
+
     // Count those points of p1 that are contained in p2. Choose a point
     // that lies outside of p2 as starting point.
     for (i = 0; i < p1.GetSize(); ++i) {
@@ -1561,7 +1563,7 @@ namespace CoupledField
                 (CutLines(*pi1, pi1.Next(), pi2.Prev(),
                           pi2.Next(), e) >= INTERSECT_ON_LINE2))
               break;
-            continue; // [a,b] lies outside of p2 => no cut 
+            continue; // [a,b] lies outside of p2 => no cut
           case INTERSECT_IN_C:
           case INTERSECT_A_EQ_C:
             // does [a,b] cut into p2?
@@ -1629,7 +1631,7 @@ namespace CoupledField
           r.Push_back(cuts[0].loc);
           //last_cut = cuts[1].loc;
           r.Push_back(cuts[1].loc);
-      
+
           pi2.Seek(cuts[0].index);
           if ((cuts[0].type != INTERSECT_IN_C) &&
               (cuts[0].type != INTERSECT_A_EQ_C)) ++pi2;
@@ -1640,7 +1642,7 @@ namespace CoupledField
           r.Push_back(cuts[1].loc);
           //last_cut = cuts[0].loc;
           r.Push_back(cuts[0].loc);
-      
+
           pi2.Seek(cuts[1].index);
           if ((cuts[1].type != INTERSECT_IN_C) &&
               (cuts[1].type != INTERSECT_A_EQ_C)) ++pi2;
@@ -1729,7 +1731,7 @@ namespace CoupledField
     r.Erase(r.GetSize() - 1);
     return (r.GetSize() > 2);
   }
-  
+
   bool Grid::PointInsidePoly(const Vector<Double> &p,
                              const StdVector< Vector<Double> > &poly,
                              const Vector<Double> *const c) const
@@ -1749,7 +1751,7 @@ namespace CoupledField
     // convex polygon). In this case the algorithm below will not work.
     temp = (p - center);
     if ( temp.NormL2() < polysectAbsTol_)
-      return TRUE;
+      return true;
 
     // try intersecting [c,p] with each edge of the polygon
     do {
@@ -1757,11 +1759,11 @@ namespace CoupledField
       if (s <= INTERSECT_OUTSIDE)
         continue;
       if ((s == INTERSECT_ON_LINE2) || (s == INTERSECT_IN_B)) {
-        result = TRUE;
+        result = true;
         break;
       }
       if ((s == INTERSECT_CROSS) || (s >= INTERSECT_IN_C)) {
-        result = FALSE;
+        result = false;
         break;
       }
     } while ( ! (++pi).AtBegin() );
@@ -1778,7 +1780,7 @@ namespace CoupledField
 
     // set c to 0
     c.Resize(3);
-    c.Init(0.0);
+    c.Init();
 
     // compute center of gravity
     for (i = 0; i < n; ++i)
@@ -1823,7 +1825,7 @@ namespace CoupledField
         ncElem = new NCElem;
         ncElem->ptElem = ptQ1;
         ncElem->connect.Resize(4);
-        
+
         AddNode(p[0], nodeNo);
         ncElem->connect[0] = nodeNo;
         AddNode(p[1], nodeNo);
@@ -1832,9 +1834,9 @@ namespace CoupledField
         ncElem->connect[2] = nodeNo;
         AddNode(p[3], nodeNo);
         ncElem->connect[3] = nodeNo;
-        
+
         tri.Push_back(ncElem);
-        
+
         /*ncElem = new NCElem;
         ncElem2 = new NCElem;
         ncElem->connect.Resize(3);
@@ -1908,7 +1910,7 @@ namespace CoupledField
     const std::string& surfRegionName,
     const std::string& region1,
     const std::string& region2) {
-      
+
     StdVector<SurfElem*> newSurfaceElems;
     StdVector<Elem*> region1Elems;
     StdVector<UInt> region2Nodes;
@@ -1918,25 +1920,25 @@ namespace CoupledField
     RegionIdType surfRegionId;
     Elem* el;
     SurfElem* surfEl;
-      
+
     if(GetDim() != 2)
       EXCEPTION("SurfRegionFromVolRegions is only implemented for 2D!");
-      
+
     if(region2 == "NO_REGION") {
       SurfRegionFromSingleVolRegion(surfRegionName, region1);
       return;
     }
-  
+
     region1Id = RegionNameToId(region1);
     region2Id = RegionNameToId(region2);
-      
+
     this->GetElems(region1Elems, region1Id);
-    this->GetNodesByRegion(region2Nodes, region2Id);      
-      
+    this->GetNodesByRegion(region2Nodes, region2Id);
+
     UInt nElemsRegion1 = region1Elems.GetSize();
     UInt numCorners;
     UInt lastCornerInRegion2;
-      
+
     for(UInt i=0; i<nElemsRegion1; i++) {
       el = region1Elems[i];
       numCorners = el->ptElem->GetNumCorners();
@@ -1946,43 +1948,43 @@ namespace CoupledField
           n++;
           continue;
         }
-  
+
         if(region2Nodes.Find(el->connect[(n+1) % numCorners]) < 0) {
           n+=2;
           continue;
         }
-          
+
         surfEl = new SurfElem();
         surfEl->connect.Resize(3);
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numCorners];
         surfEl->ptElem = ptL1;
-          
+
         switch(el->ptElem->feType()) {
-        case ET_TRIA6:
-        case ET_QUAD8:
-        case ET_QUAD9:
+        case Elem::TRIA6:
+        case Elem::QUAD8:
+        case Elem::QUAD9:
           surfEl->connect[2] = el->connect[n+numCorners];
           surfEl->ptElem = ptL2;
           break;
         default:
           break;
         }
-          
+
         newSurfaceElems.Push_back(surfEl);
-  
+
         n++;
       }
     }
-      
+
     if(newSurfaceElems.GetSize() != 0)
     {
       AddSurfaceRegion(surfRegionName, surfRegionId);
       AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
     }
-      
+
   }
-    
+
   void Grid::SurfRegionFromSingleVolRegion(
     const std::string& surfRegionName,
     const std::string& region)
@@ -1996,16 +1998,16 @@ namespace CoupledField
     RegionIdType surfRegionId;
     Elem* el;
     SurfElem* surfEl;
-      
+
     regionId = RegionNameToId(region);
-  
+
     this->GetElems(regionElems, regionId);
-    this->GetNodesByRegion(regionNodes, regionId);      
-      
+    this->GetNodesByRegion(regionNodes, regionId);
+
     UInt nElemsRegion = regionElems.GetSize();
     UInt numEdges;
     //    UInt lastCornerOnBnd;
-      
+
     for(UInt i=0; i<nElemsRegion; i++) {
       el = regionElems[i];
       // get number of edges
@@ -2015,7 +2017,7 @@ namespace CoupledField
         edgeCounts[edgeNum]++;
       }
     }
-      
+
     for(UInt i=0; i<nElemsRegion; i++) {
       el = regionElems[i];
       // get number of edges
@@ -2027,89 +2029,89 @@ namespace CoupledField
           n++;
           continue;
         }
-            
-          
-        /*        
+
+
+        /*
                   UInt cornerCount1 = cornerCounts[el->connect[n]];
                   UInt cornerCount2 = cornerCounts[el->connect[(n+1) % numCorners]];
-          
+
                   switch(cornerCount1) {
                   case 1:
                   case 2:
                   if(cornerCount2 > 3) {
                   n+=2;
-                  continue;                      
+                  continue;
                   }
                   break;
                   case 3:
                   if(cornerCount2 > 2) {
                   n+=2;
-                  continue;                      
+                  continue;
                   }
                   break;
                   default:
                   n++;
-                  continue;          
+                  continue;
                   }
-                  /*        
+                  /*
                   if(cornerCount1 > 2) {
                   n++;
                   continue;
                   }
-  
+
                   if(cornerCount1 > 2) {
                   n+=2;
                   continue;
                   }
         */
-          
+
         surfEl = new SurfElem();
         surfEl->connect.Resize(3);
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numEdges];
         surfEl->ptElem = ptL1;
-          
+
         switch(el->ptElem->feType()) {
-        case ET_TRIA6:
-        case ET_QUAD8:
-        case ET_QUAD9:
+        case Elem::TRIA6:
+        case Elem::QUAD8:
+        case Elem::QUAD9:
           surfEl->connect[2] = el->connect[n+numEdges];
           surfEl->ptElem = ptL2;
           break;
         default:
           break;
         }
-          
+
         newSurfaceElems.Push_back(surfEl);
-  
+
         n++;
       }
     }
-  
+
     if(newSurfaceElems.GetSize() != 0)
     {
       AddSurfaceRegion(surfRegionName, surfRegionId);
       AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
     }
-      
+
   }
-    
+
   // =======================================================================
   // Method wrappers for scripting
   // =======================================================================
-    
+
   void Grid::Wrap_GetNodesByName() {
     SCRIPT_GET(std::string, name);
     StdVector<UInt> nodeNrs;
     GetNodesByName( nodeNrs, name);
     nodeNrs.ToString(SCRIPT_RETVAL);
   }
-  
+
   void Grid::Wrap_GetNodeCoordinate() {
     SCRIPT_GET(UInt, nodeNr);
     Vector<Double> coord;
     GetNodeCoordinate(coord, nodeNr );
-    coord.ToString(SCRIPT_RETVAL);
+    SCRIPT_RETVAL = coord.ToString( ' ');;
   }
 
   void Grid::Wrap_GetNodesByRegion() {
@@ -2118,7 +2120,7 @@ namespace CoupledField
     GetNodesByRegion(nodeNrs, RegionNameToId(name) );
     nodeNrs.ToString(SCRIPT_RETVAL);
   }
-  
+
   void Grid::Wrap_GetListNodeNames() {
     GetListNodeNames( SCRIPT_RETVAL );
   }
@@ -2160,26 +2162,26 @@ namespace CoupledField
   }
 
   void Grid::Wrap_GetNumElemsOfRegion() {
-    SCRIPT_GET(std::string, name);             
+    SCRIPT_GET(std::string, name);
     StdVector<RegionIdType> ids;
     ids.Push_back( RegionNameToId (name ) );
     SCRIPT_RETVAL.Push_back( GenStr( GetNumElems (ids ) ) );
   }
-  
-  
+
+
   void Grid::RegisterFunctions() {
 
     typedef FctPointer<Grid> FCPT;
     StdVector<ArgList> a;
     StdVector<FCPT*> pt;
     StdVector<std::string> name;
-    
+
     // --- GetNodesByName ---
     a.Push_back();
     a.Last().RegisterParam("name", ArgList::STRING);
     pt.Push_back( new FCPT(this,&Grid::Wrap_GetNodesByName) );
     name.Push_back( "getNodesByName" );
-    
+
     // --- GetNodeCoordinate ---
     a.Push_back();
     a.Last().RegisterParam("nodeNr", ArgList::UINT);
@@ -2191,42 +2193,42 @@ namespace CoupledField
     a.Last().RegisterParam("name", ArgList::STRING);
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetNodesByRegion) );
     name.Push_back( "getNodesByRegion" );
-    
+
     // --- GetListNodeNames ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetListNodeNames) );
     name.Push_back( "getNodeNames" );
-    
+
     // --- GetListElemNames ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetListElemNames) );
     name.Push_back( "getElemNames" );
-    
+
     // --- GetRegionNames---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetRegionNames) );
     name.Push_back( "getRegionNames" );
-    
+
     // --- GetNumNodes ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumNodes) );
     name.Push_back( "getNumNodes" );
-    
+
     // --- GetNumElems ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumElems) );
     name.Push_back( "getNumElems" );
-    
+
     // --- GetNumSurfElems ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumSurfElems) );
     name.Push_back( "getNumSurfElems" );
-    
+
     // --- GetNumVolElems ---
     a.Push_back();
     pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumVolElems) );
     name.Push_back( "getNumVolElems" );
-    
+
     // --- GetNumNodesOfRegion ---
     a.Push_back();
     a.Last().RegisterParam("name", ArgList::STRING);
@@ -2238,12 +2240,12 @@ namespace CoupledField
     a.Last().RegisterParam("name", ArgList::STRING);
     pt.Push_back( new FCPT(this, &Grid::Wrap_GetNumElemsOfRegion) );
     name.Push_back( "getNumElemsOfRegion" );
-    
-    // Now register all functions with scripting 
+
+    // Now register all functions with scripting
     for (UInt i = 0; i < pt.GetSize(); i++ ) {
       Script_RegisterFct(name[i], pt[i], a[i] );
     }
-        
+
   }
 
 #ifdef USE_INTERPOLATION

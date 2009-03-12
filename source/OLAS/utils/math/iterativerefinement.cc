@@ -2,11 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/generatematvec.hh"
+#include "OLAS/precond/idprecond.hh"
+#include "OLAS/solver/basesolver.hh"
 #include "iterativerefinement.hh"
-#include "solver/solver.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
+
+  IterativeRefinement::IterativeRefinement() :
+    residual_(NULL),
+    update_(NULL)
+  {
+    dummyPrecond_ = new IdPrecondStd();    
+  }
+  
+  IterativeRefinement::~IterativeRefinement() {
+    delete residual_;
+    delete update_;
+    delete dummyPrecond_;
+  }
 
   // *****************************
   //   GenerateAuxilliaryVectors
@@ -17,7 +35,7 @@ namespace OLAS {
 
     TRY_CAST {
 
-      ConstRefCast( sysMat, StdMatrix, stdMat );
+      CONSTREFCAST( sysMat, StdMatrix, stdMat );
 
       bool genNewVectors = false;
 
@@ -25,7 +43,7 @@ namespace OLAS {
       if ( residual_ == NULL ) {
         genNewVectors = true;
       }
-      else if ( (Integer)residual_->GetSize() != stdMat.GetNcols() ) {
+      else if ( residual_->GetSize() != stdMat.GetNumCols() ) {
         genNewVectors = true;
       }
 
@@ -35,15 +53,13 @@ namespace OLAS {
         delete residual_;
         delete update_;
 
-        residual_ = GenerateSparseVectorObject( stdMat.GetStorageType(),
-                                             stdMat.GetEntryType(),
-                                             stdMat.GetBlockSize(),
-                                             stdMat.GetNcols() );
+        residual_ = GenerateSingleVectorObject( stdMat.GetStorageType(),
+                                                stdMat.GetEntryType(),
+                                                stdMat.GetNumCols() );
 
-        update_   = GenerateSparseVectorObject( stdMat.GetStorageType(),
-                                             stdMat.GetEntryType(),
-                                             stdMat.GetBlockSize(),
-                                             stdMat.GetNcols() );
+        update_   = GenerateSingleVectorObject( stdMat.GetStorageType(),
+                                                stdMat.GetEntryType(),
+                                                stdMat.GetNumCols() );
       }
     } CATCH_CAST;
   }
@@ -79,7 +95,7 @@ namespace OLAS {
       if ( logLevel > 1 ) {
         (*cla) << " step " << i-1 << ": residual norm = "
                << std::scientific
-               << residual_->NormEuclid()
+               << residual_->NormL2()
                << std::endl;
         cla->unsetf( std::ios::scientific | std::ios::fixed );
       }
@@ -96,7 +112,7 @@ namespace OLAS {
       sysMat.CompRes( *residual_, sol, rhs );
       (*cla) << " step " << numSteps << ": residual norm = "
              << std::scientific
-             << residual_->NormEuclid()
+             << residual_->NormL2()
              << std::endl;
     }
 

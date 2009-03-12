@@ -2,10 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "utils/utils.hh"
-#include "external/lapack/olasf77mapping.hh"
+#include "General/exception.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
   // ***********************************************************
   //   Conversion of C++ to F77 data type ( entryC -> entryF )
@@ -14,12 +14,10 @@ namespace OLAS {
     val = (F77real8)v;
   }
   void CC2F77( const double &v, F77complex16 &val ) {
-    Error( "Invalid conversion attempt double -> F77complex16",
-	   __FILE__, __LINE__ );
+    EXCEPTION("Invalid conversion attempt double -> F77complex16");
   }
   void CC2F77( const std::complex<double> &v, F77real8 &val ) {
-    Error( "Invalid conversion attempt complex<double> -> F77real8",
-	   __FILE__, __LINE__ );
+    EXCEPTION("Invalid conversion attempt complex<double> -> F77real8");
   }
   void CC2F77( const std::complex<double> &v, F77complex16 &val ) {
     val.real = (F77real8)v.real();
@@ -34,12 +32,10 @@ namespace OLAS {
     val = (double)v;
   }
   void F772CC( const F77real8 &v, std::complex<double> &val ) {
-    Error( "Invalid conversion attempt F77real8 -> complex<double>",
-	   __FILE__, __LINE__ );
+    EXCEPTION("Invalid conversion attempt F77real8 -> complex<double>");
   }
   void F772CC( const F77complex16 &v, double &val ) {
-    Error( "Invalid conversion attempt F77complex16 -> double",
-	   __FILE__, __LINE__ );
+    EXCEPTION("Invalid conversion attempt F77complex16 -> double");
   }
   void F772CC( const F77complex16 &v, std::complex<double> &val ) {
     std::complex<double> aux(v.real,v.imag);

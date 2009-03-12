@@ -5,24 +5,23 @@
 #include <iostream>
 #include <cmath>
 
-#include "graph/baseordering.hh"
+#include "OLAS/graph/baseordering.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***************
   //   Constructor
   // ***************
-  BaseOrdering::BaseOrdering( NodeList *graph, Integer *order,
-			      Integer size ) {
-
-    graph_ = graph;
-    order_ = order;
-    size_  = (UInt)size;
+  BaseOrdering::BaseOrdering( NodeList *graph, StdVector<UInt>& order ) :
+    graph_(graph),
+    order_(order)
+  {
+    // take care: graph and order are zero based!
 
     // memory has been allocated by the calling routine set to zero
-    for ( UInt i = 1; i <= size_; i++ ) {
-      order[i] = 0;
+    for ( UInt i = 0, n=order.GetSize(); i < n; i++ ) {
+      order_[i] = 0;
     }
   }
 

@@ -50,7 +50,7 @@ namespace CoupledField
                                    const UInt regionIdx);
 
   protected:
-      FEType VTKCellTypeToFEType(UInt cellType);
+      Elem::FEType VTKCellTypeToFEType(UInt cellType);
 
       /* calculates the mechDisplacement and writes them into newCoords
        * \param origin A vector which has the original position of each node

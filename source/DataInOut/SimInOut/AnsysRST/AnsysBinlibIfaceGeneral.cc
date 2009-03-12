@@ -124,22 +124,22 @@ namespace CoupledField
     ansysType2NumNodes_[SOLID95] = 20;
 
     // Map internal element types to ANSYS element types.
-    elemType2AnsysType_[ET_LINE2]   = LINE002;
-    elemType2AnsysType_[ET_LINE3]   = LINE003;
-    elemType2AnsysType_[ET_TRIA3]   = PLANE42;
-    elemType2AnsysType_[ET_TRIA6]   = PLANE82;
-    elemType2AnsysType_[ET_QUAD4]   = PLANE42;
-    elemType2AnsysType_[ET_QUAD8]   = PLANE82;
-    elemType2AnsysType_[ET_QUAD9]   = PLANE82;
-    elemType2AnsysType_[ET_TET4]    = SOLID45;
-    elemType2AnsysType_[ET_TET10]   = SOLID95;                  
-    elemType2AnsysType_[ET_WEDGE6]  = SOLID45;
-    elemType2AnsysType_[ET_WEDGE15] = SOLID95;
-    elemType2AnsysType_[ET_PYRA5]   = SOLID45;
-    elemType2AnsysType_[ET_PYRA13]  = SOLID95;
-    elemType2AnsysType_[ET_HEXA8]   = SOLID45;
-    elemType2AnsysType_[ET_HEXA20]  = SOLID95;
-    elemType2AnsysType_[ET_HEXA27]  = SOLID95;
+    elemType2AnsysType_[Elem::LINE2]   = LINE002;
+    elemType2AnsysType_[Elem::LINE3]   = LINE003;
+    elemType2AnsysType_[Elem::TRIA3]   = PLANE42;
+    elemType2AnsysType_[Elem::TRIA6]   = PLANE82;
+    elemType2AnsysType_[Elem::QUAD4]   = PLANE42;
+    elemType2AnsysType_[Elem::QUAD8]   = PLANE82;
+    elemType2AnsysType_[Elem::QUAD9]   = PLANE82;
+    elemType2AnsysType_[Elem::TET4]    = SOLID45;
+    elemType2AnsysType_[Elem::TET10]   = SOLID95;                  
+    elemType2AnsysType_[Elem::WEDGE6]  = SOLID45;
+    elemType2AnsysType_[Elem::WEDGE15] = SOLID95;
+    elemType2AnsysType_[Elem::PYRA5]   = SOLID45;
+    elemType2AnsysType_[Elem::PYRA13]  = SOLID95;
+    elemType2AnsysType_[Elem::HEXA8]   = SOLID45;
+    elemType2AnsysType_[Elem::HEXA20]  = SOLID95;
+    elemType2AnsysType_[Elem::HEXA27]  = SOLID95;
 
     // Ansys nodal dof labels.
     dofLabels_.push_back("UX  ");
@@ -301,7 +301,7 @@ namespace CoupledField
 
       numDOFs = dofNames.GetSize();
       
-      if( actResults[0]->GetEntryType() == EntryType::DOUBLE ) {
+      if( actResults[0]->GetEntryType() == BaseMatrix::DOUBLE ) {
         Vector<Double> gSol;
         SimOutput::FillGlobalVec<Double>(gSol, actResults, entityType );
         
@@ -399,7 +399,7 @@ namespace CoupledField
     for ( elem = 1; elem <= numElems; elem++ ) {
 
       eResIt = internal2AnsysElemDofMap_.begin();
-      FEType eType = elemVec[elem-1]->ptElem->feType();
+      Elem::FEType eType = elemVec[elem-1]->ptElem->feType();
       numNodes = ansysType2NumNodes_[elemType2AnsysType_[eType]];
 
       for ( ; eResIt != eResEnd; eResIt++ ) {
@@ -460,7 +460,7 @@ namespace CoupledField
       for ( elem = 1; elem <= numElems; elem++ ) {
 
         eResIt = internal2AnsysElemDofMap_.begin();
-        FEType eType = elemVec[elem-1]->ptElem->feType();
+        Elem::FEType eType = elemVec[elem-1]->ptElem->feType();
         numNodes = ansysType2NumNodes_[elemType2AnsysType_[eType]];
 
         for ( ; eResIt != eResEnd; eResIt++ ) {
@@ -751,7 +751,7 @@ namespace CoupledField
     Integer elemNum;
     Integer numElemNodes;
     UInt iElem;
-    FEType eType;
+    Elem::FEType eType;
 
     reswrelembegin_();
     elemNum = 1;
@@ -906,21 +906,21 @@ namespace CoupledField
   
 
   // change node order for right access in ANSYS
-  Integer AnsysBinlibIfaceGeneral::ReorderConnect4Ansys(FEType eType,
+  Integer AnsysBinlibIfaceGeneral::ReorderConnect4Ansys(Elem::FEType eType,
                                              const StdVector<UInt>& connect,
                                              Integer* connectANSYS)
   {
-    UInt numElemNodes = NUM_ELEM_NODES[eType];
+    UInt numElemNodes = Elem::GetNumElemNodes(eType);
     Integer ansysElemType = elemType2AnsysType_[eType];
    
     switch(eType)
     {
-    case ET_TRIA3:
+    case Elem::TRIA3:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       connectANSYS[3] = connect[2];
       break;
 
-    case ET_TRIA6:
+    case Elem::TRIA6:
       connectANSYS[0] = connect[0];
       connectANSYS[1] = connect[1];
       connectANSYS[2] = connect[2];
@@ -931,19 +931,19 @@ namespace CoupledField
       connectANSYS[7] = connect[5];
       break;
 
-    case ET_QUAD4:
+    case Elem::QUAD4:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_QUAD8:
+    case Elem::QUAD8:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_QUAD9:
+    case Elem::QUAD9:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_TET4:
+    case Elem::TET4:
       connectANSYS[0] = connect[0]; // I
       connectANSYS[1] = connect[1]; // J
       connectANSYS[2] = connect[2]; // K
@@ -954,7 +954,7 @@ namespace CoupledField
       connectANSYS[7] = connect[3]; // P
       break;                        
                                     
-    case ET_TET10:                  
+    case Elem::TET10:                  
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -977,7 +977,7 @@ namespace CoupledField
       connectANSYS[19] = connect[9]; // B
       break;
 
-    case ET_WEDGE6:
+    case Elem::WEDGE6:
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -988,7 +988,7 @@ namespace CoupledField
       connectANSYS[7] = connect[5];  // P
       break;
 
-    case ET_WEDGE15:
+    case Elem::WEDGE15:
       connectANSYS[0] = connect[0];    // I
       connectANSYS[1] = connect[1];    // J
       connectANSYS[2] = connect[2];    // K
@@ -1011,7 +1011,7 @@ namespace CoupledField
       connectANSYS[19] = connect[14];  // B
       break;
 
-    case ET_PYRA5:
+    case Elem::PYRA5:
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -1022,7 +1022,7 @@ namespace CoupledField
       connectANSYS[7] = connect[4];  // P
       break;
 
-    case ET_PYRA13:
+    case Elem::PYRA13:
       connectANSYS[0] = connect[0];    // I 
       connectANSYS[1] = connect[1];    // J 
       connectANSYS[2] = connect[2];    // K 
@@ -1045,23 +1045,23 @@ namespace CoupledField
       connectANSYS[19] = connect[12];  // B 
       break;
 
-    case ET_HEXA8:
+    case Elem::HEXA8:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_HEXA20:
+    case Elem::HEXA20:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_HEXA27:
+    case Elem::HEXA27:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_LINE2:
+    case Elem::LINE2:
       //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
-    case ET_LINE3:
+    case Elem::LINE3:
       //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 

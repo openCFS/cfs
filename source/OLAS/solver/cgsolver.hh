@@ -8,13 +8,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "utils/utils.hh"
-#include "algsys/olasparams.hh"
-#include "matvec/matvec.hh"
-#include "precond/precond.hh"
-#include "solver/basesolver.hh"
+#include <def_expl_templ_inst.hh>
 
-namespace OLAS {
+#include "OLAS/algsys/olasparams.hh"
+
+#include "basesolver.hh"
+
+namespace CoupledField {
+
+  class BasePrecond;
 
   //! Class for a Preconditioned Conjugate Gradient Solver
 
@@ -123,13 +125,13 @@ namespace OLAS {
   public:
 
     //!typename of matrix entries (=T)
-    typedef typename assocType<T>::T_Mtype T_Mtype;	
+    typedef typename AssocType<T>::T_Mtype T_Mtype;	
 
     //!tiny vector of the same dimension as matrix block
-    typedef typename assocType<T>::T_Vtype T_Vtype;	
+    typedef typename AssocType<T>::T_Vtype T_Vtype;	
 
     //scalar of the same primitive data type as matrix
-    typedef typename assocType<T>::T_Stype T_Stype;	
+    typedef typename AssocType<T>::T_Stype T_Stype;	
 
 
     /** The CG constructor initialized the variables but does not
@@ -214,5 +216,9 @@ namespace OLAS {
   };
 
 } //namespace
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "cgsolver.cc"
+#endif
 
 #endif // OLAS_CGSOLVER_HH

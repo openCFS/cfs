@@ -59,8 +59,8 @@ namespace CoupledField
   {
 
     
-    if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
-      Error("Undefined displacements! ",__FILE__,__LINE__);
+    if (!elemDisp_.GetNumRows() || !elemDisp_.GetNumCols()) 
+      EXCEPTION("Undefined displacements!");
 
     ptelem->SetAnsatzFct( ansatzFct1_ );
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -98,7 +98,7 @@ namespace CoupledField
 
     Matrix<Double> bMatOneNode;
     // size_row() = nr of rows!!
-    bMatOneNode.Resize(linBMat.GetSizeRow(), nrDofs );
+    bMatOneNode.Resize(linBMat.GetNumRows(), nrDofs );
     bMatOneNode.Init();
 
     
@@ -160,7 +160,7 @@ namespace CoupledField
   // (see mech3dInt::calcDMat)
   void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL);
   }
 
 
@@ -193,7 +193,7 @@ namespace CoupledField
                                         UInt ip, 
                                         Matrix<Double> & ptCoord)
   {
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL);
    
     Matrix<Double>  displDeriv;  
     Vector<Double> stressVec;
@@ -218,7 +218,7 @@ namespace CoupledField
 
       //Compute element stress
       
-      Vector<Double> linStrain(linBMat.GetSizeRow());
+      Vector<Double> linStrain(linBMat.GetNumRows());
       linStrain.Init();
       stressVec.Init();
       linStrain = linBMat * displVec;
@@ -247,7 +247,7 @@ namespace CoupledField
           dMat[2][1] = c13;
         }
         else
-          Error("The nonlinear parameter dependency is not known", __FILE__, __LINE__);
+          EXCEPTION("The nonlinear parameter dependency is not known");
       }
       else if (nonLinApproxType=="smoothSplines")
         {
@@ -259,12 +259,12 @@ namespace CoupledField
           }
         }
       else
-        Error("The nonlinear approximation type is not known", __FILE__, __LINE__);
+        EXCEPTION("The nonlinear approximation type is not known");
     }
     else{
       std::cout<<"The data dependency you have chosen is " << nonLinDepend <<std::endl;
-      std::cout<<"(If this is true, check if there is a blank in font of choice) " <<std::endl;
-      Error("Nonlinear dependency not implemented here", __FILE__, __LINE__);
+      std::cout<<"(If this is true, check if there is a blank in front of choice) " <<std::endl;
+      EXCEPTION("Nonlinear dependency not implemented here");
     }
   }
 
@@ -436,7 +436,7 @@ namespace CoupledField
 
     //full matrix, axi as well as plane case overwrites this method
 
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL);
   }
 
 
@@ -640,20 +640,20 @@ namespace CoupledField
     Matrix<Double> matData;
     if (isaxi_) {
       //axi
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL,AXI);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
     }
     else if (getNrDofs() == 3) {
       //3D
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
       preStrainVec[2]= preStressVal_[2] / matData[2][2];
     }
     else {
       //2D-plane strain
-      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL, PLANE_STRAIN);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,Global::REAL, PLANE_STRAIN);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
     }
@@ -854,7 +854,7 @@ namespace CoupledField
   void  nLinMechPlaneStrainInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
 
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,PLANE_STRAIN);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL,PLANE_STRAIN);
   }
 
   
@@ -865,7 +865,7 @@ namespace CoupledField
   void nLinMechPlaneStrainInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
   {
 
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,PLANE_STRAIN);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL,PLANE_STRAIN);
   }
 
 
@@ -901,7 +901,7 @@ namespace CoupledField
   void  nLinMechAxiInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
 
-     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,AXI);
+     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
   }
 
 
@@ -929,7 +929,7 @@ namespace CoupledField
   void nLinMechAxiInt_PiolaStress::calcMaterialDMat(Matrix<Double> & dMat)
   {
 
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,AXI);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,Global::REAL,AXI);
  
   }
 

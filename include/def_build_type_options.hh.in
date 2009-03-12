@@ -1,6 +1,4 @@
-// Define used to check if build type is DEBUG
-#cmakedefine DEBUG
-#cmakedefine _DEBUG
+// Use NDEBUG macro to check for DEBUG build (man assert)
 
 // Defines related to tracing of functions and memory usage
 #cmakedefine MEMTRACE

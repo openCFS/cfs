@@ -264,7 +264,7 @@ namespace CoupledField
     //! This method takes the connectivity of an element, and replaces it
     //! with the degenerated connectivity of the element if necessary.
     //! The method returns the ANSYS element type.
-    Integer ReorderConnect4Ansys(FEType eType,
+    Integer ReorderConnect4Ansys(Elem::FEType eType,
                                  const StdVector<UInt>& connect,
                                  Integer* connectANSYS);
 
@@ -337,7 +337,7 @@ namespace CoupledField
     std::map<Integer, Integer> ansysType2NumNodes_;
 
     //! Map internal element types to ANSYS element types.
-    std::map<FEType, Integer> elemType2AnsysType_;
+    std::map<Elem::FEType, Integer> elemType2AnsysType_;
 
     //! Map ANSYS element DOFs to their number of DOFs
     //! e.g. stress has 11 DOFs, etc.

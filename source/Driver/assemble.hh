@@ -11,6 +11,7 @@
 #include "formsContext.hh"
 #include "Domain/bcs.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField {
 
@@ -70,7 +71,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Query if resulting matrix will be symmetric
-    bool IsFEMatSymmetric( FEMatrixType matType = OLAS::SYSTEM );
+    bool IsFEMatSymmetric( FEMatrixType matType = SYSTEM );
 
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices
@@ -112,17 +113,17 @@ namespace CoupledField {
     void AssembleRHSLinForms(bool nonLin );
 
     //! Transform real-valued element matrix to harmonic representation
-    void Matrix2Harmonic( Vector<Double>& harmMat,
+    void Matrix2Harmonic( Matrix<Complex>& harmMat,
                           Matrix<Double>& origMat,
                           FEMatrixType matrixType,
-                          DataType matDataType,
+                          Global::ComplexPart matDataType,
                           Double omega );
 
     //! Transform complex-valued element matrix to harmonic representation
-    void Matrix2Harmonic( Vector<Double>& harmMat,
+    void Matrix2Harmonic( Matrix<Complex>& harmMat,
                           Matrix<Complex>& origMat,
                           FEMatrixType matrixType,
-                          DataType matDataType,
+                          Global::ComplexPart matDataType,
                           Double omega );
 
     //! Create map for mapping general FEMatrixtype to analysis-specific ones

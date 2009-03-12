@@ -4,7 +4,12 @@
 
 #include <vector>
 
-#include "precond/ILDLPrecond/ildlprecond.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
+
+#include "ildlprecond.hh"
 
 // By default, we assume that, if this class is to be debugged, then also the
 // classes which implement the actual incomplete factorisation variants are to
@@ -16,12 +21,12 @@
 #endif
 
 // include source code of the factorisers
-#include "precond/ILDLPrecond/ildl0factoriser.cc"
-#include "precond/ILDLPrecond/ildlkfactoriser.cc"
-#include "precond/ILDLPrecond/ildltpfactoriser.cc"
-#include "precond/ILDLPrecond/ildlcnfactoriser.cc"
+#include "ildl0factoriser.hh"
+#include "ildlkfactoriser.hh"
+#include "ildltpfactoriser.hh"
+#include "ildlcnfactoriser.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // ***************
@@ -46,10 +51,12 @@ namespace OLAS {
     this->myParams_->GetEnumValue( "ILDLPRECOND_subType", myVariant_ );
     if ( myVariant_ != ILDL0 && myVariant_ != ILDLTP 
 	 && myVariant_ != ILDLK && myVariant_ != ILDLCN ) {
-      (*error) << "ILDLPrecond: The constructor detected an error in the "
+      std::string tmp;
+      Enum2String( myVariant_, tmp );
+      
+      EXCEPTION( "ILDLPrecond: The constructor detected an error in the "
                << "'ILDLPRECOND_subType' parameter! The value '"
-               << Enum2String( myVariant_ ) << "' is not a valid variant.";
-      Error( __FILE__, __LINE__ );
+               << tmp << "' is not a valid variant." );
     }
 
     // Generate factorisation object
@@ -77,35 +84,33 @@ namespace OLAS {
 
 
     // Test the storage layout
-    MatrixStorageType sType = stdMat.GetStorageType();
-    if ( sType != SPARSE_SYM ) {
-      (*error) << "ILDLPrecond::Setup: The ILDLPrecond requires the system "
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_SYM ) {
+      EXCEPTION( "ILDLPrecond::Setup: The ILDLPrecond requires the system "
                << "matrix to be an SCRS_Matrix, i.e. sparseSym. The system "
                << "matrix you supplied is a matrix in '"
-               << Enum2String( sType )
-               << "' format.";
-      Error( __FILE__, __LINE__ );
+               << BaseMatrix::storageType.ToString( sType )
+               << "' format." );
     }
 
     TRY_CAST {
 
       // Down-cast to SCRS_Matrix
-      RefCast( stdMat, SCRS_Matrix<T>, scrsMat );
+      REFCAST( stdMat, SCRS_Matrix<T>, scrsMat );
 
       // Get new problem size and perform consistency check
       if ( amFactorised_ == false ) {
-        this->sysMatDim_ = scrsMat.GetNcols();
+        this->sysMatDim_ = scrsMat.GetNumCols();
       }
       else {
         if ( this->myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
-             (int) this->sysMatDim_ != scrsMat.GetNcols() ) {
-          (*error) << "ILDLPrecond::Setup: newMatrixPattern = false, but "
+             this->sysMatDim_ != scrsMat.GetNumCols() ) {
+          EXCEPTION( "ILDLPrecond::Setup: newMatrixPattern = false, but "
                    << "matrix dimension changed from " << this->sysMatDim_ << " to "
-                   << scrsMat.GetNcols();
-          Error( __FILE__, __LINE__ );
+                   << scrsMat.GetNumCols() );
         }
         else {
-          this->sysMatDim_ = scrsMat.GetNcols();
+          this->sysMatDim_ = scrsMat.GetNumCols();
           amFactorised_ = false;
         }
       }
@@ -116,7 +121,7 @@ namespace OLAS {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n"
                << " ILDLPRECOND::SETUP\n + Factorisation of a "
-               << scrsMat.GetNrows() << " x " << scrsMat.GetNcols()
+               << scrsMat.GetNumRows() << " x " << scrsMat.GetNumCols()
                << " matrix (nnz = " << scrsMat.GetNnz() << ")"
                << std::endl;
       }
@@ -127,7 +132,7 @@ namespace OLAS {
 
       // Convert D to D^{-1}
       for ( UInt i = 1; i <= this->sysMatDim_; i++ ) {
-        dataD_[i] = opType<T>::invert( dataD_[i] );
+        dataD_[i] = OpType<T>::invert( dataD_[i] );
       }
 
       // If the user desires it, we will export the matrix factor
@@ -165,30 +170,29 @@ namespace OLAS {
   //   Apply
   // *********
   template<typename T>
-  void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const SparseVector &r,
-                              SparseVector &z ) const {
+  void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const SingleVector &r,
+                              SingleVector &z ) const {
 
 
     bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 1;
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
-      (*error) << "ILDLPrecond::Apply: No factorisation available. "
-               << "Call Setup() first!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILDLPrecond::Apply: No factorisation available. "
+               << "Call Setup() first!" );
     }
 
     // Solve the problem
     TRY_CAST {
-      ConstRefCast( r, Vector<T>, myR );
-      RefCast( z, Vector<T>, myZ );
+      CONSTREFCAST( r, Vector<T>, myR );
+      REFCAST( z, Vector<T>, myZ );
 
       // Logging
       if ( logging ) {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n"
                << " ILDLPRECOND::APPLY: Solving linear system with "
-               << stdMat.GetNcols() << " unknowns" << std::endl;
+               << stdMat.GetNumCols() << " unknowns" << std::endl;
       }
 
       SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
@@ -221,9 +225,8 @@ namespace OLAS {
     // ====================
     FILE *fp = fopen( fname, "w" );
     if ( fp == NULL ) {
-      (*error) << "ILDLPrecond::ExportFactorisation: Cannot open file "
-               << fname << " for writing!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILDLPrecond::ExportFactorisation: Cannot open file "
+               << fname << " for writing!" );
     }
 
     // =====================
@@ -236,16 +239,15 @@ namespace OLAS {
       myFormat = "pattern";
     }
     else {
-      if ( EntryType<T>::M_EntryType == DOUBLE ) {
+      if ( EntryType<T>::M_EntryType == BaseMatrix::DOUBLE ) {
         myFormat = "real";
       }
-      else if ( EntryType<T>::M_EntryType == COMPLEX ) {
+      else if ( EntryType<T>::M_EntryType == BaseMatrix::COMPLEX ) {
         myFormat = "complex";
       }
       else {
-        (*error) << "ILDLPrecond::ExportFactorisation: Cannot identify "
-                 << "template parameter";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "ILDLPrecond::ExportFactorisation: Cannot identify "
+            << "template parameter" );
       }
     }
     fprintf( fp, "%%%%MatrixMarket matrix coordinate %s general\n",
@@ -272,8 +274,8 @@ namespace OLAS {
     for ( i = 1; i <= this->sysMatDim_; i++ ) {
       fprintf( fp, "%6d\t%6d\t", i, i );
       if ( patternOnly == false ) {
-        aux = opType<T>::invert( dataD_[i] );
-        opType<T>::ExportEntry( aux, 0, 0, fp );
+        aux = OpType<T>::invert( dataD_[i] );
+        OpType<T>::ExportEntry( aux, 0, 0, fp );
       }
       fprintf( fp, "\n" );
     }
@@ -285,7 +287,7 @@ namespace OLAS {
       for ( j = rptrU_[i]; j < rptrU_[i+1]; j++ ) {
         fprintf( fp, "%6d\t%6d\t", i, cidxU_[j] );
         if ( patternOnly == false ) {
-          opType<T>::ExportEntry( dataU_[j], 0, 0, fp );
+          OpType<T>::ExportEntry( dataU_[j], 0, 0, fp );
         }
         fprintf( fp, "\n" );
       }
@@ -333,12 +335,20 @@ namespace OLAS {
 
       // Wrong preconditioner type
     default:
-      (*error) << "GenerateFactoriserObject: preconditioner type = '"
-               << Enum2String( myVariant_ ) << "' is no valid variant of an "
-               << "ILDL preconditioner (internal error: the constructor "
-               << "should already have detected this!)";
-      Error( __FILE__, __LINE__ );
+      std::string tmp;
+      Enum2String( myVariant_, tmp );
+      
+      EXCEPTION( "GenerateFactoriserObject: preconditioner type = '"
+          << tmp << "' is no valid variant of an "
+          << "ILDL preconditioner (internal error: the constructor "
+          << "should already have detected this!)" );
     }
   }
 
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILDLPrecond<Double>;
+  template class ILDLPrecond<Complex>;
+#endif
+  
 }

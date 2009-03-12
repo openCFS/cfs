@@ -2,17 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "algsys/olascomm.hh"
-#include "utils/utils.hh"
+#include "MatVec/basematrix.hh"
 
-//this file contains only the implementation of non-template
-//functions. In the case of g++ 3.3 upwards we include the 
-//template implementation as well
-#if __GNUC_PREREQ(3,3) || defined (__INTEL_COMPILER)
-#include "algsys/olascomm_impl.hh"
-#endif
+#include "olascomm.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // *******************
@@ -24,7 +18,6 @@ namespace OLAS {
     doublePool_.clear();
 
   }
-
 
   // ******************************
   //   Set string value for a key
@@ -74,7 +67,7 @@ namespace OLAS {
       std::string errmsg = "Cannot find key ";
       errmsg += key;
       errmsg += " in stringPool_";
-      Error( errmsg.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( errmsg.c_str() );
     }
 
     // Else return key value
@@ -119,10 +112,7 @@ namespace OLAS {
     if( position == intPool_.end() ) {
       std::cerr << " Current pool contents:" << std::endl;
       ShowAll( std::cerr );
-      std::string errmsg = "Cannot find key ";
-      errmsg += key;
-      errmsg += " in intPool_";
-      Error( errmsg.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( "Cannot find key " << key << " in intPool_");
     }
 
     // Else return key value
@@ -143,10 +133,7 @@ namespace OLAS {
     if( position == doublePool_.end() ) {
       std::cerr << " Current pool contents:" << std::endl;
       ShowAll( std::cerr );
-      std::string errmsg = "Cannot find key ";
-      errmsg += key;
-      errmsg += " in doublePool_";
-      Error( errmsg.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( "Cannot find key " << key << " in doublePool_");
     }
 
     // Else return key value
@@ -167,10 +154,7 @@ namespace OLAS {
     if( position == booleanPool_.end() ) {
       std::cerr << " Current pool contents:" << std::endl;
       ShowAll( std::cerr );
-      std::string errmsg = "Cannot find key ";
-      errmsg += key;
-      errmsg += " in booleanPool_";
-      Error( errmsg.c_str(), __FILE__, __LINE__ );
+      EXCEPTION( "Cannot find key " << key << " in booleanPool_");
     }
 
     // Else return key value
@@ -199,7 +183,7 @@ namespace OLAS {
       return (Integer) enumPool_.size();
       break;
     default:
-      Error( "Wrong pool type", __FILE__, __LINE__ );
+      EXCEPTION( "Wrong pool type" );
     }
     return 0;
   }
@@ -226,7 +210,7 @@ namespace OLAS {
       enumPool_.clear();
       break;
     default:
-      Error( "Wrong pool type", __FILE__, __LINE__ );
+      EXCEPTION( "Wrong pool type" );
     }
   }
 
@@ -280,7 +264,7 @@ namespace OLAS {
       break;
 
     default:
-      Error( "Wrong pool type", __FILE__, __LINE__ );
+      EXCEPTION( "Wrong pool type" );
     }
   }
 
@@ -295,109 +279,5 @@ namespace OLAS {
     ShowPool( STRING_POOL , liststream );
     ShowPool( ENUM_POOL   , liststream );
   }
-
-
-  // ****************************************
-  //   Instantiate set/getEnumValue methods
-  // ****************************************
-  void OLAS_Params::EnumInterfaces() {
-
-    // ReorderingType
-    {
-      SetValue( "Instantiation", NOREORDERING );
-      ReorderingType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // FEMatrixType
-    {
-      SetValue( "Instantiation", NOTYPE );
-      FEMatrixType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // PrecondType
-    {
-      SetValue( "Instantiation", NOPRECOND );
-      PrecondType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // SolverType
-    {
-      SetValue( "Instantiation", NOSOLVER );
-      SolverType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // EigenSolveType
-    {
-      SetValue( "Instantiation", NOEIGENSOLVER );
-      EigenSolverType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // CycleType
-    {
-      SetValue( "Instantiation", NOCYCLE );
-      CycleType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // MatrixStructureType
-    {
-      SetValue( "Instantiation", NOSTRUCTURETYPE );
-      MatrixStructureType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // MatrixEntryType
-    {
-      SetValue( "Instantiation", NOENTRYTYPE );
-      MatrixEntryType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // MatrixStorageType
-    {
-      SetValue( "Instantiation", NOSTORAGETYPE );
-      MatrixStorageType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // StopCrit
-    {
-      SetValue( "Instantiation", NOSTOPCRITTYPE );
-      StopCritType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // AMG interpolation
-    {
-      SetValue( "Instantiation", AMG_INTERPOLATION_CONSTANT );
-      AMGInterpolationType val;
-      GetEnumValue( "Instantiation", val );
-    }
-    // AMG smoother
-    {
-      SetValue( "Instantiation", AMG_SMOOTHER_GAUSSSEIDEL );
-      AMGSmootherType val;
-      GetEnumValue( "Instantiation", val );
-    }
-  }
-
-  // Explicit template instantiation in the case of gnu g++,
-  // as the compiler seems to be not satisfied with the old way the
-  // templates are instantiated. This seems to happen only in g++
-  // version < 4.0
-#if __GNUC_PREREQ(4,0) || defined( __INTEL_COMPILER)
-#define INSTANT_SETVAL( TYPE)                        \
-  template void OLAS_BaseComm::                      \
-  SetValue<TYPE>( const std::string key, TYPE value ) 
-  
-  INSTANT_SETVAL( ReorderingType );
-  INSTANT_SETVAL( FEMatrixType );
-  INSTANT_SETVAL( PrecondType );
-  INSTANT_SETVAL( SolverType );
-  INSTANT_SETVAL( EigenSolverType );
-  INSTANT_SETVAL( CycleType );
-  INSTANT_SETVAL( MatrixStructureType );
-  INSTANT_SETVAL( MatrixEntryType );
-  INSTANT_SETVAL( MatrixStorageType );
-  INSTANT_SETVAL( StopCritType );
-  INSTANT_SETVAL( AMGInterpolationType );
-  INSTANT_SETVAL( AMGSmootherType );
-#undef INSTANT_SETVAL
-#endif
 
 }

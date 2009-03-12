@@ -45,9 +45,7 @@ void wprint(workData w, char* s)
   std::cerr << s << std::endl;
 }
 int XtParent(int i) {return i; }
-void ErrorDialog(workData w, const char* s) { CoupledField::Error(s,
-                                                            __FILE__,
-                                                            __LINE__); }
+void ErrorDialog(workData w, const char* s) { EXCEPTION(s); }
 void TimeoutCursors(int i, int j) {; }
 int CheckForInterrupt(void) { return 0; }
 

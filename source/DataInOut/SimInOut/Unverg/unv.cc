@@ -14,7 +14,7 @@
 unv::~unv() {
 
   if (num_connections>0)
-
+  {
     if (in_stream) {
       in_stream->close();
       delete in_stream;
@@ -23,7 +23,7 @@ unv::~unv() {
       out_stream->close();
       delete out_stream;
     }
-
+  }
 }
 
 
@@ -43,7 +43,7 @@ int unv::goto_pos(const std::streampos pos) const {
 
 int unv::find_delimiter(int* status) {
 
-#ifdef DEBUG
+#ifndef NDEBUG
   LOG_TRACE(simInputUNV) << "In find_delimiter!";
 #endif
 
@@ -59,7 +59,7 @@ int unv::find_delimiter(int* status) {
     if ((p_c=strtok(buffer, " "))==buffer+4 && strncmp(p_c, "-1", 2)==0
         && strtok(NULL, " ")==NULL) {
       odd_delimiter=!odd_delimiter;
-   #ifdef DEBUG
+   #ifndef NDEBUG
       LOG_TRACE(simInputUNV) << "Delimiter found";
    #endif
       *status=UNVTrue;
@@ -81,7 +81,7 @@ int unv::find_delimiter(int* status) {
 
 int unv::find_next_set(std::streampos* pos, int* status) {
 
-#ifdef DEBUG
+#ifndef NDEBUG
   LOG_TRACE(simInputUNV) << "In find_next_set!";
 #endif
 
@@ -104,7 +104,7 @@ int unv::find_next_set(std::streampos* pos, int* status) {
     
   *in_stream >> *status;
 
-#ifdef DEBUG
+#ifndef NDEBUG
   LOG_TRACE(simInputUNV) << "Set Num: " << *status;
 #endif
 
@@ -537,10 +537,12 @@ int dataset_55::read_header(void) {
   for (i=1; i<5; ++i)
     in->getline(&header.id[i][0], 81);
 
-#ifdef DEBUG
+#ifndef NDEBUG
   if (in->good())
+  {
     LOG_TRACE(simInputUNV) << "Header of dataset 55 (first ID-line):" \
                            << &header.id[0][0];
+  }
 #endif
 
   *in >> header.model_type >> header.analysis_type >> header.data_charact \
@@ -640,10 +642,12 @@ int dataset_56::read_header(void) {
   for (i=1; i<5; ++i)
     in->getline(&header.id[i][0], 81);
 
-#ifdef DEBUG
+#ifndef NDEBUG
   if (in->good())
+  {
     LOG_TRACE(simInputUNV) << "Header of dataset 56 (first ID-line): " \
                            << &header.id[0][0];
+  }
 #endif
 
   *in >> header.model_type >> header.analysis_type >> header.data_charact \

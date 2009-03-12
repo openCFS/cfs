@@ -6,15 +6,18 @@
 #include <algorithm>
 #include <iterator>
 
-#include "precond/ilukprecond.hh"
+#include "MatVec/crs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
+
+#include "OLAS/precond/ilukprecond.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
 // used in LUSolver. Going to implement better concept as soon as
 // time permits.
-#include "utils/math/croutlu.cc"
+#include "OLAS/utils/math/croutlu.hh"
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // *****************************************************
@@ -71,9 +74,8 @@ namespace OLAS {
     // Test that a factorisation is available, if not issue an error.
 
     if ( this->readyToUse_ == false ) {
-      (*error) << "ILUK_Precond::Apply: No factorisation available. "
-	       << "Call Setup() first!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "ILUK_Precond::Apply: No factorisation available. "
+	       << "Call Setup() first!" );
     }
 
     // Solve the problem
@@ -95,12 +97,11 @@ namespace OLAS {
     maxLevel_ = this->myParams_->GetIntValue( "ILUK_level" );
 
     // Obtain and check dimensions of matrix
-    this->sysMatDim_ = sysMat.GetNcols();
-    if ( (Integer) this->sysMatDim_ != sysMat.GetNrows() ) {
-      (*error) << "ILUK_Precond: Input matrix is "
-	       << sysMat.GetNrows() << " x " << sysMat.GetNcols()
-	       << ", but needs to be square";
-      Error( __FILE__, __LINE__ );
+    this->sysMatDim_ = sysMat.GetNumCols();
+    if ( this->sysMatDim_ != sysMat.GetNumRows() ) {
+      EXCEPTION( "ILUK_Precond: Input matrix is "
+          << sysMat.GetNumRows() << " x " << sysMat.GetNumCols()
+          << ", but needs to be square" );
     }
 
     // Report parameters to standard log stream
@@ -184,14 +185,10 @@ namespace OLAS {
 
   }
 
-
-  // ************************
-  //   Forced Instantiation
-  // ************************
-  template<typename T>
-  void ILUK_Precond<T>::
-  InstantiateAdditionalPublicMethods( BaseMatrix &sysMat ) {
-    this->ExportILUFactorisation( "dummy.mtx" );
-  }
-
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class ILUK_Precond<Double>;
+  template class ILUK_Precond<Complex>;
+#endif
+  
 }

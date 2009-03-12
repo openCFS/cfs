@@ -107,7 +107,7 @@ namespace CoupledField
     //@}
 
   private:
-    FEType UnvType2ElemType( const uint32_t elemType );
+    Elem::FEType UnvType2ElemType( const uint32_t elemType );
 
     //! Map for assigning unv file coord axes to grid coord axes.
     StdVector< UInt > axisMap_;

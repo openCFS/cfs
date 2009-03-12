@@ -9,8 +9,8 @@
 #include <set>
 
 #include <General/environment.hh>
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
+#include <MatVec/matrix.hh>
+#include <MatVec/vector.hh>
 #include <Utils/ApproxData.hh>
 
 namespace CoupledField {
@@ -47,7 +47,7 @@ namespace CoupledField {
     virtual void Finalize() {};
 
     //! set the name of the material set
-    void SetName(const Char* name) {
+    void SetName(const char* name) {
       matFileName_.assign( name ) ;
     }
 
@@ -86,7 +86,7 @@ namespace CoupledField {
     { return integerParams_;};
 
     //! set file name containing the nonlinear data
-    void SetNonlinFileName( const Char *filename) {
+    void SetNonlinFileName( const char *filename) {
       nonlinFileName_.assign( filename );
     }
 
@@ -126,31 +126,31 @@ namespace CoupledField {
     virtual void SetScalar(int param, MaterialType matType);
 
     //! set a scalar real material parameter
-    virtual void SetScalar(double param, MaterialType matType, DataType dataType ) = 0;
+    virtual void SetScalar(double param, MaterialType matType, Global::ComplexPart dataType ) = 0;
 
 
     //! set a scalar complex material parameter
-    virtual void SetScalar(Complex param, MaterialType matType, DataType dataType )
+    virtual void SetScalar(Complex param, MaterialType matType, Global::ComplexPart dataType )
     {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
 
 
     //! set a real vector
-    virtual void SetVector(const Vector<Double>& param, MaterialType matType, DataType dataType)
+    virtual void SetVector(const Vector<Double>& param, MaterialType matType, Global::ComplexPart dataType)
     {
       EXCEPTION("not implemented");
     }
 
     //! set a real material tensor
-    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType, DataType dataType)
+    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType, Global::ComplexPart dataType)
     {
       EXCEPTION("not implemented");
     }
 
 
     //! set a complex material tensor
-    virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType, DataType dataType ) 
+    virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) 
     {
       EXCEPTION("not implemented");
     }
@@ -170,31 +170,31 @@ namespace CoupledField {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
     
-    void GetScalar( Integer& param, MaterialType matType, DataType dataType) const;
+    void GetScalar( Integer& param, MaterialType matType, Global::ComplexPart dataType) const;
 
     //! get a scalar real material parameter
-    virtual void GetScalar( Double& param, MaterialType matType, DataType dataType ) const = 0;
+    virtual void GetScalar( Double& param, MaterialType matType, Global::ComplexPart dataType ) const = 0;
 
     //! get a scalar complex material parameter
-    virtual void GetScalar( Complex& param, MaterialType matType, DataType dataType ) const
+    virtual void GetScalar( Complex& param, MaterialType matType, Global::ComplexPart dataType ) const
     {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
 
     //! get a real vector
-    virtual void GetVector( Vector<Double>& param, MaterialType matType, DataType dataType ) const
+    virtual void GetVector( Vector<Double>& param, MaterialType matType, Global::ComplexPart dataType ) const
     {
       EXCEPTION("not implemented");      
     }
 
     //! get a real material tensor
-    virtual void GetTensor( Matrix<Double>& param, MaterialType matType, DataType dataType, SubTensorType = FULL ) const
+    virtual void GetTensor( Matrix<Double>& param, MaterialType matType, Global::ComplexPart dataType, SubTensorType = FULL ) const
     {
       EXCEPTION("not implemented");      
     }
      
     //! get a complex material tensor
-    virtual void GetTensor( Matrix<Complex>& param, MaterialType matType, DataType dataType, SubTensorType = FULL ) const
+    virtual void GetTensor( Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType, SubTensorType = FULL ) const
     {
       EXCEPTION("not implemented");      
     }
@@ -242,7 +242,7 @@ namespace CoupledField {
 
     //set values for differential material approach
     virtual void SetPreviousHystVal( UInt nrElem, Double Xval ) {
-      Error( "SetPreviousHystVal not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
     //set values for differential material approach
@@ -250,7 +250,7 @@ namespace CoupledField {
 
     //! compute scalar differential parameter
     virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-      Error( "ComputeScalarDiffValue not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "ComputeScalarDiffValue not implemented" );
       return 1.0;
     };
 
@@ -260,12 +260,12 @@ namespace CoupledField {
     //! compute scalar differential parameters
     virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
                                             Vector<Double>& scalarValues ) {
-      Error( "ComputeScalarDiffValues not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "ComputeScalarDiffValues not implemented" );
     };
 
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
-      Error( "ComputeScalarHystVal not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "ComputeScalarHystVal not implemented" );
       return 1.0;
     };
 
@@ -275,7 +275,7 @@ namespace CoupledField {
     //! compute the vector hysteresis values
     virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin, 
                                        Vector<Double>& Yout ) {
-      Error( "ComputeVectorHystVal not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
     //! computes the scalar hystereis value
@@ -286,7 +286,7 @@ namespace CoupledField {
 
     //! get vector of hysteresis model
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
-      Error( "GetVectorHystVal not implemented", __FILE__, __LINE__ );
+      EXCEPTION( "GetVectorHystVal not implemented" );
     };
 
     //! Compute and set damping parameters alpha and beta 
@@ -298,16 +298,16 @@ namespace CoupledField {
     void matTypeNotAllowed(MaterialType matType, const std::string& dim ) const;
 
     //! data type not allowed in set/get-function
-    void dataTypeNotAllowed4SetGet(DataType datType, const std::string& msg ) const;
+    void dataTypeNotAllowed4SetGet(Global::ComplexPart datType, const std::string& msg ) const;
 
     //! Error for data type not allowed
-    void dataTypeNotAllowed(DataType datType, MaterialType matType ) const;
+    void dataTypeNotAllowed(Global::ComplexPart datType, MaterialType matType ) const;
 
     //! Error for material type not in file
     void matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const;
 
     //! data type not allowed in set-function
-    void setMakesNoSense(DataType datType, const std::string& msg ) const;
+    void setMakesNoSense(Global::ComplexPart datType, const std::string& msg ) const;
 
     //! Error for not available subtype of tensor
     void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor) const;

@@ -7,9 +7,8 @@
 
 #include <iostream>
 #include <vector>
-#include "utils/utils.hh"
-#include "utils/plainAlloc.hh"
-#include "algsys/olasparams.hh"
+#include "OLAS/algsys/olasparams.hh"
+#include "General/environment.hh"
 
 
 // Variation of the GRAPH-Implementation
@@ -23,7 +22,7 @@
 // done by setting FAST_EDGE_INSERTION = no in Makefile.option
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   //! Base Class for handling the graph associated with a matrix
@@ -76,8 +75,8 @@ namespace OLAS {
     //! \param cs_edge  stores the connectivity information for all nodes
     //! \param reorder  Specifies the re-ordering strategy to be applied to
     //!                 to the graph once it was completely assembled.
-    BaseGraph( UInt nRows, UInt nCols, UInt numEdge, Integer *cs_node,
-               Integer *cs_edge, ReorderingType reorder );
+    BaseGraph( UInt nRows, UInt nCols, UInt numEdge, UInt *cs_node,
+               UInt *cs_edge, ReorderingType reorder );
 
     //! Default destructor
     virtual ~BaseGraph();
@@ -89,7 +88,7 @@ namespace OLAS {
     //! the re-ordering and the conversion into CRS storage format.
     //! \param order One-based array for storing the re-ordering vector. If no
     //!              re-ordering is performed, this may be a NULL pointer
-    void FinaliseAssembly( Integer *order );
+    void FinaliseAssembly( StdVector<UInt>* order );
 
     //! Add edges between vertices and their neighbours
 
@@ -119,7 +118,7 @@ namespace OLAS {
     //! indices of the nodes that are connected to node i including possibly
     //! the self-reference for node i, if it exists. The list of indices is
     //! lexicographically sorted with increasing index number.
-    inline Integer* GetGraphRow( Integer i ) {
+    inline UInt* GetGraphRow( UInt i ) {
 
 
 #ifdef DEBUG_BASEGRAPH
@@ -131,7 +130,7 @@ namespace OLAS {
       }
 #endif
 
-      return csEdges_ + csNodes_[i] - 1;
+      return csEdges_ + csNodes_[i];
     }
 
     //! Get total number of vertices in the graph
@@ -141,7 +140,7 @@ namespace OLAS {
     //! of a rectangular or unsymmetric matrix the graph is a directed one.
     //! In this case we understand by the number of vertices in the graph
     //! the number of vertices that are (potential) start points of an edge.
-    Integer GetSize() const {
+    UInt GetSize() const {
       return numNodes_;
     }
 
@@ -150,7 +149,7 @@ namespace OLAS {
     //! This method can be used to query the number of edges in the graph,
     //! which corresponds to the number of non-zero entries in its CRS
     //! representation
-    Integer GetNNE() const {
+    UInt GetNNE() const {
       return nne_;
     }
 
@@ -203,7 +202,7 @@ namespace OLAS {
     //! of edges leaving vertex i.
     //! \note The return value includes the self-reference/loop for vertex i,
     //!       if this is contained in the graph.
-    inline Integer GetRowSize( UInt i ) const {
+    inline UInt GetRowSize( UInt i ) const {
 
 
 #ifdef DEBUG_BASEGRAPH
@@ -268,7 +267,7 @@ namespace OLAS {
     UInt numNodes_;
 
     //! Number of edges in the graph
-    Integer nne_;
+    UInt nne_;
 
     //! store the lower bandwidth of the graph
     UInt bwlower_;
@@ -293,7 +292,7 @@ namespace OLAS {
     //! in iorder_. Currently, the ordering is obtained using Metis.
     //! If METIS is not defined, the ordering will be identity. 
     //! If the graph is not compressed, it will be compressed now.
-    void Reorder( ReorderingType newOrder, Integer *order );
+    void Reorder( ReorderingType newOrder, StdVector<UInt>& order );
 
 
     // =======================================================================
@@ -322,7 +321,7 @@ namespace OLAS {
     //!             structure
     //! \param cidx on return stores adress of column index array of CRS
     //!             structure
-    void ConvertToMetisCRS( Integer **rptr, Integer **cidx );
+    void ConvertToMetisCRS( UInt **rptr, UInt **cidx );
 
     //! This array contains the indices of connected nodes (column array)
 
@@ -330,14 +329,14 @@ namespace OLAS {
     //! it is connected (including itself, if a 'diagonal' node). These lists
     //! are stored one after the other in this data array. This corresponds
     //! to the column index vector in compressed row storage format.
-    Integer *csEdges_;
+    UInt *csEdges_;
 
     //! This array points to the start of the rows in cs_edges
 
     //! This array contains for every node the starting index of its neighbour
     //! list in the cs_edgdes_ array. This corresponds to the row pointer
     //! vector in compressed row storage format.
-    Integer *csNodes_;
+    UInt *csNodes_;
 
     //! Keep track of whether assembly of the graph was finalised
 

@@ -5,7 +5,6 @@
 #ifndef FILE_STDVECTOR_2004
 #define FILE_STDVECTOR_2004
 
-#include <boost/serialization/split_member.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 #include <vector>
 #include "General/exception.hh"
@@ -74,7 +73,7 @@ namespace CoupledField {
       
       //! advance position by n
       void advance( ptrdiff_t n) { 
-        pos_ += (unsigned int) n; }
+        pos_ += static_cast<unsigned int>(n); }
       
       //! measure distance
       ptrdiff_t distance_to( iterator const & other ) const {
@@ -128,7 +127,7 @@ namespace CoupledField {
 
       //! advance position by n
       void advance( ptrdiff_t n) { 
-        pos_ += (unsigned int) n; }
+        pos_ += static_cast<unsigned int>(n); }
 
       //! measure distance
       ptrdiff_t distance_to( const_iterator const & other ) const {
@@ -322,27 +321,6 @@ namespace CoupledField {
   
     //! Capacity of the vector
     unsigned int capacity_;
-
-    // ******************************************************
-    // SERIALIZATION FUNCTIONS
-    // ******************************************************
-    // These functions allow us to write a vector directly
-    // into an boost::archive, for saving on a disk or in a 
-    // iostream object
-
-    //! allow serialization class to access vector entries
-    friend class boost::serialization::access;
-    
-    //! Saving internal state into a boost::archive
-    template<class Archive>
-    void save(Archive & ar, const unsigned int version) const;
-    
-    //! Reading internal state from a boost::archive
-    template<class Archive>
-    void load(Archive & ar, const unsigned int version);
-    
-    //! The following statement is needed for boost
-    BOOST_SERIALIZATION_SPLIT_MEMBER()
       
   };
 
@@ -451,6 +429,9 @@ namespace CoupledField {
 } // end of namespace
 
 // Inclusion of Implementation
+// We do it for StdVector since it may be a container for
+// many different types unlike Vector which only holds doubles,
+// UInts and a few more.
 #include "StdVector.cc"
 
 #endif

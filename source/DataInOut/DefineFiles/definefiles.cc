@@ -16,7 +16,6 @@
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
-#include <def_use_vtk.hh>
 #include <def_use_scripting.hh>
 #include <def_use_tcl.hh>
 #include <def_use_python.hh>
@@ -54,10 +53,6 @@
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
-#ifdef USE_VTK
-#include "DataInOut/SimInOut/VTK/SimOutputVTK.hh"
-#endif
-
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 
 #include "DataInOut/XMLMaterialHandler.hh"
@@ -84,46 +79,38 @@
 namespace CoupledField
 {
 
-#ifdef MEMTRACE
-Double sumdmem;
-Double sumimem;
-#endif
-
-// ===============
-//   Constructor
-// ===============
-DefineInOutFiles::DefineInOutFiles(const Char *name)
-{
-
-  // Initialise internal pointers
-  simInput_ = NULL;
-  ptMaterialHandler_ = NULL;
-
-}
-
-// ==============
-//   Destructor
-// ==============
-DefineInOutFiles::~DefineInOutFiles()
-{
-
-#ifdef MEMTRACE
-  delete memtrace;
-  memtrace = NULL;
-#endif
-
-  // Delete pointer to OLAS report file
-  delete cla;
-  cla = NULL;
-
-  delete simInput_;
-  simInput_ = NULL;
-
-  delete ptMaterialHandler_;
-  ptMaterialHandler_ = NULL;
-
-}
-
+  // ===============
+  //   Constructor
+  // ===============
+  DefineInOutFiles::DefineInOutFiles( const char *name ) {
+    // Initialise internal pointers
+    simInput_ = NULL;
+    ptMaterialHandler_ = NULL;
+  }
+  
+  // ==============
+  //   Destructor
+  // ==============
+  DefineInOutFiles::~DefineInOutFiles()
+  {
+    
+ #ifdef MEMTRACE
+    delete memtrace;
+    memtrace = NULL;
+ #endif
+    
+    // Delete pointer to OLAS report file
+    delete cla;
+    cla = NULL;
+    
+    delete simInput_;
+    simInput_ = NULL;
+    
+    delete ptMaterialHandler_;
+    ptMaterialHandler_ = NULL;
+    
+  }
+  
 // ==============================
 //   Generate mesh file pointer
 // ==============================
@@ -330,18 +317,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
       continue;
 #else
       EXCEPTION( "No support for ANSYS RST output file format." );
-#endif
-    }
-
-    if (actFormat == "vtk")
-    {
-#ifdef USE_VTK
-      out[actId] =
-      shared_ptr<SimOutput>( new SimOutputVTK( simName, actNode ) );
-      continue;
-#else
-      EXCEPTION( "No support for VTK (Paraview)"
-          << " output file format." );
 #endif
     }
 

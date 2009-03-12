@@ -28,7 +28,7 @@ namespace CoupledField
   {
    
     if ( inVal < y_[0] )
-      Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
+      EXCEPTION("Wrong evaluation: input is smaller as defined in nonlinear file");
 
     //if inVal is larger as defined, return the last value
     if ( inVal > y_[numMeas_-1] ) 
@@ -73,7 +73,7 @@ namespace CoupledField
   {
   
     if ( inVal < y_[0] )
-      Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
+      EXCEPTION("Wrong evaluation: input is smaller as defined in nonlinear file");
 
     //if inVal is larger as defined, return the last value
     if ( inVal > y_[numMeas_-1] ) 

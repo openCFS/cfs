@@ -4,16 +4,17 @@
 
 #include <def_use_arpack.hh>
 
-#include "solver/generateEigensolver.hh"
-#include "solver/baseEigensolver.hh"
-#include "matvec/basematrix.hh"
+#include "MatVec/basematrix.hh"
+
+#include "generateEigensolver.hh"
+#include "baseEigensolver.hh"
 
 #ifdef USE_ARPACK
-#include "external/arpack/arpackEigensolver.cc"
+#include "OLAS/external/arpack/arpackEigensolver.hh"
 #endif
 
 
-namespace OLAS {
+namespace CoupledField {
 
 
   // *********************************
@@ -26,7 +27,8 @@ namespace OLAS {
                                               OLAS_Report *report ) {
     
     BaseEigenSolver *retSolver = NULL;
-    MatrixEntryType eType = mat.GetEntryType();
+    // TODO: Check if this is still needed
+    // BaseMatrix::EntryType eType = mat.GetEntryType();
     // COMPWARNING: unused variable bool eTypeUnknown = false;
     
     // Branch depending on desired EigenSolver
@@ -34,31 +36,18 @@ namespace OLAS {
 
 #ifdef USE_ARPACK
     case ARPACK:
-      retSolver = New ArpackEigenSolver( xml, params, report );
+      retSolver = new ArpackEigenSolver( xml, params, report );
       (*cla) << " GenerateEigenSolver: Generated ARPACK Eigensolver"
              << std::endl;
       break;
 #endif
 
     case SUBSPACE:
-      (*error) << " GenerateEigenSolver: Subsapce algorithm not yet supported."
-               << std::endl;
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "GenerateEigenSolver: Subsapce algorithm not yet supported.\n" );
       break;
 
       default:
-      Error( "GenerateEigenSolver: Request for unknown solver type!", __FILE__,
-	     __LINE__ );
-    }
-
-
-    // Force instantiation of member functions of templated matrix classes
-    // Note that the InstantiatePublicMethods() method itself should never
-    // actually be called, but the compiler must not notice this. Thus, the
-    // akward if condition.
-    bool neverTrue = (eType == NOENTRYTYPE);
-    if ( neverTrue ) {
-      retSolver->InstantiatePublicMethods( mat );
+        EXCEPTION( "GenerateEigenSolver: Request for unknown solver type!" );
     }
 
     return retSolver;

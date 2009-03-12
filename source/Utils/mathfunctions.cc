@@ -6,10 +6,10 @@
 #include <iostream>
 
 #include "mathfunctions.hh"
-#include "Utils/vector.hh"
+#include "MatVec/vector.hh"
 #include "Utils/tools.hh"
 #include "General/environment.hh"
-#include "Matrix/matrix.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
@@ -51,7 +51,7 @@ namespace CoupledField {
     Double n, n2;
     Integer l_sort=1;
 
-    Integer ndim = mat.GetSizeRow();
+    Integer ndim = mat.GetNumRows();
   
     a2 = 0.0;
     for (i=0; i<ndim; ++i)
@@ -224,11 +224,9 @@ namespace CoupledField {
   {
 #ifdef CHECK_INDEX
     if (a.GetSize() != 3)
-      Error("Incompatible vector dimensions for CrossProd()",
-            __FILE__, __LINE__);
+      EXCEPTION("Incompatible vector dimensions for CrossProd()");
     if (b.GetSize() != 3)
-      Error("Incompatible vector dimensions for CrossProd()",
-            __FILE__, __LINE__);
+      EXCEPTION("Incompatible vector dimensions for CrossProd()");
 #endif
 
     result.Resize(3);

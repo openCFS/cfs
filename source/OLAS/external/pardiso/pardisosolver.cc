@@ -4,10 +4,15 @@
 
 //#include <omp.h>
 
-#include "utils/utils.hh"
-#include "external/pardiso/pardisosolver.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/crs_matrix.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "OLAS/algsys/olasparams.hh"
 
-namespace OLAS {
+#include "pardisosolver.hh"
+
+namespace CoupledField {
 
 #define F77_FUNC(func)   func ## _
 
@@ -27,8 +32,7 @@ namespace OLAS {
   // ***********************
   template<typename T>
   PardisoSolver<T>::PardisoSolver() {
-    Error( "Default constructor of PardisoSolver is forbidden!",
-           __FILE__, __LINE__ );
+    EXCEPTION( "Default constructor of PardisoSolver is forbidden!" );
   }
 
 
@@ -103,18 +107,17 @@ namespace OLAS {
 
       F77_FUNC(pardiso) ( pt_, &maxfct, &mnum, &mType_, &phase,
                           &probDim_, theMatrix_, rowPtr_, colPtr_,
-                          (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, &zeroDBL_,
+                          idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
                           &zeroDBL_, &errorFlag );
 
       if ( errorFlag != NO_ERROR) {
-        (*error) << "Pardiso: Error occured during cleanup: "
-                 << GetErrorString(errorFlag);
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Pardiso: Error occured during cleanup: "
+                   << GetErrorString(errorFlag) )
       }
     }
 
     // Delete identity re-ordering (if exists)
-    DeleteArray( idPerm_ );
+    DELETEARRAY( idPerm_ );
     idPermSize_ = 0;
 
   }
@@ -125,7 +128,6 @@ namespace OLAS {
   // *********
   template<typename T>
   void PardisoSolver<T>::Setup( BaseMatrix &sysMat ) {
-
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
@@ -173,24 +175,23 @@ namespace OLAS {
     // =====================================
     TRY_CAST {
 
-      ConstRefCast( sysMat, StdMatrix, stdMat );
+      CONSTREFCAST( sysMat, StdMatrix, stdMat );
 
       etype = stdMat.GetEntryType();
-      if ( (etype != DOUBLE) && (etype != COMPLEX) ) {
-        (*error) << "Pardiso: Expected DOUBLE or COMPLEX entries, but got '"
-                 << Enum2String(etype) << "'";
-        Error( __FILE__, __LINE__ );
+      if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
+        EXCEPTION( "Pardiso: Expected DOUBLE or COMPLEX entries, but got '"
+                 << BaseMatrix::entryType.ToString(etype) << "'" );
       }
 
       stype = stdMat.GetStorageType();
-      if ( (stype != SPARSE_SYM) && (stype != SPARSE_NONSYM) ) {
-        (*error) << "Pardiso: Expected a sparseSym or sparseNonSym matrix, "
-                 << "but got a '" << Enum2String(stype) << "' matrix";
-        Error( __FILE__, __LINE__ );
+      if ( (stype != BaseMatrix::SPARSE_SYM) &&
+          (stype != BaseMatrix::SPARSE_NONSYM) ) {
+        EXCEPTION( "Pardiso: Expected a sparseSym or sparseNonSym matrix, "
+                 << "but got a '" << BaseMatrix::storageType.ToString( stype ) << "' matrix" );
       }
 
       // Determine problem size
-      probDim_ = stdMat.GetNrows();
+      probDim_ = stdMat.GetNumRows();
 
     } CATCH_CAST;
 
@@ -199,23 +200,25 @@ namespace OLAS {
     //  Get pointers to arrays containing information on
     //  (S)CRS matrix from the problem matrix object
     // ==================================================
-    if ( stype == SPARSE_NONSYM ) {
-      ConstRefCast( sysMat, CRS_Matrix<T>, crsMat );
-      rowPtr_ = crsMat.GetRowPointer();
-      colPtr_ = crsMat.GetColPointer();
+    if ( stype == BaseMatrix::SPARSE_NONSYM ) {
+      CONSTREFCAST( sysMat, CRS_Matrix<T>, crsMat );
+      rowPtr_ = (Integer*)(crsMat.GetRowPointer());
+      colPtr_ = (Integer*)(crsMat.GetColPointer());
       datPtr_ = crsMat.GetDataPointer();
+      nnz_    = crsMat.GetNnz();
     }
     else {
-      ConstRefCast( sysMat, SCRS_Matrix<T>, scrsMat );
-      rowPtr_ = scrsMat.GetRowPointer();
-      colPtr_ = scrsMat.GetColPointer();
+      CONSTREFCAST( sysMat, SCRS_Matrix<T>, scrsMat );
+      rowPtr_ = (Integer*)(scrsMat.GetRowPointer());
+      colPtr_ = (Integer*)(scrsMat.GetColPointer());
       datPtr_ = scrsMat.GetDataPointer();
+      nnz_    = scrsMat.GetNumEntries();
     }
 
     // Increment pointers to make them 0-based
-    rowPtr_++;
-    colPtr_++;
-    datPtr_++;
+//     rowPtr_++;
+//     colPtr_++;
+//     datPtr_++;
 
     // Do C-style casting to fix problem with over-loading vs. extern C
     void *hatred = (void *) datPtr_;
@@ -229,7 +232,7 @@ namespace OLAS {
     // Some flags for determining the type of the matrix
     bool symPard, defPard, herPard, strPard;
 
-    if ( stype == SPARSE_SYM ) {
+    if ( stype == BaseMatrix::SPARSE_SYM ) {
       symPard = true;
     }
     else {
@@ -242,22 +245,21 @@ namespace OLAS {
     herPard = myParams_->GetBoolValue( "PARDISO_hermitian" );
     strPard = myParams_->GetBoolValue( "PARDISO_symStructure" );
 
-    if ( (etype == DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
-    if ( (etype == DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
-    if ( (etype == DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
-    if ( (etype == COMPLEX) && (!symPard) && ( strPard) ) mType_ =  3;
-    if ( (etype == COMPLEX) && ( herPard) && ( defPard) ) mType_ =  4;
-    if ( (etype == COMPLEX) && ( herPard) && (!defPard) ) mType_ = -4;
-    if ( (etype == COMPLEX) && ( symPard) ) mType_ = 6;
-    if ( (etype == DOUBLE ) && (!symPard) && (!strPard) ) mType_ = 11;
-    if ( (etype == COMPLEX) && (!symPard) && (!strPard) && (!herPard)) {
+    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
+    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
+    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
+    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && ( strPard) ) mType_ =  3;
+    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && ( defPard) ) mType_ =  4;
+    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && (!defPard) ) mType_ = -4;
+    if ( (etype == BaseMatrix::COMPLEX) && ( symPard) ) mType_ = 6;
+    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && (!strPard) ) mType_ = 11;
+    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && (!strPard) && (!herPard)) {
       mType_ = 13;
     }
     if ( mType_ == 0 ) {
-      (*error) << "PardisoSolver: There appears to be an inconsistency in "
+      EXCEPTION( "PardisoSolver: There appears to be an inconsistency in "
                << "the input parameters. I cannot determine correct matrix "
-               << "properties for pardiso";
-      Error( __FILE__, __LINE__ );
+               << "properties for pardiso" );
     }
     else if ( logging == true ) {
       (*cla) << " Pardiso: Classified matrix as mType = "
@@ -270,7 +272,7 @@ namespace OLAS {
       if ( logging == true ) {
         (*cla) << " Pardiso: Calling pardisoinit" << std::endl;
       }
-      F77_FUNC(pardisoinit) ( pt_, &mType_, iparm_ + 1 );
+      F77_FUNC(pardisoinit) ( pt_, &mType_, iparm_+1 );
     }
 
 
@@ -314,24 +316,29 @@ namespace OLAS {
       iparm_[2] = 0;
       iparm_[5] = 1;
       if ( idPermSize_ < probDim_ ) {
-        DeleteArray( idPerm_ );
-        NewArray( idPerm_, int, probDim_ );
-        for ( int i = 1; i <= probDim_; i++ ) {
-          idPerm_[i] = i;
+        DELETEARRAY( idPerm_ );
+        NEWARRAY( idPerm_, int, probDim_ );
+        for ( int i = 0; i < probDim_; i++ ) {
+          // (i+1), since fortran needs indices starting with 1!!
+          idPerm_[i] = i+1;
         }
       }
       break;
 
     default:
-      (*error) << "Re-ordering of type '" << Enum2String(ordering)
-               << "' is not available with the PardisoSolver";
-      Error( __FILE__, __LINE__ );
+      std::string tmp;
+      Enum2String( ordering, tmp );
+
+      EXCEPTION( "Re-ordering of type '" << tmp
+               << "' is not available with the PardisoSolver" );
     }
 
     if ( logging == true && facSymbolic == true ) {
       if ( ordering != NOREORDERING ) {
+        std::string tmp;
+        Enum2String( ordering, tmp );
         (*cla) << " Pardiso: Analyse phase will determine a '"
-               << Enum2String(ordering) << "' re-ordering" << std::endl;
+               << tmp << "' re-ordering" << std::endl;
       }
       else {
         (*cla) << " Pardiso: Factorisation uses original matrix ordering"
@@ -373,6 +380,16 @@ namespace OLAS {
     }
 
 
+    // we have to icrement the entries of the col- and row-position arrays
+    // by one, so that the first col and first row start with index 1 (and
+    // not with zero) to be consistent with fortran
+    // at the end of the method we will undo it!!
+    for (UInt i=0; i < static_cast<UInt>(probDim_+1); i++ )
+      rowPtr_[i] += 1;
+
+    for (UInt i=0; i< nnz_; i++ )
+       colPtr_[i] += 1;
+
     // ========================
     //  Symbolic Factorisation
     // ========================
@@ -390,14 +407,13 @@ namespace OLAS {
       // let pardiso go for it
       F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
                          &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, &zeroDBL_,
+                         idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
                          &zeroDBL_, &errorFlag );
 
       // Check return status
       if ( errorFlag != NO_ERROR ) {
-        (*error) << "Pardiso: Error occured during symbolic factorization: "
-                 << GetErrorString(errorFlag);
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Pardiso: Error occured during symbolic factorization: "
+                   << GetErrorString(errorFlag) );
       }
       else {
         if ( logging == true ) {
@@ -424,14 +440,13 @@ namespace OLAS {
       // let pardiso go for it
       F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
                          &probDim_, theMatrix_, rowPtr_, colPtr_,
-                         (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, &zeroDBL_,
+                         idPerm_, &nrhs, iparm_+1, &msgLvl_, &zeroDBL_,
                          &zeroDBL_, &errorFlag );
 
       // Check return status
       if ( errorFlag != NO_ERROR ) {
-        (*error) << "Pardiso: Error occured during numerical factorization: "
-                 << GetErrorString(errorFlag);
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "Pardiso: Error occured during numerical factorization: "
+                   << GetErrorString(errorFlag) );
       }
       else {
         if ( logging == true ) {
@@ -448,6 +463,15 @@ namespace OLAS {
       (*cla) << " -------------------------------------------------------"
              << "-----------------------\n";
     }
+
+    // now we undo our increment, since on our side the frist col and row
+    // has an value of zero!!
+    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+      rowPtr_[i] -= 1;
+
+    for (UInt i=0; i< nnz_; i++ )
+      colPtr_[i] -= 1;
+
   }
 
 
@@ -470,9 +494,8 @@ namespace OLAS {
     }
 
     if ( firstCall_ == true ) {
-      (*error) << "The matrix has not yet been factorised by Pardiso! "
-               << "Call Setup() first";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "The matrix has not yet been factorised by Pardiso! "
+               << "Call Setup() first" );
     }
 
 
@@ -481,10 +504,10 @@ namespace OLAS {
     const T *rhsArray;
     T* solArray;
     TRY_CAST {
-      ConstRefCast( rhs, Vector<T>, myRHS );
-      RefCast( sol, Vector<T>, mySol );
-      rhsArray = myRHS.GetPointer() + 1;
-      solArray = mySol.GetPointer() + 1;
+      CONSTREFCAST( rhs, Vector<T>, myRHS );
+      REFCAST( sol, Vector<T>, mySol );
+      rhsArray = myRHS.GetPointer();
+      solArray = mySol.GetPointer();
     } CATCH_CAST;
 
     // We must perform a nasty cast in order to be able to interface with
@@ -504,16 +527,31 @@ namespace OLAS {
     int errorFlag = 0;
     int phase = 33;
 
+    // we have to icrement the entries of the col- and row-position arrays
+    // by one, so that the first col and first row start with index 1 (and
+    // not with zero) to be consistent with fortran
+    // at the end of the method we will undo it!!
+    for (UInt i=0; i<static_cast<UInt>(probDim_+1); i++ )
+      rowPtr_[i] += 1;
+    for (UInt i=0; i< nnz_; i++ )
+       colPtr_[i] += 1;
+
     F77_FUNC(pardiso) (pt_, &maxfct, &mnum, &mType_, &phase,
                        &probDim_, theMatrix_, rowPtr_, colPtr_,
-                       (idPerm_+1), &nrhs, (iparm_+1), &msgLvl_, theRHS,
+                       idPerm_, &nrhs, iparm_+1, &msgLvl_, theRHS,
                        theSol, &errorFlag );
+
+    // now we undo our increment, since on our side the frist col and row
+    // has an value of zero!!
+    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+      rowPtr_[i] -= 1;
+    for (UInt i=0; i< nnz_; i++ )
+      colPtr_[i] -= 1;
 
     // Check return status
     if ( errorFlag != NO_ERROR ) {
-      (*error) << "Pardiso: Error occured during solution of linear system: "
-               << GetErrorString(errorFlag);
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Pardiso: Error occured during solution of linear system: "
+                 << GetErrorString(errorFlag) );
     }
     else {
       if ( logging == true ) {
@@ -533,5 +571,11 @@ namespace OLAS {
       myReport_->SetValue( "finalNorm", -1.0 );
     }
   }
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class PardisoSolver<Double>;
+  template class PardisoSolver<Complex>;
+#endif
 
 }

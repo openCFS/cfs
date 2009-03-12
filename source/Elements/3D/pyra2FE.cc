@@ -13,7 +13,7 @@ namespace CoupledField
 
 Pyra2FE::Pyra2FE():PyraFE()
 {
-  
+
   Init();
 }
 
@@ -28,7 +28,7 @@ void Pyra2FE::Init()
 
   NumNodes_ = 13;
   NumEdges_ = 8;
-  
+
   CommonInit();
 }
 
@@ -166,8 +166,8 @@ void Pyra2FE::SetCornerCoords()
 // }
 
 
-void Pyra2FE::CalcShapeFnc(Vector<Double> & Shape,
-			     const Vector<Double> & LCoord,
+void Pyra2FE :: CalcShapeFnc(Vector<Double> & Shape,
+                             const Vector<Double> & LCoord,
                              const Elem*, UInt dof,
                              AnsatzFct::FctEntityType fctEntityType )
 {
@@ -179,12 +179,12 @@ void Pyra2FE::CalcShapeFnc(Vector<Double> & Shape,
         // Magnetics, Vol. 32, No. 3, May 1996
 
 
-  //                                     zeta 
-  //             4                         ^  
+  //                                     zeta
+  //             4                         ^
   //             +                         |
-  //           // \                        0--> eta 
-  //       12 +/ \ +11                    / 
-  //        9/+ 10+ \                    xi 
+  //           // \                        0--> eta
+  //       12 +/ \ +11                    /
+  //        9/+ 10+ \                    xi
   //        / /   \  \
   //     3 +-/--+-\ ---+ 2
   //      / /  7  \   /
@@ -196,7 +196,7 @@ void Pyra2FE::CalcShapeFnc(Vector<Double> & Shape,
 
 
 
-  // Order is the same as in source paper, just index ist changed to follow 
+  // Order is the same as in source paper, just index ist changed to follow
   // our elements standard numbering
   if (LCoord[2]== 1)
     {
@@ -248,7 +248,7 @@ void Pyra2FE::CalcShapeFnc(Vector<Double> & Shape,
     }
 
 //   //Format for  Maple
-//       Shape[1] = 0.25*( LCoord_0+LCoord_1-1) * 
+//       Shape[1] = 0.25*( LCoord_0+LCoord_1-1) *
 //((1+LCoord_0)*(1+LCoord_1)-LCoord_2+
 // 		  (LCoord_0 * LCoord_1 * LCoord_2)/(1-LCoord_2));
 //       Shape[0] = 0.25*( LCoord_0-LCoord_1-1) * ((1+LCoord_0)*(1-LCoord_1)-
@@ -292,7 +292,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 
   LDeriv.Init();
 
-  // Derivatives for the quadratic case.      
+  // Derivatives for the quadratic case.
   // Calculated symbolically with Maple.
 
   LDeriv[4][0] = 0;
@@ -321,35 +321,35 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[2][1] = 0.25*( (1-LCoord[0])*(1+LCoord[1])-LCoord[2]+
 			    (-LCoord[0]+LCoord[1]-1)*(1-LCoord[0]));
       LDeriv[2][2] = 0.25*( LCoord[0]-LCoord[1]+1);
-      
+
       LDeriv[6][0] = 0.0;
       LDeriv[6][1] = 0.0;
       LDeriv[6][2] = 0.0;
-      
+
       LDeriv[7][0] = 0.0;
       LDeriv[7][1] = 0.0;
       LDeriv[7][2] = 0.0;
-      
+
       LDeriv[8][0] = 0.0;
       LDeriv[8][1] = 0.0;
       LDeriv[8][2] = 0.0;
-      
+
       LDeriv[5][0] = 0.0;
       LDeriv[5][1] = 0.0;
       LDeriv[5][2] = 0.0;
-      
+
       LDeriv[10][0] = 0.0;
       LDeriv[10][1] = 0.0;
       LDeriv[10][2] = 0.0;
-      
+
       LDeriv[11][0] = 0.0;
       LDeriv[11][1] = 0.0;
       LDeriv[11][2] = 0.0;
-      
+
       LDeriv[12][0] = 0.0;
       LDeriv[12][1] = 0.0;
       LDeriv[12][2] = 0.0;
-      
+
       LDeriv[9][0] = 0.0;
       LDeriv[9][1] = 0.0;
       LDeriv[9][2] = 0.0;
@@ -379,7 +379,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[0][2] = 0.25*((LCoord[0]-LCoord[1]-1)*(-1-LCoord[0]*LCoord[1]/
 			(1-LCoord[2])-LCoord[0]*LCoord[1]*LCoord[2]/
 			((1-LCoord[2])*(1-LCoord[2]))));
-      
+
       LDeriv[3][0] = 0.25*(-(1-LCoord[0])*(1-LCoord[1])+LCoord[2]-LCoord[0]*
 			   LCoord[1]*LCoord[2]/(1-LCoord[2])+(-LCoord[0]-
 			LCoord[1]-1)*(-1+LCoord[1]+LCoord[1]*LCoord[2]/
@@ -391,7 +391,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
       LDeriv[3][2] = 0.25*((-LCoord[0]-LCoord[1]-1)*(-1+LCoord[0]*LCoord[1]/
 				(1-LCoord[2])+LCoord[0]*LCoord[1]*LCoord[2]/
 				((1-LCoord[2])*(1-LCoord[2]))));
-      
+
       LDeriv[2][0] = 0.25*(-(1-LCoord[0])*(1+LCoord[1])+LCoord[2]+LCoord[0]*
 			   LCoord[1]*LCoord[2]/(1-LCoord[2])+(-LCoord[0]+
 				LCoord[1]-1)*(-1-LCoord[1]-LCoord[1]*
@@ -416,7 +416,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	             (1-LCoord[2])+.5*(1+LCoord[0]-LCoord[2])*
                      (1-LCoord[1]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
 	             ((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[8][0] = .5*(1-LCoord[0]-LCoord[2])*(1-LCoord[1]-LCoord[2])/
 	             (1-LCoord[2])-.5*(1+LCoord[0]-LCoord[2])*
 	             (1-LCoord[1]-LCoord[2])/(1-LCoord[2]);
@@ -429,7 +429,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	             (1-LCoord[2])+.5*(1+LCoord[0]-LCoord[2])*
 	             (1-LCoord[0]-LCoord[2])*(1-LCoord[1]-LCoord[2])/
 	             ((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[7][0] = -.5*(1-LCoord[1]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
 	             (1-LCoord[2]);
       LDeriv[7][1] = -.5*(1-LCoord[0]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
@@ -441,7 +441,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 			LCoord[2])*(1-LCoord[1]-LCoord[2])/(1-LCoord[2])+
 	             .5*(1-LCoord[0]-LCoord[2])*(1-LCoord[1]-LCoord[2])*
 	             (1+LCoord[1]-LCoord[2])/((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[6][0] = .5*(1-LCoord[0]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
 	             (1-LCoord[2])-.5*(1+LCoord[0]-LCoord[2])*
 	             (1+LCoord[1]-LCoord[2])/(1-LCoord[2]);
@@ -454,7 +454,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	             (1-LCoord[2])+.5*(1+LCoord[0]-LCoord[2])*
 	             (1-LCoord[0]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
 	             ((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[10][0] = LCoord[2]*(1+LCoord[1]-LCoord[2])/(1-LCoord[2]);
       LDeriv[10][1] = LCoord[2]*(1+LCoord[0]-LCoord[2])/(1-LCoord[2]);
       LDeriv[10][2] = (1+LCoord[0]-LCoord[2])*(1+LCoord[1]-LCoord[2])/
@@ -462,7 +462,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	              (1-LCoord[2])-LCoord[2]*(1+LCoord[0]-LCoord[2])/
 	              (1-LCoord[2])+LCoord[2]*(1+LCoord[0]-LCoord[2])*
 	              (1+LCoord[1]-LCoord[2])/((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[9][0] = LCoord[2]*(1-LCoord[1]-LCoord[2])/(1-LCoord[2]);
       LDeriv[9][1] = -LCoord[2]*(1+LCoord[0]-LCoord[2])/(1-LCoord[2]);
       LDeriv[9][2] = (1+LCoord[0]-LCoord[2])*(1-LCoord[1]-LCoord[2])/
@@ -470,7 +470,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	             (1-LCoord[2])-LCoord[2]*(1+LCoord[0]-LCoord[2])/
 	             (1-LCoord[2])+LCoord[2]*(1+LCoord[0]-LCoord[2])*
 	             (1-LCoord[1]-LCoord[2])/((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[12][0] = -LCoord[2]*(1-LCoord[1]-LCoord[2])/(1-LCoord[2]);
       LDeriv[12][1] = -LCoord[2]*(1-LCoord[0]-LCoord[2])/(1-LCoord[2]);
       LDeriv[12][2] = (1-LCoord[0]-LCoord[2])*(1-LCoord[1]-LCoord[2])/
@@ -478,7 +478,7 @@ void Pyra2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
 	              (1-LCoord[2])-LCoord[2]*(1-LCoord[0]-LCoord[2])/
 	              (1-LCoord[2])+LCoord[2]*(1-LCoord[0]-LCoord[2])*
 	              (1-LCoord[1]-LCoord[2])/((1-LCoord[2])*(1-LCoord[2]));
-      
+
       LDeriv[11][0] = -LCoord[2]*(1+LCoord[1]-LCoord[2])/(1-LCoord[2]);
       LDeriv[11][1] = LCoord[2]*(1-LCoord[0]-LCoord[2])/(1-LCoord[2]);
       LDeriv[11][2] = (1-LCoord[0]-LCoord[2])*(1+LCoord[1]-LCoord[2])/

@@ -118,7 +118,7 @@ namespace CoupledField {
                              const Matrix<Double>& massMatSingleDof,  const UInt nrDofs)
   {
     
-    const UInt singleDofSize = massMatSingleDof.GetSizeRow();
+    const UInt singleDofSize = massMatSingleDof.GetNumRows();
 
     UInt i, j, actDof;
     
@@ -135,7 +135,7 @@ namespace CoupledField {
   void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
   {
     
-    const UInt singleDofSize = massMatSingleDof.GetSizeRow();
+    const UInt singleDofSize = massMatSingleDof.GetNumRows();
     
     UInt i, j, actDof;
     

@@ -62,9 +62,9 @@ namespace CoupledField {
 
     void SetEps (Double epsNew){eps_ = epsNew;}
 
-    Integer GetMaxSteps (){ return maxSteps_;}
+    UInt GetMaxSteps (){ return maxSteps_;}
 
-    void SetMaxSteps(Integer maxStepsNew) {
+    void SetMaxSteps(UInt maxStepsNew) {
       maxSteps_ = maxStepsNew;
     }
 
@@ -72,29 +72,29 @@ namespace CoupledField {
 
     void SetSafetyFac (Double safetyFacNew){safetyFac_ = safetyFacNew;}
 
-    void SetNumEl (Integer numEl){
+    void SetNumEl (UInt numEl){
       numEl_ = numEl;
     }
 
 
   protected:
 
-    Integer numEl_ ;
+    UInt numEl_ ;
 
     //! Was the last solve attempt successful?
     bool successLastSolve_;
 
     //! Number of time steps in last solve
-    Integer numStepsLastSolve_;
+    UInt numStepsLastSolve_;
 
     //! Number of rejected time steps in last solve
-    Integer numBadStepsLastSolve_;
+    UInt numBadStepsLastSolve_;
 
     //! Threshold for stopping test
     Double eps_;
 
     //! \param maxSteps  Maximal allowed number of time steps
-    Integer maxSteps_;
+    UInt maxSteps_;
 
     //! \param safetyFac Safety factor for step size computation
     Double safetyFac_;

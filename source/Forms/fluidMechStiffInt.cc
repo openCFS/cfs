@@ -146,12 +146,12 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Double tau_m, tau_mu, tau_c;
 	Double A_elem, h_k;
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
-	//VGx.Resize(nrFncs);//VGx.Init(0.0);
-	//VGy.Resize(nrFncs);//VGy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
+	//VGx.Resize(nrFncs);//VGx.Init();
+	//VGy.Resize(nrFncs);//VGy.Init();
 	if(spaceDim==3){
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 	}
 
 	for (UInt i=0; i<nrFncs; i++) {
@@ -199,7 +199,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -226,7 +226,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VL2AtIp = -1.0;
 		ComputeTaus(tau_m,tau_mu,tau_c,VL2,VL2AtIp,VMax,h_k,kinematicViscosity_,lambda_k,nrFncs);
@@ -240,13 +240,13 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -255,8 +255,8 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 
 	// set matrix to desired size and set all elements to zero
-	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init(0.0);
-	//A_kAll.Resize(nrFncs); A_kAll.Init(0.0);
+	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init();
+	//A_kAll.Resize(nrFncs); A_kAll.Init();
 
 //#pragma omp parallel for private(auxJ,auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,A1,A2,A3,A_a,A_ba,A_ba1,A_ba2,A_ba3,A_cdef,A_ga,A_gb,A_gc,A_gd,A_ge,A_gf,A_gg,A_gh,A_gj)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -270,16 +270,16 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncs); //xiDx.Init();
+		xiDy.Resize(nrFncs); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncs); //xiDz.Init();
 
 		if( abs(convStabSign_)>1e-5 || abs(viscStabSign_)>1e-5){
-			xiDxx.Resize(nrFncs); //xiDxx.Init(0.0);
-			xiDyy.Resize(nrFncs); //xiDyy.Init(0.0);
+			xiDxx.Resize(nrFncs); //xiDxx.Init();
+			xiDyy.Resize(nrFncs); //xiDyy.Init();
 			if(spaceDim==3)
-				xiDzz.Resize(nrFncs); //xiDzz.Init(0.0);
+				xiDzz.Resize(nrFncs); //xiDzz.Init();
 		}
 
 		for (UInt i=0; i<nrFncs; i++) {
@@ -423,7 +423,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 				A_gj.DyadicMult(xiDy,auxI);
 			}
 			else
-				Error("Wrong spaceDim!",__FILE__,__LINE__);
+				EXCEPTION("Wrong spaceDim!");
 
 		}
 //#pragma omp critical
@@ -446,7 +446,7 @@ void FluidMechPlaneStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 			locElemMat.AddSubMatrix(A_gj,  nrFncs,    2*nrFncs);
 		}
 		else 
-			Error("Error!!",__FILE__,__LINE__);
+			EXCEPTION("EXCEPTION!!");
 	}
 }
 	}
@@ -492,10 +492,10 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		//std::cerr << "saved";
 	}
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
 	if(spaceDim==3)
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 	for (UInt i=0; i<nrFncs; i++) {
 		Vx[i]=elemResult_[0][i];
 		Vy[i]=elemResult_[1][i];
@@ -528,7 +528,7 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -555,7 +555,7 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VL2AtIp = -1.0;
 		ComputeTaus(tau_m,tau_mu,tau_c,VL2,VL2AtIp,VMax,h_k,kinematicViscosity_,lambda_k,nrFncs);
@@ -569,13 +569,13 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -583,7 +583,7 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	}
 
 	// set matrix to desired size and set all elements to zero
-	elemMat.Resize(nrFncs*N); elemMat.Init(0.0);
+	elemMat.Resize(nrFncs*N); elemMat.Init();
 	if(abs(presStabSign_)>1e-5){
 		for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++){
 			jacDet = 0;
@@ -593,10 +593,10 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 
 			jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-			xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-			xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+			xiDx.Resize(nrFncs); //xiDx.Init();
+			xiDy.Resize(nrFncs); //xiDy.Init();
 			if(spaceDim==3)
-				xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+				xiDz.Resize(nrFncs); //xiDz.Init();
 
 			for (UInt i=0; i<nrFncs; i++) {
 				xiDx[i] = xiDxDy[i][0];
@@ -623,7 +623,7 @@ void FluidMechPlaneStiffInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat,
 			else if(spaceDim==3)
 				C_a=C_a1+C_a2+C_a3;
 			else
-				Error("Error!!",__FILE__,__LINE__);
+				EXCEPTION("EXCEPTION!!");
 
 			{
 				elemMat.AddSubMatrix(C_a,0,0);
@@ -669,10 +669,10 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		computeTaus=false;
 	}
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
 	if(spaceDim==3) 
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 
 	for (UInt i=0; i<nrFncs; i++) {
 		Vx[i]=elemResult_[0][i];
@@ -711,7 +711,7 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -738,7 +738,7 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VL2AtIp = -1.0;
 		ComputeTaus(tau_m,tau_mu,tau_c,VL2,VL2AtIp,VMax,h_k,kinematicViscosity_,lambda_k,nrFncs);
@@ -752,13 +752,13 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -766,7 +766,7 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	}
 
 	// set matrix to desired size and set all elements to zero
-	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init(0.0);
+	locElemMat.Resize(nrFncs,nrFncs*N); locElemMat.Init();
 
 //#pragma omp parallel for private(auxI,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,D1,D2,D3,D_aa,D_ab,D_ac,D_bc1,D_bc2,D_bc3)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -780,17 +780,17 @@ void FluidMechPlaneStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncs); //xiDx.Init();
+		xiDy.Resize(nrFncs); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncs); //xiDz.Init();
 
 
 		if(abs(presStabSign_)>1e-5){
-			xiDxx.Resize(nrFncs); //xiDxx.Init(0.0);
-			xiDyy.Resize(nrFncs); //xiDyy.Init(0.0);
+			xiDxx.Resize(nrFncs); //xiDxx.Init();
+			xiDyy.Resize(nrFncs); //xiDyy.Init();
 			if(spaceDim==3)
-				xiDzz.Resize(nrFncs); //xiDzz.Init(0.0);
+				xiDzz.Resize(nrFncs); //xiDzz.Init();
 		}
 
 		for (UInt i=0; i<nrFncs; i++) {
@@ -896,10 +896,10 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 		computeTaus=false;
 	}
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
 	if(spaceDim==3)
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 	for (UInt i=0; i<nrFncs; i++) {
 		Vx[i]=elemResult_[0][i];
 		Vy[i]=elemResult_[1][i];
@@ -937,7 +937,7 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 			h_k = std::pow( (0.75*A_elem/(PI)) ,(1.0/3.0) );
 		}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VMax=abs(Vx[0]);
 		if (abs(Vy[0])>VMax)
@@ -964,7 +964,7 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 					VMax=abs(Vz[i]);
 			}
 		else
-			Error("Wrong spaceDim!",__FILE__,__LINE__);
+			EXCEPTION("Wrong spaceDim!");
 
 		VL2AtIp = -1.0;
 		ComputeTaus(tau_m,tau_mu,tau_c,VL2,VL2AtIp,VMax,h_k,kinematicViscosity_,lambda_k,nrFncs);
@@ -978,13 +978,13 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 		tau_mu = stabilParams_[elemNumber-1][1];
 		tau_c  = stabilParams_[elemNumber-1][2];
 		//      if (tau_c<1e-15 || tau_m<1e-15 || tau_mu<1e-15) {
-		//        Warning("one stabilization parameter is smaller than 1e-15",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is smaller than 1e-15");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
 		//      }
 		//      if (tau_c>1e3 || tau_m>1e3 || tau_mu>1e3) {
-		//        Warning("one stabilization parameter is larger than 1e3",__FILE__,__LINE__);
+		//        Warning("one stabilization parameter is larger than 1e3");
 		//        std::cerr << "tau_c="  << tau_c << "\n" 
 		//                  << "tau_m="  << tau_m << "\n" 
 		//                  << "tau_mu=" << tau_mu << "\n";
@@ -993,8 +993,8 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 
 	// set matrix to desired size and set all elements to zero
-	//elemMat.Resize(nrFncs*N,nrFncs); elemMat.Init(0.0);
-	locElemMat.Resize(nrFncs*N,nrFncs); locElemMat.Init(0.0);
+	//elemMat.Resize(nrFncs*N,nrFncs); elemMat.Init();
+	locElemMat.Resize(nrFncs*N,nrFncs); locElemMat.Init();
 
 //#pragma omp parallel for private(auxI,auxJ,VxAtIP,VyAtIP,VzAtIP,jacDet,jacDet_intWeight,multAux,xiDxDy,xiDxxDyyDxy,xiDxx,xiDyy,xiDzz,xiDx,xiDy,xiDz,xi,B1,B2,B3,B_aa,B_ab,B_ac,B_bc1,B_bc2,B_bc3)
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -1007,15 +1007,15 @@ void FluidMechPlaneStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncs); //xiDx.Init();
+		xiDy.Resize(nrFncs); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncs); //xiDz.Init();
 
-		xiDxx.Resize(nrFncs); //xiDxx.Init(0.0);
-		xiDyy.Resize(nrFncs); //xiDyy.Init(0.0);
+		xiDxx.Resize(nrFncs); //xiDxx.Init();
+		xiDyy.Resize(nrFncs); //xiDyy.Init();
 		if(spaceDim==3)
-			xiDzz.Resize(nrFncs); //xiDzz.Init(0.0);
+			xiDzz.Resize(nrFncs); //xiDzz.Init();
 
 		for (UInt i=0; i<nrFncs; i++) {
 			xiDx[i] = xiDxDy[i][0];
@@ -1116,12 +1116,12 @@ void FluidMechPlaneMixedStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Vector<Double>  Vx, Vy, Vz, VGx, VGy;  
 	Double  VxAtIP, VyAtIP, VzAtIP;
 
-	Vx.Resize(nrFncs);//Vx.Init(0.0);
-	Vy.Resize(nrFncs);//Vy.Init(0.0);
-	//VGx.Resize(nrFncs);//VGx.Init(0.0);
-	//VGy.Resize(nrFncs);//VGy.Init(0.0);
+	Vx.Resize(nrFncs);//Vx.Init();
+	Vy.Resize(nrFncs);//Vy.Init();
+	//VGx.Resize(nrFncs);//VGx.Init();
+	//VGy.Resize(nrFncs);//VGy.Init();
 	if(spaceDim==3){
-		Vz.Resize(nrFncs);//Vz.Init(0.0);
+		Vz.Resize(nrFncs);//Vz.Init();
 	}
 
 	for (UInt i=0; i<nrFncs; i++) {
@@ -1150,8 +1150,8 @@ void FluidMechPlaneMixedStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Vector<Double> auxJ, auxI;
 
 	// set matrix to desired size and set all elements to zero
-	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init(0.0);
-	//A_kAll.Resize(nrFncs); A_kAll.Init(0.0);
+	locElemMat.Resize(nrFncs*spaceDim); locElemMat.Init();
+	//A_kAll.Resize(nrFncs); A_kAll.Init();
 
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
@@ -1162,10 +1162,10 @@ void FluidMechPlaneMixedStiffInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncs); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncs); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncs); //xiDx.Init();
+		xiDy.Resize(nrFncs); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncs); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncs); //xiDz.Init();
 
 		for (UInt i=0; i<nrFncs; i++) {
 			xiDx[i] = xiDxDy[i][0];
@@ -1240,7 +1240,7 @@ void FluidMechPlaneMixedStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 	Vector<Double> auxI;
 
 	// set matrix to desired size and set all elements to zero
-	locElemMat.Resize(nrFncsP,nrFncsV*spaceDim); locElemMat.Init(0.0);
+	locElemMat.Resize(nrFncsP,nrFncsV*spaceDim); locElemMat.Init();
 
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
 	{
@@ -1254,10 +1254,10 @@ void FluidMechPlaneMixedStiffInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
 
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncsV); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncsV); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncsV); //xiDx.Init();
+		xiDy.Resize(nrFncsV); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncsV); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncsV); //xiDz.Init();
 
 
 		for (UInt i=0; i<nrFncsV; i++) {
@@ -1320,8 +1320,8 @@ void FluidMechPlaneMixedStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 	Vector<Double> auxI, auxJ;
 
 	// set matrix to desired size and set all elements to zero
-	//elemMat.Resize(nrFncs*N,nrFncs); elemMat.Init(0.0);
-	locElemMat.Resize(nrFncsV*spaceDim,nrFncsP); locElemMat.Init(0.0);
+	//elemMat.Resize(nrFncs*N,nrFncs); elemMat.Init();
+	locElemMat.Resize(nrFncsV*spaceDim,nrFncsP); locElemMat.Init();
 
 	for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 		jacDet = 0;
@@ -1335,10 +1335,10 @@ void FluidMechPlaneMixedStiffInt_PV::CalcElementMatrix( Matrix<Double>& elemMat,
 		
 		jacDet_intWeight = intWeights[actIntPt-1] * jacDet;
 
-		xiDx.Resize(nrFncsV); //xiDx.Init(0.0);
-		xiDy.Resize(nrFncsV); //xiDy.Init(0.0);
+		xiDx.Resize(nrFncsV); //xiDx.Init();
+		xiDy.Resize(nrFncsV); //xiDy.Init();
 		if(spaceDim==3)
-			xiDz.Resize(nrFncsV); //xiDz.Init(0.0);
+			xiDz.Resize(nrFncsV); //xiDz.Init();
 
 
 		for (UInt i=0; i<nrFncsV; i++) {

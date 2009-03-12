@@ -6,8 +6,8 @@
 #define FILE_NODESTORESOL_2004
 
 #include "basenodestoresol.hh"
-#include "Matrix/matrix.hh"
-#include "Utils/vector.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Domain/grid.hh"
 
 namespace CoupledField{
@@ -19,7 +19,7 @@ namespace CoupledField{
   //! old Array-class).
   //!
   //! In principle this class is only a wrapper around
-  //! a CFSVector class. Additionally it contains
+  //! a SingleVector class. Additionally it contains
   //! informations about the information stored in it and
   //! it can selectively be accessed, set and read.
   //!
@@ -40,7 +40,7 @@ namespace CoupledField{
   //! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
   //! mySol.SetNumDofs(1,ELEC_POTENTIAL);
   //! mySol.SetNumNodes(numNodes);
-  //! mySol.Init(0.0) 
+  //! mySol.Init() 
   //! \endverbatim
   //! \note An object of the StoreSolution can only used after the Init()-
   //! routine was called, otherwise an error is reported!
@@ -207,7 +207,7 @@ namespace CoupledField{
       \param (output) Vector with given solution type)
     */
     void GetGlobalSolVector(const SolutionType solType,
-                            CFSVector & val) const;
+                            SingleVector & val) const;
 
 
 
@@ -217,7 +217,7 @@ namespace CoupledField{
       \param val (input) Vector containing nodal results
     */
     void SetNodalResult(const UInt nodeNr, 
-                        const CFSVector &val);
+                        const SingleVector &val);
 
  
     //! Get all solution types for one node
@@ -226,7 +226,7 @@ namespace CoupledField{
       \param val (output) Vector containing nodal results
     */
     void GetNodalResult(const UInt nodeNr, 
-                        CFSVector & val) const;
+                        SingleVector & val) const;
 
 
     //! Get vector of one solution type for all nodes of one given dof
@@ -237,7 +237,7 @@ namespace CoupledField{
     */
     void GetGlobalSolVectorSingleDof(const SolutionType solType, 
                                      const UInt dof, 
-                                     CFSVector & val) const;
+                                     SingleVector & val) const;
   
 
     //! Get solution vector for all nodes  of one given dof
@@ -248,7 +248,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     void GetGlobalSolVectorSingleDof(const UInt dof, 
-                                     CFSVector & val) const;
+                                     SingleVector & val) const;
 
 
     //! Get single result of given node for given dof
@@ -315,21 +315,21 @@ namespace CoupledField{
     //! \note The layout of the val-vector must match the layout
     //! of the solution prescribed by SetNumSolutions(), SetNumDofs() and
     //! SetSolutionType()!
-    void SetAlgSysVector(const CFSVector & val);
+    void SetAlgSysVector(const SingleVector & val);
 
 
     ///! Get the complete solution vector inside this object
     /*!
       \param val (output) Vector containing complete solution
     */
-    void GetAlgSysVector(CFSVector & val) const;
+    void GetAlgSysVector(SingleVector & val) const;
 
   
-    //! Get the pointer to the CFSVector inside this object
+    //! Get the pointer to the SingleVector inside this object
     /*!
       \param ptrToVec (output) Pointer to vector inside this object
     */
-    void GetAlgSysVectorPointer(CFSVector* & ptrToVec);
+    void GetAlgSysVectorPointer(SingleVector* & ptrToVec);
 
 
     //! Get the pointer to the Vector<TYPE> inside this object
@@ -394,7 +394,7 @@ namespace CoupledField{
     //! \param elemSol Vector containing the element solution
     //! \param it Entiyiterator containing the current element
     //! \param solIndex Index for the desired solution type
-    void GetElemSolution( CFSVector & elemSol,
+    void GetElemSolution( SingleVector & elemSol,
                           const EntityIterator& it,
                           UInt solIndex = 0 ) const;
     
@@ -405,12 +405,12 @@ namespace CoupledField{
     //! \param it Entiyiterator containing the current element
     //! \param solIndex Index for the desired solution type
     //! \param ext_data if NULL the internal data is used, otherwise the supplied one
-    void GetElemSolutionAsMatrix( CFSMatrix & elemSol,
+    void GetElemSolutionAsMatrix( DenseMatrix & elemSol,
                                   const EntityIterator& it,
-                                  UInt solIndex = 0, const CFSVector* ext_data = NULL) const;
+                                  UInt solIndex = 0, const SingleVector* ext_data = NULL) const;
     
     //! maps the local node solution to the coupling nodes
-    void NodeSolutionToCoupling( CFSVector & couplingSol,
+    void NodeSolutionToCoupling( SingleVector & couplingSol,
                                  const StdVector<UInt>& nodeNumbers,
                                  UInt solIndex = 0 ) const;
 

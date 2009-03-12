@@ -5,10 +5,10 @@
 /* $Id$ */
 
 #define  INCLUDE_MULTIGRID_CC_FILES
-#include "multigrid/multigrid.hh"
+// #include "multigrid/multigrid.hh"
 #include "precond/mgprecond.hh"
 
-namespace OLAS {
+namespace CoupledField {
 /**********************************************************/
 
 template <typename T>
@@ -56,7 +56,7 @@ void MGPrecond<T>::Setup( StdMatrix& sysmatrix )
     }
     // cast the matrix to a serial CRS matrix and call Setup
     TRY_CAST
-      RefCast( sysmatrix, CRS_Matrix<T>, crsSysMatrix )
+      REFCAST( sysmatrix, CRS_Matrix<T>, crsSysMatrix )
       // eventually change the layout of the matrix
       if( CRS_Matrix<T>::LEX_DIAG_FIRST != crsSysMatrix.GetCurrentLayout() ) {
 	(*cla)
@@ -110,8 +110,8 @@ void MGPrecond<T>::Setup( const StdMatrix& sysmatrix,
 
 template <typename T>
 void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
-                          const SparseVector& rhs,
-			  SparseVector& sol ) const
+                          const SingleVector& rhs,
+			  SingleVector& sol ) const
 {
 
     if( this->readyToUse_ ) {
@@ -123,8 +123,8 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
         // base class of ParVector<T>
         if( AMG_ ) {
             TRY_CAST
-            ConstRefCast( rhs, Vector<T>, vectorRhs )
-            RefCast( sol, Vector<T>, vectorSol )
+            CONSTREFCAST( rhs, Vector<T>, vectorRhs )
+            REFCAST( sol, Vector<T>, vectorSol )
             // AMG cycle
             AMG_->Cycle( vectorRhs, vectorSol );
             CATCH_CAST
@@ -140,4 +140,4 @@ void MGPrecond<T>::Apply( const StdMatrix& sysmatrix,
 }
 
 /**********************************************************/
-} // namespace OLAS
+} // namespace CoupledField

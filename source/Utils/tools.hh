@@ -18,56 +18,17 @@
 
 namespace CoupledField {
 
-  template<class TYPE> class Matrix; 
+  template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
 
   // =========================================================================
   //     ERROR / WARNING HANDLING
   // =========================================================================
-  
-    
+
+
   //@{
-  //! \name Error / Warning Handling 
-  
-  //! Function for issuing an error message and terminating program execution.
-
-  //! This function can be used to issue an error message and terminate
-  //! execution of the program. In fact this method is only a shortcut for
-  //! calling the Error() method of the WriteInfo class.
-  //! \param Text     Text of the error message
-  //! \param filename This is intended to contain the
-  //!                 name of the module/file in which the error occured. The
-  //!                 __FILE__ macro should be inserted in the call. The
-  //!                 argument is optional.
-  //! \param numline  This is intended to contain the
-  //!                 number of the code line of the module/file in which the
-  //!                 error occured. The __LINE__ macro should be inserted in
-  //!                 the call. The argument is optional.
-  void Error( const Char *Text, const Char *const filename,
-              const UInt numline );
-
-
-  //! Function for issuing an error message and terminating program execution.
-
-  //! This function can be used to issue an error message and terminate
-  //! execution of the program. This variant of Error() obtains the error
-  //! message from the global <b>(*error)</b> string stream. As in the
-  //! other Error() variant the actual work is delegated to WriteInfo::Error().
-  //! Apropriate usage of this function looks like this
-  //! \code
-  //! (*error) << "Cannot open file '" << fname << "' for reading";
-  //! Error( __FILE__, __LINE__ );
-  //! \endcode
-  //! \param filename This is intended to contain the
-  //!                 name of the module/file in which the error occured. The
-  //!                 __FILE__ macro should be inserted in the call.
-  //! \param numline  This is intended to contain the
-  //!                 number of the code line of the module/file in which the
-  //!                 error occured. The __LINE__ macro should be inserted in
-  //!                 the call.
-  void Error( const Char *const filename, const UInt numline );
-
+  //! \name Error / Warning Handling
 
   //! Function for issuing an warning message, will not terminate the program
 
@@ -82,7 +43,7 @@ namespace CoupledField {
   //!                 number of the code line of the module/file in which the
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
-  void Warning( const Char* Text, const Char* const filename = NULL,
+  void Warning( const char* Text, const char* const filename = NULL,
                 const UInt numline = 0 );
 
 
@@ -104,7 +65,7 @@ namespace CoupledField {
   //!                 number of the code line of the module/file in which the
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call.
-  void Warning( const Char *const filename, const UInt numline );
+  void Warning( const char *const filename, const UInt numline );
 
   //@}
 
@@ -135,14 +96,14 @@ namespace CoupledField {
   //! \param strVec    (output) vector of the single substrings
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
-                        const Char delimiter = ',' );
-  
+                        const char delimiter = ',' );
+
   //! Converts a string into a double value
-  Double String2Double( const std::string & val); 
-  
+  Double String2Double( const std::string & val);
+
   //! Converts a string into an integer value
-  Integer String2Int( const std::string & val); 
-  
+  Integer String2Int( const std::string & val);
+
   //! Converts a string into an unsigned integer value
   UInt String2UInt( const std::string & val);
     //@}
@@ -153,27 +114,27 @@ namespace CoupledField {
 
   /** Compares if two doubles are close to each other */
   bool close(Double d1, Double d2);
- 
+
   /** Compared if two complex are close (if both the real and imaginary part are close) */
   bool close(Complex c1, Complex c2);
 
   //! Absolute value of number
   template<class T>
-  T abs(T x) { return (x>0 ? x: -x); } 
+  T abs(T x) { return (x>0 ? x: -x); }
 
   //! power of value
   template<class T>
-  T pow(T x, UInt power) 
+  T pow(T x, UInt power)
   { T p=x;
     if (!power)
       return 1;
- 
+
     for (UInt i=2; i<=power; i++)
       p*=x;
     return p;
   }
 
-  //! class for working with points. 
+  //! class for working with points.
   /*!
     \param dim dimension of the point. 2.. point in 2D, 3.. point in 3D
   */
@@ -181,10 +142,10 @@ namespace CoupledField {
 
   public:
     //! constructor
-    Point() { 
+    Point() {
       for(UInt i=0; i<3; i++)
         data[i]=0.0;
-    } 
+    }
 
     //!destructor
     ~Point(){;}
@@ -193,7 +154,7 @@ namespace CoupledField {
     void SetZero() {
       for(UInt i=0; i<3; i++)
         data[i]=0.0;
-    } 
+    }
 
     //!
     Point & operator=(const Point & t);
@@ -202,7 +163,7 @@ namespace CoupledField {
     //!
     Point  operator+(const Point & t);
     //!
-    Point  operator-(const Point & t); 
+    Point  operator-(const Point & t);
 
     /** scale the point */ 
     Point  operator*(double factor); 
@@ -219,14 +180,14 @@ namespace CoupledField {
     Double &operator[](UInt i) {
       assert(i < 3);
       return data[i];
-    } 
+    }
 
     //! return coordinate number i
     Double operator[](UInt i) const {
       assert(i < 3);
       return data[i];
-    } 
-    
+    }
+
     //! calculate distance between two points
     inline static Double dist(const Point& a, const Point& b) { 
       Double preSqrt = 0.0; 
@@ -239,9 +200,9 @@ namespace CoupledField {
     Double dist(const Point& other) const {
       return Point::dist(*this, other);
     }
-    
-    /** Lists the content 
-     * @return the form "(0.3;4.3;0.0)" but no digit control */ 
+
+    /** Lists the content
+     * @return the form "(0.3;4.3;0.0)" but no digit control */
     std::string ToString() const;
 
     Double data[3];
@@ -299,17 +260,17 @@ namespace CoupledField {
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Complex factor);
   void Assign(Matrix<Complex>& target, const Matrix<Double>&  other, Double factor);
 
-  
+
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
   /** Calculates the L2 norm of a array. This is for cases where we
-   * don't use one of our vectors. E.g. with IPOPT */ 
+   * don't use one of our vectors. E.g. with IPOPT */
   double NormL2(const double* data, unsigned int size);
-  
+
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
-  
+
   /** Calculate the Standard Deviation of an array */
   double StandardDeviation(const double* data, unsigned int size);
 
@@ -324,8 +285,8 @@ namespace CoupledField {
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
-  
-  
+
+
 } // end of CoupledField
 
 #endif

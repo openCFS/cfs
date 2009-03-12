@@ -94,8 +94,8 @@ namespace CoupledField
 	pmlFnc_->ComputeFactorPML( factorsPML, jacDetC, CoordAtIP, omega);        
 
 	//multiply the derivatives with the x-,y- and z-factors
-	for (UInt i=0; i<xiDx.GetSizeCol(); i++) {
-	  for (UInt j=0; j<xiDx.GetSizeRow(); j++) {
+	for (UInt i=0; i<xiDx.GetNumCols(); i++) {
+	  for (UInt j=0; j<xiDx.GetNumRows(); j++) {
 	    xiDxC[j][i] = xiDx[j][i] * factorsPML[i];
 	  }
 	}
@@ -175,7 +175,7 @@ namespace CoupledField
     
     if (nrDofsPerNode_ > 1 ) {
      Matrix <Complex> singleDofMass = elemMat;
-     UInt singleDofSize = singleDofMass.GetSizeRow();
+     UInt singleDofSize = singleDofMass.GetNumRows();
 
      elemMat.Resize( nrDofsPerNode_* singleDofSize );
 
@@ -272,9 +272,8 @@ namespace CoupledField
       
       // Perform a safety check
       if ( jacDet < 0.0 ) {
-        (*error) << "BDBInt::CalcElementMatrix: Encountered "
-                 << "negative Jacobian determinant!";
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "BDBInt::CalcElementMatrix: Encountered "
+                 << "negative Jacobian determinant!" );
       }
       
       // Special things must be done in the axi-symmetric case
@@ -287,19 +286,19 @@ namespace CoupledField
       }
       
       // Compute the matrix product D * B and store as intermediate matrix
-      //      dbMatC.Resize( dMat.GetSizeRow(), bMat.GetSizeCol() );
+      //      dbMatC.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
       dbMatC = dMatC * bMatC;
       
       // We now compute B^T * D * B and scale it by the determinant
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix.
       fac = jacDet * intWeights[actIntPt-1] * jacDetC;
-      for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
+      for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
         ptr1 =  bMatC[k];
         ptr2 = dbMatC[k];
-        for ( UInt i = 0; i < bMatC.GetSizeCol(); i++ ) {
+        for ( UInt i = 0; i < bMatC.GetNumCols(); i++ ) {
           aux = fac * ptr1[i];
-          for ( UInt j = 0; j < dbMatC.GetSizeCol(); j++ ) {
+          for ( UInt j = 0; j < dbMatC.GetNumCols(); j++ ) {
             elemMat[i][j] += aux * ptr2[j];
           }
         }
@@ -312,7 +311,7 @@ namespace CoupledField
                                 Matrix<Complex>& bMatC, Complex& jacDetC)
   {
 
-    bMatC.Resize( bMat.GetSizeRow(),  bMat.GetSizeCol() );
+    bMatC.Resize( bMat.GetNumRows(),  bMat.GetNumCols() );
     bMatC.Init();
 
     Double omega = 2 * PI * mParser_->Eval( mHandle_ );

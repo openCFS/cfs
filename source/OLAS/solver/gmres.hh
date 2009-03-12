@@ -7,10 +7,15 @@
 
 #include <vector>
 
-#include "solver/basesolver.hh"
-#include "utils/math/givensrotation.hh"
+#include <def_expl_templ_inst.hh>
 
-namespace OLAS {
+#include "OLAS/utils/math/givensrotation.hh"
+
+#include "basesolver.hh"
+
+namespace CoupledField {
+
+  class BasePrecond;
 
   // Forward declaration of classes
   // class GivenRotation;
@@ -398,8 +403,7 @@ namespace OLAS {
     //! reason is that we need pointers to the parameter and report objects to
     //! perform correct setup of an object of this class.
     GMRESSolver() {
-      (*error) << "Default constructor of class GMRESSolver is not allowed!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Default constructor of class GMRESSolver is not allowed!" );
     }
 
     //! Copy Constructor
@@ -408,8 +412,7 @@ namespace OLAS {
     //! ever need a copy constructor we better implement it ourselves and do
     //! not let the compiler do it.
     GMRESSolver( const GMRESSolver &src ) {
-      (*error) << "Copy constructor of class GMRESSolver is not allowed!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Copy constructor of class GMRESSolver is not allowed!" );
     }
 
     //! Prepare internal data structures
@@ -471,5 +474,9 @@ namespace OLAS {
   };
 
 }
+
+#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
+//#include "gmres.cc"
+#endif
 
 #endif

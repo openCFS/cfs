@@ -1,12 +1,23 @@
 SET(UTILS_SRCS
-  environment-olas.cc
-  output.cc
-  tools-olas.cc
-  profiler-olas.cc
-  math/givensrotation.cc
-  math/iterativerefinement.cc)
+    math/givensrotation.cc
+    math/iterativerefinement.cc)
+
+IF(PROFILING)
+  SET(UTILS_SRCS
+    ${UTILS_SRCS}
+    profiler-olas.cc
+    )
+ENDIF(PROFILING)
+
+IF(EXPLICIT_TEMPLATE_INSTANTIATION)
+SET(UTILS_SRCS
+    ${UTILS_SRCS}
+    math/croutlu.cc
+    )
+ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(utils-olas STATIC ${UTILS_SRCS})
 
 TARGET_LINK_LIBRARIES(utils-olas
-  lapack-olas)
+  matvec
+)

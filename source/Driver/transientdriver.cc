@@ -184,7 +184,7 @@ namespace CoupledField {
       // writing current PDE-state into the restart-file
       if (restartIncr_ >= 1){
         if (  actTimeStep_ == nextRestart  ) { 
-          std::cout << myEndl << "Write a restart file after step " 
+          std::cout << std::endl << "Write a restart file after step " 
                     << actTimeStep_ <<" *********** " << std::endl;      
           
           ptPDE_->WriteRestart( );
@@ -192,7 +192,7 @@ namespace CoupledField {
         }
       }
       if (haltFlag) {
-        std::cout << myEndl << "Write a restart file after interuppting a simulation "
+        std::cout << std::endl << "Write a restart file after interuppting a simulation "
                   << "run with a HALTCFS-file at step:  " 
                   << actTimeStep_ <<" *********** " << std::endl;      
 
@@ -221,7 +221,7 @@ namespace CoupledField {
       //numstep_+=lastStepToRestartFrom;
       //steptime=(startStep)*dt;
       //restartStep  = startStep + restartIncr_ - 1;
-      std::cout << myEndl << "Reading a restart file from step " 
+      std::cout << std::endl << "Reading a restart file from step " 
                 << restartStep_ <<" ********** " << std::endl;      
     }
     
