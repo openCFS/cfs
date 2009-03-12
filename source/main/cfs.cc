@@ -101,7 +101,7 @@ int main( int argc, const char **argv ) {
   info->SetName("cfsInfo");
   
   // GENERATE OBJECT FOR HANDLING FILE-IO
-  DefineInOutFiles FileHandler( progOpts->GetSimName().c_str() );
+  DefineInOutFiles FileHandler;
 
   // Print information about program start time and host
   using namespace boost::posix_time;
@@ -384,11 +384,6 @@ int main( int argc, const char **argv ) {
   }
   catch(std::exception& ex)
   {
-    if(info != NULL)
-    {
-      info->Get(InfoNode::ERROR)->SetValue(ex.what());
-      info->ToFile();
-    }
     std::cerr << std::endl << std::endl
               << "***********************************************************************"
               << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
@@ -396,6 +391,18 @@ int main( int argc, const char **argv ) {
               << ex.what() << std::endl << std::endl
               << "***********************************************************************"
               << std::endl << std::endl;
+
+    // Print error cause to info file
+    if(info != NULL)
+    {
+      InfoNode* errorNode = info->Get(InfoNode::ERROR);
+      errorNode->SetValue(ex.what());
+      info->ToFile();
+
+      // Delete info file
+      delete info;
+    }
+
   }
 
 

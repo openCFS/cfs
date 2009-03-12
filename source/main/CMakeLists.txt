@@ -18,9 +18,6 @@ ENDIF(USE_XERCES)
 # List of source codes for current target.
 SET(CFS_SRCS cfs.cc)
 
-SET_SOURCE_FILES_PROPERTIES(${CFS_SRCS}
-  PROPERTIES COMPILE_FLAGS "-Wno-long-long")
-
 # Main CFS++ executable target.
 ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 
