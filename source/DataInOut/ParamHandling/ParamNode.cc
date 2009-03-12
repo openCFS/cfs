@@ -11,7 +11,7 @@ namespace CoupledField
   /** This is our global pointer of the root ParamNode holding the XML file. 
    *  Filed in cfs.cc. The correpsonding
    * "extern ParamNode* param;" is in ParamNode.hh */
-  ParamNode* param;     
+  ParamNode* param = NULL;     
     
   ParamNode::ParamNode(bool attribute)
   {

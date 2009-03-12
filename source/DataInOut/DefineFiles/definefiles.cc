@@ -82,7 +82,7 @@ namespace CoupledField
   // ===============
   //   Constructor
   // ===============
-  DefineInOutFiles::DefineInOutFiles( const char *name ) {
+  DefineInOutFiles::DefineInOutFiles() {
     // Initialise internal pointers
     simInput_ = NULL;
     ptMaterialHandler_ = NULL;
