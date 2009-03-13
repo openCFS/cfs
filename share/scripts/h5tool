@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# This is the start script for CFS. It should be placed in
-# CFS_DIST/bin under the name 'cfs'
+# This is the start script for H5TOOL. It should be placed in
+# CFS_DIST/bin under the name 'h5tool'
 
 # Source shell script for setting some common variables.
-. `dirname $0`/common.sh
+source `dirname $0`/common.sh
 
 SUSEPackageHint()
 {
@@ -155,11 +155,11 @@ SetANSYSParameters()
 
 SetGIDParameters()
 {
-  dummy=1
+    echo "Setting parameters for running cfstool..."
 }
 
 # Set XML schema root path
-#export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
 
 # Get settings concerning the distribution type of CFS: GiD/ANSYS
 #if [ "$CFS_DIST_TYPE" != "" ]
@@ -173,10 +173,10 @@ then
 fi
 
 # Check if a CFS config file exists in user's home directory.
-if [ -e $HOME/.nacsrc ]
-then 
-    . $HOME/.nacsrc;
-fi
+#if [ -e $HOME/.nacsrc ]
+#then 
+#    . $HOME/.nacsrc;
+#fi
 
 # environment variables override variables from config file.
 #if [ "$CFS_DIST_TYPE_TEMP" != "" ]
@@ -212,7 +212,7 @@ then
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
+CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
