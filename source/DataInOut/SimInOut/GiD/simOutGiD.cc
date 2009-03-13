@@ -66,14 +66,14 @@ namespace CoupledField {
     }
 
     strBuffer << dirName_ << pathsep << fileName_;
-    postFileName = strBuffer.str();
+    fileName_ = strBuffer.str();
 
     // Open result file
     if ( isAscii_ == true) {
-      postFileName += ".post.res";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostAscii );
+      postFileName = fileName_ + ".post.res";
+      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
     } else {
-      postFileName += ".post.bin";
+      postFileName = fileName_ + ".post.bin";
       GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
     }
   }
