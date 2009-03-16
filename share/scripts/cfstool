@@ -129,7 +129,7 @@ SetANSYSParameters()
     # If ANSYS directory does not exist, try to determine it from executable.
     if [ ! -d "$ANSYS_ROOT_DIR" ]
     then
-        PGFLIB=`ldd $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+        PGFLIB=`$LDD $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
 
         if [ -f "$PGFLIB" ]
         then
@@ -155,7 +155,8 @@ SetANSYSParameters()
 
 SetGIDParameters()
 {
-    echo "Setting parameters for running cfstool..."
+#    echo "Setting parameters for running cfstool..."
+    a=1;
 }
 
 # Set XML schema root path
@@ -250,11 +251,11 @@ fi
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
 then
     echo "Libraries:"
-    ldd $CFS_EXE
+    $LDD $CFS_EXE
 fi
 
 # Check if some system libraries are missing.
-CFS_EXE_LDD=`ldd $CFS_EXE | grep "not found"`
+CFS_EXE_LDD=`$LDD $CFS_EXE | grep "not found"`
 
 if [ "$CFS_EXE_LDD" != "" ]
 then 

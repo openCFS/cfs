@@ -79,3 +79,9 @@ else
     fi
 fi
 export LD_LIBRARY_PATH;
+
+if [ "$DISTRO" = "MACOSX" ]; then
+    LDD="otool -L"
+else
+    LDD="ldd"
+fi

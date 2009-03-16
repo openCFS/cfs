@@ -14,7 +14,7 @@ SET (PYTHON_POSSIBLE_LIB_PATHS
 )
 
 FIND_FILE(PYTHON_LIBRARY
-  NAMES libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so
+  NAMES libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so libpython2.5.dylib
   PATHS ${PYTHON_POSSIBLE_LIB_PATHS}
   NO_DEFAULT_PATH
   NO_CMAKE_ENVIRONMENT_PATH
