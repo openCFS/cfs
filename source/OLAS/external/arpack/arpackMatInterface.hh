@@ -19,7 +19,11 @@ namespace CoupledField {
     
   public:
     
-    //! Constructor
+    //! Constructor (standard EV problem)
+    ArpackMatInterface( const BaseMatrix * matA,
+                        bool shiftMode, Double shift );
+    
+    //! Constructor (generalized EV problem)
     ArpackMatInterface( const BaseMatrix * matA, const BaseMatrix * matB,
                         bool shiftMode, Double shift );
     
@@ -64,6 +68,9 @@ namespace CoupledField {
 
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
+    
+    //! Flag for generalized eigenvalue problem
+    bool isGeneralized_;
     
   };
 }

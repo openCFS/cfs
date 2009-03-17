@@ -41,6 +41,18 @@ namespace CoupledField {
 
     //! Get type of eigenvalue problem to be solved
     bool IsQuadratic() {return isQuadratic_;}
+
+    //! Setup routine for standard eigenvalue problem
+
+    //! Setup routine for various initialization tasks of a standard
+    //! eigenvalue problem.
+    //! \param mat Reference to matrix
+    //! \param numFreq Number of eigenvalues/frequencies to be calculated
+    //! \param freqShift Frequency shift applied to the system
+    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
+    //!        is used
+    virtual void Setup( const BaseMatrix & mat,
+                        UInt numFreq, Double freqShift ) = 0;
     
     //! Setup routine for a generalized eigenvalue problem
     
@@ -90,6 +102,16 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     virtual void CalcEigenMode( UInt modeNr, Vector<Double> & mode ) = 0;
+    
+    
+    //! Calculate condition number
+
+    //! This method calculates the condition number of the given matrix,
+    //! as well as the 5 smallest and 5 largest eigenvalues
+    virtual void CalcConditionNumber( const BaseMatrix& mat,  
+                                      Double& condNumber, 
+                                      Vector<Double>& evs,
+                                      Vector<Double>& err ) = 0;
     
   protected: 
 

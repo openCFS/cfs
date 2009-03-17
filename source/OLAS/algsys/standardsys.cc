@@ -121,6 +121,7 @@ namespace CoupledField {
     // In the latter case, a damping matrix has to be present,
     // otherwise we issue a warning
     bool dampPresent = (matrixTypes_.find( DAMPING) != matrixTypes_.end());
+    bool massPresent = (matrixTypes_.find( MASS) != matrixTypes_.end());
 
     if( isQuadratic == true ) {
       if( dampPresent == false ) {
@@ -137,10 +138,16 @@ namespace CoupledField {
                    << "eigenvalue will be solved (as you have specified)!";
         Warning( __FILE__, __LINE__ );
       }
-
-      // Setup the eigenvalue solver
-      eigenSolver_->Setup( *sysmat_[STIFFNESS], *sysmat_[MASS],
-                           numFreq, shift );
+      
+      if( massPresent == true ) {
+        // Setup the eigenvalue solver for generalized EV problem
+        eigenSolver_->Setup( *sysmat_[STIFFNESS], *sysmat_[MASS],
+                             numFreq, shift );
+      } else {
+        // Setup the eigenvalue solver for standard EV problem
+        eigenSolver_->Setup( *sysmat_[STIFFNESS], 
+                             numFreq, shift );
+      }
     }
 
     // Determine some basic properties and create vectors
@@ -169,6 +176,40 @@ namespace CoupledField {
   void StandardSystem::Solve(const std::string& comment) 
   {
     CoupledField::info->ToFile(); // write current info state
+    
+    // Check, if condition number is to be calculated
+    bool calcCapa = false;
+    calcCapa = myParams_.GetBoolValue( "CalcConditionNumber");
+    if( calcCapa ) {
+      Double condNumber = 0.0;
+      Vector<Double> ev, err;
+      BaseEigenSolver * evs = 
+        GenerateEigenSolverObject( *(sysmat_[SYSTEM]), ARPACK,
+                                   xml, &myParams_, &myReport_ );
+      (*cla) << "\n-----------------------------------------------------------------------------\n"
+                   "Calculating condition number of system matrix\n";
+      try {
+        evs->CalcConditionNumber( *(sysmat_[SYSTEM]), condNumber,
+                                  ev, err );
+      } catch (Exception& ex ) {
+        (*cla) << "\t -> No convergence\n";
+        Warning( "Calculation of condition number for system matrix did not converge",
+                 __FILE__, __LINE__ );
+        delete evs;
+      }
+      
+      (*cla) << "\n\tcondition number = " << condNumber;
+      (*cla) << "\n\n\tList of 5 smallest / largest eigenvalues and tolerances:\n\n";
+      for( UInt i = 0; i < ev.GetSize(); i++ )  {
+        (*cla) << "\t" << ev[i] << "\t" << err[i] << "\n";
+      }
+      (*cla) << "\n-----------------------------------------------------------------------------\n";
+      delete evs;
+      
+      // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
+      myParams_.SetValue( "CalcConditionNumber", false );
+    }
+    
     
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
@@ -345,6 +386,29 @@ namespace CoupledField {
     Vector<Double> & solHelp =
       dynamic_cast<Vector<Double> &> (*sol_);
     eigenSolver_->CalcEigenMode( numMode, solHelp );
+    
+    // DEBUG: Make check, if mode is really an eigenmode
+    // by calculating (A - lambda * I) * u = 0
+    //REFCAST( *eigenValues_, Vector<Double>, valVec );
+//    Double lambda = (2.0*PI*valVec[numMode])*(2.0*PI*valVec[numMode]);
+    
+//    StdMatrix * mat = 
+//    CopyStdMatrixObject( *sysmat_[STIFFNESS] );
+//    // calculate (A - lambda * I)
+//    std::cerr << "lambda = " << lambda << std::endl;
+//    std::cerr << "mat before is " << mat->ToString() << std::endl;
+//    Double diag = 0.0;
+//    for( UInt i = 0; i < mat->GetNumRows(); i++ ) {
+//      mat->GetDiagEntry(i, diag);
+//      diag = diag - lambda;
+//      mat->SetDiagEntry(i,diag);
+//    }
+//    std::cerr << "mat after is " << mat->ToString() << std::endl;
+//    
+//    Vector<Double> rhs(mat->GetNumRows());
+//    mat->Mult( solHelp, rhs);
+//    std::cerr << "Check for " << numMode << "th eigenmode gives\n";
+//    std::cerr << rhs << std::endl;
   }
 
 
