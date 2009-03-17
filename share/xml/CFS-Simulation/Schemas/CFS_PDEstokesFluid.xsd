@@ -61,7 +61,7 @@
             default="effStiffMatrix"/>
 
           <!-- Boundary Conditions & Loads (optional) -->
-          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_StokesFluidHD"  />

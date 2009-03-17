@@ -74,7 +74,7 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
+              <xsd:choice maxOccurs="unbounded" minOccurs="0">
                 <xsd:element name="dirichletHom"   type="DT_ElecHD"   />
                 <xsd:element name="dirichletInhom" type="DT_ElecID"   />
                 <xsd:element name="neumannInhom"   type="DT_ElecCD" />                                
