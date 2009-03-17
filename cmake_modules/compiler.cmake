@@ -196,9 +196,16 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
 
   ELSE(DEBUG)
 
-    SET(CFS_C_FLAGS "-ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
     SET(CFS_SUPPRESSIONS "-Wno-unknown-pragmas -Wno-comment")
 
+    IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
+      SET(CFS_C_FLAGS "${CFS_C_FLAGS} ${CFS_INTEL10_OPT_SWITCHES}")
+    ENDIF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
+
+    IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+      SET(CFS_C_FLAGS "${CFS_C_FLAGS} ${CFS_INTEL11_OPT_SWITCHES}")
+    ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   ENDIF(DEBUG)
 
 
@@ -223,6 +230,28 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
   #-----------------------------------------------------------------------------
   STRING(REGEX REPLACE "bin/ifort" "lib" IFORT_LIB_PATH
       "${CMAKE_Fortran_COMPILER}")
+
+  #-----------------------------------------------------------------------------
+  # Paths for libraries and compilers are different for version 11 compilers.
+  # There is even a difference between Linux and Mac OS X! Thank you Intel!!!
+  #-----------------------------------------------------------------------------
+  IF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
+      NOT CFS_DISTRO STREQUAL "MACOSX")
+    IF(CFS_ARCH STREQUAL "I386")
+      SET(LD "ia32")
+    ENDIF(CFS_ARCH STREQUAL "I386")
+    IF(CFS_ARCH STREQUAL "X86_64")
+      SET(LD "intel64")
+    ENDIF(CFS_ARCH STREQUAL "X86_64")
+    IF(CFS_ARCH STREQUAL "IA64")
+      SET(LD "ia64")
+    ENDIF(CFS_ARCH STREQUAL "IA64")
+    
+    STRING(REGEX REPLACE "bin/${LD}/ifort" "lib/${LD}" IFORT_LIB_PATH
+	"${CMAKE_Fortran_COMPILER}")
+  ENDIF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
+    NOT CFS_DISTRO STREQUAL "MACOSX")
+
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
     
   SET(CFS_FORTRAN_DYNRT_LIBS ifcoremt dl)
