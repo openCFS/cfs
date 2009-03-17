@@ -128,6 +128,12 @@ namespace CoupledField {
         eType = BaseMatrix::COMPLEX;
       }
     }
+    
+    // Determine calculation of condition number
+    bool calcCondition = false;
+    if( matrixNode ) { 
+      matrixNode->Get("calcConditionNumber", calcCondition, false );
+    }
 
     // Following stuff only for required for standard systems
     BaseMatrix::StorageType mType  = BaseMatrix::NOSTORAGETYPE;
@@ -186,6 +192,7 @@ namespace CoupledField {
     olas->SetValue( "UsingPenaltyFormulation", usingPenalty       );
     olas->SetValue( "SystemName"             , pdename            );
     olas->SetValue( "SBM_Symmetry"           , sbmSymmetry        );
+    olas->SetValue( "CalcConditionNumber"    , calcCondition      );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );

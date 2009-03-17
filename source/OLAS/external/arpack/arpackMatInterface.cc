@@ -17,6 +17,17 @@ namespace CoupledField {
 
 
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
+                                          bool shiftMode, Double shift) {
+
+    matrixA_ = matA;
+    matrixB_ = NULL;
+    shift_ = pow(shift*8.0*atan(1.0),2);
+    size_ = matA->GetNumRows();
+    isGeneralized_ = false;
+    shiftAndInvert_ = shiftMode;
+  }
+
+  ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
                                           const BaseMatrix * matB, 
                                           bool shiftMode, Double shift) {
     
@@ -24,6 +35,7 @@ namespace CoupledField {
     matrixB_ = matB;
     shift_ = pow(shift*8.0*atan(1.0),2);
     size_ = matA->GetNumRows();
+    isGeneralized_ = true;
     shiftAndInvert_ = shiftMode;
   }
     
@@ -43,18 +55,38 @@ namespace CoupledField {
     // matrix into a new one
     // Copy matrix b to matrix c
 
-    // Depending on calculation mode (regular / shift and invert)
-    // copy the correct matrix into matrixC_
-    if ( shiftAndInvert_ == false ) {
-      const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
-      matrixC_ = CopyStdMatrixObject( matB );
-    } else {
-      const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
-      const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
-      matrixC_ = CopyStdMatrixObject( matB );
+    if( isGeneralized_ ) {
 
-      matrixC_->Scale( -shift_ );
-      matrixC_->Add( 1.0, matA );
+      // Depending on calculation mode (regular / shift and invert)
+      // copy the correct matrix into matrixC_
+      if ( shiftAndInvert_ == false ) {
+        const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+        matrixC_ = CopyStdMatrixObject( matB );
+      } else {
+        const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+        const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
+        matrixC_ = CopyStdMatrixObject( matB );
+
+        matrixC_->Scale( -shift_ );
+        matrixC_->Add( 1.0, matA );
+      } 
+    } else {
+      // Standard EV problem
+      if ( shiftAndInvert_ == false ) {
+      EXCEPTION("Non-Shift-and-Invert mode not implemented for standard eigenvalue problem");
+      } else {
+        const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
+        matrixC_ = CopyStdMatrixObject( matA );
+        StdMatrix & matC = dynamic_cast<StdMatrix &>(*matrixC_);
+        
+        // calculate C = ( A - shift * I) with I being the unit matrix
+        Double diag = 0.0;
+        for( UInt i = 0; i < matC.GetNumRows(); i++) {
+          matC.GetDiagEntry( i, diag );
+          diag = (diag - shift_ * 1.0 );
+          matC.SetDiagEntry( i, diag );
+        }
+      }
     }
     //matrixC_->Export("cmat.mat");
       
@@ -111,7 +143,11 @@ namespace CoupledField {
     vecY.Replace( size_, y1, false );
     
     // Perform matrix-vector multiplication
-    matrixB_->Mult( vecX, vecY );
+    if( isGeneralized_ ) {
+      matrixB_->Mult( vecX, vecY );
+    } else {
+      vecY = vecX;
+    }
     
   }
   

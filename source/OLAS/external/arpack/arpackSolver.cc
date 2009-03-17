@@ -21,6 +21,7 @@ namespace CoupledField {
       interface_ = NULL;
 			// cast to char* or receive compiler warning
       which_ = (char*) "LM";
+      type_ = (char*) "G";
 
   }
   
@@ -34,7 +35,8 @@ namespace CoupledField {
   }
 
   void ArpackSolver::Setup( ArpackMatInterface *matInterface, UInt size, 
-              UInt numFreq, Double freqShift, char* which, bool shiftMode ) {
+                            UInt numFreq, Double freqShift, char* which, 
+                            char* type, bool shiftMode ) {
 
       size_ = size;
 
@@ -46,6 +48,7 @@ namespace CoupledField {
       freqShift_ = freqShift;
       shiftAndInvert_ = shiftMode;
       which_ = which;
+      type_ = type;
 
       // set default value for Arnoldi vectors
       numArnoldiVec_ = numFreq_*2;
@@ -132,7 +135,7 @@ namespace CoupledField {
       for (itNum=0; itNum<maxIterations_; itNum++) {
 
 					// cast to char* or receive compiler warning
-          ARPACK_DSAUPD(&ido, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_, 
+          ARPACK_DSAUPD(&ido, type_, (Integer*) &size_, which_, (Integer*) &numFreq_, 
                 &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
                 (Integer*) &size_, iparams, ipntr,
                 workD, workL, &lenWorkL, &info);
@@ -240,7 +243,7 @@ namespace CoupledField {
               vNrm2 += vecX[j]*vecX[j];
           }
           eigenTolerances_[i] = sqrt(vNrm2)/d[i];    // cf. note above!
-          (*cla) << " Mode no. " << i << ", tol = " << eigenTolerances_[i] << "\n";
+          //(*cla) << " Mode no. " << i << ", tol = " << eigenTolerances_[i] << "\n";
       }
     
       return numEVConverged;

@@ -460,6 +460,7 @@ namespace CoupledField {
 
     // Finish log report
     if ( logging == true ) {
+    
       (*cla) << " -------------------------------------------------------"
              << "-----------------------\n";
     }
@@ -541,7 +542,7 @@ namespace CoupledField {
                        idPerm_, &nrhs, iparm_+1, &msgLvl_, theRHS,
                        theSol, &errorFlag );
 
-    // now we undo our increment, since on our side the frist col and row
+    // now we undo our increment, since on our side the first col and row
     // has an value of zero!!
     for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
       rowPtr_[i] -= 1;
@@ -561,6 +562,10 @@ namespace CoupledField {
 
     // Finish log report
     if ( logging == true ) {
+      (*cla) << " number of iterative refinement steps: " << iparm_[7] << std::endl;
+      (*cla) << " number of perturbed pivots: " << iparm_[14] << std::endl;
+      (*cla) << " number of positive eigenvalues: " << iparm_[22] << std::endl;
+      (*cla) << " number of negative eigenvalues: " << iparm_[23] << std::endl;
       (*cla) << " -------------------------------------------------------"
              << "-----------------------\n";
     }

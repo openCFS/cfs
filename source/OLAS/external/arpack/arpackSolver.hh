@@ -36,7 +36,8 @@ namespace CoupledField {
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
     void Setup( ArpackMatInterface *apInterface, 
-                UInt size, UInt numFreq, Double freqShift, char* which, bool shiftMode );
+                UInt size, UInt numFreq, Double freqShift, char* which, 
+                char* type, bool shiftMode );
 
     //! Solve the linear generalized eigenvalue problem
     
@@ -105,6 +106,9 @@ namespace CoupledField {
 
     //! Character string for 'which' setting of  arpack
     char * which_;
+    
+    //! Character string denoting generalized or standard eigenvalue problem
+    char* type_;
 
     //! Tolerance to be achieved in solution
     Double tolerance_;

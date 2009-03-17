@@ -32,7 +32,8 @@ namespace CoupledField {
     precond_      = NULL;
     which_        = NULL;
     xml_          = xml;
-
+    
+    isGeneralized_ = false;
     shiftAndInvert_ = false;
   }
 
@@ -48,13 +49,97 @@ namespace CoupledField {
     matrixB_ = NULL;
     matrixD_ = NULL;
   }
+  void ArpackEigenSolver::Setup(const  BaseMatrix & mat,
+                                UInt numFreq, Double freqShift ) {
+    // Set flag for indicating a non-quadratic problem
+    isQuadratic_ = false;
+    isGeneralized_ = false;
+    // NOTE: Hard coded as true!!!
+    shiftAndInvert_ = true;
 
+    // Copy matrix references and determine size of system
+    matrixA_ = & dynamic_cast<const StdMatrix&>(mat);
+    if ( matrixA_ == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    UInt size = matrixA_->GetNumRows();
+
+    // Save frequency parameters
+    numFreq_ = numFreq;
+    freqShift_ = freqShift;
+
+   
+
+    // Create matrix interface for arpack
+    interface_ = new ArpackMatInterface( matrixA_, shiftAndInvert_, freqShift_ );
+
+    // Create solver class
+    arpackSolver_ = new ArpackSolver();
+
+    // Check 'which'-settings regarding the type of eigenvalues searched for
+    std::string whichString = (myParams_->GetStringValue( "ARPACK_which" ));
+    which_ = new char[whichString.size()+1];
+    strncpy(which_, whichString.c_str(), whichString.size()+1 );
+
+    // Create the solver dependent on the problem type ( regular / shiftAndInvert )
+    arpackSolver_->
+    Setup( interface_, size, numFreq_, freqShift_, which_ , "I", shiftAndInvert_);
+
+    // Set additional parameters for tolerance, number of Arnoldi vectors and
+    // number of iterations
+    Double tol = myParams_->GetDoubleValue("ARPACK_tolerance");
+    Integer maxIt = myParams_->GetIntValue("ARPACK_maxIt");
+    Integer numVec = myParams_->GetIntValue("ARPACK_numVec");
+
+    if (tol > 0.0)
+      arpackSolver_->SetTolerance(tol);
+    if (maxIt > 0)
+      arpackSolver_->SetIterations(maxIt);
+    if (numVec > 0)
+      arpackSolver_->SetNumVectors(numVec);
+
+    // Check trace settings
+    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
+      arpackSolver_->DebugOn();
+    }
+
+    // Print log-info about EigenSolver
+    PrintInfo();
+
+    // Create solver
+    SolverType solver;
+    myParams_->GetEnumValue( "Solver", solver );
+    // killme! check the ParamNode parameter
+    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, myParams_,
+                                    myReport_ );
+
+    // Create preconditioner
+    PrecondType precond;
+    myParams_->GetEnumValue("Precond", precond);
+
+    // Perform check, if matrix is std or sbm
+    if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
+      const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
+      precond_ = GenerateStdPrecondObject( mat, precond,
+                                           myParams_, myReport_ );
+    } else {
+      EXCEPTION( "No preconditioner available for SBM-matrices!" );
+    }
+
+    // Setup matrixinterface
+    interface_->Setup( solver_, precond_ );
+
+  }
+  
+  
   void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
                                 const  BaseMatrix & massMat,
                                 UInt numFreq, Double freqShift ) {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
+    isGeneralized_ = true;
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
@@ -89,7 +174,7 @@ namespace CoupledField {
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
     arpackSolver_->
-        Setup( interface_, size, numFreq_, freqShift_, which_ , shiftAndInvert_);
+        Setup( interface_, size, numFreq_, freqShift_, which_ , "G", shiftAndInvert_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -144,9 +229,10 @@ namespace CoupledField {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
+    isGeneralized_ = true;
 
     // Temporary hard coded debug information
-    std::cerr << "--- Setup of QUADRATIC EV problem! ---\n";
+    // std::cerr << "--- Setup of QUADRATIC EV problem! ---\n";
 
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
@@ -218,6 +304,8 @@ namespace CoupledField {
       // case2: quadratic problem
 
       // ... TO BE IMPLEMENTED ...
+      EXCEPTION( "Not implemented yet" );
+      
     }
 
     // Save error norms
@@ -229,6 +317,103 @@ namespace CoupledField {
 
     // Return number of converged eigenvalues
     return numEVs;
+  }
+
+  void ArpackEigenSolver::
+  CalcConditionNumber( const BaseMatrix& mat, 
+                       Double& condNumber, Vector<Double>& evs,
+                       Vector<Double>& err ) {
+    // Set flag for indicating a non-quadratic problem
+    isQuadratic_ = false;
+    isGeneralized_ = false;
+    // NOTE: Hard coded as true!!!
+    shiftAndInvert_ = true;
+
+    // Copy matrix references and determine size of system
+    matrixA_ = & dynamic_cast<const StdMatrix&>(mat);
+    if ( matrixA_ == NULL ) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+
+    UInt size = matrixA_->GetNumRows();
+
+    // Create matrix interface for arpack
+    interface_ = new ArpackMatInterface( matrixA_, shiftAndInvert_, freqShift_ );
+
+    // Create solver class
+    arpackSolver_ = new ArpackSolver();
+
+    // Set additional parameters for tolerance, number of Arnoldi vectors and
+    // number of iterations
+    Double tol = myParams_->GetDoubleValue("ARPACK_tolerance");
+    Integer maxIt = myParams_->GetIntValue("ARPACK_maxIt");
+    Integer numVec = myParams_->GetIntValue("ARPACK_numVec");
+
+    // set mode: we look at both ends of the spectrum for eigenvalues
+    std::string whichString = "BE";
+    which_ = new char[whichString.size()+1];
+    strncpy(which_, whichString.c_str(), whichString.size()+1 );
+
+    // Save frequency parameters
+    numFreq_ = 10; 
+    freqShift_ = 0.0;
+
+    // Create the solver dependent on the problem type ( regular / shiftAndInvert )
+    arpackSolver_->
+    Setup( interface_, size, numFreq_, freqShift_, which_ , "I", shiftAndInvert_);
+
+
+    if (tol > 0.0)
+      arpackSolver_->SetTolerance(tol);
+    if (maxIt > 0)
+      arpackSolver_->SetIterations(maxIt);
+    if (numVec > 0)
+      arpackSolver_->SetNumVectors(numVec);
+
+    // Check trace settings
+    if ( myParams_->GetBoolValue( "ARPACK_logging" ) == true ) {
+      arpackSolver_->DebugOn();
+    }
+
+    // Print log-info about EigenSolver
+    PrintInfo();
+
+    // Create standard solver
+    SolverType solver;
+    myParams_->GetEnumValue( "Solver", solver );
+    solver_ = GenerateSolverObject( *matrixA_, solver, xml_, myParams_,
+                                    myReport_ );
+
+    // Create preconditioner
+    PrecondType precond;
+    myParams_->GetEnumValue("Precond", precond);
+
+    // Perform check, if matrix is std or sbm
+    if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
+      const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
+      precond_ = GenerateStdPrecondObject( mat, precond,
+                                           myParams_, myReport_ );
+    } else {
+      EXCEPTION( "No preconditioner available for SBM-matrices!" );
+    }
+
+    // Setup matrixinterface
+    interface_->Setup( solver_, precond_ );
+
+    //Find the eigenvalues and calculate the eigenvectors
+    UInt numEVs = arpackSolver_->FindEigenvalues();
+    if( numEVs == 0) {
+      EXCEPTION( "No convergence in search for eigenvalues");
+    }
+
+    evs.Resize( numEVs );
+    err.Resize( numEVs );
+    for (UInt i = 0; i < numEVs; i++ ) {
+      evs[i] = arpackSolver_->Eigenvalue(i);
+      err[i] = arpackSolver_->Tolerance(i);
+    }
+
+    condNumber = evs[evs.GetSize()-1] / evs[0];
   }
 
   void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Double> & mode ) {
