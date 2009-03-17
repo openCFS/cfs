@@ -12,3 +12,6 @@ SET(CFS_DEPS_CACHE_DIR_DEFAULT "/Users/simon/Documents/dev/CFSDEPSCACHE")
 
 SET(CFS_PARDISO_DEFAULT "MKL")
 SET(MKL_ROOT_DIR_DEFAULT "/opt/intel/Compiler/11.0/059/Frameworks/mkl")
+
+SET(CFS_INTEL10_OPT_SWITCHES "-axT -parallel")
+SET(CFS_INTEL11_OPT_SWITCHES "-xhost -parallel")
