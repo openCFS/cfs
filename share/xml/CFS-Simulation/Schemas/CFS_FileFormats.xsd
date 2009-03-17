@@ -191,7 +191,7 @@
   <!--   Definition of data type for GiD output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputGiD">
-    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
+    <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="id" type="xsd:token" default="gid"/>
   </xsd:complexType>
   
