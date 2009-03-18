@@ -84,7 +84,7 @@ namespace CoupledField {
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
     arpackSolver_->
-    Setup( interface_, size, numFreq_, freqShift_, which_ , "I", shiftAndInvert_);
+    Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -174,7 +174,7 @@ namespace CoupledField {
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
     arpackSolver_->
-        Setup( interface_, size, numFreq_, freqShift_, which_ , "G", shiftAndInvert_);
+        Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G", shiftAndInvert_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -360,7 +360,7 @@ namespace CoupledField {
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
     arpackSolver_->
-    Setup( interface_, size, numFreq_, freqShift_, which_ , "I", shiftAndInvert_);
+    Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_);
 
 
     if (tol > 0.0)
