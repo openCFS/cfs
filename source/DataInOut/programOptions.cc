@@ -694,7 +694,6 @@ namespace CoupledField {
   ColoredConsole::colorise = colTmp;
   }
 
-
   void ProgramOptions::GetHistoryString( std::ostream & out)
   {
     out << "This is a incomplete revision history. It starts with the new versioning schema:" << std::endl
@@ -706,7 +705,9 @@ namespace CoupledField {
         << "  brand new OLAS from the MACHETE branch. But here only first steps of" << std::endl
         << "  the info.xml file." << std::endl
         << std::endl
-        << "09.xx, Frotzelnder Franke (?)" << std::endl
+        << "09.03, Maehende Machete" << std::endl
+        << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << std::endl
+        << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << std::endl
         << std::endl;
   }  
   
