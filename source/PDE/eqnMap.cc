@@ -1728,7 +1728,7 @@ namespace CoupledField {
             }
 
             for ( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
-              if ( actMap[locElem-1][iDof] != NO_EQN &&
+              if ( actMap[locElem-1][iDof] == NO_EQN &&
                   countElems[locElem-1][iDof] == 0) {
                 numEqns_++;
                 actMap[locElem-1][iDof] = numEqns_;
