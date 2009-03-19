@@ -1744,7 +1744,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
          fct->SetIsoOrder( order );
        } else {
          Matrix<UInt> orderMat;
-         ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, 1, orderMat);
+         ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, dim_, orderMat);
          fct->SetAnisoOrder( orderMat );
        }
        disp->fctType = fct;

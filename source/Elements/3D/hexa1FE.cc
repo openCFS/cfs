@@ -1049,7 +1049,7 @@ namespace CoupledField
         max_3 = legFct->GetMaxOrderLocDir(2);
 
         IntegOrder = EncodeCartesianOrder( max_1*2, max_2*2, max_3*2 );
-        std::cerr << "integration order: " << IntegOrder << std::endl;
+        //std::cerr << "integration order: " << IntegOrder << std::endl;
     //   }
 
       // get the values by IntegMethod and IntegOrder
