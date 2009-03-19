@@ -249,9 +249,9 @@ namespace CoupledField {
       }
     }
 
-    std::cerr << "order = \n" << order << std::endl;
-    std::cerr << "maxOrderDof: " << maxOrderDof_.Serialize() << std::endl;
-    std::cerr << "maxOrderLocDir: " << maxOrderLocDir_.Serialize() << std::endl;
+//    std::cerr << "order = \n" << order << std::endl;
+//    std::cerr << "maxOrderDof: " << maxOrderDof_.Serialize() << std::endl;
+//    std::cerr << "maxOrderLocDir: " << maxOrderLocDir_.Serialize() << std::endl;
   }
 
 
