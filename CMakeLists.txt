@@ -347,7 +347,8 @@ STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}
 # Determine global revision of working copy
 #-----------------------------------------------------------------------------
 EXECUTE_PROCESS(
-  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsrev.pl ${CFS_SOURCE_DIR}
+  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsrev.pl
+  ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
   OUTPUT_VARIABLE CFS_SUBVERSION_REV
   ERROR_VARIABLE CFS_SUBVERSION_REV
   RESULT_VARIABLE RETVAL)
@@ -363,7 +364,8 @@ ENDIF(RETVAL STREQUAL 0)
 
 
 EXECUTE_PROCESS(
-  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl ${CFS_SOURCE_DIR}
+  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl
+  ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
   OUTPUT_VARIABLE CFS_SUBVERSION_MODIF
   ERROR_VARIABLE CFS_SUBVERSION_MODIF
   RESULT_VARIABLE RETVAL)
