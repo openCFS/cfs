@@ -197,7 +197,7 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   ELSE(DEBUG)
 
     SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
-    SET(CFS_SUPPRESSIONS "-Wno-unknown-pragmas -Wno-comment")
+    SET(CFS_SUPPRESSIONS "-wd1125,654 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
       SET(CFS_C_FLAGS "${CFS_C_FLAGS} ${CFS_INTEL10_OPT_SWITCHES}")
