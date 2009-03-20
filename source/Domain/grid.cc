@@ -423,8 +423,8 @@ namespace CoupledField
         }
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            if((masterElems[i]->ptElem != ptQ1) ||
-                (slaveElems[j]->ptElem != ptQ1))
+            if((masterElems[i]->ptElem != ptQ1 && masterElems[i]->ptElem != ptQ2) ||
+                (slaveElems[j]->ptElem != ptQ1 && slaveElems[j]->ptElem != ptQ2))
             {
               EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                         << "rectangle algorithm.");
@@ -443,10 +443,10 @@ namespace CoupledField
       case POLYGON_INTERSECT:
         for (UInt i = 0; i < masterElems.GetSize(); ++i) {
           for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-            if (((masterElems[i]->ptElem != ptTr1)
-                  && (masterElems[i]->ptElem != ptQ1))
-                || ((slaveElems[j]->ptElem != ptTr1)
-                  && (slaveElems[j]->ptElem != ptQ1)))
+            BaseFE* m_el = masterElems[i]->ptElem;
+            BaseFE* s_el = slaveElems[j]->ptElem;
+            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptTr2)
+               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptTr2))
             {
               EXCEPTION("Only triangles and quadrilaterals can be intersected"
                         << " with polygon algorithm.");
