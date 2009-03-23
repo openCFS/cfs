@@ -57,20 +57,20 @@ namespace CoupledField
 
   Grid::~Grid()
   {
-    delete ptQ1;      ptQ1 = NULL;    
-    delete ptQ2;      ptQ2 = NULL;    
-    delete ptQ9;      ptQ9 = NULL;    
-    delete ptTet1;    ptTet1 = NULL;  
-    delete ptTet2;    ptTet2 = NULL;  
-    delete ptL1;      ptL1 = NULL;    
-    delete ptL2;      ptL2 = NULL;    
-    delete ptTr1;     ptTr1 = NULL;   
-    delete ptTr2;     ptTr2 = NULL;   
-    delete ptHexa1;   ptHexa1 = NULL; 
-    delete ptHexa2;   ptHexa2 = NULL; 
-    delete ptHexa27;  ptHexa27 = NULL; 
-    delete ptPyra1;   ptPyra1 = NULL; 
-    delete ptPyra2;   ptPyra2 = NULL; 
+    delete ptQ1;      ptQ1 = NULL;
+    delete ptQ2;      ptQ2 = NULL;
+    delete ptQ9;      ptQ9 = NULL;
+    delete ptTet1;    ptTet1 = NULL;
+    delete ptTet2;    ptTet2 = NULL;
+    delete ptL1;      ptL1 = NULL;
+    delete ptL2;      ptL2 = NULL;
+    delete ptTr1;     ptTr1 = NULL;
+    delete ptTr2;     ptTr2 = NULL;
+    delete ptHexa1;   ptHexa1 = NULL;
+    delete ptHexa2;   ptHexa2 = NULL;
+    delete ptHexa27;  ptHexa27 = NULL;
+    delete ptPyra1;   ptPyra1 = NULL;
+    delete ptPyra2;   ptPyra2 = NULL;
     delete ptWedge1;  ptWedge1 = NULL;
     delete ptWedge2;  ptWedge2 = NULL;
   }
@@ -1242,7 +1242,7 @@ namespace CoupledField
       }
     }
 
-    ncElem->ptElem = ifaceElem1->ptElem;
+    ncElem->ptElem = ptQ1;
     ncElem->ptLagrangeParent = ifaceElem2;
     ncElem->ptSurfParent = ifaceElem1;
 
@@ -1258,16 +1258,51 @@ namespace CoupledField
   {
     UInt i;
     StdVector< Vector<Double> > p1, p2, r;
+	UInt p1Size, p2Size;
 
     polysectAbsTol_ = absTol;
     polysectRelTol_ = relTol;
 
-    p1.Resize(ifElem1->connect.GetSize());
-    for (i = 0; i < p1.GetSize(); ++i)
+    switch(ifElem1->ptElem->feType()) {
+      case Elem::TRIA3:
+      case Elem::TRIA6:
+        p1Size = 3;
+        break;
+
+      case Elem::QUAD4:
+      case Elem::QUAD8:
+      case Elem::QUAD9:
+        p1Size = 4;
+        break;
+
+      default:
+    	EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
+    			<< Elem::feType.ToString(ifElem1->ptElem->feType()) << "!");
+    }
+
+    p1.Resize(p1Size);
+    for (i = 0; i < p1Size; ++i)
       GetNodeCoordinate(p1[i], ifElem1->connect[i], coordUpdate);
 
-    p2.Resize(ifElem2->connect.GetSize());
-    for (i = 0; i < p2.GetSize(); ++i)
+    switch(ifElem2->ptElem->feType()) {
+      case Elem::TRIA3:
+      case Elem::TRIA6:
+        p2Size = 3;
+        break;
+
+      case Elem::QUAD4:
+      case Elem::QUAD8:
+      case Elem::QUAD9:
+        p2Size = 4;
+        break;
+
+      default:
+    	EXCEPTION("Second argument to PolygonOnPolygon may not be of type '"
+    			<< Elem::feType.ToString(ifElem2->ptElem->feType()) << "'!");
+    }
+
+    p2.Resize(p2Size);
+    for (i = 0; i < p2Size; ++i)
       GetNodeCoordinate(p2[i], ifElem2->connect[i], coordUpdate);
 
     if (CutPolys(p1, p2, coplanar, r))
@@ -1278,7 +1313,6 @@ namespace CoupledField
       {
         elemList[i]->ptLagrangeParent = ifElem2;
         elemList[i]->ptSurfParent = ifElem1;
-        //elemList[i]->ptElem = ptTr1;
       }
 
       return true;
@@ -1367,14 +1401,14 @@ namespace CoupledField
 
     /* At this point we know that the lines are not parallel,
      * so compute intersection.
-     * 
+     *
      * a + h * v1 = c + k * v2
-     * 
+     *
      * This is a system with 2 unknowns (h,k) and 3 equations. Compute k1
      * from equations 1 and 2, k2 from equations 1 and 3, and k3 from
      * equations 2 and 3. Depending on the orientation of the lines in 3D
      * space, up to two values out of (k1,k2,k3) may be undefined, because
-     * the denominator is zero. Therefore we need to select the right k. 
+     * the denominator is zero. Therefore we need to select the right k.
      */
 
     Double h, k, k1 = 0.0, k2 = 0.0, k3 = 0.0, denom1, denom2, denom3;
@@ -1388,13 +1422,13 @@ namespace CoupledField
     denom3 = v1[2] * v2[1] - v1[1] * v2[2];
     if (fabs(denom3) > polysectAbsTol_)
       k3 = (v1[1] * (c[2] - a[2]) + v1[2] * (a[1] - c[1])) /denom3;
-    
+
     // If this system has no solution, lines do not intersect.
     if ((fabs(denom1) <= polysectAbsTol_)
         && (fabs(denom2) <= polysectAbsTol_)
         && (fabs(denom3) <= polysectAbsTol_))
       return INTERSECT_NONE;
-    
+
     // This check makes no sense for 3 k's. Maybe add a check based on the
     // standard deviation of k.
     /*if ((fabs(denom1) > polysectAbsTol_)
@@ -1609,7 +1643,7 @@ namespace CoupledField
       return false;
     // make sure there are not more cuts than possible
     if (nCuts > 2) {
-      EXCEPTION("A line can not cut more than two edges of a convex polygon");
+      EXCEPTION("A line cannot cut more than two edges of a convex polygon");
     }
 
     // save the position of the first cut in the active polygon
@@ -2249,7 +2283,7 @@ namespace CoupledField
   }
 
 #ifdef USE_INTERPOLATION
-  
+
   /*
   // coordinates for 9 boxes of a grid
   int p[9*4]   = { 0,0,1,1,  1,0,2,1,  2,0,3,1, // lower
@@ -2276,21 +2310,21 @@ namespace CoupledField
 
 
 
-  
+
   // callback function that reports all truly intersecting triangles
   void report_inters( const HandleBox& a, const HandleBox& b) {
     std::cout << "Box " << *a.handle() << " and "
               << *b.handle() << " intersect";
     std::cout << '.' << std::endl;
   }
-  
+
   // callback function that reports all truly intersecting triangles
   void report_inters2( const Box& a, const Box& b) {
     std::cout << "Box " << a.id() << " and "
               << b.id() << " intersect";
     std::cout << '.' << std::endl;
   }
-  
+
   void Grid::intersection() {
     double xmin, ymin, xmax, ymax, zmin, zmax;
     StdVector<Elem*> elems;
@@ -2298,10 +2332,10 @@ namespace CoupledField
     UInt dim = GetDim();
     std::vector<HandleBox> elemBoxes;
     std::vector<HandleBox> elemBoxes2;
-    
+
     std::cout << std::endl;
     std::cout << std::endl;
-    
+
     GetVolElems(elems, ALL_REGIONS);
     elemBoxes.resize(elems.GetSize());
 
@@ -2312,7 +2346,7 @@ namespace CoupledField
       xmin = xmax = p[0];
       ymin = ymax = p[1];
       zmin = zmax = p[2];
-    
+
       for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
       {
         GetNodeCoordinate(p, elems[i]->connect[j]);
@@ -2326,28 +2360,28 @@ namespace CoupledField
 
       elemBoxes[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                                &elems[i]->elemNum);
-      
+
       std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
-      
+
     }
 
     UInt test = 2333;
     elemBoxes2.push_back(HandleBox(BBox3D(0.001, 0.0, 0.001, 0.001, 0.0, 0.001),
                                    &test));
-    
+
     // run the intersection algorithm and store results in a vector
     std::vector<std::size_t> result;
     //    CGAL::box_self_intersection_d( boxes, boxes+9, report_inters2 );
     //    CGAL::box_self_intersection_d( boxes, boxes+9, report( std::back_inserter( result)) );
-    
+
     //    CGAL::box_intersection_d( boxes, boxes+9,
     //                              query, query+2,
     //                              report( std::back_inserter( result)));
-    
+
     //    CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
     //                              elemBoxes2.begin(), elemBoxes2.end(),
     //                              report_inters);
-    
+
     CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
                               elemBoxes2.begin(), elemBoxes2.end(),
                               report2( std::back_inserter( result), *this));
@@ -2356,7 +2390,7 @@ namespace CoupledField
     std::sort( result.begin(), result.end());
     //    std::size_t check1[13] = {0,1,2,3,4,4,5,5,6,7,7,8,8};
     //    assert(result.size() == 13 && std::equal(check1,check1+13,result.begin()));
-    
+
     std::copy( result.begin(), result.end(),
                std::ostream_iterator<std::size_t>( std::cout, " "));
     std::cout << std::endl;
@@ -2370,7 +2404,7 @@ namespace CoupledField
     double xmin, ymin, xmax, ymax, zmin, zmax;
     //UInt dim = GetDim();
     std::vector<HandleBox> elemBoxes2;
-    
+
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty())
     {
@@ -2387,7 +2421,7 @@ namespace CoupledField
         xmin = xmax = p[0];
         ymin = ymax = p[1];
         zmin = zmax = p[2];
-    
+
         for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
         {
           GetNodeCoordinate(p, elems[i]->connect[j]);
@@ -2401,20 +2435,20 @@ namespace CoupledField
 
         elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                                   &elems[i]->elemNum);
-      
+
         //        std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
-      
+
       }
     }
-    
+
     UInt test = 0xFFFFFFFF;
     elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], globCoord[2],
                                           globCoord[0], globCoord[1], globCoord[2]),
                                    &test));
-    
+
     // run the intersection algorithm and store results in a vector
     std::vector< std::pair<const Elem*, Vector<double> > > result;
-    
+
     CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
                               elemBoxes2.begin(), elemBoxes2.end(),
                               report2( std::back_inserter( result ), *this));
@@ -2426,7 +2460,7 @@ namespace CoupledField
     }
     else
       return NULL;
-    
+
   }
 
 
@@ -2455,7 +2489,7 @@ namespace CoupledField
     Vector<Double> globPoint;
     std::vector< Vector<Double> > nodeCoords;
     std::vector<HandleBox> elemBoxes2;
-    
+
     // initialize memory of interpolation weights, if necessary
     if (consInterpWeights.empty())
       consInterpWeights.resize(numSourceNodes);
@@ -2470,16 +2504,16 @@ namespace CoupledField
     if (elemBoxes_.empty()) {
       elemBoxes_.resize(destElemList.GetSize());
       const Elem* elem = NULL;
-  
+
       for(UInt i = 0, m=destElemList.GetSize(); i < m; ++i)
       {
         elem = destElemList.GetElem(i);
         GetNodeCoordinate(p, elem->connect[0]);
-  
+
         xmin = xmax = p[0];
         ymin = ymax = p[1];
         zmin = zmax = p[2];
-  
+
         for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
         {
           GetNodeCoordinate(p, elem->connect[j]);
@@ -2490,14 +2524,14 @@ namespace CoupledField
           zmin = p[2] < zmin ? p[2] : zmin;
           zmax = p[2]> zmax ? p[2] : zmax;
         }
-  
+
         elemBoxes_[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                                   &elem->elemNum);
-  
+
         //std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin
         //          << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", "
         //          << ymax << ", " << zmax << ")" << std::endl;
-  
+
       }
     }
 
@@ -2518,24 +2552,24 @@ namespace CoupledField
       else
         localEpsilon.inc = localEpsilon.start;
     }
-    
+
     // loop over tolerance ranges
     for (locEps = localEpsilon.start;
          locEps <= localEpsilon.end;
          locEps += localEpsilon.inc) {
-      
+
       // global tolerance is inner loop, because
       // it doesn't cause numerical errors
       for (globEps = globalEpsilon.start;
            globEps <= globalEpsilon.end;
            globEps += localEpsilon.inc) {
-        
+
         EntityIterator it = sourceNodeList.GetIterator();
         sourceNodeNumbers.Clear();
         sourceNodeIndices.Clear();
         elemBoxes2.clear();
         i=0;
-        
+
         // create a list of nodes that still need to be interpolated
         while (!it.IsEnd())
         {
@@ -2551,7 +2585,7 @@ namespace CoupledField
               {
                 source->GetNodeCoordinate(point, it.GetNode(), true);
                 coordSys->Global2LocalCoord(globPoint, point);
-    
+
                 if ( std::fabs(globPoint[2] - z) < zEpsilon )
                 {
                   sourceNodeNumbers.Push_back(it.GetNode());
@@ -2571,7 +2605,7 @@ namespace CoupledField
             {
               source->GetNodeCoordinate(point, it.GetNode(), true);
               coordSys->Global2LocalCoord(globPoint, point);
-    
+
               if ( std::fabs(globPoint[2] - z) < zEpsilon )
               {
                 sourceNodeNumbers.Push_back(it.GetNode());
@@ -2583,24 +2617,24 @@ namespace CoupledField
               sourceNodeNumbers.Push_back(it.GetNode());
               sourceNodeIndices.Push_back(it.GetPos());
             }
-    
+
           }
-    
+
           it++;
           ++i;
         }
-    
+
         numActualSourceNodes = sourceNodeNumbers.GetSize();
-    
+
         if (numActualSourceNodes == 0)
           return;
-    
+
         // add global tolerance to bounding boxes
         for(UInt n=0; n<numActualSourceNodes; ++n)
         {
           source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
           coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
-    
+
           // subtract origin here!
           if(dim == 3)
             elemBoxes2.push_back(HandleBox(
@@ -2621,9 +2655,9 @@ namespace CoupledField
                        0.0),
                   &sourceNodeIndices[n]));
         }
-    
+
         // run the intersection algorithm and store results in a vector
-    
+
         CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
                                   elemBoxes2.begin(), elemBoxes2.end(),
                                   GenConsInterpReportFunctor(destElemList,
@@ -2645,7 +2679,7 @@ namespace CoupledField
 
   }
 
-  
+
 #endif // USE_INTERPOLATION
 
 } // end of namespace
