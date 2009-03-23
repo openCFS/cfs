@@ -281,6 +281,7 @@ share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
+share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/macsysinfo.scpt -text
 share/scripts/xmlreplace.py -text
