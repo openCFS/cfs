@@ -14,7 +14,7 @@ SET (PYTHON_POSSIBLE_LIB_PATHS
 )
 
 FIND_FILE(PYTHON_LIBRARY
-  NAMES libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so libpython2.5.dylib
+  NAMES libpython2.6.a libpython2.6.so libpython2.5.a libpython2.5.so libpython2.4.a libpython2.4.so libpython2.5.dylib
   PATHS ${PYTHON_POSSIBLE_LIB_PATHS}
   NO_DEFAULT_PATH
   NO_CMAKE_ENVIRONMENT_PATH
@@ -33,6 +33,7 @@ MARK_AS_ADVANCED(PYTHON_LIBRARY)
 # Look for PYTHON header.
 #-------------------------------------------------------------------------------
 SET (PYTHON_POSSIBLE_INCLUDE_PATHS
+  /usr/include/python2.6
   /usr/include/python2.5
   /usr/include/python2.4
   )
