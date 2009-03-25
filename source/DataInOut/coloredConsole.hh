@@ -20,67 +20,67 @@ namespace CoupledField
 {
 
 #ifdef WIN32
-  static const UInt bgMask( BACKGROUND_BLUE      | 
-                            BACKGROUND_GREEN     | 
-                            BACKGROUND_RED       | 
+  static const UInt bgMask( BACKGROUND_BLUE      |
+                            BACKGROUND_GREEN     |
+                            BACKGROUND_RED       |
                             BACKGROUND_INTENSITY   );
-  static const UInt fgMask( FOREGROUND_BLUE      | 
-                            FOREGROUND_GREEN     | 
-                            FOREGROUND_RED       | 
+  static const UInt fgMask( FOREGROUND_BLUE      |
+                            FOREGROUND_GREEN     |
+                            FOREGROUND_RED       |
                             FOREGROUND_INTENSITY   );
-    
-  static const UInt fgBlack    ( 0 ); 
-  static const UInt fgLoRed    ( FOREGROUND_RED   ); 
-  static const UInt fgLoGreen  ( FOREGROUND_GREEN ); 
-  static const UInt fgLoBlue   ( FOREGROUND_BLUE  ); 
-  static const UInt fgLoCyan   ( fgLoGreen   | fgLoBlue ); 
-  static const UInt fgLoMagenta( fgLoRed     | fgLoBlue ); 
-  static const UInt fgLoYellow ( fgLoRed     | fgLoGreen ); 
-  static const UInt fgLoWhite  ( fgLoRed     | fgLoGreen | fgLoBlue ); 
-  static const UInt fgGray     ( fgBlack     | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiWhite  ( fgLoWhite   | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiBlue   ( fgLoBlue    | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiGreen  ( fgLoGreen   | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiRed    ( fgLoRed     | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiCyan   ( fgLoCyan    | FOREGROUND_INTENSITY ); 
-  static const UInt fgHiMagenta( fgLoMagenta | FOREGROUND_INTENSITY ); 
+
+  static const UInt fgBlack    ( 0 );
+  static const UInt fgLoRed    ( FOREGROUND_RED   );
+  static const UInt fgLoGreen  ( FOREGROUND_GREEN );
+  static const UInt fgLoBlue   ( FOREGROUND_BLUE  );
+  static const UInt fgLoCyan   ( fgLoGreen   | fgLoBlue );
+  static const UInt fgLoMagenta( fgLoRed     | fgLoBlue );
+  static const UInt fgLoYellow ( fgLoRed     | fgLoGreen );
+  static const UInt fgLoWhite  ( fgLoRed     | fgLoGreen | fgLoBlue );
+  static const UInt fgGray     ( fgBlack     | FOREGROUND_INTENSITY );
+  static const UInt fgHiWhite  ( fgLoWhite   | FOREGROUND_INTENSITY );
+  static const UInt fgHiBlue   ( fgLoBlue    | FOREGROUND_INTENSITY );
+  static const UInt fgHiGreen  ( fgLoGreen   | FOREGROUND_INTENSITY );
+  static const UInt fgHiRed    ( fgLoRed     | FOREGROUND_INTENSITY );
+  static const UInt fgHiCyan   ( fgLoCyan    | FOREGROUND_INTENSITY );
+  static const UInt fgHiMagenta( fgLoMagenta | FOREGROUND_INTENSITY );
   static const UInt fgHiYellow ( fgLoYellow  | FOREGROUND_INTENSITY );
-  static const UInt bgBlack    ( 0 ); 
-  static const UInt bgLoRed    ( BACKGROUND_RED   ); 
-  static const UInt bgLoGreen  ( BACKGROUND_GREEN ); 
-  static const UInt bgLoBlue   ( BACKGROUND_BLUE  ); 
-  static const UInt bgLoCyan   ( bgLoGreen   | bgLoBlue ); 
-  static const UInt bgLoMagenta( bgLoRed     | bgLoBlue ); 
-  static const UInt bgLoYellow ( bgLoRed     | bgLoGreen ); 
-  static const UInt bgLoWhite  ( bgLoRed     | bgLoGreen | bgLoBlue ); 
-  static const UInt bgGray     ( bgBlack     | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiWhite  ( bgLoWhite   | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiBlue   ( bgLoBlue    | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiGreen  ( bgLoGreen   | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiRed    ( bgLoRed     | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiCyan   ( bgLoCyan    | BACKGROUND_INTENSITY ); 
-  static const UInt bgHiMagenta( bgLoMagenta | BACKGROUND_INTENSITY ); 
+  static const UInt bgBlack    ( 0 );
+  static const UInt bgLoRed    ( BACKGROUND_RED   );
+  static const UInt bgLoGreen  ( BACKGROUND_GREEN );
+  static const UInt bgLoBlue   ( BACKGROUND_BLUE  );
+  static const UInt bgLoCyan   ( bgLoGreen   | bgLoBlue );
+  static const UInt bgLoMagenta( bgLoRed     | bgLoBlue );
+  static const UInt bgLoYellow ( bgLoRed     | bgLoGreen );
+  static const UInt bgLoWhite  ( bgLoRed     | bgLoGreen | bgLoBlue );
+  static const UInt bgGray     ( bgBlack     | BACKGROUND_INTENSITY );
+  static const UInt bgHiWhite  ( bgLoWhite   | BACKGROUND_INTENSITY );
+  static const UInt bgHiBlue   ( bgLoBlue    | BACKGROUND_INTENSITY );
+  static const UInt bgHiGreen  ( bgLoGreen   | BACKGROUND_INTENSITY );
+  static const UInt bgHiRed    ( bgLoRed     | BACKGROUND_INTENSITY );
+  static const UInt bgHiCyan   ( bgLoCyan    | BACKGROUND_INTENSITY );
+  static const UInt bgHiMagenta( bgLoMagenta | BACKGROUND_INTENSITY );
   static const UInt bgHiYellow ( bgLoYellow  | BACKGROUND_INTENSITY );
 
   static const UInt fgbgReset ( (bgMask  | fgMask) + 1);
 
 #endif
-    
+
   static class ColoredConsole
   {
  #ifdef WIN32
   private:
     HANDLE                      hCon;
-    UInt                        cCharsWritten; 
-    CONSOLE_SCREEN_BUFFER_INFO  csbi; 
+    UInt                        cCharsWritten;
+    CONSOLE_SCREEN_BUFFER_INFO  csbi;
     UInt                        dwConSize;
 	WORD                        wDefaultAttributes;
  #endif
 
   public:
     static bool colorise;
-    const static bool suppressed;
-    
+    static bool suppressed;
+
   public:
     ColoredConsole() {
 #ifdef WIN32
@@ -103,19 +103,19 @@ namespace CoupledField
     {
    #ifdef WIN32
       COORD coordScreen = { 0, 0 };
-            
-      GetInfo(); 
+
+      GetInfo();
       FillConsoleOutputCharacter( hCon, TEXT(' '),
-                                  dwConSize, 
+                                  dwConSize,
                                   coordScreen,
-                                  &cCharsWritten ); 
-      GetInfo(); 
+                                  &cCharsWritten );
+      GetInfo();
       FillConsoleOutputAttribute( hCon,
                                   csbi.wAttributes,
                                   dwConSize,
                                   coordScreen,
-                                  &cCharsWritten ); 
-      SetConsoleCursorPosition( hCon, coordScreen ); 
+                                  &cCharsWritten );
+      SetConsoleCursorPosition( hCon, coordScreen );
    #endif
     }
 
@@ -137,15 +137,15 @@ namespace CoupledField
         hCon = GetStdHandle( STD_ERROR_HANDLE );
       else
         return;
-      
+
       GetInfo();
       if((wRGBI == fgbgReset) && (Mask == fgbgReset))
 	  {
-        csbi.wAttributes = wDefaultAttributes; 
+        csbi.wAttributes = wDefaultAttributes;
 	  }
 	  else
 	  {
-        csbi.wAttributes &= WORD(Mask); 
+        csbi.wAttributes &= WORD(Mask);
         csbi.wAttributes |= WORD(wRGBI);
 	  }
 
@@ -156,14 +156,14 @@ namespace CoupledField
 
     }
   } console;
-    
+
   inline std::ostream& clr( std::ostream& os )
   {
     os.flush();
     console.Clear();
     return os;
   }
-    
+
   inline std::ostream& fg_red( std::ostream& os )
   {
     os.flush();
@@ -174,7 +174,7 @@ namespace CoupledField
  #endif
     return os;
   }
-    
+
   inline std::ostream& fg_green( std::ostream& os )
   {
     os.flush();
@@ -183,10 +183,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[32;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_blue( std::ostream& os )
   {
     os.flush();
@@ -195,10 +195,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[34;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_white( std::ostream& os )
   {
     os.flush();
@@ -207,10 +207,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[37;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_cyan( std::ostream& os )
   {
     os.flush();
@@ -219,10 +219,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[36;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_magenta( std::ostream& os )
   {
     os.flush();
@@ -230,10 +230,10 @@ namespace CoupledField
     console.SetColor( fgHiMagenta, bgMask, "", os );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_yellow( std::ostream& os )
   {
     os.flush();
@@ -242,10 +242,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[33;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& fg_black( std::ostream& os )
   {
     os.flush();
@@ -257,7 +257,7 @@ namespace CoupledField
 
     return os;
   }
-    
+
   inline std::ostream& fg_gray( std::ostream& os )
   {
     os.flush();
@@ -266,10 +266,10 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[30;1m", os);
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_red( std::ostream& os )
   {
     os.flush();
@@ -277,10 +277,10 @@ namespace CoupledField
     console.SetColor( bgHiRed, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_green( std::ostream& os )
   {
     os.flush();
@@ -288,10 +288,10 @@ namespace CoupledField
     console.SetColor( bgHiGreen, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_blue( std::ostream& os )
   {
     os.flush();
@@ -299,10 +299,10 @@ namespace CoupledField
     console.SetColor( bgHiBlue, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_white( std::ostream& os )
   {
     os.flush();
@@ -310,10 +310,10 @@ namespace CoupledField
     console.SetColor( bgHiWhite, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_cyan( std::ostream& os )
   {
     os.flush();
@@ -321,10 +321,10 @@ namespace CoupledField
     console.SetColor( bgHiCyan, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_magenta( std::ostream& os )
   {
     os.flush();
@@ -332,10 +332,10 @@ namespace CoupledField
     console.SetColor( bgHiMagenta, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_yellow( std::ostream& os )
   {
     os.flush();
@@ -343,10 +343,10 @@ namespace CoupledField
     console.SetColor( bgHiYellow, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_black( std::ostream& os )
   {
     os.flush();
@@ -354,10 +354,10 @@ namespace CoupledField
     console.SetColor( bgBlack, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
-    
+
   inline std::ostream& bg_gray( std::ostream& os )
   {
     os.flush();
@@ -365,7 +365,7 @@ namespace CoupledField
     console.SetColor( bgGray, fgMask, "", os  );
  #else
  #endif
-        
+
     return os;
   }
 
@@ -377,7 +377,7 @@ namespace CoupledField
  #else
     console.SetColor( 0, 0, "\033[0m", os);
  #endif
-        
+
     return os;
   }
 
