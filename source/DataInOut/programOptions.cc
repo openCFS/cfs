@@ -92,7 +92,7 @@ namespace CoupledField {
 
       ( "history",
         "history of revisions" )
-        
+
       ( "meshFile,m", po::value<std::string>(),
         "name of mesh file for the simulation" )
 
@@ -107,7 +107,7 @@ namespace CoupledField {
 
       ( "forceSegFault,f",
         "force a segmentation fault at exceptions")
-        
+
       ( "printGrid,g",
         "read grid from input and write it to output file" )
 
@@ -123,6 +123,9 @@ namespace CoupledField {
 
       ( "listMapping,l",
         "list equation and local/global mapping in info.xml file")
+
+      ( "noColor",
+        "turn off colored output")
       ;
 
 
@@ -181,12 +184,17 @@ namespace CoupledField {
 
       po::store( po::parse_environment( cmdLineOptions, name_mapper ),
                  varMap_ );
-                 
+
     } catch (std::exception& e) {
       EXCEPTION( "Wrong command line arguments: " << e.what() );
     }
 
     po::notify( varMap_ );
+
+    // Check if colored output should be switched off
+    if( varMap_.count("noColor") != 0) {
+      ColoredConsole::suppressed = true;
+    }
 
     // Check for version
     if( varMap_.count("version") != 0  ) {
@@ -199,7 +207,7 @@ namespace CoupledField {
       GetHistoryString(std::cout);
       exit( EXIT_SUCCESS );
     }
-    
+
     // Check for help
     if( varMap_.count("help") != 0) {
       std::cout << helpMsg_;
@@ -425,7 +433,7 @@ namespace CoupledField {
 
            << "CFS_NAME:              "
            << fg_blue << CFS_NAME << fg_reset << std::endl
-           
+
            << "CFS_BUILD_HOST:        "
            << fg_blue << CFS_BUILD_HOST << fg_reset << std::endl
 
@@ -669,7 +677,7 @@ namespace CoupledField {
     outstr << std::endl;
     outstr << "CFS_BOOST_VERSION:     "
            << fg_blue << CFS_BOOST_VERSION << fg_reset << std::endl;
-    outstr << std::endl; 
+    outstr << std::endl;
     outstr << "CFS_METIS_VERSION:     "
            << fg_blue << CFS_METIS_VERSION << fg_reset << std::endl;
     outstr << std::endl;
@@ -709,23 +717,23 @@ namespace CoupledField {
         << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << std::endl
         << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << std::endl
         << std::endl;
-  }  
-  
+  }
+
   void ProgramOptions::GetHeaderString(std::ostream & out)
   {
     // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-    out << std::endl  
+    out << std::endl
         << "============================================================"
         << "===========" << std::endl;
     out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
         << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-        << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl 
-        << " compiled " << __DATE__ 
-        << " as " << CMAKE_BUILD_TYPE << std::endl; 
+        << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+        << " compiled " << __DATE__
+        << " as " << CMAKE_BUILD_TYPE << std::endl;
     out << "============================================================"
         << "==========="
         << std::endl << std::endl;
   }
-  
-  
+
+
 }
