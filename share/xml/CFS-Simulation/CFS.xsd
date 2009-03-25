@@ -1,8 +1,5 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -25,7 +22,6 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDEbubble.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Include definition of coupling types and elements -->
@@ -57,7 +53,7 @@
   <xsd:element name="cfsSimulation">
     <xsd:complexType>
       <xsd:sequence>
-        
+
         <!-- File format list for io-specifications (required)-->
         <xsd:element name="fileFormats" type="DT_FileFormats" minOccurs="1"/>
 
@@ -101,38 +97,33 @@
                 <xsd:complexType>
                   <xsd:sequence>
                     <!-- Parameters for transient/harmonic analysis (semi-optional) -->
-                    <xsd:element ref="AnalysisBasic" minOccurs="1"
-                      maxOccurs="1"/>
+                    <xsd:element ref="AnalysisBasic" minOccurs="1" maxOccurs="1"/>
                   </xsd:sequence>
                 </xsd:complexType>
               </xsd:element>
-              
+
               <!-- List of PDEs (required) -->
               <xsd:element name="pdeList">
                 <xsd:complexType>
                   <xsd:sequence>
-                    <xsd:element ref="PDEBasic" minOccurs="1"
-                      maxOccurs="unbounded"/>
+                    <xsd:element ref="PDEBasic" minOccurs="1" maxOccurs="unbounded"/>
                   </xsd:sequence>
                 </xsd:complexType>
               </xsd:element>
-              
+
               <!-- List of PDE Couplings (optional) -->
               <xsd:element name="couplingList" minOccurs="0" maxOccurs="unbounded">
                 <xsd:complexType>
                   <xsd:sequence>
-                    <xsd:element ref="PDEBasicCoupling" minOccurs="0"
-                      maxOccurs="unbounded"/>
+                    <xsd:element ref="PDEBasicCoupling" minOccurs="0" maxOccurs="unbounded"/>
                   </xsd:sequence>
-                  <xsd:attribute name="tag" type="xsd:token" use="optional" 
-                    default="anyTag"/>
+                  <xsd:attribute name="tag" type="xsd:token" use="optional" default="anyTag"/>
                 </xsd:complexType>
               </xsd:element>
-              
+
               <!-- Data postprocessing section (optional) -->
-              <xsd:element name="postProcList" type="DT_PostProcList"
-                minOccurs="0" maxOccurs="1"/>
-              
+              <xsd:element name="postProcList" type="DT_PostProcList" minOccurs="0" maxOccurs="1"/>
+
               <!-- Paremeters for setting up and solving linear systems -->
               <xsd:element name="linearSystems" minOccurs="0">
                 <xsd:complexType>
@@ -143,8 +134,7 @@
                 </xsd:complexType>
               </xsd:element>
             </xsd:sequence>
-            <xsd:attribute name="index" type="xsd:positiveInteger"
-              default="1"/>
+            <xsd:attribute name="index" type="xsd:positiveInteger" default="1"/>
             <xsd:attribute name="usage" use="optional" default="startValue">
               <xsd:simpleType>
                 <xsd:restriction base="xsd:token">
@@ -155,15 +145,14 @@
             </xsd:attribute>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Parameters for MpCCI computation (semi-optional) -->
-        <xsd:element ref="MpCCI" minOccurs="0"
-          maxOccurs="unbounded"/>
+        <xsd:element ref="MpCCI" minOccurs="0" maxOccurs="unbounded"/>
 
         <!-- Optional paramteter for ersatz Material -->
         <xsd:element name="loadErsatzMaterial" type="DT_ErsatzMaterial" minOccurs="0"/>
-        
-      	<!-- Parameters for specifying an optimization (optional) -->
+
+        <!-- Parameters for specifying an optimization (optional) -->
         <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
 
         <!-- Parameters for specifying integration rules (optional) -->
@@ -172,14 +161,12 @@
         <!-- Enforce parameter settings by disabling Expert() (optional) -->
         <xsd:element name="expert" minOccurs="0" maxOccurs="1">
           <xsd:complexType>
-            <xsd:attribute name="override" type="DT_CFSBool" use="optional" 
-              default="no"/>
+            <xsd:attribute name="override" type="DT_CFSBool" use="optional" default="no"/>
           </xsd:complexType>
         </xsd:element>
 
         <!-- Optional developer's element -->
-        <xsd:element name="devel" type="xsd:anyType" minOccurs="0"
-          maxOccurs="unbounded"/>
+        <xsd:element name="devel" type="xsd:anyType" minOccurs="0" maxOccurs="unbounded"/>
 
       </xsd:sequence>
     </xsd:complexType>
@@ -191,7 +178,8 @@
     <!-- Make sure that for every region referenced in the PDE section -->
     <!-- a corresponding region has been designated in the domain part -->
     <xsd:keyref name="CS_RegionExists" refer="CS_DomainNamesRegion">
-      <xsd:selector xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region"/>
+      <xsd:selector
+        xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region"/>
       <!-- Simple selection of all PDEs does not work due to problems -->
       <!--- with auxilliary MPCCI PDE. What is a region in that case? -->
       <!--xsd:selector xpath="cfs:pdeList/*/cfs:region"/-->
@@ -203,7 +191,7 @@
 
     <!-- Make sure that for all 'nodes' referenced in PDE section also -->
     <!-- corresponding 'nodes' have been designated in the domain part -->
-<!--    <xsd:keyref name="CS_NodesExist1" refer="CS_DomainNamesNodes">
+    <!--    <xsd:keyref name="CS_NodesExist1" refer="CS_DomainNamesNodes">
       <xsd:selector xpath="cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletHom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletInhom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:neumannInhom"/>
       <xsd:field xpath="@name"/>
     </xsd:keyref>
