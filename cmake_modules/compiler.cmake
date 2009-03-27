@@ -103,6 +103,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -Werror -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
+   IF(CFS_CXX_COMPILER_VER LESS "4.3" OR CFS_GCC43_OPT_SWITCHES STREQUAL "")
     IF(CFS_ARCH STREQUAL "I386")
       SET(CFS_OPT_FLAGS "-m32 -march=pentium4")
     ENDIF(CFS_ARCH STREQUAL "I386")
@@ -114,7 +115,9 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     IF(CFS_ARCH STREQUAL "IA64")
       SET(CFS_OPT_FLAGS "-m64 -mtune-arch=itanium2")
     ENDIF(CFS_ARCH STREQUAL "IA64")
-
+   ELSE(CFS_CXX_COMPILER_VER LESS "4.3" OR CFS_GCC43_OPT_SWITCHES STREQUAL "")       
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS} ${CFS_GCC43_OPT_SWITCHES}")
+   ENDIF(CFS_CXX_COMPILER_VER LESS "4.3" OR CFS_GCC43_OPT_SWITCHES STREQUAL "")
   ENDIF(DEBUG)
 
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
@@ -180,24 +183,15 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-
     SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
-    #---------------------------------------------------------------------------
-    # Disable warnings about hidden overriden functions of base classes,
-    # unknown pragmas (openmp, etc.) and multiline comments.
-    #---------------------------------------------------------------------------
-    SET(CFS_SUPPRESSIONS "-wd1125,654 -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
     SET(CHECK_TYPE_CASTS 1)
 
     IF(CFS_PROFILING)
       SET(CFS_PROF_FLAGS "-pg")
     ENDIF(CFS_PROFILING)
-
   ELSE(DEBUG)
-
     SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
-    SET(CFS_SUPPRESSIONS "-wd1125,654 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
       SET(CFS_C_FLAGS "${CFS_C_FLAGS} ${CFS_INTEL10_OPT_SWITCHES}")
@@ -208,6 +202,18 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
     ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   ENDIF(DEBUG)
 
+  #---------------------------------------------------------------------------
+  # Disable warnings about hidden overriden functions of base classes,
+  # unknown pragmas (openmp, etc.) and multiline comments.
+  #---------------------------------------------------------------------------
+  SET(CFS_SUPPRESSIONS "-wd1125,654")
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
+  SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
+
+  IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
+  ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
 
 ENDIF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
 

@@ -179,7 +179,8 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
   if(density != 1.0) dMat *= density;
   LOG_DBG3(forms) << GetName() << "::calcDMat(Matrix<Double>, "
-                  << (elem != NULL ? elem->elemNum : -1) << ") -> density=" << density;
+                  << (elem != NULL ? Integer(elem->elemNum) : -1)
+                  << ") -> density=" << density;
 
   //check for softening model
   if ( subTensorType_ == AXI ) {
@@ -305,7 +306,8 @@ void linElastInt::calcDMat(Matrix<Complex> & dMat, const Elem* elem)
   Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
   if(density != 1.0) dMat *= density;
   LOG_DBG3(forms) << GetName() << "->linElastInt::calcDMat(<Complex>, "
-                  << (elem != NULL ? elem->elemNum : -1) << ") -> density=" << density;
+                  << (elem != NULL ? Integer(elem->elemNum) : -1)
+                  << ") -> density=" << density;
 }
 
 
