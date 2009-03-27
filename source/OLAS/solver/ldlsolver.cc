@@ -809,7 +809,7 @@ namespace CoupledField {
     UInt scanListElem, scanListPrevElem;
     UInt activeListElem, activeListPrevElem;
     UInt listEnd = nCols+1;
-    UInt listNoElem = -1;
+    Integer listNoElem = -1;
 
     // Check that linked lists are empty
     if ( scanList_[0] != static_cast<Integer>(listEnd) ) {

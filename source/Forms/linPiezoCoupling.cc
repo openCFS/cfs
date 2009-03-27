@@ -192,7 +192,8 @@ namespace CoupledField {
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
     if(density != 1.0) dMat *= density;  
     LOG_DBG3(forms) << GetName() << "::calcDMat("
-                    << (elem != NULL ? elem->elemNum : -1) << ") -> density=" << density;
+                    << (elem != NULL ? Integer(elem->elemNum) : -1)
+                    << ") -> density=" << density;
   }
 
 

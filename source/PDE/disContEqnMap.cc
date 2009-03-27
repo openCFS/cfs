@@ -1773,7 +1773,7 @@ namespace CoupledField {
                     actMap[locEdge-1].Init();
                   }
                   
-                  UInt elemIdx = 0;
+                  Integer elemIdx = 0;
                   bool foundIdx = false;
                   // iterate over all dofs
                   for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {

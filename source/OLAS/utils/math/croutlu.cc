@@ -203,10 +203,10 @@ namespace CoupledField {
     // indices of all rows of U that have non-zero entries in column i.
     // These lists are build dynamically during the update of the firstU
     // vector. L is treated analogously
-    std::vector<UInt> *listL;
-    std::vector<UInt> *listU;
-    NEWARRAY( listL, std::vector<UInt>, sysMatDim_ );
-    NEWARRAY( listU, std::vector<UInt>, sysMatDim_ );
+    std::vector<Integer> *listL;
+    std::vector<Integer> *listU;
+    NEWARRAY( listL, std::vector<Integer>, sysMatDim_ );
+    NEWARRAY( listU, std::vector<Integer>, sysMatDim_ );
     for ( UInt i = 0; i < sysMatDim_; i++ ) {
       listL[i].reserve( estNZPerRow );
       listU[i].reserve( estNZPerRow );
