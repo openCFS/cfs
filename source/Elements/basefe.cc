@@ -218,9 +218,10 @@ namespace CoupledField
             //            Vector<Double> normal;
 
             jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1]
-                    - J[0][0] * J[2][1] + J[2][0] * J[0][1]
-                    + J[0][0] * J[1][1] - J[1][0] * J[0][1];
-
+                     - J[0][0] * J[2][1] + J[2][0] * J[0][1]
+                     + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+            jacDet = -fabs(jacDet);
+            
             delta_xi[0] = (f[0] * J[0][0] +
                            f[1] * J[1][0] +
                            f[2] * J[2][0]);

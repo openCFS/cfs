@@ -884,7 +884,7 @@ namespace CoupledField {
       ParamNode* intNode = rhsValuesNode->Get("interpolation", false);
       if (intNode)
         intNode->Get("justInterpolate", justInterpolate_, false);
-    } catch (Exception& ex) 
+    } catch (Exception& ex)
     {
       RETHROW_EXCEPTION(ex, "Error while trying to read parameters for AcouRHSLinForm.");
     }
@@ -2448,7 +2448,8 @@ namespace CoupledField {
         // a second resultdof object has to be created, which describes the
         // Lagrange multiplier
         if( ncIFaces_.GetSize() > 0 ) {
-          LOG_DBG2(acoupde) << "NonMatching: Defining new ResultDof Lagrange.";
+          LOG_DBG2(acoupde) << "NonMatching: Defining new ResultDof "
+                            << "Lagrange Multiplier (LM).";
           shared_ptr<ResultInfo> lagr ( new ResultInfo );
           lagr->resultType = LAGRANGE_MULT;
           lagr->dofNames = "l";

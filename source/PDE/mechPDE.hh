@@ -8,7 +8,7 @@
 #include <map>
 
 #include "SinglePDE.hh"
- 
+
 namespace CoupledField
 {
 
@@ -51,20 +51,20 @@ namespace CoupledField
     BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
                                   RegionIdType regionId,
                                   bool reducedInt=false);
-  
+
     /** Returns the protected damping list - don't alter! */
     const std::map<RegionIdType,DampingType>& GetDampingList() { return dampingList_; }
-    
+
     // ======================================================
     // COUPLING SECTION
     // ======================================================
-  
+
     //! initalize PDE coupling
     void InitCoupling(PDECoupling * Coupling);
 
     //! calculate coupling terms
     void CalcOutputCoupling();
-  
+
     //! returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
 
@@ -74,7 +74,7 @@ namespace CoupledField
     //! Turn on thermo-elastic coupling
     void SetHeatCoupling() {
       isHeatCoupled_ = true;
-    }  
+    }
 
     // ======================================================
     // POSTPROC SECTION
@@ -88,7 +88,7 @@ namespace CoupledField
     // ======================================================
     // POSTPROCESSING METHODS
     // ======================================================
-  
+
     //computes mechanical deformation energy
     template <class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> vals );
@@ -104,23 +104,25 @@ namespace CoupledField
     //! compute volume above a deformed surface
     template <class TYPE>
     void ComputeVolDefSurf( shared_ptr<BaseResult> vals );
-    
+
     //! computes averaged volume of an deformed element
     template<class TYPE>
-    TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+    TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord,
                         Vector<TYPE> disp);
-    
+
 
     //! Nodestoresol for RHS
     BaseNodeStoreSol * rhs_;
-    
+
 
     // ========================
     // set solution information
     // ========================
 	//! flag for thermo-elastic coupling
-    bool isHeatCoupled_; 
+    bool isHeatCoupled_;
 
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
 
 
     // ======================================================
@@ -128,13 +130,13 @@ namespace CoupledField
     // ======================================================
     //@{
     //! \name Scripting Methods
-    
+
     //! Register scriptable functions
     void RegisterFunctions();
     //@}
-    
+
     //! Obtain information on desired output quantities from parameter file
-  
+
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
@@ -166,7 +168,7 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-  
+
     //! Init the time stepping
     void InitTimeStepping();
 
@@ -183,28 +185,28 @@ namespace CoupledField
     // calc rhs coupling to acoustic pde
     // void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
     // Vector<Double>& forceOnElem);
-  
+
     /// calc rhs coupling to acoustic pde
-    void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
-                                  StdVector<BaseMaterial*> & materials, 
+    void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems,
+                                  StdVector<BaseMaterial*> & materials,
                                   StdVector<UInt>& couplingNodes,
                                   Vector<Double> & forceOnElem,
                                   UInt couplingdof );
-                               
-  
+
+
 
     /// does a line search and returns the optimal residual norm
-    Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+    Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol,
                       Double& etaLineSearch, bool trans=false);
 
 
     /// Write nonlin iteration norms to the cla-file
     void WriteClaNlNorms( const UInt iterationCounter,
                           const Double residualL2Norm,
-                          const Double extForcesL2Norm, const Double residualErr, 
-                          const Double solIncrL2Norm, const Double actSolL2Norm, 
+                          const Double extForcesL2Norm, const Double residualErr,
+                          const Double solIncrL2Norm, const Double actSolL2Norm,
                           const Double incrementalErr );
-  
+
 
     //! read in the domains with prestressing
     void ReadPreStressing();
@@ -222,20 +224,20 @@ namespace CoupledField
     void DefineAvailResults();
 
     struct SurfStress {
-      
+
       //! Name of surface elements
       RegionIdType surface;
 
       //! Name of neighbouring region
       RegionIdType region;
-      
+
       //! Vector of load
       Vector<Double> stress;
 
       //! Phase value
       std::string phase;
     };
-      
+
 
     //! List of surface stresses
     std::map<RegionIdType, SurfStress> surfStresses_;
@@ -248,7 +250,7 @@ namespace CoupledField
 
     /// returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
-  
+
     /// flag for reduced Integration for each subdomain
     StdVector<std::string> reducedIntegration_;
 
@@ -257,30 +259,30 @@ namespace CoupledField
 
     //! Number of dimension for stresses
     UInt stressDim_;
-    
+
     //! Flag indicating the use of fractional damping
     //bool fracDamping_;
 
     //! surface of pressure loads
-    StdVector<shared_ptr<EntityList> > pressSurf_;  
+    StdVector<shared_ptr<EntityList> > pressSurf_;
 
     //! values of the pressure loads
-    StdVector<std::string>  pressVals_; 
+    StdVector<std::string>  pressVals_;
 
-    //! phase of the pressure loads  
-    StdVector<std::string>  pressPhase_; 
+    //! phase of the pressure loads
+    StdVector<std::string>  pressPhase_;
 
     //! list of prestressing types
     std::map<RegionIdType,std::string> preStressList_;
 
-    //! prestress-values: numSubdoms x 3 
-    std::map< RegionIdType, Vector<Double> > preStressVal_; 
+    //! prestress-values: numSubdoms x 3
+    std::map< RegionIdType, Vector<Double> > preStressVal_;
 
      //@{ \name Attributes related to post-processing
 
      //! Contains mechanic velocity
     NodeStoreSol<Double> solDeriv1_;
-  
+
     //! Contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
 
@@ -289,10 +291,10 @@ namespace CoupledField
 
     //! Contains the directions for which the deformed volume is computed
     std::map<shared_ptr<EntityList>,std::string> volAboveDefSurfDir_;
-    
+
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
-    
+
     //! Flag indicating use of penalty dof for plate formulation
     bool usePlatePenaltyDof_;
 
@@ -301,25 +303,25 @@ namespace CoupledField
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
 
   //! \class MechPDE
-  //! 
-  //! \purpose 
-  //! This class defines the mechanical field PDE and the according 
+  //!
+  //! \purpose
+  //! This class defines the mechanical field PDE and the according
   //! postprocessing methods.
-  //! 
-  //! \collab 
-  //! 
-  //! \implement 
-  //! 
+  //!
+  //! \collab
+  //!
+  //! \implement
+  //!
   //! \status In use
-  //! 
-  //! \unused 
-  //! 
+  //!
+  //! \unused
+  //!
   //! \improve
-  //! 
+  //!
 
 #endif
 

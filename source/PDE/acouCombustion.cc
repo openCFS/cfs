@@ -232,7 +232,7 @@ namespace CoupledField
     UInt dof;
     Integer eqnNr;
     StdVector<UInt> connect(1);
-    Double srcVal;
+    Double srcVal = 0.0;
     Double pointX, pointY, pointZ = 0.0;
     bool inBox;
 
