@@ -46,10 +46,10 @@ namespace CoupledField
       onto the volume element
       \param volIntPoint (output) Corresponding volume integration point
     */
-    void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-                                   const StdVector<Integer> & volConnect,
-                                   const Vector<Double> & surfIntPoint,
-                                   Vector<Double> & volIntPoint);
+    virtual void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                           const StdVector<UInt> & volConnect,
+                                           const Vector<Double> & surfIntPoint,
+                                           Vector<Double> & volIntPoint);
 
     /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
     void SetDefaultIntegration()

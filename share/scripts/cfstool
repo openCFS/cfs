@@ -14,13 +14,8 @@ SUSEPackageHint()
     DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
 
     echo
-    echo "   blas"
-    echo "   boost"
-    echo "   compat-g77"
-    echo "   lapack"
     echo "   python"
     echo "   tcl"
-    echo "   Xerces-c"
     echo
 }
 
@@ -260,7 +255,10 @@ CFS_EXE_LDD=`$LDD $CFS_EXE | grep "not found"`
 if [ "$CFS_EXE_LDD" != "" ]
 then 
     echo "Some dependencies on system libraries could not be resolved."
-    echo "CFS depends on the following packages on $DISTRO $DISTRO_VER:"
+    echo "These were:"
+    echo "$CFS_EXE_LDD";
+    echo
+    echo "CFS++ depends on the following packages on $DISTRO $DISTRO_VER:"
     GivePackageHint $DISTRO $DISTRO_VER
     echo "Please install the required packages."
     exit 4

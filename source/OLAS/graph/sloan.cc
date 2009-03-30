@@ -53,7 +53,8 @@ namespace CoupledField {
     NEWARRAY( hlevel, Integer, size+1 );
 
     // loop while some nodes remain unnumbered
-    Integer startnode, nc;
+    Integer startnode = 0;
+    Integer nc = 0;
     Integer lstnum = 0;
 
     while ( lstnum < size ) {

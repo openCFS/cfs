@@ -44,10 +44,7 @@
 #include "Utils/tools.hh"
 
 // Lapack version function interface
-extern "C" void ilaver_(int*,
-                        int*,
-                        int*);
-
+extern "C" void ilaver_(int*, int*, int*);
 
 namespace CoupledField {
 
@@ -217,7 +214,7 @@ namespace CoupledField {
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
     {
-      std::cout << "cfs: no input files. Pleas run with --help for help\n";
+      std::cout << "cfs: no input files. Please run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
   }

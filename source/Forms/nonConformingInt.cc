@@ -82,7 +82,7 @@ namespace CoupledField {
 
     // resize element matrix to size
     // num_degrees(SurfParent) x num_degrees(LagrangeParent)
-    stiffMat.Resize( shapeFuncsSurfSize, shapeFuncsLGSize );
+    stiffMat.Resize( shapeFuncsSurfSize * dofs_, shapeFuncsLGSize * dofs_ );
     stiffMat.Init();
 
     // local matrix:
@@ -225,32 +225,38 @@ namespace CoupledField {
       if (isaxi_) {
         for(UInt s=0; s < shapeFuncsSurfSize; s++) {
           for(UInt l=0; l < shapeFuncsLGSize; l++) {
+            for(UInt dof=0; dof < dofs_; dof++) {
             // TODO: strieben - Take a closer look!
-            stiffMat[s][l] += 2.0 * PI * globalIntPoints[0][i]
-                              * jacDet * intWeights[i]
-                              * shapeFuncsSurf[s] * shapeFuncsLG[l];
+            Double radius = globalIntPoints[0][i];
+              stiffMat[s*dofs_+dof][l*dofs_+dof] += 
+                2.0 * PI * radius
+                * jacDet * intWeights[i]
+                * shapeFuncsSurf[s] * shapeFuncsLG[l];
+            }
           }
         }
       }
       else {
         for(UInt s=0; s < shapeFuncsSurfSize; s++) {
           for(UInt l=0; l < shapeFuncsLGSize; l++) {
-            // stiffMat[s][l] += jacDet * intWeights[i] *
-            //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
-            //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
+            for(UInt dof=0; dof < dofs_; dof++) {
+              // stiffMat[s][l] += jacDet * intWeights[i] *
+              //                   shapeFuncsSurf[shapeFuncsSurfSize - s - 1] *
+              //                   shapeFuncsLG[shapeFuncsLGSize - l - 1 ];
 
-            // This destroyed the circular pattern for the l2d example.
-            // TODO: strieben - Take a closer look!
-            stiffMat[s][l] += jacDet * intWeights[i] *
-              shapeFuncsSurf[s] *
-              shapeFuncsLG[l];
+              // This destroyed the circular pattern for the l2d example.
+              // TODO: strieben - Take a closer look!
+              stiffMat[s*dofs_+dof][l*dofs_+dof] += jacDet * intWeights[i] *
+                shapeFuncsSurf[s] *
+                shapeFuncsLG[l];
+            }
           }
         }
       }
     }
 
     LOG_DBG2(ncint) << "element matrix of NCElem #" << elem->elemNum
-                    << ": " << stiffMat << std::endl;
+                    << ":" << std::endl << stiffMat << std::endl;
   }
 
 

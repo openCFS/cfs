@@ -114,6 +114,7 @@ elif [ "${OS}" = "Linux" ] ; then
 			DIST=$DISTRIB_ID;
 			REV=$DISTRIB_RELEASE;
 			PSEUDONAME=$DISTRIB_CODENAME;
+			# http://en.wikipedia.org/wiki/History_of_Ubuntu
 			case "$DISTRIB_CODENAME" in
 			    "warty") PSEUDONAME="Warty Warthog";; # 4.10
 			    "hoary") PSEUDONAME="Hoary Hedgehog";; # 5.04
@@ -124,6 +125,8 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "gutsy") PSEUDONAME="Gutsy Gibbon";; # 7.10
 			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04
 			    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
+			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
+			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
 	                esac;;
 		    "knoppix")
 			DIST=Knoppix;
