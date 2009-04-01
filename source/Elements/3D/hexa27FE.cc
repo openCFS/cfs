@@ -170,16 +170,47 @@ namespace CoupledField
     shapeZeta[2] = 1.0 - LCoord[2]*LCoord[2];
     shapeZeta[1] = 0.5*LCoord[2]*(LCoord[2]+1);
 
-    for(UInt xi=0; xi<3; xi++)
-    {
-      for(UInt eta=0; eta<3; eta++)
-      {
-        for(UInt zeta=0; zeta<3; zeta++)
-        {
-          Shape[xi*9+eta*3+zeta] = shapeXi[xi] * shapeEta[eta] * shapeZeta[zeta];
-        }
-      }
-    }
+    // Corners
+    Shape[0]= shapeXi[0]     * shapeEta[0]      * shapeZeta[0];
+    Shape[1]= shapeXi[1]     * shapeEta[0]      * shapeZeta[0];
+    Shape[2]= shapeXi[1]     * shapeEta[1]      * shapeZeta[0];
+    Shape[3]= shapeXi[0]     * shapeEta[1]      * shapeZeta[0];
+
+    Shape[4]= shapeXi[0]     * shapeEta[0]      * shapeZeta[1];
+    Shape[5]= shapeXi[1]     * shapeEta[0]      * shapeZeta[1];
+    Shape[6]= shapeXi[1]     * shapeEta[1]      * shapeZeta[1];
+    Shape[7]= shapeXi[0]     * shapeEta[1]      * shapeZeta[1];
+
+    // Edges
+    Shape[8]= shapeXi[2]     * shapeEta[0]      * shapeZeta[0];
+    Shape[9]= shapeXi[1]     * shapeEta[2]      * shapeZeta[0];
+    Shape[10]= shapeXi[2]     * shapeEta[1]      * shapeZeta[0];
+    Shape[11]= shapeXi[0]     * shapeEta[2]      * shapeZeta[0];
+
+    Shape[12]= shapeXi[2]     * shapeEta[0]      * shapeZeta[1];
+    Shape[13]= shapeXi[1]     * shapeEta[2]      * shapeZeta[1];
+    Shape[14]= shapeXi[2]     * shapeEta[1]      * shapeZeta[1];
+    Shape[15]= shapeXi[0]     * shapeEta[2]      * shapeZeta[1];
+
+    Shape[16]= shapeXi[0]     * shapeEta[0]      * shapeZeta[2];
+    Shape[17]= shapeXi[1]     * shapeEta[0]      * shapeZeta[2];
+    Shape[18]= shapeXi[1]     * shapeEta[1]      * shapeZeta[2];
+    Shape[19]= shapeXi[0]     * shapeEta[1]      * shapeZeta[2];
+    
+    // Faces
+    Shape[20]= shapeXi[2]     * shapeEta[0]      * shapeZeta[2];
+    Shape[21]= shapeXi[1]     * shapeEta[2]      * shapeZeta[2];
+    Shape[22]= shapeXi[2]     * shapeEta[1]      * shapeZeta[2];
+    Shape[23]= shapeXi[0]     * shapeEta[2]      * shapeZeta[2];
+    
+    // Bottom
+    Shape[24]= shapeXi[2]     * shapeEta[2]      * shapeZeta[0];
+    
+    // Top
+    Shape[25]= shapeXi[2]     * shapeEta[2]      * shapeZeta[1];
+
+    // Center
+    Shape[26]= shapeXi[2]     * shapeEta[2]      * shapeZeta[2];
   }
 
   void Hexa27FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
@@ -203,7 +234,6 @@ namespace CoupledField
     shapeZeta[2] = 1.0 - LCoord[2]*LCoord[2];
     shapeZeta[1] = 0.5*LCoord[2]*(LCoord[2]+1);
 
-
     shapeDerivXi[0] = 0.5*(2*LCoord[0] - 1);
     shapeDerivXi[2] = -2.0*LCoord[0];
     shapeDerivXi[1] = 0.5*(2*LCoord[0] + 1); 
@@ -216,18 +246,123 @@ namespace CoupledField
     shapeDerivZeta[2] = -2.0*LCoord[2];
     shapeDerivZeta[1] = 0.5*(2*LCoord[2] + 1); 
 
-    for(UInt xi=0; xi<3; xi++)
-    {
-      for(UInt eta=0; eta<3; eta++)
-      {
-        for(UInt zeta=0; zeta<3; zeta++)
-        {
-          LDeriv[xi*9 + eta*3 + zeta][0] = shapeDerivXi[xi] * shapeEta[eta]      * shapeZeta[zeta];
-          LDeriv[xi*9 + eta*3 + zeta][1] = shapeXi[xi]      * shapeDerivEta[eta] * shapeZeta[zeta];
-          LDeriv[xi*9 + eta*3 + zeta][2] = shapeXi[xi]      * shapeEta[eta]      * shapeDerivZeta[zeta];
-        }
-      }
-    }
+    // Corners bottom
+    LDeriv[0][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[0];
+    LDeriv[0][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[0];
+    LDeriv[0][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[0];
+    
+    LDeriv[1][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[0];
+    LDeriv[1][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[0];
+    LDeriv[1][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[0];
+    
+    LDeriv[2][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[0];
+    LDeriv[2][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[0];
+    LDeriv[2][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    LDeriv[3][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[0];
+    LDeriv[3][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[0];
+    LDeriv[3][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    //Corners top
+    LDeriv[4][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[1];
+    LDeriv[4][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[1];
+    LDeriv[4][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    LDeriv[5][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[1];
+    LDeriv[5][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[1];
+    LDeriv[5][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    LDeriv[6][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[1];
+    LDeriv[6][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[1];
+    LDeriv[6][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    LDeriv[7][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[1];
+    LDeriv[7][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[1];
+    LDeriv[7][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    // Edges
+    LDeriv[8][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[0];
+    LDeriv[8][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[0];
+    LDeriv[8][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[0];
+
+    LDeriv[9][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[0];
+    LDeriv[9][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[0];
+    LDeriv[9][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[0];
+
+    LDeriv[10][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[0];
+    LDeriv[10][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[0];
+    LDeriv[10][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    LDeriv[11][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[0];
+    LDeriv[11][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[0];
+    LDeriv[11][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[0];
+
+    
+    LDeriv[12][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[1];
+    LDeriv[12][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[1];
+    LDeriv[12][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    LDeriv[13][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[1];
+    LDeriv[13][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[1];
+    LDeriv[13][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[1];
+
+    LDeriv[14][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[1];
+    LDeriv[14][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[1];
+    LDeriv[14][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    LDeriv[15][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[1];
+    LDeriv[15][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[1];
+    LDeriv[15][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[1];
+
+    
+    LDeriv[16][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[2];
+    LDeriv[16][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[2];
+    LDeriv[16][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    LDeriv[17][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[2];
+    LDeriv[17][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[2];
+    LDeriv[17][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    LDeriv[18][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[2];
+    LDeriv[18][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[2];
+    LDeriv[18][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[2];
+
+    LDeriv[19][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[2];
+    LDeriv[19][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[2];
+    LDeriv[19][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[2];
+    
+    // Faces
+    LDeriv[20][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[2];
+    LDeriv[20][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[2];
+    LDeriv[20][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    LDeriv[21][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[2];
+    LDeriv[21][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[2];
+    LDeriv[21][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[2];
+
+    LDeriv[22][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[2];
+    LDeriv[22][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[2];
+    LDeriv[22][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[2];
+
+    LDeriv[23][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[2];
+    LDeriv[23][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[2];
+    LDeriv[23][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[2];
+    
+    // Bottom
+    LDeriv[24][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[0];
+    LDeriv[24][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[0];
+    LDeriv[24][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[0];
+    
+    // Top
+    LDeriv[25][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[1];
+    LDeriv[25][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[1];
+    LDeriv[25][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[1];
+
+    // Center
+    LDeriv[26][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[2];
+    LDeriv[26][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[2];
+    LDeriv[26][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[2];
+
   }
 
 

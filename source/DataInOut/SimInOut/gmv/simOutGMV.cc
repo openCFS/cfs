@@ -610,6 +610,9 @@ namespace CoupledField {
         connect[1] = connect[2];
         connect[2] = connect[3];          
         break;
+      case Elem::QUAD9:
+        numNodes = 8;
+        break;
       default:
         break;
       }
@@ -685,6 +688,7 @@ namespace CoupledField {
       id       = "quad    ";
       break;
     case Elem::QUAD8:
+    case Elem::QUAD9:
       id       = "8quad   ";
       break;
     case Elem::TET4:

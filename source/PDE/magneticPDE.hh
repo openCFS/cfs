@@ -148,6 +148,8 @@ namespace CoupledField
     //! regions on which the Lorentz force should be calculated
     std::set<RegionIdType> regionsForceL_;
     
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
 
     // =======================================================================
     //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 

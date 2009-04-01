@@ -357,6 +357,18 @@ namespace CoupledField {
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
+    
+    // Get index of LAGRANGE_MULT result, just in case... who knows...
+    UInt lmResultIdx = 0;
+    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+      if(results_[i]->resultType == LAGRANGE_MULT) {
+        lmResultIdx = i;
+        break;
+      }
+    }
+    LOG_DBG2(elecpde) << "NonMatching: Index of LAGRANGE_MULT result: "
+                     << lmResultIdx;
+    
     for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
       
       // get regionId of Lagrangian surface
@@ -389,7 +401,7 @@ namespace CoupledField {
       stiffIntDescr->SetCounterPart( true );
 
       stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetResults( results_[0], results_[1],
+      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
                                  actNcList, actNcList );
       
       assemble_->AddBiLinearForm( stiffIntDescr );
@@ -412,13 +424,13 @@ namespace CoupledField {
       // Force assembling of D(Psi, Lambda)^T
       dMatContext->SetCounterPart( true );
       dMatContext->SetPtPdes( this, this );
-      dMatContext->SetResults( results_[0], results_[1],
+      dMatContext->SetResults( results_[0], results_[lmResultIdx],
                                actSDList, actSDList );
       
       assemble_->AddBiLinearForm( dMatContext );
 
       // Give result LAGRANGE_MULT to equation numbering class
-      eqnMap_->AddResult( *results_[1], actSDList );
+      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
     }
 
 

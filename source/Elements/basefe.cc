@@ -697,9 +697,6 @@ namespace CoupledField
                                        const Matrix<Double> & CornerCoords,
                                        const Elem* elem)
   {
-
-    std::string errMsg;
-
     CalcJacobianAtIp( J, ip, CornerCoords, elem);
 
     if (CornerCoords.GetNumRows()==3 && Dim_==2)

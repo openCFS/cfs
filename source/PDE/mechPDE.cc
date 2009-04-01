@@ -1050,6 +1050,17 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     ParamNode* ncIfaceListNode
         = param->Get("domain")->Get("ncInterfaceList", false);
 
+    // Get index of LAGRANGE_MULT result, just in case... who knows...
+    UInt lmResultIdx = 0;
+    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+      if(results_[i]->resultType == LAGRANGE_MULT) {
+        lmResultIdx = i;
+        break;
+      }
+    }
+    LOG_DBG2(mechpde) << "NonMatching: Index of LAGRANGE_MULT result: "
+                     << lmResultIdx;
+    
     for( UInt i = 0, n = ncIFaces_.GetSize(); i < n; i++ ) {
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
@@ -1082,7 +1093,7 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       stiffIntDescr->SetCounterPart( true );
 
       stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetResults( results_[0], results_[1],
+      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
                                  actNcList, actNcList );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
@@ -1105,13 +1116,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       // Force assembling of D(u, Lambda)^T
       dMatContext->SetCounterPart( true );
       dMatContext->SetPtPdes( this, this );
-      dMatContext->SetResults( results_[0], results_[1],
+      dMatContext->SetResults( results_[0], results_[lmResultIdx],
                                actSDList, actSDList );
 
       assemble_->AddBiLinearForm( dMatContext );
 
       // Give result LAGRANGE_MULT to equation numbering class
-      eqnMap_->AddResult( *results_[1], actSDList );
+      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
     }
 
     // Add integrators for region loads
