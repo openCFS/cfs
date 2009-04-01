@@ -72,6 +72,19 @@ namespace CoupledField
     shapeEta[2] = 1.0 - LCoord[1]*LCoord[1];
     shapeEta[1] = 0.5*LCoord[1]*(LCoord[1]+1);
 
+    Shape[0]= shapeXi[0]     * shapeEta[0];
+    Shape[1]= shapeXi[1]     * shapeEta[0];
+    Shape[2]= shapeXi[1]     * shapeEta[1];
+    Shape[3]= shapeXi[0]     * shapeEta[1];
+
+    Shape[4]= shapeXi[2]     * shapeEta[0];
+    Shape[5]= shapeXi[1]     * shapeEta[2];
+    Shape[6]= shapeXi[2]     * shapeEta[1];
+    Shape[7]= shapeXi[0]     * shapeEta[2];
+
+    Shape[8]= shapeXi[2]     * shapeEta[2];
+    
+#if 0
     for(UInt xi=0; xi<3; xi++)
     {
       for(UInt eta=0; eta<3; eta++)
@@ -79,6 +92,7 @@ namespace CoupledField
         Shape[xi*3+eta] = shapeXi[xi] * shapeEta[eta];
       }
     }
+#endif    
   }
 
 
@@ -107,7 +121,36 @@ namespace CoupledField
     shapeDerivEta[2] = -2.0*LCoord[1];
     shapeDerivEta[1] = 0.5*(2*LCoord[1] + 1); 
 
+    LDeriv[0][0]= shapeDerivXi[0]     * shapeEta[0];
+    LDeriv[0][1]= shapeXi[0]     * shapeDerivEta[0];
+    
+    LDeriv[1][0]= shapeDerivXi[1]     * shapeEta[0];
+    LDeriv[1][1]= shapeXi[1]     * shapeDerivEta[0];
 
+    LDeriv[2][0]= shapeDerivXi[1]     * shapeEta[1];
+    LDeriv[2][1]= shapeXi[1]     * shapeDerivEta[1];
+
+    LDeriv[3][0]= shapeDerivXi[0]     * shapeEta[1];
+    LDeriv[3][1]= shapeXi[0]     * shapeDerivEta[1];
+
+    
+    LDeriv[4][0]= shapeDerivXi[2]     * shapeEta[0];
+    LDeriv[4][1]= shapeXi[2]     * shapeDerivEta[0];
+
+    LDeriv[5][0]= shapeDerivXi[1]     * shapeEta[2];
+    LDeriv[5][1]= shapeXi[1]     * shapeDerivEta[2];
+
+    LDeriv[6][0]= shapeDerivXi[2]     * shapeEta[1];
+    LDeriv[6][1]= shapeXi[2]     * shapeDerivEta[1];
+
+    LDeriv[7][0]= shapeDerivXi[0]     * shapeEta[2];
+    LDeriv[7][1]= shapeXi[0]     * shapeDerivEta[2];
+
+    
+    LDeriv[8][0]= shapeDerivXi[2]     * shapeEta[2];
+    LDeriv[8][1]= shapeXi[2]     * shapeDerivEta[2];
+    
+#if 0
     for(UInt xi=0; xi<3; xi++)
     {
       for(UInt eta=0; eta<3; eta++)
@@ -116,7 +159,7 @@ namespace CoupledField
         LDeriv[xi*3+eta][1] = shapeXi[xi] * shapeDerivEta[eta];
       }
     }
-
+#endif
   }
 
   Double Quad9FE::CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements)

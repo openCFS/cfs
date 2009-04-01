@@ -7,6 +7,7 @@
 #include "magneticPDE.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/solveStepMagHyst.hh"
 #include "Utils/Coil.hh"
@@ -14,6 +15,7 @@
 #include "Utils/LinInterpolate.hh"
 #include "Forms/curlfieldop.hh"
 #include "Forms/curlCurlNodeInt.hh"
+#include "Forms/nonConformingInt.hh"
 #include "Forms/nLincurlCurlNodeInt.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/linElecInt.hh"
@@ -31,6 +33,9 @@
 #endif
 
 namespace CoupledField {
+
+DECLARE_LOG(magpde)
+DEFINE_LOG(magpde, "magpde")
 
   // **************
   //  Constructor
@@ -472,6 +477,93 @@ namespace CoupledField {
       eqnMap_->AddResult( *results_[0], actSDList );
 
     }
+    
+    // =======================================================================
+    // Integrators for NonConforming Interfaces
+    // =======================================================================
+    ParamNode* ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", false);
+    
+    // Get index of LAGRANGE_MULT result, just in case of coupled magnetics
+    UInt lmResultIdx = 0;
+    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+      if(results_[i]->resultType == LAGRANGE_MULT) {
+        lmResultIdx = i;
+        break;
+      }
+    }
+    LOG_DBG2(magpde) << "NonMatching: Index of LAGRANGE_MULT result: "
+                     << lmResultIdx;
+    
+    for( UInt i = 0, n = ncIFaces_.GetSize(); i < n; i++ ) {
+      // get regionId of Lagrangian surface
+      StdVector<std::string> keyVec, attrVec, valVec;
+      std::string slaveSide;
+      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+
+      if (!ncIfaceListNode) {
+        EXCEPTION("No ncInterfaces defined in domain section.");
+      }
+      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+                                                   ncIfaceName);
+      slaveSide = curNciNode->Get("slaveSide")->AsString();
+
+      // Part 1: Define integrator M(u, Lambda) on
+      //         non-conforming interface (master/slave side)
+      LOG_DBG2(magpde) << "NonMatching: Defining nonconforming integrator"
+                        << " for M on interface '"
+                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
+      actNcList->SetRegion( ncIFaces_[i] );
+
+      UInt numDofs = 1;
+      if (is3d_ ) {
+        numDofs = 3;
+      }
+      
+      NonConformingInt * ncInt =
+        new NonConformingInt( numDofs, isaxi_ );
+//      MassInt * ncInt = new MassInt( -1.0, dim_, isaxi_ );
+
+      NcBiLinFormContext * stiffIntDescr =
+        new NcBiLinFormContext( ncInt , STIFFNESS );
+
+      // Force assembling of M(u, Lambda)^T
+      stiffIntDescr->SetCounterPart( true );
+
+      stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
+                                 actNcList, actNcList );
+
+      assemble_->AddBiLinearForm( stiffIntDescr );
+
+
+      // Part 2: Define integrator D(u, Lambda) on
+      //         Lagrangian surface (slave side)
+      LOG_DBG2(magpde) << "NonMatching: Defining mass integrator"
+                        << " for D on interface '"
+                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
+      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+
+      // D(u, Lambda) has the form of a standard mass
+      // integrator with factor 1.0
+      MassInt * dMatInt = new MassInt( 1.0, numDofs, isaxi_ );
+      BiLinFormContext * dMatContext =
+        new BiLinFormContext( dMatInt, STIFFNESS );
+
+      // Force assembling of D(u, Lambda)^T
+      dMatContext->SetCounterPart( true );
+      dMatContext->SetPtPdes( this, this );
+      dMatContext->SetResults( results_[0], results_[lmResultIdx],
+                               actSDList, actSDList );
+
+      assemble_->AddBiLinearForm( dMatContext );
+
+      // Give result LAGRANGE_MULT to equation numbering class
+      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
+    }
+    
   }
 
   void MagPDE::DefineSolveStep()
@@ -1242,7 +1334,81 @@ namespace CoupledField {
     forceLorentz->entryType = ResultInfo::VECTOR;
     forceLorentz->fctType = shared_ptr<ConstFct>(new ConstFct());
     availResults_.insert( forceLorentz );
-    
+
+
+    // ===================================
+    // Check for non-conforming interfaces
+    // ===================================
+    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    StdVector<RegionIdType> ncIfaceIds;
+
+    LOG_DBG2(magpde) << "NonMatching: Checking if nonconforming "
+                      << "interfaces of PDE exist in domain.";
+
+    ParamNode* domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+
+    if(domainNCIfaceListNode)
+    {
+      ParamNode* ncInterfaceListNode =
+        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
+        ->Get("pdeList")->Get("magnetic")->Get("ncInterfaceList", false);
+      StdVector<ParamNode*> pdeNCIfaceNodes;
+
+      if(ncInterfaceListNode)
+      {
+        pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
+
+        for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+          std::string domainIfaceName;
+
+          ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+              "name",
+              pdeIfaceName,
+              false);
+          if(!domainIfaceNode)
+          {
+            LOG_DBG2(magpde) << "NonMatching: Nonconforming "
+                              << "interface '" << ncIfaceNames[i]
+                              << "' does not exist in domain.";
+
+            EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+          }
+
+          ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+        }
+        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+
+        for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+          ncIFaces_.Push_back(ncIfaceIds[i]);
+        }
+
+        // In the case of the presence of non-conforming interfaces,
+        // a second resultdof object has to be created, which describes the
+        // Lagrange multiplier
+        if( ncIFaces_.GetSize() > 0 ) {
+          LOG_DBG2(magpde) << "NonMatching: Defining new ResultDof "
+                            << "Lagrange Multiplier (LM).";
+
+          LOG_DBG3(magpde) << "NonMatching: Lagrange Multiplier DOFs: ";
+          StdVector<std::string> lmDofNames;
+          for( UInt i=0, n=res1->dofNames.GetSize(); i<n; i++ ) {
+            lmDofNames.Push_back("LM_" + res1->dofNames[i]);
+              LOG_DBG3(magpde) << "NonMatching: " << lmDofNames[i];
+          }
+
+          shared_ptr<ResultInfo> lagr ( new ResultInfo );
+          lagr->resultType = LAGRANGE_MULT;
+          lagr->dofNames = lmDofNames;
+          lagr->fctType = results_[0]->fctType;
+          lagr->definedOn = results_[0]->definedOn;
+          results_.Push_back( lagr );
+        }
+      }
+
+    }
+
   }
 
   void MagPDE::ReadSpecialResults() {

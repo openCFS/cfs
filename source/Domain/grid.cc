@@ -445,8 +445,8 @@ namespace CoupledField
           for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
             BaseFE* m_el = masterElems[i]->ptElem;
             BaseFE* s_el = slaveElems[j]->ptElem;
-            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptTr2)
-               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && s_el != ptTr2))
+            if ( (m_el != ptTr1 && m_el != ptQ1 && m_el != ptQ2 && m_el != ptQ9 && m_el != ptTr2)
+               ||(s_el != ptTr1 && s_el != ptQ1 && s_el != ptQ2 && m_el != ptQ9 && s_el != ptTr2))
             {
               EXCEPTION("Only triangles and quadrilaterals can be intersected"
                         << " with polygon algorithm.");

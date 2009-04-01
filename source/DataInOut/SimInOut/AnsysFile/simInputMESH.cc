@@ -948,6 +948,8 @@ namespace CoupledField {
       return Elem::QUAD4;
     case 7:
       return Elem::QUAD8;
+    case 107:
+      return Elem::QUAD9;
     case 8:
       return Elem::TET4;
     case 9:
@@ -956,6 +958,8 @@ namespace CoupledField {
       return Elem::HEXA8;
     case 11:
       return Elem::HEXA20;
+    case 111:
+      return Elem::HEXA27;
     case 12:
       return Elem::PYRA5;
     case 13:
