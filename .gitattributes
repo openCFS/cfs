@@ -6,6 +6,7 @@ cmake_modules/FindANSYSCust.cmake -text
 cmake_modules/FindARPACK.cmake -text
 cmake_modules/FindBLAS.cmake -text
 cmake_modules/FindBoostForCFS.cmake -text
+cmake_modules/FindBzip2.cmake -text
 cmake_modules/FindCFSDEPS.cmake -text
 cmake_modules/FindCFXCust.cmake -text
 cmake_modules/FindCGAL.cmake -text

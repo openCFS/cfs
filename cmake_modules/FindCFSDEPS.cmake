@@ -83,6 +83,10 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMuParser.cmake")
 #-------------------------------------------------------------------------------
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindZlib.cmake")
 
+#-------------------------------------------------------------------------------
+# Build bzip2 library
+#-------------------------------------------------------------------------------
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBzip2.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
