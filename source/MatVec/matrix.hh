@@ -232,6 +232,10 @@ namespace CoupledField
     //! Perform a matrix-vector multiplication rvec = this*mvec
     virtual void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
 
+    /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
+     * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
+    virtual void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
+    
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     virtual void MultT( const SingleVector & mvec, SingleVector & rvec ) const {;};
   

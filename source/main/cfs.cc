@@ -87,19 +87,20 @@ int main( int argc, const char **argv ) {
 
   progOpts = new ProgramOptions(argc, argv);
 
-  // Log program startup
-  progOpts->GetHeaderString( std::cout );
-  
   // Parse command line
   progOpts->ParseData();
 
+  // Log program startup
+  progOpts->GetHeaderString( std::cout );
+  
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
 
   // the new xml logging derived from the ParamNode
   info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
-  
+  info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
+
   // GENERATE OBJECT FOR HANDLING FILE-IO
   DefineInOutFiles FileHandler;
 
@@ -109,14 +110,22 @@ int main( int argc, const char **argv ) {
   std::string now = to_simple_string( second_clock::local_time() );
   char host[256];
   int ret = gethostname( host, 256 );
-  std::string out = "Simulation run started at " + now;
-  if (ret==0)
-    out += " on " + std::string( host ) + "\n";
-  else
-    out += "\n";
-  std::cout << out << std::endl;
-  Info->PrintF( "", out.c_str() );
 
+  // our calculation environment
+  info->Get("calculation")->Get("environment")->Get("started")->SetValue(now);
+  if(ret == 0)
+    info->Get("calculation")->Get("environment")->Get("host")->SetValue(host);
+  
+  if(!progOpts->IsQuiet())
+  {
+    std::string out = "Simulation run started at " + now;
+    if (ret==0)
+      out += " on " + std::string( host ) + "\n";
+    else
+      out += "\n";
+    std::cout << out << std::endl;
+    Info->PrintF( "", out.c_str() );
+  }
 
 
   // =========================================================================
@@ -360,6 +369,7 @@ int main( int argc, const char **argv ) {
 #endif
 
   // write the info object
+  info->Get("status")->SetValue("finished"); // overwrite 'running'
   info->ToFile();
   delete info;
   info = NULL;
@@ -367,7 +377,6 @@ int main( int argc, const char **argv ) {
   // Delete objects
   delete param;
   delete domain;
-  delete Info;
   delete progOpts;
   delete ptHandler;
 
@@ -384,30 +393,35 @@ int main( int argc, const char **argv ) {
   }
   catch(std::exception& ex)
   {
-    std::cerr << std::endl << std::endl
-              << "***********************************************************************"
-              << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
-              << std::endl << std::endl 
-              << ex.what() << std::endl << std::endl
-              << "***********************************************************************"
-              << std::endl << std::endl;
-
+    if(!progOpts->IsQuiet())
+    {
+      std::cerr << std::endl << std::endl
+                << "***********************************************************************"
+                << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
+                << std::endl << std::endl 
+                << ex.what() << std::endl << std::endl
+                << "***********************************************************************"
+                << std::endl << std::endl;
+    }
+    else
+    {
+      std::cerr << std::endl << ">> Error: " << ex.what() << std::endl;
+    }
+    
     // Print error cause to info file
     if(info != NULL)
     {
       InfoNode* errorNode = info->Get(InfoNode::ERROR);
       errorNode->SetValue(ex.what());
+      info->Get("status")->SetValue("aborted");
       info->ToFile();
-
-      // Delete info file
-      delete info;
     }
-
   }
 
 
   // Delete global string streams
   delete warning;
+  delete Info; // might be used in catch!
 
   // Seems that everything went fine
   return 0;

@@ -19,7 +19,7 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  An even minor number corresponds to releases.
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "09")
-SET(CFS_VERSION_MONTH "03")
+SET(CFS_VERSION_MONTH "04")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -27,7 +27,6 @@ SET(CFS_VERSION
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
 SET(CFS_NAME "Maehende Machete")
-
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -477,6 +476,7 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 SUBDIRS(source/DataInOut/SimInOut/TextOutput)
+SUBDIRS(source/DataInOut/SimInOut/InfoResultOutput)
 SUBDIRS(source/Domain)
 SUBDIRS(source/Domain/GridCFS)
 SUBDIRS(source/Driver)

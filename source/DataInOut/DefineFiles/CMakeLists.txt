@@ -60,10 +60,9 @@ IF(USE_VTK)
   SET(TARGET_LL ${TARGET_LL} simoutvtk)
 ENDIF(USE_VTK)
 
-SET(TARGET_LL
-  ${TARGET_LL}
-  datainout
-)
+SET(TARGET_LL ${TARGET_LL} simoutinfo)
+
+SET(TARGET_LL ${TARGET_LL} datainout)
 
 TARGET_LINK_LIBRARIES(definefiles
   ${TARGET_LL}

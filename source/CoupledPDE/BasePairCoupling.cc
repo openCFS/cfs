@@ -549,13 +549,9 @@ namespace CoupledField {
       {
         (*it)->complexFormat = complexFormat;
         
-        InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("export", "data", quantity); 
-        
         // iterate over all regions
         for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ ) 
         {
-          in_->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionNames[iRegion]); 
-
           actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion], 
                                             defineType );
           shared_ptr<BaseResult> actSol;
@@ -657,13 +653,9 @@ namespace CoupledField {
         
         (*it)->complexFormat = complexFormat;
 
-        InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("history", "data", entityTypeName); 
-        
         // iterate over all entityNames
         for( UInt i = 0; i < histNames.GetSize(); i++ ) 
         {
-          in_->Get(entityTypeName, InfoNode::APPEND)->Get("name")->SetValue(histNames[i]); 
-          
           actList = ptGrid_->GetEntityList(entityType, histNames[i], defineType);
           
           shared_ptr<BaseResult> actSol;

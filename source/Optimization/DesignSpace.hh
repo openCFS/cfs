@@ -104,12 +104,14 @@ namespace CoupledField
       * @param space_in the design space (in variable). Size is GetDesignSpaceSize()
       * @return the design_id which is the old one if space_in did not change the design. */
      int ReadDesignFromExtern(const double* space_in);
+     int ReadDesignFromExtern(const StdVector<double>& space);
 
      /** gives the initial guess (for the design space)
       * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
       * @return the internal design_id as calculated by ReadDesignFromExtern()
       * @see SetDesignSpace() */
      int WriteDesignToExtern(double* space_out) const;
+     int WriteDesignToExtern(StdVector<double>& space_out) const;
 
      /** Similar but more general as WriteDesignToExtern() */
      void WriteGradientToExtern(double* out, DesignElement::ValueSpecifier vs,
@@ -191,7 +193,7 @@ namespace CoupledField
       * @return 0, 1, 2 is the index (optResult_x+1) for DesignElement::specialResult_[]. -1 if no
       * result is specified in XML */
      int GetSpecialResultIndex(DesignElement::Type design, DesignElement::ValueSpecifier value,
-                               DesignElement::Detail detail, DesignElement::Access access = DesignElement::SMART);
+                               DesignElement::Detail detail = DesignElement::NONE, DesignElement::Access access = DesignElement::SMART);
 
      /** Dumps the design space */
      std::string ToString();

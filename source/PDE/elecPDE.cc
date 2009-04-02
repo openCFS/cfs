@@ -896,11 +896,11 @@ namespace CoupledField {
     }
     else {
       if ( isaxi_ == true ) {
-	tensorType = AXI;
+        tensorType = AXI;
       }
       else {
-	// 2d: plane case
-	tensorType = PLANE_STRAIN;
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
       }
     }
    
@@ -927,21 +927,23 @@ namespace CoupledField {
 
       // Loop over elements
       energy = 0;
+      Vector<TYPE> elpot;
       for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
         
         bilinear_stiff->SetFactor(factor);
         bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
         
-        Vector<TYPE> elpot;
         sol_->GetElemSolution(elpot, elemIt );
         help =  elemmat * elpot;
         energy += 0.5 * (help * elpot);
         
+        LOG_DBG3(elecpde) << "CalcEnergy: elem=" << elemIt.GetElem()->elemNum << " mat=" << elemmat.ToString();
+        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " elpot=" << elpot.ToString();
+        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " sum energy -> " << energy;
       }  
       actVal[regionIt.GetPos()] = energy;
       delete bilinear_stiff;
     }
-    
   }
 
 

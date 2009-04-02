@@ -1,6 +1,7 @@
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Domain/domain.hh"
@@ -23,8 +24,18 @@ ShapeGrad::ShapeGrad() : ErsatzMaterial()
   ParamNode* sg_pn = pn->Get("shapeGrad");
 
   topgrad = sg_pn != NULL && sg_pn->Has("topGrad") && sg_pn->Get("topGrad")->Get("enabled")->AsBool();
+  
+  mech_mat_ = NULL; // to be set in PostInit()
 }
 
+
+void ShapeGrad::PostInit()
+{
+  ErsatzMaterial::PostInit();
+  
+  mech_mat_ = dynamic_cast<OptMechMat*>(material); // just created in PostInit()
+  assert(material != NULL);
+}
 
 void ShapeGrad::CalcObjectiveGradient(double* grad_out)
 {
@@ -285,7 +296,7 @@ double ShapeGrad::MultiplyForwardAndAdjointSolution(Solution* sol_forward,
 
     // compliance: -u_e^T K_0 u_e
     // mechanism:(-)l_e^T K_0 u_e
-    tmp = MechStiffness(de->elem) * sol_adjoint_vec;
+    tmp = mech_mat_->MechStiffness(de->elem) * sol_adjoint_vec;
     double sp = sol_forward_vec * tmp;
 
     // when doing complex Jensen 22.07.07 shows that we always have

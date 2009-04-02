@@ -181,6 +181,7 @@ BaseOptimizer::BaseOptimizer(Optimization* optimization, ParamNode* pn)
   this->design_.design_id = -1;
   this->design_.value = 0.0;
   this->optimizer_pn_ = pn;
+  this->info_ = info->Get("optimization")->Get("optimizer");
 }
 
 BaseOptimizer::~BaseOptimizer()

@@ -1,7 +1,6 @@
 #include "Optimization/EvaluateOnly.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
-#include "Optimization/SIMP.hh"
-#include "Optimization/PiezoSIMP.hh"
 #include "Driver/harmonicDriver.hh"
 #include "Domain/domain.hh"
 

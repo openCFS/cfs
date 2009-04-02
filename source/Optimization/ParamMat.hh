@@ -5,11 +5,16 @@
 
 namespace CoupledField {
 
+class OptMechMat;
+
   class ParamMat : public ErsatzMaterial
   {
   public:
     /** constructor for parametric material optimization, most is already done in ErsatzMaterial */
     ParamMat();
+
+    /** virtual second phase initializer */
+    virtual void PostInit();
     
   protected:
     
@@ -18,8 +23,10 @@ namespace CoupledField {
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out);
+    virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode);
     
+    /** this is a shortcut to the material class */
+    OptMechMat* mech_mat_;
   };
 
 }

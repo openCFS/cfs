@@ -517,6 +517,12 @@ namespace CoupledField {
       out = OPT_RESULT_2;
     else if (in == "optResult_3")
       out = OPT_RESULT_3;
+    else if (in == "optResult_4")
+      out = OPT_RESULT_4;
+    else if (in == "optResult_5")
+      out = OPT_RESULT_5;
+    else if (in == "optResult_6")
+      out = OPT_RESULT_6;
 
     // independent
     else if (in == "LagrangeMultiplier")
@@ -766,11 +772,20 @@ namespace CoupledField {
       case OPT_RESULT_3:
         out = "optResult_3";
         break;
-
+      case OPT_RESULT_4:
+        out = "optResult_4";
+        break;
+      case OPT_RESULT_5:
+        out = "optResult_5";
+        break;
+      case OPT_RESULT_6:
+        out = "optResult_6";
+        break;
+        
         // independent
       case LAGRANGE_MULT:
         out = "LagrangeMultiplier";
-	break;
+      	break;
 
       default:
         EXCEPTION( "Wrong type of solution or 'SolutionType2String' not "

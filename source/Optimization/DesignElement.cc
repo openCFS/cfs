@@ -194,11 +194,23 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       break;
       
     case OPT_RESULT_2:
-      out[1] = specialResult[1];
+      out[0] = specialResult[1];
       break;
       
     case OPT_RESULT_3:
-      out[2] = specialResult[2];
+      out[0] = specialResult[2];
+      break;
+
+    case OPT_RESULT_4:
+      out[0] = specialResult[3];
+      break;
+
+    case OPT_RESULT_5:
+      out[0] = specialResult[4];
+      break;
+
+    case OPT_RESULT_6:
+      out[0] = specialResult[5];
       break;
       
     default: throw Exception("solution type not handled");
@@ -235,19 +247,13 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access) const
 
 void DesignElement::GetValue(ValueSpecifier sp, StdVector<double>& out) const
 {
-  if(sp == LEVEL_SET_NORMAL || LEVEL_SET_FIRST_GRAD || LEVEL_SET_SECOND_GRAD)
+  if(sp == LEVEL_SET_NORMAL)
     if(lsn == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Level-Set");
   
   switch(sp)
   {
   case LEVEL_SET_NORMAL:
     out.Import(lsn->normal.GetPointer(), lsn->normal.GetSize());
-    break;
-  case LEVEL_SET_FIRST_GRAD:
-    out.Import(lsn->first_order_grad.GetPointer(), lsn->first_order_grad.GetSize());
-    break;
-  case LEVEL_SET_SECOND_GRAD:
-    out.Import(lsn->second_order_grad.GetPointer(), lsn->second_order_grad.GetSize());
     break;
     
   default: 
@@ -259,7 +265,7 @@ void DesignElement::GetValue(ValueSpecifier sp, StdVector<double>& out) const
 double DesignElement::GetValue(ValueSpecifier sp) const
 {
   // validate first:
-  if(sp == LEVEL_SET_VALUE || sp == LEVEL_SET_CURVATURE)
+  if(sp == LEVEL_SET_VALUE)
     if(lsn == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to Level-Set");
   switch(sp)
   {
@@ -276,8 +282,6 @@ double DesignElement::GetValue(ValueSpecifier sp) const
     throw Exception("for constraint gradient we need an index!");
   case LEVEL_SET_VALUE:
     return lsn->GetValue();
-  case LEVEL_SET_CURVATURE:
-    return lsn->curvature;
   default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value"); 
   }
 }
@@ -359,13 +363,17 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
   valueSpecifier.Add(LEVEL_SET_NORMAL, "levelSetNormal");
-  valueSpecifier.Add(LEVEL_SET_CURVATURE, "levelSetCurvature");
-  valueSpecifier.Add(LEVEL_SET_FIRST_GRAD, "levelSetFirstGrad");
-  valueSpecifier.Add(LEVEL_SET_SECOND_GRAD, "levelSetSecondGrad");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
   detail.Add(SYMMETRY, "symmetry");
+  detail.Add(FINITE_DIFF_COST_GRADIENT, "finiteDiffCostGrad");
+  detail.Add(ERROR_COST_GRADIENT, "finiteDiffCostGradRelError");
+  detail.Add(MECH_MECH, "mech_mech");
+  detail.Add(ELEC_ELEC, "elec_elec");
+  detail.Add(ELEC_ELEC_QUAD, "elec_elec_quad");
+  detail.Add(ELEC_MECH, "elec_mech");
+  detail.Add(MECH_ELEC, "mech_elec");
 }
 
 

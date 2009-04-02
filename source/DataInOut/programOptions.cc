@@ -87,7 +87,7 @@ namespace CoupledField {
       ( "version,v",
         "information about the CFS++ executable" )
 
-      ( "history",
+      ( "history,H",
         "history of revisions" )
 
       ( "meshFile,m", po::value<std::string>(),
@@ -97,7 +97,7 @@ namespace CoupledField {
         "name of XML parameter file for the simulation" )
 
       ( "schemaRoot,s", po::value<std::string>(),
-        "path to XML schema definitions for XML files")
+        "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
 
       ( "restart,r",
         "read restart file of previous simulation run" )
@@ -119,7 +119,10 @@ namespace CoupledField {
         "turns on generation of profiling information" )
 
       ( "listMapping,l",
-        "list equation and local/global mapping in info.xml file")
+        "add equation and local/global mapping to info.xml")
+
+      ( "quiet,q",
+        "more compressed console output (env CFS_QUIET)")
 
       ( "noColor",
         "turn off colored output")
@@ -194,19 +197,25 @@ namespace CoupledField {
     }
 
     // Check for version
-    if( varMap_.count("version") != 0  ) {
+    if( varMap_.count("version") != 0  ) 
+    {
+      GetHeaderString(std::cout);      
       GetVersionString( std::cout, true );
       exit( EXIT_SUCCESS );
     }
 
     // Check for history
-    if( varMap_.count("history") != 0  ) {
+    if( varMap_.count("history") != 0  ) 
+    {
+      GetHeaderString(std::cout);      
       GetHistoryString(std::cout);
       exit( EXIT_SUCCESS );
     }
 
     // Check for help
-    if( varMap_.count("help") != 0) {
+    if( varMap_.count("help") != 0) 
+    {
+      GetHeaderString(std::cout);      
       std::cout << helpMsg_;
       exit(EXIT_SUCCESS);
     }
@@ -214,18 +223,18 @@ namespace CoupledField {
     // If no argument was given, print additional information
     if( varMap_.count("simName") == 0 )
     {
-      std::cout << "cfs: no input files. Please run with --help for help\n";
+      GetHeaderString(std::cout);
+      std::cout << "cfs: no input files. Pleas run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
   }
 
-  std::string ProgramOptions::EnvironmentNameMapper( std::string envVarName )  {
+  std::string ProgramOptions::EnvironmentNameMapper(const std::string& var )  {
     std::string ret;
 
-    if( envVarName == "CFS_SCHEMA_ROOT" ) {
-      ret = "schemaRoot";
-    }
-
+    if(var == "CFS_SCHEMA_ROOT") ret = "schemaRoot";
+    if(var == "CFS_QUIET")       ret = "quiet";
+    
     return ret;
   }
 
@@ -393,9 +402,13 @@ namespace CoupledField {
     return varMap_.count("listMapping") > 0;
   }
 
+  bool ProgramOptions::IsQuiet() const
+  {
+    return varMap_.count("quiet") > 0;
+  }
+  
   void ProgramOptions::PrintHelp( std::ostream& out )
   {
-
     out << helpMsg_;
   }
 
@@ -403,7 +416,7 @@ namespace CoupledField {
   {
     in->SetComment("values of command line parameters (including defaults)");
     in->Get("problem", "name of simulation run")->SetValue(GetSimName());
-    in->Get("paramterFile")->SetValue(GetParamFileStr());
+    in->Get("parameterFile")->SetValue(GetParamFileStr());
     in->Get("schemaPath")->SetValue(GetSchemaPathStr());
     in->Get("meshFile")->SetValue(GetMeshFileStr());
 #ifdef USE_SCRIPTING
@@ -417,6 +430,7 @@ namespace CoupledField {
     in->Get("forceSegFault")->SetValue(GetForceSegFault());
   }
 
+  
   void ProgramOptions::GetVersionString( std::ostream & outstr,
                                          bool colorise)
   {
@@ -717,20 +731,27 @@ namespace CoupledField {
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)
-  {
-    // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-    out << std::endl
-        << "============================================================"
-        << "===========" << std::endl;
-    out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
-        << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-        << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
-        << " compiled " << __DATE__
-        << " as " << CMAKE_BUILD_TYPE << std::endl;
-    out << "============================================================"
-        << "==========="
-        << std::endl << std::endl;
+  {  
+    if(IsQuiet())
+    {
+      out << ">> CFS++ '" << CFS_VERSION << " " << CFS_NAME << "'"
+          << " Compiled: '" << __DATE__ << "'"
+          << " Build: '" << CMAKE_BUILD_TYPE << "'" << std::endl;
+    }
+    else
+    {
+      // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
+      out << std::endl
+          << "============================================================"
+          << "===========" << std::endl;
+      out << " CFS++ - Coupled Field Simulation" << std::endl << std::endl
+          << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+          << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+          << " compiled " << __DATE__
+          << " as " << CMAKE_BUILD_TYPE << std::endl;
+      out << "============================================================"
+          << "==========="
+          << std::endl << std::endl;
+    }
   }
-
-
 }

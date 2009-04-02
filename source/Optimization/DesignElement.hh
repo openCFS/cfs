@@ -100,11 +100,16 @@ public:
 
   /** types for GetFilteredValue() */
   typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
-    LEVEL_SET_VALUE, LEVEL_SET_NORMAL, LEVEL_SET_CURVATURE, LEVEL_SET_FIRST_GRAD, LEVEL_SET_SECOND_GRAD } ValueSpecifier;
+    LEVEL_SET_VALUE, LEVEL_SET_NORMAL } ValueSpecifier;
 
-    /** This specifies result! details for value = COST_GRADIENT or OBJECTICE in the PiezoSIMP case
+    /** This specifies result details for various ValueSpecifier/Detail combinations:
+     * OBJECTIVE/SYMMETRY (check!)
+     * COST_GRADIENT/FINITE_DIFF_COST_GRADIENT
+     * COST_GRADIENT/ERROR_COST_GRADIENT
+     * For the PiezoSIMP case:
+     * COST_GRADIENT/MECH_MECH ... as ErsatzMaterial::CalcU1KU2() Parameters. QUAD is calcMode
      * or it does the very special purpose symmetry for the ValueSpecifier */
-    typedef enum { NONE, SYMMETRY } Detail;
+    typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT, MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC } Detail;
 
 
     /** Allows to set the design element. Does it PLAIN */
@@ -184,10 +189,10 @@ public:
     Elem*  elem;
 
     /** This stores special values during calculation for visualization via
-     * result description in XML:<pre>. See DesignSpace::GetSpecialResultIndex()
+     * result description in XML: See DesignSpace::GetSpecialResultIndex()
      * <result id="optResult_2" design="density" access="plain" value="costGradient" />
-     * <result id="optResult_3" design="density" access="plain" value="objective" /></pre> */
-    double specialResult[3];
+     * <result id="optResult_3" design="density" access="plain" value="objective" /> */
+    double specialResult[6];
 
     static Enum<Filter> filter;
 

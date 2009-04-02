@@ -198,7 +198,7 @@ void LevelSet::SolveProblem()
   // this are cheap operations, they might be done again in the first operations
   UpdateLevelSetNodes(); // gradients, normal, curvature
   
-  while(!optimization->IsMinimumReached() && optimization->GetCurrentIteration() < optimization->GetMaxIterations())
+  while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() < optimization->GetMaxIterations())
   {
     int iter = optimization->GetCurrentIteration();
     optimization->SolveStateProblem();

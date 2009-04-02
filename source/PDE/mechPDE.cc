@@ -1151,13 +1151,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
     // Define Springs
     DefineSprings();
-
-    // Conditionally add a SurfaceNormalMatrix BiLinForm which is assembled into a
-    // own AUXILIARY matrix.
-    // Note, that here, in DefineIntegrators() the Optimization stuff is not constructed
-    // yet and OLAS is currently not that flexible to allow a later addition of the Matrix.
-    BiLinFormContext* snmi = SIMP::CreateSurfaceNormalMatrix(this, actSDMat, results_[0]);
-    if(snmi != NULL) assemble_->AddBiLinearForm(snmi);
   }
 
 
@@ -1718,7 +1711,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
 
       std::string quantity;
       Enum2String( MECH_DEF_VOLUME, quantity );
-      InfoNode* in_ = infoNode_->Get(InfoNode::PROCESS)->Get("postprocessing")->Get("region_result", "data", quantity);
       shared_ptr<EntityList> actList;
 
       for( UInt i = 0; i < volListNodes.GetSize(); i++ ) {
@@ -1730,9 +1722,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         volListNodes[i]->Get("outputIds", outputIdString );
         SplitStringList( outputIdString, outputIds, ',' );
 
-        InfoNode* r = in_->Get("surface_region", InfoNode::APPEND);
-        r->Get("name")->SetValue(regionName);
-
         actList = ptgrid_->GetEntityList( EntityList::REGION_LIST,
                                           regionName, EntityList::REGION );
         shared_ptr<BaseResult> actSol;
@@ -1741,14 +1730,13 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
         } else {
           actSol = shared_ptr<BaseResult>(new Result<Double>);
         }
-        actSol->SetInfoNode(r); // now the actual results can be written
         actSol->SetResultInfo( vol );
         actSol->SetEntityList( actList );
         resultLists_[vol].Push_back( actSol );
         volAboveDefSurfDir_[actList] = dirName;
         //! the result will be written to.
         resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
-                                    outputIds, "", true, false );
+                                    outputIds, "", true, true );
       }
     }
   }
@@ -2055,6 +2043,9 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
     case OPT_RESULT_1:
     case OPT_RESULT_2:
     case OPT_RESULT_3:
+    case OPT_RESULT_4:
+    case OPT_RESULT_5:
+    case OPT_RESULT_6:
       // design should work, this is checked in AvailabeResults()
       domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
@@ -2219,11 +2210,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
                                            ptSurfCoord, elemDispDof );
 
       }
-      assert(actSol.GetInfoNode() != NULL);
-      InfoNode* in_ = actSol.GetInfoNode()->Get("result", InfoNode::APPEND);
-      in_->Get("region_pos")->SetValue(regionIt.GetPos()); // TODO: Add name
-      in_->Get("value")->SetValue(actVolume);
-      // TODO: somehow relate to iteration!
       actVal[regionIt.GetPos()] = actVolume;
     }
 

@@ -107,37 +107,54 @@ void IPOPT::SolveProblem()
 {
   ApplicationReturnStatus status = app->OptimizeTNLP(this);
 
+  InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  
   if (status == Solve_Succeeded) {
     // Retrieve some statistics about the solve
     Index iter_count = app->Statistics()->IterationCount();
-    printf("\n\n*** The problem solved in %d iterations!\n", iter_count);
-
     Number final_obj = app->Statistics()->FinalObjective();
-    printf("\n\n*** The final value of the objective function is %e.\n", final_obj);
+    
+    std::cout << std::endl << "Problem solved in " << iter_count 
+              << " iterations, final objective value is " << final_obj << std::endl; 
+    
+    in->Get("converged")->SetValue("yes");
     return;
   }
 
   switch(status)
   {
     case NonIpopt_Exception_Thrown:
-         throw Exception("IPOPT stopped due to non-IPOPT exception. Try again with '-f'.");
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("non IPOPT exception occured");
+      throw Exception("IPOPT stopped due to non-IPOPT exception. Try again with '-f'.");
          
     case Restoration_Failed:
-         throw Exception("IPOPT stopped with 'Restautation failed'");  
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("IPOPT: 'Restautation failed'");
+      throw Exception("IPOPT stopped with 'Restautation failed'");  
          
     case Insufficient_Memory:
-         throw Exception("IPOPT reports insufficient memory.");
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("IPOPT: insufficient memory");
+     throw Exception("IPOPT reports insufficient memory.");
          
     case Invalid_Number_Detected:
          if(base_->restart_requested) return; 
-         
-     default:
-        // positive is warning
-        // Maximum_Iterations_Exceeded == -1
-       if(status < Maximum_Iterations_Exceeded) 
-         throw Exception("IPOPT reported an error during optimization "
-                          + boost::lexical_cast<std::string>(status));
-       // else is no bad error and exits this void method :)  
+
+    case Maximum_Iterations_Exceeded:
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("Maximum iterations exceeded");
+      
+    default:
+      // positive is warning
+      // Maximum_Iterations_Exceeded == -1
+      if(status < Maximum_Iterations_Exceeded) {
+        in->Get("converged")->SetValue("no");
+        in->Get("reason")->SetValue("IPOPT: error");
+        in->Get("reason")->Get("error")->SetValue(status);
+        EXCEPTION("IPOPT reported error " << status);
+      }
+      // else is no bad error and exits this void method :)  
   }
 }
 
@@ -310,7 +327,7 @@ bool IPOPT::intermediate_callback(AlgorithmMode mode,Index iter, Number obj_valu
 
   optimization_->CommitIteration();
   // break the ipopt calculations - e.g. if our relative change is smaller than given in xml
-  return optimization_->IsMinimumReached() ? false : true;
+  return optimization_->DoStopOptimization() ? false : true;
 }     
 
 bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling, 

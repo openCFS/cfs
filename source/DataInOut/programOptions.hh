@@ -157,6 +157,8 @@ namespace CoupledField
     /** Shall we list the equation and local <-> global mapping in info.xml */
     bool DoListMapping() const;
 
+    /** Is cfs invoked with the quite flag to compress console output? */
+    bool IsQuiet() const;
 
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
@@ -179,7 +181,7 @@ namespace CoupledField
     static void GetHistoryString(std::ostream& out);
     
     /** This gives the head line of CFS++ printed to cout */
-    static void GetHeaderString(std::ostream& out);
+    void GetHeaderString(std::ostream& out);
     
     // @}
 
@@ -191,7 +193,7 @@ namespace CoupledField
     //@{ \name Additional internal helper methods
 
     //! Helper function for mapping environment variables to internal names
-    std::string EnvironmentNameMapper( std::string envVarName );
+    std::string EnvironmentNameMapper( const std::string& envVarName );
 
     //@}
 
