@@ -36,18 +36,27 @@ if [ "${OS}" = "SunOS" ] ; then
 elif [ "${OS}" = "AIX" ] ; then
 	OSSTR="${OS} `oslevel` (`oslevel -r`)"
 elif [ "${OS}" = "Linux" ] ; then
-        ARCH_AFFIRM=`arch`
-	if [ "$ARCH_AFFIRM" = "ia64" ] ; then
-	    ARCH="IA64";
-        fi
-        if [ "$ARCH_AFFIRM" = "x86_64" ] ; then
-            ARCH="X86_64";
-        fi
-	ARCH_AFFIRM=`echo $ARCH_AFFIRM | sed "s/i[0-9]/i3/"`
-        if [ "$ARCH_AFFIRM" = "i386" ] ; then
-            ARCH="I386";
-        fi
+
+        # If using 32-bit CMake on a 64-bit platform the uname command
+        # returns i386 instead of ia64 or x86_64. The arch command does
+        # the right thing.
+
+        ARCH_AFFIRM=$(arch 2>&1)
+	if [ $? = 0 ]; then
+	    if [ "$ARCH_AFFIRM" = "ia64" ] ; then
+		ARCH="IA64";
+            fi
+            if [ "$ARCH_AFFIRM" = "x86_64" ] ; then
+		ARCH="X86_64";
+            fi
+	    ARCH_AFFIRM=`echo $ARCH_AFFIRM | sed "s/i[0-9]/i3/"`
+            if [ "$ARCH_AFFIRM" = "i386" ] ; then
+		ARCH="I386";
+            fi
+	fi
+
 	KERNEL=`uname -r`
+
 	if [ -f /etc/redhat-release ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
                 # /etc/redhat-release, /etc/mandrake-release,
