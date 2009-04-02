@@ -42,7 +42,7 @@ namespace CoupledField {
 
     fileName_ = fileName;
     formatName_ = "hdf5";
-    dirName_ = "results_hdf5";
+    dirName_ = inputNode->Get("directory")->AsString();
 
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );

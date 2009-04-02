@@ -44,7 +44,7 @@ namespace CoupledField
          void SolveProblem();
 
          /** Where we apply the transformation */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, SURFACE_NORMAL, NO_APP} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, NO_APP} Application;
 
          /** The taks for a cost function either to minimize or maximize */
          typedef enum { MINIMIZE, MAXIMIZE } ObjectiveTask;
@@ -55,11 +55,11 @@ namespace CoupledField
                         DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
                         CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
                         GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
-                        RADIATION,                 /*!< maximized v on surface elements (Du and Olhoff) */
+                        ELEC_ENERGY,                /*!< p^T K_pp p or p^T K_pp p^* */ 
                         VOLUME, TRACKING } ObjectiveType;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, LEVEL_SET, EVALUATE_INITIAL_DESIGN } Optimizer;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, LEVEL_SET, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<ObjectiveType> objectiveType;
@@ -69,6 +69,11 @@ namespace CoupledField
 
          static Enum<Application> application;
 
+         /** the commit mode defines what of the iterations is to be written to gid, ... */
+         typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
+
+         static Enum<CommitMode> commitMode;
+         
          /** We combine the cost function in a set to handle multiple of it.
           * It contains static const elements (and  working stuff).
           * MultipleExciation is in the XML file part of the objective but in class part of Optimization*/
@@ -143,6 +148,8 @@ namespace CoupledField
 
         /** Evaluates the cost-function gradient w.r.t. the design space. Apply SetDesignSpace() first!
          * Writes to DesingElement.objective_gradient.
+         * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
+         * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
         virtual void CalcObjectiveGradient(double* grad_out) = 0;
 
@@ -183,13 +190,15 @@ namespace CoupledField
          * stuff (CFS-output-writing, console log, log-file, density xml file)</p>
          * <p>Also makes a push back of cost.value to cost.history</p>
          * For the multiharmonic case one can commit each frequency but keep the
-         * iteration number
+         * iteration number.
+         * @see FinalizeStoreResults() for calling after the last CommitIteration()
          * @param keep_iteration_number will keep currentIteration and not rest problemsWithinIteration
          * @return the iteration element we added */
         virtual InfoNode* CommitIteration(bool keep_iteraton_number = false);
 
-        /** the break condition for the optimization loop */
-        virtual bool IsMinimumReached();
+        /** the break condition for the optimization loop.
+         * Checks the stopping rule from the XML file an searches for an HALTOPT file.  */
+        virtual bool DoStopOptimization();
 
         /** are we in the harmonic case? */
         bool IsHarmonic() const { return harmonic; }
@@ -272,60 +281,83 @@ namespace CoupledField
          * @param iteration a duplicate of the log file output to the info xml file */
         virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
 
-        /** PostInit is to be called after the constructor. This is required for the
-         * optional IPOPT which expects the Optimization during construction. PostInit
-         * does not really solve something. */
+        /** PostInit is to be called after the constructor. 
+         * PostInit  does not really solve something. */
         virtual void PostInit();
 
+        /** This is the second phase of post initialization. It creates the Optimizer tools */
+        virtual void PostInitSecond();
+        
+        
         /** Gives back the current frequency for printing. This is not the current frequency
          * in multifrequency case. Not a fast method!
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
 
-         /** The current iteration, 0 is the first run. Note that the state problem might be
-          * executed more often (-> line search).
-          * @see problemSolvedCounter. */
-         int currentIteration;
+        /** Do header writing of optimization */
+        // virtual void ToInfo(InfoNode* in) const;
+        
+        /** The way the date is stored. Forward/ adjoint/ both and stride. 
+         * Set in the <commit> element */
+        CommitMode commitMode_;
 
-         /** This checks how often the state problem is solved. This is not necessary equal
-          * to the iterations, e.g. for line search of an external optimizer. Incremented by
-          * SolveStateProblem(). */
-         int problemSolvedCounter;
+         /* Set in the <commit> element.
+          * stride = 0 corresponds to infinity (first and last)
+         * stride = 1 is every iteration
+         * stride = 2 is the first, the third, the fifth and the last */ 
+        int commitStride; 
 
-         /** The number of problems solved in this iteration */
-         int problemWithinIteration;
+        /** The current iteration, 0 is the first run. Note that the state problem might be
+         * executed more often (-> line search).
+         * @see problemSolvedCounter. */
+        int currentIteration;
 
-         /** the maximum number of iterations, have a default */
-         int maxIterations;
+        /** This checks how often the state problem is solved. This is not necessary equal
+         * to the iterations, e.g. for line search of an external optimizer. Incremented by
+         * SolveStateProblem(). */
+        int problemSolvedCounter;
 
-         /** Our MultipleExcitation objecte - by default disabled */
-         MultipleExcitation* multiple_excitation;
+        /** The number of problems solved in this iteration */
+        int problemWithinIteration;
 
-         /** The actual kind of optimizer.  */
-         Optimizer optimizer_;
+        /** the maximum number of iterations, have a default */
+        int maxIterations;
 
-         /** Up to now we have only one cost function */
-         Objective* cost;
+        /** Our MultipleExcitation objecte - by default disabled */
+        MultipleExcitation* multiple_excitation;
 
-         /** Here we contain our design space. The domain gets a reference to it to perform
-          * the ersatz material ansatz */
-         DesignSpace* design;
+        /** The actual kind of optimizer.  */
+        Optimizer optimizer_;
 
-         /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
-          * writes this string to logFile_ a the first execution */
-          std::string logFileHeader;
+        /** Up to now we have only one cost function */
+        Objective* cost;
 
-         /** Here we keep the last iterations design space */
-         Vector<double>  last_iteration;
+        /** Here we contain our design space. The domain gets a reference to it to perform
+         * the ersatz material ansatz */
+        DesignSpace* design;
 
-         /** Here we keep the last evaluation design space */
-         Vector<double>  last_evaluation;
+        /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
+         * writes this string to logFile_ a the first execution */
+        std::string logFileHeader;
 
-         /** are we harmonic or static? */
-         bool harmonic;
+        /** Here we keep the last iterations design space */
+        Vector<double>  last_iteration;
 
-     private:
+        /** Here we keep the last evaluation design space */
+        Vector<double>  last_evaluation;
 
+        /** are we harmonic or static? */
+        bool harmonic;
+
+      private:
+        /** CommitIteration() does not necessary store the results when we have a stride
+         * set in the <commit> element. In case this method makes a StoreResults (not commit)
+         * if necessary. Should always be called when finished (in the good and bad sense) */
+        void FinalizeStoreResults();
+
+        /** When did we store the last result via CommitIteration() due to stride */
+        int lastStoredResult_;
+        
         /** optional log the iterations and cost value to a file to gnuplot it */
         std::ofstream*     logFile_;
 
@@ -347,11 +379,14 @@ namespace CoupledField
      * For multiple frequencies it does nothing. The actual frequency is choosen by default. */
     void Apply();
 
+    /** Find the fixed factor, does ignore weighting and does not apply it. */
+    double GetFactor(Optimization::Objective* cost);
+
+    /** Returns GetFactor() * normalized_weight */
+    double GetWeightedFactor(Optimization::Objective* cost);
+    
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();
-
-    /** @return omega^2 */
-    double GetOmegaOmega();
 
     /** the index of this excitation in the excitations array. If -1 something went wront */
     int index;

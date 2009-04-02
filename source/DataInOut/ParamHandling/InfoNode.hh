@@ -3,6 +3,7 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include <complex>
+#include <map>
 
 namespace CoupledField
 {
@@ -72,6 +73,9 @@ public:
 
   void SetValue(const std::complex<double>& param);
 
+  /** copies the node with all children. Overwrites the current name */
+  void SetValue(ParamNode* node);
+  
   /** Creates a sub-node with the content */
   void SetComment(const std::string& string);
 
@@ -123,6 +127,9 @@ private:
    * To decide if comment and value are XML-elements or attributes */
   bool IsGoodAttribute(const std::string& string) const;
 
+  /** this static counter is for the number of ToFile() calls by filename. */
+  static std::map<const std::string, unsigned int> writeCounter_;
+  
   /** This is the label of the entry.
    * If a ParamNode::name_ is not explicit give, it correlates via ToValidLabel()
    * with capation_ */

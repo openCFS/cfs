@@ -27,6 +27,7 @@ SET(TARGET_LL ${TARGET_LL}
   elements
   definefiles
   simouttext
+  simoutinfo
 )
 
 

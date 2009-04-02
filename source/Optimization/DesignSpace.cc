@@ -51,7 +51,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType> regionIds, StdVector<ParamNode*
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
   applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
   applicationForm.Add(Optimization::MASS, "MassInt");
-  applicationForm.Add(Optimization::SURFACE_NORMAL, "SurfaceNormalInt");
 
   // read the elements
   elements_ = domain->GetGrid()->GetNumElems(regionIds);
@@ -237,8 +236,6 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   switch(rd.value)
   {
   case DesignElement::LEVEL_SET_NORMAL:
-  case DesignElement::LEVEL_SET_FIRST_GRAD:
-  case DesignElement::LEVEL_SET_SECOND_GRAD:
     ri->entryType = ResultInfo::VECTOR;
     ri->dofNames.Resize(domain->GetGrid()->GetDim());
     ri->dofNames[0] = "x";
@@ -279,6 +276,9 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_1: return 0;
       case OPT_RESULT_2: return 1;
       case OPT_RESULT_3: return 2;
+      case OPT_RESULT_4: return 3;
+      case OPT_RESULT_5: return 4;
+      case OPT_RESULT_6: return 5;
       default: throw Exception("invalid solution type");
     }
   }
@@ -412,6 +412,11 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
   return design_id;
 }
 
+int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
+{
+  return ReadDesignFromExtern(space.GetPointer());
+}
+
 int DesignSpace::WriteDesignToExtern(double* space) const
 {
   if(needsReordering){
@@ -430,10 +435,16 @@ int DesignSpace::WriteDesignToExtern(double* space) const
       } // for r
     } // for des
   }else{
-    for(unsigned int i = 0; i < data.GetSize(); i++)
+    for(unsigned int i = 0, n= data.GetSize(); i < n; i++)
       space[i] = data[i].GetDesign(DesignElement::PLAIN);
   }
   return design_id;
+}
+
+int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out) const
+{
+  space_out.Reserve(data.GetSize());
+  return WriteDesignToExtern(space_out.GetPointer());
 }
 
 void DesignSpace::ReorderGradient(double* grad_out){

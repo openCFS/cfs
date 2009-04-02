@@ -82,7 +82,6 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-
     SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -Werror -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own

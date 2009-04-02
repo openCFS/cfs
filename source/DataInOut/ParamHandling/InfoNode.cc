@@ -4,10 +4,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <iostream>
-#include<fstream>
+#include <fstream>
 #include <complex>
-
-
 
 namespace CoupledField 
 {
@@ -29,7 +27,7 @@ namespace CoupledField
   const std::string InfoNode::WARNING = "warning";
   const std::string InfoNode::ERROR   = "error";
   
-
+  std::map<const std::string, unsigned int> InfoNode::writeCounter_ = std::map<const std::string, unsigned int>();
 
   InfoNode::InfoNode(const std::string& filename, const std::string& preamble) :
     parent_(NULL),
@@ -91,6 +89,7 @@ namespace CoupledField
     {
       node = new InfoNode();
       children_.Push_back(node);
+      attribute_ = false;
     }
     
     node->parent_ = this;
@@ -172,7 +171,7 @@ namespace CoupledField
       os << "</" << name_ << ">";
     }
   }
-  
+ 
   void InfoNode::ToFile(const std::string& filename, const std::string& preamble)
   {
     if(filename != "") filename_ = filename;
@@ -182,7 +181,10 @@ namespace CoupledField
     
     std::ofstream info_file(filename_.c_str());
     info_file << preamble_;
-    info->ToXML(info_file);
+    // store how often we are written -> if the number is too high one should cancel some ToFile() calls
+    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
+    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
+    ToXML(info_file);
     info_file.close();
   }
   
@@ -236,6 +238,25 @@ namespace CoupledField
     return ss.str();
   }
   
+  void InfoNode::SetValue(ParamNode* node) 
+  { 
+    SetName(node->GetName()); 
+    // set the value  
+    SetValue(node->AsString()); 
+
+    StdVector<ParamNode*>& children = node->GetChildren(); 
+    attribute_ = children.GetSize() == 0; 
+
+    // run recusively through all children 
+    for(unsigned int i = 0; i < children.GetSize(); i++) 
+    { 
+      // add new element 
+      ParamNode* other = children[i]; 
+      InfoNode* new_node = Get(other->GetName(), APPEND); 
+      new_node->SetValue(other); 
+    } 
+  } 
+
   void InfoNode::SetValue(const std::string& string)
   {
     value_ = string;

@@ -10,6 +10,7 @@
 #include <def_build_type_options.hh>
 #include "matrix.hh"
 #include "MatVec/vector.hh"
+#include "MatVec/opdefs.hh"
 
 #include "Utils/boost-serialization.hh"
 
@@ -485,6 +486,42 @@ namespace CoupledField
 
   }
 
+  // Perform a matrix-vector multiplication rvec = this*mvec via the inner product
+  template<class TYPE>
+  void Matrix<TYPE>::MultInner(const SingleVector & mvec, SingleVector & rvec) const
+  {
+    Vector<TYPE> const & mvec1 = dynamic_cast<const Vector<TYPE>& >(mvec);
+    Vector<TYPE> & rvec1 = dynamic_cast<Vector<TYPE>& >(rvec);
+  
+#if defined CHECK_INITIALIZED || defined CHECK_INDEX
+    UInt size_mvec = mvec1.GetSize();
+    UInt size_rvec = rvec1.GetSize();
+ 
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      EXCEPTION("undefined Matrix");
+    if (size_mvec == 0) 
+      EXCEPTION("undefined Vector");
+    if (size_rvec == 0) 
+      EXCEPTION("undefined Vector");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_col_ != size_mvec) 
+      EXCEPTION("incompatible dimension");
+    if (size_row_ != size_rvec) 
+      EXCEPTION("incompatible dimension");
+#endif
+
+#endif
+
+    UInt k,kk;
+    rvec1.Init();
+    for ( k = 0; k < size_row_; k++)
+      for ( kk = 0; kk < size_col_; kk++)
+        rvec1[k] += OpType<TYPE>::dotProduct(data_[k][kk],mvec1[kk]);
+  }  
+  
   // // Perform a matrix-matrix multiplication rMat = this*mMat
   // template<class TYPE>
   // void Matrix<TYPE>::Mult(DenseMatrix & mMat, DenseMatrix & rMat)
@@ -534,8 +571,6 @@ namespace CoupledField
   //     }
   //   }
   // } 
-
-
 
 
   template<class TYPE>

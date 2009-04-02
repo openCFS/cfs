@@ -9,7 +9,9 @@
 #include "Optimization/OptimalityCondition.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/EvaluateOnly.hh"
+#include "Optimization/GradientCheck.hh"
 #include "Optimization/ParamMat.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "Driver/assemble.hh"
 #include "Driver/assemble.hh"
 #include "Driver/basedriver.hh"
@@ -24,6 +26,7 @@
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
 #include "General/exception.hh"
+#include <boost/filesystem.hpp>
 
 // IPOPT and SCPIP are not necessarily linked
 #ifdef USE_IPOPT
@@ -35,6 +38,9 @@
 
 using namespace CoupledField;
 using namespace std;
+namespace fs = boost::filesystem;
+
+
 
 DECLARE_LOG(opt)
 DEFINE_LOG(opt, "opt")
@@ -43,8 +49,7 @@ DEFINE_LOG(opt, "opt")
 Enum<Optimization::ObjectiveType>    Optimization::objectiveType;
 Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
-
-
+Enum<Optimization::CommitMode>       Optimization::commitMode;
 
 Optimization::Objective::Objective(ParamNode* pn, bool harmonic)
 {
@@ -96,6 +101,7 @@ void Optimization::Objective::SetValue(double val)
 
 Optimization::Optimization()
 {
+  this->lastStoredResult_ = -1;
   this->logFile_ = NULL;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
@@ -123,13 +129,18 @@ Optimization::Optimization()
   this->cost = new Objective(pn->Get("costFunction"), harmonic);
   this->cost->ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("objective", InfoNode::APPEND));
 
-
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
   bool me = pn->Get("costFunction")->Get("multiple_excitation")->AsBool();
   this->multiple_excitation = new MultipleExcitation(me, me ? pn->Get("costFunction")->Get("multipleExcitation", false) : NULL);
   if(me) this->multiple_excitation->ToInfo(optInfoNode->Get(InfoNode::HEADER)->Get("multipleExcitations"));
 
+  // the commit stuff
+  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->AsString() : "forward";
+  this->commitMode_ = commitMode.Parse(cm);
+  this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->AsInt() : 1;
+  optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
+  optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
 
   // the constraints are optional and might not be real constraints!
   StdVector<ParamNode*> list = pn->GetList("constraint");
@@ -181,6 +192,13 @@ void Optimization::PostInit()
   if(param->Has("loadErsatzMaterial")) { // if loadErsatzMaterial is used with optimization specifying a starting point, we have to load it here, before scaling ist done
     domain->ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
   }
+}
+
+void Optimization::PostInitSecond()
+{
+  if(param->Has("loadErsatzMaterial")) { // if loadErsatzMaterial is used with optimization specifying a starting point, we have to load it here, before scaling ist done
+    domain->ReadErsatzMaterial(param->Get("loadErsatzMaterial"));
+  }
 
   ParamNode* opt = param->Get("optimization")->Get("optimizer");
 
@@ -213,6 +231,10 @@ void Optimization::PostInit()
     case EVALUATE_INITIAL_DESIGN:
          baseOptimizer_ = new EvaluateOnly(this, opt);
          break;
+         
+    case GRADIENT_CHECK:
+         baseOptimizer_ = new GradientCheck(this, opt);
+         break;
 
     default: throw Exception("optimizer not implemented");
   }
@@ -230,9 +252,9 @@ void Optimization::SetEnums()
   objectiveType.Add(DYNAMIC_OUTPUT, "dynamicOutput");
   objectiveType.Add(GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   objectiveType.Add(CONJUGATE_COMPLIANCE, "conjugateCompliance");
-  objectiveType.Add(RADIATION, "radiation");
   objectiveType.Add(VOLUME, "volume");
   objectiveType.Add(TRACKING, "tracking");
+  objectiveType.Add(ELEC_ENERGY, "elecEnergy");
 
   Condition::name.SetName("Contraint::Name");
   Condition::name.Add(Condition::VOLUME, "volume");
@@ -252,6 +274,7 @@ void Optimization::SetEnums()
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(LEVEL_SET, "levelSet");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
+  optimizer.Add(GRADIENT_CHECK, "gradientCheck");
 
   ErsatzMaterial::method.SetName("ErsatzMaterial::Method");
   ErsatzMaterial::method.Add(ErsatzMaterial::SIMP_METHOD, "simp");
@@ -263,9 +286,9 @@ void Optimization::SetEnums()
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::ADJOINT, "adjoint");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::BOTH, "both_cases");
 
-  SIMP::system.SetName("SIMP::System");
-  SIMP::system.Add(SIMP::PIEZO, "piezo");
-  SIMP::system.Add(SIMP::MECHANIC, "mechanic");
+  OptimizationMaterial::system.SetName("OptimizationMaterial::System");
+  OptimizationMaterial::system.Add(OptimizationMaterial::PIEZO, "piezo");
+  OptimizationMaterial::system.Add(OptimizationMaterial::MECHANIC, "mechanic");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
@@ -275,7 +298,6 @@ void Optimization::SetEnums()
   application.Add(PIEZO_COUPLING, "piezoCoupling");
   application.Add(PRESSURE, "pressure");
   application.Add(CHARGE_DENSITY, "chargeDensity");
-  application.Add(SURFACE_NORMAL, "surfaceNormal");
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
@@ -286,22 +308,37 @@ void Optimization::SetEnums()
 
 
 
-bool Optimization::IsMinimumReached()
+bool Optimization::DoStopOptimization()
 {
-    // this currently only implements relative stopping rule
-
-    // we need a minimum number of itations to be sure we are in a minimum
-    if(cost->history.GetSize() <= cost->stop.queue) return false;
-
-    for(unsigned int i = cost->history.GetSize()-1; i >= (cost->history.GetSize() - cost->stop.queue); i--)
-    {
-        double delta = abs(cost->history[i] - cost->history[i-1]);
-        double rel = abs(delta / cost->history[i]);
-        if(rel > cost->stop.value) return false;
-    }
-
-    // the relative values for the whole queue are smaller than the requirement -> we are done! :)
+  InfoNode* in = optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  // check if the HALTOPT file exists
+  if(fs::exists("HALTOPT"))
+  {
+    bool good = fs::remove("HALTOPT");
+    if(!good) throw new Exception("Could not remove file 'HALTOPT' after detection");
+    in->Get("converged")->SetValue("no");
+    in->Get("reason")->SetValue("Detected file 'HALTOPT'");
     return true;
+  }
+  
+  // this currently only implements relative stopping rule
+
+  // we need a minimum number of itations to be sure we are in a minimum
+  if(cost->history.GetSize() <= cost->stop.queue) return false;
+
+  for(unsigned int i = cost->history.GetSize()-1; i >= (cost->history.GetSize() - cost->stop.queue); i--)
+  {
+    double delta = abs(cost->history[i] - cost->history[i-1]);
+    double rel = abs(delta / cost->history[i]);
+    if(rel > cost->stop.value) return false;
+  }
+
+  // the relative values for the whole queue are smaller than the requirement -> we are done! :)
+  in->Get("converged")->SetValue("practically");
+  in->Get("reason")->SetValue("Too small change in objective function");
+  in->Get("reason")->Get("queue")->SetValue(cost->stop.queue);
+  in->Get("reason")->Get("realtive")->SetValue(cost->stop.value);
+  return true;
 }
 
 
@@ -318,25 +355,40 @@ Optimization* Optimization::CreateInstance()
   // note, we read method again in the ersat material constructor.
   ParamNode* em = param->Get("optimization")->Get("ersatzMaterial");
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method"));
+  
+  Optimization* opt = NULL;
+  
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
-  {
-    // which simp type?
-    SIMP::System system = SIMP::system.Parse(em->Get("SIMP")->Get("system"));
-    SIMP* simp = (system == SIMP::MECHANIC) ? new SIMP(): new PiezoSIMP();
-    simp->PostInit();
-    return simp;
-  }
+    switch(OptimizationMaterial::system.Parse(em->Get("material")))
+    {
+    case OptimizationMaterial::MECHANIC:
+      opt = new SIMP();
+      break;
+      
+    case OptimizationMaterial::PIEZO:
+      opt = new PiezoSIMP();
+      break;
+      
+    default: assert(false);
+    }
+    break;
+    
   // FreeMat, ShapeGrad, ...
   case ErsatzMaterial::PARAM_MAT:
-  {
-    ParamMat* pm = new ParamMat();
-    pm->PostInit();
-    return pm;
-  }
+    opt = new ParamMat();
+    break;
+    
   default: throw Exception("Optimization not implemented");
   }
+  
+  // second initialzation phase, constrcuts material
+  opt->PostInit();
+  // third initizalization phase, constructs optimizer
+  opt->PostInitSecond();
+
+  return opt;
 }
 
 void Optimization::SolveProblem()
@@ -348,6 +400,7 @@ void Optimization::SolveProblem()
   unsigned int mss = domain->GetDriver()->GetActSequenceStep();
   rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999); // max steps is high
   baseOptimizer_->SolveProblem();
+  FinalizeStoreResults(); // when we have strides the results are written
   rh->FinishMultiSequenceStep();
   rh->Finalize();
 }
@@ -434,6 +487,7 @@ void Optimization::EvaluateSpecialResults()
   }
 }
 
+
 void Optimization::StoreResults(double step_val)
 {
   // For PiezoSIMP we can do storing there and this method is overwritten
@@ -443,19 +497,34 @@ void Optimization::StoreResults(double step_val)
   domain->GetDriver()->StoreResults(step_val == -1 ? currentIteration : step_val);
 }
 
+void Optimization::FinalizeStoreResults()
+{
+  // after the last CommitIteration the iteration counter was incremented
+  bool store = currentIteration-1 != lastStoredResult_ && currentIteration > 1;
+  LOG_DBG(opt) << "CheckFinalStoreResults: currentIteration=" << currentIteration << " lastStoredResult="
+               << lastStoredResult_ << " store=" << store;
+  if(store)
+    StoreResults(currentIteration-1);
+}
+
+
 InfoNode* Optimization::CommitIteration(bool keep_iteration_number)
 {
-  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << cost->GetValue();
-
   // store the real cost -> not a scaled one
   cost->history.Push_back(cost->GetValue());
 
   // eventually set special result
   EvaluateSpecialResults();
 
-  // this writes the most current solved forward problem
-  // via the driver to gid or whatever
-  StoreResults();
+  // this writes the most current solved forward problem via the driver to gid or whatever
+  bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
+  LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " ojective=" << cost->GetValue() << " store=" << store;
+  if(store)
+  {
+    StoreResults();
+    lastStoredResult_ = currentIteration;
+    // see FinalizeStoreResults() !
+  }
 
   // save this iteration
   design->WriteDesignToExtern(last_iteration.GetPointer());
@@ -620,10 +689,20 @@ double Excitation::GetOmega()
   return 2 * M_PI * frequency;
 }
 
-double Excitation::GetOmegaOmega()
+double Excitation::GetFactor(Optimization::Objective* cost)
 {
-  if(frequency < 0.0)
-    EXCEPTION("No frequency given");
-  return 4 * M_PI * M_PI * frequency * frequency;
+  double factor = 1.0; // default
+  
+  if(cost->FactorOmegaOmega())
+  {
+    if(frequency < 0.0) EXCEPTION("No frequency given");
+    factor *= 4 * M_PI * M_PI * frequency * frequency;
+  }
+  
+  return factor;
 }
 
+double Excitation::GetWeightedFactor(Optimization::Objective* cost)
+{
+  return normalized_weight * GetFactor(cost);
+}

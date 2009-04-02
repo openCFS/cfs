@@ -57,7 +57,6 @@ SET(FORMS_SRCS
   singleEntryInt.cc
   smoothInt.cc
   smoothNLInt.cc
-  SurfaceNormalInt.cc
   nLinMagHystInt2D.cc
   mixedInt.cc
   fluidMechInt.cc

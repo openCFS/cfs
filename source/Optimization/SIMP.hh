@@ -22,6 +22,7 @@ class Condition;
 class Assemble;
 class TransferFunction;
 class SurfElem;
+class OptMechMat;
 
 template <class TYPE> class StdVector;
 template <class TYPE> class Vector;
@@ -89,35 +90,28 @@ public:
   /** Up to now w/o parameters */
   SIMP();
 
-  /** e.g. closing the ersatzMaterialFile */
+  /** e.g. closing the exportDesign */
   virtual ~SIMP();
 
-  /** compute the value of the cost function */
-  double CalcObjective()
-  {
-    return cost->type == RADIATION ? CalcRadiation() : ErsatzMaterial::CalcObjective();
-  }
-
-  /** The systems we can SIMP */
-  typedef enum { PIEZO, MECHANIC } System;
-
-  /** Here we store the system enum */
-  static Enum<System> system;
-
-  System GetSystem() const { return system_; }
 
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
 
-  /** if we do radiation optimization this gives the bilinear form which is
-   * added in DefineIntegrators of MechPDE early, before we construct Optimization.
-   * It would clearly be nicer if one could add this stuff in SIMP::PostInit()
-   * by making OLAS more flexible. Actually this is a low priority todo
-   * @return NULL if we do not do such "radiation" optimization stuff */
-  static BiLinFormContext* CreateSurfaceNormalMatrix(SinglePDE* pde, BaseMaterial* baseMat, shared_ptr<ResultInfo> result);
-
 protected:
 
+  /** overwrite this method for own objectives. */
+  virtual double CalcObjective(Excitation& excite)
+  {
+    // we have no own objectives
+    return ErsatzMaterial::CalcObjective(excite);
+  }
+  
+  /** no special case here */
+  virtual void ConstructAdjointRHS(Excitation& excite)
+  {
+    ErsatzMaterial::ConstructAdjointRHS(excite);
+  }
+  
   /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
   virtual void CalcObjectiveGradient(Excitation& excite);
 
@@ -125,22 +119,7 @@ protected:
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out);
-
-  /** calculates the radiation, an approximation to emitted sound (Du & Olhoff),
-   * only harmomic. Is specific to SIMP, hence not in ErsatzMaterial.
-   * Includes the assembly of the SurfaceNormalMatrix */
-  double CalcRadiation();
-
-  /** values read from xml in case we optimize for radiation */
-  double radiation_c_;
-  double radiation_gamma_;
-
-  /** The system we optimize. PIEZO or MECHANIC */
-  System system_;
-
-  /** The surface normal matrix following Du/Olhoff 2007. Note that this assumes a single plane surface */
-  Matrix<double> surfaceNormal;
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode);
 
   /** the mechanical element rhs, complex or real */
   SurfaceRef mechRHS;
@@ -149,22 +128,13 @@ private:
 
   /** This private, as no virtual templates are possible with C++ */
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out);
+  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode);
 
   /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass */
   void AddMassToStiffness(double m_factor, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out);
 
-  /** Specific implementation of for RADIATION, in the other cases calls ErsatzMaterial stuff */
-  void AdjustComplexAdjointRHS(Excitation& excite);
-
-
-  /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
-   * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .
-   * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
-   * It shall be cheap enough to calc here twice! */
-  template <class T>
-  void CalcSurfaceNormalTimesSolution( Vector<T>& olas_prod, Excitation& excite);
-
+  /** This is a shortcut to ErsatzMaterial::material */
+  OptMechMat* mech_mat_;
 };
 
 

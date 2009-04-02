@@ -20,6 +20,7 @@ namespace CoupledField {
     myParam_ = outputNode;
     actStep_ = 0;
     actStepVal_ = 0.0;
+    actMSStep_ = 0;
   }
 
   SimOutput::~SimOutput() {

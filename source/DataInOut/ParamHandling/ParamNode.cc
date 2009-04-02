@@ -270,48 +270,6 @@ namespace CoupledField
     return count;
   }
 
-  void ParamNode::ToXML(std::ostream& os) const
-  {
-    // note, that this is an recursive method!
-    if(attribute_)
-    {
-      // makes only sense in an recursive call
-      os << " " << name_ << "=\"" << value_ << "\"";
-    }
-    else
-    {
-      // if we start a new element or are part of an element is same/same
-      os << "<" << name_;
-      // go through all children an check if we close with "../>" or </name_>
-      bool only_attributes = true;
-      for(unsigned int i = 0; i < children_.GetSize(); i++)
-      {
-        if(!children_[i]->attribute_)
-        {
-           only_attributes = false;
-           os << "/>";
-        }
-        children_[i]->ToXML(os); // I love recursive calls :)
-      }
-      
-      // we are no attribute, but we might have a own value "<posDef>no</posDef>"
-      if(value_ != "")
-      {
-        // see if we already close the beginning element
-        if(only_attributes)
-        {
-          only_attributes = false;
-          os << "/>";
-        }
-        os << value_;
-      }
-      
-      // how to close
-      if(only_attributes) os << "/>" << std::endl;
-                     else os << "</" << name_ << ">" << std::endl;
-    }
-  }
-
 
   std::string ParamNode::ToString() const
   {

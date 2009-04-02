@@ -281,8 +281,37 @@ namespace CoupledField {
     return sqrt(sum);
   }
 
+  template<class TYPE> 
+  Double Vector<TYPE>::NormMax() const 
+  { 
+    EXCEPTION( "Vector<TPYE>::NormMax only defined for TYPE=Complex/Double" ); 
+    return TYPE(); 
+  } 
 
-  
+
+  template<> 
+  Double Vector<Double>::NormMax() const 
+  { 
+    Double ret = 0.0; 
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(UInt i = 0; i < size_; i++) 
+      ret = std::max(std::abs(ret), std::abs(data_[i])); 
+
+    return ret; 
+  } 
+  template<> 
+  Double Vector<Complex>::NormMax() const 
+  { 
+    Double ret = 0.0; 
+    if(size_ == 0) EXCEPTION("empty vector"); 
+
+    for(UInt i = 0; i < size_; i++) 
+      ret = std::max(std::abs(ret), std::abs(data_[i].real())); 
+
+    return ret; 
+  }  
+
 
   // *******************************************
   //   Same as the BLAS functions of that name

@@ -187,10 +187,6 @@ namespace CoupledField
     /** returns name and value, and child summary information */
     virtual std::string ToString() const;
          
-    /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
-     * called for an attribute */
-    virtual void ToXML(std::ostream& os) const;      
-         
     /** This is a recursive Dump of the tree to std::cout
      * @param level start with 0, is used for ident */
     virtual void Dump(int level = 0) const;

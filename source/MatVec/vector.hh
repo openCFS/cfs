@@ -245,6 +245,9 @@ template<typename T> class ElemStoreSol;
     //! Compute Euclidean norm of this vector object
     Double NormL2() const;
     
+    /** Calculates the max-norm (of the real part) */ 
+    Double NormMax() const; 
+    
     //! Create scalar product of vector and second one
     template <typename T2>
     PROMOTE(T,T2)  operator*( const Vector<T2> & x ) const;
@@ -415,11 +418,21 @@ template<typename T> class ElemStoreSol;
 
     //! Return a reference to i-th entry
     inline T & operator[]( UInt i) {
+#ifdef CHECK_INDEX
+    if (i >= size_ || i < 0)
+      EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
+#endif
+      
       return data_[i];
     };
 
     //! Return a reference to i-th entry
     inline const T& operator[]( UInt i ) const {
+#ifdef CHECK_INDEX
+    if (i >= size_ || i < 0)
+      EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
+#endif
+      
       return data_[i];
     };
 

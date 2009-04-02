@@ -10,7 +10,6 @@
 
 namespace CoupledField
 {
-class LoadBc;
 class StdPDE;
 class SinglePDE;
 class MechPDE;
@@ -23,6 +22,7 @@ class Assemble;
 class TransferFunction;
 class SurfElem;
 class SurfaceRef;
+class OptimizationMaterial;
 
 template <class TYPE> class StdVector;
 template <class TYPE> class Vector;
@@ -40,12 +40,13 @@ public:
   /** Up to now w/o parameters */
   ErsatzMaterial();
 
-  /** e.g. closing the ersatzMaterialFile */
+  /** e.g. closing the exportDesign */
   virtual ~ErsatzMaterial();
 
-  /** compute the value of the cost function */
-  virtual double CalcObjective();
-
+  /** compute the value of the cost function. Overwrite the excitation version! 
+   * To perform multiple excitation it calls CalcObjective(Excitation& excite) and
+   * performs the averaging. */
+  double CalcObjective();
 
   /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient.
    * The real work is done by CalcObjectiveGradient(Excitation&) which is overloaded.
@@ -81,15 +82,27 @@ public:
   /** Adds validation stuff here to keep out of long constructor */
   virtual void PostInit();
 
+  /** Have all design elements the same size? -> same local element matrices */
+  bool IsDomainStructured() { return assume_constant_element_matrices_; } 
+  
+  /** Helper that converts from mechPDE to MECH and elecPDE to ELEC
+   * @throws if neither mechPDE nor elecPDE */
+  Application ToApp(SinglePDE* pde) const;
+
+  /** Find our pde in SIMP by application */
+  SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
+
+  /** Helper which extracts the Form from assemble using the optimization region
+   * @param regionId the corresponding region
+   * @param pde1 the first pde (e.g. mech)
+   * @param pde2 this is either the same as pde1 or the coupling partner
+   * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
+  BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
+  
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum { SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, NO_METHOD } Method;
 
   static Enum<Method> method;
-
-  /** the commit mode defines what of the iterations is to be written to gid, ... */
-  typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
-
-  static Enum<CommitMode> commitMode;
 
   /** Here we have the set of excitations. Only relevant for the mulitple excitations
    * case (multiple loads or frequencies) */
@@ -98,6 +111,9 @@ public:
   typedef LoadBc TrackingBc;
 
   typedef LoadList TrackingList;
+
+  /** The region to optimize */
+  StdVector<RegionIdType> regionIds;
 
 protected:
 
@@ -210,29 +226,17 @@ protected:
    * @return not defined in the gradient case */
   double CalcConstraint(Condition* constraint, bool gradient, double* grad_out = NULL);
 
-  /** Helper which extracts the Form from assemble using the optimization region
-   * @param regionId the corresponding region
-   * @param pde1 the first pde (e.g. mech)
-   * @param pde2 this is either the same as pde1 or the coupling partner
-   * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
-
-  /** <p>Get the original element matrix (stiffness, mass, ...)
-   * which is constant for all isotripic elements.
-   * This method is not only for mechanical SIMP but is also used by PiezoSIMP,
-   * therefore it is generic.</p>
-   * <p>If no elemen is given, the one from the first design element is used.</p>
-   * <p>All transfer functions are disabled during this method. Call only for
-   * enabled transfer functions (default)</p>
-   * @param form to be extracted via GetForm()
-   * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
-   * @param elem if not given the first design element is used, otherwise the provided one
-   * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BaseForm* form, Matrix<double>& out, Elem* elem = NULL,
-                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
-
-
-  /** Calculate the derivative form \f$<l,K'u-f'>\f$.
+  /** This are the modes for CalcU1KU2(). */
+  enum CalcMode 
+  {
+    STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
+    CONJ_QUAD     /*!< add <u, K' u> which is in the real case as STANDARD 
+                    and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */ 
+  };
+  
+  
+  /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
+   * This is controlled cia CalcMode. 
    *
    * When adjoint vector u1/l is not calculated with a negative rhs, one
    * can put in the minus sign as an explicit factor.
@@ -245,34 +249,29 @@ protected:
    * @param k the application determines the stiffness matrix
    * @param u2 the solution or u in \f$<l,K'u-f'>\f$
    * @param rhs if one want to do \f$<l,K'u-f'>\f$ this containts the info for \f$-f'\f$.
-   * @param add if true we sum up to the desing elements cost gradient
-   * @param factor see above, more complex in radiation case. */
+   * @param calcMode how to solve the product.
+   * @param factor see above, more complex in radiation case. 
+   * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k,
       StdVector<SingleVector*>& u2, SurfaceRef* rhs = NULL,
-      bool add = false, double factor = 1.0, Condition* constraint = NULL)
+      double factor = 1.0, CalcMode calcMode = STANDARD, Condition* constraint = NULL, int res_idx = -1)
   {
-    if(harmonic) return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, add, factor, constraint);
-            else return CalcU1KU2<double>(tf, u1, k, u2, rhs, add, factor, constraint);
+    if(harmonic) return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, factor, calcMode, constraint, res_idx);
+            else return CalcU1KU2<double>(tf, u1, k, u2, rhs, factor, calcMode, constraint, res_idx);
   }
 
+  /** Helper calling CalcU1KU2()
+   * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
+   * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
+  int GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode = STANDARD, Condition* constraint = NULL);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out)
+  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode)
   {
     throw Exception("not implemented");
   }
-  /** Get the ElementStiffness Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @param direction if given, calculate derivative of Stiffness Matrix instead
-   * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(Elem* elem, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
-
-  /** Get the ElementMass Matrix for this element, this is the region constant version
-   * @param elem the Element for which the Matrix should be returned
-   * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(Elem* elem);
 
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
    * @param mat holds the tensor
@@ -281,9 +280,18 @@ protected:
   void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
 
+  /** This is part of SetAndSolveAdjointRHS(). 
+   * This is for output loads or general real/complex rhs.
+   * If output stuff the loads are changed but they are saved and restored in SetAndSolveAdjointRHS() anyway */
+  virtual void ConstructAdjointRHS(Excitation& excite)
+  {
+    // here in ErsatzMaterial this is outout stuff
+    if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
+            else ConstructAdjointRHS<double>(excite);
+  }
+  
   /** This sets the objective specific RHS for adjoint problems.
-   * For DYNAMIC_OUTPUT this is a post processing of of ConstructOutputRHS.
-   * For RADIATION there is a specific implementation in SIMP. */
+   * For DYNAMIC_OUTPUT this is a post processing of of ConstructAdjointRHS. */
   virtual void AdjustComplexAdjointRHS(Excitation& excite);
 
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
@@ -298,20 +306,14 @@ protected:
   /** This is the tempated instance of the virtual CalcObjective().
    * To perform multiple excitation it calls CalcObjective(Excitation& excite) and
    * performs the averaging. */
-  template <class T>
-  double CalcObjective();
+  
 
-  double CalcObjective(Excitation& excite) {
-    if(harmonic) return CalcObjective<std::complex<double> >(excite);
-            else return CalcObjective<double>(excite);
-  }
-
-  /** This calculates the objective for the given excitation. The result is also stored
-   * in excite.cost. It includes the objective factor (e.g. omega^2) but not the weighting */
-  template <class T>
-  double CalcObjective(Excitation& excite);
-
-
+  /** overwrite this method for own objectives. Does not set excite.cost! 
+   * Includes the factor (e.g. omega^2) as this is part of the objective function
+   * but does not include the weighting. Note that CalcObjectiveGradient uses
+   * Excitation::GetWeightedFactor() */
+  virtual double CalcObjective(Excitation& excite);
+  
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
@@ -347,26 +349,15 @@ protected:
    * @return invalid in derivative case*/
   double CalcTracking(bool derivative, Condition* constraint);
 
-  /** Helper that converts from mechPDE to MECH and elecPDE to ELEC
-   * @throws if neither mechPDE nor elecPDE */
-  Application ToApp(SinglePDE* pde) const;
-
-  /** Find our pde in SIMP by application */
-  SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
-
-
-  /** We have always a MechPDE for SIMP. This (and elec) is also in pde! */
-  MechPDE*           mech;
-
   /** This vector is an alternative access to the mech and elec pointers.
    * mech is guaranteed to be index 0 and elec would be 1.
    * @see ToApp()
    * @see ToPDE() */
   StdVector<SinglePDE*> pde;
-
-  /** The region to optimize */
-  StdVector<RegionIdType> regionIds;
-
+  
+  /** We have always a MechPDE for SIMP. This (and elec) is also in pde! */
+  MechPDE*           mech;
+  
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
 
@@ -382,11 +373,6 @@ protected:
   /** The assemble class for our PDE */
   Assemble* assemble_;
 
-  /** The mechanical element stiffness matrix is constant */
-  std::map<RegionIdType, Matrix<double> > mechStiffness_map;
-
-  /** The mechanical element mass matrix is also constant. Only for harmonic! */
-  std::map<RegionIdType, Matrix<double> > mechMass_map;
 
   /** Here we store the solution of the tracking subproblem. */
   Solution* tracking_;
@@ -404,19 +390,26 @@ protected:
   /** cache the 1.0 / complete volume of the domain */
   double volume_fraction_;
 
+  /** This contains our concrete material class */
+  OptimizationMaterial* material;
+  
 private:
 
-  /** Creates the ErsatzMaterialFile and writes the header */
-  void CreateErsatzMaterialFile(const std::string& filename, StdVector<ParamNode*>& des, StdVector<ParamNode*>& tfs);
+  /** This calculates the objective for the given excitation. The result is also stored
+   * in excite.cost. It does NOT include theobjective factor (e.g. omega^2) and NOT the weighting */
+  template <class T>
+  double CalcObjective(Excitation& excite);
+  
+  /** Creates the pseudo density node and stores the header */
+  InfoNode* CreateExportDesign(const std::string& filename, StdVector<ParamNode*>& des, StdVector<ParamNode*>& tfs);
 
   /** See the non-template version for documentation! */
   template <class T>
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref, bool add, double factor, Condition* constraint);
+      Application k, StdVector<SingleVector*>& u2, SurfaceRef* ref, double factor, CalcMode calcMode, Condition* constraint, int res_idx);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
-   * Another application is  RADIATION. Then SurfaceRef is
-   * given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
+   * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and
    * substracts for all dof of that node only */
   template <class T>
@@ -443,9 +436,11 @@ private:
   /** Rests HDBC after adjoint PDE is solved */
   void ResetHDBC(StdVector<IdBcList> org_idbc);
 
-  /** Saves the original loads and sets the output nodes as adjoint pde rhs */
+  /** In ErsatzMaterial: Saves the original loads and sets the output nodes as adjoint pde rhs
+   * @see virtual ConstructAdjointRHS() */
   template <class T>
-  LoadList ConstructOutputRHS(Excitation& excite);
+  void ConstructAdjointRHS(Excitation& excite);  
+
 
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
@@ -470,10 +465,10 @@ private:
    * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */ 
   void NormalizeMultipleExcitations();
 
-  CommitMode commitMode_;
-
-  /** flag indicating if we write the ersatz material file. see destructor */
-  std::ofstream*     ersatzMaterialFile;
+  /** If not NULL we want to export the pseudo densities */
+  InfoNode* exportDesign;
+  /** shall we write the densities for all iterations or overwrite? */
+  bool exportDesignAllIterations;
 
   /** When we optimize output we store here the nodes */
   LoadList output_nodes_;

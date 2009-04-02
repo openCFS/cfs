@@ -22,8 +22,7 @@ provided in the individual PDEs (e.g. in mechanics: {\bf "planeStrain"}).
 The input file defines the mesh with its nodes, elements and regions. You can set the input file on
 the command line via the \textbf{-m} option or define it within the problem file itself as described below.
 
-The following example used the HDF5 format with a structure proprietary for CFS++. In this case it includes an 
-option that linearizes the meses, e.g. for for the non-matching grid technique.
+The following example uses the HDF5 format and HDF5 specific option that linearizes the mesh (for for the non-matching grid technique).
 \begin{verbatim} 
 <input>
   <hdf5 fileName="coupled.h5" linearizeEntities="iface_1 iface_2" />
@@ -43,9 +42,7 @@ unv  & Legacy format only \\
 \end{tabular}
 
 \subsection{Output File}
-You can write simultaneously to different output formats. Each has it's own special options but the defaults
-are generally ok. Most formats write into a subdirectory as listed in the table below. The column \textit{Single} expresses if the format writes multiple timesteps/ frequencies/ iterations into a single file or creates seperate files. The advantage for the later is, that one can visualize intermediate results. The most important formats are \textit{hdf5, gid} 
-and \textit{text}. The formats \textit{rst} and \textit{unv} have no relevance.
+Ouput can be written to different output formats simultaneously. Most formats write into a adjustable subdirectory, with the defaults listed in the table below. The column \textit{Single} expresses if the format writes multiple timesteps/ frequencies/ iterations into a single file or creates seperate files. The advantage for the later is, that one can visualize intermediate results. The most important formats are \textit{hdf5, gid} and \textit{text}. The formats \textit{rst} and \textit{unv} have no relevance.
 
 \medskip
 
@@ -53,12 +50,12 @@ and \textit{text}. The formats \textit{rst} and \textit{unv} have no relevance.
 \toprule
 Output & Target dir & Single & Description  \\
 \midrule
-hdf5 & simoutput\_hdf5 & yes & To be visualized with ParaView via CFS reader plugin \\
-gid & . & yes & For GiD, has attribute \textit{binaryFormat} \\
-text & history & no & Writes tabular ASCII for gnuplot, MATLAB, \ldots \\
+hdf5 & 'results\_hdf5' & yes & To be visualized with ParaView via CFS reader plugin \\
+gid & 'results\_hdf5' & yes & For GiD, has attribute \textit{binaryFormat} \\
+text & 'history' & no & Writes tabular ASCII for gnuplot, MATLAB, \ldots \\
 \midrule 
-gmv & simoutput\_gmv & no & Free, fast but difficult to use ``general mesh viewer'' \\
-vtk & simoutput\_vtk & no & Native ParaView format \\
+gmv & 'simoutput\_gmv' & no & Free, fast but difficult to use ``general mesh viewer'' \\
+info & - & yes & toggle history output to \textit{info.xml} file \\
 \midrule
 rst & ? & ? & ANSYS format, rarely used \\
 unv & ? & ? & Legacy format only \\
@@ -67,10 +64,98 @@ unv & ? & ? & Legacy format only \\
 
 \medskip
 
-All formats but \textit{text} are for the visualization of node and element values based on the mesh information.
-With \textit{text} results of named nodes/ elements (\textbf{nodeList/ elementList} within \textbf{storeResults}) or integral region results (e.g. \textbf{surfRegionResult type = "volumeAboveDefSurf"}) are written to history files. 
+All formats but \xml{text} are for the visualization of node and element values based on the mesh information.
 
-All formats have implicitly the \textbf{id} attribute set to a string with the format name. 
+All formats have implicitly the \xml{id} attribute set to a string with the format name. 
+
+\subsubsection{\xml{gid}}
+The following options are available
+\begin{center}
+\begin{tabular}{lll}
+\toprule 
+Attribute & Values & Description \\
+\midrule
+binayFormat & \xml{yes}, \xml{no} & See below, default is \xml{yes} \\
+directory & \textit{directory} & See below, default is ``results\_gid'' \\
+\bottomrule
+\end{tabular} \\[0.5ex]
+Attributes of the \xml{gid} element
+\end{center}
+The binary format writes a single file ``\textit{problem}.post.bin''. In the non-binary file two ASCII files
+``\textit{problem}.post.msh'' and ``\textit{problem}.post.res'' are created. 
+
+If the \xml{directory} attribute is set to ``.'' the current directory is used. 
+
+\subsubsection{\xml{hdf5}}
+The Hierarchical Data Format (5) is a standard format for simulation data. There are various tools for conversion and visualization available (e.h hdfview). MATLAB can also read and write HDF5 files. Furthermore can HDF5 files converted into gid files via the cfstool. 
+
+Additional information is stored, like the problem XML file and history data.
+
+The HDF5 files can be visualized via ParaView by the CFS-HDF5 reader.
+
+The mesh within a HDF5 file can be used as input for a CFS simulation.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule 
+Attribute & Values & Description \\
+\midrule
+directory & \textit{directory} & See \xml{gid}, default is ``results\_hdf5'' \\
+compressionLevel & \textit{1 \ldots 9} & has not much effect \\
+maxChungSize & \textit{number} & ??? \\
+externalFiles &  \xml{yes}, \xml{no} & ??? \\
+\bottomrule
+\end{tabular} \\[0.5ex]
+Attributes of the \xml{hdf5} element
+\end{center}
+
+\subsubsection{\xml{text}}
+The \xml{text} element writes the following data:
+\begin{itemize}
+  \item nodes named by \xml{nodeList} within \xml{nodeResult}
+  \item elements named by \xml{elementList} within \xml{elementResult}
+  \item integral \xml{regionResult} and \xml{surfRefionResult} results
+\end{itemize}
+
+The same information can also be found in the \textit{info.xml} file.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule 
+Attribute & Values & Description \\
+\midrule
+commentChar & \xml{\#}, \xml{\%}, \ldots & gnuplot (\#), matlab (\%), \ldots \\
+fileCollect & \xml{timeFreq}, \xml{entity}, \xml{altogether} & triggers new files \\
+coordSysId & \textit{own-id} & see below \\
+\bottomrule
+\end{tabular} \\[0.5ex]
+Attributes of the \xml{text} element, only for special cases.
+\end{center}
+
+When \xml{fileCollect} is set to \xml{timeFreq} for evey timestep/frequency step a new result
+file is created. Together with the \xml{coordSysId} does this allow to create acoustic directivity
+patterns. 
+
+\subsubsection{\xml{info}}
+Writes the same node, element and integral data as the \xml{text} writer. The data is written to
+the \textit{info.xml} output file. The xml data can be filtered and converted to xml, text, html, \ldots
+via XSLT-stylesheets. Examples can be found within the cfs code.   
+
+
+The \xml{info} element is implicitely assumed. If it is given and the \xml{output}
+attribute is set to \xml{false} no history data is added to \textit{info.xml}.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule 
+Attribute & Values & Description \\
+\midrule
+output & \xml{true}, \xml{false} & toggle history output to \textit{info.xml} \\
+\bottomrule
+\end{tabular} \\[0.5ex]
+Attributes of the \xml{info} element, only for special cases.
+\end{center}
+
 
 \section{Material Data File}
 To specify the name of the material file, the command 

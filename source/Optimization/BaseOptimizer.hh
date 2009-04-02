@@ -132,11 +132,15 @@ namespace CoupledField
     
     Optimization* optimization;
 
+    /** Info Node base */
+    InfoNode* info_;
+    
   private:
     /** Here we store the objective value for a design. */
     DesignMemory design_;
     
     ParamNode* optimizer_pn_;
+    
   };
 
 } // end of namespace

@@ -1,6 +1,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/DesignSpace.hh"
 #include "Optimization/DesignElement.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "Domain/domain.hh"
 #include "Domain/surfElem.hh"
 #include "General/exception.hh"
@@ -9,7 +10,6 @@
 #include "PDE/mechPDE.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linSurfForm.hh"
-#include "Forms/SurfaceNormalInt.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
@@ -35,17 +35,13 @@ DECLARE_LOG(conditions)
 DECLARE_LOG(simp)
 DEFINE_LOG(simp, "simp")
 
-Enum<SIMP::System> SIMP::system;
 
 SIMP::SIMP() : ErsatzMaterial()
 {
-  ParamNode* simp_pn = pn->Get("SIMP");
-  system_ = system.Parse(simp_pn->Get("system"));
-  radiation_c_ = -1.0; // set in PostInit()
-  radiation_gamma_ = -1.0;
+  ParamNode* simp_pn = pn->Get("SIMP", false);
 
   // There might be a filter regularization based on the design element.
-  if(simp_pn->Has("regularization", "type", "filter"))
+  if(simp_pn != NULL && simp_pn->Has("regularization", "type", "filter"))
   {
     StdVector<ParamNode*> list = simp_pn->Get("regularization")->GetList("filter");
     // this is save for design=polarization
@@ -54,11 +50,11 @@ SIMP::SIMP() : ErsatzMaterial()
   }
   else
   {
-    if(simp_pn->Has("regularization"))
+    if(simp_pn != NULL && simp_pn->Has("regularization"))
       throw Exception("regularization not implemented");
   }
 
-  // handle surfaceNormal in PostInit()
+  mech_mat_ = NULL; // set in PostInit()
 }
 
 SIMP::~SIMP()
@@ -71,84 +67,29 @@ void SIMP::PostInit()
   if(harmonic) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
           else mechRHS.Init<double>(design, PRESSURE);
 
-  // check
-  if(cost->type == RADIATION && !harmonic)
-    throw Exception("objective 'radiation' is only defined for harmonic");
-
-  // all other actions in ErsatzMaterial
-  if(cost->type == RADIATION)
-  {
-    // note, that the surface is not the optimization region with is all material
-    ParamNode* pn = param->Get("optimization")->Get("costFunction")->Get("radiation");
-    radiation_c_     = pn->Get("soundSpeed")->AsDouble();
-    radiation_gamma_ = pn->Get("specificMass")->AsDouble();
-    std::string region = pn->Get("surfRegion")->Get("name")->AsString();
-    RegionIdType sreg = domain->GetGrid()->RegionNameToId(region);
-    BaseForm* form = assemble_->GetBiLinForm(sreg, mech, mech, "SurfaceNormalInt")->GetIntegrator();
-    // the surface elements for the matrix are not design elements!
-    // Therefore provide an explicit element
-    StdVector<Elem*> elems;
-    domain->GetGrid()->GetElems(elems, sreg);
-    assert(elems.GetSize() != 0);
-    GetElementMatrix(form, surfaceNormal, elems[0]);
-  }
-
   ErsatzMaterial::PostInit();
+  
+  // only after ErsatzMaterial::PostInit();
+  mech_mat_ = dynamic_cast<OptMechMat*>(material);
+  assert(mech_mat_ != NULL);
 }
 
-BiLinFormContext* SIMP::CreateSurfaceNormalMatrix(SinglePDE* pde, BaseMaterial* baseMat, shared_ptr<ResultInfo> result)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode)
 {
-  // killme! this is called in mechPDE, it would be cooler if one could really add this
-  // bilinear form in the optimization PostInit() ;(
-
-  // check if we have this setting, otherwise return NULL
-  if(!param->Has("optimization")) return NULL;
-  // using the Enum stuff would be cooler but yet there is not prior SetEnums() calling
-  if(param->Get("optimization")->Get("costFunction")->Get("type")->AsString() != "radiation") return NULL;
-
-  // read what to optimize
-  Grid* grid = domain->GetGrid();
-
-  // killme works only for one region
-  std::string region = param->Get("optimization")->Get("costFunction")->Get("radiation")->Get("surfRegion")->Get("name")->AsString();
-  shared_ptr<EntityList> list =
-    grid->GetEntityList(EntityList::SURF_ELEM_LIST, region, EntityList::REGION);
-
-  // will be automatically deleted in the BiLinFormContext destructor by assemble
-  SurfaceNormalInt* sni = new SurfaceNormalInt(baseMat);
-
-  // this bilinear form is to be assembled in an extra matrix. it is
-  // only used to calculate the rhs for radiation optimization
-  BiLinFormContext * bilifc = new BiLinFormContext(sni, AUXILIARY);
-  bilifc->SetPtPdes(pde, pde); // actually we don't need the pde
-
-  bilifc->SetResults(result, result, list, list);
-
-  return bilifc;
-}
-
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* out)
-{
-  if(harmonic) SetElementK<std::complex<double> >(de, app, out);
-  else SetElementK<double>(de, app, out);
+  if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode);
+  else SetElementK<double>(de, app, out, calcMode);
 }
 
 template <class T>
-void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out)
+void SIMP::SetElementK(DesignElement* de, Application app, DenseMatrix* mat_out, CalcMode calcMode)
 {
   Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
   switch(app)
   {
-  case SURFACE_NORMAL:
-    // this does not depend on a transfer fuction!
-    // also surfaceNormal is always real and might become complex with imag = 0
-    Assign(out, surfaceNormal, 1.0);
-    break;
-
   case MECH:
   {
-    const Matrix<double> mechStiffness = MechStiffness(de->elem);
+    const Matrix<double> mechStiffness = mech_mat_->MechStiffness(de->elem);
     out.Resize(mechStiffness.GetNumRows(), mechStiffness.GetNumCols());
 
     // Find the transferfunction for K (e.g. DENSITY, MECH)
@@ -185,7 +126,7 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
 
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
-  const Matrix<double>& M = MechMass(de->elem);
+  const Matrix<double>& M = mech_mat_->MechMass(de->elem);
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega
@@ -231,96 +172,21 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
-
-double SIMP::CalcRadiation()
-{
-  design->WriteDesignToExtern(last_evaluation.GetPointer());
-
-  int idx = 0;
-  assert(excitations.GetSize() == 1);
-
-  // get surface normal matrix
-  StdMatrix* snm = assemble_->GetAlgSys()->GetSysMat(AUXILIARY);
-  assert(snm != NULL);
-  // assert(out.G)assert(snm->GetMaxDiag() != 0.0);
-
-  // Make an OLAS Vector and feed it with the solution vector
-  Vector<complex<double> >& sol   = *(forward.data[idx]->GetComplexPointer(Solution::RAW_VECTOR, MECH));
-  Vector<complex<double> > olas_sol;
-  // OLAS is one based!!
-  olas_sol.Replace(sol.GetSize(), sol.GetPointer()-1, false);
-
-  // The result is also an olas vector
-  Vector<complex<double> > olas_prod;
-  olas_prod.Resize(olas_sol.GetSize());
-
-  // multiply (S_n U)
-  snm->Mult(olas_sol, olas_prod);
-  LOG_DBG(simp) << "radiation objective: ||S_n*U||=" << olas_prod.NormL2();
-
-  // scalar product U (S_n U)
-  complex<double>  tsp;
-  olas_sol.Inner(olas_prod, tsp);
-  LOG_DBG(simp) << "radiation objective: U*S_n*U=" << tsp;
-  // check that the scalar product is (numerical) real
-  assert(((complex<double>) tsp).imag() < 1e-10 * ((complex<double>) tsp).real());
-  double sp = ((complex<double>) tsp).real();
-
-  // the objective (Du, Olhoff 2007) is pi=0.5 * gamma * c * omega^2* U*S_n*U
-  double omega = mech->GetSolveStep()->GetActFreq();
-
-  double result = 0.5 * radiation_gamma_ * radiation_c_ * omega * omega * sp;
-  LOG_DBG(simp) << " radiation objective: 0.5 * " << radiation_gamma_ << " * "
-                << radiation_c_  << " *  " << omega << "^2 * " << sp << " -> " << result;
-  cost->SetValue(result);
-
-  return cost->GetValue();
-}
-
-template <class T>
-void SIMP::CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod, Excitation& excite)
-{
-  // get surface normal matrix
-  StdMatrix* snm = assemble_->GetAlgSys()->GetSysMat(AUXILIARY);
-  assert(snm != NULL);
-  assert(snm->GetMaxDiag() != 0.0);
-
-  // Make an OLAS Vector and feed it with the solution vector
-  Vector<T>& sol   = dynamic_cast<Vector<T>& >(*forward.data[excite.index]->raw[MECH]);
-  Vector<T> olas_sol;
-  // OLAS is one based!!
-  olas_sol.Replace(sol.GetSize(), sol.GetPointer()-1, false);
-  LOG_DBG3(simp) << "Solution 'backcasted' to OLAS::Vector -> " << olas_sol.ToString();
-
-  // The result is also an olas vector
-  olas_prod.Resize(olas_sol.GetSize());
-
-  // multiply (S_n U)
-  snm->Mult(olas_sol, olas_prod);
-  LOG_DBG(simp) << "||S_n*U||=" << olas_prod.NormL2();
-  LOG_DBG3(simp) << "S_n * U -> " << olas_prod.ToString();
-}
-
 void SIMP::CalcObjectiveGradient(Excitation& excite)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);
 
   int idx = excite.index;
-  double weight = excite.normalized_weight;
-
-  if(cost->FactorOmegaOmega()) {
-    LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") weight * w^2 = " << weight << " * "
-                  << excite.GetOmegaOmega() << " -> " << weight * excite.GetOmegaOmega();
-    weight *= excite.GetOmegaOmega();
-  }
-
+  double weight = excite.GetWeightedFactor(cost);
+  LOG_DBG(simp) << "CalcObjectiveGradient(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
+                << " factor=" << excite.GetFactor(cost) << " weight=" << weight;
 
   switch(cost->type)
   {
   case GLOBAL_DYNAMIC_COMPLIANCE:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, true, weight);
+    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);
     break;
 
   case OUTPUT:
@@ -328,38 +194,12 @@ void SIMP::CalcObjectiveGradient(Excitation& excite)
   case CONJUGATE_COMPLIANCE:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, true, weight);
+    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);
     break;
 
-  case RADIATION:
-  {
-    // copy & paste from CalcObjective
-    double omega = mech->GetSolveStep()->GetActFreq();
-
-    // for constant rhs: grad = gamma * c * omega^2 * -1 * U_s^T * S' * U
-    // U_s is adjoint solution, S' is derivative of S = stiffness, masss (, damping)
-    double factor = -1.0 * radiation_gamma_ * radiation_c_ * omega * omega;
-
-    CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, true, weight * factor);
-    break;
-  }
   default:
     ErsatzMaterial::CalcObjectiveGradient(excite);
   }
-}
-
-void SIMP::AdjustComplexAdjointRHS(Excitation& excite)
-{
-  if(cost->type != RADIATION) return ErsatzMaterial::AdjustComplexAdjointRHS(excite);
-
-  // the rhs for radiation is S_n * U
-
-  // We have to use an OLAS Vector here
-  Vector<std::complex<double> > rhs;
-  CalcSurfaceNormalTimesSolution(rhs, excite); // does S_n * U as we also need it in the objective
-
-  // rhs is OLAS 1-based but handles this internally
-  assemble_->GetAlgSys()->InitRHS(rhs);
 }
 
 SurfaceRef::SurfaceRef()

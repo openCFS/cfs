@@ -25,6 +25,7 @@ TransferFunction::TransferFunction()
   orgType_ = NO_TYPE;
   design_ = DesignElement::DEFAULT;
   application_ = Optimization::NO_APP;
+  param_ = 0.0;
 }
 
 TransferFunction::TransferFunction(ParamNode* pn, DesignElement::Type default_design)

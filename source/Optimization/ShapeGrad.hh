@@ -6,6 +6,7 @@
 namespace CoupledField
 {
 class MechPDE;
+class OptMechMat;
 
 /** \class TopGradElementValues
  * \brief This class links element numbers to topGradValues
@@ -38,7 +39,6 @@ public:
   {
   }
 
-
   /** ... */
   void CalcObjectiveGradient(double* grad_out);
   
@@ -65,6 +65,12 @@ public:
   virtual void LogFileLine(std::ofstream* out);
   
   Matrix<double> mechStiffness;
+
+protected:
+  
+  // kind of second phase constructor 
+  void PostInit();
+  
   
 private:
   
@@ -96,6 +102,9 @@ private:
    * the more iterations we do (from xml)
    */
   bool enable_damping_;
+  
+  /** This is our material shortcut, currently only mechanic. Set in PostInit() */
+  OptMechMat* mech_mat_;
 };
 
 

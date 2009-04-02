@@ -118,7 +118,7 @@ void OptimalityCondition::SolveProblem()
   int iter = 0;
   int max_iter = optimization->GetMaxIterations();
   
-  while(!optimization->IsMinimumReached() && iter <= max_iter)
+  while(!optimization->DoStopOptimization() && iter <= max_iter)
   {
     // calc gradients to store the results in data[element]...
     // the gradients are based for the calculation of the next iteration
@@ -169,9 +169,15 @@ void OptimalityCondition::SolveProblem()
     iter++;
   }
   
-  if(iter >= max_iter-1) {
-     std::cout << " max iterations reached" << std::endl;
+  InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  
+  if(iter >= max_iter-1) 
+  {
+    in->Get("converged")->SetValue("no");
+    in->Get("reason")->SetValue("Maximum iterations exceeded");
+    std::cout << " max iterations reached" << std::endl;
   }
+  assert(in->GetChildren().GetSize() > 0);
 } 
 
 

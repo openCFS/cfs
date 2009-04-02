@@ -8,7 +8,7 @@ namespace CoupledField
   class Optimization;
   class ParamNode;
 
-  /** This class only evaluates the iniial design. This is mostly for
+  /** This class only evaluates the initial design. This is mostly for
    * debugging and export purpose. A further feature is, that we can handle multiple frequencies,
    * such we can do a sweep for the objective value! */ 
   class EvaluateOnly : public BaseOptimizer

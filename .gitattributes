@@ -433,6 +433,9 @@ source/DataInOut/SimInOut/AnsysRST/simOutputRST.hh svneol=native#text/x-c%2B%2Bh
 source/DataInOut/SimInOut/GiD/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/GiD/simOutGiD.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/GiD/simOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/InfoResultOutput/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/TextOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/TextOutput/textSimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/TextOutput/textSimOutput.hh svneol=native#text/x-c%2B%2Bhdr
@@ -658,8 +661,6 @@ source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/SurfaceNormalInt.cc svneol=native#text/x-c%2B%2Bsrc
-source/Forms/SurfaceNormalInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/abcInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouMechInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1042,6 +1043,8 @@ source/Optimization/ErsatzMaterial.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ErsatzMaterial.hh svneol=native#text/plain
 source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
 source/Optimization/IPOPT.hh -text
 source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1051,6 +1054,8 @@ source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
 source/Optimization/Optimization.hh svneol=native#text/plain
+source/Optimization/OptimizationMaterial.cc svneol=native#text/x-c%2B%2Bsrc
+source/Optimization/OptimizationMaterial.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/ParamMat.cc -text
 source/Optimization/ParamMat.hh -text
 source/Optimization/PiezoSIMP.cc -text

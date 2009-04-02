@@ -99,30 +99,45 @@ void SCPIP::SolveProblem()
     
     // call the base solver !!!!!!!!!!!
     int status = SCPIPBase::SolveProblem();
-
+    
+    InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+    
     switch(status)
     {
     case Solve_Succeeded:
-      std::cout << std::endl << "The problem solved in " 
-      << Statistics()->IterationCount() << " iterations!" << std::endl;
+      std::cout << std::endl << "Problem solved in " << Statistics()->IterationCount() 
+                << " iterations, final objective value is " << Statistics()->FinalObjective() << std::endl; 
       std::cout << "The final value of the objective function is "
-      << Statistics()->FinalObjective() << std::endl;
+                << Statistics()->FinalObjective() << std::endl;
+      in->Get("converged")->SetValue("yes");
       break;          
-      
-    case Subproblem_Max_Iter:
-    case Maximum_Iterations_Exceeded:
+
     case User_Requested_Stop:
-      std::cout << std::endl << ToString(status) << std::endl;
-      optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("problem")->SetValue(ToString(status));
-      break; 
+      // "break" already set!
+      assert(in->GetChildren().GetSize() > 0);
+      break;
+    case Subproblem_Max_Iter:
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue("SCPIP: subproblem max iter");
+      break;
+    case Maximum_Iterations_Exceeded:
+      in->Get("converged")->SetValue("no"); 
+      in->Get("reason")->SetValue("Maximum iterations exceeded");
+      break;
     
     case Gradients_Return_False:
-      if(restart_requested) 
-        break; // else throw exception
+      in->Get("converged")->SetValue("no"); 
+      in->Get("reason")->SetValue("Gradients return false and no restart requested");        
+      break;
       
     default:
+      in->Get("converged")->SetValue("no");
+      in->Get("reason")->SetValue(ToString(status));
       throw Exception(ToString(status));
     }
+    
+    if(!restart_requested)
+      optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("problem")->SetValue(ToString(status));
   }
   while(restart_requested);
 }
@@ -224,10 +239,9 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
   // break the optimization - e.g. if our relative change is smaller than given in xml
   // or we have to do a restart
   LOG_TRACE2(scpip) << "intermediate_callback iter=" << iter << " next_iter=" << next_iter
-                    << " restart_requested=" << restart_requested << " min reached="
-                    << optimization->IsMinimumReached();
+                    << " restart_requested=" << restart_requested;
   
-  return (restart_requested || optimization->IsMinimumReached()) ? false : true; 
+  return (restart_requested || optimization->DoStopOptimization()) ? false : true; 
 }     
 
 bool SCPIP::get_scaling_parameters(double& obj_scaling, bool& use_g_scaling, int m, double* g_scaling)
