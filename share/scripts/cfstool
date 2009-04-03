@@ -4,7 +4,7 @@
 # CFS_DIST/bin under the name 'cfstool'
 
 # Source shell script for setting some common variables.
-source `dirname $0`/common.sh
+. `dirname $0`/common.sh
 
 SUSEPackageHint()
 {
