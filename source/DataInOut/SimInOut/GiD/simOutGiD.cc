@@ -37,7 +37,8 @@ namespace CoupledField {
     // Initialize variables
     formatName_ = "gid";
     fileName_ = fileName;
-    dirName_ = outputNode->Get("directory")->AsString();
+    dirName_ = "results_" + formatName_;
+    outputNode->Get("directory", dirName_, false );
 
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );

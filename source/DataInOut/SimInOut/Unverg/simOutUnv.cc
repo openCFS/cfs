@@ -25,7 +25,8 @@ namespace CoupledField {
     
     formatName_ = "unv";
     fileName_ = filename;
-    dirName_ = "results_unv";
+    dirName_ = "results_" + formatName_;
+    outputNode->Get("directory", dirName_, false );
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     
