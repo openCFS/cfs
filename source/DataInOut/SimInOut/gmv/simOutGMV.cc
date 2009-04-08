@@ -49,7 +49,8 @@ namespace CoupledField {
 
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
-    dirName_ = "results_gmv";
+    dirName_ = "results_" + formatName_;
+    outputNode->Get("directory", dirName_, false );
     fileName_ = fileName;
 
     try 

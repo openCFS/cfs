@@ -637,10 +637,9 @@ Therewith, we can rewrite (\eqnref{wL1}) as
 \,.
 \end{eqnarray}
 
-\noindent
-Combining the surface integrals results in a single boundary integral just
-performed  over the  outer boundary  $\Gamma_{\rm I}$,  on which  we apply
-absorbing    boundary   conditions   of    first   order    according   to
+\noindent  Combining  the  surface  integrals  results in  a  single  boundary
+integral just performed over the  outer boundary $\Gamma_{\rm I}$, on which we
+apply   absorbing   boundary   conditions   of  first   order   according   to
 \cite{Engquist1977}. Therewith, we utilize the relation
 
 \be{eq:ABC1}
@@ -648,9 +647,8 @@ c_0 \frac{\partial \rho'}{\partial n} = \frac{\partial
   \rho'}{\partial t}
 \ee
 
-\noindent
-and arrive  at the  weak form of(\eqnref{strongF}):  Find $\rho'  \in H^1$
-such that
+\noindent and  arrive at the  weak form of(\eqnref{strongF}): Find  $\rho' \in
+H^1$ such that
 
 \be{eq:weakF}
 \int_\Omega w \frac{\partial^2 \rho'}{\partial t^2} 
@@ -663,19 +661,17 @@ such that
   L_{ij}}{\partial x_j}\, \rd \Omega 
 \ee
 
-\noindent
-for any  $w \in H^1$.  With $H^1$ we  denote the Sobolev space  defined as
-(see e.g. \cite{Adams1975})
+\noindent for any $w \in H^1$.  With $H^1$ we denote the Sobolev space defined
+as (see e.g. \cite{Adams1975})
 
 \be{eq:H1space}
 H^1 = \{ u \in L^2 | \partial u / \partial x_i \in L^2 \}
 \ee
 
-\noindent
-and $L^2$ the space of square integrable functions.
+\noindent and $L^2$ the space of square integrable functions.
 
-Using  standard  nodal  finite  elements, we  approximate  the  continuous
-acoustic density $\rho'$ as well as the test function $w$ by
+Using standard  nodal finite elements, we approximate  the continuous acoustic
+density $\rho'$ as well as the test function $w$ by
 
 \bea{approx_psi1}
 \rho' &\approx & {\rho'}^h =  \sum\limits_{a=1}^{n_{\rm eq}} \,
@@ -683,9 +679,8 @@ N_a \rho'_{a} \\
 w &\approx & w^h =  \sum\limits_{a=1}^{n_{\rm eq}} \, N_a w_a \,.
 \eea
 
-\noindent
-Thus, (\eqnref{weakF}) is transformed  to the following semidiscrete Galerkin
-formulation
+\noindent Thus, (\eqnref{weakF}) is  transformed to the following semidiscrete
+Galerkin formulation
 
 \begin{equation}
 {\bf M} \underline{\ddot{\rho'}}_{n+1} +
@@ -693,12 +688,11 @@ formulation
 {\bf K} \underline{\rho'}_{n+1} = \underline f_{n+1}
 \end{equation}
 
-\noindent
-with  $\underline{\ddot{\rho'}} =  \partial^2 \rho_\sim  /  \partial t^2$,
-$\underline{\dot{\rho'}}   =    \partial   \rho_\sim   /    \partial   t$,
-$\underline{\rho'}$ the nodal unknowns of the acoustic density and $n$ the
-time step counter. The matrices as  well as right hand side vector compute
-as follows:
+\noindent  with $\underline{\ddot{\rho'}}  = \partial^2  \rho_\sim  / \partial
+t^2$,   $\underline{\dot{\rho'}}   =  \partial   \rho_\sim   /  \partial   t$,
+$\underline{\rho'}$ the  nodal unknowns  of the acoustic  density and  $n$ the
+time step counter.  The matrices as well as right hand  side vector compute as
+follows:
 
 \bea{acousticmatrices}
 \bM &=& \bigwedge\limits_{e=1}^{n_{\rm e}} {\bf m}^e \ \ ; \ \ {\bf m}^e = [ m_{pq}] 
@@ -716,16 +710,15 @@ as follows:
 \label{eq:RHS_L}
 \eea
 
-\noindent
-In  the above  equations $n_{\rm  e}$ is  the number  of  finite elements,
-$n_{\Gamma_{\rm I}}$ the number of finite surface elements along the outer
-boundary  $\Gamma_{\rm I}$  and  $\bigwedge$ the  finite element  assembly
+\noindent In the above equations $n_{\rm e}$ is the number of finite elements,
+$n_{\Gamma_{\rm I}}$  the number  of finite surface  elements along  the outer
+boundary  $\Gamma_{\rm  I}$  and   $\bigwedge$  the  finite  element  assembly
 operator.
 
 
 
-The following element types with their corresponding nodal basis functions
-are supported for the calculation of acoustic sources.
+The following element types with their corresponding nodal basis functions are
+supported for the calculation of acoustic sources.
 
 
 \include{FigElementTypes}
@@ -839,24 +832,22 @@ mass matrix formulation) \cite{Kaltenbacher2007}:
 \end{itemize}
 \bigskip
 
-\noindent
-In (\eqnref{Psidist1}) - (\eqnref{Psitdist31}) $\Delta t$ denotes the time
-step value  and $\beta_{\rm H}$, $\gamma_{\rm  H}$ integration parameters,
-which  are  set to  $0.25$  and  $0.5$ to  obtain  a  fully implicit  time
+\noindent  In (\eqnref{Psidist1}) -  (\eqnref{Psitdist31}) $\Delta  t$ denotes
+the  time  step  value  and  $\beta_{\rm  H}$,  $\gamma_{\rm  H}$  integration
+parameters, which are set to $0.25$  and $0.5$ to obtain a fully implicit time
 integration scheme.
 
 \newpage
 \subsection{Calculation Scheme}
 \label{sec:scheme}
 
-We propose a coupling between flow and acoustic computations, which allows
-to choose an optimal discretization  for each physical field. The flow may
-be    computed    by     the    codes    \CFX,    \OpenFOAM,    \FASTEST\,
-\cite{Durst1996}. \FASTEST\, uses a fully conservative second-order finite
-volume space discretization and a pressure correction method of the SIMPLE
-type for the iterative coupling of velocity and pressure.  \CFX\, uses the
-Scale Adaptive Simulation (SAS) scheme.  \OpenFOAM\, is an open source CFD
-solver.
+We propose a coupling between  flow and acoustic computations, which allows to
+choose  an optimal discretization  for each  physical field.  The flow  may be
+computed by the codes \CFX, \OpenFOAM, \FASTEST\, \cite{Durst1996}. \FASTEST\,
+uses a fully conservative  second-order finite volume space discretization and
+a pressure correction method of the  SIMPLE type for the iterative coupling of
+velocity  and  pressure.  \CFX\,  uses  the  Scale  Adaptive Simulation  (SAS)
+scheme.  \OpenFOAM\, is an open source CFD solver.
 
 \begin{figure}[hbt]
 \begin{center}
@@ -867,32 +858,31 @@ solver.
 \end{center}
 \end{figure}
 
-\noindent
-For time discretization an implicit second-order scheme is employed, while
-a  non-linear multigrid scheme,  in which  the pressure  correction method
-acts as a  smoother on the different grid levels,  is used for convergence
-acceleration. The turbulent flow is  computed by an appropriate CFD scheme
-like the large eddy simulation (LES) applying the Smagorinsky model or the
-SAS model of  \CFX.  The concept of block structured  grids is employed in
-\FASTEST\,   to   handle   complex   geometries   and  for   the   ease   of
-parallelization. The parallel implementation is based on grid partitioning
-with  automatic load  balancing and  follows the  message-passing concept,
+\noindent For time discretization an implicit second-order scheme is employed,
+while a non-linear  multigrid scheme, in which the  pressure correction method
+acts  as a  smoother on  the different  grid levels,  is used  for convergence
+acceleration. The turbulent flow is computed by an appropriate CFD scheme like
+the  large eddy simulation  (LES) applying  the Smagorinsky  model or  the SAS
+model  of  \CFX.   The  concept  of  block structured  grids  is  employed  in
+\FASTEST\,   to   handle   complex    geometries   and   for   the   ease   of
+parallelization.  The parallel  implementation is  based on  grid partitioning
+with  automatic  load  balancing  and  follows  the  message-passing  concept,
 ensuring a high degree of portability.
 
-The computation of the generated acoustic noise is performed by the finite
-element method as discussed in  Sec. \ref{sec:fe} and has been implemented
-in CFS++ (Coupled Field  Simulation) \cite{Kaltenbacher2005a}. In order to
-minimize the amount of data transfer  and to achieve a higher accuracy, we
-already   compute  the   right   hand  side   $\underline  f^{n+1}$   (see
-\eqnref{RHS_L}) on the much finer  flow grid and obtain so called acoustic
-nodal  loads.  This  is performed  as a  post-processing step  of  the CFD
-computation by cplreader.  Within each  time step, these scalar values are
-interpolated  to the  acoustic  grid by  using  a customized  conservative
-interpolation algorithm in \cfs\, or  MpCCI - the Mesh-based parallel Code
-Coupling  Interface \cite{MpCCI} (see  \figref{calc-scheme}). In  doing so
-the weights for  the distribution of the CFD quantity to  the nodes in the
-acoustic cell  are obtained by  evaluating the basis functions  defined in
-Tab.  \ref{basis-functions} at the position of the CFD node.
+The computation  of the  generated acoustic noise  is performed by  the finite
+element method as  discussed in Sec. \ref{sec:fe} and  has been implemented in
+CFS++  (Coupled  Field   Simulation)  \cite{Kaltenbacher2005a}.  In  order  to
+minimize the  amount of  data transfer  and to achieve  a higher  accuracy, we
+already compute the right  hand side $\underline f^{n+1}$ (see \eqnref{RHS_L})
+on the much  finer flow grid and obtain so called  acoustic nodal loads.  This
+is performed  as a post-processing step  of the CFD  computation by cplreader.
+Within each  time step, these scalar  values are interpolated  to the acoustic
+grid by using  a customized conservative interpolation algorithm  in \cfs\, or
+MpCCI  - the  Mesh-based parallel  Code Coupling  Interface  \cite{MpCCI} (see
+\figref{calc-scheme}). In doing so the weights for the distribution of the CFD
+quantity to  the nodes  in the  acoustic cell are  obtained by  evaluating the
+basis functions defined in Tab.   \ref{basis-functions} at the position of the
+CFD node.
 
 \begin{figure}[hbt]
 \begin{center}
@@ -903,31 +893,47 @@ Tab.  \ref{basis-functions} at the position of the CFD node.
 \end{center}
 \end{figure}
 
-\noindent
-The  data transfer  has to  be  performed within  the whole  computational
-domain of the flow (corresponds to $\Omega_1$ in \figref{fe-setup}).
-In order to obtain a  correct interpolation, the acoustic nodal loads have
-then  to be  interpolated by  a {\it  conservative technique},  since they
-correspond to an integral quantity.
+\noindent The data transfer has to be performed within the whole computational
+domain of the flow (corresponds to $\Omega_1$ in \figref{fe-setup}).  In order
+to obtain  a correct interpolation, the  acoustic nodal loads have  then to be
+interpolated by  a {\it conservative  technique}, since they correspond  to an
+integral quantity.
 
-Therewith, the  developed scheme allows  a direct coupling in  time domain
-and provides the  acoustic sound field not only in the  far field but also
-in the region  of the flow.  Furthermore, we  can directly investigate the
-acoustic source terms in the flow region and the scheme is well suited for
-complex geometries and fluid structure interaction. By applying a discrete
-Fourier  transform to the  acoustic nodal  loads, it  is also  possible to
-perform analyses in the frequency domain.
+Therewith, the  developed scheme allows a  direct coupling in  time domain and
+provides the acoustic  sound field not only  in the far field but  also in the
+region of  the flow.   Furthermore, we can  directly investigate  the acoustic
+source terms  in the  flow region and  the scheme  is well suited  for complex
+geometries  and fluid structure  interaction. By  applying a  discrete Fourier
+transform to the acoustic nodal loads, it is also possible to perform analyses
+in the frequency domain.
 
-In addition  to the full  3D coupling, we  have implemented a  2D coupling
-from the flow to the  acoustic computation. Therewith, we just compute the
-acoustic nodal  loads on  a predefined 2D  slice and perform  the acoustic
-field  computation only within  a cross  section. It  is also  possible to
-slice a  3D CFD dataset by interpolating  to a 2D acoustic  grid.  In both
-cases the acoustic  nodal loads have been previously  computed and written
-to  a  \hdf\,  file  by  cplreader.  This file  has  then  been  read  and
-interpolated by \cfs\,  (cf. \figref{cons-interpolation}).  This technique
-allows us to write the computed acoustic nodal loads to a file and perform
-acoustic simulations independent of the flow computation.
+In addition  to the full 3D coupling,  we have implemented a  2D coupling from
+the flow to the acoustic  computation. Therewith, we just compute the acoustic
+nodal  loads  on  a  predefined  2D  slice  and  perform  the  acoustic  field
+computation only within a cross section. It is also possible to slice a 3D CFD
+dataset by  interpolating to a 2D  acoustic grid.  In both  cases the acoustic
+nodal loads  have been  previously computed  and written to  a \hdf\,  file by
+cplreader.   This  file  has  then   been  read  and  interpolated  by  \cfs\,
+(cf.  \figref{cons-interpolation}).  This  technique  allows us  to write  the
+computed  acoustic nodal  loads to  a  file and  perform acoustic  simulations
+independent of the flow computation.
+
+\newpage
+\section{CFD Data Generators}
+
+The first  purpose of cplreader when started  by Max Escobar was  to just read
+velocity fields generated by FASTEST-3D and  to provide this data to CFS++ via
+an MpCCI interface. Since then cplreader has evolved from just a simple reader
+to an intermediate program which can also calculate acoustic source terms.
+
+These  source  terms  can  also   be  generated  by  cplreader  from  analytic
+expressions. This  has however not  been implemented yet.  Possible extensions
+for cplreader include:
+
+\begin{itemize}
+\item Max Escobars vortex core model from AcouFlowNoise.cc
+\item Source term reader for AcouCombustion
+\end{itemize}
 
 \newpage
 \section{CFD Data Readers}
@@ -989,6 +995,7 @@ acoustic simulations independent of the flow computation.
 
 \subsubsection{Examples}
 
+\newpage
 \subsection{ANSYS CFX}
 \label{sec:cfx}
 \subsubsection{Required File Layout}
@@ -1007,16 +1014,26 @@ All entities 'name' may also be symbolic links.
 
 \begin{description}
 \item[--type] The type of input files have to be set to 'CFX'.
-\item[--deffile]	You can specify different '.def' file than the one given by 'name'.
-\item[--trnthres] Percentage the file size of transient files may differ from the average file size of all transient files. If a transient file is smaller than average size * (1 - trnthres) the corresponding time step will be overwritten by the previous one.
+
+\item[--deffile] You can  specify different '.def' file than  the one given by
+'name'.
+
+\item[--trnthres] Percentage the file size  of transient files may differ from
+the average file  size of all transient files. If a  transient file is smaller
+than  average size  *  (1 -  trnthres)  the corresponding  time  step will  be
+overwritten by the previous one.
 \end{description}
 
 
 \subsubsection{Logging}
-Opening the root hdf5-file ('name'.hdf) one can find in UserData->CFS_COMMANDS
-information about the CFX call, e.g. timestep size.
-UserData->settings shows which .trn file was corrupt and has been replaced by
-the last previous non-corrupt .trn file.
+
+Opening the root \hdf file ('name'.h5) one can find in /UserData/CFX\_COMMANDS
+information about  the CFX  run which produced  the .res file.   This includes
+timestep  size, material  properties, boundary  conditions,  turbulence model,
+etc.   The string  dataset  /UserData/TRN\_TO\_STEP\_MAP contains  information
+about which .trn file was mapped  to which timestep. This is useful if corrupt
+.trn  files have  been encountered  which got  replaced by  the  last previous
+non-corrupt .trn file.
 
 \subsubsection{Examples}
 
@@ -1041,21 +1058,27 @@ Let us assume, that we have got a directory layout like the following:
 `-- fluid_001.res
 \end{verbatim}
 
-We first have to rename or relink all entities 'fluid\_001' to 'fluid' so that they have consistent names.
-We do not have a 'fluid.def' where the settings of the CFX simulation are saved.
-But let's also assume you have a 'fluid\_old.def' which has the same grid
-information in it. Such a '.def' file could have been generated by a restarted
-CFX run. You may also use this '.def' file for reading the grid information.
-Now you could start reading in the data by issuing:
+We first have to rename or relink all entities 'fluid\_001' to 'fluid' so that
+they have consistent  names.  We do not have a  'fluid.def' where the settings
+of  the  CFX  simulation  are  saved.   But  let's  also  assume  you  have  a
+'fluid\_old.def' which has the same grid information in it. Such a '.def' file
+could have been generated by a restarted CFX run. You may also use this '.def'
+file for  reading the grid  information.  Now you  could start reading  in the
+data by issuing:
 
 \begin{verbatim}
 cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
           --deffile fluid_old.def --trnthres 0.05 --outputfields 'all'
 \end{verbatim}
 
-This would read all transient files except 6.trn which would be replaced by 5.trn.
-You can even replace the .def file by the .res file since the grid is also saved in .res. The transient files are searched by cplreader.
+This would  read all transient files  except 6.trn which would  be replaced by
+5.trn.  You can even replace the .def  file by the .res file since the grid is
+also saved  in .res.  The transient  files get searched  by cplreader  in this
+case.
 
+Please note that no surface elements will be read by the CFX reader.
+
+\newpage
 \subsection{CFX\_EXPORT}
 \label{sec:cfx-export}
 \subsubsection{Required File Layout}
@@ -1066,17 +1089,18 @@ You can even replace the .def file by the .res file since the grid is also saved
 \end{verbatim}
 
 \subsubsection{Required File Format}
-Data is stored in \emph{groups}, that must begin with a line like
-\texttt{[Name]}. Group names are case sensitive. Groups not mentioned here
-are ignored. Lines that begin with \texttt{\#} are ignored.
+Data  is  stored   in  \emph{groups},  that  must  begin   with  a  line  like
+\texttt{[Name]}. Group names are case sensitive. Groups not mentioned here are
+ignored. Lines that begin with \texttt{\#} are ignored.
 
 \paragraph{\texttt{Data} group}
-This group contains the coordinates of nodes as well as the flow data per node.
-The first line contains the column headers separated by comma. Each column
-header consists of a name of a field followed by its unit enclosed in brackets,
-e.g.\ ``\texttt{Pressure [ Pa ]}''. Table~\ref{tab:csv_fields} shows the
-recognized column headers. All following lines up to the next group (or end of
-file) provide the data using one line per node and values separated by comma.
+This group  contains the  coordinates of nodes  as well  as the flow  data per
+node.  The  first line  contains the column  headers separated by  comma. Each
+column header consists of  a name of a field followed by  its unit enclosed in
+brackets, e.g.\ ``\texttt{Pressure [ Pa ]}''. Table~\ref{tab:csv_fields} shows
+the recognized  column headers. All following  lines up to the  next group (or
+end of file) provide the data using  one line per node and values separated by
+comma.
 
 \begin{table}[htb]
 \centering
@@ -1112,12 +1136,12 @@ file) provide the data using one line per node and values separated by comma.
 \end{table}
 
 \paragraph{\texttt{Faces} group}
-This group contains the connectivity of nodes. There must be no column header
-line. Each line provides the node numbers (as defined in the \texttt{Data}
-group) of one finite element, separated by comma. Elements with 3, 4, 5, or 6
+This group contains the connectivity of  nodes. There must be no column header
+line. Each  line provides  the node numbers  (as defined in  the \texttt{Data}
+group) of one finite element, separated by  comma. Elements with 3, 4, 5, or 6
 nodes are allowed. Elements with 5 or 6 nodes will be split into triangles.
 
-Although every data file may contain different node coordinates and different
+Although every data file may  contain different node coordinates and different
 connectivity, the mesh is only read from the first data file.
 
 \subsubsection{Examples}
@@ -1136,6 +1160,7 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 4, 5, 2, 1
 \end{verbatim}
 
+\newpage
 \subsection{OpenFOAM}
 \label{sec:openfoam}
 \subsubsection{Required File Layout}
@@ -1162,15 +1187,56 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 \end{verbatim}
 
 \subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+Opening the  root \hdf file  ('name'.h5) one can  find in /UserData  all files
+from the  directory structure of OpenFOAM  which are necessary  to restart the
+OpenFOAM simulation. This includes the files in the following directories:
+
+\begin{verbatim}
+./name/
+|-- 0
+|-- constant
+|-- log
+`-- system
+\end{verbatim}
+
+Informations  like  timestep size,  mesh,  turbulence  model,  etc. should  be
+available from these files.
+
 \subsubsection{Examples}
+
+Stefan  Zörner  has got  plenty  of  examples.  Or  you  may  have  a look  at
+/home/lse24/lse/strieben/cplreader\_performance\_suite.
 
 \newpage
 \section{Other Readers and Mesh Generators}
 \subsection{ANSYS Mesh Converter}
 \label{sec:ansys}
 
+The ANSYS mesh converter can read  either ANSYS mesh output files generated by
+the older mkmesh extension and convert them to \hdf or the the files generated
+by the  NACS GiD/ANSYS  extension. At LSE  a version  of cplreader is  used to
+provide the ANSYS mkhd5 (/home/data/programs/mkhdf5) APDL extension.
+
 \subsection{Mesh Generator for Spherical Shells}
 \label{sec:gengrids}
+
+I (Simon Triebenbacher)  implemented this grid generator to  try out spherical
+shell grids  composed of  all available element  types (including  HEXA27) for
+nomatching grids.  It does  not have  a proper command  line interface  at the
+moment.
+
+\newpage
+\section{Rebuilding the Documentation}
+
+Edit source/cplreader/Documentation/CMakeLists.txt and set
+
+\begin{verbatim}
+# If documentation is to be rebuilt set this to 1
+SET(BUILD_CPLREADER_DOCU 1)
+\end{verbatim}
 
 \newpage
 \section{Copyright}

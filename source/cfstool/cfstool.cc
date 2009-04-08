@@ -630,7 +630,11 @@ namespace CFSTool {
 int main(int argc, char** argv) {
   
   // Switch this flag to true for debugging
+#ifndef NDEBUG
+  Exception::segfault_ = true;
+#else
   Exception::segfault_ = false;
+#endif
 
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 

@@ -263,6 +263,39 @@ then
     exit 4
 fi
 
+# Check if OMP_NUM_THREADS has been previously set and set it to 1 if not.
+if [ "$OMP_NUM_THREADS" == "" ]
+then
+    OMP_NUM_THREADS=1
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Setting OMP_NUM_THREADS=$OMP_NUM_THREADS"
+fi
+
+export OMP_NUM_THREADS
+
+# Check if MKL_NUM_THREADS has been previously set and set it to
+# OMP_NUM_THREADS if not.
+if [ "$MKL_NUM_THREADS" == "" ]
+then 
+    MKL_NUM_THREADS=$OMP_NUM_THREADS
+fi
+
+if [ "$CFS_SCRIPT_DEBUG" = "1" ]
+then
+    echo "Setting MKL_NUM_THREADS=$MKL_NUM_THREADS"
+fi
+
+export MKL_NUM_THREADS
+
+if [ $OMP_NUM_THREADS != $MKL_NUM_THREADS ]
+then
+    echo "Warning: OMP_NUM_THREADS($OMP_NUM_THREADS) != MKL_NUM_THREADS($MKL_NUM_THREADS)."
+    echo "Warning: MKL_NUM_THREADS overrides OMP_NUM_THREADS for Intel MKL!"
+fi
+
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
