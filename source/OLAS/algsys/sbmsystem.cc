@@ -35,27 +35,19 @@ namespace CoupledField {
     precond_             = NULL;
     rhs_                 = NULL;
     sol_                 = NULL;
-    feSubMatrices_       = NULL;
 
     // We are an SBM_System obviously
     algSysType_          = SBM_SYSTEM;
 
     // Initialize pointer to finite-element matrices
-    NEWARRAY( sysMat_, SBM_Matrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
-      sysMat_[i] = NULL;
-    }
+    sysMat_.Resize( MAX_NUM_FE_MATRICES );
+    sysMat_.Init( NULL );
 
     // Assuming non-symmetric matrices by default
     sbmSymm_ = false;
 
     // Generate array for storing FE-matrix pattern information
-    feSubMatrices_ = new(std::nothrow) std::set<SubMatrixID,SortSubMatrixID>
-      [MAX_NUM_FE_MATRICES];
-    if ( feSubMatrices_ == NULL ) {
-      EXCEPTION( "Failed to allocate feSubMatrices_ array");
-    }
-    feSubMatrices_--;
+    feSubMatrices_.Resize( MAX_NUM_FE_MATRICES );
   }
 
 
@@ -71,11 +63,9 @@ namespace CoupledField {
     delete rhs_;
 
     // Delete finite-element matrices and sub-matrix info
-    for ( UInt i = 1; i <= MAX_NUM_FE_MATRICES; i++ ) {
+    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
       delete sysMat_[i];
     }
-    DELETEARRAY( sysMat_ );
-    DELETEARRAY( feSubMatrices_ );
   }
 
 
@@ -108,72 +98,66 @@ namespace CoupledField {
   void SBM_System::GetSolutionVal( SingleVector& ptSol,
                                    const PdeIdType identifierPDE ) {
 
-    Warning( "Adapt me ");
-//    // iteratve over all rhs-vectors and copy entries
-//    Integer actPos = 1;
-//    Vector<Double> & bufVec = dynamic_cast<Vector<Double>&>(*solBuffer_);
-//    bufVec.Resize( size_ );
-//    bufVec.Init();
-//    for( UInt i = 1; i <= numPDEs_; i++ ) {
-//      Vector<Double> & actVec = dynamic_cast<Vector<Double>&>
-//      ( *(sol_->GetPointer( i )) );
-//
-//      for( UInt iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
-//        bufVec[actPos] = actVec[iEqn];
-//      }
-//    }
-//    Double * ptr  = (dynamic_cast<Vector<Double>& >
-//    (*solBuffer_)).GetPointer();
-//    ptr++;
-//    ptSol = ptr;
-//    Warning( "The ordering of results in the result file will not be correct!");
-//    return size_;
-//  }
+    //Warning( "SBM_System::GetSolutionVal: At the moment we are not respecting the splitting"
+    //    " of the result vecto and return just the complete vector, regardless of the pdeId ");
 
-//  void SBM_System::GetSolutionVal( Complex* &ptSol,
-//                                      const PdeIdType identifierPDE ) {
-//
-//    // iteratve over all rhs-vectors and copy entries
-//     Integer actPos = 1;
-//     Vector<Complex> & bufVec = dynamic_cast<Vector<Complex>&>(*solBuffer_);
-//     bufVec.Resize( size_ );
-//     bufVec.Init();
-//     for( UInt i = 1; i <= numPDEs_; i++ ) {
-//       Vector<Complex> & actVec = dynamic_cast<Vector<Complex>&>
-//       ( *(sol_->GetPointer( i )) );
-//
-//       for( UInt iEqn = 1; iEqn <= numLastFreeDof_[i]; iEqn++, actPos++ ) {
-//         bufVec[actPos] = actVec[iEqn];
-//       }
-//     }
-//     Complex * ptr  = (dynamic_cast<Vector<Complex>& >
-//     (*solBuffer_)).GetPointer();
-//     ptr++;
-//     ptSol = ptr;
-//     Warning( "The ordering of results in the result file will not be correct!");
-//     return size_;
+    if( ptSol.GetEntryType() == BaseMatrix::COMPLEX ) {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>& >( ptSol );
+      retVec.Resize( size_ );
+      UInt index = 0;
+      for( UInt i = 0; i < numPDEs_; i++ ) {
+        const Vector<Complex> & dVec1 = dynamic_cast<Vector<Complex>&>( (*sol_)(i));
+        for( UInt j = 0; j < dVec1.GetSize(); j++ ) {
+          retVec[index++] = dVec1[j];
+        }
+      }
+    }  else {
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>& >( ptSol );
+      retVec.Resize( size_ );
+      UInt index = 0;
+      for( UInt i = 0; i < numPDEs_; i++ ) {
+        const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( (*sol_)(i));
+        for( UInt j = 0; j < dVec1.GetSize(); j++ ) {
+          retVec[index++] = dVec1[j];
+        }
+      }
+      std::cerr << "retVec = " << retVec << std::endl;
+    }
+   
   }
+
 
   void SBM_System::GetRHSVal( SingleVector &ptRhs,
                               const PdeIdType identifierPDE ) {
-    Warning( "Adapt Me");
-    //    Double * ptr  = (dynamic_cast<Vector<Double>& >
-    //      (*rhsBuffer_)).GetPointer();
-    //     ptr++;
-    //     ptRhs = ptr;
-    //     Warning( "The ordering of results in the result file will not be correct!");
-    //     return size_;
+
+    //Warning( "SBM_System::GetRHSVal: At the moment we are not respecting the splitting"
+    //         " of the result vecto and return just the complete vector, regardless of the pdeId ");
+
+    if( ptRhs.GetEntryType() == BaseMatrix::COMPLEX ) {
+      Vector<Complex> & retVec = dynamic_cast<Vector<Complex>& >( ptRhs );
+      retVec.Resize( size_ );
+      UInt index = 0;
+      for( UInt i = 0; i < numPDEs_; i++ ) {
+        const Vector<Complex> & dVec1 = dynamic_cast<Vector<Complex>&>( (*rhs_)(i));
+        for( UInt j = 0; j < dVec1.GetSize(); j++ ) {
+          retVec[index++] = dVec1[j];
+        }
+      }
+    }  else {
+      Vector<Double> & retVec = dynamic_cast<Vector<Double>& >( ptRhs );
+      retVec.Resize( size_ );
+      UInt index = 0;
+      for( UInt i = 0; i < numPDEs_; i++ ) {
+        const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( (*rhs_)(i));
+        for( UInt j = 0; j < dVec1.GetSize(); j++ ) {
+          retVec[index++] = dVec1[j];
+        }
+      }
+
+    }
   }
 
-  //  Integer SBM_System::GetRHSVal( Complex* &ptRhs,
-  //                                 const PdeIdType identifierPDE ) {
-  //    Complex * ptr  = (dynamic_cast<Vector<Complex>& >
-  //    (*rhsBuffer_)).GetPointer();
-  //    ptr++;
-  //    ptRhs = ptr;
-  //    Warning( "The ordering of results in the result file will not be correct!");
-  //    return size_;
-  //  }
+
 
 
   // *******************
@@ -250,8 +234,8 @@ namespace CoupledField {
       GraphManagerSBMMat *sbmManager =
         dynamic_cast<GraphManagerSBMMat*>(graphManager_);
       SubMatrixID sID;
-      for ( UInt i = 1; i <= numPDEs_; i++ ) {
-        for ( UInt j = 1; j <= numPDEs_; j++ ) {
+      for ( UInt i = 0; i < numPDEs_; i++ ) {
+        for ( UInt j = 0; j < numPDEs_; j++ ) {
           if ( sbmManager->SubGraphExists( i, j ) == true ) {
             sID.rowInd = i;
             sID.colInd = j;
@@ -264,7 +248,7 @@ namespace CoupledField {
 
     // determine overall number of unknowns
     size_ = 0;
-    for( UInt i = 1; i <= numPDEs_; i++ ) {
+    for( UInt i = 0; i < numPDEs_; i++ ) {
       size_ += numLastFreeDof_[i];
     }
 
@@ -328,7 +312,7 @@ namespace CoupledField {
     StdMatrix *stdMat = NULL;
     BaseVector *bVec = NULL;
     SingleVector *sVec = NULL;
-    for ( UInt k = 1; k <= numPDEs_; k++ ) {
+    for ( UInt k =0; k < numPDEs_; k++ ) {
 
       // Get diag matrix for vector generation
       stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
@@ -407,9 +391,9 @@ namespace CoupledField {
 
       // Now plot sub-matrix pattern
       SubMatrixID sID;
-      for ( UInt i = 1; i <= numPDEs_; i++ ) {
+      for ( UInt i = 0; i < numPDEs_; i++ ) {
         sID.rowInd = i;
-        for ( UInt j = 1; j <= numPDEs_; j++ ) {
+        for ( UInt j = 0; j < numPDEs_; j++ ) {
           sID.colInd = j;
           sIt = feSubMatrices_[*fIt].find(sID);
           if ( sIt != feSubMatrices_[*fIt].end() ) {
@@ -496,74 +480,73 @@ namespace CoupledField {
   // ********************
   //   SetElementMatrix
   // ********************
-  void SBM_System::SetElementMatrix(FEMatrixType matrix_id, 
-                                    const Matrix<Double>& elemmat,
-                                    PdeIdType identifierPDE1,
-                                    const StdVector<Integer>& eqnNrs1,
-                                    PdeIdType identifierPDE2,
-                                    const StdVector<Integer>& eqnNrs2,
-                                    bool setCounterPar ) {
-    Warning( "Adapt me");
+  void SBM_System::SetElementMatrix( FEMatrixType matrix_id, 
+                                          const Matrix<Double>& elemMat,
+                                          PdeIdType idPDE1,
+                                          const StdVector<Integer>& eqnNrs1,
+                                          PdeIdType idPDE2,
+                                          const StdVector<Integer>& eqnNrs2,
+                                          bool setCounterPart ) {
 
-//    // Set flag for setting the symmetric counter-part of
-//    // the element matrix
-//    if ( setCounterPart == true && idPDE1 == idPDE2 ) {
-//      setCounterPart = false;
-//    }
-//
-//    // Do not try to set lower-part if symmetric
-//    bool reverse = false;
-//    if ( sbmSymm_ == true ) {
-//
-//      // Matrix in upper part, then do not set counter part
-//      if ( idPDE1 <= idPDE2 ) {
-//        setCounterPart = false;
-//      }
-//
-//      // Matrix in lower part and we shall not set counter part
-//      // then we have a major problem, since SBM matrix should
-//      // not be symmetric
-//      else if ( setCounterPart == false ) {
-//        EXCEPTION("SBM_System::SetElementMatrix:\n"
-//                  << " idPDE1 ........... " << idPDE1 << '\n'
-//                  << " idPDE2 ........... " << idPDE2 << '\n'
-//                  << " setCounterPart ... " << std::boolalpha << setCounterPart
-//                  << " sbmSymm .......... true\n"
-//                  << " leads to loss of element matrix!" );
-//      }
-//
-//      // Matrix in lower part and counter part should be set,
-//      // so we change to the counterPart
-//      else {
-//        setCounterPart = false;
-//        reverse = true;
-//      }
-//    }
-//
-//    // Extract associated sub-matrix
-//    StdMatrix *subMat1 = &((*sysMat_[matrixID])( idPDE1, idPDE2 ));
-//    StdMatrix *subMat2 = &((*sysMat_[matrixID])( idPDE2, idPDE1 ));
-//
-//    // Delegate remaining work to assemble
-//    if ( reverse == false ) {
-//      assemble_->SetElementMatrix( matrixID, idPDE1, idPDE2,
-//                                   subMat1, subMat2,
-//                                   idbcHandler_, elemMat,
-//                                   eqnNrs1, (UInt)numEqn1,
-//                                   eqnNrs2, (UInt)numEqn2,
-//                                   numLastFreeDof_[idPDE1],
-//                                   numLastFreeDof_[idPDE2],
-//                                   setCounterPart);
-//    }
-//    else {
-//      assemble_->SetCounterPartOnly( matrixID, idPDE1, idPDE2,
-//                                     subMat1, subMat2,
-//                                     idbcHandler_, elemMat,
-//                                     eqnNrs1, (UInt)numEqn1,
-//                                     eqnNrs2, (UInt)numEqn2,
-//                                     numLastFreeDof_[idPDE1],
-//                                     numLastFreeDof_[idPDE2] );
-//    }
+    // Set flag for setting the symmetric counter-part of
+    // the element matrix
+    if ( setCounterPart == true && idPDE1 == idPDE2 ) {
+      setCounterPart = false;
+    }
+
+    // Do not try to set lower-part if symmetric
+    bool reverse = false;
+    if ( sbmSymm_ == true ) {
+
+      // Matrix in upper part, then do not set counter part
+      if ( idPDE1 <= idPDE2 ) {
+        setCounterPart = false;
+      }
+
+      // Matrix in lower part and we shall not set counter part
+      // then we have a major problem, since SBM matrix should
+      // not be symmetric
+      else if ( setCounterPart == false ) {
+        EXCEPTION("SBM_System::SetElementMatrix:\n"
+                  << " idPDE1 ........... " << idPDE1 << '\n'
+                  << " idPDE2 ........... " << idPDE2 << '\n'
+                  << " setCounterPart ... " << std::boolalpha << setCounterPart
+                  << " sbmSymm .......... true\n"
+                  << " leads to loss of element matrix!" );
+      }
+
+      // Matrix in lower part and counter part should be set,
+      // so we change to the counterPart
+      else {
+        setCounterPart = false;
+        reverse = true;
+      }
+    }
+
+    // Extract associated sub-matrix
+    StdMatrix *subMat1 = &((*sysMat_[matrix_id])( idPDE1, idPDE2 ));
+    StdMatrix *subMat2 = &((*sysMat_[matrix_id])( idPDE2, idPDE1 ));
+
+    // Delegate remaining work to assemble
+    if ( reverse == false ) {
+      assemble_->SetElementMatrix( matrix_id, idPDE1, idPDE2,
+                                   subMat1, subMat2,
+                                   idbcHandler_, elemMat,
+                                   eqnNrs1,
+                                   eqnNrs2,  
+                                   numLastFreeDof_[idPDE1],
+                                   numLastFreeDof_[idPDE2],
+                                   setCounterPart);
+    }
+    else {
+      assemble_->SetCounterPartOnly( matrix_id, idPDE1, idPDE2,
+                                     subMat1, subMat2,
+                                     idbcHandler_, elemMat,
+                                     eqnNrs1,
+                                     eqnNrs2,
+                                     numLastFreeDof_[idPDE1],
+                                     numLastFreeDof_[idPDE2] );
+    }
   }
   void SBM_System::SetElementMatrix(FEMatrixType matrix_id, 
                                     const Matrix<Complex>& elemmat,
@@ -572,7 +555,7 @@ namespace CoupledField {
                                     PdeIdType identifierPDE2,
                                     const StdVector<Integer>& eqnNrs2,
                                     bool setCounterPar ) {
-    Warning( "Adapt me");
+    Warning( "Adapt me SetElementMatrix(Complex)");
   }
 
   // **************
@@ -693,7 +676,7 @@ namespace CoupledField {
   void SBM_System::SetElementRHS( const Vector<Double>& elemRHS, 
                                   const PdeIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
-    Warning( "adapt me");
+    Warning( "adapt me SetElementRHS double");
 //
 //    // Delegate work to EntryManipulator
 //    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
@@ -702,7 +685,7 @@ namespace CoupledField {
   void SBM_System::SetElementRHS( const Vector<Complex>& elemRHS, 
                                   const PdeIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
-    Warning( "adapt me");
+    Warning( "adapt me SetElementRHS complex ");
     //
     //    // Delegate work to EntryManipulator
     //    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
@@ -714,7 +697,7 @@ namespace CoupledField {
   //   UpdateRHS
   // *************
   void SBM_System::UpdateRHS( FEMatrixType matrix_id, const BaseVector& fup ) {
-    EXCEPTION( "Method not yet implemented!" );
+    EXCEPTION( "Method not yet implemented! -> UpdateRHS" );
   }
 
 
@@ -907,7 +890,7 @@ s    }
                                          const PdeIdType pdeID,
                                          Integer eqnNum,
                                          Double val  ) {
-    Warning( "Adapt me");
+    Warning( "Adapt me AddToDiagMatrixEntry");
 //    // Determine sub-matrix
 //    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
 //
@@ -919,7 +902,7 @@ s    }
                                           const PdeIdType pdeID,
                                           Integer eqnNum,
                                           Complex val  ) {
-     Warning( "Adapt me");
+     Warning( "Adapt me AddToDiagMatrixEntry");
  //    // Determine sub-matrix
  //    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
  //
@@ -1023,7 +1006,8 @@ s    }
   // ****************
   void SBM_System::CreateSolver(){
 
-
+    // HARD CODED: Create conjugate gradient solver
+    Warning( "At the moment we use a hard-coded CG-solver" );
     solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml,
                                     &myParams_, &myReport_ );
   }

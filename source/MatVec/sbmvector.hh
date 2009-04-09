@@ -20,7 +20,7 @@ namespace CoupledField {
 
     //! The default constructor generates an empty vector, so size is set to
     //! 0 and subVec_ to NULL
-    SBM_Vector() : subVec_(NULL), size_(0) {};
+    SBM_Vector() : size_(0) {};
 
     //! Constructor for empty vectors of specified length
 
@@ -97,7 +97,7 @@ namespace CoupledField {
     //! denote the sub-vectors but the individual entries of the SBM_Vector
     //! if not seen in a block fashion.
     void Init() {
-      for ( UInt i = 1; i <= size_; i++ ) {
+      for ( UInt i = 0; i < size_; i++ ) {
         if ( subVec_[i] != NULL ) {
           subVec_[i]->Init();
         }
@@ -228,7 +228,7 @@ namespace CoupledField {
 
     //! Array containing pointers to the sub-vectors fitting to the
     //! sub-matrices in the associated SBM_Matrix
-    SingleVector **subVec_;
+    StdVector<SingleVector *> subVec_;
 
     //! Number of sub-vectors
     UInt size_;

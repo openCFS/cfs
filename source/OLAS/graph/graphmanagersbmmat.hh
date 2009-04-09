@@ -231,10 +231,10 @@ namespace CoupledField {
     //! array. This auxilliary method computes for a given pair of PDE
     //! identifiers the 1D index of the corresponding matrix entry.
     inline UInt ComputeIndex( const PdeIdType identifierPDE1,
-                              const PdeIdType identifierPDE2 ) const {
+                                 const PdeIdType identifierPDE2 ) const {
       UInt i = identifierPDE1;
       UInt j = identifierPDE2 == NO_PDE_ID ? identifierPDE1 : identifierPDE2;
-      return numPDEs_*(i-1) + j;
+      return numPDEs_*i + j;
     };
 
     //! Auxilliary method for generation of IDBC graph objects
@@ -262,14 +262,14 @@ namespace CoupledField {
     //! stored as matrix entry (id1,id2). We use C-style mapping to transform
     //! the matrix to a 1D storage layout. Entries in the matrix may be NULL
     //! pointers, if no corresponding coupling object exists.
-    BaseGraph **graph_;
+    StdVector<BaseGraph *> graph_;
 
     //! Matrix storing pointers to the IDBC graph objects
 
     //! This matrix stores for each PDE pair a pointer to an associated graph
     //! for handling the connection between free degrees of freedom and
     //! those fixed by inhomogeneous Dirichlet boundary conditions.
-    IDBC_Graph **graphIDBC_;
+    StdVector<IDBC_Graph *> graphIDBC_;
 
     //! Matrix storing coupling flags for PDE pairs
 
@@ -280,7 +280,7 @@ namespace CoupledField {
     //! stored as matrix entry (pde1,pde2). We use C-style mapping to
     //! transform the matrix to a 1D storage layout. See the ComputeIndex()
     //! method.
-    bool *isCoupled_;
+    StdVector<bool> isCoupled_;
 
     //! Array containing pointers to permutation vectors
 
@@ -300,7 +300,7 @@ namespace CoupledField {
     //! Vector storing for each PDE the last free equation number, i.e. the
     //! last equation number for a degree of freedom that is not fixed by
     //! an inhomogeneous Dirichlet boundary condition.
-    UInt *numLastFreeDof_;
+    StdVector<UInt> numLastFreeDof_;
 
     //! Vector storing for each PDE the total number of equation numbers
 
@@ -308,7 +308,7 @@ namespace CoupledField {
     //! i.e. the sum of the equation numbers for degrees of freedom that
     //! are fixed by inhomogeneous Dirichlet boundary conditions and those
     //! that are not.
-    UInt *numEqn_;
+    StdVector<UInt> numEqn_;
 
     //! Attribute to store the number of PDEs that belong to the manager
     UInt numPDEs_;

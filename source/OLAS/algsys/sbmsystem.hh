@@ -676,7 +676,7 @@ namespace CoupledField {
     //! Finite-Element matrices (SYSTEM, MASS, STIFFNESS, ... ) managed by the
     //! algebraic system. In the case of the %SBM_System class these are of
     //! course SBM_Matrix objects.
-    SBM_Matrix **sysMat_;
+    StdVector<SBM_Matrix*> sysMat_;
 
     //! Vector containing right-hand side of the linear system
     SBM_Vector *rhs_;
@@ -730,7 +730,7 @@ namespace CoupledField {
     //! are filled during the setup phase by calls to SetFEMatrixType() and
     //! used in the CreateLinSys() method for generation of the SBM_Matrix
     //! objects.
-    std::set<SubMatrixID,SortSubMatrixID> *feSubMatrices_;
+    StdVector<std::set<SubMatrixID,SortSubMatrixID> >feSubMatrices_;
 
   };
 

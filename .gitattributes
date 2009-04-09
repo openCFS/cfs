@@ -877,7 +877,6 @@ source/OLAS/algsys/baseentrymanipulator.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/baseidbchandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/basesystem.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/basesystem.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/algsys/entrymanipulatordouble.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/generateidbchandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/generateidbchandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/idbchandler.cc svneol=native#text/x-c%2B%2Bsrc

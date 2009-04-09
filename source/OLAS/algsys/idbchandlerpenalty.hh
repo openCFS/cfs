@@ -283,7 +283,7 @@ namespace CoupledField {
     UInt *dirichletEQN_;
 
     //! Next index for dirichlet condition set
-    UInt nextIndex_;
+    std::map<PdeIdType, UInt > nextIndex_;
 
     //! Map for mapping eqn number to position in dirichletValue_ vector
     std::map<PdeIdType, std::map<Integer, UInt> > bcIndices_;

@@ -131,10 +131,9 @@ namespace CoupledField {
     //! The destructor is deep, i.e. it deletes all dynamically allocated
     //! objects as well as the sub-matrices
     ~SBM_Matrix() {
-      for ( UInt k = 1; k <= nrows_ * ncols_; k++ ) {
+      for ( UInt k = 0; k < subMat_.GetSize(); k++ ) {
         delete subMat_[k];
       }
-      DELETEARRAY( subMat_ );
     }
 
     //! Insert a StdMatrix into the SBM_Matrix
@@ -427,7 +426,7 @@ namespace CoupledField {
     //! This array contains pointers to the entries, i.e. the standard
     //! matrices, of the dense super-block-matrix. The storage follows the
     //! standard C layout, but the submat_ vector is 1-based.
-    StdMatrix **subMat_;
+    StdVector<StdMatrix *> subMat_;
 
     //! Computes the index of sub-matrix in 1D array submat_
 
@@ -436,7 +435,7 @@ namespace CoupledField {
     //! This method offers a way to compute for a given sub-matrix index
     //! pair (i,j) the corresponding index into the one-based 1D array.
     inline UInt ComputeIndex( UInt i, UInt j ) const {
-      return ncols_ * (i-1) + j;
+      return ncols_ * i + j;
     };
 
     //! Flag signalling symmetry of the matrix

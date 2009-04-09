@@ -16,10 +16,8 @@ namespace CoupledField {
   SBM_Vector::SBM_Vector( UInt size ) {
     size_ = size;
     myEntryType_ = BaseMatrix::NOENTRYTYPE;
-    NEWARRAY( subVec_, SingleVector*, size );
-    for ( UInt i = 1; i <= size_; i++ ) {
-      subVec_[i] = NULL;
-    }
+    subVec_.Resize( size );
+    subVec_.Init( NULL );
   }
 
 
@@ -27,11 +25,8 @@ namespace CoupledField {
   //   Deep destructor
   // *******************
   SBM_Vector::~SBM_Vector() {
-    if ( subVec_ != NULL ) {
-      for ( UInt i = 1; i <= size_; i++ ) {
-	delete subVec_[i];
-      }
-      DELETEARRAY( subVec_ );
+    for ( UInt i = 0; i < size_; i++ ) {
+      delete subVec_[i];
     }
   }
 
@@ -40,17 +35,13 @@ namespace CoupledField {
   //   Set number of vector entries and re-size internal array
   // ***********************************************************
   void SBM_Vector::SetSize( UInt size ) {
-    if ( subVec_ != NULL ) {
-      for ( UInt i = 1; i <= size_; i++ ) {
-	delete subVec_[i];
-      }
-      DELETEARRAY( subVec_ );
+    for ( UInt i = 0; i < size_; i++ ) {
+      delete subVec_[i];
     }
+
     size_ = (UInt)size;
-    NEWARRAY( subVec_, SingleVector*, size );
-    for ( UInt i = 1; i <= size_; i++ ) {
-      subVec_[i] = NULL;
-    }
+    subVec_.Resize( size_ );
+    subVec_.Init( NULL );
   }
 
   // **********************
@@ -59,18 +50,15 @@ namespace CoupledField {
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
     // first, delete sub-vectors
-    if ( subVec_ != NULL ) {
-      for ( UInt i = 1; i <= size_; i++ ) {
-        delete subVec_[i];
-      }
-      DELETEARRAY( subVec_ );
+    for ( UInt i = 0; i < size_; i++ ) {
+      delete subVec_[i];
     }
     size_ = 0;
 
     // then, copy sub-vectors from original vector class
     size_ = bVec.size_;
-    NEWARRAY( subVec_, SingleVector*, size_ );
-    for ( UInt i =  1; i <= size_; i++ ) {
+    subVec_.Resize( size_ );
+    for ( UInt i =  0; i < size_; i++ ) {
       // determine entrytype
       subVec_[i] = CopySingleVectorObject( *bVec.subVec_[i]);
     }
@@ -93,7 +81,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(vec);
       Double auxval;
       retval = 0.0;
-      for ( UInt i = 1; i <= size_; i++ ) {
+      for ( UInt i = 0; i < size_; i++ ) {
         if ( subVec_[i] != NULL && sbmvec.subVec_[i] != NULL ) {
           (*this)(i).Inner( sbmvec(i), auxval );
           retval += auxval;
@@ -118,7 +106,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(vec);
       Complex auxval;
       retval = 0.0;
-      for ( UInt i = 1; i <= size_; i++ ) {
+      for ( UInt i = 0; i < size_; i++ ) {
         if ( subVec_[i] != NULL && sbmvec.subVec_[i] != NULL ) {
           (*this)(i).Inner( sbmvec(i), auxval );
           retval += auxval;
@@ -138,7 +126,7 @@ namespace CoupledField {
   // ***************
   std::string SBM_Vector::ToString( char separator ) const {
     std::stringstream os;
-    for( UInt i = 1; i <= size_; i++ ) {
+    for( UInt i = 0; i < size_; i++ ) {
       if( subVec_[i] != NULL ) {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
@@ -159,7 +147,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(vec);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL ) {
           if ( sbmvec.subVec_[i] != NULL ) {
             subVec_[i]->Add( sbmvec(i) );
@@ -212,7 +200,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(y);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL ) {
           if ( sbmvec.subVec_[i] != NULL ) {
             subVec_[i]->Axpy( alpha, sbmvec(i) );
@@ -244,7 +232,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(y);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL ) {
           if ( sbmvec.subVec_[i] != NULL ) {
             subVec_[i]->Axpy( alpha, sbmvec(i) );
@@ -281,7 +269,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(v);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL ) {
           if ( sbmvec.subVec_[i] != NULL ) {
             subVec_[i]->Add( alpha, sbmvec(i) );
@@ -314,7 +302,7 @@ namespace CoupledField {
       const SBM_Vector& sbmvec = dynamic_cast<const SBM_Vector&>(v);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL ) {
           if ( sbmvec.subVec_[i] != NULL ) {
             subVec_[i]->Add( alpha, sbmvec(i) );
@@ -350,7 +338,7 @@ namespace CoupledField {
       const SBM_Vector& sbm_z = dynamic_cast<const SBM_Vector&>(z);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL && sbm_y.subVec_[i] != NULL &&
              sbm_z.subVec_[i] != NULL ) {
           subVec_[i]->Add( alpha, sbm_y(i), beta, sbm_z(i) );
@@ -377,7 +365,7 @@ namespace CoupledField {
       const SBM_Vector& sbm_z = dynamic_cast<const SBM_Vector&>(z);
 
       // Let's hope both vectors have the same size
-      for ( UInt i = 1; i <= size_; i++ ){
+      for ( UInt i = 0; i < size_; i++ ){
         if ( subVec_[i] != NULL && sbm_y.subVec_[i] != NULL &&
              sbm_z.subVec_[i] != NULL ) {
           subVec_[i]->Add( alpha, sbm_y(i), beta, sbm_z(i) );
@@ -401,7 +389,7 @@ namespace CoupledField {
   Double SBM_Vector::NormL2() const {
     Double norm = 0.0;
     Double auxval;
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       if ( subVec_[i] != NULL ) {
         auxval = subVec_[i]->NormL2();
         norm += auxval*auxval;
@@ -420,7 +408,7 @@ namespace CoupledField {
     std::stringstream fileName;
     std::string outFile;
 
-    for ( UInt j = 1; j <= size_; j++ ) {
+    for ( UInt j = 0; j < size_; j++ ) {
 
       // construct file name
       fileName.str( "" );
@@ -441,7 +429,7 @@ namespace CoupledField {
   void SBM_Vector::ScalarDiv( const Double factor ) {
 
 
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       if ( subVec_[i] != NULL ) {
         subVec_[i]->ScalarDiv( factor );
       }
@@ -455,7 +443,7 @@ namespace CoupledField {
   void SBM_Vector::ScalarMult( const Double factor ) {
 
 
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       if ( subVec_[i] != NULL ) {
         subVec_[i]->ScalarMult( factor );
       }
@@ -469,7 +457,7 @@ namespace CoupledField {
   void SBM_Vector::ScalarDiv( const Complex factor ) {
 
 
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       if ( subVec_[i] != NULL ) {
         subVec_[i]->ScalarDiv( factor );
       }
@@ -483,7 +471,7 @@ namespace CoupledField {
   void SBM_Vector::ScalarMult( const Complex factor ) {
 
 
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       if ( subVec_[i] != NULL ) {
         subVec_[i]->ScalarMult( factor );
       }

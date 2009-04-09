@@ -27,10 +27,8 @@ namespace CoupledField {
     myEntryType_ = NOENTRYTYPE;
 
     // Generate array for sub-matrices and set pointers to NULL
-    NEWARRAY( subMat_, StdMatrix*, nrows_ * ncols_ );
-    for( UInt i = 1; i <= nrows_ * ncols_; i++ ) {
-      subMat_[i] = NULL;
-    }
+    subMat_.Resize( nrows_ * ncols_ );
+    subMat_.Init( NULL );
 
   }
 
@@ -39,7 +37,7 @@ namespace CoupledField {
   //   Initialise matrix to zero
   // *****************************
   void SBM_Matrix::Init() {
-    for( UInt i = 1; i <= nrows_ * ncols_; i++ ) {
+    for( UInt i = 0; i < subMat_.GetSize(); i++ ) {
       if ( subMat_[i] != NULL ) {
         subMat_[i]->Init();
       }
@@ -94,7 +92,7 @@ namespace CoupledField {
     UInt auxDim;
 
     // left neighbour
-    if ( j > 1 && subMat_[ComputeIndex(i,j-1)] != NULL ) {
+    if ( j > 0 && subMat_[ComputeIndex(i,j-1)] != NULL ) {
       auxDim = subMat_[ComputeIndex(i,j-1)]->GetNumRows();
       if ( auxDim != nrows ) {
         EXCEPTION( "SBM_Matrix::SetSubMatrix: "
@@ -106,7 +104,7 @@ namespace CoupledField {
     }
 
     // right neighbour
-    if ( j < ncols_ && subMat_[ComputeIndex(i,j+1)] != NULL ) {
+    if ( j < ncols_-1 && subMat_[ComputeIndex(i,j+1)] != NULL ) {
       auxDim = subMat_[ComputeIndex(i,j+1)]->GetNumRows();
       if ( auxDim != nrows ) {
         EXCEPTION( "SBM_Matrix::SetSubMatrix: "
@@ -130,7 +128,7 @@ namespace CoupledField {
     }
 
     // bottom neighbour
-    if ( i < nrows_ && subMat_[ComputeIndex(i+1,j)] != NULL ) {
+    if ( i < nrows_-1 && subMat_[ComputeIndex(i+1,j)] != NULL ) {
       auxDim = subMat_[ComputeIndex(i+1,j)]->GetNumCols();
       if ( auxDim != ncols ) {
         EXCEPTION( "SBM_Matrix::SetSubMatrix: "
@@ -169,7 +167,7 @@ namespace CoupledField {
       StdMatrix *auxMat = NULL;
 
       // Loop over all sub-blocks and trigger addition
-      for ( UInt k = 1; k <= nrows_ * ncols_; k++ ) {
+      for ( UInt k = 0; k < nrows_ * ncols_; k++ ) {
 
         // Get hold of submatrix
         auxMat = sbmMat.subMat_[k];
@@ -220,18 +218,15 @@ namespace CoupledField {
       // ---------------------
 
       if ( amSymm_ == false ) {
-
         // Loop over all block-rows
-        for ( UInt i = 1; i <= nrows_; i++ ) {
+        for ( UInt i = 0; i < nrows_; i++ ) {
 
           // Loop over all blocks in this row
-          for ( UInt j = 1; j <= ncols_; j++ ) {
+          for ( UInt j = 0; j < ncols_; j++ ) {
 
             // Compute i-th component of A*x
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
               subMat_[ComputeIndex(i,j)]->MultAdd( sbm_x(j), sbm_r(i) );
-//            std::cerr << "Ax  for part (" << i << "," << j<< ") is \n";
-//            sbm_r(i).Print( std::cerr );
             }
           }
         }
@@ -244,33 +239,26 @@ namespace CoupledField {
       // -----------------
 
       else {
-
         // Loop over all block-rows
-        for ( UInt i = 1; i <= nrows_; i++ ) {
+        for ( UInt i = 0; i < nrows_; i++ ) {
 
           // Loop over all sub-diagonal blocks in this row
           // Add contribution of sub-diagonal blocks to the i-th component
           // of A * x using S(i,j) * x = S(j,i)^T * x
-          for ( UInt j = 1; j < i; j++ ) {
+          for ( UInt j = 0; j < i; j++ ) {
             if ( subMat_[ComputeIndex(j,i)] != NULL ) {
-//              std::cerr << "Multiplying A(" << j << "," << i
-//                        << "^T with sbm_x(" << j << ")\n";
               subMat_[ComputeIndex(j,i)]->MultTAdd( sbm_x(j), sbm_r(i) );
             }
           }
 
           // Add contribution of diagonal block
           if ( subMat_[ComputeIndex(i,i)] != NULL ) {
-//            std::cerr << "Multiplying A(" << i << "," << i
-//                      << " with sbm_x(" << i << ")\n";
             subMat_[ComputeIndex(i,i)]->MultAdd( sbm_x(i), sbm_r(i) );
           }
 
           // Add contribution of super-diagonal blocks
-          for ( UInt j = i+1; j <= ncols_; j++ ) {
+          for ( UInt j = i+1; j < ncols_; j++ ) {
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
-//              std::cerr << "Multiplying A(" << i << "," << i
-//                        << " with sbm_x(" << j << ")\n";
               subMat_[ComputeIndex(i,j)]->MultAdd( sbm_x(j), sbm_r(i) );
             }
           }
@@ -325,8 +313,8 @@ namespace CoupledField {
       if ( amSymm_ == false ) {
 
         // perform the multiplication
-        for ( UInt i = 1; i <= nrows_; i++ ) {
-          for ( UInt j = 1; j <= ncols_; j++ ) {
+        for ( UInt i = 0; i < nrows_; i++ ) {
+          for ( UInt j = 0; j < ncols_; j++ ) {
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
               subMat_[ComputeIndex(i,j)]->MultAdd( vec_m(j), vec_r(i) );
             }
@@ -341,11 +329,11 @@ namespace CoupledField {
       else {
 
         // Loop over all block-rows
-        for ( UInt i = 1; i <= nrows_; i++ ) {
+        for ( UInt i = 0; i < nrows_; i++ ) {
 
           // Add contribution of sub-diagonal blocks to the i-th component
           // of A * x using S(i,j) * x = S(j,i)^T * x
-          for ( UInt j = 1; j < i; j++ ) {
+          for ( UInt j = 0; j < i; j++ ) {
             if ( subMat_[ComputeIndex(j,i)] != NULL ) {
               subMat_[ComputeIndex(j,i)]->MultTAdd( vec_m(j), vec_r(i) );
             }
@@ -357,7 +345,7 @@ namespace CoupledField {
           }
 
           // Add contribution of super-diagonal blocks
-          for ( UInt j = i+1; j <= ncols_; j++ ) {
+          for ( UInt j = i+1; j < ncols_; j++ ) {
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
               subMat_[ComputeIndex(i,j)]->MultAdd( vec_m(j), vec_r(i) );
             }
@@ -395,8 +383,8 @@ namespace CoupledField {
       if ( amSymm_ == false ) {
 
         // Work on one column after the other
-        for ( UInt j = 1; j <= ncols_; j++ ) {
-          for ( UInt i = 1; i <= nrows_; i++ ) {
+        for ( UInt j = 0; j < ncols_; j++ ) {
+          for ( UInt i = 0; i < nrows_; i++ ) {
             if ( subMat_[ComputeIndex(j,i)] != NULL ) {
               subMat_[ComputeIndex(j,i)]->MultTAdd( vec_m(i), vec_r(j) );
             }
@@ -437,8 +425,8 @@ namespace CoupledField {
 
       if ( amSymm_ == false ) {
 
-        for ( UInt i = 1; i <= nrows_; i++ ) {
-          for ( UInt j = 1; j <= ncols_; j++ ) {
+        for ( UInt i = 0; i < nrows_; i++ ) {
+          for ( UInt j = 0; j < ncols_; j++ ) {
             if ( subMat_[ComputeIndex(i,j)] != NULL ) {
 
               // Sub-vector of vec_m exists
@@ -486,8 +474,8 @@ namespace CoupledField {
     std::stringstream fileName;
     std::string outFile;
 
-    for ( UInt j = 1; j <= ncols_; j++ ) {
-      for ( UInt i = 1; i <= nrows_; i++ ) {
+    for ( UInt j = 0; j < ncols_; j++ ) {
+      for ( UInt i = 0; i < nrows_; i++ ) {
 
         // construct file name
         fileName.str( "" );
@@ -513,7 +501,7 @@ namespace CoupledField {
     Double auxVal = 0.0;
     StdMatrix *stdMat = NULL;
 
-    for ( UInt i = 1; i <= nrows_; i++ ) {
+    for ( UInt i = 0; i < nrows_; i++ ) {
       stdMat = subMat_[ComputeIndex(i,i)];
       if ( stdMat != NULL ) {
         auxVal = stdMat->GetMaxDiag();

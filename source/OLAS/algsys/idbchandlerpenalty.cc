@@ -28,8 +28,8 @@ namespace CoupledField {
     sbmCase_ = false;
     offset_  = NULL;
 
-    // Initialise next index for boundary condition array
-    nextIndex_ = 0;
+//    // Initialise next index for boundary condition array
+//    nextIndex_ = 0;
 
     // Initialise penalty term
     penaltyTerm_ = 0.0;
@@ -308,14 +308,13 @@ namespace CoupledField {
   void IDBC_HandlerPenalty<T>::SetIDBC( PdeIdType pdeID, UInt eqnNo,
                                         const T &val ) {
 
-
     // StdMatrix case
     UInt index = 0;
     if ( sbmCase_ == false ) {
       if( bcIndices_[pdeID].find( eqnNo ) ==
           bcIndices_[pdeID].end() ) {
-        index = nextIndex_;
-        bcIndices_[pdeID][eqnNo] = nextIndex_++;
+        index = nextIndex_[0];
+        bcIndices_[pdeID][eqnNo] = nextIndex_[0]++;
       } else {
         index = bcIndices_[pdeID][eqnNo];
       }
@@ -326,10 +325,15 @@ namespace CoupledField {
 
     // SBM_Matrix case
     else {
+      // first, initialize nextIndex
+      if( nextIndex_.find(pdeID)  == nextIndex_.end() ) {
+        nextIndex_[pdeID] = 0;
+      }
+
       if( bcIndices_[pdeID].find( eqnNo ) ==
-               bcIndices_[pdeID].end() ) {
-        index = bcIndices_[pdeID].size()+1;
-        bcIndices_[pdeID][eqnNo] = index;
+        bcIndices_[pdeID].end() ) {
+        index = nextIndex_[pdeID];
+        bcIndices_[pdeID][eqnNo] = nextIndex_[pdeID]++;
       } else  {
         index = bcIndices_[pdeID][eqnNo];
       }

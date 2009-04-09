@@ -6,7 +6,7 @@
 #include <complex>
 #include <assert.h>
 
-#include "OLAS/algsys/entrymanipulatordouble.hh"
+#include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
 #include "OLAS/algsys/standardsys.hh"
 
