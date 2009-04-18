@@ -115,6 +115,9 @@ elif [ "${OS}" = "Linux" ] ; then
 			SPINOFF=knoppix;
 		else
                 	SPINOFF=`echo $BASE_VERSION | cut -d'.' -f3 | sed -e 's/[0-9]*//g'`;
+                        if [ "$SPINOFF" = "" ]; then
+                            SPINOFF=`echo $BASE_VERSION | sed -e 's/[0-9\.]*//g'`;
+                        fi
 		fi
 
 		case "$SPINOFF" in
