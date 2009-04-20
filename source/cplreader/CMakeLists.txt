@@ -78,6 +78,9 @@ ENDIF(CPLREADER_ANSYS)
 IF(CPLREADER_CFX)
   SET(TARGET_LL
   ${TARGET_LL}
+  ${CFX_LIBIO}
+  cplreader_cfx
+  ${CFX_LIBIO}
   cplreader_cfx
   cplreader_cfxexport)
 ENDIF(CPLREADER_CFX)

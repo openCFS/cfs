@@ -172,6 +172,17 @@ void SIMP::AddMassToStiffness(double m_factor, DesignElement* de, Matrix<complex
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
+double SIMP::CalcObjective(Excitation& excite)
+{
+  // we have no own objectives
+  return ErsatzMaterial::CalcObjective(excite);
+}
+  
+void SIMP::ConstructAdjointRHS(Excitation& excite)
+{
+  ErsatzMaterial::ConstructAdjointRHS(excite);
+}
+
 void SIMP::CalcObjectiveGradient(Excitation& excite)
 {
   TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH, true);

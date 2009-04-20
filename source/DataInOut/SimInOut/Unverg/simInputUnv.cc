@@ -19,7 +19,7 @@ extern const char *elemDataTypesStr[10];
 namespace CoupledField {
 
   // declare logging stream
-  DEFINE_LOG(simInputUNV, "SimInputUNV")
+  DEFINE_LOG(simInputUNV, "SimInputUnv")
 
   SimInputUnv::SimInputUnv( std::string fileName, ParamNode * inputNode ) 
     : SimInput(fileName, inputNode) {
@@ -69,31 +69,40 @@ namespace CoupledField {
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputUnv::GetDim() {
-   return 2;
+    // Converting of Unv files does not work properly
+    return 3;
   }
-  
+
+  void SimInputUnv::GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                              std::map<UInt, UInt>& numSteps,
+                                              bool isHistory) {
+    // At the moment only the grid may be read.
+    analysis.clear();
+    numSteps.clear();
+  }
+
   UInt SimInputUnv::GetNumNodes(){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+    CoupledField::Warning("SimInputUnv::GetNumNodes() not implemented");
     return 0;
   }
     
   UInt SimInputUnv::GetNumElems(const Integer dim){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+    CoupledField::Warning("SimInputUnv::GetNumElems() not implemented");
     return 0;
   }
   
   UInt SimInputUnv::GetNumRegions(){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+    CoupledField::Warning("SimInputUnv::GetNumRegions() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedNodes(){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+    CoupledField::Warning("SimInputUnv::GetNumNamedNodes() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedElems(){
-    CoupledField::Warning("SimInputUnv::ReadMesh() not implemented");
+    CoupledField::Warning("SimInputUnv::GetNumNamedElems() not implemented");
     return 0;
   }
   
@@ -102,7 +111,7 @@ namespace CoupledField {
   // ======================================================
 
   void SimInputUnv::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    std::cerr << "SimInputUnv::ReadMesh() not implemented\n";
+    std::cerr << "SimInputUnv::GetAllRegionNames() not implemented\n";
   }
 
   void SimInputUnv::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
@@ -203,11 +212,11 @@ namespace CoupledField {
       p[2] = axisMap_[2] == 3 ? 0.0 : pTemp[axisMap_[2]];
       
       // Check if dim is really sane!
-      if(p[2] != 0)
-      {
-        dim = 3;
-        break;
-      }
+      //if(p[2] != 0)
+      //{
+      //  dim = 3;
+      //  break;
+      //}
                
       mi_->SetNodeCoordinate(node, p);
     }

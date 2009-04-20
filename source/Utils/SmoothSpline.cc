@@ -91,7 +91,7 @@ namespace CoupledField
     bool monotone = true;
 
     Double z,fac;
-    Double mu_old;
+    Double mu_old = 0.0;
 
     //coarse tuning of discrepancy parameter mu, so that the computed
     //approximation is monoton 
@@ -584,7 +584,7 @@ namespace CoupledField
   {
 
     Integer i,j;
-    bool monotone;
+    bool monotone = false;
     Double f0,f1,f2,f3;
     Double c1,c2,c3;
     Double x1,x2,x3;

@@ -264,7 +264,7 @@ then
 fi
 
 # Check if OMP_NUM_THREADS has been previously set and set it to 1 if not.
-if [ "$OMP_NUM_THREADS" == "" ]
+if [ "$OMP_NUM_THREADS" = "" ]
 then
     OMP_NUM_THREADS=1
 fi
@@ -278,7 +278,7 @@ export OMP_NUM_THREADS
 
 # Check if MKL_NUM_THREADS has been previously set and set it to
 # OMP_NUM_THREADS if not.
-if [ "$MKL_NUM_THREADS" == "" ]
+if [ "$MKL_NUM_THREADS" = "" ]
 then 
     MKL_NUM_THREADS=$OMP_NUM_THREADS
 fi

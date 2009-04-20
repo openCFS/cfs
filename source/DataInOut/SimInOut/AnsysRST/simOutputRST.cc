@@ -32,7 +32,7 @@ namespace CoupledField {
     formatName_ = "rst";
     fileName_ = fileName;
     dirName_ = "results_" + formatName_;
-    inputNode->Get("directory", dirName_, false );
+    outputNode->Get("directory", dirName_, false );
     outputNode_ = outputNode;
 
     capabilities_.insert( MESH );

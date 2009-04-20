@@ -175,7 +175,7 @@ namespace CoupledField
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 
      *  distro on which it was built on, the compiler it was built with and so on. */
-    void GetVersionString( std::ostream & outstr, bool colorise);
+    static void GetVersionString( std::ostream & outstr, bool colorise);
     
     /** Major release history notes. From Dec. 08 */
     static void GetHistoryString(std::ostream& out);

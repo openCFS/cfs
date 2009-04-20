@@ -20,3 +20,22 @@ SET(MUPARSER_LIBRARY
 
 MARK_AS_ADVANCED(MUPARSER_LIBRARY)
 SET(MUPARSER_FOUND 1)
+
+IF(MUPARSER_FOUND)
+  #-----------------------------------------------------------------------------
+  # Determine version of MUPARSER by reading its version header
+  #-----------------------------------------------------------------------------
+  FILE(READ
+    "${MUPARSER_INCLUDE_DIR}/muParserBase.h"
+    MUPARSER_HEADER
+    )
+
+  STRING(REGEX MATCH "Version [0-9]+\\.[0-9]+ \\([0-9]+\\)"
+    CFS_MUPARSER_VERSION
+    "${MUPARSER_HEADER}")
+  STRING(REGEX MATCH "[0-9]+\\.[0-9]+ \\([0-9]+\\)"
+        CFS_MUPARSER_VERSION "${CFS_MUPARSER_VERSION}")
+
+#  MESSAGE("CFS_MUPARSER_VERSION ${CFS_MUPARSER_VERSION}")
+
+ENDIF(MUPARSER_FOUND)

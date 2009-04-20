@@ -17,6 +17,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
+#include <def_cfs_stats.hh>
 #include <def_cplreader.hh>
 
 #include "General/exception.hh"
@@ -188,6 +189,18 @@ int main(int argc, char *argv[])
   try
   {
     Settings& settings = Settings::Instance();
+
+  std::cout << std::endl
+            << "============================================================"
+            << "===========" << std::endl;
+  std::cout << " cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling" << std::endl << std::endl
+            << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+            << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+            << " compiled " << __DATE__
+            << " as " << CMAKE_BUILD_TYPE << std::endl;
+  std::cout << "============================================================"
+            << "==========="
+            << std::endl << std::endl;
 
     // Initialize settings singleton with command line parameters
     ParamsInit(argc, argv);

@@ -65,16 +65,10 @@ public:
   void SolveStateProblem(Excitation* ev_only_excite = NULL);
 
   /** Calculates the constraint(s) */
-  double CalcConstraint(Condition* constraint = NULL)
-  {
-    return CalcConstraint(constraint, false); // no gradient
-  }
+  double CalcConstraint(Condition* constraint = NULL);
 
   /** The jacobian of the gradient here as a vector with only one constraint! */
-  void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL)
-  {
-    CalcConstraint(constraint, true, grad_out);
-  }
+  void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL);
 
   /** Here we also write the density files */
   InfoNode* CommitIteration(bool keep_iteration_number = false);
@@ -283,12 +277,7 @@ protected:
   /** This is part of SetAndSolveAdjointRHS(). 
    * This is for output loads or general real/complex rhs.
    * If output stuff the loads are changed but they are saved and restored in SetAndSolveAdjointRHS() anyway */
-  virtual void ConstructAdjointRHS(Excitation& excite)
-  {
-    // here in ErsatzMaterial this is outout stuff
-    if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
-            else ConstructAdjointRHS<double>(excite);
-  }
+  virtual void ConstructAdjointRHS(Excitation& excite);
   
   /** This sets the objective specific RHS for adjoint problems.
    * For DYNAMIC_OUTPUT this is a post processing of of ConstructAdjointRHS. */

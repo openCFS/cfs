@@ -793,6 +793,15 @@ void ErsatzMaterial::SubstractGradSurfaceRHS(DesignElement* de, TransferFunction
   }
 }
 
+void ErsatzMaterial::CalcConstraintGradient(Condition* constraint, double* grad_out)
+{
+  CalcConstraint(constraint, true, grad_out);
+}
+
+double ErsatzMaterial::CalcConstraint(Condition* constraint)  
+{
+  return CalcConstraint(constraint, false); // no gradient
+}
 
 double ErsatzMaterial::CalcConstraint(Condition* constraint, bool derivative, double* grad_out)
 {
@@ -1467,6 +1476,13 @@ void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite)
   LOG_DBG2(em) << "ConstructOutputRHS: pure output vector w/o idbc: " << adjoint.data[excite.index]->rhs[MECH]->ToString();
   
   return;
+}
+
+void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite)
+{
+  // here in ErsatzMaterial this is outout stuff
+  if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
+          else ConstructAdjointRHS<double>(excite);
 }
 
 void ErsatzMaterial::AdjustComplexAdjointRHS(Excitation& excite)

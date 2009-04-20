@@ -120,7 +120,7 @@ TARGET_LINK_LIBRARIES(cfstoolbin ${TARGET_LL})
 
 # Make sure CFS Tool gets linked with system libgcc.so instead of ANSYS libgcc.so.
 IF(USE_ANSYSRST)
-  SET_TARGET_PROPERTIES(cfstool PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
+  SET_TARGET_PROPERTIES(cfstoolbin PROPERTIES LINK_FLAGS -Wl,-rpath,/${LIB_SUFFIX})
 ENDIF(USE_ANSYSRST)
 
 # Install the cfstool executable target to ${CMAKE_INSTALL_PREFIX}/bin

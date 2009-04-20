@@ -15,12 +15,17 @@
 #include <sys/types.h>
 #include <math.h>
 
+#include <General/exception.hh>
+#include <DataInOut/Logging/cfslog.hh>
 #include <DataInOut/simInput.hh>
 
 #undef RDATA_INIT
 #include "gmvread.hh"
 
 namespace CoupledField {
+
+  DECLARE_LOG(gmvread)
+  DEFINE_LOG(gmvread, "gmvread")
 
   // I defined these macros to get rid of irresponsible memory
   // management, which just calls exit() when something goes wrong.
@@ -63,10 +68,11 @@ namespace CoupledField {
 #define IECXI8R4 7
 #define IECXI8R8 8
 
-  static int charsize = CHARSIZE, shortsize = SHORTSIZE, intsize = INTSIZE, 
-    wordsize = WORDSIZE, floatsize = FLOATSIZE,
-    longsize = LONGSIZE, doublesize = DOUBLESIZE,
+  static int charsize = CHARSIZE, intsize = INTSIZE, 
+    floatsize = FLOATSIZE, doublesize = DOUBLESIZE,
     longlongsize = LONGLONGSIZE, charsize_in;
+
+  // static int shortsize = SHORTSIZE, wordsize = WORDSIZE, longsize = LONGSIZE;  
 
   static long numnodes, numcells, lncells, numcellsin, numfaces, lnfaces,
     numfacesin, ncells_struct;
@@ -141,7 +147,7 @@ namespace CoupledField {
 
     if (gmvchk == NULL)
     {
-      MESHIO_WARN("GMV cannot open file " << filnam);
+      EXCEPTION("GMV cannot open file " << filnam);
       return 1;
     }
     
@@ -149,8 +155,8 @@ namespace CoupledField {
     binread(magic,charsize, CHAR, (long)8, gmvchk);
     if (strncmp(magic,"gmvinput",8) != 0)
     {
-      MESHIO_WARN("This is not a GMV input file.");
       FCLOSE(gmvchk);
+      EXCEPTION("This is not a GMV input file.");
       return 2;
     }
 
@@ -160,7 +166,7 @@ namespace CoupledField {
       chkend = chk_gmvend(gmvchk);
       if (!chkend)
       {
-        MESHIO_WARN("Error - endgmv not found.");
+        EXCEPTION("Error - endgmv not found.");
         FCLOSE(gmvchk);
         return 3;
       }
@@ -201,7 +207,7 @@ namespace CoupledField {
     /*  Check for valid file type.  */
     if (ftype == -1)
     {
-      MESHIO_WARN("Invalid GMV input file type.  Type must be:\n" \
+      EXCEPTION("Invalid GMV input file type.  Type must be:\n" \
                   "  ascii, ieee, ieeei4r4, ieeei4r8, ieeei8r4, ieeei8r8,\n" \
                   "  iecxi4r4, iecxi4r8, iecxi8r4, iecxi8r8,");
       FCLOSE(gmvchk);
@@ -214,7 +220,7 @@ namespace CoupledField {
     {
       if (sizeof(long) < 8)
       {
-        MESHIO_WARN("Cannot read 64bit I* types on this machine.");
+        EXCEPTION("Cannot read 64bit I* types on this machine.");
         FCLOSE(gmvchk);
         return 5;
       }
@@ -239,7 +245,7 @@ namespace CoupledField {
 
     if (gmvin == NULL)
     {
-      MESHIO_WARN("GMV cannot open file " << filnam);
+      EXCEPTION("GMV cannot open file " << filnam);
       return 1;
     }
     
@@ -248,7 +254,7 @@ namespace CoupledField {
     binread(magic,charsize, CHAR, (long)8, gmvin);
     if (strncmp(magic,"gmvinput",8) != 0)
     {
-      MESHIO_WARN("This is not a GMV input file.");
+      EXCEPTION("This is not a GMV input file.");
       return 2;
     }
 
@@ -258,7 +264,7 @@ namespace CoupledField {
       chkend = chk_gmvend(gmvin);
       if (!chkend)
       {
-        MESHIO_WARN("Error - endgmv not found.");
+        EXCEPTION("Error - endgmv not found.");
         return 3;
       }
     }
@@ -307,7 +313,7 @@ namespace CoupledField {
     /*  Check for valid file type.  */
     if (ftype == -1)
     {
-      MESHIO_WARN("Invalid GMV input file type.  Type must be:\n" \
+      EXCEPTION("Invalid GMV input file type.  Type must be:\n" \
                   "  ascii, ieee, ieeei4r4, ieeei4r8, ieeei8r4, ieeei8r8.\n" \
                   "  iecxi4r4, iecxi4r8, iecxi8r4, iecxi8r8.");
       return 4;
@@ -318,7 +324,7 @@ namespace CoupledField {
     {
       if (sizeof(long) < 8)
       {
-        MESHIO_WARN("Cannot read 64bit I* types on this machine.");
+        EXCEPTION("Cannot read 64bit I* types on this machine.");
         return 4;
       }
     }
@@ -358,7 +364,7 @@ namespace CoupledField {
 
     for(it=gmv_mem_alloc_set.begin(), eit=gmv_mem_alloc_set.end(); it != eit; it++)
     {
-      MESHIO_WARN("Cleaning up: " << ((unsigned long)*it));
+      LOG_DBG2(gmvread) << "Cleaning up: " << ((unsigned long)*it);
       free(*it);
     }
     gmv_mem_alloc_set.clear();
@@ -546,7 +552,7 @@ namespace CoupledField {
       if (curr_keyword == INVALIDKEYWORD)
       {
         gmv_data.keyword = GMVERROR;
-        MESHIO_WARN("Error, " << keyword << " is an invalid keyword.");
+        EXCEPTION("Error, " << keyword << " is an invalid keyword.");
       }
 
       strcpy(sav_keyword,keyword);
@@ -566,7 +572,7 @@ namespace CoupledField {
       /*  Check that nodes have been input.  */
       if (curr_keyword > NODES && nodes_read == 0 && before_nodes_ok == 0)
       {
-        MESHIO_WARN("Error, 'nodes' keyword missing.");
+        EXCEPTION("Error, 'nodes' keyword missing.");
         gmv_data.keyword = GMVERROR;
       }
 
@@ -574,7 +580,7 @@ namespace CoupledField {
       if (curr_keyword > XFACES && cells_read == 0 && faces_read == 0 &&
           before_nodes_ok == 0)
       {
-        MESHIO_WARN("Error, 'cells, faces or xfaces' keyword missing.");
+        EXCEPTION("Error, 'cells, faces or xfaces' keyword missing.");
         gmv_data.keyword = GMVERROR;
       }
 
@@ -849,7 +855,7 @@ namespace CoupledField {
 
       if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
       {
-        MESHIO_WARN("I/O error while reading gmv input file.");
+        EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
         return i;
       }
@@ -873,7 +879,7 @@ namespace CoupledField {
 
       if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
       {
-        MESHIO_WARN("I/O error while reading gmv input file.");
+        EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
         return i;
       }
@@ -897,7 +903,7 @@ namespace CoupledField {
 
       if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
       {
-        MESHIO_WARN("I/O error while reading gmv input file.");
+        EXCEPTION("I/O error while reading gmv input file.");
         gmv_data.keyword = GMVERROR;
         return i;
       }
@@ -1048,7 +1054,7 @@ namespace CoupledField {
         ierr = gmvread_open_fromfileskip(charptr);
         if (ierr > 0)
         {
-          MESHIO_WARN("GMV cannot read fromfile " << charptr);
+          EXCEPTION("GMV cannot read fromfile " << charptr);
           gmv_data.keyword = GMVERROR;
           gmv_meshdata.intype = GMVERROR;
           return;
@@ -1103,14 +1109,14 @@ namespace CoupledField {
     ierr = gmvread_open_fromfileskip(charptr);
     if (ierr > 0)
     {
-      MESHIO_WARN("GMV cannot read fromfile " << charptr);
+      EXCEPTION("GMV cannot read fromfile " << charptr);
       gmv_data.keyword = GMVERROR;
       gmv_meshdata.intype = GMVERROR;
       return;
 
       //exit(0);
     }
-    MESHIO_WARN("GMV reading "<< sav_keyword << " from fromfile " << charptr);
+    EXCEPTION("GMV reading "<< sav_keyword << " from fromfile " << charptr);
 
     return;
   }
@@ -1120,7 +1126,10 @@ namespace CoupledField {
   {
     int i, k, iswap, lnxv, lnyv, lnzv, lstructuredflag;
     long lnodes, tmplnodes;
-    double *lxic, *lyic, *lzic, *tmpdouble;
+    double *lxic = NULL;
+    double *lyic = NULL;
+    double *lzic = NULL;
+    double *tmpdouble;
     long pos_after_lnodes, exp_cell_pos;
     float *tmpfloat;
     char ckkeyword[9];
@@ -1330,9 +1339,10 @@ namespace CoupledField {
       return;
     }
 
-    if (printon)
-      MESHIO_INFO("Reading " << lnodes << " nodes.");
-
+    if (printon) {
+      LOG_DBG2(gmvread) << "Reading " << lnodes << " nodes.";
+    }
+    
     /*  Allocate and read node x,y,z arrays.  */
 
     if (lstructuredflag == 0 || lstructuredflag == 2)
@@ -1431,7 +1441,7 @@ namespace CoupledField {
           n -= lnodes;
           if( n==0 ) break;
         }
-        MESHIO_INFO("Read " << dim << "D unstructured grid from ASCII file"); 
+        LOG_DBG2(gmvread) << "Read " << dim << "D unstructured grid from ASCII file";
         if (node_inp_type == 0)  /*  nodes type  */
         {
           for (i = 0; i < lnodes; i++)
@@ -1454,7 +1464,7 @@ namespace CoupledField {
 
         if(n != 0)
         {
-          MESHIO_WARN(lnodes << " nodes specified after nodes/v, but only " << nsav << " doubles could be read!");
+          EXCEPTION(lnodes << " nodes specified after nodes/v, but only " << nsav << " doubles could be read!");
           gmv_data.keyword = GMVERROR;
           return;
         }
@@ -1520,7 +1530,7 @@ namespace CoupledField {
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading nodes.");
+      EXCEPTION("I/O error while reading nodes.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -1593,9 +1603,10 @@ namespace CoupledField {
         }
       }
 
-      if (printon)
-        MESHIO_INFO("Reading " << lncells << " cells.");
-
+      if (printon) {
+        LOG_DBG2(gmvread) << "Reading " << lncells << " cells.";
+      }
+      
       if (!skipflag)
       {
         numcells = lncells;
@@ -1716,7 +1727,7 @@ namespace CoupledField {
         strncmp(keyword,"8quad",5) != 0 &&
         strncmp(keyword,"3line",5) != 0)
     {
-      MESHIO_WARN("Error, " << keyword << " is an invalid cell type.");
+      EXCEPTION("Error, " << keyword << " is an invalid cell type.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -1740,14 +1751,14 @@ namespace CoupledField {
         (strncmp(keyword,"8quad",5) == 0 && ndat != 8) ||
         (strncmp(keyword,"3line",5) == 0 && ndat != 3))
     {
-      MESHIO_WARN("Error, " << ndat << " nodes is invalid for a " << keyword);
+      EXCEPTION("Error, " << ndat << " nodes is invalid for a " << keyword);
       gmv_data.keyword = GMVERROR;
       return;
     }
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading cells.");
+      EXCEPTION("I/O error while reading cells.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -1766,14 +1777,14 @@ namespace CoupledField {
       if ((vfaceflag == 0 && strncmp(keyword,"vface",5) == 0) ||
           (vfaceflag > 0 && strncmp(keyword,"vface",5) != 0))
       {
-        MESHIO_WARN("Error, cannot mix vface2d or vface3d with other cell types.");
+        EXCEPTION("Error, cannot mix vface2d or vface3d with other cell types.");
         gmv_data.keyword = GMVERROR;
         return;
       }
       if ((vfaceflag == 2 && strncmp(keyword,"vface3d",7) == 0) ||
           (vfaceflag == 3 && strncmp(keyword,"vface2d",7) == 0))
       {
-        MESHIO_WARN("Error, cannot mix vface2d and vface3d cell types.");
+        EXCEPTION("Error, cannot mix vface2d and vface3d cell types.");
         gmv_data.keyword = GMVERROR;
         return;
       }
@@ -1787,7 +1798,7 @@ namespace CoupledField {
       nfaces = ndat;
       if (nfaces > 1000)
       {
-        MESHIO_WARN("Error, Read " << nfaces << " faces - 1000 faces per cell allowed.");
+        EXCEPTION("Error, Read " << nfaces << " faces - 1000 faces per cell allowed.");
         gmv_data.keyword = GMVERROR;
         return;
       }
@@ -1857,7 +1868,7 @@ namespace CoupledField {
       nfaces = ndat;
       if (nfaces > 1000)
       {
-        MESHIO_WARN("Error, Read " << nfaces << " faces - 1000 faces per cell allowed.");
+        EXCEPTION("Error, Read " << nfaces << " faces - 1000 faces per cell allowed.");
         gmv_data.keyword = GMVERROR;
         return;
       }
@@ -1942,7 +1953,7 @@ namespace CoupledField {
 
       if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
       {
-        MESHIO_WARN("I/O error while reading cells.");
+        EXCEPTION("I/O error while reading cells.");
         gmv_data.keyword = GMVERROR;
         return;
       }
@@ -1990,9 +2001,10 @@ namespace CoupledField {
       ioerrtst(gmvin);
       numfacesin = 0;
 
-      if (printon)
-        MESHIO_INFO("Reading " << lnfaces << " faces.");
-
+      if (printon) {
+        LOG_DBG2(gmvread) << "Reading " << lnfaces << " faces.";
+      }
+      
       if (!skipflag)
       {
         numfaces = lnfaces;
@@ -2052,7 +2064,7 @@ namespace CoupledField {
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading faces.");
+      EXCEPTION("I/O error while reading faces.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2091,9 +2103,10 @@ namespace CoupledField {
       ioerrtst(gmvin);
       numfacesin = 0;
 
-      if (printon)
-        MESHIO_INFO("Reading " << lnfaces << " vfaces.");
-
+      if (printon) {
+        LOG_DBG2(gmvread) << "Reading " << lnfaces << " vfaces.";
+      }
+      
       if (!skipflag)
       {
         numfaces = lnfaces;
@@ -2174,7 +2187,7 @@ namespace CoupledField {
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading faces.");
+      EXCEPTION("I/O error while reading faces.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2222,9 +2235,10 @@ namespace CoupledField {
       ioerrtst(gmvin);
       xfaceloc = 0;
 
-      if (printon)
-        MESHIO_INFO("Reading " << lnfaces << " xfaces.");
-
+      if (printon) {
+        LOG_DBG2(gmvread) << "Reading " << lnfaces << " xfaces.";
+      }
+      
       if (!skipflag)
       {
         numfaces = lnfaces;
@@ -2396,7 +2410,11 @@ namespace CoupledField {
     /*                               */
     /*  Read and set material data.  */
     /*                               */
-    int i, data_type, *matin, lnmatin, lmmats;
+    int i;
+    int data_type = 0;
+    int *matin = NULL;
+    int lnmatin = 0;
+    int lmmats = 0;
     char mname[33], *matnames;
 
     /*  Read no. of materials and data type (cells or nodes).  */
@@ -2415,13 +2433,13 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell materials.");
+      EXCEPTION("Error, no cells exist for cell materials.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node materials.");
+      EXCEPTION("Error, no nodes exist for node materials.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2492,7 +2510,9 @@ namespace CoupledField {
     /*                               */
     /*  Read and set velocity data.  */
     /*                               */
-    int i, data_type, nvelin;
+    int i;
+    int data_type = 0;
+    int nvelin = 0;
     double *uin, *vin, *win;
     float *tmpfloat;
 
@@ -2507,19 +2527,19 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell velocities.");
+      EXCEPTION("Error, no cells exist for cell velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node velocities.");
+      EXCEPTION("Error, no nodes exist for node velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == FACE && numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for node velocities.");
+      EXCEPTION("Error, no faces exist for node velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2598,8 +2618,12 @@ namespace CoupledField {
     /*                               */
     /*  Read and set vector data.  */
     /*                               */
-    int i, data_type, ncomps, cnameflag, nvectin;
-    double *vectin;
+    int i;
+    int data_type = 0;
+    int ncomps = 0;
+    int cnameflag = 0;
+    int nvectin = 0;
+    double *vectin = NULL;
     float *tmpfloat;
     char vectname[33];
     char compname[33];
@@ -2641,19 +2665,19 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell velocities.");
+      EXCEPTION("Error, no cells exist for cell velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node velocities.");
+      EXCEPTION("Error, no nodes exist for node velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == FACE && numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for node velocities.");
+      EXCEPTION("Error, no faces exist for node velocities.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2700,7 +2724,7 @@ namespace CoupledField {
         else
           fscanf(gmvin,"%s", compname);
 
-        MESHIO_INFO("vector component: " << compname);
+        LOG_DBG2(gmvread) << "vector component: " << compname;
       }
     }
 
@@ -2757,7 +2781,9 @@ namespace CoupledField {
     /*                                     */
     /*  Read and set variable field data.  */
     /*                                     */
-    int i, data_type, nvarin;
+    int i;
+    int data_type = 0;
+    int nvarin = 0;
     double *varin;
     float *tmpfloat;
     char varname[33];
@@ -2799,19 +2825,19 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell variable " << varname);
+      EXCEPTION("Error, no cells exist for cell variable " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node variable " << varname);
+      EXCEPTION("Error, no nodes exist for node variable " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == FACE && numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for face variable: " << varname);
+      EXCEPTION("Error, no faces exist for face variable: " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -2867,7 +2893,10 @@ namespace CoupledField {
     /*                                     */
     /*  Read and set selection flag data.  */
     /*                                     */
-    int i, data_type, ntypes, nflagin;
+    int i;
+    int data_type = 0;
+    int ntypes = 0;
+    int nflagin = 0;
     int *flagin;
     char flgname[33], fname[33], *fnames;
 
@@ -2911,13 +2940,13 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell flags " << flgname);
+      EXCEPTION("Error, no cells exist for cell flags " << flgname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node flags " << flgname);
+      EXCEPTION("Error, no nodes exist for node flags " << flgname);
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3379,7 +3408,7 @@ namespace CoupledField {
     /*  Check that faces have been read.  */
     if (numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for faceids.");
+      EXCEPTION("Error, no faces exist for faceids.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3696,7 +3725,7 @@ namespace CoupledField {
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading surfaces.");
+      EXCEPTION("I/O error while reading surfaces.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3719,7 +3748,7 @@ namespace CoupledField {
     /*  Check that surfaces have been input.  */
     if (surface_read == 0)
     {
-      MESHIO_WARN("Error, surface must be read before surfmats.");
+      EXCEPTION("Error, surface must be read before surfmats.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3771,7 +3800,7 @@ namespace CoupledField {
     /*  Check that surfaces have been input.  */
     if (surface_read == 0)
     {
-      MESHIO_WARN("Error, surface must be read before surfvel.");
+      EXCEPTION("Error, surface must be read before surfvel.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3860,7 +3889,7 @@ namespace CoupledField {
     /*  Check that surfaces have been input.  */
     if (surface_read == 0)
     {
-      MESHIO_WARN("Error, surface must be read before surfvars.");
+      EXCEPTION("Error, surface must be read before surfvars.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -3946,7 +3975,7 @@ namespace CoupledField {
     /*  Check that surfaces have been input.  */
     if (surface_read == 0)
     {
-      MESHIO_WARN("Error, surface must be read before surfflag.");
+      EXCEPTION("Error, surface must be read before surfflag.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -4068,7 +4097,7 @@ namespace CoupledField {
     /*  Check that surfaces have been input.  */
     if (surface_read == 0)
     {
-      MESHIO_WARN("Error, surface must be read before surids.");
+      EXCEPTION("Error, surface must be read before surids.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -4236,7 +4265,9 @@ namespace CoupledField {
     /*                            */
     /*  Read and set group data.  */
     /*                            */
-    int i, data_type, ngroupin;
+    int i;
+    int data_type = 0;
+    int ngroupin = 0;
     int *groupin;
     char grpname[40];
 
@@ -4282,19 +4313,19 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell group " << grpname);
+      EXCEPTION("Error, no cells exist for cell group " << grpname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node group " << grpname);
+      EXCEPTION("Error, no nodes exist for node group " << grpname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == FACE && numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for face group: " << grpname);
+      EXCEPTION("Error, no faces exist for face group: " << grpname);
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -4389,7 +4420,10 @@ namespace CoupledField {
     /*                                     */
     /*  Read and set subvars field data.     */
     /*                                     */
-    int i, data_type, nsubvarin, *subvarid;
+    int i;
+    int data_type = 0;
+    int nsubvarin = 0;
+    int *subvarid = NULL;
     double *subvarin;
     float *tmpfloat;
     char varname[33];
@@ -4435,19 +4469,19 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for cell subvars  " << varname);
+      EXCEPTION("Error, no cells exist for cell subvars  " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for node subvars " << varname);
+      EXCEPTION("Error, no nodes exist for node subvars " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == FACE && numfaces == 0)
     {
-      MESHIO_WARN("Error, no faces exist for face subvars: " << varname);
+      EXCEPTION("Error, no faces exist for face subvars: " << varname);
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -4517,7 +4551,10 @@ namespace CoupledField {
     /*                                     */
     /*  Read and set subvars field data.     */
     /*                                     */
-    int i, data_type, nghostin, *ghostid;
+    int i;
+    int data_type = 0;
+    int nghostin = 0;
+    int *ghostid = NULL;
 
     /*  Read the data type (cells or nodes),    */
     /*  and the number of elements in the set.  */
@@ -4538,13 +4575,13 @@ namespace CoupledField {
     /*  Check for existence of data_type.  */
     if (data_type == CELL && numcells == 0)
     {
-      MESHIO_WARN("Error, no cells exist for ghost cells.");
+      EXCEPTION("Error, no cells exist for ghost cells.");
       gmv_data.keyword = GMVERROR;
       return;
     }
     if (data_type == NODE && numnodes == 0)
     {
-      MESHIO_WARN("Error, no nodes exist for ghosts nodes.");
+      EXCEPTION("Error, no nodes exist for ghosts nodes.");
       gmv_data.keyword = GMVERROR;
       return;
     }
@@ -4590,7 +4627,7 @@ namespace CoupledField {
     /*  Memory error.  */
     /*                 */
 
-    MESHIO_WARN("Not enough memory to read gmv data.");
+    EXCEPTION("Not enough memory to read gmv data.");
     gmv_data.keyword = GMVERROR;
     gmv_meshdata.intype = GMVERROR;
 
@@ -4604,7 +4641,7 @@ namespace CoupledField {
     /*  Memory error.  */
     /*                 */
 
-    MESHIO_WARN("Not enough memory to fill gmv mesh data.");
+    EXCEPTION("Not enough memory to fill gmv mesh data.");
     gmv_data.keyword = GMVERROR;
     gmv_meshdata.intype = GMVERROR;
 
@@ -4623,7 +4660,7 @@ namespace CoupledField {
 
     if ((feof(gmvin) != 0) | (ferror(gmvin) != 0))
     {
-      MESHIO_WARN("I/O error while reading gmv input file.");
+      EXCEPTION("I/O error while reading gmv input file.");
 
       throw GMVReadException();
       //exit(0);
@@ -4863,7 +4900,9 @@ static short vfacetype;
 
 void gmvread_mesh()
 {
-  int nxv, nyv, nzv, nodetype_in, j, k;
+  int nxv, nyv, nzv;
+  int nodetype_in = 0;
+  int j, k;
   long nn, i, ip;
   double *xin, *yin, *zin, x0, y0, z0, dx, dy, dz;
   void rdcells(int nodetype_in);
@@ -4882,9 +4921,10 @@ void gmvread_mesh()
   gmv_meshdata.cellnnode = NULL;
   gmv_meshdata.cellnodes = NULL;
 
-  if (printon)
-    MESHIO_INFO("Reading mesh data.");
-
+  if (printon) {
+    LOG_DBG2(gmvread) << "Reading mesh data.";
+  }
+  
   /*  Read and save node x,y,zs.  */
   /* gmvread_data(); */
 
@@ -4897,7 +4937,7 @@ void gmvread_mesh()
 
   if (gmv_data.keyword != NODES)
   {
-    MESHIO_WARN("Error - nodes keyword missing.");
+    EXCEPTION("Error - nodes keyword missing.");
     gmvread_close();
     gmv_meshdata.intype = GMVERROR;
     return;
@@ -4912,10 +4952,10 @@ void gmvread_mesh()
     gmv_meshdata.intype = gmv_data.datatype;
     nodetype_in = gmv_data.datatype;
 
-    MESHIO_DEBUG("AMR: " << (gmv_data.datatype == AMR));
-    MESHIO_DEBUG("UNSTRUCT: " << (gmv_data.datatype == UNSTRUCT));
-    MESHIO_DEBUG("STRUCT: " << (gmv_data.datatype == STRUCT));
-    MESHIO_DEBUG("LOGICALLY_STRUCT: " << (gmv_data.datatype == LOGICALLY_STRUCT));
+    LOG_DBG2(gmvread) << "AMR: " << (gmv_data.datatype == AMR);
+    LOG_DBG2(gmvread) << "UNSTRUCT: " << (gmv_data.datatype == UNSTRUCT);
+    LOG_DBG2(gmvread) << "STRUCT: " << (gmv_data.datatype == STRUCT);
+    LOG_DBG2(gmvread) << "LOGICALLY_STRUCT: " << (gmv_data.datatype == LOGICALLY_STRUCT);
 
     if (gmv_data.datatype != AMR)
     {
@@ -4955,7 +4995,7 @@ void gmvread_mesh()
       nyv = gmv_meshdata.nyv;
       nzv = gmv_meshdata.nzv;
 
-      MESHIO_DEBUG("nxv nyv nzv: " << nxv << " " << nyv << " " << nzv);
+      LOG_DBG2(gmvread) << "nxv nyv nzv: " << nxv << " " << nyv << " " << nzv;
 
       if (gmv_data.datatype == STRUCT)
       {
@@ -5019,12 +5059,12 @@ void gmvread_mesh()
       gmv_meshdata.y[0] = y0;  gmv_meshdata.y[1] = dy;
       gmv_meshdata.z[0] = z0;  gmv_meshdata.z[1] = dz;
 
-      MESHIO_DEBUG("gmv_meshdata[0]: " << gmv_meshdata.x[0] << " "
-                   << gmv_meshdata.y[0] << " "
-                   << gmv_meshdata.z[0]);
-      MESHIO_DEBUG("gmv_meshdata[1]: " << gmv_meshdata.x[1] << " "
-                   << gmv_meshdata.y[1] << " "
-                   << gmv_meshdata.z[1]);
+      LOG_DBG2(gmvread) << "gmv_meshdata[0]: " << gmv_meshdata.x[0] << " "
+                        << gmv_meshdata.y[0] << " "
+                        << gmv_meshdata.z[0];
+      LOG_DBG2(gmvread) << "gmv_meshdata[1]: " << gmv_meshdata.x[1] << " "
+                        << gmv_meshdata.y[1] << " "
+                        << gmv_meshdata.z[1];
 
     }
   }
@@ -5160,7 +5200,7 @@ void rdcells(int nodetype_in)
         gmvread_data();
         if (gmv_data.keyword != VFACES)
         {
-          MESHIO_WARN("Error, vfaces keyword not found.");
+          EXCEPTION("Error, vfaces keyword not found.");
           gmv_meshdata.intype = GMVERROR;
           return;
         }
@@ -5289,9 +5329,11 @@ void regcell(long icell, long nc)
   /*    18-3line, 19-phex27                                */
   /*                                                       */
   long i, j, k, cnodes[30], fverts[145], l1, l2; 
-  int nfaces, nverts[144], totverts,  dupflag, ncnodes,
+  int nfaces = 0;
+  int totverts = 0;
+  int nverts[144],  dupflag, ncnodes,
     dupverts[145], dupnverts[145], ndup, nf;
-  int icelltype;
+  int icelltype = 0;
   char ckeyword[9];
   short trinverts[1] = {3};
   short trifverts[3] = {1,2,3};
@@ -5350,7 +5392,8 @@ void regcell(long icell, long nc)
                              3,10,25, 10,2,25, 2,9,25,  9,1,25,
                              5,13,26, 13,6,26, 6,14,26, 14,7,26,
                              7,15,26, 15,8,26, 8,16,26, 16,5,26};
-  short *nv, *fv;
+  short *nv = NULL;
+  short *fv = NULL;
 
   /*  Get cell nodes.  */
   ncnodes = gmv_data.nlongdata1;
@@ -5503,7 +5546,8 @@ void regcell(long icell, long nc)
     nv = phex27nverts;
     fv = phex27fverts;
     break;
-  default: break;
+  default:
+    break;
   }
 
   /*  Build face information.  */
@@ -5792,7 +5836,7 @@ void rdvfaces(long nc)
   gmv_meshdata.ncells = nc;
   if (gmv_data.num != nfacesin)
   {
-    MESHIO_WARN("I/O error while reading vfaces.");
+    EXCEPTION("I/O error while reading vfaces.");
     gmv_meshdata.intype = GMVERROR;
     return;
   }
@@ -6666,7 +6710,7 @@ int gmvrayread_open(char *filnam)
 
   if (gmvrayin == NULL)
   {
-    MESHIO_WARN("GMV cannot open file " << filnam);
+    EXCEPTION("GMV cannot open file " << filnam);
     return 1;
   }
     
@@ -6674,7 +6718,7 @@ int gmvrayread_open(char *filnam)
   binread(magic,charsize, CHAR, (long)8, gmvrayin);
   if (strncmp(magic,"gmvrays",7) != 0)
   {
-    MESHIO_WARN("This is not a GMV ray input file.");
+    EXCEPTION("This is not a GMV ray input file.");
     return 2;
   }
 
@@ -6684,7 +6728,7 @@ int gmvrayread_open(char *filnam)
     chkend = chk_rayend(gmvrayin);
     if (!chkend)
     {
-      MESHIO_WARN("Error - endray not found.");
+      EXCEPTION("Error - endray not found.");
       return 3;
     }
   }
@@ -6733,7 +6777,7 @@ int gmvrayread_open(char *filnam)
   /*  Check for valid file type.  */
   if (ftype == -1)
   {
-    MESHIO_WARN("Invalid GMV RAY input file type.  Type must be:\n" \
+    EXCEPTION("Invalid GMV RAY input file type.  Type must be:\n" \
                 "  ascii, ieee, ieeei4r4, ieeei4r8, ieeei8r4, ieeei8r8\n" \
                 "  iecxi4r4, iecxi4r8, iecxi8r4, iecxi8r8.");
     return 4;
@@ -6744,7 +6788,7 @@ int gmvrayread_open(char *filnam)
   {
     if (sizeof(long) < 8)
     {
-      MESHIO_WARN("Cannot read 64bit I* types on this machine.");
+      EXCEPTION("Cannot read 64bit I* types on this machine.");
       return 4;
     }
   }
@@ -6775,7 +6819,7 @@ int ioerrtst2(FILE * gmvrayin)
 
   if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0))
   {
-    MESHIO_WARN("I/O error while reading gmv ray input file.");
+    EXCEPTION("I/O error while reading gmv ray input file.");
     gmvray_data.nvars = -1;
     return 1;
   }
@@ -6821,7 +6865,7 @@ void gmvrayread_data()
     if (curr_keyword == INVALIDKEYWORD)
     {
       gmvray_data.nvars = -1;
-      MESHIO_WARN("Error, " << keyword << " is an invalid keyword.");
+      EXCEPTION("Error, " << keyword << " is an invalid keyword.");
       return;
     }
 
@@ -6857,11 +6901,11 @@ void readrays(FILE* gmvrayin, int ftype)
   int lrays, lrayvars;
   int *rayids;
   double *x, *y, *z, *field, *tmpdouble;
-  float *tmpfloat;
+  float *tmpfloat = NULL;
   char vname[33], *varnames;
   short vartype[NRAYVARS];
   struct gmvray *gmvrays;
-  char *rtype_str[4] = {"Points","Segments"};
+  const char *rtype_str[4] = {"Points","Segments"};
 
   if (ftype == ASCII)
   {
@@ -6904,9 +6948,10 @@ void readrays(FILE* gmvrayin, int ftype)
     }
   }
 
-  if (printon)
-    MESHIO_DEBUG("Reading " << lrays << " rays.");
-
+  if (printon) {
+    LOG_DBG2(gmvread) << "Reading " << lrays << " rays.";
+  }
+  
   /*  Allocate and read variable 8 or 32 char. names and types.  */
   //varnames = (char *)malloc(lrayvars*33*sizeof(char));
   MALLOC(varnames, lrayvars*33, char);
@@ -6933,10 +6978,10 @@ void readrays(FILE* gmvrayin, int ftype)
       
     strncpy(&varnames[i*33],vname,32);
     *(varnames+i*33+charsize_in) = (char) 0;
-    vartype[i] = j;
+    vartype[i] = (short)j;
     if (printon)
     {
-      MESHIO_DEBUG("    " << vname << "  (" << rtype_str[j] << ")");
+      LOG_DBG2(gmvread) << "    " << vname << "  (" << rtype_str[j] << ")";
     }
   }
 
@@ -6981,9 +7026,10 @@ void readrays(FILE* gmvrayin, int ftype)
     }
     gmvrays[iray].npts = npts;
 
-    if (printon)
-      MESHIO_DEBUG("  Reading ray " << (iray+1) << " with " << npts << " points");
-
+    if (printon) {
+      LOG_DBG2(gmvread) << "  Reading ray " << (iray+1) << " with " << npts << " points";
+    }
+    
     /*  Allocate and read npts x,y,z arrays.  */
     //x = (double *)malloc(npts*sizeof(double));
     //y = (double *)malloc(npts*sizeof(double));
@@ -7117,7 +7163,7 @@ void readrays(FILE* gmvrayin, int ftype)
 
   if ((feof(gmvrayin) != 0) | (ferror(gmvrayin) != 0))
   {
-    MESHIO_WARN("I/O error while reading rays.");
+    EXCEPTION("I/O error while reading rays.");
     gmvray_data.nvars = -1;
     return;
   }
@@ -7177,7 +7223,7 @@ void gmvrayrdmemerr()
   /*  Memory error.  */
   /*                 */
 
-  MESHIO_WARN("Not enough memory to read gmv ray data.");
+  EXCEPTION("Not enough memory to read gmv ray data.");
   gmvray_data.nvars = -1;
 
   throw GMVReadException();
@@ -7210,4 +7256,5 @@ int chk_rayend(FILE *fin)
   fseek(fin, currpos, 0);
 
   return chkend;
+}
 }

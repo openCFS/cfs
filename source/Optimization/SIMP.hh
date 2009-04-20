@@ -100,17 +100,10 @@ public:
 protected:
 
   /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite)
-  {
-    // we have no own objectives
-    return ErsatzMaterial::CalcObjective(excite);
-  }
+  virtual double CalcObjective(Excitation& excite);
   
   /** no special case here */
-  virtual void ConstructAdjointRHS(Excitation& excite)
-  {
-    ErsatzMaterial::ConstructAdjointRHS(excite);
-  }
+  virtual void ConstructAdjointRHS(Excitation& excite);
   
   /** Does mech DENSITY gradients, COMPLIANCE is done in ErsatzMaterial */
   virtual void CalcObjectiveGradient(Excitation& excite);

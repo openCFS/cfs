@@ -1,5 +1,6 @@
 // include general defines
 #include <def_cfs_stats.hh>
+#include <def_cplreader.hh>
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
 #include <def_use_ansysrst.hh>
@@ -28,7 +29,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
-
+#include <boost/algorithm/string/trim.hpp>
 
 #ifdef USE_MKL
 #include <mkl_service.h>
@@ -38,6 +39,25 @@
 #include <acml.h>
 #endif
 
+#include <bzlib.h>
+#include <zlib.h>
+
+#ifdef USE_ILUPACK
+#include <amd.h>
+#endif
+
+#ifdef USE_SCRIPTING_PYTHON
+#include <Python.h>
+#endif
+
+#ifdef USE_SCRIPTING_TCL
+#include <tcl.h>
+#endif
+
+#ifdef USE_ARPACK
+#include <arpack_version.h>
+#endif
+
 #include "DataInOut/ParamHandling/InfoNode.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
@@ -45,6 +65,10 @@
 
 // Lapack version function interface
 extern "C" void ilaver_(int*, int*, int*);
+
+// CFX IO library version interface
+extern "C" const char* io_get_version();
+
 
 namespace CoupledField {
 
@@ -224,7 +248,7 @@ namespace CoupledField {
     if( varMap_.count("simName") == 0 )
     {
       GetHeaderString(std::cout);
-      std::cout << "cfs: no input files. Pleas run with --help for help\n";
+      std::cout << "cfs: no input files. Please run with --help for help\n";
       exit(EXIT_SUCCESS);
     }
   }
@@ -233,6 +257,7 @@ namespace CoupledField {
     std::string ret;
 
     if(var == "CFS_SCHEMA_ROOT") ret = "schemaRoot";
+    if(var == "CFS_NO_COLOR")    ret = "noColor";
     if(var == "CFS_QUIET")       ret = "quiet";
     
     return ret;
@@ -436,9 +461,13 @@ namespace CoupledField {
   {
     bool colTmp = ColoredConsole::colorise;
     ColoredConsole::colorise = colorise;
-
+    
     std::string build_type = CMAKE_BUILD_TYPE;
-
+    std::string cxxFlags = CMAKE_CXX_FLAGS;
+    std::string ldFlags = CMAKE_EXE_LINKER_FLAGS;
+    boost::trim(cxxFlags);
+    boost::trim(ldFlags);    
+    
     outstr << "CFS_VERSION:           "
            << fg_blue << CFS_VERSION << fg_reset << std::endl
 
@@ -485,28 +514,31 @@ namespace CoupledField {
            << "CMAKE_BUILD_TYPE:      "
            << fg_blue  << build_type << fg_reset << std::endl;
 #ifndef NDEBUG
-      outstr << "COMPILE_FLAGS:       "
-             << fg_blue  << CMAKE_CXX_FLAGS
-             << " " << CMAKE_CXX_FLAGS_DEBUG << fg_reset << std::endl;
+    outstr << "COMPILE_FLAGS:         "
+           << fg_blue << cxxFlags << " " << CMAKE_CXX_FLAGS_DEBUG 
+           << fg_reset << std::endl;
 
-      outstr << "LINK_FLAGS:          "
-             << fg_blue  << CMAKE_EXE_LINKER_FLAGS
-             << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
-             << fg_reset
-             << std::endl << std::endl;
+    outstr << "LINK_FLAGS:            "
+           << fg_blue  << CMAKE_EXE_LINKER_FLAGS
+           << " " << CMAKE_EXE_LINKER_FLAGS_DEBUG
+           << fg_reset
+           << std::endl << std::endl;
 #else
-      outstr << "COMPILE_FLAGS:       "
-             << fg_blue  << CMAKE_CXX_FLAGS
-             << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << std::endl;
-
-      outstr << "LINK_FLAGS:          "
-             << fg_blue << CMAKE_EXE_LINKER_FLAGS
-             << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
-             << fg_reset << std::endl << std::endl;
+    outstr << "COMPILE_FLAGS:         "
+           << fg_blue << cxxFlags
+           << " " << CMAKE_CXX_FLAGS_RELEASE << fg_reset << std::endl;
+    
+    outstr << "LINK_FLAGS:            "
+           << fg_blue << ldFlags
+           << " " << CMAKE_EXE_LINKER_FLAGS_RELEASE
+           << fg_reset << std::endl << std::endl;
 #endif
- #ifdef USE_ARPACK
+ #ifdef USE_ARPACK    
     outstr << "USE_ARPACK:            "
            << fg_blue  << "YES" << fg_reset << std::endl;
+    outstr << "ARPACK_VERSION:        "
+           << fg_blue  << ARPACK_VERSION_NUMBER << " "
+           << ARPACK_VERSION_DATE << fg_reset << std::endl;
  #else
     outstr << "USE_ARPACK:            "
            << fg_blue  << "NO" << fg_reset << std::endl;
@@ -571,6 +603,10 @@ namespace CoupledField {
     outstr << std::endl;
     outstr << "USE_ILUPACK:           "
            << fg_blue << "YES" << fg_reset << std::endl;
+    outstr << "AMD_VERSION:        "
+           << fg_blue << AMD_MAIN_VERSION << "." << AMD_SUB_VERSION << "."
+           << AMD_SUBSUB_VERSION << " " << AMD_DATE
+           << fg_reset << std::endl;
  #else
     outstr << "USE_ILUPACK:           "
            << fg_blue  << "NO" << fg_reset << std::endl;
@@ -591,29 +627,24 @@ namespace CoupledField {
     outstr << std::endl
            << "USE_METIS:             "
            << fg_blue << "YES" << fg_reset << std::endl;
+    outstr << "CFS_METIS_VERSION:     "
+           << fg_blue << CFS_METIS_VERSION
+           << fg_reset << std::endl;
 #else
     outstr << "USE_METIS:             "
            << fg_blue << "NO" << fg_reset<< std::endl;
 #endif
-
-#ifdef MpCCI
-    outstr << "MpCCI:                 "
-           << fg_blue << "YES" << fg_reset << std::endl;
-    outstr << "MpCCI_RELEASE:         "
-           << fg_blue << MpCCI_RELEASE
-           << fg_reset << std::endl;
-#else
-    outstr << "MpCCI:                 "
-           << fg_blue << "NO" << fg_reset << std::endl;
- #endif
 
     outstr << std::endl;
 
  #ifdef USE_SCRIPTING_TCL
     outstr << "USE_SCRIPTING_TCL:     "
            << fg_blue  << "YES" << fg_reset << std::endl;
+    Integer tcl_major, tcl_minor, tcl_rev, tcl_patch;
+    Tcl_GetVersion(&tcl_major, &tcl_minor, &tcl_rev, &tcl_patch);
     outstr << "CFS_TCL_VERSION:       "
-           << fg_blue << CFS_TCL_VERSION << fg_reset << std::endl;
+           << fg_blue << tcl_major << "." << tcl_minor << "." << tcl_rev
+           << fg_reset << std::endl;
  #else
     outstr << "USE_SCRIPTING_TCL:     "
            << fg_blue << "NO" << fg_reset << std::endl;
@@ -622,8 +653,15 @@ namespace CoupledField {
  #ifdef USE_SCRIPTING_PYTHON
     outstr << "USE_SCRIPTING_PYTHON:  "
            << fg_blue << "YES" << fg_reset << std::endl;
+    std::string pyVersion = Py_GetVersion();
+    UInt i=0;
+    for(i=0; i < pyVersion.length(); i++) {
+      if(pyVersion[i] == ' ')
+        break;
+    }
+    pyVersion = pyVersion.substr(0, i);
     outstr << "CFS_PYTHON_VERSION:    "
-           << fg_blue << CFS_PYTHON_VERSION << fg_reset << std::endl;
+           << fg_blue << pyVersion << fg_reset << std::endl;
  #else
     outstr << "USE_SCRIPTING_PYTHON:  "
            << fg_blue << "NO" << fg_reset << std::endl;
@@ -662,8 +700,6 @@ namespace CoupledField {
            << fg_blue << "YES" << fg_reset << std::endl;
     outstr << "CFS_HDF5_VERSION:      "
            << fg_blue << CFS_HDF5_VERSION << fg_reset << std::endl;
-    outstr << "CFS_ZLIB_VERSION:      "
-           << fg_blue << CFS_ZLIB_VERSION << fg_reset << std::endl;
  #else
     outstr << "USE_HDF5:              "
            << fg_blue << "NO" << fg_reset << std::endl;
@@ -686,13 +722,6 @@ namespace CoupledField {
 #endif
 
     outstr << std::endl;
-    outstr << "CFS_BOOST_VERSION:     "
-           << fg_blue << CFS_BOOST_VERSION << fg_reset << std::endl;
-    outstr << std::endl;
-    outstr << "CFS_METIS_VERSION:     "
-           << fg_blue << CFS_METIS_VERSION << fg_reset << std::endl;
-    outstr << std::endl;
-
 
 #ifdef USE_XERCES
     outstr << "USE_XERCES:            "
@@ -701,15 +730,51 @@ namespace CoupledField {
            << fg_blue << CFS_XERCES_VERSION << fg_reset << std::endl;
     outstr << "XMLSCHEMA:             "
            << fg_blue << XMLSCHEMA << fg_reset << std::endl;
+#else
     outstr << "USE_XERCES:            "
            << fg_blue << "NO" << fg_reset << std::endl;
 #endif
 
+    outstr << std::endl;
+
+#ifdef USE_ANSYSCRT
     outstr << "USE_ANSYSRST:          "
            << fg_blue << "YES" << fg_reset << std::endl;
     outstr << "CFS_ANSYS_VERSION:    "
            << fg_blue << CFS_ANSYS_VERSION << fg_reset << std::endl;
+#else
+    outstr << "USE_ANSYSRST:          "
+           << fg_blue << "NO" << fg_reset << std::endl;
+#endif
 
+    outstr << std::endl;
+#ifdef MpCCI
+    outstr << "MpCCI:                 "
+           << fg_blue << "YES" << fg_reset << std::endl;
+    outstr << "MpCCI_RELEASE:         "
+           << fg_blue << MpCCI_RELEASE
+           << fg_reset << std::endl;
+#else
+    outstr << "MpCCI:                 "
+           << fg_blue << "NO" << fg_reset << std::endl;
+#endif
+    
+    outstr << std::endl;
+    outstr << "CFS_BOOST_VERSION:     "
+           << fg_blue << CFS_BOOST_VERSION << fg_reset << std::endl;
+    outstr << "CFS_ZLIB_VERSION:      "
+           << fg_blue << zlibVersion() << fg_reset << std::endl;
+    outstr << "CFS_BZIP2_VERSION:     "
+           << fg_blue << BZ2_bzlibVersion() << fg_reset << std::endl;
+    outstr << "CFS_MUPARSER_VERSION:  "
+           << fg_blue << CFS_MUPARSER_VERSION << fg_reset << std::endl;
+
+
+#ifdef CPLREADER_CFX
+    outstr << "CFX_IO_VERSION:        "
+           << fg_blue << io_get_version() << fg_reset << std::endl;
+#endif
+    
   ColoredConsole::colorise = colTmp;
   }
 

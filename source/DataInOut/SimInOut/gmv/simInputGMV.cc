@@ -76,10 +76,17 @@ namespace CoupledField {
   // GENERAL MESH INFORMATION
   // ======================================================
   UInt SimInputGMV::GetDim() {
-    EXCEPTION("SimInputGMV::GetDim() not implemented");
-    return 0;
+    return 3;
   }
   
+  void SimInputGMV::GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                              std::map<UInt, UInt>& numSteps,
+                                              bool isHistory) {
+    // At the moment only the grid may be read.
+    analysis.clear();
+    numSteps.clear();
+  }
+
   UInt SimInputGMV::GetNumNodes(){
     EXCEPTION("SimInputGMV::GetNumNodes() not implemented");
     return 0;

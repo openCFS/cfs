@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
 #-------------------------------------------------------------------------------
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
 
 IF(COMMAND cmake_policy)
   CMAKE_POLICY(SET CMP0003 NEW)
@@ -284,6 +284,32 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # Find executables of a few required programs
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindPrograms.cmake")
+
+#-----------------------------------------------------------------------------
+# Configure Dart testing support.  This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are invoked (???) and after the languages
+# for the project have been defined since CMake needs to know about the 
+# language-specific build tools.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Switch support for testing off by default. It will be switched on by the
+# CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
+# cache. Cf. ctest_scripts/*.cmake
+#-----------------------------------------------------------------------------
+OPTION(BUILD_TESTING "Build the testing tree." OFF)
+
+IF(BUILD_TESTING)
+  SET(BUILDNAME
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
+    CACHE STRING "Name of build on the dashboard")
+  MARK_AS_ADVANCED(BUILDNAME)
+
+  #---------------------------------------------------------------------------
+  # Include CMake module for testing support
+  #---------------------------------------------------------------------------
+  INCLUDE(CTest)
+ENDIF(BUILD_TESTING)
 
 
 #-----------------------------------------------------------------------------

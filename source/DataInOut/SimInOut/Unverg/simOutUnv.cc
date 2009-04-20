@@ -22,22 +22,26 @@ namespace CoupledField {
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
                                ParamNode * outputNode ) 
     : SimOutput ( filename, outputNode ) {
+    std::string sysPathSep;
     
     formatName_ = "unv";
-    fileName_ = filename;
     dirName_ = "results_" + formatName_;
     outputNode->Get("directory", dirName_, false );
+    try 
+    {
+      sysPathSep = fs::path("/").native_directory_string();
+    } catch (std::exception &ex)
+    {
+      EXCEPTION(ex.what());
+    }
+
+    fileName_ = dirName_ + sysPathSep + filename;
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
    
-    std::string name = fileName_ + ".unv";
-    output = NULL;
-    output = new std::ofstream(name.c_str());
-    if(!output)
-      EXCEPTION("Unv file ' " << name << "' could not be openend!" );
   }
 
 
@@ -446,6 +450,20 @@ namespace CoupledField {
 
   void SimOutputUnv::Init(Grid * aptgrid, bool printGridOnly )
   {
+    try 
+    {
+      fs::create_directory( dirName_ );
+    } catch (std::exception &ex)
+    {
+      EXCEPTION(ex.what());
+    }
+
+    std::string name = fileName_ + ".unv";
+    output = NULL;
+    output = new std::ofstream(name.c_str());
+    if(!output)
+      EXCEPTION("Unv file ' " << name << "' could not be openend!" );
+
     ptGrid_=aptgrid;
     WriteGrid();
 

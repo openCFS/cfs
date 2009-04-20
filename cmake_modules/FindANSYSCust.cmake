@@ -9,7 +9,7 @@ BUILD_EXTLIB("ANSYS Customizations"
   "build_anscust.log")
 
 #-------------------------------------------------------------------------------
-# Determine paths of MUPARSER libraries.
+# Determine paths of ANSYS Customization libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 
@@ -36,7 +36,7 @@ IF(CFS_SUBARCH STREQUAL "EM64T")
     "${LD}/v100/linem64t/libbin.so"
     CACHE FILEPATH "ANSYS binary interface library.")
   SET(ANSYS_V110_LIBBIN
-    "${LD}/v110/linem64t/libbin.so"
+    "${LD}/v110/linem64t/libbin.so;-lguide;-lpthread "
     CACHE FILEPATH "ANSYS binary interface library.")
 ENDIF(CFS_SUBARCH STREQUAL "EM64T")
 
