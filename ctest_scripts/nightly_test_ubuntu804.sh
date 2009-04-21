@@ -1,47 +1,42 @@
 #!/bin/bash
 
+# This script is run by the following entry in /etc/crontab
+# on the Ubuntu 8.04 VBox
+#
+# 30 2    * * *   user    /home/user/Documents/dev/nightly_cfs_test.sh > /home/user/Documents/dev/nightly_cfs_test.log 2>&1
+
 echo "`basename $0` started on `date`"
 echo "-----------------------------------------------------------------------------"
 echo
 
-HOME=/home/user
-TGZDIR="/mnt/Documents/dev"
+# Set path to home directory of user, just to make sure...
+export HOME=/home/user
+
+# Set path to strieben's development directory
 DEVDIR="$HOME/Documents/dev"
+
+# Set path to directory for nightly builds
 TESTDIR="$DEVDIR/NIGHTLY"
 
-if [ ! -f "$TGZDIR/CFS_TRUNK_NIGHTLY.tgz" ]; then
-    echo "Share sedici/strieben is not mounted!"
+# Extend system path by /opt/pckg/bin
+export PATH=/opt/pckg/bin:$PATH
+
+# Check if the archive provided by rom is present on the VBox share
+if [ ! -f "/mnt/NIGHTLY/CFS_NIGHTLY.tgz" ]; then
+    echo "Cannot find TGZ archive on share!"
     exit 1
 fi
 
-. $HOME/.bashrc
-
+# Remove and recreate nightly build directory
+rm -rf $TESTDIR
 mkdir -p $TESTDIR
 cd $TESTDIR
 
-. $TGZDIR/CFS_NIGHTLY_BUILD.sh
-export PATH=/opt/pckg/bin:$PATH
+# Unpack archive of updated working copies
+tar xvzf "/mnt/NIGHTLY/CFS_NIGHTLY.tgz"
 
-echo "CFS $CFS"
-echo "CFSDEPS $CFSDEPS"
-echo "TESTSUITE $TESTSUITE"
-
-if [ "$CFS" = "OK" ]; then
-    tar xvzf $TGZDIR/CFS_TRUNK_NIGHTLY.tgz
-fi
-
-if [ "$CFSDEPS" = "OK" ]; then
-    tar xvzf $TGZDIR/CFSDEPS_NIGHTLY.tgz
-fi
-
-if [ "$TESTSUITE" = "OK" ]; then
-    tar xvzf $TGZDIR/CFS_TESTSUITE_NIGHTLY.tgz
-fi
-
-rm -rf $TESTDIR/CFSDEPSCACHE
-
+# Change into CFS++ trunk source dir.
 cd $TESTDIR/CFS_TRUNK_NIGHTLY
-
 
 # The following Intel compilers (9.1 and 10.0) only support GCC up to
 # version 4.1. Therefore we create links to the proper compilers and
