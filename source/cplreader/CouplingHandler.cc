@@ -361,146 +361,158 @@ namespace CoupledField
               << std::endl;
 
     OutputWriterVectorType::iterator owIt, owEnd;
-    owIt = outputWriters_.begin();
-    owEnd = outputWriters_.end();
 
-    for( ; owIt != owEnd; owIt++) 
+    if(numFiles) 
     {
-      (*owIt)->BeginResults(&flowData);
-    }
-
-    // Fill vector with region names
-    for (actRegion = 0; actRegion<numRegions; actRegion++)
-      regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
-
-    while ( ( counter < numFiles ) && readOK)
-    {
-      stepVal = ptFileReader_->GetTimeStep(counter);
-      stepNum = counter + 1;
-      timeStepValues.push_back(stepVal);
-      timeStepNumbers.push_back(stepNum);
-
-      std::cout << "----------------------------------------"
-                << "----------------------------------------"
-                << std::endl;
-      std::cout << "                        "
-                << "Step Number: " << stepNum << "; ";
-      std::cout << " Time Step: " << stepVal << std::endl;
-      std::cout << "----------------------------------------"
-                << "----------------------------------------"
-                << std::endl;
-
-      // Tell output writers about begin step
       owIt = outputWriters_.begin();
       owEnd = outputWriters_.end();
       
       for( ; owIt != owEnd; owIt++) 
       {
-        (*owIt)->BeginStep(stepNum, stepVal);
+        (*owIt)->BeginResults(&flowData);
       }
-
-      // Read nodal values for all partitions
-      try
+      
+      // Fill vector with region names
+      for (actRegion = 0; actRegion<numRegions; actRegion++)
+        regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
+      
+      while ( ( counter < numFiles ) && readOK)
       {
-        ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
-        // scale the nodal values
-        std::stringstream velstr;
-        velstr << settings.GetString("velscale");
-        Double velScaleX, velScaleY, velScaleZ;
-        velstr >> velScaleX >> velScaleY >> velScaleZ;
-        if (velScaleX != 1.0)
-        {
-          velScale_(flowData, velScaleX, 0);
-        }
-        if (velScaleY != 1.0)
-        {
-          velScale_(flowData, velScaleY, 1);
-        }
-        if (velScaleZ != 1.0)
-        {
-          velScale_(flowData, velScaleZ, 2);
-        }
-        // <-- end scaling velocity
-
-        // Override the setting of --outprec for CFX
-        if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
-          settings.SetString("outprec", "single");
-
-        readOK = true;
-      } catch (std::exception& ex)
-      {
-        std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
-                  << std::endl << ex.what() << std::endl
-                  << "Exiting read time values loop...";
-
-        readOK = false;
-        continue;
-      }
-
-
-      for (actRegion = 0; actRegion<numRegions && readOK; actRegion++)
-      {
-        FlowDataType::iterator fdIt, fdEnd;
-
-        if(!activeParts_[actRegion])
-        {
-          FlowDataType::iterator fIt, fEnd;
-          fIt = flowData[actRegion].begin();
-          fEnd = flowData[actRegion].end();
-
-          for( ; fIt != fEnd; fIt++ ) {
-            fIt->second.isActive = false;
-          }
-
-          continue;
-        }
-
-        // If the user requests the calculation of the Lighthill
-        // source term, follow his order!
-        if(calcSrc)
-        {
-          // We need fluidMechVelocity for Lighthill source term.
-          // This must be adapted for other source term formulations!!
-          if ( flowData[actRegion].find(FLUIDMECH_VELOCITY)
-               != flowData[actRegion].end() )
-          {
-            flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
-          }
-
-          CalculateAcouSrcs(actRegion, flowData[actRegion]);
-        }
-
+        stepVal = ptFileReader_->GetTimeStep(counter);
+        stepNum = counter + 1;
+        timeStepValues.push_back(stepVal);
+        timeStepNumbers.push_back(stepNum);
+        
+        std::cout << "----------------------------------------"
+                  << "----------------------------------------"
+                  << std::endl;
+        std::cout << "                        "
+                  << "Step Number: " << stepNum << "; ";
+        std::cout << " Time Step: " << stepVal << std::endl;
+        std::cout << "----------------------------------------"
+                  << "----------------------------------------"
+                  << std::endl;
+        
+        // Tell output writers about begin step
         owIt = outputWriters_.begin();
         owEnd = outputWriters_.end();
         
         for( ; owIt != owEnd; owIt++) 
         {
-          (*owIt)->WriteFlowData(this,
-                                 actRegion,
-                                 outputFields_);
+          (*owIt)->BeginStep(stepNum, stepVal);
         }
-
-
-      }//end of for
+        
+        // Read nodal values for all partitions
+        try
+        {
+          ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+          // scale the nodal values
+          std::stringstream velstr;
+          velstr << settings.GetString("velscale");
+          Double velScaleX, velScaleY, velScaleZ;
+          velstr >> velScaleX >> velScaleY >> velScaleZ;
+          if (velScaleX != 1.0)
+          {
+            velScale_(flowData, velScaleX, 0);
+          }
+          if (velScaleY != 1.0)
+          {
+            velScale_(flowData, velScaleY, 1);
+          }
+          if (velScaleZ != 1.0)
+          {
+            velScale_(flowData, velScaleZ, 2);
+          }
+          // <-- end scaling velocity
+          
+          // Override the setting of --outprec for CFX
+          if(settings.GetString("type") == "CFX" && settings.GetInt("floatDataset"))
+            settings.SetString("outprec", "single");
+          
+          readOK = true;
+        } catch (std::exception& ex)
+        {
+          std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
+                    << std::endl << ex.what() << std::endl
+                    << "Exiting read time values loop...";
+          
+          readOK = false;
+          continue;
+        }
+        
+        
+        for (actRegion = 0; actRegion<numRegions && readOK; actRegion++)
+        {
+          FlowDataType::iterator fdIt, fdEnd;
+          
+          if(!activeParts_[actRegion])
+          {
+            FlowDataType::iterator fIt, fEnd;
+            fIt = flowData[actRegion].begin();
+            fEnd = flowData[actRegion].end();
+            
+            for( ; fIt != fEnd; fIt++ ) {
+              fIt->second.isActive = false;
+            }
+            
+            continue;
+          }
+          
+          // If the user requests the calculation of the Lighthill
+          // source term, follow his order!
+          if(calcSrc)
+          {
+            // We need fluidMechVelocity for Lighthill source term.
+            // This must be adapted for other source term formulations!!
+            if ( flowData[actRegion].find(FLUIDMECH_VELOCITY)
+                 != flowData[actRegion].end() )
+            {
+              flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
+            }
+            
+            CalculateAcouSrcs(actRegion, flowData[actRegion]);
+          }
+          
+          owIt = outputWriters_.begin();
+          owEnd = outputWriters_.end();
+          
+          for( ; owIt != owEnd; owIt++) 
+          {
+            (*owIt)->WriteFlowData(this,
+                                   actRegion,
+                                   outputFields_);
+          }
+          
+          
+        }//end of for
+        
+        owIt = outputWriters_.begin();
+        owEnd = outputWriters_.end();
+        
+        for( ; owIt != owEnd; owIt++) 
+        {
+          (*owIt)->EndStep();
+        }
+        
+        // increment time step counter
+        counter++;
+      }//end of while
 
       owIt = outputWriters_.begin();
       owEnd = outputWriters_.end();
       
       for( ; owIt != owEnd; owIt++) 
       {
-        (*owIt)->EndStep();
+        (*owIt)->EndResults();
       }
-
-      // increment time step counter
-      counter++;
-    }//end of while
+    }
 
     owIt = outputWriters_.begin();
     owEnd = outputWriters_.end();
-
+      
     for( ; owIt != owEnd; owIt++) 
     {
-      (*owIt)->EndResults();
+      (*owIt)->DoneWriting();
     }
 
     std::cout << "========================================"
@@ -512,7 +524,7 @@ namespace CoupledField
               << "========================================"
               << std::endl;
   }
-
+  
   void CouplingHandler::Finish()
   {
     Settings& settings = Settings::Instance();

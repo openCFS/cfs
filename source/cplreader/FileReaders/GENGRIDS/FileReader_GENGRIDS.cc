@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "SphericalShellGenerator.hh"
+#include "RectilinearUniformGridGenerator.hh"
 
 #include "FileReader_GENGRIDS.hh"
 
@@ -15,6 +16,7 @@ namespace CoupledField
                                      const UInt startIndex) :
     FileReader(name, dim, numFiles)
   {
+    numSteps_ = 0;
   }
 
   FileReader_GENGRIDS::~FileReader_GENGRIDS()
@@ -24,13 +26,25 @@ namespace CoupledField
   void FileReader_GENGRIDS::Init()
   {
     SphericalShellGenerator shellGen;
-    
+    RectilinearUniformGridGenerator ugGen;
+
+    ugGen.GenUniformGrid(nodalCoords_,
+                         topology_,
+                         elemTypes_,
+                         maxNumElemNodes_,
+                         regionElems_,
+                         nodeGroups_,
+                         RectilinearUniformGridGenerator::SERENDIPITY);
+
+ #if 0    
     shellGen.GenSphericalShell(nodalCoords_,
                                topology_,
                                elemTypes_,
                                maxNumElemNodes_,
                                regionElems_,
                                nodeGroups_);
+ #endif
+
     numRegions_ = regionElems_.size();
     dim_ = 3;
     numNodesPerRegion_.resize(numRegions_);

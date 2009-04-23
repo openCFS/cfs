@@ -1254,10 +1254,12 @@ namespace CoupledField {
       elemTypeMap[Elem::TRIA6]   = Elem::TRIA3;
       elemTypeMap[Elem::QUAD4]   = Elem::QUAD4;
       elemTypeMap[Elem::QUAD8]   = Elem::QUAD4;
+      elemTypeMap[Elem::QUAD9]   = Elem::QUAD4;
       elemTypeMap[Elem::TET4]    = Elem::TET4;
       elemTypeMap[Elem::TET10]   = Elem::TET4;
       elemTypeMap[Elem::HEXA8]   = Elem::HEXA8;
       elemTypeMap[Elem::HEXA20]  = Elem::HEXA8;
+      elemTypeMap[Elem::HEXA27]  = Elem::HEXA8;
       elemTypeMap[Elem::PYRA5]   = Elem::PYRA5;
       elemTypeMap[Elem::PYRA13]  = Elem::PYRA5;
       elemTypeMap[Elem::WEDGE6]  = Elem::WEDGE6;
