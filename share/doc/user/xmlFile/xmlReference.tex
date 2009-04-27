@@ -17,23 +17,23 @@
 % PDF STUFF
 % =============================================================================
 %
-%\ifx\pdfoutput\undefined
-%\else
-%\typeout{--> PDF: Output mode detected}
-%\typeout{--> PDF: Setting general document info}
+\ifx\pdfoutput\undefined
+\else
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
 %
-%\usepackage{thumbpdf}
+\usepackage{thumbpdf}
 %
-%\usepackage[pdftex,bookmarks=true]{hyperref}
-%\hypersetup{pdfpagemode=UseThumbs}
-%\hypersetup{colorlinks=true}
-%\hypersetup{linkcolor=red}
-%hypersetup{citecolor=blue}
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
 %
-%hypersetup{pdfauthor=cfs-devel}
-%\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
-%\hypersetup{pdfsubject={User's Guide}}
-%\fi
+\hypersetup{pdfauthor=cfs-devel}
+\hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
+\hypersetup{pdfsubject={User's Guide}}
+\fi
 %
 % =============================================================================
 %
