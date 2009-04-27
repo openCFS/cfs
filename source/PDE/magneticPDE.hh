@@ -32,7 +32,7 @@ namespace CoupledField
 
 
     //! Initialize PDE
-    virtual void Init( UInt sequenceStep );
+    virtual void Init( UInt sequenceStep, InfoNode* base = NULL );
 
     //! Initialize NonLinearities
     virtual void InitNonLin();

@@ -249,10 +249,6 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     Warning("There was no output writer specified at all", __FILE__, __LINE__ );
   }
   StdVector<ParamNode*> formatNodes = outNode->GetChildren();
-
-  // we always have a SimOutputInfo object ("info"). We only can give it manually
-  // to disable it
-  bool external_info = false;
   
   // iterate over all found files
   std::string actFormat, actId;
@@ -334,14 +330,9 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     if (actFormat == "info")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode));
-      external_info = true;
       continue;
     }
   }
-  
-  // when we have no external info we construct it by default
-  if(!external_info)
-    out["info"] = shared_ptr<SimOutput> (new SimOutputInfo(NULL));
 }
 
 // ==================================

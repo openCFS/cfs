@@ -194,7 +194,6 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputInfo">
     <xsd:attribute name="id" type="xsd:token" default="info"/>
-    <xsd:attribute name="output" type="xsd:boolean" default="true"/>
   </xsd:complexType>  
   
   <!-- ******************************************************************** -->

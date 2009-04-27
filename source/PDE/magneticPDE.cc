@@ -67,7 +67,7 @@ DEFINE_LOG(magpde, "magpde")
   //****************
   // Initialize PDE
   //****************
-  void MagPDE::Init(UInt sequenceStep) {
+  void MagPDE::Init(UInt sequenceStep, InfoNode* base) {
     SinglePDE::Init(sequenceStep);
     
     // store regions on which the Lorentz force should be calculated
@@ -1037,7 +1037,6 @@ DEFINE_LOG(magpde, "magpde")
 
   template<class TYPE>
   void MagPDE::CalcForceLorentz( shared_ptr<BaseResult> result ) {
-    
     Result<TYPE> &actSol = dynamic_cast<Result<TYPE>&>(*result);      
     std::map<UInt, UInt> nodeNumPos;
     Vector<TYPE> &actVal = actSol.GetVector();
@@ -1056,6 +1055,14 @@ DEFINE_LOG(magpde, "magpde")
     }
     
     CalcNodeForceLorentz(actVal, regionsVec, nodeNumPos);
+    
+    Vector<TYPE> sum(dim_);
+    sum.Init();
+    for( UInt i = 0; i < nodeNumPos.size(); i++ ) {
+      for( UInt j = 0; j < dim_; j++ ) {
+        sum[j] += actVal[i*dim_+j];
+      }
+    }
   }
   
   
@@ -1118,7 +1125,6 @@ DEFINE_LOG(magpde, "magpde")
       if( actCoil->fileL_ ) {
         CalcFlux<TYPE>( actCoil, induct, false );
         parser->SetExpr( mHandle, actCoil->value_);
-        std::cerr << "current is " << parser->Eval(mHandle) << std::endl;
         induct /= (actCoil->windingCrossSection_ *  parser->Eval(mHandle));
         std::ofstream * lOut = actCoil->fileL_;
         *lOut << solveStep_->GetActStep() << " \t";
@@ -1642,12 +1648,10 @@ DEFINE_LOG(magpde, "magpde")
   
     if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
       Vector<Double> bfield = field;
-      std::cout << "post: bfield: \n " << bfield << std::endl;
       materials_[actRegion]->GetVectorHystVal( it.GetElem()->elemNum,
                                                field ); 
       //ComputeVectorHystVal( it.GetElem()->elemNum, bfield, field ); 
       //GetVectorHystVal( it.GetPos(), field );
-      std::cout << "post: hfield: \n " << field << std::endl;
     }
     else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
       EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");

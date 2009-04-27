@@ -117,6 +117,10 @@ namespace CoupledField
     //! Calculate electrid field intensity
     template <class TYPE>
     void CalcElectricField( shared_ptr<BaseResult> vals );
+    
+    //! Calculate electrid flux density
+    template <class TYPE>
+    void CalcElectricFluxDensity( shared_ptr<BaseResult> vals );
 
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
