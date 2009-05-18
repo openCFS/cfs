@@ -1,0 +1,39 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.cfs++.org"
+    xmlns="http://www.cfs++.org"
+    xmlns:cfs="http://www.cfs++.org"
+    elementFormDefault="qualified">
+    <xsd:element name="cfsMeshDeformations">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="meshdeformations" minOccurs="1" maxOccurs="1">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="deformation" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                    <xsd:attribute name="node" use="required" type="xsd:integer"/>
+                                    <xsd:attribute name="param" use="required" type="xsd:nonNegativeInteger"/>
+                                    <xsd:attribute name="direction" use="required">
+                                        <xsd:simpleType>
+                                            <xsd:restriction base="xsd:nonNegativeInteger">
+                                                <xsd:maxInclusive value="3"/>
+                                            </xsd:restriction>
+                                        </xsd:simpleType>
+                                    </xsd:attribute>
+                                    <xsd:attribute name="value" use="required" type="xsd:float"/>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                        <xsd:attribute name="numberofparameters" use="required" type="xsd:nonNegativeInteger"/>
+                    </xsd:complexType>
+                    <xsd:unique name="uNodeParamDirection">
+                        <xsd:selector xpath="deformation"/>
+                        <xsd:field xpath="node"/>
+                        <xsd:field xpath="param"/>
+                        <xsd:field xpath="direction"/>
+                    </xsd:unique>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>

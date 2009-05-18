@@ -338,6 +338,7 @@ share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
@@ -358,6 +359,12 @@ share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
+share/xsl/extract_eigenvalues_line.xsl -text
+share/xsl/extract_first_results_harmonic.xsl -text
+share/xsl/extract_last_design_line.xsl -text
+share/xsl/extract_last_results.xsl -text
+share/xsl/extract_last_results_harmonic.xsl -text
+share/xsl/meta_optimization_subiterations.xsl -text
 source/CoupledPDE/AcouMechCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/AcouMechCoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/BasePairCoupling.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1094,8 +1101,12 @@ source/Optimization/SCPIP_HS071.cc -text
 source/Optimization/SCPIP_HS071.hh -text
 source/Optimization/SIMP.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/SIMP.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/ShapeDesign.cc -text
+source/Optimization/ShapeDesign.hh -text
 source/Optimization/ShapeGrad.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ShapeGrad.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/ShapeOpt.cc -text
+source/Optimization/ShapeOpt.hh -text
 source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
