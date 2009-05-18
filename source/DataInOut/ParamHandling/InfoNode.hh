@@ -34,19 +34,21 @@ public:
    * @param name a valid xml name
    * @param comment if given a child element is created, one can doe by hand
    * @param name either a valid XML name (no spaces, brackets, ...) or "", then caption is used
-   * @param caption the label for the output ('Number of iterations'). If "" then name is used */
+   *             Multiple levels might be spilt via slashes like in xpath.
+   * @param card applies only on the last level if there are multiple via slashes. */
   InfoNode* Get(const std::string& name, const std::string& comment, Cardinality card = USE_EXISTING)
   {
     return Get(name, comment, "", "", card);
   }
 
-  /** Works like the Has(parent, child, value) in ParamNode */
+  /** Works like the Has(parent, child, value) in ParamNode but handles the '/' delemiter! */
   InfoNode* Get(const std::string& name, const std::string& child,
                 const std::string& value, Cardinality card = USE_EXISTING)
   {
-    return Get(name, "", child, value, card);
+    return Get(name, "", child, value, card);    
   }
 
+  
   InfoNode* Get(const std::string& name, Cardinality card = USE_EXISTING)
   {
     return Get(name, "", "", "", card);
@@ -59,8 +61,17 @@ public:
    * @param string automatically checks if it has to become CDATA if conating &lt; , ... */
   void SetValue(const std::string& string);
 
-  void SetValue(const char* c_str) {
-    SetValue(std::string(c_str));
+  /** @param if c_str is null  an exception is thrown conditionally */
+  void SetValue(const char* c_str, bool throw_exception = true) 
+  {
+    if(c_str == NULL)
+    {
+      if(throw_exception) 
+        EXCEPTION("invalid attempt to set NULL string als value")
+      else SetValue("");  
+    }
+    else    
+      SetValue(std::string(c_str));
   }
 
   void SetValue(bool param);

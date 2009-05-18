@@ -14,7 +14,13 @@ namespace CoupledField {
     
   public:
     
-    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC } Type;
+    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED } Type;
+    
+    /* posibilities for the isotropic plane in transversal isotropy
+     * note that parameters EMODULISO, POISSONISO are used for that plane
+     * EMODUL is in the orthogonal direction, POSSION is nu_io where i is in the isotropic plane, o not
+     * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
+    typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
     
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to ParamNode */ 
@@ -38,6 +44,15 @@ namespace CoupledField {
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensorDerivative(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
+    /** initialize the tensor with zeros */
+    void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
+    
+    /** put the entries of the transversal_isotropic tensor at the right places */
+    void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
+    
+    /** put the entries of the isotropic tensor at the right places */
+    void SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, double D, double nD, double G);
+    
     /** Conveniance method */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
       if(direction == DesignElement::NO_DERIVATIVE){
@@ -55,6 +70,8 @@ namespace CoupledField {
     
     static Enum<Type> type;
     Type type_;   
+    static Enum<TransIsoType> transIsoType;
+    TransIsoType transIsoType_;
   };
 
 } // namespace

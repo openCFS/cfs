@@ -32,6 +32,7 @@ namespace CoupledField {
   class DenseMatrix;
   class BaseVector;
   class SingleVector;
+  class InfoNode;
   template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
 
@@ -126,7 +127,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method creates only a solver to solve
     //! a system Ax=b.
-    virtual void CreateSolver() = 0;
+    virtual void CreateSolver(InfoNode* olasInfo) = 0;
 
     //! Generate EigenSolver object
 
@@ -138,7 +139,7 @@ namespace CoupledField {
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    virtual void CreateEigenSolver() = 0;
+    virtual void CreateEigenSolver(InfoNode* eigenInfo) = 0;
 
     //! Trigger setup of preconditioner
 
@@ -907,6 +908,7 @@ namespace CoupledField {
     /** Here we store the complete ParamNode descripton of our liner system
      * - As given in the XML - hence it might be NULL! */
     ParamNode* xml;
+    InfoNode* olasInfo;
   };
 
 } // namespace

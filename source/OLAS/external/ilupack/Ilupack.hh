@@ -29,7 +29,7 @@ namespace CoupledField
   class Ilupack : public BaseIterativeSolver 
   {
   public:
-    Ilupack(ParamNode* param, OLAS_Report *myReport, BaseMatrix::EntryType type);
+    Ilupack(ParamNode* param, InfoNode* olasInfo, BaseMatrix::EntryType type);
 
     ~Ilupack();
 
@@ -38,47 +38,22 @@ namespace CoupledField
      
     /** To satisfy the compiler */
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol)
-    {
-        Solve(sysmat, precond, rhs, sol, false);
-    };                 
+                const BaseVector &rhs, BaseVector &sol);
 
-
-    /** @param recursive_call when the solver has a problem we Setup() again and
-     *         call Solve() once recursively */
-    void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, bool recursive_call);
 
     /** This is not Ilupack intern but Olas stuff. It means that this is
      * a Ilupack, the actual solver called by the lib is in Ilupack::Solver */
     SolverType GetSolverType() { return ILUPACK_SOLVER; }
 
-    /** The built-in solvers of ILUPACK, some might need additional libs.
-     * Note, that this list mixes symmetric, unsymmetric, spd-solvers, ... */
-    typedef enum { PCG = 1, SBCG = 2, BCG = 3, SQMR = 4, BCGSTAB = 5, TFQMR = 6, 
-                   FOM = 7, GMRES = 8, FGMRES = 9, DQGMRES = 10} Solver;                     
-
     /** This are the names of the matrix types in ILUPACK style */
     typedef enum { GNL, SYM, PD, HER } Matrix;
 
-    /** This are general reordering/permuation methods. Note, that the actual
-     * Ilupak functions are combinations of Matrix, Reodering, Matching.
-     * The combinations are quite special and driven by the available functions
-     * in the lib */
-    typedef enum { NONE, ND, RCM, AMF, AMD, MMD, METIS_E, METIS_N, INDSET, PP, FC, PQ } Ordering; 
-
     /** There are combinations with matching from Pardiso and MC64, most symmetric
      * is based on matching but a matching is not mandatory. */
-    typedef enum { PURE, MC64, MWM } Matching;
-    
-    /** This are the permutation types */
-    typedef enum { INITIAL, REGULAR, FINAL } PermutationRole;  
+    typedef enum { MUMPS, MC64, MWM } Matching;
 
         
   private:
-    /** Relases the memory allocated for ilupack by calling its delete method. 
-     * Does nothing if mat_.a is NULL. */ 
-    void ReleaseIlupackMemory();
 
     /** Set up the ilupack matrix mat_ 
      * @param base_mat input */
@@ -90,17 +65,26 @@ namespace CoupledField
 
     /** Initializes the parameter with default settings by ilupack, conditionally
      * overwrite them with the xml settings and print out the complete stuff. 
-     * No permutation here! Note that the complex and real versions can be savely
-     * casted against each other as its only the pointers. output to param_
+     * Note that the complex and real versions can be savely
+     * casted against each other as its only the pointers. output to param
      * and the ilupack matrix mat_ has to be set in advance by SetMatrix() */ 
     void InitParameters(); 
   
-  
+    /** Calls the AMGinit() variant of for the system from the lib */
+    void IlupackAMGInit();
+    
+    /** Calls the AMGFactor() variant of for the system from the lib */
+    int IlupackAMGFactor();
+
+    int IlupackAMGSolver(T* sol_ptr, T* rhs_ptr);
+
+    /** Relases the memory allocated for ilupack by calling its delete method. 
+     * Does nothing if mat_.a is NULL. */ 
+    void IlupackAMGDelete();
+    
     /** This method sets up the "enums", it fills them with the string representations. */
     void SetEnums();
 
-    /** Set the permuations - the list and not yet the actual inital, regualar and final. @see GetPermutation() */
-    void SetPermutations();
      
     /** If the factorization didn't result with 0, this method encrypts the error code. */
     std::string PrecondError(int result, const DILUPACKparam& param, int level);
@@ -108,20 +92,25 @@ namespace CoupledField
     /** If the ilupack solver didn't result with 0, this method encrypts the error code. */
     std::string SolverError(int result);     
 
-    /** This enum holds the string representation of the ILUPACK solver types */ 
-    Enum<Solver> solver; 
- 
-    /** The ilupack reordering functions */
-    Enum<Ordering> ordering;
+    /** Helper to Set ilupack char* from ParamNode */
+    char* GetString(ParamNode* node);
     
+    
+    
+    /** Helper method for InitParameters. Takes the ilupack value, prints it to the InfoNode (via
+     * param_name).
+     * If there is a parameter with param_name in the xml file, it is printed.
+     * @param param_name simple xpath chain via slash */
+    void CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name);
+    void CheckParameter(InfoNode* out, char** ilupack_val, const char* param_name);
+    void CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name);  
+      
     /** The ilupack matching */
     Enum<Matching> matching;
     
     /** The ilupack matrix types */
     Enum<Matrix> matrix; 
     
-    /** The permutation roles (initial, ...) */
-    Enum<PermutationRole> permutationRole;
     
     /** This is the ilupack signature of a real permutation function.
      * ILUPACK needs one for the inital, regular and final step */
@@ -129,87 +118,29 @@ namespace CoupledField
     
     typedef int (*ComplexPermFunc) (Zmat, doublecomplex *,doublecomplex *, int*, int*, int*, ZILUPACKparam*);    
     
-    /** This structure holds the definition of a ilupack permutation function in the lib. The key fields are matrix, reordering and matching */
-    struct Permutation
-    {
-        /** The matrix from the capital letter code of the ilupack function, doesn't need to
-         * be of the real problem type. Part of the key. */
-        Matrix     matrix;
-        
-        /** The reordering version, with or without matching. Part of the key. */
-        Ordering ordering;
-        
-        /** In the symmetric case most reoderings is done by one of the 2 matching libs
-         * (MC64 or MWM/Pardiso), PURE for without. Part of the key. */
-        Matching   matching;
-        
-        /** The function address as in ilupack.h */
-        RealPermFunc realFunc;
-        ComplexPermFunc cplxFunc;
-        
-        /** The name corresponding to the function omitting D and Z for the type */
-        std::string ilupack_name;
-        
-        /** The code as used in ilupack to help orientation */
-        std::string code;
-        
-        /** The description as taken from the ilupack samples or own stuff */
-        std::string description;
-    };
-
-    /** A convenience method to fill the permuations list*/
-    void AddPermutation(Matrix matrix, Ordering ordering, Matching matching,
-                        RealPermFunc realFunc, ComplexPermFunc cplxFunc, 
-                        const std::string& ilupack_name, const std::string& code,
-                        const std::string& description);
-                        
-
+                            
     /** Dump the solver stus, extracts nice parameters and prints them */
     void DumpSolverStatus(std::ostream& out);
 
     /** Dump the parameter setting */
     void DumpParameters(std::ostream& out);
 
-    /** This method dumps the permutation list */
-    void DumpPermutations(std::ostream& out);
-     
     /** Dump the ilupack flags */ 
     void DumpFlags(int flag, std::ostream& out);
 
     /** Read the flag settings as provided by the XML file and
      * apply it on the given flag.
      * @param flag the in/out parameter */ 
-     void ApplyFlagSettings(int& flag);
-
-    /** Gets the permutation. Either from XML, or from default if not present there.
-     * @param role is INITIAL, ...
-     * @param out the result if true is returned
-     * @throws exception if parameter set in XML or default is invalid */ 
-    void GetPermutation(PermutationRole role, Permutation& out);
-
-    /** Simple helper function to find a specigic permutation.
-     * @param out the result if true is returned
-     * @throws exception if nothing found */  
-    void GetPermutation(Matrix matrix, Ordering ordering, Matching matching, Permutation& out);  
-
-    /** This is a simple expert mode for default permutation. Used implicitly by GetPermutation() 
-     * @param role if INITIAL, ...
-     * @param out the result - if not an exception is thrown*/
-    void GetDefaultPermutation(PermutationRole role, Permutation& out);
-
-    /** This vector holds all interesting permutation functions from the available ones in the lib.
-     * E.g. only double and double comples */
-    std::vector<Permutation> permutations;
+    void ApplyFlagSettings(int& flag);
     
-    /** The inital permutation. All permutations are set via GetPermutation() */
-    Permutation initial_;
+    /** Calculates the fill in factor of the preconditioner */
+    void CalcFillIn(InfoNode* out);
     
-    /** @see intial_ */
-    Permutation regular_;
+    /** killme */
+    void Ilupack_symmessages();
+    void Ilupack_symprintperformance();
+    void Ilupack_symfinalres(T* sol_ptr, T* rhs_ptr);
     
-    /** @see initial_ */
-    Permutation final_;
-
     /** This is the internal matrix type as optinally read from XML */
     Matrix matrix_; 
     
@@ -226,11 +157,11 @@ namespace CoupledField
     Zmat* zmat_ptr_;
     
     /** Here ilupack stores all the paramters, initialized in InitParameters(). The complex case is just a cast */    
-    DILUPACKparam param_;
+    DILUPACKparam param;
 
-    /** A pointer to param_ */
+    /** A pointer to param */
     DILUPACKparam* dparam_ptr_;
-    /** Also a pointer to (DILUPACKparam) param_ as complex is same-same here */
+    /** Also a pointer to (DILUPACKparam) param as complex is same-same here */
     ZILUPACKparam* zparam_ptr_;
     
     
@@ -239,12 +170,9 @@ namespace CoupledField
 
     /** A pointer to precond_ */
     DAMGlevelmat* dprecond_ptr_;
-    /** Also a pointer to (DILUPACKparam) param_ as complex is same-same here */
+    /** Also a pointer to (DILUPACKparam) param as complex is same-same here */
     ZAMGlevelmat* zprecond_ptr_;
     
-    /** This paramerters is automatically determined by ilupack and required for the solver */
-    int nlev_; 
-
     /** This counts how many rhs are solved while the last precond call */
     int precondAge_;
     

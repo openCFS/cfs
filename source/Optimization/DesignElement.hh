@@ -64,12 +64,80 @@ private:
 
 };
 
+/** This class is introduced as a lightweight basic subset of the DesignElement
+ * it does not yet correspond to a finite element
+ * it is merely a class used for an optimizable variable
+ * only with basic properties as designvalue, bounds, derivatives
+ * no filtering or alike at all */
+class BaseDesignElement
+{
+public:
+  BaseDesignElement();
 
-/** This is the base design element, storing all information related to
+  /** Allows to set the design element. */
+  void SetDesign(double value) { this->design = value; }
+
+  /** Return the design value */
+  double GetDesign() const { return(this->design); }
+
+  /** Allows to set the gradient of the cost function for this element. */
+  void SetObjectiveGradient(double value) { this->cost_gradient = value; }
+
+  /** Return the gradient value */
+  double GetObjectiveGradient() const { return(this->cost_gradient); }
+
+  /** Set the gradient of the constraint (or cost function) for this element.
+   * @param condition contains a unique index! if null fall back to SetObjectiveGradient */
+  void SetConstraintGradient(const Condition* condition, double value);
+
+  /** @see SetContraintGradient
+   * however if used on the objective function do not set but add the value */
+  void SetConstraintGradientOrAddObjectiveGradient(const Condition* condition, double value);
+
+  /** @see SetConstraintGradient() */
+  double GetConstraintGradient(const Condition* condition) const;
+  
+  /**  Gets the lower bound of the desing variable -
+   * up to now this are defaults by type */
+  double GetLowerBound() const { return lower_; }
+
+  /** The upper bound of the desing variable for the optimizer */
+  double GetUpperBound() const { return upper_; }
+
+  /** Set the lower bound of the design variable */
+  void SetLowerBound(const double v) { lower_ = v; }
+
+  /** Set the upper bound of the design variable */
+  void SetUpperBound(const double v) { upper_ = v; }
+
+  /** adjusts length of the constraintGradientVector possibly not known during creation */
+  void PostInit(int constraints);
+
+protected:
+  /** The scalar value. Public access only via getter to handle filtering. */
+  double design;
+
+  /** <p>The gradient of the constraint function w.r.t. this element of the design space.
+   * Every constraint contains an unique index attribute (which is the order in the xml file)
+   * only for the purpose to index this vector.</p>
+   * <p>Therefor this vector has to be initalized on runtime</p> */
+  StdVector<double> constraintGradient;
+
+  /** The gradient of the cost function w.r.t. this element of the design space */
+  double cost_gradient;
+
+  /** The lower bound of this design variable. Redundant but such faster than look it up */
+  double lower_;
+
+  double upper_;
+};
+
+
+/** This is the base design element, storing all information related to 
  * elements. For ersatz material this is a 1:1 relation to finite elements.
  * Method specific information (SIMP, Level-Set, FreeMat, ...) is in add-ons. */
-class DesignElement
-{
+class DesignElement : public BaseDesignElement
+{     
 public:
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
@@ -96,7 +164,7 @@ public:
 
   /** The type of this design element, influences the Get*Bound() methods.
    * By definition the design elements are stored in the ordering of the type!! */
-  typedef enum { NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU} Type;
+  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0, POLARIZATION = 1, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO, GMODUL} Type;
 
   /** types for GetFilteredValue() */
   typedef enum { DESIGN, DESIGN_COST_GRADIENT, COST_GRADIENT, CONSTRAINT_GRADIENT, WEIGHT, OBJECTIVE, NUM_NEIGHBOURS,
@@ -110,10 +178,6 @@ public:
      * COST_GRADIENT/MECH_MECH ... as ErsatzMaterial::CalcU1KU2() Parameters. QUAD is calcMode
      * or it does the very special purpose symmetry for the ValueSpecifier */
     typedef enum { NONE, SYMMETRY, FINITE_DIFF_COST_GRADIENT, ERROR_COST_GRADIENT, MECH_MECH, ELEC_ELEC, ELEC_ELEC_QUAD, ELEC_MECH, MECH_ELEC } Detail;
-
-
-    /** Allows to set the design element. Does it PLAIN */
-    void SetDesign(double value) { this->design = value; }
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -132,10 +196,7 @@ public:
 
     /** internal helper to get the value by type */
     double GetValue(ValueSpecifier valueSpecifier) const;
-
-    /** Allows to set the gradient of the cost element. Does it PLAIN */
-    void SetObjectiveGradient(double value) { this->cost_gradient = value; }
-
+    
     /** Gets the gradient of the cost function w.r.t. the design element.
      * <p>Note, that in the SMART case, the filtering is done with a multiplication by the desing value!
      * In other words, speaking of GetValue():
@@ -145,45 +206,19 @@ public:
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
     double GetObjectiveGradient(Access access) const;
 
-    /** @param condition contains a unique index! */
-    void SetConstraintGradient(const Condition* condition, double value);
-
-    /** @see SetConstraintGradient() */
-    double GetConstraintGradient(const Condition* condition) const;
-
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
 
     Type GetType() const { return type_; }
-
-    /**  Gets the lower bound of the desing variable -
-     * up to now this are defaults by type */
-    double GetLowerBound() const { return lower_; }
-
-    /** The upper bound of the desing variable for the optimizer */
-    double GetUpperBound() const { return upper_; }
-
-    /** Set the lower bound of the design variable */
-    void SetLowerBound(const double v) { lower_ = v; }
-
-    /** Set the upper bound of the design variable */
-    void SetUpperBound(const double v) { upper_ = v; }
-
-    /** Writes key values as attributes */
+    
+    /** Write key values as attributes */
     void ToInfo(InfoNode* in) const;
 
     std::string ToString() { return ToString(this); }
 
     /** makes a short dump, handles NULL */
     static std::string ToString(DesignElement* de);
-
-
-    /** <p>The gradient of the constraint function w.r.t. this element of the design space.
-     * Every constraint contains an unique index attribute (which is the order in the xml file)
-     * only for the purpose to index this vector.</p>
-     * <p>Therefor this vector has to be initalized on runtime</p> */
-    StdVector<double> constraintGradient;
-
+    
     /** to make the class polymorphic and we can dynamic_cast<> it */
     /** Pointer to the element of the region, paramter for integration, ... */
     Elem*  elem;
@@ -228,19 +263,8 @@ private:
   void Init();
 
   /** returns the non-scalar values */
-  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;
-
-  /** The scalar value. Public access only via getter to handle filtering. */
-  double design;
-
-  /** The gradient of the cost function w.r.t. this element of the design space */
-  double cost_gradient;
-
-  /** The lower bound of this design variable. Redundant but such faster than look it up */
-  double lower_;
-
-  double upper_;
-
+  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;  
+  
   /** the barycenter of this element only set on request. */
   Point* location_;
 

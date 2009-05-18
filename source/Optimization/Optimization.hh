@@ -9,7 +9,6 @@
 #include "Optimization/DesignElement.hh"
 #include "Optimization/Condition.hh"
 
-
 namespace CoupledField
 {
    class Elem;
@@ -20,6 +19,7 @@ namespace CoupledField
    class BaseOptimizer;
    class SinglePDE;
    class Excitation;
+   class LinearFormContext;
 
   /** This is a general optimization object. The optimiziation loop is around
    *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
@@ -51,8 +51,9 @@ namespace CoupledField
 
          /** Known types of cost functions */
          typedef enum { COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
-                        OUTPUT,                    /*!< (u,l) maximize solution where vector l is not 0 */
+                        OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
                         DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
+                        ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 harmonic */
                         CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
                         GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
                         ELEC_ENERGY,                /*!< p^T K_pp p or p^T K_pp p^* */ 
@@ -122,6 +123,9 @@ namespace CoupledField
              bool FactorOmegaOmega() {
                return omega_omega_;
              }
+             
+             /** Tychonoff regularization parameter */
+             const double TychonoffParameter(){ return tychonoff_; }
 
            private:
 
@@ -132,6 +136,8 @@ namespace CoupledField
              bool omega_omega_;
 
              bool harmonic_;
+             
+             double tychonoff_;
          };
 
          /** The cost function */
@@ -336,9 +342,15 @@ namespace CoupledField
          * the ersatz material ansatz */
         DesignSpace* design;
 
-        /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
-         * writes this string to logFile_ a the first execution */
-        std::string logFileHeader;
+         /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
+          * writes this string to logFile_ a the first execution */
+          std::string logFileHeader;
+          
+          /** if set write the design to the logfile */
+          bool logDesign;
+          
+          /** if set write the gradient of the design to logfile */
+          bool logDesignGradient;
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
@@ -365,6 +377,10 @@ namespace CoupledField
         BaseOptimizer* baseOptimizer_;
   };
 
+  typedef LoadBc TrackingBc;
+
+  typedef LoadList TrackingList;
+
   /** For multiple loads (compliance or multiple frequency optimization) we use
    * the summarized term multiple excitations. This object encapsulates the such a excitation.
    * This excitations are weighted.  */
@@ -388,12 +404,34 @@ namespace CoupledField
     /** Gets the current omege =  2 * pi * f */
     double GetOmega();
 
+    /** @return omega^2 */
+    double GetOmegaOmega();
+    
+    /** read the tracking node list from XML */
+    void ReadTrackings(ParamNode* ts);
+    
+    /** read the loads from XML */
+    void ReadLoads(ParamNode* ls);
+    
+    /** return pointer to linForms, used by Shape-Optimization */
+    std::set<LinearFormContext*>* GetLinForms() { return &linForms; }
+
     /** the index of this excitation in the excitations array. If -1 something went wront */
     int index;
 
-    /** For static/monoharmonic optimization with different load-cases.
-     * NULL if not applicable. */
-    shared_ptr<LoadBc> load;
+    /** For static/monoharmonic optimization with different load-cases. Now allowing also multiple loads in one case.
+     * empty and apply_linForms=false if not applicable */
+    LoadList loads;
+    
+    /** For static optimization with different pressure or regionLoads */
+    std::set<LinearFormContext*> linForms;
+    
+    /** if linForms are to be applied 
+     * set true in multiple load/pressure/regionLoad per load-case or tracking */
+    bool apply_linForms;
+    
+    /** Different possible trackings for tracking objective */
+    TrackingList trackings;
 
     /** This is a link to the Frequency description from the harmonic driver.
      * It is used for calling the HarmonicDriver to solve the problems */
@@ -415,8 +453,6 @@ namespace CoupledField
     /** Here we might store the "original" (@see objective) gradient for analysis/output */
     StdVector<double> cost_gradient;
   };
-
-
 
 } // namespace
 

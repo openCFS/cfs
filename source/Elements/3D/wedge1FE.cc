@@ -26,6 +26,8 @@ namespace CoupledField
 
   Wedge1FE::~Wedge1FE()
   {
+    if(ShFnc2DerivAtIp_) delete[] ShFnc2DerivAtIp_;
+    if(ShFnc2AtIp_)      delete[] ShFnc2AtIp_;
   }
 
   void Wedge1FE::Init()
@@ -73,7 +75,7 @@ namespace CoupledField
 
   }
   
-  void Wedge1FE :: SetEdgeIndices() {
+  void Wedge1FE::SetEdgeIndices() {
     edgeIndices_ = new StdVector<UInt>[NumEdges_];
     for (UInt i=0; i<NumEdges_; i++) {
       edgeIndices_[i].Resize(2);
@@ -138,8 +140,7 @@ namespace CoupledField
   }
 
 
-  void Wedge1FE::
-  CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
+  void Wedge1FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
                          const Vector<Double> & LCoord,
                          const Elem*, UInt dof,
                          AnsatzFct::FctEntityType fctEntityType )
@@ -175,7 +176,7 @@ namespace CoupledField
   }
 
   // see Ph.D. Sabine Zagelmayr
-  void Wedge1FE :: CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
+  void Wedge1FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape, 
                                     const Vector<Double> & LCoord, 
                                     const Matrix<Double> & cornernodes,
                                     const Elem* elem)
@@ -227,7 +228,7 @@ namespace CoupledField
 
 
   // calculated the Nedelec shape function in an arbitrary point
-  void Wedge1FE :: GetEdgeGlobalDerivShapeFnc(StdVector< Matrix<Double> > & shapeDeriv, 
+  void Wedge1FE::GetEdgeGlobalDerivShapeFnc(StdVector< Matrix<Double> > & shapeDeriv, 
                                               const Vector<Double> & lCoord,
                                               const Matrix<Double> & cornerCoords,
                                               const Elem* elem)
@@ -293,7 +294,7 @@ namespace CoupledField
   }
 
 
-  void Wedge1FE :: GetGlobDerivShFnc2(Matrix<Double> & Deriv, 
+  void Wedge1FE::GetGlobDerivShFnc2(Matrix<Double> & Deriv, 
                                       const Vector<Double> & LCoord,
                                       const Matrix<Double> & CornerCoords,
                                       const Elem * elem, 
@@ -308,7 +309,7 @@ namespace CoupledField
   }
 
 
-  void Wedge1FE :: SetShapeFnc2AtIp()
+  void Wedge1FE::SetShapeFnc2AtIp()
   {
 
     if (!ShFnc2AtIp_) {
@@ -325,7 +326,7 @@ namespace CoupledField
 
   }
 
-  void Wedge1FE :: CalcShapeFnc2(Vector<Double> & Shape, 
+  void Wedge1FE::CalcShapeFnc2(Vector<Double> & Shape, 
                                  const Vector<Double> & LCoord)
   {
 
@@ -342,7 +343,7 @@ namespace CoupledField
   }
 
 
-  void Wedge1FE :: SetShapeFnc2DerivAtIp()
+  void Wedge1FE::SetShapeFnc2DerivAtIp()
   {
 
     if( !ShFnc2DerivAtIp_) {
@@ -358,7 +359,7 @@ namespace CoupledField
                                NULL, 1);
   }
 
-  void Wedge1FE :: CalcLocalDerivShapeFnc2( Matrix<Double> & LDeriv, 
+  void Wedge1FE::CalcLocalDerivShapeFnc2( Matrix<Double> & LDeriv, 
                                             const Vector<Double> & LCoord,
                                             const Elem*, UInt dof)
   {

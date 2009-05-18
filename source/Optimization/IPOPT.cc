@@ -107,7 +107,7 @@ void IPOPT::SolveProblem()
 {
   ApplicationReturnStatus status = app->OptimizeTNLP(this);
 
-  InfoNode* in = optimization->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
+  InfoNode* in = optimization_->optInfoNode->Get(InfoNode::SUMMARY)->Get("break");
   
   if (status == Solve_Succeeded) {
     // Retrieve some statistics about the solve

@@ -23,6 +23,7 @@ namespace CoupledField {
   BaseEigenSolver* GenerateEigenSolverObject( BaseMatrix &mat, 
                                               EigenSolverType solver,
                                               ParamNode* xml,
+                                              InfoNode*  eigenInfo,
                                               OLAS_Params *params, 
                                               OLAS_Report *report ) {
     
@@ -36,7 +37,7 @@ namespace CoupledField {
 
 #ifdef USE_ARPACK
     case ARPACK:
-      retSolver = new ArpackEigenSolver( xml, params, report );
+      retSolver = new ArpackEigenSolver( xml, eigenInfo, params, report );
       (*cla) << " GenerateEigenSolver: Generated ARPACK Eigensolver"
              << std::endl;
       break;

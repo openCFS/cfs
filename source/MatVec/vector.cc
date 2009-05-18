@@ -233,6 +233,25 @@ namespace CoupledField {
     //    return 0;
   }
 
+  template <typename T>
+  T Vector<T>::Inner(const SingleVector &vec) const 
+  {
+    PROFILE( "Vector::Inner", size_ * 2 * BlockSize<T>::size );
+
+    T sum = 0;
+    
+    TRY_CAST {
+      CONSTREFCAST( vec, Vector<T>, secVec );
+
+      for ( UInt i = 0; i < size_; i++ ) {  
+        sum += OpType<T>::dotProduct( data_[i], secVec[i] );
+      }
+    } CATCH_CAST;
+
+    return sum;
+  }
+  
+  
   /*
   template <typename T>
   void Vector<T>::Inner(const SingleVector& vec,Double& s) const {

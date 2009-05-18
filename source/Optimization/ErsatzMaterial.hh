@@ -94,17 +94,13 @@ public:
   BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
   
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
-  typedef enum { SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, NO_METHOD } Method;
-
+  typedef enum { SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, NO_METHOD, SHAPE_OPT, SHAPE_PARAM_MAT} Method;
+  
   static Enum<Method> method;
 
   /** Here we have the set of excitations. Only relevant for the mulitple excitations
    * case (multiple loads or frequencies) */
   StdVector<Excitation> excitations;
-
-  typedef LoadBc TrackingBc;
-
-  typedef LoadList TrackingList;
 
   /** The region to optimize */
   StdVector<RegionIdType> regionIds;
@@ -121,7 +117,7 @@ protected:
 
     ~Solution();
 
-    typedef enum { ELEMENT_VECTORS, RAW_VECTOR, RHS_VECTOR } StorageType;
+    typedef enum { ELEMENT_VECTORS, RAW_VECTOR, RHS_VECTOR, GRIDELEM_VECTORS } StorageType;
 
     /** Copies the solution for the pde in our own storage.
      * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
@@ -151,12 +147,21 @@ protected:
 
     /** Helper method */
     SingleVector* GetVector(StorageType st, Application app);
+    
+    Vector<double>& GetRealVector(StorageType st, Application app);
+    Vector<std::complex<double> >& GetComplexVector(StorageType st, Application app);
+    
     Vector<std::complex<double> >* GetComplexPointer(StorageType st, Application app);
     Vector<double>*                GetRealPointer(StorageType st, Application app);
 
     /** This is an element wise storage of the solution
      * the Application shall be MECH or ELEC */
     std::map<Application, StdVector<SingleVector* > > elem;
+
+    /** This is an element wise storage of the solution
+     * considering all elements from the grid instead of all designelements only
+     * needed by shape optimization */
+    std::map<Application, StdVector<SingleVector* > > gridelem;
 
     /** This is the algsys solution vector */
     std::map<Application, SingleVector* > raw;
@@ -231,6 +236,7 @@ protected:
   
   /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
    * This is controlled cia CalcMode. 
+
    *
    * When adjoint vector u1/l is not calculated with a negative rhs, one
    * can put in the minus sign as an explicit factor.
@@ -302,14 +308,32 @@ protected:
    * but does not include the weighting. Note that CalcObjectiveGradient uses
    * Excitation::GetWeightedFactor() */
   virtual double CalcObjective(Excitation& excite);
+
+
+  /** calculates the integral over a design variable (note that volume is a special case of this (with all standard values) @see CalcVolume
+   * regularization is using this usually with normalized = true, scale = true, square = true, factor = "the regularization parameter"
+   * @param dtype The design variable to integrate over, use TENSOR_TRACE for tensor trace or DEFAULT for single design
+   * @param derivative calculate the derivative instead of the integral
+   * @param constraint if set, calculate as given constraint, if null as objective. this determines where the gradient is stored
+   * @param normalized see CalcVolume
+   * @param scale calculate the integral over the scaled design variable (<design scale="true">), i.e. the variable as in the optimizer
+   * @param square calculate the integral over the square of the DesignVariable
+   * @param factor incorporate a factor
+   */
+  virtual double IntegrateDesignVariable(DesignElement::Type dtype, bool derivative, Condition* constraint, bool normalized = true, bool scale = false, bool square = false, double factor = 1.0);
+
   
   /** Handles the Volume constraint. Has a constraint and constraint derivative mode
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
    * @param constraint if set, calculate as given constraint, if null calculate as objective
    * @param grad_out if derivative is set and grad_out is not null it is set.
-   * @return invalid in derivative case*/
-  double CalcVolume(bool derivative, Condition* constraint);
+   * @param normalized if set use normalized "volume" i.e. sum(design * area) / sum(area) for each element, else only sum(design * area)
+   * @return invalid in derivative case*/ 
+  virtual double CalcVolume(bool derivative, Condition* constraint, bool normalized = true);
+  
+  /** Calculates value / derivative of tychonoff regularization (only used if <costFunction tychonoff="**"> else does nothing and returns 0.0 */
+  virtual double CalcRegularization(bool derivative);
 
   /** Handles the Compliance constraint/objective. Has a objective, objective derivative,
    * constraint and constraint derivative mode
@@ -320,7 +344,7 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
-  double CalcCompliance(Excitation& excite, bool derivative, Condition* constraint);
+  virtual double CalcCompliance(Excitation& excite, bool derivative, Condition* constraint);
 
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite);
@@ -329,14 +353,18 @@ protected:
   template <class T>
   double CalcOutputObjective(Excitation& excite);
 
-  /** Handles the Tracking constraint/objective. Has a objective, objective derivative,
+  /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
    * constraint and constraint derivative mode
+   * @param excite  the excitation used 
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set.
    * @param constraint if set calculate as given constraint, if null calculate as objective
-   * @param grad_out if derivative is set and grad_out is not null it is set.
+   * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  double CalcTracking(bool derivative, Condition* constraint);
+  virtual double CalcTracking(Excitation& excite, bool derivative, Condition* constraint, bool solveproblem = true);
+
+  /** does the substep of solving K z = Proj(u - u0) for z */
+  void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
 
   /** This vector is an alternative access to the mech and elec pointers.
    * mech is guaranteed to be index 0 and elec would be 1.
@@ -363,11 +391,10 @@ protected:
   Assemble* assemble_;
 
 
-  /** Here we store the solution of the tracking subproblem. */
+  /** Here we store the solution of the tracking subproblem. 
+   * (This subproblem is solved for gradient calculation.)
+   * (It is not saved per excitation but overwritten with every excitation.) */
   Solution* tracking_;
-
-  /**  Here we store all tracking nodelists. */
-  TrackingList tracks_;
 
   /** whether we can assume a regular grid or not
    * note, that only volume, compliance and tracking objective/constraints are working with non-regular grids */

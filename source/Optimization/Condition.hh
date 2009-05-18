@@ -23,7 +23,7 @@ namespace CoupledField
        Condition(ParamNode* pn, int index);
      
        /** Note the difference to the Type! See Name as equivalent of Kind! */
-       typedef enum { VOLUME = 0, GREYNESS = 1, GAUSS_GREYNESS = 2, COMPLIANCE = 3, TRACKING = 4} Name;
+       typedef enum { VOLUME = 0, GREYNESS = 1, GAUSS_GREYNESS = 2, COMPLIANCE = 3, TRACKING = 4, REALVOLUME = 5} Name;
 
        /** Genertal constraint types */             
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Type;

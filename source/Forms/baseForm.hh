@@ -103,6 +103,11 @@ namespace CoupledField
     //! Query if bilinearform uses updated lagrangian formulation
     bool IsCoordUpdate() { return coordUpdate_; }
 
+    //! Set whether to use Updated Coordinates (ShapeOptimization does this)
+    void SetUseCoordUpdate(bool coordUpdate){
+      coordUpdate_ = coordUpdate;
+    }
+
     //! Query if resulting element matrix is symmetric
     bool IsSymmetric() { return isSymmetric_; }
     

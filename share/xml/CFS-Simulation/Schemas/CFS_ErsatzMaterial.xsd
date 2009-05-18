@@ -33,6 +33,8 @@
     <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in 
          the ersatz material file -->
     <xsd:attribute name="set" use="required" type="xsd:token" />
+    <!-- ignores the element numbers, works only for a single region! -->
+    <xsd:attribute name="ignore_element_numbers" use="optional" type="xsd:boolean" default="false"/>
   </xsd:complexType>
 </xsd:schema>
 

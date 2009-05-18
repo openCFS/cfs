@@ -54,6 +54,9 @@ namespace CoupledField {
     void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
 		       BaseFE* elem, Matrix<Double> &ptCoord );
 
+    //! does the reordering that is done in calculation of the B matrix, this is needed by Shape Derivative
+    void ReorderBLikeMatrix( Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord );
+
 
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }

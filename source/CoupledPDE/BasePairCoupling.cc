@@ -97,14 +97,12 @@ namespace CoupledField {
 
       if(regionList.GetSize() > 0) 
       {
-        InfoNode* list = in->Get("regions");
-        
         for( UInt i = 0; i < regionList.GetSize(); i++ ) 
         {
           std::string regionName = regionList[i]->Get("name")->AsString(); 
           RegionIdType regionId = ptGrid_->RegionNameToId( regionName ); 
 
-          list->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
+          in->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
 
           subdoms_.Push_back( regionId );
           entityLists_.Push_back( ptGrid_->

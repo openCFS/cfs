@@ -73,34 +73,20 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
   }
 }
 
-// returns B - matrix for BDB
-void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-    Matrix<Double> &ptCoord ) {
+void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, Matrix<Double>& ptCoord){
 
-
-  const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
-  const UInt spaceDim = ptelem->GetDim();
-  const UInt nrDofs   = getNrDofs();
+  const UInt numFncs  = elem->GetNumFncs( ansatzFct1_ );
+  const UInt spaceDim = elem->GetDim();  
+  const UInt nrDofs   = getNrDofs();  
 
   UInt actDim, actNode, j, k;
 
-
-  bMat.Resize(getDimD(), numFncs * nrDofs);
-  bMat.Init();
-
-  // local shape functions derived after global coords
-  // (format: numFncs x spaceDim)
-  Matrix<Double> xiDx;
-  ptelem->SetAnsatzFct( ansatzFct1_ );
-
-  if (isSetIntPoint_)
-    ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
-  else
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+  out.Resize(getDimD(), numFncs * nrDofs);
+  out.Init();
 
   for(actDim=0; actDim < spaceDim; actDim++)
     for(actNode=0; actNode < numFncs; actNode++)
-      bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
+      out[actDim][actNode * spaceDim + actDim] = in[actNode][actDim];
 
   switch(spaceDim)
   {
@@ -110,8 +96,8 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
 
     for (actNode = 0; actNode < numFncs; actNode++)
     {
-      bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-      bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
+      out[spaceDim][actNode * spaceDim + 1] = in[actNode][0];
+      out[spaceDim][actNode * spaceDim]     = in[actNode][1];
     }
 
     if (isaxi_)
@@ -120,15 +106,15 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
       Vector<Double> ShpFncAtIp;
       Vector<Double> CoordAtIP;
 
-      if (isSetIntPoint_)
-        ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
+      if (isSetIntPoint_) 
+        elem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
       else
-        ptelem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
+        elem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
 
       CoordAtIP = ptCoord * ShpFncAtIp;
 
-      for (actNode = 0; actNode < numFncs; actNode++)
-        bMat[idxtheta-1][actNode * spaceDim] =
+      for (actNode = 0; actNode < numFncs; actNode++)          
+        out[idxtheta-1][actNode * spaceDim] =
           ShpFncAtIp[actNode] / CoordAtIP[0];
     }
 
@@ -139,25 +125,42 @@ void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
     UInt actDim=spaceDim;
     for (actNode = 0; actNode < numFncs; actNode++)
     {
-      bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
-      bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+      out[actDim][actNode * spaceDim + 1] = in[actNode][2];
+      out[actDim][actNode * spaceDim + 2] = in[actNode][1];
     }
 
     actDim++;
     for (actNode = 0; actNode < numFncs; actNode++)
     {
-      bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
-      bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+      out[actDim][actNode * spaceDim]     = in[actNode][2];
+      out[actDim][actNode * spaceDim + 2] = in[actNode][0];
     }
 
     actDim++;
     for (actNode = 0; actNode < numFncs; actNode++)
     {
-      bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
-      bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+      out[actDim][actNode * spaceDim]     = in[actNode][1];
+      out[actDim][actNode * spaceDim + 1] = in[actNode][0];
     }
     break;
   }
+}
+
+// returns B - matrix for BDB
+void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
+    Matrix<Double> &ptCoord ) {
+
+  // local shape functions derived after global coords
+  // (format: numFncs x spaceDim)
+  Matrix<Double> xiDx;
+  ptelem->SetAnsatzFct( ansatzFct1_ );
+
+  if (isSetIntPoint_) 
+    ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
+  else
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+  
+  ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
   isSetIntPoint_ = false;
 }
@@ -835,9 +838,8 @@ linElastInt::~linElastInt()
 }
 
 void linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
-  if(elem != NULL && domain->HasErsatzMaterialTensor()){ // for stress calculation
-    domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction);
-  }else{
+  // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
+  if(elem == NULL || !domain->HasErsatzMaterialTensor() || !domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction)){
     ptMaterial->GetTensor(t, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
 }

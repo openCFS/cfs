@@ -8,7 +8,6 @@
 #include "General/environment.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-using CoupledField::ParamNode;
 
 //! \file generateEigenSolver.hh
 //! This module handles generation of Eigen solver objects. It is also
@@ -21,6 +20,9 @@ namespace CoupledField {
   class BaseMatrix;
   class OLAS_Params;
   class OLAS_Report;
+  class ParamNode;
+  class InfoNode;
+
 
   //! Generate a basic solver object
 
@@ -36,6 +38,7 @@ namespace CoupledField {
   BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
                                                EigenSolverType solver,
                                                ParamNode * xml,
+                                               InfoNode*   eigenInfo,     
                                                OLAS_Params *params, 
                                                OLAS_Report *report );
 

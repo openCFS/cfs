@@ -59,6 +59,7 @@ namespace CoupledField {
 BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
                                   SolverType solver,
                                   ParamNode* xml,
+                                  InfoNode*  olasInfo,
                                   OLAS_Params *params,
                                   OLAS_Report *report ){
 
@@ -66,10 +67,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   BaseMatrix::EntryType eType = mat.GetEntryType();
   bool eTypeUnknown = false;
 
-  // extract a solver node if there is one
   ParamNode* solver_xml = NULL;
   if(xml != NULL && xml->Has("solver")) solver_xml = xml->Get("solver");
-
+  
   // Branch depending on desired solver
   switch( solver ) {
 
@@ -290,11 +290,11 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       EXCEPTION("Ilupack only works with (S)CRS_Matrix class!");
 
     if(eType == BaseMatrix::DOUBLE) {
-      retSolver = new Ilupack<Double>(solver_xml, report, eType);
+      retSolver = new Ilupack<Double>(solver_xml, olasInfo, eType);
       (*cla) << " GenerateSolver: Generated real ilupack solver" << std::endl;
     }
     if(eType == BaseMatrix::COMPLEX) {
-      retSolver = new Ilupack<Complex>(solver_xml, report, eType);
+      retSolver = new Ilupack<Complex>(solver_xml, olasInfo, eType);
       (*cla) << " GenerateSolver: Generated complex ilupack solver" << std::endl;
     }
 

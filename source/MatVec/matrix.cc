@@ -435,6 +435,28 @@ namespace CoupledField
   
     return true;
   }
+  
+  /** Adds the multiple of another matrix */
+  template<class TYPE>
+  void Matrix<TYPE>::Add(const TYPE factor, const DenseMatrix & mat)
+  {
+    const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || other_mat.size_row_ == 0 || other_mat.size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("matrices do not match");
+#endif
+    
+    for(UInt i = 0; i < size_row_; i++){
+      for(UInt j = 0; j < size_col_; j++){
+        data_[i][j] += factor * other_mat[i][j];
+      }
+    }
+  }
 
   /** Assigns a mutliple of another matrix */
   template<class TYPE>

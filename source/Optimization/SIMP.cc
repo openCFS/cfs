@@ -203,6 +203,7 @@ void SIMP::CalcObjectiveGradient(Excitation& excite)
   case OUTPUT:
   case DYNAMIC_OUTPUT:
   case CONJUGATE_COMPLIANCE:
+  case ABS_DYN_OUTPUT_SQUARED:
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
     CalcU1KU2(tf, adjoint.data[idx]->elem[MECH], MECH, forward.data[idx]->elem[MECH], NULL, weight);

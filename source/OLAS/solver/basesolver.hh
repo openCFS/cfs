@@ -6,18 +6,16 @@
 #define OLAS_BASESOLVER_HH
 
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-
-using CoupledField::ParamNode;
 
 namespace CoupledField {
-
 
   class BasePrecond;
   class BaseMatrix;
   class BaseVector;
   class OLAS_Params;
   class OLAS_Report;
+  class ParamNode;
+  class InfoNode;
 
   // =========================================================================
   // BASE SOLVER
@@ -31,6 +29,8 @@ namespace CoupledField {
 
     //! Default Constructor
     BaseSolver() {
+      xml_ = NULL;
+      solverInfo_ = NULL;
     }
 
     //! Default Destructor
@@ -70,7 +70,11 @@ namespace CoupledField {
 
     /** This is the description of the solver part in XML - if given!! 
      * Might easily be NULL!! */
-    ParamNode* xml_; 
+    ParamNode* xml_;
+    
+    /** This stores the general solver Information (HEADER, SUMMARY) ->
+     * For the current solve steps the pointer is given */
+    InfoNode* solverInfo_;
 
   };
 

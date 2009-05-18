@@ -16,6 +16,44 @@ using namespace CoupledField;
 DECLARE_LOG(del)
 DEFINE_LOG(del, "designElement")
 
+BaseDesignElement::BaseDesignElement() {
+  design          = 0.0;
+  cost_gradient   = -1.0;
+  upper_          = 0.0;
+  lower_          = 0.0;
+}
+
+void BaseDesignElement::SetConstraintGradient(const Condition* condition, double value)
+{
+  if(condition)
+    this->constraintGradient[condition->GetIndex()] = value;
+  else
+    this->cost_gradient = value;
+}
+
+void BaseDesignElement::SetConstraintGradientOrAddObjectiveGradient(const Condition* condition, double value){
+  if(condition){
+    this->constraintGradient[condition->GetIndex()] = value;
+  }else{
+    this->cost_gradient += value;
+  }
+}
+
+double BaseDesignElement::GetConstraintGradient(const Condition* condition) const
+{
+  if(condition)
+    return this->constraintGradient[condition->GetIndex()];
+  else
+    return this->cost_gradient;
+}
+
+void BaseDesignElement::PostInit(int constraints){
+  // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero 
+  constraintGradient.Resize(constraints, 0.0);
+}
+
+
+
 // the static enum
 Enum<DesignElement::Filter>         DesignElement::filter;
 Enum<DesignElement::Type>           DesignElement::type;
@@ -24,12 +62,12 @@ Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
 
 /** The default constructor for StdVector and ghost elements*/
-DesignElement::DesignElement()
+DesignElement::DesignElement() : BaseDesignElement()
 {
   Init();
 }
 
-DesignElement::DesignElement(ParamNode* pn, Elem* elem)
+DesignElement::DesignElement(ParamNode* pn, Elem* elem) : BaseDesignElement()
 {
   Init();
   this->elem      = elem;
@@ -57,16 +95,12 @@ DesignElement::~DesignElement()
 
 void DesignElement::Init()
 {
-  design          = 0.0;
-  cost_gradient   = -1.0;
   simp            = NULL;
   vicinity        = NULL;
   lsn             = NULL;
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
-  upper_          = 0.0;
-  lower_          = 0.0;
 }
 
 void DesignElement::SetLocation(DesignElement* ref, VicinityElement::Neighbour pos1, VicinityElement::Neighbour pos2)
@@ -169,17 +203,6 @@ Point* DesignElement::GetLocation()
   LOG_DBG3(del) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
   return location_;
 }
-
-void DesignElement::SetConstraintGradient(const Condition* condition, double value)
-{
-  this->constraintGradient[condition->GetIndex()] = value;
-}
-
-double DesignElement::GetConstraintGradient(const Condition* condition) const
-{
-  return this->constraintGradient[condition->GetIndex()];
-}
-
 
 void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
 {
@@ -348,6 +371,10 @@ void DesignElement::SetEnums()
    type.Add(POISSON, "poisson");
    type.Add(LAMELAMBDA, "lamelambda");
    type.Add(LAMEMU, "lamemu");
+  type.Add(EMODULISO, "emodul-iso");
+  type.Add(POISSONISO, "poisson-iso");
+  type.Add(GMODUL, "gmodul");
+  type.Add(UNITY, "unity");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");

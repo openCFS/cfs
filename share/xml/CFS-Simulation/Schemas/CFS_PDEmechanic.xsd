@@ -529,12 +529,16 @@
       <xsd:enumeration value="mechVelocity"/>
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
+      <xsd:enumeration value="mechShape"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -550,6 +554,9 @@
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
 

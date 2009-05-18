@@ -25,6 +25,8 @@ namespace CoupledField
 
   Quad1FE::~Quad1FE()
   {
+    if(sDerivAtIp_) delete[] sDerivAtIp_;
+    if(sShFcnAtIp_) delete[] sShFcnAtIp_;
   }
 
   void Quad1FE::Init()
@@ -38,7 +40,6 @@ namespace CoupledField
     SetFaceIndices();
     sDerivAtIp_ = new Vector<Double>[2];
     sShFcnAtIp_ = new Vector<Double>[2];
-
   }
 
   void Quad1FE::SetCornerCoords()
@@ -101,7 +102,7 @@ namespace CoupledField
 
   }
 
-  void Quad1FE :: CalcShapeFnc( Vector<Double> & Shape,
+  void Quad1FE::CalcShapeFnc( Vector<Double> & Shape,
                                 const Vector<Double> & actCoord,
                                 const Elem* elem,
                                 UInt dof, AnsatzFct::FctEntityType type )
@@ -220,7 +221,7 @@ namespace CoupledField
     }
   }
 
-  void Quad1FE :: CalcShapeFncICModes( Vector<Double> & Shape,
+  void Quad1FE::CalcShapeFncICModes( Vector<Double> & Shape,
                                        const Vector<Double> & actCoord,
                                        const Elem* elem,
                                        UInt dof, AnsatzFct::FctEntityType type )

@@ -237,6 +237,8 @@ template<typename T> class ElemStoreSol;
     //! The method computes the value of the inner product between this vector
     //! and the input vector vec. The value is returned in sum.
     void Inner(const SingleVector& vec, T& sum) const;
+    
+    T Inner(const SingleVector& vec) const;
 
     //! Override SingleVector functions
     //    virtual void Inner(const SingleVector& vec,Double& s) const;

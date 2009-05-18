@@ -7,6 +7,8 @@
 #include <fstream>
 #include <complex>
 
+using std::string;
+
 namespace CoupledField 
 {
   
@@ -19,17 +21,17 @@ namespace CoupledField
   InfoNode* info = NULL;
   
   /** set the global names for fields */
-  const std::string InfoNode::HEADER = "header";
-  const std::string InfoNode::PROCESS = "process";
-  const std::string InfoNode::SUMMARY = "summary";
+  const string InfoNode::HEADER = "header";
+  const string InfoNode::PROCESS = "process";
+  const string InfoNode::SUMMARY = "summary";
   
-  const std::string InfoNode::COMMENT = "comment";
-  const std::string InfoNode::WARNING = "warning";
-  const std::string InfoNode::ERROR   = "error";
+  const string InfoNode::COMMENT = "comment";
+  const string InfoNode::WARNING = "warning";
+  const string InfoNode::ERROR   = "error";
   
-  std::map<const std::string, unsigned int> InfoNode::writeCounter_ = std::map<const std::string, unsigned int>();
+  std::map<const string, unsigned int> InfoNode::writeCounter_ = std::map<const string, unsigned int>();
 
-  InfoNode::InfoNode(const std::string& filename, const std::string& preamble) :
+  InfoNode::InfoNode(const string& filename, const string& preamble) :
     parent_(NULL),
     log_(NOT_SET),
     cardinality_(USE_EXISTING), // default
@@ -38,23 +40,46 @@ namespace CoupledField
     preamble_(preamble)
   {
   }
-
-
-  InfoNode* InfoNode::Get(const std::string& name, const std::string& comment,
-                          const std::string& child, const std::string& value, Cardinality card)
+  
+  InfoNode* InfoNode::Get(const string& org_name, const string& comment,
+                          const string& child, const string& value, Cardinality card)
   {
+    InfoNode* ptr = this;
+    string&   name = const_cast<string&>(org_name);
+    
+    if(ContainsTokens(org_name))
+    {
+      // call us recursive!
+      if(child != "" || value != "")
+        EXCEPTION("Name '" << org_name << "' containts delemiter '/', which is not allowed when child and value are given");
+      
+      StdVector<string> tokens = SplitIntoTokens(org_name);
+      
+      for(unsigned int i = 0; i < tokens.GetSize()-1; i++)
+      {
+        name = tokens[i];
+        ptr = ptr->Get(name, USE_EXISTING);
+      }
+      // set name to last element
+      name = tokens[tokens.GetSize()-1];
+      // setting the 'ptr' is done below!
+    }
+    
     if(name == "") EXCEPTION("Invalid name");
     
     // just in case
-    std::string label = ToValidLabel(name);
+    string label = ToValidLabel(name); // might contain slashes
     
     // decide on cardinality
     // search for an existing InfoNode
     InfoNode* node = NULL;
-    if(child == "" || value == "")  {
-      if(Has(label)) node = dynamic_cast<InfoNode*>(ParamNode::Get(label, true)); // don't call this Get recursive!
-    } else {
-      if(Has(label, child, value)) node = dynamic_cast<InfoNode*>(ParamNode::Get(label, child, value, true));
+    if(child == "" || value == "")  
+    {
+      if(ptr->Has(label)) node = dynamic_cast<InfoNode*>(ptr->ParamNode::Get(label, true)); // don't call this Get recursive!
+    } 
+    else 
+    {
+      if(Has(label, child, value)) node = dynamic_cast<InfoNode*>(ptr->ParamNode::Get(label, child, value, true));
     }
     
     switch(card)
@@ -66,7 +91,7 @@ namespace CoupledField
     case REPLACE:
       if(node != NULL)
       {
-        children_.Erase(children_.Find(node));
+        ptr->children_.Erase(ptr->children_.Find(node));
         delete node;
         node = NULL;
       }
@@ -88,8 +113,8 @@ namespace CoupledField
     if(node == NULL || card == APPEND)
     {
       node = new InfoNode();
-      children_.Push_back(node);
-      attribute_ = false;
+      ptr->children_.Push_back(node);
+      ptr->attribute_ = false;
     }
     
     node->parent_ = this;
@@ -124,7 +149,7 @@ namespace CoupledField
     
     // we are NO Attribute
     // if we start a new element or are part of an element is same/same
-    os << std::endl << std::string(depth, ' ') << "<" << name_;
+    os << std::endl << string(depth, ' ') << "<" << name_;
     // go through all children an check if we close with "../>" or </name_>
     // note, that the own XML-element value can also be a attribute
     bool only_attributes = value_ != "" && !IsGoodAttribute(value_) ? false : true;
@@ -164,15 +189,15 @@ namespace CoupledField
       if(value_ != "" && !IsGoodAttribute(value_))
       {
         if(name_ == COMMENT) os << value_;
-        else os << std::endl << std::string(depth + 1, ' ') << "<value>" << GetFormatedValue() << "</value>" << std::endl;
+        else os << std::endl << string(depth + 1, ' ') << "<value>" << GetFormatedValue() << "</value>" << std::endl;
       }
       // do we close in the same line?
-      if(children_.GetSize() != 0) os << std::endl << std::string(depth, ' ');
+      if(children_.GetSize() != 0) os << std::endl << string(depth, ' ');
       os << "</" << name_ << ">";
     }
   }
  
-  void InfoNode::ToFile(const std::string& filename, const std::string& preamble)
+  void InfoNode::ToFile(const string& filename, const string& preamble)
   {
     if(filename != "") filename_ = filename;
     if(preamble != "") preamble_ = preamble;
@@ -189,16 +214,16 @@ namespace CoupledField
   }
   
   
-  bool InfoNode::IsGoodAttribute(const std::string& attr) const
+  bool InfoNode::IsGoodAttribute(const string& attr) const
   {
     if(attr.size() > 30) return false;
-    if(attr.find('\"') != std::string::npos) return false;
+    if(attr.find('\"') != string::npos) return false;
     return true;
   }
   
-  std::string InfoNode::ToValidLabel(const std::string& in) const
+  string InfoNode::ToValidLabel(const string& in) const
   {
-    std::string out = in;
+    string out = in;
     
     
     boost::trim(out);
@@ -208,11 +233,11 @@ namespace CoupledField
     boost::erase_all(out, "\"");
     boost::erase_all(out, "(");
     boost::erase_all(out, ")");
-    
+    // don't touch the slash '/', it is a 'xpath' element
     return out;
   }
   
-  std::string InfoNode::GetFormatedValue() const
+  string InfoNode::GetFormatedValue() const
   {
     if(type_ != REAL && type_ != COMPLEX)
       return value_;
@@ -257,11 +282,11 @@ namespace CoupledField
     } 
   } 
 
-  void InfoNode::SetValue(const std::string& string)
+  void InfoNode::SetValue(const string& value)
   {
-    value_ = string;
+    value_ = value;
     type_ = STRING;
-    attribute_ = IsGoodAttribute(string);
+    attribute_ = IsGoodAttribute(value);
     
     // handle warnings also als console print
     if(name_ == WARNING)
@@ -269,7 +294,7 @@ namespace CoupledField
       std::cerr << fg_magenta << "Warning: /" << fg_reset;
       
       InfoNode* in = parent_; // beyond warning
-      StdVector<std::string> tree;
+      StdVector<string> tree;
       while(in != NULL)
       {
         tree.Push_back(in->name_);
@@ -281,7 +306,7 @@ namespace CoupledField
         if(i > 1) std::cerr << "/";
       }
       
-      std::cerr << ": " << fg_magenta << "\"" << fg_reset << string << fg_magenta << "\"" << fg_reset << std::endl;
+      std::cerr << ": " << fg_magenta << "\"" << fg_reset << value << fg_magenta << "\"" << fg_reset << std::endl;
     }
   }
   
@@ -300,33 +325,33 @@ namespace CoupledField
   
   void InfoNode::SetValue(int param)
   {
-    value_ = boost::lexical_cast<std::string>(param);
+    value_ = boost::lexical_cast<string>(param);
     type_ = INTEGER;
     attribute_ = true;
   }
   
   void InfoNode::SetValue(double param)
   {
-    value_ = boost::lexical_cast<std::string>(param);
+    value_ = boost::lexical_cast<string>(param);
     type_ = REAL;
     attribute_ = true;
   }
   
   void InfoNode::SetValue(const std::complex<double>& param)
   {
-    value_ = boost::lexical_cast<std::string>(param);
+    value_ = boost::lexical_cast<string>(param);
     type_ = COMPLEX;
     attribute_ = true;
   }
   
-  void InfoNode::SetComment(const std::string& string)
+  void InfoNode::SetComment(const string& value)
   {
     // are we alrey a comment ?
     if(name_ == COMMENT) throw Exception("You cannot create a comment info node for a comment");
     
     InfoNode* in = Get(COMMENT);
-    in->SetValue(string);
-    in->attribute_ = IsGoodAttribute(string);
+    in->SetValue(value);
+    in->attribute_ = IsGoodAttribute(value);
   }
   
 }

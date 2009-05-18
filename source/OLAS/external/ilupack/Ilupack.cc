@@ -14,26 +14,26 @@
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
-using namespace CoupledField; 
+using namespace CoupledField;
 
 template<typename T>
-Ilupack<T>::Ilupack(ParamNode* xml, OLAS_Report *myReport, BaseMatrix::EntryType type) 
+Ilupack<T>::Ilupack(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType type)
 {
   // we work with out 
-  xml_       = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
+  xml_ = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
+  solverInfo_ = olasInfo->Get("ilupack");
 
-  myReport_  = myReport;
-
-  if(type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)
-	EXCEPTION("unhandled type " << type);
+  if (type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)EXCEPTION("unhandled type " << type);
   isComplex_ = type == BaseMatrix::COMPLEX;
 
-  LOG_TRACE(ilupack) << "Ilupack(): isComplex=" << isComplex_;
+  LOG_TRACE(ilupack) <<  "Ilupack(): isComplex=" << isComplex_;
 
   // set this to zero to signal the destructor if Setup() was called
   mat_.a = NULL;
@@ -47,97 +47,57 @@ Ilupack<T>::Ilupack(ParamNode* xml, OLAS_Report *myReport, BaseMatrix::EntryType
   dmat_ptr_ = &mat_;
   zmat_ptr_ = reinterpret_cast<Zmat*>(&mat_);
 
-  dparam_ptr_ = &param_;
-  zparam_ptr_ = reinterpret_cast<ZILUPACKparam*>(&param_);
+  dparam_ptr_ = &param;
+  zparam_ptr_ = reinterpret_cast<ZILUPACKparam*>(&param);
 
   dprecond_ptr_ = &precond_;
   zprecond_ptr_ = reinterpret_cast<ZAMGlevelmat*>(&precond_);
 
   // init the enums
   SetEnums();
-
-  // set up the reference to the ilupack permutation functions */
-  SetPermutations();
-
-}
-
-
-
-template<typename T>
-Ilupack<T>::~Ilupack() 
-{
-  LOG_TRACE(ilupack) << "~Ilupack()";
-  ReleaseIlupackMemory();
 }
 
 template<typename T>
-void Ilupack<T>::ReleaseIlupackMemory() 
+Ilupack<T>::~Ilupack()
 {
-  LOG_TRACE2(ilupack) << "ReleaseMemory: mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja; 
-  // call the ilupack delete method only if Setup() which sets mat_ was called
-  if(mat_.a == NULL) return;
-
-  switch(matrix_)
-  {
-  case GNL: 
-    if(isComplex_) ZGNLAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else DGNLAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
-  break;
-
-  case SYM: 
-    if(isComplex_) ZSYMAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else DSYMAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
-  break;
-
-  case PD:  
-    if(isComplex_) ZHPDAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else DSPDAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
-  break;
-
-  case HER: 
-    if(isComplex_) ZHERAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-  break;
-
-  default: EXCEPTION("invalid matrix type " << matrix_);          
-  }   
-
-  if(mat_.a != NULL)  { delete[] mat_.a; mat_.a = NULL; }
-  if(mat_.ia != NULL) { delete[] mat_.ia; mat_.ia = NULL; }
-  if(mat_.ja != NULL) { delete[] mat_.ja; mat_.ja = NULL; }
-}    
+  LOG_TRACE(ilupack) <<  "~Ilupack()";
+  IlupackAMGDelete();
+}
 
 template<typename T>
 void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
-{     
-  const SparseOLASMatrix<T>& som = dynamic_cast<const SparseOLASMatrix<T>&>(base_mat);
+{
+  const SparseOLASMatrix<T>& som =  dynamic_cast<const SparseOLASMatrix<T>&> (base_mat);
 
-  LOG_TRACE2(ilupack) << "SetMatrix: SPARSE_SYM="
-                      << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
-                      << " mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;  
-  
+  LOG_TRACE2(ilupack) <<  "SetMatrix: SPARSE_SYM="  << (som.GetStorageType() == BaseMatrix::SPARSE_SYM)
+                      << " mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;
+
   // delete the old values before we allocate the new space - if could be faster! 
-  if(mat_.a != NULL)  { delete[] mat_.a; mat_.a = NULL; }
-  if(mat_.ia != NULL) { delete[] mat_.ia; mat_.ia = NULL; }
-  if(mat_.ja != NULL) { delete[] mat_.ja; mat_.ja = NULL; }
+  if(mat_.a != NULL)
+  { delete[] mat_.a; mat_.a = NULL;}
+  if(mat_.ia != NULL)
+  { delete[] mat_.ia; mat_.ia = NULL;}
+  if(mat_.ja != NULL)
+  { delete[] mat_.ja; mat_.ja = NULL;}
 
   unsigned int elements = 0;
 
   // pointers will point to the first actual element    
   const UInt* row_ptr = NULL;
   const UInt* col_ptr = NULL;
-  const T*   val_ptr = NULL;
+  const T* val_ptr = NULL;
 
-  if(som.GetStorageType() == BaseMatrix::SPARSE_SYM) 
+  if(som.GetStorageType() == BaseMatrix::SPARSE_SYM)
   {
-    const SCRS_Matrix<T>& scrs = dynamic_cast<const SCRS_Matrix<T>&>(som);        
+    const SCRS_Matrix<T>& scrs = dynamic_cast<const SCRS_Matrix<T>&>(som);
     // Nnz is the total number = Diagonal + 2 * triagonals. But one is skipped!
     elements= scrs.GetNnz() - (UInt) (0.5 * (double) (scrs.GetNnz() - scrs.GetNumRows()));
 
     row_ptr = scrs.GetRowPointer();
     col_ptr = scrs.GetColPointer();
     val_ptr = scrs.GetDataPointer();
-  }   
-  else 
+  }
+  else
   {
     const CRS_Matrix<T>& crs = dynamic_cast<const CRS_Matrix<T>&>(som);
 
@@ -146,14 +106,14 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
     row_ptr = crs.GetRowPointer();
     col_ptr = crs.GetColPointer();
     val_ptr = crs.GetDataPointer();
-  }   
+  }
 
   // allocate and copy the stuff - note, that we are 0-based in OLAS
   // but 1-based in Ilupack!
 
   // rows are simple but we have to handle the tailing element
   mat_.ia = new int[som.GetNumRows() + 1]; // one plus due to CRS tail
-  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat_.ia);  
+  std::copy(row_ptr, row_ptr + som.GetNumRows() + 1, mat_.ia);
 
   mat_.ja = new int[elements];
   std::copy(col_ptr, col_ptr + elements, mat_.ja);
@@ -166,650 +126,253 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   // no adjust to 1-based!
   UInt numRows = som.GetNumRows();
   for(UInt i = 0; i < numRows+1; i++)
-    mat_.ia[i] += 1;
-    
+  mat_.ia[i] += 1;
+
   for(UInt i = 0; i < elements; i++)
-      mat_.ja[i] += 1;
-  
+  mat_.ja[i] += 1;
+
   mat_.nr = som.GetNumRows();
   mat_.nc = som.GetNumCols();
-  
+  mat_.nnz = elements;
+
   LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
-                      << ".ia=" << elements << "; .nr=" << mat_.nr << " .nc=" << mat_.nc;
+  << ".ia=" << elements << "; .nr=" << mat_.nr << " .nc=" << mat_.nc;
+  LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat_.nr + 1, mat_.ia);
+  LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat_.ja);
+  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat_.a);
 }
 
-
 template<typename T>
-void Ilupack<T>::Setup(BaseMatrix &sysMat) 
+void Ilupack<T>::Setup(BaseMatrix &sysMat)
 {
+  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("setup", InfoNode::APPEND);
+  
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
   // it is optional given in the xml file.
 
   // GNL, SYM, PD, HER, ....
   DetermineMatrixType(sysMat);
 
-  LOG_TRACE2(ilupack) << "Setup: matrix -> " << matrix.ToString(matrix_);
-  
+  LOG_TRACE2(ilupack) <<  "Setup: matrix -> " << matrix.ToString(matrix_);
+
   // in case we already run release memory - it's save if first run
-  ReleaseIlupackMemory(); 
+  IlupackAMGDelete();
 
   // set the ilupack matrix mat_ from the olas matrix - complex can be casted to double
   SetMatrix(sysMat);
 
-  // gain and modify the default settings, does logging uses mat_ and sets param_ 
+  // gain and modify the default settings, does logging uses mat_ and sets param 
   InitParameters();
 
-  // factorize
-  nlev_ = 0; // initialized in the example, but why?
+  // factorize the iLU preconditioner
+  std::stringstream ss;
+  ss << "Error facorizing Ilupack: ";
 
-  // result
-  int r = 1;
+  int ierr = IlupackAMGFactor();
 
-  switch(matrix_)
+  switch (ierr)
   {
-  case GNL: 
-    if(isComplex_) r = ZGNLAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else r = DGNLAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
-  break;                             
+    case 0: 
+    // perfect:
+    break;
 
-  case SYM: 
-    if(isComplex_) r = ZSYMAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else r = DSYMAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_); 
-  break;
+    case -1: 
+    ss << "Input matrix may be wrong at level " << precond_.nlev;
+    break;
 
-  case PD : 
-    if(isComplex_) r = ZHPDAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-              else r = DSPDAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_); 
-  break;
+    case -2:
+    ss << "Out of memory. The matrix L overflows the array alu at level " << precond_.nlev;
+    break;
 
-  case HER: 
-    if(isComplex_) r = ZHERAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
-  break;
-  }              
+    case -3:
+    ss << "Out of memory. The matrix U overflows the array alu at level " << precond_.nlev;
+    break;
 
-  if(r != 0){ 
-    (*cla) << " error factorizing the ilupack preconditioner " << PrecondError(r, param_, nlev_) << std::endl;
-    EXCEPTION("ilupack preconditioner failed " << PrecondError(r, param_, nlev_) << " level: " << nlev_);    
+    case -4:
+    ss << "Illegal value for lfil at level " << precond_.nlev;
+    break;
+
+    case -5:
+    ss << "Zero row encountered at level " <<  precond_.nlev;
+    break;
+
+    case -6:
+    ss << "Zero column encountered at level " <<  precond_.nlev;
+    break;
+
+    case -7:
+    ss << "Buffers are too small";
+
+    default:
+      ss << "Zero pivot encountered at step number " << ierr << " of level " << precond_.nlev;
   }
-  (*cla) << "factorizing got " << r << " " << (r != 0 ? PrecondError(r, param_, nlev_) : " ok ") 
-  << " with " << nlev_ << " levels." << std::endl;
-
+  
+  if(ierr != 0) throw Exception(ss.str());
+ 
+  out->Get("levels")->SetValue(precond_.nlev);
+  CalcFillIn(out);
+  InfoNode* timing = out->Get("timing");
+  timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
+  timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
+  timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
+    
   // reset counter which holds the number of rhs's solved with this precond
   precondAge_ = 0;
-  setupRuns_++;          
-} 
-
+  setupRuns_++;
+}
 
 
 template<typename T>
-void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond,
-    const BaseVector &base_rhs, BaseVector &base_sol, bool recursive_call )
+void Ilupack<T>::Solve(const BaseMatrix &base_mat,
+    const BasePrecond &base_precond, const BaseVector &base_rhs,  BaseVector &base_sol)
 {
+  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
+  
   // the preconditioner sets the ilupack matrix
-  if(mat_.a == NULL) throw Exception("Setup() not called before Solve()");
+  if (mat_.a == NULL)
+    throw Exception("Setup() not called before Solve()");
 
   // we gain the solution pointer
-  T* sol_ptr = dynamic_cast<Vector<T>&>(base_sol).GetPointer();
+  T* sol_ptr = dynamic_cast<Vector<T>&> (base_sol).GetPointer();
 
   // additionally remove the constness of the rhs, ilupack knows no const.
-  T* rhs_ptr = const_cast<T*>(dynamic_cast<const Vector<T>&>(base_rhs).GetPointer());
+  T* rhs_ptr =  const_cast<T*> (dynamic_cast<const Vector<T>&> (base_rhs).GetPointer());
 
-  LOG_TRACE2(ilupack) << "Solve: sol_ptr=" << sol_ptr << " rhs_ptr=" << rhs_ptr;  
-  
-  double *d_sol, *d_rhs;
-  // is a ilupack type
-  doublecomplex *z_sol, *z_rhs;
+  LOG_TRACE2(ilupack) <<  "Solve: sol_ptr=" << sol_ptr << " rhs_ptr=" << rhs_ptr;
 
-  d_sol = isComplex_ ? NULL : reinterpret_cast<double*>(sol_ptr);
-  d_rhs = isComplex_ ? NULL : reinterpret_cast<double*>(rhs_ptr);
-  z_sol = isComplex_ ? reinterpret_cast<doublecomplex*>(sol_ptr) : NULL;
-  z_rhs = isComplex_ ? reinterpret_cast<doublecomplex*>(rhs_ptr) : NULL;
+  std::stringstream ss;
+  ss << "Error solving Ilupack: ";
+  int ierr = IlupackAMGSolver(sol_ptr, rhs_ptr);
 
-  // result
-  int r = 1;
-
-  switch(matrix_)
+  // why did the iterative solver stop?
+  switch (ierr) 
   {
-  case GNL: 
-    if(isComplex_) r = ZGNLAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
-              else r = DGNLAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
-  break;
+    case  0:  // everything is fine
+      break;
 
-  case SYM: 
-    if(isComplex_) r = ZSYMAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
-              else r = DSYMAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
-  break;
+    case -1:  // too many iterations
+      ss << "Number of iteration steps exceeds its limit";
+      break;
 
-  case PD:  
-    if(isComplex_) r = ZHPDAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
-              else r = DSPDAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_sol, d_rhs);
-  break;
+    case -2: 
+      ss << "Not enough work space provided";
+      break;
 
-  case HER: 
-    if(isComplex_) r = ZHERAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_sol, z_rhs);
-  break;
-  }              
+    case -3:  /* not enough work space */
+      ss << "Algorithm breaks down";
+      break;
 
-  if(r != 0) 
-  {
-    (*cla) << " error from ilupack solver: " << SolverError(r) << std::endl;
+    default: 
+      ss << "Solver exited with error code " << ierr;
+  } 
 
-    // try again if this is the first try but the setup() is some solvings ago
-    if(recursive_call || precondAge_ == 0)
-      throw Exception("error from ilupack solver " + SolverError(r)); 
+  // stop if necessary
+  if(ierr != 0) throw Exception(ss.str());
 
-    // try once more 
-    std::cout << " -> call preconditioner and try once more" << std::endl;  
-    (*cla) << " -> call preconditioner and try once more" << std::endl;
-
-    Setup(const_cast<BaseMatrix&>(base_mat));
-
-    Solve(base_mat, base_precond, base_rhs, base_sol, true);
-  }    
-
-  DumpSolverStatus(*cla);
-
+  out->Get("iterations")->SetValue(param.ipar[26]);
+  InfoNode* timing = out->Get("timing");
+  timing->Get("total")->SetValue(ILUPACK_secnds[5]);
+  timing->Get("maxtrix_vector_mult")->SetValue(ILUPACK_secnds[6]);
+  InfoNode* norms = out->Get("norms");
+  norms->Get("target")->SetValue(param.fpar[23]);
+ 
   // solved another rhs with the current preconditioner
   precondAge_++;
 }
 
 
+
 template<typename T>
 void Ilupack<T>::InitParameters()
 {
-  LOG_TRACE2(ilupack) << "InitParameters";
+  LOG_TRACE2(ilupack) <<  "InitParameters";
+
+  // initializes the parameter block with ilupacks default stuff
+  IlupackAMGInit();
   
-  // output to cla or NULL
-  std::ostringstream tmp;
-  std::ostream& out = setupRuns_ == 0 ? *cla : tmp; 
+  // dump the parameter block and overwrite
+  InfoNode* out = solverInfo_->Get(InfoNode::HEADER)->Get("parameters");
 
-  out << std::endl << "Ilupack: Available permutations for initial, regular and final reordering:" << std::endl;
-  DumpPermutations(out);
-
-  // set the permutations
-  GetPermutation(INITIAL, initial_); 
-  GetPermutation(REGULAR, regular_);
-  GetPermutation(FINAL, final_);
-
-  out << " Selected permutations:" << std::endl;
-  out << " initial permutation: " << initial_.description << std::endl;
-  out << " regular permutation: " << regular_.description << std::endl;
-  out << " final   permutation: " << final_.description << std::endl;        
-
-
-  // initializes the parameter block
-  switch(matrix_)
-  {
-  case GNL: 
-    if(isComplex_) ZGNLAMGinit(zmat_ptr_, zparam_ptr_);
-              else DGNLAMGinit(dmat_ptr_, dparam_ptr_);
-  break;
-
-  case SYM: 
-    if(isComplex_) ZSYMAMGinit(zmat_ptr_, zparam_ptr_);
-              else DSYMAMGinit(dmat_ptr_, dparam_ptr_);
-  break;
-
-  case PD:  
-    if(isComplex_) ZHPDAMGinit(zmat_ptr_, zparam_ptr_);
-              else DSPDAMGinit(dmat_ptr_, dparam_ptr_);
-  break;
-
-  case HER: 
-    if(isComplex_) ZHERAMGinit(zmat_ptr_, zparam_ptr_);
-    else throw Exception("ilupack matrix is set to hermitian but not complex");
-  break;
-
-  default: throw Exception("matrix type not implemented");          
-  }              
-
-  // read the default settings. I guess this simply extracts the values from magic indices in [i/f]parm
-  int flag, elbow, max_it, new_int, nrestart = -1;
-  double droptols[2], condest, restol, new_real;
-
-  switch(matrix_)
-  {
-  case GNL: 
-    if(isComplex_) ZGNLAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
-              else DGNLAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it, &nrestart);
-  break;
-
-  case SYM: 
-    if(isComplex_) ZSYMAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-              else DSYMAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-  break;
-
-  case PD:  
-    if(isComplex_) ZHPDAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-              else DSPDAMGgetparams(dparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-  break;
-
-  case HER: 
-    ZHERAMGgetparams(zparam_ptr_, &flag, &elbow, droptols, &condest, &restol, &max_it);
-  break;
-  }              
-
-  out << std::endl << " Ilupack default and overwritten values: " << std::endl
-  << "======================================== " << std::endl;
-  // it is magic stuff taken from the ilupack samples that we need index 1 ??:(
-  out << " drop tolerance          : " << droptols[1];
-  if(xml_ != NULL && xml_->Has("dropTol")) {
-    new_real = xml_->Get("dropTol")->AsDouble();
-    out << (new_real == droptols[1] ? " == " : " -> ") << new_real; 
-    droptols[1] = new_real;
-  }
-
-  out << std::endl << " residual tolerance      : " << restol;
-  if(xml_ != NULL && xml_->Has("residualTol")) {
-    new_real = xml_->Get("residualTol")->AsDouble();
-    out << (new_real == restol ? " == " : " -> ") << new_real; 
-    restol = new_real;
-
-  }
-
-  out << std::endl << " elbow space             : " << elbow;
-  if(xml_!= NULL && xml_->Has("elbowSpace")) {
-    new_int = xml_->Get("elbowSpace")->AsInt();
-    out << " " << (new_int ==  elbow ? " == " : " -> ") << new_int;
-    elbow = new_int;
-  }
-
-  out << std::endl << " condest (bound [L/U]^-1): " << condest;
-  if(xml_ != NULL && xml_->Has("condest")) {
-    new_int = xml_->Get("condest")->AsInt();
-    out << " " << (new_int == condest ? " ==" : "-> ") << new_int;
-    condest = new_int;
-  }
-
-  out << std::endl << " max iterations          : " << max_it;
-  if(xml_ != NULL && xml_->Has("maxIter")) {
-    new_int = xml_->Get("maxIter")->AsInt();
-    out << " " << (new_int == max_it ? " == " : " -> ") << new_int;
-    max_it = new_int;
-  }
-
-  // n restart only for GNL and up to now it cannot be set
-  if(nrestart != -1) out << std::endl << " nrestart                : " << nrestart;
-
-  // the solver is conditionally set!
-  int org_solver = param_.ipar[SOLVER_TYPE];
-  out << std::endl << " solver                  : " << solver.ToString((Solver) org_solver);
-  if(xml_ != NULL && xml_->Has("engine"))
-  {
-    new_int = solver.Parse(xml_->Get("engine")->Get("type"));
-    out << " " << (org_solver == new_int ? " == " : " -> ") << solver.ToString((Solver) new_int);
-    param_.ipar[SOLVER_TYPE] = new_int;
-  }    
-
-  // now the flag stuff 
-  int org_flag = flag;
-  // apply the settings from the xml file
-  ApplyFlagSettings(flag);
-
-  const int size = 26;
-
-  EnumMap::iterator iter;
-  for(iter = flags.map.begin(); iter != flags.map.end(); iter++)
-  {
-    int f = iter->first;
-    bool now = (flag & f) > 0;
-    bool was = (org_flag & f) > 0;
-
-    out << std::endl << " " << iter->second;
-    out.width(size - iter->second.length());
-    out << ": " << (was ? "on" : "off");
-
-    // do we overwrite this setting?
-    if(xml_ != NULL && xml_->Has("flag", "name", iter->second))
-      out << (now == was ? " == " : " -> ") << (now ? "on" : "off");
-  }
-
-  out << std::endl << std::endl;
-
-  // rewrite the updated parameters
-  switch(matrix_)
-  {
-  case GNL: 
-    if(isComplex_) ZGNLAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
-              else DGNLAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it, nrestart);
-    break;
-
-  case SYM: 
-    if(isComplex_) ZSYMAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-              else DSYMAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it); 
-    break;
-
-  case PD:  
-    if(isComplex_) ZHPDAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-              else DSPDAMGsetparams(dmat_ptr_, dparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-    break;
-
-  case HER: 
-    ZHERAMGsetparams(zmat_ptr_, zparam_ptr_, flag, elbow, droptols, condest, restol, max_it);
-    break;
-  }        
-
+  CheckParameter(out, &param.matching, "matching");
+  CheckParameter(out, &param.ordering, "ordering");
+  CheckParameter(out, &param.droptol, "dropTolLU");
+  CheckParameter(out, &param.droptol, "dropTolSchur");
+  CheckParameter(out, &param.condest, "condest");
+  CheckParameter(out, &param.solver, "iterativeSolver/solver");
+  CheckParameter(out, &param.restol, "iterativeSolver/residualTol");
+  CheckParameter(out, &param.maxit, "iterativeSolver/maxIter");
+  CheckParameter(out, &param.elbow, "elbowSpace");
+  CheckParameter(out, &param.amg, "amg");
+  
+  // TODO we currently igonre saddle point structures
+  param.ind = NULL;
+  
+  Ilupack_symmessages();
 }
 
-template<typename T>
-std::string Ilupack<T>::PrecondError(int result, const DILUPACKparam& param, int level)
-{ 
-  std::ostringstream os;
-
-  // the text is more or less a copy & pase from the ilupack samples
-  switch (result)
-  {
-  case  0: os << "No error";
-  break;
-
-  case -1: os << "Input matrix may be wrong. ";
-  os << "(The elimination process has generated a row in L or U whose length is .gt. n";
-  break;                  
-
-  case -2: os << "The matrix L overflows the array alu. Out of memory?";
-  break;
-
-  case -3: os << "The matrix U overflows the array alu. Out of memory?"; 
-  break;
-
-  case -4: os << "Illegal value for lfil"; 
-  break;
-
-  case -5: os << "Zero row encountered"; 
-  break;
-
-  case -6: os << "Zero column encountered."; 
-  break;
-
-  case -7: os << "Buffers too small. Check AMGSetup for nibuff and ndbuff.";
-  os << " Increase buffers to " << param.nibuff << " (integer)";
-  os << " and " << param.ndbuff << " (double)";
-  break;
-
-  default: os << "Zero pivot encountered at step number " << result << ".";
-  }
-  os << " (level=" << level <<")";
-  return os.str();   
-}
-
-template<typename T>
-std::string Ilupack<T>::SolverError(int result)
-{ 
-  std::ostringstream os;
-
-  // the text is more or less a copy & pase from the ilupack samples
-  switch (result)
-  {
-  case  0: os << "No error";
-  break;
-
-  case -1: os << "Number of iteration steps exceeds its limit";
-  break;
-
-  case -2: os << "Not enough work space provided";
-  break;
-
-  case -3: os << "Algorithm breaks down";
-  break;
-
-  default: os << "Solver exited with unspecified error code " << result;
-  }
-
-  return os.str();
-}
 
 template<typename T>
 void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat)
-{ 
+{
   // first determine it manually for some checking
-  if(sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
-    EXCEPTION("Sorry, excpect StdMatrix " << sysMat.GetStructureType()); 
+  if (sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)EXCEPTION("Sorry, excpect StdMatrix " << sysMat.GetStructureType());
 
-  const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
-  BaseMatrix::StorageType mst = stdMat.GetStorageType(); 
-  if(mst != BaseMatrix::SPARSE_SYM && mst != BaseMatrix::SPARSE_NONSYM)
-	EXCEPTION("Sorry, expect sparse matrix " << mst);   
+  const StdMatrix& stdMat = dynamic_cast<const StdMatrix&> (sysMat);
+  BaseMatrix::StorageType mst = stdMat.GetStorageType();
+  if (mst != BaseMatrix::SPARSE_SYM && mst != BaseMatrix::SPARSE_NONSYM)EXCEPTION("Sorry, expect sparse matrix " << mst);
 
-  if(xml_ != NULL && xml_->Has("matrix")) {
+  if (xml_ != NULL && xml_->Has("matrix"))
+  {
     matrix_ = matrix.Parse(xml_->Get("matrix"));
     // plausibility check -- killme: what is with hermitian?
-    if(mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL) 
-      throw Exception("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid " + matrix.ToString(matrix_));
-  } else {
+    if (mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL)
+      throw Exception(
+          "Matrix storrage is unsymmetric, so given ilupack_matrix is invalid "
+              + matrix.ToString(matrix_));
+  }
+  else
+  {
     // ignore PD and HER
     matrix_ = mst == BaseMatrix::SPARSE_SYM ? SYM : GNL;
   }
 
-  if(setupRuns_ == 0) (*cla) << " Use Ilupack matrix type " << matrix.ToString(matrix_) << std::endl;
-}    
-
-
+  if (setupRuns_ == 0)
+    (*cla) << " Use Ilupack matrix type " << matrix.ToString(matrix_)
+        << std::endl;
+}
 
 template<typename T>
 void Ilupack<T>::SetEnums()
 {
-  solver.SetName("Ilupack:Solver");
-  solver.Add(PCG,    "pcg");
-  solver.Add(SBCG,   "sbcg");
-  solver.Add(BCG,    "bcg");
-  solver.Add(SQMR,   "sqmr");
-  solver.Add(BCGSTAB,"bcgstab");
-  solver.Add(TFQMR,  "tfqmr");
-  solver.Add(FOM,    "fom");
-  solver.Add(GMRES,  "gmres");
-  solver.Add(FGMRES, "fgmres");
-  solver.Add(DQGMRES,"dqgmres");
-
   matrix.SetName("Ilupack::Matrix");
   matrix.Add(GNL, "gnl");
   matrix.Add(SYM, "sym");
-  matrix.Add(PD,  "pd");
-  matrix.Add(HER, "her");   
+  matrix.Add(PD, "pd");
+  matrix.Add(HER, "her");
 
-  ordering.SetName("Ilupack::Ordering");
-  ordering.Add(NONE, "null");
-  ordering.Add(ND,"nd");
-  ordering.Add(RCM,"rcm");
-  ordering.Add(AMF,"amf");
-  ordering.Add(AMD,"amd");
-  ordering.Add(MMD,"mmd");
-  ordering.Add(METIS_E,"metisE");
-  ordering.Add(METIS_N,"metisN");
-  ordering.Add(INDSET,"indset");
-  ordering.Add(PP,"pp");
-  ordering.Add(PQ,"pq");
-  ordering.Add(FC,"fc");
-
-  matching.SetName("Ilupack::Matching");
-  matching.Add(PURE, "none");
+  matching.Add(MUMPS, "mumps");
   matching.Add(MC64, "mc64");
-  matching.Add(MWM, "mwm"); 
+  matching.Add(MWM, "schenk_pardiso");
 
   flags.SetName("Ilupack::Flags");
   flags.Add(FL_DROP_INVERSE, "DropInverse");
   flags.Add(FL_NO_SHIFT, "NoShift");
-  flags.Add(FL_TISMENETSKY_SC,"TismenetskySC");
-  flags.Add(FL_REPEAT_FACT,"RepeatFact");      
-  flags.Add(FL_IMPROVED_ESTIMATE,"ImprovedEstimate");
-  flags.Add(FL_DIAGONAL_COMPENSATION,"DiagonalCompensation");
-  flags.Add(FL_COARSE_REDUCE,"CoarseReduce");      
-  flags.Add(FL_FINAL_PIVOTING,"FinalPivoting");
-  flags.Add(FL_ENSURE_SPD,"EnsureSPD");
-  flags.Add(FL_SIMPLE_SC,"SimpleSC");      
-  flags.Add(FL_PREPROCESS_INITIAL_SYSTEM,"PreprocessInitialSystem");
-  flags.Add(FL_PREPROCESS_SUBSYSTEMS,"PreprocessSubsystem");
-  flags.Add(FL_MULTI_PILUC,"MultiPiluc");      
-  flags.Add(FL_RE_FACTOR,"ReFactor");
-  flags.Add(FL_AGGRESSIVE_DROPPING,"AggressiveDropping");
-  flags.Add(FL_DISCARD_MATRIX,"DiscardMatrix");
+  flags.Add(FL_TISMENETSKY_SC, "TismenetskySC");
+  flags.Add(FL_REPEAT_FACT, "RepeatFact");
+  flags.Add(FL_IMPROVED_ESTIMATE, "ImprovedEstimate");
+  flags.Add(FL_DIAGONAL_COMPENSATION, "DiagonalCompensation");
+  flags.Add(FL_COARSE_REDUCE, "CoarseReduce");
+  flags.Add(FL_FINAL_PIVOTING, "FinalPivoting");
+  flags.Add(FL_ENSURE_SPD, "EnsureSPD");
+  flags.Add(FL_SIMPLE_SC, "SimpleSC");
+//  flags.Add(FL_precond_PROCESS_INITIAL_SYSTEM, "PreprocessInitialSystem");
+//  flags.Add(FL_precond_PROCESS_SUBSYSTEMS, "PreprocessSubsystem");
+  flags.Add(FL_MULTI_PILUC, "MultiPiluc");
+  flags.Add(FL_RE_FACTOR, "ReFactor");
+  flags.Add(FL_AGGRESSIVE_DROPPING, "AggressiveDropping");
+  flags.Add(FL_DISCARD_MATRIX, "DiscardMatrix");
   flags.Add(FL_SYMMETRIC_STRUCTURE, "SymmetricStructure");
-
-  permutationRole.SetName("Ilupack::PermuationRole");
-  permutationRole.Add(INITIAL, "initial");
-  permutationRole.Add(REGULAR, "regular");
-  permutationRole.Add(FINAL,   "final");          
 }
-
-
-template<typename T>
-void Ilupack<T>::AddPermutation(Matrix matrix, Ordering ordering, 
-    Matching matching,RealPermFunc realFunc, ComplexPermFunc cplxFunc, 
-    const std::string& ilupack_name, const std::string& code, const std::string& description)
-    {
-  Permutation perm;
-  perm.matrix = matrix;
-  perm.ordering = ordering;
-  perm.matching = matching;
-  perm.realFunc = realFunc;
-  perm.cplxFunc = cplxFunc;
-  perm.ilupack_name = ilupack_name;
-  perm.code    = code;
-  perm.description = description;
-  permutations.push_back(perm); 
-    }  
-
-template<typename T>
-void Ilupack<T>::SetPermutations()
-{
-  Permutation perm;
-
-  // ------------------------------------- 
-  // GNL plain permutaions - no extra libs
-  AddPermutation(GNL, NONE, PURE, DGNLperm_null, ZGNLperm_null, "GNLperm_null", "", "no permutation");
-  AddPermutation(GNL, ND, PURE, DGNLperm_nd, ZGNLperm_nd, "GNLperm_nd", "nd", "scaling + nested dissection ordering");  
-  AddPermutation(GNL, RCM, PURE, DGNLperm_rcm, ZGNLperm_rcm, "GNLperm_rcm", "rcm", "scaling + reverse Cuthill-McKee ordering");    
-  AddPermutation(GNL, MMD, PURE, DGNLperm_mmd, ZGNLperm_mmd, "GNLperm_mmd", "mmd", "scaling + minimum degree ordering");    
-  AddPermutation(GNL, AMF, PURE, DGNLperm_amf, ZGNLperm_amf, "GNLperm_amf", "amf", "scaling + AMF ordering");
-  AddPermutation(GNL, AMD, PURE, DGNLperm_amd, ZGNLperm_amd, "GNLperm_amd", "amd", "scaling + approximate minimum degree ordering");
-  AddPermutation(GNL, PQ, PURE, DGNLperm_pq, ZGNLperm_pq, "GNLperm_pq", "PQs", "scaling + ddPQ");    
-  AddPermutation(GNL, FC, PURE, DGNLperm_fc, ZGNLperm_fc, "GNLperm_fc", "FCs", "scaling + fine grid/coarse grid partitioning");
-  AddPermutation(GNL, INDSET, PURE, DGNLperm_indset, ZGNLperm_indset, "GNLperm_indset", "inds", "scaling + independent set ordering");
-  // GNL with METIS package 
-#ifdef USE_METIS
-  AddPermutation(GNL, METIS_E, PURE, DGNLperm_metis_e, ZGNLperm_metis_e, "GNLperm_metis_e", "mes", "scaling + MeTiS Edge nested dissection ordering");    
-  AddPermutation(GNL, METIS_N, PURE, DGNLperm_metis_n, ZGNLperm_metis_n, "GNLperm_metis_n", "mns", "scaling + MeTiS Node nested dissection ordering");
-#endif
-  // GNL permuations based on PARDISO
-#ifdef USE_PARDISO
-  AddPermutation(GNL, RCM, MWM, DGNLperm_mwm_rcm, ZGNLperm_mwm_rcm, "GNLperm_mwm_rcm", "mwrc", "scaling + PARDISO max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(GNL, MMD, MWM, DGNLperm_mwm_mmd, ZGNLperm_mwm_mmd, "GNLperm_mwm_mmd", "mwad", "scaling + PARDISO max. weight matching + minimum degree ordering");
-  AddPermutation(GNL, AMF, MWM, DGNLperm_mwm_amf, ZGNLperm_mwm_amf, "GNLperm_mwm_amf", "mwaf", "scaling + PARDISO max. weight matching + AMF ordering");
-  AddPermutation(GNL, AMD, MWM, DGNLperm_mwm_amd, ZGNLperm_mwm_amd, "GNLperm_mwm_amd", "mwad", "scaling + PARDISO max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(GNL, METIS_E, MWM, DGNLperm_mwm_metis_e, ZGNLperm_mwm_metis_e, "GNLperm_mwm_metis_e", "mwme", "scaling + PARDISO max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(GNL, METIS_N, MWM, DGNLperm_mwm_metis_n, ZGNLperm_mwm_metis_n, "GNLperm_mwm_metis_n", "mwmn", "scaling + PARDISO max. weight matching + MeTiS Node ND ordering");
-#endif // USE_PARDISO
-  // GNL permuations based on MC64
-#ifdef USE_MC64
-  AddPermutation(GNL, RCM, MC64, DGNLperm_mc64_rcm, ZGNLperm_mc64_rcm, "GNLperm_mc64_rcm", "mwrc", "scaling + MC64 max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(GNL, MMD, MC64, DGNLperm_mc64_mmd, ZGNLperm_mc64_mmd, "GNLperm_mc64_mmd", "mwad", "scaling + MC64 max. weight matching + minimum degree ordering");
-  AddPermutation(GNL, AMF, MC64, DGNLperm_mc64_amf, ZGNLperm_mc64_amf, "GNLperm_mc64_amf", "mwaf", "scaling + MC64 max. weight matching + AMF ordering");
-  AddPermutation(GNL, AMD, MC64, DGNLperm_mc64_amd, ZGNLperm_mc64_amd, "GNLperm_mc64_amd", "mwad", "scaling + MC64 max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(GNL, METIS_E, MC64, DGNLperm_mc64_metis_e, ZGNLperm_mc64_metis_e, "GNLperm_mc64_metis_e", "mwme", "scaling + MC64 max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(GNL, METIS_N, MC64, DGNLperm_mc64_metis_n, ZGNLperm_mc64_metis_n, "GNLperm_mc64_metis_n", "mwmn", "scaling + MC64 max. weight matching + MeTiS Node ND ordering");
-#endif // USE_MC64
-
-  // ------------------------------------- 
-  // SYM plain permutaions - no extra libs
-  AddPermutation(SYM, FC, PURE, DSYMperm_fc, ZSYMperm_fc, "SYMperm_fc", "FCs", "scaling + fine grid/coarse grid partitioning");
-  // SYM permuations based on PARDISO
-#ifdef USE_PARDISO
-  AddPermutation(SYM, RCM, MWM, DSYMperm_mwm_rcm, ZSYMperm_mwm_rcm, "SYMperm_mwm_rcm", "mwrc", "scaling + PARDISO sym. max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(SYM, MMD, MWM, DSYMperm_mwm_mmd, ZSYMperm_mwm_mmd, "SYMperm_mwm_mmd", "mwad", "scaling + PARDISO sym. max. weight matching + minimum degree ordering");
-  AddPermutation(SYM, AMF, MWM, DSYMperm_mwm_amf, ZSYMperm_mwm_amf, "SYMperm_mwm_amf", "mwaf", "scaling + PARDISO sym. max. weight matching + AMF ordering");
-  AddPermutation(SYM, AMD, MWM, DSYMperm_mwm_amd, ZSYMperm_mwm_amd, "SYMperm_mwm_amd", "mwad", "scaling + PARDISO sym. max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(SYM, METIS_E, MWM, DSYMperm_mwm_metis_e, ZSYMperm_mwm_metis_e, "SYMperm_mwm_metis_e", "mwme", "scaling + PARDISO sym. max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(SYM, METIS_N, MWM, DSYMperm_mwm_metis_n, ZSYMperm_mwm_metis_n, "SYMperm_mwm_metis_n", "mwmn", "scaling + PARDISO sym. max. weight matching + MeTiS Node ND ordering");
-#endif // USE_PARDISO
-  // SYM permuations based on MC64
-#ifdef USE_MC64
-  AddPermutation(SYM, RCM, MC64, DSYMperm_mc64_rcm, ZSYMperm_mc64_rcm, "SYMperm_mc64_rcm", "mwrc", "scaling + MC64 sym. max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(SYM, MMD, MC64, DSYMperm_mc64_mmd, ZSYMperm_mc64_mmd, "SYMperm_mc64_mmd", "mwad", "scaling + MC64 sym. max. weight matching + minimum degree ordering");
-  AddPermutation(SYM, AMF, MC64, DSYMperm_mc64_amf, ZSYMperm_mc64_amf, "SYMperm_mc64_amf", "mwaf", "scaling + MC64 sym. max. weight matching + AMF ordering");
-  AddPermutation(SYM, AMD, MC64, DSYMperm_mc64_amd, ZSYMperm_mc64_amd, "SYMperm_mc64_amd", "mwad", "scaling + MC64 sym. max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(SYM, METIS_E, MC64, DSYMperm_mc64_metis_e, ZSYMperm_mc64_metis_e, "SYMperm_mc64_metis_e", "mwme", "scaling + MC64 sym. max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(SYM, METIS_N, MC64, DSYMperm_mc64_metis_n, ZSYMperm_mc64_metis_n, "SYMperm_mc64_metis_n", "mwmn", "scaling + MC64 sym. max. weight matching + MeTiS Node ND ordering");
-#endif // USE_MC64
-
-  // ------------------------------------- 
-  // Positive Definite plain permutaions - no extra libs
-  AddPermutation(PD, PP, PURE, DSPDperm_pp, ZHPDperm_pp, "[S/H]PDperm_pp", "PPs", "scaling + symmetrized version of PQ");
-
-  // ------------------------------------- 
-  // Hermitian permutaions based on PARDISO
-#ifdef USE_PARDISO
-  AddPermutation(HER, RCM, MWM, NULL, ZHERperm_mwm_rcm, "HERperm_mwm_rcm", "mwrc", "scaling + PARDISO sym. max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(HER, MMD, MWM, NULL, ZHERperm_mwm_mmd, "HERperm_mwm_mmd", "mwad", "scaling + PARDISO sym. max. weight matching + minimum degree ordering");
-  AddPermutation(HER, AMF, MWM, NULL, ZHERperm_mwm_amf, "HERperm_mwm_amf", "mwaf", "scaling + PARDISO sym. max. weight matching + AMF ordering");
-  AddPermutation(HER, AMD, MWM, NULL, ZHERperm_mwm_amd, "HERperm_mwm_amd", "mwad", "scaling + PARDISO sym. max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(HER, METIS_E, MWM, NULL, ZHERperm_mwm_metis_e, "HERperm_mwm_metis_e", "mwme", "scaling + PARDISO sym. max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(HER, METIS_N, MWM, NULL, ZHERperm_mwm_metis_n, "HERperm_mwm_metis_n", "mwmn", "scaling + PARDISO sym. max. weight matching + MeTiS Node ND ordering");
-#endif // USE_PARDISO
-  // Hermitian permuations based on MC64
-#ifdef USE_MC64
-  AddPermutation(HER, RCM, MC64, NULL, ZHERperm_mc64_rcm, "HERperm_mc64_rcm", "mwrc", "scaling + MC64 sym. max. weight matching + reverse Cuthill-McKee ordering");    
-  AddPermutation(HER, MMD, MC64, NULL, ZHERperm_mc64_mmd, "HERperm_mc64_mmd", "mwad", "scaling + MC64 sym. max. weight matching + minimum degree ordering");
-  AddPermutation(HER, AMF, MC64, NULL, ZHERperm_mc64_amf, "HERperm_mc64_amf", "mwaf", "scaling + MC64 sym. max. weight matching + AMF ordering");
-  AddPermutation(HER, AMD, MC64, NULL, ZHERperm_mc64_amd, "HERperm_mc64_amd", "mwad", "scaling + MC64 sym. max. weight matching + approximate minimum degree ordering");    
-  AddPermutation(HER, METIS_E, MC64, NULL, ZHERperm_mc64_metis_e, "HERperm_mc64_metis_e", "mwme", "scaling + MC64 sym. max. weight matching + MeTiS Edge ND ordering");
-  AddPermutation(HER, METIS_N, MC64, NULL, ZHERperm_mc64_metis_n, "HERperm_mc64_metis_n", "mwmn", "scaling + MC64 sym. max. weight matching + MeTiS Node ND ordering");
-#endif // USE_MC64
-
-  //   AddPermutation(, , , , , "", "", "");
-}
-
-
-template<typename T>
-void Ilupack<T>::DumpParameters(std::ostream& out)
-{
-  out << "Ilupack parameters" << std::endl;
-  out << "nalu   = " << param_.nalu << std::endl;
-  out << "ndaux  = " << param_.ndaux << std::endl;
-  out << "ndbuff = " << param_.ndbuff << std::endl;
-  out << "niaux  = " << param_.niaux << std::endl;
-  out << "nibuff = " << param_.nibuff << std::endl;
-  out << "njlu   = " << param_.njlu << std::endl;
-  out << "nju    = " << param_.nju << std::endl;
-  for(int i = 0; i < ILUPACK_NFPAR; i++)
-    out << "fpar[" << i << "] = " << param_.fpar[i] << std::endl;
-  for(int i = 0; i < ILUPACK_NIPAR; i++)
-    out << "ipar[" << i << "] = " << param_.fpar[i] << std::endl;
-}
-
-
-
-template<typename T>
-void Ilupack<T>::DumpPermutations(std::ostream& out)
-{
-  out << "Matrix\tOrder\tMatch\tName\tCode\tDescripotion" << std::endl;
-
-  for(UInt i = 0; i < permutations.size(); i++)
-  {
-    Permutation& p = permutations[i];
-
-    out << matrix.ToString(p.matrix) << "\t";
-    out << ordering.ToString(p.ordering) << "\t";
-    out << matching.ToString(p.matching) << "\t";
-    out << p.ilupack_name << "\t";
-    out << p.code << "\t";
-    out << p.description << std::endl;      
-  }
-
-}
-
-
-template<typename T>
-void Ilupack<T>::DumpSolverStatus(std::ostream& out)
-{
-  out << "Ilupack solver status:" << std::endl;
-  out << " Number of Iterations    : " << param_.ipar[ITERATION_STEPS] << std::endl;
-  out << " initial residual norm   : " << param_.fpar[INITIAL_RESIDUAL_NORM] << std::endl;
-  out << " target residual norm    : " << param_.fpar[TARGET_RESIDUAL_NORM] << std::endl; 
-  out << " current residual norm   : " << param_.fpar[CURRENT_RESIDUAL_NORM] << std::endl;
-  out << " convergence rate        : " << param_.fpar[CONVERGENCE_RATE] << std::endl;
-  out << " schur drop tolerance    : " << param_.fpar[SCHUR_DROP_TOL] << std::endl;
-  out << " relative error tolerance: " << param_.fpar[REL_ERROR_TOL] << std::endl;
-  out << " absolute error tolerance: " << param_.fpar[ABS_ERROR_TOL] << std::endl;        
-}    
 
 
 template<typename T>
@@ -818,7 +381,7 @@ void Ilupack<T>::DumpFlags(int flag, std::ostream& out)
   out << "State\tFlag" << std::endl;
 
   std::map<int, std::string>::iterator iter;
-  for(iter = flags.map.begin(); iter != flags.map.end(); iter++)
+  for (iter = flags.map.begin(); iter != flags.map.end(); iter++)
   {
     int f = iter->first;
     out << ((flag & f) != 0 ? "true" : "false");
@@ -830,104 +393,935 @@ void Ilupack<T>::DumpFlags(int flag, std::ostream& out)
 template<typename T>
 void Ilupack<T>::ApplyFlagSettings(int& flag)
 {
-  if(xml_ == NULL) return;
+  if (xml_ == NULL)
+    return;
 
   // in xml we have elements like this: <flag name="AggressiveDropping" state="off"/>
   // we loop throug all flag names and check of on and off
   StdVector<ParamNode*> all_flags = xml_->GetList("flag");
 
-  for(unsigned int i = 0; i < all_flags.GetSize(); i++ ) 
+  for (unsigned int i = 0; i < all_flags.GetSize(); i++)
   {
     ParamNode* pn = all_flags[i];
 
     int value = flags.Parse(pn->Get("name"));
 
-    if(pn->Get("state")->AsString() == "on")
+    if (pn->Get("state")->AsString() == "on")
       flag |= value; // or this value in
-    else   
+    else
       flag &= ~value; // AND 111110111
   }
 }
 
 template<typename T>
-void Ilupack<T>::GetDefaultPermutation(PermutationRole role, Permutation& out)
+void Ilupack<T>::CheckParameter(InfoNode* out, char** ilupack_string,
+    const char* param_name)
 {
-  Matrix m = matrix_;
-#ifdef USE_PARDISO
-  bool   pard = true;
-#else
-  bool   pard = false;
-#endif
-
-  switch(role)
+  InfoNode* tmp = out->Get(param_name);
+  tmp->Get("default")->SetValue(*ilupack_string);
+  if (xml_ != NULL && xml_->Has(param_name))
   {
-  case INITIAL:
-    // initial and regular with the same settings  
+    *ilupack_string
+        = const_cast<char*> (xml_->Get(param_name)->AsString().c_str());
+    tmp->Get("set")->SetValue(*ilupack_string);
+  }
+}
 
-  case REGULAR:
-    if(m == GNL) { GetPermutation(GNL, MMD, pard ? MWM : PURE, out); return; }
-    else { GetPermutation(SYM, MMD, pard ? MWM : PURE, out); return; }        
-    break;        
+template<typename T>
+void Ilupack<T>::CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name)
+{
+  InfoNode* tmp = out->Get(param_name);
+  tmp->Get("default")->SetValue(*ilupack_val);
+  if (xml_ != NULL && xml_->Has(param_name))
+  {
+    *ilupack_val = xml_->Get(param_name)->AsDouble();
+    tmp->Get("set")->SetValue(*ilupack_val);
+  }
+}
 
-  case FINAL:
-    if(m == GNL) { GetPermutation(GNL, PQ, PURE, out); return; }
-    else { GetPermutation(PD, PP, PURE, out); return; }
+template<typename T>
+void Ilupack<T>::CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name)
+{
+  InfoNode* tmp = out->Get(param_name);
+  tmp->Get("default")->SetValue(*ilupack_val);
+  if (xml_ != NULL && xml_->Has(param_name))
+  {
+    *ilupack_val = xml_->Get(param_name)->AsInt();
+    tmp->Get("set")->SetValue(*ilupack_val);
+  }
+}
+
+
+template<typename T>
+void Ilupack<T>::IlupackAMGInit()
+{
+  switch(matrix_)
+  {
+  case GNL:
+    if(isComplex_) ZGNLAMGinit(zmat_ptr_, zparam_ptr_);
+    else DGNLAMGinit(dmat_ptr_, dparam_ptr_);
     break;
 
-  default: EXCEPTION("PermutationRole case not impemented. Check las-file for available set. Role= " << role);
+  case SYM:
+    if(isComplex_) ZSYMAMGinit(zmat_ptr_, zparam_ptr_);
+    else DSYMAMGinit(dmat_ptr_, dparam_ptr_);
+    break;
+
+  case PD:
+    if(isComplex_) ZHPDAMGinit(zmat_ptr_, zparam_ptr_);
+    else DSPDAMGinit(dmat_ptr_, dparam_ptr_);
+    break;
+
+  case HER:
+    if(isComplex_) ZHERAMGinit(zmat_ptr_, zparam_ptr_);
+    else throw Exception("ilupack matrix is set to hermitian but not complex");
+    break;
   }
 }
 
 template<typename T>
-void Ilupack<T>::GetPermutation(Matrix my_matrix, Ordering my_ordering, Matching my_matching, Permutation& out)
+int Ilupack<T>::IlupackAMGFactor()
 {
-  // search for the permutation
-  for(UInt i = 0; i < permutations.size(); i++)
+  switch(matrix_)
   {
-    Permutation& p = permutations[i]; 
-    if(p.matrix   != my_matrix)   continue;
-    if(p.ordering != my_ordering) continue;
-    if(p.matching != my_matching) continue;        
+  case GNL:
+    if(isComplex_) return ZGNLAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else return DGNLAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
 
-    out = p;
-    return; // found!
+  case SYM:
+    if(isComplex_) return ZSYMAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else return DSYMAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+
+  case PD :
+    if(isComplex_) return ZHPDAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else return DSPDAMGfactor(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+
+  case HER:
+    if(isComplex_) return ZHERAMGfactor(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else throw Exception("ilupack matrix is set to hermitian but not complex");
   }
-
-  EXCEPTION("Permutation matrix: " << matrix.ToString(my_matrix) 
-      << " ordering: " << ordering.ToString(my_ordering) 
-      << " matching: " << matching.ToString(my_matching) << " not found"); 
+  
+  throw Exception("not handled");
 }
 
 template<typename T>
-void Ilupack<T>::GetPermutation(PermutationRole role, Permutation& out)
+int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
 {
-  // to check if we have the value in XML -> therefore use dummy defaults for my_*
-  bool in_xml = false; 
-  std::ostringstream os;
-  std::string type = permutationRole.ToString(role);
+  double *d_sol, *d_rhs;
+  // is a ilupack type
+  doublecomplex *z_sol, *z_rhs;
 
-  // set default values
-  Matrix my_matrix = GNL;
-  Ordering my_ordering = NONE;
-  Matching my_matching = PURE;
+  d_sol = isComplex_ ? NULL : reinterpret_cast<double*>(sol_ptr);
+  d_rhs = isComplex_ ? NULL : reinterpret_cast<double*>(rhs_ptr);
+  z_sol = isComplex_ ? reinterpret_cast<doublecomplex*>(sol_ptr) : NULL;
+  z_rhs = isComplex_ ? reinterpret_cast<doublecomplex*>(rhs_ptr) : NULL;
+  
 
-  if(xml_ != NULL && xml_->Has("permutation", "type", type))
+  switch(matrix_)
   {
-    in_xml = true; // when the type is given there shall be more!!
-    ParamNode* pn = xml_->Get("permutation", "type", type);
+    case GNL:
+      if(isComplex_) return ZGNLAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
+      else return DGNLAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
 
-    if(pn->Has("matrix"))   my_matrix   = matrix.Parse(pn->Get("matrix"));
-    if(pn->Has("ordering")) my_ordering = ordering.Parse(pn->Get("ordering"));
-    if(pn->Has("matching")) my_matching = matching.Parse(pn->Get("matching"));
+    case SYM:
+      if(isComplex_) return ZSYMAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
+      else return DSYMAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
+
+    case PD:
+      if(isComplex_) return ZHPDAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
+      else return DSPDAMGsolver(dmat_ptr_, dprecond_ptr_, dparam_ptr_, d_rhs, d_sol);
+      break;
+
+    case HER:
+      if(isComplex_) return ZHERAMGsolver(zmat_ptr_, zprecond_ptr_, zparam_ptr_, z_rhs, z_sol);
+      break;
+  }
+  throw Exception("not handled");
+}
+
+template<typename T>
+void Ilupack<T>::IlupackAMGDelete()
+{
+  LOG_TRACE2(ilupack) <<  "ReleaseMemory: mat_.a=" << mat_.a << " .ia=" << mat_.ia << ".ja=" << mat_.ja;
+  // call the ilupack delete method only if Setup() which sets mat_ was called
+  if(mat_.a == NULL) return;
+
+  switch(matrix_)
+  {
+    case GNL:
+    if(isComplex_) ZGNLAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else DGNLAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    break;
+
+    case SYM:
+    if(isComplex_) ZSYMAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else DSYMAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    break;
+
+    case PD:
+    if(isComplex_) ZHPDAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    else DSPDAMGdelete(dmat_ptr_, dprecond_ptr_, dparam_ptr_);
+    break;
+
+    case HER:
+    if(isComplex_) ZHERAMGdelete(zmat_ptr_, zprecond_ptr_, zparam_ptr_);
+    break;
+
+    default: EXCEPTION("invalid matrix type " << matrix_);
   }
 
-  // is there stuff in XML? only then the my_* is valid
-  if(in_xml) GetPermutation(my_matrix, my_ordering, my_matching, out); 
-        else GetDefaultPermutation(role, out);
+  if(mat_.a != NULL)
+  { delete[] mat_.a; mat_.a = NULL;}
+  if(mat_.ia != NULL)
+  { delete[] mat_.ia; mat_.ia = NULL;}
+  if(mat_.ja != NULL)
+  { delete[] mat_.ja; mat_.ja = NULL;}
 }
+
+
+
+template<typename T>
+void Ilupack<T>::CalcFillIn(InfoNode* out)
+{
+  // this is an extract for the symprintperformance.c sample from Ilupack 2.2
+  // It is reduced to the total fill-in factor
+
+  int nnzU = 0, tmp0 = 0; // original names
+  DAMGlevelmat  *next = &precond_;
+
+  if(param.ind != NULL) EXCEPTION("saddle point is disabled");
+  
+  for(int i = 1; i <= precond_.nlev; i++) 
+  {
+    if(!(param.flags&DISCARD_MATRIX)) 
+    {
+      if(i<precond_.nlev)
+      {
+        tmp0 += next->A.ia[next->n]-1;
+      }
+      else 
+      {
+        if(next->LU.ja!=NULL) 
+          tmp0 += next->A.ia[next->n]-1;
+      }
+    }
+    if(i < precond_.nlev || next->LU.ja != NULL) 
+    {
+      nnzU += next->LU.ja[next->LU.nr-1] - next->LU.ja[0]+2*next->nB;
+    }
+    if(i == precond_.nlev) 
+    {
+      if(next->LU.ja == NULL) 
+      {
+        int j = next->LU.nr;
+        nnzU += (j*(j-1))/2;
+      }
+    }
+    if(i < precond_.nlev) 
+    {
+      if(param.flags & COARSE_REDUCE) 
+      {
+        // fill-in F
+        nnzU+=next->F.ia[next->F.nr]-1;
+      }
+    }
+    next=next->next;
+  }
+
+  out->Get("totalFillInSum")->SetValue(nnzU + mat_.nr + tmp0);
+  out->Get("totalFillInFactor")->SetValue((1.0 * nnzU + tmp0) / mat_.nnz);
+}
+
+template<typename T>
+void Ilupack<T>::Ilupack_symmessages()
+{
+  
+  FILE* fo = fopen("out_ilupack_symmessages","aw");
+  
+  if (param.matching) {
+     if (!strncmp("yes",param.FCpart,3)) {
+        if (strncmp("none",param.typetv,4)) {
+     // 1. maximum weight matching
+     // 2. fine/coarse grid partitioning
+     // 3. ... based on static or dynamic test vector
+     if (!strncmp("amd",param.ordering,3))
+        fprintf(fo,"mw/ad/FCv|");
+     else if (!strncmp("metisn",param.ordering,6))
+        fprintf(fo,"mw/mn/FCv|");
+     else if (!strncmp("metise",param.ordering,6))
+        fprintf(fo,"mw/me/FCv|");
+     else if (!strncmp("rcm",param.ordering,3))
+        fprintf(fo,"mw/rc/FCv|");
+     else if (!strncmp("amf",param.ordering,3))
+        fprintf(fo,"mw/af/FCv|");
+     else if (!strncmp("mmd",param.ordering,3))
+        fprintf(fo,"mw/md/FCv|");
+     else 
+        fprintf(fo,"  /  /   |");
+  }
+  // 3. no test vector
+  else {
+     // 1. maximum weight matching
+     // 2. fine/coarse grid partitioning
+     // 3. no test vector
+     if (!strncmp("amd",param.ordering,3))
+        fprintf(fo,"mw/ad/FC |");
+     else if (!strncmp("metisn",param.ordering,6))
+        fprintf(fo,"mw/mn/FC |");
+     else if (!strncmp("metise",param.ordering,6))
+        fprintf(fo,"mw/me/FC |");
+     else if (!strncmp("rcm",param.ordering,3))
+        fprintf(fo,"mw/rc/FC |");
+     else if (!strncmp("amf",param.ordering,3))
+        fprintf(fo,"mw/af/FC |");
+     else if (!strncmp("mmd",param.ordering,3))
+        fprintf(fo,"mw/md/FC |");
+     else 
+        fprintf(fo,"  /  /   |");
+  }
+     }    
+     // 2. no FCpart
+     else {
+  // 1. maximum weight matching
+  // 2. no fine/coarse grid partitioning
+  // 3. test vector is not used in this case, anyway
+  if (!strncmp("amd",param.ordering,3))
+     fprintf(fo,"mw/ad/   |");
+  else if (!strncmp("metisn",param.ordering,6))
+     fprintf(fo,"mw/mn/   |");
+  else if (!strncmp("metise",param.ordering,6))
+     fprintf(fo,"mw/me/   |");
+  else if (!strncmp("rcm",param.ordering,3))
+     fprintf(fo,"mw/rc/   |");
+  else if (!strncmp("amf",param.ordering,3))
+     fprintf(fo,"mw/af/   |");
+  else if (!strncmp("mmd",param.ordering,3))
+     fprintf(fo,"mw/md/   |");
+  else 
+     fprintf(fo,"  /  /   |");
+     }
+  }
+  // 1. no matching
+  else {
+     if (!strncmp("yes",param.FCpart,3)) {
+        if (strncmp("none",param.typetv,4)) {
+     // 1. no matching
+     // 2. fine/coarse grid partitioning
+     // 3. ... based on static or dynamic test vector
+     if (!strncmp("amd",param.ordering,3))
+        fprintf(fo,"  /ad/FCv|");
+     else if (!strncmp("metisn",param.ordering,6))
+        fprintf(fo,"  /mn/FCv|");
+     else if (!strncmp("metise",param.ordering,6))
+        fprintf(fo,"  /me/FCv|");
+     else if (!strncmp("rcm",param.ordering,3))
+        fprintf(fo,"  /rc/FCv|");
+     else if (!strncmp("amf",param.ordering,3))
+        fprintf(fo,"  /af/FCv|");
+     else if (!strncmp("mmd",param.ordering,3))
+        fprintf(fo,"  /md/FCv|");
+     else 
+        fprintf(fo,"  /  /   |");
+  }
+  // 3. no test vector
+  else {
+     // 1. no matching
+     // 2. fine/coarse grid partitioning
+     // 3. no test vector
+     if (!strncmp("amd",param.ordering,3))
+        fprintf(fo,"  /ad/FC |");
+     else if (!strncmp("metisn",param.ordering,6))
+        fprintf(fo,"  /mn/FC |");
+     else if (!strncmp("metise",param.ordering,6))
+        fprintf(fo,"  /me/FC |");
+     else if (!strncmp("rcm",param.ordering,3))
+        fprintf(fo,"  /rc/FC |");
+     else if (!strncmp("amf",param.ordering,3))
+        fprintf(fo,"  /af/FC |");
+     else if (!strncmp("mmd",param.ordering,3))
+        fprintf(fo,"  /md/FC |");
+     else 
+        fprintf(fo,"  /  /   |");
+  }
+     }    
+     // 2. no FCpart
+     else {
+  // 1. no matching
+  // 2. no fine/coarse grid partitioning
+  // 3. test vector is not used in this case, anyway
+  if (!strncmp("amd",param.ordering,3))
+     fprintf(fo,"  /ad/   |");
+  else if (!strncmp("metisn",param.ordering,6))
+     fprintf(fo,"  /mn/   |");
+  else if (!strncmp("metise",param.ordering,6))
+     fprintf(fo,"  /me/   |");
+  else if (!strncmp("rcm",param.ordering,3))
+     fprintf(fo,"  /rc/   |");
+  else if (!strncmp("amf",param.ordering,3))
+     fprintf(fo,"  /af/   |");
+  else if (!strncmp("mmd",param.ordering,3))
+     fprintf(fo,"  /md/   |");
+  else 
+     fprintf(fo,"  /  /   |");
+     }
+  }
+
+
+  printf("ILUPACK PARAMETERS:\n");
+  printf("   droptol=%g\n",          param.droptol);
+  printf("   condest=%g\n",          param.condest);
+  printf("   elbow space factor=%5.1f\n",param.elbow);
+  if (!strncmp("ilu",param.typecoarse,3))
+     printf("   simple ILU-type coarse grid system\n");
+  else if (!strncmp("amg",param.typecoarse,3))
+     printf("   medium AMG-type coarse grid system\n");
+
+  if (!strncmp("static",param.typetv,6))
+     printf("   diagonal compensation using a prescribed static test vector\n");
+  else if (!strncmp("none",param.typetv,4))
+     printf("   no diagonal compensation\n");
+  else
+     printf("   diagonal compensation using a dynamically generated test vector\n");
+
+  printf("   type of preconditioner: ");
+  if (!strncmp("ilu",param.amg,3))
+     printf("multilevel ILU\n");
+  else if (!strncmp("amli",param.amg,4)) {
+     printf("AMLI-like\n");
+     printf("   number of recursive calls: %d\n", param.ncoarse);
+  }
+  else if (!strncmp("mg",param.amg,2)) {
+     printf("multigrid\n");
+     printf("   number of pre-smoothing steps:  %d\n", param.npresmoothing);
+     printf("   number of recursive calls:      %d\n", param.ncoarse);
+     printf("   number of post-smoothing steps: %d\n", param.npostsmoothing);
+     printf("   type of pre-smoother:  ");
+     if (!strncmp("gsf",param.presmoother,3))
+  printf("Gauss-Seidel forward\n");
+     else if (!strncmp("gsb",param.presmoother,3))
+  printf("Gauss-Seidel backward\n");
+     else if (!strncmp("j",param.presmoother,1))
+  printf("(damped) Jacobi\n");
+     else if (!strncmp("ilu",param.presmoother,3))
+  printf("ILU\n");
+     else
+  printf("custom\n");
+     printf("   type of post-smoother: ");
+     if (!strncmp("gsf",param.postsmoother,3))
+  printf("Gauss-Seidel forward\n");
+     else if (!strncmp("gsb",param.postsmoother,3))
+  printf("Gauss-Seidel backward\n");
+     else if (!strncmp("j",param.postsmoother,1))
+  printf("(damped) Jacobi\n");
+     else if (!strncmp("ilu",param.postsmoother,3))
+  printf("ILU\n");
+     else
+  printf("custom\n");
+  }
+
+
+
+  if (param.matching)
+     printf("   maximum weight matching prior to reorderings\n");
+  else
+     printf("   NO maximum weight matching\n");
+
+  if (param.ind!=NULL)
+     printf("   saddle point structure is assumed\n");
+  else
+     printf("   NO saddle point structure\n");
+
+
+  if (!strncmp("amd",param.ordering,3))
+     printf("   reorder systems based on AMD\n");
+  else if (!strncmp("metisn",param.ordering,6))
+     printf("   reorder systems based on METIS nested dissection by nodes\n");
+  else if (!strncmp("metise",param.ordering,6))
+     printf("   reorder systems based on METIS nested dissection by edges\n");
+  else if (!strncmp("rcm",param.ordering,3))
+     printf("   reorder systems based on RCM\n");
+  else if (!strncmp("amf",param.ordering,3))
+     printf("   reorder systems based on HALOAMD\n");
+  else if (!strncmp("mmd",param.ordering,3))
+     printf("   reorder systems based on MMD\n");
+  else
+     printf("   custom reordering strategy\n");
+
+  if (!strncmp("yes",param.FCpart,3))
+     if (strncmp("none",param.typetv,4))
+  printf("   a priori fine/coarse grid partitioning using test vector\n");
+     else
+  printf("   a priori fine/coarse grid partitioning\n");
+  else
+     printf("   NO a priori fine/coarse grid partitioning\n");
+
+  if (!strncmp("ilu",param.typecoarse,3))
+     fprintf(fo,"ILUPACK(S)|");
+  else if (!strncmp("amg",param.typecoarse,3))
+     fprintf(fo,"ILUPACK(M)|");
+  else
+     fprintf(fo,"ILUPACK   |");
+
+  fclose(fo);
+}
+
+
+template<typename T>
+void Ilupack<T>::Ilupack_symprintperformance()
+{
+  FILE* fo = fopen("out_ilupack_symmprintperformance","aw");
+  
+  integer      i,j = 0,k,l,m,n,nz,tmp0,tmp,tmp2,tmp3,ierr,
+                nnzU, *ptr = NULL;
+  DAMGlevelmat  *next;
+  double secnds = 0.0;
+    
+  printf("   final elbow space factor=%8.2f\n",param.elbow+0.005);
+  printf("   final condest on level 1=%8.2f\n",param.condest+0.005);
+  printf("ILUPACK,   multilevel structure\n");
+
+  fprintf(fo,"%3d|",precond_.nlev);
+
+  next=&precond_;
+  nnzU=0;
+  tmp=0;
+  ierr=0;
+  tmp0=0;
+  tmp2=0;
+  tmp3=0;
+  
+  n   = mat_.nr;
+  nz  = mat_.nnz;
+  
+  if (param.ind!=NULL) {
+    EXCEPTION("saddle point is disabled");
+  }
+
+  for (i=1; i<=precond_.nlev; i++) {
+      // fill-in LU
+      printf("level %3d, block size %7d\n",i,next->LU.nr); fflush(stdout);
+if (param.ind!=NULL) {
+   // permute index vector
+   for (j=0; j<next->n; j++) 
+       ptr[j+next->n]=ptr[next->p[j]-1];
+   for (j=0; j<next->n; j++) 
+       ptr[j]=ptr[j+next->n];
+   k=0;
+   for (j=0; j<next->nB; j++) 
+       if (ptr[j]<0) k++;
+   printf("           saddle point block structure (%6d,%6d),",next->nB-k,k);
+   k=0;
+   for (; j<next->n; j++) 
+       if (ptr[j]<0) k++;
+   printf("(%6d,%6d)\n",next->n-next->nB-k,k);
+   ptr+=next->nB;
+}
+if (!(param.flags&DISCARD_MATRIX)) {
+   if (i<precond_.nlev) {
+      printf("  system size=%6d, fill-in=%8.1f(av.)\n",
+       next->n,(next->A.ia[next->n]-1)/((double)next->n));
+      fflush(stdout);
+      if (i>1) 
+   tmp0+=next->A.ia[next->n]-1;
+   }
+   else {
+      if (next->LU.ja!=NULL) {
+         printf("  system size=%6d, fill-in=%8.1f(av.)\n",
+    next->n,(next->A.ia[next->n]-1)/((double)next->n));
+   fflush(stdout);
+   tmp0+=next->A.ia[next->n]-1;
+      }
+   }
+}
+l=nnzU;
+if (i<precond_.nlev || next->LU.ja!=NULL) {
+   nnzU+=next->LU.ja[next->LU.nr-1]-next->LU.ja[0]+2*next->nB;
+   k=0;
+   for (m=0; m<next->LU.nr; m++) {
+       if (next->LU.ja[next->LU.nr+1+m]>0) 
+    k+=2;
+   } // end for m
+   ierr+=k;
+   tmp3+=next->LU.nr;
+   printf("           2x2 pivots %5.1f%%\n",(100.0*k)/next->LU.nr); 
+   fflush(stdout);
+}
+if (i==precond_.nlev) {
+   if (next->LU.ja==NULL) {
+      printf("switched to full matrix processing\n");fflush(stdout);
+      tmp=-1;
+      j=next->LU.nr;
+      nnzU+=(j*(j-1))/2;
+   }
+}
+printf("  local fill-in %7d(%fav)\n",
+       nnzU-l+next->LU.nr,(1.0*(nnzU-l+next->LU.nr))/next->LU.nr);
+
+if (i<precond_.nlev) {
+   if (param.flags&COARSE_REDUCE) {
+      // fill-in F
+      nnzU+=next->F.ia[next->F.nr]-1;
+      printf("level %3d->%3d, block size (%7d,%7d)\n",i,i+1,next->LU.nr,
+       next->F.nc);
+      printf("  local fill-in F %7d(%fav pr)\n",
+       next->F.ia[next->F.nr]-1,
+       (1.0*(next->F.ia[next->F.nr]-1))/next->LU.nr);
+   }
+   else {
+      printf("level %3d->%3d, block size (%7d,%7d)\n",i,i+1,next->LU.nr,
+       next->F.nc);
+      fflush(stdout);
+   }
+}
+next=next->next;
+  }
+  printf("\ntotal fill-in sum%8d(%fav)\n",
+   nnzU+n+tmp0,(1.0*(nnzU+tmp0))/n);
+  printf("fill-in factor:      %f\n",(1.0*nnzU+tmp0)/nz);
+  printf("total number of sparse  2x2 pivots %5.1f%%\n",(100.0*ierr)/tmp3); 
+  fflush(stdout);
+  ierr=tmp3=0;
+
+  if (tmp) {
+     // nnzU-j*(j+1)/2+n-j memory for sparse data structures
+     //                    indices (weight 1/3) and values (weight 2/3)
+     // j*(j+1)/2          memory for dense data, no indices (weight 2/3)
+     printf("memory usage factor: %f\n",(1.0*(tmp0+nnzU-(j*(j+1))/2-j))/nz
+      +(j*(j+1))/(3.0*nz));
+     fprintf(fo,"%5.1f|",(1.0*(tmp0+nnzU-(j*(j+1))/2-j))/nz
+       +(j*(j+1))/(3.0*nz));
+  }
+  else {
+     printf("memory usage factor: %f\n",(1.0*(nnzU+tmp0))/nz);
+     fprintf(fo,"%5.1f|",(1.0*(nnzU+tmp0))/nz);
+  }
+  printf("total time: %e [sec]\n",  (double)secnds); 
+  printf("            %e [sec]\n\n",(double)ILUPACK_secnds[7]); 
+  fprintf(fo,"%e|",(double)secnds);
+
+  printf("refined timings for   ILUPACK multilevel factorization\n"); 
+  printf("initial preprocessing:         %e [sec]\n",ILUPACK_secnds[0]); 
+  printf("reorderings remaining levels:  %e [sec]\n",ILUPACK_secnds[1]); 
+  printf("SYMPILUC (sum over all levels):%e [sec]\n",ILUPACK_secnds[2]); 
+  printf("SYMILUC (if used):             %e [sec]\n",ILUPACK_secnds[3]); 
+  printf("SPTRF, LAPACK (if used):       %e [sec]\n",ILUPACK_secnds[4]); 
+  printf("remaining parts:               %e [sec]\n\n",std::max(0.0,(double)secnds
+                                                   -ILUPACK_secnds[0]
+               -ILUPACK_secnds[1]
+               -ILUPACK_secnds[2]
+               -ILUPACK_secnds[3]
+               -ILUPACK_secnds[4]));
+
+  fflush(stdout);
+
+  /*
+  next=&precond_;
+  for (i=1; i<=nlev; i++) {
+    printf("%d,%d\n",next->n,next->nB);
+  }
+  fflush(stdout);
+
+  printf("multilevel structure\n");
+  fflush(stdout);
+  printf("number of levels: %d\n",nlev);
+  fflush(stdout);
+  next=&precond_;
+  for (i=1; i<=nlev; i++) {
+    printf("total size %d\n",next->n);
+    fflush(stdout);
+    printf("leading block %d\n",next->nB);
+    fflush(stdout);
+
+    printf("row permutation\n");
+    for (j=0; j<next->n; j++)
+printf("%4d",next->p[j]);
+    printf("\n");
+    fflush(stdout);
+    printf("inverse column permutation\n");
+    for (j=0; j<next->n; j++)
+printf("%4d",next->invq[j]);
+    printf("\n");
+    fflush(stdout);
+
+    if (nlev==1) {
+printf("row scaling\n");
+for (j=0; j<next->n; j++)
+  printf("%12.4e",next->rowscal[j]);
+printf("\n");
+fflush(stdout);
+printf("column scaling\n");
+for (j=0; j<next->n; j++)
+  printf("%12.4e",next->colscal[j]);
+printf("\n");
+fflush(stdout);
+    }
+
+    printf("(2,1) block E (%d,%d)\n",next->E.nr,next->E.nc);
+    fflush(stdout);
+    for (k=0; k<next->E.nr; k++) {
+printf("%3d: ",k+1);
+for (j=next->E.ia[k]-1; j<next->E.ia[k+1]-1;j++)
+  fprintf(stdout,"%12d",next->E.ja[j]);
+printf("\n");
+fflush(stdout);
+printf("     ");
+for (j=next->E.ia[k]-1; j<next->E.ia[k+1]-1;j++)
+  fprintf(stdout,"%12.4e",next->E.a[j]);
+printf("\n");
+fflush(stdout);
+    }
+    printf("(1,2) block F (%d,%d)\n",next->F.nr,next->F.nc);
+    fflush(stdout);
+    for (k=0; k<next->F.nr; k++) {
+printf("%3d: ",k+1);
+for (j=next->F.ia[k]-1; j<next->F.ia[k+1]-1;j++)
+  fprintf(stdout,"%12d",next->F.ja[j]);
+printf("\n");
+fflush(stdout);
+printf("     ");
+for (j=next->F.ia[k]-1; j<next->F.ia[k+1]-1;j++)
+  fprintf(stdout,"%12.4e",next->F.a[j]);
+printf("\n");
+fflush(stdout);
+    }
+
+    printf("ILU...\n");
+    printf("Diagonal part\n");
+    for (k=0; k<next->LU.nr; k++) {
+fprintf(stdout,"%12.4e",next->LU.a[k]);
+    }
+    printf("\n");
+    printf("L part\n");
+    for (k=0; k<next->LU.nr; k++) {
+printf("col %3d: ",k+1);
+for (j=next->LU.ja[k]-1; j<next->LU.ia[k]-1;j++)
+  fprintf(stdout,"%12d",next->LU.ja[j]);
+printf("\n");
+fflush(stdout);
+printf("         ");
+for (j=next->LU.ja[k]-1; j<next->LU.ia[k]-1;j++)
+  fprintf(stdout,"%12.4e",next->LU.a[j]);
+printf("\n");
+fflush(stdout);
+    }
+    printf("U part\n");
+    for (k=0; k<next->LU.nr; k++) {
+printf("row %3d: ",k+1);
+for (j=next->LU.ia[k]-1; j<next->LU.ja[k+1]-1;j++)
+  fprintf(stdout,"%12d",next->LU.ja[j]);
+printf("\n");
+fflush(stdout);
+printf("         ");
+for (j=next->LU.ia[k]-1; j<next->LU.ja[k+1]-1;j++)
+  fprintf(stdout,"%12.4e",next->LU.a[j]);
+printf("\n");
+fflush(stdout);
+    }
+
+    next=next->next;
+  }
+  */
+
+//#ifdef PRINT_INFO
+  next=&precond_;
+  for (i=1; i<=precond_.nlev; i++) {
+      // fill-in LU
+      printf("level %3d, block size %7d\n",i,next->LU.nr); fflush(stdout);
+if (i<precond_.nlev || next->LU.ja!=NULL) {
+   printf("U-factor");
+   printf("\n");fflush(stdout);
+   for (l=0; l<next->LU.nr; ) {
+       if (next->LU.ja[next->LU.nr+1+l]==0){
+    for (j=next->LU.ja[l];j<next->LU.ja[l+1]; j++) {
+        printf("%8d",next->LU.ja[j-1]);
+    }
+    printf("\n");fflush(stdout);
+    for (j=next->LU.ja[l];j<next->LU.ja[l+1]; j++) {
+        printf("%8.1e",next->LU.a[j-1]);
+    }
+    l++;
+       }
+       else {
+    for (j=next->LU.ja[l];j<next->LU.ja[l+1]; j++) {
+        printf("%8d",next->LU.ja[j-1]);
+    }
+    printf("\n");fflush(stdout);
+    for (j=next->LU.ja[l];j<next->LU.ja[l+1]; j++) {
+        printf("%8.1e",
+         next->LU.a[next->LU.ja[l]+2*(j-next->LU.ja[l])-1]);
+    }
+    printf("\n");fflush(stdout);
+    for (j=next->LU.ja[l];j<next->LU.ja[l+1]; j++) {
+        printf("%8.1e",
+         next->LU.a[next->LU.ja[l]+2*(j-next->LU.ja[l])]);
+    }
+    l+=2;
+       }
+       printf("\n");fflush(stdout);
+   }
+
+   printf("Block diagonal factor\n");
+   for (l=0; l<next->LU.nr;) {
+       if (next->LU.ja[next->LU.nr+1+l]==0){
+    printf("%8.1e",next->LU.a[l]);
+    l++;
+       }
+       else {
+    printf("%8.1e%8.1e",next->LU.a[l],
+     next->LU.a[next->LU.nr+1+l]);
+    l+=2;
+       }
+   }
+   printf("\n");fflush(stdout);
+   for (l=0; l<next->LU.nr; ) {
+       if (next->LU.ja[next->LU.nr+1+l]==0) {
+   printf("        ");
+   l++;
+       }
+       else {
+   printf("%e%e",next->LU.a[next->LU.nr+1+l],
+    next->LU.a[l+1]);
+   l+=2;
+       }
+   }
+   printf("\n");fflush(stdout);
+   
+}
+if (i==precond_.nlev) {
+   if (next->LU.ja==NULL) {
+      printf("switched to full matrix processing\n");fflush(stdout);
+   }
+}
+
+if (i<precond_.nlev) {
+   // fill-in F
+   nnzU+=next->F.ia[next->F.nr]-1;
+   printf("level %3d->%3d, block size (%7d,%7d)\n",i,i+1,next->LU.nr,
+    next->F.nc);
+   printf("  local fill-in F %7d(%fav pr)\n",
+    next->F.ia[next->F.nr]-1,
+    (1.0*(next->F.ia[next->F.nr]-1))/next->LU.nr);
+}
+next=next->next;
+  }
+//#endif
+
+}
+
+
+
+
+/*
+template<typename T>
+string Ilupack<T>::DumpPrecond(DAMGlevelmat* precond)
+{
+  std::stringstream ss;
+  ss << "level=" << precond->nlev << " n=" << precond->n << " nB=" << precond->nB << std::endl;
+  //ss << "A=" << 
+}
+
+*/
+
+
+
+/*
+template<typename T>
+void Ilupack<T>::Ilupack_symfinalres(T* sol_ptr, T* rhs_ptr)
+{
+  integer      i,l,n,nz,tmp0,tmp,tmp2,tmp3,ierr,
+                  nnzU,;
+    nnzU=0;
+    tmp=0;
+    ierr=0;
+    tmp0=0;
+    tmp2=0;
+    tmp3=0;
+    
+    n   = mat_.nr;
+    nz  = mat_.nnz;
+  
+  double* sol = (double*) sol_ptr;
+  double* rhs = (double*) rhs_ptr;
+  
+  // -------   compute final residual   ------
+  DSYMmatvec(mat_,sol,param.dbuff);
+
+  for (i=0; i<n; i++) {
+    param.dbuff[i]-=rhs[i+mat_.nr*l];
+  } // end for i
+
+  i=1;
+  val=NRM(&n, param.dbuff, &i);
+  // -----------------------------------------
+  printf("current: %8.1le\n",val);
+
+
+  // release part of rhs that may store the uncompressed rhs
+  if (nrhs!=0 && (rhstyp[0]=='M' || rhstyp[0]=='m')) {
+    rhs+=n;
+    rhs+=mat_.nr*l;
+  }
+
+
+  for (i=0; i<n; i++) {
+
+    if (l==0 && param.flags&DIAGONAL_COMPENSATION &&
+        param.flags&(STATIC_TESTVECTOR|DYNAMIC_TESTVECTOR))
+      sol[i+mat_.nr*l]-=mytestvector[i];
+    else
+      sol[i+mat_.nr*l]-=1.0+i*l;
+  }
+  i=1;
+  val=NRM(&n,sol+mat_.nr*l,&i);
+  for (i=0; i<n; i++) {
+    if (l==0 && param.flags&DIAGONAL_COMPENSATION &&
+        param.flags&(STATIC_TESTVECTOR|DYNAMIC_TESTVECTOR))
+      sol[i+mat_.nr*l]+=mytestvector[i];
+    else
+      sol[i+mat_.nr*l]+=1.0+i*l;
+  }
+  i=1;
+  vb=NRM(&n,sol+mat_.nr*l,&i);
+  // if (nrhs!=0 && ((rhstyp[2]=='X' || rhstyp[2]=='x') || (rhstyp[0]!='M' && rhstyp[0]!='m')))
+  printf("rel. error in the solution: %8.1le\n\n",val/vb);
+  //else printf("\n");
+
+}
+
+
+*/
+
+
+/*
+typedef struct  DAMGLM {
+  integer nlev;                  
+  integer n;                  
+  integer nB;
+  Dmat A; 
+  Dmat LU;
+  integer *LUperm;
+  Dmat E;
+  Dmat F;
+  integer *p;
+  integer *invq;
+  doubleprecision *rowscal;
+  doubleprecision *colscal;
+  doubleprecision *absdiag;
+  struct DAMGLM *prev;
+  struct DAMGLM *next;
+  integer *nextblock;
+  integer issymmetric;
+  integer isdefinite;
+  integer ishermitian;
+  integer isskew;
+  integer isreal;
+  integer issingle;
+} DAMGlevelmat; 
+
+*/
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class Ilupack<Double>;
-  template class Ilupack<Complex>;
+template class Ilupack<Double> ;
+template class Ilupack<Complex> ;
 #endif

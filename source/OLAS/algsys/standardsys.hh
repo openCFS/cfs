@@ -17,6 +17,7 @@ namespace CoupledField
   class StdMatrix;
   class SingleVector;
   class PatternPool;
+  class InfoNode;
 
 
   //! Linear algebraic system for normal scalar- and blocksystems
@@ -73,18 +74,8 @@ namespace CoupledField
     //! Generate preconditioner
     void CreatePrecond();
 
-    //! Generate solver object
-
-    //! Calling this method triggers the generation of a solver object to
-    //! solve a linear system of type Ax=b.
-    //! Before this object can be used the SetupSolver() method should be
-    //! called and also the generation of a preconditioner via the
-    //! CreatePrecond() and SetupPrecond() methods should be finished, if
-    //! a preconditioner is to be used.
-    //! \note This method must not be called if an eigenfrequency analysis
-    //! is performed, since this method creates only a solver to solve
-    //! a system Ax=b.
-    void CreateSolver();
+    /** @see BaseSystem::CreateSolver */
+    void CreateSolver(InfoNode* olasInfo);
 
     //! Generate EigenSolver object
 
@@ -95,7 +86,7 @@ namespace CoupledField
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    void CreateEigenSolver();
+    void CreateEigenSolver(InfoNode* eigenInfo);
 
     //! Trigger setup of preconditioner
 

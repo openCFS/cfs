@@ -112,9 +112,10 @@ int main( int argc, const char **argv ) {
   int ret = gethostname( host, 256 );
 
   // our calculation environment
-  info->Get("calculation")->Get("environment")->Get("started")->SetValue(now);
+  InfoNode* env = info->Get(InfoNode::HEADER)->Get("environment");
+  env->Get("started")->SetValue(now);
   if(ret == 0)
-    info->Get("calculation")->Get("environment")->Get("host")->SetValue(host);
+    env->Get("host")->SetValue(host);
   
   if(!progOpts->IsQuiet())
   {
@@ -305,6 +306,8 @@ int main( int argc, const char **argv ) {
 
   // Log command line parameters
   progOpts->ToInfo(info->Get(InfoNode::HEADER)->Get("progOpts"));
+  // log the optinal id/name/token/label from <cfsSimulation id="..">
+  info->Get(InfoNode::HEADER)->Get("id")->SetValue(param->Get("id"));
 
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
@@ -352,8 +355,8 @@ int main( int argc, const char **argv ) {
 
   Double wTime, cTime;
   oClockTotal.GetTime(wTime, cTime);
-  std::cout << std::endl
-            << ">> Total time: wall clock: '" << wTime 
+  if(!progOpts->IsQuiet()) std::cout << std::endl; // conditional empty line
+  std::cout << ">> Total time: wall clock: '" << wTime 
             << "s' CPU time: '" << cTime << "s'\n";
   InfoNode* in = info->Get(InfoNode::SUMMARY)->Get("runTime");
   in->Get("wall")->SetValue(wTime);

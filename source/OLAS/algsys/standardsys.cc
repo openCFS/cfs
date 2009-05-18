@@ -185,7 +185,7 @@ namespace CoupledField {
       Vector<Double> ev, err;
       BaseEigenSolver * evs = 
         GenerateEigenSolverObject( *(sysmat_[SYSTEM]), ARPACK,
-                                   xml, &myParams_, &myReport_ );
+                                  xml, olasInfo->Get("solve_eigen"), &myParams_, &myReport_ );
       (*cla) << "\n-----------------------------------------------------------------------------\n"
                    "Calculating condition number of system matrix\n";
       try {
@@ -592,11 +592,11 @@ namespace CoupledField {
   // ************************
   //   Create solver object
   // ************************
-  void StandardSystem::CreateSolver()
+  void StandardSystem::CreateSolver(InfoNode* olasInfo)
   {
     SolverType solver;
     myParams_.GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, &myParams_, &myReport_ );
+    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, olasInfo, &myParams_, &myReport_ );
   }
 
 
@@ -619,13 +619,13 @@ namespace CoupledField {
   //   Create eigensolver object
   // ********************************
 
-  void StandardSystem::CreateEigenSolver() {
+  void StandardSystem::CreateEigenSolver(InfoNode* eigenInfo) {
 
 
     EigenSolverType egSolver;
     myParams_.GetEnumValue("EigenSolver", egSolver);
     eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), egSolver,
-                                              xml,
+                                              xml, eigenInfo, 
                                               &myParams_, &myReport_ );
 
   }

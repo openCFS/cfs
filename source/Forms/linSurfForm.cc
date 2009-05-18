@@ -46,7 +46,7 @@ namespace CoupledField
     
     if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
       actElem_ = it.GetSurfElem();
-      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
+      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_, coordUpdate_ );
       if( std::abs(actElem_->normalSign) > EPS ) {
         normal_ *= (Double) actElem_->normalSign;
       }

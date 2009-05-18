@@ -1021,10 +1021,10 @@ s    }
   // ****************
   //   CreateSolver
   // ****************
-  void SBM_System::CreateSolver(){
+  void SBM_System::CreateSolver(InfoNode* olasInfo){
 
 
-    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml,
+    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml, olasInfo,
                                     &myParams_, &myReport_ );
   }
 
@@ -1047,7 +1047,7 @@ s    }
   }
 
 
-  void SBM_System::CreateEigenSolver() {
+  void SBM_System::CreateEigenSolver(InfoNode*) {
     (*warning) << "SBM_System::CreateEigenSolver not yet implemented!";
     Warning( __FILE__, __LINE__ );
   }

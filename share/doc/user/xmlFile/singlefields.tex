@@ -133,6 +133,22 @@ The command for calculating the mechanical stresses is
 </storeResults>
 \end{verbatim}
 
+\subsection{Region Results}
+There is one surface region result. The calculated value is of type history and written to the \textit{info.xml} file or the filesystem if \xml{text} output is enabled.
+
+\subsubsection{Deformed Volume}
+Given by 
+\begin{verbatim}      
+<storeResults>
+  <surfRegionResult type="volumeAboveDefSurf" dof="z">
+    <surfRegionList>
+      <surfRegion name=".."/>
+    </surfRegionList>
+ </surfRegionResult>
+</storeResults>
+\end{verbatim}
+the displacements of the given direction are integrated over the given surface. The result is for harmonic analysis a complex value. Of interest is them the norm/length of the calculated vector.
+
 \subsection{Example}
 
 {\footnotesize 
@@ -256,6 +272,30 @@ Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain 
 %\begin{verbatim}
 %attgroup,1,calc,calc_gvp
 %\end{verbatim}
+
+\subsection{Region Result}
+There are two surface region results. The result is of type history and  written to the \textit{info.xml} file or to the filesystem if \xml{text} output is enabled.   
+
+\begin{verbatim}
+<storeResults>
+  <surfRegionResult type="acouPower|acouForce">
+    <surfRegionList>
+      <surfRegion name=".." />
+    </surfRegionList>
+  </surfRegionResult>
+</storeResults>
+\end{verbatim}
+
+\subsubsection{Acoustic Power}
+The acoustic power calculates
+\begin{equation}
+  P = \frac{1}{2} \int v\, p^*\,d\Gamma \nonumber
+\end{equation}
+with $v$ the complex acoustic particle velocity and $p^*$ the complex conjugate acoustic pressure. Of special interest is the acoustic effective power
+\begin{equation}
+  P_{ac} = \frac{1}{2} \int {\rm Re} \lbrace p\, v^* \rbrace \,d\Gamma \nonumber
+\end{equation}
+which coincides with the real part of the calculated $P$.
 
 
 \subsection{Absorbing Boundary Conditions (ABC)} 

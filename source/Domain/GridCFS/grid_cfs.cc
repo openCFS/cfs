@@ -1652,6 +1652,26 @@ namespace CoupledField {
 
   }
 
+  void GridCFS::SetNodeOffset( const UInt node, const Point& offset ){
+  
+    // Check if node offsets were already set
+    if( deltCoords_.GetSize() == 0 ) {
+      deltCoords_.Resize( coords_.GetSize() );
+      deltCoords_.Init();
+    }
+
+    deltCoords_[node] = offset;
+
+  }
+
+  void GridCFS::GetNodeOffset(const UInt node, Point& offset){
+    if(deltCoords_.GetSize()==0){
+      offset.SetZero();
+    }else{
+      offset = deltCoords_[node];
+    }
+  }
+
 
   void GridCFS::SetNodeOffset( const StdVector<UInt>& nodes,
                                const Vector<Double>& offsets ) {

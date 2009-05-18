@@ -381,6 +381,8 @@ namespace CoupledField {
       out = MECH_RHS_LOAD;
     else if (in == "mechPseudoDensity")
       out = MECH_PSEUDO_DENSITY;
+    else if (in == "mechShape")
+      out = MECH_SHAPE;
     //electrostatics
     else if (in == "elecPotential")
       out = ELEC_POTENTIAL;
@@ -523,6 +525,12 @@ namespace CoupledField {
       out = OPT_RESULT_5;
     else if (in == "optResult_6")
       out = OPT_RESULT_6;
+    else if (in == "optResult_7")
+      out = OPT_RESULT_7;
+    else if (in == "optResult_8")
+      out = OPT_RESULT_8;
+    else if (in == "optResult_9")
+      out = OPT_RESULT_9;
 
     // independent
     else if (in == "LagrangeMultiplier")
@@ -575,6 +583,10 @@ namespace CoupledField {
 
       case MECH_RHS_LOAD:
         out = "mechRhsLoad";
+        break;
+        
+      case MECH_SHAPE:
+        out = "mechShape";
         break;
 
         //electrostatics
@@ -781,7 +793,16 @@ namespace CoupledField {
       case OPT_RESULT_6:
         out = "optResult_6";
         break;
-        
+      case OPT_RESULT_7:
+        out = "optResult_7";
+        break;
+      case OPT_RESULT_8:
+        out = "optResult_8";
+        break;
+      case OPT_RESULT_9:
+        out = "optResult_9";
+        break;
+      
         // independent
       case LAGRANGE_MULT:
         out = "LagrangeMultiplier";

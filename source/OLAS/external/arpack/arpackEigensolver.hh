@@ -12,6 +12,8 @@
 namespace CoupledField {
   
   class StdMatrix;
+  class InfoNode;
+  class ParamNode;
   
   // =========================================================================
   //   ARPACK SOLVER
@@ -24,7 +26,7 @@ namespace CoupledField {
   public:
     
     //! Default Constructor
-    ArpackEigenSolver( ParamNode* xml, 
+    ArpackEigenSolver( ParamNode* xml, InfoNode* eigenInfo,
                        OLAS_Params *myParams, 
                        OLAS_Report *myReport );
     
@@ -122,8 +124,11 @@ namespace CoupledField {
     //! Pointer to precond object
     BasePrecond * precond_;
 
-    //! Attribute for xml paramnode of <solver> section
+    /** Attribute for xml paramnode of <solver> section */
     ParamNode * xml_;
+    
+    /** Subsection within the OLAS linear system */
+    InfoNode* eigenInfo_;
 
     //! Flag indicating if problem is generalized problem
     bool isGeneralized_;

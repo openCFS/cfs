@@ -187,7 +187,7 @@ namespace CoupledField {
       myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    InfoNode* list = infoNode_->Get(InfoNode::HEADER)->Get("regions");
+    InfoNode* list = infoNode_->Get(InfoNode::HEADER);
 
     // output and set subdoms_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
@@ -1496,7 +1496,11 @@ namespace CoupledField {
     }
   }
 
-  void SinglePDE::ReadRegionLoads( ) {
+  void SinglePDE::ReadRegionLoads(){
+    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", false), regionLoads_);
+  }
+  
+  void SinglePDE::ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
 
     StdVector<std::string> names, dofs, refCoord, type, phase;
     StdVector<std::string> tempNames, tempDofs,  tempPhase;
@@ -1534,7 +1538,6 @@ namespace CoupledField {
       // when called by an external script)
 
       // try to get bcsAndLoads node
-      ParamNode * bcNode = myParam_->Get("bcsAndLoads", false);
       if( !bcNode )
         return;
       StdVector<ParamNode*> loadNodes = bcNode->GetList("regionLoad");
@@ -1606,13 +1609,13 @@ namespace CoupledField {
       RegionLoad * curLoad;
 
       std::map<RegionIdType, RegionLoad>::iterator it;
-      it = regionLoads_.find( regionIds[i] );
+      it = regloads.find( regionIds[i] );
 
-      if ( it == regionLoads_.end() ) {
-        regionLoads_.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
+      if ( it == regloads.end() ) {
+        regloads.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
                                                                              RegionLoad( dim_, isaxi_ ) ) );
       }
-      it = regionLoads_.find( regionIds[i] );
+      it = regloads.find( regionIds[i] );
       curLoad = & (*it).second;
 
       // -- Fill in the data we have so far --
@@ -1848,15 +1851,12 @@ namespace CoupledField {
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...)
   // ======================================================
-  void SinglePDE::DefineAlgSys() {
-
-
-
+  void SinglePDE::DefineAlgSys() 
+  {
     // First check if the PDE needs an algebraic system at all
     if( needsAlgsys_ == false ) {
       return;
     }
-
 
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id.
@@ -1870,7 +1870,9 @@ namespace CoupledField {
 
       // Set linear system parameters for OLAS
       ReadOlasParams( pdename_ );
-
+      olasInfo_ = info->Get("OLAS")->Get(pdename_);
+      
+      
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 

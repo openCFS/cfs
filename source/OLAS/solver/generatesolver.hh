@@ -16,6 +16,7 @@ namespace CoupledField {
   class BaseSolver;
   class BaseMatrix;
   class ParamNode;
+  class InfoNode;  
   class OLAS_Params;
   class OLAS_Report;
   
@@ -25,13 +26,15 @@ namespace CoupledField {
   //! to the input matrix and return a pointer to that object.
   //! \param mat    %Matrix that is preconditioned
   //! \param solver Type of desired solver
-  //! \param xml    Pointer to ParamNode of <solver> section    
+  //! \param xml    Pointer to ParamNode of <solver> section
+  //! \param olasInfo base below "OLAS" in info.xml
   //! \param params Pointer to a parameter object with steering parameters
   //!               for the solver that is to be generated
   //! \param report Pointer to report object into which the generated solver
   //!               should write its solutiopn report.
   BaseSolver* GenerateSolverObject( const BaseMatrix &mat, SolverType solver,
-                                    ParamNode* xml, OLAS_Params *params, OLAS_Report *report );
+                                    ParamNode* xml, InfoNode* olasInfo,
+                                    OLAS_Params *params, OLAS_Report *report );
 
 }
 

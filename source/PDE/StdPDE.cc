@@ -13,6 +13,7 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 
@@ -51,8 +52,7 @@ namespace CoupledField {
     isSetInitialCondition_ = false;
     InitialCondition_=0.0;
     isInstationary_ = false;
-    
-
+    olasInfo_ = NULL; // set in the child-nodes
     // =====================================================================
     // set file pointers
     // =====================================================================
@@ -81,7 +81,9 @@ namespace CoupledField {
 
   }
   
-  StdPDE::~StdPDE() {
+  StdPDE::~StdPDE() 
+  {
+    
   }
 
 
@@ -179,13 +181,13 @@ namespace CoupledField {
       
       // create solver and preconditioner
       SETPROFILE("Before CreateSolver()");
-      algsys_->CreateSolver();
+      algsys_->CreateSolver(olasInfo_);
       SETPROFILE("Before CreatePrecond()");
       algsys_->CreatePrecond();
       
     } else {
       // create eigenvalue solver
-      algsys_->CreateEigenSolver();
+      algsys_->CreateEigenSolver(olasInfo_->Get("eigenSolver"));
     }
         
     // now reset AlgebraicSystem 

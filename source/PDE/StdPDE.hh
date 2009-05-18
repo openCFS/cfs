@@ -222,7 +222,7 @@ namespace CoupledField {
     //! Init the time stepping
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};
-
+    
     virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
@@ -555,6 +555,9 @@ namespace CoupledField {
   
     OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
     OLAS_Report * olasReport_; //!< pointer to report object of OLAS
+    
+    /** This is the node for linear system responsible for this pde. */
+    InfoNode* olasInfo_;
     
     //! flag to check if there are initial conditions in the set up
     bool isSetInitialCondition_;

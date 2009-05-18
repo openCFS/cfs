@@ -13,6 +13,7 @@ namespace CoupledField
 {
 
   class BaseForm;
+  class LinearFormContext;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -82,6 +83,29 @@ namespace CoupledField
 
     //! Calculate result for given result class
     void CalcResults( shared_ptr<BaseResult> results );
+    
+    // ======================================================
+    // INTERFACE USED BY OPTIMIZATION, MULTI-LOAD
+    // ======================================================
+    
+    /** export of methods to generate Linear Forms used in multiload-cases by optimization
+     * @param pressSurf as returned from ReadPressureLoadsFromXML
+     * @param pressVals as returned from ReadPressureLoadsFromXML
+     * @param pressPhase as returned from ReadPressureLoadsFromXML
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, std::set<LinearFormContext*>* linForms = NULL);
+    
+    /** export of methods to generate Linear Forms used in multiload-cases by optimization 
+     * @param regionLoads as returned from ReadRegionLoadsFromXML
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms = NULL);
+
+    /** Does the actual reading of pressure loads, also called from optimization 
+     * @param bcNode paramnode that has "pressure" nodes as children 
+     * @param pressSurf StdVector containing the information
+     * @param pressVals StdVector containing the information
+     * @param pressPhase StdVector containing the information */
+    void ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
 
   protected:
 
@@ -109,6 +133,7 @@ namespace CoupledField
     template<class TYPE>
     TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord,
                         Vector<TYPE> disp);
+    void ExtractNodeOffset(shared_ptr<BaseResult> result);
 
 
     //! Nodestoresol for RHS
@@ -216,7 +241,7 @@ namespace CoupledField
 
     //! read pressure loads
     void ReadPressureLoads();
-
+    
     //! read in softening types
     void ReadSoftening();
 
