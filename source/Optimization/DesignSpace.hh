@@ -34,7 +34,7 @@ namespace CoupledField
      DesignSpace(StdVector<RegionIdType>& regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
          ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
-     ~DesignSpace();
+     virtual ~DesignSpace();
     
      /** creates the corresponding DesignSpace object depending on the method */
      static DesignSpace* CreateInstance(StdVector<RegionIdType> regionIds, StdVector<ParamNode*>& design, StdVector<ParamNode*>& transfer, StdVector<ParamNode*>& result,
