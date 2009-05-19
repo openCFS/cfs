@@ -8,7 +8,7 @@
 
 namespace CoupledField {
 
-  /** This implements a function from $R^n$ to $R^{d \times d} for transforming a vector of Parameters
+  /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
    * to a material tensor.  */
   class DesignMaterial {
     
