@@ -125,7 +125,7 @@ namespace CoupledField
              }
              
              /** Tychonoff regularization parameter */
-             const double TychonoffParameter(){ return tychonoff_; }
+             double TychonoffParameter(){ return tychonoff_; }
 
            private:
 
