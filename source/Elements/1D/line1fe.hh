@@ -75,7 +75,8 @@ namespace CoupledField
     /** Sets the default reduced numerical integration */
     void SetDefaultReducedIntegration()
     {
-      SetDefaultIntegration();
+      IntegMethod = ECONOMICAL;
+      IntegOrder  = 1; // NOT confirmed :( - Fabian
     }
 
     //! Get the local coordinates for given global ones

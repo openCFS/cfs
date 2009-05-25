@@ -25,7 +25,7 @@ namespace CoupledField
     virtual Elem::FEType feType() {
       return Elem::WEDGE15;
     };
-
+    
   protected:
     //! Define variables of this class
     virtual void Init();
@@ -60,6 +60,21 @@ namespace CoupledField
                                          const Vector<Double> & LCoord,
                                          const Elem* elem , UInt dof,
                                          AnsatzFct::FctEntityType );
+
+    //! Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration() {
+      // no alternative :)
+      IntegMethod = CLASSICAL;
+      IntegOrder  = 5;
+    }
+
+    //! Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration() {
+      // no alternative :)
+      IntegMethod = CLASSICAL;
+      IntegOrder  = 3;
+    }
+
 
     // ============================= methods for edge elements =======================
     // ===============================================================================

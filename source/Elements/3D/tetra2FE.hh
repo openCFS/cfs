@@ -100,14 +100,14 @@ protected:
     void SetDefaultIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 2;
+        IntegOrder  = 5;
     }
 
     /** Sets the default reduced integration  */ 
     void SetDefaultReducedIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 2;
+        IntegOrder  = 3;
     }
 
 

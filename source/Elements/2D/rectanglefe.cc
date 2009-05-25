@@ -253,6 +253,7 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,  1 },                        
     };
     AddIntegrationPoints(CLASSICAL, 2, 4, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 3, 4, (Double*) c2);
 
     // one integration point more than ECONOMICAL
     static Double c5[][3] = { 
@@ -266,6 +267,7 @@ namespace CoupledField
       {  0.0,                0.774596669241483,   0.493827 },
       {  0.774596669241483,  0.774596669241483,   0.308642 }
     };
+    AddIntegrationPoints(CLASSICAL, 4, 9, (Double*) c5);
     AddIntegrationPoints(CLASSICAL, 5, 9, (Double*) c5);
 
     static Double l1[][3] = { 

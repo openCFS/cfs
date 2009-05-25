@@ -51,22 +51,6 @@ namespace CoupledField
                                            const Vector<Double> & surfIntPoint,
                                            Vector<Double> & volIntPoint);
 
-    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
-    void SetDefaultIntegration()
-    {
-        // no alternative :)
-        IntegMethod = CLASSICAL;
-        IntegOrder  = 2;
-    }
-
-    /** Sets the default reduced integration  */ 
-    void SetDefaultReducedIntegration()
-    {
-        // no alternative :)
-        IntegMethod = CLASSICAL;
-        IntegOrder  = 2;
-    }
-
     //! Returns wether a given local coordinate is
     //! within this element
     //! \param localCoords (input) local coordinates

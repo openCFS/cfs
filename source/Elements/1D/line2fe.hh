@@ -61,14 +61,14 @@ namespace CoupledField
     void SetDefaultIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 3; // 2+3 are same -> avoid msg
+        IntegOrder  = 5; // 2+3 are same -> avoid msg
     }
 
     /** Sets the default reduced integration */ 
     void SetDefaultReducedIntegration()
     {
         IntegMethod = ECONOMICAL;
-        IntegOrder  = 1; 
+        IntegOrder  = 3; 
     }
 
     //! Get the local coordinates for given global ones

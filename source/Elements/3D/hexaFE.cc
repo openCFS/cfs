@@ -1438,7 +1438,8 @@ namespace CoupledField
       { -0.57735026919,   0.57735026919,   0.57735026919,  1.000000000000000 },
     };
       
-    AddIntegrationPoints(CLASSICAL, 1, 8, (Double*) c1_2FE);         
+    AddIntegrationPoints(CLASSICAL, 2, 8, (Double*) c1_2FE);         
+    AddIntegrationPoints(CLASSICAL, 3, 8, (Double*) c1_2FE);
       
     static Double c2[][4] = { 
       { -0.7745966692415,  -0.7745966692415,  -0.7745966692415,  0.171467764060357},
@@ -1469,7 +1470,8 @@ namespace CoupledField
       {  0.7745966692415,   0.7745966692415,   0.0            ,  0.274348422496571},
       {  0.7745966692415,   0.7745966692415,   0.7745966692415,  0.171467764060357},
     };
-    AddIntegrationPoints(CLASSICAL, 2, 27, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 4, 27, (Double*) c2);
+    AddIntegrationPoints(CLASSICAL, 5, 27, (Double*) c2);
     
      static Double l1[][4] = {
         {  1,     1,     1,     1},

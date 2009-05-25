@@ -70,7 +70,7 @@ namespace CoupledField
     void SetDefaultReducedIntegration()
     {
       IntegMethod = SPECIAL;
-      IntegOrder  = 1; 
+      IntegOrder  = 3; 
       SetIntPoints(IntegMethod,IntegOrder);
     }
 
