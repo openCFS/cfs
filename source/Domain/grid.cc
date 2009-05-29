@@ -854,9 +854,11 @@ namespace CoupledField
     Vector<Double> diffS, diffX, diffY, diffX2;
     Vector<Double> s, t;
     StdVector<UInt> connect2;
-    Double distX, distY, facX, facY, r;
+    Double distX, distY, distX2, facX, facY, r;
     UInt nodeNr;
-    const Double tol_r = 1e-5;
+    // Introduce a tolerance to account for roundoff errors during the calculation of
+    // normed new x base vector. 
+    Double tol_r;
 
     s.Resize(4);
     t.Resize(4);
@@ -915,8 +917,15 @@ namespace CoupledField
     s[3] *= facY;
 
     // Determine the orientation of the second rectangle
+    // to make sure that the edges which connect c0 and c1
+    // are parallel to the edges which connect d0 and d1.
     diffX2 = d1 - d0;
+    distX2 = diffX2.NormL2();
     diffX.Inner(diffX2, r);
+
+    // Set the tolerance for determining if the edges 
+    // mentioned in the last comment are parallel.
+    tol_r = distX2 < distX ? distX2 / 10 : distX / 10;
 
     // Bring the x- and y-coordinates of the intersection
     // into an order, where the smaller coordinates come
