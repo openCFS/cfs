@@ -361,6 +361,7 @@ share/xsl/extract_first_results_harmonic.xsl -text
 share/xsl/extract_last_design_line.xsl -text
 share/xsl/extract_last_results.xsl -text
 share/xsl/extract_last_results_harmonic.xsl -text
+share/xsl/extract_results.xsl -text
 share/xsl/meta_optimization_subiterations.xsl -text
 source/CoupledPDE/AcouMechCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/AcouMechCoupling.hh svneol=native#text/x-c%2B%2Bhdr
