@@ -120,6 +120,10 @@ namespace CoupledField
 @SETTINGS@
     // Other settings
     settings.SetString("baseExeDir", baseDir);
+
+    if(settings.GetString("xmlFile") != "")
+      settings.InitParamNode(settings.GetString("xmlFile"));
+    
   }
 
 

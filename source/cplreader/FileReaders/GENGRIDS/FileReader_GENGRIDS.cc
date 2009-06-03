@@ -34,7 +34,7 @@ namespace CoupledField
                          maxNumElemNodes_,
                          regionElems_,
                          nodeGroups_,
-                         RectilinearUniformGridGenerator::SERENDIPITY);
+                         RectilinearUniformGridGenerator::LAGRANGE);
 
  #if 0    
     shellGen.GenSphericalShell(nodalCoords_,

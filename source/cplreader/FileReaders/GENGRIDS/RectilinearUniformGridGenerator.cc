@@ -7,6 +7,7 @@
 #include <iterator>
 
 #include "Domain/elem.hh"
+#include "cplreader/Settings.hh"
 #include "RectilinearUniformGridGenerator.hh"
 
 namespace CoupledField
@@ -27,6 +28,9 @@ namespace CoupledField
     coords.clear();
     connect.clear();
     elemTypes.clear();
+    Settings& settings = Settings::Instance();
+    
+    ParamNode *param = settings.GetParamNode();
     
     std::vector<Double> xCoords;
     std::vector<Double> yCoords;
@@ -58,21 +62,158 @@ namespace CoupledField
     zNElems.push_back(1);
     */
 
-    /*
     // Cube 3D
     xCoords.push_back(0);
-    xNElems.push_back(10);
+    xNElems.push_back(1);
     xCoords.push_back(1);
 
     yCoords.push_back(0);
-    yNElems.push_back(10);
+    yNElems.push_back(1);
     yCoords.push_back(1);
 
     zCoords.push_back(0);
-    zNElems.push_back(10);
+    zNElems.push_back(1);
     zCoords.push_back(1);
-    */
 
+    ParamNode* typeNode = NULL;
+
+    if(param) 
+    {
+      typeNode = param->Get("type");
+      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      {
+        std::cout << "GENGRIDS node found!" << std::endl;
+        
+        std::string elemTypeName = "HEXA8";
+        ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+
+        if(elemTypeNode) {
+          elemTypeNode->Get("name", elemTypeName, false);
+        }
+        
+        if(elemTypeName == "HEXA8") {
+          hexaType = LINEAR;
+        }
+        if(elemTypeName == "HEXA20") {
+          hexaType = SERENDIPITY;
+        }
+        if(elemTypeName == "HEXA27") {
+          hexaType = LAGRANGE;
+        }
+        
+        StdVector<ParamNode*> xyzCoordNodes = typeNode->Get("samplingIntervalls")->GetList("coordinates");
+        for(UInt i=0; i<xyzCoordNodes.GetSize(); i++) 
+        {
+          std::string coordAxis = xyzCoordNodes[i]->Get("axis")->AsString();
+          std::cout << coordAxis << std::endl;
+          StdVector<ParamNode*> coords = xyzCoordNodes[i]->GetList("coord");
+          UInt nCoords = coords.GetSize();
+          
+          if(!nCoords)
+            continue;
+
+          std::vector<Double> coordVec(nCoords);
+          std::stringstream sstr;
+          Double val;
+          
+          for(UInt j=0; j<nCoords; j++) 
+          {
+            std::string coordType = coords[j]->Get("type", false)->AsString();
+            std::cout << coordType << " " << coords[j]->AsString() << std::endl;
+            sstr.clear();
+            sstr.str("");
+            sstr << coords[j]->AsString();
+            sstr >> val;
+            if(coordType == "increment") 
+            {
+              if(coordVec.empty())
+                EXCEPTION("Cannot increment " << coordAxis << "-coords on empty vector (" << val<< ")!");
+              
+              coordVec[j] = coordVec[j-1] + val;
+            } else 
+            {
+              coordVec[j] = val;
+            }
+          }
+
+          if(coordAxis == "x") 
+          {
+            xCoords = coordVec;
+            xNElems.resize(xCoords.size()-1);
+            std::fill(xNElems.begin(), xNElems.end(), 1);          
+          }
+          if(coordAxis == "y") 
+          {
+            yCoords = coordVec;
+            yNElems.resize(yCoords.size()-1);
+            std::fill(yNElems.begin(), yNElems.end(), 1);          
+          }
+          if(coordAxis == "z") 
+          {
+            zCoords = coordVec;
+            zNElems.resize(zCoords.size()-1);
+            std::fill(zNElems.begin(), zNElems.end(), 1);          
+          }
+        }
+
+        StdVector<ParamNode*> xyzElements = typeNode->Get("intervallElements")->GetList("elements");
+        for(UInt i=0; i<xyzElements.GetSize(); i++) 
+        {
+          std::string coordAxis = xyzElements[i]->Get("axis")->AsString();
+          std::cout << coordAxis << std::endl;
+          StdVector<ParamNode*> elems = xyzElements[i]->GetList("elems");
+          UInt nElems = elems.GetSize();
+          
+          if(!nElems)
+            continue;
+
+          std::vector<UInt> elemsVec(nElems);
+          std::stringstream sstr;
+          UInt val;
+          
+          for(UInt j=0; j<nElems; j++) 
+          {
+            sstr.clear();
+            sstr.str("");
+            sstr << elems[j]->AsString();
+            sstr >> val;
+            elemsVec[j] = val;
+          }
+
+          if(coordAxis == "x") 
+          {
+            for(UInt j=0; j<elemsVec.size() && j<xNElems.size(); j++) 
+            {
+              xNElems[j] = elemsVec[j];
+            }
+          }
+          if(coordAxis == "y") 
+          {
+            for(UInt j=0; j<elemsVec.size() && j<yNElems.size(); j++) 
+            {
+              yNElems[j] = elemsVec[j];
+            }
+          }
+          if(coordAxis == "z") 
+          {
+            for(UInt j=0; j<elemsVec.size() && j<zNElems.size(); j++) 
+            {
+              zNElems[j] = elemsVec[j];
+            }
+          }
+        }
+
+        
+
+      }
+      else 
+      {
+        typeNode = NULL;
+      }      
+    }
+    
+
+    /*
     Double xCoord = 0;
     xCoords.push_back(xCoord);
     xNElems.push_back(5); // 10
@@ -108,21 +249,103 @@ namespace CoupledField
     zCoords.push_back(1.0e-3);
     zNElems.push_back(2);
     zCoords.push_back(2.0e-3);
+    */
 
     CreateMesh(xCoords, yCoords, zCoords,
                xNElems, yNElems, zNElems, hexaType);
+
+    std::map< std::string, std::vector<std::string> > regionMap;
+    std::map< std::string, std::vector<std::string> >::iterator it, end;
     
-    UInt numElems = connect_.size() / maxNumElemNodes_;
-    std::cout << "NumElems: " << numElems << std::endl;
-    
-    for(UInt i=0; i<numElems; i++) 
+    if(typeNode)
     {
-      UInt regionIdx = regions_[i];
-      regionElems[regionNames_[regionIdx]].push_back(i+1);
+      ParamNode* regionsNode = typeNode->Get("regions", false);
+      std::cout << "Type node exists" << std::endl;
+      
+      if(regionsNode) 
+      {
+        std::cout << "Region node exists" << std::endl;
+
+        StdVector<ParamNode*> regions = regionsNode->GetList("region");
+        UInt nRegions = regions.GetSize();
+        
+        for(UInt i=0; i<nRegions; i++) 
+        {
+          std::cout << "region " << regions[i]->Get("name")->AsString() << std::endl;
+
+          StdVector<ParamNode*> prelimRegions = regions[i]->GetList("prelimRegion");
+          UInt nPrelimRegions = prelimRegions.GetSize();
+          for(UInt j=0; j<nPrelimRegions; j++) 
+          {
+            std::cout << "prelimRegion " << prelimRegions[j]->AsString() << std::endl;
+            regionMap[regions[i]->Get("name")->AsString()].push_back(prelimRegions[j]->AsString());
+          }
+        }
+      }
+    }
+
+    //    regionMap["myRegion"].push_back("volume_1_1_1");
+    //    regionMap["myRegion"].push_back("volume_2_1_1");
+    
+    //    regionMap["mySurf"].push_back("surf_top_1_1_1");
+    //    regionMap["mySurf"].push_back("surf_top_2_1_1");
+    UInt numElems = connect_.size() / maxNumElemNodes_;
+    
+    if(!regionMap.empty())  
+    {
+      it = regionMap.begin();
+      end = regionMap.end();
+      UInt elem = 0;
+      for( ; it != end; it++ ) 
+      {
+        std::cout << "Searching elements for region " << it->first << std::endl;
+        
+        std::vector<std::string>::iterator regionIt, regionEnd, regionNamesIt;
+        regionIt = it->second.begin();
+        regionEnd = it->second.end();
+        for(; regionIt != regionEnd; regionIt++) 
+        {
+          
+          std::cout << "Searching elements inside preliminary region " << (*regionIt) << std::endl;
+          UInt regionIdx = 0;
+          regionNamesIt = std::find(regionNames_.begin(), regionNames_.end(), *regionIt);
+          if(regionNamesIt == regionNames_.end())
+            continue;
+          
+          regionIdx = std::distance(regionNames_.begin(), regionNamesIt);
+          std::cout << "Found region index " << regionIdx << std::endl;
+          
+          UInt i;
+          for(i=0; i<numElems && regions_[i] != regionIdx; i++) { }
+          std::cout << "Found element index " << i << std::endl;
+          for(; i<numElems; i++) {
+            if(regions_[i] == regionIdx) 
+            {  
+              std::cout << "Adding element " << i << std::endl;
+              regionElems[it->first].push_back(++elem);
+              elemTypes.push_back(elemTypes_[i]);
+              std::copy(connect_.begin()+i*maxNumElemNodes_,
+                        connect_.begin()+(i+1)*maxNumElemNodes_,
+                        std::back_inserter(connect));
+            }
+          }
+        }
+      }
+    }
+    else 
+    {
+      std::cout << "NumElems: " << numElems << std::endl;
+
+      for(UInt i=0; i<numElems; i++)
+      {
+        UInt regionIdx = regions_[i];
+        regionElems[regionNames_[regionIdx]].push_back(i+1);
+      }
+    
+      elemTypes = elemTypes_;
+      connect = connect_;
     }
     
-    elemTypes = elemTypes_;
-    connect = connect_;
     coords = coords_;
     maxNumElemNodes = maxNumElemNodes_;
     nodeGroups = nodeGroups_;
@@ -268,6 +491,22 @@ namespace CoupledField
           sstr.str(""); sstr.clear(); sstr << "surf_back_" << xyzIdx;
           regionNames_.push_back(sstr.str());
 
+          if(zIdx == 0) 
+          {
+            sstr.str(""); sstr.clear(); sstr << "lines_left_" << xyzIdx;
+            regionNames_.push_back(sstr.str());
+
+            sstr.str(""); sstr.clear(); sstr << "lines_right_" << xyzIdx;
+            regionNames_.push_back(sstr.str());
+
+            sstr.str(""); sstr.clear(); sstr << "lines_front_" << xyzIdx;
+            regionNames_.push_back(sstr.str());
+
+            sstr.str(""); sstr.clear(); sstr << "lines_back_" << xyzIdx;
+            regionNames_.push_back(sstr.str());
+          }
+          
+
           for(UInt xNE=0; xNE < xNElems[xIdx]; xNE++) 
           {
             for(UInt yNE=0; yNE < yNElems[yIdx]; yNE++) 
@@ -360,6 +599,97 @@ namespace CoupledField
                     break;
                   }
                   elem++;
+                  
+                  if(zIdx == 0) 
+                  {
+                    if(xNE == 0) 
+                    {  
+                      // Lines Left
+                      std::fill(myConnect.begin(), myConnect.end(), 0);
+                      myConnect[0] = hex27Con[0];
+                      myConnect[1] = hex27Con[3];
+                      myConnect[2] = hex27Con[11];
+                      std::copy(myConnect.begin(), myConnect.end(), std::back_inserter(connect_));
+                      regions_.push_back(regionIdx+7);
+                      switch(hexaType) 
+                      {
+                      case LINEAR:
+                        elemTypes_.push_back(Elem::LINE2);
+                        break;
+                      case SERENDIPITY:
+                      case LAGRANGE:
+                        elemTypes_.push_back(Elem::LINE3);
+                        break;
+                      }
+                      elem++;
+                    }
+                    
+                    if(xNE == xNElems[xIdx]-1)  
+                    {  
+                      // Lines Right
+                      std::fill(myConnect.begin(), myConnect.end(), 0);
+                      myConnect[0] = hex27Con[1];
+                      myConnect[1] = hex27Con[2];
+                      myConnect[2] = hex27Con[9];
+                      std::copy(myConnect.begin(), myConnect.end(), std::back_inserter(connect_));
+                      regions_.push_back(regionIdx+8);
+                      switch(hexaType) 
+                      {
+                      case LINEAR:
+                        elemTypes_.push_back(Elem::LINE2);
+                        break;
+                      case SERENDIPITY:
+                      case LAGRANGE:
+                        elemTypes_.push_back(Elem::LINE3);
+                        break;
+                      }
+                      elem++;
+                    }
+                    
+                    if(yNE == 0) 
+                    {  
+                      // Lines Front
+                      std::fill(myConnect.begin(), myConnect.end(), 0);
+                      myConnect[0] = hex27Con[0];
+                      myConnect[1] = hex27Con[1];
+                      myConnect[2] = hex27Con[8];
+                      std::copy(myConnect.begin(), myConnect.end(), std::back_inserter(connect_));
+                      regions_.push_back(regionIdx+9);
+                      switch(hexaType) 
+                      {
+                      case LINEAR:
+                        elemTypes_.push_back(Elem::LINE2);
+                        break;
+                      case SERENDIPITY:
+                      case LAGRANGE:
+                        elemTypes_.push_back(Elem::LINE3);
+                        break;
+                      }
+                      elem++;
+                    }
+                    
+                    if(yNE == yNElems[yIdx]-1) 
+                    {  
+                      // Lines Back
+                      std::fill(myConnect.begin(), myConnect.end(), 0);                
+                      myConnect[0] = hex27Con[2];
+                      myConnect[1] = hex27Con[3];
+                      myConnect[2] = hex27Con[10];
+                      std::copy(myConnect.begin(), myConnect.end(), std::back_inserter(connect_));
+                      regions_.push_back(regionIdx+10);
+                      switch(hexaType) 
+                      {
+                      case LINEAR:
+                        elemTypes_.push_back(Elem::LINE2);
+                        break;
+                      case SERENDIPITY:
+                      case LAGRANGE:
+                        elemTypes_.push_back(Elem::LINE3);
+                        break;
+                      }
+                      elem++;
+                    }
+                  }
                 }
                 
                 if(zNE == zNElems[zIdx]-1) 
@@ -531,7 +861,10 @@ namespace CoupledField
           }
 
           regionIdx += 7;
-          
+          if(zIdx == 0) 
+          {
+            regionIdx += 4;
+          }
         }
       }
     }

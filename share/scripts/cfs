@@ -209,6 +209,11 @@ fi
 # Set path to CFS executable
 CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
 
+# Set paths to HDF5 executables
+H5IMPORT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5import
+H5DUMP_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5dump
+H5TOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
+
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
     ANSYS)
@@ -296,10 +301,120 @@ then
     echo "Warning: MKL_NUM_THREADS overrides OMP_NUM_THREADS for Intel MKL!"
 fi
 
+# Determine name of simulation for extending result HDF5 file.
+last_was_param=0
+
+for token in "$@"; do
+#    echo ${token%[^-]*}
+#    echo ${token%%[^-]*}
+#    echo ${token#[^-]*}
+#    echo ${token##[^-]*}
+
+    param=`echo $token | sed 's/[^-]*$//g'`
+    #param=${token%%[^-]*}
+
+    if [ "$param" = "" ]; then
+#        echo "some kind of name"
+        if [ $last_was_param -eq 0 ]; then
+            sim_name=$token
+        fi
+        last_was_param=0
+    else
+#        echo "some parameter"
+        last_was_param=1
+    fi
+
+done
+
+# Initialize st_size and st_mtime to defined values and get the before/after
+# values of these variables to check if HDF5 file has changed.
+st_size="0"
+st_mtime="0"
+
+hdf5_file_name="results_hdf5/${sim_name}.h5"
+if [ ! "$sim_name" = "" ] && [ -r "$hdf5_file_name" ]; then
+    if [ "$OS" = "Mac" ]; then
+        eval "$(stat -s $hdf5_file_name)"
+        st_size_before=$st_size
+        st_mtime_before=$st_mtime
+    else
+        st_size_before=$(stat --format %s $hdf5_file_name)
+        st_mtime_before=$(stat --format %Y $hdf5_file_name)
+    fi
+fi
+
+
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
- $CFS_EXE "$@";
+    $CFS_EXE "$@";
+    # If CFS++ returned with an error return code, let's also return an error.
+    if [ ! $? -eq 0 ]; then
+       exit 1
+    fi
 else
- $CFS_EXE;
+    $CFS_EXE;
+    exit 0;
 fi
+
+
+# Get file state of output HDF5 file
+if [ -r "$hdf5_file_name" ]; then
+    if [ "$OS" = "Mac" ]; then
+        eval "$(stat -s $hdf5_file_name)"
+        st_size_after=$st_size
+        st_mtime_after=$st_mtime
+    else
+        st_size_after=$(stat --format %s $hdf5_file_name)
+        st_mtime_after=$(stat --format %Y $hdf5_file_name)
+    fi
+fi
+
+# If HDF5 file did not change just exit
+if [ "$st_size_before" = "$st_size_after" ] && [ "$st_mtime_before" = "$st_mtime_after" ]; then
+    exit 0
+fi
+
+# Create OS-specific hardware info files
+if [ "$OS" = "Mac" ]; then
+    system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
+    OSFILELIST="macosx_info.txt";
+    STATCMD="stat -x"
+fi
+if [ "$OS" = "Linux" ]; then
+    cat /proc/cpuinfo > linux_cpuinfo.txt
+    cat /proc/meminfo > linux_meminfo.txt
+    OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
+    STATCMD="stat"
+fi
+
+# Create dump of environment (OMP_NUM_THREADS, etc.)
+env | sort > environment_info.txt
+
+# Setup a file list which should be imported to the HDF5 file
+FILELIST="$OSFILELIST environment_info.txt ${sim_name}.deb ${sim_name}.info ${sim_name}.info.xml ${sim_name}.las ${sim_name}.mem"
+
+# Error checking function
+ErrorCheck () {  if [ ! $? -eq 0 ]; then echo "An error occurred while importing $file into HDF5!"; fi }
+
+# Iterate over all files and import them
+for file in $FILELIST; do
+    if [ -r $file ]; then
+	CMDSTR="dataset\ncreate\n$hdf5_file_name\n/UserData\nstring\n${file}\nignore\n"
+	printf $CMDSTR > tmp.dat
+	echo "Output of '$STATCMD $file': " >> tmp.dat
+	$STATCMD $file >> tmp.dat
+	echo >> tmp.dat
+	echo "================================================================================" >> tmp.dat
+	cat ${file} >> tmp.dat
+	$H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
+	rm -f tmp.dat
+    fi
+done
+
+# Delete OS-specific files
+for file in $OSFILELIST; do
+    if [ -r $file ]; then
+	rm -f $file
+    fi
+done

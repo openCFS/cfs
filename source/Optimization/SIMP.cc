@@ -330,3 +330,8 @@ std::string SurfaceRef::ToString(int level)
   return os.str();
 }
 
+  // Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template bool SurfaceRef::Init<Double>(DesignSpace* design, Optimization::Application app);
+template bool SurfaceRef::Init<Complex>(DesignSpace* design, Optimization::Application app);
+#endif

@@ -178,6 +178,33 @@ namespace CoupledField
 
     // Determine the maximum number of element nodes
     maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
+    std::set<UInt> topoSet(topology_.begin(), topology_.end());
+    if(*topoSet.begin() == 0)
+      topoSet.erase(topoSet.begin());
+
+    std::set<UInt>::iterator topoIt, topoEnd;
+    topoIt = topoSet.begin();
+    topoEnd = topoSet.end();
+    
+    std::map<UInt, UInt> pointMap;
+    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
+    {
+      pointMap[*topoIt] = i+1;
+      std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
+      
+      UInt idxNew=i*3;
+      UInt idxOld=(*topoIt-1)*3;
+      nodalCoords_[idxNew+0] = nodalCoords_[idxOld+0];
+      nodalCoords_[idxNew+1] = nodalCoords_[idxOld+1];
+      nodalCoords_[idxNew+2] = nodalCoords_[idxOld+2];
+    }
+    nodalCoords_.resize(topoSet.size()*3);
+    
+
+    for( UInt i=0, n=topology_.size(); i<n; i++ ) 
+    {
+      topology_[i] = topology_[i] == 0 ? 0 : pointMap[topology_[i]];
+    }
 
     std::cout << "Writing nodal coords... ";
 

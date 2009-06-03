@@ -26,4 +26,4 @@ errorExit ()
     exit 1
 }
 
-$EXECUTABLE $*
+$EXECUTABLE "$@"

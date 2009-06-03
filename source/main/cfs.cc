@@ -49,7 +49,8 @@
 using namespace CoupledField;
 
 int main( int argc, const char **argv ) {
-
+  // CFS++ should return an error code, if an exception was caught!
+  int retVal = 0;
 
   // Check if the boost version is >= 1.34, as the boost::filesystem::path
   // interface has changed heavily.
@@ -419,6 +420,8 @@ int main( int argc, const char **argv ) {
       info->Get("status")->SetValue("aborted");
       info->ToFile();
     }
+
+    retVal = 1;
   }
 
 
@@ -427,5 +430,5 @@ int main( int argc, const char **argv ) {
   delete Info; // might be used in catch!
 
   // Seems that everything went fine
-  return 0;
+  return retVal;
 }

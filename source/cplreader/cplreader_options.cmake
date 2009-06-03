@@ -92,6 +92,13 @@ ADD_OPTION(type
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
   )
 
+ADD_OPTION(xmlFile
+  string
+  ""
+  "XML file containin options for cplreader."
+  "The XML file specified here contains informations for the file readers/writers."
+  )
+
 ADD_OPTION(basedir
   string
   .

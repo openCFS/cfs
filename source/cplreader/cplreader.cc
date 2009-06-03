@@ -61,7 +61,7 @@ namespace CoupledField
     std::string type = settings.GetString("type");
 
     std::ostringstream sstr;
-    if(type != "ANSYS")
+    if(type != "ANSYS" && type != "GENGRIDS")
     {
       sstr << settings.GetString("basedir") << "/" << settings.GetString("name");
     }
