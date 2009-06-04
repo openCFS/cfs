@@ -139,13 +139,7 @@ DEFINE_LOG(magpde, "magpde")
         NonLinType actType;
         String2Enum( actTypeString, actType );
 
-        // check type
-        if( actType == PERMEABILITY ) {
-          nonLin_ = true;
-        }
-        if( actType == HYSTERESIS ) {
-          isHysteresis_ = true;
-        }
+
         nonLinIdType_[actId] = actType;
       }
     }
@@ -176,10 +170,18 @@ DEFINE_LOG(magpde, "magpde")
         EXCEPTION( "NonLinearity with id '" << actNonLinId 
                    << "' was not defined in 'nonLinList'" );
       }
-      
+      NonLinType actType = nonLinIdType_[actNonLinId];
       regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-      
+      regionNonLinType_[actRegionId] = actType;
+
+      // check type
+      if( actType == PERMEABILITY ) {
+        nonLin_ = true;
+      }
+      if( actType == HYSTERESIS ) {
+        isHysteresis_ = true;
+      }
+
       // Log to info file
       std::string nonLinString;
       Enum2String( nonLinIdType_[actNonLinId], nonLinString );
@@ -1063,6 +1065,8 @@ DEFINE_LOG(magpde, "magpde")
         sum[j] += actVal[i*dim_+j];
       }
     }
+    std::cerr << "sum for region '" << actSol.GetEntityList()->GetName() << " is " 
+    << sum << std::endl;
   }
   
   
