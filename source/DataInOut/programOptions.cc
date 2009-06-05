@@ -92,6 +92,7 @@ namespace CoupledField {
       args_[i-1] = string( argv[i] );
     }
 
+    exe_ = argv[0];
   }
 
   ProgramOptions::~ProgramOptions()
@@ -478,9 +479,17 @@ namespace CoupledField {
            << fg_blue << CFS_VERSION << fg_reset << endl
 
            << "CFS_NAME:              "
-           << fg_blue << CFS_NAME << fg_reset << endl
+           << fg_blue << CFS_NAME << fg_reset << endl;
 
-           << "CFS_BUILD_HOST:        "
+    if(progOpts) 
+    {      
+      fs::path fn = fs::system_complete(progOpts->exe_);
+      fn.normalize();
+      outstr << "CFS_EXECUTABLE:        "
+             << fg_blue << fn.native_directory_string() << fg_reset << endl;
+    }
+    
+    outstr << "CFS_BUILD_HOST:        "
            << fg_blue << CFS_BUILD_HOST << fg_reset << endl
 
            << "CFS_BUILD_USER:        "

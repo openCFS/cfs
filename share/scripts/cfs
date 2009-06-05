@@ -243,7 +243,7 @@ fi
 # Check if we have the necessary executable for the current arch.
 if [ ! -e $CFS_EXE ]
 then 
-    echo "Cannot find CFS executable for architecture $ARCH_STR."
+    echo "Cannot find CFS++ executable for architecture $ARCH_STR."
     exit 3
 fi
 
@@ -390,9 +390,10 @@ fi
 
 # Create dump of environment (OMP_NUM_THREADS, etc.)
 env | sort > environment_info.txt
+OSFILELIST="$OSFILELIST environment_info.txt"
 
 # Setup a file list which should be imported to the HDF5 file
-FILELIST="$OSFILELIST environment_info.txt ${sim_name}.deb ${sim_name}.info ${sim_name}.info.xml ${sim_name}.las ${sim_name}.mem"
+FILELIST="$OSFILELIST ${sim_name}.deb ${sim_name}.info ${sim_name}.info.xml ${sim_name}.las ${sim_name}.mem"
 
 # Error checking function
 ErrorCheck () {  if [ ! $? -eq 0 ]; then echo "An error occurred while importing $file into HDF5!"; fi }

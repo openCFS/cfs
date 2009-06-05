@@ -204,6 +204,9 @@ namespace CoupledField
     //! Command line arguments as vector
     std::vector<std::string> args_;
 
+    //! Path to executable
+    std::string exe_;
+
     //! Help message as string
     std::string helpMsg_;
 
