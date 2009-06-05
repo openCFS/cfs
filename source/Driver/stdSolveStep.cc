@@ -96,18 +96,18 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepStatic(const std::string& comment) {
+  void StdSolveStep::SolveStepStatic(InfoNode* analysis_id) {
 
     if (nonLin_) {
-      StepStaticNonLin();
+      StepStaticNonLin(analysis_id);
     }
     else {
-      StepStaticLin(comment);
+      StepStaticLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(const std::string& comment) {
+  void StdSolveStep::StepStaticLin(InfoNode* analysis_id) {
 
     assemble_->AssembleMatrices();
 
@@ -137,12 +137,12 @@ namespace CoupledField {
       algsys_->SetupPrecond();
       SETPROFILE("After SetupPrecond / Before SetupSolver");
 
-      algsys_->SetupSolver( );
+      algsys_->SetupSolver(analysis_id);
       SETPROFILE("After SetupSolver / Before Solve");
     }
 
     // Solve problem
-    algsys_->Solve(comment);
+    algsys_->Solve(analysis_id);
     SETPROFILE("After Solve");
 
     // Get the solution and store it
@@ -152,7 +152,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepStaticNonLin()
+  void StdSolveStep::StepStaticNonLin(InfoNode* analysis_id)
   {
 
     bool performOneMoreStep;
@@ -190,7 +190,9 @@ namespace CoupledField {
         {
           iterationCounter++;
           // RHS is already set up!!
-
+      
+          InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+          
           // setup and solve new system (rhs is already set) =====================
           //assemble_.InitNonLinMatrices();
           assemble_->AssembleMatrices();
@@ -198,8 +200,8 @@ namespace CoupledField {
           algsys_->ConstructEffectiveMatrix(matrix_factor_);
           algsys_->BuildInDirichlet();
           algsys_->SetupPrecond();
-          algsys_->SetupSolver();
-          algsys_->Solve();
+          algsys_->SetupSolver(child_id);
+          algsys_->Solve(child_id);
 
           // new solution is only an increment of the full solution =============
           algsys_->GetSolutionVal( solInc );
@@ -279,30 +281,29 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans() {
+  void StdSolveStep::SolveStepTrans(InfoNode* analysis_id) {
 
 
     // do a nonlinear material time step
     if ( nonLin_ && nonLinMaterial_ ) {
-      StepTransNonLinMaterial();
+      StepTransNonLinMaterial(analysis_id);
     }
     else if ( isHyst_ ) {
-      StepTransNonLinHysteresis();
+      StepTransNonLinHysteresis(analysis_id);
     }
     // do a nonlinear time step
     else if (nonLin_){
-      StepTransNonLin();
+      StepTransNonLin(analysis_id);
     }
     // do a linear time step
     else {
-      StepTransLin();
+      StepTransLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepTransLin() {
-
-
+  void StdSolveStep::StepTransLin(InfoNode* analysis_id) 
+  {
     //account for RHS
     assemble_->AssembleLinRHS();
     PDE_.ComputeRHS( actTime_ );
@@ -343,11 +344,11 @@ namespace CoupledField {
       SETPROFILE("Before SetupPrecond");
       algsys_->SetupPrecond( );
       SETPROFILE("After SetupPrecond / Before SetupSolver");
-      algsys_->SetupSolver( );
+      algsys_->SetupSolver(analysis_id);
       SETPROFILE("After SetupSolver / Before Solve");
     }
 
-    algsys_->Solve();
+    algsys_->Solve(analysis_id);
     SETPROFILE("After Solve");
 
     Vector<Double> tmpSol;
@@ -368,7 +369,7 @@ namespace CoupledField {
 
 
 
-  void StdSolveStep::StepTransNonLin() {
+  void StdSolveStep::StepTransNonLin(InfoNode* base_analysis_id) {
 
 
     bool performOneMoreStep;
@@ -416,14 +417,15 @@ namespace CoupledField {
         iterationCounter++;
 
         // RHS is already set up!!
+        InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
 
         assemble_->AssembleMatrices();
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        algsys_->Solve();
+        algsys_->SetupSolver(child_id);
+        algsys_->Solve(child_id);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -498,7 +500,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransNonLinMaterial() {
+  void StdSolveStep::StepTransNonLinMaterial(InfoNode* analysis_id) {
 
 
     bool performOneMoreStep;
@@ -513,7 +515,7 @@ namespace CoupledField {
     Vector<Double> uOld;
     Vector<Double> actRHS;
 
-    StepTransLin();
+    StepTransLin(analysis_id);
 
     algsys_->GetSolutionVal( actSol );
     PDE_.SaveSolution(actSol.GetPointer(), actSol.GetSize() );
@@ -528,6 +530,8 @@ namespace CoupledField {
       // compute u_{n+1}^k+1
       iterationCounter++;
 
+      InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+      
       // re initialize RHS and system matrix
       algsys_->InitRHS();
 
@@ -551,8 +555,8 @@ namespace CoupledField {
       TS_alg_->SubstractStiffnessFromRHS(actSol);
 
       algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-      algsys_->Solve();
+      algsys_->SetupSolver(child_id);
+      algsys_->Solve(child_id);
 
       // new solution is only an increment of the full solution =============
       algsys_->GetSolutionVal( solInc );
@@ -624,9 +628,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepTransNonLinHysteresis() {
-
-
+  void StdSolveStep::StepTransNonLinHysteresis(InfoNode* analysis_id) {
     bool performOneMoreStep;
 
     Vector<Double> solInc( numEqns_ );
@@ -679,6 +681,7 @@ namespace CoupledField {
         iterationCounter++;
         oldSol = actSol;
 
+        InfoNode* child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "load", iload, "nonLin", iterationCounter);
 
         //        RHS is already set up!!
         if ( iterationCounter > 0 ) {
@@ -697,8 +700,8 @@ namespace CoupledField {
         algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        algsys_->Solve();
+        algsys_->SetupSolver(child_id);
+        algsys_->Solve(child_id);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -811,17 +814,17 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(const std::string& comment) {
+  void StdSolveStep::SolveStepHarmonic(InfoNode* analysis_id) {
     if ( nonLin_ ) {
-      StepHarmonicNonLin();
+      StepHarmonicNonLin(analysis_id);
     }
     else {
-      StepHarmonicLin(comment);
+      StepHarmonicLin(analysis_id);
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin(const std::string& comment) {
+  void StdSolveStep::StepHarmonicLin(InfoNode* analysis_id) {
 
 
     //this has to be done each frequency!
@@ -849,10 +852,10 @@ namespace CoupledField {
 
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
-      algsys_->SetupSolver();
+      algsys_->SetupSolver(analysis_id);
     }
 
-    algsys_->Solve(comment);
+    algsys_->Solve(analysis_id);
 
     algsys_->GetSolutionVal(tmpSol);
     PDE_.SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize());

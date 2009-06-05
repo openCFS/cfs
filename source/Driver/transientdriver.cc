@@ -10,10 +10,7 @@
 #include <math.h>
 
 
-// include generic file system handling routines
-// #include "boost/filesystem/operations.hpp"
-// #include "boost/filesystem/path.hpp"
-// using boost::filesystem;
+#include <boost/filesystem.hpp>
 
 #include "transientdriver.hh"
 #include "stdSolveStep.hh"
@@ -26,6 +23,9 @@
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
+using std::cout;
+using std::endl;
+namespace fs = boost::filesystem;
 
 namespace CoupledField {
 
@@ -59,19 +59,12 @@ namespace CoupledField {
     myNode->Get( "numSteps", numstep_ );
     myNode->Get( "deltaT", firstdt_ );
 
-
     // Get save increment for restart file (optional)
     myNode->Get( "writeRestartInc", restartIncr_, false );
   
-
     // remove HALTCFS File at the beginning
-    std::string command = "rm -f ./HALTCFS";
-    std::system( command.c_str() );
-    
-//     boost::filesystem::path haltFile ( "./HALTCFS" );
-//     if ( boost::filesystem::exists( haltFile ) ) {
-//       boost::filesystem::remove( haltFile );
-//     }
+    if(fs::exists("./HALTCFS")) 
+      fs::remove("./HALTCFS");
   }
 
   // ==============
@@ -84,17 +77,15 @@ namespace CoupledField {
   // ==================
   //   Initialization
   // ==================
-  void TransientDriver::Init() {
-
-
+  void TransientDriver::Init() 
+  {
     InitializePDEs();
-
   }
     
-  void TransientDriver::SolveProblem(bool write_results, const std::string& comment) {
+  void TransientDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) 
+  {
     // options not implemented
     assert(write_results == true);
-    assert(comment == "");
 
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -153,29 +144,45 @@ namespace CoupledField {
                                          "step", actTimeStep_ );    
 
       // Determine when to write logging information on terminal
-      if ( numstep_ <= 50 )
-        Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, 
-                            steptime);
-      else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
-        if ( (actTimeStep_%10) == 0 )            
-          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, steptime);
+      bool log = false;
+      if(numstep_ <= 50)
+        log = true;
+      if(numstep_ > 50 && numstep_ <= 500 && actTimeStep_ % 10) 
+        log = true;
+      if(numstep_ > 500 && (double) actTimeStep_ >= percentCounter) {
+        log = true;
+        percentCounter += timeStepPercent;
       }
-      else if ( numstep_ > 500 ) {
-        // Output in steps of ten percent 
-        if ((double)actTimeStep_ >= percentCounter  ){           
-          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_, steptime );
-          percentCounter += timeStepPercent;
-        }
+      
+      if(log)
+      {
+        if(progOpts->IsQuiet())
+          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl; 
+        else
+          // write std::out info    
+          cout << endl << ptPDE_->GetName() << ": Time step " 
+                    << actTimeStep_ <<" ======================= " << endl;
       }
+      
+      if(given_analysis_id == NULL)
+      {
+        analysis_id_ = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
+        analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
+      }
+      else
+      {
+        analysis_id_ = given_analysis_id;
+        assert(analysis_id_->Has("analysis_id"));
+      }
+      analysis_id_->Get("step")->SetValue(actTimeStep_);
+      analysis_id_->Get("value")->SetValue(steptime);
       
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans();
+      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
       ptPDE_->GetSolveStep()->PostStepTrans();
-
-      
       // writing results in output-file(s)
       resHandler->BeginStep( actTimeStep_, steptime );
       ptPDE_->WriteResultsInFile(actTimeStep_, steptime );

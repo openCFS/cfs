@@ -1019,7 +1019,6 @@ namespace CoupledField {
     nonLin_ = false;
 
     // Initialization of coupling helper arrays
-    std::string quantity;
     StdVector<UInt> * couplingnodes = NULL;
 
     for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++) {
@@ -1053,8 +1052,7 @@ namespace CoupledField {
         }
 
         else {
-          Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
-          EXCEPTION( "Coupling " << quantity <<  " not known! ");
+          EXCEPTION( "Coupling " << SolutionTypeEnum.ToString(ptCoupling_->GetOutputQuantity(actCoupling)) <<  " not known! ");
         }
       
         // Intialize the memory of the coupling values

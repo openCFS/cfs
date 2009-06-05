@@ -452,9 +452,7 @@ namespace CoupledField {
 
     // check, if resultinfo was found
     if( !res.get() ) {
-      std::string solString;
-      Enum2String( solType, solString );
-      EXCEPTION( "A result with solutionType '" << solString
+      EXCEPTION( "A result with solutionType '" << SolutionTypeEnum.ToString(solType)
                  << "' was not found for " << pdename_ );
     }
 

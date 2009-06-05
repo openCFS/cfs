@@ -12,11 +12,7 @@
 #include "General/environment.hh"
 #include "olasparams.hh"
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/exception.hh"
-
-using CoupledField::ParamNode;
-using CoupledField::Exception;
 
 namespace CoupledField {
 
@@ -32,6 +28,7 @@ namespace CoupledField {
   class DenseMatrix;
   class BaseVector;
   class SingleVector;
+  class ParamNode;
   class InfoNode;
   template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
@@ -141,23 +138,23 @@ namespace CoupledField {
     //! SetupPrecond() and SetupSolver() must not be called!
     virtual void CreateEigenSolver(InfoNode* eigenInfo) = 0;
 
-    //! Trigger setup of preconditioner
-
-    //! Calling this method will trigger the setup phase of the
-    //! preconditioner. The setup is performed using the system matrix of the
-    //! linear system.
-    //! \note This method must not be called if an eigenfrequency analysis
-    //! is performed, since this method creates only a preconditioner
-    //! to solver which solves a system Ax=b.
+    /** Trigger setup of preconditioner.
+     * Calling this method will trigger the setup phase of the
+     * preconditioner. The setup is performed using the system matrix of the
+     * linear system.
+     * @param note This method must not be called if an eigenfrequency analysis
+     * is performed, since this method creates only a preconditioner
+     * to solver which solves a system Ax=b.
+     * @param analysis_id contains the reference to the analysis step for info.xml output */
     virtual void SetupPrecond() = 0;
 
-    //! Trigger setup of solution method
-
-    //! Calling this method will trigger the setup phase of the solver. This
-    //! is especially important for direct solvers, where typically the
-    //! factorisation of the problem matrix will be performed at this stage.
-    //! The setup is performed using the system matrix of the linear system.
-    virtual void SetupSolver() = 0;
+    /** Trigger setup of solution method.
+     * Calling this method will trigger the setup phase of the solver. This
+     * is especially important for direct solvers, where typically the
+     * factorisation of the problem matrix will be performed at this stage.
+     * The setup is performed using the system matrix of the linear system.
+     * @param analysis_id @see SetupPrecond() */
+    virtual void SetupSolver(InfoNode* analysis_id) = 0;
 
     //! Trigger setup of eigenvalue solver
 
@@ -171,22 +168,22 @@ namespace CoupledField {
                                    bool quadratic ) = 0;
 
 
-    //! Solve the linear system
-
-    //! Calling this method triggers the solution of the linear system
-    //! defined by the Finite-Element system matrix, i.e. sysMat_[SYSTEM],
-    //! and the given right-hand side vector, i.e. #rhs_. The computed
-    //! (approximat) solution is stored in #sol_.
-    //! The method used for solving the system depends on the solver and
-    //! preconditioner constructed and the parameters in myParams_.
-    //! For iterative solvers an initial guess is created by inserting the
-    //! Dirichlet values in the correct positions of the solution vector in
-    //! case of the penalty formulation.
-    //! \note This method must not be called if an eigenfrequency analysis
-    //! is performed, since this method is only used to solve a system of the
-    //! form Ax=b.
-    //! \param comment the comment is added to the name for exporting files
-    virtual void Solve(const std::string& comment = "") = 0;
+    /** Solve the linear system.
+     * Calling this method triggers the solution of the linear system
+     * defined by the Finite-Element system matrix, i.e. sysMat_[SYSTEM],
+     * and the given right-hand side vector, i.e. #rhs_. The computed
+     * (approximat) solution is stored in #sol_.
+     * The method used for solving the system depends on the solver and
+     * preconditioner constructed and the parameters in myParams_.
+     * For iterative solvers an initial guess is created by inserting the
+     * Dirichlet values in the correct positions of the solution vector in
+     * case of the penalty formulation.
+     * @note This method must not be called if an eigenfrequency analysis
+     * is performed, since this method is only used to solve a system of the
+     * form Ax=b.
+     * @param analysis_id identifies the analysis step.
+     *        When the linear system is exported via file, the comment is used. */
+    virtual void Solve(InfoNode* analysis_id) = 0;
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -848,6 +845,9 @@ namespace CoupledField {
     Integer blockSize_;
 
     //! Parameter object
+
+    /** collect system datate, but bot the individual preconditioner/ solver data*/
+    InfoNode* systemInfo_;
 
     //! This is the central parameter object of the BaseSystem. All steering
     //! parameters are read from this object and it will be passed on to the

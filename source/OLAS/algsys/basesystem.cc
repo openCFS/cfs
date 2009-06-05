@@ -18,6 +18,8 @@
 #include "OLAS/graph/graphmanagersbmmat.hh"
 #include "OLAS/solver/basesolver.hh"
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/InfoNode.hh"
 
 
 namespace CoupledField {
@@ -27,9 +29,8 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseSystem::BaseSystem(ParamNode* pn) {
-
-
+  BaseSystem::BaseSystem(ParamNode* pn) 
+  {
     graphManager_   = NULL;
     assemble_       = NULL;
     idbcHandler_    = NULL;
@@ -51,13 +52,8 @@ namespace CoupledField {
     numDirichletValues_ = 0;
 
     algSysType_     = NOALGSYSTYPE;
-
-    /*
-    if ( debug == NULL ) {
-      EXCEPTION("DEBUG macro is set, but debug stream pointer is NULL!\n"
-               << " Please check your settings in OLAS/main/Makefile.option");
-    }
-    */
+    
+    systemInfo_ = info->Get("OLAS")->Get("system");
 
 #ifdef MEMTRACE
     if ( memtrace == NULL ) {

@@ -1726,8 +1726,6 @@ MechPDE::MechPDE(Grid * aptgrid, ParamNode* paramNode )
       vol->entryType = ResultInfo::SCALAR;
       vol->fctType = shared_ptr<ConstFct>(new ConstFct() );
 
-      std::string quantity;
-      Enum2String( MECH_DEF_VOLUME, quantity );
       shared_ptr<EntityList> actList;
 
       for( UInt i = 0; i < volListNodes.GetSize(); i++ ) {

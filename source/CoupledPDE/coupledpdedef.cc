@@ -136,8 +136,7 @@ namespace CoupledField
           couplingTermsConv.Clear();
           couplingTermsConv.Resize(couplNodes.GetSize());
           for (UInt k = 0; k < couplNodes.GetSize(); k++) {
-            std::string actQuant = couplNodes[k]->Get( "quantity" )->AsString();
-            String2Enum( actQuant,couplingTermsConv[k]);
+            couplingTermsConv[k] = SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity"));
           }
           
           bool found = false;

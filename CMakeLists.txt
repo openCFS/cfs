@@ -26,7 +26,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Maehende Machete")
+SET(CFS_NAME "Rasanter Rechner")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host

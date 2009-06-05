@@ -1178,7 +1178,9 @@ void ErsatzMaterial::SolveTrackingProblem(Excitation& excite, bool designelem, b
 
   // solve system
   assemble_->GetAlgSys()->InitRHS(rhs);
-  assemble_->GetAlgSys()->Solve(GetSolveComment() + "_tracking");
+  // skipped "_tracking"
+  assemble_->GetAlgSys()->Solve(CreateAdjointAnalysisIdNode()); 
+
 
   // save solution to tracking_ and restore original solution
   Vector<Double> tmpSol;
@@ -1528,7 +1530,7 @@ void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite)
     pde[p]->SetBCs();
 
   // calculate adjoint problem
-  assemble_->GetAlgSys()->Solve(GetSolveComment(&excite) + "_adjoint");
+  assemble_->GetAlgSys()->Solve(CreateAdjointAnalysisIdNode());
 
   ResetHDBC(org_idbc);
 

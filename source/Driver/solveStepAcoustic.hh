@@ -26,9 +26,9 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! solves for one nonlinear transient step 
-    void StepTransNonLin();
+    void StepTransNonLin(InfoNode* analysis_id);
 
-    void StepTransLin();
+    void StepTransLin(InfoNode* analysis_id);
     
 
     //! compute nonlinear part of RHS

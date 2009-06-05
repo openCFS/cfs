@@ -351,7 +351,7 @@ namespace CoupledField
         }
 
         fdps->unit = "m";
-        Enum2String(MECH_DISPLACEMENT, fdps->resultName);
+        fdps->resultName = SolutionTypeEnum.ToString(MECH_DISPLACEMENT);
         numDOFs = fdps->dofNames.size();
         fdps->data.resize(numDOFs * nvx);
         if (!actRegion)
@@ -401,7 +401,7 @@ namespace CoupledField
             }
 
             fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-            Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
+            fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
           }
         }
 
@@ -418,7 +418,7 @@ namespace CoupledField
             fdps->entryType = ResultInfo::SCALAR;
             fdps->dofNames.push_back("-");
             fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-            Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
+            fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
             fdps->data.resize(numDOFs * nvx);
           }
         }

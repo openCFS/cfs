@@ -869,10 +869,8 @@ namespace CoupledField {
       UInt dofsPerNode = listIt->first.dofNames.GetSize();
 
       // head for which result this is shown
-      std::string type;
-      Enum2String( listIt->first.resultType, type );
       InfoNode* res = rt->Get("result", InfoNode::APPEND);
-      res->Get("type")->SetValue(type);
+      res->Get("type")->SetValue(SolutionTypeEnum.ToString(listIt->first.resultType));
       res->Get("dofs")->SetValue(dofsPerNode);
 
       for ( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ )
@@ -898,10 +896,8 @@ namespace CoupledField {
         (edgeEqns_.find(edgeListIt->first))->second;
 
       // Print head for which result this is shown
-      std::string type;
-      Enum2String( edgeListIt->first.resultType, type );
       InfoNode* res = rt->Get("result", InfoNode::APPEND);
-      res->Get("type")->SetValue(type);
+      res->Get("type")->SetValue(SolutionTypeEnum.ToString(edgeListIt->first.resultType));
 
       for ( UInt iEdge = 0; iEdge < ptGrid_->GetNumEdges(); iEdge++ )
       {
@@ -935,10 +931,8 @@ namespace CoupledField {
         (faceEqns_.find(faceListIt->first))->second;
 
       // Print head for which result this is shown
-      std::string type;
-      Enum2String( faceListIt->first.resultType, type );
       InfoNode* res = rt->Get("result", InfoNode::APPEND);
-      res->Get("type")->SetValue(type);
+      res->Get("type")->SetValue(SolutionTypeEnum.ToString(faceListIt->first.resultType));
 
       for ( UInt iFace = 0; iFace < ptGrid_->GetNumFaces(); iFace++ )
       {
@@ -971,10 +965,8 @@ namespace CoupledField {
         (elemEqns_.find(it->first))->second;
 
       // Print head for which result this is shown
-      std::string type;
-      Enum2String(it->first.resultType, type );
       InfoNode* res = rt->Get("result", InfoNode::APPEND);
-      res->Get("type")->SetValue(type);
+      res->Get("type")->SetValue(SolutionTypeEnum.ToString(it->first.resultType));
 
       for ( UInt iElem = 0; iElem < numLocElems_; iElem++ )
       {
@@ -1213,9 +1205,6 @@ namespace CoupledField {
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
-
-      std::string type;
-      Enum2String( actRes.resultType, type );
       Matrix<Integer> & actMap = nodeEqns_[actRes];
 
       // Get number of dofs
@@ -1606,9 +1595,6 @@ namespace CoupledField {
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
-
-      std::string type;
-      Enum2String( actRes.resultType, type );
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
 
       // Get number of dofs

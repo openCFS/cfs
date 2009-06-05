@@ -355,465 +355,6 @@ namespace CoupledField {
   }
 
   // SolutionType
-  template<>
-  void String2Enum<SolutionType>(const std::string &in, SolutionType &out) {
-
-    //mechanics
-    if (in == "mechDisplacement")
-      out = MECH_DISPLACEMENT;
-    else if (in == "mechAcceleration")
-      out = MECH_ACCELERATION;
-    else if (in == "mechVelocity")
-      out = MECH_VELOCITY;
-    else if (in == "mechForce")
-      out = MECH_FORCE;
-    else if (in == "mechStress")
-      out = MECH_STRESS;
-    else if (in == "mechStrain")
-      out = MECH_STRAIN;
-    else if (in == "mechStrainIrr")
-      out = MECH_STRAIN_IRR;
-    else if (in == "mechEnergy")
-      out = MECH_ENERGY;
-    else if (in == "volumeAboveDefSurf" )
-      out = MECH_DEF_VOLUME;
-    else if (in == "mechRhsLoad" )
-      out = MECH_RHS_LOAD;
-    else if (in == "mechPseudoDensity")
-      out = MECH_PSEUDO_DENSITY;
-    else if (in == "mechShape")
-      out = MECH_SHAPE;
-    //electrostatics
-    else if (in == "elecPotential")
-      out = ELEC_POTENTIAL;
-    else if (in == "elecFieldIntensity")
-      out = ELEC_FIELD_INTENSITY;
-    else if (in == "elecPolarization")
-      out = ELEC_POLARIZATION;
-    else if (in == "elecPseudoPolarization")
-      out = ELEC_PSEUDO_POLARIZATION;
-    else if (in == "elecForceVWP")
-      out = ELEC_FORCE_VWP;
-    else if (in == "elecInterfaceForce")
-      out = ELEC_INTERFACE_FORCE;
-    else if (in == "elecCharge")
-      out = ELEC_CHARGE;
-    else if (in == "elecFluxDensity")
-      out = ELEC_FLUX_DENSITY;
-    else if (in == "elecEnergy")
-      out = ELEC_ENERGY;
-    else if (in == "elecRhsLoad")
-      out = ELEC_RHS_LOAD;
-
-    //smoothing PDE
-    else if (in == "smoothDisplacement")
-      out = SMOOTH_DISPLACEMENT;
-    else if (in == "smoothVelocity")
-      out = SMOOTH_VELOCITY;
-    else if (in == "gridVelocity")
-      out = GRID_VELOCITY;
-    else if (in == "smoothStrain")
-      out = SMOOTH_STRAIN;
-
-    //acoustics
-    else if (in == "acouPressure")
-      out = ACOU_PRESSURE;
-    else if (in == "acouPotential")
-      out = ACOU_POTENTIAL;
-    else if (in == "acouVelocity")
-      out = ACOU_VELOCITY;
-    else if (in == "acouPressureD1")
-      out = ACOU_PRESSURE_DERIV_1;
-    else if (in == "acouPressureD2")
-      out = ACOU_PRESSURE_DERIV_2;
-    else if (in == "acouForce")
-      out = ACOU_FORCE;
-    else if (in == "acouPotentialD1")
-      out = ACOU_POTENTIAL_DERIV_1;
-    else if (in == "acouPotentialD2")
-      out = ACOU_POTENTIAL_DERIV_2;
-    else if (in == "acouRhsLoad")
-      out = ACOU_RHS_LOAD;
-    else if (in == "acouRHSval")
-      out = ACOU_RHSVAL;
-    else if (in == "acouSurfRHSval")
-      out = ACOUSURF_RHSVAL;
-    else if (in == "acouSoundSpeed")
-      out = ACOU_SOUND_SPEEED;
-    else if (in == "acouBubbleRhsVal")
-      out = ACOU_BUBBLE_RHS_VAL;
-    else if (in == "acouPotNRBC")
-      out = ACOU_POT_NRBC;
-    else if (in == "nrbcPhi")
-      out = NRBC_PHI;
-    else if (in == "acouPressureXYZ")
-      out = ACOU_PRESSUREXYZ;
-    else if (in == "acouPowerDensity")
-      out = ACOU_POWERDENSITY;
-    else if (in == "acouPower")
-      out = ACOU_POWER;
-    else if (in == "acouIntensity")
-      out = ACOU_INTENSITY;
-    else if (in == "acouSurfIntensity")
-      out = ACOU_SURFINTENSITY;
-
-    //magnetics
-    else if (in == "magPotential")
-      out = MAG_POTENTIAL;
-    else if (in == "magFluxDensity")
-      out = MAG_FLUX_DENSITY;
-    else if (in == "magPotentialDiv")
-      out = MAG_POTENTIAL_DIV;
-    else if (in == "magHfield")
-      out = MAG_HFIELD;
-    else if (in == "magEddyCurrent")
-      out = MAG_EDDY_CURRENT;
-    else if (in == "magForceVWP")
-      out = MAG_FORCE_VWP;
-    else if (in == "magForceLorentz")
-      out = MAG_FORCE_LORENTZ;
-    else if (in == "magEnergy")
-      out = MAG_ENERGY;
-    else if (in == "magEddyPower")
-      out = MAG_EDDY_POWER;
-    else if (in == "magRhsLoad")
-      out = MAG_RHS_LOAD;
-
-    //heat conduction
-    else if (in == "heatTemperature")
-      out = HEAT_TEMPERATURE;
-    else if (in == "heatRhsLoad")
-      out = HEAT_RHS_LOAD;
-
-    //mpcci
-    else if (in == "fluidForce")
-      out = FLUID_FORCE;
-
-    //fluidMech
-    else if (in == "fluidMechVelocity")
-      out = FLUIDMECH_VELOCITY;
-    else if (in == "fluidMechPressure")
-      out = FLUIDMECH_PRESSURE;
-    else if (in == "fluidMechForce")
-      out = FLUIDMECH_FORCE;
-    else if (in == "fluidMechDensity")
-      out = FLUIDMECH_DENSITY;
-    else if (in == "fluidMechTKE")
-      out = FLUIDMECH_TKE;
-    else if (in == "lambda_k")
-      out = LAMBDA_K;
-
-    // bubble
-    else if (in == "bubbleRadius")
-      out = BUBBLE_RADIUS;
-    else if (in == "bubbleRadiusD1")
-      out = BUBBLE_RADIUS_DERIV_1;
-    else if (in == "bubbleValues")
-      out = MAG_FLUX_DENSITY;
-
-    // the actual result type is given in result descriptions
-    // in the xml file in the optimization element.
-    else if (in == "optResult_1")
-      out = OPT_RESULT_1;
-    else if (in == "optResult_2")
-      out = OPT_RESULT_2;
-    else if (in == "optResult_3")
-      out = OPT_RESULT_3;
-    else if (in == "optResult_4")
-      out = OPT_RESULT_4;
-    else if (in == "optResult_5")
-      out = OPT_RESULT_5;
-    else if (in == "optResult_6")
-      out = OPT_RESULT_6;
-    else if (in == "optResult_7")
-      out = OPT_RESULT_7;
-    else if (in == "optResult_8")
-      out = OPT_RESULT_8;
-    else if (in == "optResult_9")
-      out = OPT_RESULT_9;
-
-    // independent
-    else if (in == "LagrangeMultiplier")
-      out = LAGRANGE_MULT;
-
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-               << "'SolutionType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<SolutionType>(const SolutionType &in, std::string &out)
-  {
-
-    switch (in)
-      {
-        //mechanics
-      case MECH_DISPLACEMENT:
-        out = "mechDisplacement";
-        break;
-      case MECH_ACCELERATION:
-        out = "mechAcceleration";
-        break;
-      case MECH_VELOCITY:
-        out = "mechVelocity";
-        break;
-      case MECH_FORCE:
-        out = "mechForce";
-        break;
-      case MECH_STRESS:
-        out = "mechStress";
-        break;
-      case MECH_STRAIN:
-        out = "mechStrain";
-        break;
-      case MECH_STRAIN_IRR:
-        out = "mechStrainIrr";
-        break;
-      case MECH_ENERGY:
-        out = "mechEnergy";
-        break;
-      case MECH_PSEUDO_DENSITY:
-        out = "mechPseudoDensity";
-        break;
-
-      case MECH_DEF_VOLUME:
-        out = "mechDeformedVolume";
-        break;
-
-      case MECH_RHS_LOAD:
-        out = "mechRhsLoad";
-        break;
-        
-      case MECH_SHAPE:
-        out = "mechShape";
-        break;
-
-        //electrostatics
-      case ELEC_POTENTIAL:
-        out = "elecPotential";
-        break;
-      case ELEC_FIELD_INTENSITY:
-        out = "elecFieldIntensity";
-        break;
-      case ELEC_POLARIZATION:
-        out = "elecPolarization";
-        break;
-      case ELEC_PSEUDO_POLARIZATION:
-        out = "elecPseudoPolarization";
-        break;
-      case ELEC_FORCE_VWP:
-        out = "elecForceVWP";
-        break;
-      case ELEC_INTERFACE_FORCE:
-        out = "elecInterfaceForce";
-        break;
-      case ELEC_CHARGE:
-        out = "elecCharge";
-        break;
-      case ELEC_FLUX_DENSITY:
-        out = "elecFluxDensity";
-        break;
-      case ELEC_ENERGY:
-        out = "elecEnergy";
-        break;
-      case ELEC_RHS_LOAD:
-        out = "elecRhsLoad";
-        break;
-
-        //smoothing PDE
-      case SMOOTH_DISPLACEMENT:
-        out = "smoothDisplacement";
-        break;
-      case SMOOTH_VELOCITY:
-        out = "smoothVelocity";
-        break;
-      case GRID_VELOCITY:
-        out = "gridVelocity";
-        break;
-      case SMOOTH_STRAIN:
-        out = "smoothStrain";
-        break;
-  
-        //acoustics
-      case ACOU_POTENTIAL:
-        out = "acouPotential";
-        break;
-      case ACOU_PRESSURE:
-        out = "acouPressure";
-        break;
-      case ACOU_VELOCITY:
-        out = "acouVelocity";
-        break;
-      case ACOU_PRESSURE_DERIV_1:
-        out = "acouPressureD1";
-        break;
-      case ACOU_PRESSURE_DERIV_2:
-        out = "acouPressureD2";
-        break;
-      case ACOU_FORCE:
-        out = "acouForce";
-        break;
-      case ACOU_POTENTIAL_DERIV_1:
-        out = "acouPotentialD1";
-        break;
-      case ACOU_POTENTIAL_DERIV_2:
-        out = "acouPotentialD2";
-        break;
-      case ACOU_RHS_LOAD:
-        out = "acouRhsLoad";
-        break;
-      case ACOU_RHSVAL:
-        out = "acouRHSval";
-        break;
-      case ACOUSURF_RHSVAL:
-        out = "acouSurfRHSval";
-        break;
-      case ACOU_SOUND_SPEEED:
-        out = "acouSoundSpeed";
-        break;
-      case ACOU_BUBBLE_RHS_VAL:
-        out = "acouBubbleRhsVal";
-        break;
-      case ACOU_POT_NRBC:
-        out = "acouPotNRBC";
-        break;
-      case NRBC_PHI:
-        out = "nrbcPhi";
-        break;
-      case ACOU_PRESSUREXYZ:
-        out = "acouPressureXYZ";
-        break;
-      case ACOU_POWERDENSITY:
-        out = "acouPowerDensity";
-        break;
-      case ACOU_POWER:
-        out = "acouPower";
-        break;
-      case ACOU_INTENSITY:
-        out = "acouIntensity";
-        break;
-      case ACOU_SURFINTENSITY:
-        out = "acouSurfIntensity";
-        break;
-
-        //magnetics
-      case MAG_POTENTIAL:
-        out = "magPotential";
-        break;
-      case MAG_FLUX_DENSITY:
-        out = "magFluxDensity";
-        break;
-      case MAG_POTENTIAL_DIV:
-        out =  "magPotentialDiv";
-        break;
-      case MAG_HFIELD:
-        out = "magHfield";
-        break;
-      case MAG_EDDY_CURRENT:
-        out = "magEddyCurrent";
-        break;
-      case MAG_FORCE_VWP:
-        out = "magForceVWP";
-        break;
-      case MAG_FORCE_LORENTZ:
-        out = "magForceLorentz";
-        break;
-      case MAG_ENERGY:
-        out = "magEnergy";
-        break;
-      case MAG_EDDY_POWER:
-        out = "magEddyPower";
-        break;
-      case MAG_RHS_LOAD:
-        out = "magRhsLoad";
-        break;
-
-        //heat conduction
-      case HEAT_TEMPERATURE:
-        out = "heatTemperature";
-        break;
-
-      case HEAT_RHS_LOAD:
-        out = "heatRhsLoad";
-        break;
-
-        //mpcci PDE
-      case FLUID_FORCE:
-        out = "fluidForce";
-        break;
-
-        //fluidMech
-      case FLUIDMECH_VELOCITY:
-        out = "fluidMechVelocity";
-        break;
-      case FLUIDMECH_PRESSURE:
-        out = "fluidMechPressure";
-        break;
-      case FLUIDMECH_FORCE:
-        out = "fluidMechForce";
-        break;
-      case FLUIDMECH_DENSITY:
-        out = "fluidMechDensity";
-        break;
-      case FLUIDMECH_TKE:
-        out = "fluidMechTKE";
-        break;
-      case LAMBDA_K:
-        out = "lambda_k";
-        break;
-
-        // bubble
-      case BUBBLE_RADIUS:
-        out = "bubbleRadius";
-        break;
-      case BUBBLE_RADIUS_DERIV_1:
-        out = "bubbleRadiusD1";
-        break;
-      case BUBBLE_VOLUME_FRAC:
-        out = "bubbleVolumeFrac";
-        break;
-
-      // write design element data from optimization
-      case OPT_RESULT_1:
-        out = "optResult_1";
-        break;
-      case OPT_RESULT_2:
-        out = "optResult_2";
-        break;
-      case OPT_RESULT_3:
-        out = "optResult_3";
-        break;
-      case OPT_RESULT_4:
-        out = "optResult_4";
-        break;
-      case OPT_RESULT_5:
-        out = "optResult_5";
-        break;
-      case OPT_RESULT_6:
-        out = "optResult_6";
-        break;
-      case OPT_RESULT_7:
-        out = "optResult_7";
-        break;
-      case OPT_RESULT_8:
-        out = "optResult_8";
-        break;
-      case OPT_RESULT_9:
-        out = "optResult_9";
-        break;
-      
-        // independent
-      case LAGRANGE_MULT:
-        out = "LagrangeMultiplier";
-      	break;
-
-      default:
-        EXCEPTION( "Wrong type of solution or 'SolutionType2String' not "
-                   << "implemented for this type of solution" );
-      }
-  }
-
   std::string MapSolTypeToUnit(SolutionType solType)
   {
     switch(solType)
@@ -2331,6 +1872,105 @@ namespace CoupledField {
            << "'IDBCType'!" );
     }
   }
+  
+  void SetEnvironmentEnums(){
+    // SolutionType
+    
+    SolutionTypeEnum.SetName("SolutionTypeEnum");
+    //mechanics
+    SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
+    SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
+    SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
+    SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_STRAIN_IRR, "mechStrainIrr");
+    SolutionTypeEnum.Add(MECH_ENERGY, "mechEnergy");
+    SolutionTypeEnum.Add(MECH_DEF_VOLUME, "volumeAboveDefSurf");
+    SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");
+    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
+    //electrostatics
+    SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
+    SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
+    SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
+    SolutionTypeEnum.Add(ELEC_INTERFACE_FORCE, "elecInterfaceForce");
+    SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
+    SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
+    SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
+    SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
+    //smoothing PDE
+    SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");
+    SolutionTypeEnum.Add(SMOOTH_VELOCITY, "smoothVelocity");
+    SolutionTypeEnum.Add(GRID_VELOCITY, "gridVelocity");
+    SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
+    //acoustics
+    SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
+    SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
+    SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
+    SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
+    SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_2, "acouPressureD2");
+    SolutionTypeEnum.Add(ACOU_FORCE, "acouForce");
+    SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
+    SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
+    SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
+    SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
+    SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
+    SolutionTypeEnum.Add(ACOU_SOUND_SPEEED, "acouSoundSpeed");
+    SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
+    SolutionTypeEnum.Add(ACOU_POT_NRBC, "acouPotNRBC");
+    SolutionTypeEnum.Add(NRBC_PHI, "nrbcPhi");
+    SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
+    SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
+    SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
+    SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
+    SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    //magnetics
+    SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
+    SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
+    SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
+    SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
+    SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
+    SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
+    SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+    //heat conduction
+    SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
+    SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
+    //mpcci
+    SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
+    //fluidMech
+    SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
+    SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
+    SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
+    // bubble
+    SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");
+    SolutionTypeEnum.Add(BUBBLE_RADIUS_DERIV_1, "bubbleRadiusD1");
+    SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "bubbleValues", false);
+    // optimization
+    // the actual result type is given in result descriptions
+    // in the xml file in the optimization element.
+    SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");
+    SolutionTypeEnum.Add(OPT_RESULT_2, "optResult_2");
+    SolutionTypeEnum.Add(OPT_RESULT_3, "optResult_3");
+    SolutionTypeEnum.Add(OPT_RESULT_4, "optResult_4");
+    SolutionTypeEnum.Add(OPT_RESULT_5, "optResult_5");
+    SolutionTypeEnum.Add(OPT_RESULT_6, "optResult_6");
+    SolutionTypeEnum.Add(OPT_RESULT_7, "optResult_7");
+    SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
+    SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
+    // independent
+    SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+  }
+  
+  Enum<SolutionType> SolutionTypeEnum;
 
 }
 

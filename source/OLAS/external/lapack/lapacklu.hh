@@ -137,7 +137,7 @@ namespace CoupledField {
     //! matrix. Since the factorisation is not done in place we can delegate
     //! the actual work to the private version of Setup() that expects a const
     //! reference.
-    void Setup( BaseMatrix &sysmat );
+    void Setup( BaseMatrix &sysmat, InfoNode* analysis_step = NULL );
 
     //! Direct solution of the linear system
 
@@ -149,7 +149,7 @@ namespace CoupledField {
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol );
+		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
 
     //! Query type of this solver.
 

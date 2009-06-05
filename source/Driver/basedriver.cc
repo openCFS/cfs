@@ -21,6 +21,7 @@ using namespace CoupledField;
 BaseDriver::BaseDriver( )
 {
   actSequenceStep_ = 1;
+  analysis_id_ = NULL;
   nummeshes_=0;
   handler_ = domain->GetResultHandler();
 }
@@ -49,6 +50,46 @@ void BaseDriver::PrintSeqMeshes()
 {
   Warning( "Not implemented anymore", __FILE__, __LINE__ );
 }
+
+
+InfoNode* BaseDriver::CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id, 
+    const std::string& child_2_name, int child_2_id)
+{
+  assert(!(child_2_name != "" && child_id == -1));
+  
+  // create a child
+  // aquire current analysis id
+  InfoNode* child;
+  std::stringstream ss;
+  
+  if(base == NULL)
+  {
+    child = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND); 
+  }
+  else
+  {
+    child = base->Get(child_name);
+    ss << base->Get("analysis_id")->AsString();
+    ss << ":";
+          
+  }
+
+  ss << child_name;
+
+  if(child_id != -1) 
+    ss << ":" << child_id;
+  
+  if(child_2_name != "")
+    ss << ":" << child_2_name; 
+  
+  if(child_2_id != -1) 
+      ss << ":" << child_2_id;
+  
+  child->Get("analysis_id")->SetValue(ss.str());
+  
+  return child;
+}
+
 // static stuff
 BaseDriver* BaseDriver::CreateInstance()
 {

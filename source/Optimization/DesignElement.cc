@@ -1032,10 +1032,7 @@ ResultDescription::ResultDescription()
 
 ResultDescription::ResultDescription(ParamNode* pn)
 {
-  // killme: do this nice when there is no more environment.hh
-  SolutionType st;
-  String2Enum(pn->Get("id")->AsString(), st);
-  solutionType = st;
+  solutionType = SolutionTypeEnum.Parse(pn->Get("id"));
 
   design = DesignElement::DEFAULT;
   if(pn->Has("design"))
@@ -1046,12 +1043,4 @@ ResultDescription::ResultDescription(ParamNode* pn)
   value = DesignElement::valueSpecifier.Parse(pn->Get("value"));
 
   detail = DesignElement::detail.Parse(pn->Get("detail"));
-}
-
-std::string ResultDescription::ToString()
-{
-  // killme: do this nice when there is no more environment.hh
-  std::string string;
-  Enum2String((SolutionType) solutionType, string);
-  return string;
 }

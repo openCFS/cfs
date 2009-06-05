@@ -646,6 +646,7 @@ namespace CFSTool {
    * todo: do better once - Fabian */
   void InitEnums()
   {
+    SetEnvironmentEnums();
     BasePDE::SetEnums();
   }
   

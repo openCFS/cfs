@@ -33,13 +33,16 @@ namespace CoupledField
 
     ~Ilupack();
 
-    void Setup( BaseMatrix &sysmat);
-
+    /** Every call sets up a new preconditionier.
+     * @param analysis_id shall be the current info/analysis/progress/step entry and contain an "analysis_id" element */
+    void Setup(BaseMatrix &sysmat, InfoNode* analysis_id);
      
-    /** To satisfy the compiler */
+    /** To satisfy the compiler 
+     * @param sysmat shall be the one Setup() is called with
+     * @param precond ignored
+     * @param analysis_id @see Setup() */
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol);
-
+                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id);
 
     /** This is not Ilupack intern but Olas stuff. It means that this is
      * a Ilupack, the actual solver called by the lib is in Ilupack::Solver */
@@ -48,11 +51,6 @@ namespace CoupledField
     /** This are the names of the matrix types in ILUPACK style */
     typedef enum { GNL, SYM, PD, HER } Matrix;
 
-    /** There are combinations with matching from Pardiso and MC64, most symmetric
-     * is based on matching but a matching is not mandatory. */
-    typedef enum { MUMPS, MC64, MWM } Matching;
-
-        
   private:
 
     /** Set up the ilupack matrix mat_ 
@@ -61,7 +59,7 @@ namespace CoupledField
 
     /** Determine the matrix type for ilupack. This can be set optionally in the xml file.
      * If it is not set, then it is SYM or GNL but neither SPD, HPD nor HER */
-    void DetermineMatrixType(BaseMatrix &sysMat);
+    void DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out);
 
     /** Initializes the parameter with default settings by ilupack, conditionally
      * overwrite them with the xml settings and print out the complete stuff. 
@@ -85,18 +83,6 @@ namespace CoupledField
     /** This method sets up the "enums", it fills them with the string representations. */
     void SetEnums();
 
-     
-    /** If the factorization didn't result with 0, this method encrypts the error code. */
-    std::string PrecondError(int result, const DILUPACKparam& param, int level);
-
-    /** If the ilupack solver didn't result with 0, this method encrypts the error code. */
-    std::string SolverError(int result);     
-
-    /** Helper to Set ilupack char* from ParamNode */
-    char* GetString(ParamNode* node);
-    
-    
-    
     /** Helper method for InitParameters. Takes the ilupack value, prints it to the InfoNode (via
      * param_name).
      * If there is a parameter with param_name in the xml file, it is printed.
@@ -104,35 +90,11 @@ namespace CoupledField
     void CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name);
     void CheckParameter(InfoNode* out, char** ilupack_val, const char* param_name);
     void CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name);  
-      
-    /** The ilupack matching */
-    Enum<Matching> matching;
+    void CheckParameter(InfoNode* out, bool* ilupack_val, const char* param_name);
     
     /** The ilupack matrix types */
     Enum<Matrix> matrix; 
-    
-    
-    /** This is the ilupack signature of a real permutation function.
-     * ILUPACK needs one for the inital, regular and final step */
-    typedef int (*RealPermFunc) (Dmat, double*, double*, int*, int*, int*, DILUPACKparam*);
-    
-    typedef int (*ComplexPermFunc) (Zmat, doublecomplex *,doublecomplex *, int*, int*, int*, ZILUPACKparam*);    
-    
                             
-    /** Dump the solver stus, extracts nice parameters and prints them */
-    void DumpSolverStatus(std::ostream& out);
-
-    /** Dump the parameter setting */
-    void DumpParameters(std::ostream& out);
-
-    /** Dump the ilupack flags */ 
-    void DumpFlags(int flag, std::ostream& out);
-
-    /** Read the flag settings as provided by the XML file and
-     * apply it on the given flag.
-     * @param flag the in/out parameter */ 
-    void ApplyFlagSettings(int& flag);
-    
     /** Calculates the fill in factor of the preconditioner */
     void CalcFillIn(InfoNode* out);
     
@@ -173,12 +135,6 @@ namespace CoupledField
     /** Also a pointer to (DILUPACKparam) param as complex is same-same here */
     ZAMGlevelmat* zprecond_ptr_;
     
-    /** This counts how many rhs are solved while the last precond call */
-    int precondAge_;
-    
-    /** We can do setup multiple times, so we cout the sutup runs */
-    int setupRuns_;
-    
     /** Ilupack has ILUPACK_N[I/F]PAR (40) parmeters in *ILUPACKparam.[i/f]par. The entries are not defined
      * but from magic indices in the example the content can be extracted. Check this for ilupack updates!!<br>
      * MAX_S_ROW_ENTRIES = limit maximum number of entries in each row of S<br>
@@ -217,42 +173,6 @@ namespace CoupledField
     /** 0 -> everything is fine; -1 -> too many iterations; -2 -> not enough work space provided; -3 -> not enough work space, algorithm breaks down */ 
     enum { TOO_MANY_ITERATIONS = -1, NOT_ENOUGH_WORK_SPACE = -2,  ALGORITHM_BREAKS_DOWN = -3, INIT = 0 } SolverParam;
 
-
-    /** The flags for parm.flag. The parameter "flag" is bitwise
-     * modified by flag|=DROP_INVERSE to set and flag&=~DROP_INVERSE to
-     * turn off inverse-based dropping. There is a FL_ before the constants to
-     * differentiate them from the original ilupack defines. <br>
-     * FL_DROP_INVERSE = switch to indicate inverse-based dropping. It is used in AMGINIT
-     *               AMGGETPARAMS and AMGSETPARAMS. In AMGINIT, DROP_INVERSE is set by default <br>
-     * FL_NO_SHIFT = switch for not shifting away zero pivots. This switch is used in ILUC
-     *            which does not have pivoting prevent small diagonal entries.<br>
-     * FL_TISMENETSKY_SC = switch for using Tismenetsky update.<br>
-     * FL_REPEAT_FACT = switch for repeated ILU <br>
-     * FL_IMPROVED_ESTIMATE =  switch for enhanced estimate for the norm of the inverses<br>
-     * FL_DIAGONAL_COMPENSATION = switch for using diagonal compensation<br>
-     * FL_COARSE_REDUCE = switch for reducing the partial factorization to the non-coarse part<br>
-     * FL_FINAL_PIVOTING = switch for using a different pivoting strategy, if the regular reordering
-     *                  fails and before we switch to ILUTP<br>
-     * FL_ENSURE_SPD = enforce the positve definite property<br>
-     * FL_SIMPLE_SC = switch for the most simple Schur complement update*/
-    typedef enum { FL_DROP_INVERSE = 1, FL_NO_SHIFT = 2, FL_TISMENETSKY_SC = 4, FL_REPEAT_FACT = 8, FL_IMPROVED_ESTIMATE = 16, 
-          FL_DIAGONAL_COMPENSATION = 32, FL_COARSE_REDUCE = 64, FL_FINAL_PIVOTING = 128, FL_ENSURE_SPD = 256, FL_SIMPLE_SC = 512, 
-          FL_PREPROCESS_INITIAL_SYSTEM = 1024, FL_PREPROCESS_SUBSYSTEMS = 2048, FL_MULTI_PILUC = 4096, FL_RE_FACTOR = 8192, 
-          FL_AGGRESSIVE_DROPPING = 16384, FL_DISCARD_MATRIX = 32768, FL_SYMMETRIC_STRUCTURE = 65536} Flags;    
-
-    /** The Ilupack flags */
-    Enum<Flags> flags;
-          
-          
-   //typedef enum { PREPROCESS_INITIAL_SYSTEM = 1024, PREPROCESS_SUBSYSTEMS = 2048, MULTI_PILUC = 4096, RE_FACTOR = 8192} Flags;
-   //typedef enum {PREPROCESS_INITIAL_SYSTE = 1} Flags;
-    
-//    typedef enum { DL_PCG = 1, FL_SBCG = 2, DL_BCG = 3} Flags;     
-    
-    // turn of column scaling : param.ipar[7]&=~(2+16+128);
-    // transposed system is stored : param.ipar[4]=1; 
-    // interchange order of scalings for all three cases: param.ipar[7]|=4+32+256;
-     
   };
 
 } // end of namespace

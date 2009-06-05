@@ -331,15 +331,7 @@
             </xsd:simpleType>
           </xsd:element>          
           
-          <xsd:element name="matching" minOccurs="0" maxOccurs="1">
-            <xsd:simpleType>  
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="schenk_pardiso"/>
-                <xsd:enumeration value="mumps"/>
-                <xsd:enumeration value="mc64"/>                    
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>    
+          <xsd:element name="matching" minOccurs="0" maxOccurs="1" type="xsd:boolean" default="true"/>
           
           <xsd:element name="amg" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -401,37 +393,6 @@
             <xsd:element name="dropTolSchur" type="xsd:float" default="1e-2" minOccurs="0" maxOccurs="1"/>
             <xsd:element name="condest" type="xsd:positiveInteger" default="100" minOccurs="0" maxOccurs="1" />
             <xsd:element name="elbowSpace" type="xsd:positiveInteger" default="10" minOccurs="0" maxOccurs="1"/>
-            
-            <!-- quite a lot of flags  <flag name="aggressiveDropping" state="on"/> -->
-            <xsd:element name="flag" minOccurs="0" maxOccurs="20">
-              <xsd:complexType>
-                <xsd:attribute name="name" use="required">
-                  <xsd:simpleType>  
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="DropInverse"/>
-                      <xsd:enumeration value="NoShift"/>
-                      <xsd:enumeration value="TismenetskySC"/>
-                      <xsd:enumeration value="RepeatFact"/>
-                      <xsd:enumeration value="ImprovedEstimate"/>
-                      <xsd:enumeration value="DiagonalCompensation"/>
-                      <xsd:enumeration value="CoarseReduce"/>
-                      <xsd:enumeration value="FinalPivoting"/>
-                      <xsd:enumeration value="EnsureSPD"/>
-                      <xsd:enumeration value="SimpleSC"/>
-                      <xsd:enumeration value="PreprocessInitialSystem"/>
-                      <xsd:enumeration value="PreprocessSubsystem"/>
-                      <xsd:enumeration value="MultiPiluc"/>
-                      <xsd:enumeration value="ReFactor"/>
-                      <xsd:enumeration value="AggressiveDropping"/>
-                      <xsd:enumeration value="DiscardMatrix"/>
-                      <xsd:enumeration value="SymmetricStructure"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-                
-                
-              </xsd:complexType> 
-            </xsd:element>  <!-- end of flag -->
     
         </xsd:sequence>
         <xsd:attribute name="matrix" use="optional" type="DT_Ilupack_Matrix" />

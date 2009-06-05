@@ -199,6 +199,7 @@ namespace CoupledField {
                OPT_RESULT_7, OPT_RESULT_8, OPT_RESULT_9,
                LAGRANGE_MULT, THERMOMECH_FORCE, THERMOELEC_FORCE} SolutionType;
 
+               extern Enum<SolutionType> SolutionTypeEnum;
 
   //! describes the possible material types
   typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY,
@@ -618,7 +619,8 @@ namespace CoupledField {
   FEMatrixType;
 
 #endif
-
+  
+  void SetEnvironmentEnums();
 
 } // end of namespace
 

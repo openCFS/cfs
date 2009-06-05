@@ -52,15 +52,13 @@ namespace CoupledField
     else
     {
       Tok::const_iterator it, end;
-      SolutionType st;
 
       it = t.begin();
       end = t.end();
 
       for( ; it != end; it++)
       {
-        String2Enum(*it, st);
-        requiredResults_[st] = true;
+        requiredResults_[SolutionTypeEnum.Parse(*it)] = true;
       }
     }
 

@@ -611,7 +611,7 @@ namespace CoupledField
         // want to output the grid. 
         if(!printGrid_)
         {
-          EXCEPTION("ANSYS RST writer does not support current analyis type.");
+          EXCEPTION("ANSYS RST writer does not support current analsyis type.");
         }
         else
         {
@@ -1307,8 +1307,7 @@ namespace CoupledField
 
   void AnsysBinlibIfaceGeneral::MapInternal2ANSYSNodeDof(SolutionType solType)
   {
-    std::string solName;
-    Enum2String(solType, solName);
+    std::string solName = SolutionTypeEnum.ToString(solType);
     UInt idx = ansysNodeDof2Idx_.size();
 
     // Check if solution type has already been added.
@@ -1401,8 +1400,7 @@ namespace CoupledField
   
   void AnsysBinlibIfaceGeneral::MapInternal2ANSYSElemDof(SolutionType solType)
   {
-    std::string solName;
-    Enum2String(solType, solName);
+    std::string solName = SolutionTypeEnum.ToString(solType);
 
     switch(solType)
     {

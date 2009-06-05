@@ -432,30 +432,32 @@ void Optimization::SolveProblem()
   rh->Finalize();
 }
 
-string Optimization::GetSolveComment(Excitation* excite)
+
+InfoNode* Optimization::CreateAdjointAnalysisIdNode()
 {
-  ostringstream os;
-  os << "iter"<< currentIteration;
-  if(excite != NULL)
-  {
-    if(excite->f_link > 0) os << "_f_" << excite->frequency;
-    else os << "_f_load_idx" << excite->index;
-  }
-  if(problemWithinIteration > 0) os << "_cnt" << problemWithinIteration;
-  return os.str();
+  BaseDriver* driver = domain->GetDriver();
+  InfoNode* base = driver->GetAnalysisId();
+  InfoNode* in = driver->CreateAnalysisIdChild(base, "adjoint");
+  
+  return in;
 }
+
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
 
-  // we solve, give a part of the filename in case we use export linear system
-  // but do not store the results. This is to be done in CommitIteration
-  string comment = GetSolveComment(excite);
-  if(!harmonic || excite == NULL)
-    driver->SolveProblem(false, comment);
+  // this is the forward problem. Store the analysis_id in the driver such that
+  // we can aquire it for the adjoint problem
+  
+  InfoNode* analysis_id = excite == NULL ? driver->CreateAnalysisIdChild(NULL, "iter", currentIteration)
+                                         : driver->CreateAnalysisIdChild(NULL, "iter", currentIteration, "excite", excite->index);
+                                         
+  // Do not store the results. This is to be done in CommitIteration
+  if(!harmonic || excite == NULL) 
+    driver->SolveProblem(false, analysis_id);
   else
-    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, comment);
+    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
 
   problemSolvedCounter++;
   problemWithinIteration++;

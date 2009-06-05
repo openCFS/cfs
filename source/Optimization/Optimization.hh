@@ -125,7 +125,7 @@ namespace CoupledField
              }
              
              /** Tychonoff regularization parameter */
-             double TychonoffParameter(){ return tychonoff_; }
+             double TychonoffParameter() const { return tychonoff_; }
 
            private:
 
@@ -271,11 +271,10 @@ namespace CoupledField
          * excusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
         Optimization();
 
-        /** This is the comment for Driver::SolveProblem() which becomes part of the
-         * filenames when expoiting the linear system.
-         * @param excite if given extracts frequency or load step */
-        std::string GetSolveComment(Excitation* excite = NULL);
-
+        /** Appends to the current analysis_id of the driver a child and
+         * sets analysis_id and excite acordingly */
+        InfoNode* CreateAdjointAnalysisIdNode();
+        
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
          * is overwritten and might do nothing.

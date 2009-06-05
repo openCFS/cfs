@@ -35,6 +35,7 @@ cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_altix.cmake -text
+cmake_modules/platform_defaults_fauam1p.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
 cmake_modules/platform_defaults_mac.cmake -text
 cmake_modules/platform_defaults_rom.cmake -text
@@ -1070,8 +1071,8 @@ source/Optimization/DesignMaterial.cc -text
 source/Optimization/DesignMaterial.hh -text
 source/Optimization/DesignSpace.cc -text
 source/Optimization/DesignSpace.hh -text
-source/Optimization/ErsatzMaterial.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/ErsatzMaterial.hh svneol=native#text/plain
+source/Optimization/ErsatzMaterial.cc -text
+source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1079,8 +1080,8 @@ source/Optimization/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/IPOPT.cc -text
 source/Optimization/IPOPT.hh -text
 source/Optimization/IPOPTHolder.hh svneol=native#text/x-c%2B%2Bhdr
-source/Optimization/LevelSet.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/LevelSet.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/LevelSet.cc -text
+source/Optimization/LevelSet.hh -text
 source/Optimization/OptimalityCondition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/OptimalityCondition.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimization.cc svneol=native#text/plain
@@ -1097,12 +1098,12 @@ source/Optimization/SCPIPBase.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/SCPIPBase.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/SCPIP_HS071.cc -text
 source/Optimization/SCPIP_HS071.hh -text
-source/Optimization/SIMP.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/SIMP.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/SIMP.cc svneol=native#text/plain
+source/Optimization/SIMP.hh svneol=native#text/plain
 source/Optimization/ShapeDesign.cc -text
 source/Optimization/ShapeDesign.hh -text
-source/Optimization/ShapeGrad.cc svneol=native#text/x-c%2B%2Bsrc
-source/Optimization/ShapeGrad.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/ShapeGrad.cc -text
+source/Optimization/ShapeGrad.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
 source/Optimization/TopGrad.cc -text

@@ -33,9 +33,8 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic()  {;};
  
-    /** base method for solving one static step
-     * @partam step is an optinal information for exoport linsys only */
-    virtual void SolveStepStatic(const std::string& comment = "");
+    /** base method for solving one static step */
+    virtual void SolveStepStatic(InfoNode* analysis_id);
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -48,7 +47,7 @@ namespace CoupledField
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans();
+    virtual void SolveStepTrans(InfoNode* analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -60,7 +59,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(const std::string& comment = "");
+    virtual void SolveStepHarmonic(InfoNode* analysis_id);
 
 
     //!  routine for actions after the SolveStep-method

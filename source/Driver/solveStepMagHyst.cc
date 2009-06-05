@@ -25,7 +25,7 @@ namespace CoupledField {
   SolveStepMagHyst::~SolveStepMagHyst() {
   }
   
-  void SolveStepMagHyst::StepTransNonLinHysteresis() {
+  void SolveStepMagHyst::StepTransNonLinHysteresis(InfoNode* analysis_base) {
 
 
     bool performOneMoreStep;
@@ -103,6 +103,8 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
+      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      
       // set solution of previous iteration
       if (iterationCounter > 1 )
         oldSol = newSol;
@@ -124,8 +126,8 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
   
       algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-      algsys_->Solve();
+      algsys_->SetupSolver(analysis_id);
+      algsys_->Solve(analysis_id);
 
       algsys_->GetSolutionVal( newSol );
 
@@ -216,7 +218,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagHyst::StepTransNonLinHysteresisDiff() {
+  void SolveStepMagHyst::StepTransNonLinHysteresisDiff(InfoNode* analysis_base) {
 
     bool performOneMoreStep;
 
@@ -273,10 +275,11 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
+      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+            
       // set solution of previous iteration
       if (iterationCounter > 1 )
         oldSol = actSol;
-
 
       // RHS is already set up!!
       if ( iterationCounter > 1 ) {
@@ -291,8 +294,8 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
   
       algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-      algsys_->Solve();
+      algsys_->SetupSolver(analysis_id);
+      algsys_->Solve(analysis_id);
 
       algsys_->GetSolutionVal( actSol );
       //      std::cout << "New Solution:\n" << newSol << std::endl;

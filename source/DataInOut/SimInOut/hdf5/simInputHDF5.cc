@@ -466,13 +466,7 @@ namespace CoupledField {
 
       // create new ResultInfo objects
       shared_ptr<ResultInfo> ptInfo( new ResultInfo() );
-      SolutionType actResultType;
-
-      try{
-        String2Enum( actResultName, actResultType );
-      }  catch (Exception&) {
-        actResultType = NO_SOLUTION_TYPE;
-      }
+      SolutionType actResultType = SolutionTypeEnum.Parse(actResultName, NO_SOLUTION_TYPE);
 
       ptInfo->resultType = actResultType;
       ptInfo->resultName = actResultName;

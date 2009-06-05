@@ -29,7 +29,7 @@ namespace CoupledField {
     void Init();
 
     /** @see BaseDriver::SolveProblem(double) */  
-    void SolveProblem(bool write_results = true, const std::string& comment = "");
+    void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL);
         
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(double step_val);

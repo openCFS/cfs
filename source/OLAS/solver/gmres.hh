@@ -224,7 +224,7 @@ namespace CoupledField {
     //! structures. If this is the first call to Setup or if maxKrylovDim_
     //! has changed, it will allocate new memory, freeing previously allocated
     //! memory if necessary.
-    void Setup( BaseMatrix &sysMat );
+    void Setup( BaseMatrix &sysMat, InfoNode* analysis_step = NULL );
 
     //! Solve a linear system using GMRES.
 
@@ -237,7 +237,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol );
+		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
 
     //! Query type of this solver.
 

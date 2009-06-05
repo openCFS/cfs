@@ -807,7 +807,11 @@ namespace CoupledField {
         << "09.03, Maehende Machete" << endl
         << "  This finally is the famous MACHETE branch with a 0-based OLAS, unified" << endl
         << "  matrix and vector classes and the brand new CFSDEPS building matching libs." << endl
-        << endl;
+        << endl
+        << "09.05, Rasanter Rechner" << endl
+        << "  This brings back ILUPACK by M. Bollhoefer, a very fast iterative preconditioner/" << endl
+        << "  solver package which beats PARDISO for large 3D problems. The OLAS info.xml output" << endl
+        << "  is in the early feet." << endl;    
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

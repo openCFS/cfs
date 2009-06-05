@@ -145,9 +145,7 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
   if (entryType_ == BaseMatrix::COMPLEX) {
 #ifndef NDEBUG
     if (index_*numDofs_ + dof_ - 1 >= resCacheComplex_.GetSize()) {
-      std::string resultName;
-      Enum2String(solType_, resultName);
-      EXCEPTION("Index of '" << resultName << "' from input file (id="
+      EXCEPTION("Index of '" << SolutionTypeEnum.ToString(solType_) << "' from input file (id="
           << readerId_ << ") out of bounds.");
     }
 #endif
@@ -168,9 +166,7 @@ Double ResultCache::GetResult(const char* inputId, Double sequenceStep) {
   else {
 #ifndef NDEBUG
      if (index_*numDofs_ + dof_ - 1 >= resCacheDouble_.GetSize()) {
-      std::string resultName;
-      Enum2String(solType_, resultName);
-      EXCEPTION("Index of '" << resultName << "' from input file (id="
+      EXCEPTION("Index of '" << SolutionTypeEnum.ToString(solType_) << "' from input file (id="
           << readerId_ << ") out of bounds.");
     }
 #endif
@@ -201,9 +197,7 @@ void ResultCache::LoadStepValues(const std::string& readerId,
     }
   }
   if (iRes >= resInfos.GetSize()) {
-    std::string resultName;
-    Enum2String(solType_, resultName);
-    EXCEPTION("Result '" << resultName << "' not found in input file (id="
+    EXCEPTION("Result '" << SolutionTypeEnum.ToString(solType_) << "' not found in input file (id="
         << readerId << ")");
   }
 

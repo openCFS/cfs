@@ -232,7 +232,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     if(!added)
     {
       std::ostringstream os;
-      os << "<optimization> defines '" << rd.ToString() << "' but no PDE references it in it's <storeResults>";
+      os << "<optimization> defines '" << SolutionTypeEnum.ToString(rd.solutionType) << "' but no PDE references it in it's <storeResults>";
       Warning(os.str().c_str());
     }
   }

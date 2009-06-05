@@ -53,7 +53,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, const std::string& comment)
+  void StaticDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id)
   {
     // Set curent value of timestep and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -63,11 +63,24 @@ namespace CoupledField {
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "step", 0 );        
 
+    // in the optimization case the step is given, otherwise it is created
+    // store such that special steps can add non-lin stuff and optimization adjoints
+    if(given_analysis_id == NULL)
+    {
+      analysis_id_ = info->Get("analysis")->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
+      analysis_id_->Get("analysis_id")->SetValue(0);
+    }
+    else
+    {
+      analysis_id_ = given_analysis_id;
+      assert(analysis_id_->Has("analysis_id"));
+    }
+    
     // 'TimeStepping' is here the optimization iteration
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(comment);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because

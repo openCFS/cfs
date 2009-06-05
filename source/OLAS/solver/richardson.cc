@@ -27,7 +27,7 @@ namespace CoupledField {
   template<typename T>
   void RichardsonSolver<T>::Solve( const BaseMatrix &sysmat,
 				   const BasePrecond &precond,
-				   const BaseVector &rhs, BaseVector &sol ) {
+				   const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
     // Tracing information
     (*cla) << "### preconditioned Richardson Solver" << std::endl;

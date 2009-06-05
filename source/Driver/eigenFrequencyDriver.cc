@@ -63,10 +63,10 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, const std::string& comment) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
     // options not implemented
     assert(write_results == true);
-    assert(comment == "");
+    assert(given_analysis_id == NULL); // not implemented yet
     
     ResultHandler* resHandler = domain->GetResultHandler();
 

@@ -349,9 +349,7 @@ namespace CoupledField {
       }
     }
     if( !solFound) {
-      std::string solName;
-      Enum2String( type, solName );
-      EXCEPTION("Solution type '" << solName
+      EXCEPTION("Solution type '" << SolutionTypeEnum.ToString(type)
                 << "' is not contained in this solution object!");
     }
 
@@ -578,9 +576,7 @@ namespace CoupledField {
       }
     }
     if( !solFound) {
-      std::string solName;
-      Enum2String( type, solName );
-      EXCEPTION("Solution type '" << solName
+      EXCEPTION("Solution type '" << SolutionTypeEnum.ToString(type)
                 << "' is not contained in this solution object!");
     }  
 

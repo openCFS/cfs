@@ -25,34 +25,14 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! solves for one nonlinear static step 
-    void StepStaticNonLin()
-    {StepTransNonLin();};
+    void StepStaticNonLin(InfoNode* analysis_id)
+    {StepTransNonLin(analysis_id);};
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-//     void PreStepTrans( )
-//     {PreStepStatic();};
-
-    //! base method for solving one transient step 
-    //! \param reset true: perfrom new assembly, etc
-//     void SolveStepTrans()
-//     {SolveStepStatic();};
-
-    //! solves for one linear transient step 
-//     void StepTransLin( )
-//     {StepStaticLin();};
-
-    //! routine for actions after the SolveStep-method
-//      void PostStepTrans()
-//     {PostStepStatic();};
-
 
     //! solves for one nonlinear transient step 
-    void StepTransNonLin();
-//     {StepStaticNonLin();};
-
-    //! compute nonlinear part of RHS
-//     void AddNonLinRHS(){;};
+    void StepTransNonLin(InfoNode* analysis_id);
 
   private:
     //!< time dependency  of fluidMech PDE (important in case of analysisType=transient)

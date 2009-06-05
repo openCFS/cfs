@@ -628,7 +628,7 @@ namespace CoupledField {
       return false;
 
       // Convert enum
-      Enum2String( candidate->resultType, quantity );
+      quantity = SolutionTypeEnum.ToString(candidate->resultType);
       LOG_DBG(pde) << "Searching for storeResults of quantity '"
                    << quantity << "'";
 
@@ -923,9 +923,8 @@ namespace CoupledField {
       for( UInt i = 0; i < actList.GetSize(); i++ ) {
 
         // get string representation of quantity and entity list
-        std::string quantity, listName;
-        Enum2String( actList[i]->GetResultInfo()->resultType,
-                     quantity);
+        std::string listName;
+        std::string quantity = SolutionTypeEnum.ToString(actList[i]->GetResultInfo()->resultType);
         listName = actList[i]->GetEntityList()->GetName();
 
         // Only calculate result, if needed
@@ -1118,7 +1117,6 @@ namespace CoupledField {
 
     std::string name, resultName, dof, entType, value, phase;
     EntityList::DefineType defineType;
-    SolutionType solType;
     shared_ptr<ResultInfo> actResultInfo;
 
 
@@ -1141,8 +1139,7 @@ namespace CoupledField {
         hdbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create homogeneous boundary condition
         if( entType == "nodeList" ) {
@@ -1195,8 +1192,7 @@ namespace CoupledField {
         idbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
@@ -1249,8 +1245,7 @@ namespace CoupledField {
         inbcNodes[i]->Get( "entityType", entType );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create inhomogeneous Neumann boundary condition
         shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
@@ -1303,8 +1298,7 @@ namespace CoupledField {
         csNodes[i]->Get( "slaveDof", slaveDof );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
@@ -1361,8 +1355,7 @@ namespace CoupledField {
         prNodes[i]->Get( "quantity", resultName );
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // get entitylists
         NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
@@ -1442,7 +1435,6 @@ namespace CoupledField {
 
     std::string name, resultName, dof, entType, value, phase, weight;
     EntityList::DefineType defineType;
-    SolutionType solType;
     shared_ptr<ResultInfo> actResultInfo;
 
 
@@ -1460,8 +1452,7 @@ namespace CoupledField {
 
 
         // fetch related resultInfo object
-        String2Enum( resultName, solType );
-        actResultInfo = GetResultInfo( solType );
+        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
 
         // Create load condition
         shared_ptr<LoadBc> actLoad( new LoadBc );

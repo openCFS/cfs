@@ -449,7 +449,7 @@ namespace CoupledField {
           fdps->entryType=ResultInfo::SCALAR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_DENSITY);
           fdps->data.resize(numNodesPerRegion_[0]);
-          Enum2String(FLUIDMECH_DENSITY, fdps->resultName);
+          fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_DENSITY);
           break;
         case PRESSURE:
           fdps = &flowdata[FLUIDMECH_PRESSURE];
@@ -458,7 +458,7 @@ namespace CoupledField {
           fdps->dofNames.push_back("-");
           fdps->entryType=ResultInfo::SCALAR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-          Enum2String(FLUIDMECH_PRESSURE, fdps->resultName);
+          fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
           fdps->data.resize(numNodesPerRegion_[0]);
           break;
         case VELOCITY_X:
@@ -471,7 +471,7 @@ namespace CoupledField {
             fdps->dofNames.push_back("z");
           fdps->entryType=ResultInfo::VECTOR;
           fdps->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-          Enum2String(FLUIDMECH_VELOCITY, fdps->resultName);
+          fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
           fdps->data.resize(numVelDofs * numNodesPerRegion_[0]);
           break;
         default:

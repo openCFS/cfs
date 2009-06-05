@@ -12,14 +12,15 @@
 namespace CoupledField
 {
 
+  class BaseDriver;
+  class InfoNode;
+
   //! Base class for solution of a single step
 
   class BaseSolveStep
   {
 
   public:
-
-    
 
     //! Destructor
     virtual ~BaseSolveStep();
@@ -30,14 +31,14 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic( ) = 0;
     
-    /** base method for solving one static step
-     * @param comment will be used for filenames if export linear systems */
-    virtual void SolveStepStatic(const std::string& comment = "") = 0;
+    /** base method for solving one static step 
+     * @param analysis_id references the "base" analysis step. 
+     *        is the the info/OLAS/process/step element and required the attribute
+     *        "analysis_id" to be set!. In the non-lin case subelements are created. */
+    virtual void SolveStepStatic(InfoNode* analysis_id) = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
-
-
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations before execution of the SolveStep-method
@@ -47,8 +48,9 @@ namespace CoupledField
     // neede in case of FSI-Iterative-Coupling
     //virtual void PredictorStep() = 0;
 
-    //! base method for solving one transient step
-    virtual void SolveStepTrans() = 0;
+    /** base method for solving one transient step
+     * @param analysis_id @see SolveStepStatic() */
+    virtual void SolveStepTrans(InfoNode* analysis_id) = 0;
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
@@ -62,8 +64,8 @@ namespace CoupledField
     virtual void PreStepHarmonic() = 0;
 
     /** base method for solving one harmonic step
-     * @param comment - see SolveStepStatic() */
-    virtual void SolveStepHarmonic(const std::string& comment = "") = 0;
+     * @param analysis_id @see SolveStepStatic() */
+    virtual void SolveStepHarmonic(InfoNode* analysis_id) = 0;
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;
@@ -152,6 +154,11 @@ namespace CoupledField
     //! Constructor
     BaseSolveStep();
 
+    BaseSolveStep(BaseDriver* driver);
+
+    // used to aquire analysis_id if not provided. TODO: check if realy needed!
+    BaseDriver* driver;
+    
     //! Actual time / frequency step
     UInt actStep_;
 

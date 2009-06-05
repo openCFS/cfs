@@ -105,14 +105,6 @@ namespace CoupledField {
     void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const BasePDE::AnalysisType analysis);
 
-    /// prints the process of a transient analysis
-    void WriteTimeStep(const std::string& pdeName, const UInt timeStep,    
-                       const Double time);
-
-    /// prints the process of a harmonic analysis
-    void WriteHarmonicStep(const std::string& pdeName, const UInt freqStep,    
-                           const Double frequency);
-
     /// writes definition of homogeneous dirichet boundary conditions
     void WriteHomDirBC( const std::string& pdeName, HdBcList& list );
 

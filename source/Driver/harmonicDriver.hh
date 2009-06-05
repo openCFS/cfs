@@ -54,12 +54,12 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, const std::string& comment = "");
+  void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, const std::string& comment = "");
+   Double ComputeFrequencyStep(UInt actFreqStep, InfoNode* analysis_id);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(double step_val);

@@ -48,9 +48,7 @@ namespace CoupledField {
     // From here on, the entry in the ResultInfo.resultName
     // is needed instead of the Resultinfo.resultType
     if( actDof.resultName == "" ) {
-      std::string name;
-      Enum2String( actDof.resultType, name );
-      actDof.resultName = name;
+      actDof.resultName = SolutionTypeEnum.ToString(actDof.resultType);
     }
     
     LOG_DBG(resHandler) << "Registering result:";
@@ -843,9 +841,7 @@ namespace CoupledField {
       if( infos[i]->resultType == solType ) {
         // check, if result was already found
         if(found) { 
-          std::string resultName;
-          Enum2String( solType, resultName);
-          EXCEPTION( "A result of type '" << resultName << "' was already "
+          EXCEPTION( "A result of type '" << SolutionTypeEnum.ToString(solType) << "' was already "
                       << "found in input reader '" << readerId
                       << "' in sequence Step " << sequenceStep );
         }

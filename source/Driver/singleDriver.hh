@@ -43,9 +43,6 @@ namespace CoupledField {
     /** our report node */ 
     InfoNode* infoNode_; 
 
-    /** This is the current step (InfoNode::PROCESS) to be filled with solver data, ... */ 
-    InfoNode* currentStepInfoNode_; 
-
     //! pointer to basePDE 
     BasePDE * ptPDE_;
 

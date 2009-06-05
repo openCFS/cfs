@@ -187,9 +187,7 @@ piezoParamIdent::~piezoParamIdent() {
     inMechMess_.close();
 }
 
-void piezoParamIdent::SolveProblem(bool write_results,
-    const std::string& comment) {
-
+void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();

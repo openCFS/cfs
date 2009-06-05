@@ -65,9 +65,7 @@ int main( int argc, const char **argv ) {
   Exception::segfault_ = false;
   try
   {
-
-  BasePDE::SetEnums();
-
+    
   // =========================================================================
   // TIMING
   // =========================================================================
@@ -96,6 +94,10 @@ int main( int argc, const char **argv ) {
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
+
+  // Set Enums
+  SetEnvironmentEnums();
+  BasePDE::SetEnums();
 
   // the new xml logging derived from the ParamNode
   info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");

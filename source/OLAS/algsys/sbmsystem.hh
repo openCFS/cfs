@@ -121,7 +121,7 @@ namespace CoupledField {
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.
-    void SetupSolver();
+    void SetupSolver(InfoNode* analysis_id = NULL);
 
         //! Trigger setup of eigenvalue solver
 
@@ -147,7 +147,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(const std::string& comment = "");
+    void Solve(InfoNode* analysis_id);
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 

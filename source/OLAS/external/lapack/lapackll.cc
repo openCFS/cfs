@@ -53,7 +53,7 @@ namespace CoupledField {
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LL::Setup( BaseMatrix &sysMat ) {
+  void Lapack_LL::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
 
 
     // Are we expected to be verbose?
@@ -429,7 +429,7 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                         const BaseVector &rhs, BaseVector &sol ) {
+                         const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
 
 
     // Are we expected to be verbose?

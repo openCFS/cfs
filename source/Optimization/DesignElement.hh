@@ -461,8 +461,7 @@ public:
    * @param pn our data */
   ResultDescription(ParamNode* pn);
 
-  /** killme -> use the typedef version when the Enums eliminated environment.hh */
-  int solutionType;
+  SolutionType solutionType;
 
   /** Finds the proper design element by element number */
   DesignElement::Type design;
@@ -475,9 +474,6 @@ public:
 
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
-
-  /** As long as solutionType is an int this gives the string representation */
-  std::string ToString();
 };
 
 

@@ -21,7 +21,7 @@ namespace CoupledField
 
     //virtual void PredictorStep();
 
-    virtual void StepTransLin();
+    virtual void StepTransLin(InfoNode* analysis_id);
 
     //virtual void StepTransNonLin();
 

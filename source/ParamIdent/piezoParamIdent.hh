@@ -60,7 +60,7 @@ class DirectCoupledPDE;
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem(bool write_results, const std::string& comment);
+    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k

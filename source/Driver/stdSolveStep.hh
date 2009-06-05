@@ -49,16 +49,14 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic();
  
-    /** base method for solving one static step
-     * @param comment if export linear system is defined in xml this is part 
-     *        of the name */  
-    virtual void SolveStepStatic(const std::string& comment = "");
+    /** base method for solving one static step */
+    virtual void SolveStepStatic(InfoNode* analysis_id);
 
-    /** @see SolveStepStatic(const std::string&) */ 
-    virtual void StepStaticLin(const std::string& comment = "");
+    /** @see SolveStepStatic() */ 
+    virtual void StepStaticLin(InfoNode* analysis_id);
 
     //! solves for one nonlinear static step 
-    virtual void StepStaticNonLin();
+    virtual void StepStaticNonLin(InfoNode* analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -72,21 +70,21 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans();
+    virtual void SolveStepTrans(InfoNode* analysis_id);
 
     //! solves for one linear transient step 
-    virtual void StepTransLin();
+    virtual void StepTransLin(InfoNode* analysis_id);
 
     //! solves for one nonlinear transient step 
-    virtual void StepTransNonLin();
+    virtual void StepTransNonLin(InfoNode* analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial();
+    void StepTransNonLinMaterial(InfoNode* analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis();
+    virtual void StepTransNonLinHysteresis(InfoNode* analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -96,13 +94,13 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(const std::string& comment = "");
+    virtual void SolveStepHarmonic(InfoNode* analysis_id);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(const std::string& comment = "");
+    virtual void StepHarmonicLin(InfoNode* analysis_id);
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin()
+    virtual void StepHarmonicNonLin(InfoNode* analysis_id)
     {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
