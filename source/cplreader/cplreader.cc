@@ -208,6 +208,9 @@ int main(int argc, char *argv[])
     // Set user defined exception behaviour
     Exception::segfault_ = settings.GetInt("segfault") != 0;
 
+    // Set Enums from environment.hh
+    SetEnvironmentEnums();
+
     // Write HTML help
     if(settings.GetString("docu") != "")
     {

@@ -47,18 +47,6 @@ IF(CFS_BUILD_HOST MATCHES "lse")
   INCLUDE("cmake_modules/platform_defaults_lse.cmake")
 ENDIF(CFS_BUILD_HOST MATCHES "lse")
 
-IF(CFS_BUILD_HOST MATCHES "mac")
-  INCLUDE("cmake_modules/platform_defaults_mac.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "mac")
-
-IF(CFS_BUILD_HOST MATCHES "rom")
-  INCLUDE("cmake_modules/platform_defaults_rom.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "rom")
-
-IF(CFS_BUILD_HOST MATCHES "sedici")
-  INCLUDE("cmake_modules/platform_defaults_sedici.cmake")
-ENDIF(CFS_BUILD_HOST MATCHES "sedici")
-
 IF(CFS_BUILD_HOST MATCHES "woody")
   INCLUDE("cmake_modules/platform_defaults_woody.cmake")
 ENDIF(CFS_BUILD_HOST MATCHES "woody")

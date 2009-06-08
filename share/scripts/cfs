@@ -154,7 +154,9 @@ SetGIDParameters()
 }
 
 # Set XML schema root path
-#export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+if [ -r $CFS_ROOT_DIR/share/xml/CFS-Simulation/CFS.xsd ]; then
+    export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+fi
 
 # Get settings concerning the distribution type of CFS: GiD/ANSYS
 #if [ "$CFS_DIST_TYPE" != "" ]

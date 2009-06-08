@@ -359,10 +359,8 @@ namespace CoupledField {
       schema = XMLSCHEMA;
     }
 
-    // If none of the above paths exists, raise exception
-    if(!fs::exists(schema)) {
-      EXCEPTION( "Schema path '" << schema << "' does not exist!" );
-    }
+    //      fs::path fn = fs::system_complete(progOpts->exe_);
+    //      fn.normalize();
 
     try
     {
@@ -371,6 +369,11 @@ namespace CoupledField {
     } catch (fs::filesystem_error& ex)
     {
       EXCEPTION(ex.what());
+    }
+
+    // If none of the above paths exists, raise exception
+    if(!fs::exists(schemaPath)) {
+      EXCEPTION( "Schema path '" << schemaPath << "' does not exist!" );
     }
 
     return schemaPath;
@@ -743,8 +746,14 @@ namespace CoupledField {
            << fg_blue << "YES" << fg_reset << endl;
     outstr << "CFS_XERCES_VERSION:    "
            << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
-    outstr << "XMLSCHEMA:             "
-           << fg_blue << XMLSCHEMA << fg_reset << endl;
+    outstr << "XMLSCHEMA:             ";
+    if(progOpts) {  
+      outstr << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
+    } else {
+      outstr << fg_blue << XMLSCHEMA << fg_reset << endl;
+    }
+    
+    
 #else
     outstr << "USE_XERCES:            "
            << fg_blue << "NO" << fg_reset << endl;
