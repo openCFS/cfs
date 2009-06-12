@@ -1405,7 +1405,7 @@ namespace CoupledField
       fsRatio = actFileSize / (double) meanFileSize;
 
       // If the file size diverges by more than 1%
-      if(std::fabs(fsRatio - 1.0) > 0.05) 
+      if(std::fabs(fsRatio - 1.0) > settings.GetDouble("trntol") )
       {
         corruptTRNs.push_back(*it);
         everyThingFine = false;

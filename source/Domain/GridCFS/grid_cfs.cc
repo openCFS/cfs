@@ -850,6 +850,9 @@ namespace CoupledField {
 
     isInitialized_ = true;
 
+    // Fix problems due to negative Jacobian determinants
+    CorrectElementConnectivities();
+    
     // Select nodes / elements according to the users specification in the
     // parameter file
     CreateUserDefinedNodesElems();
@@ -1477,7 +1480,8 @@ namespace CoupledField {
 
     } else {
       EXCEPTION( "GridCFS: The surface region with id '" << regionId
-                 << "' was not found in the grid!" );
+                 << "' (" << RegionIdToName(regionId)
+                 << ") was not found in the grid!" );
     }
   }
 
@@ -2830,5 +2834,30 @@ namespace CoupledField {
     numElems_ = numElems;
   }
 
+  void GridCFS::CorrectElementConnectivities() {
+    Matrix<Double> coordMat;
+    Vector<Double> localCoord;
+    
+    for(UInt i=0; i<numElems_; i++)
+    {
+      Elem* el = orderedElems_[i];
+      GetElemNodesCoord( coordMat, el->connect, true);
+
+      // The local coordinate (0,0,0) is in the reference domain of
+      // every finite element. Therefore we should be able to calculate
+      // the Jacobian determinant there and check if the element is
+      // properly oriented.
+      localCoord.Resize(dim_);
+      localCoord.Init(0);
+      
+      // Let's just calculate the Jacobian determinant at (0,0,0)
+      // to check if it is negative.
+      try { 
+        el->ptElem->CalcJacobianDet(localCoord, coordMat, el);
+      } catch (Exception& ex) {
+        el->CorrectConnectivity();
+      }
+    }    
+  }
 
 } // end namespace

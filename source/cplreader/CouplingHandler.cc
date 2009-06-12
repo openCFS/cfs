@@ -182,6 +182,7 @@ namespace CoupledField
     if(*topoSet.begin() == 0)
       topoSet.erase(topoSet.begin());
 
+    // Throw away unused nodes
     std::set<UInt>::iterator topoIt, topoEnd;
     topoIt = topoSet.begin();
     topoEnd = topoSet.end();
@@ -190,7 +191,7 @@ namespace CoupledField
     for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
     {
       pointMap[*topoIt] = i+1;
-      std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
+      // std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
       
       UInt idxNew=i*3;
       UInt idxOld=(*topoIt-1)*3;

@@ -556,7 +556,9 @@ namespace CoupledField
     //! find entity with minimum distance
     UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
 
-    
+    //! Correct connectivity in case of negative Jacobian determinants
+    void CorrectElementConnectivities();
+
     //@}
 
     // =======================================================================

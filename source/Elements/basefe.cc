@@ -694,8 +694,8 @@ namespace CoupledField
 
 
   Double BaseFE::CalcJacobianDetAtIp(const UInt ip,
-                                       const Matrix<Double> & CornerCoords,
-                                       const Elem* elem)
+                                     const Matrix<Double> & CornerCoords,
+                                     const Elem* elem)
   {
     CalcJacobianAtIp( J, ip, CornerCoords, elem);
 

@@ -10,6 +10,8 @@
 
 namespace CoupledField {
 
+  class CoordSystem;
+
   //! Class for reading in mesh and simulation data from hdf5 file
 
   //! Class for handling the reading of mesh and simulation data from 
@@ -162,6 +164,9 @@ namespace CoupledField {
                         StdVector<Integer>& elemTypes, 
                         StdVector<UInt>& globConnect, 
                         StdVector<UInt>& readNodes);
+
+    void TransformNodes(CoordSystem& coordSys, double scaleFac);
+
     //@}
 
     // =======================================================================
@@ -231,6 +236,12 @@ namespace CoupledField {
     
     // Map from grid entity nodes to indices of mesh entity nodes
     std::map<std::string, StdVector<UInt> > entityNodeMap_;    
+
+    // Coordinate system into which the node coordinates should be mapped
+    std::string coordSysId_;
+    
+    // Scale factor for node coordinates
+    Double scaleFac_;
   };
 
 } // end of namespace

@@ -294,6 +294,13 @@ ADD_OPTION(deffile
   "Non-standard path to .def file for CFX."
   )
 
+ADD_OPTION(trntol
+  double
+  0.05
+  "Ratio by which .trn files may differ."
+  "Ratio by which .trn files may differ before they are regarded corrupt."
+  )
+
 ADD_OPTION(lhsrc
   string
   ""

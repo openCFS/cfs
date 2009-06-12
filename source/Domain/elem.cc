@@ -3,6 +3,9 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "elem.hh"
+#include "Elements/basefe.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include "General/Enum.hh"
 
 namespace CoupledField {
@@ -141,5 +144,45 @@ namespace CoupledField {
     else
       return 0;
   }
- 
+
+  void Elem::CorrectConnectivity() 
+  {
+    UInt dummy;
+    FEType type = ptElem->feType();
+
+    // This funtion rearanges the connectivity of the element so
+    // that the orientation is in such a way that the Jacobion determinant
+    // will always be positive. 
+    switch(type) 
+    {
+    case TRIA6:
+      dummy = connect[4];
+      connect[4] = connect[5];
+      connect[5] = dummy;
+    case TRIA3:
+      dummy = connect[0];
+      connect[0] = connect[1];
+      connect[1] = dummy;
+      break;
+    case QUAD8:
+      dummy = connect[4];
+      connect[4] = connect[7];
+      connect[7] = dummy;
+      dummy = connect[5];
+      connect[5] = connect[6];
+      connect[6] = dummy;
+    case QUAD4:
+      dummy = connect[1];
+      connect[1] = connect[3];
+      connect[3] = dummy;
+      break;
+    default:
+      EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
+                << elemNum << " in region "
+                << domain->GetGrid()->RegionIdToName(regionId)
+                << " is not properly oriented!" );
+      break;
+    }
+  }
+  
 }
