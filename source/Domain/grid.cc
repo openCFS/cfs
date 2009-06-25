@@ -455,7 +455,8 @@ namespace CoupledField
             }
 
             if (PolygonOnPolygon(masterElems[i], slaveElems[j], ncIf.coplanar,
-                                 ncIf.rotationAngle != 0.0, ncElems))
+                                 ncIf.rotationAngle != 0.0, ncElems,
+                                 ncIf.tolAbs, ncIf.tolRel))
             {
               LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
