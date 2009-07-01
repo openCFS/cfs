@@ -204,6 +204,18 @@ share/doc/developer/Concepts/cfs/java_imports -text
 share/doc/developer/Concepts/cfs/stereotypes -text
 share/doc/developer/Concepts/cfs/tools -text
 share/doc/developer/Concepts/resultHandling/resultHandling.dia -text
+share/doc/developer/Concepts/sbm-fespace/elems.pdf -text svneol=unset#application/pdf
+share/doc/developer/Concepts/sbm-fespace/elems.svg -text
+share/doc/developer/Concepts/sbm-fespace/fespace.dia -text
+share/doc/developer/Concepts/sbm-fespace/fespace.odp -text
+share/doc/developer/Concepts/sbm-fespace/fespace.svg -text
+share/doc/developer/Concepts/sbm-fespace/fespace.tex svneol=native#text/plain
+share/doc/developer/Concepts/sbm-fespace/ng-Ablauf.txt svneol=native#text/plain
+share/doc/developer/Concepts/sbm-fespace/sketches.svg -text
+share/doc/developer/Concepts/sbm-fespace/system1.png -text svneol=unset#image/png
+share/doc/developer/Concepts/sbm-fespace/system2.png -text svneol=unset#image/png
+share/doc/developer/Concepts/sbm-fespace/system3.png -text svneol=unset#image/png
+share/doc/developer/Concepts/sbm-fespace/system4.png -text svneol=unset#image/png
 share/doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
