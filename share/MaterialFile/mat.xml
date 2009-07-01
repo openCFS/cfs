@@ -4,7 +4,6 @@
   xsi:schemaLocation="http://www.cfs++.org ../../XML/CFS-Material/CFS_Material.xsd"
   xmlns="http://www.cfs++.org">
   <material name="Air">
-      <material name="Air">
     <acoustic>
       <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
       Reference(s) :  -->
