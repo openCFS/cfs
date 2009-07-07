@@ -5,7 +5,7 @@
 #
 
 # If documentation is to be rebuilt set this to 1
-SET(BUILD_CPLREADER_DOCU 1)
+SET(BUILD_CPLREADER_DOCU 0)
 
 IF(BUILD_CPLREADER_DOCU)
   SUBDIRS(latex)
