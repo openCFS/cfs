@@ -2,23 +2,32 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:cc="http://creativecommons.org/ns#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="186.42076"
-   height="213.5"
+   width="190"
+   height="220"
    id="svg2"
    sodipodi:version="0.32"
-   inkscape:version="0.44.1"
+   inkscape:version="0.46"
    version="1.0"
    sodipodi:docbase="/home/lse24/lse/strieben/dev/CFS_TRUNK/source/cplreader/Documentation/latex/pics"
-   sodipodi:docname="FASTESTexample.svg">
+   sodipodi:docname="FASTESTexample.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <defs
-     id="defs4" />
+     id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 106.75 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="186.42076 : 106.75 : 1"
+       inkscape:persp3d-origin="93.210381 : 71.166667 : 1"
+       id="perspective2571" />
+  </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -29,15 +38,16 @@
      objecttolerance="10"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.6955504"
-     inkscape:cx="93.210381"
-     inkscape:cy="106.75"
+     inkscape:zoom="2.6131487"
+     inkscape:cx="91.685052"
+     inkscape:cy="90.002088"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      inkscape:window-width="1280"
      inkscape:window-height="961"
-     inkscape:window-x="1280"
-     inkscape:window-y="0" />
+     inkscape:window-x="1460"
+     inkscape:window-y="42"
+     showgrid="false" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -55,24 +65,24 @@
      id="layer1"
      transform="translate(-82.71429,-477.9336)">
     <image
-       y="478.26379"
-       x="83.642891"
+       y="481.32523"
+       x="85.938972"
        id="image1988"
        height="212.59842"
        width="71.375053"
        sodipodi:absref="/home/lse24/lse/strieben/dev/CFS_TRUNK/source/cplreader/Documentation/latex/pics/fastest.png"
        xlink:href="fastest.png" />
     <path
-       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 83.571429,619.86218 L 155,619.86218"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 85.86751,622.92362 L 157.29608,622.92362"
        id="path1991" />
     <path
-       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 83.214286,690.93361 L 83.214286,478.43361 L 155,478.43361 L 155,690.57647 L 83.214286,690.93361 z "
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 85.510367,693.99505 L 85.510367,481.49505 L 157.29608,481.49505 L 157.29608,693.63791 L 85.510367,693.99505 z"
        id="path1993" />
     <g
        id="g2007"
-       transform="translate(0,-2.164636)">
+       transform="translate(2.2960805,0.8968047)">
       <image
          xlink:href="colorbar.png"
          sodipodi:absref="/home/lse24/lse/strieben/dev/CFS_TRUNK/source/cplreader/Documentation/latex/pics/colorbar.png"
@@ -85,7 +95,7 @@
          id="text1995"
          y="510.57648"
          x="204.84012"
-         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
          xml:space="preserve"><tspan
            style="font-family:Arial"
            y="510.57648"
@@ -96,7 +106,7 @@
          id="text1999"
          y="591.08606"
          x="204.84012"
-         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
          xml:space="preserve"><tspan
            style="font-family:Arial"
            y="591.08606"
@@ -107,7 +117,7 @@
          id="text2003"
          y="671.59851"
          x="204.84012"
-         style="font-size:12px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
+         style="font-size:12px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Luxi Serif"
          xml:space="preserve"><tspan
            style="font-family:Arial"
            y="671.59851"

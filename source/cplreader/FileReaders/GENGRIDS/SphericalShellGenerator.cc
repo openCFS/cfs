@@ -7,6 +7,7 @@
 #include <iterator>
 
 #include "Domain/elem.hh"
+#include "cplreader/Settings.hh"
 #include "SphericalShellGenerator.hh"
 
 namespace CoupledField
@@ -1356,6 +1357,83 @@ namespace CoupledField
     coords.clear();
     connect.clear();
     elemTypes.clear();
+    bool createPyras = false;
+    
+    Settings& settings = Settings::Instance();
+    
+    ParamNode *param = settings.GetParamNode();
+
+    ParamNode* typeNode = NULL;
+    ParamNode* node = NULL;
+
+    if(param) 
+    {
+      typeNode = param->Get("type");
+      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      {
+        std::cout << "GENGRIDS node found!" << std::endl;
+        
+        std::string elemTypeName = "HEXA8";
+        ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+
+        if(elemTypeNode) {
+          elemTypeNode->Get("name", elemTypeName, false);
+        }
+        
+        if(elemTypeName == "HEXA8") {
+          makeQuadratic_ = false;
+          makeSuperQuadratic_ = false;
+        }
+        if(elemTypeName == "HEXA20") {
+          makeQuadratic_ = true;
+          makeSuperQuadratic_ = false;
+        }
+        if(elemTypeName == "HEXA27") {
+          makeQuadratic_ = true;
+          makeSuperQuadratic_ = true;
+        }
+        if(elemTypeName == "PYRA5") {
+          makeQuadratic_ = false;
+          makeSuperQuadratic_ = false;
+          createPyras = true;
+        }
+        if(elemTypeName == "PYRA13") {
+          makeQuadratic_ = true;
+          makeSuperQuadratic_ = false;
+          createPyras = true;
+        }
+
+        node = typeNode->Get("numRefinementLevels", false);
+        if(node) {
+          node->Get("value", numLevels_, false);
+          node = NULL;
+        }
+        
+        node = typeNode->Get("innerRadius", false);
+        if(node) {
+          node->Get("value", innerRadius_, false);
+          node = NULL;
+        }
+        node = typeNode->Get("outerRadius", false);
+        if(node) {
+          node->Get("value", outerRadius_, false);
+          node = NULL;
+        }
+
+        node = typeNode->Get("numRadialElements", false);
+        if(node) {
+          node->Get("value", numLayers_, false);
+          node = NULL;
+        }
+
+        node = typeNode->Get("octantRegions", false);
+        if(node) {
+          node->Get("value", octantRegions_, false);
+          node = NULL;
+        }
+      }
+    }
+    
   
     CreateBaseMesh();
     
@@ -1386,9 +1464,11 @@ namespace CoupledField
 
     CreateOuterQuads();
 
-    CreateHexas();
-
-    // CreatePyras();
+    if(createPyras) {
+      CreatePyras();
+    } else {
+      CreateHexas();
+    }
 
     if(makeQuadratic_)
       MakeQuadraticQuads();

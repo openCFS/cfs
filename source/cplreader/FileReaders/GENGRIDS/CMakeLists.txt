@@ -8,6 +8,7 @@ SET(CPLREADER_GENGRIDS_SRCS
   FileReader_GENGRIDS.cc
   SphericalShellGenerator.cc
   RectilinearUniformGridGenerator.cc
+  ReferenceElementGenerator.cc
 )
 
 ADD_LIBRARY(cplreader_gengrids STATIC ${CPLREADER_GENGRIDS_SRCS})
