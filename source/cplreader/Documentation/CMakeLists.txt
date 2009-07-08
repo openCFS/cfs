@@ -4,17 +4,14 @@
 # --------------------------------------------------------------------------
 #
 
-# If documentation is to be rebuilt set this to 1
-SET(BUILD_CPLREADER_DOCU 0)
-
-IF(BUILD_CPLREADER_DOCU)
+IF(CPLREADER_REBUILD_DOCU)
   SUBDIRS(latex)
   SET(PDF_FILE "${CMAKE_CURRENT_BINARY_DIR}/latex/cplreader_docu.pdf")
   SET(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}/latex")
-ELSE(BUILD_CPLREADER_DOCU)
+ELSE(CPLREADER_REBUILD_DOCU)
   SET(PDF_FILE "${CMAKE_CURRENT_SOURCE_DIR}/latex/cplreader_docu.pdf")
   SET(WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/latex")
-ENDIF(BUILD_CPLREADER_DOCU)
+ENDIF(CPLREADER_REBUILD_DOCU)
 
 ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GetPDFDocumentation.cc
                    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/docfilestocpp.pl ${CMAKE_CURRENT_BINARY_DIR}/GetPDFDocumentation.cc GetPDFDocumentation '*.pdf'
@@ -31,6 +28,13 @@ SET(CPLREADER_DOC_SRCS
 
 ADD_LIBRARY(cplreader_docu STATIC ${CPLREADER_DOC_SRCS})
 
-IF(BUILD_CPLREADER_DOCU)
+IF(CPLREADER_REBUILD_DOCU)
   ADD_DEPENDENCIES(cplreader_docu cplreader_docu_pdf)
-ENDIF(BUILD_CPLREADER_DOCU)
+
+  ADD_CUSTOM_TARGET(cplreader_docu_copy ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_BINARY_DIR}/source/cplreader/Documentation/latex/cplreader_docu.pdf ${CFS_SOURCE_DIR}/source/cplreader/Documentation/cplreader_docu.pdf
+  COMMENT "Copying cplreader_docu.pdf back to ${CFS_SOURCE_DIR}/source/cplreader/Documentation..."
+  )
+
+  ADD_DEPENDENCIES(cplreader_docu_copy cplreader_docu_pdf)
+ENDIF(CPLREADER_REBUILD_DOCU)

@@ -1018,9 +1018,9 @@ All entities 'name' may also be symbolic links.
 \item[--deffile] You can  specify different '.def' file than  the one given by
 'name'.
 
-\item[--trnthres] Percentage the file size  of transient files may differ from
+\item[--trntol] Percentage the file size  of transient files may differ from
 the average file  size of all transient files. If a  transient file is smaller
-than  average size  *  (1 -  trnthres)  the corresponding  time  step will  be
+than  average size  *  (1 -  trntol)  the corresponding  time  step will  be
 overwritten by the previous one.
 \end{description}
 
@@ -1068,7 +1068,7 @@ data by issuing:
 
 \begin{verbatim}
 cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
-          --deffile fluid_old.def --trnthres 0.05 --outputfields 'all'
+          --deffile fluid_old.def --trntol 0.05 --outputfields 'all'
 \end{verbatim}
 
 This would  read all transient files  except 6.trn which would  be replaced by
@@ -1274,7 +1274,7 @@ setup may  only consist of a  grid of boxes.   The geometry is described  by a
 number of intervals in x-, y-,  and z-directions. In each interval a number of
 subdivisions  may be specified  (similar to  ESIZE,,NDIV in  ANSYS). Cplreader
 treats  each  of the  boxes  as volumes  (in  ANSYS  terminology). The  naming
-convention  is  'volume\_x\_y\_z'  as  can  be  seen  for  a  simple  example  in
+convention  is  'volume\_x\_y\_z' as  can  be seen  for  a  simple example  in
 Fig. \ref{fig:gengrids_rectlin_volumes}.
 
 \begin{figure}[htb]
@@ -1285,8 +1285,8 @@ Fig. \ref{fig:gengrids_rectlin_volumes}.
 \label{fig:gengrids_rectlin_volumes}
 \end{figure}
 
-\noindent For  each volume  six surfaces  are  being automatically  generated using  the
-naming convention given in Fig. \ref{fig:gengrids_rectlin_surf}.
+\noindent For each volume six surfaces are being automatically generated using
+the naming convention given in Fig. \ref{fig:gengrids_rectlin_surf}.
 
 \begin{figure}[htb]
 \begin{center}
@@ -1416,27 +1416,16 @@ file.
 \newpage
 \section{Rebuilding the Documentation}
 
-Edit source/cplreader/Documentation/CMakeLists.txt and set
-
+Switch on  {\tt CPLREADER\_REBUILD\_DOCU} in CMake  GUI. Make sure  you have a
+recent TikZ/PGF distribution installed. Edit the following files:
 \begin{verbatim}
-# If documentation is to be rebuilt set this to 1
-SET(BUILD_CPLREADER_DOCU 1)
+source/cplreader/Documentation/latex/cplreader\_docu.tex
+source/cplreader/Documentation/latex/Title.tex
+source/cplreader/cmake\_options.cmake
 \end{verbatim}
-
-\noindent The documentation will end up in the build directory under
-
-\begin{verbatim}
-source/cplreader/Documentation/latex/cplreader_docu.pdf
-\end{verbatim}
-
-\noindent Just  copy this PDF back  to the corresponding  source directory and
-commit  the   changes  to  SVN.   Do   not  forget  to   reset  everything  in
-source/cplreader/Documentation/CMakeLists.txt before committing!
-
-\begin{verbatim}
-# If documentation is to be rebuilt set this to 1
-SET(BUILD_CPLREADER_DOCU 0)
-\end{verbatim}
+Then you may rebuild CFS++ and cplreader. The resulting PDF documentation file
+for   cplreader    will   be   copied    back   to   the    source   directory
+automatically. Therefore you just need to commit the changes to SVN.
 
 
 \newpage
