@@ -32,7 +32,7 @@ IF(CPLREADER_REBUILD_DOCU)
   ADD_DEPENDENCIES(cplreader_docu cplreader_docu_pdf)
 
   ADD_CUSTOM_TARGET(cplreader_docu_copy ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_BINARY_DIR}/source/cplreader/Documentation/latex/cplreader_docu.pdf ${CFS_SOURCE_DIR}/source/cplreader/Documentation/cplreader_docu.pdf
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CFS_BINARY_DIR}/source/cplreader/Documentation/latex/cplreader_docu.pdf ${CFS_SOURCE_DIR}/source/cplreader/Documentation/latex/cplreader_docu.pdf
   COMMENT "Copying cplreader_docu.pdf back to ${CFS_SOURCE_DIR}/source/cplreader/Documentation..."
   )
 
